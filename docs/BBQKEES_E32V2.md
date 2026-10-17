@@ -145,8 +145,8 @@ Runtime MQTT, HA, NTP, DNS, OTA and HTTP on **both** interfaces remain unverifie
 Use an isolated Python environment (no gateway/serial port is required):
 
 ```sh
-python3 -m venv .venv
-. .venv/bin/activate
+python3 -m venv ~/.venvs/open-thermostat-pio
+. ~/.venvs/open-thermostat-pio/bin/activate
 pip install platformio==6.2.0
 pio run -e e32v2
 pio run -e e32v2 -t buildfs

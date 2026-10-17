@@ -1,5 +1,7 @@
 # E32 V2 experimental test-release guide
 
+**Nederlands: [eenvoudig klik-voor-klik flashen via USB-C](FLASHEN_NL.md).**
+
 For the **BBQKees E32 V2 / original ESP32 with 16 MB flash**, not ESP32-S3 or
 the old E32. Identify your actual PCB/module before proceeding.
 This is a **bench-test prerelease, not a working heating replacement**.

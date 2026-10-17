@@ -1,5 +1,7 @@
 # OpenThermostat — experimental BBQKees E32 V2 fork
 
+**Nederlands: [E32 V2 flashen — eenvoudig stappenplan met USB-C](docs/FLASHEN_NL.md).**
+
 This is [dielessen/open_thermostat](https://github.com/dielessen/open_thermostat),
 a fork of [intuibase/open_thermostat](https://github.com/intuibase/open_thermostat).
 The original project provides an ESP32 thermostat for a central heating boiler
@@ -25,6 +27,7 @@ EMS command payloads are unchanged.
 
 ## Start here
 
+- [Nederlands: eenvoudige flashhandleiding, back-up en terugzetten](docs/FLASHEN_NL.md)
 - [E32 V2 hardware, pinout, limitations, backup and recovery](docs/BBQKEES_E32V2.md)
 - [Executed software builds/tests and remaining physical gates](docs/BBQKEES_E32V2_VALIDATION.md)
 - [Original versus E32 V2 hardware](docs/HARDWARE.md)

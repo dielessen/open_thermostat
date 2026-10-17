@@ -43,7 +43,7 @@ jobs:
           cp .pio/build/e32v2/{bootloader,partitions,firmware,spiffs}.bin out/e32v2/
           cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin out/e32v2/
           cp partitions_e32v2.csv docs/BBQKEES_E32V2{,_VALIDATION,_TEST_RELEASE}.md out/e32v2/
-          cp docs/FLASHEN_NL.md out/e32v2/
+          cp docs/FLASHING.md out/e32v2/
           git rev-parse HEAD > out/e32v2/SOURCE_COMMIT.txt
           pio pkg list -e e32v2 > out/e32v2/BUILD_PACKAGES.txt
           python ~/.platformio/packages/tool-esptoolpy/esptool.py --chip esp32 merge_bin \

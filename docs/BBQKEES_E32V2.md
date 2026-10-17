@@ -276,4 +276,5 @@ The following are operator instructions only; no device commands were run.
    independent stop/fallback and sole bus-controller ownership before any
    separately authorized real-boiler test. Do not equate a build with this proof.
 
-No release or unattended heating deployment is authorized by this experimental PR.
+Merging this experimental port into the fork main is not a release or approval
+for unattended heating deployment. The physical gates above still apply.

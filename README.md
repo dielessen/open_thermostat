@@ -12,10 +12,11 @@ native target for the **BBQKees EMS Gateway E32 V2**.
 > wired RTC and startup LED are also disabled on this target. Do not replace an
 > installed EMS-ESP gateway or follow generic flash/wiring instructions yet.
 
-The E32 work is on [`feature/bbqkees-e32v2`](https://github.com/dielessen/open_thermostat/tree/feature/bbqkees-e32v2)
-in [draft PR #1](https://github.com/dielessen/open_thermostat/pull/1).
-`main` remains the clean upstream baseline for synchronization; it does not yet
-contain this target. No release or physical-device test has been performed.
+This fork's [`main`](https://github.com/dielessen/open_thermostat/tree/main)
+contains the E32 V2 adaptations and documentation. It is our customized main,
+not an unchanged mirror of upstream. [PR #1](https://github.com/dielessen/open_thermostat/pull/1)
+records the initial implementation/review; no open PR or upstream approval is
+required to use this fork. No release or physical-device test has been performed.
 Existing `esp32dev` and `esp32s3` environment settings, heating algorithms and
 EMS command payloads are unchanged.
 
@@ -45,12 +46,11 @@ The implemented fallback is not evidence that either interface works on a device
 
 ## Build E32 V2 without accessing hardware
 
-Use the feature branch containing this target (do not switch over local changes):
+Clone this fork; its default `main` contains the E32 V2 target:
 
 ```sh
 git clone https://github.com/dielessen/open_thermostat.git
 cd open_thermostat
-git switch feature/bbqkees-e32v2
 python3 -m venv ~/.venvs/open-thermostat-pio
 . ~/.venvs/open-thermostat-pio/bin/activate
 pip install platformio==6.2.0
@@ -77,6 +77,23 @@ A firmware-only OTA cannot install the new partition layout.
 ![Main screen](docs/img/screen.jpg)
 
 **Original targets:** OpenThermostat can control the boiler using an ON/OFF relay or directly via the EMS2 protocol (e.g., via the EMS interface board from [EMS Interface Board](https://bbqkees-electronics.nl/product/ems-interface-board-v3-1/)).
+
+## Upstream updates
+
+The original project remains [intuibase/open_thermostat](https://github.com/intuibase/open_thermostat).
+An independent fork can keep its own changes on `main` and still merge future
+upstream updates. For a new clone, add the source remote once if it is absent:
+
+```sh
+git remote add upstream https://github.com/intuibase/open_thermostat.git
+git fetch upstream
+```
+
+Review and merge relevant `upstream/main` changes with the fork's existing work,
+resolve any conflicts and rerun the builds/tests before publishing them. Fetching
+alone does not change local files or `main`. Do not replace the customized main
+with upstream's tree or force-push away the fork history. The upstream remote is
+not a deployment target; changes to this fork are pushed to `origin`.
 
 ## Original project features
 

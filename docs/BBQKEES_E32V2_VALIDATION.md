@@ -59,7 +59,7 @@ PlatformIO's linked flash-usage figure. Both fit each E32 OTA slot.
   compiled and linked. Source hash guard rejects unreviewed wrapper changes.
 
 No remaining failed or unexecuted **requested local software build/test**.
-Remote CI status is tracked separately in the draft PR checks; these local
+Remote CI status is tracked separately in repository Actions and PR checks; these local
 results do not imply GitHub Actions execution or physical hardware success.
 
 ## Intentionally untested / open
@@ -78,7 +78,10 @@ BLE/MQTT room logic, schedules, web/REST/OTA and existing algorithms are retaine
 but it cannot currently function as an active EMS heating controller.
 
 See [hardware, backup/recovery and physical gates](BBQKEES_E32V2.md).
-No release is published; main stays at upstream baseline.
+No release is published. This report used upstream `8f3a1ca` as its comparison
+baseline. After the initial draft review, the fork owner chose to keep the E32 V2
+adaptations on the fork's own `main`; upstream remains the original source remote.
+The baseline in this report is not a claim that current fork main is unchanged.
 
 ## E32 artifact SHA-256 (built locally, not release binaries)
 

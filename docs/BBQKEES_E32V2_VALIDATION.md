@@ -78,7 +78,9 @@ BLE/MQTT room logic, schedules, web/REST/OTA and existing algorithms are retaine
 but it cannot currently function as an active EMS heating controller.
 
 See [hardware, backup/recovery and physical gates](BBQKEES_E32V2.md).
-No release is published. This report used upstream `8f3a1ca` as its comparison
+No release was published during this original validation. Later experimental
+packages have their own source commit and CI evidence; see the
+[test-release guide](BBQKEES_E32V2_TEST_RELEASE.md). This report used upstream `8f3a1ca` as its comparison
 baseline. After the initial draft review, the fork owner chose to keep the E32 V2
 adaptations on the fork's own `main`; upstream remains the original source remote.
 The baseline in this report is not a claim that current fork main is unchanged.

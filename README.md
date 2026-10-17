@@ -16,7 +16,10 @@ This fork's [`main`](https://github.com/dielessen/open_thermostat/tree/main)
 contains the E32 V2 adaptations and documentation. It is our customized main,
 not an unchanged mirror of upstream. [PR #1](https://github.com/dielessen/open_thermostat/pull/1)
 records the initial implementation/review; no open PR or upstream approval is
-required to use this fork. No release or physical-device test has been performed.
+required to use this fork. Experimental test packages are available through
+[GitHub Releases](https://github.com/dielessen/open_thermostat/releases); follow
+the [bench-test installation guide](docs/BBQKEES_E32V2_TEST_RELEASE.md).
+No physical-device test has been performed.
 Existing `esp32dev` and `esp32s3` environment settings, heating algorithms and
 EMS command payloads are unchanged.
 

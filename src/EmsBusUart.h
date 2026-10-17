@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Logging.h"
+#include "Board.h"
 
 #include <driver/uart.h>
 #include <hal/uart_types.h>
@@ -34,6 +35,15 @@ public:
 	}
 
 	void start(uint8_t rxPin, uint8_t txPin) {
+#ifdef OPENTHERMOSTAT_E32V2
+		// RX only: no UART output route, including at startup/reset.
+		// Runtime cfgpins cannot change board wiring.
+		rxPin = board::emsRx;
+		txPin = board::emsTx;
+		gpio_reset_pin(static_cast<gpio_num_t>(txPin));
+		gpio_set_direction(static_cast<gpio_num_t>(txPin), GPIO_MODE_INPUT);
+		gpio_set_pull_mode(static_cast<gpio_num_t>(txPin), GPIO_FLOATING);
+#endif
 		// params copied from EMS-ESP32
 		rxPin_ = rxPin;
 		txPin_ = txPin;
@@ -48,7 +58,10 @@ public:
 		};
 
 		uart_param_config(UartSlot, &uart_config);
-		uart_set_pin(UartSlot, txPin, rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+#ifdef OPENTHERMOSTAT_E32V2
+		uart_set_line_inverse(UartSlot, 0); // official E32V2: normal UART polarity
+#endif
+		uart_set_pin(UartSlot, board::emsTransmitAllowed ? txPin : UART_PIN_NO_CHANGE, rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 		uart_driver_install(UartSlot, 129, 0, (EmsMaxTelegramSize + 1) * 2, &uartQueue_, 0);
 		uart_set_rx_full_threshold(UartSlot, 1);
 		uart_set_rx_timeout(UartSlot, 0);
@@ -60,6 +73,7 @@ public:
 	}
 
 	void startForwarder(uint8_t rxPin, uint8_t txPin) {
+		if constexpr (!board::emsTransmitAllowed) return;
 		forwarder_.start(rxPin, txPin);
 	}
 
@@ -70,6 +84,7 @@ public:
 	bool writeToEms(std::vector<uint8_t> const &data) { return writeToEms(data.data(), static_cast<uint8_t>(data.size())); }
 
 	bool writeToEms(uint8_t const *data, uint8_t length) {
+		if constexpr (!board::emsTransmitAllowed) return false;
 		if (length == 0 || length > EmsMaxTelegramSize) {
 			return false;
 		}
@@ -92,7 +107,7 @@ public:
 		uart_wait_tx_done(UartSlot, (TickType_t)1000 / portTICK_PERIOD_MS); //(UART_NUM_MAX -1));
 		uart_flush(UartSlot);
 		xQueueReset(uartQueue_);
-		uart_send_break(UartSlot);
+		if constexpr (board::emsTransmitAllowed) uart_send_break(UartSlot);
 	}
 
 private:
@@ -108,6 +123,9 @@ private:
 
 	void processTelegram(size_t size) {
 		bool performProcess = true;
+#ifdef OPENTHERMOSTAT_E32V2
+		if (size == 0) return;
+#endif
 
 		if (forwarder_.isEnabled() && size == 2 && !(buffer_[0] & 0x80) ) { // polling if 0 byte is not masked, if masked then it is poll response
 			// DBGLOGFD(log_, logFeature_, "Polling device %d\n", buffer_[0]);

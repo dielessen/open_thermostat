@@ -1,4 +1,5 @@
 #pragma once
+#include "Board.h"
 #include "Logging.h"
 
 #include <esp_ota_ops.h>
@@ -441,6 +442,10 @@ private:
 	}
 
 	void i2cScan() {
+		if constexpr (!board::auxiliaryGpioAllowed) {
+			server_.send(403, "text/plain", "E32V2: auxiliary GPIO/I2C hardware is locked");
+			return;
+		}
 		DBGLOGFD(log_, logFeature_, "i2cScan\n");
 
 		// Known I2C device address ranges (helpers for frontend labeling)
@@ -484,6 +489,10 @@ private:
 	}
 
 	void gpioTestStart() {
+		if constexpr (!board::auxiliaryGpioAllowed) {
+			server_.send(403, "text/plain", "E32V2: auxiliary GPIO/I2C hardware is locked");
+			return;
+		}
 		DBGLOGFD(log_, logFeature_, "gpioTestStart\n");
 
 		if (!server_.hasArg("plain")) {

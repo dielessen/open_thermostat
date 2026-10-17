@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Logging.h"
+#include "Board.h"
 
 #include <driver/uart.h>
 #include <hal/uart_types.h>
@@ -47,6 +48,7 @@ public:
 	}
 
 	bool writeToEms(uint8_t const *data, uint8_t length) {
+		if constexpr (!board::emsTransmitAllowed) return false;
 		if (length == 0 || length > EmsMaxTelegramSize) {
 			return false;
 		}

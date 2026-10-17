@@ -5,6 +5,7 @@
 namespace heating {
 
 void EmsBusUartForwarder::start(uint8_t rxPin, uint8_t txPin) {
+	if constexpr (!board::emsTransmitAllowed) return;
 	// params copied from EMS-ESP32
 
 	uart_config_t uart_config = {

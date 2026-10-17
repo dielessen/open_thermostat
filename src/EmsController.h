@@ -206,6 +206,7 @@ private:
 	}
 
 	void enqueueTelegramToSend(EmsTelegram telegram, bool front = false) {
+		if constexpr (!board::emsTransmitAllowed) return; // no pending commands in RX-only mode
 		if (log_) {
 			telegram.logDebug(*log_, verboseFeature());
 		}

@@ -1,4 +1,5 @@
 #include "config.h"
+#include "Board.h"
 #include "BeaconBleAddress.h"
 #include "Logging.h"
 #include "TimeUtils.h"
@@ -144,6 +145,7 @@ void applyRoomProgram(heating::RoomConfig &room, cJSON *obj) {
 }
 
 std::optional<PinConfig> getBoilerPin() {
+	if constexpr (!heating::board::auxiliaryGpioAllowed) return {};
 	File file = SPIFFS.open("/cfg/cfgpins.json", FILE_READ);
 	if (!file)
 		return {};
@@ -212,6 +214,9 @@ RTCPins getRTCPins() {
 }
 
 EmsPins getEmsPins() {
+#ifdef OPENTHERMOSTAT_E32V2
+	return {heating::board::emsRx, heating::board::emsTx};
+#endif
 	File file = SPIFFS.open("/cfg/cfgpins.json", FILE_READ);
 	if (!file) {
 		return {};
@@ -249,6 +254,7 @@ EmsPins getEmsPins() {
 }
 
 std::optional<EmsForwarderPins> getEmsForwarderPins() {
+	if constexpr (!heating::board::auxiliaryGpioAllowed) return {};
 	File file = SPIFFS.open("/cfg/cfgpins.json", FILE_READ);
 	if (!file) {
 		return {};
@@ -286,6 +292,7 @@ std::optional<EmsForwarderPins> getEmsForwarderPins() {
 }
 
 std::vector<PinConfig> getValvePins() {
+	if constexpr (!heating::board::auxiliaryGpioAllowed) return {};
 	File file = SPIFFS.open("/cfg/cfgpins.json", FILE_READ);
 	if (!file)
 		return {};
@@ -336,6 +343,7 @@ std::vector<PinConfig> getValvePins() {
 }
 
 std::vector<GpioExtenderConfig> getGpioExtenders() {
+	if constexpr (!heating::board::auxiliaryGpioAllowed) return {};
 	File file = SPIFFS.open("/cfg/cfgpins.json", FILE_READ);
 	if (!file)
 		return {};

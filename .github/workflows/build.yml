@@ -1,11 +1,14 @@
 name: PlatformIO CI
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [e32v2, esp32dev, esp32s3, native]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -15,17 +18,21 @@ jobs:
             ~/.platformio/.cache
             ~/.platformio/packages
             ~/.platformio/platforms
-          key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
-          restore-keys: |
-            ${{ runner.os }}-pio-
+          key: ${{ runner.os }}-pio-${{ matrix.environment }}-${{ hashFiles('platformio.ini', 'boards/**') }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Install PlatformIO Core
-        run: pip install --upgrade platformio
-
+        run: pip install platformio==6.2.0
       - name: Run native tests
+        if: matrix.environment == 'native'
         run: pio test -e native --verbose
-
-      - name: Build PlatformIO Project
-        run: pio run -e esp32dev
+      - name: Build firmware
+        if: matrix.environment != 'native'
+        run: pio run -e ${{ matrix.environment }}
+      - name: Build E32 filesystem and verify safety/layout
+        if: matrix.environment == 'e32v2'
+        run: |
+          pio run -e e32v2 -t buildfs
+          python scripts/verify_e32v2.py
+          python scripts/test_e32v2_verifier.py

@@ -1,4 +1,6 @@
 #include "Logging.h"
+#include "Board.h"
+#include "Network.h"
 #include <Arduino.h>
 #include <Wire.h>
 #include <time.h>
@@ -38,9 +40,15 @@ bool wifiAPMode = false;
 }
 
 void WiFiGotIP(arduino_event_id_t event, arduino_event_info_t info) {
+#ifndef OPENTHERMOSTAT_E32V2
 	DBGLOGFI(heating::logger, appLogFeature(), "WiFI IP address %s hostname: %s\n", IPAddress(info.got_ip.ip_info.ip.addr).toString().c_str(), WiFi.getHostname());
+#endif
 
+#ifdef OPENTHERMOSTAT_E32V2
+	if (heating::networkConnected()) {
+#else
 	if (WiFi.isConnected()) {
+#endif
 		if (heating::rest) {
 			heating::rest->restart();
 		}
@@ -67,7 +75,12 @@ void WiFiGotIP(arduino_event_id_t event, arduino_event_info_t info) {
 			heating::setRTCfromLocalTime();
 		}
 
-		if (!MDNS.begin(WiFi.getHostname())) { //CONFIG_MDNS_TASK_STACK_SIZE 4096
+#ifdef OPENTHERMOSTAT_E32V2
+		MDNS.end();
+		if (!MDNS.begin(networkConfig.hostname.c_str())) {
+#else
+		if (!MDNS.begin(WiFi.getHostname())) {
+#endif //CONFIG_MDNS_TASK_STACK_SIZE 4096
 			DBGLOGFI(heating::logger, appLogFeature(), "Error starting mDNS\n");
 		} else {
 			MDNS.addService(networkConfig.hostname.c_str(), "http", networkConfig.listenPort);
@@ -79,11 +92,13 @@ void WiFiGotIP(arduino_event_id_t event, arduino_event_info_t info) {
 void WifiSetUp(config::WiFiConfig const &wifiConfig, config::NetworkConfig const &networkConfig, config::APConfig const &apConfig, bool startAP) {
 	if (startAP) {
 		DBGLOGFI(heating::logger, appLogFeature(), "Starting Access Point\n");
+#ifndef OPENTHERMOSTAT_E32V2
 		if (heating::controller) {
 			heating::controller->stopBluetoothScan();
 			heating::controller->waitUntilBluetoothScanFinishAndDeinitBLE();
 			DBGLOGFI(heating::logger, appLogFeature(), "Starting Access Point. Stopped bluetooth scan\n");
 		}
+#endif
 
 		WiFi.mode(WIFI_AP);
 		WiFi.setSleep(WIFI_PS_NONE);
@@ -92,6 +107,18 @@ void WifiSetUp(config::WiFiConfig const &wifiConfig, config::NetworkConfig const
 
 		DBGLOGFI(heating::logger, appLogFeature(), "Soft AP start: %d\n", softAPResult);
 
+#ifdef OPENTHERMOSTAT_E32V2
+		IPAddress ip, gateway, mask;
+		ip.fromString(apConfig.ip.c_str());
+		gateway.fromString(apConfig.gateway.c_str());
+		mask.fromString(apConfig.subnetMask.c_str());
+		WiFi.softAPConfig(ip, gateway, mask);
+		WiFi.softAPsetHostname(apConfig.hostname.c_str());
+		heating::wifiAPMode = true;
+		if (heating::rest) heating::rest->restart();
+		MDNS.begin(apConfig.hostname.c_str());
+		MDNS.addService("http", "tcp", apConfig.listenPort);
+#else
 		WiFi.onEvent(
 			[apConfig](arduino_event_id_t event, arduino_event_info_t info) {
 				IPAddress ip, gateway, subnetMask;
@@ -118,6 +145,7 @@ void WifiSetUp(config::WiFiConfig const &wifiConfig, config::NetworkConfig const
 					MDNS.addService(apConfig.hostname.c_str(), "http", apConfig.listenPort);
 				}
 			}, arduino_event_id_t::ARDUINO_EVENT_WIFI_AP_START);
+#endif
 
 
 
@@ -144,7 +172,9 @@ void WifiSetUp(config::WiFiConfig const &wifiConfig, config::NetworkConfig const
 		WiFi.setAutoConnect(true);
 		WiFi.setAutoReconnect(true);
 
+#ifndef OPENTHERMOSTAT_E32V2
 		WiFi.onEvent(WiFiGotIP, arduino_event_id_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
+#endif
 	}
 
 	if (networkConfig.loggerEnabled && !networkConfig.loggerHost.empty()) {
@@ -161,9 +191,11 @@ void setup() {
 			std::make_shared<ib::logger::LoggerSerialSink>(ib::logger::LoggerInterface::LogLevel::TRACE)});
 	DBGLOGFI(heating::logger, appLogFeature(), "Free memory %d/%d (minimum was: %d) MaxAlloc: %d STARTUP\n", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap());
 
+#ifndef OPENTHERMOSTAT_E32V2
 	pinMode(ONBOARD_LED, OUTPUT);
 	digitalWrite(ONBOARD_LED, HIGH);
 	digitalWrite(ONBOARD_LED, LOW);
+#endif
 
 	delay(500);
 
@@ -201,12 +233,12 @@ void setup() {
 
 	auto networkConfig = config::getNetworkConfig();
 
-	{
+	if constexpr (heating::board::auxiliaryGpioAllowed) {
 		auto rtcpins = config::getRTCPins();
 		DBGLOGFI(heating::logger, appLogFeature(), "Configuring i2c on sda %d scl %d\n", rtcpins.sda, rtcpins.scl);
 		Wire.begin(rtcpins.sda, rtcpins.scl);
 	}
-	if (networkConfig.rtcEnabled) {
+	if (heating::board::auxiliaryGpioAllowed && networkConfig.rtcEnabled) {
 		heating::startRTC(networkConfig.rtcEnabled);
 	} else {
 		DBGLOGFI(heating::logger, appLogFeature(), "RTC battery clock disabled\n");
@@ -226,11 +258,21 @@ void setup() {
 	DBGLOGFI(heating::logger, appLogFeature(), "Free memory %d/%d (minimum was: %d) MaxAlloc: %d STUFF\n", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap());
 
 	WifiSetUp(wifiConfig, networkConfig, apConfig, startAP);
+#ifdef OPENTHERMOSTAT_E32V2
+	heating::startBoardEthernet();
+	DBGLOGFI(heating::logger, appLogFeature(), "E32V2 EXPERIMENTAL: EMS TX/forwarder/GPIO outputs blocked. PSRAM: %u bytes\n", ESP.getPsramSize());
+#endif
 	DBGLOGFI(heating::logger, appLogFeature(), "Free memory %d/%d (minimum was: %d) MaxAlloc: %d WIFI\n", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap());
 	config::readDebugOptions();
 }
 
 void loop() {
+#ifdef OPENTHERMOSTAT_E32V2
+	if (heating::pollBoardNetwork()) {
+		// Common REST/NTP/mDNS startup, once per route/IP change, not in event task.
+		WiFiGotIP(ARDUINO_EVENT_ETH_GOT_IP, {});
+	}
+#endif
 	static unsigned long lastMillis = 0;
 
 	auto now = millis();
@@ -240,7 +282,11 @@ void loop() {
 		heating::controller->operate();
 		DBGLOGFI(heating::logger, appLogFeature(), "Free memory %d/%d (minimum was: %d) MaxAlloc: %d MinPeekStack: %d boxTemp: %f, UpTime: %lds SPIFFS: %zu/%zu\n", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap(), uxTaskGetStackHighWaterMark(nullptr), heating::rtcGetTemp(), esp_timer_get_time()/1000000, SPIFFS.usedBytes(), SPIFFS.totalBytes());
 
-		if (!WiFi.isConnected()) {
+		if (!WiFi.isConnected()
+#ifdef OPENTHERMOSTAT_E32V2
+			&& !heating::wifiAPMode
+#endif
+		) {
 			DBGLOGFI(heating::logger, appLogFeature(), "WiFi not connected. Reconnecting.\n");
 			WiFi.reconnect();
 		} else {
@@ -250,7 +296,11 @@ void loop() {
 
 	heating::controller->loop();
 
+#ifdef OPENTHERMOSTAT_E32V2
+	if (heating::wifiAPMode || heating::networkConnected()) {
+#else
 	if (heating::wifiAPMode || WiFi.isConnected()) {
+#endif
 		heating::rest->handle();
 	}
 }

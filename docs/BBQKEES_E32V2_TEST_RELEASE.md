@@ -64,12 +64,24 @@ port, never a wildcard. On Windows use the exact `COM` port.
 python -m pip install esptool==4.5.1
 python -m esptool --chip esp32 --port /dev/ttyUSB_EXACT flash_id
 # STOP unless this is the expected recoverable 16 MB ESP32 and backups passed.
-python -m esptool --chip esp32 --port /dev/ttyUSB_EXACT erase_flash
-python -m esptool --chip esp32 --port /dev/ttyUSB_EXACT --baud 115200 write_flash \
+python -m esptool --chip esp32 --port /dev/ttyUSB_EXACT --after no_reset erase_flash
+python -m esptool --chip esp32 --port /dev/ttyUSB_EXACT --baud 115200 --after no_reset write_flash \
   --flash_mode dio --flash_freq 80m --flash_size 16MB 0x0 e32v2-factory.bin
-python -m esptool --chip esp32 --port /dev/ttyUSB_EXACT verify_flash \
+python -m esptool --chip esp32 --port /dev/ttyUSB_EXACT --after no_reset verify_flash \
   0x0 e32v2-factory.bin
 ```
+
+**Keep the device in the bootloader until verification succeeds.** esptool 4.5.1
+normally hard-resets after an operation; `--after no_reset` prevents that.
+The first normal boot can change NVS/filesystem bytes inside the merged image,
+so verifying the whole installation image after that boot is not a valid check
+against the original file. Only after successful verification, unplug/reconnect
+USB to start the test firmware, still disconnected from the boiler/EMS bus.
+
+**alpha.1 documentation erratum (2026-10-18):** the original ZIP and the guide at
+the immutable release source omit these `--after no_reset` options. Use the
+corrected commands above or the easy browser guide, not that archived command
+sequence. The release binaries, tag and checksums are unchanged.
 
 Stop on any write/verify error. Never restore old EMS-ESP NVS into this layout.
 Keep original backups separate from these release images.
@@ -87,6 +99,11 @@ Keep original backups separate from these release images.
    cable removal/reconnection and reboot persistence. Record addresses/logs.
    Simultaneous Ethernet/WiFi remains experimental: GPIO0 output-clock/radio
    stability is a known limitation of this core.
+   **Only using one network is not the same as disabling the other hardware:**
+   this alpha always starts WiFi AP/STA and then Ethernet. Removing the cable
+   does not disable the Ethernet clock, and using Ethernet does not turn WiFi
+   off. A true radio-off or Ethernet-clock-off test needs a separately reviewed
+   mode/source change; the current image does not provide one.
 4. Use a test MQTT broker with a unique client ID/base topic. Check reconnect,
    discovery and BLE sensor data if used. Do not replace the live EMS-ESP
    integration or infer real boiler action from software demand state.

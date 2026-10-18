@@ -357,8 +357,10 @@ function loadHardwareSettings() {
 	.then(validateResponse)
 	.then(res => res.json())
 	.then((settings) => {
-		$('#Pins_SDA').val(settings.i2c[0]);
-		$('#Pins_SCL').val(settings.i2c[1]);
+		// E32 V2 deliberately has no configured I2C pins; leave them empty.
+		var i2cPins = Array.isArray(settings.i2c) ? settings.i2c : [];
+		$('#Pins_SDA').val(i2cPins[0] ?? '');
+		$('#Pins_SCL').val(i2cPins[1] ?? '');
 		$('#PinsEMS_RX').val(settings.ems[0]);
 		$('#PinsEMS_TX').val(settings.ems[1]);
 		if (settings.ems_forwarder) {

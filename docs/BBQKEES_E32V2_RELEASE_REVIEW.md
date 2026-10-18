@@ -5,7 +5,9 @@ Reviewed 2026-10-18. Release source: `56130e796178c9804c612fc612f64e9a86970843`.
 and [original CI](https://github.com/dielessen/open_thermostat/actions/runs/39039500509).
 
 **Result: no incorrect board-family or pin mapping found in this review. One
-technical flashing-instruction defect corrected. Hardware compatibility is
+technical flashing-instruction defect corrected. A subsequent local UI preview
+also exposed a hardware-menu defect, fixed in source only (F2 below).
+Hardware compatibility is
 still NOT VALIDATED; this is not approval for heating or boiler connection.**
 
 ## Confirmed software/package checks
@@ -62,6 +64,25 @@ The original release ZIP, tag and binaries remain unchanged for provenance.
 **Do not use the archived ZIP's uncorrected esptool command sequence.** Use the
 corrected linked guide or the easy browser guide. This is a documentation
 erratum, not a newly built firmware release.
+
+## F2 — hardware menu assumed configured I2C pins (source fix)
+
+A later local browser preview on 2026-10-18 used the actual E32 filesystem
+configuration, which deliberately omits `i2c`. The shared hardware settings page
+unconditionally indexed that missing field, causing a JavaScript TypeError and
+preventing the page from opening. The earlier firmware builds and package checks
+did not exercise this rendered UI path and did not catch the defect.
+
+The source now leaves I2C fields empty when the array is absent; configured I2C
+pins on the original targets are retained. No dummy pins were added to E32
+defaults and no board wiring, output lock, C++ driver or heating logic changed.
+Browser regression checks cover both the actual E32 configuration without I2C
+and a generic configuration with I2C pins.
+
+**The original alpha.1 ZIP/filesystem still contains this UI defect.** This is
+a source fix for a future package, not a silent replacement of released binaries.
+The local preview includes the correction and uses clearly labeled synthetic
+data; it does not run ESP32 firmware or validate hardware compatibility.
 
 ## Remaining compatibility gates
 

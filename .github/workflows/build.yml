@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install PlatformIO Core
-        run: pip install platformio==6.2.0
+        run: pip install platformio==6.2.0 intelhex==2.3.0
       - name: Run native tests
         if: matrix.environment == 'native'
         run: pio test -e native --verbose

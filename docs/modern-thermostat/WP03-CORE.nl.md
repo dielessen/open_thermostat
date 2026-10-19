@@ -137,3 +137,30 @@ terug. Runtime moet op leaseverlies alle betreffende readiness intrekken en
 zijn gekozen herstel-/reconciliatiepad bewijzen. Een logische commandretry
 houdt dezelfde sequence/digest; hogere sequence is een nieuwe mutatie.
 Een gecachte immutable receipt is geen fysieke actuatorterugmelding.
+
+## Eindcheck van dit softwarecheckpoint
+
+Bewijsmappen20oktober: `open-thermostat-build-20261020/` op de ontwikkelhost.
+Alle owned resultaten verzameld, geen achtergelaten build-/testproces.
+
+- Native118/118 en HAoffline38/38 PASS;90.000 deterministisch seeded
+  raw-byte/mutatiegevallen door echte BoundedJson+cJSON+schemavalidatie onder
+  AddressSanitizer/UndefinedBehaviorSanitizer zonder fout/leak. Dat is een
+  begrensde robuustheidsproef, geen bewijs tegen alle mogelijke input.
+- `wp03-final-matrix.log`:3/3 PASS. E32flash1.750.769/RAM64.416,
+  ESP32devflash1.702.221/RAM64.296, S3flash1.593.757/RAM59.308 bytes.
+- `wp03-buildfs.log`, ongewijzigde compiled E32-verifier en faultinjectie5/5
+  PASS; geen projectobject verwijst naar de gecontroleerde UART-TXprimitieven.
+  Board-/partition-/veiligheidsverifierbestanden behouden ten opzichte vanWP01.
+- Generieke4MB-app heeft nog **1.715bytes** ELFflashruimte. Nieuwe moderne
+  modules vereisen expliciete feature-/resourceafbakening; geen verborgen
+  partitiewijziging of beweerde8-zonecapaciteit. E32heeft grotere appslots,
+  maar beschikbare PSRAM/heap/netwerk en echte uitvoeringsduur zijn nog fysiek
+  te bevestigen. Native ASan en firmwarebuild zijn verschillende bewijzen.
+
+**Checkpoint afgerond, WP03/product nog in uitvoering.** Volgende harde
+afhankelijkheid: exacte PCB-/ESP32module-/USBidentificatie door Mark voor
+backup-/programmeer-/exclusiefnetwerkprofiel. Nog geen flashbestand vrijgeven
+voor aansluiting op de installatie. Daarna resterende contract-/buffer-/
+config-/HA-/deviceketenacceptatie volgens de open punten, geen sprong naar
+normale ketelbediening op basis van alleen deze softwarechecks.

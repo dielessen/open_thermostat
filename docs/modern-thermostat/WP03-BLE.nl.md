@@ -70,3 +70,23 @@ Sanitizerproef compileert dezelfde header/tests met ASan+UBSan en exacte
 inputallocaties, zodat één byte buiten de aangeboden buffer detecteerbaar is.
 Firmwarematrix en ongewijzigde E32-verifier moeten daarnaast slagen; resultaten
 staan in de canonieke TaskFlow. Geen fysieke RF-, sensor- of ketelproef.
+
+### Geverifieerd softwarecheckpoint
+
+Broncommit `879ca43`. `wp03-ble-native-final.log`:125/125 PASS;
+`wp03-ble-sanitizer.log`:7/7 cases inclusief30.000 seeded inputs PASS.
+`wp03-ble-matrix.log`:3/3 builds PASS, ELFflash/RAM bytes:
+
+- E32 V2:1.749.801/64.416; binaire app1.756.384 binnen beide3.670.016byte OTA-slots.
+- ESP32dev:1.701.281/64.296;2.655bytes ELFflashruimte over, nog geen budget voor
+  alle nieuwe modules of8zones bewezen.
+- S3:1.592.873/59.308.
+
+`wp03-ble-buildfs.log`, ongewijzigde compiled verifier en faulttests5/5 PASS.
+De eerste verifieraanroep vond geen lokaal spiffs.bin; na normale buildfs
+passeerde de volledige ongewijzigde verifier. Dat is een buildvolgordeprobleem,
+geen weggeredeneerde veiligheidsfout. Acht board-/partition-/build-/verifier-
+bestanden bytegelijk aan het vorige checkpoint. Main ongewijzigd; niets
+gepubliceerd/geflasht en geen productie-/apparaatbediening. Alle owned
+commandresultaten verzameld. WP03 en volledige fysieke productacceptatie
+blijven open.

@@ -109,9 +109,11 @@ Ontbreekt nog: overige sessie-/measurement-/config-/actuatorwirefixtures en echt
 persistente configuratie en revisionrecovery aan beide kanten, HAflow/
 lifecycleintegratie, daadwerkelijke bronprofielen, actuatorcallbacks,
 resource-/bufferproeven en end-to-endketen. Legacy BLE-/curve-/MQTTcode is
-nog niet vervangen door deze kern. De oude synthetische-20°Cfallback en
-BLEherstart zijn dus nog geen opgelost runtimeprobleem; bij integratie
-moeten ze door het afgesproken per-bron-/zonebeleid worden vervangen.
+nog niet volledig vervangen door deze kern. De oude synthetische−20°Cfallback
+en globale BLEherstart zijn wél uit de werkelijke runtime verwijderd, zoals
+WP03-SOURCES documenteert; dat bewijst geen fysieke stop. De aanvullende
+[BLE-inputvalidatie](WP03-BLE.nl.md) gebruikt nu eveneens de echte runtimecallpath.
+Bronprovenance/samplecadans en volledige HA-koppeling blijven open.
 
 De limieten48streams/128transities zijn broncodegrenzen, geen bewezen
 hardwarecapaciteit. E32/PSRAM/netwerkprofiel, originele backup/herstel,
@@ -158,9 +160,11 @@ Alle owned resultaten verzameld, geen achtergelaten build-/testproces.
   maar beschikbare PSRAM/heap/netwerk en echte uitvoeringsduur zijn nog fysiek
   te bevestigen. Native ASan en firmwarebuild zijn verschillende bewijzen.
 
-**Checkpoint afgerond, WP03/product nog in uitvoering.** Volgende harde
-afhankelijkheid: exacte PCB-/ESP32module-/USBidentificatie door Mark voor
-backup-/programmeer-/exclusiefnetwerkprofiel. Nog geen flashbestand vrijgeven
-voor aansluiting op de installatie. Daarna resterende contract-/buffer-/
-config-/HA-/deviceketenacceptatie volgens de open punten, geen sprong naar
-normale ketelbediening op basis van alleen deze softwarechecks.
+**Checkpoint afgerond, WP03/product nog in uitvoering.** Algemene E32 V2-
+specificaties en USB-C-programmeerroute zijn beschikbaar bij BBQKees; geen
+bordfoto nodig om onafhankelijke softwarebouw voort te zetten. Exacte
+identificatie, backup/herstel en netwerk-/PSRAMprofiel blijven vóór eerste
+flash en fysieke validatie vereist. Geen flashbestand vrijgeven voor
+aansluiting op de installatie. Resterende contract-/buffer-/config-/HA-/
+deviceketenacceptatie blijft open; geen normale ketelbediening op basis
+van alleen deze softwarechecks.

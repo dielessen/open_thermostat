@@ -54,7 +54,8 @@ De historische Room-gemiddeldetests bevatten nog een nagebouwde berekening;
 noem die niet een nieuwe volledige Room-runtime-/HAbronproef.
 
 Niet opgelost/geclaimd: volledige sourceprofiel-GUI, echte HAobservatietransport,
-BLEframevalidatie, alle per-veld Plusstatusactualiteit, oude Roomstatusflags/
+volledige BLEbronprovenance (aanvullende framevalidatie: [WP03-BLE](WP03-BLE.nl.md)),
+alle per-veld Plusstatusactualiteit, oude Roomstatusflags/
 tijdvalidatie, actuatorreconciliatie, onafhankelijke stop/naloop, minimumflow,
 volledige EMS-ESPpariteit, security/onboarding/OTA, volledige WP03acceptatie.
 Stoprequestsoftware ≠ fysieke stop van een vastgelopen controller/ketel.

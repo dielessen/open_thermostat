@@ -20,10 +20,12 @@ class UtcSchedule {
 public:
     static constexpr std::size_t maximumTransitions = 128;
     static constexpr int64_t maximumHorizonSeconds = 16 * 86400;
+    static constexpr int64_t minimumUtcSecond = 946684800; // 2000-01-01
+    static constexpr int64_t maximumUtcSecond = 4102444800; // exclusive 2100-01-01
     bool configure(int64_t from, int64_t until, int16_t baseCentiC,
                    const ScheduleTransition *transitions, std::size_t count) {
         if (!transitions || count == 0 || count > maximumTransitions ||
-            from < 946684800 || until <= from || until - from > maximumHorizonSeconds ||
+            from < minimumUtcSecond || until > maximumUtcSecond || until <= from || until - from > maximumHorizonSeconds ||
             !validTemperature(baseCentiC) || transitions[0].atUtc != from) return false;
         for (std::size_t i = 0; i < count; ++i) {
             if (!validTemperature(transitions[i].temperatureCentiC) || transitions[i].atUtc < from ||

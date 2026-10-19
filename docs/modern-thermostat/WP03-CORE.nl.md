@@ -60,8 +60,10 @@ eindigt exclusief op `valid_until_utc`. Normaal compileervenster15UTCdagen
 vanaf de UTCdaggrens; hard maximaal16dagen,128transities per zone. Verlopen
 horizon toont `expired`, geen belofte van onbeperkte HA-onafhankelijkheid.
 Een dagelijkse native HA-refresh materialiseert alleen de kalender; hij
-voert geen tweede kamer-/ketelregelaar uit. Compilerlevering/tests zijn nog
-onder uitvoering bij de HA-specialist.
+voert geen tweede kamer-/ketelregelaar uit. De pure HAcompiler en publieke
+readadapter zijn nu opgenomen in de integratiebron, maar nog niet aangesloten
+op de normale integratielifecycle. Alleen UTC/Europe/Amsterdam en2000–2099
+zijn ondersteund; andere zones/datums worden expliciet geweigerd.
 
 ## Softwarebewijs en nog open
 
@@ -70,6 +72,21 @@ bron-/kalender-/sessiegevallen). Onder meer source-age/overflow/cache/restore,
 NTPsprongen, beide folds, lease versus grant, duplicaten zonder verlenging,
 cache-eviction, verkeerde identiteit/revisie/major/stream, beide ontvangers
 en vertraagde actuatoropdracht. Dit zijn pure tests, geen MQTT-/HA-/deviceproef.
+
+De HAcompiler van de specialist is met alle5 manifestentries gecontroleerd
+en ongewijzigd opgenomen. Parent `wp03-ha-compiler-parent.log`:34/34 offline
+Pythonunittests PASS, inclusief echte zoneinfo/second-by-second oracle en
+executorjob. Publieke HA-action wordt alleen aan de unitgrens gemockt; geen
+live HAactie of volledige HA/Python3.14-load getest.
+
+`wp03-schedule-interop.log`:106/106 native PASS. Nieuwe gedeelde JSONfixtures
+gaan via `ScheduleDocument.h` naar de **echte** firmwarekalender; iedere
+seconde in beide DSTvensters wordt tegen onafhankelijke verwachtingen
+getoetst. Booleans, verkeerde vormen/units/extra of dubbele fields,
+fractietijden en ongeldige overgangsvolgorde vervangen niets gedeeltelijk.
+De documentdecoder krijgt een reeds begrensde/gevalideerde cJSONboom;
+dit is geen bescherming van willekeurige raw MQTTinput. Raw byte-/depth- en
+escape/NULvalidatie en echte ontvangstadmissie blijven vereist.
 
 Ontbreekt nog: gedeelde JSON/wirefixtures en echte transportvalidatie,
 persistente configuratie en revisionrecovery aan beide kanten, HAflow/

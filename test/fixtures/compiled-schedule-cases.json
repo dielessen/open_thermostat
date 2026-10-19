@@ -1,0 +1,86 @@
+[
+  {
+    "case": "spring_wholly_gap",
+    "week": {
+      "monday": [],
+      "tuesday": [],
+      "wednesday": [],
+      "thursday": [],
+      "friday": [],
+      "saturday": [],
+      "sunday": [
+        {
+          "from": "02:30",
+          "to": "03:00",
+          "data": {
+            "temperature": 21
+          }
+        }
+      ]
+    },
+    "output": {
+      "timezone": "Europe/Amsterdam",
+      "policy": "wall-clock-membership/v1",
+      "valid_from_utc": 1774742400,
+      "valid_until_utc": 1774753200,
+      "base_centi_c": 1700,
+      "transitions": [
+        [
+          1774742400,
+          1700
+        ]
+      ]
+    },
+    "canonical_json_sha256": "271be8266331453cc189508b62122c55ad52564a834071c29cbea6057f4b3f8f"
+  },
+  {
+    "case": "fall_both_folds",
+    "week": {
+      "monday": [],
+      "tuesday": [],
+      "wednesday": [],
+      "thursday": [],
+      "friday": [],
+      "saturday": [],
+      "sunday": [
+        {
+          "from": "02:30",
+          "to": "03:00",
+          "data": {
+            "temperature": 21
+          }
+        }
+      ]
+    },
+    "output": {
+      "timezone": "Europe/Amsterdam",
+      "policy": "wall-clock-membership/v1",
+      "valid_from_utc": 1792886400,
+      "valid_until_utc": 1792897200,
+      "base_centi_c": 1700,
+      "transitions": [
+        [
+          1792886400,
+          1700
+        ],
+        [
+          1792888200,
+          2100
+        ],
+        [
+          1792890000,
+          1700
+        ],
+        [
+          1792891800,
+          2100
+        ],
+        [
+          1792893600,
+          1700
+        ]
+      ]
+    },
+    "canonical_json_sha256": "c3e5831f52ca7ea9a4f21b4732a064468e0a139036f0419ae4bae4f6d97a01af"
+  }
+]

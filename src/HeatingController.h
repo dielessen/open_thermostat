@@ -107,6 +107,9 @@ public:
 	~HeatingController() {}
 
 	void operate() {
+		// Modern shadow runtime owns its targets. Never execute the old room
+		// scheduler/boiler writer alongside it, even if provisioning is invalid.
+		if(mqtt_.modernMode()) return;
 		bool shouldStartBoiler = false;
 		bool shouldBoilerContinue = false;
 		boilerHeatingTemperatureOverride_t boilerHeatingTempOverride;
@@ -168,6 +171,7 @@ public:
 		mqtt_.loop();
 		ems_.loop();
 	}
+	bool modernMode() const { return mqtt_.modernMode(); }
 
 	void getBoilerStatus(std::ostream &ss) const {
 		boiler_.getStatus(ss);

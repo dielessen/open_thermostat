@@ -16,6 +16,7 @@ constexpr NetworkInterface chooseNetwork(bool ethernetLink, bool ethernetHasIP, 
          : wifiHasIP ? NetworkInterface::wifi : NetworkInterface::none;
 }
 void startBoardEthernet();
+extern bool boardEthernetStarted;
 bool networkConnected();
 // Select default route and report changes of active interface/address in loop().
 bool pollBoardNetwork();

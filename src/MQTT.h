@@ -3,6 +3,9 @@
 #include "config.h"
 #include "Logging.h"
 #include "RTCTimeHelpers.h"
+#ifdef OPENTHERMOSTAT_E32V2
+#include "control/ModernTransport.h"
+#endif
 
 #include <mqtt/MQTT.h>
 #include <mqtt/MQTTReporterInterface.h>
@@ -230,6 +233,13 @@ public:
 			logFeature_ = log_->addFeature("MQTT");
 		}
 		auto mqttConfig = config::getMqttConfig();
+#ifdef OPENTHERMOSTAT_E32V2
+		if(mqttConfig.modernShadow) {
+			modernMode_=true;
+			if(mqttConfig.enabled) modern_=std::make_unique<control::ModernTransport>(mqttConfig);
+			return;
+		}
+#endif
 		DBGLOGFD(log_, logFeature_, "Enabled: %d\n", mqttConfig.enabled);
 		DBGLOGFD(log_, logFeature_, "%s:%d\n", mqttConfig.brokerAddress.c_str(), mqttConfig.brokerPort);
 		DBGLOGFD(log_, logFeature_, "publish interval %d, keep alive inteval: %d\n", mqttConfig.interval, mqttConfig.keepAlive);
@@ -270,9 +280,19 @@ public:
 	}
 
 	void loop() {
+#ifdef OPENTHERMOSTAT_E32V2
+		if(modernMode_) { if(modern_) modern_->loop(); return; }
+#endif
 		if (mqtt_) {
 			mqtt_->loop();
 		}
+	}
+	bool modernMode() const {
+#ifdef OPENTHERMOSTAT_E32V2
+		return modernMode_;
+#else
+		return false;
+#endif
 	}
 
 private:
@@ -315,5 +335,9 @@ private:
 	std::shared_ptr<RoomsReporter> roomsReporter_;
 	std::vector<std::shared_ptr<ib::mqtt::MQTTReporterInterface>> reporters_;
 	setTemporaryTemperature_t setTemporaryTemperature_;
+#ifdef OPENTHERMOSTAT_E32V2
+	bool modernMode_=false;
+	std::unique_ptr<control::ModernTransport> modern_;
+#endif
 };
 }

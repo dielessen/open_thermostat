@@ -1,5 +1,10 @@
 # E32 V2 experimental test-release guide
 
+**Modern development candidate:** the integrated shadow-test branch changes
+setup/security/network defaults. Use [its dedicated guide](modern-thermostat/INTEGRATED-TEST.nl.md).
+The shared example AP password and simultaneous-network description below refer
+to the historical published alpha.1, not that candidate.
+
 **[Easy click-by-click USB-C flashing guide](FLASHING.md).**
 
 For the **BBQKees E32 V2 / original ESP32 with 16 MB flash**, not ESP32-S3 or

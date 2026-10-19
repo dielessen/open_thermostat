@@ -99,7 +99,7 @@ $(document).ready(function() {
 });
 
 function reboot() {
-	fetch(hostName + '/config/reboot')
+	fetch(hostName + '/config/reboot', {method: 'POST'})
 	.then((programs) => {
 	}).catch(function(error) {
 		alert(error);

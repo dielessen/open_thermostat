@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenThermostat instellen</title>
+<style>body{font:17px system-ui;max-width:36rem;margin:3rem auto;padding:0 1rem;background:#f3f5f8;color:#17263a}main{background:white;border-radius:16px;padding:1.5rem}label{display:block;margin-top:1rem}input,select,button{box-sizing:border-box;width:100%;font:inherit;padding:.7rem;margin-top:.4rem}button{background:#176d76;color:white;border:0;border-radius:8px;cursor:pointer}#status{white-space:pre-wrap}a{color:#176d76}</style></head>
+<body><main><h1>Verbind met je wifi</h1><p>Deze beveiligde setup-wifi is 15 minuten beschikbaar. Instellingen worden pas opgeslagen als de verbinding slaagt.</p>
+<button id="scan" type="button">Zoek netwerken</button><label>Netwerk<select id="networks"><option value="">Kies of vul hieronder in</option></select></label>
+<form id="form"><label>Wifi-naam<input id="ssid" maxlength="32" required autocomplete="off"></label><label>Wifi-wachtwoord<input id="password" type="password" maxlength="63" autocomplete="new-password"></label><button>Verbinden</button></form><p id="status" role="status"></p><p><a href="/network.html">MQTT en overige netwerkinstellingen</a> · <a href="/about.html">Apparaat</a></p></main>
+<script>
+'use strict';
+const ssid=document.querySelector('#ssid'),password=document.querySelector('#password'),status=document.querySelector('#status'),networks=document.querySelector('#networks');
+document.querySelector('#scan').onclick=async()=>{try{const r=await fetch('/status/wifi');if(!r.ok)throw Error('Netwerkscan mislukt');const rows=await r.json();networks.replaceChildren(new Option('Kies een netwerk',''));for(const row of rows){if(typeof row.ssid==='string')networks.add(new Option(row.ssid,row.ssid))}}catch(e){status.textContent=e.message}};
+networks.onchange=()=>{ssid.value=networks.value};
+document.querySelector('#form').onsubmit=async e=>{e.preventDefault();try{const r=await fetch('/setup/network',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ssid:ssid.value,password:password.value})});if(!r.ok)throw Error(await r.text());password.value='';status.textContent='Verbinding wordt getest…'}catch(e){status.textContent=e.message}};
+setInterval(async()=>{try{const r=await fetch('/setup/status');if(!r.ok)return;const s=await r.json();if(s.status==='connected_saved'){status.textContent='Verbonden en opgeslagen. Je setup-wifi stopt over enkele seconden. Verbind met je thuisnetwerk en open http://'+s.station_ip+'/';}else if(s.status==='connection_failed')status.textContent='Verbinding mislukt. Controleer je wachtwoord en probeer opnieuw.';else if(s.status==='storage_error')status.textContent='Verbonden, maar opslaan is niet bevestigd. Probeer opnieuw.';}catch{}},2000);
+</script></body></html>

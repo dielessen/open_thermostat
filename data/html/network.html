@@ -210,6 +210,11 @@
 						<div class="card mb-2">
 							<div class="card-header">MQTT</div>
 							<div class="card-body" id="MQTTCard">
+<label for="InterfaceMode">E32-netwerk (actief na herstart)</label><select class="form-control" id="InterfaceMode"><option value="wifi">Alleen wifi</option><option value="ethernet">Alleen Ethernet</option></select><small>USB-opdracht setup opent na herstart tijdelijk wifiherstel, zonder Ethernetklok.</small>
+<div class="alert alert-info">E32-teststand: geen ketel- of kraanuitvoer. Selecteer deze stand alleen samen met de v1 HA-integratie.</div>
+<div class="form-check"><input class="form-check-input" type="checkbox" id="ModernShadow"><label class="form-check-label" for="ModernShadow">Moderne HA-teststand (E32, shadow)</label></div>
+<label for="ModernAdapter">HA-adapter-ID (uit de integratie)</label><input class="form-control" id="ModernAdapter" maxlength="32" pattern="[A-Za-z0-9_-]{1,32}" placeholder="Kopieer uit Home Assistant">
+
 								<div class="form-row">
 									<div class="col-md mb-2">
 										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
@@ -231,8 +236,8 @@
 											type="text" class="form-control" id="DeviceMQTTBrokerUser"
 											placeholder="optional"></div>
 									<div class="col-md mb-2"><label
-											for="DeviceMQTTBrokerPassword">Password</label><input type="text"
-											class="form-control" id="DeviceMQTTBrokerPassword" placeholder="optional">
+											for="DeviceMQTTBrokerPassword">Password</label><input type="password"
+											class="form-control" id="DeviceMQTTBrokerPassword" placeholder="Leeg laten behoudt opgeslagen wachtwoord">
 									</div>
 								</div>
 								<div class="form-row">
@@ -583,6 +588,7 @@
 			.then(res => res.json())
 			.then((settings) => {
 				$('#DeviceHostname').val(settings.hostname);
+				$('#InterfaceMode').val(settings.interface_mode || 'wifi');
 				$('#DeviceListenPort').val(settings.listenPort);
 
 				$('#DeviceEMSEnabled').prop('checked', settings.emsEnabled);
@@ -602,6 +608,8 @@
 					$('#BTScanInterval').val(settings.bt.scanInterval);
 				}
 				if (settings.mqtt != undefined) {
+					$('#ModernShadow').prop('checked', settings.mqtt.modern_shadow === true);
+					$('#ModernAdapter').val(settings.mqtt.adapter_id || '');
 					$('#DeviceMQTTEnabled').prop('checked', settings.mqtt.enabled),
 						$('#DeviceMQTTPublishHomeAssistantDiscovery').prop('checked', settings.mqtt.publishHomeAssistantDiscovery !== false),
 						$('#DeviceMQTTBrokerAddress').val(settings.mqtt.brokerAddress),
@@ -640,6 +648,7 @@
 
 		let settings = {
 			"hostname": $('#DeviceHostname').val(),
+			"interface_mode": $('#InterfaceMode').val(),
 			"listenPort": parseInt($('#DeviceListenPort').val(), 10),
 			"emsEnabled": $('#DeviceEMSEnabled').prop('checked'),
 			"emsForwarderEnabled": $('#DeviceEMSForwarderEnabled').prop('checked'),
@@ -654,6 +663,8 @@
 			"loggerPort": parseInt($('#DeviceDebugPort').val(), 10),
 			"loggerTimeoutMs": parseInt($('#DeviceDebugTimeout').val(), 10),
 			"mqtt": {
+				"modern_shadow": $('#ModernShadow').prop('checked'),
+				"adapter_id": $('#ModernAdapter').val(),
 				"enabled": $('#DeviceMQTTEnabled').prop('checked'),
 				"publishHomeAssistantDiscovery": $('#DeviceMQTTPublishHomeAssistantDiscovery').prop('checked'),
 				"brokerAddress": $('#DeviceMQTTBrokerAddress').val(),
@@ -704,7 +715,7 @@
 	}
 
 	function reboot() {
-		fetch(hostName + '/config/reboot')
+		fetch(hostName + '/config/reboot', {method: 'POST'})
 			.then((programs) => {
 			}).catch(function (error) {
 				alert(error);

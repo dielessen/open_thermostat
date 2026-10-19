@@ -1,5 +1,9 @@
 #pragma once
 #include "Board.h"
+#include "DeviceAccess.h"
+#include "DeviceNetworkSettings.h"
+#include "SetupNetwork.h"
+#include "control/HttpAccessPolicy.h"
 #include "Logging.h"
 
 #include <esp_ota_ops.h>
@@ -62,10 +66,12 @@ public:
 	REST(std::shared_ptr<ib::logger::LoggerInterface> log, HeatingController &controller, uint16_t listenPort) : log_(std::move(log)), controller_(controller), server_(listenPort) {
 		logFeature_ = log_->addFeature("REST");
 
-		server_.enableCORS(true);
-		server_.enableCrossOrigin(true);
+		server_.enableCORS(false);
+		server_.enableCrossOrigin(false);
+		const char *headers[]{"Origin","Sec-Fetch-Site"};
+		server_.collectHeaders(headers,2);
 
-		server_.on("/status/wifi", [this]() {
+		route("/status/wifi", [this]() {
 			DBGLOGFD(log_, logFeature_, "REST:wifiNetworks\n");
 
 			ib::viewable_stringbuf payloadBuf;
@@ -75,45 +81,59 @@ public:
 			server_.sendView(200, "application/json"sv, payloadBuf.view());
 		});
 
-		server_.on("/status", [this]() { status(); });
-		server_.on("/status/boiler", [this]() { boilerStatus(); });
-		server_.on("/status/ems", [this]() { emsStatus(); });
-		server_.on("/status/ems/telemetry", HTTP_GET, [this]() {
+		route("/status", [this]() { status(); });
+		route("/status/boiler", [this]() { boilerStatus(); });
+		route("/status/ems", [this]() { emsStatus(); });
+		route("/status/ems/telemetry", HTTP_GET, [this]() {
 			ib::viewable_stringbuf buf;
 			std::ostream ss(&buf);
 			controller_.getEMSTelemetryStatus(ss);
 			server_.sendView(200, "application/json"sv, buf.view());
 		});
-		server_.on("/status/rooms", [this]() { roomsStatus(); });
-		server_.on("/status/devices", [this]() { devicesFound(); });
-		server_.on("/status/programs", HTTP_GET, [this]() { showPrograms(); }); // show available programs
-		server_.on("/status/version", [this]() { version(); });
-		server_.on("/params/boiler", [this]() { emsParams(); });
+		route("/status/rooms", [this]() { roomsStatus(); });
+		route("/status/devices", [this]() { devicesFound(); });
+		route("/status/programs", HTTP_GET, [this]() { showPrograms(); }); // show available programs
+		route("/status/version", [this]() { version(); });
+		route("/params/boiler", [this]() { emsParams(); });
 
 
-		server_.on("/config/temporary", HTTP_POST, [this]() { temporaryOverride(); }); // GET/POST/DELETE name without .json, case sensitive
+		route("/config/temporary", HTTP_POST, [this]() { temporaryOverride(); }); // GET/POST/DELETE name without .json, case sensitive
 
-		server_.on(UriBraces("/config/programs/{}"), [this]() { configPrograms(); }); // GET/POST/DELETE name without .json, case sensitive
-		server_.on("/config/rooms", [this]() { configRooms(); });
-		server_.on("/config/wifi", [this]() { configWiFi(); });
-		server_.on("/config/device", [this]() { configDevice(); });
-		server_.on("/config/boiler", [this]() { configBoiler(); });
-		server_.on("/config/hardware", [this]() { configHardware(); });
-		server_.on("/hardware/i2c/scan", HTTP_GET, [this]() { i2cScan(); });
-		server_.on("/hardware/test/gpio", HTTP_POST, [this]() { gpioTestStart(); });
-		server_.on("/hardware/test/gpio", HTTP_DELETE, [this]() { gpioTestStop(); });
-		server_.on("/config/debug", [this]() { configDebug(); });
+		route(UriBraces("/config/programs/{}"), [this]() { configPrograms(); }); // GET/POST/DELETE name without .json, case sensitive
+		route("/config/rooms", [this]() { configRooms(); });
+		route("/config/wifi", [this]() { configWiFi(); });
+		route("/config/device", [this]() { configDevice(); });
+		route("/config/boiler", [this]() { configBoiler(); });
+		route("/config/hardware", [this]() { configHardware(); });
+		route("/hardware/i2c/scan", HTTP_GET, [this]() { i2cScan(); });
+		route("/hardware/test/gpio", HTTP_POST, [this]() { gpioTestStart(); });
+		route("/hardware/test/gpio", HTTP_DELETE, [this]() { gpioTestStop(); });
+		route("/config/debug", [this]() { configDebug(); });
 
-		server_.on("/config/program/current", [this]() { configProgramCurrent(); }); // get selected program
-		server_.on("/config/reboot", HTTP_GET, [this]() { configReboot(); });
+		route("/config/program/current", [this]() { configProgramCurrent(); }); // get selected program
+		route("/config/reboot", HTTP_POST, [this]() { configReboot(); });
 
-		server_.on("/ota", HTTP_POST, [this]() { handleOTAResponse(); }, [this]() { handleOTAUpdate(); });
-		server_.on("/otafs", HTTP_POST, [this]() { handleOTAResponse(); }, [this]() { handleOTAFFSUpdate(); });
-		server_.on("/recovery", HTTP_GET, [this]() { recovery(); });
+		route("/ota", HTTP_POST, [this]() { handleOTAResponse(); }, [this]() { handleOTAUpdate(); });
+		route("/otafs", HTTP_POST, [this]() { handleOTAResponse(); }, [this]() { handleOTAFFSUpdate(); });
+		route("/recovery", HTTP_GET, [this]() { recovery(); });
 
-		server_.on("/", HTTP_GET, [this]() { index(); });
+#ifdef OPENTHERMOSTAT_E32V2
+		route("/setup",HTTP_GET,[this] { serveFile("/setup.html"); });
+		route("/setup/status",HTTP_GET,[this] {
+			auto root=control::objectJson();
+			cJSON_AddStringToObject(root.get(),"status",setupResult.c_str());
+			cJSON_AddBoolToObject(root.get(),"setup_active",wifiAPMode);
+			cJSON_AddBoolToObject(root.get(),"connected",WiFi.isConnected());
+			cJSON_AddStringToObject(root.get(),"station_ip",WiFi.localIP().toString().c_str());
+			server_.send(200,"application/json",control::printJson(root.get()).c_str());
+		});
+		route("/setup/reenter",HTTP_POST,[this] { server_.send(requestSetupBoot()?202:503,"text/plain","Setup requested; controlled reboot to WiFi-only recovery"); });
+		route("/setup/network",HTTP_POST,[this] { setupNetwork(); });
+#endif
+		route("/", HTTP_GET, [this]() { index(); });
 
 		server_.onNotFound([this]() {
+			if(!authorize()) return;
 			serveFile(server_.uri().c_str());
 		});
 	}
@@ -128,15 +148,43 @@ public:
 	}
 
 private:
+	void route(const Uri &uri, HTTPMethod method, WebServer::THandlerFunction handler) {
+		#ifdef OPENTHERMOSTAT_E32V2
+		server_.on(uri,method,[this,handler] { if(authorize()) handler(); });
+#else
+		server_.on(uri,method,handler);
+#endif
+	}
+	void route(const Uri &uri, WebServer::THandlerFunction handler) { route(uri,HTTP_ANY,handler); }
+	void route(const Uri &uri, HTTPMethod method, WebServer::THandlerFunction handler, WebServer::THandlerFunction upload) {
+		#ifdef OPENTHERMOSTAT_E32V2
+		server_.on(uri,method,[this,handler] { if(authorize()) handler(); },upload);
+#else
+		server_.on(uri,method,handler,upload);
+#endif
+	}
+	bool authorize() {
+#ifdef OPENTHERMOSTAT_E32V2
+		server_.sendHeader("Cache-Control","no-store");
+		server_.sendHeader("X-Content-Type-Options","nosniff");
+		server_.sendHeader("X-Frame-Options","DENY");
+		const auto method=server_.method()==HTTP_GET?"GET":server_.method()==HTTP_POST?"POST":server_.method()==HTTP_DELETE?"DELETE":"OTHER";
+		if(!control::allowedHttpMethod(server_.uri().c_str(),method)) { server_.send(405,"text/plain","Method not allowed"); return false; }
+		if(!control::sameOrigin(server_.header("Origin").c_str(),server_.hostHeader().c_str(),server_.header("Sec-Fetch-Site").c_str())) {
+			server_.send(403,"text/plain","Origin rejected"); return false;
+		}
+		if(!deviceAccess.ready()) { server_.send(503,"text/plain","Local access initialization failed"); return false; }
+		if(!server_.authenticate("admin",deviceAccess.password().c_str())) {
+			server_.requestAuthentication(DIGEST_AUTH,"OpenThermostat"); return false;
+		}
+		if(controller_.modernMode()&&control::legacyControlWrite(server_.uri().c_str(),method)) {
+			server_.send(409,"text/plain","HA-managed shadow mode: legacy control writer disabled"); return false;
+		}
+#endif
+		return true;
+	}
 	std::shared_ptr<ib::logger::LoggerInterface> log_;
 	ib::logger::LoggerInterface::LogFeatureType logFeature_{};
-	// bool auth() {
-	// 	if (!server_.authenticate("admin", "admin")) {
-	// 		server_.requestAuthentication(DIGEST_AUTH);
-	// 		return false;
-	// 	}
-	// 	return true;
-	// }
 
 	void showPrograms() {
 		DBGLOGFD(log_, logFeature_, "showPrograms\n");
@@ -281,7 +329,7 @@ private:
 
 	void status() {
 		DBGLOGFD(log_, logFeature_, "status\n");
-		server_.enableCORS(true);
+		server_.enableCORS(false);
 		ib::viewable_stringbuf payloadBuf;
 		std::ostream payload(&payloadBuf);
 		controller_.getFullStatus(payload);
@@ -313,7 +361,7 @@ private:
 
 	void roomsStatus() {
 		DBGLOGFD(log_, logFeature_, "roomsStatus\n");
-		server_.enableCORS(true);
+		server_.enableCORS(false);
 
 		ib::viewable_stringbuf payloadBuf;
 		std::ostream payload(&payloadBuf);
@@ -330,7 +378,27 @@ private:
 		server_.sendView(200, "application/json"sv, payloadBuf.view());
 	}
 
+#ifdef OPENTHERMOSTAT_E32V2
+	void setupNetwork() {
+		auto body=server_.arg("plain");
+		if(body.length()==0||body.length()>768||body.indexOf("\\u0000")>=0) { server_.send(400,"text/plain","Invalid setup payload"); return; }
+		control::ControlJson root(cJSON_ParseWithLengthOpts(body.c_str(),body.length()+1,nullptr,true),cJSON_Delete);
+		if(!root||!control::exactFields(root.get(),{"ssid","password"})||!cJSON_IsString(control::field(root.get(),"ssid"))||!cJSON_IsString(control::field(root.get(),"password"))) {
+			server_.send(400,"text/plain","SSID and password required"); return;
+		}
+		config::WiFiConfig cfg{control::stringField(root.get(),"ssid"),control::stringField(root.get(),"password")};
+		if(!trySetupWifi(cfg)) { server_.send(400,"text/plain","Open setup WiFi first; check SSID/password lengths"); return; }
+		server_.send(202,"text/plain","Connecting; settings are saved only after successful connection");
+	}
+#endif
 	void configWiFi() {
+#ifdef OPENTHERMOSTAT_E32V2
+		if(server_.method()==HTTP_POST) {
+			if(boardEthernetStarted) { server_.send(409,"text/plain","Use POST /setup/reenter before WiFi setup; Ethernet must stop first"); return; }
+			if(!wifiAPMode) { server_.send(409,"text/plain","Use POST /setup/reenter, then connect to setup WiFi"); return; }
+			setupNetwork(); return;
+		}
+#endif
 		DBGLOGFD(log_, logFeature_, "configWiFi METHOD %d\n", server_.method());
 
 		switch (server_.method()) {
@@ -368,6 +436,48 @@ private:
 	}
 
 	void configDevice() {
+#ifdef OPENTHERMOSTAT_E32V2
+		auto saved=readDeviceNetworkSettings();
+		auto previous=control::parseControlJson(std::string_view(saved.c_str(),saved.length()),true);
+		if(server_.method()==HTTP_GET) {
+			if(!previous||!cJSON_IsObject(previous.get())) { server_.send(500,"text/plain","Invalid saved network settings"); return; }
+			for(auto pair:{std::make_pair("mqtt","password"),std::make_pair("openweather","appid")}) {
+				auto section=cJSON_GetObjectItemCaseSensitive(previous.get(),pair.first);
+				if(cJSON_IsObject(section)) { cJSON_DeleteItemFromObjectCaseSensitive(section,pair.second); cJSON_AddStringToObject(section,pair.second,""); }
+			}
+			server_.send(200,"application/json",control::printJson(previous.get()).c_str()); return;
+		}
+		auto body=server_.arg("plain");
+		auto candidate=control::parseControlJson(std::string_view(body.c_str(),body.length()),true);
+		if(!candidate||!cJSON_IsObject(candidate.get())) { server_.send(400,"text/plain","Invalid bounded network settings"); return; }
+		auto mode=control::stringField(candidate.get(),"interface_mode");
+		if(!mode.empty()&&mode!="wifi"&&mode!="ethernet") { server_.send(400,"text/plain","Select wifi or ethernet"); return; }
+		auto mq=cJSON_GetObjectItemCaseSensitive(candidate.get(),"mqtt");
+		auto oldMq=previous?control::field(previous.get(),"mqtt"):nullptr;
+		if(cJSON_IsObject(mq)&&control::stringField(mq,"password").empty()&&oldMq) {
+			bool sameBroker=control::stringField(mq,"brokerAddress")==control::stringField(oldMq,"brokerAddress")&&
+				control::stringField(mq,"username")==control::stringField(oldMq,"username")&&
+				control::integerField(mq,"brokerPort",1,65535)&&control::integerField(oldMq,"brokerPort",1,65535)&&
+				control::uintField(mq,"brokerPort")==control::uintField(oldMq,"brokerPort");
+			if(sameBroker) { cJSON_DeleteItemFromObjectCaseSensitive(mq,"password"); cJSON_AddStringToObject(mq,"password",control::stringField(oldMq,"password").c_str()); }
+			else if(cJSON_IsTrue(control::field(mq,"enabled"))) { server_.send(400,"text/plain","Enter a password when changing broker or username"); return; }
+		}
+		auto weather=cJSON_GetObjectItemCaseSensitive(candidate.get(),"openweather");
+		auto oldWeather=previous?control::field(previous.get(),"openweather"):nullptr;
+		if(cJSON_IsObject(weather)&&oldWeather&&control::stringField(weather,"appid").empty()) {
+			cJSON_DeleteItemFromObjectCaseSensitive(weather,"appid"); cJSON_AddStringToObject(weather,"appid",control::stringField(oldWeather,"appid").c_str());
+		}
+		if(mq&&cJSON_IsTrue(control::field(mq,"modern_shadow"))&&
+			(!control::SessionAdmission::validId(control::stringField(mq,"adapter_id"))||
+			(cJSON_IsTrue(control::field(mq,"enabled"))&&(!control::integerField(mq,"brokerPort",1,65535)||control::stringField(mq,"username").empty()||control::stringField(mq,"password").empty())))) {
+			server_.send(400,"text/plain","Shadow mode needs adapter ID and dedicated broker credentials"); return;
+		}
+		const String encoded(control::printJson(candidate.get()).c_str());
+		if(encoded.length()+1>2048) { server_.send(413,"text/plain","Persisted network settings exceed 2048 bytes"); return; }
+		if(!saveDeviceNetworkSettings(encoded)) { server_.send(500,"text/plain","Network settings durability not confirmed; read back before retry"); return; }
+		server_.send(201,"text/plain","Saved and verified; restart to apply network settings");
+#else
+
 		DBGLOGFD(log_, logFeature_, "configDevice METHOD %d\n", server_.method());
 
 		switch (server_.method()) {
@@ -405,6 +515,7 @@ private:
 				break;
 			}
 		}
+	#endif
 	}
 
 	void configHardware() {
@@ -887,6 +998,9 @@ private:
 	}
 
 	void index() {
+#ifdef OPENTHERMOSTAT_E32V2
+		if(wifiAPMode) { server_.sendHeader("Location","/setup"); server_.send(302); return; }
+#endif
 		if (!filesystem.isMounted()) {
 			recovery();
 			return;
@@ -908,6 +1022,9 @@ button.onclick=()=>{if(!file.files.length){status.textContent='Select spiffs.bin
 	}
 
 	void serveFile(const char *serverPath) {
+#ifdef OPENTHERMOSTAT_E32V2
+		if(!control::safeStaticPath(serverPath)) { server_.send(400,"text/plain","Invalid path"); return; }
+#endif
 		DBGLOGFD(log_, logFeature_, "Request for: '%s'\n", serverPath);
 
 		String path = "/html";
@@ -961,6 +1078,7 @@ button.onclick=()=>{if(!file.files.length){status.textContent='Select spiffs.bin
 	}
 
 	void handleOTAUpdate() {
+		if(!authorize()) return;
 		HTTPUpload &upload = server_.upload();
 
 		if (upload.status == UPLOAD_FILE_START) {
@@ -1067,6 +1185,7 @@ button.onclick=()=>{if(!file.files.length){status.textContent='Select spiffs.bin
 	}
 
 	void handleOTAFFSUpdate() {
+		if(!authorize()) return;
 		HTTPUpload &upload = server_.upload();
 
 		if (upload.status == UPLOAD_FILE_START) {

@@ -12,10 +12,12 @@ using ControlJson = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
 // Restricted v1 CONTROL JSON, not a general JSON replacement. Human labels stay
 // in HA: wire identifiers/literals are printable ASCII without escapes. Enforce
 // budgets before allocating a cJSON tree (including its recursive parser stack).
-inline ControlJson parseControlJson(std::string_view bytes) {
+inline ControlJson parseControlJson(std::string_view bytes,bool deviceSettings=false) {
     const auto reject=[] { return ControlJson(nullptr,cJSON_Delete); };
-    constexpr std::size_t maxBytes=8192, maxNodes=512, maxStringBytes=64, maxDepth=8;
+    constexpr std::size_t maxBytes=8192, maxNodes=512, maxDepth=8;
+    const std::size_t maxStringBytes=deviceSettings?512:64;
     if (bytes.empty() || bytes.size()>maxBytes) return reject();
+    if(deviceSettings && bytes.find("\\u0000")!=std::string_view::npos) return reject();
     const auto whitespace=[](char c) { return c==' ' || c=='\t' || c=='\r' || c=='\n'; };
     const auto digit=[](char c) { return c>='0' && c<='9'; };
     std::size_t depth=0, nodes=0;
@@ -30,8 +32,9 @@ inline ControlJson parseControlJson(std::string_view bytes) {
         if(c=='"') {
             const auto begin=++i;
             while(i<bytes.size() && bytes[i]!='"') {
-                if(static_cast<unsigned char>(bytes[i])<32 || static_cast<unsigned char>(bytes[i])>126 ||
-                   bytes[i]=='\\' || i-begin>=maxStringBytes) return reject();
+                if(static_cast<unsigned char>(bytes[i])<32 ||
+                   (!deviceSettings && (static_cast<unsigned char>(bytes[i])>126||bytes[i]=='\\')) || i-begin>=maxStringBytes) return reject();
+                if(deviceSettings && bytes[i]=='\\') { if(++i==bytes.size()||i-begin>=maxStringBytes) return reject(); }
                 ++i;
             }
             if(i==bytes.size() || ++nodes>maxNodes) return reject();

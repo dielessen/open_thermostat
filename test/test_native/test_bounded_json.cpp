@@ -49,4 +49,12 @@ TEST(ControlJson, FullMaximumScheduleFitsBoundedWireAndWholeCandidateValidation)
     EXPECT_EQ(s.target(1792368000+127*60,true).temperatureCentiC,2100);
     EXPECT_LT(raw.size(),8192u);
 }
+TEST(ControlJson, DeviceSettingsUseSameBudgetsButSupportEscapedAndUnicodeCredentials) {
+    EXPECT_TRUE(parseControlJson(R"({"password":"quote\"and\\slash","ssid":"K\u0065uken"})",true));
+    EXPECT_TRUE(parseControlJson("{\"ssid\":\"caf\xc3\xa9\"}",true));
+    EXPECT_FALSE(parseControlJson(R"({"password":"secret\u0000suffix"})",true));
+    EXPECT_FALSE(parseControlJson(R"({"password":"one","passwo\u0072d":"two"})",true));
+    EXPECT_FALSE(parseControlJson(std::string(9,'[')+"0"+std::string(9,']'),true));
+    EXPECT_FALSE(parseControlJson("{\"password\":\""+std::string(513,'a')+"\"}",true));
+}
 }

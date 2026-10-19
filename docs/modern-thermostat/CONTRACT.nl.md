@@ -1,6 +1,6 @@
 # HA ↔ OpenThermostat — contractontwerp v1
 
-Companion bij [masterplan](PLAN.nl.md), ontwerp 19 oktober 2026. **Niet geïmplementeerd.** Dit is de specificatie die F2 omzet in begrensde schemas, fixtures en contracttests. Bestaande legacymeldingen behouden hun eigen betekenis; onderstaande topics bestaan nog niet als product-API.
+Companion bij [masterplan](PLAN.nl.md), ontwerp 19 oktober 2026. **Nog geen werkende v1-product-API.** Op20oktober zijn pure bron-/UTCkalender-/sessietoelatingsprimitieven en een native HA-schemacompiler met gedeelde offline fixtures gebouwd; zie [WP03-softwarestand](WP03-CORE.nl.md). F2 moet de resterende wire/admission/config-/lifecyclekoppeling nog uitvoeren en bewijzen. Bestaande legacymeldingen behouden hun eigen betekenis; onderstaande topics bestaan nog niet als product-API. Illustratieve berichten hieronder zijn geen definitief JSONschema.
 
 ## 1. Transport en grenzen
 

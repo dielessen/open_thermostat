@@ -32,6 +32,13 @@ native transportkoppeling en productacceptatie zijn hiermee niet afgerond.
   UTC-overgangen. Gehele kandidaat eerst valideren, oude tabel behouden bij
   ongeldige invoer. Geen actie-/retrybijwerking door een statusread of NTPsprong.
   Zonder gevalideerde tijd of buiten de geldigheid geen normale schemavraag.
+- `control/BoundedJson.h`: beperkte v1-controlsubset boven de bestaande cJSON
+  library. Vóór boomallocatie maximaal8192bytes,8nestings,512tokens/nodes en
+  64bytes per string; alleen printable ASCII zonder escapes in controlvelden.
+  Menselijke labels/HA-entitynamen blijven buiten dit wireprofiel. JSONgetallen
+  krijgen correcte lexicale syntax; dubbele keys, NUL/escapealiases en niet-
+  eindige waarden worden geweigerd. Dit is geen nieuwe algemene JSONlibrary,
+  en nog niet als normale MQTTingang aangesloten.
 
 `SessionAdmission` authenticeert zelf geen MQTT-client en verwerkt geen
 willekeurige HA-servicecall. De transportadapter moet JSON-vorm/waarden/
@@ -83,12 +90,22 @@ live HAactie of volledige HA/Python3.14-load getest.
 gaan via `ScheduleDocument.h` naar de **echte** firmwarekalender; iedere
 seconde in beide DSTvensters wordt tegen onafhankelijke verwachtingen
 getoetst. Booleans, verkeerde vormen/units/extra of dubbele fields,
-fractietijden en ongeldige overgangsvolgorde vervangen niets gedeeltelijk.
+geteste niet-integrale tijdwaarden en ongeldige overgangsvolgorde vervangen
+niets gedeeltelijk. cJSON bevat al geparseerde doubles: exacte lexicale
+integerzekerheid vóór eventuele afronding is hiermee niet universeel bewezen.
 De documentdecoder krijgt een reeds begrensde/gevalideerde cJSONboom;
-dit is geen bescherming van willekeurige raw MQTTinput. Raw byte-/depth- en
-escape/NULvalidatie en echte ontvangstadmissie blijven vereist.
+`parseControlJson` is de toegevoegde ruwe inputgrens voor deze beperkte
+controlsubset. Echte topic-/identiteits-/sessietoelating en eventuele nieuwe
+payloadprofielen moeten hier nog correct aan worden gekoppeld. Dit maakt de
+bestaande legacy MQTT/RESTparsers niet automatisch begrensd of beveiligd.
 
-Ontbreekt nog: gedeelde JSON/wirefixtures en echte transportvalidatie,
+HA gedeeldefixturetests:38/38 parentPASS (`wp03-ha-fixtures-parent.log`),
+inclusief hercompilatie, canonicalSHA256 en2038/2100bounds. Native na de
+source/runtime- en parsergevallen:118/118 PASS (`wp03-bounded-json.log`).
+Zie [werkelijke legacybronwijzigingen](WP03-SOURCES.nl.md) voor de strikt
+begrensde koppeling die wél in de bestaande firmwarecallpath is gewijzigd.
+
+Ontbreekt nog: overige sessie-/measurement-/config-/actuatorwirefixtures en echte transportvalidatie,
 persistente configuratie en revisionrecovery aan beide kanten, HAflow/
 lifecycleintegratie, daadwerkelijke bronprofielen, actuatorcallbacks,
 resource-/bufferproeven en end-to-endketen. Legacy BLE-/curve-/MQTTcode is
@@ -99,3 +116,24 @@ moeten ze door het afgesproken per-bron-/zonebeleid worden vervangen.
 De limieten48streams/128transities zijn broncodegrenzen, geen bewezen
 hardwarecapaciteit. E32/PSRAM/netwerkprofiel, originele backup/herstel,
 fysieke TRV-/sensorvalidatie en de cumulatieve P0-/securitygates blijven open.
+
+## Onafhankelijke ontvangstreview
+
+De HA-specialist heeft de vier exacte kernheaders en een WP03docsnapshot
+na5/5 SHA256controle beoordeeld. Geen kritieke bronbug gevonden onder de
+gedocumenteerde pure precondities; nadrukkelijk **geen hele-WP03-GO** en geen
+live C++-/HA-/deviceproef door die reviewer. Bewijs in de uitvoeringsartefacten:
+`ha-review-fixtures/parent-snapshot-review/receiver-review.md`.
+De later toegevoegde `BoundedJson.h` en runtimebronwijzigingen zaten niet in
+die vijf snapshots; geen onafhankelijke review daarvan claimen.
+
+Voor latere koppeling expliciet: lokale HA-monotone milliseconden en eigen
+process-/bootcontext; nooit firmwareuptime of UTC als HAleaseklok gebruiken.
+Een begin/newboot is een vertrouwde lokale beslissing ná bewezen verse
+handshake, niet iets dat ieder authenticated netwerkpakket mag forceren.
+Heartbeat kan in deze primitive na een leasegat met een actuele grant en
+nieuwe sequence herstellen; dat geeft **geen** oude source-/actuatorreadiness
+terug. Runtime moet op leaseverlies alle betreffende readiness intrekken en
+zijn gekozen herstel-/reconciliatiepad bewijzen. Een logische commandretry
+houdt dezelfde sequence/digest; hogere sequence is een nieuwe mutatie.
+Een gecachte immutable receipt is geen fysieke actuatorterugmelding.

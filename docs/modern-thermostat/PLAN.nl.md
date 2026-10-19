@@ -1,8 +1,21 @@
 # OpenThermostat + Home Assistant — masterplan
 
 **Versie:** ontwerp 1.0, 19 oktober 2026. **Producteigenaar:** Mark Dielessen.
-**Status:** bouwplan; geen nieuwe thermostaatfunctionaliteit geïmplementeerd, geen installatie of flash uitgevoerd. Alle implementatiefasen staan open.
+**Status:** bouwplan met WP01-uitvoering in een afzonderlijke ontwikkeltak; geen nieuwe zonethermostaatfunctie, installatie of flash vrijgegeven. Alle product-/hardwareacceptatiefasen staan open. Actueel WP01-bewijs: [WP01-BASELINE.nl.md](WP01-BASELINE.nl.md).
 **Bronbasis:** fork `a5fc6b84ab62603bca7cc3786f405d497edd17f7`; upstream apart onderzocht op `67b76391f2f81d5d5acd5a8d4675067fddc74448`. Bronverwijzingen staan in §18.
+
+### Gebruikersaanvullingen na de ontwerp-PDF, 19 oktober 23:24–23:31
+
+Deze concretiseren bestaande eisen R01/R02/R28; het aantal eisen blijft 31.
+De eerder geleverde PDF blijft de historische ontwerpversie1.0.
+
+- Mark bevestigt dat de huidige Tadoverwarming weer normaal werkt en alles nu goed werkt; geen onafhankelijke nieuwe hardwareproef. Eén bestaande E32 is beschikbaar voor tests, geen tweede bord veronderstellen.
+- Iedere kamer krijgt via de HA-GUI zelf te kiezen en later te wijzigen sensor-/TRV-/actuatorbindingen. Geen vaste badkamerentity-ID's en geen verplichte YAML voor normale inrichting. Badkamer met bestaande HA-sensor/TRV is de eerste kandidaat, profielcompatibiliteit nog te toetsen.
+- Bediening via de HA-kamerclimate moet zonder wandapparaat werken. Een ondersteunde fysieke kamerbediening blijft later toevoegbaar aan hetzelfde kamerdoel; R02 als productmogelijkheid blijft vereist.
+- Normale kamerinstellingen, bindingen en schema's moeten tijdens bedrijf wijzigbaar zijn zonder E32-herstart of reflash, via de bestaande gevalideerde configuratietransactie. Gecompileerde logica wijzigen via netwerk-OTA met gecontroleerde herstart, configuratiebehoud of expliciete migratie en geteste recovery; geen willekeurige codehotpatch of gegarandeerd onderbrekingsvrije update.
+- Eerste ongeconfigureerde boot: eigen beveiligd instelwifinetwerk en lokale browserpagina om thuis-SSID/wachtwoord te kiezen, zonder voorafgaande HA/MQTT/internet/Ethernet. Foute credentials tonen en opnieuw proberen zonder reflash, instellingen na reboot behouden, instel-AP na succesvolle onboarding uitschakelen en bewuste lokale recovery/herconfiguratie aanbieden. Automatisch captive-portalopenen is nog geen bewezen functie; geen permanent open AP of configuratiewisactie na een korte netwerkstoring.
+
+Acceptatie van deze aanvullingen blijft open: GUI-selectie/herconfiguratie en HA-only kamerbediening, latere fysieke bediening zonder echolus, live configuratie, OTA/migratie/recovery en fysieke eerste-boot-/foutwachtwoord-/herstartproeven op de E32.
 
 ## 1. Besluit in één pagina
 

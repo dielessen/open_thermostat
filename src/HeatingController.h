@@ -102,7 +102,6 @@ public:
 	explicit HeatingController(std::shared_ptr<ib::logger::LoggerInterface> log) : log_(std::move(log)), logFeature_(log_ ? log_->addFeature("HeatCtrl") : 0), openWeather_(log_, config::getOpenWeatherConfig()), currentProgram_(config::getCurrentProgram()), rooms_(buildRoomsFromConfig()) {
 		DBGLOGFI(log_, logFeature_, "HeatingController constructed\n");
 		bluetoothScan_ = true;
-		lastReadTemperatureCounter_.notifyNow();
 	}
 
 	~HeatingController() {}
@@ -149,9 +148,6 @@ public:
 					 //				valvesWhichShouldBeOpened.insert(room.valves_.begin(), room.valves_.end());
 			}
 
-			if (bluetoothScan_) {
-				resetIfNoDataForLongTime();
-			}
 		}
 		}
 
@@ -361,7 +357,6 @@ private:
 
 		if (temperature.has_value()) {
 			(*room)->storeTemperature(temperature.value());
-			lastReadTemperatureCounter_.notifyNow();
 		}
 
 		if (humidity.has_value()) {
@@ -374,44 +369,15 @@ private:
 
 	}
 
-	void resetIfNoDataForLongTime() {
-		if (lastReadTemperatureCounter_.durationPassed()) {
-			DBGLOGFI(log_, logFeature_, "RESTARTING DUE TO NO DATA FOR OVER 5m");
-			ESP.restart();
-		}
-	}
-
-	int16_t getOutdoorTemperature() {
-		static constexpr int16_t outdoorTemperatureIfInvalidRead = -2000;
-
-		std::optional<int16_t> temp;
-
+	std::optional<int16_t> getOutdoorTemperature() {
+		// Only the explicitly configured source may supply the curve. Substitution
+		// and source-specific degraded fallback need an accepted profile, not a guess.
 		if (boilerConfig_.boiler.outdoorSensor == config::BoilerConfig::outdoorSensor_t::openweather) {
-			temp = openWeather_.getTemperature();
+			return openWeather_.getTemperature();
 		} else if (boilerConfig_.boiler.outdoorSensor == config::BoilerConfig::outdoorSensor_t::ems) {
-			ems::EmsBoilerState &boilerState = ems_.getBoilerState();
-			std::lock_guard<std::mutex> lock(boilerState.mutex);
-			temp = boilerState.outdoorTemperature ;
-		} else {
-			// no temp sensor
+			return ems_.getOutdoorTemperature();
 		}
-
-		if (!temp.has_value()) { // try to get any valid temperature
-			DBGLOGFD(log_, logFeature_, "Outdoor temperature is invalid. Trying to get it from OpenWeather or EMS\n", "");
-			auto owtemp = openWeather_.getTemperature();
-
-			ems::EmsBoilerState &boilerState = ems_.getBoilerState();
-			std::lock_guard<std::mutex> lock(boilerState.mutex);
-
-			temp = owtemp.has_value() ? owtemp : boilerState.outdoorTemperature;
-		}
-
-		if (!temp.has_value()) {
-			DBGLOGFD(log_, logFeature_, "Outdoor temperature is invalid. Setting to -20C\n", "");
-			return outdoorTemperatureIfInvalidRead;
-		} else {
-			return temp.value();
-		}
+		return {};
 	}
 
 	std::vector<std::shared_ptr<heating::Room>> buildRoomsFromConfig() {
@@ -436,7 +402,6 @@ private:
 	std::string currentProgram_;
 	std::vector<std::shared_ptr<heating::Room>> rooms_;
 	std::unordered_map<std::string, uint8_t> valveLabelMap_{buildValveLabelMap()};
-	ib::PeriodicCounter lastReadTemperatureCounter_{5 * 60 * 1000}; // 5 mins in ms
 	BeaconTemperatureReader::BleDevices_t devicesFound_;
 	mutable std::mutex roomsAccessMutex_;
 

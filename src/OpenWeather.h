@@ -2,7 +2,10 @@
 
 #include "config.h"
 #include "Logging.h"
+#include "control/WeatherObservation.h"
 #include <HTTPClient.h>
+#include <esp_timer.h>
+#include <ctime>
 #include <cJSON.h>
 #include <memory>
 #include <mutex>
@@ -22,7 +25,7 @@ public:
 		if (log_) {
 			logFeature_ = log_->addFeature("OpenWeather");
 		}
-		DBGLOGFD(log_, logFeature_, "Configuration. Enabled: %d appid:%s lat:%s lon:%s interval: %d\n", config_.enabled, config_.appid.c_str(), config_.latitude.c_str(), config_.longitude.c_str(), config_.interval);
+		DBGLOGFD(log_, logFeature_, "Configuration. Enabled: %d interval: %d\n", config_.enabled, config_.interval);
 	}
 
 	void operate() {
@@ -64,10 +67,7 @@ public:
 
 	std::optional<int16_t> getTemperature() {
 		std::unique_lock<std::mutex> lock(mutex_);
-		if (!outdoor_.valid) {
-			return {};
-		}
-		return {outdoor_.temp};
+		return temperatureSample_.value(static_cast<uint64_t>(esp_timer_get_time()/1000));
 	}
 
 private:
@@ -78,14 +78,17 @@ private:
 		std::unique_ptr<cJSON, decltype(&cJSON_Delete)> data(cJSON_Parse(payload.c_str()), &cJSON_Delete);
 
 		auto main = cJSON_GetObjectItem(data.get(), "main");
-		if (!main || main->type != cJSON_Object) {
+		if (!main || main->type != cJSON_Object ||
+		    !control::receiveWeatherObservation(temperatureSample_,data.get(),std::time(nullptr),
+		                                       static_cast<uint64_t>(esp_timer_get_time()/1000))) {
+			temperatureSample_.unavailable();
 			DBGLOGFD(log_, logFeature_, "Error, missing main\n", nullptr);
 			return;
 		}
 
-		auto temp = json::getFloat(main, "temp"); // example 6.34 C
-
-		outdoor_.temp = static_cast<int16_t>(temp * 100); // example 634
+		auto accepted = temperatureSample_.value(static_cast<uint64_t>(esp_timer_get_time()/1000));
+		if (!accepted) return;
+		outdoor_.temp = *accepted;
 		outdoor_.pressure = static_cast<int16_t>(json::getInt(main, "pressure"));
 		outdoor_.humidity = static_cast<uint8_t>(json::getInt(main, "humidity"));
 		outdoor_.date = json::getInt(data.get(), "dt");
@@ -133,6 +136,7 @@ private:
 	std::string query_;
 	unsigned long lastFetch_;
 	Outdoor outdoor_;
+	control::TemperatureSample temperatureSample_;
 	String payload_;
 	mutable std::mutex mutex_;
 	bool getDataInProgress_ = false;

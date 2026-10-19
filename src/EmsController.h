@@ -6,6 +6,7 @@
 #include "EMS/EmsTelegram.h"
 #include "EMS/EmsFrameQueue.h"
 #include "EMS/ClassicBoilerMonitor.h"
+#include "EMS/OutdoorTemperatureSample.h"
 #include <esp_timer.h>
 
 #include <atomic>
@@ -180,6 +181,10 @@ public:
 	EmsBoilerState &getBoilerState() {
 		return boilerState_;
 	}
+	std::optional<int16_t> getOutdoorTemperature() const {
+		std::lock_guard<std::mutex> lock(telemetryMutex_);
+		return outdoorSample_.value(static_cast<uint64_t>(esp_timer_get_time()/1000));
+	}
 
 	void getStatus(std::ostream &ss) const {
 		std::lock_guard<std::mutex> lock(telemetryMutex_);
@@ -259,6 +264,7 @@ private:
 	EmsBoilerParams boilerParams_;
 	mutable std::mutex telemetryMutex_;
 	ClassicBoilerMonitor monitor_;
+	control::TemperatureSample outdoorSample_;
 
 	std::atomic<std::optional<int16_t>> emsOutdoorTemperature_;
 

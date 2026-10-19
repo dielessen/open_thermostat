@@ -20,7 +20,7 @@ namespace heating {
 class BoilerController {
 public:
 	using boilerHeatingTemperatureOverride_t = std::optional<uint8_t>;
-	using getOutdoorTemp_t = std::function<int16_t()>;
+	using getOutdoorTemp_t = std::function<std::optional<int16_t>()>;
 	using emsChangeBoilerState_t = std::function<void(bool, uint8_t)>;
 	using emsSetHeatingTemperature_t = std::function<void(uint8_t)>;
 
@@ -123,6 +123,7 @@ public:
 		if (currentHeatingTemperature_) {
 			ss << ", \"heatingTemperature\": " << currentHeatingTemperature_.value();
 		}
+		if (outdoorUnavailable_) ss << ", \"inhibitionReason\": \"outdoor_unavailable\"";
 		if (manualTestActive_) {
 			auto remaining = std::chrono::duration_cast<std::chrono::seconds>(manualTestEnd_ - clock_t::now()).count();
 			if (remaining < 0)
@@ -235,13 +236,30 @@ private:
 		currentBoilerState_ = enabled;
 		currentHeatingTemperature_ = {};
 		currentOutdoorTemperature_ = {};
+		outdoorUnavailable_ = false;
+
+		const bool needsOutside = config_.boiler.controlMode == config::BoilerConfig::controlMode_t::ems ||
+			config_.boiler.controlMode == config::BoilerConfig::controlMode_t::onoff_outdoor;
+		if (needsOutside) {
+			currentOutdoorTemperature_ = getOutdoorTemp_();
+			if (!currentOutdoorTemperature_) {
+				// Missing configured evidence is NOT a synthetic -20 C reading.
+				// Preserve explicit stop even when the temperature needed to heat is absent.
+				outdoorUnavailable_ = true;
+				currentBoilerState_ = false;
+				valvePreheating_ = false;
+				if (config_.boiler.controlMode == config::BoilerConfig::controlMode_t::ems)
+					emsChangeBoilerState_(false, 0);
+				else boilerPort_->write(false);
+				return;
+			}
+		}
 
 		DBGLOGFD(log_, logFeature_, "changeBoilerState to: %d, control mode: %d\n", enabled, config_.boiler.controlMode);
 
 		if (config_.boiler.controlMode == config::BoilerConfig::controlMode_t::onoff || config_.boiler.controlMode == config::BoilerConfig::controlMode_t::onoff_outdoor) {
 
 			if (config_.boiler.controlMode == config::BoilerConfig::controlMode_t::onoff_outdoor) {
-				currentOutdoorTemperature_ = getOutdoorTemp_();
 				currentHeatingTemperature_ = getHeatingTemperature(currentOutdoorTemperature_.value());
 
 				if (boilerHeatingTemperatureOverride.has_value()) {
@@ -254,7 +272,6 @@ private:
 			DBGLOGFD(log_, logFeature_, "ON/OFF BOILER enabled: %d\n", enabled);
 			boilerPort_->write(enabled);
 		} else if  (config_.boiler.controlMode == config::BoilerConfig::controlMode_t::ems) {
-			currentOutdoorTemperature_ = getOutdoorTemp_();
 			currentHeatingTemperature_ = getHeatingTemperature(currentOutdoorTemperature_.value());
 
 			if (boilerHeatingTemperatureOverride.has_value()) {
@@ -298,6 +315,7 @@ private:
 	clock_t::time_point lastPreheatTime_;
 
 	bool currentBoilerState_ = false; // true - heating
+	bool outdoorUnavailable_ = false;
 	std::optional<int16_t> currentHeatingTemperature_ = 0;
 	std::optional<int16_t> currentOutdoorTemperature_ = 0;
 

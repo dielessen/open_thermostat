@@ -298,6 +298,7 @@ void EmsController::decodeTelegram(uint8_t *data, uint8_t length) {
         {
             std::lock_guard<std::mutex> lock(telemetryMutex_);
             monitor_.receive(telegram, static_cast<uint64_t>(esp_timer_get_time() / 1000));
+            receiveOutdoorTemperature(outdoorSample_,telegram,static_cast<uint64_t>(esp_timer_get_time()/1000));
         }
         // Passive monitor also sees boiler reports addressed to another master.
         // Legacy registered callbacks retain their original destination admission.

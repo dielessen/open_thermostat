@@ -5,6 +5,8 @@
 #include "EmsBusUart.h"
 #include "EMS/EmsTelegram.h"
 #include "EMS/EmsFrameQueue.h"
+#include "EMS/ClassicBoilerMonitor.h"
+#include <esp_timer.h>
 
 #include <atomic>
 #include <functional>
@@ -56,7 +58,7 @@ struct EmsBoilerState {
 		return ss.str();
 	}
 
-	void getStatus(std::ostream &ss) const {
+	void getStatus(std::ostream &ss, const char *profile = nullptr) const {
 		bool first = true;
 
 		#define ADD_ITEM_TO_JSON(name, value) { if (name.has_value()) { if (!first) { ss << ","; } else { first = false; } ss << "\""#name"\": " << value; } }
@@ -85,6 +87,10 @@ struct EmsBoilerState {
 		ADD_ITEM_TO_JSON(serviceCode, serviceCode.value())
 		ADD_SITEM_TO_JSON(displayCode, displayCode.value().data())
 		ADD_ITEM_TO_JSON(protocolVersion, static_cast<int>(protocolVersion.value()))
+		if (profile) {
+			if (!first) ss << ',';
+			ss << "\"protocolProfile\":\"" << profile << "\",\"physicalValidation\":false";
+		}
 
 		ss << "}";
 	}
@@ -159,6 +165,7 @@ public:
 		}
 		captureForeignTelegrams_.store(log_ && log_->isFeatureEnabled(verboseFeature()), std::memory_order_relaxed);
 		processTelegrams();
+		refreshClassicStatus();
 		requestPeriodicData();
 
 		reportStats();
@@ -175,11 +182,18 @@ public:
 	}
 
 	void getStatus(std::ostream &ss) const {
-		boilerState_.getStatus(ss);
+		std::lock_guard<std::mutex> lock(telemetryMutex_);
+		boilerState_.getStatus(ss, monitor_.capabilities().name());
 	}
 
 	std::string getStatus() const {
-		return boilerState_.getStatus();
+		std::stringstream ss;
+		getStatus(ss);
+		return ss.str();
+	}
+	void getTelemetryStatus(std::ostream &ss) const {
+		std::lock_guard<std::mutex> lock(telemetryMutex_);
+		monitor_.writeJSON(ss, static_cast<uint64_t>(esp_timer_get_time() / 1000));
 	}
 
 	void getBoilerParams(std::ostream &ss) const {
@@ -199,6 +213,7 @@ private:
 	void enqueueTelegramToSend(EmsTelegram telegram, bool front = false);
 	void reportStats();
 	void decodeTelegram(uint8_t *data, uint8_t length);
+	void refreshClassicStatus();
 
 	void processTelegrams();
 
@@ -242,6 +257,8 @@ private:
 
 	EmsBoilerState boilerState_;
 	EmsBoilerParams boilerParams_;
+	mutable std::mutex telemetryMutex_;
+	ClassicBoilerMonitor monitor_;
 
 	std::atomic<std::optional<int16_t>> emsOutdoorTemperature_;
 

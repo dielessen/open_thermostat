@@ -195,6 +195,11 @@ void EmsController::reset() {
 
 void EmsController::enqueueTelegramToSend(EmsTelegram telegram, bool front) {
 	if constexpr (!board::emsTransmitAllowed) return; // no pending commands in RX-only mode
+	if (telegram.getOperationType() == EmsTelegram::WRITE) {
+		std::lock_guard<std::mutex> lock(telemetryMutex_);
+		// Never send legacy EMS+ controls/startup writes onto unknown/Classic buses.
+		if (!monitor_.capabilities().allowsLegacyPlusWrites()) return;
+	}
 	// Encode and allocate before taking the TX lock; poll only copies ready bytes.
 	auto encoded = telegram.encodeToRawDataWithCRC();
 	if (encoded.empty() || encoded.size() > EmsRawFrame::capacity) {
@@ -276,7 +281,8 @@ void EmsController::processTelegram(uint8_t *data, uint8_t length) {
 			txNotConfirmed_.fetch_sub(1, std::memory_order_relaxed);
 		}
 		// Cache the diagnostic setting in loop(); never call the logger here.
-		if (!captureForeignTelegrams_.load(std::memory_order_relaxed)) {
+		const bool boilerData = (data[0] & 0x7F) == boilerId_ && !(data[1] & 0x80);
+		if (!boilerData && !captureForeignTelegrams_.load(std::memory_order_relaxed)) {
 			return;
 		}
 	}
@@ -286,60 +292,72 @@ void EmsController::processTelegram(uint8_t *data, uint8_t length) {
 }
 
 void EmsController::decodeTelegram(uint8_t *data, uint8_t length) {
-	if (log_->isFeatureEnabled(verboseFeature())) {
-		DBGLOGFD(log_, verboseFeature(), "processTelegram (%ld): ", length);
-		for (size_t i = 0; i < length; ++i) {
-			DBGLOGFI(log_, verboseFeature(), "%2.2X ", data[i]);
-		}
-		DBGLOGFI(log_, verboseFeature(), "\n");
-	}
+    try {
+        if (length == 0) return;
+        const auto telegram = EmsTelegram::fromRawData(data, length - 1);
+        {
+            std::lock_guard<std::mutex> lock(telemetryMutex_);
+            monitor_.receive(telegram, static_cast<uint64_t>(esp_timer_get_time() / 1000));
+        }
+        // Passive monitor also sees boiler reports addressed to another master.
+        // Legacy registered callbacks retain their original destination admission.
+        if (data[1] != 0 && telegram.getDestinationId() != deviceId_) {
+            if (log_ && log_->isFeatureEnabled(verboseFeature()))
+                telegram.logDebug(*log_, verboseFeature_);
+            return;
+        }
+        if (log_) telegram.logDebug(*log_, verboseFeature_);
+        if (telegram.getOperationType() == EmsTelegram::READ) {
+            processReadRequest(telegram);
+        } else if (telegram.getSenderId() == boilerId_) {
+            std::list<std::function<void(EmsTelegram const &)>> processors;
+            {
+                std::lock_guard<std::mutex> lock(telegramProcessorsMutex_);
+                const auto found = telegramProcessors_.find(telegram.getTypeId());
+                if (found != telegramProcessors_.end()) processors = found->second;
+            }
+            for (const auto &processor : processors) processor(telegram);
+        }
+    } catch (const std::exception &e) {
+        DBGLOGFD(log_, fatalFeature(), "EmsController: rejected raw telegram: %s\n", e.what());
+    }
+}
 
-	if (data[1] != 0 && ((data[1] & 0x7F) != deviceId_)) {
-		if ((data[0] & 0x7F) == deviceId_) {
-			DBGLOGFD(log_, verboseFeature(), "Telegram sent from us. Debug follows:\n");
-			// TODO validate sent telegrams by ID?
-		} else {
-			DBGLOGFD(log_, verboseFeature(), "Telegram not for us. Src: 0x%2.2X Dest: 0x%2.2X, debug follows:\n", data[0] & 0x7F, data[1] & 0x7F);
-		}
-
-		if (log_->isFeatureEnabled(verboseFeature())) {
-			try {
-				EmsTelegram::getFromRawData(*log_, verboseFeature_, data, length - 1).logDebug(*log_, logFeature_);
-			} catch (std::exception const &e) {
-				DBGLOGFD(log_, fatalFeature(), "processTelegram for debug. Error decoding telegram: %s\n", e.what());
-			}
-		}
-		return;
-	}
-
-	if ((data[1] & 0x7F) == deviceId_) {
-		DBGLOGFD(log_, verboseFeature(), "We have got an telegram!\n");
-	}
-
-	try {
-		EmsTelegram telegram = EmsTelegram::getFromRawData(*log_, verboseFeature_, data, length - 1);
-		telegram.logDebug(*log_, logFeature_);
-		if (telegram.getOperationType() == EmsTelegram::operation_t::READ) {
-			processReadRequest(telegram);
-		} else {
-			std::list<std::function<void(EmsTelegram const &)>> processors;
-			{
-				std::lock_guard<std::mutex> lock(telegramProcessorsMutex_);
-				auto found = telegramProcessors_.find(telegram.getTypeId());
-				if (found != telegramProcessors_.end()) {
-					processors = found->second;
-				}
-			}
-			for (auto const &processor : processors) {
-				processor(telegram);
-			}
-			if (processors.empty()) {
-				DBGLOGFD(log_, logFeature_, "Unknown telegram ID: 0x%4.4X\n", telegram.getTypeId());
-			}
-		}
-	} catch (std::exception const &e) {
-		DBGLOGFD(log_, fatalFeature(), "EmsController: error decoding telegram: %s\n", e.what());
-	}
+void EmsController::refreshClassicStatus() {
+    std::lock_guard<std::mutex> monitorLock(telemetryMutex_);
+    if (monitor_.capabilities().profile() != BoilerProtocol::classic) return;
+    const auto now = static_cast<uint64_t>(esp_timer_get_time() / 1000);
+    const auto project = [&](auto &target, BoilerField field, int divisor = 1) {
+        using Value = typename std::decay_t<decltype(target)>::value_type;
+        if (const auto v = monitor_.value(field, now)) target = static_cast<Value>(*v / divisor);
+        else target.reset();
+    };
+    {
+        std::lock_guard<std::mutex> stateLock(boilerState_.mutex);
+        auto &s = boilerState_;
+        project(s.selectedFlowTemperature, BoilerField::selectedFlow, 100);
+        project(s.currentFlowTemperature, BoilerField::flow, 10);
+        project(s.outdoorTemperature, BoilerField::outdoor);
+        project(s.currentBurnerPower, BoilerField::modulation);
+        project(s.pressure, BoilerField::pressure);
+        project(s.heatingActive, BoilerField::heatingActive);
+        project(s.warmWaterActive, BoilerField::dhwActive);
+        project(s.warmWaterEnabled, BoilerField::dhwEnabled);
+        project(s.selectedWarmWaterTemperature, BoilerField::selectedDhw, 100);
+        project(s.currentWarmWaterTemperature, BoilerField::dhwTemp, 10);
+        project(s.warmWaterFlow, BoilerField::dhwFlow);
+        project(s.heatingEnabled, BoilerField::heatingEnabled);
+        project(s.serviceCode, BoilerField::serviceNumber);
+        s.burningGas.reset(); s.pumpEnabled.reset(); s.fanEnabled.reset();
+        if (const auto code = monitor_.value(BoilerField::displayCode, now))
+            s.displayCode = std::array<char, 3>{static_cast<char>(*code >> 8), static_cast<char>(*code & 255), 0};
+        else s.displayCode.reset();
+    }
+    {
+        std::lock_guard<std::mutex> paramLock(boilerParams_.mutex);
+        project(boilerParams_.heatingTemperature, BoilerField::heatingLimit, 100);
+        boilerParams_.maximumHeatingTemperature.reset(); // not provided by Classic0x16
+    }
 }
 
 void EmsController::processTelegrams() {

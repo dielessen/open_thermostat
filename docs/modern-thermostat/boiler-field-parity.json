@@ -1,0 +1,707 @@
+{
+  "schema": 1,
+  "scope": "Read-only inventory classification; not complete product/hardware parity",
+  "inventory_at": "2026-10-20T00:15:00+02:00",
+  "device": {
+    "source_address": 8,
+    "product": 206,
+    "reported_version": "02.01",
+    "emsesp_version": "3.8.6",
+    "physical_adapter_verified": false
+  },
+  "protocol_mapping_reference": {
+    "url": "https://github.com/emsesp/EMS-ESP32/blob/v3.8.6/src/devices/boiler.cpp",
+    "sha256": "42505c773bcbf6631718abd517d61ee5dec9bcf429b2123d402a69ed5445503e",
+    "usage": "protocol facts only, no copied implementation"
+  },
+  "capability_limits": [
+    "No Classic TX or physical commissioning",
+    "No new code path writes EMS+ controls on unknown/Classic/conflicting family",
+    "No gas-meter or independent flame claim",
+    "Unmapped rows remain visible work, not silently supported",
+    "Source freshness uses 64-bit local monotone receive time; not proof of physical sensor age",
+    "Gateway diagnostics are transport status, not boiler fields"
+  ],
+  "fields": [
+    {
+      "emsesp_key": "reset",
+      "label": "Reset",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "chimneysweeper",
+      "label": "Chimney sweeper",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "heatingoff",
+      "label": "Force heating off",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "heatingactive",
+      "label": "Heating active",
+      "classification": "required+mapped",
+      "implementation": "mapped",
+      "target_field": "heating_active",
+      "quality": "inferred",
+      "snapshot_read": true,
+      "reason": "Derived from reported boiler-state bits, not an independent flame/flow measurement."
+    },
+    {
+      "emsesp_key": "tapwateractive",
+      "label": "Tapwater active",
+      "classification": "required+mapped",
+      "implementation": "mapped",
+      "target_field": "dhw_active",
+      "quality": "inferred",
+      "snapshot_read": true,
+      "reason": "Derived from reported boiler-state bits, not an independent flame/flow measurement."
+    },
+    {
+      "emsesp_key": "selflowtemp",
+      "label": "Selected flow temperature",
+      "classification": "required+mapped",
+      "implementation": "mapped",
+      "target_field": "reported_selected_flow_temperature",
+      "quality": "reported",
+      "snapshot_read": true,
+      "reason": "Passive readback only; no setter or device action implemented by this mapping."
+    },
+    {
+      "emsesp_key": "heatingpumpmod",
+      "label": "Heating pump modulation",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "curflowtemp",
+      "label": "Current flow temperature",
+      "classification": "required+mapped",
+      "implementation": "mapped",
+      "target_field": "measured_flow_temperature",
+      "quality": "reported",
+      "snapshot_read": true,
+      "reason": "Passive readback only; no setter or device action implemented by this mapping."
+    },
+    {
+      "emsesp_key": "rettemp",
+      "label": "Return temperature",
+      "classification": "required+mapped",
+      "implementation": "mapped",
+      "target_field": "measured_return_temperature",
+      "quality": "reported",
+      "snapshot_read": true,
+      "reason": "Passive readback only; no setter or device action implemented by this mapping."
+    },
+    {
+      "emsesp_key": "switchtemp",
+      "label": "Mixing switch temperature",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "burngas",
+      "label": "Gas",
+      "classification": "unreliable_on_this_chain",
+      "implementation": "mapped",
+      "target_field": "raw_burner_bit",
+      "quality": "unreliable",
+      "snapshot_read": true,
+      "reason": "Historical Classic adapter observations do not validate this as physical truth. Raw readback, if mapped, remains diagnostic and excluded from trusted getters."
+    },
+    {
+      "emsesp_key": "burngas2",
+      "label": "Gas stage 2",
+      "classification": "unreliable_on_this_chain",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "Historical Classic adapter observations do not validate this as physical truth. Raw readback, if mapped, remains diagnostic and excluded from trusted getters."
+    },
+    {
+      "emsesp_key": "flamecurr",
+      "label": "Flame current",
+      "classification": "unreliable_on_this_chain",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "Historical Classic adapter observations do not validate this as physical truth. Raw readback, if mapped, remains diagnostic and excluded from trusted getters."
+    },
+    {
+      "emsesp_key": "fanwork",
+      "label": "Fan",
+      "classification": "unreliable_on_this_chain",
+      "implementation": "mapped",
+      "target_field": "raw_fan_bit",
+      "quality": "unreliable",
+      "snapshot_read": true,
+      "reason": "Historical Classic adapter observations do not validate this as physical truth. Raw readback, if mapped, remains diagnostic and excluded from trusted getters."
+    },
+    {
+      "emsesp_key": "ignwork",
+      "label": "Ignition",
+      "classification": "unreliable_on_this_chain",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "Historical Classic adapter observations do not validate this as physical truth. Raw readback, if mapped, remains diagnostic and excluded from trusted getters."
+    },
+    {
+      "emsesp_key": "oilpreheat",
+      "label": "Oil preheating",
+      "classification": "unreliable_on_this_chain",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "Historical Classic adapter observations do not validate this as physical truth. Raw readback, if mapped, remains diagnostic and excluded from trusted getters."
+    },
+    {
+      "emsesp_key": "burnmaxpower",
+      "label": "Burner max power",
+      "classification": "optional+mapped",
+      "implementation": "mapped",
+      "target_field": "maximum_burner_power",
+      "quality": "reported",
+      "snapshot_read": true,
+      "reason": "Passive readback only; no setter or device action implemented by this mapping."
+    },
+    {
+      "emsesp_key": "burnminperiod",
+      "label": "Burner min period",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "boilhyston",
+      "label": "Hysteresis on temperature",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "boilhystoff",
+      "label": "Hysteresis off temperature",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "heatingactivated",
+      "label": "Heating activated",
+      "classification": "required+mapped",
+      "implementation": "mapped",
+      "target_field": "heating_enabled",
+      "quality": "reported",
+      "snapshot_read": false,
+      "reason": "Passive readback only; no setter or device action implemented by this mapping."
+    },
+    {
+      "emsesp_key": "heatingtemp",
+      "label": "Heating temperature",
+      "classification": "required+mapped",
+      "implementation": "mapped",
+      "target_field": "configured_heating_temperature",
+      "quality": "reported",
+      "snapshot_read": true,
+      "reason": "Passive readback only; no setter or device action implemented by this mapping."
+    },
+    {
+      "emsesp_key": "heatingpump",
+      "label": "Heating pump",
+      "classification": "unreliable_on_this_chain",
+      "implementation": "mapped",
+      "target_field": "raw_pump_bit",
+      "quality": "unreliable",
+      "snapshot_read": true,
+      "reason": "Historical Classic adapter observations do not validate this as physical truth. Raw readback, if mapped, remains diagnostic and excluded from trusted getters."
+    },
+    {
+      "emsesp_key": "pumpmodmax",
+      "label": "Boiler pump max power",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "pumpmodmin",
+      "label": "Boiler pump min power",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "pumpmode",
+      "label": "Boiler pump mode",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "pumpdelay",
+      "label": "Pump delay",
+      "classification": "optional+mapped",
+      "implementation": "mapped",
+      "target_field": "pump_run_on",
+      "quality": "reported",
+      "snapshot_read": false,
+      "reason": "Passive readback only; no setter or device action implemented by this mapping."
+    },
+    {
+      "emsesp_key": "selburnpow",
+      "label": "Burner selected max power",
+      "classification": "optional+mapped",
+      "implementation": "mapped",
+      "target_field": "reported_requested_power_limit",
+      "quality": "reported",
+      "snapshot_read": false,
+      "reason": "Passive readback only; no setter or device action implemented by this mapping."
+    },
+    {
+      "emsesp_key": "curburnpow",
+      "label": "Burner current power",
+      "classification": "required+mapped",
+      "implementation": "mapped",
+      "target_field": "reported_burner_modulation",
+      "quality": "reported",
+      "snapshot_read": true,
+      "reason": "Passive readback only; no setter or device action implemented by this mapping."
+    },
+    {
+      "emsesp_key": "burnstarts",
+      "label": "Burner starts",
+      "classification": "unreliable_on_this_chain",
+      "implementation": "mapped",
+      "target_field": "reported_burner_starts",
+      "quality": "unreliable",
+      "snapshot_read": true,
+      "reason": "Historical Classic adapter observations do not validate this as physical truth. Raw readback, if mapped, remains diagnostic and excluded from trusted getters."
+    },
+    {
+      "emsesp_key": "burnworkmin",
+      "label": "Total burner operating time",
+      "classification": "unreliable_on_this_chain",
+      "implementation": "mapped",
+      "target_field": "reported_burner_runtime",
+      "quality": "unreliable",
+      "snapshot_read": true,
+      "reason": "Historical Classic adapter observations do not validate this as physical truth. Raw readback, if mapped, remains diagnostic and excluded from trusted getters."
+    },
+    {
+      "emsesp_key": "burn2workmin",
+      "label": "Burner stage 2 operating time",
+      "classification": "unreliable_on_this_chain",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "Historical Classic adapter observations do not validate this as physical truth. Raw readback, if mapped, remains diagnostic and excluded from trusted getters."
+    },
+    {
+      "emsesp_key": "heatworkmin",
+      "label": "Total heat operating time",
+      "classification": "unreliable_on_this_chain",
+      "implementation": "mapped",
+      "target_field": "reported_heating_runtime",
+      "quality": "unreliable",
+      "snapshot_read": true,
+      "reason": "Historical Classic adapter observations do not validate this as physical truth. Raw readback, if mapped, remains diagnostic and excluded from trusted getters."
+    },
+    {
+      "emsesp_key": "heatstarts",
+      "label": "Burner starts heating",
+      "classification": "unreliable_on_this_chain",
+      "implementation": "mapped",
+      "target_field": "reported_heating_starts",
+      "quality": "unreliable",
+      "snapshot_read": true,
+      "reason": "Historical Classic adapter observations do not validate this as physical truth. Raw readback, if mapped, remains diagnostic and excluded from trusted getters."
+    },
+    {
+      "emsesp_key": "ubauptime",
+      "label": "Total UBA operating time",
+      "classification": "unreliable_on_this_chain",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "Historical Classic adapter observations do not validate this as physical truth. Raw readback, if mapped, remains diagnostic and excluded from trusted getters."
+    },
+    {
+      "emsesp_key": "servicecode",
+      "label": "Service code",
+      "classification": "required+mapped",
+      "implementation": "mapped",
+      "target_field": "display_code",
+      "quality": "reported",
+      "snapshot_read": true,
+      "reason": "Passive readback only; no setter or device action implemented by this mapping."
+    },
+    {
+      "emsesp_key": "servicecodenumber",
+      "label": "Service code number",
+      "classification": "required+mapped",
+      "implementation": "mapped",
+      "target_field": "service_number",
+      "quality": "reported",
+      "snapshot_read": true,
+      "reason": "Passive readback only; no setter or device action implemented by this mapping."
+    },
+    {
+      "emsesp_key": "maintenancemessage",
+      "label": "Maintenance message",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "dhw_tapactivated",
+      "label": "dhw Turn on/off",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "dhw_settemp",
+      "label": "dhw Set temperature",
+      "classification": "optional+mapped",
+      "implementation": "mapped",
+      "target_field": "reported_dhw_target",
+      "quality": "reported",
+      "snapshot_read": true,
+      "reason": "Passive readback only; no setter or device action implemented by this mapping."
+    },
+    {
+      "emsesp_key": "dhw_seltemp",
+      "label": "dhw Selected temperature",
+      "classification": "required+mapped",
+      "implementation": "mapped",
+      "target_field": "selected_dhw_temperature",
+      "quality": "reported",
+      "snapshot_read": false,
+      "reason": "Passive readback only; no setter or device action implemented by this mapping."
+    },
+    {
+      "emsesp_key": "dhw_type",
+      "label": "dhw Type",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "dhw_comfort",
+      "label": "dhw Comfort",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "dhw_flowtempoffset",
+      "label": "dhw Flow temperature offset",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "dhw_chargeoptimization",
+      "label": "dhw Charge optimization",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "dhw_circpump",
+      "label": "dhw Circulation pump available",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "dhw_chargetype",
+      "label": "dhw Charging type",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "dhw_hyston",
+      "label": "dhw Hysteresis on temperature",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "dhw_disinfectiontemp",
+      "label": "dhw Disinfection temperature",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "dhw_circmode",
+      "label": "dhw Circulation pump mode",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "dhw_circ",
+      "label": "dhw Circulation active",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "dhw_curtemp",
+      "label": "dhw Current intern temperature",
+      "classification": "required+mapped",
+      "implementation": "mapped",
+      "target_field": "measured_dhw_temperature",
+      "quality": "reported",
+      "snapshot_read": true,
+      "reason": "Passive readback only; no setter or device action implemented by this mapping."
+    },
+    {
+      "emsesp_key": "dhw_curflow",
+      "label": "dhw Current tap water flow",
+      "classification": "unreliable_on_this_chain",
+      "implementation": "mapped",
+      "target_field": "dhw_flow",
+      "quality": "unreliable",
+      "snapshot_read": true,
+      "reason": "Historical Classic adapter observations do not validate this as physical truth. Raw readback, if mapped, remains diagnostic and excluded from trusted getters."
+    },
+    {
+      "emsesp_key": "dhw_activated",
+      "label": "dhw Activated",
+      "classification": "required+mapped",
+      "implementation": "mapped",
+      "target_field": "dhw_enabled",
+      "quality": "reported",
+      "snapshot_read": false,
+      "reason": "Passive readback only; no setter or device action implemented by this mapping."
+    },
+    {
+      "emsesp_key": "dhw_onetime",
+      "label": "dhw One time charging",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "dhw_disinfecting",
+      "label": "dhw Disinfecting",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "dhw_charging",
+      "label": "dhw Charging",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "dhw_recharging",
+      "label": "dhw Recharging",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "dhw_tempok",
+      "label": "dhw Temperature ok",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "dhw_active",
+      "label": "dhw Active",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "dhw_3wayvalve",
+      "label": "dhw 3-way valve active",
+      "classification": "unreliable_on_this_chain",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "Historical Classic adapter observations do not validate this as physical truth. Raw readback, if mapped, remains diagnostic and excluded from trusted getters."
+    },
+    {
+      "emsesp_key": "dhw_chargepump",
+      "label": "dhw Charge pump",
+      "classification": "unreliable_on_this_chain",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "Historical Classic adapter observations do not validate this as physical truth. Raw readback, if mapped, remains diagnostic and excluded from trusted getters."
+    },
+    {
+      "emsesp_key": "dhw_starts",
+      "label": "dhw Starts",
+      "classification": "unreliable_on_this_chain",
+      "implementation": "mapped",
+      "target_field": "reported_dhw_starts",
+      "quality": "unreliable",
+      "snapshot_read": true,
+      "reason": "Historical Classic adapter observations do not validate this as physical truth. Raw readback, if mapped, remains diagnostic and excluded from trusted getters."
+    },
+    {
+      "emsesp_key": "dhw_workm",
+      "label": "dhw Active time",
+      "classification": "unreliable_on_this_chain",
+      "implementation": "mapped",
+      "target_field": "reported_dhw_runtime",
+      "quality": "unreliable",
+      "snapshot_read": true,
+      "reason": "Historical Classic adapter observations do not validate this as physical truth. Raw readback, if mapped, remains diagnostic and excluded from trusted getters."
+    },
+    {
+      "emsesp_key": "nompower",
+      "label": "Nominal Power",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": false,
+      "reason": "Optional administrative/configuration or additional telemetry field; explicitly not decoded by WP02."
+    },
+    {
+      "emsesp_key": "nrgtotal",
+      "label": "Total energy",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "EMS-ESP model energy, not a gas meter. Counter/estimate definition and historical migration are deferred to WP07; no fake zero or copied total."
+    },
+    {
+      "emsesp_key": "nrgheat",
+      "label": "Energy heating",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "EMS-ESP model energy, not a gas meter. Counter/estimate definition and historical migration are deferred to WP07; no fake zero or copied total."
+    },
+    {
+      "emsesp_key": "dhw_nrg",
+      "label": "dhw Energy",
+      "classification": "not_yet_implemented",
+      "implementation": "not_yet_implemented",
+      "target_field": null,
+      "quality": "unverified",
+      "snapshot_read": true,
+      "reason": "EMS-ESP model energy, not a gas meter. Counter/estimate definition and historical migration are deferred to WP07; no fake zero or copied total."
+    }
+  ]
+}

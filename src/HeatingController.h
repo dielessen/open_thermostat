@@ -184,6 +184,9 @@ public:
 	void getEMSStatus(std::ostream &ss) const {
 		ems_.getStatus(ss);
 	}
+	void getEMSTelemetryStatus(std::ostream &ss) const {
+		ems_.getTelemetryStatus(ss);
+	}
 
 	std::string getEMSStatus() const {
 		return ems_.getStatus();

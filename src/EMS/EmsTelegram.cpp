@@ -47,39 +47,39 @@ void EmsTelegram::logDebug(ib::logger::LoggerInterface &log, ib::logger::LoggerI
 }
 
 uint16_t EmsTelegram::getTelegramTypeFromRaw(uint8_t *data, uint8_t length) {
-	if (data[2] != 0xFF || length < 6) { // EMS1
-		return data[2];
-	} else if (data[1] & 0x80) { // EMS2.0 read request
-		return (data[5] << 8) + data[6] + 256;
-	} else { // EMS2.0/EMS+
-		return (data[4] << 8) + data[5] + 256;
-	}
+    if (!data || length < 5) throw std::runtime_error("Short EMS header");
+    if (data[2] != 0xFF) return data[2];
+    const bool read = (data[1] & 0x80) != 0;
+    if (length < (read ? 8 : 7)) throw std::runtime_error("Short EMS+ header");
+    const size_t start = read ? 5 : 4;
+    const uint32_t type = (data[start] << 8) + data[start + 1] + 256;
+    if (type > 0xFFFF) throw std::runtime_error("Invalid EMS+ type");
+    return static_cast<uint16_t>(type);
 }
 
-EmsTelegram EmsTelegram::getFromRawData(ib::logger::LoggerInterface &log, ib::logger::LoggerInterface::LogFeatureType verboseFeature, uint8_t *data, uint8_t length) { // decodes full raw telegram, data without tailing BRK \0, throws
-	if (data[length - 1] != calculateCRC(data, length - 1)) {
-		throw std::runtime_error("Bad CRC");
-	}
+EmsTelegram EmsTelegram::fromRawData(const uint8_t *data, size_t length) {
+    if (!data || length < 5 || length > 32) throw std::runtime_error("Invalid EMS frame length");
+    const bool extended = data[2] == 0xFF;
+    const bool read = data[1] != 0 && (data[1] & 0x80);
+    if ((extended && length < (read ? 8u : 7u)) || (!extended && read && length != 6))
+        throw std::runtime_error("Invalid EMS header length");
+    if (data[length - 1] != calculateCRC(data, static_cast<uint8_t>(length - 1)))
+        throw std::runtime_error("Bad CRC");
+    const auto operation = data[1] == 0 ? BROADCAST : read ? READ : WRITE;
+    const uint32_t type = !extended ? data[2] :
+        (data[read ? 5 : 4] << 8) + data[read ? 6 : 5] + 256;
+    if (type > 0xFFFF) throw std::runtime_error("Invalid EMS+ type");
+    const size_t start = extended && !read ? 6 : 4;
+    const size_t size = read ? 1 : length - start - 1;
+    return EmsTelegram(operation, data[0], data[1], data[3], type,
+                       std::vector<uint8_t>(data + start, data + start + size));
+}
 
-	operation_t operation = EmsTelegram::operation_t::READ;
-
-	uint8_t destination = data[1]; // 0 - broadcast
-	if (destination == 0) {
-		operation = operation_t::BROADCAST;
-	} else {
-		operation = destination & 0x80 ? operation_t::READ : operation_t::WRITE;
-	}
-
-	if (data[2] != 0xFF || length < 6) { // EMS1
-		DBGLOGFD((&log), verboseFeature, "Got EMS1.0 raw len: %d from: %d\n", length, data[0]);
-		return EmsTelegram(operation, data[0], destination, data[3], data[2], data + 4, length - 5);
-	} else if (data[1] & 0x80) { // EMS2.0 read request
-		DBGLOGFD((&log), verboseFeature, "Got EMS2.0 read request raw len: %d\n", length);
-		return EmsTelegram(destination == 0 ? EmsTelegram::operation_t::BROADCAST : EmsTelegram::operation_t::READ, data[0], destination, data[3], (data[5] << 8) + data[6] + 256, data + 4, 1);
-	} else { // EMS2.0/EMS+
-		DBGLOGFD((&log), verboseFeature, "Got EMS2.0 raw len: %d\n", length);
-		return EmsTelegram(destination == 0 ? EmsTelegram::operation_t::BROADCAST : EmsTelegram::operation_t::WRITE, data[0], destination, data[3], (data[4] << 8) + data[5] + 256, data + 6, length - 7);
-	}
+EmsTelegram EmsTelegram::getFromRawData(ib::logger::LoggerInterface &log,
+    ib::logger::LoggerInterface::LogFeatureType verboseFeature, uint8_t *data, uint8_t length) {
+    auto telegram = fromRawData(data, length);
+    DBGLOGFD((&log), verboseFeature, "Got validated EMS raw len: %u from: %u\n", length, data[0]);
+    return telegram;
 }
 
 std::vector<uint8_t> EmsTelegram::encodeToRawDataWithCRC() const {

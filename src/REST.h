@@ -78,6 +78,12 @@ public:
 		server_.on("/status", [this]() { status(); });
 		server_.on("/status/boiler", [this]() { boilerStatus(); });
 		server_.on("/status/ems", [this]() { emsStatus(); });
+		server_.on("/status/ems/telemetry", HTTP_GET, [this]() {
+			ib::viewable_stringbuf buf;
+			std::ostream ss(&buf);
+			controller_.getEMSTelemetryStatus(ss);
+			server_.sendView(200, "application/json"sv, buf.view());
+		});
 		server_.on("/status/rooms", [this]() { roomsStatus(); });
 		server_.on("/status/devices", [this]() { devicesFound(); });
 		server_.on("/status/programs", HTTP_GET, [this]() { showPrograms(); }); // show available programs

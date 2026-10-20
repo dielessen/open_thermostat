@@ -37,9 +37,13 @@ IDs, invalid-input-immutability en core-registryverwijdering worden getest.
 20oktober geïsoleerde native APIproef: kamercreate, bron-/TRVwissel, grenswijziging
 en ongeldige-grenzenrollback geslaagd; leegmaken vond de bovenstaande echte bug.
 Daarna precies één runtimebestand gerepareerd, officiële check_config exit0 en
-alleen bestaande testHA herstart. Postrestart/clear/deleteacceptatie nog lopend.
-APIflows zijn geen visuele GUIacceptatie; MQTTfixtureentities blijven unknown en
-bewijzen geen fysieke meetversheid of ondersteund actuatorprofiel.
+alleen bestaande testHA herstart. Native postrestart/clear/deleteacceptatie9/9PASS.
+Vervolgens echte hostChromium-GUIcreate/edit/sensor+TRVwissel/grensfout/optional-
+clear/delete10/10softwarechecksPASS, met screenshots, heropende formwaarden en
+afscheiden native REST/WSreadbacks. Gerichte opruiming van eigen5bronfixtures
+en aparte native eindreadback zijn geslaagd (nulzones/MQTTsubentries, runtimeuit). APIflows alleen waren geen GUIbewijs; de latere zichtbare bediening
+is apart uitgevoerd. MQTTfixtureentities bewijzen geen fysieke meetversheid of
+ondersteund actuatorprofiel.
 
 ## Uitrolgrens
 

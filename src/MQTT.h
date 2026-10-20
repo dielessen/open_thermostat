@@ -233,13 +233,15 @@ public:
 			logFeature_ = log_->addFeature("MQTT");
 		}
 		auto mqttConfig = config::getMqttConfig();
-#ifdef OPENTHERMOSTAT_E32V2
 		if(mqttConfig.modernShadow) {
 			modernMode_=true;
+#ifdef OPENTHERMOSTAT_E32V2
 			if(mqttConfig.enabled) modern_=std::make_unique<control::ModernTransport>(mqttConfig);
+#endif
+			// Unsupported targets must not silently keep a legacy heater writer
+			// running after the operator selected output-disabled shadow mode.
 			return;
 		}
-#endif
 		DBGLOGFD(log_, logFeature_, "Enabled: %d\n", mqttConfig.enabled);
 		DBGLOGFD(log_, logFeature_, "%s:%d\n", mqttConfig.brokerAddress.c_str(), mqttConfig.brokerPort);
 		DBGLOGFD(log_, logFeature_, "publish interval %d, keep alive inteval: %d\n", mqttConfig.interval, mqttConfig.keepAlive);
@@ -280,19 +282,18 @@ public:
 	}
 
 	void loop() {
+		if(modernMode_) {
 #ifdef OPENTHERMOSTAT_E32V2
-		if(modernMode_) { if(modern_) modern_->loop(); return; }
+			if(modern_) modern_->loop();
 #endif
+			return;
+		}
 		if (mqtt_) {
 			mqtt_->loop();
 		}
 	}
 	bool modernMode() const {
-#ifdef OPENTHERMOSTAT_E32V2
 		return modernMode_;
-#else
-		return false;
-#endif
 	}
 
 private:
@@ -335,8 +336,8 @@ private:
 	std::shared_ptr<RoomsReporter> roomsReporter_;
 	std::vector<std::shared_ptr<ib::mqtt::MQTTReporterInterface>> reporters_;
 	setTemporaryTemperature_t setTemporaryTemperature_;
-#ifdef OPENTHERMOSTAT_E32V2
 	bool modernMode_=false;
+#ifdef OPENTHERMOSTAT_E32V2
 	std::unique_ptr<control::ModernTransport> modern_;
 #endif
 };

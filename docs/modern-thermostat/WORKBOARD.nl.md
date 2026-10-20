@@ -479,8 +479,10 @@ Geen garantie dat fysieke of meerdaagse acceptatie in één nacht haalbaar is.
   extra schedulerlaag. Automations vóór wijzigen inspecteren en bestaande jobs
   behouden. Hervattingsjob stopt zichzelf zodra alleen externe/fysieke bewijschecks
   overblijven of het geheel echt voltooid is; geen herhaalde groene checks als werk.
-  Job-ID: `490a63dc-2415-480a-84f6-f51bb868029d`, standaard30min, adaptief15–60min;
-  adminreview in dezelfde gesprekroute met expliciete beperkte toolset.
+  Job-ID: `72ec7e68-5c8f-4203-9f0c-fb11fa92e8bf`, standaard30min, adaptief15–60min;
+  lokale officiële CLIroute met expliciete beperkte toolset, adminreview en
+  aflevering in dezelfde gesprekroute. Headless hosttoegang is echt bewezen;
+  eerdere account-bound proef490a63dc miste shelltoegang en is verwijderd.
   [Configuratie-/uitvoeringsbewijs](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-restart-graph-11774-20261020/NIGHT-EXECUTION.md).
 - Fysieke proeven, powerloss/restore/72u/echte woningrespons en verwarming/TXvrijgave
   blijven gebonden aan de oorspronkelijke PLANgates. Geen onbewezen actieve

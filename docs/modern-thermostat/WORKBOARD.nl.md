@@ -188,11 +188,14 @@ en session/configACK; huidige bronroute-/ACLbeperking niet omzeilen [B6].
   Parent: 18/18 dossierhashes en exacte negen bronbestanden gecontroleerd;
   106 relevante native tests onafhankelijk opnieuw PASS (overlap, niet optellen).
   Broncommit c23bae2; review en rollback [B11].
-- [x] Native gewenste graph-CRUD in **niet-geïnstalleerde bronkandidaat**:
+- [x] Native gewenste graph-CRUD **samengevoegd in bron, niet geïnstalleerd**:
   groepen/actuatorverklaringen/mengerinterfaces, Save/Cancel, referenties/uitgangseigendom,
   begrensde native roomdeletecascade en echte HA-manager/Store gecontroleerd [B12].
   Volledige native suite218PASS/1broker-opt-inSKIP met bron-gematchte echte C++kern.
   Status blijft draft_not_applied; geen uitrol of wire-/hardwareprofielvrijgave.
+  Parent: 21/21 dossierhashes, twaalf afterhashes en reversecheck PASS;
+  volledige native suite onafhankelijk 218PASS/1broker-opt-inSKIP herhaald.
+  Broncommit d9d3b00; review en rollback [B13].
 - [ ] Zichtbare productie-Engelse schermcontrole in bestaande ingelogde browser.
 - [ ] Eén echt sensor-/actuatorprofiel en HA-doel inclusief fouten/toegepaste
   firmwarestatus aantonen; geen fysieke TRVactie geclaimd. Een wandapparaat is
@@ -205,8 +208,9 @@ en session/configACK; huidige bronroute-/ACLbeperking niet omzeilen [B6].
 
 **Eigenaar:** HA-specialist, firmware voor contract/UI. **Fase klaar als:** native
 bediening en werkelijke profielen met juiste single-writer/status/migratie bewezen.
-**Volgende:** gezamenlijk firmware-capability/revisie/applycontract en daarna
-bron-/GUIacceptatie van de centrale/graphkandidaat;
+**Volgende:** gezamenlijk firmware-capability/revisie/applycontract concretiseren,
+inclusief graph-only kamers en noodzakelijke veiligheids-/deviceprofielvelden;
+daarna bron-/GUIacceptatie van de centrale/graphkandidaat;
 HA-managed E32-afbouw blijft een aparte bronstap;
 browsercheck hervat bij beschikbare bestaande sessie, blokkeert bronwerk niet [B4,B7].
 
@@ -372,5 +376,10 @@ softwareautorisatie blijft geldig; geen onnodig nieuw algemeen akkoord vragen.
   106 relevante native HA-tests onafhankelijk herhaald. Geen nieuwe installatie of fysieke acceptatie.
 
 - **B12:** [native gewenste graph-CRUD en referentiële integriteit](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-graph-gui-20261020/RESULT.md).
-  Baseline76cef4f,216nativePASS/1broker-opt-inSKIP; geen productie-installatie,
+  Baseline76cef4f,218nativePASS/1broker-opt-inSKIP; geen productie-installatie,
   E32-applycontract, live device-/elektrische-/hydraulische ondersteuning of fysieke GO.
+- **B13:** [parent graph-bronreview en samenvoeging](/home/dielessen/artifacts/open-thermostat-graph-parent-20261020/taskflow.md).
+  Broncommit d9d3b00; 21/21 dossierhashes, twaalf bronafterhashes, acht runnerbronnen
+  en runnerbinaryhash PASS. Volledige native suite onafhankelijk218PASS/1SKIP;
+  oude B12-telling216 gecorrigeerd op primaire finale log en onafhankelijke herhaling.
+  Geen installatie, actieve wirewijziging of fysieke acceptatie.

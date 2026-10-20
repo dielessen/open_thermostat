@@ -49,6 +49,7 @@ class RoomHeating:
     rated_power: float = 0.0
     heating_seconds: float = 0.0
     estimated_energy_kwh: float = 0.0
+    present: bool = True
 
 
 class HeatingTracker:
@@ -117,6 +118,11 @@ class HeatingTracker:
             if power is not None:
                 room.estimated_energy_kwh += power * elapsed / 3_600_000
 
+    def room_available(self, key: str) -> bool:
+        """Historical counters may outlive a room; only current members are live."""
+        room = self.rooms.get(key)
+        return bool(self.online and room and room.present)
+
     def is_heating(self, key: str) -> bool:
         """Return whether this room receives central-heating energy now."""
         room = self.rooms.get(key)
@@ -184,6 +190,7 @@ class HeatingTracker:
             room = self.rooms.get(key)
             if room is None:
                 room = self.rooms[key] = RoomHeating(key, index, value.get("name"))
+            room.present = True
             room.index = index
             room.name = value.get("name") if isinstance(value.get("name"), str) else room.name
             temperature = value.get("currentTemp")
@@ -204,6 +211,7 @@ class HeatingTracker:
             )
         for key in set(self.rooms) - active_keys:
             self.rooms[key].requested = False
+            self.rooms[key].present = False
         self._notify()
 
     @callback

@@ -42,6 +42,7 @@ async def async_setup_entry(
     rooms: dict[str, OpenThermostatRoom] = {}
     pending: dict[str, asyncio.Future[bool]] = {}
     online = False
+    active_keys: set[str] = set()
 
     async def send_temperature(room_name: str, temperature: int, seconds: int) -> bool:
         request_id = uuid.uuid4().hex
@@ -78,11 +79,12 @@ async def async_setup_entry(
     def handle_status(message: ReceiveMessage) -> None:
         nonlocal online
         online = message.payload == "on"
-        for entity in rooms.values():
-            entity.set_online(online)
+        for key, entity in rooms.items():
+            entity.set_online(online and key in active_keys)
 
     @callback
     def handle_rooms(message: ReceiveMessage) -> None:
+        nonlocal active_keys
         try:
             payload = json.loads(message.payload)
         except (TypeError, ValueError):

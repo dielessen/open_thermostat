@@ -83,17 +83,18 @@ async def async_setup_entry(
     heating_sensors: dict[tuple[str, str], RoomHeatingSensor] = {}
     tracker: HeatingTracker = hass.data[DOMAIN][entry.entry_id]["heating_tracker"]
     online = False
+    active_keys: set[str] = set()
 
     @callback
     def handle_status(message: ReceiveMessage) -> None:
         nonlocal online
         online = message.payload == "on"
-        for entity in sensors.values():
-            entity.set_online(online)
-        for entity in programs.values():
-            entity.set_online(online)
-        for entity in names.values():
-            entity.set_online(online)
+        for (key, _metric), entity in sensors.items():
+            entity.set_online(online and key in active_keys)
+        for key, entity in programs.items():
+            entity.set_online(online and key in active_keys)
+        for key, entity in names.items():
+            entity.set_online(online and key in active_keys)
         for entity in hub_sensors.values():
             entity.set_online(online)
 
@@ -127,6 +128,7 @@ async def async_setup_entry(
 
     @callback
     def handle_rooms(message: ReceiveMessage) -> None:
+        nonlocal active_keys
         try:
             payload = json.loads(message.payload)
         except (TypeError, ValueError):
@@ -291,7 +293,7 @@ class RoomHeatingSensor(SensorEntity, RestoreEntity):
         self._attr_available = tracker.online
 
     def update_from_tracker(self) -> None:
-        self._attr_available = self._tracker.online and self._key in self._tracker.rooms
+        self._attr_available = self._tracker.room_available(self._key)
         self._update_value()
         if self.entity_id is not None:
             self.async_write_ha_state()

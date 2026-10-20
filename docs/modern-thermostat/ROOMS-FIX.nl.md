@@ -30,3 +30,12 @@ instellingen; voer dat niet uit om alleen oude programma's op te ruimen.
 Wifi-herstel en gevraagde toegangsgegevens blijven behouden. Geen wijziging aan
 de EMS-/TRV-uitvoerblokkades. Softwareproeven vervangen de fysieke kamer-, wifi-
 en herstartproef op Marks bord niet. Houd EMS los tijdens deze testversie.
+
+## Home Assistant
+
+De meegeleverde integratie herstelt ook een aparte legacy-fout: verdwenen kamers
+blijven onbeschikbaar na een algemeen online-bericht. Historische entiteiten,
+unieke ID's en tellers blijven behouden; dezelfde kamer opnieuw toevoegen maakt
+geen duplicaten. Een verwijderde kamer kan geen temperatuurcommando meer sturen.
+Native shadow-kamers zijn afzonderlijk getest op aanmaken, wijzigen, verwijderen
+en onbekende ID's. De integratie is niet automatisch in productie geïnstalleerd.

@@ -53,19 +53,21 @@ async def async_setup_entry(
     connection = HubConnection(prefix)
     async_add_entities([connection])
     online = False
+    active_keys: set[str] = set()
 
     @callback
     def handle_status(message: ReceiveMessage) -> None:
         nonlocal online
         online = message.payload == "on"
         connection.update_value(online)
-        for entity in sensors.values():
-            entity.set_online(online)
+        for (key, _state), entity in sensors.items():
+            entity.set_online(online and key in active_keys)
         for entity in boiler_sensors.values():
             entity.set_online(online)
 
     @callback
     def handle_rooms(message: ReceiveMessage) -> None:
+        nonlocal active_keys
         try:
             payload = json.loads(message.payload)
         except (TypeError, ValueError):
@@ -250,7 +252,7 @@ class RadiatorHeating(BinarySensorEntity):
         self._attr_available = tracker.online
 
     def update_from_tracker(self) -> None:
-        self._attr_available = self._tracker.online and self._key in self._tracker.rooms
+        self._attr_available = self._tracker.room_available(self._key)
         self._attr_is_on = self._tracker.is_heating(self._key)
         if self.entity_id is not None:
             self.async_write_ha_state()

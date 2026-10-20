@@ -134,6 +134,23 @@ eigen begrensde bronwijziging; in deze planreconciliatie is niets verwijderd.
 - [ ] Nieuwe release en fysieke gebruikerscheck apart uitvoeren. Geen extra
   firmwareflash of productieonderhoud uitsluitend vanwege dit document.
 
+### Afzonderlijke open vervolgtaak — login Mark11732/11734
+
+- [ ] **Mark11732 login-/sessie-UX:** normaal loginvenster met blijvende sessie
+  als gewenste richting vastgelegd (parentterugmelding Telegram11734).
+  Eerst afzonderlijke bron-/runtimegebonden diagnose; oorzaak nog NIET bewezen.
+- [ ] Authbronfix met eigen doel/baseline/diff/tests/rollback en handoff opleveren,
+  gescheiden van graphvalidator-GV-R1/GV-R2. Sessieduur, herstel/logout en
+  beveiligingssemantiek niet uit de wens afleiden of stil verzwakken.
+- [ ] Afzonderlijke scherm-/productacceptatie na bronreview; deze tracking is
+  geen productie-installatie/herstart of authconfig-/apparaatwijziging.
+
+Bewijs/taak: [logintracking11732](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-auth-11732-tracking-20261020/TRACKING.md).
+Eigenaar: parent houdt canoniek werkbord/taakbrief; bronfix apart specialistpakket.
+Oorspronkelijke11732opdracht uit sanitized history hersteld; afzonderlijke
+specialistfollowup330ce07f geaccepteerd, resultaat nog open. Geen tweede uitvoering.
+Validatorreview kan onafhankelijk afgerond worden; geen tweede loginuitvoering.
+
 ## 5. De 11 productfasen — bijgewerkt en afgevinkt waar bewezen
 
 ### F0 — basis, upstream en installatieprofiel · in_progress
@@ -427,4 +444,9 @@ softwareautorisatie blijft geldig; geen onnodig nieuw algemeen akkoord vragen.
   Basis e16c4e6; zie [exacte testspecificatie](GRAPH-SHADOW-VALIDATORS.nl.md).
   Pure bronacceptatie346PASS/1broker-opt-inSKIP; gedeelde fixtures zitten in die
   telling. Geen nieuwe MQTT/Store/applyGUI/capadvertentie, geen actieve profielen,
-  ESP32heap/NVS/latencybewijs of fysieke GO. Parentreview/merge nog apart.
+  ESP32heap/NVS/latencybewijs of fysieke GO. Onafhankelijke parentreview PASS;
+  bron samengevoegd als a6cb9cc. [Parentbewijs](/home/dielessen/artifacts/open-thermostat-graph-validator-parent-r2-20261020/RESULT.md):
+  43/43r2 +29/29origineel,9afterhashes,98fixtures,15originele typeprobes,
+  556nativefaultsites zonder leaks; ongewijzigde parentfaultprobe ook PASS.
+  Native suite346PASS/1brokerSKIP zowel schone toegepaste patch als mergedcheckout
+  (overlap, niet optellen). Geen runtime-import/installatie of fysieke vrijgave.

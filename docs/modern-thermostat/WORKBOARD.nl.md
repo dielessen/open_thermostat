@@ -184,8 +184,10 @@ eigen begrensde bronwijziging; in deze planreconciliatie is niets verwijderd.
 - [ ] Kandidaatbrowser-/installatieacceptatie bronfix11751: overlayproef faalde
   door Chromium PNA na vervangen HTTP-document, niet door bewezen bronfixfout.
   Eigen testsessies konden daardoor niet afmelden; live429session_capacity.
-  Geen verdere loginpogingen; specialist onderzoekt native herstel, geen reboot/
-  flash uitgevoerd. Browser-PASS hierboven betreft uitsluitend oorspronkelijke
+  Geen verdere loginpogingen; native read-onlyproef bevestigt401 op status/config,
+  ook met oude Digestclient. Eigen cookies verloren na contextsluiting; herstel
+  vereist geldige bestaande sessie of normale fysieke herstart (alleen geïsoleerd
+  bord). Geen reboot/flash uitgevoerd. Browser-PASS hierboven betreft oorspronkelijke
   auth/session/logout. Geen bewezen verband tussen renderingfout en Marks405.
 - [ ] Marks echte mobiele én desktopbrowser toetsen: visuele login/navigatie,
   sluiten/heropenen, zeven dagen expiry en interfacegebonden fysieke AP-proef.

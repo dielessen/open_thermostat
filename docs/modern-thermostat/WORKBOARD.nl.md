@@ -727,6 +727,19 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   F9cooling/coast/curve/shadowreplay volgt als afzonderlijk softwarepakket.
   Hele11785 blijft actief; volgende hervattingscheck15min, fysieke gates intact.
 
+#### Postcheck en concrete voortzetting graphparentmerge
+
+- Canonical graphbroncommit0e74c68 via afzonderlijke branch fast-forward
+  samengevoegd; gitstatus leeg en commitdiffcheck PASS. Bewijs:
+  GRAPH-CONFIG-PARENT-POSTCHECK.json, bronchecks33native/34HA geslaagd.
+- Volgende zelfstandige F9cooling/coast/optimum-stop/stooklijnadvies-/replay-
+  opdracht met acceptatie, standaarddisabled en rollback aan dezelfde specialist
+  aangeboden, ná huidige F5V2correctie en al aangeboden graphtransport/GUIwerk.
+  Run85c54586-79bf-4dc6-a884-1d4b65b70e42 QUEUED, geen completionclaim.
+- Hervatting15min bevestigd; uitvoerbare softwarechecks blijven open, dus eigen
+  job72ec7e68-5c8f-4203-9f0c-fb11fa92e8bf behouden. Niet geïnstalleerd;
+  geen productieHA-/apparaat-/TX-/EMS-/actuator-/verwarmingsvrijgave.
+
 ### Mark11785 — F9 thermisch model/optimum-start: onafhankelijke bronacceptatie
 
 - [x] Exacte thermal-only-core.patch SHA256

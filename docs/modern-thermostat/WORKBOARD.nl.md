@@ -239,8 +239,9 @@ Geen live herstart/flash/HA-/broker-/EMS-/Tadoactie of verwarmingsGO.
 - [x] Alpha.3 op bord, beide tabs laden en instellingen behouden: door Mark
   bevestigd [B5]. Dit is operatoracceptatie van die basis, geen volledige F0.
 - [ ] Volledig woning-/device-/hydrauliekprofiel en dependency-/capaciteitsacceptatie.
-- [ ] Resterende fysieke netwerk/load/PSRAM/restorechecks; alpha.4-installatie en
-  automatische reboot apart aantonen. De oorspronkelijke flashbackupwaiver van
+- [ ] Resterende fysieke netwerk/load/PSRAM/restorechecks; alpha.6-installatie en
+  automatische reboot zijn inmiddels bewezen (Mark11746), niet opnieuw uitvoeren.
+  De oorspronkelijke flashbackupwaiver van
   Mark blijft geldig; niet opnieuw als verplicht gebruikersbesluit opvoeren.
 
 **Eigenaar:** firmware/OpenClaw + benodigde fysieke feiten Mark.
@@ -329,10 +330,10 @@ en session/configACK; huidige bronroute-/ACLbeperking niet omzeilen [B6].
 
 **Eigenaar:** HA-specialist, firmware voor contract/UI. **Fase klaar als:** native
 bediening en werkelijke profielen met juiste single-writer/status/migratie bewezen.
-**Volgende:** gedeelde exacte fixtures en pure Python/C++validators voor graph-shadow,
-met totale parser-/schedule-/streambudgetten en expliciete onvolledige bron-/device-
-kwalificatie; nog los van actieve MQTT/Store/applyGUI. Daarna pas gereviewde
-capabilityadvertentie, persistence/reconnect/readback en bron-/GUIacceptatie;
+**Volgende:** bestaande gedeelde validators hergebruiken voor echte samenhangende
+graph-storage/apply/reconnect/readback en capabilityadvertentie; losse validators
+zijn al bewezen in B16. Alleen geadverteerde capaciteit gebruiken, migratie en
+foutatomiciteit controleren; bronkwalificatie en bron-/GUIacceptatie blijven open.
 HA-managed E32-afbouw blijft een aparte bronstap;
 browsercheck hervat bij beschikbare bestaande sessie, blokkeert bronwerk niet [B4,B7].
 
@@ -450,8 +451,46 @@ Uitvoeringsvolgorde na deze reconciliatie:
    Onafhankelijke vloer-/GUIsoftware hoeft niet op die fysieke proef te wachten.
 5. Volledige grafieken, zelfleren en comfortfasen volgens hun eigen gates.
 
-Dit is werkvolgorde, geen extra onderhouds-/actuatieautorisatie. Bestaande
-softwareautorisatie blijft geldig; geen onnodig nieuw algemeen akkoord vragen.
+### Voortdurende uitvoering — opdracht Mark11785 (20okt23:28CEST)
+
+Mark: "Werk desnoods heel de nacht door maar voer alle punten uit van ons hele plan."
+Deze opdracht geldt voor het gehele bestaande PLAN (31eisen/F0–F10), niet alleen
+de herstartknop. Werk alle uitvoerbare software-/integratie-/test-/releasevoorbereiding
+af; één geblokkeerde fysieke proef blokkeert geen onafhankelijk softwarepakket.
+Geen garantie dat fysieke of meerdaagse acceptatie in één nacht haalbaar is.
+
+- Eigenaar uitvoering HA/apparaat: bestaande specialist agent:home-assistant:main;
+  parent OpenClaw: onafhankelijke review, samenvoeging en bewaking van ditzelfde bord.
+  Niet gelijktijdig dezelfde bestanden door andere workers laten aanpassen.
+- Doorloop de bovenstaande werkvolgorde en vervolgens ALLE nog open F0–F10-eisen:
+  HA-managed opschoning, werkende contractketen, profieladapters/supervisor,
+  grafieken/dataintegriteit, uitvalbeveiliging, vloer/klep/menger, begrensde
+  learning/optimumstart en comfort/releasekwaliteit. Concrete implementaties en
+  passende fout-/migratie-/integratieproeven; geen reeks losse voorstellen als eindresultaat.
+- Herstartbron039e567 is al samengevoegd en onafhankelijk geverifieerd:27JS,
+  20C++,desktop+mobielbronpreview. Niet opnieuw bouwen/testen zonder relevante wijziging.
+  E32build/installatie en ingelogde voor/naprofilering zijn nog open; bestaande
+  volle sessies niet opnieuw vullen, geen aanmeld-/CSRFomweg introduceren.
+- Lees bij hervatting memory_search en dit bord/PLAN plus het actuele RESULT van
+  specialist; hervat actieve uitvoering, start geen tweede concurrerende eigenaar.
+  Bij een gereed codepakket: review diff en gerichte passende tests, samenvoegen,
+  dit bord bijwerken en meteen volgend uitvoerbaar pakket oppakken/delegeren.
+- Native OpenClaw Automation borgt nachtelijke hervatting; geen scripts/watchers/
+  extra schedulerlaag. Automations vóór wijzigen inspecteren en bestaande jobs
+  behouden. Hervattingsjob stopt zichzelf zodra alleen externe/fysieke bewijschecks
+  overblijven of het geheel echt voltooid is; geen herhaalde groene checks als werk.
+- Fysieke proeven, powerloss/restore/72u/echte woningrespons en verwarming/TXvrijgave
+  blijven gebonden aan de oorspronkelijke PLANgates. Geen onbewezen actieve
+  ketel-/klep-/Tado-/EMSoverdracht tijdens de nacht. Markeer gebouwd, geïnstalleerd
+  en fysiek bewezen afzonderlijk; test-/appauthproblemen niet omzeilen.
+- Bewaar codecommits/diffs, reproduceerbare checks en rollback per pakket. Stop
+  een foutpad met concreet bewijs en ga naar onafhankelijk werk. Geen nieuwe
+  betaalde diensten, corepatches of algemene nieuwe akkoordvragen voor routinebronwerk.
+- Werk 's nachts stil door; meld een substantieel opgeleverd pakket of werkelijk
+  onvermijdelijke blokkade compact. Geen bericht voor alleen "nog bezig".
+
+Bestaande softwareautorisatie blijft geldig en is door11785 bevestigd; fysieke
+vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
 
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 

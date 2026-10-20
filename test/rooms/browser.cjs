@@ -8,16 +8,17 @@ const program=id=>({room_id:id,base_temp:2000,temp_margin_up:5,temp_margin_down:
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});let passed=0;
  const pass=name=>{passed++;console.log('PASS '+name);};
  let page, state, dialogs, errors;
- async function start(catalog=[],programs={default:[]},mode='catalog') {
+ async function start(catalog=[],programs={default:[]},mode='catalog',failure=null) {
   if(page){assert.deepEqual(errors,[]);await page.close();}
-  page=await browser.newPage();state={catalog:structuredClone(catalog),programs:structuredClone(programs),writes:[],fail:null,corrupt:null,readHook:null,confirm:true};dialogs=[];errors=[];
+  page=await browser.newPage();state={catalog:structuredClone(catalog),programs:structuredClone(programs),writes:[],fail:failure,corrupt:null,readHook:null,confirm:true,reads:[]};dialogs=[];errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   page.on('dialog',async d=>{dialogs.push(d.message());if(d.type()==='confirm'&&!state.confirm)await d.dismiss();else await d.accept();});
   await page.route('http://opth.test/**',async route=>{
    const req=route.request(),url=new URL(req.url()),p=decodeURIComponent(url.pathname),method=req.method();
    const json=(v,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(v)});
+   if(method==='GET')state.reads.push(p);
    if(state.readHook&&method==='GET')state.readHook(p);
-   if(state.fail&&state.fail.p===p&&state.fail.method===method)return route.fulfill({status:500,body:'injected storage failure'});
+   if(state.fail&&state.fail.p===p&&state.fail.method===method){if(state.fail.hang)return;return route.fulfill({status:500,body:'injected storage failure'});}
    if(p==='/config/hardware')return json({valve_pins:[]});
    if(p==='/status/devices')return json([]);
    if(p==='/status/programs')return json(Object.keys(state.programs));
@@ -36,14 +37,16 @@ const program=id=>({room_id:id,base_temp:2000,temp_margin_up:5,temp_margin_down:
     state.programs[name]=next;state.writes.push({p,next});return route.fulfill({status:204,body:''});
    }
    if(p==='/') {
-    const content=fs.readFileSync(path.join(assets,mode==='catalog'?'room_setup.html':'rooms.html'),'utf8');
-    return route.fulfill({contentType:'text/html',body:`<link rel="stylesheet" href="/deps/bs.min.css.gz"><link rel="stylesheet" href="/deps/bms.min.css.gz"><script src="/deps/jquery.min.js.gz"></script><script src="/deps/bs.bundle.min.js.gz"></script><script src="/deps/bms.min.js.gz"></script><script>const hostName='';function validateResponse(r){if(!r.ok)throw Error(r.statusText);return r;}function validateForm(s){return document.querySelector(s).checkValidity();}</script><div id="roomProgramsPane">${content}</div>`});
+    const content=fs.readFileSync(path.join(assets,mode==='catalog'?'room_setup.html':mode==='management'?'room_management.html':'rooms.html'),'utf8');
+    return route.fulfill({contentType:'text/html',body:`<link rel="stylesheet" href="/deps/bs.min.css.gz"><link rel="stylesheet" href="/deps/bms.min.css.gz"><script src="/deps/jquery.min.js.gz"></script><script src="/deps/bs.bundle.min.js.gz"></script><script src="/deps/bms.min.js.gz"></script><script>const hostName='';function validateResponse(r){if(!r.ok)throw Error(r.statusText);return r;}function validateForm(s){return document.querySelector(s).checkValidity();}</script><div id="${mode==='management'?'maincontainer':'roomProgramsPane'}">${content}</div>`});
    }
+   if(p==='/room_setup.html'||p==='/rooms.html')return route.fulfill({contentType:'text/html',body:fs.readFileSync(path.join(assets,p),'utf8')});
    if(p.startsWith('/deps/'))return route.fulfill({contentType:p.endsWith('.css.gz')?'text/css':'application/javascript',body:zlib.gunzipSync(fs.readFileSync(path.join(assets,p)))});
    return route.fulfill({status:404,body:'not found'});
   });
   await page.goto('http://opth.test/');
-  if(mode==='catalog')await page.waitForFunction(()=>!document.querySelector('#physicalRoomCard').classList.contains('d-none'));
+  if(failure)await page.waitForFunction(()=>{const retry=document.querySelector('#retryPhysicalRooms')||document.querySelector('#programLoadingError');return retry&&!retry.classList.contains('d-none');});
+  else if(mode==='catalog'||mode==='management')await page.waitForFunction(()=>!document.querySelector('#physicalRoomCard').classList.contains('d-none'));
   else await page.waitForFunction(()=>Array.isArray(window.loadedProgram));
  }
  async function clickAlert(selector,text){await page.click(selector);await until(()=>dialogs.some(d=>d.includes(text)));}
@@ -81,6 +84,42 @@ const program=id=>({room_id:id,base_temp:2000,temp_margin_up:5,temp_margin_down:
   await start([a]);await page.fill('#physicalRoomName','changed');state.readHook=p=>{if(p==='/config/rooms'&&state.writes.length)state.corrupt='catalog';};await clickAlert('#savePhysicalRooms','Cannot save rooms');assert.ok(!dialogs.includes('Rooms saved'));pass('catalog save readback mismatch rejects success');
   await start([a]);state.confirm=false;await page.click('#deletePhysicalRoom');await until(()=>dialogs.length>0);state.confirm=true;await clickAlert('#deletePhysicalRoom','Room deleted and saved');assert.deepEqual(state.catalog,[]);pass('cancelled deletion unlocks controls and permits retry');
   await start([a],{default:[program(a.id)]},'program');state.readHook=p=>{if(p==='/config/programs/default'&&state.writes.length)state.corrupt='default';};await clickAlert('#saveprogram','Cannot save program');assert.ok(!dialogs.includes('Program saved and verified.'));pass('program readback mismatch rejects success');
+  await start([], {default:[]}, 'management');
+  assert.equal(await page.locator('#physicalRoomLoading').isVisible(),false);
+  await page.click('#roomProgramsTab');await page.waitForFunction(()=>Array.isArray(window.loadedProgram));
+  await page.locator('#programeditform').waitFor({state:'visible'});
+  assert.equal(await page.locator('#loadingprogress').isVisible(),false);
+  await page.click('#physicalRoomsTab');assert.equal(await page.locator('#physicalRoomLoading').isVisible(),false);
+  pass('actual combined Rooms and Programs tabs load both shipped fragments and hide both spinners');
+  for(const p of ['/config/rooms','/config/hardware']) {
+   await start([], {default:[]}, 'catalog',{p,method:'GET'});
+   assert.equal(await page.locator('#physicalRoomLoading').isVisible(),false);
+   assert.match(await page.locator('#physicalRoomLoadingMessage').textContent(),/Cannot load/);
+   await page.waitForTimeout(2200);assert.equal(state.reads.filter(x=>x===p).length,1);
+   assert.equal(state.writes.length,0);state.fail=null;
+   await page.click('#retryPhysicalRooms');await page.locator('#physicalRoomCard').waitFor({state:'visible'});
+   assert.equal(await page.locator('#physicalRoomLoading').isVisible(),false);
+   assert.equal(await page.locator('#retryPhysicalRooms').isVisible(),false);
+   assert.equal(state.writes.length,0);pass('room initial read failure stops spinner and explicit retry recovers: '+p);
+  }
+  for(const p of ['/config/rooms','/status/programs','/config/program/current','/config/programs/default']) {
+   await start([], {default:[]}, 'program',{p,method:'GET'});
+   assert.equal(await page.locator('#loadingprogress').isVisible(),false);
+   assert.match(await page.locator('#programLoadingError').textContent(),/Cannot load programs/);
+   await page.waitForTimeout(100);assert.equal(state.reads.filter(x=>x===p).length,1);
+   assert.equal(state.writes.length,0);state.fail=null;
+   await page.click('#programLoadingError button');await page.locator('#programeditform').waitFor({state:'visible'});
+   assert.equal(await page.locator('#loadingprogress').isVisible(),false);
+   assert.equal(await page.locator('#programLoadingError').isVisible(),false);
+   assert.equal(await page.locator('#selectprogram option').count(),1);
+   assert.equal(state.writes.length,0);pass('program initial read failure stops spinner, no recursion, explicit retry recovers: '+p);
+  }
+  for(const mode of ['catalog','program']) {
+   await start([], {default:[]},mode,{p:'/config/rooms',method:'GET',hang:true});
+   assert.equal(await page.locator(mode==='catalog'?'#physicalRoomLoading':'#loadingprogress').isVisible(),false);
+   assert.equal(state.reads.filter(p=>p==='/config/rooms').length,1);
+   assert.equal(state.writes.length,0);pass('nonresponding '+mode+' request times out and stops spinner');
+  }
   await noErrors();console.log(`${passed} shipped-browser scenarios passed (simulated API, not board proof)`);
  } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

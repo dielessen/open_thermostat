@@ -1,7 +1,19 @@
-# E32 V2 alpha.2 — GitHub updates and simpler WiFi setup
+# E32 V2 alpha.3 — Rooms and Programs loading repair
 
 Experimental bench-test prerelease. **Keep EMS disconnected; boiler, TRV and
 GPIO outputs remain blocked. This release is not approved for heating.**
+
+- Fix the Rooms spinner staying visible after successful loading with the
+  shipped Bootstrap CSS. The previous alpha.2 did not contain this correction.
+- Rooms and Programs initial configuration reads time out after 10 seconds;
+  failed reads show an error and explicit retry instead of endless loading or
+  automatic program retry loops. Retry does not modify saved configuration.
+- Regression coverage includes the actual combined tab page, real bundled CSS,
+  initial request failures, recovery and nonresponding request timeouts.
+- No changes to Home Assistant entity bindings, MQTT transport, room/program
+  storage format, regulation, hardware profile or output safety blocks.
+
+Inherited from alpha.2:
 
 - Check/select compatible GitHub releases from the authenticated device UI.
 - User-started HTTPS download, exact size/board/source/UI checks, SHA256 and

@@ -4,6 +4,10 @@
 	</div>
 </div>
 
+<div class="alert alert-warning d-none" id="programLoadingError" role="alert">
+	<span id="programLoadingErrorMessage"></span>
+	<button type="button" class="btn btn-outline-dark btn-sm" onclick="loadProgramConfiguration()">Retry loading programs</button>
+</div>
 <form id="programeditform" class="invisible" novalidate>
 	<div class="form-group">
 		<div class="form-row align-items-end">
@@ -111,7 +115,7 @@
 			}
 		});
 
-		var hardwareReady = fetch(hostName + '/config/hardware')
+		var hardwareReady = fetch(hostName + '/config/hardware', {signal: AbortSignal.timeout(10000), cache: 'no-store'})
 			.then(validateResponse)
 			.then(res => res.json())
 			.then(function(cfg) {
@@ -133,15 +137,7 @@
 				valveLabels = [];
 			});
 
-		hardwareReady.then(() => fetch(hostName + '/config/rooms'))
-			.then(validateResponse)
-			.then(res => res.json())
-			.then(rooms => {
-				if (!Array.isArray(rooms)) throw new Error('Invalid room catalog');
-				loadedRooms = rooms;
-				getAvailablePrograms();
-			})
-			.catch(error => alert('Cannot load rooms: ' + error));
+		hardwareReady.then(loadProgramConfiguration);
 
 	});
 
@@ -169,34 +165,40 @@
 		finally { $("#saveprogram").prop('disabled', false); }
 	}
 
-	function getAvailablePrograms() {
-		fetch(hostName + '/status/programs')
-			.then(res => res.json())
-			.then((programs) => {
-				fetch(hostName + '/config/program/current')
-					.then(res => res.json())
-					.then((prog) => {
-						var currentProgram = prog.program;
+	async function readProgramConfiguration(url) {
+		const response = await fetch(hostName + url, {signal: AbortSignal.timeout(10000), cache: 'no-store'});
+		validateResponse(response);
+		return response.json();
+	}
 
-						var selector = document.getElementById('selectprogram');
+	function showProgramLoadingError(error) {
+		$('#loadingprogress').removeClass('d-flex').addClass('d-none');
+		$('#programLoadingErrorMessage').text('Cannot load programs. Check the device connection, then retry. ' + error.message);
+		$('#programLoadingError').removeClass('d-none');
+	}
 
-						programs.forEach(element => {
-							if (element === currentProgram) {
-								$('#selectprogram').append($('<option>').prop('selected', true).text(element));
-							} else {
-								$('#selectprogram').append($('<option>').text(element));
-							}
-						});
+	async function loadProgramConfiguration() {
+		$('#programLoadingError').addClass('d-none');
+		$('#programeditform').addClass('invisible');
+		$('#loadingprogress').removeClass('d-none invisible').addClass('d-flex');
+		try {
+			const rooms = await readProgramConfiguration('/config/rooms');
+			if (!Array.isArray(rooms)) throw new Error('Invalid room catalog');
+			loadedRooms = rooms;
+			await getAvailablePrograms();
+		} catch (error) { showProgramLoadingError(error); }
+	}
 
-						$("#loadingprogress").addClass('invisible');
-						$('#programeditform').removeClass('invisible');
-
-						loadProgram();
-					});
-			}).catch(function (error) {
-				alert(error);
-			}
-			);
+	async function getAvailablePrograms() {
+		const programs = await readProgramConfiguration('/status/programs');
+		const prog = await readProgramConfiguration('/config/program/current');
+		if (!Array.isArray(programs) || !programs.length || !programs.every(name => typeof name === 'string' && name.length) || !prog || typeof prog.program !== 'string') throw new Error('Invalid program inventory');
+		$('#selectprogram').empty();
+		programs.forEach(name => $('#selectprogram').append($('<option>').text(name).prop('selected', name === prog.program)));
+		if (await loadProgram()) {
+			$('#loadingprogress').removeClass('d-flex').addClass('d-none');
+			$('#programeditform').removeClass('invisible');
+		}
 	}
 
 	function openCreateProgramNameModal(event) {
@@ -266,34 +268,26 @@
 			});
 	}
 
-	function loadProgram() {
+	async function loadProgram() {
 		loadedProgram = undefined;
 		var selector = document.getElementById('selectprogram');
 
 		$('#programeditform').submit(false);
 		$('#roomSelectorSelect').empty();
 
-		fetch(hostName + '/config/programs/' + selector.value)
-			.then(function (response) {
-				if (!response.ok) {
-					throw new HttpResponseException(response.statusText, response.status);
-				}
-				return response;
-			})
-			.then(res => res.json())
-			.then((value) => {
-				$('#roomTemperatureSettings').collapse("show");
-				loadedProgram = value;
-				refreshLoadedProgram();
-			}).catch(function (error) {
-				$('#roomTemperatureSettings').collapse("hide");
-				alert("Cannot load program \"" + selector.value + "\"\n" + error + "\nTrying again.");
-				if (error instanceof HttpResponseException && error.status === 404) {
-					return;
-				}
-				loadProgram();
-			}
-			);
+		try {
+			const value = await readProgramConfiguration('/config/programs/' + encodeURIComponent(selector.value));
+			if (!Array.isArray(value)) throw new Error('Invalid program');
+			$('#roomTemperatureSettings').collapse("show");
+			loadedProgram = value;
+			refreshLoadedProgram();
+			$('#programLoadingError').addClass('d-none');
+			return true;
+		} catch (error) {
+			$('#roomTemperatureSettings').collapse("hide");
+			showProgramLoadingError(error);
+			return false;
+		}
 	}
 
 	function refreshLoadedProgram() {

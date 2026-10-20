@@ -2,6 +2,7 @@
   <div class="spinner-border"><span class="sr-only">Loading rooms</span></div>
 </div>
 <div class="text-center text-muted mt-2" id="physicalRoomLoadingMessage" aria-live="polite"></div>
+<button type="button" class="btn btn-outline-primary d-none" id="retryPhysicalRooms">Retry loading rooms</button>
 
 <div class="card d-none" id="physicalRoomCard">
   <div class="card-header">Room configuration</div>
@@ -254,17 +255,23 @@
     const loading = document.getElementById('physicalRoomLoading');
     const loadingMessage = document.getElementById('physicalRoomLoadingMessage');
     const card = document.getElementById('physicalRoomCard');
+    const retry = document.getElementById('retryPhysicalRooms');
+    retry.addEventListener('click', loadRoomConfiguration);
 
     async function loadRoomConfiguration() {
       if (!loading.isConnected) return;
+      retry.classList.add('d-none');
+      loadingMessage.textContent = 'Loading room configuration...';
+      loading.classList.remove('d-none');
+      loading.classList.add('d-flex');
       try {
         const [catalogResponse, hardwareResponse] = await Promise.all([
-          fetch(hostName + '/config/rooms'),
-          fetch(hostName + '/config/hardware')
+          fetch(hostName + '/config/rooms', {signal: AbortSignal.timeout(10000), cache: 'no-store'}),
+          fetch(hostName + '/config/hardware', {signal: AbortSignal.timeout(10000), cache: 'no-store'})
         ]);
         if (!catalogResponse.ok || !hardwareResponse.ok) throw new Error('Room configuration unavailable');
         const [catalog, hardware] = await Promise.all([catalogResponse.json(), hardwareResponse.json()]);
-        if (!Array.isArray(catalog)) throw new Error('Invalid room catalog');
+        if (!Array.isArray(catalog) || !hardware || typeof hardware !== 'object' || (hardware.valve_pins !== undefined && !Array.isArray(hardware.valve_pins))) throw new Error('Invalid room configuration');
         if (!loading.isConnected) return;
 
         rooms = catalog;
@@ -296,8 +303,10 @@
           }).catch(() => {});
       } catch (error) {
         if (!loading.isConnected) return;
-        loadingMessage.textContent = 'Waiting for room configuration...';
-        setTimeout(loadRoomConfiguration, 2000);
+        loading.classList.remove('d-flex');
+        loading.classList.add('d-none');
+        loadingMessage.textContent = 'Cannot load room configuration. Check the device connection, then retry. ' + error.message;
+        retry.classList.remove('d-none');
       }
     }
 

@@ -10,6 +10,9 @@ Executes the shipped catalog and program pages with the shipped jQuery,
 Bootstrap and multiselect scripts and their shipped CSS. The successful-load
 check asserts actual spinner invisibility, not only the presence of a hiding
 class (Bootstrap's later `d-flex!important` can override `d-none!important`).
+Also exercises the actual combined tab page and fragment loading, initial
+Rooms/Programs read failures, explicit retry recovery without writes, and
+10-second request timeout behavior for a nonresponding server.
 HTTP/storage is an explicit independent
 in-memory fixture enforcing room references, not the ESP32 REST server. Covers
 fresh empty state, create/save/readback/reload/rename/delete, dependency cleanup,

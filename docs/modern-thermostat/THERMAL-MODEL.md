@@ -62,7 +62,8 @@ not an automatic erase.
 ## Evidence and remaining product work
 
 verify-thermal-model.py compiles real C++17/GTest with strict warnings, actual
-OpenSSL SHA256 and the existing real-cJSON ShadowController regression cases.
+OpenSSL SHA256 via existing ControlTestHash (dynamic runtime ABI, no new crypto
+headers/linker requirement) and real-cJSON ShadowController regression cases.
 Tests simulate clocks/reports, not actual fortnight-long measurements.
 The independent20min expected warm-up, robust outlier, bounded floor/emitter
 lead, gaps, invalid inputs, replay fences, storage faults and exact signed codec

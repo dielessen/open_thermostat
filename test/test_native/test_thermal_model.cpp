@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "control/ThermalModelStore.h"
-#include <openssl/sha.h>
+#include "ControlTestHash.h"
 using namespace heating::control;
 namespace {
 constexpr int64_t epoch=1790812800; // 2026-10-01 UTC; synthetic clock only.
@@ -33,8 +33,7 @@ struct Rig {
     ScheduleTarget schedule(int64_t lead=3600,int16_t target=2100) {return {ScheduleState::active,1900,ScheduleTransition{in.utc+lead,target}};}
     StartAdvisory advise(int16_t water=4500) {return m.propose(in.monotonicMs,in.utc,schedule(),water);}
 };
-std::string sha(std::string_view bytes) {unsigned char hash[32];SHA256(reinterpret_cast<const unsigned char*>(bytes.data()),bytes.size(),hash);
-    const char*h="0123456789abcdef";std::string s;for(auto b:hash){s+=h[b>>4];s+=h[b&15];}return s;}
+std::string sha(std::string_view bytes) {return controlTestHash(bytes);}
 struct Store:ControlStore {
     std::string data;bool readOk=true,writeOk=true,commitOnFailure=false,corrupt=false;int writes=0;
     bool load(std::string& out)override {out=data;return readOk;}

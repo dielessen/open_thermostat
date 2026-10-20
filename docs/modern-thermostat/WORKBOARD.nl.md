@@ -821,3 +821,22 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   Eerstvolgende actie: test-only thermal-nativecompatibiliteitsaddon toetsen
   zonder nieuwe cryptoheaders/linkerinstallatie; gereed F5presentatiepakket
   daarna onafhankelijk reviewen. Specialist blijft actieve uitvoeringseigenaar.
+
+
+#### Thermal native-testcompatibiliteit — afzonderlijk geaccepteerd
+
+- [x] Test-only thermal-native-test-compat.patch SHA256
+  51822692bc9d03fea6291d6e07a6231e0e65e0cb0d544dfcaa9d8db40f4185c8
+  gereviewd; definitieve testhash matchtbcb0263a. Bestaande ControlTestHash
+  gebruikt echte SHA256 via al aanwezige libcrypto.so.3 en behoudt known-answer.
+- [x] Canonical strict hercompile ZONDER OpenSSLheaderpad of -lcryptolink:
+  41thermal/comfort/runtimechecks PASS. Reproduceerbaar bewijs
+  THERMAL-COMPAT-PARENT-COMMANDS.json, BUILD.log en NATIVE.json/log.
+  Geen cryptokopie, nieuwe dependency, firmwarecode of actieve runtimewijziging.
+- [ ] Normale volledige PlatformIO-/generic-/E32releasebuild blijft afzonderlijk
+  te bewijzen; deze gerichte nativecheck is daarvoor geen vervanging.
+  Rollback uitsluitend deze test/doccommit.
+- Volgende parentreview: gereed METRICS-PRESENTATION-RESULT.json2fb7780,
+  echte native HA-/SQLite-export/migratiechecks; geen productieRecorderwijziging.
+  Specialist blijft overige11785software afwerken, inclusief actieve contract-/
+  productintegratie en resterende F9/F10/releasechecks. Hele plan blijft actief.

@@ -693,83 +693,39 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   nog open uitvoerbare F2/F3/F10software, niet stoppen bij deze bronpakketten.
   Parentreview zodra concreet pakket gereed; volgende hervattingscheck15min.
 
-## 7. Bijwerken na iedere taak — onderdeel van opleveren
+### Mark11785 — F2/F3 firmware graphtransactie: onafhankelijke bronacceptatie
 
-1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.
-2. Na het resultaat: werk dezelfde regels bij, zet alleen bewezen deeluitkomsten
-   op `[x]`, voeg bron/versie toe en noteer eerstvolgende open bewijsactie.
-3. Schrijf apart of iets gebouwd, geïnstalleerd, zichtbaar getest of fysiek bewezen
-   is. Een overgeslagen/gewaivde check wordt geen PASS.
-4. Verwijder achterhaalde actuele status uit register/profiel; verwijs hierheen.
-   Taakdossiers blijven gedateerd bewijs, geen extra concurrerende werkborden.
-5. Hand-off/eindantwoord bevat pas een afrondingsclaim nadat deze update en
-   technische nacontrole zijn gedaan. Bij ontbrekend bewijs blijft de taak open.
-
-## 8. Bewijsindex
-
-- **B1:** [WP01-BASELINE](WP01-BASELINE.nl.md),
-  [uitvoeringsbewijs](/home/dielessen/artifacts/open-thermostat-wp01-20261019/taskflow.md).
-- **B2:** [WP02-CLASSIC](WP02-CLASSIC.nl.md), [68-veldenmanifest](boiler-field-parity.json),
-  [bouwbewijs](/home/dielessen/artifacts/open-thermostat-build-20261020/taskflow.md).
-- **B3:** [geïntegreerde testgrenzen](INTEGRATED-TEST.nl.md), [wireprofiel](TEST-WIRE.md),
-  [contract](CONTRACT.nl.md); host-C++ is geen fysieke ESP32proef.
-- **B4:** [dynamische kamerconfig](HA-DYNAMIC-CONFIG.nl.md), [weekeditor](HA-WEEK-EDITOR.nl.md),
-  [parent GUI-/cleanupbewijs](/home/dielessen/memory/open-thermostat-week-editor-20261020.md).
-- **B5:** [alpha.3-release](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.3),
-  [alpha.4/bordgrenzen](/home/dielessen/artifacts/open-thermostat-auto-reboot-20261020/taskflow.md),
-  [Mark11579 en continuïteit](/home/dielessen/memory/open-thermostat-project.md).
-- **B6:** [gedateerde shadow-/bron-/testinfra-uitvoering](/home/dielessen/artifacts/open-thermostat-shadow-setup-20261020/taskflow.md).
-  Dit is bewijs/historie; de actuele productchecklist staat uitsluitend hier.
-- **B7:** [HA-productieonderhoud](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-maintenance-11686-20261020/RESULT.md),
-  [parent hashes/readback](/home/dielessen/artifacts/open-thermostat-shadow-setup-20261020/maintenance-11686-parent-verification.json),
-  [browserblokkade](/home/dielessen/artifacts/open-thermostat-shadow-setup-20261020/maintenance-11686-browser-route-check.json).
-- **B8:** [deze planreconciliatie, review en documentatieverificatie](/home/dielessen/artifacts/open-thermostat-plan-reconcile-11694-20261020/taskflow.md).
-  Een voltooid planonderhoud is geen voltooid product.
-- **B9:** [onafhankelijke HA-/actuatorinventaris](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-plan-review-11694-20261020/REVIEW.md).
-  Geen nieuwe runtimequery. Exacte bronhashvergelijking met actieve checkout en
-  review van dit werkbord zijn in B8 vastgelegd; snapshotbevindingen niet als
-  een nieuwe fysieke E32-/alpha.4-binaire audit presenteren.
-
-- **B10:** [Mark11706/11709 centrale configuratiebronpakket](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-heating-config-11706-20261020/RESULT.md).
-  Getoetst tegen exact ea54c256-archief; centrale native draftflow+validatiebasis,
-  geen productie-installatie, volledige groeps-/profiel-GUI, transportcontract of fysieke support.
-- **B11:** [parent bron-/contractreview en samenvoeging](/home/dielessen/artifacts/open-thermostat-heating-config-parent-20261020/taskflow.md).
-  Broncommit c23bae2, 18/18 manifestchecks, negen afterhashes en reversecheck PASS;
-  106 relevante native HA-tests onafhankelijk herhaald. Geen nieuwe installatie of fysieke acceptatie.
-
-- **B12:** [native gewenste graph-CRUD en referentiële integriteit](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-graph-gui-20261020/RESULT.md).
-  Baseline76cef4f,218nativePASS/1broker-opt-inSKIP; geen productie-installatie,
-  E32-applycontract, live device-/elektrische-/hydraulische ondersteuning of fysieke GO.
-- **B13:** [parent graph-bronreview en samenvoeging](/home/dielessen/artifacts/open-thermostat-graph-parent-20261020/taskflow.md).
-  Broncommit d9d3b00; 21/21 dossierhashes, twaalf bronafterhashes, acht runnerbronnen
-  en runnerbinaryhash PASS. Volledige native suite onafhankelijk218PASS/1SKIP;
-  oude B12-telling216 gecorrigeerd op primaire finale log en onafhankelijke herhaling.
-  Geen installatie, actieve wirewijziging of fysieke acceptatie.
-
-
-- **B14:** [desired-roommigratie en graph-applyvoorstel](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-room-contract-20261020/RESULT.md).
-  Basis daf5347; native bronacceptatie239PASS/1broker-opt-inSKIP, overlappend met
-  eerdere suites, niet optellen. Capabilities/schema2 zijn een reviewvoorstel,
-  niet geïmplementeerde firmware. Zie [HA-GRAPH-APPLY-PROPOSAL](HA-GRAPH-APPLY-PROPOSAL.nl.md).
-  Geen uitrol, fysieke proef of source-/actuator-/ketelvrijgave.
-- **B15:** [parent room-/contractreview en samenvoeging](/home/dielessen/artifacts/open-thermostat-room-contract-parent-20261020/taskflow.md),
-  [firmware-/budgetreview](/home/dielessen/artifacts/open-thermostat-room-contract-parent-20261020/firmware-review.md).
-  Bron afcf2ed;31/31manifest,15afterhashes,8runnerbronnen/binary,reverse/diff PASS;
-  onafhankelijk239nativePASS/1expliciete brokerSKIP. Actieve wire/firmware behouden.
-  Alleen bronacceptatie; qualifiers/validators/apply en fysieke E32acceptatie open.
-
-
-- **B16:** [losse gedeelde graph-shadowvalidators en gemeten native budget](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-graph-validator-r2-20261020/RESULT.md).
-  Basis e16c4e6; zie [exacte testspecificatie](GRAPH-SHADOW-VALIDATORS.nl.md).
-  Pure bronacceptatie346PASS/1broker-opt-inSKIP; gedeelde fixtures zitten in die
-  telling. Geen nieuwe MQTT/Store/applyGUI/capadvertentie, geen actieve profielen,
-  ESP32heap/NVS/latencybewijs of fysieke GO. Onafhankelijke parentreview PASS;
-  bron samengevoegd als a6cb9cc. [Parentbewijs](/home/dielessen/artifacts/open-thermostat-graph-validator-parent-r2-20261020/RESULT.md):
-  43/43r2 +29/29origineel,9afterhashes,98fixtures,15originele typeprobes,
-  556nativefaultsites zonder leaks; ongewijzigde parentfaultprobe ook PASS.
-  Native suite346PASS/1brokerSKIP zowel schone toegepaste patch als mergedcheckout
-  (overlap, niet optellen). Geen runtime-import/installatie of fysieke vrijgave.
-
+- [x] Exacte firmware-graph-only-core.patch SHA256
+  9ed3ce2e6171b4390814a6d7168d27484dc482f06c574ced3777b0210e9d9893
+  onafhankelijk gereviewd; alle9 niet-WORKBOARDbron-/test-/dochashes matchen
+  GRAPH-CONFIG-RESULT.json c1a1ada. Canonical prechange ad20d66 schoon.
+- [x] Bestaande ControlStore/SessionAdmission/gedeelde validator hergebruikt:
+  config+mapping+digest+owner+controller+schema in één tuple maximaal4096bytes;
+  exacte readback vóór geheugenpromotie. Drift/ambiguous-save/hash-/schema-/
+  klokfout blokkeert admission; restore herstelt alleen data, geen grant/lease.
+- [x] Werkelijke canonical hostg++17 -Wall/-Wextra/-Werror, echte cJSON/OpenSSL:
+  33nativechecks PASS (9graph +11admission +13actieve api1regressies).
+  HA2026.10.2/Python3.14.8:34PASS (3echte C++/native Storeinterop +30journal
+  +1runtimegrens),5bestaande dependencydeprecaties. Geen broker/device/netwerk.
+  Eerste HAaanroep gebruikte ongeldige sandboxvenvsymlink; daarna bestaande
+  bewezen hostinterpreter/sitepackages gebruikt, zonder installatie/wijziging.
+- [ ] F2/F3 blijven open: alleen synthetisch1kamer/1vloer/1actuator-testprofiel,
+  niet actieve ModernTransport/api2selectie/capadvertentie, uitvoerende profielen,
+  NVSkey/ESPheap/stack/powerloss/build/installatie of nativeGUIapply.
+  Default SessionAdmission blijft major1; alle fysieke outputflags false.
+- Bewijs in11774dossier: GRAPH-CONFIG-PARENT-PRECHANGE.json, COMMANDS.json,
+  HASHES.json, BUILD.log, NATIVE.json/log, HA.xml/log en REVIEW.md.
+  Rollback uitsluitend nieuwe graphbroncommit; parentdocs en runtimedata bewaren.
+- F5presentatie2fb7780 NIET samengevoegd: chartgating/Repairs alleen is geen
+  isolatie van historische statistiekdefinities. Actieve specialist werkt aan
+  expliciete V2entity-/Discovery-/wirevelden en behoud oude registry/history.
+  Eerdere geaccepteerde broncounters/stabieleIDs betekenen dus GEEN veilige
+  historiekmigratie; geen productie-uitrol of datavervuiling geclaimd/geconstateerd.
+- Eerstvolgende review: die concrete F5V2correctie inclusief echte SQLite-
+  isolatieproef. Reeds aangeboden F2/F3api2transport-/nativeGUI-integratie blijft
+  daarna van dezelfde specialist; geen dubbele eigenaar of redundant werkdoorbericht.
+  F9cooling/coast/curve/shadowreplay volgt als afzonderlijk softwarepakket.
+  Hele11785 blijft actief; volgende hervattingscheck15min, fysieke gates intact.
 
 ### Mark11785 — F9 thermisch model/optimum-start: onafhankelijke bronacceptatie
 
@@ -855,3 +811,80 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
 - Parent reviewt eerst gereed F5metrics-presentatie2fb7780. Eigen hervattingsjob
   behoudt opdracht11785; volgende check15min bevestigd. Softwareplan NIET klaar;
   fysieke gates blijven ongewijzigd, dus job niet verwijderd.
+
+## 7. Bijwerken na iedere taak — onderdeel van opleveren
+
+1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.
+2. Na het resultaat: werk dezelfde regels bij, zet alleen bewezen deeluitkomsten
+   op `[x]`, voeg bron/versie toe en noteer eerstvolgende open bewijsactie.
+3. Schrijf apart of iets gebouwd, geïnstalleerd, zichtbaar getest of fysiek bewezen
+   is. Een overgeslagen/gewaivde check wordt geen PASS.
+4. Verwijder achterhaalde actuele status uit register/profiel; verwijs hierheen.
+   Taakdossiers blijven gedateerd bewijs, geen extra concurrerende werkborden.
+5. Hand-off/eindantwoord bevat pas een afrondingsclaim nadat deze update en
+   technische nacontrole zijn gedaan. Bij ontbrekend bewijs blijft de taak open.
+
+## 8. Bewijsindex
+
+- **B1:** [WP01-BASELINE](WP01-BASELINE.nl.md),
+  [uitvoeringsbewijs](/home/dielessen/artifacts/open-thermostat-wp01-20261019/taskflow.md).
+- **B2:** [WP02-CLASSIC](WP02-CLASSIC.nl.md), [68-veldenmanifest](boiler-field-parity.json),
+  [bouwbewijs](/home/dielessen/artifacts/open-thermostat-build-20261020/taskflow.md).
+- **B3:** [geïntegreerde testgrenzen](INTEGRATED-TEST.nl.md), [wireprofiel](TEST-WIRE.md),
+  [contract](CONTRACT.nl.md); host-C++ is geen fysieke ESP32proef.
+- **B4:** [dynamische kamerconfig](HA-DYNAMIC-CONFIG.nl.md), [weekeditor](HA-WEEK-EDITOR.nl.md),
+  [parent GUI-/cleanupbewijs](/home/dielessen/memory/open-thermostat-week-editor-20261020.md).
+- **B5:** [alpha.3-release](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.3),
+  [alpha.4/bordgrenzen](/home/dielessen/artifacts/open-thermostat-auto-reboot-20261020/taskflow.md),
+  [Mark11579 en continuïteit](/home/dielessen/memory/open-thermostat-project.md).
+- **B6:** [gedateerde shadow-/bron-/testinfra-uitvoering](/home/dielessen/artifacts/open-thermostat-shadow-setup-20261020/taskflow.md).
+  Dit is bewijs/historie; de actuele productchecklist staat uitsluitend hier.
+- **B7:** [HA-productieonderhoud](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-maintenance-11686-20261020/RESULT.md),
+  [parent hashes/readback](/home/dielessen/artifacts/open-thermostat-shadow-setup-20261020/maintenance-11686-parent-verification.json),
+  [browserblokkade](/home/dielessen/artifacts/open-thermostat-shadow-setup-20261020/maintenance-11686-browser-route-check.json).
+- **B8:** [deze planreconciliatie, review en documentatieverificatie](/home/dielessen/artifacts/open-thermostat-plan-reconcile-11694-20261020/taskflow.md).
+  Een voltooid planonderhoud is geen voltooid product.
+- **B9:** [onafhankelijke HA-/actuatorinventaris](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-plan-review-11694-20261020/REVIEW.md).
+  Geen nieuwe runtimequery. Exacte bronhashvergelijking met actieve checkout en
+  review van dit werkbord zijn in B8 vastgelegd; snapshotbevindingen niet als
+  een nieuwe fysieke E32-/alpha.4-binaire audit presenteren.
+
+- **B10:** [Mark11706/11709 centrale configuratiebronpakket](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-heating-config-11706-20261020/RESULT.md).
+  Getoetst tegen exact ea54c256-archief; centrale native draftflow+validatiebasis,
+  geen productie-installatie, volledige groeps-/profiel-GUI, transportcontract of fysieke support.
+- **B11:** [parent bron-/contractreview en samenvoeging](/home/dielessen/artifacts/open-thermostat-heating-config-parent-20261020/taskflow.md).
+  Broncommit c23bae2, 18/18 manifestchecks, negen afterhashes en reversecheck PASS;
+  106 relevante native HA-tests onafhankelijk herhaald. Geen nieuwe installatie of fysieke acceptatie.
+
+- **B12:** [native gewenste graph-CRUD en referentiële integriteit](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-graph-gui-20261020/RESULT.md).
+  Baseline76cef4f,218nativePASS/1broker-opt-inSKIP; geen productie-installatie,
+  E32-applycontract, live device-/elektrische-/hydraulische ondersteuning of fysieke GO.
+- **B13:** [parent graph-bronreview en samenvoeging](/home/dielessen/artifacts/open-thermostat-graph-parent-20261020/taskflow.md).
+  Broncommit d9d3b00; 21/21 dossierhashes, twaalf bronafterhashes, acht runnerbronnen
+  en runnerbinaryhash PASS. Volledige native suite onafhankelijk218PASS/1SKIP;
+  oude B12-telling216 gecorrigeerd op primaire finale log en onafhankelijke herhaling.
+  Geen installatie, actieve wirewijziging of fysieke acceptatie.
+
+
+- **B14:** [desired-roommigratie en graph-applyvoorstel](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-room-contract-20261020/RESULT.md).
+  Basis daf5347; native bronacceptatie239PASS/1broker-opt-inSKIP, overlappend met
+  eerdere suites, niet optellen. Capabilities/schema2 zijn een reviewvoorstel,
+  niet geïmplementeerde firmware. Zie [HA-GRAPH-APPLY-PROPOSAL](HA-GRAPH-APPLY-PROPOSAL.nl.md).
+  Geen uitrol, fysieke proef of source-/actuator-/ketelvrijgave.
+- **B15:** [parent room-/contractreview en samenvoeging](/home/dielessen/artifacts/open-thermostat-room-contract-parent-20261020/taskflow.md),
+  [firmware-/budgetreview](/home/dielessen/artifacts/open-thermostat-room-contract-parent-20261020/firmware-review.md).
+  Bron afcf2ed;31/31manifest,15afterhashes,8runnerbronnen/binary,reverse/diff PASS;
+  onafhankelijk239nativePASS/1expliciete brokerSKIP. Actieve wire/firmware behouden.
+  Alleen bronacceptatie; qualifiers/validators/apply en fysieke E32acceptatie open.
+
+
+- **B16:** [losse gedeelde graph-shadowvalidators en gemeten native budget](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-graph-validator-r2-20261020/RESULT.md).
+  Basis e16c4e6; zie [exacte testspecificatie](GRAPH-SHADOW-VALIDATORS.nl.md).
+  Pure bronacceptatie346PASS/1broker-opt-inSKIP; gedeelde fixtures zitten in die
+  telling. Geen nieuwe MQTT/Store/applyGUI/capadvertentie, geen actieve profielen,
+  ESP32heap/NVS/latencybewijs of fysieke GO. Onafhankelijke parentreview PASS;
+  bron samengevoegd als a6cb9cc. [Parentbewijs](/home/dielessen/artifacts/open-thermostat-graph-validator-parent-r2-20261020/RESULT.md):
+  43/43r2 +29/29origineel,9afterhashes,98fixtures,15originele typeprobes,
+  556nativefaultsites zonder leaks; ongewijzigde parentfaultprobe ook PASS.
+  Native suite346PASS/1brokerSKIP zowel schone toegepaste patch als mergedcheckout
+  (overlap, niet optellen). Geen runtime-import/installatie of fysieke vrijgave.

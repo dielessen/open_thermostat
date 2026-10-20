@@ -1,6 +1,7 @@
 #pragma once
-// Pure isolated review validator. NOT included by firmware runtime/transport.
-// A valid_candidate has no device callbacks, persistence or capability advertisement.
+// Shared graph-shadow validator, including the source-stage configuration core.
+// NOT selected by active api1/ModernTransport. Validation itself has no device
+// callbacks, persistence or capability advertisement.
 #include <cJSON.h>
 #include <array>
 #include <algorithm>

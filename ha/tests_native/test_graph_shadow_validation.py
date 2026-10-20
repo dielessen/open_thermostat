@@ -53,8 +53,9 @@ def test_validator_not_imported_by_any_active_runtime_or_api():
             continue
         assert "graph_shadow_validation" not in p.read_text(),p.name
     for p in (ROOT/"src").rglob("*"):
-        if p.is_file() and p.suffix in (".h",".cpp") and p.name!="GraphShadowValidation.h":
+        if p.is_file() and p.suffix in (".h",".cpp") and p.name not in ("GraphShadowValidation.h", "GraphShadowConfiguration.h"):
             assert "GraphShadowValidation" not in p.read_text(),str(p)
+            assert "GraphShadowConfiguration" not in p.read_text(),str(p)
 
 
 @pytest.mark.parametrize("case",[c for c in CASES if c["name"].startswith("gv_r1_")],ids=lambda c:c["name"])

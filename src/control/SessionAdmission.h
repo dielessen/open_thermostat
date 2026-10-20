@@ -37,11 +37,11 @@ public:
     static constexpr std::size_t maximumStreams = 48;
     static constexpr uint32_t maximumGrantMs = 15000;
     explicit SessionAdmission(std::string_view expectedAdapter,
-                              Direction direction = Direction::ha_to_fw)
-        : expectedAdapter_(validId(expectedAdapter) ? expectedAdapter : ""), direction_(direction) {}
+                              Direction direction = Direction::ha_to_fw, uint16_t expectedMajor = 1)
+        : expectedAdapter_(validId(expectedAdapter) ? expectedAdapter : ""), direction_(direction), expectedMajor_(expectedMajor) {}
 
     bool begin(const SessionIdentity &identity, uint32_t leaseMs = 15000) {
-        if (expectedAdapter_.empty() || identity.adapter != expectedAdapter_ ||
+        if ((expectedMajor_!=1 && expectedMajor_!=2) || expectedAdapter_.empty() || identity.adapter != expectedAdapter_ ||
             !validId(identity.controller) || !validId(identity.boot) || !validId(identity.session) ||
             identity.epoch == 0 || leaseMs == 0 || leaseMs > 60000) return false;
         // Replayed/repeated local admission cannot erase sequence watermarks.
@@ -73,7 +73,7 @@ public:
     }
     Admission admit(std::size_t streamIndex, const Envelope &e, uint64_t now, uint64_t immutableResult = 0) {
         if (!configured_ || !transportValid_) return {AdmissionCode::not_configured};
-        if (e.major != 1) return {AdmissionCode::wrong_version};
+        if (e.major != expectedMajor_) return {AdmissionCode::wrong_version};
         if (e.direction != direction_ || e.controller != identity_.controller || e.boot != identity_.boot ||
             e.adapter != identity_.adapter || e.session != identity_.session || e.epoch != identity_.epoch)
             return {AdmissionCode::wrong_identity};
@@ -123,6 +123,7 @@ private:
     };
     std::string expectedAdapter_, grant_;
     Direction direction_;
+    uint16_t expectedMajor_;
     SessionIdentity identity_;
     std::array<Stream,maximumStreams> streams_{};
     bool configured_ = false, grantValid_ = false, transportValid_ = false;

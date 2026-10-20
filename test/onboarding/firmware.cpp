@@ -13,6 +13,7 @@ void reset(){
  testNvs::committed.clear();testNvs::handles.clear();testNvs::failCommit.clear();testNvs::corruptRead.clear();
  WiFi={};testNow=1000;boardEthernetStarted=false;wifiAPMode=false;
  setupUntil=setupAttemptUntil=setupCloseAt=setupJoinAt=0;setupCandidate={};setupResult="idle";
+ setupDns={};setupDnsActive=false;setupSavedSsid.clear();setupCloseIP={};
  setupRebootRequested=false;wifiScanState="idle";wifiScanRows="[]";wifiScanStarted=0;
  deviceAccess={};deviceAccess.begin();
 }
@@ -33,7 +34,7 @@ int main(){
  testNow=before+751;pollSetupWifi();assert(WiFi.joins==1&&WiFi.joined=="hidden"&&WiFi.ap&&WiFi.modeChanges==1);pass("join queued after response, scans/duplicate joins fenced");
  testNow+=30001;pollSetupWifi();assert(setupResult=="connection_failed"&&WiFi.ap&&setupAttemptUntil==0);config::WiFiConfig cfg;assert(!readSetupWifi(cfg));assert(!finishSetupWifi());pass("wrong password does not save or close setup");
  join();connected();assert(setupResult=="connected_saved"&&readSetupWifi(cfg)&&cfg.ssid=="home");assert(readDeviceNetworkSettings().find("existing")!=std::string::npos&&readDeviceNetworkSettings().find("wifi")!=std::string::npos);pass("retry saves WiFi with readback and preserves network settings");
- testNow+=11000;pollSetupWifi();assert(WiFi.ap&&setupCloseAt==0);assert(finishSetupWifi());pollSetupWifi();assert(WiFi.ap);testNow+=1501;pollSetupWifi();assert(!WiFi.ap&&WiFi.modeValue==WIFI_STA);pass("AP survives old 10s deadline and closes only after explicit finish");
+ testNow+=11000;pollSetupWifi();assert(WiFi.ap&&setupCloseAt==0);assert(finishSetupWifi());pollSetupWifi();assert(WiFi.ap);testNow+=8001;pollSetupWifi();assert(!WiFi.ap&&WiFi.modeValue==WIFI_STA);pass("AP waits for page acknowledgement, then automatic finish closes after grace");
  auto durable=testNvs::committed;reset();testNvs::committed=durable;assert(readSetupWifi(cfg)&&cfg.ssid=="home");assert(readDeviceNetworkSettings().find("wifi")!=std::string::npos);pass("accepted WiFi and interface selection survive fresh runtime");
  reset();ap();testNvs::failCommit="ot_wifi";join();connected();assert(setupResult=="storage_error"&&WiFi.ap&&!finishSetupWifi());assert(!readSetupWifi(cfg));pass("NVS credential commit failure keeps recovery and rejects success");
  reset();ap();testNvs::failCommit="ot_network";join();connected();assert(setupResult=="storage_error"&&WiFi.ap&&!finishSetupWifi());pass("network-interface commit failure cannot claim handoff success");
@@ -43,12 +44,18 @@ int main(){
  reset();boardEthernetStarted=true;assert(!startSetupWifi()&&!startWifiScan());assert(WiFi.modeValue==0);pass("Ethernet-clock guard prevents powering up WiFi");
  reset();ap();assert(!trySetupWifi({"","test-pass"})&&!trySetupWifi({"home","short"})&&!trySetupWifi({std::string(33,'x'),"test-pass"}));assert(trySetupWifi({"open",""}));pass("invalid lengths rejected and open-network manual entry supported");
  reset();ap();testNow=setupUntil+1;pollSetupWifi();assert(!WiFi.ap&&setupResult=="setup_expired");pass("bounded setup window closes normally");
- reset();ap();join();connected();assert(finishSetupWifi());WiFi.connected=false;testNow+=1501;pollSetupWifi();assert(WiFi.ap&&setupCloseAt==0);pass("station loss during finish grace period preserves recovery AP");
+ reset();ap();join();connected();assert(finishSetupWifi());WiFi.connected=false;testNow+=8001;pollSetupWifi();assert(WiFi.ap&&setupCloseAt==0);pass("station loss during finish grace period preserves recovery AP");
  reset();ap();join();connected();assert(trySetupWifi({"wrong-new-network","test-pass"}));testNow+=751;pollSetupWifi();testNow+=30001;pollSetupWifi();assert(setupResult=="connection_failed"&&readSetupWifi(cfg)&&cfg.ssid=="home");pass("failed replacement preserves previously accepted credentials");
  reset();Serial.input="setup\n";pollSetupWifi();assert(setupRebootRequested);setupRebootRequested=false;assert(consumeSetupBoot()&&!consumeSetupBoot());pass("USB recovery flag is durable and one-shot");
  reset();WiFi.sleepPolicy=WIFI_PS_NONE;ap();assert(WiFi.modeChanges==1);pass("setup selects BLE-compatible modem sleep before radio start even from disabled policy");
- assert(startWifiScan());WiFi.complete=0;pollSetupWifi();join();connected();assert(finishSetupWifi());testNow+=1501;pollSetupWifi();assert(!WiFi.ap&&WiFi.bluetoothEnabled&&WiFi.getSleep()==WIFI_PS_MIN_MODEM);pass("Bluetooth-compatible policy survives scan join and station handoff");
+ assert(startWifiScan());WiFi.complete=0;pollSetupWifi();join();connected();assert(finishSetupWifi());testNow+=8001;pollSetupWifi();assert(!WiFi.ap&&WiFi.bluetoothEnabled&&WiFi.getSleep()==WIFI_PS_MIN_MODEM);pass("Bluetooth-compatible policy survives scan join and station handoff");
  reset();WiFi.modeOk=false;assert(!startSetupWifi()&&!wifiAPMode&&!WiFi.ap);pass("radio startup failure never advertises setup success");
  reset();WiFi.apOk=false;assert(!startSetupWifi()&&!wifiAPMode&&!WiFi.ap);pass("SoftAP startup failure never advertises setup success");
+ reset();ap();assert(setupDns.active&&setupDns.ttl==0&&setupDns.port==53&&setupDns.domain=="*");assert(uint32_t(setupDns.resolved)==uint32_t(IPAddress(10,10,10,1)));pollSetupWifi();assert(setupDns.polls==1);pass("official wildcard DNS starts at setup IP with zero TTL and nonblocking poll");
+ join();connected();assert(setupConnectionReady()&&finishSetupWifi());auto deadline=setupCloseAt;testNow+=2000;assert(finishSetupWifi()&&setupCloseAt==deadline);pollSetupWifi();assert(WiFi.ap&&setupDns.active);testNow=deadline+1;pollSetupWifi();assert(!WiFi.ap&&!setupDns.active&&!setupDnsActive&&setupCloseAt==0);auto polls=setupDns.polls;pollSetupWifi();assert(setupDns.polls==polls);pass("lost finish response is idempotent and DNS stops exactly with setup AP");
+ reset();ap();testNow=setupUntil+1;pollSetupWifi();assert(!setupDns.active&&!setupDnsActive);pass("setup timeout also stops DNS");
+ reset();setupDns.startOk=false;ap();assert(!setupDnsActive&&WiFi.ap);pollSetupWifi();assert(setupDns.polls==0);pass("DNS bind failure retains numeric-URL recovery without claiming DNS active");
+ reset();ap();join();connected();assert(finishSetupWifi());WiFi.ip=IPAddress(192,168,1,91);testNow+=8001;pollSetupWifi();assert(WiFi.ap&&!setupCloseAt);assert(finishSetupWifi());testNow+=8001;pollSetupWifi();assert(!WiFi.ap);pass("DHCP address change cancels old deadline and requires a fresh page acknowledgement");
+ reset();ap();join();connected();WiFi.joined="other";assert(!setupConnectionReady()&&!finishSetupWifi());pass("unrelated station cannot inherit saved-network success");
  std::cout<<cases<<" production-code scenarios passed (not RF/hardware proof)\n";
 }

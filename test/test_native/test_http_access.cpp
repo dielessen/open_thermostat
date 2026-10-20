@@ -1,7 +1,29 @@
 #include "control/HttpAccessPolicy.h"
 #include "control/NetworkBootPlan.h"
+#include "control/CaptivePortalPolicy.h"
 #include <gtest/gtest.h>
 using namespace heating::control;
+TEST(CaptivePortal, OperatingSystemProbesAndArbitraryHttpHostsRedirectOnlyOnAPInterface) {
+    for(auto path:{"/generate_204","/gen_204","/hotspot-detect.html","/library/test/success.html","/success.html","/ncsi.txt","/connecttest.txt","/redirect","/fwlink","/canonical.html","/"}) {
+        EXPECT_EQ(portalAccess(true,true,"10.10.10.1","10.10.10.1",path,"GET"),PortalAccess::Redirect);
+        EXPECT_EQ(portalAccess(true,false,"10.10.10.1","10.10.10.1",path,"GET"),PortalAccess::Authenticated);
+        EXPECT_EQ(portalAccess(false,true,"10.10.10.1","10.10.10.1",path,"GET"),PortalAccess::Authenticated);
+    }
+    EXPECT_EQ(portalAccess(true,true,"example.com","10.10.10.1","/any/path","GET"),PortalAccess::Redirect);
+}
+TEST(CaptivePortal, OnlyExplicitSetupRoutesOnCanonicalAPAreLoginExceptions) {
+    for(auto path:{"/setup","/setup.html","/setup.js","/setup/status","/setup/scan"})
+        EXPECT_EQ(portalAccess(true,true,"10.10.10.1","10.10.10.1",path,"GET"),PortalAccess::Setup);
+    for(auto path:{"/setup/scan","/setup/network","/setup/finish"}) {
+        EXPECT_EQ(portalAccess(true,true,"10.10.10.1","10.10.10.1",path,"POST"),PortalAccess::Setup);
+        EXPECT_EQ(portalAccess(true,false,"10.10.10.1","10.10.10.1",path,"POST"),PortalAccess::Authenticated);
+        EXPECT_EQ(portalAccess(true,true,"evil.test","10.10.10.1",path,"POST"),PortalAccess::Authenticated);
+    }
+    for(auto path:{"/setup/reenter","/config/device","/config/reboot","/ota","/otafs","/config/rooms","/setup/network/evil"})
+        for(auto method:{"GET","POST","DELETE"}) EXPECT_EQ(portalAccess(true,true,"10.10.10.1","10.10.10.1",path,method),PortalAccess::Authenticated);
+    EXPECT_FALSE(sameOrigin("http://evil.test","10.10.10.1","cross-site"));
+    EXPECT_FALSE(allowedHttpMethod("/setup/finish","GET"));
+}
 TEST(HttpAccess, ReadRoutesCannotInvokeRebootUploadOrMutationWithGet) {
     for(auto route:{"/config/reboot","/ota","/otafs","/setup/network","/setup/reenter","/config/temporary"}) EXPECT_FALSE(allowedHttpMethod(route,"GET"));
     EXPECT_TRUE(allowedHttpMethod("/config/reboot","POST"));

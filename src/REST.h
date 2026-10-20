@@ -4,6 +4,7 @@
 #include "DeviceNetworkSettings.h"
 #include "SetupNetwork.h"
 #include "control/HttpAccessPolicy.h"
+#include "control/CaptivePortalPolicy.h"
 #include "Logging.h"
 
 #include <esp_ota_ops.h>
@@ -63,7 +64,7 @@ public:
 
 class REST {
 public:
-	REST(std::shared_ptr<ib::logger::LoggerInterface> log, HeatingController &controller, uint16_t listenPort) : log_(std::move(log)), controller_(controller), server_(listenPort) {
+	REST(std::shared_ptr<ib::logger::LoggerInterface> log, HeatingController &controller, uint16_t listenPort) : log_(std::move(log)), listenPort_(listenPort), controller_(controller), server_(listenPort) {
 		logFeature_ = log_->addFeature("REST");
 
 		server_.enableCORS(false);
@@ -129,14 +130,18 @@ public:
 			server_.send(200,"application/json",("{\"status\":\""+wifiScanState+"\",\"networks\":"+wifiScanRows+"}").c_str());
 		});
 		route("/setup/finish",HTTP_POST,[this] {
-			server_.send(finishSetupWifi()?202:409,"text/plain","Finish requires a confirmed saved WiFi connection");
+			if(!finishSetupWifi()) { server_.send(409,"text/plain","Finish requires a confirmed saved WiFi connection"); return; }
+			server_.send(202,"application/json",("{\"close_after_ms\":"+std::to_string(setupCloseAt>networkNow()?setupCloseAt-networkNow():0)+"}").c_str());
 		});
 		route("/setup/status",HTTP_GET,[this] {
 			auto root=control::objectJson();
 			cJSON_AddStringToObject(root.get(),"status",setupResult.c_str());
 			cJSON_AddBoolToObject(root.get(),"setup_active",wifiAPMode);
-			cJSON_AddBoolToObject(root.get(),"connected",WiFi.isConnected());
+			cJSON_AddBoolToObject(root.get(),"connected",setupConnectionReady());
 			cJSON_AddStringToObject(root.get(),"station_ip",WiFi.localIP().toString().c_str());
+			cJSON_AddNumberToObject(root.get(),"station_port",listenPort_);
+			cJSON_AddNumberToObject(root.get(),"close_after_ms",setupCloseAt>networkNow()?setupCloseAt-networkNow():0);
+			cJSON_AddBoolToObject(root.get(),"closing",setupCloseAt!=0);
 			cJSON_AddNumberToObject(root.get(),"remaining_seconds",wifiAPMode&&setupUntil>networkNow()?(setupUntil-networkNow())/1000:0);
 			server_.send(200,"application/json",control::printJson(root.get()).c_str());
 		});
@@ -182,12 +187,20 @@ private:
 		server_.sendHeader("X-Content-Type-Options","nosniff");
 		server_.sendHeader("X-Frame-Options","DENY");
 		const auto method=server_.method()==HTTP_GET?"GET":server_.method()==HTTP_POST?"POST":server_.method()==HTTP_DELETE?"DELETE":"OTHER";
+		String canonical=WiFi.softAPIP().toString();
+		if(listenPort_!=80) canonical+=":"+String(listenPort_);
+		String host=server_.hostHeader();
+		if(listenPort_==80&&host==canonical+":80") host=canonical;
+		const auto portal=control::portalAccess(wifiAPMode,server_.client().localIP()==WiFi.softAPIP(),host.c_str(),canonical.c_str(),server_.uri().c_str(),method);
+		if(portal==control::PortalAccess::Redirect) {
+			server_.sendHeader("Location","http://"+canonical+"/setup"); server_.send(302,"text/plain","OpenThermostat WiFi setup"); return false;
+		}
 		if(!control::allowedHttpMethod(server_.uri().c_str(),method)) { server_.send(405,"text/plain","Method not allowed"); return false; }
 		if(!control::sameOrigin(server_.header("Origin").c_str(),server_.hostHeader().c_str(),server_.header("Sec-Fetch-Site").c_str())) {
 			server_.send(403,"text/plain","Origin rejected"); return false;
 		}
 		if(!deviceAccess.ready()) { server_.send(503,"text/plain","Local access initialization failed"); return false; }
-		if(!server_.authenticate("admin",deviceAccess.password().c_str())) {
+		if(portal!=control::PortalAccess::Setup&&!server_.authenticate("admin",deviceAccess.password().c_str())) {
 			server_.requestAuthentication(DIGEST_AUTH,"OpenThermostat"); return false;
 		}
 		if(controller_.modernMode()&&control::legacyControlWrite(server_.uri().c_str(),method)) {
@@ -197,6 +210,7 @@ private:
 		return true;
 	}
 	std::shared_ptr<ib::logger::LoggerInterface> log_;
+	uint16_t listenPort_;
 	ib::logger::LoggerInterface::LogFeatureType logFeature_{};
 
 	void showPrograms() {

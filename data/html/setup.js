@@ -3,10 +3,14 @@
   const $ = id => document.getElementById(id);
   const ssid=$('ssid'), password=$('password'), status=$('status'), networks=$('networks');
   let scanning=false, joining=false, posting=false, saved=false, finished=false, scanDeadline=0;
+  let finishing=false, handoffTarget='', navigateAt=0, closeAt=0, handoffTimer;
   function controls() {
-    $('scan').disabled=scanning||joining||finished;
-    $('connect').disabled=scanning||joining||finished;
-    ssid.disabled=password.disabled=networks.disabled=joining||finished;
+    $('network-fields').hidden=$('intro').hidden=$('remaining').hidden=saved;
+    $('heading').textContent=saved?'Verbonden met wifi':'Verbind met je wifi';
+    const transferring=finishing||navigateAt>0;
+    $('scan').disabled=scanning||joining||finished||transferring;
+    $('connect').disabled=scanning||joining||finished||transferring;
+    ssid.disabled=password.disabled=networks.disabled=joining||finished||transferring;
   }
   async function request(url, options={}) {
     const controller=new AbortController(), timeout=setTimeout(()=>controller.abort(),5000);
@@ -47,17 +51,39 @@
       else status.textContent='Tijdelijk geen antwoord. Blijf verbonden met de setup-wifi; de verbindingscontrole gaat automatisch verder.';
     } finally { posting=false; }
   };
-  $('finish').onclick=async()=>{
-    if(!saved||finished) return;
-    $('finish').disabled=true;
+  function target(s) {
+    if(typeof s.station_ip!=='string'||!/^\d{1,3}(\.\d{1,3}){3}$/.test(s.station_ip)||s.station_ip==='0.0.0.0'||s.station_ip.split('.').some(n=>Number(n)>255)) return '';
+    const port=s.station_port===undefined?80:s.station_port;
+    if(!Number.isInteger(port)||port<1||port>65535) return '';
+    return 'http://'+s.station_ip+(port===80?'':':'+port)+'/';
+  }
+  function cancelHandoff() {
+    clearInterval(handoffTimer); navigateAt=closeAt=0; handoffTarget='';
+  }
+  function armHandoff(ms,url) {
+    if(!Number.isFinite(ms)||ms<0||ms>10000) return false;
+    if(navigateAt&&handoffTarget===url) return true;
+    cancelHandoff(); handoffTarget=url; closeAt=Date.now()+ms; navigateAt=closeAt+2000;
+    const update=()=>{
+      const left=Math.max(0,Math.ceil((closeAt-Date.now())/1000));
+      $('transition').textContent=left?'Het setupnetwerk sluit over '+left+' seconden. Daarna openen we automatisch je thermostaat op het adres hieronder.':'Setupnetwerk wordt gesloten. Verbind met je thuiswifi; we openen het nieuwe adres…';
+      if(Date.now()>=navigateAt) {
+        finished=true; clearInterval(handoffTimer); controls(); window.location.assign(handoffTarget);
+      }
+    };
+    update(); handoffTimer=setInterval(update,250); controls(); return true;
+  }
+  async function automaticFinish(url) {
+    if(finishing||navigateAt||finished) return;
+    finishing=true; controls();
+    $('transition').textContent='Het nieuwe adres staat klaar. Automatisch afronden wordt bevestigd…';
     try {
-      await request('/setup/finish',{method:'POST'}); finished=true; controls();
-      status.textContent='Opgeslagen. Verbind je telefoon of laptop nu met je thuisnetwerk en open de link hieronder.';
+      const result=await (await request('/setup/finish',{method:'POST'})).json();
+      if(!armHandoff(result.close_after_ms,url)) throw Error('Ongeldige afrondbevestiging');
     } catch(e) {
-      $('finish').disabled=false;
-      status.textContent='Afronden niet bevestigd. Verbind opnieuw met de setup-wifi om de status te controleren, of open de thuisnetwerk-link nadat je bent overgeschakeld.';
-    }
-  };
+      $('transition').textContent='Afronden nog niet bevestigd. Deze pagina probeert automatisch opnieuw; het nieuwe adres blijft hieronder staan.';
+    } finally { finishing=false; controls(); }
+  }
   function showNetworks(rows) {
     const strongest=new Map();
     for(const row of rows) if(typeof row.ssid==='string'&&row.ssid&&(!strongest.has(row.ssid)||row.rssi>strongest.get(row.ssid).rssi)) strongest.set(row.ssid,row);
@@ -70,18 +96,22 @@
     try {
       const r=await request('/setup/status'), s=await r.json();
       $('remaining').textContent=s.setup_active?'Setupnetwerk nog ongeveer '+Math.ceil(s.remaining_seconds/60)+' minuten beschikbaar.':'Setupnetwerk gesloten.';
-      if(s.status==='connected_saved'&&s.connected&&/^\d{1,3}(\.\d{1,3}){3}$/.test(s.station_ip)&&s.station_ip!=='0.0.0.0') {
+      const url=target(s);
+      if(s.status==='connected_saved'&&s.connected&&url) {
         saved=true; joining=false; password.value='';
-        $('home').href='http://'+s.station_ip+'/'; $('home').textContent='Open http://'+s.station_ip+'/ op je thuisnetwerk';
+        if(handoffTarget&&handoffTarget!==url) cancelHandoff();
+        $('home').href=url; $('home').textContent=url;
         $('handoff').hidden=false;
-        status.textContent='Verbonden en opgeslagen. Schakel naar je thuisnetwerk en open de link hieronder. Het setupnetwerk blijft tot afronden of het einde van het setupvenster beschikbaar.';
+        status.textContent='Je thermostaat is verbonden. De wifi-instellingen zijn opgeslagen.';
+        if(s.closing) armHandoff(s.close_after_ms,url);
+        else { cancelHandoff(); await automaticFinish(url); }
       } else if(s.status==='connection_failed'||s.status==='storage_error') {
-        joining=false; saved=false; $('handoff').hidden=true;
+        cancelHandoff(); joining=false; saved=false; $('handoff').hidden=true;
         status.textContent=s.status==='connection_failed'?'Verbinding mislukt. Controleer wifi-naam en wachtwoord en probeer opnieuw. De setup-wifi blijft beschikbaar.':'Verbonden, maar opslaan niet bevestigd. Probeer opnieuw; de setup-wifi blijft beschikbaar.';
-      } else if(s.status==='connected_saved'&&!s.connected) {
-        joining=false; saved=false; $('handoff').hidden=true;
+      } else if(s.status==='connected_saved') {
+        cancelHandoff(); joining=false; saved=false; $('handoff').hidden=true;
         status.textContent='Instellingen opgeslagen, maar de thuisnetwerkverbinding is weggevallen. Controleer het bereik of probeer opnieuw.';
-      } else if(s.status==='connecting') { joining=true; saved=false; $('handoff').hidden=true; }
+      } else if(s.status==='connecting') { cancelHandoff(); joining=true; saved=false; $('handoff').hidden=true; }
       else if(joining&&!posting&&s.status==='ready') { joining=false; status.textContent='Geen verbindingspoging ontvangen. Je kunt opnieuw op Verbinden klikken.'; }
       if(scanning) {
         const scanResponse=await request('/setup/scan'), result=await scanResponse.json();

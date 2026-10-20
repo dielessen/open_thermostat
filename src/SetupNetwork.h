@@ -6,6 +6,7 @@
 #include "WifiDiscovery.h"
 #include "DeviceNetworkSettings.h"
 #include <WiFi.h>
+#include <DNSServer.h>
 #include <nvs.h>
 #include <esp_timer.h>
 #include <cJSON.h>
@@ -17,6 +18,14 @@ inline uint64_t setupUntil=0,setupAttemptUntil=0,setupCloseAt=0,setupJoinAt=0;
 inline config::WiFiConfig setupCandidate;
 inline std::string setupResult="idle";
 inline bool setupRebootRequested=false;
+inline DNSServer setupDns;
+inline bool setupDnsActive=false;
+inline std::string setupSavedSsid;
+inline IPAddress setupCloseIP;
+inline constexpr uint64_t setupHandoffDelayMs=8000;
+inline bool setupConnectionReady() {
+    return setupResult=="connected_saved"&&WiFi.isConnected()&&uint32_t(WiFi.localIP())!=0&&WiFi.SSID().c_str()==setupSavedSsid;
+}
 inline bool requestSetupBoot() {
     nvs_handle_t h; if(nvs_open("ot_wifi",NVS_READWRITE,&h)!=ESP_OK) return false;
     const bool ok=nvs_set_u8(h,"setup_once",1)==ESP_OK&&nvs_commit(h)==ESP_OK; nvs_close(h);
@@ -84,24 +93,32 @@ inline bool startSetupWifi() {
        !WiFi.softAP(ssid,deviceAccess.setupPassword().c_str())) return false;
     wifiAPMode=true; setupUntil=esp_timer_get_time()/1000+15*60*1000;
     setupAttemptUntil=setupJoinAt=setupCloseAt=0; setupResult="ready";
+    setupSavedSsid.clear(); setupCloseIP={};
+    setupDns.stop(); setupDns.setTTL(0);
+    setupDnsActive=setupDns.start(53,"*",local);
     Serial.printf("Setup WiFi: %s, browser: http://10.10.10.1/ (2.4 GHz home networks; BLE coexistence MIN_MODEM)\n",ssid);
+    Serial.printf("Setup captive portal: %s\n",setupDnsActive?"active":"DNS unavailable; open http://10.10.10.1/ manually");
     return true;
 }
 inline bool trySetupWifi(const config::WiFiConfig &cfg) {
     if(!wifiAPMode||boardEthernetStarted||setupAttemptUntil||wifiScanRunning()||cfg.ssid.empty()||cfg.ssid.size()>32||cfg.password.size()>63||(!cfg.password.empty()&&cfg.password.size()<8)) return false;
-    setupCandidate=cfg; setupResult="connecting"; setupCloseAt=0;
+    setupCandidate=cfg; setupResult="connecting"; setupCloseAt=0; setupSavedSsid.clear();
     setupJoinAt=networkNow()+750; setupAttemptUntil=setupJoinAt+30000;
     setupUntil=networkNow()+15*60*1000;
     // Reply to POST before association can move the single radio's AP channel.
     return true;
 }
 inline bool finishSetupWifi() {
-    if(!wifiAPMode||setupResult!="connected_saved"||!WiFi.isConnected()||uint32_t(WiFi.localIP())==0) return false;
-    setupCloseAt=networkNow()+1500; return true;
+    if(!wifiAPMode||!setupConnectionReady()) return false;
+    // Called automatically AFTER the page has received and displayed the real
+    // DHCP address. Retried/lost responses must not keep moving the deadline.
+    if(!setupCloseAt) { setupCloseAt=networkNow()+setupHandoffDelayMs; setupCloseIP=WiFi.localIP(); }
+    return true;
 }
 inline void pollSetupWifi() {
     if(setupRebootRequested) { delay(250); ESP.restart(); return; }
     const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
+    if(wifiAPMode&&setupDnsActive) setupDns.processNextRequest();
     pollWifiScan();
     if(setupJoinAt&&now>=setupJoinAt) {
         setupJoinAt=0; WiFi.setAutoReconnect(false); WiFi.disconnect(false,false);
@@ -113,19 +130,20 @@ inline void pollSetupWifi() {
             config::WiFiConfig readback;
             const bool verified=saved&&readSetupWifi(readback)&&readback.ssid==setupCandidate.ssid&&readback.password==setupCandidate.password;
             setupResult=verified?"connected_saved":"storage_error";
+            setupSavedSsid=verified?setupCandidate.ssid:"";
             setupCandidate={}; setupAttemptUntil=0;
-            // Keep AP until the user has seen the DHCP address and finishes,
-            // or the bounded setup window expires. No surprise ten-second loss.
+            // Wait for the page to receive the address before automatic finish.
             if(verified) WiFi.setAutoReconnect(true);
         } else if(now>=setupAttemptUntil) {
             setupResult="connection_failed"; setupCandidate={}; setupAttemptUntil=0;
             WiFi.disconnect(false,false);
         }
     }
-    if(setupCloseAt&&(!WiFi.isConnected()||uint32_t(WiFi.localIP())==0)) setupCloseAt=0;
+    if(setupCloseAt&&(!setupConnectionReady()||uint32_t(WiFi.localIP())!=uint32_t(setupCloseIP))) setupCloseAt=0;
     if(wifiAPMode && ((setupCloseAt&&now>=setupCloseAt)||now>=setupUntil)) {
         if(wifiScanRunning()) { esp_wifi_scan_stop(); WiFi.scanDelete(); wifiScanState="failed"; }
         setupJoinAt=setupAttemptUntil=0; setupCandidate={};
+        setupDns.stop(); setupDnsActive=false; setupCloseAt=0;
         WiFi.softAPdisconnect(false); WiFi.mode(WIFI_STA); wifiAPMode=false;
         if(setupResult!="connected_saved") setupResult="setup_expired";
     }

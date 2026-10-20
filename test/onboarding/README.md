@@ -7,6 +7,10 @@ simulation and cannot prove phone/ESP32 association stability.
 
 After `pio test -e native`, run:
 
+Run PlatformIO native tests and firmware builds sequentially in one checkout:
+the test runner can clean `.pio/build` and collide with another environment's
+build. Browser checks and the standalone boundary binary may run alongside builds.
+
 ```sh
 g++ -std=c++20 -g -fsanitize=address,undefined -fno-omit-frame-pointer \
   -Itest/onboarding/include -Isrc -I.pio/libdeps/native/cJSON \
@@ -31,7 +35,15 @@ The HTTP fixture has no backend or real-device access. Production HTTP digest
 authentication remains covered by the actual firmware build/native access-policy
 tests, not by this mock server.
 
-Physical acceptance: fresh flash -> setup AP -> automatic scan -> wrong password
-and retry -> successful DHCP and shown address -> finish -> home-network login ->
+Physical acceptance: fresh flash -> setup AP -> OS captive portal auto-opens -> automatic scan -> wrong password
+and retry -> successful DHCP and shown address -> automatic 8-second AP shutdown -> home-network login ->
 power-cycle/reconnect. Record unexpected AP drops and USB logs without home WiFi
 credentials. EMS stays disconnected; software pass is not physical acceptance.
+
+The official Arduino DNSServer is faked only at its boundary: start/wildcard/IP,
+TTL, polling, failure and stop are exercised through production SetupNetwork.
+This is not a real UDP/DNS exchange. Native CaptivePortalPolicy tests cover OS
+probe paths, canonical host, socket-interface requirement, and the strict AP-only
+setup allowlist. Production REST applies method/same-origin checks before its
+login exception; normal LAN requests still require digest authentication. Actual
+phone auto-open/mini-browser behaviour must be recorded on hardware.

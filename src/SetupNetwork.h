@@ -93,7 +93,7 @@ inline bool startSetupWifi() {
        !WiFi.softAP(ssid,deviceAccess.setupPassword().c_str())) return false;
     wifiAPMode=true; setupUntil=esp_timer_get_time()/1000+15*60*1000;
     setupAttemptUntil=setupJoinAt=setupCloseAt=0; setupResult="ready";
-    setupSavedSsid.clear(); setupCloseIP={};
+    setupSavedSsid.clear(); setupCloseIP=IPAddress();
     setupDns.stop(); setupDns.setTTL(0);
     setupDnsActive=setupDns.start(53,"*",local);
     Serial.printf("Setup WiFi: %s, browser: http://10.10.10.1/ (2.4 GHz home networks; BLE coexistence MIN_MODEM)\n",ssid);

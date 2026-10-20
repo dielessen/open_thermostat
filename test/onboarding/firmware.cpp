@@ -13,7 +13,7 @@ void reset(){
  testNvs::committed.clear();testNvs::handles.clear();testNvs::failCommit.clear();testNvs::corruptRead.clear();
  WiFi={};testNow=1000;boardEthernetStarted=false;wifiAPMode=false;
  setupUntil=setupAttemptUntil=setupCloseAt=setupJoinAt=0;setupCandidate={};setupResult="idle";
- setupDns={};setupDnsActive=false;setupSavedSsid.clear();setupCloseIP={};
+ setupDns={};setupDnsActive=false;setupSavedSsid.clear();setupCloseIP=IPAddress();
  setupRebootRequested=false;wifiScanState="idle";wifiScanRows="[]";wifiScanStarted=0;
  deviceAccess={};deviceAccess.begin();
 }

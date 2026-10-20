@@ -31,6 +31,11 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Subscribe to the existing aggregate room status topic."""
+    from .v1_model import integration_mode, MODE_SHADOW
+    if integration_mode(entry) == MODE_SHADOW:
+        from .v1_climate import async_setup_entry as setup_shadow
+        return await setup_shadow(hass, entry, async_add_entities)
+
     prefix = entry.data[CONF_TOPIC_PREFIX]
     durations = hass.data[DOMAIN][entry.entry_id]["duration_minutes"]
     hub = dr.async_get(hass).async_get_device_by_identifier(("open_thermostat", prefix), entry.entry_id)

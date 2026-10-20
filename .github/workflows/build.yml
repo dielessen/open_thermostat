@@ -46,6 +46,9 @@ jobs:
           cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin out/e32v2/
           cp partitions_e32v2.csv docs/BBQKEES_E32V2{,_VALIDATION,_TEST_RELEASE}.md out/e32v2/
           cp docs/FLASHING.md out/e32v2/
+          mkdir -p out/e32v2/modern-thermostat out/e32v2/home-assistant/custom_components
+          cp docs/modern-thermostat/*.md out/e32v2/modern-thermostat/
+          cp -R ha/config/custom_components/open_thermostat out/e32v2/home-assistant/custom_components/
           git rev-parse HEAD > out/e32v2/SOURCE_COMMIT.txt
           pio pkg list -e e32v2 > out/e32v2/BUILD_PACKAGES.txt
           python ~/.platformio/packages/tool-esptoolpy/esptool.py --chip esp32 merge_bin \
@@ -55,7 +58,7 @@ jobs:
             0xe000 out/e32v2/boot_app0.bin 0x10000 out/e32v2/firmware.bin \
             0x710000 out/e32v2/spiffs.bin
           cd out/e32v2
-          sha256sum -- * > SHA256SUMS.txt
+          python -c 'import hashlib; from pathlib import Path; Path("SHA256SUMS.txt").write_text("".join(hashlib.sha256(p.read_bytes()).hexdigest()+"  "+p.as_posix()+"\n" for p in sorted(Path(".").rglob("*")) if p.is_file() and p.name!="SHA256SUMS.txt"))'
       - name: Upload verified E32 V2 bench-test package
         if: matrix.environment == 'e32v2'
         uses: actions/upload-artifact@v4
@@ -64,3 +67,24 @@ jobs:
           path: out/e32v2/
           if-no-files-found: error
           retention-days: 30
+
+  home-assistant-native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Prepare pinned native firmware dependencies
+        run: |
+          pip install platformio==6.2.0 intelhex==2.3.0
+          pio pkg install -e native
+          mkdir -p out
+          g++ -std=c++20 -O1 -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/shadow_runner.cpp .pio/libdeps/native/cJSON/cJSON.c -o out/shadow-runner
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Test native HA lifecycle and actual firmware interop
+        run: |
+          pip install -r ha/requirements-test-native.txt
+          python -m pytest ha/tests ha/tests_native -q --junitxml=out/ha-acceptance.xml

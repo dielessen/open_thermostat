@@ -1,0 +1,150 @@
+"""Local v1-domain objects; deliberately NOT a wire schema."""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime
+import math
+import re
+from typing import Any
+
+MODE_LEGACY = "legacy"
+MODE_SHADOW = "v1_shadow"
+CONF_MODE = "integration_mode"
+CONF_ENABLED = "shadow_enabled"
+ROOM_LIMIT = 8
+_ROOM_ID = re.compile(r"[0-9a-f]{8}")
+
+def integration_mode(entry: Any) -> str:
+    return entry.options.get(CONF_MODE, entry.data.get(CONF_MODE, MODE_LEGACY))
+
+@dataclass(frozen=True)
+class EntityReference:
+    entity_id: str
+    platform: str | None = None
+    unique_id: str | None = None
+
+    @classmethod
+    def from_dict(cls, value: dict) -> EntityReference:
+        return cls(value["entity_id"], value.get("platform"), value.get("unique_id"))
+
+    def identity(self) -> tuple:
+        if self.platform is not None and self.unique_id is not None:
+            return (self.entity_id.split(".", 1)[0], self.platform, self.unique_id)
+        return (self.entity_id,)
+
+    def as_dict(self) -> dict:
+        return {"entity_id": self.entity_id, "platform": self.platform, "unique_id": self.unique_id}
+
+@dataclass(frozen=True)
+class RoomBinding:
+    room_id: str
+    name: str
+    temperature: EntityReference
+    actuators: tuple[EntityReference, ...]
+    setpoint: EntityReference | None = None
+    maximum_age_ms: int = 120000
+    base_centi_c: int = 2100
+    schedule: EntityReference | None = None
+
+    @classmethod
+    def from_dict(cls, value: dict) -> RoomBinding:
+        room_id = value["room_id"]
+        if not isinstance(room_id, str) or _ROOM_ID.fullmatch(room_id) is None:
+            raise ValueError("invalid permanent room ID")
+        age = value.get("maximum_age_ms", 120000)
+        if type(age) is not int or not 1000 <= age <= 86400000:
+            raise ValueError("invalid source maximum age")
+        temperature = EntityReference.from_dict(value["temperature"])
+        actuators = tuple(EntityReference.from_dict(x) for x in value["actuators"])
+        setpoint = EntityReference.from_dict(value["setpoint"]) if value.get("setpoint") else None
+        ids = [temperature.entity_id] + [x.entity_id for x in actuators]
+        if setpoint:
+            ids.append(setpoint.entity_id)
+        if not actuators or len(actuators) > 8 or len(ids) != len(set(ids)):
+            raise ValueError("duplicate, looping or missing room binding")
+        if not temperature.entity_id.startswith("sensor."):
+            raise ValueError("temperature source must be a sensor")
+        if any(not x.entity_id.startswith("climate.") for x in actuators):
+            raise ValueError("initial profile C requires climate actuators")
+        if setpoint and not setpoint.entity_id.startswith(("climate.", "number.")):
+            raise ValueError("unsupported physical setpoint source")
+        base = value.get("base_centi_c", 2100)
+        if type(base) is not int or not 500 <= base <= 3500:
+            raise ValueError("invalid base target")
+        schedule = EntityReference.from_dict(value["schedule"]) if value.get("schedule") else None
+        if schedule and not schedule.entity_id.startswith("schedule."):
+            raise ValueError("invalid schedule source")
+        return cls(room_id, str(value["name"]), temperature, actuators, setpoint, age, base, schedule)
+
+    def as_dict(self) -> dict:
+        return {
+            "room_id": self.room_id, "name": self.name,
+            "temperature": self.temperature.as_dict(),
+            "actuators": [x.as_dict() for x in self.actuators],
+            "setpoint": self.setpoint.as_dict() if self.setpoint else None,
+            "maximum_age_ms": self.maximum_age_ms,
+            "actuator_profile": "C_unverified",
+            "base_centi_c": self.base_centi_c,
+            "schedule": self.schedule.as_dict() if self.schedule else None,
+        }
+
+@dataclass(frozen=True)
+class QualifiedReport:
+    """Only a model-specific, trusted observer may construct this evidence.
+
+    A cache/state write/device last_seen alone must never create this object.
+    There is no GUI switch that turns such reports into physical evidence.
+    """
+    sample_key: str
+    sampled_at: datetime
+
+@dataclass(frozen=True)
+class Observation:
+    temperature_c: float | None
+    quality: str
+    source_age_ms: int | None = None
+    source_key: str | None = None
+    observed_monotonic: float | None = None
+
+@dataclass(frozen=True)
+class RoomDecision:
+    """Already-admitted firmware state, supplied by the future wire adapter."""
+    target_centi_c: int | None
+    current_centi_c: int | None
+    demand: bool
+    reason: str
+
+    def __post_init__(self):
+        if self.target_centi_c is not None and (type(self.target_centi_c) is not int or not 500 <= self.target_centi_c <= 3500):
+            raise ValueError("invalid confirmed target")
+        if self.current_centi_c is not None and (
+            type(self.current_centi_c) is not int or not -2000 <= self.current_centi_c <= 6000
+        ):
+            raise ValueError("invalid confirmed measurement")
+        if type(self.demand) is not bool:
+            raise ValueError("invalid firmware demand")
+
+def temperature_c(state: Any) -> float | None:
+    if state is None or state.state in ("unknown", "unavailable"):
+        return None
+    try:
+        value = float(state.state)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(value):
+        return None
+    unit = state.attributes.get("unit_of_measurement")
+    if unit == "°F":
+        value = (value - 32) * 5 / 9
+    elif unit != "°C":
+        return None
+    return value if -20 <= value <= 60 else None
+
+def target_centi(value: Any) -> int:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise ValueError("target must be finite numeric Celsius")
+    from decimal import Decimal
+    scaled = Decimal(str(value)) * 100
+    if not 500 <= scaled <= 3500 or scaled != scaled.to_integral_value():
+        raise ValueError("target outside 5..35 or has sub-centi precision")
+    return int(scaled)

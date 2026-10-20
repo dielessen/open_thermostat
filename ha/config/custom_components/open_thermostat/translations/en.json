@@ -2,6 +2,20 @@
   "config": {
     "step": {
       "user": {
+        "title": "OpenThermostat mode",
+        "menu_options": {
+          "legacy": "Existing legacy integration",
+          "shadow": "v1 shadow test mode (disabled by default)"
+        }
+      },
+      "confirm": {
+        "title": "OpenThermostat detected",
+        "description": "Add climate entities for rooms from MQTT prefix {prefix}?",
+        "data": {
+          "create_dashboard": "Create an OpenThermostat dashboard"
+        }
+      },
+      "legacy": {
         "title": "OpenThermostat",
         "description": "Enter the MQTT topic prefix configured in the thermostat.",
         "data": {
@@ -9,10 +23,13 @@
           "create_dashboard": "Create an OpenThermostat dashboard"
         }
       },
-      "confirm": {
-        "title": "OpenThermostat detected",
-        "description": "Add climate entities for rooms from MQTT prefix {prefix}?",
-        "data": {"create_dashboard": "Create an OpenThermostat dashboard"}
+      "shadow": {
+        "title": "Isolated shadow mode",
+        "description": "Shadow only: no boiler or actuator actions. Copy this generated adapter owner ID into the E32 provisioning screen. Enable separately in options.",
+        "data": {
+          "topic_prefix": "Controller MQTT prefix (same identity as legacy)",
+          "adapter_id": "Provisioned firmware adapter owner ID"
+        }
       }
     },
     "abort": {
@@ -21,28 +38,97 @@
       "invalid_topic": "The MQTT topic prefix is invalid."
     },
     "error": {
-      "invalid_topic": "Enter a single MQTT topic level without /, +, or #."
+      "invalid_topic": "Enter a single MQTT topic level.",
+      "invalid_adapter_id": "Use the same explicit owner ID as provisioned on the E32 (1–32 letters, digits, _ or -)."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "OpenThermostat dashboard",
-        "data": {"create_dashboard": "Create an OpenThermostat dashboard"}
+        "title": "Integration mode and shadow observation",
+        "data": {
+          "integration_mode": "Integration mode",
+          "shadow_enabled": "Enable shadow observation listeners (no actuation)",
+          "create_dashboard": "Create legacy dashboard (legacy mode only)",
+          "adapter_id": "Provisioned firmware adapter owner ID"
+        }
       }
+    },
+    "error": {
+      "invalid_adapter_id": "Use the same explicit owner ID as provisioned on the E32 (1–32 letters, digits, _ or -)."
     }
   },
   "entity": {
     "binary_sensor": {
-      "radiators_heating": {"name": "Radiators heating"}
+      "radiators_heating": {
+        "name": "Radiators heating"
+      }
     },
     "number": {
-      "radiator_rated_power": {"name": "Radiator rated power"}
+      "radiator_rated_power": {
+        "name": "Radiator rated power"
+      }
     },
     "sensor": {
-      "radiator_heating_time": {"name": "Radiator heating time"},
-      "estimated_radiator_energy": {"name": "Estimated radiator energy"},
-      "estimated_radiator_power": {"name": "Estimated radiator power"}
+      "radiator_heating_time": {
+        "name": "Radiator heating time"
+      },
+      "estimated_radiator_energy": {
+        "name": "Estimated radiator energy"
+      },
+      "estimated_radiator_power": {
+        "name": "Estimated radiator power"
+      }
+    }
+  },
+  "config_subentries": {
+    "zone": {
+      "entry_type": "Room",
+      "initiate_flow": {
+        "user": "Add configurable room",
+        "reconfigure": "Edit room bindings"
+      },
+      "step": {
+        "user": {
+          "title": "Room bindings",
+          "description": "Choose your own entities. Profile C remains unverified; no device actions.",
+          "data": {
+            "room_id": "Permanent firmware room ID",
+            "name": "Room name",
+            "temperature_entity": "Room temperature sensor",
+            "actuator_entities": "Radiator climates (profile C)",
+            "setpoint_entity": "Optional physical setpoint source",
+            "maximum_age_ms": "Maximum qualified sample age (ms)",
+            "schedule_entity": "Optional native Schedule helper",
+            "base_temperature": "Base temperature"
+          }
+        },
+        "reconfigure": {
+          "title": "Edit room bindings",
+          "data": {
+            "name": "Room name",
+            "temperature_entity": "Room temperature sensor",
+            "actuator_entities": "Radiator climates (profile C)",
+            "setpoint_entity": "Optional physical setpoint source",
+            "maximum_age_ms": "Maximum qualified sample age (ms)",
+            "schedule_entity": "Optional native Schedule helper",
+            "base_temperature": "Base temperature"
+          }
+        }
+      },
+      "error": {
+        "binding_missing": "binding missing",
+        "loop_binding": "loop binding",
+        "not_temperature": "not temperature",
+        "unsupported_unit": "unsupported unit",
+        "duplicate_room": "duplicate room",
+        "duplicate_actuator": "duplicate actuator",
+        "invalid_binding": "invalid binding"
+      },
+      "abort": {
+        "room_limit": "At most 8 rooms",
+        "shadow_mode_required": "Select explicit v1 shadow mode first"
+      }
     }
   }
 }

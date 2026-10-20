@@ -3,10 +3,15 @@
   "name": "OpenThermostat",
   "codeowners": [],
   "config_flow": true,
-  "dependencies": ["lovelace", "mqtt"],
+  "dependencies": [
+    "lovelace",
+    "mqtt"
+  ],
   "documentation": "https://github.com/intuibase/open_thermostat",
   "integration_type": "hub",
   "iot_class": "local_push",
-  "mqtt": ["+/room_data"],
-  "version": "0.3.0"
+  "mqtt": [
+    "+/room_data"
+  ],
+  "version": "0.4.0.dev1"
 }

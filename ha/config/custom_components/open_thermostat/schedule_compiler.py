@@ -75,7 +75,9 @@ def _second_of_day(value: object, *, is_end: bool) -> int:
     if isinstance(value, str):
         if is_end and value in ("24:00", "24:00:00"):
             return 86400
-        if _TIME_PATTERN.fullmatch(value) is None:
+        if _TIME_PATTERN.fullmatch(value) is None or int(value[:2]) >= 24:
+            # Python 3.14 accepts ISO 24:00 and normalizes it to 00:00.
+            # Only the explicit end-of-day forms above mean 86400 here.
             raise ScheduleValidationError("invalid time string")
         try:
             value = time.fromisoformat(value)

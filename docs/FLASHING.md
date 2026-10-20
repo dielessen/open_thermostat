@@ -1,5 +1,9 @@
 # Flash the E32 V2 — easy step-by-step guide
 
+**Modern shadow candidate:** first read [the candidate guide](modern-thermostat/INTEGRATED-TEST.nl.md).
+Its WiFi and admin passwords are unique and appear on the physical USB console;
+its network modes differ from the historical alpha.1 defaults described here.
+
 **Use a USB-C data cable and a browser. No Python, PlatformIO or separate programmer needed.**
 
 > This guide is for **test release v0.1.0-e32v2-alpha.1** on a **BBQKees E32 V2 with 16 MB flash**.

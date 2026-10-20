@@ -13,7 +13,9 @@ uit de nieuwe GitHub-release en controleer de SHA256 tegen
 1. Open het bestaande apparaatadres op je thuisnetwerk en log in.
 2. Open **Firmware update**, kies bestandstype **Firmware** en upload de
    nieuwe **firmware.bin**. Kies NIET SPIFFS of `e32v2-factory.bin`.
-3. Wacht op de bevestiging en herstart via de apparaatinterface.
+3. Wacht op de bevestiging. Vanuit alpha.3 of ouder herstart je nog één keer
+   via de apparaatinterface: de oude updater voert deze overstap uit.
+   Vanaf alpha.4 herstart de E32 na een geslaagde app-update automatisch.
 4. Herlaad de pagina. Firmware en de bijpassende webinterface komen nu samen
    uit de applicatiepartitie. Je wifi, kamers, programma’s en overige
    instellingen zijn niet overschreven.
@@ -35,8 +37,13 @@ De aparte ZIP bevat ook een factorybeeld voor nieuwe, schone USB-installaties:
 4. Houd het apparaat onder stroom. De pagina toont de ontvangen bytes en
    de controlefase. De gewone webserver/main loop blijven actief; zwaar
    netwerk-/flashwerk loopt in een tijdelijke native FreeRTOS-taak.
-5. Pas na geslaagde controles verschijnt **Herstarten en update toepassen**.
-   Herstart, wacht op opnieuw verbinden en controleer de getoonde versie.
+5. Vanaf alpha.4 plant het apparaat na geslaagde controles zelf een herstart
+   met drie seconden respijt voor de HTTP-bevestiging/status. Dit werkt ook
+   als de browser sluit. De pagina meldt de herstart, wacht op opnieuw verbinden
+   en ververst de interface na uitlezen van de nieuwe versie. Controleer die versie.
+   Dit geldt ook voor een handmatige app-upload, niet voor SPIFFS.
+   Op alpha.3 of ouder blijft voor deze eerste overstap de knop
+   **Herstarten en update toepassen** nodig.
 6. Controleer je wifi, kamers en programma’s na de herstart. Bewaar voor de
    fysieke proef vóór/na dezelfde configuratie zodat behoud aantoonbaar is.
 
@@ -62,6 +69,9 @@ op het apparaat. Alleen een handmatige controle gebruikt die API.
 - Bij een fout of onvolledige download is er geen succesmelding en wordt
   niet bewust naar de onvolledige app omgeschakeld. Tijdens de download
   worden concurrerende OTA-uploads, reboot en setup-herstart geweigerd.
+- Alleen een geslaagde imagevalidatie en bootpartitiekeuze plannen de
+  automatische herstart. Een actieve GitHub-flashtaak kan niet door deze
+  timer onderbroken worden; herhaalde statusverzoeken verschuiven hem niet.
 - De nieuw gestarte app bevestigt zijn OTA-boot pas na twintig seconden
   stabiele netwerk-/toegangs-/bestandssysteemgereedheid. Bij een
   onbevestigde boot volgt na twee minuten een herstart voor de native

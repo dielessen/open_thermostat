@@ -1235,6 +1235,11 @@ button.onclick=()=>{if(!file.files.length){status.textContent='Select spiffs.bin
 		auto ctype = "text/plain"sv;
 		if (ota_.success) {
 			server_.sendView(200, ctype, "success"sv);
+#ifdef OPENTHERMOSTAT_E32V2
+			// This response is shared with SPIFFS; only a selected app schedules
+			// automatic restart, after the HTTP response has been sent.
+			if(server_.uri()=="/ota") update::firmwareInstalled();
+#endif
 		} else {
 			ib::viewable_stringbuf payloadBuf;
 			std::ostream ss(&payloadBuf);

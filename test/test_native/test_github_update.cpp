@@ -1,9 +1,30 @@
 #include "update/VerifiedOta.h"
+#include "update/RestartTimer.h"
 #include "control/HttpAccessPolicy.h"
 #include "control/CaptivePortalPolicy.h"
 #include <gtest/gtest.h>
 #include <vector>
 using namespace heating::update;
+TEST(GitHubOtaRestart, UnarmedNeverRestartsAndGraceDoesNotDependOnBrowser) {
+    RestartTimer timer;
+    EXPECT_FALSE(timer.pending());EXPECT_FALSE(timer.due(100000,false));
+    timer.schedule(1000);EXPECT_TRUE(timer.pending());
+    EXPECT_FALSE(timer.due(3999,false));EXPECT_TRUE(timer.due(4000,false));
+    EXPECT_FALSE(timer.due(5000,true));EXPECT_TRUE(timer.due(5000,false));
+}
+TEST(GitHubOtaRestart, DuplicateRequestsCannotPostponeRestart) {
+    RestartTimer timer;timer.schedule(1000);timer.schedule(3900);
+    EXPECT_TRUE(timer.due(4000,false));
+    RestartTimer explicitRestart;explicitRestart.schedule(1000,1000);
+    EXPECT_FALSE(explicitRestart.due(1999,false));EXPECT_TRUE(explicitRestart.due(2000,false));
+}
+TEST(GitHubOtaRestart, MillisRolloverAndZeroSentinelRemainBounded) {
+    RestartTimer timer;timer.schedule(UINT32_MAX-1000);
+    EXPECT_FALSE(timer.due(UINT32_MAX,false));EXPECT_FALSE(timer.due(1998,false));
+    EXPECT_TRUE(timer.due(1999,false));
+    RestartTimer zero;zero.schedule(UINT32_MAX-2999);
+    EXPECT_TRUE(zero.pending());EXPECT_FALSE(zero.due(0,false));EXPECT_TRUE(zero.due(1,false));
+}
 namespace {
 Manifest manifest(){return {"v0.1.0-e32v2-alpha.2",std::string(40,'a'),std::string(64,'b'),std::string(64,'c'),1024};}
 std::string document(){auto m=manifest();return "{\"update_schema\":1,\"settings_schema\":1,\"board\":\"bbqkees_e32v2\",\"layout\":\"e32v2-dual-app-spiffs-v1\",\"ui\":\"embedded\",\"asset\":\"firmware.bin\",\"version\":\""+m.tag+"\",\"source_commit\":\""+m.source+"\",\"web_sha256\":\""+m.webSha+"\",\"sha256\":\""+m.sha256+"\",\"size\":1024}";}

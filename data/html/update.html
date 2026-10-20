@@ -56,7 +56,7 @@
 (() => {
  const root=document.getElementById('githubUpdate');
  const $id=id=>root.querySelector('#'+id);
- let state=null,action=false,timer;
+ let state=null,action=false,timer,expectedVersion=null,manualVersion=null;
  const phases={idle:'Klik op Controleer op updates.',checking:'GitHub-releases worden gecontroleerd…',manifest:'Releasegegevens worden gecontroleerd…',downloading:'Firmware wordt veilig gedownload. Houd het apparaat aan.',verifying:'Download en flashgeheugen worden gecontroleerd…',ready_to_reboot:'Update gecontroleerd. Herstart om de nieuwe versie te gebruiken.',rolling_back:'Vorige firmware wordt geselecteerd. Het apparaat herstart…'};
  async function request(path,body) {
   const controller=new AbortController(), timeout=setTimeout(()=>controller.abort(),10000);
@@ -70,12 +70,14 @@
   $id('checkReleases').disabled=blocked||!state.can_check;
   $id('releaseChoice').disabled=blocked||!state.releases.length;
   $id('installRelease').disabled=blocked||state.boot_pending||!$id('releaseChoice').value||$id('releaseChoice').value===state.installed;
-  $id('restartRelease').hidden=!state||!state.reboot_required;
+  $id('restartRelease').hidden=!state||!state.reboot_required||!!state.reboot_scheduled;
   $id('restartRelease').disabled=action||!!state?.busy;
   $id('rollbackRelease').hidden=!state||!state.rollback_available||state.reboot_required;
   $id('rollbackRelease').disabled=action||!!state?.busy;
  }
  function render(s) {
+  if(!s.reboot_required&&((expectedVersion&&s.installed===expectedVersion)||(manualVersion&&s.installed!==manualVersion))){location.reload();return;}
+  if(s.reboot_required&&s.reboot_scheduled&&s.selected)expectedVersion=s.selected;
   const old=$id('releaseChoice').value;state=s;
   $id('installedVersion').textContent=s.installed;
   const choices=$id('releaseChoice');choices.replaceChildren();
@@ -83,6 +85,7 @@
   for(const r of s.releases)choices.add(new Option(r.tag+(r.prerelease?' (testrelease)':'')+(r.tag===s.installed?' — geïnstalleerd':''),r.tag));
   if(s.releases.some(r=>r.tag===old))choices.value=old;
   let message=s.error||phases[s.phase]||(s.phase==='checked'?(s.releases.length&&s.releases[0].tag!==s.installed?'Passende release gevonden. Kies een versie om te installeren.':'Je hebt de beschikbare versie al.'):'Status ontvangen.');
+  if(s.reboot_required&&s.reboot_scheduled)message='Update gecontroleerd. Het apparaat herstart automatisch; wacht op opnieuw verbinden. Houd het onder stroom.';
   if(!s.busy&&!s.can_check&&!s.reboot_required)message+=' Verbind met je thuisnetwerk en wacht op geldige netwerktijd (NTP).';
   if(s.boot_pending)message+=' Deze opstart wordt nog gecontroleerd; installeren wordt daarna beschikbaar.';
   $id('releaseStatus').textContent=message;
@@ -93,7 +96,7 @@
  async function poll() {
   if(!root.isConnected){clearTimeout(timer);return;}
   try{render(await (await request('/updates/status')).json());}
-  catch(e){if(e.status===404){root.hidden=true;return;}$id('releaseStatus').textContent='Apparaat niet bereikbaar. Een update is niet bevestigd; we proberen opnieuw. Blijf op je thuisnetwerk.';}
+  catch(e){if(e.status===404){root.hidden=true;return;}$id('releaseStatus').textContent=expectedVersion?'Herstart bezig. Wacht op opnieuw verbinden; de geïnstalleerde versie wordt opnieuw gecontroleerd.':'Apparaat niet bereikbaar. Een update is niet bevestigd; we proberen opnieuw. Blijf op je thuisnetwerk.';}
   timer=setTimeout(poll,1000);
  }
  async function command(path,body={}) {
@@ -105,11 +108,10 @@
  $id('releaseChoice').onchange=controls;
  $id('checkReleases').onclick=()=>command('/updates/check');
  $id('installRelease').onclick=()=>{const tag=$id('releaseChoice').value;if(!state||state.busy||!tag||tag===state.installed)return;
-  if(confirm('Firmware '+tag+' downloaden en installeren? Wifi, kamers en programma’s blijven behouden. Houd het apparaat onder stroom.'))command('/updates/install',{tag});};
+  if(confirm('Firmware '+tag+' downloaden en installeren? Na controle herstart het apparaat automatisch. Wifi, kamers en programma’s blijven behouden. Houd het apparaat onder stroom.'))command('/updates/install',{tag});};
  $id('restartRelease').onclick=async()=>{if(await command('/updates/reboot'))$id('releaseStatus').textContent='Herstart aangevraagd. Wacht op opnieuw verbinden; de geïnstalleerde versie wordt opnieuw gecontroleerd.';};
  $id('rollbackRelease').onclick=()=>{if(confirm('De vorige gevalideerde firmware terugzetten en herstarten? Instellingen worden niet gewist.'))command('/updates/rollback');};
  poll();
-})();
 $(document).ready(function() {
 	$('#updateform').on("submit", function(event) {
 	event.preventDefault();
@@ -141,13 +143,16 @@ $(document).ready(function() {
 
 	xhr.onload = function() {
 		if (xhr.status === 200) {
-			if (confirm("Update successful.\nMessage: " + xhr.responseText + "\nDo you want to reboot device to\nchanges take place?")) {
+			if(path==='/ota'&&state) {
+				manualVersion=state.installed;
+				$('#progressbar').text('Update gecontroleerd; automatisch herstarten…');
+			} else if (confirm("Update successful.\nMessage: " + xhr.responseText + "\nDo you want to reboot device to\nchanges take place?")) {
 				reboot();
 			}
 		} else {
 			alert("Firmware udpate error: " + xhr.responseText);
 		}
-		$("#FirmwareSubmit").prop('disabled', false);
+		$("#FirmwareSubmit").prop('disabled', xhr.status===200&&path==='/ota'&&!!state);
 	};
 
 	xhr.onerror = function() {
@@ -170,6 +175,7 @@ $(document).ready(function() {
 	});
 	$('#updateform').removeClass('invisible');
 });
+})();
 
 function reboot() {
 	fetch(hostName + '/config/reboot', {method: 'POST'})

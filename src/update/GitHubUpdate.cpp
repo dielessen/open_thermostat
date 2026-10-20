@@ -1,6 +1,7 @@
 #ifdef OPENTHERMOSTAT_E32V2
 #include "GitHubUpdate.h"
 #include "VerifiedOta.h"
+#include "RestartTimer.h"
 #include "EmbeddedWebAssets.h"
 #include "DeviceAccess.h"
 #include "Filesystem.h"
@@ -20,7 +21,7 @@ namespace {
 struct Release {std::string tag;bool prerelease=false;};
 struct State {std::string phase="idle",error,selected;uint32_t received=0,total=0;bool reboot=false;std::vector<Release> releases;};
 State state;std::mutex stateMutex;
-std::atomic<bool> working{false};std::atomic<uint32_t> rebootAt{0};
+std::atomic<bool> working{false};RestartTimer rebootTimer;
 void phase(const std::string &name,const std::string &error="") {std::lock_guard<std::mutex> lock(stateMutex);state.phase=name;state.error=error;}
 void progress(uint32_t count,uint32_t total){std::lock_guard<std::mutex> lock(stateMutex);state.received=count;state.total=total;}
 bool pendingBoot() {esp_ota_img_states_t s;return esp_ota_get_state_partition(esp_ota_get_running_partition(),&s)==ESP_OK&&s==ESP_OTA_IMG_PENDING_VERIFY;}
@@ -136,7 +137,7 @@ void execute(bool install) {
                 ImageSink sink(transfer,manifest.size);
                 if(download(assetUrl(tag,"firmware.bin"),sink,error,manifest.size)) {
                     phase("verifying");ok=transfer.finish();
-                    if(ok){std::lock_guard<std::mutex> lock(stateMutex);state.phase="ready_to_reboot";state.reboot=true;}
+                    if(ok)firmwareInstalled();
                     else error="Firmwarecontrole, checksum of flash-readback mislukt; oude firmware blijft geselecteerd.";
                 }
             } else error="Geen passende vrije OTA-partitie of huidige opstart nog niet bevestigd.";
@@ -156,15 +157,22 @@ bool start(bool install,const std::string &tag="") {
     return true;
 }
 }
-bool busy(){return working.load()||rebootAt.load()!=0;}
+bool busy(){return working.load()||rebootTimer.pending();}
 bool staged(){std::lock_guard<std::mutex> lock(stateMutex);return state.reboot;}
 bool mutationBlocked(std::string_view path){return mutationBlocked(path,busy(),staged(),pendingBoot());}
 bool checkReleases(){return start(false);}
 bool installRelease(const std::string &tag){return start(true,tag);}
-bool requestReboot(){if(busy())return false;rebootAt.store(millis()+1000);return true;}
+void firmwareInstalled(){
+    // Called only after native validation and successful boot-slot selection.
+    // Main loop restarts independently of browser polling, after response grace.
+    std::lock_guard<std::mutex> lock(stateMutex);
+    state.phase="ready_to_reboot";state.reboot=true;
+    rebootTimer.schedule(millis());
+}
+bool requestReboot(){if(busy())return false;rebootTimer.schedule(millis(),1000);return true;}
 bool requestRollback(){
     if(busy()||pendingBoot())return false;const auto p=previous();if(!p||esp_ota_set_boot_partition(p)!=ESP_OK)return false;
-    phase("rolling_back");rebootAt.store(millis()+1000);return true;
+    phase("rolling_back");rebootTimer.schedule(millis(),1000);return true;
 }
 std::string status() {
     State snapshot;{std::lock_guard<std::mutex> lock(stateMutex);snapshot=state;}
@@ -176,12 +184,13 @@ std::string status() {
     cJSON_AddStringToObject(root.get(),"selected",snapshot.selected.c_str());cJSON_AddBoolToObject(root.get(),"busy",busy());
     cJSON_AddBoolToObject(root.get(),"can_check",ready()&&!busy()&&!snapshot.reboot);cJSON_AddBoolToObject(root.get(),"boot_pending",pendingBoot());
     cJSON_AddBoolToObject(root.get(),"reboot_required",snapshot.reboot);cJSON_AddBoolToObject(root.get(),"rollback_available",!pendingBoot()&&previous()!=nullptr);
+    cJSON_AddBoolToObject(root.get(),"reboot_scheduled",rebootTimer.pending());
     cJSON_AddNumberToObject(root.get(),"received",snapshot.received);cJSON_AddNumberToObject(root.get(),"total",snapshot.total);
     auto list=cJSON_AddArrayToObject(root.get(),"releases");for(const auto &r:snapshot.releases){auto entry=cJSON_CreateObject();cJSON_AddStringToObject(entry,"tag",r.tag.c_str());cJSON_AddBoolToObject(entry,"prerelease",r.prerelease);cJSON_AddItemToArray(list,entry);}
     char *raw=cJSON_PrintUnformatted(root.get());std::string result=raw?raw:"{}";cJSON_free(raw);return result;
 }
 void loop() {
-    const auto now=millis();const auto reboot=rebootAt.load();if(reboot&&int32_t(now-reboot)>=0){ESP.restart();return;}
+    const auto now=millis();if(rebootTimer.due(now,working.load())){ESP.restart();return;}
     static bool pending=pendingBoot();static uint32_t start=now,stable=0;
     if(!pending)return;
     if(networkConnected()&&deviceAccess.ready()&&filesystem.isMounted()&&embedded::imageMarker[0]) {

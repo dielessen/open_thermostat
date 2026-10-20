@@ -1,7 +1,9 @@
 // Drives the production commit gate with an actual release app. Flash/boot are
 // host fakes; OpenSSL supplies an independent SHA256 implementation.
 #include "update/VerifiedOta.h"
-#include <openssl/sha.h>
+#include <cstddef>
+// Stable OpenSSL 3 one-shot ABI; no host development-header dependency.
+extern "C" unsigned char *SHA256(const unsigned char *,std::size_t,unsigned char *);
 #include <fstream>
 #include <iostream>
 #include <iterator>

@@ -550,7 +550,15 @@ Deze fysieke vrijgave is voor het daadwerkelijk gecommissionde Classicprofiel. P
 6. **Geïsoleerde fysieke bench:** netwerk/PSRAM/herstel, bus/timing en actuatorproeven; een huidige UI-preview is geen firmware-/ketelsimulator. Wokwi/QEMU zijn niet bewezen drop-in voor deze BLE/LAN8720firmware.
 7. **Live commissioning en soak:** echte stop/start/uitval, hydrauliek, comfort en herstelde normale toestand, met onafhankelijke beoordeling van kritieke poorten.
 
-### Eerste implementatieserie (nog niet uitgevoerd)
+### Eerste implementatieserie (plan en acceptatievolgorde)
+
+Actuele bronstand20oktober: WP01/WP02 geïmplementeerd en softwarematig getoetst;
+WP03 en het shadow-deel van WP04 zijn daadwerkelijk gekoppeld. WP08 heeft een
+bronimplementatie voor E32-auth/setup; fysieke HTTP-/OTA-/herstelproeven blijven
+open. De onderstaande tabel beschrijft de **volledige** uitkomst per werkpakket,
+niet een claim dat alle fysieke acceptatie of WP05–WP07 al is uitgevoerd. Eerst
+de geïsoleerde [testkandidaat](INTEGRATED-TEST.nl.md) en het
+[invulblad](TEST-RECORD.nl.md), geen gecombineerde sprong naar live ketelregeling.
 
 | Werkpakket | Begrensde wijziging | Bewijs / uitkomst |
 | --- | --- | --- |

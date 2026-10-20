@@ -58,6 +58,8 @@ class ShadowRuntime:
         self._transport: ShadowTransport | None = None
         self._active = False
         self._generation = 0
+        self._bench_owner = None
+        self._bench_fault = None
 
     @property
     def enabled(self) -> bool:
@@ -132,6 +134,8 @@ class ShadowRuntime:
         def registry_changed(event):
             if not self._active or self._generation != generation:
                 return
+            if self._bench_fault:
+                self._bench_fault("binding_changed")
             for room_id in self.rooms:
                 self._withdraw(room_id, "binding_changed")
             self._bind_listeners()
@@ -145,6 +149,8 @@ class ShadowRuntime:
     @callback
     def _source_event(self, entity_id: str, event_kind: str) -> None:
         for room in self.rooms.values():
+            if self._bench_owner == room.room_id:
+                continue
             if self._resolve(room.temperature) == entity_id:
                 self._observe(room, event_kind)
             elif room.setpoint and self._resolve(room.setpoint) == entity_id:
@@ -209,6 +215,8 @@ class ShadowRuntime:
 
     @callback
     def _record(self, room_id: str, observation: Observation) -> None:
+        if self._bench_owner == room_id:
+            return
         self.observations[room_id] = observation
         self._notify()
         if self.transport_ready:
@@ -221,6 +229,8 @@ class ShadowRuntime:
             while self._pending and self._active and self._generation == generation and self.transport_ready:
                 room_id = next(iter(self._pending))
                 observation = self._pending.pop(room_id)
+                if self._bench_owner == room_id:
+                    continue
                 if observation.quality == "qualified":
                     elapsed = max(0, self.hass.loop.time() - observation.observed_monotonic)
                     age = observation.source_age_ms + math.ceil(elapsed * 1000)

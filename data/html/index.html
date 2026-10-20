@@ -418,14 +418,19 @@
 			});
 
 
-			if (location.hash === '#network' || location.hash === '#about') {
-				clearMainContainer();
-				$('#maincontainer').load(location.hash === '#network' ? 'network.html' : 'about.html');
-			} else {
+			window.addEventListener('hashchange', showLinkedPage);
+			if (!showLinkedPage()) {
 				mainScreen();
 			}
 
 		});
+
+		function showLinkedPage() {
+			if (location.hash !== '#network' && location.hash !== '#about') return false;
+			clearMainContainer();
+			$('#maincontainer').load(location.hash === '#network' ? 'network.html' : 'about.html');
+			return true;
+		}
 
 		function about() {
 			clearMainContainer();

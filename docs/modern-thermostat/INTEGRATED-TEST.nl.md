@@ -94,7 +94,9 @@ de afgesproken test uitgevoerd; niets is hier in productie geïnstalleerd.
    De generieke GUI-keuze is nog geen apparaatkwalificatie: deze eerste basis
    heeft niet automatisch een vrijgegeven meetprofiel voor iedere HA-sensor.
    De automatische ketentests gebruiken een expliciete test-driver; de echte
-   badkamerbron krijgt afzonderlijk bron-/cadansbewijs vóór gebruik.
+   badkamerbron krijgt afzonderlijk bron-/cadansbewijs vóór gebruik. De aansluitbare
+   eindige proef staat in [SOURCE-BENCH.nl.md](SOURCE-BENCH.nl.md); native
+   start/status/stopacties zijn aanwezig, standaard niet actief.
 6. Verander het HA-kamerdoel. Controleer firmware-ACK, teruggelezen doel, revision,
    bronkwaliteit en reden. **Gesimuleerde vraag is geen `heating` of vlamdetectie.**
 7. Koppel desgewenst een native HA-Schedule met blokdata `temperature`. Firmware

@@ -91,8 +91,12 @@ async def async_setup_entry(hass, entry):
             connection = NativeShadowConnection(runtime)
             hass.data[DOMAIN][entry.entry_id]["v1_connection"] = connection
             await connection.async_start()
+        from .v1_bench_actions import async_register_entry
+        async_register_entry(hass, entry)
         await hass.config_entries.async_forward_entry_setups(entry, [Platform.CLIMATE])
     except Exception:
+        from .v1_bench_actions import async_unregister_entry
+        await async_unregister_entry(hass, entry.entry_id)
         await runtime.async_stop()
         hass.data[DOMAIN].pop(entry.entry_id, None)
         raise
@@ -104,6 +108,8 @@ async def async_unload_entry(hass, entry):
     if "v1_runtime" not in state:
         return await _legacy_unload_entry(hass, entry)
     from homeassistant.const import Platform
+    from .v1_bench_actions import async_unregister_entry
+    await async_unregister_entry(hass, entry.entry_id)
     # Withdraw listener/task/transport ownership before any mode transfer.
     await state["v1_runtime"].async_stop()
     unloaded = await hass.config_entries.async_unload_platforms(entry, [Platform.CLIMATE])

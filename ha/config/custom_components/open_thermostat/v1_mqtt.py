@@ -56,6 +56,7 @@ class NativeShadowConnection:
         self.schedule_unsubs = []
         self.timer = None
         self.closed = False
+        self.bench = None
 
     async def async_start(self):
         if not identifier(self.entry.data["topic_prefix"]):
@@ -159,11 +160,18 @@ class NativeShadowConnection:
                 if kind == "message":
                     if data.topic.startswith(self.prefix):
                         await self.client.receive(data.topic[len(self.prefix):], data.payload, retained=data.retain)
+                        self.check_bench_admission()
                 elif kind == "disconnect":
+                    if self.bench:
+                        self.bench.request_stop("firmware_transport_disconnected")
                     await self.client.async_disconnected()
                 elif kind == "poll":
                     await self.client.poll()
+                    self.check_bench_admission()
                 elif kind in {"refresh", "rebind"}:
+                    if self.bench:
+                        self.bench.request_stop("configuration_or_schedule_changed")
+                        continue
                     if kind == "rebind":
                         self.bind_schedules()
                     # Attribute changes on adjacent on-blocks also trigger this.
@@ -180,6 +188,14 @@ class NativeShadowConnection:
                 self.client.changed()
             finally:
                 self.queue.task_done()
+
+    @callback
+    def check_bench_admission(self):
+        bench = self.bench
+        if bench and bench.phase in {"listening", "observing"}:
+            identity = (self.client.identity, self.client.session.get("adapter_session_id") if self.client.session else None)
+            if not self.client.ready or identity != bench.fw_identity:
+                bench.request_stop("firmware_availability_or_session_lost")
 
     async def async_close(self):
         if self.closed:

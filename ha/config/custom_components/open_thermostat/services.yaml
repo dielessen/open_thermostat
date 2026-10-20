@@ -1,0 +1,58 @@
+source_bench_start:
+  name: Start finite source shadow bench
+  description: Admin-only, inactive until invoked. One admitted shadow zone, at most 300 seconds. No device or boiler writes; native option mutation remains a separate reviewed operator action.
+  fields:
+    entry_id:
+      required: true
+      selector:
+        text:
+    baseline:
+      required: true
+      description: Scoped native config with only device_options, devices containing this IEEE, and relevant advanced cache/last_seen fields.
+      selector:
+        object:
+    discovery:
+      required: true
+      description: Exact native temperature Discovery object for the selected entity.
+      selector:
+        object:
+    ieee:
+      required: true
+      selector:
+        text:
+    discovery_topic:
+      required: true
+      selector:
+        text:
+    ha_status_topic:
+      required: true
+      selector:
+        text:
+    transaction:
+      required: true
+      description: Fresh unique transaction for the single separately reviewed native options request.
+      selector:
+        text:
+    duration_s:
+      default: 300
+      selector:
+        number:
+          min: 1
+          max: 300
+          mode: box
+source_bench_stop:
+  name: Stop finite source shadow bench
+  description: Withdraw measurement, unload source listeners and restore the original admitted mapping. Does not mutate Zigbee2MQTT options.
+  fields:
+    entry_id:
+      required: true
+      selector:
+        text:
+source_bench_status:
+  name: Read finite source shadow bench status
+  description: Read-only evidence for lifecycle, native gate, forwarded observations and mapping restoration.
+  fields:
+    entry_id:
+      required: true
+      selector:
+        text:

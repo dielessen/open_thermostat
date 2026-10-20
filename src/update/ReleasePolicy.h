@@ -50,7 +50,7 @@ inline bool parseManifest(std::string_view bytes,std::string_view selected,Manif
 // Bound the untrusted public GitHub response BEFORE cJSON recursion/allocation.
 inline control::ControlJson releaseJson(std::string_view bytes) {
     const auto reject=[] {return control::ControlJson(nullptr,cJSON_Delete);};
-    if(bytes.empty()||bytes.size()>24576||bytes.find("\\u0000")!=std::string_view::npos) return reject();
+    if(bytes.empty()||bytes.size()>32768||bytes.find("\\u0000")!=std::string_view::npos) return reject();
     bool quoted=false,escaped=false;unsigned depth=0,nodes=0;
     for(unsigned char c:bytes) {
         if(quoted) {if(escaped)escaped=false;else if(c=='\\')escaped=true;else if(c=='"')quoted=false;else if(c<32)return reject();continue;}
@@ -60,7 +60,10 @@ inline control::ControlJson releaseJson(std::string_view bytes) {
         else if(c==','||c==':'){if(++nodes>1024)return reject();}
     }
     if(quoted||escaped||depth)return reject();
-    const std::string raw(bytes);
-    return control::ControlJson(cJSON_ParseWithLengthOpts(raw.c_str(),raw.size()+1,nullptr,true),cJSON_Delete);
+    const char *end=nullptr;
+    control::ControlJson root(cJSON_ParseWithLengthOpts(bytes.data(),bytes.size(),&end,false),cJSON_Delete);
+    if(!root||!end)return reject();
+    while(end<bytes.data()+bytes.size()&&(*end==' '||*end=='\t'||*end=='\r'||*end=='\n'))++end;
+    return end==bytes.data()+bytes.size()?std::move(root):reject();
 }
 }

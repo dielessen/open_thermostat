@@ -40,10 +40,11 @@ TEST(GitHubRelease, URLsCannotEscapeFixedHttpsDownloadHostsOrTagPath) {
 }
 TEST(GitHubRelease, PublicApiJsonHasHardByteDepthAndNodeBudgets) {
     EXPECT_TRUE(releaseJson("[{\"tag_name\":\"v1\",\"body\":\"quoted \\\" text\"}]"));
-    EXPECT_FALSE(releaseJson(std::string(24577,' ')));
+    EXPECT_FALSE(releaseJson(std::string(32769,' ')));
     EXPECT_FALSE(releaseJson(std::string(17,'[')+std::string(17,']')));
     std::string many="[";for(int i=0;i<3000;++i)many+="0,";many+="0]";EXPECT_FALSE(releaseJson(many));
     EXPECT_FALSE(releaseJson("[\"\\u0000\"]"));EXPECT_FALSE(releaseJson("[\"unterminated]"));
+    EXPECT_TRUE(releaseJson("[1] \n"));EXPECT_FALSE(releaseJson("[1]garbage"));
 }
 TEST(GitHubOta, FullVerifiedImageSelectsOnlyAfterEveryIndependentGate) {
     Backend b;{VerifiedOta<Backend> s(b,manifest());ASSERT_TRUE(s.begin());auto bytes=image();

@@ -105,7 +105,7 @@ public:
     }
 };
 bool releaseList(std::vector<Release> &out,std::string &error) {
-    std::string raw;if(!text(releaseApi,24576,raw,error))return false;
+    std::string raw;if(!text(releaseApi,32768,raw,error))return false;
     auto root=releaseJson(raw);if(!root||!cJSON_IsArray(root.get())){error="Ongeldig of te groot GitHub-releaseantwoord.";return false;}
     std::vector<Release> candidates;
     for(auto r=root->child;r&&candidates.size()<2;r=r->next) {

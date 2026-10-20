@@ -177,6 +177,10 @@ eigen begrensde bronwijziging; in deze planreconciliatie is niets verwijderd.
   /login werkt. Marks werkelijke URL/browser en oorzaak nog onbekend.
   [Browserbewijs](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-login-405-11751-20261020/LIVE-BROWSER.json).
   Geen nieuwe flash of configuratiewijziging; bestaande credentials gebruikt.
+- [ ] Afzonderlijke post-loginrenderfout11751: beide ingelogde viewports melden
+  TypeError undefined.toFixed. Browser-PASS betreft uitsluitend auth/session/logout,
+  niet foutloze hoofdpagina. Specialist onderzoekt exact veld/stack en minimale
+  bronreparatie; geen bewezen verband met Marks405 en geen nieuwe flash.
 - [ ] Marks echte mobiele én desktopbrowser toetsen: visuele login/navigatie,
   sluiten/heropenen, zeven dagen expiry en interfacegebonden fysieke AP-proef.
   HTTP-clients zijn geen telefoon-/desktoprenderingproef. Alle fysieke ketel-/

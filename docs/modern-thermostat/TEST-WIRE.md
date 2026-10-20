@@ -14,6 +14,9 @@ Transport: same broker, official PubSubClient 2.8 API, single modern connection
 instead of concurrent legacy MQTT. No dependency patch. QoS0 + application ack;
 native loop, bounded retry, reconnect handshake and own monotone timers. Broker
 credentials/ACL required for controlled bench; protocol nonces are not auth.
+This first E32 shadow profile restricts baseprefix to1..32 ASCII letters/digits,
+hyphen or underscore. HA validates the same limit before admission; legacy
+prefixes are not silently renamed or reinterpreted when outside this profile.
 No HA entity IDs/names/services on wire. Wire ASCII, no escapes. Config consists
 only of integer numbers, booleans, null, IDs and the existing schedule document.
 
@@ -22,6 +25,9 @@ in `shadow` mode. `fw/state/zones` explicitly says `boiler_output_enabled:false`
 and `actuator_output_enabled:false`; computed demand is **simulated**, not heating.
 
 ## Boot and session
+
+`fw/availability` uses plain non-retained `online`/`offline` tokens, with broker
+LWT `offline`. Both revoke old readiness; `online` alone never admits a session.
 
 `fw/hello` non-retained every 3s: `api:1,controller_id,boot_id,epoch,challenge_id,
 config_revision,config_digest,mode:"shadow",lease_ms:15000,grant_ms:10000`.

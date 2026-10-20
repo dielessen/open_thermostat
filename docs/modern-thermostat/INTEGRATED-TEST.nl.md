@@ -91,12 +91,34 @@ de afgesproken test uitgevoerd; niets is hier in productie geïnstalleerd.
    De binding voert in shadow geen deviceactie uit. Een rapportprofiel moet echt
    gekwalificeerd zijn; HA-statecache/`last_reported` alleen is geen fysiek bewijs.
    Een ongekwalificeerde bron blijft zichtbaar maar onbruikbaar voor normale vraag.
+   De generieke GUI-keuze is nog geen apparaatkwalificatie: deze eerste basis
+   heeft niet automatisch een vrijgegeven meetprofiel voor iedere HA-sensor.
+   De automatische ketentests gebruiken een expliciete test-driver; de echte
+   badkamerbron krijgt afzonderlijk bron-/cadansbewijs vóór gebruik.
 6. Verander het HA-kamerdoel. Controleer firmware-ACK, teruggelezen doel, revision,
    bronkwaliteit en reden. **Gesimuleerde vraag is geen `heating` of vlamdetectie.**
 7. Koppel desgewenst een native HA-Schedule met blokdata `temperature`. Firmware
    voert de begrensde UTC-kalender uit (normaal15dagen); HA is editor/exporteur,
    geen tweede scheduler. Tijdloosboot of verlopen kalender geeft geen normaal
    schemadoel. Test aangrenzende blokken, basisdoel, override-afloop en tijdsprongen.
+
+Gebruik de E32-webinterface in deze stap voor setup/netwerk/updates. De setup-
+links openen de volledige applicatie met netwerk-/apparaatpagina, ook tijdens
+het AP-venster. Het hoofdscherm toont in shadow een expliciete testmelding,
+geen oude kamer-/keteltegels. HA-climate toont de bevestigde moderne kamerstatus;
+legacy-controlwrites zijn in shadow geblokkeerd. Statusvragen wachten niet op NTP;
+zonder geldige klok zijn tijd/datum null, geen verzonnen tijd.
+
+## Reproduceerbare gezamenlijke softwareproef
+
+De bron bevat `ha/tests_native/test_v1_packet_loop.py` en de geïsoleerde broker-
+fixture `test/interop/mqtt-fixture/`. CI bouwt de echte C++-kernrunner, start de
+vastgezette officiële Mosquitto-image uitsluitend op localhost en voert native
+HA-lifecycle-, protocol- en pakketlustests uit. Fixturecredentials zijn openbaar
+en uitsluitend voor deze tijdelijke test. De pakketlus gebruikt HA's echte MQTT-
+client; de firmwarepeer is de echte C++-regel-/protocolkern op de host, niet een
+geflashte ESP32 of bewijs van diens fysieke netwerkgedrag. De test omvat ook
+een harde socketonderbreking met broker-LWT, zonder onterechte gereedstatus.
 
 ## Testkaart: uitkomst en bewijs opschrijven
 

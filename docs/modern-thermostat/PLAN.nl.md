@@ -1,7 +1,7 @@
 # OpenThermostat + Home Assistant — masterplan
 
 **Versie:** ontwerp 1.0, 19 oktober 2026. **Producteigenaar:** Mark Dielessen.
-**Status:** bouwplan met WP01-uitvoering in een afzonderlijke ontwikkeltak; geen nieuwe zonethermostaatfunctie, installatie of flash vrijgegeven. Alle product-/hardwareacceptatiefasen staan open. Actueel WP01-bewijs: [WP01-BASELINE.nl.md](WP01-BASELINE.nl.md).
+**Status20oktober:** WP01/WP02-bronwerk en een geïntegreerde E32/HA-shadowtestketen zijn gebouwd in de ontwikkeltak; zie [testkandidaat en grenzen](INTEGRATED-TEST.nl.md) en het [concrete testwireprofiel](TEST-WIRE.md). Geen installatie/flash of normale verwarmingsvrijgave. Bron-/cadanskwalificatie, alle fysieke gates en de overige productfasen blijven open. Historisch WP01-bewijs: [WP01-BASELINE.nl.md](WP01-BASELINE.nl.md).
 **Bronbasis:** fork `a5fc6b84ab62603bca7cc3786f405d497edd17f7`; upstream apart onderzocht op `67b76391f2f81d5d5acd5a8d4675067fddc74448`. Bronverwijzingen staan in §18.
 
 ### Gebruikersaanvullingen na de ontwerp-PDF, 19 oktober 23:24–23:31

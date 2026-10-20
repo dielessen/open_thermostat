@@ -203,7 +203,9 @@ public:
 	void getFullStatus(std::ostream &ss) const {
 		ss << "{";
 		ss << "\"rooms\": ";
-		getRoomsStatus(ss);
+		if(modernMode()) ss << "[]";
+		else getRoomsStatus(ss);
+		ss << ",\"controlMode\":\"" << (modernMode()?"shadow":"legacy") << "\"";
 		ss << ",";
 		{
 			std::lock_guard<std::mutex> lock(roomsAccessMutex_);
@@ -213,8 +215,8 @@ public:
 		ss << "\"ems\": "; ems_.getStatus(ss); ss << ",";
 		ss << "\"openweather\": " << openWeather_.getStatus() << ",";
 
-		struct tm timeinfo;
-		getLocalTime(&timeinfo);
+		struct tm timeinfo{};
+		if(getLocalTime(&timeinfo,0)) {
 
 		ss << "\"time\": \"" << std::setfill('0') << std::setw(2) << timeinfo.tm_hour << ":"
 			<< std::setfill('0') << std::setw(2) << timeinfo.tm_min << ":"
@@ -224,6 +226,7 @@ public:
 			<< std::setfill('0') << std::setw(2) << timeinfo.tm_mday << "\",";
 
 		ss << "\"weekDay\": " << timeinfo.tm_wday << ",";
+		} else ss << "\"time\":null,\"date\":null,\"weekDay\":null,";
 		ss << "\"uptime\": " << millis()/1000;
 
 

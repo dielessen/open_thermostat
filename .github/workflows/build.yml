@@ -84,7 +84,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'
-      - name: Test native HA lifecycle and actual firmware interop
+      - name: Install pinned native HA test runtime
         run: |
           pip install -r ha/requirements-test-native.txt
+      - name: Start isolated localhost MQTT test fixture
+        run: |
+          docker run -d --rm --name opth-mqtt-fixture --user "$(id -u):$(id -g)" -p 127.0.0.1::1883 -v "$GITHUB_WORKSPACE/test/interop/mqtt-fixture:/mosquitto/config:ro" eclipse-mosquitto:2.0.22@sha256:199ea8ef2e35ec2b1b37e59cfd1dbae538ed4dfa4a2251a121a52215a6248a21 mosquitto -c /mosquitto/config/mosquitto.conf
+          python -c 'import os,subprocess; port=subprocess.check_output(["docker","port","opth-mqtt-fixture","1883/tcp"],text=True).strip().rsplit(":",1)[1]; open(os.environ["GITHUB_ENV"],"a").write("OPENTHERMOSTAT_TEST_MQTT_PORT="+port+"\n")'
+      - name: Test native HA lifecycle and actual firmware packet interop
+        run: |
           python -m pytest ha/tests ha/tests_native -q --junitxml=out/ha-acceptance.xml
+      - name: Remove temporary MQTT fixture
+        if: always()
+        run: docker stop opth-mqtt-fixture || true

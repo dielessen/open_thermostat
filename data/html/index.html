@@ -418,7 +418,12 @@
 			});
 
 
-			mainScreen();
+			if (location.hash === '#network' || location.hash === '#about') {
+				clearMainContainer();
+				$('#maincontainer').load(location.hash === '#network' ? 'network.html' : 'about.html');
+			} else {
+				mainScreen();
+			}
 
 		});
 
@@ -587,6 +592,10 @@
 
 		function updateRooms(status) {
 			var maincontainer = document.getElementById('maincontainer');
+			if (status.controlMode === 'shadow') {
+				maincontainer.innerHTML = '<div class="alert alert-info">Shadow-testmodus: geen ketel- of klepaansturing. Bedien en controleer de testkamers in Home Assistant. <a href="/index.html#network">Netwerk en MQTT</a></div>';
+				return;
+			}
 
 			var mainColElement = document.createElement('div');
 			mainColElement.classList.add('flex-column');

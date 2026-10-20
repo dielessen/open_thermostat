@@ -163,6 +163,13 @@ class ShadowClient:
     async def receive(self, topic, raw, *, retained=False):
         if self.closed or retained:
             return
+        if topic == "fw/availability" and raw in ("online", "offline"):
+            # The actual PubSubClient transport uses plain LWT tokens. Neither
+            # token establishes a session, source sample or fresh heat request.
+            await self.async_disconnected()
+            self.error = "firmware_offline" if raw == "offline" else "awaiting_firmware_handshake"
+            self.changed()
+            return
         try:
             payload = parse(raw)
             await self._receive(topic, payload)

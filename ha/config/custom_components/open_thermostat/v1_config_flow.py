@@ -14,6 +14,7 @@ from .v1_model import (
     CONF_ENABLED, CONF_MODE, MODE_LEGACY, MODE_SHADOW, ROOM_LIMIT,
     EntityReference, RoomBinding, integration_mode, target_centi,
 )
+from .v1_wire import identifier
 
 def reference(hass, selection: str) -> EntityReference:
     registry = er.async_get(hass)
@@ -68,7 +69,7 @@ class V1FlowMixin:
             owner = user_input.get("adapter_id", self._shadow_adapter_id)
             if not isinstance(owner, str) or re.fullmatch(r"[A-Za-z0-9_-]{1,32}", owner) is None:
                 errors["base"] = "invalid_adapter_id"
-            elif not prefix or len(prefix) > 64 or any(c in prefix for c in "/+#"):
+            elif not identifier(prefix):
                 errors["base"] = "invalid_topic"
             else:
                 # Same unique identity as legacy: no parallel writers for a prefix.
@@ -101,6 +102,9 @@ class ShadowOptionsFlow(config_entries.OptionsFlowWithReload):
             valid_owner = isinstance(owner, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,32}", owner) is not None
             if mode == MODE_SHADOW and not valid_owner:
                 errors["base"] = "invalid_adapter_id"
+            elif mode == MODE_SHADOW and not identifier(self.config_entry.data[CONF_TOPIC_PREFIX]):
+                # Match the first E32 wire profile without renaming legacy IDs.
+                errors["base"] = "invalid_topic"
             else:
                 data = {
                     CONF_MODE: mode,

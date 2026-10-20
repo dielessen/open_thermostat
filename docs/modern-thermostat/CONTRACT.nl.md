@@ -1,6 +1,6 @@
 # HA ↔ OpenThermostat — contractontwerp v1
 
-Companion bij [masterplan](PLAN.nl.md), ontwerp 19 oktober 2026. **Nog geen werkende v1-product-API.** Op20oktober zijn pure bron-/UTCkalender-/sessietoelatingsprimitieven en een native HA-schemacompiler met gedeelde offline fixtures gebouwd; zie [WP03-softwarestand](WP03-CORE.nl.md). F2 moet de resterende wire/admission/config-/lifecyclekoppeling nog uitvoeren en bewijzen. Bestaande legacymeldingen behouden hun eigen betekenis; onderstaande topics bestaan nog niet als product-API. Illustratieve berichten hieronder zijn geen definitief JSONschema.
+Companion bij [masterplan](PLAN.nl.md), ontwerp19oktober2026. **Nog geen vrijgegeven volledige v1-product-API.** Op20oktober is naast de pure bron-/UTC-/sessiekern een echte E32/HA-shadowkoppeling gebouwd: bounded wire/admission, NVSconfigcommit/readback, native HAflow/lifecycle/Store en gedeelde ketentests. Het exacte geïmplementeerde deelprofiel staat in [TEST-WIRE.md](TEST-WIRE.md), met [testgrens/open checks](INTEGRATED-TEST.nl.md). Dat profiel voert geen actuator-/ketelcommands uit en vervangt niet alle onderstaande producttopics. Bestaande legacymeldingen behouden hun eigen betekenis. De onderstaande algemene berichten blijven ontwerpschema's; niet stil als geïmplementeerde productie-API gebruiken.
 
 ## 1. Transport en grenzen
 

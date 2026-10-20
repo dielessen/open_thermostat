@@ -58,6 +58,8 @@ class NativeShadowConnection:
         self.closed = False
 
     async def async_start(self):
+        if not identifier(self.entry.data["topic_prefix"]):
+            raise ConfigEntryError("Shadow prefix must be1..32 ASCII letters/digits, '-' or '_'; legacy identity was not renamed")
         adapter = self.entry.options.get("adapter_id", self.entry.data.get("adapter_id"))
         if not identifier(adapter):
             raise ConfigEntryError("Missing/invalid shadow adapter owner ID; configure options and provision the same ID on E32")

@@ -27,7 +27,7 @@
         "title": "Isolated shadow mode",
         "description": "Shadow only: no boiler or actuator actions. Copy this generated adapter owner ID into the E32 provisioning screen. Enable separately in options.",
         "data": {
-          "topic_prefix": "Controller MQTT prefix (same identity as legacy)",
+          "topic_prefix": "Controller MQTT prefix (1–32 ASCII letters/digits, - or _)",
           "adapter_id": "Provisioned firmware adapter owner ID"
         }
       }
@@ -38,7 +38,7 @@
       "invalid_topic": "The MQTT topic prefix is invalid."
     },
     "error": {
-      "invalid_topic": "Enter a single MQTT topic level.",
+      "invalid_topic": "Unsupported prefix for this mode. Shadow requires 1–32 ASCII letters/digits, - or _; existing legacy IDs are not renamed.",
       "invalid_adapter_id": "Use the same explicit owner ID as provisioned on the E32 (1–32 letters, digits, _ or -)."
     }
   },

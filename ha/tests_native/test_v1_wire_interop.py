@@ -226,6 +226,22 @@ async def test_actual_fw_unknown_mapping_not_silently_adopted(integrated):
     assert client.error == "mapping_conflict"
     assert not any(topic == "ha/config" for topic, _ in bus.outbox)
 
+@pytest.mark.asyncio
+async def test_transport_lwt_is_expected_lifecycle_not_malformed_json(integrated):
+    runtime, client, bus, binding = integrated
+    await bus.start()
+    await client.receive("fw/availability", "offline")
+    assert not client.ready and not runtime.decisions
+    assert client.error == "firmware_offline"
+    await client.receive("fw/availability", "online")
+    assert not client.ready and client.identity is None
+    assert client.error == "awaiting_firmware_handshake"
+    await bus.event("disconnect")
+    await bus.event("connect")
+    await bus.event("tick")
+    await bus.pump()
+    assert client.ready
+
 
 @pytest.mark.asyncio
 async def test_retained_invalid_and_live_output_messages_cannot_apply(integrated):

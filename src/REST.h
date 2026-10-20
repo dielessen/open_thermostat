@@ -360,6 +360,7 @@ private:
 	}
 
 	void roomsStatus() {
+		if(controller_.modernMode()) { server_.send(200,"application/json","[]"); return; }
 		DBGLOGFD(log_, logFeature_, "roomsStatus\n");
 		server_.enableCORS(false);
 

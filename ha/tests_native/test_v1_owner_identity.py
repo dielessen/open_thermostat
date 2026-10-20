@@ -80,3 +80,20 @@ async def test_options_missing_owner_requires_deliberate_shadow_provision(hass):
     assert legacy["type"] == "create_entry"
     assert legacy["data"]["shadow_enabled"] is False
     assert "adapter_id" not in legacy["data"]
+
+@pytest.mark.asyncio
+async def test_shadow_prefix_validation_matches_fw_without_renaming_legacy(hass):
+    for prefix in ("legacy.topic", "space name", "a" * 33, "caf\u00e9", "a/b"):
+        result = await flow(hass).async_step_shadow({"topic_prefix": prefix})
+        assert result["type"] == "form"
+        assert result["errors"]["base"] == "invalid_topic"
+    parent = entry(hass, mode="legacy")
+    hass.config_entries.async_update_entry(parent, data={**parent.data, "topic_prefix": "legacy.topic"})
+    options = ShadowOptionsFlow()
+    options.hass, options.handler = hass, parent.entry_id
+    result = await options.async_step_init({"integration_mode": "v1_shadow", "shadow_enabled": True})
+    assert result["errors"]["base"] == "invalid_topic"
+    assert parent.data["topic_prefix"] == "legacy.topic"
+    runtime = ShadowRuntime(hass, parent, [])
+    with pytest.raises(ConfigEntryError, match="Shadow prefix"):
+        await NativeShadowConnection(runtime).async_start()

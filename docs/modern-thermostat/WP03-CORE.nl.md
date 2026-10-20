@@ -1,9 +1,11 @@
 # WP03 — bron-/sessie-/tijdkern (in uitvoering)
 
-20 oktober 2026. Deze pure firmwarecomponenten zijn geïmplementeerd en
-host-getest, **nog niet als nieuwe MQTT-/HA-regelketen ingeschakeld**.
-Het volledige [contract](CONTRACT.nl.md), persistente configuratietransactie,
-native transportkoppeling en productacceptatie zijn hiermee niet afgerond.
+20oktober2026. Dit document bewaart het eerdere kerncheckpoint. Inmiddels zijn
+deze componenten ook gebruikt in de echte [E32/HA-shadowtestketen](TEST-WIRE.md),
+inclusief NVScommit/readback en native HAtransport/lifecycle. Die software is
+niet geïnstalleerd en de teststand voert geen echte warmteacties uit. Volledige
+[productcontractacceptatie](CONTRACT.nl.md), bronprofielen en fysieke gates
+blijven open; actuele grenzen staan in [de testgids](INTEGRATED-TEST.nl.md).
 
 ## Concrete componenten
 

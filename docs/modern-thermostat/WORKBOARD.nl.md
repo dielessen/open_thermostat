@@ -479,6 +479,9 @@ Geen garantie dat fysieke of meerdaagse acceptatie in één nacht haalbaar is.
   extra schedulerlaag. Automations vóór wijzigen inspecteren en bestaande jobs
   behouden. Hervattingsjob stopt zichzelf zodra alleen externe/fysieke bewijschecks
   overblijven of het geheel echt voltooid is; geen herhaalde groene checks als werk.
+  Job-ID: `490a63dc-2415-480a-84f6-f51bb868029d`, standaard30min, adaptief15–60min;
+  adminreview in dezelfde gesprekroute met expliciete beperkte toolset.
+  [Configuratie-/uitvoeringsbewijs](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-restart-graph-11774-20261020/NIGHT-EXECUTION.md).
 - Fysieke proeven, powerloss/restore/72u/echte woningrespons en verwarming/TXvrijgave
   blijven gebonden aan de oorspronkelijke PLANgates. Geen onbewezen actieve
   ketel-/klep-/Tado-/EMSoverdracht tijdens de nacht. Markeer gebouwd, geïnstalleerd

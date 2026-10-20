@@ -666,6 +666,33 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
 - Eerstvolgende onafhankelijke bronacceptatie: F4/F8 water-/vloer-/mengerpakket
   in dezelfde reviewbranch; specialist blijft eigenaar van actieve F9uitvoering.
 
+
+### Mark11785 — F4/F8 water-/vloer-/mengergroepen: onafhankelijke bronacceptatie
+
+- [x] Exacte emitter-after-control-correctionpatch
+  9f07682e247a824c97f1fc4def24a0812c19eaafa788c34e2883f60e12e36156
+  gereviewd, bron-/testhashes tegen finale manifests gecontroleerd.
+- [x] Centigraadstooklijn met begrensde kamercorrectie, hoogste werkelijk vragende
+  groep, geen permanente minimumvraag; expliciete fallback, positieve writebudget/
+  deadband/slew en onbelemmerde stopintentie. Iedere geconfigureerde vloer telt
+  mee voor meng-/shared-low-limitbarrière, ook met gesloten/inactieve klep.
+- [x] Synthetisch gekwalificeerde driepunts-/0–10Vmengerpolicy: veilige referentie,
+  verse postcommand-eindschakelaar of expliciet getoetste tijdreferentie, exclusieve
+  richtingen/deadtime/travelgrens; analoge gekalibreerde eindpunten, één pending
+  intentie, passende verse feedback en timeout. Geen NCNO-/spanningsaanname.
+- [x]15gerichte groeps-/menger-/postcommandchecks als deel van dezelfde50native
+  parentchecks PASS; geen tweede onafhankelijke50claim. Native hostcompile schoon.
+- [ ] Nog geen actieve graph/api1profielselectie, driver/actuatorownerreconciliatie,
+  E32build/resource/installatie of fysieke vloer-/water-/menger-/high-limitproef.
+  F4/F8 blijven open; fysieke outputs niet vrijgegeven en geen verwarmingsGO.
+- Bewijs: dezelfde CONTROL-EMITTER-PARENT-*.json/logs en
+  EMITTER-WATER-MIXER.md. Rollback alleen deze emitterbroncommit;
+  daarna zo nodig voorafgaande controlcommit. Geen productie-/apparaatwijziging.
+- Volgende uitvoering: bestaande specialist voltooit F9model/persistentie/replay;
+  reeds aangeboden F5dashboard/Recorder/CSV/migratie volgt daarop. Daarna volgende
+  nog open uitvoerbare F2/F3/F10software, niet stoppen bij deze bronpakketten.
+  Parentreview zodra concreet pakket gereed; volgende hervattingscheck15min.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

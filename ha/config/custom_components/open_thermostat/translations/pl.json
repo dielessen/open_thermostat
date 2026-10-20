@@ -211,6 +211,111 @@
         "program_changed": "The room was changed or removed while editing; reopen it.",
         "program_not_started": "Open the week editor from room bindings first."
       }
+    },
+    "heating": {
+      "entry_type": "Heating settings (draft)",
+      "initiate_flow": {
+        "user": "Configure central heating draft",
+        "reconfigure": "Edit central heating draft"
+      },
+      "step": {
+        "user": {
+          "title": "Central heating settings — draft only",
+          "description": "Desired HA configuration only: NOT applied to E32. The existing shadow contract does not support this configuration yet. No source is qualified, no actuator is enabled and no heating command is sent. Room targets and week programs remain separate.",
+          "data": {
+            "weather_enabled": "Weather compensation (desired setting)",
+            "outdoor_source": "Outdoor temperature source (optional when weather compensation is off)",
+            "outdoor_maximum_age_ms": "Maximum qualified outdoor measurement age (ms)",
+            "stale_policy": "When outdoor data expires",
+            "minimum_supply_temperature": "Minimum central supply temperature",
+            "maximum_supply_temperature": "Maximum central supply temperature",
+            "fixed_fallback_temperature": "Fixed fallback supply temperature (only for fixed fallback policy)",
+            "curve_0": "Supply target at 20 °C outdoors",
+            "curve_1": "Supply target at 15 °C outdoors",
+            "curve_2": "Supply target at 10 °C outdoors",
+            "curve_3": "Supply target at 5 °C outdoors",
+            "curve_4": "Supply target at 0 °C outdoors",
+            "curve_5": "Supply target at -5 °C outdoors",
+            "curve_6": "Supply target at -10 °C outdoors",
+            "curve_7": "Supply target at -15 °C outdoors",
+            "curve_8": "Supply target at -20 °C outdoors"
+          },
+          "data_description": {
+            "weather_enabled": "Desired configuration draft only. The E32 remains the controller; saving does not enable weather control or change heating.",
+            "outdoor_source": "Select an existing outdoor sensor or weather entity. A weather entity supplies its temperature attribute, not its condition text. Selection or an HA cache is not sample qualification.",
+            "outdoor_maximum_age_ms": "Age limit for a qualified source observation, not a polling rate. Availability or last_reported alone is not a physical temperature sample.",
+            "stale_policy": "Choose explicitly: block normal demand, or a configured fixed supply target within central bounds. No synthetic -20 °C outdoor fallback.",
+            "minimum_supply_temperature": "Central water-temperature bound, not a room target. Proposed engineering bounds are not installation safety approval.",
+            "maximum_supply_temperature": "Central water-temperature bound. Floor groups need their own mixing and independent physical temperature protection.",
+            "fixed_fallback_temperature": "Leave empty when normal demand is blocked. For fixed fallback, select a target within the central supply bounds.",
+            "curve_0": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
+            "curve_1": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
+            "curve_2": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
+            "curve_3": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
+            "curve_4": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
+            "curve_5": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
+            "curve_6": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
+            "curve_7": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
+            "curve_8": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed."
+          }
+        },
+        "reconfigure": {
+          "title": "Central heating settings — draft only",
+          "description": "Desired HA configuration only: NOT applied to E32. The existing shadow contract does not support this configuration yet. No source is qualified, no actuator is enabled and no heating command is sent. Room targets and week programs remain separate.",
+          "data": {
+            "weather_enabled": "Weather compensation (desired setting)",
+            "outdoor_source": "Outdoor temperature source (optional when weather compensation is off)",
+            "outdoor_maximum_age_ms": "Maximum qualified outdoor measurement age (ms)",
+            "stale_policy": "When outdoor data expires",
+            "minimum_supply_temperature": "Minimum central supply temperature",
+            "maximum_supply_temperature": "Maximum central supply temperature",
+            "fixed_fallback_temperature": "Fixed fallback supply temperature (only for fixed fallback policy)",
+            "curve_0": "Supply target at 20 °C outdoors",
+            "curve_1": "Supply target at 15 °C outdoors",
+            "curve_2": "Supply target at 10 °C outdoors",
+            "curve_3": "Supply target at 5 °C outdoors",
+            "curve_4": "Supply target at 0 °C outdoors",
+            "curve_5": "Supply target at -5 °C outdoors",
+            "curve_6": "Supply target at -10 °C outdoors",
+            "curve_7": "Supply target at -15 °C outdoors",
+            "curve_8": "Supply target at -20 °C outdoors"
+          },
+          "data_description": {
+            "weather_enabled": "Desired configuration draft only. The E32 remains the controller; saving does not enable weather control or change heating.",
+            "outdoor_source": "Select an existing outdoor sensor or weather entity. A weather entity supplies its temperature attribute, not its condition text. Selection or an HA cache is not sample qualification.",
+            "outdoor_maximum_age_ms": "Age limit for a qualified source observation, not a polling rate. Availability or last_reported alone is not a physical temperature sample.",
+            "stale_policy": "Choose explicitly: block normal demand, or a configured fixed supply target within central bounds. No synthetic -20 °C outdoor fallback.",
+            "minimum_supply_temperature": "Central water-temperature bound, not a room target. Proposed engineering bounds are not installation safety approval.",
+            "maximum_supply_temperature": "Central water-temperature bound. Floor groups need their own mixing and independent physical temperature protection.",
+            "fixed_fallback_temperature": "Leave empty when normal demand is blocked. For fixed fallback, select a target within the central supply bounds.",
+            "curve_0": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
+            "curve_1": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
+            "curve_2": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
+            "curve_3": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
+            "curve_4": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
+            "curve_5": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
+            "curve_6": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
+            "curve_7": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
+            "curve_8": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed."
+          }
+        }
+      },
+      "error": {
+        "binding_missing": "Select an existing enabled entity.",
+        "loop_binding": "Do not select an OpenThermostat output as an input.",
+        "not_temperature": "Select a temperature sensor using °C or °F.",
+        "weather_requires_outdoor_source": "Choose an outdoor source when weather compensation is selected.",
+        "curve_must_not_fall_towards_cold_outdoors": "Supply targets must not decrease towards colder weather.",
+        "unused_fallback_must_be_null": "Clear the fixed target when using the block-demand policy.",
+        "minimum_must_be_below_maximum": "The minimum supply temperature must be below the maximum.",
+        "invalid_integer_or_bounds": "Choose finite numbers inside the permitted bounds.",
+        "invalid_heating_draft": "The desired configuration is invalid. No changes were saved."
+      },
+      "abort": {
+        "shadow_mode_required": "Only explicit shadow entries support this configuration draft.",
+        "disable_runtime_before_draft": "This draft editor requires the shadow runtime to remain disabled.",
+        "single_central_owner": "This controller already has a central heating draft. Reconfigure that draft instead."
+      }
     }
   },
   "selector": {
@@ -230,6 +335,12 @@
         "friday": "Friday",
         "saturday": "Saturday",
         "sunday": "Sunday"
+      }
+    },
+    "heating_stale_policy": {
+      "options": {
+        "block_normal_demand": "Block normal demand",
+        "bounded_fixed_flow": "Use an explicitly bounded fixed supply target"
       }
     }
   }

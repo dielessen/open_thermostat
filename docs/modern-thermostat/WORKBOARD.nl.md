@@ -41,7 +41,7 @@ blijven in HA; geen extra helpers/YAML/automations nodig voor normale inrichting
 | --- | --- | --- | --- |
 | Kamers, sensor, TRV/klep, optionele wandbediening | HA-integratie → kamer | HA beheert entitybindings; E32 kent stabiele kanaal-/kamer-IDs | Kamerflow geïnstalleerd; echte profielen nog kwalificeren |
 | Doeltemperatuur, kamergrenzen, weekprogramma, tijdelijke override | HA-kamerclimate en native kameropties | HA bewaart gewenst; E32 accepteert revisie, voert schema uit en meldt effectief doel | Editor bewezen; fysieke applied-ACK-keten open |
-| Buitenbron en ontbrekend/oud-beleid | HA-integratie → algemene instellingen | HA levert gekwalificeerde bron; E32 valideert leeftijd en toepasbaarheid | Centrale gebruikersflow nog te bouwen |
+| Buitenbron en ontbrekend/oud-beleid | HA-integratie → algemene instellingen | HA levert gekwalificeerde bron; E32 valideert leeftijd en toepasbaarheid | Centrale draftflow in bronkandidaat; volledige toepassing nog te bouwen |
 | Weersafhankelijk aan/uit, stooklijn, aanvoergrenzen | HA-integratie → centraal verwarmingscircuit | E32 berekent waterdoel, inclusief begrensde zonecorrectie | Niet in huidige kamereditor; volledige moderne supervisor open |
 | Radiator/vloer, circuit, pomp, menger en klepprofiel | HA → afgiftegroep + kameractuatoren | E32 coördineert vraag/vertraging/limieten; HA voert ondersteunde deviceacties uit | Groeps-/vloer-/generieke klepconfiguratie ontbreekt |
 | Leren aan/uit, begrenzing, modelreset en optimum-start | HA → kamer/algemene regeling | E32 bewaart modellen en voert adaptatie uit | Nog niet geleverd/gevalideerd |
@@ -181,6 +181,10 @@ en session/configACK; huidige bronroute-/ACLbeperking niet omzeilen [B6].
   persistente IDs en helpervrije weekeditor in test-HA GUI/API getest [B4].
 - [x] Exact negen Engelse bestanden in productie-HA geïnstalleerd, configcheck
   en één Coreherstart, hashes/bindings/offstatus onafhankelijk gecontroleerd [B7].
+- [x] Eerste centrale HA-configuratiebronpakket als **niet-geïnstalleerde kandidaat**:
+  native centrale draft-subentry, 9-puntscurve/buitenbron/stalebeleid en pure
+  groep-/actuator-/mengerdeclaraties gevalideerd; 107 gerichte native tests PASS [B10].
+  Status expliciet draft_not_applied; geen nieuwe actieve wirekeys/E32-uitvoering.
 - [ ] Zichtbare productie-Engelse schermcontrole in bestaande ingelogde browser.
 - [ ] Eén echt sensor-/actuatorprofiel en HA-doel inclusief fouten/toegepaste
   firmwarestatus aantonen; geen fysieke TRVactie geclaimd. Een wandapparaat is
@@ -347,3 +351,7 @@ softwareautorisatie blijft geldig; geen onnodig nieuw algemeen akkoord vragen.
   Geen nieuwe runtimequery. Exacte bronhashvergelijking met actieve checkout en
   review van dit werkbord zijn in B8 vastgelegd; snapshotbevindingen niet als
   een nieuwe fysieke E32-/alpha.4-binaire audit presenteren.
+
+- **B10:** [Mark11706/11709 centrale configuratiebronpakket](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-heating-config-11706-20261020/RESULT.md).
+  Getoetst tegen exact ea54c256-archief; centrale native draftflow+validatiebasis,
+  geen productie-installatie, volledige groeps-/profiel-GUI, transportcontract of fysieke support.

@@ -22,6 +22,7 @@ from .v1_model import (
     EntityReference, RoomBinding, integration_mode, target_centi,
 )
 from .v1_wire import identifier
+from .v1_heating_flow import HeatingSubentryFlow
 
 def reference(hass, selection: str) -> EntityReference:
     registry = er.async_get(hass)
@@ -102,7 +103,7 @@ class V1FlowMixin:
     @classmethod
     @callback
     def async_get_supported_subentry_types(cls, config_entry):
-        return {"zone": ZoneSubentryFlow} if integration_mode(config_entry) == MODE_SHADOW else {}
+        return {"zone": ZoneSubentryFlow, "heating": HeatingSubentryFlow} if integration_mode(config_entry) == MODE_SHADOW else {}
 
 class ShadowOptionsFlow(config_entries.OptionsFlowWithReload):
     async def async_step_init(self, user_input=None):

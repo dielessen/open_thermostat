@@ -11,7 +11,6 @@
 	<!-- <meta http-equiv="Expires" content="0" /> -->
 
 	<link rel="stylesheet" href="deps/bs.min.css.gz" crossorigin="anonymous">
-	<script src="deps/chart.umd.js.gz" crossorigin="anonymous"></script>
 	<script src="deps/jquery.min.js.gz"></script>
 	<script src="deps/bs.bundle.min.js.gz" crossorigin="anonymous"></script>
 
@@ -95,6 +94,7 @@
 <body>
 
 	<style>
+		[data-legacy-editor][hidden] { display: none !important; }
 		@keyframes blink {
 			0% {
 				opacity: 0;
@@ -287,11 +287,11 @@
 							Settings
 						</a>
 						<ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-							<li><a class="dropdown-item" href="#" data-page="program">Change active program</a></li>
-							<li><a class="dropdown-item" href="#" data-page="room_management">Rooms and programs</a></li>
+							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="program">Change active program</a></li>
+							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="room_management">Rooms and programs</a></li>
 							<li><a class="dropdown-item" href="#" data-page="network">Network and services</a></li>
-							<li><a class="dropdown-item" href="#" data-page="curve">Boiler and heating curve</a></li>
-							<li><a class="dropdown-item" href="#" data-page="hardware">Hardware configuration</a></li>
+							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="curve">Boiler and heating curve</a></li>
+							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="hardware">Hardware configuration</a></li>
 							<li><a class="dropdown-item" href="#" data-page="update">Firmware update</a></li>
 						</ul>
 					</li>
@@ -378,13 +378,73 @@
 		var intervalID;
 		var consoleLog = false;
 		var lastLoadedStatus;
+        var controlUiMode = 'unknown', controllerModePromise, chartPromise;
+        var navigationGeneration = 0;
+        const legacyEditorPages = ['program','room_management','room_setup','curve','hardware','rooms'];
+
+        function applyControlMode(status) {
+            controlUiMode = status.controlMode === 'legacy' ? 'legacy'
+                : status.controlMode === 'shadow' ? 'shadow' : 'unknown';
+            document.querySelectorAll('[data-legacy-editor]').forEach(item => {
+                item.hidden = controlUiMode !== 'legacy';
+            });
+            return controlUiMode;
+        }
+        function ensureControllerMode() {
+            if (controlUiMode !== 'unknown') return Promise.resolve(controlUiMode);
+            if (!controllerModePromise) controllerModePromise = getJSON('/status')
+                .then(applyControlMode).finally(() => { controllerModePromise = null; });
+            return controllerModePromise;
+        }
+        function managedControlNotice() {
+            if (controlUiMode === 'unknown') {
+                document.getElementById('maincontainer').textContent =
+                    'Controller mode unavailable. Reload Home before editing heating settings.';
+                return;
+            }
+            document.getElementById('maincontainer').innerHTML =
+                '<div class="alert alert-info">Home Assistant-managed shadow mode. Configure rooms, programs and heating profiles in Home Assistant. No boiler or valve outputs are enabled. Network, access and firmware recovery remain available here.</div>';
+        }
+        function ensureChart() {
+            if (typeof Chart !== 'undefined') return Promise.resolve();
+            if (!chartPromise) chartPromise = new Promise((resolve,reject) => {
+                const script = document.createElement('script');
+                script.src = 'deps/chart.umd.js.gz';
+                script.onload = () => typeof Chart !== 'undefined' ? resolve() : reject(Error('Chart unavailable'));
+                script.onerror = () => reject(Error('Chart could not be loaded'));
+                document.head.appendChild(script);
+            }).catch(error => { chartPromise = null; throw error; });
+            return chartPromise;
+        }
+        async function loadNativePage(page) {
+            clearMainContainer();
+            const navigation = navigationGeneration;
+            try {
+                // Recovery/network/about never depend on status-mode availability.
+                const mode = legacyEditorPages.includes(page)
+                    ? await ensureControllerMode() : controlUiMode;
+                if (navigation !== navigationGeneration) return false;
+                if (legacyEditorPages.includes(page) && mode !== 'legacy') {
+                    managedControlNotice(); return false;
+                }
+                if (page === 'curve') await ensureChart();
+                if (navigation !== navigationGeneration) return false;
+                $('#maincontainer').load(page + '.html');
+                return true;
+            } catch (error) {
+                if (navigation === navigationGeneration) {
+                    document.getElementById('maincontainer').textContent =
+                        'The page could not be loaded. Check the connection and try again.';
+                }
+                return false;
+            }
+        }
 
 		$(document).ready(function () {
 			$(".dropdown-item, ul > li").each(function () {
 				$(this).on("click", function () {
-					clearMainContainer();
 					if (typeof $(this).attr("data-page") !== 'undefined') {
-						$("#maincontainer").load($(this).attr("data-page") + ".html");
+                        loadNativePage($(this).attr("data-page"));
 					} else {
 					}
 				});
@@ -433,13 +493,13 @@
 		function showLinkedPage() {
 			if (location.hash !== '#network' && location.hash !== '#about') return false;
 			clearMainContainer();
-			$('#maincontainer').load(location.hash === '#network' ? 'network.html' : 'about.html');
+			loadNativePage(location.hash === '#network' ? 'network' : 'about');
 			return true;
 		}
 
 		function about() {
 			clearMainContainer();
-			$("#maincontainer").load("about.html");
+			loadNativePage("about");
 		}
 
 		function mainScreen() {
@@ -451,6 +511,7 @@
 		}
 
 		function clearMainContainer() {
+            navigationGeneration++;
 			if (intervalID) {
 				clearInterval(intervalID);
 			}
@@ -459,13 +520,19 @@
 		}
 
 		function showRooms() {
+            const navigation = navigationGeneration;
 			fetch(hostName + '/status')
+                .then(validateResponse)
 				.then(res => res.json())
 				.then((out) => {
+                    applyControlMode(out);
 					lastLoadedStatus = out;
-					updateRooms(lastLoadedStatus);
-					// $('#maincontainer').append("<div class='row'><div class='col-sm-4'><p class='text-right'>"+lastLoadedStatus.time+"</p></div></div>");
-				});
+                    if (navigation === navigationGeneration) updateRooms(lastLoadedStatus);
+					// A late poll may update mode metadata, never replace a newly navigated form.
+                }).catch(() => {
+                    if (navigation === navigationGeneration)
+                        document.getElementById('maincontainer').textContent = 'Status unavailable. Check the connection and reload.';
+                });
 		}
 
 		function showBoiler(emsStatus, boilerStatus) {
@@ -600,9 +667,10 @@
 		}
 
 		function updateRooms(status) {
+            applyControlMode(status);
 			var maincontainer = document.getElementById('maincontainer');
 			if (status.controlMode === 'shadow') {
-				maincontainer.innerHTML = '<div class="alert alert-info">Shadow-testmodus: geen ketel- of klepaansturing. Bedien en controleer de testkamers in Home Assistant. <a href="/index.html#network">Netwerk en MQTT</a></div>';
+				managedControlNotice();
 				return;
 			}
 

@@ -180,7 +180,8 @@
 							</div>
 						</div>
 
-						<div class="card mb-2">
+						<p id="LegacyWeatherNotice" class="text-muted">Legacy internet weather is shown only after legacy mode is confirmed. In Home Assistant-managed mode, choose the outdoor source in Home Assistant.</p>
+                        <div class="card mb-2" id="LegacyWeatherSettings" hidden style="display:none">
 							<div class="card-header">OpenWeatherMap outdoor temperature API</div>
 							<div class="card-body" id="OpenWeatherMapCard">
 								<div class="form-row">
@@ -615,13 +616,29 @@
 			});
 	}
 
+    var loadedNetworkSettings = null;
+    async function updateWeatherEditorVisibility() {
+        const card = document.getElementById('LegacyWeatherSettings');
+        const controls = card.querySelectorAll('input, select, button');
+        controls.forEach(input => { input.disabled = true; });
+        let mode = 'unknown';
+        try { mode = await ensureControllerMode(); } catch (_) {}
+        controls.forEach(input => { input.disabled = mode !== 'legacy'; });
+        card.hidden = mode !== 'legacy';
+        card.style.display = mode === 'legacy' ? '' : 'none';
+        document.getElementById('LegacyWeatherNotice').hidden = mode === 'legacy';
+    }
+
 	function loadDeviceSettings() {
+        loadedNetworkSettings = null;
 		$("#NetworkSettings *").attr('disabled', true)
 
 		fetch(hostName + '/config/device')
 			.then(validateResponse)
 			.then(res => res.json())
 			.then((settings) => {
+                loadedNetworkSettings = JSON.parse(JSON.stringify(settings));
+                updateWeatherEditorVisibility();
 				$('#DeviceHostname').val(settings.hostname);
 				$('#InterfaceMode').val(settings.interface_mode || 'wifi');
 				$('#DeviceListenPort').val(settings.listenPort);
@@ -678,6 +695,7 @@
 	}
 
 	function saveDeviceSettings() {
+        if (!loadedNetworkSettings) { alert('Load device settings before saving.'); return; }
 		if (!validateForm('#networkeditform')) return;
 		$("#SaveDeviceSettings").prop('disabled', true);
 
@@ -723,6 +741,12 @@
 				"scanInterval": parseInt($('#BTScanInterval').val(), 10),
 			}
 		};
+
+        if (controlUiMode !== 'legacy') {
+            if (Object.prototype.hasOwnProperty.call(loadedNetworkSettings,'openweather'))
+                settings.openweather = loadedNetworkSettings.openweather;
+            else delete settings.openweather;
+        }
 
 		fetch(hostName + '/config/device', {
 			method: 'post',

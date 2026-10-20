@@ -10,7 +10,7 @@ function rootPage(){
   append(x){this.children.push(x);}
  }
  const main=new Element();
- const document={createElement:()=>new Element(),createTextNode:x=>x,getElementById:()=>main};
+ const document={createElement:()=>new Element(),createTextNode:x=>x,getElementById:()=>main,querySelectorAll:()=>[]};
  const jq=()=>({on(){},ready(){},css(){}});
  const context={document,$:jq};vm.createContext(context);
  for(const script of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))
@@ -52,5 +52,5 @@ test('DHW mode uses only DHW values and preserves partially available data',()=>
 test('empty EMS and existing shadow-mode root behavior are preserved',()=>{
  const p=rootPage();assert.equal(p.showBoiler({},{}),null);
  p.updateRooms({controlMode:'shadow'});
- assert.match(p.main.innerHTML,/Shadow-testmodus/);assert.match(p.main.innerHTML,/Home Assistant/);
+ assert.match(p.main.innerHTML,/Home Assistant-managed shadow mode/);assert.match(p.main.innerHTML,/Home Assistant/);
 });

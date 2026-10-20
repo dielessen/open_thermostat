@@ -1,6 +1,6 @@
 # OpenThermostat — actueel uitvoeringsplan
 
-**Bijgewerkt:** 20 oktober 2026, naar aanleiding van Mark11694.
+**Bijgewerkt:** 21 oktober 2026, voortgaande uitvoering Mark11785.
 **Eigenaar:** OpenClaw; HA-integratie/apparaatvalidatie: HA-specialist.
 **Dit is de enige actuele afvinklijst.** [PLAN](PLAN.nl.md) bevat het ontwerp,
 31 eisen en acceptatievoorwaarden; oude PDFs en losse taakdossiers zijn naslag/bewijs.
@@ -16,7 +16,8 @@ transport en actuatie staan uit; een volledig verse bron→E32→ACK-proef ontbr
 
 - **Gebouwd/getest:** gecontroleerde firmwarebasis, passieve Classicdecoders,
   sessie-/config-/schema-shadowsoftware, HA-kamerbindingsflow, temperatuurgrenzen,
-  helpervrije weekeditor, setup/OTA-bronwerk.
+  helpervrije weekeditor, setup/OTA-bronwerk; onafhankelijke F5-metricsreparatie
+  en HA-managed E32-GUIafbouw in bron geaccepteerd, niet geïnstalleerd.
 - **Geïnstalleerd:** HA-kamer-/weekeditorpakket; E32 alpha.6 via app-only OTA op
   20okt22:38–22:40CEST (Mark11746), automatische boot/source/UI/ELF en elf
   instellingen-/statussnapshotparen bewezen. Authpad in twee Chromiumviewports
@@ -114,7 +115,8 @@ gelijkwaardige onafhankelijke overtemperatuurbeveiliging.
 ## 4. E32 eenvoudiger maken: behouden versus afbouwen
 
 Mark11694 staat afbouw van niet meer benodigde functies toe. Uitvoering is een
-eigen begrensde bronwijziging; in deze planreconciliatie is niets verwijderd.
+eigen begrensde bronwijziging. HA-managed menu-/routeafbouw nu in bron geaccepteerd
+(Mark11785), niet geïnstalleerd; legacyassets/data en herstelroutes behouden.
 
 | Onderdeel in HA-managed bedrijf | Besluit | Voorwaarde / open werk |
 | --- | --- | --- |
@@ -127,10 +129,12 @@ eigen begrensde bronwijziging; in deze planreconciliatie is niets verwijderd.
 | Eigen internetweerselectie naast HA-buitenbron | **Geen verborgen tweede bron** | HA-managed bronkeuze leidend; bestaande legacyroute pas na expliciete migratie/fallbackafspraak afbouwen |
 | Oude legacy-MQTTcommands/discovery | **Niet parallel met moderne writer** | Actuele productie-legacyentry/identiteiten zijn bewust behouden; niet zonder migratie verwijderen |
 
-- [ ] Exacte menu-/route-/configreferentielijst maken voor HA-managed mode.
-- [ ] Dubbele instellingen verbergen/read-only maken; onduidelijk label corrigeren.
-- [ ] Routeautorisatie en enige configschrijver ook server-side afdwingen;
-  alleen een knop verbergen lost dubbel eigenaarschap niet op.
+- [x] Exacte menu-/route-/configreferentielijst in HA-MANAGED-GUI.md gereviewd.
+- [x] Dubbele E32editors in werkelijk runtime shadowmode verborgen/geblokkeerd,
+  legacy/generic behouden; native backendwriter-/CSRF-/updateguards gecontroleerd.
+  Verborgen legacyweer server-side na secretmerge read-only. Alleen bronacceptatie.
+- [ ] Onduidelijk label van optionele kamerdoelbron in HA corrigeren; normale
+  mode-/config-/migratie- en fysieke gebruikersacceptatie blijven apart open.
 - [ ] Bestaande instellingen behouden/importeren; modewissel, reboot, rollback,
   setup/OTA en generieke/legacytargets controleren vóór broncode verwijderen.
 - [ ] Nieuwe release en fysieke gebruikerscheck apart uitvoeren. Geen extra
@@ -316,6 +320,9 @@ en session/configACK; huidige bronroute-/ACLbeperking niet omzeilen [B6].
   geen firmwarecapaciteitsclaim. NIET geïnstalleerd/geadverteerd/aangesloten.
   r2sluit GV-R1typed-channelcontrole en GV-R2RAII-ownership af:6exacte parent-
   regressies +556echte cJSONfaultsites zonder leaks; geen partiële kandidaat.
+- [x] HA-managed E32-GUIafbouw onafhankelijk geaccepteerd in bron (11785):
+  35JS+21C+++2echte Chromiumbronviewports PASS; herstel/generic behouden,
+  geen installatie of modemigratie op apparaat. Zie §4 en §6.
 - [ ] Gezamenlijke schemas/validators/capabilityadvertentie,
   graph-storage/apply/reconnect en echte device-/veiligheidsvelden implementeren;
   graphdraftlimieten zijn geen bewezen E32capaciteit.
@@ -327,7 +334,7 @@ en session/configACK; huidige bronroute-/ACLbeperking niet omzeilen [B6].
 - [ ] Centrale/groepsconfig met firmware-capability/revisie/applycontract verbinden;
   gewenste graph-only kamermigratie is bronwerk hierboven, ontbrekende
   veiligheids-/deviceprofielvelden en fysieke ondersteuning volgens §2/3;
-  HA-managed E32bediening opschonen volgens §4.
+  fysieke HA-managed mode-/migratieacceptatie volgens §4; bronafbouw nu geaccepteerd.
 
 **Eigenaar:** HA-specialist, firmware voor contract/UI. **Fase klaar als:** native
 bediening en werkelijke profielen met juiste single-writer/status/migratie bewezen.
@@ -335,7 +342,7 @@ bediening en werkelijke profielen met juiste single-writer/status/migratie bewez
 graph-storage/apply/reconnect/readback en capabilityadvertentie; losse validators
 zijn al bewezen in B16. Alleen geadverteerde capaciteit gebruiken, migratie en
 foutatomiciteit controleren; bronkwalificatie en bron-/GUIacceptatie blijven open.
-HA-managed E32-afbouw blijft een aparte bronstap;
+HA-managed E32-afbouw is in bron geaccepteerd; fysieke mode-/migratiecheck open;
 browsercheck hervat bij beschikbare bestaande sessie, blokkeert bronwerk niet [B4,B7].
 
 ### F4 — regelkern en hydraulische supervisor · pending
@@ -589,6 +596,46 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
 - Eerstvolgende parentactie: HA-managed GUIce461a2 onafhankelijk bronreviewen;
   specialist werkt eigen volgende F4/F8/F9software af en herstelt controlpakket.
   Hele11785 en alle fysieke gates blijven open.
+
+### Mark11785/11778 — HA-managed nativeGUI-afbouw + gerichte requestreductie
+
+- [x] Exacte editor/routekaart HA-MANAGED-GUI.md; kamers/programmas/curve/
+  hardware verborgen in werkelijk runtime shadowmode; legacy/generic behouden.
+  Netwerk/setup/MQTT/OTA/reboot/herstel blijven ook zonder statusprobe bereikbaar.
+- [x] Bestaande backend singlewriter/CSRF/update/boardlocks behouden; legacyweer
+  hidden/disabled en opgeslagen object/afwezigheid behouden bij netwerksave.
+  /config/device blokkeert gewijzigde verborgen weather na secretmerge.
+- [x]35echte JSchecks en21nativechecks PASS, incl onbekendemode/recovery,
+  verouderde poll/navigatierace, lazydependencyfailure en configbehoud.
+- [x] Aangetoonde onnodige startupdependency: Chart69199gzipbytes alleen voor
+  curve; nu op expliciet verzoek, deduplicatie en navigatiegrens.
+  Exacte byte/nettovergelijking MANAGED-GUI-PERFORMANCE.json.
+- [x] Onafhankelijke nieuwe echte Chromiumbronpreview vanuit canonical checkout,
+  desktop/mobileviewport PASS;8startupresources, geen Chart tot expliciet verzoek,
+  exact1lazyChartrequest, restart/CSRF/cancel/busy behouden en geen pageErrors.
+  MANAGED-GUI-PARENT-SOURCE-BROWSER.json; geen apparaatverkeer/aanmeldingen.
+- [ ] Live ingelogde TTFB/render/navigation/polls, fysieke modemigratie/
+  instellingen/Marktelefoon, normale build/release/installatie blijven open.
+  Geen subjectieve snelheidsclaim; oude source9resources79/65ms is GEEN E32tijd.
+
+#### Onafhankelijke parentacceptatie GUI11785/11778
+
+- [x] Exacte corepatch cb89e4decfb3dde2c662cb0e0dd2f4b2d159fa697921ae37de9da61c1bcd39e4,
+  alle9niet-WORKBOARDbron-/dochashes vóór parentdocaanvulling matchen manifestce461a2.
+  Targeted hercompile met hostg++/echte cJSON21PASS; daadwerkelijke geleverdeJS35PASS.
+- [x] Voor/na startupbronbytes:37226→40900HTMLbytes,69199gzipbytes Chart uit
+  startup; netto65525bronbytes minder,9→8geïntercepteerde browserresources.
+  DCL75.1/56.6ms in deze bronpreview is GEEN representatieve E32latency of
+  bewezen liveverbetering. MANAGED-GUI-PARENT-PERFORMANCE.json bewaart exacte scope.
+- [ ] Huidige ingelogde E32voor/nameting, build/installatie, modewissel/reboot/
+  fysieke telefoon en gehele F3acceptatie blijven open; sessielimiet niet omzeild.
+- Bewijs: NIGHT-PACKAGE-REVIEW.md, MANAGED-GUI-PARENT-COMMANDS.json,
+  MANAGED-GUI-PARENT-NATIVE.json, MANAGED-GUI-PARENT-JS.tap en bronbrowserJSON
+  in hetzelfde11774dossier. Rollback alleen deze GUIbroncommit; geen liveconfig gewijzigd.
+- Volgende uitvoering: actieve bestaande specialist voltooit eigen emitter/learningwerk
+  en concrete CONTROLreviewcorrectie; daarna F5native dashboard/Recorder-/CSV-/
+  migratiekwaliteit. Parentreview zodra concreet pakket gereed; volgend check15min.
+  Hele11785 blijft gelden; geen tweede eigenaar of algemene herbevestiging.
 
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 

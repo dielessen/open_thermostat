@@ -4,6 +4,7 @@
 #include "DeviceNetworkSettings.h"
 #include "SetupNetwork.h"
 #include "control/HttpAccessPolicy.h"
+#include "control/ManagedDeviceSettings.h"
 #include "control/CaptivePortalPolicy.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "EmbeddedWebAssets.h"
@@ -594,6 +595,9 @@ private:
 		if(cJSON_IsObject(weather)&&oldWeather&&control::stringField(weather,"appid").empty()) {
 			cJSON_DeleteItemFromObjectCaseSensitive(weather,"appid"); cJSON_AddStringToObject(weather,"appid",control::stringField(oldWeather,"appid").c_str());
 		}
+        if(!control::managedWeatherChangeAllowed(controller_.modernMode(),oldWeather,weather)) {
+            server_.send(409,"text/plain","HA-managed mode: legacy weather settings are read-only"); return;
+        }
 		if(mq&&cJSON_IsTrue(control::field(mq,"modern_shadow"))&&
 			(!control::SessionAdmission::validId(control::stringField(mq,"adapter_id"))||
 			(cJSON_IsTrue(control::field(mq,"enabled"))&&(!control::integerField(mq,"brokerPort",1,65535)||control::stringField(mq,"username").empty()||control::stringField(mq,"password").empty())))) {

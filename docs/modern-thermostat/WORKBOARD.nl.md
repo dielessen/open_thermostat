@@ -160,9 +160,23 @@ eigen begrensde bronwijziging; in deze planreconciliatie is niets verwijderd.
   exacttag,138pakketchecks,exactCI-ELF/UIregistry en5echte image-gate/OpenSSLproeven
   onder ASan/UBsan PASS. Publieke API26401B past de bestaande32KiBparser.
   Gepubliceerde app2235296B, SHA579019267fc4f8b6dfb31210d6e37ef471cf275373594277b2e0fce42f97d266.
-- [ ] Na update mobiele én desktopbrowser op echt bord toetsen: login/herladen/
-  twee clients/expiry/logout, interfacegebonden AP en instellingenbehoud.
-  Geen automatische bordinstallatie; alle fysieke ketel-/shadow-/bron-/TXgates open.
+- [x] Mark11746: alpha.4 → alpha.6 app-only via bestaande native GitHub-updater
+  op 20okt22:38–22:40CEST uitgevoerd. Volledige2235296B ontvangen, verificatie/
+  bootselectie en automatische herstart bewezen; live source b6b57df, UI en
+  ELF-identiteit gelijk aan gepubliceerde image. Native boot bevestigd,
+  boot_pending=false, vorige geldige appslot/rollback beschikbaar.
+- [x] Technische HTTP-acceptatie op echt bord:82checks PASS, twee onafhankelijke
+  cookiesessies/login/herladen/assets/CSRF/afzonderlijklogout. Parent controleert
+  echte firmwarehash/ELF, OTA-events en11bytegelijke voor/na-snapshotparen:
+  negen instellingen-/programmareadbacks en twee EMS-readbacks. Geen erase,
+  factory/SPIFFS/NVSreset of HA/broker/EMS/Tadoactie; credentials ongewijzigd.
+- [ ] Echte mobiele én desktopbrowser toetsen: visuele login/navigatie,
+  sluiten/heropenen, zeven dagen expiry en interfacegebonden fysieke AP-proef.
+  HTTP-clients zijn geen telefoon-/desktoprenderingproef. Alle fysieke ketel-/
+  shadow-/bron-/TX-/rollback-/powerlossgates blijven open; geen verwarmingsGO.
+
+Installatiebewijs: [TaskFlow/resultaat](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-e32-alpha6-install-11746-20261020/RESULT.md),
+[onafhankelijke parentcontrole](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-e32-alpha6-install-11746-20261020/PARENT-VERIFICATION.json).
 
 Bestaande credentials blijven; vier boot-lokale sessies, maximaal7dagen absoluut,
 na E32herstart één nieuwe login; geen NVS-tokenopslag. Geen extra dienst.

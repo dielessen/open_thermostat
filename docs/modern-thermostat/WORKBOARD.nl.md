@@ -795,3 +795,29 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   Rollback uitsluitend deze thermalbroncommit terugdraaien; geen runtimedata
   gewijzigd. Eerstvolgende parentactie: comfort-targetpakket onafhankelijk
   toetsen; bestaande specialist voert overige11785software/releasewerk uit.
+
+
+### Mark11785 — F10 comfortdoelbeleid: onafhankelijke bronacceptatie
+
+- [x] Exacte comfort-target-only-core.patch SHA256
+  3c0fe1c2622e769c1fb83eff712869868f3fbe334c1c16e13b4624b4f42fe49e
+  gereviewd; alle4 niet-WORKBOARDbron-/dochashes matchedenef91f12.
+  Werkelijke api1 automatische/tijdelijke/offdoelselectie gecentraliseerd
+  met behoud van bestaande wire-/owner-/outputgrenzen.
+- [x] Nieuwe pure profielgekwalificeerde boost/away/vakantie/presence/window-
+  policy is NIET geadverteerd/toegelaten via huidige api1/HA-GUI. Raam-open/
+  unknown blokkeert boost; ownerloss wist override; monotone/UTCafloop en
+  klokterugloop kunnen verlopen override niet herleven.
+- [x] Canonical hostg++17 strict:41PASS gecombineerd (19thermal +9comfort
+  +13echte ShadowControllerregressies; overlap, niet optellen bij32).
+  Nieuwe actuele firmwarecore hercompileerd voor native HA2026.10.2:
+  14wireinteropPASS, vijf bestaande dependencydeprecaties; geen netwerk/device.
+- [ ] F10 blijft open: actieve graph/wire/HA-GUIfeatureketen, profielen/
+  aanwezigheid/raam/telefoonacceptatie, overige comfort-/DHW-/releasekwaliteit.
+  Dit is bronacceptatie, geen nieuwe fysieke output/installatie/vrijgave.
+- Bewijs11774dossier: THERMAL-COMFORT-PARENT-COMMANDS.json,
+  THERMAL-COMFORT-PARENT-NATIVE.json/log, COMFORT-PARENT-INTEROP-COMMANDS.json
+  en COMFORT-PARENT-INTEROP.xml/log. Rollback alleen deze comfortbroncommit.
+  Eerstvolgende actie: test-only thermal-nativecompatibiliteitsaddon toetsen
+  zonder nieuwe cryptoheaders/linkerinstallatie; gereed F5presentatiepakket
+  daarna onafhankelijk reviewen. Specialist blijft actieve uitvoeringseigenaar.

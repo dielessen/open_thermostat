@@ -1,6 +1,7 @@
 #pragma once
 #include "BoundedJson.h"
 #include "ControlStore.h"
+#include "EffectiveTarget.h"
 #include "Measurement.h"
 #include "ScheduleDocument.h"
 #include "SessionAdmission.h"
@@ -332,8 +333,8 @@ private:
             auto target=std::optional<int16_t>(z.base);
             const char *source="base",*reason="shadow_idle";
             if(z.scheduled) { target=z.schedule.target(utc,clockValid).temperatureCentiC; source="schedule"; }
-            if(z.overrideUntil>now) { target=z.overrideTarget; source="temporary"; }
-            if(z.off) { target.reset(); source="off"; }
+            const auto effective=EffectiveTarget::api1(target,source,z.off,z.overrideTarget,z.overrideUntil,now);
+            target=effective.target;source=effective.source;
             if(!alive) reason="adapter_unavailable";
             else if(!temperature) reason="source_unverified_or_stale";
             else if(!target) reason=z.off?"off":"schedule_time_invalid_or_expired";

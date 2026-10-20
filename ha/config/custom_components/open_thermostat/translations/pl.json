@@ -91,19 +91,30 @@
       "step": {
         "user": {
           "title": "Room bindings",
-          "description": "Choose your own entities. Profile C remains unverified; no device actions.",
+          "description": "Choose a room measurement and its radiator valves. Optional target controls and programs are separate sources. Selecting entities never changes the source device settings or enables actuation.",
           "data": {
             "room_id": "Permanent firmware room ID",
             "name": "Room name",
             "temperature_entity": "Room temperature sensor",
-            "actuator_entities": "Radiator climates (profile C)",
-            "setpoint_entity": "Optional physical setpoint source",
-            "maximum_age_ms": "Maximum qualified sample age (ms)",
-            "schedule_entity": "Optional native Schedule helper",
-            "base_temperature": "Base temperature",
-            "minimum_target_temperature": "Minimalna temperatura zadana pomieszczenia",
-            "maximum_target_temperature": "Maksymalna temperatura zadana pomieszczenia",
-            "program_action": "Week program: save bindings, edit blocks, or remove local program"
+            "actuator_entities": "Radiator valves (TRVs)",
+            "setpoint_entity": "External temperature setting (optional)",
+            "maximum_age_ms": "Maximum qualified measurement age (ms)",
+            "schedule_entity": "Weekly schedule (Home Assistant, optional)",
+            "base_temperature": "Base target temperature",
+            "minimum_target_temperature": "Minimum target temperature",
+            "maximum_target_temperature": "Maximum target temperature",
+            "program_action": "Week program"
+          },
+          "data_description": {
+            "temperature_entity": "Select a separate room-temperature sensor (sensor entity), not the radiator valve, valve position or a target temperature. A TRV can measure differently near the radiator.",
+            "actuator_entities": "Select the climate entities of the radiator valves (TRVs) serving this room. Multiple valves can share one room target. This selection does not by itself enable valve control.",
+            "schedule_entity": "Optional: select an existing Home Assistant Schedule helper. Leave empty to use the local week editor or only the base target. A helper and a local week program cannot be active together.",
+            "setpoint_entity": "Optional: select a wall thermostat or number/climate entity that supplies the desired room target. This is NOT the radiator valve/actuator and NOT a measured temperature. Leave empty for control from Home Assistant without an extra wall device.",
+            "base_temperature": "Room target used in program gaps or when no program or temporary override applies. This field alone does not send a command to the TRV.",
+            "minimum_target_temperature": "Lowest permitted room target, including program blocks; not a boiler-water limit.",
+            "maximum_target_temperature": "Highest permitted room target, including program blocks; not a boiler-water limit.",
+            "maximum_age_ms": "Maximum age of a qualified measurement; 120000 ms = 120 seconds. Not a polling interval. A cached HA state or last_reported alone is not proof of a fresh physical measurement.",
+            "program_action": "Save bindings, edit local time blocks, or explicitly remove the local program. A Home Assistant Schedule helper is an alternative, not a second program source."
           }
         },
         "reconfigure": {
@@ -111,15 +122,27 @@
           "data": {
             "name": "Room name",
             "temperature_entity": "Room temperature sensor",
-            "actuator_entities": "Radiator climates (profile C)",
-            "setpoint_entity": "Optional physical setpoint source",
-            "maximum_age_ms": "Maximum qualified sample age (ms)",
-            "schedule_entity": "Optional native Schedule helper",
-            "base_temperature": "Base temperature",
-            "minimum_target_temperature": "Minimalna temperatura zadana pomieszczenia",
-            "maximum_target_temperature": "Maksymalna temperatura zadana pomieszczenia",
-            "program_action": "Week program: save bindings, edit blocks, or remove local program"
-          }
+            "actuator_entities": "Radiator valves (TRVs)",
+            "setpoint_entity": "External temperature setting (optional)",
+            "maximum_age_ms": "Maximum qualified measurement age (ms)",
+            "schedule_entity": "Weekly schedule (Home Assistant, optional)",
+            "base_temperature": "Base target temperature",
+            "minimum_target_temperature": "Minimum target temperature",
+            "maximum_target_temperature": "Maximum target temperature",
+            "program_action": "Week program"
+          },
+          "data_description": {
+            "temperature_entity": "Select a separate room-temperature sensor (sensor entity), not the radiator valve, valve position or a target temperature. A TRV can measure differently near the radiator.",
+            "actuator_entities": "Select the climate entities of the radiator valves (TRVs) serving this room. Multiple valves can share one room target. This selection does not by itself enable valve control.",
+            "schedule_entity": "Optional: select an existing Home Assistant Schedule helper. Leave empty to use the local week editor or only the base target. A helper and a local week program cannot be active together.",
+            "setpoint_entity": "Optional: select a wall thermostat or number/climate entity that supplies the desired room target. This is NOT the radiator valve/actuator and NOT a measured temperature. Leave empty for control from Home Assistant without an extra wall device.",
+            "base_temperature": "Room target used in program gaps or when no program or temporary override applies. This field alone does not send a command to the TRV.",
+            "minimum_target_temperature": "Lowest permitted room target, including program blocks; not a boiler-water limit.",
+            "maximum_target_temperature": "Highest permitted room target, including program blocks; not a boiler-water limit.",
+            "maximum_age_ms": "Maximum age of a qualified measurement; 120000 ms = 120 seconds. Not a polling interval. A cached HA state or last_reported alone is not proof of a fresh physical measurement.",
+            "program_action": "Save bindings, edit local time blocks, or explicitly remove the local program. A Home Assistant Schedule helper is an alternative, not a second program source."
+          },
+          "description": "Choose a room measurement and its radiator valves. Optional target controls and programs are separate sources. Selecting entities never changes the source device settings or enables actuation."
         },
         "program": {
           "title": "Room week program",

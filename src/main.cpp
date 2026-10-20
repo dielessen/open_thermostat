@@ -10,6 +10,7 @@
 #include <WiFi.h>
 #include <SPIFFS.h>
 #include <ESPmDNS.h>
+#include "update/GitHubUpdate.h"
 #include <TimeHelpers.h>
 #include <logger/Logger.h>
 #include <logger/LoggerSerialSink.h>
@@ -304,6 +305,7 @@ void setup() {
 
 void loop() {
 #ifdef OPENTHERMOSTAT_E32V2
+	heating::update::loop();
 	heating::pollSetupWifi();
 	if (heating::pollBoardNetwork()) {
 		// Common REST/NTP/mDNS startup, once per route/IP change, not in event task.

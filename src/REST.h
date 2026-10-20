@@ -5,6 +5,10 @@
 #include "SetupNetwork.h"
 #include "control/HttpAccessPolicy.h"
 #include "control/CaptivePortalPolicy.h"
+#ifdef OPENTHERMOSTAT_E32V2
+#include "EmbeddedWebAssets.h"
+#include "update/GitHubUpdate.h"
+#endif
 #include "Logging.h"
 
 #include <esp_ota_ops.h>
@@ -119,6 +123,15 @@ public:
 		route("/recovery", HTTP_GET, [this]() { recovery(); });
 
 #ifdef OPENTHERMOSTAT_E32V2
+		route("/updates/status",HTTP_GET,[this] { server_.send(200,"application/json",update::status().c_str()); });
+		route("/updates/check",HTTP_POST,[this] { server_.send(update::checkReleases()?202:409,"text/plain","Releasecontrole vereist thuisnetwerk, geldige tijd en een vrij updatesysteem"); });
+		route("/updates/install",HTTP_POST,[this] {
+			auto body=server_.arg("plain");auto root=control::parseControlJson(std::string_view(body.c_str(),body.length()),true);
+			if(!root||!cJSON_IsObject(root.get())||cJSON_GetArraySize(root.get())!=1||!cJSON_IsString(cJSON_GetObjectItemCaseSensitive(root.get(),"tag"))) {server_.send(400,"text/plain","Eén gecontroleerde release-tag vereist");return;}
+			server_.send(update::installRelease(cJSON_GetObjectItemCaseSensitive(root.get(),"tag")->valuestring)?202:409,"text/plain","Installatie vereist een gecontroleerde release en een vrij updatesysteem");
+		});
+		route("/updates/reboot",HTTP_POST,[this] { server_.send(update::requestReboot()?202:409,"text/plain","Herstart aangevraagd"); });
+		route("/updates/rollback",HTTP_POST,[this] { server_.send(update::requestRollback()?202:409,"text/plain","Herstel vereist een vorige door native OTA gevalideerde firmware"); });
 		route("/setup",HTTP_GET,[this] { serveFile("/setup.html"); });
 		route("/setup/scan",HTTP_POST,[this] {
 			if(!wifiAPMode||boardEthernetStarted) { server_.send(409,"text/plain","Open setup WiFi first"); return; }
@@ -202,6 +215,9 @@ private:
 		if(!deviceAccess.ready()) { server_.send(503,"text/plain","Local access initialization failed"); return false; }
 		if(portal!=control::PortalAccess::Setup&&!server_.authenticate("admin",deviceAccess.password().c_str())) {
 			server_.requestAuthentication(DIGEST_AUTH,"OpenThermostat"); return false;
+		}
+		if(server_.method()!=HTTP_GET&&update::mutationBlocked(server_.uri().c_str())) {
+			server_.send(409,"text/plain","Wacht tot de GitHub-update is afgerond en herstart eerst");return false;
 		}
 		if(controller_.modernMode()&&control::legacyControlWrite(server_.uri().c_str(),method)) {
 			server_.send(409,"text/plain","HA-managed shadow mode: legacy control writer disabled"); return false;
@@ -373,7 +389,11 @@ private:
 		std::ostream payload(&payloadBuf);
 		payload << '{';
 		payload << "\"project\": \""sv << app->project_name << "\","sv;
+#ifdef OPENTHERMOSTAT_E32V2
+		payload << "\"version\": \""sv << embedded::version << "\","sv;
+#else
 		payload << "\"version\": \""sv << app->version << "\","sv;
+#endif
 		payload << "\"date\": \""sv << app->date << "\","sv;
 		payload << "\"time\": \""sv << app->time << "\","sv;
 		payload << "\"idf\": \""sv << app->idf_ver << "\","sv;
@@ -1057,6 +1077,12 @@ button.onclick=()=>{if(!file.files.length){status.textContent='Select spiffs.bin
 	void serveFile(const char *serverPath) {
 #ifdef OPENTHERMOSTAT_E32V2
 		if(!control::safeStaticPath(serverPath)) { server_.send(400,"text/plain","Invalid path"); return; }
+		const auto *asset=embedded::find(serverPath);String assetPath=serverPath;
+		if(!asset){assetPath+=".gz";asset=embedded::find(assetPath.c_str());}
+		if(asset){
+			if(assetPath.endsWith(".gz"))server_.sendHeader("Content-Encoding","gzip");
+			server_.sendView(200,getContentType(assetPath).second,std::string_view(reinterpret_cast<const char*>(asset->bytes),asset->size));return;
+		}
 #endif
 		DBGLOGFD(log_, logFeature_, "Request for: '%s'\n", serverPath);
 
@@ -1111,8 +1137,9 @@ button.onclick=()=>{if(!file.files.length){status.textContent='Select spiffs.bin
 	}
 
 	void handleOTAUpdate() {
-		if(!authorize()) return;
 		HTTPUpload &upload = server_.upload();
+		if(upload.status==UPLOAD_FILE_START) ota_=OTAUpload{};
+		if(!authorize()) {ota_.success=false;ota_.error=ESP_ERR_INVALID_STATE;ota_.errorMessage="Upload not authorized or updater busy";return;}
 
 		if (upload.status == UPLOAD_FILE_START) {
 			auto size = server_.arg("size");
@@ -1218,8 +1245,9 @@ button.onclick=()=>{if(!file.files.length){status.textContent='Select spiffs.bin
 	}
 
 	void handleOTAFFSUpdate() {
-		if(!authorize()) return;
 		HTTPUpload &upload = server_.upload();
+		if(upload.status==UPLOAD_FILE_START) ota_=OTAUpload{};
+		if(!authorize()) {ota_.success=false;ota_.error=ESP_ERR_INVALID_STATE;ota_.errorMessage="Upload not authorized or updater busy";return;}
 
 		if (upload.status == UPLOAD_FILE_START) {
 			auto size = server_.arg("size");

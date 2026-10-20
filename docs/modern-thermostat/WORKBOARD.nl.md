@@ -840,3 +840,18 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   echte native HA-/SQLite-export/migratiechecks; geen productieRecorderwijziging.
   Specialist blijft overige11785software afwerken, inclusief actieve contract-/
   productintegratie en resterende F9/F10/releasechecks. Hele plan blijft actief.
+
+
+#### Vervolg na thermal/comfortparentmerge
+
+- Canonical broncommits4732e33(thermal),0754e4e(comfort),5608478(testcompat);
+  schone technische postcheck vastgelegd in THERMAL-COMFORT-PARENT-POSTCHECK.json.
+- Aan dezelfde specialist concrete volgende F2/F3opdracht aangeboden: graph
+  Store/apply/readback naar begrensde api2-shadowtransport-/nativeGUIketen,
+  gedeelde HA+firmwarefixtures voor persist/readback/boot/session/conflict/
+  reconnect/foutinjectie. Geen nieuwe outputvrijgave of live-uitrol.
+  Followupbc9fe561-ea98-46e8-950b-9d781e386e4e is QUEUED, geen completionbewijs;
+  bestaand actief pakket niet onderbroken. Acceptatie/rollback meegegeven.
+- Parent reviewt eerst gereed F5metrics-presentatie2fb7780. Eigen hervattingsjob
+  behoudt opdracht11785; volgende check15min bevestigd. Softwareplan NIET klaar;
+  fysieke gates blijven ongewijzigd, dus job niet verwijderd.

@@ -41,30 +41,42 @@ backup en herstel worden vóór de eerste erase/flash wél gecontroleerd.
    flashbackups**, vergelijk en bewaar ze privé/off-device. Controleer passende
    originele herstelsoftware, security-status en exacte seriële poort. Stop bij
    afwijkende lezingen of ontbrekende herstelroute. Geen backup in dit testpakket.
+   **Marks expliciete keuze op20oktober:** oorspronkelijke flashbackups worden
+   overgeslagen. Downloadbare firmware herstelt geen oorspronkelijke instellingen;
+   vraag deze al gemaakte keuze bij zijn begeleide test niet opnieuw.
 3. Gebruik de backup/USB-installatieprocedure in
    [de bordhandleiding](../BBQKEES_E32V2.md) en
    [de flashgids](../FLASHING.md). De gecombineerde fabrieksimage hoort op0x0,
    niet in de EMS-ESP-webupdater. Eerst verifiëren met `--after no_reset`, pas
    daarna normaal booten. Een gehele flashvergelijking na eerste boot is ongeldig
    omdat NVS dan al kan veranderen. Deze stappen zijn hier niet uitgevoerd.
-4. Open de fysieke USB-console op115200baud. Daar verschijnen twee unieke
-   apparaatwachtwoorden: setup-wifi en HTTP-gebruiker `admin`. Bewaar ze privé;
-   stuur geen ongeredigeerd seriëel log door. Ze gaan niet naar de netwerklogger.
+4. Deze wifi-herstelbuild gebruikt op uitdrukkelijk verzoek vaste lokale
+   toegangsgegevens: HTTP-gebruiker `admin`, HTTP-wachtwoord `admin`,
+   setup-wifiwachtwoord `openthermostat`. Dit geldt ook als NVS nog oude
+   gegenereerde toegangsgegevens bevat; andere NVS wordt daardoor niet gewist.
+   Een seriële monitor is niet nodig om de wachtwoorden op te zoeken.
 5. Eerste boot zonder wifi begint als **alleen wifi**, zonder Ethernetklok.
    Verbind met `OpenThermostat-xxxxxx`, met het setup-wachtwoord. Open handmatig
-   `http://10.10.10.1/`, log in als `admin` en kies het thuisnetwerk. Er wordt geen
-   automatische captive-portalopening beloofd.
+   `http://10.10.10.1/`, log in en kies het thuisnetwerk. Alleen **2,4GHz** wordt
+   ondersteund (geen5GHz). De scan loopt op de achtergrond; een verborgen SSID
+   kan handmatig worden ingevuld. Er wordt geen automatische captive-portalopening
+   beloofd. ESP32 heeft één wifi-radio: bij verbinden kan het setupkanaal kort
+   wijzigen. Blijf bij het OpenThermostat-netwerk; de pagina hervat de statuscontrole.
 6. Verkeerd wachtwoord: na circa30s verschijnt een fout, opnieuw proberen blijft
    mogelijk binnen het15minutenvenster. Pas na geslaagde verbinding én NVS-readback
-   worden credentials bevestigd. De setup-AP stopt daarna na10s. Noteer het
-   getoonde station-IP en verbind telefoon/laptop weer met het thuisnetwerk.
+   worden credentials bevestigd. Het setupnetwerk blijft beschikbaar tot je op
+   **Afronden en setupnetwerk sluiten** klikt of het15minutenvenster eindigt;
+   geen onverwachte afsluiting na10s. Noteer het getoonde station-IP en verbind
+   telefoon/laptop weer met het thuisnetwerk. De getoonde link opent daar het bord.
+   Een fout opent geen nieuw scan-/verbindingsproces over de nog lopende poging.
 7. Herstel/wifiwijziging: fysieke USB-opdracht `setup` + Enter herstart het bord
    gecontroleerd in wifi-only herstel; er worden geen globale credentials gewist.
    Via ingelogde HTTP kan ook `POST /setup/reenter`. Ethernetklok wordt daarbij
    niet naast wifi aangezet. Een korte netwerkstoring opent geen permanente AP.
 
-De oude alpha.1-handleiding noemt gedeelde voorbeeldwachtwoorden en gelijktijdig
-Ethernet/wifi. Dat beschrijft **die historische release**, niet deze kandidaat.
+De oude alpha.1-handleiding beschrijft **die historische release**, niet deze
+kandidaat. Ethernet en wifi blijven exclusief; AP+STA zijn twee rollen van
+dezelfde wifi-radio, niet wifi naast de GPIO0-Ethernetklok.
 
 ## Rechtstreekse HA-koppeling
 

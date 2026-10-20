@@ -119,12 +119,25 @@ public:
 
 #ifdef OPENTHERMOSTAT_E32V2
 		route("/setup",HTTP_GET,[this] { serveFile("/setup.html"); });
+		route("/setup/scan",HTTP_POST,[this] {
+			if(!wifiAPMode||boardEthernetStarted) { server_.send(409,"text/plain","Open setup WiFi first"); return; }
+			if(setupAttemptUntil) { server_.send(409,"text/plain","Connection attempt in progress"); return; }
+			server_.send(startWifiScan()?202:503,"application/json",("{\"status\":\""+wifiScanState+"\"}").c_str());
+		});
+		route("/setup/scan",HTTP_GET,[this] {
+			pollWifiScan();
+			server_.send(200,"application/json",("{\"status\":\""+wifiScanState+"\",\"networks\":"+wifiScanRows+"}").c_str());
+		});
+		route("/setup/finish",HTTP_POST,[this] {
+			server_.send(finishSetupWifi()?202:409,"text/plain","Finish requires a confirmed saved WiFi connection");
+		});
 		route("/setup/status",HTTP_GET,[this] {
 			auto root=control::objectJson();
 			cJSON_AddStringToObject(root.get(),"status",setupResult.c_str());
 			cJSON_AddBoolToObject(root.get(),"setup_active",wifiAPMode);
 			cJSON_AddBoolToObject(root.get(),"connected",WiFi.isConnected());
 			cJSON_AddStringToObject(root.get(),"station_ip",WiFi.localIP().toString().c_str());
+			cJSON_AddNumberToObject(root.get(),"remaining_seconds",wifiAPMode&&setupUntil>networkNow()?(setupUntil-networkNow())/1000:0);
 			server_.send(200,"application/json",control::printJson(root.get()).c_str());
 		});
 		route("/setup/reenter",HTTP_POST,[this] { server_.send(requestSetupBoot()?202:503,"text/plain","Setup requested; controlled reboot to WiFi-only recovery"); });
@@ -388,6 +401,7 @@ private:
 			server_.send(400,"text/plain","SSID and password required"); return;
 		}
 		config::WiFiConfig cfg{control::stringField(root.get(),"ssid"),control::stringField(root.get(),"password")};
+		if(setupAttemptUntil||wifiScanRunning()) { server_.send(409,"text/plain","Wait for the scan or connection attempt to finish"); return; }
 		if(!trySetupWifi(cfg)) { server_.send(400,"text/plain","Open setup WiFi first; check SSID/password lengths"); return; }
 		server_.send(202,"text/plain","Connecting; settings are saved only after successful connection");
 	}

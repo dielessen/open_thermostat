@@ -1,0 +1,50 @@
+// Executes production SetupNetwork/DeviceAccess/WifiDiscovery functions. Only
+// radio, monotonic clock, filesystem and NVS hardware APIs are deterministic fakes.
+#define OPENTHERMOSTAT_E32V2
+#include "SetupNetwork.h"
+#include <cassert>
+#include <iostream>
+namespace heating {bool boardEthernetStarted=false,wifiAPMode=false;}
+namespace config {WiFiConfig getWiFiConfig(){WiFiConfig cfg;heating::readSetupWifi(cfg);return cfg;}}
+using namespace heating;
+int cases=0;
+void pass(const char* name){++cases;std::cout<<"PASS "<<name<<'\n';}
+void reset(){
+ testNvs::committed.clear();testNvs::handles.clear();testNvs::failCommit.clear();testNvs::corruptRead.clear();
+ WiFi={};testNow=1000;boardEthernetStarted=false;wifiAPMode=false;
+ setupUntil=setupAttemptUntil=setupCloseAt=setupJoinAt=0;setupCandidate={};setupResult="idle";
+ setupRebootRequested=false;wifiScanState="idle";wifiScanRows="[]";wifiScanStarted=0;
+ deviceAccess={};deviceAccess.begin();
+}
+void ap(){assert(startSetupWifi());assert(WiFi.ap);}
+void join(){assert(trySetupWifi({"home","test-pass"}));testNow+=751;pollSetupWifi();}
+void connected(){WiFi.connected=true;WiFi.ip=IPAddress(192,168,1,90);pollSetupWifi();}
+int main(){
+ reset();testNvs::committed["ot_access"]["secret"]={1,2,3};assert(deviceAccess.begin());
+ assert(deviceAccess.password()=="admin"&&deviceAccess.setupPassword()=="openthermostat");assert(testNvs::committed["ot_access"]["secret"].size()==3);pass("requested defaults supersede old access secret without NVS erase");
+ ap();assert(WiFi.modeValue==WIFI_AP_STA&&!WiFi.persist&&!WiFi.reconnect);assert(WiFi.apPassword=="openthermostat");pass("AP+STA established once before any scan/join");
+ int modes=WiFi.modeChanges;assert(startWifiScan());assert(WiFi.scanAsync&&WiFi.scans==1);pollSetupWifi();assert(WiFi.modeChanges==modes&&WiFi.ap&&wifiScanRunning());assert(!trySetupWifi({"home","test-pass"}));pass("async scan keeps HTTP/radio mode and excludes concurrent join");
+ WiFi.rows={{"a\"\\b",-40,6},{"",-30,1},{"second",-65,11}};WiFi.complete=3;pollSetupWifi();
+ assert(wifiScanState=="done");auto parsed=cJSON_Parse(wifiScanRows.c_str());assert(parsed&&cJSON_GetArraySize(parsed)==2);assert(std::string(cJSON_GetObjectItem(cJSON_GetArrayItem(parsed,0),"ssid")->valuestring)=="a\"\\b");cJSON_Delete(parsed);pass("scan results serialize special SSIDs and skip hidden names");
+ reset();ap();WiFi.complete=0;assert(startWifiScan());pollSetupWifi();assert(wifiScanState=="done"&&wifiScanRows=="[]");pass("empty scan is a successful empty result");
+ reset();ap();WiFi.complete=WIFI_SCAN_FAILED;assert(!startWifiScan());assert(wifiScanState=="failed");pass("scan start error is not an empty success");
+ reset();ap();assert(startWifiScan());testNow+=10001;pollSetupWifi();assert(wifiScanState=="failed"&&WiFi.ap);pass("bounded stuck scan leaves setup AP alive");
+ reset();ap();auto before=testNow;assert(trySetupWifi({"hidden","test-pass"}));assert(WiFi.joins==0);pollSetupWifi();assert(WiFi.joins==0);assert(!startWifiScan());assert(!trySetupWifi({"other","test-pass"}));
+ testNow=before+751;pollSetupWifi();assert(WiFi.joins==1&&WiFi.joined=="hidden"&&WiFi.ap&&WiFi.modeChanges==1);pass("join queued after response, scans/duplicate joins fenced");
+ testNow+=30001;pollSetupWifi();assert(setupResult=="connection_failed"&&WiFi.ap&&setupAttemptUntil==0);config::WiFiConfig cfg;assert(!readSetupWifi(cfg));assert(!finishSetupWifi());pass("wrong password does not save or close setup");
+ join();connected();assert(setupResult=="connected_saved"&&readSetupWifi(cfg)&&cfg.ssid=="home");assert(readDeviceNetworkSettings().find("existing")!=std::string::npos&&readDeviceNetworkSettings().find("wifi")!=std::string::npos);pass("retry saves WiFi with readback and preserves network settings");
+ testNow+=11000;pollSetupWifi();assert(WiFi.ap&&setupCloseAt==0);assert(finishSetupWifi());pollSetupWifi();assert(WiFi.ap);testNow+=1501;pollSetupWifi();assert(!WiFi.ap&&WiFi.modeValue==WIFI_STA);pass("AP survives old 10s deadline and closes only after explicit finish");
+ auto durable=testNvs::committed;reset();testNvs::committed=durable;assert(readSetupWifi(cfg)&&cfg.ssid=="home");assert(readDeviceNetworkSettings().find("wifi")!=std::string::npos);pass("accepted WiFi and interface selection survive fresh runtime");
+ reset();ap();testNvs::failCommit="ot_wifi";join();connected();assert(setupResult=="storage_error"&&WiFi.ap&&!finishSetupWifi());assert(!readSetupWifi(cfg));pass("NVS credential commit failure keeps recovery and rejects success");
+ reset();ap();testNvs::failCommit="ot_network";join();connected();assert(setupResult=="storage_error"&&WiFi.ap&&!finishSetupWifi());pass("network-interface commit failure cannot claim handoff success");
+ reset();ap();join();testNvs::corruptRead="ot_wifi";connected();assert(setupResult=="storage_error"&&WiFi.ap);pass("corrupt readback never claims saved connection");
+ reset();ap();join();WiFi.connected=true;WiFi.ip={};pollSetupWifi();assert(setupResult=="connecting");pass("association without DHCP is not successful onboarding");
+ reset();ap();join();WiFi.connected=true;WiFi.joined="different";WiFi.ip=IPAddress(192,168,1,1);pollSetupWifi();assert(setupResult=="connecting");pass("unrelated station connection cannot save candidate credentials");
+ reset();boardEthernetStarted=true;assert(!startSetupWifi()&&!startWifiScan());assert(WiFi.modeValue==0);pass("Ethernet-clock guard prevents powering up WiFi");
+ reset();ap();assert(!trySetupWifi({"","test-pass"})&&!trySetupWifi({"home","short"})&&!trySetupWifi({std::string(33,'x'),"test-pass"}));assert(trySetupWifi({"open",""}));pass("invalid lengths rejected and open-network manual entry supported");
+ reset();ap();testNow=setupUntil+1;pollSetupWifi();assert(!WiFi.ap&&setupResult=="setup_expired");pass("bounded setup window closes normally");
+ reset();ap();join();connected();assert(finishSetupWifi());WiFi.connected=false;testNow+=1501;pollSetupWifi();assert(WiFi.ap&&setupCloseAt==0);pass("station loss during finish grace period preserves recovery AP");
+ reset();ap();join();connected();assert(trySetupWifi({"wrong-new-network","test-pass"}));testNow+=751;pollSetupWifi();testNow+=30001;pollSetupWifi();assert(setupResult=="connection_failed"&&readSetupWifi(cfg)&&cfg.ssid=="home");pass("failed replacement preserves previously accepted credentials");
+ reset();Serial.input="setup\n";pollSetupWifi();assert(setupRebootRequested);setupRebootRequested=false;assert(consumeSetupBoot()&&!consumeSetupBoot());pass("USB recovery flag is durable and one-shot");
+ std::cout<<cases<<" production-code scenarios passed (not RF/hardware proof)\n";
+}

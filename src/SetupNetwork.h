@@ -3,6 +3,8 @@
 #include "DeviceAccess.h"
 #include "config.h"
 #include "Network.h"
+#include "WifiDiscovery.h"
+#include "DeviceNetworkSettings.h"
 #include <WiFi.h>
 #include <nvs.h>
 #include <esp_timer.h>
@@ -11,7 +13,7 @@
 namespace heating {
 extern bool wifiAPMode;
 // These are owned exclusively by the main Arduino loop / its WebServer callbacks.
-inline uint64_t setupUntil=0,setupAttemptUntil=0,setupCloseAt=0;
+inline uint64_t setupUntil=0,setupAttemptUntil=0,setupCloseAt=0,setupJoinAt=0;
 inline config::WiFiConfig setupCandidate;
 inline std::string setupResult="idle";
 inline bool setupRebootRequested=false;
@@ -39,6 +41,18 @@ inline bool saveSetupWifi(const config::WiFiConfig &cfg) {
     }
     cJSON_free(raw); return ok;
 }
+inline bool selectSetupWifiInterface() {
+    // Preserve broker/room settings; explicit WiFi onboarding must not reboot
+    // back into a previously selected Ethernet-only mode.
+    const auto raw=readDeviceNetworkSettings();
+    std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(cJSON_Parse(raw.c_str()),cJSON_Delete);
+    if(!root||!cJSON_IsObject(root.get())) return false;
+    auto item=cJSON_CreateString("wifi"); if(!item) return false;
+    if(cJSON_HasObjectItem(root.get(),"interface_mode")) cJSON_ReplaceItemInObjectCaseSensitive(root.get(),"interface_mode",item);
+    else cJSON_AddItemToObject(root.get(),"interface_mode",item);
+    std::unique_ptr<char,decltype(&cJSON_free)> bytes(cJSON_PrintUnformatted(root.get()),cJSON_free);
+    return bytes&&saveDeviceNetworkSettings(String(bytes.get()));
+}
 inline bool readSetupWifi(config::WiFiConfig &cfg) {
     nvs_handle_t h;
     if(nvs_open("ot_wifi",NVS_READONLY,&h)!=ESP_OK) return false;
@@ -57,41 +71,57 @@ inline bool readSetupWifi(config::WiFiConfig &cfg) {
 inline bool startSetupWifi() {
     if(!deviceAccess.ready()||boardEthernetStarted) return false;
     char ssid[32]; snprintf(ssid,sizeof(ssid),"OpenThermostat-%06llx",static_cast<unsigned long long>(ESP.getEfuseMac()&0xffffff));
-    WiFi.mode(WIFI_AP); WiFi.setSleep(WIFI_PS_NONE);
-    if(!WiFi.softAP(ssid,deviceAccess.setupPassword().c_str())) return false;
+    WiFi.persistent(false); WiFi.setAutoReconnect(false);
+    if(!WiFi.mode(WIFI_AP_STA)) return false;
+    WiFi.disconnect(false,false); WiFi.setSleep(WIFI_PS_NONE);
     const IPAddress local(10,10,10,1);
-    WiFi.softAPConfig(local,local,IPAddress(255,255,255,0));
+    if(!WiFi.softAPConfig(local,local,IPAddress(255,255,255,0))||
+       !WiFi.softAP(ssid,deviceAccess.setupPassword().c_str())) return false;
     wifiAPMode=true; setupUntil=esp_timer_get_time()/1000+15*60*1000;
-    setupCloseAt=0; setupResult="ready"; return true;
+    setupAttemptUntil=setupJoinAt=setupCloseAt=0; setupResult="ready";
+    Serial.printf("Setup WiFi: %s, browser: http://10.10.10.1/ (2.4 GHz home networks)\n",ssid);
+    return true;
 }
 inline bool trySetupWifi(const config::WiFiConfig &cfg) {
-    if(!wifiAPMode||cfg.ssid.empty()||cfg.ssid.size()>32||cfg.password.size()>63||(!cfg.password.empty()&&cfg.password.size()<8)) return false;
+    if(!wifiAPMode||boardEthernetStarted||setupAttemptUntil||wifiScanRunning()||cfg.ssid.empty()||cfg.ssid.size()>32||cfg.password.size()>63||(!cfg.password.empty()&&cfg.password.size()<8)) return false;
     setupCandidate=cfg; setupResult="connecting"; setupCloseAt=0;
-    setupAttemptUntil=esp_timer_get_time()/1000+30000;
-    WiFi.mode(WIFI_AP_STA);
-    WiFi.setAutoReconnect(false); WiFi.disconnect(false,false);
-    WiFi.begin(cfg.ssid.c_str(),cfg.password.c_str()); return true;
+    setupJoinAt=networkNow()+750; setupAttemptUntil=setupJoinAt+30000;
+    setupUntil=networkNow()+15*60*1000;
+    // Reply to POST before association can move the single radio's AP channel.
+    return true;
+}
+inline bool finishSetupWifi() {
+    if(!wifiAPMode||setupResult!="connected_saved"||!WiFi.isConnected()||uint32_t(WiFi.localIP())==0) return false;
+    setupCloseAt=networkNow()+1500; return true;
 }
 inline void pollSetupWifi() {
     if(setupRebootRequested) { delay(250); ESP.restart(); return; }
     const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
-    if(setupAttemptUntil) {
-        if(WiFi.isConnected() && WiFi.SSID().c_str()==setupCandidate.ssid) {
-            const bool saved=saveSetupWifi(setupCandidate);
+    pollWifiScan();
+    if(setupJoinAt&&now>=setupJoinAt) {
+        setupJoinAt=0; WiFi.setAutoReconnect(false); WiFi.disconnect(false,false);
+        WiFi.begin(setupCandidate.ssid.c_str(),setupCandidate.password.c_str());
+    }
+    if(setupAttemptUntil&&!setupJoinAt) {
+        if(WiFi.isConnected() && uint32_t(WiFi.localIP())!=0 && WiFi.SSID().c_str()==setupCandidate.ssid) {
+            const bool saved=saveSetupWifi(setupCandidate)&&selectSetupWifiInterface();
             config::WiFiConfig readback;
             const bool verified=saved&&readSetupWifi(readback)&&readback.ssid==setupCandidate.ssid&&readback.password==setupCandidate.password;
             setupResult=verified?"connected_saved":"storage_error";
             setupCandidate={}; setupAttemptUntil=0;
-            if(verified) { setupCloseAt=now+10000; WiFi.setAutoReconnect(true); }
+            // Keep AP until the user has seen the DHCP address and finishes,
+            // or the bounded setup window expires. No surprise ten-second loss.
+            if(verified) WiFi.setAutoReconnect(true);
         } else if(now>=setupAttemptUntil) {
             setupResult="connection_failed"; setupCandidate={}; setupAttemptUntil=0;
             WiFi.disconnect(false,false);
-            auto previous=config::getWiFiConfig();
-            if(!previous.ssid.empty()) WiFi.begin(previous.ssid.c_str(),previous.password.c_str());
         }
     }
+    if(setupCloseAt&&(!WiFi.isConnected()||uint32_t(WiFi.localIP())==0)) setupCloseAt=0;
     if(wifiAPMode && ((setupCloseAt&&now>=setupCloseAt)||now>=setupUntil)) {
-        WiFi.softAPdisconnect(true); WiFi.mode(WIFI_STA); wifiAPMode=false;
+        if(wifiScanRunning()) { esp_wifi_scan_stop(); WiFi.scanDelete(); wifiScanState="failed"; }
+        setupJoinAt=setupAttemptUntil=0; setupCandidate={};
+        WiFi.softAPdisconnect(false); WiFi.mode(WIFI_STA); wifiAPMode=false;
         if(setupResult!="connected_saved") setupResult="setup_expired";
     }
     // Explicit physical USB recovery, no GPIO0 button (Ethernet clock pin).

@@ -4,7 +4,8 @@
 namespace heating::control {
 // Method/origin decisions separate from Arduino networking for direct tests.
 inline bool allowedHttpMethod(std::string_view path,std::string_view method) {
-    if(path=="/config/reboot"||path=="/setup/reenter"||path=="/setup/network"||path=="/ota"||path=="/otafs") return method=="POST";
+    if(path=="/setup/scan") return method=="GET"||method=="POST";
+    if(path=="/config/reboot"||path=="/setup/reenter"||path=="/setup/network"||path=="/setup/finish"||path=="/ota"||path=="/otafs") return method=="POST";
     if(path=="/config/temporary"||path=="/hardware/test/gpio") return method=="POST"||method=="DELETE";
     if(path.substr(0,17)=="/config/programs/") return method=="GET"||method=="POST"||method=="DELETE";
     if(path.substr(0,8)=="/config/") return method=="GET"||method=="POST";

@@ -4,6 +4,7 @@
 
 #include "Network.h"
 #include "config.h"
+#include "WifiDiscovery.h"
 
 namespace heating {
 
@@ -30,6 +31,9 @@ void getWiFiNetworks(std::ostream &ss) {
 #ifdef OPENTHERMOSTAT_E32V2
 	// Scanning can power up the radio: never do that beside GPIO0 ETH clock.
 	if(boardEthernetStarted) { ss<<"[]"; return; }
+	pollWifiScan();
+	if(!setupAttemptUntil&&!wifiScanRunning()&&(wifiScanState=="idle"||networkNow()-wifiScanStarted>15000)) startWifiScan();
+	ss<<wifiScanRows; return;
 #endif
 	auto noNetworks = WiFi.scanNetworks();
 	std::unique_ptr<cJSON,decltype(&cJSON_Delete)> rows(cJSON_CreateArray(),cJSON_Delete);

@@ -57,6 +57,9 @@ void WiFiGotIP(arduino_event_id_t event, arduino_event_info_t info) {
 	if (WiFi.isConnected()) {
 #endif
 		if (heating::rest) {
+#ifdef OPENTHERMOSTAT_E32V2
+			if(!heating::wifiAPMode)
+#endif
 			heating::rest->restart();
 		}
 
@@ -79,7 +82,12 @@ void WiFiGotIP(arduino_event_id_t event, arduino_event_info_t info) {
 		}
 
 		struct tm timeinfo;
+#ifdef OPENTHERMOSTAT_E32V2
+		// Never hold up setup/status HTTP for the default five-second NTP wait.
+		if (!getLocalTime(&timeinfo,0)) {
+#else
 		if (!getLocalTime(&timeinfo)) {
+#endif
 			DBGLOGFI(heating::logger, appLogFeature(), "Failed to obtain network time. Setting up from RTC\n");
 			heating::setLocalTimeFromRTC(networkConfig.timeZone, networkConfig.ntpUtcOffset, networkConfig.ntpDaylightUtcOffset);
 		}

@@ -1,7 +1,8 @@
 # Losse graph-shadowvalidators — gedeelde testspecificatie
 
 20 oktober2026, basis e16c4e6. **Bron-/testpakket; niet aangesloten op MQTT,
-Store, applyGUI, actuatoren of firmware capabilityadvertentie.** Het is een
+actieve transporten, applyGUI, actuatoren of firmware capabilityadvertentie.
+De afzonderlijke HA Store-transactie hieronder is nu bronmatig geïmplementeerd.** Het is een
 begrensde verdere uitwerking van HA-GRAPH-APPLY-PROPOSAL, geen wijziging van
 actieve TEST-WIRE/api1. valid_shadow_candidate is NIET accepted/applied/ready.
 
@@ -192,3 +193,47 @@ Nieuwe native frames: validate3520B/parse352B/main2336B(testharness). Candidate3
 transition16B/context240B en positieve requested-allocationpeak26973B blijven gelijk;
 grootste geweigerde input31293B. Geen ESP32-/runtimeveiligheidsvrijgave.
 Volledige r2native suite346PASS/1broker-opt-inSKIP, inclusief deze regressies.
+
+
+## Native HA-transactie-increment11774/11785
+
+graph_shadow_storage.py gebruikt de bestaande pure Pythonvalidator; geen nieuwe
+validatorclone, endpoint, scheduler, listener of automatische publish.
+native_graph_journal(hass, entry, reviewed_qualification_digest) maakt expliciet
+één native HA Store/lock per entry, key open_thermostat.graph_shadow.<entry>.
+Deze factory wordt nog NIET door actieve runtime/GUI aangeroepen. De huidige
+api1adapter krijgt dus geen onverwachte nieuwe writer of api2advertentie.
+
+async_stage valideert rawconfig+mapping tegen caller-owned context/anchor en
+freshcapability; slaat één schema1journal met accepted/staged config+mapping op.
+async_apply is alleen expliciet: hercontroleert staged, baseline, Store-readback,
+capabilityleeftijd en sessiegeneratie, await send("ha/config", canonicalenvelope)
+precies eenmaal. De bestaande transport-eigenaar moet later authenticatie,
+lease/highwater/sequence en echte atomic firmwarecommit bieden; de callback in
+tests is GEEN werkelijke broker/applyclaim. Geen automatische retry/rollback.
+
+Capabilityvorm is exact api2/mode shadow_graph, gesorteerde bestaande CAPS,
+exact LIMITS plus controller/boot/epoch/adapter/session/grant/sequence,
+configrevision/digest, mappingrevision/digest, beide outputflags false.
+Geen retaineddocument; ontvangst monotone lokale leeftijd [0,10s).
+Dit is een implementeerbaar broncontract, geen reeds beschikbare advertentie.
+Niet uit GUIcheckbox/inkomend document nieuwe vertrouwde context maken.
+
+async_reconcile accepteert alleen bekende immutable accepted/stagedtuple bij
+verse huidige context+capability en volledige hervalidatie. Staged wordt pas
+accepted na exacte configreadback, niet na ACK. Een oudere acceptedreadback met
+nieuwer staged laat status graph_staged_not_applied. Een onbekende tuple blijft
+mapping_conflict; er wordt niets automatisch teruggeduwd. Reconnect invalidate()
+wist de vluchtige verificatie; geen persistente lease/admission/session.
+verified betekent alleen graph-shadowreadback, outputs_enabled is altijd false.
+
+HA Store is de bestaande native atomic-writegrens. Tests gebruiken de echte
+HA2026.10.2 Store én een tweede Store-object voor diskreadback. Ze bewijzen geen
+ESP32NVS/powerloss/piekheap. Legacy api1journal wordt nooit gelezen/gemigreerd;
+onbekende/hogere storeversie of corruptie wordt niet overschreven.
+Ambigue savefout gooit memorycache weg zodat later geen stil oud rollbackpad
+ontstaat. Sessiewissel tijdens await en capabilityexpiry vóór send blokkeren.
+
+30 gerichte nieuwe tests plus1 bestaande runtimegrens:31PASS; geen netwerk.
+Verder nodig vóór runtimeopt-in: echte firmware api2atomicstorage/readback,
+admission/capabilityproducer, gemeten ESP32budgetten en bron/devicekwalificatie.

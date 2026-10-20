@@ -49,7 +49,7 @@ def test_shared_actual_cpp_matches_all_explicit_fixtures():
 def test_validator_not_imported_by_any_active_runtime_or_api():
     component=ROOT/"ha/config/custom_components/open_thermostat"
     for p in component.glob("*.py"):
-        if p.name=="graph_shadow_validation.py":
+        if p.name in ("graph_shadow_validation.py", "graph_shadow_storage.py"):
             continue
         assert "graph_shadow_validation" not in p.read_text(),p.name
     for p in (ROOT/"src").rglob("*"):

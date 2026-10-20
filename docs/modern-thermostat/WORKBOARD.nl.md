@@ -222,8 +222,9 @@ geen nieuwe productfase, verwarmingsvrijgave of runtime-configuratieschrijver.
   optimalisatie: volle sessies blijven livecontrole blokkeren, geen loginspam.
 - [ ] Build/release/installatie en echte apparaatherstart/instellingenbehoud;
   bronpreview bewijst deze niet. Vier niet-verdringende bootsessies blijven behouden.
-- [ ] F2/F3 graph-storage/apply/reconnect/capability-increment wordt door specialist
-  geïmplementeerd; geen volledige productfase of fysieke vrijgave afgetekend.
+- [x] F2/F3 begrensde HA graph-storage/apply/reconnect/capability-bronincrement
+  onafhankelijk geaccepteerd (31HA-tests); actieve firmware/api2-/GUIverbinding
+  nog open, geen volledige productfase of fysieke vrijgave afgetekend.
 
 Bewijs: [specialistRESULT](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-restart-graph-11774-20261020/RESULT.md),
 [parentreview](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-restart-graph-11774-20261020/PARENT-REVIEW.md),
@@ -496,6 +497,56 @@ Geen garantie dat fysieke of meerdaagse acceptatie in één nacht haalbaar is.
 
 Bestaande softwareautorisatie blijft geldig en is door11785 bevestigd; fysieke
 vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
+
+### Mark11774/11785 — graph native Store/apply/readback-bronincrement
+
+- [x] Native HA Store-journal: immutable mapping+config atomair staged vóór expliciete
+  single-send, volledige gedeelde validator en caller-owned kwalificatieanchor.
+  Eén Store/lock per entry, geen listener/worker/extra service.
+- [x] Strikt api2 shadow_graph-contract: exacte testcapabilities/limieten,
+  boot/session/grant/revision/mapping/configtuple, niet-retained ontvangst <10s,
+  boiler/actuatoroutputflags false. Huidig api1 wordt geweigerd vóór opslag/verzending.
+- [x] ACK is geen applybewijs; verse exacte bekende readback promoveert staged.
+  Verloren ACK/restart/reconnect herstellen geen admission uit opslag. Onbekende
+  remoteconfig wordt conflict, nooit automatisch overschreven/geadopteerd.
+  Sessiewissel tijdens Store-await en verlopen capability vóór send blokkeren.
+- [x] 31 gerichte native HA-checks PASS:30 Store/lifecycle/negatieve scenario's
+  en1 actieve-runtimegrens. Echte HA2026.10.2 Store, afzonderlijke disk-readback,
+  geen broker/device/netwerk. Schrijffout incl ambigu gecommitteerde save,
+  corrupte/legacy/futurejournal, parallel conflict en uitval failclosed.
+- [ ] Nog NIET: api2-wire/runtime-adapterverbinding, GUIapply, firmware-NVS/
+  heap/stack/powerloss/budgetproef, capabilityadvertentie en profieladmission.
+  Dit is een afgebakende HA-transactie-implementatie, niet de gehele F2/F3.
+  Actieve api1runtime, HAconfig/broker en alle fysieke/TX/EMS/actuatorgates blijven.
+- Bewijs/patch: gedeeld dossier open-thermostat-restart-graph-11774-20261020,
+  GRAPH-RESULT.json en graph-only-core.patch. Parent behoudt actuele canonieke
+  WORKBOARD/PLAN en voegt dit resultaat toe; geen oude headers terugzetten.
+
+#### Onafhankelijke parentacceptatie en echte nachtuitvoering
+
+- [x] Canonical hostcheckout op36b10ea schoon vóór wijziging; date -Is en volledige
+  HEAD werkelijk geschreven in NIGHT-RUNTIME-CHECK.txt. WORKBOARD§6, PLAN-gates en
+  actuele specialistRESULT daadwerkelijk gelezen; geen cronstatus als bewijs.
+- [x] Exact graph-only-core.patch SHA256
+  7789848b487603f5ed6228d5f35f8df764c1a8e5030301d3ac0ca2b92d3bee37 gereviewd.
+  Definitieve specialistcommit e4b4b09 (RESULT noemt nog voorganger94cfbf6);
+  alle drie bronhashes matchen GRAPH-RESULT.json. Parent voert vanuit canonical
+  checkout31 gerichte HA2026.10.2/Python3.14.8-tests zelf uit:31PASS,
+  vijf bestaande dependencydeprecatiewaarschuwingen. Geen broker/device/netwerk.
+- [x] Bronpakket samengevoegd via afzonderlijke branch; geen actieve runtime-import,
+  api1writer-, firmware-, productieHA- of fysieke wijziging. Rollback: alleen deze
+  graphbroncommit terugdraaien; geen bestaande configuratie/journal aangeraakt.
+- Bewijs: [hostreceipt](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-restart-graph-11774-20261020/NIGHT-RUNTIME-CHECK.txt),
+  [parentreview](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-restart-graph-11774-20261020/GRAPH-PARENT-REVIEW.md),
+  [native testresultaat](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-restart-graph-11774-20261020/GRAPH-PARENT-NATIVE.xml).
+- Eerstvolgende uitvoering: bestaande specialist is actief aan F5 EMS metrics:
+  GET mag counters niet resetten; stale-powerdeadline, flow/volume en expliciete
+  schattings-/Recordersemantiek. Parentreview zodra pakket gereed; daarna F4/WP06
+  supervisorbron met readiness/postrun/limieten en reproduceerbare foutreplay.
+  Hele11785 blijft gelden; geen tweede eigenaar en geen herhaling restarttests.
+- Huidige hosthervattingsjob:72ec7e68-5c8f-4203-9f0c-fb11fa92e8bf;
+  bronreview afgerond → volgende check15min. Eerdere490a63dc-config hierboven is
+  historisch configuratiebewijs, geen bewijs van uitvoeringssucces.
 
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 

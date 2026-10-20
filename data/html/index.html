@@ -470,12 +470,11 @@
 				return null;
 			}
 
-			let flowTemp = '';
-			let setTemp = '';
-			//		if ([emsStatus.heatingActive, emsStatus.currentFlowTemperature, emsStatus.currentWarmWaterTemperature, emsStatus.selectedFlowTemperature, emsStatus.selectedWarmWaterTemperature].every(function(x) { return x != null;} )) {
-			flowTemp = (emsStatus.warmWaterActive ? (emsStatus.currentWarmWaterTemperature / 10).toFixed(1) : (emsStatus.currentFlowTemperature / 10).toFixed(1));
-			setTemp = (emsStatus.warmWaterActive ? (emsStatus.selectedWarmWaterTemperature).toFixed(1) : (emsStatus.selectedFlowTemperature).toFixed(1));
-			//		}
+			// Protocol metadata can be present before either temperature is available.
+			const flowValue = emsStatus.warmWaterActive ? emsStatus.currentWarmWaterTemperature : emsStatus.currentFlowTemperature;
+			const setValue = emsStatus.warmWaterActive ? emsStatus.selectedWarmWaterTemperature : emsStatus.selectedFlowTemperature;
+			let flowTemp = Number.isFinite(flowValue) ? (flowValue / 10).toFixed(1) : '';
+			let setTemp = Number.isFinite(setValue) ? setValue.toFixed(1) : '';
 
 			let pressure = emsStatus.pressure != null ? (emsStatus.pressure / 10).toFixed(1) : '';
 

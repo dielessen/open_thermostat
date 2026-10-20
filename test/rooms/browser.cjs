@@ -37,9 +37,9 @@ const program=id=>({room_id:id,base_temp:2000,temp_margin_up:5,temp_margin_down:
    }
    if(p==='/') {
     const content=fs.readFileSync(path.join(assets,mode==='catalog'?'room_setup.html':'rooms.html'),'utf8');
-    return route.fulfill({contentType:'text/html',body:`<script src="/deps/jquery.min.js.gz"></script><script src="/deps/bs.bundle.min.js.gz"></script><script src="/deps/bms.min.js.gz"></script><script>const hostName='';function validateResponse(r){if(!r.ok)throw Error(r.statusText);return r;}function validateForm(s){return document.querySelector(s).checkValidity();}</script><div id="roomProgramsPane">${content}</div>`});
+    return route.fulfill({contentType:'text/html',body:`<link rel="stylesheet" href="/deps/bs.min.css.gz"><link rel="stylesheet" href="/deps/bms.min.css.gz"><script src="/deps/jquery.min.js.gz"></script><script src="/deps/bs.bundle.min.js.gz"></script><script src="/deps/bms.min.js.gz"></script><script>const hostName='';function validateResponse(r){if(!r.ok)throw Error(r.statusText);return r;}function validateForm(s){return document.querySelector(s).checkValidity();}</script><div id="roomProgramsPane">${content}</div>`});
    }
-   if(p.startsWith('/deps/'))return route.fulfill({contentType:'application/javascript',body:zlib.gunzipSync(fs.readFileSync(path.join(assets,p)))});
+   if(p.startsWith('/deps/'))return route.fulfill({contentType:p.endsWith('.css.gz')?'text/css':'application/javascript',body:zlib.gunzipSync(fs.readFileSync(path.join(assets,p)))});
    return route.fulfill({status:404,body:'not found'});
   });
   await page.goto('http://opth.test/');
@@ -50,7 +50,8 @@ const program=id=>({room_id:id,base_temp:2000,temp_margin_up:5,temp_margin_down:
  async function until(fn){for(let i=0;i<100;i++){if(fn())return;await new Promise(r=>setTimeout(r,20));}throw Error('condition timeout: '+dialogs.join('\n'));}
  async function noErrors(){assert.deepEqual(errors,[]);}
  try{
-  await start();assert.equal(await page.locator('#physicalRoomEmpty').isVisible(),true);assert.equal(await page.isDisabled('#deletePhysicalRoom'),true);pass('empty installation displays no phantom rooms and disables delete');
+  await start();assert.equal(await page.locator('#physicalRoomLoading').isVisible(),false,'loaded room editor must not retain a spinning loading indicator with shipped Bootstrap CSS');pass('successful room load hides spinner with actual bundled styles');
+  assert.equal(await page.locator('#physicalRoomEmpty').isVisible(),true);assert.equal(await page.isDisabled('#deletePhysicalRoom'),true);pass('empty installation displays no phantom rooms and disables delete');
   await page.click('#addPhysicalRoom');await page.fill('#physicalRoomName','Bathroom');await clickAlert('#savePhysicalRooms','Rooms saved');
   assert.equal(state.catalog.length,1);const id=state.catalog[0].id;assert.match(id,/^[a-f0-9]{8}$/);
   const saved=structuredClone(state.catalog);await start(saved);assert.equal(await page.inputValue('#physicalRoomName'),'Bathroom');pass('add/save/readback/reload retains a stable room ID');

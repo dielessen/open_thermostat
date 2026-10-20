@@ -7,7 +7,10 @@ NODE_PATH=/path/to/node_modules CHROMIUM_PATH=/path/to/chrome node test/rooms/br
 ```
 
 Executes the shipped catalog and program pages with the shipped jQuery,
-Bootstrap and multiselect scripts. HTTP/storage is an explicit independent
+Bootstrap and multiselect scripts and their shipped CSS. The successful-load
+check asserts actual spinner invisibility, not only the presence of a hiding
+class (Bootstrap's later `d-flex!important` can override `d-none!important`).
+HTTP/storage is an explicit independent
 in-memory fixture enforcing room references, not the ESP32 REST server. Covers
 fresh empty state, create/save/readback/reload/rename/delete, dependency cleanup,
 cancel, legacy orphan cleanup, concurrent-change detection, failure and partial

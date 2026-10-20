@@ -81,6 +81,18 @@ jobs:
           path: out/release/
           if-no-files-found: error
           retention-days: 30
+      - name: Preserve exact E32 panic symbols and embedded UI revision
+        if: matrix.environment == 'e32v2'
+        uses: actions/upload-artifact@v4
+        with:
+          name: e32v2-debug-symbols
+          path: |
+            .pio/build/e32v2/firmware.elf
+            .pio/build/e32v2/firmware.map
+            .pio/build/e32v2/embedded-web.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
 
   home-assistant-native:
     runs-on: ubuntu-latest

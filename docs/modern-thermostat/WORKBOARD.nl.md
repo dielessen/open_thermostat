@@ -170,7 +170,14 @@ eigen begrensde bronwijziging; in deze planreconciliatie is niets verwijderd.
   echte firmwarehash/ELF, OTA-events en11bytegelijke voor/na-snapshotparen:
   negen instellingen-/programmareadbacks en twee EMS-readbacks. Geen erase,
   factory/SPIFFS/NVSreset of HA/broker/EMS/Tadoactie; credentials ongewijzigd.
-- [ ] Echte mobiele én desktopbrowser toetsen: visuele login/navigatie,
+- [x] Regressie11751: echte host-Chromium op live alpha.6, zonder netwerkfixtures:
+  root→/login→formulier POST /auth/login→cookie→root en eigen logout PASS in
+  twee onafhankelijke desktop-/mobielviewportcontexten.32requests vastgelegd;
+  onafhankelijke bewijscontrole PASS. GET /auth/login reproduceert exact405;
+  /login werkt. Marks werkelijke URL/browser en oorzaak nog onbekend.
+  [Browserbewijs](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-login-405-11751-20261020/LIVE-BROWSER.json).
+  Geen nieuwe flash of configuratiewijziging; bestaande credentials gebruikt.
+- [ ] Marks echte mobiele én desktopbrowser toetsen: visuele login/navigatie,
   sluiten/heropenen, zeven dagen expiry en interfacegebonden fysieke AP-proef.
   HTTP-clients zijn geen telefoon-/desktoprenderingproef. Alle fysieke ketel-/
   shadow-/bron-/TX-/rollback-/powerlossgates blijven open; geen verwarmingsGO.

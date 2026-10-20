@@ -1,5 +1,6 @@
 // Executes production SetupNetwork/DeviceAccess/WifiDiscovery functions. Only
-// radio, monotonic clock, filesystem and NVS hardware APIs are deterministic fakes.
+// radio, monotonic clock, filesystem, NVS and RNG hardware APIs are deterministic fakes.
+// Fake RNG lifecycle checks are not cryptographic/entropy or real-device proof.
 #define OPENTHERMOSTAT_E32V2
 #include "SetupNetwork.h"
 #include <cassert>
@@ -57,5 +58,8 @@ int main(){
  reset();setupDns.startOk=false;ap();assert(!setupDnsActive&&WiFi.ap);pollSetupWifi();assert(setupDns.polls==0);pass("DNS bind failure retains numeric-URL recovery without claiming DNS active");
  reset();ap();join();connected();assert(finishSetupWifi());WiFi.ip=IPAddress(192,168,1,91);testNow+=8001;pollSetupWifi();assert(WiFi.ap&&!setupCloseAt);assert(finishSetupWifi());testNow+=8001;pollSetupWifi();assert(!WiFi.ap);pass("DHCP address change cancels old deadline and requires a fresh page acknowledgement");
  reset();ap();join();connected();WiFi.joined="other";assert(!setupConnectionReady()&&!finishSetupWifi());pass("unrelated station cannot inherit saved-network success");
+ deviceAccess={};testCrypto::seedFails=true;assert(!deviceAccess.begin()&&!deviceAccess.ready());assert(!testCrypto::entropyEnabled);pass("failed seed fails closed and always disables boot entropy");
+ testCrypto::seedFails=false;deviceAccess={};assert(deviceAccess.begin());auto seeds=testCrypto::enables;auto entropyCalls=testCrypto::entropyCalls;unsigned char random[32]{};assert(deviceAccess.randomBytes(random,sizeof(random)));assert(deviceAccess.begin());assert(testCrypto::enables==seeds&&testCrypto::entropyCalls==entropyCalls&&!testCrypto::entropyEnabled);pass("runtime random and repeated begin never toggle or reseed boot entropy");
+ testCrypto::randomFails=true;assert(!deviceAccess.randomBytes(random,sizeof(random)));testCrypto::randomFails=false;assert(deviceAccess.randomBytes(random,sizeof(random)));pass("native RNG failure is propagated rather than issuing random bytes");
  std::cout<<cases<<" production-code scenarios passed (not RF/hardware proof)\n";
 }

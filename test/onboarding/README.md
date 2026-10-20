@@ -47,3 +47,19 @@ probe paths, canonical host, socket-interface requirement, and the strict AP-onl
 setup allowlist. Production REST applies method/same-origin checks before its
 login exception; normal LAN requests still require digest authentication. Actual
 phone auto-open/mini-browser behaviour must be recorded on hardware.
+
+
+## Session entropy API boundary
+
+firmware.cpp executes production SetupNetwork/DeviceAccess/WifiDiscovery code.
+Only SDK/hardware APIs are deterministic test fakes in include/, including the
+new boot entropy and mbedTLS API boundary used by DeviceAccess.
+
+The three RNG lifecycle checks validate ordering, no runtime entropy-source
+switching, initialization failure and random-call failure propagation. They do
+NOT validate entropy/CSPRNG security. Actual firmware links the pinned ESP32 SDK
+mbedTLS implementation; test/onboarding/include is never in the E32 build path.
+Hardware entropy/boot/phone/desktop acceptance remains a separate device test.
+
+Run the sanitizer compile/execute command from the existing native CI job; no
+production test switch, injected RNG or alternate firmware implementation exists.

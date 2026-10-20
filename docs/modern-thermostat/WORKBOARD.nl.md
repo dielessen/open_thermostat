@@ -147,9 +147,13 @@ eigen begrensde bronwijziging; in deze planreconciliatie is niets verwijderd.
   scenario's PASS. Echte Chromium desktop-/mobielviewportbronpreview PASS,
   NIET fysieke telefoon- of ESP-cookieproef.
 - [x] Normale host-E32build en buildfs zonder compilergeheugenafwijking PASS;
-  bestaande image-/TXverifier +7verifierfoutproeven PASS. Alpha.5 app-only
+  bestaande image-/TXverifier +7verifierfoutproeven PASS. Alpha.6 app-only
   herstelrelease voorbereid; publicatie/werkelijke downloads apart controleren.
-- [ ] Echte publicatie-/downloadacceptatie voor alpha.5 afronden.
+- [x] Alpha.5 CI blokkeerde publicatie wegens ontbrekende native RNG-APIshims.
+  Testgrens hersteld zonder productiecodeafwijking:36onboardingscenario's onder
+  ASan/UBSan PASS; drie nieuwe lifecycle/foutproeven zijn GEEN cryptografiebewijs.
+  Mislukte alpha.5tag blijft onveranderd; herstelversie alpha.6.
+- [ ] Echte publicatie-/downloadacceptatie voor alpha.6 afronden.
 - [ ] Na update mobiele én desktopbrowser op echt bord toetsen: login/herladen/
   twee clients/expiry/logout, interfacegebonden AP en instellingenbehoud.
   Geen automatische bordinstallatie; alle fysieke ketel-/shadow-/bron-/TXgates open.

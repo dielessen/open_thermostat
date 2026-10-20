@@ -1,4 +1,4 @@
-# E32 V2 alpha.5 — Normal web login and independent browser sessions
+# E32 V2 alpha.6 — Normal web login and independent browser sessions
 
 Experimental bench-test prerelease. **Keep EMS disconnected; boiler, TRV and
 GPIO outputs remain blocked. This release is not approved for heating.**
@@ -20,6 +20,11 @@ GPIO outputs remain blocked. This release is not approved for heating.**
 - The earlier Digest implementation's shared challenge nonce can invalidate
   another pending challenge. That mechanism was verified in source; the precise
   mobile incident was not captured and is not claimed as proven root cause.
+
+Alpha.5 was blocked by its CI gate before publication: the native onboarding
+hardware harness needed the new RNG API boundary. Alpha.6 adds explicit test-only
+SDK fakes and failure/lifecycle checks; no firmware security bypass was added.
+The failed alpha.5 tag is retained unchanged, not overwritten.
 
 ## Update
 

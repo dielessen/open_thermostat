@@ -72,14 +72,19 @@ inline bool startSetupWifi() {
     if(!deviceAccess.ready()||boardEthernetStarted) return false;
     char ssid[32]; snprintf(ssid,sizeof(ssid),"OpenThermostat-%06llx",static_cast<unsigned long long>(ESP.getEfuseMac()&0xffffff));
     WiFi.persistent(false); WiFi.setAutoReconnect(false);
+    // HeatingController already initialized Bluetooth. IDF4.4 aborts if STA
+    // modem sleep is disabled alongside BLE. Set the Arduino cached policy
+    // before mode() starts the radio / its asynchronous STA_START handler.
+    // An unchanged policy returns false in Arduino2.0.17; that is not failure.
+    WiFi.setSleep(WIFI_PS_MIN_MODEM);
     if(!WiFi.mode(WIFI_AP_STA)) return false;
-    WiFi.disconnect(false,false); WiFi.setSleep(WIFI_PS_NONE);
+    WiFi.disconnect(false,false);
     const IPAddress local(10,10,10,1);
     if(!WiFi.softAPConfig(local,local,IPAddress(255,255,255,0))||
        !WiFi.softAP(ssid,deviceAccess.setupPassword().c_str())) return false;
     wifiAPMode=true; setupUntil=esp_timer_get_time()/1000+15*60*1000;
     setupAttemptUntil=setupJoinAt=setupCloseAt=0; setupResult="ready";
-    Serial.printf("Setup WiFi: %s, browser: http://10.10.10.1/ (2.4 GHz home networks)\n",ssid);
+    Serial.printf("Setup WiFi: %s, browser: http://10.10.10.1/ (2.4 GHz home networks; BLE coexistence MIN_MODEM)\n",ssid);
     return true;
 }
 inline bool trySetupWifi(const config::WiFiConfig &cfg) {

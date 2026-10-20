@@ -16,7 +16,7 @@ void reset(){
  setupRebootRequested=false;wifiScanState="idle";wifiScanRows="[]";wifiScanStarted=0;
  deviceAccess={};deviceAccess.begin();
 }
-void ap(){assert(startSetupWifi());assert(WiFi.ap);}
+void ap(){assert(startSetupWifi());assert(WiFi.ap);assert(WiFi.bluetoothEnabled&&WiFi.getSleep()==WIFI_PS_MIN_MODEM);}
 void join(){assert(trySetupWifi({"home","test-pass"}));testNow+=751;pollSetupWifi();}
 void connected(){WiFi.connected=true;WiFi.ip=IPAddress(192,168,1,90);pollSetupWifi();}
 int main(){
@@ -46,5 +46,9 @@ int main(){
  reset();ap();join();connected();assert(finishSetupWifi());WiFi.connected=false;testNow+=1501;pollSetupWifi();assert(WiFi.ap&&setupCloseAt==0);pass("station loss during finish grace period preserves recovery AP");
  reset();ap();join();connected();assert(trySetupWifi({"wrong-new-network","test-pass"}));testNow+=751;pollSetupWifi();testNow+=30001;pollSetupWifi();assert(setupResult=="connection_failed"&&readSetupWifi(cfg)&&cfg.ssid=="home");pass("failed replacement preserves previously accepted credentials");
  reset();Serial.input="setup\n";pollSetupWifi();assert(setupRebootRequested);setupRebootRequested=false;assert(consumeSetupBoot()&&!consumeSetupBoot());pass("USB recovery flag is durable and one-shot");
+ reset();WiFi.sleepPolicy=WIFI_PS_NONE;ap();assert(WiFi.modeChanges==1);pass("setup selects BLE-compatible modem sleep before radio start even from disabled policy");
+ assert(startWifiScan());WiFi.complete=0;pollSetupWifi();join();connected();assert(finishSetupWifi());testNow+=1501;pollSetupWifi();assert(!WiFi.ap&&WiFi.bluetoothEnabled&&WiFi.getSleep()==WIFI_PS_MIN_MODEM);pass("Bluetooth-compatible policy survives scan join and station handoff");
+ reset();WiFi.modeOk=false;assert(!startSetupWifi()&&!wifiAPMode&&!WiFi.ap);pass("radio startup failure never advertises setup success");
+ reset();WiFi.apOk=false;assert(!startSetupWifi()&&!wifiAPMode&&!WiFi.ap);pass("SoftAP startup failure never advertises setup success");
  std::cout<<cases<<" production-code scenarios passed (not RF/hardware proof)\n";
 }

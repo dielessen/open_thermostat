@@ -637,6 +637,35 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   migratiekwaliteit. Parentreview zodra concreet pakket gereed; volgend check15min.
   Hele11785 blijft gelden; geen tweede eigenaar of algemene herbevestiging.
 
+
+### Mark11785 — F4/F6 gecorrigeerde supervisor: onafhankelijke bronacceptatie
+
+- [x] Verworpen CONTROL2285b8e niet samengevoegd; exacte gecorrigeerde rollup
+  91fe2f33966b5d7745e8a9dc5f0de5e74e03a506c64b434f1c929b0576c16df4
+  gereviewd. Expliciete withdrawalpolicy per oorzaak, begrensde flow-/pompwait,
+  geen verlenging van eerste naloopdeadline of herleving van ingeperkte intentie.
+- [x] Originele twee parentfoutsequenties onafhankelijk opnieuw gecompileerd:
+  na1uur zonder flow fault/pump0/heat0; bij boilerfault heat0/open1/pump1
+  uitsluitend met nieuwe expliciete synthetische gekwalificeerde nalooppolicy.
+- [x] Canonical hostg++ -Wall/-Wextra/-Werror, echte cJSON/ShadowController:
+  50gerichte nativechecks PASS inclusief aansluitend emitterpakket; tellingen
+  overlappen eerdere pakketten.14native HA2026.10.2-wireinteropchecks PASS
+  tegen nieuw gecompileerde actuele firmwarecore, netwerk verboden;
+  vijf bestaande dependencydeprecaties. Alle9bron-/testhashes matchen manifests.
+- [x] Werkelijke api1 gebruikt baselinehysterese, wist regelgeheugen bij reconnect
+  en toont requested_heat afzonderlijk van hydraulic_profile_unqualified.
+  Alle fysieke outputflags false; geen profieladmission/driver/TXcapability toegevoegd.
+- [ ] Volledige F4/F6 blijven open: graph/wireprofielselectie, lage-last-/vorst-/
+  zomerbeleid, E32build/resources/installatie, minimumflow/stop/powerloss en
+  fysieke veilige mapping/naloopacceptatie. Dit is alleen bronacceptatie.
+- Bewijs11774dossier: CONTROL-EMITTER-PARENT-HASHES.json,
+  CONTROL-EMITTER-PARENT-COMMANDS.json / NATIVE.json,
+  CONTROL-PARENT-CORRECTED-PROBES.json, CONTROL-PARENT-INTEROP.xml;
+  ontwerpgrenzen in MODERN-CONTROL.md en SUPERVISOR-CORRECTION.md.
+  Rollback alleen deze nieuwe controlbroncommit, geen runtime/configdata gewijzigd.
+- Eerstvolgende onafhankelijke bronacceptatie: F4/F8 water-/vloer-/mengerpakket
+  in dezelfde reviewbranch; specialist blijft eigenaar van actieve F9uitvoering.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

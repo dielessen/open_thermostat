@@ -170,7 +170,8 @@ TEST(ShadowRuntime, EightZonesAreBoundedAndDuplicateSensorCannotReplaceAcceptedC
     for(unsigned i=0;i<8;++i) {
         auto z=R"({"actuator_id":"trv)"+std::to_string(i)+R"(","base_centi_c":2100,"max_age_ms":120000,"report_evidence":"physical_report","schedule":null,"sensor_id":"room)"+
             std::to_string(i)+R"(","zone_id":"1234abc)"+std::to_string(i)+R"("})";
-        if(i)zones+=","; zones+=z;
+        if(i) zones+=",";
+        zones+=z;
     }
     Fixture f; f.start(); f.connect(); f.heartbeat(); auto eight=f.configuration(config(1,zones)); f.send("ha/config",eight.get());
     EXPECT_EQ(f.core->revision(),1u); f.connect(); f.heartbeat(); f.now+=3000; f.tick();
@@ -201,4 +202,20 @@ TEST(ShadowRuntime, PubSubClientReceiveBufferReuseCannotEraseSnapshotRetryTopic)
     f.core->receive(topic,printJson(request.get()),f.now,1792368000,true);
     EXPECT_TRUE(f.output.count("fw/config_snapshot"));
 }
+
+TEST(ShadowRuntime, RealDemandIsNotUnqualifiedHydraulicReadinessAndReconnectClearsBand) {
+    Fixture f; f.ready(); auto cold=f.observation(1,19);
+    f.send("ha/observations",cold.get()); auto first=f.state();
+    auto supervisor=field(first.get(),"supervisor");
+    ASSERT_NE(supervisor,nullptr);
+    EXPECT_STREQ(stringField(supervisor,"reason").c_str(),"hydraulic_profile_unqualified");
+    EXPECT_TRUE(cJSON_IsTrue(field(supervisor,"requested_heat")));
+    EXPECT_FALSE(cJSON_IsTrue(field(supervisor,"physical_outputs_enabled")));
+    f.core->disconnected(); f.core->connected(f.now); f.connect(); f.heartbeat();
+    auto band=f.observation(1,21);
+    f.send("ha/observations",band.get()); auto after=f.state();
+    EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(after),"demand")));
+    EXPECT_FALSE(cJSON_IsTrue(field(after.get(),"boiler_output_enabled")));
+}
+
 }

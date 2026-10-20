@@ -3,6 +3,8 @@
 #include "Measurement.h"
 #include "ScheduleDocument.h"
 #include "SessionAdmission.h"
+#include "ZoneRegulator.h"
+#include "HydraulicSupervisor.h"
 #include <algorithm>
 #include <functional>
 #include <set>
@@ -185,6 +187,7 @@ private:
         TemperatureSample sample;
         UtcSchedule schedule;
         bool scheduled=false,off=false,demand=false;
+        ZoneRegulator regulator;
         uint64_t overrideUntil=0;
     };
     struct Configuration { uint32_t revision=0; size_t count=0; std::array<Zone,maximumZones> zones; };
@@ -253,10 +256,11 @@ private:
         e.grantSequence=uintField(o,"grant_sequence"); e.sequence=uintField(o,"sequence"); return true;
     }
     void invalidate() {
+        supervisor_.invalidate();
         admission_.invalidateTransport(); session_=mappingReady_=leaseWasAlive_=false;
         sessionId_.clear(); lastOpen_.clear();
         for(size_t i=0;i<config_->count;++i) {
-            auto &z=config_->zones[i]; z.sample.unavailable(); z.overrideUntil=0; z.off=false; z.demand=false;
+            auto &z=config_->zones[i]; z.sample.unavailable(); z.overrideUntil=0; z.off=false; z.demand=false; z.regulator=ZoneRegulator{};
         }
     }
     void newChallenge(uint64_t now) {
@@ -326,6 +330,7 @@ private:
         const bool alive=session_&&mappingReady_&&!fault_&&admission_.alive(now);
         cJSON_AddBoolToObject(o.get(),"adapter_alive",alive);
         cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",false); cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false);
+        bool requestedHeat=false;
         auto list=cJSON_AddArrayToObject(o.get(),"zones");
         for(size_t i=0;i<config_->count;++i) {
             auto &z=config_->zones[i]; auto row=cJSON_CreateObject(); cJSON_AddItemToArray(list,row);
@@ -340,21 +345,33 @@ private:
             else if(!temperature) reason="source_unverified_or_stale";
             else if(!target) reason=z.off?"off":"schedule_time_invalid_or_expired";
             const bool usable=alive&&temperature&&target;
-            if(!usable) z.demand=false;
-            else if(*temperature<=*target-20) z.demand=true;
-            else if(*temperature>=*target+20) z.demand=false;
+            const auto regulation=z.regulator.step(now,temperature,target,usable);
+            z.demand=regulation.demand;
+            requestedHeat=requestedHeat||z.demand;
             if(z.demand) reason="shadow_demand";
             const auto nullable=[row](const char *key,auto value) { if(value) cJSON_AddNumberToObject(row,key,*value); else cJSON_AddNullToObject(row,key); };
             nullable("temperature_centi_c",temperature); nullable("target_centi_c",target); nullable("sample_age_ms",z.sample.age(now));
             cJSON_AddNumberToObject(row,"sample_state",static_cast<int>(z.sample.state(now)));
             cJSON_AddStringToObject(row,"target_source",source); cJSON_AddBoolToObject(row,"demand",z.demand); cJSON_AddStringToObject(row,"reason",reason);
         }
+        // No installation has been qualified through this api1 contract.
+        // Actual shadow request is visible; it NEVER becomes hydraulic readiness.
+        HydraulicInputs inputs;
+        inputs.adapterAlive=alive; inputs.sourceValid=requestedHeat;
+        inputs.heatDemand=requestedHeat;
+        const auto hydraulic=supervisor_.step(now,inputs);
+        auto status=cJSON_AddObjectToObject(o.get(),"supervisor");
+        cJSON_AddStringToObject(status,"phase",hydraulicPhaseName(hydraulic.phase));
+        cJSON_AddStringToObject(status,"reason",hydraulic.reason);
+        cJSON_AddBoolToObject(status,"requested_heat",requestedHeat);
+        cJSON_AddBoolToObject(status,"physical_outputs_enabled",false);
         send("fw/state/zones",o.get());
     }
     std::string controller_,boot_,owner_,digest_,configBytes_,challenge_,grant_,sessionId_,clientNonce_,lastOpen_;
     ControlStore &store_; Hash hash_; Nonce nonce_; Publish publish_;
     std::unique_ptr<Configuration> config_=std::make_unique<Configuration>();
     SessionAdmission admission_;
+    HydraulicSupervisor supervisor_;
     uint32_t epoch_=0,grantSequence_=0;
     uint64_t challengeUntil_=0,nextHello_=0,nextState_=0,nextGrant_=0,lastNow_=0,sessionStart_=0;
     bool session_=false,mappingReady_=false,connected_=false,fault_=false,leaseWasAlive_=false;

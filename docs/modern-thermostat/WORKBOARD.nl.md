@@ -769,3 +769,29 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   556nativefaultsites zonder leaks; ongewijzigde parentfaultprobe ook PASS.
   Native suite346PASS/1brokerSKIP zowel schone toegepaste patch als mergedcheckout
   (overlap, niet optellen). Geen runtime-import/installatie of fysieke vrijgave.
+
+
+### Mark11785 — F9 thermisch model/optimum-start: onafhankelijke bronacceptatie
+
+- [x] Exacte thermal-only-core.patch SHA256
+  1960714a2af927d9cdfe1b191238fb572cfa44c30500ac96eea3bdc57c6a4831
+  gereviewd; alle6 niet-WORKBOARDbron-/dochashes matchen9281d15.
+- [x] Vanuit canonical checkout werkelijk hostg++17 -Wall/-Wextra/-Werror,
+  echte cJSON/ShadowController en bestaande OpenSSL libcrypto.so.3:32PASS
+  (19model/opslag +13runtime). Geen nieuwe dependency geïnstalleerd.
+  Eerste linkpoging miste alleen ongeversioneerde -lcrypto developmentlink;
+  bestaande versiegebonden library expliciet gelinkt, geen bronwijziging.
+- [x] Standaarddisabled, frozen/shadowadvies;16begrensde runs, minimaal6starts/
+  6dagen/14dagenspan en vergelijkbaar weer/water/kamertemperatuur; robuuste
+  mediaan, geen extrapolatie buiten gemeten stijging of emittervoorlooptijd.
+  Replay-/klok-/gap-/targetfences, afzonderlijke modelcodec max426bytes,
+  expliciete30mincheckpoints, ambiguous-save/storagefault failclosed.
+- [ ] F9 blijft open: actieve graph/wire/model-owner, HAcontrols/status, echte
+  key-/E32resourceacceptatie, cooling/coast/curve en representatieve
+  baseline/comfortreplay plus werkelijke14dagenobservatie. Tests zijn synthetisch.
+  Geen runtime-instantie/capadvertentie, installatie of verwarmingsvrijgave.
+- Bewijs11774dossier: THERMAL-COMFORT-PARENT-PRECHANGE.json,
+  THERMAL-PARENT-COMMANDS.json, THERMAL-PARENT-BUILD.log/NATIVE.json/log.
+  Rollback uitsluitend deze thermalbroncommit terugdraaien; geen runtimedata
+  gewijzigd. Eerstvolgende parentactie: comfort-targetpakket onafhankelijk
+  toetsen; bestaande specialist voert overige11785software/releasewerk uit.

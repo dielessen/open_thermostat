@@ -1,5 +1,6 @@
 #pragma once
 #include "BoundedJson.h"
+#include "ControlStore.h"
 #include "Measurement.h"
 #include "ScheduleDocument.h"
 #include "SessionAdmission.h"
@@ -49,14 +50,6 @@ inline bool canonicalConfig(const cJSON *o) {
     return true;
 }
 
-// Single-key atomic durable store. Native fault-injection stores exercise this
-// interface; ESP implementation uses NVS set_blob/commit, not SPIFFS overwrite.
-class ControlStore {
-public:
-    virtual ~ControlStore()=default;
-    virtual bool load(std::string &bytes)=0; // empty success = never configured
-    virtual bool save(std::string_view bytes)=0; // false => durability ambiguous
-};
 
 class ShadowController {
 public:

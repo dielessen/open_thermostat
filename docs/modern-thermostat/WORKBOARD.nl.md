@@ -197,14 +197,20 @@ en session/configACK; huidige bronroute-/ACLbeperking niet omzeilen [B6].
   volledige native suite onafhankelijk 218PASS/1broker-opt-inSKIP herhaald.
   Broncommit d9d3b00; review en rollback [B13].
 - [x] Native gewenste kamers zonder verplichte TRV en expliciete mode-migratie
-  in bronkandidaat getest [B14], **niet geïnstalleerd**. Oude TRV-roomvorm/IDs/
+  samengevoegd in bron afcf2ed [B14,B15], **niet geïnstalleerd**. Oude TRV-roomvorm/IDs/
   week/bounds en shadowpayload blijven behouden; graph-only rooms blokkeren
   huidige runtime/legacy/transport vóór IO. Native manager/Store en foutatomiciteit
   bewezen; volledige suite239PASS/1bewuste brokerSKIP. Dit is geen toegepast vloerprofiel.
 - [x] Concreet graph capability/revision/apply-**voorstel** en actuele firmwarebudget-
   inventaris opgeleverd [B14]; actuele TEST-WIRE/firmware ongewijzigd. De echte
   huidige C++parser weigert het nieuwe schema zonder oude config te vervangen.
-- [ ] Firmwarecontractreview, gezamenlijke schemas/validators/capabilityadvertentie,
+- [x] Eerste onafhankelijke firmwarecontract-/budgetreview [B15]: versiegrens en
+  fail-closed migratie geaccepteerd als bronbasis, niet als geïmplementeerde api2.
+  31/31 dossierhashes, vijftien afterhashes, reversecheck, acht runnerbronnen/binary
+  en onafhankelijke volledige239PASS/1brokerSKIP; budgetmatrix exact herhaald.
+  Acht kamers×128transities overschrijdt de huidige bytes/nodebudgetten;
+  geen build-/heap-/NVS-/fysieke capaciteit afgetekend.
+- [ ] Gezamenlijke schemas/validators/capabilityadvertentie,
   graph-storage/apply/reconnect en echte device-/veiligheidsvelden implementeren;
   graphdraftlimieten zijn geen bewezen E32capaciteit.
 - [ ] Zichtbare productie-Engelse schermcontrole in bestaande ingelogde browser.
@@ -213,15 +219,16 @@ en session/configACK; huidige bronroute-/ACLbeperking niet omzeilen [B6].
   niet nodig voor deze eerste kamer. Indien gekozen, dezelfde doelwijziging en
   echopreventie van dat profiel bewijzen; R02 blijft een aparte productmogelijkheid.
 - [ ] Centrale/groepsconfig met firmware-capability/revisie/applycontract verbinden;
-  graph-only kamers zonder verplichte TRV en roombindingmigratie, ontbrekende
+  gewenste graph-only kamermigratie is bronwerk hierboven, ontbrekende
   veiligheids-/deviceprofielvelden en fysieke ondersteuning volgens §2/3;
   HA-managed E32bediening opschonen volgens §4.
 
 **Eigenaar:** HA-specialist, firmware voor contract/UI. **Fase klaar als:** native
 bediening en werkelijke profielen met juiste single-writer/status/migratie bewezen.
-**Volgende:** gezamenlijk firmware-capability/revisie/applycontract concretiseren,
-inclusief graph-only kamers en noodzakelijke veiligheids-/deviceprofielvelden;
-daarna bron-/GUIacceptatie van de centrale/graphkandidaat;
+**Volgende:** gedeelde exacte fixtures en pure Python/C++validators voor graph-shadow,
+met totale parser-/schedule-/streambudgetten en expliciete onvolledige bron-/device-
+kwalificatie; nog los van actieve MQTT/Store/applyGUI. Daarna pas gereviewde
+capabilityadvertentie, persistence/reconnect/readback en bron-/GUIacceptatie;
 HA-managed E32-afbouw blijft een aparte bronstap;
 browsercheck hervat bij beschikbare bestaande sessie, blokkeert bronwerk niet [B4,B7].
 
@@ -401,3 +408,8 @@ softwareautorisatie blijft geldig; geen onnodig nieuw algemeen akkoord vragen.
   eerdere suites, niet optellen. Capabilities/schema2 zijn een reviewvoorstel,
   niet geïmplementeerde firmware. Zie [HA-GRAPH-APPLY-PROPOSAL](HA-GRAPH-APPLY-PROPOSAL.nl.md).
   Geen uitrol, fysieke proef of source-/actuator-/ketelvrijgave.
+- **B15:** [parent room-/contractreview en samenvoeging](/home/dielessen/artifacts/open-thermostat-room-contract-parent-20261020/taskflow.md),
+  [firmware-/budgetreview](/home/dielessen/artifacts/open-thermostat-room-contract-parent-20261020/firmware-review.md).
+  Bron afcf2ed;31/31manifest,15afterhashes,8runnerbronnen/binary,reverse/diff PASS;
+  onafhankelijk239nativePASS/1expliciete brokerSKIP. Actieve wire/firmware behouden.
+  Alleen bronacceptatie; qualifiers/validators/apply en fysieke E32acceptatie open.

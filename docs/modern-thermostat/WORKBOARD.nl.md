@@ -17,10 +17,11 @@ transport en actuatie staan uit; een volledig verse bron→E32→ACK-proef ontbr
 - **Gebouwd/getest:** gecontroleerde firmwarebasis, passieve Classicdecoders,
   sessie-/config-/schema-shadowsoftware, HA-kamerbindingsflow, temperatuurgrenzen,
   helpervrije weekeditor, setup/OTA-bronwerk.
-- **Geïnstalleerd:** HA-kamer-/weekeditorpakket; alpha.3-basis op het bord door Mark
-  bevestigd, inclusief beide tabs en instellingenbehoud. Latere read-onlyGET meldt
-  alpha.4, zonder exacte sourceidentiteit of fysieke autorebootproef. Alpha.6 met
-  nieuwe webaanmelding gepubliceerd; installatie/echte browseracceptatie nog open.
+- **Geïnstalleerd:** HA-kamer-/weekeditorpakket; E32 alpha.6 via app-only OTA op
+  20okt22:38–22:40CEST (Mark11746), automatische boot/source/UI/ELF en elf
+  instellingen-/statussnapshotparen bewezen. Authpad in twee Chromiumviewports
+  bewezen; echte telefoon/AP/zevendagen-/volledige UIacceptatie blijft open.
+  Renderfix11751 en herstartknop11774 zijn bronwijzigingen, niet geïnstalleerd.
 - **Nog niet bewezen/geleverd:** fysieke HA/E32-shadowketen, echte actuatorbediening,
   volledige supervisor en centrale weers-GUI, vloer-/klepprofielen, echte EMS-regeling,
   volledige ketelgrafieken, zelfleren en overige comfortfuncties.
@@ -202,6 +203,32 @@ na E32herstart één nieuwe login; geen NVS-tokenopslag. Geen extra dienst.
 Parentbewijs: [authreview](/home/dielessen/artifacts/open-thermostat-web-auth-parent-11732-20261020/RESULT.md).
 API-/sessiebeleid: [AUTH-LOGIN](AUTH-LOGIN.md). Afzonderlijk van GV-R1/GV-R2;
 geen nieuwe productfase, verwarmingsvrijgave of runtime-configuratieschrijver.
+
+### Mark11774/11778 — herstartknop, renderfix en performance · in_progress
+
+- [x] BRON: zichtbare Engelse Restart device-knop met bevestiging, bestaande
+  POST /updates/reboot en sessie+CSRF. Busy/onbevestigde boot/ongeldige status
+  blokkeren; geen reset/configschrijfactie/automatische mutatieretry.
+  Parent diffreview en onafhankelijk 27JS + 20opnieuw gecompileerde C++tests PASS.
+- [x] Echte Chromium BRONpreview desktop en mobielviewport: zichtbare knop,
+  annuleren, busyblokkade, één geïntercepteerde CSRF-POST en metadata-only
+  rootrender zonder pageErrors. Geen apparaatverkeer; negen resources per context.
+  Testharnas decodeert gzipassets vóór Playwright-fulfillment; eerste onjuiste
+  gzipdoorvoer faalde, niet als productfout/PASS geboekt.
+- [x] Publieke performancebaseline: negen GETs, drie per asset; mediane totale
+  laadtijd /login 50.624ms, /login.js 50.572ms, /auth-client.js 65.319ms.
+  Geen bewijs van oorzaak van trage ingelogde pagina's; geen optimalisatieclaim.
+- [ ] Ingelogde apparaatnavigatie/rendering en voor/nameting van eventuele
+  optimalisatie: volle sessies blijven livecontrole blokkeren, geen loginspam.
+- [ ] Build/release/installatie en echte apparaatherstart/instellingenbehoud;
+  bronpreview bewijst deze niet. Vier niet-verdringende bootsessies blijven behouden.
+- [ ] F2/F3 graph-storage/apply/reconnect/capability-increment wordt door specialist
+  geïmplementeerd; geen volledige productfase of fysieke vrijgave afgetekend.
+
+Bewijs: [specialistRESULT](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-restart-graph-11774-20261020/RESULT.md),
+[parentreview](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-restart-graph-11774-20261020/PARENT-REVIEW.md),
+[bronbrowser](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-restart-graph-11774-20261020/RESTART-SOURCE-BROWSER.json).
+Geen live herstart/flash/HA-/broker-/EMS-/Tadoactie of verwarmingsGO.
 
 ## 5. De 11 productfasen — bijgewerkt en afgevinkt waar bewezen
 

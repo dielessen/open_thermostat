@@ -3,6 +3,7 @@
 
 <head>
 	<script src="/auth-client.js"></script>
+	<script src="/device-restart.js" defer></script>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<!-- <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" /> -->
@@ -266,6 +267,8 @@
 					</div>
 				</div>
 			</a>
+			<button type="button" class="btn btn-outline-light btn-sm" id="device-restart" hidden>Restart device</button>
+			<small class="text-light" id="device-restart-status" role="status" aria-live="polite"></small>
 			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavDropdown"
 				aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
 				<span class="navbar-toggler-icon"></span>

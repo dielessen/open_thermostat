@@ -5,8 +5,9 @@
 **Actuele status en enige afvinklijst:** [WORKBOARD.nl.md](WORKBOARD.nl.md).
 WP01/WP02-software, contract-/shadowketen en HA-kamer-/weekeditor zijn gebouwd;
 de kamereditor is in productie-HA geïnstalleerd en technisch geverifieerd.
-Alpha.3-bordbasis is door Mark bevestigd; alpha.4-installatie/automatische reboot
-niet afzonderlijk bewezen. Eerste echte bron→E32→configACK-shadowketen, centrale
+Alpha.6 app-only installatie, automatische herstart en exacte source/UI/ELF zijn
+bewezen (Mark11746); latere renderfix en herstartknop zijn alleen bronwerk.
+Eerste echte bron→E32→configACK-shadowketen, centrale
 weers-/afgiftegroep-/vloer-/regelklepopties en product-/fysieke gates blijven open.
 **Geen normale verwarmingsvrijgave.** HA configureert en bedient; E32 blijft het
 regelbrein. In HA-managed bedrijf verdwijnen overbodige dubbele E32-editors pas

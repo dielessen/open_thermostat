@@ -169,7 +169,7 @@ void firmwareInstalled(){
     state.phase="ready_to_reboot";state.reboot=true;
     rebootTimer.schedule(millis());
 }
-bool requestReboot(){if(busy())return false;rebootTimer.schedule(millis(),1000);return true;}
+bool requestReboot(){if(!manualRebootAllowed(busy(),pendingBoot()))return false;rebootTimer.schedule(millis(),1000);return true;}
 bool requestRollback(){
     if(busy()||pendingBoot())return false;const auto p=previous();if(!p||esp_ota_set_boot_partition(p)!=ESP_OK)return false;
     phase("rolling_back");rebootTimer.schedule(millis(),1000);return true;

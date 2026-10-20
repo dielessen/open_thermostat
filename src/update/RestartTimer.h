@@ -3,6 +3,10 @@
 #include <cstdint>
 
 namespace heating::update {
+inline bool manualRebootAllowed(bool busy,bool pendingBoot) {
+    // Do not interrupt an OTA flash, scheduled restart or unconfirmed new boot.
+    return !busy && !pendingBoot;
+}
 // Shared by the OTA worker and HTTP/main loop. First request wins: polling or
 // duplicate completion cannot postpone a restart. Zero denotes an unarmed timer.
 class RestartTimer {

@@ -22,6 +22,8 @@ simulated HTTP results. Requires maintained Playwright Core plus Chromium:
 ```sh
 CHROMIUM_PATH=/path/to/chrome NODE_PATH=/path/to/node_modules \
   node test/onboarding/browser.cjs
+CHROMIUM_PATH=/path/to/chrome NODE_PATH=/path/to/node_modules \
+  node test/onboarding/network-browser.cjs
 ```
 
 Optional `ONBOARDING_SCREENSHOT` saves a mobile-sized success/handoff screenshot.

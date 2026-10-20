@@ -526,7 +526,42 @@
 			});
 	}
 
-	function loadWiFiSettings() {
+	async function loadWiFiSettings() {
+		// E32 uses the same tested onboarding for both first boot and later
+		// changes. Do not keep a second save/scan form that treats HTTP202 as
+		// failure and cannot show connection/readback results.
+		const card=document.getElementById('WiFiSettings');
+		try {
+			const response=await fetch(hostName+'/setup/status',{cache:'no-store'});
+			if(response.status===404) { loadLegacyWiFiSettings(); return; }
+			if(!response.ok) throw Error('Wifi-status niet bereikbaar');
+			const state=await response.json();
+			card.replaceChildren();
+			const body=document.createElement('div'); body.className='card-body';
+			const title=document.createElement('h5'); title.textContent='Wifi instellen'; body.append(title);
+			const note=document.createElement('p');
+			note.textContent='Gebruik de wifi-installatie voor netwerkscan, verbinding testen en opnieuw proberen. Alleen 2,4 GHz.'; body.append(note);
+			const button=document.createElement('button'); button.type='button'; button.className='btn btn-primary';
+			button.textContent=state.setup_active?'Open wifi-installatie':'Start wifi-installatie (herstart)';
+			button.onclick=async()=>{
+				if(state.setup_active) { window.location.href=hostName+'/setup'; return; }
+				button.disabled=true;
+				try {
+					const started=await fetch(hostName+'/setup/reenter',{method:'POST'});
+					if(!started.ok) throw Error('Starten niet bevestigd');
+					note.textContent='Verbind nu met het wifi-netwerk OpenThermostat-xxxxxx en open http://10.10.10.1/. Opgeslagen thuisnetwerkinstellingen blijven bewaard totdat een nieuwe verbinding is bevestigd.';
+					button.textContent='Setupnetwerk wordt gestart';
+				} catch(e) { note.textContent='Starten niet bevestigd. Controleer de verbinding en probeer opnieuw.'; button.disabled=false; }
+			};
+			body.append(button); card.append(body);
+		} catch(e) {
+			card.replaceChildren();
+			const retry=document.createElement('button'); retry.type='button'; retry.className='btn btn-primary';
+			retry.textContent='Wifi-status opnieuw laden'; retry.onclick=loadWiFiSettings; card.append(retry);
+		}
+	}
+
+	function loadLegacyWiFiSettings() {
 		$("#WiFiSettings *").attr('disabled', true)
 		fetch(hostName + '/config/wifi')
 			.then(validateResponse)

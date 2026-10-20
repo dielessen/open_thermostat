@@ -107,6 +107,8 @@ jobs:
           pio pkg install -e native
           mkdir -p out
           g++ -std=c++20 -O1 -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/shadow_runner.cpp .pio/libdeps/native/cJSON/cJSON.c -o out/shadow-runner
+          gcc -std=c11 -O0 -g -I.pio/libdeps/native/cJSON -c .pio/libdeps/native/cJSON/cJSON.c -o out/graph-cjson.o
+          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_validation_runner.cpp out/graph-cjson.o -ldl -o out/graph-validation-runner
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'

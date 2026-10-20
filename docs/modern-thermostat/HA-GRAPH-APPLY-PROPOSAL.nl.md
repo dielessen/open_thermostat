@@ -204,3 +204,12 @@ niet verkorten zonder zichtbare productkeuze.
 5. Fysieke bron/device/doorstroming/stop/uitvalacceptatie blijft eigen latere poort.
 Geen Markinput vereist voor bovenstaande bronreview; onbekende installatiefeiten
 worden later gericht ingevuld, niet nu verzonnen.
+
+
+## Vervolg e16c4e6: losse validator-testsubset
+[GRAPH-SHADOW-VALIDATORS](GRAPH-SHADOW-VALIDATORS.nl.md) specificeert een eerste
+pure Python/C++testsubset en de expliciete vereiste sources/devices/installation-
+manifesten. Dit breidt qualification in het reviewvoorstel uit; het oude
+null/onvolledige voorbeeld wordt expliciet geweigerd. Geen actieve wirewijziging.
+De bredere gewenste GUI/graph blijft onvolledig/unapplied; nieuwe valide
+synthetische kandidaten zijn geen werkelijk accepted/applied deviceconfig.

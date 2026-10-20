@@ -210,6 +210,14 @@ en session/configACK; huidige bronroute-/ACLbeperking niet omzeilen [B6].
   en onafhankelijke volledige239PASS/1brokerSKIP; budgetmatrix exact herhaald.
   Acht kamers×128transities overschrijdt de huidige bytes/nodebudgetten;
   geen build-/heap-/NVS-/fysieke capaciteit afgetekend.
+- [x] Eerste LOSSE gedeelde graph-shadowvalidators in bronkandidaat [B16]:
+  pure Python/C++,98identieke rawfixtures (6synthetisch compleet/92negatief),
+  kwalificatie-/hash-/revision-/resourcebudgetchecks en echte native allocatie-
+  metingen. Volledige actuele native suite346PASS/1broker-opt-inSKIP.
+  Testlayout1kamer/1ongemengde vloer/1binaire klep/8transities/7streamrollen;
+  geen firmwarecapaciteitsclaim. NIET geïnstalleerd/geadverteerd/aangesloten.
+  r2sluit GV-R1typed-channelcontrole en GV-R2RAII-ownership af:6exacte parent-
+  regressies +556echte cJSONfaultsites zonder leaks; geen partiële kandidaat.
 - [ ] Gezamenlijke schemas/validators/capabilityadvertentie,
   graph-storage/apply/reconnect en echte device-/veiligheidsvelden implementeren;
   graphdraftlimieten zijn geen bewezen E32capaciteit.
@@ -413,3 +421,10 @@ softwareautorisatie blijft geldig; geen onnodig nieuw algemeen akkoord vragen.
   Bron afcf2ed;31/31manifest,15afterhashes,8runnerbronnen/binary,reverse/diff PASS;
   onafhankelijk239nativePASS/1expliciete brokerSKIP. Actieve wire/firmware behouden.
   Alleen bronacceptatie; qualifiers/validators/apply en fysieke E32acceptatie open.
+
+
+- **B16:** [losse gedeelde graph-shadowvalidators en gemeten native budget](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-graph-validator-r2-20261020/RESULT.md).
+  Basis e16c4e6; zie [exacte testspecificatie](GRAPH-SHADOW-VALIDATORS.nl.md).
+  Pure bronacceptatie346PASS/1broker-opt-inSKIP; gedeelde fixtures zitten in die
+  telling. Geen nieuwe MQTT/Store/applyGUI/capadvertentie, geen actieve profielen,
+  ESP32heap/NVS/latencybewijs of fysieke GO. Parentreview/merge nog apart.

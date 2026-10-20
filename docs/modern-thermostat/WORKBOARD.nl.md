@@ -181,10 +181,13 @@ en session/configACK; huidige bronroute-/ACLbeperking niet omzeilen [B6].
   persistente IDs en helpervrije weekeditor in test-HA GUI/API getest [B4].
 - [x] Exact negen Engelse bestanden in productie-HA geïnstalleerd, configcheck
   en één Coreherstart, hashes/bindings/offstatus onafhankelijk gecontroleerd [B7].
-- [x] Eerste centrale HA-configuratiebronpakket als **niet-geïnstalleerde kandidaat**:
+- [x] Eerste centrale HA-configuratiebronpakket **samengevoegd in bron, niet geïnstalleerd**:
   native centrale draft-subentry, 9-puntscurve/buitenbron/stalebeleid en pure
   groep-/actuator-/mengerdeclaraties gevalideerd; 107 gerichte native tests PASS [B10].
   Status expliciet draft_not_applied; geen nieuwe actieve wirekeys/E32-uitvoering.
+  Parent: 18/18 dossierhashes en exacte negen bronbestanden gecontroleerd;
+  106 relevante native tests onafhankelijk opnieuw PASS (overlap, niet optellen).
+  Broncommit c23bae2; review en rollback [B11].
 - [ ] Zichtbare productie-Engelse schermcontrole in bestaande ingelogde browser.
 - [ ] Eén echt sensor-/actuatorprofiel en HA-doel inclusief fouten/toegepaste
   firmwarestatus aantonen; geen fysieke TRVactie geclaimd. Een wandapparaat is
@@ -195,7 +198,8 @@ en session/configACK; huidige bronroute-/ACLbeperking niet omzeilen [B6].
 
 **Eigenaar:** HA-specialist, firmware voor contract/UI. **Fase klaar als:** native
 bediening en werkelijke profielen met juiste single-writer/status/migratie bewezen.
-**Volgende:** centrale/groepsconfig en afbouw als begrensde bronpakketten voorbereiden;
+**Volgende:** native groeps-/profiel-GUI op de samengevoegde centrale draftbasis;
+gezamenlijk E32 capability-/revisie-/applycontract en afbouw blijven aparte bronstappen;
 browsercheck hervat bij beschikbare bestaande sessie, blokkeert bronwerk niet [B4,B7].
 
 ### F4 — regelkern en hydraulische supervisor · pending
@@ -355,3 +359,6 @@ softwareautorisatie blijft geldig; geen onnodig nieuw algemeen akkoord vragen.
 - **B10:** [Mark11706/11709 centrale configuratiebronpakket](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-heating-config-11706-20261020/RESULT.md).
   Getoetst tegen exact ea54c256-archief; centrale native draftflow+validatiebasis,
   geen productie-installatie, volledige groeps-/profiel-GUI, transportcontract of fysieke support.
+- **B11:** [parent bron-/contractreview en samenvoeging](/home/dielessen/artifacts/open-thermostat-heating-config-parent-20261020/taskflow.md).
+  Broncommit c23bae2, 18/18 manifestchecks, negen afterhashes en reversecheck PASS;
+  106 relevante native HA-tests onafhankelijk herhaald. Geen nieuwe installatie of fysieke acceptatie.

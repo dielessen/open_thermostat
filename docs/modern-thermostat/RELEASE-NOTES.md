@@ -1,44 +1,39 @@
-# E32 V2 alpha.4 — Automatic restart after firmware update
+# E32 V2 alpha.5 — Normal web login and independent browser sessions
 
 Experimental bench-test prerelease. **Keep EMS disconnected; boiler, TRV and
 GPIO outputs remain blocked. This release is not approved for heating.**
 
-- After a successful GitHub firmware install or manual app upload, the E32
-  schedules its own restart after three seconds. No second confirmation or
-  open browser is required. Failed updates do not schedule a restart; an active
-  GitHub flash worker cannot be interrupted by the restart timer.
-- The updater shows automatic restart, polls for the installed version and
-  reloads the matching UI on version readback. SPIFFS behavior is unchanged.
-- **Updating FROM alpha.3 or earlier still requires one manual restart**:
-  that installation runs the old updater. Automatic restart applies to updates
-  performed by alpha.4 onward.
-- Preserves the alpha.3 Rooms spinner repair with the
-  shipped Bootstrap CSS. The previous alpha.2 did not contain this correction.
-- Rooms and Programs initial configuration reads time out after 10 seconds;
-  failed reads show an error and explicit retry instead of endless loading or
-  automatic program retry loops. Retry does not modify saved configuration.
-- Regression coverage includes the actual combined tab page, real bundled CSS,
-  initial request failures, recovery and nonresponding request timeouts.
-- No changes to Home Assistant entity bindings, MQTT transport, room/program
-  storage format, regulation, hardware profile or output safety blocks.
+- The local E32 web interface now opens an ordinary English sign-in page instead
+  of the browser's HTTP authentication dialog. Existing configured credentials
+  and stored room/program/network settings are unchanged.
+- Desktop and mobile can keep independent sessions. The browser stays signed in
+  for up to seven days on the same running boot; a device restart requires one
+  new form login. Four independent browsers can be active without evicting each
+  other; signing out affects only that browser.
+- Native cookies are host-only, HttpOnly and SameSite=Strict. Configuration and
+  upload mutations also require a session-specific CSRF proof. No session tokens
+  are written to NVS, no extra service is introduced and failed writes are never
+  automatically replayed.
+- The existing physical-interface-only setup exception, firmware/update recovery,
+  HA-managed writer fences, method/origin checks and output/TX locks remain.
+- The version endpoint now reports the actual embedded source commit and UI hash.
+- The earlier Digest implementation's shared challenge nonce can invalidate
+  another pending challenge. That mechanism was verified in source; the precise
+  mobile incident was not captured and is not claimed as proven root cause.
 
-Inherited from earlier releases:
+## Update
 
-- Check/select compatible GitHub releases from the authenticated device UI.
-- User-started HTTPS download, exact size/board/source/UI checks, SHA256 and
-  native inactive-slot OTA with independent flash readback before boot selection.
-- Web interface travels in the app image: ordinary updates no longer replace
-  SPIFFS, rooms, programs or NVS settings. No credentials are embedded.
-- Previous VALID-slot recovery and bounded native boot-health
-  confirmation. Physical update/rollback/power-loss acceptance remains open.
-- Includes WiFi/Bluetooth modem-sleep repair, captive portal, automatic setup AP
-  handoff, room lifecycle and legacy HA room-presence repairs from prior tests.
+Use the existing device updater to select this compatible testrelease, or upload
+only `firmware.bin` from this release. The web interface is embedded in the app.
+**Do not erase flash, install the factory image or upload SPIFFS for this update.**
+Existing alpha.4 schedules its own restart after a successful app update; earlier
+versions may still need one manual restart. No automatic installation is performed
+by publishing this release.
 
-**Existing OpenThermostat E32 V2 test installation:** upload the standalone
-`firmware.bin` once using its existing Firmware upload, then reboot. Do not
-upload SPIFFS or erase flash for this transition. Use the matching 16MB layout.
-`e32v2-update.json` / `RELEASE-SHA256SUMS.txt` identify the exact app bytes.
+Software/build and simulated-browser tests are not real phone/desktop acceptance.
+After updating, verify both browsers, settings retention and independent logout.
+Keep the device disconnected from EMS and retain the previous immutable release.
 
-The ZIP also contains a separate `e32v2-factory.bin` for CLEAN USB installations
-at 0x0. **That route deletes settings; never use the factory image as app OTA.**
-Read `docs/modern-thermostat/GITHUB-UPDATES.nl.md` for procedure and limits.
+Normal local HTTP is unchanged; this release does not add TLS. Use the device on
+your trusted local network. Remote API clients must migrate from Digest to the
+cookie/CSRF API documented in AUTH-LOGIN.md. HA MQTT contracts are unchanged.

@@ -2,13 +2,13 @@
 
 ## Observed, not inferred
 
-Read-only native HTTP GET window: **2026-10-20 19:24:10.610–19:24:10.940 UTC** (21:24 CEST), E32 `192.168.1.206`.
+Read-only native HTTP GET window: **2026-10-20 19:24:10.610–19:24:10.940 UTC** (21:24 CEST), the owner's local E32.
 
 - Anonymous `/status/version`: HTTP401, `WWW-Authenticate: Digest realm="OpenThermostat"`; **not Basic**.
 - Proper standard Python `HTTPDigestAuthHandler`: `/status/version`, `/config/device`, `/config/rooms` all200. The already configured owner-selected login was accepted. No credential values reproduced here.
 - Runtime version label: `v0.1.0-e32v2-alpha.4`. GET version SHA256 `fddb73844e50612470cb94277e0fd077a3f6d0ee2274c963b6c432be2fb31e46`. Public release metadata independently reports that tag published2026-10-20T12:10:08Z.
 - The current endpoint also reports SDK-looking project/date metadata (`arduino-lib-builder`, March2024). It does **not** expose a trustworthy source commit; do not label the running binary e16c4e6 or this candidate.
-- Native device config GET is privately snapshotted, not printed; SHA256 `2fce65b8386a10a655c56eeb024db5e5caa70f6018512ed8a2830813d84ee279`. Only scoped public facts: `modern_shadow=false`; room catalog `[]`. Settings and credentials were not changed.
+- Native device/settings GETs were privately snapshotted. Network addresses, config fingerprints and private settings are excluded from this public source document. Settings and credentials were not changed.
 
 ## Proven source mechanism; mobile incident still unproven
 

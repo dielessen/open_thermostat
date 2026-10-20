@@ -134,22 +134,31 @@ eigen begrensde bronwijziging; in deze planreconciliatie is niets verwijderd.
 - [ ] Nieuwe release en fysieke gebruikerscheck apart uitvoeren. Geen extra
   firmwareflash of productieonderhoud uitsluitend vanwege dit document.
 
-### Afzonderlijke open vervolgtaak — login Mark11732/11734
+### Afzonderlijke bronreparatie — webaanmelding Mark11732/11734
 
-- [ ] **Mark11732 login-/sessie-UX:** normaal loginvenster met blijvende sessie
-  als gewenste richting vastgelegd (parentterugmelding Telegram11734).
-  Eerst afzonderlijke bron-/runtimegebonden diagnose; oorzaak nog NIET bewezen.
-- [ ] Authbronfix met eigen doel/baseline/diff/tests/rollback en handoff opleveren,
-  gescheiden van graphvalidator-GV-R1/GV-R2. Sessieduur, herstel/logout en
-  beveiligingssemantiek niet uit de wens afleiden of stil verzwakken.
-- [ ] Afzonderlijke scherm-/productacceptatie na bronreview; deze tracking is
-  geen productie-installatie/herstart of authconfig-/apparaatwijziging.
+- [x] Afzonderlijke auth-/settingsbaseline read-only vastgelegd: 20okt19:24UTC,
+  bordversielabel alpha.4, Digest-login via correcte native client werkt.
+  Exact draaiend sourcecommit ontbreekt; mobiele rootcause NIET bewezen.
+- [x] Native Engels loginformulier, onafhankelijke begrensde browsersessies,
+  CSRF/logout en app-/jQueryfragment-/upload-/recoverybronpad gebouwd. Instellingen,
+  fysieke AP-interfacecheck, HA-writer-/update-/EMS-/TXlocks behouden.
+- [x] Onafhankelijke parentreview: 61dossierhashes,13before/afterhashes,233andere
+  bronpaden behouden;170nativePASS (inclusief18gerichte),15JS en19updaterbrowser
+  scenario's PASS. Echte Chromium desktop-/mobielviewportbronpreview PASS,
+  NIET fysieke telefoon- of ESP-cookieproef.
+- [x] Normale host-E32build en buildfs zonder compilergeheugenafwijking PASS;
+  bestaande image-/TXverifier +7verifierfoutproeven PASS. Alpha.5 app-only
+  herstelrelease voorbereid; publicatie/werkelijke downloads apart controleren.
+- [ ] Echte publicatie-/downloadacceptatie voor alpha.5 afronden.
+- [ ] Na update mobiele én desktopbrowser op echt bord toetsen: login/herladen/
+  twee clients/expiry/logout, interfacegebonden AP en instellingenbehoud.
+  Geen automatische bordinstallatie; alle fysieke ketel-/shadow-/bron-/TXgates open.
 
-Bewijs/taak: [logintracking11732](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-auth-11732-tracking-20261020/TRACKING.md).
-Eigenaar: parent houdt canoniek werkbord/taakbrief; bronfix apart specialistpakket.
-Oorspronkelijke11732opdracht uit sanitized history hersteld; afzonderlijke
-specialistfollowup330ce07f geaccepteerd, resultaat nog open. Geen tweede uitvoering.
-Validatorreview kan onafhankelijk afgerond worden; geen tweede loginuitvoering.
+Bestaande credentials blijven; vier boot-lokale sessies, maximaal7dagen absoluut,
+na E32herstart één nieuwe login; geen NVS-tokenopslag. Geen extra dienst.
+Parentbewijs: [authreview](/home/dielessen/artifacts/open-thermostat-web-auth-parent-11732-20261020/RESULT.md).
+API-/sessiebeleid: [AUTH-LOGIN](AUTH-LOGIN.md). Afzonderlijk van GV-R1/GV-R2;
+geen nieuwe productfase, verwarmingsvrijgave of runtime-configuratieschrijver.
 
 ## 5. De 11 productfasen — bijgewerkt en afgevinkt waar bewezen
 

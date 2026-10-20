@@ -85,6 +85,10 @@ configuratie of bestaande EMS-ESP-entiteiten. HA-doelversie2026.10.2/Python3.14.
 Installatie van de meegeleverde integratie en apparaatbesturing worden pas tijdens
 de afgesproken test uitgevoerd; niets is hier in productie geïnstalleerd.
 
+Voorbereiding, native auth/ACL-checks en de bronroutegrens staan in
+[de testinfrastructuurprocedure](TEST-INFRA.nl.md). Een werkende lege test-HA
+is nog geen bewijs van de echte badkamerbron of E32-shadowketen.
+
 1. Voeg de integratie toe in expliciete v1/shadowmodus. Noteer de HA-adapter-ID.
 2. In de E32-netwerkpagina: kies wifi of Ethernet (pas actief na herstart), eigen
    brokercredentials, unieke prefix/client-ID en moderne HA-teststand. Kopieer

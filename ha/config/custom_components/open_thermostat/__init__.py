@@ -81,6 +81,9 @@ async def async_setup_entry(hass, entry):
     if mode == MODE_LEGACY:
         result = await _legacy_setup_entry(hass, entry)
         if result:
+            from .metrics_reports import async_register_entry, async_unregister_entry
+            async_register_entry(hass, entry)
+            entry.async_on_unload(lambda: async_unregister_entry(hass, entry.entry_id))
             entry.async_on_unload(entry.add_update_listener(_async_options_updated))
         return result
     if mode != MODE_SHADOW:
@@ -112,6 +115,9 @@ async def async_setup_entry(hass, entry):
         await runtime.async_stop()
         hass.data[DOMAIN].pop(entry.entry_id, None)
         raise
+    from .metrics_reports import async_register_entry, async_unregister_entry
+    async_register_entry(hass, entry)
+    entry.async_on_unload(lambda: async_unregister_entry(hass, entry.entry_id))
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     return True
 

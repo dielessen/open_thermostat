@@ -140,11 +140,13 @@ public:
 	void getStatus(std::ostream &ss) const override { getEmsMetrics_(ss); }
 
 	void publishHADiscovery(ib::mqtt::MQTTPublishInterface &publish) override {
-		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy"sv, "Estimated nominal-modulation energy"sv, "totalEnergyUsedKwh"sv, ""sv, "kWh"sv, "total_increasing"sv, "energy"sv, {});
-		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy_warm_water"sv, "Estimated nominal-modulation DHW energy"sv, "warmWaterEnergyUsedKwh"sv, ""sv, "kWh"sv, "total_increasing"sv, "energy"sv, {});
-		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy_heating"sv, "Estimated nominal-modulation space-heating energy"sv, "heatingEnergyUsedKwh"sv, ""sv, "kWh"sv, "total_increasing"sv, "energy"sv, {});
-		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_warm_water_usage"sv, "Integrated reported warm water volume"sv, "warmWaterUsage"sv, ""sv, "L"sv, "total_increasing"sv, "water"sv, ""sv);
-		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_warm_water_avg_flow"sv, "Mean warm water flow (observed intervals)"sv, "warmWaterAvgFlow"sv, ""sv, "L/min"sv, "measurement"sv, ""sv, ""sv);
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy_v2"sv, "Estimated nominal-modulation energy (definition v2)"sv, "totalEnergyUsedKwhV2"sv, ""sv, "kWh"sv, "total_increasing"sv, "energy"sv, {});
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy_warm_water_v2"sv, "Estimated nominal-modulation DHW energy (definition v2)"sv, "warmWaterEnergyUsedKwhV2"sv, ""sv, "kWh"sv, "total_increasing"sv, "energy"sv, {});
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy_heating_v2"sv, "Estimated nominal-modulation space-heating energy (definition v2)"sv, "heatingEnergyUsedKwhV2"sv, ""sv, "kWh"sv, "total_increasing"sv, "energy"sv, {});
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_warm_water_usage_v2"sv, "Integrated reported warm water volume (definition v2)"sv, "warmWaterUsageV2"sv, ""sv, "L"sv, "total_increasing"sv, "water"sv, ""sv);
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_warm_water_avg_flow_v2"sv, "Mean warm water flow (observed intervals) (definition v2)"sv, "warmWaterAvgFlowV2"sv, ""sv, "L/min"sv, "measurement"sv, ""sv, ""sv);
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy_unattributed_v2"sv, "Estimated unattributed energy (definition v2)"sv, "unattributedEnergyUsedKwhV2"sv, ""sv, "kWh"sv, "total_increasing"sv, "energy"sv, {});
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_burner_observed_time_v2"sv, "Observed reported-flame time (definition v2)"sv, "observedBurnerSecondsV2"sv, ""sv, "s"sv, "total_increasing"sv, "duration"sv, {});
 		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_outdoor_temperature"sv, "Outdoor temperature"sv, "outdoorTemperature"sv, ""sv, "°C"sv, "measurement"sv, "temperature"sv, {});
 	}
 
@@ -191,7 +193,7 @@ public:
 		publish.publishAutoDiscoverySensor("ems_status"sv, "opth_boiler_selected_flow_temperature"sv, "Boiler selected flow temperature"sv, "selectedFlowTemperature"sv, ""sv, "°C"sv, "measurement"sv, "temperature"sv, {});
 		publish.publishAutoDiscoverySensor("ems_status"sv, "opth_boiler_current_flow_temperature"sv, "Boiler current flow temperature"sv, "currentFlowTemperature"sv, " / 10"sv, "°C"sv, "measurement"sv, "temperature"sv, {});
 		publish.publishAutoDiscoverySensor("ems_status"sv, "opth_boiler_pressure"sv, "Boiler pressure"sv, "pressure"sv, " / 10"sv, "bar"sv, "measurement"sv, "pressure"sv, {});
-		publish.publishAutoDiscoverySensor("ems_status"sv, "opth_boiler_burner_power"sv, "Boiler burner power"sv, "currentBurnerPower"sv, ""sv, "%"sv, "measurement"sv, "power_factor"sv, {});
+		publish.publishAutoDiscoverySensor("ems_status"sv, "opth_boiler_burner_power"sv, "Reported burner modulation"sv, "currentBurnerPower"sv, ""sv, "%"sv, "measurement"sv, ""sv, {});
 		publish.publishAutoDiscoverySensor("ems_status"sv, "opth_boiler_hot_water_flow"sv, "Boiler hot water flow"sv, "warmWaterFlow"sv, " / 10"sv, "L/min"sv, "measurement"sv, ""sv, {});
 		publish.publishAutoDiscoverySensor("ems_status"sv, "opth_boiler_current_hot_water_temperature"sv, "Boiler current hot water temperature"sv, "currentWarmWaterTemperature"sv, " / 10"sv, "°C"sv, "measurement"sv, "temperature"sv, {});
 		publish.publishAutoDiscoverySensor("ems_status"sv, "opth_boiler_protocol_version"sv, "Boiler protocol version"sv, "protocolVersion"sv, ""sv, ""sv, ""sv, ""sv, "diagnostic"sv);

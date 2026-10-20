@@ -825,6 +825,45 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   behoudt opdracht11785; volgende check15min bevestigd. Softwareplan NIET klaar;
   fysieke gates blijven ongewijzigd, dus job niet verwijderd.
 
+### Mark11785 — F5 grafieken/CSV en expliciete statistiekdefinitie-V2: onafhankelijke bronacceptatie
+
+- [x] Exacte presentatiecorepatch1ab056c4e58bc2aa380148f10ca3c33ace1d0b1805ad7fabfbe50d3dda5cce5c
+  en verplichte V2correctie7c6fb051a955a7d7c4fc619ecd86644e7e1c522b2b2d694e2d75f46b49f2dcdc
+  samen gereviewd. Alle17 finale niet-WORKBOARDbron-/dochashes matchen manifests;
+  corepatches laten docs weg, daarom docs uit exacte immutable specialistcommits
+  gehaald en gehasht, niet uit de actieve mutable kandidaat.
+- [x] Nieuwe JSONvelden én nativeHA-/Discoveryidentiteiten explicietV2; oude
+  rootvelden null, oude eigen registryidentiteiten unavailable/zonder state_class,
+  geen alias naar nieuwe getallen, geen wissen/backfill/automatische migratie.
+  Oude behouden Discoverytemplate krijgt native unknown, niet fallback0.
+  Alleen V2aggregaten; energie, water en gerapporteerde vlamtijd apart.
+- [x] Bestaand opt-in dashboard vijf nativeviews met gemeld/doel/schatting apart;
+  admin-only responseCSV via native Recorder:24u/64eigen entities/5000rijen/1MiB,
+  UTC, formules escaped, zonder attributen/bestanden/DBwrites en expliciete truncatie.
+  Native Repairs en unload/lifecycle; eigen gebruikersdashboards niet aangepast.
+- [x] Vanuit canonical checkout werkelijk hostg++17/echte EMSparser:10nativePASS;
+  nieuwe metrics/tests strict schoon, bestaande parserwaarschuwingen apart bewaard.
+  Native HA2026.10.2/Python3.14.8:45PASS, vijf bestaande dependencydeprecaties,
+  geen skips. Echte tijdelijke SQLiteRecorder, oude/nieuwe histories, registry,
+  adminauth, retainedTemplate/null en CSVchecks; netwerk in HAfixture verboden.
+  Tellingen overlappen eerdere pakketten, niet optellen.
+- [ ] F5 nog open: actieve shadowtelemetry/Sensorplatform (bestaande specialist
+  actief), echte Lovelace-/telefoonvisuals, firmwarebuild/resources/installatie,
+  live retentie/DBgroei/timing en fysieke CV/DHW-/Classic-/meterkwalificatie.
+  Geen productiehistoriek onderzocht of datavervuiling geclaimd; geen deployment.
+- Bewijs11774dossier: METRICS-V2-PARENT-REVIEW.md, HASHES.json, COMMANDS.json,
+  PARSER.log/COMPILE.log/NATIVE.json/log en HA.xml. Eerste testaanroep gebruikte
+  sandboxvenvsymlink en kon niet starten; bestaande bewezen hostinterpreter met
+  sitepackages hergebruikt, geen runtime/dependency gewijzigd.
+- Rollback uitsluitend gecombineerde nieuwe broncommit vóór installatie; geen
+  runtimedata gewijzigd. Na toekomstige uitrol beide namespaces bewaren en
+  eventuele rollback-/historiekdefinitie afzonderlijk beoordelen.
+- Eerstvolgende actie: actuele read-only ModernTransport/Sensorplatformsoftware
+  onafhankelijk reviewen zodra gereed; reeds aangeboden F2/F3graphtransport/GUI
+  en F9coast/curve/replay blijven dezelfde eigenaar. Daarna F4/F6lage-last-/vorst-/
+  zomerbeleid als defaultdisabled/shadowbron met foutreplay; fysieke gates intact.
+  Hele11785 blijft actief, hervatting15min; softwareplan niet voltooid.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

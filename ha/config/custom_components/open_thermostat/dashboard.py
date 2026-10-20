@@ -193,7 +193,7 @@ class RoomDashboard:
         hub_entities = {
             entry.unique_id.removeprefix(f"{self.prefix}_hub_"): entry.entity_id
             for entry in er.async_entries_for_config_entry(registry, self.entry_id)
-            if entry.unique_id.startswith(f"{self.prefix}_hub_")
+            if entry.unique_id.startswith(f"{self.prefix}_hub_") and entry.disabled_by is None
         }
         diagnostic_entities = [
             hub_entities[metric]
@@ -205,6 +205,8 @@ class RoomDashboard:
             for metric in EMS_METRICS
             if metric in hub_entities
         ]
+        ems_entities += [hub_entities[key] for key in hub_entities
+                         if key.endswith("_v2") and key[:-3] in EMS_METRICS]
         polish = self.hass.config.language.lower().startswith("pl")
         rooms_title = "Pomieszczenia" if polish else "Rooms"
         diagnostics_title = "Diagnostyka" if polish else "Diagnostics"
@@ -224,6 +226,75 @@ class RoomDashboard:
                 "title": ems_title,
                 "entities": ems_entities,
             })
+        # Native cards only. Reported selected flow is NOT a controller request,
+        # and burner modulation percentage is NOT measured kW or power factor.
+        def graph(title, keys, hours=24):
+            entities = [{"entity": hub_entities[key], "name": name}
+                        for key, name in keys if key in hub_entities]
+            return ({"type": "history-graph", "title": title,
+                     "hours_to_show": hours, "entities": entities} if entities else None)
+        boiler_cards = [{
+            "type": "markdown",
+            "content": ("EMS observations only: selected flow is the boiler-reported "
+                        "selection, not a proven E32 command. Unknown/stale data is "
+                        "not zero. Raw legacy status may lack per-field freshness; "
+                        "Classic flame/flow and physical operation require separate "
+                        "qualification. No inferred flame or pump state is added."),
+        }]
+        for card in (
+            graph("Reported flow selection and measured flow", (
+                ("boiler_selected_flow_temperature", "Reported selected flow"),
+                ("boiler_current_flow_temperature", "Reported current flow"))),
+            graph("Reported burner modulation (%) — not kW", (
+                ("boiler_burner_power", "Reported modulation (%)"),)),
+            graph("Reported CV / DHW / flame / pump", (
+                ("boiler_heating_active", "Reported CV"),
+                ("boiler_hot_water_active", "Reported DHW"),
+                ("boiler_burner_active", "Reported flame bit"),
+                ("boiler_pump_active", "Reported pump bit"))),
+        ):
+            if card:
+                boiler_cards.append(card)
+        analysis_cards = [{
+            "type": "markdown",
+            "content": ("Energy values below are boot-local nominal-modulation "
+                        "ESTIMATES, not gas/heat meters. Water volume integrates "
+                        "reported flow over observed intervals. Unknown intervals "
+                        "are not extrapolated. Historical legacy counters may use "
+                        "old definitions: no automatic statistics deletion, repair "
+                        "or mixing is performed. Legacy counter aggregate charts remain "
+                        "disabled; only isolated definition-v2 IDs are plotted, without backfill. Native History "
+                        "detail depends on Recorder retention; hourly statistics "
+                        "cannot reconstruct every burner transition."),
+        }]
+        counter_keys = ("energy", "energy_heating", "energy_warm_water", "energy_unattributed",
+                        "warm_water_usage", "burner_observed_time")
+        counters = [hub_entities[key + "_v2"] for key in counter_keys if key + "_v2" in hub_entities]
+        if counters:
+            analysis_cards.append({"type": "entities", "title": "Current reported / estimated counters",
+                                   "entities": counters})
+        # No unversioned ID can enter a new counter aggregate chart.
+        for title, keys in (
+            ("Definition-v2 estimated energy (not a meter)", ("energy", "energy_heating", "energy_warm_water", "energy_unattributed")),
+            ("Definition-v2 integrated reported water volume", ("warm_water_usage",)),
+            ("Definition-v2 observed reported-flame time", ("burner_observed_time",)),
+        ):
+            entities = [hub_entities[key + "_v2"] for key in keys if key + "_v2" in hub_entities]
+            if entities:
+                analysis_cards.append({"type": "statistics-graph", "title": title, "entities": entities,
+                                       "days_to_show": 7, "period": "day", "chart_type": "bar",
+                                       "stat_types": ["change"]})
+        # Room targets and observations stay separate, using registered IDs after rename.
+        for key in sorted(self._rooms):
+            entities = []
+            for metric, name in (("temperature", "Room observed"), ("temperature_set", "Room target")):
+                entity_id = registry.async_get_entity_id(
+                    "sensor", DOMAIN, f"{self.prefix}_room_{key}_{metric}")
+                if entity_id:
+                    entities.append({"entity": entity_id, "name": name})
+            if entities:
+                heating_cards.append({"type": "history-graph", "title": f"Room {key}: target / observed",
+                                      "hours_to_show": 24, "entities": entities})
         return {
             "views": [
                 {
@@ -237,6 +308,18 @@ class RoomDashboard:
                     "path": "heating",
                     "icon": "mdi:radiator",
                     "cards": heating_cards,
+                },
+                {
+                    "title": "Boiler observations",
+                    "path": "boiler",
+                    "icon": "mdi:water-boiler",
+                    "cards": boiler_cards,
+                },
+                {
+                    "title": "Analysis",
+                    "path": "analysis",
+                    "icon": "mdi:chart-line",
+                    "cards": analysis_cards,
                 },
                 {
                     "title": diagnostics_title,

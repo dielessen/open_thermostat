@@ -56,3 +56,36 @@ source_bench_status:
       required: true
       selector:
         text:
+
+export_metrics_csv:
+  name: Export recorded metrics as CSV
+  description: Admin-only response; at most 24 hours,64 owned entities,5000 rows. Uses native read-only Recorder, no files or DB changes. Historical counter definitions/retention may be incomplete.
+  fields:
+    entry_id:
+      required: true
+      selector:
+        text:
+    start:
+      required: true
+      description: ISO timestamp with explicit timezone.
+      selector:
+        text:
+    end:
+      required: true
+      description: Past ISO timestamp with explicit timezone.
+      selector:
+        text:
+    entity_ids:
+      required: false
+      description: Optional exact registered integration-owned entities, no arbitrary sensor access.
+      selector:
+        entity:
+          multiple: true
+          integration: open_thermostat
+    limit:
+      default: 1000
+      selector:
+        number:
+          min: 1
+          max: 5000
+          mode: box

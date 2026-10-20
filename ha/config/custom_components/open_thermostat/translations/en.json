@@ -554,5 +554,15 @@
         "graph_only_draft": "Graph-only / floor room (unapplied draft)"
       }
     }
+  },
+  "issues": {
+    "legacy_metrics_history": {
+      "title": "Legacy metric history needs review",
+      "description": "This entry received numeric EMS counters without the corrected metricsSchema 2 definition. These values are not admitted as corrected cumulative counters. Existing Recorder/statistics data has not been deleted or rewritten. Review historical definitions before combining old energy/water statistics with corrected boot-local counters. Estimates are not gas/heat meters; no automatic migration is performed."
+    },
+    "metrics_definition_v2": {
+      "title": "Select the new version-2 metric definitions",
+      "description": "Existing metric entity IDs and history are retained, but legacy aliases are unavailable and do not collect new statistics. Corrected boot-local counters/flow use clearly named definition-v2 entities and numerical wire fields. Update any user-managed cards to the new entities if wanted. Historical statistics have not been deleted, rewritten or backfilled; old history is not certified by this migration. Estimated energy is not a gas/heat meter."
+    }
   }
 }

@@ -6,7 +6,15 @@ from .v1_model import integration_mode
 
 async def async_get_config_entry_diagnostics(hass, entry):
     runtime = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("v1_runtime")
-    result = {"integration_mode": integration_mode(entry), "entry_version": entry.version}
+    from homeassistant.helpers import issue_registry as ir
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, f"legacy_metrics_history_{entry.entry_id}")
+    migration = ir.async_get(hass).async_get_issue(DOMAIN, f"metrics_definition_v2_{entry.entry_id}")
+    result = {"integration_mode": integration_mode(entry), "entry_version": entry.version,
+              "metrics_history": {"review_required": issue is not None or migration is not None,
+                  "version2_definition": "isolated_new_entities_and_wire_fields",
+                  "legacy_entity_references_retained": True,
+                  "automatic_statistics_migration": False, "historic_definition_verified": False,
+                  "definition": "schema2 boot-local estimated/integrated counters; old history not certified"}}
     if runtime is None:
         return result
     client = runtime._transport

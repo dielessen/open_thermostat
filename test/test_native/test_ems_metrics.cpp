@@ -1,6 +1,8 @@
 #include "EmsMetrics.h"
 #include <gtest/gtest.h>
 #include <map>
+#include <cJSON.h>
+#include <memory>
 #include <sstream>
 #include <string>
 
@@ -88,6 +90,25 @@ struct MetricsHarness {
     }
     std::string json() { std::ostringstream out; metrics.getMetrics(out); return out.str(); }
 };
+
+TEST(EmsMetrics, VersionedWireNeverFeedsNumericalTotalsToRetainedLegacyDiscovery) {
+    MetricsHarness h;h.send(4,4,{24});h.send(0xE4,10,{50,3});h.send(0xE9,11,{12});
+    h.now=10000;h.send(0xE4,10,{0,0});h.send(0xE9,11,{0});
+    const auto bytes=h.json();
+    std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(cJSON_Parse(bytes.c_str()),cJSON_Delete);
+    ASSERT_TRUE(root);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(root.get(),"counterDefinition")),"observation-total-v2");
+    for(auto field:{"totalEnergyUsedKwh","heatingEnergyUsedKwh","warmWaterEnergyUsedKwh","unattributedEnergyUsedKwh",
+                    "warmWaterUsage","warmWaterAvgFlow","warmWaterFlow","observedBurnerSeconds"})
+        EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItemCaseSensitive(root.get(),field)));
+    auto energy=cJSON_GetObjectItemCaseSensitive(root.get(),"totalEnergyUsedKwhV2");
+    ASSERT_TRUE(cJSON_IsNumber(energy));EXPECT_NEAR(energy->valuedouble,12.0*10000/3600000,1e-7);
+    auto volume=cJSON_GetObjectItemCaseSensitive(root.get(),"warmWaterUsageV2");
+    ASSERT_TRUE(cJSON_IsNumber(volume));EXPECT_DOUBLE_EQ(volume->valuedouble,.2);
+    auto flow=cJSON_GetObjectItemCaseSensitive(root.get(),"warmWaterAvgFlowV2");
+    ASSERT_TRUE(cJSON_IsNumber(flow));EXPECT_DOUBLE_EQ(flow->valuedouble,1.2);
+    EXPECT_LT(bytes.size(),size_t(1024)); // Explicit bounded metric payload, not a transport/board claim.
+}
 
 TEST(EmsMetrics, RealTelegramOffsetsFragmentsSentinelsAndSourceAdmission) {
     MetricsHarness h;

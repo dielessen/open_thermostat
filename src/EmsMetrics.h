@@ -77,22 +77,23 @@ public:
         std::lock_guard<std::mutex> lock(mutex_);
         const auto now = clock_();
         const auto s = totals_.snapshot(now);
-        ss << "{\"metricsSchema\":2,\"counterScope\":\"boot\","
+        ss << "{\"metricsSchema\":2,\"counterDefinition\":\"observation-total-v2\",\"counterScope\":\"boot\","
               "\"energyQuality\":\"estimated_nominal_modulation\","
               "\"protocolScope\":\"plus\",\"flowQuality\":\"reported_integrated\","
-              "\"totalEnergyUsedKwh\":";
+              "\"totalEnergyUsedKwh\":null,\"heatingEnergyUsedKwh\":null,\"warmWaterEnergyUsedKwh\":null,\"unattributedEnergyUsedKwh\":null,\"warmWaterUsage\":null,\"warmWaterAvgFlow\":null,\"warmWaterFlow\":null,\"observedBurnerSeconds\":null,"
+              "\"totalEnergyUsedKwhV2\":";
         number(ss, s.energyObserved ? std::optional<double>(s.energyKwh) : std::nullopt);
-        ss << ",\"heatingEnergyUsedKwh\":";
+        ss << ",\"heatingEnergyUsedKwhV2\":";
         number(ss, s.energyObserved ? std::optional<double>(s.heatingKwh) : std::nullopt);
-        ss << ",\"warmWaterEnergyUsedKwh\":";
+        ss << ",\"warmWaterEnergyUsedKwhV2\":";
         number(ss, s.energyObserved ? std::optional<double>(s.dhwKwh) : std::nullopt);
-        ss << ",\"unattributedEnergyUsedKwh\":";
+        ss << ",\"unattributedEnergyUsedKwhV2\":";
         number(ss, s.energyObserved ? std::optional<double>(s.unattributedKwh) : std::nullopt);
-        ss << ",\"warmWaterUsage\":";
+        ss << ",\"warmWaterUsageV2\":";
         number(ss, s.flowObserved ? std::optional<double>(s.waterLitres) : std::nullopt);
-        ss << ",\"warmWaterAvgFlow\":"; number(ss, s.averageFlow);
-        ss << ",\"warmWaterFlow\":"; number(ss, s.currentFlow);
-        ss << ",\"observedBurnerSeconds\":";
+        ss << ",\"warmWaterAvgFlowV2\":"; number(ss, s.averageFlow);
+        ss << ",\"warmWaterFlowV2\":"; number(ss, s.currentFlow);
+        ss << ",\"observedBurnerSecondsV2\":";
         number(ss, s.burnerObserved ? std::optional<double>(s.burnerSeconds) : std::nullopt);
         ss << ",\"powerFresh\":" << (s.powerFresh ? "true" : "false");
         ss << ",\"outdoorTemperature\":"; number(ss, outdoor(now));

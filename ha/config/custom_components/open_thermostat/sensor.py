@@ -10,7 +10,7 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, Sen
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory, PERCENTAGE, UnitOfInformation, UnitOfTemperature
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -19,6 +19,7 @@ from .room_identity import room_device_name, room_key
 from .const import CONF_TOPIC_PREFIX, DOMAIN
 from .program import room_program_name
 from .heating import HeatingTracker
+from .metrics_reports import note_legacy_metrics, note_metric_definition_migration
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,6 +43,8 @@ HUB_METRICS = {
         "energy": ("totalEnergyUsedKwh", SensorDeviceClass.ENERGY, "kWh", SensorStateClass.TOTAL_INCREASING, "Estimated nominal-modulation energy"),
         "energy_warm_water": ("warmWaterEnergyUsedKwh", SensorDeviceClass.ENERGY, "kWh", SensorStateClass.TOTAL_INCREASING, "Estimated nominal-modulation DHW energy"),
         "energy_heating": ("heatingEnergyUsedKwh", SensorDeviceClass.ENERGY, "kWh", SensorStateClass.TOTAL_INCREASING, "Estimated nominal-modulation space-heating energy"),
+        "energy_unattributed": ("unattributedEnergyUsedKwh", SensorDeviceClass.ENERGY, "kWh", SensorStateClass.TOTAL_INCREASING, "Estimated nominal-modulation unattributed energy"),
+        "burner_observed_time": ("observedBurnerSeconds", SensorDeviceClass.DURATION, "s", SensorStateClass.TOTAL_INCREASING, "Observed reported-flame time"),
         "warm_water_usage": ("warmWaterUsage", SensorDeviceClass.WATER, "L", SensorStateClass.TOTAL_INCREASING, "Integrated reported warm water volume"),
         "warm_water_avg_flow": ("warmWaterAvgFlow", None, "L/min", SensorStateClass.MEASUREMENT, "Mean warm water flow (observed intervals)"),
         "outdoor_temperature": ("outdoorTemperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, "Outdoor temperature"),
@@ -51,7 +54,7 @@ HUB_METRICS = {
         "boiler_selected_flow_temperature": ("selectedFlowTemperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, "Boiler selected flow temperature"),
         "boiler_current_flow_temperature": ("currentFlowTemperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, "Boiler current flow temperature"),
         "boiler_pressure": ("pressure", SensorDeviceClass.PRESSURE, "bar", SensorStateClass.MEASUREMENT, "Boiler pressure"),
-        "boiler_burner_power": ("currentBurnerPower", SensorDeviceClass.POWER_FACTOR, PERCENTAGE, SensorStateClass.MEASUREMENT, "Boiler burner power"),
+        "boiler_burner_power": ("currentBurnerPower", None, PERCENTAGE, SensorStateClass.MEASUREMENT, "Reported burner modulation"),
         "boiler_hot_water_flow": ("warmWaterFlow", None, "L/min", SensorStateClass.MEASUREMENT, "Boiler hot water flow"),
         "boiler_current_hot_water_temperature": ("currentWarmWaterTemperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, "Boiler current hot water temperature"),
         "boiler_protocol_version": ("protocolVersion", None, None, None, "Boiler protocol version"),
@@ -59,6 +62,8 @@ HUB_METRICS = {
         "boiler_display_code": ("displayCode", None, None, None, "Boiler display code"),
     },
 }
+
+VERSIONED_METRICS = frozenset(HUB_METRICS["ems_metrics"]) - {"outdoor_temperature"}
 
 HUB_DIVISORS = {
     "boiler_current_flow_temperature": 10,
@@ -114,10 +119,23 @@ async def async_setup_entry(
             key = (topic, metric)
             entity = hub_sensors.get(key)
             if entity is None:
-                entity = HubMetric(prefix, topic, metric)
+                entity = HubMetric(prefix, topic, metric, entry.entry_id)
                 hub_sensors[key] = entity
                 added.append(entity)
             entity.update_payload(payload, online)
+            # Retain an existing legacy registry identity as unavailable, without
+            # reusing its Recorder statistic definition. Fresh setups create only v2.
+            if topic == "ems_metrics" and metric in VERSIONED_METRICS:
+                old_id = er.async_get(hass).async_get_entity_id("sensor", DOMAIN, f"{prefix}_hub_{metric}")
+                old_record = er.async_get(hass).async_get(old_id) if old_id else None
+                if old_record is not None and old_record.config_entry_id == entry.entry_id:
+                    old_key = (topic, metric + "_legacy")
+                    old_entity = hub_sensors.get(old_key)
+                    if old_entity is None:
+                        old_entity = HubMetric(prefix, topic, metric, entry.entry_id, definition_version=1)
+                        hub_sensors[old_key] = old_entity
+                        added.append(old_entity)
+                    old_entity.update_payload(payload, online)
         if added:
             async_add_entities(added)
 
@@ -418,7 +436,7 @@ class HubMetric(SensorEntity):
     _attr_should_poll = False
     _attr_has_entity_name = True
 
-    def __init__(self, prefix: str, topic: str, metric: str) -> None:
+    def __init__(self, prefix: str, topic: str, metric: str, entry_id: str | None = None, *, definition_version: int = 2) -> None:
         _field, device_class, unit, state_class, name = HUB_METRICS[topic][metric]
         if topic == "device_status":
             self._attr_entity_category = EntityCategory.DIAGNOSTIC
@@ -426,9 +444,21 @@ class HubMetric(SensorEntity):
         self._attr_native_unit_of_measurement = unit
         self._attr_state_class = state_class
         self._attr_name = name
-        self._attr_unique_id = f"{prefix}_hub_{metric}"
+        versioned = topic == "ems_metrics" and metric in VERSIONED_METRICS
+        if versioned and definition_version not in (1, 2):
+            raise ValueError("Unsupported metric definition")
+        self._legacy_compat = versioned and definition_version == 1
+        self._versioned = versioned
+        self._attr_unique_id = f"{prefix}_hub_{metric}" + ("_v2" if versioned and not self._legacy_compat else "")
+        if versioned:
+            self._attr_name = ("Legacy history: " + name if self._legacy_compat else name + " (definition v2)")
+        if self._legacy_compat:
+            self._attr_state_class = None
+            self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._divisor = HUB_DIVISORS.get(metric, 1)
         self._topic, self._metric = topic, metric
+        self._entry_id = entry_id
+        self._legacy_schema_seen = False
         if topic == "ems_metrics" and metric.startswith("energy"):
             self._attr_extra_state_attributes = {
                 "measurement_kind": "estimate_nominal_modulation", "counter_scope": "boot",
@@ -442,26 +472,56 @@ class HubMetric(SensorEntity):
         self._attr_available = False
 
     def set_online(self, online: bool) -> None:
-        self._attr_available = online
+        self._attr_available = online and not self._legacy_compat
         if self.entity_id is not None:
             self.async_write_ha_state()
 
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        if self._legacy_compat and self._entry_id:
+            note_metric_definition_migration(self.hass, self._entry_id)
+        if self._legacy_schema_seen and self._entry_id:
+            note_legacy_metrics(self.hass, self._entry_id)
+
     def update_payload(self, payload: dict, online: bool) -> None:
-        value = payload.get(HUB_METRICS[self._topic][self._metric][0])
-        if self._topic == "ems_metrics" and self._metric != "outdoor_temperature":
-            # Old firmware publishes consuming deltas/incorrect flow. Never
-            # reinterpret those as the new cumulative boot-local statistics.
-            if type(payload.get("metricsSchema")) is not int or payload["metricsSchema"] != 2:
+        field = HUB_METRICS[self._topic][self._metric][0]
+        value = payload.get(field)
+        if self._versioned:
+            # Old numerical fields must NEVER feed the new statistic IDs.
+            old_value = payload.get(field)
+            if isinstance(old_value, (int, float)) and not isinstance(old_value, bool) and math.isfinite(old_value):
+                self._legacy_schema_seen = True
+                if self.hass is not None and self._entry_id:
+                    note_legacy_metrics(self.hass, self._entry_id)
+            value = payload.get(field + "V2")
+            if (self._legacy_compat or type(payload.get("metricsSchema")) is not int
+                    or payload["metricsSchema"] != 2
+                    or payload.get("counterDefinition") != "observation-total-v2"):
                 value = None
+            if isinstance(value, (int, float)) and value < 0:
+                value = None
+        if self._topic == "ems_metrics":
+            self._attr_extra_state_attributes = {
+                **(self.extra_state_attributes or {}),
+                "definition_version": (1 if self._legacy_compat else 2) if self._versioned else None,
+                "historical_compatibility": ("legacy_unavailable" if self._legacy_compat else "isolated_v2_no_backfill") if self._versioned else "unchanged_outdoor",
+                "metrics_schema": 2 if type(payload.get("metricsSchema")) is int and payload["metricsSchema"] == 2 else None,
+                "protocol_scope": "plus" if payload.get("protocolScope") == "plus" else "unverified",
+            }
+        if self._metric == "boiler_burner_power" and isinstance(value, (int, float)) and not 0 <= value <= 100:
+            value = None
         self.update_value(value, online)
 
     def update_value(self, value: object, online: bool) -> None:
+        if self._legacy_compat:
+            value = None
         self._attr_native_value = (
             value / self._divisor
             if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
-            else value if isinstance(value, str) and value else None
+            else value if self._metric in {"boiler_display_code", "boiler_service_code", "boiler_protocol_version"}
+                and isinstance(value, str) and value else None
         )
-        self._attr_available = online
+        self._attr_available = online and not self._legacy_compat
         if self.entity_id is not None:
             self.async_write_ha_state()
 

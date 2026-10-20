@@ -31,14 +31,29 @@ changes the old consuming interval semantics. No additional storage writer.
 
 ## HA / discovery compatibility
 
-Existing sensor IDs/field names are retained; names explicitly say estimated.
-Energy and integrated water use total_increasing: reset on controller boot is
-intentional and HA handles that counter reset. Mean flow remains measurement.
-Native HA rejects old/unknown metricsSchema for these counters/rates, so old
-consuming deltas cannot silently become new cumulative statistics. Historical
-statistics already written by old firmware cannot be repaired automatically;
-review/export them separately. No live recorder/registry/config changes performed.
-No persistence of current data across boot or fabricated all-time totals.
+Corrected numeric fields and HA/Discovery IDs are explicitly versioned. Root
+metricsSchema2 AND counterDefinition observation-total-v2 identify the new
+definition. Corrected field names append V2; corresponding hub/Discovery IDs
+append _v2 and names say definitionv2. Unversioned legacy numeric field names
+are explicitly null, not new totals and not zero: retained old Discovery
+templates therefore become native MQTT unknown, never new numerical totals
+under old statistic IDs. Outdoor/status identity remains unchanged.
+
+Existing custom-integration registry IDs/history are preserved as unavailable
+diagnostic compatibility aliases with no state_class, ONLY if already owned by
+that entry. Fresh setup creates onlyV2entities; no cross-entry identity takeover.
+A native persistent migration Repair explains choosing new IDs in user-managed
+cards. User dashboards/history are not rewritten. New v2 energy/water/time
+TOTAL_INCREASING statistics handle boot reset, mean flow stays MEASUREMENT;
+native counter aggregate charts include v2 IDs only, with no legacy backfill.
+
+This corrects the incomplete earlier same-ID schema gate: HA Recorder reuses
+prior sum/state for a statistic ID, so only hiding graphs/adding a Repair was
+not enough to isolate background sums. No actual home-history contamination
+was queried or claimed. Historical old data remains unverified/untouched.
+Older firmware + new HA version produces unknown version2counters and explicit
+guidance, not reinterpreted deltas. Firmware/integration update/publication is a
+separate operation; this source increment installs nothing.
 
 ## Evidence and remaining acceptance
 

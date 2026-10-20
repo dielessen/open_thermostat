@@ -1,5 +1,13 @@
 # Native weekprogramma-editor
 
+> **Statusupdate 20 oktober, na onderhoud11686:** de Engelse kamer-/grenzen-/
+> weekeditor is inmiddels in productie-HA geïnstalleerd en technisch geverifieerd.
+> Runtime/transport/actuatie blijven uit; zichtbare productie-GUI en fysieke
+> bron→E32→ACK-acceptatie blijven open. [Actueel werkbord](WORKBOARD.nl.md).
+> De oorspronkelijke test-/uitrolbeschrijving hieronder is gedateerd bewijs;
+> formuleringen “nog niet in productie” beschrijven die eerdere uitvoeringsronde.
+
+
 ## Native gebruikersroute
 
 1. Open de bestaande OpenThermostat **v1 shadow** integratie, voeg een Room-subentry toe of kies haar bestaande Edit room bindings.

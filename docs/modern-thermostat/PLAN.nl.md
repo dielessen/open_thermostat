@@ -1,8 +1,19 @@
 # OpenThermostat + Home Assistant — masterplan
 
-**Versie:** ontwerp 1.0, 19 oktober 2026. **Producteigenaar:** Mark Dielessen.
-**Status20oktober:** WP01/WP02-bronwerk en een geïntegreerde E32/HA-shadowtestketen zijn gebouwd in de ontwikkeltak; zie [testkandidaat en grenzen](INTEGRATED-TEST.nl.md) en het [concrete testwireprofiel](TEST-WIRE.md). Geen installatie/flash of normale verwarmingsvrijgave. Bron-/cadanskwalificatie, alle fysieke gates en de overige productfasen blijven open. Historisch WP01-bewijs: [WP01-BASELINE.nl.md](WP01-BASELINE.nl.md).
-**Bronbasis:** fork `a5fc6b84ab62603bca7cc3786f405d497edd17f7`; upstream apart onderzocht op `67b76391f2f81d5d5acd5a8d4675067fddc74448`. Bronverwijzingen staan in §18.
+**Versie:** ontwerp 1.0 met uitvoeringsreconciliatie 20 oktober 2026 (Mark11694).
+**Producteigenaar:** Mark Dielessen.
+**Actuele status en enige afvinklijst:** [WORKBOARD.nl.md](WORKBOARD.nl.md).
+WP01/WP02-software, contract-/shadowketen en HA-kamer-/weekeditor zijn gebouwd;
+de kamereditor is in productie-HA geïnstalleerd en technisch geverifieerd.
+Alpha.3-bordbasis is door Mark bevestigd; alpha.4-installatie/automatische reboot
+niet afzonderlijk bewezen. Eerste echte bron→E32→configACK-shadowketen, centrale
+weers-/afgiftegroep-/vloer-/regelklepopties en product-/fysieke gates blijven open.
+**Geen normale verwarmingsvrijgave.** HA configureert en bedient; E32 blijft het
+regelbrein. In HA-managed bedrijf verdwijnen overbodige dubbele E32-editors pas
+via de afgebakende migratie/bronchecks in het werkbord, niet door dit planonderhoud.
+**Historische ontwerpbronbasis:** fork `a5fc6b84ab62603bca7cc3786f405d497edd17f7`;
+upstream `67b76391f2f81d5d5acd5a8d4675067fddc74448`. Actuele bron-/installatieversies
+staan per bewijs in het werkbord. De geleverde PDF1.0 blijft historisch.
 
 ### Gebruikersaanvullingen na de ontwerp-PDF, 19 oktober 23:24–23:31
 
@@ -51,9 +62,12 @@ Dit is **cloudonafhankelijk, maar met HA-apparaten niet HA-onafhankelijk**. Bij 
 - **Eerste echte ketelbedrijf:** pas na afzonderlijke hardware-, EMS-, doorstromings-, stop- en uitvalproeven; eerst één zone onder toezicht.
 - **Volwaardig resultaat:** bewezen meerdere zones, radiator- en optionele vloerverwarmingsgroepen, adaptieve regeling en geleerd voorverwarmen, weersafhankelijke waterdoelen, relevante keteltelemetrie en historische rapportage, plus de gekozen comfortfuncties.
 
-## 2. Wat we nu daadwerkelijk hebben
+## 2. Historische ontwerpbaseline van 19 oktober
 
-| Onderdeel | In huidige fork aanwezig | Nog nodig / begrenzing |
+Deze tabel is de oorspronkelijke bronsnapshot, **geen actuele voortgang**.
+Zie [het actuele werkbord](WORKBOARD.nl.md#1-waar-staan-we) voor uitgevoerd werk.
+
+| Onderdeel | Op ontwerpdatum aanwezig | Toen nog nodig / begrenzing |
 | --- | --- | --- |
 | Kamers en programma's | Permanente kamer-ID's, kamerbestand en weekprogramma's, tijdelijke overrides | HA-configuratie/synchronisatie en eenduidige schrijf-eigenaar; migratie van bestaande gegevens |
 | Kamerregeling | Gemiddelde van recente BLE-metingen, start-/doorgaanmarges | Dit is hysterese, geen bewezen zelflerende regeling; externe bronabstractie en apparaatprofielen ontbreken |
@@ -98,7 +112,7 @@ Repositorymetadata op 19 oktober: bovenstaande repositories zijn niet gearchivee
 
 ## 4. Eisen en aantoonbare acceptatie
 
-`P0` = vereist voor betrouwbaar eerste productiegebruik; `P1` = volledig moderne kern; `P2` = optionele uitbreiding. Een faseverwijzing is een bouwvolgorde, geen bewijs dat iets werkt. `B` = bench/integratieproef, `H` = hardware/liveproef, `L` = langere observatie. Alle hieronder beschreven productproeven zijn nog open.
+`P0` = vereist voor betrouwbaar eerste productiegebruik; `P1` = volledig moderne kern; `P2` = optionele uitbreiding. Een faseverwijzing is een bouwvolgorde, geen bewijs dat iets werkt. `B` = bench/integratieproef, `H` = hardware/liveproef, `L` = langere observatie. De volledige productacceptatie blijft open; afzonderlijke software-/installatiechecks zijn inmiddels bewezen. Actuele vinkjes en bewijs staan uitsluitend in [WORKBOARD](WORKBOARD.nl.md).
 
 | ID | Eis / prioriteit | Ontwerp | Fase en acceptatie |
 | --- | --- | --- | --- |
@@ -137,6 +151,14 @@ Repositorymetadata op 19 oktober: bovenstaande repositories zijn niet gearchivee
 Tado-/Honeywell-achtige functies worden dus **expliciet** als kern of optie opgenomen. “Alle moderne functies” is geen belofte van universele apparaatcompatibiliteit, koeling, warmtepompen, elektriciteitstariefoptimalisatie of identieke commerciële AI. Dat zijn mogelijke latere producten, buiten deze CV-ketelrelease.
 
 ## 5. Domeinmodel en configuratie-eigenaarschap
+
+De concrete gebruikersroute, algemene/circuit-/kamerinstellingen en afbouw van
+HA-managed E32-editors staan in [WORKBOARD§2–4](WORKBOARD.nl.md#2-waar-configureren-en-bedienen-we-straks).
+Weersinstellingen horen voor Marks gedeelde circuit centraal, niet per kamer.
+Een aparte mengkring kan eigen grenzen/curve vragen. Vloer-/binaire klep- en
+proportionele klepprofielen worden niet met een TRV of mengklep vereenzelvigd.
+Deze opties zijn productwerk, geen reeds geleverde kamereditorfunctie.
+
 
 ### 5.1 Zone, apparaat en afgiftegroep zijn verschillende dingen
 
@@ -394,17 +416,22 @@ Nieuwe integratie-/firmwareversies onderhandelen capabilities. Ondersteunde comb
 
 ## 14. Gefaseerde uitvoering en acceptatiepoorten
 
-**Alle fasen hieronder: pending.** Deze ontwerpopdracht levert alleen het plan. Software-/benchwerk mag onafhankelijk van nog onbekende woningdetails voorbereid worden; echte ketelwrites/flash/elektrische aanpassing niet stilzwijgend uitvoeren op grond van dit plan.
+**Dit zijn de volledige acceptatiespecificaties, niet een tweede statuslijst.**
+Actuele status, bewezen deelresultaten, eigenaren en volgende bewijsacties voor
+alle 11 fasen F0–F10 staan in [WORKBOARD§5](WORKBOARD.nl.md#5-de-11-productfasen--bijgewerkt-en-afgevinkt-waar-bewezen).
+Onderstaande punten blijven als vereisten behouden; daarom geen losse afvinkvakjes
+hier die na uitvoering opnieuw achterlopen. Softwarevoorbereiding mag onafhankelijk
+van fysieke commissioning doorgaan; een planupdate is geen ketel-/flashvrijgave.
 
 ### F0 — basis, upstream en installatieprofiel
 
 **Resultaat:** vastgezette bron-/dependencybasis, behouden forkgeschiedenis en veiligheid, concrete zone-/ketel-/hydrauliekinventaris.
 
-- [ ] Review/cherry-pick/merge de drie afzonderlijke upstreamwijzigingen in geïsoleerde branches; behoud E32target, veilige defaults, partities en alle blokkades.
-- [ ] Beslis op bewezen builds/bench of Arduino3 nu de E32basis wordt; zo niet, leg incompatibiliteit en begrensde vervolgroute vast. Geen ongefundeerde claim dat de huidige clock/radiofout opgelost is.
-- [ ] Maak licentie-/dependencyoverzicht, sourcefilemap en version/capabilitymanifest.
-- [ ] Inventariseer per kamer emitter, sensor, wandbediening, actuator/model/firmware, NC/NO, minimumflow en bereik; verzamel ontbrekende fysieke feiten zonder de softwareanalyse stil te leggen.
-- [ ] Identificeer fysieke E32module/PCB, Classicadapterketen, huidige thermostaat-/bedradingstoestand en herstelroute.
+- Acceptatie-eis: Review/cherry-pick/merge de drie afzonderlijke upstreamwijzigingen in geïsoleerde branches; behoud E32target, veilige defaults, partities en alle blokkades.
+- Acceptatie-eis: Beslis op bewezen builds/bench of Arduino3 nu de E32basis wordt; zo niet, leg incompatibiliteit en begrensde vervolgroute vast. Geen ongefundeerde claim dat de huidige clock/radiofout opgelost is.
+- Acceptatie-eis: Maak licentie-/dependencyoverzicht, sourcefilemap en version/capabilitymanifest.
+- Acceptatie-eis: Inventariseer per kamer emitter, sensor, wandbediening, actuator/model/firmware, NC/NO, minimumflow en bereik; verzamel ontbrekende fysieke feiten zonder de softwareanalyse stil te leggen.
+- Acceptatie-eis: Identificeer fysieke E32module/PCB, Classicadapterketen, huidige thermostaat-/bedradingstoestand en herstelroute.
 
 **Acceptatie:** native suite en relevante generic/E32-builds/verifier groen; diff met behoud van locks/partities; geïsoleerde fysieke boardchecks blijven apart open. Woningprofiel heeft geen ongemarkeerde aannames.
 **Volgende bewijsactie:** behoudsreview en uitkomst per upstreamcommit; hardwarechecklist van Mark/geschikte uitvoerder.
@@ -413,10 +440,10 @@ Nieuwe integratie-/firmwareversies onderhandelen capabilities. Ondersteunde comb
 
 **Resultaat:** een bruikbare passieve ketelstate-laag vóór actieve regeling.
 
-- [ ] Read-only huidige EMS-ESP/keteldata inventariseren via HA-specialist; required-versus-optional vastleggen.
-- [ ] Classic-monitor/parameterdecoders en genormaliseerde bronkwaliteit implementeren, Plus behouden.
-- [ ] Ruwe bestaande captures naar vaste testfixtures; ontbrekende/ongeldige/fragments/sentinels testen.
-- [ ] Commandencoders/profielen offline ontwerpen; geen positive probes of TXvrijgave.
+- Acceptatie-eis: Read-only huidige EMS-ESP/keteldata inventariseren via HA-specialist; required-versus-optional vastleggen.
+- Acceptatie-eis: Classic-monitor/parameterdecoders en genormaliseerde bronkwaliteit implementeren, Plus behouden.
+- Acceptatie-eis: Ruwe bestaande captures naar vaste testfixtures; ontbrekende/ongeldige/fragments/sentinels testen.
+- Acceptatie-eis: Commandencoders/profielen offline ontwerpen; geen positive probes of TXvrijgave.
 
 **Acceptatie:** elk geïnventariseerd veld geclassificeerd; required betrouwbare velden aanwezig of concrete blokkade; goldenframe-/differentiële replay, geen nulvervanging van onbekend; TXlock aangetoond.
 **Volgende bewijsactie:** `0x18/19/16/33/34`replay tegen bestaande Classicbronnen en onafhankelijke EMS-ESP-mapping.
@@ -425,12 +452,12 @@ Nieuwe integratie-/firmwareversies onderhandelen capabilities. Ondersteunde comb
 
 **Resultaat:** versiecontract + minimale heen/terugketen zonder echte ketel.
 
-- [ ] Contractschemas/fixtures en tests voor handshake, revisions, boot/session, actualiteit, TTL/idempotentie, fout-/reconnectvolgorde.
-- [ ] ExternalSensor en RemoteActuator-grens invoeren zonder bestaande BLE/genericgpio onbedoeld te wijzigen.
-- [ ] Native testscenario's/fake inputs voor zonevraag en gesimuleerde actuatorfeedback; geen extra permanente simulatorservice.
-- [ ] Onderzoek ondersteunde HA Schedule-export/vooruitblik vroeg; kies native helperadapter of bestaande firmwareprogrammaconfigflow.
-- [ ] Vroege Schedule-/subentry-APIproef op gepinde HA-versie vóór contractfreeze; WP03/04 leveren daadwerkelijk aan beide kanten geaccepteerd/uitgevoerd schema met basisdoel, niet alleen een positief onderzoeksverslag.
-- [ ] Payload-/queue-/heapbudget en werkelijk MQTT-librarygedrag vastleggen, inclusief QoS-/retainmogelijkheden.
+- Acceptatie-eis: Contractschemas/fixtures en tests voor handshake, revisions, boot/session, actualiteit, TTL/idempotentie, fout-/reconnectvolgorde.
+- Acceptatie-eis: ExternalSensor en RemoteActuator-grens invoeren zonder bestaande BLE/genericgpio onbedoeld te wijzigen.
+- Acceptatie-eis: Native testscenario's/fake inputs voor zonevraag en gesimuleerde actuatorfeedback; geen extra permanente simulatorservice.
+- Acceptatie-eis: Onderzoek ondersteunde HA Schedule-export/vooruitblik vroeg; kies native helperadapter of bestaande firmwareprogrammaconfigflow.
+- Acceptatie-eis: Vroege Schedule-/subentry-APIproef op gepinde HA-versie vóór contractfreeze; WP03/04 leveren daadwerkelijk aan beide kanten geaccepteerd/uitgevoerd schema met basisdoel, niet alleen een positief onderzoeksverslag.
+- Acceptatie-eis: Payload-/queue-/heapbudget en werkelijk MQTT-librarygedrag vastleggen, inclusief QoS-/retainmogelijkheden.
 
 **Acceptatie:** één fixturekamer loopt volledig heen/terug; oude retained/duplicaat/reorder/reboot kan nooit verse warmteactuatie worden; configuratie atomair; onbekende versie blokkeert writes.
 **Volgende bewijsactie:** automatisch beide contractimplementaties tegen dezelfde fixtures verifiëren.
@@ -439,24 +466,24 @@ Nieuwe integratie-/firmwareversies onderhandelen capabilities. Ondersteunde comb
 
 **Resultaat:** de gebruiker kan zonder kamer-YAML een bestaande sensor, echte bediening en één actuator koppelen.
 
-- [ ] Native config/options/subentryflow passend bij gepinde HA-versie; registryreferenties en migratie van bestaande kamerclimates behouden.
-- [ ] Temperatuur-/buiten-/setpointbindingen, units/freshness, unload/reload en feedbackimplementatie.
-- [ ] Eén werkelijk beschikbaar TRV-/klepprofiel kiezen en fysiek verifiëren **zonder ketelvraag**; later extra modellen via compatibiliteitskaarten.
-- [ ] Echo-/conflictbehandeling, firmwareack/statusfouten, Repairs/diagnostics en basisdashboard.
-- [ ] Discoverykeuze/migratie voorkomt dubbele sensoren/climates; geen parallelle oude commandowriter.
-- [ ] P0-beveiligingswijziging voor bestaande HTTP-config/OTA/reboot/mutaties, authenticatie/methoden/autorisatie, secretredactie en begrensde APmodus ontwerpen en implementeren; geen onbeveiligde legacyroute behouden als bypass.
+- Acceptatie-eis: Native config/options/subentryflow passend bij gepinde HA-versie; registryreferenties en migratie van bestaande kamerclimates behouden.
+- Acceptatie-eis: Temperatuur-/buiten-/setpointbindingen, units/freshness, unload/reload en feedbackimplementatie.
+- Acceptatie-eis: Eén werkelijk beschikbaar TRV-/klepprofiel kiezen en fysiek verifiëren **zonder ketelvraag**; later extra modellen via compatibiliteitskaarten.
+- Acceptatie-eis: Echo-/conflictbehandeling, firmwareack/statusfouten, Repairs/diagnostics en basisdashboard.
+- Acceptatie-eis: Discoverykeuze/migratie voorkomt dubbele sensoren/climates; geen parallelle oude commandowriter.
+- Acceptatie-eis: P0-beveiligingswijziging voor bestaande HTTP-config/OTA/reboot/mutaties, authenticatie/methoden/autorisatie, secretredactie en begrensde APmodus ontwerpen en implementeren; geen onbeveiligde legacyroute behouden als bypass.
 
-**Acceptatie:** HAsetpoint én fysieke knop veranderen dezelfde kamer eenmaal; sensor/actuatoruitval zichtbaar; geen false-open; rename/restart/reload behoudt IDs/bindings/counters.
+**Acceptatie:** HA-setpoint verandert het bevestigde kamerdoel; indien een fysieke setpointbron is ingericht, bewijst dat profiel dezelfde doelwijziging en echopreventie. R02 blijft een vereiste productmogelijkheid met eigen profieltest, geen verplicht wandapparaat voor iedere kamer of de eerste badkamerproef. Sensor/actuatoruitval zichtbaar; geen false-open; rename/restart/reload behoudt IDs/bindings/counters.
 **Volgende bewijsactie:** complete éénkamerproef met echte apparaatfeedback en TX-locked controller.
 
 ### F4 — regelkern, waterdoelen en hydraulische supervisor
 
 **Resultaat:** deterministisch uitlegbare zones/ketelcoördinatie, voorlopig zonder adaptatie.
 
-- [ ] Hysterese-/PI-/localTRV-profielen, prioriteiten en integraalbeveiliging.
-- [ ] Per afgiftegroep curve, kamercorrectie, grenzen, writebudget en lage-laststrategie.
-- [ ] Opening/readiness/start/stop/postrun/DHW/fault-state-machine; bekende readiness is niet gelijk aan gemeten flow.
-- [ ] Vorst/zomer/allesuitbeleid en plausibiliteitschecks; fysieke limieten niet ophefbaar door een boost.
+- Acceptatie-eis: Hysterese-/PI-/localTRV-profielen, prioriteiten en integraalbeveiliging.
+- Acceptatie-eis: Per afgiftegroep curve, kamercorrectie, grenzen, writebudget en lage-laststrategie.
+- Acceptatie-eis: Opening/readiness/start/stop/postrun/DHW/fault-state-machine; bekende readiness is niet gelijk aan gemeten flow.
+- Acceptatie-eis: Vorst/zomer/allesuitbeleid en plausibiliteitschecks; fysieke limieten niet ophefbaar door een boost.
 
 **Acceptatie:** scenario's voor A/B/allesuit, DHW, defecte klep, sensorstale, klepvertraging, noodstop en gemengde groepen; geen positieve vraag zonder alle vereiste voorwaarden.
 **Volgende bewijsactie:** onafhankelijke scenario-/logreview tegen hydraulisch profiel.
@@ -465,10 +492,10 @@ Nieuwe integratie-/firmwareversies onderhandelen capabilities. Ondersteunde comb
 
 **Resultaat:** vraag en echte keteldata zichtbaar en betrouwbaar opgeslagen, ook vóór actieve OpenThermostatbesturing.
 
-- [ ] `EmsMetrics`interval-/counter-/flowsemantiek en stale-integratie herstellen; meet/schatlabels expliciet.
-- [ ] Ketelstate/bronkwaliteit naar passende HA-entiteiten en correct statisticstype.
-- [ ] Modulatielijn, CV/DHW/vlamtijdlijn en aanvoer-vraag/werkelijkheid apart; counters en CSV.
-- [ ] Recorderdatavolume meten; retentievoorstel en native grafiekacceptatie op mobiel.
+- Acceptatie-eis: `EmsMetrics`interval-/counter-/flowsemantiek en stale-integratie herstellen; meet/schatlabels expliciet.
+- Acceptatie-eis: Ketelstate/bronkwaliteit naar passende HA-entiteiten en correct statisticstype.
+- Acceptatie-eis: Modulatielijn, CV/DHW/vlamtijdlijn en aanvoer-vraag/werkelijkheid apart; counters en CSV.
+- Acceptatie-eis: Recorderdatavolume meten; retentievoorstel en native grafiekacceptatie op mobiel.
 
 **Acceptatie:** bekende fixtures geven exact juiste delta/counters; uitlezen verandert totalen niet; reboot/dubbelpakket/gat klopt; dashboard misleidt niet.
 **Volgende bewijsactie:** echte passieve CV/DHWtijdlijn waar hardware/ontvangst al veilig mogelijk is, anders duidelijk fixtures.
@@ -477,12 +504,12 @@ Nieuwe integratie-/firmwareversies onderhandelen capabilities. Ondersteunde comb
 
 **Resultaat:** afzonderlijk beoordeelde vrijgave voor één begrensde live-zoneproef, niet al voor onbeheerd bedrijf.
 
-- [ ] Originele firmware tweemaal veilig back-uppen/vergelijken plus NVS/config en herstelroute; partitieverschil met EMS-ESP respecteren.
-- [ ] Geïsoleerde boot/PSRAM/netwerk/load, exclusieve interfacekeuze, OTA/restore en elektrische TXinactiviteit bewijzen.
-- [ ] EMSbusmodus/timing/polariteit/arbitrage/adres/adapteridentiteit op bench vaststellen.
-- [ ] Alle positieve writepaden/stopsemantiek afzonderlijk reviewen; TXunlock alleen als eigen beoordeelde bronwijziging na board/busbewijs.
-- [ ] P0-securitygate vóór livebedrijf: ongeautoriseerde HTTP-/MQTT-/legacywrites geweigerd, secrets geredigeerd, AP-/OTAtoegang begrensd; testbewijs van F3/WP08 teruglezen. Broker-ACL alleen is onvoldoende voor HTTP.
-- [ ] Onafhankelijk minimumflow-/naloop-/stroomuitvalplan en bereikbare fysieke rollback, inclusief exclusieve vorige-regelaaroverdracht.
+- Acceptatie-eis: Normaal originele firmware tweemaal veilig back-uppen/vergelijken plus NVS/config en herstelroute; voor deze bord-/testlijn heeft Mark de oorspronkelijke flashbackups expliciet overgeslagen. Die eerdere waiver blijft geldig, zonder backup-/restore-PASS: oorspronkelijke flash/instellingen zijn mogelijk niet volledig herstelbaar. Resterend concreet herstel-/rollbackbewijs en alle elektrische/stop-/flowgates blijven vereist; partitieverschil met EMS-ESP respecteren. Geen nieuw gebruikersbesluit voor dezelfde waiver vragen.
+- Acceptatie-eis: Geïsoleerde boot/PSRAM/netwerk/load, exclusieve interfacekeuze, OTA/restore en elektrische TXinactiviteit bewijzen.
+- Acceptatie-eis: EMSbusmodus/timing/polariteit/arbitrage/adres/adapteridentiteit op bench vaststellen.
+- Acceptatie-eis: Alle positieve writepaden/stopsemantiek afzonderlijk reviewen; TXunlock alleen als eigen beoordeelde bronwijziging na board/busbewijs.
+- Acceptatie-eis: P0-securitygate vóór livebedrijf: ongeautoriseerde HTTP-/MQTT-/legacywrites geweigerd, secrets geredigeerd, AP-/OTAtoegang begrensd; testbewijs van F3/WP08 teruglezen. Broker-ACL alleen is onvoldoende voor HTTP.
+- Acceptatie-eis: Onafhankelijk minimumflow-/naloop-/stroomuitvalplan en bereikbare fysieke rollback, inclusief exclusieve vorige-regelaaroverdracht.
 
 **Acceptatie:** geen open blocker op elektrische veiligheid, stop, controllerpowerloss of doorstroming. Is dat bewijs onmogelijk met de bestaande keten, dan geen live GO; architectuur/hardwarebesluit expliciet terugleggen.
 **Volgende bewijsactie:** gerichte fysieke commissioning met reproduceerbare verwachte start/stop en rollback, geen algemene proefwrites.
@@ -493,10 +520,10 @@ Deze fysieke vrijgave is voor het daadwerkelijk gecommissionde Classicprofiel. P
 
 **Resultaat:** werkelijk bedienbare, conventioneel regelende CV-zones met de eigen EMScontroller.
 
-- [ ] Onder toezicht start, verschillende begrensde waterdoelen, stop, DHWwissel en naloop bewijzen; meet effectieve kamer-/radiatorreactie apart van interne ketelwaterwaarde.
-- [ ] Sensor/HA/broker/netwerk/controller/actuatoruitval en herstel uitvoeren; geen replayoudewarmtevraag.
-- [ ] Uitbreiden naar twee en daarna maximaal acht gevalideerde zones: kleinstezone, A-only/B-only/samen/allesuit.
-- [ ] Eerst observeren met vaste regelparameters; 72u resource-/stabiliteitsproef plus voldoende echte stookmomenten.
+- Acceptatie-eis: Onder toezicht start, verschillende begrensde waterdoelen, stop, DHWwissel en naloop bewijzen; meet effectieve kamer-/radiatorreactie apart van interne ketelwaterwaarde.
+- Acceptatie-eis: Sensor/HA/broker/netwerk/controller/actuatoruitval en herstel uitvoeren; geen replayoudewarmtevraag.
+- Acceptatie-eis: Uitbreiden naar twee en daarna maximaal acht gevalideerde zones: kleinstezone, A-only/B-only/samen/allesuit.
+- Acceptatie-eis: Eerst observeren met vaste regelparameters; 72u resource-/stabiliteitsproef plus voldoende echte stookmomenten.
 
 **Acceptatie:** **alle toepasselijke P0-eisen cumulatief groen**, inclusief R03-bronversheid én R18-schemauitvoering, eerdere security-/config-/uitvalbewijzen en R08 voor het daadwerkelijk gecommissionde protocolprofiel. Per eis bewijs-ID, exacte softwareversie, configuratie/deviceprofiel en afwijkingen vastleggen. Actuele ketel/adapterdata en stopbewijs consistent. Alleen dan beperkte normale inzet.
 **Volgende bewijsactie:** meetrapport met echte bronwaarden en resterende comfortafstemming.
@@ -505,9 +532,9 @@ Deze fysieke vrijgave is voor het daadwerkelijk gecommissionde Classicprofiel. P
 
 **Resultaat:** optioneel één vloergroep en vervolgens mix met radiatoren.
 
-- [ ] Kleptype/spanning/NCNO/looptijd, pomp, menger en onafhankelijke temperatuurbegrenzing vastleggen.
-- [ ] Traagregelprofiel, vloer-/waterlimiet, pompvolgorde en postrun testen.
-- [ ] Gelijktijdige hogere radiatorvraag zonder te hete vloer en met blijvende minimumflow bewijzen.
+- Acceptatie-eis: Kleptype/spanning/NCNO/looptijd, pomp, menger en onafhankelijke temperatuurbegrenzing vastleggen.
+- Acceptatie-eis: Traagregelprofiel, vloer-/waterlimiet, pompvolgorde en postrun testen.
+- Acceptatie-eis: Gelijktijdige hogere radiatorvraag zonder te hete vloer en met blijvende minimumflow bewijzen.
 
 **Acceptatie:** fysiek gemeten passend aanvoerregime; beschermingen werken ook bij HA-/E32uitval, vloer geen ongeteste variatie van een radiatorprofiel. Zonder aanwezige vloerhardware blijft dit expliciet niet getest.
 **Volgende bewijsactie:** commissioningkaart per vloerverdeler; geen fictieve ondersteuning claimen.
@@ -516,10 +543,10 @@ Deze fysieke vrijgave is voor het daadwerkelijk gecommissionde Classicprofiel. P
 
 **Resultaat:** drie afzonderlijk aantoonbare leerniveaus volgens §8.
 
-- [ ] Historische/deterministische thermische scenario's; storing/raam/DHW/gainwissel en seizoensverschillen.
-- [ ] Shadow-mode met zichtbaar voorstel en modelvertrouwen; nog geen toegepast leereffect.
-- [ ] Begrensd niveau1, daarna optimum-start; optimum-stop/curveaanpassing als aparte checks.
-- [ ] Minimaal circa twee weken bruikbare observatie als startvenster, én genoeg vergelijkbare starts/buitencondities; tijd alleen is geen bewijs.
+- Acceptatie-eis: Historische/deterministische thermische scenario's; storing/raam/DHW/gainwissel en seizoensverschillen.
+- Acceptatie-eis: Shadow-mode met zichtbaar voorstel en modelvertrouwen; nog geen toegepast leereffect.
+- Acceptatie-eis: Begrensd niveau1, daarna optimum-start; optimum-stop/curveaanpassing als aparte checks.
+- Acceptatie-eis: Minimaal circa twee weken bruikbare observatie als startvenster, én genoeg vergelijkbare starts/buitencondities; tijd alleen is geen bewijs.
 
 **Acceptatie:** baselinevergelijking en comfort-/startdoelen uit §8 met datadekking; bekende modelrollback; geen onverklaarde toename pendelen of overshoot. Bij onvoldoende seizoen/data blijft de betreffende claim open.
 **Volgende bewijsactie:** reproduceerbare replay en geblindeerde voorstel-versus-werkelijkvergelijking, daarna begrensde liveperiode.
@@ -528,12 +555,12 @@ Deze fysieke vrijgave is voor het daadwerkelijk gecommissionde Classicprofiel. P
 
 **Resultaat:** expliciet geselecteerde Tado/Honeywellachtige functies, solide bediening en onderhoudbare release.
 
-- [ ] R19–21/R26–27 stap voor stap: away/vakantie/boost, optionele aanwezigheid, raamcontact, vocht-/verbruiksinformatie en meldingen.
-- [ ] R31 afzonderlijk: alleen werkelijk ondersteunde tapwatertemperatuur-/comfort-/tijdopties, met ketelprioriteit en fabrikantbescherming intact; geen blind overnemen van voorraadboilerfuncties naar een combi.
-- [ ] Optioneel vooraf opwarmen voor aankomst op basis van een expliciete bestaande HA-ETA-/aanwezigheidsbron; optionele klep-/pompanti-vastloop alleen via een vooraf beoordeeld onderhoudsprofiel zonder ongewenste ketelvraag. Geen eigen trackingdienst of ongevraagde automatische actuaties.
-- [ ] Functieconflicten en afloop testen; geen automatisch ketelresetten of nieuwe writecapabilities via comfortfeatures.
-- [ ] Mobiele UX, vertalingen, upgrade/migratie, diagnosticsredactie, security- en dependencyreview.
-- [ ] Firmware-/integratiematrix, compatibiliteitskaarten, backup/rollback, immutable releaseassets en volledige open punten publiceren na aparte opdracht.
+- Acceptatie-eis: R19–21/R26–27 stap voor stap: away/vakantie/boost, optionele aanwezigheid, raamcontact, vocht-/verbruiksinformatie en meldingen.
+- Acceptatie-eis: R31 afzonderlijk: alleen werkelijk ondersteunde tapwatertemperatuur-/comfort-/tijdopties, met ketelprioriteit en fabrikantbescherming intact; geen blind overnemen van voorraadboilerfuncties naar een combi.
+- Acceptatie-eis: Optioneel vooraf opwarmen voor aankomst op basis van een expliciete bestaande HA-ETA-/aanwezigheidsbron; optionele klep-/pompanti-vastloop alleen via een vooraf beoordeeld onderhoudsprofiel zonder ongewenste ketelvraag. Geen eigen trackingdienst of ongevraagde automatische actuaties.
+- Acceptatie-eis: Functieconflicten en afloop testen; geen automatisch ketelresetten of nieuwe writecapabilities via comfortfeatures.
+- Acceptatie-eis: Mobiele UX, vertalingen, upgrade/migratie, diagnosticsredactie, security- en dependencyreview.
+- Acceptatie-eis: Firmware-/integratiematrix, compatibiliteitskaarten, backup/rollback, immutable releaseassets en volledige open punten publiceren na aparte opdracht.
 
 **Acceptatie:** requirementsmatrix per gekozen feature groen met bewijs; optionele afwezige hardware/features expliciet uit/unsupported; geen claim “alles werkt” op basis van alleen CI.
 **Volgende bewijsactie:** releasecandidate/hand-offreview en fysieke gebruikersproef.
@@ -574,6 +601,12 @@ de geïsoleerde [testkandidaat](INTEGRATED-TEST.nl.md) en het
 WP02 en contractanalyse kunnen conceptueel parallel, maar hun afhankelijkheden worden niet over meerdere schrijvers verspreid. Elk werkpakket heeft één eigenaar en aparte review. Geen grote firmwareflash waarin tegelijk platform, bus, alle zonefuncties en learning veranderen.
 
 ## 16. Vrijgave, rollback en onderhoud
+
+- **Na iedere taak het plan bijwerken:** koppel F/WP, vink uitsluitend de bewezen
+  deeluitkomst in [WORKBOARD](WORKBOARD.nl.md) af, voeg bewijs/versie toe en noteer
+  de eerstvolgende open check vóór terugmelding. Gebouwd, geïnstalleerd en fysiek
+  geaccepteerd blijven afzonderlijke statussen; register verwijst naar dit bord.
+
 
 - **Branch/PR per afgebakend werkpakket.** Geen force-push of vervangen van forkgeschiedenis; behouden upstreamremote voor toekomstige updates.
 - **Plan ≠ productie-GO.** Hardware-, ketel-/gegevenswrite-, flash- en elektrische stappen krijgen concrete scope, gereed rollbackpakket en actuele feitencheck voordat ze uitgevoerd worden.

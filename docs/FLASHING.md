@@ -1,8 +1,9 @@
 # Flash the E32 V2 — easy step-by-step guide
 
 **Modern shadow candidate:** first read [the candidate guide](modern-thermostat/INTEGRATED-TEST.nl.md).
-Its WiFi and admin passwords are unique and appear on the physical USB console;
-its network modes differ from the historical alpha.1 defaults described here.
+The 20 October WiFi-fix build uses owner-requested fixed local credentials;
+see [its short installation guide](modern-thermostat/WIFI-FIX.nl.md).
+Its checksum, SSID and network modes differ from historical alpha.1 below.
 
 **Use a USB-C data cable and a browser. No Python, PlatformIO or separate programmer needed.**
 

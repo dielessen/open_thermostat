@@ -8,13 +8,18 @@ Gebruik de [testgids](INTEGRATED-TEST.nl.md); houd de EMS-kabel los en Tado inta
 - [ ] Exact E32 V2 / ESP32 / 16MB en security-status vastgesteld.
 - [ ] Originele instellingen geëxporteerd; twee onafhankelijke volledige flashlezingen
   byte-identiek en privé opgeslagen; originele herstelsoftware beschikbaar.
+  Mark heeft de oorspronkelijke flashbackups op20oktober expliciet overgeslagen;
+  registreer zijn keuze als uitzondering, niet als geslaagde backup/herstelproef.
 - [ ] Pakketchecksum en broncommit genoteerd.
 
 ## USB en netwerk
 
 - [ ] Fabrieksimage geschreven en geverifieerd vóór normaal booten.
-- [ ] Unieke admin/setup-credentials alleen privé uit fysieke USB-console overgenomen.
-- [ ] Wifi-only setup, fout wachtwoord, geslaagde opslag, AP-afloop en USB-herstel getest.
+- [ ] De door Mark gevraagde standaardlogins werken, ook met oude access-NVS.
+- [ ] Wifi-netwerkscan geeft resultaten zonder vastlopende pagina; leeg/fout/retry getest.
+- [ ] Wifi-only setup, fout wachtwoord, geslaagde opslag en thuisnetwerk-link getest.
+- [ ] Setupnetwerk sluit pas na Afronden of het setupvenster; USB-herstel getest.
+- [ ] Na stroomonderbreking zijn opgeslagen thuisnetwerkgegevens nog bruikbaar.
 - [ ] Ethernet-only na herstart getest, zonder wifi-scan/reconnect; PSRAM/heap/resetreden vastgelegd.
 - [ ] HTTP zonder credentials en ongeldige upload geweigerd vóór schrijven.
 

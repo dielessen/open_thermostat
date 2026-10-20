@@ -80,6 +80,8 @@ class ShadowRuntime:
         self._profiles[room_id] = profile
 
     def attach_transport(self, transport: ShadowTransport) -> None:
+        if any(not room.shadow_wire_supported for room in self.rooms.values()):
+            raise HomeAssistantError("graph_room_contract_unavailable")
         if self._transport is not None:
             raise ValueError("one transport owner only")
         self._transport = transport
@@ -98,6 +100,8 @@ class ShadowRuntime:
             raise ValueError("runtime already started")
         if not self.entry.options.get(CONF_ENABLED, False):
             return
+        if any(not room.shadow_wire_supported for room in self.rooms.values()):
+            raise HomeAssistantError("graph_room_contract_unavailable")
         self._active = True
         self._generation += 1
         self._bind_listeners()

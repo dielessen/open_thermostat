@@ -43,7 +43,7 @@ class ShadowRoom(ClimateEntity):
 
     @property
     def available(self):
-        return self.runtime.transport_ready and self.room.room_id in self.runtime.decisions
+        return self.room.shadow_wire_supported and self.runtime.transport_ready and self.room.room_id in self.runtime.decisions
 
     @property
     def target_temperature(self):
@@ -73,7 +73,7 @@ class ShadowRoom(ClimateEntity):
                 "simulated_demand": state.demand if state else False,
                 "source_quality": observation.quality, "observed_temperature": observation.temperature_c,
                 "firmware_reason": state.reason if state else "wire_not_attached",
-                "actuator_profile": "C_unverified",
+                "actuator_profile": "C_unverified" if self.room.shadow_wire_supported else "graph_draft_not_applied",
                 "diagnostic": self.runtime.diagnostics.get(self.room.room_id)}
 
     async def async_set_temperature(self, **kwargs):

@@ -14,6 +14,12 @@ MODE_SHADOW = "v1_shadow"
 CONF_MODE = "integration_mode"
 CONF_ENABLED = "shadow_enabled"
 ROOM_LIMIT = 8
+ROOM_CLIMATE_TRV = "climate_trv"
+ROOM_GRAPH_DRAFT = "graph_only_draft"
+
+def has_graph_rooms(entry: Any) -> bool:
+    return any(s.subentry_type == "zone" and s.data.get("binding_mode") == ROOM_GRAPH_DRAFT
+               for s in entry.subentries.values())
 _ROOM_ID = re.compile(r"[0-9a-f]{8}")
 
 def integration_mode(entry: Any) -> str:
@@ -50,6 +56,11 @@ class RoomBinding:
     minimum_target_centi_c: int = 500
     maximum_target_centi_c: int = 3500
     week_program: dict | None = None
+    binding_mode: str = ROOM_CLIMATE_TRV
+
+    @property
+    def shadow_wire_supported(self) -> bool:
+        return self.binding_mode == ROOM_CLIMATE_TRV
 
     @classmethod
     def from_dict(cls, value: dict) -> RoomBinding:
@@ -65,7 +76,12 @@ class RoomBinding:
         ids = [temperature.entity_id] + [x.entity_id for x in actuators]
         if setpoint:
             ids.append(setpoint.entity_id)
-        if not actuators or len(actuators) > 8 or len(ids) != len(set(ids)):
+        mode = value.get("binding_mode", ROOM_CLIMATE_TRV)
+        if mode not in (ROOM_CLIMATE_TRV, ROOM_GRAPH_DRAFT):
+            raise ValueError("unsupported_room_binding_mode")
+        if (mode == ROOM_CLIMATE_TRV and not actuators) or (mode == ROOM_GRAPH_DRAFT and actuators):
+            raise ValueError("room_mode_actuator_conflict")
+        if len(actuators) > 8 or len(ids) != len(set(ids)):
             raise ValueError("duplicate, looping or missing room binding")
         if not temperature.entity_id.startswith("sensor."):
             raise ValueError("temperature source must be a sensor")
@@ -90,7 +106,7 @@ class RoomBinding:
             week = normalize_program(week, minimum, maximum)
             if schedule is not None:
                 raise ValueError("program_source_conflict")
-        return cls(room_id, str(value["name"]), temperature, actuators, setpoint, age, base, schedule, minimum, maximum, week)
+        return cls(room_id, str(value["name"]), temperature, actuators, setpoint, age, base, schedule, minimum, maximum, week, mode)
 
     def as_dict(self) -> dict:
         return {
@@ -99,7 +115,8 @@ class RoomBinding:
             "actuators": [x.as_dict() for x in self.actuators],
             "setpoint": self.setpoint.as_dict() if self.setpoint else None,
             "maximum_age_ms": self.maximum_age_ms,
-            "actuator_profile": "C_unverified",
+            "actuator_profile": "C_unverified" if self.shadow_wire_supported else "graph_draft_not_applied",
+            **({"binding_mode": self.binding_mode} if not self.shadow_wire_supported else {}),
             "base_centi_c": self.base_centi_c,
             "schedule": self.schedule.as_dict() if self.schedule else None,
             "minimum_target_centi_c": self.minimum_target_centi_c,

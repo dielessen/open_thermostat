@@ -55,7 +55,8 @@
       }
     },
     "error": {
-      "invalid_adapter_id": "Use the same explicit owner ID as provisioned on the E32 (1–32 letters, digits, _ or -)."
+      "invalid_adapter_id": "Use the same explicit owner ID as provisioned on the E32 (1–32 letters, digits, _ or -).",
+      "graph_room_contract_unavailable": "Graph-only rooms are unapplied drafts. Remove or explicitly migrate them before enabling the current shadow runtime or selecting legacy mode."
     }
   },
   "entity": {
@@ -103,18 +104,22 @@
             "base_temperature": "Base target temperature",
             "minimum_target_temperature": "Minimum target temperature",
             "maximum_target_temperature": "Maximum target temperature",
-            "program_action": "Week program"
+            "program_action": "Week program",
+            "binding_mode": "Room output configuration",
+            "confirm_binding_mode_change": "Confirm changing the room output configuration"
           },
           "data_description": {
             "temperature_entity": "Select a separate room-temperature sensor (sensor entity), not the radiator valve, valve position or a target temperature. A TRV can measure differently near the radiator.",
-            "actuator_entities": "Select the climate entities of the radiator valves (TRVs) serving this room. Multiple valves can share one room target. This selection does not by itself enable valve control.",
+            "actuator_entities": "Select climate TRVs for the climate-TRV mode. Leave empty for a graph-only room; configure desired floor/valve outputs in Heating groups. No device will be operated.",
             "schedule_entity": "Optional: select an existing Home Assistant Schedule helper. Leave empty to use the local week editor or only the base target. A helper and a local week program cannot be active together.",
             "setpoint_entity": "Optional: select a wall thermostat or number/climate entity that supplies the desired room target. This is NOT the radiator valve/actuator and NOT a measured temperature. Leave empty for control from Home Assistant without an extra wall device.",
             "base_temperature": "Room target used in program gaps or when no program or temporary override applies. This field alone does not send a command to the TRV.",
             "minimum_target_temperature": "Lowest permitted room target, including program blocks; not a boiler-water limit.",
             "maximum_target_temperature": "Highest permitted room target, including program blocks; not a boiler-water limit.",
             "maximum_age_ms": "Maximum age of a qualified measurement; 120000 ms = 120 seconds. Not a polling interval. A cached HA state or last_reported alone is not proof of a fresh physical measurement.",
-            "program_action": "Save bindings, edit local time blocks, or explicitly remove the local program. A Home Assistant Schedule helper is an alternative, not a second program source."
+            "program_action": "Save bindings, edit local time blocks, or explicitly remove the local program. A Home Assistant Schedule helper is an alternative, not a second program source.",
+            "binding_mode": "Climate TRVs use the existing shadow profile. Graph-only rooms require no TRV and remain an unapplied draft; runtime and transport are blocked pending the firmware contract.",
+            "confirm_binding_mode_change": "Required only when changing modes. Review and explicitly clear or select the TRV bindings. The room ID, limits and week program are retained."
           }
         },
         "reconfigure": {
@@ -129,18 +134,22 @@
             "base_temperature": "Base target temperature",
             "minimum_target_temperature": "Minimum target temperature",
             "maximum_target_temperature": "Maximum target temperature",
-            "program_action": "Week program"
+            "program_action": "Week program",
+            "binding_mode": "Room output configuration",
+            "confirm_binding_mode_change": "Confirm changing the room output configuration"
           },
           "data_description": {
             "temperature_entity": "Select a separate room-temperature sensor (sensor entity), not the radiator valve, valve position or a target temperature. A TRV can measure differently near the radiator.",
-            "actuator_entities": "Select the climate entities of the radiator valves (TRVs) serving this room. Multiple valves can share one room target. This selection does not by itself enable valve control.",
+            "actuator_entities": "Select climate TRVs for the climate-TRV mode. Leave empty for a graph-only room; configure desired floor/valve outputs in Heating groups. No device will be operated.",
             "schedule_entity": "Optional: select an existing Home Assistant Schedule helper. Leave empty to use the local week editor or only the base target. A helper and a local week program cannot be active together.",
             "setpoint_entity": "Optional: select a wall thermostat or number/climate entity that supplies the desired room target. This is NOT the radiator valve/actuator and NOT a measured temperature. Leave empty for control from Home Assistant without an extra wall device.",
             "base_temperature": "Room target used in program gaps or when no program or temporary override applies. This field alone does not send a command to the TRV.",
             "minimum_target_temperature": "Lowest permitted room target, including program blocks; not a boiler-water limit.",
             "maximum_target_temperature": "Highest permitted room target, including program blocks; not a boiler-water limit.",
             "maximum_age_ms": "Maximum age of a qualified measurement; 120000 ms = 120 seconds. Not a polling interval. A cached HA state or last_reported alone is not proof of a fresh physical measurement.",
-            "program_action": "Save bindings, edit local time blocks, or explicitly remove the local program. A Home Assistant Schedule helper is an alternative, not a second program source."
+            "program_action": "Save bindings, edit local time blocks, or explicitly remove the local program. A Home Assistant Schedule helper is an alternative, not a second program source.",
+            "binding_mode": "Climate TRVs use the existing shadow profile. Graph-only rooms require no TRV and remain an unapplied draft; runtime and transport are blocked pending the firmware contract.",
+            "confirm_binding_mode_change": "Required only when changing modes. Review and explicitly clear or select the TRV bindings. The room ID, limits and week program are retained."
           },
           "description": "Choose a room measurement and its radiator valves. Optional target controls and programs are separate sources. Selecting entities never changes the source device settings or enables actuation. Removing a room also prunes its desired graph actuator declarations; emitter groups and central settings remain."
         },
@@ -202,14 +211,19 @@
         "invalid_program_time": "Use whole-second times with start before end; split overnight blocks at midnight.",
         "invalid_program": "Choose valid days, times and a temperature within the room limits.",
         "program_empty": "There are no blocks to edit or delete.",
-        "program_export_failed": "Cannot compile a bounded 15-day program: check timezone, room limits and maximum 128 transitions."
+        "program_export_failed": "Cannot compile a bounded 15-day program: check timezone, room limits and maximum 128 transitions.",
+        "room_mode_actuator_conflict": "Climate-TRV rooms require TRVs; graph-only rooms must have no climate TRV selection.",
+        "unsupported_room_binding_mode": "Unsupported room output configuration.",
+        "graph_room_runtime_off_required": "Stop the shadow runtime before editing a graph-only room or changing its mode.",
+        "confirm_room_mode_change": "Explicit confirmation is required to change the room output configuration."
       },
       "abort": {
         "room_limit": "At most 8 rooms",
         "shadow_mode_required": "Select explicit v1 shadow mode first",
         "program_cancelled": "Program editing cancelled; nothing saved.",
         "program_changed": "The room was changed or removed while editing; reopen it.",
-        "program_not_started": "Open the week editor from room bindings first."
+        "program_not_started": "Open the week editor from room bindings first.",
+        "room_changed": "The room changed during editing. Reopen it before saving."
       }
     },
     "heating": {
@@ -532,6 +546,12 @@
       "options": {
         "hysteresis": "Hysteresis declaration",
         "tpi": "Slow time-proportional cycle declaration"
+      }
+    },
+    "room_binding_mode": {
+      "options": {
+        "climate_trv": "Climate TRVs (existing shadow profile)",
+        "graph_only_draft": "Graph-only / floor room (unapplied draft)"
       }
     }
   }

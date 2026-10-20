@@ -196,6 +196,17 @@ en session/configACK; huidige bronroute-/ACLbeperking niet omzeilen [B6].
   Parent: 21/21 dossierhashes, twaalf afterhashes en reversecheck PASS;
   volledige native suite onafhankelijk 218PASS/1broker-opt-inSKIP herhaald.
   Broncommit d9d3b00; review en rollback [B13].
+- [x] Native gewenste kamers zonder verplichte TRV en expliciete mode-migratie
+  in bronkandidaat getest [B14], **niet geïnstalleerd**. Oude TRV-roomvorm/IDs/
+  week/bounds en shadowpayload blijven behouden; graph-only rooms blokkeren
+  huidige runtime/legacy/transport vóór IO. Native manager/Store en foutatomiciteit
+  bewezen; volledige suite239PASS/1bewuste brokerSKIP. Dit is geen toegepast vloerprofiel.
+- [x] Concreet graph capability/revision/apply-**voorstel** en actuele firmwarebudget-
+  inventaris opgeleverd [B14]; actuele TEST-WIRE/firmware ongewijzigd. De echte
+  huidige C++parser weigert het nieuwe schema zonder oude config te vervangen.
+- [ ] Firmwarecontractreview, gezamenlijke schemas/validators/capabilityadvertentie,
+  graph-storage/apply/reconnect en echte device-/veiligheidsvelden implementeren;
+  graphdraftlimieten zijn geen bewezen E32capaciteit.
 - [ ] Zichtbare productie-Engelse schermcontrole in bestaande ingelogde browser.
 - [ ] Eén echt sensor-/actuatorprofiel en HA-doel inclusief fouten/toegepaste
   firmwarestatus aantonen; geen fysieke TRVactie geclaimd. Een wandapparaat is
@@ -383,3 +394,10 @@ softwareautorisatie blijft geldig; geen onnodig nieuw algemeen akkoord vragen.
   en runnerbinaryhash PASS. Volledige native suite onafhankelijk218PASS/1SKIP;
   oude B12-telling216 gecorrigeerd op primaire finale log en onafhankelijke herhaling.
   Geen installatie, actieve wirewijziging of fysieke acceptatie.
+
+
+- **B14:** [desired-roommigratie en graph-applyvoorstel](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-room-contract-20261020/RESULT.md).
+  Basis daf5347; native bronacceptatie239PASS/1broker-opt-inSKIP, overlappend met
+  eerdere suites, niet optellen. Capabilities/schema2 zijn een reviewvoorstel,
+  niet geïmplementeerde firmware. Zie [HA-GRAPH-APPLY-PROPOSAL](HA-GRAPH-APPLY-PROPOSAL.nl.md).
+  Geen uitrol, fysieke proef of source-/actuator-/ketelvrijgave.

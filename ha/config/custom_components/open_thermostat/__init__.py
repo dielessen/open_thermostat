@@ -74,6 +74,10 @@ async def async_migrate_entry(hass, entry):
 async def async_setup_entry(hass, entry):
     from .v1_model import integration_mode, MODE_LEGACY, MODE_SHADOW, RoomBinding
     mode = integration_mode(entry)
+    from .v1_model import has_graph_rooms, CONF_ENABLED
+    if has_graph_rooms(entry) and (mode != MODE_SHADOW or entry.options.get(CONF_ENABLED, False)):
+        from homeassistant.exceptions import ConfigEntryError
+        raise ConfigEntryError("graph_room_contract_unavailable")
     if mode == MODE_LEGACY:
         result = await _legacy_setup_entry(hass, entry)
         if result:

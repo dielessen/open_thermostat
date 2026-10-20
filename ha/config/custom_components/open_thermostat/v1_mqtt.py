@@ -23,6 +23,8 @@ from .v1_wire import ShadowClient, identifier
 
 async def async_build_configuration(runtime):
     """Read native schedule exports, preserving all future UTC transitions."""
+    if any(not room.shadow_wire_supported for room in runtime.rooms.values()):
+        raise ConfigEntryError("graph_room_contract_unavailable")
     hass = runtime.hass
     mapping = {"rooms": [r.as_dict() for r in sorted(runtime.rooms.values(), key=lambda r: r.room_id)],
                "source_policy": "qualified-physical-report/v1", "actuation": "disabled-shadow"}

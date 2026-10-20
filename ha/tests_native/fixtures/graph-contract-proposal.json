@@ -1,0 +1,167 @@
+{
+  "status": "PROPOSAL_ONLY_REJECT_BY_CURRENT_V1",
+  "config": {
+    "schema": 2,
+    "mode": "shadow_graph",
+    "revision": 1,
+    "mapping_revision": 1,
+    "mapping_digest": "e86cc858743c983620504c937abbe167ca7958f7ad77019d5b469e8b13de1d71",
+    "required_capabilities": [
+      "heating.actuator.binary_valve.v1",
+      "heating.central_weather.v1",
+      "heating.emitter.floor.v1",
+      "heating.emitter_groups.v1",
+      "heating.graph_shadow.v1",
+      "schedule.utc.v1"
+    ],
+    "central": {
+      "curve_centi_c": [
+        2000,
+        2100,
+        2200,
+        2400,
+        2600,
+        2800,
+        3000,
+        3200,
+        3500
+      ],
+      "fixed_fallback_centi_c": null,
+      "outdoor_axis_centi_c": [
+        2000,
+        1500,
+        1000,
+        500,
+        0,
+        -500,
+        -1000,
+        -1500,
+        -2000
+      ],
+      "outdoor_channel": null,
+      "outdoor_kind": null,
+      "outdoor_maximum_age_ms": 600000,
+      "stale_policy": "block_normal_demand",
+      "supply_limits": {
+        "maximum_centi_c": 3500,
+        "minimum_centi_c": 2000
+      },
+      "weather_enabled": false
+    },
+    "groups": [
+      {
+        "emitter": "floor",
+        "group_id": "floor",
+        "mixing": null,
+        "postrun_s": 0,
+        "pump_channel": null,
+        "pump_start_delay_s": 0,
+        "supply_limits": {
+          "maximum_centi_c": 3500,
+          "minimum_centi_c": 2000
+        }
+      }
+    ],
+    "actuators": [
+      {
+        "actuator_id": "floor_1",
+        "group_id": "floor",
+        "output_channel": "hd811ed84f8011ef3ad7c5302f132e5",
+        "profile": "binary_valve",
+        "room_id": "a1b2c3d4",
+        "settings": {
+          "control": "tpi",
+          "cycle_s": 900,
+          "deenergized_position": "normally_closed",
+          "minimum_off_s": 120,
+          "minimum_on_s": 180,
+          "travel_time_s": 180
+        }
+      }
+    ],
+    "rooms": [
+      {
+        "zone_id": "a1b2c3d4",
+        "sensor_id": "s_a1b2c3d4",
+        "base_centi_c": 2100,
+        "minimum_target_centi_c": 1600,
+        "maximum_target_centi_c": 2400,
+        "max_age_ms": 120000,
+        "report_profile_id": null,
+        "report_evidence": null,
+        "schedule": null
+      }
+    ],
+    "qualification": {
+      "record_digest": null,
+      "outputs_ready": false,
+      "boiler_ready": false
+    }
+  },
+  "mapping": {
+    "mapping_schema": 2,
+    "mapping_revision": 1,
+    "rooms": [
+      {
+        "zone_id": "a1b2c3d4",
+        "temperature": {
+          "entity_id": "sensor.room",
+          "platform": "example",
+          "unique_id": "example_room"
+        },
+        "binding_mode": "graph_only_draft",
+        "source_profile_id": null
+      }
+    ],
+    "graph_bindings": {
+      "hd811ed84f8011ef3ad7c5302f132e5": {
+        "entity_id": "switch.floor",
+        "platform": "example",
+        "unique_id": "example_floor"
+      }
+    },
+    "qualification_records": []
+  },
+  "negative_cases": [
+    {
+      "case": "current_v1_peer",
+      "expect": "unsupported_api_or_schema"
+    },
+    {
+      "case": "missing_profile_or_report_evidence",
+      "expect": "incomplete_configuration"
+    },
+    {
+      "case": "missing_required_capability",
+      "expect": "unsupported_capability"
+    },
+    {
+      "case": "stale_expected_revision",
+      "expect": "revision_conflict"
+    },
+    {
+      "case": "mapping_revision_or_digest_mismatch",
+      "expect": "mapping_conflict"
+    },
+    {
+      "case": "two_outputs_same_resource",
+      "expect": "multiple_output_owners"
+    },
+    {
+      "case": "payload_or_node_or_depth_budget",
+      "expect": "budget_exceeded"
+    },
+    {
+      "case": "lost_apply_ack",
+      "expect": "readback_required_not_retry_as_new"
+    },
+    {
+      "case": "restored_cache_as_physical_report",
+      "expect": "source_unverified"
+    },
+    {
+      "case": "enable_active_from_shadow_config",
+      "expect": "unsupported_mode_no_actuation"
+    }
+  ]
+}

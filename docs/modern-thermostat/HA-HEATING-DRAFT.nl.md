@@ -50,3 +50,13 @@ Outputeigendom wordt gecontroleerd via stabiele registry-channelidentiteit en ac
 De runtime-off guard kijkt zowel naar de opgeslagen shadow_enabled-optie als een eventuele nog actieve HA-runtime tijdens reload. Alleen gewenste configuratie mag worden opgesteld; een kort optiereloadvenster geeft geen editvrijgave.
 
 De bestaande roomflow/RoomBinding is in dit pakket bewust behouden en vereist nog een climate-TRVbinding. De nieuwe graph kan vloerklep-/positie-/mengverklaringen aan bestaande logische kamers toevoegen, maar levert dus nog GEEN vloer-only roomtype zonder TRV. Maak daarvoor geen nep-TRV/helper aan. De expliciete graph-only room/migratie en eigendomsoverdracht van legacy roombindings moeten in het volgende gecoördineerde configuratie-/applypakket worden uitgewerkt vóór volledige vloerproductondersteuning wordt geclaimd.
+
+
+## Aanvulling: gewenste kamers zonder TRV
+De native kamerflow ondersteunt nu graph_only_draft naast de bestaande
+climate_trv-vorm. Geen verplichte of fictieve climatebinding voor vloer-/klepkamers.
+Oude records blijven exact geldig. Modewisseling vraagt bevestiging en runtime uit;
+kamer-ID/week/bounds en graphreferenties blijven behouden. Deze mode kan NIET naar
+de bestaande TEST-WIRE of legacy runtime. Zie
+[concreet applycontractvoorstel](HA-GRAPH-APPLY-PROPOSAL.nl.md).
+De huidige graphlimieten blijven alleen HA-draftgrenzen, geen E32capaciteitsclaim.

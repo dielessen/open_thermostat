@@ -20,6 +20,7 @@ from .const import CONF_CREATE_DASHBOARD, CONF_TOPIC_PREFIX, DOMAIN
 from .v1_model import (
     CONF_ENABLED, CONF_MODE, MODE_LEGACY, MODE_SHADOW, ROOM_LIMIT,
     EntityReference, RoomBinding, integration_mode, target_centi,
+    ROOM_CLIMATE_TRV, ROOM_GRAPH_DRAFT, has_graph_rooms,
 )
 from .v1_wire import identifier
 from .v1_heating_flow import HeatingSubentryFlow
@@ -37,11 +38,13 @@ def reference(hass, selection: str) -> EntityReference:
 def validate_room(hass, entry, user_input: dict, old_subentry=None) -> RoomBinding:
     room_id = old_subentry.data["room_id"] if old_subentry else user_input["room_id"]
     sensor = reference(hass, user_input["temperature_entity"])
-    actuators = tuple(reference(hass, x) for x in user_input["actuator_entities"])
+    actuators = tuple(reference(hass, x) for x in user_input.get("actuator_entities", []))
     physical = reference(hass, user_input["setpoint_entity"]) if user_input.get("setpoint_entity") else None
     room = RoomBinding.from_dict({
         "room_id": room_id, "name": user_input["name"], "temperature": sensor.as_dict(),
         "actuators": [x.as_dict() for x in actuators],
+        "binding_mode": user_input.get("binding_mode",
+            old_subentry.data.get("binding_mode", ROOM_CLIMATE_TRV) if old_subentry else ROOM_CLIMATE_TRV),
         "setpoint": physical.as_dict() if physical else None,
         "maximum_age_ms": user_input.get("maximum_age_ms", 120000),
         "base_centi_c": target_centi(user_input["base_temperature"]) if "base_temperature" in user_input else user_input.get("base_centi_c", 2100),
@@ -52,6 +55,13 @@ def validate_room(hass, entry, user_input: dict, old_subentry=None) -> RoomBindi
            if old_subentry and "week_program" in old_subentry.data
            and user_input.get("program_action", "save") != "remove_week" else {}),
     })
+    old_mode = old_subentry.data.get("binding_mode", ROOM_CLIMATE_TRV) if old_subentry else ROOM_CLIMATE_TRV
+    if room.binding_mode == ROOM_GRAPH_DRAFT or old_mode == ROOM_GRAPH_DRAFT:
+        from .v1_heating_graph import actual_runtime_active
+        if entry.options.get(CONF_ENABLED, False) or actual_runtime_active(hass, entry):
+            raise ValueError("graph_room_runtime_off_required")
+    if old_subentry and old_mode != room.binding_mode and user_input.get("confirm_binding_mode_change") is not True:
+        raise ValueError("confirm_room_mode_change")
     sensor_state = hass.states.get(sensor.entity_id)
     if sensor_state and sensor_state.state not in ("unknown", "unavailable"):
         if sensor_state.attributes.get("device_class") != "temperature":
@@ -115,7 +125,9 @@ class ShadowOptionsFlow(config_entries.OptionsFlowWithReload):
             owner = user_input.get("adapter_id", self.config_entry.options.get(
                 "adapter_id", self.config_entry.data.get("adapter_id", "")))
             valid_owner = isinstance(owner, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,32}", owner) is not None
-            if mode == MODE_SHADOW and not valid_owner:
+            if has_graph_rooms(self.config_entry) and (mode != MODE_SHADOW or user_input.get(CONF_ENABLED, False)):
+                errors["base"] = "graph_room_contract_unavailable"
+            elif mode == MODE_SHADOW and not valid_owner:
                 errors["base"] = "invalid_adapter_id"
             elif mode == MODE_SHADOW and not identifier(self.config_entry.data[CONF_TOPIC_PREFIX]):
                 # Match the first E32 wire profile without renaming legacy IDs.
@@ -157,7 +169,10 @@ class ZoneSubentryFlow(config_entries.ConfigSubentryFlow):
                                          "translation_key": "program_action"}),
             vol.Required("temperature_entity", default=display(data.get("temperature", {}))):
                 selector.EntitySelector({"filter": {"domain": "sensor", "device_class": "temperature"}}),
-            vol.Required("actuator_entities", default=[display(x) for x in data.get("actuators", [])]):
+            vol.Required("binding_mode", default=data.get("binding_mode", ROOM_CLIMATE_TRV)):
+                selector.SelectSelector({"options": [ROOM_CLIMATE_TRV, ROOM_GRAPH_DRAFT],
+                                         "translation_key": "room_binding_mode"}),
+            vol.Optional("actuator_entities", description={"suggested_value": [display(x) for x in data.get("actuators", [])]}):
                 selector.EntitySelector({"filter": {"domain": "climate"}, "multiple": True}),
             schedule_marker: selector.EntitySelector({"filter": {"domain": "schedule"}}),
             vol.Required("base_temperature", default=data.get("base_centi_c", 2100) / 100):
@@ -174,6 +189,8 @@ class ZoneSubentryFlow(config_entries.ConfigSubentryFlow):
             vol.Required("maximum_age_ms", default=data.get("maximum_age_ms", 120000)):
                 vol.All(int, vol.Range(min=1000, max=86400000)),
         }
+        if reconfigure:
+            items[vol.Optional("confirm_binding_mode_change", default=False)] = selector.BooleanSelector()
         if not reconfigure:
             items[vol.Required("room_id", default=uuid.uuid4().hex[:8])] = str
         return vol.Schema(items)
@@ -182,6 +199,8 @@ class ZoneSubentryFlow(config_entries.ConfigSubentryFlow):
         entry = self._get_entry()
         old = self._get_reconfigure_subentry() if reconfigure else None
         errors = {}
+        if old and not hasattr(self, "_room_original"):
+            self._room_original = deepcopy(dict(old.data))
         if integration_mode(entry) != MODE_SHADOW:
             return self.async_abort(reason="shadow_mode_required")
         zones = [s for s in entry.subentries.values() if s.subentry_type == "zone"]
@@ -195,7 +214,8 @@ class ZoneSubentryFlow(config_entries.ConfigSubentryFlow):
                 errors["base"] = message if message in {
                     "binding_missing", "loop_binding", "not_temperature", "unsupported_unit",
                     "duplicate_room", "duplicate_actuator", "invalid_target_range",
-                    "program_source_conflict",
+                    "program_source_conflict", "room_mode_actuator_conflict", "unsupported_room_binding_mode",
+                    "graph_room_runtime_off_required", "confirm_room_mode_change",
                 } else "invalid_binding"
             else:
                 if user_input.get("program_action") == "edit_week":
@@ -224,6 +244,9 @@ class ZoneSubentryFlow(config_entries.ConfigSubentryFlow):
     def _commit_room(self, room, old):
         entry = self._get_entry()
         if old:
+            if (entry.subentries.get(old.subentry_id) is not old or
+                    dict(old.data) != self._room_original):
+                return self.async_abort(reason="room_changed")
             # Same native update listener and persistence path as room bindings.
             return self.async_update_and_abort(
                 entry, old, title=room.name, unique_id=room.room_id, data=room.as_dict())
@@ -332,6 +355,7 @@ class ZoneSubentryFlow(config_entries.ConfigSubentryFlow):
             "room_id": room.room_id, "name": room.name,
             "temperature_entity": room.temperature.entity_id,
             "actuator_entities": [x.entity_id for x in room.actuators],
+            "binding_mode": room.binding_mode, "confirm_binding_mode_change": True,
             "base_temperature": room.base_centi_c / 100,
             "minimum_target_temperature": room.minimum_target_centi_c / 100,
             "maximum_target_temperature": room.maximum_target_centi_c / 100,

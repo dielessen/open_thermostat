@@ -18,8 +18,9 @@ transport en actuatie staan uit; een volledig verse bron→E32→ACK-proef ontbr
   sessie-/config-/schema-shadowsoftware, HA-kamerbindingsflow, temperatuurgrenzen,
   helpervrije weekeditor, setup/OTA-bronwerk.
 - **Geïnstalleerd:** HA-kamer-/weekeditorpakket; alpha.3-basis op het bord door Mark
-  bevestigd, inclusief beide tabs en instellingenbehoud. Alpha.4 gepubliceerd;
-  installatie en automatische herstart daarvan niet afzonderlijk bevestigd.
+  bevestigd, inclusief beide tabs en instellingenbehoud. Latere read-onlyGET meldt
+  alpha.4, zonder exacte sourceidentiteit of fysieke autorebootproef. Alpha.6 met
+  nieuwe webaanmelding gepubliceerd; installatie/echte browseracceptatie nog open.
 - **Nog niet bewezen/geleverd:** fysieke HA/E32-shadowketen, echte actuatorbediening,
   volledige supervisor en centrale weers-GUI, vloer-/klepprofielen, echte EMS-regeling,
   volledige ketelgrafieken, zelfleren en overige comfortfuncties.
@@ -153,7 +154,12 @@ eigen begrensde bronwijziging; in deze planreconciliatie is niets verwijderd.
   Testgrens hersteld zonder productiecodeafwijking:36onboardingscenario's onder
   ASan/UBSan PASS; drie nieuwe lifecycle/foutproeven zijn GEEN cryptografiebewijs.
   Mislukte alpha.5tag blijft onveranderd; herstelversie alpha.6.
-- [ ] Echte publicatie-/downloadacceptatie voor alpha.6 afronden.
+- [x] [Alpha.6 gepubliceerd](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.6),
+  source b6b57df. [CI39490486532](https://github.com/dielessen/open_thermostat/actions/runs/39490486532):
+  alle7jobs groen. Alle5downloads tegen providerdigests gecontroleerd;305sourcefiles
+  exacttag,138pakketchecks,exactCI-ELF/UIregistry en5echte image-gate/OpenSSLproeven
+  onder ASan/UBsan PASS. Publieke API26401B past de bestaande32KiBparser.
+  Gepubliceerde app2235296B, SHA579019267fc4f8b6dfb31210d6e37ef471cf275373594277b2e0fce42f97d266.
 - [ ] Na update mobiele én desktopbrowser op echt bord toetsen: login/herladen/
   twee clients/expiry/logout, interfacegebonden AP en instellingenbehoud.
   Geen automatische bordinstallatie; alle fysieke ketel-/shadow-/bron-/TXgates open.

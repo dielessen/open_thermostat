@@ -43,6 +43,7 @@ TEST(GitHubRelease, PublicApiJsonHasHardByteDepthAndNodeBudgets) {
     EXPECT_FALSE(releaseJson(std::string(32769,' ')));
     EXPECT_FALSE(releaseJson(std::string(17,'[')+std::string(17,']')));
     std::string many="[";for(int i=0;i<3000;++i)many+="0,";many+="0]";EXPECT_FALSE(releaseJson(many));
+    many="[";for(int i=0;i<1500;++i)many+="0,";many+="0]";EXPECT_TRUE(releaseJson(many));
     EXPECT_FALSE(releaseJson("[\"\\u0000\"]"));EXPECT_FALSE(releaseJson("[\"unterminated]"));
     EXPECT_TRUE(releaseJson("[1] \n"));EXPECT_FALSE(releaseJson("[1]garbage"));
 }

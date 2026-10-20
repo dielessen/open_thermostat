@@ -39,7 +39,7 @@ class TextSink:public Sink {
 public:
     using Sink::write;
     std::string bytes;size_t limit;
-    explicit TextSink(size_t max):limit(max){}
+    explicit TextSink(size_t max):limit(max){bytes.reserve(max);}
     size_t write(const uint8_t *data,size_t size) override {if(size>limit-bytes.size())return 0;bytes.append(reinterpret_cast<const char*>(data),size);return size;}
 };
 // HTTPClient decodes chunked bodies into a bounded sink. Redirects are checked

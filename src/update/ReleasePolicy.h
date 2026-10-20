@@ -54,10 +54,10 @@ inline control::ControlJson releaseJson(std::string_view bytes) {
     bool quoted=false,escaped=false;unsigned depth=0,nodes=0;
     for(unsigned char c:bytes) {
         if(quoted) {if(escaped)escaped=false;else if(c=='\\')escaped=true;else if(c=='"')quoted=false;else if(c<32)return reject();continue;}
-        if(c=='"'){quoted=true;if(++nodes>1024)return reject();}
-        else if(c=='{'||c=='['){if(++depth>16||++nodes>1024)return reject();}
+        if(c=='"'){quoted=true;if(++nodes>2048)return reject();}
+        else if(c=='{'||c=='['){if(++depth>16||++nodes>2048)return reject();}
         else if(c=='}'||c==']'){if(!depth)return reject();--depth;}
-        else if(c==','||c==':'){if(++nodes>1024)return reject();}
+        else if(c==','||c==':'){if(++nodes>2048)return reject();}
     }
     if(quoted||escaped||depth)return reject();
     const char *end=nullptr;

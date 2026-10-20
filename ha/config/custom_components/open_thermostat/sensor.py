@@ -2,6 +2,7 @@
 
 import json
 import logging
+import math
 
 from homeassistant.components import mqtt
 from homeassistant.components.mqtt.models import ReceiveMessage
@@ -38,11 +39,11 @@ HUB_METRICS = {
         "uptime": ("uptime", SensorDeviceClass.DURATION, "s", SensorStateClass.TOTAL_INCREASING, "Device uptime"),
     },
     "ems_metrics": {
-        "energy": ("totalEnergyUsedKwh", SensorDeviceClass.ENERGY, "kWh", SensorStateClass.TOTAL, "Total energy consumption"),
-        "energy_warm_water": ("warmWaterEnergyUsedKwh", SensorDeviceClass.ENERGY, "kWh", SensorStateClass.TOTAL, "Energy used for warm water heating"),
-        "energy_heating": ("heatingEnergyUsedKwh", SensorDeviceClass.ENERGY, "kWh", SensorStateClass.TOTAL, "Energy used for space heating"),
-        "warm_water_usage": ("warmWaterUsage", None, "L", SensorStateClass.MEASUREMENT, "Warm water usage"),
-        "warm_water_avg_flow": ("warmWaterAvgFlow", None, "L/min", SensorStateClass.MEASUREMENT, "Average flow of warm water"),
+        "energy": ("totalEnergyUsedKwh", SensorDeviceClass.ENERGY, "kWh", SensorStateClass.TOTAL_INCREASING, "Estimated nominal-modulation energy"),
+        "energy_warm_water": ("warmWaterEnergyUsedKwh", SensorDeviceClass.ENERGY, "kWh", SensorStateClass.TOTAL_INCREASING, "Estimated nominal-modulation DHW energy"),
+        "energy_heating": ("heatingEnergyUsedKwh", SensorDeviceClass.ENERGY, "kWh", SensorStateClass.TOTAL_INCREASING, "Estimated nominal-modulation space-heating energy"),
+        "warm_water_usage": ("warmWaterUsage", SensorDeviceClass.WATER, "L", SensorStateClass.TOTAL_INCREASING, "Integrated reported warm water volume"),
+        "warm_water_avg_flow": ("warmWaterAvgFlow", None, "L/min", SensorStateClass.MEASUREMENT, "Mean warm water flow (observed intervals)"),
         "outdoor_temperature": ("outdoorTemperature", SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, "Outdoor temperature"),
     },
     "ems_status": {
@@ -116,7 +117,7 @@ async def async_setup_entry(
                 entity = HubMetric(prefix, topic, metric)
                 hub_sensors[key] = entity
                 added.append(entity)
-            entity.update_value(value, online)
+            entity.update_payload(payload, online)
         if added:
             async_add_entities(added)
 
@@ -427,6 +428,16 @@ class HubMetric(SensorEntity):
         self._attr_name = name
         self._attr_unique_id = f"{prefix}_hub_{metric}"
         self._divisor = HUB_DIVISORS.get(metric, 1)
+        self._topic, self._metric = topic, metric
+        if topic == "ems_metrics" and metric.startswith("energy"):
+            self._attr_extra_state_attributes = {
+                "measurement_kind": "estimate_nominal_modulation", "counter_scope": "boot",
+                "not_a_gas_meter": True,
+            }
+        elif topic == "ems_metrics" and metric == "warm_water_usage":
+            self._attr_extra_state_attributes = {
+                "measurement_kind": "integrated_reported_flow", "counter_scope": "boot",
+            }
         self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, prefix)})
         self._attr_available = False
 
@@ -435,10 +446,19 @@ class HubMetric(SensorEntity):
         if self.entity_id is not None:
             self.async_write_ha_state()
 
+    def update_payload(self, payload: dict, online: bool) -> None:
+        value = payload.get(HUB_METRICS[self._topic][self._metric][0])
+        if self._topic == "ems_metrics" and self._metric != "outdoor_temperature":
+            # Old firmware publishes consuming deltas/incorrect flow. Never
+            # reinterpret those as the new cumulative boot-local statistics.
+            if type(payload.get("metricsSchema")) is not int or payload["metricsSchema"] != 2:
+                value = None
+        self.update_value(value, online)
+
     def update_value(self, value: object, online: bool) -> None:
         self._attr_native_value = (
             value / self._divisor
-            if isinstance(value, (int, float)) and not isinstance(value, bool)
+            if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
             else value if isinstance(value, str) and value else None
         )
         self._attr_available = online

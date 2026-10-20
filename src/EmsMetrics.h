@@ -1,184 +1,121 @@
-
+#pragma once
 #include "EMS/UBAMonitorFastPlus.h"
 #include "EMS/UBAMonitorWWPlus.h"
 #include "EMS/UBAOutdoorTemp.h"
 #include "EMS/UBAFactory.h"
+#include "EMS/EmsMetricTotals.h"
 #include <TimeHelpers.h>
 
-#include <atomic>
 #include <functional>
 #include <mutex>
 #include <ostream>
+#include <tuple>
 
 namespace heating::ems {
 
 class EmsMetrics {
 public:
-	using registerProcessorFunc_t = std::function<void(uint16_t telegramId, std::function<void(heating::ems::EmsTelegram const &)> processor)>;
+    using registerProcessorFunc_t = std::function<void(uint16_t, std::function<void(EmsTelegram const&)>)>;
+    using clock_t = std::function<uint64_t()>;
 
-	struct BurnerPowerState {
-		BurnerPowerState(uint8_t power) : powerPercentage(power), time(ib::getTimeMillis()) {}
-		uint8_t powerPercentage = 0;
-		uint64_t time = 0;
-	};
+    explicit EmsMetrics(registerProcessorFunc_t registerProcessor,
+                        clock_t clock = [] { return ib::getTimeMillis(); }) : clock_(std::move(clock)) {
+        registerProcessor(UBAMonitorFastPlus::predefinedTypeId, [this](EmsTelegram const& t) {
+            if (!admitted(t)) return;
+            const auto now = clock_();
+            std::lock_guard<std::mutex> lock(mutex_);
+            // Interpret the real telegram bytes, without downcasting a base object.
+            if (auto b = t.byteAt(10)) totals_.power(now, *b);
+            if (auto b = t.byteAt(11)) {
+                totals_.modes(now, (*b & 4) == 0 && (*b & 2) != 0,
+                              (*b & 1) != 0 && (*b & 4) != 0, (*b & 1) != 0);
+            }
+        });
+        registerProcessor(UBAMonitorWWPlus::predefinedTypeId, [this](EmsTelegram const& t) {
+            if (!admitted(t)) return;
+            if (auto b = t.byteAt(11)) {
+                std::lock_guard<std::mutex> lock(mutex_);
+                totals_.flow(clock_(), *b);
+            }
+        });
+        registerProcessor(UBAOutdoorTemp::predefinedTypeId, [this](EmsTelegram const& t) {
+            if (!admitted(t)) return;
+            if (auto value = t.wordAt(0)) {
+                std::lock_guard<std::mutex> lock(mutex_);
+                auto signedValue = static_cast<int16_t>(*value);
+                outdoorTemperature_ = *value != 0x8000 && *value != 0x7FFF
+                    && signedValue >= -600 && signedValue <= 600
+                    ? std::optional<double>(signedValue / 10.0) : std::nullopt;
+                outdoorObserved_ = clock_();
+            }
+        });
+        registerProcessor(UBAFactory::predefinedTypeId, [this](EmsTelegram const& t) {
+            if (!admitted(t)) return;
+            if (auto b = t.byteAt(4)) {
+                std::lock_guard<std::mutex> lock(mutex_);
+                totals_.nominal(clock_(), *b);
+            }
+        });
+    }
 
-	struct WarmWaterState {
-		WarmWaterState(uint8_t flow) : flow(flow), time(ib::getTimeMillis()) {}
-		uint8_t flow = 0; // l/10min  12 means 1.2l/min
-		uint64_t time = 0;
-	};
+    std::tuple<double, double, double> getGasBurnedKwh() {
+        std::lock_guard<std::mutex> lock(mutex_);
+        const auto s = totals_.snapshot(clock_());
+        return {s.energyKwh, s.heatingKwh, s.dhwKwh};
+    }
+    std::tuple<double, double> getWarmWaterUsage() {
+        std::lock_guard<std::mutex> lock(mutex_);
+        const auto s = totals_.snapshot(clock_());
+        return {s.waterLitres, s.averageFlow.value_or(0)};
+    }
+    std::optional<double> getOutdoorTemperature() {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return outdoor(clock_());
+    }
 
-	EmsMetrics(registerProcessorFunc_t registerProcessor) {
-		registerProcessor(heating::ems::UBAMonitorFastPlus::predefinedTypeId, [this](heating::ems::EmsTelegram const &t) {
-			auto telegram = reinterpret_cast<heating::ems::UBAMonitorFastPlus const *>(&t);
-			auto power = telegram->getCurrentBurnerPower();
-			if (power.has_value()) {
-				std::lock_guard<std::mutex> lock(mutex_);
-				calculatePowerUsage(BurnerPowerState(*power));
-			}
-
-			auto heating = telegram->getHeatingActive();
-			if (heating) {
-				heatingActive_ = *heating;
-			}
-
-			auto warmWater = telegram->getWarmWaterActive();
-			if (warmWater) {
-				warmWaterActive_ = *warmWater;
-			}
-		});
-
-		registerProcessor(heating::ems::UBAMonitorWWPlus::predefinedTypeId, [this](heating::ems::EmsTelegram const &t) {
-			auto telegram = reinterpret_cast<heating::ems::UBAMonitorWWPlus const *>(&t);
-
-			auto flow = telegram->getFlow();
-			if (flow.has_value()) {
-				std::lock_guard<std::mutex> lock(mutex_);
-				calculateWaterUsage(WarmWaterState(flow.value()));
-			}
-		});
-
-		registerProcessor(heating::ems::UBAOutdoorTemp::predefinedTypeId, [this](heating::ems::EmsTelegram const &t) {
-			auto telegram = reinterpret_cast<heating::ems::UBAOutdoorTemp const *>(&t);
-			auto temperature = telegram->getOutdoorTemperature();
-			if (temperature.has_value()) {
-				std::lock_guard<std::mutex> lock(mutex_);
-				outdoorTemperature_ = static_cast<double>(*temperature) / 10.0;
-			}
-		});
-
-		// registerProcessor(heating::ems::UBAMonitorSlowPlus::predefinedTypeId, [this](heating::ems::EmsTelegram const &t) {
-		// 	// auto telegram = reinterpret_cast<heating::ems::UBAMonitorSlowPlus const *>(&t);
-		// });
-
-		registerProcessor(heating::ems::UBAFactory::predefinedTypeId, [this](heating::ems::EmsTelegram const &t) {
-			auto telegram = reinterpret_cast<heating::ems::UBAFactory const *>(&t);
-			boilerNominalPower_ = telegram->getBoilerNominalPower().value_or(0);
-		});
-	}
-
-	std::tuple<double, double, double> getGasBurnedKwh() {
-		std::lock_guard<std::mutex> lock(mutex_);
-
-		BurnerPowerState currentPowerState(previousPowerState_.powerPercentage);
-		calculatePowerUsage(currentPowerState);
-		previousPowerState_ = currentPowerState;
-
-		auto energy = std::tuple<double, double, double>(totalEnergyUsedKwh_, heatingEnergyUsedKwh_, warmWaterEnergyUsedKwh_);
-		totalEnergyUsedKwh_ = 0;
-		heatingEnergyUsedKwh_ = 0;
-		warmWaterEnergyUsedKwh_ = 0;
-		return energy;
-	}
-
-	std::tuple<double, double> getWarmWaterUsage() {
-		std::lock_guard<std::mutex> lock(mutex_);
-
-		auto now = ib::getTimeMillis();
-		double totalWarmWaterUsage = totalWarmWaterUsage_;
-		double flow = totalWarmWaterUsage * 60000 / (now - lastWarmWaterFlowGet_);
-
-		lastWarmWaterFlowGet_ = now;
-		totalWarmWaterUsage_ = 0;
-
-		return std::tuple<double, double>(totalWarmWaterUsage, 0);
-	}
-
-	std::optional<double> getOutdoorTemperature() {
-		std::lock_guard<std::mutex> lock(mutex_);
-		return outdoorTemperature_;
-	}
-
-	// clang-format off
-#define ADD_ITEM(name, value) { if (!first) { ss << ","; } else { first = false; } ss << "\""#name"\": " << value;  }
-	// clang-format on
-
-	void getMetrics(std::ostream &ss) {
-		bool first = true;
-
-		auto [totalEnergyUsedKwh, heatingEnergyUsedKwh, warmWaterEnergyUsedKwh] = getGasBurnedKwh();
-		auto [warmWaterUsage, warmWaterAvgFlow] = getWarmWaterUsage();
-		auto outdoorTemperature = getOutdoorTemperature();
-
-		ss << "{";
-		ADD_ITEM(totalEnergyUsedKwh, totalEnergyUsedKwh);
-		ADD_ITEM(warmWaterEnergyUsedKwh, warmWaterEnergyUsedKwh);
-		ADD_ITEM(heatingEnergyUsedKwh, heatingEnergyUsedKwh);
-		ADD_ITEM(warmWaterUsage, warmWaterUsage);
-		ADD_ITEM(warmWaterAvgFlow, warmWaterAvgFlow);
-		if (outdoorTemperature.has_value()) {
-			ADD_ITEM(outdoorTemperature, outdoorTemperature.value());
-		}
-		ss << "}";
-	}
-
-#undef ADD_ITEM
+    void getMetrics(std::ostream& ss) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        const auto now = clock_();
+        const auto s = totals_.snapshot(now);
+        ss << "{\"metricsSchema\":2,\"counterScope\":\"boot\","
+              "\"energyQuality\":\"estimated_nominal_modulation\","
+              "\"protocolScope\":\"plus\",\"flowQuality\":\"reported_integrated\","
+              "\"totalEnergyUsedKwh\":";
+        number(ss, s.energyObserved ? std::optional<double>(s.energyKwh) : std::nullopt);
+        ss << ",\"heatingEnergyUsedKwh\":";
+        number(ss, s.energyObserved ? std::optional<double>(s.heatingKwh) : std::nullopt);
+        ss << ",\"warmWaterEnergyUsedKwh\":";
+        number(ss, s.energyObserved ? std::optional<double>(s.dhwKwh) : std::nullopt);
+        ss << ",\"unattributedEnergyUsedKwh\":";
+        number(ss, s.energyObserved ? std::optional<double>(s.unattributedKwh) : std::nullopt);
+        ss << ",\"warmWaterUsage\":";
+        number(ss, s.flowObserved ? std::optional<double>(s.waterLitres) : std::nullopt);
+        ss << ",\"warmWaterAvgFlow\":"; number(ss, s.averageFlow);
+        ss << ",\"warmWaterFlow\":"; number(ss, s.currentFlow);
+        ss << ",\"observedBurnerSeconds\":";
+        number(ss, s.burnerObserved ? std::optional<double>(s.burnerSeconds) : std::nullopt);
+        ss << ",\"powerFresh\":" << (s.powerFresh ? "true" : "false");
+        ss << ",\"outdoorTemperature\":"; number(ss, outdoor(now));
+        ss << "}";
+    }
 
 private:
-	void calculatePowerUsage(BurnerPowerState currentPowerState) {
-		auto timeDeltaMs = currentPowerState.time - previousPowerState_.time;
-		auto powerUsed = previousPowerState_.powerPercentage;
-
-		double actualPowerKw = static_cast<double>(boilerNominalPower_) * static_cast<double>(previousPowerState_.powerPercentage) / 100.0;
-		double energyKwh = (actualPowerKw * timeDeltaMs) / 3600000.0;
-
-		totalEnergyUsedKwh_ += energyKwh;
-		if (heatingActive_) {
-			heatingEnergyUsedKwh_ += energyKwh;
-		}
-
-		if (warmWaterActive_) {
-			warmWaterEnergyUsedKwh_ += energyKwh;
-		}
-
-		previousPowerState_ = currentPowerState;
-	}
-
-	void calculateWaterUsage(WarmWaterState currentWaterState) { //
-		auto timeDeltaMs = currentWaterState.time - previousWarmWaterState_.time;
-
-		constexpr double FLOW_SCALING_FACTOR = 10.0;
-		constexpr double MILLIS_IN_MIN = 60000.0;
-
-		double flowLm = previousWarmWaterState_.flow / FLOW_SCALING_FACTOR;
-		totalWarmWaterUsage_ += (flowLm * timeDeltaMs) / MILLIS_IN_MIN;
-
-		previousWarmWaterState_ = currentWaterState;
-	}
-
-private:
-	std::mutex mutex_;
-	BurnerPowerState previousPowerState_ = {0};
-	double totalEnergyUsedKwh_ = 0.0;
-	double warmWaterEnergyUsedKwh_ = 0.0;
-	double heatingEnergyUsedKwh_ = 0.0;
-	bool heatingActive_ = false;
-	bool warmWaterActive_ = false;
-	std::atomic_uint8_t boilerNominalPower_ = 0;
-
-	WarmWaterState previousWarmWaterState_ = {0};
-	double totalWarmWaterUsage_ = 0.0; // liters
-	uint64_t lastWarmWaterFlowGet_ = ib::getTimeMillis();
-	std::optional<double> outdoorTemperature_;
+    static bool admitted(const EmsTelegram& t) {
+        return t.getSenderId() == 8 && t.dataSize()
+            && t.getOperationType() != EmsTelegram::READ
+            && t.getOperationType() != EmsTelegram::READ_WITH_DATA;
+    }
+    static void number(std::ostream& ss, std::optional<double> value) {
+        if (value) ss << *value; else ss << "null";
+    }
+    std::optional<double> outdoor(uint64_t now) const {
+        return now >= outdoorObserved_ && now - outdoorObserved_ < 180000
+            ? outdoorTemperature_ : std::nullopt;
+    }
+    std::mutex mutex_;
+    clock_t clock_;
+    EmsMetricTotals totals_;
+    std::optional<double> outdoorTemperature_;
+    uint64_t outdoorObserved_ = 0;
 };
-} // namespace heating::ems
+}

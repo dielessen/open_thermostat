@@ -140,11 +140,11 @@ public:
 	void getStatus(std::ostream &ss) const override { getEmsMetrics_(ss); }
 
 	void publishHADiscovery(ib::mqtt::MQTTPublishInterface &publish) override {
-		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy"sv, "Total energy consumption"sv, "totalEnergyUsedKwh"sv, ""sv, "kWh"sv, "total"sv, "energy"sv, {});
-		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy_warm_water"sv, "Energy used for warm water heating"sv, "warmWaterEnergyUsedKwh"sv, ""sv, "kWh"sv, "total"sv, "energy"sv, {});
-		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy_heating"sv, "Energy used for space heating"sv, "heatingEnergyUsedKwh"sv, ""sv, "kWh"sv, "total"sv, "energy"sv, {});
-		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_warm_water_usage"sv, "Warm water usage"sv, "warmWaterUsage"sv, ""sv, "L"sv, "measurement"sv, ""sv, ""sv);
-		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_warm_water_avg_flow"sv, "Average flow of warm water"sv, "warmWaterAvgFlow"sv, ""sv, "L/min"sv, "measurement"sv, ""sv, ""sv);
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy"sv, "Estimated nominal-modulation energy"sv, "totalEnergyUsedKwh"sv, ""sv, "kWh"sv, "total_increasing"sv, "energy"sv, {});
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy_warm_water"sv, "Estimated nominal-modulation DHW energy"sv, "warmWaterEnergyUsedKwh"sv, ""sv, "kWh"sv, "total_increasing"sv, "energy"sv, {});
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy_heating"sv, "Estimated nominal-modulation space-heating energy"sv, "heatingEnergyUsedKwh"sv, ""sv, "kWh"sv, "total_increasing"sv, "energy"sv, {});
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_warm_water_usage"sv, "Integrated reported warm water volume"sv, "warmWaterUsage"sv, ""sv, "L"sv, "total_increasing"sv, "water"sv, ""sv);
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_warm_water_avg_flow"sv, "Mean warm water flow (observed intervals)"sv, "warmWaterAvgFlow"sv, ""sv, "L/min"sv, "measurement"sv, ""sv, ""sv);
 		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_outdoor_temperature"sv, "Outdoor temperature"sv, "outdoorTemperature"sv, ""sv, "°C"sv, "measurement"sv, "temperature"sv, {});
 	}
 

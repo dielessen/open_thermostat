@@ -349,14 +349,18 @@ volledige deterministische supervisoracceptatie uit PLAN§14 F4 groen; legacycur
 en shadowdoel alleen voldoen niet. **Volgende:** scenario-/contractgestuurde
 software-implementatie zonder TXvrijgave [PLAN§7/14, B3].
 
-### F5 — betrouwbare grafieken en diagnose · pending
+### F5 — betrouwbare grafieken en diagnose · in_progress
 
-- [ ] Counters/interval-/stale-semantiek, vraag versus werkelijke keteldata,
-  juiste HA-statistieken, tijdlijnen, gaten/reboot/CSV en mobiele UX aantonen.
+- [x] F5/WP07 Plus-metricsbron hersteld en onafhankelijk geverifieerd: bootcounters,
+  GET zonder reset,30sdeadline, eerdere CV/DHWintervalmode, expliciete schatting,
+  floweenheden en HA-schema2/statistieklabels.9echte-parser-C+++14HAchecks PASS.
+- [ ] Build/installatie, Classic-meetkwalificatie, fysieke vraag/werkelijk-tijdlijn,
+  Recorderhistorie-/migratieacceptatie, CSV, omvang en mobiele grafiek-UX.
 
 **Eigenaar:** firmware + HA-specialist. **Fase klaar als:** meet-/schatlabels en
 data-integriteit met onafhankelijke verwachtingen kloppen. **Volgende:** bestaande
-metrics en pariteit hergebruiken, onbetrouwbare vlam/gas/flow niet als feit tonen [B2, PLAN§11].
+Recorder-/dashboardroutes en expliciete migratie van oude deltahistorie beoordelen;
+onbetrouwbare vlam/gas/flow niet als feit tonen [B2, PLAN§11].
 
 ### F6 — board, bus, stop en uitval · pending
 
@@ -547,6 +551,44 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
 - Huidige hosthervattingsjob:72ec7e68-5c8f-4203-9f0c-fb11fa92e8bf;
   bronreview afgerond → volgende check15min. Eerdere490a63dc-config hierboven is
   historisch configuratiebewijs, geen bewijs van uitvoeringssucces.
+
+### Mark11785 — F5 meetintegriteit: bronincrement
+
+- [x] Exacte alpha.6-bronreproductie: tweede GET wist0.033333kWh naar0,
+  gemiddelde waterflow retourneerde0 bij1.2L/min, één uur zonder nieuw
+  vermogensbericht telde12kWh door. Native parser/monotone testklok, geen liveproef.
+- [x] Bestaande EMS-metricspad hersteld: observation-driven bootcounters,
+  read zonder reset/actualiteitsverlenging,30sdeadline, eerdere intervalmode,
+  geen energie zonder nominale factor én verse betrouwbare Plusvlam/power;
+  exclusieve CV/DHWsplitsing met unattributedrest, echte floweenheden/gemiddelde.
+- [x] Echte nul versus unknown/null, sentinels/fragments/adres/dataoperation/
+  stale/boundedgap/clockbackwards;9native C++checks met echte parser PASS.
+  14actuele HAchecks: stabiele IDs, expliciete schattingslabels, bootreset/
+  total_increasing en schema2grens; geen oude delta als nieuwe cumulative.
+- [ ] Nog open: Classic onbetrouwbare vlam/flow NIET opgewaardeerd,
+  meter-/fysieke tijdlijn-/CSV-/recorderomvang-/mobiele grafiekacceptatie,
+  firmwarebuild/installatie; onafhankelijke bronreview is nu PASS.
+- Bronpatch/evidence: metrics-only-core.patch / METRICS-RESULT.json in11774dossier.
+  Geen live HArecorder-, configuratie-, TX-, boiler- of apparaatwijziging.
+
+#### Onafhankelijke parentacceptatie F5/WP07
+
+- [x] Exacte patch f18057419e7c18431bac93c420444ac784f19f198ef26a65118a6185e7c3a4a4
+  en alle7niet-WORKBOARDbron-/dochashes tegen METRICS-RESULT.json gecontroleerd.
+- [x] Vanuit canonical checkout werkelijk opnieuw gecompileerd met hostg++ en echte
+  EMSparser:9PASS; nieuwe metricscode -Wall/-Wextra/-Werror schoon. Bestaande
+  parserwaarschuwingen apart behouden. Native HA2026.10.2/Python3.14.8:14PASS,
+  vijf bestaande dependencydeprecaties. Geen netwerk/device/HAproductieactie.
+- Bewijs:11774dossier METRICS-PARENT-COMMANDS.json, METRICS-PARENT-NATIVE.json,
+  METRICS-PARENT-HA.xml en NIGHT-PACKAGE-REVIEW.md. Rollback: alleen deze
+  metricsbroncommit terugdraaien; geen bestaande Recorderdata/config gewijzigd.
+- CONTROL2285b8e nog niet geaccepteerd: eigen probe toont onbegrensde pump_wait
+  zonder flow en verdwijnen van gevalideerd nalooppad bij boilerFault. Exact bewijs
+  CONTROL-PARENT-REVIEW-PROBES.json; correctie als nieuwe informatie aan actieve
+  bestaande specialist gestuurd, admission steered is geen correctie/completion.
+- Eerstvolgende parentactie: HA-managed GUIce461a2 onafhankelijk bronreviewen;
+  specialist werkt eigen volgende F4/F8/F9software af en herstelt controlpakket.
+  Hele11785 en alle fysieke gates blijven open.
 
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 

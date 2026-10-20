@@ -81,6 +81,24 @@ class VerifierFaults(unittest.TestCase):
         finally:
             obj.unlink(missing_ok=True)
 
+    def test_orphan_factory_program(self):
+        path = self.build / "data_e32v2/programs/default.json"
+        saved = path.read_bytes()
+        try:
+            path.write_text('[{"room_id":"409afa7c"}]')
+            self.verify(False)
+        finally:
+            path.write_bytes(saved)
+
+    def test_example_factory_rooms(self):
+        path = self.build / "data_e32v2/cfg/rooms.json"
+        saved = path.read_bytes()
+        try:
+            path.write_text('[{"id":"409afa7c","name":"Example"}]')
+            self.verify(False)
+        finally:
+            path.write_bytes(saved)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

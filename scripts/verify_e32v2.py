@@ -43,6 +43,11 @@ assert filesystems[0][4] == filesystems[1][4]
 assert (build / "spiffs.bin").stat().st_size <= filesystems[0][4]
 assert any(r[2] == "nvs" for r in rows) and any(r[2] == "ota" for r in rows)
 staged = build / "data_e32v2/cfg"
+assert json.loads((staged / "rooms.json").read_text()) == [], "factory room catalog must be empty"
+programs = staged.parent / "programs"
+assert (programs / "default.json").is_file(), "factory default program missing"
+for program in programs.glob("*.json"):
+    assert json.loads(program.read_text()) == [], f"factory program contains example/unknown rooms: {program.name}"
 pins = json.loads((staged / "cfgpins.json").read_text())
 assert pins["ems"] == [4, 5]
 assert not pins["boiler_pin"] and not pins["valve_pins"] and not pins["gpio_extenders"]

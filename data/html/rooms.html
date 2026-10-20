@@ -25,6 +25,11 @@
 	<div class="card collapse" id="roomTemperatureSettings">
 		<div class="card-header">Program settings by room</div>
 		<div class="card-body">
+			<div class="alert alert-warning" id="missingProgramRooms" hidden>
+				<span id="missingProgramRoomsMessage"></span>
+				<button type="button" class="btn btn-outline-dark btn-sm" onclick="removeMissingProgramRooms();">Remove missing rooms</button>
+				<span>Then save this program.</span>
+			</div>
 			<div class="form-group" id="roomSelector">
 				<div class="form-row align-items-end">
 					<div class="col mb-2">
@@ -96,7 +101,8 @@
 	$(document).ready(function () {
 		const programsPane = document.getElementById('roomProgramsPane');
 		if (programsPane) programsPane.addEventListener('roomcatalogsaved', function (event) {
-			loadedRooms = event.detail;
+			loadedRooms = event.detail.rooms;
+			if (event.detail.reload) { loadProgram(); return; }
 			if (loadedProgram) {
 				const selectedId = $('#roomSelectorSelect').val();
 				refreshLoadedProgram();
@@ -139,36 +145,28 @@
 
 	});
 
-	function saveProgram() {
+	async function saveProgram() {
 		if (!validateForm('#programeditform')) return;
 		var program = JSON.stringify(loadedProgram, undefined, null);
 		var selector = document.getElementById('selectprogram');
 
 		$("#saveprogram").prop('disabled', true);
 
-		fetch(hostName + '/config/programs/' + selector.value, {
+		try {
+		const url = hostName + '/config/programs/' + encodeURIComponent(selector.value);
+		const response = await fetch(url, {
 			method: 'post',
 			cache: 'no-cache',
 			credentials: 'same-origin',
 			headers: { "Content-Type": "application/json" },
 			body: program
-		})
-			.then(res => {
-				if ((res.status >= 200 && res.status <= 205) || res.type === "opaque") {
-					// if (confirm("Program '" + selector.value + "' saved.\nDo you want to reboot device to\nchanges take place?")) {
-					// 	reboot();
-					// 	return;
-					// }
-				} else {
-					alert("Not sure if program saved\nStatus: " + res.status + "\nBody:\n" + res.statusText);
-				}
-			})
-			.catch(function (error) {
-				alert(error);
-			})
-			.finally(function () {
-				$("#saveprogram").prop('disabled', false);
-			});
+		});
+		if (!response.ok) throw new Error((await response.text()) || response.statusText);
+		const readback = await fetch(url, {cache: 'no-store'});
+		if (!readback.ok || JSON.stringify(await readback.json()) !== JSON.stringify(JSON.parse(program))) throw new Error('Saved program could not be verified. Reload before retrying.');
+		alert('Program saved and verified.');
+		} catch (error) { alert('Cannot save program: ' + error); }
+		finally { $("#saveprogram").prop('disabled', false); }
 	}
 
 	function getAvailablePrograms() {
@@ -302,8 +300,11 @@
 		$('#roomSelectorSelect').find('option').remove();
 
 		loadedProgram.forEach(element => {
-			$('#roomSelectorSelect').append($('<option>').val(element.room_id).text((loadedRooms.find(room => room.id === element.room_id) || {}).name || 'Unknown room'));
+			$('#roomSelectorSelect').append($('<option>').val(element.room_id).text((loadedRooms.find(room => room.id === element.room_id) || {}).name || ('Missing room (' + element.room_id + ')')));
 		});
+		const missing = loadedProgram.filter(entry => !loadedRooms.some(room => room.id === entry.room_id));
+		document.getElementById('missingProgramRooms').hidden = missing.length === 0;
+		document.getElementById('missingProgramRoomsMessage').textContent = missing.length + ' settings refer to rooms that no longer exist. ';
 
 		$('#roomTemperatureSettings *').attr('disabled', false);
 		if (loadedProgram.length === 0) {
@@ -312,6 +313,12 @@
 			changeRoom();
 		}
 
+	}
+
+	function removeMissingProgramRooms() {
+		if (!confirm('Remove settings for all missing rooms from this program? Existing rooms are kept.')) return;
+		loadedProgram = loadedProgram.filter(entry => loadedRooms.some(room => room.id === entry.room_id));
+		refreshLoadedProgram();
 	}
 
 	function openAddNewRoomModal(event) {
@@ -370,7 +377,7 @@
 		<div class="col-md-4 mb-2">
 			<label for="roomUpperMaging">Turn off the heating if the temperature rises by</label>
 			<div class="input-group">
-				<input type="number" class="form-control" id="roomUpperMaging" placeholder="0.10" value="" step="0.05" min=0.01 max=5  required>
+				<input type="number" class="form-control" id="roomUpperMaging" placeholder="0.10" value="" step="0.01" min=0.01 max=5  required>
 				<div class="input-group-append"><div class="input-group-text">&deg;C</div></div>
 				<div class="invalid-feedback">0.01 - 5 &deg;C</div>
 			</div>
@@ -378,7 +385,7 @@
 		<div class="col-md-4 mb-2">
 			<label for="roomLowerMargin">Turn on the heating if the temperature drops by</label>
 			<div class="input-group">
-				<input type="number" class="form-control" id="roomLowerMargin" placeholder="0.10" value="" step="0.05" min=0.01 max=5 required>
+				<input type="number" class="form-control" id="roomLowerMargin" placeholder="0.10" value="" step="0.01" min=0.01 max=5 required>
 				<div class="input-group-append"><div class="input-group-text">&deg;C</div></div>
 				<div class="invalid-feedback">0.01 - 5 &deg;C</div>
 			</div>
@@ -482,7 +489,6 @@
 		roomFound = loadedProgram[selected];
 		roomDefinition = roomFound && loadedRooms.find(room => room.id === roomFound.room_id);
 		if (roomFound === undefined || roomDefinition === undefined) {
-			alert("Room not found");
 			$('#roomGroup').html("");
 			return;
 		}

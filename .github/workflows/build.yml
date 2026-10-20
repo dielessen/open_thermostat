@@ -3,6 +3,23 @@ name: PlatformIO CI
 on: [push, pull_request]
 
 jobs:
+  browser-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install pinned browser test dependency
+        run: |
+          npm install --no-save --package-lock=false playwright-core@1.63.0
+          npx playwright-core install --with-deps chromium
+      - name: Exercise shipped setup and room pages (simulated HTTP)
+        run: |
+          node test/onboarding/browser.cjs
+          node test/onboarding/network-browser.cjs
+          node test/rooms/browser.cjs
+
   build:
     runs-on: ubuntu-latest
     strategy:

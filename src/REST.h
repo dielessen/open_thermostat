@@ -907,7 +907,7 @@ private:
 					if (filename.size() < 5 || filename.substr(filename.size() - 5) != ".json") continue;
 					std::unique_ptr<cJSON, decltype(&cJSON_Delete)> program(cJSON_Parse(file.readString().c_str()), &cJSON_Delete);
 					if (!program || !validProgram(program.get(), rooms)) {
-						server_.send(409, "text/plain", "Room catalog conflicts with a program"); return;
+						server_.send(409, "text/plain", ("Room catalog conflicts with program '" + filename + "'. Remove missing rooms from that program and save it first.").c_str()); return;
 					}
 				}
 				File file = SPIFFS.open("/cfg/rooms.json", FILE_WRITE);
@@ -974,7 +974,11 @@ private:
 					server_.send(500, "text/plain", "Failed to open file for writing");
 					break;
 				}
-				file.write((uint8_t *)body.c_str(), body.length());
+				if (file.write(reinterpret_cast<uint8_t const *>(body.c_str()), body.length()) != body.length()) {
+					file.close();
+					server_.send(500, "text/plain", "Incomplete program write; reload and verify configuration");
+					break;
+				}
 				file.close();
 
 				auto currentProgram = config::getCurrentProgram();

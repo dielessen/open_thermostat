@@ -864,6 +864,18 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   zomerbeleid als defaultdisabled/shadowbron met foutreplay; fysieke gates intact.
   Hele11785 blijft actief, hervatting15min; softwareplan niet voltooid.
 
+#### Postcheck en voortzetting F5V2parentmerge
+
+- Canonical70fae7b via afzonderlijke reviewbranch fast-forward samengevoegd;
+  gitstatus leeg, commitdiffcheckPASS. METRICS-V2-PARENT-POSTCHECK.json bewaart
+  exacteHEAD en bron-/testscope;10native/45HA, niet geïnstalleerd.
+- Concrete volgende F4/F6/R22-R23lage-last-/vorst-/zomerpolicyopdracht met
+  negatieve replayacceptatie/defaultdisabled/shadow/rollback aan dezelfde
+  specialist aangeboden na huidig telemetry-, graph- en modelwerk.
+  Followup4c42c030-46fd-4dbd-801d-b54fd8c3339e QUEUED; geen completionbewijs.
+- Automations next_check15m bevestigd. Hele11785software nog open; eigen job
+  behouden, geen nieuwe eigenaar/watcher, alle fysieke gates ongewijzigd.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

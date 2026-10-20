@@ -113,7 +113,7 @@
  $id('rollbackRelease').onclick=()=>{if(confirm('De vorige gevalideerde firmware terugzetten en herstarten? Instellingen worden niet gewist.'))command('/updates/rollback');};
  poll();
 $(document).ready(function() {
-	$('#updateform').on("submit", function(event) {
+	$('#updateform').on("submit", async function(event) {
 	event.preventDefault();
 	$("#FirmwareSubmit").prop('disabled', true);
 
@@ -132,6 +132,14 @@ $(document).ready(function() {
 	let xhr = new XMLHttpRequest();
 	let path = $("#FirmwareType").val() == 'firmware' ? '/ota' : '/otafs';
 	xhr.open("POST", path, true);
+	try {
+		const headers = window.OpenThermostatAuth ? await window.OpenThermostatAuth.headers() : {};
+		for (const [name,value] of Object.entries(headers)) xhr.setRequestHeader(name,value);
+	} catch (error) {
+		alert("Sign in again before uploading.");
+		$("#FirmwareSubmit").prop("disabled",false);
+		return;
+	}
 
 	xhr.upload.onprogress = function(event) {
 		if (event.lengthComputable) {

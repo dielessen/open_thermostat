@@ -8,6 +8,13 @@
 #ifdef OPENTHERMOSTAT_E32V2
 #include "EmbeddedWebAssets.h"
 #include "update/GitHubUpdate.h"
+#include "control/WebAuthSession.h"
+#include <esp_system.h>
+// Pinned Arduino WebServer verbose logging prints HTTP headers and form bodies.
+// Never build the credential endpoint with that unredacted library trace enabled.
+#if defined(CORE_DEBUG_LEVEL) && CORE_DEBUG_LEVEL >= 5
+#error "E32 login requires CORE_DEBUG_LEVEL below 5: native HTTP verbose logs expose credentials"
+#endif
 #endif
 #include "Logging.h"
 
@@ -73,8 +80,14 @@ public:
 
 		server_.enableCORS(false);
 		server_.enableCrossOrigin(false);
-		const char *headers[]{"Origin","Sec-Fetch-Site"};
-		server_.collectHeaders(headers,2);
+		const char *headers[]{"Origin","Sec-Fetch-Site","Cookie","X-OpenThermostat-CSRF","Content-Type"};
+		server_.collectHeaders(headers,5);
+#ifdef OPENTHERMOSTAT_E32V2
+		route("/login",HTTP_GET,[this] { serveFile("/login.html"); });
+		route("/auth/login",HTTP_POST,[this] { login(); });
+		route("/auth/session",HTTP_GET,[this] { sessionStatus(); });
+		route("/auth/logout",HTTP_POST,[this] { logout(); });
+#endif
 
 		route("/status/wifi", [this]() {
 			DBGLOGFD(log_, logFeature_, "REST:wifiNetworks\n");
@@ -213,9 +226,17 @@ private:
 			server_.send(403,"text/plain","Origin rejected"); return false;
 		}
 		if(!deviceAccess.ready()) { server_.send(503,"text/plain","Local access initialization failed"); return false; }
-		if(portal!=control::PortalAccess::Setup&&!server_.authenticate("admin",deviceAccess.password().c_str())) {
-			server_.requestAuthentication(DIGEST_AUTH,"OpenThermostat"); return false;
+		// The only public LAN paths are the login form/bootstrap and explicit credential exchange.
+		// Never issue WWW-Authenticate: browsers must not maintain a competing HTTP-auth cache.
+		if(control::publicAuthResource(server_.uri().c_str())) return true;
+		const auto token=requestToken();
+		const auto decision=control::webAuthDecision(sessions_,server_.uri().c_str(),method,token.c_str(),
+			server_.header("X-OpenThermostat-CSRF").c_str(),networkNow(),portal==control::PortalAccess::Setup);
+		if(decision==control::WebAuthDecision::redirect_login){
+			server_.sendHeader("Location","/login");server_.send(303,"text/plain","Sign in to OpenThermostat");return false;
 		}
+		if(decision==control::WebAuthDecision::authentication_required){server_.send(401,"application/json","{\"error\":\"authentication_required\"}");return false;}
+		if(decision==control::WebAuthDecision::csrf_required){server_.send(403,"application/json","{\"error\":\"csrf_required\"}");return false;}
 		if(server_.method()!=HTTP_GET&&update::mutationBlocked(server_.uri().c_str())) {
 			server_.send(409,"text/plain","Wacht tot de GitHub-update is afgerond en herstart eerst");return false;
 		}
@@ -225,6 +246,61 @@ private:
 #endif
 		return true;
 	}
+#ifdef OPENTHERMOSTAT_E32V2
+	control::WebAuthSession sessions_;
+	String requestToken() {
+		const auto cookie=server_.header("Cookie");
+		const auto token=control::WebAuthSession::cookieToken(std::string_view(cookie.c_str(),cookie.length()));
+		return token.empty()?String():String(token.data(),token.size());
+	}
+	static bool randomToken(std::array<char,65> &token) {
+		std::array<uint8_t,32> bytes{};
+		if(!deviceAccess.randomBytes(bytes.data(),bytes.size()))return false;
+		constexpr char hex[]="0123456789abcdef";
+		for(size_t i=0;i<bytes.size();++i){token[i*2]=hex[bytes[i]>>4];token[i*2+1]=hex[bytes[i]&15];}
+		return true;
+	}
+	void login() {
+		const auto now=networkNow();
+		if(!sessions_.loginAllowed(now)){server_.sendHeader("Retry-After","30");server_.send(429,"application/json","{\"error\":\"try_again_later\"}");return;}
+		// Form decoding uses the existing native WebServer parser. No raw password in URLs/logs.
+		bool usernameSeen=false,passwordSeen=false,shape=server_.args()==2;
+		for(int i=0;i<server_.args();++i){
+			const auto name=server_.argName(i);
+			if(name=="username"&&!usernameSeen)usernameSeen=true;
+			else if(name=="password"&&!passwordSeen)passwordSeen=true;
+			else shape=false;
+		}
+		const auto username=server_.arg("username"),password=server_.arg("password");
+		if(!shape||!usernameSeen||!passwordSeen||username.length()>64||password.length()>128||
+		   server_.header("Content-Type")!="application/x-www-form-urlencoded"){
+			server_.send(400,"application/json","{\"error\":\"invalid_login_request\"}");return;
+		}
+		if(username!="admin"||!control::WebAuthSession::equal(std::string_view(password.c_str(),password.length()),deviceAccess.password())){
+			sessions_.loginFailed(now);server_.send(401,"application/json","{\"error\":\"invalid_credentials\"}");return;
+		}
+		std::array<char,65> token{},proof{};
+		if(!randomToken(token)||!randomToken(proof)){server_.send(503,"application/json","{\"error\":\"session_unavailable\"}");return;}
+		const auto old=requestToken();
+		const auto *session=sessions_.issue(token.data(),proof.data(),now,old.c_str());
+		if(!session){server_.send(429,"application/json","{\"error\":\"session_capacity\"}");return;}
+		sessions_.loginSucceeded();
+		server_.sendHeader("Set-Cookie",String("OTSESSION=")+session->token.data()+"; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800");
+		server_.send(200,"application/json","{\"authenticated\":true}");
+	}
+	void sessionStatus() {
+		const auto token=requestToken();const auto now=networkNow();
+		const auto *session=sessions_.find(token.c_str(),now);
+		if(!session){server_.send(401,"application/json","{\"error\":\"authentication_required\"}");return;}
+		const auto response=std::string("{\"authenticated\":true,\"csrf\":\"")+session->csrf.data()+"\",\"expires_in\":"+std::to_string((session->until-now)/1000)+"}";
+		server_.send(200,"application/json",response.c_str());
+	}
+	void logout() {
+		const auto token=requestToken();sessions_.revoke(token.c_str());
+		server_.sendHeader("Set-Cookie","OTSESSION=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0");
+		server_.send(200,"application/json","{\"authenticated\":false}");
+	}
+#endif
 	std::shared_ptr<ib::logger::LoggerInterface> log_;
 	uint16_t listenPort_;
 	ib::logger::LoggerInterface::LogFeatureType logFeature_{};
@@ -391,6 +467,8 @@ private:
 		payload << "\"project\": \""sv << app->project_name << "\","sv;
 #ifdef OPENTHERMOSTAT_E32V2
 		payload << "\"version\": \""sv << embedded::version << "\","sv;
+		payload << "\"source\": \""sv << embedded::source << "\","sv;
+		payload << "\"web_sha256\": \""sv << embedded::webSha << "\","sv;
 #else
 		payload << "\"version\": \""sv << app->version << "\","sv;
 #endif
@@ -1064,12 +1142,12 @@ private:
 	void recovery() {
 		static constexpr auto page = R"html(<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>OpenThermostat recovery</title><style>body{font-family:sans-serif;max-width:42rem;margin:3rem auto;padding:0 1rem}button,input{font-size:1rem;margin:.5rem 0;padding:.6rem}progress{width:100%}</style></head>
+<title>OpenThermostat recovery</title><script src="/auth-client.js"></script><style>body{font-family:sans-serif;max-width:42rem;margin:3rem auto;padding:0 1rem}button,input{font-size:1rem;margin:.5rem 0;padding:.6rem}progress{width:100%}</style></head>
 <body><h1>OpenThermostat recovery</h1><p>Select the SPIFFS image built for this device. Keep the device powered until verification finishes.</p>
 <input id="file" type="file" accept=".bin"><button id="upload">Upload filesystem</button><progress id="progress" max="100" value="0"></progress><pre id="status"></pre>
 <script>
 const button=document.getElementById('upload'),file=document.getElementById('file'),progress=document.getElementById('progress'),status=document.getElementById('status');
-button.onclick=()=>{if(!file.files.length){status.textContent='Select spiffs.bin first.';return}button.disabled=true;status.textContent='Uploading and verifying...';const data=new FormData();data.append('size',file.files[0].size);data.append('file',file.files[0]);const xhr=new XMLHttpRequest();xhr.open('POST','/otafs');xhr.upload.onprogress=e=>{if(e.lengthComputable)progress.value=Math.round(e.loaded/e.total*100)};xhr.onload=()=>{button.disabled=false;status.textContent=xhr.status===200?'Update verified. Reboot the device.':'Update failed: '+xhr.responseText};xhr.onerror=()=>{button.disabled=false;status.textContent='Network error. The update was not confirmed.'};xhr.onabort=()=>{button.disabled=false;status.textContent='Upload aborted.'};xhr.timeout=300000;xhr.ontimeout=()=>{button.disabled=false;status.textContent='Upload timed out.'};xhr.send(data)};
+button.onclick=async()=>{if(!file.files.length){status.textContent='Select spiffs.bin first.';return}button.disabled=true;status.textContent='Uploading and verifying...';const data=new FormData();data.append('size',file.files[0].size);data.append('file',file.files[0]);const xhr=new XMLHttpRequest();xhr.open('POST','/otafs');try{const headers=window.OpenThermostatAuth?await window.OpenThermostatAuth.headers():{};for(const [name,value] of Object.entries(headers))xhr.setRequestHeader(name,value)}catch(error){button.disabled=false;status.textContent='Sign in again before uploading.';return}xhr.upload.onprogress=e=>{if(e.lengthComputable)progress.value=Math.round(e.loaded/e.total*100)};xhr.onload=()=>{button.disabled=false;status.textContent=xhr.status===200?'Update verified. Reboot the device.':'Update failed: '+xhr.responseText};xhr.onerror=()=>{button.disabled=false;status.textContent='Network error. The update was not confirmed.'};xhr.onabort=()=>{button.disabled=false;status.textContent='Upload aborted.'};xhr.timeout=300000;xhr.ontimeout=()=>{button.disabled=false;status.textContent='Upload timed out.'};xhr.send(data)};
 </script></body></html>)html"sv;
 		server_.sendView(200, "text/html"sv, page);
 	}

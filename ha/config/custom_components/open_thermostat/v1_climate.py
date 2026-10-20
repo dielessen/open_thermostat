@@ -29,6 +29,8 @@ class ShadowRoom(ClimateEntity):
 
     def __init__(self, prefix, room, runtime):
         self.room, self.runtime = room, runtime
+        self._attr_min_temp = room.minimum_target_centi_c / 100
+        self._attr_max_temp = room.maximum_target_centi_c / 100
         self._attr_unique_id = f"{prefix}_room_{room.room_id}_climate"
         hub = dr.async_get(runtime.hass).async_get_device_by_identifier((DOMAIN, prefix), runtime.entry.entry_id)
         self._attr_device_info = DeviceInfo(

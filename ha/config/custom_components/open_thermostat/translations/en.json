@@ -100,7 +100,9 @@
             "setpoint_entity": "Optional physical setpoint source",
             "maximum_age_ms": "Maximum qualified sample age (ms)",
             "schedule_entity": "Optional native Schedule helper",
-            "base_temperature": "Base temperature"
+            "base_temperature": "Base temperature",
+            "minimum_target_temperature": "Minimum room target temperature",
+            "maximum_target_temperature": "Maximum room target temperature"
           }
         },
         "reconfigure": {
@@ -112,7 +114,9 @@
             "setpoint_entity": "Optional physical setpoint source",
             "maximum_age_ms": "Maximum qualified sample age (ms)",
             "schedule_entity": "Optional native Schedule helper",
-            "base_temperature": "Base temperature"
+            "base_temperature": "Base temperature",
+            "minimum_target_temperature": "Minimum room target temperature",
+            "maximum_target_temperature": "Maximum room target temperature"
           }
         }
       },
@@ -123,7 +127,8 @@
         "unsupported_unit": "unsupported unit",
         "duplicate_room": "duplicate room",
         "duplicate_actuator": "duplicate actuator",
-        "invalid_binding": "invalid binding"
+        "invalid_binding": "invalid binding",
+        "invalid_target_range": "Choose a minimum below the maximum and a base temperature within these limits."
       },
       "abort": {
         "room_limit": "At most 8 rooms",

@@ -38,6 +38,8 @@ def validate_room(hass, entry, user_input: dict, old_subentry=None) -> RoomBindi
         "maximum_age_ms": user_input.get("maximum_age_ms", 120000),
         "base_centi_c": target_centi(user_input["base_temperature"]) if "base_temperature" in user_input else user_input.get("base_centi_c", 2100),
         "schedule": reference(hass, user_input["schedule_entity"]).as_dict() if user_input.get("schedule_entity") else None,
+        "minimum_target_centi_c": target_centi(user_input.get("minimum_target_temperature", 5)),
+        "maximum_target_centi_c": target_centi(user_input.get("maximum_target_temperature", 35)),
     })
     sensor_state = hass.states.get(sensor.entity_id)
     if sensor_state and sensor_state.state not in ("unknown", "unavailable"):
@@ -131,8 +133,10 @@ class ZoneSubentryFlow(config_entries.ConfigSubentryFlow):
                 return registry.async_get_entity_id(ref["entity_id"].split(".", 1)[0], ref["platform"], ref["unique_id"]) or ref["entity_id"]
             return ref.get("entity_id", "")
         physical = data.get("setpoint")
-        physical_marker = vol.Optional("setpoint_entity", default=display(physical)) if physical else vol.Optional("setpoint_entity")
-        schedule_marker = vol.Optional("schedule_entity", default=display(data["schedule"])) if data.get("schedule") else vol.Optional("schedule_entity")
+        # Suggested values keep the current selection visible without reinserting
+        # it when the user clears an optional selector in the native form.
+        physical_marker = vol.Optional("setpoint_entity", description={"suggested_value": display(physical)}) if physical else vol.Optional("setpoint_entity")
+        schedule_marker = vol.Optional("schedule_entity", description={"suggested_value": display(data["schedule"])}) if data.get("schedule") else vol.Optional("schedule_entity")
         items = {
             vol.Required("name", default=data.get("name", "")): str,
             vol.Required("temperature_entity", default=display(data.get("temperature", {}))):
@@ -141,6 +145,12 @@ class ZoneSubentryFlow(config_entries.ConfigSubentryFlow):
                 selector.EntitySelector({"filter": {"domain": "climate"}, "multiple": True}),
             schedule_marker: selector.EntitySelector({"filter": {"domain": "schedule"}}),
             vol.Required("base_temperature", default=data.get("base_centi_c", 2100) / 100):
+                selector.NumberSelector({"min": 5, "max": 35, "step": 0.1,
+                                         "unit_of_measurement": "°C", "mode": "box"}),
+            vol.Required("minimum_target_temperature", default=data.get("minimum_target_centi_c", 500) / 100):
+                selector.NumberSelector({"min": 5, "max": 35, "step": 0.1,
+                                         "unit_of_measurement": "°C", "mode": "box"}),
+            vol.Required("maximum_target_temperature", default=data.get("maximum_target_centi_c", 3500) / 100):
                 selector.NumberSelector({"min": 5, "max": 35, "step": 0.1,
                                          "unit_of_measurement": "°C", "mode": "box"}),
             physical_marker:
@@ -168,7 +178,7 @@ class ZoneSubentryFlow(config_entries.ConfigSubentryFlow):
                 message = str(err)
                 errors["base"] = message if message in {
                     "binding_missing", "loop_binding", "not_temperature", "unsupported_unit",
-                    "duplicate_room", "duplicate_actuator",
+                    "duplicate_room", "duplicate_actuator", "invalid_target_range",
                 } else "invalid_binding"
             else:
                 if old:

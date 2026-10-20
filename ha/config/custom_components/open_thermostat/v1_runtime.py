@@ -255,6 +255,9 @@ class ShadowRuntime:
             raise HomeAssistantError("Shadow transport is disabled or not ready")
         try:
             target = target_centi(celsius)
+            room = self.rooms[room_id]
+            if not room.minimum_target_centi_c <= target <= room.maximum_target_centi_c:
+                raise ValueError("Target temperature is outside room target limits")
         except ValueError as err:
             raise HomeAssistantError(str(err)) from err
         await self._transport.async_setpoint(room_id, target)

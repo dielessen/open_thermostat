@@ -37,6 +37,10 @@ async def async_build_configuration(runtime):
             schedule = await async_compile_schedule(
                 hass, entity_id, room.base_centi_c, hass.config.time_zone,
                 int(start.timestamp()), int(until.timestamp()))
+        if schedule and any(
+                not room.minimum_target_centi_c <= target <= room.maximum_target_centi_c
+                for _, target in schedule["transitions"]):
+            raise ValueError("Schedule temperature is outside room target limits")
         zones.append({"zone_id": room.room_id, "sensor_id": f"s_{room.room_id}",
                       "actuator_id": f"a_{room.room_id}", "base_centi_c": room.base_centi_c,
                       "max_age_ms": room.maximum_age_ms, "report_evidence": "physical_report",

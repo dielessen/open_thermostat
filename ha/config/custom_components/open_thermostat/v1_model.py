@@ -45,6 +45,8 @@ class RoomBinding:
     maximum_age_ms: int = 120000
     base_centi_c: int = 2100
     schedule: EntityReference | None = None
+    minimum_target_centi_c: int = 500
+    maximum_target_centi_c: int = 3500
 
     @classmethod
     def from_dict(cls, value: dict) -> RoomBinding:
@@ -71,10 +73,16 @@ class RoomBinding:
         base = value.get("base_centi_c", 2100)
         if type(base) is not int or not 500 <= base <= 3500:
             raise ValueError("invalid base target")
+        minimum = value.get("minimum_target_centi_c", 500)
+        maximum = value.get("maximum_target_centi_c", 3500)
+        if (type(minimum) is not int or type(maximum) is not int
+                or not 500 <= minimum < maximum <= 3500
+                or not minimum <= base <= maximum):
+            raise ValueError("invalid_target_range")
         schedule = EntityReference.from_dict(value["schedule"]) if value.get("schedule") else None
         if schedule and not schedule.entity_id.startswith("schedule."):
             raise ValueError("invalid schedule source")
-        return cls(room_id, str(value["name"]), temperature, actuators, setpoint, age, base, schedule)
+        return cls(room_id, str(value["name"]), temperature, actuators, setpoint, age, base, schedule, minimum, maximum)
 
     def as_dict(self) -> dict:
         return {
@@ -86,6 +94,8 @@ class RoomBinding:
             "actuator_profile": "C_unverified",
             "base_centi_c": self.base_centi_c,
             "schedule": self.schedule.as_dict() if self.schedule else None,
+            "minimum_target_centi_c": self.minimum_target_centi_c,
+            "maximum_target_centi_c": self.maximum_target_centi_c,
         }
 
 @dataclass(frozen=True)

@@ -7,6 +7,8 @@ import math
 import re
 from typing import Any
 
+from .v1_program import normalize_program
+
 MODE_LEGACY = "legacy"
 MODE_SHADOW = "v1_shadow"
 CONF_MODE = "integration_mode"
@@ -47,6 +49,7 @@ class RoomBinding:
     schedule: EntityReference | None = None
     minimum_target_centi_c: int = 500
     maximum_target_centi_c: int = 3500
+    week_program: dict | None = None
 
     @classmethod
     def from_dict(cls, value: dict) -> RoomBinding:
@@ -82,7 +85,12 @@ class RoomBinding:
         schedule = EntityReference.from_dict(value["schedule"]) if value.get("schedule") else None
         if schedule and not schedule.entity_id.startswith("schedule."):
             raise ValueError("invalid schedule source")
-        return cls(room_id, str(value["name"]), temperature, actuators, setpoint, age, base, schedule, minimum, maximum)
+        week = value.get("week_program")
+        if week is not None:
+            week = normalize_program(week, minimum, maximum)
+            if schedule is not None:
+                raise ValueError("program_source_conflict")
+        return cls(room_id, str(value["name"]), temperature, actuators, setpoint, age, base, schedule, minimum, maximum, week)
 
     def as_dict(self) -> dict:
         return {
@@ -96,6 +104,9 @@ class RoomBinding:
             "schedule": self.schedule.as_dict() if self.schedule else None,
             "minimum_target_centi_c": self.minimum_target_centi_c,
             "maximum_target_centi_c": self.maximum_target_centi_c,
+            **({"week_program": normalize_program(self.week_program,
+                 self.minimum_target_centi_c, self.maximum_target_centi_c)}
+               if self.week_program is not None else {}),
         }
 
 @dataclass(frozen=True)

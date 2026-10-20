@@ -16,7 +16,8 @@ from homeassistant.helpers.event import (
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from .schedule_compiler import async_compile_schedule
+from .schedule_compiler import async_compile_schedule, compile_week
+from .v1_program import native_week
 from .v1_wire import ShadowClient, identifier
 
 
@@ -30,7 +31,13 @@ async def async_build_configuration(runtime):
     zones = []
     for room in sorted(runtime.rooms.values(), key=lambda r: r.room_id):
         schedule = None
-        if room.schedule:
+        if room.schedule and room.week_program is not None:
+            raise ValueError("program_source_conflict")
+        if room.week_program is not None:
+            schedule = await hass.async_add_executor_job(
+                compile_week, native_week(room.week_program), room.base_centi_c,
+                hass.config.time_zone, int(start.timestamp()), int(until.timestamp()))
+        elif room.schedule:
             entity_id = runtime.resolved(room.schedule)
             if not entity_id or er.async_get(hass).async_get(entity_id) is None:
                 raise ValueError("schedule binding missing")
@@ -96,7 +103,7 @@ class NativeShadowConnection:
                 self.hass, self.prefix + "fw/#", received, qos=0, encoding="utf-8"))
             self.unsubs.append(mqtt.async_subscribe_connection_status(self.hass, connection_status))
             self.bind_schedules()
-            if any(r.schedule for r in self.runtime.rooms.values()):
+            if any(r.schedule or r.week_program is not None for r in self.runtime.rooms.values()):
                 self.unsubs.append(async_track_utc_time_change(
                     self.hass, refresh, hour=0, minute=0, second=0))
             self.arm()

@@ -6,8 +6,9 @@ Normale bediening en configuratie hoort in de integratie: bestaande entiteiten
 selecteren, kamers toevoegen/wijzigen/verwijderen en instellingen bewaren. Geen
 verplichte YAML, helpers/automations of wijzigingen aan bronintegraties als normale
 inrichtingsroute. HA beheert gebruikersconfiguratie; E32 behoudt de regelkern.
-De oude optionele Schedule-helperbinding blijft compatibel, maar is geen bewijs
-van een helpervrije eigen programma-editor: die ontbreekt nog.
+De oude optionele Schedule-helperbinding blijft compatibel. De helpervrije
+[native weekeditor](HA-WEEK-EDITOR.nl.md) is nu gebouwd en in test-HA beproefd;
+lokale week en gekoppelde helper zijn expliciet alternatieve bronnen.
 
 ## In deze wijziging
 
@@ -50,5 +51,6 @@ ondersteund actuatorprofiel.
 Alleen bestaande geïsoleerde testHA is aangepast, met privésnapshot en bronhashes.
 Productie/E32/broker/bronopties/actuatie niet gewijzigd. Voor productie blijven
 review, passend backup/rollback en de daadwerkelijke native/GUIacceptatie nodig.
-Volledige shadowketen/fysieke proeven, helpervrije programma-editor en gekwalificeerde
-fysieke setpointprofielen zijn aparte open punten; deze wijziging voltooit die niet.
+De helpervrije weekeditor is een afzonderlijke softwareuitbreiding met eigen
+acceptatiebewijs. Volledige shadowketen/fysieke proeven en gekwalificeerde
+fysieke setpointprofielen blijven open; de configuratieproeven voltooien die niet.

@@ -102,7 +102,8 @@
             "schedule_entity": "Optional native Schedule helper",
             "base_temperature": "Base temperature",
             "minimum_target_temperature": "Minimum room target temperature",
-            "maximum_target_temperature": "Maximum room target temperature"
+            "maximum_target_temperature": "Maximum room target temperature",
+            "program_action": "Week program: save bindings, edit blocks, or remove local program"
           }
         },
         "reconfigure": {
@@ -116,8 +117,51 @@
             "schedule_entity": "Optional native Schedule helper",
             "base_temperature": "Base temperature",
             "minimum_target_temperature": "Minimum room target temperature",
-            "maximum_target_temperature": "Maximum room target temperature"
+            "maximum_target_temperature": "Maximum room target temperature",
+            "program_action": "Week program: save bindings, edit blocks, or remove local program"
           }
+        },
+        "program": {
+          "title": "Room week program",
+          "description": "Draft: {blocks} blocks; gaps use the base target {base} °C. Nothing is stored until Save. Select a single program source: local blocks OR a Schedule helper.",
+          "menu_options": {
+            "add_block": "Add time block",
+            "edit_block": "Edit time block",
+            "delete_block": "Delete time block",
+            "save_program": "Save program and room bindings",
+            "cancel_program": "Cancel without saving"
+          }
+        },
+        "block": {
+          "title": "Time block",
+          "description": "Local wall-clock interval [start, end). Split overnight blocks at midnight. Repeated autumn hours apply twice; nonexistent spring times are skipped.",
+          "data": {
+            "days": "Days",
+            "start_time": "Start time",
+            "end_time": "End time",
+            "end_at_midnight": "End at midnight (ignore End time)",
+            "temperature": "Target temperature"
+          }
+        },
+        "edit_block": {
+          "title": "Choose a time block to edit",
+          "data": {
+            "block": "Time block"
+          }
+        },
+        "delete_block": {
+          "title": "Choose a time block to delete from draft",
+          "data": {
+            "block": "Time block"
+          }
+        },
+        "program_empty": {
+          "title": "No time blocks",
+          "description": "Continue to add a block or save an empty program using the base target."
+        },
+        "program_save_error": {
+          "title": "Program cannot be exported",
+          "description": "No changes were saved. Return to the draft and correct it, or cancel."
         }
       },
       "error": {
@@ -128,11 +172,41 @@
         "duplicate_room": "duplicate room",
         "duplicate_actuator": "duplicate actuator",
         "invalid_binding": "invalid binding",
-        "invalid_target_range": "Choose a minimum below the maximum and a base temperature within these limits."
+        "invalid_target_range": "Choose a minimum below the maximum and a base temperature within these limits.",
+        "program_source_conflict": "Choose one source. Clear the Schedule helper before editing local blocks; remove the local program before selecting a helper.",
+        "program_overlap": "Time blocks overlap on a selected day.",
+        "program_limit": "At most 28 day-blocks per week; selecting multiple days counts once per day.",
+        "invalid_program_time": "Use whole-second times with start before end; split overnight blocks at midnight.",
+        "invalid_program": "Choose valid days, times and a temperature within the room limits.",
+        "program_empty": "There are no blocks to edit or delete.",
+        "program_export_failed": "Cannot compile a bounded 15-day program: check timezone, room limits and maximum 128 transitions."
       },
       "abort": {
         "room_limit": "At most 8 rooms",
-        "shadow_mode_required": "Select explicit v1 shadow mode first"
+        "shadow_mode_required": "Select explicit v1 shadow mode first",
+        "program_cancelled": "Program editing cancelled; nothing saved.",
+        "program_changed": "The room was changed or removed while editing; reopen it.",
+        "program_not_started": "Open the week editor from room bindings first."
+      }
+    }
+  },
+  "selector": {
+    "program_action": {
+      "options": {
+        "save": "Save bindings (keep local program if present)",
+        "edit_week": "Edit a local week program",
+        "remove_week": "Remove local week program (base target or selected helper)"
+      }
+    },
+    "program_days": {
+      "options": {
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday",
+        "sunday": "Sunday"
       }
     }
   }

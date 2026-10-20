@@ -66,6 +66,8 @@ def validate_room(hass, entry, user_input: dict, old_subentry=None) -> RoomBindi
             raise ValueError("duplicate_room")
         if {x.identity() for x in room.actuators} & {x.identity() for x in other.actuators}:
             raise ValueError("duplicate_actuator")
+    from .v1_heating_graph import validate_room_ownership
+    validate_room_ownership(hass, entry, room)
     return room
 
 class V1FlowMixin:

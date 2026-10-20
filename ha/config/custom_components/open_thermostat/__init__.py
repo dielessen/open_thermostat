@@ -53,6 +53,12 @@ _legacy_setup_entry = async_setup_entry
 _legacy_unload_entry = async_unload_entry
 
 async def _async_options_updated(hass, entry):
+    from .v1_model import integration_mode, MODE_SHADOW
+    if integration_mode(entry) == MODE_SHADOW:
+        from .v1_heating_graph import reconcile_removed_rooms
+        if reconcile_removed_rooms(hass, entry):
+            # Native update schedules one follow-up callback; avoid duplicate reload.
+            return
     await hass.config_entries.async_reload(entry.entry_id)
 
 async def async_migrate_entry(hass, entry):
@@ -75,6 +81,8 @@ async def async_setup_entry(hass, entry):
         return result
     if mode != MODE_SHADOW:
         return False
+    from .v1_heating_graph import reconcile_removed_rooms
+    reconcile_removed_rooms(hass, entry)
     from homeassistant.const import Platform
     from .v1_runtime import ShadowRuntime
     rooms = [RoomBinding.from_dict(dict(s.data)) for s in entry.subentries.values()

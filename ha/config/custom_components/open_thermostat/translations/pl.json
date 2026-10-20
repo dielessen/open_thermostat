@@ -91,7 +91,7 @@
       "step": {
         "user": {
           "title": "Room bindings",
-          "description": "Choose a room measurement and its radiator valves. Optional target controls and programs are separate sources. Selecting entities never changes the source device settings or enables actuation.",
+          "description": "Choose a room measurement and its radiator valves. Optional target controls and programs are separate sources. Selecting entities never changes the source device settings or enables actuation. Removing a room also prunes its desired graph actuator declarations; emitter groups and central settings remain.",
           "data": {
             "room_id": "Permanent firmware room ID",
             "name": "Room name",
@@ -142,7 +142,7 @@
             "maximum_age_ms": "Maximum age of a qualified measurement; 120000 ms = 120 seconds. Not a polling interval. A cached HA state or last_reported alone is not proof of a fresh physical measurement.",
             "program_action": "Save bindings, edit local time blocks, or explicitly remove the local program. A Home Assistant Schedule helper is an alternative, not a second program source."
           },
-          "description": "Choose a room measurement and its radiator valves. Optional target controls and programs are separate sources. Selecting entities never changes the source device settings or enables actuation."
+          "description": "Choose a room measurement and its radiator valves. Optional target controls and programs are separate sources. Selecting entities never changes the source device settings or enables actuation. Removing a room also prunes its desired graph actuator declarations; emitter groups and central settings remain."
         },
         "program": {
           "title": "Room week program",
@@ -238,7 +238,8 @@
             "curve_5": "Supply target at -5 °C outdoors",
             "curve_6": "Supply target at -10 °C outdoors",
             "curve_7": "Supply target at -15 °C outdoors",
-            "curve_8": "Supply target at -20 °C outdoors"
+            "curve_8": "Supply target at -20 °C outdoors",
+            "draft_action": "Configuration section"
           },
           "data_description": {
             "weather_enabled": "Desired configuration draft only. The E32 remains the controller; saving does not enable weather control or change heating.",
@@ -256,7 +257,8 @@
             "curve_5": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
             "curve_6": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
             "curve_7": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
-            "curve_8": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed."
+            "curve_8": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
+            "draft_action": "Edit central settings or stage group/actuator CRUD. The complete graph commits only at explicit Save; it remains NOT APPLIED to E32."
           }
         },
         "reconfigure": {
@@ -278,7 +280,8 @@
             "curve_5": "Supply target at -5 °C outdoors",
             "curve_6": "Supply target at -10 °C outdoors",
             "curve_7": "Supply target at -15 °C outdoors",
-            "curve_8": "Supply target at -20 °C outdoors"
+            "curve_8": "Supply target at -20 °C outdoors",
+            "draft_action": "Configuration section"
           },
           "data_description": {
             "weather_enabled": "Desired configuration draft only. The E32 remains the controller; saving does not enable weather control or change heating.",
@@ -296,8 +299,140 @@
             "curve_5": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
             "curve_6": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
             "curve_7": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
-            "curve_8": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed."
+            "curve_8": "Nine-point water curve using the existing E32 outdoor axis: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Targets must not decrease towards colder weather. This draft is not executed.",
+            "draft_action": "Edit central settings or stage group/actuator CRUD. The complete graph commits only at explicit Save; it remains NOT APPLIED to E32."
           }
+        },
+        "graph": {
+          "title": "Desired heating graph — not applied",
+          "description": "Draft: {groups} groups, {actuators} actuator declarations. Unassigned groups remain incomplete. No changes persist until Save. No firmware or device execution.",
+          "menu_options": {
+            "add_group": "Add emitter group to draft",
+            "edit_group": "Edit emitter group in draft",
+            "delete_group": "Delete emitter group from draft",
+            "add_actuator": "Add actuator declaration",
+            "edit_actuator": "Edit actuator declaration",
+            "delete_actuator": "Delete actuator declaration",
+            "save_graph": "Save desired graph (not applied)",
+            "cancel_graph": "Cancel all graph changes"
+          }
+        },
+        "edit_group": {
+          "title": "Choose group to edit",
+          "description": "Desired configuration only. Nothing moves or applies to E32. Group/profile declarations do not establish electrical, hydraulic or device support.",
+          "data": {
+            "group_id": "Emitter group"
+          },
+          "data_description": {}
+        },
+        "group": {
+          "title": "Emitter group — draft only",
+          "description": "Desired configuration only. Nothing moves or applies to E32. Group/profile declarations do not establish electrical, hydraulic or device support.",
+          "data": {
+            "name": "Group name",
+            "emitter": "Emitter type",
+            "minimum_supply_temperature": "Minimum group supply temperature",
+            "maximum_supply_temperature": "Maximum group supply temperature",
+            "pump": "Group pump (optional switch)",
+            "pump_start_delay_s": "Pump start delay (seconds)",
+            "postrun_s": "Pump post-run (seconds)",
+            "mixing_kind": "Mixing actuator declaration"
+          },
+          "data_description": {
+            "emitter": "A floor is a slow emitter, not a renamed radiator. Floor temperature and independent hardware limits still need installation-specific validation.",
+            "minimum_supply_temperature": "Group water limit, not the room temperature. A structurally valid value is not installation safety approval.",
+            "maximum_supply_temperature": "A floor without declared mixing must share a central upper bound within this limit. A closed floor valve is not independent over-temperature protection.",
+            "pump": "Optional existing switch controlling the group pump. Clearing it also requires both pump times to be zero. Selection never operates a pump.",
+            "mixing_kind": "Declaration only. A mixing valve is not a room flow valve. Runtime mixing control, output interlocks, homing and analog calibration are NOT implemented by this editor."
+          }
+        },
+        "mixing": {
+          "title": "Mixing declaration — no motor control",
+          "description": "Desired configuration only. Nothing moves or applies to E32. Group/profile declarations do not establish electrical, hydraulic or device support.",
+          "data": {
+            "supply_sensor": "Mixed supply temperature sensor",
+            "travel_time_s": "Full actuator travel time (seconds)",
+            "open_output": "OPEN direction output (switch)",
+            "close_output": "CLOSE direction output (switch)",
+            "analog_output": "Analog output controller (number)"
+          },
+          "data_description": {
+            "supply_sensor": "Actual mixed-water temperature input. Sensor availability/cache is not qualified fresh measurement evidence.",
+            "travel_time_s": "Full-travel declaration, not feedback proof. No actuator moves during configuration.",
+            "open_output": "Dedicated OPEN direction switch. Must differ from CLOSE and all other outputs. Electrical/software interlocking and homing are later implementation gates.",
+            "close_output": "Dedicated CLOSE direction switch, not a generic closed-state sensor. No three-point motor control is executed.",
+            "analog_output": "Existing number output for a physical 0–10 V controller. Scaling/direction/calibration and actual voltage are NOT established by selecting it."
+          }
+        },
+        "delete_group": {
+          "title": "Remove group from draft",
+          "description": "Desired configuration only. Nothing moves or applies to E32. Group/profile declarations do not establish electrical, hydraulic or device support.",
+          "data": {
+            "group_id": "Emitter group",
+            "cascade_actuators": "Also remove this group’s actuator declarations from the draft"
+          },
+          "data_description": {
+            "cascade_actuators": "Required if the selected group contains actuator declarations. Only the draft group and its declarations are removed; no room/entity/device is deleted or operated."
+          }
+        },
+        "actuator": {
+          "title": "Actuator owner and type — draft only",
+          "description": "Desired configuration only. Nothing moves or applies to E32. Group/profile declarations do not establish electrical, hydraulic or device support.",
+          "data": {
+            "room_id": "Existing room",
+            "group_id": "Emitter group",
+            "profile": "Actuator declaration type"
+          },
+          "data_description": {
+            "room_id": "Select a logical room already configured in this integration. Deleting that room natively removes only its desired graph actuator declarations, with audit; groups and central settings remain."
+          }
+        },
+        "actuator_details": {
+          "title": "Actuator declaration — not executed",
+          "description": "Desired configuration only. Nothing moves or applies to E32. Group/profile declarations do not establish electrical, hydraulic or device support.",
+          "data": {
+            "output": "Device output entity",
+            "deenergized_position": "Physical de-energized position (NC/NO)",
+            "control": "Binary control strategy",
+            "travel_time_s": "Full actuator travel time (seconds)",
+            "minimum_on_s": "Minimum on-time (seconds)",
+            "minimum_off_s": "Minimum off-time (seconds)",
+            "cycle_s": "TPI cycle length (optional; seconds)",
+            "minimum_percent": "Minimum requested position (%)",
+            "maximum_percent": "Maximum requested position (%)"
+          },
+          "data_description": {
+            "output": "Select the entity matching this declaration type. An existing TRV bound to this exact room may be adopted as the SAME desired output owner; no second writer is created. Cross-room/controller ownership is rejected.",
+            "deenergized_position": "NC/NO means the physical state with power removed, not a software inversion. Verify the real actuator/voltage separately.",
+            "control": "Desired declaration only. TPI is a slow time-proportional cycle, not a proportional valve position and not rapid PWM.",
+            "travel_time_s": "Full-travel declaration, not feedback proof. No actuator moves during configuration.",
+            "cycle_s": "Required for TPI; leave empty for hysteresis. Minimum on-time must cover travel, and minimum on+off times must fit the cycle.",
+            "minimum_percent": "Position request, not measured flow or boiler power. Interface direction, feedback, safe fallback and device support remain unproven.",
+            "maximum_percent": "Must exceed the minimum. A percent output is not automatically a mixing valve or a 0–10 V interface."
+          }
+        },
+        "edit_actuator": {
+          "title": "Choose actuator declaration to edit",
+          "description": "Desired configuration only. Nothing moves or applies to E32. Group/profile declarations do not establish electrical, hydraulic or device support.",
+          "data": {
+            "actuator_id": "Actuator declaration"
+          },
+          "data_description": {}
+        },
+        "delete_actuator": {
+          "title": "Remove actuator declaration from draft",
+          "description": "Desired configuration only. Nothing moves or applies to E32. Group/profile declarations do not establish electrical, hydraulic or device support.",
+          "data": {
+            "actuator_id": "Actuator declaration",
+            "confirm": "Confirm removal from draft"
+          },
+          "data_description": {
+            "confirm": "Removal is staged only; final Save commits the desired draft. Cancel discards all staged changes."
+          }
+        },
+        "graph_error": {
+          "title": "Graph cannot be saved",
+          "description": "Nothing was saved. Continue to the staged graph and repair the references, or cancel."
         }
       },
       "error": {
@@ -309,12 +444,30 @@
         "unused_fallback_must_be_null": "Clear the fixed target when using the block-demand policy.",
         "minimum_must_be_below_maximum": "The minimum supply temperature must be below the maximum.",
         "invalid_integer_or_bounds": "Choose finite numbers inside the permitted bounds.",
-        "invalid_heating_draft": "The desired configuration is invalid. No changes were saved."
+        "invalid_heating_draft": "The desired configuration is invalid. No changes were saved.",
+        "wrong_entity_domain": "Select an entity from the required domain.",
+        "input_output_loop": "An output cannot also be a configured input or an OpenThermostat-derived entity.",
+        "output_has_multiple_owners": "This output already belongs to another room, controller, pump, mixer or actuator declaration.",
+        "floor_requires_mixing_or_shared_safe_limit": "An unmixed floor requires the shared central upper bound to remain within the floor group limit.",
+        "invalid_tpi_travel_or_minimum_times": "TPI on-time must cover travel and minimum on+off times must fit the cycle.",
+        "pump_times_without_pump": "Clear both pump times when no group pump is selected.",
+        "invalid_position_range": "Minimum position must be below maximum position.",
+        "group_count": "At most 8 desired groups. This is not proof of firmware capacity.",
+        "actuator_count": "At most 64 desired actuators in total. Firmware resource capacity is not yet proven.",
+        "room_actuator_limit": "At most 8 desired actuator declarations per room.",
+        "duplicate_actuator_or_missing_reference": "Use unique actuator identifiers and existing room/group references.",
+        "confirm_group_cascade": "Confirm removal of this group’s actuator declarations, or cancel.",
+        "confirm_delete": "Confirm removal from the draft.",
+        "invalid_heating_graph": "The desired graph is invalid or a binding has disappeared. Nothing was saved.",
+        "room_required": "Configure a room before adding actuator declarations."
       },
       "abort": {
         "shadow_mode_required": "Only explicit shadow entries support this configuration draft.",
         "disable_runtime_before_draft": "This draft editor requires the shadow runtime to remain disabled.",
-        "single_central_owner": "This controller already has a central heating draft. Reconfigure that draft instead."
+        "single_central_owner": "This controller already has a central heating draft. Reconfigure that draft instead.",
+        "graph_not_started": "Open the graph from central heating settings.",
+        "graph_changed": "The central draft or room catalog changed during editing. Reopen the draft; no changes were saved.",
+        "graph_cancelled": "All staged graph changes cancelled; nothing saved."
       }
     }
   },
@@ -341,6 +494,44 @@
       "options": {
         "block_normal_demand": "Block normal demand",
         "bounded_fixed_flow": "Use an explicitly bounded fixed supply target"
+      }
+    },
+    "heating_draft_action": {
+      "options": {
+        "save_central": "Save central settings only (keep graph)",
+        "edit_graph": "Edit groups and actuator declarations"
+      }
+    },
+    "heating_emitter": {
+      "options": {
+        "radiator": "Radiators",
+        "floor": "Floor heating (slow emitter)"
+      }
+    },
+    "heating_mixing": {
+      "options": {
+        "none": "No declared mixer",
+        "three_point": "Three-point mixer declaration (not executed)",
+        "analog_0_10v": "Analog 0–10 V mixer declaration (not executed)"
+      }
+    },
+    "heating_actuator": {
+      "options": {
+        "trv_room_setpoint": "Radiator valve (TRV) room setpoint",
+        "binary_valve": "Binary zone/floor valve (NC/NO, hysteresis/TPI)",
+        "proportional_valve": "Proportional position valve (0–100%, not a mixer)"
+      }
+    },
+    "heating_deenergized": {
+      "options": {
+        "normally_open": "Normally open (power off = open)",
+        "normally_closed": "Normally closed (power off = closed)"
+      }
+    },
+    "heating_binary_control": {
+      "options": {
+        "hysteresis": "Hysteresis declaration",
+        "tpi": "Slow time-proportional cycle declaration"
       }
     }
   }

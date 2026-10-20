@@ -43,7 +43,7 @@ blijven in HA; geen extra helpers/YAML/automations nodig voor normale inrichting
 | Doeltemperatuur, kamergrenzen, weekprogramma, tijdelijke override | HA-kamerclimate en native kameropties | HA bewaart gewenst; E32 accepteert revisie, voert schema uit en meldt effectief doel | Editor bewezen; fysieke applied-ACK-keten open |
 | Buitenbron en ontbrekend/oud-beleid | HA-integratie → algemene instellingen | HA levert gekwalificeerde bron; E32 valideert leeftijd en toepasbaarheid | Centrale draftflow in bronkandidaat; volledige toepassing nog te bouwen |
 | Weersafhankelijk aan/uit, stooklijn, aanvoergrenzen | HA-integratie → centraal verwarmingscircuit | E32 berekent waterdoel, inclusief begrensde zonecorrectie | Niet in huidige kamereditor; volledige moderne supervisor open |
-| Radiator/vloer, circuit, pomp, menger en klepprofiel | HA → afgiftegroep + kameractuatoren | E32 coördineert vraag/vertraging/limieten; HA voert ondersteunde deviceacties uit | Groeps-/vloer-/generieke klepconfiguratie ontbreekt |
+| Radiator/vloer, circuit, pomp, menger en klepprofiel | HA → afgiftegroep + kameractuatoren | E32 coördineert vraag/vertraging/limieten; HA voert ondersteunde deviceacties uit | Gewenste graph-GUI in bronkandidaat; toegepast profiel-/E32gedrag ontbreekt |
 | Leren aan/uit, begrenzing, modelreset en optimum-start | HA → kamer/algemene regeling | E32 bewaart modellen en voert adaptatie uit | Nog niet geleverd/gevalideerd |
 | Ketelprofiel, toegestane limieten, vrijgavestatus | HA → geavanceerde centrale instellingen; commissioning afzonderlijk | E32 native EMS; ketel behoudt eigen beveiligingen/DHWprioriteit | Passieve softwarebasis, geen actieve EMSvrijgave |
 | Grafieken, waarom warmtevraag, historie/storingen | HA-dashboard/Recorder/diagnostiek | E32 rapporteert feiten/redenen, HA toont en bewaart | Volledige vraag/werkelijk-/pariteitsweergave open |
@@ -188,18 +188,26 @@ en session/configACK; huidige bronroute-/ACLbeperking niet omzeilen [B6].
   Parent: 18/18 dossierhashes en exacte negen bronbestanden gecontroleerd;
   106 relevante native tests onafhankelijk opnieuw PASS (overlap, niet optellen).
   Broncommit c23bae2; review en rollback [B11].
+- [x] Native gewenste graph-CRUD in **niet-geïnstalleerde bronkandidaat**:
+  groepen/actuatorverklaringen/mengerinterfaces, Save/Cancel, referenties/uitgangseigendom,
+  begrensde native roomdeletecascade en echte HA-manager/Store gecontroleerd [B12].
+  Volledige native suite218PASS/1broker-opt-inSKIP met bron-gematchte echte C++kern.
+  Status blijft draft_not_applied; geen uitrol of wire-/hardwareprofielvrijgave.
 - [ ] Zichtbare productie-Engelse schermcontrole in bestaande ingelogde browser.
 - [ ] Eén echt sensor-/actuatorprofiel en HA-doel inclusief fouten/toegepaste
   firmwarestatus aantonen; geen fysieke TRVactie geclaimd. Een wandapparaat is
   niet nodig voor deze eerste kamer. Indien gekozen, dezelfde doelwijziging en
   echopreventie van dat profiel bewijzen; R02 blijft een aparte productmogelijkheid.
-- [ ] Algemene weers-/groeps-/vloer-/regelklepinstellingen bouwen volgens §2/3;
+- [ ] Centrale/groepsconfig met firmware-capability/revisie/applycontract verbinden;
+  graph-only kamers zonder verplichte TRV en roombindingmigratie, ontbrekende
+  veiligheids-/deviceprofielvelden en fysieke ondersteuning volgens §2/3;
   HA-managed E32bediening opschonen volgens §4.
 
 **Eigenaar:** HA-specialist, firmware voor contract/UI. **Fase klaar als:** native
 bediening en werkelijke profielen met juiste single-writer/status/migratie bewezen.
-**Volgende:** native groeps-/profiel-GUI op de samengevoegde centrale draftbasis;
-gezamenlijk E32 capability-/revisie-/applycontract en afbouw blijven aparte bronstappen;
+**Volgende:** gezamenlijk firmware-capability/revisie/applycontract en daarna
+bron-/GUIacceptatie van de centrale/graphkandidaat;
+HA-managed E32-afbouw blijft een aparte bronstap;
 browsercheck hervat bij beschikbare bestaande sessie, blokkeert bronwerk niet [B4,B7].
 
 ### F4 — regelkern en hydraulische supervisor · pending
@@ -362,3 +370,7 @@ softwareautorisatie blijft geldig; geen onnodig nieuw algemeen akkoord vragen.
 - **B11:** [parent bron-/contractreview en samenvoeging](/home/dielessen/artifacts/open-thermostat-heating-config-parent-20261020/taskflow.md).
   Broncommit c23bae2, 18/18 manifestchecks, negen afterhashes en reversecheck PASS;
   106 relevante native HA-tests onafhankelijk herhaald. Geen nieuwe installatie of fysieke acceptatie.
+
+- **B12:** [native gewenste graph-CRUD en referentiële integriteit](/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-graph-gui-20261020/RESULT.md).
+  Baseline76cef4f,216nativePASS/1broker-opt-inSKIP; geen productie-installatie,
+  E32-applycontract, live device-/elektrische-/hydraulische ondersteuning of fysieke GO.

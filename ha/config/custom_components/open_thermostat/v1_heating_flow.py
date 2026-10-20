@@ -18,6 +18,8 @@ from homeassistant.helpers import entity_registry as er, selector
 from .const import DOMAIN
 from .v1_heating_draft import HeatingConfigError, parse_heating_draft
 from .v1_model import CONF_ENABLED, MODE_SHADOW, integration_mode
+from .v1_heating_graph import validated_graph, resolved_reference, actual_runtime_active
+from .v1_heating_graph_flow import HeatingGraphFlowMixin
 
 HEATING_SUBENTRY = "heating"
 FORM_FIELDS = {"weather_enabled", "outdoor_source", "outdoor_maximum_age_ms",
@@ -42,7 +44,7 @@ def centi_c(value: Any) -> int:
         raise HeatingConfigError("invalid_temperature") from None
 
 
-def central_schema(data: dict | None = None) -> vol.Schema:
+def central_schema(data: dict | None = None, hass=None) -> vol.Schema:
     """Public HA selectors; only measurement source is selected here."""
     central = (data or {}).get("central", {})
     limits = central.get("supply_limits", {"minimum_centi_c": 2000, "maximum_centi_c": 7000})
@@ -51,9 +53,17 @@ def central_schema(data: dict | None = None) -> vol.Schema:
                                      "unit_of_measurement": "°C", "mode": "box"})
     # suggested_value (not a default) means clearing an optional source is real.
     reference = central.get("outdoor_source")
+    if reference and hass is not None:
+        try:
+            reference = resolved_reference(hass, reference, ("sensor", "weather"))
+        except HeatingConfigError:
+            pass  # Keep the missing binding visible until explicitly corrected.
     source_marker = (vol.Optional("outdoor_source", description={"suggested_value": reference["entity_id"]})
                      if reference else vol.Optional("outdoor_source"))
     fields = {
+        vol.Required("draft_action", default="save_central"):
+            selector.SelectSelector({"options":["save_central","edit_graph"],
+                                     "translation_key":"heating_draft_action"}),
         vol.Required("weather_enabled", default=central.get("weather_enabled", False)): bool,
         source_marker: selector.EntitySelector({"filter": [
             {"domain": "sensor", "device_class": "temperature"}, {"domain": "weather"}]}),
@@ -114,8 +124,10 @@ def draft_from_form(hass, user_input: dict, old: dict | None = None):
     return draft
 
 
-class HeatingSubentryFlow(config_entries.ConfigSubentryFlow):
+class HeatingSubentryFlow(HeatingGraphFlowMixin, config_entries.ConfigSubentryFlow):
     """Persist desired central draft via the native config-entry manager only."""
+
+    _temperature = staticmethod(centi_c)
 
     async def async_step_user(self, user_input=None):
         return await self._step(user_input, False)
@@ -127,7 +139,8 @@ class HeatingSubentryFlow(config_entries.ConfigSubentryFlow):
         entry = self._get_entry()
         if integration_mode(entry) != MODE_SHADOW:
             return self.async_abort(reason="shadow_mode_required")
-        if entry.options.get(CONF_ENABLED, entry.data.get(CONF_ENABLED, False)):
+        if (entry.options.get(CONF_ENABLED, entry.data.get(CONF_ENABLED, False))
+                or actual_runtime_active(self.hass, entry)):
             return self.async_abort(reason="disable_runtime_before_draft")
         old = self._get_reconfigure_subentry() if reconfigure else None
         others = [s for s in entry.subentries.values() if s.subentry_type == HEATING_SUBENTRY
@@ -135,12 +148,24 @@ class HeatingSubentryFlow(config_entries.ConfigSubentryFlow):
         if others:
             return self.async_abort(reason="single_central_owner")
         old_draft = dict(old.data)["draft"] if old else None
+        if user_input is None:
+            from copy import deepcopy
+            self._central_original = deepcopy(dict(old.data)) if old else None
+        elif old and hasattr(self, "_central_original") and dict(old.data) != self._central_original:
+            return self.async_abort(reason="graph_changed")
         errors = {}
         if user_input is not None:
             try:
-                document = draft_from_form(self.hass, user_input, old_draft)
-                rooms = {s.data["room_id"] for s in entry.subentries.values() if s.subentry_type == "zone"}
-                draft = parse_heating_draft(document, known_room_ids=rooms)
+                submitted = dict(user_input)
+                action = submitted.pop("draft_action", "save_central")
+                if action not in ("save_central", "edit_graph"):
+                    raise HeatingConfigError("invalid_heating_draft")
+                document = draft_from_form(self.hass, submitted, old_draft)
+                if action == "edit_graph":
+                    parse_heating_draft({**document, "groups":[], "actuators":[]}, known_room_ids=set())
+                    self._start_graph(document, old)
+                    return await self.async_step_graph()
+                draft = validated_graph(self.hass, entry, document)
             except (KeyError, ValueError, vol.Invalid) as err:
                 key = str(err)
                 errors["base"] = key if key in {
@@ -149,12 +174,14 @@ class HeatingSubentryFlow(config_entries.ConfigSubentryFlow):
                     "minimum_must_be_below_maximum", "invalid_integer_or_bounds",
                 } else "invalid_heating_draft"
             else:
-                data = {"draft": draft.storage_document(), "status": draft.readiness,
-                        "draft_digest": draft.digest}
+                data = {**(dict(old.data) if old else {}),
+                        "draft": draft.storage_document(), "status": draft.readiness,
+                        "draft_digest": draft.digest,
+                        "incomplete_group_ids": list(draft.incomplete_group_ids)}
                 if old:
                     return self.async_update_and_abort(entry, old, title="Heating settings (draft)",
                                                        data=data, unique_id="central_heating")
                 return self.async_create_entry(title="Heating settings (draft)",
                                                data=data, unique_id="central_heating")
         return self.async_show_form(step_id="reconfigure" if reconfigure else "user",
-                                    data_schema=central_schema(old_draft), errors=errors)
+                                    data_schema=central_schema(old_draft, self.hass), errors=errors)

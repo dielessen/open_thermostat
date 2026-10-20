@@ -112,6 +112,12 @@ class HeatingDraft:
     def readiness(self) -> str:
         return "draft_not_applied"
 
+    @property
+    def incomplete_group_ids(self) -> tuple[str, ...]:
+        control = self.control_proposal()
+        assigned = {a["group_id"] for a in control["actuators"]}
+        return tuple(sorted(g["group_id"] for g in control["groups"] if g["group_id"] not in assigned))
+
     def transport_document(self) -> dict:
         raise HeatingContractUnavailable("heating_contract_not_implemented")
 
@@ -276,8 +282,7 @@ def parse_heating_draft(value: Any, *, known_room_ids: set[str]) -> HeatingDraft
         capabilities.add("heating.actuator."+profile+".v1")
         normalized_actuators.append({"actuator_id": aid, "room_id": rid, "group_id": gid,
             "profile": profile, "output_channel": channel, "settings": deepcopy(settings)})
-    if used_groups != group_ids:
-        raise HeatingConfigError("group_without_actuator")
+    # Unassigned groups are explicit incomplete desired drafts, never readiness.
     if any(a.entity_id == b.entity_id or a.identity() == b.identity()
            for a in input_refs for b in output_refs):
         raise HeatingConfigError("input_output_loop")

@@ -2360,6 +2360,53 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   pakket, daarna ondersteunde producer/factory kwalificeren. Admission is geen
   uitvoering/completion. Bestaande enigejob behouden, volgendecheck15min.
 
+### Mark11785 — Stage51 tweekamer-SOURCE: onafhankelijke bronacceptatie
+
+- [x] Echte canonicalhosttoegang op schone6dae38a; actuele WORKBOARD§6/PLAN,
+  memory/verified-taskflow en eenmaal bounded specialistgeschiedenis gelezen.
+  Laatst waargenomen specialistactiviteit: gerichte SDK-release/licentie-joincode;
+  geen cronstatus als uitvoeringsbewijs, geen tweede eigenaar. Bestaand eenmalig
+  NIGHT-RUNTIME-CHECK behouden, proef niet herhaald.
+- [x] Exact14padenpatch6dad66ab en498frozenbestanden/73bewijshashes gecontroleerd;
+  eigen canonical-afgeleide reviewworktree, alle14before-/afterhashes exact.
+  Zeven afwijkende canonicalparentpaden en alle overige trackedbytes behouden.
+- [x] Opgeslagen native radiator-/vloerkamers met afzonderlijke doelen21/19C via
+  expliciete onafhankelijke two-room-targets.v1 SOURCEpin, read-only Storeview,
+  bestaande entry/één worker/echte C++regelaar. A-only/B-only/samen/idle en
+  afzonderlijk wireOFF bewezen; bestaande120s minimum-off niet versoepeld.
+  Bestaande updatelistener trekt SOURCE direct in vóór wachten op reload.
+- [x] Onafhankelijk vers gebouwde actualC++/cJSONpeer + echte HA2026.10.2/
+  CPython3.14.8:53gerichtePASS; dezelfde24nieuwegevallen fullactualpeer/view/
+  cJSONASanUBSan/leaksPASS.25native + dezelfde25sanitizedfaultsPASS; alle
+  25faultrijen en5semantische rijen exact frozen. Externe dynamicOpenSSL SHA
+  ongeïnstrumenteerd, geenGTest; vijf bestaande dependencydeprecaties.
+  Stockverifier faalde vóór compile op sandboxcompilerpad; alleen parentverifier
+  naar bestaande hostgcc/g++/Python/sitepackages aangepast, product/asserties intact.
+- [x] Broncommit0c468969fafa524ffb9b437249db76ddab53a9d7 fast-forward canonical;
+  schoon, commitdiffcheck,14afterhashes en behoud overige bronbytes nagecontroleerd.
+  Gepinde Xtensaobject-/syntaxbewijzen alleen frozenhashgeverifieerd, niet herhaald;
+  geen nieuwe E32performance-/volledigeimage-/resourceclaim.
+- [ ] Concreet softwaregat: SOURCEfactoryfixture PRELOADT dit record. Huidige
+  API2writer/GUI kan deze tweekamerreview NIET schrijven/provisioneren. Dit is
+  regelaar-/readbackvoorwaarde, geen normale tweekamerGUIapply/persistenceGO.
+  Ondersteunde producer/factory/profielkwalificatie, normale revisie-/pin-/oud-
+  acceptedjournaltransitie, GUIOFF/comfort/schema, bredere graph/group/mixer,
+  echte frontenddesktop/mobiel, actuele images/resources/licenties/F9 blijvenOPEN.
+  Niet geïnstalleerd/gepubliceerd; fysieke/72u/TX/EMS/actuator/verwarmingsgates intact.
+- Bewijs/rollback: sibling open-thermostat-parent-stage51-20261021 met TASKFLOW,
+  BEFORE/frozen-evidence/REVIEW/CHECKS, onafhankelijke native-/sanitizerHA- en
+  faultlogs, SOURCE-POSTCHECK. Alleen nieuwe14padenbroncommit terug vóór
+  afhankelijken; config/model/journal/Recorder/history/parentfixes behouden.
+- Volgende concrete F2/F3/WP03-04opdracht aan dezelfde specialist via followup
+  ce03e578-2894-47bf-abb0-a5348f8070dc QUEUED na huidig release/licentiewerk:
+  afzonderlijk onderhandeld bounded DATArecord/writer/journal/exactereadback,
+  expliciete sameowner SOURCEpin/fasetransitie en oudejournalreconciliatie;
+  normale doel-/bindingwijziging zonder reboot/reflash, negatieve stale/conflict/
+  reload/reconnect/owner-/write-/readbackchecks en expliciete recordrollback.
+  Geen automatische legacyadoptie of tweede implementatie. Admission is geen
+  uitvoering/completion. HelePLAN in_progress; enigejob behouden, next_check15m
+  bevestigd. Vervolgens producer/factory en echte nativefrontendgebruikersketen.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

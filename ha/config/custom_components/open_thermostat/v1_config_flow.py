@@ -126,6 +126,13 @@ class V1FlowMixin:
         return {"zone": ZoneSubentryFlow, "heating": HeatingSubentryFlow} if integration_mode(config_entry) == MODE_SHADOW else {}
 
 class ShadowOptionsFlow(config_entries.OptionsFlowWithReload):
+    async def async_step_hot_water(self, user_input=None):
+        if user_input is not None:
+            return self.async_abort(reason="hot_water_information_complete")
+        from .dhw import entry_snapshot, summary
+        return self.async_show_form(step_id="hot_water", data_schema=vol.Schema({}),
+            description_placeholders={"status": summary(entry_snapshot(self.hass,self.config_entry))})
+
     def _graph_connection(self):
         data=self.hass.data.get(DOMAIN,{}).get(self.config_entry.entry_id,{})
         connection=data.get("v1_connection")
@@ -197,6 +204,8 @@ class ShadowOptionsFlow(config_entries.OptionsFlowWithReload):
 
     async def async_step_init(self, user_input=None):
         errors = {}
+        if user_input is not None and user_input.get("information")=="hot_water":
+            return await self.async_step_hot_water()
         if user_input is not None and user_input.get("graph_action")=="prepare":
             return await self.async_step_graph_prepare()
         if user_input is not None and user_input.get("graph_action")=="review":
@@ -232,6 +241,7 @@ class ShadowOptionsFlow(config_entries.OptionsFlowWithReload):
                     data["adapter_id"] = owner
                 return self.async_create_entry(data=data)
         return self.async_show_form(step_id="init", data_schema=vol.Schema({
+            vol.Optional("information",default="settings"): selector.SelectSelector({"options":[{"value":"settings","label":"Settings"},{"value":"hot_water","label":"Domestic hot water (read-only)"}]}),
             **({vol.Optional("graph_action",default="settings"):
                 selector.SelectSelector({"options":(["settings","prepare","review","status"]
                     if self._graph_connection().graph_profile.draft_source is not None else ["settings","review","status"]),

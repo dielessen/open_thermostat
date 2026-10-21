@@ -51,7 +51,8 @@
           "shadow_enabled": "Enable shadow observation listeners (no actuation)",
           "create_dashboard": "Create legacy dashboard (legacy mode only)",
           "adapter_id": "Provisioned firmware adapter owner ID",
-          "graph_action": "Heating graph DATA"
+          "graph_action": "Heating graph DATA",
+          "information": "Read-only device information"
         }
       },
       "graph_review": {
@@ -64,6 +65,11 @@
       "graph_status": {
         "title": "Heating graph DATA status",
         "description": "Transport:{status}. Journal:{journal_status}. Accepted:{accepted}; staged:{staged}. Current readback verified:{verified}. DATA verification is NOT running source/control/actuator admission. Close and reopen status to refresh."
+      },
+      "hot_water": {
+        "title": "Domestic hot water capabilities (read-only)",
+        "description": "{status} No changes are saved.",
+        "data": {}
       }
     },
     "error": {
@@ -76,7 +82,8 @@
       "graph_review_changed": "Review/session/candidate changed or capability expired. Nothing new was approved; reopen review.",
       "graph_review_complete": "Graph DATA review closed. No integration settings changed.",
       "graph_prepare_unavailable": "No reviewed source-owned draft binding/qualification bundle is selected. No graph profile was enabled.",
-      "graph_prepare_failed": "Could not verify prepared heating DATA. No automatic apply was performed; check graph status and review again."
+      "graph_prepare_failed": "Could not verify prepared heating DATA. No automatic apply was performed; check graph status and review again.",
+      "hot_water_information_complete": "Read-only hot water information closed; no settings changed."
     }
   },
   "entity": {

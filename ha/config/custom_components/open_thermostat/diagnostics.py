@@ -17,6 +17,8 @@ async def async_get_config_entry_diagnostics(hass, entry):
                   "legacy_entity_references_retained": True,
                   "automatic_statistics_migration": False, "historic_definition_verified": False,
                   "definition": "schema2 boot-local estimated/integrated counters; old history not certified"}}
+    from .dhw import entry_snapshot
+    result["dhw"] = entry_snapshot(hass, entry)
     if runtime is None:
         return result
     client = runtime._transport

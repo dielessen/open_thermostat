@@ -95,6 +95,8 @@ async def async_setup_entry(
     tracker: HeatingTracker = hass.data[DOMAIN][entry.entry_id]["heating_tracker"]
     online = False
     active_keys: set[str] = set()
+    dhw_status = DhwStatus(prefix, tracker)
+    async_add_entities([dhw_status])
 
     @callback
     def handle_status(message: ReceiveMessage) -> None:
@@ -225,6 +227,7 @@ async def async_setup_entry(
 
     @callback
     def update_heating_sensors() -> None:
+        dhw_status.update_from_tracker()
         for entity in hub_sensors.values():
             if entity._observation_field:
                 entity.update_from_tracker()
@@ -495,6 +498,31 @@ class RoomProgram(SensorEntity):
         )
         self._attr_available = online
         if self.entity_id is not None:
+            self.async_write_ha_state()
+
+
+class DhwStatus(SensorEntity):
+    """Read-only observed-family capability/quality, not a water-heater control."""
+    _attr_should_poll = False
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_name = "Domestic hot water capabilities"
+    _attr_supported_features = 0
+    _metric = "dhw_capabilities"
+
+    def __init__(self, prefix, tracker):
+        self._tracker = tracker
+        self._attr_unique_id = f"{prefix}_hub_dhw_capabilities"
+        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, prefix)})
+        self._attr_native_value = "unknown"
+        self._attr_extra_state_attributes = {}
+
+    def update_from_tracker(self):
+        value = self._tracker.dhw_snapshot()
+        previous = (self.native_value, self.extra_state_attributes)
+        self._attr_native_value = value["status"]
+        self._attr_extra_state_attributes = value
+        if self.entity_id is not None and previous != (self.native_value,self.extra_state_attributes):
             self.async_write_ha_state()
 
 

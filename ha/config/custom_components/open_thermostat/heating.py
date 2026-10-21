@@ -99,6 +99,8 @@ class HeatingTracker:
         self._timer_cancel = None
         self._started = False
         self._boiler_values = {}
+        from .dhw import DhwPresentation
+        self._dhw = DhwPresentation(self._clock)
 
     async def async_start(self) -> None:
         await mqtt.async_wait_for_mqtt_client(self.hass)
@@ -116,6 +118,7 @@ class HeatingTracker:
     async def async_stop(self) -> None:
         self._integrate()
         self._started = False
+        self._dhw.invalidate("unloaded")
         if self._timer_cancel:
             self._timer_cancel()
             self._timer_cancel = None
@@ -140,9 +143,9 @@ class HeatingTracker:
         if self._timer_cancel:
             self._timer_cancel()
             self._timer_cancel = None
-        if self._started and self.online and (self.rooms or self._ems_deadline > self._clock()):
+        if self._started and self.online and (self.rooms or self._ems_deadline > self._clock() or self._dhw.deadline > self._clock()):
             now = self._clock()
-            deadlines = [d for d in (self._room_deadline, self._ems_deadline,
+            deadlines = [d for d in (self._room_deadline, self._ems_deadline, self._dhw.deadline,
                 *(r.temperature_deadline for r in self.rooms.values())) if d > now]
             delay = min(30.0, min(deadlines)-now) if deadlines else 30.0
             self._timer_cancel = async_call_later(self.hass, max(0.001, delay), self._tick)
@@ -241,6 +244,7 @@ class HeatingTracker:
         self.online = message.payload == "on"
         if not self.online or getattr(message, "retain", False):
             self._room_deadline = self._ems_deadline = 0
+            self._dhw.invalidate("retained" if getattr(message, "retain", False) else "offline")
         self._notify()
 
     @callback
@@ -294,15 +298,26 @@ class HeatingTracker:
         self._notify()
 
     @callback
+    def dhw_snapshot(self):
+        return self._dhw.snapshot(self.online, self.boiler_reading("dhw"))
+
+    @callback
     def _handle_ems(self, message: ReceiveMessage) -> None:
         if not isinstance(message.payload, str) or len(message.payload) > 65536:
+            self._dhw.invalidate("malformed")
+            self._notify()
             return
         try:
             payload = json.loads(message.payload)
         except (TypeError, ValueError):
+            self._dhw.invalidate("malformed")
+            self._notify()
             return
         if not isinstance(payload, dict):
+            self._dhw.invalidate("malformed")
+            self._notify()
             return
+        self._dhw.receive(payload, self.online, getattr(message, "retain", False))
         self._integrate()
         value = payload.get("roomEstimateObservation")
         stamp = context(value)
@@ -321,6 +336,9 @@ class HeatingTracker:
                 and finite(value.get("selected_flow_c"), 0, 110)
                 and finite(value.get("modulation_pct"), 0, 100))
             if valid and boot == self._ems_boot and sequence <= self._ems_sequence:
+                # DHW last-reported fields may change independently of the CH
+                # observation. Notify presentation, never renew source deadline.
+                self._notify()
                 return  # reads can change source_ms, not the observation sequence
         if not valid:
             self._ems_deadline = 0

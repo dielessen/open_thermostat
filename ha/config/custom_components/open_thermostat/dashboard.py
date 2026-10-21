@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import json
 
 from homeassistant.components import frontend
 from homeassistant.components.lovelace.const import LOVELACE_DATA
@@ -206,7 +207,9 @@ class RoomDashboard:
         ems_entities = [
             hub_entities[metric]
             for metric in EMS_METRICS
-            if metric in hub_entities
+            if metric in hub_entities and metric not in {
+                "boiler_selected_hot_water_temperature","boiler_current_hot_water_temperature",
+                "boiler_hot_water_flow","boiler_hot_water_enabled"}
         ]
         ems_entities += [hub_entities[key] for key in hub_entities
                          if key.endswith("_v2") and key[:-3] in EMS_METRICS]
@@ -229,6 +232,24 @@ class RoomDashboard:
                 "title": ems_title,
                 "entities": ems_entities,
             })
+        # Native read-only DHW card, driven only by the integration-owned status.
+        dhw_id = hub_entities.get("dhw_capabilities")
+        dhw_note = ("### Domestic hot water — read-only\n"
+                    "Observed protocol family is not a boiler-model qualification. "
+                    "Temperatures/enabled below are LAST REPORTED, with unverified source age, not live measurements. "
+                    "Classic activity is inferred; Classic flow is unreliable. "
+                    "Comfort, schedule/runtime and all DHW writes/resets are unsupported. Boiler priority is unchanged.")
+        if dhw_id:
+            quoted = json.dumps(dhw_id)
+            dhw_note += ("\n\nProfile: {{ state_attr("+quoted+", 'profile') or 'unknown' }}; status: {{ states("+quoted+") }}.\n"
+                "{% set fields = state_attr("+quoted+", 'fields') or {} %}"
+                "{% for key, field in fields.items() %}{% if field.supported_read %}"
+                "\n- {{ key | replace('_', ' ') }}: {{ field.value if field.value is not none else 'Unknown' }} "
+                "{{ field.unit or '' }} ({{ field.quality }}){% endif %}{% endfor %}")
+            diagnostics_cards.append({"type":"entities","title":"DHW capability and quality","entities":[dhw_id]})
+        else:
+            dhw_note += "\n\nNo DHW field contract on this transport. Unknown/unsupported is not zero or off."
+        diagnostics_cards.append({"type":"markdown","content":dhw_note})
         # Native cards only. Reported selected flow is NOT a controller request,
         # and burner modulation percentage is NOT measured kW or power factor.
         def graph(title, keys, hours=24):

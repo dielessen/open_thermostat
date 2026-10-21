@@ -1749,10 +1749,12 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
 ### Mark11831 — begrensde parallelisatie, hoofdplan blijft actief
 
 - Mark vraagt doorwerken met snelheid, kritisch/eerlijk, en uitsluitend extra agents als dat werkelijk sneller/beter is.
-- Bestaande HA-specialist behoudt integratie en actief modelwerk. Eén native child wordt eigenaar van uitsluitend generic esp32dev-grootteonderzoek en broncorrectie in eigen checkout. Geen dubbele implementatie van die queued generic-opdracht; andere opdrachten blijven behouden.
+- Bestaande HA-specialist behoudt integratie en actief modelwerk. Eén native child heeft uitsluitend generic esp32dev-grootte onderzocht in eigen checkout; die begrensde taak is beëindigd als BLOCKED, zonder blijvende bronwijziging of actieve child. Andere opdrachten blijven behouden.
 - Generic-size is geen blokkade voor de passende E32-build. E32/HA-integratie doorzetten; geen impliciete installatie-/verwarmingsvrijgave.
 - Acceptatie blijft normale build, echte applicationbin in beide bestaande slots, behouden functies/locks en relevante regressies; geen partitie-/budget-/compilerbeleidversoepeling. Parentreview vóór integratie.
-- Taakbewijs en stop/rollback: `/home/dielessen/artifacts/open-thermostat-execution-11831-20261021/taskflow.md`. Status in_progress; childstart is geen resultaat.
+- Taakbewijs en stop/rollback: `/home/dielessen/artifacts/open-thermostat-execution-11831-20261021/taskflow.md`. Volledige PLAN blijft in_progress; generic-compatibiliteit blijft apart blocked en mag het E32-kritieke pad niet ophouden.
+- Begrensd resultaat onafhankelijk geverifieerd: alle9artefacthashes/afmetingen en4build-/partitiepolicyhashes exact, childworktree schoon. Baseline1710209 gelinkte programmaB, officiële diagnostische appbin1716784B (12848B boven beide1703936Bslots). De eerdere6273B betrof uitsluitend de gelinkte grootte, niet de volledige image. Geen normale geslaagde genericbuild of releaseclaim.
+- Afgewezen output-only-streamproef bespaarde1616B, onvoldoende; vijf bronbestanden exact hersteld, geen kandidaatcommit. Niet verbreden naar riskante legacyrefactor; integratie/modelwerk voor passende E32 gaat door. RESULT.json/ANALYSIS.md in taakdossier onder generic-size; afbakening aan specialistqueued454525dc gemeld, geen uitvoeringsclaim op basis van queue.
 
 ### Mark11785 — F9 Stage37 begrensde testreferentie: onafhankelijke bronacceptatie
 

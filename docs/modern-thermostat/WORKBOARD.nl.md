@@ -924,6 +924,46 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   nieuwe DHWwritevrijgave. Followupb5448b4d-b78e-4a0a-b46d-82d0cab463d7 QUEUED,
   geen completion. Heel11785 blijft actief; next_check15m bevestigd, job behouden.
 
+
+### Mark11785 — F9/R14 koelrespons en uitloopadvies: onafhankelijke bronacceptatie
+
+- [x] Canonical hosttoegang werkelijk bewezen op schone48d0b9e; bestaande eenmalige
+  NIGHT-RUNTIME-CHECK.txt behouden, proef niet herhaald. WORKBOARD§6/PLAN en actuele
+  RESULT Stage15 gelezen; bounded history toont specialist actief aan curve/replay.
+- [x] Exacte coastcorepatch e1aca991b2bbb33dd06f39d8566365d9da8c0990933c45801fc3375684125c2b
+  volledig gereviewd; alle4niet-WORKBOARDbron-/dochashes matchen COAST-RESULT.json.
+  Afzonderlijke canonical reviewbranch, geen specialistcheckout gewijzigd.
+- [x] Alleen complete onafhankelijke gekwalificeerde warmte-/uitvensters tellen;
+  maximaal16, minstens6cycli/6dagen/14dagenspan en vergelijkbare buiten-/water-/
+  kamer-/warmteduurcondities. Conservatieve volledige-vensterextremen plus
+  samplingonzekerheid; geen vroege comfortverlaging vóór dalende UTCovergang.
+  Gekwalificeerd startmodel standaardfalse; eigenaar/binding blijft toelatingsgate.
+- [x] Defaultdisabled/frozen/shadowbron; geen actieve caller/capability/GUI of
+  warmteterugname. Versie/binding/SHAcodec maximaal554B, expliciet30mincheckpoint,
+  exacte readback en foutlatch bij ambigu commit. Geen actieve NVSkeytoewijzing.
+- [x] Werkelijk hercompile vanuit canonical bron met hostg++17 strictwarnings:
+  40nativePASS(21nieuwe+19bestaande warmmodel/store), dezelfde40PASS onder
+  ASan/UBSan inclusief framework/testtranslationunits; echte OpenSSLSHAprovider.
+  Geen skips; overlappende tellingen niet optellen, synthetische tijd is geen
+  werkelijk tweeweken-/comfort-/besparingsbewijs.
+- [x] Nieuwe observe/propose/checkpointmethoden onafhankelijk naar echt gepind
+  Xtensa/Arduino2.0.17object gecompileerd: model696B/snapshot484B. Perfunctie
+  proposal240B/checkpoint592B; GEEN volledige callgraph/8zoneheap/NVSGC/runtimeclaim.
+- [ ] F9 blijft open: actieve graph/modelowner/bindingadmission, gepaarde baseline-
+  en counterfactualreplay, volledig8zoneresourcebudget, volledige firmwarebuild/
+  link/installatie en echte comfort-/woningobservatie. Geen fysieke/TX/EMS/
+  actuatorvrijgave, geen runtime-/productieHA-/broker-/loginactie.
+- Bewijs11774dossier: COAST-PARENT-REVIEW.md, PRECHECK.json, HASHES.json,
+  COMMANDS.json/BUILD.log/NATIVE.json/log, SANITIZER-COMMANDS.json/BUILD.log/
+  NATIVE.json/log en E32-RESOURCE.json/BUILD.log/SYMBOLS.log/STACK.log.
+- Rollback vóór deployment: uitsluitend nieuwe coastbroncommit terugdraaien;
+  bestaande warmmodel-/runtime/configdata zijn niet gewijzigd.
+- Volgende uitvoering bij dezelfde actieve specialist: huidig curve-/gepaarde
+  replaypakket afronden; daarna concrete F0/F2/F9bronacceptatiegate voor gezamenlijk
+  warm/coast/curve8zonemodelbudget en begrensde checkpointallocatie, zonder
+  actieve modeladmission. Graph-/seizoens-/comfortsoftware blijft eveneens open.
+  Hele11785 blijft actief; na inhoudelijk pakket hervatting15min, eigen job behouden.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

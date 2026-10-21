@@ -7,6 +7,16 @@ SOURCE bundle, projected by a read-only view into the EXISTING ShadowController,
 then used by the SAME native entry/runtime/one MQTT worker/client. No new planner,
 coordinator, worker, database, key, service, physical profile or scheduler.
 
+## Subsequent versioned bridge (Stage55)
+The original Stage51 raw-review fixture below remains historical. Stage55
+GRAPH-FLOOR-TWO-SOURCE.md removes that preload for an explicitly narrower
+graph-floor-native-trv.v1 chain: actual one-floor API2 DATA persistence plus an
+independently SOURCE-pinned native radiator target. The generic two-room API2
+writer is STILL unsupported; do not mistake this bridge for that capability.
+SOURCE means the locally owned explicit software/installation review contract,
+not upstream OpenThermostat roadmap approval or a remote GUI qualification.
+Defaults/factory/producer/physical and broader product gates remain unchanged.
+
 ## Exact scope and trust boundary
 Source policy/profile/config pins and the version two-room-targets.v1 are
 independent of the inert topology DATA. Both native Python and actual C++ enforce

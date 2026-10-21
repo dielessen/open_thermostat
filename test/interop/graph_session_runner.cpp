@@ -2,6 +2,7 @@
 #include "control/GraphSessionOwner.h"
 #include "control/GraphControlStoreView.h"
 #include "control/TopologyControlStoreView.h"
+#include "control/GraphFloorControlStoreView.h"
 #include "control/ShadowController.h"
 #include "ControlTestHash.h"
 #include <iostream>
@@ -18,7 +19,9 @@ int main() {
     std::unique_ptr<ShadowController> control;
     std::unique_ptr<TopologyControlStoreView> topologyView;
     TopologyControlHandoffSource topologySource;
-    bool topologyMode=false;
+    bool topologyMode=false,floorBridgeMode=false;
+    GraphFloorControlHandoffSource floorBridgeSource;
+    std::unique_ptr<GraphFloorControlStoreView> floorBridgeView;
     std::unique_ptr<SeasonalControllerSource> policy;
     GraphControlHandoffSource handoff;
     SeasonalSafetySnapshot safety;
@@ -31,9 +34,12 @@ int main() {
             [&](auto topic,auto bytes){frames.emplace_back(topic,bytes);});
     };
     auto constructControl=[&] {
-        owner.reset();control.reset();controlView.reset();topologyView.reset(); // Never two admitted owners.
+        owner.reset();control.reset();controlView.reset();topologyView.reset();floorBridgeView.reset(); // Never two admitted owners.
         ControlStore* selected=nullptr;
-        if(topologyMode) {
+        if(floorBridgeMode) {
+            floorBridgeView=std::make_unique<GraphFloorControlStoreView>(controller,adapter,store,controlTestHash,floorBridgeSource,*policy);
+            selected=floorBridgeView.get();
+        } else if(topologyMode) {
             topologyView=std::make_unique<TopologyControlStoreView>(controller,adapter,store,controlTestHash,topologySource,*policy);
             selected=topologyView.get();
         } else {
@@ -54,10 +60,16 @@ int main() {
         if(op=="initialize") {
             controller=text("controller");boot=text("boot");adapter=text("owner");anchor=text("anchor");
             store.data=text("stored");construct();
-        } else if(op=="initialize_topology_source") {
+        } else if(op=="initialize_topology_source"||op=="select_graph_floor_source") {
             // SOURCE-fixture preload ONLY. Existing graph writer cannot yet
             // create this distinct review record; NOT a wire/GUI provisioner.
-            controller=text("controller");boot=text("boot");adapter=text("owner");store.data=text("stored");
+            if(op=="initialize_topology_source") {
+                controller=text("controller");boot=text("boot");adapter=text("owner");store.data=text("stored");
+            } else {
+                // Explicit SOURCE factory review event only. Existing actual
+                // graph writer produced store.data; NEVER preload/replace it.
+                boot="bridge_control_boot";
+            }
             const auto src=gt::get(root.get(),"source"),cx=gt::get(src,"context");
             auto t=[&](const cJSON* o,const char* key){return gt::str(gt::get(o,key));};
             auto n=[&](const cJSON* o,const char* key,uint32_t minimum){return static_cast<uint32_t>(gt::integer(gt::get(o,key),minimum,UINT32_MAX));};
@@ -84,7 +96,16 @@ int main() {
                 z.seasonal.enabled=z.seasonal.installationQualified=true;
                 z.seasonal.maximumSensorAgeMs=120000;z.seasonal.maximumStepGapMs=300000;
             }
-            topologyMode=controlMode=true;constructControl();
+            floorBridgeMode=op=="select_graph_floor_source";
+            if(floorBridgeMode) {
+                const auto g=gt::get(src,"graph");
+                floorBridgeSource.profileVersion=t(src,"bridge_version");
+                floorBridgeSource.reviewJson=t(src,"review_json");
+                floorBridgeSource.topology=topologySource;
+                floorBridgeSource.data={controller,adapter,t(g,"qualification_digest"),t(g,"config_digest"),
+                    t(g,"mapping_digest"),t(src,"expected_profile_digest"),n(g,"revision",1),n(g,"mapping_revision",1)};
+            }
+            topologyMode=!floorBridgeMode;controlMode=true;constructControl();
         } else if(op=="select_control_source") {
             // Trusted fixture-only factory selection, NOT a wire command or
             // production GUI option. Same actual backing key/store is retained.
@@ -103,6 +124,10 @@ int main() {
             z.seasonal.enabled=z.seasonal.installationQualified=true;
             z.seasonal.maximumSensorAgeMs=120000;z.seasonal.maximumStepGapMs=300000;
             controlMode=true;boot="control_boot";constructControl();
+        } else if(op=="select_data_source") {
+            // Explicit fixture-only source rollback; original DATA unchanged.
+            control.reset();controlView.reset();topologyView.reset();floorBridgeView.reset();
+            floorBridgeMode=topologyMode=controlMode=false;boot="data_review_boot";construct();
         } else if(controlMode) {
             const int64_t utc=gt::get(root.get(),"utc")?gt::integer(gt::get(root.get(),"utc"),0,4102444800LL):1792368000;
             if(op=="connect")control->connected(now);
@@ -139,12 +164,16 @@ int main() {
         cJSON_AddNumberToObject(result.get(),"store_bytes",store.data.size());
         cJSON_AddNumberToObject(result.get(),"object_bytes",sizeof(GraphSessionOwner));
         cJSON_AddBoolToObject(result.get(),"source_control_mode",controlMode);
+        if(floorBridgeMode) {
+            cJSON_AddNumberToObject(result.get(),"floor_bridge_view_object_bytes",sizeof(GraphFloorControlStoreView));
+            cJSON_AddNumberToObject(result.get(),"floor_bridge_source_object_bytes",sizeof(GraphFloorControlHandoffSource));
+        }
         if(topologyMode) {
             cJSON_AddNumberToObject(result.get(),"topology_view_object_bytes",sizeof(TopologyControlStoreView));
             cJSON_AddNumberToObject(result.get(),"topology_review_bytes",store.data.size());
         }
         cJSON_AddNumberToObject(result.get(),"grant_deadline_ms",(controlMode?0:owner->configuration().grantDeadline(now)));
-        cJSON_AddStringToObject(result.get(),"status",(controlMode?(topologyMode?topologyView->status():controlView->status()):owner->configuration().status().c_str()));
+        cJSON_AddStringToObject(result.get(),"status",(controlMode?(floorBridgeMode?floorBridgeView->status():(topologyMode?topologyView->status():controlView->status())):owner->configuration().status().c_str()));
         cJSON_AddBoolToObject(result.get(),"boiler_output_enabled",controlMode?false:owner->configuration().boilerOutputEnabled());
         cJSON_AddBoolToObject(result.get(),"actuator_output_enabled",controlMode?false:owner->configuration().actuatorOutputEnabled());
         std::cout<<gt::print(result.get())<<std::endl;

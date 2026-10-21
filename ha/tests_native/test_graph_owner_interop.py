@@ -27,7 +27,9 @@ async def pair(hass,*,stored="",anchor=None):
     clock=[100.0];out=deque();trace=[];nonces=[0]
     runtime=SimpleNamespace(diagnostics={},_notify=lambda:None)
     async def send(topic,raw):out.append((topic,raw))
-    j=journal(hass,"native_graph_protocol");j.clock=lambda:clock[0]
+    from custom_components.open_thermostat.graph_shadow_storage import GraphShadowJournal
+    native_store=journal(hass,"native_graph_protocol").store
+    j=GraphShadowJournal(native_store,anchor,lambda:clock[0])
     client=GraphShadowClient(runtime,"test_owner",send,j,
         GraphSourceProfile("e32_test",anchor),lambda:clock[0])
     def nonce():

@@ -103,6 +103,10 @@ class ShadowRoom(ClimateEntity):
         observation = self.runtime.observations[self.room.room_id]
         state = self.runtime.decisions.get(self.room.room_id)
         return {"integration_mode": "v1_shadow", "actuation_enabled": False,
+                "control_scope":getattr(self.runtime.graph_controller_source,"profile_version",
+                    "data_only" if self.runtime.graph_data_profile is not None else "native_api1_shadow"),
+                "source_config_readback_verified":self.runtime.graph_controller_source is not None and self.runtime.transport_ready,
+                "graph_DATA_grants_control":False,
                 "boiler_output_enabled": False, "actuator_output_enabled": False,
                 "transport_status": self.runtime.diagnostics.get("transport", "not_connected"),
                 "controller_policy_status": self.runtime.diagnostics.get("controller_policy",

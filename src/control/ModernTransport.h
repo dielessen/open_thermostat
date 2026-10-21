@@ -4,6 +4,7 @@
 #include "GraphSessionOwner.h"
 #include "GraphControlStoreView.h"
 #include "TopologyControlStoreView.h"
+#include "GraphFloorControlStoreView.h"
 #include "ControlPartitionBudget.h"
 #include "Network.h"
 #include "config.h"
@@ -83,15 +84,17 @@ public:
                              const SeasonalControllerSource* seasonalSource=nullptr,
                              SeasonalControllerSource::Safety safety={},
                              const GraphControlHandoffSource* graphHandoff=nullptr,
-                             const TopologyControlHandoffSource* topologyHandoff=nullptr)
+                             const TopologyControlHandoffSource* topologyHandoff=nullptr,
+                             const GraphFloorControlHandoffSource* floorBridge=nullptr)
         :cfg_(std::move(cfg)),client_(network_),
-         store_((graphProfile||graphHandoff||topologyHandoff)?ControlStorageProfile::graph_shadow_v2:ControlStorageProfile::legacy_api1),
+         store_((graphProfile||graphHandoff||topologyHandoff||floorBridge)?ControlStorageProfile::graph_shadow_v2:ControlStorageProfile::legacy_api1),
          graph_(graphProfile!=nullptr) {
         auto prefix=cfg_.base.empty()?"open_thermostat":cfg_.base;
         valid_=SessionAdmission::validId(prefix)&&SessionAdmission::validId(cfg_.adapterId)&&
             !cfg_.brokerAddress.empty()&&cfg_.brokerPort&& !cfg_.username.empty()&&!cfg_.password.empty();
         if(!valid_||(graphProfile&&seasonalSource)||(graphHandoff&&(!seasonalSource||graphProfile))
-            ||(topologyHandoff&&(!seasonalSource||graphProfile||graphHandoff))) {valid_=false;return;} // DATA2 cannot silently select control policy.
+            ||(topologyHandoff&&(!seasonalSource||graphProfile||graphHandoff))
+            ||(floorBridge&&(!seasonalSource||graphProfile||graphHandoff||topologyHandoff))) {valid_=false;return;} // DATA2 cannot silently select control policy.
         base_=prefix+(graph_?"/v2/":"/v1/");
         client_.setServer(cfg_.brokerAddress.c_str(),cfg_.brokerPort);
         client_.setKeepAlive(15); client_.setSocketTimeout(1);
@@ -120,6 +123,11 @@ public:
                 topologyControlView_=std::make_unique<TopologyControlStoreView>(mac,cfg_.adapterId,store_,
                     sha256Hex,*topologyHandoff,*seasonalSource);
                 selectedStore=topologyControlView_.get();
+            }
+            if(floorBridge) {
+                floorControlView_=std::make_unique<GraphFloorControlStoreView>(mac,cfg_.adapterId,store_,
+                    sha256Hex,*floorBridge,*seasonalSource);
+                selectedStore=floorControlView_.get();
             }
             controller_=std::make_unique<ShadowController>(mac,randomControlId(),cfg_.adapterId,*selectedStore,
                 sha256Hex,randomControlId,publish,std::move(metrics),seasonalSource,std::move(safety));
@@ -169,6 +177,7 @@ private:
     WiFiClient network_; PubSubClient client_; NvsControlStore store_;
     std::unique_ptr<GraphControlStoreView> graphControlView_;
     std::unique_ptr<TopologyControlStoreView> topologyControlView_;
+    std::unique_ptr<GraphFloorControlStoreView> floorControlView_;
     std::unique_ptr<ShadowController> controller_;
     std::unique_ptr<GraphSessionOwner> graphController_;
     uint64_t nextConnect_=0;

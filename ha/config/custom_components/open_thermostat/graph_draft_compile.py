@@ -59,7 +59,9 @@ class GraphDraftSource:
                 and qualification_record_digest(record)==anchor,"qualification")
 
 
-def _saved(entry):
+def _saved(entry,source=None,hass=None):
+    from .graph_floor_bridge import GraphFloorTopologyDraftSource
+    if isinstance(source,GraphFloorTopologyDraftSource):return source.select_native(hass,entry)
     require(integration_mode(entry)==MODE_SHADOW,"unsupported_owner")
     room_data=[dict(s.data) for s in entry.subentries.values() if s.subentry_type=="zone"]
     known={"room_id","name","temperature","actuators","setpoint","maximum_age_ms","base_centi_c",
@@ -93,10 +95,11 @@ async def async_compile_graph_data(hass,entry,context,source):
     """
     from .v1_heating_graph import validated_graph,resolved_reference
     from .v1_mqtt import async_room_schedule
+    require(entry.options.get("adapter_id",entry.data.get("adapter_id"))==context.adapter_id,"unsupported_owner")
     require(isinstance(source,GraphDraftSource),"qualification")
     source.validate(context.qualification_digest)
     qualification,source_bindings=source.documents()
-    room,stored=_saved(entry)
+    room,stored=_saved(entry,source,hass)
     draft=validated_graph(hass,entry,stored)
     snapshot=(room.as_dict(),draft.storage_document())
     proposal=draft.control_proposal()
@@ -123,7 +126,8 @@ async def async_compile_graph_data(hass,entry,context,source):
             ==EntityReference.from_dict(actual[output]).identity(),"source_binding_mismatch")
     schedule=await async_room_schedule(hass,room)
     # No state/report/cache here grants physical source freshness.
-    current_room,current_stored=_saved(entry)
+    require(entry.options.get("adapter_id",entry.data.get("adapter_id"))==context.adapter_id,"unsupported_owner")
+    current_room,current_stored=_saved(entry,source,hass)
     current_draft=validated_graph(hass,entry,current_stored)
     require(snapshot==(current_room.as_dict(),current_draft.storage_document()),"draft_changed")
     for channel,ref in source_bindings.items():

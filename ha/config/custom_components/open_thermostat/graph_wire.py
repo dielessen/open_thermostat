@@ -86,6 +86,8 @@ class GraphShadowClient:
     def graph_status(self):
         state=self.journal.state or {"accepted":None,"staged":None}
         return dict(profile=PROFILE,transport=TRANSPORT,status=self.error,
+            data_scope=getattr(self.profile.draft_source,"scope","single_floor_data.v1"),
+            control_review_status="not_selected_separate_SOURCE_review_required",
             journal_status=self.journal.status,readback_verified=self.graph_ready,
             accepted_revision=(state["accepted"]["config"]["revision"] if state["accepted"] else 0),
             staged_revision=(state["staged"]["config"]["revision"] if state["staged"] else None),

@@ -158,6 +158,32 @@ class ShadowClient:
         if source is None or self.controller_policy!=source.controller:
             raise ValueError("graph_control_source_invalid")
         source.validate()
+        # SOURCE validation awaits native DATA. Snapshot the actual entry and
+        # independently selected role now, then fence them AFTER its final
+        # await, immediately BEFORE the first mirror stage. A plan digest does
+        # not include adapter/entry/prefix/options ownership.
+        from . import (_selected_graph_data_profile,_selected_graph_controller_source,
+                       _selected_controller_policy_source_profile)
+        entry=self.runtime.entry
+        def entry_state():
+            return canonical(dict(entry_id=entry.entry_id,unique_id=entry.unique_id,
+                data=dict(entry.data),options=dict(entry.options),
+                subentries={key:dict(kind=sub.subentry_type,data=dict(sub.data))
+                    for key,sub in entry.subentries.items()}))
+        before=entry_state()
+        policy=_selected_controller_policy_source_profile(entry)
+        def source_current():
+            return (self.runtime.entry is entry and entry_state()==before
+                and entry.unique_id==source.controller.entry_unique_id
+                and entry.options.get("adapter_id",entry.data.get("adapter_id"))==self.adapter_id==source.controller.adapter_id
+                and self.runtime.graph_controller_source==source
+                and self.runtime.controller_policy_source_profile==self.controller_policy==source.controller
+                and _selected_graph_controller_source(entry)==source
+                and _selected_graph_data_profile(entry) is None
+                and _selected_controller_policy_source_profile(entry)==policy
+                and policy in (None,source.controller))
+        if not source_current():
+            raise ValueError("graph_control_source_changed_before_stage")
         config=source.projection()
         record={"config":config,"config_digest":digest(config),"mapping":source.record()["mapping"]}
         current=await self.store.async_load()
@@ -165,6 +191,14 @@ class ShadowClient:
         if current is None:current={"accepted":None,"staged":None}
         if current!=self.journal:
             raise ValueError("graph_control_existing_journal_drift")
+        # The mirror Store await may have yielded to a native/config/registry
+        # edit. Check the SAME SOURCE/native DATA again BEFORE any mirror save,
+        # not merely before subscriptions after staging.
+        fresh_config,fresh_mapping=await source.async_configuration(self.runtime.hass,self.runtime.entry)
+        if (fresh_config!=config or fresh_mapping!=record["mapping"]
+                or self.closed or self.graph_source_review_required
+                or self.journal!=current or not source_current()):
+            raise ValueError("graph_control_source_changed_before_stage")
         if self.journal["accepted"]==record and self.journal["staged"] is None:return
         if self.journal["accepted"] is not None or self.journal["staged"] not in (None,record):
             raise ValueError("graph_control_existing_journal_conflict")

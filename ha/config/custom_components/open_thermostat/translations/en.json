@@ -64,7 +64,7 @@
       },
       "graph_status": {
         "title": "Heating graph DATA status",
-        "description": "Transport:{status}. Journal:{journal_status}. Accepted:{accepted}; staged:{staged}. Device result:{device_result} (an ACK is not applied/readback proof). Current readback verified:{verified}. DATA verification is NOT running source/control/actuator admission. Select Refresh status and continue to read the latest state. Refresh never sends or reapplies DATA.",
+        "description": "Transport:{status}. Journal:{journal_status}. Accepted:{accepted}; staged:{staged}. Device result:{device_result} (an ACK is not applied/readback proof). Current readback verified:{verified}. DATA verification is NOT running source/control/actuator admission. Select Refresh status and continue to read the latest state. Refresh never sends or reapplies DATA. DATA scope:{data_scope}. Control phase:{control_status}.",
         "data": {
           "status_action": "Next action"
         }
@@ -73,6 +73,13 @@
         "title": "Domestic hot water capabilities (read-only)",
         "description": "{status} No changes are saved.",
         "data": {}
+      },
+      "graph_source_status": {
+        "title": "Reviewed source shadow-control status",
+        "description": "Scope:{scope}. Contract:{profile}. Software control:{control_status}. Current source-config readback verified:{verified}. Journal:{journal_status}. Accepted revision:{accepted}; staged:{staged}. Boiler and actuator outputs remain disabled. Refresh never applies DATA or qualifies a source, physical profile or protection.",
+        "data": {
+          "status_action": "Next action"
+        }
       }
     },
     "error": {

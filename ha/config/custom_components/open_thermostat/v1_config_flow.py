@@ -195,10 +195,30 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
             return await self.async_step_graph_status()
 
     async def async_step_graph_status(self,user_input=None):
-        connection=self._graph_connection()
-        if connection is None:return self.async_abort(reason="graph_review_unavailable")
         if user_input is not None and user_input.get("status_action")!="refresh":
             return self.async_abort(reason="graph_review_complete")
+        connection=self._graph_connection()
+        if connection is None:
+            # Same options flow/status action; never an apply or qualification.
+            data=self.hass.data.get(DOMAIN,{}).get(self.config_entry.entry_id,{})
+            runtime=data.get("v1_runtime");source=getattr(runtime,"graph_controller_source",None)
+            if source is None:return self.async_abort(reason="graph_review_unavailable")
+            client=getattr(data.get("v1_connection"),"client",None)
+            ready=runtime.transport_ready
+            journal=getattr(client,"journal",None) or {"accepted":None,"staged":None}
+            control=("Verified shadow control; no physical actuation" if ready else
+                "Source review required; native control unavailable" if getattr(client,"graph_source_review_required",False)
+                else "Awaiting fresh source/control readback" if client is not None else "Not running")
+            return self.async_show_form(step_id="graph_source_status",data_schema=vol.Schema({
+                vol.Required("status_action",default="refresh"):selector.SelectSelector({
+                    "options":["refresh","close"],"translation_key":"graph_status_action"})}),
+                description_placeholders={
+                    "profile":getattr(source,"profile_version","single-floor-source.v1"),
+                    "scope":str(source.room_count)+" independently reviewed shadow room target(s)",
+                    "control_status":control,"verified":str(ready),
+                    "journal_status":getattr(client,"error","not_running"),
+                    "accepted":str(journal["accepted"]["config"]["revision"] if journal["accepted"] else 0),
+                    "staged":str(journal["staged"]["config"]["revision"] if journal["staged"] else None)})
         state=connection.client.graph_status
         return self.async_show_form(step_id="graph_status",data_schema=vol.Schema({
             vol.Required("status_action",default="refresh"):selector.SelectSelector({
@@ -207,7 +227,13 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
                 "status":state["status"],"journal_status":state["journal_status"],
                 "accepted":str(state["accepted_revision"]),"staged":str(state["staged_revision"]),
                 "verified":str(state["readback_verified"]),
-                "device_result":state["device_result"] or "not_received"})
+                "device_result":state["device_result"] or "not_received",
+                "data_scope":("One floor DATA; radiator target needs separate source review"
+                    if state["data_scope"]=="graph-floor-native-trv.v1" else "Single-floor DATA only"),
+                "control_status":"Not selected; separate source review required"})
+
+    async def async_step_graph_source_status(self,user_input=None):
+        return await self.async_step_graph_status(user_input)
 
     @staticmethod
     def _entry_review_snapshot(entry):

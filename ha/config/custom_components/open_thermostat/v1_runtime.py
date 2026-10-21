@@ -17,6 +17,8 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
+from .comfort_sources import ContextReport, ContextSourceProfile, CONTEXT_MAX_AGE_MS
+
 from .v1_model import (
     CONF_ENABLED, EntityReference, Observation, QualifiedReport,
     RoomBinding, RoomDecision, target_centi, temperature_c,
@@ -33,7 +35,7 @@ class ShadowTransport(Protocol):
 ReportProfile = Callable[[Any, str], QualifiedReport | None]
 
 class ShadowRuntime:
-    def __init__(self, hass: HomeAssistant, entry: Any, rooms: list[RoomBinding], *, graph_data_profile=None):
+    def __init__(self, hass: HomeAssistant, entry: Any, rooms: list[RoomBinding], *, graph_data_profile=None, context_source_profiles=()):
         if graph_data_profile is not None:
             from .graph_wire import GraphSourceProfile
             if not isinstance(graph_data_profile,GraphSourceProfile):
@@ -53,6 +55,24 @@ class ShadowRuntime:
         self.observations = {room.room_id: Observation(None, "disabled") for room in rooms}
         self.decisions: dict[str, RoomDecision] = {}
         self._comfort_context_cache = {}
+        # At most two SOURCE pins per room. Never loaded from entry/options/Store.
+        if type(context_source_profiles) is not tuple or len(context_source_profiles)>16:
+            raise ValueError("context_profile_invalid")
+        self._context_source_profiles = {}
+        self._context_source_values = {}
+        self._context_source_watermarks = {}
+        for profile in context_source_profiles:
+            if not isinstance(profile,ContextSourceProfile):
+                raise ValueError("context_profile_invalid")
+            profile.validate()
+            room=self.rooms.get(profile.room_id)
+            ref=getattr(room,profile.kind,None)
+            key=(profile.room_id,profile.kind)
+            if (graph_data_profile is not None or profile.entry_unique_id!=entry.unique_id
+                    or room is None or room.comfort is None or ref is None
+                    or ref.identity()!=profile.identity or key in self._context_source_profiles):
+                raise ValueError("context_profile_binding")
+            self._context_source_profiles[key]=profile
         self.diagnostics: dict[str, str] = {}
         self._profiles: dict[str, ReportProfile] = {}
         self._sample_keys: dict[str, str] = {}
@@ -113,6 +133,7 @@ class ShadowRuntime:
             return
         if any(not room.shadow_wire_supported for room in self.rooms.values()) and self.graph_data_profile is None:
             raise HomeAssistantError("graph_room_contract_unavailable")
+        self.invalidate_context_sources()
         self._active = True
         self._generation += 1
         if self.graph_data_profile is not None:
@@ -155,6 +176,7 @@ class ShadowRuntime:
                 return
             if self._bench_fault:
                 self._bench_fault("binding_changed")
+            self.invalidate_context_sources()
             for room_id in self.rooms:
                 self._withdraw(room_id, "binding_changed")
             self._bind_listeners()
@@ -173,8 +195,12 @@ class ShadowRuntime:
             if self._resolve(room.temperature) == entity_id:
                 self._observe(room, event_kind)
             elif any(ref and self._resolve(ref)==entity_id for ref in (room.window,room.presence)):
-                # Reuse the ORIGINAL temperature observation/deadline. A contact
-                # update never creates a new physical temperature report.
+                # NEW logical proof only on the existing native event path.
+                # Reuse ORIGINAL temperature observation/deadline, never renew it.
+                for kind in ("window","presence"):
+                    ref=getattr(room,kind)
+                    if ref and self._resolve(ref)==entity_id:
+                        self._observe_context_source(room,kind,event_kind)
                 self._record(room.room_id,self.observations[room.room_id])
             elif room.setpoint and self._resolve(room.setpoint) == entity_id:
                 # Knob origin/echo qualification awaits a concrete profile.
@@ -292,15 +318,104 @@ class ShadowRuntime:
         await self._transport.async_comfort(room_id,mode,temperature=temperature,
             duration_ms=duration_ms,vacation_until_utc=vacation_until_utc)
 
+    def invalidate_context_sources(self):
+        """Owner/rebind/stop drops usable proofs; bounded replay watermarks survive."""
+        self._context_source_values.clear()
+        for key,prior in self._context_source_watermarks.items():
+            self._context_source_watermarks[key]=(*prior[:3],None)
+
+    def _observe_context_source(self,room,kind,event_kind):
+        key=(room.room_id,kind)
+        profile=self._context_source_profiles.get(key)
+        if profile is None:
+            return
+        state_id=self._resolve(getattr(room,kind))
+        state=self.hass.states.get(state_id) if state_id else None
+        old=self._context_source_values.pop(key,None)
+        prior=self._context_source_watermarks.get(key)
+        if prior:
+            self._context_source_watermarks[key]=(*prior[:3],None)
+        allowed=("on","off") if kind=="window" else ("not_home","home")
+        if (not self._active or state is None or state.attributes.get("restored")
+                or state.state not in allowed or event_kind not in ("changed","reported")):
+            return
+        # Registry rename can preserve stable identity; removal/replacement cannot.
+        row=er.async_get(self.hass).async_get(state_id)
+        if row is None or (row.domain,row.platform,row.unique_id)!=profile.identity:
+            return
+        try:
+            report=profile.report(state,event_kind)
+            if (not isinstance(report,ContextReport) or type(report.sample_key) is not str
+                    or not 1<=len(report.sample_key)<=128
+                    or not isinstance(report.sampled_at,datetime)
+                    or report.sampled_at.utcoffset() is None):
+                return
+            age=(dt_util.utcnow()-report.sampled_at).total_seconds()*1000
+            if not math.isfinite(age) or not 0<=age<CONTEXT_MAX_AGE_MS:
+                return
+        except Exception:
+            # Never expose exception text, report IDs, payloads or private source labels.
+            self.diagnostics[room.room_id]="context_profile_error"
+            return
+        value=state.state==allowed[0]
+        if prior is not None:
+            if report.sample_key==prior[0]:
+                # Identical report cannot refresh original age; changed replay loses proof.
+                if report.sampled_at==prior[1] and value==prior[2]:
+                    if old is not None and old is prior[3]:
+                        self._context_source_values[key]=old
+                        self._context_source_watermarks[key]=prior
+                return
+            if report.sampled_at<=prior[1]:
+                return
+        proof=(math.ceil(age),self.hass.loop.time(),value)
+        self._context_source_values[key]=proof
+        self._context_source_watermarks[key]=(report.sample_key,report.sampled_at,value,proof)
+
+    def _context_source_value(self,key):
+        proof=self._context_source_values.get(key)
+        if not self._active or proof is None:
+            return None,86400000
+        elapsed=self.hass.loop.time()-proof[1]
+        age=proof[0]+math.ceil(elapsed*1000)
+        if not 0<=elapsed or not 0<=age<CONTEXT_MAX_AGE_MS:
+            self._context_source_values.pop(key,None)
+            # Invalidated proof cannot be revived by a replay or clock recovery.
+            prior=self._context_source_watermarks.get(key)
+            if prior:
+                self._context_source_watermarks[key]=(*prior[:3],None)
+            return None,86400000
+        return proof[2],age
+
+    def context_source_status(self,room_id):
+        """Whitelisted native UI/diagnostics; no identities/tokens/report payloads."""
+        room=self.rooms[room_id]
+        result={}
+        for kind in ("window","presence"):
+            key=(room_id,kind)
+            if key in self._context_source_profiles:
+                value,_=self._context_source_value(key)
+                result[kind]="qualified_logical_report" if value is not None else "source_report_unknown"
+            else:
+                result[kind]="conservative_state_age" if getattr(room,kind) else "not_configured"
+        return result
+
     def comfort_context(self,room):
         """Native HA logical observations, NOT physical readiness or source evidence.
 
-        State age uses last_changed (not a cache report/poll). Unknown, future,
-        stale or restored state cannot become known by being re-read.
+        Source-selected proof is updated ONLY by native source events, never here.
+        Unselected fallback keeps conservative last_changed120s unchanged.
+        Unknown, future, stale or restored state cannot become known by re-reading.
         """
         result={}
         for ref,key,on,off in ((room.window,"window", "on","off"),
                               (room.presence,"presence","not_home","home")):
+            cache_key=(room.room_id,key)
+            if cache_key in self._context_source_profiles:
+                value,age=self._context_source_value(cache_key)
+                result["window_open" if key=="window" else "presence_away"]=value
+                result[key+"_age_ms"]=age
+                continue
             entity_id=self._resolve(ref) if ref else None
             state=self.hass.states.get(entity_id) if entity_id else None
             token=(entity_id,state.last_changed) if state else None
@@ -335,6 +450,7 @@ class ShadowRuntime:
         # Shadow mode NEVER executes an actuator action.
 
     async def async_stop(self) -> None:
+        self.invalidate_context_sources()
         self._active = False
         self._generation += 1
         for unsub in self._subscriptions:

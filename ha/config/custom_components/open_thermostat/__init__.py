@@ -93,6 +93,28 @@ def _selected_graph_data_profile(entry):
         raise ConfigEntryError("graph_profile_unsupported") from None
     return profile
 
+# Trusted reviewed logical context profiles, never options or discovery data.
+# Empty preserves existing conservative API1 behavior; no physical qualification.
+_COMFORT_CONTEXT_SOURCE_PROFILES = ()
+
+def _selected_context_source_profiles(entry):
+    from homeassistant.exceptions import ConfigEntryError
+    from .comfort_sources import ContextSourceProfile
+    from .v1_model import MODE_SHADOW,integration_mode
+    if integration_mode(entry)!=MODE_SHADOW:
+        return ()
+    try:
+        profiles=_COMFORT_CONTEXT_SOURCE_PROFILES
+        if type(profiles) is not tuple or len(profiles)>16:
+            raise ValueError("context_profile_invalid")
+        for profile in profiles:
+            if not isinstance(profile,ContextSourceProfile):
+                raise ValueError("context_profile_invalid")
+            profile.validate()
+        return tuple(p for p in profiles if p.entry_unique_id==entry.unique_id)
+    except (ValueError,TypeError):
+        raise ConfigEntryError("context_profile_invalid") from None
+
 async def async_setup_entry(hass, entry):
     from .v1_model import integration_mode, MODE_LEGACY, MODE_SHADOW, RoomBinding
     mode = integration_mode(entry)
@@ -117,8 +139,19 @@ async def async_setup_entry(hass, entry):
     from .v1_runtime import ShadowRuntime
     rooms = [RoomBinding.from_dict(dict(s.data)) for s in entry.subentries.values()
              if s.subentry_type == "zone"]
-    runtime = (ShadowRuntime(hass,entry,rooms,graph_data_profile=graph_profile)
-               if graph_profile is not None else ShadowRuntime(hass,entry,rooms))
+    context_profiles=_selected_context_source_profiles(entry)
+    runtime_kwargs={}
+    if graph_profile is not None:
+        runtime_kwargs["graph_data_profile"]=graph_profile
+    if context_profiles:
+        runtime_kwargs["context_source_profiles"]=context_profiles
+    try:
+        runtime=ShadowRuntime(hass,entry,rooms,**runtime_kwargs)
+    except ValueError:
+        if context_profiles:
+            from homeassistant.exceptions import ConfigEntryError
+            raise ConfigEntryError("context_profile_binding") from None
+        raise
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {"v1_runtime": runtime}
     dr.async_get(hass).async_get_or_create(
         config_entry_id=entry.entry_id, identifiers={(DOMAIN, entry.data[CONF_TOPIC_PREFIX])},

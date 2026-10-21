@@ -31,6 +31,7 @@ async def async_get_config_entry_diagnostics(hass, entry):
     result.update(
         enabled=runtime.enabled, transport_ready=runtime.transport_ready,
         diagnostics=dict(runtime.diagnostics),
+        comfort_context_sources={room_id:runtime.context_source_status(room_id) for room_id in runtime.rooms},
         rooms=[{"room_id": room_id, "quality": observation.quality,
                 "actuator_profile": "C_unverified",
                 "actuation_enabled": False}

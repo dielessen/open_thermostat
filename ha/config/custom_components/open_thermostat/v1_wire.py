@@ -180,6 +180,7 @@ class ShadowClient:
         self.verified = False
         self.grant_until = self.lease_until = 0
         self.runtime.decisions.clear()
+        self.runtime.invalidate_context_sources()
         self._metrics=None
         self._metrics_received=0.0
         self._metrics_highwater=0

@@ -4,6 +4,13 @@ Deze kandidaat richt zich op de volledige lokale softwareketen en de voorbereidi
 van de badkamerproef. Mark kiest later zelf de temperatuursensor en TRV via de
 native HA-formulieren. Er staan geen woningentiteiten in de productbron.
 
+Softwarebewijs:249verschillende gerichte native HA/C++-gevallen met sanitizers,
+34release-auditgevallen, echte gepinde HA2026.10.2-frontend desktop/mobiel en een
+geïsoleerde echte MQTT-keten met één exacte1888Bopslagtransactie. De normale
+E32-app/FS op de eerste bron `63be9bc` zijn succesvol gebouwd en teruggelezen;
+de finale exacte bron-/imagehashes staan in `out/release-candidate-20261022`.
+De firmwarepakketcontrole blijft geblokkeerd op SDKbron-/licentieclosure.
+
 ## Wat je kunt controleren
 
 1. Maak een shadow-installatie en laat runtime eerst uit.

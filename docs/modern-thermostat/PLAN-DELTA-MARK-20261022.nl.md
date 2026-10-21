@@ -88,9 +88,15 @@ Rollback: de commit met deze delta op Marks branch terugdraaien.
  121puntenreview, annuleren en apply via een echte geïsoleerde Mosquitto2.0.22
   naar dezelfde C++-controller/store. Eén write;1888Bconfig exact gelijk aan
   het duurzame native HA-journal. Geen echte deviceHTTP/NVS of bronkwalificatie.
--33release-auditregressies en volledige actuele HA-bron-/import-/notice-inventaris
+-34release-auditregressies en volledige actuele HA-bron-/import-/notice-inventaris
   PASS. Historische firmware-/SDKreceipts worden niet herlabeld. Kandidaatversie
   `v0.1.0-e32v2-alpha.7`; normale app/FS en guarded packaging worden apart vastgelegd.
+- Eerste normale app/FS op `63be9bc` PASS;22ingebouwde webassets en31werkelijk
+  teruggelezen SPIFFS-bestanden exact. Op deze werkelijke build bleek de auditor
+  een geldige4170secties tellende ELF af te wijzen. Alleen die hostaudit is
+  gecorrigeerd: de volledige sectietabel moet binnen het bestand liggen; ELF32
+  begrenst het aantal al tot16bits. Firmware/configbudgetten blijven ongewijzigd.
+  Finale bron-/image-identiteit staat in het lokale IMAGE-CHECK- en POSTCHECK-bewijs.
 - Instructies: [testkandidaat](TESTKANDIDAAT-20261022.nl.md), technische definitie:
   [ControlPlan](NATIVE-CONTROL-PLAN.nl.md). Bewijs: `out/release-candidate-20261022`.
   Die lokale map bevat aparte testcredentials en mag nooit integraal gedeeld worden.

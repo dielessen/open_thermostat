@@ -14,7 +14,9 @@ def elf_allocations(data):
     header=struct.unpack_from("<16sHHIIIIIHHHHHH",data)
     if header[2]!=94:raise NoticeError("requires_xtensa_elf")
     offset=header[6];entry,count,names_index=header[11:14]
-    if entry!=40 or not 0<count<=4096 or names_index>=count or offset+entry*count>len(data):
+    # ELF32 section count is already uint16. Bound the complete table against
+    # actual file bytes; large debug-section tables are valid on current E32.
+    if entry!=40 or count==0 or names_index>=count or offset+entry*count>len(data):
         raise NoticeError("invalid_elf_section_table")
     rows=[struct.unpack_from("<IIIIIIIIII",data,offset+i*entry) for i in range(count)]
     names=rows[names_index]

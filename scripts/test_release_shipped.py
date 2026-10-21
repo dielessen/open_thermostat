@@ -26,6 +26,21 @@ def map_fixture(archive="libPubSubClient.a",split=False):
       "Cross Reference Table\nlibAlsoNotShipped.a\n")
 
 class Shipped(unittest.TestCase):
+    def test_actual_e32_sized_debug_section_table_is_bounded_by_file_bytes(self):
+        # Current normal E32 link has 4170 sections, mostly debug information.
+        # Keep the same real ELF32 table layout; no firmware budget is changed.
+        count=4170
+        names=b"\0.shstrtab\0.flash.text\0"
+        offset=52+count*40
+        header=struct.pack("<16sHHIIIIIHHHHHH",b"\x7fELF\x01\x01\x01"+b"\0"*9,
+            2,94,1,0,0,52,0,52,0,0,40,count,1)
+        strings=struct.pack("<IIIIIIIIII",1,3,0,0,offset,len(names),0,0,1,0)
+        text=struct.pack("<IIIIIIIIII",11,1,2,0x1000,offset+len(names),32,0,0,4,0)
+        data=header+b"\0"*40+strings+text+b"\0"*((count-3)*40)+names+b"x"*32
+        self.assertEqual(r.elf_allocations(data)[".flash.text"]["size"],32)
+        with self.assertRaisesRegex(NoticeError,"section_table"):
+            r.elf_allocations(data[:offset-1])
+
     def test_only_retained_alloc_inputs_not_load_discarded_debug_or_zero(self):
         alloc=r.elf_allocations(elf_fixture())
         for split in (False,True):

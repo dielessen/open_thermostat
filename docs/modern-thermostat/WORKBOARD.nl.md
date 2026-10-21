@@ -2222,6 +2222,23 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   Overig F0–F10werk en aparte generic-size-eigenaar behouden; eigen job blijft,
   volgende check15min. Aanbieding is geen uitvoering/completionbewijs.
 
+### Mark11944 — volledige herschrijving zo nodig toegestaan
+
+- Gewenste functionaliteit en de31eisen zijn leidend. Mark staat volledige
+  herschrijving van firmware/HA-code toe indien nodig; oude implementatie of
+  upstreamcompatibiliteit is geen behoudsdoel op zichzelf. Bestaande interne
+  structuren mogen bij de lopende integratie gericht worden vervangen.
+- Geen automatische herstart of tweede uitvoeringseigenaar. Zelfde specialist
+  maakt de geïntegreerde gebruikersketen af; noodzakelijke vervanging krijgt
+  technische reden, beperkte reviewbare scope, functiemapping/toetsing en rollback.
+  Configuratie/historie/identiteiten met expliciete migratie behouden waar nodig;
+  alle fysieke/licentie/releasegates blijven. Geen functie schrappen om de datum.
+- Canonieke productregel in PLAN §Herschrijven toegestaan bij functionaliteitsbehoud.
+  Eerder no-upstreambesluit behouden: geen nieuwe overnames/bijtrekwerk vanuit
+  intuibase/open_thermostat; afkomst/notices en remote behouden. Deze stap wijzigt
+  alleen mandaat/documentatie, niet code/runtime/status of releasedatum.
+- Uitvoeringsbewijs/rollback: artifacts/open-thermostat-rewrite-mandate-11944-20261021/.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

@@ -42,8 +42,10 @@ Het productdoel is: per kamer de gewenste temperatuur kiezen, de juiste radiator
 We ontwikkelen een **zelfstandig eigen softwareproject**. OpenThermostat is de
 historische codebasis, niet de eigenaar van onze productkoers of releaseplanning.
 Onze regelkern, HA-integratie, configuratiecontracten en GUI worden als één eigen
-product onderhouden; toekomstige upstreamwijzigingen worden uitsluitend bewust
-beoordeeld en zijn geen voorwaarde om onze functies of releases af te ronden.
+product onderhouden. Na Marks aanvullende besluit van 21 oktober 14:07 nemen
+we geen nieuwe wijzigingen meer over uit `intuibase/open_thermostat`; geen
+upstream-pull/merge/rebase of bijtrekwerk als projecttaak. De historische afkomst
+en licentie-erkenning blijven; de remote wordt niet zonder opdracht verwijderd.
 
 Zelfstandig betekent niet dat alle bestaande code opnieuw moet worden geschreven
 of dat beproefde libraries/platformen moeten verdwijnen. De afgesproken E32- en
@@ -53,9 +55,31 @@ thermostaatproject als regelbrein. Afkomst, copyright en toepasselijke licenties
 van hergebruikte onderdelen blijven aantoonbaar behouden. Een nieuwe productnaam
 is nog niet gekozen; dit besluit autoriseert geen repository-/pakketrenaming.
 
-Dit is een product-/onderhoudsbesluit, geen nieuwe herschrijffase of bewijs van
-runtimezelfstandigheid. Bestaand bruikbaar werk blijft behouden; de huidige
-integratie- en acceptatiepunten in WORKBOARD worden systematisch afgemaakt.
+Dit is een product-/onderhoudsbesluit, geen bewijs van runtimezelfstandigheid.
+De huidige integratie- en acceptatiepunten in WORKBOARD worden systematisch
+afgemaakt; de onderstaande herschrijfbevoegdheid geldt waar dat noodzakelijk is.
+
+#### Herschrijven toegestaan bij functionaliteitsbehoud — Mark11944, 21 oktober
+
+Mark geeft expliciet toestemming om **alle projectcode zo nodig te herschrijven**.
+De gewenste functionaliteit is leidend, niet behoud van de oude implementatie,
+klasse-indeling, interne API of compatibiliteit met het oorspronkelijke project.
+Dit omvat firmware en onze HA-integratie; wijzigingen hoeven niet tot kleine
+patches beperkt te blijven als een gerichte vervanging beter bij het doel past.
+
+De 31 eisen en afgesproken gebruikersfuncties blijven de acceptatiebasis. Geen
+stilzwijgend verlies van functies om gemakkelijker te bouwen. Bewaarde
+configuratie/historie en apparaatidentiteiten krijgen zo nodig een expliciete
+migratie en terugvalroute; fysieke veiligheids- en releasechecks worden niet
+door herschrijftoestemming vervangen. Hergebruikte code behoudt zijn notices.
+
+Dit is toestemming indien nodig, geen opdracht om automatisch opnieuw te
+beginnen. Bij een concrete blokkade mag dezelfde uitvoeringseigenaar de
+betreffende structuur vervangen, met korte technische reden, afgebakende diff,
+functionele toetsing en rollback. Benut reeds bruikbaar werk en blijf de volledige
+gebruikersketen afronden; geen parallelle tweede implementatie of nieuwe zijfase
+alleen omdat volledige herschrijving nu is toegestaan. Er is geen nieuwe
+publicatie/installatie/verwarmingsvrijgave of bewezen tijdwinst uit dit besluit.
 
 #### Verantwoordelijkheden
 

@@ -25,6 +25,7 @@ from .v1_model import (
 from homeassistant.exceptions import ConfigEntryError
 from .v1_wire import identifier
 from .v1_heating_flow import HeatingSubentryFlow
+from .native_form import retained_input_schema
 
 def reference(hass, selection: str) -> EntityReference:
     registry = er.async_get(hass)
@@ -194,9 +195,12 @@ class ShadowOptionsFlow(config_entries.OptionsFlowWithReload):
     async def async_step_graph_status(self,user_input=None):
         connection=self._graph_connection()
         if connection is None:return self.async_abort(reason="graph_review_unavailable")
-        if user_input is not None:return self.async_abort(reason="graph_review_complete")
+        if user_input is not None and user_input.get("status_action")!="refresh":
+            return self.async_abort(reason="graph_review_complete")
         state=connection.client.graph_status
-        return self.async_show_form(step_id="graph_status",data_schema=vol.Schema({}),
+        return self.async_show_form(step_id="graph_status",data_schema=vol.Schema({
+            vol.Required("status_action",default="refresh"):selector.SelectSelector({
+                "options":["refresh","close"],"translation_key":"graph_status_action"})}),
             description_placeholders={
                 "status":state["status"],"journal_status":state["journal_status"],
                 "accepted":str(state["accepted_revision"]),"staged":str(state["staged_revision"]),
@@ -348,7 +352,7 @@ class ZoneSubentryFlow(config_entries.ConfigSubentryFlow):
                     return self._commit_room(room, old)
         return self.async_show_form(
             step_id="reconfigure" if reconfigure else "user",
-            data_schema=self._schema(dict(old.data) if old else None, reconfigure=reconfigure),
+            data_schema=retained_input_schema(self,self._schema(dict(old.data) if old else None, reconfigure=reconfigure),user_input),
             errors=errors)
 
     async def async_step_user(self, user_input=None):
@@ -441,7 +445,7 @@ class ZoneSubentryFlow(config_entries.ConfigSubentryFlow):
             else:
                 return await self.async_step_program()
         default = old or {"start": 7 * 3600, "end": 8 * 3600, "target_centi_c": room.base_centi_c}
-        return self.async_show_form(step_id="block", data_schema=vol.Schema({
+        schema=vol.Schema({
             vol.Required("days", default=[selected[0]] if selected else ["monday"]):
                 selector.SelectSelector({"options": list(WEEKDAYS), "multiple": True,
                                          "translation_key": "program_days"}),
@@ -455,7 +459,9 @@ class ZoneSubentryFlow(config_entries.ConfigSubentryFlow):
                 selector.NumberSelector({"min": room.minimum_target_centi_c / 100,
                     "max": room.maximum_target_centi_c / 100, "step": 0.1,
                     "unit_of_measurement": "°C", "mode": "box"}),
-        }), errors=errors)
+        })
+        return self.async_show_form(step_id="block",
+            data_schema=retained_input_schema(self,schema,user_input),errors=errors)
 
     async def async_step_save_program(self, user_input=None):
         old = self._program_old
@@ -479,6 +485,15 @@ class ZoneSubentryFlow(config_entries.ConfigSubentryFlow):
             "maximum_age_ms": room.maximum_age_ms, "program_action": "remove_week"}
         if room.setpoint:
             submitted["setpoint_entity"] = room.setpoint.entity_id
+        if room.comfort is not None:
+            submitted.update(comfort_enabled=True,
+                away_temperature=room.comfort["away_centi_c"]/100,
+                frost_temperature=room.comfort["frost_centi_c"]/100,
+                override_minutes=room.comfort["temporary_ms"]//60000)
+            if room.window:
+                submitted["window_entity"]=room.window.entity_id
+            if room.presence:
+                submitted["presence_entity"]=room.presence.entity_id
         try:
             checked = validate_room(self.hass, entry, submitted, old)
             room = replace(checked, week_program=room.week_program)

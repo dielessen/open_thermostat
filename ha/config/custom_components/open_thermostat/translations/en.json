@@ -64,7 +64,10 @@
       },
       "graph_status": {
         "title": "Heating graph DATA status",
-        "description": "Transport:{status}. Journal:{journal_status}. Accepted:{accepted}; staged:{staged}. Device result:{device_result} (an ACK is not applied/readback proof). Current readback verified:{verified}. DATA verification is NOT running source/control/actuator admission. Close and reopen status to refresh."
+        "description": "Transport:{status}. Journal:{journal_status}. Accepted:{accepted}; staged:{staged}. Device result:{device_result} (an ACK is not applied/readback proof). Current readback verified:{verified}. DATA verification is NOT running source/control/actuator admission. Select Refresh status and continue to read the latest state. Refresh never sends or reapplies DATA.",
+        "data": {
+          "status_action": "Next action"
+        }
       },
       "hot_water": {
         "title": "Domestic hot water capabilities (read-only)",
@@ -153,8 +156,8 @@
             "program_action": "Save bindings, edit local time blocks, or explicitly remove the local program. A Home Assistant Schedule helper is an alternative, not a second program source.",
             "binding_mode": "Climate TRVs use the existing shadow profile. Graph-only rooms require no TRV and remain an unapplied draft; runtime and transport are blocked pending the firmware contract.",
             "confirm_binding_mode_change": "Required only when changing modes. Review and explicitly clear or select the TRV bindings. The room ID, limits and week program are retained.",
-            "window_entity": "Shadow preview only: context becomes unknown2 minutes after its last state change and pauses automatic demand. No physical protection or source qualification.",
-            "presence_entity": "Shadow preview only: context becomes unknown2 minutes after its last state change and pauses automatic demand. No physical protection or source qualification."
+            "window_entity": "Shadow context only. Default preview expires after 2 minutes; only an explicitly qualified source report profile can renew its own context deadline. Cached or unchanged values alone never qualify availability or physical protection.",
+            "presence_entity": "Shadow context only. Unknown is not away. Default preview expires after 2 minutes; only an explicitly qualified source report profile can renew its own context deadline."
           }
         },
         "reconfigure": {
@@ -191,8 +194,8 @@
             "program_action": "Save bindings, edit local time blocks, or explicitly remove the local program. A Home Assistant Schedule helper is an alternative, not a second program source.",
             "binding_mode": "Climate TRVs use the existing shadow profile. Graph-only rooms require no TRV and remain an unapplied draft; runtime and transport are blocked pending the firmware contract.",
             "confirm_binding_mode_change": "Required only when changing modes. Review and explicitly clear or select the TRV bindings. The room ID, limits and week program are retained.",
-            "window_entity": "Shadow preview only: context becomes unknown2 minutes after its last state change and pauses automatic demand. No physical protection or source qualification.",
-            "presence_entity": "Shadow preview only: context becomes unknown2 minutes after its last state change and pauses automatic demand. No physical protection or source qualification."
+            "window_entity": "Shadow context only. Default preview expires after 2 minutes; only an explicitly qualified source report profile can renew its own context deadline. Cached or unchanged values alone never qualify availability or physical protection.",
+            "presence_entity": "Shadow context only. Unknown is not away. Default preview expires after 2 minutes; only an explicitly qualified source report profile can renew its own context deadline."
           },
           "description": "Choose a room measurement and its radiator valves. Optional target controls and programs are separate sources. Selecting entities never changes the source device settings or enables actuation. Removing a room also prunes its desired graph actuator declarations; emitter groups and central settings remain."
         },
@@ -603,6 +606,12 @@
         "prepare": "Prepare saved heating graph DATA",
         "review": "Review staged graph DATA",
         "status": "Graph DATA status"
+      }
+    },
+    "graph_status_action": {
+      "options": {
+        "refresh": "Refresh status",
+        "close": "Close status"
       }
     }
   },

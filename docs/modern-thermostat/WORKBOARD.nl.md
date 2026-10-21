@@ -2286,6 +2286,39 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   revisie-/pin-/journallevenscyclus sluiten; echte producer/factorybinding concreet
   kwalificeren. Geen nieuwe ontwerpwachtfase; hele PLAN blijft in_progress.
 
+### Mark11785 — Stage49 HA-formulieren en weekprogramma: onafhankelijke bronacceptatie
+
+- [x] Canonical hosttoegang werkelijk bewezen op schone e9e0b5e. WORKBOARD§6,
+  PLAN, memory/verified-taskflow en eenmaal bounded specialistgeschiedenis gelezen.
+  Bestaande NIGHT-RUNTIME-CHECK behouden; geen herhaling van de eenmalige proef.
+- [x] Exact10padenpatch ca090dc74fa90e2638d0a03b447ee70c8c7c92db875570093d634ad08639be69
+  en frozen archive/bewijshashes gecontroleerd. Negen afterhashes exact; tiende
+  behoudt aanvullend de drie onafhankelijke parent API-ACKregressies. Zes beschermde
+  canonical docs/README ongewijzigd; actieve specialistcheckout niet aangepast.
+- [x] Weekprogramma Save behoudt en herkwalificeert comfort-/raam-/aanwezigheids-
+  instellingen; ontbrekende binding blokkeert opslaan, Cancel muteert niets.
+  Afgekeurde formulierinvoer blijft staan, leeg gemaakte optionele velden blijven
+  leeg. DATAstatus expliciet verversen/sluiten zonder nieuwe apply/write/reload.
+- [x] Onafhankelijke echte HA2026.10.2/Python3.14.8:150gerichte nativePASS,
+  0skips/fouten; vijf bestaande dependencydeprecaties. Werkelijke bestaande
+  Stage48 C++/cJSONpeers en bronhashes gecontroleerd vóór hergebruik. Geen
+  ongewijzigde brede suites, firmwarebuild of performanceverbetering geclaimd.
+- [ ] Visuele HA-desktop/mobielacceptatie OPEN: host heeft Chromium/Node, maar
+  gepinde native testomgeving mist hass_frontend. Native backend is geen browser-
+  of screenshotbewijs. Geen productieHA-/apparaatlogin of customrenderer als PASS.
+- [ ] F2/F3/F10 en helePLAN blijven open: echte configureerbare SOURCEproducer/
+  factory, revisie-/pin-/acceptedjournallevenscyclus en bredere graphuitvoering,
+  native frontend/mobiele UX, actuele images/resources/licenties en fysieke gates.
+  Geen installatie, publicatie, TX/EMS/actuator-/verwarmingsvrijgave.
+- Bewijs: siblingdossier open-thermostat-parent-stage49-20261021 met TASKFLOW,
+  frozenpakket, before/applied/COMMANDS/CHECKS, REVIEW en onafhankelijke HA.xml/log.
+  Rollback alleen nieuwe broncommit vóór afhankelijken; config/journal/model/
+  Recorder/historie en eerdere parentfixes behouden.
+- Volgende productactie blijft dezelfde actieve specialist: huidige SOURCEopties
+  afmaken, daarna normale configuratiewijziging met exacte nieuwe readback en
+  acceptedjournal-/pinreconciliatie toetsen; geen tweede eigenaar. Native visuele
+  acceptatie blijft apart hostbewijs. Bestaande uitvoeringsjob behouden; check15min.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

@@ -6,6 +6,7 @@ import uuid
 import probatio as vol
 from homeassistant.helpers import selector
 
+from .native_form import retained_input_schema
 from .v1_heating_draft import HeatingConfigError
 from .v1_heating_graph import selected_reference, validated_graph, resolved_reference, actual_runtime_active
 from .v1_model import CONF_ENABLED, MODE_SHADOW, integration_mode
@@ -168,7 +169,7 @@ class HeatingGraphFlowMixin:
                 errors["base"] = error_key(err)
             else:
                 return await self.async_step_graph()
-        return self.async_show_form(step_id="group", data_schema=self._group_schema(old), errors=errors)
+        return self.async_show_form(step_id="group", data_schema=retained_input_schema(self,self._group_schema(old),user_input), errors=errors)
 
     @staticmethod
     def _seconds(value):
@@ -215,7 +216,7 @@ class HeatingGraphFlowMixin:
                 errors["base"] = error_key(err)
             else:
                 return await self.async_step_graph()
-        return self.async_show_form(step_id="mixing", data_schema=self._mix_schema(), errors=errors)
+        return self.async_show_form(step_id="mixing", data_schema=retained_input_schema(self,self._mix_schema(),user_input), errors=errors)
 
     async def async_step_delete_group(self, user_input=None):
         if guard := self._graph_guard():
@@ -336,7 +337,7 @@ class HeatingGraphFlowMixin:
                 errors["base"]=error_key(err)
             else:
                 return await self.async_step_graph()
-        return self.async_show_form(step_id="actuator_details",data_schema=self._actuator_detail_schema(),errors=errors)
+        return self.async_show_form(step_id="actuator_details",data_schema=retained_input_schema(self,self._actuator_detail_schema(),user_input),errors=errors)
 
     async def async_step_delete_actuator(self,user_input=None):
         if guard := self._graph_guard():

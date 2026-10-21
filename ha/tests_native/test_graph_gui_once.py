@@ -83,7 +83,12 @@ async def test_real_native_options_manager_saved_subentry_prepare_consent_and_ex
                   exact_tuple_persisted_and_readback=True, durable_writes=status['writes'],
                   form_steps=['init','graph_review','graph_status'], english_status_rendered=rendered,
                   physical_outputs_enabled=False))
-    done = await manager.async_configure(flow_id, {})
+    # New explicit read-only Refresh/Close selection; native default is Refresh.
+    refreshed = await manager.async_configure(flow_id, {})
+    assert refreshed['type'] == 'form' and refreshed['step_id'] == 'graph_status'
+    assert refreshed['description_placeholders']['verified'] == 'True'
+    assert not n.publications and (await n.peer.request('status'))['writes'] == 1
+    done = await manager.async_configure(flow_id, {'status_action':'close'})
     assert done['reason'] == 'graph_review_complete'
     assert not manager.async_progress()
 

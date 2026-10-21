@@ -20,6 +20,7 @@ from .v1_heating_draft import HeatingConfigError, parse_heating_draft
 from .v1_model import CONF_ENABLED, MODE_SHADOW, integration_mode
 from .v1_heating_graph import validated_graph, resolved_reference, actual_runtime_active
 from .v1_heating_graph_flow import HeatingGraphFlowMixin
+from .native_form import retained_input_schema
 
 HEATING_SUBENTRY = "heating"
 FORM_FIELDS = {"weather_enabled", "outdoor_source", "outdoor_maximum_age_ms",
@@ -184,4 +185,4 @@ class HeatingSubentryFlow(HeatingGraphFlowMixin, config_entries.ConfigSubentryFl
                 return self.async_create_entry(title="Heating settings (draft)",
                                                data=data, unique_id="central_heating")
         return self.async_show_form(step_id="reconfigure" if reconfigure else "user",
-                                    data_schema=central_schema(old_draft, self.hass), errors=errors)
+                                    data_schema=retained_input_schema(self,central_schema(old_draft,self.hass),user_input), errors=errors)

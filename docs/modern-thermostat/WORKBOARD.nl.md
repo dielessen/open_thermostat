@@ -1893,6 +1893,45 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
 - Concreet geverifieerd85rapport Stage39:85unieke pytestcaseIDs over7modules, inclusief geparametriseerde foutvarianten en bestaande regressies; niet85uitvoeringen van één testcase. Bestaand HA-COMMANDS.json rapporteert3.05s voorpytest, XML2.01s; compilatie1.43s apart. Geen tests opnieuw uitgevoerd voor deze controle. Deze telling bewijst geen85nieuwe functies of GUIacceptatie.
 - Status: kwaliteitseis vastgelegd, visuele/eind-tot-eindacceptatie blijft OPEN tot werkelijk bewezen. Parentafwerking en specialistintegratie blijven bestaande eigenaars; alleen documentatie gewijzigd, terugdraaibaar zonder runtimewijziging.
 
+
+### Mark11785/11846 — gerichte seizoens-/bronacceptatie: Stage40/41
+
+- [x] Canonical9f13b80 schoon; actuele§6/PLAN en beide nieuwe specialistRESULTs
+  gelezen, memory_search/verified-taskflow toegepast. Bestaand hostreceipt behouden.
+  Eén boundedhistory6 faalde in toolprojectie (cronjobnaam); eenmaal session_status
+  toont dezelfde recent actieve eigenaar/queuefollowup. Geen rawtranscript,
+  tweede eigenaar of completion uit schedulerstatus afgeleid.
+- [x] Exacte2+2padenpatches f4066c561b2dbef7d4a787f38111d0aaccaed8417e225cce873690acf310984f
+  en2923ca2f5c4802b030dde8ddbe568322f29f8edb4bcc5c290f0ca742ca0287e8
+  gereviewd; archives,4bronhashes en42frozenbewijshashes exact. Alle423bestaande
+  canonicalpaden vóór bordaanvulling bytegelijk behouden, incl5parentverschillen.
+- [x] Alleen3NIEUWE controllerchecks strict hostg++17PASS: zomer/all-off versus
+  nieuweboost, A-only/samen/B-only/off en901synthetischebronreports over3cycli
+  zonder gefabriceerde minimumpuls. Dezelfde3volledigGTest/controller/cJSON
+  ASan+UBSan/leakchecksPASS; externe dynamischeOpenSSL niet geïnstrumenteerd.
+- [x] Alleen5NIEUWE nativeHA2026.10.2/Python3.14.8checksPASS,0skips/deselecties,
+ 5bestaande dependencywarnings. Werkelijke eerder parentgebouwdeCpppeer hergebruikt
+  na actueleCpp/interop/include-brongelijkheid; hash/buildprovenance apart bewaard.
+  Alle5semantische rows exactgelijk aan frozenfinal. Oude61/83/85suites NIET herhaald.
+- [x] Tests bewijzen480synthetischeseconden closed/home met60slogischereports,
+  onbekend/vraaguit vanaf120sreportverlies perframe, contactprioriteit bovenboost,
+  reconnect/boot zonder bron-/overriderestore en monotoneTTL bij UTCterugsprong.
+  Geen productie-/TTLwijziging, echteproducerkwalificatie of duurproef.
+- Broncommits28e94fe en1073427; rollback alleen deze test/doccommits, omgekeerd
+  vóór afhankelijken. Bewijs11774dossier acceptance-40-41-parent-evidence/
+  PRECHECK,CHECKS,COMMANDS,PEER-REUSE,SOURCE-COMMITS,SOURCE-POSTCHECK.json,
+  REVIEW.md, NATIVE/SANITIZER.json/log, HA.xml/log enROWS.jsonl.
+- [ ] Hele11785blijft in_progress: graph→bron-/profielgekwalificeerde controller,
+  hydrauliek/modelowner/resource/8zone/NVS/currentimage, verzorgde nativeGUI en
+  gezamenlijke releaseacceptatie OPEN. F9modellen blijven AFGEWEZEN; geen installatie,
+  liveHA/broker/config/credentials/login/reboot/flash/TX/EMS/actuator/verwarmingsactie.
+- Volgende uitvoering bij dezelfde specialist: reeds aangeboden echtegraphhandoff
+  afmaken; daarna F10GUIafwerking van bestaande nativeHA/E32schermen met echte
+  desktop/mobielbrowsercontrole van labels/eenheden/status/fout/conflict/offline/
+  opslaan/annuleren/herladen. Bronpreview en werkelijkeHA/E32acceptatie gescheiden;
+  geen nieuwframework/duplicaatflow, Mark11846releasegates blijven gelden.
+  Hervattingscheck15min na inhoudelijk pakket; geen stilzwijgende planstop.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

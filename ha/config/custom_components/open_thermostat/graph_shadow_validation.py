@@ -1,7 +1,10 @@
-"""Pure REVIEW/test graph-shadow validator. Not imported by runtime or transport.
+"""Shared bounded graph DATA validator for explicit source-profile review/apply.
 
-A valid candidate is NOT accepted/applied or physically qualified. Trust anchors
-are caller-owned reviewed manifest hashes; an incoming checkbox cannot grant them.
+Pure/no IO: only the existing source-selected owner/journal/codec may validate
+DATA. Native GUI imports its error type only; it cannot create qualification or
+a graph owner. Default api1 is not activated/migrated by this module.
+A valid candidate is NOT running source/control admission or physical readiness.
+Trust anchors are source-owned reviewed hashes, never an incoming checkbox.
 The initial test layout supports ONE unmixed binary-floor topology only.
 """
 from __future__ import annotations

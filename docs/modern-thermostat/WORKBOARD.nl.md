@@ -1278,6 +1278,44 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   aantoonbaar geleverd. F9afgewezen modellen blijven afgewezen; diagnoseopdracht
   reeds queued, niet dubbel gestart. Hele11785software blijft in_progress.
 
+### Mark11785 — F2/F3 native graphreview en geïntegreerde HA-bronkwaliteit: Stage24/25
+
+- [x] Canonical3b4e19b vooraf schoon; huidige§6/PLAN en RESULTStage24/25
+  daadwerkelijk gelezen. Bestaand hostreceipt20okt23:40 niet herhaald;
+  eenmaal bounded specialistgeschiedenis6: dezelfde eigenaar werkt actief aan
+  native graph-draftvertaling. Geen tweede eigenaar of redundant werkdoorbericht.
+- [x] Exacte8padenStage24patchb0135acb en3padenStage25patchbeb42ea2
+  gereviewd, alle11frozenbronhashes exact. Review bevestigt8private tuple-/
+  sessievelden; kopie en hercontrole onder dezelfde Storelock na awaited
+  diskreadback. Disconnect blokkeert oude DATA onmiddellijk vóór send.
+- [x] Native optionsreview gebruikt bestaande worker, expliciet defaultfalseconsent,
+  geen profiel/owner/kwalificatiecreatie, geen optionsreload. Onzekere send blijft
+  pending; alleen werkelijke bekende readback promoveert DATA. Defaultapi1 en
+  alle fysiekeoutputflags ongewijzigd; graph_ready is GEEN regelvrijgave.
+- [x] Werkelijke canonical hostgcc/g++17/echte pinnedcJSON/EMSparser: alle
+  vereiste finite peers nieuw gebouwd. Volledige HA2026.10.2/Python3.14.8:
+  670PASS+68subtests,1optionelebrokerSKIP,0deselecties; beide oorspronkelijke
+  parentRecorderbarrièretets uitgevoerd, ongewijzigde bestanden/asserties.
+  Daarna die ene packettest met officiële bestaande pinnedMosquittofixture:
+  1PASS, echte HA/Paho/nieuwe C++peer, uitsluitend tijdelijke localhostpoort.
+  671testgevallen dus verdeeld over2commando's; GEEN volledige CImatrixclaim.
+- [x] Tijdelijke broker gestopt en onafhankelijk afwezig bewezen. Eerste directe
+  --rminspectie liep vóór asynchrone verwijdering; nacontrole No such container.
+  Vijf bestaande dependencydeprecaties; geen productieHA/broker/deviceactie.
+- [ ] F2/F3/hele11785 blijven open: willekeurige native graphdraftvertaling/
+  expliciete sourceprofile-integratie bij actieve specialist; officiële volledige
+  nativeJS/browser/firmwareimages/resources/build/installatie en alle fysieke/
+  meerdaagse/TX/EMS/actuator/verwarmingsgates niet vervangen door deze tests.
+  Stabiele contact/personkwalificatie en afgewezen F9modellen blijven open.
+- Bewijs11774dossier: GRAPH-REVIEW-PARENT-REVIEW.md, PRECHECK/HASHES/
+  COMMANDS/FULL-HA-COMMAND/PACKET-COMMAND.json, FULL-HA.xml/log,
+  PACKET-HA.xml/log en verse peerbuildlogs. Specialistbewijs behouden.
+  Rollback Stage25 eerst, dan Stage24; parentRecorder/bord en historische data behouden.
+- Eerstvolgende uitvoering: bestaande specialist voltooit graphdraft/API2keten;
+  daarna begrensde comfortbronfreshnesssoftware met passende negatieve replay.
+  Parent behoudt normale officiële release/buildgates; niets geïnstalleerd of
+  gepubliceerd. Heleplan in_progress; hervatting15min na inhoudelijk pakket.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

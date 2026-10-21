@@ -1754,6 +1754,39 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
 - Acceptatie blijft normale build, echte applicationbin in beide bestaande slots, behouden functies/locks en relevante regressies; geen partitie-/budget-/compilerbeleidversoepeling. Parentreview vóór integratie.
 - Taakbewijs en stop/rollback: `/home/dielessen/artifacts/open-thermostat-execution-11831-20261021/taskflow.md`. Status in_progress; childstart is geen resultaat.
 
+### Mark11785 — F9 Stage37 begrensde testreferentie: onafhankelijke bronacceptatie
+
+- [x] Echte canonicalhostcheckout bc49455 schoon; WORKBOARD§6/PLAN, actuele
+  RESULT/Stage37, memory_search en verified-taskflow gelezen; eenmaal bounded
+  history bevestigt specialist actief aan contact/personbronkwalificatie.
+  Bestaand eenmalig hostreceipt behouden; generic-size blijft aparte childowner.
+- [x] Exacte tweepadenpatch f7630531 en36 bevroren bewijshashes gecontroleerd;
+  allebronhashes exact in eigen canonical-afgeleide reviewcheckout. Alleen test/doc;
+  productiealgoritmen/owner/HA/codec/opslag/budgets/flags/PLAN ongewijzigd.
+- [x] Hostg++17 strict met echteGTest/model/regulator/evaluator opnieuw gebouwd:
+  16nativePASS en dezelfde16 volledigeTU/GTest ASan/UBSanPASS. Externe echte
+  OpenSSLprovider niet geïnstrumenteerd. Alle28scores en volledige trace exact
+  gelijk aan bevroren bewijs;14oude oracles/prefix en14baselineSHAchains behouden.
+- [x] Testreferentie adopteert één begrensd toekomstdoel in plaats van opwarming
+  buiten startvergelijkingsband als bronuitval te behandelen. Owner/binding/
+  generatie/schema/weer/water/klok/stop/mode vervallen het advies; normale
+  regulator/limieten blijven leidend. GEEN actieve productcaller of persistence.
+- [ ] Alle14 gecorrigeerde kandidaten blijven AFGEWEZEN/onvoldoende, ieder0/14
+  aankomsttreffers. Geen modelwinst/echtecomfort/ketelstarts/72uclaim; oorspronkelijke
+  80%deadline/90%coverage/comfort/cyclinggates niet verruimd. F9 blijft OPEN.
+- Broncommit 7a2e2fd via reviewbranch fast-forward, schone status en
+  commitdiffcheckPASS. Bewijs11774dossier f9-trace-parent-evidence/{PRECHECK,
+  COMMANDS,SOURCE-POSTCHECK}.json, REVIEW.md, native/sanitizerBUILD/log/json,
+ 28SCENARIOS/TRACE en DIAGNOSIS.json. Rollback alleen deze tweepadenbroncommit
+  vóór afhankelijken; config/model/Recorder/history/PLANdata behouden.
+- Volgende concrete F0/F10actie bij dezelfde specialist NA huidige contact/person-
+  kwalificatie: werkelijke dependencylicenties/provenance/attributies en exacte
+  lokale kandidaatidentiteit afsluiten met bestaande gepinde builds/bewijs;
+  geen ongewijzigde rebuilds, alpha.6herlabeling, publicatie of genericdubbelwerk.
+  Bestaande E32/HAintegratie en alle resterende F0–F10software blijven gelden.
+  Niet geïnstalleerd/gepubliceerd; fysieke/resource/72u/TX/actuatorgates OPEN.
+  Hele11785 in_progress; inhoudelijk pakket → officiële hervatting15min.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

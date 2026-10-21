@@ -964,6 +964,18 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   actieve modeladmission. Graph-/seizoens-/comfortsoftware blijft eveneens open.
   Hele11785 blijft actief; na inhoudelijk pakket hervatting15min, eigen job behouden.
 
+
+#### Postcheck en voortzetting F9coastparentmerge
+
+- Canonical7e89364 via reviewbranch fast-forward; gitstatus leeg/commitdiffcheckPASS.
+  COAST-PARENT-POSTCHECK.json bewaart exacteHEAD en bron-/verifierscope.
+- Concrete volgende F0/F2/F9max8zone-modelbudget/checkpointgate met negatieve
+  grens-/storagechecks en bronrollback aan dezelfde specialist aangeboden na
+  huidig curve/replaywerk. Followupd3ecde0c-7b95-4e2f-8cd1-8822ab39bb96 QUEUED;
+  admission is geen completion. Geen nieuwe eigenaar/actieve runtimevrijgave.
+- Automations next_check15m bevestigd; hele11785softwareplan niet voltooid,
+  eigen hervattingsjob behouden. Geen herhaalde groene checks als vervangend werk.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

@@ -2508,6 +2508,39 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   HelePLAN in_progress; niets geïnstalleerd/gepubliceerd. Enigeautomation werkelijk
   geïnspecteerd,15mininterval/pacing behouden en next_check15m bevestigd.
 
+### Mark11785 — Stage55 onafhankelijke review: laatste owner-awaitfence AFGEWEZEN
+
+- [x] Canonicalhost e2281b4 schoon en werkelijk toegankelijk; bestaand eenmalig
+  runtime-receipt niet herhaald. Actuele §6/PLAN, specialistRESULT en frozen
+  Stage55 gelezen; memory_search/verified-taskflow toegepast. Eenmaal bounded
+  history6 en session_status: dezelfde actieve specialist, geen tweede eigenaar.
+- [x] Exact17padenpatch53687fff360291a497a71f352ef61b0e5a4421f3dd3ad3cc08b7794f95862d1d,
+  510archivebestanden/98bewijshashes/17voor-en-nahashes gecontroleerd. Geïsoleerde
+  canonicalreview behoudt494overige trackedpaden en7bewuste parentverschillen.
+  Verse strict hostgcc/g++13/echtecJSONpeer met nativeHA2026.10.2/Python3.14.8:
+  35PASS, vijf bestaande dependencywarnings. Geen bronacceptatie uit deze telling.
+- [ ] NIEUWE onafhankelijke native owner-awaitprobe FAALT: adapter_id verandert
+  tijdens laatste DATA-Storeload binnen SOURCE-staging. Laatste planvergelijking
+  bindt adapter niet opnieuw; oude STAGED controlmirror wordt toch opgeslagen.
+  Latere setupcheck weigert vóór transport, acceptedNone; geen fysieke/livefout
+  of verwarmingsvrijgave. Stage55 NIET gemerged; canonicalproductbron behouden.
+  Eerste probehook miste vervangen Store-instance en is apart als harnessmiss
+  bewaard; correcte class-level/keygebonden hook bewijst fired/setupweigering/
+  onterechtstaged. Geen vervolg-SAN/fullsuite verspild na deze afwijzing.
+- Bewijs: sibling open-thermostat-parent-stage55-20261021 met TASKFLOW,BEFORE,
+  MANIFEST/frozenpatch/archive,SOURCE-CHECKS,REVIEW,native/COMMANDS/logs/HA.xml,
+  test_parent_bridge_owner_await.py en OWNER-AWAIT-COMMAND/XML/log. Rollback:
+  ongeaccepteerde reviewbron niet mergen; config/journal/model/Recorder/history/
+  notices behouden. Geen installatie/publicatie/liveHA/broker/device/loginactie.
+- Nieuwe concrete fout/repro via steerf959c005 bij dezelfde actieve eigenaar
+  admitted: finale adapter/entry/source/journalfences na awaits en vóór eerste
+  mirrorstage sluiten; exacte parentprobe plus passende regressies vereist.
+  Admission is geen herstel/completion. Eerstvolgende bewijsactie: gecorrigeerd
+  Stage55 onafhankelijk toetsen, daarna normale nativeGUI-/productintegratie
+  en actuele gezamenlijke releasechecks. HelePLAN11785 blijft in_progress;
+  generieke tweekamerDATAwriter/producers/factory/resources/GUI/release/F9 en
+  fysieke/72u/TX/EMS/actuator-/verwarmingsgates OPEN. Enigejob behouden,15mincheck.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

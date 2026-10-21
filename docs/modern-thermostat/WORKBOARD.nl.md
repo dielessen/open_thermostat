@@ -1650,6 +1650,32 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   backend846a3936 bij dezelfde specialist via followupe734145a QUEUED,
   geen extra owner of completionclaim; officiële next_check15m bevestigd.
 
+### Mark11785 — F0/F10 Stage35: onafhankelijke migratie-/releasevoorbereiding
+
+- [x] Canonical host2342515 schoon; bestaand eenmalig hostreceipt niet herhaald.
+  WORKBOARD§6/PLAN, actuele RESULTStage35, memory_search/verified-taskflow en
+  eenmalig boundedhistory6 gelezen. Specialist actief met graph-GUIapplyfoutproeven;
+  geen tweede owner of herhaalde werk-dooropdracht.
+- [x] Exact2padenpatch856a1451 onafhankelijk gereviewd, frozenarchive413bestanden
+  en127bewijshashes exact. Geen syncrollup bovenop parentbytes toegepast.
+  Canonical-afgeleide reviewworktree:154echte HA2026.10.2/Python3.14.8PASS,
+  nulskip/exclusions; vier nieuwe nativeConfigEntrymigratie-/future3/255proeven
+  bewaren data/options/identiteit en weigeren downgrade zonder runtimecreatie.
+  Vijf bestaande dependencydeprecaties; geen netwerk/productieIO.
+- [x] Broncommit2dae5b4 fast-forward samengevoegd; alleoverige trackedbronbytes
+  exact behouden, schone status en technische postcheckPASS. Alleen test/docwerk,
+  geen nieuwe model-/budget-/partitie-/runtime-/productbindingwijziging.
+- [ ] Volgende echte parentactie IN_PROGRESS: normale huidige canonical E32build,
+  vervolgens normale generic/S3 en echtebin-/E32filesystem-/verifiergates indien
+  uitvoerbaar. Specialist512MiBbuilds waren OOM, geen nieuw ELF/appimage; historische
+  b3d521f/dabdfe2beelden zijn geen huidig samengesteldebronbewijs. Genericactualbin
+  overflow en licentie-/provenanceafsluiting blijven OPEN; geen herverpakkingalpha.6.
+- Bewijs:11774dossier COMPOSED-RELEASE-RESULT.md en
+  composed-release-parent-evidence/{PRECHECK,COMMAND,POSTCHECK}.json / HA.xml / HA.log.
+  Rollback alleen2dae5b4 vóór afhankelijken; bestaande DHW/Recorder/model/PLAN/data
+  bewaren. Niet geïnstalleerd/gepubliceerd; geen login/TX/EMS/actuator/verwarmingsGO.
+  Gehele11785 blijft in_progress; fysieke/resource-/72ugates ongewijzigd.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

@@ -22,6 +22,7 @@ from .v1_model import (
     EntityReference, RoomBinding, integration_mode, target_centi,
     ROOM_CLIMATE_TRV, ROOM_GRAPH_DRAFT, has_graph_rooms,
 )
+from homeassistant.exceptions import ConfigEntryError
 from .v1_wire import identifier
 from .v1_heating_flow import HeatingSubentryFlow
 
@@ -125,8 +126,69 @@ class V1FlowMixin:
         return {"zone": ZoneSubentryFlow, "heating": HeatingSubentryFlow} if integration_mode(config_entry) == MODE_SHADOW else {}
 
 class ShadowOptionsFlow(config_entries.OptionsFlowWithReload):
+    def _graph_connection(self):
+        data=self.hass.data.get(DOMAIN,{}).get(self.config_entry.entry_id,{})
+        connection=data.get("v1_connection")
+        from .v1_mqtt import NativeShadowConnection
+        from .graph_wire import GraphSourceProfile,GraphShadowClient
+        if (isinstance(connection,NativeShadowConnection) and not connection.closed
+                and connection.worker is not None and not connection.worker.done()
+                and isinstance(connection.graph_profile,GraphSourceProfile)
+                and isinstance(connection.client,GraphShadowClient)):
+            return connection
+        return None
+
+    async def async_step_graph_review(self,user_input=None):
+        from .graph_shadow_validation import GraphValidationError
+        connection=self._graph_connection()
+        if connection is None:return self.async_abort(reason="graph_review_unavailable")
+        try:
+            if user_input is not None:
+                if user_input.get("confirm_apply") is not True:
+                    return self.async_abort(reason="graph_review_cancelled")
+                if getattr(self,"_review_connection",None) is not connection:
+                    return self.async_abort(reason="graph_review_changed")
+                # Existing bounded worker serializes apply with messages/reconnect;
+                # journal rechecks reviewed tuple inside the existing Store lock.
+                await connection.async_graph_command("apply",self._reviewed_candidate)
+                return await self.async_step_graph_status()
+            self._reviewed_candidate=connection.client.review_candidate()
+            self._review_connection=connection
+            state=connection.client.journal.state
+            record=state["staged"]
+            return self.async_show_form(step_id="graph_review",data_schema=vol.Schema({
+                vol.Required("confirm_apply",default=False):bool}),
+                description_placeholders={
+                    "revision":str(record["config"]["revision"]),
+                    "digest":record["config_digest"],
+                    "accepted":str(connection.client.graph_status["accepted_revision"]),
+                    "status":connection.client.graph_status["journal_status"]})
+        except (GraphValidationError,ConfigEntryError):
+            if connection.client.journal.status in {"graph_send_unconfirmed","awaiting_graph_readback","graph_interrupted"}:
+                return await self.async_step_graph_status()
+            return self.async_abort(reason="graph_review_changed")
+        except Exception:
+            # IO may have reached the peer. No blind retry or optimistic failure
+            # claim; expose the existing unconfirmed/readback status instead.
+            return await self.async_step_graph_status()
+
+    async def async_step_graph_status(self,user_input=None):
+        connection=self._graph_connection()
+        if connection is None:return self.async_abort(reason="graph_review_unavailable")
+        if user_input is not None:return self.async_abort(reason="graph_review_complete")
+        state=connection.client.graph_status
+        return self.async_show_form(step_id="graph_status",data_schema=vol.Schema({}),
+            description_placeholders={
+                "status":state["status"],"journal_status":state["journal_status"],
+                "accepted":str(state["accepted_revision"]),"staged":str(state["staged_revision"]),
+                "verified":str(state["readback_verified"])})
+
     async def async_step_init(self, user_input=None):
         errors = {}
+        if user_input is not None and user_input.get("graph_action")=="review":
+            return await self.async_step_graph_review()
+        if user_input is not None and user_input.get("graph_action")=="status":
+            return await self.async_step_graph_status()
         if user_input is not None:
             mode = user_input[CONF_MODE]
             owner = user_input.get("adapter_id", self.config_entry.options.get(
@@ -149,6 +211,9 @@ class ShadowOptionsFlow(config_entries.OptionsFlowWithReload):
                     data["adapter_id"] = owner
                 return self.async_create_entry(data=data)
         return self.async_show_form(step_id="init", data_schema=vol.Schema({
+            **({vol.Optional("graph_action",default="settings"):
+                selector.SelectSelector({"options":["settings","review","status"],"translation_key":"graph_action"})}
+                if self._graph_connection() is not None else {}),
             vol.Required(CONF_MODE, default=integration_mode(self.config_entry)):
                 selector.SelectSelector({"options": [MODE_LEGACY, MODE_SHADOW]}),
             vol.Optional(CONF_ENABLED, default=self.config_entry.options.get(CONF_ENABLED, False)): bool,

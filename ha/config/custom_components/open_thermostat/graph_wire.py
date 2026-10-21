@@ -341,13 +341,19 @@ class GraphShadowClient:
             self._cap_received,retained=False)
         self.error=self.journal.status;self.changed();return candidate
 
-    async def async_apply(self):
+    def review_candidate(self):
+        ctx=self._context()
+        state=self.journal.state
+        require(state is not None and state["staged"] is not None,"nothing_staged")
+        return self.journal.review_key(state["staged"],ctx)
+
+    async def async_apply(self,reviewed=None):
         ctx=self._context()
         sequence=self.sequence["config"]+1;require(integer(sequence,1),"sequence_exhausted")
         self.sequence["config"]=sequence
         self._readback_key=None # Explicit mutation needs actual new readback.
         raw=await self.journal.async_apply_tuple(self.send,ctx,self._capability,
-            self._cap_received,sequence,retained=False,transport=TRANSPORT)
+            self._cap_received,sequence,retained=False,transport=TRANSPORT,reviewed=reviewed)
         self.error=self.journal.status;self.changed();return raw
 
     async def async_observation(self,*args,**kwargs):

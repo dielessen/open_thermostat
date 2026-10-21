@@ -194,13 +194,20 @@ class GraphShadowJournal:
             self.status = "graph_staged_not_applied"
             return candidate
 
+    @staticmethod
+    def review_key(record, context):
+        return dict(controller_id=context.controller_id,boot_id=context.boot_id,epoch=context.epoch,
+            adapter_id=context.adapter_id,adapter_session_id=context.adapter_session_id,
+            revision=record["config"]["revision"],config_digest=record["config_digest"],
+            mapping_digest=digest(record["mapping"]))
+
     async def async_apply(self, send, context, capability, received_at, sequence, *, retained):
         """Legacy source-stage inner form. No atomic-wire capability implied."""
         return await self._apply(send, context, capability, received_at, sequence,
                                  retained=retained, transport=None)
 
     async def async_apply_tuple(self, send, context, capability, received_at,
-                                sequence, *, retained, transport):
+                                sequence, *, retained, transport, reviewed=None):
         """Explicitly negotiated atomic form; same Store lock and immutable tuple.
 
         Caller owns fresh peer/session negotiation. This method neither starts a
@@ -209,10 +216,11 @@ class GraphShadowJournal:
         from .graph_wire_codec import TRANSPORT
         require(transport == TRANSPORT, "unsupported_transport")
         return await self._apply(send, context, capability, received_at, sequence,
-                                 retained=retained, transport=transport)
+                                 retained=retained, transport=transport, reviewed=reviewed)
 
     async def _apply(self, send, context, capability, received_at, sequence, *,
-                     retained, transport):
+                     retained, transport, reviewed=None):
+        reviewed=deepcopy(reviewed)
         async with self._transaction():
             generation = self._generation
             capability = self._capability(context, capability, received_at, retained)
@@ -225,6 +233,10 @@ class GraphShadowJournal:
             require(await self.store.async_load() == self._state, "storage_fault")
             require(generation == self._generation, "session_changed")
             self._capability(context, capability, received_at, retained)
+            # Review belongs to this exact tuple AND owner/boot/session. Recheck
+            # under SAME journal lock after awaited durable readback, before IO.
+            if reviewed is not None:
+                require(reviewed==self.review_key(record,context),"review_changed")
             raw = canonical(self._envelope(record, context, sequence))
             if transport is not None:
                 from .graph_wire_codec import encode_graph_tuple

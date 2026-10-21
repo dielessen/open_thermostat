@@ -113,6 +113,10 @@ class NativeShadowConnection:
         @callback
         def connection_status(connected):
             if not connected:
+                if self.graph_profile is not None:
+                    # Existing Store await can yield inside the same worker.
+                    # Fence graph DATA immediately, not behind that in-flight IO.
+                    self.client.reset_session()
                 self.enqueue(("disconnect", None))
 
         @callback

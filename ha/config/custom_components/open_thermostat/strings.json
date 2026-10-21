@@ -50,13 +50,31 @@
           "integration_mode": "Integration mode",
           "shadow_enabled": "Enable shadow observation listeners (no actuation)",
           "create_dashboard": "Create legacy dashboard (legacy mode only)",
-          "adapter_id": "Provisioned firmware adapter owner ID"
+          "adapter_id": "Provisioned firmware adapter owner ID",
+          "graph_action": "Heating graph DATA"
         }
+      },
+      "graph_review": {
+        "title": "Review staged heating graph DATA",
+        "description": "Accepted revision{accepted}; staged revision{revision}. Digest:{digest}. Status:{status}. Apply stores this exact reviewed DATA tuple only; it does not enable heating, source or actuator control. Wait for verified readback. Changed owner/boot/session/candidate cancels this review.",
+        "data": {
+          "confirm_apply": "Apply this exact staged DATA revision"
+        }
+      },
+      "graph_status": {
+        "title": "Heating graph DATA status",
+        "description": "Transport:{status}. Journal:{journal_status}. Accepted:{accepted}; staged:{staged}. Current readback verified:{verified}. DATA verification is NOT running source/control/actuator admission. Close and reopen status to refresh."
       }
     },
     "error": {
       "invalid_adapter_id": "Use the same explicit owner ID as provisioned on the E32 (1–32 letters, digits, _ or -).",
       "graph_room_contract_unavailable": "Graph-only rooms are unapplied drafts. Remove or explicitly migrate them before enabling the current shadow runtime or selecting legacy mode."
+    },
+    "abort": {
+      "graph_review_unavailable": "No existing source-selected graph connection is available. No profile was enabled.",
+      "graph_review_cancelled": "Nothing applied.",
+      "graph_review_changed": "Review/session/candidate changed or capability expired. Nothing new was approved; reopen review.",
+      "graph_review_complete": "Graph DATA review closed. No integration settings changed."
     }
   },
   "entity": {

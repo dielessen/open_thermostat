@@ -2608,6 +2608,60 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   bronreviewwerk; geen 81+81tests als parentPASS overgenomen, geen installatie,
   TX/EMS/actuator-/verwarmingsGO. HelePLAN/F2/F3 en overige gates blijven open.
 
+### Mark11785/11890 — gecorrigeerd Stage55 onafhankelijk geaccepteerd
+
+- [x] Canonicalhost werkelijk bereikbaar, aanvankelijk schone79b8fd0; actuele
+  §6/PLAN/RESULT en manifest407f7097 gelezen; memory_search/verified-taskflow,
+  eenmaal boundedhistory6 en session_status gebruikt. Bestaand eenmalighostreceipt
+  behouden, niet herhaald. Specialist leverde gereed gecorrigeerd pakket en advies;
+  geen nieuwe actieve tweekamerimplementatie uit admission of cronstatus afgeleid.
+- [x] Exact gecorrigeerd19padenrollup d74fcdf64d59,512frozenarchivebestanden en
+  54actuele bewijshashes onafhankelijk gecontroleerd; bestaande packageverifier
+  controleert ook oorspronkelijke REJECTEDpatch/archive/103oudebewijshashes.
+  Oorspronkelijk1480841 en parentvoorprobeFAIL blijven ongewijzigd AFGEWEZEN.
+- [x] Finale owner/adapter/entry/options/subentries/SOURCE/policy/journal/registry-
+  fences na laatste DATAawait en vóór eerste mirrorstage sluiten de afwijsfout.
+  EXACT ongewijzigde onafhankelijke parentprobe1PASS native en dezelfde1PASS met
+  eigen verse volledige C++/cJSON ASan/UBSan/leakpeer. Gerichte81echte nativeHA
+  2026.10.2/CPython3.14.8PASS en dezelfde81SANPASS; semantische rows bytegelijk
+  aan frozenorigineel. Vijf bestaande HAwarnings; dynamicOpenSSL ongeïnstrumenteerd.
+  Nativepeer uit eerdere onafhankelijke parentrun alleen hergebruikt na alle
+  C++/headerbronidentiteiten; SANpeer strikt vers gebouwd met hostgcc/g++.
+- [x] Normale nativeOptionsManager explicietEnable, bestaande éénlistenerreload,
+  STAGEDmirror vóór exacte C++readback en afzonderlijke21/19shadowdoelen/roomOFF
+  samengesteld bewezen. Dit blijft EENvloerDATA plus onafhankelijk tweeSOURCE-
+  targets; geen twee duurzaam opgeslagen DATAkamers of echte browser-/deviceproef.
+- [x] Sourcecommit62acc8ec3028ac6f98e2d806c8e439a370768c59 fast-forward canonical;
+  alle19afterhashes, schonebron/diffcheck en behoud overige canonicalbytes bewezen.
+  Premergeguard stopte eerst wegens gelijktijdige doccommit82facca. Exact hetzelfde
+  architectuurdocument was daar al geïntegreerd; alleen19bronpaden gecommit en op
+  die nieuwe canonicalbasis gerebased. Alle vier nieuwe architectuur-/PLAN-/bord-
+  documentwijzigingen behouden; runtimebytes identiek aan geteste kandidaat.
+  Geen tests herhaald zonder bronaanleiding; geen object/fullimage/performanceclaim.
+- [ ] Productsoftware OPEN: echte tweekamerDATAcodec/writer/persistence/journal/
+  revisietransitie en dezelfdeownercontrollerreadback; configureerbare gekwalificeerde
+  SOURCEproducer/factory(defaultNONE); brederegraph/groepen/menger/comfort/schema;
+  werkelijke nativefrontenddesktop/mobiel; actuelefullimages/resources/SDKlicentie-
+  closure en F9(alle14kandidaten afgewezen/onvoldoende). Fysieke/72u/TX/EMS/actuator/
+  verwarmingsgates evenzeer OPEN. Niets geïnstalleerd/gepubliceerd/vrijgegeven.
+- Bewijs/rollback: sibling open-thermostat-parent-stage55-corrected-20261021 met
+  TASKFLOW/BEFORE/BEFORE-REBASED/PRE-MERGE-DRIFT/SOURCE-CHECKS/PACKAGE-CHECK/
+  REVIEW/COMMANDS/native-/SANxml+logs/PEER-REUSE/SOURCE-POSTCHECK. Alleen nieuwe
+  broncommit terug vóór afhankelijken; config/journal/model/Recorder/history/cache/
+  notices en stabiele HAidentiteiten behouden; geen erase/automatischeadoptie.
+- Concrete F2/F3 WP03-04routeBvolgstap direct bij dezelfde specialist via followup
+  1292a511-e5ea-440a-9f56-e3b1b2d59e6a ACCEPTED/QUEUED: normale HAreview/apply →
+  één versioned acceptedControlPlan met TWEEvolledig opgeslagen kamers → exact
+  echteCppreadback/dezelfdecontroller; doel/schema/stop zonder compiledSOURCEwissel.
+  Payload/codec/allocatie/commitreadback meten binnen bestaande4096/8192/NVS/OTA-
+  grenzen; unknown/stale/owner/mapping/await/lostACK/ambiguouscommit/powerloss/herstel
+  en compatibele migratie/rollback verplicht. Onafhankelijk installatieprofiel en
+  actuele runtimeauthority scheiden; bestaande pins niet versoepelen, outputsfalse.
+  Start/completion nog NIET bevestigd. Daarna echte desktop/mobielGUI en actuele
+  gezamenlijke releasebewijzen. HelePLAN11785 blijft in_progress, geen stop na pakket.
+- Bestaande enigejob werkelijk geïnspecteerd: interval900000ms/pacing15m–15m
+  ongewijzigd; next_check exact15m bevestigd. Geen extra job/coördinatielaag.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

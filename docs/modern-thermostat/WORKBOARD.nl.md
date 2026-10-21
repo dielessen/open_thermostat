@@ -1983,6 +1983,42 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
 - Geen extra job, gewijzigde planning/toolset of productscope. Exacte voor-/napayload en rollback in `/home/dielessen/artifacts/open-thermostat-execution-11831-20261021/automation-before-11858.json` en bijbehorende taskflow. Configuratiewijziging is geen bewijs van toekomstige kanaalaflevering; volgende echte run/delivery nog controleren.
 - MODEL-NVS-RESULT bevat nieuwStage43-bronpakket4c79f8a; gereed voor onafhankelijke review, niet op basis van specialistRESULT als geïntegreerd/geïnstalleerd/releasegereed aanmerken. Kritieke HA/E32-productketen, GUI en fysieke acceptatie blijven open.
 
+### Mark11785/11858 — F2/F3/F9 begrensde model-NVS: definitieve Stage43 bronacceptatie
+
+- [x] Echte canonicalhosttoegang; bestaand eenmalighostreceipt niet herhaald.
+  Actuele§6/PLAN, memory/verified-taskflow en eenmaal boundedhistory6 gelezen.
+  Nieuwe zichtbareberichtafspraak11858/bd515c3 behouden; geen tweede eigenaar.
+- [x] Originele15case-draft4c79f8a NIET gemerged: eigen nativeprobe toont dat
+  verkeerd64KiBpartitieprofiel toch gelezen wordt. Specialist herstelde reeds dit
+  leesgat; uitsluitend definitieve6padenrollup99c5b1fe/fe2cf972 geaccepteerd.
+  Vier productieregels valideren actuelepartitie/stats vóór iedere boundedread;
+  geen extra writequota voor lezen of nieuwe retries/readbacklaag/erase.
+- [x] Onafhankelijk hostGCC:20gerichte nativePASS; dezelfde20ASan/UBSanPASS,
+  echteSHA2.28.7/zeroization/GTest/TU geïnstrumenteerd. Eigen ongewijzigde
+  afwijzingsprobe nuPASS;102crypto-/6bronhashes exact. NativeSDK-IO is fixture,
+  geen fysiekeNVSproef. Drie echte nonemptycodec/herintredingspaden failclosed;
+  eerdere15/nieuwe20 overlappen en worden niet opgeteld.
+- [x] Echt gepindXtensa/Arduino2.0.17SDKobjectPASS; provider736/backend16/gate696B,
+  loadfunctie64B. GEEN volledigeimage/callgraph/heap/NVS-GC/powerloss/8zonebewijs.
+  Bestaande20KiBpartitie/558van630entryledger/modelalgoritmes/limieten behouden.
+- [x] Broncommit2796de4 fast-forwardcanonical,6exactebronhashes/433bestaandepaden,
+  schoon/diffcheckPASS. ParentPLAN/GUI/HAregressieverschillen behouden.
+  Bewijs11774dossier model-nvs-parent-evidence/{TASKFLOW,REVIEW}.md,
+  PRECHECK/COMMANDS/SOURCE-POSTCHECK.json,FINAL-NATIVE/FINAL-SANITIZER.json,
+  READ-PROBE/FINAL-READ-PROBE en FINAL-TARGETlogs/json/object/stack.
+- [ ] Alleen SOURCE-backend geaccepteerd; defaultmodelbinding blijftuit.
+  Actievegekwalificeerdetweekamerketen, modelowner/nut,GUI, actueleimages/release,
+  resources/8zones en alle fysieke/meerdaagse/TX/EMS/verwarmingsgates OPEN.
+  Geen installatie/publicatie/liveHA/broker/device/login/config-/datawijziging.
+  Rollback uitsluitend2796de4 vóór afhankelijken, nooit NVS/model/historiewissen.
+- Concrete volgendeF2/F3/WP03-06actie bij dezelfde specialist: bestaand7601
+  graph→SOURCEowner→controllerwerk afronden met daadwerkelijkeHA/C++tweekamer-
+  keten,A-only/B-only/samen/off,tuple/drift/reload/reconnect/stale/stopnegatieven;
+  geen parserlimietverhoging als productbewijs, DATA is geenautoriteit.
+  Followup70bcb782-6926-4cf5-bfde-65c6336aafcb QUEUED (geencompletion).
+  Daarna bestaandeGUI11846 en gezamenlijke lokale releasegates. Hele11785
+  blijftin_progress; bestaandejob geïnspecteerd/behouden,next_check15m bevestigd.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

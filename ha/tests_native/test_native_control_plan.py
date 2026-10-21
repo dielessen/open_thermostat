@@ -23,6 +23,8 @@ from test_v1_native import physical_state,source_profile
 
 @pytest_asyncio.fixture
 async def native_plan(native_two,hass,monkeypatch,request):
+    options=request.param if hasattr(request,"param") and type(request.param) is dict else {}
+    legacy=options.get("legacy",False)
     parent,rad,floor,heating,output=native_two
     floor=replace(floor,base_centi_c=1900)
     sub=next(s for s in parent.subentries.values() if s.subentry_type=="zone" and s.data["room_id"]==floor.room_id)
@@ -36,7 +38,7 @@ async def native_plan(native_two,hass,monkeypatch,request):
         a=next(a for a in layout["actuators"] if a["room_id"]==room.room_id)
         group=next(g for g in layout["groups"] if g["group_id"]==a["group_id"])
         output_ref=draft.bindings_document()[a["output_channel"]]
-        sensor_id=getattr(request,"param","s_")+room.room_id
+        sensor_id=(options.get("sensor_prefix","s_") if options else getattr(request,"param","s_"))+room.room_id
         bindings[sensor_id]=room.temperature.as_dict();bindings[a["actuator_id"]]=output_ref
         control=dict(mode="local_trv",hysteresis_centi_c=20,kp_permille_per_c=0,ki_permille_per_c_minute=0,
             cycle_ms=0,minimum_on_ms=0,minimum_off_ms=0)
@@ -54,7 +56,8 @@ async def native_plan(native_two,hass,monkeypatch,request):
             maximum_supply_centi_c=group["supply_limits"]["maximum_centi_c"]))
     body=dict(schema=1,kind="native_profile.shadow.v1",controller_id="e32_test",adapter_id="test_owner",
         layout_digest=digest(layout),mapping_revision=1,zones=rows)
-    policy=NativeInstallationPolicy(parent.unique_id,"e32_test","test_owner",digest(body))
+    if legacy:body.update(schema=2,kind="native_profile.shadow.v2",legacy_readback="schema1_quarantine_only")
+    policy=NativeInstallationPolicy(parent.unique_id,"e32_test","test_owner",digest(body),legacy_readback_reviewed=legacy)
     source=NativePlanSource(policy,canonical(body),canonical(bindings));source.validate()
     monkeypatch.setattr(integration,"_NATIVE_PLAN_SOURCE_PROFILES",(source,))
     monkeypatch.setattr(integration,"_GRAPH_DATA_SOURCE_PROFILE",None)
@@ -72,10 +75,25 @@ async def native_plan(native_two,hass,monkeypatch,request):
         pending.append((topic[len("fixture/v1/"):],payload))
     monkeypatch.setattr(mqtt,"async_subscribe",subscribe)
     monkeypatch.setattr(mqtt,"async_subscribe_connection_status",status);monkeypatch.setattr(mqtt,"async_publish",publish)
+    legacy_record=None
+    if legacy:
+        from homeassistant.helpers.storage import Store
+        from custom_components.open_thermostat.v1_model import ROOM_CLIMATE_TRV
+        oldroom=replace(rad,binding_mode=ROOM_CLIMATE_TRV,
+            actuators=(EntityReference.from_dict(bindings[rows[0]["actuator_id"]]),))
+        mapping=dict(rooms=[oldroom.as_dict()],source_policy="qualified-physical-report/v1",actuation="disabled-shadow")
+        cfg=dict(schema=1,mode="shadow",revision=1,mapping_digest=digest(mapping),zones=[
+            dict(zone_id=rad.room_id,sensor_id="s_"+rad.room_id,actuator_id="a_"+rad.room_id,
+                base_centi_c=rad.base_centi_c,max_age_ms=rad.maximum_age_ms,
+                report_evidence="physical_report",schedule=None)])
+        legacy_record=dict(config=cfg,config_digest=digest(cfg),mapping=mapping)
+        await Store(hass,1,"open_thermostat.v1."+parent.entry_id).async_save(
+            {"accepted":None,"staged":legacy_record} if options.get("old_stage") else {"accepted":legacy_record,"staged":None})
     async with pair(hass) as peer:
         initial=await peer.request("initialize_native_plan",controller="e32_test",boot="native_boot",
-            owner="test_owner",stored="",source=dict(profile_digest=policy.profile_digest,mapping_revision=1,zones=rows))
-        assert not initial["fault"] and initial["writes"]==initial["revision"]==0
+            owner="test_owner",stored=canonical(legacy_record["config"]) if legacy else "",
+            source=dict(profile_digest=policy.profile_digest,mapping_revision=1,zones=rows,legacy_readback_reviewed=legacy))
+        assert not initial["fault"] and initial["writes"]==0 and initial["revision"]==(1 if legacy else 0)
         runtime=connection=client=None;holder={};serial=0;epoch=int(dt.utcnow().timestamp());receive_errors=[]
         async def start():
             nonlocal runtime,connection,client
@@ -155,7 +173,7 @@ async def native_plan(native_two,hass,monkeypatch,request):
                 await asyncio.gather(task,return_exceptions=True)
         await start()
         n=SimpleNamespace(parent=parent,rad=rad,floor=floor,heating=heating,source=source,policy=policy,
-            profile=body,bindings=bindings,peer=peer,runtime=runtime,connection=connection,client=client,
+            profile=body,bindings=bindings,legacy_record=legacy_record,peer=peer,runtime=runtime,connection=connection,client=client,
             callbacks=callbacks,pending=pending,start=start,stop=stop,event=event,deliver=deliver,drain=drain,
             handshake=handshake,flow=flow,apply=apply,samples=samples,settle=settle,command=command,reload=reload)
         holder["n"]=n

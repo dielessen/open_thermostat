@@ -19,6 +19,9 @@ struct NativePlanInstallationSource {
     std::string controllerId,adapterId,profileDigest;
     std::array<NativePlanZoneSource,maximumZones> zones;
     size_t count=0;
+    // Independent SOURCE-reviewed extension; never accepted from configuration.
+    bool legacyReadbackReviewed=false;
+    static constexpr const char* legacyCapability="control.plan.legacy_readback.v1";
     uint32_t maximumSafetyAgeMs=0,mappingRevision=1;
     bool valid() const {
         using namespace heating::graph_test;

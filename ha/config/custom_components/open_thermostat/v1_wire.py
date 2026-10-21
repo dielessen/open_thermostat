@@ -106,6 +106,8 @@ class ShadowClient:
         self._native_apply_sent=False
         self._native_apply_scope=None
         self._native_device_result=None
+        self._native_legacy_supported=False
+        self._native_legacy_verified=False
         if self.native_plan_source is not None:
             from .native_plan import NativePlanSource,native_entry_state
             if (type(self.native_plan_source) is not NativePlanSource
@@ -180,8 +182,12 @@ class ShadowClient:
         if self.native_plan_source is not None:
             for record in self.journal.values():
                 if record is not None:
-                    self.native_plan_source.validate_plan(record["config"])
-                    if record["config"]["mapping"]!=record["mapping"]:raise ValueError("native_plan_mapping_journal")
+                    if record["config"].get("schema")==1:
+                        self.native_plan_source.validate_legacy_config(record["config"])
+                        parse(canonical(record["mapping"])) # Bound old local mapping before any remote IO.
+                    else:
+                        self.native_plan_source.validate_plan(record["config"])
+                        if record["config"]["mapping"]!=record["mapping"]:raise ValueError("native_plan_mapping_journal")
             self._native_apply_sent=self.journal["staged"] is not None
 
     def native_source_current(self):
@@ -354,6 +360,26 @@ class ShadowClient:
                 self._native_apply_sent=False
                 self.error="native_plan_recovery_review_required" if self.journal["staged"] else "native_plan_unconfigured_review_required"
             self.changed();return
+        if config.get("schema")==1:
+            self.native_plan_source.validate_legacy_config(config)
+            if not self._native_legacy_supported:raise GraphValidationError("native_legacy_capability_required")
+            if digest(config)!=p["config_digest"] or config["revision"]!=p["config_revision"]:
+                raise GraphValidationError("native_legacy_readback_digest")
+            record=self.known(p["config_revision"],p["config_digest"])
+            if record is None or record["config"]!=config:
+                self._native_remote_known=False;self.verified=False
+                self.error="native_plan_remote_conflict";self.changed();return
+            self._native_remote_known=True;self._native_legacy_verified=True;self.verified=False
+            if self.journal["staged"]==record:
+                await self.save({"accepted":record,"staged":None})
+                if self.native_context()!=scope:raise GraphValidationError("native_legacy_owner_changed_after_readback")
+            if self._native_apply_sent and self._native_apply_scope==scope:
+                self.error="native_plan_apply_unconfirmed"
+            else:
+                self._native_apply_sent=False
+                self.error="native_plan_recovery_review_required" if self.journal["staged"] else "native_plan_legacy_review_required"
+            self.changed();return # READONLY metadata, never control/admission.
+        self._native_legacy_verified=False
         self.native_plan_source.validate_plan(config)
         if digest(config)!=p["config_digest"] or config["revision"]!=p["config_revision"]:
             raise GraphValidationError("native_plan_readback_digest")
@@ -458,6 +484,8 @@ class ShadowClient:
         self.journal = snapshot
 
     def reset_session(self):
+        self._native_legacy_supported=False
+        self._native_legacy_verified=False
         self._native_device_result=None
         self._native_snapshot_scope=None
         self._native_snapshot_request=None
@@ -603,6 +631,10 @@ class ShadowClient:
                 from .native_plan import CONTRACT
                 if (type(comfort_caps) is not list or len(comfort_caps)>8 or CONTRACT not in comfort_caps):
                     self.reset_session();self.error="native_plan_capability_unavailable";self.changed();return
+                from .native_plan import LEGACY_CAPABILITY
+                self._native_legacy_supported=LEGACY_CAPABILITY in comfort_caps
+                if self.native_plan_source.policy.legacy_readback_reviewed and not self._native_legacy_supported:
+                    self.reset_session();self.error="native_legacy_capability_required";self.changed();return
             self.comfort_supported=(type(comfort_caps) is list and len(comfort_caps)<=8
                 and all(isinstance(cap,str) and len(cap)<=64 for cap in comfort_caps)
                 and COMFORT_CAPABILITY in comfort_caps)

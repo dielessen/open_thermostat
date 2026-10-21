@@ -3,6 +3,7 @@ from datetime import UTC,datetime
 from html import escape
 
 STATUS={
+    "native_plan_legacy_review_required":"Old configuration read back in quarantine; explicitly review the new plan",
     "shadow_ready":"Exact current plan readback verified",
     "native_plan_unconfigured_review_required":"Not applied: review the saved rooms",
     "native_plan_staged_not_applied":"Draft staged locally; not sent to the device",

@@ -84,6 +84,7 @@ int main() {
             auto num=[&](const cJSON* o,const char* key,uint32_t lo,uint32_t hi){return static_cast<uint32_t>(gt::integer(gt::get(o,key),lo,hi));};
             source.controllerId=controller;source.adapterId=adapter;source.profileDigest=txt(src,"profile_digest");
             source.count=2;source.maximumSafetyAgeMs=2000;
+            source.legacyReadbackReviewed=cJSON_IsTrue(gt::get(src,"legacy_readback_reviewed"));
             source.mappingRevision=num(src,"mapping_revision",1,UINT32_MAX);
             const auto rows=gt::get(src,"zones");if(!cJSON_IsArray(rows)||cJSON_GetArraySize(rows)!=2)return 5;
             for(size_t i=0;i<2;++i) {

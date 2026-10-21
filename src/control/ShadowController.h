@@ -99,7 +99,25 @@ public:
         if(saved.empty()) return;
         if(saved.size()>maximumConfigBytes) {fault_=true;return;}
         auto root=parseControlJson(saved);
-        if(!root || !decodeConfig(root.get(),*config_)) { fault_=true; return; }
+        if(!root) {fault_=true;return;}
+        if(nativePlanSource_&&nativePlanSource_->legacyReadbackReviewed&&integerField(root.get(),"schema",1,1)) {
+            // Same bounded old decoder, no old runtime/second controller.
+            auto old=std::make_unique<Configuration>();
+            if(!decodeConfig(root.get(),*old,true)||!old->count||old->count>nativePlanSource_->count) {fault_=true;return;}
+            size_t transitions=0;
+            for(size_t i=0;i<old->count;++i) {
+                const auto& z=old->zones[i];const auto pin=nativePlanSource_->zone(z.id);
+                const auto rawZone=cJSON_GetArrayItem(field(root.get(),"zones"),static_cast<int>(i));
+                const auto schedule=field(rawZone,"schedule");
+                if(!pin||z.comfortEnabled||z.base<pin->policy.minimumTargetCentiC
+                    ||z.base>pin->policy.maximumTargetCentiC||z.profile.maximumAgeMs>pin->maximumSensorAgeMs
+                    ||z.reportEvidence!=pin->reportEvidence||!sourceScheduleBounds(schedule,pin->policy)) {fault_=true;return;}
+                if(!cJSON_IsNull(schedule))transitions+=static_cast<size_t>(cJSON_GetArraySize(field(schedule,"transitions")));
+            }
+            if(transitions>NativePlanInstallationSource::maximumTransitions) {fault_=true;return;}
+            config_->revision=old->revision; // Metadata only. ZERO active zones.
+            legacyQuarantine_=true;
+        } else if(!decodeConfig(root.get(),*config_)) { fault_=true; return; }
         configBytes_=printJson(root.get()); digest_=hash_(configBytes_);
         if(!hexString(digest_,64)||(seasonalSource_&&!nativePlanSource_&&digest_!=seasonalSource_->configDigest)) fault_=true;
     }
@@ -202,7 +220,7 @@ private:
                 ||(nativePlanSource_&&fault_)) {
                 result(resultTopic,e,"storage_fault"); fault_=true; invalidate(); return;
             }
-            config_=std::move(candidate); configBytes_=candidateBytes; digest_=stringField(root.get(),"config_digest");
+            config_=std::move(candidate);legacyQuarantine_=false; configBytes_=candidateBytes; digest_=stringField(root.get(),"config_digest");
             result(resultTopic,e,"applied"); invalidate(); newChallenge(now); hello(); return;
         }
         if(topic=="ha/snapshot_request") { result(resultTopic,e,"accepted"); snapshot(e.sequence); state(now,utc,clockValid); return; }
@@ -273,19 +291,19 @@ private:
         return comfort.command(*mode,target,now,uintField(o,"duration_ms"),uintField(o,"vacation_until_utc"),utc,validClock);
     }
     static int hexByte(char c) { return c<='9'?c-'0':c-'a'+10; }
-    bool decodeConfig(const cJSON *o,Configuration &out) const {
-        if(nativePlanSource_) {
+    bool decodeConfig(const cJSON *o,Configuration &out,bool legacyReadback=false) const {
+        if(nativePlanSource_&&!legacyReadback) {
             if(!canonicalConfig(o)||!validateNativeControlPlan(o,*nativePlanSource_,hash_)||fault_)return false;
         } else if(!exactFields(o,{"mapping_digest","mode","revision","schema","zones"}) || !canonicalConfig(o) ||
             !hexString(stringField(o,"mapping_digest"),64)||stringField(o,"mode")!="shadow"||
             !integerField(o,"revision",1,UINT32_MAX)||!integerField(o,"schema",1,1)) return false;
         auto zones=field(o,"zones");
         if(!cJSON_IsArray(zones)||cJSON_GetArraySize(zones)>static_cast<int>(maximumZones)
-            ||(seasonalSource_&&cJSON_GetArraySize(zones)!=static_cast<int>(seasonalSource_->count))) return false;
+            ||(seasonalSource_&&!legacyReadback&&cJSON_GetArraySize(zones)!=static_cast<int>(seasonalSource_->count))) return false;
         std::set<std::string> identities{"adapter","config","snapshot"};
         for(auto zone=zones->child;zone;zone=zone->next) {
             const bool comfort=field(zone,"comfort");
-            const bool shape=nativePlanSource_?
+            const bool shape=(nativePlanSource_&&!legacyReadback)?
                 (comfort?exactFields(zone,{"actuator_id","actuator_profile","base_centi_c","comfort","group_id","max_age_ms","report_evidence","schedule","sensor_id","zone_id"}):
                     exactFields(zone,{"actuator_id","actuator_profile","base_centi_c","group_id","max_age_ms","report_evidence","schedule","sensor_id","zone_id"})):
                 (comfort?exactFields(zone,{"actuator_id","base_centi_c","comfort","max_age_ms","report_evidence","schedule","sensor_id","zone_id"}):
@@ -322,7 +340,7 @@ private:
             auto schedule=field(zone,"schedule");
             z.scheduled=!cJSON_IsNull(schedule);
             if(z.scheduled && !configureScheduleDocument(z.schedule,schedule)) return false;
-            if(seasonalSource_) {
+            if(seasonalSource_&&!legacyReadback) {
                 const auto pin=seasonalSource_->zone(z.id);
                 if(!pin||pin->sensorId!=z.sensor||pin->actuatorId!=z.actuator
                     ||z.base<pin->minimumTargetCentiC||z.base>pin->maximumTargetCentiC
@@ -471,7 +489,7 @@ private:
             admission_.bind(3+i,config_->zones[i].sensor,StreamKind::observation);
             admission_.bind(11+i,config_->zones[i].id,StreamKind::user_command);
         }
-        mappingReady_=uintField(o,"known_revision")==revision()&&stringField(o,"known_digest")==digest_;
+        mappingReady_=!legacyQuarantine_&&uintField(o,"known_revision")==revision()&&stringField(o,"known_digest")==digest_;
         if(seasonalSource_&&policyGeneration_==UINT32_MAX) {fault_=true;invalidate();return;}
         if(seasonalSource_)++policyGeneration_;
         session_=true; sessionStart_=now; grantSequence_=0; clientNonce_=stringField(o,"client_nonce"); lastOpen_=request;
@@ -488,8 +506,9 @@ private:
     void sourcePolicy(cJSON* o) const {
         if(nativePlanSource_) {
             auto profile=cJSON_AddObjectToObject(o,"source_policy");if(!profile)return;
-            cJSON_AddNumberToObject(profile,"schema",2);
-            cJSON_AddStringToObject(profile,"kind",NativePlanInstallationSource::kind);
+            cJSON_AddNumberToObject(profile,"schema",nativePlanSource_->legacyReadbackReviewed?3:2);
+            cJSON_AddStringToObject(profile,"kind",nativePlanSource_->legacyReadbackReviewed?"installation.shadow.v2":NativePlanInstallationSource::kind);
+            if(nativePlanSource_->legacyReadbackReviewed)cJSON_AddStringToObject(profile,"legacy_readback","schema1_quarantine_only");
             cJSON_AddStringToObject(profile,"adapter_id",owner_.c_str());
             cJSON_AddStringToObject(profile,"profile_digest",nativePlanSource_->profileDigest.c_str());
             cJSON_AddStringToObject(profile,"plan_contract",NativePlanInstallationSource::contract);
@@ -523,6 +542,8 @@ private:
         auto comfortCaps=cJSON_AddArrayToObject(o.get(),"control_capabilities");
         if(comfortCaps)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString("comfort.target.v1"));
         if(comfortCaps&&nativePlanSource_)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(NativePlanInstallationSource::contract));
+        if(comfortCaps&&nativePlanSource_&&nativePlanSource_->legacyReadbackReviewed)
+            cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(NativePlanInstallationSource::legacyCapability));
         if(metrics_) {
             auto caps=cJSON_AddArrayToObject(o.get(),"read_only_capabilities");
             if(caps)cJSON_AddItemToArray(caps,cJSON_CreateString(metricsCapability));
@@ -694,7 +715,7 @@ private:
     HydraulicSupervisor supervisor_;
     std::unique_ptr<SeasonalControllerSource> seasonalSource_;
     std::unique_ptr<NativePlanInstallationSource> nativePlanSource_;
-    bool nativeReceiving_=false;
+    bool nativeReceiving_=false,legacyQuarantine_=false;
     SeasonalControllerSource::Safety seasonalSafety_;
     uint32_t policyGeneration_=0;
     bool safetyReading_=false,policySourceFault_=false;

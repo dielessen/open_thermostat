@@ -13,6 +13,7 @@ from .v1_heating_graph import validated_graph,resolved_reference
 
 CONTRACT="control.plan.v1"
 KIND="installation.shadow.v1"
+LEGACY_CAPABILITY="control.plan.legacy_readback.v1"
 LIMITS=dict(zones=2,groups=2,channels=4,config_bytes=4096,wire_bytes=8192,total_transitions=8)
 HEX=re.compile(r"[0-9a-f]{64}")
 
@@ -25,16 +26,20 @@ class NativeInstallationPolicy:
     controller_id:str
     adapter_id:str
     profile_digest:str
+    legacy_readback_reviewed:bool=False
 
     def validate(self):
         require(isinstance(self.entry_unique_id,str) and 1<=len(self.entry_unique_id)<=128,"native_entry")
         ident(self.controller_id);ident(self.adapter_id)
+        require(type(self.legacy_readback_reviewed) is bool,"native_legacy_profile")
         require(isinstance(self.profile_digest,str) and HEX.fullmatch(self.profile_digest),"native_profile")
 
     def matches(self,p):
         self.validate()
         expected=dict(schema=2,kind=KIND,adapter_id=self.adapter_id,profile_digest=self.profile_digest,
             plan_contract=CONTRACT,physical_outputs_enabled=False,frost_protection_available=False,limits=LIMITS)
+        if self.legacy_readback_reviewed:
+            expected.update(schema=3,kind="installation.shadow.v2",legacy_readback="schema1_quarantine_only")
         return (p.get("controller_id")==self.controller_id and type(p.get("source_policy")) is dict
             and canonical(p["source_policy"])==canonical(expected))
 
@@ -72,8 +77,11 @@ class NativePlanSource:
         require(type(self.policy) is NativeInstallationPolicy,"native_policy_type");self.policy.validate()
         require(type(self.profile_json) is str and len(self.profile_json.encode())<=4096,"native_profile_budget")
         profile=raw_document(self.profile_json)
-        obj(profile,"adapter_id controller_id kind layout_digest mapping_revision schema zones")
-        exact(profile["schema"],1);exact(profile["kind"],"native_profile.shadow.v1")
+        legacy=self.policy.legacy_readback_reviewed
+        obj(profile,"adapter_id controller_id kind layout_digest mapping_revision schema zones"+(" legacy_readback" if legacy else ""))
+        exact(profile["schema"],2 if legacy else 1)
+        exact(profile["kind"],"native_profile.shadow.v2" if legacy else "native_profile.shadow.v1")
+        if legacy:exact(profile["legacy_readback"],"schema1_quarantine_only")
         exact(profile["controller_id"],self.policy.controller_id);exact(profile["adapter_id"],self.policy.adapter_id)
         require(digest(profile)==self.policy.profile_digest and HEX.fullmatch(profile["layout_digest"]),"native_profile_digest")
         integer(profile["mapping_revision"],1,4294967295)
@@ -228,3 +236,42 @@ class NativePlanSource:
                     at=integer(point[0],at+1,end-1);integer(point[1],z["minimum_target_centi_c"],z["maximum_target_centi_c"])
                 require(ts[0][0]==begin,"native_schedule")
         return value
+
+    def validate_legacy_config(self,config):
+        """Reviewed READBACK ONLY. This method cannot qualify an active plan."""
+        require(self.policy.legacy_readback_reviewed,"native_legacy_profile_required")
+        profile,_=self.documents();v=raw_document(canonical(config))
+        require(len(canonical(v))<=4096,"native_legacy_budget")
+        obj(v,"mapping_digest mode revision schema zones")
+        exact(v["schema"],1);exact(v["mode"],"shadow");integer(v["revision"],1,4294967295)
+        require(type(v["mapping_digest"]) is str and HEX.fullmatch(v["mapping_digest"]),"native_legacy_mapping")
+        require(type(v["zones"]) is list and 1<=len(v["zones"])<=2,"native_legacy_room_limit")
+        ids={"adapter","config","snapshot"};transitions=0
+        for zone in v["zones"]:
+            obj(zone,"actuator_id base_centi_c max_age_ms report_evidence schedule sensor_id zone_id")
+            z=next((x for x in profile["zones"] if x["zone_id"]==zone["zone_id"]),None)
+            require(z is not None,"native_legacy_room_loss")
+            for k in ("zone_id","sensor_id"):
+                ident(zone[k]);require(zone[k] not in ids,"native_legacy_identity");ids.add(zone[k])
+            require(type(zone["actuator_id"]) is str,"native_legacy_identity")
+            if zone["actuator_id"]:
+                ident(zone["actuator_id"]);require(zone["actuator_id"] not in ids,"native_legacy_identity");ids.add(zone["actuator_id"])
+            integer(zone["base_centi_c"],z["minimum_target_centi_c"],z["maximum_target_centi_c"])
+            integer(zone["max_age_ms"],1000,z["maximum_sensor_age_ms"])
+            exact(zone["report_evidence"],z["report_evidence"])
+            schedule=zone["schedule"]
+            if schedule is None:continue
+            obj(schedule,"base_centi_c policy timezone transitions valid_from_utc valid_until_utc")
+            exact(schedule["policy"],"wall-clock-membership/v1")
+            require(schedule["timezone"] in ("UTC","Europe/Amsterdam"),"native_legacy_schedule")
+            begin=integer(schedule["valid_from_utc"],946684800,4102444799)
+            end=integer(schedule["valid_until_utc"],begin+1,min(begin+16*86400,4102444800))
+            integer(schedule["base_centi_c"],z["minimum_target_centi_c"],z["maximum_target_centi_c"])
+            points=schedule["transitions"];require(type(points) is list and points,"native_legacy_schedule")
+            transitions+=len(points);require(transitions<=8,"native_legacy_transition_limit")
+            at=begin-1
+            for point in points:
+                require(type(point) is list and len(point)==2,"native_legacy_schedule")
+                at=integer(point[0],at+1,end-1);integer(point[1],z["minimum_target_centi_c"],z["maximum_target_centi_c"])
+            require(points[0][0]==begin,"native_legacy_schedule")
+        return v

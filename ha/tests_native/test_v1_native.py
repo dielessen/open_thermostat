@@ -340,3 +340,26 @@ async def test_profile_c_service_timeout_is_unknown_not_readiness_or_retry(hass,
     with pytest.raises(HomeAssistantError, match="physical outcome unknown"):
         await actuator.async_set_room_target(21)
     assert len(calls) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("stored_version", [1, 2, 3, 255])
+async def test_release_candidate_migration_preserves_unknown_data_options_and_refuses_future_downgrade(hass, stored_version):
+    """Real native entry migration: do not normalize away future/private data."""
+    from copy import deepcopy
+    item = entry(hass, mode=MODE_LEGACY, version=stored_version)
+    data = {**item.data, "password": "synthetic-not-a-real-secret",
+            "future_extension": {"revision": 71, "values": [None, False, "keep"]}}
+    options = {**item.options, "unknown_option": {"token": "synthetic-private", "list": [1, 2]}}
+    hass.config_entries.async_update_entry(item, data=deepcopy(data), options=deepcopy(options))
+    identity = (item.entry_id, item.unique_id, item.title, item.minor_version)
+    before_data, before_options = deepcopy(dict(item.data)), deepcopy(dict(item.options))
+    expected = stored_version <= OpenThermostatConfigFlow.VERSION
+    assert await integration.async_migrate_entry(hass, item) is expected
+    assert await integration.async_migrate_entry(hass, item) is expected
+    assert (item.entry_id, item.unique_id, item.title, item.minor_version) == identity
+    assert dict(item.data) == before_data
+    assert dict(item.options) == before_options
+    assert item.version == (2 if expected else stored_version)
+    assert hass.config_entries.async_get_entry(item.entry_id) is item
+    assert not hasattr(item, "runtime_data")

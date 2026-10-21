@@ -590,6 +590,22 @@ class ShadowClient:
             "mode": "temporary", "temperature_centi_c": centi_c, "duration_ms": 3600000}, future)
         await future  # Bounded by poll(); teardown cancels unresolved futures.
 
+    async def async_hvac_mode(self, room_id, mode):
+        room = self.runtime.rooms.get(room_id)
+        if mode not in ("heat", "off") or not self.ready or room is None:
+            raise HomeAssistantError("Shadow HVAC mode/mapping unavailable")
+        if room.comfort is not None:
+            # Keep existing comfort priority/capability/owner validation.
+            await self.async_comfort(room_id, "off" if mode == "off" else "auto")
+            return
+        future = self.runtime.hass.loop.create_future()
+        # API1 requires temperature/duration even for off/auto; the controller
+        # ignores them in these modes. Use validated base, not an old override.
+        await self.message("ha/user_command", room_id, {
+            "mode": "off" if mode == "off" else "auto",
+            "temperature_centi_c": room.base_centi_c, "duration_ms": 60000}, future)
+        await future  # Existing timeout/teardown, never persist/replay.
+
     async def async_comfort(self,room_id,mode,*,temperature=None,duration_ms=None,vacation_until_utc=0):
         from .v1_model import target_centi
         room=self.runtime.rooms.get(room_id)

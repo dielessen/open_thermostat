@@ -55,9 +55,10 @@ No model/admission/learning rights are granted merely by DATA or resource PASS.
 
 Per-room OFF is additionally verified through the existing owned wire command
 with its normal Future/ACK contract; an ignored5C target does not override SOURCE
-limits or delay stop. This is not a browser test. The native climate frontend is
-still HEAT-only for this narrow no-comfort profile; GUI OFF/comfort/schedule
-integration remains separate product work. The first OFF test omitted the
+limits or delay stop. This is not a browser test. The original Stage51 climate frontend was
+HEAT-only for this narrow no-comfort profile. Stage53 connects the existing owned
+OFF/auto route through the native climate service; see NATIVE-CLIMATE-MODES.md.
+Browser, comfort/schedule integration within SOURCE2 remain separate product work. The first OFF test omitted the
 existing required Future; that fixture failure is retained, not a productfix claim.
 
 ## Resource evidence and limits

@@ -30,6 +30,7 @@ class ShadowTransport(Protocol):
     def ready(self) -> bool: ...
     async def async_observation(self, room_id: str, observation: Observation) -> None: ...
     async def async_setpoint(self, room_id: str, centi_c: int) -> None: ...
+    async def async_hvac_mode(self, room_id: str, mode: str) -> None: ...
     async def async_close(self) -> None: ...
 
 ReportProfile = Callable[[Any, str], QualifiedReport | None]
@@ -342,6 +343,17 @@ class ShadowRuntime:
             raise HomeAssistantError(str(err)) from err
         await self._transport.async_setpoint(room_id, target)
         # Only admitted firmware state, never this request/ack, changes the target.
+
+    async def async_hvac_mode(self, room_id: str, mode: str) -> None:
+        if mode not in ("heat", "off"):
+            raise HomeAssistantError("Unsupported shadow HVAC mode")
+        if not self.room_control_supported(room_id) or not self.transport_ready:
+            raise HomeAssistantError("Shadow transport is disabled or not ready")
+        command = getattr(self._transport, "async_hvac_mode", None)
+        if command is None:
+            raise HomeAssistantError("Shadow HVAC mode transport unavailable")
+        await command(room_id, mode)
+        # Only admitted firmware state confirms the choice. No local latch/retry.
 
     async def async_comfort(self,room_id,mode,*,temperature=None,duration_ms=None,vacation_until_utc=0):
         if room_id not in self.rooms or not self.transport_ready or self.rooms[room_id].comfort is None:

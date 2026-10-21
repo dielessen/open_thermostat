@@ -20,8 +20,9 @@ class ShadowRoom(ClimateEntity):
     _attr_has_entity_name = True
     _attr_name = None
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
-    _attr_hvac_modes = [HVACMode.HEAT]
-    _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
+    _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
+    _attr_supported_features = (ClimateEntityFeature.TARGET_TEMPERATURE
+                                | ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF)
     _attr_min_temp = 5.0
     _attr_max_temp = 35.0
     _attr_target_temperature_step = 0.1
@@ -60,7 +61,13 @@ class ShadowRoom(ClimateEntity):
 
     @property
     def hvac_mode(self):
-        return HVACMode.HEAT
+        state = self.runtime.decisions.get(self.room.room_id)
+        if state is None:
+            return None
+        return HVACMode.OFF if state.target_source == "off" else HVACMode.HEAT
+
+    async def async_set_hvac_mode(self, hvac_mode):
+        await self.runtime.async_hvac_mode(self.room.room_id, hvac_mode)
 
     @property
     def hvac_action(self):

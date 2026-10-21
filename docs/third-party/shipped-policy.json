@@ -236,7 +236,7 @@
     "cached_newlib_header_sha256": "93a397574a25b9c143cee7fcb86d8fc9a0c9ba418e4710a30d2d19ba1e4120db"
   },
   "ha": {
-    "source_candidate": "sha256:b97548b89b6145f6e64dea2057ccd94dfd8f92ad51a9e495c525c533e3496e77",
+    "source_candidate": "sha256:5289845210941e23bf7cfeeb521a7d3880d01cc2e443bb96e95cc0a6799f0abc",
     "manifest": "ha/config/custom_components/open_thermostat/manifest.json",
     "source_files": {
       "ha/config/custom_components/open_thermostat/__init__.py": "f14f18bb161be54ea965d27e1e2233085c1c9e96d9f7fcd700c6ae117c2730fb",
@@ -281,7 +281,7 @@
       "ha/config/custom_components/open_thermostat/v1_bench_actions.py": "4ef3ab4741c09f3f1e33faa7837fb02f453baa7b21ff7b2bc0562a927861b416",
       "ha/config/custom_components/open_thermostat/v1_bench_mqtt.py": "b158170cbfc049661d4be03a08f7da7ac1350162487ff9458b81d080e7c4b22f",
       "ha/config/custom_components/open_thermostat/v1_bench_source.py": "3325828c4e123bfcd2ce31c460429b1f3bb7616b314fba05a011d06f36117fa4",
-      "ha/config/custom_components/open_thermostat/v1_climate.py": "484c601d75d25ecd03adea7ed0f74d496fb59a678cefaa5c17f232dce298cd54",
+      "ha/config/custom_components/open_thermostat/v1_climate.py": "1bf7aeb881211460238b9f7dc61da065c14672dfc3c9a273074eb9b9f07bd886",
       "ha/config/custom_components/open_thermostat/v1_config_flow.py": "4d2bcac12b61c721361629a5f7aeb51da14810a489cde769cdaf763319c817c3",
       "ha/config/custom_components/open_thermostat/v1_heating_draft.py": "eba2d9996fd9375c87f5b495f4900d957a93250c72879c7c46e45f4814fce606",
       "ha/config/custom_components/open_thermostat/v1_heating_flow.py": "4c3e3cce141d9c7f77a215dac3752cf3520c1cfeea0389f5ce04570493b0e9e4",
@@ -292,8 +292,8 @@
       "ha/config/custom_components/open_thermostat/v1_mqtt.py": "066dded19da5adb7ecf47addb67feb685f3f3206ba580598cac1d667c103d762",
       "ha/config/custom_components/open_thermostat/v1_profile_c.py": "b08e3abaf12455495b39dc6ff9df4b43ec74fc766683684658d840a7e08037f0",
       "ha/config/custom_components/open_thermostat/v1_program.py": "8597a0232105d44a0d90ee4d4fb41ae7ed6bdede64b0a8df09bf37eeb4f24db2",
-      "ha/config/custom_components/open_thermostat/v1_runtime.py": "41fe4c8a16a7ae39057bfcbd29428611e596004d795a0a011553df806b8fc0c7",
-      "ha/config/custom_components/open_thermostat/v1_wire.py": "dd424ce7c426a8533ad7ebbb419fade2d63bf21ebba6bd96c689e2b7557fa7de"
+      "ha/config/custom_components/open_thermostat/v1_runtime.py": "7f61ae3a23572babf4df10c001715f894c9e187f64a0592389dbc9c861569193",
+      "ha/config/custom_components/open_thermostat/v1_wire.py": "7ca216101515a7feb1f0e395234b63393b7f3deab6067eb344ed054a3433a52d"
     },
     "platform_imports": [
       "homeassistant",

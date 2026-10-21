@@ -71,11 +71,34 @@ async def async_migrate_entry(hass, entry):
         )
     return True
 
+# SOURCE-owned selection only. No entry option, registry, service or incoming
+# manifest can set this. Default remains None/api1; real installation pins require
+# independent review. Selecting this branch creates DATA-only, never control.
+_GRAPH_DATA_SOURCE_PROFILE = None
+
+def _selected_graph_data_profile(entry):
+    from .v1_model import has_graph_rooms,integration_mode,MODE_SHADOW
+    if not has_graph_rooms(entry) or integration_mode(entry)!=MODE_SHADOW or _GRAPH_DATA_SOURCE_PROFILE is None:
+        return None
+    from homeassistant.exceptions import ConfigEntryError
+    from .graph_wire import GraphSourceProfile
+    profile=_GRAPH_DATA_SOURCE_PROFILE
+    try:
+        if not isinstance(profile,GraphSourceProfile) or profile.draft_source is None or profile.entry_unique_id is None:
+            raise ValueError("complete source bundle and native entry pin required")
+        if profile.entry_unique_id!=entry.unique_id:
+            return None # Source selection cannot capture another hub/entry.
+        profile.validate()
+    except (ValueError,TypeError):
+        raise ConfigEntryError("graph_profile_unsupported") from None
+    return profile
+
 async def async_setup_entry(hass, entry):
     from .v1_model import integration_mode, MODE_LEGACY, MODE_SHADOW, RoomBinding
     mode = integration_mode(entry)
     from .v1_model import has_graph_rooms, CONF_ENABLED
-    if has_graph_rooms(entry) and (mode != MODE_SHADOW or entry.options.get(CONF_ENABLED, False)):
+    graph_profile=_selected_graph_data_profile(entry)
+    if has_graph_rooms(entry) and (mode != MODE_SHADOW or (entry.options.get(CONF_ENABLED, False) and graph_profile is None)):
         from homeassistant.exceptions import ConfigEntryError
         raise ConfigEntryError("graph_room_contract_unavailable")
     if mode == MODE_LEGACY:
@@ -94,7 +117,8 @@ async def async_setup_entry(hass, entry):
     from .v1_runtime import ShadowRuntime
     rooms = [RoomBinding.from_dict(dict(s.data)) for s in entry.subentries.values()
              if s.subentry_type == "zone"]
-    runtime = ShadowRuntime(hass, entry, rooms)
+    runtime = (ShadowRuntime(hass,entry,rooms,graph_data_profile=graph_profile)
+               if graph_profile is not None else ShadowRuntime(hass,entry,rooms))
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {"v1_runtime": runtime}
     dr.async_get(hass).async_get_or_create(
         config_entry_id=entry.entry_id, identifiers={(DOMAIN, entry.data[CONF_TOPIC_PREFIX])},
@@ -103,7 +127,7 @@ async def async_setup_entry(hass, entry):
         await runtime.async_start()
         if runtime.enabled:
             from .v1_mqtt import NativeShadowConnection
-            connection = NativeShadowConnection(runtime)
+            connection = NativeShadowConnection(runtime,graph_profile) if graph_profile is not None else NativeShadowConnection(runtime)
             hass.data[DOMAIN][entry.entry_id]["v1_connection"] = connection
             await connection.async_start()
         from .v1_bench_actions import async_register_entry

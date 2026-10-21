@@ -21,6 +21,32 @@ from .v1_program import native_week
 from .v1_wire import ShadowClient, identifier
 
 
+async def async_room_schedule(hass,room,start=None):
+    start=start or dt_util.utcnow().replace(hour=0,minute=0,second=0,microsecond=0)
+    until=start+timedelta(days=15)
+    schedule = None
+    if room.schedule and room.week_program is not None:
+        raise ValueError("program_source_conflict")
+    if room.week_program is not None:
+        schedule = await hass.async_add_executor_job(
+            compile_week, native_week(room.week_program), room.base_centi_c,
+            hass.config.time_zone, int(start.timestamp()), int(until.timestamp()))
+    elif room.schedule:
+        ref=room.schedule
+        entity_id=(er.async_get(hass).async_get_entity_id("schedule",ref.platform,ref.unique_id)
+                   if ref.platform is not None and ref.unique_id is not None else ref.entity_id)
+        if not entity_id or er.async_get(hass).async_get(entity_id) is None:
+            raise ValueError("schedule binding missing")
+        schedule = await async_compile_schedule(
+            hass, entity_id, room.base_centi_c, hass.config.time_zone,
+            int(start.timestamp()), int(until.timestamp()))
+    if schedule and any(
+            not room.minimum_target_centi_c <= target <= room.maximum_target_centi_c
+            for _, target in schedule["transitions"]):
+        raise ValueError("Schedule temperature is outside room target limits")
+    return schedule
+
+
 async def async_build_configuration(runtime):
     """Read native schedule exports, preserving all future UTC transitions."""
     if any(not room.shadow_wire_supported for room in runtime.rooms.values()):
@@ -29,27 +55,9 @@ async def async_build_configuration(runtime):
     mapping = {"rooms": [r.as_dict() for r in sorted(runtime.rooms.values(), key=lambda r: r.room_id)],
                "source_policy": "qualified-physical-report/v1", "actuation": "disabled-shadow"}
     start = dt_util.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    until = start + timedelta(days=15)
     zones = []
     for room in sorted(runtime.rooms.values(), key=lambda r: r.room_id):
-        schedule = None
-        if room.schedule and room.week_program is not None:
-            raise ValueError("program_source_conflict")
-        if room.week_program is not None:
-            schedule = await hass.async_add_executor_job(
-                compile_week, native_week(room.week_program), room.base_centi_c,
-                hass.config.time_zone, int(start.timestamp()), int(until.timestamp()))
-        elif room.schedule:
-            entity_id = runtime.resolved(room.schedule)
-            if not entity_id or er.async_get(hass).async_get(entity_id) is None:
-                raise ValueError("schedule binding missing")
-            schedule = await async_compile_schedule(
-                hass, entity_id, room.base_centi_c, hass.config.time_zone,
-                int(start.timestamp()), int(until.timestamp()))
-        if schedule and any(
-                not room.minimum_target_centi_c <= target <= room.maximum_target_centi_c
-                for _, target in schedule["transitions"]):
-            raise ValueError("Schedule temperature is outside room target limits")
+        schedule = await async_room_schedule(hass,room,start)
         zones.append({"zone_id": room.room_id, "sensor_id": f"s_{room.room_id}",
                       "actuator_id": f"a_{room.room_id}", "base_centi_c": room.base_centi_c,
                       "max_age_ms": room.maximum_age_ms, "report_evidence": "physical_report",
@@ -78,6 +86,8 @@ class NativeShadowConnection:
         self.bench = None
 
     async def async_start(self):
+        if getattr(self.runtime,"graph_data_profile",None) is not None and self.runtime.graph_data_profile!=self.graph_profile:
+            raise ConfigEntryError("graph_profile_unsupported")
         if not identifier(self.entry.data["topic_prefix"]):
             raise ConfigEntryError("Shadow prefix must be1..32 ASCII letters/digits, '-' or '_'; legacy identity was not renamed")
         adapter = self.entry.options.get("adapter_id", self.entry.data.get("adapter_id"))
@@ -139,7 +149,7 @@ class NativeShadowConnection:
 
     async def async_graph_command(self, command, *args):
         """Explicit stage/apply joins SAME bounded worker, never a parallel writer."""
-        if self.closed or self.worker is None or self.graph_profile is None or command not in {"stage", "apply"}:
+        if self.closed or self.worker is None or self.graph_profile is None or command not in {"stage", "apply", "prepare"}:
             raise ConfigEntryError("graph_profile_unavailable")
         future = self.hass.loop.create_future()
         try:
@@ -224,8 +234,16 @@ class NativeShadowConnection:
                     if future.cancelled():
                         continue
                     try:
-                        result = await (self.client.async_stage(*args) if command == "stage"
-                                        else self.client.async_apply(*args))
+                        if command=="prepare":
+                            from .graph_draft_compile import async_compile_saved_graph
+                            if args or self.graph_profile.draft_source is None:
+                                raise ConfigEntryError("graph_draft_source_unavailable")
+                            raw,mapping=await async_compile_saved_graph(self.hass,self.entry,
+                                self.client._context(),self.graph_profile.draft_source)
+                            result=await self.client.async_stage(raw,mapping)
+                        else:
+                            result = await (self.client.async_stage(*args) if command == "stage"
+                                            else self.client.async_apply(*args))
                         if not future.done():
                             future.set_result(result)
                     except asyncio.CancelledError:

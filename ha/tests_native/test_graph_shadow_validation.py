@@ -52,7 +52,7 @@ def test_validator_not_imported_by_any_active_runtime_or_api():
     # exercised by actual native HA tests in test_graph_native_connection.py.
     component=ROOT/"ha/config/custom_components/open_thermostat"
     for p in component.glob("*.py"):
-        if p.name in ("graph_shadow_validation.py", "graph_shadow_storage.py", "graph_wire_codec.py", "graph_wire.py", "v1_mqtt.py", "v1_config_flow.py"):
+        if p.name in ("graph_shadow_validation.py", "graph_shadow_storage.py", "graph_wire_codec.py", "graph_wire.py", "v1_mqtt.py", "v1_config_flow.py", "graph_draft_compile.py"):
             continue
         assert "graph_shadow_validation" not in p.read_text(),p.name
     # Native options can REVIEW an already source-selected owner's tuple only.
@@ -63,8 +63,8 @@ def test_validator_not_imported_by_any_active_runtime_or_api():
     for node in tree.body:
         if isinstance(node,ast.ImportFrom):
             assert not (node.module or "").startswith(("graph_","v1_mqtt"))
-    forbidden={"GraphSourceProfile","GraphShadowClient","NativeShadowConnection",
-               "GraphShadowJournal","validate_graph_shadow","native_graph_journal"}
+    forbidden={"GraphSourceProfile","GraphShadowClient","NativeShadowConnection","GraphDraftSource",
+               "GraphShadowJournal","validate_graph_shadow","native_graph_journal","async_compile_saved_graph"}
     for node in ast.walk(tree):
         if isinstance(node,ast.ImportFrom):
             forbidden.update(n.asname for n in node.names if n.name in forbidden and n.asname)
@@ -74,7 +74,7 @@ def test_validator_not_imported_by_any_active_runtime_or_api():
             assert called not in forbidden,called
             assert called not in {"async_apply","async_apply_tuple"} # same worker only
             if called=="async_graph_command":
-                assert node.args and isinstance(node.args[0],ast.Constant) and node.args[0].value=="apply"
+                assert node.args and isinstance(node.args[0],ast.Constant) and node.args[0].value in {"apply","prepare"}
         if isinstance(node,ast.ImportFrom) and node.module=="graph_shadow_validation":
             assert [(n.name,n.asname) for n in node.names]==[("GraphValidationError",None)]
     # Actual native OptionsFlow/Store/worker+Cpp tests assert no default/profile

@@ -36,11 +36,18 @@ class GraphSourceProfile:
     """Source-owned pins, NOT granted by an incoming manifest or HA draft."""
     controller_id:str
     qualification_digest:str
+    draft_source:object|None=None
+    entry_unique_id:str|None=None
 
     def validate(self):
         require(identifier(self.controller_id),"identity")
+        require(self.entry_unique_id is None or identifier(self.entry_unique_id),"identity")
         require(type(self.qualification_digest) is str
                 and bool(_HEX.fullmatch(self.qualification_digest)),"qualification")
+        if self.draft_source is not None:
+            from .graph_draft_compile import GraphDraftSource
+            require(isinstance(self.draft_source,GraphDraftSource),"qualification")
+            self.draft_source.validate(self.qualification_digest)
 
 
 class GraphShadowClient:

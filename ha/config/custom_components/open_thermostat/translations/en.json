@@ -74,7 +74,9 @@
       "graph_review_unavailable": "No existing source-selected graph connection is available. No profile was enabled.",
       "graph_review_cancelled": "Nothing applied.",
       "graph_review_changed": "Review/session/candidate changed or capability expired. Nothing new was approved; reopen review.",
-      "graph_review_complete": "Graph DATA review closed. No integration settings changed."
+      "graph_review_complete": "Graph DATA review closed. No integration settings changed.",
+      "graph_prepare_unavailable": "No reviewed source-owned draft binding/qualification bundle is selected. No graph profile was enabled.",
+      "graph_prepare_failed": "Could not verify prepared heating DATA. No automatic apply was performed; check graph status and review again."
     }
   },
   "entity": {
@@ -586,6 +588,14 @@
       "options": {
         "climate_trv": "Climate TRVs (existing shadow profile)",
         "graph_only_draft": "Graph-only / floor room (unapplied draft)"
+      }
+    },
+    "graph_action": {
+      "options": {
+        "settings": "Integration settings",
+        "prepare": "Prepare saved heating graph DATA",
+        "review": "Review staged graph DATA",
+        "status": "Graph DATA status"
       }
     }
   },

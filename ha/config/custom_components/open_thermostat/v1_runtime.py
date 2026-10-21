@@ -33,7 +33,13 @@ class ShadowTransport(Protocol):
 ReportProfile = Callable[[Any, str], QualifiedReport | None]
 
 class ShadowRuntime:
-    def __init__(self, hass: HomeAssistant, entry: Any, rooms: list[RoomBinding]):
+    def __init__(self, hass: HomeAssistant, entry: Any, rooms: list[RoomBinding], *, graph_data_profile=None):
+        if graph_data_profile is not None:
+            from .graph_wire import GraphSourceProfile
+            if not isinstance(graph_data_profile,GraphSourceProfile):
+                raise ValueError("graph_profile_unsupported")
+            graph_data_profile.validate()
+        self.graph_data_profile=graph_data_profile
         self.hass, self.entry = hass, entry
         self.rooms = {room.room_id: room for room in rooms}
         if len(self.rooms) != len(rooms) or len(rooms) > 8:
@@ -68,7 +74,7 @@ class ShadowRuntime:
 
     @property
     def transport_ready(self) -> bool:
-        return self._active and self._transport is not None and self._transport.ready
+        return self.graph_data_profile is None and self._active and self._transport is not None and self._transport.ready
 
     def add_listener(self, listener: Callable) -> Callable:
         self._listeners.add(listener)
@@ -81,7 +87,11 @@ class ShadowRuntime:
         self._profiles[room_id] = profile
 
     def attach_transport(self, transport: ShadowTransport) -> None:
-        if any(not room.shadow_wire_supported for room in self.rooms.values()):
+        if self.graph_data_profile is not None:
+            from .graph_wire import GraphShadowClient
+            if not isinstance(transport,GraphShadowClient) or transport.profile!=self.graph_data_profile or transport.runtime is not self:
+                raise HomeAssistantError("graph_profile_unsupported")
+        if any(not room.shadow_wire_supported for room in self.rooms.values()) and self.graph_data_profile is None:
             raise HomeAssistantError("graph_room_contract_unavailable")
         if self._transport is not None:
             raise ValueError("one transport owner only")
@@ -101,10 +111,14 @@ class ShadowRuntime:
             raise ValueError("runtime already started")
         if not self.entry.options.get(CONF_ENABLED, False):
             return
-        if any(not room.shadow_wire_supported for room in self.rooms.values()):
+        if any(not room.shadow_wire_supported for room in self.rooms.values()) and self.graph_data_profile is None:
             raise HomeAssistantError("graph_room_contract_unavailable")
         self._active = True
         self._generation += 1
+        if self.graph_data_profile is not None:
+            # DATA-only: no source listeners, source timers, temperature reports,
+            # room decision or active transport capability is established.
+            return
         self._bind_listeners()
         # Restored/state-cache reads are never promoted to qualified samples.
         for room in self.rooms.values():

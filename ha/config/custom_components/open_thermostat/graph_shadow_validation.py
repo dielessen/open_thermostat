@@ -40,6 +40,11 @@ def canonical(value):
 def digest(value):
     return hashlib.sha256(canonical(value).encode("ascii")).hexdigest()
 
+def qualification_record_digest(record):
+    """Existing qualification hash basis; readiness flags are separately false-only."""
+    return digest({key:record[key] for key in ("sources","devices","installation")})
+
+
 def raw_document(raw):
     if not isinstance(raw,str) or not raw or not raw.isascii() or "\\" in raw:
         fail("json_format")
@@ -244,9 +249,8 @@ def validate_graph_shadow(raw, mapping_raw, context):
     integer(settings["cycle_s"],max(60,on+off),86400)
     q=obj(c["qualification"],"record_digest outputs_ready boiler_ready sources devices installation")
     exact(q["outputs_ready"],False,"qualification");exact(q["boiler_ready"],False,"qualification")
-    manifest={k:q[k] for k in ("sources","devices","installation")}
     if (type(context.qualification_digest) is not str or not _HEX.fullmatch(context.qualification_digest)
-        or q["record_digest"]!=digest(manifest) or q["record_digest"]!=context.qualification_digest):
+        or q["record_digest"]!=qualification_record_digest(q) or q["record_digest"]!=context.qualification_digest):
         fail("qualification")
     if type(q["sources"]) is not list or len(q["sources"])!=1:fail("qualification")
     source=obj(q["sources"][0],"channel_id profile_id evidence maximum_report_interval_ms maximum_transport_delay_ms restore_policy evidence_record_id producer_path_record_id")

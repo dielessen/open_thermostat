@@ -1316,6 +1316,37 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   Parent behoudt normale officiële release/buildgates; niets geïnstalleerd of
   gepubliceerd. Heleplan in_progress; hervatting15min na inhoudelijk pakket.
 
+### Mark11785 — F2/F3 native opgeslagen graphdraft naar DATA: Stage26 bronacceptatie
+
+- [x] Canonical112afd8 vooraf schoon; huidige§6/PLAN en Stage26RESULT werkelijk
+  gelezen, bestaand eenmalig hostreceipt behouden. Eenmaal begrensde geschiedenis6:
+  dezelfde specialist actief aan F9replaydiagnose; geen tweede implementatie-eigenaar.
+- [x] Exact12padenpatch1f732e457f46546493c19618e9135af59faefe85ca7f6cf9a7c62a6ebab4066f
+  en frozenarchive plus alle12voor-/nahashes gecontroleerd. Source-defaultNone,
+  exact native entrypin, volledige onveranderlijke bronkwalificatie en registrybindingen;
+  geen GUIcheckbox die feiten/kwalificatie of fysieke vrijgave creëert.
+- [x] Opgeslagen native room/heatingdraft via dezelfde UTCcompiler/validator/Storeworker
+  naar bestaande begrensde DATA; prepare verzendt niets, aparte exactgebonden
+  defaultfalse review/apply/readback blijft vereist. Rename bewaart identiteit;
+  ontbrekende/disabled/veranderde bron, onbekend beleid, extra topology, oversized
+  kalender en draft-/disconnectrace falen vóór stage. Geen truncatie/guessedfallback.
+- [x] Echte canonical hostgcc/g++peers opnieuw gebouwd; volledige HA2026.10.2/
+  Python3.14.8:694PASS+68subtests,1optionelebrokerSKIP,0deselecties. Beide bestaande
+  parentRecorderbarrières daadwerkelijk ongewijzigd uitgevoerd;24nieuwe draftcases.
+  Vijf bestaande dependencywarnings, geen nieuwe browser/image/packet/liveclaim.
+- [ ] Alleen bestaande1kamer/unmixedbinaryfloorDATA ondersteund. DATA-onlyruntime
+  heeft geen bronlisteners/timers/observaties/regelbesluiten/climateuitvoer; readyfalse.
+  Multiroom/menger/TRVprofielen en echte source/controlkwalificatie blijven open,
+  evenals contact/personfreshness, afgewezen F9modellen en officiële build/releasegates.
+- Bewijs11774dossier: GRAPH-DRAFT-PARENT-REVIEW.md, PRECHECK/HASHES/
+  BUILD-COMMANDS/FULL-HA-COMMAND.json, FULL-HA.xml/log, verse peerbuildlogs en
+  graph-draft-parent-recorder/. Rollback alleen Stage26 na latere dependents;
+  parentRecorder/docs bewaren. Geen productieconfig/historie/HA/broker/device/
+  profielselectie/login/installatie/publicatie/TX/EMS/actuator-/verwarmingsactie.
+- Volgende uitvoering: specialist vervolgt actieve F9diagnose en al aangeboden
+  F10bronfreshness/F4F6werk; parent neemt officiële native/browser/imagebuildgates
+  op bestaande tooling op. Hele11785 blijft in_progress, geen stop na dit pakket.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

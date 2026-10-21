@@ -138,6 +138,18 @@ class ShadowOptionsFlow(config_entries.OptionsFlowWithReload):
             return connection
         return None
 
+    async def async_step_graph_prepare(self,user_input=None):
+        connection=self._graph_connection()
+        if connection is None or connection.graph_profile.draft_source is None:
+            return self.async_abort(reason="graph_prepare_unavailable")
+        try:
+            # No raw JSON, manifest, evidence/qualification or profile arguments
+            # come from the form. Compile saved native DATA in SAME worker.
+            await connection.async_graph_command("prepare")
+            return await self.async_step_graph_review()
+        except Exception:
+            return self.async_abort(reason="graph_prepare_failed")
+
     async def async_step_graph_review(self,user_input=None):
         from .graph_shadow_validation import GraphValidationError
         connection=self._graph_connection()
@@ -185,6 +197,8 @@ class ShadowOptionsFlow(config_entries.OptionsFlowWithReload):
 
     async def async_step_init(self, user_input=None):
         errors = {}
+        if user_input is not None and user_input.get("graph_action")=="prepare":
+            return await self.async_step_graph_prepare()
         if user_input is not None and user_input.get("graph_action")=="review":
             return await self.async_step_graph_review()
         if user_input is not None and user_input.get("graph_action")=="status":
@@ -194,7 +208,14 @@ class ShadowOptionsFlow(config_entries.OptionsFlowWithReload):
             owner = user_input.get("adapter_id", self.config_entry.options.get(
                 "adapter_id", self.config_entry.data.get("adapter_id", "")))
             valid_owner = isinstance(owner, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,32}", owner) is not None
-            if has_graph_rooms(self.config_entry) and (mode != MODE_SHADOW or user_input.get(CONF_ENABLED, False)):
+            selected_graph=None
+            if has_graph_rooms(self.config_entry):
+                from . import _selected_graph_data_profile
+                try:
+                    selected_graph=_selected_graph_data_profile(self.config_entry)
+                except ConfigEntryError:
+                    pass # Invalid source selection cannot be granted by GUI.
+            if has_graph_rooms(self.config_entry) and (mode != MODE_SHADOW or (user_input.get(CONF_ENABLED, False) and selected_graph is None)):
                 errors["base"] = "graph_room_contract_unavailable"
             elif mode == MODE_SHADOW and not valid_owner:
                 errors["base"] = "invalid_adapter_id"
@@ -212,7 +233,9 @@ class ShadowOptionsFlow(config_entries.OptionsFlowWithReload):
                 return self.async_create_entry(data=data)
         return self.async_show_form(step_id="init", data_schema=vol.Schema({
             **({vol.Optional("graph_action",default="settings"):
-                selector.SelectSelector({"options":["settings","review","status"],"translation_key":"graph_action"})}
+                selector.SelectSelector({"options":(["settings","prepare","review","status"]
+                    if self._graph_connection().graph_profile.draft_source is not None else ["settings","review","status"]),
+                    "translation_key":"graph_action"})}
                 if self._graph_connection() is not None else {}),
             vol.Required(CONF_MODE, default=integration_mode(self.config_entry)):
                 selector.SelectSelector({"options": [MODE_LEGACY, MODE_SHADOW]}),

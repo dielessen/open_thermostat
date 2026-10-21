@@ -2254,6 +2254,9 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   niet categorisch iedere oude implementatie. Geen release/GUI/fysiekbewijs claimen
   uit deze brondocumentatie. Parent toetst specialistkeuze later onafhankelijk.
 - TaskFlow/bewijs: artifacts/open-thermostat-architecture-11950-20261021/.
+- Mark11956 aanvaardt bovenstaande gerichte-herbouwroute. Bestaande uitvoering
+  gaat door; specialisttoets blijft open als technische check, niet als nieuwe
+  gebruikersgoedkeuring of reden om Stage48 stil te leggen. Geen functie-/gateverlies.
 
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 

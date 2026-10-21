@@ -3,6 +3,8 @@
 **Aanleiding:** Mark11950, 21 oktober 2026. Mark staat zo nodig ook een andere
 framework-/basisopzet toe en vraagt expliciet om kritisch, eerlijk advies.
 **Status:** voorlopig onafhankelijk OpenClaw-advies; specialisttoets open.
+**Werkroute aanvaard:** Mark11956, 21 oktober 14:51. Gerichte herbouw binnen de
+lopende integratie uitvoeren waar nodig; geen nieuwe goedkeuringswachtfase.
 Geen afgeronde architectuurvalidatie, bewezen tijdwinst of releasebelofte.
 
 ## 1. Feitenbasis en grens

@@ -88,6 +88,11 @@ functievolledigheid, onderhoudbaarheid, complexiteit, migratie en bewijsrisico.
 Geen extra goedkeuringsronde voor al geautoriseerd bronwerk; geen automatische
 big-bang of nieuw lang ontwerptraject. [Voorlopig architectuuradvies](ARCHITECTURE-ADVICE.nl.md)
 is een expliciete afweging met open specialisttoets, geen bewezen eindkeuze.
+Mark11956 (21 oktober 14:51) aanvaardt dit advies als werkroute: gerichte herbouw
+van de eigen configuratie-/runtimekoppeling waar nodig. Voer uit binnen de lopende
+integratie; specialisttoets is technische verificatie, geen nieuwe toestemming-
+of ontwerpwachtfase. Bij tegenbewijs het advies eerlijk herzien; alle functies
+blijven en bredere herbouw blijft toegestaan indien aantoonbaar noodzakelijk.
 
 #### Verantwoordelijkheden
 

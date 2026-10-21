@@ -1,6 +1,6 @@
 #pragma once
 #include "ControlStore.h"
-#include "GraphShadowValidation.h"
+#include "GraphWireTuple.h"
 #include "SessionAdmission.h"
 #include <optional>
 
@@ -105,6 +105,17 @@ public:
             durable_=bytes;adopt(configBytes,std::string(mapping),configDigest,mappingDigest,result.candidate);
             admission_.invalidateTransport();status_="graph_committed_no_admission";return status_;
         } catch(const heating::graph_test::Failure&) {fault("graph_invalid");return status_;}
+          catch(const std::bad_alloc&) {fault("allocation");return status_;}
+          catch(const std::exception&) {fault("graph_dependency_fault");return status_;}
+    }
+    // Same atomic store/admission, but real transport carries mapping in ONE
+    // explicitly negotiated API2 frame. Decoder does not confer any privilege.
+    std::string applyTuple(std::string_view wire,uint64_t now) {
+        if(fault_) return status_;
+        try {
+            const auto parts=decodeGraphTuple(wire,hash_);
+            return apply(parts.message,parts.mapping,now);
+        } catch(const heating::graph_test::Failure& error) {return status_=error.code;}
           catch(const std::bad_alloc&) {fault("allocation");return status_;}
           catch(const std::exception&) {fault("graph_dependency_fault");return status_;}
     }

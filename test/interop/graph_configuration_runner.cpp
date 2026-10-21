@@ -40,6 +40,8 @@ int main(){
                     accepted=core->heartbeat(e,now).code==AdmissionCode::accepted;}
             }else if(op=="apply"&&core){
                 accepted=core->apply(text("raw"),text("mapping"),number("now"))=="graph_committed_no_admission";
+            }else if(op=="apply_tuple"&&core){
+                accepted=core->applyTuple(text("raw"),number("now"))=="graph_committed_no_admission";
             }else if(op=="ambiguous"&&core){store.ok=false;store.commit=true;accepted=true;}
             else if(op=="disconnect"&&core){core->disconnected();accepted=true;}
             else if(op!="status")return 4;

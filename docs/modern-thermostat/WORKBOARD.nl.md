@@ -1044,6 +1044,42 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   Reeds aangeboden8zonebudgetgate en overige F0–F10software blijven gelden;
   geen tweede eigenaar of herhaling van ongewijzigde groene suites. Hervatting15min.
 
+
+### Mark11785 — F2/F3 atomair graph-wiretuple: onafhankelijke bronacceptatie
+
+- [x] Canonical hostcheckout3dc8b06 schoon; WORKBOARD§6/PLAN-gates, RESULT Stage18
+  en eenmaal bounded sessions_history gelezen. Bestaande eenmalige hostreceipt
+  behouden; specialist actief aan owner/profile/partition, geen tweede eigenaar.
+- [x] Volledige621regelcorepatch SHA256
+  4b29787bd1096499825e1d7950c08d1584f247595d15f4cd260cdc0700ecd46a gereviewd;
+  alle10niet-WORKBOARDbron-/test-/dochashes matchen GRAPH-WIRE-RESULT.json af6689dc.
+- [x] Eén expliciet onderhandelde atomic_mapping_tuple.v1 met mapping+config,
+  dezelfde validator/Storelock/postawaitdurable+generation+freshness en firmware
+  SessionAdmission/atomair4096Bstore/readback. Decoder geeft geen autoriteit;
+  ACK is geen applybewijs. Geen automatische API2selectie of nieuwe outputflags.
+- [x] Onafhankelijk canonical strict hostg++17:47nativePASS; dezelfde47ASan/UBSan
+  inclusief echte GTest/cJSON/testtranslationunits PASS. Native HA2026.10.2/
+  Python3.14.8:57PASS(23wire+30Store+3firmwareStore+1runtimegrens), vijf bestaande
+  dependencydeprecaties, geen skips/netwerk/device. Tellingen overlappen eerder werk.
+- [x] Zelfde3819Bfixture:1378encoder+415decoderallocatiefoutposities, geen leak/
+  geaccepteerde fout/onbereikte site en exacte recovery. Native64requestedpeaks
+  29094/25251B; GEEN E32performanceverbeteringsclaim. Gepind echt Xtensa/Arduino
+  methodsobject PASS: owner4472B/candidate344B/parts48B/cJSON40B, geen fullimage.
+- [ ] F2/F3 OPEN: actieve API2owner/handshake/capability/profile/model/GUIapply,
+  echte partitie-/migratie-/8zoneheap/stack/NVS/GC/resourceacceptatie en fysieke
+  ketenproef. Alleen bronacceptatie; niet geïnstalleerd, geen TX/actuator/verwarmingsGO.
+- Bewijs11774dossier: GRAPH-WIRE-PARENT-REVIEW.md, PRECHECK/HASHES/COMMANDS.json,
+  BUILD/NATIVE.log/json, INTEROP-COMMANDS.json/HA.xml/log, ALLOCATIONS.json/PROBE.log,
+  SANITIZER*.json/log en E32-RESOURCE.json/BUILD/SYMBOLS/STACK.log.
+- Rollback alleen nieuwe graphwirebroncommit vóór afhankelijke wijzigingen/uitrol;
+  geen runtime-/HAproductie-/broker-/apparaatdata gewijzigd.
+- Volgende uitvoering: bestaande specialist voltooit actieve graphowner/profile/
+  partition/resources; reeds aangeboden seizoens-/DHW-/enabledmodelreplay behouden.
+  Daarna concrete F0/F10 lokale releasecandidatevoorbereiding met bestaande volledige
+  generic/E32builds, gepinde HAcompatibiliteits-/schema-/model-/asset-/rollbackmatrix
+  en negatieve migratie/securitychecks. Geen publiceren/installeren of open fysieke
+  gates als PASS presenteren. Hele11785 blijft actief; volgende hervatting15min.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

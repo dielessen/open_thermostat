@@ -122,6 +122,66 @@ TEST(GraphConfiguration, HashUnavailableOrProviderExceptionFailClosedAndPreserve
     GraphShadowConfiguration throws("e32_test","test_boot","test_owner",f.anchor,store,[](auto)->std::string{throw std::runtime_error("test provider unavailable");});
     EXPECT_FALSE(throws.initialize());EXPECT_TRUE(throws.faulted());EXPECT_EQ(store.writes,0);
 }
+gt::Context tupleContext(const Fixture& f) {
+    return {"e32_test","test_boot","test_owner","test_session","test_grant",1,1,0,0,"",f.anchor};
+}
+TEST(GraphTuple, CanonicalAtomicRoundtripThenSameCoreAdmissionAndSingleDurableCommit) {
+    Fixture f;const auto wire=encodeGraphTuple(f.raw(),f.map(),tupleContext(f),controlTestHash);
+    const auto parts=decodeGraphTuple(wire,controlTestHash);
+    EXPECT_EQ(parts.message,f.raw());EXPECT_EQ(parts.mapping,f.map());
+    EXPECT_EQ(wire.size(),f.raw().size()+f.map().size()+11u);
+    Store store;GraphShadowConfiguration owner("e32_test","test_boot","test_owner",f.anchor,store,controlTestHash);
+    ASSERT_TRUE(owner.initialize());
+    EXPECT_EQ(owner.applyTuple(wire,100),"identity");EXPECT_EQ(store.writes,0);
+    admit(owner);ASSERT_EQ(owner.applyTuple(wire,101),"graph_committed_no_admission");
+    EXPECT_EQ(owner.mappingBytes(),f.map());EXPECT_EQ(store.writes,1);
+    owner.applyTuple(wire,102);EXPECT_EQ(store.writes,1);
+    EXPECT_FALSE(owner.boilerOutputEnabled());EXPECT_FALSE(owner.actuatorOutputEnabled());
+}
+TEST(GraphTuple, TamperedMappingUnknownRootAndUnknownPrivateMappingRejectedBeforeWrite) {
+    Fixture f;const auto good=encodeGraphTuple(f.raw(),f.map(),tupleContext(f),controlTestHash);
+    Store store;GraphShadowConfiguration owner("e32_test","test_boot","test_owner",f.anchor,store,controlTestHash);
+    ASSERT_TRUE(owner.initialize());admit(owner);
+    auto changed=good;auto at=changed.find("\"resource_id\":\"");ASSERT_NE(at,std::string::npos);
+    at+=std::strlen("\"resource_id\":\"");changed[at]=changed[at]=='0'?'1':'0';
+    EXPECT_EQ(owner.applyTuple(changed,101),"mapping_conflict");EXPECT_EQ(store.writes,0);
+    // Sorted unknown root field; strict exact schema rejects it.
+    changed=good;changed.insert(1,"\"aaa\":0,");
+    EXPECT_EQ(owner.applyTuple(changed,102),"schema");EXPECT_EQ(store.writes,0);
+    // A local draft must pass SAME privacy/semantic validator before encoding.
+    cJSON_AddStringToObject(f.mapping.get(),"service","switch.turn_on");f.rehash();
+    EXPECT_THROW(encodeGraphTuple(f.raw(),f.map(),tupleContext(f),controlTestHash),gt::Failure);
+    EXPECT_EQ(owner.applyTuple(good,103),"graph_committed_no_admission");EXPECT_EQ(store.writes,1);
+}
+TEST(GraphTuple, CanonicalTotalBudgetAndInvalidHashFailClosed) {
+    Fixture f;const auto good=encodeGraphTuple(f.raw(),f.map(),tupleContext(f),controlTestHash);
+    EXPECT_THROW(decodeGraphTuple(" "+good,controlTestHash),gt::Failure);
+    EXPECT_THROW(decodeGraphTuple(std::string(8193,'x'),controlTestHash),gt::Failure);
+    EXPECT_THROW(decodeGraphTuple(good,{}),gt::Failure);
+    auto wrong=tupleContext(f);wrong.qualificationDigest=std::string(64,'0');
+    EXPECT_THROW(encodeGraphTuple(f.raw(),f.map(),wrong,controlTestHash),gt::Failure);
+    const auto key=good.find("\"mapping\":");ASSERT_NE(key,std::string::npos);
+    auto duplicate=good;duplicate.insert(key,"\"mapping\":{},");
+    EXPECT_THROW(decodeGraphTuple(duplicate,controlTestHash),gt::Failure);
+}
+TEST(GraphTuple, ExpiredLeaseDisconnectAndAmbiguousCommitNotResurrectedByCodec) {
+    for(int phase=0;phase<3;++phase) {
+        Fixture f;Store store;GraphShadowConfiguration owner("e32_test","test_boot","test_owner",f.anchor,store,controlTestHash);
+        ASSERT_TRUE(owner.initialize());admit(owner);
+        const auto wire=encodeGraphTuple(f.raw(),f.map(),tupleContext(f),controlTestHash);
+        if(phase==0) {
+            EXPECT_EQ(owner.applyTuple(wire,1100),"graph_session_rejected");EXPECT_EQ(store.writes,0);
+        }else if(phase==1) {
+            owner.disconnected();EXPECT_EQ(owner.applyTuple(wire,101),"graph_session_rejected");EXPECT_EQ(store.writes,0);
+        }else {
+            store.writeOk=false;store.commitOnFailure=true;
+            EXPECT_EQ(owner.applyTuple(wire,101),"storage_fault");EXPECT_EQ(store.writes,1);EXPECT_TRUE(owner.faulted());
+            owner.applyTuple(wire,102);EXPECT_EQ(store.writes,1);
+            GraphShadowConfiguration restored("e32_test","new_boot","test_owner",f.anchor,store,controlTestHash);
+            ASSERT_TRUE(restored.initialize());EXPECT_FALSE(restored.alive(103));EXPECT_EQ(restored.revision(),1u);
+        }
+    }
+}
 TEST(GraphAdmission, ExplicitMajorTwoInstanceNotDefaultOrUnknownMajor) {
     for(uint16_t version:{uint16_t(1),uint16_t(2),uint16_t(3)}) {
         SessionAdmission a("test_owner",Direction::ha_to_fw,version);

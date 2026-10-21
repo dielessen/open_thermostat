@@ -189,7 +189,24 @@ class GraphShadowJournal:
             return candidate
 
     async def async_apply(self, send, context, capability, received_at, sequence, *, retained):
-        """Explicit caller-triggered single send; an ACK alone is never applied."""
+        """Legacy source-stage inner form. No atomic-wire capability implied."""
+        return await self._apply(send, context, capability, received_at, sequence,
+                                 retained=retained, transport=None)
+
+    async def async_apply_tuple(self, send, context, capability, received_at,
+                                sequence, *, retained, transport):
+        """Explicitly negotiated atomic form; same Store lock and immutable tuple.
+
+        Caller owns fresh peer/session negotiation. This method neither starts a
+        connection nor infers negotiation from config/schema/api major alone.
+        """
+        from .graph_wire_codec import TRANSPORT
+        require(transport == TRANSPORT, "unsupported_transport")
+        return await self._apply(send, context, capability, received_at, sequence,
+                                 retained=retained, transport=transport)
+
+    async def _apply(self, send, context, capability, received_at, sequence, *,
+                     retained, transport):
         async with self._transaction():
             generation = self._generation
             capability = self._capability(context, capability, received_at, retained)
@@ -203,6 +220,9 @@ class GraphShadowJournal:
             require(generation == self._generation, "session_changed")
             self._capability(context, capability, received_at, retained)
             raw = canonical(self._envelope(record, context, sequence))
+            if transport is not None:
+                from .graph_wire_codec import encode_graph_tuple
+                raw = encode_graph_tuple(raw, canonical(record["mapping"]), context)
             try:
                 await send("ha/config", raw)
             except Exception:

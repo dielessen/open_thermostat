@@ -2058,6 +2058,50 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   component BLOCKEDhouden; positieve/negatieve hashmapping vereist, geen blanketGO.
   Daarna onafhankelijke parentreview; officiële next_check15min bevestigd.
 
+### Mark11785/11858 — F0/F10 daadwerkelijk gebouwde provenance: Stage45 bronacceptatie
+
+- [x] Canonicalhost schoon opd4a4fdc; bestaand eenmalighostreceipt behouden.
+  Actuele§6/PLAN, memory_search/verified-taskflow en Stage45RESULT/manifest gelezen.
+  Eenmaal boundedhistory6: bestaande eigenaar actief aan graph→SOURCE/controller;
+  geen tweede eigenaar. Gelijktijdige READMEc1828fa exact behouden bij rebase.
+- [x] Exacte23nieuwepadenpatch72863c384650bd93c67696954cd8c5d249a451ba81e80e315ffbf48963d78f23
+  onafhankelijk gereviewd;473frozenbronhashes/41bewijshashes/23nieuwebronhashes exact.
+  Alle450bestaande canonicalpaden bytebehouden, incl parentdoc/testverschillen.
+  Broncommitc570c61 fast-forwardcanonical, schone technische postcheckPASS.
+- [x]20gerichte stdlibPython3.12checksPASS (10nieuw+10bestaand, niet optellen
+  bij eerdere suites). Echte bewaarde E32/S3bin/ELF/map/logreceipts opnieuw geaudit:
+  volledige rapportage exactgelijk,74/72daadwerkelijk ELF-ALLOCgebonden archives.
+ 15originele runtimeteksten en4headernotices byte-exact; oorspronkelijke62
+  whitespaceafwijkingen uitsluitend in upstreamlicentieteksten bewust behouden.
+  Code/catalog/docdiffcheckPASS. Geen nieuwe firmwarebuild of flashclaim.
+- [x] Extra echte CLI-proef zonder evidenceflag weigert met exit1 en
+  shipped_notice_closure_BLOCKED; alleen BLOCKEDrapport, geen vrijgaveoverride.
+  Alle22E32UIassets/source/webmarker en app→ELFdigest gebonden aan bestaande
+  buildbron8b364f21; historischealpha.6label is GEEN nieuwe gepubliceerdealpha.6.
+- [x] Canonical heeft dezelfde3probatioimports als kandidaat; nativeHA/Python3.14.8
+  import slaagt doordat testomgeving probatio0.13.0 bevat, aparte module/Schema
+  naast voluptuous. Geen gedeclareerde requirement of bewezen schoneHAresolutie;
+  dus concreet dependencykwalificatiepunt, GEEN aangetoonde liveHAstoring.
+  Nieuwe informatie steerff9df1d8 geaccepteerd; geen correctie/completionclaim.
+- [ ] Releaseclosure blijft BLOCKED: exactdirtySDK/componentbron/build/relink,
+  GCC/newlibmapping, gedateerdeCAnotice, S3FSdistributiereceipt en HAruntime-
+  dependencykwalificatie. F9modellen blijven afgewezen; actieveproductketen,
+  GUI/8zones/resources en alle fysieke/meerdaagse/TX/EMS/verwarmingsgates OPEN.
+  Geen installatie/publicatie/liveHA/broker/device/login/config-/datawijziging.
+- Bewijs11774dossier: shipped-notices-parent-evidence/{TASKFLOW,REVIEW}.md,
+  PRECHECK/PREMERGE/INDEPENDENT-CHECKS/SOURCE-POSTCHECK.json, TESTS/AUDITlogs,
+  ACTUAL-SHIPPED.json, NO-OVERRIDE.log/report en HA-IMPORT-PROBE/NATIVE-HA-IMPORT/
+  NATIVE-HA-PROVIDER. OntbrekendeGitidentity per-command met bestaande identiteit
+  hersteld, geen Gitconfigwijziging. Rollback uitsluitendc570c61 vóór afhankelijken;
+  geen bestaande runtime/config/model/Recorder/cache/bord/PLAN terugdraaien.
+- Concrete volgendeF3/F10bronactie bij dezelfde specialist: kwalificeer/corrigeer
+  nativeHAflowprovider zonder ongedocumenteerde alias/shim; bewijs echte flows
+  met gekozen HA-supportedprovider, graphapply/reconnect/unload/reload en behoud
+  registry/Store/sourceownerbarrières. Historische Stage45receipts/hashes behouden;
+  nieuwe bron krijgt eigen scope. Followupd12fc188-75c5-442d-9b79-d0fbc497baa6
+  QUEUED, geencompletion. Prioritair graph→SOURCEowner→controller/tweekamer en
+  GUI11846 blijven actief; hele11785in_progress, officiële next_check15m bevestigd.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

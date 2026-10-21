@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "control/CoastModelStore.h"
+#include "ModelResourceTest.h"
 #include "ControlTestHash.h"
 using namespace heating::control;
 namespace {
@@ -33,6 +34,8 @@ struct Rig {
 struct Store:ControlStore {
     std::string bytes;bool readOk=true,writeOk=true,commitOnError=false,corrupt=false;unsigned writes=0;
     bool load(std::string& out)override {out=bytes;return readOk;}
+    bool loadBounded(std::string& out,size_t max)override{if(bytes.size()>max)return false;return load(out);}
+    bool saveBounded(std::string_view value,size_t max)override{return value.size()<=max&&save(value);}
     bool save(std::string_view value)override {++writes;if(writeOk||commitOnError)bytes=value;if(corrupt&&!bytes.empty())bytes[0]='X';return writeOk;}
 };
 TEST(ThermalCoast, DisabledUnreviewedAndUnboundCannotLearnOrPropose) {
@@ -141,36 +144,36 @@ TEST(ThermalCoast, NegativeWeatherAndBoundedHistoryAreNotFabricatedHeatingComman
 }
 TEST(CoastStore, RealShaKnownAnswerRoundtripDisabledRestoreAndNoPerReportWrites) {
     EXPECT_EQ(controlTestHash("abc"),"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
-    Rig r;r.train();Store s;CoastModelStore storage(s,controlTestHash);ASSERT_TRUE(storage.load(r.model));
+    Rig r;r.train();Store s;ModelResourceGate storageResources{testModelResourcePlan()};CoastModelStore storage(s,testBoundedModelHash,storageResources,0);ASSERT_TRUE(storage.load(r.model));
     ASSERT_TRUE(storage.checkpoint(r.model,100));EXPECT_EQ(s.writes,1u);EXPECT_EQ(s.bytes.size(),274u);
     ASSERT_TRUE(storage.checkpoint(r.model,101));EXPECT_EQ(s.writes,1u);
-    ThermalCoastModel recovered(profile(),binding());CoastModelStore restored(s,controlTestHash);ASSERT_TRUE(restored.load(recovered));
+    ThermalCoastModel recovered(profile(),binding());ModelResourceGate restoredResources{testModelResourcePlan()};CoastModelStore restored(s,testBoundedModelHash,restoredResources,0);ASSERT_TRUE(restored.load(recovered));
     EXPECT_EQ(recovered.mode(),LearningMode::disabled);EXPECT_EQ(recovered.snapshot().count,6);EXPECT_EQ(recovered.snapshot().runs[0].minimumRelativeCentiC,-10);
     EXPECT_FALSE(recovered.propose(r.in.monotonicMs,r.in.utc,r.schedule(),true).coastNow);
 }
 TEST(CoastStore, MaximumBytesResetRateLimitExternalDriftAndNoAutomaticNvsAllocation) {
     Rig r;for(int i=0;i<16;++i){r.in.admissionEpoch=i+1;r.in.utc=epoch+i*86400;r.in.monotonicMs=i*86400000ULL;r.heat();ASSERT_TRUE(r.cool());}
-    Store s;CoastModelStore store(s,controlTestHash);ASSERT_TRUE(store.load(r.model));ASSERT_TRUE(store.checkpoint(r.model,100));
+    Store s;ModelResourceGate storeResources{testModelResourcePlan()};CoastModelStore store(s,testBoundedModelHash,storeResources,0);ASSERT_TRUE(store.load(r.model));ASSERT_TRUE(store.checkpoint(r.model,100));
     EXPECT_EQ(s.bytes.size(),CoastModelStore::maximumBytes);r.model.reset();EXPECT_FALSE(store.checkpoint(r.model,101));
-    ASSERT_TRUE(store.checkpoint(r.model,1800100));EXPECT_EQ(s.writes,2u);r.in.admissionEpoch++;r.heat();ASSERT_TRUE(r.cool());
+    ASSERT_TRUE(store.checkpoint(r.model,1800100));EXPECT_EQ(s.writes,2u);r.model.setMode(LearningMode::shadow);r.in.admissionEpoch++;r.heat();ASSERT_TRUE(r.cool());
     s.bytes="external change";EXPECT_FALSE(store.checkpoint(r.model,3600100));EXPECT_FALSE(store.healthy());EXPECT_EQ(s.writes,2u);
 }
 TEST(CoastStore, AmbiguousCommitCorruptReadbackAndBackwardsClockLatchDisabledWithoutRetry) {
-    for(int reason=0;reason<3;++reason){Rig r;r.train();Store s;CoastModelStore storage(s,controlTestHash);ASSERT_TRUE(storage.load(r.model));
+    for(int reason=0;reason<3;++reason){Rig r;r.train();Store s;ModelResourceGate storageResources{testModelResourcePlan()};CoastModelStore storage(s,testBoundedModelHash,storageResources,0);ASSERT_TRUE(storage.load(r.model));
         if(reason==2){ASSERT_TRUE(storage.checkpoint(r.model,100));r.model.reset();EXPECT_FALSE(storage.checkpoint(r.model,1));}
         else{if(reason==0){s.writeOk=false;s.commitOnError=true;}else s.corrupt=true;EXPECT_FALSE(storage.checkpoint(r.model,100));}
         EXPECT_FALSE(storage.healthy());EXPECT_EQ(r.model.mode(),LearningMode::disabled);auto writes=s.writes;
         EXPECT_FALSE(storage.checkpoint(r.model,9999999));EXPECT_EQ(s.writes,writes);}
 }
 TEST(CoastStore, TruncatedSchemaDigestBindingAndProviderFailureAreRejectedWithoutWrites) {
-    Rig r;r.train();Store origin;CoastModelStore original(origin,controlTestHash);ASSERT_TRUE(original.load(r.model));ASSERT_TRUE(original.checkpoint(r.model,1));
+    Rig r;r.train();Store origin;ModelResourceGate originalResources{testModelResourcePlan()};CoastModelStore original(origin,testBoundedModelHash,originalResources,0);ASSERT_TRUE(original.load(r.model));ASSERT_TRUE(original.checkpoint(r.model,1));
     for(int reason=0;reason<6;++reason){Store s;s.bytes=origin.bytes;
         if(reason==0){s.bytes.resize(50);}
         if(reason==1){s.bytes[7]='2';}
         if(reason==2){s.bytes[70]^=1;}
         if(reason==3){s.bytes="{\"zones\":[]}";}
         if(reason==4){s.bytes[10]^=1;s.bytes=s.bytes.substr(0,s.bytes.size()-64)+controlTestHash(s.bytes.substr(0,s.bytes.size()-64));}
-        ThermalCoastModel m(profile(),binding());CoastModelStore st(s,reason==5?CoastModelStore::Hash([](auto){return std::string();}):controlTestHash);
+        ThermalCoastModel m(profile(),binding());ModelResourceGate stResources{testModelResourcePlan()};CoastModelStore st(s,reason==5?CoastModelStore::Hash([](std::string_view,ModelDigest&){return false;}):testBoundedModelHash,stResources,0);
         EXPECT_FALSE(st.load(m));EXPECT_EQ(m.mode(),LearningMode::disabled);EXPECT_EQ(s.writes,0u);}
 }
 TEST(ThermalCoast, ExtremeMonotonicGapAndReturnFromClockDiscontinuityFailClosed) {

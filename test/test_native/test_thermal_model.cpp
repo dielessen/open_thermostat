@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "control/ThermalModelStore.h"
+#include "ModelResourceTest.h"
 #include "ControlTestHash.h"
 using namespace heating::control;
 namespace {
@@ -37,6 +38,8 @@ std::string sha(std::string_view bytes) {return controlTestHash(bytes);}
 struct Store:ControlStore {
     std::string data;bool readOk=true,writeOk=true,commitOnFailure=false,corrupt=false;int writes=0;
     bool load(std::string& out)override {out=data;return readOk;}
+    bool loadBounded(std::string& out,size_t max)override{if(data.size()>max)return false;return load(out);}
+    bool saveBounded(std::string_view value,size_t max)override{return value.size()<=max&&save(value);}
     bool save(std::string_view bytes)override {++writes;if(writeOk||commitOnFailure)data=bytes;if(corrupt&&!data.empty())data[0]='X';return writeOk;}
 };
 TEST(ThermalModel, DefaultsAndUnreviewedProfileCannotTrain) {
@@ -136,44 +139,44 @@ TEST(ThermalModel, NegativeOutdoorAndBoundedHistoryRoundTripAreRealValues) {
     for(int i=0;i<20;++i) {r.in.admissionEpoch=i+1;r.in.utc=epoch+i*86400;r.in.monotonicMs=i*86400000ULL;
         r.in.outdoorCentiC=-500;ASSERT_TRUE(r.run());}
     EXPECT_EQ(r.m.snapshot().count,16);EXPECT_EQ(r.m.snapshot().runs[0].outdoorCentiC,-500);
-    Store s;ThermalModelStore storage(s,sha);ASSERT_TRUE(storage.load(r.m));ASSERT_TRUE(storage.checkpoint(r.m,1));
+    Store s;ModelResourceGate storageResources{testModelResourcePlan()};ThermalModelStore storage(s,testBoundedModelHash,storageResources,0);ASSERT_TRUE(storage.load(r.m));ASSERT_TRUE(storage.checkpoint(r.m,1));
     EXPECT_EQ(s.data.size(),ThermalModelStore::maximumBytes);
-    ThermalResponseModel recovered(profile(),binding());ThermalModelStore restore(s,sha);
+    ThermalResponseModel recovered(profile(),binding());ModelResourceGate restoreResources{testModelResourcePlan()};ThermalModelStore restore(s,testBoundedModelHash,restoreResources,0);
     ASSERT_TRUE(restore.load(recovered));EXPECT_EQ(recovered.snapshot().runs[0].outdoorCentiC,-500);
 }
 TEST(ThermalStore, ProviderIsRealSha256KnownAnswer) {
     EXPECT_EQ(sha("abc"),"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
 }
 TEST(ThermalStore, RealShaRoundTripNoPerSampleWritesAndBootAdmissionNotRestored) {
-    Rig r;r.train();Store s;ThermalModelStore storage(s,sha);ASSERT_TRUE(storage.load(r.m));ASSERT_TRUE(storage.checkpoint(r.m,100));
+    Rig r;r.train();Store s;ModelResourceGate storageResources{testModelResourcePlan()};ThermalModelStore storage(s,testBoundedModelHash,storageResources,0);ASSERT_TRUE(storage.load(r.m));ASSERT_TRUE(storage.checkpoint(r.m,100));
     EXPECT_EQ(s.writes,1);EXPECT_EQ(s.data.size(),226u); // 42 header + 6*20 records + 64 realSHA hex.
     ASSERT_TRUE(storage.checkpoint(r.m,101));EXPECT_EQ(s.writes,1);
-    ThermalResponseModel fresh(profile(),binding());ThermalModelStore reload(s,sha);ASSERT_TRUE(reload.load(fresh));
+    ThermalResponseModel fresh(profile(),binding());ModelResourceGate reloadResources{testModelResourcePlan()};ThermalModelStore reload(s,testBoundedModelHash,reloadResources,0);ASSERT_TRUE(reload.load(fresh));
     EXPECT_EQ(fresh.snapshot().count,6);EXPECT_EQ(fresh.mode(),LearningMode::disabled);
     EXPECT_EQ(fresh.snapshot().runs[0].outdoorCentiC,500);
 }
 TEST(ThermalStore, RateLimitedResetPersistsLaterAndExternalDriftNeverOverwritten) {
-    Rig r;r.train();Store s;ThermalModelStore storage(s,sha);ASSERT_TRUE(storage.load(r.m));ASSERT_TRUE(storage.checkpoint(r.m,100));
+    Rig r;r.train();Store s;ModelResourceGate storageResources{testModelResourcePlan()};ThermalModelStore storage(s,testBoundedModelHash,storageResources,0);ASSERT_TRUE(storage.load(r.m));ASSERT_TRUE(storage.checkpoint(r.m,100));
     r.m.reset();EXPECT_FALSE(storage.checkpoint(r.m,101));EXPECT_EQ(s.writes,1);
     ASSERT_TRUE(storage.checkpoint(r.m,1800100));EXPECT_EQ(s.writes,2);
-    r.in.admissionEpoch++;r.in.utc=epoch+18*86400;r.in.monotonicMs=18ULL*86400000;ASSERT_TRUE(r.run());
+    r.m.setMode(LearningMode::shadow);r.in.admissionEpoch++;r.in.utc=epoch+18*86400;r.in.monotonicMs=18ULL*86400000;ASSERT_TRUE(r.run());
     s.data="external new content";EXPECT_FALSE(storage.checkpoint(r.m,3600100));EXPECT_EQ(s.writes,2);EXPECT_FALSE(storage.healthy());
 }
 TEST(ThermalStore, AmbiguousCommitAndCorruptReadbackLatchDisabledNoRetry) {
-    for(bool ambiguous:{false,true}) {Rig r;r.train();Store s;ThermalModelStore storage(s,sha);ASSERT_TRUE(storage.load(r.m));
+    for(bool ambiguous:{false,true}) {Rig r;r.train();Store s;ModelResourceGate storageResources{testModelResourcePlan()};ThermalModelStore storage(s,testBoundedModelHash,storageResources,0);ASSERT_TRUE(storage.load(r.m));
         if(ambiguous){s.writeOk=false;s.commitOnFailure=true;}else s.corrupt=true;
         EXPECT_FALSE(storage.checkpoint(r.m,1));EXPECT_EQ(r.m.mode(),LearningMode::disabled);EXPECT_FALSE(storage.healthy());
         EXPECT_FALSE(storage.checkpoint(r.m,9999999));EXPECT_EQ(s.writes,1);}
 }
 TEST(ThermalStore, TruncatedUnknownSchemaDigestBindingAndProviderFailureReject) {
-    Rig r;r.train();Store source;ThermalModelStore original(source,sha);ASSERT_TRUE(original.load(r.m));ASSERT_TRUE(original.checkpoint(r.m,1));
+    Rig r;r.train();Store source;ModelResourceGate originalResources{testModelResourcePlan()};ThermalModelStore original(source,testBoundedModelHash,originalResources,0);ASSERT_TRUE(original.load(r.m));ASSERT_TRUE(original.checkpoint(r.m,1));
     for(int variant=0;variant<6;++variant) {Store s;s.data=source.data;
         if(variant==0)s.data.resize(50);
         if(variant==1)s.data[7]='2';
         if(variant==2)s.data[70]^=1;
         if(variant==3)s.data="{\"zones\":[]}";
         if(variant==4){s.data[10]^=1;s.data=s.data.substr(0,s.data.size()-64)+sha(s.data.substr(0,s.data.size()-64));}
-        ThermalResponseModel model(profile(),binding());ThermalModelStore storage(s,variant==5?ThermalModelStore::Hash([](auto){return std::string();}):sha);
+        ThermalResponseModel model(profile(),binding());ModelResourceGate storageResources{testModelResourcePlan()};ThermalModelStore storage(s,variant==5?ThermalModelStore::Hash([](std::string_view,ModelDigest&){return false;}):testBoundedModelHash,storageResources,0);
         EXPECT_FALSE(storage.load(model));EXPECT_EQ(model.mode(),LearningMode::disabled);EXPECT_EQ(s.writes,0);}
 }
 }

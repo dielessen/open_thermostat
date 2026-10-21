@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "control/CurveModelStore.h"
+#include "ModelResourceTest.h"
 #include "ControlTestHash.h"
 using namespace heating::control;
 namespace {
@@ -52,6 +53,8 @@ struct Rig {
 struct Store:ControlStore{
     std::string bytes;bool readOk=true,writeOk=true,commitOnError=false,corrupt=false;unsigned writes=0;
     bool load(std::string& out)override{out=bytes;return readOk;}
+    bool loadBounded(std::string& out,size_t max)override{if(bytes.size()>max)return false;return load(out);}
+    bool saveBounded(std::string_view value,size_t max)override{return value.size()<=max&&save(value);}
     bool save(std::string_view value)override{++writes;if(writeOk||commitOnError)bytes=value;if(corrupt&&!bytes.empty())bytes[0]='X';return writeOk;}
 };
 TEST(CurveAdaptation, DefaultDisabledUnreviewedQuorumAndDuplicateZoneProfileFailClosed){
@@ -151,14 +154,14 @@ TEST(CurveAdaptation, RestoreBindsExactOldCurveVersionAndHistoryTimeOrdering){
 }
 TEST(CurveStore, VersionBindingBaseCurveShaReadbackAndRateLimitedReset){
     EXPECT_EQ(controlTestHash("abc"),"ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
-    Rig r;r.train();Store s;CurveModelStore store(s,controlTestHash);ASSERT_TRUE(store.load(r.model));ASSERT_TRUE(store.checkpoint(r.model,1));
+    Rig r;r.train();Store s;ModelResourceGate storeResources{testModelResourcePlan()};CurveModelStore store(s,testBoundedModelHash,storeResources,0);ASSERT_TRUE(store.load(r.model));ASSERT_TRUE(store.checkpoint(r.model,1));
     EXPECT_EQ(s.bytes.size(),232u);EXPECT_EQ(s.writes,1u);EXPECT_TRUE(store.checkpoint(r.model,2));EXPECT_EQ(s.writes,1u);
-    CurveAdaptation other(profile(),group(),binding());CurveModelStore recovered(s,controlTestHash);ASSERT_TRUE(recovered.load(other));
+    CurveAdaptation other(profile(),group(),binding());ModelResourceGate recoveredResources{testModelResourcePlan()};CurveModelStore recovered(s,testBoundedModelHash,recoveredResources,0);ASSERT_TRUE(recovered.load(other));
     EXPECT_EQ(other.mode(),LearningMode::disabled);EXPECT_EQ(other.snapshot().count,6);EXPECT_EQ(other.snapshot().baseCurve,group().curveCentiC);
     r.model.reset();EXPECT_FALSE(store.checkpoint(r.model,2));EXPECT_TRUE(store.checkpoint(r.model,1800001));EXPECT_EQ(s.writes,2u);
 }
 TEST(CurveStore, AmbiguousCommitCorruptExternalChangeAndNoAutomaticRetry){
-    for(int reason=0;reason<3;++reason){Rig r;r.train();Store s;CurveModelStore store(s,controlTestHash);ASSERT_TRUE(store.load(r.model));
+    for(int reason=0;reason<3;++reason){Rig r;r.train();Store s;ModelResourceGate storeResources{testModelResourcePlan()};CurveModelStore store(s,testBoundedModelHash,storeResources,0);ASSERT_TRUE(store.load(r.model));
         if(reason==0){s.writeOk=false;s.commitOnError=true;}if(reason==1)s.corrupt=true;if(reason==2)s.bytes="external";
         EXPECT_FALSE(store.checkpoint(r.model,1));EXPECT_FALSE(store.healthy());EXPECT_EQ(r.model.mode(),LearningMode::disabled);
         const auto writes=s.writes;EXPECT_FALSE(store.checkpoint(r.model,3600000));EXPECT_EQ(s.writes,writes);}
@@ -185,19 +188,19 @@ TEST(CurveAdaptation, FloorIndependentCutoutAndRequiredSensorAreTheExistingSafet
 TEST(CurveStore, MaximumBoundedWindowsAndSignedErrorRoundtrip) {
     Rig r;for(auto& z:r.in.zones)z.temperatureCentiC=2130;
     for(int i=0;i<20;++i){r.in.admissionEpoch=i+1;r.in.utc=epoch+i*86400;r.in.monotonicMs=i*86400000ULL;ASSERT_TRUE(r.window());}
-    EXPECT_EQ(r.model.snapshot().count,16);Store s;CurveModelStore store(s,controlTestHash);
+    EXPECT_EQ(r.model.snapshot().count,16);Store s;ModelResourceGate storeResources{testModelResourcePlan()};CurveModelStore store(s,testBoundedModelHash,storeResources,0);
     ASSERT_TRUE(store.load(r.model));ASSERT_TRUE(store.checkpoint(r.model,1));EXPECT_EQ(s.bytes.size(),CurveModelStore::maximumBytes);
-    CurveAdaptation restored(profile(),group(),binding());CurveModelStore load(s,controlTestHash);ASSERT_TRUE(load.load(restored));
+    CurveAdaptation restored(profile(),group(),binding());ModelResourceGate loadResources{testModelResourcePlan()};CurveModelStore load(s,testBoundedModelHash,loadResources,0);ASSERT_TRUE(load.load(restored));
     EXPECT_EQ(restored.snapshot().windows[0].minimumZoneErrorCentiC,-30);EXPECT_EQ(restored.snapshot().baseCurve,group().curveCentiC);
 }
 TEST(CurveStore, TruncationVersionUnknownCountDigestBindingAndBaseCurveRejectWithoutWrites) {
-    Rig r;r.train();Store origin;CurveModelStore source(origin,controlTestHash);ASSERT_TRUE(source.load(r.model));ASSERT_TRUE(source.checkpoint(r.model,1));
+    Rig r;r.train();Store origin;ModelResourceGate sourceResources{testModelResourcePlan()};CurveModelStore source(origin,testBoundedModelHash,sourceResources,0);ASSERT_TRUE(source.load(r.model));ASSERT_TRUE(source.checkpoint(r.model,1));
     for(int reason=0;reason<7;++reason){Store s;s.bytes=origin.bytes;
         if(reason==0){s.bytes.resize(30);}
         if(reason==1){s.bytes[7]='2';}
         if(reason==2){s.bytes[70]^=1;}
         if(reason>=3&&reason<=5){s.bytes[reason==3?9:reason==4?10:42]^=1;s.bytes=s.bytes.substr(0,s.bytes.size()-64)+controlTestHash(s.bytes.substr(0,s.bytes.size()-64));}
-        CurveAdaptation m(profile(),group(),binding());CurveModelStore st(s,reason==6?CurveModelStore::Hash([](auto){return std::string();}):controlTestHash);
+        CurveAdaptation m(profile(),group(),binding());ModelResourceGate stResources{testModelResourcePlan()};CurveModelStore st(s,reason==6?CurveModelStore::Hash([](std::string_view,ModelDigest&){return false;}):testBoundedModelHash,stResources,0);
         EXPECT_FALSE(st.load(m));EXPECT_EQ(m.mode(),LearningMode::disabled);EXPECT_EQ(s.writes,0u);}
 }
 

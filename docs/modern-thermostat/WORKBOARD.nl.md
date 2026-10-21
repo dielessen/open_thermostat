@@ -1444,6 +1444,46 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
 - Automations next_check15min bevestigd; uitvoerbare software/repair/imagegates
   staan open, eigenjob72ec7e68 behouden. Geen runtime/installatie/fysieke vrijgave.
 
+### Mark11785 — F10/R31 read-only tapwaterpresentatie: gecorrigeerde Stage30 bronacceptatie
+
+- [x] Canonical3284a51 vooraf schoon; echte hostshell/HEAD, actuele§6/PLAN,
+  Stage30RESULT en eenmaal bounded specialistgeschiedenis6 daadwerkelijk gelezen.
+  Bestaand eenmalig hostreceipt behouden; memory_search/verified-taskflow toegepast.
+  Bestaande eigenaar actief aan concurrente seizoenscorrectie, geen tweede eigenaar.
+- [x] Exact10padenpatch01e9b506 en frozenarchive plus alle10voor-/nahashes PASS.
+  NativeHA2026.10.2/Python3.14.8 oorspronkelijk93PASS, maar onafhankelijke
+  JSON10**400probe geeft ongehanteerde OverflowError in3tapwatervelden. Originele
+  levering NIET ongewijzigd geaccepteerd; exacte bron/bewijzen behouden.
+- [x] Parent begrensde correctie: range vóór math.isfinite;6echte tracker/MQTT-
+  callbackproeven voor positieve/negatieve401cijferige getallen en volgend geldig
+  bericht. Zelfde6gevallen tegen origineel6FAIL, gecorrigeerd99HA-PASS.
+  Alleen dhw.py/testbestand gereserveerd, specialist met nieuwe foutinfo gesteerd;
+  geen drempel-/profiel-/assertieversoepeling of concurrerende seasonalwijziging.
+- [x] Volledige canonical HA-discovery734PASS+68subtests,1optionelebrokerSKIP,
+  0deselecties; beide oorspronkelijke Recorderbarrières ongewijzigd uitgevoerd.
+  Werkelijke hostgcc/g++17/cJSON/EMS/fivefinitepeers opnieuw gebouwd; vijf bekende
+  dependencywarnings.99gerichte tests overlappen de volledige suite, niet optellen.
+- [x] Broncommit94d2836: read-only native options/diagnostics/sensor/dashboard;
+  bestaande listeners/timer, expliciete last-reported/onbekende fysieke bronleeftijd,
+  Classicflow onderdrukt, geen DHWwriter/comfort-/tijd-/resetcapability verzonnen.
+  Oude registryIDs/historie, productieHA/broker/firmware/controlpriority behouden.
+- [ ] F10/R31/hele11785 niet klaar: echte bronleeftijd/ketelcompatibiliteit,
+  native frontend/telefoon, normale images/release/generic-size/installatie,
+  contact/personkwalificatie, afgewezen F9modellen en fysieke/72u/TX/EMS/actuator/
+  verwarmingsgates blijven open. Geen nieuwe packet-/browser-/firmwarebuildclaim,
+  runtimewijziging, performanceverbetering, installatie of verwarmingsGO.
+- Bewijs11774dossier: DHW-PARENT-REVIEW.md, PRECHECK/HASHES/RANGE-PROBE,
+  RED.xml/log, CORRECTED-HA.xml/log, FULL-HA.xml/log, FULL-COMMANDS/CHECKS.json,
+  CORRECTED-HASHES.json en dhw-parent-corrected-only-core.patch. Rollback alleen
+ 94d2836 na latere dependents; parentRecorder/WORKBOARD/historie/runtimedata bewaren.
+- Concrete bestaande F10bronfreshnessopdracht nader begrensd aangeboden:
+  native contact/personreport/availabilityprofiel, alleen echte nieuwe reports
+  verlengen eigen context, nooit temperatuur/lease/physicalreadiness; negatieve
+  replay/compatibiliteit/twee-zone/unload vereist. Followup26cd2fc8 QUEUED is
+  GEEN completion. Actieve seizoensreparatie en eerdere generic-size/F9opdrachten
+  blijven behouden; hele softwareplan in_progress, officiële hervattingsjob behouden.
+  Automations next_check15min bevestigd; geen stille beëindiging na dit pakket.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

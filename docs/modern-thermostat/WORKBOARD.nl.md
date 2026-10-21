@@ -2019,6 +2019,45 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   Daarna bestaandeGUI11846 en gezamenlijke lokale releasegates. Hele11785
   blijftin_progress; bestaandejob geïnspecteerd/behouden,next_check15m bevestigd.
 
+### Mark11785/11858 — F0/F10 exacte notices/provenance: Stage44 bronacceptatie
+
+- [x] Canonicalhost schoon opbabb728; bestaande eenmalighostreceipt ongemoeid.
+  §6/PLAN-gates, memory_search, verified-taskflow en RESULT/Stage44manifest gelezen.
+  Eenmaal boundedhistory6: bestaande specialist actief aan composed-release-
+  compatibiliteit/dependencykwalificatie; geen tweede eigenaar of onderbreking.
+- [x] Exacte12padenpatch e96f5da016749e7a3862751bcddffc287de279f4674976a0618f11e5c02f93a5,
+  frozen450trackedbronarchief/352bewijsfilehashes en12bronhashes gecontroleerd.
+  Onafhankelijke geïsoleerde canonicalreview bewaart438overige trackedpaden bytegelijk.
+- [x] BMS0.9.16payloads exact en complete originele notice; alle6UIpayloads aan
+  upstreambytes gebonden, Bootstrap uitsluitend terminal sourcemapnaamverschil.
+  Popper1.16.1 via exacte Bootstrapbuildlock;7originele upstreamnotices bytegelijk,
+  ontbrekende Arduino2.0.17root-LGPLtekst hersteld. Geen asset/runtimewijziging.
+- [x] Eigen offlineverifier en10gerichte stdlibtestsPASS, inclusief echte
+  packageweigering en asset/upstream/version/schema/path/tamper/symlinknegatieven.
+  Verse echte cacheinventaris exact gelijk:10componenten/13108file-aliaspaden/
+  96installednotices; inventorySHA b4e37aadf56439d8ca3ed535c09e811a6aa128c45a5ba4b5a7b3b0d7a2fefaab.
+  Extra echte-cachepackageprobe weigert vóór beide outputdirectories bestaan.
+- [x] Broncommitfb9d4cb fast-forwardcanonical;12exactebronhashes/438beschermdepaden
+  en schone technische postcheckPASS. Code/catalog/READMEdiffcheckPASS; één
+  originele upstream-LGPLwhitespaceregel7 bewust byte-exact behouden, niet opgeschoond.
+  Eerste reviewassertie verwachtte regel8, uitsluitend bewijsassertie gecorrigeerd.
+  Bewijs11774dossier notice-provenance-parent-evidence/{TASKFLOW,REVIEW}.md,
+  PRECHECK/PREPARATION/COMMANDS/SPECIALIST-VERIFIER/FRESH-SUMMARY/
+  FRESH-INVENTORY/SOURCE-POSTCHECK.json en TESTS.log. Rollback uitsluitendfb9d4cb
+  vóór afhankelijken; geen cache/config/model/Recorderdata verwijderen.
+- [ ] SDKbinaire per-component source/build/noticemapping blijft BLOCKED;
+  Arduino/IDFrootteksten, headers en exhaustivehashes zijn daarvoor geen sluitend
+  bewijs. Releasepackager weigert zonder override. Geen imagebuild/installatie/
+  publicatie/liveHA/broker/device/login/TX/EMS/actuator-/verwarmingsvrijgave.
+  Actieve gekwalificeerde productketen,GUI,8zones/resources en fysieke/meerdaagse
+  gates blijven open. Hele11785 is niet klaar; eigen hervattingsjob behouden.
+- Volgende bewijsactie: actieve specialist voltooit composed-releasecompatibiliteit
+  en bestaand prioritair graph→SOURCEowner→controller/GUIwerk. Concrete aanvullende
+  F0/F10SDKbron/build/noticemappingopdracht475b9458-d427-4e5a-82bd-0e344e8a23ec
+  followupQUEUED met acceptatie/rollback, geencompletion. Bij ieder onbekend
+  component BLOCKEDhouden; positieve/negatieve hashmapping vereist, geen blanketGO.
+  Daarna onafhankelijke parentreview; officiële next_check15min bevestigd.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

@@ -158,7 +158,9 @@ class RoomDashboard:
         registry = er.async_get(self.hass)
         devices = dr.async_get(self.hass)
         room_cards = []
-        heating_cards = []
+        heating_cards = [{
+            "type": "markdown", "content": "### Room models — not measured heat\nQualified request + boiler-reported CH is not proof of room flow or delivered heat. EN 442-style output assumes a 10 °C return drop and exponent 1.3. Unknown/stale inputs create gaps, not zero heat. Definition-v2 history starts separately; old totals are not copied."
+        }]
         for key in sorted(self._rooms):
             unique_id = f"{self.prefix}_room_{key}_climate"
             entity_id = registry.async_get_entity_id("climate", DOMAIN, unique_id)
@@ -176,8 +178,9 @@ class RoomDashboard:
                 ("sensor", "radiator_estimated_energy"),
                 ("number", "radiator_power"),
             ):
+                definition_suffix = "" if platform == "number" else "_v2"
                 entity_id = registry.async_get_entity_id(
-                    platform, DOMAIN, f"{self.prefix}_room_{key}_{suffix}"
+                    platform, DOMAIN, f"{self.prefix}_room_{key}_{suffix}{definition_suffix}"
                 )
                 if entity_id is not None:
                     heating_entities.append(entity_id)

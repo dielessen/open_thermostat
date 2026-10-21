@@ -11,6 +11,7 @@
 #include "EmsController.h"
 #include "EmsMetrics.h"
 #include "MQTT.h"
+#include <esp_system.h>
 #include "Room.h"
 
 #include <logger/LoggerInterface.h>
@@ -182,14 +183,18 @@ public:
 	}
 
 	void getEMSStatus(std::ostream &ss) const {
-		ems_.getStatus(ss);
+		const auto status = ems_.getStatus();
+		if (status.empty() || status.back()!='}') { ss << "{}"; return; }
+		ss << status.substr(0,status.size()-1) << ",\"roomEstimateObservation\":";
+		emsMetrics_.getRoomObservation(ss);
+		ss << "}";
 	}
 	void getEMSTelemetryStatus(std::ostream &ss) const {
 		ems_.getTelemetryStatus(ss);
 	}
 
 	std::string getEMSStatus() const {
-		return ems_.getStatus();
+		std::ostringstream ss; getEMSStatus(ss); return ss.str();
 	}
 
 	void getEMSBoilerParams(std::ostream &ss) const {
@@ -412,7 +417,16 @@ private:
 	BeaconTemperatureReader::BleDevices_t devicesFound_;
 	mutable std::mutex roomsAccessMutex_;
 
-	ems::EmsMetrics emsMetrics_{[this](uint16_t telegramId, std::function<void(heating::ems::EmsTelegram const &)> processor) { ems_.registerTelegramProcessor(telegramId, processor); }};
+	// Informational observation epoch only, never an authentication token / NVS value.
+	static std::string observationBootId() {
+		unsigned char bytes[16]; esp_fill_random(bytes,sizeof(bytes));
+		static constexpr char hex[]="0123456789abcdef";
+		std::string id(32,'0');
+		for(size_t i=0;i<16;++i) { id[2*i]=hex[bytes[i]>>4];id[2*i+1]=hex[bytes[i]&15]; }
+		return id;
+	}
+	ems::EmsMetrics emsMetrics_{[this](uint16_t telegramId, std::function<void(heating::ems::EmsTelegram const &)> processor) { ems_.registerTelegramProcessor(telegramId, processor); },
+		[] { return ib::getTimeMillis(); }, observationBootId()};
 
 	MQTT mqtt_{
 		log_,
@@ -424,7 +438,8 @@ private:
 		[this](std::ostream &ss) { getEMSStatus(ss);},
 		[this](std::string const &name, int16_t temperature, uint32_t seconds) {
 			return setRoomTemporaryTemperature(name, temperature, seconds);
-		}
+		},
+		[this](std::ostream &ss) { emsMetrics_.getRoomContext(ss); }
 		};
 };
 

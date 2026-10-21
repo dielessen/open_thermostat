@@ -563,6 +563,10 @@
     "metrics_definition_v2": {
       "title": "Select the new version-2 metric definitions",
       "description": "Existing metric entity IDs and history are retained, but legacy aliases are unavailable and do not collect new statistics. Corrected boot-local counters/flow use clearly named definition-v2 entities and numerical wire fields. Update any user-managed cards to the new entities if wanted. Historical statistics have not been deleted, rewritten or backfilled; old history is not certified by this migration. Estimated energy is not a gas/heat meter."
+    },
+    "room_model_v2": {
+      "title": "Select bounded room-model definition v2",
+      "description": "Existing unqualified room energy/time history is retained unchanged. New room models use separate v2 entities and do not restore or backfill old totals. Unknown/stale inputs produce gaps. Room request plus reported CH is not proof of actual room heat or flow; radiator output is modeled using a 10 °C return-temperature drop and exponent 1.3, not metered. Existing firmware without observation metadata cannot qualify these models. Review user-managed cards; no Recorder data was rewritten."
     }
   }
 }

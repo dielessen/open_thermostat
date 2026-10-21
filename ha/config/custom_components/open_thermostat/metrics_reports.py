@@ -29,6 +29,7 @@ SCHEMA = vol.Schema({
     vol.Required("entry_id"): str, vol.Required("start"): str, vol.Required("end"): str,
     vol.Optional("entity_ids"): vol.All([str], vol.Length(min=1, max=MAX_ENTITIES)),
     vol.Optional("limit", default=1000): _rows,
+    vol.Optional("include_units", default=False): bool,
 })
 
 
@@ -48,6 +49,14 @@ def note_metric_definition_migration(hass, entry_id):
     ir.async_create_issue(hass, DOMAIN, f"metrics_definition_v2_{entry_id}",
         is_fixable=False, is_persistent=True, severity=ir.IssueSeverity.WARNING,
         translation_key="metrics_definition_v2")
+
+
+@callback
+def note_room_definition_migration(hass, entry_id):
+    """Only an existing legacy room identity triggers review; no DB migration."""
+    ir.async_create_issue(hass, DOMAIN, f"room_model_v2_{entry_id}",
+        is_fixable=False, is_persistent=True, severity=ir.IssueSeverity.WARNING,
+        translation_key="room_model_v2")
 
 
 def _utc(value):
@@ -80,6 +89,9 @@ def owned_entities(hass, entry_id):
 
 
 def _definition(unique_id):
+    if "_room_" in unique_id and "_radiator_" in unique_id:
+        return ("bounded_room_model_v2;not_metered_heat_or_flow;no_legacy_backfill"
+            if unique_id.endswith("_v2") else "legacy_room_estimate;unbounded_historic_definition_unproven")
     if unique_id.endswith("_v2"):
         return "isolated_observation_definition_v2;no_legacy_backfill;estimate_or_reported_not_meter"
     if "_hub_energy" in unique_id:
@@ -91,6 +103,46 @@ def _definition(unique_id):
     if unique_id.endswith("_hub_boiler_selected_flow_temperature"):
         return "boiler_reported_selection;not_controller_command"
     return "recorded_state;not_actuation_or_freshness_proof"
+
+
+def _unit(unique_id):
+    """Advisory native definition unit, NEVER the recorded state unit.
+
+    HA users can configure unit conversions; unique IDs cannot certify the
+    actual historical unit. Exported row units come only from recorded metadata.
+    """
+    if not unique_id.endswith("_v2"):
+        return "", "unknown_historic_unit"
+    if "_room_" in unique_id:
+        for suffix, unit in (("radiator_heating_time_v2", "h"),
+                             ("radiator_estimated_power_v2", "W"),
+                             ("radiator_estimated_energy_v2", "kWh")):
+            if unique_id.endswith("_"+suffix):
+                return unit, "definition_v2"
+    if "_hub_" in unique_id:
+        key = unique_id.rsplit("_hub_", 1)[1][:-3]
+        if key in {"energy", "energy_warm_water", "energy_heating", "energy_unattributed"}:
+            return "kWh", "definition_v2"
+        if key == "warm_water_usage":
+            return "L", "definition_v2"
+        if key == "warm_water_avg_flow":
+            return "L/min", "definition_v2"
+        if key == "burner_observed_time":
+            return "s", "definition_v2"
+    return "", "unknown_historic_unit"
+
+
+def _recorded_unit(state, enabled):
+    if not enabled:
+        return "", "not_requested"
+    value = state.attributes.get("unit_of_measurement")
+    # Only a bounded known unit can leave the read-only history boundary.
+    # No arbitrary attributes, formula text or private metadata are exported.
+    if isinstance(value, str) and value in {"%", "°C", "°F", "K", "W", "kW", "Wh", "kWh", "MWh",
+                 "L", "m³", "L/min", "m³/h", "h", "s", "min", "B", "kB",
+                 "MB", "bar", "Pa", "kPa", "psi"}:
+        return value, "recorded_unit"
+    return "", "unknown_recorded_unit"
 
 
 async def async_export(hass, data):
@@ -109,29 +161,38 @@ async def async_export(hass, data):
         raise HomeAssistantError("Native Recorder is not loaded") from err
     limit = _rows(data.get("limit", 1000))
     rows, queried, truncated = [], [], False
-    # Off-loop read-only native SQL with a real per-query row limit; no attributes.
+    include_units = data.get("include_units", False)
+    if type(include_units) is not bool:
+        raise HomeAssistantError("include_units must be a boolean")
+    # Native bounded read-only history. The default does not retrieve attributes.
+    # Opt-in unit export reads them internally but only emits an allowlisted unit.
     for entity_id in selected:
         remaining = limit-len(rows)
         if not remaining:
             truncated = True
             break
         query = partial(state_changes_during_period, hass, start, end,
-                        entity_id=entity_id, no_attributes=True, limit=remaining+1,
+                        entity_id=entity_id, no_attributes=not include_units, limit=remaining+1,
                         include_start_time_state=False)
-        history = await recorder.async_add_executor_job(query)
+        try:
+            history = await recorder.async_add_executor_job(query)
+        except Exception:
+            # No partial export or private database/SQL exception text in response.
+            raise HomeAssistantError("Native Recorder history query failed") from None
         states = history.get(entity_id, [])
         queried.append(entity_id)
         if len(states)>remaining:
             truncated=True
         for state in states[:remaining]:
-            rows.append((state.last_updated, entity_id, state.state, _definition(owned[entity_id].unique_id)))
+            identity = owned[entity_id].unique_id
+            rows.append((state.last_updated, entity_id, state.state, _definition(identity), *_recorded_unit(state, include_units)))
     rows.sort(key=lambda row: (row[0], row[1]))
     output=io.StringIO(newline="")
     writer=csv.writer(output)
-    writer.writerow(("utc", "entity_id", "state", "definition_quality"))
+    writer.writerow(("utc", "entity_id", "state", "definition_quality", "unit", "unit_basis"))
     written=0;byte_count=len(output.getvalue().encode("utf-8"))
-    for time, entity, state, definition in rows:
-        line=io.StringIO(newline="");csv.writer(line).writerow((time.isoformat(), entity, _cell(state), definition))
+    for time, entity, state, definition, unit, basis in rows:
+        line=io.StringIO(newline="");csv.writer(line).writerow((time.astimezone(timezone.utc).isoformat(), entity, _cell(state), definition, unit, basis))
         line_bytes=len(line.getvalue().encode("utf-8"))
         if byte_count+line_bytes>MAX_BYTES:
             truncated=True
@@ -144,6 +205,8 @@ async def async_export(hass, data):
         "start_utc": start.isoformat(), "end_utc": end.isoformat(),
         "scope": "Recorder state changes only; no inferred continuity, start baseline or detail retention guarantee",
         "history_warning": "Old unversioned counter history is not corrected or certified by this export; no statistics were changed",
+        "unit_scope": "Per-row recorded unit only when include_units=true; blank is not a zero/unit inference. Definition units are advisory; no conversion.",
+        "definition_units": {entity: _unit(owned[entity].unique_id)[0] for entity in queried},
         "database_writes": False,
     }
 

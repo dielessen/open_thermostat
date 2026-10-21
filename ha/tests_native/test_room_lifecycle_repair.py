@@ -19,6 +19,15 @@ ROOM = {"id": "a1b2c3d4", "name": "Original", "currentTemp": 1950,
         "tempSet": 2100, "currentHumidity": 50, "batteryLevel": 80,
         "enabledState": "on", "isBeingHeatedState": "on", "currentProgram": "default"}
 
+
+
+def assert_legacy_membership_without_model_proof(entities):
+    models = [e for e in entities if isinstance(e, (sensor.RoomHeatingSensor, binary_sensor.RadiatorHeating))]
+    ordinary = [e for e in entities if e not in models]
+    assert models and ordinary
+    assert all(not e.available for e in models), "Old room envelope cannot qualify new model estimates"
+    assert all(e.available for e in ordinary), "Climate/readings/config membership must stay available"
+
 @pytest_asyncio.fixture
 async def legacy(hass, monkeypatch):
     parent = entry(hass, mode=MODE_LEGACY)
@@ -67,7 +76,7 @@ async def test_all_removed_legacy_room_entities_remain_unavailable_keep_history(
     tracker.rooms[ROOM["id"]].estimated_energy_kwh = 4.5
     tracker.rooms[ROOM["id"]].rated_power = 900
     room_entities = [e for e in added if "_room_a1b2c3d4_" in (e.unique_id or "")]
-    assert room_entities and all(e.available for e in room_entities)
+    assert_legacy_membership_without_model_proof(room_entities)
     emit("room_data", {"rooms": []})
     assert all(not e.available for e in room_entities), [
         e.unique_id for e in room_entities if e.available]
@@ -79,7 +88,7 @@ async def test_all_removed_legacy_room_entities_remain_unavailable_keep_history(
     count = len(added)
     emit("room_data", {"rooms": [{**ROOM, "name": "Renamed"}]})
     assert len(added) == count
-    assert all(e.available for e in room_entities)
+    assert_legacy_membership_without_model_proof(room_entities)
     assert tracker.rooms[ROOM["id"]].rated_power == 900
 
 @pytest.mark.asyncio
@@ -156,5 +165,5 @@ async def test_removing_one_room_preserves_other_room_and_hub(legacy):
     retained = [e for e in added if "_room_b1c2d3e4_" in (e.unique_id or "")]
     assert removed and retained
     assert all(not e.available for e in removed)
-    assert all(e.available for e in retained)
+    assert_legacy_membership_without_model_proof(retained)
     assert tracker.online and not tracker.is_heating(ROOM["id"])

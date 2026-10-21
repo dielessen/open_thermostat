@@ -3,22 +3,23 @@
 import json
 import logging
 import math
+from decimal import Decimal
 
 from homeassistant.components import mqtt
 from homeassistant.components.mqtt.models import ReceiveMessage
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass, RestoreSensor
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory, PERCENTAGE, UnitOfInformation, UnitOfTemperature
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.util.unit_conversion import DurationConverter, EnergyConverter
 
 from .room_identity import room_device_name, room_key
 from .const import CONF_TOPIC_PREFIX, DOMAIN
 from .program import room_program_name
-from .heating import HeatingTracker
+from .heating import HeatingTracker, DEFINITION
 from .metrics_reports import note_legacy_metrics, note_metric_definition_migration
 
 _LOGGER = logging.getLogger(__name__)
@@ -123,7 +124,7 @@ async def async_setup_entry(
             key = (topic, metric)
             entity = hub_sensors.get(key)
             if entity is None:
-                entity = HubMetric(prefix, topic, metric, entry.entry_id)
+                entity = HubMetric(prefix, topic, metric, entry.entry_id, tracker=tracker)
                 hub_sensors[key] = entity
                 added.append(entity)
             entity.update_payload(payload, online)
@@ -224,6 +225,9 @@ async def async_setup_entry(
 
     @callback
     def update_heating_sensors() -> None:
+        for entity in hub_sensors.values():
+            if entity._observation_field:
+                entity.update_from_tracker()
         added = []
         for key, room in tracker.rooms.items():
             for metric, entity_class in (
@@ -238,6 +242,17 @@ async def async_setup_entry(
                     heating_sensors[entity_key] = entity
                     added.append(entity)
                 entity.update_from_tracker()
+                # Keep an actually existing old statistic identity non-numeric;
+                # never seed the changed model from unqualified old totals.
+                old_id = er.async_get(hass).async_get_entity_id("sensor", DOMAIN, f"{prefix}_room_{key}_{metric}")
+                old = er.async_get(hass).async_get(old_id) if old_id else None
+                if old is not None and old.config_entry_id == entry.entry_id:
+                    legacy_key = (key, metric + "_legacy")
+                    if legacy_key not in heating_sensors:
+                        legacy = entity_class(prefix, room.index, key, room.name, hub_id, tracker, legacy=True)
+                        heating_sensors[legacy_key] = legacy
+                        added.append(legacy)
+                    heating_sensors[legacy_key].update_from_tracker()
         if added:
             async_add_entities(added)
 
@@ -287,7 +302,7 @@ class RoomMetric(SensorEntity):
             self.async_write_ha_state()
 
 
-class RoomHeatingSensor(SensorEntity, RestoreEntity):
+class RoomHeatingSensor(RestoreSensor):
     """Base class for a calculated room-heating sensor."""
 
     _attr_should_poll = False
@@ -302,10 +317,12 @@ class RoomHeatingSensor(SensorEntity, RestoreEntity):
         hub_id: str | None,
         tracker: HeatingTracker,
         metric: str,
+        *, legacy: bool = False,
     ) -> None:
+        self._legacy_compat = legacy
         self._key = key
         self._tracker = tracker
-        self._attr_unique_id = f"{prefix}_room_{key}_{metric}"
+        self._attr_unique_id = f"{prefix}_room_{key}_{metric}" + ("" if legacy else "_v2")
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{prefix}_room_{key}")},
             name=room_device_name(room_name, index),
@@ -313,12 +330,65 @@ class RoomHeatingSensor(SensorEntity, RestoreEntity):
             model="OpenThermostat room",
             via_device_id=hub_id,
         )
-        self._attr_available = tracker.online
+        self._attr_available = False
+        self._attr_name = ("Legacy history: " if legacy else "") + {
+            "radiator_heating_time": "Qualified request / reported CH time (model v2)",
+            "radiator_estimated_energy": "Modeled radiator energy (v2, not metered)",
+            "radiator_estimated_power": "Modeled radiator output (v2, not metered)",
+        }[metric]
+        self._attr_extra_state_attributes = {
+            "definition": DEFINITION if not legacy else "legacy_unqualified_unavailable",
+            "not_a_heat_meter": True, "not_delivery_or_flow_proof": True,
+            "ems_source_ttl_seconds": 30, "room_snapshot_ttl_seconds": 45,
+            "room_temperature_ttl_seconds": 300,
+            "return_drop_assumption_c": 10, "radiator_exponent": 1.3,
+            "historical_compatibility": "isolated_v2_no_backfill",
+            "transport_delay": "unmeasured_not_control_freshness_proof",
+        }
+        if legacy:
+            self._attr_state_class = None
+            self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        if self._legacy_compat:
+            from .metrics_reports import note_room_definition_migration
+            note_room_definition_migration(self.hass, self._tracker.entry.entry_id)
+
+    async def _async_restored_total(self, converter, unit, maximum):
+        """Restore native value/unit only; never mistake display Wh/s for kWh/h.
+
+        No display fallback: missing or invalid native extra data is unknown.
+        This source definition was not deployed, so there is no certified v2
+        display-only history to import. Old unversioned totals stay isolated.
+        """
+        if self._legacy_compat:
+            return None
+        try:
+            data = await self.async_get_last_sensor_data()
+            if data is None or not isinstance(data.native_unit_of_measurement, str):
+                return None
+            if data.native_unit_of_measurement not in converter.VALID_UNITS:
+                return None
+            if type(data.native_value) not in (int, float, Decimal):
+                return None
+            value = float(data.native_value)
+            if not math.isfinite(value) or value < 0:
+                return None
+            value = converter.convert(value, data.native_unit_of_measurement, unit)
+            return value if math.isfinite(value) and 0 <= value <= maximum else None
+        except (ValueError, TypeError, KeyError, ArithmeticError):
+            return None
 
     def update_from_tracker(self) -> None:
-        self._attr_available = self._tracker.room_available(self._key)
+        previous = (self.available, self.native_value)
         self._update_value()
-        if self.entity_id is not None:
+        self._attr_available = not self._legacy_compat and self._tracker.estimate_available(self._key)
+        if isinstance(self, (RoomEstimatedPower, RoomEstimatedEnergy)):
+            self._attr_available &= self._tracker.estimated_power(self._key) is not None
+        if self._legacy_compat:
+            self._attr_native_value = None
+        if self.entity_id is not None and previous != (self.available, self.native_value):
             self.async_write_ha_state()
 
     def _update_value(self) -> None:
@@ -326,57 +396,51 @@ class RoomHeatingSensor(SensorEntity, RestoreEntity):
 
 
 class RoomHeatingTime(RoomHeatingSensor):
-    """Cumulative time during which the room receives radiator heat."""
+    """Qualified room request coinciding with reported CH, not delivered heat."""
 
     _attr_translation_key = "radiator_heating_time"
+    _attr_suggested_display_precision = 4
     _attr_device_class = SensorDeviceClass.DURATION
     _attr_native_unit_of_measurement = "h"
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
     _attr_icon = "mdi:timer-outline"
 
-    def __init__(self, *args) -> None:
-        super().__init__(*args, "radiator_heating_time")
+    def __init__(self, *args, legacy=False) -> None:
+        super().__init__(*args, "radiator_heating_time", legacy=legacy)
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
-        previous = await self.async_get_last_state()
-        if previous is not None:
-            try:
-                self._tracker.restore_totals(self._key, seconds=float(previous.state) * 3600)
-            except (TypeError, ValueError):
-                pass
+        if (seconds := await self._async_restored_total(DurationConverter, "s", 1e12)) is not None:
+            self._tracker.restore_totals(self._key, seconds=seconds)
         self.update_from_tracker()
 
     def _update_value(self) -> None:
         room = self._tracker.rooms.get(self._key)
-        self._attr_native_value = round(room.heating_seconds / 3600, 4) if room else None
+        self._attr_native_value = room.heating_seconds / 3600 if room else None
 
 
 class RoomEstimatedEnergy(RoomHeatingSensor):
     """Estimated cumulative radiator energy for one room."""
 
     _attr_translation_key = "estimated_radiator_energy"
+    _attr_suggested_display_precision = 5
     _attr_device_class = SensorDeviceClass.ENERGY
     _attr_native_unit_of_measurement = "kWh"
     _attr_state_class = SensorStateClass.TOTAL_INCREASING
     _attr_icon = "mdi:radiator"
 
-    def __init__(self, *args) -> None:
-        super().__init__(*args, "radiator_estimated_energy")
+    def __init__(self, *args, legacy=False) -> None:
+        super().__init__(*args, "radiator_estimated_energy", legacy=legacy)
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
-        previous = await self.async_get_last_state()
-        if previous is not None:
-            try:
-                self._tracker.restore_totals(self._key, energy=float(previous.state))
-            except (TypeError, ValueError):
-                pass
+        if (energy := await self._async_restored_total(EnergyConverter, "kWh", 1e9)) is not None:
+            self._tracker.restore_totals(self._key, energy=energy)
         self.update_from_tracker()
 
     def _update_value(self) -> None:
         room = self._tracker.rooms.get(self._key)
-        self._attr_native_value = round(room.estimated_energy_kwh, 5) if room else None
+        self._attr_native_value = room.estimated_energy_kwh if room else None
 
 
 class RoomEstimatedPower(RoomHeatingSensor):
@@ -388,8 +452,8 @@ class RoomEstimatedPower(RoomHeatingSensor):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_icon = "mdi:radiator"
 
-    def __init__(self, *args) -> None:
-        super().__init__(*args, "radiator_estimated_power")
+    def __init__(self, *args, legacy=False) -> None:
+        super().__init__(*args, "radiator_estimated_power", legacy=legacy)
 
     def _update_value(self) -> None:
         power = self._tracker.estimated_power(self._key)
@@ -440,8 +504,14 @@ class HubMetric(SensorEntity):
     _attr_should_poll = False
     _attr_has_entity_name = True
 
-    def __init__(self, prefix: str, topic: str, metric: str, entry_id: str | None = None, *, definition_version: int = 2) -> None:
+    def __init__(self, prefix: str, topic: str, metric: str, entry_id: str | None = None, *, definition_version: int = 2, tracker: HeatingTracker | None = None) -> None:
         _field, device_class, unit, state_class, name = HUB_METRICS[topic][metric]
+        self._tracker = tracker
+        self._observation_field = {
+            "boiler_selected_flow_temperature":"selected_flow_c",
+            "boiler_current_flow_temperature":"supply_c",
+            "boiler_burner_power":"modulation_pct",
+        }.get(metric) if topic == "ems_status" else None
         if topic == "device_status":
             self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_device_class = device_class
@@ -476,6 +546,9 @@ class HubMetric(SensorEntity):
         self._attr_available = False
 
     def set_online(self, online: bool) -> None:
+        if self._tracker is not None and self._observation_field:
+            self.update_from_tracker()
+            return
         self._attr_available = online and not self._legacy_compat
         if self.entity_id is not None:
             self.async_write_ha_state()
@@ -487,7 +560,24 @@ class HubMetric(SensorEntity):
         if self._legacy_schema_seen and self._entry_id:
             note_legacy_metrics(self.hass, self._entry_id)
 
+    def update_from_tracker(self) -> None:
+        if self._tracker is None or not self._observation_field:
+            return
+        previous = (self.available, self.native_value)
+        self._attr_native_value = self._tracker.boiler_reading(self._observation_field)
+        self._attr_available = self._tracker.ems_available()
+        self._attr_extra_state_attributes = {
+            "quality":"reported_plus_not_delivery_proof", "source_ttl_seconds":30,
+            "not_controller_command":True, "physical_validation":False,
+            "historic_freshness":"not_rewritten_or_certified",
+        }
+        if self.entity_id is not None and previous != (self.available, self.native_value):
+            self.async_write_ha_state()
+
     def update_payload(self, payload: dict, online: bool) -> None:
+        if self._tracker is not None and self._observation_field:
+            self.update_from_tracker()
+            return
         field = HUB_METRICS[self._topic][self._metric][0]
         value = payload.get(field)
         if self._versioned:

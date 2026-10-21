@@ -36,13 +36,19 @@ public:
 	using getActiveProgram_t = std::function<std::string()>;
 	using getBoilerStarted_t = std::function<bool()>;
 
-	RoomsReporter(std::shared_ptr<ib::logger::LoggerInterface> log, getRoomIds_t getRoomIds, getRoomStatus_t getRoomsStatus, getActiveProgram_t getActiveProgram, getBoilerStarted_t getBoilerStarted) : log_(std::move(log)), getRoomIds_(std::move(getRoomIds)), getRoomsStatus_(std::move(getRoomsStatus)), getActiveProgram_(std::move(getActiveProgram)), getBoilerStarted_(std::move(getBoilerStarted)) { if (log_) logFeature_ = log_->addFeature("MQTT rooms"); }
+	RoomsReporter(std::shared_ptr<ib::logger::LoggerInterface> log, getRoomIds_t getRoomIds, getRoomStatus_t getRoomsStatus, getActiveProgram_t getActiveProgram, getBoilerStarted_t getBoilerStarted, getRoomStatus_t context = {}) : log_(std::move(log)), getRoomIds_(std::move(getRoomIds)), getRoomsStatus_(std::move(getRoomsStatus)), getActiveProgram_(std::move(getActiveProgram)), getBoilerStarted_(std::move(getBoilerStarted)), observationContext_(std::move(context)) { if (log_) logFeature_ = log_->addFeature("MQTT rooms"); }
 
 	void getStatus(std::ostream &ss) const override {
+		// Capture context before room ages: serialization delay can shorten, never
+		// extend the source temperature validity window.
+		std::ostringstream context;
+		if(observationContext_) observationContext_(context);
 		ss << "{\"rooms\": ";
 		getRoomsStatus_(ss);
 		ss << ",\"activeProgram\":" << std::quoted(getActiveProgram_())
-			<< ",\"boilerStarted\":" << (getBoilerStarted_() ? "true" : "false") << "}";
+			<< ",\"boilerStarted\":" << (getBoilerStarted_() ? "true" : "false");
+		if(observationContext_) ss << ",\"roomObservation\":" << context.str();
+		ss << "}";
 	}
 
 	void publishHADiscovery(ib::mqtt::MQTTPublishInterface &publish) override {
@@ -85,6 +91,7 @@ private:
 	getRoomStatus_t getRoomsStatus_;
 	getActiveProgram_t getActiveProgram_;
 	getBoilerStarted_t getBoilerStarted_;
+	getRoomStatus_t observationContext_;
 };
 
 class DeviceStatusReporter final : public ib::mqtt::MQTTReporterInterface {
@@ -230,7 +237,7 @@ public:
 	using getEmsStatus_t = std::function<void(std::ostream &)>;
 	using setTemporaryTemperature_t = std::function<bool(std::string const &, int16_t, uint32_t)>;
 
-	MQTT(std::shared_ptr<ib::logger::LoggerInterface> log, getRoomIds_t getRoomIds, getRoomStatus_t getRoomsStatus, getActiveProgram_t getActiveProgram, getBoilerStarted_t getBoilerStarted, getEmsMetrics_t getEmsMetrics, getEmsStatus_t getEmsStatus, setTemporaryTemperature_t setTemporaryTemperature) : log_(std::move(log)), setTemporaryTemperature_(std::move(setTemporaryTemperature)) {
+	MQTT(std::shared_ptr<ib::logger::LoggerInterface> log, getRoomIds_t getRoomIds, getRoomStatus_t getRoomsStatus, getActiveProgram_t getActiveProgram, getBoilerStarted_t getBoilerStarted, getEmsMetrics_t getEmsMetrics, getEmsStatus_t getEmsStatus, setTemporaryTemperature_t setTemporaryTemperature, getRoomStatus_t roomContext = {}) : log_(std::move(log)), setTemporaryTemperature_(std::move(setTemporaryTemperature)) {
 		if (log_) {
 			logFeature_ = log_->addFeature("MQTT");
 		}
@@ -271,7 +278,7 @@ public:
 		deviceInfo.manufacturer = "intuibase";
 		deviceInfo.swVersion = "1.0.0";
 
-		roomsReporter_ = std::make_shared<RoomsReporter>(log_, std::move(getRoomIds), std::move(getRoomsStatus), std::move(getActiveProgram), std::move(getBoilerStarted));
+		roomsReporter_ = std::make_shared<RoomsReporter>(log_, std::move(getRoomIds), std::move(getRoomsStatus), std::move(getActiveProgram), std::move(getBoilerStarted), std::move(roomContext));
 		reporters_.emplace_back(roomsReporter_);
 		reporters_.emplace_back(std::make_shared<DeviceStatusReporter>(log_));
 		reporters_.emplace_back(std::make_shared<EmsMetricsReporter>(log_, std::move(getEmsMetrics)));

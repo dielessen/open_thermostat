@@ -9,8 +9,10 @@ async def async_get_config_entry_diagnostics(hass, entry):
     from homeassistant.helpers import issue_registry as ir
     issue = ir.async_get(hass).async_get_issue(DOMAIN, f"legacy_metrics_history_{entry.entry_id}")
     migration = ir.async_get(hass).async_get_issue(DOMAIN, f"metrics_definition_v2_{entry.entry_id}")
+    room_migration = ir.async_get(hass).async_get_issue(DOMAIN, f"room_model_v2_{entry.entry_id}")
     result = {"integration_mode": integration_mode(entry), "entry_version": entry.version,
-              "metrics_history": {"review_required": issue is not None or migration is not None,
+              "metrics_history": {"review_required": issue is not None or migration is not None or room_migration is not None,
+                  "room_model_review_required": room_migration is not None,
                   "version2_definition": "isolated_new_entities_and_wire_fields",
                   "legacy_entity_references_retained": True,
                   "automatic_statistics_migration": False, "historic_definition_verified": False,

@@ -112,6 +112,9 @@ jobs:
           g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_validation_runner.cpp out/graph-cjson.o -ldl -o out/graph-validation-runner
           g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_configuration_runner.cpp out/graph-cjson.o -ldl -o out/graph-configuration-runner
           g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_session_runner.cpp out/graph-cjson.o -ldl -o out/graph-session-runner
+          g++ -std=c++17 -O0 -Isrc -Itest/test_native/include -I.pio/libdeps/native/esp32_utilities/src -c src/EMS/EmsTelegram.cpp -o out/room-ems-parser.o
+          g++ -std=c++17 -O0 -Wall -Wextra -Werror -Wno-dangling-else -pthread -Isrc -Itest/test_native/include -I.pio/libdeps/native/esp32_utilities/src test/interop/room_observation_runner.cpp out/room-ems-parser.o -o out/room-observation-peer
+          out/room-observation-peer > out/room-observation-wire.json
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'
@@ -124,7 +127,7 @@ jobs:
           python -c 'import os,subprocess; port=subprocess.check_output(["docker","port","opth-mqtt-fixture","1883/tcp"],text=True).strip().rsplit(":",1)[1]; open(os.environ["GITHUB_ENV"],"a").write("OPENTHERMOSTAT_TEST_MQTT_PORT="+port+"\n")'
       - name: Test native HA lifecycle and actual firmware packet interop
         run: |
-          python -m pytest ha/tests ha/tests_native -q --junitxml=out/ha-acceptance.xml
+          ROOM_METRICS_EVIDENCE_DIR=out python -m pytest ha/tests ha/tests_native -q --junitxml=out/ha-acceptance.xml
       - name: Remove temporary MQTT fixture
         if: always()
         run: docker stop opth-mqtt-fixture || true

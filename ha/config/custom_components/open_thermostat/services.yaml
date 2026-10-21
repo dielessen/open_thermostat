@@ -59,7 +59,7 @@ source_bench_status:
 
 export_metrics_csv:
   name: Export recorded metrics as CSV
-  description: Admin-only response; at most 24 hours,64 owned entities,5000 rows. Uses native read-only Recorder, no files or DB changes. Historical counter definitions/retention may be incomplete.
+  description: Admin-only response; at most 24 hours,64 owned entities,5000 rows. Uses native read-only Recorder, no files or DB changes. UTC rows include unit and unit_basis. Opt-in include_units reads recorded units only, never guesses from current/native display units. No conversion. Historical counter definitions/retention may be incomplete.
   fields:
     entry_id:
       required: true
@@ -89,3 +89,8 @@ export_metrics_csv:
           min: 1
           max: 5000
           mode: box
+    include_units:
+      default: false
+      description: Read historical attributes internally and export only a known per-row unit. No other attributes are returned. Default does not retrieve attributes. Blank unit means unknown, not a guessed current unit.
+      selector:
+        boolean:

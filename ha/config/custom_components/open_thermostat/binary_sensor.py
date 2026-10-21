@@ -115,7 +115,7 @@ async def async_setup_entry(
         for state, (field, _name, _device_class) in BOILER_STATES.items():
             entity = boiler_sensors.get(state)
             if entity is None:
-                entity = BoilerState(prefix, state)
+                entity = BoilerState(prefix, state, tracker=tracker)
                 boiler_sensors[state] = entity
                 added.append(entity)
             entity.update_value(payload.get(field), online)
@@ -129,6 +129,9 @@ async def async_setup_entry(
 
     @callback
     def update_radiators() -> None:
+        for entity in boiler_sensors.values():
+            if entity._observation_field:
+                entity.update_from_tracker()
         added = []
         for key, room in tracker.rooms.items():
             entity = radiator_sensors.get(key)
@@ -202,8 +205,13 @@ class BoilerState(BinarySensorEntity):
     _attr_should_poll = False
     _attr_has_entity_name = True
 
-    def __init__(self, prefix: str, state: str) -> None:
+    def __init__(self, prefix: str, state: str, *, tracker: HeatingTracker | None = None) -> None:
         _field, name, device_class = BOILER_STATES[state]
+        self._tracker = tracker
+        self._observation_field = {
+            "boiler_heating_active":"ch", "boiler_hot_water_active":"dhw",
+            "boiler_burner_active":"flame", "boiler_pump_active":"pump",
+        }.get(state)
         self._attr_name = name
         self._attr_device_class = device_class
         self._attr_unique_id = f"{prefix}_hub_{state}"
@@ -211,11 +219,30 @@ class BoilerState(BinarySensorEntity):
         self._attr_available = False
 
     def set_online(self, online: bool) -> None:
+        if self._tracker is not None and self._observation_field:
+            self.update_from_tracker()
+            return
         self._attr_available = online
         if self.entity_id is not None:
             self.async_write_ha_state()
 
+    def update_from_tracker(self) -> None:
+        if self._tracker is None or not self._observation_field:
+            return
+        previous = (self.available, self.is_on)
+        self._attr_is_on = self._tracker.boiler_reading(self._observation_field)
+        self._attr_available = self._tracker.ems_available()
+        self._attr_extra_state_attributes = {
+            "quality":"reported_plus_not_delivery_proof", "source_ttl_seconds":30,
+            "physical_validation":False, "historic_freshness":"not_rewritten_or_certified",
+        }
+        if self.entity_id is not None and previous != (self.available, self.is_on):
+            self.async_write_ha_state()
+
     def update_value(self, value: object, online: bool) -> None:
+        if self._tracker is not None and self._observation_field:
+            self.update_from_tracker()
+            return
         self._attr_is_on = boolean_state(value)
         self._attr_available = online
         if self.entity_id is not None:
@@ -223,7 +250,7 @@ class BoilerState(BinarySensorEntity):
 
 
 class RadiatorHeating(BinarySensorEntity):
-    """Whether a room receives radiator heat, excluding hot-water cycles."""
+    """Qualified room request coincident with reported CH; not heat/flow proof."""
 
     _attr_should_poll = False
     _attr_has_entity_name = True
@@ -241,7 +268,9 @@ class RadiatorHeating(BinarySensorEntity):
     ) -> None:
         self._key = key
         self._tracker = tracker
-        self._attr_unique_id = f"{prefix}_room_{key}_radiator_heating"
+        self._attr_unique_id = f"{prefix}_room_{key}_radiator_heating_v2"
+        self._attr_name = "Qualified request / reported CH (not delivery proof)"
+        self._attr_extra_state_attributes = {"not_delivery_or_flow_proof": True, "definition": "bounded-room-model-v2"}
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{prefix}_room_{key}")},
             name=room_device_name(room_name, index),
@@ -252,7 +281,8 @@ class RadiatorHeating(BinarySensorEntity):
         self._attr_available = tracker.online
 
     def update_from_tracker(self) -> None:
-        self._attr_available = self._tracker.room_available(self._key)
-        self._attr_is_on = self._tracker.is_heating(self._key)
-        if self.entity_id is not None:
+        previous = (self.available, self.is_on)
+        self._attr_available = self._tracker.estimate_available(self._key)
+        self._attr_is_on = self._tracker.is_heating(self._key) if self._attr_available else None
+        if self.entity_id is not None and previous != (self.available, self.is_on):
             self.async_write_ha_state()

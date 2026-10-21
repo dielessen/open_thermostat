@@ -1183,6 +1183,37 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   volgende bronreview na gecorrigeerd manifest, officiële hervattingscheck15min.
   Geen installatie, nieuwe login, broker/HAconfig, TX/EMS/actuator-/verwarmingsGO.
 
+### Mark11785 — F5 gecorrigeerde kamerrestore en begrensde modellen: bronacceptatie
+
+- [x] Canonical0c72974 schoon; bestaand hostreceipt behouden, actuele§6/PLAN,
+  gecorrigeerd specialistRESULT7064f8c8 en eenmaal begrensde specialistgeschiedenis
+  gelezen. Bestaande eigenaar actief aan connectedcomfort, geen tweede eigenaar.
+- [x] Volledige gecorrigeerde22padenpatch357da92072ca44dda8312a7689d16480a60e6f6d0f3948613dea09c20c694b97
+  gereviewd; alle22bronhashes exact. Eerdere afwijzing5d413549 blijft geldig:
+  uitsluitend gecorrigeerde rollup overgenomen, geen stapeling met oudepatch.
+- [x] Canonical echte EMSparser/serializer opnieuw gecompileerd:16nativePASS,
+  zes echte wireframes. Native HA2026.10.2/Python3.14.8:121PASS zonder skips/
+  deselecties, inclusief35echte RestoreSensor/EntityPlatform/unitlifecyclechecks
+  én oorspronkelijke parentRecorderregressie; vijf bestaande dependencywarnings.
+- [x] Native opgeslagen waarde+unit via ondersteunde conversie;1000Wh→1kWh,
+  600s/10min/1/6h→600seconden. Geen displayfallback, onbekend/incompatibel/
+  niet-eindig geweigerd; ongeronde native heropslag en add/remove/readd bewezen.
+  Oude roomhistoriek geïsoleerd/onbeschikbaar zonder nieuwe statistiek/backfill.
+- [x] Begrensde room-/EMSobservationTTL, boot/sequence/retained/offlinefences,
+  native vervaltimer en gemeldeCH versus werkelijke warmte apart. EN442model
+  blijft schatting; native adminCSV opt-in opgenomen historische units, geen
+  huidige unit raden of waardeconversie. TijdelijkeSQLiteproef géén live72ubewijs.
+- [ ] F5 blijft open: Classic-/bron-/fysiekepariteit, werkelijke UI/telefoon,
+  firmwarefullbuild/resources/installatie, livecadans/retentie en modelnut.
+  Geen livehistorie/config/broker/apparaat gewijzigd of verwarmingsGO.
+- Bewijs11774dossier: ROOM-CORRECTED-PARENT-REVIEW.md, PRECHECK/HASHES/COMMANDS,
+  NATIVE/HA/RESTORE-ROWS en room-corrected-parent-recorder/. Rollback uitsluitend
+  nieuwe broncommit; beide historiekdefinities bewaren, geen runtimedata te herstellen.
+- Eerstvolgende echte parentactie: gereed Stage22enabledreplay onafhankelijk
+  toetsen; alle7aangeleverde policies afgewezen/onvoldoende, niet als modelwinst
+  aftekenen. Bestaande specialist vervolgt connectedcomfort/GUIapply/modelowner/
+  seizoen-/releasewerk; hele11785software actief, fysieke gates ongewijzigd.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

@@ -4,6 +4,7 @@
 #include "EMS/UBAOutdoorTemp.h"
 #include "EMS/UBAFactory.h"
 #include "EMS/EmsMetricTotals.h"
+#include "EMS/RoomHeatObservation.h"
 #include <TimeHelpers.h>
 
 #include <functional>
@@ -19,11 +20,13 @@ public:
     using clock_t = std::function<uint64_t()>;
 
     explicit EmsMetrics(registerProcessorFunc_t registerProcessor,
-                        clock_t clock = [] { return ib::getTimeMillis(); }) : clock_(std::move(clock)) {
+                        clock_t clock = [] { return ib::getTimeMillis(); }, std::string boot = {})
+        : clock_(std::move(clock)), roomObservation_(std::move(boot)) {
         registerProcessor(UBAMonitorFastPlus::predefinedTypeId, [this](EmsTelegram const& t) {
             if (!admitted(t)) return;
             const auto now = clock_();
             std::lock_guard<std::mutex> lock(mutex_);
+            roomObservation_.receive(now, t);
             // Interpret the real telegram bytes, without downcasting a base object.
             if (auto b = t.byteAt(10)) totals_.power(now, *b);
             if (auto b = t.byteAt(11)) {
@@ -73,6 +76,15 @@ public:
         return outdoor(clock_());
     }
 
+    void getRoomObservation(std::ostream& ss) const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        roomObservation_.write(ss, clock_());
+    }
+    void getRoomContext(std::ostream& ss) const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        roomObservation_.context(ss, clock_());
+    }
+
     void getMetrics(std::ostream& ss) {
         std::lock_guard<std::mutex> lock(mutex_);
         const auto now = clock_();
@@ -113,9 +125,10 @@ private:
         return now >= outdoorObserved_ && now - outdoorObserved_ < 180000
             ? outdoorTemperature_ : std::nullopt;
     }
-    std::mutex mutex_;
+    mutable std::mutex mutex_;
     clock_t clock_;
     EmsMetricTotals totals_;
+    RoomHeatObservation roomObservation_;
     std::optional<double> outdoorTemperature_;
     uint64_t outdoorObserved_ = 0;
 };

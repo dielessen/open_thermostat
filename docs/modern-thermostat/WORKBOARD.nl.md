@@ -2454,6 +2454,60 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   vereist. Admission is geen uitvoering/completion. Enigeautomation geïnspecteerd/behouden;
   bestaande15mininterval/pacing en next_check15m bevestigd.
 
+### Hervatting na expliciete idle-melding — tweekamergebruikersketen
+
+- Specialist meldt geen actieve implementatie/build/test, schone kandidaat
+  b16dcd1 en Stage54-providerkwalificatie. RESULT.md rechtstreeks gelezen;
+  Stage54-testclaims zijn nog geen onafhankelijke parentacceptatie.
+- De eerdere QUEUED-opdrachten zijn dus geen bewijs van lopende uitvoering.
+  Nieuwe concrete followup b9e8bcff-afcd-4a0b-a6ba-0a4e29f05802 is accepted/queued
+  bij dezelfde specialist; daadwerkelijke start en oplevering nog onbewezen.
+- Doel/acceptatie F2/F3/WP03-04: normale HA-draft/expliciet apply → echte
+  tweekamer-DATAwriter/journal/persist/exacte readback → same-owner SOURCEtransitie
+  → bestaande controller → firmwarebevestigde GUI-status. Geen fixture-preload
+  als applybewijs. Negatieve stale/conflict/owner/write/readback/reconnectchecks
+  en scoped rollback met behoud van het oude accepted-journal vereist.
+- Parent blijft reviewer/merger. Geen nieuwe timer of productie-/deviceactie;
+  fysieke E32-persistentie, frontend-, duur- en verwarmingsacceptatie blijven open.
+  Volgende bewijsactie: geïntegreerd bronpakket van deze run onafhankelijk toetsen.
+
+### Mark11785 — Stage54 native HA-schemaprovider: onafhankelijke bronacceptatie
+
+- [x] Canonicalhost0cd4c27 werkelijk toegankelijk; bestaande niet-gecommitteerde
+  idle-hervattingssectie volledig behouden. Eenmalighostreceipt bestond al en is
+  niet herhaald. Actuele§6/PLAN/RESULTStage54, memory en verified-taskflow gelezen.
+  Eenmaal boundedhistory6 toont echte bronuitvoering GraphFloorControlStoreView
+  bij bestaande specialist; geen tweede implementatie-eigenaar of runtimeactie.
+- [x] ExactStage54patch03fb3015833eb710461aab549ab4d8a6bfe10827cfa2b28de7aa500f562b99f6,
+  505archivebestanden/23bewijshashes/2nieuwebronhashes onafhankelijk gecontroleerd.
+  Alle bestaande canonicalwerkboombytes behouden;7bewuste afwijkingen met oude
+  specialistbaseline NIET overschreven, inclusief parentGUIoncefix/PLAN/WORKBOARD.
+- [x] Geïsoleerde canonical-afgeleide reviewbranch:13echte nativeHA2026.10.2/
+  Python3.14.8provider-/form-/Store-/registry-/readback-/reloadchecks PASS,
+  2negatieve dependency/licentieauditchecks PASS. Bestaande onafhankelijkeStage51
+  C++peer hergebruikt na binary- en40bronhashchecks; geen nieuwe compile/fullmatrix/
+  sanitizerrunclaim. Vijf bestaande dependencydeprecaties, netwerk door nativefixture
+  verboden. HA declareert probatio0.13.0 werkelijk en gebruikt diens Schema;
+  geen projectalias of nieuwe runtimeafhankelijkheid toegevoegd.
+- [x] Broncommit77ba7d6f19804270fee52e6ddbe93659cf51036e fast-forward canonical;
+  beide afterhashes en behoud alle bestaande trackedwerkboombytes nagecontroleerd.
+  Bewijs: sibling open-thermostat-parent-stage54-20261021 met TASKFLOW/BEFORE,
+  frozenmanifest/patch/archive,SOURCE-CHECKS,REVIEW,HA-COMMAND,HA.xml/log,
+  NEGATIVE.log,CHECKS,SOURCE-POSTCHECK. Rollback alleen deze twee nieuwe paden
+  vóór afhankelijken; runtime/config/journal/model/Recorder/history/cache behouden.
+- [ ] Alleen gepindeHAversie gekwalificeerd; productieHAversie/resolutie UNKNOWN.
+  Echte tweekamerDATAwriter/journal/revisietransitie/GUIapply, ondersteunde
+  producer/factory, nativefrontenddesktop/mobiel, actuelefullimages/SDKclosure,
+  resources/F9/fysieke/72u/TX/EMS/actuator/verwarmingsgates blijven OPEN.
+  Een gepinde onefloorDATA+reviewSnapshotprojectie is geen normale tweekamerwriter.
+- Volgende concrete F2/F3/WP03-04acceptatiestap followup2cf45701 QUEUED na huidig
+  bridgewerk: normale edit/apply vanaf acceptedjournal naar echte DATAwrite/exacte
+  readback/sameownerSOURCEtransitie/twee firmwarebevestigde climates; expliciete
+  drift-tijdens-await/ambiguouscommit/verlorenACK/reconnect-/recordrollbackchecks.
+  Geen PRELOAD als gebruikersbewijs; admission is geen uitvoering/completion.
+  HelePLAN in_progress; niets geïnstalleerd/gepubliceerd. Enigeautomation werkelijk
+  geïnspecteerd,15mininterval/pacing behouden en next_check15m bevestigd.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

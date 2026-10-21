@@ -20,3 +20,27 @@ Do not call a PASS of regression tests an accepted adaptive policy. Report each 
 Dossier verifiers: verify-f9-coverage.py orchestrates sequential actual native replay, same ASan/UBSan replay, and existing real model/store regressions. OPENTHERMOSTAT_REVIEW_SOURCE selects an assembled review checkout. Cached real GTest and unused cJSON object are not instrumented; actual tested models/regulator/water/evaluator/test translation unit is instrumented. Native non-PIE sanitizer flags only; firmware flags unchanged.
 
 Reverse only this test/doc patch or revert its source commit after later dependents. Existing model source, native HA/api1 defaults, immutable older evidence, parent WORKBOARD and Recorder fixes remain untouched. No runtime data changed. Parent canonical review/build/release and all source/physical/TX/EMS/actuator gates remain open.
+
+
+## Explicit guarded enabled holdouts (Stage34)
+
+Existing enabled reference policy and evaluator extended, not replaced. Additional
+fixed pairs: calibration at+5C versus holdout-20C (no weather extrapolation by any
+model);30min window/10minDHW plus existing fault;3h entirely absent telemetry over
+one arrival, fresh owner epoch after reconnect, immediate model invalidation and
+no cached coast/prospective-curve re-adoption. No fake temperature/CV frames in
+gap and one unobserved arrival is reported separately, not scored as zero/hit.
+
+Old default scenario digest, baseline and complete old score fields remain
+byte/number exact against the frozen11row Stage27 evidence. New switches alone
+extend common exogenous hash. Frozen six qualifying SYNTHETIC training episodes
+span15calendar days; holdouts span14synthetic days, NOT actual measurement.
+Models actually observe/propose and influence reference-policy trajectories;
+candidate benefit remains separately rejected/insufficient. Production model,
+evaluator, policies/defaults/active callers and output flags remain unchanged.
+
+Model comparability fields are maximum actually REPORTED proposal counters;
+unrequested curve comparability is null, not0. Gap/source denial is not scored
+as measured zero temperature. All deadline/coverage/comfort/overshoot/cycling and
+safety results remain separate machine fields. Baseline is never retuned to make
+candidate succeed. No physical comfort/energy improvement claim, no live IO.

@@ -101,12 +101,13 @@ struct Calibrated {
         }
         return x;
     }
-    CurveAdvisory prospectiveCurve() {
+    CurveAdvisory prospectiveCurve(std::optional<int16_t> liveWeather={}) {
+        const int16_t currentWeather=liveWeather.value_or(outside);
         // Actual fresh full four-hour window; prospective configuration ONLY.
         // Not a live owner adoption/commit. New test scenario initial conditions
         // are declared separately; this is not continuous physical telemetry.
         for(unsigned m=0;m<=240;++m)
-            curve.observe(curveObservation(16ULL*86400000+m*60000,epoch+16*86400+m*60,10,outside,++seq));
+            curve.observe(curveObservation(16ULL*86400000+m*60000,epoch+16*86400+m*60,10,currentWeather,++seq));
         return curve.propose(16ULL*86400000+14400000,epoch+16*86400+14400,trained);
     }
 };
@@ -114,6 +115,9 @@ struct Holdout {
     // Fixed exogenous toy parameters, shared byte-for-byte by both trajectories.
     double storeResponse=.20,loss=.001,daytimeGain=0;
     unsigned sensorLossBegin=0,sensorLossEnd=0;
+    std::optional<int16_t> calibrationWeather;
+    bool windowDhwEvents=false;
+    unsigned telemetryGapBegin=0,telemetryGapEnd=0;
 };
 struct Plant {
     double room=19,stored=0;
@@ -137,15 +141,21 @@ struct Outcome {
     unsigned warmUsed=0,coastUsed=0,curveUsed=0,differentDemand=0,differentWater=0;
     unsigned inhibited=0,unsafeModelDecisions=0,sensorMissingMinutes=0,knownGainMinutes=0;
     unsigned warmWindowsBefore=0,warmWindowsAfter=0,coastWindowsBefore=0,coastWindowsAfter=0;
+    unsigned curveWindowsBefore=0,curveWindowsAfter=0;
     bool trained=false,curveValid=true,feedAccepted=true;
+    unsigned windowMinutes=0,dhwMinutes=0,faultMinutes=0,absentTelemetryMinutes=0,reconnects=0;
+    unsigned missingDeadlineObservations=0,lossAdviceProbes=0,staleAdviceAfterLoss=0,curveDroppedOnLoss=0;
+    unsigned maxReportedWarmComparable=0,maxReportedCoastComparable=0;
+    std::optional<unsigned> reportedCurveComparable;
     std::string scenarioDigest;
 };
 Outcome run(int16_t weather,Choice enabled,bool blocked=false,double holdoutPower=1.0,bool coastEntry=false,Holdout holdout={}) {
-    Calibrated models(weather);Outcome r;r.trained=models.trained;
-    r.warmWindowsBefore=models.warm.snapshot().count;r.coastWindowsBefore=models.coast.snapshot().count;
+    Calibrated models(holdout.calibrationWeather.value_or(weather));Outcome r;r.trained=models.trained;
+    r.warmWindowsBefore=models.warm.snapshot().count;r.coastWindowsBefore=models.coast.snapshot().count;r.curveWindowsBefore=models.curve.snapshot().count;
     auto baseGroup=group(),candidateGroup=baseGroup;
     if(enabled.curve&&!blocked) {
-        const auto proposal=models.prospectiveCurve();
+        const auto proposal=models.prospectiveCurve(weather);
+        r.reportedCurveComparable=proposal.comparableWindows;
         if(proposal.proposed) {candidateGroup.curveCentiC=proposal.newCurve;++r.curveUsed;}
         r.curveValid=candidateGroup.valid();
     }
@@ -157,6 +167,12 @@ Outcome run(int16_t weather,Choice enabled,bool blocked=false,double holdoutPowe
         <<";power="<<holdoutPower<<";blocked="<<blocked<<";coastEntry="<<coastEntry
         <<";store="<<holdout.storeResponse<<";loss="<<holdout.loss
         <<";daytimeGain="<<holdout.daytimeGain<<";sensorLoss="<<holdout.sensorLossBegin<<":"<<holdout.sensorLossEnd;
+    // Preserve EXACT old default digest/oracle; hash new exogenous switches only
+    // when explicitly enabled, never endogenous candidate decisions.
+    if(holdout.calibrationWeather)exogenous<<";calibrationWeather="<<*holdout.calibrationWeather;
+    if(holdout.windowDhwEvents)exogenous<<";window=1200:1230;dhw=1800:1810";
+    if(holdout.telemetryGapEnd>holdout.telemetryGapBegin)
+        exogenous<<";absentTelemetry="<<holdout.telemetryGapBegin<<":"<<holdout.telemetryGapEnd<<";freshOwnerOnReconnect=21";
     r.scenarioDigest=controlTestHash(exogenous.str());
     std::array<uint8_t,32> identity{};
     for(unsigned i=0;i<32;++i)
@@ -188,7 +204,11 @@ Outcome run(int16_t weather,Choice enabled,bool blocked=false,double holdoutPowe
         const bool stale=minute>=3000&&minute<3010;
         const bool sensorLost=minute>=holdout.sensorLossBegin&&minute<holdout.sensorLossEnd;
         const bool gainActive=holdout.daytimeGain>0&&tod>=600&&tod<900;
-        const bool permitted=!(fault||stale||blocked||sensorLost);
+        const bool window=holdout.windowDhwEvents&&minute>=1200&&minute<1230;
+        const bool dhw=holdout.windowDhwEvents&&minute>=1800&&minute<1810;
+        const bool absent=minute>=holdout.telemetryGapBegin&&minute<holdout.telemetryGapEnd;
+        const bool permitted=!(fault||stale||blocked||sensorLost||window||dhw||absent);
+        r.windowMinutes+=window?1:0;r.dhwMinutes+=dhw?1:0;r.faultMinutes+=fault?1:0;
         const bool modelPermitted=permitted&&!gainActive;
         r.sensorMissingMinutes+=sensorLost?1:0;r.knownGainMinutes+=gainActive?1:0;
         const auto now=baseMs+minute*60000;
@@ -197,17 +217,45 @@ Outcome run(int16_t weather,Choice enabled,bool blocked=false,double holdoutPowe
         const int16_t nextTarget=tod<360||tod>=1320?2100:1900;
         ScheduleTarget schedule{ScheduleState::active,commonTarget,
             ScheduleTransition{epoch+17*86400+nextMinute*60,nextTarget}};
+        if(absent) {
+            ++r.absentTelemetryMinutes;if(tod==360)++r.missingDeadlineObservations;
+            if(minute==holdout.telemetryGapBegin) {
+                models.warm.invalidateAdmission();models.coast.invalidateAdmission();models.curve.invalidateAdmission();
+                const auto warm=models.warm.propose(now,utc,schedule,models.water);
+                const auto coast=models.coast.propose(now,utc,schedule,models.trained);
+                r.maxReportedCoastComparable=std::max(r.maxReportedCoastComparable,unsigned(coast.comparableCycles));
+                const auto curve=models.curve.propose(now,utc,models.trained);
+                r.lossAdviceProbes+=3;
+                r.staleAdviceAfterLoss+=(warm.plannedStartUtc?1:0)+(coast.coastNow?1:0)+(curve.proposed?1:0);
+                if(candidateGroup.curveCentiC!=baseGroup.curveCentiC)++r.curveDroppedOnLoss;
+                candidateGroup=baseGroup; // no automatic prospective re-adoption after owner loss
+            }
+            coastUntil=0;++r.inhibited;
+            const auto aStop=baseline.step(now,std::nullopt,std::nullopt,false);
+            const auto bStop=candidate.step(now,std::nullopt,std::nullopt,false);
+            r.unsafeModelDecisions+=(aStop.demand||bStop.demand)?1:0;
+            a.step(false,weather/100.0,2000,holdoutPower,holdout,gainActive);
+            b.step(false,weather/100.0,2000,holdoutPower,holdout,gainActive);
+            previousCandidateHeat=false;
+            // No synthetic temperature or CV observation invented in the gap.
+            // Next real frame exposes the actual monotonic gap to evaluator.
+            continue;
+        }
+        if(holdout.telemetryGapEnd>holdout.telemetryGapBegin&&minute==holdout.telemetryGapEnd)++r.reconnects;
         GroupWaterInput input;input.demand=true;input.sourceValid=permitted;input.deliveryAvailable=permitted;
         input.independentLimitHealthy=true;input.outdoorFresh=true;input.outdoorCentiC=weather;input.roomErrorCentiC=0;
         const auto wa=groupWaterTarget(baseGroup,input),wb=groupWaterTarget(candidateGroup,input);
-        auto live=observation(now,utc,++models.seq,20,b.temperature(),weather,wb.target.value_or(models.water),previousCandidateHeat);
-        live.targetGeneration=day*2+(occupied?2:1);live.sourceVerified=permitted;live.fault=fault;
+        const uint32_t currentOwner=(holdout.telemetryGapEnd>holdout.telemetryGapBegin&&minute>=holdout.telemetryGapEnd)?21:20;
+        auto live=observation(now,utc,++models.seq,currentOwner,b.temperature(),weather,wb.target.value_or(models.water),previousCandidateHeat);
+        live.targetGeneration=day*2+(occupied?2:1);live.sourceVerified=permitted;live.fault=fault;live.windowOpen=window;live.dhw=dhw;
         live.unexplainedGain=gainActive;if(sensorLost)live.temperatureCentiC.reset();
         models.warm.observe(live);models.coast.observe(live);
         int16_t effective=commonTarget;bool chooseCoast=false;
         const auto start=models.warm.propose(now,utc,schedule,wb.target);
+        r.maxReportedWarmComparable=std::max(r.maxReportedWarmComparable,unsigned(start.comparableStarts));
         if(enabled.warm&&modelPermitted&&start.startNow) {effective=nextTarget;++r.warmUsed;}
         const auto coast=models.coast.propose(now,utc,schedule,models.trained);
+        r.maxReportedCoastComparable=std::max(r.maxReportedCoastComparable,unsigned(coast.comparableCycles));
         if(enabled.coast&&modelPermitted&&coast.coastNow) {coastUntil=now+coast.horizonSec*1000;++r.coastUsed;}
         if(!modelPermitted) {coastUntil=0;++r.inhibited;}
         if(enabled.coast&&modelPermitted&&coastUntil>now) chooseCoast=true;
@@ -233,7 +281,7 @@ Outcome run(int16_t weather,Choice enabled,bool blocked=false,double holdoutPowe
         previousCandidateHeat=heatB;
     }
     r.score=evaluator.assessment();r.warmWindowsAfter=models.warm.snapshot().count;
-    r.coastWindowsAfter=models.coast.snapshot().count;return r;
+    r.coastWindowsAfter=models.coast.snapshot().count;r.curveWindowsAfter=models.curve.snapshot().count;return r;
 }
 void record(const char* name,const Outcome& r) {
     const auto* path=std::getenv("OPENTHERMOSTAT_ENABLED_REPLAY_EVIDENCE");if(!path)return;
@@ -261,7 +309,17 @@ void record(const char* name,const Outcome& r) {
         <<",\"sensor_missing_minutes\":"<<r.sensorMissingMinutes<<",\"known_gain_minutes\":"<<r.knownGainMinutes
         <<",\"warm_windows_before\":"<<r.warmWindowsBefore<<",\"warm_windows_after\":"<<r.warmWindowsAfter
         <<",\"coast_windows_before\":"<<r.coastWindowsBefore<<",\"coast_windows_after\":"<<r.coastWindowsAfter
-        <<",\"candidate_safety_violations\":"<<s.candidate.safetyViolations<<",\"physical_output\":false}\n";
+        <<",\"curve_windows_before\":"<<r.curveWindowsBefore<<",\"curve_windows_after\":"<<r.curveWindowsAfter
+        <<",\"window_minutes\":"<<r.windowMinutes<<",\"dhw_minutes\":"<<r.dhwMinutes
+        <<",\"fault_minutes\":"<<r.faultMinutes<<",\"absent_telemetry_minutes\":"<<r.absentTelemetryMinutes
+        <<",\"fresh_reconnect_epochs\":"<<r.reconnects<<",\"missing_deadline_observations\":"<<r.missingDeadlineObservations
+        <<",\"owner_loss_advice_probes\":"<<r.lossAdviceProbes<<",\"stale_advice_after_owner_loss\":"<<r.staleAdviceAfterLoss
+        <<",\"curve_prospective_cleared_on_owner_loss\":"<<r.curveDroppedOnLoss
+        <<",\"max_reported_warm_comparable\":"<<r.maxReportedWarmComparable
+        <<",\"max_reported_coast_comparable\":"<<r.maxReportedCoastComparable
+        <<",\"reported_curve_comparable\":";
+    if(r.reportedCurveComparable)out<<*r.reportedCurveComparable;else out<<"null";
+    out<<",\"candidate_safety_violations\":"<<s.candidate.safetyViolations<<",\"physical_output\":false}\n";
 }
 TEST(ThermalEnabledReplay, RealObserveTrainingHasSixIndependentSyntheticEpisodesAndOneBoundedCurveProposal) {
     for(int16_t weather:{500,1500}) {
@@ -370,6 +428,38 @@ TEST(ThermalEnabledReplay, ExtendedSensorLossRemovesSamplesStopsDemandAndCannotP
     EXPECT_EQ(r.unsafeModelDecisions,0u);EXPECT_EQ(r.score.candidate.safetyViolations,0u);
     EXPECT_EQ(r.warmWindowsBefore,r.warmWindowsAfter);EXPECT_EQ(r.coastWindowsBefore,r.coastWindowsAfter);
     record("extended_sensor_loss_no_fabricated_samples",r);
+}
+
+TEST(ThermalEnabledReplay, IncomparableWeatherCannotExtrapolateStoredWarmCoastOrCurveAdvice) {
+    Holdout h;h.calibrationWeather=500;
+    const auto r=run(-2000,{true,true,true},false,1.0,false,h);
+    ASSERT_TRUE(r.feedAccepted&&r.trained);
+    EXPECT_EQ(r.warmUsed,0u);EXPECT_EQ(r.coastUsed,0u);EXPECT_EQ(r.curveUsed,0u);
+    EXPECT_EQ(r.maxReportedWarmComparable,0u);EXPECT_EQ(r.maxReportedCoastComparable,0u);
+    ASSERT_TRUE(r.reportedCurveComparable);EXPECT_EQ(*r.reportedCurveComparable,0u);
+    EXPECT_EQ(r.differentDemand,0u);EXPECT_EQ(r.differentWater,0u);
+    EXPECT_EQ(r.unsafeModelDecisions,0u);EXPECT_FALSE(r.score.accepted);
+    record("incomparable_weather_no_extrapolated_advice",r);
+}
+TEST(ThermalEnabledReplay, WindowAndDhwPreemptEnabledAdviceAlongsideExistingFaults) {
+    Holdout h;h.windowDhwEvents=true;const auto r=run(500,{true,true,true},false,1.0,false,h);
+    ASSERT_TRUE(r.feedAccepted&&r.trained);EXPECT_EQ(r.windowMinutes,30u);EXPECT_EQ(r.dhwMinutes,10u);
+    EXPECT_EQ(r.faultMinutes,10u);EXPECT_GT(r.warmUsed,0u);
+    EXPECT_EQ(r.unsafeModelDecisions,0u);EXPECT_EQ(r.score.baseline.safetyViolations,0u);EXPECT_EQ(r.score.candidate.safetyViolations,0u);
+    EXPECT_EQ(r.warmWindowsBefore,r.warmWindowsAfter);EXPECT_EQ(r.coastWindowsBefore,r.coastWindowsAfter);
+    EXPECT_FALSE(r.score.accepted);record("window_dhw_fault_preempt_enabled_advice",r);
+}
+TEST(ThermalEnabledReplay, MissingTelemetryGapAndFreshReconnectNeverRestorePriorAdmissionOrProspectiveCurve) {
+    Holdout h;h.telemetryGapBegin=5*1440+300;h.telemetryGapEnd=h.telemetryGapBegin+180;
+    const auto r=run(500,{true,true,true},false,1.0,false,h);
+    ASSERT_TRUE(r.feedAccepted&&r.trained);EXPECT_EQ(r.absentTelemetryMinutes,180u);EXPECT_EQ(r.reconnects,1u);
+    EXPECT_EQ(r.missingDeadlineObservations,1u);EXPECT_EQ(r.lossAdviceProbes,3u);EXPECT_EQ(r.staleAdviceAfterLoss,0u);
+    EXPECT_EQ(r.curveDroppedOnLoss,1u);EXPECT_GE(r.score.excludedMs,180ULL*60000);
+    EXPECT_EQ(r.score.deadlineAttempts,14u); // known schedule still has14; no denominator relaxation
+    EXPECT_EQ(r.score.qualifiedDeadlines,13u); // one absent measurement stays unqualified, not zero/hit
+    EXPECT_EQ(r.unsafeModelDecisions,0u);EXPECT_EQ(r.score.candidate.safetyViolations,0u);
+    EXPECT_EQ(r.warmWindowsBefore,r.warmWindowsAfter);EXPECT_EQ(r.coastWindowsBefore,r.coastWindowsAfter);
+    EXPECT_FALSE(r.score.accepted);record("absent_telemetry_fresh_reconnect_no_cached_advice",r);
 }
 
 }

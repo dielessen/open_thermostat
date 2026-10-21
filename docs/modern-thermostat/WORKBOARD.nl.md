@@ -1611,6 +1611,38 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   automatische runtimebinding. Admission is geen completion. Bestaande generic-
   OTAsize-/overige11785softwarebacklog blijft gelden; hervattingscheck15min.
 
+
+### Mark11785 — F9 expliciete guard-holdouts: Stage34 onafhankelijke testbronacceptatie
+
+- [x] Echte canonical hostcheckout b6bc35e schoon; actuele§6/PLAN,
+  memory_search/verified-taskflow en RESULTStage34 werkelijk gelezen. Bestaand
+  hostreceipt niet herhaald; eenmaal boundedhistory6 plus session_status:
+  bestaande specialist actief aan samengestelde nativeHA/migratiereleasechecks.
+- [x] Exact2paden-test/docpatch b9d61f1d5fc0089f79d9ececad9c529a4754b932501973ea8d800643806996bb
+  gereviewd; beidevoor-/nahashes, frozenarchive en23bewijshashes exact.
+  Canonical-afgeleide reviewworktree; alle6beschermde productieheaders exact.
+- [x] Actual hostg++17 strict:13nativePASS; dezelfde13PASS met volledige echte
+  GTest/replay/model/regulator/water/evaluatorTU ASan+UBSan/leakdetectie.
+  Externe echteOpenSSL niet geïnstrumenteerd; native-onlynonPIE, geen productflags.
+  Alle14semantische rijen exact native/sanitizer/specialist; alle velden van11oude
+  oracles exact, geen versoepelde gates/retuning of gewijzigde modelbytes.
+- [x] Onvergelijkbaar weer geeft0advies; window/DHW/fault remmen advies;
+  180min geheel ontbrekende telemetrie levert geen verzonnen frames, wist
+  test-referencepolicycache en vereist verseownerepoch.14arrivalpogingen/
+  13gekwalificeerde observaties blijven apart. Geen productiecallerbewijs.
+- [ ] Alle14modelassessments blijven AFGEWEZEN/ONVOLDOENDE; geen woning-/
+  besparings-/modelnut-/fysiekeveiligheidsclaim.15kalibratie-/14holdoutdagen
+  zijn synthetisch, geen echte meerdaagse/72uproef of modelowneracceptatie.
+- Bewijs11774dossier: F9-GUARD-PARENT-REVIEW.md, verify-f9-guard-parent.py,
+  f9-guard-parent-evidence/{PRECHECK,COMMANDS,CHECKS,NATIVE,SANITIZER}.json,
+  echtebuild/runlogs en beideSCENARIOS.jsonl. Rollback alleen nieuwe2paden-
+  test/docbroncommit vóór afhankelijken; resource6f3be37/data/Recorder/DHW/PLAN bewaren.
+- Eerstvolgende uitvoering bij dezelfde specialist: bestaande samengestelde
+  releasechecks afronden en bestaande boundedbackend846a3936 met echte SHAprovider/
+  NVS-foutinjectie vervolgen, zonder dubbele owner of automatische productbinding.
+  Generic-OTAsize/contact-person/F9diagnose/seizoensprofielen blijven softwarewerk;
+  hele11785 in_progress. Niet geïnstalleerd/gepubliceerd; fysieke gates ongewijzigd.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

@@ -8,6 +8,7 @@
 #include "ScheduleDocument.h"
 #include "SessionAdmission.h"
 #include "ZoneRegulator.h"
+#include "SeasonalControllerSource.h"
 #include "HydraulicSupervisor.h"
 #include <algorithm>
 #include <functional>
@@ -65,17 +66,26 @@ public:
     static constexpr size_t maximumZones=8, maximumConfigBytes=4096;
     static constexpr uint32_t grantMs=10000, leaseMs=15000;
     ShadowController(std::string controller,std::string boot,std::string owner,
-                     ControlStore &store,Hash hash,Nonce nonce,Publish publish,Metrics metrics={})
+                     ControlStore &store,Hash hash,Nonce nonce,Publish publish,Metrics metrics={},
+                     const SeasonalControllerSource* seasonalSource=nullptr,
+                     SeasonalControllerSource::Safety safety={})
         :controller_(std::move(controller)),boot_(std::move(boot)),owner_(std::move(owner)),
          store_(store),hash_(std::move(hash)),nonce_(std::move(nonce)),publish_(std::move(publish)),metrics_(std::move(metrics)),admission_(owner_) {
         if(!SessionAdmission::validId(controller_)||!SessionAdmission::validId(boot_)||!SessionAdmission::validId(owner_)) { fault_=true; return; }
+        if(seasonalSource) {
+            if(!seasonalSource->valid()||seasonalSource->controllerId!=controller_||!safety) {
+                fault_=true;return; // Selected source MUST NOT fall back to ordinary policy.
+            }
+            seasonalSource_=std::make_unique<SeasonalControllerSource>(*seasonalSource);
+            seasonalSafety_=std::move(safety);
+        }
         std::string saved;
         if(!store_.load(saved)) { fault_=true; return; }
         if(saved.empty()) return;
         auto root=parseControlJson(saved);
         if(!root || saved.size()>maximumConfigBytes || !decodeConfig(root.get(),*config_)) { fault_=true; return; }
         configBytes_=printJson(root.get()); digest_=hash_(configBytes_);
-        if(!hexString(digest_,64)) fault_=true;
+        if(!hexString(digest_,64)||(seasonalSource_&&digest_!=seasonalSource_->configDigest)) fault_=true;
     }
     void connected(uint64_t now) {
         invalidate();
@@ -242,7 +252,8 @@ private:
             !hexString(stringField(o,"mapping_digest"),64)||stringField(o,"mode")!="shadow"||
             !integerField(o,"revision",1,UINT32_MAX)||!integerField(o,"schema",1,1)) return false;
         auto zones=field(o,"zones");
-        if(!cJSON_IsArray(zones)||cJSON_GetArraySize(zones)>static_cast<int>(maximumZones)) return false;
+        if(!cJSON_IsArray(zones)||cJSON_GetArraySize(zones)>static_cast<int>(maximumZones)
+            ||(seasonalSource_&&cJSON_GetArraySize(zones)!=static_cast<int>(seasonalSource_->count))) return false;
         std::set<std::string> identities{"adapter","config","snapshot"};
         for(auto zone=zones->child;zone;zone=zone->next) {
             const bool comfort=field(zone,"comfort");
@@ -279,6 +290,14 @@ private:
             auto schedule=field(zone,"schedule");
             z.scheduled=!cJSON_IsNull(schedule);
             if(z.scheduled && !configureScheduleDocument(z.schedule,schedule)) return false;
+            if(seasonalSource_) {
+                const auto pin=seasonalSource_->zone(z.id);
+                if(!pin||pin->sensorId!=z.sensor||pin->actuatorId!=z.actuator
+                    ||(z.comfortEnabled&&(pin->seasonal.frostTargetCentiC<z.comfortProfile.minimumCentiC
+                        ||pin->seasonal.frostTargetCentiC>z.comfortProfile.maximumCentiC
+                        ||pin->seasonal.frostTargetCentiC!=z.comfortProfile.frostCentiC)))return false;
+                z.regulator=ZoneRegulator(pin->control,pin->seasonal);
+            }
             ++out.count;
         }
         out.revision=uintField(o,"revision"); return true;
@@ -293,7 +312,8 @@ private:
             keys.insert({"expected_revision","config_digest","config"});
             if(!integerField(o,"expected_revision",0,UINT32_MAX)||!hexString(stringField(o,"config_digest"),64)||!decodeConfig(field(o,"config"),candidate)) return false;
             configBytes=printJson(field(o,"config"));
-            if(configBytes.empty()||configBytes.size()>maximumConfigBytes||hash_(configBytes)!=stringField(o,"config_digest")) return false;
+            if(configBytes.empty()||configBytes.size()>maximumConfigBytes||hash_(configBytes)!=stringField(o,"config_digest")
+                ||(seasonalSource_&&stringField(o,"config_digest")!=seasonalSource_->configDigest)) return false;
         } else if(topic=="ha/observations") {
             keys.insert({"zone_id","source_available","temperature_c","source_sample_age_ms","evidence"});
             if(index>=0&&config_->zones[index].comfortEnabled) {
@@ -342,7 +362,10 @@ private:
         sessionId_.clear(); lastOpen_.clear(); pendingGrantNonce_.clear(); issuedGrantNonce_.clear();
         nextMetrics_=0;metricsSequence_=0;
         for(size_t i=0;i<config_->count;++i) {
-            auto &z=config_->zones[i]; z.sample.unavailable(); z.comfort.invalidate();z.comfortInputs=ComfortInputs{}; z.overrideUntil=0; z.off=false; z.demand=false; z.regulator=ZoneRegulator{};
+            auto &z=config_->zones[i]; z.sample.unavailable(); z.comfort.invalidate();z.comfortInputs=ComfortInputs{}; z.overrideUntil=0; z.off=false; z.demand=false;
+            // SOURCE-selected regulator keeps its owner/timing fences and minimum
+            // cycle state. A fresh authenticated session gets a new LOCAL generation.
+            if(!seasonalSource_) z.regulator=ZoneRegulator{};
         }
     }
     void newChallenge(uint64_t now) {
@@ -379,6 +402,8 @@ private:
             admission_.bind(11+i,config_->zones[i].id,StreamKind::user_command);
         }
         mappingReady_=uintField(o,"known_revision")==revision()&&stringField(o,"known_digest")==digest_;
+        if(seasonalSource_&&policyGeneration_==UINT32_MAX) {fault_=true;invalidate();return;}
+        if(seasonalSource_)++policyGeneration_;
         session_=true; sessionStart_=now; grantSequence_=0; clientNonce_=stringField(o,"client_nonce"); lastOpen_=request;
         if(!newGrant(now)) { invalidate(); return; }
         newChallenge(now); sessionStatus();
@@ -455,9 +480,29 @@ private:
     }
     void state(uint64_t now,int64_t utc,bool clockValid) {
         auto o=base(); cJSON_AddStringToObject(o.get(),"mode","shadow");
+        cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",false); cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false);
+        SeasonalSafetySnapshot safety;
+        bool safetyFresh=false;
+        if(seasonalSource_&&seasonalSafety_&&!policySourceFault_) {
+            if(safetyReading_)policySourceFault_=true;
+            else {
+                safetyReading_=true;
+#if defined(__cpp_exceptions)
+                try {
+#endif
+                    safety=seasonalSafety_();
+                    safetyFresh=now>=safety.sampledAt&&now-safety.sampledAt<seasonalSource_->maximumSafetyAgeMs;
+#if defined(__cpp_exceptions)
+                } catch(...) {safety={};safetyFresh=false;}
+#endif
+                safetyReading_=false;
+            }
+            safetyFresh=safetyFresh&&!policySourceFault_;
+        }
+        // A synchronous native observer may invalidate ownership. Recheck AFTER
+        // it returns, never use a pre-callback alive/admission snapshot.
         const bool alive=session_&&mappingReady_&&!fault_&&admission_.alive(now);
         cJSON_AddBoolToObject(o.get(),"adapter_alive",alive);
-        cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",false); cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false);
         bool requestedHeat=false;
         auto list=cJSON_AddArrayToObject(o.get(),"zones");
         for(size_t i=0;i<config_->count;++i) {
@@ -476,17 +521,43 @@ private:
                 cJSON_AddStringToObject(row,"comfort_mode",z.comfort.modeName());
                 cJSON_AddNumberToObject(row,"override_remaining_ms",z.comfort.remainingMs(now));
                 cJSON_AddNumberToObject(row,"vacation_until_utc",z.comfort.vacationUntil());
-                cJSON_AddBoolToObject(row,"learning_allowed",effective.learningAllowed&&alive&&bool(temperature));
             }
             target=effective.target;source=effective.source;
             if(!alive) reason="adapter_unavailable";
             else if(!temperature) reason="source_unverified_or_stale";
             else if(!target&&!z.comfortEnabled) reason=z.off?"off":"schedule_time_invalid_or_expired";
             const bool usable=alive&&temperature&&target;
-            const auto regulation=z.regulator.step(now,temperature,target,usable);
+            ZoneRegulator::Result regulation;
+            if(seasonalSource_) {
+                SeasonalInputs policy;
+                const auto age=z.sample.age(now);
+                policy.temperature=temperature;policy.target=target;policy.ownerAdmitted=alive;
+                policy.sourceQualified=alive&&bool(temperature)&&bool(age)&&*age<=now;
+                policy.sensorAt=policy.sourceQualified?now-*age:0;
+                policy.ownerGeneration=policyGeneration_;
+                policy.stop=!target;policy.allOff=safety.allOff;
+                policy.preempted=safety.preempted;
+                policy.limitsKnownSafe=safetyFresh&&safety.limitsKnownSafe;
+                policy.dhwStateKnown=safetyFresh&&safety.dhwStateKnown;
+                policy.dhwActive=safety.dhwActive;
+                policy.summer=safety.summer;
+                policy.frostSelected=target&&std::string_view(source)=="frost";
+                // Explicit frost value must remain the SAME displayed selected target.
+                const auto pin=seasonalSource_->zone(z.id);
+                if(policy.frostSelected&&(!pin||*target!=pin->seasonal.frostTargetCentiC))policy.stop=true;
+                regulation=z.regulator.stepSeasonal(now,policy);
+                if(target)reason=regulation.reason;
+                cJSON_AddBoolToObject(row,"seasonal_policy",true);
+                cJSON_AddNumberToObject(row,"seasonal_restrictions",regulation.seasonalRestrictions);
+                cJSON_AddBoolToObject(row,"frost_protection_available",false);
+                cJSON_AddBoolToObject(row,"physical_outputs_enabled",false);
+            } else regulation=z.regulator.step(now,temperature,target,usable);
+            if(z.comfortEnabled)cJSON_AddBoolToObject(row,"learning_allowed",
+                effective.learningAllowed&&alive&&bool(temperature)&&(!seasonalSource_
+                    ||(regulation.seasonalQualified&&!regulation.seasonalRestrictions&&!regulation.frostAdvice)));
             z.demand=regulation.demand;
             requestedHeat=requestedHeat||z.demand;
-            if(z.demand&&!z.comfortEnabled) reason="shadow_demand";
+            if(z.demand&&!z.comfortEnabled&&!seasonalSource_) reason="shadow_demand";
             const auto nullable=[row](const char *key,auto value) { if(value) cJSON_AddNumberToObject(row,key,*value); else cJSON_AddNullToObject(row,key); };
             nullable("temperature_centi_c",temperature); nullable("target_centi_c",target); nullable("sample_age_ms",z.sample.age(now));
             cJSON_AddNumberToObject(row,"sample_state",static_cast<int>(z.sample.state(now)));
@@ -511,6 +582,10 @@ private:
     std::unique_ptr<Configuration> config_=std::make_unique<Configuration>();
     SessionAdmission admission_;
     HydraulicSupervisor supervisor_;
+    std::unique_ptr<SeasonalControllerSource> seasonalSource_;
+    SeasonalControllerSource::Safety seasonalSafety_;
+    uint32_t policyGeneration_=0;
+    bool safetyReading_=false,policySourceFault_=false;
     uint32_t epoch_=0,grantSequence_=0,metricsSequence_=0;
     uint64_t nextMetrics_=0;
     uint64_t challengeUntil_=0,nextHello_=0,nextState_=0,nextGrant_=0,lastNow_=0,sessionStart_=0;

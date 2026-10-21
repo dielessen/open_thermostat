@@ -23,6 +23,9 @@ struct Fixture {
     std::map<std::string,std::string> output;
     std::function<void()> afterPublish;
     ShadowController::Metrics metricsProvider;
+    const SeasonalControllerSource* seasonalSource=nullptr;
+    SeasonalControllerSource::Safety seasonalSafety;
+    unsigned seasonalObservationSequence=0;
     uint32_t nonce=0;
     std::unique_ptr<ShadowController> core;
     uint64_t now=1000;
@@ -31,7 +34,7 @@ struct Fixture {
     void start() {
         core=std::make_unique<ShadowController>("e32_lab",boot,"ha1",store,controlTestHash,
             [this]{return "nonce"+std::to_string(++nonce);},
-            [this](auto topic,auto bytes){output[std::string(topic)]=bytes; if(afterPublish)afterPublish();},metricsProvider);
+            [this](auto topic,auto bytes){output[std::string(topic)]=bytes; if(afterPublish)afterPublish();},metricsProvider,seasonalSource,seasonalSafety);
         core->connected(now); tick();
     }
     ControlJson get(const std::string &topic) { return parseControlJson(output.at(topic)); }

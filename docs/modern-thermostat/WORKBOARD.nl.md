@@ -1007,6 +1007,43 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   onafhankelijk reviewen; specialist houdt graph/profile/modelowner-/resource-
   vervolg en resterende F0–F10software. Hele11785 blijft actief, hervatting15min.
 
+### Mark11785 — F9 gepaarde replayevaluator: onafhankelijke bronacceptatie
+
+- [x] Canonical prechange eaa7eb1 schoon; exacte replaycorepatch
+  6055aabc56f88516021a964d6ab48e4cb76ae20cc3368bf69d5c564aa221b615
+  volledig gereviewd; alle3niet-WORKBOARDhashes matchen REPLAY-RESULT.json ada2e5fc.
+- [x] Constante-memory OFFLINE scorer voor identieke exogene tijd-/targetcontext;
+  unpaired/klok/volgorde/budgetfouten latched, gaten/missing niet als0 of goede
+  dekking, geen verzonnen branderstarts/voltooide runs. Onbekende vlamkwaliteit
+  levert geen cyclingbewijs. Aankomstevents niet door later warme cache herstellen.
+- [x] Comfort/MAE/band/overshoot, werkelijk geobserveerde CVpendelfrequentie en
+  complete brandduur, >=10gekwalificeerde aankomsten en veiligheid afzonderlijk;
+  ALL-required acceptatie, veiligheidsovertredingen ook op uitgesloten faultframes.
+- [x] Canonical strict hostg++17:12nativePASS, dezelfde12ASan/UBSanPASS inclusief
+  echte GTest én cJSON-writer;12semantische scenariorijen exact gelijk tussen
+  normale/sanitizerparent en specialistuitvoer. Gepind Xtensa actual add/assessment
+  object PASS: comparator392B/assessment184B, geen volledige firmwareimageclaim.
+- [x] Twee echte ZoneRegulator-replays met identieke synthetische cold/mildplant:
+  defaultdisabled kandidaat == baseline; GEEN enabledmodel-/verbeteringsbewijs.
+  Onafhankelijk opnieuw: foutomzeilende kandidaat lagere MAE0.1587vs0.1638C,
+  maar5veiligheidsovertredingen en dus VERWORPEN. Negen aankomsten blijven tekort;
+  geen verlaagde10grens of verborgen fault om een groen resultaat te krijgen.
+- [ ] F9 OPEN: daadwerkelijk enabled warm/coast/curve pairedcandidate, representatieve
+  historische/huisdata, actieve graph/modelowner-/resourceacceptatie, echte14dagen/
+  comfort-/seizoensproef. Niet geïnstalleerd, geen fysieke/TX/EMS/actuatorvrijgave.
+- Bewijs11774dossier: REPLAY-PARENT-REVIEW.md, PRECHECK.json, HASHES.json,
+  COMMANDS.json/NATIVE.json/log, SANITIZER-COMMANDS.json/SANITIZER.json/log,
+  SCENARIOS.jsonl/SANITIZER-SCENARIOS.jsonl/SEMANTIC-CHECK.json en E32-RESOURCE.json.
+- Rollback uitsluitend nieuwe replaybroncommit vóór deployment; geen runtime-
+  productieHA-/broker-/apparaatdata gewijzigd. Bestaande bronpakketten behouden.
+- Volgende concrete F9/R12–14opdracht aangeboden aan dezelfde specialist NA actief
+  graph/profile/resourcewerk: echte enabledmodelvoorstellen in bestaande gepaarde
+  offline harness, identieke baseline/exogene input, cold/mild/raam/DHW/fault/
+  gap/reconnect en weigering slechtere kandidaat; synthetische14dagen expliciet
+  labelen. Followup eb935cd0-ef6b-478e-8eca-05bf6ab6435c QUEUED, geen completion.
+  Reeds aangeboden8zonebudgetgate en overige F0–F10software blijven gelden;
+  geen tweede eigenaar of herhaling van ongewijzigde groene suites. Hervatting15min.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

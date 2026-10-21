@@ -1551,10 +1551,11 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   reentry blokkeert gedeelde gate; alle3load() melden toch true en model.restore()
   wist storageFault. Dezelfde3FAIL native én volledige GTest/testTU-ASan+UBSan/
   leakdetectie; externe libcrypto niet geïnstrumenteerd. Geen outputvrijgave.
-- [ ] Pakket NIET samengevoegd. Alle3stores vereisen gatecheck na decode/hash
-  VÓÓR restore én vóór loaded_/true; faultlatch/no-extra-IO/retry behouden.
-  Ongewijzigde parentprobe en bestaande init/save-reentry/model/storagecases
-  moeten slagen; nieuw frozenmanifest vereist. Geen generieke resourceacceptatie.
+- [x] Oorspronkelijk Stage32pakket NIET samengevoegd. Herstelreview afgehandeld
+  via gecorrigeerde Stage33 hieronder: alle3stores controleren gedeelde gate na
+  decode/hash VÓÓR restore én vóór loaded_/true; faultlatch/no-extra-IO/retry
+  behouden. Ongewijzigde parentprobe en nieuwe frozenbron geverifieerd.
+  Dit is geen generieke resource-/runtimeacceptatie.
 - Bewijs11774dossier: MODEL-RESOURCE-PARENT-PRECHECK.json/REVIEW.md/POSTCHECK.json,
   verify-model-resource-parent.py, model-resource-parent-decode-probe.cpp en
   model-resource-parent-evidence/COMMANDS.json/CHECKS.json/NATIVE.json,
@@ -1568,6 +1569,47 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   person/F9diagnose/seasonal-profielwerk behouden; hele11785software in_progress,
   fysieke/72u/verwarmingsgates ongewijzigd. Officiële hervattingsjob behouden;
   volgende check15min, niet stil stoppen na dit pakket.
+
+### Mark11785 — F9/F0 gedeelde modelopslag: gecorrigeerde Stage33 bronacceptatie
+
+- [x] Echte canonical hosttoegang op1927222 schoon; §6/PLAN, memory_search,
+  verified-taskflow, actuele RESULT/Stage33 en eenmaal boundedhistory6 gelezen.
+  Bestaand NIGHT-RUNTIME-CHECK-receipt niet herhaald. Specialist actief aan
+  afzonderlijk F9guard-holdoutwerk; één bestaande uitvoeringseigenaar behouden.
+- [x] Corrected FULL11pathrollup e24903fc onafhankelijk gereviewd; alle11voor-/
+  nahashes, frozenarchive en38bewijshashes exact. Alleen volledige gecorrigeerde
+  rollup gebruikt, NIET origineleStage32 of aanvullende5padendelta daarbovenop.
+  Afzonderlijke canonical-afgeleide reviewworktree; modellen/codecsemantiek/
+  partities/resourceledger byte-exact behouden; geen nieuwe productiecaller.
+- [x] Actual hostgcc/g++17/cJSON/GTest:124nativePASS,13semantische rijen exact.
+  EXACT ongewijzigde onafhankelijke parentCPP:3nonemptydecode-foutproevenPASS
+  native én dezelfde3met volledig GTest/testTU ASan+UBSan/leakdetectie.
+  Ieder: load0/gate0/store0, sticky storagefault,2hashcalls/1read/0writes.
+  Externe libcrypto niet geïnstrumenteerd. Specialist24resourceASancases en
+  pinnedSDKsizeof/framebewijs frozen-hashgecontroleerd; niet als extra eigen
+  hostuitvoering of runtime-/volledigcallgraph-/freeheapbewijs geclaimd.
+- [x] Canonical broncommit6f3be371d1ea5383886c329c11a68bbd336e44f9;
+  exact11bronpaden, fast-forward, source/protectedhashes en schone status
+  technisch nagecontroleerd. Stage32afwijzing en oorspronkelijke3FAILlogs blijven.
+- Bewijs11774dossier: MODEL-RESOURCE-DECODE-PARENT-PRECHECK.json, REVIEW.md,
+  POSTCHECK.json, verify-model-resource-decode-parent.py en
+  model-resource-decode-parent-evidence/{COMMANDS,CHECKS,NATIVE,PROBE,
+  SANITIZER-PROBE}.json plus compile-/runlogs. Herhaalbare hostverifier gebruikt
+  echte bronheaders en onveranderde parentfoutproef; geen cronstatus als bewijs.
+- Rollback vóór deployment: revert alleen broncommit6f3be37 na review van
+  eventuele afhankelijken; geen modelbytes/config/history wissen, eerdere
+  Recorder/DHW/PLANwijzigingen behouden. Geen installatie/buildrelease/publicatie,
+  HA/brokerwijziging, login of EMS/TX/actuator/verwarmingsGO.
+- [ ] Echte backend/provider/callgraph/heap/stack/NVS-GC/8zoneruntime/product-
+  binding en normale firmware/release-/fysieke/72ugates blijven OPEN.
+  Bronreservering en één individuele compilerframe zijn geen runtimeacceptatie.
+- Concrete voortzetting bij dezelfde specialist via followup846a3936 queued:
+  lopende F9guard-holdouts gescheiden afronden, daarna F2/F9/F0 opt-in bounded
+  modelbackend en gepinde echte SHA-provider via bestaande ControlStore/
+  Preferences/NVS, lengtecheck vóór allocatie, verse stats/commit/readback en
+  reproduceerbare foutinjectie; geen configkey/partitie-/budgetverruiming of
+  automatische runtimebinding. Admission is geen completion. Bestaande generic-
+  OTAsize-/overige11785softwarebacklog blijft gelden; hervattingscheck15min.
 
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 

@@ -110,14 +110,19 @@ struct Calibrated {
         return curve.propose(16ULL*86400000+14400000,epoch+16*86400+14400,trained);
     }
 };
+struct Holdout {
+    // Fixed exogenous toy parameters, shared byte-for-byte by both trajectories.
+    double storeResponse=.20,loss=.001,daytimeGain=0;
+    unsigned sensorLossBegin=0,sensorLossEnd=0;
+};
 struct Plant {
     double room=19,stored=0;
     int16_t temperature()const{return static_cast<int16_t>(std::lround(room*100));}
-    void step(bool heat,double outside,int16_t water,double power=1.0) {
+    void step(bool heat,double outside,int16_t water,double power,const Holdout& h,bool gainActive) {
         // Toy low-order plant, not fitted or claimed for Mark's house.
         const auto gain=heat?.08*power*std::max(0.0,(water/100.0-20)/25):0;
-        stored+=(gain-stored)*.20;
-        room+=stored-(room-outside)*.001;
+        stored+=(gain-stored)*h.storeResponse;
+        room+=stored-(room-outside)*h.loss+(gainActive?h.daytimeGain:0);
     }
 };
 ReplayProfile scoreProfile() {
@@ -130,12 +135,14 @@ struct Choice {bool warm=false,coast=false,curve=false;};
 struct Outcome {
     ReplayAssessment score;
     unsigned warmUsed=0,coastUsed=0,curveUsed=0,differentDemand=0,differentWater=0;
-    unsigned inhibited=0,unsafeModelDecisions=0;
+    unsigned inhibited=0,unsafeModelDecisions=0,sensorMissingMinutes=0,knownGainMinutes=0;
+    unsigned warmWindowsBefore=0,warmWindowsAfter=0,coastWindowsBefore=0,coastWindowsAfter=0;
     bool trained=false,curveValid=true,feedAccepted=true;
     std::string scenarioDigest;
 };
-Outcome run(int16_t weather,Choice enabled,bool blocked=false,double holdoutPower=1.0,bool coastEntry=false) {
+Outcome run(int16_t weather,Choice enabled,bool blocked=false,double holdoutPower=1.0,bool coastEntry=false,Holdout holdout={}) {
     Calibrated models(weather);Outcome r;r.trained=models.trained;
+    r.warmWindowsBefore=models.warm.snapshot().count;r.coastWindowsBefore=models.coast.snapshot().count;
     auto baseGroup=group(),candidateGroup=baseGroup;
     if(enabled.curve&&!blocked) {
         const auto proposal=models.prospectiveCurve();
@@ -145,9 +152,11 @@ Outcome run(int16_t weather,Choice enabled,bool blocked=false,double holdoutPowe
     // Hash all exogenous scenario switches; model choices are endogenous and
     // intentionally excluded. Real existing OpenSSL SHA provider, not a fake.
     std::ostringstream exogenous;
-    exogenous<<std::setprecision(17)<<"toy-plant-v1;loss=.001;store=.20;gain=.08;duration=20160min;step=60s;"
+    exogenous<<std::setprecision(17)<<"toy-plant-v2;heaterGain=.08;duration=20160min;step=60s;"
         <<"targets=19@00,21@06,19@22;fault=600:610;stale=3000:3010;weather="<<weather
-        <<";power="<<holdoutPower<<";blocked="<<blocked<<";coastEntry="<<coastEntry;
+        <<";power="<<holdoutPower<<";blocked="<<blocked<<";coastEntry="<<coastEntry
+        <<";store="<<holdout.storeResponse<<";loss="<<holdout.loss
+        <<";daytimeGain="<<holdout.daytimeGain<<";sensorLoss="<<holdout.sensorLossBegin<<":"<<holdout.sensorLossEnd;
     r.scenarioDigest=controlTestHash(exogenous.str());
     std::array<uint8_t,32> identity{};
     for(unsigned i=0;i<32;++i)
@@ -177,7 +186,11 @@ Outcome run(int16_t weather,Choice enabled,bool blocked=false,double holdoutPowe
         const int16_t commonTarget=occupied?2100:1900;
         const bool fault=minute>=600&&minute<610;
         const bool stale=minute>=3000&&minute<3010;
-        const bool permitted=!(fault||stale||blocked);
+        const bool sensorLost=minute>=holdout.sensorLossBegin&&minute<holdout.sensorLossEnd;
+        const bool gainActive=holdout.daytimeGain>0&&tod>=600&&tod<900;
+        const bool permitted=!(fault||stale||blocked||sensorLost);
+        const bool modelPermitted=permitted&&!gainActive;
+        r.sensorMissingMinutes+=sensorLost?1:0;r.knownGainMinutes+=gainActive?1:0;
         const auto now=baseMs+minute*60000;
         const auto utc=baseUtc+minute*60;
         const auto nextMinute=day*1440+(tod<360?360:tod<1320?1320:1800);
@@ -189,35 +202,38 @@ Outcome run(int16_t weather,Choice enabled,bool blocked=false,double holdoutPowe
         const auto wa=groupWaterTarget(baseGroup,input),wb=groupWaterTarget(candidateGroup,input);
         auto live=observation(now,utc,++models.seq,20,b.temperature(),weather,wb.target.value_or(models.water),previousCandidateHeat);
         live.targetGeneration=day*2+(occupied?2:1);live.sourceVerified=permitted;live.fault=fault;
+        live.unexplainedGain=gainActive;if(sensorLost)live.temperatureCentiC.reset();
         models.warm.observe(live);models.coast.observe(live);
         int16_t effective=commonTarget;bool chooseCoast=false;
         const auto start=models.warm.propose(now,utc,schedule,wb.target);
-        if(enabled.warm&&permitted&&start.startNow) {effective=nextTarget;++r.warmUsed;}
+        if(enabled.warm&&modelPermitted&&start.startNow) {effective=nextTarget;++r.warmUsed;}
         const auto coast=models.coast.propose(now,utc,schedule,models.trained);
-        if(enabled.coast&&permitted&&coast.coastNow) {coastUntil=now+coast.horizonSec*1000;++r.coastUsed;}
-        if(!permitted) {coastUntil=0;++r.inhibited;}
-        if(enabled.coast&&permitted&&coastUntil>now) chooseCoast=true;
+        if(enabled.coast&&modelPermitted&&coast.coastNow) {coastUntil=now+coast.horizonSec*1000;++r.coastUsed;}
+        if(!modelPermitted) {coastUntil=0;++r.inhibited;}
+        if(enabled.coast&&modelPermitted&&coastUntil>now) chooseCoast=true;
         const auto x=baseline.step(now,a.temperature(),commonTarget,permitted);
         const auto y=candidate.step(now,b.temperature(),effective,permitted);
         const bool heatA=x.demand&&wa.target.has_value();
         const bool heatB=y.demand&&!chooseCoast&&wb.target.has_value();
         r.differentDemand+=heatA!=heatB?1:0;
         r.differentWater+=wa.target&&wb.target&&*wa.target!=*wb.target?1:0;
-        if(!permitted&&(heatB||effective!=commonTarget||chooseCoast))++r.unsafeModelDecisions;
+        if((!permitted&&heatB)||(!modelPermitted&&(effective!=commonTarget||chooseCoast)))++r.unsafeModelDecisions;
         ReplayFrame f;f.baselineScenario=f.candidateScenario=identity;f.monotonicMs=minute*60000;f.utc=utc;
         f.sequence=minute+1;f.scheduleKnown=true;f.occupied=occupied;
         f.conditionsQualified=permitted;f.burnerStatesQualified=permitted;
         f.targetCentiC=commonTarget;f.baselineTemperatureCentiC=a.temperature();f.candidateTemperatureCentiC=b.temperature();
         // CV bits below are SYNTHETIC plant delivery, not boiler/burner evidence.
         f.baselineCv=heatA;f.candidateCv=heatB;
+        if(sensorLost){f.baselineTemperatureCentiC.reset();f.candidateTemperatureCentiC.reset();}
         f.baselineSafetyViolation=!permitted&&heatA;f.candidateSafetyViolation=!permitted&&heatB;
         if(tod==360) {f.deadlineId=coastEntry?day:day+1;f.deadlineTargetCentiC=2100;}
         if(!evaluator.add(f)){r.feedAccepted=false;break;}
-        a.step(heatA,weather/100.0,wa.target.value_or(2000),holdoutPower);
-        b.step(heatB,weather/100.0,wb.target.value_or(2000),holdoutPower);
+        a.step(heatA,weather/100.0,wa.target.value_or(2000),holdoutPower,holdout,gainActive);
+        b.step(heatB,weather/100.0,wb.target.value_or(2000),holdoutPower,holdout,gainActive);
         previousCandidateHeat=heatB;
     }
-    r.score=evaluator.assessment();return r;
+    r.score=evaluator.assessment();r.warmWindowsAfter=models.warm.snapshot().count;
+    r.coastWindowsAfter=models.coast.snapshot().count;return r;
 }
 void record(const char* name,const Outcome& r) {
     const auto* path=std::getenv("OPENTHERMOSTAT_ENABLED_REPLAY_EVIDENCE");if(!path)return;
@@ -235,6 +251,16 @@ void record(const char* name,const Outcome& r) {
         <<",\"baseline_cv_ms\":"<<s.baseline.cvMs<<",\"candidate_cv_ms\":"<<s.candidate.cvMs
         <<",\"deadline_attempts\":"<<s.deadlineAttempts<<",\"qualified_deadlines\":"<<s.qualifiedDeadlines
         <<",\"baseline_hits\":"<<s.baseline.deadlineHits<<",\"candidate_hits\":"<<s.candidate.deadlineHits
+        <<",\"baseline_maximum_overshoot_centi_c\":"<<s.baseline.maximumOvershootCentiC
+        <<",\"candidate_maximum_overshoot_centi_c\":"<<s.candidate.maximumOvershootCentiC
+        <<",\"total_ms\":"<<s.totalMs<<",\"compared_ms\":"<<s.comparedMs
+        <<",\"occupied_known_ms\":"<<s.occupiedKnownMs<<",\"occupied_compared_ms\":"<<s.occupiedComparedMs
+        <<",\"excluded_ms\":"<<s.excludedMs<<",\"cv_qualified_ms\":"<<s.cvQualifiedMs
+        <<",\"baseline_in_band_occupied_ms\":"<<s.baseline.inBandOccupiedMs
+        <<",\"candidate_in_band_occupied_ms\":"<<s.candidate.inBandOccupiedMs
+        <<",\"sensor_missing_minutes\":"<<r.sensorMissingMinutes<<",\"known_gain_minutes\":"<<r.knownGainMinutes
+        <<",\"warm_windows_before\":"<<r.warmWindowsBefore<<",\"warm_windows_after\":"<<r.warmWindowsAfter
+        <<",\"coast_windows_before\":"<<r.coastWindowsBefore<<",\"coast_windows_after\":"<<r.coastWindowsAfter
         <<",\"candidate_safety_violations\":"<<s.candidate.safetyViolations<<",\"physical_output\":false}\n";
 }
 TEST(ThermalEnabledReplay, RealObserveTrainingHasSixIndependentSyntheticEpisodesAndOneBoundedCurveProposal) {
@@ -306,4 +332,44 @@ TEST(ThermalEnabledReplay, CoastAdviceIsConsumedOnlyBeforeLowerTransitionAndPres
     c.coast.observe(lost);EXPECT_FALSE(c.coast.propose(now+60000,utc+60,s,true).coastNow);
     s.next=ScheduleTransition{utc+900,2200};EXPECT_FALSE(c.coast.propose(now,utc,s,true).coastNow);
 }
+TEST(ThermalEnabledReplay, SlowFloorHoldoutUsesSameLongStorageDynamicsWithoutChangingCalibration) {
+    Holdout h;h.storeResponse=.02;
+    const auto normal=run(500,{true,true,true});
+    const auto slow=run(500,{true,true,true},false,1.0,false,h);
+    ASSERT_TRUE(slow.feedAccepted&&slow.trained);EXPECT_GT(slow.warmUsed,0u);
+    EXPECT_NE(normal.scenarioDigest,slow.scenarioDigest);
+    EXPECT_NE(normal.score.candidate.absoluteErrorTwiceCentiMs,slow.score.candidate.absoluteErrorTwiceCentiMs);
+    EXPECT_EQ(slow.warmWindowsBefore,slow.warmWindowsAfter);EXPECT_EQ(slow.coastWindowsBefore,slow.coastWindowsAfter);
+    EXPECT_EQ(slow.unsafeModelDecisions,0u);EXPECT_EQ(slow.score.candidate.safetyViolations,0u);
+    record("slow_floor_storage_holdout",slow);
+}
+TEST(ThermalEnabledReplay, DeclaredExternalGainInhibitsModelAdviceWithoutDisablingNormalThermostat) {
+    Holdout h;h.daytimeGain=.015;
+    const auto r=run(500,{true,true,false},false,1.0,false,h);
+    ASSERT_TRUE(r.feedAccepted&&r.trained);EXPECT_EQ(r.knownGainMinutes,14u*300u);
+    EXPECT_EQ(r.unsafeModelDecisions,0u);EXPECT_EQ(r.score.candidate.safetyViolations,0u);
+    EXPECT_EQ(r.warmWindowsBefore,r.warmWindowsAfter);EXPECT_EQ(r.coastWindowsBefore,r.coastWindowsAfter);
+    record("known_external_gain_holdout",r);
+}
+TEST(ThermalEnabledReplay, SmallLoadHoldoutRetainsCyclingAndComfortEvidenceRatherThanDeclaringBenefit) {
+    Holdout h;h.loss=.00025;
+    const auto r=run(1700,{true,true,true},false,.5,false,h);
+    ASSERT_TRUE(r.feedAccepted&&r.trained);EXPECT_GT(r.score.baseline.observedCvStarts,0u);
+    EXPECT_EQ(r.unsafeModelDecisions,0u);EXPECT_EQ(r.score.candidate.safetyViolations,0u);
+    EXPECT_EQ(r.warmWindowsBefore,r.warmWindowsAfter);EXPECT_EQ(r.coastWindowsBefore,r.coastWindowsAfter);
+    record("small_load_low_loss_holdout",r);
+}
+TEST(ThermalEnabledReplay, ExtendedSensorLossRemovesSamplesStopsDemandAndCannotPassCoverage) {
+    Holdout h;h.sensorLossBegin=2*1440;h.sensorLossEnd=5*1440;
+    const auto r=run(500,{true,true,true},false,1.0,false,h);
+    ASSERT_TRUE(r.feedAccepted&&r.trained);EXPECT_EQ(r.sensorMissingMinutes,3u*1440u);
+    EXPECT_GE(r.score.excludedMs,uint64_t(r.sensorMissingMinutes)*60000);
+    EXPECT_LT(r.score.comparedMs*10000,r.score.totalMs*9000);
+    EXPECT_FALSE(r.score.comparable);EXPECT_FALSE(r.score.accepted);
+    EXPECT_STREQ(r.score.reason,"replay_insufficient_data");
+    EXPECT_EQ(r.unsafeModelDecisions,0u);EXPECT_EQ(r.score.candidate.safetyViolations,0u);
+    EXPECT_EQ(r.warmWindowsBefore,r.warmWindowsAfter);EXPECT_EQ(r.coastWindowsBefore,r.coastWindowsAfter);
+    record("extended_sensor_loss_no_fabricated_samples",r);
+}
+
 }

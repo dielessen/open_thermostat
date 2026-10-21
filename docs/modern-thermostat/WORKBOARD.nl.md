@@ -1386,6 +1386,52 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   geïnstalleerd/gepubliceerd/ingelogd of bestaandealpha6asset overschreven.
   Eigen officiële hervattingsjob behouden; volgende inhoudelijke check15min.
 
+### Mark11785 — F4/F6 seizoensbeleid: Stage28 onafhankelijk AFGEWEZEN
+
+- [x] Canonical dabdfe2 vooraf schoon; actuele§6/PLAN/RESULT werkelijk gelezen,
+  memory_search+verified-taskflow toegepast; bestaand eenmalig receipt niet herhaald.
+  Eenmaal bounded specialistgeschiedenis6: bestaande eigenaar actief aan Stage30
+  DHWpresentatie. Geen tweede implementatie-eigenaar of redundant werkdoorbericht.
+- [x] Exact4padenpatch06e6b9c4, archive en29specialistbewijs-hashes gecontroleerd.
+  Alleen geïsoleerde canonical-afgeleide reviewbranch; oorspronkelijke Stage28
+  NIET samengevoegd. Strict hostgcc/g++17/echteGTest/versecJSON:81PASS
+  (16seasonal+65bestaande inclgroep/menger), geen skips; dit is geen acceptatie.
+- [ ] Nieuwe onafhankelijke combinatieproef FAALT: SeasonalInputs stop=true én
+  limitsKnownSafe=false verliest unknownSafety door eerste seasonal_stopreturn.
+  Bij expliciet normalStop retainExistingPathAndPump en unknownSafety
+  withdrawHeatOnly blijven pomp/pad onterecht retained. Heatfalse/outputfalse;
+  kandidaatbrondefect, GEEN geïnstalleerd incident of fysieke naloopvaststelling.
+- Bewijs11774dossier: SEASONAL-PARENT-REVIEW.md, PRECHECK/COMMANDS/NATIVE.json/log,
+  CONCURRENT-INHIBIT.json, PROBE-COMMANDS.json en zelfstandige C++probe.
+  Rollback: originele ongeaccepteerde branch niet mergen; canonicalbron behouden.
+- Concrete nieuwe info/repro met mode:steer8bc80458 bij actieve specialist:
+  alle gelijktijdige restricties monotone door bestaande supervisor behouden,
+  combinatiegevallen en onverlengde deadlines bewijzen; geen policyversoepeling.
+  Admission is geen completion. F4/F6/R22-R23 en fysieke vorstacceptatie open.
+
+### Mark11785 — F9 vaste aanvullende holdouts: Stage27 testbron geaccepteerd
+
+- [x] Exact2paden-test/docpatch5cb1fbd0, frozenarchive,20bewijs-hashes en2bronhashes
+  gecontroleerd. Zeven bestaande productie-model-/storehashes exact ongewijzigd;
+  geen modelpolicy/default/API1/CI/runtime-/outputverandering.
+- [x] Canonical-afgeleide strict hostg++17:67PASS (10replay+57model/store).
+  Dezelfde10replay ASan+UBSan/leakdetectiePASS; echteGTest+test/model/regulator/
+  evaluatorTU opnieuw gebouwd/geïnstrumenteerd, ongebruikte cJSON/externeOpenSSL
+  provider niet geïnstrumenteerd. Native/sanitizer/specialist11semantische rows
+  exactgelijk; tellingen overlappen oudere suites, niet als nieuwe67optellen.
+- [ ] Alle11modelassessments AFGEWEZEN/ONVOLDOENDE: nieuwe slow-floor/known-gain
+  comfortgatefaalt, small-load deadlinegatefaalt,3dagen sensorverlies onvoldoende
+  dekking7840bp. Modelkalibratie frozen6windows; geen thresholds/plantretuning,
+  woning-/energiebewijs of softwarematige modelverbetering geclaimd.
+- Bewijs11774dossier: F9-COVERAGE-PARENT-REVIEW.md, PRECHECK/COMMANDS/CHECKS.json,
+  NATIVE/SANITIZER.json/log/BUILD.log enSCENARIOS.jsonl. Rollback uitsluitend dit
+  nieuwe test/docpakket na latere dependents; parentRecorder/runtimedata bewaren.
+- Volgende echte uitvoering: specialist herstelt afgewezen seizoenscombinaties na
+  huidig DHWpakket; F9arrival/cyclingoorzaaktrace op exacte frozenholdouts blijft
+  nodig, naast reeds aangeboden genericimage/sourcefreshness/productprofielen.
+  Softwareplan11785 niet klaar; geen installatie/publicatie/login/broker/device/
+  TX/EMS/actuator/verwarmingsvrijgave. Hervattingsjob behouden, inhoudelijke check15min.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

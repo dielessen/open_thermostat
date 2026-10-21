@@ -2815,6 +2815,57 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   geen stipte15minaflevering of ETA beloofd.
 
 
+### Mark11785/11890 — 21okt20:34-run, oude journal → native plan bronacceptatie
+
+- [x] Canonicalhostf5564ea schoon; werkelijke§6/PLAN, memory_search,
+  verified-taskflow en eenmaal boundedhistory6 gelezen. Bestaand eenmalighostreceipt
+  intact; geen tweede eigenaar of liveHA/deviceactie.
+- [x] Gereed specialist7bd2a6e9, exacte10padenpatch0294a13f onafhankelijk
+  gereviewd;524archive-/412bewijshashes gecontroleerd, alle10afterhashes exact.
+  Alle514overige canonicalpaden behouden;7bewuste parentdoc/testverschillen t.o.v.
+  specialistarchief niet overschreven. Patchpreimages passen exact opcanonical.
+- [x] Expliciet onafhankelijkSOURCE-v2 kan bekende1–2kamer-schema1bytes alleen
+  quarantainen: nul actievezones/mappingreadiness, geen hersteldegrants/learning.
+  Bestaande nativeHAoptions bevestigen volledigschema2 oprevisionN+1 onder dezelfde
+  source/controller/Store. ACK blijft onbewezen; alleen exacte actuele bekende
+  readback promoveert. Unknownremote/conflicten/futureprofile/storageambiguity/
+  ownerloss/reconnect weigeren of behouden pending; geen erase/adopt/autoresend.
+- [x] Verse stricthostgcc/g++17/echtecJSONpeer; nativeHA2026.10.2/Python3.14.8:
+  116PASS en dezelfde116 met nieuwASan+UBSanpeer/cJSON/leakdetectPASS, semantische
+  rows exactgelijk.3ongewijzigde onafhankelijke wrongAPIregressies en33echte
+  release-notice/SDK/shippedtestsPASS. Vijf bestaande dependencywarnings perHArun.
+  Frozen56core/SAN enXtensaobject/typecheckhashes geverifieerd, niet opnieuw
+  uitgevoerd of als parentfullimage geclaimd. ExterneOpenSSL nietgeïnstrumenteerd.
+- [x] Bronmergea64f086589c5beef7887cbfbc4cae88ab7bf375e fast-forwardcanonical;
+  alle10afterhashes/protectedpaden/reverse-/commitdiffcheck/schoonpostcheckPASS.
+  Bewijs11774/legacy-plan-parent-20261021-2034/: PRECHECK/HASHES/PACKAGE/CHECKS/
+  POSTCHECK.json/log, REVIEW.md, native-host/san-host/native-ha/san-ha/parent-api.
+  Eerste runner mist sandboxsysroot; bestaande hosttools/portablePython gebruikt.
+  Eerste audit vond0tests inverkeerdemap; behouden als harnessfout en correct
+  scripts/test_release_*.py uitgevoerd. Geen setupfout als productfalen/PASS verhuld.
+- [ ] Alleen begrensdebronacceptatie: oudecomfort/meer2kamers/meer8UTCovergangen/
+  onbeperkteweek/8zonemigratie nietgeleverd. Defaultfirmwarefactory enHAbronregister
+  nogNONE; continue qualifiedmeasurement/safetyproducer ontbreekt. EchteHAfrontend
+  desktop/mobiel, volledigeweek/refresh/R18, samengestelde normaleimages/resources/
+  NVS-GC/achtzones,9releasenoticegates en fysieke/72ugates blijvenOPEN/BLOCKED.
+  Alle14F9modelkandidaten blijvenafgewezen; nietsgeïnstalleerd/gepubliceerd, geen
+  nieuwe login/broker/HAconfig/reboot/TX/EMS/actuator-/verwarmingsGO.
+- Actieve specialist volgens boundedhistory20:34: kwalificeert nativeHAprovider in
+  candidate-native-provider. Eerste hypothese undeclaredprobatio wordt door eigen
+  METADATAcontrole gecorrigeerd: HA2026.10.2 declareertprobatio0.13.0. Nog geen
+  parentgeaccepteerd providerpakket of browserbewijs; lopendwerk nietonderbroken.
+- Concrete volgende F2/F3productfactory/SOURCE-v2binding met negatieveversie-/
+  owner-/storage-/reconnectacceptatie en rollback followup9ba224b7-8e3b-4de9-beac-
+  b33354ce3a5e QUEUED bij dezelfde eigenaar; admission isgeen completion. Bestaande
+  compacteweek/refreshopdracht nietdubbelgestart. Daarna echtefrontend en normale
+  samengestelde releasebewijzen; geen nieuw algemeentoestemmingsmoment.
+- Rollback alleen nieuwe10padenbron vóór dependents; config/journal/IDs/model/
+  Recorder/historie/notices behouden, incompatibledowngrade weigert zonderwissen.
+  Hele31eisen/F0–F10opdracht IN_PROGRESS; enigeautomation900000ms/pacing15m–15m
+  geïnspecteerd/behouden en officiële next_check exact15m bevestigd.20:34controle
+  eindigt rond 20:41 door onafhankelijke bron-/ketenverificatie, geen stipteafleverclaim.
+
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

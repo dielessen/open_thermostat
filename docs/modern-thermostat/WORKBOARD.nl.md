@@ -1885,6 +1885,14 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   fysieke/duurchecks apart, geen onbewezen datumclaim. Eigen officiële job vooraf
   geïnspecteerd/behouden; next_check15m werkelijk bevestigd.
 
+### Mark11846 — GUI-afwerking en doelgerichte verificatie
+
+- Opleververwachting: verzorgde, consistente en begrijpelijke GUI voor HA én E32, geen zichtbare onafgewerkte schermen of bekende slordige fouten. Niet alleen bron-/unittests gebruiken als bewijs voor uiterlijk of echte bediening; geen foutloosheidsgarantie uit testaantallen afleiden.
+- GUIacceptatie vóór release: echte browser op desktop/mobiel; leesbare labels/eenheden/uitlijning, invoergrenzen en foutmeldingen, laden/leeg/offline/conflictstatus, opslaan/annuleren/herladen zonder dataverlies en correcte gewenst-versus-toegepaststatus. Volledige bedoelde bediening tegen werkelijke HA/E32 toetsen; sourcepreview niet als apparaatbewijs aftekenen. Bestaande nativeHA/E32stijl verzorgd afronden, geen ongevraagd nieuw GUIframework of scopevervanging.
+- Testbeleid blijft risicogericht: gerichte regressies bij gewijzigde afhankelijkheden; volledige suites bij zinvolle integratie-/releasegates. Een ongewijzigde geslaagde check niet herhalen zonder relevante wijziging, nieuwe fout, andere bewijsgrens of expliciete release-eis. Onafhankelijke review en sanitizer bewijzen andere grenzen; herhaalde gevallen nooit als nieuwe functionaliteit optellen.
+- Concreet geverifieerd85rapport Stage39:85unieke pytestcaseIDs over7modules, inclusief geparametriseerde foutvarianten en bestaande regressies; niet85uitvoeringen van één testcase. Bestaand HA-COMMANDS.json rapporteert3.05s voorpytest, XML2.01s; compilatie1.43s apart. Geen tests opnieuw uitgevoerd voor deze controle. Deze telling bewijst geen85nieuwe functies of GUIacceptatie.
+- Status: kwaliteitseis vastgelegd, visuele/eind-tot-eindacceptatie blijft OPEN tot werkelijk bewezen. Parentafwerking en specialistintegratie blijven bestaande eigenaars; alleen documentatie gewijzigd, terugdraaibaar zonder runtimewijziging.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

@@ -436,6 +436,37 @@ met een brede live ketel-/vloerwijziging [PLAN§14 F10].
 
 ## 6. Werkpakketten en eerstvolgende uitvoering
 
+### VS Code-overdracht — Mark12021 (21 oktober 2026)
+
+- **Prioriteit Mark12065 (23:14):** versnel het gecontroleerde overdrachtspunt.
+  Rond eerst het huidige native-live-sourcepakket af: alleen noodzakelijke
+  correcties, definitieve bron bevriezen, passende eindchecks, reviewpakket en
+  overdrachtsinformatie opleveren. Begin vóór dat overdrachtspunt niet aan
+  nieuwe features of volgende werkpakketten. Bestaande hele-planopdracht blijft
+  gelden; dit wijzigt de volgorde, niet de acceptatiecriteria of fysieke gates.
+  Geen extra statusvragen opstapelen, dubbele tests/eigenaren starten of lopende
+  build onderbreken. Een noodzakelijke nieuwe foutcorrectie krijgt nieuw passend
+  eindbewijs. Ontbrekende tools/aflevering concreet als blokkade rapporteren.
+- **Doel / status:** Mark informeren zodra een gecontroleerd werkpakket geschikt
+  is voor verder ontwikkelen in VS Code; **bronoverdracht gereed** vanaf
+  c7d9f8c, onafhankelijke review afgerond. Geen installatie-/productgereedmelding.
+- **Eigenaar / bron:** OpenClaw, met bronoplevering door HA-specialist; dit bord
+  en de exacte firmware-/HA-broncommits blijven leidend.
+- **Acceptatie / volgende bewijsactie:** specialist levert na het lopende pakket
+  exacte checkoutpaden en commits, reproduceerbare bouw-/testcommando's,
+  bijbehorend reviewbewijs en open blokkades; parent controleert volledigheid en
+  bronstatus en meldt daarna expliciet aan Mark dat overstappen mogelijk is.
+- **Voorkeur:** bestaande checkout via VS Code Remote SSH; geen export nodig.
+  Lokale overdracht alleen met behoud van Git-historie en benodigde bewijsbestanden.
+  Gecontroleerde geïsoleerde VS Code-worktree: `/home/dielessen/projects/open_thermostat-vscode-20261021`,
+  branch `review/mark-vscode-20261021`; uitsluitend Mark wijzigt daar.
+  [Exacte start, hostcommando’s en open gates](VS-CODE-OVERDRACHT.nl.md).
+- **Scope / stopvoorwaarde:** alleen overdrachtsgereedheid bewaken; geen huidige
+  uitvoering annuleren, export/installatie starten of fysieke vrijgave afleiden.
+  Ontbrekende bron/bouw/testinformatie betekent nog niet overdrachtsgereed.
+- **Risico / rollback:** alleen documentatie en interne opvolging; deze notitie
+  kan worden ingetrokken zonder code, runtime of planning te wijzigen.
+
 Er zijn **8 oorspronkelijke werkpakketten**, niet 11; F0–F10 zijn de 11 fasen.
 
 | WP | Softwarepositie | Wat voor volledige uitkomst nog openstaat |
@@ -2978,6 +3009,64 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   last_reported versus last_changed en negatieve reconnect/owner/uitvalproeven
   followup61328526 QUEUED. Admission is geen completion; bestaande frontend/image/
   overdrachtsvoorbereiding blijft gelden. Enigeautomation next_check exact15min.
+
+### Mark11785 — uitvoeringscheck 21 oktober 22:10, live profielwijziging
+
+- Canonical hosttoegang/HEAD werkelijk gecontroleerd:8a00e96, alleen bestaande
+  Mark12021-overdrachtsnotitie gewijzigd. Bestaand NIGHT-RUNTIME-CHECK behouden;
+  actuele §6/PLAN/RESULT, memory/verified-taskflow en eenmaal bounded history6
+  gelezen. Geen nieuwe onafhankelijke oplevering sinds profielacceptatie5a4b147.
+- Dezelfde specialist werkt aantoonbaar aan candidate-native-live-source:
+  expliciete lokale profiel-/sensorbindingwijziging zonder apparaatboot, dezelfde
+  controller/Store, oude sessie/observaties ongeldig en nieuwe exacte planreadback.
+  Bron:11774dossier NATIVE-LIVE-SOURCE-TASKFLOW.md en bounded specialistgeschiedenis.
+- Lokale eerste ontwikkelrun native-live-source-first/HA.log toont13PASS;
+  native-live-source-main-first/E32-SYNTAX.json exit0 is alleen gepinde target-
+  typecheck. Geen bevroren reviewpakket, parentacceptatie, normale samengestelde
+  image, browser-, installatie- of fysiek bewijs; lopende tests niet herhaald.
+- Volgende echte bewijsactie: definitieve live-sourcepatch/manifest onafhankelijk
+  reviewen en gerichte HA/C++-keten, fout-/reconnect-/dubbelapplygrenzen en shipped
+  GUI toetsen vóór bronmerge. Bestaande volledigeweek/horizonrefresh, echte
+  producerkwalificatie, frontend/image/resources/licentieclosure en VS Code-
+  overdrachtsbewijs blijven open. Geen tweede eigenaar of redundant werkdoorbericht.
+- Alle safetyUNKNOWN/outputfalse/TX/EMS/actuator-/verwarmingsgates behouden;
+  geen installatie of vrijgave. Enigeautomation next_check exact15min bevestigd.
+  Dit is een uitvoeringscheckpoint, geen nieuwe productoplevering.
+
+### Mark11785 — uitvoeringscheck 21 oktober 22:44, live-source geheugenfout
+
+- Hostcheckout werkelijk bereikbaar op 8a00e96; bestaande NIGHT-RUNTIME-CHECK
+  niet gewijzigd. §6/PLAN/RESULT, memory/verified-taskflow, eenmaal history6 en
+  specialiststatus geraadpleegd. Geen nieuwe onafhankelijk geaccepteerde oplevering.
+- Sinds vorige check concrete ontwikkelcorrectie: nativeSourceNetworkStillCurrent
+  weigerde een geïnjecteerde std::bad_alloc niet; kandidaat vangt die nu af vóór
+  settingsmutatie. Exacte headerhash a4c9020e4a0e2d9cd400a91e4eacf837eece9462c6194db469511959ac907215.
+  Bestaande native-live-source-cppalloc-after-san/PROBE.json werkelijk gelezen:
+  ASan/UBSan exit0, escaped=false, accepted_after_failure=false. Dit is één
+  synthetische foutproef, geen onafhankelijk herhaalde suite of echte heapmeting.
+- Dezelfde specialist werkt aan live profiel-/sensorbindingwijziging zonder
+  apparaatboot, aanvullende foutchecks en gepinde targetresourcecontrole.
+  NATIVE-LIVE-SOURCE-RESULT.json ontbreekt: nog geen bevroren reviewpakket.
+  Beschikbare bredere native/SAN-HAreceipts zijn ontwikkelbewijs van vóór deze
+  laatste correctie; niet als volledige exactfinale acceptatie gepresenteerd.
+- Volgende bewijsactie: definitieve patch/manifest en targetbewijs afwachten,
+  daarna onafhankelijke diff-/HA/C++-/GUIreview vóór bronmerge. Geen tweede
+  eigenaar, buildonderbreking, testherhaling of redundant werkdoorbericht.
+  Volledigeweek/horizonrefresh, echte producers, browser, normale images/resources,
+  licentieclosure en VS Code-overdrachtsbewijs blijven softwarematig open.
+- Geen installatie/publicatie of fysieke/TX/EMS/actuator-/verwarmingsvrijgave.
+  Bestaande enigeautomation next_check exact15min bevestigd; controleduur kan
+  de zichtbare melding later maken. Geen softwarevoltooiing of ETA geclaimd.
+
+### Mark11785 / Mark12065 — 21 oktober 23:38, onafhankelijke bronoverdracht
+
+- Canonical host werkelijk gecontroleerd op8a00e96; bestaande NIGHT-RUNTIME-CHECK niet herhaald. §6-overdracht/PLAN/actuele RESULT, memory/verified-taskflow, eenmaal bounded history6 en specialiststatus gelezen. Specialist heeft native-live-source definitief bevroren; prioriteit is zichtbaar, geen redundant status-/werkdoorbericht.
+- Onafhankelijke integratiereview en bronmerge **c7d9f8c3cfda63019a230562d564a5ef53bf2e2a**:17afterhashes, 519 overige canonicalbestanden beschermd. Laatste Store-await/owner/registry/journalfences, daadwerkelijke C++duurzamevoorgangerpreflight, ambiguous-saveinhibit, sessie-epoch/quarantaine en SOURCE-only409beleid gereviewd. Bestaande bord-/Copilotwijzigingen niet overschreven.
+- Gerichte werkelijke HA/C++keten76PASS, geleverde JSactie/loader20PASS en10Chromiumgevallen desktop/mobielPASS (echte markup/functions/jQuery, gesimuleerde HTTP/weerseam),33release-auditregressiesPASS. Geen volledige suite ongewijzigd herhaald; geen echte HTTP/HAfrontend/NVS/apparaatperformanceclaim.
+- Portabiliteitsfout gevonden en omzeild zonder frozenbronwijziging: specialistworktree-.git wijst naar /workspace. Gitbundle native hersteld en volledige integriteits-/sourcecheckPASS; native VS Codebranch krijgt geldige eigen Gitpointer.
+- **Gecontroleerde bronoverdracht gereed voor verdere ontwikkeling**, niet hele PLAN/product gereed. Exacte firmware/HAcheckout, geaccepteerde commit, bestaande gepinde build/testcommando’s en open gates in [VS-CODE-OVERDRACHT](VS-CODE-OVERDRACHT.nl.md). VS Code zelf niet gestart: codeexecutable ontbreekt. Mark bezit exclusief review/mark-vscode-20261021; parent/specialist schrijft daar niet.
+- Bewijs/TaskFlow: `/home/dielessen/artifacts/open-thermostat-native-live-source-parent-20261021`. Geen nieuwe feature, installatie, publicatie, credentials/login/reboot/flash, upstreamsync of fysieke/TX/EMS/actuator-/verwarmingsvrijgave.
+- Volgende concrete actie: dezelfde specialist uitsluitend actuele samengestelde app/FS-/productfrontend-/releasebewijsclosure op c7d9f8c laten uitvoeren; eigen frozenreview niet herschrijven, geen genericsize-eigenaar verdubbelen. Volledigeweek/eightzone/echteproducers/resources/licentieclosure en overige bordgates blijven open. Enige hervattingsjob exact15min; uitvoering kan de zichtbare melding later maken.
 
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 

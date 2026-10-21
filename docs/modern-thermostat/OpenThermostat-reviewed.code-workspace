@@ -1,0 +1,12 @@
+{
+  "folders": [
+    {
+      "name": "OpenThermostat \u2014 firmware + Home Assistant",
+      "path": "../.."
+    }
+  ],
+  "settings": {
+    "git.autofetch": false,
+    "task.allowAutomaticTasks": "off"
+  }
+}

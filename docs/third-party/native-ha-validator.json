@@ -1,0 +1,92 @@
+{
+  "homeassistant": {
+    "metadata": {
+      "Name": [
+        "homeassistant"
+      ],
+      "Version": [
+        "2026.10.2"
+      ],
+      "License": null,
+      "License-Expression": [
+        "Apache-2.0"
+      ],
+      "Home-page": null,
+      "Project-URL": [
+        "Homepage, https://www.home-assistant.io/",
+        "Source Code, https://github.com/home-assistant/core",
+        "Bug Reports, https://github.com/home-assistant/core/issues",
+        "Docs: Dev, https://developers.home-assistant.io/",
+        "Discord, https://www.home-assistant.io/join-chat/",
+        "Forum, https://community.home-assistant.io/"
+      ]
+    },
+    "metadata_sha256": "70f82fa124d40a184eff3c1586c21c0f821256c8a2c68b646ee55d1c8b7def2d",
+    "record_sha256": "ad02d132e732a102e4ddde7c8217a064129675409bbcdfce5b5d7a8022ceaa8d",
+    "requires": [
+      "probatio==0.13.0"
+    ]
+  },
+  "probatio": {
+    "metadata": {
+      "Name": [
+        "probatio"
+      ],
+      "Version": [
+        "0.13.0"
+      ],
+      "License": null,
+      "License-Expression": [
+        "MIT"
+      ],
+      "Home-page": null,
+      "Project-URL": [
+        "Homepage, https://github.com/frenck/probatio",
+        "Documentation, https://probatio.frenck.dev",
+        "Repository, https://github.com/frenck/probatio",
+        "Issues, https://github.com/frenck/probatio/issues",
+        "Changelog, https://github.com/frenck/probatio/releases"
+      ]
+    },
+    "metadata_sha256": "d75be2659fa4cf9391215a7f8e37eae5a27ae409d6eeb3cc4baa0b31c408d29b",
+    "record_sha256": "ac653187277513c28a31feb28117c284d7b088ed1cbab83806dda946b357d2b1",
+    "requires": null,
+    "original_license_path": "docs/third-party/probatio-0.13.0-LICENSE",
+    "original_license_sha256": "c5ecbff44c7b508278e43485a3f1b3a341cdfdfb32509e80345d922900f06890",
+    "record_license_hash_verified": true
+  },
+  "voluptuous": {
+    "metadata": {
+      "Name": [
+        "voluptuous"
+      ],
+      "Version": [
+        "0.16.0"
+      ],
+      "License": [
+        "BSD-3-Clause"
+      ],
+      "License-Expression": null,
+      "Home-page": [
+        "https://github.com/alecthomas/voluptuous"
+      ],
+      "Project-URL": null
+    },
+    "metadata_sha256": "1cfbc47174719f747fb3c15621e7715281f6a1520af6d34781c727c89340de5e",
+    "record_sha256": "c379382f6e1fa52a17105bdd0bac151d5fe735cecc3d67cdc9bf7fae4e78498c",
+    "requires": null
+  },
+  "voluptuous_required_by": [
+    {
+      "distribution": "annotatedyaml",
+      "version": "1.0.2",
+      "requirement": "voluptuous (>0.15)"
+    },
+    {
+      "distribution": "hass-nabucasa",
+      "version": "2.7.0",
+      "requirement": "voluptuous>=0.15"
+    }
+  ],
+  "correction": "probatio0.13.0 is direct native HA2026.10.2 requirement, MIT, real distribution, no shim/new dependency or demonstrated bad import. Earlier Stage45 unknown is resolved for the pinned native platform, not proof of Mark's installed production platform."
+}

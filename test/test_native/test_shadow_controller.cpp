@@ -49,6 +49,10 @@ struct Fixture {
         cJSON_AddStringToObject(o.get(),"adapter_id","ha1"); cJSON_AddStringToObject(o.get(),"client_nonce","client1");
         cJSON_AddStringToObject(o.get(),"challenge_id",stringField(h.get(),"challenge_id").c_str());
         cJSON_AddNumberToObject(o.get(),"known_revision",wrongMapping?0:rev); cJSON_AddStringToObject(o.get(),"known_digest",wrongMapping?"":digest.c_str());
+        if(seasonalSource&&!seasonalSource->profileDigest.empty()) {
+            cJSON_AddStringToObject(o.get(),"source_profile_digest",seasonalSource->profileDigest.c_str());
+            cJSON_AddStringToObject(o.get(),"source_config_pin",seasonalSource->configDigest.c_str());
+        }
         send("ha/open_session",o.get()); syncSession();
     }
     void syncSession() {

@@ -86,6 +86,8 @@ class NativeShadowConnection:
         self.bench = None
 
     async def async_start(self):
+        if self.graph_profile is not None and getattr(self.runtime,"controller_policy_source_profile",None) is not None:
+            raise ConfigEntryError("controller_policy_graph_conflict")
         if getattr(self.runtime,"graph_data_profile",None) is not None and self.runtime.graph_data_profile!=self.graph_profile:
             raise ConfigEntryError("graph_profile_unsupported")
         if not identifier(self.entry.data["topic_prefix"]):

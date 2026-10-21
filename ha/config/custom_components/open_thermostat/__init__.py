@@ -96,6 +96,27 @@ def _selected_graph_data_profile(entry):
 # Trusted reviewed logical context profiles, never options or discovery data.
 # Empty preserves existing conservative API1 behavior; no physical qualification.
 _COMFORT_CONTEXT_SOURCE_PROFILES = ()
+_CONTROLLER_POLICY_SOURCE_PROFILES = ()
+
+def _selected_controller_policy_source_profile(entry):
+    from homeassistant.exceptions import ConfigEntryError
+    from .comfort_sources import ControllerPolicySourceProfile
+    from .v1_model import MODE_SHADOW,integration_mode
+    if integration_mode(entry)!=MODE_SHADOW:return None
+    try:
+        profiles=_CONTROLLER_POLICY_SOURCE_PROFILES
+        if type(profiles) is not tuple or len(profiles)>8:
+            raise ValueError("controller_policy_profile_invalid")
+        selected=[]
+        for profile in profiles:
+            if not isinstance(profile,ControllerPolicySourceProfile):
+                raise ValueError("controller_policy_profile_invalid")
+            profile.validate()
+            if profile.entry_unique_id==entry.unique_id:selected.append(profile)
+        if len(selected)>1:raise ValueError("controller_policy_multiple_owners")
+        return selected[0] if selected else None
+    except (ValueError,TypeError):
+        raise ConfigEntryError("controller_policy_profile_invalid") from None
 
 def _selected_context_source_profiles(entry):
     from homeassistant.exceptions import ConfigEntryError
@@ -140,14 +161,20 @@ async def async_setup_entry(hass, entry):
     rooms = [RoomBinding.from_dict(dict(s.data)) for s in entry.subentries.values()
              if s.subentry_type == "zone"]
     context_profiles=_selected_context_source_profiles(entry)
+    controller_policy=_selected_controller_policy_source_profile(entry)
     runtime_kwargs={}
     if graph_profile is not None:
         runtime_kwargs["graph_data_profile"]=graph_profile
     if context_profiles:
         runtime_kwargs["context_source_profiles"]=context_profiles
+    if controller_policy is not None:
+        runtime_kwargs["controller_policy_source_profile"]=controller_policy
     try:
         runtime=ShadowRuntime(hass,entry,rooms,**runtime_kwargs)
     except ValueError:
+        if controller_policy is not None:
+            from homeassistant.exceptions import ConfigEntryError
+            raise ConfigEntryError("controller_policy_profile_binding") from None
         if context_profiles:
             from homeassistant.exceptions import ConfigEntryError
             raise ConfigEntryError("context_profile_binding") from None

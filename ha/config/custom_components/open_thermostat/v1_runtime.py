@@ -35,12 +35,22 @@ class ShadowTransport(Protocol):
 ReportProfile = Callable[[Any, str], QualifiedReport | None]
 
 class ShadowRuntime:
-    def __init__(self, hass: HomeAssistant, entry: Any, rooms: list[RoomBinding], *, graph_data_profile=None, context_source_profiles=()):
+    def __init__(self, hass: HomeAssistant, entry: Any, rooms: list[RoomBinding], *, graph_data_profile=None, context_source_profiles=(), controller_policy_source_profile=None):
         if graph_data_profile is not None:
             from .graph_wire import GraphSourceProfile
             if not isinstance(graph_data_profile,GraphSourceProfile):
                 raise ValueError("graph_profile_unsupported")
             graph_data_profile.validate()
+        if controller_policy_source_profile is not None:
+            from .comfort_sources import ControllerPolicySourceProfile
+            profile=controller_policy_source_profile
+            if not isinstance(profile,ControllerPolicySourceProfile):
+                raise ValueError("controller_policy_profile_invalid")
+            profile.validate()
+            if (graph_data_profile is not None or profile.entry_unique_id!=entry.unique_id
+                    or profile.adapter_id!=entry.options.get("adapter_id",entry.data.get("adapter_id"))):
+                raise ValueError("controller_policy_profile_binding")
+        self.controller_policy_source_profile=controller_policy_source_profile
         self.graph_data_profile=graph_data_profile
         self.hass, self.entry = hass, entry
         self.rooms = {room.room_id: room for room in rooms}
@@ -107,6 +117,11 @@ class ShadowRuntime:
         self._profiles[room_id] = profile
 
     def attach_transport(self, transport: ShadowTransport) -> None:
+        if self.controller_policy_source_profile is not None:
+            from .v1_wire import ShadowClient
+            if (not isinstance(transport,ShadowClient) or transport.runtime is not self
+                    or transport.controller_policy!=self.controller_policy_source_profile):
+                raise HomeAssistantError("controller_policy_transport_mismatch")
         if self.graph_data_profile is not None:
             from .graph_wire import GraphShadowClient
             if not isinstance(transport,GraphShadowClient) or transport.profile!=self.graph_data_profile or transport.runtime is not self:

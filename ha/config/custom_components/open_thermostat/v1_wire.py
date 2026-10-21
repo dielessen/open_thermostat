@@ -86,6 +86,11 @@ class ShadowClient:
         if not identifier(adapter_id):
             raise ValueError("invalid local adapter owner")
         self.runtime, self.adapter_id = runtime, adapter_id
+        self.controller_policy=getattr(runtime,"controller_policy_source_profile",None)
+        if self.controller_policy is not None:
+            self.controller_policy.validate()
+            if self.controller_policy.adapter_id!=adapter_id:raise ValueError("controller_policy_owner_mismatch")
+        self.source_policy_matched=False
         self.send, self.store, self.clock = send, store, clock
         self.desired, self.mapping = json.loads(canonical(desired)), json.loads(canonical(mapping))
         self.journal = {"accepted": None, "staged": None}
@@ -126,13 +131,15 @@ class ShadowClient:
     @property
     def ready(self):
         now = self.clock()
-        return (not self.closed and self.verified and self.session is not None
+        return (not self.closed and self.verified and (self.controller_policy is None or self.source_policy_matched) and self.session is not None
                 and self.session.get("mapping_ready") is True
                 and now < self.grant_until and now < self.lease_until
                 and now - self.last_rx < 15)
 
     def changed(self):
         self.runtime.diagnostics["transport"] = self.error
+        self.runtime.diagnostics["controller_policy"]=("default_api1" if self.controller_policy is None else
+            "source_identity_verified_shadow_only" if self.source_policy_matched else "source_identity_unverified")
         self.runtime._notify()
 
     async def async_start(self):
@@ -167,6 +174,7 @@ class ShadowClient:
         self.journal = snapshot
 
     def reset_session(self):
+        self.source_policy_matched=False
         for item in self.pending.values():
             if item["future"] is not None and not item["future"].done():
                 item["future"].cancel()
@@ -254,6 +262,15 @@ class ShadowClient:
                 integer(p.get("config_revision")) and p.get("config_revision") == self.session["config_revision"] and
                 p.get("config_digest") == self.session["config_digest"])
 
+    def source_policy_matches(self,p):
+        if self.controller_policy is None:
+            if "source_policy" not in p:return True
+            self.reset_session();self.error="controller_policy_not_selected";self.changed();return False
+        if not self.controller_policy.matches(p):
+            self.reset_session();self.error="controller_policy_mismatch";self.changed();return False
+        self.source_policy_matched=True
+        return True
+
     async def _receive(self, topic, p):
         if topic == "fw/hello":
             if (not integer(p.get("api"), 1, 1) or p.get("mode") != "shadow"
@@ -277,6 +294,7 @@ class ShadowClient:
             if new_identity != self.identity or (self.session and not self.same_config(p)):
                 self.reset_session()
                 self.identity = new_identity
+            if not self.source_policy_matches(p):return
             session_caps=p.get("session_capabilities",[])
             self.grant_nonce_supported=(type(session_caps) is list and len(session_caps)<=8
                 and all(isinstance(cap,str) and len(cap)<=64 for cap in session_caps)
@@ -307,6 +325,9 @@ class ShadowClient:
                     epoch=p["epoch"], challenge_id=p["challenge_id"],
                     adapter_id=self.adapter_id, client_nonce=self._nonce(),
                     known_revision=revision, known_digest=known_digest)
+                if self.controller_policy is not None:
+                    self.open_request.update(source_profile_digest=self.controller_policy.profile_digest,
+                                             source_config_pin=self.controller_policy.config_digest)
                 self.open_sent = self.clock()
             elif self.clock() - self.open_sent >= 10:
                 self.open_request = None
@@ -354,6 +375,7 @@ class ShadowClient:
 
         if self.session is None or not self.same_config(p):
             return
+        if topic=="fw/state/zones" and not self.source_policy_matches(p):return
         self.last_rx = self.clock()
         if topic.endswith("_result"):
             if p.get("adapter_session_id") != self.session["adapter_session_id"]:
@@ -433,6 +455,8 @@ class ShadowClient:
             return
         if digest(config) != p["config_digest"] or config.get("revision") != p["config_revision"]:
             raise ValueError("snapshot digest")
+        if self.controller_policy is not None and p["config_digest"]!=self.controller_policy.config_digest:
+            self.reset_session();self.error="controller_policy_config_mismatch";self.changed();return
         record = self.known(p["config_revision"], p["config_digest"])
         if record is None or record["config"] != config:
             self.error = "mapping_conflict"
@@ -456,6 +480,8 @@ class ShadowClient:
         if len(canonical(config).encode("ascii")) > 4096:
             raise ValueError("configuration budget exceeded")
         record = {"config": config, "config_digest": digest(config), "mapping": json.loads(canonical(self.mapping))}
+        if self.controller_policy is not None and record["config_digest"]!=self.controller_policy.config_digest:
+            self.reset_session();self.error="controller_policy_config_mismatch";self.changed();return
         # Also validate full wire budget BEFORE staging.
         probe = self.envelope("config")
         probe.update(expected_revision=current_revision, config_digest=record["config_digest"], config=config)

@@ -61,12 +61,17 @@ dependencies and no separate requirements. homeassistant/voluptuous are
 platform-provided, not vendored here. Pinned test HA2026.10.2 is not evidence of
 production HA version or its full resolved dependency bill.
 
-This candidate imports **probatio** from v1_config_flow.py, v1_heating_flow.py and
-v1_heating_graph_flow.py, without manifest requirement or available matching
-version/source/license evidence. That external import is BLOCKED, not assumed
-stdlib/HA or silently renamed. No runtime repair is included in this package.
-Parent should compare the exact source hashes with its current canonical flow
-before assigning a separate correction.
+Stage45 initially flagged probatio as unknown. The follow-up native metadata
+lookup resolves that hypothesis: Home Assistant2026.10.2 directly requires
+**probatio==0.13.0**, a real MIT-licensed distribution from frenck/probatio.
+Native HA itself imports it; it is not an injected alias, shim or newly installed
+dependency. Original license/installed METADATA/RECORD hashes are recorded in
+native-ha-validator.json, and the license's RECORD digest was verified.
+Both actual room forms and native GUI serialization pass without modifying the
+three imports. No import defect or live-HA outage was demonstrated. The earlier
+frozen Stage45 report remains historical; current audit requires this evidence
+before treating probatio as platform-provided. Production HA version/resolution
+is still unmeasured, and SDK/CA/source-offer/S3 filesystem blockers remain open.
 
 The embedded public CA bundle has exact PEM/generated-binary hashes and existing
 dated curl/Mozilla provenance in certs/README.md. Its exact dated upstream data

@@ -380,7 +380,12 @@ private:
         return admission_.issueGrant(grant_,grantSequence_,now,grantMs);
     }
     void open(const cJSON *o,uint64_t now) {
-        if(!exactFields(o,{"api","controller_id","boot_id","epoch","challenge_id","adapter_id","client_nonce","known_revision","known_digest"})||
+        const bool namedPolicy=seasonalSource_&&!seasonalSource_->profileDigest.empty();
+        const bool fields=namedPolicy?
+            exactFields(o,{"api","controller_id","boot_id","epoch","challenge_id","adapter_id","client_nonce","known_revision","known_digest","source_profile_digest","source_config_pin"}):
+            exactFields(o,{"api","controller_id","boot_id","epoch","challenge_id","adapter_id","client_nonce","known_revision","known_digest"});
+        if(!fields||(namedPolicy&&(stringField(o,"source_profile_digest")!=seasonalSource_->profileDigest
+                ||stringField(o,"source_config_pin")!=seasonalSource_->configDigest))||
             !integerField(o,"api",1,1)||!integerField(o,"epoch",1,UINT32_MAX)||!integerField(o,"known_revision",0,UINT32_MAX)||
             stringField(o,"controller_id")!=controller_||stringField(o,"boot_id")!=boot_||uintField(o,"epoch")!=epoch_||
             stringField(o,"adapter_id")!=owner_||!SessionAdmission::validId(stringField(o,"client_nonce"))||
@@ -415,8 +420,20 @@ private:
         cJSON_AddNumberToObject(o.get(),"config_revision",revision()); cJSON_AddStringToObject(o.get(),"config_digest",digest_.c_str()); return o;
     }
     void send(std::string_view topic,const cJSON *o) { const auto bytes=printJson(o); if(!bytes.empty()&&bytes.size()<=8192) publish_(topic,bytes); }
+    void sourcePolicy(cJSON* o) const {
+        if(!seasonalSource_||seasonalSource_->profileDigest.empty())return;
+        auto profile=cJSON_AddObjectToObject(o,"source_policy");
+        if(!profile)return;
+        cJSON_AddNumberToObject(profile,"schema",1);
+        cJSON_AddStringToObject(profile,"kind","seasonal.shadow.v1");
+        cJSON_AddStringToObject(profile,"adapter_id",owner_.c_str());
+        cJSON_AddStringToObject(profile,"profile_digest",seasonalSource_->profileDigest.c_str());
+        cJSON_AddStringToObject(profile,"config_pin",seasonalSource_->configDigest.c_str());
+        cJSON_AddBoolToObject(profile,"physical_outputs_enabled",false);
+        cJSON_AddBoolToObject(profile,"frost_protection_available",false);
+    }
     void hello() {
-        auto o=base(); cJSON_AddStringToObject(o.get(),"challenge_id",challenge_.c_str());
+        auto o=base(); sourcePolicy(o.get()); cJSON_AddStringToObject(o.get(),"challenge_id",challenge_.c_str());
         cJSON_AddStringToObject(o.get(),"mode","shadow"); cJSON_AddNumberToObject(o.get(),"lease_ms",leaseMs);
         cJSON_AddNumberToObject(o.get(),"grant_ms",grantMs); cJSON_AddBoolToObject(o.get(),"storage_fault",fault_);
         auto controlCaps=cJSON_AddArrayToObject(o.get(),"session_capabilities");
@@ -479,7 +496,7 @@ private:
         cJSON_AddItemToObject(o.get(),"config",cfg?cfg:cJSON_CreateNull()); send("fw/config_snapshot",o.get());
     }
     void state(uint64_t now,int64_t utc,bool clockValid) {
-        auto o=base(); cJSON_AddStringToObject(o.get(),"mode","shadow");
+        auto o=base(); sourcePolicy(o.get()); cJSON_AddStringToObject(o.get(),"mode","shadow");
         cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",false); cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false);
         SeasonalSafetySnapshot safety;
         bool safetyFresh=false;

@@ -257,3 +257,56 @@ TEST(SeasonalControllerSource, ExplicitSameFrostTargetPrecedesWindowAndSummerBut
     auto cfg=mismatch.configuration(comfortConfig());mismatch.send("ha/config",cfg.get());
     EXPECT_EQ(mismatch.store.writes,0u);
 }
+
+namespace {
+TEST(SeasonalControllerSource, ReviewedIdentityAdvertisesExactOwnerAndPinWithoutPhysicalCapability) {
+    Fixture f;auto pin=sourceFor();pin.profileDigest=std::string(64,'a');auto safety=safe();bind(f,pin,safety);readyPinned(f);
+    const auto hello=f.get("fw/hello");const auto identity=field(hello.get(),"source_policy");
+    ASSERT_NE(identity,nullptr);EXPECT_EQ(cJSON_GetArraySize(identity),7);
+    EXPECT_EQ(uintField(identity,"schema"),1u);
+    EXPECT_EQ(stringField(identity,"kind"),"seasonal.shadow.v1");
+    EXPECT_EQ(stringField(identity,"adapter_id"),"ha1");
+    EXPECT_EQ(stringField(identity,"profile_digest"),std::string(64,'a'));
+    EXPECT_EQ(stringField(identity,"config_pin"),controlTestHash(config()));
+    EXPECT_TRUE(cJSON_IsFalse(field(identity,"physical_outputs_enabled")));
+    EXPECT_TRUE(cJSON_IsFalse(field(identity,"frost_protection_available")));
+    pin.profileDigest=std::string(64,'b'); // External mutation cannot revise active SOURCE identity.
+    const auto state=report(f);outputsFalse(state);
+    EXPECT_EQ(stringField(field(state.get(),"source_policy"),"profile_digest"),std::string(64,'a'));
+}
+TEST(SeasonalControllerSource, MalformedReviewedIdentityFailsClosedBeforeDurableWrite) {
+    for(auto identity:{std::string("bad"),std::string(64,'A'),std::string(63,'a'),std::string(65,'a')}) {
+        Fixture f;auto pin=sourceFor();pin.profileDigest=identity;auto safety=safe();bind(f,pin,safety);
+        EXPECT_FALSE(pin.valid());f.start();EXPECT_TRUE(f.core->faulted());EXPECT_EQ(f.store.writes,0u);
+    }
+}
+TEST(SeasonalControllerSource, OrdinaryApi1AndAnonymousSourceDoNotFabricateReviewedPolicyIdentity) {
+    Fixture plain;plain.ready();EXPECT_EQ(field(plain.get("fw/hello").get(),"source_policy"),nullptr);
+    Fixture legacy;auto pin=sourceFor();auto safety=safe();bind(legacy,pin,safety);readyPinned(legacy);
+    EXPECT_EQ(field(legacy.get("fw/hello").get(),"source_policy"),nullptr);
+    EXPECT_EQ(field(report(legacy).get(),"source_policy"),nullptr);
+}
+}
+
+namespace {
+TEST(SeasonalControllerSource, MissingOrWrongExplicitPeerPolicyEchoNeverCreatesSessionOrStoreWrite) {
+    for(unsigned bad=0;bad<3;++bad) {
+        Fixture f;auto pin=sourceFor();pin.profileDigest=std::string(64,'a');auto safety=safe();bind(f,pin,safety);f.start();
+        auto h=f.get("fw/hello");auto open=objectJson();
+        cJSON_AddNumberToObject(open.get(),"api",1);cJSON_AddStringToObject(open.get(),"controller_id","e32_lab");
+        cJSON_AddStringToObject(open.get(),"boot_id","boot1");cJSON_AddNumberToObject(open.get(),"epoch",uintField(h.get(),"epoch"));
+        cJSON_AddStringToObject(open.get(),"adapter_id","ha1");cJSON_AddStringToObject(open.get(),"client_nonce","client1");
+        cJSON_AddStringToObject(open.get(),"challenge_id",stringField(h.get(),"challenge_id").c_str());
+        cJSON_AddNumberToObject(open.get(),"known_revision",0);cJSON_AddStringToObject(open.get(),"known_digest","");
+        if(bad) {
+            cJSON_AddStringToObject(open.get(),"source_profile_digest",bad==1?std::string(64,'b').c_str():pin.profileDigest.c_str());
+            cJSON_AddStringToObject(open.get(),"source_config_pin",bad==2?std::string(64,'b').c_str():pin.configDigest.c_str());
+        }
+        f.send("ha/open_session",open.get());EXPECT_EQ(f.output.count("fw/session"),0u)<<bad;EXPECT_EQ(f.store.writes,0u);
+        cJSON_DeleteItemFromObjectCaseSensitive(open.get(),"source_profile_digest");cJSON_DeleteItemFromObjectCaseSensitive(open.get(),"source_config_pin");
+        cJSON_AddStringToObject(open.get(),"source_profile_digest",pin.profileDigest.c_str());
+        cJSON_AddStringToObject(open.get(),"source_config_pin",pin.configDigest.c_str());
+        f.send("ha/open_session",open.get());EXPECT_EQ(f.output.count("fw/session"),1u);EXPECT_EQ(f.store.writes,0u);
+    }
+}
+}

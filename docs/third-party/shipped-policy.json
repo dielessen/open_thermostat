@@ -236,10 +236,10 @@
     "cached_newlib_header_sha256": "93a397574a25b9c143cee7fcb86d8fc9a0c9ba418e4710a30d2d19ba1e4120db"
   },
   "ha": {
-    "source_candidate": "f5afb5ded9641018210dc8f4b356ef9ef09fea97",
+    "source_candidate": "sha256:f68852e436e7dee1dcfc01ff8feae5c43c99d8aa6b8d94db4a1b476bc1d08f46",
     "manifest": "ha/config/custom_components/open_thermostat/manifest.json",
     "source_files": {
-      "ha/config/custom_components/open_thermostat/__init__.py": "9186e5fb4ac5652757a6d9edcbbc2e4167ec6d3060f051ebb44f4439d3b2132b",
+      "ha/config/custom_components/open_thermostat/__init__.py": "24ef780ec56e9dd46a443ddff2f1f1a02010162b0639aa00d8e422e8f558274c",
       "ha/config/custom_components/open_thermostat/binary_sensor.py": "ce25d3862586752da84c9934dc52db89ef6877bb28099989edf5e39c92731aa3",
       "ha/config/custom_components/open_thermostat/blueprints/low_battery.yaml": "2f7b26e1ae80e6a2ca516b80a2510641571f943808e47852f9ecdcf11839ae2c",
       "ha/config/custom_components/open_thermostat/brand/dark_logo.png": "4ef4e17169a2bd49a9ae20e9fed05593c42cae77fc6de094a176ec5e648814dc",
@@ -249,7 +249,7 @@
       "ha/config/custom_components/open_thermostat/brand/logo.png": "26728d234b59fc98f0eefc5de2a33256a385f00ce63ac42d5ccc02de84010a90",
       "ha/config/custom_components/open_thermostat/brand/logo@2x.png": "492e932bd1f3cba7d67db3e9ec29f90955b88a6f3a9a0842a6393dbd9e5989b0",
       "ha/config/custom_components/open_thermostat/climate.py": "4d3476f47ad4a132e36ac467103e52e01af64b547ff3ab51a15b86ff7d386303",
-      "ha/config/custom_components/open_thermostat/comfort_sources.py": "9dba44047891b10dda76d8a226319b6181efd784f37b64aa3a568b575ae4873e",
+      "ha/config/custom_components/open_thermostat/comfort_sources.py": "8a293ca9ae870b7f95969a35228a46b3c38d0ad87e9220b8210c58680fd91016",
       "ha/config/custom_components/open_thermostat/config_flow.py": "abe9c72336a338f0fe2fe4fef743a1297db9f6f441ca63d758f7c5c019e0ed5b",
       "ha/config/custom_components/open_thermostat/const.py": "bde0d9e2a38e36c5ede813cdc7fd694df13094f276f472dd49a38529d5c09c5e",
       "ha/config/custom_components/open_thermostat/dashboard.py": "15910644e5b9dcbbe1b9469d74948a82e10df41d126669a76460df4ffae62b2f",
@@ -278,7 +278,7 @@
       "ha/config/custom_components/open_thermostat/v1_bench_actions.py": "4ef3ab4741c09f3f1e33faa7837fb02f453baa7b21ff7b2bc0562a927861b416",
       "ha/config/custom_components/open_thermostat/v1_bench_mqtt.py": "b158170cbfc049661d4be03a08f7da7ac1350162487ff9458b81d080e7c4b22f",
       "ha/config/custom_components/open_thermostat/v1_bench_source.py": "3325828c4e123bfcd2ce31c460429b1f3bb7616b314fba05a011d06f36117fa4",
-      "ha/config/custom_components/open_thermostat/v1_climate.py": "5521961f12b527c7cdc9a18872de7b35a0f1df14915d44019b9308a855f81369",
+      "ha/config/custom_components/open_thermostat/v1_climate.py": "05b8615fcb953380aa269648b9b145225ec45a0d1d991299bb4265a2f19fa90d",
       "ha/config/custom_components/open_thermostat/v1_config_flow.py": "6e53b5b3a2b859bd4ca24e923e4385d366c938f5896f178780227394c91f79c5",
       "ha/config/custom_components/open_thermostat/v1_heating_draft.py": "eba2d9996fd9375c87f5b495f4900d957a93250c72879c7c46e45f4814fce606",
       "ha/config/custom_components/open_thermostat/v1_heating_flow.py": "01dcfd479fc2d8038fb21c3508e9ea51623ac0eead7be73fc39d00956888f22b",
@@ -286,18 +286,25 @@
       "ha/config/custom_components/open_thermostat/v1_heating_graph_flow.py": "38bcf5c1d1270c5c2803940410e681b5f917a4d2d2d42fa33d0e4f76593a8d9e",
       "ha/config/custom_components/open_thermostat/v1_metrics.py": "f62523bee12fdf636db85e072c69346ce9369a5a73ce422d9529fc2a8b2d9dd3",
       "ha/config/custom_components/open_thermostat/v1_model.py": "2baded41d5a2c01e145b0791fef6c2a41bf1d939a0f9b1101d71c7044de4a976",
-      "ha/config/custom_components/open_thermostat/v1_mqtt.py": "be9f8786629aa4035a30ac1e2c2171e90e4a55a5648e8a22d3092e44fb5c8909",
+      "ha/config/custom_components/open_thermostat/v1_mqtt.py": "80868811e2a6a9f012d5b284861ff6eefc6e2e4c0481d80d46ed8e3f924111f9",
       "ha/config/custom_components/open_thermostat/v1_profile_c.py": "b08e3abaf12455495b39dc6ff9df4b43ec74fc766683684658d840a7e08037f0",
       "ha/config/custom_components/open_thermostat/v1_program.py": "8597a0232105d44a0d90ee4d4fb41ae7ed6bdede64b0a8df09bf37eeb4f24db2",
-      "ha/config/custom_components/open_thermostat/v1_runtime.py": "823f9ddcd604e6cca3cf791026140148dc5e92a50ba3499d761dfe3ba3216df8",
-      "ha/config/custom_components/open_thermostat/v1_wire.py": "a8bb880b918f64de3f083bf858b5ed50621bd9601af94413afb3ae3f538397ce"
+      "ha/config/custom_components/open_thermostat/v1_runtime.py": "38b94ff4f0558d200d23f7a3997d190c18cb1c5f87341223e3d92c0147b87a0c",
+      "ha/config/custom_components/open_thermostat/v1_wire.py": "ba308ef09b357be97602983c778587d9ecbbebd29bdcd5bac7ba0f05672fe6c3"
     },
     "platform_imports": [
       "homeassistant",
-      "voluptuous"
+      "voluptuous",
+      "probatio"
     ],
-    "requirements_state": "No separately declared requirements; native HA/lovelace/MQTT runtime is separately installed, not vendored. Test HA2026.10.2 is not proof of installed production HA version.",
-    "stdlib_scope": "Python3.14 test scope; unknown external imports remain blocked"
+    "requirements_state": "No separate custom requirement needed for probatio0.13.0: exact direct HA2026.10.2 requirement. Existing native platform supplies voluptuous transitively. Original installed metadata/RECORD/license bound; production HA version still UNKNOWN.",
+    "stdlib_scope": "Python3.14 test scope; unknown external imports remain blocked",
+    "source_git_parent": "90dd5a38e209975a476e441fcd00571e47e00a8c",
+    "native_platform_evidence": {
+      "path": "docs/third-party/native-ha-validator.json",
+      "sha256": "5433ce5d998f80202659e42468122d42d0db210925bd5e7eb17e95a88f82bf0e",
+      "scope": "Native tested HA2026.10.2/real probatio0.13.0; not installed production platform proof"
+    }
   },
   "ca": {
     "pem": "certs/cacert.pem",

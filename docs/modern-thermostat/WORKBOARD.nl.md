@@ -2145,6 +2145,48 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   API2DATA/controllergrens apart aftekenen. Lopende specialist niet onderbroken,
   geen redundant vervolgbericht/nieuwe eigenaar; officiële volgende check15min.
 
+### Mark11785/11890 — F2/F3/F10 SOURCE-profielkoppeling: Stage46 onafhankelijke bronacceptatie
+
+- [x] Echte canonical hostcheckout8a60068 schoon; actuele §6/PLAN, memory_search,
+  verified-taskflow, RESULTStage45 en eenmaal bounded specialistgeschiedenis6
+  gelezen. Lopende Stage46levering tijdens deze run reviewbaar geworden via
+  SOURCE-ENTRY-RESULT.json8afd0d7; één bestaande specialist behouden.
+- [x] Exact20padenpatcha71d5aa0, frozenarchive4137513c en alle20voor-/nahashes
+  gecontroleerd;478archivebestanden,458overige canonicalpaden byte-exact behouden.
+  Eigen canonical-afgeleide reviewworktree; bestaande hostreceipt niet herhaald.
+- [x] Logisch SOURCE-profiel/owner/configpin in bestaande native entry/runtime/
+  ShadowClient en echte C++hello/state/open_session verbonden. Exacte selectie
+  alleen door gereviewde bron, defaulttuple leeg; onjuiste/missende identiteit,
+  graphconflict of fysieke rechtenclaim faalt dicht vóór staging/configpublicatie.
+  Identiteit is GEEN authenticatie, fysieke kwalificatie of verlenging van leases.
+- [x] Werkelijk hostgcc/g++17 strict/echte cJSON/GTest/controller en finitepeer
+  nieuw gebouwd:65nativePASS, dezelfde65volledig framework/testTU-ASan+UBSan/
+  leakdetectiePASS; externe OpenSSLprovider niet geïnstrumenteerd. NativeHA
+  2026.10.2/Python3.14.8:99PASS/5bestaande dependencywarnings/0skips;22offline
+  release-auditchecksPASS. Scope overlapt eerder bewijs, niet optellen.
+- [x] Twee native kamerforms met verschillende doelen, echte HAStore/journal,
+  exacte firmware-readback, unload/reload/nieuwe boot/oud grant, mismatch/retained/
+  fysiekeclaimnegatieven en seizoens-/tapwatervoorrang onafhankelijk uitgevoerd.
+  GUIbewijs is native formschema-serialisatie, GEEN Chromium/telefoon/E32visual.
+  Geselecteerde SOURCEconfig blijft exact gepind; gewone API1wijziging naar
+  revisie2 getest, SOURCEwijziging NIET ongemerkt opnieuw gekwalificeerd.
+- [ ] F2/F3/hele11785 blijft in_progress: echte E32MQTTfactory kiest nog nullSOURCE;
+  provider/producerbinding, API2graphDATA→expliciete controlconfig, pin-/schema-
+  lifecycle, volledige GUI, actuele normale firmwareimages/8zoneresources,
+  productieHAversie en SDK/source-offer/CA/S3FSreleasegates blijven OPEN.
+  Geen installatie/publicatie/device/broker/login/HAconfigactie of fysieke/
+  72u/TX/EMS/actuator-/verwarmingsGO. Alle F9modelafwijzingen blijven behouden.
+- Bewijs11774dossier: source-entry-parent-evidence/{TASKFLOW.md,PRECHECK.json,
+  COMMANDS.json,CHECKS.json,NATIVE.json,SANITIZER.json,HA.xml,ROWS.jsonl} en logs.
+  Rollback vóór deployment uitsluitend deze nieuwe broncommit na dependentreview;
+  bestaande journal/config/model/Recorder/history/PLAN/bordhistorie behouden.
+- Eerstvolgende concrete integratieactie bij dezelfde specialist: API2graphDATA
+  en bestaande native API1/SOURCEcontrol expliciet en begrensd verbinden met
+  twee-kamer Store/apply/readback/reconnect-/migratienegatieven; exacte SOURCEpin
+  niet afzwakken en unsupported/scopeverschil zichtbaar houden. Bestaande factory/
+  provider-, GUI11846-, generic-size- en resterende F0–F10softwareopdracht blijft.
+  Officiële hervattingsjob behouden, check15min; geen tweede eigenaar of watcher.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

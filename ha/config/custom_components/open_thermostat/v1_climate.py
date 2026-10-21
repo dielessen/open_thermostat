@@ -97,6 +97,9 @@ class ShadowRoom(ClimateEntity):
         state = self.runtime.decisions.get(self.room.room_id)
         return {"integration_mode": "v1_shadow", "actuation_enabled": False,
                 "boiler_output_enabled": False, "actuator_output_enabled": False,
+                "transport_status": self.runtime.diagnostics.get("transport", "not_connected"),
+                "controller_policy_status": self.runtime.diagnostics.get("controller_policy",
+                    "source_identity_unverified" if self.runtime.controller_policy_source_profile is not None else "default_api1"),
                 "simulated_demand": state.demand if state else False,
                 "source_quality": observation.quality, "observed_temperature": observation.temperature_c,
                 "firmware_reason": state.reason if state else "wire_not_attached",

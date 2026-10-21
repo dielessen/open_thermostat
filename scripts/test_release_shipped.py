@@ -126,4 +126,44 @@ class Shipped(unittest.TestCase):
             f.write_text("import other")
             with self.assertRaisesRegex(NoticeError,"ha_source_identity_conflict"):r.ha_inventory(root,policy)
 
+    def test_native_validator_requires_exact_reviewed_core_evidence_not_allowlist(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);(root/"component").mkdir();f=root/"component/candidate.py";f.write_text("import probatio\nimport mystery\n")
+            m=root/"component/manifest.json";m.write_text(json.dumps(dict(domain="fixture")))
+            policy=dict(source_files={"component/candidate.py":hashlib.sha256(f.read_bytes()).hexdigest(),
+                        "component/manifest.json":hashlib.sha256(m.read_bytes()).hexdigest()},
+                        manifest="component/manifest.json",source_candidate="fixture",platform_imports=["homeassistant","voluptuous","probatio","mystery"])
+            with self.assertRaisesRegex(NoticeError,"native_platform_evidence_missing"):
+                r.ha_inventory(root,policy)
+            real=Path(__file__).resolve().parents[1]
+            evidence=json.loads((real/"docs/third-party/native-ha-validator.json").read_text())
+            license_path=root/evidence["probatio"]["original_license_path"]
+            license_path.parent.mkdir(parents=True)
+            license_path.write_bytes((real/evidence["probatio"]["original_license_path"]).read_bytes())
+            ledger=root/"ledger.json";ledger.write_text(json.dumps(evidence))
+            policy["native_platform_evidence"]={"path":"ledger.json","sha256":hashlib.sha256(ledger.read_bytes()).hexdigest()}
+            report=r.ha_inventory(root,policy)
+            self.assertIn("probatio",report["platform_provided_imports"])
+            self.assertEqual(report["unqualified_external_imports"],{"mystery":["component/candidate.py"]})
+            self.assertIn("UNKNOWN",report["installed_production_versions"])
+            license_path.write_bytes(b"not original")
+            with self.assertRaisesRegex(NoticeError,"native_validator_original_license_conflict"):
+                r.ha_inventory(root,policy)
+
+    def test_native_validator_missing_requirement_or_changed_ledger_is_not_qualified(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);(root/"component").mkdir();f=root/"component/candidate.py";f.write_text("import probatio\n")
+            m=root/"component/manifest.json";m.write_text(json.dumps(dict(domain="fixture")))
+            real=Path(__file__).resolve().parents[1]
+            evidence=json.loads((real/"docs/third-party/native-ha-validator.json").read_text())
+            evidence["homeassistant"]["requires"]=[]
+            ledger=root/"ledger.json";ledger.write_text(json.dumps(evidence))
+            policy=dict(source_files={"component/candidate.py":hashlib.sha256(f.read_bytes()).hexdigest(),
+                        "component/manifest.json":hashlib.sha256(m.read_bytes()).hexdigest()},
+                        manifest="component/manifest.json",source_candidate="fixture",platform_imports=["probatio"],
+                        native_platform_evidence={"path":"ledger.json","sha256":hashlib.sha256(ledger.read_bytes()).hexdigest()})
+            with self.assertRaisesRegex(NoticeError,"unqualified_native_validator"):r.ha_inventory(root,policy)
+            ledger.write_text("{}")
+            with self.assertRaisesRegex(NoticeError,"native_platform_evidence_conflict"):r.ha_inventory(root,policy)
+
 if __name__=="__main__":unittest.main()

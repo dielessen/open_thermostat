@@ -20,6 +20,10 @@ struct SeasonalSafetySnapshot {
 };
 struct SeasonalControllerSource {
     std::string controllerId,configDigest;
+    // Optional SOURCE-owned logical policy revision. Empty retains old API1
+    // compatibility, but cannot satisfy an explicitly pinned HA policy client.
+    // This is NOT a physical installation/capability/actuator qualification.
+    std::string profileDigest;
     std::array<SeasonalZoneSource,8> zones;
     size_t count=0;
     uint32_t maximumSafetyAgeMs=0;
@@ -27,6 +31,10 @@ struct SeasonalControllerSource {
     bool valid() const {
         if(controllerId.empty()||controllerId.size()>64||configDigest.size()!=64
             ||!count||count>zones.size()||maximumSafetyAgeMs<1000||maximumSafetyAgeMs>120000)return false;
+        if(!profileDigest.empty()) {
+            if(profileDigest.size()!=64)return false;
+            for(char ch:profileDigest)if(!((ch>='0'&&ch<='9')||(ch>='a'&&ch<='f')))return false;
+        }
         for(char ch:configDigest)if(!((ch>='0'&&ch<='9')||(ch>='a'&&ch<='f')))return false;
         for(size_t i=0;i<count;++i) {
             const auto& z=zones[i];

@@ -126,9 +126,27 @@ def ha_inventory(root,policy):
             elif isinstance(item,ast.ImportFrom) and item.level==0 and item.module:names=[item.module]
             for name in names:imports.setdefault(name.split(".")[0],set()).add(path)
     manifest=json.loads(inside(root,policy["manifest"]).read_text())
-    unknown=sorted(set(imports)-sys.stdlib_module_names-set(policy["platform_imports"]))
+    platform=set(policy["platform_imports"])&{"homeassistant","voluptuous"}
+    native_evidence=None
+    if "probatio" in policy["platform_imports"]:
+        ref=policy.get("native_platform_evidence")
+        if type(ref) is not dict:raise NoticeError("native_platform_evidence_missing")
+        path=inside(root,ref["path"])
+        if filehash(path)!=ref["sha256"]:raise NoticeError("native_platform_evidence_conflict")
+        native_evidence=json.loads(path.read_text())
+        ha=native_evidence["homeassistant"];validator=native_evidence["probatio"]
+        if (ha["metadata"]["Version"]!=["2026.10.2"] or "probatio==0.13.0" not in ha["requires"]
+                or validator["metadata"]["Version"]!=["0.13.0"]
+                or validator["metadata"]["License-Expression"]!=["MIT"]
+                or not validator["record_license_hash_verified"]):
+            raise NoticeError("unqualified_native_validator")
+        if filehash(inside(root,validator["original_license_path"]))!=validator["original_license_sha256"]:
+            raise NoticeError("native_validator_original_license_conflict")
+        platform.add("probatio")
+    unknown=sorted(set(imports)-sys.stdlib_module_names-platform)
     return dict(source_candidate=policy["source_candidate"],source_files=files,manifest=manifest,
-                platform_provided_imports=sorted(set(imports)&set(policy["platform_imports"])),
+                platform_provided_imports=sorted(set(imports)&platform),
+                native_platform_evidence=native_evidence,
                 unqualified_external_imports={k:sorted(imports[k]) for k in unknown},
                 separately_declared_requirements=manifest.get("requirements",[]),
                 installed_production_versions="UNKNOWN_NOT_INFERRED_FROM_PINNED_TEST_HA",

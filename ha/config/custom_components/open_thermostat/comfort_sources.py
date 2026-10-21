@@ -46,3 +46,39 @@ class ContextSourceProfile:
     @property
     def identity(self):
         return ("binary_sensor" if self.kind=="window" else "person", self.platform, self.unique_id)
+
+
+@dataclass(frozen=True, slots=True)
+class ControllerPolicySourceProfile:
+    """Exact logical SOURCE policy/owner/config expectation, never output rights.
+
+    Selected by native entry SOURCE code only. No GUI/remote discovery can
+    construct or select this object; an advertised digest alone is insufficient.
+    """
+    entry_unique_id: str
+    controller_id: str
+    adapter_id: str
+    profile_digest: str
+    config_digest: str
+    schema: int = 1
+
+    def validate(self):
+        if (not isinstance(self.entry_unique_id,str) or not self.entry_unique_id
+                or len(self.entry_unique_id)>256 or type(self.schema) is not int or self.schema!=1):
+            raise ValueError("controller_policy_profile_invalid")
+        for value in (self.controller_id,self.adapter_id):
+            if not isinstance(value,str) or re.fullmatch(r"[A-Za-z0-9_-]{1,32}",value) is None:
+                raise ValueError("controller_policy_profile_invalid")
+        for value in (self.profile_digest,self.config_digest):
+            if not isinstance(value,str) or re.fullmatch(r"[0-9a-f]{64}",value) is None:
+                raise ValueError("controller_policy_profile_invalid")
+
+    def matches(self,message):
+        value=message.get("source_policy")
+        return (message.get("controller_id")==self.controller_id and type(value) is dict
+            and set(value)=={"schema","kind","adapter_id","profile_digest","config_pin",
+                              "physical_outputs_enabled","frost_protection_available"}
+            and type(value["schema"]) is int and value["schema"]==self.schema
+            and value["kind"]=="seasonal.shadow.v1" and value["adapter_id"]==self.adapter_id
+            and value["profile_digest"]==self.profile_digest and value["config_pin"]==self.config_digest
+            and value["physical_outputs_enabled"] is False and value["frost_protection_available"] is False)

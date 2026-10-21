@@ -31,6 +31,7 @@ int main(int argc,char **argv) {
         const auto zones=field(config.get(),"zones");const auto count=cJSON_GetArraySize(zones);
         if(!cJSON_IsArray(zones)||count<1||count>8)return 5;
         seasonalSource.controllerId="e32_lab";seasonalSource.configDigest=controlTestHash(raw);
+        if(argc>4)seasonalSource.profileDigest=argv[4]; // Explicit pre-construction TEST SOURCE identity.
         seasonalSource.count=static_cast<size_t>(count);seasonalSource.maximumSafetyAgeMs=2000;
         for(int i=0;i<count;++i) {
             auto zone=cJSON_GetArrayItem(zones,i);auto& pin=seasonalSource.zones[static_cast<size_t>(i)];
@@ -69,6 +70,9 @@ int main(int argc,char **argv) {
             safety.limitsKnownSafe=cJSON_IsTrue(field(event.get(),"limits_known_safe"));
             safety.dhwStateKnown=cJSON_IsTrue(field(event.get(),"dhw_state_known"));
             safety.dhwActive=cJSON_IsTrue(field(event.get(),"dhw_active"));
+            safety.summer=cJSON_IsTrue(field(event.get(),"summer"));
+            safety.allOff=cJSON_IsTrue(field(event.get(),"all_off"));
+            safety.preempted=cJSON_IsTrue(field(event.get(),"preempted"));
         } else if(op=="metrics_payload") metricRaw=stringField(event.get(),"raw");
         else if(op=="store_fault") {store.fail=cJSON_IsTrue(field(event.get(),"fail"));store.commitOnError=cJSON_IsTrue(field(event.get(),"commit_on_error"));}
         else return 4;

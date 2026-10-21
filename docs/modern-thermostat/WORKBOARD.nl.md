@@ -2758,6 +2758,16 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   productbinding en frontend-/gezamenlijke releasebewijzen; lopende GUItaak niet
   onderbroken. Hele11785 blijft IN_PROGRESS; bestaande enigejob/check15min.
 
+
+- Bronmerge96a070f technisch nagecontroleerd: schoon, alle16bronhashes en
+  reverse-/commitdiffcheckPASS; native-plan-parent-20261021-1933/POSTCHECK.json.
+  Concrete F2/F3/R18 compacteweekschema-/refreshopdracht met acceptatie/rollback
+  followup0268e698-1ab5-4973-8a64-1f05e70aefdb QUEUED bij bestaande specialist;
+  admission is geen completion. Lopende GUIstatuspolish blijft actief.
+  Enigeautomation werkelijk geïnspecteerd: interval900000ms/pacing15m–15m
+  behouden, next_check exact15m bevestigd. Controle19:33-run eindigt rond19:42
+  door onafhankelijke bron-/ketenverificatie; geen stipte updateafleverclaim.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

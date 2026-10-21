@@ -1665,16 +1665,81 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
 - [x] Broncommit2dae5b4 fast-forward samengevoegd; alleoverige trackedbronbytes
   exact behouden, schone status en technische postcheckPASS. Alleen test/docwerk,
   geen nieuwe model-/budget-/partitie-/runtime-/productbindingwijziging.
-- [ ] Volgende echte parentactie IN_PROGRESS: normale huidige canonical E32build,
-  vervolgens normale generic/S3 en echtebin-/E32filesystem-/verifiergates indien
-  uitvoerbaar. Specialist512MiBbuilds waren OOM, geen nieuw ELF/appimage; historische
-  b3d521f/dabdfe2beelden zijn geen huidig samengesteldebronbewijs. Genericactualbin
-  overflow en licentie-/provenanceafsluiting blijven OPEN; geen herverpakkingalpha.6.
+- [x] Bovenstaande canonical hostbuildvervolg daadwerkelijk uitgevoerd op8b364f2:
+  normale E32- en S3appbuilds, E32filesystem/layout/TX/negatieveverifiers PASS;
+  exact bewijs en open genericgate in onderstaande canonicalbuildafsluiting.
+  Specialist512MiBOOM blijft historisch bewaard, niet de huidige hostuitkomst.
+- [ ] Genericfirmware past nog niet; licentie-/provenanceafsluiting blijft OPEN.
+  Geen herverpakking van gewijzigde bron als gepubliceerde alpha.6.
 - Bewijs:11774dossier COMPOSED-RELEASE-RESULT.md en
   composed-release-parent-evidence/{PRECHECK,COMMAND,POSTCHECK}.json / HA.xml / HA.log.
   Rollback alleen2dae5b4 vóór afhankelijken; bestaande DHW/Recorder/model/PLAN/data
   bewaren. Niet geïnstalleerd/gepubliceerd; geen login/TX/EMS/actuator/verwarmingsGO.
   Gehele11785 blijft in_progress; fysieke/resource-/72ugates ongewijzigd.
+
+### Mark11785 — F0/F10 canonicalbuilds en volledige hostmatrix: echte afsluiting
+
+- [x] Normale gepinde PIO/Arduino2.0.17builds op echte canonical8b364f2 uitgevoerd,
+  zonder partitie-/compiler-/budgetverruiming. E32app2299632B en S3app1601728B
+  passen ieder in BEIDE3670016B-OTAslots. ELF/map/appbeelden en E32filesystem/
+  embedded-webmanifest exact lokaal bewaard;10artefacthashes opnieuw bevestigd.
+- [x] E32buildfs, layout/image/TXverifier en7negatieveverifierchecks PASS;
+  huidige volledige native407PASS. HA738PASS/1brokerSKIP/68subtests; daarna met
+  echte geïsoleerde bestaandeMosquittofixture739PASS/0skip/68subtests.
+  Eerste onmiddellijke cleanupnotitie false behouden; afzonderlijke latere
+  dockerinspect bevestigt eigenfixture daadwerkelijk afwezig. Geen productiebroker.
+- [x] Bestaande shippedbrowserreeksen19onboarding/4settings/34rooms/19updates/
+  35auth-root-restart-managedPASS;36onboardingproductiescenario's ookASan/UBSan.
+  Tellingen overlappen andere pakketten, niet optellen als nieuwe functies.
+- [ ] Genericesp32dev volledige link gelukt, sizecheckFAALT:1710209programmaB
+  versus1703936maximum,6273B tekort; GEEN actueleapplicationbin geproduceerd.
+  Daardoor ook actual-binbeide-slotsgate nog BLOCKED, geen ELF-onlyPASS of oude
+  afbeelding hergebruiken. Genericbronoptimalisatie blijft uitvoerbaar softwarewerk.
+- Bewijs11774dossier composed-release-parent-evidence/COMPLETION.json,
+  E32-BUILD-COMMAND/E32-ARTIFACTS/E32-GATES-COMMANDS/MATRIX-BUILDS/
+  PRESERVED-BUILD-ARTIFACTS/FULL-HA-COMMANDS/FULL-HA-MQTT-COMMAND/
+  FIXTURE-CLEANUP-POSTCHECK.json, native/browser/onboardingcommands en echte logs.
+  Uitvoering uit voorafgaande actieve bouwbeurt hervat, geen ongewijzigde builds
+  herhaald. Nieuw Stage36 verandert geen firmware/UI/buildbytes.
+- Niet geïnstalleerd/gepubliceerd/ingepakt alsalpha.6; licentie/provenance,
+  echte8zoneheap/callgraph/NVS-GC/72u/device/OTArollback en fysieke/TX/EMS/
+  actuator/verwarmingsgates OPEN. Hele11785softwareplan blijft in_progress.
+
+### Mark11785 — F2/F3 Stage36 native graph-GUI: onafhankelijke bronacceptatie
+
+- [x] Echte canonicalhostcheckout8b364f2 schoon; actuele§6/PLAN, memory_search,
+  verified-taskflow en RESULT/GRAPH-GUI-ONCE-RESULT werkelijk gelezen. Bestaand
+  eenmalig hostreceipt niet herhaald. Eenmaal boundedhistory6 gaf projectiefout;
+  eenmaal session_status bevestigt bestaande specialist actief, geen tweede owner.
+- [x] Exact7padenpatch e656a79f/frozenarchive6824b126 en22bewijshashes gecontroleerd;
+  allevoor-/nahashes exact in eigen canonical-afgeleide reviewworktree. Bestaande
+  Storetransactie reserveert één poging per session/configtuple vóór mogelijkeIO;
+  twee gelijktijdige bevestigingen geven1configpublicatie/1echteCppdurablewrite.
+- [x] Echte hostgcc/g++17-strict cJSON/finiteCpppeer opnieuw gebouwd; native
+  HA2026.10.2/Python3.14.8:96PASS/0skip, alle18semantische rijen exact. Werkelijke
+  OptionsFlowManager/nativeEnglishtemplate/Store/sameworker/readback gebruikt;
+  MQTTIO onderschept, geen echte HAfrontend/telefoon/device/brokerproef.
+- [x] Onafhankelijke3API1/bool/stringACK-weigeringsproeven toegevoegd:99PASS totaal,
+  vijf bestaande dependencywarnings, nog steeds18oorspronkelijke rijen exact.
+  Eerste parentoracle eiste onterecht behouden deadlines; bestaande worker reset
+  invalidAPI al correct naar0. Oorspronkelijke3testfailures behouden, oracle
+  gecorrigeerd naar weigeren/reset/geen verlenging; GEEN productfout/fixclaim.
+- [x] Bron4519a5e + aparte onafhankelijke tests23441c5 fast-forward canonical;
+  schone status/commitdiffchecks en alleoverige trackedbronbytes exact behouden.
+  ACK blijft acknowledged_unverified, geen acceptedDATA/readiness/leaseverlenging;
+  conflict/uncertain/cancel/restage/grant/reconnect vereisen passende nieuwe consent.
+- Bewijs11774dossier graph-gui-once-parent-evidence/{PRECHECK,CHECKS,COMMANDS,
+  SEMANTIC-CHECK,SOURCE-POSTCHECK,HA-WITH-PROBE-COMMAND}.json, REVIEW.md,
+  nativebuild/HA.xml/log/ROWS en oorspronkelijke API-PROBE-RED.xml/log.
+- Rollback vóór deployment4519a5e na afhankelijkenreview; onafhankelijke testcommit
+  afzonderlijk. Geen journal/model/settings/NVS/Recorder/history/PLANdata wissen.
+  Niet geïnstalleerd; echtefrontend/device/profile/8zone/physicalgates blijven OPEN.
+- Volgende concrete F0/F10actie bij dezelfde specialist: met nieuw canonical
+  ELF/mapbewijs generic6273B-programmaoverschrijding gericht in bron terugbrengen,
+  GEEN gate/partitie/budgetversoepeling; normale build plus werkelijkebin in beide
+  slots en behouden E32locks/legacyfuncties als acceptatie. Bestaande boundedmodel-
+  backend/SHA-/contact-person/F9diagnose/seizoensprofielen blijven behouden.
+  Hele11785 in_progress; na inhoudelijk pakket officiële hervatting15min.
 
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 

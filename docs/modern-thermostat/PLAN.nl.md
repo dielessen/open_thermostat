@@ -37,6 +37,28 @@ Het productdoel is: per kamer de gewenste temperatuur kiezen, de juiste radiator
 
 ### De gekozen scheiding
 
+#### Productrichting bevestigd door Mark — 21 oktober 2026 (Telegram11883)
+
+We ontwikkelen een **zelfstandig eigen softwareproject**. OpenThermostat is de
+historische codebasis, niet de eigenaar van onze productkoers of releaseplanning.
+Onze regelkern, HA-integratie, configuratiecontracten en GUI worden als één eigen
+product onderhouden; toekomstige upstreamwijzigingen worden uitsluitend bewust
+beoordeeld en zijn geen voorwaarde om onze functies of releases af te ronden.
+
+Zelfstandig betekent niet dat alle bestaande code opnieuw moet worden geschreven
+of dat beproefde libraries/platformen moeten verdwijnen. De afgesproken E32- en
+HA/MQTT-architectuur blijft staan, inclusief de werkelijke HA-/brokerafhankelijkheid
+voor via HA aangesloten apparaten. Geen extra afhankelijkheid van een extern
+thermostaatproject als regelbrein. Afkomst, copyright en toepasselijke licenties
+van hergebruikte onderdelen blijven aantoonbaar behouden. Een nieuwe productnaam
+is nog niet gekozen; dit besluit autoriseert geen repository-/pakketrenaming.
+
+Dit is een product-/onderhoudsbesluit, geen nieuwe herschrijffase of bewijs van
+runtimezelfstandigheid. Bestaand bruikbaar werk blijft behouden; de huidige
+integratie- en acceptatiepunten in WORKBOARD worden systematisch afgemaakt.
+
+#### Verantwoordelijkheden
+
 1. **OpenThermostat:** geldigverklaring van aangeleverde metingen, effectieve kamerdoelen, zonevraag, thermische modellen, voorverwarmen, waterstooklijn, gezamenlijke ketelvraag, lokale veiligheidsvoorwaarden en EMS-protocol/telemetrie.
 2. **HA-integratie:** apparaten selecteren, metingen en gebruikersbediening vertalen, actuatoropdrachten uitvoeren, terugmeldingen leveren, configuratie beheren, entiteiten en diagnosen aanbieden.
 3. **Home Assistant zelf:** bestaande apparaatdrivers, mobiele bediening, personen/aanwezigheid, bestaande weekagenda, Recorder/grafieken en meldingskanalen. Geen tweede kamer-PID of ketelcoördinator naast OpenThermostat.

@@ -46,6 +46,13 @@ def validate_room(hass, entry, user_input: dict, old_subentry=None) -> RoomBindi
         "binding_mode": user_input.get("binding_mode",
             old_subentry.data.get("binding_mode", ROOM_CLIMATE_TRV) if old_subentry else ROOM_CLIMATE_TRV),
         "setpoint": physical.as_dict() if physical else None,
+        **({"comfort": {
+                "away_centi_c": target_centi(user_input.get("away_temperature", 17)),
+                "frost_centi_c": target_centi(user_input.get("frost_temperature", 5)),
+                "temporary_ms": user_input.get("override_minutes",60)*60000},
+            "window": reference(hass,user_input["window_entity"]).as_dict() if user_input.get("window_entity") else None,
+            "presence": reference(hass,user_input["presence_entity"]).as_dict() if user_input.get("presence_entity") else None,
+        } if user_input.get("comfort_enabled",False) else {}),
         "maximum_age_ms": user_input.get("maximum_age_ms", 120000),
         "base_centi_c": target_centi(user_input["base_temperature"]) if "base_temperature" in user_input else user_input.get("base_centi_c", 2100),
         "schedule": reference(hass, user_input["schedule_entity"]).as_dict() if user_input.get("schedule_entity") else None,
@@ -186,6 +193,17 @@ class ZoneSubentryFlow(config_entries.ConfigSubentryFlow):
                                          "unit_of_measurement": "°C", "mode": "box"}),
             physical_marker:
                 selector.EntitySelector({"filter": [{"domain": "climate"}, {"domain": "number"}]}),
+            vol.Required("comfort_enabled", default=data.get("comfort") is not None): bool,
+            vol.Required("away_temperature", default=data.get("comfort",{}).get("away_centi_c",1700)/100):
+                selector.NumberSelector({"min":5,"max":35,"step":0.1,"unit_of_measurement":"°C","mode":"box"}),
+            vol.Required("frost_temperature", default=data.get("comfort",{}).get("frost_centi_c",500)/100):
+                selector.NumberSelector({"min":5,"max":35,"step":0.1,"unit_of_measurement":"°C","mode":"box"}),
+            vol.Required("override_minutes", default=data.get("comfort",{}).get("temporary_ms",3600000)//60000):
+                vol.All(int,vol.Range(min=1,max=720)),
+            vol.Optional("window_entity",description={"suggested_value":display(data["window"])} if data.get("window") else {}):
+                selector.EntitySelector({"filter":{"domain":"binary_sensor"}}),
+            vol.Optional("presence_entity",description={"suggested_value":display(data["presence"])} if data.get("presence") else {}):
+                selector.EntitySelector({"filter":{"domain":"person"}}),
             vol.Required("maximum_age_ms", default=data.get("maximum_age_ms", 120000)):
                 vol.All(int, vol.Range(min=1000, max=86400000)),
         }

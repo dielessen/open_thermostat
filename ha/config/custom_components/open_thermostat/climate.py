@@ -33,6 +33,15 @@ async def async_setup_entry(
     """Subscribe to the existing aggregate room status topic."""
     from .v1_model import integration_mode, MODE_SHADOW
     if integration_mode(entry) == MODE_SHADOW:
+        import voluptuous as vol
+        from homeassistant.helpers import entity_platform
+        platform=entity_platform.async_get_current_platform()
+        platform.async_register_entity_service("set_comfort",{
+            vol.Required("mode"):vol.In(["auto","off","temporary","boost","away","vacation","frost"]),
+            vol.Optional("temperature"):vol.All(vol.Coerce(float),vol.Range(min=5,max=35)),
+            vol.Optional("duration_minutes"):vol.All(int,vol.Range(min=1,max=720)),
+            vol.Optional("vacation_until"):str,
+        },"async_set_comfort")
         from .v1_climate import async_setup_entry as setup_shadow
         return await setup_shadow(hass, entry, async_add_entities)
 

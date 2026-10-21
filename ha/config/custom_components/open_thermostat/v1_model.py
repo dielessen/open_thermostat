@@ -57,6 +57,9 @@ class RoomBinding:
     maximum_target_centi_c: int = 3500
     week_program: dict | None = None
     binding_mode: str = ROOM_CLIMATE_TRV
+    comfort: dict | None = None
+    window: EntityReference | None = None
+    presence: EntityReference | None = None
 
     @property
     def shadow_wire_supported(self) -> bool:
@@ -106,7 +109,25 @@ class RoomBinding:
             week = normalize_program(week, minimum, maximum)
             if schedule is not None:
                 raise ValueError("program_source_conflict")
-        return cls(room_id, str(value["name"]), temperature, actuators, setpoint, age, base, schedule, minimum, maximum, week, mode)
+        comfort = value.get("comfort")
+        window = EntityReference.from_dict(value["window"]) if value.get("window") else None
+        presence = EntityReference.from_dict(value["presence"]) if value.get("presence") else None
+        if comfort is not None:
+            if (type(comfort) is not dict or set(comfort)!={"away_centi_c","frost_centi_c","temporary_ms"}
+                    or type(comfort["away_centi_c"]) is not int or not minimum<=comfort["away_centi_c"]<=maximum
+                    or type(comfort["frost_centi_c"]) is not int or not minimum<=comfort["frost_centi_c"]<=maximum
+                    or type(comfort["temporary_ms"]) is not int or not 60000<=comfort["temporary_ms"]<=43200000
+                    or mode!=ROOM_CLIMATE_TRV):
+                raise ValueError("invalid_comfort_profile")
+        elif window or presence:
+            raise ValueError("comfort_required")
+        if window and not window.entity_id.startswith("binary_sensor."):
+            raise ValueError("invalid_window_source")
+        if presence and not presence.entity_id.startswith("person."):
+            raise ValueError("invalid_presence_source")
+        if any(ref and ref.entity_id in ids for ref in (window,presence)):
+            raise ValueError("duplicate_comfort_binding")
+        return cls(room_id, str(value["name"]), temperature, actuators, setpoint, age, base, schedule, minimum, maximum, week, mode, dict(comfort) if comfort is not None else None, window, presence)
 
     def as_dict(self) -> dict:
         return {
@@ -117,6 +138,9 @@ class RoomBinding:
             "maximum_age_ms": self.maximum_age_ms,
             "actuator_profile": "C_unverified" if self.shadow_wire_supported else "graph_draft_not_applied",
             **({"binding_mode": self.binding_mode} if not self.shadow_wire_supported else {}),
+            **({"comfort": dict(self.comfort),
+                "window": self.window.as_dict() if self.window else None,
+                "presence": self.presence.as_dict() if self.presence else None} if self.comfort is not None else {}),
             "base_centi_c": self.base_centi_c,
             "schedule": self.schedule.as_dict() if self.schedule else None,
             "minimum_target_centi_c": self.minimum_target_centi_c,
@@ -151,6 +175,10 @@ class RoomDecision:
     current_centi_c: int | None
     demand: bool
     reason: str
+    target_source: str = "unknown"
+    comfort_mode: str | None = None
+    override_remaining_ms: int = 0
+    vacation_until_utc: int = 0
 
     def __post_init__(self):
         if self.target_centi_c is not None and (type(self.target_centi_c) is not int or not 500 <= self.target_centi_c <= 3500):

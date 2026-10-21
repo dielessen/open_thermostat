@@ -29,6 +29,9 @@ class ShadowRoom(ClimateEntity):
 
     def __init__(self, prefix, room, runtime):
         self.room, self.runtime = room, runtime
+        if room.comfort is not None:
+            self._attr_supported_features |= ClimateEntityFeature.PRESET_MODE
+            self._attr_preset_modes = ["none","boost","away","frost","off"]
         self._attr_min_temp = room.minimum_target_centi_c / 100
         self._attr_max_temp = room.maximum_target_centi_c / 100
         self._attr_unique_id = f"{prefix}_room_{room.room_id}_climate"
@@ -65,6 +68,30 @@ class ShadowRoom(ClimateEntity):
         return HVACAction.IDLE  # Shadow demand is never real heating.
 
     @property
+    def preset_mode(self):
+        state=self.runtime.decisions.get(self.room.room_id)
+        return state.comfort_mode if state and state.comfort_mode not in {None,"auto","temporary","vacation"} else "none"
+
+    async def async_set_preset_mode(self,preset_mode):
+        await self.runtime.async_comfort(self.room.room_id,"auto" if preset_mode=="none" else preset_mode)
+
+    async def async_set_comfort(self,mode,temperature=None,duration_ms=None,vacation_until_utc=0,
+                               duration_minutes=None,vacation_until=None):
+        from homeassistant.exceptions import HomeAssistantError
+        if duration_minutes is not None:
+            if duration_ms is not None or type(duration_minutes) is not int or not 1<=duration_minutes<=720:
+                raise HomeAssistantError("Invalid/conflicting override duration")
+            duration_ms=duration_minutes*60000
+        if vacation_until is not None:
+            from homeassistant.util import dt as dt_util
+            parsed=dt_util.parse_datetime(vacation_until)
+            if vacation_until_utc or parsed is None or parsed.tzinfo is None or parsed.microsecond:
+                raise HomeAssistantError("Vacation end needs a date/time with explicit timezone")
+            vacation_until_utc=int(parsed.timestamp())
+        await self.runtime.async_comfort(self.room.room_id,mode,temperature=temperature,
+            duration_ms=duration_ms,vacation_until_utc=vacation_until_utc)
+
+    @property
     def extra_state_attributes(self):
         observation = self.runtime.observations[self.room.room_id]
         state = self.runtime.decisions.get(self.room.room_id)
@@ -73,6 +100,13 @@ class ShadowRoom(ClimateEntity):
                 "simulated_demand": state.demand if state else False,
                 "source_quality": observation.quality, "observed_temperature": observation.temperature_c,
                 "firmware_reason": state.reason if state else "wire_not_attached",
+                "target_source": state.target_source if state else None,
+                "comfort_mode": state.comfort_mode if state else None,
+                "override_remaining_ms": state.override_remaining_ms if state else None,
+                "override_remaining_minutes": (state.override_remaining_ms+59999)//60000 if state else None,
+                "vacation_until_utc": state.vacation_until_utc if state else None,
+                "local_override_ends_on_presence_change": False,
+                "default_override_minutes": self.room.comfort["temporary_ms"]//60000 if self.room.comfort is not None else 60,
                 "actuator_profile": "C_unverified" if self.room.shadow_wire_supported else "graph_draft_not_applied",
                 "diagnostic": self.runtime.diagnostics.get(self.room.room_id)}
 

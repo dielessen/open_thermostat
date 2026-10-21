@@ -341,3 +341,104 @@ TEST(GrantNonce, NonceCannotBeAttachedToAnotherStreamOrRaiseAnyPhysicalFlag) {
 }
 
 }
+
+namespace {
+std::string comfortConfig(bool context=true) {
+    auto root=parseControlJson(config());
+    auto z=field(root.get(),"zones")->child;
+    auto c=cJSON_AddObjectToObject(z,"comfort");
+    cJSON_AddNumberToObject(c,"away_centi_c",1600);cJSON_AddNumberToObject(c,"frost_centi_c",500);
+    cJSON_AddNumberToObject(c,"maximum_centi_c",2500);cJSON_AddNumberToObject(c,"minimum_centi_c",500);
+    cJSON_AddBoolToObject(c,"presence",context);cJSON_AddNumberToObject(c,"temporary_ms",60000);cJSON_AddBoolToObject(c,"window",context);
+    // Configs are canonical sorted-key documents, as on the actual HA path.
+    return "{\"mapping_digest\":\""+mapping+"\",\"mode\":\"shadow\",\"revision\":1,\"schema\":1,\"zones\":[{\"actuator_id\":\"trv1\",\"base_centi_c\":2100,\"comfort\":"+printJson(c)+",\"max_age_ms\":120000,\"report_evidence\":\"physical_report\",\"schedule\":null,\"sensor_id\":\"room1\",\"zone_id\":\"1234abcd\"}]}";
+}
+void comfortReady(Fixture &f,bool context=true) {
+    f.start();f.connect();f.heartbeat();
+    auto cfg=f.configuration(comfortConfig(context));f.send("ha/config",cfg.get());f.connect();f.heartbeat();
+    ASSERT_EQ(f.core->revision(),1u);
+}
+ControlJson comfortCommand(Fixture &f,const char *mode,unsigned seq=1,int target=0,unsigned duration=0) {
+    auto o=f.envelope("1234abcd",seq);cJSON_AddStringToObject(o.get(),"mode",mode);
+    if(target)cJSON_AddNumberToObject(o.get(),"temperature_centi_c",target);else cJSON_AddNullToObject(o.get(),"temperature_centi_c");
+    cJSON_AddNumberToObject(o.get(),"duration_ms",duration);cJSON_AddNumberToObject(o.get(),"vacation_until_utc",0);return o;
+}
+ControlJson contextObservation(Fixture &f,unsigned seq=1,bool open=false,bool away=false,bool known=true) {
+    auto o=f.observation(seq);
+    cJSON_AddBoolToObject(o.get(),"window_open",open);cJSON_AddNumberToObject(o.get(),"window_age_ms",0);
+    if(known)cJSON_AddBoolToObject(o.get(),"presence_away",away);else cJSON_AddNullToObject(o.get(),"presence_away");
+    cJSON_AddNumberToObject(o.get(),"presence_age_ms",0);return o;
+}
+TEST(ComfortRuntime, DurableConfigAndActualPriorityAndVisibleMonotoneExpiry) {
+    Fixture f;comfortReady(f);
+    auto obs=contextObservation(f,1,false,true);f.send("ha/observations",obs.get());
+    auto state=f.state();EXPECT_EQ(uintField(Fixture::row(state),"target_centi_c"),1600u);
+    auto away=comfortCommand(f,"away");f.send("ha/user_command",away.get());
+    auto boost=comfortCommand(f,"boost",2,2300,1000);f.send("ha/user_command",boost.get());
+    state=f.state();EXPECT_EQ(uintField(Fixture::row(state),"target_centi_c"),2300u);
+    EXPECT_EQ(uintField(Fixture::row(state),"override_remaining_ms"),1000u);
+    auto unknown=contextObservation(f,2,false,false,false);f.send("ha/observations",unknown.get());
+    state=f.state();EXPECT_EQ(uintField(Fixture::row(state),"target_centi_c"),2300u);
+    auto open=contextObservation(f,3,true);f.send("ha/observations",open.get());
+    state=f.state();EXPECT_TRUE(cJSON_IsNull(field(Fixture::row(state),"target_centi_c")));
+    f.now+=1000;
+    auto close=contextObservation(f,4);f.send("ha/observations",close.get());
+    state=f.state();EXPECT_EQ(uintField(Fixture::row(state),"target_centi_c"),1600u);
+    EXPECT_EQ(uintField(Fixture::row(state),"override_remaining_ms"),0u);
+    EXPECT_FALSE(cJSON_IsTrue(field(state.get(),"actuator_output_enabled")));
+    EXPECT_FALSE(cJSON_IsTrue(field(state.get(),"boiler_output_enabled")));
+    EXPECT_EQ(f.store.writes,1u);
+}
+TEST(ComfortRuntime, FrostBeatsWindowButLimitsAndBadCommandsNeverBypassAdmission) {
+    Fixture f;comfortReady(f);auto o=contextObservation(f,1,true);f.send("ha/observations",o.get());
+    auto cmd=comfortCommand(f,"frost");f.send("ha/user_command",cmd.get());
+    auto state=f.state();EXPECT_EQ(uintField(Fixture::row(state),"target_centi_c"),500u);
+    auto bad=comfortCommand(f,"boost",2,2600,1000);f.send("ha/user_command",bad.get());
+    auto good=comfortCommand(f,"boost",2,2300,1000);f.send("ha/user_command",good.get());
+    EXPECT_EQ(stringField(f.get("fw/user_command_result").get(),"status"),"accepted");
+    state=f.state();EXPECT_TRUE(cJSON_IsNull(field(Fixture::row(state),"target_centi_c")));
+    auto off=comfortCommand(f,"off",3);f.send("ha/user_command",off.get());
+    state=f.state();EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(state),"demand")));
+}
+TEST(ComfortRuntime, ReconnectAndRebootKeepConfigButNeverOldManualChoiceOrContext) {
+    Fixture f;comfortReady(f);auto o=contextObservation(f);f.send("ha/observations",o.get());
+    auto cmd=comfortCommand(f,"boost",1,2300,10000);f.send("ha/user_command",cmd.get());
+    f.core->disconnected();f.core->connected(f.now);f.connect();f.heartbeat();
+    auto snap=f.envelope("snapshot");f.send("ha/snapshot_request",snap.get());
+    auto state=f.state();EXPECT_EQ(uintField(Fixture::row(state),"override_remaining_ms"),0u);
+    EXPECT_EQ(stringField(Fixture::row(state),"comfort_mode"),"auto");
+    EXPECT_TRUE(cJSON_IsNull(field(Fixture::row(state),"target_centi_c")));
+    f.boot="boot2";f.start();f.connect();f.heartbeat();snap=f.envelope("snapshot");f.send("ha/snapshot_request",snap.get());
+    state=f.state();EXPECT_EQ(uintField(Fixture::row(state),"override_remaining_ms"),0u);
+    EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(state),"demand")));EXPECT_EQ(f.store.writes,1u);
+}
+TEST(ComfortRuntime, UnavailableOrStalePresenceNeverMeansAwayAndNoContextEvidencePromotesTemperature) {
+    Fixture f;comfortReady(f);auto o=contextObservation(f,1,false,false,false);f.send("ha/observations",o.get());
+    auto state=f.state();EXPECT_TRUE(cJSON_IsNull(field(Fixture::row(state),"target_centi_c")));
+    o=contextObservation(f,2);cJSON_ReplaceItemInObjectCaseSensitive(o.get(),"evidence",cJSON_CreateString("unverified"));
+    f.send("ha/observations",o.get());state=f.state();EXPECT_EQ(uintField(Fixture::row(state),"target_centi_c"),2100u);
+    EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(state),"demand")));
+    o=contextObservation(f,3);cJSON_ReplaceItemInObjectCaseSensitive(o.get(),"presence_age_ms",cJSON_CreateNumber(120000));
+    f.send("ha/observations",o.get());state=f.state();EXPECT_TRUE(cJSON_IsNull(field(Fixture::row(state),"target_centi_c")));
+}
+}
+
+namespace {
+TEST(ComfortRuntime, ExpiredVacationExactRetryAcknowledgedButCannotRestartOrConsumeNewInvalidSequence) {
+    Fixture f;comfortReady(f,false);
+    auto cmd=comfortCommand(f,"vacation");
+    cJSON_ReplaceItemInObjectCaseSensitive(cmd.get(),"vacation_until_utc",cJSON_CreateNumber(1792368001));
+    f.send("ha/user_command",cmd.get());
+    EXPECT_EQ(stringField(f.get("fw/user_command_result").get(),"status"),"accepted");
+    f.now+=2000;
+    f.core->receive("ha/user_command",printJson(cmd.get()),f.now,1792368002,true);
+    EXPECT_EQ(stringField(f.get("fw/user_command_result").get(),"status"),"duplicate");
+    cJSON_ReplaceItemInObjectCaseSensitive(cmd.get(),"sequence",cJSON_CreateNumber(2));
+    f.core->receive("ha/user_command",printJson(cmd.get()),f.now,1792368002,true);
+    auto valid=comfortCommand(f,"away",2);
+    f.core->receive("ha/user_command",printJson(valid.get()),f.now,1792368002,true);
+    EXPECT_EQ(stringField(f.get("fw/user_command_result").get(),"status"),"accepted");
+    auto state=f.state();EXPECT_EQ(stringField(Fixture::row(state),"comfort_mode"),"away");
+    EXPECT_EQ(uintField(Fixture::row(state),"override_remaining_ms"),0u);
+}
+}

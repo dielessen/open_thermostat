@@ -130,12 +130,24 @@ public:
         auto candidate=std::make_unique<Configuration>();
         std::string candidateBytes;
         if(!shape(root.get(),topic,index,*candidate,candidateBytes)) return;
+        bool validComfort=true;
+        if(topic=="ha/user_command" && config_->zones[index].comfortEnabled) {
+            auto copy=config_->zones[index].comfort;
+            validComfort=applyComfort(copy,root.get(),now,utc,clockValid);
+        }
         if(kind!=StreamKind::heartbeat && kind!=StreamKind::configuration && !mappingReady_) {
             result(resultTopic,e,"mapping_conflict"); return;
         }
         auto payloadHash=hash_(bytes);
         if(!hexString(payloadHash,64)) { fault_=true; invalidate(); return; }
         for(size_t i=0;i<32;++i) e.payloadDigest[i]=static_cast<uint8_t>(hexByte(payloadHash[2*i])*16+hexByte(payloadHash[2*i+1]));
+        if(!validComfort) {
+            // An already applied vacation may expire before its exact-byte ACK
+            // retry. Preserve duplicate acknowledgement, never reapply it or
+            // consume a NEW invalid command sequence. Allocate only on failure.
+            auto trial=std::make_unique<SessionAdmission>(admission_);
+            if(trial->admit(stream,e,now).code!=AdmissionCode::duplicate) return;
+        }
         const auto a=admission_.admit(stream,e,now);
         if(a.code==AdmissionCode::duplicate) { result(resultTopic,e,"duplicate"); if(topic=="ha/snapshot_request") snapshot(); return; }
         if(a.code!=AdmissionCode::accepted) { result(resultTopic,e,"rejected"); return; }
@@ -161,6 +173,16 @@ public:
         if(topic=="ha/snapshot_request") { result(resultTopic,e,"accepted"); snapshot(); state(now,utc,clockValid); return; }
         auto &z=config_->zones[index];
         if(kind==StreamKind::observation) {
+            if(z.comfortEnabled) {
+                auto &in=z.comfortInputs;
+                const auto context=[&](const char *key,const char *ageKey,bool supported,bool &known,bool &value,uint64_t &at,uint32_t &receivedAge) {
+                    const uint64_t age=uintField(root.get(),ageKey)+admission_.grantElapsed(now);
+                    known=supported&&!cJSON_IsNull(field(root.get(),key))&&age<120000;
+                    value=cJSON_IsTrue(field(root.get(),key));at=now;receivedAge=known?age:120000;
+                };
+                context("window_open","window_age_ms",z.comfortProfile.windowSupported,in.windowKnown,in.windowOpen,in.windowAt,in.windowAgeAtReceipt);
+                context("presence_away","presence_age_ms",z.comfortProfile.presenceSupported,in.presenceKnown,in.away,in.presenceAt,in.presenceAgeAtReceipt);
+            }
             if(cJSON_IsFalse(field(root.get(),"source_available"))) z.sample.unavailable();
             else {
                 const auto evidence=stringField(root.get(),"evidence");
@@ -173,6 +195,7 @@ public:
             }
         } else {
             const auto mode=stringField(root.get(),"mode");
+            if(z.comfortEnabled) applyComfort(z.comfort,root.get(),now,utc,clockValid);
             z.off=mode=="off";
             z.overrideUntil=mode=="temporary" && now<=UINT64_MAX-uintField(root.get(),"duration_ms") ? now+uintField(root.get(),"duration_ms") : 0;
             z.overrideTarget=static_cast<int16_t>(uintField(root.get(),"temperature_centi_c"));
@@ -189,11 +212,30 @@ private:
         TemperatureProfile profile;
         TemperatureSample sample;
         UtcSchedule schedule;
-        bool scheduled=false,off=false,demand=false;
+        bool scheduled=false,off=false,demand=false,comfortEnabled=false;
+        ComfortProfile comfortProfile;
+        EffectiveTarget comfort;
+        ComfortInputs comfortInputs;
         ZoneRegulator regulator;
         uint64_t overrideUntil=0;
     };
     struct Configuration { uint32_t revision=0; size_t count=0; std::array<Zone,maximumZones> zones; };
+    static std::optional<ComfortMode> comfortMode(const std::string &name) {
+        if(name=="auto")return ComfortMode::automatic;
+        if(name=="off")return ComfortMode::off;
+        if(name=="temporary")return ComfortMode::temporary;
+        if(name=="boost")return ComfortMode::boost;
+        if(name=="away")return ComfortMode::away;
+        if(name=="vacation")return ComfortMode::vacation;
+        if(name=="frost")return ComfortMode::frost;
+        return {};
+    }
+    static bool applyComfort(EffectiveTarget &comfort,const cJSON *o,uint64_t now,int64_t utc,bool validClock) {
+        const auto mode=comfortMode(stringField(o,"mode"));if(!mode)return false;
+        std::optional<int16_t> target;
+        if(cJSON_IsNumber(field(o,"temperature_centi_c")))target=uintField(o,"temperature_centi_c");
+        return comfort.command(*mode,target,now,uintField(o,"duration_ms"),uintField(o,"vacation_until_utc"),utc,validClock);
+    }
     static int hexByte(char c) { return c<='9'?c-'0':c-'a'+10; }
     bool decodeConfig(const cJSON *o,Configuration &out) const {
         if(!exactFields(o,{"mapping_digest","mode","revision","schema","zones"}) || !canonicalConfig(o) ||
@@ -203,7 +245,9 @@ private:
         if(!cJSON_IsArray(zones)||cJSON_GetArraySize(zones)>static_cast<int>(maximumZones)) return false;
         std::set<std::string> identities{"adapter","config","snapshot"};
         for(auto zone=zones->child;zone;zone=zone->next) {
-            if(!exactFields(zone,{"actuator_id","base_centi_c","max_age_ms","report_evidence","schedule","sensor_id","zone_id"})||
+            const bool comfort=field(zone,"comfort");
+            if(!(comfort?exactFields(zone,{"actuator_id","base_centi_c","comfort","max_age_ms","report_evidence","schedule","sensor_id","zone_id"}):
+                exactFields(zone,{"actuator_id","base_centi_c","max_age_ms","report_evidence","schedule","sensor_id","zone_id"}))||
                 !integerField(zone,"base_centi_c",500,3500)||!integerField(zone,"max_age_ms",1000,86400000)) return false;
             auto &z=out.zones[out.count];
             z.id=stringField(zone,"zone_id"); z.sensor=stringField(zone,"sensor_id"); z.actuator=stringField(zone,"actuator_id");
@@ -213,6 +257,23 @@ private:
                 !identities.insert(z.id).second||!identities.insert(z.sensor).second||
                 (!z.actuator.empty()&&!identities.insert(z.actuator).second)||
                 (z.reportEvidence!="physical_report"&&z.reportEvidence!="validated_integration_report")) return false;
+            if(comfort) {
+                const auto c=field(zone,"comfort");
+                if(!exactFields(c,{"away_centi_c","frost_centi_c","maximum_centi_c","minimum_centi_c","presence","temporary_ms","window"})||
+                    !integerField(c,"minimum_centi_c",500,3500)||!integerField(c,"maximum_centi_c",500,3500)||
+                    !integerField(c,"away_centi_c",500,3500)||!integerField(c,"frost_centi_c",500,3500)||
+                    !integerField(c,"temporary_ms",60000,43200000)||
+                    (!cJSON_IsTrue(field(c,"window"))&&!cJSON_IsFalse(field(c,"window")))||
+                    (!cJSON_IsTrue(field(c,"presence"))&&!cJSON_IsFalse(field(c,"presence")))) return false;
+                auto &p=z.comfortProfile;p.reviewed=true;p.minimumCentiC=uintField(c,"minimum_centi_c");
+                p.maximumCentiC=uintField(c,"maximum_centi_c");p.awayCentiC=uintField(c,"away_centi_c");
+                p.frostCentiC=uintField(c,"frost_centi_c");p.maximumTemporaryMs=43200000;p.maximumBoostMs=14400000;
+                p.windowSupported=cJSON_IsTrue(field(c,"window"));p.presenceSupported=cJSON_IsTrue(field(c,"presence"));
+                p.maximumWindowAgeMs=p.maximumPresenceAgeMs=120000;
+                if(!p.valid()||p.frostCentiC<p.minimumCentiC||p.frostCentiC>p.maximumCentiC||uintField(zone,"base_centi_c")<static_cast<unsigned>(p.minimumCentiC)||
+                    uintField(zone,"base_centi_c")>static_cast<unsigned>(p.maximumCentiC)) return false;
+                z.comfortEnabled=true;z.comfort=EffectiveTarget(p);
+            }
             z.base=uintField(zone,"base_centi_c"); z.profile.maximumAgeMs=uintField(zone,"max_age_ms");
             z.profile.acceptsValidatedIntegrationReport=z.reportEvidence=="validated_integration_report";
             auto schedule=field(zone,"schedule");
@@ -235,6 +296,13 @@ private:
             if(configBytes.empty()||configBytes.size()>maximumConfigBytes||hash_(configBytes)!=stringField(o,"config_digest")) return false;
         } else if(topic=="ha/observations") {
             keys.insert({"zone_id","source_available","temperature_c","source_sample_age_ms","evidence"});
+            if(index>=0&&config_->zones[index].comfortEnabled) {
+                keys.insert({"window_open","window_age_ms","presence_away","presence_age_ms"});
+                for(auto key:{"window_open","presence_away"})
+                    if(!cJSON_IsBool(field(o,key))&&!cJSON_IsNull(field(o,key))) return false;
+                for(auto key:{"window_age_ms","presence_age_ms"})
+                    if(!integerField(o,key,0,86400000)) return false;
+            }
             auto available=field(o,"source_available"),temp=field(o,"temperature_c");
             auto evidence=stringField(o,"evidence");
             if(index<0||stringField(o,"zone_id")!=config_->zones[index].id||(!cJSON_IsTrue(available)&&!cJSON_IsFalse(available))||
@@ -243,7 +311,13 @@ private:
                 (evidence!="physical_report"&&evidence!="validated_integration_report"&&evidence!="unverified"&&evidence!="restored")) return false;
         } else if(topic=="ha/user_command") {
             keys.insert({"mode","temperature_centi_c","duration_ms"}); auto mode=stringField(o,"mode");
-            if((mode!="temporary"&&mode!="off"&&mode!="auto")||!integerField(o,"temperature_centi_c",500,3500)||!integerField(o,"duration_ms",60000,43200000)) return false;
+            if(config_->zones[index].comfortEnabled) {
+                keys.insert("vacation_until_utc");
+                if(!integerField(o,"vacation_until_utc",0,UtcSchedule::maximumUtcSecond)||
+                    !integerField(o,"duration_ms",0,43200000)||
+                    !(cJSON_IsNull(field(o,"temperature_centi_c"))||integerField(o,"temperature_centi_c",500,3500))||
+                    !comfortMode(mode)) return false;
+            } else if((mode!="temporary"&&mode!="off"&&mode!="auto")||!integerField(o,"temperature_centi_c",500,3500)||!integerField(o,"duration_ms",60000,43200000)) return false;
         }
         if(cJSON_GetArraySize(o)!=static_cast<int>(keys.size())) return false;
         for(auto p=o->child;p;p=p->next) if(!keys.count(p->string)) return false;
@@ -268,7 +342,7 @@ private:
         sessionId_.clear(); lastOpen_.clear(); pendingGrantNonce_.clear(); issuedGrantNonce_.clear();
         nextMetrics_=0;metricsSequence_=0;
         for(size_t i=0;i<config_->count;++i) {
-            auto &z=config_->zones[i]; z.sample.unavailable(); z.overrideUntil=0; z.off=false; z.demand=false; z.regulator=ZoneRegulator{};
+            auto &z=config_->zones[i]; z.sample.unavailable(); z.comfort.invalidate();z.comfortInputs=ComfortInputs{}; z.overrideUntil=0; z.off=false; z.demand=false; z.regulator=ZoneRegulator{};
         }
     }
     void newChallenge(uint64_t now) {
@@ -322,6 +396,8 @@ private:
         cJSON_AddNumberToObject(o.get(),"grant_ms",grantMs); cJSON_AddBoolToObject(o.get(),"storage_fault",fault_);
         auto controlCaps=cJSON_AddArrayToObject(o.get(),"session_capabilities");
         if(controlCaps)cJSON_AddItemToArray(controlCaps,cJSON_CreateString("session.grant_nonce.v1"));
+        auto comfortCaps=cJSON_AddArrayToObject(o.get(),"control_capabilities");
+        if(comfortCaps)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString("comfort.target.v1"));
         if(metrics_) {
             auto caps=cJSON_AddArrayToObject(o.get(),"read_only_capabilities");
             if(caps)cJSON_AddItemToArray(caps,cJSON_CreateString(metricsCapability));
@@ -391,16 +467,26 @@ private:
             auto target=std::optional<int16_t>(z.base);
             const char *source="base",*reason="shadow_idle";
             if(z.scheduled) { target=z.schedule.target(utc,clockValid).temperatureCentiC; source="schedule"; }
-            const auto effective=EffectiveTarget::api1(target,source,z.off,z.overrideTarget,z.overrideUntil,now);
+            auto in=z.comfortInputs;in.automaticCentiC=target;in.automaticSource=source;
+            in.ownerAdmitted=alive;in.utc=utc;in.clockTrusted=clockValid;
+            const auto effective=z.comfortEnabled?z.comfort.evaluate(now,in):
+                EffectiveTarget::api1(target,source,z.off,z.overrideTarget,z.overrideUntil,now);
+            if(z.comfortEnabled) {
+                reason=effective.reason;
+                cJSON_AddStringToObject(row,"comfort_mode",z.comfort.modeName());
+                cJSON_AddNumberToObject(row,"override_remaining_ms",z.comfort.remainingMs(now));
+                cJSON_AddNumberToObject(row,"vacation_until_utc",z.comfort.vacationUntil());
+                cJSON_AddBoolToObject(row,"learning_allowed",effective.learningAllowed&&alive&&bool(temperature));
+            }
             target=effective.target;source=effective.source;
             if(!alive) reason="adapter_unavailable";
             else if(!temperature) reason="source_unverified_or_stale";
-            else if(!target) reason=z.off?"off":"schedule_time_invalid_or_expired";
+            else if(!target&&!z.comfortEnabled) reason=z.off?"off":"schedule_time_invalid_or_expired";
             const bool usable=alive&&temperature&&target;
             const auto regulation=z.regulator.step(now,temperature,target,usable);
             z.demand=regulation.demand;
             requestedHeat=requestedHeat||z.demand;
-            if(z.demand) reason="shadow_demand";
+            if(z.demand&&!z.comfortEnabled) reason="shadow_demand";
             const auto nullable=[row](const char *key,auto value) { if(value) cJSON_AddNumberToObject(row,key,*value); else cJSON_AddNullToObject(row,key); };
             nullable("temperature_centi_c",temperature); nullable("target_centi_c",target); nullable("sample_age_ms",z.sample.age(now));
             cJSON_AddNumberToObject(row,"sample_state",static_cast<int>(z.sample.state(now)));

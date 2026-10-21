@@ -106,7 +106,13 @@
             "maximum_target_temperature": "Maximum target temperature",
             "program_action": "Week program",
             "binding_mode": "Room output configuration",
-            "confirm_binding_mode_change": "Confirm changing the room output configuration"
+            "confirm_binding_mode_change": "Confirm changing the room output configuration",
+            "comfort_enabled": "Enable bounded comfort policy (shadow only)",
+            "away_temperature": "Away / vacation target",
+            "frost_temperature": "Explicit frost target (not physical protection)",
+            "override_minutes": "Temporary override duration (minutes)",
+            "window_entity": "Zone window contact (optional; unknown pauses)",
+            "presence_entity": "Person (optional; unknown is not away)"
           },
           "data_description": {
             "temperature_entity": "Select a separate room-temperature sensor (sensor entity), not the radiator valve, valve position or a target temperature. A TRV can measure differently near the radiator.",
@@ -119,7 +125,9 @@
             "maximum_age_ms": "Maximum age of a qualified measurement; 120000 ms = 120 seconds. Not a polling interval. A cached HA state or last_reported alone is not proof of a fresh physical measurement.",
             "program_action": "Save bindings, edit local time blocks, or explicitly remove the local program. A Home Assistant Schedule helper is an alternative, not a second program source.",
             "binding_mode": "Climate TRVs use the existing shadow profile. Graph-only rooms require no TRV and remain an unapplied draft; runtime and transport are blocked pending the firmware contract.",
-            "confirm_binding_mode_change": "Required only when changing modes. Review and explicitly clear or select the TRV bindings. The room ID, limits and week program are retained."
+            "confirm_binding_mode_change": "Required only when changing modes. Review and explicitly clear or select the TRV bindings. The room ID, limits and week program are retained.",
+            "window_entity": "Shadow preview only: context becomes unknown2 minutes after its last state change and pauses automatic demand. No physical protection or source qualification.",
+            "presence_entity": "Shadow preview only: context becomes unknown2 minutes after its last state change and pauses automatic demand. No physical protection or source qualification."
           }
         },
         "reconfigure": {
@@ -136,7 +144,13 @@
             "maximum_target_temperature": "Maximum target temperature",
             "program_action": "Week program",
             "binding_mode": "Room output configuration",
-            "confirm_binding_mode_change": "Confirm changing the room output configuration"
+            "confirm_binding_mode_change": "Confirm changing the room output configuration",
+            "comfort_enabled": "Enable bounded comfort policy (shadow only)",
+            "away_temperature": "Away / vacation target",
+            "frost_temperature": "Explicit frost target (not physical protection)",
+            "override_minutes": "Temporary override duration (minutes)",
+            "window_entity": "Zone window contact (optional; unknown pauses)",
+            "presence_entity": "Person (optional; unknown is not away)"
           },
           "data_description": {
             "temperature_entity": "Select a separate room-temperature sensor (sensor entity), not the radiator valve, valve position or a target temperature. A TRV can measure differently near the radiator.",
@@ -149,7 +163,9 @@
             "maximum_age_ms": "Maximum age of a qualified measurement; 120000 ms = 120 seconds. Not a polling interval. A cached HA state or last_reported alone is not proof of a fresh physical measurement.",
             "program_action": "Save bindings, edit local time blocks, or explicitly remove the local program. A Home Assistant Schedule helper is an alternative, not a second program source.",
             "binding_mode": "Climate TRVs use the existing shadow profile. Graph-only rooms require no TRV and remain an unapplied draft; runtime and transport are blocked pending the firmware contract.",
-            "confirm_binding_mode_change": "Required only when changing modes. Review and explicitly clear or select the TRV bindings. The room ID, limits and week program are retained."
+            "confirm_binding_mode_change": "Required only when changing modes. Review and explicitly clear or select the TRV bindings. The room ID, limits and week program are retained.",
+            "window_entity": "Shadow preview only: context becomes unknown2 minutes after its last state change and pauses automatic demand. No physical protection or source qualification.",
+            "presence_entity": "Shadow preview only: context becomes unknown2 minutes after its last state change and pauses automatic demand. No physical protection or source qualification."
           },
           "description": "Choose a room measurement and its radiator valves. Optional target controls and programs are separate sources. Selecting entities never changes the source device settings or enables actuation. Removing a room also prunes its desired graph actuator declarations; emitter groups and central settings remain."
         },

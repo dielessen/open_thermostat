@@ -53,7 +53,12 @@ async def async_build_configuration(runtime):
         zones.append({"zone_id": room.room_id, "sensor_id": f"s_{room.room_id}",
                       "actuator_id": f"a_{room.room_id}", "base_centi_c": room.base_centi_c,
                       "max_age_ms": room.maximum_age_ms, "report_evidence": "physical_report",
-                      "schedule": schedule})
+                      "schedule": schedule,
+                      **({"comfort": {**room.comfort,
+                          "minimum_centi_c": room.minimum_target_centi_c,
+                          "maximum_centi_c": room.maximum_target_centi_c,
+                          "window": room.window is not None,
+                          "presence": room.presence is not None}} if room.comfort is not None else {})})
     return zones, mapping
 
 

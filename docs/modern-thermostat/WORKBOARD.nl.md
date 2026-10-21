@@ -1243,6 +1243,41 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   Bestaande connectedcomfort/GUIapply/modelowner/seizoen/releasevoorbereiding
   blijft actief. Hele11785software niet klaar; fysieke/72u/verwarmingsgates open.
 
+### Mark11785 — F10 verbonden comfortbeleid: onafhankelijke bronacceptatie Stage23
+
+- [x] Canonical596bd38 schoon; bestaand eenmalig hostreceipt niet herhaald.
+  Actuele§6/PLAN en specialistRESULT498a5fb0 gelezen, eenmaal boundedhistory6:
+  bestaande eigenaar werkt aan nativeAPI2apply; geen tweede eigenaar gestart.
+- [x] Exact16padenpatch00793e58553b5d5899dd45c7bb9f00d23fb4125b215c978c4b3836880d5ed5b2
+  gereviewd; alle16voor-/nahashes exact. Bestaande EffectiveTarget, controller,
+  Store/configreadback, native roomform/climate/entityaction hergebruikt; opt-in
+  comfort.target.v1, oudere peer weigert vóór write, oude kamershape behouden.
+- [x] Canonical strict hostg++17:51C++PASS; nativeHA2026.10.2/Python3.14.8
+  51PASS met opnieuw gecompileerde werkelijkeC++peer. Afzonderlijk37PASS
+  gedeelde RoomBinding/API1nativeconnection/API2graphconnection/ownerinterop.
+  Geen skips/deselecties; vijf bestaande dependencywarnings per HArun.
+- [x] Dezelfde51C++checks onafhankelijk volledig ASan+UBSan herbouwd, inclusief
+  echteGTest/cJSON/test/controller/policy; leakdetectie/halt-on-error PASS.
+  ExterneOpenSSL niet geïnstrumenteerd; nonPIE alleen native test, geen productflags.
+- [x] Begrensde override/boost, away/vacation/presence/window/frost/off;
+  firmware-eigendom/UTC-/monotoneafloop, geen ACK-optimisme/commandrestore,
+  twee-zoneisolatie en beide AmsterdamDSTovergangen in nativefixtures bewezen.
+  Stop/bounds/source/admission blijven voorwaarden, fysiekeoutputflagsfalse.
+- [ ] R19–21/F10 blijven open: onveranderde contact/personstatus wordt na120s
+  unknown en pauzeert automatische vraag; expliciet shadowpreview, GEEN
+  gekwalificeerd fysiek/stabielbronprofiel. Geen fysieke vorst-/actuatorclaim.
+  Nativebrowser/telefoon/fullimage/resources/installatie/livecomfort blijven open.
+- Bewijs11774dossier: COMFORT-CONNECTED-PARENT-REVIEW.md, PRECHECK/HASHES/
+  COMMANDS.json, NATIVE/SAN.json, HA/COMPAT-HA.xml en build/runlogs.
+  SpecialistXtensatypecheck behouden, geen nieuwe parentfullbuildclaim.
+  Rollback alleen nieuwe comfortbroncommit vóór afhankelijke wijzigingen; geen
+  runtime/HA/broker/config/historie/credentials/publicatie/TX/EMS/verwarmingsactie.
+- Volgende echte uitvoering bij dezelfde specialist: bestaande nativeAPI2
+  review/apply/readback/reconnect en releasevoorbereiding; resterend F4/F6
+  seizoen-/laaglastbeleid aansluiten op werkelijke controller indien nog niet
+  aantoonbaar geleverd. F9afgewezen modellen blijven afgewezen; diagnoseopdracht
+  reeds queued, niet dubbel gestart. Hele11785software blijft in_progress.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

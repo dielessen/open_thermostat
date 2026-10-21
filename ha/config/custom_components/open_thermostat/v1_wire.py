@@ -23,6 +23,8 @@ _ID = re.compile(r"[A-Za-z0-9_-]{1,32}")
 _HEX = re.compile(r"[0-9a-f]{64}")
 MAX_BYTES = 8192
 GRANT_NONCE_CAPABILITY = "session.grant_nonce.v1"
+COMFORT_CAPABILITY = "comfort.target.v1"
+COMFORT_MODES = {"auto","off","temporary","boost","away","vacation","frost"}
 
 
 def canonical(value):
@@ -104,6 +106,7 @@ class ShadowClient:
         self.grant_nonce_supported=False
         self._grant_proofs={}
         self.metrics_supported=False
+        self.comfort_supported=False
         self._metrics=None
         self._metrics_received=0.0
         self._metrics_highwater=0
@@ -172,6 +175,7 @@ class ShadowClient:
         self.pending.clear()
         self.open_request = None
         self.grant_nonce_supported = False
+        self.comfort_supported = False
         self._grant_proofs.clear()
         self.verified = False
         self.grant_until = self.lease_until = 0
@@ -278,6 +282,12 @@ class ShadowClient:
                 and GRANT_NONCE_CAPABILITY in session_caps)
             if not self.grant_nonce_supported:
                 self._grant_proofs.clear()
+            comfort_caps=p.get("control_capabilities",[])
+            self.comfort_supported=(type(comfort_caps) is list and len(comfort_caps)<=8
+                and all(isinstance(cap,str) and len(cap)<=64 for cap in comfort_caps)
+                and COMFORT_CAPABILITY in comfort_caps)
+            if any("comfort" in z for z in self.desired) and not self.comfort_supported:
+                self.reset_session();self.error="comfort_capability_unavailable";self.changed();return
             caps=p.get("read_only_capabilities",[])
             self.metrics_supported=(type(caps) is list and len(caps)<=8
                 and all(isinstance(cap,str) and len(cap)<=64 for cap in caps) and CAPABILITY in caps)
@@ -391,15 +401,24 @@ class ShadowClient:
             for row in rows:
                 if (row["zone_id"] in decisions or not isinstance(row.get("reason"), str)
                     or len(row["reason"]) > 64 or not integer(row.get("sample_state"), 0, 6)
-                    or row.get("target_source") not in {"base", "schedule", "temporary", "off"}
+                    or row.get("target_source") not in ({"base","schedule","temporary","off","boost","away","vacation","frost","window","presence","limit"} if self.comfort_supported else {"base","schedule","temporary","off"})
                     or (row.get("sample_age_ms") is not None and not integer(row["sample_age_ms"], 0, 9007199254740991))
                     or (row.get("temperature_centi_c") is not None and
                         (row.get("sample_state") != 1 or row.get("sample_age_ms") is None
                          or row["sample_age_ms"] >= self.runtime.rooms[row["zone_id"]].maximum_age_ms))
                     or (row.get("demand") is True and (row.get("temperature_centi_c") is None or row.get("target_centi_c") is None))):
                     raise ValueError("state quality/duplicate")
+                room=self.runtime.rooms[row["zone_id"]]
+                if room.comfort is not None and (not self.comfort_supported or row.get("comfort_mode") not in COMFORT_MODES
+                    or not integer(row.get("override_remaining_ms"),0,43200000)
+                    or not integer(row.get("vacation_until_utc"),0,4102444800)
+                    or type(row.get("learning_allowed")) is not bool
+                    or (row.get("target_centi_c") is not None and
+                        not room.minimum_target_centi_c<=row["target_centi_c"]<=room.maximum_target_centi_c)):
+                    raise ValueError("comfort state")
                 decisions[row["zone_id"]] = RoomDecision(
-                    row["target_centi_c"], row["temperature_centi_c"], row["demand"], row["reason"])
+                    row["target_centi_c"], row["temperature_centi_c"], row["demand"], row["reason"],
+                    row["target_source"],row.get("comfort_mode"),row.get("override_remaining_ms",0),row.get("vacation_until_utc",0))
             self.runtime.decisions = decisions
             self.error = "shadow_ready"
             self.changed()
@@ -495,15 +514,50 @@ class ShadowClient:
             "zone_id": room_id, "source_available": usable,
             "temperature_c": observation.temperature_c if usable else 0,
             "source_sample_age_ms": age if usable else 0,
-            "evidence": "physical_report" if usable else "unverified"})
+            "evidence": "physical_report" if usable else "unverified",
+            **(self.runtime.comfort_context(room) if room.comfort is not None else {})})
 
     async def async_setpoint(self, room_id, centi_c):
         if not self.ready or room_id not in self.runtime.rooms or not integer(centi_c, 500, 3500):
             raise HomeAssistantError("Shadow mapping not ready")
+        if self.runtime.rooms[room_id].comfort is not None:
+            await self.async_comfort(room_id,"temporary",temperature=centi_c/100)
+            return
         future = self.runtime.hass.loop.create_future()
         await self.message("ha/user_command", room_id, {
             "mode": "temporary", "temperature_centi_c": centi_c, "duration_ms": 3600000}, future)
         await future  # Bounded by poll(); teardown cancels unresolved futures.
+
+    async def async_comfort(self,room_id,mode,*,temperature=None,duration_ms=None,vacation_until_utc=0):
+        from .v1_model import target_centi
+        room=self.runtime.rooms.get(room_id)
+        if not self.ready or not self.comfort_supported or room is None or room.comfort is None or mode not in COMFORT_MODES:
+            raise HomeAssistantError("Comfort capability/mapping unavailable")
+        target=None
+        duration=0
+        if mode in {"temporary","boost"}:
+            try:
+                target=target_centi(temperature if temperature is not None else (room.maximum_target_centi_c if mode=="boost" else room.base_centi_c)/100)
+            except ValueError as err:
+                raise HomeAssistantError(str(err)) from err;
+            if not room.minimum_target_centi_c<=target<=room.maximum_target_centi_c:
+                raise HomeAssistantError("Comfort target outside room limits")
+            duration=duration_ms if duration_ms is not None else min(room.comfort["temporary_ms"],14400000 if mode=="boost" else 43200000)
+            if not integer(duration,1000,14400000 if mode=="boost" else 43200000):
+                raise HomeAssistantError("Comfort duration invalid")
+        elif temperature is not None or duration_ms is not None:
+            raise HomeAssistantError("Unexpected comfort target/duration")
+        if not integer(vacation_until_utc,0,4102444800) or (mode!="vacation" and vacation_until_utc):
+            raise HomeAssistantError("Vacation expiry invalid")
+        if mode=="vacation":
+            from homeassistant.util import dt as dt_util
+            now=int(dt_util.utcnow().timestamp())
+            if not now<vacation_until_utc<=now+366*86400:
+                raise HomeAssistantError("Vacation needs a bounded future UTC expiry")
+        future=self.runtime.hass.loop.create_future()
+        await self.message("ha/user_command",room_id,{"mode":mode,"temperature_centi_c":target,
+            "duration_ms":duration,"vacation_until_utc":vacation_until_utc},future)
+        await future # Only admitted fw/state confirms a target. Never store/replay commands.
 
     async def poll(self):
         if self.closed:

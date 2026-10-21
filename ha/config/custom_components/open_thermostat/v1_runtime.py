@@ -46,6 +46,7 @@ class ShadowRuntime:
                 seen.add(actuator.identity())
         self.observations = {room.room_id: Observation(None, "disabled") for room in rooms}
         self.decisions: dict[str, RoomDecision] = {}
+        self._comfort_context_cache = {}
         self.diagnostics: dict[str, str] = {}
         self._profiles: dict[str, ReportProfile] = {}
         self._sample_keys: dict[str, str] = {}
@@ -117,7 +118,7 @@ class ShadowRuntime:
         self._subscriptions.clear()
         ids: set[str] = set()
         for room in self.rooms.values():
-            for ref in (room.temperature, *room.actuators, room.setpoint):
+            for ref in (room.temperature, *room.actuators, room.setpoint, room.window, room.presence):
                 if ref and (entity_id := self._resolve(ref)):
                     ids.add(entity_id)
         if not ids or not self._active:
@@ -157,6 +158,10 @@ class ShadowRuntime:
                 continue
             if self._resolve(room.temperature) == entity_id:
                 self._observe(room, event_kind)
+            elif any(ref and self._resolve(ref)==entity_id for ref in (room.window,room.presence)):
+                # Reuse the ORIGINAL temperature observation/deadline. A contact
+                # update never creates a new physical temperature report.
+                self._record(room.room_id,self.observations[room.room_id])
             elif room.setpoint and self._resolve(room.setpoint) == entity_id:
                 # Knob origin/echo qualification awaits a concrete profile.
                 self.diagnostics[room.room_id] = "physical_setpoint_unqualified"
@@ -266,6 +271,45 @@ class ShadowRuntime:
             raise HomeAssistantError(str(err)) from err
         await self._transport.async_setpoint(room_id, target)
         # Only admitted firmware state, never this request/ack, changes the target.
+
+    async def async_comfort(self,room_id,mode,*,temperature=None,duration_ms=None,vacation_until_utc=0):
+        if room_id not in self.rooms or not self.transport_ready or self.rooms[room_id].comfort is None:
+            raise HomeAssistantError("Comfort transport unavailable")
+        await self._transport.async_comfort(room_id,mode,temperature=temperature,
+            duration_ms=duration_ms,vacation_until_utc=vacation_until_utc)
+
+    def comfort_context(self,room):
+        """Native HA logical observations, NOT physical readiness or source evidence.
+
+        State age uses last_changed (not a cache report/poll). Unknown, future,
+        stale or restored state cannot become known by being re-read.
+        """
+        result={}
+        for ref,key,on,off in ((room.window,"window", "on","off"),
+                              (room.presence,"presence","not_home","home")):
+            entity_id=self._resolve(ref) if ref else None
+            state=self.hass.states.get(entity_id) if entity_id else None
+            token=(entity_id,state.last_changed) if state else None
+            cache_key=(room.room_id,key)
+            prior=self._comfort_context_cache.get(cache_key)
+            if prior is None or prior[0]!=token:
+                age=math.ceil((dt_util.utcnow()-state.last_changed).total_seconds()*1000) if state else 86400000
+                value=None
+                if state and not state.attributes.get("restored") and 0<=age<120000:
+                    if state.state==on:value=True
+                    elif state.state==off:value=False
+                    # Other named zones, unknown/unavailable and future/restored are unknown.
+                # Older timestamps cannot renew a context after out-of-order input.
+                if prior and token and prior[0] and token[1]<=prior[0][1]:
+                    value=None;age=86400000
+                prior=(token,age,self.hass.loop.time(),value)
+                self._comfort_context_cache[cache_key]=prior
+            elapsed=self.hass.loop.time()-prior[2]
+            age=prior[1]+math.ceil(elapsed*1000)
+            value=prior[3] if 0<=elapsed and 0<=age<120000 else None
+            result["window_open" if key=="window" else "presence_away"]=value
+            result[key+"_age_ms"]=age if 0<=age<=86400000 else 86400000
+        return result
 
     @callback
     def apply_confirmed_state(self, room_id: str, decision: RoomDecision) -> None:

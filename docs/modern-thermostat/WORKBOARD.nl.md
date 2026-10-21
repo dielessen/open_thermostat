@@ -1932,6 +1932,50 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   geen nieuwframework/duplicaatflow, Mark11846releasegates blijven gelden.
   Hervattingscheck15min na inhoudelijk pakket; geen stilzwijgende planstop.
 
+### Mark11785/11846 — F2/F3 twee-kamerSOURCE-contractvoorbereiding: Stage42
+
+- [x] Echte canonicalhostcheckout2aa8a2a schoon; actuele§6/PLAN-gates,
+  RESULT/TOPOLOGY-REVIEW-RESULT, memory_search en verified-taskflow gelezen.
+  Eenmaal boundedhistory6: bestaande eigenaar actief aan F9cohortdiagnose;
+  geen tweede eigenaar. Bestaand eenmalig hostreceipt niet herhaald.
+- [x] Exacte7padenpatch44d4f8a7f3dfc85e70cf2e60b551fa419711993b43ffc1c7947ed1b6a8bf253e,
+  bronarchive en frozenbewijs gecontroleerd;7bronhashes exact. Canonical-afgeleide
+  geïsoleerde reviewbranch behoudt alle426overige trackedbronpaden bytegelijk.
+- [x] Native opgeslagen radiator/TRV- en vloer/binary-draft via bestaande
+  validated_graph/echteHAregistries naar apart SOURCE-reviewcontract; volledige
+  draftdigest en SOURCEboot/session/config/registry/sourcerevisies gepind.
+  Dubbele resources, ontbrekende/vervangen/disabled bindingen en onbekende features
+  weigeren. Geen runtime-import/Store/apply/capability/NVS/regel-/actuatorcaller.
+- [x] Eigen strict hostg++17/echte gepindecJSONreader:39nieuwe gedeelde casesPASS;
+  dezelfde39fullreader/cJSON ASan+UBSan/leakchecksPASS. Alle semantische rows exact
+  aan frozenbewijs. NativeHA2026.10.2/Python3.14.8:52PASS,inclusiefdezelfde39;
+  geen skips/deselecties,vijf bestaande dependencywarnings.98oude ongewijzigde
+  validatorfixtures NIET herhaald; beschermdebronnen/hashgelijkheid behouden.
+- [x] Echte ConfigEntries/Storeherstart, registryownership/drift/reconnect en
+  oudeapplyweigering bewezen binnen nativefixture. Werkelijke native opgeslagen
+  draft1259B/review1406B exact aan bewijs; GEEN gekwalificeerd runtime-/8zonebudget.
+  SpecialistXtensaobject/per-functiestackbewijs behouden,niet opnieuw fullbuilt;
+  geen totale stack/heap/NVS/runtimeperformanceclaim.
+- Broncommit555789b fast-forward samengevoegd;7hashes/426beschermdepaden,
+  schone status en commitdiffcheck technisch nagecontroleerd. Bewijs11774dossier
+  topology-review-parent-evidence/{TASKFLOW,REVIEW}.md,PRECHECK/PREPARATION/
+  CHECKS/COMMANDS/SOURCE-POSTCHECK.json,NATIVE/SANITIZER.json/log,HA.xml/log.
+  Rollback alleen555789b vóór afhankelijken; runtime/config/model/Recorderdata en
+  canonicalPLAN behouden. Geen liveHA/broker/device/login/install/flash/publicatie.
+- [ ] Dit accepteert uitsluitend SOURCE-contractvoorbereiding,niet heterogene
+  runtime/GUIapply. Bestaande actieveAPI2 blijft1kamer/1groep/1actuator;
+  4096Bconfig/8192Braw/512parsernodes en alle fysiekeoutputflags ongewijzigd.
+  Echte graph→gekwalificeerdecontroller/profielen,8zone/resource/NVS,verzorgdeGUI,
+  actueleimages/release en alle fysieke/72u/TX/EMS/verwarmingsgates blijvenOPEN.
+  AfgewezenF9modellen blijvenAFGEWEZEN; hele11785blijftin_progress.
+- Concrete volgendeF2/F3owner/controller-softwareprerequisite bij dezelfde specialist
+  followup7601b310-b9c9-4438-9dce-0b90fbd8dbe1 QUEUED na diens actieveF9werk:
+  echte opgeslagen draft→SOURCEowner→controller met positieveHA/Cppketen en
+  tuple/drift/reconnect/stopnegatieven; geen DATA→autoriteit of limietverruiming.
+  Daarna bestaande nativeGUIafwerking11846 met echte desktop/mobielbrowser en
+  gezamenlijke releasegates. Admission is geencompletion; geen redundantwerkdoor.
+  Eigen officiële hervattingsjob geïnspecteerd/behouden; volgendecheck15min.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

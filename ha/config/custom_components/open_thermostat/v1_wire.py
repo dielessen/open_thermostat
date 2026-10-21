@@ -82,7 +82,7 @@ def parse(raw):
 
 
 class ShadowClient:
-    def __init__(self, runtime, adapter_id, send, store, desired, mapping, clock):
+    def __init__(self, runtime, adapter_id, send, store, desired, mapping, clock,*,control_plan=None):
         if not identifier(adapter_id):
             raise ValueError("invalid local adapter owner")
         self.runtime, self.adapter_id = runtime, adapter_id
@@ -94,6 +94,29 @@ class ShadowClient:
         self.graph_source_review_required=False
         self.send, self.store, self.clock = send, store, clock
         self.desired, self.mapping = json.loads(canonical(desired)), json.loads(canonical(mapping))
+        self.native_plan_source=getattr(runtime,"native_plan_source",None)
+        self.native_plan_template=json.loads(canonical(control_plan)) if control_plan is not None else None
+        self.native_plan_fenced=False
+        self._native_entry_state=None
+        self._native_snapshot_scope=None
+        self._native_snapshot_at=0.0
+        self._native_snapshot_request=None
+        self._native_remote_known=False
+        self._native_review=None
+        self._native_apply_sent=False
+        self._native_apply_scope=None
+        if self.native_plan_source is not None:
+            from .native_plan import NativePlanSource,native_entry_state
+            if (type(self.native_plan_source) is not NativePlanSource
+                    or self.controller_policy!=self.native_plan_source.policy
+                    or control_plan is None):
+                raise ValueError("native_plan_source_binding")
+            self.native_plan_source.validate_plan(control_plan)
+            if control_plan["zones"]!=self.desired or control_plan["mapping"]!=self.mapping:
+                raise ValueError("native_plan_template_binding")
+            self._native_entry_state=native_entry_state(runtime.entry)
+        elif control_plan is not None:
+            raise ValueError("native_plan_source_required")
         self.journal = {"accepted": None, "staged": None}
         self.identity = None
         self.session = None
@@ -132,7 +155,8 @@ class ShadowClient:
     @property
     def ready(self):
         now = self.clock()
-        return (not self.closed and not self.graph_source_review_required and self.verified and (self.controller_policy is None or self.source_policy_matched) and self.session is not None
+        return (not self.closed and not self.graph_source_review_required
+                and (self.native_plan_source is None or self.native_source_current()) and self.verified and (self.controller_policy is None or self.source_policy_matched) and self.session is not None
                 and self.session.get("mapping_ready") is True
                 and now < self.grant_until and now < self.lease_until
                 and now - self.last_rx < 15)
@@ -152,6 +176,181 @@ class ShadowClient:
                 if record is not None and not self.valid_record(record):
                     raise ValueError("invalid durable mapping record")
             self.journal = stored
+        if self.native_plan_source is not None:
+            for record in self.journal.values():
+                if record is not None:
+                    self.native_plan_source.validate_plan(record["config"])
+                    if record["config"]["mapping"]!=record["mapping"]:raise ValueError("native_plan_mapping_journal")
+            self._native_apply_sent=self.journal["staged"] is not None
+
+    def native_source_current(self):
+        if self.native_plan_source is None:return False
+        from . import (_selected_native_plan_source,_selected_graph_data_profile,
+            _selected_graph_controller_source,_selected_controller_policy_source_profile)
+        from .native_plan import native_entry_state
+        try:
+            source=self.native_plan_source;entry=self.runtime.entry
+            if (self.closed or self.native_plan_fenced
+                or self.runtime.hass.config_entries.async_get_entry(entry.entry_id) is not entry
+                or entry.disabled_by is not None
+                or self.runtime.native_plan_source!=source or self.controller_policy!=source.policy
+                or self.runtime.controller_policy_source_profile!=source.policy
+                or self.adapter_id!=source.policy.adapter_id
+                or native_entry_state(entry)!=self._native_entry_state
+                or _selected_native_plan_source(entry)!=source
+                or _selected_graph_data_profile(entry) is not None
+                or _selected_graph_controller_source(entry) is not None
+                or _selected_controller_policy_source_profile(entry) is not None):
+                return False
+            source.validate_native(self.runtime.hass,entry)
+            return True
+        except Exception:
+            return False
+
+    def require_native_plan_review(self):
+        if self.native_plan_source is None:raise ValueError("native_plan_not_selected")
+        self.native_plan_fenced=True
+        self.reset_session();self.error="native_plan_source_or_entry_changed";self.changed()
+
+    def native_context(self):
+        from .graph_shadow_validation import GraphValidationError
+        if (not self.native_source_current() or not self.identity or not self.session
+                or not self.source_policy_matched or self.clock()>=self.grant_until
+                or self.clock()>=self.lease_until or self.clock()-self.last_rx>=15):
+            raise GraphValidationError("native_plan_live_readback_required")
+        return (self.identity,self.session["adapter_session_id"],self.session["config_revision"],
+                self.session["config_digest"],self.controller_policy.profile_digest,self._native_entry_state)
+
+    def native_desired_matches(self,config):
+        if self.native_plan_template is None:return False
+        expected=json.loads(canonical(self.native_plan_template))
+        expected["revision"]=config.get("revision")
+        return config==expected
+
+    @property
+    def graph_status(self):
+        if self.native_plan_source is None:raise ValueError("native_plan_not_selected")
+        from .native_plan import CONTRACT
+        accepted=self.journal["accepted"];staged=self.journal["staged"]
+        return dict(status=self.error,journal_status=self.error,
+            accepted_revision=accepted["config"]["revision"] if accepted else 0,
+            staged_revision=staged["config"]["revision"] if staged else None,
+            readback_verified=self.ready,device_result=None,data_scope=CONTRACT,
+            control_review_status="native_shadow_only_no_physical_authority")
+
+    def review_candidate(self):
+        from .graph_shadow_validation import GraphValidationError
+        scope=self.native_context()
+        staged=self.journal["staged"]
+        if (staged is None or self._native_review is None or self._native_review[0]!=scope
+                or self._native_review[1]!=staged["config_digest"] or self._native_apply_sent
+                or not 0<=self.clock()-self._native_review[2]<300):
+            raise GraphValidationError("native_plan_review_changed")
+        return (scope,staged["config_digest"],self._native_review[2])
+
+    async def async_prepare_native_plan(self):
+        from .graph_shadow_validation import GraphValidationError
+        scope=self.native_context()
+        if (not self._native_remote_known or self._native_snapshot_scope!=scope
+                or not 0<=self.clock()-self._native_snapshot_at<15 or self._native_apply_sent):
+            raise GraphValidationError("native_plan_current_readback_required")
+        config,mapping=await self.native_plan_source.async_configuration(self.runtime.hass,self.runtime.entry)
+        if self.native_context()!=scope:raise GraphValidationError("native_plan_owner_changed")
+        current_revision=self.session["config_revision"]
+        if current_revision>=4294967295:raise GraphValidationError("revision_exhausted")
+        config["revision"]=current_revision+1
+        self.native_plan_source.validate_plan(config)
+        record=dict(config=config,config_digest=digest(config),mapping=mapping)
+        probe=self.envelope("config");probe.update(expected_revision=current_revision,config_digest=record["config_digest"],config=config)
+        parse(canonical(probe))
+        current=await self.store.async_load()
+        if current is None:current={"accepted":None,"staged":None}
+        if current!=self.journal or self.native_context()!=scope:
+            raise GraphValidationError("native_plan_source_changed_before_stage")
+        # Complete native entry/profile/registry fence runs after FINAL Store await.
+        self.native_plan_template=json.loads(canonical(config))
+        self.desired,self.mapping=json.loads(canonical(config["zones"])),json.loads(canonical(mapping))
+        accepted=self.journal["accepted"]
+        if accepted is not None and self.native_desired_matches(accepted["config"]) and self.journal["staged"] is None:
+            self.error="native_plan_already_applied";self.changed();return None
+        await self.save({**self.journal,"staged":record})
+        if self.native_context()!=scope:raise GraphValidationError("native_plan_source_changed_after_stage")
+        self._native_review=(scope,record["config_digest"],self.clock())
+        self.verified=False;self.error="native_plan_staged_not_applied";self.changed()
+        return record
+
+    async def async_apply(self,reviewed=None):
+        from .graph_shadow_validation import GraphValidationError
+        key=self.review_candidate()
+        if reviewed!=key:raise GraphValidationError("native_plan_review_changed")
+        scope=self.native_context();record=self.journal["staged"]
+        current=await self.store.async_load()
+        if current!=self.journal or self.native_context()!=scope or self.review_candidate()!=key:
+            raise GraphValidationError("native_plan_source_changed_before_send")
+        self.native_plan_source.validate_plan(record["config"])
+        self._native_apply_sent=True;self._native_apply_scope=scope
+        self.verified=False;self.error="native_plan_send_unconfirmed";self.changed()
+        # Exact already durable reviewed tuple; no raw profile/admission input.
+        await self.message("ha/config","config",dict(expected_revision=self.session["config_revision"],
+            config_digest=record["config_digest"],config=record["config"]))
+        self.error="native_plan_awaiting_readback";self.changed()
+        return "native_plan_send_unconfirmed"
+
+    async def native_snapshot(self,p):
+        from .native_plan import CONTRACT
+        from .graph_shadow_validation import GraphValidationError
+        expected={"api","controller_id","boot_id","epoch","config_revision","config_digest","config",
+            "adapter_id","adapter_session_id","grant_id","grant_sequence","request_sequence",
+            "profile_digest","plan_contract","boiler_output_enabled","actuator_output_enabled"}
+        proof=self._native_snapshot_request
+        if not proof:return
+        scope=self.native_context()
+        if (set(p)!=expected or proof[0]!=scope or not self.clock()<proof[4]
+            or not integer(p["request_sequence"],1) or p["request_sequence"]!=proof[1]
+            or not integer(p["grant_sequence"],1) or p["adapter_id"]!=self.adapter_id
+            or p["adapter_session_id"]!=self.session["adapter_session_id"]
+            or p["grant_id"]!=proof[2] or p["grant_sequence"]!=proof[3]
+            or p["plan_contract"]!=CONTRACT or p["profile_digest"]!=self.controller_policy.profile_digest
+            or p["boiler_output_enabled"] is not False or p["actuator_output_enabled"] is not False):
+            return # No grant/lease/sample/last_rx renewal from stale/unrequested readback.
+        self._native_snapshot_request=None
+        self.last_rx=self.clock();config=p["config"]
+        self._native_snapshot_scope=scope;self._native_snapshot_at=self.clock()
+        if config is None:
+            if p["config_revision"]!=0 or p["config_digest"]!="":raise GraphValidationError("native_empty_snapshot")
+            self._native_remote_known=True;self.verified=False
+            if self._native_apply_sent and self._native_apply_scope==scope:
+                self.error="native_plan_apply_unconfirmed"
+            else:
+                self._native_apply_sent=False
+                self.error="native_plan_recovery_review_required" if self.journal["staged"] else "native_plan_unconfigured_review_required"
+            self.changed();return
+        self.native_plan_source.validate_plan(config)
+        if digest(config)!=p["config_digest"] or config["revision"]!=p["config_revision"]:
+            raise GraphValidationError("native_plan_readback_digest")
+        record=self.known(p["config_revision"],p["config_digest"])
+        if record is None or record["config"]!=config or record["mapping"]!=config["mapping"]:
+            self._native_remote_known=False;self.verified=False;self.error="native_plan_remote_conflict";self.changed();return
+        self._native_remote_known=True
+        if self.journal["staged"]==record:
+            await self.save({"accepted":record,"staged":None})
+            if self.native_context()!=scope:raise GraphValidationError("native_plan_source_changed_after_readback")
+            self._native_apply_sent=False;self._native_apply_scope=None;self._native_review=None
+        elif self.journal["staged"] is not None:
+            # Snapshot of OLD config must never erase a durable newer stage or
+            # pretend an in-flight/ambiguous config was rolled back.
+            self.verified=False
+            if self._native_apply_sent and self._native_apply_scope==scope:
+                self.error="native_plan_apply_unconfirmed"
+            else:
+                self._native_apply_sent=False;self.error="native_plan_recovery_review_required" if self._native_review is None else "native_plan_staged_not_applied"
+            self.changed();return
+        if not self.native_desired_matches(config):
+            self.verified=False;self.error="native_plan_draft_changes_not_applied"
+        else:
+            self.verified=self.session["mapping_ready"]
+            self.error="shadow_ready" if self.verified else "mapping_not_admitted"
+        self.changed()
 
     async def async_stage_graph_source_readback(self):
         source=getattr(self.runtime,"graph_controller_source",None)
@@ -230,6 +429,10 @@ class ShadowClient:
         self.journal = snapshot
 
     def reset_session(self):
+        self._native_snapshot_scope=None
+        self._native_snapshot_request=None
+        self._native_remote_known=False
+        self._native_review=None
         self.source_policy_matched=False
         for item in self.pending.values():
             if item["future"] is not None and not item["future"].done():
@@ -264,7 +467,7 @@ class ShadowClient:
         self.changed()
 
     async def receive(self, topic, raw, *, retained=False):
-        if self.closed or retained or self.graph_source_review_required:
+        if self.closed or retained or self.graph_source_review_required or self.native_plan_fenced:
             return
         if topic == "fw/telemetry/ems_metrics":
             self.receive_metrics(raw)
@@ -366,6 +569,10 @@ class ShadowClient:
             if not self.grant_nonce_supported:
                 self._grant_proofs.clear()
             comfort_caps=p.get("control_capabilities",[])
+            if self.native_plan_source is not None:
+                from .native_plan import CONTRACT
+                if (type(comfort_caps) is not list or len(comfort_caps)>8 or CONTRACT not in comfort_caps):
+                    self.reset_session();self.error="native_plan_capability_unavailable";self.changed();return
             self.comfort_supported=(type(comfort_caps) is list and len(comfort_caps)<=8
                 and all(isinstance(cap,str) and len(cap)<=64 for cap in comfort_caps)
                 and COMFORT_CAPABILITY in comfort_caps)
@@ -380,16 +587,27 @@ class ShadowClient:
             if self.session:
                 return
             known = self.known(p["config_revision"], p["config_digest"])
+            if self.native_plan_source is not None and known is not None and not self.native_desired_matches(known["config"]):
+                known=None # Config-only session; old samples cannot run a dirty desired plan.
             # Unknown remote revision is diagnostic-only: never silently adopt.
             revision, known_digest = ((p["config_revision"], p["config_digest"])
                                       if known else (0, ""))
+            if (self.native_plan_source is not None and self.open_request is not None
+                    and self.open_request["challenge_id"] != p["challenge_id"]):
+                # Same-identity lease expiry rotates the firmware challenge. A
+                # pending request is NOT authority and must not replay the old
+                # challenge. Fresh nonce and unchanged independent SOURCE policy.
+                self.open_request = None
             if self.open_request is None:
                 self.open_request = dict(
                     api=1, controller_id=p["controller_id"], boot_id=p["boot_id"],
                     epoch=p["epoch"], challenge_id=p["challenge_id"],
                     adapter_id=self.adapter_id, client_nonce=self._nonce(),
                     known_revision=revision, known_digest=known_digest)
-                if self.controller_policy is not None:
+                if self.native_plan_source is not None:
+                    from .native_plan import CONTRACT
+                    self.open_request.update(source_profile_digest=self.controller_policy.profile_digest,plan_contract=CONTRACT)
+                elif self.controller_policy is not None:
                     self.open_request.update(source_profile_digest=self.controller_policy.profile_digest,
                                              source_config_pin=self.controller_policy.config_digest)
                 self.open_sent = self.clock()
@@ -440,7 +658,8 @@ class ShadowClient:
         if self.session is None or not self.same_config(p):
             return
         if topic=="fw/state/zones" and not self.source_policy_matches(p):return
-        self.last_rx = self.clock()
+        if not(self.native_plan_source is not None and topic=="fw/config_snapshot"):
+            self.last_rx = self.clock()
         if topic.endswith("_result"):
             if p.get("adapter_session_id") != self.session["adapter_session_id"]:
                 return
@@ -511,6 +730,8 @@ class ShadowClient:
             self.changed()
 
     async def snapshot(self, p):
+        if self.native_plan_source is not None:
+            return await self.native_snapshot(p)
         config = p.get("config")
         if config is None:
             if p["config_revision"] != 0 or p["config_digest"] != "":
@@ -537,6 +758,8 @@ class ShadowClient:
         self.changed()
 
     async def propose(self, current_revision):
+        if self.native_plan_source is not None:
+            self.verified=False;self.error="native_plan_explicit_review_required";self.changed();return
         if getattr(self.runtime,"graph_controller_source",None) is not None:
             # This route consumes a reviewed graph projection readback only.
             # Unknown/empty remote config must never become an API1 write path.
@@ -563,6 +786,9 @@ class ShadowClient:
         self.changed()
 
     def envelope(self, binding):
+        if self.native_plan_source is not None and not self.native_source_current():
+            self.require_native_plan_review()
+            raise HomeAssistantError("Native installation/entry/registry changed")
         if self.session is None or self.clock() >= self.grant_until:
             raise HomeAssistantError("No fresh firmware grant")
         return dict(api=1, controller_id=self.identity[0], boot_id=self.identity[1],
@@ -595,6 +821,8 @@ class ShadowClient:
             raise HomeAssistantError("Bounded shadow command queue full")
         if topic=="ha/heartbeat" and self.grant_nonce_supported:
             register_grant_proof(self._grant_proofs,p["grant_request_nonce"],sent)
+        if self.native_plan_source is not None and topic=="ha/snapshot_request":
+            self._native_snapshot_request=(self.native_context(),p["sequence"],p["grant_id"],p["grant_sequence"],self.grant_until)
         await self.send(topic, raw)
 
     async def async_observation(self, room_id, observation: Observation):
@@ -606,7 +834,12 @@ class ShadowClient:
             age += math.ceil(max(0, self.clock() - observation.observed_monotonic) * 1000)
         usable = (observation.quality == "qualified" and observation.temperature_c is not None
                   and age < room.maximum_age_ms)
-        await self.message("ha/observations", f"s_{room_id}", {
+        binding=f"s_{room_id}"
+        if self.native_plan_source is not None:
+            # The complete accepted plan owns the actual sensor stream ID.
+            # Never infer a legacy naming convention from the HA room UUID.
+            binding=next(z["sensor_id"] for z in self.desired if z["zone_id"]==room_id)
+        await self.message("ha/observations", binding, {
             "zone_id": room_id, "source_available": usable,
             "temperature_c": observation.temperature_c if usable else 0,
             "source_sample_age_ms": age if usable else 0,
@@ -674,6 +907,9 @@ class ShadowClient:
     async def poll(self):
         if self.closed:
             return
+        if self.native_plan_source is not None and not self.native_source_current():
+            self.require_native_plan_review()
+            return # No old exact-byte retry after SOURCE/registry/owner drift.
         now = self.clock()
         for key, item in list(self.pending.items()):
             if now >= item["deadline"] or now - item["sent"] >= 8 or item["tries"] >= 3:

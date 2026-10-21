@@ -9,6 +9,7 @@
 #include "SessionAdmission.h"
 #include "ZoneRegulator.h"
 #include "SeasonalControllerSource.h"
+#include "NativeControlPlan.h"
 #include "HydraulicSupervisor.h"
 #include <algorithm>
 #include <functional>
@@ -68,10 +69,24 @@ public:
     ShadowController(std::string controller,std::string boot,std::string owner,
                      ControlStore &store,Hash hash,Nonce nonce,Publish publish,Metrics metrics={},
                      const SeasonalControllerSource* seasonalSource=nullptr,
-                     SeasonalControllerSource::Safety safety={})
+                     SeasonalControllerSource::Safety safety={},
+                     const NativePlanInstallationSource* nativePlanSource=nullptr)
         :controller_(std::move(controller)),boot_(std::move(boot)),owner_(std::move(owner)),
          store_(store),hash_(std::move(hash)),nonce_(std::move(nonce)),publish_(std::move(publish)),metrics_(std::move(metrics)),admission_(owner_) {
         if(!SessionAdmission::validId(controller_)||!SessionAdmission::validId(boot_)||!SessionAdmission::validId(owner_)) { fault_=true; return; }
+        if(nativePlanSource) {
+            if(seasonalSource||!nativePlanSource->valid()||nativePlanSource->controllerId!=controller_
+                ||nativePlanSource->adapterId!=owner_||!safety) {fault_=true;return;}
+            nativePlanSource_=std::make_unique<NativePlanInstallationSource>(*nativePlanSource);
+            // Reuse the existing typed regulator/safety policy; this private
+            // compatibility field is NEVER an advertised/per-config SOURCE pin.
+            seasonalSource_=std::make_unique<SeasonalControllerSource>();
+            seasonalSource_->controllerId=controller_;seasonalSource_->profileDigest=nativePlanSource_->profileDigest;
+            seasonalSource_->configDigest=std::string(64,'0');seasonalSource_->count=nativePlanSource_->count;
+            seasonalSource_->maximumSafetyAgeMs=nativePlanSource_->maximumSafetyAgeMs;
+            for(size_t i=0;i<nativePlanSource_->count;++i)seasonalSource_->zones[i]=nativePlanSource_->zones[i].policy;
+            seasonalSafety_=std::move(safety);
+        }
         if(seasonalSource) {
             if(!seasonalSource->valid()||seasonalSource->controllerId!=controller_||!safety) {
                 fault_=true;return; // Selected source MUST NOT fall back to ordinary policy.
@@ -82,10 +97,11 @@ public:
         std::string saved;
         if(!store_.load(saved)) { fault_=true; return; }
         if(saved.empty()) return;
+        if(saved.size()>maximumConfigBytes) {fault_=true;return;}
         auto root=parseControlJson(saved);
-        if(!root || saved.size()>maximumConfigBytes || !decodeConfig(root.get(),*config_)) { fault_=true; return; }
+        if(!root || !decodeConfig(root.get(),*config_)) { fault_=true; return; }
         configBytes_=printJson(root.get()); digest_=hash_(configBytes_);
-        if(!hexString(digest_,64)||(seasonalSource_&&digest_!=seasonalSource_->configDigest)) fault_=true;
+        if(!hexString(digest_,64)||(seasonalSource_&&!nativePlanSource_&&digest_!=seasonalSource_->configDigest)) fault_=true;
     }
     void connected(uint64_t now) {
         invalidate();
@@ -108,6 +124,14 @@ public:
         metricsSnapshot(now);
     }
     void receive(std::string_view topic,std::string_view bytes,uint64_t now,int64_t utc,bool clockValid) {
+        if(!nativePlanSource_) {receiveImpl(topic,bytes,now,utc,clockValid);return;}
+        if(nativeReceiving_) {fault_=true;invalidate();return;}
+        struct Scope {bool& flag;explicit Scope(bool& f):flag(f){flag=true;}~Scope(){flag=false;}} scope(nativeReceiving_);
+        try{receiveImpl(topic,bytes,now,utc,clockValid);}
+        catch(...){fault_=true;invalidate();}
+    }
+private:
+    void receiveImpl(std::string_view topic,std::string_view bytes,uint64_t now,int64_t utc,bool clockValid) {
         if(!connected_ || fault_ || now<lastNow_) return;
         // PubSubClient reuses its receive buffer for synchronous publish(). A
         // response must not invalidate the topic view used later in this call.
@@ -149,7 +173,7 @@ public:
             result(resultTopic,e,"mapping_conflict"); return;
         }
         auto payloadHash=hash_(bytes);
-        if(!hexString(payloadHash,64)) { fault_=true; invalidate(); return; }
+        if(!hexString(payloadHash,64)||(nativePlanSource_&&fault_)) { fault_=true; invalidate(); return; }
         for(size_t i=0;i<32;++i) e.payloadDigest[i]=static_cast<uint8_t>(hexByte(payloadHash[2*i])*16+hexByte(payloadHash[2*i+1]));
         if(!validComfort) {
             // An already applied vacation may expire before its exact-byte ACK
@@ -159,7 +183,7 @@ public:
             if(trial->admit(stream,e,now).code!=AdmissionCode::duplicate) return;
         }
         const auto a=admission_.admit(stream,e,now);
-        if(a.code==AdmissionCode::duplicate) { result(resultTopic,e,"duplicate"); if(topic=="ha/snapshot_request") snapshot(); return; }
+        if(a.code==AdmissionCode::duplicate) { result(resultTopic,e,"duplicate"); if(topic=="ha/snapshot_request") snapshot(e.sequence); return; }
         if(a.code!=AdmissionCode::accepted) { result(resultTopic,e,"rejected"); return; }
         if(kind==StreamKind::heartbeat) {
             // Only a NEW accepted heartbeat can anchor a future grant. Exact
@@ -174,13 +198,14 @@ public:
             // Storage can have committed despite a timeout/error. Never continue
             // operating old memory after an ambiguous durable write/read-back.
             std::string readback;
-            if(!store_.save(candidateBytes)||!store_.load(readback)||readback!=candidateBytes) {
+            if(!store_.save(candidateBytes)||!store_.load(readback)||readback!=candidateBytes
+                ||(nativePlanSource_&&fault_)) {
                 result(resultTopic,e,"storage_fault"); fault_=true; invalidate(); return;
             }
             config_=std::move(candidate); configBytes_=candidateBytes; digest_=stringField(root.get(),"config_digest");
             result(resultTopic,e,"applied"); invalidate(); newChallenge(now); hello(); return;
         }
-        if(topic=="ha/snapshot_request") { result(resultTopic,e,"accepted"); snapshot(); state(now,utc,clockValid); return; }
+        if(topic=="ha/snapshot_request") { result(resultTopic,e,"accepted"); snapshot(e.sequence); state(now,utc,clockValid); return; }
         auto &z=config_->zones[index];
         if(kind==StreamKind::observation) {
             if(z.comfortEnabled) {
@@ -212,6 +237,7 @@ public:
         }
         result(resultTopic,e,"accepted"); state(now,utc,clockValid);
     }
+public:
     uint32_t revision() const { return config_->revision; }
     const std::string &digest() const { return digest_; }
     bool faulted() const { return fault_; }
@@ -248,7 +274,9 @@ private:
     }
     static int hexByte(char c) { return c<='9'?c-'0':c-'a'+10; }
     bool decodeConfig(const cJSON *o,Configuration &out) const {
-        if(!exactFields(o,{"mapping_digest","mode","revision","schema","zones"}) || !canonicalConfig(o) ||
+        if(nativePlanSource_) {
+            if(!canonicalConfig(o)||!validateNativeControlPlan(o,*nativePlanSource_,hash_)||fault_)return false;
+        } else if(!exactFields(o,{"mapping_digest","mode","revision","schema","zones"}) || !canonicalConfig(o) ||
             !hexString(stringField(o,"mapping_digest"),64)||stringField(o,"mode")!="shadow"||
             !integerField(o,"revision",1,UINT32_MAX)||!integerField(o,"schema",1,1)) return false;
         auto zones=field(o,"zones");
@@ -257,8 +285,12 @@ private:
         std::set<std::string> identities{"adapter","config","snapshot"};
         for(auto zone=zones->child;zone;zone=zone->next) {
             const bool comfort=field(zone,"comfort");
-            if(!(comfort?exactFields(zone,{"actuator_id","base_centi_c","comfort","max_age_ms","report_evidence","schedule","sensor_id","zone_id"}):
-                exactFields(zone,{"actuator_id","base_centi_c","max_age_ms","report_evidence","schedule","sensor_id","zone_id"}))||
+            const bool shape=nativePlanSource_?
+                (comfort?exactFields(zone,{"actuator_id","actuator_profile","base_centi_c","comfort","group_id","max_age_ms","report_evidence","schedule","sensor_id","zone_id"}):
+                    exactFields(zone,{"actuator_id","actuator_profile","base_centi_c","group_id","max_age_ms","report_evidence","schedule","sensor_id","zone_id"})):
+                (comfort?exactFields(zone,{"actuator_id","base_centi_c","comfort","max_age_ms","report_evidence","schedule","sensor_id","zone_id"}):
+                    exactFields(zone,{"actuator_id","base_centi_c","max_age_ms","report_evidence","schedule","sensor_id","zone_id"}));
+            if(!shape||
                 !integerField(zone,"base_centi_c",500,3500)||!integerField(zone,"max_age_ms",1000,86400000)) return false;
             auto &z=out.zones[out.count];
             z.id=stringField(zone,"zone_id"); z.sensor=stringField(zone,"sensor_id"); z.actuator=stringField(zone,"actuator_id");
@@ -331,7 +363,8 @@ private:
             if(!integerField(o,"expected_revision",0,UINT32_MAX)||!hexString(stringField(o,"config_digest"),64)||!decodeConfig(field(o,"config"),candidate)) return false;
             configBytes=printJson(field(o,"config"));
             if(configBytes.empty()||configBytes.size()>maximumConfigBytes||hash_(configBytes)!=stringField(o,"config_digest")
-                ||(seasonalSource_&&stringField(o,"config_digest")!=seasonalSource_->configDigest)) return false;
+                ||(seasonalSource_&&!nativePlanSource_&&stringField(o,"config_digest")!=seasonalSource_->configDigest)
+                ||(nativePlanSource_&&fault_)) return false;
         } else if(topic=="ha/observations") {
             keys.insert({"zone_id","source_available","temperature_c","source_sample_age_ms","evidence"});
             if(index>=0&&config_->zones[index].comfortEnabled) {
@@ -405,10 +438,13 @@ private:
     }
     void open(const cJSON *o,uint64_t now) {
         const bool namedPolicy=seasonalSource_&&!seasonalSource_->profileDigest.empty();
-        const bool fields=namedPolicy?
-            exactFields(o,{"api","controller_id","boot_id","epoch","challenge_id","adapter_id","client_nonce","known_revision","known_digest","source_profile_digest","source_config_pin"}):
+        const bool fields=nativePlanSource_?
+            exactFields(o,{"api","controller_id","boot_id","epoch","challenge_id","adapter_id","client_nonce","known_revision","known_digest","source_profile_digest","plan_contract"}):
+            namedPolicy?exactFields(o,{"api","controller_id","boot_id","epoch","challenge_id","adapter_id","client_nonce","known_revision","known_digest","source_profile_digest","source_config_pin"}):
             exactFields(o,{"api","controller_id","boot_id","epoch","challenge_id","adapter_id","client_nonce","known_revision","known_digest"});
-        if(!fields||(namedPolicy&&(stringField(o,"source_profile_digest")!=seasonalSource_->profileDigest
+        if(!fields||(nativePlanSource_&&(stringField(o,"source_profile_digest")!=nativePlanSource_->profileDigest
+                ||stringField(o,"plan_contract")!=NativePlanInstallationSource::contract))
+            ||(!nativePlanSource_&&namedPolicy&&(stringField(o,"source_profile_digest")!=seasonalSource_->profileDigest
                 ||stringField(o,"source_config_pin")!=seasonalSource_->configDigest))||
             !integerField(o,"api",1,1)||!integerField(o,"epoch",1,UINT32_MAX)||!integerField(o,"known_revision",0,UINT32_MAX)||
             stringField(o,"controller_id")!=controller_||stringField(o,"boot_id")!=boot_||uintField(o,"epoch")!=epoch_||
@@ -421,8 +457,13 @@ private:
         SessionIdentity identity{controller_,boot_,owner_,sessionId_,epoch_,revision()};
         // New legitimate same-connection sessions get a fresh local primitive.
         // Consumed handshake challenge prevents resetting old watermarks.
-        admission_=SessionAdmission(owner_);
-        if(!admission_.begin(identity,leaseMs)) return;
+        // Bounded one-off fresh handshake scratch. Do not place the 48-stream
+        // admission object on the 6096-byte Arduino loop stack. Challenge and
+        // same-owner checks above are unchanged; this does NOT admit any data.
+        auto freshAdmission=std::make_unique<SessionAdmission>(owner_);
+        if(!freshAdmission->begin(identity,leaseMs)) return;
+        admission_=std::move(*freshAdmission);
+        freshAdmission.reset();
         admission_.bind(0,"adapter",StreamKind::heartbeat);
         admission_.bind(1,"config",StreamKind::configuration);
         admission_.bind(2,"snapshot",StreamKind::configuration);
@@ -445,6 +486,23 @@ private:
     }
     void send(std::string_view topic,const cJSON *o) { const auto bytes=printJson(o); if(!bytes.empty()&&bytes.size()<=8192) publish_(topic,bytes); }
     void sourcePolicy(cJSON* o) const {
+        if(nativePlanSource_) {
+            auto profile=cJSON_AddObjectToObject(o,"source_policy");if(!profile)return;
+            cJSON_AddNumberToObject(profile,"schema",2);
+            cJSON_AddStringToObject(profile,"kind",NativePlanInstallationSource::kind);
+            cJSON_AddStringToObject(profile,"adapter_id",owner_.c_str());
+            cJSON_AddStringToObject(profile,"profile_digest",nativePlanSource_->profileDigest.c_str());
+            cJSON_AddStringToObject(profile,"plan_contract",NativePlanInstallationSource::contract);
+            cJSON_AddBoolToObject(profile,"physical_outputs_enabled",false);
+            cJSON_AddBoolToObject(profile,"frost_protection_available",false);
+            auto limits=cJSON_AddObjectToObject(profile,"limits");
+            if(limits) {
+                cJSON_AddNumberToObject(limits,"zones",2);cJSON_AddNumberToObject(limits,"groups",2);
+                cJSON_AddNumberToObject(limits,"channels",4);cJSON_AddNumberToObject(limits,"config_bytes",maximumConfigBytes);
+                cJSON_AddNumberToObject(limits,"wire_bytes",8192);cJSON_AddNumberToObject(limits,"total_transitions",8);
+            }
+            return;
+        }
         if(!seasonalSource_||seasonalSource_->profileDigest.empty())return;
         auto profile=cJSON_AddObjectToObject(o,"source_policy");
         if(!profile)return;
@@ -464,6 +522,7 @@ private:
         if(controlCaps)cJSON_AddItemToArray(controlCaps,cJSON_CreateString("session.grant_nonce.v1"));
         auto comfortCaps=cJSON_AddArrayToObject(o.get(),"control_capabilities");
         if(comfortCaps)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString("comfort.target.v1"));
+        if(comfortCaps&&nativePlanSource_)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(NativePlanInstallationSource::contract));
         if(metrics_) {
             auto caps=cJSON_AddArrayToObject(o.get(),"read_only_capabilities");
             if(caps)cJSON_AddItemToArray(caps,cJSON_CreateString(metricsCapability));
@@ -515,9 +574,19 @@ private:
         cJSON_AddStringToObject(o.get(),"binding_id",std::string(e.binding).c_str());
         cJSON_AddNumberToObject(o.get(),"sequence",e.sequence); cJSON_AddStringToObject(o.get(),"status",status); send(topic,o.get());
     }
-    void snapshot() {
+    void snapshot(uint32_t request=0) {
         auto o=base(); auto cfg=configBytes_.empty()?nullptr:cJSON_Parse(configBytes_.c_str());
-        cJSON_AddItemToObject(o.get(),"config",cfg?cfg:cJSON_CreateNull()); send("fw/config_snapshot",o.get());
+        cJSON_AddItemToObject(o.get(),"config",cfg?cfg:cJSON_CreateNull());
+        if(nativePlanSource_) {
+            cJSON_AddStringToObject(o.get(),"adapter_id",owner_.c_str());
+            cJSON_AddStringToObject(o.get(),"adapter_session_id",sessionId_.c_str());
+            cJSON_AddStringToObject(o.get(),"grant_id",grant_.c_str());cJSON_AddNumberToObject(o.get(),"grant_sequence",grantSequence_);
+            cJSON_AddNumberToObject(o.get(),"request_sequence",request);
+            cJSON_AddStringToObject(o.get(),"profile_digest",nativePlanSource_->profileDigest.c_str());
+            cJSON_AddStringToObject(o.get(),"plan_contract",NativePlanInstallationSource::contract);
+            cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",false);cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false);
+        }
+        send("fw/config_snapshot",o.get());
     }
     void state(uint64_t now,int64_t utc,bool clockValid) {
         auto o=base(); sourcePolicy(o.get()); cJSON_AddStringToObject(o.get(),"mode","shadow");
@@ -624,6 +693,8 @@ private:
     SessionAdmission admission_;
     HydraulicSupervisor supervisor_;
     std::unique_ptr<SeasonalControllerSource> seasonalSource_;
+    std::unique_ptr<NativePlanInstallationSource> nativePlanSource_;
+    bool nativeReceiving_=false;
     SeasonalControllerSource::Safety seasonalSafety_;
     uint32_t policyGeneration_=0;
     bool safetyReading_=false,policySourceFault_=false;

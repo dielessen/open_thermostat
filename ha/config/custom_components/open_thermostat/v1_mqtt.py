@@ -111,17 +111,23 @@ class NativeShadowConnection:
             self.client = GraphShadowClient(self.runtime, adapter, self.publish,
                 journal, self.graph_profile, self.hass.loop.time)
         else:
-            zones, mapping = await async_build_configuration(self.runtime)
+            plan=None
+            if self.runtime.native_plan_source is not None:
+                plan,mapping=await self.runtime.native_plan_source.async_configuration(self.hass,self.entry)
+                zones=plan["zones"]
+            else:zones,mapping=await async_build_configuration(self.runtime)
             self.client = ShadowClient(
                 self.runtime, adapter, self.publish,
                 Store(self.hass, 1, f"open_thermostat.v1.{self.entry.entry_id}"),
-                zones, mapping, self.hass.loop.time)
+                zones, mapping, self.hass.loop.time,control_plan=plan)
         await self.client.async_start()
         if self.runtime.graph_controller_source is not None:
             await self.client.async_stage_graph_source_readback()
             # A native control Store await must not hide graph/config/registry
             # drift. Recheck known SOURCE DATA before any subscribe/publish.
             await self.runtime.graph_controller_source.async_configuration(self.hass,self.entry)
+        if self.runtime.native_plan_source is not None and not self.client.native_source_current():
+            raise ConfigEntryError("native_plan_source_changed_during_start")
         self.runtime.attach_transport(self.client)
         self.client._close_io = self.async_close
         self.worker = self.hass.async_create_background_task(self.run(), "OpenThermostat shadow MQTT")
@@ -133,7 +139,7 @@ class NativeShadowConnection:
         @callback
         def connection_status(connected):
             if not connected:
-                if self.graph_profile is not None:
+                if self.graph_profile is not None or self.runtime.native_plan_source is not None:
                     # Existing Store await can yield inside the same worker.
                     # Fence graph DATA immediately, not behind that in-flight IO.
                     self.client.reset_session()
@@ -159,7 +165,7 @@ class NativeShadowConnection:
 
     async def async_graph_command(self, command, *args):
         """Explicit stage/apply joins SAME bounded worker, never a parallel writer."""
-        if self.closed or self.worker is None or self.graph_profile is None or command not in {"stage", "apply", "prepare"}:
+        if self.closed or self.worker is None or (self.graph_profile is None and self.runtime.native_plan_source is None) or command not in {"stage", "apply", "prepare"}:
             raise ConfigEntryError("graph_profile_unavailable")
         future = self.hass.loop.create_future()
         try:
@@ -179,7 +185,7 @@ class NativeShadowConnection:
         ids = {self.runtime.resolved(r.schedule) for r in self.runtime.rooms.values() if r.schedule}
         ids.discard(None)
         registry_ids=set(ids)
-        source=self.runtime.graph_controller_source
+        source=self.runtime.graph_controller_source or self.runtime.native_plan_source
         if source is not None:
             from .v1_model import EntityReference
             for ref in source.registry_references(self.hass,self.entry):
@@ -190,10 +196,14 @@ class NativeShadowConnection:
 
         @callback
         def refresh(_):
+            if self.runtime.native_plan_source is not None:
+                self.client.reset_session()
             self.enqueue(("refresh", None))
 
         @callback
         def registry_changed(_):
+            if self.runtime.native_plan_source is not None:
+                self.client.reset_session()
             self.enqueue(("rebind", None))
 
         if ids:
@@ -251,7 +261,11 @@ class NativeShadowConnection:
                     if future.cancelled():
                         continue
                     try:
-                        if command=="prepare":
+                        if self.runtime.native_plan_source is not None:
+                            if command=="stage":raise ConfigEntryError("native_plan_raw_stage_unsupported")
+                            result=await (self.client.async_prepare_native_plan() if command=="prepare"
+                                          else self.client.async_apply(*args))
+                        elif command=="prepare":
                             from .graph_draft_compile import async_compile_saved_graph
                             if args or self.graph_profile.draft_source is None:
                                 raise ConfigEntryError("graph_draft_source_unavailable")
@@ -274,9 +288,15 @@ class NativeShadowConnection:
                         from .graph_shadow_validation import GraphValidationError
                         if not isinstance(error, GraphValidationError):
                             self.client.reset_session()
-                        self.client.error = self.client.journal.status
+                        self.client.error = (self.client.graph_status["journal_status"] if self.runtime.native_plan_source is not None else self.client.journal.status)
                         self.client.changed()
                 elif kind in {"refresh", "rebind"}:
+                    if self.runtime.native_plan_source is not None:
+                        self.client.reset_session()
+                        self.client.error="native_plan_review_required"
+                        if kind=="rebind":self.bind_schedules()
+                        self.client.changed()
+                        continue
                     if self.runtime.graph_controller_source is not None:
                         self.client.require_graph_source_review()
                         continue

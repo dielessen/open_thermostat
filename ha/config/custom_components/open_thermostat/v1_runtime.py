@@ -36,7 +36,7 @@ class ShadowTransport(Protocol):
 ReportProfile = Callable[[Any, str], QualifiedReport | None]
 
 class ShadowRuntime:
-    def __init__(self, hass: HomeAssistant, entry: Any, rooms: list[RoomBinding], *, graph_data_profile=None, context_source_profiles=(), controller_policy_source_profile=None, graph_controller_source=None):
+    def __init__(self, hass: HomeAssistant, entry: Any, rooms: list[RoomBinding], *, graph_data_profile=None, context_source_profiles=(), controller_policy_source_profile=None, graph_controller_source=None,native_plan_source=None):
         if graph_data_profile is not None:
             from .graph_wire import GraphSourceProfile
             if not isinstance(graph_data_profile,GraphSourceProfile):
@@ -44,8 +44,9 @@ class ShadowRuntime:
             graph_data_profile.validate()
         if controller_policy_source_profile is not None:
             from .comfort_sources import ControllerPolicySourceProfile
+            from .native_plan import NativeInstallationPolicy
             profile=controller_policy_source_profile
-            if not isinstance(profile,ControllerPolicySourceProfile):
+            if not isinstance(profile,(ControllerPolicySourceProfile,NativeInstallationPolicy)):
                 raise ValueError("controller_policy_profile_invalid")
             profile.validate()
             if (graph_data_profile is not None or profile.entry_unique_id!=entry.unique_id
@@ -61,6 +62,14 @@ class ShadowRuntime:
                     or graph_controller_source.controller.entry_unique_id!=entry.unique_id
                     or len(rooms)!=graph_controller_source.room_count or not all(graph_controller_source.supports_room(room) for room in rooms)):
                 raise ValueError("graph_control_source_binding")
+        from .native_plan import NativePlanSource
+        if native_plan_source is not None:
+            if (type(native_plan_source) is not NativePlanSource or graph_data_profile is not None
+                or graph_controller_source is not None or controller_policy_source_profile!=native_plan_source.policy
+                or len(rooms)!=2 or not all(native_plan_source.supports_room(room) for room in rooms)):
+                raise ValueError("native_plan_source_binding")
+            native_plan_source.validate_native(hass,entry)
+        self.native_plan_source=native_plan_source
         self.graph_controller_source=graph_controller_source
         self.controller_policy_source_profile=controller_policy_source_profile
         self.graph_data_profile=graph_data_profile
@@ -121,7 +130,8 @@ class ShadowRuntime:
     def room_control_supported(self,room_id):
         room=self.rooms.get(room_id)
         return room is not None and (room.shadow_wire_supported or
-            (self.graph_controller_source is not None and self.graph_controller_source.supports_room(room)))
+            (self.graph_controller_source is not None and self.graph_controller_source.supports_room(room))
+            or (self.native_plan_source is not None and self.native_plan_source.supports_room(room)))
 
     def add_listener(self, listener: Callable) -> Callable:
         self._listeners.add(listener)

@@ -49,7 +49,8 @@ public:
             identity.session == identity_.session) return false;
         if (configured_ && identity.boot == identity_.boot && identity.epoch <= identity_.epoch) return false;
         identity_ = identity; leaseMs_ = leaseMs; configured_ = true; transportValid_ = true; grantSequence_ = 0;
-        streams_ = {}; grant_.clear(); grantValid_ = false; leaseUntil_ = 0; leaseFrom_ = 0;
+        for(auto& stream:streams_) {stream=Stream{};}
+        grant_.clear(); grantValid_ = false; leaseUntil_ = 0; leaseFrom_ = 0;
         return true;
     }
     bool bind(std::size_t index, std::string_view binding, StreamKind kind) {

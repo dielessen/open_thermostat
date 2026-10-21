@@ -9,8 +9,8 @@
 using namespace heating::control;
 namespace gt=heating::graph_test;
 struct Store:ControlStore {
-    std::string data;size_t writes=0;bool ok=true,commit=false;
-    bool load(std::string& out)override{out=data;return true;}
+    std::string data;size_t writes=0,reads=0;bool ok=true,commit=false,loadOk=true,readbackMismatch=false;
+    bool load(std::string& out)override{++reads;out=data;if(readbackMismatch)out+=" ";return loadOk;}
     bool save(std::string_view bytes)override{++writes;if(ok||commit)data=bytes;return ok;}
 };
 int main() {
@@ -25,8 +25,19 @@ int main() {
     std::unique_ptr<SeasonalControllerSource> policy;
     GraphControlHandoffSource handoff;
     SeasonalSafetySnapshot safety;
-    bool controlMode=false;
+    bool controlMode=false,nativePlanMode=false;
+    std::unique_ptr<NativePlanInstallationSource> nativePlanSource;
     std::string controller,boot,adapter,anchor,line;uint32_t nonce=0;
+    bool failHash=false,reenterHash=false;
+    uint64_t callbackNow=0;
+    auto hash=[&](std::string_view bytes) {
+        if(failHash){failHash=false;return std::string{};}
+        if(reenterHash&&control) {
+            reenterHash=false;
+            control->receive("ha/heartbeat","{}",callbackNow,1792368000,true);
+        }
+        return controlTestHash(bytes);
+    };
     std::vector<std::pair<std::string,std::string>> frames;
     auto construct=[&] {
         owner=std::make_unique<GraphSessionOwner>(controller,boot,adapter,anchor,store,controlTestHash,
@@ -36,7 +47,9 @@ int main() {
     auto constructControl=[&] {
         owner.reset();control.reset();controlView.reset();topologyView.reset();floorBridgeView.reset(); // Never two admitted owners.
         ControlStore* selected=nullptr;
-        if(floorBridgeMode) {
+        if(nativePlanMode) {
+            selected=&store; // Complete accepted plan, no read-only projection.
+        } else if(floorBridgeMode) {
             floorBridgeView=std::make_unique<GraphFloorControlStoreView>(controller,adapter,store,controlTestHash,floorBridgeSource,*policy);
             selected=floorBridgeView.get();
         } else if(topologyMode) {
@@ -46,10 +59,11 @@ int main() {
             controlView=std::make_unique<GraphControlStoreView>(controller,adapter,store,controlTestHash,handoff,*policy);
             selected=controlView.get();
         }
-        control=std::make_unique<ShadowController>(controller,boot,adapter,*selected,controlTestHash,
+        control=std::make_unique<ShadowController>(controller,boot,adapter,*selected,hash,
             [&]{return "test_random_"+std::to_string(++nonce);},
             [&](auto topic,auto bytes){frames.emplace_back(topic,bytes);},
-            ShadowController::Metrics{},policy.get(),[&]{return safety;});
+            ShadowController::Metrics{},nativePlanMode?nullptr:policy.get(),[&]{return safety;},
+            nativePlanMode?nativePlanSource.get():nullptr);
     };
     while(std::getline(std::cin,line)) {
         if(line.size()>20000)return 2;
@@ -60,6 +74,43 @@ int main() {
         if(op=="initialize") {
             controller=text("controller");boot=text("boot");adapter=text("owner");anchor=text("anchor");
             store.data=text("stored");construct();
+        } else if(op=="initialize_native_plan") {
+            // Independent fixed SOURCE fixture selected ONCE, before desired
+            // configs. No stored config/review is manufactured or preloaded.
+            controller=text("controller");boot=text("boot");adapter=text("owner");store.data=text("stored");
+            nativePlanSource=std::make_unique<NativePlanInstallationSource>();
+            auto& source=*nativePlanSource;const auto src=gt::get(root.get(),"source");
+            auto txt=[&](const cJSON* o,const char* key){return gt::str(gt::get(o,key));};
+            auto num=[&](const cJSON* o,const char* key,uint32_t lo,uint32_t hi){return static_cast<uint32_t>(gt::integer(gt::get(o,key),lo,hi));};
+            source.controllerId=controller;source.adapterId=adapter;source.profileDigest=txt(src,"profile_digest");
+            source.count=2;source.maximumSafetyAgeMs=2000;
+            source.mappingRevision=num(src,"mapping_revision",1,UINT32_MAX);
+            const auto rows=gt::get(src,"zones");if(!cJSON_IsArray(rows)||cJSON_GetArraySize(rows)!=2)return 5;
+            for(size_t i=0;i<2;++i) {
+                const auto row=cJSON_GetArrayItem(rows,static_cast<int>(i));auto& z=source.zones[i];auto& q=z.policy;
+                q.zoneId=txt(row,"zone_id");q.sensorId=txt(row,"sensor_id");q.actuatorId=txt(row,"actuator_id");
+                q.minimumTargetCentiC=num(row,"minimum_target_centi_c",500,3500);
+                q.maximumTargetCentiC=num(row,"maximum_target_centi_c",500,3500);
+                z.groupId=txt(row,"group_id");z.emitter=txt(row,"emitter");z.actuatorProfile=txt(row,"actuator_profile");
+                z.sensorResource=txt(row,"sensor_resource");z.outputResource=txt(row,"output_resource");
+                z.reportEvidence=txt(row,"report_evidence");z.maximumSensorAgeMs=num(row,"maximum_sensor_age_ms",1000,120000);
+                z.minimumSupplyCentiC=num(row,"minimum_supply_centi_c",500,8999);
+                z.maximumSupplyCentiC=num(row,"maximum_supply_centi_c",501,9000);
+                const auto control=gt::get(row,"control");
+                q.control.mode=txt(control,"mode")=="slow_binary_pi"?ZoneControl::slowBinaryPi:
+                    txt(control,"mode")=="local_trv"?ZoneControl::localTrv:ZoneControl::hysteresis;
+                q.control.hysteresisCentiC=num(control,"hysteresis_centi_c",1,200);
+                q.control.kpPermillePerC=num(control,"kp_permille_per_c",0,1000);
+                q.control.kiPermillePerCMinute=num(control,"ki_permille_per_c_minute",0,1000);
+                q.control.cycleMs=num(control,"cycle_ms",0,3600000);
+                q.control.minimumOnMs=num(control,"minimum_on_ms",0,1800000);
+                q.control.minimumOffMs=num(control,"minimum_off_ms",0,1800000);
+                // Explicit synthetic logical profile, NOT physical readiness.
+                q.seasonal.enabled=q.seasonal.installationQualified=true;
+                q.seasonal.maximumSensorAgeMs=z.maximumSensorAgeMs;q.seasonal.maximumStepGapMs=300000;
+            }
+            nativePlanMode=controlMode=true;floorBridgeMode=topologyMode=false;
+            safety=SeasonalSafetySnapshot{};constructControl();
         } else if(op=="initialize_topology_source"||op=="select_graph_floor_source") {
             // SOURCE-fixture preload ONLY. Existing graph writer cannot yet
             // create this distinct review record; NOT a wire/GUI provisioner.
@@ -134,7 +185,15 @@ int main() {
             else if(op=="disconnect")control->disconnected();
             else if(op=="receive")control->receive(text("topic"),text("raw"),now,utc,true);
             else if(op=="tick")control->tick(now,utc,true);
-            else if(op=="reboot"){boot=text("boot");constructControl();}
+            else if(op=="reboot"){boot=text("boot");store.ok=true;store.commit=false;store.loadOk=true;store.readbackMismatch=false;
+                if(nativePlanMode)safety=SeasonalSafetySnapshot{};
+                constructControl();}
+            else if(op=="ambiguous"){store.ok=false;store.commit=true;}
+            else if(op=="save_failure"){store.ok=false;store.commit=false;}
+            else if(op=="read_failure"){store.loadOk=false;}
+            else if(op=="readback_mismatch"){store.readbackMismatch=true;}
+            else if(op=="hash_failure"){failHash=true;}
+            else if(op=="hash_reentry"){reenterHash=true;callbackNow=now;}
             else if(op=="safety_snapshot") {
                 safety.sampledAt=now;
                 safety.limitsKnownSafe=cJSON_IsTrue(gt::get(root.get(),"limits_known_safe"));
@@ -161,6 +220,7 @@ int main() {
         cJSON_AddBoolToObject(result.get(),"fault",(controlMode?control->faulted():owner->faulted()));
         cJSON_AddNumberToObject(result.get(),"revision",(controlMode?control->revision():owner->configuration().revision()));
         cJSON_AddNumberToObject(result.get(),"writes",store.writes);
+        cJSON_AddNumberToObject(result.get(),"reads",store.reads);
         cJSON_AddNumberToObject(result.get(),"store_bytes",store.data.size());
         cJSON_AddNumberToObject(result.get(),"object_bytes",sizeof(GraphSessionOwner));
         cJSON_AddBoolToObject(result.get(),"source_control_mode",controlMode);
@@ -173,7 +233,8 @@ int main() {
             cJSON_AddNumberToObject(result.get(),"topology_review_bytes",store.data.size());
         }
         cJSON_AddNumberToObject(result.get(),"grant_deadline_ms",(controlMode?0:owner->configuration().grantDeadline(now)));
-        cJSON_AddStringToObject(result.get(),"status",(controlMode?(floorBridgeMode?floorBridgeView->status():(topologyMode?topologyView->status():controlView->status())):owner->configuration().status().c_str()));
+        cJSON_AddStringToObject(result.get(),"status",(controlMode?(nativePlanMode?"native_complete_plan":floorBridgeMode?floorBridgeView->status():(topologyMode?topologyView->status():controlView->status())):owner->configuration().status().c_str()));
+        if(nativePlanMode)cJSON_AddNumberToObject(result.get(),"native_source_object_bytes",sizeof(NativePlanInstallationSource));
         cJSON_AddBoolToObject(result.get(),"boiler_output_enabled",controlMode?false:owner->configuration().boilerOutputEnabled());
         cJSON_AddBoolToObject(result.get(),"actuator_output_enabled",controlMode?false:owner->configuration().actuatorOutputEnabled());
         std::cout<<gt::print(result.get())<<std::endl;

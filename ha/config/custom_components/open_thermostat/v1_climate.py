@@ -103,9 +103,9 @@ class ShadowRoom(ClimateEntity):
         observation = self.runtime.observations[self.room.room_id]
         state = self.runtime.decisions.get(self.room.room_id)
         return {"integration_mode": "v1_shadow", "actuation_enabled": False,
-                "control_scope":getattr(self.runtime.graph_controller_source,"profile_version",
+                "control_scope":getattr(self.runtime.native_plan_source or self.runtime.graph_controller_source,"profile_version",
                     "data_only" if self.runtime.graph_data_profile is not None else "native_api1_shadow"),
-                "source_config_readback_verified":self.runtime.graph_controller_source is not None and self.runtime.transport_ready,
+                "source_config_readback_verified":(self.runtime.native_plan_source is not None or self.runtime.graph_controller_source is not None) and self.runtime.transport_ready,
                 "graph_DATA_grants_control":False,
                 "boiler_output_enabled": False, "actuator_output_enabled": False,
                 "transport_status": self.runtime.diagnostics.get("transport", "not_connected"),
@@ -123,6 +123,7 @@ class ShadowRoom(ClimateEntity):
                 "local_override_ends_on_presence_change": False,
                 "default_override_minutes": self.room.comfort["temporary_ms"]//60000 if self.room.comfort is not None else 60,
                 "actuator_profile": "C_unverified" if self.room.shadow_wire_supported else
+                    "native_plan_shadow_only" if self.runtime.native_plan_source is not None else
                     "source_graph_shadow_only" if self.runtime.graph_controller_source is not None else "graph_draft_not_applied",
                 "diagnostic": self.runtime.diagnostics.get(self.room.room_id)}
 

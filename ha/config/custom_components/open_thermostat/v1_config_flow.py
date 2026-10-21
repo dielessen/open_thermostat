@@ -141,6 +141,13 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
         connection=data.get("v1_connection")
         from .v1_mqtt import NativeShadowConnection
         from .graph_wire import GraphSourceProfile,GraphShadowClient
+        from .native_plan import NativePlanSource
+        from .v1_wire import ShadowClient
+        if (isinstance(connection,NativeShadowConnection) and not connection.closed
+                and connection.worker is not None and not connection.worker.done()
+                and type(connection.runtime.native_plan_source) is NativePlanSource
+                and isinstance(connection.client,ShadowClient)):
+            return connection
         if (isinstance(connection,NativeShadowConnection) and not connection.closed
                 and connection.worker is not None and not connection.worker.done()
                 and isinstance(connection.graph_profile,GraphSourceProfile)
@@ -150,12 +157,16 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_graph_prepare(self,user_input=None):
         connection=self._graph_connection()
-        if connection is None or connection.graph_profile.draft_source is None:
+        if connection is None or (connection.runtime.native_plan_source is None
+                and connection.graph_profile.draft_source is None):
             return self.async_abort(reason="graph_prepare_unavailable")
         try:
             # No raw JSON, manifest, evidence/qualification or profile arguments
             # come from the form. Compile saved native DATA in SAME worker.
             await connection.async_graph_command("prepare")
+            if (connection.runtime.native_plan_source is not None
+                    and connection.client.graph_status["journal_status"]=="native_plan_already_applied"):
+                return await self.async_step_graph_status()
             return await self.async_step_graph_review()
         except Exception:
             return self.async_abort(reason="graph_prepare_failed")
@@ -176,7 +187,8 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
                 return await self.async_step_graph_status()
             self._reviewed_candidate=connection.client.review_candidate()
             self._review_connection=connection
-            state=connection.client.journal.state
+            state=(connection.client.journal if connection.runtime.native_plan_source is not None
+                else connection.client.journal.state)
             record=state["staged"]
             return self.async_show_form(step_id="graph_review",data_schema=vol.Schema({
                 vol.Required("confirm_apply",default=False):bool}),
@@ -186,7 +198,8 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
                     "accepted":str(connection.client.graph_status["accepted_revision"]),
                     "status":connection.client.graph_status["journal_status"]})
         except (GraphValidationError,ConfigEntryError):
-            if connection.client.journal.status in {"graph_send_unconfirmed","awaiting_graph_readback","graph_interrupted","graph_apply_pending"}:
+            if connection.client.graph_status["journal_status"] in {"graph_send_unconfirmed","awaiting_graph_readback","graph_interrupted","graph_apply_pending",
+                    "native_plan_send_unconfirmed","native_plan_awaiting_readback","native_plan_apply_unconfirmed"}:
                 return await self.async_step_graph_status()
             return self.async_abort(reason="graph_review_changed")
         except Exception:
@@ -228,9 +241,12 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
                 "accepted":str(state["accepted_revision"]),"staged":str(state["staged_revision"]),
                 "verified":str(state["readback_verified"]),
                 "device_result":state["device_result"] or "not_received",
-                "data_scope":("One floor DATA; radiator target needs separate source review"
+                "data_scope":("Two complete shadow room plans, including mapping"
+                    if state["data_scope"]=="control.plan.v1" else
+                    "One floor DATA; radiator target needs separate source review"
                     if state["data_scope"]=="graph-floor-native-trv.v1" else "Single-floor DATA only"),
-                "control_status":"Not selected; separate source review required"})
+                "control_status":("Fresh plan readback required; never physical actuation"
+                    if connection.runtime.native_plan_source is not None else "Not selected; separate source review required")})
 
     async def async_step_graph_source_status(self,user_input=None):
         return await self.async_step_graph_status(user_input)
@@ -250,8 +266,23 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
         if not enabled:
             return None  # OFF must never depend on a valid SOURCE pin.
         from . import (_selected_graph_data_profile,_selected_graph_controller_source,
-                       _selected_controller_policy_source_profile)
+                       _selected_controller_policy_source_profile,_selected_native_plan_source)
         try:
+            native=_selected_native_plan_source(self.config_entry)
+            if native is not None:
+                if (owner!=native.policy.adapter_id or _selected_graph_data_profile(self.config_entry) is not None
+                    or _selected_graph_controller_source(self.config_entry) is not None
+                    or _selected_controller_policy_source_profile(self.config_entry) is not None):
+                    return "graph_control_source_review_required"
+                before=self._entry_review_snapshot(self.config_entry)
+                await native.async_configuration(self.hass,self.config_entry)
+                if (self._entry_review_snapshot(self.config_entry)!=before
+                    or _selected_native_plan_source(self.config_entry)!=native
+                    or _selected_graph_data_profile(self.config_entry) is not None
+                    or _selected_graph_controller_source(self.config_entry) is not None
+                    or _selected_controller_policy_source_profile(self.config_entry) is not None):
+                    return "graph_control_source_review_required"
+                return None
             data=_selected_graph_data_profile(self.config_entry)
             source=_selected_graph_controller_source(self.config_entry)
             if data is not None and source is not None:
@@ -314,7 +345,8 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
             vol.Optional("information",default="settings"): selector.SelectSelector({"options":[{"value":"settings","label":"Settings"},{"value":"hot_water","label":"Domestic hot water (read-only)"}]}),
             **({vol.Optional("graph_action",default="settings"):
                 selector.SelectSelector({"options":(["settings","prepare","review","status"]
-                    if self._graph_connection().graph_profile.draft_source is not None else ["settings","review","status"]),
+                    if (self._graph_connection().runtime.native_plan_source is not None
+                        or self._graph_connection().graph_profile.draft_source is not None) else ["settings","review","status"]),
                     "translation_key":"graph_action"})}
                 if self._graph_connection() is not None else {}),
             vol.Required(CONF_MODE, default=integration_mode(self.config_entry)):

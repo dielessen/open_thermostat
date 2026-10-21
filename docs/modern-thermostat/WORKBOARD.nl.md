@@ -2717,6 +2717,47 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   TX/EMS/actuator-/verwarmingsvrijgave. Bestaande enigejob geïnspecteerd:
   interval900000ms en pacing exact15m behouden; volgende check15min.
 
+
+### Mark11785/11890 — 21okt19:33-run, onafhankelijke native ControlPlan-bronreview
+
+- TaskFlow11785 F2/F3: canonical e4c2c89 schoon, exacte16patchpreimages passend;
+  frozen a8408b7/patch553ca8a7 aangeboden. Actuele§6/PLAN/RESULT en eenmaal
+  boundedhistory6 gelezen; dezelfde specialist actief aan GUIstatussen, geen tweede
+  eigenaar. Bestaand eenmalighostreceipt behouden; verified-taskflow toegepast.
+- Acceptatie vóór samenvoegen: volledige diff/hashreview plus verse native
+  HA/echteCpp Store/controller/readback/OFF/reload/SOURCE/lifecycle- en
+  admissionregressies, technische postcheck. Alleen bronwerk; geen productieactie.
+  Rollback alleen nieuwe16paden vóór afhankelijke uitrol, behoud alle data/notices.
+  Bewijs:11774dossier/native-plan-parent-20261021-1933/PRECHECK.json.
+- [x] Begrensde bronstap onafhankelijk AANVAARD: exacte16paden/alleshashes,
+  complete diff, reversecheck en diffcheckPASS. Verse hostgcc/g++17/echtecJSONpeer;
+  alle116nativeHAgevallen in3begrensde commando's PASS, exacte unie van frozen116,
+  geen skips en6semanticrows bytegelijk. De56oorspronkelijke admission/controller-
+  GTests volledig met echt framework/TUs/core/cJSON ASan+UBSan/leakdetectiePASS.
+  Tellingen overlappen specialistbewijs, niet optellen. Vijf dependencywarnings.
+- Eerste specialistverifier had sandboxpaden; bestaande hosttoolchain gebruikt.
+  Ongepartioneerde hostHAproef tooltimeout90s zonder eindbewijs; NIET alsPASS
+  geteld. Daarna alle116gevallen in3commando's bewezen, zonder bron/assertiewijziging.
+  Frozen518bron-/419bewijsbestanden geverifieerd; geen nieuwe wrapper/service.
+- [x] Gewone HAreview/apply→volledige tweekamerconfig/mapping→dezelfdeCppStore/
+  controller/exactreadback, doel/schemawijziging/OFF/reload/herstel; onafhankelijke
+  SOURCE en actuele grant/readiness apart. Annuleren/lastawaitdrift/lostACK/
+  ambiguecommit/unknownremote/retained/SOURCEverlies weigeren of blijvenpending.
+  DefaultfactoryNONE en alle fysiekeoutputsfalse; geen runtime-/installatieactie.
+- [ ] SoftwareOPEN: max8UTCtransities totaal, volledigeweekprogramma/refresh/R18,
+  echte onafhankelijke producer/profile/productfactorybinding, actuele native
+  desktop/mobielGUI en gezamenlijke fullimages/resources/releaseclosure. Negen
+  SDK/toolchain/CA/source-noticeblockers blijven; F9modellen afgewezen. Geen
+  fysieke/72u-/NVS-GC-/achtzone-/liveperformance-/verwarmingsclaim.
+- Bewijs11774dossier/native-plan-parent-20261021-1933/: PRECHECK/HASHES/CHECKS.json,
+  REVIEW.md, native-host/compilelogs en batch1–3/COMMAND.json,HA.log/xml,ROWS;
+  core-san-host/COMMANDS.json,GTEST.json/logs. Rollback alleen nieuwebroncommit
+  vóór afhankelijkheden, alle config/journal/historie/model/registry/notices behouden.
+- Volgende echte uitvoering bij dezelfde specialist: compacte volledigeweek-/
+  refreshcontractstap binnen bestaande4096/8192/512/NVS/OTAgrenzen, daarna echte
+  productbinding en frontend-/gezamenlijke releasebewijzen; lopende GUItaak niet
+  onderbroken. Hele11785 blijft IN_PROGRESS; bestaande enigejob/check15min.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

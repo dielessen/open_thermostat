@@ -85,16 +85,18 @@ public:
                              SeasonalControllerSource::Safety safety={},
                              const GraphControlHandoffSource* graphHandoff=nullptr,
                              const TopologyControlHandoffSource* topologyHandoff=nullptr,
-                             const GraphFloorControlHandoffSource* floorBridge=nullptr)
+                             const GraphFloorControlHandoffSource* floorBridge=nullptr,
+                             const NativePlanInstallationSource* nativePlanSource=nullptr)
         :cfg_(std::move(cfg)),client_(network_),
-         store_((graphProfile||graphHandoff||topologyHandoff||floorBridge)?ControlStorageProfile::graph_shadow_v2:ControlStorageProfile::legacy_api1),
+         store_((graphProfile||graphHandoff||topologyHandoff||floorBridge||nativePlanSource)?ControlStorageProfile::graph_shadow_v2:ControlStorageProfile::legacy_api1),
          graph_(graphProfile!=nullptr) {
         auto prefix=cfg_.base.empty()?"open_thermostat":cfg_.base;
         valid_=SessionAdmission::validId(prefix)&&SessionAdmission::validId(cfg_.adapterId)&&
             !cfg_.brokerAddress.empty()&&cfg_.brokerPort&& !cfg_.username.empty()&&!cfg_.password.empty();
         if(!valid_||(graphProfile&&seasonalSource)||(graphHandoff&&(!seasonalSource||graphProfile))
             ||(topologyHandoff&&(!seasonalSource||graphProfile||graphHandoff))
-            ||(floorBridge&&(!seasonalSource||graphProfile||graphHandoff||topologyHandoff))) {valid_=false;return;} // DATA2 cannot silently select control policy.
+            ||(floorBridge&&(!seasonalSource||graphProfile||graphHandoff||topologyHandoff))
+            ||(nativePlanSource&&(graphProfile||seasonalSource||graphHandoff||topologyHandoff||floorBridge))) {valid_=false;return;} // DATA2 cannot silently select control policy.
         base_=prefix+(graph_?"/v2/":"/v1/");
         client_.setServer(cfg_.brokerAddress.c_str(),cfg_.brokerPort);
         client_.setKeepAlive(15); client_.setSocketTimeout(1);
@@ -130,7 +132,7 @@ public:
                 selectedStore=floorControlView_.get();
             }
             controller_=std::make_unique<ShadowController>(mac,randomControlId(),cfg_.adapterId,*selectedStore,
-                sha256Hex,randomControlId,publish,std::move(metrics),seasonalSource,std::move(safety));
+                sha256Hex,randomControlId,publish,std::move(metrics),seasonalSource,std::move(safety),nativePlanSource);
         }
         client_.setCallback([this](char *topic,uint8_t *payload,unsigned int length) {
             const std::string_view full(topic);

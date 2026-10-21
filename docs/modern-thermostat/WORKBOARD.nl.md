@@ -1083,6 +1083,35 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   commitdiffcheckPASS. F0/F10vervolg a66f4831-6957-49dc-bc1b-1216bb2f1d08 QUEUED
   bij bestaande specialist; admission is geen completion. next_check15m bevestigd.
 
+### Mark11785 — F2/F3 conservatieve NVS-preflight: onafhankelijke bronacceptatie
+
+- [x] Echte canonical hostcheckout00822be schoon; WORKBOARD§6/PLAN, RESULT Stage19,
+  memory en eenmaal bounded specialistgeschiedenis gelezen. Bestaande eenmalige
+  hostreceipt behouden; specialist actief aan graphowner/HAverbinding.
+- [x] Volledige corepatch SHA256
+  31bc39a3f4418b9d4bb691812c991ac45972a2b44e1eee358a244fd3c11e0330 gereviewd;
+  alle4niet-WORKBOARDhashes matchen CONTROL-BUDGET-RESULT.json70ee0d8e.
+- [x] Expliciet graphstorageprofiel controleert echte partitie/NVSstats vóór writeopen;
+  onbekend/inconsistent/overflow weigert, oude config/netwerkbytes blijven belast.
+  Default API1 ongewijzigd; geen factoryselectie, nieuwe key/namespace/partitie.
+- [x] Canonical hostg++17 Wall/Wextra/Werror:6gerichte nativechecks PASS;
+  actuele main.cpp/ModernTransport met echt gepind Xtensa/Arduino2.0.17/NVS-SDK:
+  typecheck PASS. Oud gegenereerd webassetheader uitsluitend voor typecheck;
+  geen volledige image/link/build-/installatieclaim.
+- [x] Conservatieve vrije264entryreserve en4096Bconfiggrens;8warm/coast/curve-
+  checkpointsets vragen504entries vóór overige reserveringen en worden geweigerd.
+  Dit is geen bewijs dat elke compactere layout onmogelijk is; geen succesvolle
+  NVSallocatie/GC-/heap-/stack-/8zoneresource- of fysieke acceptatie afgevinkt.
+- Bewijs11774dossier: CONTROL-BUDGET-PARENT-REVIEW.md, PRECHECK/HASHES/COMMANDS/
+  NATIVE/E32-SYNTAX.json en BUILD/NATIVE/E32-SYNTAX.log.
+- Rollback alleen nieuwe preflightbroncommit vóór afhankelijke ownerwijzigingen;
+  geen runtime-/HA-/broker-/apparaatdata of fysieke outputs gewijzigd.
+- Volgende uitvoering: bestaande specialist voltooit actieve graphowner/handshake/
+  HAverbinding; daarna concrete F2/F3 normale GUIapply met expliciete verse readback,
+  conflict-/reload-/reconnectafhandeling, zonder automatische send of admission.
+  Bestaande seizoens-/DHW-/enabledmodel-/F0/F10opdrachten blijven gelden;
+  hele11785 actief, hervattingscheck15min na dit bronpakket.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

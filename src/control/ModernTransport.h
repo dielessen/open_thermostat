@@ -1,6 +1,7 @@
 #pragma once
 #ifdef OPENTHERMOSTAT_E32V2
 #include "ShadowController.h"
+#include "ControlPartitionBudget.h"
 #include "Network.h"
 #include "config.h"
 #include <WiFiClient.h>
@@ -8,6 +9,7 @@
 #include <esp_timer.h>
 #include <esp_system.h>
 #include <nvs.h>
+#include <esp_partition.h>
 #include <mbedtls/sha256.h>
 #include <ctime>
 
@@ -29,6 +31,7 @@ inline std::string randomControlId() {
 }
 class NvsControlStore final:public ControlStore {
 public:
+    explicit NvsControlStore(ControlStorageProfile profile=ControlStorageProfile::legacy_api1):profile_(profile) {}
     bool load(std::string &bytes) override {
         nvs_handle_t handle;
         auto err=nvs_open("ot_control",NVS_READONLY,&handle);
@@ -43,12 +46,22 @@ public:
     }
     bool save(std::string_view bytes) override {
         if(bytes.empty()||bytes.size()>ShadowController::maximumConfigBytes) return false;
+        if(profile_==ControlStorageProfile::graph_shadow_v2) {
+            nvs_stats_t stats{};
+            const auto partition=esp_partition_find_first(ESP_PARTITION_TYPE_DATA,ESP_PARTITION_SUBTYPE_DATA_NVS,"nvs");
+            if(!partition||nvs_get_stats("nvs",&stats)!=ESP_OK
+                ||!ControlPartitionBudget::permitsGraphWrite(
+                    {partition->size,stats.total_entries,
+                     stats.used_entries,stats.free_entries,true},bytes.size())) return false;
+        } else if(profile_!=ControlStorageProfile::legacy_api1) return false;
         nvs_handle_t handle;
         if(nvs_open("ot_control",NVS_READWRITE,&handle)!=ESP_OK) return false;
         auto err=nvs_set_blob(handle,"config",bytes.data(),bytes.size());
         if(err==ESP_OK) err=nvs_commit(handle);
         nvs_close(handle); return err==ESP_OK;
     }
+private:
+    ControlStorageProfile profile_;
 };
 
 // Product transport, using public PubSubClient API directly. This REPLACES the

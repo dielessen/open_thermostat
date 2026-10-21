@@ -1,4 +1,5 @@
 #pragma once
+#include "ZoneRegulator.h"
 #include <array>
 #include <cstddef>
 #include <algorithm>
@@ -87,6 +88,29 @@ public:
         // Clearing a fault never cancels an already required bounded postrun.
         phase_=withdrawalActive_?HydraulicPhase::postrun:HydraulicPhase::inhibited;
         return true;
+    }
+    // Compose only RESTRICTIONS from the source-owned zone policy. This cannot
+    // fabricate readiness/flow, a water target, adapter lease or physical output.
+    Result stepSeasonal(uint64_t now,HydraulicInputs in,const ZoneRegulator::Result& zone) {
+        in.heatDemand=in.heatDemand&&zone.seasonalEvaluated&&zone.seasonalQualified&&zone.demand;
+        const auto losses=zone.seasonalRestrictions;
+        const auto has=[&](SeasonalRestriction loss) {return (losses&seasonalRestriction(loss))!=0;};
+        // Restrict ALL facts at once. A first/primary display reason is NEVER
+        // a mutually-exclusive safety choice, and cannot hide another cause.
+        if(!zone.seasonalEvaluated||(!zone.seasonalQualified&&!losses)
+            ||has(SeasonalRestriction::sourceUnavailable)) in.sourceValid=false;
+        if(has(SeasonalRestriction::adapterUnavailable)) in.adapterAlive=false;
+        if(has(SeasonalRestriction::stop)) in.stop=true;
+        if(has(SeasonalRestriction::limitsUnknown)) in.limitsKnownSafe=false;
+        if(has(SeasonalRestriction::dhwUnknown)) in.dhwStateKnown=false;
+        if(has(SeasonalRestriction::dhwPriority)) in.dhwActive=true;
+        if(losses&~seasonalRestrictionMask) {in.sourceValid=false;in.limitsKnownSafe=false;}
+        if(has(SeasonalRestriction::timingFault)) {
+            in.sourceValid=false;
+            // Bound retention from LAST known state, never from a late callback.
+            if(profile_.valid()) latch(haveTime_?last_:now,WithdrawalCause::timingFault,"seasonal_clock_discontinuity");
+        }
+        return step(now,in);
     }
     Result step(uint64_t now,const HydraulicInputs& in) {
         const bool reversed=haveTime_ && now<last_;
@@ -218,6 +242,7 @@ private:
     void restrictForCurrentLosses(const HydraulicInputs& in,uint64_t now) {
         // Escalation may remove retention but can NEVER renew deadline or restore it.
         const auto restrict=[this](WithdrawalCause c){retention_=std::min(retention_,profile_.policy(c));};
+        if (in.stop) restrict(WithdrawalCause::normalStop);
         if (!in.adapterAlive) restrict(WithdrawalCause::adapterLost);
         if (!in.sourceValid) restrict(WithdrawalCause::sourceLost);
         if (!in.limitsKnownSafe || !in.faultStateKnown || !in.dhwStateKnown) restrict(WithdrawalCause::unknownSafety);

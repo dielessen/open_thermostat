@@ -1484,6 +1484,48 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   blijven behouden; hele softwareplan in_progress, officiële hervattingsjob behouden.
   Automations next_check15min bevestigd; geen stille beëindiging na dit pakket.
 
+### Mark11785 — F4/F6 gelijktijdige seizoensrestricties: gecorrigeerde Stage31 bronacceptatie
+
+- [x] Canonicale echte hostcheckout e8982ad vooraf schoon; actuele §6/PLAN,
+  specialistRESULT Stage31, memory_search/verified-taskflow en eenmaal bounded
+  sessions_history6 gelezen. Bestaand eenmalig hostreceipt niet herhaald.
+  Dezelfde specialist actief aan model-/resourcewerk; geen tweede eigenaar.
+- [x] Alleen volledige gecorrigeerde vierpadenrollup502a7efb toegepast op eigen
+  canonical-afgeleide reviewbranch; alternatief deltapatchet NIET toegepast.
+  Alle4voor-/nahashes, frozenarchive en38specialistbewijshashes exact.
+  Originele Stage28 blijft historisch AFGEWEZEN, niet achteraf goedgekeurd.
+- [x] Alle gelijktijdige restricties vóór vroege displayreturn bewaard; bestaande
+  supervisor intersecteert iedere actieve oorzaak. Gedeelde withdrawalhelper
+  neemt nu ook normalStop mee na adapterfaultlatch: bewust strenger voor gewone
+  én seizoensaanroeper; niet claimen dat alle legacylogica ongewijzigd is.
+- [x] Onafhankelijke echte hostgcc/g++17 strict:85nativePASS; dezelfde85 volledig
+  opnieuw ASan+UBSan/leakdetectiePASS, incl echte GTest/cJSON/test/controlTUs.
+  Externe OpenSSLprovider niet geïnstrumenteerd; nonPIE uitsluitend native runner.
+  Exact oorspronkelijke onafhankelijke parenttegenproef nieuw gebouwd:PASS,
+  initieel heattrue, daarna stop+unknownlimit heat/pump/path/physicalfalse.
+- [x] Alle37semantische en635combinatierijen exact native/sanitizer/specialist;
+  zowel expliciet toegestane bestaande retention als verboden retention bewezen,
+  geen always-offoracle. Onverlengde naloop/escalatie/heropening in nativefixtures.
+  Alle10geaccepteerdeDHWbron-/testhashes en beide Recorderbarrières behouden.
+- [ ] F4/F6/R22-R23/hele11785 open: deze SOURCE-optinroute is nog niet door een
+  productprofiel geselecteerd. Specialist Xtensamethodsobject/targetsizeof blijft
+  objectbewijs, geen nieuwe parentfirmwareimage-/8zoneresource-/fysiekeproef.
+  Geen generieke vorstbescherming, installatie, TX/EMS/actuator-/verwarmingsGO.
+  Generic-size, bronfreshness, F9afgewezen policies en overige F0–F10gates open.
+- Bewijs11774dossier: SEASONAL-CONCURRENT-PARENT-REVIEW.md/PRECHECK.json,
+  verify-seasonal-concurrent-parent.py en seasonal-concurrent-parent-evidence/
+  COMMANDS.json/CHECKS.json, NATIVE/SANITIZER.json/log en oorspronkelijke PROBElog.
+  Collectorveld corrigeerde alleen hergebruikte hashvariabele naar bestaande
+  succesvolle proberesultaat; geen product-/test-/assertiewijziging of herhaling.
+- Rollback alleen nieuwe gecorrigeerde broncommit na afhankelijke wijzigingen;
+  parentDHW/Recorder/PLAN/historie/runtimedata bewaren. Geen runtimeactie gedaan.
+- Volgende concrete F4/F6/F2actie bij dezelfde specialist: bestaande source-owned
+  graph-/controllerprofielketen met expliciete seizoensselectie verbinden, zonder
+  GUIkwalificatie/automatische selectie/fysiekeoutputs; admission/reconnect/
+  bron-/DHW-/limits-/twee-zonefoutreplay en rollback aantonen. Bestaande actieve
+  modelresource-, genericimage-, F9diagnose- en contact/personopdrachten behouden.
+  Hele softwareplan in_progress; officiële hervattingsjob behouden, check15min.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

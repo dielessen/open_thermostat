@@ -9,6 +9,7 @@ import sys
 import tarfile
 import zipfile
 from verify_e32v2_release import verify
+from release_notices import collect, require_publishable, export as export_notices
 
 root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
@@ -18,7 +19,12 @@ args = parser.parse_args()
 pkg = args.output.resolve();assets = args.release_output.resolve()
 if (pkg.exists() and any(pkg.iterdir())) or (assets.exists() and any(assets.iterdir())):
     raise RuntimeError("Use empty release output directories; do not mix old assets")
+core_root = Path(__import__('os').environ.get("PLATFORMIO_CORE_DIR",str(Path.home()/".platformio")))
+notices, notice_roots = collect(root,core_root,"e32v2")
+# Evidence export may be BLOCKED; release packaging must never bypass that gate.
+require_publishable(notices)
 pkg.mkdir(parents=True,exist_ok=True);assets.mkdir(parents=True,exist_ok=True)
+export_notices(notices,notice_roots,root,pkg/"docs/third-party/installed-notices")
 head = subprocess.check_output(["git","rev-parse","HEAD"],cwd=root,text=True).strip()
 if subprocess.check_output(["git","status","--porcelain"],cwd=root):
     raise RuntimeError("Release requires a clean source checkout")
@@ -26,7 +32,7 @@ meta = json.loads((root/".pio/build/e32v2/embedded-web.json").read_text())
 release = json.loads((root/"release.json").read_text())
 assert meta["source"] == head and meta["version"] == release["version"]
 build = root/".pio/build/e32v2"
-core = Path(__import__('os').environ.get("PLATFORMIO_CORE_DIR",str(Path.home()/".platformio")))/"packages"
+core = core_root/"packages"
 for name in ["bootloader.bin","partitions.bin","firmware.bin","spiffs.bin"]:
     shutil.copy2(build/name,pkg/name)
 shutil.copy2(core/"framework-arduinoespressif32/tools/partitions/boot_app0.bin",pkg/"boot_app0.bin")

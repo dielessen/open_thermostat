@@ -1,0 +1,190 @@
+{
+  "schema": 1,
+  "assets": [
+    {
+      "path": "data/html/deps/bms.min.css.gz",
+      "gzip_sha256": "fa6e4ad27ad8158db4f09231b541d3f52d2eea58dab74e85ba27965f217aad9b",
+      "body_sha256": "fc27e174cf4ec9d656b4101b89e3eab753c3dea070f0de2e377817004d98126d",
+      "gzip_bytes": 369,
+      "body_bytes": 1080,
+      "component": "bootstrap-multiselect",
+      "version": "0.9.16",
+      "proof": "EXACT_DECOMPRESSED_BYTES",
+      "origin": "https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.16/css/bootstrap-multiselect.min.css",
+      "upstream_sha256": "fc27e174cf4ec9d656b4101b89e3eab753c3dea070f0de2e377817004d98126d",
+      "source_repository": "https://github.com/davidstutz/bootstrap-multiselect",
+      "tag": "v0.9.16",
+      "tag_commit": "52833181fce388c9110d5c926f69b93e349d92c5"
+    },
+    {
+      "path": "data/html/deps/bms.min.js.gz",
+      "gzip_sha256": "1bd3af5e738e975cdd63a7541683804b2a694264ad66fe7b6a30d4645c5a7250",
+      "body_sha256": "41cc29a8f3ad3924ead6646ff36c585a2c107fda7a6463379abaff0d8643023a",
+      "gzip_bytes": 6913,
+      "body_bytes": 32682,
+      "component": "bootstrap-multiselect",
+      "version": "0.9.16",
+      "proof": "EXACT_DECOMPRESSED_BYTES",
+      "origin": "https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.16/js/bootstrap-multiselect.min.js",
+      "upstream_sha256": "41cc29a8f3ad3924ead6646ff36c585a2c107fda7a6463379abaff0d8643023a",
+      "source_repository": "https://github.com/davidstutz/bootstrap-multiselect",
+      "tag": "v0.9.16",
+      "tag_commit": "52833181fce388c9110d5c926f69b93e349d92c5"
+    },
+    {
+      "path": "data/html/deps/bs.bundle.min.js.gz",
+      "gzip_sha256": "fd0aa051f667a3c2d57481a36e140ddc2422a43ecc996385db7a7b74cfc1710a",
+      "body_sha256": "2b67af5de2bbf5b622addc470baba971fc6dedfa9abcb9dd60f6dc4016cacff7",
+      "gzip_bytes": 21662,
+      "body_bytes": 80920,
+      "component": "bootstrap",
+      "version": "4.5.2",
+      "proof": "EXACT_AFTER_SOURCE_MAP_BASENAME_RENAME",
+      "origin": "https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/js/bootstrap.bundle.min.js",
+      "upstream_sha256": "f67b782ec5a62c8fcedb89535bcf48cc02ae06a119e3b97fe2b875fad1ff358f",
+      "normalization": "terminal_sourceMappingURL_basename_bootstrap_to_bs_only",
+      "local_source_map": "//# sourceMappingURL=bs.bundle.min.js.map",
+      "upstream_source_map": "//# sourceMappingURL=bootstrap.bundle.min.js.map"
+    },
+    {
+      "path": "data/html/deps/bs.min.css.gz",
+      "gzip_sha256": "018ebd6476fa5f2ce2da7d43e07d43e57999e71985dbb43c4883fd7b501f3b86",
+      "body_sha256": "01926d4d9e53e2667da6bb6a2dc07160aa4648a28484ff68cda1120a55c0679f",
+      "gzip_bytes": 23806,
+      "body_bytes": 160295,
+      "component": "bootstrap",
+      "version": "4.5.2",
+      "proof": "EXACT_AFTER_SOURCE_MAP_BASENAME_RENAME",
+      "origin": "https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.2/css/bootstrap.min.css",
+      "upstream_sha256": "5b0fbe5b7ad705f6a937c4998ad02f73d8f0d976fe231b74aef0ec996990c93a",
+      "normalization": "terminal_sourceMappingURL_basename_bootstrap_to_bs_only",
+      "local_source_map": "/*# sourceMappingURL=bs.min.css.map */",
+      "upstream_source_map": "/*# sourceMappingURL=bootstrap.min.css.map */"
+    },
+    {
+      "path": "data/html/deps/chart.umd.js.gz",
+      "gzip_sha256": "3e5ebbd194defd56b909ed29586695365bbde6b40e204e00f37a26ee413acf47",
+      "body_sha256": "321e3a3fa98da4aaa957d10be57cbb514de0989eed8f9d726b5d05902cd01904",
+      "gzip_bytes": 69199,
+      "body_bytes": 204948,
+      "component": "chartjs",
+      "version": "4.4.0",
+      "proof": "EXACT_DECOMPRESSED_BYTES",
+      "origin": "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js",
+      "upstream_sha256": "321e3a3fa98da4aaa957d10be57cbb514de0989eed8f9d726b5d05902cd01904",
+      "normalization": "none"
+    },
+    {
+      "path": "data/html/deps/jquery.min.js.gz",
+      "gzip_sha256": "5315d7d62b08a0ddcb36192bc11f2a5d99422761dc23dda5737ed97660d9053a",
+      "body_sha256": "f7f6a5894f1d19ddad6fa392b2ece2c5e578cbf7da4ea805b6885eb6985b6e3d",
+      "gzip_bytes": 30842,
+      "body_bytes": 89476,
+      "component": "jquery",
+      "version": "3.5.1",
+      "proof": "EXACT_DECOMPRESSED_BYTES",
+      "origin": "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js",
+      "upstream_sha256": "f7f6a5894f1d19ddad6fa392b2ece2c5e578cbf7da4ea805b6885eb6985b6e3d",
+      "normalization": "none"
+    }
+  ],
+  "original_upstream_notices": [
+    {
+      "component": "bootstrap-multiselect",
+      "path": "docs/third-party/bootstrap-multiselect-0.9.16-LICENSE.md",
+      "sha256": "82844094ea139f129f7ad61cfeebfe7aa6e907084ad02b16c604337798ed4e4d",
+      "origin": "https://raw.githubusercontent.com/davidstutz/bootstrap-multiselect/52833181fce388c9110d5c926f69b93e349d92c5/LICENSE.md",
+      "original_bytes": true,
+      "scope": "Exact original upstream notice"
+    },
+    {
+      "component": "arduino-core",
+      "path": "docs/third-party/arduino-esp32-2.0.17-LICENSE.md",
+      "sha256": "994ce1902a23c74519b5d118c6bbb657edabce91dd6b7cc825d86bb8f5c9780f",
+      "origin": "https://raw.githubusercontent.com/espressif/arduino-esp32/5e19e086c43d0fa5e5a596497ff8f11a0a43f6c2/LICENSE.md",
+      "original_bytes": true,
+      "scope": "Exact original upstream notice"
+    },
+    {
+      "component": "esp-idf-reference",
+      "path": "docs/third-party/esp-idf-4.4.7-LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "origin": "https://raw.githubusercontent.com/espressif/esp-idf/v4.4.7/LICENSE",
+      "original_bytes": true,
+      "scope": "Reference version root notice; NOT blanket license for all prebuilt SDK components"
+    },
+    {
+      "component": "bootstrap",
+      "path": "docs/third-party/bootstrap-4.5.2-LICENSE",
+      "sha256": "9b2ce2d9793f14f0fb1a77ce64961acc1157fb25858156c47139491107970acb",
+      "origin": "https://raw.githubusercontent.com/twbs/bootstrap/v4.5.2/LICENSE",
+      "original_bytes": true,
+      "scope": "Exact original upstream notice"
+    },
+    {
+      "component": "jquery",
+      "path": "docs/third-party/jquery-3.5.1-LICENSE.txt",
+      "sha256": "1ff603118efdb313799567cb4a408594954384f40843ca6f29c596f5b1f8907d",
+      "origin": "https://raw.githubusercontent.com/jquery/jquery/3.5.1/LICENSE.txt",
+      "original_bytes": true,
+      "scope": "Exact original upstream notice"
+    },
+    {
+      "component": "chartjs",
+      "path": "docs/third-party/chartjs-4.4.0-LICENSE.md",
+      "sha256": "5a0877ad6d818529be4f33009d0942cdf7e2ed7656156f4aba7308459a546030",
+      "origin": "https://raw.githubusercontent.com/chartjs/Chart.js/v4.4.0/LICENSE.md",
+      "original_bytes": true,
+      "scope": "Exact original upstream notice"
+    },
+    {
+      "component": "popper",
+      "path": "docs/third-party/popper-1.16.1-LICENSE.md",
+      "sha256": "2961310ed05cd9373a08b8191c071425a7fede0ca5d807ca38fa5f5f61c5b834",
+      "origin": "https://raw.githubusercontent.com/PopperJS/popper-core/v1.16.1/LICENSE.md",
+      "original_bytes": true,
+      "scope": "Exact original upstream notice"
+    }
+  ],
+  "framework": {
+    "name": "framework-arduinoespressif32",
+    "resolved_version": "3.20017.241212+sha.dcc1105b",
+    "arduino_version": "2.0.17",
+    "arduino_tag_commit": "5e19e086c43d0fa5e5a596497ff8f11a0a43f6c2",
+    "idf_header_version": "4.4.7",
+    "pins": {
+      "package.json": "f35415c75f6f43755df92bbbf7ef10c9e65c2edb2569d512636a0477be64d5bf",
+      ".piopm": "e413903767348a4c955aaeebaa04a40076f5bd6045dd8f083d42c113a9cb9bbd",
+      "cores/esp32/core_version.h": "1a745a235e6b3ecc3d0c2c03346a6a92f4bb1bc66e9ad36b1b1d0f988bb27c36",
+      "cores/esp32/esp_arduino_version.h": "b63e57731a24289b06eb96ded9e481ea719f4cde2ce7c41bd83c7646e0a6fe51",
+      "tools/sdk/esp32/include/esp_common/include/esp_idf_version.h": "56be0b78266695b3b2a5fd8af5e8661e26e270f7ea35cf0961b9444712c09aaa"
+    },
+    "source_proof": "Arduino version header exact upstream immutable commit; IDF version header exact v4.4.7. Package shortsha dcc1105b is NOT substituted for Arduino source5e19e086.",
+    "closure": "BLOCKED",
+    "blocked_reason": "Cached binary SDK contains no complete original component notice/source-build manifest. Header equality/package metadata do not establish provenance/license closure of all prebuilt libraries. Original upstream Arduino core root notice restored; IDF root notice is reference-only, not a universal SDK license.",
+    "upstream_header_proofs": [
+      {
+        "path": "cores/esp32/esp_arduino_version.h",
+        "origin": "https://raw.githubusercontent.com/espressif/arduino-esp32/5e19e086c43d0fa5e5a596497ff8f11a0a43f6c2/cores/esp32/esp_arduino_version.h",
+        "sha256": "b63e57731a24289b06eb96ded9e481ea719f4cde2ce7c41bd83c7646e0a6fe51"
+      },
+      {
+        "path": "tools/sdk/esp32/include/esp_common/include/esp_idf_version.h",
+        "origin": "https://raw.githubusercontent.com/espressif/esp-idf/v4.4.7/components/esp_common/include/esp_idf_version.h",
+        "sha256": "56be0b78266695b3b2a5fd8af5e8661e26e270f7ea35cf0961b9444712c09aaa"
+      }
+    ]
+  },
+  "scope": "Offline provenance/notices only. No asset/runtime/dependency/default/releaseversion changed. No publication or legal-completeness assertion.",
+  "bundled_components": [
+    {
+      "component": "popper.js",
+      "version": "1.16.1",
+      "bundled_in": "data/html/deps/bs.bundle.min.js.gz",
+      "build_dependency_lock_origin": "https://raw.githubusercontent.com/twbs/bootstrap/v4.5.2/package-lock.json",
+      "build_dependency_lock_sha256": "2a12bb28681d054fd9c23b61aad8057d38b016c610da843d4fecf13be1455aa1",
+      "notice": "docs/third-party/popper-1.16.1-LICENSE.md",
+      "scope": "Bootstrap bundle includes Popper; exact upstream build lock dependency, not a separately invented direct project pin"
+    }
+  ]
+}

@@ -1526,6 +1526,17 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   modelresource-, genericimage-, F9diagnose- en contact/personopdrachten behouden.
   Hele softwareplan in_progress; officiële hervattingsjob behouden, check15min.
 
+#### Stage31 canonical postcheck en echte voortzetting
+
+- Canonical e63b681 fast-forward samengevoegd, status schoon, commitdiffcheck en
+  alle4acceptedbron-/10DHW-/Recorder-/PLANhashes PASS; bewijs
+  SEASONAL-CONCURRENT-PARENT-POSTCHECK.json. Geen nieuwe runtime-/imageclaim.
+- Concrete bronprofiel-/controllerintegratie hierboven met acceptatie en rollback
+  aan dezelfde specialist aangeboden: followup287b5c7f QUEUED, geen completion.
+  Actief modelresourcewerk en bestaande overige opdrachten blijven behouden.
+- Eigen officiële job72ec7e68 geïnspecteerd/actief behouden; next_check15min
+  daadwerkelijk bevestigd. Hele11785 blijft in_progress, niet stil gestopt.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

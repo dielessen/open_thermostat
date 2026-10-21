@@ -102,6 +102,8 @@ class ShadowClient:
         self._native_snapshot_at=0.0
         self._native_snapshot_request=None
         self._native_remote_known=False
+        self._native_refresh_pending=False
+        self._native_horizon_inhibit=False
         self._native_review=None
         self._native_apply_sent=False
         self._native_apply_scope=None
@@ -159,6 +161,7 @@ class ShadowClient:
     def ready(self):
         now = self.clock()
         return (not self.closed and not self.graph_source_review_required
+                and not self._native_horizon_inhibit
                 and (self.native_plan_source is None or self.native_source_current()) and self.verified and (self.controller_policy is None or self.source_policy_matched) and self.session is not None
                 and self.session.get("mapping_ready") is True
                 and now < self.grant_until and now < self.lease_until
@@ -240,12 +243,11 @@ class ShadowClient:
     @property
     def graph_status(self):
         if self.native_plan_source is None:raise ValueError("native_plan_not_selected")
-        from .native_plan import CONTRACT
         accepted=self.journal["accepted"];staged=self.journal["staged"]
         return dict(status=self.error,journal_status=self.error,
             accepted_revision=accepted["config"]["revision"] if accepted else 0,
             staged_revision=staged["config"]["revision"] if staged else None,
-            readback_verified=self.ready,device_result=self._native_device_result,data_scope=CONTRACT,
+            readback_verified=self.ready,device_result=self._native_device_result,data_scope=self.native_plan_source.profile_version,
             control_review_status="native_shadow_only_no_physical_authority")
 
     def review_candidate(self):
@@ -280,6 +282,7 @@ class ShadowClient:
         # Complete native entry/profile/registry fence runs after FINAL Store await.
         self.native_plan_template=json.loads(canonical(config))
         self.desired,self.mapping=json.loads(canonical(config["zones"])),json.loads(canonical(mapping))
+        self._native_horizon_inhibit=False # Explicit review or previously authorized unchanged-week refresh.
         accepted=self.journal["accepted"]
         if accepted is not None and self.native_desired_matches(accepted["config"]) and self.journal["staged"] is None:
             self.error="native_plan_already_applied";self.changed();return None
@@ -288,6 +291,52 @@ class ShadowClient:
         self._native_review=(scope,record["config_digest"],self.clock())
         self.verified=False;self.error="native_plan_staged_not_applied";self.changed()
         return record
+
+    async def async_request_native_horizon_refresh(self):
+        """Existing daily callback, fresh exact readback before any new stage.
+
+        Only a previously explicitly applied local week can be regenerated.
+        Helper exports and changed/pending/unknown plans still require review.
+        """
+        from .graph_shadow_validation import GraphValidationError
+        accepted=self.journal["accepted"]
+        if (not self.native_plan_source.policy.week_reviewed or accepted is None
+                or self._native_horizon_inhibit
+                or self.journal["staged"] is not None or self._native_apply_sent
+                or any(room.schedule is not None for room in self.runtime.rooms.values())):
+            raise GraphValidationError("native_horizon_review_required")
+        self.native_context() # Current owner/session/grant, never restored permission.
+        self._native_refresh_pending=True
+        self.verified=False
+        await self.message("ha/snapshot_request","snapshot",{})
+        self.error="native_plan_horizon_readback_required";self.changed()
+
+    async def async_refresh_native_horizon(self,config,scope):
+        from datetime import UTC,datetime
+        from homeassistant.util import dt as dt_util
+        from .graph_shadow_validation import GraphValidationError
+        windows={(z["schedule"]["valid_from_utc"],z["schedule"]["valid_until_utc"])
+                 for z in config["zones"] if z["schedule"] is not None}
+        if not windows:return False
+        if len(windows)!=1:raise GraphValidationError("native_horizon_review_required")
+        start,end=next(iter(windows))
+        today=dt_util.utcnow().replace(hour=0,minute=0,second=0,microsecond=0)
+        if int(today.timestamp())<=start:return False # No writes for same day/backward clock.
+        if int(today.timestamp())>=end:raise GraphValidationError("native_horizon_expired_review_required")
+        if (self.journal["staged"] is not None or self.journal["accepted"]["config"]!=config
+                or self._native_apply_sent or self.native_context()!=scope
+                or any(room.schedule is not None for room in self.runtime.rooms.values())):
+            raise GraphValidationError("native_horizon_review_required")
+        # Recompile the OLD interval from the unchanged saved local weeks.
+        # Exact equality proves the new horizon cannot silently apply edits.
+        reference,_=await self.native_plan_source.async_configuration(
+            self.runtime.hass,self.runtime.entry,start=datetime.fromtimestamp(start,UTC))
+        reference["revision"]=config["revision"]
+        if reference!=config or self.native_context()!=scope:
+            raise GraphValidationError("native_horizon_intent_changed")
+        await self.async_prepare_native_plan() # Same Store lock/final-await fences and wire bounds.
+        await self.async_apply(self.review_candidate()) # No new owner, journal, scheduler or retry policy.
+        return True
 
     async def async_apply(self,reviewed=None):
         from .graph_shadow_validation import GraphValidationError
@@ -335,7 +384,6 @@ class ShadowClient:
         return True
 
     async def native_snapshot(self,p):
-        from .native_plan import CONTRACT
         from .graph_shadow_validation import GraphValidationError
         expected={"api","controller_id","boot_id","epoch","config_revision","config_digest","config",
             "adapter_id","adapter_session_id","grant_id","grant_sequence","request_sequence",
@@ -348,10 +396,12 @@ class ShadowClient:
             or not integer(p["grant_sequence"],1) or p["adapter_id"]!=self.adapter_id
             or p["adapter_session_id"]!=self.session["adapter_session_id"]
             or p["grant_id"]!=proof[2] or p["grant_sequence"]!=proof[3]
-            or p["plan_contract"]!=CONTRACT or p["profile_digest"]!=self.controller_policy.profile_digest
+            or p["plan_contract"]!=self.native_plan_source.profile_version or p["profile_digest"]!=self.controller_policy.profile_digest
             or p["boiler_output_enabled"] is not False or p["actuator_output_enabled"] is not False):
             return # No grant/lease/sample/last_rx renewal from stale/unrequested readback.
         self._native_snapshot_request=None
+        refresh_requested=self._native_refresh_pending
+        self._native_refresh_pending=False
         self.last_rx=self.clock();config=p["config"]
         self._native_snapshot_scope=scope;self._native_snapshot_at=self.clock()
         if config is None:
@@ -409,9 +459,17 @@ class ShadowClient:
             self.changed();return
         if not self.native_desired_matches(config):
             self.verified=False;self.error="native_plan_draft_changes_not_applied"
+        elif self._native_horizon_inhibit:
+            self.verified=False;self.error="native_plan_horizon_review_required"
         else:
             self.verified=self.session["mapping_ready"]
             self.error="shadow_ready" if self.verified else "mapping_not_admitted"
+        if refresh_requested:
+            try:
+                if await self.async_refresh_native_horizon(config,scope):return
+            except (ValueError,HomeAssistantError):
+                self._native_horizon_inhibit=True
+                self.verified=False;self.error="native_plan_horizon_review_required"
         self.changed()
 
     async def async_stage_graph_source_readback(self):
@@ -491,6 +549,7 @@ class ShadowClient:
         self.journal = snapshot
 
     def reset_session(self):
+        self._native_refresh_pending=False
         self._native_legacy_supported=False
         self._native_legacy_verified=False
         self._native_device_result=None
@@ -635,8 +694,7 @@ class ShadowClient:
                 self._grant_proofs.clear()
             comfort_caps=p.get("control_capabilities",[])
             if self.native_plan_source is not None:
-                from .native_plan import CONTRACT
-                if (type(comfort_caps) is not list or len(comfort_caps)>8 or CONTRACT not in comfort_caps):
+                if (type(comfort_caps) is not list or len(comfort_caps)>8 or self.native_plan_source.profile_version not in comfort_caps):
                     self.reset_session();self.error="native_plan_capability_unavailable";self.changed();return
                 from .native_plan import LEGACY_CAPABILITY,EVOLUTION_CAPABILITY
                 if self.native_plan_source.predecessor is not None and EVOLUTION_CAPABILITY not in comfort_caps:
@@ -676,8 +734,7 @@ class ShadowClient:
                     adapter_id=self.adapter_id, client_nonce=self._nonce(),
                     known_revision=revision, known_digest=known_digest)
                 if self.native_plan_source is not None:
-                    from .native_plan import CONTRACT
-                    self.open_request.update(source_profile_digest=self.controller_policy.profile_digest,plan_contract=CONTRACT)
+                    self.open_request.update(source_profile_digest=self.controller_policy.profile_digest,plan_contract=self.native_plan_source.profile_version)
                 elif self.controller_policy is not None:
                     self.open_request.update(source_profile_digest=self.controller_policy.profile_digest,
                                              source_config_pin=self.controller_policy.config_digest)

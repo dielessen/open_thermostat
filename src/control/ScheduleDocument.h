@@ -1,5 +1,6 @@
 #pragma once
 #include "UtcSchedule.h"
+#include "PackedSchedule.h"
 #include <cJSON.h>
 #include <cmath>
 #include <cstring>
@@ -10,7 +11,7 @@ namespace heating::control {
 // Decodes an already bounded JSON payload, not a transport/session admission.
 // The caller retains tree ownership. Reject ambiguous/extra members rather than
 // accepting a partial schedule. cJSON numbers are checked BEFORE narrowing.
-inline bool configureScheduleDocument(UtcSchedule &schedule, const cJSON *document) {
+inline bool configureScheduleDocument(UtcSchedule &schedule, const cJSON *document, bool allowPacked=false) {
     if (!cJSON_IsObject(document)) return false;
     constexpr const char *keys[]{"timezone", "policy", "valid_from_utc", "valid_until_utc",
                                   "base_centi_c", "transitions"};
@@ -30,8 +31,9 @@ inline bool configureScheduleDocument(UtcSchedule &schedule, const cJSON *docume
     const auto literal = [](const cJSON *item, std::string_view expected) {
         return cJSON_IsString(item) && item->valuestring && expected == item->valuestring;
     };
+    const bool packed=literal(member("policy"),packedSchedulePolicy);
     if (!(literal(member("timezone"), "UTC") || literal(member("timezone"), "Europe/Amsterdam")) ||
-        !literal(member("policy"), "wall-clock-membership/v1")) return false;
+        !(literal(member("policy"), "wall-clock-membership/v1")||(allowPacked&&packed))) return false;
     const auto integer = [](const cJSON *item, int64_t low, int64_t high) {
         return cJSON_IsNumber(item) && std::isfinite(item->valuedouble) &&
             item->valuedouble >= low && item->valuedouble <= high && std::floor(item->valuedouble) == item->valuedouble;
@@ -42,6 +44,15 @@ inline bool configureScheduleDocument(UtcSchedule &schedule, const cJSON *docume
         !integer(base, 500, 3500)) return false;
     const auto list = member("transitions");
     if (!cJSON_IsArray(list)) return false;
+    if(packed) {
+        std::array<ScheduleTransition,UtcSchedule::maximumTransitions> points;
+        size_t count=0;
+        if(!forEachPackedTransition(document,[&](int64_t at,int16_t target,size_t index) {
+            points[index]={at,target};count=index+1;return true;
+        }))return false;
+        return schedule.configure(static_cast<int64_t>(from->valuedouble),static_cast<int64_t>(until->valuedouble),
+            static_cast<int16_t>(base->valuedouble),points.data(),count);
+    }
     const int count = cJSON_GetArraySize(list);
     if (count < 1 || count > static_cast<int>(UtcSchedule::maximumTransitions)) return false;
     std::array<ScheduleTransition, UtcSchedule::maximumTransitions> transitions;

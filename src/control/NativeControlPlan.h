@@ -2,6 +2,7 @@
 #include "SessionAdmission.h"
 #include "SeasonalControllerSource.h"
 #include "GraphShadowValidation.h"
+#include "PackedSchedule.h"
 #include <memory>
 
 namespace heating::control {
@@ -16,6 +17,7 @@ struct NativePlanZoneSource {
 };
 struct NativePlanInstallationSource {
     static constexpr const char* contract="control.plan.v1";
+    static constexpr const char* weekContract="control.plan.week.v1";
     static constexpr const char* kind="installation.shadow.v1";
     static constexpr size_t maximumZones=2,maximumTransitions=8;
     std::string controllerId,adapterId,profileDigest;
@@ -23,6 +25,8 @@ struct NativePlanInstallationSource {
     size_t count=0;
     // Independent SOURCE-reviewed extension; never accepted from configuration.
     bool legacyReadbackReviewed=false;
+    bool weekReviewed=false;
+    const char* planContract()const {return weekReviewed?weekContract:contract;}
     // Explicit local SOURCE lineage, READBACK ONLY. No restored zones/grants.
     // One predecessor; no recursive history or additional persisted config key.
     std::shared_ptr<const NativePlanInstallationSource> predecessor;
@@ -32,8 +36,9 @@ struct NativePlanInstallationSource {
     bool valid() const {
         using namespace heating::graph_test;
         if(!SessionAdmission::validId(controllerId)||!SessionAdmission::validId(adapterId)
-            ||!hex(profileDigest)||count!=maximumZones||!mappingRevision
-            ||maximumSafetyAgeMs<1000||maximumSafetyAgeMs>120000)return false;
+            ||!hex(profileDigest)||(weekReviewed?(!count||count>maximumZones):count!=maximumZones)||!mappingRevision
+            ||maximumSafetyAgeMs<1000||maximumSafetyAgeMs>120000
+            ||(weekReviewed&&legacyReadbackReviewed))return false;
         if(predecessor&&(predecessor.get()==this||predecessor->predecessor
             ||legacyReadbackReviewed||predecessor->legacyReadbackReviewed||!predecessor->valid()
             ||predecessor->controllerId!=controllerId||predecessor->adapterId!=adapterId
@@ -56,11 +61,11 @@ struct NativePlanInstallationSource {
             for(const auto& id:{p.zoneId,p.sensorId,p.actuatorId,z.groupId})
                 if(!ids.insert(id).second)return false;
             for(const auto& r:{z.sensorResource,z.outputResource})if(!resources.insert(r).second)return false;
-            if(z.emitter=="radiator"&&z.actuatorProfile=="trv_room_setpoint"&&p.control.mode==ZoneControl::localTrv&&!radiator)radiator=true;
-            else if(z.emitter=="floor"&&z.actuatorProfile=="binary_valve"&&p.control.mode==ZoneControl::slowBinaryPi&&!floor)floor=true;
+            if(z.emitter=="radiator"&&z.actuatorProfile=="trv_room_setpoint"&&p.control.mode==ZoneControl::localTrv&&(weekReviewed||!radiator))radiator=true;
+            else if(z.emitter=="floor"&&z.actuatorProfile=="binary_valve"&&p.control.mode==ZoneControl::slowBinaryPi&&(weekReviewed||!floor))floor=true;
             else return false;
         }
-        return floor&&radiator;
+        return weekReviewed||(floor&&radiator);
     }
     const NativePlanZoneSource* zone(std::string_view id)const {
         for(size_t i=0;i<count;++i)if(zones[i].policy.zoneId==id)return &zones[i];
@@ -76,7 +81,10 @@ inline bool validateNativeControlPlan(const cJSON* config,const NativePlanInstal
     using namespace heating::graph_test;
     try {
         need(source.valid()&&bool(hash),"native_source_invalid");
-        object(config,{"groups","mapping","mapping_digest","mode","profile_digest","revision","schema","zones"});
+        if(source.weekReviewed) {
+            object(config,{"groups","mapping","mapping_digest","mode","plan_contract","profile_digest","revision","schema","zones"});
+            literal(get(config,"plan_contract"),NativePlanInstallationSource::weekContract,"native_week_contract");
+        } else object(config,{"groups","mapping","mapping_digest","mode","profile_digest","revision","schema","zones"});
         need(integer(get(config,"schema"),2,2)==2,"unsupported_schema");
         literal(get(config,"mode"),"shadow_plan","unsupported_schema");
         literal(get(config,"profile_digest"),source.profileDigest.c_str(),"profile_conflict");
@@ -86,7 +94,7 @@ inline bool validateNativeControlPlan(const cJSON* config,const NativePlanInstal
         integer(get(mapping,"mapping_schema"),2,2);
         need(integer(get(mapping,"mapping_revision"),1,UINT32_MAX)==source.mappingRevision,"native_mapping_revision");
         const auto channels=get(mapping,"channels");
-        need(cJSON_IsArray(channels)&&cJSON_GetArraySize(channels)==4,"native_mapping_limit");
+        need(cJSON_IsArray(channels)&&cJSON_GetArraySize(channels)==int(source.count*2),"native_mapping_limit");
         const auto mappingBytes=print(mapping),mappingDigest=hash(mappingBytes);
         need(hex(mappingDigest),"hash_fault");
         literal(get(config,"mapping_digest"),mappingDigest.c_str(),"mapping_conflict");
@@ -110,7 +118,7 @@ inline bool validateNativeControlPlan(const cJSON* config,const NativePlanInstal
             literal(get(c,"resource_id"),sensor?selected->sensorResource.c_str():selected->outputResource.c_str(),"native_mapping_conflict");
         }
         const auto groups=get(config,"groups");
-        need(cJSON_IsArray(groups)&&cJSON_GetArraySize(groups)==2,"native_group_limit");
+        need(cJSON_IsArray(groups)&&cJSON_GetArraySize(groups)==int(source.count),"native_group_limit");
         previous.clear();
         for(auto g=groups->child;g;g=g->next) {
             object(g,{"emitter","group_id","maximum_supply_centi_c","minimum_supply_centi_c"});
@@ -123,7 +131,7 @@ inline bool validateNativeControlPlan(const cJSON* config,const NativePlanInstal
                 &&integer(get(g,"maximum_supply_centi_c"),501,9000)==selected->maximumSupplyCentiC,"native_group_profile_conflict");
         }
         const auto zones=get(config,"zones");
-        need(cJSON_IsArray(zones)&&cJSON_GetArraySize(zones)==2,"native_zone_limit");
+        need(cJSON_IsArray(zones)&&cJSON_GetArraySize(zones)==int(source.count),"native_zone_limit");
         previous.clear();size_t transitions=0;
         for(auto z=zones->child;z;z=z->next) {
             const auto id=str(get(z,"zone_id"));need(id>previous,"native_zone_conflict");previous=id;
@@ -139,8 +147,14 @@ inline bool validateNativeControlPlan(const cJSON* config,const NativePlanInstal
             if(!cJSON_IsNull(schedule)) {
                 const auto ts=get(schedule,"transitions");
                 need(cJSON_IsArray(ts),"schedule");
-                transitions+=static_cast<size_t>(cJSON_GetArraySize(ts));
-                need(transitions<=NativePlanInstallationSource::maximumTransitions,"native_transition_limit");
+                if(source.weekReviewed) {
+                    literal(get(schedule,"policy"),packedSchedulePolicy,"native_week_schedule");
+                    need(forEachPackedTransition(schedule,[&](int64_t,int16_t,size_t){++transitions;return true;}),"native_compact_schedule");
+                    need(transitions<=2*UtcSchedule::maximumTransitions,"native_transition_limit");
+                } else {
+                    transitions+=static_cast<size_t>(cJSON_GetArraySize(ts));
+                    need(transitions<=NativePlanInstallationSource::maximumTransitions,"native_transition_limit");
+                }
             }
         }
         return true;

@@ -1,4 +1,46 @@
-# Native ControlPlan v1 — begrensde verticale bronketen
+# Native ControlPlan — begrensde verticale bronketen
+
+## Aanvulling 22 oktober: expliciet volledig weekcontract
+
+`control.plan.week.v1` is een afzonderlijke, optioneel geselecteerde shadowrol.
+De hierna beschreven eerste `control.plan.v1` blijft ongewijzigd beschikbaar.
+Geen stil onderhandelen naar een nieuw contract of vergroten van devicebudgetten.
+
+- Het nieuwe logische SOURCE-profiel is `schema:3, kind:native_profile.week.v1`;
+  de lokale descriptor heet `native.source.local.week.v1`. Selectie gebeurt via
+  de bestaande native HA-profielreview met het expliciete weekcontractvakje.
+  De E32 moet onafhankelijk hetzelfde profiel hebben; config/DATA kiest dat niet.
+- Eén of twee kamers, elk één eigen groep, sensor en ondersteunde actuator.
+  Een enkele radiator/TRV-kamer is mogelijk voor de badkamerproef. Radiator/
+  local-TRV en ongemengde vloer/slow-binary-PI blijven de enige profielen.
+  Een andere kamertelling/binding vereist opnieuw expliciete SOURCE-review.
+- De complete configuratie is nog steeds één `schema:2, mode:shadow_plan`-record,
+  met exact `plan_contract:control.plan.week.v1`. Maximaal128UTC-punten per kamer,
+  maximaal256totaal, binnen bestaande4096Bconfig/8192Bwire/512JSONnodes/string64.
+  Te grote programma's worden volledig geweigerd, nooit stil afgekapt.
+- `wall-clock-packed/v1` bewaart dezelfde UTC-punten als de bestaande compiler.
+  Elk punt bevat zes URL-veilige base64tekens:24bits secondenverschil vanaf
+  valid_from_utc en12bits temperatuur in honderdsten °C. Chunks bevatten
+  maximaal10punten/60tekens; alle behalve de laatste zijn precies60tekens.
+  Eerste punt ligt op de beginseconde; punten stijgen strikt en liggen vóór het
+  einde. De bestaande UtcSchedule-evaluator verwerkt de gedecodeerde punten.
+  Geen extra opslagkey, uitgebreid JSON-document of tweede regelaar.
+- Bestaande dagelijkse callback vraagt eerst een verse exacte snapshot. Alleen
+  een eerder expliciet toegepast, ongewijzigd lokaal weekprogramma kan daarna
+  via dezelfde prepare/apply-transactie naar een nieuwe horizon gaan. Hercompilatie
+  van het oude venster moet exact het toegepaste plan opleveren. Helpers,
+  concepten, onzekerheid, bronwissels en verstreken horizons eisen handreview.
+  Een mislukte/verlopen vernieuwing blokkeert ready tot nieuwe expliciete review;
+  een latere oude readback heft die blokkade niet op. Geen blinde retry.
+- Oude profielen weigeren het nieuwe contract. Expliciete profielmigratie bewaart
+  hooguit één voorganger als readback-only quarantine, ook bij twee→één kamer.
+  Geen oude zones, samples, overrides, sessies of bevoegdheid herstellen.
+
+Gerichte native HA/C++- en DST-tests staan in
+`ha/tests_native/test_native_complete_week.py`; de werkelijk gebruikte compiler,
+testlogs en lokale frontendproef staan in `out/release-candidate-20261022`.
+Dit blijft softwarebewijs. Volledige R18-/achtzone-, resource-, fysieke kraan-,
+ketelstop- en licentieacceptatie volgen hun bestaande gates.
 
 ## Doel en scheiding
 

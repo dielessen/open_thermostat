@@ -83,10 +83,11 @@
       },
       "installation_source": {
         "title": "Review an independent logical installation profile",
-        "description": "Keep shadow runtime OFF. This profile describes the two reviewed room bindings and regulator limits, not physical source or safety qualification. Device-local settings must independently match it before the existing session/config readback can succeed.",
+        "description": "Keep shadow runtime OFF. This profile describes the reviewed room bindings and regulator limits, not physical source or safety qualification. Device-local settings must independently match it before the existing session/config readback can succeed.",
         "data": {
           "controller_id": "Exact E32 controller ID (from device settings)",
-          "legacy_readback": "Allow known old schema1 records in read-only quarantine"
+          "legacy_readback": "Allow known old schema1 records in read-only quarantine",
+          "week_reviewed": "Use the complete-week shadow contract (requires matching E32 support)"
         },
         "data_description": {
           "legacy_readback": "No restored grants, overrides or learning. Incompatible old records remain refused."
@@ -105,6 +106,8 @@
       "invalid_adapter_id": "Use the same explicit owner ID as provisioned on the E32 (1–32 letters, digits, _ or -).",
       "graph_room_contract_unavailable": "No matching graph DATA or explicitly SOURCE-selected shadow contract is available for these rooms. Saving a graph or enabling this checkbox never qualifies a source or enables physical outputs.",
       "graph_control_source_review_required": "The selected SOURCE contract does not match the current owner or reviewed graph, or changed during verification. Nothing was enabled. Review the saved DATA and SOURCE contract; reconnect alone cannot approve changes.",
+      "native_plan_schedule_limit": "The saved programs exceed the current limit of eight UTC transitions across both rooms over the 15-day planning window. A weekly block can produce several transitions. Reduce the programs and try again. Saved room settings and existing plans were retained; nothing was sent. Full-week support remains pending.",
+      "native_plan_config_limit": "The complete saved room plan exceeds the current 4096-byte device configuration limit. Reduce the program complexity and try again. Saved room settings and existing plans were retained; nothing was sent.",
       "native_source_unsupported": "This source layout, binding or controller ID is unsupported. No profile was saved."
     },
     "abort": {
@@ -114,6 +117,9 @@
       "graph_review_complete": "Graph DATA review closed. No integration settings changed.",
       "graph_prepare_unavailable": "No reviewed source-owned draft binding/qualification bundle is selected. No graph profile was enabled.",
       "graph_prepare_failed": "Could not verify prepared heating DATA. No automatic apply was performed; check graph status and review again.",
+      "native_plan_schedule_limit": "The saved programs exceed the current limit of eight UTC transitions across both rooms over the 15-day planning window. A weekly block can produce several transitions. Reduce the programs and try again. Saved room settings and existing plans were retained; nothing was sent. Full-week support remains pending.",
+      "native_plan_config_limit": "The complete saved room plan exceeds the current 4096-byte device configuration limit. Reduce the program complexity and try again. Saved room settings and existing plans were retained; nothing was sent.",
+      "native_plan_prepare_failed": "Could not verify the saved room plan. Check the connection, selected profile and configuration status, then prepare again. No automatic apply was performed.",
       "hot_water_information_complete": "Read-only hot water information closed; no settings changed.",
       "native_source_runtime_off_required": "Turn shadow runtime off before reviewing its independent local profile.",
       "native_source_review_changed": "Configuration, owner or registry changed. No new profile was saved.",

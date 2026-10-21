@@ -143,7 +143,7 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
             try:
                 self._source_before=self._entry_review_snapshot(entry)
                 self._source_proposal=propose_local_shadow_source(self.hass,entry,user_input["controller_id"],
-                    legacy_readback=user_input.get("legacy_readback",False))
+                    legacy_readback=user_input.get("legacy_readback",False),week_reviewed=user_input.get("week_reviewed",False))
                 from .native_provisioning import source_from_selection,reviewed_profile_evolution
                 previous=source_from_selection(entry)
                 if previous is not None and previous!=self._source_proposal:
@@ -155,7 +155,8 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
             except Exception:
                 errors["base"]="native_source_unsupported"
         return self.async_show_form(step_id="installation_source",data_schema=vol.Schema({
-            vol.Required("controller_id"):str,vol.Optional("legacy_readback",default=False):bool}),errors=errors)
+            vol.Required("controller_id"):str,vol.Optional("legacy_readback",default=False):bool,
+            vol.Optional("week_reviewed",default=False):bool}),errors=errors)
 
     async def async_step_installation_source_review(self,user_input=None):
         from .native_provisioning import (SOURCE_OPTION,source_selection,source_from_selection,
@@ -207,7 +208,7 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
                 return self.async_abort(reason="native_source_review_cancelled")
             return self.async_create_entry(data={**entry.options,SOURCE_OPTION:source_selection(source)})
         profile,_=source.documents()
-        limits=[]
+        limits=["Plan contract: "+source.profile_version+("; 128 UTC transitions per room, config4096/wire8192 bytes" if source.policy.week_reviewed else "; eight total UTC transitions, config4096/wire8192 bytes")]
         for zone in profile["zones"]:
             c=zone["control"]
             limits.append(zone["emitter"]+": target "+str(zone["minimum_target_centi_c"]/100)+"–"+str(zone["maximum_target_centi_c"]/100)+
@@ -265,7 +266,10 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
                     and connection.client.graph_status["journal_status"]=="native_plan_already_applied"):
                 return await self.async_step_graph_status()
             return await self.async_step_graph_review()
-        except Exception:
+        except Exception as error:
+            if connection.runtime.native_plan_source is not None:
+                from .plan_presentation import validation_error
+                return self.async_abort(reason=validation_error(error) or "native_plan_prepare_failed")
             return self.async_abort(reason="graph_prepare_failed")
 
     async def async_step_graph_review(self,user_input=None):
@@ -297,7 +301,7 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
                     "digest":record["config_digest"],
                     "accepted":str(connection.client.graph_status["accepted_revision"]),
                     "status":connection.client.graph_status["journal_status"],
-                    "scope":scope(native),"summary":review_summary(record["config"],connection.runtime.rooms,native=native),
+                    "scope":scope(native,len(connection.runtime.rooms)),"summary":review_summary(record["config"],connection.runtime.rooms,native=native),
                     "status_label":view["status_label"]})
         except (GraphValidationError,ConfigEntryError):
             if connection.client.graph_status["journal_status"] in {"graph_send_unconfirmed","awaiting_graph_readback","graph_interrupted","graph_apply_pending",
@@ -320,11 +324,10 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
             if getattr(runtime,"native_plan_source",None) is not None:
                 client=getattr(data.get("v1_connection"),"client",None)
                 journal=getattr(client,"journal",None) or {"accepted":None,"staged":None}
-                from .native_plan import CONTRACT
                 return self._configuration_status_form(dict(status="disconnected",journal_status="disconnected",
                     accepted_revision=journal["accepted"]["config"]["revision"] if journal["accepted"] else 0,
                     staged_revision=journal["staged"]["config"]["revision"] if journal["staged"] else None,
-                    readback_verified=False,device_result=None,data_scope=CONTRACT),native=True)
+                    readback_verified=False,device_result=None,data_scope=runtime.native_plan_source.profile_version),native=True)
             if source is None:return self.async_abort(reason="graph_review_unavailable")
             client=getattr(data.get("v1_connection"),"client",None)
             ready=runtime.transport_ready
@@ -347,8 +350,10 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
 
     def _configuration_status_form(self,state,*,native):
         # Same existing status step, no new flow/IO/Store read or authority.
-        from .plan_presentation import labels
-        view=labels(state["status"],state["device_result"],state["readback_verified"],native=native)
+        from .plan_presentation import labels,scope
+        data=self.hass.data.get(DOMAIN,{}).get(self.config_entry.entry_id,{})
+        room_count=len(getattr(data.get("v1_runtime"),"rooms",{}))
+        view=labels(state["status"],state["device_result"],state["readback_verified"],native=native,room_count=room_count)
         return self.async_show_form(step_id="graph_status",data_schema=vol.Schema({
             vol.Required("status_action",default="refresh"):selector.SelectSelector({
                 "options":["refresh","close"],"translation_key":"graph_status_action"})}),
@@ -358,8 +363,8 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
                 "staged_label":str(state["staged_revision"]) if state["staged_revision"] is not None else "None staged",
                 "verified":str(state["readback_verified"]),
                 "device_result":state["device_result"] or "not_received",
-                "data_scope":("Two complete shadow room plans, including mapping"
-                    if state["data_scope"]=="control.plan.v1" else
+                "data_scope":(scope(True,room_count)
+                    if state["data_scope"] in ("control.plan.v1","control.plan.week.v1") else
                     "One floor DATA; radiator target needs separate source review"
                     if state["data_scope"]=="graph-floor-native-trv.v1" else "Single-floor DATA only"),
                 **view})
@@ -383,6 +388,7 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
             return None  # OFF must never depend on a valid SOURCE pin.
         from . import (_selected_graph_data_profile,_selected_graph_controller_source,
                        _selected_controller_policy_source_profile,_selected_native_plan_source)
+        native=None
         try:
             native=_selected_native_plan_source(self.config_entry)
             if native is not None:
@@ -420,9 +426,12 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
                     or _selected_controller_policy_source_profile(self.config_entry)!=policy):
                 return "graph_control_source_review_required"
             return None
-        except Exception:
+        except Exception as error:
             # No unknown profile/data/adoption/IO error may create authority.
             # Entry setup and fresh device readback independently revalidate.
+            if native is not None:
+                from .plan_presentation import validation_error
+                if reason:=validation_error(error):return reason
             return "graph_control_source_review_required"
 
     async def async_step_init(self, user_input=None):

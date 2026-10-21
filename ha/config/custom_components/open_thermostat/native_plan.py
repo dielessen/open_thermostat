@@ -1,4 +1,4 @@
-"""Negotiated complete two-room plan; configuration is NOT installation authority.
+"""Negotiated complete room plan; configuration is NOT installation authority.
 
 Only an independently selected logical installation profile may select this path.
 Local review is never physical readiness, a new worker/store or per-config pin.
@@ -12,10 +12,12 @@ from .v1_model import RoomBinding,EntityReference,ROOM_GRAPH_DRAFT,integration_m
 from .v1_heating_graph import validated_graph,resolved_reference
 
 CONTRACT="control.plan.v1"
+WEEK_CONTRACT="control.plan.week.v1"
 KIND="installation.shadow.v1"
 LEGACY_CAPABILITY="control.plan.legacy_readback.v1"
 EVOLUTION_CAPABILITY="control.plan.profile_evolution.v1"
 LIMITS=dict(zones=2,groups=2,channels=4,config_bytes=4096,wire_bytes=8192,total_transitions=8)
+WEEK_LIMITS={**LIMITS,"total_transitions":256}
 HEX=re.compile(r"[0-9a-f]{64}")
 
 def require(ok,code):
@@ -29,11 +31,17 @@ class NativeInstallationPolicy:
     profile_digest:str
     legacy_readback_reviewed:bool=False
     predecessor_profile_digest:str=""
+    week_reviewed:bool=False
+
+    @property
+    def plan_contract(self):
+        return WEEK_CONTRACT if self.week_reviewed else CONTRACT
 
     def validate(self):
         require(isinstance(self.entry_unique_id,str) and 1<=len(self.entry_unique_id)<=128,"native_entry")
         ident(self.controller_id);ident(self.adapter_id)
         require(type(self.legacy_readback_reviewed) is bool,"native_legacy_profile")
+        require(type(self.week_reviewed) is bool and not (self.week_reviewed and self.legacy_readback_reviewed),"native_week_profile")
         require(type(self.predecessor_profile_digest) is str and (not self.predecessor_profile_digest
             or (HEX.fullmatch(self.predecessor_profile_digest) and not self.legacy_readback_reviewed)),"native_predecessor_profile")
         require(isinstance(self.profile_digest,str) and HEX.fullmatch(self.profile_digest),"native_profile")
@@ -41,7 +49,8 @@ class NativeInstallationPolicy:
     def matches(self,p):
         self.validate()
         expected=dict(schema=2,kind=KIND,adapter_id=self.adapter_id,profile_digest=self.profile_digest,
-            plan_contract=CONTRACT,physical_outputs_enabled=False,frost_protection_available=False,limits=LIMITS)
+            plan_contract=self.plan_contract,physical_outputs_enabled=False,frost_protection_available=False,
+            limits=WEEK_LIMITS if self.week_reviewed else LIMITS)
         if self.legacy_readback_reviewed:
             expected.update(schema=3,kind="installation.shadow.v2",legacy_readback="schema1_quarantine_only")
         if self.predecessor_profile_digest:
@@ -49,16 +58,17 @@ class NativeInstallationPolicy:
         return (p.get("controller_id")==self.controller_id and type(p.get("source_policy")) is dict
             and canonical(p["source_policy"])==canonical(expected))
 
-def _native_layout(hass,entry):
+def _native_layout(hass,entry,*,allow_single=False):
     """Pure desired native layout, not qualification or source-report evidence."""
     require(integration_mode(entry)==MODE_SHADOW,"native_mode")
     rooms=[RoomBinding.from_dict(dict(s.data)) for s in entry.subentries.values() if s.subentry_type=="zone"]
     groups=[s for s in entry.subentries.values() if s.subentry_type=="heating"]
-    require(len(rooms)==2 and len(groups)==1 and len({r.room_id for r in rooms})==2,"native_two_room_limit")
+    require((1<=len(rooms)<=2 if allow_single else len(rooms)==2) and len(groups)==1
+        and len({r.room_id for r in rooms})==len(rooms),"native_two_room_limit")
     require(all(r.binding_mode==ROOM_GRAPH_DRAFT and not r.actuators and r.setpoint is None for r in rooms),"native_room_mode")
     draft=validated_graph(hass,entry,dict(groups[0].data)["draft"])
     proposal=deepcopy(draft.control_proposal())
-    require(len(proposal["groups"])==len(proposal["actuators"])==2,"native_group_limit")
+    require(len(proposal["groups"])==len(proposal["actuators"])==len(rooms),"native_group_limit")
     require(proposal["central"]["weather_enabled"] is False and proposal["central"]["outdoor_channel"] is None
         and all(g["mixing"] is None and g["pump_channel"] is None and g["pump_start_delay_s"]==g["postrun_s"]==0 for g in proposal["groups"]),
         "native_unsupported_hydraulic_policy")
@@ -77,8 +87,10 @@ class NativePlanSource:
     bindings_json:str
     predecessor:object=None
 
-    room_count=2
-    profile_version=CONTRACT
+    @property
+    def room_count(self):return len(self.documents()[0]["zones"])
+    @property
+    def profile_version(self):return self.policy.plan_contract
 
     def documents(self):
         require(type(self.policy) is NativeInstallationPolicy,"native_policy_type");self.policy.validate()
@@ -86,13 +98,14 @@ class NativePlanSource:
         profile=raw_document(self.profile_json)
         legacy=self.policy.legacy_readback_reviewed
         obj(profile,"adapter_id controller_id kind layout_digest mapping_revision schema zones"+(" legacy_readback" if legacy else ""))
-        exact(profile["schema"],2 if legacy else 1)
-        exact(profile["kind"],"native_profile.shadow.v2" if legacy else "native_profile.shadow.v1")
+        exact(profile["schema"],3 if self.policy.week_reviewed else 2 if legacy else 1)
+        exact(profile["kind"],"native_profile.week.v1" if self.policy.week_reviewed else "native_profile.shadow.v2" if legacy else "native_profile.shadow.v1")
         if legacy:exact(profile["legacy_readback"],"schema1_quarantine_only")
         exact(profile["controller_id"],self.policy.controller_id);exact(profile["adapter_id"],self.policy.adapter_id)
         require(digest(profile)==self.policy.profile_digest and HEX.fullmatch(profile["layout_digest"]),"native_profile_digest")
         integer(profile["mapping_revision"],1,4294967295)
-        rows=profile["zones"];require(type(rows) is list and len(rows)==2,"native_profile_limit")
+        rows=profile["zones"];require(type(rows) is list and
+            (1<=len(rows)<=2 if self.policy.week_reviewed else len(rows)==2),"native_profile_limit")
         keys="actuator_id actuator_profile control emitter group_id maximum_sensor_age_ms maximum_supply_centi_c maximum_target_centi_c minimum_supply_centi_c minimum_target_centi_c output_resource report_evidence sensor_id sensor_resource zone_id"
         ids={"adapter","config","snapshot"};resources=set();previous="";emitters=set()
         for z in rows:
@@ -102,7 +115,7 @@ class NativePlanSource:
             for k in ("zone_id","sensor_id","actuator_id","group_id"):
                 ident(z[k]);require(z[k] not in ids,"native_owner_overlap");ids.add(z[k])
             require((z["emitter"],z["actuator_profile"]) in (("floor","binary_valve"),("radiator","trv_room_setpoint"))
-                and z["emitter"] not in emitters,"native_emitter_profile");emitters.add(z["emitter"])
+                and (self.policy.week_reviewed or z["emitter"] not in emitters),"native_emitter_profile");emitters.add(z["emitter"])
             for k in ("sensor_resource","output_resource"):
                 require(isinstance(z[k],str) and HEX.fullmatch(z[k]) and z[k] not in resources,"native_resource_overlap");resources.add(z[k])
             lo=integer(z["minimum_target_centi_c"],500,3500);integer(z["maximum_target_centi_c"],lo,3500)
@@ -166,7 +179,8 @@ class NativePlanSource:
         profile,bindings=self.documents()
         require(entry.unique_id==self.policy.entry_unique_id
             and entry.options.get("adapter_id",entry.data.get("adapter_id"))==self.policy.adapter_id,"native_owner")
-        rooms,draft,proposal=_native_layout(hass,entry)
+        rooms,draft,proposal=_native_layout(hass,entry,allow_single=self.policy.week_reviewed)
+        require(len(rooms)==len(profile["zones"]),"native_room_binding")
         require(digest(proposal)==profile["layout_digest"],"native_layout_review_required")
         rows={z["zone_id"]:z for z in profile["zones"]}
         groups={g["group_id"]:g for g in proposal["groups"]}
@@ -193,12 +207,15 @@ class NativePlanSource:
                     and settings["minimum_off_s"]*1000==c["minimum_off_ms"],"native_control_profile")
         return rooms,profile
 
-    async def async_configuration(self,hass,entry):
+    async def async_configuration(self,hass,entry,*,start=None):
         from .v1_mqtt import async_room_schedule
         before=native_entry_state(entry);rooms,profile=self.validate_native(hass,entry)
         rows={z["zone_id"]:z for z in profile["zones"]};zones=[];channels=[];groups=[]
         for room in rooms:
-            z=rows[room.room_id];schedule=await async_room_schedule(hass,room)
+            z=rows[room.room_id];schedule=await async_room_schedule(hass,room,start)
+            if schedule is not None and self.policy.week_reviewed:
+                from .compact_schedule import compact_schedule
+                schedule=compact_schedule(schedule)
             zone=dict(zone_id=room.room_id,sensor_id=z["sensor_id"],actuator_id=z["actuator_id"],
                 actuator_profile=z["actuator_profile"],group_id=z["group_id"],base_centi_c=room.base_centi_c,
                 max_age_ms=room.maximum_age_ms,report_evidence=z["report_evidence"],schedule=schedule)
@@ -215,6 +232,7 @@ class NativePlanSource:
         mapping=dict(channels=sorted(channels,key=lambda c:c["channel_id"]),mapping_revision=profile["mapping_revision"],mapping_schema=2)
         config=dict(schema=2,mode="shadow_plan",revision=1,profile_digest=self.policy.profile_digest,
             mapping=mapping,mapping_digest=digest(mapping),groups=sorted(groups,key=lambda g:g["group_id"]),zones=zones)
+        if self.policy.week_reviewed:config["plan_contract"]=WEEK_CONTRACT
         self.validate_plan(config)
         return config,deepcopy(mapping)
 
@@ -222,7 +240,8 @@ class NativePlanSource:
         """Same bounded product schema as real C++decoder; no session admission."""
         profile,_=self.documents();value=raw_document(canonical(config))
         require(len(canonical(value))<=4096,"native_config_budget")
-        obj(value,"groups mapping mapping_digest mode profile_digest revision schema zones")
+        obj(value,"groups mapping mapping_digest mode profile_digest revision schema zones"+(" plan_contract" if self.policy.week_reviewed else ""))
+        if self.policy.week_reviewed:exact(value["plan_contract"],WEEK_CONTRACT)
         exact(value["schema"],2);exact(value["mode"],"shadow_plan");exact(value["profile_digest"],self.policy.profile_digest,"native_profile_digest")
         integer(value["revision"],1,4294967295)
         m=obj(value["mapping"],"channels mapping_revision mapping_schema")
@@ -235,7 +254,7 @@ class NativePlanSource:
                 expected.append(dict(channel_id=cid,direction=direction,owner_id=owner,resource_id=res))
         require(m["channels"]==sorted(expected,key=lambda c:c["channel_id"]),"native_mapping_conflict")
         require(value["groups"]==sorted([{k:z[k] for k in ("emitter","group_id","maximum_supply_centi_c","minimum_supply_centi_c")} for z in profile["zones"]],key=lambda g:g["group_id"]),"native_group_conflict")
-        require(type(value["zones"]) is list and len(value["zones"])==2,"native_two_room_limit")
+        require(type(value["zones"]) is list and len(value["zones"])==len(profile["zones"]),"native_two_room_limit")
         previous="";transitions=0
         for zone in value["zones"]:
             keys="actuator_id actuator_profile base_centi_c group_id max_age_ms report_evidence schedule sensor_id zone_id"
@@ -254,13 +273,18 @@ class NativePlanSource:
                 require(type(c["window"]) is type(c["presence"]) is bool,"native_comfort")
                 integer(zone["base_centi_c"],lo,hi)
             if zone["schedule"] is not None:
-                c=obj(zone["schedule"],"base_centi_c policy timezone transitions valid_from_utc valid_until_utc")
+                schedule=zone["schedule"]
+                if self.policy.week_reviewed:
+                    from .compact_schedule import expand_schedule
+                    schedule=expand_schedule(schedule)
+                c=obj(schedule,"base_centi_c policy timezone transitions valid_from_utc valid_until_utc")
                 require(c["timezone"] in ("UTC","Europe/Amsterdam") and c["policy"]=="wall-clock-membership/v1","native_schedule")
                 begin=integer(c["valid_from_utc"],946684800,4102444799)
                 end=integer(c["valid_until_utc"],begin+1,min(begin+16*86400,4102444800))
                 integer(c["base_centi_c"],z["minimum_target_centi_c"],z["maximum_target_centi_c"])
                 ts=c["transitions"];require(type(ts) is list and len(ts)>=1,"native_schedule")
-                transitions+=len(ts);require(transitions<=8,"native_transition_limit")
+                transitions+=len(ts)
+                require(len(ts)<=128 and transitions<=(256 if self.policy.week_reviewed else 8),"native_transition_limit")
                 at=begin-1
                 for point in ts:
                     require(type(point) is list and len(point)==2,"native_schedule")

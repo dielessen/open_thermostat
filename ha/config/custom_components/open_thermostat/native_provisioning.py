@@ -26,7 +26,7 @@ def local_device_descriptor(source):
             int(z["report_evidence"]=="validated_integration_report"),
             [c[k] for k in ("cycle_ms","hysteresis_centi_c","ki_permille_per_c_minute",
                 "kp_permille_per_c","minimum_off_ms","minimum_on_ms")]])
-    result=["native.source.local.v1",profile["controller_id"],profile["adapter_id"],profile["layout_digest"],
+    result=["native.source.local.week.v1" if source.policy.week_reviewed else "native.source.local.v1",profile["controller_id"],profile["adapter_id"],profile["layout_digest"],
         profile["mapping_revision"],source.policy.legacy_readback_reviewed,zones]
     # Existing total networksettings2048, not an additional/raised quota.
     if len(canonical(result).encode())>=2048:raise ValueError("native_local_settings_budget")
@@ -57,7 +57,8 @@ def source_from_selection(entry):
         previous=source_from_selection(SimpleNamespace(unique_id=entry.unique_id,options={SOURCE_OPTION:prior}))
     policy=NativeInstallationPolicy(value["entry_unique_id"],profile.get("controller_id"),profile.get("adapter_id"),
         digest(profile),legacy_readback_reviewed=legacy,
-        predecessor_profile_digest=previous.policy.profile_digest if previous else "")
+        predecessor_profile_digest=previous.policy.profile_digest if previous else "",
+        week_reviewed=profile.get("kind")=="native_profile.week.v1")
     source=NativePlanSource(policy,canonical(profile),canonical(value["bindings"]),previous);source.validate()
     return source
 
@@ -69,14 +70,15 @@ def source_selection(source):
     if len(canonical(value).encode())>8192:raise ValueError("native_source_selection_budget")
     return value
 
-def propose_local_shadow_source(hass,entry,controller_id,*,legacy_readback=False):
+def propose_local_shadow_source(hass,entry,controller_id,*,legacy_readback=False,week_reviewed=False):
     """Explicit operator review proposal, NEVER physical/report qualification."""
     from .native_plan import _native_layout,NativeInstallationPolicy
     from .v1_model import EntityReference
     from .graph_shadow_validation import digest,ident
     ident(controller_id)
     if type(legacy_readback) is not bool:raise ValueError("native_legacy_profile")
-    rooms,draft,layout=_native_layout(hass,entry)
+    if type(week_reviewed) is not bool or (week_reviewed and legacy_readback):raise ValueError("native_week_profile")
+    rooms,draft,layout=_native_layout(hass,entry,allow_single=week_reviewed)
     rows=[];bindings={}
     for room in rooms:
         actuator=next(a for a in layout["actuators"] if a["room_id"]==room.room_id)
@@ -109,8 +111,9 @@ def propose_local_shadow_source(hass,entry,controller_id,*,legacy_readback=False
         adapter_id=entry.options.get("adapter_id",entry.data.get("adapter_id")),layout_digest=digest(layout),
         mapping_revision=revision,zones=rows)
     if legacy_readback:body.update(schema=2,kind="native_profile.shadow.v2",legacy_readback="schema1_quarantine_only")
+    if week_reviewed:body.update(schema=3,kind="native_profile.week.v1")
     source=NativePlanSource(NativeInstallationPolicy(entry.unique_id,controller_id,body["adapter_id"],digest(body),
-        legacy_readback_reviewed=legacy_readback),canonical(body),canonical(bindings))
+        legacy_readback_reviewed=legacy_readback,week_reviewed=week_reviewed),canonical(body),canonical(bindings))
     source.validate_native(hass,entry)
     if selected is not None and current_profile_only(selected)==source:source=selected
     local_device_descriptor(source) # Bounds before this proposal reaches review.

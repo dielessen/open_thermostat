@@ -109,7 +109,7 @@ async def bridge(native_two,hass,monkeypatch):
             await f.async_step_graph_review({"confirm_apply":True});await drain()
             assert client.graph_ready and client.ready is False and not runtime.transport_ready
             status_form=await f.async_step_graph_status()
-            assert status_form["description_placeholders"]["control_status"]=="Not selected; separate source review required"
+            assert status_form["description_placeholders"]["control_status"]=="DATA verification never grants control; a separate SOURCE review is required"
             record=client.journal.state["accepted"];key=client.journal.review_key(record,client._context())
             assert await client.async_reviewed_handoff_data(key)==record
             return record
@@ -466,7 +466,7 @@ async def test_actual_native_status_form_distinguishes_DATA_and_SOURCE_without_n
     n=bridge;record=await n.apply()
     data_form=await n.flow().async_step_graph_status()
     assert data_form["step_id"]=="graph_status" and data_form["description_placeholders"]["verified"]=="True"
-    assert "separate source review" in data_form["description_placeholders"]["control_status"]
+    assert "separate SOURCE review" in data_form["description_placeholders"]["control_status"]
     await n.control(record)
     before=len(n.peer.trace);journal=deepcopy(n.client.journal)
     f=n.flow();form=await f.async_step_init({"graph_action":"status"})

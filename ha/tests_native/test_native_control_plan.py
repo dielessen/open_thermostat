@@ -29,8 +29,14 @@ async def native_plan(native_two,hass,monkeypatch,request):
     floor=replace(floor,base_centi_c=1900)
     sub=next(s for s in parent.subentries.values() if s.subentry_type=="zone" and s.data["room_id"]==floor.room_id)
     hass.config_entries.async_update_subentry(parent,sub,data=floor.as_dict())
+    if options.get("single",False):
+        assert hass.config_entries.async_remove_subentry(parent,sub.subentry_id)
+        draft=deepcopy(heating.data["draft"])
+        draft["groups"]=[g for g in draft["groups"] if g["group_id"]=="radiators"]
+        draft["actuators"]=[a for a in draft["actuators"] if a["room_id"]==rad.room_id]
+        hass.config_entries.async_update_subentry(parent,heating,data={"draft":draft})
     hass.config_entries.async_update_entry(parent,options={**parent.options,"shadow_enabled":True,"adapter_id":"test_owner"})
-    rooms,draft,layout=_native_layout(hass,parent)
+    rooms,draft,layout=_native_layout(hass,parent,allow_single=options.get("week",False))
     # Independent synthetic SOURCE fixture, selected once before ANY plan.
     # This helper is deliberately test-only: production has NO GUI qualification.
     rows=[];bindings={}
@@ -57,7 +63,9 @@ async def native_plan(native_two,hass,monkeypatch,request):
     body=dict(schema=1,kind="native_profile.shadow.v1",controller_id="e32_test",adapter_id="test_owner",
         layout_digest=digest(layout),mapping_revision=1,zones=rows)
     if legacy:body.update(schema=2,kind="native_profile.shadow.v2",legacy_readback="schema1_quarantine_only")
-    policy=NativeInstallationPolicy(parent.unique_id,"e32_test","test_owner",digest(body),legacy_readback_reviewed=legacy)
+    week=options.get("week",False)
+    if week:body.update(schema=3,kind="native_profile.week.v1")
+    policy=NativeInstallationPolicy(parent.unique_id,"e32_test","test_owner",digest(body),legacy_readback_reviewed=legacy,week_reviewed=week)
     source=NativePlanSource(policy,canonical(body),canonical(bindings));source.validate()
     monkeypatch.setattr(integration,"_NATIVE_PLAN_SOURCE_PROFILES",(source,))
     monkeypatch.setattr(integration,"_GRAPH_DATA_SOURCE_PROFILE",None)
@@ -114,7 +122,7 @@ async def native_plan(native_two,hass,monkeypatch,request):
                     receive_errors.append(dict(topic=topic,payload=payload,error=type(error).__name__,message=str(error)))
                     raise
             client._receive=audited_receive # Transparent diagnostic boundary only.
-            for r in (rad,floor):runtime.set_report_profile(r.room_id,source_profile)
+            for r in runtime.rooms.values():runtime.set_report_profile(r.room_id,source_profile)
             if n:=holder.get("n"):n.runtime,n.connection,n.client=runtime,connection,client
         async def stop():
             assert await integration.async_unload_entry(hass,parent);await parent._async_process_on_unload(hass)

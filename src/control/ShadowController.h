@@ -356,7 +356,7 @@ private:
             !integerField(o,"revision",1,UINT32_MAX)||!integerField(o,"schema",1,1)) return false;
         auto zones=field(o,"zones");
         if(!cJSON_IsArray(zones)||cJSON_GetArraySize(zones)>static_cast<int>(maximumZones)
-            ||(seasonalSource_&&!legacyReadback&&cJSON_GetArraySize(zones)!=static_cast<int>(seasonalSource_->count))) return false;
+            ||(seasonalSource_&&!legacyReadback&&cJSON_GetArraySize(zones)!=static_cast<int>(native?native->count:seasonalSource_->count))) return false;
         std::set<std::string> identities{"adapter","config","snapshot"};
         for(auto zone=zones->child;zone;zone=zone->next) {
             const bool comfort=field(zone,"comfort");
@@ -396,13 +396,13 @@ private:
             z.profile.acceptsValidatedIntegrationReport=z.reportEvidence=="validated_integration_report";
             auto schedule=field(zone,"schedule");
             z.scheduled=!cJSON_IsNull(schedule);
-            if(z.scheduled && !configureScheduleDocument(z.schedule,schedule)) return false;
+            if(z.scheduled && !configureScheduleDocument(z.schedule,schedule,native&&!legacyReadback&&native->weekReviewed)) return false;
             if(seasonalSource_&&!legacyReadback) {
                 const auto oldPin=readbackSource?readbackSource->zone(z.id):nullptr;
                 const auto pin=readbackSource?(oldPin?&oldPin->policy:nullptr):seasonalSource_->zone(z.id);
                 if(!pin||pin->sensorId!=z.sensor||pin->actuatorId!=z.actuator
                     ||z.base<pin->minimumTargetCentiC||z.base>pin->maximumTargetCentiC
-                    ||!sourceScheduleBounds(schedule,*pin)
+                    ||!sourceScheduleBounds(schedule,*pin,native&&native->weekReviewed)
                     ||(z.comfortEnabled&&(z.comfortProfile.minimumCentiC<pin->minimumTargetCentiC
                         ||z.comfortProfile.maximumCentiC>pin->maximumTargetCentiC
                         ||pin->seasonal.frostTargetCentiC<z.comfortProfile.minimumCentiC
@@ -414,11 +414,16 @@ private:
         }
         out.revision=uintField(o,"revision"); return true;
     }
-    static bool sourceScheduleBounds(const cJSON* schedule,const SeasonalZoneSource& pin) {
+    static bool sourceScheduleBounds(const cJSON* schedule,const SeasonalZoneSource& pin,bool allowPacked=false) {
         if(cJSON_IsNull(schedule))return true;
         const auto base=field(schedule,"base_centi_c");
         if(!cJSON_IsNumber(base)||base->valuedouble<pin.minimumTargetCentiC
             ||base->valuedouble>pin.maximumTargetCentiC)return false;
+        if(stringField(schedule,"policy")==packedSchedulePolicy) {
+            return allowPacked&&forEachPackedTransition(schedule,[&](int64_t,int16_t target,size_t) {
+                return target>=pin.minimumTargetCentiC&&target<=pin.maximumTargetCentiC;
+            });
+        }
         auto values=field(schedule,"transitions");
         if(!cJSON_IsArray(values))return false;
         for(auto p=values->child;p;p=p->next) {
@@ -519,7 +524,7 @@ private:
             namedPolicy?exactFields(o,{"api","controller_id","boot_id","epoch","challenge_id","adapter_id","client_nonce","known_revision","known_digest","source_profile_digest","source_config_pin"}):
             exactFields(o,{"api","controller_id","boot_id","epoch","challenge_id","adapter_id","client_nonce","known_revision","known_digest"});
         if(!fields||(nativePlanSource_&&(stringField(o,"source_profile_digest")!=nativePlanSource_->profileDigest
-                ||stringField(o,"plan_contract")!=NativePlanInstallationSource::contract))
+                ||stringField(o,"plan_contract")!=nativePlanSource_->planContract()))
             ||(!nativePlanSource_&&namedPolicy&&(stringField(o,"source_profile_digest")!=seasonalSource_->profileDigest
                 ||stringField(o,"source_config_pin")!=seasonalSource_->configDigest))||
             !integerField(o,"api",1,1)||!integerField(o,"epoch",1,UINT32_MAX)||!integerField(o,"known_revision",0,UINT32_MAX)||
@@ -570,14 +575,14 @@ private:
             if(nativePlanSource_->legacyReadbackReviewed)cJSON_AddStringToObject(profile,"legacy_readback","schema1_quarantine_only");
             cJSON_AddStringToObject(profile,"adapter_id",owner_.c_str());
             cJSON_AddStringToObject(profile,"profile_digest",nativePlanSource_->profileDigest.c_str());
-            cJSON_AddStringToObject(profile,"plan_contract",NativePlanInstallationSource::contract);
+            cJSON_AddStringToObject(profile,"plan_contract",nativePlanSource_->planContract());
             cJSON_AddBoolToObject(profile,"physical_outputs_enabled",false);
             cJSON_AddBoolToObject(profile,"frost_protection_available",false);
             auto limits=cJSON_AddObjectToObject(profile,"limits");
             if(limits) {
                 cJSON_AddNumberToObject(limits,"zones",2);cJSON_AddNumberToObject(limits,"groups",2);
                 cJSON_AddNumberToObject(limits,"channels",4);cJSON_AddNumberToObject(limits,"config_bytes",maximumConfigBytes);
-                cJSON_AddNumberToObject(limits,"wire_bytes",8192);cJSON_AddNumberToObject(limits,"total_transitions",8);
+                cJSON_AddNumberToObject(limits,"wire_bytes",8192);cJSON_AddNumberToObject(limits,"total_transitions",nativePlanSource_->weekReviewed?256:8);
             }
             return;
         }
@@ -600,7 +605,7 @@ private:
         if(controlCaps)cJSON_AddItemToArray(controlCaps,cJSON_CreateString("session.grant_nonce.v1"));
         auto comfortCaps=cJSON_AddArrayToObject(o.get(),"control_capabilities");
         if(comfortCaps)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString("comfort.target.v1"));
-        if(comfortCaps&&nativePlanSource_)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(NativePlanInstallationSource::contract));
+        if(comfortCaps&&nativePlanSource_)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(nativePlanSource_->planContract()));
         if(comfortCaps&&nativePlanSource_&&nativePlanSource_->legacyReadbackReviewed)
             cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(NativePlanInstallationSource::legacyCapability));
         if(comfortCaps&&nativePlanSource_&&nativePlanSource_->predecessor)
@@ -665,7 +670,7 @@ private:
             cJSON_AddStringToObject(o.get(),"grant_id",grant_.c_str());cJSON_AddNumberToObject(o.get(),"grant_sequence",grantSequence_);
             cJSON_AddNumberToObject(o.get(),"request_sequence",request);
             cJSON_AddStringToObject(o.get(),"profile_digest",nativePlanSource_->profileDigest.c_str());
-            cJSON_AddStringToObject(o.get(),"plan_contract",NativePlanInstallationSource::contract);
+            cJSON_AddStringToObject(o.get(),"plan_contract",nativePlanSource_->planContract());
             cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",false);cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false);
         }
         send("fw/config_snapshot",o.get());

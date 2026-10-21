@@ -292,6 +292,14 @@ class NativeShadowConnection:
                         self.client.changed()
                 elif kind in {"refresh", "rebind"}:
                     if self.runtime.native_plan_source is not None:
+                        if kind=="refresh" and self.runtime.native_plan_source.policy.week_reviewed:
+                            try:
+                                await self.client.async_request_native_horizon_refresh()
+                                continue
+                            except Exception:
+                                # Changed/uncertain/helper intent needs explicit review.
+                                # Never renew a grant or automatically clear a pending stage.
+                                pass
                         self.client.reset_session()
                         self.client.error="native_plan_review_required"
                         if kind=="rebind":self.bind_schedules()

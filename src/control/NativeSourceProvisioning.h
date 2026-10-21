@@ -15,30 +15,33 @@ inline std::unique_ptr<NativePlanInstallationSource> nativeSourceFromLocalSettin
     try {
         need(bool(hash)&&cJSON_IsArray(compact)&&cJSON_GetArraySize(compact)==7,"local_source_shape");
         auto at=[](const cJSON* a,int i){return cJSON_GetArrayItem(a,i);};
-        literal(at(compact,0),"native.source.local.v1","local_source_version");
+        const auto tag=str(at(compact,0));
+        const bool week=tag=="native.source.local.week.v1";
+        need(week||tag=="native.source.local.v1","local_source_version");
         need(str(at(compact,1))==controller&&str(at(compact,2))==adapter,"local_source_owner");
         const auto layout=str(at(compact,3));need(hex(layout),"local_source_layout");
         const auto revision=integer(at(compact,4),1,UINT32_MAX);
         need(cJSON_IsBool(at(compact,5)),"local_source_legacy");
         const bool legacy=cJSON_IsTrue(at(compact,5));
+        need(!(legacy&&week),"local_source_week_legacy");
         const auto zones=at(compact,6);
-        need(cJSON_IsArray(zones)&&cJSON_GetArraySize(zones)==2,"local_source_two_rooms");
+        need(cJSON_IsArray(zones)&&(week?(cJSON_GetArraySize(zones)>=1&&cJSON_GetArraySize(zones)<=2):cJSON_GetArraySize(zones)==2),"local_source_two_rooms");
         auto source=std::make_unique<NativePlanInstallationSource>();
         source->controllerId=std::string(controller);source->adapterId=std::string(adapter);
-        source->mappingRevision=revision;source->legacyReadbackReviewed=legacy;
-        source->count=2;source->maximumSafetyAgeMs=2000;
+        source->mappingRevision=revision;source->legacyReadbackReviewed=legacy;source->weekReviewed=week;
+        source->count=static_cast<size_t>(cJSON_GetArraySize(zones));source->maximumSafetyAgeMs=2000;
         Json expanded(cJSON_CreateObject(),cJSON_Delete);need(bool(expanded),"allocation");
         auto text=[](cJSON* o,const char* k,const std::string& s){need(cJSON_AddStringToObject(o,k,s.c_str()),"allocation");};
         auto number=[](cJSON* o,const char* k,int64_t n){need(cJSON_AddNumberToObject(o,k,n),"allocation");};
         text(expanded.get(),"adapter_id",std::string(adapter));
         text(expanded.get(),"controller_id",std::string(controller));
-        text(expanded.get(),"kind",legacy?"native_profile.shadow.v2":"native_profile.shadow.v1");
+        text(expanded.get(),"kind",week?"native_profile.week.v1":legacy?"native_profile.shadow.v2":"native_profile.shadow.v1");
         text(expanded.get(),"layout_digest",layout);
         if(legacy)text(expanded.get(),"legacy_readback","schema1_quarantine_only");
-        number(expanded.get(),"mapping_revision",revision);number(expanded.get(),"schema",legacy?2:1);
+        number(expanded.get(),"mapping_revision",revision);number(expanded.get(),"schema",week?3:legacy?2:1);
         auto out=cJSON_AddArrayToObject(expanded.get(),"zones");need(out,"allocation");
         std::string previous;
-        for(int i=0;i<2;++i) {
+        for(size_t i=0;i<source->count;++i) {
             const auto row=at(zones,i);need(cJSON_IsArray(row)&&cJSON_GetArraySize(row)==14,"local_source_zone_shape");
             auto& z=source->zones[i];auto& p=z.policy;
             p.zoneId=str(at(row,0));need(p.zoneId>previous,"local_source_zone_order");previous=p.zoneId;

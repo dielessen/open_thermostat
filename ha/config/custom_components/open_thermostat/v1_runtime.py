@@ -66,7 +66,7 @@ class ShadowRuntime:
         if native_plan_source is not None:
             if (type(native_plan_source) is not NativePlanSource or graph_data_profile is not None
                 or graph_controller_source is not None or controller_policy_source_profile!=native_plan_source.policy
-                or len(rooms)!=2 or not all(native_plan_source.supports_room(room) for room in rooms)):
+                or len(rooms)!=native_plan_source.room_count or not all(native_plan_source.supports_room(room) for room in rooms)):
                 raise ValueError("native_plan_source_binding")
             native_plan_source.validate_native(hass,entry)
         self.native_plan_source=native_plan_source

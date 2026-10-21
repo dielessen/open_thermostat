@@ -16,6 +16,7 @@ import secrets
 from homeassistant.exceptions import HomeAssistantError
 
 from .v1_model import Observation, RoomDecision
+from .metric_snapshot import CAPABILITY,MAX_BYTES as MAX_METRIC_BYTES,EXPIRY_SECONDS,valid_snapshot
 
 _ID = re.compile(r"[A-Za-z0-9_-]{1,32}")
 _HEX = re.compile(r"[0-9a-f]{64}")
@@ -98,6 +99,22 @@ class ShadowClient:
         self.error = "not_connected"
         self._nonce = lambda: secrets.token_hex(12)
         self._close_io = None
+        self.metrics_supported=False
+        self._metrics=None
+        self._metrics_received=0.0
+        self._metrics_highwater=0
+
+    @property
+    def metrics_payload(self):
+        if (not self.ready or not self.metrics_supported or self._metrics is None
+                or not 0<=self.clock()-self._metrics_received<EXPIRY_SECONDS):
+            return None
+        return dict(self._metrics) # Flat schema, no caller can mutate cached data.
+
+    @property
+    def metrics_key(self):
+        return (self.session.get("adapter_session_id") if self.session else None,
+                self._metrics_highwater,self.metrics_payload is not None)
 
     @property
     def ready(self):
@@ -153,6 +170,9 @@ class ShadowClient:
         self.verified = False
         self.grant_until = self.lease_until = 0
         self.runtime.decisions.clear()
+        self._metrics=None
+        self._metrics_received=0.0
+        self._metrics_highwater=0
 
     async def async_disconnected(self):
         self.reset_session()
@@ -163,6 +183,9 @@ class ShadowClient:
     async def receive(self, topic, raw, *, retained=False):
         if self.closed or retained:
             return
+        if topic == "fw/telemetry/ems_metrics":
+            self.receive_metrics(raw)
+            return # No last_rx/lease/sample/control update, even for valid telemetry.
         if topic == "fw/availability" and raw in ("online", "offline"):
             # The actual PubSubClient transport uses plain LWT tokens. Neither
             # token establishes a session, source sample or fresh heat request.
@@ -177,6 +200,37 @@ class ShadowClient:
             self.reset_session()
             self.error = "invalid_firmware_message"
             self.changed()
+
+    def receive_metrics(self,raw):
+        if not self.ready or not self.metrics_supported:
+            return
+        try:
+            if not isinstance(raw,str) or len(raw)>MAX_METRIC_BYTES:
+                raise ValueError("metric budget")
+            p=parse(raw)
+            # Foreign/stale scope cannot disturb a legitimate current display.
+            if (not self.same_identity(p) or not self.same_config(p)
+                    or p.get("adapter_id")!=self.adapter_id
+                    or p.get("adapter_session_id")!=self.session["adapter_session_id"]
+                    or p.get("grant_id")!=self.session["grant_id"]
+                    or p.get("grant_sequence")!=self.session["grant_sequence"]):
+                return
+            expected={"api","controller_id","boot_id","epoch","config_revision","config_digest","mode",
+                      "adapter_id","adapter_session_id","grant_id","grant_sequence","sequence",
+                      "boiler_output_enabled","actuator_output_enabled","metrics"}
+            if (set(p)!=expected or p["mode"]!="shadow" or p["boiler_output_enabled"] is not False
+                    or p["actuator_output_enabled"] is not False or not integer(p["sequence"],1)
+                    or type(p["grant_sequence"]) is not int or not valid_snapshot(p["metrics"])):
+                raise ValueError("metric shape")
+            if p["sequence"]<=self._metrics_highwater:
+                return # Duplicate/reorder can never refresh age or revive expired data.
+            self._metrics=dict(p["metrics"]);self._metrics_highwater=p["sequence"]
+            self._metrics_received=self.clock()
+            self.runtime.diagnostics["metrics"]="read_only_snapshot_not_control_qualified"
+        except (ValueError,TypeError,KeyError,OverflowError):
+            self._metrics=None # Preserve high-water and valid CONTROL session.
+            self.runtime.diagnostics["metrics"]="invalid_read_only_snapshot"
+        self.runtime._notify()
 
     def same_identity(self, p):
         return (self.identity and type(p.get("api")) is int and p.get("api") == 1
@@ -212,6 +266,11 @@ class ShadowClient:
             if new_identity != self.identity or (self.session and not self.same_config(p)):
                 self.reset_session()
                 self.identity = new_identity
+            caps=p.get("read_only_capabilities",[])
+            self.metrics_supported=(type(caps) is list and len(caps)<=8
+                and all(isinstance(cap,str) and len(cap)<=64 for cap in caps) and CAPABILITY in caps)
+            if not self.metrics_supported:
+                self._metrics=None
             self.last_rx = self.clock()
             if self.session:
                 return

@@ -1,4 +1,5 @@
 #include "EmsMetrics.h"
+#include "control/MetricsTelemetry.h"
 #include <gtest/gtest.h>
 #include <map>
 #include <cJSON.h>
@@ -97,6 +98,7 @@ TEST(EmsMetrics, VersionedWireNeverFeedsNumericalTotalsToRetainedLegacyDiscovery
     const auto bytes=h.json();
     std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(cJSON_Parse(bytes.c_str()),cJSON_Delete);
     ASSERT_TRUE(root);
+    EXPECT_TRUE(heating::control::validMetricsSnapshot(root.get())); // Real producer -> actual sender schema.
     EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(root.get(),"counterDefinition")),"observation-total-v2");
     for(auto field:{"totalEnergyUsedKwh","heatingEnergyUsedKwh","warmWaterEnergyUsedKwh","unattributedEnergyUsedKwh",
                     "warmWaterUsage","warmWaterAvgFlow","warmWaterFlow","observedBurnerSeconds"})

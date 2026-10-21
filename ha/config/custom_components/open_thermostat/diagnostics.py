@@ -18,6 +18,12 @@ async def async_get_config_entry_diagnostics(hass, entry):
     if runtime is None:
         return result
     client = runtime._transport
+    result["read_only_metrics"] = {
+        "supported": bool(getattr(client,"metrics_supported",False)),
+        "available": getattr(client,"metrics_payload",None) is not None,
+        "control_qualified": False,
+        "scope": "snapshot_not_source_or_actuator_admission",
+    }
     result.update(
         enabled=runtime.enabled, transport_ready=runtime.transport_ready,
         diagnostics=dict(runtime.diagnostics),

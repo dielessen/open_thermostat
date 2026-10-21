@@ -13,12 +13,14 @@ struct TestStore:ControlStore {
 int main(int argc,char **argv) {
     const std::string adapter=argc>1?argv[1]:"ha1";
     TestStore store; unsigned nonce=0; std::unique_ptr<ShadowController> core;
+    std::string metricRaw;ShadowController::Metrics provider;
+    if(argc>2&&std::string(argv[2])=="metrics")provider=[&](auto& out){out<<metricRaw;};
     const auto publish=[](std::string_view topic,std::string_view bytes) {
         auto root=objectJson(); cJSON_AddStringToObject(root.get(),"topic",std::string(topic).c_str());
         cJSON_AddItemToObject(root.get(),"payload",cJSON_Parse(std::string(bytes).c_str()));
         std::cout<<printJson(root.get())<<std::endl;
     };
-    const auto boot=[&](const std::string &id) {core=std::make_unique<ShadowController>("e32_lab",id,adapter,store,controlTestHash,[&]{return "nonce"+std::to_string(++nonce);},publish);};
+    const auto boot=[&](const std::string &id) {core=std::make_unique<ShadowController>("e32_lab",id,adapter,store,controlTestHash,[&]{return "nonce"+std::to_string(++nonce);},publish,provider);};
     boot("boot1");
     std::string line;
     while(std::getline(std::cin,line)) {
@@ -36,7 +38,8 @@ int main(int argc,char **argv) {
         else if(op=="receive") {
             const auto raw=field(event.get(),"raw");
             core->receive(stringField(event.get(),"topic"),cJSON_IsString(raw)?raw->valuestring:printJson(field(event.get(),"payload")),now,utc,timeValid);
-        } else if(op=="store_fault") {store.fail=cJSON_IsTrue(field(event.get(),"fail"));store.commitOnError=cJSON_IsTrue(field(event.get(),"commit_on_error"));}
+        } else if(op=="metrics_payload") metricRaw=stringField(event.get(),"raw");
+        else if(op=="store_fault") {store.fail=cJSON_IsTrue(field(event.get(),"fail"));store.commitOnError=cJSON_IsTrue(field(event.get(),"commit_on_error"));}
         else return 4;
         std::cout<<"{\"event_done\":true}"<<std::endl;
     }

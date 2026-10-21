@@ -79,6 +79,10 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Create sensors for room values published by the thermostat."""
+    if "v1_runtime" in hass.data.get(DOMAIN,{}).get(entry.entry_id,{}):
+        from .v1_metrics import async_setup_shadow_metrics
+        await async_setup_shadow_metrics(hass,entry,async_add_entities)
+        return
     prefix = entry.data[CONF_TOPIC_PREFIX]
     hub = dr.async_get(hass).async_get_device_by_identifier((DOMAIN, prefix), entry.entry_id)
     hub_id = hub.id if hub else None

@@ -238,7 +238,7 @@ public:
 		if(mqttConfig.modernShadow) {
 			modernMode_=true;
 #ifdef OPENTHERMOSTAT_E32V2
-			if(mqttConfig.enabled) modern_=std::make_unique<control::ModernTransport>(mqttConfig);
+			if(mqttConfig.enabled) modern_=std::make_unique<control::ModernTransport>(mqttConfig,std::move(getEmsMetrics));
 #endif
 			// Unsupported targets must not silently keep a legacy heater writer
 			// running after the operator selected output-disabled shadow mode.

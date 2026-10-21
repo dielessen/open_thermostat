@@ -22,6 +22,7 @@ struct Fixture {
     Store store;
     std::map<std::string,std::string> output;
     std::function<void()> afterPublish;
+    ShadowController::Metrics metricsProvider;
     uint32_t nonce=0;
     std::unique_ptr<ShadowController> core;
     uint64_t now=1000;
@@ -30,7 +31,7 @@ struct Fixture {
     void start() {
         core=std::make_unique<ShadowController>("e32_lab",boot,"ha1",store,controlTestHash,
             [this]{return "nonce"+std::to_string(++nonce);},
-            [this](auto topic,auto bytes){output[std::string(topic)]=bytes; if(afterPublish)afterPublish();});
+            [this](auto topic,auto bytes){output[std::string(topic)]=bytes; if(afterPublish)afterPublish();},metricsProvider);
         core->connected(now); tick();
     }
     ControlJson get(const std::string &topic) { return parseControlJson(output.at(topic)); }
@@ -81,6 +82,62 @@ struct Fixture {
     static const cJSON *row(const ControlJson &s) { return field(s.get(),"zones")->child; }
 };
 
+std::string metricFixture() {
+    auto o=objectJson();cJSON_AddNumberToObject(o.get(),"metricsSchema",2);
+    cJSON_AddStringToObject(o.get(),"counterDefinition","observation-total-v2");
+    cJSON_AddStringToObject(o.get(),"counterScope","boot");
+    cJSON_AddStringToObject(o.get(),"energyQuality","estimated_nominal_modulation");
+    cJSON_AddStringToObject(o.get(),"protocolScope","plus");
+    cJSON_AddStringToObject(o.get(),"flowQuality","reported_integrated");
+    for(auto key:legacyMetricFields)cJSON_AddNullToObject(o.get(),key);
+    for(auto key:versionedMetricFields)cJSON_AddNumberToObject(o.get(),key,0);
+    cJSON_AddBoolToObject(o.get(),"powerFresh",false);cJSON_AddNumberToObject(o.get(),"outdoorTemperature",-5.7);
+    return printJson(o.get());
+}
+TEST(ModernMetrics, OptionalProviderNoReadBeforeSessionAndOneBoundedSnapshotAtThirtySeconds) {
+    Fixture f;unsigned reads=0;f.metricsProvider=[&](auto& stream){++reads;stream<<metricFixture();};
+    f.start();EXPECT_EQ(reads,0u);
+    auto hello=f.get("fw/hello");ASSERT_TRUE(cJSON_IsArray(field(hello.get(),"read_only_capabilities")));
+    f.connect();f.heartbeat();f.configure();f.connect();f.heartbeat();EXPECT_EQ(reads,0u);
+    ++f.now;f.tick();ASSERT_EQ(reads,1u);
+    auto p=f.get("fw/telemetry/ems_metrics");
+    EXPECT_EQ(uintField(p.get(),"sequence"),1u);EXPECT_EQ(uintField(p.get(),"config_revision"),1u);
+    EXPECT_EQ(stringField(p.get(),"adapter_session_id"),f.session);EXPECT_EQ(stringField(p.get(),"grant_id"),f.grant);
+    EXPECT_FALSE(cJSON_IsTrue(field(p.get(),"boiler_output_enabled")));
+    EXPECT_FALSE(cJSON_IsTrue(field(p.get(),"actuator_output_enabled")));
+    EXPECT_TRUE(validMetricsSnapshot(field(p.get(),"metrics")));
+    EXPECT_LE(f.output.at("fw/telemetry/ems_metrics").size(),maximumMetricsEnvelopeBytes);
+    for(unsigned i=1;i<=30;++i) {f.now+=1000;f.tick();f.syncSession();f.heartbeat(i+1);}
+    EXPECT_EQ(reads,2u);p=f.get("fw/telemetry/ems_metrics");EXPECT_EQ(uintField(p.get(),"sequence"),2u);
+    EXPECT_EQ(f.store.writes,1u);auto state=f.state();EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(state),"demand")));
+}
+TEST(ModernMetrics, EmptyOrUnadmittedProviderDoesNotAdvertiseOrPublishAndDisconnectCannotRead) {
+    Fixture empty;empty.ready();++empty.now;empty.tick();
+    EXPECT_EQ(empty.output.count("fw/telemetry/ems_metrics"),0u);
+    auto h=empty.get("fw/hello");EXPECT_EQ(field(h.get(),"read_only_capabilities"),nullptr);
+    Fixture f;unsigned reads=0;f.metricsProvider=[&](auto& stream){++reads;stream<<metricFixture();};
+    f.ready();f.core->disconnected();f.now+=1000;f.tick();EXPECT_EQ(reads,0u);
+    EXPECT_EQ(f.output.count("fw/telemetry/ems_metrics"),0u);
+}
+TEST(ModernMetrics, CorruptOrSecretBearingGetterFailsReadOnlyAndDoesNotFaultControl) {
+    for(auto body:{std::string("{bad"),std::string(1025,'x'),
+        std::string("{\"counterDefinition\":\"observation-total-v2\",\"password\":\"NEVER_LEAK\"}")}) {
+        Fixture f;unsigned reads=0;f.metricsProvider=[&](auto& stream){++reads;stream<<body;};
+        f.ready();++f.now;f.tick();EXPECT_EQ(reads,1u);EXPECT_FALSE(f.core->faulted());
+        EXPECT_EQ(f.output.count("fw/telemetry/ems_metrics"),0u);
+        ++f.now;f.tick();EXPECT_EQ(reads,1u);EXPECT_EQ(f.store.writes,1u);
+    }
+}
+TEST(ModernMetrics, SharedMetricShapeRejectsBooleanCountersUnknownsAndLegacyNumericalFields) {
+    auto root=parseControlJson(metricFixture());ASSERT_TRUE(validMetricsSnapshot(root.get()));
+    cJSON_ReplaceItemInObjectCaseSensitive(root.get(),"totalEnergyUsedKwh",cJSON_CreateNumber(0));
+    EXPECT_FALSE(validMetricsSnapshot(root.get()));
+    root=parseControlJson(metricFixture());
+    cJSON_ReplaceItemInObjectCaseSensitive(root.get(),"totalEnergyUsedKwhV2",cJSON_CreateBool(false));
+    EXPECT_FALSE(validMetricsSnapshot(root.get()));
+    root=parseControlJson(metricFixture());cJSON_AddStringToObject(root.get(),"extra","not_a_config_relay");
+    EXPECT_FALSE(validMetricsSnapshot(root.get()));
+}
 TEST(ShadowRuntime, ActualWireConfigurationObservationAndTargetRoundTripNeverEnablesOutputs) {
     Fixture f; f.ready(); ASSERT_EQ(f.core->revision(),1u); EXPECT_EQ(f.store.writes,1u);
     auto o=f.observation(); f.send("ha/observations",o.get());

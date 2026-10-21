@@ -55,7 +55,7 @@ public:
 // legacy connection when explicitly provisioned, not an extra bridge/client.
 class ModernTransport {
 public:
-    explicit ModernTransport(config::MqttConfig cfg):cfg_(std::move(cfg)),client_(network_) {
+    explicit ModernTransport(config::MqttConfig cfg,ShadowController::Metrics metrics={}):cfg_(std::move(cfg)),client_(network_) {
         auto prefix=cfg_.base.empty()?"open_thermostat":cfg_.base;
         valid_=SessionAdmission::validId(prefix)&&SessionAdmission::validId(cfg_.adapterId)&&
             !cfg_.brokerAddress.empty()&&cfg_.brokerPort&& !cfg_.username.empty()&&!cfg_.password.empty();
@@ -71,7 +71,7 @@ public:
                 const std::string topic=base_+std::string(suffix);
                 // No raw wire logging: HA identity/config may be private.
                 client_.publish(topic.c_str(),reinterpret_cast<const uint8_t *>(payload.data()),payload.size(),false);
-            });
+            },std::move(metrics));
         client_.setCallback([this](char *topic,uint8_t *payload,unsigned int length) {
             const std::string_view full(topic);
             if(length>8192||full.substr(0,base_.size())!=base_) return;

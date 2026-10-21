@@ -2,6 +2,8 @@
 #include "BoundedJson.h"
 #include "ControlStore.h"
 #include "EffectiveTarget.h"
+#include "MetricsTelemetry.h"
+#include <sstream>
 #include "Measurement.h"
 #include "ScheduleDocument.h"
 #include "SessionAdmission.h"
@@ -57,14 +59,15 @@ public:
     using Hash=std::function<std::string(std::string_view)>;
     using Nonce=std::function<std::string()>;
     using Publish=std::function<void(std::string_view,std::string_view)>;
+    using Metrics=std::function<void(std::ostream&)>;
     // Existing NVS partition is20KiB, with GC + old/new atomic blob overhead.
     // Do not turn a JSON transport ceiling into a hidden persistence promise.
     static constexpr size_t maximumZones=8, maximumConfigBytes=4096;
     static constexpr uint32_t grantMs=10000, leaseMs=15000;
     ShadowController(std::string controller,std::string boot,std::string owner,
-                     ControlStore &store,Hash hash,Nonce nonce,Publish publish)
+                     ControlStore &store,Hash hash,Nonce nonce,Publish publish,Metrics metrics={})
         :controller_(std::move(controller)),boot_(std::move(boot)),owner_(std::move(owner)),
-         store_(store),hash_(std::move(hash)),nonce_(std::move(nonce)),publish_(std::move(publish)),admission_(owner_) {
+         store_(store),hash_(std::move(hash)),nonce_(std::move(nonce)),publish_(std::move(publish)),metrics_(std::move(metrics)),admission_(owner_) {
         if(!SessionAdmission::validId(controller_)||!SessionAdmission::validId(boot_)||!SessionAdmission::validId(owner_)) { fault_=true; return; }
         std::string saved;
         if(!store_.load(saved)) { fault_=true; return; }
@@ -92,6 +95,7 @@ public:
         }
         if(now>=nextHello_) { hello(); nextHello_=now+3000; }
         if(now>=nextState_) { state(now,utc,clockValid); nextState_=now+3000; }
+        metricsSnapshot(now);
     }
     void receive(std::string_view topic,std::string_view bytes,uint64_t now,int64_t utc,bool clockValid) {
         if(!connected_ || fault_ || now<lastNow_) return;
@@ -252,7 +256,7 @@ private:
     void invalidate() {
         supervisor_.invalidate();
         admission_.invalidateTransport(); session_=mappingReady_=leaseWasAlive_=false;
-        sessionId_.clear(); lastOpen_.clear();
+        sessionId_.clear(); lastOpen_.clear();nextMetrics_=0;metricsSequence_=0;
         for(size_t i=0;i<config_->count;++i) {
             auto &z=config_->zones[i]; z.sample.unavailable(); z.overrideUntil=0; z.off=false; z.demand=false; z.regulator=ZoneRegulator{};
         }
@@ -302,7 +306,44 @@ private:
     void hello() {
         auto o=base(); cJSON_AddStringToObject(o.get(),"challenge_id",challenge_.c_str());
         cJSON_AddStringToObject(o.get(),"mode","shadow"); cJSON_AddNumberToObject(o.get(),"lease_ms",leaseMs);
-        cJSON_AddNumberToObject(o.get(),"grant_ms",grantMs); cJSON_AddBoolToObject(o.get(),"storage_fault",fault_); send("fw/hello",o.get());
+        cJSON_AddNumberToObject(o.get(),"grant_ms",grantMs); cJSON_AddBoolToObject(o.get(),"storage_fault",fault_);
+        if(metrics_) {
+            auto caps=cJSON_AddArrayToObject(o.get(),"read_only_capabilities");
+            if(caps)cJSON_AddItemToArray(caps,cJSON_CreateString(metricsCapability));
+        }
+        send("fw/hello",o.get());
+    }
+    void metricsSnapshot(uint64_t now) {
+        if(!metrics_||fault_||!session_||!mappingReady_||!admission_.alive(now)
+            ||!admission_.grantDeadline(now)||now<nextMetrics_||metricsSequence_==UINT32_MAX
+            ||now>UINT64_MAX-metricsIntervalMs) return;
+        // At most one bounded source read/publish attempt every30s. No retries
+        // or telemetry-driven lease/sample/model renewal.
+        nextMetrics_=now+metricsIntervalMs;
+#if defined(__cpp_exceptions)
+        try {
+#endif
+        std::ostringstream stream;metrics_(stream);const auto raw=stream.str();
+        if(raw.size()>maximumMetricsBytes)return;
+        auto metrics=parseControlJson(raw);
+        if(!metrics||!validMetricsSnapshot(metrics.get()))return;
+        auto o=base();
+        if(!exactFields(o.get(),{"api","controller_id","boot_id","epoch","config_revision","config_digest"}))return;
+        if(!cJSON_AddStringToObject(o.get(),"mode","shadow")
+            ||!cJSON_AddStringToObject(o.get(),"adapter_id",owner_.c_str())
+            ||!cJSON_AddStringToObject(o.get(),"adapter_session_id",sessionId_.c_str())
+            ||!cJSON_AddStringToObject(o.get(),"grant_id",grant_.c_str())
+            ||!cJSON_AddNumberToObject(o.get(),"grant_sequence",grantSequence_)
+            ||!cJSON_AddNumberToObject(o.get(),"sequence",metricsSequence_+1)
+            ||!cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",false)
+            ||!cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false)
+            ||!cJSON_AddItemToObject(o.get(),"metrics",metrics.get()))return;
+        metrics.release();const auto bytes=printJson(o.get());
+        if(bytes.empty()||bytes.size()>maximumMetricsEnvelopeBytes)return;
+        ++metricsSequence_;publish_("fw/telemetry/ems_metrics",bytes);
+#if defined(__cpp_exceptions)
+        } catch(const std::exception&) { /* Read-only getter failure: next cadence, no control renewal. */ }
+#endif
     }
     void sessionStatus() {
         auto o=base(); cJSON_AddStringToObject(o.get(),"adapter_id",owner_.c_str());
@@ -362,11 +403,12 @@ private:
         send("fw/state/zones",o.get());
     }
     std::string controller_,boot_,owner_,digest_,configBytes_,challenge_,grant_,sessionId_,clientNonce_,lastOpen_;
-    ControlStore &store_; Hash hash_; Nonce nonce_; Publish publish_;
+    ControlStore &store_; Hash hash_; Nonce nonce_; Publish publish_; Metrics metrics_;
     std::unique_ptr<Configuration> config_=std::make_unique<Configuration>();
     SessionAdmission admission_;
     HydraulicSupervisor supervisor_;
-    uint32_t epoch_=0,grantSequence_=0;
+    uint32_t epoch_=0,grantSequence_=0,metricsSequence_=0;
+    uint64_t nextMetrics_=0;
     uint64_t challengeUntil_=0,nextHello_=0,nextState_=0,nextGrant_=0,lastNow_=0,sessionStart_=0;
     bool session_=false,mappingReady_=false,connected_=false,fault_=false,leaseWasAlive_=false;
 };

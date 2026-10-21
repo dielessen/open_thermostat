@@ -108,12 +108,23 @@ async def async_setup_entry(hass, entry):
             await connection.async_start()
         from .v1_bench_actions import async_register_entry
         async_register_entry(hass, entry)
-        await hass.config_entries.async_forward_entry_setups(entry, [Platform.CLIMATE])
+        await hass.config_entries.async_forward_entry_setups(entry, [Platform.CLIMATE, Platform.SENSOR])
+        if entry.options.get(CONF_CREATE_DASHBOARD,False):
+            dashboard=RoomDashboard(hass,entry.data[CONF_TOPIC_PREFIX],entry.entry_id)
+            hass.data[DOMAIN][entry.entry_id]["dashboard"]=dashboard
+            await dashboard.async_start()
+            dashboard.set_rooms(set(runtime.rooms))
     except Exception:
-        from .v1_bench_actions import async_unregister_entry
-        await async_unregister_entry(hass, entry.entry_id)
-        await runtime.async_stop()
-        hass.data[DOMAIN].pop(entry.entry_id, None)
+        try:
+            if dashboard:=hass.data[DOMAIN][entry.entry_id].get("dashboard"):
+                await dashboard.async_stop()
+        finally:
+            from .v1_bench_actions import async_unregister_entry
+            try:
+                await async_unregister_entry(hass, entry.entry_id)
+            finally:
+                await runtime.async_stop()
+                hass.data[DOMAIN].pop(entry.entry_id, None)
         raise
     from .metrics_reports import async_register_entry, async_unregister_entry
     async_register_entry(hass, entry)
@@ -130,7 +141,9 @@ async def async_unload_entry(hass, entry):
     await async_unregister_entry(hass, entry.entry_id)
     # Withdraw listener/task/transport ownership before any mode transfer.
     await state["v1_runtime"].async_stop()
-    unloaded = await hass.config_entries.async_unload_platforms(entry, [Platform.CLIMATE])
+    unloaded = await hass.config_entries.async_unload_platforms(entry, [Platform.CLIMATE, Platform.SENSOR])
     if unloaded:
+        if dashboard:=state.get("dashboard"):
+            await dashboard.async_stop()
         hass.data[DOMAIN].pop(entry.entry_id, None)
     return unloaded

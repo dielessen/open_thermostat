@@ -18,6 +18,10 @@ transport en actuatie staan uit; een volledig verse bron→E32→ACK-proef ontbr
   sessie-/config-/schema-shadowsoftware, HA-kamerbindingsflow, temperatuurgrenzen,
   helpervrije weekeditor, setup/OTA-bronwerk; onafhankelijke F5-metricsreparatie
   en HA-managed E32-GUIafbouw in bron geaccepteerd, niet geïnstalleerd.
+- **Nieuw in bron, niet geïnstalleerd:** native tweekameropslag/apply/readback en
+  expliciete HA-profielreview → lokale E32-factory geaccepteerd. Profiel, gewenste
+  configuratie en vluchtige bevoegdheid zijn apart; actuele measurement-/safety-
+  producers zijn nog niet gekwalificeerd. De factory remt vraag met UNKNOWN safety.
 - **Geïnstalleerd:** HA-kamer-/weekeditorpakket; E32 alpha.6 via app-only OTA op
   20okt22:38–22:40CEST (Mark11746), automatische boot/source/UI/ELF en elf
   instellingen-/statussnapshotparen bewezen. Authpad in twee Chromiumviewports
@@ -2893,6 +2897,51 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   shippedGUI toetsen; daarna frontend-/samengestelde releaseacceptatie. Bestaande
   eigenaar niet onderbroken; helePLAN IN_PROGRESS, enigeautomation pacing exact15min.
 
+
+### Mark11785 — F2/F3 lokale HA/E32-SOURCEfactory: onafhankelijke bronacceptatie
+
+- [x] Telegramparent neemt deze review als enige eigenaar op; canonical231019f
+  vooraf schoon, bestaande automation geïnformeerd zonder nieuwe job/run. Zelfde
+  HA-specialist blijft implementatie-eigenaar, actieve bronreconciliatie niet gestopt.
+  Verified-taskflow toegepast; waarheid dit bord/PLAN/frozen1be9082.
+- [x] Exact19preimages/afterhashes,531archiefbestanden en988bewijshashes kloppen.
+  Zeven bestaande canonicalverschillen buiten de patch bewust behouden; alle
+  overige trackedbytes ongewijzigd. Geïsoleerde canonical-derived reviewcheckout,
+  geen specialistarchief over canonical gelegd. Upstreamremote onaangeroerd.
+- [x] Finale code onafhankelijk getest:191unieke echte nativeHA2026.10.2/C++-
+  ketengevallen in41/95/55batches PASS; EXACT dezelfde191 op de definitieve bron
+  met vers gebouwde actual C++peer/core/cJSON ASan+UBSan/leakdetectie PASS. Daarmee
+  ook de laatste15GUIreviewgevallen én de volledige brede set op exactfinale code,
+  niet alleen specialistreconstructie. Acht semanticrows bytegelijk;134+137echte
+  cJSONallocatiefouten geweigerd zonder lek/IO. Python/OpenSSL niet geïnstrumenteerd.
+- [x] Zeven echte shippedJSgevallen op hostNode/V8 PASS met gemockte DOM/fetch/
+  confirmgrenzen, GEEN browser-/HTTP-/CSRF-/apparaatbewijs.33echte release-notice/
+  shipped/SDKregressies PASS. Eerste rootcwd-audit gaf3siblingimporterrors; alleen
+  cwd hersteld, niet als PASS/productfalen geteld. Vijf bestaande HAwarnings perbatch.
+- [x] Bronmergeacfa8eb460d97b3bfc95ab4a70bbe410c419af48 fast-forward;19afterhashes,
+  alle overige canonicalbytes, reversepatch/commitdiffcheck/remotes/schonepostcheck
+  PASS. Bewijs:11774sibling native-factory-parent-20261021/{TASKFLOW,HASHES,
+  SOURCE-POSTCHECK,CHECKS,POSTCHECK,REVIEW,native,san,SHIPPED-JS,AUDIT}.
+  Rollback uitsluitend nieuwe19paden vóór afhankelijke inzet, behoud alle data.
+- Gewone HA-options kan met runtimeOFF expliciet een logisch profiel reviewen/
+  bewaren; lokale authenticated E32settings selecteert onafhankelijk dezelfde
+  descriptor. Bestaande transport/Store/controller bewaart/leest beide kamers;
+  doelrevisie/reload/coreboot behoudt config/profiel, geen oude grants/overrides.
+  Unknown/wrongdevice/owner/schema/overlap/replacement weigert zonder fallback;
+  oude formulieren behouden SOURCE bij omission, explicietclear wist geen config.
+  Secret-preserving totaalnetwerkbudget2048, config4096/wire8192 ongewijzigd.
+- [ ] Alleen logische factory/provisioning geaccepteerd. Production safetyUNKNOWN
+  blokkeert ook bij verse sensordata; fysiekeoutputsfalse, geen echteproducer- of
+  installatiekwalificatie, geen HA/device/config/reboot/install/publicatieactie.
+  Open: bron/profielreprovisionmigratie bij dezelfde specialist, gekwalificeerde
+  measurement/safetyproducers, volledigeweek>8UTCovergangen/refresh/R18, echte
+  desktop-/mobielbrowser en actuele normale samengestelde images/resources/
+  NVS-GC/queue/8zones/72u/licentieclosure. NegenSDK/CA/toolchain/source-noticegates
+  blijven; alle14F9kandidaten afgewezen. Geen verwarmingsGO of releasedatum.
+- Eerstvolgende bewijsactie: lopende bron-/journalreconciliatie afronden en
+  onafhankelijk toetsen; bestaande volledigeweek/refreshopdracht behouden, daarna
+  echte producer-/frontend-/imageacceptatie. Geen dubbele eigenaar of nieuwe timer;
+  hele31eisen/F0–F10opdracht blijft IN_PROGRESS.
 
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 

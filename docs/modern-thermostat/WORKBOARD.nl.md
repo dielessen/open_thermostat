@@ -1112,6 +1112,12 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   Bestaande seizoens-/DHW-/enabledmodel-/F0/F10opdrachten blijven gelden;
   hele11785 actief, hervattingscheck15min na dit bronpakket.
 
+- Canonical broncommitbf1845a technisch nagecontroleerd: schoon, commitdiffcheckPASS,
+  CONTROL-BUDGET-PARENT-POSTCHECK.json. Concreet GUIapplyvervolg
+  2ef680e5-ac1c-47fd-af43-575bef10f71f QUEUED bij dezelfde specialist, niet
+  completion; indien al actief onderdeel alleen ontbrekende acceptatiegaten.
+  Eigen automation geïnspecteerd en next_check15m bevestigd.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

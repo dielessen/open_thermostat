@@ -2866,6 +2866,34 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   eindigt rond 20:41 door onafhankelijke bron-/ketenverificatie, geen stipteafleverclaim.
 
 
+
+### Mark11785 — F2/F3/F10 native HA-provider: onafhankelijke kwalificatie
+
+- [x] Canonical246a742 vooraf schoon; bestaand hostreceipt behouden. Actuele§6,
+  PLAN, RESULT52bd607 en eenmaal boundedhistory gelezen: dezelfde specialist
+  werkt aan candidate-native-factory (lokale SOURCE-selectie/shippedJS), geen tweede eigenaar.
+- [x] Exact2paden test/docpakket52bd607 en archief-/bewijsmanifest geverifieerd;
+  alle524beschermde paden tegen canonical behouden, incl7bewuste parentverschillen.
+  EchteHA2026.10.2 declareertprobatio0.13.0. Vermeend ontbrekende customdependency
+  dus niet aangetoond; geen blinde importrename/shim/productiepatch toegevoegd.
+- [x] Onafhankelijk vanuitcanonical50echte nativeHA-provider/formulierchecks PASS,
+  inclusief5nieuwe schemacontractchecks;5bestaande dependencywarnings. Frozen157native
+  +dezelfde157SAN hashgeverifieerd, niet als nieuwe parentuitvoering geclaimd.
+  Sandboxgitpointer van aangeleverde --check-source niet hostbruikbaar; exacte
+  hashes/canonicalgitapplychecks gebruikt, harnessfout in dossier behouden.
+- Bewijs11774/provider-parent-20261021-2056/: TASKFLOW/PRECHECK/PROTECTED-DIFFERENCES,
+  PACKAGE.log, COMMAND.json, HA.xml/log, REVIEW.md en POSTCHECK.json.
+  Rollback uitsluitend nieuw2paden test/docbroncommit vóór dependents; geen datawijziging.
+- [ ] Dit kwalificeert alleen genoemdeHAversie; oudereHA, echtefrontend desktop/mobiel,
+  lokaleSOURCEfactory/continueproducerveiligheid, volledigeweek/refresh/8zones,
+  normale samengesteldeimages/resources/SDKnotices en fysieke/72ugates blijvenOPEN.
+  Geen installatie/publicatie/login/HAconfig/broker/apparaat/TX/EMS/verwarmingsactie.
+- Volgende productbewijsactie: gereed nativeSOURCE/factorypakket onafhankelijk op
+  lokaleimmutableprovisioning versus remoteDATA, owner/storage/reconnect en echte
+  shippedGUI toetsen; daarna frontend-/samengestelde releaseacceptatie. Bestaande
+  eigenaar niet onderbroken; helePLAN IN_PROGRESS, enigeautomation pacing exact15min.
+
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

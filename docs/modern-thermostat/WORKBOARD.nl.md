@@ -976,6 +976,37 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
 - Automations next_check15m bevestigd; hele11785softwareplan niet voltooid,
   eigen hervattingsjob behouden. Geen herhaalde groene checks als vervangend werk.
 
+### Mark11785 — F9/R09/R14 langzaam stooklijnadvies: onafhankelijke bronacceptatie
+
+- [x] Canonical prechange a4b2b81 schoon; WORKBOARD§6/PLAN, actuele RESULT Stage16
+  en eenmalige bounded sessions_history werkelijk gelezen. Bestaande hostreceipt
+  behouden; eenmalige proef niet herhaald. Specialist actief, geen tweede eigenaar.
+- [x] Exacte curvecorepatch ad8857575271f3ded9a09d734d6acd10347190fa0a5bcd99e42e33e5727368d1
+  volledig gereviewd; alle4niet-WORKBOARDhashes matchen CURVE-RESULT.json e91c94ad.
+- [x] Afzonderlijke verse kamer-/buitenrapporten, vaste2–8zone/sourcequorum,
+  complete4uurvensters, >=6dagen/14dagenspan/10Cweerspreiding en consensus van
+  ALLE betrokken zones; eigen groupWaterTarget/flowwatertracking en vloer-/limiet-
+  begrenzing hergebruikt. Cache/polling geeft geen nieuwe leerkwalificatie.
+- [x] Alleen één geobserveerd interieurknooppunt <=0.25C per onveranderlijke oude
+  curve, geen automatische parameteradoptie. Defaultdisabled/frozen/shadow;
+  modelownerkwalificatie standaardfalse, geen actieve caller/GUI/capability/NVSkey.
+  Codec maximaal412B;30mincheckpoint, binding/basecurve/SHA/readback/ambigu-foutlatch.
+- [x] Canonical hostg++17 -Wall/-Wextra/-Werror:32PASS(17nieuw+15gedeeld), dezelfde
+  32PASS onder ASan/UBSan inclusief echte framework-/testtranslationunits. Gepind
+  Xtensa/Arduino2.0.17 actual-methodsobject PASS: model1016B/snapshot372B; GEEN
+  volledige callgraph/8zoneheap/NVSGC/runtime/firmwareimage- of fysieke acceptatie.
+- [ ] F9 blijft open: actieve graph/modelowner/admission, enabledmodel-/historische
+  baselinevergelijking, volledig8zonebudget en echte14dagen-/comfort-/seizoensproef.
+  Niet gebouwd als volledige firmware, niet geïnstalleerd, geen fysieke/TXvrijgave.
+- Bewijs11774dossier: CURVE-PARENT-REVIEW.md, PRECHECK.json, HASHES.json,
+  COMMANDS.json/BUILD.log/NATIVE.json/log, SANITIZER-COMMANDS.json/BUILD.log/
+  SANITIZER.json/log en E32-RESOURCE.json/BUILD.log/SYMBOLS.log.
+- Rollback uitsluitend deze nieuwe curvebroncommit vóór deployment; geen runtime-
+  of productieHA-/broker-/apparaatdata gewijzigd. Geen login-/warmteactie.
+- Volgende echte uitvoering: inmiddels gereed Stage17 gepaarde replayevaluator
+  onafhankelijk reviewen; specialist houdt graph/profile/modelowner-/resource-
+  vervolg en resterende F0–F10software. Hele11785 blijft actief, hervatting15min.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

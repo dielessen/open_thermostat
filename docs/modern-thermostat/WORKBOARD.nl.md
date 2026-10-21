@@ -2407,6 +2407,53 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   uitvoering/completion. HelePLAN in_progress; enigejob behouden, next_check15m
   bevestigd. Vervolgens producer/factory en echte nativefrontendgebruikersketen.
 
+### Mark11785 — Stage52/53 SDK-herkomst en normale HA-kamer HEAT/OFF: bronacceptatie
+
+- [x] Canonicalhost6813d87 schoon; bestaand eenmalighostreceipt niet herhaald.
+  Actuele§6/PLAN, memory/verified-taskflow en RESULT5cee9315 werkelijk gelezen.
+  Eenmaal boundedhistory6 faalde met cron-name/projectiefout; liveactiviteit ONBEKEND.
+  Eenmalig session_status toont recente sessie/followupqueue, geen codevoortgangbewijs.
+  Lokale broncontrole gelukt; geen tweede implementatie-eigenaar gestart.
+- [x] ExactStage52patch01802c5b/Stage53patchf220bf97;500/503archivebestanden,
+  23/39bewijshashes en alle5/8before-/afterhashes onafhankelijk gecontroleerd.
+  Canonical-afgeleide reviewcheckout; alle overige canonicalbytes behouden.
+- [x] F0/F10audit:33gerichte release-/SDK-/originalnoticechecks PASS; opgeslagen
+  ELF/map gekoppeld aan52SDKarchives perboard en108huidigecachefiles exact.
+  Zondercore geen cacheclaim; publicatieroute weigert terecht met exit1.
+  Alle104componenten blijven BLOCKED: matchingdirtybinarysource/buildrecipe/
+  binarynotices/linker-timeattestatie/sourceoffer ontbreken. Alleen historische
+  8b364f21images, GEEN huidigecomposedfullimage/build/installatieclaim.
+- [x] F3native climate HEAT/OFF/turnon/off via bestaande entry/éénworker/ownedFuture/
+  echteC++regelaar; A/B/allesuit/hervatten naar21/19, geen oudeoverride22.
+  Alleen admittedfirmwarestate bevestigt; ACKalleen wijzigt UIstand niet, actionIDLE.
+  Comfortcapability/raam/alloff/zomer/DHW/ownergrenzen behouden; geen commandreplay.
+  Onafhankelijke echteHA2026.10.2/CPython3.14.8:19PASS; dezelfde14tweekamercases
+  volledigASanUBSan/leaksPASS; drie semantische readbackrows bytegelijk.
+  Strict actuele comfortpeer+cJSON versgebouwd; onveranderde SOURCE2native/SANpeer
+  uit onafhankelijkeStage51hergebruikt na exacte source/binaryhashcontrole.
+  Externe dynamicOpenSSL niet geïnstrumenteerd; vijf bestaande HAwarnings perrun.
+- [x] Broncommits addf67437bbdb9da946e60af80b23369a1be4000 en
+  13b4ed67eecbf14b024d51ce5865f645c033ea05 fast-forward canonical;12finalafterhashes,
+  schonebronstatus/diffcheck en behoud overige trackedbytes technisch bewezen.
+  Eerste nativecommit faalde op ontbrekende gitauteur; bestaande projectidentiteit
+  per-command hergebruikt, geen globaleconfig/product-/testwijziging.
+- [ ] OPEN: echte tweekamerDATAwriter/codec/journal/persist/readback/sameownerSOURCEpin/
+  revisietransitie; huidigeSOURCEfixture PRELOAD is geen GUIapply. Gekwalificeerde
+  configureerbare producer/factory(defaultNONE), brederegraph/groups/mixer/comfort/
+  schema, nativefrontenddesktop/mobiel, actuelefullimages/resources/SDKclosure,
+  F9alle14afgewezen, installatie/fysieke/72u/TX/EMS/actuator/verwarmingsgates intact.
+  HelePLAN11785 blijft in_progress; niets geïnstalleerd/gepubliceerd.
+- Bewijs: sibling open-thermostat-parent-stage52-53-20261021 met TASKFLOW,BEFORE,
+  frozen-evidence,REVIEW,SOURCE-CHECKS,HA-CHECKS,SOURCE-POSTCHECK,SDK/CHECKS/
+  echterefusal,HA/SANxml+logs,COMMIT-HOST-ADAPTATION. Rollback Stage53 danStage52
+  vóór afhankelijken; config/journal/model/Recorder/history/cache/notices behouden.
+- Volgende echte F2/F3/WP03-04opdracht followupd4d0fb10 QUEUED bij bestaande specialist:
+  bestaandeDATAwritertransitie afmaken, aansluitend ondersteunde SOURCEproducer/factory
+  via normale nativeentry/options/bindingkeuze, dan echtefrontenddesktop/mobielacceptatie.
+  Geen dubbelewriter; negatieve stale/conflict/owner/ambiguouswrite/recordrollbackchecks
+  vereist. Admission is geen uitvoering/completion. Enigeautomation geïnspecteerd/behouden;
+  bestaande15mininterval/pacing en next_check15m bevestigd.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

@@ -1156,6 +1156,33 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   Bestaande officiële automation72ec7e68 enabled/gepland geïnspecteerd en behouden;
   het gehele PLAN blijft in_progress, geen stilzwijgende afronding na dit bronpakket.
 
+### Mark11785 — F5 kamermodellen/Recorder: Stage21 onafhankelijk NIET geaccepteerd
+
+- [x] Canonical9726bce schoon, exacte21padencorepatch
+  8ee3b5d649d5ff91beee936ee87dca70379f3b87fa57676a587092aad0ed534a
+  en21bronhashes5d413549 gecontroleerd. Echte hostg++17/EMSparser16PASS;
+  native HA2026.10.2/Python3.14.8 volledig gericht86PASS incl onveranderde
+  parentRecorderregressie, geen uitsluiting. Zes echte C++serializerrows gebruikt.
+- [x] Extra onafhankelijke native herstartprobe vindt onjuiste eenheidsrestore:
+  display1000Wh wordt1000kWh (verwacht1),600s wordt2160000s (verwacht600).
+  Nieuwev2totalen zouden bij unitkeuze/reload onjuist groeien; daarom NIET
+  samengevoegd ondanks groene aangeleverde tests. Alleen candidatepatch exact
+  teruggedraaid; gitdiff/status daarna schoon. Geen livehistorie gewijzigd.
+- [ ] Specialistcorrectie vereist: ondersteunde native RestoreSensor-data met
+  unit/finite/grenskwalificatie; gekwalificeerde conversie of weigering bij ontbrekende
+  native data, nooit displaywaarden stil als kWh/h lezen. Native lifecycleproeven
+  voor Wh/kWh,s/min/h, onbekende/incompatibele units en oudehistoriescheiding.
+- Bewijs11774dossier: ROOM-METRICS-PARENT-REVIEW.md, PRECHECK/HASHES/COMMANDS.json,
+  NATIVE.json/log, HA.xml/log en RESTORE-PROBE.json/log. Eerste85PASS/1harnessFAIL
+  (ontbrekende parentbewijsmap) behouden; dezelfde86tests daarna PASS zonder
+  product-/assertiewijziging. Echte tijdelijke SQLitefixture900pogingen/300nieuwe
+  rows/0.58kWhreset-sum, géén productiecadans/retentie/72uclaim.
+- Nieuwe foutinformatie aan bestaande actieve eigenaar via steer101d68ca gestuurd;
+  admission is geen correctie/completion. Geen concurrerende code-eigenaar gestart.
+  Actieve GUIapply/enabledmodelreplay/releasevoorbereiding en hele11785 lopen door;
+  volgende bronreview na gecorrigeerd manifest, officiële hervattingscheck15min.
+  Geen installatie, nieuwe login, broker/HAconfig, TX/EMS/actuator-/verwarmingsGO.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

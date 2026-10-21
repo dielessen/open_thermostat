@@ -2102,6 +2102,26 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   QUEUED, geencompletion. Prioritair graph→SOURCEowner→controller/tweekamer en
   GUI11846 blijven actief; hele11785in_progress, officiële next_check15m bevestigd.
 
+### Mark11890 — bestaande voortgangsjob werkelijk op 15 minuten
+
+- Op verzoek 21okt12:33 dezelfde job `72ec7e68-5c8f-4203-9f0c-fb11fa92e8bf`
+  aangepast: basisinterval van30 naar15min; pacing van15–60 naar exact15min.
+  Geen nieuwe job, uitvoerder, productscope, toolrechten of Telegrambestemming.
+- Iedere run meldt echte verandering of expliciet geen nieuwe oplevering,
+  daadwerkelijke actieve taak/idle/blokkade en volgende productbewijsactie.
+  Deze expliciete15minvraag vervangt de eerdere nachtelijke stilteinstructie
+  voor deze projectjob; geen30minuitstel bij lange build. Lopende run mag nog
+  oude prompt hebben; looptijd kan aflevering verschuiven, geen stipte garantie.
+- Configuratieteruglezing PASS: interval900000ms, min=max15m, payload exact,
+  alle13niet-doelvelden en overigepayloadvelden behouden. Geen forcedrun/restart.
+  Nieuwe toekomstige aflevering blijft apart OPEN; eerdere delivery was bewezen.
+  RunsAPI gaf not-found ondanks gatewaybrede list/get; geen job opnieuw aangemaakt.
+- Snapshot/rollback/bewijs: `/home/dielessen/artifacts/open-thermostat-updates-11890-20261021/`.
+  Actuele productstand blijft F2/F3in_progress. Stage45 is bronaudit, geen
+  geïnstalleerde productintegratie. Bounded specialistbron12:35 toont onderzoek
+  aan SOURCE-profielidentiteit/hello/session-admission in bestaande wire/controller.
+  Software-/HAdependency-/releaseblokkades en GUI/fysieke gates blijven open.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

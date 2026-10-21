@@ -21,6 +21,8 @@ from .metric_snapshot import CAPABILITY,MAX_BYTES as MAX_METRIC_BYTES,EXPIRY_SEC
 _ID = re.compile(r"[A-Za-z0-9_-]{1,32}")
 _HEX = re.compile(r"[0-9a-f]{64}")
 MAX_BYTES = 8192
+GRANT_NONCE_CAPABILITY = "session.grant_nonce.v1"
+MAX_GRANT_PROOFS = 8
 
 
 def canonical(value):
@@ -99,6 +101,8 @@ class ShadowClient:
         self.error = "not_connected"
         self._nonce = lambda: secrets.token_hex(12)
         self._close_io = None
+        self.grant_nonce_supported=False
+        self._grant_proofs={}
         self.metrics_supported=False
         self._metrics=None
         self._metrics_received=0.0
@@ -167,6 +171,8 @@ class ShadowClient:
         self.sequence.clear()
         self.pending.clear()
         self.open_request = None
+        self.grant_nonce_supported = False
+        self._grant_proofs.clear()
         self.verified = False
         self.grant_until = self.lease_until = 0
         self.runtime.decisions.clear()
@@ -266,6 +272,12 @@ class ShadowClient:
             if new_identity != self.identity or (self.session and not self.same_config(p)):
                 self.reset_session()
                 self.identity = new_identity
+            session_caps=p.get("session_capabilities",[])
+            self.grant_nonce_supported=(type(session_caps) is list and len(session_caps)<=8
+                and all(isinstance(cap,str) and len(cap)<=64 for cap in session_caps)
+                and GRANT_NONCE_CAPABILITY in session_caps)
+            if not self.grant_nonce_supported:
+                self._grant_proofs.clear()
             caps=p.get("read_only_capabilities",[])
             self.metrics_supported=(type(caps) is list and len(caps)<=8
                 and all(isinstance(cap,str) and len(cap)<=64 for cap in caps) and CAPABILITY in caps)
@@ -308,11 +320,17 @@ class ShadowClient:
                     return  # Repeated status may NOT extend a grant.
                 if not self.same_config(p):
                     raise ValueError("session config changed")
-                # FW rotates at most once per >=5s. Conservative issuance lower
-                # bound propagates from the original nonce round trip, not from
-                # unrelated/replayed state receipts. Never compare clock origins.
+                # Safe old-peer fallback: minimum5s per rotation, NOT receipt+10.
                 grant_deadline = min(self.clock() + 10, self.grant_until +
                                      5 * (p["grant_sequence"] - self.session["grant_sequence"]))
+                proof=p.get("grant_request_nonce")
+                if self.grant_nonce_supported and identifier(proof):
+                    sent=self._grant_proofs.pop(proof,None)
+                    if sent is not None and 0<=self.clock()-sent<10:
+                        # This grant was issued AFTER FW accepted our fresh
+                        # heartbeat. ORIGINAL send time is a conservative lower
+                        # bound; no FW clock comparison or receipt-time renewal.
+                        grant_deadline=max(grant_deadline,sent+10)
                 delay_bound = self.clock() + 10 - grant_deadline
             else:
                 delay_bound = self.clock() - self.open_sent
@@ -444,6 +462,11 @@ class ShadowClient:
     async def message(self, topic, binding, body, future=None):
         p = self.envelope(binding)
         p.update(body)
+        if topic=="ha/heartbeat" and self.grant_nonce_supported:
+            # Session-local HB sequence prevents reuse even if a test RNG repeats.
+            p["grant_request_nonce"]=f"g{p['sequence']:08x}{self._nonce()[:20]}"
+            if not identifier(p["grant_request_nonce"]):
+                raise HomeAssistantError("Invalid grant request nonce")
         raw = canonical(p)
         parse(raw)
         self.sequence[binding] += 1
@@ -451,11 +474,16 @@ class ShadowClient:
                         "ha/observations": "fw/observation_result", "ha/user_command": "fw/user_command_result",
                         "ha/snapshot_request": "fw/snapshot_result"}[topic]
         key = (result_topic, binding, p["sequence"])
-        self.pending[key] = {"topic": topic, "raw": raw, "sent": self.clock(), "last": self.clock(),
+        sent=self.clock()
+        self.pending[key] = {"topic": topic, "raw": raw, "sent": sent, "last": sent,
                              "tries": 1, "future": future, "deadline": self.grant_until}
         if len(self.pending) > 48:
             self.pending.pop(key)
             raise HomeAssistantError("Bounded shadow command queue full")
+        if topic=="ha/heartbeat" and self.grant_nonce_supported:
+            self._grant_proofs[p["grant_request_nonce"]]=sent
+            while len(self._grant_proofs)>MAX_GRANT_PROOFS:
+                self._grant_proofs.pop(next(iter(self._grant_proofs)))
         await self.send(topic, raw)
 
     async def async_observation(self, room_id, observation: Observation):

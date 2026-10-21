@@ -56,8 +56,13 @@ zone IDs exactly 8 lowercase hex. Payload SHA256 binds exact complete message by
 for duplicate detection. Do not change a retry's bytes or sequence. Retried old
 grants may reject; read state, never assume an unacknowledged mutation failed.
 
-- `ha/heartbeat`: binding `adapter`, no extra fields. Only newly admitted sequence
-  refreshes adapter lease; no sensor-age refresh. Session starts without lease.
+- `ha/heartbeat`: binding `adapter`, no extra fields for old peers. Optional
+  `grant_request_nonce` only after hello `session_capabilities` advertises
+  `session.grant_nonce.v1`. Only newly admitted sequence refreshes adapter lease;
+  no sensor-age refresh. Session starts without lease. A new accepted nonce may
+  anchor the NEXT scheduled grant, not immediate rotation/lease/source renewal.
+  See [GRANT-NONCE.md](GRANT-NONCE.md) for original-send-time deadline proof and
+  strict retry/replay/expiry bounds; never receipt+10s.
 - `ha/config`: binding `config`, extra `expected_revision,config_digest,config`.
   Atomic set/ack, NOT separate prepare/commit. Full immutable HA mapping must be
   durably staged before send. Expected=current and candidate=current+1.

@@ -275,4 +275,69 @@ TEST(ShadowRuntime, RealDemandIsNotUnqualifiedHydraulicReadinessAndReconnectClea
     EXPECT_FALSE(cJSON_IsTrue(field(after.get(),"boiler_output_enabled")));
 }
 
+ControlJson nonceHeartbeat(Fixture &f,unsigned sequence,const char *nonce) {
+    auto o=f.envelope("adapter",sequence);
+    if(nonce)cJSON_AddStringToObject(o.get(),"grant_request_nonce",nonce);
+    return o;
+}
+TEST(GrantNonce, ExplicitCapabilityAndAcceptedHeartbeatOnlyAnchorsNextScheduledRotation) {
+    Fixture f;f.ready();
+    auto h=f.get("fw/hello");auto caps=field(h.get(),"session_capabilities");
+    ASSERT_TRUE(cJSON_IsArray(caps));EXPECT_STREQ(caps->child->valuestring,"session.grant_nonce.v1");
+    auto hb=nonceHeartbeat(f,2,"requestA");auto before=f.output.at("fw/session");f.send("ha/heartbeat",hb.get());
+    EXPECT_EQ(stringField(f.get("fw/heartbeat_result").get(),"status"),"accepted");
+    EXPECT_EQ(f.output.at("fw/session"),before); // Not an immediate grant rotation.
+    f.now+=5000;f.tick();f.syncSession();
+    auto issued=f.get("fw/session");EXPECT_EQ(stringField(issued.get(),"grant_request_nonce"),"requestA");
+    EXPECT_EQ(uintField(issued.get(),"grant_sequence"),2u);EXPECT_FALSE(f.core->faulted());
+    auto state=f.state();EXPECT_FALSE(cJSON_IsTrue(field(state.get(),"boiler_output_enabled")));
+    EXPECT_FALSE(cJSON_IsTrue(field(state.get(),"actuator_output_enabled")));
+}
+TEST(GrantNonce, DuplicateOrChangedOrWrongOwnerCannotReplaceAcceptedProof) {
+    Fixture f;f.ready();auto hb=nonceHeartbeat(f,2,"requestA");f.send("ha/heartbeat",hb.get());f.send("ha/heartbeat",hb.get());
+    EXPECT_EQ(stringField(f.get("fw/heartbeat_result").get(),"status"),"duplicate");
+    auto changed=nonceHeartbeat(f,2,"requestChanged");f.send("ha/heartbeat",changed.get());
+    EXPECT_EQ(stringField(f.get("fw/heartbeat_result").get(),"status"),"rejected");
+    auto foreign=nonceHeartbeat(f,3,"requestForeign");cJSON_SetValuestring(cJSON_GetObjectItemCaseSensitive(foreign.get(),"adapter_id"),"other");
+    f.send("ha/heartbeat",foreign.get());f.now+=5000;f.tick();f.syncSession();
+    EXPECT_EQ(stringField(f.get("fw/session").get(),"grant_request_nonce"),"requestA");
+    f.now+=5000;f.tick();f.syncSession();EXPECT_EQ(field(f.get("fw/session").get(),"grant_request_nonce"),nullptr);
+}
+TEST(GrantNonce, MalformedNonceNeverConsumesHeartbeatSequence) {
+    for(const char *bad:{"","x/y","abcdefghijklmnopqrstuvwxyz0123456789"}) {
+        Fixture f;f.ready();auto hb=nonceHeartbeat(f,2,bad);f.send("ha/heartbeat",hb.get());
+        auto good=nonceHeartbeat(f,2,"valid");f.send("ha/heartbeat",good.get());
+        EXPECT_EQ(stringField(f.get("fw/heartbeat_result").get(),"status"),"accepted");
+        f.now+=5000;f.tick();f.syncSession();EXPECT_EQ(stringField(f.get("fw/session").get(),"grant_request_nonce"),"valid");
+    }
+    Fixture f;f.ready();auto hb=nonceHeartbeat(f,2,nullptr);cJSON_AddNullToObject(hb.get(),"grant_request_nonce");
+    f.send("ha/heartbeat",hb.get());auto good=nonceHeartbeat(f,2,"valid");f.send("ha/heartbeat",good.get());
+    EXPECT_EQ(stringField(f.get("fw/heartbeat_result").get(),"status"),"accepted");
+}
+TEST(GrantNonce, LatestNewHeartbeatWinsAndOldPeerBodyStillAccepted) {
+    Fixture f;f.ready();auto one=nonceHeartbeat(f,2,"first"),two=nonceHeartbeat(f,3,"second");
+    f.send("ha/heartbeat",one.get());f.send("ha/heartbeat",two.get());f.now+=5000;f.tick();f.syncSession();
+    EXPECT_EQ(stringField(f.get("fw/session").get(),"grant_request_nonce"),"second");
+    auto three=nonceHeartbeat(f,4,"third");f.send("ha/heartbeat",three.get());f.heartbeat(5);
+    f.now+=5000;f.tick();f.syncSession();EXPECT_EQ(field(f.get("fw/session").get(),"grant_request_nonce"),nullptr);
+    EXPECT_FALSE(f.core->faulted());
+}
+TEST(GrantNonce, ReconnectAndConfigurationInvalidationClearPendingAndIssuedProofs) {
+    Fixture f;f.ready();auto hb=nonceHeartbeat(f,2,"notPortable");f.send("ha/heartbeat",hb.get());
+    f.core->disconnected();f.core->connected(f.now);f.connect();f.heartbeat();
+    EXPECT_EQ(field(f.get("fw/session").get(),"grant_request_nonce"),nullptr);
+    f.now+=5000;f.tick();f.syncSession();EXPECT_EQ(field(f.get("fw/session").get(),"grant_request_nonce"),nullptr);
+    auto second=nonceHeartbeat(f,2,"oldConfig");f.send("ha/heartbeat",second.get());
+    auto cfg=f.configuration(config(2));f.send("ha/config",cfg.get());f.connect();f.heartbeat();
+    EXPECT_EQ(field(f.get("fw/session").get(),"grant_request_nonce"),nullptr);
+}
+TEST(GrantNonce, NonceCannotBeAttachedToAnotherStreamOrRaiseAnyPhysicalFlag) {
+    Fixture f;f.ready();auto observation=f.observation(1);cJSON_AddStringToObject(observation.get(),"grant_request_nonce","notHeartbeat");
+    f.send("ha/observations",observation.get());auto good=f.observation(1);f.send("ha/observations",good.get());
+    EXPECT_EQ(stringField(f.get("fw/observation_result").get(),"status"),"accepted");
+    f.now+=5000;f.tick();f.syncSession();EXPECT_EQ(field(f.get("fw/session").get(),"grant_request_nonce"),nullptr);
+    auto state=f.state();EXPECT_FALSE(cJSON_IsTrue(field(state.get(),"boiler_output_enabled")));
+    EXPECT_FALSE(cJSON_IsTrue(field(state.get(),"actuator_output_enabled")));
+}
+
 }

@@ -139,7 +139,12 @@ public:
         const auto a=admission_.admit(stream,e,now);
         if(a.code==AdmissionCode::duplicate) { result(resultTopic,e,"duplicate"); if(topic=="ha/snapshot_request") snapshot(); return; }
         if(a.code!=AdmissionCode::accepted) { result(resultTopic,e,"rejected"); return; }
-        if(kind==StreamKind::heartbeat) { leaseWasAlive_=true; result(resultTopic,e,"accepted"); return; }
+        if(kind==StreamKind::heartbeat) {
+            // Only a NEW accepted heartbeat can anchor a future grant. Exact
+            // retries/changed duplicates never replace or re-arm this proof.
+            pendingGrantNonce_=stringField(root.get(),"grant_request_nonce");
+            leaseWasAlive_=true; result(resultTopic,e,"accepted"); return;
+        }
         if(topic=="ha/config") {
             if(uintField(root.get(),"expected_revision")!=revision() || revision()==UINT32_MAX || candidate->revision!=revision()+1) {
                 result(resultTopic,e,"conflict"); return;
@@ -219,6 +224,10 @@ private:
     }
     bool shape(const cJSON *o,std::string_view topic,int index,Configuration &candidate,std::string &configBytes) const {
         std::set<std::string> keys{"api","controller_id","boot_id","epoch","adapter_id","adapter_session_id","grant_id","grant_sequence","config_revision","binding_id","sequence"};
+        if(topic=="ha/heartbeat" && field(o,"grant_request_nonce")) {
+            keys.insert("grant_request_nonce");
+            if(!SessionAdmission::validId(stringField(o,"grant_request_nonce"))) return false;
+        }
         if(topic=="ha/config") {
             keys.insert({"expected_revision","config_digest","config"});
             if(!integerField(o,"expected_revision",0,UINT32_MAX)||!hexString(stringField(o,"config_digest"),64)||!decodeConfig(field(o,"config"),candidate)) return false;
@@ -256,7 +265,8 @@ private:
     void invalidate() {
         supervisor_.invalidate();
         admission_.invalidateTransport(); session_=mappingReady_=leaseWasAlive_=false;
-        sessionId_.clear(); lastOpen_.clear();nextMetrics_=0;metricsSequence_=0;
+        sessionId_.clear(); lastOpen_.clear(); pendingGrantNonce_.clear(); issuedGrantNonce_.clear();
+        nextMetrics_=0;metricsSequence_=0;
         for(size_t i=0;i<config_->count;++i) {
             auto &z=config_->zones[i]; z.sample.unavailable(); z.overrideUntil=0; z.off=false; z.demand=false; z.regulator=ZoneRegulator{};
         }
@@ -267,6 +277,9 @@ private:
     }
     bool newGrant(uint64_t now) {
         grant_=nonce_(); ++grantSequence_; nextGrant_=now+5000;
+        // Issue strictly AFTER receipt of the accepted heartbeat. No immediate
+        // extra rotation that could invalidate another in-flight command.
+        issuedGrantNonce_=std::move(pendingGrantNonce_); pendingGrantNonce_.clear();
         return admission_.issueGrant(grant_,grantSequence_,now,grantMs);
     }
     void open(const cJSON *o,uint64_t now) {
@@ -307,6 +320,8 @@ private:
         auto o=base(); cJSON_AddStringToObject(o.get(),"challenge_id",challenge_.c_str());
         cJSON_AddStringToObject(o.get(),"mode","shadow"); cJSON_AddNumberToObject(o.get(),"lease_ms",leaseMs);
         cJSON_AddNumberToObject(o.get(),"grant_ms",grantMs); cJSON_AddBoolToObject(o.get(),"storage_fault",fault_);
+        auto controlCaps=cJSON_AddArrayToObject(o.get(),"session_capabilities");
+        if(controlCaps)cJSON_AddItemToArray(controlCaps,cJSON_CreateString("session.grant_nonce.v1"));
         if(metrics_) {
             auto caps=cJSON_AddArrayToObject(o.get(),"read_only_capabilities");
             if(caps)cJSON_AddItemToArray(caps,cJSON_CreateString(metricsCapability));
@@ -349,7 +364,9 @@ private:
         auto o=base(); cJSON_AddStringToObject(o.get(),"adapter_id",owner_.c_str());
         cJSON_AddStringToObject(o.get(),"adapter_session_id",sessionId_.c_str()); cJSON_AddStringToObject(o.get(),"client_nonce",clientNonce_.c_str());
         cJSON_AddStringToObject(o.get(),"grant_id",grant_.c_str()); cJSON_AddNumberToObject(o.get(),"grant_sequence",grantSequence_);
-        cJSON_AddNumberToObject(o.get(),"grant_ms",grantMs); cJSON_AddBoolToObject(o.get(),"mapping_ready",mappingReady_); send("fw/session",o.get());
+        cJSON_AddNumberToObject(o.get(),"grant_ms",grantMs); cJSON_AddBoolToObject(o.get(),"mapping_ready",mappingReady_);
+        if(!issuedGrantNonce_.empty()) cJSON_AddStringToObject(o.get(),"grant_request_nonce",issuedGrantNonce_.c_str());
+        send("fw/session",o.get());
     }
     void result(const char *topic,const Envelope &e,const char *status) {
         auto o=base(); cJSON_AddStringToObject(o.get(),"adapter_session_id",std::string(e.session).c_str());
@@ -403,6 +420,7 @@ private:
         send("fw/state/zones",o.get());
     }
     std::string controller_,boot_,owner_,digest_,configBytes_,challenge_,grant_,sessionId_,clientNonce_,lastOpen_;
+    std::string pendingGrantNonce_,issuedGrantNonce_;
     ControlStore &store_; Hash hash_; Nonce nonce_; Publish publish_; Metrics metrics_;
     std::unique_ptr<Configuration> config_=std::make_unique<Configuration>();
     SessionAdmission admission_;

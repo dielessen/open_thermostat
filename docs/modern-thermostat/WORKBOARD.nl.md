@@ -2122,6 +2122,29 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   aan SOURCE-profielidentiteit/hello/session-admission in bestaande wire/controller.
   Software-/HAdependency-/releaseblokkades en GUI/fysieke gates blijven open.
 
+### Mark11785 — F3/F10 native HA-dependency: onafhankelijke kwalificatie
+
+- [x] Canonical9ef975f schoon; bestaand hostreceipt niet herhaald. Actuele§6,
+  PLAN, RESULTStage45, boundedhistory6 en actieve COMPOSED-ENTRY-TASKFLOW gelezen.
+  Bestaande specialist werkt aan Stage46 native entry→SOURCE/controller met
+  tweekamer/readback/reconnect-negatieven; nog geen definitief reviewbaar pakket.
+- [x] Eerdere Stage45dependency-onbekendheid voor de gepinde native testomgeving
+  onafhankelijk opgelost: HA2026.10.2 declareert zelf exactprobatio==0.13.0;
+  echte distributie met MIT-notice, geen shim of nieuw toegevoegde dependency.
+  Beide METADATA-bestanden én origineleLICENSE tegen hun RECORD-SHA256 gecheckt.
+  Dus geen aangetoonde ontbrekende dependency voor deze HA-versie; eerdere
+  formulering hieronder/boven blijft historisch bewijs, niet de huidige conclusie.
+- [ ] Marks geïnstalleerde HA-versie/supportbereik en volledige productentryketen
+  zijn hiermee NIET gekwalificeerd. Geen runtimecorrectie/installatie of
+  Stage46acceptatieclaim. API2graph→regelaarintegratie, GUI, resources en
+  SDK/CA/source-offer/S3FS-releasegates blijven open; hele11785in_progress.
+- Bewijs11774dossier: dependency-parent-evidence/{TASKFLOW.md,PROBE.json}.
+  Alleen bord/evidence gewijzigd; rollback uitsluitend deze nieuwe bordnotitie.
+- Eerstvolgende bewijsactie: finale Stage46patch/manifest onafhankelijk toetsen
+  met echte nativeHA/nieuw gecompileerdeC++peer; werkelijke SOURCEselectie en
+  API2DATA/controllergrens apart aftekenen. Lopende specialist niet onderbroken,
+  geen redundant vervolgbericht/nieuwe eigenaar; officiële volgende check15min.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

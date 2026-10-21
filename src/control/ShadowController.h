@@ -100,7 +100,13 @@ public:
         if(saved.size()>maximumConfigBytes) {fault_=true;return;}
         auto root=parseControlJson(saved);
         if(!root) {fault_=true;return;}
-        if(nativePlanSource_&&nativePlanSource_->legacyReadbackReviewed&&integerField(root.get(),"schema",1,1)) {
+        if(nativePlanSource_&&nativePlanSource_->predecessor
+            &&stringField(root.get(),"profile_digest")!=nativePlanSource_->profileDigest) {
+            auto old=std::make_unique<Configuration>();
+            if(!decodeConfig(root.get(),*old,false,nativePlanSource_->predecessor.get())||fault_) {fault_=true;return;}
+            config_->revision=old->revision; // Exact metadata, ZERO active zones.
+            legacyQuarantine_=true;
+        } else if(nativePlanSource_&&nativePlanSource_->legacyReadbackReviewed&&integerField(root.get(),"schema",1,1)) {
             // Same bounded old decoder, no old runtime/second controller.
             auto old=std::make_unique<Configuration>();
             if(!decodeConfig(root.get(),*old,true)||!old->count||old->count>nativePlanSource_->count) {fault_=true;return;}
@@ -291,9 +297,11 @@ private:
         return comfort.command(*mode,target,now,uintField(o,"duration_ms"),uintField(o,"vacation_until_utc"),utc,validClock);
     }
     static int hexByte(char c) { return c<='9'?c-'0':c-'a'+10; }
-    bool decodeConfig(const cJSON *o,Configuration &out,bool legacyReadback=false) const {
-        if(nativePlanSource_&&!legacyReadback) {
-            if(!canonicalConfig(o)||!validateNativeControlPlan(o,*nativePlanSource_,hash_)||fault_)return false;
+    bool decodeConfig(const cJSON *o,Configuration &out,bool legacyReadback=false,
+                      const NativePlanInstallationSource* readbackSource=nullptr) const {
+        const auto native=readbackSource?readbackSource:nativePlanSource_.get();
+        if(native&&!legacyReadback) {
+            if(!canonicalConfig(o)||!validateNativeControlPlan(o,*native,hash_)||fault_)return false;
         } else if(!exactFields(o,{"mapping_digest","mode","revision","schema","zones"}) || !canonicalConfig(o) ||
             !hexString(stringField(o,"mapping_digest"),64)||stringField(o,"mode")!="shadow"||
             !integerField(o,"revision",1,UINT32_MAX)||!integerField(o,"schema",1,1)) return false;
@@ -341,7 +349,8 @@ private:
             z.scheduled=!cJSON_IsNull(schedule);
             if(z.scheduled && !configureScheduleDocument(z.schedule,schedule)) return false;
             if(seasonalSource_&&!legacyReadback) {
-                const auto pin=seasonalSource_->zone(z.id);
+                const auto oldPin=readbackSource?readbackSource->zone(z.id):nullptr;
+                const auto pin=readbackSource?(oldPin?&oldPin->policy:nullptr):seasonalSource_->zone(z.id);
                 if(!pin||pin->sensorId!=z.sensor||pin->actuatorId!=z.actuator
                     ||z.base<pin->minimumTargetCentiC||z.base>pin->maximumTargetCentiC
                     ||!sourceScheduleBounds(schedule,*pin)
@@ -506,8 +515,9 @@ private:
     void sourcePolicy(cJSON* o) const {
         if(nativePlanSource_) {
             auto profile=cJSON_AddObjectToObject(o,"source_policy");if(!profile)return;
-            cJSON_AddNumberToObject(profile,"schema",nativePlanSource_->legacyReadbackReviewed?3:2);
-            cJSON_AddStringToObject(profile,"kind",nativePlanSource_->legacyReadbackReviewed?"installation.shadow.v2":NativePlanInstallationSource::kind);
+            cJSON_AddNumberToObject(profile,"schema",nativePlanSource_->predecessor?4:nativePlanSource_->legacyReadbackReviewed?3:2);
+            cJSON_AddStringToObject(profile,"kind",nativePlanSource_->predecessor?"installation.shadow.v3":nativePlanSource_->legacyReadbackReviewed?"installation.shadow.v2":NativePlanInstallationSource::kind);
+            if(nativePlanSource_->predecessor)cJSON_AddStringToObject(profile,"predecessor_profile_digest",nativePlanSource_->predecessor->profileDigest.c_str());
             if(nativePlanSource_->legacyReadbackReviewed)cJSON_AddStringToObject(profile,"legacy_readback","schema1_quarantine_only");
             cJSON_AddStringToObject(profile,"adapter_id",owner_.c_str());
             cJSON_AddStringToObject(profile,"profile_digest",nativePlanSource_->profileDigest.c_str());
@@ -544,6 +554,8 @@ private:
         if(comfortCaps&&nativePlanSource_)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(NativePlanInstallationSource::contract));
         if(comfortCaps&&nativePlanSource_&&nativePlanSource_->legacyReadbackReviewed)
             cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(NativePlanInstallationSource::legacyCapability));
+        if(comfortCaps&&nativePlanSource_&&nativePlanSource_->predecessor)
+            cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(NativePlanInstallationSource::evolutionCapability));
         if(metrics_) {
             auto caps=cJSON_AddArrayToObject(o.get(),"read_only_capabilities");
             if(caps)cJSON_AddItemToArray(caps,cJSON_CreateString(metricsCapability));

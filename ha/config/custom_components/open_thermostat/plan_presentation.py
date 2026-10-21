@@ -3,6 +3,8 @@ from datetime import UTC,datetime
 from html import escape
 
 STATUS={
+    "native_plan_profile_review_required":"Previous profile configuration read back in quarantine; explicitly review and apply the new profile plan",
+    "native_profile_evolution_capability_required":"Device does not support the reviewed profile migration; control blocked",
     "native_plan_legacy_review_required":"Old configuration read back in quarantine; explicitly review the new plan",
     "shadow_ready":"Exact current plan readback verified",
     "native_plan_unconfigured_review_required":"Not applied: review the saved rooms",

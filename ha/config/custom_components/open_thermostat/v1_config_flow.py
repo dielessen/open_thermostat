@@ -144,6 +144,13 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
                 self._source_before=self._entry_review_snapshot(entry)
                 self._source_proposal=propose_local_shadow_source(self.hass,entry,user_input["controller_id"],
                     legacy_readback=user_input.get("legacy_readback",False))
+                from .native_provisioning import source_from_selection,reviewed_profile_evolution
+                previous=source_from_selection(entry)
+                if previous is not None and previous!=self._source_proposal:
+                    # Unsupported legacy/deep chains retain the existing explicit
+                    # rejection at confirm; never replace those pins implicitly.
+                    try:self._source_proposal=reviewed_profile_evolution(previous,self._source_proposal)
+                    except ValueError:pass
                 return await self.async_step_installation_source_review()
             except Exception:
                 errors["base"]="native_source_unsupported"
@@ -179,7 +186,11 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
             try:previous=source_from_selection(entry)
             except Exception:return self.async_abort(reason="native_source_replacement_unsupported")
             if previous is not None and previous!=source:
-                return self.async_abort(reason="native_source_replacement_unsupported")
+                from .native_provisioning import current_profile_only
+                if source.predecessor!=current_profile_only(previous):
+                    return self.async_abort(reason="native_source_replacement_unsupported")
+                if user_input.get("confirm_replacement") is not True:
+                    return self.async_abort(reason="native_source_review_cancelled")
             return self.async_create_entry(data={**entry.options,SOURCE_OPTION:source_selection(source)})
         profile,_=source.documents()
         limits=[]
@@ -192,11 +203,14 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
                 " permille/°C, I="+str(c["ki_permille_per_c_minute"])+" permille/(°C·min); cycle/min-on/min-off "+
                 str(c["cycle_ms"]/1000)+"/"+str(c["minimum_on_ms"]/1000)+"/"+str(c["minimum_off_ms"]/1000)+" s")
         rooms=", ".join(room.name for room in source.validate_native(self.hass,entry)[0])
-        return self.async_show_form(step_id="installation_source_review",data_schema=vol.Schema({
-            vol.Required("confirm_source",default=False):bool}),description_placeholders={
+        schema={vol.Required("confirm_source",default=False):bool}
+        if source.predecessor is not None:schema[vol.Required("confirm_replacement",default=False)]=bool
+        return self.async_show_form(step_id="installation_source_review",data_schema=vol.Schema(schema),description_placeholders={
                 "rooms":rooms,"limits":"\n".join(limits),"controller":source.policy.controller_id,"owner":source.policy.adapter_id,
                 "fingerprint":source.policy.profile_digest,"descriptor":canonical(local_device_descriptor(source)),
-                "scope":"Logical shadow profile only; actual device match and config readback still required. Measurement/safety producers UNKNOWN; physical outputs disabled."})
+                "scope":(("Explicit previous profile "+source.policy.predecessor_profile_digest+
+                    " → new profile. Previous config READBACK ONLY; explicit new apply required. ") if source.predecessor else "")+
+                    "Logical shadow profile only; actual device match and config readback still required. Measurement/safety producers UNKNOWN; physical outputs disabled."})
 
     async def async_step_hot_water(self, user_input=None):
         if user_input is not None:

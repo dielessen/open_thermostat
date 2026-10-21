@@ -8,7 +8,7 @@ namespace heating::control {
 // Local authenticated SETTINGS only. This descriptor selects logical SHADOW
 // policy, never a physical protection/report/readiness/actuator qualification.
 // Config, MQTT packets and DATA advertisements MUST NOT call this factory.
-inline std::unique_ptr<NativePlanInstallationSource> nativeSourceFromLocalSettings(
+inline std::unique_ptr<NativePlanInstallationSource> nativeSourceFromLocalSettingsBase(
         const cJSON* compact,std::string_view controller,std::string_view adapter,
         const heating::graph_test::Hash& hash) {
     using namespace heating::graph_test;
@@ -88,6 +88,24 @@ inline std::unique_ptr<NativePlanInstallationSource> nativeSourceFromLocalSettin
 }
 
 namespace heating::control {
+// Separately reviewed one-generation lineage. Decode only plain descriptors,
+// not recursive envelopes. Hashes identify actual independently validated pins.
+inline std::unique_ptr<NativePlanInstallationSource> nativeSourceFromLocalSettings(
+        const cJSON* compact,std::string_view controller,std::string_view adapter,
+        const heating::graph_test::Hash& hash) {
+    try {
+        if(cJSON_IsArray(compact)&&cJSON_GetArraySize(compact)==3) {
+            const auto tag=cJSON_GetArrayItem(compact,0);
+            if(!cJSON_IsString(tag)||std::string_view(tag->valuestring)!="native.source.evolution.v1")return nullptr;
+            auto old=nativeSourceFromLocalSettingsBase(cJSON_GetArrayItem(compact,1),controller,adapter,hash);
+            auto next=nativeSourceFromLocalSettingsBase(cJSON_GetArrayItem(compact,2),controller,adapter,hash);
+            if(!old||!next)return nullptr;
+            next->predecessor=std::shared_ptr<const NativePlanInstallationSource>(std::move(old));
+            return next->valid()?std::move(next):nullptr;
+        }
+        return nativeSourceFromLocalSettingsBase(compact,controller,adapter,hash);
+    } catch(const std::bad_alloc&) {return nullptr;}
+}
 // Actual saved-settings entry, bounded BEFORE parser/string allocation. Same
 // function is used by the production transport and the finite integration peer.
 inline std::unique_ptr<NativePlanInstallationSource> nativeSourceFromSavedDescriptor(
@@ -119,12 +137,20 @@ inline bool nativeSourceSettingValid(const cJSON* mqtt,std::string_view controll
     if(!cJSON_IsString(adapter)||!cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(mqtt,"modern_shadow")))return false;
     return bool(nativeSourceFromLocalSettings(doc,controller,adapter->valuestring,hash));
 }
-// Source replacement needs a separate durable-plan migration contract. Normal
-// goals/schedules never change this profile; reject unsupported reprovisioning.
+// An explicit evolution must name the EXACT old local descriptor. This only
+// permits its readback quarantine, never old control/actuator authority.
 inline bool nativeSourceReplacementAllowed(const cJSON* previous,const cJSON* candidate) {
     const auto old=cJSON_GetObjectItemCaseSensitive(previous,"native_shadow_source");
     const auto next=cJSON_GetObjectItemCaseSensitive(candidate,"native_shadow_source");
-    return !old||cJSON_IsNull(old)||(next&&cJSON_IsNull(next))||(next&&cJSON_Compare(old,next,true));
+    if(!old||cJSON_IsNull(old)||(next&&cJSON_IsNull(next))||(next&&cJSON_Compare(old,next,true)))return true;
+    const auto oldCurrent=(cJSON_IsArray(old)&&cJSON_GetArraySize(old)==3
+        &&cJSON_IsString(cJSON_GetArrayItem(old,0))
+        &&std::string_view(cJSON_GetArrayItem(old,0)->valuestring)=="native.source.evolution.v1")
+        ?cJSON_GetArrayItem(old,2):old;
+    return cJSON_IsArray(next)&&cJSON_GetArraySize(next)==3
+        &&cJSON_IsString(cJSON_GetArrayItem(next,0))
+        &&std::string_view(cJSON_GetArrayItem(next,0)->valuestring)=="native.source.evolution.v1"
+        &&cJSON_Compare(oldCurrent,cJSON_GetArrayItem(next,1),true);
 }
 inline bool nativeNetworkSettingsBytesFit(std::string_view encoded) {return !encoded.empty()&&encoded.size()<2048;}
 }

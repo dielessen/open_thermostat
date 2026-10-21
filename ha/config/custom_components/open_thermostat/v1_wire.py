@@ -185,6 +185,9 @@ class ShadowClient:
                     if record["config"].get("schema")==1:
                         self.native_plan_source.validate_legacy_config(record["config"])
                         parse(canonical(record["mapping"])) # Bound old local mapping before any remote IO.
+                    elif self.native_plan_source.is_predecessor_config(record["config"]):
+                        self.native_plan_source.validate_predecessor_config(record["config"])
+                        if record["config"]["mapping"]!=record["mapping"]:raise ValueError("native_plan_mapping_journal")
                     else:
                         self.native_plan_source.validate_plan(record["config"])
                         if record["config"]["mapping"]!=record["mapping"]:raise ValueError("native_plan_mapping_journal")
@@ -360,9 +363,12 @@ class ShadowClient:
                 self._native_apply_sent=False
                 self.error="native_plan_recovery_review_required" if self.journal["staged"] else "native_plan_unconfigured_review_required"
             self.changed();return
-        if config.get("schema")==1:
-            self.native_plan_source.validate_legacy_config(config)
-            if not self._native_legacy_supported:raise GraphValidationError("native_legacy_capability_required")
+        predecessor=self.native_plan_source.is_predecessor_config(config)
+        if config.get("schema")==1 or predecessor:
+            if predecessor:self.native_plan_source.validate_predecessor_config(config)
+            else:
+                self.native_plan_source.validate_legacy_config(config)
+                if not self._native_legacy_supported:raise GraphValidationError("native_legacy_capability_required")
             if digest(config)!=p["config_digest"] or config["revision"]!=p["config_revision"]:
                 raise GraphValidationError("native_legacy_readback_digest")
             record=self.known(p["config_revision"],p["config_digest"])
@@ -377,7 +383,8 @@ class ShadowClient:
                 self.error="native_plan_apply_unconfirmed"
             else:
                 self._native_apply_sent=False
-                self.error="native_plan_recovery_review_required" if self.journal["staged"] else "native_plan_legacy_review_required"
+                self.error="native_plan_recovery_review_required" if self.journal["staged"] else (
+                    "native_plan_profile_review_required" if predecessor else "native_plan_legacy_review_required")
             self.changed();return # READONLY metadata, never control/admission.
         self._native_legacy_verified=False
         self.native_plan_source.validate_plan(config)
@@ -631,7 +638,9 @@ class ShadowClient:
                 from .native_plan import CONTRACT
                 if (type(comfort_caps) is not list or len(comfort_caps)>8 or CONTRACT not in comfort_caps):
                     self.reset_session();self.error="native_plan_capability_unavailable";self.changed();return
-                from .native_plan import LEGACY_CAPABILITY
+                from .native_plan import LEGACY_CAPABILITY,EVOLUTION_CAPABILITY
+                if self.native_plan_source.predecessor is not None and EVOLUTION_CAPABILITY not in comfort_caps:
+                    self.reset_session();self.error="native_profile_evolution_capability_required";self.changed();return
                 self._native_legacy_supported=LEGACY_CAPABILITY in comfort_caps
                 if self.native_plan_source.policy.legacy_readback_reviewed and not self._native_legacy_supported:
                     self.reset_session();self.error="native_legacy_capability_required";self.changed();return

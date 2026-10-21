@@ -3,11 +3,18 @@
 NOT source selection, a new worker, physical/report qualification or HA auto-send.
 Existing independently reviewed NativePlanSource validates every exported field.
 """
+from dataclasses import replace
 from .graph_shadow_validation import canonical
 from .native_plan import NativePlanSource
 
 def local_device_descriptor(source):
     if type(source) is not NativePlanSource:raise ValueError("native_source_type")
+    source.validate()
+    if source.predecessor is not None:
+        result=["native.source.evolution.v1",local_device_descriptor(source.predecessor),
+            local_device_descriptor(current_profile_only(source))]
+        if len(canonical(result).encode())>=2048:raise ValueError("native_local_settings_budget")
+        return result
     profile,_=source.documents()
     zones=[]
     for z in profile["zones"]:
@@ -35,20 +42,30 @@ def source_from_selection(entry):
     value=entry.options.get(SOURCE_OPTION)
     if value is None:return None
     if type(value) is not dict or len(canonical(value).encode())>8192:raise ValueError("native_source_selection_budget")
-    obj(value,"schema entry_unique_id profile bindings")
-    exact(value["schema"],1)
+    evolving=value.get("schema")==2
+    obj(value,"schema entry_unique_id profile bindings"+(" predecessor" if evolving else ""))
+    exact(value["schema"],2 if evolving else 1)
     exact(value["entry_unique_id"],entry.unique_id,"native_source_entry_owner")
     profile=value["profile"]
     if type(profile) is not dict:raise ValueError("native_source_selection_profile")
     legacy=profile.get("legacy_readback")=="schema1_quarantine_only"
+    previous=None
+    if evolving:
+        prior=value["predecessor"]
+        if type(prior) is not dict or prior.get("schema")!=1:raise ValueError("native_predecessor_depth")
+        from types import SimpleNamespace
+        previous=source_from_selection(SimpleNamespace(unique_id=entry.unique_id,options={SOURCE_OPTION:prior}))
     policy=NativeInstallationPolicy(value["entry_unique_id"],profile.get("controller_id"),profile.get("adapter_id"),
-        digest(profile),legacy_readback_reviewed=legacy)
-    source=NativePlanSource(policy,canonical(profile),canonical(value["bindings"]));source.validate()
+        digest(profile),legacy_readback_reviewed=legacy,
+        predecessor_profile_digest=previous.policy.profile_digest if previous else "")
+    source=NativePlanSource(policy,canonical(profile),canonical(value["bindings"]),previous);source.validate()
     return source
 
 def source_selection(source):
     profile,bindings=source.documents()
+    source.validate()
     value=dict(schema=1,entry_unique_id=source.policy.entry_unique_id,profile=profile,bindings=bindings)
+    if source.predecessor is not None:value.update(schema=2,predecessor=source_selection(source.predecessor))
     if len(canonical(value).encode())>8192:raise ValueError("native_source_selection_budget")
     return value
 
@@ -83,12 +100,44 @@ def propose_local_shadow_source(hass,entry,controller_id,*,legacy_readback=False
             maximum_sensor_age_ms=min(room.maximum_age_ms,120000),report_evidence="physical_report",
             minimum_supply_centi_c=group["supply_limits"]["minimum_centi_c"],
             maximum_supply_centi_c=group["supply_limits"]["maximum_centi_c"]))
+    selected=source_from_selection(entry)
+    revision=1
+    if selected is not None:
+        if selected.policy.controller_id!=controller_id:raise ValueError("native_source_device_changed")
+        revision=selected.documents()[0]["mapping_revision"]
     body=dict(schema=1,kind="native_profile.shadow.v1",controller_id=controller_id,
         adapter_id=entry.options.get("adapter_id",entry.data.get("adapter_id")),layout_digest=digest(layout),
-        mapping_revision=1,zones=rows)
+        mapping_revision=revision,zones=rows)
     if legacy_readback:body.update(schema=2,kind="native_profile.shadow.v2",legacy_readback="schema1_quarantine_only")
     source=NativePlanSource(NativeInstallationPolicy(entry.unique_id,controller_id,body["adapter_id"],digest(body),
         legacy_readback_reviewed=legacy_readback),canonical(body),canonical(bindings))
     source.validate_native(hass,entry)
+    if selected is not None and current_profile_only(selected)==source:source=selected
     local_device_descriptor(source) # Bounds before this proposal reaches review.
     return source
+
+def reviewed_profile_evolution(previous,current):
+    """Exact one-generation SOURCE review; neither config nor DATA authorizes it."""
+    from dataclasses import replace
+    from .graph_shadow_validation import digest
+    previous.validate();current.validate()
+    if previous==current:return current
+    # Explicit next review keeps only the immediately preceding CURRENT pin,
+    # never recursively carries historical profiles or authorizes their config.
+    previous=current_profile_only(previous)
+    if (current.predecessor is not None or previous.policy.legacy_readback_reviewed or current.policy.legacy_readback_reviewed
+        or previous.policy.entry_unique_id!=current.policy.entry_unique_id
+        or previous.policy.controller_id!=current.policy.controller_id
+        or previous.policy.adapter_id!=current.policy.adapter_id):
+        raise ValueError("native_source_replacement_unsupported")
+    profile,_=current.documents();old,_=previous.documents()
+    if old["mapping_revision"]==4294967295:raise ValueError("native_mapping_revision")
+    profile["mapping_revision"]=old["mapping_revision"]+1
+    policy=replace(current.policy,profile_digest=digest(profile),predecessor_profile_digest=previous.policy.profile_digest)
+    result=NativePlanSource(policy,canonical(profile),current.bindings_json,previous)
+    result.validate();local_device_descriptor(result)
+    return result
+
+def current_profile_only(source):
+    source.validate()
+    return NativePlanSource(replace(source.policy,predecessor_profile_digest=""),source.profile_json,source.bindings_json)

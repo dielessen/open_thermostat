@@ -14,6 +14,7 @@ from .v1_heating_graph import validated_graph,resolved_reference
 CONTRACT="control.plan.v1"
 KIND="installation.shadow.v1"
 LEGACY_CAPABILITY="control.plan.legacy_readback.v1"
+EVOLUTION_CAPABILITY="control.plan.profile_evolution.v1"
 LIMITS=dict(zones=2,groups=2,channels=4,config_bytes=4096,wire_bytes=8192,total_transitions=8)
 HEX=re.compile(r"[0-9a-f]{64}")
 
@@ -27,11 +28,14 @@ class NativeInstallationPolicy:
     adapter_id:str
     profile_digest:str
     legacy_readback_reviewed:bool=False
+    predecessor_profile_digest:str=""
 
     def validate(self):
         require(isinstance(self.entry_unique_id,str) and 1<=len(self.entry_unique_id)<=128,"native_entry")
         ident(self.controller_id);ident(self.adapter_id)
         require(type(self.legacy_readback_reviewed) is bool,"native_legacy_profile")
+        require(type(self.predecessor_profile_digest) is str and (not self.predecessor_profile_digest
+            or (HEX.fullmatch(self.predecessor_profile_digest) and not self.legacy_readback_reviewed)),"native_predecessor_profile")
         require(isinstance(self.profile_digest,str) and HEX.fullmatch(self.profile_digest),"native_profile")
 
     def matches(self,p):
@@ -40,6 +44,8 @@ class NativeInstallationPolicy:
             plan_contract=CONTRACT,physical_outputs_enabled=False,frost_protection_available=False,limits=LIMITS)
         if self.legacy_readback_reviewed:
             expected.update(schema=3,kind="installation.shadow.v2",legacy_readback="schema1_quarantine_only")
+        if self.predecessor_profile_digest:
+            expected.update(schema=4,kind="installation.shadow.v3",predecessor_profile_digest=self.predecessor_profile_digest)
         return (p.get("controller_id")==self.controller_id and type(p.get("source_policy")) is dict
             and canonical(p["source_policy"])==canonical(expected))
 
@@ -69,6 +75,7 @@ class NativePlanSource:
     policy:NativeInstallationPolicy
     profile_json:str
     bindings_json:str
+    predecessor:object=None
 
     room_count=2
     profile_version=CONTRACT
@@ -122,7 +129,30 @@ class NativePlanSource:
             require(all(isinstance(ref[k],str) and 1<=len(ref[k])<=255 for k in ref),"native_bindings")
         return profile,bindings
 
-    def validate(self):self.documents()
+    def validate(self):
+        profile,_=self.documents()
+        previous=self.predecessor
+        require((previous is None)==(not self.policy.predecessor_profile_digest),"native_predecessor_required")
+        if previous is not None:
+            require(type(previous) is NativePlanSource and previous is not self and previous.predecessor is None,
+                "native_predecessor_depth")
+            previous.validate();old,_=previous.documents()
+            require(not previous.policy.legacy_readback_reviewed and not self.policy.legacy_readback_reviewed
+                and previous.policy.entry_unique_id==self.policy.entry_unique_id
+                and previous.policy.controller_id==self.policy.controller_id
+                and previous.policy.adapter_id==self.policy.adapter_id
+                and previous.policy.profile_digest==self.policy.predecessor_profile_digest
+                and previous.policy.profile_digest!=self.policy.profile_digest
+                and old["mapping_revision"]<4294967295 and profile["mapping_revision"]==old["mapping_revision"]+1,
+                "native_predecessor_binding")
+
+    def is_predecessor_config(self,config):
+        return self.predecessor is not None and config.get("schema")==2 and config.get("profile_digest")==self.policy.predecessor_profile_digest
+
+    def validate_predecessor_config(self,config):
+        self.validate()
+        require(self.is_predecessor_config(config),"native_predecessor_config")
+        return self.predecessor.validate_plan(config)
 
     def supports_room(self,room):
         profile,_=self.documents()
@@ -132,6 +162,7 @@ class NativePlanSource:
         return tuple(self.documents()[1].values())
 
     def validate_native(self,hass,entry):
+        self.validate()
         profile,bindings=self.documents()
         require(entry.unique_id==self.policy.entry_unique_id
             and entry.options.get("adapter_id",entry.data.get("adapter_id"))==self.policy.adapter_id,"native_owner")

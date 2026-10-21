@@ -96,7 +96,8 @@
         "title": "Confirm the independent shadow profile",
         "description": "Rooms: {rooms}\nReviewed logical limits (not physical protection):\n{limits}\nDevice: {controller}\nHA owner: {owner}\nProfile fingerprint: {fingerprint}\n\nPaste the descriptor below into the E32 local network settings only after reviewing the installation. Save/read back there; device selection applies after a separately authorized restart. This screen does not send it or restart anything.\n\n{descriptor}\n\n{scope}",
         "data": {
-          "confirm_source": "Save this HA logical profile selection (no control/config send)"
+          "confirm_source": "Save this HA logical profile selection (no control/config send)",
+          "confirm_replacement": "I reviewed the exact previous profile and its readback-only migration"
         }
       }
     },

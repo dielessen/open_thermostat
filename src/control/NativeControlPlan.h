@@ -2,6 +2,7 @@
 #include "SessionAdmission.h"
 #include "SeasonalControllerSource.h"
 #include "GraphShadowValidation.h"
+#include <memory>
 
 namespace heating::control {
 // New explicitly negotiated logical SHADOW contract. Not the existing pinned
@@ -22,6 +23,10 @@ struct NativePlanInstallationSource {
     size_t count=0;
     // Independent SOURCE-reviewed extension; never accepted from configuration.
     bool legacyReadbackReviewed=false;
+    // Explicit local SOURCE lineage, READBACK ONLY. No restored zones/grants.
+    // One predecessor; no recursive history or additional persisted config key.
+    std::shared_ptr<const NativePlanInstallationSource> predecessor;
+    static constexpr const char* evolutionCapability="control.plan.profile_evolution.v1";
     static constexpr const char* legacyCapability="control.plan.legacy_readback.v1";
     uint32_t maximumSafetyAgeMs=0,mappingRevision=1;
     bool valid() const {
@@ -29,6 +34,11 @@ struct NativePlanInstallationSource {
         if(!SessionAdmission::validId(controllerId)||!SessionAdmission::validId(adapterId)
             ||!hex(profileDigest)||count!=maximumZones||!mappingRevision
             ||maximumSafetyAgeMs<1000||maximumSafetyAgeMs>120000)return false;
+        if(predecessor&&(predecessor.get()==this||predecessor->predecessor
+            ||legacyReadbackReviewed||predecessor->legacyReadbackReviewed||!predecessor->valid()
+            ||predecessor->controllerId!=controllerId||predecessor->adapterId!=adapterId
+            ||predecessor->profileDigest==profileDigest||predecessor->mappingRevision==UINT32_MAX
+            ||mappingRevision!=predecessor->mappingRevision+1))return false;
         std::set<std::string> ids{"adapter","config","snapshot"},resources;
         bool floor=false,radiator=false;
         for(size_t i=0;i<count;++i) {

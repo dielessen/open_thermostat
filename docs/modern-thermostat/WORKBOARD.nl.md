@@ -1214,6 +1214,35 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   aftekenen. Bestaande specialist vervolgt connectedcomfort/GUIapply/modelowner/
   seizoen-/releasewerk; hele11785software actief, fysieke gates ongewijzigd.
 
+### Mark11785 — F9 enabledadvies-replay: testbron geaccepteerd, modelbeleid AFGEWEZEN
+
+- [x] Exact tweepaden-test/docpakketcb2f4e916afdfe3e9650975673334f403bf6f6af7cd9fa68b96a085fee671334
+  en beide bronhashes715b5a59 gereviewd op canonical5a7ab16. Geen productiecode,
+  modelowner, capability, profiel, runtimeconfig of output gewijzigd.
+- [x] Echte observe()-training met6onafhankelijke synthetische episodes,
+  frozen warm/coast/curveadvies en werkelijke regulator/water/evaluator. Zelfde
+  exogene hashgebonden scenario's, afzonderlijke room-/opslagtrajecten en
+  expliciete toyplant/prehistory; géén werkelijke woning/14dagenbewijs.
+- [x] Canonical strict hostg++17:6PASS; volledige echte GTest plus test/model/
+  regel-/evaluatorTU opnieuw ASan+UBSan gebouwd:dezelfde6PASS met leakdetectie.
+  Native/sanitizer/specialist7semantische rows exactgelijk; geen firmwareflags.
+- [ ] Alle7modelpolicies AFGEWEZEN/ONVOLDOENDE: warm/combined0/14tijdigwarm,
+  deels extra pendelen; coast-only pendelgatefaalt, sourceblocked onvoldoende
+  data/geen advies of vraag. Lagere MAE is géén vrijgave/besparing/modelnut.
+  Gewone combinedcoast0keer gebruikt; expliciete aparte heatinitialpair1keer.
+  Geen veiligheidschending in deze fixtures is geen fysiekeveiligheidsproef.
+- Bewijs11774dossier: ENABLED-REPLAY-PARENT-REVIEW.md, PRECHECK/HASHES/COMMANDS/
+  CHECKS.json, NATIVE/SANITIZER.json/log/BUILD.log en SCENARIOS.jsonl. Rollback
+  uitsluitend dit nieuwe test/docbronpakket, geen runtimedata te herstellen.
+- Gecorrigeerd F5pakket canonical5a7ab16 nagecontroleerd: schoon22hashes,
+  16C++/121HA; ROOM-CORRECTED-PARENT-POSTCHECK.json. Niet geïnstalleerd.
+- Concrete volgende F9diagnose-/softwareopdracht bij bestaande specialist
+  followup02b1d608-d0af-4c68-937d-041382e56628 QUEUED: arrival/cyclingtrace,
+  kwalificatie versus reële modelbeperking; alleen bewezen softwarefout repareren,
+  geen thresholds/plant retunen voorPASS. Admission is geen completion.
+  Bestaande connectedcomfort/GUIapply/modelowner/seizoen/releasevoorbereiding
+  blijft actief. Hele11785software niet klaar; fysieke/72u/verwarmingsgates open.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

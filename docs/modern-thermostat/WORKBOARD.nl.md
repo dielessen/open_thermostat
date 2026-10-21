@@ -1976,6 +1976,13 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   gezamenlijke releasegates. Admission is geencompletion; geen redundantwerkdoor.
   Eigen officiële hervattingsjob geïnspecteerd/behouden; volgendecheck15min.
 
+### Mark11858 — zichtbare voortgang tijdens bestaande uitvoeringschecks
+
+- Mark mist updates en ervaart eindeloze uitvoering. Laatste stille run was volgens jobstate bewust silent, niet bewezen kanaalfout. Tijdens inspectie startte de bestaande volgende uitvoeringsrun; historiesessie gaf een gatewaytimeout, dus geen ongefundeerde live-specialistclaim.
+- Bestaande job72ec7e68 heeft uitsluitend aangepaste berichtinstructies: overdag08:00–23:00Europe/Amsterdam iedere uitvoeringsrun kort resultaat sinds vorigecheck (ook expliciet geen nieuwe oplevering), actuele taak/blokkade met bron en volgende bewijsactie melden. Geen alleen-'bezig', herhaalde testtellingen of verzonnen ETA. Nachtelijke stilte blijft behouden.
+- Geen extra job, gewijzigde planning/toolset of productscope. Exacte voor-/napayload en rollback in `/home/dielessen/artifacts/open-thermostat-execution-11831-20261021/automation-before-11858.json` en bijbehorende taskflow. Configuratiewijziging is geen bewijs van toekomstige kanaalaflevering; volgende echte run/delivery nog controleren.
+- MODEL-NVS-RESULT bevat nieuwStage43-bronpakket4c79f8a; gereed voor onafhankelijke review, niet op basis van specialistRESULT als geïntegreerd/geïnstalleerd/releasegereed aanmerken. Kritieke HA/E32-productketen, GUI en fysieke acceptatie blijven open.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

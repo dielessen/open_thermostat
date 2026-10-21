@@ -237,7 +237,13 @@ Geen live herstart/flash/HA-/broker-/EMS-/Tadoactie of verwarmingsGO.
 
 ## 5. De 11 productfasen — bijgewerkt en afgevinkt waar bewezen
 
-### F0 — basis, upstream en installatieprofiel · in_progress
+### F0 — eigen forkbasis en installatieprofiel · in_progress
+
+- [x] Mark 2026-10-21: de eigen fork is de autoritatieve bron. Geen wijzigingen
+  uit `intuibase/open_thermostat` (remote `upstream`) meer overnemen; geen
+  upstream-pull, merge of rebase plannen of uitvoeren. Historische credits,
+  licentie en verplichte notices blijven behouden. De remote `upstream` zelf
+  blijft onaangeroerd tenzij Mark expliciet anders vraagt.
 
 - [x] WP01-bronkeuzes, builds en behoud van E32partities/locks softwarematig
   gecontroleerd; Arduino3 nu niet overgenomen, begrensde platform7.1.3/Arduino2basis [B1].
@@ -2564,6 +2570,18 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
 - HelePLAN in_progress; software-integratie, GUI, actuele images/resources en F9
   blijven naast fysieke/72u/TX/EMS/actuatorgates open. Niets geïnstalleerd of
   vrijgegeven. Enige bestaande job: next_check exact15m bevestigd.
+
+### F0 — no-upstreamafspraak canoniek gelijkgetrokken, 21 oktober 2026
+
+- Specialistdelta NO-UPSTREAM-SYNC-WORKBOARD-DELTA.md verwerkt in F0 en PLAN.
+  Verouderde overname-/mergeopdrachten vervangen door de bestaande eigen-forkregel;
+  historische commitverwijzingen en attributies behouden. Geen upstreamremoteactie.
+- Scope uitsluitend PLAN/WORKBOARD; geen bronmerge, runtimewijziging, installatie
+  of vrijgave. Gecorrigeerd Stage55pakket407f7097 blijft apart te reviewen;
+  deze documentatiestap is geen acceptatie van dat pakket.
+- TaskFlow, pre-change snapshots en technische nacontrole:
+  /home/dielessen/artifacts/open-thermostat-no-upstream-sync-20261021/.
+  F0 en helePLAN blijven in_progress; bestaande software-/fysieke checks gelden.
 
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 

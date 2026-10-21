@@ -143,15 +143,20 @@ Zie [het actuele werkbord](WORKBOARD.nl.md#1-waar-staan-we) voor uitgevoerd werk
 
 **Belangrijk:** bestaande statusnamen als `boilerStarted` beschrijven interne vraag/softwarestatus. Ze bewijzen op de TX-locked E32 geen branderactiviteit. Een broncodefunctie is geen fysieke acceptatie.
 
-### Nieuwe upstreambasis eerst beoordelen
+### Historische upstreamanalyse — geen actueel overnamedoel
+
+Onderstaande analyse van 19 oktober blijft uitsluitend historische naslag. Het
+besluit van Mark op 21 oktober vervangt alle toenmalige overname-/portopdrachten:
+de eigen fork is autoritatief; geen upstream-pull, merge of rebase plannen of
+uitvoeren. Bestaande credits, licenties en notices blijven behouden.
 
 De fork en upstream zijn divergerend: de controle van 19 oktober vond **drie upstreamcommits** die de fork niet bevat en **tien forkcommits** die upstream niet bevat. We vervangen onze main dus niet door upstream.
 
-- `b2a6df8995a6c59f1006bfb41056d0b2dc020f93`: uitgebreidere verwarmingsstatistieken, o.a. integratie/dashboard/select. Hergebruik beoordelen vóór nieuwe grafiekcode.
+- `b2a6df8995a6c59f1006bfb41056d0b2dc020f93`: uitgebreidere verwarmingsstatistieken, o.a. integratie/dashboard/select. Destijds als hergebruikkandidaat beoordeeld; geen nieuwe overnameopdracht.
 - `fe256952724a5c0ef9b092869f0725597e3c1d65`: Espressif32 8 / Arduino 3, afhankelijkheids-/headeraanpassingen. De generieke 4-MB-ESP32 gaat daar naar één factory-app zonder app-OTA. **Die partitie niet overnemen op E32 V2.** E32-target, dual-app/dual-filesystem, verifier en alle TX-blokkades blijven expliciete behoudseisen. De nieuwe compatibiliteitshook raakt een librarykopie; eerst upstreamondersteuning verkiezen en zo nodig versiegebonden beoordelen.
-- `67b76391f2f81d5d5acd5a8d4675067fddc74448`: EMS-decoding/logging uit UART-pad, begrensde framequeue, vooraf gecodeerde TX. Integreren met behoud van onze write-/forward-/breakblokkades. Geen impliciete vrijgave door een nieuw codepad.
+- `67b76391f2f81d5d5acd5a8d4675067fddc74448`: EMS-decoding/logging uit UART-pad, begrensde framequeue, vooraf gecodeerde TX. Historische integratiekandidaat, geen nieuwe overnameopdracht. Onze write-/forward-/breakblokkades blijven behouden; geen impliciete vrijgave door een nieuw codepad.
 
-Deze bronwijzigingen zijn geen bewijs dat onze Ethernet/WiFi- of EMS-timingproblemen fysiek opgelost zijn. De port gebeurt geïsoleerd, vóór de productuitbreiding, met eigen regressie-uitkomst.
+Deze historische bronwijzigingen zijn geen bewijs dat onze Ethernet/WiFi- of EMS-timingproblemen fysiek opgelost zijn. Eigen wijzigingen blijven afzonderlijk reviewbaar, met eigen regressie-uitkomst en behoud van de fysieke acceptatiegates.
 
 ## 3. Bestaande oplossingen en hergebruik
 
@@ -159,7 +164,7 @@ De opdracht om deze fork uit te breiden is expliciet maatwerk. Toch schrijven we
 
 | Project / gecontroleerde release | Goed herbruikbaar als voorbeeld/basis | Waarom niet het complete eindproduct | Licentie-aandacht |
 | --- | --- | --- | --- |
-| OpenThermostat upstream | Bestaande ESP32-regelstructuur, schema's, UI en nieuwe onderhoudscommits | Gewenste HA-input/output en volledige Classic-route ontbreken in onze huidige basis | MIT |
+| OpenThermostat historische basis | Reeds hergebruikte ESP32-regelstructuur, schema's en UI; geen nieuwe upstreamovernames | Gewenste HA-input/output en volledige Classic-route ontbreken in onze huidige basis | MIT; credits/notices behouden |
 | EMS-ESP 3.8.6 | Telegrammappings, apparaatcapabilities, units, sentinelwaarden, busgedrag; referentie voor uitleespariteit | Volwaardige EMS-gateway, maar geen volledige hier gewenste adaptieve zonethermostaat | LGPL-3.0; bron/notice/linking-/distributievoorwaarden vooraf bepalen bij codehergebruik |
 | SAT 4.2.1 | PID/stooklijnconcepten, heldere vergelijking voor centrale waterregeling | HA-regelbrein met EMS-ESP-backend, niet onze gevraagde native E32-controller; bestaande Classic-mappingbezwaren blijven | GPL-3.0; geen ongetoetste kopie naar MIT |
 | Versatile Thermostat 10.6.1 | Zonefuncties, externe sensor, actuatorprofielen, Auto-TPI, centrale vraag; actuele docs laten ook templatewaarden in centrale actions toe | Daarmee niet bewezen een complete native Classic-EMS-waterregelaar op E32; niet universeel tot alleen vaste vraag reduceren | MIT; geselecteerde herbruikbare delen met notices en tests beoordelen |
@@ -483,18 +488,18 @@ Onderstaande punten blijven als vereisten behouden; daarom geen losse afvinkvakj
 hier die na uitvoering opnieuw achterlopen. Softwarevoorbereiding mag onafhankelijk
 van fysieke commissioning doorgaan; een planupdate is geen ketel-/flashvrijgave.
 
-### F0 — basis, upstream en installatieprofiel
+### F0 — eigen forkbasis en installatieprofiel
 
 **Resultaat:** vastgezette bron-/dependencybasis, behouden forkgeschiedenis en veiligheid, concrete zone-/ketel-/hydrauliekinventaris.
 
-- Acceptatie-eis: Review/cherry-pick/merge de drie afzonderlijke upstreamwijzigingen in geïsoleerde branches; behoud E32target, veilige defaults, partities en alle blokkades.
+- Acceptatie-eis: De eigen fork is de autoritatieve bron; geen nieuwe wijzigingen uit `intuibase/open_thermostat` overnemen en geen upstream-pull/merge/rebase plannen of uitvoeren. Behoud forkgeschiedenis, historische credits/licenties/notices, E32target, veilige defaults, partities en alle blokkades. Remote `upstream` blijft onaangeroerd tenzij Mark anders vraagt.
 - Acceptatie-eis: Beslis op bewezen builds/bench of Arduino3 nu de E32basis wordt; zo niet, leg incompatibiliteit en begrensde vervolgroute vast. Geen ongefundeerde claim dat de huidige clock/radiofout opgelost is.
 - Acceptatie-eis: Maak licentie-/dependencyoverzicht, sourcefilemap en version/capabilitymanifest.
 - Acceptatie-eis: Inventariseer per kamer emitter, sensor, wandbediening, actuator/model/firmware, NC/NO, minimumflow en bereik; verzamel ontbrekende fysieke feiten zonder de softwareanalyse stil te leggen.
 - Acceptatie-eis: Identificeer fysieke E32module/PCB, Classicadapterketen, huidige thermostaat-/bedradingstoestand en herstelroute.
 
 **Acceptatie:** native suite en relevante generic/E32-builds/verifier groen; diff met behoud van locks/partities; geïsoleerde fysieke boardchecks blijven apart open. Woningprofiel heeft geen ongemarkeerde aannames.
-**Volgende bewijsactie:** behoudsreview en uitkomst per upstreamcommit; hardwarechecklist van Mark/geschikte uitvoerder.
+**Volgende bewijsactie:** eigen bron-/dependencybasis en behoud van E32locks/partities/notices toetsen; hardwarechecklist van Mark/geschikte uitvoerder. Geen upstream-sync als werkdoel.
 
 ### F1 — klassieke EMS-uitlezing en paritymanifest
 
@@ -649,7 +654,7 @@ de geïsoleerde [testkandidaat](INTEGRATED-TEST.nl.md) en het
 
 | Werkpakket | Begrensde wijziging | Bewijs / uitkomst |
 | --- | --- | --- |
-| WP01 | Upstreamanalyse en behoudstest; statscommit en Arduino/EMSbasis apart | Reviewbare diffs, targetbuilds, locks/partities behouden; expliciet GO/NO-GO per merge |
+| WP01 | Eigen fork-/dependencybasis en behoudstest; eerdere upstreamanalyse alleen historisch bewijs | Reviewbare eigen diffs, targetbuilds, locks/partities/notices behouden; geen nieuwe upstream-sync |
 | WP02 | `BoilerCapabilities` + paritymanifest + Classic passieve monitoren | Captured/goldenframes en onbekendwaarden; nog nul TX |
 | WP03 | Versiecontract/fixtures + source-neutral samplemodel; vroege Schedule-APIkeuze vóór freeze | Contractreplay en stale/bootcases, geaccepteerde volledige schemarepresentatie; bestaande BLEtests blijven gelijk |
 | WP04 | HA-zoneflow + inputbindingen + geaccepteerde setpointstatus en schemauitvoering | Eén kamer via HA/echte knop/sensor; schema basisdoel/aangrenzend/middernacht/DST/tijdloosboot/herstart; geen firmware-/HAconfigconflict |
@@ -668,7 +673,7 @@ WP02 en contractanalyse kunnen conceptueel parallel, maar hun afhankelijkheden w
   geaccepteerd blijven afzonderlijke statussen; register verwijst naar dit bord.
 
 
-- **Branch/PR per afgebakend werkpakket.** Geen force-push of vervangen van forkgeschiedenis; behouden upstreamremote voor toekomstige updates.
+- **Branch/PR per afgebakend werkpakket.** Geen force-push of vervangen van forkgeschiedenis; remote `upstream` onaangeroerd behouden als historische verwijzing, niet voor toekomstige synchronisatie.
 - **Plan ≠ productie-GO.** Hardware-, ketel-/gegevenswrite-, flash- en elektrische stappen krijgen concrete scope, gereed rollbackpakket en actuele feitencheck voordat ze uitgevoerd worden.
 - **Releases:** firmware, filesystem, integratie, schema-/modelversie en compatibilitymatrix samen benoemen; geen stille vervanging van bestaande alphaassets. Voor E32 installatie via juiste partitie-/backup-/verifieerroute, niet de EMS-ESPwebupdater.
 - **Rollback software:** vorige firmware/configsnapshot/HA-integratie/modelbaseline bewaren; migratie omkeerbaar of vooraf als niet-omkeerbaar blokkeren. Restoreproef telt pas als echt uitgevoerd.
@@ -703,7 +708,7 @@ Startadvies: eerst **één eenvoudig bereikbare radiatorzone met losse betrouwba
 - [Bestaande metrics](https://github.com/dielessen/open_thermostat/blob/a5fc6b84ab62603bca7cc3786f405d497edd17f7/src/EmsMetrics.h), [HA-schattingen](https://github.com/dielessen/open_thermostat/blob/a5fc6b84ab62603bca7cc3786f405d497edd17f7/ha/config/custom_components/open_thermostat/heating.py), [HAconfigflow](https://github.com/dielessen/open_thermostat/blob/a5fc6b84ab62603bca7cc3786f405d497edd17f7/ha/config/custom_components/open_thermostat/config_flow.py), [REST](https://github.com/dielessen/open_thermostat/blob/a5fc6b84ab62603bca7cc3786f405d497edd17f7/src/REST.h).
 - [E32blokkades](https://github.com/dielessen/open_thermostat/blob/a5fc6b84ab62603bca7cc3786f405d497edd17f7/src/Board.h), [E32validatie](../BBQKEES_E32V2_VALIDATION.md), [hardware-/herstelinstructies](../BBQKEES_E32V2.md), [release-errata](../BBQKEES_E32V2_RELEASE_REVIEW.md).
 
-### Nieuwe upstream en herbruikbare projecten
+### Historische upstreamverwijzingen en herbruikbare projecten
 
 - [Statscommit](https://github.com/intuibase/open_thermostat/commit/b2a6df8995a6c59f1006bfb41056d0b2dc020f93), [Arduino3commit](https://github.com/intuibase/open_thermostat/commit/fe256952724a5c0ef9b092869f0725597e3c1d65), [EMSqueuecommit](https://github.com/intuibase/open_thermostat/commit/67b76391f2f81d5d5acd5a8d4675067fddc74448).
 - [EMS-ESP3.8.6ketelmappings](https://github.com/emsesp/EMS-ESP32/blob/v3.8.6/src/devices/boiler.cpp), [actuele ketelcapabilitiesdocumentatie](https://docs.emsesp.org/Boilers), [EMSbusconfiguratie](https://docs.emsesp.org/Configuring). Actuele docs kunnen andere namen hebben dan de gepinde 3.8.6code; per target verifiëren.

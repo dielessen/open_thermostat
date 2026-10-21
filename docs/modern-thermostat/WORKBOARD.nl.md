@@ -1746,6 +1746,14 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   admission is geen completion. Eigen officiële job geïnspecteerd/behouden en
   next_check15m bevestigd; hele softwareplan niet stil gestopt.
 
+### Mark11831 — begrensde parallelisatie, hoofdplan blijft actief
+
+- Mark vraagt doorwerken met snelheid, kritisch/eerlijk, en uitsluitend extra agents als dat werkelijk sneller/beter is.
+- Bestaande HA-specialist behoudt integratie en actief modelwerk. Eén native child wordt eigenaar van uitsluitend generic esp32dev-grootteonderzoek en broncorrectie in eigen checkout. Geen dubbele implementatie van die queued generic-opdracht; andere opdrachten blijven behouden.
+- Generic-size is geen blokkade voor de passende E32-build. E32/HA-integratie doorzetten; geen impliciete installatie-/verwarmingsvrijgave.
+- Acceptatie blijft normale build, echte applicationbin in beide bestaande slots, behouden functies/locks en relevante regressies; geen partitie-/budget-/compilerbeleidversoepeling. Parentreview vóór integratie.
+- Taakbewijs en stop/rollback: `/home/dielessen/artifacts/open-thermostat-execution-11831-20261021/taskflow.md`. Status in_progress; childstart is geen resultaat.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

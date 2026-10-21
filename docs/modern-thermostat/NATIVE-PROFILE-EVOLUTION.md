@@ -12,6 +12,8 @@ Firmware metadata schema4/kind `installation.shadow.v3` declares the exact `pred
 
 ## Actual journal/load/apply behavior
 
+The [explicit local SOURCE-only runtime selection](NATIVE-LIVE-SOURCE.md) now removes the device-reboot requirement for an already running local native profile, without changing this lineage/journal contract. Initial/unsupported selection and general network changes do not silently hot-apply.
+
 The SAME controller validates saved old schema2 using the exact independently reviewed predecessor, including mapping, supply/control/target bounds and schedule/comfort schema. It retains only revision and exact canonical bytes/digest for fresh readback. ZERO active zones/mapping readiness, no restored grants, observations, overrides or learning. Unknown/future/incompatible bytes fault without erase/retry/rewrite.
 
 The SAME HA journal accepts only already-known exact accepted/staged records. A requested, typed, current boot/session/grant readback may reconcile an exact old staged record, but remains NOT ready. Unknown remote bytes remain conflict and cannot stage/overwrite. Only normal explicit prepare/review/apply persists complete current config at N+1, commits via existing Store/readback, and then establishes fresh exact readback before ready. ACK alone never promotes success. Owner/registry/selection rechecked AFTER final Store load before mirror stage/send; failed saves preserve pending/conflict semantics.

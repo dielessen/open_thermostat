@@ -93,6 +93,48 @@ int main() {
 
 
 
+        if(op=="probe_native_source_rebind_allocations") {
+            if(!controlMode||!nativePlanMode||!control)return 9;
+            auto next=nativeSourceFromSavedDescriptor(text("raw"),controller,adapter,hash);
+            if(!next||!next->predecessor)return 10;
+            control->disconnected(); // Never two admitted test owners.
+            const auto previousBytes=store.data;const auto previousWrites=store.writes;
+            size_t allocations=0,failures=0,sticky=0,maxPeak=0,maxLoadReads=0;bool leaks=false,baseline=false;
+            for(size_t fail=0;fail==0||fail<=allocations;++fail) {
+                auto candidate=std::make_unique<ShadowController>(controller,"source_allocation_probe",adapter,store,hash,
+                    []{return "allocation_probe_nonce";},[](auto,auto){},ShadowController::Metrics{},
+                    nullptr,[]{return SeasonalSafetySnapshot{};},next->predecessor.get());
+                if(candidate->faulted())return 11;
+                const auto beforeReads=store.reads;
+                using namespace LocalAllocationProbe;
+                attempt=0;failAt=fail;live=peak=0;
+                cJSON_Hooks hooks{allocate,release};cJSON_InitHooks(&hooks);
+                const bool selected=candidate->replaceNativeSource(*next,now);
+                const auto used=attempt;maxPeak=std::max(maxPeak,LocalAllocationProbe::peak);
+                leaks=leaks||live!=0;
+                cJSON_InitHooks(nullptr);
+                maxLoadReads=std::max(maxLoadReads,size_t(store.reads-beforeReads));
+                if(!fail){allocations=used;baseline=selected;}
+                else {
+                    if(!selected)++failures;
+                    const auto reads=store.reads;
+                    if(candidate->faulted()&&!candidate->replaceNativeSource(*next,now)
+                        &&candidate->faulted()&&store.reads==reads)++sticky;
+                }
+                if(allocations>512||store.data!=previousBytes||store.writes!=previousWrites)return 12;
+            }
+            gt::Json reply(cJSON_CreateObject(),cJSON_Delete);
+            cJSON_AddBoolToObject(reply.get(),"accepted",baseline);cJSON_AddBoolToObject(reply.get(),"leaks",leaks);
+            cJSON_AddNumberToObject(reply.get(),"allocation_faults",allocations);
+            cJSON_AddNumberToObject(reply.get(),"rejected_faults",failures);
+            cJSON_AddNumberToObject(reply.get(),"sticky_no_IO_retry",sticky);
+            cJSON_AddNumberToObject(reply.get(),"maximum_reselection_read_attempts",maxLoadReads);
+            cJSON_AddNumberToObject(reply.get(),"host_cjson_peak_requested_bytes",maxPeak);
+            cJSON_AddNumberToObject(reply.get(),"writes",store.writes);
+            cJSON_AddBoolToObject(reply.get(),"boiler_output_enabled",false);
+            cJSON_AddBoolToObject(reply.get(),"actuator_output_enabled",false);
+            std::cout<<gt::print(reply.get())<<std::endl;continue;
+        }
         if(op=="probe_local_source_allocations") {
             const auto parsed=parseControlJson(text("raw"));if(!parsed)return 7;
             size_t allocations=0,failures=0,maxPeak=0;bool leaks=false,baseline=false;
@@ -133,6 +175,13 @@ int main() {
             cJSON_AddBoolToObject(reply.get(),"accepted",sourceValid&&within);
             cJSON_AddBoolToObject(reply.get(),"source_valid",sourceValid);
             cJSON_AddBoolToObject(reply.get(),"within_budget",within);
+            cJSON_AddBoolToObject(reply.get(),"source_only",candidate&&previous&&nativeSourceOnlySettingsChange(previous.get(),candidate.get()));
+            cJSON_AddBoolToObject(reply.get(),"requires_source_apply",nativeSourceNeedsExplicitApply(oldMq,mq));
+            const auto running=cJSON_GetObjectItemCaseSensitive(root.get(),"running_settings");
+            const auto runningRoot=cJSON_IsString(running)?parseControlJson(running->valuestring,true):ControlJson(nullptr,cJSON_Delete);
+            const auto runningBase=runningRoot?nativeSourceNetworkBase(runningRoot.get()):ControlJson(nullptr,cJSON_Delete);
+            cJSON_AddBoolToObject(reply.get(),"running_settings_match",runningBase&&nativeSourceNetworkStillCurrent(
+                printJson(runningBase.get()),text("previous")));
             cJSON_AddStringToObject(reply.get(),"encoded",encoded.c_str());
             cJSON_AddBoolToObject(reply.get(),"boiler_output_enabled",false);
             cJSON_AddBoolToObject(reply.get(),"actuator_output_enabled",false);
@@ -151,7 +200,25 @@ int main() {
             cJSON_AddBoolToObject(reply.get(),"actuator_output_enabled",false);
             std::cout<<gt::print(reply.get())<<std::endl;continue;
         }
-        if(op=="initialize_native_local_source") {
+        bool nativeReplaced=false;
+        if(op=="preview_native_local_source") {
+            auto selected=nativeSourceFromSavedDescriptor(text("local_source"),controller,adapter,hash);
+            if(!controlMode||!nativePlanMode||!control)return 9;
+            nativeReplaced=selected&&control->nativeSourceCanReplace(*selected);
+        } else if(op=="replace_native_local_source") {
+            auto selected=nativeSourceFromSavedDescriptor(text("local_source"),controller,adapter,hash);
+            if(!controlMode||!nativePlanMode||!control)return 9;
+            if(!selected)control->inhibitNativeSourceMutation();
+            else {
+                if(cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(root.get(),"reenter_during_load"))) {
+                    reenterHash=true;callbackNow=now;
+                }
+                nativeReplaced=control->replaceNativeSource(*selected,now);
+                // Synthetic durable LOCAL settings seam. Saved descriptor now
+                // selects next boot too; core/store/object are NOT reconstructed.
+                nativePlanSource=std::move(selected);
+            }
+        } else if(op=="initialize_native_local_source") {
             controller=text("controller");boot=text("boot");adapter=text("owner");store.data=text("stored");
             nativePlanSource=nativeSourceFromSavedDescriptor(text("local_source"),controller,adapter,hash);
             if(!nativePlanSource)return 6; // Invalid selected source never falls back.
@@ -307,6 +374,7 @@ int main() {
         cJSON_AddBoolToObject(result.get(),"fault",(controlMode?control->faulted():owner->faulted()));
         cJSON_AddNumberToObject(result.get(),"revision",(controlMode?control->revision():owner->configuration().revision()));
         cJSON_AddNumberToObject(result.get(),"writes",store.writes);
+        if(op=="replace_native_local_source"||op=="preview_native_local_source")cJSON_AddBoolToObject(result.get(),"source_selected",nativeReplaced);
         cJSON_AddNumberToObject(result.get(),"reads",store.reads);
         cJSON_AddNumberToObject(result.get(),"store_bytes",store.data.size());
         cJSON_AddNumberToObject(result.get(),"object_bytes",sizeof(GraphSessionOwner));
@@ -322,6 +390,7 @@ int main() {
         cJSON_AddNumberToObject(result.get(),"grant_deadline_ms",(controlMode?0:owner->configuration().grantDeadline(now)));
         cJSON_AddStringToObject(result.get(),"status",(controlMode?(nativePlanMode?"native_complete_plan":floorBridgeMode?floorBridgeView->status():(topologyMode?topologyView->status():controlView->status())):owner->configuration().status().c_str()));
         if(nativePlanMode)cJSON_AddNumberToObject(result.get(),"native_source_object_bytes",sizeof(NativePlanInstallationSource));
+        if(nativePlanMode)cJSON_AddBoolToObject(result.get(),"native_source_replaceable",control->nativeSourceReplaceable());
         cJSON_AddBoolToObject(result.get(),"boiler_output_enabled",controlMode?false:owner->configuration().boilerOutputEnabled());
         cJSON_AddBoolToObject(result.get(),"actuator_output_enabled",controlMode?false:owner->configuration().actuatorOutputEnabled());
         std::cout<<gt::print(result.get())<<std::endl;

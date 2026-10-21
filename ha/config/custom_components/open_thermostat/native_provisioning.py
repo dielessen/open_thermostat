@@ -141,3 +141,24 @@ def reviewed_profile_evolution(previous,current):
 def current_profile_only(source):
     source.validate()
     return NativePlanSource(replace(source.policy,predecessor_profile_digest=""),source.profile_json,source.bindings_json)
+
+async def source_review_predecessor(hass,entry,selected):
+    """Same native journal, read-only; actual remote proof is STILL required."""
+    from homeassistant.helpers.storage import Store
+    from .v1_wire import ShadowClient
+    from .graph_shadow_validation import obj,canonical
+    value=await Store(hass,1,"open_thermostat.v1."+entry.entry_id).async_load()
+    if value is None:value={"accepted":None,"staged":None}
+    obj(value,"accepted staged")
+    candidates=[current_profile_only(selected)]
+    if selected.predecessor is not None:candidates.append(selected.predecessor)
+    for source in candidates:
+        try:
+            for record in value.values():
+                if record is None:continue
+                if not ShadowClient.valid_record(record):raise ValueError("native_source_journal_invalid")
+                source.validate_plan(record["config"])
+                if record["mapping"]!=record["config"]["mapping"]:raise ValueError("native_source_journal_invalid")
+            return source,canonical(value)
+        except ValueError:pass
+    raise ValueError("native_source_pending_or_conflicting_journal")

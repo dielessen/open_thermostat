@@ -219,7 +219,9 @@
 <p>Device controller ID: <code id="NativeSourceDeviceID">Load settings</code></p>
 <label for="NativeShadowSource">Reviewed local profile descriptor (optional)</label>
 <textarea class="form-control" id="NativeShadowSource" rows="4" maxlength="2048" aria-describedby="NativeShadowSourceHelp"></textarea>
-<small id="NativeShadowSourceHelp">Separate installation review, not a room target or heating permission. Leave empty for NONE. Saved for the next restart; total network settings stay limited to 2048 bytes. Measurement and safety producers are not qualified by this profile; physical outputs remain disabled.</small>
+<small id="NativeShadowSourceHelp">Separate installation review, not a room target or heating permission. Leave empty for NONE. Initial selection/other network changes require a restart. An existing native profile can be replaced with the explicit live action below, without device restart. Total network settings stay limited to 2048 bytes. Measurement and safety producers are not qualified by this profile; physical outputs remain disabled.</small>
+<button type="button" class="btn btn-outline-primary mt-2" id="ApplyNativeSourceNow" onclick="applyNativeSourceNow();" disabled>Apply reviewed SOURCE now (no device restart)</button>
+<small class="form-text text-muted">Only this descriptor changes; other unsaved form edits are not sent. A fresh session and explicit HA plan apply/readback are still required for control. Pending source edits retain the last known durable predecessor; uncertain configuration outcomes must be resolved first. Uncertain storage/runtime errors block control.</small>
 </details>
 
 								<div class="form-row">
@@ -623,6 +625,7 @@
 	}
 
     var loadedNetworkSettings = null;
+    var nativeSourceApplyPending = false;
     async function updateWeatherEditorVisibility() {
         const card = document.getElementById('LegacyWeatherSettings');
         const controls = card.querySelectorAll('input, select, button');
@@ -637,6 +640,7 @@
 
 	function loadDeviceSettings() {
         loadedNetworkSettings = null;
+        nativeSourceApplyPending = false; // explicit fresh readback, not an automatic retry.
 		$("#NetworkSettings *").attr('disabled', true)
 
 		fetch(hostName + '/config/device')
@@ -646,6 +650,7 @@
                 loadedNetworkSettings = JSON.parse(JSON.stringify(settings));
                 $('#NativeShadowSource').val('');
                 $('#NativeShadowSourceSection').prop('hidden', true);
+                $('#ApplyNativeSourceNow').prop('disabled', true);
                 $('#NativeSourceDeviceID').text('Unavailable: SOURCE selection is unsupported by this firmware');
                 updateWeatherEditorVisibility();
 				$('#DeviceHostname').val(settings.hostname);
@@ -674,6 +679,7 @@
                     $('#NativeSourceDeviceID').text(settings.mqtt.native_source_device_id || 'Unavailable: SOURCE selection is unsupported by this firmware');
                     $('#NativeShadowSourceSection').prop('hidden', !settings.mqtt.native_source_device_id);
                     $('#NativeShadowSource').val(settings.mqtt.native_shadow_source == null ? '' : JSON.stringify(settings.mqtt.native_shadow_source));
+                    $('#ApplyNativeSourceNow').prop('disabled', settings.mqtt.native_source_live_apply !== true);
 					$('#DeviceMQTTEnabled').prop('checked', settings.mqtt.enabled),
 						$('#DeviceMQTTPublishHomeAssistantDiscovery').prop('checked', settings.mqtt.publishHomeAssistantDiscovery !== false),
 						$('#DeviceMQTTBrokerAddress').val(settings.mqtt.brokerAddress),
@@ -697,6 +703,7 @@
 				if (error instanceof HttpResponseException && error.status === 404) {
 					alert("Cannot load device settings\n" + error);
 					$("#NetworkSettings *").attr('disabled', false)
+                    $('#ApplyNativeSourceNow').prop('disabled', true);
 					return;
 				}
 				if (confirm("Cannot load device settings\n" + error + "\nTry again?")) {
@@ -704,7 +711,41 @@
 				}
 			});
 		$("#NetworkSettings *").attr('disabled', false)
+        $('#ApplyNativeSourceNow').prop('disabled', true); // only fresh successful readback may enable.
 	}
+
+    async function applyNativeSourceNow() {
+        if (nativeSourceApplyPending) return;
+        const mqtt = loadedNetworkSettings && loadedNetworkSettings.mqtt;
+        if (!mqtt || mqtt.native_source_live_apply !== true) {
+            alert('Live SOURCE replacement is unavailable. Initial selection, NONE and network changes require the normal reviewed settings/restart route.'); return;
+        }
+        let descriptor;
+        try { descriptor = JSON.parse($('#NativeShadowSource').val().trim()); }
+        catch (_) { alert('Enter a valid explicitly reviewed SOURCE descriptor.'); return; }
+        if (!Array.isArray(descriptor)) { alert('Live SOURCE replacement needs a nonempty reviewed descriptor array; it cannot select NONE.'); return; }
+        if (!confirm('Apply ONLY the independently reviewed local SOURCE now, without restarting the device? Old control is invalidated. The old plan remains readback-only until a fresh HA session and explicit new plan apply/readback. Other unsaved network edits are not sent.')) return;
+        $('#ApplyNativeSourceNow').prop('disabled', true);
+        nativeSourceApplyPending = true;
+        try {
+            const settings = JSON.parse(JSON.stringify(loadedNetworkSettings));
+            settings.mqtt.native_shadow_source = descriptor;
+            settings.native_source_apply = true; // transient request, never persisted as permission.
+            const res = await fetch(hostName + '/config/device', {
+                method:'POST',cache:'no-cache',credentials:'same-origin',
+                headers:{"Content-Type":"application/json"},body:JSON.stringify(settings)
+            });
+            if (res.status === 200 || res.status === 201) {
+                alert('Local SOURCE selection verified. No device restart was requested. Review the current HA plan and require fresh exact device readback; physical outputs remain disabled.');
+                loadDeviceSettings();
+            } else {
+                alert('SOURCE selection is not confirmed (HTTP '+res.status+'). Control may be blocked after uncertain storage. Read back and review before recovery; do not blindly retry.');
+            }
+        } catch (_) {
+            alert('SOURCE update outcome unknown. Read back current settings and HA status before recovery; no automatic retry or restart.');
+        }
+        // Do NOT re-enable on unknown/error: only fresh settings readback may do so.
+    }
 
 	function saveDeviceSettings() {
         if (!loadedNetworkSettings) { alert('Load device settings before saving.'); return; }

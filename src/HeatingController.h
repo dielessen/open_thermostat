@@ -173,6 +173,13 @@ public:
 		ems_.loop();
 	}
 	bool modernMode() const { return mqtt_.modernMode(); }
+#ifdef OPENTHERMOSTAT_E32V2
+    bool nativeSourceCurrent(std::string_view expected,std::string_view savedSettings) const {return mqtt_.nativeSourceCurrent(expected,savedSettings);}
+    bool nativeSourceHotReady(std::string_view expected,std::string_view savedSettings) const {return mqtt_.nativeSourceHotReady(expected,savedSettings);}
+    bool nativeSourceCanApply(std::string_view expected,std::string_view next,std::string_view saved) const {return mqtt_.nativeSourceCanApply(expected,next,saved);}
+    bool applyNativeSource(std::string_view expected,std::string_view next,std::string_view previousSettings) {return mqtt_.applyNativeSource(expected,next,previousSettings);}
+    void inhibitNativeSourceMutation() {mqtt_.inhibitNativeSourceMutation();}
+#endif
 
 	void getBoilerStatus(std::ostream &ss) const {
 		boiler_.getStatus(ss);

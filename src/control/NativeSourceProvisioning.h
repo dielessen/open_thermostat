@@ -150,7 +150,51 @@ inline bool nativeSourceReplacementAllowed(const cJSON* previous,const cJSON* ca
     return cJSON_IsArray(next)&&cJSON_GetArraySize(next)==3
         &&cJSON_IsString(cJSON_GetArrayItem(next,0))
         &&std::string_view(cJSON_GetArrayItem(next,0)->valuestring)=="native.source.evolution.v1"
-        &&cJSON_Compare(oldCurrent,cJSON_GetArrayItem(next,1),true);
+        &&(cJSON_Compare(oldCurrent,cJSON_GetArrayItem(next,1),true)
+            ||(oldCurrent!=old&&cJSON_Compare(cJSON_GetArrayItem(old,1),cJSON_GetArrayItem(next,1),true)));
 }
+// Explicit hot SOURCE selection cannot smuggle a network/owner/device change.
+// Copy only bounded already-parsed settings; never change saved caller trees.
+inline bool nativeSourceNeedsExplicitApply(const cJSON* previous,const cJSON* next) {
+    const auto a=cJSON_GetObjectItemCaseSensitive(previous,"native_shadow_source");
+    const auto b=cJSON_GetObjectItemCaseSensitive(next,"native_shadow_source");
+    return a&&!cJSON_IsNull(a)&&b&&!cJSON_IsNull(b)&&!cJSON_Compare(a,b,true);
+}
+inline bool nativeSourceOnlySettingsChange(const cJSON* previous,const cJSON* next) {
+    if(!cJSON_IsObject(previous)||!cJSON_IsObject(next))return false;
+    heating::graph_test::Json old(cJSON_Duplicate(previous,true),cJSON_Delete),candidate(cJSON_Duplicate(next,true),cJSON_Delete);
+    if(!old||!candidate)return false;
+    auto a=cJSON_GetObjectItemCaseSensitive(old.get(),"mqtt");
+    auto b=cJSON_GetObjectItemCaseSensitive(candidate.get(),"mqtt");
+    if(!cJSON_IsObject(a)||!cJSON_IsObject(b))return false;
+    const auto oldSource=cJSON_GetObjectItemCaseSensitive(a,"native_shadow_source");
+    const auto newSource=cJSON_GetObjectItemCaseSensitive(b,"native_shadow_source");
+    if(!cJSON_IsArray(oldSource)||!cJSON_IsArray(newSource))return false;
+    cJSON_DeleteItemFromObjectCaseSensitive(a,"native_shadow_source");
+    cJSON_DeleteItemFromObjectCaseSensitive(b,"native_shadow_source");
+    return cJSON_Compare(old.get(),candidate.get(),true);
+}
+// Ephemeral startup settings identity, bounded by existing2048B. It is NOT
+// persisted or an authority token. Ignore ONLY source selection; retain all
+// broker/device/secrets/unknown future fields so pending network edits block hot
+// apply. cJSON comparison tolerates field order, not changed values.
+inline heating::graph_test::Json nativeSourceNetworkBase(const cJSON* settings) {
+    using namespace heating::graph_test;
+    Json copy(cJSON_IsObject(settings)?cJSON_Duplicate(settings,true):nullptr,cJSON_Delete);
+    if(!copy)return copy;
+    auto mq=cJSON_GetObjectItemCaseSensitive(copy.get(),"mqtt");
+    if(!cJSON_IsObject(mq))return Json(nullptr,cJSON_Delete);
+    cJSON_DeleteItemFromObjectCaseSensitive(mq,"native_shadow_source");
+    return copy;
+}
+inline bool nativeSourceNetworkStillCurrent(std::string_view base,std::string_view saved) {
+    if(base.empty()||base.size()>=2048||saved.empty()||saved.size()>=2048)return false;
+    try {
+        const auto before=parseControlJson(base,true),current=parseControlJson(saved,true);
+        const auto filtered=current?nativeSourceNetworkBase(current.get()):heating::graph_test::Json(nullptr,cJSON_Delete);
+        return before&&filtered&&cJSON_Compare(before.get(),filtered.get(),true);
+    } catch(const std::bad_alloc&) {return false;} // read-only eligibility must fail before settings mutation.
+}
+
 inline bool nativeNetworkSettingsBytesFit(std::string_view encoded) {return !encoded.empty()&&encoded.size()<2048;}
 }

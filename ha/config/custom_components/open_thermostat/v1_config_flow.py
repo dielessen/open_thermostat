@@ -158,39 +158,53 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
             vol.Required("controller_id"):str,vol.Optional("legacy_readback",default=False):bool}),errors=errors)
 
     async def async_step_installation_source_review(self,user_input=None):
-        from .native_provisioning import source_selection,local_device_descriptor
+        from .native_provisioning import (SOURCE_OPTION,source_selection,source_from_selection,
+            local_device_descriptor,current_profile_only,reviewed_profile_evolution,source_review_predecessor)
         from .graph_shadow_validation import canonical
         source=getattr(self,"_source_proposal",None)
         try:entry=self.config_entry
         except config_entries.UnknownEntry:return self.async_abort(reason="native_source_review_changed")
-        if (source is None or self.hass.config_entries.async_get_entry(entry.entry_id) is not entry
-                or self._entry_review_snapshot(entry)!=self._source_before or entry.options.get(CONF_ENABLED,False)):
-            return self.async_abort(reason="native_source_review_changed")
-        try:source.validate_native(self.hass,entry)
+        def unchanged():
+            return (self.hass.config_entries.async_get_entry(entry.entry_id) is entry
+                and self._entry_review_snapshot(entry)==self._source_before and not entry.options.get(CONF_ENABLED,False))
+        if source is None or not unchanged():return self.async_abort(reason="native_source_review_changed")
+        try:
+            source.validate_native(self.hass,entry)
+            previous=source_from_selection(entry)
         except Exception:return self.async_abort(reason="native_source_review_changed")
-        if user_input is not None:
-            if user_input.get("confirm_source") is not True:
-                return self.async_abort(reason="native_source_review_cancelled")
-            from . import (_selected_graph_data_profile,_selected_graph_controller_source,
-                _selected_controller_policy_source_profile,_NATIVE_PLAN_SOURCE_PROFILES)
-            # No overlapping owner/compiler pin. Source selection is explicit
-            # and still unverified until actual device metadata/session readback.
+        if user_input is not None and user_input.get("confirm_source") is not True:
+            return self.async_abort(reason="native_source_review_cancelled")
+        def owner_current():
+            from . import (_NATIVE_PLAN_SOURCE_PROFILES,_selected_native_plan_source,
+                _selected_graph_data_profile,_selected_graph_controller_source,_selected_controller_policy_source_profile)
             try:
-                overlap=(any(s.policy.entry_unique_id==entry.unique_id for s in _NATIVE_PLAN_SOURCE_PROFILES)
-                    or _selected_graph_data_profile(entry) is not None
-                    or _selected_graph_controller_source(entry) is not None
-                    or _selected_controller_policy_source_profile(entry) is not None)
-            except Exception:return self.async_abort(reason="native_source_owner_conflict")
-            if overlap:return self.async_abort(reason="native_source_owner_conflict")
-            from .native_provisioning import SOURCE_OPTION,source_from_selection
-            try:previous=source_from_selection(entry)
-            except Exception:return self.async_abort(reason="native_source_replacement_unsupported")
-            if previous is not None and previous!=source:
-                from .native_provisioning import current_profile_only
-                if source.predecessor!=current_profile_only(previous):
-                    return self.async_abort(reason="native_source_replacement_unsupported")
-                if user_input.get("confirm_replacement") is not True:
-                    return self.async_abort(reason="native_source_review_cancelled")
+                return (not any(s.policy.entry_unique_id==entry.unique_id for s in _NATIVE_PLAN_SOURCE_PROFILES)
+                    and _selected_native_plan_source(entry)==previous
+                    and _selected_graph_data_profile(entry) is None and _selected_graph_controller_source(entry) is None
+                    and _selected_controller_policy_source_profile(entry) is None)
+            except Exception:return False
+        if not owner_current():return self.async_abort(reason="native_source_owner_conflict")
+        if previous is not None and previous!=source:
+            if source.predecessor is None:
+                if user_input is not None:return self.async_abort(reason="native_source_replacement_unsupported")
+            else:
+                try:
+                    effective,journal=await source_review_predecessor(self.hass,entry,previous)
+                    # AFTER final Store await: registry, owner, selected source,
+                    # native entry and exact journal/displayed proposal all fence.
+                    if not unchanged():return self.async_abort(reason="native_source_review_changed")
+                    if not owner_current():return self.async_abort(reason="native_source_owner_conflict")
+                    proposed=reviewed_profile_evolution(effective,current_profile_only(source))
+                    proposed.validate_native(self.hass,entry)
+                except Exception:return self.async_abort(reason="native_source_plan_apply_required")
+                if user_input is not None:
+                    if (journal!=getattr(self,"_source_journal_review",None) or proposed!=source):
+                        return self.async_abort(reason="native_source_review_changed")
+                else:
+                    self._source_journal_review=journal;self._source_proposal=source=proposed
+        if user_input is not None:
+            if previous is not None and previous!=source and user_input.get("confirm_replacement") is not True:
+                return self.async_abort(reason="native_source_review_cancelled")
             return self.async_create_entry(data={**entry.options,SOURCE_OPTION:source_selection(source)})
         profile,_=source.documents()
         limits=[]

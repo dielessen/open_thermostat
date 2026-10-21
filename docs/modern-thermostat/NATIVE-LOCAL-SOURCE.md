@@ -16,6 +16,8 @@ The factory continues the same transport/controller/NVS config key. It deliberat
 
 ## Lifecycle/data refusal
 
+Existing local native profiles may use the separately explicit [source-only no-device-restart action](NATIVE-LIVE-SOURCE.md); initial selection/NONE/other network changes still use their reviewed restart path. Same controller/boot, strictly new control epoch, no automatic new plan admission. Previously pending network edits or uncertain settings commits block rather than silently continue old policy.
+
 Source selection requires HA runtime already OFF, current entry/owner/registry/layout snapshot and explicit confirm. Cancel/parallel native drift/deleted entry/owner overlap fail before persistence or send. Existing ordinary Settings saves preserve source selection rather than dropping it. A changed actual device profile or old grant cannot satisfy the pinned handshake.
 
 Old cached E32 forms which omit the new source field retain its existing value. Explicit null is NONE with a visible confirmation; config/journal data is NOT erased. Arbitrary replacement remains refused. The separately versioned [explicit native profile evolution](NATIVE-PROFILE-EVOLUTION.md) now permits one exact independently reviewed previous CURRENT profile in readback-only quarantine, followed by normal explicit new full-config apply/readback. Restoring compatible selections is never permission to erase/adopt unknown bytes. Goal/schedule changes within the current profile remain separate; physical installation/report/protection reprovisioning remains OPEN.

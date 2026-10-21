@@ -305,6 +305,21 @@ public:
 		return modernMode_;
 	}
 
+#ifdef OPENTHERMOSTAT_E32V2
+    bool nativeSourceCurrent(std::string_view expected,std::string_view savedSettings) const {
+        return modernMode_&&modern_&&modern_->nativeSourceCurrent(expected,savedSettings);
+    }
+    bool nativeSourceHotReady(std::string_view expected,std::string_view savedSettings) const {
+        return modernMode_&&modern_&&modern_->nativeSourceHotReady(expected,savedSettings);
+    }
+    bool nativeSourceCanApply(std::string_view expected,std::string_view next,std::string_view saved) const {
+        return modernMode_&&modern_&&modern_->nativeSourceCanApply(expected,next,saved);
+    }
+    bool applyNativeSource(std::string_view expected,std::string_view next,std::string_view previousSettings) {
+        return modernMode_&&modern_&&modern_->applyNativeSource(expected,next,previousSettings);
+    }
+    void inhibitNativeSourceMutation() {if(modern_)modern_->inhibitNativeSourceMutation();}
+#endif
 private:
 	void handleTemporaryCommand(uint8_t const *payload, unsigned int length) {
 		if (length == 0 || length > 512) return;

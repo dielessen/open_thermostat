@@ -9,6 +9,7 @@
 #include "ControlPartitionBudget.h"
 #include "Network.h"
 #include "config.h"
+#include "DeviceNetworkSettings.h"
 #include <WiFiClient.h>
 #include <PubSubClient.h>
 #include <esp_timer.h>
@@ -103,6 +104,15 @@ public:
             // Actual independent safety producer is not yet supported. Unknown
             // is deliberately UNKNOWN, not a timestamped synthetic all-safe flag.
             safety=[] {return SeasonalSafetySnapshot{};};
+            try {
+                const auto saved=heating::readDeviceNetworkSettings();
+                const auto root=parseControlJson(std::string_view(saved.c_str(),saved.length()),true);
+                const auto actual=root?field(root.get(),"mqtt"):nullptr;
+                if(!actual||printJson(field(actual,"native_shadow_source"))!=cfg_.nativeSourceJson) {valid_=false;return;}
+                const auto base=nativeSourceNetworkBase(root.get());
+                sourceNetworkBase_=base?printJson(base.get()):std::string{};
+                if(sourceNetworkBase_.empty()||sourceNetworkBase_.size()>=2048) {valid_=false;return;}
+            } catch(...) {valid_=false;return;}
         }
         auto prefix=cfg_.base.empty()?"open_thermostat":cfg_.base;
         valid_=SessionAdmission::validId(prefix)&&SessionAdmission::validId(cfg_.adapterId)&&
@@ -156,6 +166,45 @@ public:
                 std::string_view(reinterpret_cast<char *>(payload),length),now,utc,clockValid());});
         });
     }
+    bool nativeSourceCurrent(std::string_view expected,std::string_view savedSettings) const {
+        return valid_&&!graph_&&cfg_.nativeSourceRequested&&controller_&&controller_->nativeSourceSelected()
+            &&cfg_.nativeSourceJson==expected&&nativeSourceNetworkStillCurrent(sourceNetworkBase_,savedSettings);
+    }
+    bool nativeSourceHotReady(std::string_view expected,std::string_view savedSettings) const {
+        return nativeSourceCurrent(expected,savedSettings)&&controller_->nativeSourceReplaceable();
+    }
+    bool nativeSourceCanApply(std::string_view expected,std::string_view descriptor,std::string_view savedSettings) const {
+        if(!nativeSourceHotReady(expected,savedSettings))return false;
+        try {
+            char mac[17];snprintf(mac,sizeof(mac),"e32_%012llx",static_cast<unsigned long long>(ESP.getEfuseMac()));
+            const auto source=nativeSourceFromSavedDescriptor(descriptor,mac,cfg_.adapterId,sha256Hex);
+            return source&&controller_->nativeSourceCanReplace(*source);
+        } catch(...) {return false;}
+    }
+    void inhibitNativeSourceMutation() {
+        if(controller_)controller_->inhibitNativeSourceMutation();
+        valid_=false;
+        // Same native availability channel; no logging/private wire.
+        if(client_.connected()) {
+            client_.publish((base_+"fw/availability").c_str(),"offline",false);
+            client_.disconnect();
+        }
+        wasConnected_=false;
+    }
+    bool applyNativeSource(std::string_view expected,std::string_view descriptor,std::string_view previousSettings) {
+        if(!nativeSourceHotReady(expected,previousSettings)) {inhibitNativeSourceMutation();return false;}
+        try {
+            char mac[17];snprintf(mac,sizeof(mac),"e32_%012llx",static_cast<unsigned long long>(ESP.getEfuseMac()));
+            const auto source=nativeSourceFromSavedDescriptor(descriptor,mac,cfg_.adapterId,sha256Hex);
+            // Allocate prospective saved selection BEFORE touching current core.
+            const std::string selection(descriptor);
+            if(!source||!controller_->replaceNativeSource(*source,static_cast<uint64_t>(esp_timer_get_time()/1000))) {
+                inhibitNativeSourceMutation();return false;
+            }
+            cfg_.nativeSourceJson=selection;
+            return true;
+        } catch(...) {inhibitNativeSourceMutation();return false;}
+    }
     void loop() {
         if(!valid_||(!controller_&&!graphController_)) return;
         auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
@@ -188,7 +237,7 @@ private:
     // Validated SNTP event in main sets this trust flag. A plausible cached or
     // manual wall time is not sufficient after boot; no RTC assumed on E32.
     static bool clockValid();
-    config::MqttConfig cfg_; std::string base_;
+    config::MqttConfig cfg_; std::string base_,sourceNetworkBase_; // ephemeral bounded<2048, never logged/persisted.
     WiFiClient network_; PubSubClient client_; NvsControlStore store_;
     std::unique_ptr<GraphControlStoreView> graphControlView_;
     std::unique_ptr<TopologyControlStoreView> topologyControlView_;

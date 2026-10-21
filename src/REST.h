@@ -579,17 +579,27 @@ private:
             if(cJSON_IsObject(mq)) {
                 char id[17];snprintf(id,sizeof(id),"e32_%012llx",static_cast<unsigned long long>(ESP.getEfuseMac()));
                 cJSON_AddStringToObject(mq,"native_source_device_id",id);
+                const auto localSource=control::field(mq,"native_shadow_source");
+                cJSON_AddBoolToObject(mq,"native_source_live_apply",
+                    localSource&&!cJSON_IsNull(localSource)&&controller_.nativeSourceHotReady(control::printJson(localSource),std::string_view(saved.c_str(),saved.length())));
             }
 			server_.send(200,"application/json",control::printJson(previous.get()).c_str()); return;
 		}
 		auto body=server_.arg("plain");
 		auto candidate=control::parseControlJson(std::string_view(body.c_str(),body.length()),true);
 		if(!candidate||!cJSON_IsObject(candidate.get())) { server_.send(400,"text/plain","Invalid bounded network settings"); return; }
+        const auto sourceApply=control::field(candidate.get(),"native_source_apply");
+        if(sourceApply&&!cJSON_IsBool(sourceApply)) {server_.send(400,"text/plain","Invalid source-only apply request");return;}
+        const bool sourceOnly=cJSON_IsTrue(sourceApply);
+        cJSON_DeleteItemFromObjectCaseSensitive(candidate.get(),"native_source_apply"); // transient, NEVER a stored authority.
 		auto mode=control::stringField(candidate.get(),"interface_mode");
 		if(!mode.empty()&&mode!="wifi"&&mode!="ethernet") { server_.send(400,"text/plain","Select wifi or ethernet"); return; }
 		auto mq=cJSON_GetObjectItemCaseSensitive(candidate.get(),"mqtt");
 		auto oldMq=previous?control::field(previous.get(),"mqtt"):nullptr;
-        if(cJSON_IsObject(mq)) cJSON_DeleteItemFromObjectCaseSensitive(mq,"native_source_device_id");
+        if(cJSON_IsObject(mq)) {
+            cJSON_DeleteItemFromObjectCaseSensitive(mq,"native_source_device_id");
+            cJSON_DeleteItemFromObjectCaseSensitive(mq,"native_source_live_apply");
+        }
         if(!control::retainNativeSourceSetting(oldMq,mq)) {
             server_.send(400,"text/plain","Saved SOURCE profile must be retained or explicitly cleared");return;
         }
@@ -619,6 +629,9 @@ private:
             server_.send(409,"text/plain","SOURCE replacement requires a separately supported plan migration; previous settings retained");return;
         }
         const auto nativeSource=mq?control::field(mq,"native_shadow_source"):nullptr;
+        if(!sourceOnly&&control::nativeSourceNeedsExplicitApply(oldMq,mq)) {
+            server_.send(409,"text/plain","Existing SOURCE replacement uses the explicit source-only action; general network save does not stage another profile for reboot");return;
+        }
         if(nativeSource&&!cJSON_IsNull(nativeSource)) {
             char controllerId[17];snprintf(controllerId,sizeof(controllerId),"e32_%012llx",static_cast<unsigned long long>(ESP.getEfuseMac()));
             if(!control::nativeSourceSettingValid(mq,controllerId,control::sha256Hex)) {
@@ -627,7 +640,33 @@ private:
         }
 		const String encoded(control::printJson(candidate.get()).c_str());
 		if(!control::nativeNetworkSettingsBytesFit(std::string_view(encoded.c_str(),encoded.length()))) { server_.send(413,"text/plain","Persisted network settings exceed 2048 bytes"); return; }
-		if(!saveDeviceNetworkSettings(encoded)) { server_.send(500,"text/plain","Network settings durability not confirmed; read back before retry"); return; }
+        const auto oldSource=oldMq?control::field(oldMq,"native_shadow_source"):nullptr;
+        const auto expectedSource=oldSource?control::printJson(oldSource):std::string{};
+        if(sourceOnly) {
+            if(!control::nativeSourceOnlySettingsChange(previous.get(),candidate.get())
+                ||!controller_.nativeSourceCurrent(expectedSource,std::string_view(saved.c_str(),saved.length()))) {
+                server_.send(409,"text/plain","Live SOURCE update requires the current local native profile and unchanged network/device settings");return;
+            }
+            if(cJSON_Compare(oldSource,nativeSource,true)) {
+                server_.send(200,"text/plain","Current local SOURCE already selected; no save, control reset or reboot");return;
+            }
+            if(!controller_.nativeSourceCanApply(expectedSource,control::printJson(nativeSource),
+                    std::string_view(saved.c_str(),saved.length()))) {
+                server_.send(409,"text/plain","SOURCE lineage does not match the actual current durable plan; read back and resolve pending/conflict before selection");return;
+            }
+        }
+		if(!saveDeviceNetworkSettings(encoded)) {
+            if(sourceOnly)controller_.inhibitNativeSourceMutation(); // ambiguous commit: never operate old policy.
+            server_.send(500,"text/plain",sourceOnly?
+                "SOURCE durability not confirmed; control blocked; read back before recovery":
+                "Network settings durability not confirmed; read back before retry");return;
+        }
+        if(sourceOnly) {
+            if(!controller_.applyNativeSource(expectedSource,control::printJson(nativeSource),std::string_view(saved.c_str(),saved.length()))) {
+                server_.send(503,"text/plain","SOURCE settings saved but runtime selection failed; control blocked; read back before recovery");return;
+            }
+            server_.send(201,"text/plain","Local SOURCE selected without device restart; previous config is readback-only until explicit new plan apply/readback");return;
+        }
 		server_.send(201,"text/plain","Saved and verified; restart to apply network settings");
 #else
 

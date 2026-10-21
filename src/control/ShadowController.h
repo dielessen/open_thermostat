@@ -77,15 +77,7 @@ public:
         if(nativePlanSource) {
             if(seasonalSource||!nativePlanSource->valid()||nativePlanSource->controllerId!=controller_
                 ||nativePlanSource->adapterId!=owner_||!safety) {fault_=true;return;}
-            nativePlanSource_=std::make_unique<NativePlanInstallationSource>(*nativePlanSource);
-            // Reuse the existing typed regulator/safety policy; this private
-            // compatibility field is NEVER an advertised/per-config SOURCE pin.
-            seasonalSource_=std::make_unique<SeasonalControllerSource>();
-            seasonalSource_->controllerId=controller_;seasonalSource_->profileDigest=nativePlanSource_->profileDigest;
-            seasonalSource_->configDigest=std::string(64,'0');seasonalSource_->count=nativePlanSource_->count;
-            seasonalSource_->maximumSafetyAgeMs=nativePlanSource_->maximumSafetyAgeMs;
-            for(size_t i=0;i<nativePlanSource_->count;++i)seasonalSource_->zones[i]=nativePlanSource_->zones[i].policy;
-            seasonalSafety_=std::move(safety);
+            selectNativeSource(*nativePlanSource,std::move(safety));
         }
         if(seasonalSource) {
             if(!seasonalSource->valid()||seasonalSource->controllerId!=controller_||!safety) {
@@ -94,39 +86,32 @@ public:
             seasonalSource_=std::make_unique<SeasonalControllerSource>(*seasonalSource);
             seasonalSafety_=std::move(safety);
         }
-        std::string saved;
-        if(!store_.load(saved)) { fault_=true; return; }
-        if(saved.empty()) return;
-        if(saved.size()>maximumConfigBytes) {fault_=true;return;}
-        auto root=parseControlJson(saved);
-        if(!root) {fault_=true;return;}
-        if(nativePlanSource_&&nativePlanSource_->predecessor
-            &&stringField(root.get(),"profile_digest")!=nativePlanSource_->profileDigest) {
-            auto old=std::make_unique<Configuration>();
-            if(!decodeConfig(root.get(),*old,false,nativePlanSource_->predecessor.get())||fault_) {fault_=true;return;}
-            config_->revision=old->revision; // Exact metadata, ZERO active zones.
-            legacyQuarantine_=true;
-        } else if(nativePlanSource_&&nativePlanSource_->legacyReadbackReviewed&&integerField(root.get(),"schema",1,1)) {
-            // Same bounded old decoder, no old runtime/second controller.
-            auto old=std::make_unique<Configuration>();
-            if(!decodeConfig(root.get(),*old,true)||!old->count||old->count>nativePlanSource_->count) {fault_=true;return;}
-            size_t transitions=0;
-            for(size_t i=0;i<old->count;++i) {
-                const auto& z=old->zones[i];const auto pin=nativePlanSource_->zone(z.id);
-                const auto rawZone=cJSON_GetArrayItem(field(root.get(),"zones"),static_cast<int>(i));
-                const auto schedule=field(rawZone,"schedule");
-                if(!pin||z.comfortEnabled||z.base<pin->policy.minimumTargetCentiC
-                    ||z.base>pin->policy.maximumTargetCentiC||z.profile.maximumAgeMs>pin->maximumSensorAgeMs
-                    ||z.reportEvidence!=pin->reportEvidence||!sourceScheduleBounds(schedule,pin->policy)) {fault_=true;return;}
-                if(!cJSON_IsNull(schedule))transitions+=static_cast<size_t>(cJSON_GetArraySize(field(schedule,"transitions")));
-            }
-            if(transitions>NativePlanInstallationSource::maximumTransitions) {fault_=true;return;}
-            config_->revision=old->revision; // Metadata only. ZERO active zones.
-            legacyQuarantine_=true;
-        } else if(!decodeConfig(root.get(),*config_)) { fault_=true; return; }
-        configBytes_=printJson(root.get()); digest_=hash_(configBytes_);
-        if(!hexString(digest_,64)||(seasonalSource_&&!nativePlanSource_&&digest_!=seasonalSource_->configDigest)) fault_=true;
+        loadSavedConfiguration();
     }
+    // Only the already selected local native factory may call this after an
+    // independently authenticated source-only settings commit. No remote config,
+    // DATA/hello/GUI flag creates a SOURCE. Same object/store/transport/boot.
+    bool replaceNativeSource(const NativePlanInstallationSource& next,uint64_t now) {
+        const bool reconnect=connected_;
+        disconnected(); // Withdraw old grant/observations/overrides BEFORE IO.
+        if(!nativeSourceReplaceable()||now<lastNow_) {fault_=true;return false;}
+        struct Scope {bool& flag;explicit Scope(bool& f):flag(f){flag=true;}~Scope(){flag=false;}} scope(nativeReceiving_);
+        try {
+            if(!matchesNativeSourceTransition(next)) {
+                fault_=true;return false;
+            }
+            // Fresh logical profile never restores an earlier safety producer.
+            selectNativeSource(next,[] {return SeasonalSafetySnapshot{};});
+            config_=std::make_unique<Configuration>();
+            configBytes_.clear();digest_.clear();legacyQuarantine_=false;
+            loadSavedConfiguration();
+            if(fault_)return false;
+            if(reconnect)connected(now); // Strictly increasing epoch, SAME boot.
+            return !fault_;
+        } catch(...) {fault_=true;disconnected();return false;}
+    }
+    void inhibitNativeSourceMutation() {fault_=true;disconnected();}
+
     void connected(uint64_t now) {
         invalidate();
         if(epoch_==UINT32_MAX) { fault_=true; return; }
@@ -265,7 +250,71 @@ public:
     uint32_t revision() const { return config_->revision; }
     const std::string &digest() const { return digest_; }
     bool faulted() const { return fault_; }
+    bool nativeSourceSelected() const {
+        return nativePlanSource_&&!fault_&&!policySourceFault_&&!nativeReceiving_&&!safetyReading_;
+    }
+    bool nativeSourceReplaceable() const {
+        return nativeSourceSelected()&&!nativePlanSource_->legacyReadbackReviewed&&epoch_!=UINT32_MAX;
+    }
+    bool nativeSourceCanReplace(const NativePlanInstallationSource& next) const {
+        if(!nativeSourceReplaceable())return false;
+        try {return matchesNativeSourceTransition(next);}
+        catch(const std::bad_alloc&) {return false;}
+    }
 private:
+    bool matchesNativeSourceTransition(const NativePlanInstallationSource& next) const {
+        const auto effective=legacyQuarantine_?nativePlanSource_->predecessor.get():nativePlanSource_.get();
+        return effective&&next.valid()&&next.predecessor&&next.controllerId==controller_
+            &&next.adapterId==owner_&&next.predecessor->profileDigest==effective->profileDigest;
+    }
+    void selectNativeSource(const NativePlanInstallationSource& source,SeasonalControllerSource::Safety safety) {
+        const auto nativePlanSource=&source;
+            nativePlanSource_=std::make_unique<NativePlanInstallationSource>(*nativePlanSource);
+            // Reuse the existing typed regulator/safety policy; this private
+            // compatibility field is NEVER an advertised/per-config SOURCE pin.
+            seasonalSource_=std::make_unique<SeasonalControllerSource>();
+            seasonalSource_->controllerId=controller_;seasonalSource_->profileDigest=nativePlanSource_->profileDigest;
+            seasonalSource_->configDigest=std::string(64,'0');seasonalSource_->count=nativePlanSource_->count;
+            seasonalSource_->maximumSafetyAgeMs=nativePlanSource_->maximumSafetyAgeMs;
+            for(size_t i=0;i<nativePlanSource_->count;++i)seasonalSource_->zones[i]=nativePlanSource_->zones[i].policy;
+            seasonalSafety_=std::move(safety);
+    }
+    void loadSavedConfiguration() {
+        std::string saved;
+        if(!store_.load(saved)) { fault_=true; return; }
+        if(saved.empty()) return;
+        if(saved.size()>maximumConfigBytes) {fault_=true;return;}
+        auto root=parseControlJson(saved);
+        if(!root) {fault_=true;return;}
+        if(nativePlanSource_&&nativePlanSource_->predecessor
+            &&stringField(root.get(),"profile_digest")!=nativePlanSource_->profileDigest) {
+            auto old=std::make_unique<Configuration>();
+            if(!decodeConfig(root.get(),*old,false,nativePlanSource_->predecessor.get())||fault_) {fault_=true;return;}
+            config_->revision=old->revision; // Exact metadata, ZERO active zones.
+            legacyQuarantine_=true;
+        } else if(nativePlanSource_&&nativePlanSource_->legacyReadbackReviewed&&integerField(root.get(),"schema",1,1)) {
+            // Same bounded old decoder, no old runtime/second controller.
+            auto old=std::make_unique<Configuration>();
+            if(!decodeConfig(root.get(),*old,true)||!old->count||old->count>nativePlanSource_->count) {fault_=true;return;}
+            size_t transitions=0;
+            for(size_t i=0;i<old->count;++i) {
+                const auto& z=old->zones[i];const auto pin=nativePlanSource_->zone(z.id);
+                const auto rawZone=cJSON_GetArrayItem(field(root.get(),"zones"),static_cast<int>(i));
+                const auto schedule=field(rawZone,"schedule");
+                if(!pin||z.comfortEnabled||z.base<pin->policy.minimumTargetCentiC
+                    ||z.base>pin->policy.maximumTargetCentiC||z.profile.maximumAgeMs>pin->maximumSensorAgeMs
+                    ||z.reportEvidence!=pin->reportEvidence||!sourceScheduleBounds(schedule,pin->policy)) {fault_=true;return;}
+                if(!cJSON_IsNull(schedule))transitions+=static_cast<size_t>(cJSON_GetArraySize(field(schedule,"transitions")));
+            }
+            if(transitions>NativePlanInstallationSource::maximumTransitions) {fault_=true;return;}
+            config_->revision=old->revision; // Metadata only. ZERO active zones.
+            legacyQuarantine_=true;
+        } else if(!decodeConfig(root.get(),*config_)) { fault_=true; return; }
+        configBytes_=printJson(root.get());
+        if(configBytes_.empty()) {fault_=true;return;} // failed serialization is not a successful readback.
+        digest_=hash_(configBytes_);
+        if(!hexString(digest_,64)||(seasonalSource_&&!nativePlanSource_&&digest_!=seasonalSource_->configDigest)) fault_=true;
+    }
     struct Zone {
         std::string id,sensor,actuator,reportEvidence;
         int16_t base=1700,overrideTarget=1700;

@@ -94,7 +94,7 @@
       },
       "installation_source_review": {
         "title": "Confirm the independent shadow profile",
-        "description": "Rooms: {rooms}\nReviewed logical limits (not physical protection):\n{limits}\nDevice: {controller}\nHA owner: {owner}\nProfile fingerprint: {fingerprint}\n\nPaste the descriptor below into the E32 local network settings only after reviewing the installation. Save/read back there; device selection applies after a separately authorized restart. This screen does not send it or restart anything.\n\n{descriptor}\n\n{scope}",
+        "description": "Rooms: {rooms}\nReviewed logical limits (not physical protection):\n{limits}\nDevice: {controller}\nHA owner: {owner}\nProfile fingerprint: {fingerprint}\n\nPaste the descriptor below into the E32 local network settings only after reviewing the installation. Save/read back there. Initial selection or network changes need a separately authorized restart; an existing native profile may use the explicit local SOURCE-only action without device restart. This screen does not send it or restart anything.\n\n{descriptor}\n\n{scope}",
         "data": {
           "confirm_source": "Save this HA logical profile selection (no control/config send)",
           "confirm_replacement": "I reviewed the exact previous profile and its readback-only migration"
@@ -119,7 +119,8 @@
       "native_source_review_changed": "Configuration, owner or registry changed. No new profile was saved.",
       "native_source_review_cancelled": "Profile review cancelled; existing configuration is unchanged.",
       "native_source_owner_conflict": "Another independent source owner is already selected. No profile was saved.",
-      "native_source_replacement_unsupported": "Changing an existing source profile needs a supported durable-plan migration. Existing profile and data were retained."
+      "native_source_replacement_unsupported": "Changing an existing source profile needs a supported durable-plan migration. Existing profile and data were retained.",
+      "native_source_plan_apply_required": "Pending, mixed, incompatible or unreadable configuration history cannot authorize this source revision. Resolve the exact current plan readback first. Existing data was retained."
     }
   },
   "entity": {

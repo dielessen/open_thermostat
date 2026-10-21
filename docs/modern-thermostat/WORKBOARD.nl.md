@@ -2583,6 +2583,31 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   /home/dielessen/artifacts/open-thermostat-no-upstream-sync-20261021/.
   F0 en helePLAN blijven in_progress; bestaande software-/fysieke checks gelden.
 
+### Mark11950 — architectuurschets onafhankelijk getoetst; uitvoeringsroute B bevestigd
+
+- Specialistschets999bae1 op gecorrigeerde bron407f7097 gecontroleerd: document/
+  patch/manifesthashes exact, gitcommit uitsluitend één nieuw document en alle
+  512 eerdere bronbestanden bytegelijk. R01–R31 in resterend-werktabel afgedekt,
+  niet afgetekend als geleverd. 11 onafhankelijke bron-/documentchecks PASS.
+- Parentbronlezing bevestigt éénvloer-DATA, aparte tweekamerprojectie, exclusieve
+  DATA/controlfase en configuratiegebonden SOURCEpins als concrete productblokkades.
+  Route B aangenomen: productkoppellaag gericht vervangen, bruikbare native HA/
+  MQTT/Store/regel-/veiligheidsbasis behouden. Brede herbouw blijft toegestaan bij
+  nieuwe feiten; geen tweede eigenaar, projectherstart of toestemmingwachtfase.
+- Canonical ARCHITECTURE-DECISION en ARCHITECTURE-ADVICE/PLAN bijgewerkt.
+  Config/mapping, onafhankelijk profiel en actuele runtimebevoegdheid strikt apart;
+  onbekend contract weigeren, bestaande pins niet versoepelen. Migratie/rollback,
+  identiteiten/historie/modeldata en alle fysieke/releasegates behouden.
+- Eerstvolgende bewijsactie bij dezelfde specialist: twee VOLLEDIG opgeslagen
+  kamers via normale HA-review/apply → één accepted ControlPlan → exact C++-
+  readback/controller; doel/schema/stop wijzigen zonder compiled SOURCEwissel.
+  Contract/resourcegrenzen, owner-/mappingraces, lostACK, powerloss en herstel
+  bewijzen; daarna werkelijke native desktop/mobiel-GUI en actuele imagechecks.
+- Bewijs/rollback: artifacts/open-thermostat-architecture-parent-11950-20261021/.
+  Acceptatie geldt alleen uitvoeringsadvies. Stage55correctie blijft afzonderlijk
+  bronreviewwerk; geen 81+81tests als parentPASS overgenomen, geen installatie,
+  TX/EMS/actuator-/verwarmingsGO. HelePLAN/F2/F3 en overige gates blijven open.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

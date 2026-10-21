@@ -86,8 +86,14 @@ de beste oplossing oplevert en vraagt om actief kritisch advies. Vergelijk
 behouden, gericht vervangen en bredere herbouw op concrete bronfeiten,
 functievolledigheid, onderhoudbaarheid, complexiteit, migratie en bewijsrisico.
 Geen extra goedkeuringsronde voor al geautoriseerd bronwerk; geen automatische
-big-bang of nieuw lang ontwerptraject. [Voorlopig architectuuradvies](ARCHITECTURE-ADVICE.nl.md)
-is een expliciete afweging met open specialisttoets, geen bewezen eindkeuze.
+big-bang of nieuw lang ontwerptraject. [Architectuuradvies](ARCHITECTURE-ADVICE.nl.md)
+en de [specialistschets](ARCHITECTURE-DECISION.nl.md) zijn na brongebonden parentreview
+bevestigd als uitvoeringsrichting: gerichte vervanging van de productkoppellaag,
+één versiecontract/accepted ControlPlan met onafhankelijke installatiekwalificatie
+en vluchtige runtimebevoegdheid apart. Eerste verticale oplevering: twee volledige
+kamers via normale HA-apply duurzaam opslaan en exact in dezelfde C++-owner/
+controller teruglezen, wijzigen en herstellen. Geen extra projectie als productpad.
+Dit is ontwerpacceptatie, geen code-/resource-/GUI-/fysieke acceptatie of einddatum.
 Mark11956 (21 oktober 14:51) aanvaardt dit advies als werkroute: gerichte herbouw
 van de eigen configuratie-/runtimekoppeling waar nodig. Voer uit binnen de lopende
 integratie; specialisttoets is technische verificatie, geen nieuwe toestemming-

@@ -2,23 +2,37 @@
 
 **Aanleiding:** Mark11950, 21 oktober 2026. Mark staat zo nodig ook een andere
 framework-/basisopzet toe en vraagt expliciet om kritisch, eerlijk advies.
-**Status:** voorlopig onafhankelijk OpenClaw-advies; specialisttoets open.
+**Status:** brongebonden uitvoeringsadvies bevestigd na onafhankelijke review van
+specialistschets `999bae1` op bron `407f7097`; geen product-/bronvrijgave.
 **Werkroute aanvaard:** Mark11956, 21 oktober 14:51. Gerichte herbouw binnen de
 lopende integratie uitvoeren waar nodig; geen nieuwe goedkeuringswachtfase.
-Geen afgeronde architectuurvalidatie, bewezen tijdwinst of releasebelofte.
+Geen bewezen implementatie, tijdwinst of releasebelofte.
 
 **Aanvullend bronbewijs Mark11959:** Stage48 native caller onafhankelijk beoordeeld
 en gericht getest (74 nativeHA;19zelfde nieuwe gevallen met ASan/UBSan/leaks).
 Dit ondersteunt voortbouwen aan één bestaande eigenaar en gerichte koppellaag;
 het bewijst geen volledige architectuur-/productvalidatie. Configureerbare
 revisie-/pinlevenscyclus, echte producers/factory en bredere topologie blijven open.
-De afzonderlijke specialistarchitectuurtoets blijft open en houdt uitvoering niet op.
+De specialistarchitectuurtoets is hieronder verwerkt; de uitvoering blijft lopen.
+
+**Specialisttoets en parentreview, 21 oktober 2026:** de
+[uitgewerkte schets](ARCHITECTURE-DECISION.nl.md) bevestigt route B. Parent heeft
+de concrete éénvloeropslag, DATA/controlfasekeuze en configuratiegebonden SOURCE-
+pins in de bevroren bron gecontroleerd; alle 512 eerdere bestanden zijn bytegelijk
+en de resterend-werktabel dekt R01–R31. Dit accepteert de uitvoeringsrichting, niet
+Stage55-code of een werkende thermostaat. Bewijs/voorwaarden:
+/home/dielessen/artifacts/open-thermostat-architecture-parent-11950-20261021/REVIEW.md.
+Config/mapping, onafhankelijke installatiekwalificatie en vluchtige runtime-
+bevoegdheid blijven strikt gescheiden. Het nieuwe versiecontract mag huidige pins
+niet stilzwijgend versoepelen. Eerste oplevering: twee volledig opgeslagen kamers
+via normale HA-apply tot exact C++-readback en herstel, zonder extra projectielaag.
 
 ## 1. Feitenbasis en grens
 
-Beoordeeld: geaccepteerde bron `c2e8792`, aangevuld met documentatie `b937296`.
-De actieve specialistcandidate is niet dezelfde snapshot; zijn lopende werk kan
-reeds delen oplossen en wordt vóór een definitieve route afzonderlijk beoordeeld.
+Eerste analyse: geaccepteerde bron `c2e8792`, documentatie `b937296`.
+Actuele aanvulling: bevroren specialistbron `407f7097` en schets `999bae1`,
+onafhankelijk gelezen voor dit advies. De kandidaatcode zelf blijft afzonderlijke
+bronacceptatie; de ontwerpkeuze accepteert die implementatie niet automatisch.
 
 - [Bestaande handoffanalyse](GRAPH-CONTROL-HANDOFF.md) beschrijft werkende
   deelcontracten, maar geen volledige normale HA-configuratie→regelaartransactie.
@@ -79,16 +93,19 @@ noodzaak. Dit is een huidige afweging, geen permanent verbod op een betere basis
 
 ## 4. Eerstvolgende concrete bewijsstap
 
-Dezelfde specialist levert naast het lopende integratiewerk een korte schets met
-exact behouden/vervangen modules en één aanbevolen route. Parent toetst die tegen
-de werkelijke candidate en bovenstaande feiten, niet alleen tegen een samenvatting.
+De schets is geleverd en onafhankelijk als uitvoeringsrichting geaccepteerd.
+Dezelfde specialist maakt nu de productkoppeling af in drie verticale increments:
+contract/opslag, dezelfde owner tot controller, native GUI/productafwerking.
 
-Voor één kamer moet de normale HA-inrichting via echte productiecodepaden leiden
-tot een daadwerkelijk door de regelkern gebruikte configuratie, met onafhankelijke
-teruglezing, herstart/herverbinding en afwijzing van ongeldige/verouderde opdrachten.
-Dat is de eerste volledige softwaredoorsnede, **geen versmalling van het eindproduct**.
-Daarna dezelfde identiteit/isoleringsgaranties voor twee en uiteindelijk de
-bedoelde meerdere kamers, inclusief resourcegrenzen en alle afgesproken profielen.
+Twee volledige kamers (radiator/vloer) moeten via normale HA-review/apply duurzaam
+in één accepted plan worden opgeslagen en exact door de echte C++-core worden
+teruggelezen/gebruikt. Wijzig doel én schema zonder per-config SOURCE-code of
+DATA/control-factorywissel; toets geïsoleerde doelen/stop, owner-/mappingraces,
+lost ACK, onbekend schema, powerloss en reconnect/boot zonder oude grant te herstellen.
+Geen vooraf geladen tweekamerreview of test-only tweede configuratiebron als
+productvervanger. Payload/heap/NVS/queuegrenzen vóór capaciteitclaims meten;
+uiteindelijk acht zones pas na afzonderlijk maxconfig/load/72u-bewijs.
+Alle functies en profielen blijven; migratie/rollback is expliciet en behoudt data.
 
 Een native HA/C++-proef is nog geen fysiek bord- of ketelbewijs. Nieuwe volledige
 images, echte HA/E32/GUI-proeven, actuator/EMS-/uitval-/duur- en releasechecks blijven

@@ -7,6 +7,13 @@ framework-/basisopzet toe en vraagt expliciet om kritisch, eerlijk advies.
 lopende integratie uitvoeren waar nodig; geen nieuwe goedkeuringswachtfase.
 Geen afgeronde architectuurvalidatie, bewezen tijdwinst of releasebelofte.
 
+**Aanvullend bronbewijs Mark11959:** Stage48 native caller onafhankelijk beoordeeld
+en gericht getest (74 nativeHA;19zelfde nieuwe gevallen met ASan/UBSan/leaks).
+Dit ondersteunt voortbouwen aan één bestaande eigenaar en gerichte koppellaag;
+het bewijst geen volledige architectuur-/productvalidatie. Configureerbare
+revisie-/pinlevenscyclus, echte producers/factory en bredere topologie blijven open.
+De afzonderlijke specialistarchitectuurtoets blijft open en houdt uitvoering niet op.
+
 ## 1. Feitenbasis en grens
 
 Beoordeeld: geaccepteerde bron `c2e8792`, aangevuld met documentatie `b937296`.

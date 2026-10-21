@@ -1,5 +1,18 @@
 # Reviewed graph DATA to SOURCE controller: bounded storage prerequisite
 
+## Current follow-up: Stage48
+
+The initial reviewed one-room native HA caller is now independently source-tested
+and accepted; see [GRAPH-NATIVE-CALLER](GRAPH-NATIVE-CALLER.md) and WORKBOARD Stage48.
+The normal entry/Store/one-worker path stages a separately pinned SOURCE projection
+and requires fresh exact actual C++ readback. This does not qualify a real factory,
+producer, device, general editing lifecycle or multiroom graph execution.
+The Stage47 observations and estimates below are historical prerequisites, not a
+claim that the initial caller is still absent. Current next software gaps are
+reviewed config/pin revision evolution and older control-journal reconciliation,
+GUI quality and actual supported producer/factory integration. No release date
+or physical/heating permission follows.
+
 ## What is implemented
 
 The actual storage incompatibility is addressed without another durable key,

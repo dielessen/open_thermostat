@@ -2258,6 +2258,34 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   gaat door; specialisttoets blijft open als technische check, niet als nieuwe
   gebruikersgoedkeuring of reden om Stage48 stil te leggen. Geen functie-/gateverlies.
 
+### Mark11959 — doorwerken: Stage48 native HA→regelaarbron geaccepteerd
+
+- [x] Canonical cb3f79a vooraf schoon. Exact12padenpatch en488frozenbronbestanden,
+  originele bewijshashes en alle12beforehashes gecontroleerd. Zes afwijkende
+  beschermde canonicalpaden (README, parentdocs en bestaande GUItest) behouden;
+  geen ongecontroleerde overname uit de actieve specialistcheckout.
+- [x] Normale native HAentry/Store/één MQTTworker geeft een vooraf expliciet
+  gereviewde, onveranderlijke éénkamerconfiguratie door aan de bestaande regelaar.
+  STAGED is geen toelating: verse exacte C++readback vereist. Afwijkende registry,
+  opslag, profiel, oude opdracht en reconnect falen gesloten; geen tweede schrijver.
+- [x] Onafhankelijk nieuwgebouwde daadwerkelijke C++/cJSONpeers met echte
+  HA2026.10.2/Python3.14.8:74gerichte testsPASS,0skips; dezelfde19nieuwe gevallen
+  met ASan/UBSan/leakdetectiePASS.19semantische rijen exact frozenbewijs. Alleen
+  vijf bestaande dependencydeprecationwarnings; geen oude61/83/85suites herhaald.
+  Hostverifierlost alleen specialist-/workspacepaden op; product niet aangepast.
+- [ ] Dit sluit NIET de volledige gebruikersketen/release: configureerbare
+  SOURCEproducer/factory/defaultselectie ontbreekt nog, graph blijft éénkamer.
+  Revisiewijziging en oudere geaccepteerde controljournalreconciliatie zijn open;
+  centrale/weer/groep/mengerDATA niet nieuw uitgevoerd. GUI/browser, volledige
+  actuele images/resources/licenties/productieHA/F9/fysieke en duurchecks blijven.
+- Bewijs/rollback: siblingartefact open-thermostat-parent-stage48-11959-20261021
+  met TASKFLOW, beforehashes, frozenbron en eigen native-/sanitizerlogs. Alleen
+ 12bronpaden samengevoegd; ouderdocumentatie apart bijgewerkt. Geen runtime,
+  apparaat-, broker-, login-, installatie-, publicatie-, TX/EMS-/verwarmingsactie.
+- Volgende actie bij dezelfde specialist: lopende GUIbediening afwerken en expliciete
+  revisie-/pin-/journallevenscyclus sluiten; echte producer/factorybinding concreet
+  kwalificeren. Geen nieuwe ontwerpwachtfase; hele PLAN blijft in_progress.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

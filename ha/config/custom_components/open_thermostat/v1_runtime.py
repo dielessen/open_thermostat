@@ -35,7 +35,7 @@ class ShadowTransport(Protocol):
 ReportProfile = Callable[[Any, str], QualifiedReport | None]
 
 class ShadowRuntime:
-    def __init__(self, hass: HomeAssistant, entry: Any, rooms: list[RoomBinding], *, graph_data_profile=None, context_source_profiles=(), controller_policy_source_profile=None):
+    def __init__(self, hass: HomeAssistant, entry: Any, rooms: list[RoomBinding], *, graph_data_profile=None, context_source_profiles=(), controller_policy_source_profile=None, graph_controller_source=None):
         if graph_data_profile is not None:
             from .graph_wire import GraphSourceProfile
             if not isinstance(graph_data_profile,GraphSourceProfile):
@@ -50,6 +50,16 @@ class ShadowRuntime:
             if (graph_data_profile is not None or profile.entry_unique_id!=entry.unique_id
                     or profile.adapter_id!=entry.options.get("adapter_id",entry.data.get("adapter_id"))):
                 raise ValueError("controller_policy_profile_binding")
+        if graph_controller_source is not None:
+            from .graph_control_source import GraphControllerEntrySource
+            if not isinstance(graph_controller_source,GraphControllerEntrySource):
+                raise ValueError("graph_control_source_invalid")
+            graph_controller_source.validate()
+            if (graph_data_profile is not None or controller_policy_source_profile!=graph_controller_source.controller
+                    or graph_controller_source.controller.entry_unique_id!=entry.unique_id
+                    or len(rooms)!=1 or not all(graph_controller_source.supports_room(room) for room in rooms)):
+                raise ValueError("graph_control_source_binding")
+        self.graph_controller_source=graph_controller_source
         self.controller_policy_source_profile=controller_policy_source_profile
         self.graph_data_profile=graph_data_profile
         self.hass, self.entry = hass, entry
@@ -106,6 +116,11 @@ class ShadowRuntime:
     def transport_ready(self) -> bool:
         return self.graph_data_profile is None and self._active and self._transport is not None and self._transport.ready
 
+    def room_control_supported(self,room_id):
+        room=self.rooms.get(room_id)
+        return room is not None and (room.shadow_wire_supported or
+            (self.graph_controller_source is not None and self.graph_controller_source.supports_room(room)))
+
     def add_listener(self, listener: Callable) -> Callable:
         self._listeners.add(listener)
         return lambda: self._listeners.discard(listener)
@@ -126,7 +141,7 @@ class ShadowRuntime:
             from .graph_wire import GraphShadowClient
             if not isinstance(transport,GraphShadowClient) or transport.profile!=self.graph_data_profile or transport.runtime is not self:
                 raise HomeAssistantError("graph_profile_unsupported")
-        if any(not room.shadow_wire_supported for room in self.rooms.values()) and self.graph_data_profile is None:
+        if any(not self.room_control_supported(room.room_id) for room in self.rooms.values()) and self.graph_data_profile is None:
             raise HomeAssistantError("graph_room_contract_unavailable")
         if self._transport is not None:
             raise ValueError("one transport owner only")
@@ -146,7 +161,7 @@ class ShadowRuntime:
             raise ValueError("runtime already started")
         if not self.entry.options.get(CONF_ENABLED, False):
             return
-        if any(not room.shadow_wire_supported for room in self.rooms.values()) and self.graph_data_profile is None:
+        if any(not self.room_control_supported(room.room_id) for room in self.rooms.values()) and self.graph_data_profile is None:
             raise HomeAssistantError("graph_room_contract_unavailable")
         self.invalidate_context_sources()
         self._active = True

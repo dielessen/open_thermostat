@@ -49,6 +49,9 @@ async def async_room_schedule(hass,room,start=None):
 
 async def async_build_configuration(runtime):
     """Read native schedule exports, preserving all future UTC transitions."""
+    if getattr(runtime,"graph_controller_source",None) is not None:
+        config,mapping=await runtime.graph_controller_source.async_configuration(runtime.hass,runtime.entry)
+        return config["zones"],mapping
     if any(not room.shadow_wire_supported for room in runtime.rooms.values()):
         raise ConfigEntryError("graph_room_contract_unavailable")
     hass = runtime.hass
@@ -114,6 +117,11 @@ class NativeShadowConnection:
                 Store(self.hass, 1, f"open_thermostat.v1.{self.entry.entry_id}"),
                 zones, mapping, self.hass.loop.time)
         await self.client.async_start()
+        if self.runtime.graph_controller_source is not None:
+            await self.client.async_stage_graph_source_readback()
+            # A native control Store await must not hide graph/config/registry
+            # drift. Recheck known SOURCE DATA before any subscribe/publish.
+            await self.runtime.graph_controller_source.async_configuration(self.hass,self.entry)
         self.runtime.attach_transport(self.client)
         self.client._close_io = self.async_close
         self.worker = self.hass.async_create_background_task(self.run(), "OpenThermostat shadow MQTT")
@@ -170,7 +178,14 @@ class NativeShadowConnection:
         self.schedule_unsubs.clear()
         ids = {self.runtime.resolved(r.schedule) for r in self.runtime.rooms.values() if r.schedule}
         ids.discard(None)
-        if not ids or self.closed:
+        registry_ids=set(ids)
+        source=self.runtime.graph_controller_source
+        if source is not None:
+            from .v1_model import EntityReference
+            for ref in source.graph.draft_source.documents()[1].values():
+                if entity_id:=self.runtime.resolved(EntityReference.from_dict(ref)):
+                    registry_ids.add(entity_id)
+        if not registry_ids or self.closed:
             return
 
         @callback
@@ -181,13 +196,13 @@ class NativeShadowConnection:
         def registry_changed(_):
             self.enqueue(("rebind", None))
 
-        self.schedule_unsubs.extend([
-            async_track_state_change_event(self.hass, ids, refresh),
-            # Schedule.async_update_config->_update always writes state in
-            # HA2026.10.2, even on a future-only edit with identical attributes.
-            async_track_state_report_event(self.hass, ids, refresh),
-            async_track_entity_registry_updated_event(self.hass, ids, registry_changed),
-        ])
+        if ids:
+            self.schedule_unsubs.extend([
+                async_track_state_change_event(self.hass, ids, refresh),
+                # Same-value future schedule edits still fence selected pins.
+                async_track_state_report_event(self.hass, ids, refresh)])
+        self.schedule_unsubs.append(
+            async_track_entity_registry_updated_event(self.hass, registry_ids, registry_changed))
 
     async def publish(self, suffix, raw):
         if self.closed:
@@ -262,6 +277,9 @@ class NativeShadowConnection:
                         self.client.error = self.client.journal.status
                         self.client.changed()
                 elif kind in {"refresh", "rebind"}:
+                    if self.runtime.graph_controller_source is not None:
+                        self.client.require_graph_source_review()
+                        continue
                     if self.graph_profile is not None:
                         self.client.configuration_changed()
                         continue

@@ -46,7 +46,7 @@ class ShadowRoom(ClimateEntity):
 
     @property
     def available(self):
-        return self.room.shadow_wire_supported and self.runtime.transport_ready and self.room.room_id in self.runtime.decisions
+        return self.runtime.room_control_supported(self.room.room_id) and self.runtime.transport_ready and self.room.room_id in self.runtime.decisions
 
     @property
     def target_temperature(self):
@@ -111,7 +111,8 @@ class ShadowRoom(ClimateEntity):
                 "comfort_context_sources": self.runtime.context_source_status(self.room.room_id),
                 "local_override_ends_on_presence_change": False,
                 "default_override_minutes": self.room.comfort["temporary_ms"]//60000 if self.room.comfort is not None else 60,
-                "actuator_profile": "C_unverified" if self.room.shadow_wire_supported else "graph_draft_not_applied",
+                "actuator_profile": "C_unverified" if self.room.shadow_wire_supported else
+                    "source_graph_shadow_only" if self.runtime.graph_controller_source is not None else "graph_draft_not_applied",
                 "diagnostic": self.runtime.diagnostics.get(self.room.room_id)}
 
     async def async_set_temperature(self, **kwargs):

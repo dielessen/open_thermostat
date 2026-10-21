@@ -91,6 +91,7 @@ class ShadowClient:
             self.controller_policy.validate()
             if self.controller_policy.adapter_id!=adapter_id:raise ValueError("controller_policy_owner_mismatch")
         self.source_policy_matched=False
+        self.graph_source_review_required=False
         self.send, self.store, self.clock = send, store, clock
         self.desired, self.mapping = json.loads(canonical(desired)), json.loads(canonical(mapping))
         self.journal = {"accepted": None, "staged": None}
@@ -131,7 +132,7 @@ class ShadowClient:
     @property
     def ready(self):
         now = self.clock()
-        return (not self.closed and self.verified and (self.controller_policy is None or self.source_policy_matched) and self.session is not None
+        return (not self.closed and not self.graph_source_review_required and self.verified and (self.controller_policy is None or self.source_policy_matched) and self.session is not None
                 and self.session.get("mapping_ready") is True
                 and now < self.grant_until and now < self.lease_until
                 and now - self.last_rx < 15)
@@ -151,6 +152,27 @@ class ShadowClient:
                 if record is not None and not self.valid_record(record):
                     raise ValueError("invalid durable mapping record")
             self.journal = stored
+
+    async def async_stage_graph_source_readback(self):
+        source=getattr(self.runtime,"graph_controller_source",None)
+        if source is None or self.controller_policy!=source.controller:
+            raise ValueError("graph_control_source_invalid")
+        source.validate()
+        config=source.projection()
+        record={"config":config,"config_digest":digest(config),"mapping":source.record()["mapping"]}
+        current=await self.store.async_load()
+        # Same never-configured representation already used by async_start.
+        if current is None:current={"accepted":None,"staged":None}
+        if current!=self.journal:
+            raise ValueError("graph_control_existing_journal_drift")
+        if self.journal["accepted"]==record and self.journal["staged"] is None:return
+        if self.journal["accepted"] is not None or self.journal["staged"] not in (None,record):
+            raise ValueError("graph_control_existing_journal_conflict")
+        # Explicit known SOURCE tuple is only STAGED. A fresh matching device
+        # snapshot, not this Store save/ACK/graph_ready, performs reconciliation.
+        await self.save({"accepted":None,"staged":record})
+        if await self.store.async_load()!=self.journal:
+            raise ValueError("graph_control_stage_readback_failed")
 
     @staticmethod
     def valid_record(record):
@@ -193,6 +215,14 @@ class ShadowClient:
         self._metrics_received=0.0
         self._metrics_highwater=0
 
+    def require_graph_source_review(self):
+        if getattr(self.runtime,"graph_controller_source",None) is None:
+            raise ValueError("graph_control_source_not_selected")
+        self.graph_source_review_required=True
+        self.reset_session()
+        self.error="graph_control_source_review_required"
+        self.changed()
+
     async def async_disconnected(self):
         self.reset_session()
         self.identity = None
@@ -200,7 +230,7 @@ class ShadowClient:
         self.changed()
 
     async def receive(self, topic, raw, *, retained=False):
-        if self.closed or retained:
+        if self.closed or retained or self.graph_source_review_required:
             return
         if topic == "fw/telemetry/ems_metrics":
             self.receive_metrics(raw)
@@ -473,6 +503,11 @@ class ShadowClient:
         self.changed()
 
     async def propose(self, current_revision):
+        if getattr(self.runtime,"graph_controller_source",None) is not None:
+            # This route consumes a reviewed graph projection readback only.
+            # Unknown/empty remote config must never become an API1 write path.
+            self.require_graph_source_review()
+            return
         if current_revision >= 4294967295:
             raise ValueError("revision exhausted")
         config = {"schema": 1, "mode": "shadow", "revision": current_revision + 1,

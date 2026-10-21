@@ -98,6 +98,27 @@ def _selected_graph_data_profile(entry):
 _COMFORT_CONTEXT_SOURCE_PROFILES = ()
 _CONTROLLER_POLICY_SOURCE_PROFILES = ()
 
+_GRAPH_CONTROLLER_ENTRY_SOURCES = ()
+
+def _selected_graph_controller_source(entry):
+    from homeassistant.exceptions import ConfigEntryError
+    from .v1_model import integration_mode,MODE_SHADOW
+    if integration_mode(entry)!=MODE_SHADOW or _GRAPH_CONTROLLER_ENTRY_SOURCES==():return None
+    from .graph_control_source import GraphControllerEntrySource
+    try:
+        sources=_GRAPH_CONTROLLER_ENTRY_SOURCES
+        if type(sources) is not tuple or len(sources)>8:raise ValueError("source_invalid")
+        selected=[]
+        for source in sources:
+            if not isinstance(source,GraphControllerEntrySource):raise ValueError("source_invalid")
+            source.validate()
+            if source.controller.entry_unique_id==entry.unique_id:selected.append(source)
+        if len(selected)>1:raise ValueError("source_multiple_owners")
+        return selected[0] if selected else None
+    except (ValueError,TypeError,KeyError):
+        raise ConfigEntryError("graph_control_source_invalid") from None
+
+
 def _selected_controller_policy_source_profile(entry):
     from homeassistant.exceptions import ConfigEntryError
     from .comfort_sources import ControllerPolicySourceProfile
@@ -141,7 +162,16 @@ async def async_setup_entry(hass, entry):
     mode = integration_mode(entry)
     from .v1_model import has_graph_rooms, CONF_ENABLED
     graph_profile=_selected_graph_data_profile(entry)
-    if has_graph_rooms(entry) and (mode != MODE_SHADOW or (entry.options.get(CONF_ENABLED, False) and graph_profile is None)):
+    graph_control_source=_selected_graph_controller_source(entry)
+    if graph_control_source is not None:
+        prior=hass.data.get(DOMAIN,{}).get(entry.entry_id,{})
+        if (connection:=prior.get("v1_connection")) is not None and not connection.closed:
+            from homeassistant.exceptions import ConfigEntryError
+            raise ConfigEntryError("graph_control_existing_owner_active")
+    if graph_profile is not None and graph_control_source is not None:
+        from homeassistant.exceptions import ConfigEntryError
+        raise ConfigEntryError("graph_control_data_owner_conflict")
+    if has_graph_rooms(entry) and (mode != MODE_SHADOW or (entry.options.get(CONF_ENABLED, False) and graph_profile is None and graph_control_source is None)):
         from homeassistant.exceptions import ConfigEntryError
         raise ConfigEntryError("graph_room_contract_unavailable")
     if mode == MODE_LEGACY:
@@ -162,7 +192,14 @@ async def async_setup_entry(hass, entry):
              if s.subentry_type == "zone"]
     context_profiles=_selected_context_source_profiles(entry)
     controller_policy=_selected_controller_policy_source_profile(entry)
+    if graph_control_source is not None:
+        if controller_policy not in (None,graph_control_source.controller):
+            from homeassistant.exceptions import ConfigEntryError
+            raise ConfigEntryError("graph_control_source_owner_conflict")
+        controller_policy=graph_control_source.controller
     runtime_kwargs={}
+    if graph_control_source is not None:
+        runtime_kwargs["graph_controller_source"]=graph_control_source
     if graph_profile is not None:
         runtime_kwargs["graph_data_profile"]=graph_profile
     if context_profiles:

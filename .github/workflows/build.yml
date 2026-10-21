@@ -111,6 +111,7 @@ jobs:
           gcc -std=c11 -O0 -g -I.pio/libdeps/native/cJSON -c .pio/libdeps/native/cJSON/cJSON.c -o out/graph-cjson.o
           g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_validation_runner.cpp out/graph-cjson.o -ldl -o out/graph-validation-runner
           g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_configuration_runner.cpp out/graph-cjson.o -ldl -o out/graph-configuration-runner
+          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_session_runner.cpp out/graph-cjson.o -ldl -o out/graph-session-runner
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'

@@ -31,8 +31,11 @@ async def async_get_config_entry_diagnostics(hass, entry):
                 "actuator_profile": "C_unverified",
                 "actuation_enabled": False}
                for room_id, observation in runtime.observations.items()])
-    if client and hasattr(client, "journal"):
+    if client and isinstance(getattr(client, "journal", None), dict):
         result["mapping"] = {
             key: {"revision": record["config"]["revision"], "digest": record["config_digest"]}
             if record else None for key, record in client.journal.items()}
+    elif client and hasattr(client, "graph_status"):
+        # Status/revisions only, never tokens/pins/mapping/entities/raw config.
+        result["graph"] = client.graph_status
     return result

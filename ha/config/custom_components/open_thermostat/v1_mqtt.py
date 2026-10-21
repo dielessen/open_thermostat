@@ -59,9 +59,10 @@ async def async_build_configuration(runtime):
 
 class NativeShadowConnection:
     """One bounded worker; native listeners/timers are all owned and removed."""
-    def __init__(self, runtime):
+    def __init__(self, runtime, graph_profile=None):
         self.runtime, self.hass, self.entry = runtime, runtime.hass, runtime.entry
-        self.prefix = self.entry.data["topic_prefix"] + "/v1/"
+        self.graph_profile = graph_profile
+        self.prefix = self.entry.data["topic_prefix"] + ("/v2/" if graph_profile is not None else "/v1/")
         self.client = None
         self.queue = asyncio.Queue(maxsize=64)
         self.worker = None
@@ -77,11 +78,24 @@ class NativeShadowConnection:
         adapter = self.entry.options.get("adapter_id", self.entry.data.get("adapter_id"))
         if not identifier(adapter):
             raise ConfigEntryError("Missing/invalid shadow adapter owner ID; configure options and provision the same ID on E32")
-        zones, mapping = await async_build_configuration(self.runtime)
-        self.client = ShadowClient(
-            self.runtime, adapter, self.publish,
-            Store(self.hass, 1, f"open_thermostat.v1.{self.entry.entry_id}"),
-            zones, mapping, self.hass.loop.time)
+        if self.graph_profile is not None:
+            # Explicit source-owned pin only. No current product options/default
+            # call supplies it, and selected2 NEVER silently falls back to1.
+            from .graph_wire import GraphSourceProfile, GraphShadowClient
+            from .graph_shadow_storage import native_graph_journal
+            if not isinstance(self.graph_profile, GraphSourceProfile):
+                raise ConfigEntryError("graph_profile_unsupported")
+            self.graph_profile.validate()
+            journal = native_graph_journal(
+                self.hass, self.entry, self.graph_profile.qualification_digest)
+            self.client = GraphShadowClient(self.runtime, adapter, self.publish,
+                journal, self.graph_profile, self.hass.loop.time)
+        else:
+            zones, mapping = await async_build_configuration(self.runtime)
+            self.client = ShadowClient(
+                self.runtime, adapter, self.publish,
+                Store(self.hass, 1, f"open_thermostat.v1.{self.entry.entry_id}"),
+                zones, mapping, self.hass.loop.time)
         await self.client.async_start()
         self.runtime.attach_transport(self.client)
         self.client._close_io = self.async_close
@@ -104,14 +118,29 @@ class NativeShadowConnection:
             self.unsubs.append(await mqtt.async_subscribe(
                 self.hass, self.prefix + "fw/#", received, qos=0, encoding="utf-8"))
             self.unsubs.append(mqtt.async_subscribe_connection_status(self.hass, connection_status))
-            self.bind_schedules()
-            if any(r.schedule or r.week_program is not None for r in self.runtime.rooms.values()):
+            if self.graph_profile is None:
+                self.bind_schedules()
+            if self.graph_profile is None and any(r.schedule or r.week_program is not None for r in self.runtime.rooms.values()):
                 self.unsubs.append(async_track_utc_time_change(
                     self.hass, refresh, hour=0, minute=0, second=0))
             self.arm()
         except Exception:
             await self.async_close()
             raise
+
+    async def async_graph_command(self, command, *args):
+        """Explicit stage/apply joins SAME bounded worker, never a parallel writer."""
+        if self.closed or self.worker is None or self.graph_profile is None or command not in {"stage", "apply"}:
+            raise ConfigEntryError("graph_profile_unavailable")
+        future = self.hass.loop.create_future()
+        try:
+            self.queue.put_nowait(("graph_command", (future, command, args)))
+        except asyncio.QueueFull as error:
+            self.client.reset_session()
+            self.client.error = "receive_queue_overflow"
+            self.client.changed()
+            raise ConfigEntryError("graph_queue_full") from error
+        return await future
 
     @callback
     def bind_schedules(self):
@@ -181,7 +210,32 @@ class NativeShadowConnection:
                 elif kind == "poll":
                     await self.client.poll()
                     self.check_bench_admission()
+                elif kind == "graph_command":
+                    future, command, args = data
+                    if future.cancelled():
+                        continue
+                    try:
+                        result = await (self.client.async_stage(*args) if command == "stage"
+                                        else self.client.async_apply(*args))
+                        if not future.done():
+                            future.set_result(result)
+                    except asyncio.CancelledError:
+                        future.cancel()
+                        raise
+                    except Exception as error:
+                        if not future.done():
+                            future.set_exception(error)
+                        # Validation fails the journal closed but need not force
+                        # another session. Uncertain IO/dependency failures do.
+                        from .graph_shadow_validation import GraphValidationError
+                        if not isinstance(error, GraphValidationError):
+                            self.client.reset_session()
+                        self.client.error = self.client.journal.status
+                        self.client.changed()
                 elif kind in {"refresh", "rebind"}:
+                    if self.graph_profile is not None:
+                        self.client.configuration_changed()
+                        continue
                     if self.bench:
                         self.bench.request_stop("configuration_or_schedule_changed")
                         continue
@@ -214,6 +268,8 @@ class NativeShadowConnection:
         if self.closed:
             return
         self.closed = True
+        if self.client is not None:
+            self.client.reset_session()
         if self.timer:
             self.timer()
             self.timer = None
@@ -225,5 +281,7 @@ class NativeShadowConnection:
             self.worker.cancel()
             await asyncio.gather(self.worker, return_exceptions=True)
         while not self.queue.empty():
-            self.queue.get_nowait()
+            kind, data = self.queue.get_nowait()
+            if kind == "graph_command":
+                data[0].cancel()
             self.queue.task_done()

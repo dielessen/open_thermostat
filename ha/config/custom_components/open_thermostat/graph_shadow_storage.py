@@ -173,6 +173,12 @@ class GraphShadowJournal:
                 and context.mapping_digest == (digest(accepted["mapping"]) if accepted else ""),
                 "readback_required")
 
+    async def async_initialize(self):
+        """Load native durable DATA only, without granting runtime admission."""
+        async with self._transaction():
+            await self._load()
+            return self.state
+
     async def async_stage(self, raw, mapping_raw, context, capability, received_at, *, retained):
         """Validate whole candidate, persist mapping+config BEFORE possible send."""
         async with self._transaction():

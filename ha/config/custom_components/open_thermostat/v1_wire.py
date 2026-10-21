@@ -16,13 +16,13 @@ import secrets
 from homeassistant.exceptions import HomeAssistantError
 
 from .v1_model import Observation, RoomDecision
+from .session_grant import register_grant_proof, consume_grant_proof, MAX_GRANT_PROOFS
 from .metric_snapshot import CAPABILITY,MAX_BYTES as MAX_METRIC_BYTES,EXPIRY_SECONDS,valid_snapshot
 
 _ID = re.compile(r"[A-Za-z0-9_-]{1,32}")
 _HEX = re.compile(r"[0-9a-f]{64}")
 MAX_BYTES = 8192
 GRANT_NONCE_CAPABILITY = "session.grant_nonce.v1"
-MAX_GRANT_PROOFS = 8
 
 
 def canonical(value):
@@ -325,12 +325,10 @@ class ShadowClient:
                                      5 * (p["grant_sequence"] - self.session["grant_sequence"]))
                 proof=p.get("grant_request_nonce")
                 if self.grant_nonce_supported and identifier(proof):
-                    sent=self._grant_proofs.pop(proof,None)
-                    if sent is not None and 0<=self.clock()-sent<10:
-                        # This grant was issued AFTER FW accepted our fresh
-                        # heartbeat. ORIGINAL send time is a conservative lower
-                        # bound; no FW clock comparison or receipt-time renewal.
-                        grant_deadline=max(grant_deadline,sent+10)
+                    deadline=consume_grant_proof(self._grant_proofs,proof,self.clock())
+                    if deadline is not None:
+                        # SAME original-send proof used by explicit graph owner.
+                        grant_deadline=max(grant_deadline,deadline)
                 delay_bound = self.clock() + 10 - grant_deadline
             else:
                 delay_bound = self.clock() - self.open_sent
@@ -481,9 +479,7 @@ class ShadowClient:
             self.pending.pop(key)
             raise HomeAssistantError("Bounded shadow command queue full")
         if topic=="ha/heartbeat" and self.grant_nonce_supported:
-            self._grant_proofs[p["grant_request_nonce"]]=sent
-            while len(self._grant_proofs)>MAX_GRANT_PROOFS:
-                self._grant_proofs.pop(next(iter(self._grant_proofs)))
+            register_grant_proof(self._grant_proofs,p["grant_request_nonce"],sent)
         await self.send(topic, raw)
 
     async def async_observation(self, room_id, observation: Observation):

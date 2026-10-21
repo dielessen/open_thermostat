@@ -55,7 +55,8 @@ public:
         if (!admission_.begin(identity,leaseMs)) return false;
         identity_=identity;grant_.clear();grantSequence_=0;
         if (!admission_.bind(0,"adapter",StreamKind::heartbeat)
-            || !admission_.bind(1,"config",StreamKind::configuration)) return fault("graph_binding_fault");
+            || !admission_.bind(1,"config",StreamKind::configuration)
+            || !admission_.bind(2,"snapshot",StreamKind::configuration)) return fault("graph_binding_fault");
         status_="graph_session_no_lease";return true;
     }
     bool issueGrant(std::string_view grant,uint32_t sequence,uint64_t now,uint32_t durationMs) {
@@ -69,8 +70,15 @@ public:
         if (result.code==AdmissionCode::accepted) status_="graph_session_lease";
         return result;
     }
+    Admission requestSnapshot(const Envelope& e,uint64_t now) {
+        if(fault_||!checkNow(now))return {AdmissionCode::not_configured};
+        return admission_.admit(2,e,now);
+    }
     void disconnected() {admission_.invalidateTransport();if(!fault_)status_="graph_readback_required";}
     bool alive(uint64_t now) const {return initialized_&&!fault_&&(!haveNow_||now>=lastNow_)&&admission_.alive(now);}
+    uint64_t grantDeadline(uint64_t now) const {
+        return initialized_&&!fault_&&(!haveNow_||now>=lastNow_)?admission_.grantDeadline(now):0;
+    }
     std::string apply(std::string_view raw,std::string_view mapping,uint64_t now) {
         if (fault_) return status_;
         if (!initialized_) return status_="graph_unavailable";

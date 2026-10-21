@@ -1,6 +1,7 @@
 #pragma once
 #ifdef OPENTHERMOSTAT_E32V2
 #include "ShadowController.h"
+#include "GraphSessionOwner.h"
 #include "ControlPartitionBudget.h"
 #include "Network.h"
 #include "config.h"
@@ -64,41 +65,61 @@ private:
     ControlStorageProfile profile_;
 };
 
+// Source-owned reviewed pin, NOT a remotely supplied config/capability. No
+// current settings/default factory supplies this; explicit use selects /v2/
+// exclusively and enables the same-store conservative NVS graph preflight.
+struct GraphSourceProfile {
+    std::string controllerId,qualificationDigest;
+};
+
 // Product transport, using public PubSubClient API directly. This REPLACES the
 // legacy connection when explicitly provisioned, not an extra bridge/client.
 class ModernTransport {
 public:
-    explicit ModernTransport(config::MqttConfig cfg,ShadowController::Metrics metrics={}):cfg_(std::move(cfg)),client_(network_) {
+    explicit ModernTransport(config::MqttConfig cfg,ShadowController::Metrics metrics={},
+                             const GraphSourceProfile* graphProfile=nullptr)
+        :cfg_(std::move(cfg)),client_(network_),
+         store_(graphProfile?ControlStorageProfile::graph_shadow_v2:ControlStorageProfile::legacy_api1),
+         graph_(graphProfile!=nullptr) {
         auto prefix=cfg_.base.empty()?"open_thermostat":cfg_.base;
         valid_=SessionAdmission::validId(prefix)&&SessionAdmission::validId(cfg_.adapterId)&&
             !cfg_.brokerAddress.empty()&&cfg_.brokerPort&& !cfg_.username.empty()&&!cfg_.password.empty();
         if(!valid_) return; // no anonymous control or fallback legacy writer
-        base_=prefix+"/v1/";
+        base_=prefix+(graph_?"/v2/":"/v1/");
         client_.setServer(cfg_.brokerAddress.c_str(),cfg_.brokerPort);
         client_.setKeepAlive(15); client_.setSocketTimeout(1);
         // Total packet budget: max payload8192 + bounded prefix/topic/header.
         if(!client_.setBufferSize(8448)) { valid_=false; return; }
         char mac[17]; snprintf(mac,sizeof(mac),"e32_%012llx",static_cast<unsigned long long>(ESP.getEfuseMac()));
-        controller_=std::make_unique<ShadowController>(mac,randomControlId(),cfg_.adapterId,store_,sha256Hex,randomControlId,
-            [this](std::string_view suffix,std::string_view payload) {
-                const std::string topic=base_+std::string(suffix);
-                // No raw wire logging: HA identity/config may be private.
-                client_.publish(topic.c_str(),reinterpret_cast<const uint8_t *>(payload.data()),payload.size(),false);
-            },std::move(metrics));
+        const auto publish=[this](std::string_view suffix,std::string_view payload) {
+            const std::string topic=base_+std::string(suffix);
+            // Same one native connection; no raw private wire logging.
+            client_.publish(topic.c_str(),reinterpret_cast<const uint8_t *>(payload.data()),payload.size(),false);
+        };
+        if(graph_) {
+            if(graphProfile->controllerId!=mac||!hexString(graphProfile->qualificationDigest,64)) {
+                valid_=false;return; // Explicitly selected API2 NEVER falls back1.
+            }
+            graphController_=std::make_unique<GraphSessionOwner>(mac,randomControlId(),cfg_.adapterId,
+                graphProfile->qualificationDigest,store_,sha256Hex,randomControlId,publish);
+        } else {
+            controller_=std::make_unique<ShadowController>(mac,randomControlId(),cfg_.adapterId,store_,
+                sha256Hex,randomControlId,publish,std::move(metrics));
+        }
         client_.setCallback([this](char *topic,uint8_t *payload,unsigned int length) {
             const std::string_view full(topic);
             if(length>8192||full.substr(0,base_.size())!=base_) return;
             const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
             const auto utc=std::time(nullptr);
-            controller_->receive(full.substr(base_.size()),
-                std::string_view(reinterpret_cast<char *>(payload),length),now,utc,clockValid());
+            withOwner([&](auto& owner){owner.receive(full.substr(base_.size()),
+                std::string_view(reinterpret_cast<char *>(payload),length),now,utc,clockValid());});
         });
     }
     void loop() {
-        if(!valid_||!controller_) return;
+        if(!valid_||(!controller_&&!graphController_)) return;
         auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
         if(!heating::networkConnected()||!client_.connected()) {
-            if(wasConnected_) { controller_->disconnected(); wasConnected_=false; }
+            if(wasConnected_) { withOwner([](auto& owner){owner.disconnected();}); wasConnected_=false; }
             if(!heating::networkConnected()||now<nextConnect_) return;
             nextConnect_=now+5000;
             const auto id=cfg_.clientId.empty()?cfg_.base:cfg_.clientId;
@@ -106,26 +127,32 @@ public:
             if(!client_.connect(id.c_str(),cfg_.username.c_str(),cfg_.password.c_str(),willTopic.c_str(),0,false,"offline",true)) return;
             bool subscriptions=true;
             for(auto suffix:{"ha/open_session","ha/heartbeat","ha/config","ha/observations","ha/user_command","ha/snapshot_request"}) {
+                if(graph_&&(std::string_view(suffix)=="ha/observations"||std::string_view(suffix)=="ha/user_command"))continue;
                 const auto topic=base_+suffix;
                 subscriptions=client_.subscribe(topic.c_str(),0)&&subscriptions;
             }
             if(!subscriptions) { client_.disconnect(); return; }
-            controller_->connected(now); wasConnected_=true;
+            withOwner([&](auto& owner){owner.connected(now);}); wasConnected_=true;
             client_.publish(willTopic.c_str(),"online",false);
         }
         const auto utc=std::time(nullptr);
-        controller_->tick(now,utc,clockValid());
+        withOwner([&](auto& owner){owner.tick(now,utc,clockValid());});
         client_.loop();
     }
 private:
+    template<class F>void withOwner(F&& action) {
+        if(graphController_)action(*graphController_);
+        else if(controller_)action(*controller_);
+    }
     // Validated SNTP event in main sets this trust flag. A plausible cached or
     // manual wall time is not sufficient after boot; no RTC assumed on E32.
     static bool clockValid();
     config::MqttConfig cfg_; std::string base_;
     WiFiClient network_; PubSubClient client_; NvsControlStore store_;
     std::unique_ptr<ShadowController> controller_;
+    std::unique_ptr<GraphSessionOwner> graphController_;
     uint64_t nextConnect_=0;
-    bool valid_=false,wasConnected_=false;
+    bool valid_=false,wasConnected_=false,graph_=false;
 };
 }
 #endif

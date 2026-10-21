@@ -1118,6 +1118,44 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   completion; indien al actief onderdeel alleen ontbrekende acceptatiegaten.
   Eigen automation geïnspecteerd en next_check15m bevestigd.
 
+### Mark11785 — F2/F3 expliciete graph-handshake/readback: onafhankelijke bronacceptatie
+
+- [x] Canonical prechange34cd917 schoon; actuele WORKBOARD/PLAN-gates en Stage20
+  RESULT/handoff gelezen. Stage18/19 al geaccepteerd; geen dubbele merge/telling.
+  Begrensde specialistgeschiedenis gaf een projectiefout; session_status bevestigt
+  bestaande specialist met followupqueue. Geen tweede uitvoeringseigenaar gestart.
+- [x] Corepatch SHA256
+  a742b42224ab956cff0639b92e325faad67df30f65a15d84606c1a452988bea3 gereviewd;
+  alle16niet-WORKBOARDbron-/test-/dochashes exact GRAPH-OWNER-RESULT.jsonc8fbaea.
+- [x] Expliciet source-owned API2profiel in dezelfde native verbinding/queue/worker/
+  Store; defaultAPI1 behouden, geselecteerd2 valt nooit terug1. Echte challenge/
+  open/heartbeat/grant/atomiccommit/nieuwe sessie/exacte readback vereist. ACK alleen
+  is geen applybewijs; graph_ready is uitsluitend DATA, ready/control blijftfalse.
+  Huidige main/options selecteert dit profiel niet; geen runtimewijziging.
+- [x] Onafhankelijk canonical hostg++17 strict:53nativePASS; native HA99PASS,
+  inclusief bestaande API1lifecycle/grant. Eerste98PASS/1FAIL was ontbrekende
+  testbinary; oorspronkelijke log bewaard. Werkelijke canonical shadow_runner
+  gebouwd/expliciet aangewezen, daarna volledige99PASS zonder bron-/assertiewijziging.
+- [x] Werkelijke graphowner/core/finiterunner/cJSON volledig ASan+UBSan gebouwd;
+  dezelfde17HAgraphprotocolchecksPASS met leakdetectie/halt-on-error. Geen GTest
+  in die runner; native-only nonPIEflags, geen productflags. Tellingen overlappen.
+- [x] Synthetische6min/2s actual-protocolmeting onafhankelijk gereproduceerd:
+  1snapshotrequest/183HAtotaal/50879HAbytes; eerder bewaard before181snapshots.
+  Dit is geen daadwerkelijke brokerduur-/liveE32GUI-/telefoonsnelheidsmeting.
+- [ ] F2/F3 OPEN: volledige graphGUIapply/source/controller/modeluitvoering,
+  8zoneheap/stack/NVS/GC-/partitie-/migratieacceptatie, volledige firmwareimage en
+  fysieke ketenproef. Niet geïnstalleerd; geen actuator/TX/EMS/verwarmingsvrijgave.
+- Bewijs11774dossier: GRAPH-OWNER-PARENT-REVIEW.md, PRECHECK/HASHES/COMMANDS.json,
+  BUILD/NATIVE/RUNNER/API1/SANlogs, FINAL-HA.xml/log, SAN-HA.xml/log en POLL.json.
+  Specialist Xtensaobject/typecheckbewijs behouden; geen nieuwe parentfullbuildclaim.
+- Rollback alleen dit nieuwe bronpakket vóór afhankelijke activatie; geen live data
+  gewijzigd. OudAPI1 blijft bewaard, geen automatische migratie/reset.
+- Volgende uitvoering blijft bij dezelfde specialist: bestaande GUIapply2ef680e5,
+  enabledmodelreplayeb935cd0 en F0/F10releasevoorbereidinga66f4831, zonder duplicaten.
+  LiveGUIperformance en alle overige F0–F10open checks blijven deel van11785.
+  Bestaande officiële automation72ec7e68 enabled/gepland geïnspecteerd en behouden;
+  het gehele PLAN blijft in_progress, geen stilzwijgende afronding na dit bronpakket.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

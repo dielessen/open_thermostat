@@ -2943,6 +2943,42 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   echte producer-/frontend-/imageacceptatie. Geen dubbele eigenaar of nieuwe timer;
   hele31eisen/F0–F10opdracht blijft IN_PROGRESS.
 
+### Mark11785 — F2/F3 expliciete profielwijziging: onafhankelijke bronacceptatie
+
+- [x] Canonical e7fca31 en actuele §6/PLAN/RESULT, memory, verified-taskflow,
+  eenmaal bounded history6 en specialiststatus gelezen. Bestaand hostreceipt niet
+  herhaald; dezelfde specialist blijft eigenaar. Bevroren ee5613589 onafhankelijk
+  in canonical-derived worktree gereviewd; geen archief over canonical gelegd.
+- [x] Exact14preimages/afterhashes,533archiefbestanden/519protected en frozen
+  bewijshashes PASS. Expliciet dezelfde owner/controller, één huidige voorganger,
+  afzonderlijke vervangingsbevestiging en lokale descriptor; oude config alleen
+  ZERO-zonequarantaine/readback. Nieuw volledig plan N+1 vereist expliciete apply
+  én verse exacte readback. Unknown/foreign/recursive/future/stale weigert zonder
+  wissen; opeenvolgende wijzigingen groeien niet tot historische autoriteitsketen.
+- [x] Onafhankelijk echte nativeHA2026.10.2/Python3.14.8 met verse hostgcc/g++
+  C++core/peer/cJSON:78gerichte gevallen PASS; exactdezelfde78 met verse
+  ASan+UBSan/leakdetectie PASS.37nieuwe profielgevallen plus41factory/options;
+  overlappende tellingen niet optellen.33notices/shipped/SDKregressies PASS.
+  Eerste specialistverifier miste sandboxgcc op host; alleen bestaande parent
+  hosttooling gebruikt, geen product-/assertiewijziging. Vijf bestaande HAwarnings.
+- [x] Canonical bronmerge5a4b147;14bronhashes/reversepatch/commitdiff en alle
+  overige trackedbytes PASS. Gelijktijdige Mark12021-overdrachtsnotitie behouden
+  en niet in deze bron-/bewijscommit meegenomen; geen overdrachtsgereedclaim.
+- Bewijs11774dossier: native-evolution-parent-20261021-2148/{TASKFLOW,PRECHECK,
+  REVIEW,CHECKS,native-host,san-host,AUDIT,SOURCE-POSTCHECK,FINAL-POSTCHECK}.
+  Rollback alleen14bronpaden vóór afhankelijke inzet; config/journal/IDs/history
+  behouden. Geen HAconfig/login/broker/apparaat/reboot/installatie/publicatieactie.
+- [ ] F2/F3 en heelPLAN blijven IN_PROGRESS: echte measurement/safetykwalificatie,
+  volledigeweek/horizonrefresh, echte desktop-/mobielbrowser, gewone samengestelde
+  images/buildfs/resources/8zones/NVS-GC/queue/72u en9SDK/CA/toolchain/source-offergates
+  OPEN. SafetyUNKNOWN/defaultNONE/outputfalse en14afgewezen F9kandidaten behouden;
+  geen fysieke/TX/EMS/actuator-/verwarmingsvrijgave of releasedatum.
+- Volgende uitvoering bij dezelfde specialist: bestaande volledigeweek/refresh
+  afronden; concrete echte HA reportfreshness/contact/person-lifecycle met
+  last_reported versus last_changed en negatieve reconnect/owner/uitvalproeven
+  followup61328526 QUEUED. Admission is geen completion; bestaande frontend/image/
+  overdrachtsvoorbereiding blijft gelden. Enigeautomation next_check exact15min.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

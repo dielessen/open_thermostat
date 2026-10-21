@@ -396,5 +396,9 @@
       ],
       "scope": "Exact original header comment excerpt, not complete binary/component source closure"
     }
-  ]
+  ],
+  "linked_sdk_evidence": {
+    "path": "docs/third-party/sdk-linked-archives.json",
+    "sha256": "78f6d0952c2a0856a0804c01efbcbc10d2bb5eb855a7fdc3f32daad122f20469"
+  }
 }

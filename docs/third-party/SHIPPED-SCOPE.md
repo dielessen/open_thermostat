@@ -78,6 +78,46 @@ dated curl/Mozilla provenance in certs/README.md. Its exact dated upstream data
 revision/applicable original notice binding is still missing. No blanket license
 is inferred from a certificate label or from the generator's Apache notice.
 
+## Exact retained SDK → current cache join — still not corresponding source
+
+sdk-linked-archives.json is the hash-pinned extension consumed by the EXISTING
+release_shipped audit. It joins the actual retained ELF/map paths to **52 prebuilt
+SDK archives per board**, not all74/72 retained archives of every source family.
+Both same-basename/different-directory inputs require their own exact identity.
+The104 archive paths, two target sdkconfigs and two package metadata files match
+the original frozen installed inventory b4e37aad... and current cache bytes.
+No repeated full-cache walk, download or rebuild is necessary.
+
+The saved source8b364f21 ELF/map/image hashes are checked before the join. Target
+sdkconfig hashes are esp32 a4fe490abd8cd6447874edd79bde1e78d9630af7845bd53f70440a56b3504907
+and esp32s3 a70d5c071e68c07e82fe5e71c3225b0854e1021ecd8a902da20523aa3123b476.
+Package metadata hashes must equal the original provenance pins. These identify
+cached configurations, NOT a reproduced recipe for the dirty prebuilt libraries.
+
+Per archive the audit deliberately reports **null** for matching source commit,
+binary build recipe, linker-time archive attestation and qualified applicable
+binary notices. A current cache hash and historical linkmap path cannot prove
+which archive bytes the historical linker consumed. Header notice references
+remain header-only; E32 references are not copied onto S3 binary qualification.
+No component is marked VERIFIED using a file name, root license or clean header.
+All104 component rows and overall source-offer closure remain BLOCKED.
+
+To check the current installed archive bytes explicitly, add --core <pinned-core>
+to the existing release_shipped command. Without --core the evidence report says
+NOT_CHECKED_CORE_NOT_SUPPLIED, never an exact-current-bytes PASS. Both branches
+remain BLOCKED; only --allow-blocked-report permits an evidence export exit0.
+It cannot make native packaging publishable. Unknown schema, missing or duplicate
+archive, new retained input, source/ELF/map/target mismatch, cache tamper, metadata
+pin mismatch, unsafe path or invented source/license qualification fails closed.
+No original notices, especially the whitespace-sensitive original LGPL text,
+are reformatted or replaced.
+
+This evidence concerns the older exact saved build receipts only. Later SOURCE
+controller/GUI source commits are NOT thereby full-image built or deployed.
+Runtime, SDK dependencies, default factories, outputs and all physical gates are
+unchanged. Separate actual producer, DATA writer/provisioning, current composed
+image and native frontend acceptance gates remain open where unproven.
+
 ## Attribution and corresponding-source checklist — incomplete, BLOCKED
 
 | Evidence class | Required distribution material / current result |

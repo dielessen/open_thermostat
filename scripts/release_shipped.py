@@ -181,7 +181,120 @@ def verify_saved_receipts(receipts,policy):
         if filehash(inside(receipts,name))!=sha:raise NoticeError("actual_build_log_conflict")
     return saved,artifact_hashes
 
-def collect_shipped(root,receipts):
+
+def linked_sdk_inventory(root, policy, boards, core=None):
+    """Join retained SDK inputs to reviewed installed bytes, NOT corresponding source.
+    A current cache/file hash cannot attest the archive used by an older linker.
+    Schema1 intentionally cannot encode a VERIFIED source/build/license claim.
+    """
+    ref=policy.get("linked_sdk_evidence")
+    if type(ref) is not dict or set(ref)!={"path","sha256"}:
+        raise NoticeError("linked_sdk_evidence_missing")
+    ledger_path=inside(root,ref["path"])
+    if filehash(ledger_path)!=ref["sha256"]:raise NoticeError("linked_sdk_ledger_conflict")
+    ledger=json.loads(ledger_path.read_text())
+    def keys(value, expected):
+        if type(value) is not dict or set(value)!=set(expected):
+            raise NoticeError("unsupported_linked_sdk_evidence")
+    def hash_value(value):
+        if type(value) is not str or re.fullmatch("[0-9a-f]{64}",value) is None:
+            raise NoticeError("invalid_linked_sdk_identity")
+    def identity(value):
+        keys(value,("sha256","bytes"));hash_value(value["sha256"])
+        if type(value["bytes"]) is not int or value["bytes"]<=0:
+            raise NoticeError("invalid_linked_sdk_identity")
+    keys(ledger,("schema","scope","receipt_source","inventory","package_metadata","boards"))
+    if type(ledger["schema"]) is not int or ledger["schema"]!=1:
+        raise NoticeError("unsupported_linked_sdk_schema")
+    if ledger["receipt_source"]!=policy["receipt_source"]:
+        raise NoticeError("linked_sdk_source_conflict")
+    keys(ledger["inventory"],("inventory_sha256","file_sha256","framework_tree_sha256"))
+    for value in ledger["inventory"].values():hash_value(value)
+    keys(ledger["package_metadata"],("package.json",".piopm"))
+    provenance=json.loads((root/"docs/third-party/provenance.json").read_text())
+    framework=Path(core)/"packages/framework-arduinoespressif32" if core is not None else None
+    checked=set()
+    def check_current(relative, spec):
+        # Both validation branches reject path escape, including local symlinks.
+        if Path(relative).is_absolute() or ".." in Path(relative).parts:
+            raise NoticeError("unsafe_relative_path")
+        identity(spec)
+        if framework is not None and relative not in checked:
+            f=inside(framework,relative)
+            if not f.is_file() or f.stat().st_size!=spec["bytes"] or filehash(f)!=spec["sha256"]:
+                raise NoticeError("current_sdk_file_conflict:"+relative)
+            checked.add(relative)
+    for name,spec in ledger["package_metadata"].items():
+        identity(spec)
+        if spec["sha256"]!=provenance["framework"]["pins"].get(name):
+            raise NoticeError("linked_sdk_metadata_pin_conflict:"+name)
+        check_current(name,spec)
+    keys(ledger["boards"],("e32v2","esp32s3"))
+    by_env={b["environment"]:b for b in boards}
+    if set(by_env)!=set(ledger["boards"]) or len(boards)!=len(by_env):
+        raise NoticeError("linked_sdk_board_set_conflict")
+    output=[]
+    for env,b in sorted(by_env.items()):
+        row=ledger["boards"][env]
+        keys(row,("sdk_target","descriptor_idf","map_sha256","elf_sha256","cached_sdkconfig","archives"))
+        target={"e32v2":"esp32","esp32s3":"esp32s3"}[env]
+        if row["sdk_target"]!=target or row["descriptor_idf"]!=b["descriptor"]["idf"]:
+            raise NoticeError("linked_sdk_target_descriptor_conflict")
+        for suffix in ("map","elf"):
+            key=suffix+"_sha256";hash_value(row[key])
+            if row[key]!=policy["artifacts"][f"build-evidence/{env}/firmware.{suffix}"]["sha256"]:
+                raise NoticeError("linked_sdk_receipt_conflict")
+        cfg=row["cached_sdkconfig"];keys(cfg,("path","sha256","bytes"))
+        if cfg["path"]!="tools/sdk/"+target+"/sdkconfig":
+            raise NoticeError("linked_sdk_config_target_conflict")
+        check_current(cfg["path"],{k:cfg[k] for k in ("sha256","bytes")})
+        retained={}
+        for item in b["retained_inputs"]:
+            if item["classification"]["kind"]!="prebuilt_sdk_runtime_unqualified":continue
+            prefix="packages/framework-arduinoespressif32/tools/sdk/"+target+"/"
+            path=item["path"]
+            if not path.startswith(prefix) or Path(path).name!=item["archive"]:
+                raise NoticeError("linked_sdk_retained_path_conflict")
+            if path not in retained:retained[path]=set()
+            retained[path].add(item["member"])
+        if type(row["archives"]) is not list or not row["archives"]:
+            raise NoticeError("linked_sdk_archive_set_conflict")
+        archives={}
+        for item in row["archives"]:
+            keys(item,("path","sha256","bytes"))
+            path=item["path"]
+            if type(path) is not str or path in archives or path not in retained:
+                raise NoticeError("linked_sdk_archive_set_conflict")
+            spec={k:item[k] for k in ("sha256","bytes")};identity(spec)
+            relative=path.removeprefix("packages/framework-arduinoespressif32/")
+            check_current(relative,spec)
+            # Never attach the E32 header evidence to an S3 binary as proof.
+            headers=[dict(e) for e in policy["cached_sdk_component_evidence"]
+                     if env=="e32v2" and e["linked_archive"]==Path(path).name]
+            archives[path]=dict(path=path,installed_archive=spec,
+                retained_members=sorted(retained[path]),
+                source_commit=None,matching_binary_build_recipe=None,
+                build_time_archive_digest=None,applicable_binary_notices=None,
+                header_only_references_not_binary_qualification=headers,
+                status="BLOCKED",
+                missing=["build_time_archive_attestation","matching_dirty_binary_source",
+                         "matching_component_build_recipe","applicable_original_component_notices"])
+        if set(archives)!=set(retained):raise NoticeError("linked_sdk_archive_set_conflict")
+        output.append(dict(environment=env,sdk_target=target,descriptor_idf=row["descriptor_idf"],
+            receipt_source=ledger["receipt_source"],elf_sha256=row["elf_sha256"],map_sha256=row["map_sha256"],
+            cached_target_sdkconfig=cfg,archives=[archives[k] for k in sorted(archives)]))
+    return dict(schema=1,status="BLOCKED",ledger_sha256=ref["sha256"],
+        source_offer_state="BLOCKED",
+        installed_bytes_check="EXACT_CURRENT_CACHE_MATCH" if framework is not None else "NOT_CHECKED_CORE_NOT_SUPPLIED",
+        current_files_checked=len(checked),
+        inventory_reference=ledger["inventory"],
+        inventory_scope="Reference to frozen inventory, not a repeated whole-cache inventory or linker-time receipt.",
+        config_scope="Exact cached target sdkconfig only; NOT a proven recipe for the dirty linked archives.",
+        package_metadata=ledger["package_metadata"],boards=output,
+        blocked=["sdk_build_time_archive_attestation_missing",
+                 "sdk_linked_component_source_recipe_notice_closure_unverified"])
+
+def collect_shipped(root,receipts,core=None):
     root=Path(root);receipts=Path(receipts)
     policy=json.loads((root/"docs/third-party/shipped-policy.json").read_text())
     if policy.get("schema")!=1:raise NoticeError("unsupported_shipped_policy")
@@ -232,13 +345,15 @@ def collect_shipped(root,receipts):
             retained_archives=archives,retained_inputs=rows,allocated_sections=alloc,
             dependency_scan_not_retention_proof=scanned,build_packages_not_retention_proof=packages,embedded_web=web,
             retained_bytes_scope="ALLOC input contribution incl RAM/NOBITS, NOT compressed image/flash attribution"))
+    sdk_links=linked_sdk_inventory(root,policy,boards,core)
+    blocked.update(sdk_links["blocked"])
     ha=ha_inventory(root,policy["ha"])
     blocked.update("unqualified_ha_import:"+name for name in ha["unqualified_external_imports"])
     for key in ("pem","binary"):
         if filehash(inside(root,policy["ca"][key]))!=policy["ca"][key+"_sha256"]:raise NoticeError("ca_identity_conflict")
     return dict(schema=1,status="BLOCKED" if blocked else "REVIEW_REQUIRED_NOT_PUBLICATION",
         state=policy["state"],receipt_source=saved["source"],build_artifacts=artifact_hashes,
-        boards=boards,ha=ha,web_catalog=original["assets"],
+        boards=boards,ha=ha,linked_sdk=sdk_links,web_catalog=original["assets"],
         runtime_original_notices=policy["original_runtime_notices"],upstream_originals=original["original_upstream_notices"],
         external_libraries=policy["external_libraries"],ca=policy["ca"],
         cached_sdk_component_evidence=policy["cached_sdk_component_evidence"],
@@ -250,10 +365,11 @@ if __name__=="__main__":
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--receipts",type=Path,required=True)
     parser.add_argument("--output",type=Path,required=True)
+    parser.add_argument("--core",type=Path,help="Check only retained SDK archives/metadata against current installed bytes; never source closure")
     parser.add_argument("--allow-blocked-report",action="store_true",help="Evidence only, never publication approval")
     args=parser.parse_args()
     root=Path(__file__).resolve().parents[1]
-    report=collect_shipped(root,args.receipts)
+    report=collect_shipped(root,args.receipts,args.core)
     if args.output.exists():raise NoticeError("report_output_must_not_exist")
     args.output.parent.mkdir(parents=True,exist_ok=True)
     args.output.write_text(json.dumps(report,indent=2)+"\n")

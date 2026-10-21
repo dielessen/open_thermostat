@@ -1,0 +1,568 @@
+{
+  "schema": 1,
+  "scope": "Current installed archive identities matched to frozen cache inventory and actual retained ELF/map inputs; NOT build-time archive attestation or matching SDK source/license closure.",
+  "receipt_source": "8b364f21df6923342d24dde070fcc99ac188e76c",
+  "inventory": {
+    "inventory_sha256": "b4e37aadf56439d8ca3ed535c09e811a6aa128c45a5ba4b5a7b3b0d7a2fefaab",
+    "file_sha256": "ef72ec8324400782542c9d97e2ca47479cc63f50a010cb8cdeace14db0e37b13",
+    "framework_tree_sha256": "6a603931b19767ed49b1ece8a00b81f5f1c41ef272fdc417ced8f0312e0d6574"
+  },
+  "package_metadata": {
+    "package.json": {
+      "sha256": "f35415c75f6f43755df92bbbf7ef10c9e65c2edb2569d512636a0477be64d5bf",
+      "bytes": 414
+    },
+    ".piopm": {
+      "sha256": "e413903767348a4c955aaeebaa04a40076f5bd6045dd8f083d42c113a9cb9bbd",
+      "bytes": 218
+    }
+  },
+  "boards": {
+    "e32v2": {
+      "sdk_target": "esp32",
+      "descriptor_idf": "v4.4.7-dirty",
+      "map_sha256": "1c13d119c22c36b02820f0a740448c0e183e33cfc1271d1264b3afa82ef0020c",
+      "elf_sha256": "8a1fc5d309e29b4bd54921dcd804bf620cdabf89e756a221c439858642b09dfe",
+      "cached_sdkconfig": {
+        "path": "tools/sdk/esp32/sdkconfig",
+        "sha256": "a4fe490abd8cd6447874edd79bde1e78d9630af7845bd53f70440a56b3504907",
+        "bytes": 64328
+      },
+      "archives": [
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/dio_qspi/libspi_flash.a",
+          "sha256": "76634e526ca493bb20f57a78d82fe39143dd517e48ac48938c918dff97da4a20",
+          "bytes": 1276362
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/ld/libbtdm_app.a",
+          "sha256": "981595473bda6953657f7504a6711d522fc112654759dd65bd9f9a07145b7078",
+          "bytes": 616480
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/ld/libphy.a",
+          "sha256": "273b390ad2cb6ea36134c0bd060b4a635de93f9bfcc26343e31142ad9760fdcc",
+          "bytes": 847298
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/ld/librtc.a",
+          "sha256": "544b27be485381ededfbd689f783e4fa591d185c7d5d5435dc9abee1ecd6a79a",
+          "bytes": 184058
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libapp_update.a",
+          "sha256": "a8eea8800464df643942e78932ff08839de59c8ec8e93927506f9b3f7c0fc68d",
+          "bytes": 130216
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libbootloader_support.a",
+          "sha256": "792e9772a7b3307a4bcbdebd11f4643fb8626da01cba9bde19edced6dee1240c",
+          "bytes": 785096
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libbt.a",
+          "sha256": "d96f9d1c4f7e1c023d059ad1d4b7b2a69bcaab0fb6b2ac7763ff867773e4c8e9",
+          "bytes": 26881660
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libcoexist.a",
+          "sha256": "e42853be1021b886f63bf6fc05933e83ebc6f529cb94c831a21bcfe44bfe6cd6",
+          "bytes": 111166
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libcore.a",
+          "sha256": "23add44b14b650cf0873ecd1e67b666194389092711dc348031894bac6ea9c47",
+          "bytes": 4556
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libcxx.a",
+          "sha256": "efbcc686d8eae3d929907c7d7bd243920c0df2cdd4e32309a539f5c6a0b4adcb",
+          "bytes": 59614
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libdriver.a",
+          "sha256": "2b9e4ab530b315e9795b15e24af471b065ed80e621f5e057b26d58117bf47c29",
+          "bytes": 5199100
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libefuse.a",
+          "sha256": "9e23566c63db7db6a6c63a1b0ed61cabb3567a5fff5d726dcf83307a6ce9bf04",
+          "bytes": 306270
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_common.a",
+          "sha256": "f8ccbbe3b4bc155a8ac109e795cbba11a5f934a639676e6b7126a6ebe8afd5b0",
+          "bytes": 57446
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_diagnostics.a",
+          "sha256": "f7e621272ab8b74c27a2dbd2cd818d6439cc01b0b130654e0fc9c6d3f796e940",
+          "bytes": 365666
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_eth.a",
+          "sha256": "74db5f17eb803cf807a5117f1f20a31e7715f51bf8140cfcfb32cdfec6ccca86",
+          "bytes": 1420684
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_event.a",
+          "sha256": "6df487da9c6c55c7a9074f8188af18e21cb9469a2de5b776689e77db2437250e",
+          "bytes": 269836
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_hw_support.a",
+          "sha256": "de5e82ba286a8fbcbed697a9f5e83571e18b9b373662b35379c45b714de9b8ff",
+          "bytes": 1885538
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_ipc.a",
+          "sha256": "dfbd61b1d36dcdbfc91b68609d4176a136fafed4363924493945d3b558ec3bf3",
+          "bytes": 86328
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_netif.a",
+          "sha256": "c26f7159655d93d1dc6f721e5d90599095f9a04ca011329fd75fd59d3696c709",
+          "bytes": 446996
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_phy.a",
+          "sha256": "a2ede693d565c0f50be1aa31a64b554b5d771ed7e731cef0a20df052392b3384",
+          "bytes": 175142
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_pm.a",
+          "sha256": "db3576e2f8ca859ae6108e8e2faacaa1ca3fa022bfbbf3f7c5bf0a2d913feef8",
+          "bytes": 195652
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_ringbuf.a",
+          "sha256": "8078c1f32ff780588bea3bc48f7b46dfb9046af45749db7864c6e8a360443a05",
+          "bytes": 154874
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_rom.a",
+          "sha256": "4904fa267679ac083c384a67b1e3c2ffff000f132b4d30f6691d626fe3134c5c",
+          "bytes": 44106
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_system.a",
+          "sha256": "ad9940b6ddd60b3c0a45e3127cced30b09572396824520a63cbc88a47426194b",
+          "bytes": 1357300
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_timer.a",
+          "sha256": "16f90c7d6699c07fb1fb9edf5811dee8117136552d78dfd672ee291483e5af95",
+          "bytes": 208816
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_wifi.a",
+          "sha256": "bb858d1fe6f7395e919806318fd5a6e80a262c40d6f448cc4d1b7cb673976c75",
+          "bytes": 501634
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libespcoredump.a",
+          "sha256": "4462cd3a94fad3370122bfc2689152f975ba72e5c14122dbb66b741bf79ef40d",
+          "bytes": 456480
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libfreertos.a",
+          "sha256": "15140f7fd1edb9b76294a0d9f578599e61e7f21b2c76f6c80410c081e51facfc",
+          "bytes": 1045010
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libhal.a",
+          "sha256": "60ec9f56633657dc6fe13ad76d62e4821daa0418dce6b3b5edfff30339834e69",
+          "bytes": 2065356
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libheap.a",
+          "sha256": "6e608e3b360a6e58068420dffc176e50ac2f49499a50a480c320a484853d26bc",
+          "bytes": 556320
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libjson.a",
+          "sha256": "1b2d83fca2d746e471cb2e370fad599247fc97f25c13eaa41489e597f77a5d03",
+          "bytes": 365044
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/liblog.a",
+          "sha256": "64df7eb02fdd6c66c6e6278366ffb9c09ae3728e1e89a0d07a7bd968cac35887",
+          "bytes": 95320
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/liblwip.a",
+          "sha256": "54b90c19968a11410878e30d6039ba8754b567c017fb88453d8be9941aab30cf",
+          "bytes": 4301420
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libmbedcrypto.a",
+          "sha256": "ff3db61c6a07f31958b2199a39e876d35a6254032c7aa0c2d90d1002bd3890e9",
+          "bytes": 4246928
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libmbedtls_2.a",
+          "sha256": "cee9d3f3941247316241e31e3bb327727be8fd776fc04d39bce3af6e6f76bad2",
+          "bytes": 1251802
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libmbedx509.a",
+          "sha256": "3dfff87f550d5cbcad7c53aaf57aee972ab98893e78886dae08adbbdad5f4d22",
+          "bytes": 676902
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libmdns.a",
+          "sha256": "f94a65b32dbf481f660a8ffec0921ef2df275b31b08591aa438bed6e3c41c5ca",
+          "bytes": 836916
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libnet80211.a",
+          "sha256": "6db8c03e58385cae462871647c680489ba84b5c29e86abca9c89dca9d8bb7ba1",
+          "bytes": 1101516
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libnewlib.a",
+          "sha256": "3e9a3f21b8811be683280cda935eee775e66ba0d0d8935b3383963d82a16c1bf",
+          "bytes": 497208
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libnvs_flash.a",
+          "sha256": "67b3f76ca0ad9ed15dd316b92f1296dca364cd79e2702ce024c55a0ae715937c",
+          "bytes": 1458148
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libpp.a",
+          "sha256": "a4356534d066da8c1ce08b52e3e614ee4da1a3e9b3b4bfc4285d083f46b75937",
+          "bytes": 541058
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libprotocomm.a",
+          "sha256": "fa8a3f465e4810d111200beb79d5a0d3a2e9c73fc6ab43c4e5b24f738bafe860",
+          "bytes": 606726
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libpthread.a",
+          "sha256": "386252f766ad35b8ef05dc771b49ef8fef5e619980358f71fcabf1569ead0a81",
+          "bytes": 225614
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libsmartconfig.a",
+          "sha256": "8d7789d35a2427029aed51216f2b707e9d16911dca02c21d4ec737c9cc7102fc",
+          "bytes": 187032
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libsoc.a",
+          "sha256": "ffefeee460076f2dc492974966cb1f25c8932dcf2842fcc511fa727acc6bbe98",
+          "bytes": 491060
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libspiffs.a",
+          "sha256": "a152a4b65a0d116f23f6c3805ccd4e98a58f4c88a0eaa0b80694b40285096eab",
+          "bytes": 765672
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libtcpip_adapter.a",
+          "sha256": "c8cb438c772b7d3aca184f0f81341d514851c7982efb10dbd6a3da60a2664540",
+          "bytes": 105796
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libvfs.a",
+          "sha256": "7c6cc3e9314b1a8137ae8072a567f68fe0bbd4bfa790d386cdee9ed60abe81ae",
+          "bytes": 509510
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libwifi_provisioning.a",
+          "sha256": "9fd33ac72f2a44382bec46b07ddcb31fcb937cbcd9a6bdf4ea4832340856c506",
+          "bytes": 810784
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libwpa_supplicant.a",
+          "sha256": "81c6a36e278204d98fe146d856ebf90aa7e0b268142fa3ad990776fc43289706",
+          "bytes": 4877194
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libxt_hal.a",
+          "sha256": "8ccf843aac8fd0b4aa2c90f022f52cf8f867aabe34436cd1d41f50ddf72c19e2",
+          "bytes": 462242
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libxtensa.a",
+          "sha256": "4c4df4296caca186d2b9cbdb226b529532d00836fab1a345fc113390c3f37b6b",
+          "bytes": 52780
+        }
+      ]
+    },
+    "esp32s3": {
+      "sdk_target": "esp32s3",
+      "descriptor_idf": "v4.4.7-dirty",
+      "map_sha256": "3a981c8abc333db8cf7d097c9b8365960eac92fa345c71a9395c9b0bd1499fd0",
+      "elf_sha256": "8fb61889dcc43297fe0548ee6d5144b057b02396b71c227b6a90366157a765c9",
+      "cached_sdkconfig": {
+        "path": "tools/sdk/esp32s3/sdkconfig",
+        "sha256": "a70d5c071e68c07e82fe5e71c3225b0854e1021ecd8a902da20523aa3123b476",
+        "bytes": 79318
+      },
+      "archives": [
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/ld/libbtbb.a",
+          "sha256": "9ce018fb5d7753318ccf1e8386ced5d45a0b0d90f07352946a03c8689539073f",
+          "bytes": 19818
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/ld/libbtdm_app.a",
+          "sha256": "3a766cbdf78cde3d2d0eee40bf601c09be88c6589a629815e8d59b91b271d1dc",
+          "bytes": 541800
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/ld/libphy.a",
+          "sha256": "c8f6c6821c7e8e28c97f3a797e322d9987a0f3fd5f5da5e971ab0111ba513160",
+          "bytes": 241614
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libapp_update.a",
+          "sha256": "63b0e765f044b9c4f58e8b4c5643daa902bb243210747e8b1df88c67c4520f9d",
+          "bytes": 146988
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libbt.a",
+          "sha256": "48fe8a1427a6476e2a8671bc893bd0e346d1658f3714b97d25ca091487748365",
+          "bytes": 21780332
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libcoexist.a",
+          "sha256": "0c61713a461511973e0d4270bcf6c75587fb5da361f0636c8346c960516ef05a",
+          "bytes": 85092
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libcore.a",
+          "sha256": "193092d7be420934e1a865fccfa50f223e6829cd0f47ebbc6b0d4940c7bfb981",
+          "bytes": 4820
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libcxx.a",
+          "sha256": "295951e87b7152a7364d45f5435ac24408a80dbe32fedf326e97edda8fc60412",
+          "bytes": 59530
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libdriver.a",
+          "sha256": "b8ab992d477263dba3306c057af7cb08f2808a22bc6aeec668c3a0d20e189773",
+          "bytes": 5359990
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libefuse.a",
+          "sha256": "c65c8266bfa4170e534f9e3a9c744566f09f1f8e71da6bdf60ce9488be5a1ff2",
+          "bytes": 505220
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libesp_common.a",
+          "sha256": "aa3b7a5f964bc7c7bfae623e64b15b695db268dd704b1fa7f967dad519f67b5f",
+          "bytes": 57798
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libesp_diagnostics.a",
+          "sha256": "69f28fb584e5a44cab0739d53679e78304e45d42ebd76f3e12eb8cf5d973007a",
+          "bytes": 361766
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libesp_eth.a",
+          "sha256": "ae4966a227553730bd9ab1bf19bfc5179aa1c13ae09374670c2b831215d9b3d1",
+          "bytes": 812314
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libesp_event.a",
+          "sha256": "32b0bdae4f59c6f09fab85c221cd459b4a44567ca4ad753807f9f7172eac70b2",
+          "bytes": 268676
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libesp_ipc.a",
+          "sha256": "2bdbbe5e2669143738b2bbd89203eda25476960b5d4f6ce15c512513ae36fcc5",
+          "bytes": 90608
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libesp_netif.a",
+          "sha256": "0d67fa2f45582ae11364fce8237146c9db9ead20cf5bf19cb15cd47d93a9c4de",
+          "bytes": 445516
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libesp_phy.a",
+          "sha256": "b63a6ce02ad6490c3351964f2d901c2d468f3865a7d64187a287ae66eba7b3e1",
+          "bytes": 151588
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libesp_pm.a",
+          "sha256": "60529aeaf1cd94b41983383ceec240d1f43256f86faf8d9357f9e7d6050d9191",
+          "bytes": 171180
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libesp_ringbuf.a",
+          "sha256": "71dedf0f14aa64031c973b73279a88f9c4ec83ccfef331fe01e3532183cafc8c",
+          "bytes": 154618
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libesp_rom.a",
+          "sha256": "fd3ad8b4552687a2722288fdf8069e43ab01440196dbf3cd6c77cb994be2fbd6",
+          "bytes": 113716
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libesp_timer.a",
+          "sha256": "b09bd4231f011c0dc6f09900aa05f6df48f237d34b78965c746f777f5e9fc7bc",
+          "bytes": 176508
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libesp_wifi.a",
+          "sha256": "cb06edb694b149bed9b9691be7942281549868e5e59624036da4ccaeb7d72175",
+          "bytes": 468002
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libespcoredump.a",
+          "sha256": "8f8b9e9d1e7853232b113cff78c0e62f8939fc4026abd190512134d985695392",
+          "bytes": 478456
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libhal.a",
+          "sha256": "ba8f1f141062b0b567029d0bf21ed4981426870f8ae2d33ba1bfd91d32bf5fc7",
+          "bytes": 2792896
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libheap.a",
+          "sha256": "8108f23266178230dc27c03ac62b538a990a2a90d638503e3a1f3c482ea41513",
+          "bytes": 557948
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libjson.a",
+          "sha256": "04a1df04bb1e0dce3326f511ed68f317081e08caf4f094d6cb4eab172119e2f6",
+          "bytes": 364144
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/liblog.a",
+          "sha256": "6ebbc908c98f6dca8a03533e95877d217b21a8a7777bfe0cded98dc228f4a2fc",
+          "bytes": 94876
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/liblwip.a",
+          "sha256": "8d9f1c6ef5abcf086759e3032938ef8df2c06125c0735242a0a079d277ef593d",
+          "bytes": 4288608
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libmbedcrypto.a",
+          "sha256": "abdaf759ee17aa697468427b55a86c6c0082ac4cdeb643a63d8b3ac2df324633",
+          "bytes": 4302698
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libmbedtls_2.a",
+          "sha256": "9a580d2ff7c885e1bf59479a14422e3d10a485ae9083acb5db943df714c0ac35",
+          "bytes": 1252150
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libmbedx509.a",
+          "sha256": "3d56277224b066118b6c48a973ae18fdf8078448bf54b482ac5557699e52f223",
+          "bytes": 676590
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libmdns.a",
+          "sha256": "a4055b24d4a2cd4571d3e53b3051e884fc06bb1b22f85fb43935688f246fe1d7",
+          "bytes": 834960
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libnet80211.a",
+          "sha256": "6aae206c85e9009a24cd1f28ce535e2a2d578d9687fe2dc77d4697d45ebc8d0f",
+          "bytes": 1150738
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libnewlib.a",
+          "sha256": "dbac7546c93c387a82f3a83cf6985468ad0c26177c391251bde37dac7725511f",
+          "bytes": 428740
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libnvs_flash.a",
+          "sha256": "f4163a6e3bb66867d06c5e7f33226f1941f123b77f358cc02e30021b1a2bf983",
+          "bytes": 1455040
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libpp.a",
+          "sha256": "369fa64aefd5d147062fd11288f3933b192dc5d9adfbefcafdd94ae9ac9de32e",
+          "bytes": 601344
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libprotocomm.a",
+          "sha256": "3858c1b234129522a6bbbbdb07537fa0d6b619ef44725d290beedef238b79eb3",
+          "bytes": 605970
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libpthread.a",
+          "sha256": "c99c47275fdf44c290e154b83b16cc0a62427a82d2875409e0eafe2945088ab1",
+          "bytes": 225166
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libsmartconfig.a",
+          "sha256": "abd9da8b00c3440452c0386f3cee1a16886d9ece3bbecc7cf7e8eea2b94a355c",
+          "bytes": 186040
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libsoc.a",
+          "sha256": "a484ab659effaaecbd5fe75d20d4ef293e1a54de5034f10add071d597c7fae45",
+          "bytes": 604598
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libspiffs.a",
+          "sha256": "1df938532105275f2a9e90984e1d8d6b22a3914a8112d78750722b1e0255c904",
+          "bytes": 764324
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libtcpip_adapter.a",
+          "sha256": "624b198973b01d0df08d758fd1911ab221f006650f40e46c955c8e394fa2c09a",
+          "bytes": 105660
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libvfs.a",
+          "sha256": "b70865ab418f4f4cc516e234e0011e975164f70b3282df197fd325b061308ed9",
+          "bytes": 639414
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libwifi_provisioning.a",
+          "sha256": "ee55767957e3bb116f670f1ba0a46f0ceadc4c5292884dcc6f7c5ab63c08f7e9",
+          "bytes": 808520
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libwpa_supplicant.a",
+          "sha256": "fdef973bbfa85c926c5a8266c34cfe0f4aab83d6a835522b24356afe31f52b31",
+          "bytes": 4858426
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libxt_hal.a",
+          "sha256": "4823e6c657199a6726f3163f15e1222edb85a8a33eeaafd2aad0cc06150cc4ec",
+          "bytes": 240506
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/lib/libxtensa.a",
+          "sha256": "42eda0b774a63e71e4b3b4ea983aa2a45374779eae270786272d93cfc30f1293",
+          "bytes": 52616
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/qio_qspi/libbootloader_support.a",
+          "sha256": "569a073995d954de64877037de9f211c9f711d3bbe4755b316f8bcf6aab3fc6d",
+          "bytes": 769328
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/qio_qspi/libesp_hw_support.a",
+          "sha256": "b9b412df462a8eed8a4bd5e4ed6bf13c0c0271cec5fed97ff08bf9a0bf922308",
+          "bytes": 1863798
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/qio_qspi/libesp_system.a",
+          "sha256": "2a58caf364f9417c0c81ed0509fc21b3db4a23b6bd75940937de8d10dc8d048a",
+          "bytes": 1574894
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/qio_qspi/libfreertos.a",
+          "sha256": "258c4cc7c1d878cfb2a0a5a76344e4b4e8db326da95b4471f99430c8557c82f8",
+          "bytes": 1063058
+        },
+        {
+          "path": "packages/framework-arduinoespressif32/tools/sdk/esp32s3/qio_qspi/libspi_flash.a",
+          "sha256": "82287e5db87de68cd2fac77d144607cf0af5a871f3c4a9c80865b7a1c98d5666",
+          "bytes": 1465194
+        }
+      ]
+    }
+  }
+}

@@ -2662,6 +2662,30 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
 - Bestaande enigejob werkelijk geïnspecteerd: interval900000ms/pacing15m–15m
   ongewijzigd; next_check exact15m bevestigd. Geen extra job/coördinatielaag.
 
+### Mark11785/11890 — 21okt19:02, tweekamer-ControlPlan actief; reloadblokker bevestigd
+
+- Canonicalhost schoon op875cf1b; §6/PLAN, actuele RESULT (nog architectuur/
+  gecorrigeerd Stage55) en eenmaal boundedhistory6 daadwerkelijk gelezen.
+  Bestaand eenmalighostreceipt behouden. Dezelfde specialist werkt aantoonbaar
+  aan nativeControlPlan; geen tweede eigenaar, redundant bericht of testherhaling.
+- Nieuw lokaal tussenbewijs: native-plan-vertical-second/HA.log bevat één
+  geslaagde gerichte integratieproef. GEEN frozen nieuw pakket of parentacceptatie;
+  geen claim dat volledige tweekameropslag/apply/herstel al productgereed is.
+- Concrete softwareblokker: native-plan-reload-trace/HA.log (21okt19:01),
+  test_same_installation_profile_accepts_target_schedule_edit_readback_and_OFF
+  faalt in handshake met invalid_firmware_message en session=None. Specialist
+  onderzoekt dit met transparante receive/requesttrace; oorzaak nog niet bewezen.
+- Eerstvolgende echte bewijsactie: dezelfde eigenaar herstelt/kwalificeert native
+  handshake bij doel-/schemawijziging en reload, bewijst exacte beidekamersreadback,
+  OFF en herstel met hetzelfde installatieprofiel. Daarna frozen diff/hashpakket
+  onafhankelijk reviewen, gerichte nativeHA/echteCpp- en foutproeven, bronmerge en
+  postcheck; werkelijke desktop/mobielGUI en actuele releasechecks blijven open.
+- TaskFlow11785 blijft in_progress: wijzigingsrisico, waarheid dit bord/PLAN;
+  acceptatie bovenstaande keten plus bestaande owner/safety/migratiegates.
+  Deze run wijzigt uitsluitend dit bord; rollback alleen deze documentatiecommit.
+  Geen installatie/publicatie/TX/EMS/actuator-/verwarmingsvrijgave. Enige bestaande
+  job geïnspecteerd, interval/pacing15min behouden, next_check15m bevestigd.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

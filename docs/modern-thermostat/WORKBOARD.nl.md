@@ -2319,6 +2319,47 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   acceptedjournal-/pinreconciliatie toetsen; geen tweede eigenaar. Native visuele
   acceptatie blijft apart hostbewijs. Bestaande uitvoeringsjob behouden; check15min.
 
+### Mark11785 — Stage50 normale HA-opties → bestaande regelaar: bronacceptatie
+
+- [x] Echte canonicalhosttoegang bewezen op schone4b5d4c2; WORKBOARD§6/PLAN,
+  memory_search/verified-taskflow en actuele RESULTStage50 gelezen. Eenmaal
+  boundedhistory6 en session_status; specialist bezig met tweekamer/topologycode.
+  Bestaand NIGHT-RUNTIME-CHECK niet herhaald; geen tweede uitvoeringseigenaar.
+- [x] Exact8padenpatch1d330980 en493frozenbronbestanden/39bewijshashes gecontroleerd;
+  eigen canonical-afgeleide reviewworktree. Alle8before-/afterhashes exact,
+  zeven afwijkende canonicalparentpaden waaronder3ACKregressies behouden.
+- [x] Normale native HA-opties kunnen een REEDS expliciet gereviewde SOURCE-
+  koppeling inschakelen. Pure DATApreflight kan ook bij OFF; actieve DATAcaller
+  controleert enabled vóór én na awaits. Bestaande update listener is enige
+  reloadowner; geen automatische bronselectie/kwalificatie of fysieke uitvoer.
+- [x] Onafhankelijke echte HA2026.10.2/Python3.14.8:234gerichtePASS/0skip
+  (231specialistgevallen plus3bestaande parentACKtests). Dezelfde10nieuwegevallen
+  met volledig finiteCpp/cJSONASanUBSan/leaksPASS; ongewijzigde bron/binaries
+  vooraf gehashverifieerd, externe OpenSSLprovider niet geïnstrumenteerd.
+  Twee onafhankelijke racesPASS: OFF tijdens DATA-scheduleawait en SOURCEpin-
+  vervanging tijdens preflight. Eerste parentprobe miste saved_graph-import;
+  oorspronkelijke fixtureerrors bewaard, uitsluitend parentimport gecorrigeerd.
+- [x] Broncommit4de389895daee5887e3c8fdd8620a9659ca7f838 fast-forward canonical;
+  alle overige trackedcanonicalbytes behouden, schone status/diffcheck en
+  exacte8afterhashes technisch nagecontroleerd. Geen ongewijzigde brede rebuilds.
+- [ ] Software blijft OPEN: ondersteunde configureerbare SOURCEproducer/factory,
+  normale revisie-/pin-/oudacceptedjournaltransitie, bredere graphuitvoering,
+  nativefrontend desktop/mobielacceptatie, actuele images/resource/licentie/
+  productieHA en F9modelacceptatie. Eén vooraf vastgelegde kamer is geen voltooide
+  gebruikersketen. Niet geïnstalleerd/gepubliceerd; fysieke/72u/TX/EMS/actuator/
+  verwarmingsgates ongewijzigd. HelePLAN11785 blijft in_progress.
+- Bewijs/rollback: siblingdossier open-thermostat-parent-stage50-20261021 met
+  TASKFLOW, frozenpakket/before, REVIEW, COMMANDS/HA.xml/log, SAN en RACES,
+  SOURCE-POSTCHECK.json. Alleen nieuwe8padenbroncommit terug vóór afhankelijken;
+  graph/config/journal/model/Recorder/history en eerdere parentfixes behouden.
+- Volgende concrete WP03/WP04actie bij dezelfde specialist via followupdeb909fc
+  QUEUED: huidige tweekamer/topologytaak afmaken, daarna normale doel-/week-/
+  bindingwijziging met expliciete nieuwe SOURCEpin en oudacceptedjournaltransitie
+  via bestaande Store/entry/oneworker, zonder reboot/reflash; verse echteCppreadback
+  en fout-/reconnect-/ownerwisselbewijs. Als huidige taak dit al sluit: geen dubbel
+  pakket, daarna ondersteunde producer/factory kwalificeren. Admission is geen
+  uitvoering/completion. Bestaande enigejob behouden, volgendecheck15min.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

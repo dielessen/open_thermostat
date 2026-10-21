@@ -190,13 +190,18 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
             state=(connection.client.journal if connection.runtime.native_plan_source is not None
                 else connection.client.journal.state)
             record=state["staged"]
+            from .plan_presentation import scope,review_summary,labels
+            native=connection.runtime.native_plan_source is not None
+            view=labels(connection.client.graph_status["journal_status"],None,False,native=native)
             return self.async_show_form(step_id="graph_review",data_schema=vol.Schema({
                 vol.Required("confirm_apply",default=False):bool}),
                 description_placeholders={
                     "revision":str(record["config"]["revision"]),
                     "digest":record["config_digest"],
                     "accepted":str(connection.client.graph_status["accepted_revision"]),
-                    "status":connection.client.graph_status["journal_status"]})
+                    "status":connection.client.graph_status["journal_status"],
+                    "scope":scope(native),"summary":review_summary(record["config"],connection.runtime.rooms,native=native),
+                    "status_label":view["status_label"]})
         except (GraphValidationError,ConfigEntryError):
             if connection.client.graph_status["journal_status"] in {"graph_send_unconfirmed","awaiting_graph_readback","graph_interrupted","graph_apply_pending",
                     "native_plan_send_unconfirmed","native_plan_awaiting_readback","native_plan_apply_unconfirmed"}:
@@ -215,6 +220,14 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
             # Same options flow/status action; never an apply or qualification.
             data=self.hass.data.get(DOMAIN,{}).get(self.config_entry.entry_id,{})
             runtime=data.get("v1_runtime");source=getattr(runtime,"graph_controller_source",None)
+            if getattr(runtime,"native_plan_source",None) is not None:
+                client=getattr(data.get("v1_connection"),"client",None)
+                journal=getattr(client,"journal",None) or {"accepted":None,"staged":None}
+                from .native_plan import CONTRACT
+                return self._configuration_status_form(dict(status="disconnected",journal_status="disconnected",
+                    accepted_revision=journal["accepted"]["config"]["revision"] if journal["accepted"] else 0,
+                    staged_revision=journal["staged"]["config"]["revision"] if journal["staged"] else None,
+                    readback_verified=False,device_result=None,data_scope=CONTRACT),native=True)
             if source is None:return self.async_abort(reason="graph_review_unavailable")
             client=getattr(data.get("v1_connection"),"client",None)
             ready=runtime.transport_ready
@@ -232,21 +245,27 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
                     "journal_status":getattr(client,"error","not_running"),
                     "accepted":str(journal["accepted"]["config"]["revision"] if journal["accepted"] else 0),
                     "staged":str(journal["staged"]["config"]["revision"] if journal["staged"] else None)})
-        state=connection.client.graph_status
+        return self._configuration_status_form(connection.client.graph_status,
+            native=connection.runtime.native_plan_source is not None)
+
+    def _configuration_status_form(self,state,*,native):
+        # Same existing status step, no new flow/IO/Store read or authority.
+        from .plan_presentation import labels
+        view=labels(state["status"],state["device_result"],state["readback_verified"],native=native)
         return self.async_show_form(step_id="graph_status",data_schema=vol.Schema({
             vol.Required("status_action",default="refresh"):selector.SelectSelector({
                 "options":["refresh","close"],"translation_key":"graph_status_action"})}),
             description_placeholders={
                 "status":state["status"],"journal_status":state["journal_status"],
                 "accepted":str(state["accepted_revision"]),"staged":str(state["staged_revision"]),
+                "staged_label":str(state["staged_revision"]) if state["staged_revision"] is not None else "None staged",
                 "verified":str(state["readback_verified"]),
                 "device_result":state["device_result"] or "not_received",
                 "data_scope":("Two complete shadow room plans, including mapping"
                     if state["data_scope"]=="control.plan.v1" else
                     "One floor DATA; radiator target needs separate source review"
                     if state["data_scope"]=="graph-floor-native-trv.v1" else "Single-floor DATA only"),
-                "control_status":("Fresh plan readback required; never physical actuation"
-                    if connection.runtime.native_plan_source is not None else "Not selected; separate source review required")})
+                **view})
 
     async def async_step_graph_source_status(self,user_input=None):
         return await self.async_step_graph_status(user_input)

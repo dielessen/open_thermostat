@@ -51,20 +51,20 @@
           "shadow_enabled": "Enable shadow observation listeners (no actuation)",
           "create_dashboard": "Create legacy dashboard (legacy mode only)",
           "adapter_id": "Provisioned firmware adapter owner ID",
-          "graph_action": "Heating graph DATA",
+          "graph_action": "Saved heating configuration",
           "information": "Read-only device information"
         }
       },
       "graph_review": {
-        "title": "Review staged heating graph DATA",
-        "description": "Accepted revision{accepted}; staged revision{revision}. Digest:{digest}. Status:{status}. Apply stores this exact reviewed DATA tuple only; it does not enable heating, source or actuator control. Wait for verified readback. Changed owner/boot/session/candidate cancels this review.",
+        "title": "Review staged heating configuration",
+        "description": "{scope}.\n\n{summary}\n\nAccepted revision {accepted}; staged revision {revision}.\n{status_label}.\n\nApplying stores this exact reviewed configuration, never physical actuation. Only fresh exact readback verifies it. Owner, boot, session or candidate changes cancel this review.\n\nConfiguration digest: {digest}",
         "data": {
-          "confirm_apply": "Apply this exact staged DATA revision"
+          "confirm_apply": "Apply this exact staged configuration"
         }
       },
       "graph_status": {
-        "title": "Heating graph DATA status",
-        "description": "Transport:{status}. Journal:{journal_status}. Accepted:{accepted}; staged:{staged}. Device result:{device_result} (an ACK is not applied/readback proof). Current readback verified:{verified}. DATA verification is NOT running source/control/actuator admission. Select Refresh status and continue to read the latest state. Refresh never sends or reapplies DATA. DATA scope:{data_scope}. Control phase:{control_status}.",
+        "title": "Heating configuration status",
+        "description": "{status_label}.\n\nDevice result: {result_label}; an ACK is not applied/readback proof.\nLocally accepted revision: {accepted}; staged revision: {staged_label}.\nCurrent readback verified:{verified}.\n\nScope: {data_scope}.\n{control_status}.\n\nRefresh only reads the current status. It never applies configuration or qualifies a physical source.",
         "data": {
           "status_action": "Next action"
         }
@@ -611,9 +611,9 @@
     "graph_action": {
       "options": {
         "settings": "Integration settings",
-        "prepare": "Prepare saved heating graph DATA",
-        "review": "Review staged graph DATA",
-        "status": "Graph DATA status"
+        "prepare": "Prepare saved room and heating configuration",
+        "review": "Review staged configuration",
+        "status": "Configuration status"
       }
     },
     "graph_status_action": {

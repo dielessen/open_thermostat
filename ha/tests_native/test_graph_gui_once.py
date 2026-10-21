@@ -70,7 +70,7 @@ async def test_real_native_options_manager_saved_subentry_prepare_consent_and_ex
     text = await async_get_translations(hass, 'en', 'options', {'open_thermostat'})
     template = text['component.open_thermostat.options.step.graph_status.description']
     rendered = template.format(**pending['description_placeholders'])
-    assert 'Device result:not_received' in rendered and 'an ACK is not applied/readback proof' in rendered
+    assert 'Device result: No current-session acknowledgement recorded' in rendered and 'an ACK is not applied/readback proof' in rendered
     assert 'Current readback verified:False' in rendered
     await n.drain()
     status = await n.peer.request('status')

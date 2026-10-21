@@ -105,6 +105,7 @@ class ShadowClient:
         self._native_review=None
         self._native_apply_sent=False
         self._native_apply_scope=None
+        self._native_device_result=None
         if self.native_plan_source is not None:
             from .native_plan import NativePlanSource,native_entry_state
             if (type(self.native_plan_source) is not NativePlanSource
@@ -235,7 +236,7 @@ class ShadowClient:
         return dict(status=self.error,journal_status=self.error,
             accepted_revision=accepted["config"]["revision"] if accepted else 0,
             staged_revision=staged["config"]["revision"] if staged else None,
-            readback_verified=self.ready,device_result=None,data_scope=CONTRACT,
+            readback_verified=self.ready,device_result=self._native_device_result,data_scope=CONTRACT,
             control_review_status="native_shadow_only_no_physical_authority")
 
     def review_candidate(self):
@@ -295,6 +296,34 @@ class ShadowClient:
             config_digest=record["config_digest"],config=record["config"]))
         self.error="native_plan_awaiting_readback";self.changed()
         return "native_plan_send_unconfirmed"
+
+    def native_config_result(self,p):
+        """Current-request ACK presentation ONLY. True means consume/ignore.
+
+        A successful config result uses the NEW revision with the OLD session.
+        It therefore cannot pass same_config and is NEVER readback/admission.
+        """
+        expected={"api","controller_id","boot_id","epoch","config_revision","config_digest",
+                  "adapter_session_id","binding_id","sequence","status"}
+        if (set(p)!=expected or not integer(p["sequence"],1) or p["binding_id"]!="config"
+                or not integer(p["config_revision"]) or not self.native_source_current()
+                or self.session is None or p["adapter_session_id"]!=self.session["adapter_session_id"]):
+            return True
+        item=self.pending.get(("fw/config_result","config",p["sequence"]))
+        now=self.clock()
+        if item is None or not 0<=now-item["sent"]<8 or not now<item["deadline"]:
+            return True
+        request=json.loads(item["raw"]) # Existing bounded local outbound bytes.
+        if p["status"] in ("applied","duplicate"):
+            if (p["config_revision"]==request["config"]["revision"]
+                    and p["config_digest"]==request["config_digest"]):
+                self._native_device_result="acknowledged_unverified"
+                self.changed()
+            return True # No journal, ready, last_rx, grant, lease or sample change.
+        if p["status"] in ("conflict","mapping_conflict","rejected","storage_fault") and self.same_config(p):
+            self._native_device_result=("conflict" if p["status"] in ("conflict","mapping_conflict") else p["status"])
+            return False # Preserve existing failure/STOP handling, never success.
+        return True
 
     async def native_snapshot(self,p):
         from .native_plan import CONTRACT
@@ -429,6 +458,7 @@ class ShadowClient:
         self.journal = snapshot
 
     def reset_session(self):
+        self._native_device_result=None
         self._native_snapshot_scope=None
         self._native_snapshot_request=None
         self._native_remote_known=False
@@ -655,6 +685,9 @@ class ShadowClient:
             self.changed()
             return
 
+        if (self.native_plan_source is not None and topic=="fw/config_result"
+                and self.native_config_result(p)):
+            return
         if self.session is None or not self.same_config(p):
             return
         if topic=="fw/state/zones" and not self.source_policy_matches(p):return
@@ -821,6 +854,8 @@ class ShadowClient:
             raise HomeAssistantError("Bounded shadow command queue full")
         if topic=="ha/heartbeat" and self.grant_nonce_supported:
             register_grant_proof(self._grant_proofs,p["grant_request_nonce"],sent)
+        if self.native_plan_source is not None and topic=="ha/config":
+            self._native_device_result=None
         if self.native_plan_source is not None and topic=="ha/snapshot_request":
             self._native_snapshot_request=(self.native_context(),p["sequence"],p["grant_id"],p["grant_sequence"],self.grant_until)
         await self.send(topic, raw)

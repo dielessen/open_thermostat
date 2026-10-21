@@ -1793,6 +1793,15 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   completion. Automations next_check15m werkelijk bevestigd; eigen job behouden.
   Canonical bronhashes/protectedtrackedpaths en schone postcheckPASS.
 
+### Mark11841 — systematisch afmaken richting gezamenlijke HA/E32-release
+
+- Opdracht: lopende zaken afmaken, punten systematisch afwerken, realistische verwachting geven voor HA-integratie én E32-firmware. Geen nieuw scopeplan; PLAN/F0–F10 en alle fysieke/modelacceptatie blijven gelden.
+- Actueel bewijs: specialist levert Stage38 contact/personbronpakket9caeff3 ter review en werkt aan brongebonden seizoens-/regelprofielkoppeling in bestaande E32-controller. Dit actieve pakket eerst samenhangend afmaken; geen nieuwe genericoptimalisatie of brede neventaak starten.
+- Afwerkvolgorde binnen bestaande gates: (1) actieve bron-/profielintegratie afmaken en reviewen, (2) resterende graph/apply/opslag/model-owner/productcaller- en echte actuatorcontractgaten expliciet sluiten voor de bedoelde release, (3) HA-pakket en E32-image van dezelfde vastgelegde bronversie met bestaande integratie-/image-/herstelchecks voorbereiden, (4) vereiste echte HA↔E32-config/readback/reconnect/rebootproeven en daarna afzonderlijke actuator/EMS/veiligheids- en duuracceptatie. Geen fysieke stap als softwarebewijs tellen.
+- Zelfleren/adaptieve functies blijven niet-geaccepteerd zolang verklaarde modeleisen falen; eerste geïntegreerde testkandidaat niet presenteren als volledige PLANrelease of werkende woningregeling. Geen functie stilzwijgend uit releasebereik halen om een datum te halen.
+- Planningsstatus: geen onderbouwde harde releasedatum; resterende productintegratie en afgewezen modellen maken een urenbelofte onbetrouwbaar. Specialist geeft bij eerstvolgende inhoudelijke hand-off resterende blokkerende concrete taken, afhankelijkheden en eigen inspanningsinschatting voor één gezamenlijk HA/E32-kandidaat. Externe/fysieke duurchecks apart plannen; geen nieuwe herhaalde statusqueue.
+- Parent blijft review-/samenvoegeigenaar. Volledige PLAN in_progress; publicatie/installatie/verwarmingsvrijgave niet uit deze planning afleiden. Stop/rollback voor deze planningswijziging: alleen deze docsectie herzien, geen productie- of programmabestand gewijzigd.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

@@ -2768,6 +2768,53 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   behouden, next_check exact15m bevestigd. Controle19:33-run eindigt rond19:42
   door onafhankelijke bron-/ketenverificatie; geen stipte updateafleverclaim.
 
+
+### Mark11785/11890 — 21okt19:56-run, native plan GUI onafhankelijk geaccepteerd
+
+- [x] Canonicalhost6e15452 vooraf schoon; actuele§6/PLAN, memory_search,
+  verified-taskflow, boundedhistory6 en eenmaal specialiststatus gelezen.
+  Bestaande eenmalighostreceipt intact; geen tweede eigenaar of runtimeactie.
+- [x] Exact10padenpatch607a6e12/frozen522bronfiles/295bewijshashes gecontroleerd.
+  Complete diffreview in canonical-afgeleide worktree;513overige canonicalpaden
+  bytegelijk. Bestaande drie parent wrong-APItests als exacte suffix behouden;
+  preimageverschil eerst onderzocht, geen onafhankelijke regressies overschreven.
+- [x] Native review toont twee complete kamerplannen/doelen/UTCovergangen/limiet;
+  staged/pending/ACK/readback/conflict/offline en verlopen bewijs eerlijk gescheiden.
+  Actuele bekende request/session/identity/target/TTL vereist voor ACKindicatie;
+  ACK wijzigt geen journal/ready/grant/lease/last_rx/sample. Refresh/cancel read-only,
+  geen nieuwe flow/worker/Store; defaultSOURCE NONE en fysiekeoutputsfalse behouden.
+- [x] Verse hostgcc/g++17 strict/echtecJSONpeer, nativeHA2026.10.2/Python3.14.8:
+  alle135frozenuniekegevallen plus3bestaande parent-APInegatieven PASS, geen skips;
+  33notice/SDK/shippedunittests en werkelijke58HAbronfiles/inventaris/imports PASS.
+  Vijf bestaande dependencywarnings. Geen herhaling van ongewijzigde firmware-
+  builds/sanitizers; frozen specialistSANbewijs integraal gecontroleerd.
+- [x] Bronmerge2f14a46a66c02345ffa135a7aae11b9175bd31b5 fast-forwardcanonical;
+  alle10bronhashes/protectedpaden/reversecheck/commitdiffcheck en schoonpostcheckPASS.
+  Bewijs11774/native-gui-parent-20261021-1956/: PRECHECK/MANIFEST/PACKAGE/CHECKS/
+  CURRENT-HA-INVENTORY/POSTCHECK.json, REVIEW.md, nativecompilelogs en5HAcommand/
+  XML/logdossiers. Rollback uitsluitend nieuwe10padenbron vóór afhankelijkheden;
+  alle journal/config/model/Recorder/registry/historie/notices behouden.
+- [ ] Echte desktop/mobiele HAfrontend blijft softwareOPEN: hostChromium/Node
+  beschikbaar, maar beschikbare nativeHAruntime mist hass_frontend. Native Engelse
+  vertaaldeforms zijn GEEN browser/screenshots/performance- of productieHAversiebewijs.
+  Geen installatie/publicatie/login/liveHA/broker/device/reboot/TX/EMS/actuator-/GO.
+  Compact volledig weekschema/refresh/R18/8zones, legacy-/profielmigratie, echte
+  producer/productfactory, actuele fullimages/resources en negen releasenoticegates
+  blijven OPEN/BLOCKED. F9modelafwijzingen en fysieke/72ugates blijven behouden.
+- Actieve echte bronactie volgens20:01 LEGACY-PLAN-RECONCILIATION-TASKFLOW.md:
+  dezelfde specialist werkt in candidate-plan-journal aan bekende schema1record-
+  quarantine→expliciete schema2review/exactreadback, zonder oude control/grants te
+  herstellen. Nog geen gereed/aanvaard pakket; lopende uitvoering niet onderbroken.
+- Concrete volgende F2/F3productbinding met acceptatie/rollback plus huidigeGUI-
+  acceptatie teruggegeven via followup4c02857b-fb14-43b8-8cd0-4bf17d230488 QUEUED;
+  admission is geen completion. Bestaande compacteweekopdracht0268e698 niet dubbel
+  gestart. Eerstvolgend bewijs: finale migratiepatch+nativeHA/C++readback/reconnect/
+  failurechecks onafhankelijk reviewen; daarna producer/factory en echte frontend.
+  Hele31eisen/F0–F10opdracht IN_PROGRESS; enigejob/pacing15m geïnspecteerd/behouden,
+  officiële next_check15m bevestigd.19:56-run eindigt rond20:04 door bronreview/tests;
+  geen stipte15minaflevering of ETA beloofd.
+
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

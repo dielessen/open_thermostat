@@ -1347,6 +1347,45 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   F10bronfreshness/F4F6werk; parent neemt officiële native/browser/imagebuildgates
   op bestaande tooling op. Hele11785 blijft in_progress, geen stop na dit pakket.
 
+### Mark11785 — F0/F10 matrixbuilds en echte OTA-bestandsgrens; generiek GEBLOKKEERD
+
+- [x] Exacte officiële PIO6.2.0/IntelHex2.3.0 en Playwright1.63.0 geïsoleerd
+  voorbereid; geen runtimeconfig. HostPython3.12 wijkt af van CIsetup3.11;
+  geen volledige hostedCIclaim. Native356PASS, Chromiumbron76PASS/35JS-PASS,
+  afzonderlijke echte onboardingASan+UBSan36PASS; dekking overlapt eerdere tests.
+- [x] Canonical b3d521f-implementatie: E32 fullimage+SPIFFS werkelijk opnieuw
+  gebouwd, safetyverifier+7foutproevenPASS; statischRAM65704/ELFflash2292853,
+  echte app2299424/3670016bytes. S3 fullimagePASS, RAM59308/ELFflash1601361,
+  echte app1601728/3670016bytes. Geen runtimeheap/stack-/latencybewijs.
+- [ ] Genericesp32dev standaardbuild1710209>1703936ELFbytes. -Os exact0winst;
+  fullLTO past maar nieuwe NimBLE2.5.1int/uint8_t-mismatch NIET onderdrukt of
+  coregepatcht. ProjectLTO ELF1703261 meldtPASS, echte firmware.bin1709840
+  past NIET in1703936:5904bytes over. Alle kandidaatflags exact teruggedraaid;
+  geen partitie/feature/budgetversoepeling. Geen generieke releaseacceptatie.
+- [x] Concrete kwaliteitsfix bestaande officiële CI: echte firmware.bin moet in
+  BEIDE geconfigureerde OTAslots passen, niet alleen ELFcheck. Exacte workflow-
+  Python/YAML werkelijk getoetst: verse echte E32/S3bytesPASS; hashgebonden echte
+  ongeldige genericimage correctFAIL. Geen nieuw script/service/coördinatielaag.
+  PIOconfigchecksum had oude buildfiles gewist; positieve images echt herbouwd.
+- [x] Alle12Stage26bronhashes, oorspronkelijke platformio.ini en3partitietabellen
+  exact behouden. Eerdere694HA+68subtests/1optionelebrokerSKIP/0deselecties blijven
+  sourcebewijs; geen nieuwe packettest/volledigeCImatrix-/fysieke claim.
+- Bewijs11774dossier: OFFICIAL-GATES-PARENT-REVIEW.md, NATIVE/BROWSER/MATRIX/
+  RAW-IMAGE-CHECKS-commandos/logs, RAW-GATE-PARENT-BUILD-COMMANDS.json plus
+  E32/FS/VERIFY/VERIFIER/S3logs en GENERIC-SIZE-PARENT-* met alle afwijzingen.
+  Echte ongeldige image REJECTED-GENERIC-SOURCE-LTO-OVERSIZED.bin bewaren als
+  negatief bewijs, niet flashen/verpakken. Rollback alleen nieuwe CIbroncommit.
+- Concrete F0/F10broncorrectie bestaande specialist followupc414463c QUEUED:
+  bron-/linkmapgedreven generieke groottecorrectie, rawimage binnen beide huidige
+  slots, gerichte regressie/voor-nameting, behoud features/locks en eigen rollback.
+  Admission is geen completion. F9diagnose/F10freshness/F4F6/tweekamerbronwerk
+  blijft gelden; parent enige canonicalWORKBOARD/PLAN-eigenaar.
+- Hele11785 in_progress; genericbuild/next-versionpackage/sourceprofielen en alle
+  installatie-/liveperformance-/fysieke/72u/TX/EMS/actuator-/verwarmingsgates open.
+  Lokale images met historischealpha6label zijn GEEN nieuwe release; niets
+  geïnstalleerd/gepubliceerd/ingelogd of bestaandealpha6asset overschreven.
+  Eigen officiële hervattingsjob behouden; volgende inhoudelijke check15min.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

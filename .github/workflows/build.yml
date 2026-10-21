@@ -53,6 +53,28 @@ jobs:
       - name: Build firmware
         if: matrix.environment != 'native'
         run: pio run -e ${{ matrix.environment }}
+      - name: Verify actual firmware image fits every OTA app slot
+        if: matrix.environment != 'native'
+        env:
+          BUILD_ENVIRONMENT: ${{ matrix.environment }}
+        run: |
+          python - <<'PYTHON'
+          import configparser,csv,os
+          from pathlib import Path
+          target=os.environ['BUILD_ENVIRONMENT']
+          config=configparser.ConfigParser(interpolation=None)
+          config.read('platformio.ini')
+          table=Path(config['env:'+target]['board_build.partitions'])
+          rows=csv.reader(line for line in table.read_text().splitlines()
+                          if line.strip() and not line.lstrip().startswith('#'))
+          slots={row[2].strip():int(row[4].strip(),0) for row in rows
+                 if len(row)>=5 and row[1].strip()=='app' and row[2].strip() in {'ota_0','ota_1'}}
+          assert set(slots)=={'ota_0','ota_1'},'Both OTA app slots are required'
+          image=Path('.pio/build')/target/'firmware.bin'
+          size=image.stat().st_size
+          assert 0<size<=min(slots.values()),f'{target}: actual image {size} bytes exceeds OTA slots {slots}'
+          print(f'PASS {target}: actual image {size} bytes fits both OTA slots {slots}')
+          PYTHON
       - name: Build E32 filesystem and verify safety/layout
         if: matrix.environment == 'e32v2'
         run: |

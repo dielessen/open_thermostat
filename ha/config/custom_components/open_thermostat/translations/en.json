@@ -64,7 +64,7 @@
       },
       "graph_status": {
         "title": "Heating graph DATA status",
-        "description": "Transport:{status}. Journal:{journal_status}. Accepted:{accepted}; staged:{staged}. Current readback verified:{verified}. DATA verification is NOT running source/control/actuator admission. Close and reopen status to refresh."
+        "description": "Transport:{status}. Journal:{journal_status}. Accepted:{accepted}; staged:{staged}. Device result:{device_result} (an ACK is not applied/readback proof). Current readback verified:{verified}. DATA verification is NOT running source/control/actuator admission. Close and reopen status to refresh."
       },
       "hot_water": {
         "title": "Domestic hot water capabilities (read-only)",

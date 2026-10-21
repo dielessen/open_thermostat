@@ -183,7 +183,7 @@ class ShadowOptionsFlow(config_entries.OptionsFlowWithReload):
                     "accepted":str(connection.client.graph_status["accepted_revision"]),
                     "status":connection.client.graph_status["journal_status"]})
         except (GraphValidationError,ConfigEntryError):
-            if connection.client.journal.status in {"graph_send_unconfirmed","awaiting_graph_readback","graph_interrupted"}:
+            if connection.client.journal.status in {"graph_send_unconfirmed","awaiting_graph_readback","graph_interrupted","graph_apply_pending"}:
                 return await self.async_step_graph_status()
             return self.async_abort(reason="graph_review_changed")
         except Exception:
@@ -200,7 +200,8 @@ class ShadowOptionsFlow(config_entries.OptionsFlowWithReload):
             description_placeholders={
                 "status":state["status"],"journal_status":state["journal_status"],
                 "accepted":str(state["accepted_revision"]),"staged":str(state["staged_revision"]),
-                "verified":str(state["readback_verified"])})
+                "verified":str(state["readback_verified"]),
+                "device_result":state["device_result"] or "not_received"})
 
     async def async_step_init(self, user_input=None):
         errors = {}

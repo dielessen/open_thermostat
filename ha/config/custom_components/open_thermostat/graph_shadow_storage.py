@@ -43,6 +43,7 @@ class GraphShadowJournal:
         self.status = "not_loaded"
         self.verified = False
         self._generation = 0
+        self._apply_attempt = None  # bounded, boot/session/tuple-local; never persisted
 
     @asynccontextmanager
     async def _transaction(self):
@@ -194,6 +195,10 @@ class GraphShadowJournal:
             self.status = "graph_staged_not_applied"
             return candidate
 
+    @property
+    def apply_attempt(self):
+        return deepcopy(self._apply_attempt)
+
     @staticmethod
     def review_key(record, context):
         return dict(controller_id=context.controller_id,boot_id=context.boot_id,epoch=context.epoch,
@@ -241,6 +246,14 @@ class GraphShadowJournal:
             if transport is not None:
                 from .graph_wire_codec import encode_graph_tuple
                 raw = encode_graph_tuple(raw, canonical(record["mapping"]), context)
+            key = self.review_key(record, context)
+            require(self._apply_attempt is None or self._apply_attempt[0] != key,
+                    "graph_apply_pending")
+            # Reserve BEFORE the first possible IO. Same tuple/session cannot be
+            # resent by another flow, identical restage, uncertain send or cancel.
+            # New owner/session plus explicit new consent can recover after fresh
+            # readback; no durable schema/grant/admission is introduced here.
+            self._apply_attempt = (key, sequence)
             try:
                 await send("ha/config", raw)
             except Exception:

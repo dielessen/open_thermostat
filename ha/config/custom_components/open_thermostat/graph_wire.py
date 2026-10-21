@@ -66,6 +66,7 @@ class GraphShadowClient:
         self.closed=False;self.error="graph_not_connected";self._close_io=None
         self._nonce=lambda:secrets.token_hex(12)
         self._open_last=0.0;self._open_tries=0
+        self._config_attempt=None;self._device_result=None
 
     @property
     def ready(self):
@@ -88,6 +89,7 @@ class GraphShadowClient:
             journal_status=self.journal.status,readback_verified=self.graph_ready,
             accepted_revision=(state["accepted"]["config"]["revision"] if state["accepted"] else 0),
             staged_revision=(state["staged"]["config"]["revision"] if state["staged"] else None),
+            device_result=self._device_result,
             control_contract_supported=False,boiler_output_enabled=False,actuator_output_enabled=False)
 
     @property
@@ -114,6 +116,7 @@ class GraphShadowClient:
         self._proofs.clear();self._heartbeats.clear();self._snapshot=None;self._readback_key=None
         self._capability=None;self._cap_received=0.0;self._cap_highwater=0
         self.grant_until=self.lease_until=0.0;self.journal.invalidate()
+        self._config_attempt=None;self._device_result=None
 
     async def async_start(self):await self.journal.async_initialize()
 
@@ -283,6 +286,31 @@ class GraphShadowClient:
                 if self._readback_key!=self._data_key(cap) and self._snapshot is None:
                     await self._request_snapshot()
                 return
+            if topic=="fw/config_result":
+                # Presentation only: the actual core reports the NEW committed
+                # DATA tuple using the original request's owner/grant. It cannot
+                # satisfy _scope (which still has the old revision). Do not feed
+                # this result to reconcile, grants, leases, sources or admission.
+                obj(p,SESSION+" sequence status")
+                attempt=self._config_attempt
+                if (attempt is None or not self._live()
+                    or not integer(p["sequence"],1) or p["sequence"]!=attempt["sequence"]
+                    or not 0<=now-attempt["sent"]<10
+                    or any(type(p[k]) is not type(v) or p[k]!=v
+                           for k,v in attempt["owner"].items())):return
+                result=None
+                if (p["status"]=="graph_committed_no_admission"
+                    and all(type(p[k]) is type(v) and p[k]==v
+                            for k,v in attempt["target"].items())):
+                    result="acknowledged_unverified"
+                elif (p["status"] in ("revision_conflict","mapping_conflict")
+                    and self._scope(p)):
+                    result="conflict"
+                    self.journal.invalidate();self.journal.status="graph_remote_conflict"
+                    self.error="graph_remote_conflict"
+                if result is not None and self._device_result!=result:
+                    self._device_result=result;self.changed()
+                return
             if not self._scope(p):return
             if topic=="fw/heartbeat_result":
                 obj(p,SESSION+" binding_id sequence status")
@@ -359,8 +387,21 @@ class GraphShadowClient:
         sequence=self.sequence["config"]+1;require(integer(sequence,1),"sequence_exhausted")
         self.sequence["config"]=sequence
         self._readback_key=None # Explicit mutation needs actual new readback.
-        raw=await self.journal.async_apply_tuple(self.send,ctx,self._capability,
-            self._cap_received,sequence,retained=False,transport=TRANSPORT,reviewed=reviewed)
+        key=self.review_candidate()
+        mapping_revision=self.journal.state["staged"]["mapping"]["mapping_revision"]
+        pending=dict(sequence=sequence,sent=self._now(),
+            owner={k:getattr(ctx,k) for k in ("controller_id","boot_id","epoch","adapter_id",
+                "adapter_session_id","grant_id","grant_sequence")},
+            target=dict(config_revision=key["revision"],config_digest=key["config_digest"],
+                mapping_revision=mapping_revision,mapping_digest=key["mapping_digest"]))
+        try:
+            raw=await self.journal.async_apply_tuple(self.send,ctx,self._capability,
+                self._cap_received,sequence,retained=False,transport=TRANSPORT,reviewed=reviewed)
+        finally:
+            # A duplicate/rejected call must not overwrite the first send's ACK
+            # correlation. The same worker consumes replies only after this call.
+            if self.journal.apply_attempt==(key,sequence):
+                self._config_attempt=pending;self._device_result=None
         self.error=self.journal.status;self.changed();return raw
 
     async def async_observation(self,*args,**kwargs):

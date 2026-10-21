@@ -2239,6 +2239,22 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   alleen mandaat/documentatie, niet code/runtime/status of releasedatum.
 - Uitvoeringsbewijs/rollback: artifacts/open-thermostat-rewrite-mandate-11944-20261021/.
 
+### Mark11950 — actief architectuuradvies, beste oplossing zonder halfwerk
+
+- Voorlopig parentadvies: [ARCHITECTURE-ADVICE](ARCHITECTURE-ADVICE.nl.md), op
+  bronc2e8792/documentb937296; actieve specialistcandidate kan verder zijn.
+  Vergelijking behouden/gericht vervangen/bredere frameworkherbouw opgenomen.
+  Huidige voorkeur: zo nodig eigen koppellaag herontwerpen; complete framework-
+  vervanging nog niet door een concrete platformblokkade onderbouwd. Geen freeze.
+- Specialist heeft expliciete schets-/adviesopdracht e3f58e63 aangenomen met
+  dispositionqueued/deliverypending; inhoudelijke ontvangst/review blijft OPEN.
+  Bestaande implementatie loopt door, geen tweede eigenaar of nieuwe ontwerpfase.
+  Eén volledige normale gebruikersketen als eerste bewijs; alle31eisen blijven.
+- Ook frameworkvervanging toegestaan indien beter; behoud veiligheidsgedrag,
+  niet categorisch iedere oude implementatie. Geen release/GUI/fysiekbewijs claimen
+  uit deze brondocumentatie. Parent toetst specialistkeuze later onafhankelijk.
+- TaskFlow/bewijs: artifacts/open-thermostat-architecture-11950-20261021/.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

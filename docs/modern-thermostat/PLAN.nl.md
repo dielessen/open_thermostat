@@ -81,6 +81,14 @@ gebruikersketen afronden; geen parallelle tweede implementatie of nieuwe zijfase
 alleen omdat volledige herschrijving nu is toegestaan. Er is geen nieuwe
 publicatie/installatie/verwarmingsvrijgave of bewezen tijdwinst uit dit besluit.
 
+Mark11950 bevestigt ook vrijheid voor een andere framework-/basisopzet als dat
+de beste oplossing oplevert en vraagt om actief kritisch advies. Vergelijk
+behouden, gericht vervangen en bredere herbouw op concrete bronfeiten,
+functievolledigheid, onderhoudbaarheid, complexiteit, migratie en bewijsrisico.
+Geen extra goedkeuringsronde voor al geautoriseerd bronwerk; geen automatische
+big-bang of nieuw lang ontwerptraject. [Voorlopig architectuuradvies](ARCHITECTURE-ADVICE.nl.md)
+is een expliciete afweging met open specialisttoets, geen bewezen eindkeuze.
+
 #### Verantwoordelijkheden
 
 1. **OpenThermostat:** geldigverklaring van aangeleverde metingen, effectieve kamerdoelen, zonevraag, thermische modellen, voorverwarmen, waterstooklijn, gezamenlijke ketelvraag, lokale veiligheidsvoorwaarden en EMS-protocol/telemetrie.

@@ -34,13 +34,14 @@ int main() {
         else if(op=="tick")owner->tick(now);
         else if(op=="ambiguous"){store.ok=false;store.commit=true;}
         else if(op=="reboot"){boot=text("boot");store.ok=true;store.commit=false;construct();}
-        else if(op!="status")return 5;
+        else if(op!="status"&&op!="durable_readback")return 5;
         gt::Json result(cJSON_CreateObject(),cJSON_Delete);auto messages=cJSON_AddArrayToObject(result.get(),"frames");
         for(auto& frame:frames) {
             auto item=cJSON_CreateObject();cJSON_AddItemToArray(messages,item);
             cJSON_AddStringToObject(item,"topic",frame.first.c_str());
             cJSON_AddStringToObject(item,"raw",frame.second.c_str());
         }
+        if(op=="durable_readback")cJSON_AddStringToObject(result.get(),"stored",store.data.c_str());
         cJSON_AddBoolToObject(result.get(),"fault",owner->faulted());
         cJSON_AddNumberToObject(result.get(),"revision",owner->configuration().revision());
         cJSON_AddNumberToObject(result.get(),"writes",store.writes);

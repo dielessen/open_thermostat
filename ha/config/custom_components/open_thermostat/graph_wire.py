@@ -92,6 +92,19 @@ class GraphShadowClient:
             device_result=self._device_result,
             control_contract_supported=False,boiler_output_enabled=False,actuator_output_enabled=False)
 
+    async def async_reviewed_handoff_data(self, expected_review):
+        """Exact fresh inert tuple only; cannot select/enable a controller."""
+        context = self._context()
+        try:
+            record = await self.journal.async_reviewed_handoff_data(expected_review, context,
+                self._capability, self._cap_received, retained=False)
+            require(self.journal.verified and canonical(expected_review) ==
+                    canonical(self.journal.review_key(record, self._context())), "session_changed")
+            return record
+        except GraphValidationError:
+            self.journal.invalidate()
+            raise
+
     @property
     def metrics_supported(self):return False
     @property

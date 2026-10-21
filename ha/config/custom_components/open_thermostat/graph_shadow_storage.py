@@ -292,6 +292,35 @@ class GraphShadowJournal:
             self.status = "graph_shadow_readback_verified" if self.verified else "graph_staged_not_applied"
             return self.verified
 
+    async def async_reviewed_handoff_data(self, expected_review, context, capability, received_at, *, retained):
+        """Read-only prerequisite DATA export, NEVER control/admission/selection.
+
+        Existing owner supplies its current exact review key after actual readback.
+        ACK/staged/durable-only/reconnect is insufficient. No Store write, new
+        owner/session, API1 journal adoption or SOURCE profile construction.
+        """
+        was_verified, generation = self.verified, self._generation
+        async with self._transaction():
+            require(was_verified, "readback_required")
+            self._capability(context, capability, received_at, retained)
+            await self._load()
+            record = self._state["accepted"]
+            require(record is not None and self._state["staged"] is None, "readback_required")
+            require(type(expected_review) is dict and
+                    canonical(expected_review) == canonical(self.review_key(record, context)),
+                    "handoff_review_changed")
+            require(context.current_revision == record["config"]["revision"]
+                    and context.mapping_revision == record["mapping"]["mapping_revision"]
+                    and context.mapping_digest == digest(record["mapping"])
+                    and capability["config_digest"] == record["config_digest"], "revision_conflict")
+            self._validate_record(record, context, restored=True)
+            require(await self.store.async_load() == self._state, "storage_fault")
+            require(generation == self._generation, "session_changed")
+            self._capability(context, capability, received_at, retained)
+            self.verified = True
+            self.status = "graph_shadow_readback_verified"
+            return deepcopy(record)
+
     @property
     def state(self):
         return deepcopy(self._state)

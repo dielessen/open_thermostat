@@ -12,6 +12,7 @@ struct SeasonalZoneSource {
     std::string zoneId,sensorId,actuatorId;
     ZoneControlProfile control;
     SeasonalProfile seasonal;
+    int16_t minimumTargetCentiC=500,maximumTargetCentiC=3500;
 };
 struct SeasonalSafetySnapshot {
     uint64_t sampledAt=0;
@@ -39,7 +40,11 @@ struct SeasonalControllerSource {
         for(size_t i=0;i<count;++i) {
             const auto& z=zones[i];
             if(z.zoneId.size()!=8||z.sensorId.empty()||z.sensorId.size()>64||z.actuatorId.size()>64
-                ||!z.control.valid()||!z.seasonal.valid())return false;
+                ||!z.control.valid()||!z.seasonal.valid()
+                ||z.minimumTargetCentiC<500||z.maximumTargetCentiC>3500
+                ||z.minimumTargetCentiC>z.maximumTargetCentiC
+                ||(z.seasonal.frostAdviceReviewed&&(z.seasonal.frostTargetCentiC<z.minimumTargetCentiC
+                    ||z.seasonal.frostTargetCentiC>z.maximumTargetCentiC)))return false;
             for(char ch:z.zoneId)if(!((ch>='0'&&ch<='9')||(ch>='a'&&ch<='f')))return false;
             for(size_t j=0;j<i;++j)if(z.zoneId==zones[j].zoneId)return false;
         }

@@ -293,7 +293,11 @@ private:
             if(seasonalSource_) {
                 const auto pin=seasonalSource_->zone(z.id);
                 if(!pin||pin->sensorId!=z.sensor||pin->actuatorId!=z.actuator
-                    ||(z.comfortEnabled&&(pin->seasonal.frostTargetCentiC<z.comfortProfile.minimumCentiC
+                    ||z.base<pin->minimumTargetCentiC||z.base>pin->maximumTargetCentiC
+                    ||!sourceScheduleBounds(schedule,*pin)
+                    ||(z.comfortEnabled&&(z.comfortProfile.minimumCentiC<pin->minimumTargetCentiC
+                        ||z.comfortProfile.maximumCentiC>pin->maximumTargetCentiC
+                        ||pin->seasonal.frostTargetCentiC<z.comfortProfile.minimumCentiC
                         ||pin->seasonal.frostTargetCentiC>z.comfortProfile.maximumCentiC
                         ||pin->seasonal.frostTargetCentiC!=z.comfortProfile.frostCentiC)))return false;
                 z.regulator=ZoneRegulator(pin->control,pin->seasonal);
@@ -301,6 +305,20 @@ private:
             ++out.count;
         }
         out.revision=uintField(o,"revision"); return true;
+    }
+    static bool sourceScheduleBounds(const cJSON* schedule,const SeasonalZoneSource& pin) {
+        if(cJSON_IsNull(schedule))return true;
+        const auto base=field(schedule,"base_centi_c");
+        if(!cJSON_IsNumber(base)||base->valuedouble<pin.minimumTargetCentiC
+            ||base->valuedouble>pin.maximumTargetCentiC)return false;
+        auto values=field(schedule,"transitions");
+        if(!cJSON_IsArray(values))return false;
+        for(auto p=values->child;p;p=p->next) {
+            const auto target=cJSON_GetArrayItem(p,1);
+            if(!cJSON_IsNumber(target)||target->valuedouble<pin.minimumTargetCentiC
+                ||target->valuedouble>pin.maximumTargetCentiC)return false;
+        }
+        return true;
     }
     bool shape(const cJSON *o,std::string_view topic,int index,Configuration &candidate,std::string &configBytes) const {
         std::set<std::string> keys{"api","controller_id","boot_id","epoch","adapter_id","adapter_session_id","grant_id","grant_sequence","config_revision","binding_id","sequence"};
@@ -330,6 +348,12 @@ private:
                 !integerField(o,"source_sample_age_ms",0,86400000)||
                 (evidence!="physical_report"&&evidence!="validated_integration_report"&&evidence!="unverified"&&evidence!="restored")) return false;
         } else if(topic=="ha/user_command") {
+            if(seasonalSource_&&index>=0&&stringField(o,"mode")!="off"&&stringField(o,"mode")!="auto"
+                &&cJSON_IsNumber(field(o,"temperature_centi_c"))) {
+                const auto pin=seasonalSource_->zone(config_->zones[index].id);
+                const auto value=field(o,"temperature_centi_c")->valuedouble;
+                if(!pin||!std::isfinite(value)||value<pin->minimumTargetCentiC||value>pin->maximumTargetCentiC)return false;
+            }
             keys.insert({"mode","temperature_centi_c","duration_ms"}); auto mode=stringField(o,"mode");
             if(config_->zones[index].comfortEnabled) {
                 keys.insert("vacation_until_utc");

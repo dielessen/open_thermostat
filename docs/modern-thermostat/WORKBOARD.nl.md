@@ -2187,6 +2187,41 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   provider-, GUI11846-, generic-size- en resterende F0–F10softwareopdracht blijft.
   Officiële hervattingsjob behouden, check15min; geen tweede eigenaar of watcher.
 
+### Mark11785/11890 — F2/F3 opslagoverdracht: Stage47 onafhankelijke bronacceptatie
+
+- [x] Echte canonicalhost f2347a5 vooraf schoon; actuele §6/PLAN, memory_search,
+  verified-taskflow en Stage47RESULT gelezen; bestaand eenmalig receipt behouden.
+  Eenmaal boundedhistory6 toont specialistwerk aan dezelfde graph/controlketen;
+  session_status eenmaal geraadpleegd, geen cronstatus als completionbewijs.
+- [x] Exact12padenpatch4e23f801,483frozenbronfiles en50bewijshashes gecontroleerd;
+  eigen canonical-afgeleide worktree, alle overige canonicalbronpaden behouden.
+  GraphControlStoreView leest dezelfde graphopslag zonder write/migratie en geeft
+  alleen expliciet SOURCE-gepinde kamerdoelen aan de BESTAANDE regelaar door.
+  HA exporteert alleen exact gereviewde verse DATA na Store/session-hercontrole;
+  ACK/graph_ready selecteert geen controlprofiel. Defaults blijven NONE.
+- [x] Echte hostgcc/g++17/verseGTest/cJSON/testTU:17nativePASS, dezelfde17 met
+  ASan/UBSan/leakdetectiePASS; nativeHA2026.10.2/Python3.14.8:63PASS;
+  22releaseauditchecksPASS.27semantische rijen exact gelijk aan frozenbewijs.
+  Specialistabsolute cachepaden/venvsymlinks waren niet hostbruikbaar; bestaande
+  parentcompiler/interpreter gebruikt, geen product/runtime/dependencywijziging.
+  Originele bewijzen behouden, parentlogs apart; geen targetperformanceclaim.
+- [ ] Volledige HA graph-room→SOURCEcontrolhandoff blijft OPEN: native phasechange,
+  roommapping, expliciete SOURCEselectie, API1journalstaging en verse readbackcaller
+  ontbreken nog; graphdata blijft éénkamer. Centrale/groeps/mengerDATA is niet
+  nieuw uitgevoerd. Echte producers/factory, GUI/telefoon, actuele volledige
+  images/resources, SDK/CA/source-offer/S3FS/productieHA en F9modelgates blijven open.
+  Geen installatie/publicatie/login/HA/broker/deviceactie of fysieke/72u/TX/EMS/
+  actuator-/verwarmingsvrijgave; hele11785 blijft in_progress.
+- Bewijs11774dossier: graph-control-parent-evidence/{TASKFLOW.md,PRECHECK.json,
+  REVIEW.md,CHECKS.json,CPP/,HA/}; oorspronkelijke GRAPH-CONTROL-RESULT.json en
+  graph-control-evidence blijven immutable. Rollback uitsluitend nieuwe broncommit
+  vóór afhankelijken; graph/journal/config/model/Recorder/PLAN/bordhistorie behouden.
+- Volgende concrete F2/F3productactie bij dezelfde specialist: bestaande native
+  eigenaar expliciete graph→SOURCEfase/staging/readback laten uitvoeren, zonder
+  automatische rechten of pinversoepeling; GUI/apply/reconnect-/foutbewijs daarna.
+  Overig F0–F10werk en aparte generic-size-eigenaar behouden; eigen job blijft,
+  volgende check15min. Aanbieding is geen uitvoering/completionbewijs.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

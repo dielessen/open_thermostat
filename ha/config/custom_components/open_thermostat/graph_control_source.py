@@ -55,7 +55,7 @@ class GraphControllerEntrySource:
 
     async def async_configuration(self,hass,entry):
         """Known reviewed DATA may only seed STAGED readback, never admission."""
-        from .graph_draft_compile import async_compile_saved_graph
+        from .graph_draft_compile import async_compile_graph_data
         self.validate()
         require(entry.unique_id==self.controller.entry_unique_id and
                 entry.options.get("adapter_id",entry.data.get("adapter_id"))==self.controller.adapter_id,
@@ -64,7 +64,7 @@ class GraphControllerEntrySource:
         journal=native_graph_journal(hass,entry,self.graph.qualification_digest)
         state=await journal.async_initialize()
         require(state["staged"] is None and state["accepted"]==record,"graph_control_graph_readback_required")
-        raw,mapping=await async_compile_saved_graph(hass,entry,self.context(record),self.graph.draft_source)
+        raw,mapping=await async_compile_graph_data(hass,entry,self.context(record),self.graph.draft_source)
         envelope=raw_document(raw)
         require(envelope["config"]==record["config"] and raw_document(mapping)==record["mapping"],
                 "graph_control_draft_changed")

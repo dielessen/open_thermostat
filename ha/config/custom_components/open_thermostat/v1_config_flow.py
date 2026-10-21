@@ -126,7 +126,9 @@ class V1FlowMixin:
     def async_get_supported_subentry_types(cls, config_entry):
         return {"zone": ZoneSubentryFlow, "heating": HeatingSubentryFlow} if integration_mode(config_entry) == MODE_SHADOW else {}
 
-class ShadowOptionsFlow(config_entries.OptionsFlowWithReload):
+class ShadowOptionsFlow(config_entries.OptionsFlow):
+    # Native entry's existing update listener owns options/subentry reload.
+    # OptionsFlowWithReload is explicitly incompatible with that listener.
     async def async_step_hot_water(self, user_input=None):
         if user_input is not None:
             return self.async_abort(reason="hot_water_information_complete")
@@ -207,6 +209,49 @@ class ShadowOptionsFlow(config_entries.OptionsFlowWithReload):
                 "verified":str(state["readback_verified"]),
                 "device_result":state["device_result"] or "not_received"})
 
+    @staticmethod
+    def _entry_review_snapshot(entry):
+        # Read-only native configuration snapshot, never persisted/logged.
+        return (deepcopy(dict(entry.data)),deepcopy(dict(entry.options)),
+                {key:(item.subentry_type,item.title,deepcopy(dict(item.data)))
+                 for key,item in entry.subentries.items()})
+
+    async def _graph_enable_error(self,mode,enabled,owner):
+        if not has_graph_rooms(self.config_entry):
+            return None
+        if mode!=MODE_SHADOW:
+            return "graph_room_contract_unavailable"
+        if not enabled:
+            return None  # OFF must never depend on a valid SOURCE pin.
+        from . import (_selected_graph_data_profile,_selected_graph_controller_source,
+                       _selected_controller_policy_source_profile)
+        try:
+            data=_selected_graph_data_profile(self.config_entry)
+            source=_selected_graph_controller_source(self.config_entry)
+            if data is not None and source is not None:
+                return "graph_control_source_review_required"
+            if source is None:
+                return None if data is not None else "graph_room_contract_unavailable"
+            if owner!=source.controller.adapter_id:
+                return "graph_control_source_review_required"
+            policy=_selected_controller_policy_source_profile(self.config_entry)
+            if policy not in (None,source.controller):
+                return "graph_control_source_review_required"
+            before=self._entry_review_snapshot(self.config_entry)
+            # SOURCE selection already exists outside GUI; this is only a
+            # read-only preflight of the exact native reviewed DATA/currentdraft.
+            await source.async_configuration(self.hass,self.config_entry)
+            if (self._entry_review_snapshot(self.config_entry)!=before
+                    or _selected_graph_controller_source(self.config_entry)!=source
+                    or _selected_graph_data_profile(self.config_entry) is not None
+                    or _selected_controller_policy_source_profile(self.config_entry)!=policy):
+                return "graph_control_source_review_required"
+            return None
+        except Exception:
+            # No unknown profile/data/adoption/IO error may create authority.
+            # Entry setup and fresh device readback independently revalidate.
+            return "graph_control_source_review_required"
+
     async def async_step_init(self, user_input=None):
         errors = {}
         if user_input is not None and user_input.get("information")=="hot_water":
@@ -222,15 +267,9 @@ class ShadowOptionsFlow(config_entries.OptionsFlowWithReload):
             owner = user_input.get("adapter_id", self.config_entry.options.get(
                 "adapter_id", self.config_entry.data.get("adapter_id", "")))
             valid_owner = isinstance(owner, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,32}", owner) is not None
-            selected_graph=None
-            if has_graph_rooms(self.config_entry):
-                from . import _selected_graph_data_profile
-                try:
-                    selected_graph=_selected_graph_data_profile(self.config_entry)
-                except ConfigEntryError:
-                    pass # Invalid source selection cannot be granted by GUI.
-            if has_graph_rooms(self.config_entry) and (mode != MODE_SHADOW or (user_input.get(CONF_ENABLED, False) and selected_graph is None)):
-                errors["base"] = "graph_room_contract_unavailable"
+            graph_error=await self._graph_enable_error(mode,user_input.get(CONF_ENABLED,False),owner)
+            if graph_error:
+                errors["base"]=graph_error
             elif mode == MODE_SHADOW and not valid_owner:
                 errors["base"] = "invalid_adapter_id"
             elif mode == MODE_SHADOW and not identifier(self.config_entry.data[CONF_TOPIC_PREFIX]):

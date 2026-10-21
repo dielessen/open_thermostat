@@ -60,7 +60,7 @@ class GraphDraftSource:
 
 
 def _saved(entry):
-    require(integration_mode(entry)==MODE_SHADOW and entry.options.get(CONF_ENABLED) is True,"unsupported_owner")
+    require(integration_mode(entry)==MODE_SHADOW,"unsupported_owner")
     room_data=[dict(s.data) for s in entry.subentries.values() if s.subentry_type=="zone"]
     known={"room_id","name","temperature","actuators","setpoint","maximum_age_ms","base_centi_c",
            "schedule","minimum_target_centi_c","maximum_target_centi_c","week_program","binding_mode","actuator_profile"}
@@ -77,9 +77,18 @@ def _resource(ref):
 
 
 async def async_compile_saved_graph(hass,entry,context,source):
+    """Existing active DATA caller; enable fence stays before AND after awaits."""
+    require(entry.options.get(CONF_ENABLED) is True,"unsupported_owner")
+    result=await async_compile_graph_data(hass,entry,context,source)
+    require(entry.options.get(CONF_ENABLED) is True,"unsupported_owner")
+    return result
+
+async def async_compile_graph_data(hass,entry,context,source):
     """Compile only supported desired DATA; caller stages via existing journal.
 
-    Does not mutate entry, activate sources, create a transport or publish.
+    Pure representation check, including while disabled: it cannot activate,
+    persist, create a transport or publish. Callers still independently select
+    SOURCE, require exact native Store review and fresh firmware readback.
     Calendar compilation uses the SAME native HA/UTC schedule compiler as api1.
     """
     from .v1_heating_graph import validated_graph,resolved_reference

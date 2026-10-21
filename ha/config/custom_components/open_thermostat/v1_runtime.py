@@ -52,12 +52,13 @@ class ShadowRuntime:
                 raise ValueError("controller_policy_profile_binding")
         if graph_controller_source is not None:
             from .graph_control_source import GraphControllerEntrySource
-            if not isinstance(graph_controller_source,GraphControllerEntrySource):
+            from .topology_control_source import TopologyControllerEntrySource
+            if not isinstance(graph_controller_source,(GraphControllerEntrySource,TopologyControllerEntrySource)):
                 raise ValueError("graph_control_source_invalid")
             graph_controller_source.validate()
             if (graph_data_profile is not None or controller_policy_source_profile!=graph_controller_source.controller
                     or graph_controller_source.controller.entry_unique_id!=entry.unique_id
-                    or len(rooms)!=1 or not all(graph_controller_source.supports_room(room) for room in rooms)):
+                    or len(rooms)!=graph_controller_source.room_count or not all(graph_controller_source.supports_room(room) for room in rooms)):
                 raise ValueError("graph_control_source_binding")
         self.graph_controller_source=graph_controller_source
         self.controller_policy_source_profile=controller_policy_source_profile

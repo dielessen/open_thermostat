@@ -182,7 +182,7 @@ class NativeShadowConnection:
         source=self.runtime.graph_controller_source
         if source is not None:
             from .v1_model import EntityReference
-            for ref in source.graph.draft_source.documents()[1].values():
+            for ref in source.registry_references(self.hass,self.entry):
                 if entity_id:=self.runtime.resolved(EntityReference.from_dict(ref)):
                     registry_ids.add(entity_id)
         if not registry_ids or self.closed:

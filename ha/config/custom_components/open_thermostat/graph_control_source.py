@@ -17,6 +17,11 @@ class GraphControllerEntrySource:
     accepted_record_json: str
     schema: int = 1
 
+    room_count=1
+
+    def registry_references(self,hass,entry):
+        return tuple(self.graph.draft_source.documents()[1].values())
+
     def record(self):
         require(type(self.schema) is int and self.schema==1,"graph_control_source_schema")
         require(type(self.accepted_record_json) is str

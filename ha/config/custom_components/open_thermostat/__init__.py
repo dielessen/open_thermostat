@@ -54,6 +54,13 @@ _legacy_unload_entry = async_unload_entry
 
 async def _async_options_updated(hass, entry):
     from .v1_model import integration_mode, MODE_SHADOW
+    # Withdraw current SOURCE control before ANY native config/subentry reload
+    # await. A changed draft cannot keep a ready owner while reload is queued.
+    state=hass.data.get(DOMAIN,{}).get(entry.entry_id,{})
+    runtime=state.get("v1_runtime");connection=state.get("v1_connection")
+    if (getattr(runtime,"graph_controller_source",None) is not None
+            and connection is not None and not connection.closed and connection.client is not None):
+        connection.client.require_graph_source_review()
     if integration_mode(entry) == MODE_SHADOW:
         from .v1_heating_graph import reconcile_removed_rooms
         if reconcile_removed_rooms(hass, entry):
@@ -105,12 +112,13 @@ def _selected_graph_controller_source(entry):
     from .v1_model import integration_mode,MODE_SHADOW
     if integration_mode(entry)!=MODE_SHADOW or _GRAPH_CONTROLLER_ENTRY_SOURCES==():return None
     from .graph_control_source import GraphControllerEntrySource
+    from .topology_control_source import TopologyControllerEntrySource
     try:
         sources=_GRAPH_CONTROLLER_ENTRY_SOURCES
         if type(sources) is not tuple or len(sources)>8:raise ValueError("source_invalid")
         selected=[]
         for source in sources:
-            if not isinstance(source,GraphControllerEntrySource):raise ValueError("source_invalid")
+            if not isinstance(source,(GraphControllerEntrySource,TopologyControllerEntrySource)):raise ValueError("source_invalid")
             source.validate()
             if source.controller.entry_unique_id==entry.unique_id:selected.append(source)
         if len(selected)>1:raise ValueError("source_multiple_owners")

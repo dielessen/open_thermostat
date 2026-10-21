@@ -1,6 +1,7 @@
 // Finite stdin/EOF actual protocol owner. No broker/service/device IO.
 #include "control/GraphSessionOwner.h"
 #include "control/GraphControlStoreView.h"
+#include "control/TopologyControlStoreView.h"
 #include "control/ShadowController.h"
 #include "ControlTestHash.h"
 #include <iostream>
@@ -15,6 +16,9 @@ int main() {
     Store store;std::unique_ptr<GraphSessionOwner> owner;
     std::unique_ptr<GraphControlStoreView> controlView;
     std::unique_ptr<ShadowController> control;
+    std::unique_ptr<TopologyControlStoreView> topologyView;
+    TopologyControlHandoffSource topologySource;
+    bool topologyMode=false;
     std::unique_ptr<SeasonalControllerSource> policy;
     GraphControlHandoffSource handoff;
     SeasonalSafetySnapshot safety;
@@ -27,9 +31,16 @@ int main() {
             [&](auto topic,auto bytes){frames.emplace_back(topic,bytes);});
     };
     auto constructControl=[&] {
-        owner.reset();control.reset();controlView.reset(); // Never two admitted owners.
-        controlView=std::make_unique<GraphControlStoreView>(controller,adapter,store,controlTestHash,handoff,*policy);
-        control=std::make_unique<ShadowController>(controller,boot,adapter,*controlView,controlTestHash,
+        owner.reset();control.reset();controlView.reset();topologyView.reset(); // Never two admitted owners.
+        ControlStore* selected=nullptr;
+        if(topologyMode) {
+            topologyView=std::make_unique<TopologyControlStoreView>(controller,adapter,store,controlTestHash,topologySource,*policy);
+            selected=topologyView.get();
+        } else {
+            controlView=std::make_unique<GraphControlStoreView>(controller,adapter,store,controlTestHash,handoff,*policy);
+            selected=controlView.get();
+        }
+        control=std::make_unique<ShadowController>(controller,boot,adapter,*selected,controlTestHash,
             [&]{return "test_random_"+std::to_string(++nonce);},
             [&](auto topic,auto bytes){frames.emplace_back(topic,bytes);},
             ShadowController::Metrics{},policy.get(),[&]{return safety;});
@@ -43,6 +54,37 @@ int main() {
         if(op=="initialize") {
             controller=text("controller");boot=text("boot");adapter=text("owner");anchor=text("anchor");
             store.data=text("stored");construct();
+        } else if(op=="initialize_topology_source") {
+            // SOURCE-fixture preload ONLY. Existing graph writer cannot yet
+            // create this distinct review record; NOT a wire/GUI provisioner.
+            controller=text("controller");boot=text("boot");adapter=text("owner");store.data=text("stored");
+            const auto src=gt::get(root.get(),"source"),cx=gt::get(src,"context");
+            auto t=[&](const cJSON* o,const char* key){return gt::str(gt::get(o,key));};
+            auto n=[&](const cJSON* o,const char* key,uint32_t minimum){return static_cast<uint32_t>(gt::integer(gt::get(o,key),minimum,UINT32_MAX));};
+            topologySource.profileVersion=t(src,"profile_version");topologySource.adapterId=adapter;
+            topologySource.reviewDigest=t(src,"review_digest");topologySource.profileDigest=t(src,"expected_profile_digest");
+            topologySource.context={t(cx,"controller_id"),t(cx,"boot_id"),t(cx,"adapter_session_id"),t(cx,"plan_digest"),
+                n(cx,"epoch",1),n(cx,"config_revision",0),n(cx,"registry_revision",1),n(cx,"source_revision",1)};
+            policy=std::make_unique<SeasonalControllerSource>();policy->controllerId=controller;
+            policy->profileDigest=t(src,"profile_digest");policy->configDigest=t(src,"control_digest");
+            policy->maximumSafetyAgeMs=2000;policy->count=2;
+            const auto pins=gt::get(src,"zones");if(!cJSON_IsArray(pins)||cJSON_GetArraySize(pins)!=2)return 5;
+            for(size_t i=0;i<2;++i) {
+                auto row=cJSON_GetArrayItem(pins,static_cast<int>(i));auto& z=policy->zones[i];
+                z.zoneId=t(row,"zone_id");z.sensorId=t(row,"sensor_id");z.actuatorId=t(row,"actuator_id");
+                z.minimumTargetCentiC=n(row,"minimum",500);z.maximumTargetCentiC=n(row,"maximum",500);
+                topologySource.evidence[i]=t(row,"evidence");
+                z.control.mode=t(row,"emitter")=="floor"?ZoneControl::slowBinaryPi:ZoneControl::localTrv;
+                if(z.control.mode==ZoneControl::slowBinaryPi) {
+                    z.control.kpPermillePerC=500;z.control.kiPermillePerCMinute=10;
+                    z.control.cycleMs=900000;z.control.minimumOnMs=180000;z.control.minimumOffMs=120000;
+                }
+                // Explicit synthetic SOURCE qualification, NOT data-derived
+                // product profile or proof of real physical installation.
+                z.seasonal.enabled=z.seasonal.installationQualified=true;
+                z.seasonal.maximumSensorAgeMs=120000;z.seasonal.maximumStepGapMs=300000;
+            }
+            topologyMode=controlMode=true;constructControl();
         } else if(op=="select_control_source") {
             // Trusted fixture-only factory selection, NOT a wire command or
             // production GUI option. Same actual backing key/store is retained.
@@ -97,8 +139,12 @@ int main() {
         cJSON_AddNumberToObject(result.get(),"store_bytes",store.data.size());
         cJSON_AddNumberToObject(result.get(),"object_bytes",sizeof(GraphSessionOwner));
         cJSON_AddBoolToObject(result.get(),"source_control_mode",controlMode);
+        if(topologyMode) {
+            cJSON_AddNumberToObject(result.get(),"topology_view_object_bytes",sizeof(TopologyControlStoreView));
+            cJSON_AddNumberToObject(result.get(),"topology_review_bytes",store.data.size());
+        }
         cJSON_AddNumberToObject(result.get(),"grant_deadline_ms",(controlMode?0:owner->configuration().grantDeadline(now)));
-        cJSON_AddStringToObject(result.get(),"status",(controlMode?controlView->status():owner->configuration().status().c_str()));
+        cJSON_AddStringToObject(result.get(),"status",(controlMode?(topologyMode?topologyView->status():controlView->status()):owner->configuration().status().c_str()));
         cJSON_AddBoolToObject(result.get(),"boiler_output_enabled",controlMode?false:owner->configuration().boilerOutputEnabled());
         cJSON_AddBoolToObject(result.get(),"actuator_output_enabled",controlMode?false:owner->configuration().actuatorOutputEnabled());
         std::cout<<gt::print(result.get())<<std::endl;

@@ -1,7 +1,9 @@
 """SOURCE-only two-room contract preparation, not a transport/Store/admission.
 
-Projects the existing native saved draft and registry. No runtime imports this
-module, no profiles/qualification are fabricated, no existing limits are raised.
+Projects the existing native saved draft and registry; standalone review never
+grants control. A separately explicit two-room-targets.v1 SOURCE caller may now
+consume this validator with independent policy/config pins. Default selection
+stays empty; no qualification is fabricated or existing graph limits raised.
 The SOURCE caller must pin the exact plan digest and native lifecycle revisions.
 """
 from __future__ import annotations

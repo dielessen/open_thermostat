@@ -1,7 +1,8 @@
 #pragma once
-// SOURCE-only heterogeneous two-room review reader. Not referenced by runtime,
-// Store, transport, capability producer or actuator code. Existing graph layout
-// and parser limits are unchanged; never returns a GraphShadowCandidate.
+// SOURCE-only heterogeneous two-room review reader; never a control grant.
+// Explicit TopologyControlStoreView may consume it with independent SOURCE pins,
+// never by default or a DATA flag. Existing graph layout/parser limits stay
+// unchanged; this reader never returns a GraphShadowCandidate.
 #include "GraphShadowValidation.h"
 
 namespace heating::graph_review {

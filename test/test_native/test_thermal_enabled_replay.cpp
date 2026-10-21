@@ -135,7 +135,58 @@ ReplayProfile scoreProfile() {
     p.comfortBandCentiC=50;p.maximumOvershootCentiC=100;p.minimumCompletedBurns=3;
     p.minimumDeadlines=10;p.minimumDeadlineHitBp=8000;return p;
 }
-struct Choice {bool warm=false,coast=false,curve=false;};
+struct Choice {bool warm=false,coast=false,curve=false,holdWarm=false;};
+// TEST reference execution contract, disabled for all immutable legacy rows.
+// A newly-qualified start is an adoption event, not an instruction to erase a
+// running preheat whenever its moving ROOM temperature leaves start comparability.
+struct WarmExecution {
+    bool enabled=false,active=false,haveTime=false;
+    uint64_t lastMs=0;int64_t lastUtc=0,until=0;
+    uint32_t owner=0,generation=0;
+    int16_t target=0,automatic=0,outdoor=0,water=0,adoptTemperature=0;
+    std::array<uint8_t,32> bindingDigest{};
+    explicit WarmExecution(bool enable=false):enabled(enable){}
+    void invalidate(){active=false;}
+    std::optional<int16_t> step(uint64_t now,int64_t utc,const ScheduleTarget& schedule,
+            const StartAdvisory& advice,bool permitted,LearningMode mode,uint32_t epochId,
+            uint32_t targetGeneration,const std::array<uint8_t,32>& binding,
+            int16_t weather,std::optional<int16_t> plannedWater,std::optional<int16_t> room) {
+        const bool clockOk=!haveTime||(now>=lastMs&&utc>=lastUtc
+            &&(utc-lastUtc)*1000-static_cast<int64_t>(now-lastMs)>=-2000
+            &&(utc-lastUtc)*1000-static_cast<int64_t>(now-lastMs)<=2000);
+        haveTime=true;lastMs=now;lastUtc=utc;
+        const auto reason=std::string_view(advice.reason);
+        const auto profile=warmProfile();
+        const bool usable=enabled&&permitted&&mode==LearningMode::frozen&&clockOk
+            &&epochId&&targetGeneration&&plannedWater&&room
+            &&std::any_of(binding.begin(),binding.end(),[](auto b){return b!=0;})
+            &&schedule.state==ScheduleState::active&&schedule.temperatureCentiC&&schedule.next
+            &&schedule.next->atUtc>utc&&schedule.next->atUtc-utc<=profile.maximumLeadSec
+            &&schedule.next->temperatureCentiC>*schedule.temperatureCentiC
+            &&(reason=="shadow_optimum_start_advisory"||reason=="model_insufficient_evidence"
+                ||reason=="model_no_warmup_needed");
+        if(!usable){invalidate();return {};}
+        if(active&&(owner!=epochId||generation!=targetGeneration||bindingDigest!=binding
+            ||until!=schedule.next->atUtc||target!=schedule.next->temperatureCentiC
+            ||automatic!=*schedule.temperatureCentiC
+            ||outdoor!=weather||water!=*plannedWater)){invalidate();return {};}
+        const bool stillCovered=advice.eligibleStarts>=profile.minimumStarts
+            &&advice.distinctDays>=profile.minimumDistinctDays&&advice.coveredDays>=profile.minimumSpanDays;
+        if(active&&reason=="model_insufficient_evidence"&&(!stillCovered||*room<adoptTemperature)) {
+            invalidate();return {};
+        }
+        if(!active&&advice.startNow&&advice.plannedStartUtc&&*advice.plannedStartUtc<=utc
+            &&reason=="shadow_optimum_start_advisory"&&stillCovered
+            &&advice.comparableStarts>=profile.minimumComparableStarts
+            &&advice.leadSec&&advice.leadSec<=profile.maximumLeadSec) {
+            active=true;owner=epochId;generation=targetGeneration;bindingDigest=binding;
+            until=schedule.next->atUtc;target=schedule.next->temperatureCentiC;
+            automatic=*schedule.temperatureCentiC;adoptTemperature=*room;
+            outdoor=weather;water=*plannedWater;
+        }
+        return active?std::optional<int16_t>(target):std::nullopt;
+    }
+};
 struct Outcome {
     ReplayAssessment score;
     unsigned warmUsed=0,coastUsed=0,curveUsed=0,differentDemand=0,differentWater=0;
@@ -146,8 +197,34 @@ struct Outcome {
     unsigned windowMinutes=0,dhwMinutes=0,faultMinutes=0,absentTelemetryMinutes=0,reconnects=0;
     unsigned missingDeadlineObservations=0,lossAdviceProbes=0,staleAdviceAfterLoss=0,curveDroppedOnLoss=0;
     unsigned maxReportedWarmComparable=0,maxReportedCoastComparable=0;
+    unsigned heldWarmMinutes=0,traceRows=0,traceDropped=0;
+    std::string baselineTraceDigest;
     std::optional<unsigned> reportedCurveComparable;
     std::string scenarioDigest;
+};
+// Optional bounded diagnostics on THIS existing replay, never a second plant.
+struct Trace {
+    std::ofstream file;
+    Outcome& outcome;
+    Choice choice;
+    unsigned count=0;
+    static constexpr unsigned maximumRows=4096;
+    Trace(Outcome& r,Choice c):outcome(r),choice(c) {
+        if(const auto path=std::getenv("OPENTHERMOSTAT_F9_TRACE"))file.open(path,std::ios::app);
+    }
+    void frame(unsigned minute,const char* event,const StartAdvisory& start,
+               int16_t a,int16_t b,int16_t target,int16_t effective,bool heatA,bool heatB,bool permitted) {
+        if(!file.is_open())return;
+        if(count>=maximumRows){++outcome.traceDropped;return;}
+        ++count;++outcome.traceRows;
+        file<<"{\"scenario_sha256\":\""<<outcome.scenarioDigest<<"\",\"warm\":"<<choice.warm
+            <<",\"coast\":"<<choice.coast<<",\"curve\":"<<choice.curve<<",\"hold_warm\":"<<choice.holdWarm<<",\"minute\":"<<minute
+            <<",\"event\":\""<<event<<"\",\"baseline_centi_c\":"<<a<<",\"candidate_centi_c\":"<<b
+            <<",\"target_centi_c\":"<<target<<",\"effective_centi_c\":"<<effective
+            <<",\"warm_reason\":\""<<start.reason<<"\",\"comparable_starts\":"<<unsigned(start.comparableStarts)
+            <<",\"lead_sec\":"<<start.leadSec<<",\"start_now\":"<<start.startNow
+            <<",\"heat_baseline\":"<<heatA<<",\"heat_candidate\":"<<heatB<<",\"permitted\":"<<permitted<<"}\n";
+    }
 };
 Outcome run(int16_t weather,Choice enabled,bool blocked=false,double holdoutPower=1.0,bool coastEntry=false,Holdout holdout={}) {
     Calibrated models(holdout.calibrationWeather.value_or(weather));Outcome r;r.trained=models.trained;
@@ -177,13 +254,17 @@ Outcome run(int16_t weather,Choice enabled,bool blocked=false,double holdoutPowe
     std::array<uint8_t,32> identity{};
     for(unsigned i=0;i<32;++i)
         identity[i]=static_cast<uint8_t>(std::stoul(r.scenarioDigest.substr(i*2,2),nullptr,16));
+    r.baselineTraceDigest=controlTestHash("baseline-chain-v1;"+r.scenarioDigest);
+    Trace trace(r,enabled);
     ThermalReplay evaluator(scoreProfile(),identity);
     Plant a,b;ZoneRegulator baseline,candidate;
-    uint64_t coastUntil=0;
+    uint64_t coastUntil=0;WarmExecution warmExecution(enabled.holdWarm);
+    const auto modelBinding=models.warm.snapshot().bindingDigest;
     const unsigned offset=coastEntry?1305:0; // declared 21:45 initial episode
     const uint64_t baseMs=17ULL*86400000+offset*60000;
     const int64_t baseUtc=epoch+17*86400+offset*60;
-    bool previousCandidateHeat=false;
+    bool previousCandidateHeat=false,previousBaselineHeat=false,previousWarm=false;
+    const char* previousWarmReason="initial";
     if(coastEntry) {
         a.room=b.room=20.9;
         a.stored=b.stored=(20.9-weather/100.0)*.001;
@@ -219,6 +300,7 @@ Outcome run(int16_t weather,Choice enabled,bool blocked=false,double holdoutPowe
             ScheduleTransition{epoch+17*86400+nextMinute*60,nextTarget}};
         if(absent) {
             ++r.absentTelemetryMinutes;if(tod==360)++r.missingDeadlineObservations;
+            r.baselineTraceDigest=controlTestHash(r.baselineTraceDigest+";"+std::to_string(minute)+";absent_sample");
             if(minute==holdout.telemetryGapBegin) {
                 models.warm.invalidateAdmission();models.coast.invalidateAdmission();models.curve.invalidateAdmission();
                 const auto warm=models.warm.propose(now,utc,schedule,models.water);
@@ -230,7 +312,7 @@ Outcome run(int16_t weather,Choice enabled,bool blocked=false,double holdoutPowe
                 if(candidateGroup.curveCentiC!=baseGroup.curveCentiC)++r.curveDroppedOnLoss;
                 candidateGroup=baseGroup; // no automatic prospective re-adoption after owner loss
             }
-            coastUntil=0;++r.inhibited;
+            coastUntil=0;warmExecution.invalidate();++r.inhibited;
             const auto aStop=baseline.step(now,std::nullopt,std::nullopt,false);
             const auto bStop=candidate.step(now,std::nullopt,std::nullopt,false);
             r.unsafeModelDecisions+=(aStop.demand||bStop.demand)?1:0;
@@ -254,6 +336,12 @@ Outcome run(int16_t weather,Choice enabled,bool blocked=false,double holdoutPowe
         const auto start=models.warm.propose(now,utc,schedule,wb.target);
         r.maxReportedWarmComparable=std::max(r.maxReportedWarmComparable,unsigned(start.comparableStarts));
         if(enabled.warm&&modelPermitted&&start.startNow) {effective=nextTarget;++r.warmUsed;}
+        if(enabled.holdWarm) {
+            const auto adopted=warmExecution.step(now,utc,schedule,start,enabled.warm&&modelPermitted,
+                models.warm.mode(),currentOwner,live.targetGeneration,modelBinding,weather,wb.target,live.temperatureCentiC);
+            effective=adopted.value_or(commonTarget);
+            if(adopted&&!start.startNow)++r.heldWarmMinutes;
+        }
         const auto coast=models.coast.propose(now,utc,schedule,models.trained);
         r.maxReportedCoastComparable=std::max(r.maxReportedCoastComparable,unsigned(coast.comparableCycles));
         if(enabled.coast&&modelPermitted&&coast.coastNow) {coastUntil=now+coast.horizonSec*1000;++r.coastUsed;}
@@ -263,6 +351,12 @@ Outcome run(int16_t weather,Choice enabled,bool blocked=false,double holdoutPowe
         const auto y=candidate.step(now,b.temperature(),effective,permitted);
         const bool heatA=x.demand&&wa.target.has_value();
         const bool heatB=y.demand&&!chooseCoast&&wb.target.has_value();
+        const bool warmSelected=effective!=commonTarget;
+        const bool reasonChanged=std::string_view(previousWarmReason)!=start.reason;
+        if(tod==360||warmSelected!=previousWarm||heatA!=previousBaselineHeat||heatB!=previousCandidateHeat||reasonChanged)
+            trace.frame(minute,tod==360?"arrival":previousWarm&&!warmSelected?"warm_withdrawal":warmSelected&&!previousWarm?"warm_start":reasonChanged?"advice_reason":"cv_edge",
+                start,a.temperature(),b.temperature(),commonTarget,effective,heatA,heatB,permitted);
+        previousWarm=warmSelected;previousWarmReason=start.reason;previousBaselineHeat=heatA;
         r.differentDemand+=heatA!=heatB?1:0;
         r.differentWater+=wa.target&&wb.target&&*wa.target!=*wb.target?1:0;
         if((!permitted&&heatB)||(!modelPermitted&&(effective!=commonTarget||chooseCoast)))++r.unsafeModelDecisions;
@@ -275,6 +369,12 @@ Outcome run(int16_t weather,Choice enabled,bool blocked=false,double holdoutPowe
         if(sensorLost){f.baselineTemperatureCentiC.reset();f.candidateTemperatureCentiC.reset();}
         f.baselineSafetyViolation=!permitted&&heatA;f.candidateSafetyViolation=!permitted&&heatB;
         if(tod==360) {f.deadlineId=coastEntry?day:day+1;f.deadlineTargetCentiC=2100;}
+        std::ostringstream baselineFrame;
+        baselineFrame<<r.baselineTraceDigest<<';'<<f.monotonicMs<<';'<<f.utc<<';'<<f.sequence
+            <<';'<<f.occupied<<';'<<f.conditionsQualified<<';'<<f.burnerStatesQualified
+            <<';'<<commonTarget<<';'<<f.baselineTemperatureCentiC.value_or(-9999)
+            <<';'<<f.baselineCv<<';'<<wa.target.value_or(-9999)<<';'<<f.deadlineId;
+        r.baselineTraceDigest=controlTestHash(baselineFrame.str());
         if(!evaluator.add(f)){r.feedAccepted=false;break;}
         a.step(heatA,weather/100.0,wa.target.value_or(2000),holdoutPower,holdout,gainActive);
         b.step(heatB,weather/100.0,wb.target.value_or(2000),holdoutPower,holdout,gainActive);
@@ -319,7 +419,15 @@ void record(const char* name,const Outcome& r) {
         <<",\"max_reported_coast_comparable\":"<<r.maxReportedCoastComparable
         <<",\"reported_curve_comparable\":";
     if(r.reportedCurveComparable)out<<*r.reportedCurveComparable;else out<<"null";
-    out<<",\"candidate_safety_violations\":"<<s.candidate.safetyViolations<<",\"physical_output\":false}\n";
+    out<<",\"candidate_safety_violations\":"<<s.candidate.safetyViolations
+        <<",\"baseline_completed_burns\":"<<s.baseline.completedBurns<<",\"candidate_completed_burns\":"<<s.candidate.completedBurns
+        <<",\"baseline_completed_burn_ms\":"<<s.baseline.completedBurnMs<<",\"candidate_completed_burn_ms\":"<<s.candidate.completedBurnMs
+        <<",\"comfort_noninferior\":"<<s.comfortNonInferior<<",\"cycling_available\":"<<s.cyclingAvailable
+        <<",\"cycling_noninferior\":"<<s.cyclingNonInferior<<",\"timing_available\":"<<s.timingAvailable
+        <<",\"timing_noninferior\":"<<s.timingNonInferior<<",\"safety_noninferior\":"<<s.safetyNonInferior
+        <<",\"held_warm_minutes\":"<<r.heldWarmMinutes
+        <<",\"baseline_chain_sha256\":\""<<r.baselineTraceDigest<<"\",\"trace_rows\":"<<r.traceRows
+        <<",\"trace_dropped\":"<<r.traceDropped<<",\"physical_output\":false}\n";
 }
 TEST(ThermalEnabledReplay, RealObserveTrainingHasSixIndependentSyntheticEpisodesAndOneBoundedCurveProposal) {
     for(int16_t weather:{500,1500}) {
@@ -460,6 +568,84 @@ TEST(ThermalEnabledReplay, MissingTelemetryGapAndFreshReconnectNeverRestorePrior
     EXPECT_EQ(r.unsafeModelDecisions,0u);EXPECT_EQ(r.score.candidate.safetyViolations,0u);
     EXPECT_EQ(r.warmWindowsBefore,r.warmWindowsAfter);EXPECT_EQ(r.coastWindowsBefore,r.coastWindowsAfter);
     EXPECT_FALSE(r.score.accepted);record("absent_telemetry_fresh_reconnect_no_cached_advice",r);
+}
+
+TEST(ThermalEnabledReplay, AdoptedWarmExecutionDoesNotConfuseMovingRoomComparabilityWithSourceLoss) {
+    WarmExecution disabled,execution(true);StartAdvisory start;
+    start.startNow=true;start.plannedStartUtc=epoch;start.reason="shadow_optimum_start_advisory";
+    start.eligibleStarts=6;start.comparableStarts=3;start.distinctDays=6;start.coveredDays=15;start.leadSec=1200;
+    ScheduleTarget schedule{ScheduleState::active,1900,ScheduleTransition{epoch+1200,2100}};
+    EXPECT_FALSE(disabled.step(0,epoch,schedule,start,true,LearningMode::frozen,1,1,binding(),500,4500,1900));
+    ASSERT_EQ(execution.step(0,epoch,schedule,start,true,LearningMode::frozen,1,1,binding(),500,4500,1900),2100);
+    start.startNow=false;start.plannedStartUtc.reset();start.reason="model_insufficient_evidence";
+    EXPECT_EQ(execution.step(60000,epoch+60,schedule,start,true,LearningMode::frozen,1,1,binding(),500,4500,1900),2100);
+    // A new start estimate is unnecessary, but live invalidation always wins.
+    start.reason="model_source_not_fresh";
+    EXPECT_FALSE(execution.step(120000,epoch+120,schedule,start,true,LearningMode::frozen,1,1,binding(),500,4500,1900));
+    start.reason="model_insufficient_evidence";
+    EXPECT_FALSE(execution.step(180000,epoch+180,schedule,start,true,LearningMode::frozen,1,1,binding(),500,4500,1900));
+}
+TEST(ThermalEnabledReplay, AdoptedWarmExecutionFailsClosedOnBindingOwnerTargetClockWaterAndStopChanges) {
+    for(unsigned stop=0;stop<17;++stop) {
+        WarmExecution execution(true);StartAdvisory start;
+        start.startNow=true;start.plannedStartUtc=epoch;start.reason="shadow_optimum_start_advisory";
+    start.eligibleStarts=6;start.comparableStarts=3;start.distinctDays=6;start.coveredDays=15;start.leadSec=1200;
+        ScheduleTarget schedule{ScheduleState::active,1900,ScheduleTransition{epoch+1200,2100}};
+        ASSERT_TRUE(execution.step(0,epoch,schedule,start,true,LearningMode::frozen,1,1,binding(),500,4500,1900));
+        start.startNow=false;start.plannedStartUtc.reset();start.reason="model_insufficient_evidence";
+        auto b=binding();uint32_t owner=1,generation=1;uint64_t now=60000;int64_t utc=epoch+60;
+        bool permitted=true;auto mode=LearningMode::frozen;std::optional<int16_t> water=4500;int16_t weather=500;
+        if(stop==0)permitted=false;
+        if(stop==1)mode=LearningMode::disabled;
+        if(stop==2)owner=2;
+        if(stop==3)generation=2;
+        if(stop==4)b[0]++;
+        if(stop==5)schedule.next->temperatureCentiC=2200;
+        if(stop==6)schedule.next->atUtc++;
+        if(stop==7)utc+=30;
+        if(stop==8)water.reset();
+        if(stop==9)weather++;
+        if(stop==10){now=1200000;utc=epoch+1200;}
+        if(stop==11)water=4501;
+        if(stop==12)schedule.temperatureCentiC=1800;
+        if(stop==13)start.eligibleStarts=5;
+        if(stop==14)start.reason="future_model_reason";
+        if(stop==15)utc=epoch-1;
+        if(stop==16)mode=LearningMode::shadow;
+        // Changed scope must invalidate even if an old start flag is replayed.
+        if(stop>=2&&stop<=6){start.startNow=true;start.plannedStartUtc=epoch;start.reason="shadow_optimum_start_advisory";}
+        EXPECT_FALSE(execution.step(now,utc,schedule,start,permitted,mode,owner,generation,b,weather,water,1900))<<stop;
+    }
+}
+TEST(ThermalEnabledReplay, BoundedStartConsumptionPairsAllOriginalScenariosWithoutTuningTrainingPlantOrGates) {
+    const auto paired=[&](const char* name,int16_t weather,Choice before,bool blocked=false,double power=1.0,bool entry=false,Holdout h=Holdout{}) {
+        const auto original=run(weather,before,blocked,power,entry,h);
+        auto after=before;after.holdWarm=true;
+        const auto fixed=run(weather,after,blocked,power,entry,h);
+        EXPECT_EQ(original.scenarioDigest,fixed.scenarioDigest);EXPECT_EQ(original.baselineTraceDigest,fixed.baselineTraceDigest);
+        EXPECT_EQ(original.score.totalMs,fixed.score.totalMs);
+        EXPECT_EQ(original.score.baseline.absoluteErrorTwiceCentiMs,fixed.score.baseline.absoluteErrorTwiceCentiMs);
+        EXPECT_EQ(original.score.baseline.observedCvStarts,fixed.score.baseline.observedCvStarts);
+        EXPECT_EQ(original.score.baseline.cvMs,fixed.score.baseline.cvMs);EXPECT_EQ(original.score.baseline.deadlineHits,fixed.score.baseline.deadlineHits);
+        EXPECT_EQ(original.warmWindowsBefore,fixed.warmWindowsAfter);EXPECT_EQ(fixed.unsafeModelDecisions,0u);
+        EXPECT_EQ(fixed.score.candidate.safetyViolations,0u);EXPECT_FALSE(fixed.score.accepted);
+        record(name,fixed);
+    };
+    paired("cold_warm_coast_bounded_start",500,{true,true,false});
+    paired("cold_warm_coast_curve_bounded_start",500,{true,true,true});
+    paired("mild_warm_coast_bounded_start",1500,{true,true,false});
+    paired("mild_warm_coast_curve_bounded_start",1500,{true,true,true});
+    paired("blocked_source_bounded_start",500,{true,true,true},true);
+    paired("underpowered_bounded_start",500,{true,true,true},false,.5);
+    paired("coast_only_bounded_start",500,{false,true,false},false,1.0,true);
+    Holdout floor;floor.storeResponse=.02;paired("slow_floor_bounded_start",500,{true,true,true},false,1.0,false,floor);
+    Holdout gain;gain.daytimeGain=.015;paired("external_gain_bounded_start",500,{true,true,false},false,1.0,false,gain);
+    Holdout small;small.loss=.00025;paired("small_load_bounded_start",1700,{true,true,true},false,.5,false,small);
+    Holdout loss;loss.sensorLossBegin=2*1440;loss.sensorLossEnd=5*1440;paired("sensor_loss_bounded_start",500,{true,true,true},false,1.0,false,loss);
+    Holdout bad;bad.calibrationWeather=500;paired("incomparable_weather_bounded_start",-2000,{true,true,true},false,1.0,false,bad);
+    Holdout events;events.windowDhwEvents=true;paired("window_dhw_fault_bounded_start",500,{true,true,true},false,1.0,false,events);
+    Holdout gap;gap.telemetryGapBegin=5*1440+300;gap.telemetryGapEnd=gap.telemetryGapBegin+180;
+    paired("absent_telemetry_bounded_start",500,{true,true,true},false,1.0,false,gap);
 }
 
 }

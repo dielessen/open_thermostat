@@ -1840,6 +1840,51 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   Oorspronkelijke fysieke/duur/EMS/TX/actuatorgates en afgewezen F9modellen blijven.
   Geen datum- of releasebelofte uit83tests afleiden. Inhoudelijk pakket → hervatting15min.
 
+### Mark11785/11841 — F4/F6 brongebonden seizoensregelaar: Stage39 bronacceptatie
+
+- [x] Echte canonicalhostcheckout4a20b64 schoon; actuele§6/PLAN-gates,
+  RESULT/SEASONAL-PRODUCT-RESULT, memory_search en verified-taskflow gelezen.
+  Eenmaal boundedhistory6: dezelfde specialist actief aan Stage40aanvullende
+  acceptatieproeven; geen tweede eigenaar. Bestaand hostreceipt niet herhaald.
+- [x] Volledige742regeldiff/8padenpatch
+  1c3de76e6b7c07f19265234abb30f29060c39a26ca3193b243954998abae1f5a,
+  sourcearchive en frozenbewijs gecheckt;8voor-/nahashes exact. Eigen canonical-
+  afgeleide reviewcheckout behoudt alle415overige trackedbronpaden bytegelijk.
+- [x] Hostg++17 strict actualcontroller61PASS; dezelfde61volledigeGTest/controller/
+  cJSON ASan+UBSanPASS met leakdetectie, externeOpenSSL niet geïnstrumenteerd.
+  NativeHA2026.10.2/Python3.14.8 met verse werkelijkeCpppeer85PASS;5bestaande
+  dependencywarnings, geen skips/deselecties. Alle33semantischeHArows exactgelijk.
+- [x] Expliciete optionele sourcepins/heleconfigdigest, één gedateerde observer
+  per state, bronleeftijd/exactTTL, callback-ownerhercheck en sessiegeneratiefences.
+  Onbekend/expired/DHW/stop/preemptie/reentry weigeren; geen DATA2→controlpromotie,
+  normale factoryNone/API1 behouden. Bestaande kernel/supervisor hergebruikt;
+  hydrauliek blijft UNQUALIFIED, fysieke/TX/EMS/outputflags niet vrijgegeven.
+- [x] Broncommitaf62339 via reviewbranch fast-forward samengevoegd; schone status,
+ 8bronhashes/415beschermdepaden en commitdiffcheck technisch nagecontroleerd.
+  Bewijs11774dossier seasonal-product-parent-evidence/{PRECHECK,PREPARATION,
+  CHECKS,SOURCE-POSTCHECK,NATIVE-COMMANDS,SANITIZER-COMMANDS,HA-COMMANDS}.json,
+  REVIEW.md, native/sanitizerlogs/json en HA.xml/log/ROWS.jsonl. Initieel bestaand
+  historisch werkpad ongemoeid gelaten; sandbox-onlyg++12route vervangen door
+  officiële hostcompiler/bestaande gepindetools, zonder product/assertiewijziging.
+- [ ] Alleen vaste gereviewde shadowconfig/sourcekoppeling; echte graph/controller/
+  producer/modelowner/resource-/8zone/NVS-GC/fullimage- en releasegates OPEN.
+  Stage40drie nieuwe acceptatiechecks NIET in deze acceptatie opgenomen.
+  Vorige8b364f21image is geen imagebewijs voor deze bytes. Niet geïnstalleerd,
+  geen fysiekevorstbescherming/72u/TX/EMS/actuator-/verwarmingsGO;F9afwijzing blijft.
+- Rollback alleenaf62339 vóór afhankelijken; geen config/model/Recorderhistorie/
+  runtime/PLANdata wissen. Hele11785 blijft in_progress; genericcompatibiliteit
+  apart blocked en geen E32-kritiekepadblokkade.
+- Volgende concrete F2/F3/WP03–04bronopdracht bij dezelfde specialist via followup
+  2c0cadd1-9b6f-4074-ab76-bfd87bd86fb1 QUEUED: na eigen actieveStage40 de echte
+  graphconfig→sourcegekwalificeerde controllerhandoff in bestaande owner/opslag
+  sluiten (of kleinste echte prerequisite), met werkelijkeHA→Cpppositieve keten,
+  tuple/profile/config/owner/reconnect/stop-negatieve replay en eigen rollback.
+  DATA-ready mag geen regel-/model-/actuatorautoriteit maken; defaultgates behouden.
+  Admission is geen completion. Bestaande resterendeF0–F10opdrachten behouden;
+  bij inhoudelijke handoff concrete gezamenlijke kandidaatblockers/werkinschatting,
+  fysieke/duurchecks apart, geen onbewezen datumclaim. Eigen officiële job vooraf
+  geïnspecteerd/behouden; next_check15m werkelijk bevestigd.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

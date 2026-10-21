@@ -1740,6 +1740,11 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   slots en behouden E32locks/legacyfuncties als acceptatie. Bestaande boundedmodel-
   backend/SHA-/contact-person/F9diagnose/seizoensprofielen blijven behouden.
   Hele11785 in_progress; na inhoudelijk pakket officiële hervatting15min.
+- Canonicalboard23b4829 en bron4519a5e/tests23441c5 technisch nagecontroleerd:
+  schoon, beschermdebronbytes en commitdiffchecksPASS. Concrete vervolgstap met
+  nieuw genericELF/mapbewijs via followup64033a62 QUEUED bij dezelfde specialist;
+  admission is geen completion. Eigen officiële job geïnspecteerd/behouden en
+  next_check15m bevestigd; hele softwareplan niet stil gestopt.
 
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 

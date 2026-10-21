@@ -1079,6 +1079,9 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   generic/E32builds, gepinde HAcompatibiliteits-/schema-/model-/asset-/rollbackmatrix
   en negatieve migratie/securitychecks. Geen publiceren/installeren of open fysieke
   gates als PASS presenteren. Hele11785 blijft actief; volgende hervatting15min.
+- Canonical bronmerge4a0e67f technisch nagecontroleerd: schoon,10bronhashes en
+  commitdiffcheckPASS. F0/F10vervolg a66f4831-6957-49dc-bc1b-1216bb2f1d08 QUEUED
+  bij bestaande specialist; admission is geen completion. next_check15m bevestigd.
 
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 

@@ -1802,6 +1802,44 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
 - Planningsstatus: geen onderbouwde harde releasedatum; resterende productintegratie en afgewezen modellen maken een urenbelofte onbetrouwbaar. Specialist geeft bij eerstvolgende inhoudelijke hand-off resterende blokkerende concrete taken, afhankelijkheden en eigen inspanningsinschatting voor één gezamenlijk HA/E32-kandidaat. Externe/fysieke duurchecks apart plannen; geen nieuwe herhaalde statusqueue.
 - Parent blijft review-/samenvoegeigenaar. Volledige PLAN in_progress; publicatie/installatie/verwarmingsvrijgave niet uit deze planning afleiden. Stop/rollback voor deze planningswijziging: alleen deze docsectie herzien, geen productie- of programmabestand gewijzigd.
 
+### Mark11785/11841 — F10 native contact/personbronbinding: Stage38 bronacceptatie
+
+- [x] Echte canonicalhostcheckout b9eedd9 vooraf schoon; §6/PLAN, actueel
+  RESULT/Stage38, memory_search en verified-taskflow gelezen. Eenmaal bounded
+  specialistgeschiedenis6: bestaande eigenaar actief aan brongebonden seizoens-/
+  E32-controllerkoppeling; geen tweede eigenaar of redundant werkdoorbericht.
+  Bestaand eenmalig hostreceipt behouden, generic-size blijft buiten E32-kritieke pad.
+- [x] Exacte achtpadenpatch ab8a382229f607fde9604b3dc660ef8a0f9e647dde9a7b9e94626066d80a1920,
+  bronarchive en27frozenbewijshashes gecontroleerd; alle8voor-/nahashes exact.
+  Vijf bestaande parentverschillen t.o.v. specialistbaseline behouden; alle411
+  huidige beschermdebronpaden na merge exact gelijk aan canonicalprechange.
+- [x] Eigen hostgcc compileert echte pinnedcJSON en strict hostg++17 de actuele
+  ShadowControllerpeer opnieuw. NativeHA2026.10.2/Python3.14.8:83PASS(31nieuw),
+  geen skips/deselecties, vijf bestaande dependencydeprecaties. Alle31semantische
+  rows exact gelijk aan frozenbewijs; nativefixture verbiedt netwerkverkeer.
+- [x] Nativeentry/runtime/events/ownerreset/wire/status verbonden, default leeg;
+  maximaal16expliciete sourcepins. Nieuw logisch report kan onveranderde waarde
+  vernieuwen zonder temperatuurdeadline te verlengen; duplicaat/replay/bronverlies/
+  reconnect/rebind/monotoneverval failclosed. FirmwareTTL120s en fysieke flags
+  ongewijzigd; graphDATA-only weigert deze control-contextpins.
+- [ ] Geen concrete echte integrationadapter/producerkwalificatie geleverd: stille
+  contacten/personen blijven zonder echt vers report unknown. Geen fysiekecontact-,
+  browser-, fullimage-, performance-, installatie- of verwarmingsvrijgaveclaim.
+  F2/F3/F10 en hele11785 blijven open; bronacceptatie is geen releasecompletion.
+- Broncommit e2d9771 fast-forward samengevoegd, schone status/8bronhashes/
+  411beschermdepaden technisch nagecontroleerd. Bewijs11774dossier
+  context-source-parent-evidence/{PRECHECK,HASHES,CHECKS,COMMANDS,SOURCE-POSTCHECK}.json,
+  REVIEW.md, CJSON/PEER-BUILD/HA.log, HA.xml en31ROWS.jsonl. Eerstecommitpoging
+  miste lokale Gitidentiteit; hersteld met bestaande OpenClawidentiteit per commando,
+  geen globale Gitconfig aangepast. Rollback alleen e2d9771 vóór afhankelijken;
+  runtime/HA/broker/config/model/Recorderhistorie behouden, niets geïnstalleerd.
+- Volgende echte uitvoering bij dezelfde specialist: actieve brongebonden seizoen-/
+  controllerkoppeling afmaken; daarna resterende graph/apply/opslag/modelowner/
+  productcaller/actuatorcontractketengaten voor gezamenlijke HA/E32-kandidaat
+  expliciet sluiten met echte positieve én negatieve replay en eigen rollback.
+  Oorspronkelijke fysieke/duur/EMS/TX/actuatorgates en afgewezen F9modellen blijven.
+  Geen datum- of releasebelofte uit83tests afleiden. Inhoudelijk pakket → hervatting15min.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

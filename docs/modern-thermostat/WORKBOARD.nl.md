@@ -1537,6 +1537,38 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
 - Eigen officiële job72ec7e68 geïnspecteerd/actief behouden; next_check15min
   daadwerkelijk bevestigd. Hele11785 blijft in_progress, niet stil gestopt.
 
+### Mark11785 — F9/F0 modelresource/checkpoint: Stage32 onafhankelijk AFGEWEZEN
+
+- [x] Canonicale echte hostcheckout e7b77da schoon; actuele §6/PLAN,
+  specialistRESULT Stage32, memory_search/verified-taskflow werkelijk gelezen.
+  Bestaand hostreceipt behouden. Eenmaal boundedhistory6 gaf interne projectiefout;
+  eenmaal session_status gelezen, geen rawtranscripts/verzonnen specialiststatus.
+- [x] Exacte11padenpatch b87b49dc/ec2c4b4, frozenarchive en26bewijshashes
+  gecontroleerd. Eigen canonical-afgeleide reviewworktree;11voor-/nahashes exact,
+  beschermde modellen/partitie en eerdere DHW/Recorder/PLAN behouden.
+- [x] Echte hostgcc/g++17/cJSON/GTest:121nativePASS,13semantische rijen exact.
+  Nieuwe onafhankelijke foutproef NIET-LEGE warm/coast/curverestore: hashcallback-
+  reentry blokkeert gedeelde gate; alle3load() melden toch true en model.restore()
+  wist storageFault. Dezelfde3FAIL native én volledige GTest/testTU-ASan+UBSan/
+  leakdetectie; externe libcrypto niet geïnstrumenteerd. Geen outputvrijgave.
+- [ ] Pakket NIET samengevoegd. Alle3stores vereisen gatecheck na decode/hash
+  VÓÓR restore én vóór loaded_/true; faultlatch/no-extra-IO/retry behouden.
+  Ongewijzigde parentprobe en bestaande init/save-reentry/model/storagecases
+  moeten slagen; nieuw frozenmanifest vereist. Geen generieke resourceacceptatie.
+- Bewijs11774dossier: MODEL-RESOURCE-PARENT-PRECHECK.json/REVIEW.md/POSTCHECK.json,
+  verify-model-resource-parent.py, model-resource-parent-decode-probe.cpp en
+  model-resource-parent-evidence/COMMANDS.json/CHECKS.json/NATIVE.json,
+  PROBE.json/log en SANITIZER-PROBE.json/log. Alleen eerste parent coast/curve-
+  statusoracle gecorrigeerd; originele logs bewaard, gecorrigeerde3probes nogFAIL.
+- Rollback exact11padencandidatepatch in reviewworktree uitgevoerd; review én
+  canonical daarna schoon, allebeforehashes exact. Canonicalproductbron nooit
+  gewijzigd; geen runtime/config/historie/installatie/publicatie/TX/EMS/actuatorGO.
+- Nieuwe foutinformatie bij dezelfde actieve specialist via steer3ca61a49:
+  accepted/steered is GEEN correctie/completion. Bestaand generic-size/contact-
+  person/F9diagnose/seasonal-profielwerk behouden; hele11785software in_progress,
+  fysieke/72u/verwarmingsgates ongewijzigd. Officiële hervattingsjob behouden;
+  volgende check15min, niet stil stoppen na dit pakket.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

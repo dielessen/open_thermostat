@@ -1,29 +1,64 @@
-# OpenThermostat — experimental BBQKees E32 V2 fork
+# OpenThermostat E32 V2 — independent thermostat & Home Assistant project
 
-**[Flash the E32 V2 — easy USB-C step-by-step guide](docs/FLASHING.md).**
+**Our own locally controlled heating-software project, developed by Mark Dielessen,
+combining E32 V2 firmware with a dedicated Home Assistant integration.**
 
-This is [dielessen/open_thermostat](https://github.com/dielessen/open_thermostat),
-a fork of [intuibase/open_thermostat](https://github.com/intuibase/open_thermostat).
-The original project provides an ESP32 thermostat for a central heating boiler
-and up to 8 separate heating circuits. This fork adds a separate experimental
-native target for the **BBQKees EMS Gateway E32 V2**.
+This project started from [OpenThermostat by intuibase](https://github.com/intuibase/open_thermostat).
+We are developing it independently: our product scope, architecture, maintenance
+and release schedule are our own. It is not an official intuibase release or an
+endorsed version of the original project. The repository name currently remains
+[`dielessen/open_thermostat`](https://github.com/dielessen/open_thermostat).
 
-> **E32 V2 is compile-tested, not hardware validated. EMS transmission is hard
-> disabled: this build cannot control the boiler.** Runtime settings cannot
-> unlock TX, forwarding or reset breaks. Generic GPIO/relay/valve outputs, I2C,
-> wired RTC and startup LED are also disabled on this target. Do not replace an
-> installed EMS-ESP gateway or follow generic flash/wiring instructions yet.
+## What we are building
 
-This fork's [`main`](https://github.com/dielessen/open_thermostat/tree/main)
-contains the E32 V2 adaptations and documentation. It is our customized main,
-not an unchanged mirror of upstream. [PR #1](https://github.com/dielessen/open_thermostat/pull/1)
-records the initial implementation/review; no open PR or upstream approval is
-required to use this fork. Experimental test packages are available through
-[GitHub Releases](https://github.com/dielessen/open_thermostat/releases); follow
-the [bench-test installation guide](docs/BBQKEES_E32V2_TEST_RELEASE.md).
-No physical-device test has been performed.
-Existing `esp32dev` and `esp32s3` environment settings, heating algorithms and
-EMS command payloads are unchanged.
+The goal is one coherent, local heating system rather than a collection of
+separate thermostat controllers:
+
+- **E32 V2 firmware as the control core:** room targets and schedules, coordinated
+  zone and boiler demand, bounded control decisions and native EMS communication.
+- **Home Assistant as the configuration and device layer:** select existing room
+  sensors, optional wall controls, TRVs and supported heating actuators.
+- **A consistent user interface:** room configuration, weekly schedules, clear
+  applied/pending/error feedback, diagnostics and measured heating history.
+- **Modern heating functions under development:** weather-dependent water targets,
+  radiator and optional floor-heating profiles, adaptive learning and preheating.
+
+These are product goals, **not a claim that the complete system is already
+implemented, installed or physically validated**.
+
+No separate SAT, Versatile Thermostat, Better Thermostat or EMS-ESP controller is
+required by the intended architecture. We retain useful existing code and use
+maintained platform components instead of rewriting every dependency. Devices
+connected through Home Assistant still depend on HA and the local MQTT broker;
+local operation does not make those devices independent of either service.
+
+## Development status
+
+**Experimental — not a production-ready heating release.** The integrated
+multi-zone product, actuator/boiler operation, learning benefits, complete UI and
+recovery/failure behaviour still require acceptance. Experimental alpha packages
+and limited device checks must not be mistaken for a finished heating system.
+
+The published `main` branch contains the initial E32 V2 adaptations and reference
+documentation. It does **not** contain every newer development change or provide
+a complete snapshot of the firmware/integration currently being developed.
+[PR #1](https://github.com/dielessen/open_thermostat/pull/1) records the initial port.
+Use each [release's own notes and matching source](https://github.com/dielessen/open_thermostat/releases)
+to identify what that particular test package contains.
+
+> **E32 V2 heating outputs remain locked in the published experimental baseline.**
+> EMS TX, forwarding and reset breaks cannot be enabled through runtime settings.
+> Generic GPIO/relay/valve outputs, I2C, wired RTC and startup LED are disabled on
+> this target. Software demand is not proof of a running burner or an open valve.
+> Do not replace a working heating installation on the strength of this README.
+
+## Origins and licensing
+
+The original OpenThermostat code is by **Pawel Filipczak / intuibase** and is
+provided under the [MIT license](LICENSE). We preserve the original copyright
+and license notices. Our independent development does not imply that we wrote
+all inherited code from scratch. Third-party libraries, SDKs and other reused
+components retain their own licenses and applicable distribution obligations.
 
 ## Start here
 
@@ -33,7 +68,7 @@ EMS command payloads are unchanged.
 - [Original versus E32 V2 hardware](docs/HARDWARE.md)
 - [Current REST API and E32 V2 restrictions](docs/RESTAPI.md)
 
-## Target capabilities
+## Published main-branch target capabilities
 
 | Capability | Original `esp32dev` / `esp32s3` | Experimental `e32v2` |
 | --- | --- | --- |
@@ -80,26 +115,24 @@ expected until configured. No GPIO/configuration setting unlocks physical output
 Before any future installation, follow the [backup and recovery gates](docs/BBQKEES_E32V2.md#backup-before-any-future-physical-experiment).
 A firmware-only OTA cannot install the new partition layout.
 
-![Main screen](docs/img/screen.jpg)
+![Original project interface — reference image, not the new product GUI](docs/img/screen.jpg)
 
 **Original targets:** OpenThermostat can control the boiler using an ON/OFF relay or directly via the EMS2 protocol (e.g., via the EMS interface board from [EMS Interface Board](https://bbqkees-electronics.nl/product/ems-interface-board-v3-1/)).
 
-## Upstream updates
+## Independent maintenance and upstream references
 
-The original project remains [intuibase/open_thermostat](https://github.com/intuibase/open_thermostat).
-An independent fork can keep its own changes on `main` and still merge future
-upstream updates. For a new clone, add the source remote once if it is absent:
+[The original OpenThermostat project](https://github.com/intuibase/open_thermostat)
+remains the acknowledged starting point. Its future releases, roadmap or
+maintainer approval are **not prerequisites for our own development or releases**.
+We may review and selectively reuse useful upstream fixes, with their notices
+and appropriate verification; importing them is a project decision, not a required
+runtime dependency.
 
-```sh
-git remote add upstream https://github.com/intuibase/open_thermostat.git
-git fetch upstream
-```
-
-Review and merge relevant `upstream/main` changes with the fork's existing work,
-resolve any conflicts and rerun the builds/tests before publishing them. Fetching
-alone does not change local files or `main`. Do not replace the customized main
-with upstream's tree or force-push away the fork history. The upstream remote is
-not a deployment target; changes to this fork are pushed to `origin`.
+Our firmware and HA integration are developed as one product. Independence means
+owning those engineering and maintenance decisions, not discarding working code,
+removing platform dependencies or claiming third-party support.
+The detailed sections below describe the existing published baseline and inherited
+features; they are not a completion checklist for the newer product roadmap.
 
 ## Original project features
 
@@ -126,7 +159,7 @@ features are enabled or physically verified on E32 V2. Use the target matrix abo
 
 ## Home Assistant climate panels
 
-**E32 V2:** the integration code is retained, but MQTT defaults to disabled and
+**Published main-branch E32 V2 baseline:** the integration code is retained, but MQTT defaults to disabled and
 the staged room catalog is empty. Runtime HA/MQTT operation remains untested.
 An accepted target-temperature change or a displayed `boilerStarted` /
 `hvac_action` value represents software demand, **not actual boiler activation**

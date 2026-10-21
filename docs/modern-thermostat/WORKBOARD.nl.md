@@ -1789,6 +1789,10 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   Niet geïnstalleerd/gepubliceerd; fysieke/resource/72u/TX/actuatorgates OPEN.
   Hele11785 in_progress; inhoudelijk pakket → officiële hervatting15min.
 
+- Voortzetting f4c3cbab via dezelfde specialist followup QUEUED; admission is geen
+  completion. Automations next_check15m werkelijk bevestigd; eigen job behouden.
+  Canonical bronhashes/protectedtrackedpaths en schone postcheckPASS.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

@@ -1432,6 +1432,18 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   Softwareplan11785 niet klaar; geen installatie/publicatie/login/broker/device/
   TX/EMS/actuator/verwarmingsvrijgave. Hervattingsjob behouden, inhoudelijke check15min.
 
+#### Postcheck en concrete voortzetting Stage27/28parentreview
+
+- Canonical0d24993 via onafhankelijke reviewbranch fast-forward samengevoegd;
+  gitstatus leeg, commitdiffcheck en alle acceptatie-/ongewijzigde model-/
+  afgewezen seasonal-voorhashes PASS. F9-COVERAGE-SEASONAL-PARENT-POSTCHECK.json.
+- Concrete F9arrival/cyclingoorzaaktrace met exacte frozenholdouts/geen retuning/
+  acceptatie/rollback aan dezelfde specialist aangeboden ná huidig DHWwerk en
+  noodzakelijke Stage28correctie. Followup59fea8bc QUEUED, geen completionclaim.
+  Seasonalreprosteer8bc80458 is nieuwe informatie, geen dubbele uitvoerder.
+- Automations next_check15min bevestigd; uitvoerbare software/repair/imagegates
+  staan open, eigenjob72ec7e68 behouden. Geen runtime/installatie/fysieke vrijgave.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

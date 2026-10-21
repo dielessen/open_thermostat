@@ -127,6 +127,12 @@ async def test_real_sqlite_old_history_retained_no_new_numeric_definition_under_
         hass.states.async_set(new.entity_id,str(new_sensor.native_value),{"state_class":new_sensor.state_class,
             "unit_of_measurement":new_sensor.native_unit_of_measurement,"device_class":"energy"})
         await hass.async_block_till_done();await instance.async_block_till_done()
+    # Always enqueue a commit barrier: async_block_till_done may observe an
+    # empty queue while the recorder thread is still processing its last event.
+    from homeassistant.components.recorder.tasks import SynchronizeTask
+    committed=hass.loop.create_future()
+    instance.queue_task(SynchronizeTask(committed))
+    await committed
     end=datetime.now(timezone.utc)
     from homeassistant.components.recorder.history import state_changes_during_period
     async def history(entity_id):

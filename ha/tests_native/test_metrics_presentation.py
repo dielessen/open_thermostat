@@ -197,6 +197,12 @@ async def test_actual_native_sqlite_recorder_roundtrip_preserves_zero_unknown_wi
     for value in ("1","0","unknown"):
         hass.states.async_set(item.entity_id,value,{"password":"NEVER_EXPORT","unit_of_measurement":"kWh"})
         await hass.async_block_till_done();await instance.async_block_till_done()
+    # Always enqueue a commit barrier: async_block_till_done may observe an
+    # empty queue while the recorder thread is still processing its last event.
+    from homeassistant.components.recorder.tasks import SynchronizeTask
+    committed=hass.loop.create_future()
+    instance.queue_task(SynchronizeTask(committed))
+    await committed
     end=datetime.now(timezone.utc)
     result=await reports.async_export(hass,{"entry_id":e.entry_id,"start":start.isoformat(),"end":end.isoformat(),"entity_ids":[item.entity_id],"limit":10})
     rows=list(csv.reader(io.StringIO(result["csv"])))

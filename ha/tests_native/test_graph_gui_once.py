@@ -235,3 +235,22 @@ async def test_lost_uncommitted_send_needs_new_session_and_new_explicit_consent_
     evidence(dict(scenario='lost_uncommitted_new_consent',new_session_auto_sends=0,
                   new_consent_sends=1,durable_writes=1,readback_verified=True,
                   physical_outputs_enabled=False))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("bad_api", [1, True, "2"])
+async def test_parent_wrong_api_ack_is_not_a_device_result(native_graph, bad_api):
+    n = native_graph
+    _, _, ack = await committed_reply(n)
+    payload = json.loads(ack["raw"])
+    payload["api"] = bad_api
+    before = (n.client.grant_until, n.client.lease_until, n.client._cap_received)
+    await n.deliver([dict(ack, raw=json.dumps(payload))])
+    assert n.client.graph_status["device_result"] is None
+    assert n.client.journal.state["accepted"] is None
+    assert not n.client.graph_ready and not n.runtime.transport_ready
+    # The existing worker rejects invalid API before client.receive and resets
+    # the session. Rejection may shorten deadlines; it must never extend them.
+    assert n.client.session is None
+    assert all(after <= prior for after, prior in zip(
+        (n.client.grant_until, n.client.lease_until, n.client._cap_received), before))

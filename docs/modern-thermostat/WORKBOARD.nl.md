@@ -2686,6 +2686,37 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
   Geen installatie/publicatie/TX/EMS/actuator-/verwarmingsvrijgave. Enige bestaande
   job geïnspecteerd, interval/pacing15min behouden, next_check15m bevestigd.
 
+### Mark11785/11890 — 21okt19:17-run, native tweekamerketen verder bewezen; reviewpakket nog open
+
+- Canonicalhost schoon op5626a9f; actuele§6/PLAN/RESULT en aanvullend
+  NATIVE-CONTROL-PLAN-PROGRESS.md daadwerkelijk gelezen; memory_search en
+  verified-taskflow toegepast, eenmaal boundedhistory6. Bestaand hostreceipt
+  behouden. Dezelfde specialist actief aan nativeControlPlan en sanitizerproeven;
+  geen tweede eigenaar, redundant werkdoorbericht of dubbele testuitvoering.
+- Echte wijziging sinds19:02: eerdere reloadhandshakeproef nu PASS in
+  native-plan-reload-fixed/HA.xml; definitieve lokale native-plan-final/HA.xml
+  (19:17:39CEST) bevat63PASS zonder skips/fouten. Daaronder normale HAreview/apply
+  met twee volledige kamers/dezelfdecontroller, doel/schema/OFF met hetzelfde
+  installatieprofiel, reboot, SOURCEverlies en seizoen-/veiligheidsvoorrang.
+  Afzonderlijke bronbindingregressie eerstFAIL in native-plan-binding-repro,
+  daarnaPASS in finale63set. Geen onafhankelijke parentcodeacceptatie: alleen
+  lokale primaire logs/XML geïnspecteerd; eerdere mislukkingen behouden.
+- Specialist meldt begrensd control.plan.v1: precies twee logische shadowkamers,
+  vier bekende resourcebindings en maximaal8UTCtransities totaal; te groot wordt
+  geweigerd, niet afgekapt. DefaultbindingNONE en fysiekeoutputsfalse. Geen
+  volledige R18-/achtzone-/productfactory-/fysiekeclaim of liveperformanceclaim.
+- Softwaregate nog OPEN: pakket volgens specialistprogress nog NIET frozen/
+  gecommit; sanitizer/lifecycle-/admissionregressies lopen. Volgende concrete
+  productintegratiebewijsactie: frozen bron/diff/hashmanifest ontvangen, normale
+  tweekamerHAapply→echteCppStore/readback/controller en fout-/migratiepaden
+  onafhankelijk reviewen/verifiëren, dan pas bronmerge/postcheck. Daarna echte
+  desktop/mobielGUI en actuele gezamenlijke release/image/resourcechecks.
+- TaskFlow11785 blijft in_progress; waarheid dit bord/PLAN, wijzigingsrisico en
+  bestaande owner/safety/rollbackgates ongewijzigd. Alleen deze bordaanvulling
+  gewijzigd; rollback deze documentatiecommit. Geen installatie/publicatie/
+  TX/EMS/actuator-/verwarmingsvrijgave. Bestaande enigejob geïnspecteerd:
+  interval900000ms en pacing exact15m behouden; volgende check15min.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

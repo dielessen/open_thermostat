@@ -1,14 +1,10 @@
 # OpenThermostat + Home Assistant — masterplan
 
-**Versie:** ontwerp 1.0 met uitvoeringsreconciliatie 20 oktober 2026 (Mark11694).
+**Versie:** ontwerp 1.0 met reconciliaties 20 oktober (Mark11694) en 22 oktober 2026 (Mark).
 **Producteigenaar:** Mark Dielessen.
-**Actuele status en enige afvinklijst:** [WORKBOARD.nl.md](WORKBOARD.nl.md).
-WP01/WP02-software, contract-/shadowketen en HA-kamer-/weekeditor zijn gebouwd;
-de kamereditor is in productie-HA geïnstalleerd en technisch geverifieerd.
-Alpha.6 app-only installatie, automatische herstart en exacte source/UI/ELF zijn
-bewezen (Mark11746); latere renderfix en herstartknop zijn alleen bronwerk.
-Eerste echte bron→E32→configACK-shadowketen, centrale
-weers-/afgiftegroep-/vloer-/regelklepopties en product-/fysieke gates blijven open.
+**Actuele status en enige afvinklijst:** [WORKBOARD.nl.md](WORKBOARD.nl.md). Dit plan
+bevat ontwerp, eisen en acceptatievoorwaarden, geen voortgang.
+**Besluitenlog:** [BESLUITEN.nl.md](BESLUITEN.nl.md).
 **Geen normale verwarmingsvrijgave.** HA configureert en bedient; E32 blijft het
 regelbrein. In HA-managed bedrijf verdwijnen overbodige dubbele E32-editors pas
 via de afgebakende migratie/bronchecks in het werkbord, niet door dit planonderhoud.
@@ -21,7 +17,7 @@ staan per bewijs in het werkbord. De geleverde PDF1.0 blijft historisch.
 Deze concretiseren bestaande eisen R01/R02/R28; het aantal eisen blijft 31.
 De eerder geleverde PDF blijft de historische ontwerpversie1.0.
 
-- Mark bevestigt dat de huidige Tadoverwarming weer normaal werkt en alles nu goed werkt; geen onafhankelijke nieuwe hardwareproef. Eén bestaande E32 is beschikbaar voor tests, geen tweede bord veronderstellen.
+- Mark bevestigt dat de huidige Tadoverwarming weer normaal werkt en alles nu goed werkt; geen onafhankelijke nieuwe hardwareproef. Eén bestaande E32 is beschikbaar voor tests, geen tweede bord veronderstellen. De Tado vervalt later als regelaar; zie [§6.3](#63-bestaande-tado-v3v3).
 - Iedere kamer krijgt via de HA-GUI zelf te kiezen en later te wijzigen sensor-/TRV-/actuatorbindingen. Geen vaste badkamerentity-ID's en geen verplichte YAML voor normale inrichting. Badkamer met bestaande HA-sensor/TRV is de eerste kandidaat, profielcompatibiliteit nog te toetsen.
 - Bediening via de HA-kamerclimate moet zonder wandapparaat werken. Een ondersteunde fysieke kamerbediening blijft later toevoegbaar aan hetzelfde kamerdoel; R02 als productmogelijkheid blijft vereist.
 - Normale kamerinstellingen, bindingen en schema's moeten tijdens bedrijf wijzigbaar zijn zonder E32-herstart of reflash, via de bestaande gevalideerde configuratietransactie. Gecompileerde logica wijzigen via netwerk-OTA met gecontroleerde herstart, configuratiebehoud of expliciete migratie en geteste recovery; geen willekeurige codehotpatch of gegarandeerd onderbrekingsvrije update.
@@ -37,68 +33,19 @@ Het productdoel is: per kamer de gewenste temperatuur kiezen, de juiste radiator
 
 ### De gekozen scheiding
 
-#### Productrichting bevestigd door Mark — 21 oktober 2026 (Telegram11883)
+#### Productkoers en architectuurroute (besluiten 21 oktober)
 
-We ontwikkelen een **zelfstandig eigen softwareproject**. OpenThermostat is de
-historische codebasis, niet de eigenaar van onze productkoers of releaseplanning.
-Onze regelkern, HA-integratie, configuratiecontracten en GUI worden als één eigen
-product onderhouden. Na Marks aanvullende besluit van 21 oktober 14:07 nemen
-we geen nieuwe wijzigingen meer over uit `intuibase/open_thermostat`; geen
-upstream-pull/merge/rebase of bijtrekwerk als projecttaak. De historische afkomst
-en licentie-erkenning blijven; de remote wordt niet zonder opdracht verwijderd.
-
-Zelfstandig betekent niet dat alle bestaande code opnieuw moet worden geschreven
-of dat beproefde libraries/platformen moeten verdwijnen. De afgesproken E32- en
-HA/MQTT-architectuur blijft staan, inclusief de werkelijke HA-/brokerafhankelijkheid
-voor via HA aangesloten apparaten. Geen extra afhankelijkheid van een extern
-thermostaatproject als regelbrein. Afkomst, copyright en toepasselijke licenties
-van hergebruikte onderdelen blijven aantoonbaar behouden. Een nieuwe productnaam
-is nog niet gekozen; dit besluit autoriseert geen repository-/pakketrenaming.
-
-Dit is een product-/onderhoudsbesluit, geen bewijs van runtimezelfstandigheid.
-De huidige integratie- en acceptatiepunten in WORKBOARD worden systematisch
-afgemaakt; de onderstaande herschrijfbevoegdheid geldt waar dat noodzakelijk is.
-
-#### Herschrijven toegestaan bij functionaliteitsbehoud — Mark11944, 21 oktober
-
-Mark geeft expliciet toestemming om **alle projectcode zo nodig te herschrijven**.
-De gewenste functionaliteit is leidend, niet behoud van de oude implementatie,
-klasse-indeling, interne API of compatibiliteit met het oorspronkelijke project.
-Dit omvat firmware en onze HA-integratie; wijzigingen hoeven niet tot kleine
-patches beperkt te blijven als een gerichte vervanging beter bij het doel past.
-
-De 31 eisen en afgesproken gebruikersfuncties blijven de acceptatiebasis. Geen
-stilzwijgend verlies van functies om gemakkelijker te bouwen. Bewaarde
-configuratie/historie en apparaatidentiteiten krijgen zo nodig een expliciete
-migratie en terugvalroute; fysieke veiligheids- en releasechecks worden niet
-door herschrijftoestemming vervangen. Hergebruikte code behoudt zijn notices.
-
-Dit is toestemming indien nodig, geen opdracht om automatisch opnieuw te
-beginnen. Bij een concrete blokkade mag dezelfde uitvoeringseigenaar de
-betreffende structuur vervangen, met korte technische reden, afgebakende diff,
-functionele toetsing en rollback. Benut reeds bruikbaar werk en blijf de volledige
-gebruikersketen afronden; geen parallelle tweede implementatie of nieuwe zijfase
-alleen omdat volledige herschrijving nu is toegestaan. Er is geen nieuwe
-publicatie/installatie/verwarmingsvrijgave of bewezen tijdwinst uit dit besluit.
-
-Mark11950 bevestigt ook vrijheid voor een andere framework-/basisopzet als dat
-de beste oplossing oplevert en vraagt om actief kritisch advies. Vergelijk
-behouden, gericht vervangen en bredere herbouw op concrete bronfeiten,
-functievolledigheid, onderhoudbaarheid, complexiteit, migratie en bewijsrisico.
-Geen extra goedkeuringsronde voor al geautoriseerd bronwerk; geen automatische
-big-bang of nieuw lang ontwerptraject. [Architectuuradvies](ARCHITECTURE-ADVICE.nl.md)
-en de [specialistschets](ARCHITECTURE-DECISION.nl.md) zijn na brongebonden parentreview
-bevestigd als uitvoeringsrichting: gerichte vervanging van de productkoppellaag,
-één versiecontract/accepted ControlPlan met onafhankelijke installatiekwalificatie
-en vluchtige runtimebevoegdheid apart. Eerste verticale oplevering: twee volledige
-kamers via normale HA-apply duurzaam opslaan en exact in dezelfde C++-owner/
-controller teruglezen, wijzigen en herstellen. Geen extra projectie als productpad.
-Dit is ontwerpacceptatie, geen code-/resource-/GUI-/fysieke acceptatie of einddatum.
-Mark11956 (21 oktober 14:51) aanvaardt dit advies als werkroute: gerichte herbouw
-van de eigen configuratie-/runtimekoppeling waar nodig. Voer uit binnen de lopende
-integratie; specialisttoets is technische verificatie, geen nieuwe toestemming-
-of ontwerpwachtfase. Bij tegenbewijs het advies eerlijk herzien; alle functies
-blijven en bredere herbouw blijft toegestaan indien aantoonbaar noodzakelijk.
+- **Eigen product:** we ontwikkelen een zelfstandig softwareproject. OpenThermostat
+  is de historische codebasis; geen upstream-pull, -merge of -rebase meer. Afkomst,
+  copyright en licenties blijven behouden; de remote blijft onaangeroerd.
+- **Herschrijven toegestaan bij functiebehoud:** de 31 eisen en gebruikersfuncties
+  zijn leidend, niet de oude implementatie. Geen stil functieverlies; migratie en
+  terugval voor bewaarde gegevens; fysieke en releasegates blijven.
+- **Route B:** de productkoppellaag gericht vervangen door één versiecontract en één
+  accepted ControlPlan, met de bestaande native HA/MQTT/Store- en regel-/veiligheidskern.
+  Een bredere herbouw blijft toegestaan bij een aangetoonde blokkade; geen big-bang.
+- Volledige tekst: [BESLUITEN](BESLUITEN.nl.md); onderbouwing:
+  [architectuurbesluit](ARCHITECTURE-DECISION.nl.md) en [advies](ARCHITECTURE-ADVICE.nl.md).
 
 #### Verantwoordelijkheden
 
@@ -124,7 +71,10 @@ Dit is **cloudonafhankelijk, maar met HA-apparaten niet HA-onafhankelijk**. Bij 
 
 ### Eerste en uiteindelijke resultaat
 
-- **Eerste verticale softwareproef:** één kamer, één bestaande HA-temperatuurbron, één ondersteund actuatorprofiel, een fysieke/HA-setpointwijziging, heen/terug via MQTT, zichtbare redenen en gesimuleerde ketelvraag. E32-TX blijft geblokkeerd.
+Twee eerste mijlpalen, bewust verschillend:
+
+- **M1 — softwareketen (host/native, geen hardware):** twee volledige kamers via de normale HA-review/apply → één accepted ControlPlan → exact teruglezen in dezelfde C++-owner/controller; doel, schema en stop wijzigen en herstellen. Zie [architectuurbesluit §5](ARCHITECTURE-DECISION.nl.md#5-eerstvolgende-verticale-oplevering--geen-nieuw-ontwerptraject).
+- **M2 — eerste fysieke kamerketen:** één kamer (de badkamer is kandidaat, geen goedgekeurd testobject) met een echte HA-temperatuurbron → HA → E32 → configACK en zichtbaar effectief doel, plus één echte kraan zonder ketel (WP05). Ketelvraag alleen gesimuleerd; E32-TX blijft geblokkeerd.
 - **Eerste echte ketelbedrijf:** pas na afzonderlijke hardware-, EMS-, doorstromings-, stop- en uitvalproeven; eerst één zone onder toezicht.
 - **Volwaardig resultaat:** bewezen meerdere zones, radiator- en optionele vloerverwarmingsgroepen, adaptieve regeling en geleerd voorverwarmen, weersafhankelijke waterdoelen, relevante keteltelemetrie en historische rapportage, plus de gekozen comfortfuncties.
 
@@ -288,6 +238,15 @@ Actuatoracties zijn per fysiek apparaat/profiel geserialiseerd. Feedback van vó
 
 Batterydevices krijgen coalescing, afronding/deadband en modelspecifieke maximale commandofrequentie. Geen minuutlang herhaald open/dicht om ieder temperatuurhonderdste te volgen. Kalibratie, boost en externe-temperatuurinputs zijn afzonderlijke capabilities.
 
+### 6.3 Bestaande Tado V3/V3+
+
+Besluit Mark, 22 oktober 2026 ([BESLUITEN](BESLUITEN.nl.md)): zodra OpenThermostat de ketel regelt, vervalt de Tado als thermostaat.
+
+- **Eén schrijver op de ketel.** Bij de overdracht wordt de ketelkoppeling van de Tado (bedrading of extension kit) fysiek losgekoppeld. Alleen "uit" in de app is geen exclusieve overdracht (§5.1).
+- **Optioneel kamertemperatuurbron.** De Tado mag daarna als gewone, in de HA-GUI kiesbare meting dienen (R03), bij voorkeur lokaal via HomeKit Controller in HA. Cloudpolling kan begrensd zijn en is dan te traag. Binden pas na gemeten rapportagefrequentie en passende maximale leeftijd; Tado-setpoint en -verwarmingsfunctie worden niet gebruikt.
+- **Tot de commissioning intact.** Tot en met de F6/F7-proeven blijft de Tado de werkende verwarming; testen gebeuren los van EMS ([testgids](INTEGRATED-TEST.nl.md)).
+- **Rollbackregelaar.** Na de overdracht is de Tado de gedocumenteerde terugvalroute (§16): terugaansluiten, werking controleren en vastleggen. Open feiten staan in §17.
+
 ## 7. Zone- en centrale ketelregeling
 
 ### 7.1 Eerst een uitlegbare, stabiele regelaar
@@ -369,9 +328,13 @@ Huidige `HeatingController::getOutdoorTemperature()` retourneert bij ontbreken v
 
 ### Weekprogramma
 
-Voorkeur: native HA Schedule-helper met aanvullende `temperature`-data per blok, voor zover de gepinde HA-versie dit publiek ondersteunt. Aangrenzende blokken kunnen `on` blijven maar andere data krijgen; luister dus ook naar attribuutveranderingen. Onbedekte tijd gebruikt een expliciet basis-/ecodoel. Middernacht wordt volgens helpersemantiek in twee blokken gesplitst.
+Gekozen: per kamer **precies één** programmabron.
 
-Voor geleerd voorverwarmen heeft de firmware **toekomstige** overgangen nodig; alleen `schedule.on` en het huidige attribuut volstaan niet. De integratie compileert via de ondersteunde HA-API het weekschema naar een versiecontract. Als die API de volledige planning niet stabiel beschikbaar maakt, krijgt de integratie een kleine eigen weekprogramma-configuratieflow voor de reeds bestaande firmwareprogramma's. **Geen private `.storage`-bestanden lezen, geen tweede schedulerdaemon.** Deze API-fit is een vroege technische spike/keuzepoort, niet verstopt in een eindfase.
+- **Standaard:** de native lokale weekeditor in de kameropties van de integratie ([weekeditor](HA-WEEK-EDITOR.nl.md)), zonder helper of YAML.
+- **Alternatief:** een bestaande HA Schedule-helper met `temperature`-data per blok, gelezen via de publieke `get_schedule` (zelfde [weekeditor-document](HA-WEEK-EDITOR.nl.md#expliciet-één-bron)). Aangrenzende blokken kunnen `on` blijven maar andere data krijgen; ook attribuutveranderingen tellen.
+- Onbedekte tijd gebruikt het expliciete basisdoel. Overnacht is twee blokken; middernacht is de daggrens.
+
+Voor geleerd voorverwarmen heeft de firmware **toekomstige** overgangen nodig. De integratie compileert het weekschema daarom naar een begrensde UTC-horizon in het versiecontract (nu 15 dagen, maximaal 128 overgangen per schema). **Geen private `.storage`-bestanden lezen, geen tweede schedulerdaemon.** Een volledige week met meer overgangen en een veilige horizonrefresh blijven open gates in het werkbord.
 
 Een gepubliceerd schema heeft tijdzone en grenzen. Firmware blijft de enige uitvoerder van het effectieve schema; HA toont/bewerkt het. Een HA-helper als actuele setpointbron is een apart expliciet eenvoudiger profiel, zonder claim dat de firmware daarmee zelfstandig toekomstig optimum-start kan uitvoeren.
 
@@ -453,6 +416,8 @@ Ontwerpdoel is 30 dagen detail als opslagmeting dat toelaat, plus lange-termijnc
 
 Een lokale firmwarewatchdog helpt bij vastgelopen software, maar **een E32 zonder stroom kan zelf geen stopbericht sturen**. Een bewezen ketelvraagtimeout of een passende onafhankelijke fysieke terugval is daarom een harde vrijgavevoorwaarde. De eerdere 50/0-proef bewijst die timeout niet. Als de bestaande keten geen betrouwbare uitvaloplossing toelaat, blijft autonome productie-inzet geblokkeerd tot een geschikte, expliciete hardware-/architectuurkeuze is gemaakt.
 
+De voorziene fysieke terugval naar de vorige regelaar is de losgekoppelde Tado (§6.3); of die route en de ketelstop werkelijk volstaan, wordt vroeg vastgesteld in de haalbaarheidsvoorproef (§14).
+
 Een vorststand in een draadloze TRV beschermt niet automatisch alle leidingen of een zone zonder bereik. Net zo min is standaard “alle kleppen dicht” veilig als de pomp naloopt. We kiezen NC/NO, afgiftepad, bypass, naloop en terugval **samen**, op basis van de installatie. Geen generieke open/dichtfallback voor alle woningen.
 
 ### Beveiliging als onderdeel van lokaal beheer
@@ -463,7 +428,7 @@ De huidige REST-authcode is uitgecommentarieerd en sommige mutaties gebruiken GE
 
 ## 13. Softwarestructuur en contract
 
-Geen herbouw van het hele project. Bestaande interfaces stapsgewijs scheiden, telkens met behoud van baselinegedrag en expliciete migratie:
+Geen big-bang-herbouw. Volgens route B ([architectuurbesluit](ARCHITECTURE-DECISION.nl.md)) wordt de productkoppellaag gericht vervangen; een bredere herbouw blijft toegestaan bij een aangetoonde blokkade (§1). Elke vervanging behoudt het vereiste gedrag en krijgt een expliciete migratie:
 
 | Laag | Huidige plek | Beoogde uitbreiding |
 | --- | --- | --- |
@@ -471,7 +436,7 @@ Geen herbouw van het hele project. Bestaande interfaces stapsgewijs scheiden, te
 | Zonebeleid | `Room`, `RoomConfig` | EffectiveTarget, profielen, pure ZoneController, afzonderlijk ThermalModel |
 | Ketelsupervisor | `HeatingController`, `BoilerController`, `HeatingCurve` | Readiness/postrun/fault-state-machine en meerdere emittergroepen |
 | EMS | `EmsController`, `EMS/*`, `EmsBusUart` | Protocolprofielen, veldmetadata, passive decoding, afzonderlijke encoders; timing buiten JSON/HA |
-| Transport | `MQTT.h` | Versiehandshake, bounded input/output, correlatie, configtransactie en snapshot/quality |
+| Transport | `MQTT.h` | Versiehandshake, bounded input/output, correlatie, configtransactie en snapshot/quality; één typed ControlPlan met één transport-/Store-owner |
 | HA | Bestaande custom component | Centrale runtime/coördinatie, bindingsflow, native listeners/actions, registrymigratie, diagnostics/Repairs |
 | Historie | `EmsMetrics`, HA `heating.py`/sensor/dashboard | Correcte counters/quality, vraag versus observatie, native Recorder en zichtbare schattingen |
 
@@ -493,6 +458,12 @@ alle 11 fasen F0–F10 staan in [WORKBOARD§5](WORKBOARD.nl.md#5-de-11-productfa
 Onderstaande punten blijven als vereisten behouden; daarom geen losse afvinkvakjes
 hier die na uitvoering opnieuw achterlopen. Softwarevoorbereiding mag onafhankelijk
 van fysieke commissioning doorgaan; een planupdate is geen ketel-/flashvrijgave.
+
+### Kritisch pad en WIP-limiet (Mark, 22 oktober 2026)
+
+- **Haalbaarheidsvoorproef ketelstop (F6-voorproef, zonder TX of ketelwrites):** stel uit documentatie en, waar veilig, passief vast wat de HRC22H met de huidige adapterketen doet als de warmtevraag of de communicatie wegvalt (timeout of doorstoken), en welke fysieke terugval bestaat (de Tado terug, een relais of anders). Is de uitkomst negatief of blijft ze onbekend, dan wordt het architectuur-/hardwarebesluit uit §12 nu teruggelegd, niet pas na F9.
+- **WIP-limiet:** geen nieuwe F9-, F10- of P2-bronstages tot M2 (§1) bewezen is; lopend werk mag worden afgerond. Bronwerk voor M1/M2, de F4-supervisor en de F6-security gaat door.
+- Deze volgorde sluit aan op de uitvoeringsvolgorde in [WORKBOARD §6](WORKBOARD.nl.md#6-werkpakketten-en-eerstvolgende-uitvoering). Er verandert geen acceptatiecriterium.
 
 ### F0 — eigen forkbasis en installatieprofiel
 
@@ -650,11 +621,10 @@ Deze fysieke vrijgave is voor het daadwerkelijk gecommissionde Classicprofiel. P
 
 ### Eerste implementatieserie (plan en acceptatievolgorde)
 
-Actuele bronstand20oktober: WP01/WP02 geïmplementeerd en softwarematig getoetst;
-WP03 en het shadow-deel van WP04 zijn daadwerkelijk gekoppeld. WP08 heeft een
-bronimplementatie voor E32-auth/setup; fysieke HTTP-/OTA-/herstelproeven blijven
-open. De onderstaande tabel beschrijft de **volledige** uitkomst per werkpakket,
-niet een claim dat alle fysieke acceptatie of WP05–WP07 al is uitgevoerd. Eerst
+De actuele stand per werkpakket staat uitsluitend in
+[WORKBOARD §6](WORKBOARD.nl.md#6-werkpakketten-en-eerstvolgende-uitvoering).
+De onderstaande tabel beschrijft de **volledige** uitkomst per werkpakket, geen
+voortgang. Eerst
 de geïsoleerde [testkandidaat](INTEGRATED-TEST.nl.md) en het
 [invulblad](TEST-RECORD.nl.md), geen gecombineerde sprong naar live ketelregeling.
 
@@ -683,7 +653,7 @@ WP02 en contractanalyse kunnen conceptueel parallel, maar hun afhankelijkheden w
 - **Plan ≠ productie-GO.** Hardware-, ketel-/gegevenswrite-, flash- en elektrische stappen krijgen concrete scope, gereed rollbackpakket en actuele feitencheck voordat ze uitgevoerd worden.
 - **Releases:** firmware, filesystem, integratie, schema-/modelversie en compatibilitymatrix samen benoemen; geen stille vervanging van bestaande alphaassets. Voor E32 installatie via juiste partitie-/backup-/verifieerroute, niet de EMS-ESPwebupdater.
 - **Rollback software:** vorige firmware/configsnapshot/HA-integratie/modelbaseline bewaren; migratie omkeerbaar of vooraf als niet-omkeerbaar blokkeren. Restoreproef telt pas als echt uitgevoerd.
-- **Rollback verwarming:** eerst geverifieerde vraagstop waar communicatie werkt en afgifte/naloop veilig houden; exclusieve fysieke normale-regelaaroverdracht, daarna echte respons controleren. Bij communicatieverlies vooraf bekende zelfstandige route, niet doen alsof HA dan nog een nul kan sturen.
+- **Rollback verwarming:** eerst geverifieerde vraagstop waar communicatie werkt en afgifte/naloop veilig houden; exclusieve fysieke normale-regelaaroverdracht (de Tado terugaansluiten, §6.3), daarna echte respons controleren. Bij communicatieverlies vooraf bekende zelfstandige route, niet doen alsof HA dan nog een nul kan sturen.
 - **Monitoring:** status/age/quality en resources lokaal zichtbaar, waarschuwingen begrensd. Geen nieuwe permanente watchers of schedulers om kapotte native afronding te maskeren.
 - **Onderhoud:** library-/HAupdates op contract/registry/Recorder/busregressies toetsen; upstreammappings per pin vergelijken. Licentienotices en compatibiliteitskaarten mee onderhouden.
 
@@ -696,13 +666,14 @@ WP02 en contractanalyse kunnen conceptueel parallel, maar hun afhankelijkheden w
 | Vloerverwarming aanwezig/gepland, verdeler/menger/pomp/beveiliging | Mark/geschikte installateur, F8 | Gemengde temperaturen, NCNO en pompvolgorde |
 | PCB/module/backup/programmeerroute E32 en netwerkmodus | Mark + firmware-engineering, F0/F6 | Werkelijk passende build, herstel, OTA en WiFi/Ethernet |
 | Exacte Classicadapter-/aansluitketen en huidige Tadohersteltoestand | Mark + HA-specialist, F0/F6 | EMSvsIRT, stop/timeouts en exclusieve overdracht; geen nieuw labelvereiste |
+| Tado V3/V3+: huidige ketelkoppeling (bedrading/extension kit), werking als sensor na ontkoppelen, lokale HomeKit-route en werkelijke meetfrequentie | Mark + HA-specialist, F0/F6 | Exclusieve overdracht, rollbackregelaar en bruikbaarheid als kamerbron (§6.3) |
 | Betrouwbare huidige EMS-ESPvelden/kwaliteit/versie | HA-specialist, F1 | Parityscope en betrouwbare grafieken/learninginputs |
 | Sensorlocatie/nauwkeurigheid/rapportage, device-lokale fallback | Mark + HA-specialist, F3/F7 | Freshnessvensters, comfortdoelen en uitval |
 | HAversie/publieke Schedule-/subentry-API en broker/librarylimits | HA-specialist + software-engineering, F2 | Vroege API-fit, contractbudget; geen private storagehack |
 | Minimumflow, minimumketelvermogen, pomp-/naloop/timeout | Fysieke documentatie/geschikte uitvoerder + firmware-engineering, F6 | Onbeheerde inzet mogelijk of geblokkeerd |
 | Gewenste ruwe grafiekretentie en bestaande gas/warmtemeter | Mark + HA-specialist, F5 | Detailopslag versus uurstatistiek, gemeten verbruik versus schatting |
 
-Startadvies: eerst **één eenvoudig bereikbare radiatorzone met losse betrouwbare sensor en een werkelijk ondersteunde kraan**, naast de passieve EMSroute. De eerder aangetroffen badkamercombinatie is een kandidaat, geen al goedgekeurd eerste testobject. Vloer en learning komen pas na een bewezen conventionele keten.
+Startadvies: M2 uit §1 met **één eenvoudig bereikbare radiatorzone met losse betrouwbare sensor en een werkelijk ondersteunde kraan**, naast de passieve EMS-route. De eerder aangetroffen badkamercombinatie is een kandidaat, geen al goedgekeurd eerste testobject. Vloer en learning komen pas na een bewezen conventionele keten.
 
 ## 18. Bronnen en interpretatiegrenzen
 

@@ -876,6 +876,54 @@ vrijgavevoorwaarden blijven onderdeel van het plan, geen nieuw algemeen akkoord.
 - Automations next_check15m bevestigd. Hele11785software nog open; eigen job
   behouden, geen nieuwe eigenaar/watcher, alle fysieke gates ongewijzigd.
 
+### Mark11785 — F5 actieve read-only metrics en F2/F6 grantjitter: onafhankelijke bronacceptatie
+
+- [x] Exacte metricscorepatch647877d87b9d8f7df03c3c4981c485d60c5852e2603eb07d6be6c8a3f7f5d168
+  en grantcorepatcha1a379da91b852294ccd8b3eefe0be6191c24ae7c0beb93b51da5576e3000dd9
+  gereviewd; alle20finale niet-WORKBOARDbron-/dochashes matchen manifests.
+  Canonical0b9217e vooraf schoon; bronpakketten via afzonderlijke reviewbranch
+  fast-forward samengevoegd: metrics5d087c0, grantc2470a5, testbarrièree809264.
+- [x] Bestaande ModernTransport/client/queue hergebruikt: vaste V2snapshot maximaal
+  2048bytes/30s; actuele sessie/config/grant/sequence vereist, geen retained/replay.
+  Native Sensorplatform/opt-in dashboard via bestaande lifecycle;45sreceiptverval,
+  geen statewrites op ongewijzigde2spolls. Geen bron-/model-/regelkwalificatie of
+  leaseverlenging door meetdata; raw/Classicpariteit blijft afzonderlijk open.
+- [x] Aparte capabilitygerichte grantcorrectie: alleen NIEUWE geaccepteerde heartbeat
+  levert eenmalige nonce voor volgende geplande grantrotatie. HA bewaart maximaal8
+  oorspronkelijke verzendtijden, geen receipt+10verlenging. Oude peers behouden
+  conservatieve fallback; duplicate/expired/foreign/reorderedproofs verlengen niet.
+  De OPENjitterbevinding in MODERN-METRICS.md is historisch op oude bron;
+  opvolging en nieuwe grenzen staan in GRANT-NONCE.md, geen liveprobleem geclaimd.
+- [x] Canonical hostg++17/echte cJSON:34controller-/admissionchecks en10echte
+  EMSparserchecks PASS; nieuwe code strict schoon, bestaande parserwarnings apart.
+  Native HA2026.10.2/Python3.14.8:107PASS/5bestaande dependencywarnings/0skips.
+  Nieuw gecompileerde finite C++/HAinterop25PASS incl twee synthetische360s
+  jitterreplays: dezelfde sessie blijft ready, HAdeadline nooit voorbij echte
+  firmwaregrantdeadline. Tellingen overlappen eerdere pakketten, niet optellen.
+- [x] Eerste HAverificatie105/107: laatste SQLitewaarde ontbrak in twee readbacks;
+  oorspronkelijke log/xml behouden. Test-only commitbarrière vóór history-read
+  toegevoegd(e809264); assertions/tijdvenster onveranderd,107/107PASS. Geen
+  product-/database-/dependency-/HAcorepatch, geen wegpoetsen van eerste failure.
+- [x] Actuele canonical main.cpp met gepinde Xtensa/Arduino2.0.17flags typecheckPASS;
+  oude gegenereerde webassets alleen voor TYPECHECK hergebruikt. Geen volledige
+  actuele firmwarebuild/link/image/resource-/performance-/duurproefclaim.
+- [ ] Nog open: volledige firmwarebuild/installatie, MQTT-/E32-/telefoonvisuals,
+  fysieke ontvangst/Classic-/meterkwalificatie, Recorderomvang/liveperformance;
+  actieve graph/profile/model/comfortintegratie en F0–F10gates blijven gelden.
+  Geen HAproductie-/broker-/login-/EMS-/Tado-/TX-/actuatoractie of verwarmingsGO.
+- Bewijs11774dossier: MODERN-GRANT-PARENT-REVIEW.md, HASHES.json, COMMITS.json,
+  NATIVE-COMMANDS.json/native_run.log, PARSER-*.log/NATIVE.json,
+  HA-BARRIER.xml/log, INTEROP.xml/log, JITTER/, E32-SYNTAX.json/log en POSTCHECK.json.
+  Eerste HA.log/xml en RECORDER-BARRIER.patch blijven afzonderlijk bewaard.
+- Rollback vóór deployment: grantc2470a5 terugdraaien, daarna metrics5d087c0;
+  testfixe809264 afzonderlijk. Geen runtimegegevens/config gewijzigd.
+- Voortzetting: bestaande specialist actief aan F9coast/koelrespons/curve; reeds
+  aangeboden graph-/seizoens-/comfortsoftware blijft dezelfde eigenaar. Concrete
+  volgende F10/R31capability-/profielgerichte tapwaterpresentatie en supported/
+  unsupported/stale/migratie-/redactietests aangeboden ná huidig werk, zonder
+  nieuwe DHWwritevrijgave. Followupb5448b4d-b78e-4a0a-b46d-82d0cab463d7 QUEUED,
+  geen completion. Heel11785 blijft actief; next_check15m bevestigd, job behouden.
+
 ## 7. Bijwerken na iedere taak — onderdeel van opleveren
 
 1. Koppel vóór uitvoering taak-ID aan F/WP en concrete acceptatiecheck in dit bord.

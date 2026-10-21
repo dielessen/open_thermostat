@@ -10,6 +10,7 @@
 #include "EmbeddedWebAssets.h"
 #include "update/GitHubUpdate.h"
 #include "control/WebAuthSession.h"
+#include "control/NativeSourceProvisioning.h"
 #include <esp_system.h>
 // Pinned Arduino WebServer verbose logging prints HTTP headers and form bodies.
 // Never build the credential endpoint with that unredacted library trace enabled.
@@ -573,6 +574,12 @@ private:
 				auto section=cJSON_GetObjectItemCaseSensitive(previous.get(),pair.first);
 				if(cJSON_IsObject(section)) { cJSON_DeleteItemFromObjectCaseSensitive(section,pair.second); cJSON_AddStringToObject(section,pair.second,""); }
 			}
+
+            auto mq=cJSON_GetObjectItemCaseSensitive(previous.get(),"mqtt");
+            if(cJSON_IsObject(mq)) {
+                char id[17];snprintf(id,sizeof(id),"e32_%012llx",static_cast<unsigned long long>(ESP.getEfuseMac()));
+                cJSON_AddStringToObject(mq,"native_source_device_id",id);
+            }
 			server_.send(200,"application/json",control::printJson(previous.get()).c_str()); return;
 		}
 		auto body=server_.arg("plain");
@@ -582,6 +589,10 @@ private:
 		if(!mode.empty()&&mode!="wifi"&&mode!="ethernet") { server_.send(400,"text/plain","Select wifi or ethernet"); return; }
 		auto mq=cJSON_GetObjectItemCaseSensitive(candidate.get(),"mqtt");
 		auto oldMq=previous?control::field(previous.get(),"mqtt"):nullptr;
+        if(cJSON_IsObject(mq)) cJSON_DeleteItemFromObjectCaseSensitive(mq,"native_source_device_id");
+        if(!control::retainNativeSourceSetting(oldMq,mq)) {
+            server_.send(400,"text/plain","Saved SOURCE profile must be retained or explicitly cleared");return;
+        }
 		if(cJSON_IsObject(mq)&&control::stringField(mq,"password").empty()&&oldMq) {
 			bool sameBroker=control::stringField(mq,"brokerAddress")==control::stringField(oldMq,"brokerAddress")&&
 				control::stringField(mq,"username")==control::stringField(oldMq,"username")&&
@@ -603,8 +614,19 @@ private:
 			(cJSON_IsTrue(control::field(mq,"enabled"))&&(!control::integerField(mq,"brokerPort",1,65535)||control::stringField(mq,"username").empty()||control::stringField(mq,"password").empty())))) {
 			server_.send(400,"text/plain","Shadow mode needs adapter ID and dedicated broker credentials"); return;
 		}
+
+        if(!control::nativeSourceReplacementAllowed(oldMq,mq)) {
+            server_.send(409,"text/plain","SOURCE replacement requires a separately supported plan migration; previous settings retained");return;
+        }
+        const auto nativeSource=mq?control::field(mq,"native_shadow_source"):nullptr;
+        if(nativeSource&&!cJSON_IsNull(nativeSource)) {
+            char controllerId[17];snprintf(controllerId,sizeof(controllerId),"e32_%012llx",static_cast<unsigned long long>(ESP.getEfuseMac()));
+            if(!control::nativeSourceSettingValid(mq,controllerId,control::sha256Hex)) {
+                server_.send(400,"text/plain","Invalid or unsupported local shadow SOURCE profile; no physical qualification");return;
+            }
+        }
 		const String encoded(control::printJson(candidate.get()).c_str());
-		if(encoded.length()+1>2048) { server_.send(413,"text/plain","Persisted network settings exceed 2048 bytes"); return; }
+		if(!control::nativeNetworkSettingsBytesFit(std::string_view(encoded.c_str(),encoded.length()))) { server_.send(413,"text/plain","Persisted network settings exceed 2048 bytes"); return; }
 		if(!saveDeviceNetworkSettings(encoded)) { server_.send(500,"text/plain","Network settings durability not confirmed; read back before retry"); return; }
 		server_.send(201,"text/plain","Saved and verified; restart to apply network settings");
 #else

@@ -1,7 +1,7 @@
 """Negotiated complete two-room plan; configuration is NOT installation authority.
 
-Only a SOURCE-owned typed profile may select this path. No GUI/profile generator,
-physical readiness inference, service/worker/store or per-config compiled pin.
+Only an independently selected logical installation profile may select this path.
+Local review is never physical readiness, a new worker/store or per-config pin.
 """
 from copy import deepcopy
 from dataclasses import dataclass
@@ -65,7 +65,7 @@ def native_entry_state(entry):
 
 @dataclass(frozen=True,slots=True)
 class NativePlanSource:
-    """Independent immutable logical SHADOW profile; never decoded from a form."""
+    """Independent immutable logical SHADOW profile; config/DATA never qualify it."""
     policy:NativeInstallationPolicy
     profile_json:str
     bindings_json:str

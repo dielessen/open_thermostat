@@ -89,6 +89,11 @@ struct NetworkConfig {
 struct MqttConfig {
 	bool enabled = false;
 	bool modernShadow = false;
+#ifdef OPENTHERMOSTAT_E32V2
+	// Independent logical SOURCE setting; absent remains NONE.
+	bool nativeSourceRequested = false;
+	std::string nativeSourceJson;
+#endif
 	std::string adapterId;
 	bool publishHomeAssistantDiscovery = true;
 	std::string brokerAddress;

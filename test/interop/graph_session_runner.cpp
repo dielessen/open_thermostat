@@ -4,8 +4,11 @@
 #include "control/TopologyControlStoreView.h"
 #include "control/GraphFloorControlStoreView.h"
 #include "control/ShadowController.h"
+#include "control/NativeSourceProvisioning.h"
 #include "ControlTestHash.h"
 #include <iostream>
+#include <cstdlib>
+#include <cstddef>
 using namespace heating::control;
 namespace gt=heating::graph_test;
 struct Store:ControlStore {
@@ -13,6 +16,22 @@ struct Store:ControlStore {
     bool load(std::string& out)override{++reads;out=data;if(readbackMismatch)out+=" ";return loadOk;}
     bool save(std::string_view bytes)override{++writes;if(ok||commit)data=bytes;return ok;}
 };
+
+namespace LocalAllocationProbe {
+struct alignas(std::max_align_t) Header {size_t bytes;};
+static size_t attempt=0,failAt=0,live=0,peak=0;
+static void* allocate(size_t bytes) {
+    if(++attempt==failAt)return nullptr;
+    if(bytes>SIZE_MAX-sizeof(Header))return nullptr;
+    auto h=static_cast<Header*>(std::malloc(sizeof(Header)+bytes));
+    if(!h)return nullptr;
+    h->bytes=bytes;live+=bytes;peak=std::max(peak,live);return h+1;
+}
+static void release(void* value) {
+    if(!value)return;
+    auto h=static_cast<Header*>(value)-1;live-=h->bytes;std::free(h);
+}
+}
 int main() {
     Store store;std::unique_ptr<GraphSessionOwner> owner;
     std::unique_ptr<GraphControlStoreView> controlView;
@@ -71,7 +90,74 @@ int main() {
         auto text=[&](const char* key){return gt::str(gt::get(root.get(),key));};
         const auto now=static_cast<uint64_t>(gt::integer(gt::get(root.get(),"now"),0,UINT32_MAX));
         const auto op=text("op");frames.clear();
-        if(op=="initialize") {
+
+
+
+        if(op=="probe_local_source_allocations") {
+            const auto parsed=parseControlJson(text("raw"));if(!parsed)return 7;
+            size_t allocations=0,failures=0,maxPeak=0;bool leaks=false,baseline=false;
+            for(size_t fail=0;fail==0||fail<=allocations;++fail) {
+                using namespace LocalAllocationProbe;
+                attempt=0;failAt=fail;live=peak=0;
+                cJSON_Hooks hooks{allocate,release};cJSON_InitHooks(&hooks);
+                auto selected=nativeSourceFromLocalSettings(parsed.get(),text("controller"),text("owner"),hash);
+                const auto used=attempt;const auto maxBytes=LocalAllocationProbe::peak;
+                leaks=leaks||live!=0;
+                cJSON_InitHooks(nullptr);
+                maxPeak=std::max(maxPeak,maxBytes);
+                if(!fail){allocations=used;baseline=bool(selected);}
+                else if(!selected)++failures;
+                if(allocations>512)return 8; // Fixed finite probe, not a service.
+            }
+            gt::Json reply(cJSON_CreateObject(),cJSON_Delete);
+            cJSON_AddBoolToObject(reply.get(),"accepted",baseline);
+            cJSON_AddBoolToObject(reply.get(),"leaks",leaks);
+            cJSON_AddNumberToObject(reply.get(),"allocation_faults",allocations);
+            cJSON_AddNumberToObject(reply.get(),"rejected_faults",failures);
+            cJSON_AddNumberToObject(reply.get(),"host_cjson_peak_requested_bytes",maxPeak);
+            cJSON_AddNumberToObject(reply.get(),"writes",store.writes);
+            cJSON_AddBoolToObject(reply.get(),"boiler_output_enabled",false);
+            cJSON_AddBoolToObject(reply.get(),"actuator_output_enabled",false);
+            std::cout<<gt::print(reply.get())<<std::endl;continue;
+        }
+        if(op=="check_native_settings") {
+            const auto raw=text("raw");auto candidate=parseControlJson(raw,true);
+            const auto previous=parseControlJson(text("previous"),true);
+            const auto oldMq=previous?cJSON_GetObjectItemCaseSensitive(previous.get(),"mqtt"):nullptr;
+            auto mq=candidate?cJSON_GetObjectItemCaseSensitive(candidate.get(),"mqtt"):nullptr;
+            const bool retained=candidate&&retainNativeSourceSetting(oldMq,mq);
+            const bool sourceValid=retained&&nativeSourceReplacementAllowed(oldMq,mq)&&nativeSourceSettingValid(mq,text("controller"),hash);
+            const auto encoded=candidate?gt::print(candidate.get()):"";
+            const bool within=nativeNetworkSettingsBytesFit(encoded);
+            gt::Json reply(cJSON_CreateObject(),cJSON_Delete);
+            cJSON_AddBoolToObject(reply.get(),"accepted",sourceValid&&within);
+            cJSON_AddBoolToObject(reply.get(),"source_valid",sourceValid);
+            cJSON_AddBoolToObject(reply.get(),"within_budget",within);
+            cJSON_AddStringToObject(reply.get(),"encoded",encoded.c_str());
+            cJSON_AddBoolToObject(reply.get(),"boiler_output_enabled",false);
+            cJSON_AddBoolToObject(reply.get(),"actuator_output_enabled",false);
+            cJSON_AddNumberToObject(reply.get(),"writes",store.writes);
+            std::cout<<gt::print(reply.get())<<std::endl;continue;
+        }
+        if(op=="decode_local_source") {
+            const auto raw=text("raw");
+            auto selected=nativeSourceFromSavedDescriptor(raw,text("controller"),text("owner"),hash);
+            gt::Json reply(cJSON_CreateObject(),cJSON_Delete);
+            cJSON_AddBoolToObject(reply.get(),"accepted",bool(selected));
+            cJSON_AddStringToObject(reply.get(),"profile_digest",selected?selected->profileDigest.c_str():"");
+            cJSON_AddNumberToObject(reply.get(),"source_bytes",sizeof(NativePlanInstallationSource));
+            cJSON_AddNumberToObject(reply.get(),"writes",store.writes);
+            cJSON_AddBoolToObject(reply.get(),"boiler_output_enabled",false);
+            cJSON_AddBoolToObject(reply.get(),"actuator_output_enabled",false);
+            std::cout<<gt::print(reply.get())<<std::endl;continue;
+        }
+        if(op=="initialize_native_local_source") {
+            controller=text("controller");boot=text("boot");adapter=text("owner");store.data=text("stored");
+            nativePlanSource=nativeSourceFromSavedDescriptor(text("local_source"),controller,adapter,hash);
+            if(!nativePlanSource)return 6; // Invalid selected source never falls back.
+            nativePlanMode=controlMode=true;floorBridgeMode=topologyMode=false;
+            safety=SeasonalSafetySnapshot{};constructControl();
+        } else if(op=="initialize") {
             controller=text("controller");boot=text("boot");adapter=text("owner");anchor=text("anchor");
             store.data=text("stored");construct();
         } else if(op=="initialize_native_plan") {

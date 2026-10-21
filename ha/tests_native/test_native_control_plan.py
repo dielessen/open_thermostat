@@ -90,9 +90,15 @@ async def native_plan(native_two,hass,monkeypatch,request):
         await Store(hass,1,"open_thermostat.v1."+parent.entry_id).async_save(
             {"accepted":None,"staged":legacy_record} if options.get("old_stage") else {"accepted":legacy_record,"staged":None})
     async with pair(hass) as peer:
-        initial=await peer.request("initialize_native_plan",controller="e32_test",boot="native_boot",
-            owner="test_owner",stored=canonical(legacy_record["config"]) if legacy else "",
-            source=dict(profile_digest=policy.profile_digest,mapping_revision=1,zones=rows,legacy_readback_reviewed=legacy))
+        if options.get("local_source",False):
+            from custom_components.open_thermostat.native_provisioning import local_device_descriptor
+            initial=await peer.request("initialize_native_local_source",controller="e32_test",boot="native_boot",
+                owner="test_owner",stored=canonical(legacy_record["config"]) if legacy else "",
+                local_source=canonical(local_device_descriptor(source)))
+        else:
+            initial=await peer.request("initialize_native_plan",controller="e32_test",boot="native_boot",
+                owner="test_owner",stored=canonical(legacy_record["config"]) if legacy else "",
+                source=dict(profile_digest=policy.profile_digest,mapping_revision=1,zones=rows,legacy_readback_reviewed=legacy))
         assert not initial["fault"] and initial["writes"]==0 and initial["revision"]==(1 if legacy else 0)
         runtime=connection=client=None;holder={};serial=0;epoch=int(dt.utcnow().timestamp());receive_errors=[]
         async def start():

@@ -1,6 +1,7 @@
 #pragma once
 #ifdef OPENTHERMOSTAT_E32V2
 #include "ShadowController.h"
+#include "NativeSourceProvisioning.h"
 #include "GraphSessionOwner.h"
 #include "GraphControlStoreView.h"
 #include "TopologyControlStoreView.h"
@@ -88,8 +89,21 @@ public:
                              const GraphFloorControlHandoffSource* floorBridge=nullptr,
                              const NativePlanInstallationSource* nativePlanSource=nullptr)
         :cfg_(std::move(cfg)),client_(network_),
-         store_((graphProfile||graphHandoff||topologyHandoff||floorBridge||nativePlanSource)?ControlStorageProfile::graph_shadow_v2:ControlStorageProfile::legacy_api1),
+         store_((graphProfile||graphHandoff||topologyHandoff||floorBridge||nativePlanSource||cfg_.nativeSourceRequested)?ControlStorageProfile::graph_shadow_v2:ControlStorageProfile::legacy_api1),
          graph_(graphProfile!=nullptr) {
+        char mac[17]; snprintf(mac,sizeof(mac),"e32_%012llx",static_cast<unsigned long long>(ESP.getEfuseMac()));
+        std::unique_ptr<NativePlanInstallationSource> locallyProvisioned;
+        if(cfg_.nativeSourceRequested) {
+            if(!cfg_.modernShadow||graphProfile||seasonalSource||graphHandoff||topologyHandoff||floorBridge||nativePlanSource||safety) {
+                valid_=false;return; // Ambiguous SOURCE selection never falls back.
+            }
+            locallyProvisioned=nativeSourceFromSavedDescriptor(cfg_.nativeSourceJson,mac,cfg_.adapterId,sha256Hex);
+            if(!locallyProvisioned) {valid_=false;return;}
+            nativePlanSource=locallyProvisioned.get();
+            // Actual independent safety producer is not yet supported. Unknown
+            // is deliberately UNKNOWN, not a timestamped synthetic all-safe flag.
+            safety=[] {return SeasonalSafetySnapshot{};};
+        }
         auto prefix=cfg_.base.empty()?"open_thermostat":cfg_.base;
         valid_=SessionAdmission::validId(prefix)&&SessionAdmission::validId(cfg_.adapterId)&&
             !cfg_.brokerAddress.empty()&&cfg_.brokerPort&& !cfg_.username.empty()&&!cfg_.password.empty();
@@ -102,7 +116,6 @@ public:
         client_.setKeepAlive(15); client_.setSocketTimeout(1);
         // Total packet budget: max payload8192 + bounded prefix/topic/header.
         if(!client_.setBufferSize(8448)) { valid_=false; return; }
-        char mac[17]; snprintf(mac,sizeof(mac),"e32_%012llx",static_cast<unsigned long long>(ESP.getEfuseMac()));
         const auto publish=[this](std::string_view suffix,std::string_view payload) {
             const std::string topic=base_+std::string(suffix);
             // Same one native connection; no raw private wire logging.

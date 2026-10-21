@@ -555,6 +555,20 @@ MqttConfig getMqttConfig() {
 	config.enabled = json::getBool(mqtt, "enabled");
 	config.modernShadow = json::getBool(mqtt, "modern_shadow");
 	config.adapterId = json::getString(mqtt, "adapter_id");
+#ifdef OPENTHERMOSTAT_E32V2
+    auto nativeSource=cJSON_GetObjectItemCaseSensitive(mqtt,"native_shadow_source");
+    if(nativeSource&&!cJSON_IsNull(nativeSource)) {
+        config.nativeSourceRequested=true;
+        auto raw=cJSON_PrintUnformatted(nativeSource);
+        if(raw) {
+            try {config.nativeSourceJson=raw;}
+            catch(const std::bad_alloc&) {config.nativeSourceJson.clear();}
+            cJSON_free(raw);
+        }
+        // Malformed/nonempty requested source is NOT an absent/default source.
+    }
+#endif
+
 	auto publishDiscovery = cJSON_GetObjectItemCaseSensitive(mqtt, "publishHomeAssistantDiscovery");
 	config.publishHomeAssistantDiscovery = publishDiscovery == nullptr || cJSON_IsTrue(publishDiscovery);
 	config.brokerAddress = json::getString(mqtt, "brokerAddress");

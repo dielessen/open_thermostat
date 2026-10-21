@@ -129,6 +129,75 @@ class V1FlowMixin:
 class ShadowOptionsFlow(config_entries.OptionsFlow):
     # Native entry's existing update listener owns options/subentry reload.
     # OptionsFlowWithReload is explicitly incompatible with that listener.
+    async def async_step_installation_source(self,user_input=None):
+        # Separate native source review, not a second config apply flow. Runtime
+        # must ALREADY be off; we never silently stop/rebind an enabled owner.
+        from .native_provisioning import propose_local_shadow_source
+        try:entry=self.config_entry
+        except config_entries.UnknownEntry:return self.async_abort(reason="native_source_review_changed")
+        if (integration_mode(entry)!=MODE_SHADOW or entry.options.get(CONF_ENABLED,False)
+                or self.hass.config_entries.async_get_entry(entry.entry_id) is not entry):
+            return self.async_abort(reason="native_source_runtime_off_required")
+        errors={}
+        if user_input is not None:
+            try:
+                self._source_before=self._entry_review_snapshot(entry)
+                self._source_proposal=propose_local_shadow_source(self.hass,entry,user_input["controller_id"],
+                    legacy_readback=user_input.get("legacy_readback",False))
+                return await self.async_step_installation_source_review()
+            except Exception:
+                errors["base"]="native_source_unsupported"
+        return self.async_show_form(step_id="installation_source",data_schema=vol.Schema({
+            vol.Required("controller_id"):str,vol.Optional("legacy_readback",default=False):bool}),errors=errors)
+
+    async def async_step_installation_source_review(self,user_input=None):
+        from .native_provisioning import source_selection,local_device_descriptor
+        from .graph_shadow_validation import canonical
+        source=getattr(self,"_source_proposal",None)
+        try:entry=self.config_entry
+        except config_entries.UnknownEntry:return self.async_abort(reason="native_source_review_changed")
+        if (source is None or self.hass.config_entries.async_get_entry(entry.entry_id) is not entry
+                or self._entry_review_snapshot(entry)!=self._source_before or entry.options.get(CONF_ENABLED,False)):
+            return self.async_abort(reason="native_source_review_changed")
+        try:source.validate_native(self.hass,entry)
+        except Exception:return self.async_abort(reason="native_source_review_changed")
+        if user_input is not None:
+            if user_input.get("confirm_source") is not True:
+                return self.async_abort(reason="native_source_review_cancelled")
+            from . import (_selected_graph_data_profile,_selected_graph_controller_source,
+                _selected_controller_policy_source_profile,_NATIVE_PLAN_SOURCE_PROFILES)
+            # No overlapping owner/compiler pin. Source selection is explicit
+            # and still unverified until actual device metadata/session readback.
+            try:
+                overlap=(any(s.policy.entry_unique_id==entry.unique_id for s in _NATIVE_PLAN_SOURCE_PROFILES)
+                    or _selected_graph_data_profile(entry) is not None
+                    or _selected_graph_controller_source(entry) is not None
+                    or _selected_controller_policy_source_profile(entry) is not None)
+            except Exception:return self.async_abort(reason="native_source_owner_conflict")
+            if overlap:return self.async_abort(reason="native_source_owner_conflict")
+            from .native_provisioning import SOURCE_OPTION,source_from_selection
+            try:previous=source_from_selection(entry)
+            except Exception:return self.async_abort(reason="native_source_replacement_unsupported")
+            if previous is not None and previous!=source:
+                return self.async_abort(reason="native_source_replacement_unsupported")
+            return self.async_create_entry(data={**entry.options,SOURCE_OPTION:source_selection(source)})
+        profile,_=source.documents()
+        limits=[]
+        for zone in profile["zones"]:
+            c=zone["control"]
+            limits.append(zone["emitter"]+": target "+str(zone["minimum_target_centi_c"]/100)+"–"+str(zone["maximum_target_centi_c"]/100)+
+                " °C; supply bounds "+str(zone["minimum_supply_centi_c"]/100)+"–"+str(zone["maximum_supply_centi_c"]/100)+
+                " °C; report TTL "+str(zone["maximum_sensor_age_ms"]/1000)+" s; "+c["mode"]+
+                "; hysteresis "+str(c["hysteresis_centi_c"]/100)+" °C; P="+str(c["kp_permille_per_c"])+
+                " permille/°C, I="+str(c["ki_permille_per_c_minute"])+" permille/(°C·min); cycle/min-on/min-off "+
+                str(c["cycle_ms"]/1000)+"/"+str(c["minimum_on_ms"]/1000)+"/"+str(c["minimum_off_ms"]/1000)+" s")
+        rooms=", ".join(room.name for room in source.validate_native(self.hass,entry)[0])
+        return self.async_show_form(step_id="installation_source_review",data_schema=vol.Schema({
+            vol.Required("confirm_source",default=False):bool}),description_placeholders={
+                "rooms":rooms,"limits":"\n".join(limits),"controller":source.policy.controller_id,"owner":source.policy.adapter_id,
+                "fingerprint":source.policy.profile_digest,"descriptor":canonical(local_device_descriptor(source)),
+                "scope":"Logical shadow profile only; actual device match and config readback still required. Measurement/safety producers UNKNOWN; physical outputs disabled."})
+
     async def async_step_hot_water(self, user_input=None):
         if user_input is not None:
             return self.async_abort(reason="hot_water_information_complete")
@@ -332,6 +401,8 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
         errors = {}
         if user_input is not None and user_input.get("information")=="hot_water":
             return await self.async_step_hot_water()
+        if user_input is not None and user_input.get("information")=="installation_source":
+            return await self.async_step_installation_source()
         if user_input is not None and user_input.get("graph_action")=="prepare":
             return await self.async_step_graph_prepare()
         if user_input is not None and user_input.get("graph_action")=="review":
@@ -359,9 +430,12 @@ class ShadowOptionsFlow(config_entries.OptionsFlow):
                 }
                 if valid_owner:
                     data["adapter_id"] = owner
+                from .native_provisioning import SOURCE_OPTION
+                if SOURCE_OPTION in self.config_entry.options:
+                    data[SOURCE_OPTION]=self.config_entry.options[SOURCE_OPTION]
                 return self.async_create_entry(data=data)
         return self.async_show_form(step_id="init", data_schema=vol.Schema({
-            vol.Optional("information",default="settings"): selector.SelectSelector({"options":[{"value":"settings","label":"Settings"},{"value":"hot_water","label":"Domestic hot water (read-only)"}]}),
+            vol.Optional("information",default="settings"): selector.SelectSelector({"options":[{"value":"settings","label":"Settings"},{"value":"hot_water","label":"Domestic hot water (read-only)"},{"value":"installation_source","label":"Independent local shadow profile (runtime off)"}]}),
             **({vol.Optional("graph_action",default="settings"):
                 selector.SelectSelector({"options":(["settings","prepare","review","status"]
                     if (self._graph_connection().runtime.native_plan_source is not None

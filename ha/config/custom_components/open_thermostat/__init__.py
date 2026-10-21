@@ -130,7 +130,8 @@ def _selected_graph_controller_source(entry):
         raise ConfigEntryError("graph_control_source_invalid") from None
 
 
-# Explicit independent installation-SHADOW contract; never an entry option.
+# Independent installation-SHADOW contract; compiled fixtures or separately
+# reviewed local logical selection, never DATA/readiness/physical authority.
 # Empty means unsupported, not inferred source/physical qualification.
 _NATIVE_PLAN_SOURCE_PROFILES = ()
 
@@ -147,6 +148,9 @@ def _selected_native_plan_source(entry):
             if type(source) is not NativePlanSource:raise ValueError("native_profile_type")
             source.validate()
             if source.policy.entry_unique_id==entry.unique_id:selected.append(source)
+        from .native_provisioning import source_from_selection
+        local=source_from_selection(entry)
+        if local is not None:selected.append(local)
         if len(selected)>1:raise ValueError("native_multiple_owners")
         return selected[0] if selected else None
     except (ValueError,TypeError,KeyError):

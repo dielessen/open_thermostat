@@ -1,4 +1,5 @@
 #pragma once
+#include "SessionAdmission.h"
 #include "SeasonalControllerSource.h"
 #include "GraphShadowValidation.h"
 

@@ -215,6 +215,12 @@
 <div class="alert alert-info">E32-teststand: geen ketel- of kraanuitvoer. Selecteer deze stand alleen samen met de v1 HA-integratie.</div>
 <div class="form-check"><input class="form-check-input" type="checkbox" id="ModernShadow"><label class="form-check-label" for="ModernShadow">Moderne HA-teststand (E32, shadow)</label></div>
 <label for="ModernAdapter">HA-adapter-ID (uit de integratie)</label><input class="form-control" id="ModernAdapter" maxlength="32" pattern="[A-Za-z0-9_-]{1,32}" placeholder="Kopieer uit Home Assistant">
+<details id="NativeShadowSourceSection" hidden><summary>Independent logical shadow SOURCE profile (E32)</summary>
+<p>Device controller ID: <code id="NativeSourceDeviceID">Load settings</code></p>
+<label for="NativeShadowSource">Reviewed local profile descriptor (optional)</label>
+<textarea class="form-control" id="NativeShadowSource" rows="4" maxlength="2048" aria-describedby="NativeShadowSourceHelp"></textarea>
+<small id="NativeShadowSourceHelp">Separate installation review, not a room target or heating permission. Leave empty for NONE. Saved for the next restart; total network settings stay limited to 2048 bytes. Measurement and safety producers are not qualified by this profile; physical outputs remain disabled.</small>
+</details>
 
 								<div class="form-row">
 									<div class="col-md mb-2">
@@ -638,6 +644,9 @@
 			.then(res => res.json())
 			.then((settings) => {
                 loadedNetworkSettings = JSON.parse(JSON.stringify(settings));
+                $('#NativeShadowSource').val('');
+                $('#NativeShadowSourceSection').prop('hidden', true);
+                $('#NativeSourceDeviceID').text('Unavailable: SOURCE selection is unsupported by this firmware');
                 updateWeatherEditorVisibility();
 				$('#DeviceHostname').val(settings.hostname);
 				$('#InterfaceMode').val(settings.interface_mode || 'wifi');
@@ -662,6 +671,9 @@
 				if (settings.mqtt != undefined) {
 					$('#ModernShadow').prop('checked', settings.mqtt.modern_shadow === true);
 					$('#ModernAdapter').val(settings.mqtt.adapter_id || '');
+                    $('#NativeSourceDeviceID').text(settings.mqtt.native_source_device_id || 'Unavailable: SOURCE selection is unsupported by this firmware');
+                    $('#NativeShadowSourceSection').prop('hidden', !settings.mqtt.native_source_device_id);
+                    $('#NativeShadowSource').val(settings.mqtt.native_shadow_source == null ? '' : JSON.stringify(settings.mqtt.native_shadow_source));
 					$('#DeviceMQTTEnabled').prop('checked', settings.mqtt.enabled),
 						$('#DeviceMQTTPublishHomeAssistantDiscovery').prop('checked', settings.mqtt.publishHomeAssistantDiscovery !== false),
 						$('#DeviceMQTTBrokerAddress').val(settings.mqtt.brokerAddress),
@@ -698,7 +710,17 @@
         if (!loadedNetworkSettings) { alert('Load device settings before saving.'); return; }
 		if (!validateForm('#networkeditform')) return;
 		$("#SaveDeviceSettings").prop('disabled', true);
+        const sourceSupported = !!(loadedNetworkSettings.mqtt && loadedNetworkSettings.mqtt.native_source_device_id);
+        let nativeSource = null;
+        const nativeSourceText = sourceSupported ? $('#NativeShadowSource').val().trim() : '';
+        try { if (nativeSourceText) nativeSource = JSON.parse(nativeSourceText); }
+        catch (_) { alert('Enter a valid reviewed SOURCE descriptor JSON array, or leave it empty for NONE.'); $("#SaveDeviceSettings").prop('disabled', false); return; }
 
+
+        if (sourceSupported && loadedNetworkSettings.mqtt.native_shadow_source != null && nativeSource === null &&
+            !confirm('Remove the local logical SOURCE selection for the next restart? Configuration data will not be erased. The previous source may be needed to read it.')) {
+            $("#SaveDeviceSettings").prop('disabled', false); return;
+        }
 		let settings = {
 			"hostname": $('#DeviceHostname').val(),
 			"interface_mode": $('#InterfaceMode').val(),
@@ -718,6 +740,7 @@
 			"mqtt": {
 				"modern_shadow": $('#ModernShadow').prop('checked'),
 				"adapter_id": $('#ModernAdapter').val(),
+                "native_shadow_source": nativeSource,
 				"enabled": $('#DeviceMQTTEnabled').prop('checked'),
 				"publishHomeAssistantDiscovery": $('#DeviceMQTTPublishHomeAssistantDiscovery').prop('checked'),
 				"brokerAddress": $('#DeviceMQTTBrokerAddress').val(),
@@ -742,6 +765,7 @@
 			}
 		};
 
+        if (!sourceSupported) delete settings.mqtt.native_shadow_source;
         if (controlUiMode !== 'legacy') {
             if (Object.prototype.hasOwnProperty.call(loadedNetworkSettings,'openweather'))
                 settings.openweather = loadedNetworkSettings.openweather;

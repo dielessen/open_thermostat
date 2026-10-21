@@ -80,12 +80,31 @@
         "data": {
           "status_action": "Next action"
         }
+      },
+      "installation_source": {
+        "title": "Review an independent logical installation profile",
+        "description": "Keep shadow runtime OFF. This profile describes the two reviewed room bindings and regulator limits, not physical source or safety qualification. Device-local settings must independently match it before the existing session/config readback can succeed.",
+        "data": {
+          "controller_id": "Exact E32 controller ID (from device settings)",
+          "legacy_readback": "Allow known old schema1 records in read-only quarantine"
+        },
+        "data_description": {
+          "legacy_readback": "No restored grants, overrides or learning. Incompatible old records remain refused."
+        }
+      },
+      "installation_source_review": {
+        "title": "Confirm the independent shadow profile",
+        "description": "Rooms: {rooms}\nReviewed logical limits (not physical protection):\n{limits}\nDevice: {controller}\nHA owner: {owner}\nProfile fingerprint: {fingerprint}\n\nPaste the descriptor below into the E32 local network settings only after reviewing the installation. Save/read back there; device selection applies after a separately authorized restart. This screen does not send it or restart anything.\n\n{descriptor}\n\n{scope}",
+        "data": {
+          "confirm_source": "Save this HA logical profile selection (no control/config send)"
+        }
       }
     },
     "error": {
       "invalid_adapter_id": "Use the same explicit owner ID as provisioned on the E32 (1–32 letters, digits, _ or -).",
       "graph_room_contract_unavailable": "No matching graph DATA or explicitly SOURCE-selected shadow contract is available for these rooms. Saving a graph or enabling this checkbox never qualifies a source or enables physical outputs.",
-      "graph_control_source_review_required": "The selected SOURCE contract does not match the current owner or reviewed graph, or changed during verification. Nothing was enabled. Review the saved DATA and SOURCE contract; reconnect alone cannot approve changes."
+      "graph_control_source_review_required": "The selected SOURCE contract does not match the current owner or reviewed graph, or changed during verification. Nothing was enabled. Review the saved DATA and SOURCE contract; reconnect alone cannot approve changes.",
+      "native_source_unsupported": "This source layout, binding or controller ID is unsupported. No profile was saved."
     },
     "abort": {
       "graph_review_unavailable": "No existing source-selected graph connection is available. No profile was enabled.",
@@ -94,7 +113,12 @@
       "graph_review_complete": "Graph DATA review closed. No integration settings changed.",
       "graph_prepare_unavailable": "No reviewed source-owned draft binding/qualification bundle is selected. No graph profile was enabled.",
       "graph_prepare_failed": "Could not verify prepared heating DATA. No automatic apply was performed; check graph status and review again.",
-      "hot_water_information_complete": "Read-only hot water information closed; no settings changed."
+      "hot_water_information_complete": "Read-only hot water information closed; no settings changed.",
+      "native_source_runtime_off_required": "Turn shadow runtime off before reviewing its independent local profile.",
+      "native_source_review_changed": "Configuration, owner or registry changed. No new profile was saved.",
+      "native_source_review_cancelled": "Profile review cancelled; existing configuration is unchanged.",
+      "native_source_owner_conflict": "Another independent source owner is already selected. No profile was saved.",
+      "native_source_replacement_unsupported": "Changing an existing source profile needs a supported durable-plan migration. Existing profile and data were retained."
     }
   },
   "entity": {

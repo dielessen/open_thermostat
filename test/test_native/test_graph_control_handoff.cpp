@@ -1,5 +1,5 @@
 // Reuse the real shared graph validator/store fixtures and preserve their tests.
-#include "test_graph_configuration.cpp"
+#include "GraphConfigurationFixture.h"
 #include "control/GraphControlStoreView.h"
 #include "control/ShadowController.h"
 namespace {

@@ -1,6 +1,5 @@
 // New acceptance only: existing REAL controller/protocol/fixture, no second model.
-// Registration includes previous tests, but verifier runs ONLY our3 new cases.
-#include "test_seasonal_controller_source.cpp"
+#include "SeasonalControllerFixture.h"
 namespace {
 using namespace heating::control;
 TEST(SeasonalControllerAcceptance, SummerAndAllOffStopCannotBeUndoneByNewManualBoost) {

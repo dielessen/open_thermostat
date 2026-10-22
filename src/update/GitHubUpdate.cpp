@@ -1,5 +1,6 @@
 #ifdef OPENTHERMOSTAT_E32V2
 #include "GitHubUpdate.h"
+#include "ReleaseCatalog.h"
 #include "VerifiedOta.h"
 #include "RestartTimer.h"
 #include "EmbeddedWebAssets.h"
@@ -18,7 +19,6 @@
 namespace heating {extern bool wifiAPMode;}
 namespace heating::update {
 namespace {
-struct Release {std::string tag;bool prerelease=false;};
 struct State {std::string phase="idle",error,selected;uint32_t received=0,total=0;bool reboot=false;std::vector<Release> releases;};
 State state;std::mutex stateMutex;
 std::atomic<bool> working{false};RestartTimer rebootTimer;
@@ -106,21 +106,7 @@ public:
     }
 };
 bool releaseList(std::vector<Release> &out,std::string &error) {
-    std::string raw;if(!text(releaseApi,32768,raw,error))return false;
-    auto root=releaseJson(raw);if(!root||!cJSON_IsArray(root.get())){error="Ongeldig of te groot GitHub-releaseantwoord.";return false;}
-    std::vector<Release> candidates;
-    for(auto r=root->child;r&&candidates.size()<2;r=r->next) {
-        const auto tag=string(r,"tag_name");if(!validTag(tag)||cJSON_IsTrue(field(r,"draft")))continue;
-        bool manifest=false,image=false;auto assets=field(r,"assets");
-        if(cJSON_IsArray(assets))for(auto a=assets->child;a;a=a->next){manifest|=string(a,"name")=="e32v2-update.json";image|=string(a,"name")=="firmware.bin";}
-        if(manifest&&image)candidates.push_back({tag,cJSON_IsTrue(field(r,"prerelease"))});
-    }
-    root.reset();raw.clear();raw.shrink_to_fit();
-    for(const auto &candidate:candidates){std::string manifestBytes;Manifest m;
-        if(!text(assetUrl(candidate.tag,"e32v2-update.json"),4096,manifestBytes,error))return false;
-        if(parseManifest(manifestBytes,candidate.tag,m))out.push_back(candidate);
-    }
-    return true;
+    return discoverReleases(text,out,error);
 }
 void execute(bool install) {
     std::string error,tag;

@@ -39,9 +39,13 @@ De aparte ZIP bevat ook een factorybeeld voor nieuwe, schone USB-installaties:
 ## Voortaan vanuit het apparaat
 
 1. Ga naar **Firmware bijwerken** en kies **Controleer op updates**.
-2. Het apparaat haalt de laatste twee GitHub-releases op en controleert hun
-   updategegevens. Alleen passende E32 V2 app-only releases verschijnen.
-   Een testrelease is zichtbaar als zodanig gemarkeerd.
+2. Vanaf alpha.7 doorzoekt het apparaat maximaal twaalf releaseberichten, één
+   begrensd antwoord per keer. Het toont maximaal twee passende E32 V2 app-only
+   releases na controle van hun updategegevens. HA-releases en releases zonder
+   passend firmwarepakket tellen niet mee. Een testrelease is als zodanig gemarkeerd.
+   Als geen passende release binnen deze zoekgrens is gevonden, meldt de interface
+   dat oudere berichten niet zijn gecontroleerd. Alpha.6 en ouder bekijken alleen
+   de twee nieuwste berichten; gebruik daar zo nodig de handmatige app-upload.
 3. Selecteer de gewenste versie en kies **Downloaden en installeren**.
    Bevestig de keuze. Er worden nooit automatisch releases geïnstalleerd.
 4. Houd het apparaat onder stroom. De pagina toont de ontvangen bytes en

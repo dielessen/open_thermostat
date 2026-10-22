@@ -1,9 +1,11 @@
 #include "update/VerifiedOta.h"
+#include "update/ReleaseCatalog.h"
 #include "update/RestartTimer.h"
 #include "control/HttpAccessPolicy.h"
 #include "control/CaptivePortalPolicy.h"
 #include <gtest/gtest.h>
 #include <vector>
+#include <map>
 using namespace heating::update;
 TEST(GitHubOtaRestart, UnarmedNeverRestartsAndGraceDoesNotDependOnBrowser) {
     RestartTimer timer;
@@ -107,4 +109,86 @@ TEST(GitHubOta, ConcurrentOrUnconfirmedUpdatesCannotBypassGateViaManualUpload) {
       for(auto path:{"/config/reboot","/setup/reenter"})EXPECT_EQ(mutationBlocked(path,working,staged,pending),working);
       EXPECT_FALSE(mutationBlocked("/config/rooms",working,staged,pending));
     }
+}
+
+namespace {
+std::string catalogEntry(const std::string &tag,bool prerelease=true,bool draft=false,bool assets=true) {
+    return "[{\"tag_name\":\""+tag+"\",\"prerelease\":"+(prerelease?"true":"false")+
+      ",\"draft\":"+(draft?"true":"false")+",\"assets\":"+
+      (assets?"[{\"name\":\"e32v2-update.json\"},{\"name\":\"firmware.bin\"}]":"[]")+"}]";
+}
+std::string catalogManifest(const std::string &tag) {
+    auto raw=document();raw.replace(raw.find(manifest().tag),manifest().tag.size(),tag);return raw;
+}
+struct CatalogFetch {
+    std::map<std::string,std::string> responses;
+    std::vector<std::pair<std::string,size_t>> calls;
+    bool operator()(const std::string &url,size_t limit,std::string &raw,std::string &error) {
+        calls.push_back({url,limit});const auto found=responses.find(url);
+        if(found==responses.end()){error="fixture transport failure";return false;}
+        raw=found->second;return raw.size()<=limit;
+    }
+    void page(unsigned n,const std::string &raw){responses[releasePageUrl(n)]=raw;}
+    void release(unsigned n,const std::string &tag,bool prerelease=true) {
+        page(n,catalogEntry(tag,prerelease));responses[assetUrl(tag,"e32v2-update.json")]=catalogManifest(tag);
+    }
+};
+}
+TEST(GitHubCatalog, FindsTwoCompatibleFirmwareReleasesPastMultipleHaReleases) {
+    CatalogFetch fetch;fetch.page(1,catalogEntry("ha-v0.4.0.dev12"));
+    fetch.page(2,catalogEntry("ha-v0.4.0.dev11"));
+    fetch.release(3,"v0.1.0-e32v2-alpha.7");fetch.release(4,"v0.1.0-e32v2-alpha.6",false);
+    std::vector<Release> out;std::string error;
+    ASSERT_TRUE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),2u);
+    EXPECT_EQ(out[0].tag,"v0.1.0-e32v2-alpha.7");EXPECT_TRUE(out[0].prerelease);
+    EXPECT_EQ(out[1].tag,"v0.1.0-e32v2-alpha.6");EXPECT_FALSE(out[1].prerelease);
+    ASSERT_EQ(fetch.calls.size(),6u);
+    for(const auto &call:fetch.calls)EXPECT_EQ(call.second,call.first.find("api.github.com")!=std::string::npos?32768u:4096u);
+}
+TEST(GitHubCatalog, SkipsDraftMissingImageDuplicateAndIncompatibleManifest) {
+    CatalogFetch fetch;fetch.page(1,catalogEntry("v1",true,true));
+    fetch.page(2,"[{\"tag_name\":\"v2\",\"assets\":[{\"name\":\"e32v2-update.json\"}]}]");
+    fetch.release(3,"v3");fetch.responses[assetUrl("v3","e32v2-update.json")]=document();
+    fetch.release(4,"v4");fetch.page(5,catalogEntry("v4"));fetch.release(6,"v5");
+    std::vector<Release> out;std::string error;
+    ASSERT_TRUE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),2u);
+    EXPECT_EQ(out[0].tag,"v4");EXPECT_EQ(out[1].tag,"v5");
+    EXPECT_EQ(fetch.calls.size(),9u);
+    EXPECT_EQ(std::count_if(fetch.calls.begin(),fetch.calls.end(),[](const auto &call){return call.first==assetUrl("v4","e32v2-update.json");}),1);
+}
+TEST(GitHubCatalog, EmptyApiPageCompletesKnownCatalogWithoutAnotherRequest) {
+    CatalogFetch fetch;fetch.release(1,"v1");fetch.page(2,"[]");
+    std::vector<Release> out;std::string error;ASSERT_TRUE(discoverReleases(fetch,out,error));
+    ASSERT_EQ(out.size(),1u);EXPECT_EQ(out[0].tag,"v1");EXPECT_EQ(fetch.calls.size(),3u);
+    CatalogFetch empty;empty.page(1,"[]");ASSERT_TRUE(discoverReleases(empty,out,error));EXPECT_TRUE(out.empty());
+}
+TEST(GitHubCatalog, TransportFailureAfterFirstMatchDoesNotPublishPartialCatalog) {
+    for(bool manifestFailure:{false,true}) {
+        CatalogFetch fetch;fetch.release(1,"v1");
+        if(manifestFailure)fetch.page(2,catalogEntry("v2"));
+        std::vector<Release> out{{"v99",false}};std::string error;
+        EXPECT_FALSE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),1u);
+        EXPECT_EQ(out[0].tag,"v99");EXPECT_EQ(error,"fixture transport failure");
+    }
+}
+TEST(GitHubCatalog, InvalidPublicResponseIsRejectedWithoutChangingChoices) {
+    for(const auto &raw:{std::string("{}"),std::string("[{},{}]"),std::string("[1]garbage"),std::string(32769,' ')}) {
+        CatalogFetch fetch;fetch.page(1,raw);std::vector<Release> out{{"v99",false}};std::string error;
+        EXPECT_FALSE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),1u);EXPECT_EQ(out[0].tag,"v99");
+        EXPECT_EQ(fetch.calls.size(),1u);
+    }
+}
+TEST(GitHubCatalog, MixedCatalogScanIsBoundedAndDoesNotClaimOlderReleasesChecked) {
+    CatalogFetch fetch;for(unsigned page=1;page<=maxReleasePages;++page)fetch.page(page,catalogEntry("ha-v0.4.0.dev12"));
+    std::vector<Release> out{{"v99",false}};std::string error;
+    EXPECT_FALSE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),1u);EXPECT_EQ(out[0].tag,"v99");
+    EXPECT_EQ(fetch.calls.size(),maxReleasePages);EXPECT_NE(error.find("oudere releases zijn niet gecontroleerd"),std::string::npos);
+    EXPECT_EQ(releasePageUrl(1),"https://api.github.com/repos/dielessen/open_thermostat/releases?per_page=1&page=1");
+    EXPECT_TRUE(releasePageUrl(0).empty());EXPECT_TRUE(releasePageUrl(maxReleasePages+1).empty());
+}
+TEST(GitHubCatalog, LastAllowedPageCanSupplyTheOnlyVerifiedChoice) {
+    CatalogFetch fetch;for(unsigned page=1;page<maxReleasePages;++page)fetch.page(page,catalogEntry("ha-v0.4.0.dev12"));
+    fetch.release(maxReleasePages,"v1");std::vector<Release> out;std::string error;
+    ASSERT_TRUE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),1u);EXPECT_EQ(out[0].tag,"v1");
+    EXPECT_EQ(fetch.calls.size(),maxReleasePages+1);
 }

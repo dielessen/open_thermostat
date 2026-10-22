@@ -81,7 +81,7 @@ async def test_real_native_climate_services_stop_A_then_B_and_resume_only_A(nati
         await hass.async_block_till_done()
     await service(a,"off")
     assert a.hvac_mode==HVACMode.OFF and a.target_temperature is None
-    assert not n.runtime.decisions[n.rad.room_id].demand and n.runtime.decisions[n.floor.room_id].demand
+    assert not n.runtime.decisions[n.rad.room_id].demand and n.runtime.decisions[n.floor.room_id].demand, n.runtime.decisions
     assert b.hvac_mode==HVACMode.HEAT and b.target_temperature==19
     await service(b,"off")
     assert all(not s.demand for s in n.runtime.decisions.values())

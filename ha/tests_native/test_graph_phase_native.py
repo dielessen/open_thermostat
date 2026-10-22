@@ -65,7 +65,7 @@ async def test_normal_options_phase_change_same_graph_store_two_room_targets_and
     assert n.runtime.graph_controller_source==profile
     await n.settle(16,22)
     assert tuple(n.runtime.decisions[r.room_id].target_centi_c for r in (n.rad,n.floor))==(2100,1900)
-    assert tuple(n.runtime.decisions[r.room_id].demand for r in (n.rad,n.floor))==(True,False)
+    assert tuple(n.runtime.decisions[r.room_id].demand for r in (n.rad,n.floor))==(True,False), n.runtime.decisions
     await n.command(n.runtime.async_hvac_mode(n.rad.room_id,"off"))
     await n.samples(16,22)
     assert not any(x.demand for x in n.runtime.decisions.values())

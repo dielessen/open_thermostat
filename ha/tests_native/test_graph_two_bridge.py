@@ -202,7 +202,7 @@ async def test_real_saved_two_rooms_floor_DATA_apply_same_store_two_control_targ
     assert n.client.ready and n.runtime.transport_ready
     await n.settle(*temperature)
     states=[n.runtime.decisions[r.room_id] for r in (n.rad,n.floor)]
-    assert tuple(s.demand for s in states)==expected
+    assert tuple(s.demand for s in states)==expected, states
     assert tuple(s.target_centi_c for s in states)==(2100,1900)
     assert (await n.peer.request("durable_readback"))["stored"]==original["stored"]
     assert (await n.peer.request("durable_readback"))["writes"]==1
@@ -284,7 +284,7 @@ async def test_existing_SOURCE_profile_does_not_follow_new_DATA_revision(bridge,
 @pytest.mark.asyncio
 async def test_control_stop_dhw_and_unknown_second_sensor_keep_isolation(bridge):
     n=bridge;await n.control(await n.apply());await n.settle(16,16)
-    assert all(d.demand for d in n.runtime.decisions.values())
+    assert all(d.demand for d in n.runtime.decisions.values()), n.runtime.decisions
     await n.samples(16,"unknown")
     assert n.runtime.decisions[n.rad.room_id].demand and not n.runtime.decisions[n.floor.room_id].demand
     await n.event("safety_snapshot",limits_known_safe=True,dhw_state_known=True,all_off=True)

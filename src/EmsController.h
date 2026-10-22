@@ -4,15 +4,17 @@
 #include "config.h"
 #include "EmsBusUart.h"
 #include "EMS/EmsTelegram.h"
+#include "EMS/EmsFrameQueue.h"
+#include "EMS/ClassicBoilerMonitor.h"
+#include "EMS/OutdoorTemperatureSample.h"
+#include <esp_timer.h>
 
 #include <atomic>
-#include <deque>
 #include <functional>
 #include <list>
 #include <mutex>
 #include <optional>
 #include <ostream>
-#include <queue>
 #include <sstream>
 #include <unordered_map>
 
@@ -57,7 +59,7 @@ struct EmsBoilerState {
 		return ss.str();
 	}
 
-	void getStatus(std::ostream &ss) const {
+	void getStatus(std::ostream &ss, const char *profile = nullptr) const {
 		bool first = true;
 
 		#define ADD_ITEM_TO_JSON(name, value) { if (name.has_value()) { if (!first) { ss << ","; } else { first = false; } ss << "\""#name"\": " << value; } }
@@ -86,6 +88,10 @@ struct EmsBoilerState {
 		ADD_ITEM_TO_JSON(serviceCode, serviceCode.value())
 		ADD_SITEM_TO_JSON(displayCode, displayCode.value().data())
 		ADD_ITEM_TO_JSON(protocolVersion, static_cast<int>(protocolVersion.value()))
+		if (profile) {
+			if (!first) ss << ',';
+			ss << "\"protocolProfile\":\"" << profile << "\",\"physicalValidation\":false";
+		}
 
 		ss << "}";
 	}
@@ -155,11 +161,15 @@ public:
 		if (!emsConfig_.emsEnabled) {
 			return;
 		}
+		if (resetRequested_.exchange(false, std::memory_order_relaxed)) {
+			reset();
+		}
+		captureForeignTelegrams_.store(log_ && log_->isFeatureEnabled(verboseFeature()), std::memory_order_relaxed);
 		processTelegrams();
+		refreshClassicStatus();
 		requestPeriodicData();
 
-		//TODO log stats periodicly
-		// DBGLOGFD(log_, logFeature_, "requestPeriodicData. TxNotConfirmed: %zu\n", txNotConfirmed_.load());
+		reportStats();
 
 	}
 
@@ -171,13 +181,24 @@ public:
 	EmsBoilerState &getBoilerState() {
 		return boilerState_;
 	}
+	std::optional<int16_t> getOutdoorTemperature() const {
+		std::lock_guard<std::mutex> lock(telemetryMutex_);
+		return outdoorSample_.value(static_cast<uint64_t>(esp_timer_get_time()/1000));
+	}
 
 	void getStatus(std::ostream &ss) const {
-		boilerState_.getStatus(ss);
+		std::lock_guard<std::mutex> lock(telemetryMutex_);
+		boilerState_.getStatus(ss, monitor_.capabilities().name());
 	}
 
 	std::string getStatus() const {
-		return boilerState_.getStatus();
+		std::stringstream ss;
+		getStatus(ss);
+		return ss.str();
+	}
+	void getTelemetryStatus(std::ostream &ss) const {
+		std::lock_guard<std::mutex> lock(telemetryMutex_);
+		monitor_.writeJSON(ss, static_cast<uint64_t>(esp_timer_get_time() / 1000));
 	}
 
 	void getBoilerParams(std::ostream &ss) const {
@@ -193,39 +214,11 @@ private:
 	ib::logger::LoggerInterface::LogFeatureType logFeature_{};
 	void requestPeriodicData();
 
-	void reset() {
-		DBGLOGFD(log_, fatalFeature(), "EmsController::reset\n");
-		uart_.reset();
-		txNotConfirmed_ = 0;
-		{
-			std::lock_guard<std::mutex> lock(telegramProcessingMutex_);
-			DBGLOGFD(log_, fatalFeature(), "EmsController::reset %zu dropped\n", telegramsToSend_.size());
-			telegramsToSend_.clear();
-		}
-		requestStartupData();
-	}
-
-	void enqueueTelegramToSend(EmsTelegram telegram, bool front = false) {
-		if constexpr (!board::emsTransmitAllowed) return; // no pending commands in RX-only mode
-		if (log_) {
-			telegram.logDebug(*log_, verboseFeature());
-		}
-		std::unique_lock<std::mutex> lock(telegramProcessingMutex_);
-
-		if (telegramsToSend_.size() == maxTelegramQueueSize) {
-			DBGLOGFD(log_, fatalFeature(), "EmsController telegramsToSend_.size() = %zu FULL\n", telegramsToSend_.size());
-			lock.unlock();
-			reset();
-			return;
-		}
-
-		if (front) {
-			telegramsToSend_.push_back(std::move(telegram));
-		} else {
-			telegramsToSend_.push_front(std::move(telegram));
-		}
-		DBGLOGFD(log_, logFeature_, "telegramsToSend_.size() = %zu\n", telegramsToSend_.size());
-	}
+	void reset();
+	void enqueueTelegramToSend(EmsTelegram telegram, bool front = false);
+	void reportStats();
+	void decodeTelegram(uint8_t *data, uint8_t length);
+	void refreshClassicStatus();
 
 	void processTelegrams();
 
@@ -236,7 +229,6 @@ private:
 	bool processPoll(uint8_t deviceId);
 
 	void pong() {
-		DBGLOGFD(log_, logFeature_, "pong()\n");
 		uint8_t response = deviceId_ | emsMask_.value_or(0);
 		uart_.writeToEms(&response, 1);
 	}
@@ -251,20 +243,34 @@ private:
 	uint8_t deviceId_{0x19}; // TODO get from config/ UI
 	std::optional<uint8_t> emsMask_ = {0x80};
 
-	std::mutex telegramProcessingMutex_;
-	std::deque<EmsTelegram> telegramsToSend_;
-	std::queue<EmsTelegram> telegramsToProcess_;
+	// Only fixed-size copies and index updates are allowed under this lock.
+	portMUX_TYPE txMux_ = portMUX_INITIALIZER_UNLOCKED;
+	std::array<EmsRawFrame, maxTelegramQueueSize> telegramsToSend_{};
+	size_t txHead_ = 0;
+	size_t txSize_ = 0;
+	EmsFrameQueue<maxTelegramQueueSize> telegramsToProcess_;
+	std::atomic<bool> resetRequested_{false};
+	std::atomic<bool> captureForeignTelegrams_{false};
+	std::atomic<uint32_t> rxDropped_{0};
+	std::atomic<uint32_t> polls_{0};
+	std::atomic<uint32_t> txFrames_{0};
+	std::atomic<uint32_t> maxPollServiceUs_{0};
+	unsigned long lastStatsMillis_ = 0;
+
 	std::mutex telegramProcessorsMutex_;
 	std::unordered_map<uint16_t, std::list<std::function<void(EmsTelegram const &)>>> telegramProcessors_;
 
 	EmsBoilerState boilerState_;
 	EmsBoilerParams boilerParams_;
+	mutable std::mutex telemetryMutex_;
+	ClassicBoilerMonitor monitor_;
+	control::TemperatureSample outdoorSample_;
 
 	std::atomic<std::optional<int16_t>> emsOutdoorTemperature_;
 
-	std::atomic_size_t txNotConfirmed_;
+	std::atomic_size_t txNotConfirmed_{0};
+	uint32_t uartResetsSeen_ = 0; // UART task only
 
-	unsigned long lastPoll_ = 0;
 
 	EmsBusUart uart_{log_,
 		[this](uint8_t *data, uint8_t size) { processTelegram(data, size); }

@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "scope": "Exact original source and notices for this dated public CA snapshot; no claim that Firefox constraints are implemented",
+  "snapshot": {
+    "url": "https://curl.se/ca/cacert-2026-09-25.pem",
+    "published_sha256_url": "https://curl.se/ca/cacert-2026-09-25.pem.sha256",
+    "path": "certs/cacert.pem",
+    "sha256": "a41b5d356aea97a529fe27e0f7316d2f9d946d75927476cf9cf1b90637d00505",
+    "certificates": 121
+  },
+  "source": {
+    "repository": "mozilla-firefox/firefox",
+    "commit": "f6dd0159931e536991eaaa02d839bdffb92c3f22",
+    "original_path": "security/nss/lib/ckfw/builtins/certdata.txt",
+    "git_blob": "0a451693c675b9dba2805271516d672db913a204",
+    "sha256": "beb7e6dfe6499926e52c075c27bcfbe4c957f8609c575b3860273ae2806f63eb",
+    "compressed_path": "docs/third-party/ca-originals/certdata.txt.gz",
+    "compressed_sha256": "d81e0697c1e71bb69323bf28cac43395cbecd2d81f3b9d44209d2ca28ed2fe15",
+    "license": "MPL-2.0"
+  },
+  "converter": {
+    "repository": "curl/curl",
+    "commit": "0ada20387c31c638cfd7f6b4ae7e5cab5b318caf",
+    "original_path": "scripts/mk-ca-bundle.pl",
+    "path": "docs/third-party/ca-originals/mk-ca-bundle.pl",
+    "git_blob": "e2e9acf629a7d05a427dda02ca746d79cee5664b",
+    "sha256": "8e278f4982210b37e4f9a048bd6ed23df41e4a054085bd73f8242628f03d09ca",
+    "proof": "All 121 DER certificates reproduce in the same order; PEM text/header identity checked separately against original published snapshot",
+    "version": "1.33"
+  },
+  "generator": {
+    "repository": "espressif/esp-idf",
+    "commit": "38eeba213aa695aabfd6d89aa9f5078dbe5a94c3",
+    "original_path": "components/mbedtls/esp_crt_bundle/gen_crt_bundle.py",
+    "path": "scripts/upstream/gen_crt_bundle.py",
+    "sha256": "1e8f0dc9ff99e20d888fd5a9cab621e302acf55111c52dbe19ca92bf2bcd3020"
+  },
+  "binary": {
+    "path": "certs/github-ca-bundle.bin",
+    "sha256": "49e7e1ca53f48330b1b507872f1447eb5f333632b6802282ec51aaab5640787c"
+  },
+  "notices": [
+    {
+      "path": "docs/third-party/ca-originals/Mozilla-MPL-2.0.txt",
+      "component": "Mozilla CA data",
+      "sha256": "a20c1a32d1f8102432360b42e932869f7c11c7cdbacf9cac554c422132af47f4",
+      "git_blob": "212af5bb2ef3dc8fcb07bd086a046e1248cb96b5",
+      "original_bytes": true
+    },
+    {
+      "path": "docs/third-party/ca-originals/curl-COPYING",
+      "component": "curl converter",
+      "sha256": "82f2f4427d6545ee5aaac4f0b80428da6cc8ba41c2cf5da3a03680ec327b9681",
+      "git_blob": "2f71d999a9c8816b9ed595fbae9c9a7b6b7ad039",
+      "original_bytes": true
+    },
+    {
+      "path": "docs/third-party/esp-idf-4.4.7-LICENSE",
+      "component": "Espressif bundle generator",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "git_blob": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+      "original_bytes": true
+    }
+  ]
+}

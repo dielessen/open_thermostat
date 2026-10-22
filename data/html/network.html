@@ -180,7 +180,8 @@
 							</div>
 						</div>
 
-						<div class="card mb-2">
+						<p id="LegacyWeatherNotice" class="text-muted">Legacy internet weather is shown only after legacy mode is confirmed. In Home Assistant-managed mode, choose the outdoor source in Home Assistant.</p>
+                        <div class="card mb-2" id="LegacyWeatherSettings" hidden style="display:none">
 							<div class="card-header">OpenWeatherMap outdoor temperature API</div>
 							<div class="card-body" id="OpenWeatherMapCard">
 								<div class="form-row">
@@ -210,6 +211,19 @@
 						<div class="card mb-2">
 							<div class="card-header">MQTT</div>
 							<div class="card-body" id="MQTTCard">
+<label for="InterfaceMode">E32-netwerk (actief na herstart)</label><select class="form-control" id="InterfaceMode"><option value="wifi">Alleen wifi</option><option value="ethernet">Alleen Ethernet</option></select><small>USB-opdracht setup opent na herstart tijdelijk wifiherstel, zonder Ethernetklok.</small>
+<div class="alert alert-info">E32-teststand: geen ketel- of kraanuitvoer. Selecteer deze stand alleen samen met de v1 HA-integratie.</div>
+<div class="form-check"><input class="form-check-input" type="checkbox" id="ModernShadow"><label class="form-check-label" for="ModernShadow">Moderne HA-teststand (E32, shadow)</label></div>
+<label for="ModernAdapter">HA-adapter-ID (uit de integratie)</label><input class="form-control" id="ModernAdapter" maxlength="32" pattern="[A-Za-z0-9_-]{1,32}" placeholder="Kopieer uit Home Assistant">
+<details id="NativeShadowSourceSection" hidden><summary>Independent logical shadow SOURCE profile (E32)</summary>
+<p>Device controller ID: <code id="NativeSourceDeviceID">Load settings</code></p>
+<label for="NativeShadowSource">Reviewed local profile descriptor (optional)</label>
+<textarea class="form-control" id="NativeShadowSource" rows="4" maxlength="2048" aria-describedby="NativeShadowSourceHelp"></textarea>
+<small id="NativeShadowSourceHelp">Separate installation review, not a room target or heating permission. Leave empty for NONE. Initial selection/other network changes require a restart. An existing native profile can be replaced with the explicit live action below, without device restart. Total network settings stay limited to 2048 bytes. Measurement and safety producers are not qualified by this profile; physical outputs remain disabled.</small>
+<button type="button" class="btn btn-outline-primary mt-2" id="ApplyNativeSourceNow" onclick="applyNativeSourceNow();" disabled>Apply reviewed SOURCE now (no device restart)</button>
+<small class="form-text text-muted">Only this descriptor changes; other unsaved form edits are not sent. A fresh session and explicit HA plan apply/readback are still required for control. Pending source edits retain the last known durable predecessor; uncertain configuration outcomes must be resolved first. Uncertain storage/runtime errors block control.</small>
+</details>
+
 								<div class="form-row">
 									<div class="col-md mb-2">
 										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
@@ -231,8 +245,8 @@
 											type="text" class="form-control" id="DeviceMQTTBrokerUser"
 											placeholder="optional"></div>
 									<div class="col-md mb-2"><label
-											for="DeviceMQTTBrokerPassword">Password</label><input type="text"
-											class="form-control" id="DeviceMQTTBrokerPassword" placeholder="optional">
+											for="DeviceMQTTBrokerPassword">Password</label><input type="password"
+											class="form-control" id="DeviceMQTTBrokerPassword" placeholder="Leeg laten behoudt opgeslagen wachtwoord">
 									</div>
 								</div>
 								<div class="form-row">
@@ -521,7 +535,42 @@
 			});
 	}
 
-	function loadWiFiSettings() {
+	async function loadWiFiSettings() {
+		// E32 uses the same tested onboarding for both first boot and later
+		// changes. Do not keep a second save/scan form that treats HTTP202 as
+		// failure and cannot show connection/readback results.
+		const card=document.getElementById('WiFiSettings');
+		try {
+			const response=await fetch(hostName+'/setup/status',{cache:'no-store'});
+			if(response.status===404) { loadLegacyWiFiSettings(); return; }
+			if(!response.ok) throw Error('Wifi-status niet bereikbaar');
+			const state=await response.json();
+			card.replaceChildren();
+			const body=document.createElement('div'); body.className='card-body';
+			const title=document.createElement('h5'); title.textContent='Wifi instellen'; body.append(title);
+			const note=document.createElement('p');
+			note.textContent='Gebruik de wifi-installatie voor netwerkscan, verbinding testen en opnieuw proberen. Alleen 2,4 GHz.'; body.append(note);
+			const button=document.createElement('button'); button.type='button'; button.className='btn btn-primary';
+			button.textContent=state.setup_active?'Open wifi-installatie':'Start wifi-installatie (herstart)';
+			button.onclick=async()=>{
+				if(state.setup_active) { window.location.href=hostName+'/setup'; return; }
+				button.disabled=true;
+				try {
+					const started=await fetch(hostName+'/setup/reenter',{method:'POST'});
+					if(!started.ok) throw Error('Starten niet bevestigd');
+					note.textContent='Verbind nu met het wifi-netwerk OpenThermostat-xxxxxx en open http://10.10.10.1/. Opgeslagen thuisnetwerkinstellingen blijven bewaard totdat een nieuwe verbinding is bevestigd.';
+					button.textContent='Setupnetwerk wordt gestart';
+				} catch(e) { note.textContent='Starten niet bevestigd. Controleer de verbinding en probeer opnieuw.'; button.disabled=false; }
+			};
+			body.append(button); card.append(body);
+		} catch(e) {
+			card.replaceChildren();
+			const retry=document.createElement('button'); retry.type='button'; retry.className='btn btn-primary';
+			retry.textContent='Wifi-status opnieuw laden'; retry.onclick=loadWiFiSettings; card.append(retry);
+		}
+	}
+
+	function loadLegacyWiFiSettings() {
 		$("#WiFiSettings *").attr('disabled', true)
 		fetch(hostName + '/config/wifi')
 			.then(validateResponse)
@@ -575,14 +624,37 @@
 			});
 	}
 
+    var loadedNetworkSettings = null;
+    var nativeSourceApplyPending = false;
+    async function updateWeatherEditorVisibility() {
+        const card = document.getElementById('LegacyWeatherSettings');
+        const controls = card.querySelectorAll('input, select, button');
+        controls.forEach(input => { input.disabled = true; });
+        let mode = 'unknown';
+        try { mode = await ensureControllerMode(); } catch (_) {}
+        controls.forEach(input => { input.disabled = mode !== 'legacy'; });
+        card.hidden = mode !== 'legacy';
+        card.style.display = mode === 'legacy' ? '' : 'none';
+        document.getElementById('LegacyWeatherNotice').hidden = mode === 'legacy';
+    }
+
 	function loadDeviceSettings() {
+        loadedNetworkSettings = null;
+        nativeSourceApplyPending = false; // explicit fresh readback, not an automatic retry.
 		$("#NetworkSettings *").attr('disabled', true)
 
 		fetch(hostName + '/config/device')
 			.then(validateResponse)
 			.then(res => res.json())
 			.then((settings) => {
+                loadedNetworkSettings = JSON.parse(JSON.stringify(settings));
+                $('#NativeShadowSource').val('');
+                $('#NativeShadowSourceSection').prop('hidden', true);
+                $('#ApplyNativeSourceNow').prop('disabled', true);
+                $('#NativeSourceDeviceID').text('Unavailable: SOURCE selection is unsupported by this firmware');
+                updateWeatherEditorVisibility();
 				$('#DeviceHostname').val(settings.hostname);
+				$('#InterfaceMode').val(settings.interface_mode || 'wifi');
 				$('#DeviceListenPort').val(settings.listenPort);
 
 				$('#DeviceEMSEnabled').prop('checked', settings.emsEnabled);
@@ -602,6 +674,12 @@
 					$('#BTScanInterval').val(settings.bt.scanInterval);
 				}
 				if (settings.mqtt != undefined) {
+					$('#ModernShadow').prop('checked', settings.mqtt.modern_shadow === true);
+					$('#ModernAdapter').val(settings.mqtt.adapter_id || '');
+                    $('#NativeSourceDeviceID').text(settings.mqtt.native_source_device_id || 'Unavailable: SOURCE selection is unsupported by this firmware');
+                    $('#NativeShadowSourceSection').prop('hidden', !settings.mqtt.native_source_device_id);
+                    $('#NativeShadowSource').val(settings.mqtt.native_shadow_source == null ? '' : JSON.stringify(settings.mqtt.native_shadow_source));
+                    $('#ApplyNativeSourceNow').prop('disabled', settings.mqtt.native_source_live_apply !== true);
 					$('#DeviceMQTTEnabled').prop('checked', settings.mqtt.enabled),
 						$('#DeviceMQTTPublishHomeAssistantDiscovery').prop('checked', settings.mqtt.publishHomeAssistantDiscovery !== false),
 						$('#DeviceMQTTBrokerAddress').val(settings.mqtt.brokerAddress),
@@ -625,6 +703,7 @@
 				if (error instanceof HttpResponseException && error.status === 404) {
 					alert("Cannot load device settings\n" + error);
 					$("#NetworkSettings *").attr('disabled', false)
+                    $('#ApplyNativeSourceNow').prop('disabled', true);
 					return;
 				}
 				if (confirm("Cannot load device settings\n" + error + "\nTry again?")) {
@@ -632,14 +711,60 @@
 				}
 			});
 		$("#NetworkSettings *").attr('disabled', false)
+        $('#ApplyNativeSourceNow').prop('disabled', true); // only fresh successful readback may enable.
 	}
 
+    async function applyNativeSourceNow() {
+        if (nativeSourceApplyPending) return;
+        const mqtt = loadedNetworkSettings && loadedNetworkSettings.mqtt;
+        if (!mqtt || mqtt.native_source_live_apply !== true) {
+            alert('Live SOURCE replacement is unavailable. Initial selection, NONE and network changes require the normal reviewed settings/restart route.'); return;
+        }
+        let descriptor;
+        try { descriptor = JSON.parse($('#NativeShadowSource').val().trim()); }
+        catch (_) { alert('Enter a valid explicitly reviewed SOURCE descriptor.'); return; }
+        if (!Array.isArray(descriptor)) { alert('Live SOURCE replacement needs a nonempty reviewed descriptor array; it cannot select NONE.'); return; }
+        if (!confirm('Apply ONLY the independently reviewed local SOURCE now, without restarting the device? Old control is invalidated. The old plan remains readback-only until a fresh HA session and explicit new plan apply/readback. Other unsaved network edits are not sent.')) return;
+        $('#ApplyNativeSourceNow').prop('disabled', true);
+        nativeSourceApplyPending = true;
+        try {
+            const settings = JSON.parse(JSON.stringify(loadedNetworkSettings));
+            settings.mqtt.native_shadow_source = descriptor;
+            settings.native_source_apply = true; // transient request, never persisted as permission.
+            const res = await fetch(hostName + '/config/device', {
+                method:'POST',cache:'no-cache',credentials:'same-origin',
+                headers:{"Content-Type":"application/json"},body:JSON.stringify(settings)
+            });
+            if (res.status === 200 || res.status === 201) {
+                alert('Local SOURCE selection verified. No device restart was requested. Review the current HA plan and require fresh exact device readback; physical outputs remain disabled.');
+                loadDeviceSettings();
+            } else {
+                alert('SOURCE selection is not confirmed (HTTP '+res.status+'). Control may be blocked after uncertain storage. Read back and review before recovery; do not blindly retry.');
+            }
+        } catch (_) {
+            alert('SOURCE update outcome unknown. Read back current settings and HA status before recovery; no automatic retry or restart.');
+        }
+        // Do NOT re-enable on unknown/error: only fresh settings readback may do so.
+    }
+
 	function saveDeviceSettings() {
+        if (!loadedNetworkSettings) { alert('Load device settings before saving.'); return; }
 		if (!validateForm('#networkeditform')) return;
 		$("#SaveDeviceSettings").prop('disabled', true);
+        const sourceSupported = !!(loadedNetworkSettings.mqtt && loadedNetworkSettings.mqtt.native_source_device_id);
+        let nativeSource = null;
+        const nativeSourceText = sourceSupported ? $('#NativeShadowSource').val().trim() : '';
+        try { if (nativeSourceText) nativeSource = JSON.parse(nativeSourceText); }
+        catch (_) { alert('Enter a valid reviewed SOURCE descriptor JSON array, or leave it empty for NONE.'); $("#SaveDeviceSettings").prop('disabled', false); return; }
 
+
+        if (sourceSupported && loadedNetworkSettings.mqtt.native_shadow_source != null && nativeSource === null &&
+            !confirm('Remove the local logical SOURCE selection for the next restart? Configuration data will not be erased. The previous source may be needed to read it.')) {
+            $("#SaveDeviceSettings").prop('disabled', false); return;
+        }
 		let settings = {
 			"hostname": $('#DeviceHostname').val(),
+			"interface_mode": $('#InterfaceMode').val(),
 			"listenPort": parseInt($('#DeviceListenPort').val(), 10),
 			"emsEnabled": $('#DeviceEMSEnabled').prop('checked'),
 			"emsForwarderEnabled": $('#DeviceEMSForwarderEnabled').prop('checked'),
@@ -654,6 +779,9 @@
 			"loggerPort": parseInt($('#DeviceDebugPort').val(), 10),
 			"loggerTimeoutMs": parseInt($('#DeviceDebugTimeout').val(), 10),
 			"mqtt": {
+				"modern_shadow": $('#ModernShadow').prop('checked'),
+				"adapter_id": $('#ModernAdapter').val(),
+                "native_shadow_source": nativeSource,
 				"enabled": $('#DeviceMQTTEnabled').prop('checked'),
 				"publishHomeAssistantDiscovery": $('#DeviceMQTTPublishHomeAssistantDiscovery').prop('checked'),
 				"brokerAddress": $('#DeviceMQTTBrokerAddress').val(),
@@ -677,6 +805,13 @@
 				"scanInterval": parseInt($('#BTScanInterval').val(), 10),
 			}
 		};
+
+        if (!sourceSupported) delete settings.mqtt.native_shadow_source;
+        if (controlUiMode !== 'legacy') {
+            if (Object.prototype.hasOwnProperty.call(loadedNetworkSettings,'openweather'))
+                settings.openweather = loadedNetworkSettings.openweather;
+            else delete settings.openweather;
+        }
 
 		fetch(hostName + '/config/device', {
 			method: 'post',
@@ -704,7 +839,7 @@
 	}
 
 	function reboot() {
-		fetch(hostName + '/config/reboot')
+		fetch(hostName + '/config/reboot', {method: 'POST'})
 			.then((programs) => {
 			}).catch(function (error) {
 				alert(error);

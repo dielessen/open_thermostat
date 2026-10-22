@@ -1,0 +1,20 @@
+{
+  "rooms": [],
+  "controlMode": "legacy",
+  "activeProgram": "default",
+  "boiler": {
+    "boiler": false,
+    "valvesOpened": [],
+    "valveLabels": [],
+    "inhibitionReason": "outdoor_unavailable"
+  },
+  "ems": {
+    "protocolProfile": "unknown",
+    "physicalValidation": false
+  },
+  "openweather": {},
+  "time": "22:29:24",
+  "date": "2026-10-20",
+  "weekDay": 2,
+  "uptime": 29683
+}

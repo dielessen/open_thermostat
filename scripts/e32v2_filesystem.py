@@ -18,4 +18,8 @@ network["mqtt"]["enabled"] = False
 network_path.write_text(json.dumps(network, indent=2) + "\n")
 # Do not ship upstream example rooms as an installed heating system.
 (staging / "cfg/rooms.json").write_text("[]\n")
+# Empty both sides of the room/program relation. An upstream example program
+# with missing IDs blocks even the first catalog save through the REST guard.
+for program in (staging / "programs").glob("*.json"):
+    program.write_text("[]\n")
 env.Replace(PROJECT_DATA_DIR=str(staging))

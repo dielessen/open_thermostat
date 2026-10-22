@@ -10,6 +10,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.service_info.mqtt import MqttServiceInfo
 
 from .const import CONF_CREATE_DASHBOARD, CONF_TOPIC_PREFIX, DOMAIN
+from .v1_config_flow import V1FlowMixin, ShadowOptionsFlow
 
 
 def valid_prefix(value: str) -> str:
@@ -19,16 +20,21 @@ def valid_prefix(value: str) -> str:
     return value
 
 
-class OpenThermostatConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class OpenThermostatConfigFlow(V1FlowMixin, config_entries.ConfigFlow, domain=DOMAIN):
     """Add one integration entry per thermostat MQTT prefix."""
 
-    VERSION = 1
+    VERSION = 3
+    MINOR_VERSION = 1
 
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> config_entries.OptionsFlow:
         """Allow dashboard creation to be changed after setup."""
-        return OpenThermostatOptionsFlow()
+        from .product import is_product
+        if is_product(config_entry):
+            from .product_flow import ProductOptionsFlow
+            return ProductOptionsFlow()
+        return ShadowOptionsFlow()
 
     async def async_step_mqtt(self, discovery_info: MqttServiceInfo) -> FlowResult:
         """Offer setup after a room status message is received."""
@@ -50,19 +56,9 @@ class OpenThermostatConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_confirm(self, user_input: dict | None = None) -> FlowResult:
         """Confirm MQTT discovery."""
-        if user_input is not None:
-            return self.async_create_entry(
-                title=f"OpenThermostat ({self._prefix})",
-                data={CONF_TOPIC_PREFIX: self._prefix},
-                options={CONF_CREATE_DASHBOARD: user_input.get(CONF_CREATE_DASHBOARD, False)},
-            )
-        return self.async_show_form(
-            step_id="confirm",
-            description_placeholders={"prefix": self._prefix},
-            data_schema=vol.Schema({vol.Optional(CONF_CREATE_DASHBOARD, default=False): bool}),
-        )
+        return await self.async_step_installation(user_input)
 
-    async def async_step_user(self, user_input: dict | None = None) -> FlowResult:
+    async def async_step_legacy(self, user_input: dict | None = None) -> FlowResult:
         """Allow manual setup when MQTT discovery has not appeared yet."""
         errors = {}
         if user_input is not None:
@@ -80,7 +76,7 @@ class OpenThermostatConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     options={CONF_CREATE_DASHBOARD: user_input.get(CONF_CREATE_DASHBOARD, False)},
                 )
         return self.async_show_form(
-            step_id="user",
+            step_id="legacy",
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_TOPIC_PREFIX, default="ib-therm"): str,

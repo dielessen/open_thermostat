@@ -3,7 +3,29 @@ name: PlatformIO CI
 on: [push, pull_request]
 
 jobs:
+  browser-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install pinned browser test dependency
+        run: |
+          npm install --no-save --package-lock=false playwright-core@1.63.0
+          npx playwright-core install --with-deps chromium
+      - name: Exercise shipped setup and room pages (simulated HTTP)
+        run: |
+          node test/onboarding/browser.cjs
+          node test/onboarding/network-browser.cjs
+          node test/rooms/browser.cjs
+          node test/updates/browser.cjs
+          node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs
+
   build:
+    # A HA-only tag carries no firmware assets. Its release is gated below by
+    # the native HA/packet suite and browser regressions; E32 tags keep all gates.
+    if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -23,37 +45,52 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install PlatformIO Core
-        run: pip install platformio==6.2.0
+        run: pip install platformio==6.2.0 intelhex==2.3.0
       - name: Run native tests
         if: matrix.environment == 'native'
-        run: pio test -e native --verbose
+        run: |
+          pio test -e native --verbose
+          g++ -std=c++20 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Itest/onboarding/include -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/esp32_utilities/src test/onboarding/firmware.cpp .pio/libdeps/native/cJSON/cJSON.c -o /tmp/open-thermostat-onboarding-test
+          /tmp/open-thermostat-onboarding-test
+          python -m unittest discover -s ha/tests -p 'test_*.py' -v
       - name: Build firmware
         if: matrix.environment != 'native'
         run: pio run -e ${{ matrix.environment }}
+      - name: Verify actual firmware image fits every OTA app slot
+        if: matrix.environment != 'native'
+        env:
+          BUILD_ENVIRONMENT: ${{ matrix.environment }}
+        run: |
+          python - <<'PYTHON'
+          import configparser,csv,os
+          from pathlib import Path
+          target=os.environ['BUILD_ENVIRONMENT']
+          config=configparser.ConfigParser(interpolation=None)
+          config.read('platformio.ini')
+          table=Path(config['env:'+target]['board_build.partitions'])
+          rows=csv.reader(line for line in table.read_text().splitlines()
+                          if line.strip() and not line.lstrip().startswith('#'))
+          slots={row[2].strip():int(row[4].strip(),0) for row in rows
+                 if len(row)>=5 and row[1].strip()=='app' and row[2].strip() in {'ota_0','ota_1'}}
+          assert set(slots)=={'ota_0','ota_1'},'Both OTA app slots are required'
+          image=Path('.pio/build')/target/'firmware.bin'
+          size=image.stat().st_size
+          assert 0<size<=min(slots.values()),f'{target}: actual image {size} bytes exceeds OTA slots {slots}'
+          print(f'PASS {target}: actual image {size} bytes fits both OTA slots {slots}')
+          PYTHON
       - name: Build E32 filesystem and verify safety/layout
         if: matrix.environment == 'e32v2'
         run: |
           pio run -e e32v2 -t buildfs
           python scripts/verify_e32v2.py
           python scripts/test_e32v2_verifier.py
-      - name: Package E32 V2 bench-test images
+      - name: Package exact E32 release and independently verify payload
         if: matrix.environment == 'e32v2'
         run: |
-          mkdir -p out/e32v2
-          cp .pio/build/e32v2/{bootloader,partitions,firmware,spiffs}.bin out/e32v2/
-          cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin out/e32v2/
-          cp partitions_e32v2.csv docs/BBQKEES_E32V2{,_VALIDATION,_TEST_RELEASE}.md out/e32v2/
-          cp docs/FLASHING.md out/e32v2/
-          git rev-parse HEAD > out/e32v2/SOURCE_COMMIT.txt
-          pio pkg list -e e32v2 > out/e32v2/BUILD_PACKAGES.txt
-          python ~/.platformio/packages/tool-esptoolpy/esptool.py --chip esp32 merge_bin \
-            --output out/e32v2/e32v2-factory.bin --target-offset 0 \
-            --flash_mode dio --flash_freq 80m --flash_size 16MB \
-            0x1000 out/e32v2/bootloader.bin 0x8000 out/e32v2/partitions.bin \
-            0xe000 out/e32v2/boot_app0.bin 0x10000 out/e32v2/firmware.bin \
-            0x710000 out/e32v2/spiffs.bin
-          cd out/e32v2
-          sha256sum -- * > SHA256SUMS.txt
+          pio pkg install -e native
+          python scripts/package_e32v2_release.py --output out/e32v2 --release-output out/release
+          g++ -std=c++20 -Isrc -I.pio/libdeps/native/cJSON test/updates/image_check.cpp .pio/libdeps/native/cJSON/cJSON.c -l:libcrypto.so.3 -o /tmp/ota-image-check
+          /tmp/ota-image-check out/e32v2/e32v2-update.json out/e32v2/firmware.bin
       - name: Upload verified E32 V2 bench-test package
         if: matrix.environment == 'e32v2'
         uses: actions/upload-artifact@v4
@@ -62,3 +99,155 @@ jobs:
           path: out/e32v2/
           if-no-files-found: error
           retention-days: 30
+      - name: Upload verified immutable E32 release assets
+        if: matrix.environment == 'e32v2'
+        uses: actions/upload-artifact@v4
+        with:
+          name: e32v2-release-assets
+          path: out/release/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Preserve exact E32 panic symbols and embedded UI revision
+        if: matrix.environment == 'e32v2'
+        uses: actions/upload-artifact@v4
+        with:
+          name: e32v2-debug-symbols
+          path: |
+            .pio/build/e32v2/firmware.elf
+            .pio/build/e32v2/firmware.map
+            .pio/build/e32v2/embedded-web.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+
+  home-assistant-native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Prepare pinned native firmware dependencies
+        run: |
+          pip install platformio==6.2.0 intelhex==2.3.0
+          pio pkg install -e native
+          mkdir -p out
+          g++ -std=c++20 -O1 -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/shadow_runner.cpp .pio/libdeps/native/cJSON/cJSON.c -o out/shadow-runner
+          gcc -std=c11 -O0 -g -I.pio/libdeps/native/cJSON -c .pio/libdeps/native/cJSON/cJSON.c -o out/graph-cjson.o
+          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_validation_runner.cpp out/graph-cjson.o -ldl -o out/graph-validation-runner
+          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_configuration_runner.cpp out/graph-cjson.o -ldl -o out/graph-configuration-runner
+          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_session_runner.cpp out/graph-cjson.o -ldl -o out/graph-session-runner
+          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/topology_review_runner.cpp out/graph-cjson.o -ldl -o out/topology-review-runner
+          g++ -std=c++17 -O0 -Isrc -Itest/test_native/include -I.pio/libdeps/native/esp32_utilities/src -c src/EMS/EmsTelegram.cpp -o out/room-ems-parser.o
+          g++ -std=c++17 -O0 -Wall -Wextra -Werror -Wno-dangling-else -pthread -Isrc -Itest/test_native/include -I.pio/libdeps/native/esp32_utilities/src test/interop/room_observation_runner.cpp out/room-ems-parser.o -o out/room-observation-peer
+          out/room-observation-peer > out/room-observation-wire.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Install pinned native HA test runtime
+        run: |
+          pip install -r ha/requirements-test-native.txt
+      - name: Start isolated localhost MQTT test fixture
+        run: |
+          docker run -d --rm --name opth-mqtt-fixture --user "$(id -u):$(id -g)" -p 127.0.0.1::1883 -v "$GITHUB_WORKSPACE/test/interop/mqtt-fixture:/mosquitto/config:ro" eclipse-mosquitto:2.0.22@sha256:199ea8ef2e35ec2b1b37e59cfd1dbae538ed4dfa4a2251a121a52215a6248a21 mosquitto -c /mosquitto/config/mosquitto.conf
+          python -c 'import os,subprocess; port=subprocess.check_output(["docker","port","opth-mqtt-fixture","1883/tcp"],text=True).strip().rsplit(":",1)[1]; open(os.environ["GITHUB_ENV"],"a").write("OPENTHERMOSTAT_TEST_MQTT_PORT="+port+"\n")'
+      - name: Test native HA lifecycle and actual firmware packet interop
+        run: |
+          ROOM_METRICS_EVIDENCE_DIR=out python -m pytest ha/tests ha/tests_native -q --junitxml=out/ha-acceptance.xml
+      - name: Verify and package exact HA-only test release
+        if: startsWith(github.ref, 'refs/tags/ha-v')
+        run: |
+          python -B -m unittest discover -s scripts -p test_package_ha_release.py -v
+          python scripts/package_ha_release.py --output out/ha-release --native-results out/ha-acceptance.xml
+      - name: Preserve verified HA release assets
+        if: startsWith(github.ref, 'refs/tags/ha-v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: home-assistant-release-assets
+          path: out/ha-release/
+          if-no-files-found: error
+      - name: Remove temporary MQTT fixture
+        if: always()
+        run: docker stop opth-mqtt-fixture || true
+
+  publish-test-release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [build, browser-regressions, home-assistant-native]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: e32v2-release-assets
+          path: release-assets
+      - name: Verify tag, commit and all release downloads before publishing
+        env:
+          EXPECTED_TAG: ${{ github.ref_name }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          python - <<'PYTHON'
+          from pathlib import Path
+          import hashlib,json,os
+          assets=Path('release-assets')
+          manifest=json.loads((assets/'e32v2-update.json').read_text())
+          report=json.loads((assets/'software-verification.json').read_text())
+          assert manifest['version']==os.environ['EXPECTED_TAG']==json.loads(Path('release.json').read_text())['version']
+          assert manifest['source_commit']==os.environ['EXPECTED_COMMIT']==report['source_commit']
+          assert report['status']=='PASS'
+          for line in (assets/'RELEASE-SHA256SUMS.txt').read_text().splitlines():
+              expected,name=line.split('  ',1)
+              assert hashlib.sha256((assets/name).read_bytes()).hexdigest()==expected
+          PYTHON
+      - name: Publish experimental prerelease without overwriting an existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" --verify-tag --prerelease --title "OpenThermostat E32 V2 $RELEASE_TAG" --notes-file docs/modern-thermostat/RELEASE-NOTES.md release-assets/*
+
+  publish-home-assistant-test-release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/ha-v')
+    needs: [browser-regressions, home-assistant-native]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: home-assistant-release-assets
+          path: ha-release-assets
+      - name: Verify HA tag, clean source and all download checksums
+        env:
+          EXPECTED_TAG: ${{ github.ref_name }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          python - <<'PYTHON'
+          from pathlib import Path
+          import hashlib,json,os,zipfile
+          assets=Path('ha-release-assets')
+          manifest=json.loads((assets/'ha-release.json').read_text())
+          report=json.loads((assets/'ha-software-verification.json').read_text())
+          assert manifest['tag']==os.environ['EXPECTED_TAG']=='ha-v'+json.loads(Path('ha/config/custom_components/open_thermostat/manifest.json').read_text())['version']
+          assert manifest['source_commit']==report['source_commit']==os.environ['EXPECTED_COMMIT']
+          assert report['status']=='PASS_PACKAGE_INTEGRITY_ONLY'
+          assert not manifest['firmware_included'] and not report['live_HA_data_included']
+          assert manifest['native_test_summary']['failures']==manifest['native_test_summary']['errors']==0
+          for line in (assets/'HA-SHA256SUMS.txt').read_text().splitlines():
+              expected,name=line.split('  ',1)
+              assert Path(name).name==name
+              assert hashlib.sha256((assets/name).read_bytes()).hexdigest()==expected
+          assert hashlib.sha256((assets/manifest['asset']).read_bytes()).hexdigest()==manifest['sha256']
+          with zipfile.ZipFile(assets/manifest['asset']) as package:
+              assert package.testzip() is None
+              for name,expected in manifest['integration_source_files'].items():
+                  assert hashlib.sha256(package.read(name)).hexdigest()==expected
+          PYTHON
+      - name: Publish HA prerelease without replacing previous releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" --verify-tag --prerelease --title "OpenThermostat Home Assistant $RELEASE_TAG" --notes-file docs/modern-thermostat/HA-RELEASE-NOTES.md ha-release-assets/*

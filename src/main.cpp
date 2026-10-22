@@ -4,10 +4,13 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <time.h>
+#include <atomic>
+#include <esp_sntp.h>
 
 #include <WiFi.h>
 #include <SPIFFS.h>
 #include <ESPmDNS.h>
+#include "update/GitHubUpdate.h"
 #include <TimeHelpers.h>
 #include <logger/Logger.h>
 #include <logger/LoggerSerialSink.h>
@@ -17,11 +20,15 @@
 #include "Filesystem.h"
 #include "HeatingController.h"
 #include "REST.h"
+#include "SetupNetwork.h"
+#include "control/NetworkBootPlan.h"
 #include "RTCTimeHelpers.h"
 
 #define ONBOARD_LED 2
 
 namespace {
+std::atomic<bool> ntpTimeUpdated{false};
+
 ib::logger::LoggerInterface::LogFeatureType appLogFeature() {
 	static const auto id = heating::logger->addFeature("App");
 	return id;
@@ -37,6 +44,7 @@ std::shared_ptr<ib::logger::LoggerInterface> logger;
 std::unique_ptr<REST> rest;
 
 bool wifiAPMode = false;
+bool networkTimeTrusted = false;
 }
 
 void WiFiGotIP(arduino_event_id_t event, arduino_event_info_t info) {
@@ -50,11 +58,20 @@ void WiFiGotIP(arduino_event_id_t event, arduino_event_info_t info) {
 	if (WiFi.isConnected()) {
 #endif
 		if (heating::rest) {
+#ifdef OPENTHERMOSTAT_E32V2
+			if(!heating::wifiAPMode)
+#endif
 			heating::rest->restart();
 		}
 
-		auto networkConfig = config::getNetworkConfig();
+		// SNTP retains the hostname pointer for asynchronous retries and updates.
+		// Device settings take effect after reboot; keep this storage alive until then.
+		static const auto networkConfig = config::getNetworkConfig();
 		if (networkConfig.ntpEnabled) {
+			sntp_set_time_sync_notification_cb([](struct timeval *) {
+				// Runs in the network task: defer logging and RTC I/O to loop().
+				ntpTimeUpdated.store(true, std::memory_order_relaxed);
+			});
 			if (!networkConfig.timeZone.empty()) {
 				DBGLOGFI(heating::logger, appLogFeature(), "Configuring timezone time '%s' server: '%s' ", networkConfig.timeZone.c_str(), networkConfig.ntpHost.c_str());
 				configTzTime(networkConfig.timeZone.c_str(), networkConfig.ntpHost.c_str());
@@ -66,13 +83,14 @@ void WiFiGotIP(arduino_event_id_t event, arduino_event_info_t info) {
 		}
 
 		struct tm timeinfo;
+#ifdef OPENTHERMOSTAT_E32V2
+		// Never hold up setup/status HTTP for the default five-second NTP wait.
+		if (!getLocalTime(&timeinfo,0)) {
+#else
 		if (!getLocalTime(&timeinfo)) {
+#endif
 			DBGLOGFI(heating::logger, appLogFeature(), "Failed to obtain network time. Setting up from RTC\n");
 			heating::setLocalTimeFromRTC(networkConfig.timeZone, networkConfig.ntpUtcOffset, networkConfig.ntpDaylightUtcOffset);
-		} else if (networkConfig.ntpEnabled) {
-			DBGLOGFI(heating::logger, appLogFeature(), "%s", asctime(&timeinfo));
-			DBGLOGFI(heating::logger, appLogFeature(), "\nObtained network time, setting up RTC\n");
-			heating::setRTCfromLocalTime();
 		}
 
 #ifdef OPENTHERMOSTAT_E32V2
@@ -90,7 +108,15 @@ void WiFiGotIP(arduino_event_id_t event, arduino_event_info_t info) {
 }
 
 void WifiSetUp(config::WiFiConfig const &wifiConfig, config::NetworkConfig const &networkConfig, config::APConfig const &apConfig, bool startAP) {
+#ifdef OPENTHERMOSTAT_E32V2
+	if(!startAP&&networkConfig.interfaceMode=="ethernet") { WiFi.mode(WIFI_OFF); return; }
+#endif
 	if (startAP) {
+#ifdef OPENTHERMOSTAT_E32V2
+		if(!heating::startSetupWifi()) return;
+		if(heating::rest) heating::rest->restart();
+		return;
+#endif
 		DBGLOGFI(heating::logger, appLogFeature(), "Starting Access Point\n");
 #ifndef OPENTHERMOSTAT_E32V2
 		if (heating::controller) {
@@ -186,6 +212,13 @@ void WifiSetUp(config::WiFiConfig const &wifiConfig, config::NetworkConfig const
 void setup() {
 	delay(2500); // wait for monitor
 	Serial.begin(115200);
+#ifdef OPENTHERMOSTAT_E32V2
+	WiFi.persistent(false);
+	if(heating::deviceAccess.begin()) {
+		// Physical USB console only. Never use network logger sinks for secrets.
+		Serial.printf("Local setup WiFi password: %s\nHTTP admin password: %s\nType setup + Enter over USB to reboot into WiFi-only setup for 15 minutes.\n",heating::deviceAccess.setupPassword().c_str(),heating::deviceAccess.password().c_str());
+	}
+#endif
 	heating::logger = std::make_shared<ib::logger::Logger>(
 		std::vector<std::shared_ptr<ib::logger::LoggerSinkInterface>>{
 			std::make_shared<ib::logger::LoggerSerialSink>(ib::logger::LoggerInterface::LogLevel::TRACE)});
@@ -250,6 +283,10 @@ void setup() {
 	auto apConfig = config::getAPConfig();
 
 	bool startAP = wifiConfig.ssid.empty() /*|| TODO PUSHBUTTON PRESSED */;
+#ifdef OPENTHERMOSTAT_E32V2
+	const auto networkPlan=heating::control::networkBootPlan(networkConfig.interfaceMode=="ethernet",!wifiConfig.ssid.empty(),heating::consumeSetupBoot());
+	startAP=networkPlan.setupAp;
+#endif
 
 	heating::controller = new heating::HeatingController(heating::logger);
 	heating::rest = std::make_unique<heating::REST>(heating::logger, *heating::controller, startAP ? apConfig.listenPort : networkConfig.listenPort);
@@ -259,7 +296,7 @@ void setup() {
 
 	WifiSetUp(wifiConfig, networkConfig, apConfig, startAP);
 #ifdef OPENTHERMOSTAT_E32V2
-	heating::startBoardEthernet();
+	if(networkPlan.ethernet) heating::startBoardEthernet();
 	DBGLOGFI(heating::logger, appLogFeature(), "E32V2 EXPERIMENTAL: EMS TX/forwarder/GPIO outputs blocked. PSRAM: %u bytes\n", ESP.getPsramSize());
 #endif
 	DBGLOGFI(heating::logger, appLogFeature(), "Free memory %d/%d (minimum was: %d) MaxAlloc: %d WIFI\n", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap());
@@ -268,12 +305,19 @@ void setup() {
 
 void loop() {
 #ifdef OPENTHERMOSTAT_E32V2
+	heating::update::loop();
+	heating::pollSetupWifi();
 	if (heating::pollBoardNetwork()) {
 		// Common REST/NTP/mDNS startup, once per route/IP change, not in event task.
 		WiFiGotIP(ARDUINO_EVENT_ETH_GOT_IP, {});
 	}
 #endif
 	static unsigned long lastMillis = 0;
+	if (ntpTimeUpdated.exchange(false, std::memory_order_relaxed)) {
+		heating::networkTimeTrusted = true;
+		DBGLOGFI(heating::logger, appLogFeature(), "NTP synchronized, updating RTC\n");
+		heating::setRTCfromLocalTime();
+	}
 
 	auto now = millis();
 	if (ib::millisDurationPassed(now, lastMillis, 10000)) {
@@ -284,7 +328,7 @@ void loop() {
 
 		if (!WiFi.isConnected()
 #ifdef OPENTHERMOSTAT_E32V2
-			&& !heating::wifiAPMode
+			&& !heating::wifiAPMode && !heating::setupAttemptUntil && WiFi.getMode()!=WIFI_OFF
 #endif
 		) {
 			DBGLOGFI(heating::logger, appLogFeature(), "WiFi not connected. Reconnecting.\n");

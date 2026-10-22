@@ -69,6 +69,9 @@ struct EmsConfig {
 };
 
 struct NetworkConfig {
+#ifdef OPENTHERMOSTAT_E32V2
+	std::string interfaceMode = "wifi";
+#endif
 	std::string hostname;
 	uint32_t listenPort;
 	bool rtcEnabled = false;
@@ -85,6 +88,13 @@ struct NetworkConfig {
 
 struct MqttConfig {
 	bool enabled = false;
+	bool modernShadow = false;
+#ifdef OPENTHERMOSTAT_E32V2
+	// Independent logical SOURCE setting; absent remains NONE.
+	bool nativeSourceRequested = false;
+	std::string nativeSourceJson;
+#endif
+	std::string adapterId;
 	bool publishHomeAssistantDiscovery = true;
 	std::string brokerAddress;
 	uint16_t brokerPort;

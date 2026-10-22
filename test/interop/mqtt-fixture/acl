@@ -1,0 +1,7 @@
+user fw-test
+topic write test_therm/v1/fw/#
+topic read test_therm/v1/ha/#
+user ha-test
+topic write test_therm/v1/ha/#
+topic read test_therm/v1/fw/#
+user outside-test

@@ -31,12 +31,27 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Subscribe to the existing aggregate room status topic."""
+    from .v1_model import integration_mode, MODE_SHADOW
+    if integration_mode(entry) == MODE_SHADOW:
+        import voluptuous as vol
+        from homeassistant.helpers import entity_platform
+        platform=entity_platform.async_get_current_platform()
+        platform.async_register_entity_service("set_comfort",{
+            vol.Required("mode"):vol.In(["auto","off","temporary","boost","away","vacation","frost"]),
+            vol.Optional("temperature"):vol.All(vol.Coerce(float),vol.Range(min=5,max=35)),
+            vol.Optional("duration_minutes"):vol.All(int,vol.Range(min=1,max=720)),
+            vol.Optional("vacation_until"):str,
+        },"async_set_comfort")
+        from .v1_climate import async_setup_entry as setup_shadow
+        return await setup_shadow(hass, entry, async_add_entities)
+
     prefix = entry.data[CONF_TOPIC_PREFIX]
     durations = hass.data[DOMAIN][entry.entry_id]["duration_minutes"]
     hub = dr.async_get(hass).async_get_device_by_identifier(("open_thermostat", prefix), entry.entry_id)
     rooms: dict[str, OpenThermostatRoom] = {}
     pending: dict[str, asyncio.Future[bool]] = {}
     online = False
+    active_keys: set[str] = set()
 
     async def send_temperature(room_name: str, temperature: int, seconds: int) -> bool:
         request_id = uuid.uuid4().hex
@@ -73,11 +88,12 @@ async def async_setup_entry(
     def handle_status(message: ReceiveMessage) -> None:
         nonlocal online
         online = message.payload == "on"
-        for entity in rooms.values():
-            entity.set_online(online)
+        for key, entity in rooms.items():
+            entity.set_online(online and key in active_keys)
 
     @callback
     def handle_rooms(message: ReceiveMessage) -> None:
+        nonlocal active_keys
         try:
             payload = json.loads(message.payload)
         except (TypeError, ValueError):

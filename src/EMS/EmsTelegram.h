@@ -42,6 +42,12 @@ public:
 
 	uint16_t getTypeId() const;
 	uint8_t getSenderId() const;
+	uint8_t getDestinationId() const { return destination_ & 0x7F; }
+	size_t dataSize() const { return data_.size(); }
+	// Absolute protocol offset, not an index into this possibly partial frame.
+	std::optional<uint8_t> byteAt(uint8_t offset) const { return getValue<uint8_t>(offset); }
+	std::optional<uint16_t> wordAt(uint8_t offset) const { return getValue<uint16_t>(offset); }
+	std::optional<uint32_t> counterAt(uint8_t offset) const { return getValue<uint32_t>(offset); }
 	uint8_t getOffset() const;
 	operation_t getOperationType() const;
 
@@ -51,6 +57,7 @@ public:
 
 	static uint16_t getTelegramTypeFromRaw(uint8_t *data, uint8_t length);
 	static EmsTelegram getFromRawData(ib::logger::LoggerInterface &log, ib::logger::LoggerInterface::LogFeatureType verboseFeature, uint8_t *data, uint8_t length); // decodes full raw telegram, data without tailing BRK \0 THROWS
+	static EmsTelegram fromRawData(const uint8_t *data, size_t length); // includes CRC, excludes BREAK
 
 	std::vector<uint8_t> encodeToRawDataWithCRC() const;
 
@@ -68,7 +75,7 @@ protected:
 
 	template<typename T, uint8_t bitPos = 0>
 	inline std::optional<T> getValue(uint8_t dataStart) const {
-		if (offset_ > dataStart || dataStart - offset_ + (std::is_same_v<T, int32_t> ? 3 : sizeof(T)) > data_.size()) {
+		if (offset_ > dataStart || dataStart - offset_ + ((std::is_same_v<T, int32_t> || std::is_same_v<T, uint32_t>) ? 3 : sizeof(T)) > data_.size()) {
 			return {};
 		}
 		return getValueAbs<T, bitPos>(dataStart - offset_);
@@ -76,7 +83,7 @@ protected:
 
 	template<typename T, uint8_t bitPos = 0>
 	inline std::optional<T> getValueCustomOffset(uint8_t dataStart, uint8_t offset) const {
-		if (offset > dataStart || dataStart - offset + (std::is_same_v<T, int32_t> ? 3 : sizeof(T)) > data_.size()) {
+		if (offset > dataStart || dataStart - offset + ((std::is_same_v<T, int32_t> || std::is_same_v<T, uint32_t>) ? 3 : sizeof(T)) > data_.size()) {
 			return {};
 		}
 		return getValueAbs<T, bitPos>(dataStart - offset);
@@ -85,7 +92,7 @@ protected:
 	template<typename T, uint8_t bitPos = 0>
 	inline std::optional<T> getValueAbs(uint8_t dataStart) const {
     	if constexpr (std::is_same_v<T, int16_t> || std::is_same_v<T, uint16_t>) {
-			return __builtin_bswap16(*reinterpret_cast<const T *>(data_.data() + dataStart));
+			return static_cast<T>((static_cast<uint16_t>(data_[dataStart]) << 8) | data_[dataStart + 1]);
 		} else if constexpr (std::is_same_v<T, uint8_t> || std::is_same_v<T, int8_t>) {
 			return static_cast<T>(data_[dataStart]);
 		} else if constexpr (std::is_same_v<T, bool>) {

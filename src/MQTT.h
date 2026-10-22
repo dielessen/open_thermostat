@@ -3,6 +3,9 @@
 #include "config.h"
 #include "Logging.h"
 #include "RTCTimeHelpers.h"
+#ifdef OPENTHERMOSTAT_E32V2
+#include "control/ModernTransport.h"
+#endif
 
 #include <mqtt/MQTT.h>
 #include <mqtt/MQTTReporterInterface.h>
@@ -33,13 +36,19 @@ public:
 	using getActiveProgram_t = std::function<std::string()>;
 	using getBoilerStarted_t = std::function<bool()>;
 
-	RoomsReporter(std::shared_ptr<ib::logger::LoggerInterface> log, getRoomIds_t getRoomIds, getRoomStatus_t getRoomsStatus, getActiveProgram_t getActiveProgram, getBoilerStarted_t getBoilerStarted) : log_(std::move(log)), getRoomIds_(std::move(getRoomIds)), getRoomsStatus_(std::move(getRoomsStatus)), getActiveProgram_(std::move(getActiveProgram)), getBoilerStarted_(std::move(getBoilerStarted)) { if (log_) logFeature_ = log_->addFeature("MQTT rooms"); }
+	RoomsReporter(std::shared_ptr<ib::logger::LoggerInterface> log, getRoomIds_t getRoomIds, getRoomStatus_t getRoomsStatus, getActiveProgram_t getActiveProgram, getBoilerStarted_t getBoilerStarted, getRoomStatus_t context = {}) : log_(std::move(log)), getRoomIds_(std::move(getRoomIds)), getRoomsStatus_(std::move(getRoomsStatus)), getActiveProgram_(std::move(getActiveProgram)), getBoilerStarted_(std::move(getBoilerStarted)), observationContext_(std::move(context)) { if (log_) logFeature_ = log_->addFeature("MQTT rooms"); }
 
 	void getStatus(std::ostream &ss) const override {
+		// Capture context before room ages: serialization delay can shorten, never
+		// extend the source temperature validity window.
+		std::ostringstream context;
+		if(observationContext_) observationContext_(context);
 		ss << "{\"rooms\": ";
 		getRoomsStatus_(ss);
 		ss << ",\"activeProgram\":" << std::quoted(getActiveProgram_())
-			<< ",\"boilerStarted\":" << (getBoilerStarted_() ? "true" : "false") << "}";
+			<< ",\"boilerStarted\":" << (getBoilerStarted_() ? "true" : "false");
+		if(observationContext_) ss << ",\"roomObservation\":" << context.str();
+		ss << "}";
 	}
 
 	void publishHADiscovery(ib::mqtt::MQTTPublishInterface &publish) override {
@@ -82,6 +91,7 @@ private:
 	getRoomStatus_t getRoomsStatus_;
 	getActiveProgram_t getActiveProgram_;
 	getBoilerStarted_t getBoilerStarted_;
+	getRoomStatus_t observationContext_;
 };
 
 class DeviceStatusReporter final : public ib::mqtt::MQTTReporterInterface {
@@ -137,11 +147,13 @@ public:
 	void getStatus(std::ostream &ss) const override { getEmsMetrics_(ss); }
 
 	void publishHADiscovery(ib::mqtt::MQTTPublishInterface &publish) override {
-		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy"sv, "Total energy consumption"sv, "totalEnergyUsedKwh"sv, ""sv, "kWh"sv, "total"sv, "energy"sv, {});
-		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy_warm_water"sv, "Energy used for warm water heating"sv, "warmWaterEnergyUsedKwh"sv, ""sv, "kWh"sv, "total"sv, "energy"sv, {});
-		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy_heating"sv, "Energy used for space heating"sv, "heatingEnergyUsedKwh"sv, ""sv, "kWh"sv, "total"sv, "energy"sv, {});
-		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_warm_water_usage"sv, "Warm water usage"sv, "warmWaterUsage"sv, ""sv, "L"sv, "measurement"sv, ""sv, ""sv);
-		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_warm_water_avg_flow"sv, "Average flow of warm water"sv, "warmWaterAvgFlow"sv, ""sv, "L/min"sv, "measurement"sv, ""sv, ""sv);
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy_v2"sv, "Estimated nominal-modulation energy (definition v2)"sv, "totalEnergyUsedKwhV2"sv, ""sv, "kWh"sv, "total_increasing"sv, "energy"sv, {});
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy_warm_water_v2"sv, "Estimated nominal-modulation DHW energy (definition v2)"sv, "warmWaterEnergyUsedKwhV2"sv, ""sv, "kWh"sv, "total_increasing"sv, "energy"sv, {});
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy_heating_v2"sv, "Estimated nominal-modulation space-heating energy (definition v2)"sv, "heatingEnergyUsedKwhV2"sv, ""sv, "kWh"sv, "total_increasing"sv, "energy"sv, {});
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_warm_water_usage_v2"sv, "Integrated reported warm water volume (definition v2)"sv, "warmWaterUsageV2"sv, ""sv, "L"sv, "total_increasing"sv, "water"sv, ""sv);
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_warm_water_avg_flow_v2"sv, "Mean warm water flow (observed intervals) (definition v2)"sv, "warmWaterAvgFlowV2"sv, ""sv, "L/min"sv, "measurement"sv, ""sv, ""sv);
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_energy_unattributed_v2"sv, "Estimated unattributed energy (definition v2)"sv, "unattributedEnergyUsedKwhV2"sv, ""sv, "kWh"sv, "total_increasing"sv, "energy"sv, {});
+		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_burner_observed_time_v2"sv, "Observed reported-flame time (definition v2)"sv, "observedBurnerSecondsV2"sv, ""sv, "s"sv, "total_increasing"sv, "duration"sv, {});
 		publish.publishAutoDiscoverySensor("ems_metrics"sv, "opth_outdoor_temperature"sv, "Outdoor temperature"sv, "outdoorTemperature"sv, ""sv, "°C"sv, "measurement"sv, "temperature"sv, {});
 	}
 
@@ -188,7 +200,7 @@ public:
 		publish.publishAutoDiscoverySensor("ems_status"sv, "opth_boiler_selected_flow_temperature"sv, "Boiler selected flow temperature"sv, "selectedFlowTemperature"sv, ""sv, "°C"sv, "measurement"sv, "temperature"sv, {});
 		publish.publishAutoDiscoverySensor("ems_status"sv, "opth_boiler_current_flow_temperature"sv, "Boiler current flow temperature"sv, "currentFlowTemperature"sv, " / 10"sv, "°C"sv, "measurement"sv, "temperature"sv, {});
 		publish.publishAutoDiscoverySensor("ems_status"sv, "opth_boiler_pressure"sv, "Boiler pressure"sv, "pressure"sv, " / 10"sv, "bar"sv, "measurement"sv, "pressure"sv, {});
-		publish.publishAutoDiscoverySensor("ems_status"sv, "opth_boiler_burner_power"sv, "Boiler burner power"sv, "currentBurnerPower"sv, ""sv, "%"sv, "measurement"sv, "power_factor"sv, {});
+		publish.publishAutoDiscoverySensor("ems_status"sv, "opth_boiler_burner_power"sv, "Reported burner modulation"sv, "currentBurnerPower"sv, ""sv, "%"sv, "measurement"sv, ""sv, {});
 		publish.publishAutoDiscoverySensor("ems_status"sv, "opth_boiler_hot_water_flow"sv, "Boiler hot water flow"sv, "warmWaterFlow"sv, " / 10"sv, "L/min"sv, "measurement"sv, ""sv, {});
 		publish.publishAutoDiscoverySensor("ems_status"sv, "opth_boiler_current_hot_water_temperature"sv, "Boiler current hot water temperature"sv, "currentWarmWaterTemperature"sv, " / 10"sv, "°C"sv, "measurement"sv, "temperature"sv, {});
 		publish.publishAutoDiscoverySensor("ems_status"sv, "opth_boiler_protocol_version"sv, "Boiler protocol version"sv, "protocolVersion"sv, ""sv, ""sv, ""sv, ""sv, "diagnostic"sv);
@@ -225,11 +237,20 @@ public:
 	using getEmsStatus_t = std::function<void(std::ostream &)>;
 	using setTemporaryTemperature_t = std::function<bool(std::string const &, int16_t, uint32_t)>;
 
-	MQTT(std::shared_ptr<ib::logger::LoggerInterface> log, getRoomIds_t getRoomIds, getRoomStatus_t getRoomsStatus, getActiveProgram_t getActiveProgram, getBoilerStarted_t getBoilerStarted, getEmsMetrics_t getEmsMetrics, getEmsStatus_t getEmsStatus, setTemporaryTemperature_t setTemporaryTemperature) : log_(std::move(log)), setTemporaryTemperature_(std::move(setTemporaryTemperature)) {
+	MQTT(std::shared_ptr<ib::logger::LoggerInterface> log, getRoomIds_t getRoomIds, getRoomStatus_t getRoomsStatus, getActiveProgram_t getActiveProgram, getBoilerStarted_t getBoilerStarted, getEmsMetrics_t getEmsMetrics, getEmsStatus_t getEmsStatus, setTemporaryTemperature_t setTemporaryTemperature, getRoomStatus_t roomContext = {}) : log_(std::move(log)), setTemporaryTemperature_(std::move(setTemporaryTemperature)) {
 		if (log_) {
 			logFeature_ = log_->addFeature("MQTT");
 		}
 		auto mqttConfig = config::getMqttConfig();
+		if(mqttConfig.modernShadow) {
+			modernMode_=true;
+#ifdef OPENTHERMOSTAT_E32V2
+			if(mqttConfig.enabled) modern_=std::make_unique<control::ModernTransport>(mqttConfig,std::move(getEmsMetrics));
+#endif
+			// Unsupported targets must not silently keep a legacy heater writer
+			// running after the operator selected output-disabled shadow mode.
+			return;
+		}
 		DBGLOGFD(log_, logFeature_, "Enabled: %d\n", mqttConfig.enabled);
 		DBGLOGFD(log_, logFeature_, "%s:%d\n", mqttConfig.brokerAddress.c_str(), mqttConfig.brokerPort);
 		DBGLOGFD(log_, logFeature_, "publish interval %d, keep alive inteval: %d\n", mqttConfig.interval, mqttConfig.keepAlive);
@@ -257,7 +278,7 @@ public:
 		deviceInfo.manufacturer = "intuibase";
 		deviceInfo.swVersion = "1.0.0";
 
-		roomsReporter_ = std::make_shared<RoomsReporter>(log_, std::move(getRoomIds), std::move(getRoomsStatus), std::move(getActiveProgram), std::move(getBoilerStarted));
+		roomsReporter_ = std::make_shared<RoomsReporter>(log_, std::move(getRoomIds), std::move(getRoomsStatus), std::move(getActiveProgram), std::move(getBoilerStarted), std::move(roomContext));
 		reporters_.emplace_back(roomsReporter_);
 		reporters_.emplace_back(std::make_shared<DeviceStatusReporter>(log_));
 		reporters_.emplace_back(std::make_shared<EmsMetricsReporter>(log_, std::move(getEmsMetrics)));
@@ -270,11 +291,42 @@ public:
 	}
 
 	void loop() {
+		if(modernMode_) {
+#ifdef OPENTHERMOSTAT_E32V2
+			if(modern_) modern_->loop();
+#endif
+			return;
+		}
 		if (mqtt_) {
 			mqtt_->loop();
 		}
 	}
+	bool modernMode() const {
+		return modernMode_;
+	}
+    void getControlUiStatus(std::ostream& out) const {
+#ifdef OPENTHERMOSTAT_E32V2
+        if(modernMode_&&modern_) { modern_->getUiStatus(out); return; }
+#endif
+        out<<"{\"available\":false,\"fresh\":false,\"reason\":\"no_snapshot\",\"state\":null}";
+    }
 
+
+#ifdef OPENTHERMOSTAT_E32V2
+    bool nativeSourceCurrent(std::string_view expected,std::string_view savedSettings) const {
+        return modernMode_&&modern_&&modern_->nativeSourceCurrent(expected,savedSettings);
+    }
+    bool nativeSourceHotReady(std::string_view expected,std::string_view savedSettings) const {
+        return modernMode_&&modern_&&modern_->nativeSourceHotReady(expected,savedSettings);
+    }
+    bool nativeSourceCanApply(std::string_view expected,std::string_view next,std::string_view saved) const {
+        return modernMode_&&modern_&&modern_->nativeSourceCanApply(expected,next,saved);
+    }
+    bool applyNativeSource(std::string_view expected,std::string_view next,std::string_view previousSettings) {
+        return modernMode_&&modern_&&modern_->applyNativeSource(expected,next,previousSettings);
+    }
+    void inhibitNativeSourceMutation() {if(modern_)modern_->inhibitNativeSourceMutation();}
+#endif
 private:
 	void handleTemporaryCommand(uint8_t const *payload, unsigned int length) {
 		if (length == 0 || length > 512) return;
@@ -315,5 +367,9 @@ private:
 	std::shared_ptr<RoomsReporter> roomsReporter_;
 	std::vector<std::shared_ptr<ib::mqtt::MQTTReporterInterface>> reporters_;
 	setTemporaryTemperature_t setTemporaryTemperature_;
+	bool modernMode_=false;
+#ifdef OPENTHERMOSTAT_E32V2
+	std::unique_ptr<control::ModernTransport> modern_;
+#endif
 };
 }

@@ -2,6 +2,7 @@
   <div class="spinner-border"><span class="sr-only">Loading rooms</span></div>
 </div>
 <div class="text-center text-muted mt-2" id="physicalRoomLoadingMessage" aria-live="polite"></div>
+<button type="button" class="btn btn-outline-primary d-none" id="retryPhysicalRooms">Retry loading rooms</button>
 
 <div class="card d-none" id="physicalRoomCard">
   <div class="card-header">Room configuration</div>
@@ -15,6 +16,7 @@
       <div class="col-md-2 mb-2"><button type="button" class="btn btn-success form-control" id="addPhysicalRoom">Add room</button></div>
       <div class="col-md-2 mb-2"><button type="button" class="btn btn-dark form-control" id="deletePhysicalRoom">Delete room</button></div>
     </div>
+    <p id="physicalRoomEmpty" class="text-muted" role="status">No rooms configured. Add a room to begin.</p>
     <div id="physicalRoomDetails" style="display:none">
       <div class="form-row">
         <div class="col-md-4 mb-2">
@@ -45,6 +47,8 @@
 <script type="text/javascript">
   (function () {
     let rooms = [];
+    let savedRooms = [];
+    let busy = false;
     const select = document.getElementById('physicalRoomSelect');
     const details = document.getElementById('physicalRoomDetails');
     const name = document.getElementById('physicalRoomName');
@@ -58,6 +62,8 @@
     function showRoom() {
       const room = currentRoom();
       details.style.display = room ? '' : 'none';
+      document.getElementById('physicalRoomEmpty').hidden = rooms.length !== 0;
+      document.getElementById('deletePhysicalRoom').disabled = busy || !room;
       if (!room) return;
       name.value = room.name;
       sensor.value = room.sensor;
@@ -82,14 +88,38 @@
       return id;
     }
 
-    async function saveRooms() {
-      if (rooms.some(room => !room.name.trim())) throw new Error('Every room needs a name');
+    function notifyPrograms(reload = false) {
+      const programsPane = document.getElementById('roomProgramsPane');
+      if (programsPane) programsPane.dispatchEvent(new CustomEvent('roomcatalogsaved', {detail: {rooms, reload}}));
+    }
+
+    async function readJson(url) {
+      const response = await fetch(hostName + url, {cache: 'no-store'});
+      if (!response.ok) throw new Error((await response.text()) || response.statusText);
+      return response.json();
+    }
+
+    function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+
+    function setBusy(value) {
+      busy = value;
+      card.querySelectorAll('button, input, select').forEach(control => { control.disabled = value; });
+      if (!value) showRoom();
+    }
+
+    async function saveRooms(nextRooms = rooms) {
+      if (nextRooms.some(room => !room.name.trim())) throw new Error('Every room needs a name');
+      const persisted = await readJson('/config/rooms');
+      if (!same(persisted, savedRooms)) throw new Error('Rooms changed on the device. Reload this page before saving.');
       const response = await fetch(hostName + '/config/rooms', {
-        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(rooms)
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(nextRooms)
       });
       if (!response.ok) throw new Error((await response.text()) || response.statusText);
-      const programsPane = document.getElementById('roomProgramsPane');
-      if (programsPane) programsPane.dispatchEvent(new CustomEvent('roomcatalogsaved', {detail: rooms}));
+      const readback = await readJson('/config/rooms');
+      if (!same(readback, nextRooms)) throw new Error('Saved rooms could not be verified. Reload this page before retrying.');
+      rooms = readback;
+      savedRooms = structuredClone(readback);
+      notifyPrograms();
     }
 
     select.addEventListener('change', showRoom);
@@ -166,35 +196,86 @@
       name.select();
     });
     document.getElementById('deletePhysicalRoom').addEventListener('click', async () => {
+      if (busy) return;
       const room = currentRoom();
-      if (!room || !confirm("Delete room '" + room.name + "'? Programs using it must be edited first.")) return;
-      const previous = rooms;
-      rooms = rooms.filter(item => item.id !== room.id);
-      try { await saveRooms(); refresh(); }
-      catch (error) { rooms = previous; refresh(room.id); alert('Cannot delete room: ' + error); }
+      if (!room) return;
+      if (!savedRooms.some(saved => saved.id === room.id)) {
+        if (confirm("Discard unsaved room '" + room.name + "'?")) {
+          rooms = rooms.filter(item => item.id !== room.id);
+          refresh();
+        }
+        return;
+      }
+      // Never persist unrelated unsaved edits as a side effect of Delete.
+      if (!same(rooms, savedRooms)) { alert('Save room changes before deleting a room.'); return; }
+      const updatedPrograms = [];
+      setBusy(true);
+      try {
+        const names = await readJson('/status/programs');
+        if (!Array.isArray(names) || names.some(value => typeof value !== 'string')) throw new Error('Invalid program list');
+        const plans = [];
+        for (const programName of [...new Set(names)]) {
+          const url = '/config/programs/' + encodeURIComponent(programName);
+          const original = await readJson(url);
+          if (!Array.isArray(original)) throw new Error('Invalid program: ' + programName);
+          const next = original.filter(entry => entry.room_id !== room.id);
+          if (next.length !== original.length) plans.push({programName, url, original, next});
+        }
+        const impact = plans.length ? '\nAlso remove its settings from: ' + plans.map(plan => plan.programName).join(', ') + '.' : '';
+        if (!confirm("Delete room '" + room.name + "'?" + impact + '\nOther rooms are kept. Unsaved program edits in this page will be discarded.')) return;
+        // Program-first order is deliberate: an interrupted operation may leave
+        // this room without settings, never a dangling program reference.
+        for (const plan of plans) {
+          if (!same(await readJson(plan.url), plan.original)) throw new Error('Program changed: ' + plan.programName + '. Reload before retrying.');
+          const response = await fetch(hostName + plan.url, {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(plan.next)
+          });
+          if (!response.ok) throw new Error('Program ' + plan.programName + ': ' + ((await response.text()) || response.statusText));
+          updatedPrograms.push(plan.programName);
+          if (!same(await readJson(plan.url), plan.next)) throw new Error('Cannot verify program ' + plan.programName);
+        }
+        await saveRooms(rooms.filter(item => item.id !== room.id));
+        refresh();
+        alert('Room deleted and saved.');
+      } catch (error) {
+        alert('Deletion not confirmed: ' + error + (updatedPrograms.length ? '\nSettings already removed from: ' + updatedPrograms.join(', ') + '. The room catalog was not confirmed deleted. Reload before retrying.' : ''));
+      } finally {
+        notifyPrograms(updatedPrograms.length > 0);
+        setBusy(false);
+      }
     });
     document.getElementById('savePhysicalRooms').addEventListener('click', async () => {
-      try { await saveRooms(); alert('Rooms saved'); }
+      if (busy) return;
+      setBusy(true);
+      try { await saveRooms(); refresh(select.value); alert('Rooms saved'); }
       catch (error) { alert('Cannot save rooms: ' + error); }
+      finally { setBusy(false); }
     });
 
     const loading = document.getElementById('physicalRoomLoading');
     const loadingMessage = document.getElementById('physicalRoomLoadingMessage');
     const card = document.getElementById('physicalRoomCard');
+    const retry = document.getElementById('retryPhysicalRooms');
+    retry.addEventListener('click', loadRoomConfiguration);
 
     async function loadRoomConfiguration() {
       if (!loading.isConnected) return;
+      retry.classList.add('d-none');
+      loadingMessage.textContent = 'Loading room configuration...';
+      loading.classList.remove('d-none');
+      loading.classList.add('d-flex');
       try {
         const [catalogResponse, hardwareResponse] = await Promise.all([
-          fetch(hostName + '/config/rooms'),
-          fetch(hostName + '/config/hardware')
+          fetch(hostName + '/config/rooms', {signal: AbortSignal.timeout(10000), cache: 'no-store'}),
+          fetch(hostName + '/config/hardware', {signal: AbortSignal.timeout(10000), cache: 'no-store'})
         ]);
         if (!catalogResponse.ok || !hardwareResponse.ok) throw new Error('Room configuration unavailable');
         const [catalog, hardware] = await Promise.all([catalogResponse.json(), hardwareResponse.json()]);
-        if (!Array.isArray(catalog)) throw new Error('Invalid room catalog');
+        if (!Array.isArray(catalog) || !hardware || typeof hardware !== 'object' || (hardware.valve_pins !== undefined && !Array.isArray(hardware.valve_pins))) throw new Error('Invalid room configuration');
         if (!loading.isConnected) return;
 
         rooms = catalog;
+        savedRooms = structuredClone(catalog);
         (hardware.valve_pins || []).forEach((pin, index) => {
           const label = pin && pin.label ? pin.label : 'Valve ' + (index + 1);
           valves.add(new Option(label, String(index)));
@@ -209,6 +290,7 @@
           }
         });
         refresh();
+        loading.classList.remove('d-flex');
         loading.classList.add('d-none');
         loadingMessage.classList.add('d-none');
         card.classList.remove('d-none');
@@ -221,8 +303,10 @@
           }).catch(() => {});
       } catch (error) {
         if (!loading.isConnected) return;
-        loadingMessage.textContent = 'Waiting for room configuration...';
-        setTimeout(loadRoomConfiguration, 2000);
+        loading.classList.remove('d-flex');
+        loading.classList.add('d-none');
+        loadingMessage.textContent = 'Cannot load room configuration. Check the device connection, then retry. ' + error.message;
+        retry.classList.remove('d-none');
       }
     }
 

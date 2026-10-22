@@ -208,7 +208,7 @@ protected:
 	config::BoilerConfig cfg;
 	MockGpioPort *boilerGpio = nullptr;
 	ValveMocks valveMocks;
-	int16_t outdoorTemp = 500; // 5°C
+	std::optional<int16_t> outdoorTemp = 500; // 5°C or explicitly unavailable
 
 	bool lastEmsEnabled = false;
 	uint8_t lastEmsFlowTemp = 0;
@@ -283,7 +283,7 @@ protected:
 	config::BoilerConfig cfg;
 	MockGpioPort *boilerGpio = nullptr;
 	ValveMocks valveMocks;
-	int16_t outdoorTemp = 500;
+	std::optional<int16_t> outdoorTemp = 500;
 	uint8_t lastSetHeatingTemp = 0;
 
 	void SetUp() override {
@@ -322,6 +322,58 @@ TEST_F(BoilerOnOffOutdoorTest, UpdatesOnContinue) {
 	bc.startBoilerOrContinue(false, true, std::nullopt);
 	// onoff_outdoor updates heating temp even on continue
 	EXPECT_EQ(lastSetHeatingTemp, 55);
+}
+
+TEST_F(BoilerEmsTest, AbsentOutsideInhibitsEvenAnOverrideAndCanStillSendStop) {
+	outdoorTemp.reset();
+	auto bc=makeController();
+	bc.startBoilerOrContinue(true,false,50);
+	EXPECT_FALSE(lastEmsEnabled);
+	EXPECT_EQ(lastEmsFlowTemp,0);
+	EXPECT_EQ(lastEmsHeatingTemp,0);
+	EXPECT_FALSE(bc.isBoilerStarted());
+	EXPECT_NE(bc.getStatus().find("outdoor_unavailable"),std::string::npos);
+	EXPECT_EQ(bc.getStatus().find("\"outdoorTemperature\""),std::string::npos);
+	bc.startBoilerOrContinue(false,false,std::nullopt);
+	EXPECT_FALSE(lastEmsEnabled);
+}
+
+TEST_F(BoilerEmsTest, LossWhileHeatingWithdrawsDemandAndRecoveryRequiresCurrentDemand) {
+	auto bc=makeController();
+	bc.startBoilerOrContinue(true,false,std::nullopt);
+	ASSERT_TRUE(lastEmsEnabled);
+	outdoorTemp.reset();
+	bc.startBoilerOrContinue(false,true,std::nullopt);
+	EXPECT_FALSE(lastEmsEnabled);
+	EXPECT_FALSE(bc.isBoilerStarted());
+	outdoorTemp=0;
+	bc.startBoilerOrContinue(false,true,std::nullopt);
+	EXPECT_FALSE(lastEmsEnabled); // continue alone cannot invent a new start.
+	bc.startBoilerOrContinue(true,false,std::nullopt);
+	EXPECT_TRUE(lastEmsEnabled);
+	EXPECT_EQ(lastEmsFlowTemp,45);
+	EXPECT_EQ(bc.getStatus().find("outdoor_unavailable"),std::string::npos);
+}
+
+TEST_F(BoilerOnOffOutdoorTest, MissingOutsideStopsRelayWithoutApplyingInventedCurve) {
+	auto bc=makeController();
+	bc.startBoilerOrContinue(true,false,std::nullopt);
+	ASSERT_TRUE(boilerGpio->lastValue);
+	lastSetHeatingTemp=0; outdoorTemp.reset();
+	bc.startBoilerOrContinue(false,true,std::nullopt);
+	EXPECT_FALSE(boilerGpio->lastValue);
+	EXPECT_FALSE(bc.isBoilerStarted());
+	EXPECT_EQ(lastSetHeatingTemp,0);
+}
+
+TEST_F(BoilerOnOffTest, PlainRelayModeDoesNotAcquireAnOutsideDependency) {
+	auto bp=std::make_unique<MockGpioPort>(99); boilerGpio=bp.get();
+	int reads=0;
+	heating::BoilerController bc({},cfg,[&]() ->std::optional<int16_t> { ++reads; return {}; },
+	    [](bool,uint8_t){},[](uint8_t){},std::move(bp),valveMocks.makePorts(0),{});
+	bc.startBoilerOrContinue(true,false,std::nullopt);
+	EXPECT_TRUE(boilerGpio->lastValue);
+	EXPECT_EQ(reads,0);
 }
 
 } // anonymous namespace

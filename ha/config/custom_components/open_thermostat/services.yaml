@@ -1,0 +1,128 @@
+source_bench_start:
+  name: Start finite source shadow bench
+  description: Admin-only, inactive until invoked. One admitted shadow zone, at most 300 seconds. No device or boiler writes; native option mutation remains a separate reviewed operator action.
+  fields:
+    entry_id:
+      required: true
+      selector:
+        text:
+    baseline:
+      required: true
+      description: Scoped native config with only device_options, devices containing this IEEE, and relevant advanced cache/last_seen fields.
+      selector:
+        object:
+    discovery:
+      required: true
+      description: Exact native temperature Discovery object for the selected entity.
+      selector:
+        object:
+    ieee:
+      required: true
+      selector:
+        text:
+    discovery_topic:
+      required: true
+      selector:
+        text:
+    ha_status_topic:
+      required: true
+      selector:
+        text:
+    transaction:
+      required: true
+      description: Fresh unique transaction for the single separately reviewed native options request.
+      selector:
+        text:
+    duration_s:
+      default: 300
+      selector:
+        number:
+          min: 1
+          max: 300
+          mode: box
+source_bench_stop:
+  name: Stop finite source shadow bench
+  description: Withdraw measurement, unload source listeners and restore the original admitted mapping. Does not mutate Zigbee2MQTT options.
+  fields:
+    entry_id:
+      required: true
+      selector:
+        text:
+source_bench_status:
+  name: Read finite source shadow bench status
+  description: Read-only evidence for lifecycle, native gate, forwarded observations and mapping restoration.
+  fields:
+    entry_id:
+      required: true
+      selector:
+        text:
+
+export_metrics_csv:
+  name: Export recorded metrics as CSV
+  description: Admin-only response; at most 24 hours,64 owned entities,5000 rows. Uses native read-only Recorder, no files or DB changes. UTC rows include unit and unit_basis. Opt-in include_units reads recorded units only, never guesses from current/native display units. No conversion. Historical counter definitions/retention may be incomplete.
+  fields:
+    entry_id:
+      required: true
+      selector:
+        text:
+    start:
+      required: true
+      description: ISO timestamp with explicit timezone.
+      selector:
+        text:
+    end:
+      required: true
+      description: Past ISO timestamp with explicit timezone.
+      selector:
+        text:
+    entity_ids:
+      required: false
+      description: Optional exact registered integration-owned entities, no arbitrary sensor access.
+      selector:
+        entity:
+          multiple: true
+          integration: open_thermostat
+    limit:
+      default: 1000
+      selector:
+        number:
+          min: 1
+          max: 5000
+          mode: box
+    include_units:
+      default: false
+      description: Read historical attributes internally and export only a known per-row unit. No other attributes are returned. Default does not retrieve attributes. Blank unit means unknown, not a guessed current unit.
+      selector:
+        boolean:
+
+set_comfort:
+  name: Set bounded shadow comfort
+  description: Requires an admitted comfort.target.v1 shadow room. Firmware owns expiry; no physical outputs. Temporary/boost default to the room's visible bounded duration. Vacation needs an explicit future date/time with timezone. No restoration across boot/reconnect.
+  target:
+    entity:
+      domain: climate
+      integration: open_thermostat
+  fields:
+    mode:
+      required: true
+      selector:
+        select:
+          options: ['auto', 'off', 'temporary', 'boost', 'away', 'vacation', 'frost']
+    temperature:
+      selector:
+        number:
+          min: 5
+          max: 35
+          step: 0.1
+          unit_of_measurement: "°C"
+    duration_minutes:
+      description: Optional local override duration. Boost at most240 minutes.
+      selector:
+        number:
+          min: 1
+          max: 720
+          mode: box
+    vacation_until:
+      description: Vacation only. Future ISO date/time with explicit timezone, e.g. 2026-10-30T18:00:00+01:00. Ambiguous local/DST times are rejected.
+      selector:
+        text:

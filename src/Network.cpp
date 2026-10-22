@@ -4,6 +4,7 @@
 
 #include "Network.h"
 #include "config.h"
+#include "WifiDiscovery.h"
 
 namespace heating {
 
@@ -27,20 +28,31 @@ static const char *getEncryptionStr(wifi_auth_mode_t mode) {
 }
 
 void getWiFiNetworks(std::ostream &ss) {
+#ifdef OPENTHERMOSTAT_E32V2
+	// Scanning can power up the radio: never do that beside GPIO0 ETH clock.
+	if(boardEthernetStarted) { ss<<"[]"; return; }
+	pollWifiScan();
+	if(!setupAttemptUntil&&!wifiScanRunning()&&(wifiScanState=="idle"||networkNow()-wifiScanStarted>15000)) startWifiScan();
+	ss<<wifiScanRows; return;
+#endif
 	auto noNetworks = WiFi.scanNetworks();
-	ss << "[";
+	std::unique_ptr<cJSON,decltype(&cJSON_Delete)> rows(cJSON_CreateArray(),cJSON_Delete);
 	for (auto n = 0; n < noNetworks; ++n) {
-		ss << "{\"ssid\": \"" << WiFi.SSID(n).c_str() << "\", \"rssi\": " << WiFi.RSSI(n) << ", \"channel\": " << WiFi.channel(n) << ", \"encryption\": \"" << getEncryptionStr(WiFi.encryptionType(n)) << "\"}";
-		if (n + 1 < noNetworks) {
-			ss << ", ";
-		}
+		auto row=cJSON_CreateObject(); cJSON_AddItemToArray(rows.get(),row);
+		cJSON_AddStringToObject(row,"ssid",WiFi.SSID(n).c_str());
+		cJSON_AddNumberToObject(row,"rssi",WiFi.RSSI(n)); cJSON_AddNumberToObject(row,"channel",WiFi.channel(n));
+		cJSON_AddStringToObject(row,"encryption",getEncryptionStr(WiFi.encryptionType(n)));
 	}
-	ss << "]";
+	std::unique_ptr<char,decltype(&cJSON_free)> bytes(cJSON_PrintUnformatted(rows.get()),cJSON_free);
+	ss << (bytes?bytes.get():"[]"); WiFi.scanDelete();
 }
 
 void getWiFiSSID(std::ostream &ss) {
 	auto wifiConfig = config::getWiFiConfig();
-	ss << "{ \"ssid\": \"" << wifiConfig.ssid << "\"}";
+	std::unique_ptr<cJSON,decltype(&cJSON_Delete)> row(cJSON_CreateObject(),cJSON_Delete);
+	cJSON_AddStringToObject(row.get(),"ssid",wifiConfig.ssid.c_str());
+	std::unique_ptr<char,decltype(&cJSON_free)> bytes(cJSON_PrintUnformatted(row.get()),cJSON_free);
+	ss << (bytes?bytes.get():"{}");
 }
 
 }
@@ -54,6 +66,7 @@ void getWiFiSSID(std::ostream &ss) {
 #include <lwip/tcpip.h>
 
 namespace heating {
+bool boardEthernetStarted=false;
 void startBoardEthernet() {
     // Arduino 2.x signature; not the Arduino 3.x EMS-ESP signature.
     WiFi.onEvent([](arduino_event_id_t event, arduino_event_info_t) {
@@ -64,7 +77,9 @@ void startBoardEthernet() {
     }, ARDUINO_EVENT_ETH_START);
     if (!ETH.begin(board::phyAddress, board::phyPower, board::phyMdc,
                    board::phyMdio, ETH_PHY_LAN8720, ETH_CLOCK_GPIO0_OUT)) {
-        Serial.println("E32V2: Ethernet initialization failed; WiFi remains available");
+        Serial.println("E32V2: Ethernet initialization failed; use USB setup recovery");
+    } else {
+        boardEthernetStarted=true;
     }
 }
 

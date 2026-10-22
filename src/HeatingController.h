@@ -11,6 +11,10 @@
 #include "EmsController.h"
 #include "EmsMetrics.h"
 #include "MQTT.h"
+#ifdef OPENTHERMOSTAT_E32V2
+#include "control/ControlBuildCapabilities.h"
+#endif
+#include <esp_system.h>
 #include "Room.h"
 
 #include <logger/LoggerInterface.h>
@@ -102,12 +106,14 @@ public:
 	explicit HeatingController(std::shared_ptr<ib::logger::LoggerInterface> log) : log_(std::move(log)), logFeature_(log_ ? log_->addFeature("HeatCtrl") : 0), openWeather_(log_, config::getOpenWeatherConfig()), currentProgram_(config::getCurrentProgram()), rooms_(buildRoomsFromConfig()) {
 		DBGLOGFI(log_, logFeature_, "HeatingController constructed\n");
 		bluetoothScan_ = true;
-		lastReadTemperatureCounter_.notifyNow();
 	}
 
 	~HeatingController() {}
 
 	void operate() {
+		// Modern shadow runtime owns its targets. Never execute the old room
+		// scheduler/boiler writer alongside it, even if provisioning is invalid.
+		if(mqtt_.modernMode()) return;
 		bool shouldStartBoiler = false;
 		bool shouldBoilerContinue = false;
 		boilerHeatingTemperatureOverride_t boilerHeatingTempOverride;
@@ -149,9 +155,6 @@ public:
 					 //				valvesWhichShouldBeOpened.insert(room.valves_.begin(), room.valves_.end());
 			}
 
-			if (bluetoothScan_) {
-				resetIfNoDataForLongTime();
-			}
 		}
 		}
 
@@ -172,6 +175,14 @@ public:
 		mqtt_.loop();
 		ems_.loop();
 	}
+	bool modernMode() const { return mqtt_.modernMode(); }
+#ifdef OPENTHERMOSTAT_E32V2
+    bool nativeSourceCurrent(std::string_view expected,std::string_view savedSettings) const {return mqtt_.nativeSourceCurrent(expected,savedSettings);}
+    bool nativeSourceHotReady(std::string_view expected,std::string_view savedSettings) const {return mqtt_.nativeSourceHotReady(expected,savedSettings);}
+    bool nativeSourceCanApply(std::string_view expected,std::string_view next,std::string_view saved) const {return mqtt_.nativeSourceCanApply(expected,next,saved);}
+    bool applyNativeSource(std::string_view expected,std::string_view next,std::string_view previousSettings) {return mqtt_.applyNativeSource(expected,next,previousSettings);}
+    void inhibitNativeSourceMutation() {mqtt_.inhibitNativeSourceMutation();}
+#endif
 
 	void getBoilerStatus(std::ostream &ss) const {
 		boiler_.getStatus(ss);
@@ -182,11 +193,18 @@ public:
 	}
 
 	void getEMSStatus(std::ostream &ss) const {
-		ems_.getStatus(ss);
+		const auto status = ems_.getStatus();
+		if (status.empty() || status.back()!='}') { ss << "{}"; return; }
+		ss << status.substr(0,status.size()-1) << ",\"roomEstimateObservation\":";
+		emsMetrics_.getRoomObservation(ss);
+		ss << "}";
+	}
+	void getEMSTelemetryStatus(std::ostream &ss) const {
+		ems_.getTelemetryStatus(ss);
 	}
 
 	std::string getEMSStatus() const {
-		return ems_.getStatus();
+		std::ostringstream ss; getEMSStatus(ss); return ss.str();
 	}
 
 	void getEMSBoilerParams(std::ostream &ss) const {
@@ -200,18 +218,30 @@ public:
 	void getFullStatus(std::ostream &ss) const {
 		ss << "{";
 		ss << "\"rooms\": ";
-		getRoomsStatus(ss);
+		if(modernMode()) ss << "[]";
+		else getRoomsStatus(ss);
+		ss << ",\"controlMode\":\"" << (modernMode()?"shadow":"legacy") << "\"";
 		ss << ",";
-		{
-			std::lock_guard<std::mutex> lock(roomsAccessMutex_);
-			ss << "\"activeProgram\": \"" << currentProgram_ << "\",";
-		}
-		ss << "\"boiler\": "; boiler_.getStatus(ss); ss << ",";
+#ifdef OPENTHERMOSTAT_E32V2
+        ss << "\"control_build\":";
+        control::writeControlBuildCapabilities(ss);
+        ss << ',';
+#endif
+        if(modernMode()) ss << "\"activeProgram\":null,\"boiler\":null,";
+        else {
+            {
+                std::lock_guard<std::mutex> lock(roomsAccessMutex_);
+                ss << "\"activeProgram\": \"" << currentProgram_ << "\",";
+            }
+            ss << "\"boiler\":";
+            boiler_.getStatus(ss);ss << ',';
+        }
 		ss << "\"ems\": "; ems_.getStatus(ss); ss << ",";
+        if(modernMode()) {ss << "\"control\":";mqtt_.getControlUiStatus(ss);ss << ',';}
 		ss << "\"openweather\": " << openWeather_.getStatus() << ",";
 
-		struct tm timeinfo;
-		getLocalTime(&timeinfo);
+		struct tm timeinfo{};
+		if(getLocalTime(&timeinfo,0)) {
 
 		ss << "\"time\": \"" << std::setfill('0') << std::setw(2) << timeinfo.tm_hour << ":"
 			<< std::setfill('0') << std::setw(2) << timeinfo.tm_min << ":"
@@ -221,6 +251,7 @@ public:
 			<< std::setfill('0') << std::setw(2) << timeinfo.tm_mday << "\",";
 
 		ss << "\"weekDay\": " << timeinfo.tm_wday << ",";
+		} else ss << "\"time\":null,\"date\":null,\"weekDay\":null,";
 		ss << "\"uptime\": " << millis()/1000;
 
 
@@ -358,7 +389,6 @@ private:
 
 		if (temperature.has_value()) {
 			(*room)->storeTemperature(temperature.value());
-			lastReadTemperatureCounter_.notifyNow();
 		}
 
 		if (humidity.has_value()) {
@@ -371,44 +401,15 @@ private:
 
 	}
 
-	void resetIfNoDataForLongTime() {
-		if (lastReadTemperatureCounter_.durationPassed()) {
-			DBGLOGFI(log_, logFeature_, "RESTARTING DUE TO NO DATA FOR OVER 5m");
-			ESP.restart();
-		}
-	}
-
-	int16_t getOutdoorTemperature() {
-		static constexpr int16_t outdoorTemperatureIfInvalidRead = -2000;
-
-		std::optional<int16_t> temp;
-
+	std::optional<int16_t> getOutdoorTemperature() {
+		// Only the explicitly configured source may supply the curve. Substitution
+		// and source-specific degraded fallback need an accepted profile, not a guess.
 		if (boilerConfig_.boiler.outdoorSensor == config::BoilerConfig::outdoorSensor_t::openweather) {
-			temp = openWeather_.getTemperature();
+			return openWeather_.getTemperature();
 		} else if (boilerConfig_.boiler.outdoorSensor == config::BoilerConfig::outdoorSensor_t::ems) {
-			ems::EmsBoilerState &boilerState = ems_.getBoilerState();
-			std::lock_guard<std::mutex> lock(boilerState.mutex);
-			temp = boilerState.outdoorTemperature ;
-		} else {
-			// no temp sensor
+			return ems_.getOutdoorTemperature();
 		}
-
-		if (!temp.has_value()) { // try to get any valid temperature
-			DBGLOGFD(log_, logFeature_, "Outdoor temperature is invalid. Trying to get it from OpenWeather or EMS\n", "");
-			auto owtemp = openWeather_.getTemperature();
-
-			ems::EmsBoilerState &boilerState = ems_.getBoilerState();
-			std::lock_guard<std::mutex> lock(boilerState.mutex);
-
-			temp = owtemp.has_value() ? owtemp : boilerState.outdoorTemperature;
-		}
-
-		if (!temp.has_value()) {
-			DBGLOGFD(log_, logFeature_, "Outdoor temperature is invalid. Setting to -20C\n", "");
-			return outdoorTemperatureIfInvalidRead;
-		} else {
-			return temp.value();
-		}
+		return {};
 	}
 
 	std::vector<std::shared_ptr<heating::Room>> buildRoomsFromConfig() {
@@ -433,11 +434,19 @@ private:
 	std::string currentProgram_;
 	std::vector<std::shared_ptr<heating::Room>> rooms_;
 	std::unordered_map<std::string, uint8_t> valveLabelMap_{buildValveLabelMap()};
-	ib::PeriodicCounter lastReadTemperatureCounter_{5 * 60 * 1000}; // 5 mins in ms
 	BeaconTemperatureReader::BleDevices_t devicesFound_;
 	mutable std::mutex roomsAccessMutex_;
 
-	ems::EmsMetrics emsMetrics_{[this](uint16_t telegramId, std::function<void(heating::ems::EmsTelegram const &)> processor) { ems_.registerTelegramProcessor(telegramId, processor); }};
+	// Informational observation epoch only, never an authentication token / NVS value.
+	static std::string observationBootId() {
+		unsigned char bytes[16]; esp_fill_random(bytes,sizeof(bytes));
+		static constexpr char hex[]="0123456789abcdef";
+		std::string id(32,'0');
+		for(size_t i=0;i<16;++i) { id[2*i]=hex[bytes[i]>>4];id[2*i+1]=hex[bytes[i]&15]; }
+		return id;
+	}
+	ems::EmsMetrics emsMetrics_{[this](uint16_t telegramId, std::function<void(heating::ems::EmsTelegram const &)> processor) { ems_.registerTelegramProcessor(telegramId, processor); },
+		[] { return ib::getTimeMillis(); }, observationBootId()};
 
 	MQTT mqtt_{
 		log_,
@@ -449,7 +458,8 @@ private:
 		[this](std::ostream &ss) { getEMSStatus(ss);},
 		[this](std::string const &name, int16_t temperature, uint32_t seconds) {
 			return setRoomTemporaryTemperature(name, temperature, seconds);
-		}
+		},
+		[this](std::ostream &ss) { emsMetrics_.getRoomContext(ss); }
 		};
 };
 

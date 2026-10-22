@@ -34,16 +34,18 @@ async def async_setup_entry(
     radiator_entities: dict[str, RadiatorPower] = {}
     tracker: HeatingTracker = hass.data[DOMAIN][entry.entry_id]["heating_tracker"]
     online = False
+    active_keys: set[str] = set()
 
     @callback
     def handle_status(message: ReceiveMessage) -> None:
         nonlocal online
         online = message.payload == "on"
-        for entity in entities.values():
-            entity.set_online(online)
+        for key, entity in entities.items():
+            entity.set_online(online and key in active_keys)
 
     @callback
     def handle_rooms(message: ReceiveMessage) -> None:
+        nonlocal active_keys
         try:
             payload = json.loads(message.payload)
         except (TypeError, ValueError):
@@ -194,7 +196,7 @@ class RadiatorPower(NumberEntity, RestoreEntity):
 
     def update_from_tracker(self) -> None:
         room = self._tracker.rooms.get(self._key)
-        self._attr_available = self._tracker.online and room is not None
+        self._attr_available = self._tracker.room_available(self._key)
         if room is not None:
             self._attr_native_value = room.rated_power
         if self.entity_id is not None:

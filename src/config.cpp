@@ -1,4 +1,6 @@
 #include "config.h"
+#include "SetupNetwork.h"
+#include "DeviceNetworkSettings.h"
 #include "Board.h"
 #include "BeaconBleAddress.h"
 #include "Logging.h"
@@ -384,7 +386,7 @@ APConfig getAPConfig() {
 	file.close();
 
 	if (!network || network->type != cJSON_Object) {
-		DBGLOGFI(heating::logger, configLogFeature(), "Error parsing AP config\n'%s'\n", cfg.c_str());
+		DBGLOGFI(heating::logger, configLogFeature(), "Error parsing AP config (payload redacted)");
 		return {};
 	}
 
@@ -405,6 +407,10 @@ APConfig getAPConfig() {
 }
 
 WiFiConfig getWiFiConfig() {
+#ifdef OPENTHERMOSTAT_E32V2
+	WiFiConfig saved;
+	if(heating::readSetupWifi(saved)) return saved;
+#endif
 	File file = SPIFFS.open("/cfg/cfgwifi.json", FILE_READ);
 	if (!file) {
 		return {};
@@ -424,17 +430,20 @@ WiFiConfig getWiFiConfig() {
 }
 
 EmsConfig getEmsConfig() {
+#ifdef OPENTHERMOSTAT_E32V2
+	String cfg=heating::readDeviceNetworkSettings();
+#else
 	File file = SPIFFS.open("/cfg/cfgnetwork.json", FILE_READ);
-	if (!file) {
-		return {};
-	}
-
+	if (!file) { return {}; }
 	String cfg = file.readString();
+#endif
 	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(cJSON_Parse(cfg.c_str()), &cJSON_Delete);
+#ifndef OPENTHERMOSTAT_E32V2
 	file.close();
+#endif
 
 	if (!network || network->type != cJSON_Object) {
-		DBGLOGFI(heating::logger, configLogFeature(), "Error parsing device config\n'%s'\n", cfg.c_str());
+		DBGLOGFI(heating::logger, configLogFeature(), "Error parsing device config (payload redacted)");
 		return {};
 	}
 
@@ -446,22 +455,28 @@ EmsConfig getEmsConfig() {
 }
 
 NetworkConfig getNetworkConfig() {
+#ifdef OPENTHERMOSTAT_E32V2
+	String cfg=heating::readDeviceNetworkSettings();
+#else
 	File file = SPIFFS.open("/cfg/cfgnetwork.json", FILE_READ);
-	if (!file) {
-		return {};
-	}
-
+	if (!file) { return {}; }
 	String cfg = file.readString();
+#endif
 	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(cJSON_Parse(cfg.c_str()), &cJSON_Delete);
+#ifndef OPENTHERMOSTAT_E32V2
 	file.close();
+#endif
 
 	if (!network || network->type != cJSON_Object) {
-		DBGLOGFI(heating::logger, configLogFeature(), "Error parsing network config\n'%s'\n", cfg.c_str());
+		DBGLOGFI(heating::logger, configLogFeature(), "Error parsing network config (payload redacted)");
 		return {};
 	}
 
 //TODO getStringOptional and defaults
 	NetworkConfig config;
+#ifdef OPENTHERMOSTAT_E32V2
+	config.interfaceMode=json::getString(network.get(),"interface_mode")=="ethernet"?"ethernet":"wifi";
+#endif
 	config.hostname = json::getString(network.get(), "hostname");
 	config.listenPort = json::getInt(network.get(), "listenPort");
 
@@ -482,17 +497,20 @@ NetworkConfig getNetworkConfig() {
 }
 
 BluetoothConfig getBluetoothConfig() {
+#ifdef OPENTHERMOSTAT_E32V2
+	String cfg=heating::readDeviceNetworkSettings();
+#else
 	File file = SPIFFS.open("/cfg/cfgnetwork.json", FILE_READ);
-	if (!file) {
-		return {};
-	}
-
+	if (!file) { return {}; }
 	String cfg = file.readString();
+#endif
 	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(cJSON_Parse(cfg.c_str()), &cJSON_Delete);
+#ifndef OPENTHERMOSTAT_E32V2
 	file.close();
+#endif
 
 	if (!network || network->type != cJSON_Object) {
-		DBGLOGFI(heating::logger, configLogFeature(), "Error parsing bluetooth config\n'%s'\n", cfg.c_str());
+		DBGLOGFI(heating::logger, configLogFeature(), "Error parsing bluetooth config (payload redacted)");
 		return {};
 	}
 
@@ -511,17 +529,20 @@ BluetoothConfig getBluetoothConfig() {
 
 
 MqttConfig getMqttConfig() {
+#ifdef OPENTHERMOSTAT_E32V2
+	String cfg=heating::readDeviceNetworkSettings();
+#else
 	File file = SPIFFS.open("/cfg/cfgnetwork.json", FILE_READ);
-	if (!file) {
-		return {};
-	}
-
+	if (!file) { return {}; }
 	String cfg = file.readString();
+#endif
 	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(cJSON_Parse(cfg.c_str()), &cJSON_Delete);
+#ifndef OPENTHERMOSTAT_E32V2
 	file.close();
+#endif
 
 	if (!network || network->type != cJSON_Object) {
-		DBGLOGFI(heating::logger, configLogFeature(), "Error parsing Mqtt config\n'%s'\n", cfg.c_str());
+		DBGLOGFI(heating::logger, configLogFeature(), "Error parsing Mqtt config (payload redacted)");
 		return {};
 	}
 
@@ -532,6 +553,22 @@ MqttConfig getMqttConfig() {
 
 	MqttConfig config;
 	config.enabled = json::getBool(mqtt, "enabled");
+	config.modernShadow = json::getBool(mqtt, "modern_shadow");
+	config.adapterId = json::getString(mqtt, "adapter_id");
+#ifdef OPENTHERMOSTAT_E32V2
+    auto nativeSource=cJSON_GetObjectItemCaseSensitive(mqtt,"native_shadow_source");
+    if(nativeSource&&!cJSON_IsNull(nativeSource)) {
+        config.nativeSourceRequested=true;
+        auto raw=cJSON_PrintUnformatted(nativeSource);
+        if(raw) {
+            try {config.nativeSourceJson=raw;}
+            catch(const std::bad_alloc&) {config.nativeSourceJson.clear();}
+            cJSON_free(raw);
+        }
+        // Malformed/nonempty requested source is NOT an absent/default source.
+    }
+#endif
+
 	auto publishDiscovery = cJSON_GetObjectItemCaseSensitive(mqtt, "publishHomeAssistantDiscovery");
 	config.publishHomeAssistantDiscovery = publishDiscovery == nullptr || cJSON_IsTrue(publishDiscovery);
 	config.brokerAddress = json::getString(mqtt, "brokerAddress");
@@ -547,17 +584,20 @@ MqttConfig getMqttConfig() {
 }
 
 OpenWeatherConfig getOpenWeatherConfig() {
+#ifdef OPENTHERMOSTAT_E32V2
+	String cfg=heating::readDeviceNetworkSettings();
+#else
 	File file = SPIFFS.open("/cfg/cfgnetwork.json", FILE_READ);
-	if (!file) {
-		return {};
-	}
-
+	if (!file) { return {}; }
 	String cfg = file.readString();
+#endif
 	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(cJSON_Parse(cfg.c_str()), &cJSON_Delete);
+#ifndef OPENTHERMOSTAT_E32V2
 	file.close();
+#endif
 
 	if (!network || network->type != cJSON_Object) {
-		DBGLOGFI(heating::logger, configLogFeature(), "Error parsing openweather config\n'%s'\n", cfg.c_str());
+		DBGLOGFI(heating::logger, configLogFeature(), "Error parsing openweather config (payload redacted)");
 		return {};
 	}
 
@@ -587,7 +627,7 @@ BoilerConfig getBoilerConfig() {
 	file.close();
 
 	if (!root.get() || root->type != cJSON_Object) {
-		DBGLOGFI(heating::logger, configLogFeature(), "Error parsing boiler config\n'%s'\n", cfg.c_str());
+		DBGLOGFI(heating::logger, configLogFeature(), "Error parsing boiler config (payload redacted)");
 		return {};
 	}
 

@@ -6,6 +6,7 @@ namespace heating::ems {
 
 class UBAMonitorWWPlus : public EmsTelegram {
 public:
+	using EmsTelegram::EmsTelegram;
 	static constexpr uint16_t predefinedTypeId = 0x00E9;
 
 	void logData(ib::logger::LoggerInterface &log, ib::logger::LoggerInterface::LogFeatureType feature) const;

@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import json
 
 from homeassistant.components import frontend
 from homeassistant.components.lovelace.const import LOVELACE_DATA
@@ -12,6 +13,8 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.util import slugify
 
 from .const import DOMAIN
+from .product import is_product
+from .week_planner import ROOM_CARD_TYPE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -70,6 +73,10 @@ class RoomDashboard:
 
     async def async_start(self) -> None:
         """Register a Lovelace panel without changing the user's dashboards."""
+        entry = self.hass.config_entries.async_get_entry(self.entry_id)
+        if entry and is_product(entry):
+            from .week_planner import async_setup_planner
+            await async_setup_planner(self.hass)
         dashboards = self.hass.data[LOVELACE_DATA].dashboards
         if self.path in dashboards or frontend.async_panel_exists(self.hass, self.path):
             _LOGGER.warning("Cannot create OpenThermostat dashboard: %s is already used", self.path)
@@ -158,7 +165,9 @@ class RoomDashboard:
         registry = er.async_get(self.hass)
         devices = dr.async_get(self.hass)
         room_cards = []
-        heating_cards = []
+        heating_cards = [{
+            "type": "markdown", "content": "### Room models — not measured heat\nQualified request + boiler-reported CH is not proof of room flow or delivered heat. EN 442-style output assumes a 10 °C return drop and exponent 1.3. Unknown/stale inputs create gaps, not zero heat. Definition-v2 history starts separately; old totals are not copied."
+        }]
         for key in sorted(self._rooms):
             unique_id = f"{self.prefix}_room_{key}_climate"
             entity_id = registry.async_get_entity_id("climate", DOMAIN, unique_id)
@@ -176,8 +185,9 @@ class RoomDashboard:
                 ("sensor", "radiator_estimated_energy"),
                 ("number", "radiator_power"),
             ):
+                definition_suffix = "" if platform == "number" else "_v2"
                 entity_id = registry.async_get_entity_id(
-                    platform, DOMAIN, f"{self.prefix}_room_{key}_{suffix}"
+                    platform, DOMAIN, f"{self.prefix}_room_{key}_{suffix}{definition_suffix}"
                 )
                 if entity_id is not None:
                     heating_entities.append(entity_id)
@@ -193,7 +203,7 @@ class RoomDashboard:
         hub_entities = {
             entry.unique_id.removeprefix(f"{self.prefix}_hub_"): entry.entity_id
             for entry in er.async_entries_for_config_entry(registry, self.entry_id)
-            if entry.unique_id.startswith(f"{self.prefix}_hub_")
+            if entry.unique_id.startswith(f"{self.prefix}_hub_") and entry.disabled_by is None
         }
         diagnostic_entities = [
             hub_entities[metric]
@@ -203,8 +213,12 @@ class RoomDashboard:
         ems_entities = [
             hub_entities[metric]
             for metric in EMS_METRICS
-            if metric in hub_entities
+            if metric in hub_entities and metric not in {
+                "boiler_selected_hot_water_temperature","boiler_current_hot_water_temperature",
+                "boiler_hot_water_flow","boiler_hot_water_enabled"}
         ]
+        ems_entities += [hub_entities[key] for key in hub_entities
+                         if key.endswith("_v2") and key[:-3] in EMS_METRICS]
         polish = self.hass.config.language.lower().startswith("pl")
         rooms_title = "Pomieszczenia" if polish else "Rooms"
         diagnostics_title = "Diagnostyka" if polish else "Diagnostics"
@@ -224,6 +238,100 @@ class RoomDashboard:
                 "title": ems_title,
                 "entities": ems_entities,
             })
+        # Native read-only DHW card, driven only by the integration-owned status.
+        dhw_id = hub_entities.get("dhw_capabilities")
+        dhw_note = ("### Domestic hot water — read-only\n"
+                    "Observed protocol family is not a boiler-model qualification. "
+                    "Temperatures/enabled below are LAST REPORTED, with unverified source age, not live measurements. "
+                    "Classic activity is inferred; Classic flow is unreliable. "
+                    "Comfort, schedule/runtime and all DHW writes/resets are unsupported. Boiler priority is unchanged.")
+        if dhw_id:
+            quoted = json.dumps(dhw_id)
+            dhw_note += ("\n\nProfile: {{ state_attr("+quoted+", 'profile') or 'unknown' }}; status: {{ states("+quoted+") }}.\n"
+                "{% set fields = state_attr("+quoted+", 'fields') or {} %}"
+                "{% for key, field in fields.items() %}{% if field.supported_read %}"
+                "\n- {{ key | replace('_', ' ') }}: {{ field.value if field.value is not none else 'Unknown' }} "
+                "{{ field.unit or '' }} ({{ field.quality }}){% endif %}{% endfor %}")
+            diagnostics_cards.append({"type":"entities","title":"DHW capability and quality","entities":[dhw_id]})
+        else:
+            dhw_note += "\n\nNo DHW field contract on this transport. Unknown/unsupported is not zero or off."
+        diagnostics_cards.append({"type":"markdown","content":dhw_note})
+        # Native cards only. Reported selected flow is NOT a controller request,
+        # and burner modulation percentage is NOT measured kW or power factor.
+        def graph(title, keys, hours=24):
+            entities = [{"entity": hub_entities[key], "name": name}
+                        for key, name in keys if key in hub_entities]
+            return ({"type": "history-graph", "title": title,
+                     "hours_to_show": hours, "entities": entities} if entities else None)
+        boiler_cards = [{
+            "type": "markdown",
+            "content": ("EMS observations only: selected flow is the boiler-reported "
+                        "selection, not a proven E32 command. Unknown/stale data is "
+                        "not zero. Raw legacy status may lack per-field freshness; "
+                        "Classic flame/flow and physical operation require separate "
+                        "qualification. No inferred flame or pump state is added."),
+        }]
+        for card in (
+            graph("Reported flow selection and measured flow", (
+                ("boiler_selected_flow_temperature", "Reported selected flow"),
+                ("boiler_current_flow_temperature", "Reported current flow"))),
+            graph("Reported burner modulation (%) — not kW", (
+                ("boiler_burner_power", "Reported modulation (%)"),)),
+            graph("Reported CV / DHW / flame / pump", (
+                ("boiler_heating_active", "Reported CV"),
+                ("boiler_hot_water_active", "Reported DHW"),
+                ("boiler_burner_active", "Reported flame bit"),
+                ("boiler_pump_active", "Reported pump bit"))),
+        ):
+            if card:
+                boiler_cards.append(card)
+        analysis_cards = [{
+            "type": "markdown",
+            "content": ("Energy values below are boot-local nominal-modulation "
+                        "ESTIMATES, not gas/heat meters. Water volume integrates "
+                        "reported flow over observed intervals. Unknown intervals "
+                        "are not extrapolated. Historical legacy counters may use "
+                        "old definitions: no automatic statistics deletion, repair "
+                        "or mixing is performed. Legacy counter aggregate charts remain "
+                        "disabled; only isolated definition-v2 IDs are plotted, without backfill. Native History "
+                        "detail depends on Recorder retention; hourly statistics "
+                        "cannot reconstruct every burner transition."),
+        }]
+        counter_keys = ("energy", "energy_heating", "energy_warm_water", "energy_unattributed",
+                        "warm_water_usage", "burner_observed_time")
+        counters = [hub_entities[key + "_v2"] for key in counter_keys if key + "_v2" in hub_entities]
+        if counters:
+            analysis_cards.append({"type": "entities", "title": "Current reported / estimated counters",
+                                   "entities": counters})
+        # No unversioned ID can enter a new counter aggregate chart.
+        for title, keys in (
+            ("Definition-v2 estimated energy (not a meter)", ("energy", "energy_heating", "energy_warm_water", "energy_unattributed")),
+            ("Definition-v2 integrated reported water volume", ("warm_water_usage",)),
+            ("Definition-v2 observed reported-flame time", ("burner_observed_time",)),
+        ):
+            entities = [hub_entities[key + "_v2"] for key in keys if key + "_v2" in hub_entities]
+            if entities:
+                analysis_cards.append({"type": "statistics-graph", "title": title, "entities": entities,
+                                       "days_to_show": 7, "period": "day", "chart_type": "bar",
+                                       "stat_types": ["change"]})
+        # Room targets and observations stay separate, using registered IDs after rename.
+        for key in sorted(self._rooms):
+            entities = []
+            for metric, name in (("temperature", "Room observed"), ("temperature_set", "Room target")):
+                entity_id = registry.async_get_entity_id(
+                    "sensor", DOMAIN, f"{self.prefix}_room_{key}_{metric}")
+                if entity_id:
+                    entities.append({"entity": entity_id, "name": name})
+            if entities:
+                heating_cards.append({"type": "history-graph", "title": f"Room {key}: target / observed",
+                                      "hours_to_show": 24, "entities": entities})
+        entry = self.hass.config_entries.async_get_entry(self.entry_id)
+        if entry is not None and is_product(entry):
+            if self.hass.config.language.startswith("nl"):
+                rooms_title = "Ruimtes"
+            room_cards.extend({"type": "button", "name": sub.title + (" instellen" if self.hass.config.language.startswith("nl") else " settings"),
+                "icon": "mdi:cog", "tap_action": {"action": "navigate", "navigation_path": "/" + self.path + "/room-" + sub.data["room_id"]}}
+                for sub in entry.subentries.values() if sub.subentry_type == "zone")
         return {
             "views": [
                 {
@@ -232,11 +340,41 @@ class RoomDashboard:
                     "icon": "mdi:thermostat",
                     "cards": room_cards,
                 },
+                *([{
+                    "title": "Ruimtes instellen" if self.hass.config.language.startswith("nl") else "Room settings",
+                    "panel": True,
+                    "path": "week", "icon": "mdi:calendar-week",
+                    "cards": [{"type": ROOM_CARD_TYPE,
+                               "entry_id": self.entry_id, "room_id": sub.data["room_id"]}
+                              for sub in [s for s in self.hass.config_entries.async_get_entry(self.entry_id).subentries.values()
+                                          if s.subentry_type == "zone"][:1]],
+                }] if (self.hass.config_entries.async_get_entry(self.entry_id) is not None
+                       and is_product(self.hass.config_entries.async_get_entry(self.entry_id))) else []),
+                *([{"title": sub.title, "path": "room-" + sub.data["room_id"],
+                    "subview": True, "panel": True, "icon": "mdi:cog",
+                    "cards": [{"type": ROOM_CARD_TYPE, "entry_id": self.entry_id,
+                               "room_id": sub.data["room_id"]}]}
+                    for sub in self.hass.config_entries.async_get_entry(self.entry_id).subentries.values()
+                    if sub.subentry_type == "zone"] if (
+                        self.hass.config_entries.async_get_entry(self.entry_id) is not None
+                        and is_product(self.hass.config_entries.async_get_entry(self.entry_id))) else []),
                 {
                     "title": heating_title,
                     "path": "heating",
                     "icon": "mdi:radiator",
                     "cards": heating_cards,
+                },
+                {
+                    "title": "Boiler observations",
+                    "path": "boiler",
+                    "icon": "mdi:water-boiler",
+                    "cards": boiler_cards,
+                },
+                {
+                    "title": "Analysis",
+                    "path": "analysis",
+                    "icon": "mdi:chart-line",
+                    "cards": analysis_cards,
                 },
                 {
                     "title": diagnostics_title,

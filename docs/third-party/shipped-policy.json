@@ -1,0 +1,418 @@
+{
+  "schema": 1,
+  "receipt_source": "8b364f21df6923342d24dde070fcc99ac188e76c",
+  "artifacts": {
+    "build-evidence/e32v2/firmware.bin": {
+      "bytes": 2299632,
+      "sha256": "0b830c42a4415d83a7a57ea649ae3f13e4cd87a1b845e9d4dd8bd4582914a85b"
+    },
+    "build-evidence/e32v2/firmware.elf": {
+      "bytes": 38572220,
+      "sha256": "8a1fc5d309e29b4bd54921dcd804bf620cdabf89e756a221c439858642b09dfe"
+    },
+    "build-evidence/e32v2/firmware.map": {
+      "bytes": 21621932,
+      "sha256": "1c13d119c22c36b02820f0a740448c0e183e33cfc1271d1264b3afa82ef0020c"
+    },
+    "build-evidence/e32v2/spiffs.bin": {
+      "bytes": 4653056,
+      "sha256": "d983094279368d3420895f2b3e7a61630a34312d5a9a3bc055ec4a6a7a334258"
+    },
+    "build-evidence/e32v2/embedded-web.json": {
+      "bytes": 2180,
+      "sha256": "96859af7e1967a1ce5a827f6d04869e779fc1abf6042727608b69d542e9749f3"
+    },
+    "build-evidence/esp32s3/firmware.bin": {
+      "bytes": 1601728,
+      "sha256": "df3e280d53b041d5537cd12a4035674237ab4adecd64a6a5bac309880b33d74b"
+    },
+    "build-evidence/esp32s3/firmware.elf": {
+      "bytes": 36612640,
+      "sha256": "8fb61889dcc43297fe0548ee6d5144b057b02396b71c227b6a90366157a765c9"
+    },
+    "build-evidence/esp32s3/firmware.map": {
+      "bytes": 21678766,
+      "sha256": "3a981c8abc333db8cf7d097c9b8365960eac92fa345c71a9395c9b0bd1499fd0"
+    },
+    "build-evidence/esp32dev/firmware.elf": {
+      "bytes": 35079436,
+      "sha256": "dbe421be519124436b670cb7c961abee380ef1db5fea5fb600d072eaeb0c19e3"
+    },
+    "build-evidence/esp32dev/firmware.map": {
+      "bytes": 20885747,
+      "sha256": "3ea0c98f6dc9f474ae4a6d3dfd3ed253be7dade8d547ba3a6874c20633608d85"
+    }
+  },
+  "build_logs": {
+    "E32-BUILD.log": "d70f9f16267a0a7234d6b6441a22b3e4ad574c66316b7b1120a62979a9c77fc6",
+    "esp32s3-BUILD.log": "760542e26162707b1d716f5d0d95eef24220c6a2b137218a960246491c26a3d2"
+  },
+  "state": "LOCAL_BUILDS_NOT_PUBLISHED_ALPHA6",
+  "original_runtime_notices": [
+    {
+      "component": "arduino-sdk",
+      "installed_path": "cores/esp32/libb64/LICENSE",
+      "path": "docs/third-party/runtime-originals/arduino-sdk/cores/esp32/libb64/LICENSE",
+      "sha256": "834b7afa1b3c40289a3be775d3625016be1c0d7ea7a4a26c1eb207f53dc961d8",
+      "original_bytes": true
+    },
+    {
+      "component": "xtensa-toolchain",
+      "installed_path": "share/licenses/gcc/COPYING.RUNTIME",
+      "path": "docs/third-party/runtime-originals/xtensa-toolchain/share/licenses/gcc/COPYING.RUNTIME",
+      "sha256": "9d6b43ce4d8de0c878bf16b54d8e7a10d9bd42b75178153e3af6a815bdc90f74",
+      "original_bytes": true
+    },
+    {
+      "component": "xtensa-toolchain",
+      "installed_path": "share/licenses/gcc/COPYING3",
+      "path": "docs/third-party/runtime-originals/xtensa-toolchain/share/licenses/gcc/COPYING3",
+      "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+      "original_bytes": true
+    },
+    {
+      "component": "xtensa-toolchain",
+      "installed_path": "share/licenses/gcc/COPYING3.LIB",
+      "path": "docs/third-party/runtime-originals/xtensa-toolchain/share/licenses/gcc/COPYING3.LIB",
+      "sha256": "a853c2ffec17057872340eee242ae4d96cbf2b520ae27d903e1b2fef1a5f9d1c",
+      "original_bytes": true
+    },
+    {
+      "component": "xtensa-toolchain",
+      "installed_path": "share/licenses/newlib/COPYING.NEWLIB",
+      "path": "docs/third-party/runtime-originals/xtensa-toolchain/share/licenses/newlib/COPYING.NEWLIB",
+      "sha256": "dec5d419a7a4b27c064c8367a21e5d7b58aefc162719dc169bc4f82a88994859",
+      "original_bytes": true
+    },
+    {
+      "component": "library-Adafruit BusIO",
+      "installed_path": "LICENSE",
+      "path": "docs/third-party/runtime-originals/library-Adafruit BusIO/LICENSE",
+      "sha256": "86e9fafdb50d2a85d8fef369b4635b5a1b89160603e5b1f95484df0804b49508",
+      "original_bytes": true
+    },
+    {
+      "component": "library-ESPPubSubClientWrapper",
+      "installed_path": "LICENSE.txt",
+      "path": "docs/third-party/runtime-originals/library-ESPPubSubClientWrapper/LICENSE.txt",
+      "sha256": "64578b43ab5a8a6a38c333ac5945f3de2e47fb4eb8754b88936b7440d10ea295",
+      "original_bytes": true
+    },
+    {
+      "component": "library-NimBLE-Arduino",
+      "installed_path": "LICENSE",
+      "path": "docs/third-party/runtime-originals/library-NimBLE-Arduino/LICENSE",
+      "sha256": "1352de53fbef2f779adefaafb5568854c9532d1475955d1331f9f5427f9db713",
+      "original_bytes": true
+    },
+    {
+      "component": "library-NimBLE-Arduino",
+      "installed_path": "NOTICE",
+      "path": "docs/third-party/runtime-originals/library-NimBLE-Arduino/NOTICE",
+      "sha256": "f6ef45d67d7ae62672e48dfac088897f1027a2fafff69b8ccc60f3b54b7babff",
+      "original_bytes": true
+    },
+    {
+      "component": "library-NimBLE-Arduino",
+      "installed_path": "src/nimble/LICENSE",
+      "path": "docs/third-party/runtime-originals/library-NimBLE-Arduino/src/nimble/LICENSE",
+      "sha256": "0deb15bc7df50b1d009c644b008f92e1062909e9521328d337c5fad3a5d4921c",
+      "original_bytes": true
+    },
+    {
+      "component": "library-NimBLE-Arduino",
+      "installed_path": "src/nimble/NOTICE",
+      "path": "docs/third-party/runtime-originals/library-NimBLE-Arduino/src/nimble/NOTICE",
+      "sha256": "b838c4733a5020cd8e2bafbe70842acd8c8dc7816012965b77d10c1f4c0727f6",
+      "original_bytes": true
+    },
+    {
+      "component": "library-NimBLE-Arduino",
+      "installed_path": "src/nimble/ext/tinycrypt/LICENSE",
+      "path": "docs/third-party/runtime-originals/library-NimBLE-Arduino/src/nimble/ext/tinycrypt/LICENSE",
+      "sha256": "b2d451fcba3577b118741d733d37ebd15bdd0b6b381e554a7345bdbfa3743108",
+      "original_bytes": true
+    },
+    {
+      "component": "library-PubSubClient",
+      "installed_path": "LICENSE.txt",
+      "path": "docs/third-party/runtime-originals/library-PubSubClient/LICENSE.txt",
+      "sha256": "b416abfc7294f9279480389e4825463ac71b2b064b892aa7d95abd5d4b6edc63",
+      "original_bytes": true
+    },
+    {
+      "component": "library-RTClib",
+      "installed_path": "license.txt",
+      "path": "docs/third-party/runtime-originals/library-RTClib/license.txt",
+      "sha256": "6d594832648bfe9a8b0aa69ee21ce2c72f696170fcd3c21b82c3284174cd2c19",
+      "original_bytes": true
+    },
+    {
+      "component": "library-esp32_utilities",
+      "installed_path": "LICENSE",
+      "path": "docs/third-party/runtime-originals/library-esp32_utilities/LICENSE",
+      "sha256": "6fed9dea52e41a00c922ce48ec4db3e741ae502c3cf6ea4f07e0b9d71d20c0b6",
+      "original_bytes": true
+    }
+  ],
+  "external_libraries": {
+    "PubSubClient": {
+      "version": "2.8.0",
+      "component": "library-PubSubClient",
+      "origin": "http://pubsubclient.knolleary.net",
+      "license": "MIT",
+      "installed_tree_sha256": "a3a8f8e59262d5f6f1a0161541be9dbcf8d3aa02df3c4f30e5e4abc0c1ecd1b7",
+      "source_repository": "https://github.com/knolleary/pubsubclient.git"
+    },
+    "ESPPubSubClientWrapper": {
+      "version": "1.0.2",
+      "component": "library-ESPPubSubClientWrapper",
+      "origin": "https://github.com/EFWob/ESPPubSubClientWrapper",
+      "license": "MIT",
+      "installed_tree_sha256": "7533338de6ec1ebfe08598e15bb5ed33759813293149999f79f182d417a7e858",
+      "source_repository": "https://github.com/EFWob/ESPPubSubClientWrapper.git"
+    },
+    "RTClib": {
+      "version": "2.1.4",
+      "component": "library-RTClib",
+      "origin": "https://github.com/adafruit/RTClib",
+      "license": "MIT",
+      "installed_tree_sha256": "538c93eb1e16419ba0972be67eed9a3c38397fb5675cec1cd009b7ce18aae557",
+      "source_repository": "https://github.com/adafruit/RTClib"
+    },
+    "Adafruit BusIO": {
+      "version": "1.17.4",
+      "component": "library-Adafruit BusIO",
+      "origin": "https://github.com/adafruit/Adafruit_BusIO",
+      "license": "MIT",
+      "installed_tree_sha256": "f1407b8fe90c20abfd250afd9e959fd0b1e0335ab42ea00b2d84578bf9f61680",
+      "source_repository": "https://github.com/adafruit/Adafruit_BusIO"
+    },
+    "NimBLE-Arduino": {
+      "version": "2.5.1",
+      "component": "library-NimBLE-Arduino",
+      "origin": "https://github.com/h2zero/NimBLE-Arduino",
+      "license": "Apache-2.0 plus preserved component notices",
+      "installed_tree_sha256": "b85907ff0408d8337617b3591ab5541e6a0390de3cab52c8504d69f6a6e4cf99",
+      "source_repository": "https://github.com/h2zero/NimBLE-Arduino"
+    },
+    "esp32_utilities": {
+      "version": "1.0.0+sha.9186b65",
+      "source_commit": "9186b65fa1e598dfe93582126f97569700dc3a50",
+      "component": "library-esp32_utilities",
+      "origin": "https://github.com/intuibase/esp32_utilities.git",
+      "license": "MIT",
+      "installed_tree_sha256": "58ee49c8838fb78f5ff9c7a19a757e4e313ac4507c380af9ace60fcd6642f89d",
+      "source_repository": "https://github.com/intuibase/esp32_utilities.git"
+    }
+  },
+  "arduino_archives": [
+    "FrameworkArduino",
+    "WiFi",
+    "WiFiClientSecure",
+    "Preferences",
+    "Ethernet",
+    "FS",
+    "SPIFFS",
+    "Wire",
+    "SPI",
+    "HTTPClient",
+    "WebServer",
+    "ESPmDNS",
+    "DNSServer"
+  ],
+  "sdk": {
+    "package": "framework-arduinoespressif32",
+    "version": "3.20017.241212+sha.dcc1105b",
+    "arduino": "2.0.17",
+    "binary_idf": "v4.4.7-dirty",
+    "closure": "BLOCKED"
+  },
+  "toolchain": {
+    "version": "8.4.0+2021r2-patch5",
+    "cached_newlib_header_version": "3.3.0",
+    "closure": "BLOCKED exact runtime corresponding-source/relink mapping not proven",
+    "cached_newlib_header_path": "xtensa-esp32-elf/include/_newlib_version.h",
+    "cached_newlib_header_sha256": "93a397574a25b9c143cee7fcb86d8fc9a0c9ba418e4710a30d2d19ba1e4120db"
+  },
+  "ha": {
+    "source_candidate": "sha256:e1882bbb21cdba0b4adc72d413abe43aa14d5963d855c18574f5124c2af73eb8",
+    "manifest": "ha/config/custom_components/open_thermostat/manifest.json",
+    "source_files": {
+      "ha/config/custom_components/open_thermostat/__init__.py": "6318eab8dfdc9013083edc47b1cfc64874b079f65ade37c58f8b14a4687b2df2",
+      "ha/config/custom_components/open_thermostat/binary_sensor.py": "7b9a9c9508b2e1e437e78d3898cc50a2d223888c05c84910707f996504047986",
+      "ha/config/custom_components/open_thermostat/blueprints/low_battery.yaml": "2f7b26e1ae80e6a2ca516b80a2510641571f943808e47852f9ecdcf11839ae2c",
+      "ha/config/custom_components/open_thermostat/brand/dark_logo.png": "4ef4e17169a2bd49a9ae20e9fed05593c42cae77fc6de094a176ec5e648814dc",
+      "ha/config/custom_components/open_thermostat/brand/dark_logo@2x.png": "2e5593f4d5bd95b8e617b350a78a6ccb1bc4e4ba818a6d8ab013932c0050c6e5",
+      "ha/config/custom_components/open_thermostat/brand/icon.png": "786ada5a9f1c37f1c7986f6fead09f70448f790dabb819f4dddbe11dcb8d4629",
+      "ha/config/custom_components/open_thermostat/brand/icon@2x.png": "753dceaaff43e32eb1827bb0ee199f0ec0336bb0f09da4cb4e9c2d9ec56aedae",
+      "ha/config/custom_components/open_thermostat/brand/logo.png": "26728d234b59fc98f0eefc5de2a33256a385f00ce63ac42d5ccc02de84010a90",
+      "ha/config/custom_components/open_thermostat/brand/logo@2x.png": "492e932bd1f3cba7d67db3e9ec29f90955b88a6f3a9a0842a6393dbd9e5989b0",
+      "ha/config/custom_components/open_thermostat/climate.py": "4d3476f47ad4a132e36ac467103e52e01af64b547ff3ab51a15b86ff7d386303",
+      "ha/config/custom_components/open_thermostat/comfort_sources.py": "8a293ca9ae870b7f95969a35228a46b3c38d0ad87e9220b8210c58680fd91016",
+      "ha/config/custom_components/open_thermostat/compact_schedule.py": "de9bfabbb1b3a16ecfab5aa2346eeb9f5ead897ed1e2e61e3226c649457b4f4d",
+      "ha/config/custom_components/open_thermostat/config_flow.py": "ccd247b06b61e62dedbe9ace61e2c7129d2cbf015db3052432963932ee8bfab6",
+      "ha/config/custom_components/open_thermostat/const.py": "bde0d9e2a38e36c5ede813cdc7fd694df13094f276f472dd49a38529d5c09c5e",
+      "ha/config/custom_components/open_thermostat/dashboard.py": "c129e0cf31a72ddaa6d813e6daf0cf4069d119bf967326789cf63acdbbee1db2",
+      "ha/config/custom_components/open_thermostat/dhw.py": "371ef24125acd1d1d7836cb11b3be6eda962f2522e215628774035af6d023400",
+      "ha/config/custom_components/open_thermostat/diagnostics.py": "7232eb803ab0b56e69e43e993dccbefa7ea748c2f60f7b06e8d92cc8d337d132",
+      "ha/config/custom_components/open_thermostat/frontend/week-planner.js": "373110835372cf236fe1adfb32a024a59342bdbee208aae7b3b64cfcc26b8816",
+      "ha/config/custom_components/open_thermostat/graph_control_source.py": "c56e7c5ef071d6ec633fb0934083accbc586924cff8583b07a40b1b6c611b63b",
+      "ha/config/custom_components/open_thermostat/graph_draft_compile.py": "51a27db9813d0dd43132cea72b3730ddeb5ed8f9694c3ffc45d7e08b0cab344b",
+      "ha/config/custom_components/open_thermostat/graph_floor_bridge.py": "8508f315e04d582a7e7c9d36dc3f487c9ac754782d2b0c527aff9cae62db7872",
+      "ha/config/custom_components/open_thermostat/graph_shadow_storage.py": "5ec19597d842eef108c9c79da42db386ee3655903af40857fa39473fda402082",
+      "ha/config/custom_components/open_thermostat/graph_shadow_validation.py": "96d5d2866943ac755d74779cb38a03ceec65bd4f46e95eee9e4adc8c8fc6a2d4",
+      "ha/config/custom_components/open_thermostat/graph_topology_review.py": "8d88608ca8151c9661b388410c5b2cdcaa54a9ff2c2884c5dbc28dcd1c92da6f",
+      "ha/config/custom_components/open_thermostat/graph_wire.py": "18ff5318357d849572871e228a7c05a6324f7d950845b54cfcdf23b25321515d",
+      "ha/config/custom_components/open_thermostat/graph_wire_codec.py": "ec6210f215d820876fc9699eb435fd96d37070c50aeb5cbf8e90b20630956628",
+      "ha/config/custom_components/open_thermostat/heating.py": "ac2b8149ebf5fbdc1b38d9ee59b78b88bcad3657d3ea0e9246e9af28940133d4",
+      "ha/config/custom_components/open_thermostat/installation_group.py": "8db4915055beb47b06bc8f2b972a8c621770a79857d92a840cc3ce1ff6e72c33",
+      "ha/config/custom_components/open_thermostat/manifest.json": "9347d826a3b15fb3453b47f4682763a81cb93de4e05aa594287501658f9780dd",
+      "ha/config/custom_components/open_thermostat/metric_snapshot.py": "325a870fb02a2cb6fd428ec231b2407dec2bd89268a783f29a05ef3563697e55",
+      "ha/config/custom_components/open_thermostat/metrics_reports.py": "da1ddc6b8ea6f609361a61e9befdcaab5d21cdce1c8a0aedca3e33451ecb1f41",
+      "ha/config/custom_components/open_thermostat/native_form.py": "b98addfdb80a5e111c15367746d37ad2eb123e5f8f239ca88db541fe60563d3d",
+      "ha/config/custom_components/open_thermostat/native_plan.py": "a708b02797b59178d118781da9c242cea0a9410923d311e760f518d5f6a93d73",
+      "ha/config/custom_components/open_thermostat/native_provisioning.py": "a11eb1a84ae2d7fe48d0a503527bd85c1ad47aefc6dee39b03e10b0bd2748361",
+      "ha/config/custom_components/open_thermostat/number.py": "1fd3306d83234d84f17fe8d86f499075a798961e29d042abcb1bf15001c5bc5d",
+      "ha/config/custom_components/open_thermostat/plan_presentation.py": "f21501d62955c2943f2f415885a063663bc220759e06ca346d2a2036239608c9",
+      "ha/config/custom_components/open_thermostat/product.py": "477d32f17faa1654c3f5c7087da6143457bfbe5af7f5039f9df768306ccd6d4f",
+      "ha/config/custom_components/open_thermostat/product_flow.py": "89b4f0d18edb3c532cfe1d7f4e753b1f61fe5b68f6fc049d8f60c62395cd9851",
+      "ha/config/custom_components/open_thermostat/product_telemetry.py": "345df7f307d2f086720e9522ac0c397e55460b80903b445601784ac83bb79917",
+      "ha/config/custom_components/open_thermostat/program.py": "473fa465ff294d99a68bdb46d4d6fcd409b281eb02dd59e4c538916f12fb3e20",
+      "ha/config/custom_components/open_thermostat/room_editor.py": "8834615dbdf5ab95d9b5637e897191d68a28ee6d80eb962828b3bf12ff08cbbf",
+      "ha/config/custom_components/open_thermostat/room_identity.py": "a9fcccef665ddb40a96608a629199fe4c35e4f01abb5cdf48ef2e9041783c5de",
+      "ha/config/custom_components/open_thermostat/room_setup_flow.py": "ec07bb295632adcff5527805e8cc94427d51acd3ae265f67221584acdf33e8d5",
+      "ha/config/custom_components/open_thermostat/schedule_compiler.py": "06b9c484cd813f00da89d0efc79451ce959a6c19769d60a7db4affe0154697c9",
+      "ha/config/custom_components/open_thermostat/sensor.py": "c6607c7ea938d1ac75ba9f263874bd48800b22e4cc4050bc6635134df2b3e80c",
+      "ha/config/custom_components/open_thermostat/services.yaml": "d85bddee13a4fc2420c6be853e71c254df1171d495233e26cf67bd8ef2f69c81",
+      "ha/config/custom_components/open_thermostat/session_grant.py": "998736ceabce0ab82a43d5f747515435836e19bba6ef799be642a524011de014",
+      "ha/config/custom_components/open_thermostat/strings.json": "d613eb3e12c8712fa3f0dc717fed2dcb1cb010336334f5b27a2c77ddd2f7484a",
+      "ha/config/custom_components/open_thermostat/topology_control_source.py": "accfc185d85a14aeada50aec745f150f1f0d9138d123e78f442a8e7d9245d5d7",
+      "ha/config/custom_components/open_thermostat/translations/en.json": "d613eb3e12c8712fa3f0dc717fed2dcb1cb010336334f5b27a2c77ddd2f7484a",
+      "ha/config/custom_components/open_thermostat/translations/nl.json": "e0d14a019881f1d3a676f9fdc780b276bf3aa2a203ea161505263c2ca40640f7",
+      "ha/config/custom_components/open_thermostat/translations/pl.json": "60b63a47fe1fa06d96cfc4abc696997e365bdb33e10f3e0d8d3c0f5b9fac8485",
+      "ha/config/custom_components/open_thermostat/v1_bench_actions.py": "4ef3ab4741c09f3f1e33faa7837fb02f453baa7b21ff7b2bc0562a927861b416",
+      "ha/config/custom_components/open_thermostat/v1_bench_mqtt.py": "b158170cbfc049661d4be03a08f7da7ac1350162487ff9458b81d080e7c4b22f",
+      "ha/config/custom_components/open_thermostat/v1_bench_source.py": "3325828c4e123bfcd2ce31c460429b1f3bb7616b314fba05a011d06f36117fa4",
+      "ha/config/custom_components/open_thermostat/v1_climate.py": "f9c283ad4985724c36220776933e61f2b766b2224e05ec140610a47f9f95efc1",
+      "ha/config/custom_components/open_thermostat/v1_config_flow.py": "38062dd5d7b3c2585a28fcdedad4e76ba39bb467807352f7f73862b3b346218c",
+      "ha/config/custom_components/open_thermostat/v1_heating_draft.py": "eba2d9996fd9375c87f5b495f4900d957a93250c72879c7c46e45f4814fce606",
+      "ha/config/custom_components/open_thermostat/v1_heating_flow.py": "4c3e3cce141d9c7f77a215dac3752cf3520c1cfeea0389f5ce04570493b0e9e4",
+      "ha/config/custom_components/open_thermostat/v1_heating_graph.py": "71fce0993d10264c8a04ecc22b7245fef51f63d1aaa1bca5cf713030d732e697",
+      "ha/config/custom_components/open_thermostat/v1_heating_graph_flow.py": "c8db57e2319117c67fd7ce544884777283ee7e186abc98633e6cad5d552437f8",
+      "ha/config/custom_components/open_thermostat/v1_metrics.py": "f62523bee12fdf636db85e072c69346ce9369a5a73ce422d9529fc2a8b2d9dd3",
+      "ha/config/custom_components/open_thermostat/v1_model.py": "2baded41d5a2c01e145b0791fef6c2a41bf1d939a0f9b1101d71c7044de4a976",
+      "ha/config/custom_components/open_thermostat/v1_mqtt.py": "52bed31e90dc9eaac7edfd8b2804791452cc877580f2bec1ecadcc7576c91823",
+      "ha/config/custom_components/open_thermostat/v1_profile_c.py": "ec7bb16605813f53a1a8f84f2d40a5e24a83b0a653aaf0d4aca2a73eeb67d04a",
+      "ha/config/custom_components/open_thermostat/v1_program.py": "8597a0232105d44a0d90ee4d4fb41ae7ed6bdede64b0a8df09bf37eeb4f24db2",
+      "ha/config/custom_components/open_thermostat/v1_runtime.py": "8bddd795779a8a5d9e64df48f6567914093ea6a12aca0e7eef1de5e2b973389f",
+      "ha/config/custom_components/open_thermostat/v1_wire.py": "22a31a1b8b725578525189dff0354003a01f4a8ec7e6dea53bcda4ae00a11322",
+      "ha/config/custom_components/open_thermostat/week_planner.py": "8e39672d513172ad071c267d69c814233f4c888c606d554373887828aa9dfe71"
+    },
+    "platform_imports": [
+      "homeassistant",
+      "voluptuous",
+      "probatio"
+    ],
+    "requirements_state": "No separate custom requirement needed for probatio0.13.0: exact direct HA2026.10.2 requirement. Existing native platform supplies voluptuous transitively. Original installed metadata/RECORD/license bound; production HA version still UNKNOWN.",
+    "stdlib_scope": "Python3.14 test scope; unknown external imports remain blocked",
+    "source_git_parent": "55bdf84177a29d986fcd23b8fd790efa0e2a04ad",
+    "native_platform_evidence": {
+      "path": "docs/third-party/native-ha-validator.json",
+      "sha256": "5433ce5d998f80202659e42468122d42d0db210925bd5e7eb17e95a88f82bf0e",
+      "scope": "Native tested HA2026.10.2/real probatio0.13.0; not installed production platform proof"
+    }
+  },
+  "ca": {
+    "pem": "certs/cacert.pem",
+    "pem_sha256": "a41b5d356aea97a529fe27e0f7316d2f9d946d75927476cf9cf1b90637d00505",
+    "binary": "certs/github-ca-bundle.bin",
+    "binary_sha256": "49e7e1ca53f48330b1b507872f1447eb5f333632b6802282ec51aaab5640787c",
+    "origin": "https://curl.se/ca/cacert.pem",
+    "snapshot": "2026-09-25",
+    "source_metadata": "certs/README.md",
+    "notice_state": "BLOCKED exact dated Mozilla/curl source and applicable original data notice mapping unproven; no blanket license inferred"
+  },
+  "host_only": [
+    "OpenSSL host test/probe link dependencies",
+    "GoogleTest1.17.0",
+    "Unity2.6.1 cached test dependency",
+    "pytest9.1.1",
+    "paho-mqtt2.1.0 verification client"
+  ],
+  "f9": "All14 corrected candidate assessments remain rejected/insufficient,0/14arrival hits. Test-reference fix only; no production model benefit/adoption.",
+  "blocked": [
+    "sdk_prebuilt_component_source_notice_mapping",
+    "matching_complete_source_and_relink_offer_for_built_images",
+    "toolchain_runtime_exception_and_newlib_mapping_not_complete",
+    "ca_snapshot_original_notice_binding",
+    "ha_runtime_resolution_not_a_test_environment_claim",
+    "sdk_header_versions_are_not_complete_dirty_binary_component_sources"
+  ],
+  "cached_sdk_component_evidence": [
+    {
+      "component": "FreeRTOS",
+      "cached_header_version": "10.4.3",
+      "header_license_declaration": "MIT header text",
+      "linked_archive": "libfreertos.a",
+      "cached_header_path": "tools/sdk/esp32/include/freertos/include/freertos/FreeRTOS.h",
+      "cached_header_sha256": "244b71930fc5b1a9e3cd48ee9a2707d441b73f1f55884ae34dbb554b265b1c55",
+      "excerpt_path": "docs/third-party/runtime-originals/sdk-header-notices/FreeRTOS.txt",
+      "excerpt_sha256": "793d385d9371e0f2f0b3584869bd20dd331498c7730d56c51b2971d60f9163de",
+      "excerpt_byte_range": [
+        0,
+        1250
+      ],
+      "scope": "Exact original header comment excerpt, not complete binary/component source closure"
+    },
+    {
+      "component": "lwIP",
+      "cached_header_version": "2.1.2 esp/development macros",
+      "header_license_declaration": "BSD-3-Clause header text",
+      "linked_archive": "liblwip.a",
+      "cached_header_path": "tools/sdk/esp32/include/lwip/lwip/src/include/lwip/init.h",
+      "cached_header_sha256": "09efc5237bedc861dd66d3c357568eb3da0a9e9c4e5ac580502514a30cd0bfb4",
+      "excerpt_path": "docs/third-party/runtime-originals/sdk-header-notices/lwIP.txt",
+      "excerpt_sha256": "2cf9822a4684be37a9cee88b407c62ec09085c040cb663e89f013d1056ead64c",
+      "excerpt_byte_range": [
+        45,
+        1638
+      ],
+      "scope": "Exact original header comment excerpt, not complete binary/component source closure"
+    },
+    {
+      "component": "cJSON",
+      "cached_header_version": "1.7.17",
+      "header_license_declaration": "MIT header text",
+      "linked_archive": "libjson.a",
+      "cached_header_path": "tools/sdk/esp32/include/json/cJSON/cJSON.h",
+      "cached_header_sha256": "c01a8ca5609bb2c956dd1ae836d5d926ec68153ecebc5a75ea0febc2e076da8d",
+      "excerpt_path": "docs/third-party/runtime-originals/sdk-header-notices/cJSON.txt",
+      "excerpt_sha256": "b956744e36eb16b84337ea1062b35e52ddace01bf91c42bb3013a8031454a5b8",
+      "excerpt_byte_range": [
+        0,
+        1120
+      ],
+      "scope": "Exact original header comment excerpt, not complete binary/component source closure"
+    },
+    {
+      "component": "MbedTLS",
+      "cached_header_version": "2.28.7",
+      "header_license_declaration": "Apache-2.0 OR GPL-2.0-or-later SPDX in header",
+      "linked_archive": "libmbedtls_2.a",
+      "cached_header_path": "tools/sdk/esp32/include/mbedtls/mbedtls/include/mbedtls/version.h",
+      "cached_header_sha256": "d63dd5253dc2f4cae6abddf8358346c76abb244be820bdaebd00765f04e049d9",
+      "excerpt_path": "docs/third-party/runtime-originals/sdk-header-notices/MbedTLS.txt",
+      "excerpt_sha256": "35f4ac6af9a0cdf544fa4204c68c08c5a266a8fe8bf51bfb17922bb1ca93b659",
+      "excerpt_byte_range": [
+        69,
+        175
+      ],
+      "scope": "Exact original header comment excerpt, not complete binary/component source closure"
+    }
+  ],
+  "linked_sdk_evidence": {
+    "path": "docs/third-party/sdk-linked-archives.json",
+    "sha256": "78f6d0952c2a0856a0804c01efbcbc10d2bb5eb855a7fdc3f32daad122f20469"
+  }
+}

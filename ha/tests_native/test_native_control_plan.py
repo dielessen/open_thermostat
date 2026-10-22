@@ -115,6 +115,7 @@ async def native_plan(native_two,hass,monkeypatch,request):
             state=hass.data["open_thermostat"][parent.entry_id]
             runtime=state["v1_runtime"];connection=state["v1_connection"];client=connection.client
             client.clock=lambda:peer.clock[0]
+            runtime.clock=client.clock
             actual_receive=client._receive
             async def audited_receive(topic,payload):
                 try:return await actual_receive(topic,payload)

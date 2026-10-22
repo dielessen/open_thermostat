@@ -36,7 +36,8 @@ class ShadowTransport(Protocol):
 ReportProfile = Callable[[Any, str], QualifiedReport | None]
 
 class ShadowRuntime:
-    def __init__(self, hass: HomeAssistant, entry: Any, rooms: list[RoomBinding], *, graph_data_profile=None, context_source_profiles=(), controller_policy_source_profile=None, graph_controller_source=None,native_plan_source=None):
+    def __init__(self, hass: HomeAssistant, entry: Any, rooms: list[RoomBinding], *, graph_data_profile=None, context_source_profiles=(), controller_policy_source_profile=None, graph_controller_source=None,native_plan_source=None, clock: Callable[[], float] | None = None):
+        self.clock = clock if clock is not None else hass.loop.time
         if graph_data_profile is not None:
             from .graph_wire import GraphSourceProfile
             if not isinstance(graph_data_profile,GraphSourceProfile):
@@ -296,7 +297,7 @@ class ShadowRuntime:
 
         self._expiries[room.room_id] = async_call_later(
             self.hass, (room.maximum_age_ms - age_ms) / 1000, expired)
-        self._record(room.room_id, Observation(value, "qualified", math.ceil(age_ms), report.sample_key, self.hass.loop.time()))
+        self._record(room.room_id, Observation(value, "qualified", math.ceil(age_ms), report.sample_key, self.clock()))
 
     @callback
     def _withdraw(self, room_id: str, quality: str, value: float | None = None) -> None:
@@ -323,13 +324,13 @@ class ShadowRuntime:
                 if self._bench_owner == room_id:
                     continue
                 if observation.quality == "qualified":
-                    elapsed = max(0, self.hass.loop.time() - observation.observed_monotonic)
+                    elapsed = max(0, self.clock() - observation.observed_monotonic)
                     age = observation.source_age_ms + math.ceil(elapsed * 1000)
                     if age >= self.rooms[room_id].maximum_age_ms:
                         observation = Observation(None, "stale")
                     else:
                         observation = replace(observation, source_age_ms=age,
-                                              observed_monotonic=self.hass.loop.time())
+                                              observed_monotonic=self.clock())
                 await self._transport.async_observation(room_id, observation)
         except asyncio.CancelledError:
             raise

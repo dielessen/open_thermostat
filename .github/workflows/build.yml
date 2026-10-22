@@ -5,6 +5,7 @@ on: [push, pull_request]
 jobs:
   browser-regressions:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -122,6 +123,7 @@ jobs:
 
   home-assistant-native:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

@@ -77,6 +77,9 @@ async def bridge(native_two,hass,monkeypatch):
             state=hass.data["open_thermostat"][parent.entry_id]
             runtime=state["v1_runtime"];connection=state["v1_connection"];client=connection.client
             client.clock=lambda:peer.clock[0]
+            # Observation receipt, queued age and C++ peer share one virtual
+            # monotonic domain; host uptime must not affect source freshness.
+            runtime.clock=client.clock
             if key=="v2":client.journal.clock=lambda:peer.clock[0]
             else:
                 for r in (rad,floor):runtime.set_report_profile(r.room_id,source_profile)
@@ -280,6 +283,31 @@ async def test_existing_SOURCE_profile_does_not_follow_new_DATA_revision(bridge,
     with pytest.raises(GraphValidationError,match="bridge_profile_version"):wrong.validate()
     assert await profile.async_configuration(hass,n.parent)
     assert (await n.peer.request("status"))["writes"]==1 and not n.runtime.transport_ready
+
+@pytest.mark.asyncio
+async def test_virtual_receipt_queue_and_wire_age_share_one_clock_and_reject_expired(bridge,hass):
+    n=bridge;await n.control(await n.apply());await n.samples(16,16)
+    observation=n.runtime.observations[n.rad.room_id]
+    assert observation.quality=="qualified"
+    assert observation.observed_monotonic==n.peer.clock[0]
+    n.peer.clock[0]+=2
+    n.runtime._record(n.rad.room_id,observation)
+    await hass.async_block_till_done();await n.drain()
+    def reports():
+        return [json.loads(args["raw"]) for op,args,_ in n.peer.trace
+                if op=="receive" and args.get("topic")=="ha/observations"
+                and json.loads(args["raw"])["zone_id"]==n.rad.room_id]
+    row=reports()[-1]
+    assert row["source_available"]
+    assert row["source_sample_age_ms"]==observation.source_age_ms+2000
+    # A delayed queue must still withdraw evidence at the exact room-age limit.
+    expired=replace(observation,source_age_ms=0,
+        observed_monotonic=n.peer.clock[0]-n.rad.maximum_age_ms/1000)
+    n.runtime._record(n.rad.room_id,expired)
+    await hass.async_block_till_done();await n.drain()
+    row=reports()[-1]
+    assert not row["source_available"] and row["evidence"]=="unverified"
+    assert not n.runtime.decisions[n.rad.room_id].demand
 
 @pytest.mark.asyncio
 async def test_control_stop_dhw_and_unknown_second_sensor_keep_isolation(bridge):

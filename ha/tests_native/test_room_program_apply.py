@@ -123,3 +123,68 @@ async def test_invalid_selected_source_keeps_active_room_read_only_without_break
     model=ui.read_room(hass,n.parent.entry_id,n.rad.room_id)
     assert model['supported'] and not model['editable'] and not model['program_only']
     assert configuration_snapshot(n.parent)==before
+
+
+async def idle_with_current_state(n):
+    for _ in range(20):
+        n.peer.clock[0]+=1
+        await n.client.poll();await n.drain();await n.event('tick');await n.drain()
+    assert n.client.ready and n.client.current_native_room_state_verified
+    assert not n.client.native_plan_readback_ready
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('native_plan', [{'week': True, 'single': True, 'local_source': True, 'product': True}], indirect=True)
+async def test_program_save_after_idle_requests_fresh_real_readback_before_saving(native_plan,hass):
+    n=native_plan;await n.apply();await idle_with_current_state(n)
+    before_snapshots=sum(op=='receive' and kw.get('topic')=='ha/snapshot_request' for op,kw,_ in n.peer.trace)
+    async def reload(entry_id):
+        n.parent._async_set_state(hass,ConfigEntryState.UNLOAD_IN_PROGRESS,None)
+        await n.stop();n.parent._async_set_state(hass,ConfigEntryState.NOT_LOADED,None)
+        await n.start();n.parent._async_set_state(hass,ConfigEntryState.LOADED,None)
+        return True
+    n.reload.side_effect=reload
+    model=ui.read_room(hass,n.parent.entry_id,n.rad.room_id)
+    assert model['editable'] and not model['apply_pending']
+    settings=deepcopy(model['settings']);settings['base_centi_c']=2300
+    saved=await drive(n,ui.save_room(hass,n.parent.entry_id,n.rad.room_id,model['token'],settings),steps=2000)
+    assert saved['settings']['base_centi_c']==2300 and not saved['apply_pending']
+    assert sum(op=='receive' and kw.get('topic')=='ha/snapshot_request' for op,kw,_ in n.peer.trace)>before_snapshots
+    durable=await n.peer.request('durable_readback')
+    assert durable['writes']==2 and json.loads(durable['stored'])['revision']==2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('native_plan', [{'week': True, 'single': True, 'local_source': True, 'product': True}], indirect=True)
+async def test_idle_readback_loss_cannot_save_ha_intent_or_stage_any_plan(native_plan,hass,monkeypatch):
+    from custom_components.open_thermostat import controller_connection as operation
+    n=native_plan;await n.apply();await idle_with_current_state(n)
+    before=configuration_snapshot(n.parent);reloads=n.reload.call_count
+    model=ui.read_room(hass,n.parent.entry_id,n.rad.room_id)
+    settings=deepcopy(model['settings']);settings['base_centi_c']=2300
+    monkeypatch.setattr(operation,'CONNECTION_TIMEOUT',.08)
+    with pytest.raises(ValueError,match='^controller_readback_unconfirmed$'):
+        await drive(n,ui.save_room(hass,n.parent.entry_id,n.rad.room_id,model['token'],settings),drop_snapshots=True)
+    assert configuration_snapshot(n.parent)==before and n.reload.call_count==reloads
+    assert n.client.journal['staged'] is None and (await n.peer.request('durable_readback'))['writes']==1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('native_plan', [{'week': True, 'single': True, 'local_source': True, 'product': True}], indirect=True)
+async def test_credential_change_while_fetching_readback_cannot_save_room(native_plan,hass,monkeypatch):
+    n=native_plan;await n.apply();await idle_with_current_state(n)
+    before=configuration_snapshot(n.parent)
+    model=ui.read_room(hass,n.parent.entry_id,n.rad.room_id)
+    settings=deepcopy(model['settings']);settings['base_centi_c']=2300
+    original=n.connection.async_graph_command
+    async def changed(command,*args):
+        result=await original(command,*args)
+        if command=='readback':
+            hass.config_entries.async_update_entry(n.parent,data={**n.parent.data,'controller_password':'new-test-only'})
+        return result
+    monkeypatch.setattr(n.connection,'async_graph_command',changed)
+    with pytest.raises(ValueError,match='^setup_changed$'):
+        await drive(n,ui.save_room(hass,n.parent.entry_id,n.rad.room_id,model['token'],settings))
+    assert configuration_snapshot(n.parent)==before
+    assert n.parent.data['controller_password']=='new-test-only'
+    assert (await n.peer.request('durable_readback'))['writes']==1

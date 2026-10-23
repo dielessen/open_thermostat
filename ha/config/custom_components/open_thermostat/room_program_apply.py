@@ -50,7 +50,7 @@ async def save_active_program(hass, entry, sub, old, token, settings, *, binding
     from .v1_wire import digest
     from .v1_mqtt import async_room_schedule
     from .compact_schedule import compact_schedule
-    from .controller_connection import async_synchronise_controller_plan
+    from .controller_connection import async_synchronise_controller_plan, async_refresh_controller_readback
     context = active_program_context(hass, entry)
     if context is None:
         raise ValueError('runtime_active')
@@ -79,8 +79,7 @@ async def save_active_program(hass, entry, sub, old, token, settings, *, binding
         raise ValueError('invalid_integer_or_bounds')
     week = normalize_program(settings['week'], old.minimum_target_centi_c, old.maximum_target_centi_c)
     candidate = replace(old, name=name.strip(), base_centi_c=base, week_program=week)
-    if (not connection.client.native_plan_readback_ready
-            or connection.client.journal['staged'] is not None):
+    if connection.client.journal['staged'] is not None:
         raise ValueError('controller_plan_pending')
     start = dt_util.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     # Compile the COMPLETE installation, then replace only this candidate's
@@ -96,6 +95,11 @@ async def save_active_program(hass, entry, sub, old, token, settings, *, binding
     row = next(z for z in config['zones'] if z['zone_id'] == old.room_id)
     row.update(base_centi_c=base, schedule=compact_schedule(schedule) if schedule is not None else None)
     source.validate_plan(config)
+    # A healthy current room stream can outlive the initial config snapshot.
+    # Obtain a NEW bounded proof on the SAME worker before changing HA intent.
+    await async_refresh_controller_readback(hass, entry, source, before, connection,
+                                           private_expected=private_before)
+    _guard(hass, entry, sub, source, before, private_before)
     raw = {**deepcopy(dict(sub.data)), **candidate.as_dict()}
     replacement = replace(sub, data=MappingProxyType(raw), title=candidate.name)
     changed = replacement != sub

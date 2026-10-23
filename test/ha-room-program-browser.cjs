@@ -21,13 +21,14 @@ const initial={entry_id:'fixture',room_id:'room',supported:true,editable:true,pr
   await page.evaluate(async text=>{await import('data:text/javascript;base64,'+text)},source.toString('base64'));
   await page.evaluate(({initial,language})=>{
    window.model=structuredClone(initial);window.calls=[];window.saveMode='hold';
-   const card=window.card=document.createElement('openthermostat-room-editor-v18');document.querySelector('main').append(card);
+   const card=window.card=document.createElement('openthermostat-room-editor-v19');document.querySelector('main').append(card);
    card.setConfig({entry_id:model.entry_id,room_id:model.room_id});
    card.hass={language,user:{is_admin:true},callWS:async request=>{
     calls.push(structuredClone(request));
     if(request.type==='open_thermostat/room/get')return structuredClone(model);
     if(request.type==='open_thermostat/room/save'){
      const next={...structuredClone(model),settings:structuredClone(request.settings),token:'1'.repeat(64)};
+     if(saveMode==='readback_lost')throw {code:'controller_readback_unconfirmed'};
      if(saveMode==='uncertain'){model={...next,apply_pending:true};throw {code:'save_uncertain'};}
      if(saveMode==='hold')return new Promise(resolve=>window.finishSave=()=>{model={...next,apply_pending:false};resolve(structuredClone(model));});
      model={...next,apply_pending:false};return structuredClone(model);
@@ -35,7 +36,7 @@ const initial={entry_id:'fixture',room_id:'room',supported:true,editable:true,pr
     throw Error('Unexpected command');
    }};
   },{initial,language});
-  const nl=language==='nl',card=page.locator('openthermostat-room-editor-v18');await card.locator('#name').waitFor();
+  const nl=language==='nl',card=page.locator('openthermostat-room-editor-v19');await card.locator('#name').waitFor();
   const save=()=>card.locator('footer .primary');
   assert.equal(await page.evaluate(()=>calls.filter(c=>c.type.endsWith('/save')).length),0);
   assert(await card.locator('#name').isEnabled());assert(await card.locator('#base_centi_c').isEnabled());
@@ -65,6 +66,13 @@ const initial={entry_id:'fixture',room_id:'room',supported:true,editable:true,pr
   assert(await reapply.isEnabled());assert.equal(await page.evaluate(()=>calls.filter(c=>c.type.endsWith('/save')).length),2);
   await page.evaluate(()=>window.saveMode='ok');await reapply.click();await card.locator('#name:enabled').waitFor();
   assert(await save().isDisabled());assert.equal(await page.evaluate(()=>calls.filter(c=>c.type.endsWith('/save')).length),3);
+  await page.evaluate(()=>window.saveMode='readback_lost');await card.locator('#name').fill('Unsaved idle edit');await save().click();
+  await card.getByText(nl?'Er is niets opgeslagen;':'Nothing was saved;',{exact:false}).waitFor();
+  assert.equal(await card.locator('#name').inputValue(),'Unsaved idle edit');assert(await save().isEnabled());
+  assert.equal(await page.evaluate(()=>calls.filter(c=>c.type.endsWith('/save')).length),4);
+  assert.notEqual(await page.evaluate(()=>model.settings.name),'Unsaved idle edit');
+  await page.evaluate(()=>window.saveMode='ok');await save().click();await card.locator('#name:enabled').waitFor();
+  assert(await save().isDisabled());assert.equal(await page.evaluate(()=>calls.filter(c=>c.type.endsWith('/save')).length),5);
   assert.equal(await page.evaluate(()=>calls.every(c=>['open_thermostat/room/get','open_thermostat/room/save'].includes(c.type))),true);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
   results.push({size,language,result:'PASS',hardware_locked:true,graphical_temperature_block:true,wait_for_save:true,uncertain_draft_preserved:true,reapply_explicit:true,no_device_actions:true});await page.close();

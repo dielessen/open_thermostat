@@ -164,8 +164,10 @@ class NativeShadowConnection:
             raise
 
     async def async_graph_command(self, command, *args):
-        """Explicit stage/apply joins SAME bounded worker, never a parallel writer."""
-        if self.closed or self.worker is None or (self.graph_profile is None and self.runtime.native_plan_source is None) or command not in {"stage", "apply", "prepare"}:
+        """Explicit action joins SAME bounded worker; readback only requests DATA."""
+        if (self.closed or self.worker is None or (self.graph_profile is None and self.runtime.native_plan_source is None)
+                or command not in {"stage", "apply", "prepare", "readback"}
+                or command=="readback" and self.runtime.native_plan_source is None):
             raise ConfigEntryError("graph_profile_unavailable")
         future = self.hass.loop.create_future()
         try:
@@ -263,8 +265,12 @@ class NativeShadowConnection:
                     try:
                         if self.runtime.native_plan_source is not None:
                             if command=="stage":raise ConfigEntryError("native_plan_raw_stage_unsupported")
-                            result=await (self.client.async_prepare_native_plan() if command=="prepare"
-                                          else self.client.async_apply(*args))
+                            if command=="readback":
+                                if args:raise ConfigEntryError("native_plan_readback_arguments")
+                                result=await self.client.async_request_native_plan_readback()
+                            else:
+                                result=await (self.client.async_prepare_native_plan() if command=="prepare"
+                                              else self.client.async_apply(*args))
                         elif command=="prepare":
                             from .graph_draft_compile import async_compile_saved_graph
                             if args or self.graph_profile.draft_source is None:

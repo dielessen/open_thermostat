@@ -1,4 +1,14 @@
-# OpenThermostat Home Assistant 0.4.0.dev18 — testrelease
+# OpenThermostat Home Assistant 0.4.0.dev19 — testrelease
+
+Dev19 herstelt opslaan na langer geopende kamerinstellingen. Een verse
+kamerstatus bewijst niet dat de eerdere configuratie-uitlezing nog actueel is.
+Bij Alles opslaan vraagt de bestaande verbinding zo nodig eerst een nieuwe
+configuratiebevestiging op. Pas daarna wordt de ruimte opgeslagen en het
+gewijzigde plan via dezelfde regelaar bevestigd. De bestaande leeftijdsgrens
+blijft gelden; er worden geen bevoegdheden of bronkwalificaties gefabriceerd.
+Als die uitlezing ontbreekt, blijft het concept zichtbaar en wordt niets
+opgeslagen. Geen automatische herhaling van een wijziging. De live dev18-proef
+werd vóór opslaan geweigerd; 21°C en revisie1 bleven daarbij behouden.
 
 Bij een verbonden regelaar kun je nu de **naam, basistemperatuur en lokale
 weekblokken** direct in het kamerscherm wijzigen. Alles opslaan bewaart de
@@ -33,7 +43,7 @@ verandert geen apparaatinstellingen of fysieke aansturing.
 Dev16 herstelt de uitlezing voor Home Assistants eigen `MQTTDiscoveryPayload`-
 object. De regressietest gebruikt nu dat echte native object, ook samen met de
 werkelijke HA-MQTT-client en een lokale testbroker. De eerdere dev15-tag en
-bestanden blijven behouden; gebruik dev18 voor de actuele apparaatcontrole.
+bestanden blijven behouden; gebruik dev19 voor de actuele apparaatcontrole.
 
 Aanwezig sinds dev15: in het kamerscherm staat onder **Geavanceerde instellingen**
 **Apparaatinformatie controleren**. Dit leest uitsluitend op verzoek de laatst
@@ -70,7 +80,7 @@ De nieuwe E32-firmware wordt afzonderlijk getest en uitgebracht; deze release
 bevat uitsluitend de Home Assistant-integratie. Een opgeslagen instelling is
 nog geen bevestigde uitvoering op de E32.
 
-Download `OpenThermostat-HA-0.4.0.dev18.zip` en controleer de SHA256 met
+Download `OpenThermostat-HA-0.4.0.dev19.zip` en controleer de SHA256 met
 `HA-SHA256SUMS.txt`. Maak vóór installatie een back-up van de bestaande
 integratie/configuratie. Kopieer `custom_components/open_thermostat` uit de ZIP
 naar de Home Assistant-configuratiemap, controleer de configuratie en herstart

@@ -62,14 +62,15 @@ voorgewend; controleer de installatiestatus voordat je opnieuw probeert.
 
 Dit is een ontwikkelrelease. De normale HA→E32-configuratieketen is met dev14
 live bevestigd; de fysieke sensor-/kraan-/ketelproef en verwarmingsvrijgave
-zijn nog niet afgerond. Deze testversie blokkeert de kamereditor nog bij een
-actieve koppeling. Live wijzigen van de kamerinstellingen blijft vervolgwerk. De optionele externe kamerdoelbron,
-raamcontact en meerdere gekwalificeerde kraanprofielen zijn nog vervolgwerk.
+zijn nog niet afgerond. Naam, basistemperatuur en lokale weekblokken zijn in
+dev18 bij een actieve koppeling bewerkbaar. Apparaten en profielgrenzen wijzigen,
+de optionele externe kamerdoelbron, raamcontact en meerdere gekwalificeerde
+kraanprofielen blijven vervolgwerk.
 De nieuwe E32-firmware wordt afzonderlijk getest en uitgebracht; deze release
 bevat uitsluitend de Home Assistant-integratie. Een opgeslagen instelling is
 nog geen bevestigde uitvoering op de E32.
 
-Download `OpenThermostat-HA-0.4.0.dev16.zip` en controleer de SHA256 met
+Download `OpenThermostat-HA-0.4.0.dev18.zip` en controleer de SHA256 met
 `HA-SHA256SUMS.txt`. Maak vóór installatie een back-up van de bestaande
 integratie/configuratie. Kopieer `custom_components/open_thermostat` uit de ZIP
 naar de Home Assistant-configuratiemap, controleer de configuratie en herstart
@@ -86,7 +87,7 @@ op de ingestelde leeftijdsgrens worden geweigerd. Versheidscontroles blijven sta
 
 De pipeline bouwt beide benodigde C++-testprobes in een schone CI-omgeving.
 De mislukte `ha-v0.4.0.dev11`- en `ha-v0.4.0.dev12`-tags blijven behouden;
-daarvan is geen release gepubliceerd. Als dev11 al gezond is geïnstalleerd,
-is opnieuw installeren niet nodig voor de bestaande kamerbediening.
+daarvan is geen release gepubliceerd. Bestaande instellingen en apparaatkoppelingen
+blijven bij deze update behouden.
 Het pakket bevat `SOURCE.json`, oorspronkelijke projectlicentie en checksums.
 Geen live HA-opslag, firmware, ketelvrijgave of apparaatcommando's zijn inbegrepen.

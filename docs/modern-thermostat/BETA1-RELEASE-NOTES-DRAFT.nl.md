@@ -98,3 +98,10 @@ De herstelroute en fysieke aansluit-/stopvoorwaarden worden vóór vrijgave aan 
 exacte kandidaat gekoppeld. Dit concept verleent zelf geen publicatie- of installatieopdracht. De afzonderlijk
 geautoriseerde passieve alpha18/dev24-uitrol staat in WORKBOARD; die bewijst
 geen succesvolle fysieke ketelproef.
+
+- Taal: E32-menu en herstelpagina’s bieden English/Nederlands met een onthouden
+  browserkeuze; Engels is standaard en terugval. Vaste én dynamische teksten
+  gebruiken één catalogus. HA-kamerkaart/weekplanner volgt de HA-profieltaal;
+  Nederlandse native vertalingen zijn aangevuld. Statische opgeslagen
+  Lovelace-dashboardteksten blijven consequent Engels omdat ze geen taalcontext
+  per gebruiker hebben. Eigen namen en technische identifiers blijven behouden.

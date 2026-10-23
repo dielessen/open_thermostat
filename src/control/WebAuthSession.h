@@ -128,7 +128,7 @@ private:
 };
 
 inline bool publicAuthResource(std::string_view path) {
-    return path == "/login" || path == "/login.js" || path == "/auth-client.js" || path == "/auth/login";
+    return path == "/login" || path == "/login.js" || path == "/ui-language.js" || path == "/ui-messages.js" || path == "/auth-client.js" || path == "/auth/login";
 }
 inline bool loginDocument(std::string_view path) {
     return path == "/" || path == "/index.html" || path == "/recovery" || path == "/setup" || path == "/setup.html";

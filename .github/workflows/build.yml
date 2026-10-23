@@ -31,13 +31,14 @@ jobs:
           node test/updates/browser.cjs
           node test/dashboard-browser.cjs
           node test/boiler-display-browser.cjs
+          node test/ui-language-browser.cjs
           node test/boiler-test-browser.cjs
           node test/boiler-test-control-browser.cjs
           node test/ha-device-metadata-browser.cjs
           node test/ha-tv02-mode-browser.cjs
           node test/ha-room-program-browser.cjs
           node test/ha-planner-touch-browser.cjs
-          node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs
+          node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs test/ui-language.test.cjs
 
   source-reproduction:
     if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}

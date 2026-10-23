@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="180" height="274" viewBox="0 0 180 274" role="img" aria-labelledby="title desc">
   <title id="title">Nefit Ecomline Classic</title>
-  <desc id="desc">Schematische illustratie van een lichte wandketel met donker bedieningspaneel. Geen productfoto.</desc>
+  <desc id="desc">Schematic illustration of a light wall-mounted boiler with a dark control panel. Not a product photograph.</desc>
   <defs><linearGradient id="case" x2="1" y2="0"><stop stop-color="#e2e5e2"/><stop offset=".45" stop-color="#fcfcf5"/><stop offset="1" stop-color="#d3d9d6"/></linearGradient></defs>
   <ellipse cx="90" cy="265" rx="62" ry="6" fill="#173b40" opacity=".1"/>
   <path d="M38 235v24m29-24v24m46-24v24m29-24v24" stroke="#a3aaa4" stroke-width="7"/>

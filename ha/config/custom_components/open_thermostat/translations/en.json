@@ -296,6 +296,13 @@
           "end_time": "End time",
           "end_at_midnight": "End at midnight (ignore End time)",
           "temperature": "Target temperature"
+        },
+        "data_description": {
+          "days": "The same block is created on all selected days.",
+          "start_time": "The target temperature applies from this time. Preheating can start earlier when available.",
+          "end_time": "After this time the next block or base target applies.",
+          "end_at_midnight": "Extend the block to exactly midnight; the regular end time is then ignored.",
+          "temperature": "Desired temperature for this time block, within the room limits."
         }
       },
       "edit_block": {
@@ -680,7 +687,8 @@
             "frost_temperature": "Explicit frost target (not physical protection)",
             "override_minutes": "Temporary override duration (minutes)",
             "window_entity": "Zone window contact (optional; unknown pauses)",
-            "presence_entity": "Person (optional; unknown is not away)"
+            "presence_entity": "Person (optional; unknown is not away)",
+            "room": "Room"
           },
           "data_description": {
             "temperature_entity": "Select a separate room-temperature sensor (sensor entity), not the radiator valve, valve position or a target temperature. A TRV can measure differently near the radiator.",
@@ -758,6 +766,13 @@
             "end_time": "End time",
             "end_at_midnight": "End at midnight (ignore End time)",
             "temperature": "Target temperature"
+          },
+          "data_description": {
+            "days": "The same block is created on all selected days.",
+            "start_time": "The target temperature applies from this time. Preheating can start earlier when available.",
+            "end_time": "After this time the next block or base target applies.",
+            "end_at_midnight": "Extend the block to exactly midnight; the regular end time is then ignored.",
+            "temperature": "Desired temperature for this time block, within the room limits."
           }
         },
         "edit_block": {

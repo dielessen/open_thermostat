@@ -29,7 +29,8 @@ const fixture = () => ({reception: {state:'classic_reports_received', report_cou
       let body = fs.readFileSync(file); if (pathname.endsWith('.gz')) body = zlib.gunzipSync(body);
       return route.fulfill({contentType:pathname.endsWith('.css.gz')?'text/css':pathname.endsWith('.js')||pathname.endsWith('.js.gz')?'application/javascript':'text/html',body});
     });
-    await page.goto('http://boiler.test/');
+    await page.context().addCookies([{name:'ot_ui_lang',value:'nl',url:'http://boiler.test'}]);
+  await page.goto('http://boiler.test/');
     await page.waitForFunction(() => typeof loadNativePage === 'function');
     await page.evaluate(() => loadNativePage('boiler_test'));
     await page.locator('[data-reception]').filter({hasText:'Verse EMS Classic'}).waitFor();

@@ -6,7 +6,7 @@ Bijgewerkt 24 oktober 2026 na de oorspronkelijke TV02-rapportproducer.
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   125 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   157 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
@@ -197,3 +197,9 @@ Bij uitrol stond ontvangst uit; de latere README-opname bevestigt inmiddels
 passieve Classic-ontvangst, zonder volledige veldpariteit of actieve werking. Volg voor
 de eerstvolgende passieve praktijkstap het actuele werkbord; B04–B09 blijven
 open voor de actieve bèta, geen automatische verwarmingsvrijgave.
+
+24 oktober: tweetalige UI voorbereid in dezelfde bètabasis. E32 heeft centrale
+EN/NL-catalogus, Engelse standaard/terugval en browsercookie-keuze in menu,
+aanmelden en wifiherstel. HA volgt de profieltaal voor de kamereditor en native
+vertalingen; opgeslagen native dashboardteksten vallen terug op Engels. Geen
+apparaatinstallatie gedaan. Bewijs: `out/bilingual-ui-20261024/`.

@@ -69,7 +69,7 @@ TEST(WebAuth, LoginCooldownDoesNotDestroyValidSessions) {
     s.loginFailed(30100); EXPECT_TRUE(s.loginAllowed(30101)); s.loginSucceeded(); EXPECT_TRUE(s.loginAllowed(30101));
 }
 TEST(WebAuth, PublicResourcesAreExactAndCannotExposeControlOrRecovery) {
-    for(auto p:{"/login","/login.js","/auth-client.js","/auth/login"}) EXPECT_TRUE(publicAuthResource(p));
+    for(auto p:{"/login","/login.js","/auth-client.js","/auth/login","/ui-language.js","/ui-messages.js"}) EXPECT_TRUE(publicAuthResource(p));
     for(auto p:{"/auth/session","/auth/logout","/login.html","/login/../config/device","/status","/config/device","/ota","/otafs","/recovery","/setup/network"}) EXPECT_FALSE(publicAuthResource(p));
     EXPECT_TRUE(allowedHttpMethod("/auth/login","POST")); EXPECT_FALSE(allowedHttpMethod("/auth/login","GET"));
     EXPECT_TRUE(allowedHttpMethod("/auth/logout","POST")); EXPECT_FALSE(allowedHttpMethod("/auth/logout","GET"));

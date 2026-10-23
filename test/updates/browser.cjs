@@ -14,10 +14,12 @@ const assets=path.resolve(__dirname,'../../data/html');
    if(p==='/updates/status'){if(sim.drop)return route.abort();return route.fulfill({contentType:'application/json',json:sim});}
    if(p.startsWith('/updates/')){sim.posts.push({path:p,body:req.postDataJSON()});return route.fulfill({status:sim.accept?202:409,body:sim.accept?'Queued':'Injected rejection'});}
    if(p==='/ota'||p==='/otafs'){sim.posts.push({path:p});return route.fulfill({status:sim.uploadStatus,body:sim.uploadStatus===200?'success':'Injected upload failure'});}
-   if(p==='/'){++sim.navigations;return route.fulfill({contentType:'text/html',body:'<script src="/deps/jquery.min.js.gz"></script><script>const hostName="";function mainScreen(){}</script>'+fs.readFileSync(path.join(assets,'update.html'),'utf8')});}
+   if(p==='/'){++sim.navigations;return route.fulfill({contentType:'text/html',body:'<script src="/ui-messages.js"></script><script src="/ui-language.js"></script><script src="/deps/jquery.min.js.gz"></script><script>const hostName="";function mainScreen(){}</script>'+fs.readFileSync(path.join(assets,'update.html'),'utf8')});}
+   if(['/ui-language.js','/ui-messages.js'].includes(p))return route.fulfill({contentType:'text/javascript',body:fs.readFileSync(path.join(assets,p))});
    if(p==='/deps/jquery.min.js.gz')return route.fulfill({contentType:'text/javascript',body:zlib.gunzipSync(fs.readFileSync(path.join(assets,p)))});
    return route.fulfill({status:404,body:'not found'});
   });
+  await page.context().addCookies([{name:'ot_ui_lang',value:'nl',url:'http://opth.test'}]);
   await page.goto('http://opth.test/');await page.waitForFunction(()=>document.getElementById('installedVersion').textContent.startsWith('v'));
  }
  try {

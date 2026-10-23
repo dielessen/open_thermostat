@@ -38,9 +38,10 @@ const program=id=>({room_id:id,base_temp:2000,temp_margin_up:5,temp_margin_down:
    }
    if(p==='/') {
     const content=fs.readFileSync(path.join(assets,mode==='catalog'?'room_setup.html':mode==='management'?'room_management.html':'rooms.html'),'utf8');
-    return route.fulfill({contentType:'text/html',body:`<link rel="stylesheet" href="/deps/bs.min.css.gz"><link rel="stylesheet" href="/deps/bms.min.css.gz"><script src="/deps/jquery.min.js.gz"></script><script src="/deps/bs.bundle.min.js.gz"></script><script src="/deps/bms.min.js.gz"></script><script>const hostName='';function validateResponse(r){if(!r.ok)throw Error(r.statusText);return r;}function validateForm(s){return document.querySelector(s).checkValidity();}</script><div id="${mode==='management'?'maincontainer':'roomProgramsPane'}">${content}</div>`});
+    return route.fulfill({contentType:'text/html',body:`<script src="/ui-messages.js"></script><script src="/ui-language.js"></script><link rel="stylesheet" href="/deps/bs.min.css.gz"><link rel="stylesheet" href="/deps/bms.min.css.gz"><script src="/deps/jquery.min.js.gz"></script><script src="/deps/bs.bundle.min.js.gz"></script><script src="/deps/bms.min.js.gz"></script><script>const hostName='';function validateResponse(r){if(!r.ok)throw Error(r.statusText);return r;}function validateForm(s){return document.querySelector(s).checkValidity();}</script><div id="${mode==='management'?'maincontainer':'roomProgramsPane'}">${content}</div>`});
    }
    if(p==='/room_setup.html'||p==='/rooms.html')return route.fulfill({contentType:'text/html',body:fs.readFileSync(path.join(assets,p),'utf8')});
+   if(['/ui-language.js','/ui-messages.js'].includes(p))return route.fulfill({contentType:'application/javascript',body:fs.readFileSync(path.join(assets,p))});
    if(p.startsWith('/deps/'))return route.fulfill({contentType:p.endsWith('.css.gz')?'text/css':'application/javascript',body:zlib.gunzipSync(fs.readFileSync(path.join(assets,p)))});
    return route.fulfill({status:404,body:'not found'});
   });

@@ -56,7 +56,7 @@
       "files": [
         {
           "path": "src/control/WebAuthSession.h",
-          "sha256": "2fc6299394ffb94c05ac8196519259a932c492ddad84d5458f2f2a4798437529"
+          "sha256": "5059a9656758ae1fd992b3f59c74bae6a87b6267d6d68ea8f66709fd59ab3fef"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
@@ -64,7 +64,7 @@
         },
         {
           "path": "data/html/auth-client.js",
-          "sha256": "3d2ff3c3a3054f6e4a45f45cbec629e4f16cb7faf71abfa3426593417f64ff59"
+          "sha256": "c8cb84979ed1672833a15f637f14673f018684aaeb80a4daff8e2f583358a363"
         }
       ],
       "remaining_acceptance": "Fysieke AP-/uitval-/herstelmatrix blijft apart."
@@ -110,14 +110,14 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "b635f50f2456210956f860d81b66b9dc579261133ac14679f402de004353ea8d"
+          "sha256": "2ec2510996a273bea4777d7a049ca470477da0f2ef01233e7c80b2d3c476fdb5"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
     },
     {
       "id": "I05",
-      "title": "About, uitloggen rechts en herstart onder Settings",
+      "title": "About, navigatie, ketelillustratie en EN/NL-interface",
       "status": "geleverd",
       "include_in_beta": true,
       "requirements": [
@@ -126,15 +126,15 @@
       "files": [
         {
           "path": "data/html/about.html",
-          "sha256": "22a57d48c200c5b1349fd36d26a865ef8dd6da6f46ce1c349e250387c149607a"
+          "sha256": "0c0b472ffa0082c6d07e382e6df36979d59fd331dda9dc7c81d0ba3115ede988"
         },
         {
           "path": "data/html/index.html",
-          "sha256": "054a43a52e863654a2a8f51ad73e01e6e2a9da475ec8ffdcc471aa342fecc6f5"
+          "sha256": "7316a224d702ef142a37d55a8cea7d180036605c2db90dfdd3023434daf98daa"
         },
         {
           "path": "data/html/device-restart.js",
-          "sha256": "e42ca502023c50783bcdee4ec8509c3720ab423ce84a93a0d020943ce97493f6"
+          "sha256": "721fe1c1679ef732283a39551c4727c82db7ff62ec20ede2d1382fbcb2f70fd6"
         },
         {
           "path": "src/BoilerDisplay.h",
@@ -142,15 +142,15 @@
         },
         {
           "path": "data/html/boiler-display.js",
-          "sha256": "d195547f17836486d738d5136c06f3e610ea49da44b2ff5b199a11c86e49cf11"
+          "sha256": "868d234144b49a307a06691e01eb0540bd79f8a762996ce791dcbcc772ccd8be"
         },
         {
           "path": "data/html/boiler_display.html",
-          "sha256": "3ecf32479e553654cbb95b5f47be11088eac1cb4c40d161d1e7a458430894135"
+          "sha256": "58a3d1ac716375508f30b1101405b7e092cd63d0165ea96ae4b5f46dd4a6fbd3"
         },
         {
           "path": "data/html/boiler-nefit-ecomline.svg",
-          "sha256": "141ec50fa3242bd45d29ab5b365a2b94c3d5b742233f5340de53f11dd4467c22"
+          "sha256": "88b80e2e76345e34960afa9724ac1d356df2a2cda99d94d00d44c287412d0fef"
         },
         {
           "path": "test/boiler_display/firmware.cpp",
@@ -162,11 +162,139 @@
         },
         {
           "path": "test/boiler-display-browser.cjs",
-          "sha256": "e80b409c4db3fb95f41fe4b5dbed2d2bfadf22df5ec26849b86204ebf81548fd"
+          "sha256": "ca1322a16b2accdeaa591741c2925a1cd545b835aa2fe4576a9330271fcb6414"
         },
         {
           "path": "platformio.ini",
-          "sha256": "718d49d83fd55090a91e3c1de5793d8024d324bd3a700593df61013b7d2f7b61"
+          "sha256": "95b45f52f2787482c850b5e02fb2495a138b1250087889ae1dd7fa51b8f25e71"
+        },
+        {
+          "path": "data/html/curve.html",
+          "sha256": "185a3e86baa79a40638c66c9dba4aa18775d09b4e8aaa34d9459eef82174cfd3"
+        },
+        {
+          "path": "data/html/hardware.html",
+          "sha256": "888bb5cfe0b7402ef27842e9fcd15bb807da0cb17394ee58d864ad08f17ad75a"
+        },
+        {
+          "path": "data/html/login.html",
+          "sha256": "90e23679c282733d3b2f7562034dfd1767cb295f3008552291083af70eceebcf"
+        },
+        {
+          "path": "data/html/login.js",
+          "sha256": "18fa18916a2be30417d0836eb585215078cb8f7f73ded636f544f94bf8e1bb71"
+        },
+        {
+          "path": "data/html/network.html",
+          "sha256": "15b3bfe54baeaa08cc7675534598bea43c9d5080a1ce79de2c0d4ff98f0ba685"
+        },
+        {
+          "path": "data/html/program.html",
+          "sha256": "2b1ead75161eb27d7b4fd4741066ca33872cbe042546e7d0fbb61237d0a21b69"
+        },
+        {
+          "path": "data/html/room_management.html",
+          "sha256": "f3d6dfe9aecb6fe304dc6b78c7d6e45c3131157d9bc098191cb0ce1dc6020135"
+        },
+        {
+          "path": "data/html/room_setup.html",
+          "sha256": "ec9752e7b0f21a76e6a3cdc087c5d0bbb651cf8e5d2920eafbf5fb75f76ab398"
+        },
+        {
+          "path": "data/html/rooms.html",
+          "sha256": "43618566fc504dc768f067710756ad875c3eecc6e9cd265b579a4a5d63f4714e"
+        },
+        {
+          "path": "data/html/setup.html",
+          "sha256": "8035fcb784d97243c79117a9fcf2ce7de00974b01cf2e411473571ee2ba7b786"
+        },
+        {
+          "path": "data/html/setup.js",
+          "sha256": "ef1bbbc3d207ed9371a0a5c98be2e1cf8f8a26ffa592ca542566c1b3823e41d1"
+        },
+        {
+          "path": "data/html/update.html",
+          "sha256": "f583a2cc3708761549dcc947706a6e920bc3108c5399a83f55230c3ac01c6dc5"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/strings.json",
+          "sha256": "b3892ec1072b34b7826ab19192c06c3b5f07d82dbdc1af5aaa9ca50c14cb1644"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/translations/en.json",
+          "sha256": "b3892ec1072b34b7826ab19192c06c3b5f07d82dbdc1af5aaa9ca50c14cb1644"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/translations/nl.json",
+          "sha256": "81a305cb51465841f94419dc24d6e880605b0f5ba0ff0c1249a84bb4b2471b70"
+        },
+        {
+          "path": "src/control/CaptivePortalPolicy.h",
+          "sha256": "bdb822d782d7e623a8a2661fb238743b2133e7c49379288bce5b69c271453ff5"
+        },
+        {
+          "path": "test/dashboard-browser.cjs",
+          "sha256": "538d1c1a65c8056ebf17a0eb0c22dc1eba6d5536c4d954a83b50128ac510d151"
+        },
+        {
+          "path": "test/device_restart.test.cjs",
+          "sha256": "b0127e3c5d4c85af6381846f00ef8a4b52d124dda22c8e90ef08ccdd38b65dd3"
+        },
+        {
+          "path": "test/managed_gui.test.cjs",
+          "sha256": "eb067b2172fde0c780079281e4e3546ba5f4fa032f344caed864b3d2b230af54"
+        },
+        {
+          "path": "test/onboarding/browser.cjs",
+          "sha256": "b6701d389e285e7e66f37705f9f5020d49245cafb00462977dab64b6908d605a"
+        },
+        {
+          "path": "test/onboarding/network-browser.cjs",
+          "sha256": "ddf91efef7ed64f2bacf6f0d40e87eeeb43313a6cba0fb2d0b967e0ea69018ff"
+        },
+        {
+          "path": "test/rooms/browser.cjs",
+          "sha256": "2f518b63e807873460155a370e6853957b546a8cf01546255730bf078a92845a"
+        },
+        {
+          "path": "test/root_status_render.test.cjs",
+          "sha256": "f8912e3896c82395b68201f5961cbc5f7fa688b13a78ff04163be725cb6763fc"
+        },
+        {
+          "path": "test/test_native/test_http_access.cpp",
+          "sha256": "d870504990f21fcfd90e7ee7ec1ff8f61bfce4f52b219e52ac351f003713eff7"
+        },
+        {
+          "path": "test/test_native/test_web_auth.cpp",
+          "sha256": "df2230a2915c7bf5c85ee052bcae70d51a0fc471734b39fcb51890c558ef11a0"
+        },
+        {
+          "path": "test/updates/browser.cjs",
+          "sha256": "2624a766edc2b8f3168c09fe742e2636df6cdc5cb6945ebb5681ea9f3304906c"
+        },
+        {
+          "path": "test/web_auth_client.test.cjs",
+          "sha256": "298b4ea3f674eba3246b5443f2e98b1f09420c5b058cf7c8472417ecd98afe22"
+        },
+        {
+          "path": "data/html/ui-messages.js",
+          "sha256": "aacc39b63370fffcc055c0786fa37bc63f9ce63e5c43971e13c3e17c2ade54f7"
+        },
+        {
+          "path": "data/html/ui-language.js",
+          "sha256": "b9a7934d744dfba892deec72f1d556cee321550dbf26eeaead7a0005ad5950c6"
+        },
+        {
+          "path": "test/helpers/ui-language.cjs",
+          "sha256": "5d4652cfba557dd33d64af3225736ddcbe82412e62f5950fe9b1721cd97ffb48"
+        },
+        {
+          "path": "test/ui-language.test.cjs",
+          "sha256": "2634f07dab7329c83308b51043fcf1f31509a06973607ae99b7fa3ff8251b1dd"
+        },
+        {
+          "path": "test/ui-language-browser.cjs",
+          "sha256": "f5376a4a82e03c9bb5878c1cfd3193a99be179ce882e79fecdc72fbccbd5ba38"
         }
       ],
       "remaining_acceptance": "Behouden; bevestiging/herstartguards opnieuw in eindregressie. Nieuw: Mijn ketel/NVS-keuze en Home-illustratie voorbereid met 3 browserprofielen en originele opslaghelper-foutinvoer; 3 boardbuilds/OTA-groottes/E32-layout/no-TX/embedded-assets PASS op b3920ef, samen 8 browserprofielen PASS; gezamenlijke eindfreeze en uitrol blijven open. Geen technische ketelvrijgave door modelkeuze."
@@ -290,7 +418,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "f772b418aa5f4c30fa56739f9b31a954f6be4ae2fd625732662ff7d604c7fe11"
+          "sha256": "cc2f87fc2dbe4ff39057e1b58cc55cc5cb19ac031023f314081756c5756a06b5"
         }
       ],
       "remaining_acceptance": "Badkamer live bevestigd; geen nieuwe seriële opname van de logstilte."
@@ -568,7 +696,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/dashboard.py",
-          "sha256": "c129e0cf31a72ddaa6d813e6daf0cf4069d119bf967326789cf63acdbbee1db2"
+          "sha256": "3adb16ca6522eddc8eeab5978c21164d215f50420bd7bb0dee1b3063c94a2135"
         },
         {
           "path": "src/control/MetricsTelemetry.h",
@@ -715,7 +843,7 @@
       "files": [
         {
           "path": "data/html/boiler_test.html",
-          "sha256": "45968943440e9048c27ac6a6347f2de4a2e0394f96ac52ea720d4d5690a7f368"
+          "sha256": "4f64791eb41879788300e5bfad2e1e0c64f2f59a558de5494b12027ff45e8203"
         },
         {
           "path": "src/EmsController.h",
@@ -727,7 +855,7 @@
         },
         {
           "path": "test/boiler-test-browser.cjs",
-          "sha256": "7b2ab51e06d423ee755a5f12bad4c588f68c1bbd728cf68abfef8ea86539cf2e"
+          "sha256": "b3cccd5b1e764482bc28a8c7dbbe90bb3e2a67f64199ad6614883c54ad167b32"
         }
       ],
       "remaining_acceptance": "Alle 69 velden/rapport en maximaal 24 ontvangen typen getest op 1280/390/320 px; bestaande actieve-proefguards eveneens. Drie boardbuilds en E32-layout/defaults/no-TX-objectcontrole PASS. Nieuwe bron nog niet uitgerold. Native HA-projectie voor alle 69 velden voorbereid en getest in broncheckpoint 60c548f; nog niet geïnstalleerd. Fysieke veldvalidatie blijft open."
@@ -803,7 +931,7 @@
         },
         {
           "path": "test/boiler-test-control-browser.cjs",
-          "sha256": "725d329446e0cadbc958c7adacb6ea508e8c6834c18f93cc357a30124f5907eb"
+          "sha256": "26ee5d8062532c3fbe4b2e6d6230cf722481ab2a04d0014490b4a7edbf8b3c26"
         },
         {
           "path": "src/EMS/BoilerTestPollDriver.h",

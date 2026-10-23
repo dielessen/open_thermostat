@@ -12,7 +12,7 @@ function rootPage(){
  const main=new Element();
  const document={createElement:()=>new Element(),createTextNode:x=>x,getElementById:()=>main,querySelectorAll:()=>[]};
  const jq=()=>({on(){},ready(){},css(){}});
- const context={document,$:jq};vm.createContext(context);
+ const context={document,$:jq};Object.assign(context,require('./helpers/ui-language.cjs')('nl'));vm.createContext(context);
  for(const script of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))
   vm.runInContext(script[1],context,{filename:'data/html/index.html',lineOffset:html.slice(0,script.index).split('\n').length-1});
  context.main=main;return context;
@@ -21,7 +21,7 @@ function rendered(element){return element.innerHTML+element.children.map(rendere
 test('actual metadata-only live status commits root and uptime instead of throwing',()=>{
  const p=rootPage();p.updateRooms(fixture);
  assert.equal(p.main.children.length,1);
- const html=rendered(p.main);assert.match(html,/uptime:/);assert.match(html,/22:29:24/);
+ const html=rendered(p.main);assert.match(html,/actief sinds:/);assert.match(html,/22:29:24/);
  assert.doesNotMatch(html,/NaN|undefined|Infinity/);
 });
 test('missing/null/non-finite/non-numeric temperatures are unavailable, not zero or NaN',()=>{

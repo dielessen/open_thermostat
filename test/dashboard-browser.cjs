@@ -17,6 +17,7 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
    let body=fs.readFileSync(file);if(p.endsWith('.gz'))body=zlib.gunzipSync(body);
    return route.fulfill({contentType:p.endsWith('.css.gz')?'text/css':p.endsWith('.js')||p.endsWith('.js.gz')?'application/javascript':'text/html',body});
   });
+  await page.context().addCookies([{name:'ot_ui_lang',value:'nl',url:'http://opth.test'}]);
   await page.goto('http://opth.test/');await page.locator('.pd-room').first().waitFor();
   assert.equal(await page.locator('.pd-room').count(),8);assert.match(await page.locator('.pd-flow').innerText(),/3 vragen warmte/);
   assert.equal(await page.locator('[data-legacy-editor]:visible').count(),0);

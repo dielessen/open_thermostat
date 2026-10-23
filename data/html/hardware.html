@@ -11,13 +11,13 @@
 <div class="row mb-3">
 <div class="card w-100" id="BoilerSettings">
 	<div class="card-header d-flex justify-content-between align-items-center">
-		<span class="align-middle">Hardware configuration</span><button type="button" class="btn px-1 py-0 m-0 btn-outline-info" onclick="loadHardwareSettings();">&#x2b6f;</button>
+		<span class="align-middle"><span data-i18n="Hardware configuration">Hardware configuration</span></span><button type="button" class="btn px-1 py-0 m-0 btn-outline-info" onclick="loadHardwareSettings();">&#x2b6f;</button>
 	</div>
 	<div class="card-body">
 
 		<ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
-			<li class="nav-item"><a class="nav-link active" id="pills-pins-tab" data-toggle="pill" href="#pills-pins" role="tab" aria-controls="pills-pins" aria-selected="true">Hardware I/O pins configuration</a></li>
-			<li class="nav-item"><a class="nav-link" id="pills-iotest-tab" data-toggle="pill" href="#pills-iotest" role="tab" aria-controls="pills-iotest" aria-selected="false">Manual I/O Test</a></li>
+			<li class="nav-item"><a class="nav-link active" id="pills-pins-tab" data-toggle="pill" href="#pills-pins" role="tab" aria-controls="pills-pins" aria-selected="true"><span data-i18n="Hardware I/O pins configuration">Hardware I/O pins configuration</span></a></li>
+			<li class="nav-item"><a class="nav-link" id="pills-iotest-tab" data-toggle="pill" href="#pills-iotest" role="tab" aria-controls="pills-iotest" aria-selected="false"><span data-i18n="Manual I/O Test">Manual I/O Test</span></a></li>
 			<!-- <li class="nav-item"><a class="nav-link" id="pills-curve-tab" data-toggle="pill" href="#pills-curve" role="tab" aria-controls="pills-curve" aria-selected="false">Heating curve</a></li> -->
 		</ul>
 		<div class="tab-content" id="pills-tabContent">
@@ -25,7 +25,7 @@
 				<div class="form-group">
 
 					<div class="card mb-2">
-						<div class="card-header">I2C pins</div>
+						<div class="card-header"><span data-i18n="I2C pins">I2C pins</span></div>
 						<div class="card-body" id="I2CPinsCard">
 							<div class="form-row">
 								<div class="col-md mb-2">
@@ -41,7 +41,7 @@
 					</div>
 
 					<div class="card mb-2">
-						<div class="card-header">EMS Bus hardware interface pins</div>
+						<div class="card-header"><span data-i18n="EMS Bus hardware interface pins">EMS Bus hardware interface pins</span></div>
 						<div class="card-body" id="EMSPinsCard">
 							<div class="form-row">
 								<div class="col-md mb-2">
@@ -57,7 +57,7 @@
 					</div>
 
 					<div class="card mb-2">
-						<div class="card-header">EMS Bus forwarder pins</div>
+						<div class="card-header"><span data-i18n="EMS Bus forwarder pins">EMS Bus forwarder pins</span></div>
 						<div class="card-body" id="EMSForwarderPinsCard">
 							<div class="form-row">
 								<div class="col-md mb-2">
@@ -74,38 +74,38 @@
 
 					<div class="card mb-2">
 						<div class="card-header d-flex justify-content-between align-items-center">
-							<span>I2C GPIO Extenders</span>
+							<span><span data-i18n="I2C GPIO Extenders">I2C GPIO Extenders</span></span>
 							<div>
-								<button type="button" class="btn btn-sm btn-outline-secondary" onclick="scanI2CBus();">Scan I2C bus</button>
-								<button type="button" class="btn btn-sm btn-success" onclick="addExtender();">+ Add</button>
+								<button type="button" class="btn btn-sm btn-outline-secondary" onclick="scanI2CBus();"><span data-i18n="Scan I2C bus">Scan I2C bus</span></button>
+								<button type="button" class="btn btn-sm btn-success" onclick="addExtender();"><span data-i18n="+ Add">+ Add</span></button>
 							</div>
 						</div>
 						<div class="card-body" id="ExtendersCard">
 							<div id="extendersList">
 								<!-- dynamically populated -->
 							</div>
-							<div id="extendersEmpty" class="text-muted text-center py-2">No GPIO extenders configured</div>
+							<div id="extendersEmpty" class="text-muted text-center py-2"><span data-i18n="No GPIO extenders configured">No GPIO extenders configured</span></div>
 						</div>
 					</div>
 
 					<div class="card mb-2">
 						<div class="card-header d-flex justify-content-between align-items-center">
-							<span>Relay on/off pins</span>
-							<button type="button" class="btn btn-sm btn-success" onclick="addValveRow();">+ Add heating circuit</button>
+							<span><span data-i18n="Relay on/off pins">Relay on/off pins</span></span>
+							<button type="button" class="btn btn-sm btn-success" onclick="addValveRow();"><span data-i18n="+ Add heating circuit">+ Add heating circuit</span></button>
 						</div>
 						<div class="card-body" id="RelaysPinsCard">
 							<div class="form-row mb-2">
-								<div class="col-md-4"><strong>Output</strong></div>
-								<div class="col-md-4"><strong>GPIO source</strong></div>
-								<div class="col-md-3"><strong>Pin</strong></div>
+								<div class="col-md-4"><strong><span data-i18n="Output">Output</span></strong></div>
+								<div class="col-md-4"><strong><span data-i18n="GPIO source">GPIO source</span></strong></div>
+								<div class="col-md-3"><strong><span data-i18n="Pin">Pin</span></strong></div>
 								<div class="col-md-1"></div>
 							</div>
 							<div id="relayPinBoiler" class="form-row mb-1">
-								<div class="col-md-4 d-flex align-items-center">Boiler On/Off</div>
+								<div class="col-md-4 d-flex align-items-center"><span data-i18n="Boiler On/Off">Boiler On/Off</span></div>
 								<div class="col-md-4">
 									<select class="form-control form-control-sm relay-source" data-relay="boiler" onchange="onRelaySourceChange(this);">
-										<option value="none">Not used</option>
-										<option value="builtin" selected>Built-in GPIO</option>
+										<option value="none" data-i18n="Not used">Not used</option>
+										<option value="builtin" selected data-i18n="Built-in GPIO">Built-in GPIO</option>
 									</select>
 								</div>
 								<div class="col-md-3">
@@ -117,33 +117,33 @@
 						</div>
 					</div>
 				</div>
-				<button type="button" class="btn btn-primary mb-2 mt-3" onclick="saveHardwareSettings();" id="SaveHardwareSettings">Save settings</button>
+				<button type="button" class="btn btn-primary mb-2 mt-3" onclick="saveHardwareSettings();" id="SaveHardwareSettings"><span data-i18n="Save settings">Save settings</span></button>
 			</div>
 
 			<div class="tab-pane fade" id="pills-iotest" role="tabpanel" aria-labelledby="pills-iotest-tab">
 				<div class="card mb-3">
 					<div class="card-header d-flex justify-content-between align-items-center">
-						<span>Manual I/O Test</span>
-						<span id="iotestStatus" class="badge badge-secondary">Inactive</span>
+						<span><span data-i18n="Manual I/O Test">Manual I/O Test</span></span>
+						<span id="iotestStatus" class="badge badge-secondary"><span data-i18n="Inactive">Inactive</span></span>
 					</div>
 					<div class="card-body">
-						<p class="text-warning"><strong>Warning:</strong> This will directly control GPIO outputs, bypassing normal heating logic for the set duration.</p>
+						<p class="text-warning"><strong><span data-i18n="Warning:">Warning:</span></strong> <span data-i18n="This will directly control GPIO outputs, bypassing normal heating logic for the set duration.">This will directly control GPIO outputs, bypassing normal heating logic for the set duration.</span></p>
 						<div class="form-group">
-							<label for="iotestDuration">Duration (seconds)</label>
+							<label for="iotestDuration"><span data-i18n="Duration (seconds)">Duration (seconds)</span></label>
 							<input type="number" class="form-control" id="iotestDuration" min="1" max="3600" value="30" style="max-width: 200px;">
 						</div>
 						<div class="form-group">
 							<div class="custom-control custom-switch mb-2">
 								<input type="checkbox" class="custom-control-input" id="iotestBoiler">
-								<label class="custom-control-label" for="iotestBoiler"><strong>Boiler relay</strong></label>
+								<label class="custom-control-label" for="iotestBoiler"><strong><span data-i18n="Boiler relay">Boiler relay</span></strong></label>
 							</div>
 						</div>
 						<div id="iotestValvesList">
-							<p class="text-muted">Loading valve configuration...</p>
+							<p class="text-muted"><span data-i18n="Loading valve configuration...">Loading valve configuration...</span></p>
 						</div>
 						<hr>
-						<button type="button" class="btn btn-success mr-2" id="iotestStartBtn" onclick="startIoTest();">Start Test</button>
-						<button type="button" class="btn btn-danger" id="iotestStopBtn" onclick="stopIoTest();" disabled>Stop Test</button>
+						<button type="button" class="btn btn-success mr-2" id="iotestStartBtn" onclick="startIoTest();"><span data-i18n="Start Test">Start Test</span></button>
+						<button type="button" class="btn btn-danger" id="iotestStopBtn" onclick="stopIoTest();" disabled><span data-i18n="Stop Test">Stop Test</span></button>
 						<span id="iotestCountdown" class="ml-3 text-muted"></span>
 					</div>
 				</div>
@@ -194,7 +194,7 @@ function renderExtenders() {
 			+ 'pattern="[A-Za-z0-9_\\-]+" required placeholder="Label" '
 			+ 'onchange="updateExtenderLabel(' + idx + ', this.value);">'
 			+ '</div>');
-		row.append('<div class="col-md-3"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeExtender(' + idx + ');">&times; Remove</button></div>');
+		row.append('<div class="col-md-3"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeExtender(' + idx + uiHtml(");\">&times; Remove</button></div>"));
 		list.append(row);
 	});
 
@@ -236,7 +236,7 @@ function scanI2CBus() {
 	.then(res => res.json())
 	.then(function(devices) {
 		if (devices.length === 0) {
-			alert("No I2C devices found");
+			alert(uiText("No I2C devices found"));
 			return;
 		}
 		var extenderTypes = ['pcf8574', 'pcf8574a', 'pcf8575', 'mcp23017'];
@@ -254,7 +254,7 @@ function scanI2CBus() {
 		renderExtenders();
 	})
 	.catch(function(error) {
-		alert("I2C scan failed: " + error);
+		alert(uiText("I2C scan failed: ") + error);
 	});
 }
 
@@ -262,8 +262,8 @@ function scanI2CBus() {
 
 function buildRelaySourceSelect(relayId, selectedSource) {
 	var html = '<select class="form-control form-control-sm relay-source" data-relay="' + relayId + '" onchange="onRelaySourceChange(this);">';
-	html += '<option value="none"' + (selectedSource === 'none' ? ' selected' : '') + '>Not used</option>';
-	html += '<option value="builtin"' + (selectedSource === 'builtin' ? ' selected' : '') + '>Built-in GPIO</option>';
+	html += '<option value="none"' + (selectedSource === 'none' ? ' selected' : '') + uiHtml(">Not used</option>");
+	html += '<option value="builtin"' + (selectedSource === 'builtin' ? ' selected' : '') + uiHtml(">Built-in GPIO</option>");
 	gpioExtenders.forEach(function(ext) {
 		var val = 'ext:' + ext.label;
 		html += '<option value="' + val + '"' + (selectedSource === val ? ' selected' : '') + '>' + escapeHtml(ext.label) + ' (' + ext.type + ' 0x' + ext.address.toString(16) + ')</option>';
@@ -302,7 +302,7 @@ function addValveRow(source, pinVal, label) {
 	var i = valveCount;
 	var relayId = 'hc' + i;
 	var src = source || 'builtin';
-	var lblVal = label || ('Heating circuit ' + i);
+	var lblVal = label || (uiText("Heating circuit ") + i);
 	var row = $('<div class="form-row mb-1" data-valve="' + i + '"></div>');
 	row.append('<div class="col-md-3"><input type="text" class="form-control form-control-sm valve-label" id="PinsRelays_Label' + i + '" value="' + lblVal.replace(/"/g, '&quot;') + '" maxlength="16" pattern="[A-Za-z0-9 _]+" title="Max 16 characters, alphanumeric, spaces and underscores only" required></div>');
 	row.append('<div class="col-md-3">' + buildRelaySourceSelect(relayId, src) + '</div>');
@@ -416,8 +416,8 @@ function loadHardwareSettings() {
 		loadIoTestValves();
 	}).catch(function(error) {
 		if (error instanceof HttpResponseException && error.status === 404) {
-			alert("Cannot load hardware settings\n" + error);
-		} else if (confirm("Cannot load hardware settings\n" + error + "\nTry again?")) {
+			alert(uiText("Cannot load hardware settings\n") + error);
+		} else if (confirm(uiText("Cannot load hardware settings\n") + error + uiText("\nTry again?"))) {
 			loadHardwareSettings();
 		}
 	});
@@ -449,7 +449,7 @@ function saveHardwareSettings() {
 		labels.push(lbl);
 	});
 	if (hasDuplicates) {
-		alert("Valve labels must be unique!");
+		alert(uiText("Valve labels must be unique!"));
 		return;
 	}
 
@@ -476,12 +476,12 @@ function saveHardwareSettings() {
 	})
 	.then(res => {
 		if (res.status === 200 || res.status === 201 || res.type === "opaque") {
-			if (confirm("Hardware settings saved.\nDo you want to reboot device to\nchanges take place?")) {
+			if (confirm(uiText("Hardware settings saved. Do you want to reboot device to changes take place?"))) {
 				reboot();
 				return;
 			}
 		} else {
-			alert("Not sure if config saved\nStatus: " + res.status + "\nBody:\n" + res.statusText);
+			alert(uiText("Not sure if config saved Status: ") + res.status + uiText("\nBody:\n") + res.statusText);
 		}
 	})
 	.catch(function(error) {
@@ -519,13 +519,13 @@ function loadIoTestValves() {
 	});
 
 	if (labels.length === 0) {
-		container.html('<p class="text-muted">No circuits configured</p>');
+		container.html(uiHtml("<p class=\"text-muted\">No circuits configured</p>"));
 		return;
 	}
 
-	container.append('<label><strong>Circuits</strong></label>');
+	container.append(uiHtml("<label><strong>Circuits</strong></label>"));
 	for (var i = 0; i < labels.length; i++) {
-		var label = labels[i] || ('Circuit ' + (i + 1));
+		var label = labels[i] || (uiText("Circuit ") + (i + 1));
 		var div = $('<div class="custom-control custom-switch mb-2"></div>');
 		div.append('<input type="checkbox" class="custom-control-input iotest-valve" id="iotestValve' + i + '" checked>');
 		div.append('<label class="custom-control-label" for="iotestValve' + i + '">' + escapeHtml(label) + '</label>');
@@ -575,7 +575,7 @@ function sendIoTestState(duration) {
 function startIoTest() {
 	var duration = parseInt($('#iotestDuration').val(), 10);
 	if (isNaN(duration) || duration < 1 || duration > 3600) {
-		alert('Duration must be between 1 and 3600 seconds');
+		alert(uiText("Duration must be between 1 and 3600 seconds"));
 		return;
 	}
 
@@ -584,7 +584,7 @@ function startIoTest() {
 		setIoTestActive(duration);
 	})
 	.catch(function(error) {
-		alert('Failed to start test: ' + error);
+		alert(uiText("Failed to start test: ") + error);
 	});
 }
 
@@ -595,7 +595,7 @@ function onIoTestSwitchChange() {
 
 	sendIoTestState(remaining)
 	.catch(function(error) {
-		console.error('Failed to update test state: ' + error);
+		console.error(uiText("Failed to update test state: ") + error);
 	});
 }
 
@@ -608,7 +608,7 @@ function stopIoTest() {
 		setIoTestInactive();
 	})
 	.catch(function(error) {
-		alert('Failed to stop test: ' + error);
+		alert(uiText("Failed to stop test: ") + error);
 	});
 }
 
@@ -627,7 +627,7 @@ function setIoTestActive(remainingSeconds) {
 		if (remaining <= 0) {
 			setIoTestInactive();
 		} else {
-			$('#iotestCountdown').text('Remaining: ' + remaining + 's');
+			$('#iotestCountdown').text(uiText("Remaining: ") + remaining + 's');
 		}
 	}, 1000);
 }
@@ -636,7 +636,7 @@ function setIoTestInactive() {
 	iotestRunning = false;
 	$('#iotestStartBtn').prop('disabled', false);
 	$('#iotestStopBtn').prop('disabled', true);
-	$('#iotestStatus').removeClass('badge-danger').addClass('badge-secondary').text('Inactive');
+	$('#iotestStatus').removeClass('badge-danger').addClass('badge-secondary').text(uiText("Inactive"));
 	$('#iotestCountdown').text('');
 	if (iotestCountdownTimer) {
 		clearInterval(iotestCountdownTimer);
@@ -646,7 +646,7 @@ function setIoTestInactive() {
 
 function updateIoTestCountdown() {
 	var remaining = Math.max(0, Math.ceil((iotestEndTime - Date.now()) / 1000));
-	$('#iotestCountdown').text('Remaining: ' + remaining + 's');
+	$('#iotestCountdown').text(uiText("Remaining: ") + remaining + 's');
 }
 
 // Live toggle handler for boiler and valve switches

@@ -2,6 +2,8 @@
 <html lang="en">
 
 <head>
+    <script src="/ui-messages.js"></script>
+    <script src="/ui-language.js"></script>
 	<script src="/auth-client.js"></script>
 	<script src="/boiler-display.js"></script>
 	<script src="/device-restart.js" defer></script>
@@ -36,7 +38,7 @@
 		function HttpResponseException(message, status) {
 			this.message = message;
 			this.status = status;
-			this.name = "HTTP Response error";
+			this.name = uiText("HTTP Response error");
 		}
 
 		HttpResponseException.prototype.toString = function() {
@@ -89,7 +91,7 @@
 		});
 	</script>
 
-	<title>Heating controller</title>
+	<title data-i18n="Heating controller">Heating controller</title>
 <style>
 .product-dashboard{max-width:1180px;margin:20px auto;padding:8px;color:#173b40;font-family:system-ui,sans-serif}.product-dashboard h1{font-size:1.9rem;font-weight:700;margin:0 0 8px}.product-dashboard h2{font-size:1.2rem;font-weight:650;margin:0 0 10px}.product-dashboard h3{font-size:1rem;font-weight:650;margin:0}.product-dashboard p{margin:8px 0}.pd-heading,.pd-section-title,.pd-room-title{display:flex;align-items:center;justify-content:space-between;gap:14px}.pd-heading{margin-bottom:24px;flex-wrap:wrap}.pd-eyebrow{font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:#50666c}.pd-badge{display:inline-block;font-size:.8rem;line-height:1.4;border-radius:18px;padding:7px 11px;background:#e9f0f0;color:#315a60}.pd-status{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#eff7f5;border-left:4px solid #097c70;padding:14px 18px;border-radius:10px;margin-bottom:18px}.pd-status span,.pd-help{font-size:.87rem;color:#526a70}.pd-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-bottom:20px}.pd-fact,.pd-panel,.pd-room{background:#fff;border:1px solid #d2dfe1;border-radius:14px;padding:20px}.pd-fact h3{font-size:.9rem}.pd-value{font-size:1.9rem;line-height:1.5;margin-top:14px}.product-dashboard small{font-size:.55em;font-weight:400;color:#526a70}.pd-missing{font-size:.9rem;color:#526a70}.pd-panel{margin-bottom:20px}.pd-flow{display:flex;gap:14px;align-items:center;padding:16px 0}.pd-flow>div{flex:1;background:#f3f7f7;padding:16px;border-radius:10px}.pd-flow strong{display:block;font-size:1.05rem}.pd-flow-label{display:block;font-size:.82rem;font-weight:400;color:#526a70;margin-bottom:7px}.pd-arrow{font-size:1.8rem;color:#097c70}.pd-dashed{color:#64787c}.pd-section-title{margin:20px 0 14px;flex-wrap:wrap}.pd-rooms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:20px}.pd-room-title{align-items:flex-start;flex-wrap:wrap}.pd-request{color:#08665b;background:#dff4ec}.pd-room-temperatures{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:1.75rem;margin:20px 0 8px}.pd-trend{display:block;width:100%;height:64px;margin-top:14px}.pd-actual-line{fill:none;stroke:#087e70;stroke-width:2.5;stroke-linejoin:round}.pd-target-line{fill:none;stroke:#b06313;stroke-width:2;stroke-dasharray:5 4}.pd-room-detail{font-size:.87rem;margin-top:16px}.product-dashboard summary{cursor:pointer;min-height:36px;font-weight:600}.product-dashboard summary:focus-visible{outline:3px solid #b06313;outline-offset:3px}.pd-empty{grid-column:1/-1;border:1px dashed #adbec1;border-radius:12px;padding:24px;background:#f5f8f8;color:#526a70}.pd-lower{display:grid;grid-template-columns:1fr 1fr;gap:18px}.pd-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:16px;font-size:.87rem}.pd-detail-grid dd{margin:0;text-align:right;overflow-wrap:anywhere}.pd-detail-grid dt{font-weight:500}.product-dashboard details[open]>summary{margin-bottom:14px}@media(max-width:850px){.pd-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.pd-flow{flex-direction:column;align-items:stretch}.pd-arrow{transform:rotate(90deg);align-self:center;line-height:1}.pd-lower{grid-template-columns:1fr}}@media(max-width:560px){.product-dashboard{margin:12px 0;padding:0}.product-dashboard h1{font-size:1.5rem}.pd-rooms{grid-template-columns:1fr}.pd-facts{gap:10px}.pd-fact,.pd-panel,.pd-room{padding:16px}.pd-value{font-size:1.5rem}.pd-status{padding:12px}.pd-room-temperatures{font-size:1.6rem}.pd-badge{padding:6px 9px}}
 </style>
@@ -271,7 +273,7 @@
 					</defs>
 					<use style="fill: url(#gas-gradient) #fff" href="#img-flame" />
 				</svg>
-				<span>Heating controller</span>
+				<span><span data-i18n="Heating controller">Heating controller</span></span>
 			</a>
 			<button class="navbar-toggler order-1 order-lg-2 ml-auto mr-2" type="button" data-toggle="collapse" data-target="#navbarNavDropdown"
 				aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
@@ -280,31 +282,31 @@
 			<div class="collapse navbar-collapse order-3 order-lg-1" id="navbarNavDropdown">
 				<ul class="navbar-nav">
 					<li class="nav-item"><a class="nav-link" aria-current="page" href="#"
-							onclick='mainScreen()'>Home</a></li>
-					<li class="nav-item"><a class="nav-link" aria-current="page" href="#" onclick='about()'>About</a>
+							onclick='mainScreen()'><span data-i18n="Home">Home</span></a></li>
+					<li class="nav-item"><a class="nav-link" aria-current="page" href="#" onclick='about()'><span data-i18n="About">About</span></a>
 					</li>
 
 					<li class="nav-item dropdown">
 						<a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
 							data-toggle="dropdown" aria-expanded="false">
-							Settings
+							<span data-i18n="Settings">Settings</span>
 						</a>
 						<ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="program">Change active program</a></li>
-							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="room_management">Rooms and programs</a></li>
-							<li><a class="dropdown-item" href="#" data-page="network">Network and services</a></li>
-							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="curve">Boiler and heating curve</a></li>
-							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="hardware">Hardware configuration</a></li>
-							<li><a class="dropdown-item" href="#" data-page="update">Firmware update</a></li>
-							<li><a class="dropdown-item" href="#" data-page="boiler_test">Keteltest</a></li>
-							<li><a class="dropdown-item" href="#" data-page="boiler_display">Mijn ketel</a></li>
+							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="program"><span data-i18n="Change active program">Change active program</span></a></li>
+							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="room_management"><span data-i18n="Rooms and programs">Rooms and programs</span></a></li>
+							<li><a class="dropdown-item" href="#" data-page="network"><span data-i18n="Network and services">Network and services</span></a></li>
+							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="curve"><span data-i18n="Boiler and heating curve">Boiler and heating curve</span></a></li>
+							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="hardware"><span data-i18n="Hardware configuration">Hardware configuration</span></a></li>
+							<li><a class="dropdown-item" href="#" data-page="update"><span data-i18n="Firmware update">Firmware update</span></a></li>
+							<li><a class="dropdown-item" href="#" data-page="boiler_test"><span data-i18n="Boiler test">Boiler test</span></a></li>
+							<li><a class="dropdown-item" href="#" data-page="boiler_display"><span data-i18n="My boiler">My boiler</span></a></li>
 							<li role="separator" class="dropdown-divider"></li>
-							<li><button type="button" class="dropdown-item text-danger" id="device-restart" hidden>Restart device</button></li>
+							<li><button type="button" class="dropdown-item text-danger" id="device-restart" hidden><span data-i18n="Restart device">Restart device</span></button></li>
 						</ul>
 					</li>
 				</ul>
 			</div>
-			<button type="button" class="btn btn-outline-light btn-sm order-2 order-lg-3" id="auth-sign-out" hidden>Sign out</button>
+			<button type="button" class="btn btn-outline-light btn-sm order-2 order-lg-3" id="auth-sign-out" hidden><span data-i18n="Sign out">Sign out</span></button>
 		</div>
 	</nav>
 	<small class="d-block text-muted px-3" id="device-restart-status" role="status" aria-live="polite"></small>
@@ -314,7 +316,7 @@
 		<div class="modal-dialog" role="document">
 			<div class="modal-content">
 				<div class="modal-header">
-					<h5 class="modal-title" id="editModalLabel">Edit name</h5>
+					<h5 class="modal-title" id="editModalLabel"><span data-i18n="Edit name">Edit name</span></h5>
 					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
 						<span aria-hidden="true">&times;</span>
 					</button>
@@ -323,7 +325,7 @@
 
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+					<button type="button" class="btn btn-secondary" data-dismiss="modal"><span data-i18n="Cancel">Cancel</span></button>
 					<button type="button" class="btn btn-primary" id="editModalSave">OK</button>
 				</div>
 			</div>
@@ -335,7 +337,7 @@
 		<div class="modal-dialog" role="document">
 			<div class="modal-content">
 				<div class="modal-header">
-					<h5 class="modal-title" id="temporaryTempModalLabel">Set temporary temperature</h5>
+					<h5 class="modal-title" id="temporaryTempModalLabel"><span data-i18n="Set temporary temperature">Set temporary temperature</span></h5>
 					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
 						<span aria-hidden="true">&times;</span>
 					</button>
@@ -345,7 +347,7 @@
 
 						<div class="form-row align-items-end">
 							<div class="col">
-								<label for="temporaryTempModalTemperature">Temperature for <span
+								<label for="temporaryTempModalTemperature"><span data-i18n="Temperature for">Temperature for</span> <span
 										id="temporaryTempModalRoomName"></span></label>
 								<input type="range" class="custom-range" id="temporaryTempModalTemperature" min="10.00"
 									max="40.0" step="0.1" value="20.0"
@@ -359,7 +361,7 @@
 
 						<div class="form-row align-items-end">
 							<div class="col">
-								<label for="temporaryTempModalTime">Duration of validity</label>
+								<label for="temporaryTempModalTime"><span data-i18n="Duration of validity">Duration of validity</span></label>
 								<input type="range" class="custom-range" id="temporaryTempModalTime" value="30" min="10"
 									max="720" step="10" oninput="updateTemporaryTempModalTimeText(this.value);">
 							</div>
@@ -371,7 +373,7 @@
 					</form>
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+					<button type="button" class="btn btn-secondary" data-dismiss="modal"><span data-i18n="Cancel">Cancel</span></button>
 					<button type="button" class="btn btn-primary" id="temporaryTempModalSave">OK</button>
 				</div>
 			</div>
@@ -408,19 +410,19 @@
         function managedControlNotice() {
             if (controlUiMode === 'unknown') {
                 document.getElementById('maincontainer').textContent =
-                    'Controller mode unavailable. Reload Home before editing heating settings.';
+                    uiText("Controller mode unavailable. Reload Home before editing heating settings.");
                 return;
             }
             document.getElementById('maincontainer').innerHTML =
-                '<div class="alert alert-info">Deze instellingen worden beheerd in Home Assistant. Configureer daar je ruimtes, programma’s en verwarming. Netwerk, toegang, firmware en herstel blijven hier bereikbaar.</div>';
+                uiHtml("<div class=\"alert alert-info\">These settings are managed in Home Assistant. Configure your rooms, programs and heating there. Network, access, firmware and recovery remain accessible here.</div>");
         }
         function ensureChart() {
             if (typeof Chart !== 'undefined') return Promise.resolve();
             if (!chartPromise) chartPromise = new Promise((resolve,reject) => {
                 const script = document.createElement('script');
                 script.src = 'deps/chart.umd.js.gz';
-                script.onload = () => typeof Chart !== 'undefined' ? resolve() : reject(Error('Chart unavailable'));
-                script.onerror = () => reject(Error('Chart could not be loaded'));
+                script.onload = () => typeof Chart !== 'undefined' ? resolve() : reject(Error(uiText("Chart unavailable")));
+                script.onerror = () => reject(Error(uiText("Chart could not be loaded")));
                 document.head.appendChild(script);
             }).catch(error => { chartPromise = null; throw error; });
             return chartPromise;
@@ -443,7 +445,7 @@
             } catch (error) {
                 if (navigation === navigationGeneration) {
                     document.getElementById('maincontainer').textContent =
-                        'The page could not be loaded. Check the connection and try again.';
+                        uiText("The page could not be loaded. Check the connection and try again.");
                 }
                 return false;
             }
@@ -482,7 +484,7 @@
 						if ((res.status >= 200 && res.status <= 205) || res.type === "opaque") {
 							// return;
 						} else {
-							alert("Not sure if temporary temperature set.\nStatus: " + res.status + "\nBody:\n" + res.statusText);
+							alert(uiText("Not sure if temporary temperature set. Status: ") + res.status + uiText("\nBody:\n") + res.statusText);
 						}
 					})
 					.catch(function (error) {
@@ -540,7 +542,7 @@
 					// A late poll may update mode metadata, never replace a newly navigated form.
                 }).catch(() => {
                     if (navigation === navigationGeneration)
-                        document.getElementById('maincontainer').textContent = 'Status unavailable. Check the connection and reload.';
+                        document.getElementById('maincontainer').textContent = uiText("Status unavailable. Check the connection and reload.");
                 });
 		}
 
@@ -688,18 +690,18 @@
             return value >= min && value <= max ? value : null;
         }
         function dashboardValue(value, unit, digits) {
-            return value === null ? '<span class="pd-missing">Niet beschikbaar</span>' :
+            return value === null ? uiHtml("<span class=\"pd-missing\">Unavailable</span>") :
                 dashboardText(value.toFixed(digits == null ? 1 : digits)) + '<small> ' + dashboardText(unit) + '</small>';
         }
         function dashboardBool(value, yes, no) {
-            return value === true ? yes : value === false ? no : 'Niet beschikbaar';
+            return value === true ? yes : value === false ? no : uiText("Unavailable");
         }
         function dashboardBuildSupport(build) {
-            var html = '<details class="pd-panel pd-build"><summary>Koppeling met Home Assistant</summary>';
+            var html = uiHtml("<details class=\"pd-panel pd-build\"><summary>Home Assistant connection</summary>");
             if (!build || build.schema !== 1 || build.scope !== 'compiled_support_only' ||
                 build.requires_local_source_selection !== true || build.authorizes_physical_outputs !== false ||
                 !Array.isArray(build.plans)) {
-                return html + '<p>Deze firmware meldt nog geen herkenbare softwareondersteuning voor de kamerregeling. Controleer de firmwareversie voordat je de koppeling instelt.</p></details>';
+                return html + uiHtml("<p>This firmware does not report recognized software support for room control yet. Check the firmware version before setting up the connection.</p></details>");
             }
             var week = build.plans.slice(0,4).find(function(plan) {
                 return plan && plan.contract === 'control.plan.week.v1' &&
@@ -707,11 +709,11 @@
                     Number.isInteger(plan.maximum_zones) && plan.maximum_zones >= 1 && plan.maximum_zones <= 8;
             });
             if (week) {
-                html += '<p>Deze firmware bevat ondersteuning voor kamerdoelen en weekprogramma’s voor maximaal '+week.maximum_zones+' ruimtes via deze koppeling.</p>';
+                html += uiHtml("<p>This firmware supports room targets and weekly programs for up to ")+week.maximum_zones+uiHtml(" rooms through this connection.</p>");
             } else {
-                html += '<p>Ondersteuning voor het complete kamerweekprogramma is niet bevestigd door deze firmware.</p>';
+                html += uiHtml("<p>Support for the complete room weekly program is not confirmed by this firmware.</p>");
             }
-            return html + '<p class="pd-help">Softwareondersteuning betekent nog niet dat Home Assistant gekoppeld is of dat de configuratie is toegepast. De actuele regelstatus staat hierboven. Deze informatie geeft geen toestemming voor het aansturen van kranen of ketel.</p></details>';
+            return html + uiHtml("<p class=\"pd-help\">Software support does not mean Home Assistant is connected or the configuration has been applied. Current control status is shown above. This information does not authorize valve or boiler control.</p></details>");
         }
         function dashboardRoomName(row,index) {
             var encoded = row && row.name_utf8_hex;
@@ -721,34 +723,34 @@
                     if (decoded.trim() && !/[\x00-\x1f\x7f]/.test(decoded)) return decoded;
                 } catch (error) {}
             }
-            return row && typeof row.name === 'string' && row.name.trim() ? row.name.slice(0,80) : 'Ruimte '+(index+1);
+            return row && typeof row.name === 'string' && row.name.trim() ? row.name.slice(0,80) : uiText("Room ")+(index+1);
         }
         function dashboardReason(value) {
             var reasons = {
-                shadow_idle:'Geen berekende warmtevraag', shadow_demand:'Ruimte vraagt warmte',
-                sensor_stale:'Temperatuurmeting is verouderd', sensor_unavailable:'Geen geldige temperatuurmeting',
-                sample_stale:'Temperatuurmeting is verouderd', no_sample:'Wacht op een temperatuurmeting',
-                adapter_offline:'Verbinding met Home Assistant ontbreekt', lease_expired:'Verbinding verlopen',
-                time_not_valid:'Tijd nog niet betrouwbaar', time_invalid:'Tijd nog niet betrouwbaar',
-                stopped:'Regeling gestopt', off:'Ruimte uitgeschakeld', summer:'Zomerbedrijf',
-                window_open:'Raam staat open', dhw_active:'Tapwater heeft voorrang',
-                limits_unknown:'Installatiegrenzen nog niet bevestigd', no_fresh_local_safety:'Installatievoorwaarden nog niet bevestigd',
-                unqualified:'Installatievoorwaarden nog niet bevestigd', idle:'Geen warmtevraag',
-                awaiting_readiness:'Wacht op een beschikbaar afgiftepad',
-                hydraulic_profile_unqualified:'Installatieprofiel nog niet bevestigd',
-                adapter_unavailable:'Verbinding met Home Assistant ontbreekt',
-                source_unavailable:'Geen geldige meet- of programmabron',
-                fault_state_unknown:'Storingsstatus van de ketel nog onbekend',
-                dhw_state_unknown:'Tapwaterstatus nog onbekend', dhw_priority:'Tapwater heeft voorrang',
-                no_demand:'Geen berekende warmtevraag', stop:'Regeling gestopt',
-                water_target_invalid:'Berekend waterdoel ligt buiten de installatiegrenzen',
-                postrun:'Naloop na warmtevraag', logical_demand:'Berekende warmtevraag',
-                shadow_seasonal_demand:'Berekende warmtevraag',
-                shadow_low_load_or_satisfied:'Temperatuur bereikt of warmtevraag te laag',
-                seasonal_target_or_sensor_invalid:'Temperatuurmeting of doel niet geldig',
-                shadow_frost_advice:'Vorstbeschermingsadvies; geen bevestigde aansturing'
+                shadow_idle:uiText("No calculated heat demand"), shadow_demand:uiText("Room requesting heat"),
+                sensor_stale:uiText("Temperature measurement is stale"), sensor_unavailable:uiText("No valid temperature measurement"),
+                sample_stale:uiText("Temperature measurement is stale"), no_sample:uiText("Waiting for a temperature measurement"),
+                adapter_offline:uiText("Home Assistant connection missing"), lease_expired:uiText("Connection expired"),
+                time_not_valid:uiText("Time not reliable yet"), time_invalid:uiText("Time not reliable yet"),
+                stopped:uiText("Control stopped"), off:uiText("Room disabled"), summer:uiText("Summer mode"),
+                window_open:uiText("Window is open"), dhw_active:uiText("Hot water has priority"),
+                limits_unknown:uiText("Installation limits not yet confirmed"), no_fresh_local_safety:uiText("Installation conditions not yet confirmed"),
+                unqualified:uiText("Installation conditions not yet confirmed"), idle:uiText("No heat demand"),
+                awaiting_readiness:uiText("Waiting for an available heat delivery path"),
+                hydraulic_profile_unqualified:uiText("Installation profile not yet confirmed"),
+                adapter_unavailable:uiText("Home Assistant connection missing"),
+                source_unavailable:uiText("No valid measurement or program source"),
+                fault_state_unknown:uiText("Boiler fault status still unknown"),
+                dhw_state_unknown:uiText("Hot water status still unknown"), dhw_priority:uiText("Hot water has priority"),
+                no_demand:uiText("No calculated heat demand"), stop:uiText("Control stopped"),
+                water_target_invalid:uiText("Calculated water target is outside the installation limits"),
+                postrun:uiText("Post-run after heat demand"), logical_demand:uiText("Calculated heat demand"),
+                shadow_seasonal_demand:uiText("Calculated heat demand"),
+                shadow_low_load_or_satisfied:uiText("Temperature reached or heat demand too low"),
+                seasonal_target_or_sensor_invalid:uiText("Temperature measurement or target invalid"),
+                shadow_frost_advice:uiText("Frost protection advice; no confirmed control")
             };
-            return Object.prototype.hasOwnProperty.call(reasons,value) ? reasons[value] : 'Bekijk de toelichting in Home Assistant';
+            return Object.prototype.hasOwnProperty.call(reasons,value) ? reasons[value] : uiText("View the explanation in Home Assistant");
         }
         function recordDashboardRooms(control, rows) {
             var state = control.state, at = control.captured_at_ms;
@@ -776,7 +778,7 @@
         function dashboardTrend(row, index) {
             var id = typeof row.zone_id === 'string' && /^[a-f0-9]{8}$/.test(row.zone_id) ? row.zone_id : 'room_' + index;
             var points = installationHistory[id] || [];
-            if (points.length < 2) return '<p class="pd-help">De trend verschijnt na twee terugmeldingen.</p>';
+            if (points.length < 2) return uiHtml("<p class=\"pd-help\">The trend appears after two reports.</p>");
             var numbers = [];
             points.forEach(function(p) { if (p[1] !== null) numbers.push(p[1]); if (p[2] !== null) numbers.push(p[2]); });
             if (!numbers.length) return '';
@@ -792,7 +794,7 @@
                 return path;
             }
             return '<svg class="pd-trend" viewBox="0 0 260 56" role="img" aria-label="Recente temperatuurterugmelding en doel"><path d="'+line(2)+'" class="pd-target-line"/><path d="'+line(1)+'" class="pd-actual-line"/></svg>'+
-                '<p class="pd-help">Doorgetrokken: gemeld · gestippeld: doel · '+Math.max(1,Math.round(span/1000))+' s</p>';
+                uiHtml("<p class=\"pd-help\">Solid: reported · dotted: target · ")+Math.max(1,Math.round(span/1000))+' s</p>';
         }
         function renderInstallationDashboard(status) {
             var control = status.control || {}, ems = status.ems || {};
@@ -803,41 +805,41 @@
             var demand = typeof supervisor.requested_heat === 'boolean' ? supervisor.requested_heat : null;
             var boilerEnabled = state && typeof state.boiler_output_enabled === 'boolean' ? state.boiler_output_enabled : null;
             var actuatorEnabled = state && typeof state.actuator_output_enabled === 'boolean' ? state.actuator_output_enabled : null;
-            var mode = ems.warmWaterActive === true ? 'Tapwater' : ems.heatingActive === true ? 'CV actief' :
-                ems.warmWaterActive === false && ems.heatingActive === false ? 'Geen CV of tapwater' : 'Wacht op ketelgegevens';
+            var mode = ems.warmWaterActive === true ? uiText("Hot water") : ems.heatingActive === true ? uiText("CH active") :
+                ems.warmWaterActive === false && ems.heatingActive === false ? uiText("No CH or hot water") : uiText("Waiting for boiler data");
             var age = typeof control.age_ms === 'number' && Number.isFinite(control.age_ms) ? Math.max(0,Math.round(control.age_ms/1000)) : null;
-            var freshText = state ? 'Regelstatus ontvangen'+(age === null?'':' · bij ophalen '+age+' s oud') :
-                control.reason === 'stale' ? 'Regelstatus verouderd' : 'Wacht op regelstatus';
+            var freshText = state ? uiText("Control status received")+(age === null?'':uiText(" · when fetched ")+age+uiText(" s old")) :
+                control.reason === 'stale' ? uiText("Control status stale") : uiText("Waiting for control status");
             function fact(label,value,unit,hint) {
                 return '<article class="pd-fact"><h3>'+label+'</h3><div class="pd-value">'+dashboardValue(value,unit)+'</div><p class="pd-help">'+hint+'</p></article>';
             }
             var html = '<section class="product-dashboard" lang="nl" aria-label="Installatieoverzicht">'+
-                '<header class="pd-heading"><div><p class="pd-eyebrow">OpenThermostat · E32</p><h1>Je verwarmingsinstallatie</h1><p>Ketelgegevens en warmtevraag, op één plek.</p></div><span class="pd-badge">Beheerd via Home Assistant</span></header>'+
+                uiHtml("<header class=\"pd-heading\"><div><p class=\"pd-eyebrow\">OpenThermostat · E32</p><h1>Your heating system</h1><p>Boiler data and heat demand in one place.</p></div><span class=\"pd-badge\">Managed by Home Assistant</span></header>")+
                 '<div class="pd-status"><strong>'+dashboardText(mode)+'</strong><span>'+dashboardText(freshText)+'</span></div>'+
                 '<div class="pd-facts">'+
-                fact('Aanvoer · gemeld',dashboardNumber(ems.currentFlowTemperature,10,-20,150),'°C','Terugmelding van de ketel.')+
-                fact('Keteldoel · teruggelezen',dashboardNumber(ems.selectedFlowTemperature,1,0,150),'°C','Gerapporteerd setpoint; geen bewijs van een nieuwe opdracht.')+
-                fact('Modulatie · gemeld',dashboardNumber(ems.currentBurnerPower,1,0,100),'%','Branderpercentage uit de telemetrie; geen gemeten verbruik.')+
-                fact('Installatiedruk',dashboardNumber(ems.pressure,10,0,10),'bar','Alleen zichtbaar wanneer het toestel dit rapporteert.')+
-                '</div><section class="pd-panel"><div class="pd-section-title"><div><h2>Van ruimtes naar ketel</h2><p class="pd-help">Een berekende aanvraag en werkelijke aansturing blijven apart.</p></div></div>'+
-                '<div class="pd-flow"><div><span class="pd-flow-label">Ruimtes</span><strong>'+(state?rows.filter(function(r){return r.demand===true;}).length+' vragen warmte':'Nog geen geldige terugmelding')+'</strong></div><span class="pd-arrow" aria-hidden="true">→</span><div><span class="pd-flow-label">Gezamenlijke berekening</span><strong>'+dashboardBool(demand,'Warmtevraag','Geen warmtevraag')+'</strong></div><span class="pd-arrow pd-dashed" aria-hidden="true">⇢</span><div><span class="pd-flow-label">Ketelaansturing</span><strong>'+dashboardBool(boilerEnabled,'Vrijgegeven','Geblokkeerd')+'</strong></div></div>'+
-                '<p class="pd-help">'+(state?dashboardText(dashboardReason(supervisor.reason)):'Configureer je installatie in Home Assistant. Hier verschijnt de werkelijke regelstatus zodra de koppeling is bevestigd.')+'</p></section>'+
-                '<div class="pd-section-title"><h2>Warmtevraag per ruimte</h2><span class="pd-help">Bediening en programma’s in Home Assistant</span></div><div class="pd-rooms">';
-            if (!rows.length) html += '<div class="pd-empty">'+(state?'Er zijn nog geen ruimtes in de teruggelezen configuratie.':'Geen actuele regelstatus beschikbaar. Oude lokale E32-kamers worden hier niet als nieuwe ruimtes getoond.')+'</div>';
+                fact(uiText("Flow · reported"),dashboardNumber(ems.currentFlowTemperature,10,-20,150),'°C',uiText("Feedback from the boiler."))+
+                fact(uiText("Boiler target · read back"),dashboardNumber(ems.selectedFlowTemperature,1,0,150),'°C',uiText("Reported setpoint; no evidence of a new command."))+
+                fact(uiText("Modulation · reported"),dashboardNumber(ems.currentBurnerPower,1,0,100),'%',uiText("Burner percentage from telemetry; not measured consumption."))+
+                fact(uiText("System pressure"),dashboardNumber(ems.pressure,10,0,10),'bar',uiText("Only visible when reported by the device."))+
+                uiHtml("</div><section class=\"pd-panel\"><div class=\"pd-section-title\"><div><h2>From rooms to boiler</h2><p class=\"pd-help\">Calculated demand and actual control remain separate.</p></div></div>")+
+                uiHtml("<div class=\"pd-flow\"><div><span class=\"pd-flow-label\">Rooms</span><strong>")+(state?rows.filter(function(r){return r.demand===true;}).length+uiText(" requesting heat"):uiText("No valid feedback yet"))+uiHtml("</strong></div><span class=\"pd-arrow\" aria-hidden=\"true\">→</span><div><span class=\"pd-flow-label\">Combined calculation</span><strong>")+dashboardBool(demand,uiText("Heat demand"),uiText("No heat demand"))+uiHtml("</strong></div><span class=\"pd-arrow pd-dashed\" aria-hidden=\"true\">⇢</span><div><span class=\"pd-flow-label\">Boiler control</span><strong>")+dashboardBool(boilerEnabled,uiText("Enabled"),uiText("Blocked"))+'</strong></div></div>'+
+                '<p class="pd-help">'+(state?dashboardText(dashboardReason(supervisor.reason)):uiText("Configure your installation in Home Assistant. Actual control status appears here once the connection is confirmed."))+'</p></section>'+
+                uiHtml("<div class=\"pd-section-title\"><h2>Heat demand per room</h2><span class=\"pd-help\">Controls and programs in Home Assistant</span></div><div class=\"pd-rooms\">");
+            if (!rows.length) html += '<div class="pd-empty">'+(state?uiText("There are no rooms in the configuration read back yet."):uiText("No current control status available. Old local E32 rooms are not shown as new rooms here."))+'</div>';
             rows.forEach(function(row,index) {
                 var name = dashboardRoomName(row,index);
                 var actual = dashboardNumber(row.temperature_centi_c,100,-50,80), target = dashboardNumber(row.target_centi_c,100,5,35);
-                html += '<article class="pd-room"><div class="pd-room-title"><h3>'+dashboardText(name)+'</h3><span class="pd-badge'+(row.demand===true?' pd-request':'')+'">'+dashboardBool(row.demand,'Vraagt warmte','Geen aanvraag')+'</span></div><div class="pd-room-temperatures"><div><span class="pd-flow-label">Gemeld</span>'+dashboardValue(actual,'°C')+'</div><div><span class="pd-flow-label">Doel</span>'+dashboardValue(target,'°C')+'</div></div><p class="pd-help">'+dashboardText(dashboardReason(row.reason))+'</p>'+dashboardTrend(row,index)+
-                    '<details class="pd-room-detail"><summary>Details</summary><p>Ruimte-ID: '+dashboardText(row.zone_id || 'niet gemeld')+'<br>Redencode: '+dashboardText(row.reason || 'niet gemeld')+'<br>Aansturing kranen: '+dashboardBool(actuatorEnabled,'vrijgegeven','geblokkeerd')+'</p><p class="pd-help">Een aanvraag bewijst geen klepstand of geleverde warmte. Instellingen en programma’s pas je aan in Home Assistant.</p></details></article>';
+                html += '<article class="pd-room"><div class="pd-room-title"><h3>'+dashboardText(name)+'</h3><span class="pd-badge'+(row.demand===true?' pd-request':'')+'">'+dashboardBool(row.demand,uiText("Requesting heat"),uiText("No request"))+uiHtml("</span></div><div class=\"pd-room-temperatures\"><div><span class=\"pd-flow-label\">Reported</span>")+dashboardValue(actual,'°C')+uiHtml("</div><div><span class=\"pd-flow-label\">Target</span>")+dashboardValue(target,'°C')+'</div></div><p class="pd-help">'+dashboardText(dashboardReason(row.reason))+'</p>'+dashboardTrend(row,index)+
+                    uiHtml("<details class=\"pd-room-detail\"><summary>Details</summary><p>Room ID: ")+dashboardText(row.zone_id || uiText("not reported"))+uiHtml("<br>Reason code: ")+dashboardText(row.reason || uiText("not reported"))+uiHtml("<br>Valve control: ")+dashboardBool(actuatorEnabled,uiText('enabled'),uiText('blocked'))+uiHtml("</p><p class=\"pd-help\">A request does not prove valve position or delivered heat. Change settings and programs in Home Assistant.</p></details></article>");
             });
-            html += '</div><div class="pd-lower"><section class="pd-panel"><h2>Opdrachten aan de ketel</h2><p>'+dashboardBool(boilerEnabled,'Aansturing is volgens de regeling vrijgegeven.','De regeling meldt geblokkeerde uitgangen.')+'</p><p class="pd-help">Er is nog geen bevestigde opdrachtentijdlijn beschikbaar. Berekende kamervraag wordt niet als een verzonden of uitgevoerde ketelopdracht gepresenteerd.</p></section>'+
-                '<details class="pd-panel"><summary>Alle beschikbare ketelgegevens</summary><dl class="pd-detail-grid">';
-            var labels = {protocolProfile:'Protocolprofiel',protocolVersion:'Protocolversie',displayCode:'Displaycode',serviceCode:'Servicecode'};
-            Object.keys(labels).forEach(function(key) {var value=ems[key];html+='<dt>'+labels[key]+'</dt><dd>'+dashboardText(value==null?'Niet beschikbaar':String(value).slice(0,80))+'</dd>';});
-            var booleans = {heatingEnabled:'CV ingeschakeld',heatingActive:'CV actief',warmWaterEnabled:'Tapwater ingeschakeld',warmWaterActive:'Tapwater actief',burningGas:'Vlamstatus',pumpEnabled:'Pomp',fanEnabled:'Ventilator',pumpVenting:'Pomp ontluchten',fillingSiphon:'Sifon vullen'};
-            Object.keys(booleans).forEach(function(key){html+='<dt>'+booleans[key]+'</dt><dd>'+dashboardBool(ems[key],'Aan','Uit')+'</dd>';});
-            [['currentWarmWaterTemperature','Tapwater · gemeld',10,-20,150,'°C'],['selectedWarmWaterTemperature','Tapwaterdoel · teruggelezen',1,0,150,'°C'],['warmWaterFlow','Tapwaterdebiet',10,0,100,'L/min'],['outdoorTemperature','Buitentemperatuur · ketelbron',100,-60,60,'°C']].forEach(function(item){html+='<dt>'+item[1]+'</dt><dd>'+dashboardValue(dashboardNumber(ems[item[0]],item[2],item[3],item[4]),item[5])+'</dd>';});
-            html += '</dl><p class="pd-help">Niet beschikbaar betekent niet ondersteund, ontbrekend of verlopen; een gemeten nul blijft nul. Telemetrie is geen onafhankelijke fysieke vlam- of warmtemeting.</p></details>'+dashboardBuildSupport(status.control_build)+'</div></section>';
+            html += uiHtml("</div><div class=\"pd-lower\"><section class=\"pd-panel\"><h2>Commands to the boiler</h2><p>")+dashboardBool(boilerEnabled,uiText("Control is enabled according to the controller."),uiText("The controller reports blocked outputs."))+uiHtml("</p><p class=\"pd-help\">No confirmed command timeline is available yet. Calculated room demand is not presented as a transmitted or executed boiler command.</p></section>")+
+                uiHtml("<details class=\"pd-panel\"><summary>All available boiler data</summary><dl class=\"pd-detail-grid\">");
+            var labels = {protocolProfile:uiText("Protocol profile"),protocolVersion:uiText("Protocol version"),displayCode:uiText("Display code"),serviceCode:uiText("Service code")};
+            Object.keys(labels).forEach(function(key) {var value=ems[key];html+='<dt>'+labels[key]+'</dt><dd>'+dashboardText(value==null?uiText("Unavailable"):String(value).slice(0,80))+'</dd>';});
+            var booleans = {heatingEnabled:uiText("CH enabled"),heatingActive:uiText("CH active"),warmWaterEnabled:uiText("Hot water enabled"),warmWaterActive:uiText("Hot water active"),burningGas:uiText("Flame status"),pumpEnabled:uiText("Pump"),fanEnabled:uiText("Fan"),pumpVenting:uiText("Pump venting"),fillingSiphon:uiText("Filling siphon")};
+            Object.keys(booleans).forEach(function(key){html+='<dt>'+booleans[key]+'</dt><dd>'+dashboardBool(ems[key],uiText("On"),uiText("Off"))+'</dd>';});
+            [['currentWarmWaterTemperature',uiText("Hot water · reported"),10,-20,150,'°C'],['selectedWarmWaterTemperature',uiText("Hot water target · read back"),1,0,150,'°C'],['warmWaterFlow',uiText("Hot water flow rate"),10,0,100,'L/min'],['outdoorTemperature',uiText("Outdoor temperature · boiler source"),100,-60,60,'°C']].forEach(function(item){html+='<dt>'+item[1]+'</dt><dd>'+dashboardValue(dashboardNumber(ems[item[0]],item[2],item[3],item[4]),item[5])+'</dd>';});
+            html += uiHtml("</dl><p class=\"pd-help\">Unavailable means unsupported, missing or expired; a measured zero remains zero. Telemetry is not an independent physical flame or heat measurement.</p></details>")+dashboardBuildSupport(status.control_build)+'</div></section>';
             document.getElementById('maincontainer').innerHTML = html;
             if (typeof BoilerDisplay !== 'undefined') BoilerDisplay.mountHome(document.querySelector('.product-dashboard'));
         }
@@ -879,8 +881,7 @@
 
 			mainColElement.append(tilesBoxElement);
 
-			let uptime = `<div class='align-self-end' style='font-size: 0.6rem;'>
-			Time: ` + status.time + ` uptime: ` + parseInt(status.uptime / 86400) + `d ` + parseInt(status.uptime % 86400 / 3600) + `h ` + parseInt(status.uptime % 3600 / 60) + `m ` + status.uptime % 60 + `s
+			let uptime = uiHtml("<div class='align-self-end' style='font-size: 0.6rem;'>\n\t\t\tTime: ") + status.time + uiHtml(" uptime: ") + parseInt(status.uptime / 86400) + `d ` + parseInt(status.uptime % 86400 / 3600) + `h ` + parseInt(status.uptime % 3600 / 60) + `m ` + status.uptime % 60 + `s
 		</div>`;
 
 
@@ -901,7 +902,7 @@
 
 		function showRoom(room, boilerStats, activeProgram) {
 			let heating = room.shouldContinueHeating && boilerStats.boiler;
-			if (consoleLog) console.log(room.name + " heating: " + heating);
+			if (consoleLog) console.log(room.name + uiText(" heating: ") + heating);
 
 			var heatingIcon = "";
 			if (!room.enabled) {
@@ -924,7 +925,7 @@
 				programName = room.currentProgram;
 			}
 			if (room.temporaryProgramSecondsLeft > 0) {
-				programName = "Temporary (" + getTimeLeftFromSecs(room.temporaryProgramSecondsLeft) + ")";
+				programName = uiText("Temporary (") + getTimeLeftFromSecs(room.temporaryProgramSecondsLeft) + ")";
 			}
 
 			let lowBatteryStyle = '';

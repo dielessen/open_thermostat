@@ -758,3 +758,20 @@ ontvangstklok mag geen bestaande of nieuwe velddeadline laten herleven.
 Bronbewijs: `out/native-boiler-telemetry-20261023/`. Deze aftekening betreft
 softwarevoorbereiding; alpha18/dev24 blijft geïnstalleerd en de actieve bèta
 blijft `NOT_READY`. De fysieke B04–B14-checks zijn niet stilzwijgend afgevinkt.
+
+### 24 oktober — Nederlands en Engels
+
+De gebruiker vraagt EN/NL voor HA en E32, met Engels als standaard en terugval.
+De E32 heeft één vaste-tekstcatalogus voor schermen, knoppen, meldingen en
+herstelflows. De taalkeuze staat in het menu en op aanmelden/wifi-installatie;
+een browsercookie bewaart de keuze. Wisselen herlaadt de pagina met een
+bevestiging voor niet-opgeslagen werk. Kamernamen, SSID’s, formulierwaarden,
+model-ID’s en API/protocolgegevens worden niet vertaald.
+
+HA gebruikt de bestaande profieltaal voor de kamerkaart/weekplanner en de
+native vertaalvoorziening voor formulieren en entiteiten. EN/NL-catalogi worden
+op dezelfde sleutels en placeholders gecontroleerd. Opgeslagen native
+Lovelace-dashboardteksten hebben geen taalcontext per kijker: daarvoor geldt de
+gevraagde Engelse terugval. Gebruikersnamen van ruimtes/apparaten blijven staan.
+Deze uitbreiding hoort bij R29/I05/I09 en de gezamenlijke bèta; geen losse
+firmware-installatie of wijziging van ketelvrijgave.

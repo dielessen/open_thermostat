@@ -1294,7 +1294,7 @@ private:
 	void recovery() {
 		static constexpr auto page = R"html(<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>OpenThermostat recovery</title><script src="/auth-client.js"></script><style>body{font-family:sans-serif;max-width:42rem;margin:3rem auto;padding:0 1rem}button,input{font-size:1rem;margin:.5rem 0;padding:.6rem}progress{width:100%}</style></head>
+<title>OpenThermostat recovery</title><script src="/ui-messages.js"></script><script src="/ui-language.js"></script><script src="/auth-client.js"></script><style>body{font-family:sans-serif;max-width:42rem;margin:3rem auto;padding:0 1rem}button,input{font-size:1rem;margin:.5rem 0;padding:.6rem}progress{width:100%}</style></head>
 <body><h1>OpenThermostat recovery</h1><p>Select the SPIFFS image built for this device. Keep the device powered until verification finishes.</p>
 <input id="file" type="file" accept=".bin"><button id="upload">Upload filesystem</button><progress id="progress" max="100" value="0"></progress><pre id="status"></pre>
 <script>

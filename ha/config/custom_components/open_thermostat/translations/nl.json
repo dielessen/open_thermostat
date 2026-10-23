@@ -143,7 +143,41 @@
           "title": "Radiatorkamer instellen",
           "description": "Voeg een kamer toe of kies een bestaande kamer. Er verandert niets totdat je Kamer opslaan bevestigt.",
           "data": {
-            "room": "Kamer"
+            "room": "Kamer",
+            "room_id": "Vast ruimte-ID in firmware",
+            "name": "Naam ruimte",
+            "temperature_entity": "Temperatuursensor van de ruimte",
+            "actuator_entities": "Radiatorkranen (TRV’s)",
+            "setpoint_entity": "Externe temperatuurinstelling (optioneel)",
+            "maximum_age_ms": "Maximale leeftijd van een gekwalificeerde meting (ms)",
+            "schedule_entity": "Weekschema (Home Assistant, optioneel)",
+            "base_temperature": "Basistemperatuur",
+            "minimum_target_temperature": "Minimale doeltemperatuur",
+            "maximum_target_temperature": "Maximale doeltemperatuur",
+            "program_action": "Weekprogramma",
+            "binding_mode": "Uitgangsconfiguratie ruimte",
+            "confirm_binding_mode_change": "Wijziging van de ruimte-uitgangsconfiguratie bevestigen",
+            "comfort_enabled": "Begrensd comfortbeleid inschakelen (alleen shadow)",
+            "away_temperature": "Afwezigheids- / vakantiedoel",
+            "frost_temperature": "Expliciet vorstdoel (geen fysieke beveiliging)",
+            "override_minutes": "Duur tijdelijke afwijking (minuten)",
+            "window_entity": "Raamcontact zone (optioneel; onbekend pauzeert)",
+            "presence_entity": "Persoon (optioneel; onbekend is niet afwezig)"
+          },
+          "data_description": {
+            "temperature_entity": "Kies een aparte ruimtetemperatuursensor (sensor-entiteit), geen radiatorkraan, klepstand of doeltemperatuur. Een radiatorkraan kan vlak bij de radiator anders meten.",
+            "actuator_entities": "Kies climate-radiatorkranen voor de climate-TRV-modus. Laat leeg voor een ruimte met alleen schema; stel gewenste vloer-/klepuitgangen in bij Verwarmingsgroepen. Geen apparaat wordt bediend.",
+            "schedule_entity": "Optioneel: kies een bestaande Home Assistant Schedule-helper. Laat leeg voor de lokale weekeditor of alleen de basistemperatuur. Een helper en lokaal weekprogramma kunnen niet tegelijk actief zijn.",
+            "setpoint_entity": "Optioneel: kies een wandthermostaat of number/climate-entiteit die het gewenste ruimtedoel levert. Dit is NIET de radiatorkraan/actuator en GEEN gemeten temperatuur. Laat leeg voor bediening vanuit Home Assistant zonder extra wandapparaat.",
+            "base_temperature": "Ruimtedoel in programmagaten of zonder programma of tijdelijke afwijking. Dit veld alleen verstuurt geen opdracht naar de radiatorkraan.",
+            "minimum_target_temperature": "Laagst toegestane ruimtedoel, inclusief programmablokken; geen ketelwatergrens.",
+            "maximum_target_temperature": "Hoogst toegestane ruimtedoel, inclusief programmablokken; geen ketelwatergrens.",
+            "maximum_age_ms": "Maximale ouderdom van een gekwalificeerde meting; 120000 ms = 120 seconden. Geen opvraaginterval. Een HA-cache of last_reported alleen bewijst geen verse fysieke meting.",
+            "program_action": "Sla koppelingen op, bewerk lokale tijdblokken of verwijder het lokale programma expliciet. Een Home Assistant Schedule-helper is een alternatief, geen tweede programmabron.",
+            "binding_mode": "Climate-radiatorkranen gebruiken het bestaande shadow-profiel. Ruimtes met alleen een verwarmingsschema vereisen geen radiatorkraan en blijven een niet-toegepast concept; uitvoering en transport zijn geblokkeerd in afwachting van het firmwarecontract.",
+            "confirm_binding_mode_change": "Alleen verplicht bij moduswijziging. Controleer en wis of selecteer de radiatorkraankoppelingen expliciet. Ruimte-ID, grenzen en weekprogramma blijven behouden.",
+            "window_entity": "Alleen shadow-context. De standaardvoorvertoning verloopt na 2 minuten; alleen een expliciet gekwalificeerd bronrapportprofiel kan zijn eigen contexttermijn verlengen. Gecachte of ongewijzigde waarden alleen kwalificeren nooit beschikbaarheid of fysieke beveiliging.",
+            "presence_entity": "Alleen shadow-context. Onbekend is niet afwezig. De standaardvoorvertoning verloopt na 2 minuten; alleen een expliciet gekwalificeerd bronrapportprofiel kan zijn eigen contexttermijn verlengen."
           }
         },
         "radiator": {
@@ -316,6 +350,45 @@
             "base_temperature": "Geldt wanneer geen weekblok actief is. Een hoger doel kan meer warmtevraag geven.",
             "program_action": "Behoud het programma, bewerk de tijdblokken of verwijder het expliciet. Elk blok heeft zijn eigen temperatuur."
           }
+        },
+        "reconfigure": {
+          "title": "Ruimtekoppelingen bewerken",
+          "data": {
+            "name": "Naam ruimte",
+            "temperature_entity": "Temperatuursensor van de ruimte",
+            "actuator_entities": "Radiatorkranen (TRV’s)",
+            "setpoint_entity": "Externe temperatuurinstelling (optioneel)",
+            "maximum_age_ms": "Maximale leeftijd van een gekwalificeerde meting (ms)",
+            "schedule_entity": "Weekschema (Home Assistant, optioneel)",
+            "base_temperature": "Basistemperatuur",
+            "minimum_target_temperature": "Minimale doeltemperatuur",
+            "maximum_target_temperature": "Maximale doeltemperatuur",
+            "program_action": "Weekprogramma",
+            "binding_mode": "Uitgangsconfiguratie ruimte",
+            "confirm_binding_mode_change": "Wijziging van de ruimte-uitgangsconfiguratie bevestigen",
+            "comfort_enabled": "Begrensd comfortbeleid inschakelen (alleen shadow)",
+            "away_temperature": "Afwezigheids- / vakantiedoel",
+            "frost_temperature": "Expliciet vorstdoel (geen fysieke beveiliging)",
+            "override_minutes": "Duur tijdelijke afwijking (minuten)",
+            "window_entity": "Raamcontact zone (optioneel; onbekend pauzeert)",
+            "presence_entity": "Persoon (optioneel; onbekend is niet afwezig)"
+          },
+          "data_description": {
+            "temperature_entity": "Kies een aparte ruimtetemperatuursensor (sensor-entiteit), geen radiatorkraan, klepstand of doeltemperatuur. Een radiatorkraan kan vlak bij de radiator anders meten.",
+            "actuator_entities": "Kies climate-radiatorkranen voor de climate-TRV-modus. Laat leeg voor een ruimte met alleen schema; stel gewenste vloer-/klepuitgangen in bij Verwarmingsgroepen. Geen apparaat wordt bediend.",
+            "schedule_entity": "Optioneel: kies een bestaande Home Assistant Schedule-helper. Laat leeg voor de lokale weekeditor of alleen de basistemperatuur. Een helper en lokaal weekprogramma kunnen niet tegelijk actief zijn.",
+            "setpoint_entity": "Optioneel: kies een wandthermostaat of number/climate-entiteit die het gewenste ruimtedoel levert. Dit is NIET de radiatorkraan/actuator en GEEN gemeten temperatuur. Laat leeg voor bediening vanuit Home Assistant zonder extra wandapparaat.",
+            "base_temperature": "Ruimtedoel in programmagaten of zonder programma of tijdelijke afwijking. Dit veld alleen verstuurt geen opdracht naar de radiatorkraan.",
+            "minimum_target_temperature": "Laagst toegestane ruimtedoel, inclusief programmablokken; geen ketelwatergrens.",
+            "maximum_target_temperature": "Hoogst toegestane ruimtedoel, inclusief programmablokken; geen ketelwatergrens.",
+            "maximum_age_ms": "Maximale ouderdom van een gekwalificeerde meting; 120000 ms = 120 seconden. Geen opvraaginterval. Een HA-cache of last_reported alleen bewijst geen verse fysieke meting.",
+            "program_action": "Sla koppelingen op, bewerk lokale tijdblokken of verwijder het lokale programma expliciet. Een Home Assistant Schedule-helper is een alternatief, geen tweede programmabron.",
+            "binding_mode": "Climate-radiatorkranen gebruiken het bestaande shadow-profiel. Ruimtes met alleen een verwarmingsschema vereisen geen radiatorkraan en blijven een niet-toegepast concept; uitvoering en transport zijn geblokkeerd in afwachting van het firmwarecontract.",
+            "confirm_binding_mode_change": "Alleen verplicht bij moduswijziging. Controleer en wis of selecteer de radiatorkraankoppelingen expliciet. Ruimte-ID, grenzen en weekprogramma blijven behouden.",
+            "window_entity": "Alleen shadow-context. De standaardvoorvertoning verloopt na 2 minuten; alleen een expliciet gekwalificeerd bronrapportprofiel kan zijn eigen contexttermijn verlengen. Gecachte of ongewijzigde waarden alleen kwalificeren nooit beschikbaarheid of fysieke beveiliging.",
+            "presence_entity": "Alleen shadow-context. Onbekend is niet afwezig. De standaardvoorvertoning verloopt na 2 minuten; alleen een expliciet gekwalificeerd bronrapportprofiel kan zijn eigen contexttermijn verlengen."
+          },
+          "description": "Voeg een kamer toe of kies een bestaande kamer. Er verandert niets totdat je Kamer opslaan bevestigt."
         }
       },
       "error": {
@@ -368,7 +441,256 @@
         "user": "Geavanceerde verwarmingsinstellingen",
         "reconfigure": "Geavanceerde verwarmingsinstellingen"
       },
-      "entry_type": "Centrale instellingen"
+      "entry_type": "Centrale instellingen",
+      "step": {
+        "user": {
+          "title": "Centrale verwarmingsinstellingen — alleen concept",
+          "description": "Alleen gewenste HA-configuratie: NIET op de E32 toegepast. Het bestaande shadow-contract ondersteunt deze configuratie nog niet. Geen bron wordt gekwalificeerd, geen actuator ingeschakeld en geen verwarmingsopdracht verzonden. Ruimtedoelen en weekprogramma’s blijven apart.",
+          "data": {
+            "weather_enabled": "Weersafhankelijke regeling (gewenste instelling)",
+            "outdoor_source": "Buitentemperatuurbron (optioneel zonder weersafhankelijke regeling)",
+            "outdoor_maximum_age_ms": "Maximale ouderdom gekwalificeerde buitenmeting (ms)",
+            "stale_policy": "Gedrag bij oude buitenmeting",
+            "minimum_supply_temperature": "Minimale aanvoertemperatuur",
+            "maximum_supply_temperature": "Maximale aanvoertemperatuur",
+            "fixed_fallback_temperature": "Vaste terugvaltemperatuur",
+            "curve_0": "Stooklijn bij 20 °C buiten",
+            "curve_1": "Stooklijn bij 15 °C buiten",
+            "curve_2": "Stooklijn bij 10 °C buiten",
+            "curve_3": "Stooklijn bij 5 °C buiten",
+            "curve_4": "Stooklijn bij 0 °C buiten",
+            "curve_5": "Stooklijn bij -5 °C buiten",
+            "curve_6": "Stooklijn bij -10 °C buiten",
+            "curve_7": "Stooklijn bij -15 °C buiten",
+            "curve_8": "Stooklijn bij -20 °C buiten",
+            "draft_action": "Configuratieonderdeel"
+          },
+          "data_description": {
+            "weather_enabled": "Alleen een configuratieconcept. De E32 blijft de regelaar; opslaan schakelt geen weersafhankelijke regeling in en verandert de verwarming niet.",
+            "outdoor_source": "Kies een bestaande buitensensor of weather-entiteit. Een weather-entiteit levert het temperatuurattribuut, niet de weertekst. Selectie of HA-cache kwalificeert geen meting.",
+            "outdoor_maximum_age_ms": "Ouderdomsgrens voor een gekwalificeerde bronwaarneming, geen opvraagfrequentie. Beschikbaarheid of last_reported alleen is geen fysieke temperatuurmeting.",
+            "stale_policy": "Kies expliciet: normale warmtevraag blokkeren of een vaste aanvoertemperatuur binnen de centrale grenzen. Geen kunstmatige terugval op -20 °C buitentemperatuur.",
+            "minimum_supply_temperature": "Centrale watertemperatuurgrens, geen ruimtedoel. Voorgestelde technische grenzen zijn geen veiligheidsgoedkeuring van de installatie.",
+            "maximum_supply_temperature": "Centrale watertemperatuurgrens. Vloergroepen vereisen eigen mengregeling en onafhankelijke fysieke temperatuurbeveiliging.",
+            "fixed_fallback_temperature": "Laat leeg als normale warmtevraag wordt geblokkeerd. Kies voor vaste terugval een doel binnen de centrale aanvoergrenzen.",
+            "curve_0": "Negenpuntsstooklijn op de bestaande E32-buitenas: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Doelen mogen bij kouder weer niet dalen. Dit concept wordt niet uitgevoerd.",
+            "curve_1": "Negenpuntsstooklijn op de bestaande E32-buitenas: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Doelen mogen bij kouder weer niet dalen. Dit concept wordt niet uitgevoerd.",
+            "curve_2": "Negenpuntsstooklijn op de bestaande E32-buitenas: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Doelen mogen bij kouder weer niet dalen. Dit concept wordt niet uitgevoerd.",
+            "curve_3": "Negenpuntsstooklijn op de bestaande E32-buitenas: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Doelen mogen bij kouder weer niet dalen. Dit concept wordt niet uitgevoerd.",
+            "curve_4": "Negenpuntsstooklijn op de bestaande E32-buitenas: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Doelen mogen bij kouder weer niet dalen. Dit concept wordt niet uitgevoerd.",
+            "curve_5": "Negenpuntsstooklijn op de bestaande E32-buitenas: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Doelen mogen bij kouder weer niet dalen. Dit concept wordt niet uitgevoerd.",
+            "curve_6": "Negenpuntsstooklijn op de bestaande E32-buitenas: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Doelen mogen bij kouder weer niet dalen. Dit concept wordt niet uitgevoerd.",
+            "curve_7": "Negenpuntsstooklijn op de bestaande E32-buitenas: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Doelen mogen bij kouder weer niet dalen. Dit concept wordt niet uitgevoerd.",
+            "curve_8": "Negenpuntsstooklijn op de bestaande E32-buitenas: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Doelen mogen bij kouder weer niet dalen. Dit concept wordt niet uitgevoerd.",
+            "draft_action": "Bewerk centrale instellingen of voeg groepen/actuatoren toe, wijzig of verwijder ze in het concept. Het volledige schema wordt pas bij expliciet Opslaan bewaard; het blijft NIET TOEGEPAST op de E32."
+          }
+        },
+        "reconfigure": {
+          "title": "Centrale verwarmingsinstellingen — alleen concept",
+          "description": "Alleen gewenste HA-configuratie: NIET op de E32 toegepast. Het bestaande shadow-contract ondersteunt deze configuratie nog niet. Geen bron wordt gekwalificeerd, geen actuator ingeschakeld en geen verwarmingsopdracht verzonden. Ruimtedoelen en weekprogramma’s blijven apart.",
+          "data": {
+            "weather_enabled": "Weersafhankelijke regeling (gewenste instelling)",
+            "outdoor_source": "Buitentemperatuurbron (optioneel zonder weersafhankelijke regeling)",
+            "outdoor_maximum_age_ms": "Maximale ouderdom gekwalificeerde buitenmeting (ms)",
+            "stale_policy": "Gedrag bij oude buitenmeting",
+            "minimum_supply_temperature": "Minimale aanvoertemperatuur",
+            "maximum_supply_temperature": "Maximale aanvoertemperatuur",
+            "fixed_fallback_temperature": "Vaste terugvaltemperatuur",
+            "curve_0": "Stooklijn bij 20 °C buiten",
+            "curve_1": "Stooklijn bij 15 °C buiten",
+            "curve_2": "Stooklijn bij 10 °C buiten",
+            "curve_3": "Stooklijn bij 5 °C buiten",
+            "curve_4": "Stooklijn bij 0 °C buiten",
+            "curve_5": "Stooklijn bij -5 °C buiten",
+            "curve_6": "Stooklijn bij -10 °C buiten",
+            "curve_7": "Stooklijn bij -15 °C buiten",
+            "curve_8": "Stooklijn bij -20 °C buiten",
+            "draft_action": "Configuratieonderdeel"
+          },
+          "data_description": {
+            "weather_enabled": "Alleen een configuratieconcept. De E32 blijft de regelaar; opslaan schakelt geen weersafhankelijke regeling in en verandert de verwarming niet.",
+            "outdoor_source": "Kies een bestaande buitensensor of weather-entiteit. Een weather-entiteit levert het temperatuurattribuut, niet de weertekst. Selectie of HA-cache kwalificeert geen meting.",
+            "outdoor_maximum_age_ms": "Ouderdomsgrens voor een gekwalificeerde bronwaarneming, geen opvraagfrequentie. Beschikbaarheid of last_reported alleen is geen fysieke temperatuurmeting.",
+            "stale_policy": "Kies expliciet: normale warmtevraag blokkeren of een vaste aanvoertemperatuur binnen de centrale grenzen. Geen kunstmatige terugval op -20 °C buitentemperatuur.",
+            "minimum_supply_temperature": "Centrale watertemperatuurgrens, geen ruimtedoel. Voorgestelde technische grenzen zijn geen veiligheidsgoedkeuring van de installatie.",
+            "maximum_supply_temperature": "Centrale watertemperatuurgrens. Vloergroepen vereisen eigen mengregeling en onafhankelijke fysieke temperatuurbeveiliging.",
+            "fixed_fallback_temperature": "Laat leeg als normale warmtevraag wordt geblokkeerd. Kies voor vaste terugval een doel binnen de centrale aanvoergrenzen.",
+            "curve_0": "Negenpuntsstooklijn op de bestaande E32-buitenas: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Doelen mogen bij kouder weer niet dalen. Dit concept wordt niet uitgevoerd.",
+            "curve_1": "Negenpuntsstooklijn op de bestaande E32-buitenas: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Doelen mogen bij kouder weer niet dalen. Dit concept wordt niet uitgevoerd.",
+            "curve_2": "Negenpuntsstooklijn op de bestaande E32-buitenas: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Doelen mogen bij kouder weer niet dalen. Dit concept wordt niet uitgevoerd.",
+            "curve_3": "Negenpuntsstooklijn op de bestaande E32-buitenas: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Doelen mogen bij kouder weer niet dalen. Dit concept wordt niet uitgevoerd.",
+            "curve_4": "Negenpuntsstooklijn op de bestaande E32-buitenas: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Doelen mogen bij kouder weer niet dalen. Dit concept wordt niet uitgevoerd.",
+            "curve_5": "Negenpuntsstooklijn op de bestaande E32-buitenas: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Doelen mogen bij kouder weer niet dalen. Dit concept wordt niet uitgevoerd.",
+            "curve_6": "Negenpuntsstooklijn op de bestaande E32-buitenas: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Doelen mogen bij kouder weer niet dalen. Dit concept wordt niet uitgevoerd.",
+            "curve_7": "Negenpuntsstooklijn op de bestaande E32-buitenas: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Doelen mogen bij kouder weer niet dalen. Dit concept wordt niet uitgevoerd.",
+            "curve_8": "Negenpuntsstooklijn op de bestaande E32-buitenas: +20, +15, +10, +5, 0, -5, -10, -15, -20 °C. Doelen mogen bij kouder weer niet dalen. Dit concept wordt niet uitgevoerd.",
+            "draft_action": "Bewerk centrale instellingen of voeg groepen/actuatoren toe, wijzig of verwijder ze in het concept. Het volledige schema wordt pas bij expliciet Opslaan bewaard; het blijft NIET TOEGEPAST op de E32."
+          }
+        },
+        "graph": {
+          "title": "Gewenst verwarmingsschema — niet toegepast",
+          "description": "Concept: {groups} groepen, {actuators} actuatorverklaringen. Niet-toegewezen groepen blijven onvolledig. Wijzigingen worden pas bij Opslaan bewaard. Geen firmware- of apparaatuitvoering.",
+          "menu_options": {
+            "add_group": "Afgiftegroep aan concept toevoegen",
+            "edit_group": "Afgiftegroep in concept bewerken",
+            "delete_group": "Afgiftegroep uit concept verwijderen",
+            "add_actuator": "Actuatorverklaring toevoegen",
+            "edit_actuator": "Actuatorverklaring bewerken",
+            "delete_actuator": "Actuatorverklaring verwijderen",
+            "save_graph": "Gewenst verwarmingsschema opslaan (niet toegepast)",
+            "cancel_graph": "Alle wijzigingen aan het verwarmingsschema annuleren"
+          }
+        },
+        "edit_group": {
+          "title": "Te bewerken groep kiezen",
+          "description": "Alleen gewenste configuratie. Niets beweegt of wordt op de E32 toegepast. Groep-/profielverklaringen bewijzen geen elektrische, hydraulische of apparaatondersteuning.",
+          "data": {
+            "group_id": "Afgiftegroep"
+          }
+        },
+        "group": {
+          "title": "Afgiftegroep — alleen concept",
+          "description": "Alleen gewenste configuratie. Niets beweegt of wordt op de E32 toegepast. Groep-/profielverklaringen bewijzen geen elektrische, hydraulische of apparaatondersteuning.",
+          "data": {
+            "name": "Groepsnaam",
+            "emitter": "Type warmteafgever",
+            "minimum_supply_temperature": "Minimale aanvoertemperatuur groep",
+            "maximum_supply_temperature": "Maximale aanvoertemperatuur groep",
+            "pump": "Groepspomp (optionele switch)",
+            "pump_start_delay_s": "Pompstartvertraging (seconden)",
+            "postrun_s": "Pompnaloop (seconden)",
+            "mixing_kind": "Mengactuatorverklaring"
+          },
+          "data_description": {
+            "emitter": "Een vloer is een trage warmteafgever. Vloertemperatuur en onafhankelijke hardwaregrenzen moeten nog per installatie worden gevalideerd.",
+            "minimum_supply_temperature": "Watertemperatuurgrens van de groep, geen ruimtetemperatuur. Een structureel geldige waarde is geen veiligheidsgoedkeuring van de installatie.",
+            "maximum_supply_temperature": "Een vloer zonder vastgelegde mengregeling vereist een gedeelde centrale bovengrens binnen deze limiet. Een gesloten vloerklep is geen onafhankelijke oververhittingsbeveiliging.",
+            "pump": "Optionele bestaande schakelaar voor de groepspomp. Bij verwijderen moeten beide pomptijden nul zijn. Selectie bedient nooit een pomp.",
+            "mixing_kind": "Alleen een verklaring. Een mengklep is geen ruimteklep. Mengregeling, uitgangsvergrendeling, referentiebeweging en analoge kalibratie worden NIET door deze editor uitgevoerd."
+          }
+        },
+        "mixing": {
+          "title": "Mengverklaring — geen motoraansturing",
+          "description": "Alleen gewenste configuratie. Niets beweegt of wordt op de E32 toegepast. Groep-/profielverklaringen bewijzen geen elektrische, hydraulische of apparaatondersteuning.",
+          "data": {
+            "supply_sensor": "Sensor mengwatertemperatuur",
+            "travel_time_s": "Volledige actuatorlooptijd (seconden)",
+            "open_output": "Uitgang OPEN-richting (switch)",
+            "close_output": "Uitgang DICHT-richting (switch)",
+            "analog_output": "Analoge uitgangsregelaar (number)"
+          },
+          "data_description": {
+            "supply_sensor": "Ingang voor de werkelijke mengwatertemperatuur. Sensorbeschikbaarheid of cache geldt niet als gekwalificeerde verse meting.",
+            "travel_time_s": "Verklaring van volledige looptijd, geen bewijs van terugmelding. Tijdens configuratie beweegt geen actuator.",
+            "open_output": "Aparte schakelaar voor de OPEN-richting. Moet verschillen van DICHT en alle andere uitgangen. Elektrische/softwarevergrendeling en referentiebeweging zijn latere implementatievoorwaarden.",
+            "close_output": "Aparte schakelaar voor de DICHT-richting, geen algemene geslotenstandsensor. Er wordt geen driepuntsmotor aangestuurd.",
+            "analog_output": "Bestaande number-uitgang voor een fysieke 0–10 V-regelaar. Selectie bevestigt GEEN schaal, richting, kalibratie of werkelijke spanning."
+          }
+        },
+        "delete_group": {
+          "title": "Groep uit concept verwijderen",
+          "description": "Alleen gewenste configuratie. Niets beweegt of wordt op de E32 toegepast. Groep-/profielverklaringen bewijzen geen elektrische, hydraulische of apparaatondersteuning.",
+          "data": {
+            "group_id": "Afgiftegroep",
+            "cascade_actuators": "Ook de actuatorverklaringen van deze groep uit het concept verwijderen"
+          },
+          "data_description": {
+            "cascade_actuators": "Verplicht als de groep actuatorverklaringen bevat. Alleen de conceptgroep en de bijbehorende verklaringen worden verwijderd; geen ruimte, entiteit of apparaat wordt verwijderd of bediend."
+          }
+        },
+        "actuator": {
+          "title": "Eigenaar en type actuator — alleen concept",
+          "description": "Alleen gewenste configuratie. Niets beweegt of wordt op de E32 toegepast. Groep-/profielverklaringen bewijzen geen elektrische, hydraulische of apparaatondersteuning.",
+          "data": {
+            "room_id": "Bestaande ruimte",
+            "group_id": "Afgiftegroep",
+            "profile": "Type actuatorverklaring"
+          },
+          "data_description": {
+            "room_id": "Kies een logische ruimte die al in deze integratie is ingesteld. Native verwijderen van die ruimte verwijdert alleen de bijbehorende gewenste actuatorverklaringen, met audit; groepen en centrale instellingen blijven behouden."
+          }
+        },
+        "actuator_details": {
+          "title": "Actuatorverklaring — niet uitgevoerd",
+          "description": "Alleen gewenste configuratie. Niets beweegt of wordt op de E32 toegepast. Groep-/profielverklaringen bewijzen geen elektrische, hydraulische of apparaatondersteuning.",
+          "data": {
+            "output": "Entiteit voor apparaatuitgang",
+            "deenergized_position": "Fysieke spanningsloze stand (NC/NO)",
+            "control": "Binaire regelstrategie",
+            "travel_time_s": "Volledige actuatorlooptijd (seconden)",
+            "minimum_on_s": "Minimale aan-tijd (seconden)",
+            "minimum_off_s": "Minimale uit-tijd (seconden)",
+            "cycle_s": "TPI-cyclusduur (optioneel; seconden)",
+            "minimum_percent": "Minimale gevraagde stand (%)",
+            "maximum_percent": "Maximale gevraagde stand (%)"
+          },
+          "data_description": {
+            "output": "Kies de entiteit die bij dit verklaringstype hoort. Een bestaande radiatorkraan van precies deze ruimte kan als DEZELFDE gewenste uitgangseigenaar worden overgenomen; er ontstaat geen tweede schrijver. Eigendom over meerdere ruimtes/regelaars wordt geweigerd.",
+            "deenergized_position": "NC/NO beschrijft de fysieke stand zonder voeding, geen software-inversie. Controleer de echte actuator en spanning apart.",
+            "control": "Alleen een gewenste verklaring. TPI is een trage tijdproportionele cyclus, geen proportionele klepstand of snelle PWM.",
+            "travel_time_s": "Verklaring van volledige looptijd, geen bewijs van terugmelding. Tijdens configuratie beweegt geen actuator.",
+            "cycle_s": "Verplicht voor TPI; laat leeg voor hysterese. Minimale aan-tijd moet de looptijd dekken en minimale aan- en uit-tijd moeten in de cyclus passen.",
+            "minimum_percent": "Gevraagde stand, geen gemeten doorstroming of ketelvermogen. Interfacerichting, terugmelding, veilige terugval en apparaatondersteuning zijn nog onbewezen.",
+            "maximum_percent": "Moet boven het minimum liggen. Een procentuele uitgang is niet automatisch een mengklep of een 0–10 V-interface."
+          }
+        },
+        "edit_actuator": {
+          "title": "Te bewerken actuatorverklaring kiezen",
+          "description": "Alleen gewenste configuratie. Niets beweegt of wordt op de E32 toegepast. Groep-/profielverklaringen bewijzen geen elektrische, hydraulische of apparaatondersteuning.",
+          "data": {
+            "actuator_id": "Actuatorverklaring"
+          }
+        },
+        "delete_actuator": {
+          "title": "Actuatorverklaring uit concept verwijderen",
+          "description": "Alleen gewenste configuratie. Niets beweegt of wordt op de E32 toegepast. Groep-/profielverklaringen bewijzen geen elektrische, hydraulische of apparaatondersteuning.",
+          "data": {
+            "actuator_id": "Actuatorverklaring",
+            "confirm": "Verwijderen uit concept bevestigen"
+          },
+          "data_description": {
+            "confirm": "Verwijderen gebeurt alleen in het concept; pas Opslaan bewaart het gewenste schema. Annuleren verwerpt alle conceptwijzigingen."
+          }
+        },
+        "graph_error": {
+          "title": "Verwarmingsschema kan niet worden opgeslagen",
+          "description": "Niets opgeslagen. Ga verder naar het concept en herstel de verwijzingen, of annuleer."
+        }
+      },
+      "error": {
+        "binding_missing": "Een geselecteerde entiteit ontbreekt of is uitgeschakeld.",
+        "loop_binding": "Een geselecteerde entiteit heeft al een conflicterende rol.",
+        "not_temperature": "Kies een temperatuursensor.",
+        "weather_requires_outdoor_source": "Choose an outdoor source when weather compensation is selected.",
+        "curve_must_not_fall_towards_cold_outdoors": "Supply targets must not decrease towards colder weather.",
+        "unused_fallback_must_be_null": "Clear the fixed target when using the block-demand policy.",
+        "minimum_must_be_below_maximum": "The minimum supply temperature must be below the maximum.",
+        "invalid_integer_or_bounds": "Choose finite numbers inside the permitted bounds.",
+        "invalid_heating_draft": "The desired configuration is invalid. No changes were saved.",
+        "wrong_entity_domain": "Select an entity from the required domain.",
+        "input_output_loop": "Een radiatorkraan kan niet tegelijk de bron voor de gewenste temperatuur zijn.",
+        "output_has_multiple_owners": "Een geselecteerde kraan hoort al bij een andere kamer of controller. Controleer de bestaande koppeling onder Geavanceerd.",
+        "floor_requires_mixing_or_shared_safe_limit": "An unmixed floor requires the shared central upper bound to remain within the floor group limit.",
+        "invalid_tpi_travel_or_minimum_times": "TPI on-time must cover travel and minimum on+off times must fit the cycle.",
+        "pump_times_without_pump": "Clear both pump times when no group pump is selected.",
+        "invalid_position_range": "Minimum position must be below maximum position.",
+        "group_count": "At most 8 desired groups. This is not proof of firmware capacity.",
+        "actuator_count": "At most 64 desired actuators in total. Firmware resource capacity is not yet proven.",
+        "room_actuator_limit": "At most 8 desired actuator declarations per room.",
+        "duplicate_actuator_or_missing_reference": "Use unique actuator identifiers and existing room/group references.",
+        "confirm_group_cascade": "Confirm removal of this group’s actuator declarations, or cancel.",
+        "confirm_delete": "Confirm removal from the draft.",
+        "invalid_heating_graph": "The desired graph is invalid or a binding has disappeared. Nothing was saved.",
+        "room_required": "Configure a room before adding actuator declarations."
+      },
+      "abort": {
+        "shadow_mode_required": "Alleen expliciete shadow-configuraties ondersteunen dit concept.",
+        "disable_runtime_before_draft": "Deze concepteditor vereist dat de shadow-runtime uitgeschakeld blijft.",
+        "single_central_owner": "Deze regelaar heeft al een centraal verwarmingsconcept. Configureer dat bestaande concept opnieuw.",
+        "graph_not_started": "Open het verwarmingsschema via de centrale verwarmingsinstellingen.",
+        "graph_changed": "Het centrale concept of de ruimtelijst is tijdens bewerken gewijzigd. Open het concept opnieuw; niets opgeslagen.",
+        "graph_cancelled": "Alle conceptwijzigingen geannuleerd; niets opgeslagen."
+      }
     },
     "installation": {
       "entry_type": "Installatiegegevens"
@@ -422,6 +744,64 @@
       "options": {
         "block_normal_demand": "Vraag blokkeren bij ontbrekende buitenmeting",
         "bounded_fixed_flow": "Begrensde vaste aanvoer gebruiken"
+      }
+    },
+    "heating_draft_action": {
+      "options": {
+        "save_central": "Alleen centrale instellingen opslaan (schema behouden)",
+        "edit_graph": "Groepen en actuatorverklaringen bewerken"
+      }
+    },
+    "heating_emitter": {
+      "options": {
+        "radiator": "Radiatoren",
+        "floor": "Vloerverwarming (trage warmteafgever)"
+      }
+    },
+    "heating_mixing": {
+      "options": {
+        "none": "Geen mengklep vastgelegd",
+        "three_point": "Driepuntsmengklepverklaring (niet uitgevoerd)",
+        "analog_0_10v": "Verklaring analoge 0–10 V-mengklep (niet uitgevoerd)"
+      }
+    },
+    "heating_actuator": {
+      "options": {
+        "trv_room_setpoint": "Ruimtedoel radiatorkraan (TRV)",
+        "binary_valve": "Binaire zone-/vloerklep (NC/NO, hysterese/TPI)",
+        "proportional_valve": "Proportionele regelklep (0–100%, geen mengklep)"
+      }
+    },
+    "heating_deenergized": {
+      "options": {
+        "normally_open": "Normaal open (spanningsloos = open)",
+        "normally_closed": "Normaal gesloten (spanningsloos = dicht)"
+      }
+    },
+    "heating_binary_control": {
+      "options": {
+        "hysteresis": "Hystereseverklaring",
+        "tpi": "Verklaring trage tijdproportionele cyclus"
+      }
+    },
+    "room_binding_mode": {
+      "options": {
+        "climate_trv": "Climate-radiatorkranen (bestaand shadow-profiel)",
+        "graph_only_draft": "Ruimte met alleen schema / vloer (niet-toegepast concept)"
+      }
+    },
+    "graph_action": {
+      "options": {
+        "settings": "Integratie-instellingen",
+        "prepare": "Opgeslagen ruimte- en verwarmingsconfiguratie voorbereiden",
+        "review": "Conceptconfiguratie beoordelen",
+        "status": "Configuratiestatus"
+      }
+    },
+    "graph_status_action": {
+      "options": {
+        "refresh": "Status vernieuwen",
+        "close": "Status sluiten"
       }
     }
   },
@@ -926,6 +1306,43 @@
     },
     "progress": {
       "controller_connect": "Verbinden, kamerprogramma toepassen en teruglezen…"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "radiators_heating": {
+        "name": "Radiatoren verwarmen"
+      }
+    },
+    "number": {
+      "radiator_rated_power": {
+        "name": "Nominaal radiatorvermogen"
+      }
+    },
+    "sensor": {
+      "radiator_heating_time": {
+        "name": "Radiatorverwarmingstijd"
+      },
+      "estimated_radiator_energy": {
+        "name": "Geschatte radiatorenergie"
+      },
+      "estimated_radiator_power": {
+        "name": "Geschat radiatorvermogen"
+      }
+    }
+  },
+  "issues": {
+    "legacy_metrics_history": {
+      "title": "Oude meethistorie vereist beoordeling",
+      "description": "Deze configuratie ontving numerieke EMS-tellers zonder de gecorrigeerde metricsSchema 2-definitie. Deze waarden worden niet als gecorrigeerde cumulatieve tellers toegelaten. Bestaande Recorder- en statistiekgegevens zijn niet verwijderd of herschreven. Beoordeel historische definities voordat je oude energie-/waterstatistieken met gecorrigeerde tellers sinds opstart combineert. Schattingen zijn geen gas- of warmtemeters; er vindt geen automatische migratie plaats."
+    },
+    "metrics_definition_v2": {
+      "title": "Nieuwe versie-2-meetdefinities kiezen",
+      "description": "Bestaande meetentiteit-ID’s en historie blijven behouden, maar oude aliassen zijn niet beschikbaar en verzamelen geen nieuwe statistieken. Gecorrigeerde tellers en debieten sinds opstart gebruiken duidelijk benoemde definitie-v2-entiteiten en numerieke protocolvelden. Pas eigen kaarten desgewenst aan. Historische statistieken zijn niet verwijderd, herschreven of aangevuld; deze migratie valideert de oude historie niet. Geschatte energie is geen gas- of warmtemeting."
+    },
+    "room_model_v2": {
+      "title": "Begrensde ruimtemodeldefinitie v2 kiezen",
+      "description": "Bestaande ongekwalificeerde ruimte-energie- en tijdhistorie blijft ongewijzigd. Nieuwe ruimtemodellen gebruiken aparte v2-entiteiten en herstellen of aanvullen geen oude totalen. Onbekende/verouderde invoer levert gaten op. Ruimtevraag plus gemelde CV-activiteit bewijst geen werkelijke ruimtewarmte of doorstroming; radiatorafgifte wordt gemodelleerd met 10 °C retourverschil en exponent 1,3, niet gemeten. Bestaande firmware zonder waarnemingsmetadata kan deze modellen niet kwalificeren. Controleer eigen kaarten; Recorder-gegevens zijn niet herschreven."
     }
   }
 }

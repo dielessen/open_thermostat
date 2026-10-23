@@ -219,12 +219,14 @@ class RoomDashboard:
         ]
         ems_entities += [hub_entities[key] for key in hub_entities
                          if key.endswith("_v2") and key[:-3] in EMS_METRICS]
-        polish = self.hass.config.language.lower().startswith("pl")
-        rooms_title = "Pomieszczenia" if polish else "Rooms"
-        diagnostics_title = "Diagnostyka" if polish else "Diagnostics"
-        heating_title = "Ogrzewanie" if polish else "Heating"
-        device_title = "Urządzenie" if polish else "Device diagnostics"
-        ems_title = "Informacje EMS" if polish else "EMS information"
+        # Stored native Lovelace cards have no per-viewer translation context.
+        # Keep their fixed headings in English; entity labels and our custom
+        # room editor use Home Assistant's own translation/profile context.
+        rooms_title = "Rooms"
+        diagnostics_title = "Diagnostics"
+        heating_title = "Heating"
+        device_title = "Device diagnostics"
+        ems_title = "EMS information"
         diagnostics_cards = []
         if diagnostic_entities:
             diagnostics_cards.append({
@@ -327,9 +329,7 @@ class RoomDashboard:
                                       "hours_to_show": 24, "entities": entities})
         entry = self.hass.config_entries.async_get_entry(self.entry_id)
         if entry is not None and is_product(entry):
-            if self.hass.config.language.startswith("nl"):
-                rooms_title = "Ruimtes"
-            room_cards.extend({"type": "button", "name": sub.title + (" instellen" if self.hass.config.language.startswith("nl") else " settings"),
+            room_cards.extend({"type": "button", "name": sub.title + " settings",
                 "icon": "mdi:cog", "tap_action": {"action": "navigate", "navigation_path": "/" + self.path + "/room-" + sub.data["room_id"]}}
                 for sub in entry.subentries.values() if sub.subentry_type == "zone")
         return {
@@ -341,7 +341,7 @@ class RoomDashboard:
                     "cards": room_cards,
                 },
                 *([{
-                    "title": "Ruimtes instellen" if self.hass.config.language.startswith("nl") else "Room settings",
+                    "title": "Room settings",
                     "panel": True,
                     "path": "week", "icon": "mdi:calendar-week",
                     "cards": [{"type": ROOM_CARD_TYPE,

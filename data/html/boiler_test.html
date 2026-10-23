@@ -1,36 +1,36 @@
 <section class="product-dashboard" id="boiler-test">
-  <h1>Keteltest</h1>
-  <p>Controleer de ontvangst van ketelgegevens en de beschikbaarheid van een begrensde proef.</p>
-  <p role="status" aria-live="polite" data-reception>Ontvangst controleren…</p>
+  <h1><span data-i18n="Boiler test">Boiler test</span></h1>
+  <p><span data-i18n="Check boiler data reception and the availability of a bounded test.">Check boiler data reception and the availability of a bounded test.</span></p>
+  <p role="status" aria-live="polite" data-reception><span data-i18n="Checking reception…">Checking reception…</span></p>
   <div class="pd-panel">
-    <h2>Aansluiting en ontvangst</h2>
+    <h2><span data-i18n="Connection and reception">Connection and reception</span></h2>
     <dl class="pd-detail-grid" data-transport></dl>
-    <button class="btn btn-outline-secondary" type="button" data-download disabled>Meetrapport downloaden</button>
+    <button class="btn btn-outline-secondary" type="button" data-download disabled><span data-i18n="Download measurement report">Download measurement report</span></button>
   </div>
   <div class="pd-panel">
-    <h2>Ketelgegevens</h2>
-    <p>Afgeleide waarden zijn berekend uit de ketelmelding. Onbetrouwbare velden gelden niet als onafhankelijke bevestiging.</p>
-    <div style="overflow-x:auto"><table class="table"><thead><tr><th>Gegeven</th><th>Waarde</th><th>Kwaliteit</th><th>Leeftijd</th></tr></thead><tbody data-fields></tbody></table></div>
+    <h2><span data-i18n="Boiler data">Boiler data</span></h2>
+    <p><span data-i18n="Derived values are calculated from the boiler report. Unreliable fields do not count as independent confirmation.">Derived values are calculated from the boiler report. Unreliable fields do not count as independent confirmation.</span></p>
+    <div style="overflow-x:auto"><table class="table"><thead><tr><th><span data-i18n="Data item">Data item</span></th><th><span data-i18n="Value">Value</span></th><th><span data-i18n="Quality">Quality</span></th><th><span data-i18n="Age">Age</span></th></tr></thead><tbody data-fields></tbody></table></div>
   </div>
   <div class="pd-panel">
-    <h2>Ontvangen berichttypen</h2>
-    <p>Dit overzicht laat zien welke ketelberichten binnenkomen, ook als er nog geen decoder voor is. Geen bericht ontvangen betekent niet dat de ketel het niet ondersteunt.</p>
-    <p data-inventory-status>Berichtoverzicht nog niet beschikbaar.</p>
-    <div style="overflow-x:auto"><table class="table"><thead><tr><th>Type</th><th>Berichten</th><th>Decoder</th><th>Leeftijd</th></tr></thead><tbody data-telegrams></tbody></table></div>
+    <h2><span data-i18n="Received message types">Received message types</span></h2>
+    <p><span data-i18n="This overview shows which boiler messages arrive, including those without a decoder. No received message does not mean the boiler does not support it.">This overview shows which boiler messages arrive, including those without a decoder. No received message does not mean the boiler does not support it.</span></p>
+    <p data-inventory-status><span data-i18n="Message overview not yet available.">Message overview not yet available.</span></p>
+    <div style="overflow-x:auto"><table class="table"><thead><tr><th><span data-i18n="Type">Type</span></th><th><span data-i18n="Messages">Messages</span></th><th>Decoder</th><th><span data-i18n="Age">Age</span></th></tr></thead><tbody data-telegrams></tbody></table></div>
   </div>
-  <div class="pd-panel"><h2>Aansturing beproeven</h2>
-    <p data-test-state role="status" aria-live="polite">Proefstatus controleren…</p>
-    <p>Een aangenomen verzoek is nog geen verzonden opdracht of bevestigde ketelreactie.</p>
+  <div class="pd-panel"><h2><span data-i18n="Test control">Test control</span></h2>
+    <p data-test-state role="status" aria-live="polite"><span data-i18n="Checking test status…">Checking test status…</span></p>
+    <p><span data-i18n="An accepted request is not yet a transmitted command or confirmed boiler response.">An accepted request is not yet a transmitted command or confirmed boiler response.</span></p>
     <form data-test-form>
-      <label class="d-block">Gewenste aanvoer (°C)<input class="form-control" data-test-flow type="number" step="1" required disabled></label>
-      <label class="d-block">Maximale warmtevraag (seconden)<input class="form-control" data-test-duration type="number" step="1" required disabled></label>
+      <label class="d-block"><span data-i18n="Desired flow temperature (°C)">Desired flow temperature (°C)</span><input class="form-control" data-test-flow type="number" step="1" required disabled></label>
+      <label class="d-block"><span data-i18n="Maximum heat demand (seconds)">Maximum heat demand (seconds)</span><input class="form-control" data-test-duration type="number" step="1" required disabled></label>
       <div class="d-flex flex-wrap" style="gap:10px;margin:14px 0">
-        <button class="btn btn-outline-primary" type="button" data-test-prepare disabled>Stopbasis controleren</button>
-        <button class="btn btn-primary" type="button" data-test-start disabled>Warmtevraag starten</button>
-        <button class="btn btn-danger" type="button" data-test-stop disabled>Proef stoppen</button>
+        <button class="btn btn-outline-primary" type="button" data-test-prepare disabled><span data-i18n="Check stop baseline">Check stop baseline</span></button>
+        <button class="btn btn-primary" type="button" data-test-start disabled><span data-i18n="Start heat demand">Start heat demand</span></button>
+        <button class="btn btn-danger" type="button" data-test-stop disabled><span data-i18n="Stop test">Stop test</span></button>
       </div>
     </form>
-    <p class="pd-help">Houd deze pagina zichtbaar tijdens de proef. Vernieuwen of heropenen hervat het toezicht niet automatisch.</p>
+    <p class="pd-help"><span data-i18n="Keep this page visible during the test. Refreshing or reopening does not automatically resume supervision.">Keep this page visible during the test. Refreshing or reopening does not automatically resume supervision.</span></p>
     <p data-test-action role="status" aria-live="polite"></p>
     <dl class="pd-detail-grid" data-test-facts></dl>
   </div>
@@ -46,11 +46,11 @@
   const telegrams = root.querySelector('[data-telegrams]');
   const inventoryStatus = root.querySelector('[data-inventory-status]');
   const labels = {
-    no_boiler_reports: 'Nog geen ketelberichten ontvangen.',
-    stale: 'Ketelberichten zijn verouderd. Controleer de verbinding.',
-    conflicting_families: 'Tegenstrijdige protocolfamilies ontvangen. Aansturing blijft geblokkeerd.',
-    classic_reports_received: 'Verse EMS Classic-ketelberichten ontvangen.',
-    plus_reports_received: 'Verse EMS Plus-ketelberichten ontvangen.'
+    no_boiler_reports: uiText("No boiler messages received yet."),
+    stale: uiText("Boiler messages are stale. Check the connection."),
+    conflicting_families: uiText("Conflicting protocol families received. Control remains blocked."),
+    classic_reports_received: uiText("Fresh EMS Classic boiler messages received."),
+    plus_reports_received: uiText("Fresh EMS Plus boiler messages received.")
   };
   let report = null;
   const testState = root.querySelector('[data-test-state]');
@@ -62,13 +62,13 @@
   const startButton = root.querySelector('[data-test-start]');
   const stopButton = root.querySelector('[data-test-stop]');
   let test = null, held = null, lastScope = null, pending = false, stopping = false, renewal = null;
-  const phases = {idle:'Nog geen proef voorbereid.', baseline:'Wachten op een gemelde stop na de nulopdracht.',
-    ready:'Stopbasis gemeld. Warmtevraag kan afzonderlijk worden gestart.', heating:'Begrensde warmtevraag aangevraagd.',
-    stopping:'Stop aangevraagd. Wachten op verse ketelterugmelding.', completed:'Stop na de opdracht gemeld; proef afgerond.',
-    fault:'Proef gestopt door een fout. Controleer de ketel en het meetrapport.'};
-  const blocks = {boot_unavailable:'Proefidentiteit niet beschikbaar.', transmit_blocked:'Zenden is in deze firmware geblokkeerd.',
-    profile_missing:'Het beoordeelde ketelproefprofiel ontbreekt.', test_transport_missing:'De proefzender is nog niet aangesloten.',
-    proving_conditions_missing:'Niet alle proefvoorwaarden zijn bevestigd.'};
+  const phases = {idle:uiText("No test prepared yet."), baseline:uiText("Waiting for a reported stop after the zero command."),
+    ready:uiText("Stop baseline reported. Heat demand can be started separately."), heating:uiText("Bounded heat demand requested."),
+    stopping:uiText("Stop requested. Waiting for fresh boiler feedback."), completed:uiText("Stop reported after the command; test completed."),
+    fault:uiText("Test stopped due to an error. Check the boiler and measurement report.")};
+  const blocks = {boot_unavailable:uiText("Test identity unavailable."), transmit_blocked:uiText("Transmission is blocked in this firmware."),
+    profile_missing:uiText("The reviewed boiler test profile is missing."), test_transport_missing:uiText("The test transmitter is not connected yet."),
+    proving_conditions_missing:uiText("Not all test conditions have been confirmed.")};
   function validTest(value) {
     if (!value || value.schema !== 1 || !/^[0-9a-f]{16}$/.test(value.boot_id)
         || !Number.isInteger(value.revision) || value.revision < 0 || value.revision > 2147483647
@@ -102,8 +102,8 @@
       if (test.can_stop) lastScope = {boot_id:test.boot_id, revision:test.revision};
       else lastScope = null;
       testState.textContent = test.available ? phases[test.phase]
-        : (test.phase !== 'idle' ? phases[test.phase] + ' ' : '') + (blocks[test.blocked_reason] || 'De actieve proef is niet beschikbaar.');
-    } else testState.textContent = 'Proefstatus niet beschikbaar. Er wordt geen warmtevraag gestart.';
+        : (test.phase !== 'idle' ? phases[test.phase] + ' ' : '') + (blocks[test.blocked_reason] || uiText("The active test is unavailable."));
+    } else testState.textContent = uiText("Test status unavailable. No heat demand will be started.");
     flowInput.disabled = durationInput.disabled = !test || !test.can_prepare || pending;
     prepareButton.disabled = !test || !test.can_prepare || pending;
     startButton.disabled = !test || !test.can_start || !sameScope(held, test) || pending;
@@ -115,9 +115,9 @@
     }
     testFacts.replaceChildren();
     if (test) {
-      for (const [label,value] of [['Positieve opdrachten verzonden',number(test.positive_frames)],
-        ['Nulopdrachten verzonden',number(test.zero_frames)],['Resterende warmtevraagtijd',age(test.heat_remaining_ms)],
-        ['Stop na opdracht gemeld',test.reported_stop_confirmed ? 'Ja' : 'Nog niet bevestigd']]) {
+      for (const [label,value] of [[uiText("Positive commands transmitted"),number(test.positive_frames)],
+        [uiText("Zero commands transmitted"),number(test.zero_frames)],[uiText("Remaining heat demand time"),age(test.heat_remaining_ms)],
+        [uiText("Stop reported after command"),test.reported_stop_confirmed ? 'Ja' : uiText("Not confirmed yet")]]) {
         cell(testFacts,'dt',label);cell(testFacts,'dd',value);
       }
     }
@@ -129,10 +129,10 @@
         headers:{'Content-Type':'application/json'}, signal:abort.signal, body:JSON.stringify({schema:1,...body})});
       const result = await response.json();
       if (!response.ok || result.accepted !== true || !validTest(result.test) || !sameScope(result.test,body))
-        throw Error('Proefverzoek niet bevestigd. Controleer de status; het verzoek wordt niet automatisch herhaald.');
+        throw Error(uiText("Test request not confirmed. Check the status; the request is not retried automatically."));
       return result.test;
     } catch (error) {
-      throw Error('Proefverzoek niet bevestigd. Controleer de status; het verzoek wordt niet automatisch herhaald.');
+      throw Error(uiText("Test request not confirmed. Check the status; the request is not retried automatically."));
     } finally { clearTimeout(deadline); }
   }
   function scheduleRenewal() {
@@ -148,7 +148,7 @@
         if (!root.isConnected || !sameScope(held,scope)) return;
         paintTest(next); scheduleRenewal();
       } catch (error) {
-        stopRenewing(); if (root.isConnected) { testMessage.textContent = 'Toezicht niet bevestigd. Controleer de proefstatus en gebruik Stop.'; paintTest(test); }
+        stopRenewing(); if (root.isConnected) { testMessage.textContent = uiText("Supervision not confirmed. Check the test status and use Stop."); paintTest(test); }
       }
     }, Math.min(1000, Math.floor(test.limits.operator_lease_ms / 3)));
   }
@@ -157,7 +157,7 @@
     if (prepareButton.disabled || !test) return;
     const flow = Number(flowInput.value), duration = Number(durationInput.value);
     if (!flowInput.checkValidity() || !durationInput.checkValidity() || !Number.isInteger(flow) || !Number.isInteger(duration)) {
-      testMessage.textContent = 'Vul een gehele aanvoertemperatuur en duur binnen de getoonde grenzen in.'; return;
+      testMessage.textContent = uiText("Enter a whole flow temperature and duration within the displayed limits."); return;
     }
     const body = {boot_id:test.boot_id, revision:test.revision+1, flow_c:flow, duration_s:duration};
     pending = true; paintTest(test);
@@ -165,16 +165,16 @@
       const next = await testRequest('prepare',body);
       if (!root.isConnected) return;
       held = {boot_id:next.boot_id, revision:next.revision}; paintTest(next); scheduleRenewal();
-      testMessage.textContent = 'Stopcontrole aangevraagd. Warmtevraag start pas na uw afzonderlijke startactie.';
+      testMessage.textContent = uiText("Stop check requested. Heat demand only starts after your separate start action.");
     } catch (error) { stopRenewing(); if (root.isConnected) testMessage.textContent = error.message; }
     finally { pending = false; if (root.isConnected) paintTest(test); }
   });
   startButton.addEventListener('click',async () => {
-    if (startButton.disabled || !test || !sameScope(held,test) || !window.confirm('De begrensde warmtevraag nu starten?')) return;
+    if (startButton.disabled || !test || !sameScope(held,test) || !window.confirm(uiText("Start the bounded heat demand now?"))) return;
     const scope = {boot_id:test.boot_id, revision:test.revision}; pending = true; paintTest(test);
     try {
       const next = await testRequest('start',scope);
-      if (root.isConnected && sameScope(held,scope)) { paintTest(next); testMessage.textContent = 'Startverzoek aangenomen. Verzending en ketelterugmelding staan afzonderlijk hieronder.'; }
+      if (root.isConnected && sameScope(held,scope)) { paintTest(next); testMessage.textContent = uiText("Start request accepted. Transmission and boiler feedback are shown separately below."); }
     } catch (error) { stopRenewing(); if (root.isConnected) testMessage.textContent = error.message; }
     finally { pending = false; if (root.isConnected) paintTest(test); }
   });
@@ -183,61 +183,61 @@
     const scope = {...lastScope}; stopRenewing(); stopping = true; paintTest(test);
     try {
       const next = await testRequest('stop',scope);
-      if (root.isConnected) { paintTest(next); testMessage.textContent = 'Stopverzoek aangenomen. Wacht op een gemelde stop na de opdracht.'; }
+      if (root.isConnected) { paintTest(next); testMessage.textContent = uiText("Stop request accepted. Wait for a reported stop after the command."); }
     } catch (error) { if (root.isConnected) testMessage.textContent = error.message; }
     finally { stopping = false; if (root.isConnected) paintTest(test); }
   });
   const fieldLabels = {
-    reported_selected_flow_temperature:'Gemelde gewenste aanvoer', measured_flow_temperature:'Aanvoertemperatuur',
-    measured_return_temperature:'Retourtemperatuur', outdoor_temperature:'Buitentemperatuur',
-    reported_burner_modulation:'Gemeld brandervermogen', reported_requested_power_limit:'Gevraagde vermogensgrens',
-    pressure:'Waterdruk', raw_burner_bit:'Ruw brandersignaal', raw_pump_bit:'Ruw pompsignaal', raw_fan_bit:'Ruw ventilatorsignaal',
-    raw_boiler_state:'Ruwe ketelstatus', heating_active:'CV actief', dhw_active:'Warmwater actief',
-    selected_dhw_temperature:'Gewenste warmwatertemperatuur', measured_dhw_temperature:'Warmwatertemperatuur', dhw_flow:'Warmwaterdebiet',
-    heating_enabled:'CV ingeschakeld', dhw_enabled:'Warmwater ingeschakeld', reported_burner_starts:'Gemelde branderstarts',
-    reported_burner_runtime:'Gemelde branderduur', reported_heating_runtime:'Gemelde CV-duur', reported_heating_starts:'Gemelde CV-starts',
-    reported_dhw_runtime:'Gemelde warmwaterduur', reported_dhw_starts:'Gemelde warmwaterstarts', display_code:'Displaycode',
-    service_number:'Servicecode', maximum_burner_power:'Maximaal brandervermogen', pump_run_on:'Pompnaloop',
-    configured_heating_temperature:'Ingestelde CV-temperatuur', reported_dhw_target:'Gemelde gewenste warmwatertemperatuur',
-    storage_temperature_1:'Opslagtemperatuur 1',
-    storage_temperature_2:'Opslagtemperatuur 2',
-    ionisation_current:'Ionisatiestroom',
-    raw_second_burner_bit:'Ruw tweede brandersignaal',
-    raw_ignition_bit:'Ruw ontstekingssignaal',
-    raw_oil_preheat_bit:'Ruwe olievoorverwarming',
-    raw_dhw_valve_bit:'Ruwe warmwaterklepstand',
-    raw_dhw_circulation_bit:'Ruwe circulatiepompstatus',
-    boiler_temperature:'Keteltemperatuur',
-    exhaust_temperature:'Rookgastemperatuur',
-    hydraulic_switch_temperature:'Temperatuur hydraulische scheider',
-    reported_heating_pump_modulation:'Gemelde CV-pompmodulatie',
-    reported_second_burner_runtime:'Gemelde tweede branderduur',
-    heating_hysteresis_off:'CV-hysterese uit',
-    heating_hysteresis_on:'CV-hysterese aan',
-    minimum_burner_period:'Minimale branderperiode',
-    pump_modulation_maximum:'Maximale pompmodulatie',
-    pump_modulation_minimum:'Minimale pompmodulatie',
-    configured_pump_mode:'Ingestelde pompmodus',
-    secondary_heating_hysteresis_off:'Tweede CV-hysterese uit',
-    secondary_heating_hysteresis_on:'Tweede CV-hysterese aan',
-    pump_start_temperature:'Pompstarttemperatuur',
-    dhw_hysteresis_on:'Warmwaterhysterese aan',
-    dhw_charge_optimisation_enabled:'Warmwaterlaadoptimalisatie',
+    reported_selected_flow_temperature:uiText("Reported desired flow temperature"), measured_flow_temperature:uiText("Flow temperature"),
+    measured_return_temperature:uiText("Return temperature"), outdoor_temperature:uiText("Outdoor temperature"),
+    reported_burner_modulation:uiText("Reported burner power"), reported_requested_power_limit:uiText("Requested power limit"),
+    pressure:uiText("Water pressure"), raw_burner_bit:uiText("Raw burner signal"), raw_pump_bit:uiText("Raw pump signal"), raw_fan_bit:uiText("Raw fan signal"),
+    raw_boiler_state:uiText("Raw boiler status"), heating_active:uiText("CH active"), dhw_active:uiText("Hot water active"),
+    selected_dhw_temperature:uiText("Desired hot water temperature"), measured_dhw_temperature:uiText("Hot water temperature"), dhw_flow:uiText("Hot water flow rate"),
+    heating_enabled:uiText("CH enabled"), dhw_enabled:uiText("Hot water enabled"), reported_burner_starts:uiText("Reported burner starts"),
+    reported_burner_runtime:uiText("Reported burner duration"), reported_heating_runtime:uiText("Reported CH duration"), reported_heating_starts:uiText("Reported CH starts"),
+    reported_dhw_runtime:uiText("Reported hot water duration"), reported_dhw_starts:uiText("Reported hot water starts"), display_code:uiText("Display code"),
+    service_number:uiText("Service code"), maximum_burner_power:uiText("Maximum burner power"), pump_run_on:uiText("Pump post-run"),
+    configured_heating_temperature:uiText("Configured CH temperature"), reported_dhw_target:uiText("Reported desired hot water temperature"),
+    storage_temperature_1:uiText("Storage temperature 1"),
+    storage_temperature_2:uiText("Storage temperature 2"),
+    ionisation_current:uiText("Ionization current"),
+    raw_second_burner_bit:uiText("Raw second burner signal"),
+    raw_ignition_bit:uiText("Raw ignition signal"),
+    raw_oil_preheat_bit:uiText("Raw oil preheating"),
+    raw_dhw_valve_bit:uiText("Raw hot water valve position"),
+    raw_dhw_circulation_bit:uiText("Raw circulation pump status"),
+    boiler_temperature:uiText("Boiler temperature"),
+    exhaust_temperature:uiText("Flue gas temperature"),
+    hydraulic_switch_temperature:uiText("Low-loss header temperature"),
+    reported_heating_pump_modulation:uiText("Reported CH pump modulation"),
+    reported_second_burner_runtime:uiText("Reported second burner duration"),
+    heating_hysteresis_off:uiText("CH hysteresis off"),
+    heating_hysteresis_on:uiText("CH hysteresis on"),
+    minimum_burner_period:uiText("Minimum burner period"),
+    pump_modulation_maximum:uiText("Maximum pump modulation"),
+    pump_modulation_minimum:uiText("Minimum pump modulation"),
+    configured_pump_mode:uiText("Configured pump mode"),
+    secondary_heating_hysteresis_off:uiText("Second CH hysteresis off"),
+    secondary_heating_hysteresis_on:uiText("Second CH hysteresis on"),
+    pump_start_temperature:uiText("Pump start temperature"),
+    dhw_hysteresis_on:uiText("Hot water hysteresis on"),
+    dhw_charge_optimisation_enabled:uiText("Hot water charging optimization"),
     dhw_flow_temperature_offset:'Warmwateraanvoer-offset',
-    dhw_circulation_enabled:'Warmwatercirculatie ingeschakeld',
-    configured_dhw_circulation_mode:'Ingestelde circulatiemodus',
-    dhw_disinfection_temperature:'Desinfectietemperatuur',
-    configured_dhw_charge_type:'Ingesteld warmwaterlaadtype',
-    configured_dhw_comfort_mode:'Ingestelde warmwatercomfortcode',
-    secondary_dhw_temperature:'Tweede warmwatertemperatuur',
-    solar_dhw_temperature:'Zonnewarmwatertemperatuur',
-    reported_dhw_type:'Gemeld warmwatertype',
-    raw_dhw_one_time_bit:'Ruw eenmalig warmwatersignaal',
-    raw_dhw_disinfection_bit:'Ruw desinfectiesignaal',
-    raw_dhw_charging_bit:'Ruw warmwaterlaadsignaal',
-    raw_dhw_recharging_bit:'Ruw warmwaterbijlaadsignaal',
-    raw_dhw_temperature_ok_bit:'Ruw warmwatertemperatuur-OK-signaal',
-    raw_dhw_active_bit:'Ruw warmwateractiefsignaal'
+    dhw_circulation_enabled:uiText("Hot water circulation enabled"),
+    configured_dhw_circulation_mode:uiText("Configured circulation mode"),
+    dhw_disinfection_temperature:uiText("Disinfection temperature"),
+    configured_dhw_charge_type:uiText("Configured hot water charging type"),
+    configured_dhw_comfort_mode:uiText("Configured hot water comfort code"),
+    secondary_dhw_temperature:uiText("Second hot water temperature"),
+    solar_dhw_temperature:uiText("Solar hot water temperature"),
+    reported_dhw_type:uiText("Reported hot water type"),
+    raw_dhw_one_time_bit:uiText("Raw one-time hot water signal"),
+    raw_dhw_disinfection_bit:uiText("Raw disinfection signal"),
+    raw_dhw_charging_bit:uiText("Raw hot water charging signal"),
+    raw_dhw_recharging_bit:uiText("Raw hot water recharging signal"),
+    raw_dhw_temperature_ok_bit:uiText("Raw hot water temperature OK signal"),
+    raw_dhw_active_bit:uiText("Raw hot water active signal")
   };
   function cell(parent, tag, value) {
     const node = document.createElement(tag);
@@ -245,29 +245,29 @@
     parent.appendChild(node);
   }
   function fact(label, value) { cell(transport, 'dt', label); cell(transport, 'dd', value); }
-  function number(value) { return Number.isFinite(value) && value >= 0 ? String(value) : 'Onbekend'; }
-  function age(value) { return Number.isFinite(value) && value >= 0 ? (value / 1000).toFixed(1) + ' s' : 'Onbekend'; }
+  function number(value) { return Number.isFinite(value) && value >= 0 ? String(value) : uiText("Unknown"); }
+  function age(value) { return Number.isFinite(value) && value >= 0 ? (value / 1000).toFixed(1) + ' s' : uiText("Unknown"); }
   async function refresh() {
     if (!root.isConnected) return;
     const abort = new AbortController();
     const timeout = setTimeout(() => abort.abort(), 4000);
     try {
       const response = await fetch('/status/ems/telemetry', {cache: 'no-store', signal: abort.signal});
-      if (!response.ok) throw Error('Status niet beschikbaar');
+      if (!response.ok) throw Error(uiText("Status unavailable"));
       const data = await response.json();
       if (!root.isConnected) return;
-      if (!data || !data.reception || !data.transport || !data.fields || !labels[data.reception.state]) throw Error('Onbekende status');
+      if (!data || !data.reception || !data.transport || !data.fields || !labels[data.reception.state]) throw Error(uiText("Unknown status"));
       const entries = Object.entries(data.fields);
-      if (entries.length > 96) throw Error('Te veel gegevens');
+      if (entries.length > 96) throw Error(uiText("Too much data"));
       paintTest(data.test);
-      message.textContent = data.transport.enabled === false ? 'EMS-ontvangst staat uit.' : labels[data.reception.state];
+      message.textContent = data.transport.enabled === false ? uiText("EMS reception is off.") : labels[data.reception.state];
       transport.replaceChildren();
-      fact('Ketelberichten', number(data.reception.report_count));
-      fact('Laatste ketelbericht', age(data.reception.last_report_age_ms));
-      fact('Zenden in firmware', data.transport.transmit_compiled === true ? 'Aanwezig; geen bewijs van vrijgave' : data.transport.transmit_compiled === false ? 'Geblokkeerd' : 'Onbekend');
-      fact('Verzonden gegevensframes', number(data.transport.transmitted_frames));
-      fact('Gemiste berichten door volle wachtrij', number(data.transport.receive_queue_dropped));
-      fact('Afgekeurde telegrammen', number(data.transport.invalid_telegrams));
+      fact(uiText("Boiler messages"), number(data.reception.report_count));
+      fact(uiText("Last boiler message"), age(data.reception.last_report_age_ms));
+      fact(uiText("Transmission in firmware"), data.transport.transmit_compiled === true ? uiText("Present; no evidence of enablement") : data.transport.transmit_compiled === false ? uiText("Blocked") : uiText("Unknown"));
+      fact(uiText("Data frames transmitted"), number(data.transport.transmitted_frames));
+      fact(uiText("Messages missed because the queue is full"), number(data.transport.receive_queue_dropped));
+      fact(uiText("Rejected telegrams"), number(data.transport.invalid_telegrams));
       fact('UART-fouten', number(data.transport.uart_errors));
       fact('UART-resets', number(data.transport.uart_resets));
       fields.replaceChildren();
@@ -276,8 +276,8 @@
         const row = document.createElement('tr');
         cell(row, 'td', fieldLabels[name] || name);
         const usable = field.state === 'valid' && ['reported', 'inferred'].includes(field.quality) && data.reception.state !== 'conflicting_families';
-        cell(row, 'td', usable && (typeof field.value === 'number' || typeof field.value === 'string') ? String(field.value) + ' ' + String(field.unit || '') : 'Geen bruikbare waarde');
-        cell(row, 'td', ({reported:'Gemeld', inferred:'Afgeleid', unreliable:'Onbetrouwbaar'})[field.quality] || 'Onbekend');
+        cell(row, 'td', usable && (typeof field.value === 'number' || typeof field.value === 'string') ? String(field.value) + ' ' + String(field.unit || '') : uiText("No usable value"));
+        cell(row, 'td', ({reported:uiText("Reported"), inferred:uiText("Derived"), unreliable:uiText("Unreliable")})[field.quality] || uiText("Unknown"));
         cell(row, 'td', age(field.age_ms));
         fields.appendChild(row);
       });
@@ -285,22 +285,22 @@
       const inventory = data.telegram_inventory;
       if (inventory && Number.isInteger(inventory.capacity) && inventory.capacity > 0 && inventory.capacity <= 24
           && Array.isArray(inventory.types) && inventory.types.length <= inventory.capacity) {
-        inventoryStatus.textContent = inventory.types.length + ' berichttypen. Niet bijgehouden door volle lijst: ' + number(inventory.untracked_frames) + '.';
+        inventoryStatus.textContent = inventory.types.length + uiText(" message types. Not tracked because the list is full: ") + number(inventory.untracked_frames) + '.';
         for (const entry of inventory.types) {
           if (!entry || !Number.isInteger(entry.type) || entry.type < 0 || entry.type > 65535) continue;
           const row = document.createElement('tr');
           cell(row,'td','0x' + entry.type.toString(16).toUpperCase());
           cell(row,'td',number(entry.frames));
-          cell(row,'td',({classic_fields:'Classic-velden',plus_legacy_fields:'Bestaande Plus-decoder',unmapped:'Nog geen velddecoder'})[entry.decoder] || 'Onbekend');
+          cell(row,'td',({classic_fields:'Classic-velden',plus_legacy_fields:uiText("Existing Plus decoder"),unmapped:uiText("No field decoder yet")})[entry.decoder] || uiText("Unknown"));
           cell(row,'td',age(entry.age_ms)); telegrams.appendChild(row);
         }
-      } else inventoryStatus.textContent = 'Deze firmware levert nog geen berichtoverzicht.';
+      } else inventoryStatus.textContent = uiText("This firmware does not provide a message overview yet.");
       report = {schema: 1, browser_captured_at: new Date().toISOString(), physical_validation: false, telemetry: data};
       download.disabled = false;
     } catch (error) {
       if (!root.isConnected) return;
-      message.textContent = 'Ontvangststatus niet beschikbaar. Controleer de verbinding.';
-      transport.replaceChildren(); fields.replaceChildren(); telegrams.replaceChildren(); inventoryStatus.textContent = 'Berichtoverzicht niet beschikbaar.'; report = null; download.disabled = true;
+      message.textContent = uiText("Reception status unavailable. Check the connection.");
+      transport.replaceChildren(); fields.replaceChildren(); telegrams.replaceChildren(); inventoryStatus.textContent = uiText("Message overview unavailable."); report = null; download.disabled = true;
       paintTest(null);
     } finally {
       clearTimeout(timeout);

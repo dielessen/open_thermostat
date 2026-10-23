@@ -16,7 +16,7 @@ inline PortalAccess portalAccess(bool active,bool apInterface,std::string_view h
     if(!active||!apInterface) return PortalAccess::Authenticated;
     if(method=="GET"&&(path=="/"||captiveProbe(path)||host!=canonicalHost)) return PortalAccess::Redirect;
     if(host!=canonicalHost) return PortalAccess::Authenticated;
-    if(method=="GET"&&(path=="/setup"||path=="/setup.html"||path=="/setup.js"||path=="/setup/status"||path=="/setup/scan")) return PortalAccess::Setup;
+    if(method=="GET"&&(path=="/setup"||path=="/setup.html"||path=="/setup.js"||path=="/ui-language.js"||path=="/ui-messages.js"||path=="/setup/status"||path=="/setup/scan")) return PortalAccess::Setup;
     if(method=="POST"&&(path=="/setup/scan"||path=="/setup/network"||path=="/setup/finish")) return PortalAccess::Setup;
     return PortalAccess::Authenticated;
 }

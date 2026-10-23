@@ -27,6 +27,7 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
    let body=fs.readFileSync(file);if(p.endsWith('.gz'))body=zlib.gunzipSync(body);
    return route.fulfill({contentType:p.endsWith('.svg')?'image/svg+xml':p.endsWith('.js')||p.endsWith('.js.gz')?'application/javascript':p.endsWith('.css.gz')?'text/css':'text/html',body});
   });
+  await page.context().addCookies([{name:'ot_ui_lang',value:'nl',url:'http://opth.test'}]);
   await page.goto('http://opth.test/');await page.locator('#boiler-home').waitFor();
   assert.match(await page.locator('#boiler-home').innerText(),/Nog geen ketel gekozen/);
   assert.equal(await page.locator('#boiler-home img').count(),0);

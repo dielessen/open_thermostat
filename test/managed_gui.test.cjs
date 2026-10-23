@@ -20,7 +20,7 @@ function page(){
  const context={document,$:jq,console,clearInterval(){},setInterval(){},URL,Promise,
   fetch:async(input,init={})=>{calls.push({input,init});return new Response('{}',{status:201});},
   alert:x=>alerts.push(x),confirm:()=>false,window:{addEventListener(){},location:{hash:''}}};
- vm.createContext(context);
+ Object.assign(context,require('./helpers/ui-language.cjs')('en'));vm.createContext(context);
  function run(name){
   const html=fs.readFileSync(path.join(__dirname,'../data/html',name),'utf8');
   for(const script of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))

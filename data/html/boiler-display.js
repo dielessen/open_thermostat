@@ -1,9 +1,9 @@
 'use strict';
 (() => {
     const models = Object.freeze({
-        none: {name: 'Nog geen ketel gekozen'},
+        none: {name: uiText("No boiler selected yet")},
         'nefit-ecomline-classic': {name: 'Nefit Ecomline Classic', image: '/boiler-nefit-ecomline.svg',
-            note: 'Classic-uitlezing via de Bosch EasyControl Adapter; aansturing nog in bèta-ontwikkeling.'},
+            note: uiText("Classic monitoring via the Bosch EasyControl Adapter; control is still in beta development.")},
     });
     let selected = null, generation = 0;
     function valid(data) { return data && typeof data.model === 'string' && Object.hasOwn(models, data.model); }
@@ -14,16 +14,16 @@
         const model = selected === null ? null : models[selected];
         if (model?.image) {
             const image = document.createElement('img');
-            image.src = model.image; image.alt = 'Illustratie van een Nefit Ecomline Classic-ketel';
+            image.src = model.image; image.alt = uiText("Illustration of a Nefit Ecomline Classic boiler");
             image.width = 92; image.height = 140; box.append(image);
         }
         const text = document.createElement('div'), title = document.createElement('h2');
-        title.textContent = model ? model.name : 'Ketelkeuze niet beschikbaar';
+        title.textContent = model ? model.name : uiText("Boiler selection unavailable");
         text.append(title);
         const note = document.createElement('p');
-        note.textContent = model?.note || 'Kies je ketel onder Settings → Mijn ketel.';
+        note.textContent = model?.note || uiText("Choose your boiler under Settings → My boiler.");
         text.append(note);
-        const link = document.createElement('a'); link.href = '#'; link.textContent = 'Ketel instellen';
+        const link = document.createElement('a'); link.href = '#'; link.textContent = uiText("Set up boiler");
         link.addEventListener('click', event => {event.preventDefault(); window.loadNativePage('boiler_display');});
         text.append(link); box.append(text);
     }
@@ -53,7 +53,7 @@
             preview.replaceChildren(); const model = models[select.value];
             if (model?.image) {
                 const image = document.createElement('img');image.src = model.image;
-                image.alt = 'Illustratie van de geselecteerde ketel';image.width = 130;image.height = 198;
+                image.alt = uiText("Illustration of the selected boiler");image.width = 130;image.height = 198;
                 preview.append(image);
             }
         }
@@ -71,17 +71,17 @@
                 const result = await response.json();
                 if (!valid(result) || result.model !== model) throw Error('readback');
                 if (own === generation) {selected = model;renderHome();}
-                if (root.isConnected) message.textContent = 'Ketelkeuze opgeslagen. Je ketel verschijnt op de beginpagina.';
+                if (root.isConnected) message.textContent = uiText("Boiler selection saved. Your boiler appears on the home page.");
             } catch (_) {
                 if (own === generation) {selected = null;renderHome();}
-                if (root.isConnected) message.textContent = 'Opslaan kon niet worden bevestigd. Laad opnieuw om de opgeslagen keuze te controleren.';
+                if (root.isConnected) message.textContent = uiText("Saving could not be confirmed. Reload to check the saved selection.");
             } finally {if (root.isConnected) select.disabled = save.disabled = false;}
         });
         select.disabled = save.disabled = true;
         try {
             const model = await load();if (!root.isConnected || !Object.hasOwn(models,model)) return;
             select.value = model;picture();select.disabled = save.disabled = false;message.textContent = '';
-        } catch (_) {if (root.isConnected) message.textContent = 'De ketelkeuze kon niet worden geladen. Open Mijn ketel opnieuw om het te proberen.';}
+        } catch (_) {if (root.isConnected) message.textContent = uiText("The boiler selection could not be loaded. Open My boiler again to retry.");}
     }
     const style = document.createElement('style');
     style.textContent = '.boiler-summary{display:flex;align-items:center;gap:24px;background:#f3f7f7;border:1px solid #d9e5e3;border-radius:14px;padding:20px;margin:0 0 20px;max-width:100%;box-sizing:border-box}.boiler-summary img{object-fit:contain;flex:none}.boiler-summary h2{font-size:1.3rem;margin:0 0 8px}.boiler-summary p{margin:0 0 10px;color:#526a70;overflow-wrap:anywhere}.boiler-summary a{color:#076b60}.boiler-summary>div{min-width:0}@media(max-width:400px){.boiler-summary{gap:14px;padding:14px}.boiler-summary img{width:66px;height:100px}.boiler-summary h2{font-size:1.1rem}}';

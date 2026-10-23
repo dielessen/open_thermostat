@@ -1,6 +1,7 @@
 #ifdef OPENTHERMOSTAT_E32V2
 #include "GitHubUpdate.h"
 #include "ReleaseCatalog.h"
+#include "IndexedReleaseCatalog.h"
 #include "VerifiedOta.h"
 #include "RestartTimer.h"
 #include "DownloadTextBuffer.h"
@@ -68,7 +69,8 @@ public:
 };
 // HTTPClient decodes chunked bodies into a bounded sink. Redirects are checked
 // BEFORE connecting, never followed implicitly to an arbitrary host/scheme.
-bool download(std::string url,Sink &sink,std::string &error,uint32_t exactSize=0) {
+bool download(std::string url,Sink &sink,std::string &error,uint32_t exactSize=0,int *responseStatus=nullptr) {
+    if(responseStatus)*responseStatus=0;
     if(!ready()){error="Verbind met thuiswifi en wacht op een geldige netwerktijd (NTP).";return false;}
     for(unsigned redirects=0;redirects<=4;++redirects) {
         if(!allowedDownloadUrl(url)){error="Onverwachte downloadlocatie geweigerd.";return false;}
@@ -79,6 +81,7 @@ bool download(std::string url,Sink &sink,std::string &error,uint32_t exactSize=0
         if(!http.begin(client,url.c_str())){error="HTTPS kon niet worden gestart.";return false;}
         http.addHeader("Accept",exactSize?"application/octet-stream":"application/json");
         const int code=http.GET();
+        if(responseStatus)*responseStatus=code;
         if(code==301||code==302||code==303||code==307||code==308) {url=http.header("Location").c_str();http.end();continue;}
         if(code!=200){error="GitHub/HTTPS antwoord "+std::to_string(code)+"; controleer internet, tijd en API-limiet.";http.end();return false;}
         if(exactSize&&http.getSize()>=0&&uint32_t(http.getSize())!=exactSize){error="Downloadgrootte wijkt af van de release.";http.end();return false;}
@@ -88,13 +91,16 @@ bool download(std::string url,Sink &sink,std::string &error,uint32_t exactSize=0
     }
     error="Te veel downloadomleidingen.";return false;
 }
-bool text(const std::string &url,size_t limit,std::string &out,std::string &error) {
-    TextSink sink(limit);
+bool textResponse(const std::string &url,size_t limit,std::string &out,std::string &error,int &status) {
+    status=0;TextSink sink(limit);
     if(!sink.bytes.ready()){error="Onvoldoende extern geheugen voor updatecontrole.";return false;}
-    if(!download(url,sink,error))return false;
+    if(!download(url,sink,error,0,&status))return false;
     // download() has destroyed the TLS client before an internal JSON string
     // is created. No 32 KiB internal response reservation during handshakes.
     out=sink.bytes.text();return true;
+}
+bool text(const std::string &url,size_t limit,std::string &out,std::string &error) {
+    int status=0;return textResponse(url,limit,out,error,status);
 }
 std::string digest(const uint8_t *bytes,size_t size) {
     const char hexChars[]="0123456789abcdef";std::string result;result.reserve(size*2);
@@ -136,7 +142,10 @@ public:
     }
 };
 bool releaseList(std::vector<Release> &out,std::string &error) {
-    return discoverReleases(text,out,error);
+    const auto indexed=discoverIndexedReleases(textResponse,out,error);
+    if(indexed==IndexedCatalogResult::Complete)return true;
+    if(indexed==IndexedCatalogResult::Failed)return false;
+    error.clear();return discoverReleases(text,out,error);
 }
 void execute(bool install) {
     std::string error,tag;

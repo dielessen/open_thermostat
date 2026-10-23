@@ -6,7 +6,7 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   75 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   77 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
@@ -22,16 +22,17 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
 
 ## Nieuwe bronstap binnen dezelfde bètabatch
 
-Controller/status en beveiligde HTTP/webbediening zijn aangesloten op de geteste
-proefpolicy. 57 native ASan/UBSan-gevallen en 3 echte Chromium-controlviewports
-slagen; late responses/oud readback hervatten geen vraag, Stop blijft bereikbaar
-bij een lopend startverzoek. Begin/finish-IO bewaart werkelijke voltooiing na
-stop/deadline en verlangt terugmelding ná voltooiing van de nulopdracht.
-De default E32 heeft geen beoordeeld proefprofiel of pollzender: acties blijven
-geblokkeerd, geen nieuwe outputrechten. Vervolg nu op echte profiel-/poll-/Classic-
-zenderintegratie en de overige B04–B09-punten, niet opnieuw HTTP/UI vanaf nul.
+Controller/status en beveiligde HTTP/webbediening blijven behouden. De echte
+E32-pollroute is nu aangesloten op een gedeelde executor met hercontrole vlak
+voor IO, uitsluiting van de legacyqueue tijdens proefbezit en intrekking bij
+reset/RX-overloop/decodefout. 66 native ASan/UBSan-gevallen slagen, waaronder
+9 pollgevallen. Eerdere HTTP/web-browserbewijzen blijven geldig voor ongewijzigde
+webassets; deze bronstap is geen nieuwe fysieke proef.
+De default E32 blijft TX-geblokkeerd, zonder beoordeeld proefprofiel/Classic-encoder.
+De poll-executor is geen kwalificatie van elektrische timing of daadwerkelijke
+ketelstop. B04–B09 blijven open voor de beschreven eindacceptatie.
 Geen nieuwe release/installatie/fysieke opdracht. Bewijs in
-`out/beta-boiler-evidence-20261023/SERVICE-REVIEW.json`.
+`out/beta-boiler-evidence-20261023/poll/REVIEW.json`.
 
 ## Eerstvolgende uitvoering
 

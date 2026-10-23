@@ -24,6 +24,11 @@ public:
         : boot_(boot), transmitCompiled_(transmitCompiled), profile_(profile),
           driverAttached_(driverAttached), session_(boot, profile) {}
     bool active() const { return session_.active(); }
+    void transportFault(uint64_t now) {
+        const auto before = marker();
+        session_.transportFault(now);
+        if (marker() != before) ++stateSequence_;
+    }
 
     void tick(uint64_t now, const BoilerTestSession::Gates& gates, const ClassicBoilerMonitor& monitor) {
         const auto before = marker();

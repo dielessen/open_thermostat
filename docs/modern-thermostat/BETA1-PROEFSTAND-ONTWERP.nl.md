@@ -1,3 +1,13 @@
+> **Nieuwste bronstap:** de E32-pollroute is aangesloten op de gedeelde
+> `BoilerTestPollDriver`. 66 native ASan/UBSan-gevallen PASS, inclusief 9
+> pollgevallen. Geen oude positieve queue-intentie: opnieuw toelaten na encoderen,
+> IO-resultaat apart registreren, legacyqueue uitsluiten tijdens proefbezit.
+> Reset/RX-overloop/decodefout trekken positieve intentie in. Beoordeeld profiel,
+> Classic-encoder, elektrische UART-kwalificatie en fysieke acceptatie blijven open.
+> De E32-TX-lock en ontbrekende encoder verhinderen fysieke opdrachten.
+>
+> Onderstaande checkpoints zijn historisch; de actuele afvinklijst staat in WORKBOARD.
+
 > **Vervolgbron:** controller/status en cookie+CSRF-POST-/webbediening zijn nu
 > aangesloten op de pure policy. 57 native ASan/UBSan-gevallen en drie control-
 > viewports PASS. Toelaten vóór IO en registreren na werkelijke voltooiing zijn

@@ -61,6 +61,9 @@ public:
             && reportedOff(monitor, now, zeroSentAt_) && canAdd(now, heatMs_);
     }
     bool active() const { return inFlight_ || (phase_ != Phase::idle && phase_ != Phase::completed); }
+    void transportFault(uint64_t now) {
+        if (observeTime(now) && active()) fail("test_transport_unavailable");
+    }
 
     Reply prepare(uint64_t boot, uint64_t session, uint8_t flowC, uint32_t heatMs,
                   uint64_t now, const Gates& gates, const ClassicBoilerMonitor& monitor) {

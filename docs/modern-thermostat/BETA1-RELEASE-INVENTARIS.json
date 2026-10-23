@@ -547,11 +547,11 @@
         },
         {
           "path": "src/EmsController.h",
-          "sha256": "af0848a15ef24e67df559d89303be9f54ad0f1c63c68a594c4637a7e62605137"
+          "sha256": "6d11da32499a8bb4122abbadd858b431ae94dac7b5d493417d3af4788577dfad"
         },
         {
           "path": "src/EmsController.cpp",
-          "sha256": "ef007eee2729a211afa7f0d58926c5e3e19561acde0680fd196f57021aeabce5"
+          "sha256": "12a6169bd9ea8bc8a228415885262bc7dcf429b5d886539ed44e55626d9638fb"
         },
         {
           "path": "test/boiler-test-browser.cjs",
@@ -574,7 +574,7 @@
       "files": [
         {
           "path": "src/EMS/BoilerTestSession.h",
-          "sha256": "ff86cf0e3f086793ed730c578a3bc316a8302b31fe21ac23336949dd82861713"
+          "sha256": "8649aa241ebd772c503cd85be3a277f65c1bf695077ceba3dbee33d14930191f"
         },
         {
           "path": "src/EMS/EmsFrameQueue.h",
@@ -589,7 +589,7 @@
           "sha256": "faa0bfa19f58d47172c7d335ca8e0a7eade1316d0f91c4d72337aad293ce433b"
         }
       ],
-      "remaining_acceptance": "20 policytests en 5 queue-tests binnen 57 unieke ASan/UBSan-gevallen PASS. Begin/finish-IO bewaart echte voltooiing ook na stop/deadline. Echte pollzender/Classic-mapping en fysieke TX-/stopkwalificatie open."
+      "remaining_acceptance": "20 policytests en 5 queue-tests binnen 66 unieke ASan/UBSan-gevallen PASS. Poll-executor aangesloten, begin/finish bewaart IO-historie. Beoordeelde Classic-mapping en fysieke TX-/stopkwalificatie open."
     },
     {
       "id": "I23",
@@ -607,7 +607,7 @@
       "files": [
         {
           "path": "src/EMS/BoilerTestService.h",
-          "sha256": "8a5548a9ffe09c95396f1c43a558c3053c3af5227f3f6594a55047a0a2debdd4"
+          "sha256": "541773fa20af05b17f7213cf827507ad3a3bffeef38d9cee4e7b1643c0baeed6"
         },
         {
           "path": "src/HeatingController.h",
@@ -632,9 +632,17 @@
         {
           "path": "test/boiler-test-control-browser.cjs",
           "sha256": "725d329446e0cadbc958c7adacb6ea508e8c6834c18f93cc357a30124f5907eb"
+        },
+        {
+          "path": "src/EMS/BoilerTestPollDriver.h",
+          "sha256": "dee954576f10ca87ebfed59ed205281e59c971aebd0b54631ee19934f70d5278"
+        },
+        {
+          "path": "test/test_native/test_boiler_test_poll.cpp",
+          "sha256": "f642f7109c9b09a6a0d04612f7508e00e58ba9bad5dd96d4c04eac5345122db7"
         }
       ],
-      "remaining_acceptance": "Controller/status/POST-/CSRF-/operator-/webketen getest; 57 native ASan/UBSan en 3 control-browservieports PASS. Werkelijk beoordeeld profiel, hydraulische gates en echte poll/UART-driver ontbreken nog; start blijft geblokkeerd."
+      "remaining_acceptance": "Poll-executor op echte E32-pollroute aangesloten; 66 native ASan/UBSan inclusief 9 pollgevallen PASS. HTTP/webassets ongewijzigd, eerder 3 controlviewports PASS. Beoordeeld profiel/Classic-encoder, hydraulische gates en fysieke UART-/stopkwalificatie open; default TX blijft geblokkeerd."
     }
   ],
   "requirements": [
@@ -926,7 +934,7 @@
     {
       "id": "B08",
       "complete": false,
-      "description": "Correct Classic-commandopad en laatste zendcontrole: geen positieve oude queue-inhoud na deadline/stop/conflict/reset; niet de generieke Plusroute hergebruiken."
+      "description": "Poll-executor en laatste toelating aangesloten/getest; beoordeelde Classic-encoder en fysieke UART-zender afronden. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute."
     },
     {
       "id": "B09",

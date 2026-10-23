@@ -181,6 +181,9 @@ void EmsController::requestPeriodicData() {
 }
 
 void EmsController::reset() {
+#ifdef OPENTHERMOSTAT_E32V2
+	boilerTestTransportFault_.store(true, std::memory_order_release);
+#endif
 	size_t dropped;
 	portENTER_CRITICAL(&txMux_);
 	dropped = txSize_;
@@ -229,6 +232,35 @@ void EmsController::enqueueTelegramToSend(EmsTelegram telegram, bool front) {
 	}
 }
 
+#ifdef OPENTHERMOSTAT_E32V2
+bool EmsController::processBoilerTestPoll() {
+	if constexpr (!board::emsTransmitAllowed) return false;
+	// UART must never wait for a web/status owner. A busy owner suppresses this
+	// poll, including legacy queue/pong, rather than dispatching an old command.
+	std::unique_lock<std::mutex> lock(telemetryMutex_, std::try_to_lock);
+	if (!lock.owns_lock()) return true;
+	if (boilerTestTransportFault_.exchange(false, std::memory_order_acq_rel))
+		boilerTest_.transportFault(static_cast<uint64_t>(esp_timer_get_time() / 1000));
+	const auto result = BoilerTestPollDriver::poll(boilerTest_, monitor_,
+		[] { return static_cast<uint64_t>(esp_timer_get_time() / 1000); },
+		[this] {
+			auto gates = boilerTestGates();
+			if (boilerTestTransportFault_.load(std::memory_order_acquire)
+				|| resetRequested_.load(std::memory_order_relaxed)) gates.transmitterReviewed = false;
+			return gates;
+		}, boilerTestEncoder_,
+		[this](const EmsRawFrame& frame) {
+			const bool sent = uart_.writeToEms(frame.data.data(), frame.length);
+			if (sent) {
+				txNotConfirmed_.fetch_add(1, std::memory_order_relaxed);
+				txFrames_.fetch_add(1, std::memory_order_relaxed);
+			}
+			return sent;
+		});
+	return result != BoilerTestPollDriver::Result::unowned;
+}
+#endif
+
 bool EmsController::processPoll(uint8_t deviceId) {
 	if (deviceId != deviceId_) {
 		return false;
@@ -237,21 +269,30 @@ bool EmsController::processPoll(uint8_t deviceId) {
 	polls_.fetch_add(1, std::memory_order_relaxed);
 	if (txNotConfirmed_.load(std::memory_order_relaxed) > maxTxNotConfirmed) {
 		resetRequested_.store(true, std::memory_order_relaxed);
+#ifdef OPENTHERMOSTAT_E32V2
+		boilerTestTransportFault_.store(true, std::memory_order_release);
+#endif
 	}
-
-	EmsRawFrame frame;
-	portENTER_CRITICAL(&txMux_);
-	if (txSize_ != 0) {
-		frame = telegramsToSend_[txHead_];
-		txHead_ = (txHead_ + 1) % telegramsToSend_.size();
-		--txSize_;
-	}
-	portEXIT_CRITICAL(&txMux_);
-	if (frame.length == 0) {
-		pong();
-	} else if (uart_.writeToEms(frame.data.data(), frame.length)) {
-		txNotConfirmed_.fetch_add(1, std::memory_order_relaxed);
-		txFrames_.fetch_add(1, std::memory_order_relaxed);
+#ifdef OPENTHERMOSTAT_E32V2
+	const bool testHandled = processBoilerTestPoll();
+#else
+	constexpr bool testHandled = false;
+#endif
+	if (!testHandled) {
+		EmsRawFrame frame;
+		portENTER_CRITICAL(&txMux_);
+		if (txSize_ != 0) {
+			frame = telegramsToSend_[txHead_];
+			txHead_ = (txHead_ + 1) % telegramsToSend_.size();
+			--txSize_;
+		}
+		portEXIT_CRITICAL(&txMux_);
+		if (frame.length == 0) {
+			pong();
+		} else if (uart_.writeToEms(frame.data.data(), frame.length)) {
+			txNotConfirmed_.fetch_add(1, std::memory_order_relaxed);
+			txFrames_.fetch_add(1, std::memory_order_relaxed);
+		}
 	}
 	// Includes the intentionally paced UART write, from poll recognition to return.
 	const auto elapsed = static_cast<uint32_t>(esp_timer_get_time() - started);
@@ -264,6 +305,9 @@ void EmsController::processTelegram(uint8_t *data, uint8_t length) {
 	// Only the UART task updates confirmation accounting, including recovery.
 	const auto resets = uart_.resets.load(std::memory_order_relaxed);
 	if (uartResetsSeen_ != resets) {
+#ifdef OPENTHERMOSTAT_E32V2
+		boilerTestTransportFault_.store(true, std::memory_order_release);
+#endif
 		uartResetsSeen_ = resets;
 		txNotConfirmed_.store(0, std::memory_order_relaxed);
 	}
@@ -288,6 +332,9 @@ void EmsController::processTelegram(uint8_t *data, uint8_t length) {
 	}
 	if (!telegramsToProcess_.push(data, length, static_cast<uint64_t>(esp_timer_get_time() / 1000))) {
 		rxDropped_.fetch_add(1, std::memory_order_relaxed);
+#ifdef OPENTHERMOSTAT_E32V2
+		boilerTestTransportFault_.store(true, std::memory_order_release);
+#endif
 	}
 }
 
@@ -299,6 +346,9 @@ void EmsController::decodeTelegram(uint8_t *data, uint8_t length, uint64_t recei
                 return EmsTelegram::fromRawData(data, length - 1);
             } catch (const std::exception &) {
                 invalidTelegrams_.fetch_add(1, std::memory_order_relaxed);
+#ifdef OPENTHERMOSTAT_E32V2
+                boilerTestTransportFault_.store(true, std::memory_order_release);
+#endif
                 throw;
             }
         }();

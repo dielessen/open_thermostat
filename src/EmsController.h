@@ -9,6 +9,7 @@
 #include "EMS/OutdoorTemperatureSample.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "EMS/BoilerTestService.h"
+#include "EMS/BoilerTestPollDriver.h"
 #include <esp_system.h>
 #endif
 #include <esp_timer.h>
@@ -175,6 +176,8 @@ public:
 #ifdef OPENTHERMOSTAT_E32V2
 		{
 			std::lock_guard<std::mutex> lock(telemetryMutex_);
+			if (boilerTestTransportFault_.exchange(false, std::memory_order_acq_rel))
+				boilerTest_.transportFault(static_cast<uint64_t>(esp_timer_get_time() / 1000));
 			boilerTest_.tick(static_cast<uint64_t>(esp_timer_get_time() / 1000), boilerTestGates(), monitor_);
 		}
 #endif
@@ -310,10 +313,15 @@ private:
 	mutable std::mutex telemetryMutex_;
 	ClassicBoilerMonitor monitor_;
 #ifdef OPENTHERMOSTAT_E32V2
-	// No installed reviewed test profile/poll driver yet. No request/config flag
+	// No installed reviewed test profile/Classic encoder yet. No request/config flag
 	// can fill this in or change the board's independent physical TX lock.
 	BoilerTestService boilerTest_{(static_cast<uint64_t>(esp_random()) << 32) | esp_random(), board::emsTransmitAllowed};
 	static BoilerTestSession::Gates boilerTestGates() { return {}; }
+	// Missing reviewed Classic mapping stays explicit and cannot be supplied by a
+	// request. Attaching the poll executor does not qualify the transmitter.
+	static constexpr BoilerTestPollDriver::Encoder boilerTestEncoder_ = nullptr;
+	bool processBoilerTestPoll();
+	std::atomic<bool> boilerTestTransportFault_{false};
 #endif
 	control::TemperatureSample outdoorSample_;
 

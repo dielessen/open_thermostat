@@ -1,3 +1,10 @@
+> **Vervolgbron:** controller/status en cookie+CSRF-POST-/webbediening zijn nu
+> aangesloten op de pure policy. 57 native ASan/UBSan-gevallen en drie control-
+> viewports PASS. Toelaten vóór IO en registreren na werkelijke voltooiing zijn
+> gescheiden; oude positieve voltooiing na stop/deadline vertraagt nul niet.
+> Open blijven het beoordeelde profiel, hydraulische gates, echte poll/UART-driver
+> en fysieke acceptatie. Geen nieuwe fysieke bevoegdheid of afzonderlijke release.
+
 > **Bronvoortgang 23 oktober:** de pure policy `src/EMS/BoilerTestSession.h`
 > en behoud van UART-ontvangsttijd in de echte RX-queue zijn geïmplementeerd.
 > 40 unieke native gevallen onder ASan/UBSan PASS. Dit document beschrijft

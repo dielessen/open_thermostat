@@ -1,3 +1,4 @@
+#include "BoilerTestIoFixture.h"
 #include "EMS/BoilerTestSession.h"
 #include "EMS/EmsFrameQueue.h"
 #include <gtest/gtest.h>
@@ -26,7 +27,7 @@ struct BoilerTest : testing::Test {
         prepare();
         auto zero = session.next(100, gates, monitor);
         ASSERT_EQ(zero.command, Command::zero);
-        ASSERT_TRUE(session.transmitted(zero, 100, true, gates, monitor));
+        ASSERT_TRUE(testing_detail::instantTransmission(session, zero, 100, true, gates, monitor));
         report(101); session.step(101, gates, monitor);
         ASSERT_EQ(session.phase(), Phase::ready);
     }
@@ -43,7 +44,7 @@ TEST_F(BoilerTest, RequiresTransmittedZeroAndStrictlyLaterReportedOffBeforeHeat)
     report(101); session.step(101, gates, monitor);
     EXPECT_EQ(session.phase(), Phase::baseline); // receipt alone is not an executed zero
     const auto zero = session.next(101, gates, monitor);
-    ASSERT_TRUE(session.transmitted(zero, 101, true, gates, monitor));
+    ASSERT_TRUE(testing_detail::instantTransmission(session, zero, 101, true, gates, monitor));
     session.step(101, gates, monitor);
     EXPECT_EQ(session.phase(), Phase::baseline); // same tick does not prove post-command feedback
     report(102, true, 10); session.step(102, gates, monitor);
@@ -73,14 +74,14 @@ TEST_F(BoilerTest, DuplicateStartAndPrepareNeverExtendDeadlineOrRearm) {
 TEST_F(BoilerTest, ExplicitStopInvalidatesAlreadyQueuedPositiveAndHasNoWriteDelay) {
     heating();
     const auto positive = session.next(102, gates, monitor);
-    ASSERT_TRUE(session.transmitted(positive, 102, true, gates, monitor));
+    ASSERT_TRUE(testing_detail::instantTransmission(session, positive, 102, true, gates, monitor));
     const auto pending = session.next(202, gates, monitor);
     ASSERT_EQ(pending.command, Command::positive);
     session.stop(202);
     EXPECT_FALSE(session.mayTransmit(pending, 202, gates, monitor));
     auto zero = session.next(202, gates, monitor);
     ASSERT_EQ(zero.command, Command::zero);
-    ASSERT_TRUE(session.transmitted(zero, 202, true, gates, monitor));
+    ASSERT_TRUE(testing_detail::instantTransmission(session, zero, 202, true, gates, monitor));
     EXPECT_FALSE(session.reportedStopConfirmed()); // baseline off is too old
     report(203); session.step(203, gates, monitor);
     EXPECT_EQ(session.phase(), Phase::completed);
@@ -121,12 +122,12 @@ TEST_F(BoilerTest, EveryIndependentGateRestrictsHeatAndCannotBeInferredFromRecei
 TEST_F(BoilerTest, FaultNeverClaimsStopOrAutomaticallyResumes) {
     heating();
     const auto positive = session.next(102, gates, monitor);
-    EXPECT_FALSE(session.transmitted(positive, 102, false, gates, monitor));
+    EXPECT_FALSE(testing_detail::instantTransmission(session, positive, 102, false, gates, monitor));
     EXPECT_EQ(session.phase(), Phase::fault);
     EXPECT_FALSE(session.reportedStopConfirmed());
     auto zero = session.next(103, gates, monitor);
     ASSERT_EQ(zero.command, Command::zero);
-    ASSERT_TRUE(session.transmitted(zero, 103, true, gates, monitor));
+    ASSERT_TRUE(testing_detail::instantTransmission(session, zero, 103, true, gates, monitor));
     report(104); session.step(104, gates, monitor);
     EXPECT_TRUE(session.reportedStopConfirmed());
     EXPECT_EQ(session.phase(), Phase::fault); // reported stop does not clear the failed test
@@ -145,7 +146,7 @@ TEST_F(BoilerTest, LeaseExpiryCannotBeResurrectedByLateKeepAlive) {
 TEST_F(BoilerTest, TimeoutWithoutPostCommandFeedbackLatchesUncertainStop) {
     prepare();
     auto zero = session.next(100, gates, monitor);
-    ASSERT_TRUE(session.transmitted(zero, 100, true, gates, monitor));
+    ASSERT_TRUE(testing_detail::instantTransmission(session, zero, 100, true, gates, monitor));
     report(3099, true, 20);
     session.step(3100, gates, monitor);
     EXPECT_EQ(session.phase(), Phase::fault);
@@ -162,7 +163,7 @@ TEST_F(BoilerTest, DhwStaleAndConflictingFamiliesWithdrawPositiveDemand) {
     monitor.receive({EmsTelegram::BROADCAST, 8, 0, 0, 0xE4, {1}}, 104);
     report(105);
     auto zero = session.next(105, gates, monitor);
-    ASSERT_TRUE(session.transmitted(zero, 105, true, gates, monitor));
+    ASSERT_TRUE(testing_detail::instantTransmission(session, zero, 105, true, gates, monitor));
     report(106); session.step(106, gates, monitor);
     EXPECT_FALSE(session.reportedStopConfirmed()); // fresh Classic cannot clear latched family conflict
 }
@@ -191,7 +192,7 @@ TEST_F(BoilerTest, Monotonic64BitClockDoesNotWrapIntoFreshLease) {
     report(base + 90);
     ASSERT_EQ(session.prepare(11, 1, 40, 1000, base + 100, gates, monitor), Reply::accepted);
     auto zero = session.next(base + 100, gates, monitor);
-    ASSERT_TRUE(session.transmitted(zero, base + 100, true, gates, monitor));
+    ASSERT_TRUE(testing_detail::instantTransmission(session, zero, base + 100, true, gates, monitor));
     report(base + 101); session.step(base + 101, gates, monitor);
     ASSERT_EQ(session.start(11, 1, base + 102, gates, monitor), Reply::accepted);
     EXPECT_EQ(session.heatDeadline(), base + 1102);
@@ -205,7 +206,7 @@ TEST_F(BoilerTest, PreCommandQueuedTelegramDecodedLaterCannotConfirmStop) {
     const auto bytes = telegram.encodeToRawDataWithCRC();
     ASSERT_TRUE(queue.push(bytes.data(), bytes.size(), 99)); // UART before zero
     auto zero = session.next(100, gates, monitor);
-    ASSERT_TRUE(session.transmitted(zero, 100, true, gates, monitor));
+    ASSERT_TRUE(testing_detail::instantTransmission(session, zero, 100, true, gates, monitor));
     EmsRawFrame pending;
     uint64_t receivedAt;
     ASSERT_TRUE(queue.pop(pending, &receivedAt));
@@ -221,7 +222,7 @@ TEST_F(BoilerTest, FeedbackExpiryWithdrawsBeforeHeatAndOperatorDeadlines) {
     report(90);
     ASSERT_EQ(session.prepare(11, 1, 40, 5000, 100, gates, monitor), Reply::accepted);
     auto zero = session.next(100, gates, monitor);
-    ASSERT_TRUE(session.transmitted(zero, 100, true, gates, monitor));
+    ASSERT_TRUE(testing_detail::instantTransmission(session, zero, 100, true, gates, monitor));
     report(101); session.step(101, gates, monitor);
     ASSERT_EQ(session.start(11, 1, 102, gates, monitor), Reply::accepted);
     const auto positive = session.next(102, gates, monitor);
@@ -236,7 +237,7 @@ TEST_F(BoilerTest, EveryLostGateInvalidatesPendingPositiveAtFinalSendBoundary) {
         report(90);
         ASSERT_EQ(candidate.prepare(11, 1, 40, 1000, 100, gates, monitor), Reply::accepted);
         auto zero = candidate.next(100, gates, monitor);
-        ASSERT_TRUE(candidate.transmitted(zero, 100, true, gates, monitor));
+        ASSERT_TRUE(testing_detail::instantTransmission(candidate, zero, 100, true, gates, monitor));
         report(101); candidate.step(101, gates, monitor);
         ASSERT_EQ(candidate.start(11, 1, 102, gates, monitor), Reply::accepted);
         auto positive = candidate.next(102, gates, monitor);
@@ -257,7 +258,7 @@ TEST_F(BoilerTest, EveryLostGateInvalidatesPendingPositiveAtFinalSendBoundary) {
 TEST_F(BoilerTest, WriteBudgetNeverDelaysAnExplicitStop) {
     heating();
     auto positive = session.next(102, gates, monitor);
-    ASSERT_TRUE(session.transmitted(positive, 102, true, gates, monitor));
+    ASSERT_TRUE(testing_detail::instantTransmission(session, positive, 102, true, gates, monitor));
     EXPECT_EQ(session.next(103, gates, monitor).command, Command::none);
     session.stop(103);
     EXPECT_EQ(session.next(103, gates, monitor).command, Command::zero);
@@ -269,5 +270,39 @@ TEST_F(BoilerTest, DeadlineAdditionOverflowCannotArmSession) {
     EXPECT_EQ(session.prepare(11, 1, 40, 1000, end - 100, gates, monitor), Reply::refused);
     EXPECT_EQ(session.phase(), Phase::idle);
     EXPECT_EQ(session.next(end - 100, gates, monitor).command, Command::none);
+}
+
+TEST_F(BoilerTest, InFlightPositiveCompletionAfterStopCannotDelayZeroOrDisappear) {
+    heating();
+    const auto positive=session.next(102,gates,monitor);
+    ASSERT_TRUE(session.beginTransmit(positive,102,gates,monitor));
+    session.stop(103);
+    EXPECT_EQ(session.next(103,gates,monitor).command,Command::none); // one in-flight IO owner
+    ASSERT_TRUE(session.finishTransmit(positive,110,true,gates,monitor)); // it really completed
+    EXPECT_EQ(session.next(110,gates,monitor).command,Command::zero); // no positive write cooldown
+    EXPECT_FALSE(session.reportedStopConfirmed());
+    EXPECT_FALSE(session.finishTransmit(positive,111,true,gates,monitor)); // no double accounting
+}
+
+TEST_F(BoilerTest, DeadlineCanExpireDuringAnAlreadyStartedTransmission) {
+    heating();
+    const auto positive=session.next(1101,gates,monitor);
+    ASSERT_TRUE(session.beginTransmit(positive,1101,gates,monitor));
+    ASSERT_TRUE(session.finishTransmit(positive,1103,true,gates,monitor));
+    EXPECT_EQ(session.phase(),Phase::stopping);
+    EXPECT_EQ(session.next(1103,gates,monitor).command,Command::zero);
+    EXPECT_FALSE(session.beginTransmit(positive,1103,gates,monitor));
+}
+
+TEST_F(BoilerTest, StopFeedbackMustFollowActualCompletionNotJustBegin) {
+    prepare();
+    const auto zero=session.next(100,gates,monitor);
+    ASSERT_TRUE(session.beginTransmit(zero,100,gates,monitor));
+    report(105);
+    ASSERT_TRUE(session.finishTransmit(zero,110,true,gates,monitor));
+    session.step(111,gates,monitor);
+    EXPECT_EQ(session.phase(),Phase::baseline);
+    report(112);session.step(112,gates,monitor);
+    EXPECT_EQ(session.phase(),Phase::ready);
 }
 } // namespace

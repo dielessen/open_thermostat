@@ -120,9 +120,20 @@ public:
 		route("/status/ems/telemetry", HTTP_GET, [this]() {
 			ib::viewable_stringbuf buf;
 			std::ostream ss(&buf);
+#ifdef OPENTHERMOSTAT_E32V2
+			const auto operatorSession = requestToken();
+			controller_.getEMSTelemetryStatus(ss, operatorSession.c_str());
+#else
 			controller_.getEMSTelemetryStatus(ss);
+#endif
 			server_.sendView(200, "application/json"sv, buf.view());
 		});
+#ifdef OPENTHERMOSTAT_E32V2
+		route("/boiler/test/prepare", HTTP_POST, [this] { boilerTestAction("prepare"); });
+		route("/boiler/test/start", HTTP_POST, [this] { boilerTestAction("start"); });
+		route("/boiler/test/keepalive", HTTP_POST, [this] { boilerTestAction("keepalive"); });
+		route("/boiler/test/stop", HTTP_POST, [this] { boilerTestAction("stop"); });
+#endif
 		route("/status/rooms", [this]() { roomsStatus(); });
 		route("/status/devices", [this]() { devicesFound(); });
 		route("/status/programs", HTTP_GET, [this]() { showPrograms(); }); // show available programs
@@ -264,6 +275,9 @@ private:
 		if(decision==control::WebAuthDecision::csrf_required){server_.send(403,"application/json","{\"error\":\"csrf_required\"}");return false;}
 		if(server_.method()!=HTTP_GET&&update::mutationBlocked(server_.uri().c_str())) {
 			server_.send(409,"text/plain","Wacht tot de GitHub-update is afgerond en herstart eerst");return false;
+		}
+		if(server_.method()!=HTTP_GET&&control::boilerTestMutationBlocked(server_.uri().c_str(),controller_.boilerTestActive())) {
+			server_.send(409,"text/plain","Stop de ketelproef en controleer de terugmelding voor deze wijziging"); return false;
 		}
 		if(controller_.modernMode()&&control::legacyControlWrite(server_.uri().c_str(),method)) {
 			server_.send(409,"text/plain","HA-managed shadow mode: legacy control writer disabled"); return false;
@@ -461,6 +475,20 @@ private:
 
 		server_.sendView(200, "application/json"sv, payloadBuf.view());
 	}
+#ifdef OPENTHERMOSTAT_E32V2
+	void boilerTestAction(std::string_view action) {
+		const auto type = server_.header("Content-Type");
+		const auto body = server_.arg("plain");
+		if ((type != "application/json" && !type.startsWith("application/json;")) || body.length() > 256) {
+			server_.send(400,"application/json","{\"accepted\":false,\"error\":\"invalid_request\"}"); return;
+		}
+		const auto operatorSession = requestToken();
+		ib::viewable_stringbuf buf; std::ostream ss(&buf);
+		const auto code = controller_.boilerTestAction(action,
+			std::string_view(body.c_str(),body.length()), operatorSession.c_str(), ss);
+		server_.sendView(code,"application/json"sv,buf.view());
+	}
+#endif
 
 	void emsParams() {
 		DBGLOGFD(log_, logFeature_, "emsParams\n");

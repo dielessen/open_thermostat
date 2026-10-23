@@ -52,7 +52,7 @@
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
-          "sha256": "bb48cb696ad51e4f7ffbefddb63fec182fac18910a2a15e06d1ad8edfcb39a4d"
+          "sha256": "923404b6c6844c04853b34349491dbdb142a56e39cb5dee106230800cb52d7e7"
         },
         {
           "path": "data/html/auth-client.js",
@@ -102,7 +102,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "b01c65b1069d5644f0b2ec94b2aaa6c1760f09d449efb0a968315859e4d37b53"
+          "sha256": "9ab1617dd3f599bf07d5eb634d69a9bcb140143888f9abc07e629437f2488aad"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -242,7 +242,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "d8fc4421f88a726c93990d22673bd2ac7acdb99ad2cdd2143a632e3348baad7f"
+          "sha256": "67ce59d5e57bb7a17fcd86a7da67c94d9bcd7f66a2f0852070549b04f5fb35ff"
         }
       ],
       "remaining_acceptance": "Badkamer live bevestigd; geen nieuwe seriële opname van de logstilte."
@@ -543,11 +543,11 @@
       "files": [
         {
           "path": "data/html/boiler_test.html",
-          "sha256": "291381b6e358c041d5e3fde762093178f908c3ad2b7b3f9e1f493057521e4c47"
+          "sha256": "8559c3e9fbf9bca30b3e86dce55c320cff2f8a5ccde4734266ad56ad0db1bd65"
         },
         {
           "path": "src/EmsController.h",
-          "sha256": "74f75696caae1f4b1ff7c3eb2a647eb3cd5c628dc80907371d0e3ffcd178544c"
+          "sha256": "af0848a15ef24e67df559d89303be9f54ad0f1c63c68a594c4637a7e62605137"
         },
         {
           "path": "src/EmsController.cpp",
@@ -574,7 +574,7 @@
       "files": [
         {
           "path": "src/EMS/BoilerTestSession.h",
-          "sha256": "cc73a2b642f43b88099c32d3ad6d2600d8c1c4fcab1175559d45a38b9ac6f077"
+          "sha256": "ff86cf0e3f086793ed730c578a3bc316a8302b31fe21ac23336949dd82861713"
         },
         {
           "path": "src/EMS/EmsFrameQueue.h",
@@ -582,14 +582,59 @@
         },
         {
           "path": "test/test_native/test_boiler_test_session.cpp",
-          "sha256": "52f9c52214e11496d26fbc59c3e6efeb1d0912d8f47a02a4eea70708ae6287c8"
+          "sha256": "6828379087c6a7770b3699cc17fb4a47b46c23fcb64b2e22eaed48b0b51a117f"
         },
         {
           "path": "test/test_native/test_ems_frame_queue.cpp",
           "sha256": "faa0bfa19f58d47172c7d335ca8e0a7eade1316d0f91c4d72337aad293ce433b"
         }
       ],
-      "remaining_acceptance": "17 policytests en 5 queue-tests met 18 Classic-regressies onder ASan/UBSan PASS; HTTP/profiel-/pollzenderintegratie en fysieke TX-/stopkwalificatie nog open. Geen nieuwe release."
+      "remaining_acceptance": "20 policytests en 5 queue-tests binnen 57 unieke ASan/UBSan-gevallen PASS. Begin/finish-IO bewaart echte voltooiing ook na stop/deadline. Echte pollzender/Classic-mapping en fysieke TX-/stopkwalificatie open."
+    },
+    {
+      "id": "I23",
+      "title": "Beveiligde controller-/HTTP-/webbediening van de ketelproef",
+      "status": "nieuw_getest",
+      "include_in_beta": true,
+      "requirements": [
+        "R08",
+        "R23",
+        "R24",
+        "R25",
+        "R28",
+        "R29"
+      ],
+      "files": [
+        {
+          "path": "src/EMS/BoilerTestService.h",
+          "sha256": "8a5548a9ffe09c95396f1c43a558c3053c3af5227f3f6594a55047a0a2debdd4"
+        },
+        {
+          "path": "src/HeatingController.h",
+          "sha256": "f7d6d67b1f7f7413928aaa5c2d1099395edd48e601e6590521e6a95690f849bd"
+        },
+        {
+          "path": "src/control/HttpAccessPolicy.h",
+          "sha256": "923404b6c6844c04853b34349491dbdb142a56e39cb5dee106230800cb52d7e7"
+        },
+        {
+          "path": "src/update/ReleasePolicy.h",
+          "sha256": "33ae0c5bc67bfb33ce45dbc7f23a812ff4109816a6ca89a97e82d206909187aa"
+        },
+        {
+          "path": "test/test_native/test_boiler_test_service.cpp",
+          "sha256": "aeec1ee3a6083494f376386329edb43db4501ae1c342a18f624f51c24b5c7e99"
+        },
+        {
+          "path": "test/test_native/include/BoilerTestIoFixture.h",
+          "sha256": "ee36185c0a708fc00652313392129773b54c358666d298bd5cdbdf6286fdb747"
+        },
+        {
+          "path": "test/boiler-test-control-browser.cjs",
+          "sha256": "725d329446e0cadbc958c7adacb6ea508e8c6834c18f93cc357a30124f5907eb"
+        }
+      ],
+      "remaining_acceptance": "Controller/status/POST-/CSRF-/operator-/webketen getest; 57 native ASan/UBSan en 3 control-browservieports PASS. Werkelijk beoordeeld profiel, hydraulische gates en echte poll/UART-driver ontbreken nog; start blijft geblokkeerd."
     }
   ],
   "requirements": [
@@ -653,7 +698,7 @@
       "id": "R08",
       "title": "Classic EMS en behoud Plus",
       "software_status": "Passieve Classic- en Plusbasis geleverd; alle E32-TX geblokkeerd",
-      "inventory_ids": "I12,I21",
+      "inventory_ids": "I12,I21,I23",
       "remaining_acceptance": "Classic-proefcommandopad + elektrische zendmodus/stopbewijs; Plus later eigen fysieke vrijgave.",
       "product_accepted": false
     },
@@ -773,7 +818,7 @@
       "id": "R23",
       "title": "Anti-pendelen/hydrauliek",
       "software_status": "Supervisor-, timing-, waterbudget- en minimumlastcode aanwezig",
-      "inventory_ids": "I15,I16",
+      "inventory_ids": "I15,I16,I23",
       "remaining_acceptance": "Actieve profiel/readiness/flow/pomp/naloopketen en fysieke kleinste-last/DHW-proeven.",
       "product_accepted": false
     },
@@ -781,7 +826,7 @@
       "id": "R24",
       "title": "Uitval HA/MQTT/sensor/E32",
       "software_status": "Lease/session/boot/stale/owner-guards aanwezig",
-      "inventory_ids": "I11,I13,I15",
+      "inventory_ids": "I11,I13,I15,I23",
       "remaining_acceptance": "Werkelijke uitvalmatrix, E32-powerloss/ketelstop, actuatorfallback en exclusieve overdracht.",
       "product_accepted": false
     },
@@ -789,7 +834,7 @@
       "id": "R25",
       "title": "Waarom stoken",
       "software_status": "Redencodes, kamervraag en dashboard geleverd; diagnose uitgebreid",
-      "inventory_ids": "I10,I11,I15,I17,I21",
+      "inventory_ids": "I10,I11,I15,I17,I21,I23",
       "remaining_acceptance": "Echte opdrachtentijdlijn en gecontroleerde vraag/verzending/ketelreactie apart zichtbaar.",
       "product_accepted": false
     },
@@ -813,7 +858,7 @@
       "id": "R28",
       "title": "Open/lokaal/veilig/herstelbaar",
       "software_status": "Eigen bron, auth, HTTPS-updates en behoud/rollback deels live bewezen",
-      "inventory_ids": "I01–I04,I08",
+      "inventory_ids": "I01–I04,I08,I23",
       "remaining_acceptance": "Concrete ACL/HTTP/AP-/koude herstel-/uitvalmatrix; oorspronkelijke backupwaiver blijft geldig.",
       "product_accepted": false
     },
@@ -821,7 +866,7 @@
       "id": "R29",
       "title": "Modern eenvoudig scherm",
       "software_status": "HA-kamer/week, koude-startfix, E32-dashboard/About/navigatie geleverd",
-      "inventory_ids": "I05–I11,I21",
+      "inventory_ids": "I05–I11,I21,I23",
       "remaining_acceptance": "Ontbrekende centrale/uitvoerfuncties en complete gebruikersacceptatie; echte latentie/geen ongefundeerde speedup.",
       "product_accepted": false
     },
@@ -876,7 +921,7 @@
     {
       "id": "B07",
       "complete": false,
-      "description": "Eindige expliciete proefstand: vaste temperatuur-/tijdgrens, stopprioriteit, exclusieve eigenaar, geen herstart/hervat/retry van oude vraag."
+      "description": "Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten."
     },
     {
       "id": "B08",

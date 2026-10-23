@@ -46,14 +46,28 @@ public:
     const char* reason() const { return reason_; }
     bool reportedStopConfirmed() const { return stopConfirmed_; }
     uint64_t heatDeadline() const { return heatUntil_; }
-    bool active() const { return phase_ != Phase::idle && phase_ != Phase::completed; }
+    uint64_t operatorDeadline() const { return operatorUntil_; }
+    uint64_t sessionId() const { return session_; }
+    bool transmissionInFlight() const { return inFlight_; }
+    bool canPrepare(uint64_t now, const Gates& gates, const ClassicBoilerMonitor& monitor) const {
+        return !inFlight_ && (!haveTime_ || now >= lastNow_) && boot_ && profile_.valid()
+            && (phase_ == Phase::idle || phase_ == Phase::completed)
+            && gates.allowsHeat() && feedbackValid(monitor, now)
+            && canAdd(now, profile_.stopTimeoutMs) && canAdd(now, profile_.operatorLeaseMs);
+    }
+    bool canStart(uint64_t now, const Gates& gates, const ClassicBoilerMonitor& monitor) const {
+        return !inFlight_ && (!haveTime_ || now >= lastNow_) && phase_ == Phase::ready && !started_
+            && now < operatorUntil_ && gates.allowsHeat() && feedbackValid(monitor, now)
+            && reportedOff(monitor, now, zeroSentAt_) && canAdd(now, heatMs_);
+    }
+    bool active() const { return inFlight_ || (phase_ != Phase::idle && phase_ != Phase::completed); }
 
     Reply prepare(uint64_t boot, uint64_t session, uint8_t flowC, uint32_t heatMs,
                   uint64_t now, const Gates& gates, const ClassicBoilerMonitor& monitor) {
         if (!observeTime(now)) return Reply::refused;
         if (boot == boot_ && session && session == session_)
             return flowC == flowC_ && heatMs == heatMs_ ? Reply::duplicate : Reply::refused;
-        if (!boot_ || boot != boot_ || !session || session <= session_
+        if (inFlight_ || !boot_ || boot != boot_ || !session || session <= session_
             || (phase_ != Phase::idle && phase_ != Phase::completed)
             || !profile_.valid() || !gates.allowsHeat() || !feedbackValid(monitor, now)
             || flowC < profile_.minimumFlowC || flowC > profile_.maximumFlowC
@@ -71,7 +85,7 @@ public:
         step(now, gates, monitor);
         if (boot != boot_ || session != session_ || !session) return Reply::refused;
         if (started_) return Reply::duplicate; // never extend or revive, even after completion
-        if (phase_ != Phase::ready || !gates.allowsHeat() || !feedbackValid(monitor, now)
+        if (inFlight_ || phase_ != Phase::ready || !gates.allowsHeat() || !feedbackValid(monitor, now)
             || !reportedOff(monitor, now, zeroSentAt_) || !canAdd(now, heatMs_)) return Reply::refused;
         heatUntil_ = now + heatMs_; started_ = true;
         enter(Phase::heating, "bounded_heat_request", now);
@@ -124,7 +138,7 @@ public:
 
     Intent next(uint64_t now, const Gates& gates, const ClassicBoilerMonitor& monitor) {
         step(now, gates, monitor);
-        if (!gates.allowsZero() || !session_) return {};
+        if (inFlight_ || !gates.allowsZero() || !session_) return {};
         const Command command = phase_ == Phase::heating ? Command::positive
             : phase_ == Phase::baseline || phase_ == Phase::stopping || phase_ == Phase::fault ? Command::zero : Command::none;
         if (command == Command::none || (sent_ && now >= sentAt_ && now - sentAt_ < profile_.writeIntervalMs)) return {};
@@ -140,10 +154,24 @@ public:
             && intent.flowC == current.flowC && intent.boot == current.boot && intent.session == current.session
             && intent.epoch == current.epoch && intent.expiresAt == current.expiresAt;
     }
-    bool transmitted(const Intent& intent, uint64_t now, bool success,
-                     const Gates& gates, const ClassicBoilerMonitor& monitor) {
+    bool beginTransmit(const Intent& intent, uint64_t now, const Gates& gates, const ClassicBoilerMonitor& monitor) {
         if (!mayTransmit(intent, now, gates, monitor)) return false;
+        inFlight_ = true; pending_ = intent; beganAt_ = now;
+        return true;
+    }
+    // A completed IO is a historical fact even if stop/deadline intervened.
+    // Its old positive budget MUST NOT delay a newer required zero. Only a
+    // matching current zero can establish post-completion reported stop proof.
+    bool finishTransmit(const Intent& intent, uint64_t now, bool success,
+                        const Gates& gates, const ClassicBoilerMonitor& monitor) {
+        if (!inFlight_ || intent.command != pending_.command || intent.flowC != pending_.flowC
+            || intent.boot != pending_.boot || intent.session != pending_.session
+            || intent.epoch != pending_.epoch || intent.expiresAt != pending_.expiresAt) return false;
+        inFlight_ = false;
+        const bool validTime = observeTime(now) && now >= beganAt_;
+        step(now, gates, monitor);
         if (!success) { fail("transmission_failed"); return false; }
+        if (!validTime || intent.epoch != epoch_) return true;
         sent_ = true; sentAt_ = now;
         if (intent.command == Command::zero && !zeroSent_) { zeroSent_ = true; zeroSentAt_ = now; }
         return true;
@@ -192,6 +220,9 @@ private:
     uint8_t flowC_ = 0;
     uint32_t heatMs_ = 0;
     bool haveTime_ = false, started_ = false, sent_ = false, zeroSent_ = false, stopConfirmed_ = false;
+    bool inFlight_ = false;
+    Intent pending_;
+    uint64_t beganAt_ = 0;
 };
 
 } // namespace heating::ems

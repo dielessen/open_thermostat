@@ -5,8 +5,8 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
 1. Lees [WORKBOARD](WORKBOARD.nl.md): de enige actuele afvinklijst met alle 31
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
-3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 22 voorbereide onderdelen,
-   68 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
+   75 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
@@ -19,6 +19,19 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
   Geen nieuwe release/installatie/fysieke ketelopdracht voor dit checkpoint.
 - Planherijking voegt actuele PLAN/WORKBOARD en inventaris aan de kandidaat toe;
   de kandidaat-HEAD kan daardoor nieuwer zijn dan het ontvangstcheckpoint.
+
+## Nieuwe bronstap binnen dezelfde bètabatch
+
+Controller/status en beveiligde HTTP/webbediening zijn aangesloten op de geteste
+proefpolicy. 57 native ASan/UBSan-gevallen en 3 echte Chromium-controlviewports
+slagen; late responses/oud readback hervatten geen vraag, Stop blijft bereikbaar
+bij een lopend startverzoek. Begin/finish-IO bewaart werkelijke voltooiing na
+stop/deadline en verlangt terugmelding ná voltooiing van de nulopdracht.
+De default E32 heeft geen beoordeeld proefprofiel of pollzender: acties blijven
+geblokkeerd, geen nieuwe outputrechten. Vervolg nu op echte profiel-/poll-/Classic-
+zenderintegratie en de overige B04–B09-punten, niet opnieuw HTTP/UI vanaf nul.
+Geen nieuwe release/installatie/fysieke opdracht. Bewijs in
+`out/beta-boiler-evidence-20261023/SERVICE-REVIEW.json`.
 
 ## Eerstvolgende uitvoering
 

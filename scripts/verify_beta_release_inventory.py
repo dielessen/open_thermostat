@@ -21,7 +21,7 @@ def verify(root, inventory):
     items = inventory["items"]
     ids = [item["id"] for item in items]
     require(len(ids) == len(set(ids)), "Duplicate prepared item")
-    require({f"I{i:02}" for i in range(1, 23)} <= set(ids), "A reviewed prepared item was removed")
+    require({f"I{i:02}" for i in range(1, 24)} <= set(ids), "A reviewed prepared item was removed")
     files = 0
     for item in items:
         require(item["include_in_beta"] is True, f"Prepared item excluded: {item['id']}")

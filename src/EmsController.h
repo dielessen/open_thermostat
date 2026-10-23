@@ -7,6 +7,10 @@
 #include "EMS/EmsFrameQueue.h"
 #include "EMS/ClassicBoilerMonitor.h"
 #include "EMS/OutdoorTemperatureSample.h"
+#ifdef OPENTHERMOSTAT_E32V2
+#include "EMS/BoilerTestService.h"
+#include <esp_system.h>
+#endif
 #include <esp_timer.h>
 
 #include <atomic>
@@ -16,6 +20,7 @@
 #include <optional>
 #include <ostream>
 #include <sstream>
+#include <string_view>
 #include <unordered_map>
 
 namespace heating::ems {
@@ -167,6 +172,12 @@ public:
 		captureForeignTelegrams_.store(log_ && log_->isFeatureEnabled(verboseFeature()), std::memory_order_relaxed);
 		processTelegrams();
 		refreshClassicStatus();
+#ifdef OPENTHERMOSTAT_E32V2
+		{
+			std::lock_guard<std::mutex> lock(telemetryMutex_);
+			boilerTest_.tick(static_cast<uint64_t>(esp_timer_get_time() / 1000), boilerTestGates(), monitor_);
+		}
+#endif
 		requestPeriodicData();
 
 		reportStats();
@@ -196,7 +207,7 @@ public:
 		getStatus(ss);
 		return ss.str();
 	}
-	void getTelemetryStatus(std::ostream &ss) const {
+	void getTelemetryStatus(std::ostream &ss, [[maybe_unused]] std::string_view operatorSession = {}) const {
 		std::lock_guard<std::mutex> lock(telemetryMutex_);
 		// Keep the existing field-level telemetry contract and add transport
 		// diagnostics to it. These are lifetime counters, not a TX permission.
@@ -210,8 +221,29 @@ public:
 		   << ",\"invalid_telegrams\":" << invalidTelegrams_.load(std::memory_order_relaxed)
 		   << ",\"uart_errors\":" << uart_.rxErrors.load(std::memory_order_relaxed)
 		   << ",\"uart_timeouts\":" << uart_.rxTimeouts.load(std::memory_order_relaxed)
-		   << ",\"uart_resets\":" << uart_.resets.load(std::memory_order_relaxed) << "}}";
+		   << ",\"uart_resets\":" << uart_.resets.load(std::memory_order_relaxed) << '}';
+#ifdef OPENTHERMOSTAT_E32V2
+		ss << ",\"test\":";
+		boilerTest_.writeJSON(ss, static_cast<uint64_t>(esp_timer_get_time() / 1000), operatorSession, boilerTestGates(), monitor_);
+#endif
+		ss << '}';
 	}
+#ifdef OPENTHERMOSTAT_E32V2
+	bool boilerTestActive() const {
+		std::lock_guard<std::mutex> lock(telemetryMutex_);
+		return boilerTest_.active();
+	}
+	int boilerTestAction(std::string_view action, std::string_view body, std::string_view operatorSession, std::ostream &ss) {
+		std::lock_guard<std::mutex> lock(telemetryMutex_);
+		const auto now = static_cast<uint64_t>(esp_timer_get_time() / 1000);
+		const auto result = boilerTest_.action(action, body, operatorSession, now, boilerTestGates(), monitor_);
+		ss << "{\"accepted\":" << (result.http < 300 ? "true" : "false")
+		   << ",\"duplicate\":" << (result.duplicate ? "true" : "false") << ",\"error\":\"" << result.error << "\",\"test\":";
+		boilerTest_.writeJSON(ss, now, operatorSession, boilerTestGates(), monitor_);
+		ss << '}';
+		return result.http;
+	}
+#endif
 
 	void getBoilerParams(std::ostream &ss) const {
 		boilerParams_.getJSON(ss);
@@ -277,6 +309,12 @@ private:
 	EmsBoilerParams boilerParams_;
 	mutable std::mutex telemetryMutex_;
 	ClassicBoilerMonitor monitor_;
+#ifdef OPENTHERMOSTAT_E32V2
+	// No installed reviewed test profile/poll driver yet. No request/config flag
+	// can fill this in or change the board's independent physical TX lock.
+	BoilerTestService boilerTest_{(static_cast<uint64_t>(esp_random()) << 32) | esp_random(), board::emsTransmitAllowed};
+	static BoilerTestSession::Gates boilerTestGates() { return {}; }
+#endif
 	control::TemperatureSample outdoorSample_;
 
 	std::atomic<std::optional<int16_t>> emsOutdoorTemperature_;

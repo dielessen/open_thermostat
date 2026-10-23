@@ -199,9 +199,15 @@ public:
 		emsMetrics_.getRoomObservation(ss);
 		ss << "}";
 	}
-	void getEMSTelemetryStatus(std::ostream &ss) const {
-		ems_.getTelemetryStatus(ss);
+	void getEMSTelemetryStatus(std::ostream &ss, std::string_view operatorSession = {}) const {
+		ems_.getTelemetryStatus(ss, operatorSession);
 	}
+#ifdef OPENTHERMOSTAT_E32V2
+	bool boilerTestActive() const { return ems_.boilerTestActive(); }
+	int boilerTestAction(std::string_view action, std::string_view body, std::string_view operatorSession, std::ostream &ss) {
+		return ems_.boilerTestAction(action, body, operatorSession, ss);
+	}
+#endif
 
 	std::string getEMSStatus() const {
 		std::ostringstream ss; getEMSStatus(ss); return ss.str();

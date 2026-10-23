@@ -1,6 +1,6 @@
 <section class="product-dashboard" id="boiler-test">
   <h1>Keteltest</h1>
-  <p>Controleer de ontvangst van ketelgegevens. Deze pagina verstuurt geen ketelopdrachten.</p>
+  <p>Controleer de ontvangst van ketelgegevens en de beschikbaarheid van een begrensde proef.</p>
   <p role="status" aria-live="polite" data-reception>Ontvangst controleren…</p>
   <div class="pd-panel">
     <h2>Aansluiting en ontvangst</h2>
@@ -13,7 +13,20 @@
     <div style="overflow-x:auto"><table class="table"><thead><tr><th>Gegeven</th><th>Waarde</th><th>Kwaliteit</th><th>Leeftijd</th></tr></thead><tbody data-fields></tbody></table></div>
   </div>
   <div class="pd-panel"><h2>Aansturing beproeven</h2>
-    <p>De actieve proef is nog niet vrijgegeven. Ontvangst van gegevens bevestigt geen start- of stopgedrag.</p>
+    <p data-test-state role="status" aria-live="polite">Proefstatus controleren…</p>
+    <p>Een aangenomen verzoek is nog geen verzonden opdracht of bevestigde ketelreactie.</p>
+    <form data-test-form>
+      <label class="d-block">Gewenste aanvoer (°C)<input class="form-control" data-test-flow type="number" step="1" required disabled></label>
+      <label class="d-block">Maximale warmtevraag (seconden)<input class="form-control" data-test-duration type="number" step="1" required disabled></label>
+      <div class="d-flex flex-wrap" style="gap:10px;margin:14px 0">
+        <button class="btn btn-outline-primary" type="button" data-test-prepare disabled>Stopbasis controleren</button>
+        <button class="btn btn-primary" type="button" data-test-start disabled>Warmtevraag starten</button>
+        <button class="btn btn-danger" type="button" data-test-stop disabled>Proef stoppen</button>
+      </div>
+    </form>
+    <p class="pd-help">Houd deze pagina zichtbaar tijdens de proef. Vernieuwen of heropenen hervat het toezicht niet automatisch.</p>
+    <p data-test-action role="status" aria-live="polite"></p>
+    <dl class="pd-detail-grid" data-test-facts></dl>
   </div>
 </section>
 <script>
@@ -32,6 +45,140 @@
     plus_reports_received: 'Verse EMS Plus-ketelberichten ontvangen.'
   };
   let report = null;
+  const testState = root.querySelector('[data-test-state]');
+  const testMessage = root.querySelector('[data-test-action]');
+  const testFacts = root.querySelector('[data-test-facts]');
+  const flowInput = root.querySelector('[data-test-flow]');
+  const durationInput = root.querySelector('[data-test-duration]');
+  const prepareButton = root.querySelector('[data-test-prepare]');
+  const startButton = root.querySelector('[data-test-start]');
+  const stopButton = root.querySelector('[data-test-stop]');
+  let test = null, held = null, lastScope = null, pending = false, stopping = false, renewal = null;
+  const phases = {idle:'Nog geen proef voorbereid.', baseline:'Wachten op een gemelde stop na de nulopdracht.',
+    ready:'Stopbasis gemeld. Warmtevraag kan afzonderlijk worden gestart.', heating:'Begrensde warmtevraag aangevraagd.',
+    stopping:'Stop aangevraagd. Wachten op verse ketelterugmelding.', completed:'Stop na de opdracht gemeld; proef afgerond.',
+    fault:'Proef gestopt door een fout. Controleer de ketel en het meetrapport.'};
+  const blocks = {boot_unavailable:'Proefidentiteit niet beschikbaar.', transmit_blocked:'Zenden is in deze firmware geblokkeerd.',
+    profile_missing:'Het beoordeelde ketelproefprofiel ontbreekt.', test_transport_missing:'De proefzender is nog niet aangesloten.',
+    proving_conditions_missing:'Niet alle proefvoorwaarden zijn bevestigd.'};
+  function validTest(value) {
+    if (!value || value.schema !== 1 || !/^[0-9a-f]{16}$/.test(value.boot_id)
+        || !Number.isInteger(value.revision) || value.revision < 0 || value.revision > 2147483647
+        || !Number.isSafeInteger(value.state_sequence) || value.state_sequence < 0
+        || !Number.isSafeInteger(value.observed_at_ms) || value.observed_at_ms < 0
+        || !Object.hasOwn(phases, value.phase)) return false;
+    for (const key of ['available','owned','can_prepare','can_start','can_stop','reported_stop_confirmed'])
+      if (typeof value[key] !== 'boolean') return false;
+    if (value.can_start && (!value.owned || !value.revision || value.phase !== 'ready')) return false;
+    if (value.can_prepare && !['idle','completed'].includes(value.phase)) return false;
+    if (['ready','completed'].includes(value.phase) && !value.reported_stop_confirmed) return false;
+    if (value.can_stop && (!value.revision || ['idle','completed'].includes(value.phase))) return false;
+    const limits = value.limits;
+    if (value.available || value.can_prepare || value.can_start) {
+      if (!value.available || !limits || !Number.isInteger(limits.minimum_flow_c) || !Number.isInteger(limits.maximum_flow_c)
+          || limits.minimum_flow_c < 5 || limits.maximum_flow_c > 90 || limits.minimum_flow_c >= limits.maximum_flow_c
+          || !Number.isInteger(limits.maximum_duration_s) || limits.maximum_duration_s < 1 || limits.maximum_duration_s > 120
+          || !Number.isInteger(limits.operator_lease_ms) || limits.operator_lease_ms < 1000 || limits.operator_lease_ms > 10000) return false;
+    }
+    return true;
+  }
+  function sameScope(a, b) { return a && b && a.boot_id === b.boot_id && a.revision === b.revision; }
+  function stopRenewing() { held = null; clearTimeout(renewal); renewal = null; }
+  function paintTest(value) {
+    if (validTest(value) && test && value.boot_id === test.boot_id
+        && (value.revision < test.revision || (value.revision === test.revision
+        && (value.state_sequence < test.state_sequence || (value.state_sequence === test.state_sequence && value.observed_at_ms < test.observed_at_ms))))) return;
+    test = validTest(value) ? value : null;
+    if (!test || (held && (!sameScope(held, test) || !test.owned || !['baseline','ready','heating'].includes(test.phase)))) stopRenewing();
+    if (test) {
+      if (test.can_stop) lastScope = {boot_id:test.boot_id, revision:test.revision};
+      else lastScope = null;
+      testState.textContent = test.available ? phases[test.phase]
+        : (test.phase !== 'idle' ? phases[test.phase] + ' ' : '') + (blocks[test.blocked_reason] || 'De actieve proef is niet beschikbaar.');
+    } else testState.textContent = 'Proefstatus niet beschikbaar. Er wordt geen warmtevraag gestart.';
+    flowInput.disabled = durationInput.disabled = !test || !test.can_prepare || pending;
+    prepareButton.disabled = !test || !test.can_prepare || pending;
+    startButton.disabled = !test || !test.can_start || !sameScope(held, test) || pending;
+    // Stop stays available with the last known scoped session after read failure.
+    stopButton.disabled = !lastScope || stopping;
+    if (test && test.limits) {
+      flowInput.min = test.limits.minimum_flow_c; flowInput.max = test.limits.maximum_flow_c;
+      durationInput.min = 1; durationInput.max = test.limits.maximum_duration_s;
+    }
+    testFacts.replaceChildren();
+    if (test) {
+      for (const [label,value] of [['Positieve opdrachten verzonden',number(test.positive_frames)],
+        ['Nulopdrachten verzonden',number(test.zero_frames)],['Resterende warmtevraagtijd',age(test.heat_remaining_ms)],
+        ['Stop na opdracht gemeld',test.reported_stop_confirmed ? 'Ja' : 'Nog niet bevestigd']]) {
+        cell(testFacts,'dt',label);cell(testFacts,'dd',value);
+      }
+    }
+  }
+  async function testRequest(action, body) {
+    const abort = new AbortController(), deadline = setTimeout(() => abort.abort(), 3000);
+    try {
+      const response = await fetch('/boiler/test/' + action, {method:'POST', cache:'no-store', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'}, signal:abort.signal, body:JSON.stringify({schema:1,...body})});
+      const result = await response.json();
+      if (!response.ok || result.accepted !== true || !validTest(result.test) || !sameScope(result.test,body))
+        throw Error('Proefverzoek niet bevestigd. Controleer de status; het verzoek wordt niet automatisch herhaald.');
+      return result.test;
+    } catch (error) {
+      throw Error('Proefverzoek niet bevestigd. Controleer de status; het verzoek wordt niet automatisch herhaald.');
+    } finally { clearTimeout(deadline); }
+  }
+  function scheduleRenewal() {
+    clearTimeout(renewal);
+    if (!held || !test) return;
+    renewal = setTimeout(async () => {
+      if (!root.isConnected || document.visibilityState !== 'visible' || !held) {
+        stopRenewing(); if (root.isConnected) paintTest(test); return;
+      }
+      const scope = {...held};
+      try {
+        const next = await testRequest('keepalive',scope);
+        if (!root.isConnected || !sameScope(held,scope)) return;
+        paintTest(next); scheduleRenewal();
+      } catch (error) {
+        stopRenewing(); if (root.isConnected) { testMessage.textContent = 'Toezicht niet bevestigd. Controleer de proefstatus en gebruik Stop.'; paintTest(test); }
+      }
+    }, Math.min(1000, Math.floor(test.limits.operator_lease_ms / 3)));
+  }
+  root.querySelector('[data-test-form]').addEventListener('submit',event => event.preventDefault());
+  prepareButton.addEventListener('click',async () => {
+    if (prepareButton.disabled || !test) return;
+    const flow = Number(flowInput.value), duration = Number(durationInput.value);
+    if (!flowInput.checkValidity() || !durationInput.checkValidity() || !Number.isInteger(flow) || !Number.isInteger(duration)) {
+      testMessage.textContent = 'Vul een gehele aanvoertemperatuur en duur binnen de getoonde grenzen in.'; return;
+    }
+    const body = {boot_id:test.boot_id, revision:test.revision+1, flow_c:flow, duration_s:duration};
+    pending = true; paintTest(test);
+    try {
+      const next = await testRequest('prepare',body);
+      if (!root.isConnected) return;
+      held = {boot_id:next.boot_id, revision:next.revision}; paintTest(next); scheduleRenewal();
+      testMessage.textContent = 'Stopcontrole aangevraagd. Warmtevraag start pas na uw afzonderlijke startactie.';
+    } catch (error) { stopRenewing(); if (root.isConnected) testMessage.textContent = error.message; }
+    finally { pending = false; if (root.isConnected) paintTest(test); }
+  });
+  startButton.addEventListener('click',async () => {
+    if (startButton.disabled || !test || !sameScope(held,test) || !window.confirm('De begrensde warmtevraag nu starten?')) return;
+    const scope = {boot_id:test.boot_id, revision:test.revision}; pending = true; paintTest(test);
+    try {
+      const next = await testRequest('start',scope);
+      if (root.isConnected && sameScope(held,scope)) { paintTest(next); testMessage.textContent = 'Startverzoek aangenomen. Verzending en ketelterugmelding staan afzonderlijk hieronder.'; }
+    } catch (error) { stopRenewing(); if (root.isConnected) testMessage.textContent = error.message; }
+    finally { pending = false; if (root.isConnected) paintTest(test); }
+  });
+  stopButton.addEventListener('click',async () => {
+    if (stopButton.disabled || !lastScope) return;
+    const scope = {...lastScope}; stopRenewing(); stopping = true; paintTest(test);
+    try {
+      const next = await testRequest('stop',scope);
+      if (root.isConnected) { paintTest(next); testMessage.textContent = 'Stopverzoek aangenomen. Wacht op een gemelde stop na de opdracht.'; }
+    } catch (error) { if (root.isConnected) testMessage.textContent = error.message; }
+    finally { stopping = false; if (root.isConnected) paintTest(test); }
+  });
   const fieldLabels = {
     reported_selected_flow_temperature:'Gemelde gewenste aanvoer', measured_flow_temperature:'Aanvoertemperatuur',
     measured_return_temperature:'Retourtemperatuur', outdoor_temperature:'Buitentemperatuur',
@@ -63,6 +210,7 @@
       const data = await response.json();
       if (!root.isConnected) return;
       if (!data || !data.reception || !data.transport || !data.fields || !labels[data.reception.state]) throw Error('Onbekende status');
+      paintTest(data.test);
       message.textContent = data.transport.enabled === false ? 'EMS-ontvangst staat uit.' : labels[data.reception.state];
       transport.replaceChildren();
       fact('Ketelberichten', number(data.reception.report_count));
@@ -90,6 +238,7 @@
       if (!root.isConnected) return;
       message.textContent = 'Ontvangststatus niet beschikbaar. Controleer de verbinding.';
       transport.replaceChildren(); fields.replaceChildren(); report = null; download.disabled = true;
+      paintTest(null);
     } finally {
       clearTimeout(timeout);
       if (root.isConnected) setTimeout(refresh, 5000);

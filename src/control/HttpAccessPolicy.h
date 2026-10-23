@@ -4,6 +4,7 @@
 namespace heating::control {
 // Method/origin decisions separate from Arduino networking for direct tests.
 inline bool allowedHttpMethod(std::string_view path,std::string_view method) {
+    if(path=="/boiler/test/prepare"||path=="/boiler/test/start"||path=="/boiler/test/keepalive"||path=="/boiler/test/stop") return method=="POST";
     if(path=="/auth/login"||path=="/auth/logout") return method=="POST";
     if(path=="/updates/check"||path=="/updates/install"||path=="/updates/reboot"||path=="/updates/rollback")return method=="POST";
     if(path=="/setup/scan") return method=="GET"||method=="POST";
@@ -12,6 +13,10 @@ inline bool allowedHttpMethod(std::string_view path,std::string_view method) {
     if(path.substr(0,17)=="/config/programs/") return method=="GET"||method=="POST"||method=="DELETE";
     if(path.substr(0,8)=="/config/") return method=="GET"||method=="POST";
     return method=="GET";
+}
+inline bool boilerTestMutationBlocked(std::string_view path, bool active) {
+    return active && path!="/auth/logout" && path!="/boiler/test/prepare" && path!="/boiler/test/start"
+        && path!="/boiler/test/keepalive" && path!="/boiler/test/stop";
 }
 inline bool legacyControlWrite(std::string_view path,std::string_view method) {
     return method!="GET" && (path=="/config/temporary"||path=="/config/rooms"||path=="/config/program/current"||

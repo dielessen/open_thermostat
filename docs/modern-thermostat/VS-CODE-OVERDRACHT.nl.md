@@ -1,6 +1,6 @@
 # OpenThermostat — actuele overdracht
 
-Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
+Bijgewerkt 24 oktober 2026 na de oorspronkelijke TV02-rapportproducer.
 
 1. Lees [WORKBOARD](WORKBOARD.nl.md): de enige actuele afvinklijst met alle 31
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.

@@ -1,6 +1,6 @@
 # OpenThermostat — actueel werkbord en releasechecklist
 
-**Bijgewerkt: 23 oktober 2026.** Dit is de enige actuele afvinklijst. Het
+**Bijgewerkt: 24 oktober 2026.** Dit is de enige actuele afvinklijst. Het
 [masterplan](PLAN.nl.md) bewaart alle 31 eisen en oorspronkelijke acceptatievoorwaarden.
 Oude uitvoeringsnotities zijn gearchiveerd; hun oude woorden “open” en “niet
 geïnstalleerd” bepalen de huidige stand niet meer.

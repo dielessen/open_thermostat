@@ -38,6 +38,7 @@ verwarmingsinstallatie.
 | Langzame tijdproportionele regeling | PI-vraag omzetten naar lange aan/uit-cycli met minimum aan- en uittijd voor geschikte kleppen | **Voorbereid** |
 | Lokaal regelende radiatorkraan | De eigen regeling van de kraan respecteren en daarboven kamerdoel en ketelvraag coördineren | **Voorbereid**; geen tweede concurrerende PI op de kraan |
 | Slimme radiatorkranen via HA | Bestaande HA-apparaten selecteren, mogelijkheden controleren en modusconflicten zichtbaar maken | Selectie/controle **beschikbaar**; fysieke doelopdracht en terugmelding **voorbereid** |
+| Originele sensor- en kraanberichten | [WSDCGQ11LM-meetberichten](docs/modern-thermostat/ORIGINAL-ZIGBEE-REPORTS.nl.md) en [TV02-datapoints](docs/modern-thermostat/ORIGINAL-TV02-REPORTS.nl.md) onderscheiden van cachewaarden | **Voorbereid en getest**; niet geïnstalleerd, geen fysieke regelvrijgave |
 | Meer zones en kranen | Acht gevalideerde zones, meerdere kranen per kamer en meer merken | **Gepland**; huidige inrichting heeft één kraan per kamer |
 
 Een geselecteerde sensor is nog geen gekwalificeerde regelmeting. De actuele

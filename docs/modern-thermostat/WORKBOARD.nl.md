@@ -52,7 +52,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-96 bronverwijzingen met hashes, status en resterende acceptatie.
+108 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -562,7 +562,7 @@ Bewijs: `out/ems-readout-improvements-20261023/` en de read-only HA-pariteitsrev
 - [x] `esp32dev`, `esp32s3` en `e32v2` gebouwd op broncheckpoint `274f39d`.
 - [x] E32-filesystem gebouwd; partities, dubbele OTA/SPIFFS, inerte defaults en
   gecompileerde afwezigheid van project-UART-zendaanroepen gecontroleerd.
-- [x] Bestaande 23 voorbereide onderdelen behouden; 96 bronverwijzingen gecontroleerd.
+- [x] Bestaande 23 voorbereide onderdelen behouden; 108 bronverwijzingen gecontroleerd.
 - [ ] Nieuwe uitlezing via de gezamenlijke volgende release installeren en
   de werkelijk ontvangen nieuwe velden op de eigen keten vergelijken.
 - [ ] Native HA-ketelveldprojectie aansluiten en testen op bronleeftijd,
@@ -580,3 +580,37 @@ met begrensde veldgroepen en originele observatieleeftijden; geen verruiming van
 de bestaande metrics-validatie, besturingslease of controletoelating. Daarna de
 HA-readprojectie aansluiten op deze gevalideerde berichten. Geen tweede client,
 achtergrondpoller of behouden MQTT-bericht als verse ketelmeting gebruiken.
+
+
+## Native ketelveldprojectie naar HA — aangesloten in bron
+
+Het vervolg op de passieve decoder is aangesloten via de bestaande
+ModernTransport/ShadowController en HA-worker. `boiler.fields.v1` verstuurt maximaal
+tien velden per groep, één groep per twee seconden, maximaal 2.048 envelopebytes.
+De 69 HA-sensoridentiteiten hebben vaste eenheden, originele bronleeftijd en
+kwaliteitsattributen. Onbetrouwbare bits/tellers zijn standaard uitgeschakeld;
+geen nieuwe statistiek-/energie-identiteiten of ketelwrites. Oude entiteiten en
+historie worden behouden. Dit is voorbereid voor de gezamenlijke release en nog
+niet op de echte installatie geleverd.
+
+De bron bewaart alle bestaande besturingsgrenzen. Telemetrie kan geen grant,
+lease, kamermeting, kraanreadiness of model vernieuwen. Herhaalde acquisitie
+verlengt de oorspronkelijke geldigheid niet; HA-wachtrijtijd telt mee. Het
+netwerktransport vóór MQTT-ontvangst is niet onafhankelijk getimed en is expliciet
+als beperking gemarkeerd. Er wordt geen fysieke controlkwalificatie geclaimd.
+Zie [het contract en de foutafhandeling](BOILER-FIELDS-V1.md).
+
+De vorige publieke CI (`40022902449`) faalde op de oude `esp32dev`: de uiteindelijke
+binary was 1.705.856 bytes voor een OTA-slot van 1.703.936 bytes. De eerdere
+PlatformIO-succesmelding betrof de link-/ELF-grens, geen zelfstandig bewijs voor
+de gepadde binary. Herstel: alleen dit 4 MB-board met `-Os` compileren en een
+post-buildcontrole op het echte `.bin` tegen beide OTA-slots toevoegen. E32/S3
+houden hun bestaande `-O3`-profiel en partitie-indeling. De guard heeft een echte
+grensregressie en draait ook in CI. Nieuwe boardresultaten volgen op deze bron.
+
+Bronchecks tot nu: 555 volledige native gevallen en 90 daarvan tevens onder
+ASan/UBSan; gerichte HA/C++-interop en veldcontroles geslaagd. Volledige HA-suite: 1.713 tests en 68 subtests geslaagd; twee opt-in packettests
+zijn afzonderlijk met de tijdelijke lokale broker uitgevoerd, samen met de extra
+workerregressie (67 tests in die run, nul fouten/skips). Nieuwe boardbuilds en
+publieke CI nog aftekenen. Installatie, fysieke veldvalidatie,
+M2-kamerbron/kraanroute en B04–B14 blijven open.

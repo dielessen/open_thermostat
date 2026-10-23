@@ -33,6 +33,14 @@
         {
           "path": "docs/third-party/shipped-policy.json",
           "sha256": "b4bf3ddea88737ab2310e82bde34bbe4f01fecd0678a14f2c4e6e3aebfe61008"
+        },
+        {
+          "path": "scripts/esp32_size_link.py",
+          "sha256": "4f9857646f75cf0f5b3eb7110b3325e6b1936261df62753b9c4fdd4baffc0582"
+        },
+        {
+          "path": "scripts/test_esp32_size_link.py",
+          "sha256": "7cf3f81de3c6e166e6dd076e379379c30a44f169ba7194c08014df45dcf7a4da"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
@@ -102,7 +110,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "1a2e4d28525e9b96eb3f8b9858421416f730ae3db7e8cb2cb0535b24988d5d74"
+          "sha256": "ba01a3e292401ccbaa3c8f0ee14d6a40296097d43c7458d6b006ece2b700a630"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -311,7 +319,7 @@
       "files": [
         {
           "path": "src/EMS/ClassicBoilerMonitor.h",
-          "sha256": "bffdef59b9e854e9b1f7bbedb7edcfb3e0b31129953b6b57156915b5622b6db1"
+          "sha256": "066ed274138ffc1fa66fc962c34db5eb1daecb2cfcde6b958683a7492ec966e4"
         },
         {
           "path": "src/EMS/BoilerCapabilities.h",
@@ -338,7 +346,7 @@
           "sha256": "b5c53b3f8d0c43ada9945039a0a2fb06942c355292eaa009b9c70b3876e58c5b"
         }
       ],
-      "remaining_acceptance": "Uitbreiding onafhankelijk geïmplementeerd en getest: 86 ASan/UBSan-native gevallen en 3 boardbuilds. Nog niet geïnstalleerd. Fysieke veldvergelijking, eventueel actieve opvragen en native HA-veldprojectie blijven open. TX blijft geblokkeerd op E32."
+      "remaining_acceptance": "69 Classic-velden en begrensde HA-veldgroepen in bron aangesloten. Fysieke veldvergelijking en eventueel actieve opvragen blijven open. E32-TX blijft geblokkeerd; nieuwe bron nog niet geïnstalleerd."
     },
     {
       "id": "I13",
@@ -358,7 +366,7 @@
         },
         {
           "path": "src/control/ShadowController.h",
-          "sha256": "89319815b36c87680d60f3c1046bd713d871aceefbc5b6b2388833a7b402a937"
+          "sha256": "9ebd1b14650ce5609a0fe0ab116575e1aa2216274c74992dfc9ce5c699709560"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/native_plan.py",
@@ -472,7 +480,7 @@
     {
       "id": "I17",
       "title": "Metrics, grafieken, historiegrens en CSV-export",
-      "status": "deels",
+      "status": "Metricsbasis behouden; native 69-veld read-only projectie aangesloten in bron",
       "include_in_beta": true,
       "requirements": [
         "R15",
@@ -497,9 +505,49 @@
         {
           "path": "src/control/MetricsTelemetry.h",
           "sha256": "e55268dfa26a89705133220c298953f2deaccf135fb0b3c7aa41f0e450585f2b"
+        },
+        {
+          "path": "src/control/BoilerFieldTelemetry.h",
+          "sha256": "9ca8dba8a07513fb7b472580060c3f04d0f6d0d6ad31e8055378d2bd6286f606"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/boiler_fields.py",
+          "sha256": "ca9cf779f72cab50819daf6181e386412a12b9d1590d3c5648af6cd12b2b0c96"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/v1_boiler_fields.py",
+          "sha256": "978da9977727aa00f95aa973c7178ab142c56683b7fe86a39a5e218d0b41c206"
+        },
+        {
+          "path": "ha/tests_native/test_boiler_fields.py",
+          "sha256": "89acf2d18fb160d027d8681c2a27c1a0ff63e59561fa50eb47d46e309ac3d911"
+        },
+        {
+          "path": "ha/tests_native/test_boiler_fields_interop.py",
+          "sha256": "442342e286ac4dbc621fa3376ab2d8b0e1d717807bb9cc5f0090b46285867c74"
+        },
+        {
+          "path": "test/test_native/test_boiler_field_telemetry.cpp",
+          "sha256": "7933554979683403e66581a60a5b1abafc0c01c9b49f26f255e56da95058f5cb"
+        },
+        {
+          "path": "test/interop/shadow_runner.cpp",
+          "sha256": "2b22b26c18c069d1fc7faa84c3588ac262b0225f688bc3b411eadbd4fde449d5"
+        },
+        {
+          "path": "test/test_native/include/ShadowControllerFixture.h",
+          "sha256": "b76751c688150795c853be171f4bca551621acd2c2646608001f2dd1c355cb6d"
+        },
+        {
+          "path": "src/MQTT.h",
+          "sha256": "21634591912dc6479bf9b8446270fb410fb179ce8683e13b58b1a232a3055f34"
+        },
+        {
+          "path": "src/HeatingController.h",
+          "sha256": "5a7b365cd3b8719a14d66950e2b4d1508f75914d039471013b5b11fbf2d95dbb"
         }
       ],
-      "remaining_acceptance": "Niet opnieuw vanaf nul bouwen; echte Classic-tijdlijn, Recorder-retentie/migratie en grafiekacceptatie open."
+      "remaining_acceptance": "Versiegebonden begrensd ketelveldcontract over bestaande sessie/verbinding en HA-entiteiten aangesloten. Bronregressie/buildchecks vastleggen; gezamenlijke uitrol, echte veldvergelijking, tijdlijn/grafieken/retentie nog open. Geen controlkwalificatie of OEM-counterstatistiek."
     },
     {
       "id": "I18",
@@ -603,7 +651,7 @@
         },
         {
           "path": "src/EmsController.h",
-          "sha256": "be83f57cec7c46b077ecd5a1ba26e5430741dbeb4fb15e5310660b4121ac18a9"
+          "sha256": "3283f13f32817df09398b82b79bb2c28a146ae17b6ba4f89101768228da256c1"
         },
         {
           "path": "src/EmsController.cpp",
@@ -667,7 +715,7 @@
         },
         {
           "path": "src/HeatingController.h",
-          "sha256": "f7d6d67b1f7f7413928aaa5c2d1099395edd48e601e6590521e6a95690f849bd"
+          "sha256": "5a7b365cd3b8719a14d66950e2b4d1508f75914d039471013b5b11fbf2d95dbb"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
@@ -837,9 +885,9 @@
     {
       "id": "R15",
       "title": "Alle relevante keteldata",
-      "software_status": "Passieve 30-velddecoder geleverd; 69-velduitbreiding en vaste 24-type inventaris voorbereid",
+      "software_status": "69-velddecoder, vaste typeinventaris en native HA-readprojectie in bron aangesloten",
       "inventory_ids": "I12,I17,I21",
-      "remaining_acceptance": "Nieuwe decoderrelease nog bouwen/uitrollen; fysieke veldvergelijking en complete native HA-readprojectie. Ontbrekende passieve telegrammen niet als unsupported verklaren; actieve opvragen nog niet toegestaan.",
+      "remaining_acceptance": "Gezamenlijke kandidaat nog verifiëren/uitrollen en echte velden op eigen keten vergelijken. Ontbrekende passieve telegrammen niet unsupported verklaren; actieve opvragen niet toegestaan.",
       "product_accepted": false
     },
     {

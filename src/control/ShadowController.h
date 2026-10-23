@@ -3,6 +3,7 @@
 #include "ControlStore.h"
 #include "EffectiveTarget.h"
 #include "MetricsTelemetry.h"
+#include "BoilerFieldTelemetry.h"
 #include <sstream>
 #include "Measurement.h"
 #include "ScheduleDocument.h"
@@ -62,6 +63,7 @@ public:
     using Hash=std::function<std::string(std::string_view)>;
     using Nonce=std::function<std::string()>;
     using Publish=std::function<void(std::string_view,std::string_view)>;
+    using BoilerFields=std::function<void(std::ostream&,size_t)>;
     using Metrics=std::function<void(std::ostream&)>;
     // Existing NVS partition is20KiB, with GC + old/new atomic blob overhead.
     // Do not turn a JSON transport ceiling into a hidden persistence promise.
@@ -71,9 +73,9 @@ public:
                      ControlStore &store,Hash hash,Nonce nonce,Publish publish,Metrics metrics={},
                      const SeasonalControllerSource* seasonalSource=nullptr,
                      SeasonalControllerSource::Safety safety={},
-                     const NativePlanInstallationSource* nativePlanSource=nullptr)
+                     const NativePlanInstallationSource* nativePlanSource=nullptr,BoilerFields boilerFields={})
         :controller_(std::move(controller)),boot_(std::move(boot)),owner_(std::move(owner)),
-         store_(store),hash_(std::move(hash)),nonce_(std::move(nonce)),publish_(std::move(publish)),metrics_(std::move(metrics)),admission_(owner_) {
+         store_(store),hash_(std::move(hash)),nonce_(std::move(nonce)),publish_(std::move(publish)),metrics_(std::move(metrics)),admission_(owner_),boilerFields_(std::move(boilerFields)) {
         if(!SessionAdmission::validId(controller_)||!SessionAdmission::validId(boot_)||!SessionAdmission::validId(owner_)) { fault_=true; return; }
         if(nativePlanSource) {
             if(seasonalSource||!nativePlanSource->valid()||nativePlanSource->controllerId!=controller_
@@ -132,6 +134,7 @@ public:
         if(now>=nextHello_) { hello(); nextHello_=now+3000; }
         if(now>=nextState_) { state(now,utc,clockValid); nextState_=now+3000; }
         metricsSnapshot(now);
+        boilerFieldSnapshot(now);
     }
     void receive(std::string_view topic,std::string_view bytes,uint64_t now,int64_t utc,bool clockValid) {
         if(!nativePlanSource_) {receiveImpl(topic,bytes,now,utc,clockValid);return;}
@@ -528,7 +531,7 @@ private:
         supervisor_.invalidate();
         admission_.invalidateTransport(); session_=mappingReady_=leaseWasAlive_=false;
         sessionId_.clear(); lastOpen_.clear(); pendingGrantNonce_.clear(); issuedGrantNonce_.clear();
-        nextMetrics_=0;metricsSequence_=0;
+        nextMetrics_=0;metricsSequence_=0;nextBoilerFields_=0;boilerSequence_=0;boilerGroup_=0;
         for(size_t i=0;i<config_->count;++i) {
             auto &z=config_->zones[i]; z.sample.unavailable(); z.comfort.invalidate();z.comfortInputs=ComfortInputs{}; z.overrideUntil=0; z.off=false; z.demand=false;
             // SOURCE-selected regulator keeps its owner/timing fences and minimum
@@ -641,9 +644,10 @@ private:
             cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(NativePlanInstallationSource::legacyCapability));
         if(comfortCaps&&nativePlanSource_&&nativePlanSource_->predecessor)
             cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(NativePlanInstallationSource::evolutionCapability));
-        if(metrics_) {
+        if(metrics_||boilerFields_) {
             auto caps=cJSON_AddArrayToObject(o.get(),"read_only_capabilities");
-            if(caps)cJSON_AddItemToArray(caps,cJSON_CreateString(metricsCapability));
+            if(caps&&metrics_)cJSON_AddItemToArray(caps,cJSON_CreateString(metricsCapability));
+            if(caps&&boilerFields_)cJSON_AddItemToArray(caps,cJSON_CreateString(boilerFieldsCapability));
         }
         send("fw/hello",o.get());
     }
@@ -678,6 +682,33 @@ private:
 #if defined(__cpp_exceptions)
         } catch(const std::exception&) { /* Read-only getter failure: next cadence, no control renewal. */ }
 #endif
+    }
+    void boilerFieldSnapshot(uint64_t now) {
+        if(!boilerFields_||fault_||!session_||!mappingReady_||!admission_.alive(now)
+            ||!admission_.grantDeadline(now)||now<nextBoilerFields_||boilerSequence_==UINT32_MAX
+            ||now>maximumBoilerTimestamp-boilerGroupIntervalMs)return;
+        nextBoilerFields_=now+boilerGroupIntervalMs;
+        const auto group=boilerGroup_;boilerGroup_=(boilerGroup_+1)%boilerFieldGroupCount;
+        try {
+            std::ostringstream ss;boilerFields_(ss,group);const auto raw=ss.str();
+            if(raw.size()>maximumBoilerGroupBytes)return;
+            auto values=parseControlJson(raw);if(!values||!validBoilerGroup(values.get(),group))return;
+            auto o=base();
+            if(!exactFields(o.get(),{"api","controller_id","boot_id","epoch","config_revision","config_digest"}))return;
+            if(!cJSON_AddStringToObject(o.get(),"mode","shadow")
+                ||!cJSON_AddStringToObject(o.get(),"adapter_id",owner_.c_str())
+                ||!cJSON_AddStringToObject(o.get(),"adapter_session_id",sessionId_.c_str())
+                ||!cJSON_AddStringToObject(o.get(),"grant_id",grant_.c_str())
+                ||!cJSON_AddNumberToObject(o.get(),"grant_sequence",grantSequence_)
+                ||!cJSON_AddNumberToObject(o.get(),"sequence",boilerSequence_+1)
+                ||!cJSON_AddNumberToObject(o.get(),"group",group)
+                ||!cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",false)
+                ||!cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false)
+                ||!cJSON_AddItemToObject(o.get(),"values",values.get()))return;
+            values.release();const auto bytes=printJson(o.get());
+            if(bytes.empty()||bytes.size()>maximumBoilerEnvelopeBytes)return;
+            ++boilerSequence_;publish_("fw/telemetry/boiler_fields",bytes);
+        } catch(const std::exception&) { /* A getter failure never renews control or measurements. */ }
     }
     void sessionStatus() {
         auto o=base(); cJSON_AddStringToObject(o.get(),"adapter_id",owner_.c_str());
@@ -841,6 +872,10 @@ private:
     } lastUserCommand_;
     uint32_t epoch_=0,grantSequence_=0,metricsSequence_=0;
     uint64_t nextMetrics_=0;
+    BoilerFields boilerFields_;
+    uint64_t nextBoilerFields_=0;
+    uint32_t boilerSequence_=0;
+    size_t boilerGroup_=0;
     uint64_t challengeUntil_=0,nextHello_=0,nextState_=0,nextGrant_=0,lastNow_=0,sessionStart_=0;
     bool session_=false,mappingReady_=false,connected_=false,fault_=false,leaseWasAlive_=false;
 };

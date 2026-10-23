@@ -17,6 +17,7 @@ from homeassistant.exceptions import HomeAssistantError
 
 from .v1_model import Observation, RoomDecision
 from .session_grant import register_grant_proof, consume_grant_proof, MAX_GRANT_PROOFS
+from .boiler_fields import CAPABILITY as BOILER_CAPABILITY, BoilerFieldCache, MAX_BYTES as MAX_BOILER_BYTES
 from .metric_snapshot import CAPABILITY,MAX_BYTES as MAX_METRIC_BYTES,EXPIRY_SECONDS,valid_snapshot
 
 _ID = re.compile(r"[A-Za-z0-9_-]{1,32}")
@@ -142,6 +143,8 @@ class ShadowClient:
         self.room_names_supported=False
         self.grant_nonce_supported=False
         self._grant_proofs={}
+        self.boiler_fields_supported=False
+        self.boiler_fields=BoilerFieldCache()
         self.metrics_supported=False
         self.comfort_supported=False
         self._metrics=None
@@ -619,6 +622,7 @@ class ShadowClient:
         self._metrics=None
         self._metrics_received=0.0
         self._metrics_highwater=0
+        self.boiler_fields.reset()
 
     def require_graph_source_review(self):
         if getattr(self.runtime,"graph_controller_source",None) is None:
@@ -634,9 +638,12 @@ class ShadowClient:
         self.error = "disconnected"
         self.changed()
 
-    async def receive(self, topic, raw, *, retained=False):
+    async def receive(self, topic, raw, *, retained=False, received_at=None):
         if self.closed or retained or self.graph_source_review_required or self.native_plan_fenced:
             return
+        if topic == "fw/telemetry/boiler_fields":
+            self.receive_boiler_fields(raw,received_at)
+            return # Read-only: never renew a control lease or a room measurement.
         if topic == "fw/telemetry/ems_metrics":
             self.receive_metrics(raw)
             return # No last_rx/lease/sample/control update, even for valid telemetry.
@@ -654,6 +661,39 @@ class ShadowClient:
             self.reset_session()
             self.error = "invalid_firmware_message"
             self.changed()
+
+    def receive_boiler_fields(self, raw, received_at=None):
+        if not self.ready or not self.boiler_fields_supported:
+            return
+        try:
+            if not isinstance(raw,str) or len(raw)>MAX_BOILER_BYTES:
+                raise ValueError("boiler bytes")
+            p=parse(raw)
+            if (not self.same_identity(p) or not self.same_config(p)
+                    or p.get("adapter_id")!=self.adapter_id
+                    or p.get("adapter_session_id")!=self.session["adapter_session_id"]
+                    or p.get("grant_id")!=self.session["grant_id"]
+                    or p.get("grant_sequence")!=self.session["grant_sequence"]):
+                return
+            expected={"api","controller_id","boot_id","epoch","config_revision","config_digest","mode",
+                      "adapter_id","adapter_session_id","grant_id","grant_sequence","sequence","group",
+                      "boiler_output_enabled","actuator_output_enabled","values"}
+            if (set(p)!=expected or p["mode"]!="shadow" or p["boiler_output_enabled"] is not False
+                    or p["actuator_output_enabled"] is not False or not integer(p["sequence"],1)
+                    or type(p["grant_sequence"]) is not int):
+                raise ValueError("boiler envelope")
+            now=self.clock()
+            if received_at is None:
+                received_at=now
+            if (type(received_at) not in (int,float) or not math.isfinite(received_at)
+                    or not 0<=now-received_at<15):
+                raise ValueError("boiler local queue age")
+            self.boiler_fields.accept(p["values"],p["group"],p["sequence"],received_at)
+            self.runtime.diagnostics["boiler_fields"]="read_only_not_control_qualified"
+        except (ValueError,TypeError,KeyError,OverflowError):
+            self.boiler_fields.invalid=True
+            self.runtime.diagnostics["boiler_fields"]="invalid_read_only_fields"
+        self.runtime._notify()
 
     def receive_metrics(self,raw):
         if not self.ready or not self.metrics_supported:
@@ -756,6 +796,10 @@ class ShadowClient:
             if any("comfort" in z for z in self.desired) and not self.comfort_supported:
                 self.reset_session();self.error="comfort_capability_unavailable";self.changed();return
             caps=p.get("read_only_capabilities",[])
+            self.boiler_fields_supported=(type(caps) is list and len(caps)<=8
+                and all(isinstance(cap,str) and len(cap)<=64 for cap in caps) and BOILER_CAPABILITY in caps)
+            if not self.boiler_fields_supported:
+                self.boiler_fields.reset()
             self.metrics_supported=(type(caps) is list and len(caps)<=8
                 and all(isinstance(cap,str) and len(cap)<=64 for cap in caps) and CAPABILITY in caps)
             if not self.metrics_supported:

@@ -14,6 +14,8 @@ struct TestStore:ControlStore {
 int main(int argc,char **argv) {
     const std::string adapter=argc>1?argv[1]:"ha1";
     TestStore store; unsigned nonce=0; std::unique_ptr<ShadowController> core;
+    std::array<std::string,7> boilerRaw;ShadowController::BoilerFields boilerProvider;
+    if(argc>2&&std::string(argv[2])=="boiler")boilerProvider=[&](auto& out,size_t group){out<<boilerRaw.at(group);};
     std::string metricRaw;ShadowController::Metrics provider;
     if(argc>2&&std::string(argv[2])=="metrics")provider=[&](auto& out){out<<metricRaw;};
     // TEST-only explicit source bundle, read BEFORE controller construction.
@@ -47,7 +49,7 @@ int main(int argc,char **argv) {
         cJSON_AddItemToObject(root.get(),"payload",cJSON_Parse(std::string(bytes).c_str()));
         std::cout<<printJson(root.get())<<std::endl;
     };
-    const auto boot=[&](const std::string &id) {core=std::make_unique<ShadowController>("e32_lab",id,adapter,store,controlTestHash,[&]{return "nonce"+std::to_string(++nonce);},publish,provider,seasonal?&seasonalSource:nullptr,safetyProvider);};
+    const auto boot=[&](const std::string &id) {core=std::make_unique<ShadowController>("e32_lab",id,adapter,store,controlTestHash,[&]{return "nonce"+std::to_string(++nonce);},publish,provider,seasonal?&seasonalSource:nullptr,safetyProvider,nullptr,boilerProvider);};
     boot("boot1");
     std::string line;
     while(std::getline(std::cin,line)) {
@@ -73,7 +75,8 @@ int main(int argc,char **argv) {
             safety.summer=cJSON_IsTrue(field(event.get(),"summer"));
             safety.allOff=cJSON_IsTrue(field(event.get(),"all_off"));
             safety.preempted=cJSON_IsTrue(field(event.get(),"preempted"));
-        } else if(op=="metrics_payload") metricRaw=stringField(event.get(),"raw");
+        } else if(op=="boiler_payload"&&integerField(event.get(),"group",0,6)) boilerRaw[uintField(event.get(),"group")]=stringField(event.get(),"raw");
+        else if(op=="metrics_payload") metricRaw=stringField(event.get(),"raw");
         else if(op=="store_fault") {store.fail=cJSON_IsTrue(field(event.get(),"fail"));store.commitOnError=cJSON_IsTrue(field(event.get(),"commit_on_error"));}
         else return 4;
         std::cout<<"{\"event_done\":true}"<<std::endl;

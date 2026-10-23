@@ -134,7 +134,10 @@ class NativeShadowConnection:
 
         @callback
         def received(message):
-            self.enqueue(("message", message))
+            if message.topic == self.prefix + "fw/telemetry/boiler_fields":
+                self.enqueue(("boiler_message", (message,self.hass.loop.time())))
+            else:
+                self.enqueue(("message", message))
 
         @callback
         def connection_status(connected):
@@ -247,7 +250,11 @@ class NativeShadowConnection:
         while True:
             kind, data = await self.queue.get()
             try:
-                if kind == "message":
+                if kind == "boiler_message":
+                    message,received_at=data
+                    await self.client.receive("fw/telemetry/boiler_fields",message.payload,
+                        retained=message.retain,received_at=received_at)
+                elif kind == "message":
                     if data.topic.startswith(self.prefix):
                         await self.client.receive(data.topic[len(self.prefix):], data.payload, retained=data.retain)
                         self.check_bench_admission()

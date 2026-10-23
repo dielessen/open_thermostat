@@ -90,7 +90,8 @@ public:
                              const GraphControlHandoffSource* graphHandoff=nullptr,
                              const TopologyControlHandoffSource* topologyHandoff=nullptr,
                              const GraphFloorControlHandoffSource* floorBridge=nullptr,
-                             const NativePlanInstallationSource* nativePlanSource=nullptr)
+                             const NativePlanInstallationSource* nativePlanSource=nullptr,
+                             ShadowController::BoilerFields boilerFields={})
         :cfg_(std::move(cfg)),client_(network_),
          store_((graphProfile||graphHandoff||topologyHandoff||floorBridge||nativePlanSource||cfg_.nativeSourceRequested)?ControlStorageProfile::graph_shadow_v2:ControlStorageProfile::legacy_api1),
          graph_(graphProfile!=nullptr) {
@@ -158,7 +159,7 @@ public:
                 selectedStore=floorControlView_.get();
             }
             controller_=std::make_unique<ShadowController>(mac,randomControlId(),cfg_.adapterId,*selectedStore,
-                sha256Hex,randomControlId,publish,std::move(metrics),seasonalSource,std::move(safety),nativePlanSource);
+                sha256Hex,randomControlId,publish,std::move(metrics),seasonalSource,std::move(safety),nativePlanSource,std::move(boilerFields));
         }
         client_.setCallback([this](char *topic,uint8_t *payload,unsigned int length) {
             const std::string_view full(topic);

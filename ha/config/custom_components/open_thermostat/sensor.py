@@ -82,6 +82,8 @@ async def async_setup_entry(
     """Create sensors for room values published by the thermostat."""
     if "v1_runtime" in hass.data.get(DOMAIN,{}).get(entry.entry_id,{}):
         from .product import is_product
+        from .v1_boiler_fields import async_setup_boiler_fields
+        await async_setup_boiler_fields(hass,entry,async_add_entities)
         if is_product(entry):
             from .product_telemetry import async_setup_sensors
             await async_setup_sensors(hass, entry, async_add_entities)

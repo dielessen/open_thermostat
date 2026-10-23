@@ -472,7 +472,12 @@ private:
 		[this](std::string const &name, int16_t temperature, uint32_t seconds) {
 			return setRoomTemporaryTemperature(name, temperature, seconds);
 		},
-		[this](std::ostream &ss) { emsMetrics_.getRoomContext(ss); }
+		[this](std::ostream &ss) { emsMetrics_.getRoomContext(ss); },
+#ifdef OPENTHERMOSTAT_E32V2
+        [this](std::ostream& ss,size_t group) { ems_.getBoilerFieldGroup(ss,group); }
+#else
+        {}
+#endif
 		};
 };
 

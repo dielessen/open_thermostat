@@ -211,6 +211,11 @@ public:
 		getStatus(ss);
 		return ss.str();
 	}
+    void getBoilerFieldGroup(std::ostream& out,size_t group) const {
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        if(!emsConfig_.emsEnabled)return;
+        monitor_.writeFieldGroup(out,static_cast<uint64_t>(esp_timer_get_time()/1000),group);
+    }
 	void getTelemetryStatus(std::ostream &ss, [[maybe_unused]] std::string_view operatorSession = {}) const {
 		std::lock_guard<std::mutex> lock(telemetryMutex_);
 		// Keep the existing field-level telemetry contract and add transport

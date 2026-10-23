@@ -237,7 +237,7 @@ public:
 	using getEmsStatus_t = std::function<void(std::ostream &)>;
 	using setTemporaryTemperature_t = std::function<bool(std::string const &, int16_t, uint32_t)>;
 
-	MQTT(std::shared_ptr<ib::logger::LoggerInterface> log, getRoomIds_t getRoomIds, getRoomStatus_t getRoomsStatus, getActiveProgram_t getActiveProgram, getBoilerStarted_t getBoilerStarted, getEmsMetrics_t getEmsMetrics, getEmsStatus_t getEmsStatus, setTemporaryTemperature_t setTemporaryTemperature, getRoomStatus_t roomContext = {}) : log_(std::move(log)), setTemporaryTemperature_(std::move(setTemporaryTemperature)) {
+	MQTT(std::shared_ptr<ib::logger::LoggerInterface> log, getRoomIds_t getRoomIds, getRoomStatus_t getRoomsStatus, getActiveProgram_t getActiveProgram, getBoilerStarted_t getBoilerStarted, getEmsMetrics_t getEmsMetrics, getEmsStatus_t getEmsStatus, setTemporaryTemperature_t setTemporaryTemperature, getRoomStatus_t roomContext = {}, std::function<void(std::ostream&,size_t)> boilerFields = {}) : log_(std::move(log)), setTemporaryTemperature_(std::move(setTemporaryTemperature)) {
 		if (log_) {
 			logFeature_ = log_->addFeature("MQTT");
 		}
@@ -245,7 +245,7 @@ public:
 		if(mqttConfig.modernShadow) {
 			modernMode_=true;
 #ifdef OPENTHERMOSTAT_E32V2
-			if(mqttConfig.enabled) modern_=std::make_unique<control::ModernTransport>(mqttConfig,std::move(getEmsMetrics));
+			if(mqttConfig.enabled) modern_=std::make_unique<control::ModernTransport>(mqttConfig,std::move(getEmsMetrics),nullptr,nullptr,control::SeasonalControllerSource::Safety{},nullptr,nullptr,nullptr,nullptr,std::move(boilerFields));
 #endif
 			// Unsupported targets must not silently keep a legacy heater writer
 			// running after the operator selected output-disabled shadow mode.

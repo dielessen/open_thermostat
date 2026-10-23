@@ -123,6 +123,8 @@ jobs:
       - name: Build firmware
         if: matrix.environment != 'native'
         run: pio run -e ${{ matrix.environment }}
+      - name: Test actual OTA binary size guard
+        run: python scripts/test_esp32_size_link.py
       - name: Verify actual firmware image fits every OTA app slot
         if: matrix.environment != 'native'
         env:

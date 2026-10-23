@@ -4,6 +4,7 @@
 #include "BoilerTelegramInventory.h"
 #include "EmsTelegram.h"
 #include <array>
+#include <algorithm>
 #include <cstdint>
 #include <optional>
 #include <ostream>
@@ -266,6 +267,23 @@ public:
                 break;
         }
         return true;
+    }
+
+    void writeFieldGroup(std::ostream& ss,uint64_t now,size_t group) const {
+        constexpr size_t perGroup=10;
+        if(group>=7)return;
+        ss << "{\"schema\":1,\"sampled_at_ms\":" << now
+           << ",\"profile\":\"" << capabilities_.name() << "\",\"fields\":[";
+        const size_t begin=group*perGroup,end=std::min(begin+perGroup,samples_.size());
+        for(size_t i=begin;i<end;++i) {
+            if(i!=begin)ss<<',';
+            const auto& s=samples_[i];ss<<'['<<i<<',';
+            if(s.observed&&s.raw)ss<<*s.raw;else ss<<"null";
+            ss<<',';if(s.observed)ss<<s.observedMs;else ss<<"null";
+            ss<<','<<(s.quality==BoilerQuality::reported?0:s.quality==BoilerQuality::unreliable?1:2)
+              <<','<<s.sourceType<<']';
+        }
+        ss<<"]}";
     }
 
     void writeJSON(std::ostream &ss, uint64_t now, bool closeObject = true) const {

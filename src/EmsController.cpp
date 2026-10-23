@@ -213,6 +213,14 @@ void EmsController::enqueueTelegramToSend(EmsTelegram telegram, bool front) {
 	frame.length = static_cast<uint8_t>(encoded.size());
 	std::copy(encoded.begin(), encoded.end(), frame.data.begin());
 	bool full;
+	{
+#ifdef OPENTHERMOSTAT_E32V2
+	// Recheck AFTER encoding and hold through queue insertion, so a preparation
+	// racing an older producer cannot leave a command for after test completion.
+	std::lock_guard<std::mutex> testOwner(telemetryMutex_);
+	if (boilerTest_.active() || (telegram.getOperationType() == EmsTelegram::WRITE
+		&& !monitor_.capabilities().allowsLegacyPlusWrites())) return;
+#endif
 	portENTER_CRITICAL(&txMux_);
 	full = txSize_ == telegramsToSend_.size();
 	if (!full) {
@@ -224,6 +232,7 @@ void EmsController::enqueueTelegramToSend(EmsTelegram telegram, bool front) {
 		++txSize_;
 	}
 	portEXIT_CRITICAL(&txMux_);
+	}
 	if (full) {
 		resetRequested_.store(true, std::memory_order_relaxed);
 		DBGLOGFD(log_, fatalFeature(), "EMS TX queue full\n");
@@ -241,6 +250,14 @@ bool EmsController::processBoilerTestPoll() {
 	if (!lock.owns_lock()) return true;
 	if (boilerTestTransportFault_.exchange(false, std::memory_order_acq_rel))
 		boilerTest_.transportFault(static_cast<uint64_t>(esp_timer_get_time() / 1000));
+	if (boilerTest_.active()) {
+		// Discard legacy commands from BEFORE ownership as well as excluding new
+		// producers. They must not escape when reported completion releases us.
+		portENTER_CRITICAL(&txMux_);
+		txHead_ = 0;
+		txSize_ = 0;
+		portEXIT_CRITICAL(&txMux_);
+	}
 	const auto result = BoilerTestPollDriver::poll(boilerTest_, monitor_,
 		[] { return static_cast<uint64_t>(esp_timer_get_time() / 1000); },
 		[this] {

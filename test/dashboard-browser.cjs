@@ -38,6 +38,12 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   await page.screenshot({path:path.join(out,'DASHBOARD-'+label+'.png'),fullPage:true});
   status.control.fresh=false;status.control.reason='stale';
   await page.evaluate(s=>updateRooms(s),status);assert.equal(await page.locator('.pd-room').count(),0);assert.match(await page.locator('.pd-status').innerText(),/verouderd/);
+  status=fixture();status.control.state.zones[0].name_utf8_hex=Buffer.from('Badkamer – Zoë','utf8').toString('hex');
+  await page.evaluate(s=>updateRooms(s),status);assert.equal(await page.locator('.pd-room h3').first().innerText(),'Badkamer – Zoë');
+  status.control.state.zones[0].name_utf8_hex=Buffer.from('<img src=x onerror=alert(1)>','utf8').toString('hex');
+  await page.evaluate(s=>updateRooms(s),status);assert.equal(await page.locator('.pd-room img').count(),0);assert.match(await page.locator('.pd-room h3').first().innerText(),/<img/);
+  status.control.state.zones[0].name_utf8_hex='c080';
+  await page.evaluate(s=>updateRooms(s),status);assert.equal(await page.locator('.pd-room h3').first().innerText(),'Ruimte 1');
   status=fixture();status.control.state.zones[0].name='<img src=x onerror=alert(1)>';status.ems.displayCode='<script>alert(2)</script>';
   await page.evaluate(s=>updateRooms(s),status);assert.equal(await page.locator('.pd-room img').count(),0);assert.match(await page.locator('.pd-room h3').first().innerText(),/<img/);
   assert.deepEqual(errors,[]);results.push({viewport:label,result:'PASS',rooms:8,initialRequests,compiledSupportReadback:!!buildCapabilities,staleSuppressed:true,safeText:true,horizontalOverflow:false,deviceProof:false});await page.close();

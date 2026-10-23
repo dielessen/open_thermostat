@@ -120,3 +120,12 @@ test('browser trend uses at most eight rooms and sixty distinct owner snapshots 
  status.control.state.boot_id='new';status.control.captured_at_ms=3;p.updateRooms(status);assert.equal(p.installationHistory['00000000'].length,1);
  status.control.state.zones=[];p.updateRooms(status);assert.equal(Object.keys(p.installationHistory).length,0);
 });
+
+test('bounded UTF-8 room label decoding preserves names and rejects malformed wire labels',()=>{
+ const p=rootPage();
+ for(const name of ['Badkamer','Zoë 🚀','<img src=x onerror=alert(1)>'])
+  assert.equal(p.dashboardRoomName({name_utf8_hex:Buffer.from(name,'utf8').toString('hex')},0),name);
+ for(const encoded of ['','00','0a','c080','zz','61'.repeat(81)])
+  assert.equal(p.dashboardRoomName({name_utf8_hex:encoded},0),'Ruimte 1');
+ assert.equal(p.dashboardRoomName({name:'Existing label'},1),'Existing label');
+});

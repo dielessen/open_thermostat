@@ -136,9 +136,25 @@ async def native_plan(native_two,hass,monkeypatch,request):
             for r in runtime.rooms.values():runtime.set_report_profile(r.room_id,source_profile)
             if n:=holder.get("n"):n.runtime,n.connection,n.client=runtime,connection,client
         async def stop():
-            assert await integration.async_unload_entry(hass,parent);await parent._async_process_on_unload(hass)
+            # This fixture owns delivery at the MQTT IO boundary. Real HA timers
+            # can publish a final packet while native unload awaits platform
+            # cleanup; continue delivering those packets until transport closes.
+            # Never clear the queue to hide packets or disable native scheduling.
+            unload=asyncio.create_task(integration.async_unload_entry(hass,parent))
+            try:
+                async with asyncio.timeout(10):
+                    while not unload.done():
+                        await drain()
+                        await asyncio.sleep(.001)
+                    assert await unload
+                    await parent._async_process_on_unload(hass)
+                    await drain()
+            finally:
+                if not unload.done():unload.cancel()
+                await asyncio.gather(unload,return_exceptions=True)
             assert connection.worker.done() and connection.timer is None
             assert not runtime._subscriptions and not runtime._expiries
+            assert not pending
         async def deliver(frames,drop=None,retained=False):
             for f in frames:
                 if f["topic"]==drop:continue
@@ -549,3 +565,44 @@ async def test_native_observations_use_accepted_source_binding_not_hardcoded_leg
     messages=[json.loads(kw["raw"]) for op,kw,_ in n.peer.trace if op=="receive" and kw.get("topic")=="ha/observations"]
     expected={z["zone_id"]:z["sensor_id"] for z in record["config"]["zones"]}
     assert messages and all(m["binding_id"]==expected[m["zone_id"]] for m in messages)
+
+
+@pytest.mark.asyncio
+async def test_room_display_labels_roundtrip_without_config_or_measurement_changes(native_plan):
+    n=native_plan
+    await n.apply()
+    assert n.client.room_names_supported
+    before=await n.peer.request('durable_readback')
+    expected={room_id:room.name.encode('utf-8')[:80].decode('utf-8',errors='ignore').encode('utf-8').hex()
+              for room_id,room in n.runtime.rooms.items()}
+    for _ in range(7):
+        n.peer.clock[0]+=1
+        await n.client.poll();await n.drain();await n.event('tick');await n.drain()
+    frames=[json.loads(frame['raw']) for _,_,result in n.peer.trace for frame in result['frames']
+            if frame['topic']=='fw/state/zones']
+    assert {row['zone_id']:row.get('name_utf8_hex') for row in frames[-1]['zones']}==expected
+    assert all(row['temperature_centi_c'] is None and row['demand'] is False for row in frames[-1]['zones'])
+    after=await n.peer.request('durable_readback')
+    assert after['writes']==before['writes'] and after['stored']==before['stored']
+    # A bad metadata body must not consume the heartbeat sequence or alter labels.
+    packet=n.client.envelope('adapter')
+    packet['room_names']=[{'zone_id':key,'name_utf8_hex':'00'} for key in sorted(expected)]
+    await n.event('receive',topic='ha/heartbeat',raw=canonical(packet))
+    await n.client.message('ha/heartbeat','adapter',{});await n.drain()
+    n.peer.clock[0]+=1;await n.event('tick');await n.drain()
+    frames=[json.loads(frame['raw']) for _,_,result in n.peer.trace for frame in result['frames']
+            if frame['topic']=='fw/state/zones']
+    assert {row['zone_id']:row.get('name_utf8_hex') for row in frames[-1]['zones']}==expected
+    final=await n.peer.request('durable_readback')
+    assert final['stored']==before['stored'] and final['writes']==before['writes']
+
+
+@pytest.mark.asyncio
+async def test_native_unload_delivers_already_published_packets_until_transport_closes(native_plan):
+    n=native_plan
+    await n.apply()
+    await n.client.message('ha/heartbeat','adapter',{})
+    assert n.pending
+    await n.stop()
+    assert n.connection.closed and n.connection.worker.done()
+    assert not n.pending and n.connection.timer is None

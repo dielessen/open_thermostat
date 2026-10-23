@@ -10,6 +10,7 @@
 #include "ZoneRegulator.h"
 #include "SeasonalControllerSource.h"
 #include "NativeControlPlan.h"
+#include "RoomDisplayNames.h"
 #include "HydraulicSupervisor.h"
 #include <algorithm>
 #include <functional>
@@ -204,6 +205,15 @@ private:
             // Only a NEW accepted heartbeat can anchor a future grant. Exact
             // retries/changed duplicates never replace or re-arm this proof.
             pendingGrantNonce_=stringField(root.get(),"grant_request_nonce");
+            if(const auto names=field(root.get(),"room_names")) {
+                // Whole list validated before admission. Only a NEW accepted
+                // heartbeat may change labels; duplicates never replace them.
+                size_t i=0;
+                for(auto name=names->child;name;name=name->next,++i) {
+                    const auto label=stringField(name,"name_utf8_hex");
+                    roomNamesHex_[i].fill(0);std::copy(label.begin(),label.end(),roomNamesHex_[i].begin());
+                }
+            }
             leaseWasAlive_=true; result(resultTopic,e,"accepted"); return;
         }
         if(topic=="ha/config") {
@@ -445,6 +455,18 @@ private:
             keys.insert("grant_request_nonce");
             if(!SessionAdmission::validId(stringField(o,"grant_request_nonce"))) return false;
         }
+        if(topic=="ha/heartbeat" && field(o,"room_names")) {
+            keys.insert("room_names");
+            const auto names=field(o,"room_names");
+            if(!nativePlanSource_||!mappingReady_||config_->count>roomNamesHex_.size()||
+               !cJSON_IsArray(names)||cJSON_GetArraySize(names)!=int(config_->count))return false;
+            size_t i=0;
+            for(auto name=names->child;name;name=name->next,++i) {
+                if(!exactFields(name,{"zone_id","name_utf8_hex"})||
+                   stringField(name,"zone_id")!=config_->zones[i].id||
+                   !validRoomDisplayNameHex(stringField(name,"name_utf8_hex")))return false;
+            }
+        }
         if(topic=="ha/config") {
             keys.insert({"expected_revision","config_digest","config"});
             if(!integerField(o,"expected_revision",0,UINT32_MAX)||!hexString(stringField(o,"config_digest"),64)||!decodeConfig(field(o,"config"),candidate)) return false;
@@ -502,6 +524,7 @@ private:
     }
     void invalidate() {
         lastUserCommand_=UserCommandAdmission{};
+        for(auto &name:roomNamesHex_)name.fill(0);
         supervisor_.invalidate();
         admission_.invalidateTransport(); session_=mappingReady_=leaseWasAlive_=false;
         sessionId_.clear(); lastOpen_.clear(); pendingGrantNonce_.clear(); issuedGrantNonce_.clear();
@@ -613,6 +636,7 @@ private:
         auto comfortCaps=cJSON_AddArrayToObject(o.get(),"control_capabilities");
         if(comfortCaps)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString("comfort.target.v1"));
         if(comfortCaps&&nativePlanSource_)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(nativePlanSource_->planContract()));
+        if(comfortCaps&&nativePlanSource_)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(roomDisplayNamesCapability));
         if(comfortCaps&&nativePlanSource_&&nativePlanSource_->legacyReadbackReviewed)
             cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(NativePlanInstallationSource::legacyCapability));
         if(comfortCaps&&nativePlanSource_&&nativePlanSource_->predecessor)
@@ -724,6 +748,8 @@ private:
         for(size_t i=0;i<config_->count;++i) {
             auto &z=config_->zones[i]; auto row=cJSON_CreateObject(); cJSON_AddItemToArray(list,row);
             cJSON_AddStringToObject(row,"zone_id",z.id.c_str());
+            if(alive&&i<roomNamesHex_.size()&&roomNamesHex_[i][0])
+                cJSON_AddStringToObject(row,"name_utf8_hex",roomNamesHex_[i].data());
             const auto temperature=alive?z.sample.value(now):std::nullopt;
             auto target=std::optional<int16_t>(z.base);
             const char *source="base",*reason="shadow_idle";
@@ -797,6 +823,9 @@ private:
     ControlStore &store_; Hash hash_; Nonce nonce_; Publish publish_; Metrics metrics_;
     std::unique_ptr<Configuration> config_=std::make_unique<Configuration>();
     SessionAdmission admission_;
+    // Current native product supports two rooms. Labels never enter durable
+    // control configuration or increase its policy/channel limits.
+    std::array<std::array<char,maximumRoomDisplayNameBytes*2+1>,2> roomNamesHex_{};
     HydraulicSupervisor supervisor_;
     std::unique_ptr<SeasonalControllerSource> seasonalSource_;
     std::unique_ptr<NativePlanInstallationSource> nativePlanSource_;

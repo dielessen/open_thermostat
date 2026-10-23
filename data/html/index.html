@@ -710,6 +710,16 @@
             }
             return html + '<p class="pd-help">Softwareondersteuning betekent nog niet dat Home Assistant gekoppeld is of dat de configuratie is toegepast. De actuele regelstatus staat hierboven. Deze informatie geeft geen toestemming voor het aansturen van kranen of ketel.</p></details>';
         }
+        function dashboardRoomName(row,index) {
+            var encoded = row && row.name_utf8_hex;
+            if (typeof encoded === 'string' && /^(?:[0-9a-f]{2}){1,80}$/.test(encoded)) {
+                try {
+                    var decoded = decodeURIComponent(encoded.replace(/../g,function(pair){return '%'+pair;}));
+                    if (decoded.trim() && !/[\x00-\x1f\x7f]/.test(decoded)) return decoded;
+                } catch (error) {}
+            }
+            return row && typeof row.name === 'string' && row.name.trim() ? row.name.slice(0,80) : 'Ruimte '+(index+1);
+        }
         function dashboardReason(value) {
             var reasons = {
                 shadow_idle:'Geen berekende warmtevraag', shadow_demand:'Ruimte vraagt warmte',
@@ -812,10 +822,10 @@
                 '<div class="pd-section-title"><h2>Warmtevraag per ruimte</h2><span class="pd-help">Bediening en programma’s in Home Assistant</span></div><div class="pd-rooms">';
             if (!rows.length) html += '<div class="pd-empty">'+(state?'Er zijn nog geen ruimtes in de teruggelezen configuratie.':'Geen actuele regelstatus beschikbaar. Oude lokale E32-kamers worden hier niet als nieuwe ruimtes getoond.')+'</div>';
             rows.forEach(function(row,index) {
-                var name = typeof row.name === 'string' && row.name.trim() ? row.name.slice(0,80) : 'Ruimte '+(index+1);
+                var name = dashboardRoomName(row,index);
                 var actual = dashboardNumber(row.temperature_centi_c,100,-50,80), target = dashboardNumber(row.target_centi_c,100,5,35);
                 html += '<article class="pd-room"><div class="pd-room-title"><h3>'+dashboardText(name)+'</h3><span class="pd-badge'+(row.demand===true?' pd-request':'')+'">'+dashboardBool(row.demand,'Vraagt warmte','Geen aanvraag')+'</span></div><div class="pd-room-temperatures"><div><span class="pd-flow-label">Gemeld</span>'+dashboardValue(actual,'°C')+'</div><div><span class="pd-flow-label">Doel</span>'+dashboardValue(target,'°C')+'</div></div><p class="pd-help">'+dashboardText(dashboardReason(row.reason))+'</p>'+dashboardTrend(row,index)+
-                    '<details class="pd-room-detail"><summary>Details</summary><p>Ruimte-ID: '+dashboardText(row.zone_id || 'niet gemeld')+'<br>Redencode: '+dashboardText(row.reason || 'niet gemeld')+'<br>Aansturing kranen: '+dashboardBool(actuatorEnabled,'vrijgegeven','geblokkeerd')+'</p><p class="pd-help">Een aanvraag bewijst geen klepstand of geleverde warmte. Kamernamen zijn zichtbaar in Home Assistant.</p></details></article>';
+                    '<details class="pd-room-detail"><summary>Details</summary><p>Ruimte-ID: '+dashboardText(row.zone_id || 'niet gemeld')+'<br>Redencode: '+dashboardText(row.reason || 'niet gemeld')+'<br>Aansturing kranen: '+dashboardBool(actuatorEnabled,'vrijgegeven','geblokkeerd')+'</p><p class="pd-help">Een aanvraag bewijst geen klepstand of geleverde warmte. Instellingen en programma’s pas je aan in Home Assistant.</p></details></article>';
             });
             html += '</div><div class="pd-lower"><section class="pd-panel"><h2>Opdrachten aan de ketel</h2><p>'+dashboardBool(boilerEnabled,'Aansturing is volgens de regeling vrijgegeven.','De regeling meldt geblokkeerde uitgangen.')+'</p><p class="pd-help">Er is nog geen bevestigde opdrachtentijdlijn beschikbaar. Berekende kamervraag wordt niet als een verzonden of uitgevoerde ketelopdracht gepresenteerd.</p></section>'+
                 '<details class="pd-panel"><summary>Alle beschikbare ketelgegevens</summary><dl class="pd-detail-grid">';

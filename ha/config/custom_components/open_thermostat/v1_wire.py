@@ -23,6 +23,7 @@ _ID = re.compile(r"[A-Za-z0-9_-]{1,32}")
 _HEX = re.compile(r"[0-9a-f]{64}")
 MAX_BYTES = 8192
 GRANT_NONCE_CAPABILITY = "session.grant_nonce.v1"
+ROOM_NAMES_CAPABILITY = "display.room_names.v1"
 COMFORT_CAPABILITY = "comfort.target.v1"
 COMFORT_MODES = {"auto","off","temporary","boost","away","vacation","frost"}
 
@@ -138,6 +139,7 @@ class ShadowClient:
         self.error = "not_connected"
         self._nonce = lambda: secrets.token_hex(12)
         self._close_io = None
+        self.room_names_supported=False
         self.grant_nonce_supported=False
         self._grant_proofs={}
         self.metrics_supported=False
@@ -606,6 +608,7 @@ class ShadowClient:
         self.sequence.clear()
         self.pending.clear()
         self.open_request = None
+        self.room_names_supported = False
         self.grant_nonce_supported = False
         self.comfort_supported = False
         self._grant_proofs.clear()
@@ -734,6 +737,10 @@ class ShadowClient:
             if not self.grant_nonce_supported:
                 self._grant_proofs.clear()
             comfort_caps=p.get("control_capabilities",[])
+            self.room_names_supported = (self.native_plan_source is not None
+                and type(comfort_caps) is list and len(comfort_caps)<=8
+                and all(type(cap) is str and len(cap)<=64 for cap in comfort_caps)
+                and ROOM_NAMES_CAPABILITY in comfort_caps)
             if self.native_plan_source is not None:
                 if (type(comfort_caps) is not list or len(comfort_caps)>8 or self.native_plan_source.profile_version not in comfort_caps):
                     self.reset_session();self.error="native_plan_capability_unavailable";self.changed();return
@@ -976,6 +983,17 @@ class ShadowClient:
     async def message(self, topic, binding, body, future=None):
         p = self.envelope(binding)
         p.update(body)
+        if topic=="ha/heartbeat" and self.room_names_supported and self.ready:
+            names=[]
+            for room_id in sorted(self.runtime.rooms):
+                name=self.runtime.rooms[room_id].name
+                # A display-only UTF-8 prefix; the actual saved name is retained.
+                label=''.join(c for c in name.strip() if ord(c)>=32 and ord(c)!=127)
+                label=label.encode('utf-8',errors='ignore')[:80].decode('utf-8',errors='ignore')
+                if not label:
+                    names=[];break
+                names.append({'zone_id':room_id,'name_utf8_hex':label.encode('utf-8').hex()})
+            if 1<=len(names)<=2:p['room_names']=names
         if topic=="ha/heartbeat" and self.grant_nonce_supported:
             # Session-local HB sequence prevents reuse even if a test RNG repeats.
             p["grant_request_nonce"]=f"g{p['sequence']:08x}{self._nonce()[:20]}"

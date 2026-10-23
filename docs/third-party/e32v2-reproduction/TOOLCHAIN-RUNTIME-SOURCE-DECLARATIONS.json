@@ -1,0 +1,2205 @@
+{
+  "scope": "actual retained members and upstream DWARF source/producer declarations; no binary/source equality or qualification",
+  "archives": 4,
+  "retained_members": 269,
+  "compilation_units": 269,
+  "rows": [
+    {
+      "path": "packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/../../../../xtensa-esp32-elf/lib/no-rtti/libc.a",
+      "sha256": "bd62a49166dbde0a3a6bc54cb4a11a20f2af119cbe037ba8f5dea7e0a0be02da",
+      "exit": 0,
+      "retained_members": [
+        "lib_a-__atexit.o",
+        "lib_a-__call_atexit.o",
+        "lib_a-abs.o",
+        "lib_a-atexit.o",
+        "lib_a-atoi.o",
+        "lib_a-atol.o",
+        "lib_a-btowc.o",
+        "lib_a-bzero.o",
+        "lib_a-div.o",
+        "lib_a-dtoa.o",
+        "lib_a-envlock.o",
+        "lib_a-errno.o",
+        "lib_a-fclose.o",
+        "lib_a-fflush.o",
+        "lib_a-fileno.o",
+        "lib_a-findfp.o",
+        "lib_a-flags.o",
+        "lib_a-fopen.o",
+        "lib_a-fread.o",
+        "lib_a-fseek.o",
+        "lib_a-fseeko.o",
+        "lib_a-ftell.o",
+        "lib_a-ftello.o",
+        "lib_a-fvwrite.o",
+        "lib_a-fwalk.o",
+        "lib_a-fwrite.o",
+        "lib_a-gdtoa-gethex.o",
+        "lib_a-gdtoa-hexnan.o",
+        "lib_a-getenv_r.o",
+        "lib_a-gettzinfo.o",
+        "lib_a-gmtime.o",
+        "lib_a-gmtime_r.o",
+        "lib_a-isspace.o",
+        "lib_a-iswalnum.o",
+        "lib_a-iswalnum_l.o",
+        "lib_a-iswalpha.o",
+        "lib_a-iswalpha_l.o",
+        "lib_a-iswblank.o",
+        "lib_a-iswblank_l.o",
+        "lib_a-iswcntrl.o",
+        "lib_a-iswcntrl_l.o",
+        "lib_a-iswctype.o",
+        "lib_a-iswdigit.o",
+        "lib_a-iswgraph.o",
+        "lib_a-iswgraph_l.o",
+        "lib_a-iswlower.o",
+        "lib_a-iswlower_l.o",
+        "lib_a-iswprint.o",
+        "lib_a-iswprint_l.o",
+        "lib_a-iswpunct.o",
+        "lib_a-iswpunct_l.o",
+        "lib_a-iswspace.o",
+        "lib_a-iswspace_l.o",
+        "lib_a-iswupper.o",
+        "lib_a-iswupper_l.o",
+        "lib_a-iswxdigit.o",
+        "lib_a-itoa.o",
+        "lib_a-labs.o",
+        "lib_a-lcltime.o",
+        "lib_a-lcltime_r.o",
+        "lib_a-lnumeric.o",
+        "lib_a-locale.o",
+        "lib_a-localeconv.o",
+        "lib_a-makebuf.o",
+        "lib_a-mbrtowc.o",
+        "lib_a-mbstowcs.o",
+        "lib_a-mbtowc_r.o",
+        "lib_a-memchr.o",
+        "lib_a-memcmp.o",
+        "lib_a-memcpy.o",
+        "lib_a-memmove.o",
+        "lib_a-memset.o",
+        "lib_a-mktime.o",
+        "lib_a-month_lengths.o",
+        "lib_a-mprec.o",
+        "lib_a-printf.o",
+        "lib_a-puts.o",
+        "lib_a-qsort.o",
+        "lib_a-rand.o",
+        "lib_a-reent.o",
+        "lib_a-refill.o",
+        "lib_a-rename.o",
+        "lib_a-s_frexp.o",
+        "lib_a-s_nan.o",
+        "lib_a-sccl.o",
+        "lib_a-setenv.o",
+        "lib_a-setenv_r.o",
+        "lib_a-setvbuf.o",
+        "lib_a-sf_nan.o",
+        "lib_a-siscanf.o",
+        "lib_a-sniprintf.o",
+        "lib_a-snprintf.o",
+        "lib_a-sprintf.o",
+        "lib_a-sscanf.o",
+        "lib_a-stdio.o",
+        "lib_a-strcasecmp.o",
+        "lib_a-strcat.o",
+        "lib_a-strchr.o",
+        "lib_a-strcmp.o",
+        "lib_a-strcoll.o",
+        "lib_a-strcpy.o",
+        "lib_a-strdup.o",
+        "lib_a-strdup_r.o",
+        "lib_a-strerror.o",
+        "lib_a-strftime.o",
+        "lib_a-strlcat.o",
+        "lib_a-strlcpy.o",
+        "lib_a-strlen.o",
+        "lib_a-strncasecmp.o",
+        "lib_a-strncasecmp_l.o",
+        "lib_a-strncmp.o",
+        "lib_a-strncpy.o",
+        "lib_a-strndup.o",
+        "lib_a-strndup_r.o",
+        "lib_a-strnlen.o",
+        "lib_a-strptime.o",
+        "lib_a-strrchr.o",
+        "lib_a-strstr.o",
+        "lib_a-strtod.o",
+        "lib_a-strtol.o",
+        "lib_a-strtoll.o",
+        "lib_a-strtoul.o",
+        "lib_a-strtoull.o",
+        "lib_a-strxfrm.o",
+        "lib_a-svfiprintf.o",
+        "lib_a-svfiscanf.o",
+        "lib_a-svfprintf.o",
+        "lib_a-svfscanf.o",
+        "lib_a-svfwprintf.o",
+        "lib_a-swprintf.o",
+        "lib_a-sysgettod.o",
+        "lib_a-sysstat.o",
+        "lib_a-sysunlink.o",
+        "lib_a-time.o",
+        "lib_a-timelocal.o",
+        "lib_a-tolower.o",
+        "lib_a-tolower_l.o",
+        "lib_a-towlower.o",
+        "lib_a-towupper.o",
+        "lib_a-tzcalc_limits.o",
+        "lib_a-tzlock.o",
+        "lib_a-tzset.o",
+        "lib_a-tzset_r.o",
+        "lib_a-tzvars.o",
+        "lib_a-u_strerr.o",
+        "lib_a-ungetc.o",
+        "lib_a-utoa.o",
+        "lib_a-vfiprintf.o",
+        "lib_a-vfprintf.o",
+        "lib_a-vprintf.o",
+        "lib_a-vsnprintf.o",
+        "lib_a-wcrtomb.o",
+        "lib_a-wcscmp.o",
+        "lib_a-wcscoll.o",
+        "lib_a-wcscpy.o",
+        "lib_a-wcsftime.o",
+        "lib_a-wcslcpy.o",
+        "lib_a-wcslen.o",
+        "lib_a-wcstoul.o",
+        "lib_a-wcsxfrm.o",
+        "lib_a-wctob.o",
+        "lib_a-wctomb_r.o",
+        "lib_a-wctype.o",
+        "lib_a-wmemchr.o",
+        "lib_a-wmemcpy.o",
+        "lib_a-wmemmove.o",
+        "lib_a-wmemset.o",
+        "lib_a-wsetup.o"
+      ],
+      "compilation_units": [
+        {
+          "member": "lib_a-__atexit.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/__atexit.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-__call_atexit.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/__call_atexit.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-abs.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/abs.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-atexit.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/atexit.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-atoi.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/atoi.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-atol.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/atol.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-btowc.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/btowc.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-bzero.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/bzero.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-div.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/div.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-dtoa.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/dtoa.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-envlock.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/envlock.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-errno.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/errno/errno.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/errno"
+        },
+        {
+          "member": "lib_a-fclose.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fclose.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-fflush.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fflush.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-fileno.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fileno.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-findfp.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/findfp.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-flags.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/flags.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-fopen.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fopen.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-fread.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fread.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-fseek.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fseek.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-fseeko.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fseeko.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-ftell.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/ftell.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-ftello.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/ftello.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-fvwrite.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fvwrite.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-fwalk.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fwalk.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-fwrite.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fwrite.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-gdtoa-gethex.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/gdtoa-gethex.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-gdtoa-hexnan.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/gdtoa-hexnan.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-getenv_r.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/getenv_r.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-gettzinfo.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/gettzinfo.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/time"
+        },
+        {
+          "member": "lib_a-gmtime.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/gmtime.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/time"
+        },
+        {
+          "member": "lib_a-gmtime_r.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/gmtime_r.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/time"
+        },
+        {
+          "member": "lib_a-isspace.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/isspace.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswalnum.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswalnum.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswalnum_l.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswalnum_l.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswalpha.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswalpha.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswalpha_l.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswalpha_l.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswblank.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswblank.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswblank_l.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswblank_l.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswcntrl.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswcntrl.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswcntrl_l.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswcntrl_l.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswctype.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswctype.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswdigit.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswdigit.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswgraph.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswgraph.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswgraph_l.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswgraph_l.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswlower.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswlower.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswlower_l.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswlower_l.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswprint.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswprint.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswprint_l.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswprint_l.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswpunct.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswpunct.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswpunct_l.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswpunct_l.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswspace.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswspace.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswspace_l.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswspace_l.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswupper.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswupper.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswupper_l.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswupper_l.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-iswxdigit.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswxdigit.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-itoa.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/itoa.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-labs.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/labs.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-lcltime.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/lcltime.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/time"
+        },
+        {
+          "member": "lib_a-lcltime_r.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/lcltime_r.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/time"
+        },
+        {
+          "member": "lib_a-lnumeric.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/locale/lnumeric.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/locale"
+        },
+        {
+          "member": "lib_a-locale.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/locale/locale.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/locale"
+        },
+        {
+          "member": "lib_a-localeconv.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/locale/localeconv.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/locale"
+        },
+        {
+          "member": "lib_a-makebuf.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/makebuf.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-mbrtowc.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/mbrtowc.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-mbstowcs.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/mbstowcs.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-mbtowc_r.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/mbtowc_r.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-memchr.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/memchr.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-memcmp.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/memcmp.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-memcpy.o",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/machine/xtensa/memcpy.S",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/machine/xtensa",
+          "producer": "GNU AS 2.35.1"
+        },
+        {
+          "member": "lib_a-memmove.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/memmove.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-memset.o",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/machine/xtensa/memset.S",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/machine/xtensa",
+          "producer": "GNU AS 2.35.1"
+        },
+        {
+          "member": "lib_a-mktime.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/mktime.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/time"
+        },
+        {
+          "member": "lib_a-month_lengths.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/month_lengths.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/time"
+        },
+        {
+          "member": "lib_a-mprec.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/mprec.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-printf.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/printf.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-puts.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/puts.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-qsort.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/search/qsort.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/search"
+        },
+        {
+          "member": "lib_a-rand.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/rand.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-reent.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/reent/reent.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/reent"
+        },
+        {
+          "member": "lib_a-refill.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/refill.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-rename.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/rename.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-s_frexp.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libm/math/s_frexp.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libm/math"
+        },
+        {
+          "member": "lib_a-s_nan.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fbuiltin -fno-math-errno -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libm/common/s_nan.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libm/common"
+        },
+        {
+          "member": "lib_a-sccl.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/sccl.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-setenv.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/setenv.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-setenv_r.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/setenv_r.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-setvbuf.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/setvbuf.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-sf_nan.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fbuiltin -fno-math-errno -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libm/common/sf_nan.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libm/common"
+        },
+        {
+          "member": "lib_a-siscanf.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/siscanf.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-sniprintf.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/sniprintf.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-snprintf.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/snprintf.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-sprintf.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/sprintf.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-sscanf.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/sscanf.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-stdio.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/stdio.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-strcasecmp.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strcasecmp.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-strcat.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strcat.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-strchr.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strchr.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-strcmp.o",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/machine/xtensa/strcmp.S",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/machine/xtensa",
+          "producer": "GNU AS 2.35.1"
+        },
+        {
+          "member": "lib_a-strcoll.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strcoll.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-strcpy.o",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/machine/xtensa/strcpy.S",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/machine/xtensa",
+          "producer": "GNU AS 2.35.1"
+        },
+        {
+          "member": "lib_a-strdup.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strdup.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-strdup_r.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strdup_r.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-strerror.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strerror.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-strftime.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/strftime.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/time"
+        },
+        {
+          "member": "lib_a-strlcat.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strlcat.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-strlcpy.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strlcpy.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-strlen.o",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/machine/xtensa/strlen.S",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/machine/xtensa",
+          "producer": "GNU AS 2.35.1"
+        },
+        {
+          "member": "lib_a-strncasecmp.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strncasecmp.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-strncasecmp_l.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strncasecmp_l.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-strncmp.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strncmp.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-strncpy.o",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/machine/xtensa/strncpy.S",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/machine/xtensa",
+          "producer": "GNU AS 2.35.1"
+        },
+        {
+          "member": "lib_a-strndup.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strndup.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-strndup_r.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strndup_r.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-strnlen.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strnlen.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-strptime.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/strptime.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/time"
+        },
+        {
+          "member": "lib_a-strrchr.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strrchr.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-strstr.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strstr.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-strtod.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/strtod.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-strtol.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/strtol.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-strtoll.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/strtoll.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-strtoul.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/strtoul.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-strtoull.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/strtoull.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-strxfrm.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strxfrm.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-svfiprintf.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/vfprintf.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-svfiscanf.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/vfscanf.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-svfprintf.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/vfprintf.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-svfscanf.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/vfscanf.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-svfwprintf.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/vfwprintf.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-swprintf.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/swprintf.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-sysgettod.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/syscalls/sysgettod.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/syscalls"
+        },
+        {
+          "member": "lib_a-sysstat.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/syscalls/sysstat.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/syscalls"
+        },
+        {
+          "member": "lib_a-sysunlink.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/syscalls/sysunlink.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/syscalls"
+        },
+        {
+          "member": "lib_a-time.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/time.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/time"
+        },
+        {
+          "member": "lib_a-timelocal.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/locale/timelocal.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/locale"
+        },
+        {
+          "member": "lib_a-tolower.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/tolower.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-tolower_l.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/tolower_l.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-towlower.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/towlower.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-towupper.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/towupper.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-tzcalc_limits.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/tzcalc_limits.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/time"
+        },
+        {
+          "member": "lib_a-tzlock.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/tzlock.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/time"
+        },
+        {
+          "member": "lib_a-tzset.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/tzset.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/time"
+        },
+        {
+          "member": "lib_a-tzset_r.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/tzset_r.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/time"
+        },
+        {
+          "member": "lib_a-tzvars.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/tzvars.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/time"
+        },
+        {
+          "member": "lib_a-u_strerr.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/u_strerr.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-ungetc.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/ungetc.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-utoa.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/utoa.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-vfiprintf.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/vfprintf.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-vfprintf.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/vfprintf.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-vprintf.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/vprintf.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-vsnprintf.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/vsnprintf.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        },
+        {
+          "member": "lib_a-wcrtomb.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/wcrtomb.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-wcscmp.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wcscmp.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-wcscoll.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wcscoll.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-wcscpy.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wcscpy.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-wcsftime.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/wcsftime.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/time"
+        },
+        {
+          "member": "lib_a-wcslcpy.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wcslcpy.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-wcslen.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wcslen.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-wcstoul.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/wcstoul.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-wcsxfrm.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wcsxfrm.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-wctob.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/wctob.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-wctomb_r.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/wctomb_r.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdlib"
+        },
+        {
+          "member": "lib_a-wctype.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/wctype.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/ctype"
+        },
+        {
+          "member": "lib_a-wmemchr.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wmemchr.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-wmemcpy.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wmemcpy.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-wmemmove.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wmemmove.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-wmemset.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wmemset.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/string"
+        },
+        {
+          "member": "lib_a-wsetup.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/wsetup.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libc/stdio"
+        }
+      ],
+      "retained_members_without_debug": [],
+      "declared_sources": [
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/isspace.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswalnum.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswalnum_l.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswalpha.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswalpha_l.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswblank.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswblank_l.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswcntrl.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswcntrl_l.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswctype.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswdigit.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswgraph.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswgraph_l.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswlower.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswlower_l.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswprint.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswprint_l.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswpunct.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswpunct_l.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswspace.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswspace_l.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswupper.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswupper_l.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/iswxdigit.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/tolower.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/tolower_l.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/towlower.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/towupper.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/ctype/wctype.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/errno/errno.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/locale/lnumeric.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/locale/locale.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/locale/localeconv.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/locale/timelocal.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/machine/xtensa/memcpy.S",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/machine/xtensa/memset.S",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/machine/xtensa/strcmp.S",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/machine/xtensa/strcpy.S",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/machine/xtensa/strlen.S",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/machine/xtensa/strncpy.S",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/reent/reent.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/search/qsort.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fclose.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fflush.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fileno.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/findfp.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/flags.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fopen.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fread.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fseek.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fseeko.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/ftell.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/ftello.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fvwrite.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fwalk.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/fwrite.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/makebuf.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/printf.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/puts.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/refill.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/rename.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/sccl.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/setvbuf.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/siscanf.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/sniprintf.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/snprintf.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/sprintf.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/sscanf.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/stdio.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/swprintf.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/ungetc.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/vfprintf.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/vfscanf.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/vfwprintf.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/vprintf.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/vsnprintf.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdio/wsetup.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/__atexit.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/__call_atexit.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/abs.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/atexit.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/atoi.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/atol.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/btowc.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/div.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/dtoa.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/envlock.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/gdtoa-gethex.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/gdtoa-hexnan.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/getenv_r.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/itoa.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/labs.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/mbrtowc.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/mbstowcs.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/mbtowc_r.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/mprec.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/rand.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/setenv.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/setenv_r.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/strtod.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/strtol.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/strtoll.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/strtoul.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/strtoull.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/utoa.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/wcrtomb.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/wcstoul.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/wctob.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/stdlib/wctomb_r.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/bzero.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/memchr.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/memcmp.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/memmove.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strcasecmp.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strcat.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strchr.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strcoll.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strdup.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strdup_r.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strerror.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strlcat.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strlcpy.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strncasecmp.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strncasecmp_l.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strncmp.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strndup.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strndup_r.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strnlen.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strrchr.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strstr.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/strxfrm.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/u_strerr.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wcscmp.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wcscoll.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wcscpy.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wcslcpy.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wcslen.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wcsxfrm.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wmemchr.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wmemcpy.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wmemmove.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/string/wmemset.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/syscalls/sysgettod.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/syscalls/sysstat.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/syscalls/sysunlink.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/gettzinfo.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/gmtime.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/gmtime_r.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/lcltime.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/lcltime_r.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/mktime.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/month_lengths.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/strftime.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/strptime.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/time.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/tzcalc_limits.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/tzlock.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/tzset.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/tzset_r.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/tzvars.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libc/time/wcsftime.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libm/common/s_nan.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libm/common/sf_nan.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libm/math/s_frexp.c"
+      ],
+      "source_bytes_verified": false
+    },
+    {
+      "path": "packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/../../../../xtensa-esp32-elf/lib/no-rtti/libm.a",
+      "sha256": "6e2dc6f98de296bbc993d9fe6037bd5892313b595732855743b85fc059e6df7c",
+      "exit": 0,
+      "retained_members": [
+        "lib_a-s_ceil.o",
+        "lib_a-s_floor.o",
+        "lib_a-s_lround.o"
+      ],
+      "compilation_units": [
+        {
+          "member": "lib_a-s_ceil.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libm/math/s_ceil.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libm/math"
+        },
+        {
+          "member": "lib_a-s_floor.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fno-builtin -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libm/math/s_floor.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libm/math"
+        },
+        {
+          "member": "lib_a-s_lround.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -Os -Os -fbuiltin -fno-math-errno -fno-rtti",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libm/common/s_lround.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-libc/xtensa-esp32-elf/no-rtti/newlib/libm/common"
+        }
+      ],
+      "retained_members_without_debug": [],
+      "declared_sources": [
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libm/common/s_lround.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libm/math/s_ceil.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/newlib/newlib/libm/math/s_floor.c"
+      ],
+      "source_bytes_verified": false
+    },
+    {
+      "path": "packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/../../../../xtensa-esp32-elf/lib/no-rtti/libstdc++.a",
+      "sha256": "0818912e3d52857d32286bad76aa11af0847d15cb548579c6c79a99f14238cf1",
+      "exit": 0,
+      "retained_members": [
+        "bad_alloc.o",
+        "bad_array_new.o",
+        "bad_cast.o",
+        "c++locale.o",
+        "chrono.o",
+        "class_type_info.o",
+        "codecvt.o",
+        "codecvt_members.o",
+        "collate_members.o",
+        "collate_members_cow.o",
+        "compatibility.o",
+        "condition_variable.o",
+        "cow-locale_init.o",
+        "cow-shim_facets.o",
+        "cow-stdexcept.o",
+        "cow-string-inst.o",
+        "cow-wstring-inst.o",
+        "ctype.o",
+        "ctype_configure_char.o",
+        "ctype_members.o",
+        "cxx11-ios_failure.o",
+        "cxx11-locale-inst.o",
+        "cxx11-shim_facets.o",
+        "cxx11-stdexcept.o",
+        "cxx11-wlocale-inst.o",
+        "del_op.o",
+        "del_opnt.o",
+        "del_ops.o",
+        "del_opv.o",
+        "del_opvnt.o",
+        "del_opvs.o",
+        "eh_alloc.o",
+        "eh_aux_runtime.o",
+        "eh_call.o",
+        "eh_catch.o",
+        "eh_exception.o",
+        "eh_globals.o",
+        "eh_personality.o",
+        "eh_term_handler.o",
+        "eh_terminate.o",
+        "eh_throw.o",
+        "eh_unex_handler.o",
+        "functexcept.o",
+        "functional.o",
+        "hash_bytes.o",
+        "hashtable_c++0x.o",
+        "ios-inst.o",
+        "ios.o",
+        "ios_locale.o",
+        "iostream-inst.o",
+        "istream-inst.o",
+        "istream-string.o",
+        "istream.o",
+        "list.o",
+        "locale-inst.o",
+        "locale.o",
+        "locale_facets.o",
+        "locale_init.o",
+        "lt1-codecvt.o",
+        "messages_members.o",
+        "messages_members_cow.o",
+        "misc-inst.o",
+        "monetary_members.o",
+        "monetary_members_cow.o",
+        "new_handler.o",
+        "new_op.o",
+        "new_opnt.o",
+        "new_opv.o",
+        "new_opvnt.o",
+        "numeric_members.o",
+        "numeric_members_cow.o",
+        "ostream-inst.o",
+        "pure.o",
+        "random.o",
+        "si_class_type_info.o",
+        "snprintf_lite.o",
+        "sso_string.o",
+        "sstream-inst.o",
+        "stdexcept.o",
+        "streambuf-inst.o",
+        "streambuf.o",
+        "string-inst.o",
+        "string-io-inst.o",
+        "system_error.o",
+        "time_members.o",
+        "tinfo.o",
+        "tree.o",
+        "wlocale-inst.o",
+        "wstring-inst.o"
+      ],
+      "compilation_units": [
+        {
+          "member": "compatibility.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fno-implicit-templates -fdata-sections -frandom-seed=compatibility.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/compatibility.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src"
+        },
+        {
+          "member": "del_opvnt.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=del_opvnt.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/del_opvnt.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "new_opnt.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=new_opnt.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/new_opnt.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "eh_aux_runtime.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=eh_aux_runtime.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_aux_runtime.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "del_op.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=del_op.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/del_op.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "eh_call.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=eh_call.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_call.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "eh_globals.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=eh_globals.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_globals.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "eh_personality.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=eh_personality.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_personality.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "new_opvnt.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=new_opvnt.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/new_opvnt.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "pure.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=pure.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/pure.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "del_ops.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=del_ops.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/del_ops.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "eh_term_handler.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=eh_term_handler.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_term_handler.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "hash_bytes.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=hash_bytes.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/hash_bytes.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "bad_alloc.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=bad_alloc.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/bad_alloc.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "eh_exception.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=eh_exception.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_exception.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "del_opv.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=del_opv.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/del_opv.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "new_handler.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=new_handler.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/new_handler.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "eh_catch.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=eh_catch.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_catch.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "eh_unex_handler.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=eh_unex_handler.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_unex_handler.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "bad_array_new.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=bad_array_new.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/bad_array_new.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "class_type_info.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=class_type_info.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/class_type_info.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "del_opvs.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=del_opvs.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/del_opvs.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "eh_terminate.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=eh_terminate.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_terminate.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "eh_alloc.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=eh_alloc.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_alloc.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "new_op.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=new_op.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/new_op.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "eh_throw.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=eh_throw.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_throw.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "bad_cast.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=bad_cast.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/bad_cast.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "tinfo.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=tinfo.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/tinfo.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "del_opnt.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=del_opnt.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/del_opnt.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "new_opv.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=new_opv.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/new_opv.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "si_class_type_info.o",
+          "producer": "GNU C++14 8.4.0 -mlongcalls -g -g -O2 -Os -fno-implicit-templates -fdata-sections -frandom-seed=si_class_type_info.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/si_class_type_info.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/libsupc++"
+        },
+        {
+          "member": "messages_members_cow.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fdata-sections -frandom-seed=messages_members_cow.lo -fno-rtti -ffunction-sections -fimplicit-templates",
+          "name": "messages_members_cow.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "c++locale.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fdata-sections -frandom-seed=c++locale.lo -fno-rtti -ffunction-sections -fimplicit-templates",
+          "name": "c++locale.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "codecvt.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fno-implicit-templates -fdata-sections -frandom-seed=codecvt.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/codecvt.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "codecvt_members.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fno-implicit-templates -fdata-sections -frandom-seed=codecvt_members.lo -fno-rtti -ffunction-sections",
+          "name": "codecvt_members.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "istream-string.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fno-implicit-templates -fdata-sections -frandom-seed=istream-string.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/istream-string.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "tree.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fno-implicit-templates -fdata-sections -frandom-seed=tree.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/tree.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "streambuf.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fno-implicit-templates -fdata-sections -frandom-seed=streambuf.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/streambuf.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "istream.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fno-implicit-templates -fdata-sections -frandom-seed=istream.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/istream.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "locale.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fno-implicit-templates -fdata-sections -frandom-seed=locale.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/locale.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "monetary_members.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fno-implicit-templates -fdata-sections -frandom-seed=monetary_members.lo -fno-rtti -ffunction-sections",
+          "name": "monetary_members.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "misc-inst.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fno-implicit-templates -fdata-sections -frandom-seed=misc-inst.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/misc-inst.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "monetary_members_cow.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fdata-sections -frandom-seed=monetary_members_cow.lo -fno-rtti -ffunction-sections -fimplicit-templates",
+          "name": "monetary_members_cow.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "messages_members.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fno-implicit-templates -fdata-sections -frandom-seed=messages_members.lo -fno-rtti -ffunction-sections",
+          "name": "messages_members.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "stdexcept.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fno-implicit-templates -fdata-sections -frandom-seed=stdexcept.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/stdexcept.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "numeric_members_cow.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fdata-sections -frandom-seed=numeric_members_cow.lo -fno-rtti -ffunction-sections -fimplicit-templates",
+          "name": "numeric_members_cow.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "collate_members.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fno-implicit-templates -fdata-sections -frandom-seed=collate_members.lo -fno-rtti -ffunction-sections",
+          "name": "collate_members.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "locale_facets.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fno-implicit-templates -fdata-sections -frandom-seed=locale_facets.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/locale_facets.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "ios_locale.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fno-implicit-templates -fdata-sections -frandom-seed=ios_locale.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/ios_locale.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "collate_members_cow.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fdata-sections -frandom-seed=collate_members_cow.lo -fno-rtti -ffunction-sections -fimplicit-templates",
+          "name": "collate_members_cow.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "list.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fno-implicit-templates -fdata-sections -frandom-seed=list.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/list.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "numeric_members.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fno-implicit-templates -fdata-sections -frandom-seed=numeric_members.lo -fno-rtti -ffunction-sections",
+          "name": "numeric_members.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "time_members.o",
+          "producer": "GNU C++98 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -fno-implicit-templates -fdata-sections -frandom-seed=time_members.lo -fno-rtti -ffunction-sections",
+          "name": "time_members.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "locale_init.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++98 -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=locale_init.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/locale_init.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++98"
+        },
+        {
+          "member": "string-inst.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=string-inst.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/string-inst.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "istream-inst.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=istream-inst.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/istream-inst.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "sso_string.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=sso_string.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/sso_string.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "cxx11-shim_facets.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=cxx11-shim_facets.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cxx11-shim_facets.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "cow-locale_init.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=cow-locale_init.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cow-locale_init.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "sstream-inst.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=sstream-inst.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/sstream-inst.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "iostream-inst.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=iostream-inst.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/iostream-inst.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "ctype.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=ctype.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/ctype.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "hashtable_c++0x.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fdata-sections -frandom-seed=hashtable_c++0x.lo -fno-rtti -ffunction-sections -fimplicit-templates",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/hashtable_c++0x.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "string-io-inst.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=string-io-inst.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/string-io-inst.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "lt1-codecvt.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=codecvt.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/codecvt.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "locale-inst.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=locale-inst.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/locale-inst.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "ios-inst.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=ios-inst.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/ios-inst.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "chrono.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=chrono.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/chrono.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "wlocale-inst.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=wlocale-inst.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/wlocale-inst.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "snprintf_lite.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=snprintf_lite.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/snprintf_lite.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "functexcept.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=functexcept.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/functexcept.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "cow-wstring-inst.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=cow-wstring-inst.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cow-wstring-inst.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "functional.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=functional.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/functional.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "system_error.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=system_error.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/system_error.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "cxx11-locale-inst.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=cxx11-locale-inst.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cxx11-locale-inst.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "condition_variable.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=condition_variable.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/condition_variable.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "cow-shim_facets.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=cow-shim_facets.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cow-shim_facets.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "cxx11-stdexcept.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=cxx11-stdexcept.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cxx11-stdexcept.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "cow-string-inst.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=cow-string-inst.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cow-string-inst.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "random.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=random.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/random.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "cxx11-ios_failure.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=cxx11-ios_failure-lt.s -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cxx11-ios_failure.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "streambuf-inst.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=streambuf-inst.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/streambuf-inst.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "ostream-inst.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=ostream-inst.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/ostream-inst.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "ios.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=ios.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/ios.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "cxx11-wlocale-inst.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=cxx11-wlocale-inst.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cxx11-wlocale-inst.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "cow-stdexcept.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=cow-stdexcept.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cow-stdexcept.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "ctype_members.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=ctype_members.lo -fno-rtti -ffunction-sections",
+          "name": "ctype_members.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "ctype_configure_char.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=ctype_configure_char.lo -fno-rtti -ffunction-sections",
+          "name": "ctype_configure_char.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        },
+        {
+          "member": "wstring-inst.o",
+          "producer": "GNU C++11 8.4.0 -mlongcalls -g -g -O2 -Os -std=gnu++11 -fno-implicit-templates -fdata-sections -frandom-seed=wstring-inst.lo -fno-rtti -ffunction-sections",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/wstring-inst.cc",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libstdc++-v3/src/c++11"
+        }
+      ],
+      "retained_members_without_debug": [],
+      "declared_sources": [
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/bad_alloc.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/bad_array_new.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/bad_cast.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/class_type_info.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/del_op.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/del_opnt.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/del_ops.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/del_opv.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/del_opvnt.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/del_opvs.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_alloc.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_aux_runtime.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_call.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_catch.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_exception.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_globals.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_personality.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_term_handler.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_terminate.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_throw.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/eh_unex_handler.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/hash_bytes.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/new_handler.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/new_op.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/new_opnt.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/new_opv.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/new_opvnt.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/pure.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/si_class_type_info.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/libsupc++/tinfo.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/chrono.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/codecvt.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/condition_variable.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cow-locale_init.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cow-shim_facets.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cow-stdexcept.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cow-string-inst.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cow-wstring-inst.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/ctype.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cxx11-ios_failure.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cxx11-locale-inst.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cxx11-shim_facets.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cxx11-stdexcept.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/cxx11-wlocale-inst.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/functexcept.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/functional.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/hashtable_c++0x.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/ios-inst.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/ios.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/iostream-inst.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/istream-inst.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/locale-inst.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/ostream-inst.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/random.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/snprintf_lite.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/sso_string.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/sstream-inst.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/streambuf-inst.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/string-inst.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/string-io-inst.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/system_error.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/wlocale-inst.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++11/wstring-inst.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/codecvt.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/compatibility.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/ios_locale.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/istream-string.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/istream.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/list.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/locale.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/locale_facets.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/locale_init.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/misc-inst.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/stdexcept.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/streambuf.cc",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libstdc++-v3/src/c++98/tree.cc",
+        "c++locale.cc",
+        "codecvt_members.cc",
+        "collate_members.cc",
+        "collate_members_cow.cc",
+        "ctype_configure_char.cc",
+        "ctype_members.cc",
+        "messages_members.cc",
+        "messages_members_cow.cc",
+        "monetary_members.cc",
+        "monetary_members_cow.cc",
+        "numeric_members.cc",
+        "numeric_members_cow.cc",
+        "time_members.cc"
+      ],
+      "source_bytes_verified": false
+    },
+    {
+      "path": "packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/no-rtti/libgcc.a",
+      "sha256": "2bebb834260f9331d62d5dbc6b705e56b400beb2a2adeeb95c8e31945546f008",
+      "exit": 0,
+      "retained_members": [
+        "_divdi3.o",
+        "_divsf3.o",
+        "_fixunsdfdi.o",
+        "_moddi3.o",
+        "_udivdi3.o",
+        "_umoddi3.o",
+        "lib2funcs.o",
+        "unwind-dw2-fde.o",
+        "unwind-dw2-xtensa.o"
+      ],
+      "compilation_units": [
+        {
+          "member": "_divsf3.o",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libgcc/config/xtensa/ieee754-sf.S",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libgcc",
+          "producer": "GNU AS 2.35.1"
+        },
+        {
+          "member": "_fixunsdfdi.o",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libgcc/config/xtensa/ieee754-df.S",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libgcc",
+          "producer": "GNU AS 2.35.1"
+        },
+        {
+          "member": "_divdi3.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -g -g -g -g -O2 -Os -O2 -O2 -Os -fno-rtti -fbuilding-libgcc -fno-stack-protector -fexceptions -fnon-call-exceptions",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libgcc/libgcc2.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libgcc"
+        },
+        {
+          "member": "_moddi3.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -g -g -g -g -O2 -Os -O2 -O2 -Os -fno-rtti -fbuilding-libgcc -fno-stack-protector -fexceptions -fnon-call-exceptions",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libgcc/libgcc2.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libgcc"
+        },
+        {
+          "member": "_udivdi3.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -g -g -g -g -O2 -Os -O2 -O2 -Os -fno-rtti -fbuilding-libgcc -fno-stack-protector -fexceptions -fnon-call-exceptions",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libgcc/libgcc2.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libgcc"
+        },
+        {
+          "member": "_umoddi3.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -g -g -g -g -O2 -Os -O2 -O2 -Os -fno-rtti -fbuilding-libgcc -fno-stack-protector -fexceptions -fnon-call-exceptions",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libgcc/libgcc2.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libgcc"
+        },
+        {
+          "member": "lib2funcs.o",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libgcc/config/xtensa/lib2funcs.S",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libgcc",
+          "producer": "GNU AS 2.35.1"
+        },
+        {
+          "member": "unwind-dw2-xtensa.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -g -g -g -g -O2 -Os -O2 -O2 -Os -fno-rtti -fbuilding-libgcc -fno-stack-protector -fexceptions",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libgcc/config/xtensa/unwind-dw2-xtensa.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libgcc"
+        },
+        {
+          "member": "unwind-dw2-fde.o",
+          "producer": "GNU C17 8.4.0 -mlongcalls -g -g -g -g -g -O2 -Os -O2 -O2 -Os -fno-rtti -fbuilding-libgcc -fno-stack-protector -fexceptions",
+          "name": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libgcc/unwind-dw2-fde.c",
+          "comp_dir": "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/build/build-cc-gcc-final/xtensa-esp32-elf/no-rtti/libgcc"
+        }
+      ],
+      "retained_members_without_debug": [],
+      "declared_sources": [
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libgcc/config/xtensa/ieee754-df.S",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libgcc/config/xtensa/ieee754-sf.S",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libgcc/config/xtensa/lib2funcs.S",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libgcc/config/xtensa/unwind-dw2-xtensa.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libgcc/libgcc2.c",
+        "/builds/idf/crosstool-NG/.build/xtensa-esp32-elf/src/gcc/libgcc/unwind-dw2-fde.c"
+      ],
+      "source_bytes_verified": false
+    }
+  ]
+}

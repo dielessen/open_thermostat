@@ -1,0 +1,101 @@
+[
+  {
+    "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libbt.a",
+    "unit": {
+      "member": "hli_vectors.S.obj",
+      "name": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/bt/controller/esp32/hli_vectors.S",
+      "comp_dir": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/build",
+      "producer": "GNU AS 2.35.1"
+    }
+  },
+  {
+    "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_ipc.a",
+    "unit": {
+      "member": "esp_ipc_isr_handler.S.obj",
+      "name": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/esp_ipc/src/esp_ipc_isr/esp_ipc_isr_handler.S",
+      "comp_dir": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/build",
+      "producer": "GNU AS 2.35.1"
+    }
+  },
+  {
+    "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_ipc.a",
+    "unit": {
+      "member": "esp_ipc_isr_routines.S.obj",
+      "name": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/esp_ipc/src/esp_ipc_isr/esp_ipc_isr_routines.S",
+      "comp_dir": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/build",
+      "producer": "GNU AS 2.35.1"
+    }
+  },
+  {
+    "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_system.a",
+    "unit": {
+      "member": "highint_hdl.S.obj",
+      "name": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/esp_system/port/soc/esp32/highint_hdl.S",
+      "comp_dir": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/build",
+      "producer": "GNU AS 2.35.1"
+    }
+  },
+  {
+    "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_system.a",
+    "unit": {
+      "member": "panic_handler_asm.S.obj",
+      "name": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/esp_system/port/arch/xtensa/panic_handler_asm.S",
+      "comp_dir": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/build",
+      "producer": "GNU AS 2.35.1"
+    }
+  },
+  {
+    "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libesp_system.a",
+    "unit": {
+      "member": "debug_helpers_asm.S.obj",
+      "name": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/esp_system/port/arch/xtensa/debug_helpers_asm.S",
+      "comp_dir": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/build",
+      "producer": "GNU AS 2.35.1"
+    }
+  },
+  {
+    "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libfreertos.a",
+    "unit": {
+      "member": "portasm.S.obj",
+      "name": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/freertos/port/xtensa/portasm.S",
+      "comp_dir": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/build",
+      "producer": "GNU AS 2.35.1"
+    }
+  },
+  {
+    "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libfreertos.a",
+    "unit": {
+      "member": "xtensa_context.S.obj",
+      "name": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/freertos/port/xtensa/xtensa_context.S",
+      "comp_dir": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/build",
+      "producer": "GNU AS 2.35.1"
+    }
+  },
+  {
+    "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libfreertos.a",
+    "unit": {
+      "member": "xtensa_vector_defaults.S.obj",
+      "name": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/freertos/port/xtensa/xtensa_vector_defaults.S",
+      "comp_dir": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/build",
+      "producer": "GNU AS 2.35.1"
+    }
+  },
+  {
+    "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libfreertos.a",
+    "unit": {
+      "member": "xtensa_vectors.S.obj",
+      "name": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/freertos/port/xtensa/xtensa_vectors.S",
+      "comp_dir": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/build",
+      "producer": "GNU AS 2.35.1"
+    }
+  },
+  {
+    "path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libxtensa.a",
+    "unit": {
+      "member": "xtensa_intr_asm.S.obj",
+      "name": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/esp-idf/components/xtensa/xtensa_intr_asm.S",
+      "comp_dir": "/home/runner/work/esp32-arduino-lib-builder/esp32-arduino-lib-builder/build",
+      "producer": "GNU AS 2.35.1"
+    }
+  }
+]

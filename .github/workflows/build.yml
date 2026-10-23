@@ -27,10 +27,61 @@ jobs:
           node test/updates/browser.cjs
           node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs
 
+  source-reproduction:
+    if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+            ~/.platformio/packages
+            ~/.platformio/platforms
+          key: ${{ runner.os }}-pio-e32v2-${{ hashFiles('platformio.ini', 'boards/**') }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install the pinned SDK and reproduction tools
+        run: |
+          pip install platformio==6.2.0 intelhex==2.3.0
+          pio pkg install -e e32v2
+          python -B -m unittest discover -s scripts -p 'test_e32_source*.py' -v
+      - name: Retrieve the pinned source-only distribution
+        run: |
+          python - <<'PYTHON'
+          import json,shutil,urllib.request
+          from pathlib import Path
+          spec=json.loads(Path('docs/third-party/e32v2-source-distribution.json').read_text())
+          assert Path(spec['asset']).name==spec['asset'] and spec['tag'].startswith('sources-e32v2-')
+          Path('out').mkdir(exist_ok=True)
+          url='https://github.com/dielessen/open_thermostat/releases/download/'+spec['tag']+'/'+spec['asset']
+          with urllib.request.urlopen(url,timeout=180) as response, Path('out/vendor-source-inputs.zip').open('wb') as target:
+              shutil.copyfileobj(response,target)
+          PYTHON
+          python scripts/e32_prepare_source_tree.py --archive out/vendor-source-inputs.zip --output out/e32-reproduction
+      - name: Reproduce every reviewed open SDK and runtime compilation unit
+        working-directory: out/e32-reproduction
+        run: |
+          python recompile-retained.py --all --report SDK-REPRODUCED.json
+          python recompile-assembly.py
+          python recompile-runtime.py --all --group runtime-reproduced --report RUNTIME-REPRODUCED.json
+          python recompile-startup.py
+      - name: Independently check actual original objects and corresponding source
+        run: python scripts/e32_verify_reproduction.py --prepared out/e32-reproduction --output out/source-reproduction.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: e32-source-reproduction
+          path: out/source-reproduction.json
+          if-no-files-found: error
+
   build:
     # A HA-only tag carries no firmware assets. Its release is gated below by
     # the native HA/packet suite and browser regressions; E32 tags keep all gates.
     if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}
+    needs: source-reproduction
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -184,7 +235,7 @@ jobs:
 
   publish-test-release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: [build, browser-regressions, home-assistant-native]
+    needs: [build, source-reproduction, browser-regressions, home-assistant-native]
     runs-on: ubuntu-latest
     permissions:
       contents: write

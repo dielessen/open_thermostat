@@ -1,0 +1,8 @@
+{
+  "scope": "original retained SDK app descriptor object metadata",
+  "version": "esp-idf: v4.4.7 38eeba213a",
+  "project": "arduino-lib-builder",
+  "build_time": "12:36:24",
+  "build_date": "Mar  5 2024",
+  "idf": "v4.4.7-dirty"
+}

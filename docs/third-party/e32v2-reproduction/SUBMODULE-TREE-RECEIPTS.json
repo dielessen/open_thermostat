@@ -1,0 +1,93 @@
+[
+  {
+    "status": "PASS",
+    "parent": "esp-idf",
+    "path": "components/bt/controller/lib_esp32",
+    "repository": "espressif/esp32-bt-lib",
+    "commit": "e43c9b121f7fac89b73c56077ede5901f64643cd",
+    "sbom_hash": null,
+    "sbom_version": null,
+    "file": "espressif--esp32-bt-lib-tree.json",
+    "url": "https://api.github.com/repos/espressif/esp32-bt-lib/git/trees/e43c9b121f7fac89b73c56077ede5901f64643cd?recursive=1",
+    "entries": 5,
+    "gitlinks": []
+  },
+  {
+    "status": "PASS",
+    "parent": "esp-idf",
+    "path": "components/spiffs/spiffs",
+    "repository": "pellepl/spiffs",
+    "commit": "0dbb3f71c5f6fae3747a9d935372773762baf852",
+    "sbom_hash": "0dbb3f71c5f6fae3747a9d935372773762baf852",
+    "sbom_version": "0.2-255-g0dbb3f71c5f6",
+    "file": "pellepl--spiffs-tree.json",
+    "url": "https://api.github.com/repos/pellepl/spiffs/git/trees/0dbb3f71c5f6fae3747a9d935372773762baf852?recursive=1",
+    "entries": 42,
+    "gitlinks": []
+  },
+  {
+    "status": "PASS",
+    "parent": "esp-idf",
+    "path": "components/json/cJSON",
+    "repository": "DaveGamble/cJSON",
+    "commit": "87d8f0961a01bf09bef98ff89bae9fdec42181ee",
+    "sbom_hash": "87d8f0961a01bf09bef98ff89bae9fdec42181ee",
+    "sbom_version": "1.7.17",
+    "file": "DaveGamble--cJSON-tree.json",
+    "url": "https://api.github.com/repos/DaveGamble/cJSON/git/trees/87d8f0961a01bf09bef98ff89bae9fdec42181ee?recursive=1",
+    "entries": 266,
+    "gitlinks": []
+  },
+  {
+    "status": "PASS",
+    "parent": "esp-idf",
+    "path": "components/mbedtls/mbedtls",
+    "repository": "espressif/mbedtls",
+    "commit": "2b8e772fc1cb0732cda3bae7d1e9d6f4cfaf63d9",
+    "sbom_hash": null,
+    "sbom_version": null,
+    "file": "espressif--mbedtls-tree.json",
+    "url": "https://api.github.com/repos/espressif/mbedtls/git/trees/2b8e772fc1cb0732cda3bae7d1e9d6f4cfaf63d9?recursive=1",
+    "entries": 1490,
+    "gitlinks": []
+  },
+  {
+    "status": "PASS",
+    "parent": "esp-idf",
+    "path": "components/lwip/lwip",
+    "repository": "espressif/esp-lwip",
+    "commit": "a45be9e438f6cf9c54ec150581819c3b95d5af6b",
+    "sbom_hash": null,
+    "sbom_version": null,
+    "file": "espressif--esp-lwip-tree.json",
+    "url": "https://api.github.com/repos/espressif/esp-lwip/git/trees/a45be9e438f6cf9c54ec150581819c3b95d5af6b?recursive=1",
+    "entries": 454,
+    "gitlinks": []
+  },
+  {
+    "status": "PASS",
+    "parent": "esp-idf",
+    "path": "components/esp_wifi/lib",
+    "repository": "espressif/esp32-wifi-lib",
+    "commit": "f2aae4d44ec7908013066e69d29b9948846c335c",
+    "sbom_hash": null,
+    "sbom_version": null,
+    "file": "espressif--esp32-wifi-lib-tree.json",
+    "url": "https://api.github.com/repos/espressif/esp32-wifi-lib/git/trees/f2aae4d44ec7908013066e69d29b9948846c335c?recursive=1",
+    "entries": 46,
+    "gitlinks": []
+  },
+  {
+    "status": "PASS",
+    "parent": "esp-idf",
+    "path": "components/esp_phy/lib",
+    "repository": "espressif/esp-phy-lib",
+    "commit": "dcfdccf6cc2fc02d0886624b7998c890d1a19b28",
+    "sbom_hash": null,
+    "sbom_version": null,
+    "file": "espressif--esp-phy-lib-tree.json",
+    "url": "https://api.github.com/repos/espressif/esp-phy-lib/git/trees/dcfdccf6cc2fc02d0886624b7998c890d1a19b28?recursive=1",
+    "entries": 24,
+    "gitlinks": []
+  }
+]

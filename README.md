@@ -1,137 +1,158 @@
-# OpenThermostat — E32 V2 + Home Assistant
+# OpenThermostat — slimme verwarming met Home Assistant
 
-Lokale verwarmingssoftware van **Mark Dielessen**: kamers en weekprogramma’s
-in Home Assistant, met een eigen E32-interface voor installatiestatus,
-ketelgegevens en beheer.
+Een lokale, open thermostaat voor **regeling per kamer, slimme radiatorkranen en
+centrale ketelregeling**, met Home Assistant als bedieningsomgeving en een
+BBQKees E32 V2 bij de ketel. Ontwikkeld door **Mark Dielessen**.
 
-**Beschikbaar: E32 alpha18 + Home Assistant dev24.** De interfaces, planning,
-koppeling, updates en ontvangstdiagnose zijn geleverd. De actieve kamer-/ketelregeling
-is nog in ontwikkeling: de E32-zendfunctie en fysieke uitgangen blijven geblokkeerd.
+Je stelt per kamer in wanneer het warm moet zijn. De regelsoftware bepaalt de
+warmtevraag en het gewenste aanvoerwater; de E32 verzorgt de ketelkoppeling.
+Hieronder staat welke onderdelen nu bruikbaar zijn, welke al zijn geprogrammeerd
+en welke nog op de roadmap staan.
 
 [Downloads](https://github.com/dielessen/open_thermostat/releases) ·
-[Functies](#wat-er-nu-in-zit) · [Screenshots](#screenshots) ·
-[Roadmap](#wat-er-nog-komt) · [Documentatie](#documentatie)
+[Mogelijkheden](#alle-mogelijkheden) · [Roadmap](#wat-we-nog-gaan-bouwen) ·
+[Screenshots](#screenshots) · [Documentatie](#documentatie)
 
-## Wat er nu in zit
+**Huidige uitgave: E32 alpha18 + Home Assistant dev24.** Kamerinrichting,
+weekprogramma’s, interfaces en passief uitlezen zijn beschikbaar. De regelkern
+is grotendeels voorbereid, maar actieve kamer- en ketelaansturing zijn nog niet
+vrijgegeven op de E32 V2. De huidige native inrichting ondersteunt **1–2 kamers,
+met één radiatorknop per kamer**; acht zones is het uitbreidingsdoel.
 
-### Home Assistant
+## Alle mogelijkheden
 
-- **Eigen OpenThermostat-integratie en dashboard**, met kamerpagina’s en herkenbare
-  kameridentiteiten. De opstartregistratie van de kamerkaart is gecorrigeerd.
-- **Weekplanner per kamer:** temperatuurblokken tekenen, verplaatsen en aanpassen,
-  inclusief bediening van korte blokken op een aanraakscherm.
-- **Kamerinrichting:** naam, radiatortype, temperatuursensor, radiatorknop en
-  temperatuurgrenzen kiezen uit bestaande HA-entiteiten.
-- **Gecontroleerd opslaan en toepassen:** configuratie en programma worden via de
-  gekoppelde E32 toegepast en teruggelezen. Een onbevestigde toepassing blijft
-  zichtbaar als wachtend en kan expliciet opnieuw worden aangeboden.
-- **Klimaatbediening:** tijdelijke kamerdoelen en HEAT/OFF-logica via de native
-  klimaatentiteit. Dit verandert de logische regelintentie; fysieke aansturing
-  blijft afzonderlijk geblokkeerd.
-- **Apparaatcontrole:** beschikbare modellen, eenheden, temperatuurgrenzen en
-  stapgrootte; expliciet gemelde Zigbee2MQTT- en converterpakketversies.
-- **Meetstatus:** beschikbaarheid in HA en een voor de regeling gekwalificeerde
-  meting worden afzonderlijk getoond. Verouderde of onbevestigde metingen krijgen
-  geen nieuwe leeftijd door cache, herladen of een andere apparaatbinding.
-- **TV02-conflicten zichtbaar:** auto, vakantie, uit en onbekende modus worden
-  beoordeeld voordat de voorbereide kraanadapter een doelopdracht kan toestaan.
-  De software schakelt de eigen kraanmodus daarbij niet automatisch om.
-- **Bestaande klimaat-, diagnose- en batterijfuncties behouden**, voor zover de
-  betreffende bronroute de gegevens levert. Onbekende waarden blijven onbekend.
+**Beschikbaar** = geleverd in de huidige software voor de genoemde functie.
+**Voorbereid** = code aanwezig; aansluiting, gebruikersbediening of praktijkproef
+moet nog worden afgerond. **Gepland** = uitbreiding die nog moet worden gebouwd
+of gekwalificeerd. Een voorbereide regeling is dus nog geen werkende fysieke
+verwarmingsinstallatie.
 
-De huidige native configuratieroute ondersteunt **één of twee kamers**, met één
-radiatorknop per kamer. Een gekozen sensor of een geaccepteerd temperatuurdoel
-bewijst nog geen fysieke kraanwerking. De productiebron voor gekwalificeerde
-kamermetingen en de fysieke actuatorproeven zijn nog niet afgerond.
+### Kamers, zones en temperatuurregeling
 
-### E32-webinterface
+| Mogelijkheid | Wat je ermee kunt | Status |
+| --- | --- | --- |
+| Kamerinrichting | Kamers benoemen en sensoren, radiatorkranen, afgiftetype en temperatuurgrenzen kiezen uit HA | **Beschikbaar** voor 1–2 kamers |
+| Eigen temperatuur per zone | Per kamer een doeltemperatuur en warmtevraag berekenen; gezamenlijke vraag naar de ketel | **Voorbereid**; fysieke meet-/kraan-/ketelketen nog afronden |
+| Hystereseregeling | Verwarmen met een instelbare temperatuurmarge rond het doel | **Voorbereid** in de regelkern |
+| PI-regeling | Warmtevraag geleidelijk aanpassen aan temperatuurafwijking en de duur daarvan, met begrensde integraal | **Voorbereid**; dit is PI, zonder D-term van PID |
+| Langzame tijdproportionele regeling | PI-vraag omzetten naar lange aan/uit-cycli met minimum aan- en uittijd voor geschikte kleppen | **Voorbereid** |
+| Lokaal regelende radiatorkraan | De eigen regeling van de kraan respecteren en daarboven kamerdoel en ketelvraag coördineren | **Voorbereid**; geen tweede concurrerende PI op de kraan |
+| Slimme radiatorkranen via HA | Bestaande HA-apparaten selecteren, mogelijkheden controleren en modusconflicten zichtbaar maken | Selectie/controle **beschikbaar**; fysieke doelopdracht en terugmelding **voorbereid** |
+| Meer zones en kranen | Acht gevalideerde zones, meerdere kranen per kamer en meer merken | **Gepland**; huidige inrichting heeft één kraan per kamer |
 
-- **Installatieoverzicht** met echte kamernamen, kamertargets, berekende warmtevraag,
-  actuele regelstatus en beschikbare ketelwaarden.
-- **Settings → Keteltest:** passieve EMS-ontvangst, protocolfamilie, ouderdom en
-  kwaliteit van gegevens, fouttellers en een downloadbaar meetrapport.
-- **Classic- en Plus-decoderbasis.** Verse Classic-ketelberichten zijn tijdens de
-  actuele screenshotopname op de E32 ontvangen. Ondersteuning en betrouwbaarheid
-  van ieder afzonderlijk veld en ketelmodel blijven apart te beoordelen.
-- **Duidelijke ontbrekende gegevens:** niet beschikbaar, verlopen, afgeleid en
-  onbetrouwbaar worden onderscheiden van een geldige gemeten nul.
-- **Beveiligd beheer:** webaanmelding, sessie-/verzoekcontrole, netwerk- en
-  setup/herstelroutes en interne/PSRAM-geheugendiagnose.
-- **About en navigatie:** projectinformatie en oorspronkelijke credits,
-  uitloggen rechtsboven en herstarten onder Settings met bevestiging.
-- **Normale HTTPS-updater:** versies zoeken, compatibiliteit en checksums
-  controleren, en de toepassing bijwerken met behoud van instellingen.
-- **Duidelijke releases:** actuele firmware en HA-pakketten bovenaan, oudere
-  versies als archief. Eerdere downloadadressen blijven behouden.
+Een geselecteerde sensor is nog geen gekwalificeerde regelmeting. De actuele
+productieroute voor originele kamermetingen en de fysieke kraanproeven staan nog
+open. TV02-modusconflicten zijn al zichtbaar; dit is nog geen volledige
+compatibiliteitsverklaring voor iedere TV02-variant.
 
-De proefbediening voor voorbereiden, starten, toezicht en stoppen is meegeleverd,
-maar blijft zonder gekwalificeerde zend-/installatieroute geblokkeerd.
-Passieve ontvangst is beschikbaar; actieve ketelaansturing is nog niet vrijgegeven.
+### Ketel, modulatie en EMS
+
+| Mogelijkheid | Wat je ermee kunt | Status |
+| --- | --- | --- |
+| EMS-ketelgegevens uitlezen | Beschikbare temperaturen, doelen, modulatie en overige gedecodeerde ketelwaarden bekijken | **Beschikbaar**; verse Classic-berichten ontvangen op de E32 |
+| Classic en EMS Plus | Decoderbasis voor beide protocolfamilies behouden | **Beschikbaar als basis**; velddekking en ondersteuning blijven ketelafhankelijk |
+| Datakwaliteit | Zien of een waarde gemeten, afgeleid, verouderd, onbetrouwbaar of niet beschikbaar is | **Beschikbaar** |
+| Centrale ketelvraag | Warmtevraag uit kamers samenbrengen en voorwaarden voor verwarmen beoordelen | **Voorbereid**; rekent mee zonder actieve uitvoer |
+| Modulerende ketelregeling | Een gewenst aanvoerwaterdoel berekenen op basis van vraag, groepen en grenzen | **Voorbereid**; echte EMS-aansturing nog testen en vrijgeven |
+| Weersafhankelijke regeling | Stooklijn en buitenbron gebruiken voor het gewenste aanvoerwater | **Voorbereid**; complete inrichting en uitvoerroute nog afronden |
+| Eigen buitensensor / HA-weerbron | Buiteninformatie met expliciete bronkeuze, actualiteit en terugval gebruiken | Bronbasis **voorbereid**; volledige productroute nog afronden |
+| Anti-pendelen en hydrauliek | Minimumtijden, minimumlast, groepsgrenzen en voorwaarden voor doorstroming meenemen | Policies **voorbereid**; installatieproeven nog nodig |
+| Keteltest en diagnose | Ontvangst, protocol, veldkwaliteit en fouttellers bekijken en meetrapport downloaden | Passieve diagnose **beschikbaar**; actieve proefbediening **voorbereid en geblokkeerd** |
+| Tapwater | Ondersteunde tapwatergegevens bekijken; later eventueel modelspecifiek bedienen | Uitlezing **beschikbaar waar ondersteund**; bediening **gepland** |
+
+Een uitgelezen modulatiepercentage is wat de ketel meldt. Een berekend
+waterdoel is wat de regelaar wil. **Actief versturen en de werkelijke ketelreactie
+zijn nog niet vrijgegeven of bewezen.** De E32-zendfunctie en fysieke uitgangen
+blijven in de huidige uitgave geblokkeerd. Het overzicht belooft geen volledige
+EMS-ESP-velddekking of ondersteuning voor iedere ketel/converter.
+
+### Programma’s, comfort en slimmer verwarmen
+
+| Mogelijkheid | Wat je ermee kunt | Status |
+| --- | --- | --- |
+| Weekprogramma per kamer | Temperatuurblokken tekenen, verplaatsen en aanpassen, ook op een aanraakscherm | **Beschikbaar**, inclusief opslaan/toepassen en terugbevestiging |
+| Tijdelijk temperatuurdoel en HEAT/OFF | Een kamerdoel of logische verwarmingsstand wijzigen via de native klimaatentiteit | **Beschikbaar als regelintentie**; fysieke uitvoering volgt de actieve regelketen |
+| Comfort, eco, weg, vakantie en boost | Programma’s en tijdelijke keuzes met prioriteiten en eindtijden combineren | Logica **voorbereid**; complete huidige gebruikersroute nog afronden |
+| Raam-open en aanwezigheid | Warmtevraag aanpassen of blokkeren op basis van HA-context | Logica **voorbereid**; bronkoppeling/inrichting nog afronden; geofencing later |
+| Zelflerende kamerregeling | Opwarm- en afkoelgedrag modelleren en begrensde adviezen berekenen | Modellen/opslag **voorbereid**; actieve toepassing en comfortvoordeel nog aantonen |
+| Optimum-start | Eerder beginnen zodat een kamer op het gewenste tijdstip warm is | **Voorbereid**; praktijkvergelijking nog nodig |
+| Slim uitlopen en stooklijn leren | Restwarmte benutten en de curve gecontroleerd bijstellen | **Voorbereid**; nog niet actief vrijgegeven |
+| Zomer- en vorstlogica | Seizoensstand en een begrensd vorstdoel meewegen | **Voorbereid**; fysieke vorstbescherming bij uitval nog niet bewezen |
+| Vloerverwarming / gemengde afgifte | Radiatoren en vloergroepen met eigen watergrenzen, kleppen, pomp en menger combineren | Groeps-/regelbasis **voorbereid**; actieve vloerroute en hardwareproeven volgen |
+
+### Home Assistant, inzicht en dagelijks beheer
+
+| Mogelijkheid | Wat je ermee kunt | Status |
+| --- | --- | --- |
+| Eigen HA-integratie en dashboard | Kamerpagina’s, klimaatbediening, inrichting en weekplanner in één omgeving | **Beschikbaar** |
+| Bestaande HA-apparaten gebruiken | Sensoren en klimaatapparaten uit HA selecteren, met controle op eenheden, grenzen en stapgrootte | **Beschikbaar**; regelkwalificatie per apparaat blijft nodig |
+| Externe wandbediening | Kamerdoelen vanuit andere bedieningen overnemen zonder terugkoppellussen | Basis **voorbereid**; complete route **gepland** |
+| E32-webinterface | Installatie, kamernamen, doelen, berekende vraag en beschikbare ketelwaarden bekijken | **Beschikbaar** |
+| Uitleg waarom er vraag is | Regelstatus en redenen voor warmtevraag of blokkering zien | **Beschikbaar als diagnosebasis**; echte opdracht-/reactietijdlijn volgt |
+| Grafieken, historie en CSV | Temperatuur, vraag, brander/modulatie en tapwater over tijd analyseren | Metrics-/opslag-/exportcode **voorbereid**; volledige actuele productroute nog afronden |
+| Verbruik, kosten en comfort | Metergegevens en duidelijk gelabelde schattingen combineren | **Deels voorbereid**; echte bronnen/kalibratie en presentatie volgen |
+| Meldingen en onderhoud | Diagnose-, batterij- en foutinformatie benutten | Basis **aanwezig**; complete scenario’s en meldingen nog afronden |
+| Lokaal en open | Eigen broncode, lokale E32 en koppeling via lokale MQTT-broker; geen verplichte thermostaatcloud | **Beschikbaar**; via HA gekoppelde apparaten blijven afhankelijk van HA/MQTT |
+| Beheer en updates | Weblogin, About, uitloggen, herstarten onder Settings, HTTPS-updater en herstelroutes | **Beschikbaar**; normale update behoudt instellingen |
+| Gedrag bij uitval | Oude/onbevestigde gegevens afwijzen en sessies, eigenaarschap en deadlines bewaken | Softwarecontroles **aanwezig**; volledige fysieke HA/MQTT/sensor/E32-uitvalproeven nog open |
+
+## Wat we nog gaan bouwen
+
+De volgorde blijft gericht op een werkende eerste ketelbèta. Bestaande
+voorbereide functies blijven in de codebasis behouden.
+
+1. **De actieve basis afronden:** originele kamermetingen aansluiten, radiatorkraan
+   met verse terugmelding testen en de echte vraag-/afgifteketen verbinden.
+2. **De eerste actieve ketelbèta:** de concrete EMS-interface en converterketen
+   kwalificeren, daarna een begrensde start-/stopproef met ketelterugmelding.
+3. **Het product compleet aansluiten:** centrale instellingen, comfortstanden,
+   weersregeling, grafieken en historie via de normale gebruikersinterface afmaken.
+4. **Uitbreiden:** meer gekwalificeerde sensoren/kranen, externe wandbediening,
+   meerdere kranen per kamer en acht geteste zones; vloerfuncties apart beproeven.
+5. **Slimmer optimaliseren:** zelfleren, optimum-start, uitlopen en curveaanpassing
+   gecontroleerd activeren en met echte metingen beoordelen.
+
+Meer ketelvelden uitlezen blijft onderdeel van de ontwikkeling; passieve
+ontvangst levert alleen de berichten die de installatie daadwerkelijk verzendt.
+Er zijn nog geen vaste datums voor deze vervolgstappen.
+
+Het [actuele werkbord](docs/modern-thermostat/WORKBOARD.nl.md) bevat de volledige
+31 producteisen en acceptatiechecks. Het [ontwerpplan](docs/modern-thermostat/PLAN.nl.md)
+werkt de regeling uit. De [release-inventaris](docs/modern-thermostat/BETA1-RELEASE-INVENTARIS.json)
+bewaakt de 23 voorbereide onderdelen. Deze detaildocumenten zijn de plek voor de
+technische uitvoeringsstatus.
 
 ## Screenshots
 
-### Home Assistant — kamer en weekprogramma
+<details>
+<summary>Home Assistant — kamerbediening en weekprogramma</summary>
 
 ![Demonstratie van de HA-kamereditor en weekplanner met voorbeeldgegevens](docs/img/screenshots/ha-room-dev24.png)
 
-Lokaal weergegeven demonstratie van de **uitgeleverde dev24-frontend**, met
-voorbeeldgegevens en dezelfde kamereditor/weekplanner. Dit is geen live
-Home Assistant-opname; het demonstratiekarakter staat ook in de afbeelding.
+Demonstratie van de **uitgeleverde dev24-frontend** met voorbeeldgegevens.
+Dit is geen live HA-opname; de afbeelding is ook als demonstratie gemarkeerd.
 
-### E32 — installatieoverzicht
+</details>
+
+<details>
+<summary>E32 — installatieoverzicht</summary>
 
 ![E32-installatieoverzicht met kamervraag, doelen en ketelstatus](docs/img/screenshots/e32-dashboard-alpha18.png)
 
-Echte opname van alpha18. De interface toont apart wat de regeling berekent,
-wat de ketel meldt en of aansturing is vrijgegeven. Ontbrekende kamermetingen
-worden niet als een temperatuur van nul weergegeven.
+Echte opname van alpha18. Berekende vraag, ketelmeldingen en vrijgave van
+actieve aansturing worden afzonderlijk getoond.
+
+</details>
 
 <details>
-<summary>Bekijk de E32-Keteltest en ontvangstdiagnose</summary>
+<summary>E32 — passieve EMS-ontvangst en Keteltest</summary>
 
 ![E32-Keteltest met ontvangen Classic-berichten en veldkwaliteit](docs/img/screenshots/e32-keteltest-alpha18.png)
 
 Echte opname van alpha18 met passief ontvangen Classic-berichten.
-De getoonde waarden zijn momentopnamen. De zendfunctie en actieve proefknoppen
-zijn geblokkeerd; een ontvangstbericht is geen bewijs van fysieke ketelaansturing.
+Zendfunctie en actieve proefknoppen zijn geblokkeerd.
 
 </details>
-
-## Wat er nog komt
-
-Er is al code voorbereid voor onderstaande functies. Wat nog ontbreekt is per
-onderdeel de aansluiting op de complete productroute en de vereiste praktijkproef.
-Deze tabel belooft geen functies die in de huidige release al actief zijn.
-
-| Onderdeel | Al voorbereid | Nog te leveren of te bewijzen |
-| --- | --- | --- |
-| Betrouwbare kamermetingen | Bronbinding, identiteit, ouderdom, replay- en uitvalcontroles | Modelspecifieke originele meetrapporten via de volledige HA → E32-keten |
-| Radiatorkranen | Profieladapter, modus-, identiteit- en capaciteitscontroles | Verse terugmelding, schema-eigenaarschap, uitvalgedrag en fysieke proef zonder ketel |
-| Begrensde ketelproef | Vaste deadline, stopprioriteit, controller/webbediening, gedeelde pollroute en Classic-encoder | Beoordeelde businterface/adressering, echte zender, stopbevestiging en onafhankelijk stopgedrag |
-| Meer apparaten en wandbediening | Bindings, normalisatie, selectie- en modelbasis | Meer gekwalificeerde sensoren/TRV-merken, meerdere kranen per kamer en externe doelbediening met echopreventie |
-| Meerdere radiatorzones | Kamerregelaars, gezamenlijke vraag en supervisor in shadowmodus | Actieve afgifte-/ketelketen; later opschalen naar het productdoel van acht gevalideerde zones |
-| Weersafhankelijk regelen | Stooklijn-, buitenbron-, groepswaterdoel- en begrenzingscode | Normale inrichting, actuele buitenbron, terugval en werkelijke keteluitvoer |
-| Vloerverwarming en gemengde afgifte | Groepen, klep-, pomp- en mengerpolicies | Actieve uitvoerroute, verdelerprofiel en afzonderlijke fysieke acceptatie |
-| Grafieken, historie en CSV | Metrics-, opslag-/Recordergrens- en exportcode | Echte CV-/tapwatertijdlijn, retentie/migratie, gaten en complete grafiekbediening |
-| Zelflerende regeling | Thermische modellen, opslag en replaycontroles | Gekwalificeerde metingen, gecontroleerde aansluiting en aantoonbaar comfortvoordeel |
-| Optimum-start en uitlopen | Opwarm-/afkoelmodellen en begrensde adviezen | Praktijkvergelijking van voorverwarmen, uitlopen en curveaanpassing |
-| Comfort, eco, weg, vakantie en boost | Prioriteiten, tijdelijke toestanden en contextbasis | Complete gebruikersroute en conflictafhandeling voor de huidige native koppeling |
-| Raam en aanwezigheid | Contextbinding en logische zoneblokkering | Actuele sensoren, bronuitval en normale configuratie; geofencing later |
-| Anti-pendelen, zomer en vorst | Timing-, minimumlast-, seizoens- en hydraulische policies | Doorstroming, pomp/naloop, tapwatervoorrang en werkelijke bescherming bij uitval |
-| Verbruik en kosten | Metrics, export en als schatting gelabelde berekeningen | Echte meter-/kostenbronnen en kalibratie; geen bewezen besparingsclaim |
-| Meldingen en tapwater | Diagnose, batterijblueprint en modelspecifieke uitlezing | Geteste foutmeldingen en alleen aantoonbaar ondersteunde tapwaterbediening |
-| Herstel bij uitval | Sessies, leases, boot-/stale-controles en update-/herstelroutes | Complete fysieke HA/MQTT/sensor/E32-uitvalmatrix en langdurige stabiliteitsproeven |
-
-De eerstvolgende mijlpaal blijft een **eerste actieve ketelbèta**: de echte
-meet-/kraanketen afronden, de installatievoorwaarden vaststellen en vervolgens
-ontvangst plus een afzonderlijke begrensde start-/stopproef aantonen.
-Daarna volgen verdere zones, vloerfuncties en actieve leerfuncties. Er is nog
-geen datum vastgelegd voor deze vervolgstappen.
-
-De volledige status staat in het [actuele werkbord](docs/modern-thermostat/WORKBOARD.nl.md),
-met alle 31 producteisen, de resterende acceptatie en de releasechecklist.
-De [release-inventaris](docs/modern-thermostat/BETA1-RELEASE-INVENTARIS.json)
-bewaakt dat alle 23 voorbereide onderdelen in de bronbasis behouden blijven.
 
 ## Releases en installeren
 

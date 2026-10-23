@@ -43,7 +43,8 @@ def _connection(hass, entry, source):
     return connection
 
 
-async def async_wait_controller_connection(hass, entry, source, expected, *, private_expected=None):
+async def async_wait_controller_connection(hass, entry, source, expected, *, private_expected=None,
+                                           previous_connection=None):
     """Wait for the existing entry-update listener's reload, never start another."""
     from homeassistant.config_entries import ConfigEntryState
     changed = asyncio.Event()
@@ -53,7 +54,8 @@ async def async_wait_controller_connection(hass, entry, source, expected, *, pri
             while True:
                 changed.clear()
                 _guard(hass, entry, source, expected, private_expected)
-                if connection := _connection(hass, entry, source):
+                connection = _connection(hass, entry, source)
+                if connection is not None and connection is not previous_connection:
                     return connection
                 if entry.state in (ConfigEntryState.SETUP_ERROR, ConfigEntryState.SETUP_RETRY,
                                     ConfigEntryState.MIGRATION_ERROR):
@@ -65,7 +67,40 @@ async def async_wait_controller_connection(hass, entry, source, expected, *, pri
         remove()
 
 
-async def async_synchronise_controller_plan(hass, entry, source, expected, *, private_expected=None):
+async def async_refresh_controller_readback(hass, entry, source, expected, connection, *, private_expected=None):
+    """An explicit save may renew DATA proof, never its source or authority."""
+    changed = asyncio.Event()
+    unsubscribe = connection.runtime.add_listener(changed.set)
+    remove_state = entry.async_on_state_change(changed.set)
+    client = connection.client
+
+    def guard():
+        _guard(hass, entry, source, expected, private_expected)
+        if _connection(hass, entry, source) is not connection or connection.client is not client:
+            raise ControllerLinkError('controller_connection_changed')
+        if client.journal['staged'] is not None:
+            raise ControllerLinkError('controller_plan_pending')
+
+    try:
+        async with asyncio.timeout(CONNECTION_TIMEOUT):
+            guard()
+            if not client.native_plan_readback_ready:
+                await connection.async_graph_command('readback')
+            while True:
+                changed.clear()
+                guard()
+                if client.native_plan_readback_ready:
+                    return
+                await changed.wait()
+    except TimeoutError:
+        raise ControllerLinkError('controller_readback_unconfirmed') from None
+    finally:
+        unsubscribe()
+        remove_state()
+
+
+async def async_synchronise_controller_plan(hass, entry, source, expected, *, private_expected=None,
+                                            previous_connection=None):
     """Prepare/apply this user's exact saved intent, using the SAME native worker.
 
     Called only by an authenticated explicit configure/apply action. Approval is
@@ -74,7 +109,8 @@ async def async_synchronise_controller_plan(hass, entry, source, expected, *, pr
     and a validated current room state are required.
     """
     _guard(hass, entry, source, expected, private_expected)
-    connection = await async_wait_controller_connection(hass, entry, source, expected, private_expected=private_expected)
+    connection = await async_wait_controller_connection(hass, entry, source, expected,
+        private_expected=private_expected, previous_connection=previous_connection)
     _guard(hass, entry, source, expected, private_expected)
     client, runtime = connection.client, connection.runtime
     changed = asyncio.Event()

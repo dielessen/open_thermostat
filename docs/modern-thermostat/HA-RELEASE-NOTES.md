@@ -1,4 +1,50 @@
-# OpenThermostat Home Assistant 0.4.0.dev17 — testrelease
+# Home Assistant 0.4.0.dev20 — room page registration on direct opening
+
+The room editor previously waited for ha-card before registering its own custom
+element. A direct room URL can load before that built-in component, leaving the
+editor unregistered and showing a Lovelace Configuration error. The editor
+extends HTMLElement and has no dependency on the ha-card definition.
+
+Register immediately; a nested ha-card can upgrade later. The frontend module URL
+and managed card type advance to dev20/v20 to refresh cached dev19 clients.
+Eight desktop/mobile NL/EN browser cases now exercise both cold and preloaded
+HA shells, including preserving a draft when ha-card registers later. Four
+existing device-metadata cases remain covered. The regression failed against
+the original script and passed after removing the unnecessary wait.
+
+No room settings, schedule, SOURCE, sensor bindings or controller admission
+rules are changed. No firmware is included. Browser fixtures use simulated
+admin WebSocket responses; live deployment and the user's exact browser
+session are separate verification steps.
+
+# OpenThermostat Home Assistant 0.4.0.dev19 — testrelease
+
+Dev19 herstelt opslaan na langer geopende kamerinstellingen. Een verse
+kamerstatus bewijst niet dat de eerdere configuratie-uitlezing nog actueel is.
+Bij Alles opslaan vraagt de bestaande verbinding zo nodig eerst een nieuwe
+configuratiebevestiging op. Pas daarna wordt de ruimte opgeslagen en het
+gewijzigde plan via dezelfde regelaar bevestigd. De bestaande leeftijdsgrens
+blijft gelden; er worden geen bevoegdheden of bronkwalificaties gefabriceerd.
+Als die uitlezing ontbreekt, blijft het concept zichtbaar en wordt niets
+opgeslagen. Geen automatische herhaling van een wijziging. De live dev18-proef
+werd vóór opslaan geweigerd; 21°C en revisie1 bleven daarbij behouden.
+
+Bij een verbonden regelaar kun je nu de **naam, basistemperatuur en lokale
+weekblokken** direct in het kamerscherm wijzigen. Alles opslaan bewaart de
+ruimte, wacht op de normale HA-herlaadcyclus en bevestigt het werkelijke E32-plan
+via de bestaande MQTT-worker. Een ACK alleen geldt niet als voltooiing. Bij
+gewijzigde temperaturen/blokken vervalt een tijdelijke temperatuur wanneer het
+nieuwe programma wordt toegepast. Apparaatkoppelingen en profielgrenzen blijven
+bij een actieve regeling voorlopig zichtbaar maar vergrendeld; hun volledige
+profielmigratie is nog open.
+
+Als toepassing niet kan worden bevestigd, blijft het concept behouden en wordt
+geen automatische opdracht herhaald. Na opnieuw laden kan de gebruiker het
+opgeslagen programma expliciet opnieuw toepassen. De bestaande SOURCE,
+credentials, kranen en fysieke bevoegdheden worden niet vervangen. Dit pad
+fabriceert geen gekwalificeerde temperatuurbron of fysieke werking. De eerdere
+afwijzing van een losse tijdelijke22°C-opdracht blijft afzonderlijk open;
+deze versie verklaart of verhelpt die nog niet.
 
 Eén installatie met centrale instellingen en kamers. Nieuwe kamers gebruiken
 een wizard; bestaande kamers hebben één direct configuratiescherm met gekoppelde
@@ -16,7 +62,7 @@ verandert geen apparaatinstellingen of fysieke aansturing.
 Dev16 herstelt de uitlezing voor Home Assistants eigen `MQTTDiscoveryPayload`-
 object. De regressietest gebruikt nu dat echte native object, ook samen met de
 werkelijke HA-MQTT-client en een lokale testbroker. De eerdere dev15-tag en
-bestanden blijven behouden; installeer dev16 voor deze apparaatcontrole.
+bestanden blijven behouden; gebruik dev19 voor de actuele apparaatcontrole.
 
 Aanwezig sinds dev15: in het kamerscherm staat onder **Geavanceerde instellingen**
 **Apparaatinformatie controleren**. Dit leest uitsluitend op verzoek de laatst
@@ -45,14 +91,15 @@ voorgewend; controleer de installatiestatus voordat je opnieuw probeert.
 
 Dit is een ontwikkelrelease. De normale HA→E32-configuratieketen is met dev14
 live bevestigd; de fysieke sensor-/kraan-/ketelproef en verwarmingsvrijgave
-zijn nog niet afgerond. Deze testversie blokkeert de kamereditor nog bij een
-actieve koppeling. Live wijzigen van de kamerinstellingen blijft vervolgwerk. De optionele externe kamerdoelbron,
-raamcontact en meerdere gekwalificeerde kraanprofielen zijn nog vervolgwerk.
+zijn nog niet afgerond. Naam, basistemperatuur en lokale weekblokken zijn in
+dev18 bij een actieve koppeling bewerkbaar. Apparaten en profielgrenzen wijzigen,
+de optionele externe kamerdoelbron, raamcontact en meerdere gekwalificeerde
+kraanprofielen blijven vervolgwerk.
 De nieuwe E32-firmware wordt afzonderlijk getest en uitgebracht; deze release
 bevat uitsluitend de Home Assistant-integratie. Een opgeslagen instelling is
 nog geen bevestigde uitvoering op de E32.
 
-Download `OpenThermostat-HA-0.4.0.dev16.zip` en controleer de SHA256 met
+Download `OpenThermostat-HA-0.4.0.dev19.zip` en controleer de SHA256 met
 `HA-SHA256SUMS.txt`. Maak vóór installatie een back-up van de bestaande
 integratie/configuratie. Kopieer `custom_components/open_thermostat` uit de ZIP
 naar de Home Assistant-configuratiemap, controleer de configuratie en herstart
@@ -69,7 +116,7 @@ op de ingestelde leeftijdsgrens worden geweigerd. Versheidscontroles blijven sta
 
 De pipeline bouwt beide benodigde C++-testprobes in een schone CI-omgeving.
 De mislukte `ha-v0.4.0.dev11`- en `ha-v0.4.0.dev12`-tags blijven behouden;
-daarvan is geen release gepubliceerd. Als dev11 al gezond is geïnstalleerd,
-is opnieuw installeren niet nodig voor de bestaande kamerbediening.
+daarvan is geen release gepubliceerd. Bestaande instellingen en apparaatkoppelingen
+blijven bij deze update behouden.
 Het pakket bevat `SOURCE.json`, oorspronkelijke projectlicentie en checksums.
 Geen live HA-opslag, firmware, ketelvrijgave of apparaatcommando's zijn inbegrepen.

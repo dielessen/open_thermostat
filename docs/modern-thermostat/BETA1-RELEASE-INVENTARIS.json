@@ -36,11 +36,11 @@
         },
         {
           "path": "scripts/esp32_size_link.py",
-          "sha256": "bd6c5e3b87d08a1e5eda915c4695dfe4cbc460af23b572d518d756e915f095ba"
+          "sha256": "1cc5e137d77757d4147426f1c1c600c9e814da5daf1b2d7a42f4dcb05a644c40"
         },
         {
           "path": "scripts/test_esp32_size_link.py",
-          "sha256": "7cf3f81de3c6e166e6dd076e379379c30a44f169ba7194c08014df45dcf7a4da"
+          "sha256": "feb001ff5666f9cece969e0f59a28a7b0440bbdb19631c3c6d377bcca847f1f6"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."

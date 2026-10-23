@@ -6,10 +6,12 @@ import unittest
 
 
 class Env:
-    def __init__(self, root): self.root = root; self.action = None
+    def __init__(self, root): self.root = root; self.action = None; self.flags = ["-fno-lto"]
     def subst(self, key): return 'esp32dev' if key == '$PIOENV' else str(self.root)
     def GetProjectOption(self, key): return 'partitions.csv'
-    def AppendUnique(self, **kw): pass
+    def __getitem__(self, key): return self.flags
+    def Replace(self, **kw): self.flags = kw['LINKFLAGS']
+    def AppendUnique(self, **kw): self.flags.extend(flag for flag in kw['LINKFLAGS'] if flag not in self.flags)
     def AddPostAction(self, target, action): self.action = action
 
 
@@ -22,6 +24,8 @@ class ActualOtaImage(unittest.TestCase):
             runpy.run_path(str(Path(__file__).with_name('esp32_size_link.py')),
                            init_globals={'env':env,'Import':lambda _:None})
             self.assertIsNotNone(env.action)
+            self.assertNotIn("-fno-lto",env.flags)
+            self.assertIn("-flto",env.flags)
             image = root/'firmware.bin'
             for size in (1,4096):
                 image.write_bytes(b'x'*size); env.action([], [image], env)

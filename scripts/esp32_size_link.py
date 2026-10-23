@@ -3,6 +3,9 @@ Import("env")
 
 # E32 and S3 have their own build profiles. Keep their code-layout policy intact.
 if env.subst("$PIOENV") == "esp32dev":
+    # Arduino appends -fno-lto in its framework script. Run POST-framework so
+    # this one selected 4 MB profile actually uses its compiled LTO objects.
+    env.Replace(LINKFLAGS=[flag for flag in env["LINKFLAGS"] if flag != "-fno-lto"])
     env.AppendUnique(LINKFLAGS=["-Wl,--size-opt", "-Os", "-flto"])
 
     def verify_actual_ota_image(source, target, env):

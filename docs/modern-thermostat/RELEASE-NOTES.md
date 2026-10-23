@@ -1,3 +1,12 @@
+# E32 V2 alpha.14 — explicit inactive-task allocator guard
+
+The scoped TLS allocator now explicitly requires a registered, non-null updater
+task before querying or matching the current task. Outside an active updater,
+the original SDK allocator is always used, including early initialization.
+This small follow-up also supplies a subsequent normal app release for actual
+alpha.13 in-device HTTPS download/install verification. No live verification
+is assumed by these notes. The TLS-memory fix and all restrictions below remain.
+
 # E32 V2 alpha.13 — external memory for verified HTTPS updates
 
 The real updater trace reports FFFFBD70 (-0x4290). The pinned mbedTLS source

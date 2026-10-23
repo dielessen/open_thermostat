@@ -29,8 +29,9 @@ namespace {
 std::atomic<TaskHandle_t> updaterTlsTask{nullptr};
 }
 extern "C" void *__wrap_esp_mbedtls_mem_calloc(size_t count,size_t size) {
+    const auto owner=updaterTlsTask.load();
     return heating::update::allocateTlsMemory(count,size,
-        updaterTlsTask.load()==xTaskGetCurrentTaskHandle(),
+        owner&&owner==xTaskGetCurrentTaskHandle(),
         __real_esp_mbedtls_mem_calloc,[](size_t n,size_t s)->void* {
             return heap_caps_calloc(n,s,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
         });

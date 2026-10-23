@@ -2,6 +2,7 @@
 
 #include "Logging.h"
 #include "Board.h"
+#include "EmsUartWriter.h"
 
 #include <driver/uart.h>
 #include <hal/uart_types.h>
@@ -44,30 +45,13 @@ public:
 		return enabled_.load(std::memory_order_acquire);
 	}
 
-#define EMSUART_TX_BIT_TIME 104 // bit time @9600 baud
-#define EMSUART_TX_WAIT_HT3 (EMSUART_TX_BIT_TIME * 17) // 1768
-#define EMSUART_TX_BRK_HT3 (EMSUART_TX_BIT_TIME * 11)
+	bool writeToEms(const std::vector<uint8_t>& data) {
+        return writeToEms(data.data(), data.size());
+    }
 
-	bool writeToEms(std::vector<uint8_t > data) {
-		return writeToEms(data.data(), static_cast<uint8_t>(data.size()));
-	}
-
-	bool writeToEms(uint8_t const *data, uint8_t length) {
-		if constexpr (!board::emsTransmitAllowed) return false;
-		if (length == 0 || length > EmsMaxTelegramSize) {
-			return false;
-		}
-
-        for (uint8_t i = 0; i < length; i++) {
-            uart_write_bytes(UartSlot, &data[i], 1);
-            delayMicroseconds(EMSUART_TX_WAIT_HT3);
-        }
-        uart_set_line_inverse(UartSlot, UART_SIGNAL_TXD_INV);
-        delayMicroseconds(EMSUART_TX_BRK_HT3);
-        uart_set_line_inverse(UartSlot, 0);
-
-		return true;
-	}
+    bool writeToEms(const uint8_t* data, size_t length) {
+        return uart_detail::writePaced<UartSlot, board::emsTransmitAllowed>(data, length);
+    }
 
 	std::optional<ems::EmsRawFrame> getDataToWriteToEmsBus(uint8_t id) {
 		if (id >= heads_.size()) {

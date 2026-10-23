@@ -6,7 +6,7 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   85 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   90 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
@@ -100,6 +100,17 @@ write. Werk de modelspecifieke producer op die grens uit, zonder HA-last_reporte
 als acquisitietijd te gebruiken. Gepinde convertersbron is referentie, geen opnieuw
 gelezen geïnstalleerde packageversie. Bewijs in het actuator-dispatch-dossier:
 HA-SOURCE-READONLY.json en PRODUCER-SOURCE-TRACE.json. Geen live wijzigingen.
+
+## Nieuwe gedeelde UART-voltooiingscontrole
+
+Hoofd-UART en forwarder controleren nu byteacceptatie, idle bij nul-tick SDK-probe,
+BREAK-invoer en normale polariteitsherstelling via dezelfde zendschakel. Null/lege/
+te grote invoer blijft zonder SDK-call; vectorlengte wordt niet naar uint8 afgekapt.
+80 native ASan/UBSan-gevallen PASS, waarvan acht nieuwe UART-gevallen. De bestaande
+HT3-pacing is behouden; dit kwalificeert geen Classic-golfvorm, arbitrage, totale
+looptijd of fysieke stop. SDK-write kan intern nog blokkeren. Default E32-TX blijft
+uit en er is niets geïnstalleerd. Bewijs in uart-completion/REVIEW.json onder het
+bètabewijsdossier. Geen nieuwe HA- of browserassets voor deze bronstap.
 
 ## Eerstvolgende uitvoering
 

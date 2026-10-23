@@ -44,6 +44,10 @@ vastgesteld. Ontvangstdiagnose alleen voldoet niet aan dit releasedoel.
   encoderen. Stop, verloren feedback/toezicht, tapwaterbedrijf, transportfouten of
   reset trekken positieve proefintentie in. De legacy-opdrachtwachtrij wordt
   tijdens proefbezit uitgesloten en geleegd.
+- Hoofd-UART en forwarder tellen een SDK-fout, niet-idle zender of mislukte
+  BREAK-afhandeling niet als geslaagd frame. Te lange vectoren worden vóór
+  verzending geweigerd. SDK-voltooiing blijft onderscheiden van elektrische
+  buskwaliteit, bevestiging en ketelreactie.
 - Het Classic-formaat voor de proef is UBASetPoints 0x1A, offset 0, één flowbyte
   plus checksum. Bronadres en masker moeten apart beoordeeld zijn; de encoder
   kiest die niet automatisch uit ontvangen telemetrie.

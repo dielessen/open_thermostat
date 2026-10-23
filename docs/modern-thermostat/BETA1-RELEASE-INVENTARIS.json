@@ -314,7 +314,7 @@
           "sha256": "80eb4dbfd051a7cee9c2c3fc2d6b2a87ecbe97f75cebb93c07da0319f4cfd122"
         }
       ],
-      "remaining_acceptance": "Vast 0x1A-flow/nulformaat en pollcallback getest, 72 native ASan/UBSan inclusief 6 encodergevallen PASS. Beoordeeld ketenprofiel/adressering/masker en fysieke UART-/stop-/flow-/ontvangstkwalificatie blijven open; default adresstructuur weigert ieder frame, TX-slot behouden."
+      "remaining_acceptance": "Vast 0x1A-flow/nulformaat en pollcallback getest, 80 native ASan/UBSan inclusief 6 encodergevallen PASS. Beoordeeld ketenprofiel/adressering/masker en fysieke UART-/stop-/flow-/ontvangstkwalificatie blijven open; default adresstructuur weigert ieder frame, TX-slot behouden."
     },
     {
       "id": "I13",
@@ -621,7 +621,7 @@
           "sha256": "faa0bfa19f58d47172c7d335ca8e0a7eade1316d0f91c4d72337aad293ce433b"
         }
       ],
-      "remaining_acceptance": "20 policytests en 5 queue-tests binnen 66 unieke ASan/UBSan-gevallen PASS. Poll-executor aangesloten, begin/finish bewaart IO-historie. Beoordeelde Classic-mapping en fysieke TX-/stopkwalificatie open."
+      "remaining_acceptance": "20 policytests en 5 queue-tests binnen 80 unieke ASan/UBSan-gevallen PASS. Poll-executor aangesloten, begin/finish bewaart IO-historie. Beoordeelde installatieadressering en fysieke TX-/stopkwalificatie open."
     },
     {
       "id": "I23",
@@ -672,9 +672,29 @@
         {
           "path": "test/test_native/test_boiler_test_poll.cpp",
           "sha256": "f642f7109c9b09a6a0d04612f7508e00e58ba9bad5dd96d4c04eac5345122db7"
+        },
+        {
+          "path": "src/EMS/PacedUartWrite.h",
+          "sha256": "04a97424d4f1f867e868f8583423da0448d853630e46fb77e9790b4b7425d2ad"
+        },
+        {
+          "path": "src/EmsUartWriter.h",
+          "sha256": "e5a042e97045c51c3f3ae5600477ef5da91d8b53e0f79edbac5cb7c5ffc14c87"
+        },
+        {
+          "path": "src/EmsBusUart.h",
+          "sha256": "424c08e33f6eee066c4b58b75b889b2384338bc10c1a9e2d787755557f121f89"
+        },
+        {
+          "path": "src/EmsBusUartForwarder.h",
+          "sha256": "9efa6b3e5eae0556f23e9108bcf1abd5c6ef9d04faeae43ef1c207c3577e5e01"
+        },
+        {
+          "path": "test/test_native/test_paced_uart_write.cpp",
+          "sha256": "e9d608fa2db47aabe0f1ba56ab5121a08ab9e1b5d3e0647cc2c62cbb688be897"
         }
       ],
-      "remaining_acceptance": "Poll-executor op echte E32-pollroute aangesloten; 66 native ASan/UBSan inclusief 9 pollgevallen PASS. HTTP/webassets ongewijzigd, eerder 3 controlviewports PASS. Beoordeeld profiel/Classic-encoder, hydraulische gates en fysieke UART-/stopkwalificatie open; default TX blijft geblokkeerd."
+      "remaining_acceptance": "Poll-executor, Classic-formaat en gedeelde gecontroleerde SDK-zendroute aangesloten/getest; 80 native ASan/UBSan PASS. Webassets ongewijzigd, eerder 3 controlviewports PASS. Beoordeeld profiel/adressering/masker, hydraulische gates, totale UART-latentie en fysieke UART-/stopkwalificatie open; default E32-TX blijft geblokkeerd."
     }
   ],
   "requirements": [
@@ -966,7 +986,7 @@
     {
       "id": "B08",
       "complete": false,
-      "description": "Poll-executor en Classic-flow/nulformaat aangesloten/getest; installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute."
+      "description": "Poll-executor, Classic-flow/nulformaat en gecontroleerde SDK-zendresultaten aangesloten/getest; installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute."
     },
     {
       "id": "B09",

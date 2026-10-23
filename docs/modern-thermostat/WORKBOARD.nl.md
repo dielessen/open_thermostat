@@ -52,7 +52,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-85 bronverwijzingen met hashes, status en resterende acceptatie.
+90 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -80,8 +80,8 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | I19 | Thermisch model, optimum-start, uitlopen en curveaanpassing | Voorbereide code, functie nog onvolledig | Code/replay/opslag aanwezig en behouden; geen bewezen leerwinst of actieve vrijgave. Geen nieuwe F9-stage vóór M2. |
 | I20 | Meldingen, batterij en modelspecifieke tapwaterpresentatie | Voorbereide code, functie nog onvolledig | Niet generiek als werkende onderhouds-/tapwaterregeling presenteren; modelgerichte acceptatie open. |
 | I21 | Keteltest-pagina, ontvangstdiagnose en meetrapport | Nieuw gebouwd/getest, nog niet geleverd | 18 native + 43 GUI-regressies en 3 browserschermen PASS; nog niet geïnstalleerd. |
-| I22 | Begrensde ketelproefpolicy en originele UART-ontvangsttijd | Nieuwe pure policy en RX-integratie getest; actieve proef nog onvolledig | 72 unieke native gevallen onder ASan/UBSan PASS; beoordeeld profiel/adressering en fysieke TX-/stopkwalificatie open. |
-| I23 | Beveiligde controller-/HTTP-/webbediening van de ketelproef | Nieuw gebouwd/getest, nog niet geleverd | Poll-executor aangesloten; default start geblokkeerd. Classic-formaat gekoppeld; beoordeeld profiel/adressering en fysieke UART-kwalificatie open. 72 native en eerder 3 control-browserprofielen PASS. |
+| I22 | Begrensde ketelproefpolicy en originele UART-ontvangsttijd | Nieuwe pure policy en RX-integratie getest; actieve proef nog onvolledig | 80 unieke native gevallen onder ASan/UBSan PASS; beoordeeld profiel/adressering en fysieke TX-/stopkwalificatie open. |
+| I23 | Beveiligde controller-/HTTP-/webbediening van de ketelproef | Nieuw gebouwd/getest, nog niet geleverd | Poll-executor aangesloten; default start geblokkeerd. Classic-formaat gekoppeld; beoordeeld profiel/adressering en fysieke UART-kwalificatie open. 80 native en eerder 3 control-browserprofielen PASS. |
 
 Er wordt geen voorbereide supervisor, vloer-/mengerpolicy, CSV-/grafiekroute,
 comfortcode of leer-/modelcode weggegooid of opnieuw vanaf nul gebouwd. Deze
@@ -280,6 +280,27 @@ onafhankelijk bron-/testwerk hoeven niet te wachten op een fysieke waarneming.
   en de fysieke proef. Geen standaardadapter ingeschakeld en geen live actie.
   Bewijs: `out/beta-boiler-evidence-20261023/actuator-dispatch/REVIEW.json`.
 
+### Nieuw UART-bronwerk: gecontroleerde voltooiing
+
+- Hoofd-UART en forwarder gebruiken dezelfde gecontroleerde zendschakel. Iedere
+  byte moet door de SDK zijn geaccepteerd, de transmitter moet bij de nul-tick-
+  voltooiingscontrole idle melden en zowel BREAK-invoer als terugzetten naar
+  normale polariteit moeten slagen. Anders retourneert de route geen succes.
+  Een mislukte BREAK-invoer probeert alleen normale polariteit te herstellen;
+  er is geen herhaling van het frame. Fysiek herstel is daarmee niet bewezen.
+- Null/lege/te grote invoer wordt vóór iedere SDK-call geweigerd. Vectorlengte
+  blijft size_t: bijvoorbeeld 257 bytes kan niet meer naar een geldig één-byte-
+  frame worden afgekapt. De forwarder maakt geen onnodige vectorkopie meer.
+- De bestaande 1768-us-byte-/1144-us-BREAK-pacing is behouden, zonder die als
+  juiste Classic-installatiemodus te kwalificeren. De nul-tick SDK-controle voegt
+  geen wachtbudget toe. De bestaande SDK-write kan intern nog blokkeren;
+  totale latentie, waveform/arbitrage en fysieke stop/flow blijven te kwalificeren.
+- Acht nieuwe native gevallen, samen 80 ASan/UBSan-gevallen met leakcontrole PASS:
+  fout op iedere bytepositie, korte/negatieve SDK-resultaten, niet-idle TX,
+  mislukte BREAK/normal-herstel, lengtegrenzen, exacte pacing en volledig wegge-
+  compileerde board-uitvoer. Geen firmware geïnstalleerd of fysieke actie.
+  Bewijs: `out/beta-boiler-evidence-20261023/uart-completion/REVIEW.json`.
+
 ### Bron-/produceronderzoek voor de resterende M2-keten
 
 De HA-specialist heeft de bestaande geselecteerde bindings opnieuw read-only
@@ -317,7 +338,7 @@ gekoppeld; het concept is geen nieuwe release of extra afvinklijst.
 - [ ] B05 TV02-modusconflicten, native identiteit en actuele doelcapaciteit vóór dispatch gecontroleerd/getest; verse modelspecifieke rapporten/echo, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel.
 - [ ] B06 Bestaande supervisor koppelen aan vereiste actuele profiel-/feedback-/DHW-/hydraulische voorwaarden; geen generieke flowaanname.
 - [ ] B07 Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten.
-- [ ] B08 Poll-executor en Classic-flow/nulformaat aangesloten/getest; installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute.
+- [ ] B08 Poll-executor, Classic-flow/nulformaat en gecontroleerde SDK-zendresultaten aangesloten/getest; installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute.
 - [ ] B09 Concrete TX-interface en aansluit-/stopvoorwaarden vaststellen: timing/polariteit/arbitrage, converterketen, minimumflow/naloop, onafhankelijke stop/herstel en Tado óf E32.
 - [ ] B10 Bestaande voorbereide gebruikersfuncties en juiste onbekend-/draft-/geblokkeerdstatussen in eindkandidaat controleren; niets stilzwijgend laten verdwijnen.
 - [ ] B11 Versies/bron bevriezen, volledige CI/3 boards/native/HA/C++/browser/release-/source-/licentie-/compatibiliteitschecks op die exacte kandidaat.
@@ -353,7 +374,7 @@ Alleen programma-ACK of beschikbaarheid van een entiteit sluit M2 niet.
 | `out/combined-release-evidence-20261023/FINAL-REVIEW.json` | Werkelijk gepubliceerde/geïnstalleerde alpha17/dev23 en instellingenbehoud |
 | `out/beta-boiler-evidence-20261023/CHECKPOINT.json` | Ontvangstsoftwarecheckpoint, geen bèta- of fysieke vrijgave |
 | `out/plan-audit-20261023/AUDIT.json` | Bron-/inventaris-/takken-/plancontrole van deze herijking |
-| `BETA1-RELEASE-INVENTARIS.json` | Alle 23 voorbereide brononderdelen en 85 bestandsverwijzingen met hashes |
+| `BETA1-RELEASE-INVENTARIS.json` | Alle 23 voorbereide brononderdelen en 90 bestandsverwijzingen met hashes |
 | `BETA1-KETELPROEF.nl.md` / `BETA1-PROEFSTAND-ONTWERP.nl.md` | Scope en nog te implementeren begrensd proefcontract |
 | `out/critical-path-20261022/SAVED-STOP-RECHECK.json` | Historisch expliciet nulcommando; geen zelfstandige stop bij communicatiewegval |
 | `out/plan-audit-20261023/*.before` | Ongewijzigde oude PLAN/WORKBOARD/overdracht/nachtvolgorde; historische bewijsregels behouden |

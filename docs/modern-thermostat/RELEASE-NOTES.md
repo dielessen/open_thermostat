@@ -1,24 +1,31 @@
-# E32 V2 alpha.12 — preserve internal heap during HTTPS updates
+# E32 V2 alpha.13 — external memory for verified HTTPS updates
 
-The serial trace from the existing updater reports certificate verification
-failure FFFFBD70 (-0x4290). The pinned mbedTLS implementation combines
-RSA_PUBLIC_FAILED (-0x4280) with MPI_ALLOC_FAILED (-0x0010): this is an
-allocation failure while verifying the signature, not evidence of an untrusted CA.
-The pinned SDK allocates TLS memory exclusively from internal RAM.
+The real updater trace reports FFFFBD70 (-0x4290). The pinned mbedTLS source
+combines RSA_PUBLIC_FAILED (-0x4280) and MPI_ALLOC_FAILED (-0x0010): memory
+allocation failed during certificate signature verification. This is not
+proof of an untrusted root. The pinned SDK reserves internal RAM for TLS.
 
-Release discovery previously reserved a 32 KiB internal response string before
-the TLS handshake. Bounded release/manifest response storage now explicitly uses
-E32 PSRAM, with no internal fallback. The ordinary JSON string is created only
-after the HTTPS client has been destroyed. Failed allocation and oversized
-responses still stop the request. Certificate, hostname, redirect, manifest,
-image checksum, flash readback and boot selection checks remain enabled.
+Only the temporary HTTPS updater task now requests its TLS allocations from
+PSRAM, following the SDK external-memory allocation policy. A scoped linker
+wrapper selects that task; all other tasks retain the original SDK allocator.
+The SDK free function supports both heaps. No global allocator or SDK binary
+is replaced. A changed SDK memory configuration fails the build for review.
+External allocation failure stops the connection; it never consumes internal
+heap as fallback. Response buffers are also explicitly bounded in PSRAM,
+and converted to JSON text only after TLS teardown. The older default malloc
+could already place large buffers externally; that change alone was not
+accepted as a fix. Alpha.12 was an unpublished intermediate candidate.
 
-This addresses a demonstrated internal-memory competitor. It does not yet
-establish that all real-board update failures are fixed. A successful actual
-HTTPS discovery and subsequent verified firmware update remain required.
-Settings, filesystem, partition layout and physical-output restrictions are
-unchanged. Use only the published app-only firmware.bin; never erase or upload
-the factory image or SPIFFS for this update. Keep EMS disconnected.
+Certificate/hostname verification, approved redirects, release/manifest checks,
+image SHA, native image validation, flash readback, previous valid slot and
+normal boot confirmation remain required. Settings, filesystem and partitions
+are unchanged; physical heating outputs remain blocked. Keep EMS disconnected.
+
+Native tests and complete release CI are required. Actual board HTTPS discovery
+and a subsequent verified in-device update must still establish physical
+acceptance; this release does not assume success from compilation alone.
+Use only firmware.bin for app-only updates; do not erase or upload SPIFFS or
+the factory image. Retain existing settings and programs.
 
 # E32 V2 v0.1.0-e32v2-alpha.11 — testkandidaat
 

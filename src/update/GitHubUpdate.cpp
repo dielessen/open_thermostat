@@ -4,6 +4,7 @@
 #include "VerifiedOta.h"
 #include "RestartTimer.h"
 #include "DownloadTextBuffer.h"
+#include "TlsAllocationPolicy.h"
 #include "EmbeddedWebAssets.h"
 #include "DeviceAccess.h"
 #include "Filesystem.h"
@@ -12,11 +13,28 @@
 #include <WiFiClientSecure.h>
 #include <esp_ota_ops.h>
 #include <esp_heap_caps.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include <mbedtls/sha256.h>
 #include <atomic>
 #include <mutex>
 #include <vector>
 #include <ctime>
+
+#if !CONFIG_MBEDTLS_INTERNAL_MEM_ALLOC
+#error "Review scoped TLS allocator for changed SDK memory configuration"
+#endif
+extern "C" void *__real_esp_mbedtls_mem_calloc(size_t count,size_t size);
+namespace {
+std::atomic<TaskHandle_t> updaterTlsTask{nullptr};
+}
+extern "C" void *__wrap_esp_mbedtls_mem_calloc(size_t count,size_t size) {
+    return heating::update::allocateTlsMemory(count,size,
+        updaterTlsTask.load()==xTaskGetCurrentTaskHandle(),
+        __real_esp_mbedtls_mem_calloc,[](size_t n,size_t s)->void* {
+            return heap_caps_calloc(n,s,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
+        });
+}
 
 namespace heating {extern bool wifiAPMode;}
 namespace heating::update {
@@ -141,9 +159,14 @@ void execute(bool install) {
         } else if(error.empty())error="Deze release past niet bij dit bord, instellingenformaat of updateformaat.";
     }
     if(!ok)phase("error",error);
-    working.store(false);
 }
-void worker(void *argument){execute(argument!=nullptr);vTaskDelete(nullptr);}
+void worker(void *argument){
+    updaterTlsTask.store(xTaskGetCurrentTaskHandle());
+    execute(argument!=nullptr);
+    updaterTlsTask.store(nullptr);
+    working.store(false);
+    vTaskDelete(nullptr);
+}
 bool start(bool install,const std::string &tag="") {
     if(busy()||!ready()||(install&&pendingBoot()))return false;
     {std::lock_guard<std::mutex> lock(stateMutex);if(state.reboot)return false;

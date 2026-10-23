@@ -276,7 +276,7 @@
 				<span><span data-i18n="Heating controller">Heating controller</span></span>
 			</a>
 			<button class="navbar-toggler order-1 order-lg-2 ml-auto mr-2" type="button" data-toggle="collapse" data-target="#navbarNavDropdown"
-				aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+				aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation" data-i18n-aria-label="Toggle navigation">
 				<span class="navbar-toggler-icon"></span>
 			</button>
 			<div class="collapse navbar-collapse order-3 order-lg-1" id="navbarNavDropdown">
@@ -317,7 +317,7 @@
 			<div class="modal-content">
 				<div class="modal-header">
 					<h5 class="modal-title" id="editModalLabel"><span data-i18n="Edit name">Edit name</span></h5>
-					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close" data-i18n-aria-label="Close">
 						<span aria-hidden="true">&times;</span>
 					</button>
 				</div>
@@ -338,7 +338,7 @@
 			<div class="modal-content">
 				<div class="modal-header">
 					<h5 class="modal-title" id="temporaryTempModalLabel"><span data-i18n="Set temporary temperature">Set temporary temperature</span></h5>
-					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close" data-i18n-aria-label="Close">
 						<span aria-hidden="true">&times;</span>
 					</button>
 				</div>
@@ -793,7 +793,7 @@
                 });
                 return path;
             }
-            return '<svg class="pd-trend" viewBox="0 0 260 56" role="img" aria-label="Recente temperatuurterugmelding en doel"><path d="'+line(2)+'" class="pd-target-line"/><path d="'+line(1)+'" class="pd-actual-line"/></svg>'+
+            return '<svg class="pd-trend" viewBox="0 0 260 56" role="img" aria-label="Recent temperature feedback and target" data-i18n-aria-label="Recent temperature feedback and target"><path d="'+line(2)+'" class="pd-target-line"/><path d="'+line(1)+'" class="pd-actual-line"/></svg>'+
                 uiHtml("<p class=\"pd-help\">Solid: reported · dotted: target · ")+Math.max(1,Math.round(span/1000))+' s</p>';
         }
         function renderInstallationDashboard(status) {
@@ -813,7 +813,7 @@
             function fact(label,value,unit,hint) {
                 return '<article class="pd-fact"><h3>'+label+'</h3><div class="pd-value">'+dashboardValue(value,unit)+'</div><p class="pd-help">'+hint+'</p></article>';
             }
-            var html = '<section class="product-dashboard" lang="nl" aria-label="Installatieoverzicht">'+
+            var html = '<section class="product-dashboard" aria-label="OpenThermostat">'+
                 uiHtml("<header class=\"pd-heading\"><div><p class=\"pd-eyebrow\">OpenThermostat · E32</p><h1>Your heating system</h1><p>Boiler data and heat demand in one place.</p></div><span class=\"pd-badge\">Managed by Home Assistant</span></header>")+
                 '<div class="pd-status"><strong>'+dashboardText(mode)+'</strong><span>'+dashboardText(freshText)+'</span></div>'+
                 '<div class="pd-facts">'+

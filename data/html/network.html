@@ -15,7 +15,7 @@
 			<div class="modal-content">
 				<div class="modal-header">
 					<h5 class="modal-title" id="selectWiFiSSIDLabel"><span data-i18n="Choose WiFi Network">Choose WiFi Network</span></h5>
-					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close" data-i18n-aria-label="Close">
 						<span aria-hidden="true">&times;</span>
 					</button>
 				</div>
@@ -206,7 +206,7 @@
 <label for="InterfaceMode"><span data-i18n="E32 network (active after restart)">E32 network (active after restart)</span></label><select class="form-control" id="InterfaceMode"><option value="wifi" data-i18n="WiFi only">WiFi only</option><option value="ethernet" data-i18n="Ethernet only">Ethernet only</option></select><small><span data-i18n="The USB setup command opens temporary WiFi recovery after restart, without an Ethernet clock.">The USB setup command opens temporary WiFi recovery after restart, without an Ethernet clock.</span></small>
 <div class="alert alert-info"><span data-i18n="E32 test mode: no boiler or valve output. Select this mode only together with the v1 HA integration.">E32 test mode: no boiler or valve output. Select this mode only together with the v1 HA integration.</span></div>
 <div class="form-check"><input class="form-check-input" type="checkbox" id="ModernShadow"><label class="form-check-label" for="ModernShadow"><span data-i18n="Modern HA test mode (E32, shadow)">Modern HA test mode (E32, shadow)</span></label></div>
-<label for="ModernAdapter"><span data-i18n="HA adapter ID (from the integration)">HA adapter ID (from the integration)</span></label><input class="form-control" id="ModernAdapter" maxlength="32" pattern="[A-Za-z0-9_-]{1,32}" placeholder="Kopieer uit Home Assistant">
+<label for="ModernAdapter"><span data-i18n="HA adapter ID (from the integration)">HA adapter ID (from the integration)</span></label><input class="form-control" id="ModernAdapter" maxlength="32" pattern="[A-Za-z0-9_-]{1,32}" placeholder="Copy from Home Assistant" data-i18n-placeholder="Copy from Home Assistant">
 <details id="NativeShadowSourceSection" hidden><summary><span data-i18n="Independent logical shadow SOURCE profile (E32)">Independent logical shadow SOURCE profile (E32)</span></summary>
 <p><span data-i18n="Device controller ID:">Device controller ID:</span> <code id="NativeSourceDeviceID"><span data-i18n="Load settings">Load settings</span></code></p>
 <label for="NativeShadowSource"><span data-i18n="Reviewed local profile descriptor (optional)">Reviewed local profile descriptor (optional)</span></label>

@@ -1,4 +1,4 @@
-"""Actual English HA backend translation resources + actual room selectors; no live writes."""
+"""Actual English/Dutch HA backend translation resources + actual room selectors; no live writes."""
 import json,os
 from pathlib import Path
 from unittest.mock import AsyncMock
@@ -10,6 +10,7 @@ from test_v1_native import entry
 
 COMPONENT=Path(__file__).resolve().parents[1]/"config/custom_components/open_thermostat"
 EXPECTED={
+ "nl":{"temperature_entity":"Temperatuursensor van de ruimte","actuator_entities":"Radiatorkranen (TRV’s)","schedule_entity":"Weekschema (Home Assistant, optioneel)","setpoint_entity":"Externe temperatuurinstelling (optioneel)"},
  "en":{"temperature_entity":"Room temperature sensor","actuator_entities":"Radiator valves (TRVs)","schedule_entity":"Weekly schedule (Home Assistant, optional)","setpoint_entity":"External temperature setting (optional)"}}
 
 @pytest.mark.asyncio
@@ -27,10 +28,10 @@ async def test_actual_backend_resources_match_native_form_and_help(hass,monkeypa
     flow.hass=hass;flow.handler=(parent.entry_id,"zone");flow.context={"source":"user"}
     form=await flow.async_step_user()
     schema={str(k):v for k,v in form["data_schema"].schema.items()}
-    projection={"requested_ha_language":language,"product_label_language":"en","native_step":form["step_id"],"fields":{}}
+    projection={"requested_ha_language":language,"product_label_language":language,"native_step":form["step_id"],"fields":{}}
     for step in ["user","reconfigure"]:
         prefix=f"component.open_thermostat.config_subentries.zone.step.{step}."
-        for field,label in EXPECTED["en"].items():
+        for field,label in EXPECTED[language].items():
             assert resources[prefix+"data."+field]==label
             help_text=resources[prefix+"data_description."+field]
             assert len(help_text)>60
@@ -50,13 +51,13 @@ async def test_actual_backend_resources_match_native_form_and_help(hass,monkeypa
     projection["selector_configs"]={f:dict(schema[f].config) for f in EXPECTED["en"]}
     if output:=os.environ.get("OPTH_UI_RESOURCE_EVIDENCE"):
         directory=Path(output);directory.mkdir(parents=True,exist_ok=True)
-        (directory/("native-form-en.json" if language=="en" else "native-form-english-fallback-nl.json")).write_text(json.dumps(projection,ensure_ascii=False,indent=2)+"\n")
+        (directory/("native-form-en.json" if language=="en" else "native-form-nl.json")).write_text(json.dumps(projection,ensure_ascii=False,indent=2)+"\n")
 
 def test_new_labels_have_no_schema_or_technical_field_rename():
     en=json.loads((COMPONENT/"translations/en.json").read_text())
     strings=json.loads((COMPONENT/"strings.json").read_text())
     assert en==strings
-    for language in ("en","pl"):
+    for language in ("en","nl","pl"):
         data=json.loads((COMPONENT/f"translations/{language}.json").read_text())
         for step in ("user","reconfigure"):
             form=data["config_subentries"]["zone"]["step"][step]

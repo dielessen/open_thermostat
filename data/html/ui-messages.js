@@ -703,5 +703,21 @@ window.OT_UI_MESSAGES = {
   "Toggle navigation": "Navigatie openen",
   "Label": "Label",
   ". Installation starts only when you press the button. Your WiFi, rooms and programs are retained; the web interface is updated with the firmware.": ". Installatie begint alleen wanneer je zelf op de knop drukt. Je wifi, kamers en programma’s blijven behouden; de webinterface wordt met de firmware bijgewerkt.",
-  ". This ID remains unchanged when you rename the room.": ". Dit ID blijft gelijk wanneer je de ruimte hernoemt."
+  ". This ID remains unchanged when you rename the room.": ". Dit ID blijft gelijk wanneer je de ruimte hernoemt.",
+  "OpenThermostat recovery": "OpenThermostat herstellen",
+  "Select the SPIFFS image built for this device. Keep the device powered until verification finishes.": "Kies de SPIFFS-image die voor dit apparaat is gebouwd. Houd het apparaat onder stroom totdat de controle klaar is.",
+  "Upload filesystem": "Bestandssysteem uploaden",
+  "Select spiffs.bin first.": "Kies eerst spiffs.bin.",
+  "Uploading and verifying...": "Uploaden en controleren...",
+  "Update verified. Reboot the device.": "Update gecontroleerd. Herstart het apparaat.",
+  "Update failed:": "Update mislukt:",
+  "Network error. The update was not confirmed.": "Netwerkfout. De update is niet bevestigd.",
+  "Upload aborted.": "Upload afgebroken.",
+  "Upload timed out.": "Upload verlopen.",
+  "Copy from Home Assistant": "Kopieer uit Home Assistant",
+  "Recent temperature feedback and target": "Recente temperatuurterugmelding en doel",
+  "leave empty if not installed": "laat leeg als dit niet is aangesloten",
+  "Max 16 characters, alphanumeric, spaces and underscores only": "Maximaal 16 tekens: alleen letters, cijfers, spaties en underscores",
+  "BLE address": "BLE-adres",
+  "Project links": "Projectlinks"
 };

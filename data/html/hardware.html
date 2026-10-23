@@ -30,11 +30,11 @@
 							<div class="form-row">
 								<div class="col-md mb-2">
 									<label for="Pins_SDA">SDA</label>
-									<input type="number" class="form-control" id="Pins_SDA" min="0" max="48" step="1" placeholder="leave empty if not installed" required>
+									<input type="number" class="form-control" id="Pins_SDA" min="0" max="48" step="1" placeholder="leave empty if not installed" data-i18n-placeholder="leave empty if not installed" required>
 								</div>
 								<div class="col-md mb-2">
 									<label for="Pins_SCL">SCL</label>
-									<input type="number" class="form-control" id="Pins_SCL" min="0" max="48" step="1" placeholder="leave empty if not installed" required>
+									<input type="number" class="form-control" id="Pins_SCL" min="0" max="48" step="1" placeholder="leave empty if not installed" data-i18n-placeholder="leave empty if not installed" required>
 								</div>
 							</div>
 						</div>
@@ -46,11 +46,11 @@
 							<div class="form-row">
 								<div class="col-md mb-2">
 									<label for="PinsEMS_RX">RX</label>
-									<input type="number" class="form-control" id="PinsEMS_RX" min="0" max="48" step="1" placeholder="leave empty if not installed" required>
+									<input type="number" class="form-control" id="PinsEMS_RX" min="0" max="48" step="1" placeholder="leave empty if not installed" data-i18n-placeholder="leave empty if not installed" required>
 								</div>
 								<div class="col-md mb-2">
 									<label for="PinsEMS_TX">TX</label>
-									<input type="number" class="form-control" id="PinsEMS_TX" min="0" max="48" step="1" placeholder="leave empty if not installed" required>
+									<input type="number" class="form-control" id="PinsEMS_TX" min="0" max="48" step="1" placeholder="leave empty if not installed" data-i18n-placeholder="leave empty if not installed" required>
 								</div>
 							</div>
 						</div>
@@ -62,11 +62,11 @@
 							<div class="form-row">
 								<div class="col-md mb-2">
 									<label for="PinsEMSForwarder_RX">RX</label>
-									<input type="number" class="form-control" id="PinsEMSForwarder_RX" min="0" max="48" step="1" placeholder="leave empty if not installed" required>
+									<input type="number" class="form-control" id="PinsEMSForwarder_RX" min="0" max="48" step="1" placeholder="leave empty if not installed" data-i18n-placeholder="leave empty if not installed" required>
 								</div>
 								<div class="col-md mb-2">
 									<label for="PinsEMSForwarder_TX">TX</label>
-									<input type="number" class="form-control" id="PinsEMSForwarder_TX" min="0" max="48" step="1" placeholder="leave empty if not installed" required>
+									<input type="number" class="form-control" id="PinsEMSForwarder_TX" min="0" max="48" step="1" placeholder="leave empty if not installed" data-i18n-placeholder="leave empty if not installed" required>
 								</div>
 							</div>
 						</div>
@@ -304,7 +304,7 @@ function addValveRow(source, pinVal, label) {
 	var src = source || 'builtin';
 	var lblVal = label || (uiText("Heating circuit ") + i);
 	var row = $('<div class="form-row mb-1" data-valve="' + i + '"></div>');
-	row.append('<div class="col-md-3"><input type="text" class="form-control form-control-sm valve-label" id="PinsRelays_Label' + i + '" value="' + lblVal.replace(/"/g, '&quot;') + '" maxlength="16" pattern="[A-Za-z0-9 _]+" title="Max 16 characters, alphanumeric, spaces and underscores only" required></div>');
+	row.append('<div class="col-md-3"><input type="text" class="form-control form-control-sm valve-label" id="PinsRelays_Label' + i + '" value="' + lblVal.replace(/"/g, '&quot;') + '" maxlength="16" pattern="[A-Za-z0-9 _]+" title="Max 16 characters, alphanumeric, spaces and underscores only" data-i18n-title="Max 16 characters, alphanumeric, spaces and underscores only" required></div>');
 	row.append('<div class="col-md-3">' + buildRelaySourceSelect(relayId, src) + '</div>');
 	row.append('<div class="col-md-3"><input type="number" class="form-control form-control-sm relay-pin" id="PinsRelays_HC' + i + '" min="0" max="34" step="1" required></div>');
 	row.append('<div class="col-md-3 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger px-2 py-0" onclick="removeValveRow(this);">&times;</button></div>');

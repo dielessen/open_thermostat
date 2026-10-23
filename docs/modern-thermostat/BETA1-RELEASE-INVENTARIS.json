@@ -126,11 +126,11 @@
       "files": [
         {
           "path": "data/html/about.html",
-          "sha256": "0c0b472ffa0082c6d07e382e6df36979d59fd331dda9dc7c81d0ba3115ede988"
+          "sha256": "eb4919749a3996c5181e9b1285a2532b8b8b024429fa9f17c1fe3e2084ce2a11"
         },
         {
           "path": "data/html/index.html",
-          "sha256": "7316a224d702ef142a37d55a8cea7d180036605c2db90dfdd3023434daf98daa"
+          "sha256": "3638860a2b28862a4c8dc342ecf58937eba81b1aca3171afdde31397cb00f1ef"
         },
         {
           "path": "data/html/device-restart.js",
@@ -146,7 +146,7 @@
         },
         {
           "path": "data/html/boiler_display.html",
-          "sha256": "58a3d1ac716375508f30b1101405b7e092cd63d0165ea96ae4b5f46dd4a6fbd3"
+          "sha256": "fc28fddcb95b87d10b903968dabb34bd58889017804281148953792b2f712b1e"
         },
         {
           "path": "data/html/boiler-nefit-ecomline.svg",
@@ -174,7 +174,7 @@
         },
         {
           "path": "data/html/hardware.html",
-          "sha256": "888bb5cfe0b7402ef27842e9fcd15bb807da0cb17394ee58d864ad08f17ad75a"
+          "sha256": "f7071fa46bfd4ad678aec720ce5fe46d1b62c562d78f9037edecd71e965eb4a9"
         },
         {
           "path": "data/html/login.html",
@@ -186,7 +186,7 @@
         },
         {
           "path": "data/html/network.html",
-          "sha256": "15b3bfe54baeaa08cc7675534598bea43c9d5080a1ce79de2c0d4ff98f0ba685"
+          "sha256": "e8865ee50bae359c05511e6d7a2e658c7636732b7bdaaf75c89c5f4e846fb8be"
         },
         {
           "path": "data/html/program.html",
@@ -198,7 +198,7 @@
         },
         {
           "path": "data/html/room_setup.html",
-          "sha256": "ec9752e7b0f21a76e6a3cdc087c5d0bbb651cf8e5d2920eafbf5fb75f76ab398"
+          "sha256": "7d88125f5f646e0a289d3318a1996df62c507f37f10442868b4da008ac3090ba"
         },
         {
           "path": "data/html/rooms.html",
@@ -206,7 +206,7 @@
         },
         {
           "path": "data/html/setup.html",
-          "sha256": "8035fcb784d97243c79117a9fcf2ce7de00974b01cf2e411473571ee2ba7b786"
+          "sha256": "d4f40fe2e8280c8d4de8132af56904c17e73dd11e2a5c79867d239941b64a40b"
         },
         {
           "path": "data/html/setup.js",
@@ -226,7 +226,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/nl.json",
-          "sha256": "81a305cb51465841f94419dc24d6e880605b0f5ba0ff0c1249a84bb4b2471b70"
+          "sha256": "c00b9b28085a0d252ad3af16646de6a48a8e6829b3702d34ad2bf9f124e7ce82"
         },
         {
           "path": "src/control/CaptivePortalPolicy.h",
@@ -278,7 +278,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "aacc39b63370fffcc055c0786fa37bc63f9ce63e5c43971e13c3e17c2ade54f7"
+          "sha256": "86cede0a82c1cb682acb758dce6fe9f3193515620f6abf67fc25bed2c40bc34a"
         },
         {
           "path": "data/html/ui-language.js",
@@ -290,11 +290,15 @@
         },
         {
           "path": "test/ui-language.test.cjs",
-          "sha256": "2634f07dab7329c83308b51043fcf1f31509a06973607ae99b7fa3ff8251b1dd"
+          "sha256": "6d2e2fa3efe589c0d3f6634ef43def1a67ce2fed602155ce8e4121532761fc09"
         },
         {
           "path": "test/ui-language-browser.cjs",
           "sha256": "f5376a4a82e03c9bb5878c1cfd3193a99be179ce882e79fecdc72fbccbd5ba38"
+        },
+        {
+          "path": "ha/tests_native/test_v1_room_label_resources.py",
+          "sha256": "9432eebe2ac1817e7d3747f16e0b00fb7d2ea535656e126173553cd75ccb3482"
         }
       ],
       "remaining_acceptance": "Behouden; bevestiging/herstartguards opnieuw in eindregressie. Nieuw: Mijn ketel/NVS-keuze en Home-illustratie voorbereid met 3 browserprofielen en originele opslaghelper-foutinvoer; 3 boardbuilds/OTA-groottes/E32-layout/no-TX/embedded-assets PASS op b3920ef, samen 8 browserprofielen PASS; gezamenlijke eindfreeze en uitrol blijven open. Geen technische ketelvrijgave door modelkeuze."
@@ -418,7 +422,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "cc2f87fc2dbe4ff39057e1b58cc55cc5cb19ac031023f314081756c5756a06b5"
+          "sha256": "332ce3469450af745dcf70f0ae36a6dc81b7d98337d069322f7a10d40e1a6055"
         }
       ],
       "remaining_acceptance": "Badkamer live bevestigd; geen nieuwe seriële opname van de logstilte."

@@ -82,3 +82,7 @@ jobs:
           assert asset['digest']=='sha256:'+spec['sha256'],'Remote asset changed after verification'
           subprocess.run(['gh','release','edit',spec['tag'],'--draft=false','--prerelease'],check=True)
           PYTHON
+      - name: Refresh source-package labels and installation overview
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/organize_releases.py --repository "$GITHUB_REPOSITORY" --output out/release-catalog-plan.json --apply

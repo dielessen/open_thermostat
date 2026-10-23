@@ -1,3 +1,11 @@
+# E32 V2 alpha15 — navigatie, About en releasebeheer
+
+Sign out staat rechts in de bovenbalk, ook op mobiel. Restart device staat onderaan Settings en behoudt de bevestiging. About beschrijft OpenThermostat en Mark Dielessen als ontwikkelaar, met oorspronkelijke auteur- en bibliotheekcredits in een uitklapbaar onderdeel.
+
+De werkende HTTPS-updater uit alpha14 blijft behouden. Na publicatie worden actuele downloads en archieflabels automatisch bijgewerkt. De meegeleverde HA-bron is gelijk aan dev20; deze firmware-update installeert geen HA-component.
+
+Dit is een experimentele firmware-update met behoud van bestaande instellingen. Hardware- en langdurige acceptatie blijven afzonderlijk open.
+
 # E32 V2 alpha.14 — explicit inactive-task allocator guard
 
 The scoped TLS allocator now explicitly requires a registered, non-null updater

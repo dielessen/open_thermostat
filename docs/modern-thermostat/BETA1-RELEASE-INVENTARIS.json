@@ -3,9 +3,9 @@
   "as_of": "2026-10-23",
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
   "release_state": "NOT_READY",
-  "installed_source_commit": "86f99a96a9673424425d752f582ca4361e2f2b4c",
-  "installed_firmware": "v0.1.0-e32v2-alpha.17",
-  "installed_ha": "0.4.0.dev23",
+  "installed_source_commit": "6ef01d0e8468f2bb88310d165fb5d49d033b21d4",
+  "installed_firmware": "v0.1.0-e32v2-alpha.18",
+  "installed_ha": "0.4.0.dev24",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
   "items": [
     {
@@ -134,7 +134,7 @@
     {
       "id": "I06",
       "title": "Kamerinrichting, identiteiten en apparaatmetadata",
-      "status": "geleverd_met_nieuw_bronwerk",
+      "status": "Geleverd inclusief versieprojectie",
       "include_in_beta": true,
       "requirements": [
         "R01",
@@ -258,7 +258,7 @@
     {
       "id": "I11",
       "title": "Meetstatus en geheugen-/toelatingsdiagnose",
-      "status": "geleverd_met_nieuw_bronwerk",
+      "status": "Geleverd inclusief observer-lifecycle/bronidentiteit",
       "include_in_beta": true,
       "requirements": [
         "R03",
@@ -301,7 +301,7 @@
     {
       "id": "I12",
       "title": "Passieve Classic-decoder en begrensde Classic-proefencoder",
-      "status": "geleverd_met_nieuw_bronwerk",
+      "status": "Decoder en geblokkeerde encoder geleverd",
       "include_in_beta": true,
       "requirements": [
         "R08",
@@ -366,7 +366,7 @@
     {
       "id": "I14",
       "title": "Kraanadapter profiel C, TV02-moduscontrole en tijdelijke bronbench",
-      "status": "Modus-/identiteits-/dispatchcontrole nieuw getest; fysieke route nog onvolledig",
+      "status": "Modus-/identiteitscontrole geleverd; fysieke route nog onvolledig",
       "include_in_beta": true,
       "requirements": [
         "R03",
@@ -583,7 +583,7 @@
     {
       "id": "I21",
       "title": "Keteltest-pagina, ontvangstdiagnose en meetrapport",
-      "status": "nieuw_getest",
+      "status": "Geleverd en op E32 gecontroleerd",
       "include_in_beta": true,
       "requirements": [
         "R08",
@@ -615,7 +615,7 @@
     {
       "id": "I22",
       "title": "Begrensde ketelproefpolicy en originele UART-ontvangsttijd",
-      "status": "deels",
+      "status": "Policy en RX-integratie geleverd; actieve proef nog onvolledig",
       "include_in_beta": true,
       "requirements": [
         "R08",
@@ -646,7 +646,7 @@
     {
       "id": "I23",
       "title": "Beveiligde controller-/HTTP-/webbediening van de ketelproef",
-      "status": "nieuw_getest",
+      "status": "Geleverd met actieve proef geblokkeerd",
       "include_in_beta": true,
       "requirements": [
         "R08",

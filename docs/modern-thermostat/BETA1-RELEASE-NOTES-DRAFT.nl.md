@@ -62,7 +62,8 @@ vastgesteld. Ontvangstdiagnose alleen voldoet niet aan dit releasedoel.
 
 De model-/comfort-/vloer-/menger-/metrics-/CSV-code blijft in de bronbasis. Dat
 betekent geen fysieke vrijgave van die functies, acht zones of bewezen leerwinst.
-De geïnstalleerde alpha17/dev23 is nog niet vervangen door deze ontwikkelbron.
+De voorbereide bron is inmiddels geleverd als passieve alpha18/dev24-release
+(commit `6ef01d0`); de actieve bèta uit dit concept blijft niet vrijgegeven.
 
 B04–B09 in het werkbord bevatten nog open implementatie en kwalificatie: de
 modelspecifieke originele meetrapportproducer, verse kraanecho/eigenaarschap,
@@ -79,5 +80,6 @@ via de bestaande normale updater. HA gaat via de bestaande bevoegde HA-agent met
 back-up en nacontrole. Programma, bindings en identiteiten moeten behouden blijven.
 
 De herstelroute en fysieke aansluit-/stopvoorwaarden worden vóór vrijgave aan de
-exacte kandidaat gekoppeld. Tot die tijd worden geen nieuwe tag, updatecatalogus,
-installatie of succesvolle fysieke ketelproef uit dit concept afgeleid.
+exacte kandidaat gekoppeld. Dit concept verleent zelf geen publicatie- of installatieopdracht. De afzonderlijk
+geautoriseerde passieve alpha18/dev24-uitrol staat in WORKBOARD; die bewijst
+geen succesvolle fysieke ketelproef.

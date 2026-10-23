@@ -9,9 +9,9 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
-| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.17` |
-| Geïnstalleerde HA-integratie | `0.4.0.dev23`, via bestaande HA-agent met back-up/nacontrole |
-| Geleverde gezamenlijke bron | `86f99a96a9673424425d752f582ca4361e2f2b4c` |
+| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.18`, normale OTA/nacontrole geslaagd |
+| Geïnstalleerde HA-integratie | `0.4.0.dev24`, via bestaande HA-agent met back-up/nacontrole |
+| Geleverde gezamenlijke bron | `6ef01d0e8468f2bb88310d165fb5d49d033b21d4` (passieve voorbereidingsrelease) |
 | Nieuwe softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; ontvangstcheckpoint `cebb0a2` |
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
@@ -64,24 +64,24 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | I03 | Automatische HTTPS-update, TLS-geheugen en catalogus | Geleverde softwarebasis | Nieuwe bèta via dezelfde normale updater controleren. |
 | I04 | Actuele/archief-releases automatisch ordenen | Geleverde softwarebasis | Nieuwe publicatie moet bestaande tags/assets behouden. |
 | I05 | About, uitloggen rechts en herstart onder Settings | Geleverde softwarebasis | Behouden; bevestiging/herstartguards opnieuw in eindregressie. |
-| I06 | Kamerinrichting, identiteiten en apparaatmetadata | Basis geleverd; versieprojectie nieuw getest | Gemelde Z2M-/converterversie zichtbaar; ontbrekend blijft onbekend. Metadata kwalificeert geen fysieke sensor of kraan. |
+| I06 | Kamerinrichting, identiteiten en apparaatmetadata | Geleverd inclusief versieprojectie | Gemelde Z2M-/converterversie zichtbaar; ontbrekend blijft onbekend. Metadata kwalificeert geen fysieke sensor of kraan. |
 | I07 | Weekplanner, korte aanraakblokken en effectief doel | Geleverde softwarebasis | Echte programma-save/ACK bevestigd; bron-/uitval-/reconnectproef nog open. |
 | I08 | Actieve sensor/TRV/grenzen wijzigen, bewaren en opnieuw toepassen | Geleverde softwarebasis | Alleen normale expliciete save; geen live apparaatwissel tijdens installatie bewezen. |
 | I09 | HA-kaart registreren na opstart, zonder herhaald refreshen | Geleverde softwarebasis | Drie echte koude HA-sessies bewezen; versiegebonden module behouden. |
 | I10 | Kamernamen op E32 en juiste statische webroutes | Geleverde softwarebasis | Badkamer live bevestigd; geen nieuwe seriële opname van de logstilte. |
-| I11 | Meetstatus en geheugen-/toelatingsdiagnose | Basis geleverd; observer-lifecycle/bronidentiteit nieuw getest | Vervangen/intrekken en native bron-/apparaatwissel trekken oude kwalificatie in; pending transport wordt opnieuw gecontroleerd. Productieprofiel blijft open. |
-| I12 | Passieve Classic-decoder en Classic-proefencoder | Decoder geleverd; encoder nieuw getest | Vast 0x1A-flow/nulformaat gebouwd; beoordeelde bronadressering, fysieke UART-/stopkwalificatie en ontvangstpariteit blijven open. |
+| I11 | Meetstatus en geheugen-/toelatingsdiagnose | Geleverd inclusief observer-lifecycle/bronidentiteit | Vervangen/intrekken en native bron-/apparaatwissel trekken oude kwalificatie in; pending transport wordt opnieuw gecontroleerd. Productieprofiel blijft open. |
+| I12 | Passieve Classic-decoder en Classic-proefencoder | Decoder en geblokkeerde encoder geleverd | Vast 0x1A-flow/nulformaat gebouwd; beoordeelde bronadressering, fysieke UART-/stopkwalificatie en ontvangstpariteit blijven open. |
 | I13 | Ketencontract, SOURCE, journal, configuratie en readback | Geleverde softwarebasis | Logische provisioning/programma-ACK werkt; verse fysieke meet- en actuatorbewijzen ontbreken. |
-| I14 | Kraanadapter profiel C, TV02-moduscontrole en bronbench | Modus-/identiteitscontrole nieuw getest; fysieke route nog onvolledig | Native identiteit en doelcapaciteit vlak vóór dispatch opnieuw gecontroleerd; TV02 auto/vakantie/uit/onbekend zichtbaar en vóór doelactie geweigerd. Verse kraanecho, exclusief eigenaarschap en fysieke werking blijven open; oude bench op SOURCE geblokkeerd. |
+| I14 | Kraanadapter profiel C, TV02-moduscontrole en bronbench | Modus-/identiteitscontrole geleverd; fysieke route nog onvolledig | Native identiteit en doelcapaciteit vlak vóór dispatch opnieuw gecontroleerd; TV02 auto/vakantie/uit/onbekend zichtbaar en vóór doelactie geweigerd. Verse kraanecho, exclusief eigenaarschap en fysieke werking blijven open; oude bench op SOURCE geblokkeerd. |
 | I15 | Kamerregelaar, seizoensbeleid en hydraulische supervisor | Voorbereide code, functie nog onvolledig | Regellogica/shadow voorbereid; hydraulische profiel- en uitvoerketen niet gekwalificeerd. |
 | I16 | Groepswaterdoelen, vloer, menger en centrale graph-config | Voorbereide code, functie nog onvolledig | Pure policies/declaraties en begrensde DATA-paden aanwezig; niet gelijk aan actieve groepen/pomp/menger. |
 | I17 | Metrics, grafieken, historiegrens en CSV-export | Voorbereide code, functie nog onvolledig | Niet opnieuw vanaf nul bouwen; echte Classic-tijdlijn, Recorder-retentie/migratie en grafiekacceptatie open. |
 | I18 | Comfortprioriteiten, raam/aanwezigheidscontext en HEAT/OFF | Voorbereide code, functie nog onvolledig | Logische/oudere opt-in paden bestaan; native eenvoudige kamereditor/bronkwalificatie niet compleet. |
 | I19 | Thermisch model, optimum-start, uitlopen en curveaanpassing | Voorbereide code, functie nog onvolledig | Code/replay/opslag aanwezig en behouden; geen bewezen leerwinst of actieve vrijgave. Geen nieuwe F9-stage vóór M2. |
 | I20 | Meldingen, batterij en modelspecifieke tapwaterpresentatie | Voorbereide code, functie nog onvolledig | Niet generiek als werkende onderhouds-/tapwaterregeling presenteren; modelgerichte acceptatie open. |
-| I21 | Keteltest-pagina, ontvangstdiagnose en meetrapport | Nieuw gebouwd/getest, nog niet geleverd | 18 native + 43 GUI-regressies en 3 browserschermen PASS; nog niet geïnstalleerd. |
-| I22 | Begrensde ketelproefpolicy en originele UART-ontvangsttijd | Nieuwe pure policy en RX-integratie getest; actieve proef nog onvolledig | 80 unieke native gevallen onder ASan/UBSan PASS; beoordeeld profiel/adressering en fysieke TX-/stopkwalificatie open. |
-| I23 | Beveiligde controller-/HTTP-/webbediening van de ketelproef | Nieuw gebouwd/getest, nog niet geleverd | Poll-executor aangesloten; default start geblokkeerd. Classic-formaat gekoppeld; beoordeeld profiel/adressering en fysieke UART-kwalificatie open. 80 native en eerder 3 control-browserprofielen PASS. |
+| I21 | Keteltest-pagina, ontvangstdiagnose en meetrapport | Geleverd en op E32 gecontroleerd | Volledige release-CI PASS; echte E32-pagina en rapportdownload op 1280/390/320 px gecontroleerd. Ontvangst staat in behouden instellingen nog uit. |
+| I22 | Begrensde ketelproefpolicy en originele UART-ontvangsttijd | Policy en RX-integratie geleverd; actieve proef nog onvolledig | 80 unieke native gevallen onder ASan/UBSan PASS; beoordeeld profiel/adressering en fysieke TX-/stopkwalificatie open. |
+| I23 | Beveiligde controller-/HTTP-/webbediening van de ketelproef | Geleverd met actieve proef geblokkeerd | Poll-executor aangesloten; default start geblokkeerd. Classic-formaat gekoppeld; beoordeeld profiel/adressering en fysieke UART-kwalificatie open. 80 native en eerder 3 control-browserprofielen PASS. |
 
 Er wordt geen voorbereide supervisor, vloer-/mengerpolicy, CSV-/grafiekroute,
 comfortcode of leer-/modelcode weggegooid of opnieuw vanaf nul gebouwd. Deze
@@ -464,3 +464,34 @@ zij vervangt de ambitie van de actieve eerste bèta niet. B04–B09 blijven open
 De bestaande compile-time uitgangsblokkades blijven behouden. Na freeze volgen
 volledige CI, onafhankelijke pakketcontrole, normale OTA en HA-agentinstallatie
 met back-up/nacontrole. Uitrolbewijs: `out/prepared-rollout-20261023/`.
+
+## Geleverde passieve release alpha18/dev24
+
+Op expliciet verzoek is de volledige voorbereide bron nu gezamenlijk gecommit,
+gepubliceerd en geïnstalleerd. Beide onveranderlijke tags verwijzen naar
+`6ef01d0e8468f2bb88310d165fb5d49d033b21d4`. Volledige CI op beide releasetags
+en main is geslaagd: drie firmwareboards, native tests, SDK-reproductie,
+HA/C++/MQTT-interoperabiliteit en browsers. HA: 1.758 checks, nul fouten/skips.
+E32-pakket: 1.065 controles; bronarchief met 614 bestanden exact met de commit
+vergeleken. Openbare firmware/manifest/checksums zijn gedownload en vergeleken;
+de openbare ZIP heeft volgens de GitHub-server exact de SHA256 van het volledig
+gecontroleerde CI-archief. De grote publieke ZIP is niet opnieuw gedownload.
+
+E32 alpha18 is één keer via de normale updater geïnstalleerd. Alle zeven
+configuratievergelijkingen slagen, SOURCE rev3/digest behouden en HA-verbinding
+na reboot vers/actief. HA dev24 is via de bestaande agent met private back-up,
+één Core-herstart en 24 nacontroles geïnstalleerd; alle 76 bronbestanden exact.
+De HA-frontendroute en beheerde v24-kaartidentiteit zijn door de agent bevestigd;
+geen nieuwe live HA-koude-browserproef geclaimd. Op de echte E32 zijn dashboard,
+About, herstartannulering, Keteltest en rapportdownload op drie schermbreedtes
+zonder writes of browserfouten gecontroleerd.
+
+**Ontvangst staat nog uit in de behouden instellingen** (`enabled=false`, nul
+ketelrapporten). Er is geen fysieke ontvangst- of verwarmingsproef uitgevoerd.
+E32-zenden en aanvullende GPIO blijven compile-time geblokkeerd; actieve
+proefknoppen zijn uitgeschakeld. B04–B14 blijven voor de actieve bèta gelden.
+De volgende praktijkstap is de passieve ontvangst gericht inrichten/controleren,
+zonder de Tado-regeling of fysieke uitgangen te veranderen.
+
+Actueel bewijs: `out/prepared-rollout-20261023/FINAL-REVIEW.json`. De vorige
+alpha17/dev23-assets blijven beschikbaar als archief/herstelbasis; niets overschreven.

@@ -11,7 +11,10 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
 
 ## Actuele bron en installatie
 
-- Geïnstalleerd/gecontroleerd: E32 alpha17 + HA dev23, bron `86f99a9`.
+- Geïnstalleerd/gecontroleerd: E32 alpha18 + HA dev24, bron `6ef01d0`.
+- Actueel uitrolbewijs: `out/prepared-rollout-20261023/FINAL-REVIEW.json`.
+- Ontvangst staat in behouden instellingen nog uit; TX/actuatoruitgangen blijven geblokkeerd.
+- Onderstaande bronstappen zijn historische checkpoints, inmiddels meegenomen in deze passieve release.
 - Laat de bevroren `out/plan-batch-20261023` intact.
 - Werk verder in `out/beta-boiler-20261023`, branch `work/beta-boiler-20261023`.
 - `cebb0a2`: ontvangstdiagnose en Settings → Keteltest met downloadrapport;
@@ -34,7 +37,7 @@ ketelstop. B04–B09 blijven open voor de beschreven eindacceptatie.
 Geen nieuwe release/installatie/fysieke opdracht. Bewijs in
 `out/beta-boiler-evidence-20261023/poll/REVIEW.json`.
 
-## Nieuwe HA-runtimebron, nog niet geïnstalleerd
+## Historisch checkpoint: nieuwe ha-runtimebron
 
 `set_report_profile` trekt de vorige kwalificatie bij vervanging direct lokaal in
 en retourneert een scoped opruimcallback. Oude callbacks/timers/observerresultaten
@@ -48,7 +51,7 @@ gezamenlijke bevroren release. Geen installatie of fysieke opdracht.
 Bewijs: `out/beta-boiler-evidence-20261023/source-lifecycle/REVIEW.json`.
 B04 is nog open voor de modelspecifieke productiebron; geen profile_missing-omweg.
 
-## Nieuwe Classic-encoderbron, nog niet geïnstalleerd
+## Historisch checkpoint: nieuwe classic-encoderbron
 
 Vast UBASetPoints 0x1A/offset0/één flowbyte + checksum, nul als aparte expliciete
 intentie. `ClassicBoilerTestEncoder` is aan de echte pollcallback gekoppeld, maar
@@ -62,7 +65,7 @@ live of fysieke opdracht uitgevoerd. HA-bron is sinds `6503299` ongewijzigd;
 het HA-regressiebewijs met 1705 checks blijft aan dat checkpoint gekoppeld.
 Bewijs: `out/beta-boiler-evidence-20261023/classic-encoder/REVIEW.json`.
 
-## Nieuwe TV02-moduscontrole, nog niet geïnstalleerd
+## Historisch checkpoint: nieuwe tv02-moduscontrole
 
 Native kraancontrole/room-editor melden TV02 auto/vakantie/uit/onbekend zonder
 configuratie- of serviceactie. De voorbereide profiel-C-adapter weigert conflicten
@@ -77,7 +80,7 @@ freezeclaim. Bewijs: `out/beta-boiler-evidence-20261023/tv02-mode/REVIEW.json`.
 B04/B05 blijven open voor de echte modelspecifieke bron-/echo-/readinessroute.
 Geen installatie, fysieke bediening of wijziging van bestaande apparaatkoppelingen.
 
-## Nieuwe actuatorbinding, nog niet geïnstalleerd
+## Historisch checkpoint: nieuwe actuatorbinding
 
 De adapter bewaart de exacte native registry-/apparaatidentiteit en controleert
 na de laatste autorisatie opnieuw identiteit en doelcapaciteit. Een vervanger met
@@ -162,7 +165,8 @@ Vragen voor later; onafhankelijk werk gaat door. Instellingen/programma/identite
 behouden. Geen claim van onbeheerde verwarming, acht zones of leerwinst zonder
 passende acceptatie. Geen eigen watcher/scheduler.
 
-- Geleverde release: `out/combined-release-evidence-20261023/FINAL-REVIEW.json`.
+- Actuele passieve release: `out/prepared-rollout-20261023/FINAL-REVIEW.json`.
+- Vorige alpha17/dev23: `out/combined-release-evidence-20261023/FINAL-REVIEW.json`.
 - Nieuwe ontvangstbasis: `out/beta-boiler-evidence-20261023/CHECKPOINT.json`.
 - Herijking: `out/plan-audit-20261023/AUDIT.json`.
 - Oude overdracht en alle historische receipts blijven ongewijzigd bewaard als
@@ -175,3 +179,13 @@ Bosch EasyControl Adapter **8737908035 V2.3**; volledig etiket en officiële
 protocolreferentie staan in WORKBOARD onder “Bevestigde ketencomponent”. De
 modelvraag is beantwoord. B09 blijft open voor werkelijke TX-interface,
 telegrammen/terugmelding, hydrauliek en onafhankelijk stopgedrag.
+
+## Uitrol alpha18/dev24 gecontroleerd
+
+Volledige CI/pakketcontrole PASS; normale E32-OTA met zeven behouden
+configuratieparen; HA-agentinstallatie met back-up, 76 exacte bronbestanden en
+24 nacontroles. Echte E32-Keteltest/rapportdownload op drie breedtes PASS.
+De keten met HA is na de E32-reboot vers/actief en SOURCE rev3 blijft behouden.
+Geen ontvangst of ketelwerking bewezen: EMS-ontvangst staat nog uit. Volg voor
+de eerstvolgende passieve praktijkstap het actuele werkbord; B04–B09 blijven
+open voor de actieve bèta, geen automatische verwarmingsvrijgave.

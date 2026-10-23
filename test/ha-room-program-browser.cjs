@@ -5,7 +5,7 @@ const root=path.resolve(__dirname,'..');
 const source=fs.readFileSync(path.join(root,'ha/config/custom_components/open_thermostat/frontend/week-planner.js'));
 const out=path.resolve(process.env.OPENTHERMOSTAT_PROGRAM_EVIDENCE||path.join(root,'out/ha-room-program-browser'));
 const days=['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
-const initial={entry_id:'fixture',room_id:'room',supported:true,editable:true,program_only:true,apply_pending:false,
+const initial={measurement:{status:'profile_missing',report_profile_configured:false,sample_age_ms:null,usable:false},entry_id:'fixture',room_id:'room',supported:true,editable:true,program_only:true,apply_pending:false,
  token:'0'.repeat(64),rooms:[{room_id:'room',name:'Bathroom'}],time_zone:'Europe/Amsterdam',maximum_blocks:28,
  choices:{sensor:[{value:'sensor.room',label:'Room sensor',status:'available'}],
  climate:[{value:'climate.valve',label:'Room valve',status:'available'}],schedule:[]},
@@ -21,7 +21,7 @@ const initial={entry_id:'fixture',room_id:'room',supported:true,editable:true,pr
   await page.evaluate(async text=>{await Promise.race([import('data:text/javascript;base64,'+text),new Promise((_,reject)=>setTimeout(()=>reject(Error('Room editor registration blocked waiting for ha-card')),5000))])},source.toString('base64'));
   await page.evaluate(({initial,language})=>{
    window.model=structuredClone(initial);window.calls=[];window.saveMode='hold';
-   const card=window.card=document.createElement('openthermostat-room-editor-v21');document.querySelector('main').append(card);
+   const card=window.card=document.createElement('openthermostat-room-editor-v22');document.querySelector('main').append(card);
    card.setConfig({entry_id:model.entry_id,room_id:model.room_id});
    card.hass={language,user:{is_admin:true},callWS:async request=>{
     calls.push(structuredClone(request));
@@ -36,7 +36,15 @@ const initial={entry_id:'fixture',room_id:'room',supported:true,editable:true,pr
     throw Error('Unexpected command');
    }};
   },{initial,language});
-  const nl=language==='nl',card=page.locator('openthermostat-room-editor-v21');await card.locator('#name').waitFor();
+  const nl=language==='nl',card=page.locator('openthermostat-room-editor-v22');await card.locator('#name').waitFor();
+  assert.match(await card.locator('.measurement-state').innerText(),nl?/getoetst meetprofiel ontbreekt/:/reviewed measurement profile is still missing/);
+  for(const status of ['qualified','stale','unverified','inactive']){
+   await page.evaluate(status=>{card._model.measurement.status=status;card.refreshStatus();},status);
+   assert((await card.locator('.measurement-state').innerText()).length>20);
+  }
+  await page.evaluate(()=>{card._model.measurement.status='unknown-future-status';card.refreshStatus();});
+  assert.equal(await card.locator('.measurement-state').innerText(),'');
+  await page.evaluate(()=>{card._model.measurement.status='profile_missing';card.refreshStatus();});
   if(shell==='cold'){
    assert.equal(await page.evaluate(()=>!!customElements.get('ha-card')),false);
    await card.locator('#name').fill('Retain draft across HA shell loading');

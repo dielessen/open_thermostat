@@ -138,6 +138,38 @@ class ShadowRuntime:
         self._listeners.add(listener)
         return lambda: self._listeners.discard(listener)
 
+    def measurement_status(self, room_id: str) -> dict:
+        """Current measurement evidence only; no grants, identities or sample keys.
+
+        Reading this view never renews a report or its original expiry.
+        """
+        room = self.rooms.get(room_id)
+        observation = self.observations.get(room_id)
+        configured = room_id in self._profiles
+        quality = observation.quality if observation is not None else "disabled"
+        age = None
+        if (observation is not None and quality == "qualified"
+                and observation.observed_monotonic is not None
+                and observation.source_age_ms is not None):
+            age = observation.source_age_ms + math.ceil(
+                max(0, self.clock() - observation.observed_monotonic) * 1000)
+            if room is None or age >= room.maximum_age_ms:
+                quality = "stale"
+        allowed = {"disabled", "unverified", "qualified", "stale", "unavailable",
+                   "invalid", "profile_error", "out_of_order", "binding_changed"}
+        if quality not in allowed:
+            quality = "unverified"
+        if not self._active:
+            status = "inactive"
+        elif not configured:
+            status = "profile_missing"
+        elif quality == "qualified" and age is not None:
+            status = "qualified"
+        else:
+            status = quality if quality != "qualified" else "unverified"
+        return {"status": status, "report_profile_configured": configured,
+                "sample_age_ms": age, "usable": status == "qualified"}
+
     def set_report_profile(self, room_id: str, profile: ReportProfile) -> None:
         """Trusted model-specific code only; no GUI freshness override."""
         if room_id not in self.rooms:

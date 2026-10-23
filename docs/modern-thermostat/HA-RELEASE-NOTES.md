@@ -1,3 +1,9 @@
+# HA 0.4.0.dev22 — meetstatus in de kamerbediening
+
+Bij de gekoppelde sensor staat nu afzonderlijk of de regeling een gekwalificeerde meting heeft, op een nog ontbrekend meetprofiel wacht, of een onbevestigde/verlopen meting heeft. De status is een momentopname bij laden. Hij verandert geen sensorinstellingen en schrijft geen programma of actuatoropdrachten.
+
+Beschikbaarheid in Home Assistant en meetactualiteit blijven afzonderlijk. Een leesactie vernieuwt nooit de leeftijd van een meting. Rapport-ID's en andere bronpayloads worden niet in deze samenvatting opgenomen. De bestaande planner- en koude-startcorrecties blijven behouden.
+
 # HA 0.4.0.dev21 — korte weekblokken betrouwbaar verplaatsen
 
 Een kort temperatuurblok wordt op een aanraakscherm bij slepen nu als geheel verplaatst, met behoud van duur en temperatuur. De vaste randzone kon voorheen het hele blok innemen en daardoor onbedoeld de begintijd wijzigen. Op muisbediening houdt ieder blok een middengebied om te verplaatsen; grotere blokken blijven aan de randen te verlengen of in te korten. Exacte tijden blijven in de velden onder de planner instelbaar.

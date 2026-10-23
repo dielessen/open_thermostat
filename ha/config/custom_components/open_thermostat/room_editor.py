@@ -109,7 +109,12 @@ def read_room(hass, entry_id, room_id):
         apply_pending = (not client.current_native_room_state_verified or accepted is None
                          or client.journal['staged'] is not None
                          or not client.native_desired_matches(accepted['config']))
+    runtime = hass.data.get(DOMAIN, {}).get(entry_id, {}).get('v1_runtime')
+    measurement = (runtime.measurement_status(room_id) if callable(getattr(runtime, 'measurement_status', None))
+                   else {'status': 'inactive', 'report_profile_configured': False,
+                         'sample_age_ms': None, 'usable': False})
     return {'entry_id': entry_id, 'room_id': room_id, 'token': digest(configuration_snapshot(entry)),
+        'measurement': measurement,
         'rooms': [{'room_id': s.data['room_id'], 'name': s.title} for s in entry.subentries.values() if s.subentry_type == 'zone'],
         'choices': choices, 'time_zone': hass.config.time_zone, 'maximum_blocks': 28,
         'actuator_target_review': review_room_targets(hass, room, radiators),

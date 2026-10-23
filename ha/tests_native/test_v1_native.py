@@ -366,3 +366,37 @@ async def test_release_candidate_migration_preserves_unknown_data_options_and_re
     assert item.version == (3 if expected else stored_version)
     assert hass.config_entries.async_get_entry(item.entry_id) is item
     assert not hasattr(item, "runtime_data")
+
+
+@pytest.mark.asyncio
+async def test_measurement_status_never_promotes_cache_or_renews_original_age(hass):
+    binding = room(hass)
+    now = [100.0]
+    runtime = ShadowRuntime(hass, entry(hass, enabled=True), [binding], clock=lambda: now[0])
+    assert runtime.measurement_status(binding.room_id)['status'] == 'inactive'
+    await runtime.async_start()
+    try:
+        assert runtime.measurement_status(binding.room_id) == {
+            'status': 'profile_missing', 'report_profile_configured': False,
+            'sample_age_ms': None, 'usable': False}
+        physical_state(hass, binding)
+        await hass.async_block_till_done()
+        assert runtime.measurement_status(binding.room_id)['status'] == 'profile_missing'
+        runtime.set_report_profile(binding.room_id, source_profile)
+        assert runtime.measurement_status(binding.room_id)['status'] == 'unverified'
+        from custom_components.open_thermostat.v1_model import Observation
+        # Trusted synthetic source evidence, not live physical qualification.
+        runtime.observations[binding.room_id] = Observation(20, 'qualified', 500, 'private-report-key', 100.0)
+        before = runtime.observations[binding.room_id]
+        now[0] = 101.0
+        view = runtime.measurement_status(binding.room_id)
+        assert view == {'status': 'qualified', 'report_profile_configured': True,
+                        'sample_age_ms': 1500, 'usable': True}
+        assert 'private-report-key' not in str(view)
+        now[0] = 100.0 + (binding.maximum_age_ms - 500) / 1000
+        assert runtime.measurement_status(binding.room_id)['status'] == 'stale'
+        assert not runtime.measurement_status(binding.room_id)['usable']
+        assert runtime.observations[binding.room_id] is before
+    finally:
+        await runtime.async_stop()
+    assert runtime.measurement_status(binding.room_id)['status'] == 'inactive'

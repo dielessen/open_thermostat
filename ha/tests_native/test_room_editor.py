@@ -113,3 +113,18 @@ async def test_metadata_endpoint_reads_only_current_saved_bindings_without_save_
     await inspect.unwrap(ui.ws_room_device_metadata)(hass,c,message)
     read.assert_not_called();c.send_result.assert_not_called()
     assert c.send_error.call_args.args[1]=='setup_changed'
+
+
+@pytest.mark.asyncio
+async def test_room_view_exposes_only_measurement_summary_not_report_payload(hass, configured):
+    p, sub, model = configured
+    assert model['measurement'] == {'status': 'inactive', 'report_profile_configured': False,
+                                    'sample_age_ms': None, 'usable': False}
+    summary = {'status': 'profile_missing', 'report_profile_configured': False,
+               'sample_age_ms': None, 'usable': False}
+    runtime = SimpleNamespace(enabled=False, measurement_status=lambda room_id: dict(summary))
+    hass.data['open_thermostat'][p.entry_id]['v1_runtime'] = runtime
+    before = configuration_snapshot(p)
+    result = ui.read_room(hass, p.entry_id, model['room_id'])
+    assert result['measurement'] == summary
+    assert configuration_snapshot(p) == before

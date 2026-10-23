@@ -3,6 +3,7 @@
 #include "ReleaseCatalog.h"
 #include "VerifiedOta.h"
 #include "RestartTimer.h"
+#include "DownloadTextBuffer.h"
 #include "EmbeddedWebAssets.h"
 #include "DeviceAccess.h"
 #include "Filesystem.h"
@@ -10,6 +11,7 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <esp_ota_ops.h>
+#include <esp_heap_caps.h>
 #include <mbedtls/sha256.h>
 #include <atomic>
 #include <mutex>
@@ -39,9 +41,11 @@ public:
 class TextSink:public Sink {
 public:
     using Sink::write;
-    std::string bytes;size_t limit;
-    explicit TextSink(size_t max):limit(max){bytes.reserve(max);}
-    size_t write(const uint8_t *data,size_t size) override {if(size>limit-bytes.size())return 0;bytes.append(reinterpret_cast<const char*>(data),size);return size;}
+    DownloadTextBuffer bytes;
+    explicit TextSink(size_t max):bytes(max,[](size_t size)->void* {
+        return heap_caps_malloc(size,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
+    },heap_caps_free) {}
+    size_t write(const uint8_t *data,size_t size) override {return bytes.append(data,size);}
 };
 // HTTPClient decodes chunked bodies into a bounded sink. Redirects are checked
 // BEFORE connecting, never followed implicitly to an arbitrary host/scheme.
@@ -66,7 +70,12 @@ bool download(std::string url,Sink &sink,std::string &error,uint32_t exactSize=0
     error="Te veel downloadomleidingen.";return false;
 }
 bool text(const std::string &url,size_t limit,std::string &out,std::string &error) {
-    TextSink sink(limit);if(!download(url,sink,error))return false;out=std::move(sink.bytes);return true;
+    TextSink sink(limit);
+    if(!sink.bytes.ready()){error="Onvoldoende extern geheugen voor updatecontrole.";return false;}
+    if(!download(url,sink,error))return false;
+    // download() has destroyed the TLS client before an internal JSON string
+    // is created. No 32 KiB internal response reservation during handshakes.
+    out=sink.bytes.text();return true;
 }
 std::string digest(const uint8_t *bytes,size_t size) {
     const char hexChars[]="0123456789abcdef";std::string result;result.reserve(size*2);

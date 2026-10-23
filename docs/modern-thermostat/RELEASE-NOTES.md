@@ -1,3 +1,25 @@
+# E32 V2 alpha.12 — preserve internal heap during HTTPS updates
+
+The serial trace from the existing updater reports certificate verification
+failure FFFFBD70 (-0x4290). The pinned mbedTLS implementation combines
+RSA_PUBLIC_FAILED (-0x4280) with MPI_ALLOC_FAILED (-0x0010): this is an
+allocation failure while verifying the signature, not evidence of an untrusted CA.
+The pinned SDK allocates TLS memory exclusively from internal RAM.
+
+Release discovery previously reserved a 32 KiB internal response string before
+the TLS handshake. Bounded release/manifest response storage now explicitly uses
+E32 PSRAM, with no internal fallback. The ordinary JSON string is created only
+after the HTTPS client has been destroyed. Failed allocation and oversized
+responses still stop the request. Certificate, hostname, redirect, manifest,
+image checksum, flash readback and boot selection checks remain enabled.
+
+This addresses a demonstrated internal-memory competitor. It does not yet
+establish that all real-board update failures are fixed. A successful actual
+HTTPS discovery and subsequent verified firmware update remain required.
+Settings, filesystem, partition layout and physical-output restrictions are
+unchanged. Use only the published app-only firmware.bin; never erase or upload
+the factory image or SPIFFS for this update. Keep EMS disconnected.
+
 # E32 V2 v0.1.0-e32v2-alpha.11 — testkandidaat
 
 De updatecatalogus controleert alle maximaal twaalf releaseberichten voordat

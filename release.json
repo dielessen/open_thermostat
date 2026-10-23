@@ -1,5 +1,5 @@
 {
-  "version": "v0.1.0-e32v2-alpha.11",
+  "version": "v0.1.0-e32v2-alpha.12",
   "board": "bbqkees_e32v2",
   "layout": "e32v2-dual-app-spiffs-v1",
   "settings_schema": 1,

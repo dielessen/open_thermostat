@@ -250,7 +250,7 @@
     {
       "id": "I11",
       "title": "Meetstatus en geheugen-/toelatingsdiagnose",
-      "status": "geleverd",
+      "status": "geleverd_met_nieuw_bronwerk",
       "include_in_beta": true,
       "requirements": [
         "R03",
@@ -261,7 +261,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/v1_runtime.py",
-          "sha256": "5c4734d29ccdf6769b997d08cf25ffebe1e3759df2c5f5475b341963335c8a76"
+          "sha256": "029c537e353b4ad2a3f456f9e276f87ac63bf829baff142f3a00aebfecf206f9"
         },
         {
           "path": "src/control/ControlBuildCapabilities.h",
@@ -270,9 +270,13 @@
         {
           "path": "src/control/ControlUiSnapshot.h",
           "sha256": "02c4f69354e7ad1dca05a74dd47856fb17fde76d3ee78bc5ed3e5c2615c79196"
+        },
+        {
+          "path": "ha/tests_native/test_report_profile_lifecycle.py",
+          "sha256": "d4201bad331db6ecfdd2ddaaeb19bf26dd94f2fc0406175382b9af0d7d66d37a"
         }
       ],
-      "remaining_acceptance": "profile_missing blijft een open productiebron, geen sensor-defectclaim."
+      "remaining_acceptance": "Meetdiagnose geleverd; observer-lifecycle nieuw getest: 31 gericht en volledige HA-suite 1637 tests + 68 subtests PASS. Native model/property-producer blijft open; registratie/cleanup kwalificeert geen meting, profile_missing is geen sensor-defectclaim."
     },
     {
       "id": "I12",
@@ -914,7 +918,7 @@
     {
       "id": "B04",
       "complete": false,
-      "description": "Productie-meetrapportprofiel/-producer en lifecycle aansluiten; originele acquisitie, cache/reconnect/stale correct; geen trustvinkje of sensorwissel als omweg."
+      "description": "Observer-lifecycle voor vervanging/intrekking getest; productie-meetrapportprofiel/-producer aansluiten. Originele acquisitie, cache/reconnect/stale correct; geen trustvinkje of sensorwissel als omweg."
     },
     {
       "id": "B05",

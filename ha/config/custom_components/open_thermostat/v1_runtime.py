@@ -107,6 +107,7 @@ class ShadowRuntime:
             self._context_source_profiles[key]=profile
         self.diagnostics: dict[str, str] = {}
         self._profiles: dict[str, ReportProfile] = {}
+        self._profile_owners: dict[str, object] = {}
         self._sample_keys: dict[str, str] = {}
         self._sample_times: dict[str, datetime] = {}
         self._subscriptions: list[Callable] = []
@@ -170,11 +171,34 @@ class ShadowRuntime:
         return {"status": status, "report_profile_configured": configured,
                 "sample_age_ms": age, "usable": status == "qualified"}
 
-    def set_report_profile(self, room_id: str, profile: ReportProfile) -> None:
-        """Trusted model-specific code only; no GUI freshness override."""
+    def set_report_profile(self, room_id: str, profile: ReportProfile) -> Callable[[], bool]:
+        """Attach a trusted observer; dispose with the returned scoped revoker.
+
+        Replacement/removal withdraws the previous qualification immediately.
+        Replay watermarks survive owner changes. Neither registration nor its
+        cleanup supplies a sample, renews age or qualifies a physical source.
+        """
         if room_id not in self.rooms:
             raise ValueError("unknown room")
+        if not callable(profile):
+            raise ValueError("report profile must be callable")
+        owner = object()
         self._profiles[room_id] = profile
+        self._profile_owners[room_id] = owner
+        self._withdraw(room_id, "unverified")
+
+        @callback
+        def revoke() -> bool:
+            # An old unsubscribe/close must not detach a replacement, including
+            # a new registration of the SAME callable or a post-restart owner.
+            if self._profile_owners.get(room_id) is not owner:
+                return False
+            self._profiles.pop(room_id, None)
+            self._profile_owners.pop(room_id, None)
+            self._withdraw(room_id, "unverified")
+            return True
+
+        return revoke
 
     def attach_transport(self, transport: ShadowTransport) -> None:
         if self.controller_policy_source_profile is not None:
@@ -294,11 +318,15 @@ class ShadowRuntime:
             self._withdraw(room.room_id, "unavailable" if state is None or state.state == "unavailable" else "invalid")
             return
         profile = self._profiles.get(room.room_id)
+        profile_owner = self._profile_owners.get(room.room_id)
         try:
             report = profile(state, event_kind) if profile else None
         except Exception:
-            self._withdraw(room.room_id, "profile_error", value)
+            if self._profile_owners.get(room.room_id) is profile_owner:
+                self._withdraw(room.room_id, "profile_error", value)
             return
+        if self._profile_owners.get(room.room_id) is not profile_owner:
+            return  # callback disposed/replaced itself; old result has no owner
         if report is None:
             self._withdraw(room.room_id, "unverified", value)
             return
@@ -324,7 +352,11 @@ class ShadowRuntime:
 
         @callback
         def expired(_):
-            if self._active and self._generation == generation:
+            current = self.observations.get(room.room_id)
+            if (self._active and self._generation == generation
+                    and self._profile_owners.get(room.room_id) is profile_owner
+                    and current is not None and current.quality == "qualified"
+                    and current.source_key == report.sample_key):
                 self._withdraw(room.room_id, "stale")
 
         self._expiries[room.room_id] = async_call_later(
@@ -554,4 +586,5 @@ class ShadowRuntime:
         self._transport = None
         self.decisions.clear()
         self._profiles.clear()
+        self._profile_owners.clear()
         self._listeners.clear()

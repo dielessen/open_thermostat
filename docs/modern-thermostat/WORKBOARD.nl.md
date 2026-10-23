@@ -52,7 +52,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-77 bronverwijzingen met hashes, status en resterende acceptatie.
+78 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -69,7 +69,7 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | I08 | Actieve sensor/TRV/grenzen wijzigen, bewaren en opnieuw toepassen | Geleverde softwarebasis | Alleen normale expliciete save; geen live apparaatwissel tijdens installatie bewezen. |
 | I09 | HA-kaart registreren na opstart, zonder herhaald refreshen | Geleverde softwarebasis | Drie echte koude HA-sessies bewezen; versiegebonden module behouden. |
 | I10 | Kamernamen op E32 en juiste statische webroutes | Geleverde softwarebasis | Badkamer live bevestigd; geen nieuwe seriële opname van de logstilte. |
-| I11 | Meetstatus en geheugen-/toelatingsdiagnose | Geleverde softwarebasis | profile_missing blijft een open productiebron, geen sensor-defectclaim. |
+| I11 | Meetstatus en geheugen-/toelatingsdiagnose | Basis geleverd; observer-lifecycle nieuw getest | Vervangen/intrekken trekt oude kwalificatie in; oude cleanup/timers raken nieuwe eigenaar niet. Productieprofiel blijft open. |
 | I12 | Passieve Classic-decoder, protocolfamilies en veldkwaliteit | Geleverde softwarebasis | Fysieke E32-ontvangst en vereiste pariteit nog aantonen; TX blijft dicht. |
 | I13 | Ketencontract, SOURCE, journal, configuratie en readback | Geleverde softwarebasis | Logische provisioning/programma-ACK werkt; verse fysieke meet- en actuatorbewijzen ontbreken. |
 | I14 | Kraanadapter profiel C en tijdelijke bronbench | Voorbereide code, functie nog onvolledig | Geen vrijgegeven native fysieke route; oude bench expliciet geblokkeerd op SOURCE. |
@@ -197,12 +197,32 @@ onafhankelijk bron-/testwerk hoeven niet te wachten op een fysieke waarneming.
   Classic-mapping en gekwalificeerde fysieke UART-zender. De geïnstalleerde bron heeft geen testprofiel of
   gekoppelde proefzender; HTTP kan deze niet aanzetten. De E32-TX-lock blijft staan.
 
+### Nieuw HA-bronwerk: levensduur van de meetrapportobserver
+
+- Een native rapportprofiel vervangen of intrekken maakt de oude kwalificatie
+  direct lokaal ongeldig, annuleert de oude expiry en biedt de intrekking aan de
+  bestaande transportketen aan. Een al verzonden bericht is daarmee niet met
+  terugwerkende kracht fysiek ingetrokken; de normale wire-/leasebewaking blijft gelden.
+- Registratie levert een eigenaargebonden opruimcallback. Een oude callback of
+  oude verlooptimer kan een nieuwe registratie/nieuw rapport niet verwijderen.
+  Zelfs een oude observer die zichzelf vervangt en daarna terugkeert of faalt,
+  kan geen meetbewijs onder de nieuwe eigenaar afgeven.
+- Sample-ID/tijd-watermerken blijven behouden: geen herkwalificatie van dezelfde
+  cache, geen verjonging en geen terugkeer naar oude acquisitietijd bij herregistratie.
+- De oude bron reproduceert de fout; de gewijzigde bron slaagt in 31 gerichte
+  HA-tests. Volledige HA-regressie: 1.637 tests + 68 subtests = 1.705 checks,
+  nul fouten/overslagen, met 8 opnieuw gebouwde echte C++-peers en tijdelijke
+  lokale MQTT-broker. Broker is opgeruimd. Geen echte apparaat-/HA-wijziging.
+- B04 blijft open: deze lifecycle is geen modelspecifieke rapportproducer en
+  kwalificeert de huidige diagnostische bron of fysieke TRV niet. Bewijs:
+  `out/beta-boiler-evidence-20261023/source-lifecycle/REVIEW.json`.
+
 ### Releasechecklist — eerste bèta
 
 - [x] B01 Alle 31 eisen, 11 fasen en 8 werkpakketten opnieuw beoordeeld; oude statusregels uit actuele lijst gehaald.
 - [x] B02 Alle bekende voorbereide brononderdelen geïnventariseerd en in bètabasis behouden; geen bron-/testbestand uit hoofdwerkmap ontbreekt.
 - [x] B03 Nieuwe ontvangstdiagnose/Keteltest/rapport gebouwd en getest: 18 native, 43 GUI-regressies, 3 echte Chromiumviewports met fixture-HTTP, normale E32-build.
-- [ ] B04 Productie-meetrapportprofiel/-producer en lifecycle aansluiten; originele acquisitie, cache/reconnect/stale correct; geen trustvinkje of sensorwissel als omweg.
+- [ ] B04 Observer-lifecycle voor vervanging/intrekking getest; productie-meetrapportprofiel/-producer aansluiten. Originele acquisitie, cache/reconnect/stale correct; geen trustvinkje of sensorwissel als omweg.
 - [ ] B05 Juiste native TRV-route en profiel/readiness/echo/foutafhandeling voor eerste proefkamer afronden; fysieke proef eerst zonder ketel.
 - [ ] B06 Bestaande supervisor koppelen aan vereiste actuele profiel-/feedback-/DHW-/hydraulische voorwaarden; geen generieke flowaanname.
 - [ ] B07 Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten.
@@ -242,7 +262,7 @@ Alleen programma-ACK of beschikbaarheid van een entiteit sluit M2 niet.
 | `out/combined-release-evidence-20261023/FINAL-REVIEW.json` | Werkelijk gepubliceerde/geïnstalleerde alpha17/dev23 en instellingenbehoud |
 | `out/beta-boiler-evidence-20261023/CHECKPOINT.json` | Ontvangstsoftwarecheckpoint, geen bèta- of fysieke vrijgave |
 | `out/plan-audit-20261023/AUDIT.json` | Bron-/inventaris-/takken-/plancontrole van deze herijking |
-| `BETA1-RELEASE-INVENTARIS.json` | Alle 23 voorbereide brononderdelen en 77 bestandsverwijzingen met hashes |
+| `BETA1-RELEASE-INVENTARIS.json` | Alle 23 voorbereide brononderdelen en 78 bestandsverwijzingen met hashes |
 | `BETA1-KETELPROEF.nl.md` / `BETA1-PROEFSTAND-ONTWERP.nl.md` | Scope en nog te implementeren begrensd proefcontract |
 | `out/critical-path-20261022/SAVED-STOP-RECHECK.json` | Historisch expliciet nulcommando; geen zelfstandige stop bij communicatiewegval |
 | `out/plan-audit-20261023/*.before` | Ongewijzigde oude PLAN/WORKBOARD/overdracht/nachtvolgorde; historische bewijsregels behouden |

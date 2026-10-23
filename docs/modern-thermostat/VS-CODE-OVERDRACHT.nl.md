@@ -6,7 +6,7 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   77 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   78 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
@@ -33,6 +33,20 @@ De poll-executor is geen kwalificatie van elektrische timing of daadwerkelijke
 ketelstop. B04–B09 blijven open voor de beschreven eindacceptatie.
 Geen nieuwe release/installatie/fysieke opdracht. Bewijs in
 `out/beta-boiler-evidence-20261023/poll/REVIEW.json`.
+
+## Nieuwe HA-runtimebron, nog niet geïnstalleerd
+
+`set_report_profile` trekt de vorige kwalificatie bij vervanging direct lokaal in
+en retourneert een scoped opruimcallback. Oude callbacks/timers/observerresultaten
+kunnen een nieuwe eigenaar of nieuw rapport niet raken. Replay-watermerken blijven
+staan; registratie/cleanup maakt nooit een vers sample. Oude bron reproduceert de
+fout, 31 gerichte HA-tests en de volledige suite (1.637 tests + 68 subtests) PASS,
+geen skips. Alle 8 C++-peers zijn opnieuw gebouwd en de tijdelijke MQTT-broker is
+na de proef opgeruimd. Geen firmwarecode/webassets veranderd sinds `0b3aabc`;
+het eerdere drie-boardbewijs hoort bij dat firmwarecheckpoint, niet bij een nieuwe
+gezamenlijke bevroren release. Geen installatie of fysieke opdracht.
+Bewijs: `out/beta-boiler-evidence-20261023/source-lifecycle/REVIEW.json`.
+B04 is nog open voor de modelspecifieke productiebron; geen profile_missing-omweg.
 
 ## Eerstvolgende uitvoering
 

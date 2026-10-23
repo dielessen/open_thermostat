@@ -225,7 +225,14 @@ public:
 #ifdef OPENTHERMOSTAT_E32V2
         ss << "\"control_build\":";
         control::writeControlBuildCapabilities(ss);
-        ss << ',';
+        // Read-only SDK counters also remain available in modern mode, where
+        // the legacy MQTT device reporter is deliberately not started.
+        ss << ",\"resources\":{\"internal_heap\":{\"free_bytes\":" << ESP.getFreeHeap()
+           << ",\"minimum_free_bytes_sdk\":" << ESP.getMinFreeHeap()
+           << ",\"largest_free_block_bytes\":" << ESP.getMaxAllocHeap()
+           << "},\"psram\":{\"free_bytes\":" << ESP.getFreePsram()
+           << ",\"minimum_free_bytes_sdk\":" << ESP.getMinFreePsram()
+           << ",\"largest_free_block_bytes\":" << ESP.getMaxAllocPsram() << "}},";
 #endif
         if(modernMode()) ss << "\"activeProgram\":null,\"boiler\":null,";
         else {

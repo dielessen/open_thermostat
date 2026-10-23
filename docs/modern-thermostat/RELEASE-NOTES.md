@@ -1,3 +1,11 @@
+# E32 V2 alpha16 — geheugen uitlezen tijdens normaal apparaatbeheer
+
+De bestaande statusroute meldt nu vrij geheugen, de SDK-minimumtellers en het grootste vrije geheugenblok afzonderlijk voor intern RAM en PSRAM. Deze informatie blijft daarmee ook beschikbaar in HA-beheerd bedrijf, waar de oude MQTT-apparaatreporter bewust niet wordt gestart. Dit voegt geen tweede MQTT-client of regelaar toe.
+
+De tellers zijn uitlezingen van de gepinde SDK. De minimumtellers gelden sinds boot volgens de SDK en zijn geen afzonderlijke 72-uurs- of harde real-timekwalificatie. HTTP-reactietijden zijn apart op het bestaande apparaat gemeten als netwerkbaseline; er wordt geen snelheidswinst geclaimd.
+
+De native CI logt voortaan testnamen en een stacktrace bij langdurig wachten, met dezelfde tijdslimiet en ongewijzigde releasegates. De meegeleverde HA-bron is dev22; de firmware installeert geen HA-component.
+
 # E32 V2 alpha15 — navigatie, About en releasebeheer
 
 Sign out staat rechts in de bovenbalk, ook op mobiel. Restart device staat onderaan Settings en behoudt de bevestiging. About beschrijft OpenThermostat en Mark Dielessen als ontwikkelaar, met oorspronkelijke auteur- en bibliotheekcredits in een uitklapbaar onderdeel.

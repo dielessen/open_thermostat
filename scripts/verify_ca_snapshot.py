@@ -107,7 +107,9 @@ def verify(root):
                               '--input', str(work/'cacert.pem')], cwd=work,
                              capture_output=True, text=True, timeout=45)
         generated = work/'x509_crt_bundle'
-        if run.returncode or not generated.is_file() or generated.read_bytes() != expected_binary:
+        if run.returncode:
+            raise CAError('ca_generator_failed_exit_'+str(run.returncode)+': '+run.stderr[-1200:])
+        if not generated.is_file() or generated.read_bytes() != expected_binary:
             raise CAError('ca_generated_binary_conflict')
     return dict(status='PASS', scope='dated CA source/notice/binary correspondence only',
                 snapshot_sha256=sha(pem), original_source_git_blob=blob(source),

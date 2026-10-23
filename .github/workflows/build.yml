@@ -46,7 +46,7 @@ jobs:
           python-version: '3.11'
       - name: Install the pinned SDK and reproduction tools
         run: |
-          pip install platformio==6.2.0 intelhex==2.3.0
+          pip install platformio==6.2.0 intelhex==2.3.0 cryptography==41.0.7
           pio pkg install -e e32v2
           python -B -m unittest discover -s scripts -p 'test_e32_source*.py' -v
           python -B -m unittest discover -s scripts -p test_release_notices.py -v

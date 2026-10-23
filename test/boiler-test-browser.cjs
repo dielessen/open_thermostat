@@ -44,9 +44,34 @@ const fixture = () => ({reception: {state:'classic_reports_received', report_cou
     assert.equal(saved.physical_validation,false); assert.equal(saved.telemetry.transport.transmitted_frames,0);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),true);
     await page.screenshot({path:path.join(out,`RECEPTION-${width}.png`),fullPage:true});
+    const names = [...fs.readFileSync(path.resolve(__dirname,'../src/EMS/ClassicBoilerMonitor.h'),'utf8').matchAll(/\{"([^"]+)",/g)].map(match => match[1]);
+    assert.equal(names.length,69);
+    data.fields = Object.fromEntries(names.map(name => [name,{value:2.7,unit:'uA',state:'valid',quality:'reported',age_ms:120}]));
+    data.telegram_inventory = {capacity:24,untracked_frames:2,types:[
+      {type:24,frames:9,decoder:'classic_fields',age_ms:120},
+      {type:1911,frames:1,decoder:'unmapped',age_ms:300}]};
+    await page.waitForFunction(() => document.querySelectorAll('[data-fields] tr').length === 69);
+    assert.match(await page.locator('[data-fields] tr').nth(32).innerText(),/Ionisatiestroom.*2.7 uA/s);
+    assert.match(await page.locator('[data-fields] tr').last().innerText(),/warmwateractiefsignaal/);
+    assert.match(await page.locator('[data-telegrams]').innerText(),/0x777.*Nog geen velddecoder/s);
+    assert.match(await page.locator('[data-inventory-status]').innerText(),/volle lijst: 2/);
+    const expandedWait = page.waitForEvent('download'); await page.locator('[data-download]').click();
+    const expandedDownload = await expandedWait;
+    const expandedSaved = JSON.parse(fs.readFileSync(await expandedDownload.path(),'utf8'));
+    assert.equal(Object.keys(expandedSaved.telemetry.fields).length,69);
+    assert.equal(expandedSaved.telemetry.telegram_inventory.types.length,2);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),true);
+    await page.screenshot({path:path.join(out,`EXPANDED-${width}.png`),fullPage:true});
     data.reception.state = 'conflicting_families';
     await page.locator('[data-reception]').filter({hasText:'Tegenstrijdige'}).waitFor();
     assert.match(await page.locator('[data-fields] tr').first().innerText(),/Geen bruikbare waarde/);
+    data.reception.state = 'classic_reports_received';
+    data.fields.overflow = {}; // 70 fits; explicitly reject over-budget responses
+    for(let i=0;i<27;i++) data.fields['extra_'+i] = {};
+    await page.locator('[data-reception]').filter({hasText:'niet beschikbaar'}).waitFor();
+    assert.equal(await page.locator('[data-fields] tr').count(),0);
+    data.fields = fixture().fields;
+    await page.locator('[data-reception]').filter({hasText:'Verse EMS Classic'}).waitFor();
     fail = true;
     await page.locator('[data-reception]').filter({hasText:'niet beschikbaar'}).waitFor();
     assert.equal(await page.locator('[data-fields] tr').count(),0);

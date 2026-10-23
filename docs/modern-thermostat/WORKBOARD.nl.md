@@ -52,7 +52,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-95 bronverwijzingen met hashes, status en resterende acceptatie.
+96 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -150,7 +150,7 @@ de code afgetekend. De oorspronkelijke acceptatie in PLAN §4/§14 blijft gelden
 | Werkpakket | Stand | Open vervolg |
 | --- | --- | --- |
 | WP01 Eigen basis | Software en meerdere echte releases geleverd | Resterend fysiek F0-profiel/resource/herstelbewijs |
-| WP02 Classic | Passieve software geleverd; ontvangstscherm nieuw getest | Echte ketenpariteit en ontvangst |
+| WP02 Classic | Echte passieve Classic-ontvangst; uitbreiding van 30 naar 69 velden in voorbereiding | Uitbreiding bouwen/uitrollen, veldvergelijking en native HA-projectie; actieve opvragen blijven geblokkeerd |
 | WP03 Contract/bron | Native SOURCE/config/plan/readback gebouwd en toegepast | Modelspecificieke meetrapportproducent, fysieke actualiteit en uitval |
 | WP04 Kamerbediening | Kamer/week/actieve profielsave geleverd | Externe doelbron en centrale/groeps-/deviceketen compleet |
 | WP05 Actuator | Profiel-C-adapter voorbereid, geen fysieke native vrijgave | Eerste echte kraan zonder ketel, echo/readiness/fallback |
@@ -512,3 +512,44 @@ afgeleide toestanden zijn nog niet onafhankelijk met de ketel vergeleken.
 `control_approved=false`; B04–B09 en de volledige B14-proef blijven open. De
 screenshotopdracht heeft geen EMS-instelling, programma of uitgang gewijzigd.
 Bewijs: `out/github-readme-20261023/E32-RECEPTION-OBSERVATION.json`.
+
+
+## Vervolg na aansluiting ketel: uitgebreid passief uitlezen
+
+De aansluiting is bevestigd met een nieuwe read-only meting op de geïnstalleerde
+alpha18: 676 Classic-rapporten, laatste leeftijd 3.339 ms, vijftien verse velden.
+TX, wachtrijverlies, afgekeurde telegrammen, UART-fouten en resets zijn nul in die
+momentopname. Dit bevestigt ontvangst; fysieke aansturing blijft ongekwalificeerd.
+
+**Nieuwe bron voor dezelfde grotere batch, nog niet geïnstalleerd:**
+
+- Classic-decoder uitgebreid van 30 naar 69 velden binnen de bestaande types
+  `0x18`, `0x19`, `0x16`, `0x33`, `0x34`: extra temperaturen, ionisatiestroom,
+  pompmodulatie, hysterese/minimumperiode en tapwater-/circulatieparameters.
+- Vaste inventaris van maximaal 24 ontvangen ketelberichttypen, met telling,
+  fragmentoffset/-lengte, leeftijd en decoderstatus. Onbekende types verversen
+  geen meting of protocolvrijgave. Bij volle lijst blijft verlies zichtbaar.
+- Het ketelscherm verliest geen velden meer door de oude afkap na 40 regels.
+  Alle velden en berichtmetadata staan ook in het meetrapport. Verdachte ruwe
+  bits en historisch stilstaande tellers blijven onbetrouwbaar voor regeling.
+- Zes nieuwe decoder-/catalogusregressies: in totaal 86 native gevallen onder
+  ASan/UBSan geslaagd. Het uitgebreide scherm en de bestaande actieve-proefguards slagen elk
+  in echte Chromium op 1280/390/320 px met fixturetransport. Boardbuilds volgen
+  op deze exacte bron; dit is nog geen levering of fysieke veldacceptatie.
+
+**HA-pariteit is nog open.** De bestaande HA-agent heeft alleen de exact
+historische ketel en huidige projectentiteiten geïnventariseerd. De 68 oude
+EMS-ESP-entiteiten zijn onbekend/onbeschikbaar; aanwezigheid in het register
+bewijst geen actuele ketelwaarde. De huidige native HA-route heeft nog geen
+volledige projectie van de nieuwe ketelvelden: deze mag niet via een extra
+MQTT-client/worker of ongekwalificeerde cache worden nagebouwd. Vervolg is één
+begrensde read-only publicatie via de bestaande transport-/eigenaarroute, met
+identiteit, originele bronleeftijd en expliciete kwaliteit. M2-meetproducent,
+kraanproeven en B04–B14 blijven open.
+
+Wire-offsets zijn onafhankelijk geïmplementeerd na vergelijking met
+[EMS-ESP32 v3.8.4 boiler.cpp](https://github.com/emsesp/EMS-ESP32/blob/v3.8.4/src/devices/boiler.cpp)
+en de [wirewaardedefinities](https://github.com/emsesp/EMS-ESP32/blob/v3.8.4/src/core/telegram.h).
+Geen GPL-implementatie overgenomen. Niet elk veld bestaat op deze ketel;
+parameters die alleen op verzoek komen blijven bij passief luisteren onbekend.
+Bewijs: `out/ems-readout-improvements-20261023/` en de read-only HA-pariteitsreview.

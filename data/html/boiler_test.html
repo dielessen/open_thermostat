@@ -12,6 +12,12 @@
     <p>Afgeleide waarden zijn berekend uit de ketelmelding. Onbetrouwbare velden gelden niet als onafhankelijke bevestiging.</p>
     <div style="overflow-x:auto"><table class="table"><thead><tr><th>Gegeven</th><th>Waarde</th><th>Kwaliteit</th><th>Leeftijd</th></tr></thead><tbody data-fields></tbody></table></div>
   </div>
+  <div class="pd-panel">
+    <h2>Ontvangen berichttypen</h2>
+    <p>Dit overzicht laat zien welke ketelberichten binnenkomen, ook als er nog geen decoder voor is. Geen bericht ontvangen betekent niet dat de ketel het niet ondersteunt.</p>
+    <p data-inventory-status>Berichtoverzicht nog niet beschikbaar.</p>
+    <div style="overflow-x:auto"><table class="table"><thead><tr><th>Type</th><th>Berichten</th><th>Decoder</th><th>Leeftijd</th></tr></thead><tbody data-telegrams></tbody></table></div>
+  </div>
   <div class="pd-panel"><h2>Aansturing beproeven</h2>
     <p data-test-state role="status" aria-live="polite">Proefstatus controleren…</p>
     <p>Een aangenomen verzoek is nog geen verzonden opdracht of bevestigde ketelreactie.</p>
@@ -37,6 +43,8 @@
   const transport = root.querySelector('[data-transport]');
   const fields = root.querySelector('[data-fields]');
   const download = root.querySelector('[data-download]');
+  const telegrams = root.querySelector('[data-telegrams]');
+  const inventoryStatus = root.querySelector('[data-inventory-status]');
   const labels = {
     no_boiler_reports: 'Nog geen ketelberichten ontvangen.',
     stale: 'Ketelberichten zijn verouderd. Controleer de verbinding.',
@@ -190,7 +198,46 @@
     reported_burner_runtime:'Gemelde branderduur', reported_heating_runtime:'Gemelde CV-duur', reported_heating_starts:'Gemelde CV-starts',
     reported_dhw_runtime:'Gemelde warmwaterduur', reported_dhw_starts:'Gemelde warmwaterstarts', display_code:'Displaycode',
     service_number:'Servicecode', maximum_burner_power:'Maximaal brandervermogen', pump_run_on:'Pompnaloop',
-    configured_heating_temperature:'Ingestelde CV-temperatuur', reported_dhw_target:'Gemelde gewenste warmwatertemperatuur'
+    configured_heating_temperature:'Ingestelde CV-temperatuur', reported_dhw_target:'Gemelde gewenste warmwatertemperatuur',
+    storage_temperature_1:'Opslagtemperatuur 1',
+    storage_temperature_2:'Opslagtemperatuur 2',
+    ionisation_current:'Ionisatiestroom',
+    raw_second_burner_bit:'Ruw tweede brandersignaal',
+    raw_ignition_bit:'Ruw ontstekingssignaal',
+    raw_oil_preheat_bit:'Ruwe olievoorverwarming',
+    raw_dhw_valve_bit:'Ruwe warmwaterklepstand',
+    raw_dhw_circulation_bit:'Ruwe circulatiepompstatus',
+    boiler_temperature:'Keteltemperatuur',
+    exhaust_temperature:'Rookgastemperatuur',
+    hydraulic_switch_temperature:'Temperatuur hydraulische scheider',
+    reported_heating_pump_modulation:'Gemelde CV-pompmodulatie',
+    reported_second_burner_runtime:'Gemelde tweede branderduur',
+    heating_hysteresis_off:'CV-hysterese uit',
+    heating_hysteresis_on:'CV-hysterese aan',
+    minimum_burner_period:'Minimale branderperiode',
+    pump_modulation_maximum:'Maximale pompmodulatie',
+    pump_modulation_minimum:'Minimale pompmodulatie',
+    configured_pump_mode:'Ingestelde pompmodus',
+    secondary_heating_hysteresis_off:'Tweede CV-hysterese uit',
+    secondary_heating_hysteresis_on:'Tweede CV-hysterese aan',
+    pump_start_temperature:'Pompstarttemperatuur',
+    dhw_hysteresis_on:'Warmwaterhysterese aan',
+    dhw_charge_optimisation_enabled:'Warmwaterlaadoptimalisatie',
+    dhw_flow_temperature_offset:'Warmwateraanvoer-offset',
+    dhw_circulation_enabled:'Warmwatercirculatie ingeschakeld',
+    configured_dhw_circulation_mode:'Ingestelde circulatiemodus',
+    dhw_disinfection_temperature:'Desinfectietemperatuur',
+    configured_dhw_charge_type:'Ingesteld warmwaterlaadtype',
+    configured_dhw_comfort_mode:'Ingestelde warmwatercomfortcode',
+    secondary_dhw_temperature:'Tweede warmwatertemperatuur',
+    solar_dhw_temperature:'Zonnewarmwatertemperatuur',
+    reported_dhw_type:'Gemeld warmwatertype',
+    raw_dhw_one_time_bit:'Ruw eenmalig warmwatersignaal',
+    raw_dhw_disinfection_bit:'Ruw desinfectiesignaal',
+    raw_dhw_charging_bit:'Ruw warmwaterlaadsignaal',
+    raw_dhw_recharging_bit:'Ruw warmwaterbijlaadsignaal',
+    raw_dhw_temperature_ok_bit:'Ruw warmwatertemperatuur-OK-signaal',
+    raw_dhw_active_bit:'Ruw warmwateractiefsignaal'
   };
   function cell(parent, tag, value) {
     const node = document.createElement(tag);
@@ -210,6 +257,8 @@
       const data = await response.json();
       if (!root.isConnected) return;
       if (!data || !data.reception || !data.transport || !data.fields || !labels[data.reception.state]) throw Error('Onbekende status');
+      const entries = Object.entries(data.fields);
+      if (entries.length > 96) throw Error('Te veel gegevens');
       paintTest(data.test);
       message.textContent = data.transport.enabled === false ? 'EMS-ontvangst staat uit.' : labels[data.reception.state];
       transport.replaceChildren();
@@ -222,7 +271,7 @@
       fact('UART-fouten', number(data.transport.uart_errors));
       fact('UART-resets', number(data.transport.uart_resets));
       fields.replaceChildren();
-      Object.entries(data.fields).slice(0, 40).forEach(([name, field]) => {
+      entries.forEach(([name, field]) => {
         if (!field || typeof field !== 'object') return;
         const row = document.createElement('tr');
         cell(row, 'td', fieldLabels[name] || name);
@@ -232,12 +281,26 @@
         cell(row, 'td', age(field.age_ms));
         fields.appendChild(row);
       });
+      telegrams.replaceChildren();
+      const inventory = data.telegram_inventory;
+      if (inventory && Number.isInteger(inventory.capacity) && inventory.capacity > 0 && inventory.capacity <= 24
+          && Array.isArray(inventory.types) && inventory.types.length <= inventory.capacity) {
+        inventoryStatus.textContent = inventory.types.length + ' berichttypen. Niet bijgehouden door volle lijst: ' + number(inventory.untracked_frames) + '.';
+        for (const entry of inventory.types) {
+          if (!entry || !Number.isInteger(entry.type) || entry.type < 0 || entry.type > 65535) continue;
+          const row = document.createElement('tr');
+          cell(row,'td','0x' + entry.type.toString(16).toUpperCase());
+          cell(row,'td',number(entry.frames));
+          cell(row,'td',({classic_fields:'Classic-velden',plus_legacy_fields:'Bestaande Plus-decoder',unmapped:'Nog geen velddecoder'})[entry.decoder] || 'Onbekend');
+          cell(row,'td',age(entry.age_ms)); telegrams.appendChild(row);
+        }
+      } else inventoryStatus.textContent = 'Deze firmware levert nog geen berichtoverzicht.';
       report = {schema: 1, browser_captured_at: new Date().toISOString(), physical_validation: false, telemetry: data};
       download.disabled = false;
     } catch (error) {
       if (!root.isConnected) return;
       message.textContent = 'Ontvangststatus niet beschikbaar. Controleer de verbinding.';
-      transport.replaceChildren(); fields.replaceChildren(); report = null; download.disabled = true;
+      transport.replaceChildren(); fields.replaceChildren(); telegrams.replaceChildren(); inventoryStatus.textContent = 'Berichtoverzicht niet beschikbaar.'; report = null; download.disabled = true;
       paintTest(null);
     } finally {
       clearTimeout(timeout);

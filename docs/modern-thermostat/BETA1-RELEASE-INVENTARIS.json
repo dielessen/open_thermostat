@@ -301,7 +301,7 @@
     {
       "id": "I12",
       "title": "Passieve Classic-decoder en begrensde Classic-proefencoder",
-      "status": "Decoder en geblokkeerde encoder geleverd",
+      "status": "30 velden geleverd; uitbreiding naar 69 en begrensde berichtinventaris voorbereid",
       "include_in_beta": true,
       "requirements": [
         "R08",
@@ -311,7 +311,7 @@
       "files": [
         {
           "path": "src/EMS/ClassicBoilerMonitor.h",
-          "sha256": "1cc69f29ba740342b1ac6ba333e73416af2461e493c4967167815aa6417c802f"
+          "sha256": "bffdef59b9e854e9b1f7bbedb7edcfb3e0b31129953b6b57156915b5622b6db1"
         },
         {
           "path": "src/EMS/BoilerCapabilities.h",
@@ -319,7 +319,7 @@
         },
         {
           "path": "test/test_native/test_classic_boiler.cpp",
-          "sha256": "6063e2beff8e9626f7204a0110271d7d68adacc6b24dfcfcc0dfa68767ae5bfe"
+          "sha256": "927114a8eaed2936b796e4fcbfeed2c113719eb252dfcedc1211ac3f3395d726"
         },
         {
           "path": "src/EMS/ClassicBoilerTestEncoder.h",
@@ -332,9 +332,13 @@
         {
           "path": "test/test_native/test_classic_boiler_test_encoder.cpp",
           "sha256": "80eb4dbfd051a7cee9c2c3fc2d6b2a87ecbe97f75cebb93c07da0319f4cfd122"
+        },
+        {
+          "path": "src/EMS/BoilerTelegramInventory.h",
+          "sha256": "b5c53b3f8d0c43ada9945039a0a2fb06942c355292eaa009b9c70b3876e58c5b"
         }
       ],
-      "remaining_acceptance": "Vast 0x1A-flow/nulformaat en pollcallback getest, 80 native ASan/UBSan inclusief 6 encodergevallen PASS. Beoordeeld ketenprofiel/adressering/masker en fysieke UART-/stop-/flow-/ontvangstkwalificatie blijven open; default adresstructuur weigert ieder frame, TX-slot behouden."
+      "remaining_acceptance": "Uitbreiding onafhankelijke Classic-decoders op bestaande vijf types; native regressie gecontroleerd. Nog niet geïnstalleerd. Beschikbaarheid/semantiek per keten fysiek vergelijken; actieve opvragen en native HA-veldprojectie ontbreken nog. TX blijft geblokkeerd."
     },
     {
       "id": "I13",
@@ -583,7 +587,7 @@
     {
       "id": "I21",
       "title": "Keteltest-pagina, ontvangstdiagnose en meetrapport",
-      "status": "Geleverd en op E32 gecontroleerd",
+      "status": "Alpha18 geleverd; uitgebreid veld-/berichtoverzicht voorbereid",
       "include_in_beta": true,
       "requirements": [
         "R08",
@@ -595,7 +599,7 @@
       "files": [
         {
           "path": "data/html/boiler_test.html",
-          "sha256": "8559c3e9fbf9bca30b3e86dce55c320cff2f8a5ccde4734266ad56ad0db1bd65"
+          "sha256": "45968943440e9048c27ac6a6347f2de4a2e0394f96ac52ea720d4d5690a7f368"
         },
         {
           "path": "src/EmsController.h",
@@ -607,10 +611,10 @@
         },
         {
           "path": "test/boiler-test-browser.cjs",
-          "sha256": "ae3799d1fc18b9aefdfd95f7dec27036ec845a3d3bad8d47b850778d25035e85"
+          "sha256": "7b2ab51e06d423ee755a5f12bad4c588f68c1bbd728cf68abfef8ea86539cf2e"
         }
       ],
-      "remaining_acceptance": "Geleverd in alpha18; echte Keteltest/rapportdownload op drie breedtes gecontroleerd. Bij latere README-opname verse Classic-rapporten ontvangen met TX uit. Volledige veldpariteit en actieve ketelacceptatie blijven open."
+      "remaining_acceptance": "Nieuwe webbron toont alle 69 velden zonder 40-regelafkap en maximaal 24 ontvangen typen, ook zonder velddecoder. Echte huidige alpha18-ontvangst bevestigd; nieuwe bron nog niet uitgerold. Volledige HA-projectie en fysieke veldvalidatie blijven open."
     },
     {
       "id": "I22",
@@ -833,9 +837,9 @@
     {
       "id": "R15",
       "title": "Alle relevante keteldata",
-      "software_status": "Veldinventaris/Classic-decoder en kwaliteitslabels aanwezig",
+      "software_status": "Passieve 30-velddecoder geleverd; 69-velduitbreiding en vaste 24-type inventaris voorbereid",
       "inventory_ids": "I12,I17,I21",
-      "remaining_acceptance": "Vereiste betrouwbare velden op eigen E32 ontvangen en vergelijken; unsupported/unreliable expliciet.",
+      "remaining_acceptance": "Nieuwe decoderrelease nog bouwen/uitrollen; fysieke veldvergelijking en complete native HA-readprojectie. Ontbrekende passieve telegrammen niet als unsupported verklaren; actieve opvragen nog niet toegestaan.",
       "product_accepted": false
     },
     {

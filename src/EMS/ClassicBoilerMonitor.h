@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BoilerCapabilities.h"
+#include "BoilerTelegramInventory.h"
 #include "EmsTelegram.h"
 #include <array>
 #include <cstdint>
@@ -14,7 +15,16 @@ enum class BoilerField : size_t {
     pressure, rawBurner, rawPump, rawFan, rawState, heatingActive, dhwActive,
     selectedDhw, dhwTemp, dhwFlow, heatingEnabled, dhwEnabled,
     burnerStarts, burnerMinutes, heatingMinutes, heatingStarts, dhwMinutes, dhwStarts,
-    displayCode, serviceNumber, maxBurnerPower, pumpRunOn, heatingLimit, monitorDhwTarget, count
+    displayCode, serviceNumber, maxBurnerPower, pumpRunOn, heatingLimit, monitorDhwTarget,
+    storageTemp1, storageTemp2, ionisationCurrent, rawSecondBurner, rawIgnition,
+    rawOilPreheat, rawDhwValve, rawDhwCirculation,
+    boilerTemp, exhaustTemp, switchTemp, pumpModulation, secondBurnerMinutes,
+    hysteresisOff, hysteresisOn, minimumBurnerPeriod, pumpMaximum, pumpMinimum,
+    pumpMode, secondaryHysteresisOff, secondaryHysteresisOn, pumpStartTemp,
+    dhwHysteresisOn, dhwChargeOptimisation, dhwFlowOffset, dhwCirculationEnabled,
+    dhwCirculationMode, dhwDisinfectionTemp, dhwChargeType, dhwComfortMode,
+    dhwTemp2, dhwSolarTemp, dhwType, rawDhwOneTime, rawDhwDisinfection,
+    rawDhwCharging, rawDhwRecharging, rawDhwTempOk, rawDhwActive, count
 };
 enum class BoilerQuality { reported, unreliable, inferred };
 
@@ -49,7 +59,46 @@ inline constexpr std::array<BoilerFieldSpec, static_cast<size_t>(BoilerField::co
     {"maximum_burner_power", "%", 1, 600000},
     {"pump_run_on", "min", 1, 600000},
     {"configured_heating_temperature", "degC", 100, 600000},
-    {"reported_dhw_target", "degC", 100, 30000}
+    {"reported_dhw_target", "degC", 100, 30000},
+    {"storage_temperature_1", "degC", 100, 30000},
+    {"storage_temperature_2", "degC", 100, 30000},
+    {"ionisation_current", "uA", 10, 30000},
+    {"raw_second_burner_bit", "bool", 1, 30000},
+    {"raw_ignition_bit", "bool", 1, 30000},
+    {"raw_oil_preheat_bit", "bool", 1, 30000},
+    {"raw_dhw_valve_bit", "bool", 1, 30000},
+    {"raw_dhw_circulation_bit", "bool", 1, 30000},
+    {"boiler_temperature", "degC", 100, 180000},
+    {"exhaust_temperature", "degC", 100, 180000},
+    {"hydraulic_switch_temperature", "degC", 100, 180000},
+    {"reported_heating_pump_modulation", "%", 1, 180000},
+    {"reported_second_burner_runtime", "min", 1, 180000},
+    {"heating_hysteresis_off", "K", 1, 600000},
+    {"heating_hysteresis_on", "K", 1, 600000},
+    {"minimum_burner_period", "min", 1, 600000},
+    {"pump_modulation_maximum", "%", 1, 600000},
+    {"pump_modulation_minimum", "%", 1, 600000},
+    {"configured_pump_mode", "code", 1, 600000},
+    {"secondary_heating_hysteresis_off", "K", 1, 600000},
+    {"secondary_heating_hysteresis_on", "K", 1, 600000},
+    {"pump_start_temperature", "degC", 100, 600000},
+    {"dhw_hysteresis_on", "K", 1, 600000},
+    {"dhw_charge_optimisation_enabled", "bool", 1, 600000},
+    {"dhw_flow_temperature_offset", "K", 1, 600000},
+    {"dhw_circulation_enabled", "bool", 1, 600000},
+    {"configured_dhw_circulation_mode", "code", 1, 600000},
+    {"dhw_disinfection_temperature", "degC", 100, 600000},
+    {"configured_dhw_charge_type", "code", 1, 600000},
+    {"configured_dhw_comfort_mode", "code", 1, 600000},
+    {"secondary_dhw_temperature", "degC", 100, 30000},
+    {"solar_dhw_temperature", "degC", 100, 30000},
+    {"reported_dhw_type", "code", 1, 30000},
+    {"raw_dhw_one_time_bit", "bool", 1, 30000},
+    {"raw_dhw_disinfection_bit", "bool", 1, 30000},
+    {"raw_dhw_charging_bit", "bool", 1, 30000},
+    {"raw_dhw_recharging_bit", "bool", 1, 30000},
+    {"raw_dhw_temperature_ok_bit", "bool", 1, 30000},
+    {"raw_dhw_active_bit", "bool", 1, 30000}
 }};
 
 struct BoilerSample {
@@ -80,6 +129,7 @@ public:
         if (t.getSenderId() != 0x08 || t.dataSize() == 0 ||
             t.getOperationType() == EmsTelegram::READ ||
             t.getOperationType() == EmsTelegram::READ_WITH_DATA) return false;
+        telegrams_.observe(t.getTypeId(), t.getOffset(), t.dataSize(), now);
         const auto family = BoilerCapabilities::family(t.getTypeId());
         if (family == BoilerProtocol::unknown) return false;
         // Counts decoded boiler reports, never polls, CRC failures or our own
@@ -95,10 +145,10 @@ public:
         const auto byte = [&](BoilerField f, uint8_t offset, int scale = 1, int maximum = 254) {
             if (auto b = t.byteAt(offset)) put(f, *b <= maximum ? std::optional<int32_t>(*b * scale) : std::nullopt);
         };
-        const auto temp = [&](BoilerField f, uint8_t offset, bool signedValue = false) {
+        const auto temp = [&](BoilerField f, uint8_t offset, bool signedValue = false, int maximum = 1300) {
             if (auto w = t.wordAt(offset)) {
                 const int32_t v = signedValue ? static_cast<int16_t>(*w) : *w;
-                put(f, *w != 0x8000 && *w != 0x7FFF && v >= -600 && v <= 1300
+                put(f, *w != 0x8000 && *w != 0x7FFF && v >= -600 && v <= maximum
                     ? std::optional<int32_t>(v * 10) : std::nullopt);
             }
         };
@@ -110,6 +160,13 @@ public:
         const auto enabled = [&](BoilerField f, uint8_t offset) {
             if (auto b = t.byteAt(offset)) put(f, (*b == 0 || *b == 0xFF)
                 ? std::optional<int32_t>(*b == 0xFF) : std::nullopt);
+        };
+        const auto signedByte = [&](BoilerField f, uint8_t offset) {
+            if (auto b = t.byteAt(offset)) put(f, *b == 0x7F ? std::nullopt
+                : std::optional<int32_t>(*b < 128 ? int(*b) : int(*b) - 256));
+        };
+        const auto rawBit = [&](BoilerField f, uint8_t offset, uint8_t mask) {
+            if (auto b = t.byteAt(offset)) put(f, (*b & mask) != 0, BoilerQuality::unreliable);
         };
         switch (t.getTypeId()) {
             case 0x18:
@@ -129,7 +186,18 @@ public:
                     put(BoilerField::rawPump, (*flags & 0x20) != 0, BoilerQuality::unreliable);
                     put(BoilerField::rawFan, (*flags & 4) != 0, BoilerQuality::unreliable);
                 }
+                rawBit(BoilerField::rawSecondBurner, 7, 0x02);
+                rawBit(BoilerField::rawIgnition, 7, 0x08);
+                rawBit(BoilerField::rawOilPreheat, 7, 0x10);
+                rawBit(BoilerField::rawDhwValve, 7, 0x40);
+                rawBit(BoilerField::rawDhwCirculation, 7, 0x80);
+                temp(BoilerField::storageTemp1, 9);
+                temp(BoilerField::storageTemp2, 11);
                 temp(BoilerField::returnTemp, 13);
+                if (auto current = t.wordAt(15)) put(BoilerField::ionisationCurrent,
+                    *current != 0x7D00 && *current != 0x7FFF && *current != 0x8000
+                    && *current != 0x8300 && *current != 0xFFFF
+                        ? std::optional<int32_t>(*current) : std::nullopt);
                 byte(BoilerField::pressure, 17);
                 if (auto code = t.wordAt(18)) {
                     const auto a = *code >> 8, b = *code & 255;
@@ -141,8 +209,13 @@ public:
                 break;
             case 0x19:
                 temp(BoilerField::outdoor, 0, true);
+                temp(BoilerField::boilerTemp, 2);
+                temp(BoilerField::exhaustTemp, 4, false, 5000);
+                temp(BoilerField::switchTemp, 25);
+                byte(BoilerField::pumpModulation, 9, 1, 100);
                 counter(BoilerField::burnerStarts, 10);
                 counter(BoilerField::burnerMinutes, 13);
+                counter(BoilerField::secondBurnerMinutes, 16);
                 counter(BoilerField::heatingMinutes, 19);
                 counter(BoilerField::heatingStarts, 22);
                 break;
@@ -151,14 +224,41 @@ public:
                 byte(BoilerField::heatingLimit, 1, 100, 130);
                 byte(BoilerField::maxBurnerPower, 2, 1, 100);
                 byte(BoilerField::pumpRunOn, 8);
+                signedByte(BoilerField::hysteresisOff, 4);
+                signedByte(BoilerField::hysteresisOn, 5);
+                byte(BoilerField::minimumBurnerPeriod, 6);
+                byte(BoilerField::pumpMaximum, 9, 1, 100);
+                byte(BoilerField::pumpMinimum, 10, 1, 100);
+                byte(BoilerField::pumpMode, 11);
+                signedByte(BoilerField::secondaryHysteresisOff, 12);
+                signedByte(BoilerField::secondaryHysteresisOn, 13);
+                byte(BoilerField::pumpStartTemp, 23, 100, 130);
                 break;
             case 0x33:
                 enabled(BoilerField::dhwEnabled, 1);
                 byte(BoilerField::selectedDhw, 2, 100, 100);
+                signedByte(BoilerField::dhwHysteresisOn, 3);
+                enabled(BoilerField::dhwChargeOptimisation, 4);
+                byte(BoilerField::dhwFlowOffset, 5, 1, 100);
+                enabled(BoilerField::dhwCirculationEnabled, 6);
+                byte(BoilerField::dhwCirculationMode, 7);
+                byte(BoilerField::dhwDisinfectionTemp, 8, 100, 100);
+                if (auto mode = t.byteAt(9)) put(BoilerField::dhwComfortMode,
+                    *mode == 0 || *mode == 0xD8 || *mode == 0xEC ? std::optional<int32_t>(*mode) : std::nullopt);
+                if (auto charge = t.byteAt(10)) put(BoilerField::dhwChargeType, *charge & 1);
                 break;
             case 0x34:
                 byte(BoilerField::monitorDhwTarget, 0, 100, 100);
                 temp(BoilerField::dhwTemp, 1);
+                temp(BoilerField::dhwTemp2, 3);
+                temp(BoilerField::dhwSolarTemp, 17);
+                byte(BoilerField::dhwType, 8);
+                rawBit(BoilerField::rawDhwOneTime, 5, 0x02);
+                rawBit(BoilerField::rawDhwDisinfection, 5, 0x04);
+                rawBit(BoilerField::rawDhwCharging, 5, 0x08);
+                rawBit(BoilerField::rawDhwRecharging, 5, 0x10);
+                rawBit(BoilerField::rawDhwTempOk, 5, 0x20);
+                rawBit(BoilerField::rawDhwActive, 5, 0x40);
                 if (auto flow = t.byteAt(9)) put(BoilerField::dhwFlow,
                     *flow != 0xFF ? std::optional<int32_t>(*flow) : std::nullopt, BoilerQuality::unreliable);
                 counter(BoilerField::dhwMinutes, 10);
@@ -196,7 +296,8 @@ public:
             if (s.observed && now >= s.observedMs) ss << now - s.observedMs; else ss << "null";
             ss << '}';
         }
-        ss << '}';
+        ss << "},\"telegram_inventory\":";
+        telegrams_.writeJSON(ss, now);
         if (closeObject) ss << '}';
     }
 
@@ -228,6 +329,7 @@ private:
     uint64_t lastReportMs_ = 0;
     static constexpr size_t index(BoilerField f) { return static_cast<size_t>(f); }
     BoilerCapabilities capabilities_;
+    BoilerTelegramInventory telegrams_;
     std::array<BoilerSample, static_cast<size_t>(BoilerField::count)> samples_{};
 };
 }

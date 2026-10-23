@@ -332,4 +332,111 @@ TEST(ClassicBoiler, ReplaysAllFiveHistoricalMonitorParameterFamiliesAndRejectsRe
     EXPECT_EQ(m.value(BoilerField::selectedFlow,160),0); // request36C is NOT reported target0C
     EXPECT_EQ(m.value(BoilerField::heatingLimit,160),5500);
 }
+
+TEST(ClassicExpanded, FastStorageCurrentAndRawFlagsPreserveFragmentsAndQuality) {
+    ClassicBoilerMonitor m;
+    m.receive(data(0x18,{0xFF},7),100);
+    m.receive(data(0x18,{0x01,0xF4,0x02,0x58,0x01,0x90,0x00,0x1B},9),110);
+    EXPECT_EQ(m.value(BoilerField::storageTemp1,110),5000);
+    EXPECT_EQ(m.value(BoilerField::storageTemp2,110),6000);
+    EXPECT_EQ(m.value(BoilerField::ionisationCurrent,110),27); // published 2.7 uA
+    for(auto f:{BoilerField::rawSecondBurner,BoilerField::rawIgnition,BoilerField::rawOilPreheat,
+                BoilerField::rawDhwValve,BoilerField::rawDhwCirculation}) {
+        EXPECT_FALSE(m.value(f,110)); EXPECT_EQ(m.value(f,110,true),1);
+    }
+    m.receive(data(0x18,{0x01},15),120); // no refresh from incomplete word
+    EXPECT_EQ(m.sample(BoilerField::ionisationCurrent).observedMs,110);
+    for(auto word:{0x7D00,0x7FFF,0x8000,0x8300,0xFFFF}) {
+        m.receive(data(0x18,{uint8_t(word>>8),uint8_t(word)},15),130);
+        EXPECT_FALSE(m.value(BoilerField::ionisationCurrent,130));
+    }
+    EXPECT_FALSE(m.value(BoilerField::storageTemp1,30110));
+}
+TEST(ClassicExpanded, SlowTemperaturesPumpAndCountersRemainDistinct) {
+    ClassicBoilerMonitor m;
+    m.receive(data(0x19,{0x02,0x58,0x07,0xA0},2),10);
+    m.receive(data(0x19,{100},9),10);
+    m.receive(data(0x19,{0,1,2},16),10);
+    m.receive(data(0x19,{0x01,0x90},25),10);
+    EXPECT_EQ(m.value(BoilerField::boilerTemp,10),6000);
+    EXPECT_EQ(m.value(BoilerField::exhaustTemp,10),19520);
+    EXPECT_EQ(m.value(BoilerField::switchTemp,10),4000);
+    EXPECT_EQ(m.value(BoilerField::pumpModulation,10),100);
+    EXPECT_FALSE(m.value(BoilerField::secondBurnerMinutes,10));
+    EXPECT_EQ(m.value(BoilerField::secondBurnerMinutes,10,true),258);
+    m.receive(data(0x19,{101},9),20);
+    EXPECT_FALSE(m.value(BoilerField::pumpModulation,20));
+}
+TEST(ClassicExpanded, SignedParametersAndDhwComfortAreWireValues) {
+    ClassicBoilerMonitor m;
+    m.receive(data(0x16,{0xFF,0xFA,15,0,3,100,20,2,8,0xF8},4),10);
+    m.receive(data(0x16,{40},23),10);
+    EXPECT_EQ(m.value(BoilerField::hysteresisOff,10),-1);
+    EXPECT_EQ(m.value(BoilerField::hysteresisOn,10),-6);
+    EXPECT_EQ(m.value(BoilerField::minimumBurnerPeriod,10),15);
+    EXPECT_EQ(m.value(BoilerField::secondaryHysteresisOn,10),-8);
+    EXPECT_EQ(m.value(BoilerField::pumpStartTemp,10),4000);
+    m.receive(data(0x16,{0x7F},4),20);
+    EXPECT_FALSE(m.value(BoilerField::hysteresisOff,20));
+    m.receive(data(0x33,{0xFB,0xFF,40,0xFF,2,70,0xD8,0xFF},3),30);
+    EXPECT_EQ(m.value(BoilerField::dhwHysteresisOn,30),-5);
+    EXPECT_EQ(m.value(BoilerField::dhwChargeOptimisation,30),1);
+    EXPECT_EQ(m.value(BoilerField::dhwCirculationEnabled,30),1);
+    EXPECT_EQ(m.value(BoilerField::dhwComfortMode,30),0xD8);
+    EXPECT_EQ(m.value(BoilerField::dhwChargeType,30),1); // FF is valid bit, not missing
+    m.receive(data(0x33,{0xEC},9),40);
+    EXPECT_EQ(m.value(BoilerField::dhwComfortMode,40),0xEC);
+    m.receive(data(0x33,{7},9),50);
+    EXPECT_FALSE(m.value(BoilerField::dhwComfortMode,50));
+}
+TEST(ClassicExpanded, DhwExtraSensorsAndRawStatusNeverBecomeControlEvidence) {
+    ClassicBoilerMonitor m;
+    m.receive(data(0x34,{0x01,0xF4,0x7E},3),10);
+    m.receive(data(0x34,{3},8),10);
+    m.receive(data(0x34,{0x02,0x58},17),10);
+    EXPECT_EQ(m.value(BoilerField::dhwTemp2,10),5000);
+    EXPECT_EQ(m.value(BoilerField::dhwSolarTemp,10),6000);
+    EXPECT_EQ(m.value(BoilerField::dhwType,10),3);
+    for(auto f:{BoilerField::rawDhwOneTime,BoilerField::rawDhwDisinfection,BoilerField::rawDhwCharging,
+                BoilerField::rawDhwRecharging,BoilerField::rawDhwTempOk,BoilerField::rawDhwActive}) {
+        EXPECT_FALSE(m.value(f,10)); EXPECT_EQ(m.value(f,10,true),1);
+    }
+}
+TEST(ClassicExpanded, All69FieldsSerializeAndCatalogDoesNotRefreshMeasurements) {
+    ClassicBoilerMonitor m;
+    for(auto type:{0x18,0x19,0x16,0x33,0x34}) m.receive(data(type,std::vector<uint8_t>(27,0)),100);
+    for(size_t i=0;i<boilerFieldSpecs.size();++i) EXPECT_TRUE(m.sample(static_cast<BoilerField>(i)).observed)<<i;
+    m.receive(data(0x777,{1,2},3),30100); // catalog only; old report remains stale
+    std::ostringstream ss; m.writeJSON(ss,30101);
+    auto j=std::unique_ptr<cJSON,decltype(&cJSON_Delete)>(cJSON_Parse(ss.str().c_str()),cJSON_Delete);
+    ASSERT_TRUE(j); auto fields=cJSON_GetObjectItem(j.get(),"fields");
+    EXPECT_EQ(cJSON_GetArraySize(fields),69);
+    auto inventory=cJSON_GetObjectItem(j.get(),"telegram_inventory");
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(inventory,"types")),6);
+    auto reception=cJSON_GetObjectItem(j.get(),"reception");
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(reception,"report_count")),5);
+    EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItem(reception,"fresh_report")));
+    EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItem(reception,"control_approved")));
+    EXPECT_LT(ss.str().size(),18000u);
+}
+TEST(ClassicExpanded, CatalogIsBoundedAndFiltersForeignAndReadTraffic) {
+    ClassicBoilerMonitor m;
+    for(uint16_t i=0;i<26;++i) m.receive(data(0x500+i,{1}),100);
+    m.receive(data(0x500,{1,2},4),200); // existing slot still updates after overflow
+    m.receive(data(0x500,{1},0,0x19),300);
+    m.receive(data(0x500,{}),300);
+    m.receive(EmsTelegram(EmsTelegram::READ,8,0x0B,0,0x500,{1}),300);
+    m.receive(EmsTelegram(EmsTelegram::READ_WITH_DATA,8,0x0B,0,0x500,{1}),300);
+    std::ostringstream ss; m.writeJSON(ss,201);
+    auto j=std::unique_ptr<cJSON,decltype(&cJSON_Delete)>(cJSON_Parse(ss.str().c_str()),cJSON_Delete);
+    ASSERT_TRUE(j);auto inv=cJSON_GetObjectItem(j.get(),"telegram_inventory");
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(inv,"untracked_frames")),2);
+    auto types=cJSON_GetObjectItem(inv,"types"); EXPECT_EQ(cJSON_GetArraySize(types),24);
+    auto first=cJSON_GetArrayItem(types,0);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(first,"frames")),2);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(first,"last_offset")),4);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(first,"decoder")),"unmapped");
+    EXPECT_STREQ(m.capabilities().name(),"unknown");
+}
+
 }

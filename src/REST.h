@@ -8,6 +8,7 @@
 #include "control/CaptivePortalPolicy.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "EmbeddedWebAssets.h"
+#include "control/StaticAssetRoute.h"
 #include "update/GitHubUpdate.h"
 #include "control/WebAuthSession.h"
 #include "control/NativeSourceProvisioning.h"
@@ -48,6 +49,18 @@ namespace heating {
 
 using namespace std::string_view_literals;
 using namespace std::string_literals;
+
+#ifdef OPENTHERMOSTAT_E32V2
+class EmbeddedAssetUri final : public Uri {
+public:
+    EmbeddedAssetUri() : Uri("") {}
+    Uri *clone() const override { return new EmbeddedAssetUri(); }
+    bool canHandle(const String &requestUri, std::vector<String> &) override {
+        return control::embeddedAssetPath(
+            std::string_view(requestUri.c_str(),requestUri.length()),embedded::assets);
+    }
+};
+#endif
 
 class WebServerStringView : public WebServer {
 public:
@@ -178,6 +191,12 @@ public:
 #endif
 		route("/", HTTP_GET, [this]() { index(); });
 
+		#ifdef OPENTHERMOSTAT_E32V2
+        // The pinned WebServer logs an error BEFORE onNotFound(), even when
+        // that fallback successfully serves a static file. Give real embedded
+        // assets one explicit GET handler while retaining the same auth gate.
+        route(EmbeddedAssetUri{},HTTP_GET,[this] { serveFile(server_.uri().c_str()); });
+        #endif
 		server_.onNotFound([this]() {
 			if(!authorize()) return;
 			serveFile(server_.uri().c_str());

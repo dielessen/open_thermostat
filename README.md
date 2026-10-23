@@ -91,6 +91,7 @@ EMS-ESP-velddekking of ondersteuning voor iedere ketel/converter.
 | Ketelvelden in HA | Tot 69 vaste Classic-velddefinities met bronleeftijd, eenheden en kwaliteit via de bestaande verbinding | **Voorbereid en getest in de nieuwste bron**; nog niet in de geïnstalleerde alpha18/dev24. [Details](docs/modern-thermostat/BOILER-FIELDS-V1.md) |
 | Externe wandbediening | Kamerdoelen vanuit andere bedieningen overnemen zonder terugkoppellussen | Basis **voorbereid**; complete route **gepland** |
 | E32-webinterface | Installatie, kamernamen, doelen, berekende vraag en beschikbare ketelwaarden bekijken | **Beschikbaar** |
+| Nederlands en Engels / Dutch and English | E32: taalkeuze in menu en bij aanmelden/wifi-installatie. HA: profieltaal voor kamereditor en native vertalingen; vaste opgeslagen dashboardteksten vallen terug op Engels | **Voorbereid voor de komende bèta**; Engels is standaard en terugval |
 | Uitleg waarom er vraag is | Regelstatus en redenen voor warmtevraag of blokkering zien | **Beschikbaar als diagnosebasis**; echte opdracht-/reactietijdlijn volgt |
 | Grafieken, historie en CSV | Temperatuur, vraag, brander/modulatie en tapwater over tijd analyseren | Metrics-/opslag-/exportcode **voorbereid**; volledige actuele productroute nog afronden |
 | Verbruik, kosten en comfort | Metergegevens en duidelijk gelabelde schattingen combineren | **Deels voorbereid**; echte bronnen/kalibratie en presentatie volgen |

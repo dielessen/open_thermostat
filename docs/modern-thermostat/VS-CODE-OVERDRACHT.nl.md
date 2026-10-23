@@ -13,7 +13,7 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
 
 - Geïnstalleerd/gecontroleerd: E32 alpha18 + HA dev24, bron `6ef01d0`.
 - Actueel uitrolbewijs: `out/prepared-rollout-20261023/FINAL-REVIEW.json`.
-- Ontvangst staat in behouden instellingen nog uit; TX/actuatoruitgangen blijven geblokkeerd.
+- Bij de latere README-opname zijn verse Classic-berichten ontvangen; TX/actuatoruitgangen blijven geblokkeerd.
 - Onderstaande bronstappen zijn historische checkpoints, inmiddels meegenomen in deze passieve release.
 - Laat de bevroren `out/plan-batch-20261023` intact.
 - Werk verder in `out/beta-boiler-20261023`, branch `work/beta-boiler-20261023`.
@@ -186,6 +186,7 @@ Volledige CI/pakketcontrole PASS; normale E32-OTA met zeven behouden
 configuratieparen; HA-agentinstallatie met back-up, 76 exacte bronbestanden en
 24 nacontroles. Echte E32-Keteltest/rapportdownload op drie breedtes PASS.
 De keten met HA is na de E32-reboot vers/actief en SOURCE rev3 blijft behouden.
-Geen ontvangst of ketelwerking bewezen: EMS-ontvangst staat nog uit. Volg voor
+Bij uitrol stond ontvangst uit; de latere README-opname bevestigt inmiddels
+passieve Classic-ontvangst, zonder volledige veldpariteit of actieve werking. Volg voor
 de eerstvolgende passieve praktijkstap het actuele werkbord; B04–B09 blijven
 open voor de actieve bèta, geen automatische verwarmingsvrijgave.

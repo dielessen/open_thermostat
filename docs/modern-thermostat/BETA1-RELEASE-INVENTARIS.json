@@ -610,7 +610,7 @@
           "sha256": "ae3799d1fc18b9aefdfd95f7dec27036ec845a3d3bad8d47b850778d25035e85"
         }
       ],
-      "remaining_acceptance": "18 native + 43 GUI-regressies en 3 browserschermen PASS; nog niet geïnstalleerd."
+      "remaining_acceptance": "Geleverd in alpha18; echte Keteltest/rapportdownload op drie breedtes gecontroleerd. Bij latere README-opname verse Classic-rapporten ontvangen met TX uit. Volledige veldpariteit en actieve ketelacceptatie blijven open."
     },
     {
       "id": "I22",

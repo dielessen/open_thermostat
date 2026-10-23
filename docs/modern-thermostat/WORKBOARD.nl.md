@@ -79,7 +79,7 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | I18 | Comfortprioriteiten, raam/aanwezigheidscontext en HEAT/OFF | Voorbereide code, functie nog onvolledig | Logische/oudere opt-in paden bestaan; native eenvoudige kamereditor/bronkwalificatie niet compleet. |
 | I19 | Thermisch model, optimum-start, uitlopen en curveaanpassing | Voorbereide code, functie nog onvolledig | Code/replay/opslag aanwezig en behouden; geen bewezen leerwinst of actieve vrijgave. Geen nieuwe F9-stage vóór M2. |
 | I20 | Meldingen, batterij en modelspecifieke tapwaterpresentatie | Voorbereide code, functie nog onvolledig | Niet generiek als werkende onderhouds-/tapwaterregeling presenteren; modelgerichte acceptatie open. |
-| I21 | Keteltest-pagina, ontvangstdiagnose en meetrapport | Geleverd en op E32 gecontroleerd | Volledige release-CI PASS; echte E32-pagina en rapportdownload op 1280/390/320 px gecontroleerd. Ontvangst staat in behouden instellingen nog uit. |
+| I21 | Keteltest-pagina, ontvangstdiagnose en meetrapport | Geleverd en op E32 gecontroleerd | Volledige release-CI PASS; echte E32-pagina en rapportdownload op 1280/390/320 px gecontroleerd. Tijdens de latere README-opname is verse Classic-ontvangst waargenomen; veldvalidatie blijft open. |
 | I22 | Begrensde ketelproefpolicy en originele UART-ontvangsttijd | Policy en RX-integratie geleverd; actieve proef nog onvolledig | 80 unieke native gevallen onder ASan/UBSan PASS; beoordeeld profiel/adressering en fysieke TX-/stopkwalificatie open. |
 | I23 | Beveiligde controller-/HTTP-/webbediening van de ketelproef | Geleverd met actieve proef geblokkeerd | Poll-executor aangesloten; default start geblokkeerd. Classic-formaat gekoppeld; beoordeeld profiel/adressering en fysieke UART-kwalificatie open. 80 native en eerder 3 control-browserprofielen PASS. |
 
@@ -486,12 +486,29 @@ geen nieuwe live HA-koude-browserproef geclaimd. Op de echte E32 zijn dashboard,
 About, herstartannulering, Keteltest en rapportdownload op drie schermbreedtes
 zonder writes of browserfouten gecontroleerd.
 
-**Ontvangst staat nog uit in de behouden instellingen** (`enabled=false`, nul
-ketelrapporten). Er is geen fysieke ontvangst- of verwarmingsproef uitgevoerd.
+**Bij de uitrol stond ontvangst nog uit** (`enabled=false`, nul ketelrapporten).
+Tijdens die uitrol was geen fysieke ontvangst- of verwarmingsproef uitgevoerd.
 E32-zenden en aanvullende GPIO blijven compile-time geblokkeerd; actieve
 proefknoppen zijn uitgeschakeld. B04–B14 blijven voor de actieve bèta gelden.
-De volgende praktijkstap is de passieve ontvangst gericht inrichten/controleren,
-zonder de Tado-regeling of fysieke uitgangen te veranderen.
+Een latere read-only opname voor de README bevestigt inmiddels passieve
+Classic-ontvangst; zie de actuele observatie hieronder. Veldpariteit en actieve
+meet-/kraan-/ketelkwalificatie blijven open.
 
 Actueel bewijs: `out/prepared-rollout-20261023/FINAL-REVIEW.json`. De vorige
 alpha17/dev23-assets blijven beschikbaar als archief/herstelbasis; niets overschreven.
+
+## Actuele README-opname: passieve Classic-ontvangst
+
+Bij de echte alpha18-screenshotopname op 23 oktober 2026 staat EMS-ontvangst aan.
+Een daaropvolgende GET op `/status/ems/telemetry` meldt
+`classic_reports_received`, 49 ketelrapporten, een laatste rapportleeftijd van
+168 ms en vijftien verse Classic-velden. Zenden is compile-time geblokkeerd en
+het aantal verzonden gegevensframes is nul. Tijdens deze opname waren ook
+wachtrijverlies, afgekeurde telegrammen, UART-fouten en UART-resets nul; dit is
+een momentopname, geen langdurige uitval-/stabiliteitsproef.
+
+Hiermee is echte passieve ontvangst waargenomen. De afzonderlijke waarden en
+afgeleide toestanden zijn nog niet onafhankelijk met de ketel vergeleken.
+`control_approved=false`; B04–B09 en de volledige B14-proef blijven open. De
+screenshotopdracht heeft geen EMS-instelling, programma of uitgang gewijzigd.
+Bewijs: `out/github-readme-20261023/E32-RECEPTION-OBSERVATION.json`.

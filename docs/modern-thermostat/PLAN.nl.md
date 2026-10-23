@@ -15,10 +15,12 @@ wat eerder is voorbereid moet in de releasebasis behouden blijven. Daarom is
 ieder voorbereid onderdeel opgenomen in de [release-inventaris](BETA1-RELEASE-INVENTARIS.json)
 en in [WORKBOARD §3](WORKBOARD.nl.md#3-alles-wat-voorbereid-is-meenemen-in-de-bèta).
 
-- **Geleverd:** E32 alpha17 / HA dev23, bron `86f99a9`, één update per component;
+- **Geleverd:** E32 alpha18 / HA dev24, bron `6ef01d0`, één update per component;
   behoud van instellingen, SOURCE/revisie, programma en identiteiten bewezen.
-- **Nieuw gebouwd/getest:** ketelontvangstdiagnose, Settings → Keteltest en
-  meetrapport, checkpoint `cebb0a2`; nog niet gepubliceerd/geïnstalleerd.
+- **Meegeleverd/gecontroleerd:** ketelontvangstdiagnose, Settings → Keteltest,
+  meetrapport en de voorbereide geblokkeerde proefketen. Tijdens de latere
+  README-opname zijn verse Classic-rapporten ontvangen; volledige veldpariteit
+  en actieve verwarmingsacceptatie blijven open.
 - **Code reeds voorbereid:** regelaars/supervisor, water-/vloer-/mengerpolicies,
   metrics/grafieken/CSV, comfort/context, modellen/optimum-start/coast/curve.
   Deze code niet opnieuw als geheel ongeprogrammeerd aanduiden. De complete

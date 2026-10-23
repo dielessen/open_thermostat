@@ -137,23 +137,23 @@ struct CatalogFetch {
 TEST(GitHubCatalog, FindsTwoCompatibleFirmwareReleasesPastMultipleHaReleases) {
     CatalogFetch fetch;fetch.page(1,catalogEntry("ha-v0.4.0.dev12"));
     fetch.page(2,catalogEntry("ha-v0.4.0.dev11"));
-    fetch.release(3,"v0.1.0-e32v2-alpha.7");fetch.release(4,"v0.1.0-e32v2-alpha.6",false);
+    fetch.release(3,"v0.1.0-e32v2-alpha.7");fetch.release(4,"v0.1.0-e32v2-alpha.6",false);fetch.page(5,"[]");
     std::vector<Release> out;std::string error;
     ASSERT_TRUE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),2u);
     EXPECT_EQ(out[0].tag,"v0.1.0-e32v2-alpha.7");EXPECT_TRUE(out[0].prerelease);
     EXPECT_EQ(out[1].tag,"v0.1.0-e32v2-alpha.6");EXPECT_FALSE(out[1].prerelease);
-    ASSERT_EQ(fetch.calls.size(),6u);
+    ASSERT_EQ(fetch.calls.size(),7u);
     for(const auto &call:fetch.calls)EXPECT_EQ(call.second,call.first.find("api.github.com")!=std::string::npos?32768u:4096u);
 }
 TEST(GitHubCatalog, SkipsDraftMissingImageDuplicateAndIncompatibleManifest) {
     CatalogFetch fetch;fetch.page(1,catalogEntry("v1",true,true));
     fetch.page(2,"[{\"tag_name\":\"v2\",\"assets\":[{\"name\":\"e32v2-update.json\"}]}]");
     fetch.release(3,"v3");fetch.responses[assetUrl("v3","e32v2-update.json")]=document();
-    fetch.release(4,"v4");fetch.page(5,catalogEntry("v4"));fetch.release(6,"v5");
+    fetch.release(4,"v4");fetch.page(5,catalogEntry("v4"));fetch.release(6,"v5");fetch.page(7,"[]");
     std::vector<Release> out;std::string error;
     ASSERT_TRUE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),2u);
     EXPECT_EQ(out[0].tag,"v4");EXPECT_EQ(out[1].tag,"v5");
-    EXPECT_EQ(fetch.calls.size(),9u);
+    EXPECT_EQ(fetch.calls.size(),10u);
     EXPECT_EQ(std::count_if(fetch.calls.begin(),fetch.calls.end(),[](const auto &call){return call.first==assetUrl("v4","e32v2-update.json");}),1);
 }
 TEST(GitHubCatalog, EmptyApiPageCompletesKnownCatalogWithoutAnotherRequest) {
@@ -191,4 +191,38 @@ TEST(GitHubCatalog, LastAllowedPageCanSupplyTheOnlyVerifiedChoice) {
     fetch.release(maxReleasePages,"v1");std::vector<Release> out;std::string error;
     ASSERT_TRUE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),1u);EXPECT_EQ(out[0].tag,"v1");
     EXPECT_EQ(fetch.calls.size(),maxReleasePages+1);
+}
+
+TEST(GitHubCatalog, LatestPublishedCompatibleReleaseCanFollowTwoOlderMatches) {
+    // Actual public API ordering observed23Oct:9,8,7,10. The first two
+    // compatible entries are not proof that the newest release was checked.
+    CatalogFetch fetch;
+    auto dated=[&](unsigned page,const std::string &tag,const std::string &published) {
+        fetch.release(page,tag);
+        auto raw=catalogEntry(tag);raw.insert(2,"\"published_at\":\""+published+"\",");
+        fetch.page(page,raw);
+    };
+    dated(1,"v0.1.0-e32v2-alpha.9","2026-10-23T04:04:28Z");
+    dated(2,"v0.1.0-e32v2-alpha.8","2026-10-23T03:17:27Z");
+    dated(3,"v0.1.0-e32v2-alpha.7","2026-10-23T01:57:48Z");
+    dated(4,"v0.1.0-e32v2-alpha.10","2026-10-23T06:45:18Z");
+    fetch.page(5,"[]");
+    std::vector<Release> out;std::string error;
+    ASSERT_TRUE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),2u);
+    EXPECT_EQ(out[0].tag,"v0.1.0-e32v2-alpha.10");
+    EXPECT_EQ(out[1].tag,"v0.1.0-e32v2-alpha.9");
+    EXPECT_EQ(fetch.calls.size(),9u);
+}
+
+TEST(GitHubCatalog, PublicationRankingRejectsMalformedCalendarAndOffsetDates) {
+    for(const auto *date:{"2026-10-23T06:45:18Z","2024-02-29T23:59:59Z","2000-02-29T00:00:00Z"})
+        EXPECT_TRUE(validReleasePublication(date))<<date;
+    for(const auto *date:{"2026-02-29T00:00:00Z","2100-02-29T00:00:00Z","2026-00-01T00:00:00Z", "2026-04-31T00:00:00Z", "2026-10-23T24:00:00Z", "2026-10-23T00:60:00Z", "2026-10-23T00:00:60Z", "2026-10-23T00:00:00+01:00", "2026-10-23T00:00:00Zgarbage", ""})
+        EXPECT_FALSE(validReleasePublication(date))<<date;
+}
+TEST(GitHubCatalog, FailureBeyondTwoMatchesCannotReplacePreviousChoices) {
+    CatalogFetch fetch;fetch.release(1,"v1");fetch.release(2,"v2");
+    std::vector<Release> out{{"v99",false}};std::string error;
+    EXPECT_FALSE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),1u);
+    EXPECT_EQ(out[0].tag,"v99");EXPECT_EQ(error,"fixture transport failure");
 }

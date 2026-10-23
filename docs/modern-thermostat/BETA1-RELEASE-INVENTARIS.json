@@ -294,7 +294,7 @@
         },
         {
           "path": "test/ui-language-browser.cjs",
-          "sha256": "f5376a4a82e03c9bb5878c1cfd3193a99be179ce882e79fecdc72fbccbd5ba38"
+          "sha256": "77522b3d837d3c5e77ddff9ee1ecd89a6630dae12864e883b366a6e3af950e1b"
         },
         {
           "path": "ha/tests_native/test_v1_room_label_resources.py",

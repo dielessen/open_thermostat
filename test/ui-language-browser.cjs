@@ -13,6 +13,7 @@ const out=path.resolve(process.env.OPENTHERMOSTAT_LANGUAGE_EVIDENCE||'out/ui-lan
    const req=route.request(),p=new URL(req.url()).pathname;
    if(req.method()!=='GET')writes.push({path:p,body:req.postDataJSON()});
    const json=data=>route.fulfill({contentType:'application/json',body:JSON.stringify(data)});
+   if(p==='/recovery'){const source=fs.readFileSync(path.resolve(__dirname,'../src/REST.h'),'utf8');return route.fulfill({contentType:'text/html',body:source.match(/R"html\(([\s\S]*?)\)html"sv/)[1]});}
    if(p==='/auth/session')return json({authenticated:true,csrf:'a'.repeat(64)});
    if(p==='/status')return json({controlMode:'shadow',ems:{},control:{fresh:true,captured_at_ms:1000,state:{boot_id:'language-test',zones:[{zone_id:'12345678',name:'Settings',temperature_centi_c:2000,target_centi_c:2100,demand:false}],supervisor:{requested_heat:false,reason:'shadow_idle'}}}});
    if(p==='/config/boiler-display'){if(req.method()==='POST')model=req.postDataJSON().model;return json({model});}
@@ -42,6 +43,10 @@ const out=path.resolve(process.env.OPENTHERMOSTAT_LANGUAGE_EVIDENCE||'out/ui-lan
   await page.goto('http://opth.test/login.html');
   assert.equal(await page.locator('h2').innerText(),choose('Sign in','Aanmelden'));
   assert.equal(await page.locator('#username').inputValue(),'admin');
+  await page.goto('http://opth.test/recovery');
+  assert.equal(await page.locator('h1').innerText(),choose('OpenThermostat recovery','OpenThermostat herstellen'));
+  await page.locator('#upload').click();
+  assert.equal(await page.locator('#status').innerText(),choose('Select spiffs.bin first.','Kies eerst spiffs.bin.'));
   await page.goto('http://opth.test/setup.html');await page.locator('#networks option').nth(1).waitFor({state:'attached'});
   assert.equal(await page.locator('#networks option').nth(1).getAttribute('value'),'Settings');
   assert.match(await page.locator('#networks option').nth(1).innerText(),/Settings/);

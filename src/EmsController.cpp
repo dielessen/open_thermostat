@@ -286,12 +286,12 @@ void EmsController::processTelegram(uint8_t *data, uint8_t length) {
 			return;
 		}
 	}
-	if (!telegramsToProcess_.push(data, length)) {
+	if (!telegramsToProcess_.push(data, length, static_cast<uint64_t>(esp_timer_get_time() / 1000))) {
 		rxDropped_.fetch_add(1, std::memory_order_relaxed);
 	}
 }
 
-void EmsController::decodeTelegram(uint8_t *data, uint8_t length) {
+void EmsController::decodeTelegram(uint8_t *data, uint8_t length, uint64_t receivedAtMs) {
     try {
         if (length == 0) return;
         const auto telegram = [this, data, length]() {
@@ -304,8 +304,10 @@ void EmsController::decodeTelegram(uint8_t *data, uint8_t length) {
         }();
         {
             std::lock_guard<std::mutex> lock(telemetryMutex_);
-            monitor_.receive(telegram, static_cast<uint64_t>(esp_timer_get_time() / 1000));
-            receiveOutdoorTemperature(outdoorSample_,telegram,static_cast<uint64_t>(esp_timer_get_time()/1000));
+            // A queued pre-command report must never become post-command stop
+            // evidence simply because loop() decodes it after the command.
+            monitor_.receive(telegram, receivedAtMs);
+            receiveOutdoorTemperature(outdoorSample_, telegram, receivedAtMs);
         }
         // Passive monitor also sees boiler reports addressed to another master.
         // Legacy registered callbacks retain their original destination admission.
@@ -370,9 +372,10 @@ void EmsController::refreshClassicStatus() {
 
 void EmsController::processTelegrams() {
 	EmsRawFrame frame;
+	uint64_t receivedAtMs;
 	// Bound the work per loop even when the UART producer stays busy.
-	for (int i = 0; i < maxTelegramQueueSize && telegramsToProcess_.pop(frame); ++i) {
-		decodeTelegram(frame.data.data(), frame.length);
+	for (int i = 0; i < maxTelegramQueueSize && telegramsToProcess_.pop(frame, &receivedAtMs); ++i) {
+		decodeTelegram(frame.data.data(), frame.length, receivedAtMs);
 	}
 }
 

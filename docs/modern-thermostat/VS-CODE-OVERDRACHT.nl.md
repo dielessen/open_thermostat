@@ -5,8 +5,8 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
 1. Lees [WORKBOARD](WORKBOARD.nl.md): de enige actuele afvinklijst met alle 31
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
-3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 21 voorbereide onderdelen,
-   64 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 22 voorbereide onderdelen,
+   68 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie

@@ -229,7 +229,7 @@ private:
 	void reset();
 	void enqueueTelegramToSend(EmsTelegram telegram, bool front = false);
 	void reportStats();
-	void decodeTelegram(uint8_t *data, uint8_t length);
+	void decodeTelegram(uint8_t *data, uint8_t length, uint64_t receivedAtMs);
 	void refreshClassicStatus();
 
 	void processTelegrams();

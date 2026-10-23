@@ -1,3 +1,10 @@
+> **Bronvoortgang 23 oktober:** de pure policy `src/EMS/BoilerTestSession.h`
+> en behoud van UART-ontvangsttijd in de echte RX-queue zijn geïmplementeerd.
+> 40 unieke native gevallen onder ASan/UBSan PASS. Dit document beschrijft
+> ook de nog open HTTP-/profiel-/pollzenderintegratie; de actieve ketelproef
+> is nog niet aangesloten of fysiek vrijgegeven. Alles blijft in dezelfde
+> grotere bètabatch, zonder afzonderlijke publicatie/installatie.
+
 # Begrensde ketelproef: te implementeren contract
 
 Ontwerpcheckpoint 23 oktober 2026. Dit contract is nog geen aangesloten

@@ -547,11 +547,11 @@
         },
         {
           "path": "src/EmsController.h",
-          "sha256": "2ead78219cd91b182a2ea23358b6fa6ed056ea5414647e6c4f4b5740e443da05"
+          "sha256": "74f75696caae1f4b1ff7c3eb2a647eb3cd5c628dc80907371d0e3ffcd178544c"
         },
         {
           "path": "src/EmsController.cpp",
-          "sha256": "bd40fbb7ab47134ae428f9854ac83e32ac20be7520c9b4f8aa7031f87df07db6"
+          "sha256": "ef007eee2729a211afa7f0d58926c5e3e19561acde0680fd196f57021aeabce5"
         },
         {
           "path": "test/boiler-test-browser.cjs",
@@ -559,6 +559,37 @@
         }
       ],
       "remaining_acceptance": "18 native + 43 GUI-regressies en 3 browserschermen PASS; nog niet geïnstalleerd."
+    },
+    {
+      "id": "I22",
+      "title": "Begrensde ketelproefpolicy en originele UART-ontvangsttijd",
+      "status": "deels",
+      "include_in_beta": true,
+      "requirements": [
+        "R08",
+        "R23",
+        "R24",
+        "R25"
+      ],
+      "files": [
+        {
+          "path": "src/EMS/BoilerTestSession.h",
+          "sha256": "cc73a2b642f43b88099c32d3ad6d2600d8c1c4fcab1175559d45a38b9ac6f077"
+        },
+        {
+          "path": "src/EMS/EmsFrameQueue.h",
+          "sha256": "ed82ab15c8068dbcb71935a14502c65fc3072899814a8869597d06e615ed84d8"
+        },
+        {
+          "path": "test/test_native/test_boiler_test_session.cpp",
+          "sha256": "52f9c52214e11496d26fbc59c3e6efeb1d0912d8f47a02a4eea70708ae6287c8"
+        },
+        {
+          "path": "test/test_native/test_ems_frame_queue.cpp",
+          "sha256": "faa0bfa19f58d47172c7d335ca8e0a7eade1316d0f91c4d72337aad293ce433b"
+        }
+      ],
+      "remaining_acceptance": "17 policytests en 5 queue-tests met 18 Classic-regressies onder ASan/UBSan PASS; HTTP/profiel-/pollzenderintegratie en fysieke TX-/stopkwalificatie nog open. Geen nieuwe release."
     }
   ],
   "requirements": [
@@ -907,5 +938,5 @@
     "WP08"
   ],
   "authoritative_workboard": "docs/modern-thermostat/WORKBOARD.nl.md",
-  "runtime_source_checkpoint": "cebb0a25296b690a2a2d699bccacb65ed0f69da7"
+  "base_runtime_checkpoint": "cebb0a25296b690a2a2d699bccacb65ed0f69da7"
 }

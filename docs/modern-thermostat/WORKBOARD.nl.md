@@ -52,7 +52,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-64 bronverwijzingen met hashes, status en resterende acceptatie.
+68 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -80,6 +80,7 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | I19 | Thermisch model, optimum-start, uitlopen en curveaanpassing | Voorbereide code, functie nog onvolledig | Code/replay/opslag aanwezig en behouden; geen bewezen leerwinst of actieve vrijgave. Geen nieuwe F9-stage vóór M2. |
 | I20 | Meldingen, batterij en modelspecifieke tapwaterpresentatie | Voorbereide code, functie nog onvolledig | Niet generiek als werkende onderhouds-/tapwaterregeling presenteren; modelgerichte acceptatie open. |
 | I21 | Keteltest-pagina, ontvangstdiagnose en meetrapport | Nieuw gebouwd/getest, nog niet geleverd | 18 native + 43 GUI-regressies en 3 browserschermen PASS; nog niet geïnstalleerd. |
+| I22 | Begrensde ketelproefpolicy en originele UART-ontvangsttijd | Nieuwe pure policy en RX-integratie getest; actieve proef nog onvolledig | 40 unieke native gevallen onder ASan/UBSan PASS; HTTP/profiel-/pollzenderintegratie en fysieke TX-/stopkwalificatie open. |
 
 Er wordt geen voorbereide supervisor, vloer-/mengerpolicy, CSV-/grafiekroute,
 comfortcode of leer-/modelcode weggegooid of opnieuw vanaf nul gebouwd. Deze
@@ -162,6 +163,24 @@ queue/poll-/deadline-/stopcontrole; daarna één bevroren gezamenlijke kandidaat
 volledige releasechecks en één gecoördineerde uitrol. Passieve ontvangst en
 onafhankelijk bron-/testwerk hoeven niet te wachten op een fysieke waarneming.
 
+### Nieuw bronwerk binnen dezelfde grotere bètabatch
+
+- Begrensde `BoilerTestSession`: eerst verzonden nul en strikt latere gemelde
+  CV-uit/nulvermogen; dan afzonderlijke expliciete start met vaste eindtijd.
+  Dubbele start verlengt niets. Stop, lease-/feedbackverlies, DHW, verloren
+  proefvoorwaarden, klokfout en zendfout trekken positieve intentie in.
+- Laatste verzendcontrole verwerpt oude positieve intenties na stop/deadline.
+  Een onzekere stop blijft fout; geen automatische nieuwe sessie of hervatting.
+- RX bewaart nu de UART-callbacktijd door de echte begrensde wachtrij heen.
+  Later decoderen verjongt een pre-commandotelegram niet tot stopbewijs.
+  De extra vaste tijdstempelopslag voor 60 RX-slots is 480 bytes; TX-framegrootte
+  blijft ongewijzigd. Dit is geen nieuwe live heap-/latentieacceptatie.
+- 40 unieke native gevallen onder ASan/UBSan met leakcontrole PASS: 17 policy,
+  5 queue (inclusief 100.000 gelijktijdige pakketten) en 18 Classic-regressies.
+  Geen fysieke proef en geen nieuwe release/installatie voor dit bronwerk.
+- B07/B08 blijven open voor de echte HTTP-/profiel-/pollzenderintegratie.
+  De policy zelf heeft geen UART-/HTTP-callbacks of fysieke uitvoerbevoegdheid.
+
 ### Releasechecklist — eerste bèta
 
 - [x] B01 Alle 31 eisen, 11 fasen en 8 werkpakketten opnieuw beoordeeld; oude statusregels uit actuele lijst gehaald.
@@ -207,7 +226,7 @@ Alleen programma-ACK of beschikbaarheid van een entiteit sluit M2 niet.
 | `out/combined-release-evidence-20261023/FINAL-REVIEW.json` | Werkelijk gepubliceerde/geïnstalleerde alpha17/dev23 en instellingenbehoud |
 | `out/beta-boiler-evidence-20261023/CHECKPOINT.json` | Ontvangstsoftwarecheckpoint, geen bèta- of fysieke vrijgave |
 | `out/plan-audit-20261023/AUDIT.json` | Bron-/inventaris-/takken-/plancontrole van deze herijking |
-| `BETA1-RELEASE-INVENTARIS.json` | Alle 21 voorbereide brononderdelen en 64 bestandsverwijzingen met hashes |
+| `BETA1-RELEASE-INVENTARIS.json` | Alle 22 voorbereide brononderdelen en 68 bestandsverwijzingen met hashes |
 | `BETA1-KETELPROEF.nl.md` / `BETA1-PROEFSTAND-ONTWERP.nl.md` | Scope en nog te implementeren begrensd proefcontract |
 | `out/critical-path-20261022/SAVED-STOP-RECHECK.json` | Historisch expliciet nulcommando; geen zelfstandige stop bij communicatiewegval |
 | `out/plan-audit-20261023/*.before` | Ongewijzigde oude PLAN/WORKBOARD/overdracht/nachtvolgorde; historische bewijsregels behouden |

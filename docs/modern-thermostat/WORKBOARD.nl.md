@@ -603,7 +603,7 @@ Zie [het contract en de foutafhandeling](BOILER-FIELDS-V1.md).
 De vorige publieke CI (`40022902449`) faalde op de oude `esp32dev`: de uiteindelijke
 binary was 1.705.856 bytes voor een OTA-slot van 1.703.936 bytes. De eerdere
 PlatformIO-succesmelding betrof de link-/ELF-grens, geen zelfstandig bewijs voor
-de gepadde binary. Herstel: alleen dit 4 MB-board met `-Os` compileren en een
+de gepadde binary. Herstel: alleen dit 4 MB-board met `-Os` en link-timeoptimalisatie compileren en een
 post-buildcontrole op het echte `.bin` tegen beide OTA-slots toevoegen. E32/S3
 houden hun bestaande `-O3`-profiel en partitie-indeling. De guard heeft een echte
 grensregressie en draait ook in CI. Nieuwe boardresultaten volgen op deze bron.
@@ -614,3 +614,12 @@ zijn afzonderlijk met de tijdelijke lokale broker uitgevoerd, samen met de extra
 workerregressie (67 tests in die run, nul fouten/skips). Nieuwe boardbuilds en
 publieke CI nog aftekenen. Installatie, fysieke veldvalidatie,
 M2-kamerbron/kraanroute en B04–B14 blijven open.
+
+
+De `-Os`-controle alleen bleef boven het oude OTA-slot; de nieuwe lokale guard
+heeft dat correct afgewezen. De bestaande gepinde GCC8-toolchain is daarom eerst
+met een zelfstandige LTO-compile/link gecontroleerd. Alleen `esp32dev` krijgt
+`-flto`/fat LTO-objecten en de bijpassende linkoptie. E32/S3 houden hun bestaande
+compiler-/linkprofiel. De echte imagegrootte blijft een harde voorwaarde; er is
+geen partitie vergroot en geen functie verwijderd. De bronproef `03bb861` bouwde
+E32 en S3 wel, maar is nadrukkelijk geen geslaagde drie-boardkandidaat.

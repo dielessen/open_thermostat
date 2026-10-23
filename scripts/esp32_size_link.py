@@ -3,7 +3,7 @@ Import("env")
 
 # E32 and S3 have their own build profiles. Keep their code-layout policy intact.
 if env.subst("$PIOENV") == "esp32dev":
-    env.AppendUnique(LINKFLAGS=["-Wl,--size-opt"])
+    env.AppendUnique(LINKFLAGS=["-Wl,--size-opt", "-Os", "-flto"])
 
     def verify_actual_ota_image(source, target, env):
         import csv

@@ -36,7 +36,7 @@
         },
         {
           "path": "scripts/esp32_size_link.py",
-          "sha256": "4f9857646f75cf0f5b3eb7110b3325e6b1936261df62753b9c4fdd4baffc0582"
+          "sha256": "bd6c5e3b87d08a1e5eda915c4695dfe4cbc460af23b572d518d756e915f095ba"
         },
         {
           "path": "scripts/test_esp32_size_link.py",

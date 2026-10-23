@@ -12,7 +12,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.18`, normale OTA/nacontrole geslaagd |
 | Geïnstalleerde HA-integratie | `0.4.0.dev24`, via bestaande HA-agent met back-up/nacontrole |
 | Geleverde gezamenlijke bron | `6ef01d0e8468f2bb88310d165fb5d49d033b21d4` (passieve voorbereidingsrelease) |
-| Nieuwe softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; ontvangstcheckpoint `cebb0a2` |
+| Nieuwe softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; uitgebreid uitleescheckpoint `274f39d` |
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
@@ -111,7 +111,7 @@ de code afgetekend. De oorspronkelijke acceptatie in PLAN §4/§14 blijft gelden
 | R12 | Zelflerende kamerregeling | Model-, begrenzings-, resource- en replaycode aanwezig | I19 | Niet actief vrijgegeven; getoetste meetdata, baseline/comfortvoordeel en modelrollback. |
 | R13 | Optimum-start | Opwarmmodel en begrensd advies/replay aanwezig | I19 | Aansluiten na M2/stabiele basis; meerdere vergelijkbare echte starts en comfortbewijs. |
 | R14 | Uitlopen/curve leren | Coast- en curve-adaptatiecode/opslag/replay aanwezig | I19 | Afzonderlijke toelating en meetbaar comfort-/curvebewijs; geen leerwinstclaim. |
-| R15 | Alle relevante keteldata | Veldinventaris/Classic-decoder en kwaliteitslabels aanwezig | I12,I17,I21 | Vereiste betrouwbare velden op eigen E32 ontvangen en vergelijken; unsupported/unreliable expliciet. |
+| R15 | Alle relevante keteldata | 30 velden geleverd; 69-veldbron en 24-type inventaris getest | I12,I17,I21 | Vereiste betrouwbare velden op eigen E32 ontvangen en vergelijken; unsupported/unreliable expliciet. |
 | R16 | Brander/modulatiegrafieken | Metrics-/presentatiecode aanwezig; ontvangstscherm nieuw getest | I17,I21 | Echte CV/DHW-tijdlijn, gaten en herkomst; vlam/pompbit niet onafhankelijk betrouwbaar. |
 | R17 | Historie/statistics/CSV | Recordergrens, metrics-schema en read-only CSV-code aanwezig | I17 | Werkelijke retentie/omvang, oude deltahistorie/migratie, reset/gaten en mobiele grafiekacceptatie. |
 | R18 | Weekprogramma/override | Native weekeditor/UTC-plan/apply geleverd; echte save/ACK bewezen | I07,I13 | Volledige fysieke stale/reconnect/tijd-/overrideketen; huidige 1–2 kamer-/bytebudgetten behouden. |
@@ -534,8 +534,8 @@ momentopname. Dit bevestigt ontvangst; fysieke aansturing blijft ongekwalificeer
   bits en historisch stilstaande tellers blijven onbetrouwbaar voor regeling.
 - Zes nieuwe decoder-/catalogusregressies: in totaal 86 native gevallen onder
   ASan/UBSan geslaagd. Het uitgebreide scherm en de bestaande actieve-proefguards slagen elk
-  in echte Chromium op 1280/390/320 px met fixturetransport. Boardbuilds volgen
-  op deze exacte bron; dit is nog geen levering of fysieke veldacceptatie.
+  in echte Chromium op 1280/390/320 px met fixturetransport. Alle drie boardbuilds op broncommit `274f39d` slagen. Dit is nog geen
+  levering of fysieke veldacceptatie.
 
 **HA-pariteit is nog open.** De bestaande HA-agent heeft alleen de exact
 historische ketel en huidige projectentiteiten geïnventariseerd. De 68 oude
@@ -553,3 +553,30 @@ en de [wirewaardedefinities](https://github.com/emsesp/EMS-ESP32/blob/v3.8.4/src
 Geen GPL-implementatie overgenomen. Niet elk veld bestaat op deze ketel;
 parameters die alleen op verzoek komen blijven bij passief luisteren onbekend.
 Bewijs: `out/ems-readout-improvements-20261023/` en de read-only HA-pariteitsreview.
+
+
+### Afgetekende broncontroles en volgende uitvoeringsstap
+
+- [x] 86 native tests met ASan/UBSan; bestaande Plus-/poll-/stop-/queuegevallen behouden.
+- [x] Uitgebreid scherm en bestaande proefbediening elk op 1280/390/320 px in Chromium.
+- [x] `esp32dev`, `esp32s3` en `e32v2` gebouwd op broncheckpoint `274f39d`.
+- [x] E32-filesystem gebouwd; partities, dubbele OTA/SPIFFS, inerte defaults en
+  gecompileerde afwezigheid van project-UART-zendaanroepen gecontroleerd.
+- [x] Bestaande 23 voorbereide onderdelen behouden; 96 bronverwijzingen gecontroleerd.
+- [ ] Nieuwe uitlezing via de gezamenlijke volgende release installeren en
+  de werkelijk ontvangen nieuwe velden op de eigen keten vergelijken.
+- [ ] Native HA-ketelveldprojectie aansluiten en testen op bronleeftijd,
+  sessie-/apparaatbinding, herhaling, uitval en unsupported/onbetrouwbaar.
+
+De E32-image is 2.430.496 / 3.670.016 bytes. De oudere `esp32dev`-appslot is
+met 1.699.365 / 1.703.936 bytes vrijwel vol; verdere firmware-uitbreiding moet
+ook die bestaande buildgrens bewaken. Dit verandert de E32-partitie-indeling niet.
+
+Voor de HA-projectie is het bestaande `fw/telemetry/ems_metrics`-pad onderzocht:
+het is sessiegebonden, read-only en begrensd op 2.048 envelopebytes. Het volledige
+69-veld-HTTP-rapport past daar niet zomaar in. De volgende implementatiestap is
+een afzonderlijk versiegebonden ketelveldcontract over dezelfde transporteigenaar,
+met begrensde veldgroepen en originele observatieleeftijden; geen verruiming van
+de bestaande metrics-validatie, besturingslease of controletoelating. Daarna de
+HA-readprojectie aansluiten op deze gevalideerde berichten. Geen tweede client,
+achtergrondpoller of behouden MQTT-bericht als verse ketelmeting gebruiken.

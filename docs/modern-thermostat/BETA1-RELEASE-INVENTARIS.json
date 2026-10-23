@@ -301,7 +301,7 @@
     {
       "id": "I12",
       "title": "Passieve Classic-decoder en begrensde Classic-proefencoder",
-      "status": "30 velden geleverd; uitbreiding naar 69 en begrensde berichtinventaris voorbereid",
+      "status": "30 velden geleverd; 69-veldbron en 24-type inventaris gebouwd/getest",
       "include_in_beta": true,
       "requirements": [
         "R08",
@@ -338,7 +338,7 @@
           "sha256": "b5c53b3f8d0c43ada9945039a0a2fb06942c355292eaa009b9c70b3876e58c5b"
         }
       ],
-      "remaining_acceptance": "Uitbreiding onafhankelijke Classic-decoders op bestaande vijf types; native regressie gecontroleerd. Nog niet geïnstalleerd. Beschikbaarheid/semantiek per keten fysiek vergelijken; actieve opvragen en native HA-veldprojectie ontbreken nog. TX blijft geblokkeerd."
+      "remaining_acceptance": "Uitbreiding onafhankelijk geïmplementeerd en getest: 86 ASan/UBSan-native gevallen en 3 boardbuilds. Nog niet geïnstalleerd. Fysieke veldvergelijking, eventueel actieve opvragen en native HA-veldprojectie blijven open. TX blijft geblokkeerd op E32."
     },
     {
       "id": "I13",
@@ -614,7 +614,7 @@
           "sha256": "7b2ab51e06d423ee755a5f12bad4c588f68c1bbd728cf68abfef8ea86539cf2e"
         }
       ],
-      "remaining_acceptance": "Nieuwe webbron toont alle 69 velden zonder 40-regelafkap en maximaal 24 ontvangen typen, ook zonder velddecoder. Echte huidige alpha18-ontvangst bevestigd; nieuwe bron nog niet uitgerold. Volledige HA-projectie en fysieke veldvalidatie blijven open."
+      "remaining_acceptance": "Alle 69 velden/rapport en maximaal 24 ontvangen typen getest op 1280/390/320 px; bestaande actieve-proefguards eveneens. Drie boardbuilds en E32-layout/defaults/no-TX-objectcontrole PASS. Nieuwe bron nog niet uitgerold. Native HA-projectie en fysieke veldvalidatie open."
     },
     {
       "id": "I22",

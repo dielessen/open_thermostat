@@ -129,14 +129,14 @@ def read_room(hass, entry_id, room_id):
             'week': normalize_program(room.week_program or {})}}
 
 
-async def save_room(hass, entry_id, room_id, token, settings, *, confirm_source_change=False, binding_identities=None):
-    entry, sub, current_room = _target(hass, entry_id, room_id)
-    if entry.options.get(CONF_ENABLED, False) or actual_runtime_active(hass, entry):
-        from .room_program_apply import save_active_program
-        return await save_active_program(hass, entry, sub, current_room, token, settings,
-                                         binding_identities=binding_identities)
-    old = _guard(hass, entry, sub, token)
-    before = configuration_snapshot(entry)
+def prepare_room_edit(hass, entry, sub, old, settings, *, confirm_source_change=False, binding_identities=None):
+    """Validate a prospective whole-room edit without mutating the HA entry.
+
+    Return a revalidation callable sharing the proposed actuator IDs. Callers
+    must fence their entry/owner and invoke it again after their final await.
+    This prepares intent only; it never stops a runtime or selects a source.
+    """
+    entry_id, room_id = entry.entry_id, old.room_id
     required = {'name', 'emitter', 'temperature_entity', 'radiator_entities', 'base_centi_c',
         'minimum_centi_c', 'maximum_centi_c', 'maximum_age_ms', 'program_source', 'schedule_entity', 'week'}
     if type(settings) is not dict or set(settings) != required:
@@ -205,6 +205,19 @@ async def save_room(hass, entry_id, room_id, token, settings, *, confirm_source_
                             and (ref['platform'], ref['unique_id']) != (previous['platform'], previous['unique_id'])):
                         raise ValueError('binding_missing')
         return room, parsed, identities
+    return candidate
+
+
+async def save_room(hass, entry_id, room_id, token, settings, *, confirm_source_change=False, binding_identities=None):
+    entry, sub, current_room = _target(hass, entry_id, room_id)
+    if entry.options.get(CONF_ENABLED, False) or actual_runtime_active(hass, entry):
+        from .room_program_apply import save_active_program
+        return await save_active_program(hass, entry, sub, current_room, token, settings,
+                                         binding_identities=binding_identities)
+    old = _guard(hass, entry, sub, token)
+    before = configuration_snapshot(entry)
+    candidate = prepare_room_edit(hass, entry, sub, old, settings,
+        confirm_source_change=confirm_source_change, binding_identities=binding_identities)
     room, parsed, identities = candidate()
     start = dt_util.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
     await hass.async_add_executor_job(compile_week, native_week(room.week_program or {}), room.base_centi_c,
@@ -217,6 +230,7 @@ async def save_room(hass, entry_id, room_id, token, settings, *, confirm_source_
     if room.week_program is None:
         raw.pop('week_program', None)
     replacement = replace(sub, data=MappingProxyType(raw), title=room.name)
+    central = central_entry(entry)
     heat = {**deepcopy(dict(central.data)), 'draft': parsed.storage_document(), 'status': parsed.readiness,
         'draft_digest': parsed.digest, 'incomplete_group_ids': list(parsed.incomplete_group_ids)}
     commit_configuration(hass, entry, before, data={**entry.data, INSTALLATION: heat},

@@ -128,3 +128,26 @@ async def test_room_view_exposes_only_measurement_summary_not_report_payload(has
     result = ui.read_room(hass, p.entry_id, model['room_id'])
     assert result['measurement'] == summary
     assert configuration_snapshot(p) == before
+
+@pytest.mark.asyncio
+async def test_prospective_room_edit_is_readonly_and_revalidates_registry_identity(hass, configured):
+    p, sub, model = configured
+    other = room(hass, room_id='bbbb2222', suffix='prospective')
+    settings = changed(model)
+    settings['temperature_entity'] = other.temperature.entity_id
+    settings['radiator_entities'] = [other.actuators[0].entity_id]
+    before = configuration_snapshot(p)
+    candidate = ui.prepare_room_edit(hass, p, sub,
+        ui._target(hass, p.entry_id, model['room_id'])[2], settings)
+    proposed, graph, identities = candidate()
+    again, checked, checked_ids = candidate()
+    assert configuration_snapshot(p) == before
+    assert proposed == again and identities == checked_ids
+    assert graph.storage_document() == checked.storage_document()
+    assert proposed.temperature.entity_id == other.temperature.entity_id
+    assert graph.storage_document()['actuators'][0]['output']['entity_id'] == other.actuators[0].entity_id
+    er.async_get(hass).async_update_entity(other.temperature.entity_id,
+        disabled_by=er.RegistryEntryDisabler.USER)
+    with pytest.raises(ValueError):
+        candidate()
+    assert configuration_snapshot(p) == before

@@ -82,6 +82,10 @@ public:
             t.getOperationType() == EmsTelegram::READ_WITH_DATA) return false;
         const auto family = BoilerCapabilities::family(t.getTypeId());
         if (family == BoilerProtocol::unknown) return false;
+        // Counts decoded boiler reports, never polls, CRC failures or our own
+        // requests. A frame need not contain a complete usable measurement.
+        if (reportCount_ != UINT64_MAX) ++reportCount_;
+        lastReportMs_ = now;
         capabilities_.observe(t.getTypeId());
         if (family != BoilerProtocol::classic) return false; // Plus processors remain intact.
         const auto put = [&](BoilerField field, std::optional<int32_t> v,
@@ -164,9 +168,11 @@ public:
         return true;
     }
 
-    void writeJSON(std::ostream &ss, uint64_t now) const {
+    void writeJSON(std::ostream &ss, uint64_t now, bool closeObject = true) const {
         ss << "{\"protocol_profile\":\"" << capabilities_.name()
-           << "\",\"classic_control_commissioned\":false,\"physical_validation\":false,\"fields\":{";
+           << "\",\"classic_control_commissioned\":false,\"physical_validation\":false,\"reception\":";
+        writeReceptionJSON(ss, now);
+        ss << ",\"fields\":{";
         for (size_t i = 0; i < samples_.size(); ++i) {
             if (i) ss << ',';
             const auto &s = samples_[i]; const auto &spec = boilerFieldSpecs[i];
@@ -190,10 +196,36 @@ public:
             if (s.observed && now >= s.observedMs) ss << now - s.observedMs; else ss << "null";
             ss << '}';
         }
-        ss << "}}";
+        ss << '}';
+        if (closeObject) ss << '}';
+    }
+
+    void writeReceptionJSON(std::ostream &ss, uint64_t now) const {
+        const bool fresh = reportCount_ && now >= lastReportMs_ && now - lastReportMs_ < 30000;
+        const auto profile = capabilities_.profile();
+        const char *state = !reportCount_ ? "no_boiler_reports" : !fresh ? "stale"
+            : profile == BoilerProtocol::conflict ? "conflicting_families"
+            : profile == BoilerProtocol::classic ? "classic_reports_received" : "plus_reports_received";
+        ss << "{\"state\":\"" << state << "\",\"report_count\":" << reportCount_
+           << ",\"last_report_age_ms\":";
+        if (reportCount_ && now >= lastReportMs_) ss << now - lastReportMs_; else ss << "null";
+        ss << ",\"fresh_report\":" << (fresh ? "true" : "false")
+           << ",\"control_approved\":false,\"fresh_classic_fields\":[";
+        bool first = true;
+        for (size_t i = 0; i < samples_.size(); ++i) {
+            const auto &sample = samples_[i];
+            if (profile != BoilerProtocol::classic || !sample.raw || !sample.fresh(now, boilerFieldSpecs[i].ttlMs)
+                || sample.quality == BoilerQuality::unreliable) continue;
+            if (!first) ss << ',';
+            first = false;
+            ss << '"' << boilerFieldSpecs[i].name << '"';
+        }
+        ss << "]}";
     }
 
 private:
+    uint64_t reportCount_ = 0;
+    uint64_t lastReportMs_ = 0;
     static constexpr size_t index(BoilerField f) { return static_cast<size_t>(f); }
     BoilerCapabilities capabilities_;
     std::array<BoilerSample, static_cast<size_t>(BoilerField::count)> samples_{};

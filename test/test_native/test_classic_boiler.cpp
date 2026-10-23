@@ -26,6 +26,78 @@ EmsTelegram data(uint16_t type, std::vector<uint8_t> payload, uint8_t offset = 0
             source, destination, offset, type, std::move(payload)};
 }
 
+TEST(ClassicReception, ReportsFreshnessWithoutGrantingControlOrAcceptingOtherSenders) {
+    ClassicBoilerMonitor m;
+    const auto snapshot = [&](uint64_t now) {
+        std::ostringstream ss;
+        m.writeReceptionJSON(ss, now);
+        return std::unique_ptr<cJSON, decltype(&cJSON_Delete)>(cJSON_Parse(ss.str().c_str()), cJSON_Delete);
+    };
+    auto initial = snapshot(0);
+    ASSERT_NE(initial, nullptr);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(initial.get(), "state")), "no_boiler_reports");
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(initial.get(), "last_report_age_ms")));
+    m.receive(data(0x18, {40}, 0, 0x19), 100);
+    m.receive(data(0x77, {40}), 100);
+    m.receive({EmsTelegram::READ, 8, 0x19, 0, 0x18, {1}}, 100);
+    auto ignored = snapshot(100);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(ignored.get(), "report_count")), 0);
+    // Zero uptime is a legitimate timestamp, including a foreign destination.
+    ASSERT_TRUE(m.receive(data(0x18, {0, 1, 0x72, 80, 0, 0, 0, 0x25}, 0, 8, 0x17), 0));
+    auto fresh = snapshot(29999);
+    EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItem(fresh.get(), "fresh_report")));
+    EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItem(fresh.get(), "control_approved")));
+    auto fields = cJSON_GetObjectItem(fresh.get(), "fresh_classic_fields");
+    EXPECT_EQ(cJSON_GetArraySize(fields), 7); // target, flow, power limit, modulation, raw state, inferred CV/DHW
+    auto stale = snapshot(30000);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(stale.get(), "state")), "stale");
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(stale.get(), "fresh_classic_fields")), 0);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(stale.get(), "last_report_age_ms")), 30000);
+    m.receive(data(0x18, {40}), 40000);
+    auto backwards = snapshot(39999);
+    EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItem(backwards.get(), "fresh_report")));
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(backwards.get(), "last_report_age_ms")));
+    m.receive(data(0xE4, {1}), 41000);
+    auto conflict = snapshot(41000);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(conflict.get(), "state")), "conflicting_families");
+    EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItem(conflict.get(), "control_approved")));
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(conflict.get(), "fresh_classic_fields")), 0);
+}
+
+TEST(ClassicReception, ExtensibleTelemetryRemainsValidAndDoesNotWrapAt32Bits) {
+    ClassicBoilerMonitor m;
+    const uint64_t now = (uint64_t{1} << 32) + 123;
+    m.receive(data(0x18, {40}), now);
+    std::ostringstream ss;
+    m.writeJSON(ss, now + 1, false);
+    ss << ",\"transport\":{\"enabled\":true}}";
+    auto json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>(cJSON_Parse(ss.str().c_str()), cJSON_Delete);
+    ASSERT_NE(json, nullptr);
+    auto reception = cJSON_GetObjectItem(json.get(), "reception");
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(reception, "last_report_age_ms")), 1);
+    EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(json.get(), "fields")));
+    EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItem(cJSON_GetObjectItem(json.get(), "transport"), "enabled")));
+}
+
+TEST(ClassicReception, DistinguishesPlusAndInvalidOrIncompleteMeasurements) {
+    ClassicBoilerMonitor plus;
+    plus.receive(data(0xE4, {1}), 100);
+    std::ostringstream ss;
+    plus.writeJSON(ss, 100);
+    auto json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>(cJSON_Parse(ss.str().c_str()), cJSON_Delete);
+    ASSERT_NE(json, nullptr);
+    auto reception = cJSON_GetObjectItem(json.get(), "reception");
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(reception, "state")), "plus_reports_received");
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(reception, "fresh_classic_fields")), 0);
+    ClassicBoilerMonitor invalid;
+    invalid.receive(data(0x18, {0x80, 0}, 1), 100); // invalid temperature sentinel
+    invalid.receive(data(0x18, {0x01}, 1), 200); // incomplete word
+    std::ostringstream fields;
+    invalid.writeReceptionJSON(fields, 200);
+    EXPECT_NE(fields.str().find("\"report_count\":2"), std::string::npos);
+    EXPECT_NE(fields.str().find("\"fresh_classic_fields\":[]"), std::string::npos);
+}
+
 TEST(ClassicBoiler, ReplaysCaptured0PWithoutInventingFlameOrMissingPressure) {
     // Genuine CRC-valid EMS-ESP capture, 13 Oct2026 incident report. No timestamps
     // or household/device identities are needed by this fixture. Wire includes CRC03.

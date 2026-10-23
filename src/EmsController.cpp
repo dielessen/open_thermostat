@@ -294,7 +294,14 @@ void EmsController::processTelegram(uint8_t *data, uint8_t length) {
 void EmsController::decodeTelegram(uint8_t *data, uint8_t length) {
     try {
         if (length == 0) return;
-        const auto telegram = EmsTelegram::fromRawData(data, length - 1);
+        const auto telegram = [this, data, length]() {
+            try {
+                return EmsTelegram::fromRawData(data, length - 1);
+            } catch (const std::exception &) {
+                invalidTelegrams_.fetch_add(1, std::memory_order_relaxed);
+                throw;
+            }
+        }();
         {
             std::lock_guard<std::mutex> lock(telemetryMutex_);
             monitor_.receive(telegram, static_cast<uint64_t>(esp_timer_get_time() / 1000));

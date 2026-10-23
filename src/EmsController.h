@@ -198,7 +198,19 @@ public:
 	}
 	void getTelemetryStatus(std::ostream &ss) const {
 		std::lock_guard<std::mutex> lock(telemetryMutex_);
-		monitor_.writeJSON(ss, static_cast<uint64_t>(esp_timer_get_time() / 1000));
+		// Keep the existing field-level telemetry contract and add transport
+		// diagnostics to it. These are lifetime counters, not a TX permission.
+		monitor_.writeJSON(ss, static_cast<uint64_t>(esp_timer_get_time() / 1000), false);
+		ss << ",\"transport\":{\"enabled\":"
+		   << (emsConfig_.emsEnabled ? "true" : "false")
+		   << ",\"transmit_compiled\":" << (board::emsTransmitAllowed ? "true" : "false")
+		   << ",\"poll_count\":" << polls_.load(std::memory_order_relaxed)
+		   << ",\"transmitted_frames\":" << txFrames_.load(std::memory_order_relaxed)
+		   << ",\"receive_queue_dropped\":" << rxDropped_.load(std::memory_order_relaxed)
+		   << ",\"invalid_telegrams\":" << invalidTelegrams_.load(std::memory_order_relaxed)
+		   << ",\"uart_errors\":" << uart_.rxErrors.load(std::memory_order_relaxed)
+		   << ",\"uart_timeouts\":" << uart_.rxTimeouts.load(std::memory_order_relaxed)
+		   << ",\"uart_resets\":" << uart_.resets.load(std::memory_order_relaxed) << "}}";
 	}
 
 	void getBoilerParams(std::ostream &ss) const {
@@ -252,6 +264,7 @@ private:
 	std::atomic<bool> resetRequested_{false};
 	std::atomic<bool> captureForeignTelegrams_{false};
 	std::atomic<uint32_t> rxDropped_{0};
+	std::atomic<uint32_t> invalidTelegrams_{0};
 	std::atomic<uint32_t> polls_{0};
 	std::atomic<uint32_t> txFrames_{0};
 	std::atomic<uint32_t> maxPollServiceUs_{0};

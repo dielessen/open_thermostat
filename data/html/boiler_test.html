@@ -1,0 +1,106 @@
+<section class="product-dashboard" id="boiler-test">
+  <h1>Keteltest</h1>
+  <p>Controleer de ontvangst van ketelgegevens. Deze pagina verstuurt geen ketelopdrachten.</p>
+  <p role="status" aria-live="polite" data-reception>Ontvangst controleren…</p>
+  <div class="pd-panel">
+    <h2>Aansluiting en ontvangst</h2>
+    <dl class="pd-detail-grid" data-transport></dl>
+    <button class="btn btn-outline-secondary" type="button" data-download disabled>Meetrapport downloaden</button>
+  </div>
+  <div class="pd-panel">
+    <h2>Ketelgegevens</h2>
+    <p>Afgeleide waarden zijn berekend uit de ketelmelding. Onbetrouwbare velden gelden niet als onafhankelijke bevestiging.</p>
+    <div style="overflow-x:auto"><table class="table"><thead><tr><th>Gegeven</th><th>Waarde</th><th>Kwaliteit</th><th>Leeftijd</th></tr></thead><tbody data-fields></tbody></table></div>
+  </div>
+  <div class="pd-panel"><h2>Aansturing beproeven</h2>
+    <p>De actieve proef is nog niet vrijgegeven. Ontvangst van gegevens bevestigt geen start- of stopgedrag.</p>
+  </div>
+</section>
+<script>
+(() => {
+  'use strict';
+  const root = document.getElementById('boiler-test');
+  const message = root.querySelector('[data-reception]');
+  const transport = root.querySelector('[data-transport]');
+  const fields = root.querySelector('[data-fields]');
+  const download = root.querySelector('[data-download]');
+  const labels = {
+    no_boiler_reports: 'Nog geen ketelberichten ontvangen.',
+    stale: 'Ketelberichten zijn verouderd. Controleer de verbinding.',
+    conflicting_families: 'Tegenstrijdige protocolfamilies ontvangen. Aansturing blijft geblokkeerd.',
+    classic_reports_received: 'Verse EMS Classic-ketelberichten ontvangen.',
+    plus_reports_received: 'Verse EMS Plus-ketelberichten ontvangen.'
+  };
+  let report = null;
+  const fieldLabels = {
+    reported_selected_flow_temperature:'Gemelde gewenste aanvoer', measured_flow_temperature:'Aanvoertemperatuur',
+    measured_return_temperature:'Retourtemperatuur', outdoor_temperature:'Buitentemperatuur',
+    reported_burner_modulation:'Gemeld brandervermogen', reported_requested_power_limit:'Gevraagde vermogensgrens',
+    pressure:'Waterdruk', raw_burner_bit:'Ruw brandersignaal', raw_pump_bit:'Ruw pompsignaal', raw_fan_bit:'Ruw ventilatorsignaal',
+    raw_boiler_state:'Ruwe ketelstatus', heating_active:'CV actief', dhw_active:'Warmwater actief',
+    selected_dhw_temperature:'Gewenste warmwatertemperatuur', measured_dhw_temperature:'Warmwatertemperatuur', dhw_flow:'Warmwaterdebiet',
+    heating_enabled:'CV ingeschakeld', dhw_enabled:'Warmwater ingeschakeld', reported_burner_starts:'Gemelde branderstarts',
+    reported_burner_runtime:'Gemelde branderduur', reported_heating_runtime:'Gemelde CV-duur', reported_heating_starts:'Gemelde CV-starts',
+    reported_dhw_runtime:'Gemelde warmwaterduur', reported_dhw_starts:'Gemelde warmwaterstarts', display_code:'Displaycode',
+    service_number:'Servicecode', maximum_burner_power:'Maximaal brandervermogen', pump_run_on:'Pompnaloop',
+    configured_heating_temperature:'Ingestelde CV-temperatuur', reported_dhw_target:'Gemelde gewenste warmwatertemperatuur'
+  };
+  function cell(parent, tag, value) {
+    const node = document.createElement(tag);
+    node.textContent = String(value);
+    parent.appendChild(node);
+  }
+  function fact(label, value) { cell(transport, 'dt', label); cell(transport, 'dd', value); }
+  function number(value) { return Number.isFinite(value) && value >= 0 ? String(value) : 'Onbekend'; }
+  function age(value) { return Number.isFinite(value) && value >= 0 ? (value / 1000).toFixed(1) + ' s' : 'Onbekend'; }
+  async function refresh() {
+    if (!root.isConnected) return;
+    const abort = new AbortController();
+    const timeout = setTimeout(() => abort.abort(), 4000);
+    try {
+      const response = await fetch('/status/ems/telemetry', {cache: 'no-store', signal: abort.signal});
+      if (!response.ok) throw Error('Status niet beschikbaar');
+      const data = await response.json();
+      if (!root.isConnected) return;
+      if (!data || !data.reception || !data.transport || !data.fields || !labels[data.reception.state]) throw Error('Onbekende status');
+      message.textContent = data.transport.enabled === false ? 'EMS-ontvangst staat uit.' : labels[data.reception.state];
+      transport.replaceChildren();
+      fact('Ketelberichten', number(data.reception.report_count));
+      fact('Laatste ketelbericht', age(data.reception.last_report_age_ms));
+      fact('Zenden in firmware', data.transport.transmit_compiled === true ? 'Aanwezig; geen bewijs van vrijgave' : data.transport.transmit_compiled === false ? 'Geblokkeerd' : 'Onbekend');
+      fact('Verzonden gegevensframes', number(data.transport.transmitted_frames));
+      fact('Gemiste berichten door volle wachtrij', number(data.transport.receive_queue_dropped));
+      fact('Afgekeurde telegrammen', number(data.transport.invalid_telegrams));
+      fact('UART-fouten', number(data.transport.uart_errors));
+      fact('UART-resets', number(data.transport.uart_resets));
+      fields.replaceChildren();
+      Object.entries(data.fields).slice(0, 40).forEach(([name, field]) => {
+        if (!field || typeof field !== 'object') return;
+        const row = document.createElement('tr');
+        cell(row, 'td', fieldLabels[name] || name);
+        const usable = field.state === 'valid' && ['reported', 'inferred'].includes(field.quality) && data.reception.state !== 'conflicting_families';
+        cell(row, 'td', usable && (typeof field.value === 'number' || typeof field.value === 'string') ? String(field.value) + ' ' + String(field.unit || '') : 'Geen bruikbare waarde');
+        cell(row, 'td', ({reported:'Gemeld', inferred:'Afgeleid', unreliable:'Onbetrouwbaar'})[field.quality] || 'Onbekend');
+        cell(row, 'td', age(field.age_ms));
+        fields.appendChild(row);
+      });
+      report = {schema: 1, browser_captured_at: new Date().toISOString(), physical_validation: false, telemetry: data};
+      download.disabled = false;
+    } catch (error) {
+      if (!root.isConnected) return;
+      message.textContent = 'Ontvangststatus niet beschikbaar. Controleer de verbinding.';
+      transport.replaceChildren(); fields.replaceChildren(); report = null; download.disabled = true;
+    } finally {
+      clearTimeout(timeout);
+      if (root.isConnected) setTimeout(refresh, 5000);
+    }
+  }
+  download.addEventListener('click', () => {
+    if (!report || download.disabled) return;
+    const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], {type: 'application/json'}));
+    const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'openthermostat-ketelontvangst.json';
+    anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+  refresh();
+})();
+</script>

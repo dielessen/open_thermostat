@@ -1,3 +1,20 @@
+# E32 V2 v0.1.0-e32v2-alpha.11 — testkandidaat
+
+De updatecatalogus controleert alle maximaal twaalf releaseberichten voordat
+hij de twee laatst gepubliceerde passende firmwareversies aanbiedt. De echte
+GitHub-lijst plaatste alpha.10 na9,8en7; eerder stopte de controle al bij9en8.
+Publicatietijd wordt alleen gebruikt als geldige UTC-datum. Per release blijven
+de vaste hosts, passende manifesten en alle bestaande download-/image-/readback-
+controles vereist. Een fout later in de scan levert geen gedeeltelijke toelating.
+De meegeleverde HA-bron bevat de afzonderlijk uitgebrachte dev17-correctie.
+
+De toelatingsdiagnostiek van alpha.10 blijft aanwezig; er is geen automatische
+commandoherhaling of verruiming van grants, replaycontrole of fysieke uitgangen.
+De eerdere22°C-afwijzing is nog niet verklaard. De alpha.10-HTTP-upload werd
+verbroken; een echte readback bevestigde alpha.9 met ongewijzigde configuratie.
+Die uitval is niet door deze cataloguscorrectie opgelost. Instellingenformaat,
+partities, fysieke voorwaarden en open herstelacceptatie blijven behouden.
+
 # E32 V2 alpha.10 — bounded command-admission diagnostics
 
 Experimental bench-test candidate. The normal HA connection/configuration path

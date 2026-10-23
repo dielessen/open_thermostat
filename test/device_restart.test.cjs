@@ -17,9 +17,10 @@ function page({confirm=true,busy=false,pending=false,scheduled=false,status=202,
  vm.runInContext(source('auth-client.js'),context);vm.runInContext(source('device-restart.js'),context);
  return {buttons,calls,redirects,events,async ready(){await Promise.all(events.DOMContentLoaded.map(f=>f()));},async click(){let stopped=0,prevented=0;await events.click({preventDefault(){prevented++;},stopPropagation(){stopped++;}});assert.equal(stopped,1);assert.equal(prevented,1);}};
 }
-test('visible English restart control outside collapsed menu and not a submit/reset',()=>{
+test('English restart control is a Settings menu action and not a submit/reset',()=>{
  const html=source('index.html');assert.match(html,/<button type="button"[^>]*id="device-restart"[^>]*>Restart device<\/button>/);
- assert(html.indexOf('id="device-restart"')<html.indexOf('id="navbarNavDropdown"'));
+ const settings=html.match(/<ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">([\s\S]*?)<\/ul>/);
+ assert(settings);assert.match(settings[1],/id="device-restart"/);
  assert.match(html,/src="\/device-restart.js" defer/);
 });
 test('cancel confirmation sends no status/restart mutation and preserves page',async()=>{

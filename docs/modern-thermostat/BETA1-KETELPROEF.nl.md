@@ -57,9 +57,12 @@ Classic-keten sturen. Een verwisselbare compileervlag is geen TX-vrijgave.
   alleen GET, onbetrouwbare/oude/onbekende waarden onderdrukt, fout wist vorige
   weergave, downloaden bevat geen configuratie/credentials, navigatie stopt polling.
   Dit bewijst geen fysieke busontvangst.
-- Actieve proefsupervisor, Classic-commandopad, hardware-/stopvoorwaarden en
-  uiteindelijke releaseverificatie staan nog open. Ontvangstdiagnose alleen voldoet
-  niet aan de gevraagde eerste bèta.
+- De eindige proefpolicy, controller/HTTP/webbediening, gedeelde poll-executor
+  en Classic 0x1A-flow/nulencoder zijn inmiddels gebouwd en getest. De standaard
+  adresseerstructuur/proefvoorwaarden weigeren nog alle verzending; board-TX blijft
+  geblokkeerd. Beoordeeld installatieprofiel, bronadres/masker, fysieke UART-/stop-/
+  flowvoorwaarden en gezamenlijke releaseverificatie blijven open. Ontvangstdiagnose
+  alleen voldoet niet aan de gevraagde eerste bèta. Actuele status: WORKBOARD B04–B14.
 - Voor de normale ruimteketen blijven de fysieke temperatuurbron, TRV en
   SOURCE/config-ACK-acceptatie open. Een diagnostische apparaattemperatuur of
   ontbrekend meetprofiel wordt niet stilzwijgend een gekwalificeerde ruimtesensor.

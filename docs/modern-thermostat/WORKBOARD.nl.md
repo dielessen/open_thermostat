@@ -52,7 +52,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-84 bronverwijzingen met hashes, status en resterende acceptatie.
+85 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -72,7 +72,7 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | I11 | Meetstatus en geheugen-/toelatingsdiagnose | Basis geleverd; observer-lifecycle nieuw getest | Vervangen/intrekken trekt oude kwalificatie in; oude cleanup/timers raken nieuwe eigenaar niet. Productieprofiel blijft open. |
 | I12 | Passieve Classic-decoder en Classic-proefencoder | Decoder geleverd; encoder nieuw getest | Vast 0x1A-flow/nulformaat gebouwd; beoordeelde bronadressering, fysieke UART-/stopkwalificatie en ontvangstpariteit blijven open. |
 | I13 | Ketencontract, SOURCE, journal, configuratie en readback | Geleverde softwarebasis | Logische provisioning/programma-ACK werkt; verse fysieke meet- en actuatorbewijzen ontbreken. |
-| I14 | Kraanadapter profiel C, TV02-moduscontrole en bronbench | Moduscontrole nieuw getest; fysieke route nog onvolledig | TV02 auto/vakantie/uit/onbekend zichtbaar en vóór doelactie geweigerd. Verse kraanecho, exclusief eigenaarschap en fysieke werking blijven open; oude bench op SOURCE geblokkeerd. |
+| I14 | Kraanadapter profiel C, TV02-moduscontrole en bronbench | Modus-/identiteitscontrole nieuw getest; fysieke route nog onvolledig | Native identiteit en doelcapaciteit vlak vóór dispatch opnieuw gecontroleerd; TV02 auto/vakantie/uit/onbekend zichtbaar en vóór doelactie geweigerd. Verse kraanecho, exclusief eigenaarschap en fysieke werking blijven open; oude bench op SOURCE geblokkeerd. |
 | I15 | Kamerregelaar, seizoensbeleid en hydraulische supervisor | Voorbereide code, functie nog onvolledig | Regellogica/shadow voorbereid; hydraulische profiel- en uitvoerketen niet gekwalificeerd. |
 | I16 | Groepswaterdoelen, vloer, menger en centrale graph-config | Voorbereide code, functie nog onvolledig | Pure policies/declaraties en begrensde DATA-paden aanwezig; niet gelijk aan actieve groepen/pomp/menger. |
 | I17 | Metrics, grafieken, historiegrens en CSV-export | Voorbereide code, functie nog onvolledig | Niet opnieuw vanaf nul bouwen; echte Classic-tijdlijn, Recorder-retentie/migratie en grafiekacceptatie open. |
@@ -259,13 +259,62 @@ onafhankelijk bron-/testwerk hoeven niet te wachten op een fysieke waarneming.
   schema-eigenaarschap, readiness/fallback en de fysieke proef zonder ketel.
   Bewijs: `out/beta-boiler-evidence-20261023/tv02-mode/REVIEW.json`.
 
+### Nieuw actuatorbronwerk: identiteit en grenzen bij dispatch
+
+- De voorbereide profiel-C-adapter bindt aan de exacte native registry-identiteit,
+  integratie en apparaatidentiteit/model. Verwijderen/heraanmaken onder dezelfde
+  entity-ID, hernoemen, uitschakelen of een apparaatwissel kan de oude autorisatie
+  niet overnemen. Een gewone wijziging van de weergavenaam blijft toegestaan.
+- Na de laatste autorisatiecallback worden identiteit, beschikbaarheid, eenheid,
+  doeltemperatuurfunctie en numerieke grenzen opnieuw gecontroleerd. Er zit geen
+  externe callback of await tussen deze controles en de service-aanroep. Gewijzigde
+  gegevens leiden tot weigering, zonder herstelactie of retry.
+- Tien native regressiegevallen gebruiken echte geïsoleerde HA-registries/services.
+  De vorige bron faalt reproduceerbaar in negen gevallen; de gewijzigde bron slaagt
+  in alle tien en in alle 74 gerichte HA-tests. Volledige suite: 1.668 tests + 68 subtests = 1.736 checks
+  PASS, nul fouten/overslagen; zeven HA-pakkettests PASS. Acht bestaande echte
+  C++-peers en tijdelijke MQTT-broker gebruikt; broker onafhankelijk afwezig
+  bevestigd. Geen firmware- of browserassetwijziging. Een geslaagde synthetische service
+  blijft uitsluitend acceptatie van een opdracht, geen fysieke kraanterugmelding.
+- B05 blijft open voor het oorspronkelijke rapport/echo, exclusief eigenaarschap
+  en de fysieke proef. Geen standaardadapter ingeschakeld en geen live actie.
+  Bewijs: `out/beta-boiler-evidence-20261023/actuator-dispatch/REVIEW.json`.
+
+### Bron-/produceronderzoek voor de resterende M2-keten
+
+De HA-specialist heeft de bestaande geselecteerde bindings opnieuw read-only
+bevestigd. De RTCGQ11LM-bron is `device_temperature` en blijft diagnostisch;
+het product meldt `profile_missing`. De TV02 meldt een eigen automatisch programma.
+De geïnspecteerde normale MQTT-projectie biedt geen aangetoond oorspronkelijk
+property-acquisitietijdstip/sample-ID of verse gecorreleerde doel-echo. Niet-retained
+verkeer of HA-last_reported maakt dit ontbrekende bewijs niet alsnog beschikbaar.
+
+Primaire Z2M 2.14.2-bron bevestigt de relevante grens: de receive-route kiest
+converters op cluster/type, maar de normale publicatieroute voegt bij cache_state
+oude velden samen. De interne state-update alleen onderscheidt nog geen spontane
+rapportage, read-response of optimistische opdracht. Een productieproducer moet
+model/property en oorspronkelijke berichtsoort vóór die samenvoeging bewaren,
+met aantoonbare ouderdom en replay-/reconnectafhandeling. De converterreferentie
+v26.115.1 is geen actuele geïnstalleerde packageversie; die blijft apart te lezen.
+Geen extra externe extensie geïnstalleerd, bron gewisseld of cacheoptie aangepast.
+
+Bewijs: `out/beta-boiler-evidence-20261023/actuator-dispatch/HA-SOURCE-READONLY.json`
+en `PRODUCER-SOURCE-TRACE.json` in hetzelfde dossier. Dit onderzoek sluit B04/B05
+niet. Het maakt de ontbrekende producentfunctie concreet; alleen extra timestamps
+op een HA-cache zijn geen implementatie daarvan.
+
+De cumulatieve releasenotes staan als concept in
+[BETA1-RELEASE-NOTES-DRAFT.nl.md](BETA1-RELEASE-NOTES-DRAFT.nl.md). Versies,
+checksum-/installatiebewijzen en fysieke acceptatie worden pas bij de echte freeze
+gekoppeld; het concept is geen nieuwe release of extra afvinklijst.
+
 ### Releasechecklist — eerste bèta
 
 - [x] B01 Alle 31 eisen, 11 fasen en 8 werkpakketten opnieuw beoordeeld; oude statusregels uit actuele lijst gehaald.
 - [x] B02 Alle bekende voorbereide brononderdelen geïnventariseerd en in bètabasis behouden; geen bron-/testbestand uit hoofdwerkmap ontbreekt.
 - [x] B03 Nieuwe ontvangstdiagnose/Keteltest/rapport gebouwd en getest: 18 native, 43 GUI-regressies, 3 echte Chromiumviewports met fixture-HTTP, normale E32-build.
 - [ ] B04 Observer-lifecycle voor vervanging/intrekking getest; productie-meetrapportprofiel/-producer aansluiten. Originele acquisitie, cache/reconnect/stale correct; geen trustvinkje of sensorwissel als omweg.
-- [ ] B05 TV02-modusconflicten zichtbaar en vóór doelactie geweigerd/getest; verse modelspecifieke rapporten/echo, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel.
+- [ ] B05 TV02-modusconflicten, native identiteit en actuele doelcapaciteit vóór dispatch gecontroleerd/getest; verse modelspecifieke rapporten/echo, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel.
 - [ ] B06 Bestaande supervisor koppelen aan vereiste actuele profiel-/feedback-/DHW-/hydraulische voorwaarden; geen generieke flowaanname.
 - [ ] B07 Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten.
 - [ ] B08 Poll-executor en Classic-flow/nulformaat aangesloten/getest; installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute.
@@ -304,7 +353,7 @@ Alleen programma-ACK of beschikbaarheid van een entiteit sluit M2 niet.
 | `out/combined-release-evidence-20261023/FINAL-REVIEW.json` | Werkelijk gepubliceerde/geïnstalleerde alpha17/dev23 en instellingenbehoud |
 | `out/beta-boiler-evidence-20261023/CHECKPOINT.json` | Ontvangstsoftwarecheckpoint, geen bèta- of fysieke vrijgave |
 | `out/plan-audit-20261023/AUDIT.json` | Bron-/inventaris-/takken-/plancontrole van deze herijking |
-| `BETA1-RELEASE-INVENTARIS.json` | Alle 23 voorbereide brononderdelen en 84 bestandsverwijzingen met hashes |
+| `BETA1-RELEASE-INVENTARIS.json` | Alle 23 voorbereide brononderdelen en 85 bestandsverwijzingen met hashes |
 | `BETA1-KETELPROEF.nl.md` / `BETA1-PROEFSTAND-ONTWERP.nl.md` | Scope en nog te implementeren begrensd proefcontract |
 | `out/critical-path-20261022/SAVED-STOP-RECHECK.json` | Historisch expliciet nulcommando; geen zelfstandige stop bij communicatiewegval |
 | `out/plan-audit-20261023/*.before` | Ongewijzigde oude PLAN/WORKBOARD/overdracht/nachtvolgorde; historische bewijsregels behouden |

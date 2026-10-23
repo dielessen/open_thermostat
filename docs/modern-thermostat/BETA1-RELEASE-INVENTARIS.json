@@ -346,7 +346,7 @@
     {
       "id": "I14",
       "title": "Kraanadapter profiel C, TV02-moduscontrole en tijdelijke bronbench",
-      "status": "deels",
+      "status": "Modus-/identiteits-/dispatchcontrole nieuw getest; fysieke route nog onvolledig",
       "include_in_beta": true,
       "requirements": [
         "R03",
@@ -356,7 +356,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/v1_profile_c.py",
-          "sha256": "7c513a4d81709563f5da77cec97d8bf7f1abc14f8a5f1be05be3ae1333c93f9a"
+          "sha256": "1d95d910e870ecd466da4270a6980d93ba495ff24a6286725e732d0c4ec37cb5"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_bench_source.py",
@@ -377,9 +377,13 @@
         {
           "path": "test/ha-tv02-mode-browser.cjs",
           "sha256": "26ba806428bce7c0d5502e74ae7b2cd4afb147ebae184a957b42bc2444847548"
+        },
+        {
+          "path": "ha/tests_native/test_actuator_dispatch_binding.py",
+          "sha256": "2a76b6279bcdfafc25925dad6f917da2c547c51596975761c48edc2a43b7770f"
         }
       ],
-      "remaining_acceptance": "TV02-moduscontrole en finale doelguard nieuw getest: 21 nieuwe modusgevallen, 64 gericht, volledige HA-suite 1658 tests + 68 subtests en 14 browserprofielen PASS. Geen vrijgegeven native fysieke route; verse echo/readiness/schema-eigenaarschap en fysieke proef zonder ketel open. Oude bench blijft op SOURCE geblokkeerd."
+      "remaining_acceptance": "Native identiteit en actuele doelcapaciteit vóór dispatch gecontroleerd; TV02-modusconflicten geweigerd. Originele rapporten/echo, exclusief eigenaarschap, profiel/readiness/fallback en fysieke proef blijven open."
     },
     {
       "id": "I15",
@@ -947,7 +951,7 @@
     {
       "id": "B05",
       "complete": false,
-      "description": "TV02-modusconflicten zichtbaar en vóór doelactie geweigerd/getest; verse modelspecifieke rapporten/echo, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel."
+      "description": "TV02-modusconflicten, native identiteit en actuele doelcapaciteit vóór dispatch gecontroleerd/getest; verse modelspecifieke rapporten/echo, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel."
     },
     {
       "id": "B06",

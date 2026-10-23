@@ -166,6 +166,25 @@ def review_room_targets(hass, room, entity_ids):
             "authorizes_actuation": False, "actuators": rows}
 
 
+def _dispatch_binding(hass, entity_id):
+    """Pin native registry identity, never a display name or cached state object.
+
+    A removed/recreated row, disabled entity, device reassignment or changed
+    model invalidates this adapter. Requalification requires a new adapter.
+    This guard supplies no physical qualification of its own.
+    """
+    entity = er.async_get(hass).async_get(entity_id)
+    if entity is None or entity.disabled_by is not None:
+        return None
+    device = dr.async_get(hass).async_get(entity.device_id) if entity.device_id else None
+    if entity.device_id and device is None:
+        return None
+    return (entity.id, entity.unique_id, entity.platform, entity.config_entry_id,
+            entity.device_id,
+            (device.id, device.model, device.model_id, device.manufacturer,
+             frozenset(device.identifiers), frozenset(device.connections)) if device else None)
+
+
 class ProfileCActuator:
     def __init__(self, hass: HomeAssistant, entity_id: str, *,
                  qualified_profile: bool = False,
@@ -176,6 +195,7 @@ class ProfileCActuator:
         self._qualified = qualified_profile
         self._authorize = authorize or (lambda: False)
         self._lock = asyncio.Lock()
+        self._binding = _dispatch_binding(hass, entity_id)
 
     async def async_set_room_target(self, celsius: float) -> float:
         from .v1_model import target_centi
@@ -183,6 +203,8 @@ class ProfileCActuator:
         async with self._lock:
             if not self._qualified or not self._authorize():
                 raise HomeAssistantError("Profile C bench actuation is disabled")
+            if self._binding is None or _dispatch_binding(self.hass, self.entity_id) != self._binding:
+                raise HomeAssistantError("TRV native binding changed; requalification required")
             capability = target_capability(self.hass, self.hass.states.get(self.entity_id))
             actual = capability.target(celsius)
             operating_mode = reported_operating_mode(self.hass, self.entity_id)
@@ -193,6 +215,12 @@ class ProfileCActuator:
                 raise HomeAssistantError("TRV model changed before target dispatch")
             if current_mode is not None and current_mode["issues"]:
                 raise HomeAssistantError("TV02 local operating mode conflicts with external target")
+            if self._binding is None or _dispatch_binding(self.hass, self.entity_id) != self._binding:
+                raise HomeAssistantError("TRV native binding changed; requalification required")
+            current_capability = target_capability(self.hass, self.hass.states.get(self.entity_id))
+            if current_capability != capability or current_capability.target(celsius) != actual:
+                raise HomeAssistantError("TRV capability changed before target dispatch")
+            # No await or external callback between these final checks and dispatch.
             # A successful HA call is action acceptance only, NEVER valve readiness.
             try:
                 async with asyncio.timeout(ACTION_TIMEOUT_SECONDS):

@@ -6,7 +6,7 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   84 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   85 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
@@ -76,6 +76,30 @@ Firmwarecode is sinds `d4eadea` ongewijzigd, dus geen nieuwe drie-board- of geza
 freezeclaim. Bewijs: `out/beta-boiler-evidence-20261023/tv02-mode/REVIEW.json`.
 B04/B05 blijven open voor de echte modelspecifieke bron-/echo-/readinessroute.
 Geen installatie, fysieke bediening of wijziging van bestaande apparaatkoppelingen.
+
+## Nieuwe actuatorbinding, nog niet geïnstalleerd
+
+De adapter bewaart de exacte native registry-/apparaatidentiteit en controleert
+na de laatste autorisatie opnieuw identiteit en doelcapaciteit. Een vervanger met
+dezelfde entity-ID, gewijzigde eenheid/grens of onbeschikbaarheid ontvangt geen
+opdracht met oude autorisatie. Een andere weergavenaam blijft toegestaan.
+Tien nieuwe regressies: negen fouten op de vorige bron, alle tien PASS na herstel;
+74 gerichte HA-tests en volledige 1.736 checks (1.668 tests + 68 subtests) PASS,
+nul fouten/overslagen. Zeven pakkettests PASS, tijdelijke broker onafhankelijk
+afwezig bevestigd. Cumulatieve releasenotes staan in BETA1-RELEASE-NOTES-DRAFT.nl.md.
+Standaardactuatie blijft uit; geen fysieke echo of
+readiness afgeleid. Bewijs in `out/beta-boiler-evidence-20261023/actuator-dispatch/REVIEW.json`.
+
+## Herbevestigde productiebronbeperking
+
+Nieuw read-only HA-onderzoek bevestigt de geselecteerde diagnostische RTCGQ11LM-
+bron en TV02 in auto; oorspronkelijk property-acquisitiebewijs en gecorreleerde
+kraanecho zijn niet aangetoond. Primaire Z2M-bron traceert de ontbrekende grens
+vóór cachemerge; een state-update zelf onderscheidt nog geen rapport/read/optimistic
+write. Werk de modelspecifieke producer op die grens uit, zonder HA-last_reported
+als acquisitietijd te gebruiken. Gepinde convertersbron is referentie, geen opnieuw
+gelezen geïnstalleerde packageversie. Bewijs in het actuator-dispatch-dossier:
+HA-SOURCE-READONLY.json en PRODUCER-SOURCE-TRACE.json. Geen live wijzigingen.
 
 ## Eerstvolgende uitvoering
 

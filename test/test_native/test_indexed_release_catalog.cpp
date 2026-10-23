@@ -33,10 +33,10 @@ TEST(IndexedRelease, NetworkFailureIsNotAnUnpublishedTag) {
  Fetch f;f.index("["+ref(2)+","+ref(1)+"]");f.add(2);f.add(1);f.responses[std::string(releaseApi)+"/tags/"+tag(1)]={-1,""};std::vector<Release> out{{"previous",false}};std::string error;
  EXPECT_EQ(discoverIndexedReleases(f,out,error),IndexedCatalogResult::Failed);EXPECT_EQ(out[0].tag,"previous");
 }
-TEST(IndexedRelease, FutureVersionFormatsAnnotatedRefsAndOversizedIndexRetainLegacyDiscovery) {
+TEST(IndexedRelease, FutureVersionFormatsAndOversizedIndexRetainLegacyDiscovery) {
  const std::vector<std::string> indices={"[]","{}","[{\"ref\":\"refs/tags/v1.0.0\"}]","[{\"ref\":\"refs/heads/v0.1.0-e32v2-alpha.1\"}]", "["+ref(1)+","+ref(1)+"]",std::string(32769,'x')};
  for(const auto &index:indices){Fetch f;f.index(index);std::vector<Release> out{{"previous",false}};std::string error;EXPECT_EQ(discoverIndexedReleases(f,out,error),IndexedCatalogResult::Legacy);EXPECT_EQ(out[0].tag,"previous");}
- Fetch f;auto index="["+ref(1)+"]";index.replace(index.find("commit"),6,"tag");f.index(index);std::vector<Release> out;std::string error;EXPECT_EQ(discoverIndexedReleases(f,out,error),IndexedCatalogResult::Legacy);
+
 }
 TEST(IndexedRelease, DraftWrongTagMissingAssetsAndInvalidPublicationAreNotOffered) {
  for(const unsigned fault:{0u,1u,2u,3u}){Fetch f;f.index("["+ref(3)+","+ref(2)+","+ref(1)+"]");for(unsigned n=1;n<=3;++n)f.add(n);auto bad=release(3);
@@ -51,4 +51,18 @@ TEST(IndexedRelease, TagCommitMustMatchManifestAndMalformedReleaseNeverChangesPr
 }
 TEST(IndexedRelease, ReferenceAndAttemptLimitsDoNotBecomePartialDiscovery) {
  for(unsigned count:{13u,81u}){Fetch f;std::string index="[";for(unsigned n=1;n<=count;++n){if(n>1)index+=",";index+=ref(n);}index+="]";f.index(index);f.add(1);std::vector<Release> out{{"previous",false}};std::string error;EXPECT_EQ(discoverIndexedReleases(f,out,error),IndexedCatalogResult::Legacy);EXPECT_EQ(out[0].tag,"previous");EXPECT_LE(f.calls.size(),13u);}
+}
+
+TEST(IndexedRelease, ExistingAnnotatedTagsAreResolvedOnlyWhenSelected) {
+ Fetch f;auto index="["+ref(1)+"]";
+ index.replace(index.find("commit"),6,"tag");index.replace(index.find(sha(1)),40,std::string(40,'f'));
+ f.index(index);f.add(1);
+ const auto url="https://api.github.com/repos/dielessen/open_thermostat/git/tags/"+std::string(40,'f');
+ const auto object="{\"sha\":\""+std::string(40,'f')+"\",\"tag\":\""+tag(1)+"\",\"object\":{\"type\":\"commit\",\"sha\":\""+sha(1)+"\"}}";
+ f.responses[url]={200,object};std::vector<Release> out;std::string error;
+ EXPECT_EQ(discoverIndexedReleases(f,out,error),IndexedCatalogResult::Complete);ASSERT_EQ(out.size(),1u);EXPECT_EQ(out[0].tag,tag(1));EXPECT_EQ(f.calls.size(),4u);
+ auto nested=object;nested.replace(nested.find("commit"),6,"tag");f.responses[url]={200,nested};out={{"previous",false}};
+ EXPECT_EQ(discoverIndexedReleases(f,out,error),IndexedCatalogResult::Legacy);EXPECT_EQ(out[0].tag,"previous");
+ auto wrong=object;wrong.replace(wrong.find(tag(1)),tag(1).size(),tag(9));f.responses[url]={200,wrong};
+ EXPECT_EQ(discoverIndexedReleases(f,out,error),IndexedCatalogResult::Failed);EXPECT_EQ(out[0].tag,"previous");
 }

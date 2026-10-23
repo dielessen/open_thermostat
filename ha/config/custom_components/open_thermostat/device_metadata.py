@@ -99,23 +99,33 @@ def selected_device(hass, ref):
             return base + value[1:]
         return value
     state_topic = expanded(discovery.get("state_topic", discovery.get("stat_t")))
-    if not _topic(state_topic):
+    # Z2M climate entities use separate mode/temperature state topics. Their
+    # generic state_topic may be absent; require both published bridge and
+    # exact selected-device availability instead. Never infer a default prefix.
+    separate_climate_topics = domain == "climate" and state_topic is None
+    if not separate_climate_topics and not _topic(state_topic):
         raise MetadataUnavailable("device_metadata_prefix_unknown")
     availability = discovery.get("availability", discovery.get("avty", []))
     if type(availability) is dict:
         availability = [availability]
     prefixes = set()
+    name = published_device.get("name")
+    availability_topics = {expanded(row.get("topic", row.get("t")))
+                           for row in availability if type(row) is dict
+                           and _topic(expanded(row.get("topic", row.get("t"))))} if type(availability) is list else set()
     if type(availability) is list:
         for row in availability:
             topic = expanded(row.get("topic", row.get("t"))) if type(row) is dict else None
             if _topic(topic) and topic.endswith("/bridge/state"):
                 prefix = topic[:-len("/bridge/state")]
-                if _topic(prefix) and state_topic.startswith(prefix + "/"):
+                corroborated = (prefix + "/" + name + "/availability" in availability_topics
+                                if separate_climate_topics and _text(name)
+                                else not separate_climate_topics and state_topic.startswith(prefix + "/"))
+                if _topic(prefix) and corroborated:
                     prefixes.add(prefix)
     # Z2M may disable the global bridge availability entity. Derive only from
     # the ACTUAL published friendly name suffix, never guess a default prefix.
-    name = published_device.get("name")
-    if not prefixes and _text(name) and state_topic.endswith("/" + name):
+    if not prefixes and not separate_climate_topics and _text(name) and state_topic.endswith("/" + name):
         prefix = state_topic[:-len(name)-1]
         if _topic(prefix):
             prefixes.add(prefix)

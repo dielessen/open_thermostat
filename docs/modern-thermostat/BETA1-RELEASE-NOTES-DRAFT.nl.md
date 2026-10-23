@@ -32,6 +32,11 @@ vastgesteld. Ontvangstdiagnose alleen voldoet niet aan dit releasedoel.
 
 ## Correctheid van rapporten en opdrachten
 
+- Een voorbereide TV02-producent bewaart originele doel-/temperatuur-/preset-/
+  stop-/vorstbeveiligingsdatapoints met type en raw bytes. Ontbrekende velden
+  worden niet uit de cache aangevuld. Dit is nog geen causale doel-echo,
+  klepstand, readiness of fysieke kraanvrijgave; native HA-koppeling staat open.
+
 - Een voorbereide Z2M-bronbrug bewaart originele WSDCGQ11LM-temperatuurberichten
   los van de state-cache. De native HA-ontvanger en kamerstatus tonen
   de originele ontvangst apart; de brug is nog niet geïnstalleerd of toegelaten

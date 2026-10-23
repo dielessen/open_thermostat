@@ -377,6 +377,30 @@ profielen PASS (6 ontvangst/metadata, 8 kamerprogramma, 6 TV02-modus), inclusief
 NL/EN en smalle schermen. Firmwarebron is in deze stap niet gewijzigd. Bewijs:
 `out/original-reports-ha-20261023/`. Dit is geen gezamenlijke bèta-freeze.
 
+### Nieuwe B05-bronstap: oorspronkelijke TV02-datapoints
+
+Het voorgaande HA-ontvangstcheckpoint `0e2793b` is volledig groen op
+[GitHub CI 40030592815](https://github.com/dielessen/open_thermostat/actions/runs/40030592815).
+
+De nieuwe zelfstandige Z2M-producent bewaart uitsluitend originele TV02-doel-,
+lokale temperatuur-, preset-, verwarmingsstop- en vorstbeveiligingsdatapoints uit
+één werkelijk inbound deviceMessage. DP/type/raw bytes, fabrikant/endpoint,
+berichtsoort en oorspronkelijke protocolsequences blijven behouden. Geen
+HA-modeprojectie, ontbrekende cachevelden, klepstand of fysieke readiness afgeleid.
+De eerste ondersteuning is expliciet beperkt tot twee gerefereerde fingerprints;
+het werkelijk aangesloten exemplaar krijgt geen stilzwijgende kwalificatie.
+
+Dertien TV02-gevallen plus elf bestaande temperatuurproducentgevallen PASS,
+inclusief gouden bytes, onder-/bovengrenzen, type/lengte/duplicate-afwijzing,
+onbekende modellen, offline/busy, SDK-fouten, concurrent stop/herstart en
+sequence-omloop. Standaard apparatenlijst leeg, maximaal één lopende publicatie,
+2048-byte wiregrens, geen extra MQTT-client of applicatiebacklog. CI controleert
+nu beide producenten. De native HA-echo-consument, causale doelkoppeling,
+eigenaarschap/readiness/fallback en fysieke kraanproef blijven open. Geen
+installatie, actuatoropdracht of ketelvrijgave. Zie
+[TV02-broncontract](ORIGINAL-TV02-REPORTS.nl.md); bewijs in
+`out/tv02-original-reports-20261024/`.
+
 ### Nieuw HA-bronwerk: volledige begrensde versieprojectie
 
 - De bestaande metadatafunctie filterde de converter-/herdsmanversies weg uit
@@ -434,7 +458,7 @@ gekoppeld; het concept is geen nieuwe release of extra afvinklijst.
 - [x] B02 Alle bekende voorbereide brononderdelen geïnventariseerd en in bètabasis behouden; geen bron-/testbestand uit hoofdwerkmap ontbreekt.
 - [x] B03 Nieuwe ontvangstdiagnose/Keteltest/rapport gebouwd en getest: 18 native, 43 GUI-regressies, 3 echte Chromiumviewports met fixture-HTTP, normale E32-build.
 - [ ] B04 Observer-lifecycle/native binding en originele WSDCGQ11LM-producer/HA-ontvangstdiagnose gebouwd/getest; productie-meetprofiel met echte acquisitie-/bronkwalificatie en fysieke validatie afronden. Geen trustvinkje of sensorwissel als omweg.
-- [ ] B05 TV02-modusconflicten, native identiteit en actuele doelcapaciteit vóór dispatch gecontroleerd/getest; verse modelspecifieke rapporten/echo, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel.
+- [ ] B05 TV02-modus/native identiteit/doelcapaciteit en originele datapuntproducer gebouwd/getest; native HA-echo-consument, causale doelkoppeling, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel.
 - [ ] B06 Bestaande supervisor koppelen aan vereiste actuele profiel-/feedback-/DHW-/hydraulische voorwaarden; geen generieke flowaanname.
 - [ ] B07 Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten.
 - [ ] B08 Poll-executor, Classic-flow/nulformaat en gecontroleerde SDK-zendresultaten aangesloten/getest; installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute.

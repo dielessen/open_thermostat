@@ -110,7 +110,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "1e0df860b0523e49dd1d27b60c8db3b059ba4e9eecad8e9eef187a05ee758cbd"
+          "sha256": "468da2cce4b676474571bf3916375e2f5ff87b0a645f691cb709b45f3de72b6b"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -437,9 +437,21 @@
         {
           "path": "ha/tests_native/test_actuator_dispatch_binding.py",
           "sha256": "2a76b6279bcdfafc25925dad6f917da2c547c51596975761c48edc2a43b7770f"
+        },
+        {
+          "path": "integrations/zigbee2mqtt/original-tv02.cjs",
+          "sha256": "3df0f75521338f614345c2d460b8150c796b2361d8571508273328e3c71beb73"
+        },
+        {
+          "path": "test/zigbee2mqtt/original-tv02.test.cjs",
+          "sha256": "185da19dcd2783fc36979257d315aeb8325dc2a85620e93781ca90b95874f1e4"
+        },
+        {
+          "path": "docs/modern-thermostat/ORIGINAL-TV02-REPORTS.nl.md",
+          "sha256": "29bd7cbdceff7e1982c1e0a751f7f70b6aef8f7edc15ad9d0d8a4ad9467c836d"
         }
       ],
-      "remaining_acceptance": "Native identiteit en actuele doelcapaciteit vóór dispatch gecontroleerd; TV02-modusconflicten geweigerd. Originele rapporten/echo, exclusief eigenaarschap, profiel/readiness/fallback en fysieke proef blijven open."
+      "remaining_acceptance": "Native identiteit en actuele doelcapaciteit vóór dispatch gecontroleerd; TV02-modusconflicten geweigerd. Originele rapporten/echo, exclusief eigenaarschap, profiel/readiness/fallback en fysieke proef blijven open. Originele TV02-datapuntproducer met twee expliciete fingerprints en 13 Node-tests voorbereid; niet geïnstalleerd. Native HA-echo-consument, causale doelkoppeling, fysieke readiness/eigenaarschap/fallback blijven open."
     },
     {
       "id": "I15",
@@ -1067,7 +1079,7 @@
     {
       "id": "B05",
       "complete": false,
-      "description": "TV02-modusconflicten, native identiteit en actuele doelcapaciteit vóór dispatch gecontroleerd/getest; verse modelspecifieke rapporten/echo, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel."
+      "description": "TV02-modus/native identiteit/doelcapaciteit en originele datapuntproducer gebouwd/getest; native HA-echo-consument, causale doelkoppeling, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel."
     },
     {
       "id": "B06",

@@ -110,7 +110,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "ba01a3e292401ccbaa3c8f0ee14d6a40296097d43c7458d6b006ece2b700a630"
+          "sha256": "1e0df860b0523e49dd1d27b60c8db3b059ba4e9eecad8e9eef187a05ee758cbd"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -302,9 +302,21 @@
         {
           "path": "ha/tests_native/test_comfort_interop.py",
           "sha256": "fde3995f284a40b016fa4b551ae602a98d56013ef91a5f3f159d9113c40cb3e8"
+        },
+        {
+          "path": "integrations/zigbee2mqtt/original-temperature.cjs",
+          "sha256": "74f0988820e83628bf16c7f534920abf4cf18ba621e45a1dfef79344b90d8596"
+        },
+        {
+          "path": "test/zigbee2mqtt/original-temperature.test.cjs",
+          "sha256": "8180935f0c18bb852f568beb4b9a2d73fa5ab1459e1274ba8c677e02c668d084"
+        },
+        {
+          "path": "docs/modern-thermostat/ORIGINAL-ZIGBEE-REPORTS.nl.md",
+          "sha256": "9c05318f48494706d2291260a9a5f2f2283f3381d0c3874e53429e2b7f09794e"
         }
       ],
-      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele metingsherkomst blijven open."
+      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele metingsherkomst blijven open. Originele WSDCGQ11LM-eventproducer voorbereid met 11 Node-tests; niet geïnstalleerd. HA-consument, echte acquisitie-/ouderdomsvalidatie en fysieke bronkwalificatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten."
     },
     {
       "id": "I12",
@@ -662,7 +674,7 @@
           "sha256": "7b2ab51e06d423ee755a5f12bad4c588f68c1bbd728cf68abfef8ea86539cf2e"
         }
       ],
-      "remaining_acceptance": "Alle 69 velden/rapport en maximaal 24 ontvangen typen getest op 1280/390/320 px; bestaande actieve-proefguards eveneens. Drie boardbuilds en E32-layout/defaults/no-TX-objectcontrole PASS. Nieuwe bron nog niet uitgerold. Native HA-projectie en fysieke veldvalidatie open."
+      "remaining_acceptance": "Alle 69 velden/rapport en maximaal 24 ontvangen typen getest op 1280/390/320 px; bestaande actieve-proefguards eveneens. Drie boardbuilds en E32-layout/defaults/no-TX-objectcontrole PASS. Nieuwe bron nog niet uitgerold. Native HA-projectie voor alle 69 velden voorbereid en getest in broncheckpoint 60c548f; nog niet geïnstalleerd. Fysieke veldvalidatie blijft open."
     },
     {
       "id": "I22",

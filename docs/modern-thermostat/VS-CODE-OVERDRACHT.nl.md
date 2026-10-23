@@ -6,7 +6,7 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   95 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   111 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
@@ -14,7 +14,11 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
 - Geïnstalleerd/gecontroleerd: E32 alpha18 + HA dev24, bron `6ef01d0`.
 - Actueel uitrolbewijs: `out/prepared-rollout-20261023/FINAL-REVIEW.json`.
 - Bij de latere README-opname zijn verse Classic-berichten ontvangen; TX/actuatoruitgangen blijven geblokkeerd.
-- Onderstaande bronstappen zijn historische checkpoints, inmiddels meegenomen in deze passieve release.
+- Het huidige bronwerk loopt vóór op de geïnstalleerde passieve release; publiceer/installeer geen actieve bèta op basis van alleen een geslaagde bronbuild.
+- Broncheckpoint `60c548f`: volledige GitHub CI 40027429946 PASS; 69-velden-HA-projectie voorbereid, nog niet geïnstalleerd.
+- Nieuwste bronstap: originele Zigbee-temperatuurproducer, 11 Node-tests PASS; broncontract in ORIGINAL-ZIGBEE-REPORTS.nl.md. Niet geïnstalleerd, geen QualifiedReport.
+- Eerst B04 echte meetbron/HA-consument en B05 verse kraanecho afronden, daarna B06–B09 proefketen en installatievoorwaarden; pas dan gezamenlijke freeze/uitrol.
+- Onderstaande bronstappen zijn historische checkpoints; zie WORKBOARD voor hun actuele status.
 - Laat de bevroren `out/plan-batch-20261023` intact.
 - Werk verder in `out/beta-boiler-20261023`, branch `work/beta-boiler-20261023`.
 - `cebb0a2`: ontvangstdiagnose en Settings → Keteltest met downloadrapport;
@@ -23,7 +27,7 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
 - Planherijking voegt actuele PLAN/WORKBOARD en inventaris aan de kandidaat toe;
   de kandidaat-HEAD kan daardoor nieuwer zijn dan het ontvangstcheckpoint.
 
-## Nieuwe bronstap binnen dezelfde bètabatch
+## Historisch checkpoint: poll-executor
 
 Controller/status en beveiligde HTTP/webbediening blijven behouden. De echte
 E32-pollroute is nu aangesloten op een gedeelde executor met hercontrole vlak
@@ -31,7 +35,7 @@ voor IO, uitsluiting van de legacyqueue tijdens proefbezit en intrekking bij
 reset/RX-overloop/decodefout. 66 native ASan/UBSan-gevallen slagen, waaronder
 9 pollgevallen. Eerdere HTTP/web-browserbewijzen blijven geldig voor ongewijzigde
 webassets; deze bronstap is geen nieuwe fysieke proef.
-De default E32 blijft TX-geblokkeerd, zonder beoordeeld proefprofiel/Classic-encoder.
+De default E32 blijft TX-geblokkeerd, zonder beoordeeld proefprofiel/adressering. De later voorbereide Classic-encoder staat hieronder.
 De poll-executor is geen kwalificatie van elektrische timing of daadwerkelijke
 ketelstop. B04–B09 blijven open voor de beschreven eindacceptatie.
 Geen nieuwe release/installatie/fysieke opdracht. Bewijs in

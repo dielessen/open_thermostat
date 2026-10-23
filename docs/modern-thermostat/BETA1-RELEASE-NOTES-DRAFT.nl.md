@@ -32,6 +32,11 @@ vastgesteld. Ontvangstdiagnose alleen voldoet niet aan dit releasedoel.
 
 ## Correctheid van rapporten en opdrachten
 
+- Een voorbereide Z2M-bronbrug bewaart originele WSDCGQ11LM-temperatuurberichten
+  los van de state-cache. De brug is nog niet geïnstalleerd/aangesloten op het
+  HA-meetprofiel; ontvangsttijd blijft onderscheiden van acquisitietijd en
+  diagnostische apparaattemperatuur blijft uitgesloten als ruimtemeting.
+
 - De originele UART-ontvangsttijd blijft behouden tijdens wachtrijverwerking.
   Een oud bericht kan daardoor geen verse stopbevestiging worden door later te
   worden gedecodeerd.

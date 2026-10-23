@@ -17,6 +17,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Test original Zigbee report producer (isolated APIs)
+        run: node --test test/zigbee2mqtt/original-temperature.test.cjs
       - name: Install pinned browser test dependency
         run: |
           npm install --no-save --package-lock=false playwright-core@1.63.0

@@ -326,6 +326,29 @@ en `PRODUCER-SOURCE-TRACE.json` in hetzelfde dossier. Dit onderzoek sluit B04/B0
 niet. Het maakt de ontbrekende producentfunctie concreet; alleen extra timestamps
 op een HA-cache zijn geen implementatie daarvan.
 
+### Nieuwe bronstap: originele Zigbee-temperatuurproducer
+
+De eerste producentstap voor B04 is gebouwd: een losse, nog niet geïnstalleerde
+Z2M-extension bewaart oorspronkelijke WSDCGQ11LM/lumi.weather-temperaturevents,
+model/IEEE/endpoint, raw measuredValue en attributeReport versus readResponse.
+De state-cache wordt niet gelezen; de bestaande MQTT-client publiceert maximaal
+één bericht tegelijk, zonder applicatiebacklog of retained publicatie. De
+standaard apparatenlijst is leeg. RTCGQ11LM blijft uitgesloten als ruimtemeting.
+
+Elf Node-contract-/lifecyclegevallen PASS, inclusief cachemerge, ontbrekende
+property, vreemde identiteit, offline/busy, transactie-omloop, SDK-fouten en
+herstart tijdens stop. Dezelfde controle staat nu in CI. Deze bronbrug levert
+ontvangsttijd, geen bewezen acquisitietijd: sampled_at blijft null en beide
+kwalificatievlaggen false. De HA-consument/modelkwalificatie, werkelijke
+bron-/ouderdomsvalidatie en TV02-echo blijven nog te implementeren. B04/B05
+blijven open; geen installatie, sensorwissel of fysieke actie.
+Zie [broncontract](ORIGINAL-ZIGBEE-REPORTS.nl.md).
+
+Het voorgaande broncheckpoint `60c548f` is volledig groen op GitHub CI
+[40027429946](https://github.com/dielessen/open_thermostat/actions/runs/40027429946):
+3 firmwareboards, native, HA, browser, bronreproductie en E32-pakketcontrole.
+Dit sluit de broncontrole van dat checkpoint, niet de actieve bèta-acceptatie.
+
 ### Nieuw HA-bronwerk: volledige begrensde versieprojectie
 
 - De bestaande metadatafunctie filterde de converter-/herdsmanversies weg uit

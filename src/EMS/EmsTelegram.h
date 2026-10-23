@@ -58,6 +58,8 @@ public:
 	static uint16_t getTelegramTypeFromRaw(uint8_t *data, uint8_t length);
 	static EmsTelegram getFromRawData(ib::logger::LoggerInterface &log, ib::logger::LoggerInterface::LogFeatureType verboseFeature, uint8_t *data, uint8_t length); // decodes full raw telegram, data without tailing BRK \0 THROWS
 	static EmsTelegram fromRawData(const uint8_t *data, size_t length); // includes CRC, excludes BREAK
+	// Shared wire checksum for bounded encoders; conveys no transmit authority.
+	static uint8_t calculateCRC(const uint8_t *data, uint8_t length);
 
 	std::vector<uint8_t> encodeToRawDataWithCRC() const;
 
@@ -119,8 +121,6 @@ private:
 								0x89, 0x8B, 0x8D, 0x8F, 0x81, 0x83, 0x85, 0x87, 0xB9, 0xBB, 0xBD, 0xBF, 0xB1, 0xB3, 0xB5, 0xB7, 0xA9, 0xAB, 0xAD, 0xAF,
 								0xA1, 0xA3, 0xA5, 0xA7, 0xD9, 0xDB, 0xDD, 0xDF, 0xD1, 0xD3, 0xD5, 0xD7, 0xC9, 0xCB, 0xCD, 0xCF, 0xC1, 0xC3, 0xC5, 0xC7,
 								0xF9, 0xFB, 0xFD, 0xFF, 0xF1, 0xF3, 0xF5, 0xF7, 0xE9, 0xEB, 0xED, 0xEF, 0xE1, 0xE3, 0xE5, 0xE7};
-
-	static uint8_t calculateCRC(const uint8_t * data, const uint8_t length); // from EMS-ESP32
 
 protected:
 	operation_t operation_;

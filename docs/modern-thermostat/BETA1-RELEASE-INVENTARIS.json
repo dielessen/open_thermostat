@@ -280,8 +280,8 @@
     },
     {
       "id": "I12",
-      "title": "Passieve Classic-decoder, protocolfamilies en veldkwaliteit",
-      "status": "geleverd",
+      "title": "Passieve Classic-decoder en begrensde Classic-proefencoder",
+      "status": "geleverd_met_nieuw_bronwerk",
       "include_in_beta": true,
       "requirements": [
         "R08",
@@ -300,9 +300,21 @@
         {
           "path": "test/test_native/test_classic_boiler.cpp",
           "sha256": "6063e2beff8e9626f7204a0110271d7d68adacc6b24dfcfcc0dfa68767ae5bfe"
+        },
+        {
+          "path": "src/EMS/ClassicBoilerTestEncoder.h",
+          "sha256": "0f0950ee9399da372cc10876c9e9595683bd64465a042ea96e57e3c17fa3deab"
+        },
+        {
+          "path": "src/EMS/EmsTelegram.h",
+          "sha256": "26c4970fcf8dded713f8136925f2599f98188bbcb2747f885297393dcbb8d785"
+        },
+        {
+          "path": "test/test_native/test_classic_boiler_test_encoder.cpp",
+          "sha256": "80eb4dbfd051a7cee9c2c3fc2d6b2a87ecbe97f75cebb93c07da0319f4cfd122"
         }
       ],
-      "remaining_acceptance": "Fysieke E32-ontvangst en vereiste pariteit nog aantonen; TX blijft dicht."
+      "remaining_acceptance": "Vast 0x1A-flow/nulformaat en pollcallback getest, 72 native ASan/UBSan inclusief 6 encodergevallen PASS. Beoordeeld ketenprofiel/adressering/masker en fysieke UART-/stop-/flow-/ontvangstkwalificatie blijven open; default adresstructuur weigert ieder frame, TX-slot behouden."
     },
     {
       "id": "I13",
@@ -551,7 +563,7 @@
         },
         {
           "path": "src/EmsController.h",
-          "sha256": "c8b5b068bd99146e8fdf4d7fca6e253eff802d8ebd957d79f4bbdca6c50ae584"
+          "sha256": "be83f57cec7c46b077ecd5a1ba26e5430741dbeb4fb15e5310660b4121ac18a9"
         },
         {
           "path": "src/EmsController.cpp",
@@ -938,7 +950,7 @@
     {
       "id": "B08",
       "complete": false,
-      "description": "Poll-executor en laatste toelating aangesloten/getest; beoordeelde Classic-encoder en fysieke UART-zender afronden. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute."
+      "description": "Poll-executor en Classic-flow/nulformaat aangesloten/getest; installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute."
     },
     {
       "id": "B09",

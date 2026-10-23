@@ -1,3 +1,9 @@
+> **Nieuwste Classic-bronstap:** flow-/nulformaat 0x1A/offset0/één byte is
+> geïmplementeerd en aan de pollcallback gekoppeld. 72 native ASan/UBSan-gevallen
+> PASS. Adres/masker ontbreken bewust zolang die niet beoordeeld zijn; default
+> formatter weigert alle frames. TX-lock en profiel-/hydraulische gates behouden.
+> Fysieke UART-/stop-/flowkwalificatie en het ketenprofiel blijven open.
+
 > **Nieuwste bronstap:** de E32-pollroute is aangesloten op de gedeelde
 > `BoilerTestPollDriver`. 66 native ASan/UBSan-gevallen PASS, inclusief 9
 > pollgevallen. Geen oude positieve queue-intentie: opnieuw toelaten na encoderen,

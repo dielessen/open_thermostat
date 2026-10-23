@@ -52,7 +52,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-78 bronverwijzingen met hashes, status en resterende acceptatie.
+81 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -70,7 +70,7 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | I09 | HA-kaart registreren na opstart, zonder herhaald refreshen | Geleverde softwarebasis | Drie echte koude HA-sessies bewezen; versiegebonden module behouden. |
 | I10 | Kamernamen op E32 en juiste statische webroutes | Geleverde softwarebasis | Badkamer live bevestigd; geen nieuwe seriële opname van de logstilte. |
 | I11 | Meetstatus en geheugen-/toelatingsdiagnose | Basis geleverd; observer-lifecycle nieuw getest | Vervangen/intrekken trekt oude kwalificatie in; oude cleanup/timers raken nieuwe eigenaar niet. Productieprofiel blijft open. |
-| I12 | Passieve Classic-decoder, protocolfamilies en veldkwaliteit | Geleverde softwarebasis | Fysieke E32-ontvangst en vereiste pariteit nog aantonen; TX blijft dicht. |
+| I12 | Passieve Classic-decoder en Classic-proefencoder | Decoder geleverd; encoder nieuw getest | Vast 0x1A-flow/nulformaat gebouwd; beoordeelde bronadressering, fysieke UART-/stopkwalificatie en ontvangstpariteit blijven open. |
 | I13 | Ketencontract, SOURCE, journal, configuratie en readback | Geleverde softwarebasis | Logische provisioning/programma-ACK werkt; verse fysieke meet- en actuatorbewijzen ontbreken. |
 | I14 | Kraanadapter profiel C en tijdelijke bronbench | Voorbereide code, functie nog onvolledig | Geen vrijgegeven native fysieke route; oude bench expliciet geblokkeerd op SOURCE. |
 | I15 | Kamerregelaar, seizoensbeleid en hydraulische supervisor | Voorbereide code, functie nog onvolledig | Regellogica/shadow voorbereid; hydraulische profiel- en uitvoerketen niet gekwalificeerd. |
@@ -80,8 +80,8 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | I19 | Thermisch model, optimum-start, uitlopen en curveaanpassing | Voorbereide code, functie nog onvolledig | Code/replay/opslag aanwezig en behouden; geen bewezen leerwinst of actieve vrijgave. Geen nieuwe F9-stage vóór M2. |
 | I20 | Meldingen, batterij en modelspecifieke tapwaterpresentatie | Voorbereide code, functie nog onvolledig | Niet generiek als werkende onderhouds-/tapwaterregeling presenteren; modelgerichte acceptatie open. |
 | I21 | Keteltest-pagina, ontvangstdiagnose en meetrapport | Nieuw gebouwd/getest, nog niet geleverd | 18 native + 43 GUI-regressies en 3 browserschermen PASS; nog niet geïnstalleerd. |
-| I22 | Begrensde ketelproefpolicy en originele UART-ontvangsttijd | Nieuwe pure policy en RX-integratie getest; actieve proef nog onvolledig | 66 unieke native gevallen onder ASan/UBSan PASS; beoordeeld profiel, Classic-encoder en fysieke TX-/stopkwalificatie open. |
-| I23 | Beveiligde controller-/HTTP-/webbediening van de ketelproef | Nieuw gebouwd/getest, nog niet geleverd | Poll-executor aangesloten; default start geblokkeerd. Beoordeeld profiel/Classic-encoder en fysieke UART-kwalificatie open. 66 native en eerder 3 control-browserprofielen PASS. |
+| I22 | Begrensde ketelproefpolicy en originele UART-ontvangsttijd | Nieuwe pure policy en RX-integratie getest; actieve proef nog onvolledig | 72 unieke native gevallen onder ASan/UBSan PASS; beoordeeld profiel/adressering en fysieke TX-/stopkwalificatie open. |
+| I23 | Beveiligde controller-/HTTP-/webbediening van de ketelproef | Nieuw gebouwd/getest, nog niet geleverd | Poll-executor aangesloten; default start geblokkeerd. Classic-formaat gekoppeld; beoordeeld profiel/adressering en fysieke UART-kwalificatie open. 72 native en eerder 3 control-browserprofielen PASS. |
 
 Er wordt geen voorbereide supervisor, vloer-/mengerpolicy, CSV-/grafiekroute,
 comfortcode of leer-/modelcode weggegooid of opnieuw vanaf nul gebouwd. Deze
@@ -176,8 +176,8 @@ onafhankelijk bron-/testwerk hoeven niet te wachten op een fysieke waarneming.
   Later decoderen verjongt een pre-commandotelegram niet tot stopbewijs.
   De extra vaste tijdstempelopslag voor 60 RX-slots is 480 bytes; TX-framegrootte
   blijft ongewijzigd. Dit is geen nieuwe live heap-/latentieacceptatie.
-- 66 unieke native gevallen onder ASan/UBSan met leakcontrole PASS: 20 policy,
-  5 queue (inclusief 100.000 gelijktijdige pakketten), 18 Classic-regressies, 14 service-/HTTP-gevallen en 9 poll-executorgevallen.
+- 72 unieke native gevallen onder ASan/UBSan met leakcontrole PASS: 20 policy,
+  5 queue (inclusief 100.000 gelijktijdige pakketten), 18 Classic-regressies, 14 service-/HTTP-gevallen, 9 poll-executorgevallen en 6 encodertests.
   Geen fysieke proef en geen nieuwe release/installatie voor dit bronwerk.
 - Controller/status en vier exacte POST-acties zijn aangesloten op dezelfde policy:
   prepare/start/keepalive/stop, bestaande cookie+CSRF, boot-/revisie- en operatorbinding.
@@ -194,8 +194,27 @@ onafhankelijk bron-/testwerk hoeven niet te wachten op een fysieke waarneming.
   Reset, RX-overloop en decodefout trekken de positieve proefintentie in. De
   poll-servicetijd blijft ook voor deze route geteld.
 - B07/B08 blijven open voor het beoordeelde profiel, hydraulische voorwaarden,
-  Classic-mapping en gekwalificeerde fysieke UART-zender. De geïnstalleerde bron heeft geen testprofiel of
+  beoordeelde adres-/maskerkeuze en gekwalificeerde fysieke UART-zender. De geïnstalleerde bron heeft geen testprofiel of
   gekoppelde proefzender; HTTP kan deze niet aanzetten. De E32-TX-lock blijft staan.
+
+### Nieuw Classic-bronwerk: begrensde flow-/nulencoder
+
+- De pollcallback gebruikt nu `ClassicBoilerTestEncoder`: een vast zes-byte
+  UBASetPoints `0x1A`-bericht met offset 0, één aanvoerdoelbyte en de bestaande
+  checksum. Een nulvraag verandert geen permanent enable-/maximumdoel, vermogen
+  of tapwaterbyte. Geen hergebruik van de generieke EMS+-schrijfroute.
+- Bronadres, keteladres en bronmasker moeten expliciet beoordeeld zijn. De default
+  adresstructuur is oningevuld/onbeoordeeld en weigert ieder frame. De code kiest
+  geen adres/masker op basis van alleen ontvangen Classic-telemetrie. Het bestaande
+  board-TX-slot en de ontbrekende installatie-/hydraulische vrijgave blijven gelden.
+- Zes nieuwe encodergevallen binnen 72 ASan/UBSan-tests: vaste gouden bytes voor
+  expliciete maskers, decoder-roundtrip, alle 256 doelbytes, ongeldige tickets/
+  adressen, 48 afzonderlijke bitcorrupties en echte pollpolicy met deadline die
+  tussen selectie en dispatch verstrijkt. Geen heapallocatie in het frameformaat.
+- De protocolreferentie is de gepinde primaire EMS-ESP32 v3.8.4-bron, blob
+  `1c40b9ff3556213cbde213ac9e7e8563ec75de7a`, `set_flow_temp`; geen nieuwe externe
+  zendimplementatie gekopieerd. Dit is softwarebewijs, geen ketel-/elektrische proef.
+  Bewijs: `out/beta-boiler-evidence-20261023/classic-encoder/REVIEW.json`.
 
 ### Nieuw HA-bronwerk: levensduur van de meetrapportobserver
 
@@ -226,7 +245,7 @@ onafhankelijk bron-/testwerk hoeven niet te wachten op een fysieke waarneming.
 - [ ] B05 Juiste native TRV-route en profiel/readiness/echo/foutafhandeling voor eerste proefkamer afronden; fysieke proef eerst zonder ketel.
 - [ ] B06 Bestaande supervisor koppelen aan vereiste actuele profiel-/feedback-/DHW-/hydraulische voorwaarden; geen generieke flowaanname.
 - [ ] B07 Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten.
-- [ ] B08 Poll-executor en laatste toelating aangesloten/getest; beoordeelde Classic-encoder en fysieke UART-zender afronden. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute.
+- [ ] B08 Poll-executor en Classic-flow/nulformaat aangesloten/getest; installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute.
 - [ ] B09 Concrete TX-interface en aansluit-/stopvoorwaarden vaststellen: timing/polariteit/arbitrage, converterketen, minimumflow/naloop, onafhankelijke stop/herstel en Tado óf E32.
 - [ ] B10 Bestaande voorbereide gebruikersfuncties en juiste onbekend-/draft-/geblokkeerdstatussen in eindkandidaat controleren; niets stilzwijgend laten verdwijnen.
 - [ ] B11 Versies/bron bevriezen, volledige CI/3 boards/native/HA/C++/browser/release-/source-/licentie-/compatibiliteitschecks op die exacte kandidaat.
@@ -262,7 +281,7 @@ Alleen programma-ACK of beschikbaarheid van een entiteit sluit M2 niet.
 | `out/combined-release-evidence-20261023/FINAL-REVIEW.json` | Werkelijk gepubliceerde/geïnstalleerde alpha17/dev23 en instellingenbehoud |
 | `out/beta-boiler-evidence-20261023/CHECKPOINT.json` | Ontvangstsoftwarecheckpoint, geen bèta- of fysieke vrijgave |
 | `out/plan-audit-20261023/AUDIT.json` | Bron-/inventaris-/takken-/plancontrole van deze herijking |
-| `BETA1-RELEASE-INVENTARIS.json` | Alle 23 voorbereide brononderdelen en 78 bestandsverwijzingen met hashes |
+| `BETA1-RELEASE-INVENTARIS.json` | Alle 23 voorbereide brononderdelen en 81 bestandsverwijzingen met hashes |
 | `BETA1-KETELPROEF.nl.md` / `BETA1-PROEFSTAND-ONTWERP.nl.md` | Scope en nog te implementeren begrensd proefcontract |
 | `out/critical-path-20261022/SAVED-STOP-RECHECK.json` | Historisch expliciet nulcommando; geen zelfstandige stop bij communicatiewegval |
 | `out/plan-audit-20261023/*.before` | Ongewijzigde oude PLAN/WORKBOARD/overdracht/nachtvolgorde; historische bewijsregels behouden |

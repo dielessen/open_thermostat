@@ -6,7 +6,7 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   78 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   81 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
@@ -47,6 +47,20 @@ het eerdere drie-boardbewijs hoort bij dat firmwarecheckpoint, niet bij een nieu
 gezamenlijke bevroren release. Geen installatie of fysieke opdracht.
 Bewijs: `out/beta-boiler-evidence-20261023/source-lifecycle/REVIEW.json`.
 B04 is nog open voor de modelspecifieke productiebron; geen profile_missing-omweg.
+
+## Nieuwe Classic-encoderbron, nog niet geïnstalleerd
+
+Vast UBASetPoints 0x1A/offset0/één flowbyte + checksum, nul als aparte expliciete
+intentie. `ClassicBoilerTestEncoder` is aan de echte pollcallback gekoppeld, maar
+onbeoordeelde/ontbrekende adres-/maskerkeuze weigert alle frames. Geen runtimevlag
+of HTTP-invoer vult de adresstructuur. De board-TX-lock, ontbrekende installatie-
+en hydraulische kwalificatie zijn behouden. 72 unieke native ASan/UBSan-gevallen
+PASS, waaronder 6 nieuwe encodergevallen met gouden bytes, corruptie en finale
+poll/deadlinecontrole. Beoordeeld ketenprofiel, bronadres/masker, fysieke UART-
+voltooiing/timing/arbitrage en onafhankelijke stop/flow blijven open. Er is geen
+live of fysieke opdracht uitgevoerd. HA-bron is sinds `6503299` ongewijzigd;
+het HA-regressiebewijs met 1705 checks blijft aan dat checkpoint gekoppeld.
+Bewijs: `out/beta-boiler-evidence-20261023/classic-encoder/REVIEW.json`.
 
 ## Eerstvolgende uitvoering
 

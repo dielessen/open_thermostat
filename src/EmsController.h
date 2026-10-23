@@ -10,6 +10,7 @@
 #ifdef OPENTHERMOSTAT_E32V2
 #include "EMS/BoilerTestService.h"
 #include "EMS/BoilerTestPollDriver.h"
+#include "EMS/ClassicBoilerTestEncoder.h"
 #include <esp_system.h>
 #endif
 #include <esp_timer.h>
@@ -313,13 +314,18 @@ private:
 	mutable std::mutex telemetryMutex_;
 	ClassicBoilerMonitor monitor_;
 #ifdef OPENTHERMOSTAT_E32V2
-	// No installed reviewed test profile/Classic encoder yet. No request/config flag
+	// No installed reviewed test profile/encoder addressing yet. No request/config flag
 	// can fill this in or change the board's independent physical TX lock.
 	BoilerTestService boilerTest_{(static_cast<uint64_t>(esp_random()) << 32) | esp_random(), board::emsTransmitAllowed};
 	static BoilerTestSession::Gates boilerTestGates() { return {}; }
-	// Missing reviewed Classic mapping stays explicit and cannot be supplied by a
-	// request. Attaching the poll executor does not qualify the transmitter.
-	static constexpr BoilerTestPollDriver::Encoder boilerTestEncoder_ = nullptr;
+	// The format is implemented, but no reviewed installation addressing is
+	// supplied. This callback therefore refuses all frames. HTTP/config cannot
+	// populate addressing, qualify the UART, or change the physical board lock.
+	static constexpr ClassicBoilerTestEncoder::Addressing boilerTestAddressing_{};
+	static bool encodeBoilerTest(const BoilerTestSession::Intent& intent, EmsRawFrame& frame) {
+		return ClassicBoilerTestEncoder::encode(boilerTestAddressing_, intent, frame);
+	}
+	static constexpr BoilerTestPollDriver::Encoder boilerTestEncoder_ = &encodeBoilerTest;
 	bool processBoilerTestPoll();
 	std::atomic<bool> boilerTestTransportFault_{false};
 	uint32_t boilerTestUartErrorsSeen_ = 0; // UART task only

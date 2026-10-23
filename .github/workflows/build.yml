@@ -49,6 +49,8 @@ jobs:
           pip install platformio==6.2.0 intelhex==2.3.0
           pio pkg install -e e32v2
           python -B -m unittest discover -s scripts -p 'test_e32_source*.py' -v
+          python -B -m unittest discover -s scripts -p test_release_notices.py -v
+          python -B -m unittest discover -s scripts -p test_ca_snapshot.py -v
       - name: Retrieve the pinned source-only distribution
         run: |
           python - <<'PYTHON'
@@ -106,7 +108,6 @@ jobs:
         if: matrix.environment == 'native'
         run: |
           pio test -e native --verbose
-          python -B -m unittest discover -s scripts -p 'test_e32_source*.py' -v
           g++ -std=c++20 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Itest/onboarding/include -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/esp32_utilities/src test/onboarding/firmware.cpp .pio/libdeps/native/cJSON/cJSON.c -o /tmp/open-thermostat-onboarding-test
           /tmp/open-thermostat-onboarding-test
           python -m unittest discover -s ha/tests -p 'test_*.py' -v
@@ -156,11 +157,27 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
+      - name: Retrieve the independently verified current SDK reproduction receipt
+        if: matrix.environment == 'e32v2'
+        uses: actions/download-artifact@v4
+        with:
+          name: e32-source-reproduction
+          path: out/e32-source-proof
       - name: Package exact E32 release and independently verify payload
         if: matrix.environment == 'e32v2'
         run: |
           pio pkg install -e native
-          python scripts/package_e32v2_release.py --output out/e32v2 --release-output out/release
+          python - <<'PYTHON'
+          import json,shutil,urllib.request
+          from pathlib import Path
+          spec=json.loads(Path('docs/third-party/e32v2-source-distribution.json').read_text())
+          assert Path(spec['asset']).name==spec['asset'] and spec['tag'].startswith('sources-e32v2-')
+          Path('out').mkdir(exist_ok=True)
+          url='https://github.com/dielessen/open_thermostat/releases/download/'+spec['tag']+'/'+spec['asset']
+          with urllib.request.urlopen(url,timeout=180) as response, Path('out/vendor-source-inputs.zip').open('wb') as target:
+              shutil.copyfileobj(response,target)
+          PYTHON
+          python scripts/package_e32v2_release.py --output out/e32v2 --release-output out/release --source-inputs out/vendor-source-inputs.zip --sdk-reproduction out/e32-source-proof/source-reproduction.json
           g++ -std=c++20 -Isrc -I.pio/libdeps/native/cJSON test/updates/image_check.cpp .pio/libdeps/native/cJSON/cJSON.c -l:libcrypto.so.3 -o /tmp/ota-image-check
           /tmp/ota-image-check out/e32v2/e32v2-update.json out/e32v2/firmware.bin
       - name: Upload verified E32 V2 bench-test package
@@ -169,6 +186,7 @@ jobs:
         with:
           name: e32v2-bench-test
           path: out/e32v2/
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
       - name: Upload verified immutable E32 release assets

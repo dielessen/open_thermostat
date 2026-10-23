@@ -4,6 +4,10 @@ import hashlib
 import json
 import subprocess
 import tarfile
+from e32_distribution import checked_reproduction
+from e32_relink import filehash, inside
+from e32_source_inputs import verify as verify_source_inputs
+from release_notices import canonical, digest
 
 
 def verify(package, root=None):
@@ -53,6 +57,46 @@ def verify(package, root=None):
             check(metadata["source"] == head and metadata["web_sha256"] == m["web_sha256"], "compiled registry revision")
             elf = (root / ".pio/build/e32v2/firmware.elf").read_bytes()
             check(hashlib.sha256(elf).digest() == firmware[0xb0:0xd0], "ELF matches panic hash in app descriptor")
+    # Independently inspect the delivered material, rather than relying on the
+    # packager's claim that source/notices/relink objects were supplied.
+    third_party = package / "third-party"
+    policy = json.loads((package / "docs/third-party/e32v2-source-inputs.json").read_text())
+    spec = json.loads((package / "docs/third-party/e32v2-source-distribution.json").read_text())
+    vendor = third_party / "vendor-source-inputs.zip"
+    check(vendor.stat().st_size == spec["bytes"] and filehash(vendor) == spec["sha256"], "delivered pinned vendor source archive")
+    source_proof = verify_source_inputs(policy,vendor)
+    check(source_proof["status"] == "PASS_VENDOR_SOURCE_INPUTS_ONLY", "delivered source paths and original notices")
+    sdk = json.loads((third_party / "sdk-reproduction.json").read_text())
+    checked_reproduction(package,m["source_commit"],sdk)
+    check(True,"current clean-commit SDK reproduction matches reviewed original object identities")
+    distribution = json.loads((third_party / "E32-DISTRIBUTION.json").read_text())
+    check(distribution["source_commit"] == m["source_commit"] and distribution["firmware_sha256"] == m["sha256"], "distribution bound to actual firmware and source")
+    check(distribution["elf_sha256"] == firmware[0xb0:0xd0].hex(), "distribution bound to actual app ELF descriptor")
+    check(distribution["sdk_reproduction_receipt_sha256"] == filehash(third_party / "sdk-reproduction.json"), "delivered SDK receipt identity")
+    check(distribution["global_framework_closure_changed"] is False and distribution["physical_acceptance"] is False, "target-specific scope and pending physical acceptance")
+    notices = json.loads((third_party / "installed-notices/NOTICE-INVENTORY.json").read_text())
+    stored_inventory_hash = notices.pop("inventory_sha256")
+    check(digest(canonical(notices).encode()) == stored_inventory_hash, "delivered notice inventory hash")
+    check(notices["environment"] == "e32v2" and notices["blocked"] == []
+          and notices["status"] == "READY_FOR_NOTICES_PACKAGING_ONLY"
+          and notices["resolved_target_specific_blockers"] == ["sdk_binary_notice_source_closure_unverified"], "scoped notice packaging qualification")
+    check(notices["e32_distribution_evidence"] == distribution, "notice qualification carries exact distribution proof")
+    relink = package / "relink"
+    link_manifest = json.loads((relink / "RELINK-MANIFEST.json").read_text())
+    link_proof = json.loads((relink / "RELINK-VERIFICATION.json").read_text())
+    review = json.loads((package / "docs/third-party/e32v2-link-review.json").read_text())
+    check(link_manifest["source_commit"] == m["source_commit"] == link_proof["source_commit"], "delivered application relink source identity")
+    check(link_manifest["candidate_elf_sha256"] == distribution["elf_sha256"] == link_proof["candidate_elf_sha256"], "delivered application relink candidate identity")
+    check(link_proof["status"] == "PASS_APPLICATION_RELINK_ONLY" and link_proof["exact"]["exact_original_elf"] is True
+          and link_proof["modified"]["modified_library"] is True and link_proof["changed_library_code_retained"] is True,
+          "both original and deliberately changed-library relinks verified")
+    check({r["path"]:r["sha256"] for r in link_manifest["core_files"]} == review["core_files"], "delivered relink original core pins")
+    for row in link_manifest["object_files"]:
+        check(filehash(inside(relink,row["path"])) == row["sha256"], "delivered application object " + row["path"])
+    check((relink / "application-source.tar.gz").read_bytes() == (package / "source.tar.gz").read_bytes(), "relink and package supply identical complete application source")
+    check(not any(relink.rglob("*.elf")) and not (relink / "proof").exists(), "altered and research ELF images excluded from delivery")
+    with tarfile.open(package / "source.tar.gz") as source_archive:
+        check((relink / "relink.py").read_bytes() == source_archive.extractfile("scripts/e32_relink.py").read(), "relink runner matches complete source")
     factory = (package / "e32v2-factory.bin").read_bytes()
     check(len(factory) == 0xb80000 and factory[0x9000:0xe000] == b"\xff"*0x5000, "separate clean-install factory span and blank NVS")
     for name, offset in [("bootloader.bin",0x1000),("partitions.bin",0x8000),("boot_app0.bin",0xe000),("firmware.bin",0x10000),("spiffs.bin",0x710000)]:

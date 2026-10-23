@@ -16,14 +16,20 @@ GPIO outputs remain blocked. This candidate is not approved for heating.**
   and boot-selection checks are unchanged.
 - Home Assistant integration packages have separate `ha-v…` releases. Installing
   an HA ZIP does not update this firmware or enable physical heating control.
+- The complete release kit supplies pinned vendor source/notice archives,
+  exact application source and objects, an offline relink recipe, and evidence
+  that both original and deliberately modified Arduino libraries link. Required
+  CI independently reproduces all 629 reviewed open SDK/runtime compilation
+  units. The vendor binary-only archives retain their original provenance and
+  notices; this is a target-specific distribution check.
 
 ## Candidate and update status
 
-These notes describe the alpha.7 source candidate. Publication and installation
-require completion of the target-specific source/notice/distribution review and
-all existing build/package checks. The previously built clean candidate predates
-this release-catalog change; a fresh build is required. No alpha.7 installation
-is claimed by these notes.
+Release downloads are produced from the same clean source commit as their
+firmware and embedded UI identity. Publication requires the current source,
+relink and SDK reproduction evidence and all build/package checks. Source-only
+`sources-e32v2-…` releases are not firmware updates. These notes do not claim
+physical installation or acceptance.
 
 After a verified firmware release is published, use the existing device updater
 or upload only its `firmware.bin`. The web interface is embedded in the app.

@@ -7170,5 +7170,107 @@
     "libWiFiClientSecure.a",
     "libWire.a",
     "libesp32_utilities.a"
+  ],
+  "reproduction_proof_sha256": "48f6b26a9797f65546ef0d5b1159c5e64a87ce61eae7f06242fc66abf21a9b97",
+  "original_vendor_archives": [
+    {
+      "archive": "libbtdm_app.a",
+      "actual_path": "packages/framework-arduinoespressif32/tools/sdk/esp32/ld/libbtdm_app.a",
+      "sha256": "981595473bda6953657f7504a6711d522fc112654759dd65bd9f9a07145b7078",
+      "original": {
+        "repository": "espressif/esp32-bt-lib",
+        "commit": "e43c9b121f7fac89b73c56077ede5901f64643cd",
+        "path": "esp32/libbtdm_app.a",
+        "git_blob": "7e859375488a535beb3db0edfd7f96bf8515cc8f"
+      }
+    },
+    {
+      "archive": "libphy.a",
+      "actual_path": "packages/framework-arduinoespressif32/tools/sdk/esp32/ld/libphy.a",
+      "sha256": "273b390ad2cb6ea36134c0bd060b4a635de93f9bfcc26343e31142ad9760fdcc",
+      "original": {
+        "repository": "espressif/esp-phy-lib",
+        "commit": "dcfdccf6cc2fc02d0886624b7998c890d1a19b28",
+        "path": "esp32/libphy.a",
+        "git_blob": "c6dfd0d7c7bc747ecaa96658b2df4652e2ade6a0"
+      }
+    },
+    {
+      "archive": "librtc.a",
+      "actual_path": "packages/framework-arduinoespressif32/tools/sdk/esp32/ld/librtc.a",
+      "sha256": "544b27be485381ededfbd689f783e4fa591d185c7d5d5435dc9abee1ecd6a79a",
+      "original": {
+        "repository": "espressif/esp-phy-lib",
+        "commit": "dcfdccf6cc2fc02d0886624b7998c890d1a19b28",
+        "path": "esp32/librtc.a",
+        "git_blob": "b3336451534b8507c0049b8350912340a1a76077"
+      }
+    },
+    {
+      "archive": "libcoexist.a",
+      "actual_path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libcoexist.a",
+      "sha256": "e42853be1021b886f63bf6fc05933e83ebc6f529cb94c831a21bcfe44bfe6cd6",
+      "original": {
+        "repository": "espressif/esp32-wifi-lib",
+        "commit": "f2aae4d44ec7908013066e69d29b9948846c335c",
+        "path": "esp32/libcoexist.a",
+        "git_blob": "83bfa54e43ebcbf0781695b4d76f35ad1f7f5ede"
+      }
+    },
+    {
+      "archive": "libcore.a",
+      "actual_path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libcore.a",
+      "sha256": "23add44b14b650cf0873ecd1e67b666194389092711dc348031894bac6ea9c47",
+      "original": {
+        "repository": "espressif/esp32-wifi-lib",
+        "commit": "f2aae4d44ec7908013066e69d29b9948846c335c",
+        "path": "esp32/libcore.a",
+        "git_blob": "d3572318f0d0a89b4bcd9a8236348839f3c201dc"
+      }
+    },
+    {
+      "archive": "libnet80211.a",
+      "actual_path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libnet80211.a",
+      "sha256": "6db8c03e58385cae462871647c680489ba84b5c29e86abca9c89dca9d8bb7ba1",
+      "original": {
+        "repository": "espressif/esp32-wifi-lib",
+        "commit": "f2aae4d44ec7908013066e69d29b9948846c335c",
+        "path": "esp32/libnet80211.a",
+        "git_blob": "1b302c348b16de9b6cbc2bc0b7eb08592ff035b7"
+      }
+    },
+    {
+      "archive": "libpp.a",
+      "actual_path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libpp.a",
+      "sha256": "a4356534d066da8c1ce08b52e3e614ee4da1a3e9b3b4bfc4285d083f46b75937",
+      "original": {
+        "repository": "espressif/esp32-wifi-lib",
+        "commit": "f2aae4d44ec7908013066e69d29b9948846c335c",
+        "path": "esp32/libpp.a",
+        "git_blob": "4d338d75d4b9c6ba5a7a781fb49a2757d32f41fd"
+      }
+    },
+    {
+      "archive": "libsmartconfig.a",
+      "actual_path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libsmartconfig.a",
+      "sha256": "8d7789d35a2427029aed51216f2b707e9d16911dca02c21d4ec737c9cc7102fc",
+      "original": {
+        "repository": "espressif/esp32-wifi-lib",
+        "commit": "f2aae4d44ec7908013066e69d29b9948846c335c",
+        "path": "esp32/libsmartconfig.a",
+        "git_blob": "38a2e85972023ccc350c3e206adb4f2d7f76aca8"
+      }
+    },
+    {
+      "archive": "libxt_hal.a",
+      "actual_path": "packages/framework-arduinoespressif32/tools/sdk/esp32/lib/libxt_hal.a",
+      "sha256": "8ccf843aac8fd0b4aa2c90f022f52cf8f867aabe34436cd1d41f50ddf72c19e2",
+      "original": {
+        "repository": "espressif/esp-idf",
+        "commit": "38eeba213aa695aabfd6d89aa9f5078dbe5a94c3",
+        "path": "components/xtensa/esp32/libxt_hal.a",
+        "git_blob": "382f4e0ab2336d96e9216a63c885fda7cd3d45c1"
+      }
+    }
   ]
 }

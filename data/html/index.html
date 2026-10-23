@@ -3,6 +3,7 @@
 
 <head>
 	<script src="/auth-client.js"></script>
+	<script src="/boiler-display.js"></script>
 	<script src="/device-restart.js" defer></script>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -296,6 +297,7 @@
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="hardware">Hardware configuration</a></li>
 							<li><a class="dropdown-item" href="#" data-page="update">Firmware update</a></li>
 							<li><a class="dropdown-item" href="#" data-page="boiler_test">Keteltest</a></li>
+							<li><a class="dropdown-item" href="#" data-page="boiler_display">Mijn ketel</a></li>
 							<li role="separator" class="dropdown-divider"></li>
 							<li><button type="button" class="dropdown-item text-danger" id="device-restart" hidden>Restart device</button></li>
 						</ul>
@@ -837,6 +839,7 @@
             [['currentWarmWaterTemperature','Tapwater · gemeld',10,-20,150,'°C'],['selectedWarmWaterTemperature','Tapwaterdoel · teruggelezen',1,0,150,'°C'],['warmWaterFlow','Tapwaterdebiet',10,0,100,'L/min'],['outdoorTemperature','Buitentemperatuur · ketelbron',100,-60,60,'°C']].forEach(function(item){html+='<dt>'+item[1]+'</dt><dd>'+dashboardValue(dashboardNumber(ems[item[0]],item[2],item[3],item[4]),item[5])+'</dd>';});
             html += '</dl><p class="pd-help">Niet beschikbaar betekent niet ondersteund, ontbrekend of verlopen; een gemeten nul blijft nul. Telemetrie is geen onafhankelijke fysieke vlam- of warmtemeting.</p></details>'+dashboardBuildSupport(status.control_build)+'</div></section>';
             document.getElementById('maincontainer').innerHTML = html;
+            if (typeof BoilerDisplay !== 'undefined') BoilerDisplay.mountHome(document.querySelector('.product-dashboard'));
         }
 
 		function updateRooms(status) {
@@ -893,6 +896,7 @@
 
 			maincontainer.innerHTML = "";
 			maincontainer.append(mainColElement);
+			if (typeof BoilerDisplay !== 'undefined') BoilerDisplay.mountHome(mainColElement);
 		}
 
 		function showRoom(room, boilerStats, activeProgram) {

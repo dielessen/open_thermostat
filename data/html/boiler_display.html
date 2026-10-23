@@ -1,0 +1,14 @@
+<section class="mx-auto p-3" style="max-width:760px" lang="nl">
+  <h1>Mijn ketel</h1>
+  <p>Kies je ketel om de naam en een illustratie op de beginpagina te tonen.</p>
+  <form id="boiler-display-form">
+    <label for="boiler-model">Ketelmodel</label>
+    <select id="boiler-model" class="form-control mb-3" disabled></select>
+    <figure class="text-center"></figure>
+    <p class="text-muted">De lijst begint met de Nefit Ecomline Classic, waarvoor Classic-uitlezing is getest. Meer modellen volgen zodra hun ondersteuning is gecontroleerd.</p>
+    <p class="text-muted">Deze keuze verandert de weergave. Aansluiting, uitlezing en aansturing worden afzonderlijk ingesteld en getest.</p>
+    <button class="btn btn-primary" type="submit" disabled>Ketelkeuze opslaan</button>
+    <p class="mt-3" role="status" aria-live="polite">Ketelkeuze laden…</p>
+  </form>
+</section>
+<script>BoilerDisplay.settings(document.getElementById('boiler-display-form'));</script>

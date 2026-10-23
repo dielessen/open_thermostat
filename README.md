@@ -50,6 +50,7 @@ compatibiliteitsverklaring voor iedere TV02-variant.
 
 | Mogelijkheid | Wat je ermee kunt | Status |
 | --- | --- | --- |
+| Je eigen ketel op Home | Model kiezen onder Settings → Mijn ketel, met een lokale illustratie op de beginpagina | **Voorbereid**; eerste model Nefit Ecomline Classic, keuze blijft op de E32 bewaard |
 | EMS-ketelgegevens uitlezen | Beschikbare temperaturen, doelen, modulatie en overige gedecodeerde ketelwaarden bekijken | **Beschikbaar**; verse Classic-berichten ontvangen op de E32 |
 | Classic en EMS Plus | Decoderbasis voor beide protocolfamilies behouden | **Beschikbaar als basis**; velddekking en ondersteuning blijven ketelafhankelijk |
 | Datakwaliteit | Zien of een waarde gemeten, afgeleid, verouderd, onbetrouwbaar of niet beschikbaar is | **Beschikbaar** |

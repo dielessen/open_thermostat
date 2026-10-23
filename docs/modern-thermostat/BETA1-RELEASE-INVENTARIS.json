@@ -110,7 +110,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "468da2cce4b676474571bf3916375e2f5ff87b0a645f691cb709b45f3de72b6b"
+          "sha256": "b635f50f2456210956f860d81b66b9dc579261133ac14679f402de004353ea8d"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -130,14 +130,46 @@
         },
         {
           "path": "data/html/index.html",
-          "sha256": "4ae1bc53a7053f3f2fa781d1b5f49d5419592e7b2cfd3c11703360428c653a32"
+          "sha256": "054a43a52e863654a2a8f51ad73e01e6e2a9da475ec8ffdcc471aa342fecc6f5"
         },
         {
           "path": "data/html/device-restart.js",
           "sha256": "e42ca502023c50783bcdee4ec8509c3720ab423ce84a93a0d020943ce97493f6"
+        },
+        {
+          "path": "src/BoilerDisplay.h",
+          "sha256": "b64cd1105f9ba6f3be2ce9b0627fd9595606e213fa269e96bd51b2ef7bc47aca"
+        },
+        {
+          "path": "data/html/boiler-display.js",
+          "sha256": "d195547f17836486d738d5136c06f3e610ea49da44b2ff5b199a11c86e49cf11"
+        },
+        {
+          "path": "data/html/boiler_display.html",
+          "sha256": "3ecf32479e553654cbb95b5f47be11088eac1cb4c40d161d1e7a458430894135"
+        },
+        {
+          "path": "data/html/boiler-nefit-ecomline.svg",
+          "sha256": "141ec50fa3242bd45d29ab5b365a2b94c3d5b742233f5340de53f11dd4467c22"
+        },
+        {
+          "path": "test/boiler_display/firmware.cpp",
+          "sha256": "1e452f207c9a3558eaf87d3554f4c9caacf5ec01d7170b78e428137122ad06cc"
+        },
+        {
+          "path": "test/boiler_display/include/nvs.h",
+          "sha256": "0130737e45bcd22d1d82c1cdd959ac2a0adbe5c75b0b5e18e4c9f8239a4312b3"
+        },
+        {
+          "path": "test/boiler-display-browser.cjs",
+          "sha256": "e80b409c4db3fb95f41fe4b5dbed2d2bfadf22df5ec26849b86204ebf81548fd"
+        },
+        {
+          "path": "platformio.ini",
+          "sha256": "718d49d83fd55090a91e3c1de5793d8024d324bd3a700593df61013b7d2f7b61"
         }
       ],
-      "remaining_acceptance": "Behouden; bevestiging/herstartguards opnieuw in eindregressie."
+      "remaining_acceptance": "Behouden; bevestiging/herstartguards opnieuw in eindregressie. Nieuw: Mijn ketel/NVS-keuze en Home-illustratie voorbereid met 3 browserprofielen en originele opslaghelper-foutinvoer; firmware/layout/eindfreeze en uitrol nog aan kandidaat koppelen. Geen technische ketelvrijgave door modelkeuze."
     },
     {
       "id": "I06",
@@ -258,7 +290,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "67ce59d5e57bb7a17fcd86a7da67c94d9bcd7f66a2f0852070549b04f5fb35ff"
+          "sha256": "f772b418aa5f4c30fa56739f9b31a954f6be4ae2fd625732662ff7d604c7fe11"
         }
       ],
       "remaining_acceptance": "Badkamer live bevestigd; geen nieuwe seriële opname van de logstilte."

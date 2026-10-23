@@ -377,6 +377,24 @@ profielen PASS (6 ontvangst/metadata, 8 kamerprogramma, 6 TV02-modus), inclusief
 NL/EN en smalle schermen. Firmwarebron is in deze stap niet gewijzigd. Bewijs:
 `out/original-reports-ha-20261023/`. Dit is geen gezamenlijke bèta-freeze.
 
+### Nieuwe gebruikersfunctie: Mijn ketel en afbeelding op Home
+
+Op verzoek toegevoegd aan dezelfde bètabasis: Settings → Mijn ketel kiest een
+ketelpresentatie en toont naam plus lokale, originele SVG-illustratie op Home.
+De eerste concrete keuze is Nefit Ecomline Classic, waarvoor passieve uitlezing
+is vastgesteld. Geen andere modellen als ondersteund verzonnen; de lijst kan
+uitgebreid worden na controle. De keuze is geen actieve ketelvrijgave en wijzigt
+geen protocol, adres, regelgrens, hydraulisch profiel of EMS-configuratie.
+
+De keuze staat apart in NVS (`ot_display/boiler`), buiten vervangbare filesystem-
+slots. Opslaan vereist de bestaande sessie/CSRF-route en bevestigde NVS-readback.
+Lege keuze, onleesbare/opslagfout of onbekend model tonen geen verzonnen apparaat;
+geen browser-localStorage of externe foto-/trackingsbron. Schermen blijven bruikbaar
+bij 1440/390/320 px. Drie nieuwe browserprofielen, 37 bestaande JS-regressies en de
+originele NVS-helper met SDK-foutinvoer onder ASan/UBSan PASS. Nieuwe firmware/
+embedded-assets/layoutcontroles worden aan deze bronstap gekoppeld; nog niet
+geïnstalleerd en geen wijziging van B04–B09-vrijgavevoorwaarden.
+
 ### Nieuwe B05-bronstap: oorspronkelijke TV02-datapoints
 
 Het voorgaande HA-ontvangstcheckpoint `0e2793b` is volledig groen op

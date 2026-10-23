@@ -2,6 +2,7 @@
 #include "Board.h"
 #include "DeviceAccess.h"
 #include "DeviceNetworkSettings.h"
+#include "BoilerDisplay.h"
 #include "SetupNetwork.h"
 #include "control/HttpAccessPolicy.h"
 #include "control/ManagedDeviceSettings.h"
@@ -148,6 +149,7 @@ public:
 		route("/config/wifi", [this]() { configWiFi(); });
 		route("/config/device", [this]() { configDevice(); });
 		route("/config/boiler", [this]() { configBoiler(); });
+		route("/config/boiler-display", [this]() { boilerDisplay(); });
 		route("/config/hardware", [this]() { configHardware(); });
 		route("/hardware/i2c/scan", HTTP_GET, [this]() { i2cScan(); });
 		route("/hardware/test/gpio", HTTP_POST, [this]() { gpioTestStart(); });
@@ -964,6 +966,26 @@ private:
 	}
 
 
+	void boilerDisplay() {
+		if (server_.method() != HTTP_GET && server_.method() != HTTP_POST) { server_.send(405,"text/plain","Method not allowed"); return; }
+		if (server_.method() == HTTP_POST) {
+			const auto body = server_.arg("plain");
+			if (body.length() > 128) { server_.send(400,"text/plain","Invalid boiler model"); return; }
+			auto root = std::unique_ptr<cJSON,decltype(&cJSON_Delete)>(
+				cJSON_ParseWithLengthOpts(body.c_str(),body.length()+1,nullptr,true),cJSON_Delete);
+			const auto model = root ? cJSON_GetObjectItemCaseSensitive(root.get(),"model") : nullptr;
+			if (!root || !cJSON_IsObject(root.get()) || cJSON_GetArraySize(root.get()) != 1
+					|| !cJSON_IsString(model) || !model->valuestring || !validBoilerDisplayModel(model->valuestring)) {
+				server_.send(400,"text/plain","Invalid boiler model"); return;
+			}
+			if (!saveBoilerDisplayModel(model->valuestring)) { server_.send(503,"text/plain","Model save could not be confirmed"); return; }
+		}
+		const auto model = readBoilerDisplayModel();
+		if (!model) { server_.send(503,"text/plain","Boiler presentation unavailable"); return; }
+		server_.sendHeader("Cache-Control","no-store");
+		server_.send(200,"application/json",String("{\"model\":\"")+model->c_str()+"\"}");
+	}
+
 	void configBoiler() {
 		DBGLOGFD(log_, logFeature_, "configBoiler METHOD %d\n", server_.method());
 
@@ -1333,6 +1355,8 @@ button.onclick=async()=>{if(!file.files.length){status.textContent='Select spiff
 			return {false, "text/javascript"};
 		} else if (path.endsWith("png")) {
 			return {true, "image/png"};
+		} else if (path.endsWith("svg")) {
+			return {false, "image/svg+xml"};
 		} else if (path.endsWith("jpg")) {
 			return {true, "image/jpeg"};
 		} else if (path.endsWith("html.gz")) {

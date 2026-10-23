@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="274" viewBox="0 0 180 274" role="img" aria-labelledby="title desc">
+  <title id="title">Nefit Ecomline Classic</title>
+  <desc id="desc">Schematische illustratie van een lichte wandketel met donker bedieningspaneel. Geen productfoto.</desc>
+  <defs><linearGradient id="case" x2="1" y2="0"><stop stop-color="#e2e5e2"/><stop offset=".45" stop-color="#fcfcf5"/><stop offset="1" stop-color="#d3d9d6"/></linearGradient></defs>
+  <ellipse cx="90" cy="265" rx="62" ry="6" fill="#173b40" opacity=".1"/>
+  <path d="M38 235v24m29-24v24m46-24v24m29-24v24" stroke="#a3aaa4" stroke-width="7"/>
+  <rect x="18" y="9" width="144" height="237" rx="10" fill="url(#case)" stroke="#a9b4ae" stroke-width="2"/>
+  <path d="M25 19h130M25 181h130" stroke="#c2cbc5"/>
+  <text x="90" y="45" font-family="Arial,sans-serif" font-size="15" font-weight="bold" text-anchor="middle" fill="#7b2631">NEFIT</text>
+  <text x="90" y="63" font-family="Arial,sans-serif" font-size="9" text-anchor="middle" fill="#526a63">ECOMLINE CLASSIC</text>
+  <rect x="31" y="192" width="118" height="36" rx="4" fill="#33433f"/>
+  <rect x="42" y="202" width="35" height="14" rx="2" fill="#8b9f8a"/>
+  <circle cx="101" cy="210" r="8" fill="#d6ddd4"/>
+  <circle cx="130" cy="210" r="8" fill="#d6ddd4"/>
+  <path d="M101 204v4m29-4v4" stroke="#526a63" stroke-width="2"/>
+</svg>

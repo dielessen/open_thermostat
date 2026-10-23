@@ -11,6 +11,10 @@ vastgesteld. Ontvangstdiagnose alleen voldoet niet aan dit releasedoel.
 
 ## Gebruik en bediening
 
+- Settings → Mijn ketel bewaart de modelkeuze op de E32 en toont een lokale
+  illustratie op Home. Eerste model: Nefit Ecomline Classic. Deze presentatiekeuze
+  verandert geen aansluit-, regel- of ketelvrijgave-instellingen.
+
 - Settings → Keteltest toont protocolfamilie, ouderdom van berichten, aanvoer,
   retour en gemeld vermogen. Ontbrekende of oude gegevens worden als onbekend
   weergegeven. Wachtrijverlies, afgekeurde berichten en UART-fouten staan in de

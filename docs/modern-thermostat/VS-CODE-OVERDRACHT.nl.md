@@ -6,7 +6,7 @@ Bijgewerkt 24 oktober 2026 na de oorspronkelijke TV02-rapportproducer.
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   117 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   125 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
@@ -18,6 +18,7 @@ Bijgewerkt 24 oktober 2026 na de oorspronkelijke TV02-rapportproducer.
 - Broncheckpoint `60c548f`: volledige GitHub CI 40027429946 PASS; 69-velden-HA-projectie voorbereid, nog niet geïnstalleerd.
 - Nieuwste bronstap: originele Zigbee-temperatuurproducer plus native HA-ontvanger/room-status; broncontract in ORIGINAL-ZIGBEE-REPORTS.nl.md. Producent/ontvangstdiagnose zijn gebouwd en getest; echte acquisitie-/bronkwalificatie en fysieke validatie staan open. Niet geïnstalleerd, geen QualifiedReport.
 - HA-ontvangstcheckpoint `0e2793b`: volledige GitHub CI 40030592815 PASS.
+- Nieuwe expliciet gevraagde gebruikersfunctie: Settings → Mijn ketel, NVS-persistente modelkeuze en SVG op Home. Eerste model Nefit Ecomline Classic; presentatie geeft geen technische vrijgave. Nog niet geïnstalleerd.
 - Nieuwste B05-bronstap: oorspronkelijke TV02-datapuntproducer, 13 nieuwe + 11 bestaande producenttests PASS. Native echo-consument/causale doelkoppeling en fysieke proef blijven open; zie ORIGINAL-TV02-REPORTS.nl.md. Niet geïnstalleerd.
 - Eerst B04 echt meetprofiel/bronvalidatie en B05 verse kraanecho afronden, daarna B06–B09 proefketen en installatievoorwaarden; pas dan gezamenlijke freeze/uitrol.
 - Onderstaande bronstappen zijn historische checkpoints; zie WORKBOARD voor hun actuele status.

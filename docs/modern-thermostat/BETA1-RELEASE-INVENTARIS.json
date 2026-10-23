@@ -102,7 +102,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "9ab1617dd3f599bf07d5eb634d69a9bcb140143888f9abc07e629437f2488aad"
+          "sha256": "1a2e4d28525e9b96eb3f8b9858421416f730ae3db7e8cb2cb0535b24988d5d74"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -217,7 +217,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "6198c8359f3b3ef0d043283a8e65df49b7b9be774e75fe48f8c0b4cea762c5e7"
+          "sha256": "21af056cba8fe73798bcb0572ac71359372ca7875b4e18b63a8f0da9f04fc38b"
         }
       ],
       "remaining_acceptance": "Drie echte koude HA-sessies bewezen; versiegebonden module behouden."
@@ -345,7 +345,7 @@
     },
     {
       "id": "I14",
-      "title": "Kraanadapter profiel C en tijdelijke bronbench",
+      "title": "Kraanadapter profiel C, TV02-moduscontrole en tijdelijke bronbench",
       "status": "deels",
       "include_in_beta": true,
       "requirements": [
@@ -356,7 +356,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/v1_profile_c.py",
-          "sha256": "ec7bb16605813f53a1a8f84f2d40a5e24a83b0a653aaf0d4aca2a73eeb67d04a"
+          "sha256": "7c513a4d81709563f5da77cec97d8bf7f1abc14f8a5f1be05be3ae1333c93f9a"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_bench_source.py",
@@ -365,9 +365,21 @@
         {
           "path": "ha/config/custom_components/open_thermostat/v1_bench_actions.py",
           "sha256": "1352091626fe1265adef1db87c6b7430a46dc380b1a0fb61da9b40bbc4312493"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/product_flow.py",
+          "sha256": "71eb9c04279dc2cfc2b7bc7b3da4a321e5821a6d3b2624a25c286c36a8ccf218"
+        },
+        {
+          "path": "ha/tests_native/test_tv02_operating_mode.py",
+          "sha256": "97265ed57c245a878fa5e6110b66832e092e4ffaea357d8fbbc0a202621ef70d"
+        },
+        {
+          "path": "test/ha-tv02-mode-browser.cjs",
+          "sha256": "26ba806428bce7c0d5502e74ae7b2cd4afb147ebae184a957b42bc2444847548"
         }
       ],
-      "remaining_acceptance": "Geen vrijgegeven native fysieke route; oude bench expliciet geblokkeerd op SOURCE."
+      "remaining_acceptance": "TV02-moduscontrole en finale doelguard nieuw getest: 21 nieuwe modusgevallen, 64 gericht, volledige HA-suite 1658 tests + 68 subtests en 14 browserprofielen PASS. Geen vrijgegeven native fysieke route; verse echo/readiness/schema-eigenaarschap en fysieke proef zonder ketel open. Oude bench blijft op SOURCE geblokkeerd."
     },
     {
       "id": "I15",
@@ -935,7 +947,7 @@
     {
       "id": "B05",
       "complete": false,
-      "description": "Juiste native TRV-route en profiel/readiness/echo/foutafhandeling voor eerste proefkamer afronden; fysieke proef eerst zonder ketel."
+      "description": "TV02-modusconflicten zichtbaar en vóór doelactie geweigerd/getest; verse modelspecifieke rapporten/echo, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel."
     },
     {
       "id": "B06",

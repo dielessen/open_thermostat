@@ -411,6 +411,7 @@ class ProductOptionsFlow(ControllerSetupFlow, ShadowOptionsFlow, ProductRoomFlow
         runtime_text = ("Aan" if enabled else "Uit") if dutch else ("Enabled" if enabled else "Disabled")
         # Inspect saved targets without altering settings or granting physical readiness.
         from .room_editor import read_room
+        from .v1_profile_c import MODE_MESSAGES
         checks = []
         for sub in entry.subentries.values():
             if sub.subentry_type != "zone":
@@ -425,12 +426,16 @@ class ProductOptionsFlow(ControllerSetupFlow, ShadowOptionsFlow, ProductRoomFlow
                 if cap and actuator["status"] != "unknown":
                     text += f"{cap['minimum']:g}–{cap['maximum']:g} {cap['unit']}; "
                     text += ("stap " if dutch else "step ") + f"{cap['step']:g} {cap['unit']}"
-                    if actuator["issues"]:
+                    if any(reason in actuator["issues"] for reason in (
+                            "room_limits_exceed_actuator", "saved_targets_need_review")):
                         text += (". Controleer kamergrenzen en programmadoelen." if dutch
                                  else ". Review room limits and program targets.")
                 else:
                     text += ("Eigenschappen niet beschikbaar; controleer de kraanverbinding." if dutch
                              else "Capabilities unavailable; check the valve connection.")
+                for reason in actuator.get("operating_mode", {}).get("issues", []):
+                    if reason in MODE_MESSAGES:
+                        text += " " + MODE_MESSAGES[reason][0 if dutch else 1]
                 if review["external_program_present"]:
                     text += (" Het bestaande externe programma is niet gecontroleerd." if dutch
                              else " The existing external program has not been checked.")

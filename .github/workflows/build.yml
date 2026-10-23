@@ -31,6 +31,7 @@ jobs:
           node test/boiler-test-browser.cjs
           node test/boiler-test-control-browser.cjs
           node test/ha-device-metadata-browser.cjs
+          node test/ha-tv02-mode-browser.cjs
           node test/ha-room-program-browser.cjs
           node test/ha-planner-touch-browser.cjs
           node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs

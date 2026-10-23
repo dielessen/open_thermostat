@@ -6,7 +6,7 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   81 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   84 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
@@ -61,6 +61,21 @@ voltooiing/timing/arbitrage en onafhankelijke stop/flow blijven open. Er is geen
 live of fysieke opdracht uitgevoerd. HA-bron is sinds `6503299` ongewijzigd;
 het HA-regressiebewijs met 1705 checks blijft aan dat checkpoint gekoppeld.
 Bewijs: `out/beta-boiler-evidence-20261023/classic-encoder/REVIEW.json`.
+
+## Nieuwe TV02-moduscontrole, nog niet geïnstalleerd
+
+Native kraancontrole/room-editor melden TV02 auto/vakantie/uit/onbekend zonder
+configuratie- of serviceactie. De voorbereide profiel-C-adapter weigert conflicten
+vóór een doelactie, ook bij wachten op de eigenaar, veranderde modus in de laatste
+autorisatiecallback of gewijzigde modelclassificatie. Geen automatische preset- of
+modusreparatie. Een passende gemelde modus is geen verse kraanecho/fysieke readiness;
+default actuation blijft uit. Andere modellen erven deze regels niet uit een naam.
+64 gerichte HA-tests, volledige 1658 tests + 68 subtests, 6 nieuwe en 8 bestaande
+browserprofielen PASS. Acht C++-peers opnieuw gebouwd; tijdelijke broker verwijderd.
+Firmwarecode is sinds `d4eadea` ongewijzigd, dus geen nieuwe drie-board- of gezamenlijke
+freezeclaim. Bewijs: `out/beta-boiler-evidence-20261023/tv02-mode/REVIEW.json`.
+B04/B05 blijven open voor de echte modelspecifieke bron-/echo-/readinessroute.
+Geen installatie, fysieke bediening of wijziging van bestaande apparaatkoppelingen.
 
 ## Eerstvolgende uitvoering
 

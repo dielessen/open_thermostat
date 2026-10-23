@@ -16,7 +16,8 @@ Object.assign(TEXT.nl,{
  metadataAbsent:'niet vermeld in de apparaatdefinitie',metadataDeclared:'instelbaar gemeld',metadataReadOnly:'alleen uitlezen gemeld',metadataOptions:'MQTT-opties',
  metadataRoles:{device_temperature:'Apparaattemperatuur',temperature:'Temperatuur',local_temperature:'Eigen temperatuurmeting',calibration:'Meetcorrectie',external_temperature:'Externe temperatuurinvoer',temperature_source:'Temperatuurbron',setpoint:'Doeltemperatuur',valve_position:'Klepstand',system_mode:'Verwarmingsmodus',preset:'Programmamodus',running_state:'Werkingsstatus',local_schedule:'Eigen kraanprogramma'},
  nameHelp:'Deze naam verschijnt bij de ruimte. Hernoemen behoudt de koppelingen en het weekprogramma.',
- valveReview:'Controle gekoppelde kranen',reviewScope:'Controle van opgeslagen doelen op basis van de eigenschappen die Home Assistant meldt.',
+ valveReview:'Controle gekoppelde kranen',reviewScope:'Opgeslagen doelen en gemelde kraaneigenschappen en bedrijfsmodus bij laden.',
+ reviewModes:{local_schedule_active:'De TV02 meldt een eigen weekprogramma. Dat kan het kamerdoel overschrijven.',holiday_mode_active:'De TV02 meldt een vakantieprogramma. Dat kan het kamerdoel overschrijven.',heating_disabled:'De TV02 meldt verwarming uit; de software schakelt de kraan niet automatisch in.',operating_mode_unknown:'De bedrijfsmodus van de TV02 is niet bevestigd. Controleer de kraan en laad opnieuw.'},
  reviewLimits:'De kamergrenzen zijn ruimer dan deze kraan ondersteunt. Pas zo nodig Minimum- en Maximumtemperatuur aan onder Geavanceerde instellingen.',
  reviewUnknown:'Bereik of temperatuurstap is niet beschikbaar of onbruikbaar. Controleer de kraan in Home Assistant en laad opnieuw.',
  reviewUnavailable:'De kraancontrole is nog niet beschikbaar. Laad opnieuw nadat de integratie is bijgewerkt.',
@@ -37,7 +38,8 @@ Object.assign(TEXT.en,{
  metadataAbsent:'not listed in the device definition',metadataDeclared:'declared settable',metadataReadOnly:'declared read-only',metadataOptions:'MQTT options',
  metadataRoles:{device_temperature:'Device temperature',temperature:'Temperature',local_temperature:'Own temperature measurement',calibration:'Measurement correction',external_temperature:'External temperature input',temperature_source:'Temperature source',setpoint:'Target temperature',valve_position:'Valve position',system_mode:'Heating mode',preset:'Program mode',running_state:'Operating state',local_schedule:'Own valve program'},
  nameHelp:'This name identifies the room. Renaming keeps its bindings and week program.',
- valveReview:'Linked valve check',reviewScope:'Checks saved targets against the capabilities reported by Home Assistant.',
+ valveReview:'Linked valve check',reviewScope:'Saved targets and reported valve capabilities and operating mode when loaded.',
+ reviewModes:{local_schedule_active:'The TV02 reports automatic scheduling, which can override the room target.',holiday_mode_active:'The TV02 reports a holiday program, which can override the room target.',heating_disabled:'The TV02 reports heating off; software will not turn the valve on automatically.',operating_mode_unknown:'The TV02 operating mode is unconfirmed. Check the valve, then reload.'},
  reviewLimits:'The room limits exceed this valve’s range. Adjust Minimum and Maximum temperature under Advanced settings if needed.',
  reviewUnknown:'The temperature range or step is unavailable or unusable. Check the valve in Home Assistant, then reload.',
  reviewUnavailable:'The valve check is not available yet. Reload after the integration is updated.',
@@ -171,6 +173,10 @@ class OpenThermostatRoomEditor extends HTMLElement{
        }
        details.append(list);article.append(details);
       }
+     }
+     const mode=row.operating_mode;
+     if(mode?.profile==='TV02-Zigbee'&&mode.scope==='reported_ha_operating_mode'&&mode.authorizes_actuation===false&&Array.isArray(mode.issues)){
+      for(const reason of mode.issues)article.append(el('p',this.t.reviewModes[reason]||this.t.reviewModes.operating_mode_unknown,{class:'attention'}));
      }
      box.append(article);
     }

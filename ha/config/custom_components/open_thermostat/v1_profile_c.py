@@ -14,8 +14,52 @@ from collections.abc import Callable
 from homeassistant.core import HomeAssistant
 from homeassistant.components.climate.const import ClimateEntityFeature
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 ACTION_TIMEOUT_SECONDS = 10.0
+
+MODE_MESSAGES = {
+    "local_schedule_active": ("De TV02 meldt een eigen weekprogramma. Dat kan het kamerdoel overschrijven.",
+                              "The TV02 reports automatic scheduling, which can override the room target."),
+    "holiday_mode_active": ("De TV02 meldt een vakantieprogramma. Dat kan het kamerdoel overschrijven.",
+                            "The TV02 reports a holiday program, which can override the room target."),
+    "heating_disabled": ("De TV02 meldt verwarming uit; de software schakelt de kraan niet automatisch in.",
+                         "The TV02 reports heating off; software will not turn the valve on automatically."),
+    "operating_mode_unknown": ("De bedrijfsmodus van de TV02 is niet bevestigd. Controleer de kraan en laad opnieuw.",
+                               "The TV02 operating mode is unconfirmed. Check the valve, then reload."),
+}
+
+
+def reported_operating_mode(hass, entity_id):
+    """Known TV02 mode conflicts only, never fresh echo or physical readiness.
+
+    Registry model and HA state are declarations. They may deny a command but
+    cannot provide its required profile/authorization or confirm motor movement.
+    No inference from target temperature and no implicit preset/mode repair.
+    """
+    entity = er.async_get(hass).async_get(entity_id)
+    device = dr.async_get(hass).async_get(entity.device_id) if entity and entity.device_id else None
+    if device is None or getattr(device, "model_id", None) != "TV02-Zigbee":
+        return None
+    state = hass.states.get(entity_id)
+    preset = state.attributes.get("preset_mode") if state else None
+    if type(preset) is not str or preset not in ("auto", "manual", "holiday"):
+        preset = None
+    mode = state.state if state and state.state in ("heat", "off") else None
+    issues = []
+    if preset == "auto":
+        issues.append("local_schedule_active")
+    elif preset == "holiday":
+        issues.append("holiday_mode_active")
+    elif preset != "manual":
+        issues.append("operating_mode_unknown")
+    if mode == "off":
+        issues.append("heating_disabled")
+    elif mode is None and "operating_mode_unknown" not in issues:
+        issues.append("operating_mode_unknown")
+    return {"profile": "TV02-Zigbee", "scope": "reported_ha_operating_mode",
+            "preset": preset, "system_mode": mode, "issues": issues,
+            "authorizes_actuation": False}
 
 class InvalidTargetCapability(HomeAssistantError):
     """Advertised numeric metadata cannot be used without inventing a value."""
@@ -80,6 +124,9 @@ def review_room_targets(hass, room, entity_ids):
                        for i, block in enumerate(blocks))
     for entity_id in entity_ids:
         row = {"entity_id": entity_id, "status": "unknown", "issues": [], "targets": []}
+        operating_mode = reported_operating_mode(hass, entity_id)
+        if operating_mode is not None:
+            row["operating_mode"] = operating_mode
         try:
             cap = target_capability(hass, hass.states.get(entity_id))
         except HomeAssistantError:
@@ -107,6 +154,8 @@ def review_room_targets(hass, room, entity_ids):
                 row["targets"].append(item)
             if row["targets"]:
                 row["issues"].append("saved_targets_need_review")
+            if operating_mode is not None:
+                row["issues"].extend(operating_mode["issues"])
             row["status"] = ("unknown" if "capability_unavailable" in row["issues"]
                              else "review_required" if row["issues"] else "compatible")
         rows.append(row)
@@ -136,8 +185,14 @@ class ProfileCActuator:
                 raise HomeAssistantError("Profile C bench actuation is disabled")
             capability = target_capability(self.hass, self.hass.states.get(self.entity_id))
             actual = capability.target(celsius)
+            operating_mode = reported_operating_mode(self.hass, self.entity_id)
             if not self._authorize():
                 raise HomeAssistantError("Bench authorization expired or invalid target")
+            current_mode = reported_operating_mode(self.hass, self.entity_id)
+            if (operating_mode is None) != (current_mode is None):
+                raise HomeAssistantError("TRV model changed before target dispatch")
+            if current_mode is not None and current_mode["issues"]:
+                raise HomeAssistantError("TV02 local operating mode conflicts with external target")
             # A successful HA call is action acceptance only, NEVER valve readiness.
             try:
                 async with asyncio.timeout(ACTION_TIMEOUT_SECONDS):

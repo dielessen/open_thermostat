@@ -52,7 +52,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-81 bronverwijzingen met hashes, status en resterende acceptatie.
+84 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -72,7 +72,7 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | I11 | Meetstatus en geheugen-/toelatingsdiagnose | Basis geleverd; observer-lifecycle nieuw getest | Vervangen/intrekken trekt oude kwalificatie in; oude cleanup/timers raken nieuwe eigenaar niet. Productieprofiel blijft open. |
 | I12 | Passieve Classic-decoder en Classic-proefencoder | Decoder geleverd; encoder nieuw getest | Vast 0x1A-flow/nulformaat gebouwd; beoordeelde bronadressering, fysieke UART-/stopkwalificatie en ontvangstpariteit blijven open. |
 | I13 | Ketencontract, SOURCE, journal, configuratie en readback | Geleverde softwarebasis | Logische provisioning/programma-ACK werkt; verse fysieke meet- en actuatorbewijzen ontbreken. |
-| I14 | Kraanadapter profiel C en tijdelijke bronbench | Voorbereide code, functie nog onvolledig | Geen vrijgegeven native fysieke route; oude bench expliciet geblokkeerd op SOURCE. |
+| I14 | Kraanadapter profiel C, TV02-moduscontrole en bronbench | Moduscontrole nieuw getest; fysieke route nog onvolledig | TV02 auto/vakantie/uit/onbekend zichtbaar en vóór doelactie geweigerd. Verse kraanecho, exclusief eigenaarschap en fysieke werking blijven open; oude bench op SOURCE geblokkeerd. |
 | I15 | Kamerregelaar, seizoensbeleid en hydraulische supervisor | Voorbereide code, functie nog onvolledig | Regellogica/shadow voorbereid; hydraulische profiel- en uitvoerketen niet gekwalificeerd. |
 | I16 | Groepswaterdoelen, vloer, menger en centrale graph-config | Voorbereide code, functie nog onvolledig | Pure policies/declaraties en begrensde DATA-paden aanwezig; niet gelijk aan actieve groepen/pomp/menger. |
 | I17 | Metrics, grafieken, historiegrens en CSV-export | Voorbereide code, functie nog onvolledig | Niet opnieuw vanaf nul bouwen; echte Classic-tijdlijn, Recorder-retentie/migratie en grafiekacceptatie open. |
@@ -236,13 +236,36 @@ onafhankelijk bron-/testwerk hoeven niet te wachten op een fysieke waarneming.
   kwalificeert de huidige diagnostische bron of fysieke TRV niet. Bewijs:
   `out/beta-boiler-evidence-20261023/source-lifecycle/REVIEW.json`.
 
+### Nieuw TRV-bronwerk: TV02-moduscontrole
+
+- De opgeslagen kraancontrole toont bij model TV02-Zigbee de gemelde eigen
+  automatische planning, vakantie, verwarming uit of onbekende modus. Die meldingen
+  staan in de kamereditor en native configuratiestatus, Nederlands/Engels. Er wordt
+  niets automatisch hersteld, omgeschakeld, opgeslagen of naar de kraan gestuurd.
+- De voorbereide profiel-C-adapter weigert bij deze conflicten een extern doel,
+  ook als een synthetische test profiel/autorisatie expliciet inschakelt. Hij leest
+  de modus opnieuw na wachten op de eigenaar en na de laatste autorisatiecheck;
+  een tussentijdse wissel van modelclassificatie wordt geweigerd.
+- Een gemelde handmatige/heat-modus kwalificeert geen verse doel-echo, klepstand,
+  flow of fysieke aansturing. De standaardadapter blijft uit. Andere modellen
+  krijgen niet stilzwijgend TV02-semantiek op grond van alleen een presetnaam.
+- 64 gerichte HA-tests (21 nieuwe modusgevallen), volledige HA-suite 1.658 tests
+  + 68 subtests = 1.726 checks PASS, nul fouten/overslagen. Zes nieuwe mode-browser-
+  profielen en acht bestaande kamereditorprofielen PASS. Acht echte C++-peers
+  opnieuw gebouwd, tijdelijke lokale MQTT-broker gebruikt en weer verwijderd.
+  Nieuwe browsercheck is in CI opgenomen. Firmwarebron is sinds `d4eadea` gelijk;
+  het vorige 72-native-/drie-boardbewijs is niet als nieuwe volledige freeze herlabeld.
+- B05 blijft open voor verse modelspecifieke rapporten/echo, werkelijk exclusief
+  schema-eigenaarschap, readiness/fallback en de fysieke proef zonder ketel.
+  Bewijs: `out/beta-boiler-evidence-20261023/tv02-mode/REVIEW.json`.
+
 ### Releasechecklist — eerste bèta
 
 - [x] B01 Alle 31 eisen, 11 fasen en 8 werkpakketten opnieuw beoordeeld; oude statusregels uit actuele lijst gehaald.
 - [x] B02 Alle bekende voorbereide brononderdelen geïnventariseerd en in bètabasis behouden; geen bron-/testbestand uit hoofdwerkmap ontbreekt.
 - [x] B03 Nieuwe ontvangstdiagnose/Keteltest/rapport gebouwd en getest: 18 native, 43 GUI-regressies, 3 echte Chromiumviewports met fixture-HTTP, normale E32-build.
 - [ ] B04 Observer-lifecycle voor vervanging/intrekking getest; productie-meetrapportprofiel/-producer aansluiten. Originele acquisitie, cache/reconnect/stale correct; geen trustvinkje of sensorwissel als omweg.
-- [ ] B05 Juiste native TRV-route en profiel/readiness/echo/foutafhandeling voor eerste proefkamer afronden; fysieke proef eerst zonder ketel.
+- [ ] B05 TV02-modusconflicten zichtbaar en vóór doelactie geweigerd/getest; verse modelspecifieke rapporten/echo, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel.
 - [ ] B06 Bestaande supervisor koppelen aan vereiste actuele profiel-/feedback-/DHW-/hydraulische voorwaarden; geen generieke flowaanname.
 - [ ] B07 Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten.
 - [ ] B08 Poll-executor en Classic-flow/nulformaat aangesloten/getest; installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute.
@@ -281,7 +304,7 @@ Alleen programma-ACK of beschikbaarheid van een entiteit sluit M2 niet.
 | `out/combined-release-evidence-20261023/FINAL-REVIEW.json` | Werkelijk gepubliceerde/geïnstalleerde alpha17/dev23 en instellingenbehoud |
 | `out/beta-boiler-evidence-20261023/CHECKPOINT.json` | Ontvangstsoftwarecheckpoint, geen bèta- of fysieke vrijgave |
 | `out/plan-audit-20261023/AUDIT.json` | Bron-/inventaris-/takken-/plancontrole van deze herijking |
-| `BETA1-RELEASE-INVENTARIS.json` | Alle 23 voorbereide brononderdelen en 81 bestandsverwijzingen met hashes |
+| `BETA1-RELEASE-INVENTARIS.json` | Alle 23 voorbereide brononderdelen en 84 bestandsverwijzingen met hashes |
 | `BETA1-KETELPROEF.nl.md` / `BETA1-PROEFSTAND-ONTWERP.nl.md` | Scope en nog te implementeren begrensd proefcontract |
 | `out/critical-path-20261022/SAVED-STOP-RECHECK.json` | Historisch expliciet nulcommando; geen zelfstandige stop bij communicatiewegval |
 | `out/plan-audit-20261023/*.before` | Ongewijzigde oude PLAN/WORKBOARD/overdracht/nachtvolgorde; historische bewijsregels behouden |

@@ -391,8 +391,10 @@ slots. Opslaan vereist de bestaande sessie/CSRF-route en bevestigde NVS-readback
 Lege keuze, onleesbare/opslagfout of onbekend model tonen geen verzonnen apparaat;
 geen browser-localStorage of externe foto-/trackingsbron. Schermen blijven bruikbaar
 bij 1440/390/320 px. Drie nieuwe browserprofielen, 37 bestaande JS-regressies en de
-originele NVS-helper met SDK-foutinvoer onder ASan/UBSan PASS. Nieuwe firmware/
-embedded-assets/layoutcontroles worden aan deze bronstap gekoppeld; nog niet
+originele NVS-helper met SDK-foutinvoer onder ASan/UBSan PASS. Firmwarebouw voor E32/ESP32/S3, echte binaire OTA-groottes, nieuwe embedded
+webbestanden en E32-filesystem/layout/no-TX-controles PASS op bron `b3920ef`.
+Ook drie gewone-homepageprofielen en twee dashboardregressieprofielen PASS:
+8 browserprofielen samen. Bewijs: `out/boiler-display-20261024/`. Nog niet
 geïnstalleerd en geen wijziging van B04–B09-vrijgavevoorwaarden.
 
 ### Nieuwe B05-bronstap: oorspronkelijke TV02-datapoints

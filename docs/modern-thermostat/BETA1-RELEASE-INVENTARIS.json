@@ -169,7 +169,7 @@
           "sha256": "718d49d83fd55090a91e3c1de5793d8024d324bd3a700593df61013b7d2f7b61"
         }
       ],
-      "remaining_acceptance": "Behouden; bevestiging/herstartguards opnieuw in eindregressie. Nieuw: Mijn ketel/NVS-keuze en Home-illustratie voorbereid met 3 browserprofielen en originele opslaghelper-foutinvoer; firmware/layout/eindfreeze en uitrol nog aan kandidaat koppelen. Geen technische ketelvrijgave door modelkeuze."
+      "remaining_acceptance": "Behouden; bevestiging/herstartguards opnieuw in eindregressie. Nieuw: Mijn ketel/NVS-keuze en Home-illustratie voorbereid met 3 browserprofielen en originele opslaghelper-foutinvoer; 3 boardbuilds/OTA-groottes/E32-layout/no-TX/embedded-assets PASS op b3920ef, samen 8 browserprofielen PASS; gezamenlijke eindfreeze en uitrol blijven open. Geen technische ketelvrijgave door modelkeuze."
     },
     {
       "id": "I06",

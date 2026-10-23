@@ -23,6 +23,7 @@ from .v1_model import CONF_ENABLED, MODE_SHADOW, integration_mode
 from .native_form import retained_input_schema
 from .schedule_compiler import WEEKDAYS
 from .v1_program import normalize_program
+from .controller_setup_flow import ControllerSetupFlow
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -240,7 +241,7 @@ class ProductRoomFlow(RadiatorRoomSetupFlow):
         }), errors=errors)
 
 
-class ProductOptionsFlow(ShadowOptionsFlow, ProductRoomFlow):
+class ProductOptionsFlow(ControllerSetupFlow, ShadowOptionsFlow, ProductRoomFlow):
     """One central options entrypoint, using the same room editor and native Store."""
 
     def _get_entry(self):
@@ -251,7 +252,7 @@ class ProductOptionsFlow(ShadowOptionsFlow, ProductRoomFlow):
 
     async def async_step_init(self, user_input=None):
         return self.async_show_menu(step_id="init", menu_options=[
-            "installation", "room_settings", "configuration_status", "advanced_settings"])
+            "installation", "controller_connection", "room_settings", "configuration_status", "advanced_settings"])
 
     async def async_step_installation(self, user_input=None):
         entry = self.config_entry

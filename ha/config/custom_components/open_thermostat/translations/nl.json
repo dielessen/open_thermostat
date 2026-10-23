@@ -502,7 +502,8 @@
           "installation": "Installatie instellen",
           "room_settings": "Ruimtes beheren",
           "configuration_status": "Status installatie",
-          "advanced_settings": "Geavanceerd en diagnose"
+          "advanced_settings": "Geavanceerd en diagnose",
+          "controller_connection": "E32 verbinden"
         }
       },
       "graph_review": {
@@ -785,6 +786,22 @@
           "program_action": "Behoud het programma, bewerk de tijdblokken of verwijder het expliciet. Elk blok heeft zijn eigen temperatuur.",
           "confirm_source_change": "Alleen nodig bij wisselen tussen eigen weekprogramma en een Schedule-helper; lokale blokken vervallen bij de keuze voor een helper."
         }
+      },
+      "controller_connection": {
+        "title": "E32 verbinden",
+        "description": "Koppel deze installatie aan je E32. De opgeslagen kamers en weekprogramma’s worden gecontroleerd en naar de E32 gestuurd. De bestaande netwerkinstellingen blijven behouden. Een eerste koppeling kan de E32 eenmaal herstarten.\n\nHet beheerderswachtwoord wordt bij deze HA-integratie bewaard voor apparaatbeheer. Laat het leeg om het bewaarde wachtwoord voor hetzelfde adres te gebruiken. Dit schakelt de fysieke verwarmingsaansturing niet in.",
+        "data": {
+          "address": "Webadres van de E32",
+          "password": "Beheerderswachtwoord"
+        }
+      },
+      "controller_connecting": {
+        "title": "E32 en kamerprogramma controleren",
+        "description": "De verbinding wordt gecontroleerd. Wacht op de bevestiging van de E32."
+      },
+      "controller_connected": {
+        "title": "E32 verbonden",
+        "description": "De E32 heeft het programma voor {rooms} kamer(s) terugbevestigd. Fysieke verwarmingsaansturing blijft uitgeschakeld; geschiktheid van sensoren en kranen wordt afzonderlijk getest."
       }
     },
     "error": {
@@ -840,7 +857,34 @@
       "room_required": "Configure a room before adding actuator declarations.",
       "runtime_active": "De regeling is actief. Instellingen zijn niet gewijzigd.",
       "advanced_room_required": "Dit kamerprofiel kan hier nog niet worden gewijzigd. Alle gegevens blijven behouden.",
-      "confirm_program_source_change": "Bevestig de wijziging van de programmabron."
+      "confirm_program_source_change": "Bevestig de wijziging van de programmabron.",
+      "controller_address_invalid": "Vul het lokale webadres van de E32 in, bijvoorbeeld http://e32.local. Zet geen pad of inloggegevens in het adres.",
+      "controller_password_required": "Vul het beheerderswachtwoord van de E32 in. Een bewaard wachtwoord wordt alleen voor hetzelfde adres hergebruikt.",
+      "controller_auth_failed": "De E32 accepteert deze aanmelding niet. Controleer het beheerderswachtwoord.",
+      "controller_unreachable": "De E32 is niet bereikbaar. Controleer het adres en de netwerkverbinding.",
+      "controller_update_required": "Werk de E32 eerst bij naar alpha.9 of nieuwere compatibele firmware.",
+      "controller_busy_or_conflict": "De E32 wordt bijgewerkt, herstart of heeft een conflicterende configuratie. Controleer eerst de status.",
+      "controller_legacy_rooms_present": "Er staan nog lokale kamers op de E32. Beoordeel eerst hoe die worden overgezet.",
+      "controller_broker_setup_required": "De E32 heeft eerst een werkende MQTT-verbinding nodig. Controleer de bestaande netwerkinstellingen.",
+      "controller_source_conflict": "Deze E32 of installatie hoort al bij een andere configuratie. Controleer de installatiestatus.",
+      "controller_settings_too_large": "De configuratie overschrijdt de opslagruimte van de E32. Er wordt niet automatisch opnieuw geprobeerd.",
+      "controller_response_invalid": "De E32 geeft een onverwacht antwoord. Controleer de firmware en verbinding.",
+      "controller_response_too_large": "Het antwoord van de E32 is te groot. Controleer de firmware.",
+      "controller_request_invalid": "De verbindingsaanvraag kon niet worden gecontroleerd. Open het formulier opnieuw.",
+      "controller_readback_invalid": "De E32-configuratie kon niet worden bevestigd. Controleer eerst de status.",
+      "controller_settings_changed": "De E32-instellingen zijn tijdens het verbinden gewijzigd. Controleer de opgeslagen configuratie voordat je opnieuw verbindt.",
+      "controller_changed": "De identiteit of firmware van de E32 is tijdens het verbinden gewijzigd. Controleer de status.",
+      "controller_room_configuration_invalid": "De bewaarde kamers of programma’s passen niet binnen het huidige E32-verbindingsprofiel. Controleer de kamerinstellingen en installatiestatus.",
+      "controller_runtime_off_required": "De vorige verbinding wordt nog gestopt. Controleer de installatiestatus.",
+      "controller_add_room_first": "Voeg eerst een kamer met temperatuursensor en radiatorkranen toe.",
+      "controller_boot_unconfirmed": "De herstart van de E32 kon niet worden bevestigd. Controleer de status voordat je opnieuw probeert.",
+      "controller_connection_failed": "De verbinding kon niet worden bevestigd. Controleer de installatiestatus voordat je opnieuw probeert.",
+      "controller_connection_unconfirmed": "Home Assistant heeft de E32-verbinding niet op tijd bevestigd. Controleer de installatiestatus.",
+      "controller_connection_changed": "De verbinding is tijdens het toepassen van het kamerprogramma gewijzigd. Controleer de installatiestatus.",
+      "controller_plan_pending": "Een eerdere wijziging van het kamerprogramma is nog niet opgehelderd. Controleer eerst wat de E32 werkelijk heeft opgeslagen.",
+      "controller_plan_unconfirmed": "De E32 heeft het kamerprogramma nog niet bevestigd. Alleen ontvangst van een opdracht is geen bevestiging. Controleer de installatiestatus.",
+      "controller_partial_connection": "Een deel van de verbindingsinstellingen kan al op de E32 staan. De volledige verbinding en het kamerprogramma zijn nog niet bevestigd. Controleer de installatiestatus voordat je opnieuw verbindt.",
+      "setup_changed": "De installatie is tijdens het verbinden gewijzigd. Controleer de huidige instellingen voordat je opnieuw verbindt."
     },
     "abort": {
       "graph_review_unavailable": "No existing source-selected graph connection is available. No profile was enabled.",
@@ -876,7 +920,12 @@
       "no_rooms": "Er zijn nog geen ruimtes. Gebruik Ruimte toevoegen op de integratiepagina.",
       "cancelled": "Geannuleerd; er is niets gewijzigd.",
       "configuration_status_closed": "Status gesloten.",
-      "product_upgrade_required": "Deze oude inrichting moet eerst worden overgenomen naar de normale productconfiguratie."
+      "product_upgrade_required": "Deze oude inrichting moet eerst worden overgenomen naar de normale productconfiguratie.",
+      "controller_connection_complete": "De E32-verbinding en het kamerprogramma zijn bevestigd.",
+      "controller_connection_cancelled": "Verbinden geannuleerd. Controleer de installatiestatus; instellingen kunnen al op de E32 staan."
+    },
+    "progress": {
+      "controller_connect": "Verbinden, kamerprogramma toepassen en teruglezen…"
     }
   }
 }

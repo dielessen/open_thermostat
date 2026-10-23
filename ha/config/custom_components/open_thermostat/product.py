@@ -49,7 +49,13 @@ def default_document():
 
 
 def configuration_snapshot(entry):
-    return deepcopy((entry.title, dict(entry.data), dict(entry.options),
+    # Room/editor concurrency tokens are public digests of this snapshot. Never
+    # turn an E32 access password into an offline password-checking oracle.
+    # Device-management operations separately fence full private entry state;
+    # ordinary room writes always preserve the current entry's credentials.
+    data = dict(entry.data)
+    data.pop("controller_password", None)
+    return deepcopy((entry.title, data, dict(entry.options),
                      {key: sub.as_dict() for key, sub in entry.subentries.items()}))
 
 

@@ -1,4 +1,4 @@
-# OpenThermostat Home Assistant 0.4.0.dev13 — testrelease
+# OpenThermostat Home Assistant 0.4.0.dev14 — testrelease
 
 Eén installatie met centrale instellingen en kamers. Nieuwe kamers gebruiken
 een wizard; bestaande kamers hebben één direct configuratiescherm met gekoppelde
@@ -7,6 +7,18 @@ Apparaatidentiteit, beschikbaarheid en kraangrenzen worden bij de kamer getoond.
 Deze versie herkent de officiële Home Assistant-featureflags van een klimaatapparaat
 correct; geldige temperatuurgrenzen hoeven daardoor niet onbekend te lijken.
 
+Nieuw in dev14: kies **E32 verbinden** in de centrale integratie-instellingen.
+Vul het lokale webadres en beheerderswachtwoord in. De integratie controleert de
+werkelijke E32, bewaart de bestaande netwerkinstellingen en synchroniseert het
+kamerprogramma via de bestaande verbinding. Alleen ontvangst van een opdracht
+is geen succes: de E32 moet de juiste configuratie en actuele kamerstatus teruggeven.
+Een eerste koppeling kan de E32 eenmaal herstarten. E32-alpha.9 of nieuwere
+compatibele firmware is nodig; het huidige profiel ondersteunt één of twee kamers.
+Het beheerderswachtwoord wordt in de bestaande HA-integratie bewaard; cookies en
+controlecodes blijven tijdelijk. Gewone kamerschermen en diagnoses exporteren
+het wachtwoord niet. Bij een onderbroken koppeling wordt geen bevestigde uitvoering
+voorgewend; controleer de installatiestatus voordat je opnieuw probeert.
+
 Dit is een ontwikkelrelease. De complete HA→E32→bevestiging-/kraanproef en
 verwarmingsvrijgave zijn nog niet afgerond. De optionele externe kamerdoelbron,
 raamcontact en meerdere gekwalificeerde kraanprofielen zijn nog vervolgwerk.
@@ -14,7 +26,7 @@ De nieuwe E32-firmware wordt afzonderlijk getest en uitgebracht; deze release
 bevat uitsluitend de Home Assistant-integratie. Een opgeslagen instelling is
 nog geen bevestigde uitvoering op de E32.
 
-Download `OpenThermostat-HA-0.4.0.dev13.zip` en controleer de SHA256 met
+Download `OpenThermostat-HA-0.4.0.dev14.zip` en controleer de SHA256 met
 `HA-SHA256SUMS.txt`. Maak vóór installatie een back-up van de bestaande
 integratie/configuratie. Kopieer `custom_components/open_thermostat` uit de ZIP
 naar de Home Assistant-configuratiemap, controleer de configuratie en herstart
@@ -22,7 +34,7 @@ Home Assistant. Bestaande gebruikers hoeven de integratie niet opnieuw toe te
 voegen. Controleer na herstart versie, kamers, apparaatkoppelingen en programma.
 Behoud het vorige pakket als terugvalmogelijkheid.
 
-Dev13 behoudt de bestaande dagelijkse bediening. Voor reproduceerbare proeven
+Dev14 behoudt de bestaande dagelijkse bediening en neemt de eerdere klokcorrectie mee. Voor reproduceerbare proeven
 hebben ontvangst, wachtrij en protocol nu één expliciete monotone klokbron;
 standaard blijft dat de bestaande HA-loopklok. De tests gebruiken dezelfde
 virtuele klok als hun C++-peer, onafhankelijk van hoe lang de testmachine draait.

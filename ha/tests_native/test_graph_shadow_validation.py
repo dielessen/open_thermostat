@@ -59,13 +59,31 @@ def test_validator_not_imported_by_any_active_runtime_or_api():
                       "v1_config_flow.py", "graph_draft_compile.py", "v1_wire.py",
                       "topology_control_source.py", "native_provisioning.py",
                       "graph_floor_bridge.py", "native_plan.py", "graph_control_source.py",
-                      "graph_topology_review.py", "compact_schedule.py", "plan_presentation.py"):
+                      "graph_topology_review.py", "compact_schedule.py", "plan_presentation.py",
+                      "controller_link.py"):
             continue
         assert "graph_shadow_validation" not in p.read_text(),p.name
     # Native options can REVIEW an already source-selected owner's tuple only.
     # Keep the boundary strict: no root-level graph imports, no profile/client/
     # connection construction or direct validation from arbitrary GUI input.
     import ast
+    # The explicit normal E32 connection uses the existing pure serializer for
+    # readback equality. It cannot validate/adopt an incoming graph or construct
+    # another MQTT client, worker, journal or physical actuator path.
+    for filename in ("controller_link.py", "controller_connection.py", "controller_setup_flow.py"):
+        connection_tree = ast.parse((component/filename).read_text())
+        for node in ast.walk(connection_tree):
+            if isinstance(node, ast.ImportFrom) and node.module == "graph_shadow_validation":
+                assert filename == "controller_link.py"
+                assert all(n.name == "canonical" and n.asname is None for n in node.names)
+            if isinstance(node, ast.Call):
+                called = node.func.id if isinstance(node.func, ast.Name) else getattr(node.func, "attr", None)
+                assert called not in {"GraphSourceProfile", "GraphShadowClient", "NativeShadowConnection",
+                    "ShadowClient", "GraphShadowJournal", "validate_graph_shadow", "native_graph_journal",
+                    "async_publish", "async_call", "NativePlanSource", "NativeInstallationPolicy"}, (filename, called)
+                if called == "async_graph_command":
+                    assert node.args and isinstance(node.args[0], ast.Constant)
+                    assert node.args[0].value in {"prepare", "apply"}
     tree=ast.parse((component/"v1_config_flow.py").read_text())
     for node in tree.body:
         if isinstance(node,ast.ImportFrom):

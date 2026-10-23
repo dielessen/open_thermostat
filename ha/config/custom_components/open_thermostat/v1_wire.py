@@ -107,6 +107,7 @@ class ShadowClient:
         self._native_review=None
         self._native_apply_sent=False
         self._native_apply_scope=None
+        self._native_state_receipt=None
         self._native_device_result=None
         self._native_legacy_supported=False
         self._native_legacy_verified=False
@@ -259,6 +260,36 @@ class ShadowClient:
                 or not 0<=self.clock()-self._native_review[2]<300):
             raise GraphValidationError("native_plan_review_changed")
         return (scope,staged["config_digest"],self._native_review[2])
+
+    @property
+    def native_plan_readback_ready(self):
+        """Read-only presentation of the existing prepare prerequisites.
+
+        No grant, journal change, stage or implicit review is created here.
+        The worker independently rechecks these prerequisites when preparing.
+        """
+        from .graph_shadow_validation import GraphValidationError
+        if self.native_plan_source is None:
+            return False
+        try:
+            scope=self.native_context()
+        except GraphValidationError:
+            return False
+        return (self._native_remote_known and self._native_snapshot_scope==scope
+            and 0<=self.clock()-self._native_snapshot_at<15 and not self._native_apply_sent)
+
+    @property
+    def current_native_room_state_verified(self):
+        """A current validated wire-state receipt, not temperature qualification."""
+        if not self.ready or self.native_plan_source is None or self._native_state_receipt is None:
+            return False
+        from .graph_shadow_validation import GraphValidationError
+        try:
+            scope=self.native_context()
+        except GraphValidationError:
+            return False
+        received_scope,received_at=self._native_state_receipt
+        return received_scope==scope and 0<=self.clock()-received_at<15
 
     async def async_prepare_native_plan(self):
         from .graph_shadow_validation import GraphValidationError
@@ -549,6 +580,7 @@ class ShadowClient:
         self.journal = snapshot
 
     def reset_session(self):
+        self._native_state_receipt=None
         self._native_refresh_pending=False
         self._native_legacy_supported=False
         self._native_legacy_verified=False
@@ -828,6 +860,7 @@ class ShadowClient:
                 or type(p.get("adapter_alive")) is not bool or not isinstance(p.get("zones"), list)):
                 raise ValueError("not shadow state")
             if not self.ready or not p["adapter_alive"]:
+                self._native_state_receipt=None
                 self.runtime.decisions.clear()
                 self.changed()
                 return
@@ -856,6 +889,8 @@ class ShadowClient:
                 decisions[row["zone_id"]] = RoomDecision(
                     row["target_centi_c"], row["temperature_centi_c"], row["demand"], row["reason"],
                     row["target_source"],row.get("comfort_mode"),row.get("override_remaining_ms",0),row.get("vacation_until_utc",0))
+            if self.native_plan_source is not None:
+                self._native_state_receipt=(self.native_context(),self.clock())
             self.runtime.decisions = decisions
             self.error = "shadow_ready"
             self.changed()

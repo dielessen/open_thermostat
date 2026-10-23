@@ -1,3 +1,17 @@
+# HA 0.4.0.dev23 — gebundelde kamer- en verbindingsverbeteringen
+
+Deze release hoort bij de gezamenlijke testbatch met E32 alpha17.
+
+- De kamerpagina wacht bij opstarten op het HA-hoofdelement. Zo blijft de kaart geregistreerd nadat HA zijn custom-elementregister heeft ingericht; herhaald verversen hoort niet nodig te zijn.
+- Bij een normaal gekoppelde native regelaar kunnen de temperatuursensor, radiatorknop en kamergrenzen via de kamerpagina worden gewijzigd. Het complete toekomstige plan wordt vooraf gecontroleerd; kamer, graph en nieuw profiel worden samen opgeslagen en via de bestaande beveiligde controllerverbinding toegepast.
+- Als toepassing niet kan worden bevestigd, blijven de opgeslagen instellingen behouden. De pagina blokkeert verdere wijzigingen en biedt een expliciete knop om precies die opgeslagen instellingen opnieuw toe te passen. Er is geen automatische herhaling of terugzetten van een oud profiel.
+- De bestaande native heartbeat kan begrensde UTF-8-kamernamen aan een ondersteunende E32 doorgeven. Oude firmware blijft compatibel.
+- De oude tijdelijke bronbench wordt geweigerd bij een door SOURCE beheerd regelplan, voordat hij configuratie, timers of eigendom kan wijzigen.
+
+Bestaande kameridentiteiten, programma's en bindings worden bij de update behouden. Apparaatwijzigingen gebeuren alleen na expliciet opslaan. Eén radiatorknop per native kamer blijft de huidige contractgrens; programmabronwissels blijven een afzonderlijke inrichting. Beschikbaarheid van een HA-entiteit bewijst geen gekwalificeerde temperatuurmeting. Een ontbrekend meetprofiel blijft zichtbaar en krijgt door deze update geen automatische kwalificatie of verwarmingsvrijgave.
+
+Verificatie omvat native HA-opslag/herlaadcycli, de normale controller-provisioning met gecontroleerde externe HTTP-antwoorden, echte MQTT-pakketuitwisseling met de C++-controller en desktop/mobiele browserregressies. Fysieke apparaatacceptatie staat daar los van.
+
 # HA 0.4.0.dev22 — meetstatus in de kamerbediening
 
 Bij de gekoppelde sensor staat nu afzonderlijk of de regeling een gekwalificeerde meting heeft, op een nog ontbrekend meetprofiel wacht, of een onbevestigde/verlopen meting heeft. De status is een momentopname bij laden. Hij verandert geen sensorinstellingen en schrijft geen programma of actuatoropdrachten.

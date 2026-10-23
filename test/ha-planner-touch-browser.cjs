@@ -4,7 +4,7 @@ const {chromium}=require('playwright-core');
 const root=path.resolve(__dirname,'..');
 const fixtureScript=fs.readFileSync(path.join(__dirname,'ha-room-program-browser.cjs'),'utf8');
 const {initial,source}=vm.runInNewContext(fixtureScript.split('(async()=>{')[0]+';({initial,source});',{require,__dirname,process});
-const tag='openthermostat-room-editor-v22';
+const tag='openthermostat-room-editor-v23';
 const output=path.resolve(process.env.OPENTHERMOSTAT_TOUCH_EVIDENCE||path.join(root,'out/ha-planner-touch-browser'));
 (async()=>{
 fs.mkdirSync(output,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH}),results=[];

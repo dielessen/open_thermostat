@@ -1,3 +1,14 @@
+# E32 V2 alpha17 — gebundelde update- en webverbeteringen
+
+Deze release hoort bij de gezamenlijke testbatch met Home Assistant dev23.
+
+- De automatische updater vindt de recente alpha-releases via een begrensde tagindex, controleert vervolgens de echte openbare release, assets, het compatibele manifest en de broncommit. Annotated tags worden alleen indien nodig opgelost. De bestaande catalogusroute blijft als terugval beschikbaar.
+- Ingebouwde webbestanden krijgen een expliciete GET-route met de bestaande authenticatie. Hiermee verdwijnt de misleidende seriële melding `request handler not found` voor correct geleverde webpagina's en bestanden; echte onbekende routes blijven een 404.
+- Het dashboard kan de werkelijke kamernamen uit de toegelaten HA-sessie tonen, inclusief UTF-8. De labels zijn begrensd en veranderen geen opgeslagen regelplan, meetbewijs of uitgangsbevoegdheid.
+- De in alpha16 geleverde interne/PSRAM-geheugendiagnostiek en eerdere HTTPS-geheugencorrecties blijven behouden.
+
+App-only update via de normale HTTPS-updater; bestaande instellingen en partitie-indeling blijven behouden. Testrelease voor BBQKees E32 V2 met dual-app/SPIFFS-layout. Geen fabriekswisactie of filesystem-upload nodig. E32-uitgangsblokkades en de bestaande afzonderlijke fysieke acceptatievoorwaarden blijven gelden.
+
 # E32 V2 alpha16 — geheugen uitlezen tijdens normaal apparaatbeheer
 
 De bestaande statusroute meldt nu vrij geheugen, de SDK-minimumtellers en het grootste vrije geheugenblok afzonderlijk voor intern RAM en PSRAM. Deze informatie blijft daarmee ook beschikbaar in HA-beheerd bedrijf, waar de oude MQTT-apparaatreporter bewust niet wordt gestart. Dit voegt geen tweede MQTT-client of regelaar toe.

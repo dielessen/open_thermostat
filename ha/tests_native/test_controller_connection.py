@@ -90,3 +90,25 @@ async def test_room_state_receipt_cannot_outlive_deadline_or_reconnect(native_pl
     n.client.reset_session()
     assert n.client._native_state_receipt is None and not n.client.current_native_room_state_verified
     assert configuration_snapshot(n.parent)==before
+
+
+@pytest.mark.asyncio
+async def test_saved_room_reload_cannot_reuse_previous_worker(native_plan,hass,monkeypatch):
+    n=native_plan;before=configuration_snapshot(n.parent)
+    previous=n.connection
+    monkeypatch.setattr(operation,'CONNECTION_TIMEOUT',.02)
+    with pytest.raises(ControllerLinkError,match='^controller_connection_unconfirmed$'):
+        await operation.async_wait_controller_connection(hass,n.parent,n.source,before,
+                                                        previous_connection=previous)
+    assert n.connection is previous and not previous.worker.done()
+    assert configuration_snapshot(n.parent)==before
+
+
+@pytest.mark.asyncio
+async def test_reloaded_native_worker_can_replace_previous_instance(native_plan,hass):
+    n=native_plan;before=configuration_snapshot(n.parent);previous=n.connection
+    await n.stop();await n.start()
+    assert previous.worker.done() and n.connection is not previous
+    actual=await operation.async_wait_controller_connection(hass,n.parent,n.source,before,
+                                                           previous_connection=previous)
+    assert actual is n.connection and not actual.worker.done()

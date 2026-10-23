@@ -43,7 +43,8 @@ def _connection(hass, entry, source):
     return connection
 
 
-async def async_wait_controller_connection(hass, entry, source, expected, *, private_expected=None):
+async def async_wait_controller_connection(hass, entry, source, expected, *, private_expected=None,
+                                           previous_connection=None):
     """Wait for the existing entry-update listener's reload, never start another."""
     from homeassistant.config_entries import ConfigEntryState
     changed = asyncio.Event()
@@ -53,7 +54,8 @@ async def async_wait_controller_connection(hass, entry, source, expected, *, pri
             while True:
                 changed.clear()
                 _guard(hass, entry, source, expected, private_expected)
-                if connection := _connection(hass, entry, source):
+                connection = _connection(hass, entry, source)
+                if connection is not None and connection is not previous_connection:
                     return connection
                 if entry.state in (ConfigEntryState.SETUP_ERROR, ConfigEntryState.SETUP_RETRY,
                                     ConfigEntryState.MIGRATION_ERROR):
@@ -65,7 +67,8 @@ async def async_wait_controller_connection(hass, entry, source, expected, *, pri
         remove()
 
 
-async def async_synchronise_controller_plan(hass, entry, source, expected, *, private_expected=None):
+async def async_synchronise_controller_plan(hass, entry, source, expected, *, private_expected=None,
+                                            previous_connection=None):
     """Prepare/apply this user's exact saved intent, using the SAME native worker.
 
     Called only by an authenticated explicit configure/apply action. Approval is
@@ -74,7 +77,8 @@ async def async_synchronise_controller_plan(hass, entry, source, expected, *, pr
     and a validated current room state are required.
     """
     _guard(hass, entry, source, expected, private_expected)
-    connection = await async_wait_controller_connection(hass, entry, source, expected, private_expected=private_expected)
+    connection = await async_wait_controller_connection(hass, entry, source, expected,
+        private_expected=private_expected, previous_connection=previous_connection)
     _guard(hass, entry, source, expected, private_expected)
     client, runtime = connection.client, connection.runtime
     changed = asyncio.Event()

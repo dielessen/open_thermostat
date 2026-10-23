@@ -98,11 +98,23 @@ def read_room(hass, entry_id, room_id):
     schedule = entity(room.schedule.as_dict()) if room.schedule else ''
     for values in choices.values():
         values.sort(key=lambda x: (x['label'].casefold(), x['value']))
+    from .room_program_apply import active_program_context
+    program_context = active_program_context(hass, entry) if supported else None
+    active = entry.options.get(CONF_ENABLED, False) or actual_runtime_active(hass, entry)
+    program_only = active and program_context is not None and room.schedule is None
+    apply_pending = False
+    if program_only:
+        client = program_context[1].client
+        accepted = client.journal['accepted']
+        apply_pending = (not client.current_native_room_state_verified or accepted is None
+                         or client.journal['staged'] is not None
+                         or not client.native_desired_matches(accepted['config']))
     return {'entry_id': entry_id, 'room_id': room_id, 'token': digest(configuration_snapshot(entry)),
         'rooms': [{'room_id': s.data['room_id'], 'name': s.title} for s in entry.subentries.values() if s.subentry_type == 'zone'],
         'choices': choices, 'time_zone': hass.config.time_zone, 'maximum_blocks': 28,
         'actuator_target_review': review_room_targets(hass, room, radiators),
-        'supported': supported, 'editable': supported and not (entry.options.get(CONF_ENABLED, False) or actual_runtime_active(hass, entry)),
+        'supported': supported, 'editable': supported and (not active or program_only),
+        'program_only': program_only, 'apply_pending': apply_pending,
         'settings': {'name': room.name, 'emitter': 'radiator' if supported else 'unsupported',
             'temperature_entity': temperature, 'radiator_entities': radiators,
             'base_centi_c': room.base_centi_c, 'minimum_centi_c': room.minimum_target_centi_c,
@@ -113,7 +125,11 @@ def read_room(hass, entry_id, room_id):
 
 
 async def save_room(hass, entry_id, room_id, token, settings, *, confirm_source_change=False, binding_identities=None):
-    entry, sub, _ = _target(hass, entry_id, room_id)
+    entry, sub, current_room = _target(hass, entry_id, room_id)
+    if entry.options.get(CONF_ENABLED, False) or actual_runtime_active(hass, entry):
+        from .room_program_apply import save_active_program
+        return await save_active_program(hass, entry, sub, current_room, token, settings,
+                                         binding_identities=binding_identities)
     old = _guard(hass, entry, sub, token)
     before = configuration_snapshot(entry)
     required = {'name', 'emitter', 'temperature_entity', 'radiator_entities', 'base_centi_c',
@@ -227,7 +243,8 @@ async def ws_room_save(hass, connection, msg):
             confirm_source_change=msg['confirm_source_change'], binding_identities=msg.get('binding_identities'))
     except (KeyError, ValueError) as err:
         code = str(err) if isinstance(err, ValueError) else 'setup_invalid'
-        connection.send_error(msg['id'], code, 'Room was not saved')
+        connection.send_error(msg['id'], code,
+            'Room application was not confirmed; reload before retrying' if code == 'save_uncertain' else 'Room was not saved')
     except Exception:
         _LOGGER.exception('Room save could not be confirmed')
         connection.send_error(msg['id'], 'save_uncertain', 'Reload saved room before retrying')

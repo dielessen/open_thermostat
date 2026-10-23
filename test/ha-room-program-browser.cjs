@@ -1,0 +1,74 @@
+// Actual shipped room editor; synthetic admin WS, no live HA or device claims.
+const {chromium}=require('playwright-core');
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..');
+const source=fs.readFileSync(path.join(root,'ha/config/custom_components/open_thermostat/frontend/week-planner.js'));
+const out=path.resolve(process.env.OPENTHERMOSTAT_PROGRAM_EVIDENCE||path.join(root,'out/ha-room-program-browser'));
+const days=['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+const initial={entry_id:'fixture',room_id:'room',supported:true,editable:true,program_only:true,apply_pending:false,
+ token:'0'.repeat(64),rooms:[{room_id:'room',name:'Bathroom'}],time_zone:'Europe/Amsterdam',maximum_blocks:28,
+ choices:{sensor:[{value:'sensor.room',label:'Room sensor',status:'available'}],
+ climate:[{value:'climate.valve',label:'Room valve',status:'available'}],schedule:[]},
+ settings:{name:'Bathroom',emitter:'radiator',temperature_entity:'sensor.room',radiator_entities:['climate.valve'],
+ base_centi_c:2100,minimum_centi_c:500,maximum_centi_c:3000,maximum_age_ms:120000,program_source:'local',schedule_entity:'',
+ week:Object.fromEntries(days.map(day=>[day,[]]))}};
+(async()=>{
+ fs.mkdirSync(out,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});const results=[];
+ try{for(const [size,viewport]of [['desktop',{width:1440,height:1100}],['mobile',{width:390,height:844}]])for(const language of ['nl','en']){
+  const page=await browser.newPage({viewport});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.setContent('<style>body{margin:0;font:14px Arial,sans-serif}</style><main></main>');
+  await page.evaluate(()=>{customElements.define('ha-card',class extends HTMLElement{});customElements.define('openthermostat-room-editor-v15',class extends HTMLElement{});});
+  await page.evaluate(async text=>{await import('data:text/javascript;base64,'+text)},source.toString('base64'));
+  await page.evaluate(({initial,language})=>{
+   window.model=structuredClone(initial);window.calls=[];window.saveMode='hold';
+   const card=window.card=document.createElement('openthermostat-room-editor-v18');document.querySelector('main').append(card);
+   card.setConfig({entry_id:model.entry_id,room_id:model.room_id});
+   card.hass={language,user:{is_admin:true},callWS:async request=>{
+    calls.push(structuredClone(request));
+    if(request.type==='open_thermostat/room/get')return structuredClone(model);
+    if(request.type==='open_thermostat/room/save'){
+     const next={...structuredClone(model),settings:structuredClone(request.settings),token:'1'.repeat(64)};
+     if(saveMode==='uncertain'){model={...next,apply_pending:true};throw {code:'save_uncertain'};}
+     if(saveMode==='hold')return new Promise(resolve=>window.finishSave=()=>{model={...next,apply_pending:false};resolve(structuredClone(model));});
+     model={...next,apply_pending:false};return structuredClone(model);
+    }
+    throw Error('Unexpected command');
+   }};
+  },{initial,language});
+  const nl=language==='nl',card=page.locator('openthermostat-room-editor-v18');await card.locator('#name').waitFor();
+  const save=()=>card.locator('footer .primary');
+  assert.equal(await page.evaluate(()=>calls.filter(c=>c.type.endsWith('/save')).length),0);
+  assert(await card.locator('#name').isEnabled());assert(await card.locator('#base_centi_c').isEnabled());
+  assert(await card.locator('#temperature_entity').isDisabled());assert(await card.locator('#emitter').isDisabled());
+  await card.locator('.valves summary').click();assert(await card.locator('.valves input').isDisabled());
+  await card.locator('.advanced summary').first().click();
+  assert(await card.locator('#minimum_centi_c').isDisabled());assert(await card.locator('#maximum_centi_c').isDisabled());
+  assert(await save().isDisabled());
+  await card.locator('#name').fill('New bathroom');await card.locator('#base_centi_c').fill('20.5');
+  await card.getByRole('button',{name:nl?'Blok toevoegen':'Add block',exact:true}).click();
+  await card.locator('#block-temperature').fill('22');
+  await save().click();await card.locator('#name:disabled').waitFor();
+  assert.equal(await page.evaluate(()=>calls.filter(c=>c.type.endsWith('/save')).length),1);
+  const first=await page.evaluate(()=>calls.find(c=>c.type.endsWith('/save')));
+  assert.equal(first.settings.base_centi_c,2050);assert.equal(first.settings.week.monday[0].target_centi_c,2200);
+  assert.equal(first.settings.temperature_entity,'sensor.room');assert.deepEqual(first.settings.radiator_entities,['climate.valve']);
+  await page.evaluate(()=>finishSave());await card.locator('#name:enabled').waitFor();assert(await save().isDisabled());
+  await card.getByText(nl?'De ruimte is opgeslagen en het programma is bevestigd':'The room is saved and its program is confirmed',{exact:false}).waitFor();
+  await page.screenshot({path:path.join(out,`${size}-${language}.png`),fullPage:true});
+  await page.evaluate(()=>window.saveMode='uncertain');await card.locator('#name').fill('Retain my intent');await save().click();
+  await card.getByText(nl?'De toepassing is nog niet bevestigd.':'Application has not been confirmed.',{exact:false}).waitFor();
+  assert.equal(await card.locator('#name').inputValue(),'Retain my intent');assert(await save().isDisabled());
+  page.once('dialog',dialog=>{assert.match(dialog.message(),nl?/opgeslagen/:/currently saved/);dialog.accept();});
+  await card.getByRole('button',{name:nl?'Opnieuw laden':'Reload',exact:true}).click();
+  await card.getByText(nl?'De ruimte is opgeslagen, maar':'The room is saved, but',{exact:false}).waitFor();
+  const reapply=card.getByRole('button',{name:nl?'Programma opnieuw toepassen':'Apply program again',exact:true});
+  assert(await reapply.isEnabled());assert.equal(await page.evaluate(()=>calls.filter(c=>c.type.endsWith('/save')).length),2);
+  await page.evaluate(()=>window.saveMode='ok');await reapply.click();await card.locator('#name:enabled').waitFor();
+  assert(await save().isDisabled());assert.equal(await page.evaluate(()=>calls.filter(c=>c.type.endsWith('/save')).length),3);
+  assert.equal(await page.evaluate(()=>calls.every(c=>['open_thermostat/room/get','open_thermostat/room/save'].includes(c.type))),true);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
+  results.push({size,language,result:'PASS',hardware_locked:true,graphical_temperature_block:true,wait_for_save:true,uncertain_draft_preserved:true,reapply_explicit:true,no_device_actions:true});await page.close();
+ }}finally{await browser.close();}
+ fs.writeFileSync(path.join(out,'BROWSER.json'),JSON.stringify({result:'PASS',scope:'Real shipped JS; simulated admin WS, no physical qualification',cases:results},null,2)+'\n');
+ console.log(JSON.stringify({result:'PASS',cases:results.length}));
+})().catch(error=>{console.error(error);process.exitCode=1;});

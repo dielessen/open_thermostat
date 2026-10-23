@@ -17,11 +17,11 @@ const metadata={metadata_only:true,physical_control_qualified:false,measurement_
  try{for(const [viewportName,viewport]of [['desktop',{width:1440,height:1100}],['mobile',{width:390,height:844}]])for(const language of ['nl','en']){
   const page=await browser.newPage({viewport});const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.setContent('<style>body{margin:0;font:14px Arial,sans-serif}</style><main></main>');
-  await page.evaluate(()=>{customElements.define('ha-card',class extends HTMLElement{});customElements.define('openthermostat-room-editor-v10',class extends HTMLElement{});});
+  await page.evaluate(()=>{customElements.define('ha-card',class extends HTMLElement{});customElements.define('openthermostat-room-editor-v15',class extends HTMLElement{});});
   await page.evaluate(async text=>{await import('data:text/javascript;base64,'+text)},source.toString('base64'));
   await page.evaluate(({initial,metadata,language})=>{
    window.model=structuredClone(initial);window.metadata=structuredClone(metadata);window.calls=[];window.mode='ok';
-   const card=window.card=document.createElement('openthermostat-room-editor-v15');document.querySelector('main').append(card);
+   const card=window.card=document.createElement('openthermostat-room-editor-v18');document.querySelector('main').append(card);
    card.setConfig({entry_id:model.entry_id,room_id:model.room_id});
    card.hass={language,user:{is_admin:true},callWS:async request=>{
     calls.push(structuredClone(request));
@@ -34,7 +34,7 @@ const metadata={metadata_only:true,physical_control_qualified:false,measurement_
     throw Error('Unexpected or write request');
    }};
   },{initial,metadata,language});
-  const nl=language==='nl',card=page.locator('openthermostat-room-editor-v15');await card.locator('#name').waitFor();
+  const nl=language==='nl',card=page.locator('openthermostat-room-editor-v18');await card.locator('#name').waitFor();
   assert.equal(await page.evaluate(()=>calls.length),1); // Never automatic broker reads.
   await card.locator('.advanced summary').first().click();
   const read=()=>card.getByRole('button',{name:nl?'Apparaatinformatie controleren':'Check device information',exact:true});

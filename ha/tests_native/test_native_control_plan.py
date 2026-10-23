@@ -36,6 +36,10 @@ async def native_plan(native_two,hass,monkeypatch,request):
         draft["actuators"]=[a for a in draft["actuators"] if a["room_id"]==rad.room_id]
         hass.config_entries.async_update_subentry(parent,heating,data={"draft":draft})
     hass.config_entries.async_update_entry(parent,options={**parent.options,"shadow_enabled":True,"adapter_id":"test_owner"})
+    if options.get("product",False):
+        # Exercise the normal product Store layout through the real migration,
+        # before selecting any source or starting its native worker.
+        assert await integration.async_migrate_entry(hass,parent)
     rooms,draft,layout=_native_layout(hass,parent,allow_single=options.get("week",False))
     # Independent synthetic SOURCE fixture, selected once before ANY plan.
     # This helper is deliberately test-only: production has NO GUI qualification.
@@ -74,10 +78,16 @@ async def native_plan(native_two,hass,monkeypatch,request):
     monkeypatch.setattr(hass.config_entries,"async_forward_entry_setups",AsyncMock())
     monkeypatch.setattr(hass.config_entries,"async_unload_platforms",AsyncMock(return_value=True))
     reload=AsyncMock();monkeypatch.setattr(hass.config_entries,"async_reload",reload)
-    callbacks={};pending=deque();removed=[];physical_calls=[]
+    callbacks={};pending=deque();removed=[];subscriptions=[];physical_calls=[]
     hass.services.async_register("climate","set_temperature",lambda call:physical_calls.append(call))
-    async def subscribe(_h,topic,cb,**kw):callbacks["mqtt"]=cb;return lambda:removed.append("mqtt")
-    def status(_h,cb):callbacks["status"]=cb;return lambda:removed.append("status")
+    async def subscribe(_h,topic,cb,**kw):
+        kind="mqtt" if topic=="fixture/v1/fw/#" else "telemetry"
+        if kind=="mqtt":callbacks["mqtt"]=cb
+        subscriptions.append(kind)
+        return lambda:removed.append(kind)
+    def status(_h,cb):
+        callbacks["status"]=cb;subscriptions.append("status")
+        return lambda:removed.append("status")
     async def publish(_h,topic,payload,**kw):
         assert kw==dict(qos=0,retain=False) and topic.startswith("fixture/v1/")
         pending.append((topic[len("fixture/v1/"):],payload))
@@ -204,6 +214,7 @@ async def native_plan(native_two,hass,monkeypatch,request):
             if hass.data.get("open_thermostat",{}).get(parent.entry_id,{}).get("v1_runtime") is not None:await stop()
             assert not physical_calls and not pending
             assert removed.count("mqtt")==removed.count("status")
+            assert sorted(removed)==sorted(subscriptions)
 
 @pytest.mark.asyncio
 async def test_normal_HA_review_apply_commits_TWO_complete_rooms_and_same_controller_targets(native_plan):

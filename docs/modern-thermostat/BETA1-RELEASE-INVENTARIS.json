@@ -157,7 +157,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/device_metadata.py",
-          "sha256": "9d2e5d89a6686e9a780983bb82306aeb1eb9361d31ac91929f0068aaae5b9cee"
+          "sha256": "e2c7740761a46ce0dcc61dd48c3c0a4fd7ad8e997a9d8ad86cb563f8ac4b8189"
         },
         {
           "path": "ha/tests_native/test_device_metadata.py",
@@ -165,7 +165,7 @@
         },
         {
           "path": "test/ha-device-metadata-browser.cjs",
-          "sha256": "0cc00d378d6f47b7b647ef3c8db0cf8bd33bef99a9f51d24659298b59aa06f6b"
+          "sha256": "dd060d55dc4eae8a6e19f6954a58e1dc189e5d24e9a197dddce9a84aadacc3e5"
         }
       ],
       "remaining_acceptance": "Gemelde Z2M-/converterversies behouden en zichtbaar, ontbrekend blijft onbekend. Metadata is geen directe packagebron-/hashcontrole en kwalificeert geen fysieke sensor of kraan."
@@ -233,7 +233,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "f2e0d615cda1ee30bcf458ef985298f10bab7bc0788eb384cae5f0e00b757b04"
+          "sha256": "c47f974e15744d0c7714db21b2541d5edcb82033ffa0a59cb961693e02ee2b99"
         }
       ],
       "remaining_acceptance": "Drie echte koude HA-sessies bewezen; versiegebonden module behouden."
@@ -277,7 +277,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/v1_runtime.py",
-          "sha256": "5de0f8bd873bf9fc8e8d5558c768069a47aa7fecccb92fae40f953f6e7074313"
+          "sha256": "2f483f1993b5068e18c957294a4608727cad1f5b2929e32a2d26950d997967c8"
         },
         {
           "path": "src/control/ControlBuildCapabilities.h",
@@ -313,10 +313,22 @@
         },
         {
           "path": "docs/modern-thermostat/ORIGINAL-ZIGBEE-REPORTS.nl.md",
-          "sha256": "9c05318f48494706d2291260a9a5f2f2283f3381d0c3874e53429e2b7f09794e"
+          "sha256": "842eee960b992b6acefd10125935f52caaf1524eed266f455549ab260cf686d7"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/original_temperature.py",
+          "sha256": "710ae3eb13c7e1da5a24dcca336d38a4e2e1cbc483d3b148ba2ba3bea7788dbc"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/v1_mqtt.py",
+          "sha256": "1f66b074affac946a635d3194045c16d77b21ab21f325f1becc26bc09ffb33ed"
+        },
+        {
+          "path": "ha/tests_native/test_original_temperature.py",
+          "sha256": "198ed600d442c36e492468eb70b3b2ebc17efdcdbef637142a1c37a15c2d241d"
         }
       ],
-      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele metingsherkomst blijven open. Originele WSDCGQ11LM-eventproducer voorbereid met 11 Node-tests; niet geïnstalleerd. HA-consument, echte acquisitie-/ouderdomsvalidatie en fysieke bronkwalificatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten."
+      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele metingsherkomst blijven open. Originele WSDCGQ11LM-eventproducer voorbereid met 11 Node-tests; niet geïnstalleerd. Native HA-ontvanger en room-status gebouwd/getest, zonder QualifiedReport; echte acquisitie-/ouderdomsvalidatie en fysieke bronkwalificatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten."
     },
     {
       "id": "I12",
@@ -1050,7 +1062,7 @@
     {
       "id": "B04",
       "complete": false,
-      "description": "Observer-lifecycle en native bron-/apparaatbinding vóór pending transport getest; productie-meetrapportprofiel/-producer aansluiten. Originele acquisitie, cache/reconnect/stale correct; geen trustvinkje of sensorwissel als omweg."
+      "description": "Observer-lifecycle/native binding en originele WSDCGQ11LM-producer/HA-ontvangstdiagnose gebouwd/getest; productie-meetprofiel met echte acquisitie-/bronkwalificatie en fysieke validatie afronden. Geen trustvinkje of sensorwissel als omweg."
     },
     {
       "id": "B05",

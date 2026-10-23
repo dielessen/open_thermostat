@@ -349,6 +349,34 @@ Het voorgaande broncheckpoint `60c548f` is volledig groen op GitHub CI
 3 firmwareboards, native, HA, browser, bronreproductie en E32-pakketcontrole.
 Dit sluit de broncontrole van dat checkpoint, niet de actieve bèta-acceptatie.
 
+### Nieuwe bronstap: originele Zigbee-rapporten naar native HA
+
+Het voorgaande producentcheckpoint `7f52ed3` is inmiddels volledig groen op
+[GitHub CI 40028936470](https://github.com/dielessen/open_thermostat/actions/runs/40028936470).
+
+De producent is nu aangesloten op een echte native HA-ontvanger voor reeds
+opgeslagen WSDCGQ11LM-temperaturebindings. Het bestaande MQTT-topic/workerpad
+bewaart de originele waarde en berichtsoort; geen HA-cachewaarde wordt overgenomen.
+Schema, native identiteit, retained/oud/replay, wachttijd, herstart en reconnect
+worden begrensd behandeld. Maximaal één wachtend diagnostisch bericht; minimaal
+32 plaatsen blijven vrij in de bestaande queue. Optionele abonnements-/diagnose-
+fouten wijzigen de regelverbinding niet. De kamereditor toont ontvangst apart
+van het nog ontbrekende meetprofiel en trekt oude broninformatie in bij conceptwissel.
+
+Een echt Node-producentbericht is door de native HA-registries/ontvanger getest.
+De 32 nieuwe HA-gevallen behandelen ook model/registry/discoverywijziging,
+queue-reservering, onverwachte observerfout, abonnementsweigering en disconnect
+vóór verwerking van een wachtend bericht. B04 blijft open voor acquisitie-/bron-
+kwalificatie en fysieke validatie; geen QualifiedReport, fysieke sensorwissel,
+nieuwe ketelvrijgave of installatie. B05 blijft open voor de afzonderlijke TV02-echo.
+
+Verificatie: volledige HA-regressie 1.747 tests + 68 subtests PASS, geen skips;
+na de afsluitende optionele-abonnementafhandeling 148 gerichte native HA-tests
+PASS op de definitieve bron. Elf bestaande producenttests en 20 echte Chromium-
+profielen PASS (6 ontvangst/metadata, 8 kamerprogramma, 6 TV02-modus), inclusief
+NL/EN en smalle schermen. Firmwarebron is in deze stap niet gewijzigd. Bewijs:
+`out/original-reports-ha-20261023/`. Dit is geen gezamenlijke bèta-freeze.
+
 ### Nieuw HA-bronwerk: volledige begrensde versieprojectie
 
 - De bestaande metadatafunctie filterde de converter-/herdsmanversies weg uit
@@ -405,7 +433,7 @@ gekoppeld; het concept is geen nieuwe release of extra afvinklijst.
 - [x] B01 Alle 31 eisen, 11 fasen en 8 werkpakketten opnieuw beoordeeld; oude statusregels uit actuele lijst gehaald.
 - [x] B02 Alle bekende voorbereide brononderdelen geïnventariseerd en in bètabasis behouden; geen bron-/testbestand uit hoofdwerkmap ontbreekt.
 - [x] B03 Nieuwe ontvangstdiagnose/Keteltest/rapport gebouwd en getest: 18 native, 43 GUI-regressies, 3 echte Chromiumviewports met fixture-HTTP, normale E32-build.
-- [ ] B04 Observer-lifecycle en native bron-/apparaatbinding vóór pending transport getest; productie-meetrapportprofiel/-producer aansluiten. Originele acquisitie, cache/reconnect/stale correct; geen trustvinkje of sensorwissel als omweg.
+- [ ] B04 Observer-lifecycle/native binding en originele WSDCGQ11LM-producer/HA-ontvangstdiagnose gebouwd/getest; productie-meetprofiel met echte acquisitie-/bronkwalificatie en fysieke validatie afronden. Geen trustvinkje of sensorwissel als omweg.
 - [ ] B05 TV02-modusconflicten, native identiteit en actuele doelcapaciteit vóór dispatch gecontroleerd/getest; verse modelspecifieke rapporten/echo, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel.
 - [ ] B06 Bestaande supervisor koppelen aan vereiste actuele profiel-/feedback-/DHW-/hydraulische voorwaarden; geen generieke flowaanname.
 - [ ] B07 Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten.

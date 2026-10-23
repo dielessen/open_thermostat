@@ -77,6 +77,7 @@ class ShadowRuntime:
         self.controller_policy_source_profile=controller_policy_source_profile
         self.graph_data_profile=graph_data_profile
         self.hass, self.entry = hass, entry
+        self.original_temperature_reports = None
         self.rooms = {room.room_id: room for room in rooms}
         if len(self.rooms) != len(rooms) or len(rooms) > 8:
             raise ValueError("duplicate/excess rooms")
@@ -173,8 +174,13 @@ class ShadowRuntime:
             status = "qualified"
         else:
             status = quality if quality != "qualified" else "unverified"
-        return {"status": status, "report_profile_configured": configured,
-                "sample_age_ms": age, "usable": status == "qualified"}
+        result = {"status": status, "report_profile_configured": configured,
+                  "sample_age_ms": age, "usable": status == "qualified"}
+        if self.original_temperature_reports is not None:
+            original = self.original_temperature_reports.status(room_id)
+            if original is not None:
+                result["original_report"] = original
+        return result
 
     def set_report_profile(self, room_id: str, profile: ReportProfile) -> Callable[[], bool]:
         """Attach a trusted observer; dispose with the returned scoped revoker.

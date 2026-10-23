@@ -1,8 +1,8 @@
 # Originele Zigbee-temperatuurberichten
 
-Status: voorbereide bron, niet geïnstalleerd en niet gekoppeld aan de
-regelautorisatie. B04 blijft open. Deze ontvangstbrug is de eerste producentstap
-voor het ontbrekende modelspecifieke meetprofiel.
+Status: producent en native HA-ontvanger voorbereid en getest, niet geïnstalleerd
+en niet gekoppeld aan de regelautorisatie. B04 blijft open voor de modelspecifieke
+acquisitie-/bronkwalificatie en fysieke validatie.
 
 `integrations/zigbee2mqtt/original-temperature.cjs` gebruikt het bestaande
 Zigbee2MQTT `deviceMessage`-event en dezelfde MQTT-client. De gewone
@@ -58,11 +58,53 @@ een opgeloste publish-promise is dus geen ontvangstbevestiging. Stop verwijdert
 de listener en wacht op de al lopende SDK-publicatie; de SDK bepaalt diens
 voltooiingstijd. Een gelijktijdige herstart wacht op die oude eigenaar.
 
+## Native HA-ontvangst en kamerstatus
+
+`original_temperature.py` bindt alleen een al geselecteerde native MQTT-sensor
+met model_id WSDCGQ11LM, exact temperature-discoverytemplate en geverifieerde
+Z2M-apparaatidentiteit/topicprefix uit de native discovery. De huidige
+RTCGQ11LM-device_temperature krijgt deze route niet. Er wordt geen sensor gekozen
+of discovery/configuratie aangepast.
+
+De bestaande `NativeShadowConnection` abonneert zich alleen voor passende
+bindings op het exacte rapporttopic. De bestaande MQTT-client en worker blijven
+de eigenaar; er komt geen tweede worker, timer of Store. Maximaal één diagnostisch
+bericht kan wachten, met minimaal de helft van de 64 workerplaatsen vrij.
+Retained/te grote/ongeldige berichten worden geweigerd. Een geweigerd optioneel
+abonnement of een fout in de diagnostische verwerking breekt de native
+regelverbinding niet af. Een gewone brokerdisconnect blijft diens bestaande
+regelgedrag volgen en trekt de ontvangstdiagnose direct in.
+
+De ontvanger controleert het volledige schema, native identiteit, raw waarde,
+producer-run/sequence, berichtsoort en ouderdom bij MQTT-aankomst plus lokale
+wachttijd. Een herhaalde sequence vernieuwt de deadline niet. Oude producer-runs
+kunnen na een waargenomen nieuwe run niet terugkeren; per kamer blijven maximaal
+acht runs bewaard. Onbekende historische runs zijn hiermee niet geauthenticeerd.
+De standaard broker-ACL en eventuele toekomstige sessie/challenge blijven aparte
+voorwaarden voor een echt meetprofiel.
+
+Ouderdom van **ontvangst** gebruikt de gemelde producentklok en lokale monotone
+verstreken tijd; synchronisatie van de producentklok is niet fysiek geverifieerd.
+Daarom is dit geen acquisitieouderdom. Een lokale klokteruggang wordt geblokkeerd
+tot heropbouw van de ontvanger. Een waargenomen native bindingwijziging trekt de
+oude diagnose in tot die heropbouw. Brokerdisconnect wist waarden en verhoogt de
+ontvangstgeneratie: eerder wachtende berichten kunnen daarna niet worden toegelaten;
+replay-watermerken blijven behouden. Unload sluit de bestaande abonnementen/worker
+en verwijdert de eigen diagnostiek uit de runtime.
+
+De bestaande room/get-meetstatus heeft optioneel `original_report` met status,
+ontvangstouderdom, ruwe temperatuur en berichtsoort. IEEE, topic, producer-UUID,
+ruwe packet en registryidentiteiten worden niet geëxporteerd. De kamereditor
+vertaalt de status naar Nederlands/Engels en verbergt de oude bronstatus bij een
+concept-sensorwissel. De bovenliggende `profile_missing`, `usable=false` en
+`sample_age_ms=null` blijven behouden. Deze berichten wijzigen geen gekwalificeerde
+Observation, firmwarelease, grant, kamervraag of actuator-/ketelopdracht.
+
 ## Nog nodig voor B04
 
-Een volgende HA-consument moet een echte native binding en een beoordeeld
-meetprofiel hebben, apparaat-/bridgeherstart, duplicaten, reconnect en ouderdom
-afhandelen, en de waarde rechtstreeks aan dit originele bericht koppelen. Een
+De native HA-ontvanger bewaart inmiddels de waarde rechtstreeks uit het originele
+bericht, los van de HA-state. Voor regeltoelating ontbreekt nog het beoordeelde
+meetprofiel met echte acquisitie-/bronkwalificatie en fysieke validatie. Een
 HA-state met dezelfde waarde bewijst die koppeling niet. Een callbacktijd,
 ZCL-transactienummer, producer-UUID of niet-retained bericht levert op zichzelf
 geen oorspronkelijke fysieke acquisitietijd. De brug produceert daarom nergens

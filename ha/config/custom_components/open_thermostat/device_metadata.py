@@ -146,8 +146,12 @@ def selected_device(hass, ref):
     if len(prefixes) != 1:
         raise MetadataUnavailable("device_metadata_prefix_unknown")
     template = discovery.get("value_template", discovery.get("val_tpl", ""))
-    sensor_property = "device_temperature" if (domain == "sensor" and type(template) is str
-                                                and re.fullmatch(r'''\s*\{\{\s*value_json\["device_temperature"\]\s*\}\}\s*''', template)) else None
+    sensor_property = None
+    if domain == "sensor" and type(template) is str:
+        for prop in ("device_temperature", "temperature"):
+            if (re.fullmatch(r'''\s*\{\{\s*value_json\["''' + prop + r'''"\]\s*\}\}\s*''', template)
+                    or re.fullmatch(r'''\s*\{\{\s*value_json\.''' + prop + r'''\s*\}\}\s*''', template)):
+                sensor_property = prop
     return SelectedDevice(entity_id, entity.platform, entity.unique_id, entity.device_id,
                           identities.pop(), prefixes.pop(), sensor_property)
 

@@ -6,6 +6,7 @@ const output=path.resolve(process.env.OPENTHERMOSTAT_METADATA_EVIDENCE||path.joi
 const source=fs.readFileSync(path.join(root,'ha/config/custom_components/open_thermostat/frontend/week-planner.js'));
 const days=['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
 const initial={entry_id:'fixture-entry',room_id:'fixture-room',supported:true,editable:true,
+ measurement:{status:'profile_missing',usable:false,original_report:{status:'received_unqualified',control_qualified:false,acquisition_age_verified:false}},
  rooms:[{room_id:'fixture-room',name:'Fixture room'}],token:'0'.repeat(64),time_zone:'Europe/Amsterdam',
  choices:{sensor:[{value:'sensor.fixture',label:'Room sensor',status:'available'}],climate:[{value:'climate.fixture',label:'Room valve',status:'available'}],schedule:[]},
  settings:{name:'Fixture room',emitter:'radiator',temperature_entity:'sensor.fixture',radiator_entities:['climate.fixture'],base_centi_c:2100,minimum_centi_c:500,maximum_centi_c:3000,maximum_age_ms:120000,program_source:'local',schedule_entity:'',week:Object.fromEntries(days.map(d=>[d,[]]))}};
@@ -36,6 +37,17 @@ const metadata={bridge:{version:'2.14.2',zigbee_herdsman_converters_version:'26.
    }};
   },{initial,metadata,language});
   const nl=language==='nl',card=page.locator('openthermostat-room-editor-v24');await card.locator('#name').waitFor();
+  assert.match(await card.locator('.measurement-state').innerText(),nl?/oorspronkelijk sensorbericht is ontvangen/:/original sensor report was received/);
+  assert.match(await card.locator('.measurement-state').innerText(),nl?/getoetst meetprofiel ontbreekt/:/reviewed measurement profile is still missing/);
+  await page.evaluate(()=>{card._model.measurement.original_report.status='stale';card.renderMeasurementStatus();});
+  assert.match(await card.locator('.measurement-state').innerText(),nl?/sensorbericht is te oud/:/sensor report is too old/);
+  await page.evaluate(()=>{card._model.measurement.original_report.status='<img src=x onerror=alert(1)>';card.renderMeasurementStatus();});
+  assert.equal(await card.locator('img').count(),0);
+  assert(!((await card.locator('.measurement-state').innerText()).includes('<img')));
+  await page.evaluate(()=>{card._model.measurement.original_report.status='received_unqualified';card._settings.temperature_entity='sensor.draft';card.renderMeasurementStatus();});
+  assert(!((await card.locator('.measurement-state').innerText()).includes(nl?'oorspronkelijk sensorbericht is ontvangen':'original sensor report was received')));
+  assert.match(await card.locator('.measurement-state').innerText(),nl?/Sla de nieuwe sensorkoppeling op/:/Save the new sensor binding/);
+  await page.evaluate(()=>{card._settings.temperature_entity=model.settings.temperature_entity;card.renderMeasurementStatus();});
   assert.equal(await page.evaluate(()=>calls.length),1); // Never automatic broker reads.
   await card.locator('.advanced summary').first().click();
   const read=()=>card.getByRole('button',{name:nl?'Apparaatinformatie controleren':'Check device information',exact:true});

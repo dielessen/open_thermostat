@@ -6,7 +6,7 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   111 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   114 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
@@ -16,8 +16,8 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
 - Bij de latere README-opname zijn verse Classic-berichten ontvangen; TX/actuatoruitgangen blijven geblokkeerd.
 - Het huidige bronwerk loopt vóór op de geïnstalleerde passieve release; publiceer/installeer geen actieve bèta op basis van alleen een geslaagde bronbuild.
 - Broncheckpoint `60c548f`: volledige GitHub CI 40027429946 PASS; 69-velden-HA-projectie voorbereid, nog niet geïnstalleerd.
-- Nieuwste bronstap: originele Zigbee-temperatuurproducer, 11 Node-tests PASS; broncontract in ORIGINAL-ZIGBEE-REPORTS.nl.md. Niet geïnstalleerd, geen QualifiedReport.
-- Eerst B04 echte meetbron/HA-consument en B05 verse kraanecho afronden, daarna B06–B09 proefketen en installatievoorwaarden; pas dan gezamenlijke freeze/uitrol.
+- Nieuwste bronstap: originele Zigbee-temperatuurproducer plus native HA-ontvanger/room-status; broncontract in ORIGINAL-ZIGBEE-REPORTS.nl.md. Producent/ontvangstdiagnose zijn gebouwd en getest; echte acquisitie-/bronkwalificatie en fysieke validatie staan open. Niet geïnstalleerd, geen QualifiedReport.
+- Eerst B04 echt meetprofiel/bronvalidatie en B05 verse kraanecho afronden, daarna B06–B09 proefketen en installatievoorwaarden; pas dan gezamenlijke freeze/uitrol.
 - Onderstaande bronstappen zijn historische checkpoints; zie WORKBOARD voor hun actuele status.
 - Laat de bevroren `out/plan-batch-20261023` intact.
 - Werk verder in `out/beta-boiler-20261023`, branch `work/beta-boiler-20261023`.

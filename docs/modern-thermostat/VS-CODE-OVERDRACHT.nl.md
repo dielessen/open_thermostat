@@ -168,3 +168,10 @@ passende acceptatie. Geen eigen watcher/scheduler.
 - Oude overdracht en alle historische receipts blijven ongewijzigd bewaard als
   `out/plan-audit-20261023/VS-CODE-OVERDRACHT.nl.md.before`; niet als huidige
   installatie-/opdrachtstatus lezen. Oude vragen niet opnieuw als vereiste stellen.
+
+## Adapteridentiteit ontvangen
+
+Bosch EasyControl Adapter **8737908035 V2.3**; volledig etiket en officiële
+protocolreferentie staan in WORKBOARD onder “Bevestigde ketencomponent”. De
+modelvraag is beantwoord. B09 blijft open voor werkelijke TX-interface,
+telegrammen/terugmelding, hydrauliek en onafhankelijk stopgedrag.

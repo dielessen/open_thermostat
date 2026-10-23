@@ -430,3 +430,28 @@ Alleen programma-ACK of beschikbaarheid van een entiteit sluit M2 niet.
 De lokale `out/`-dossiers worden niet integraal gepubliceerd: ze kunnen privé-
 configuratie bevatten. Het releasepakket bevat uitsluitend de gereviewde
 bron-/notices-/herlink-/bewijsselectie volgens de bestaande verpakkingsregels.
+
+## Bevestigde ketencomponent: EasyControl Adapter (23 oktober 2026)
+
+De gebruiker heeft het etiket doorgegeven: **Bosch EasyControl Adapter
+36749998-18052310-000879-8737908035 V2.3**. Het convertermodel is daarmee
+geïdentificeerd op basis van de gebruikersmelding; V2.3 is de etiketversie,
+geen onafhankelijk uitgelezen firmwareversie.
+
+De [officiële Bosch-handleiding 6720821559 (2017/06)](https://www.nefit-bosch.nl/media/country_pool/professioneel/documenten/thermostaten/6720821559.pdf),
+Nederlandse pagina’s 46–48, beschrijft EMS ↔ iRT voor UBA versie 3,7, naast
+OpenTherm 4,0 en aan-uit. De thermostaatzijde gebruikt EMS; dit ondersteunt
+de beoogde keten E32 → EMS → EasyControl Adapter → iRT → ketel. Het bewijst
+nog niet de UBA-versie van de aanwezige HRC22H, de telegramvertaling van dit
+exemplaar of compatibiliteit van onze eigen zender.
+
+De handleiding noemt aparte thermostaat-/cv-klemmen, maximaal 3 meter tussen
+adapter en ketel, en polariteitsongevoelige busklemmen. Dat laatste bepaalt
+niet de UART-inversie of elektrische uitvoering van de E32-interface.
+Protocolherkenning en een groene led bewijzen communicatie, geen geslaagde
+begrensde verwarmingsproef of onafhankelijke stop bij verlies van de regelaar.
+
+**B09 blijft open:** actuele aansluiting, E32-zendinterface/timing/adressering,
+bevestigde telegrammen en terugmelding, minimumflow/naloop en stopgedrag bij
+verbindingsverlies moeten nog worden vastgesteld. De modelvraag is beantwoord;
+geen automatische TX-vrijgave of nieuwe fysieke opdracht volgt uit deze registratie.

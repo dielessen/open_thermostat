@@ -1,5 +1,12 @@
 # Firmware bijwerken via jouw GitHub Releases
 
+**Gepubliceerd23okt:** [HA0.4.0.dev13](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev13).
+Afzonderlijke integratie-ZIP; bron en werkelijk gedownloade checksums gecontroleerd.
+De HA/MQTT- en browser-CI zijn geslaagd. Dit is geen E32-firmware-update.
+De live HA-dev11-installatie hoeft voor de bestaande bediening niet opnieuw te
+worden geïnstalleerd. Dev11/dev12-tags hebben na hun CI-fout geen releaseassets.
+
+
 Mark heeft op 23 oktober expliciet opdracht gegeven geteste wijzigingen als
 GitHub-releases uit te brengen en de E32 waar nodig te upgraden. Normale passende
 testupdates hebben daarmee voorafgaande toestemming. De controle van bron,

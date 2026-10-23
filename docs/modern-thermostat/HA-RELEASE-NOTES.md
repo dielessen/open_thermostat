@@ -1,4 +1,21 @@
-# OpenThermostat Home Assistant 0.4.0.dev17 — testrelease
+# OpenThermostat Home Assistant 0.4.0.dev18 — testrelease
+
+Bij een verbonden regelaar kun je nu de **naam, basistemperatuur en lokale
+weekblokken** direct in het kamerscherm wijzigen. Alles opslaan bewaart de
+ruimte, wacht op de normale HA-herlaadcyclus en bevestigt het werkelijke E32-plan
+via de bestaande MQTT-worker. Een ACK alleen geldt niet als voltooiing. Bij
+gewijzigde temperaturen/blokken vervalt een tijdelijke temperatuur wanneer het
+nieuwe programma wordt toegepast. Apparaatkoppelingen en profielgrenzen blijven
+bij een actieve regeling voorlopig zichtbaar maar vergrendeld; hun volledige
+profielmigratie is nog open.
+
+Als toepassing niet kan worden bevestigd, blijft het concept behouden en wordt
+geen automatische opdracht herhaald. Na opnieuw laden kan de gebruiker het
+opgeslagen programma expliciet opnieuw toepassen. De bestaande SOURCE,
+credentials, kranen en fysieke bevoegdheden worden niet vervangen. Dit pad
+fabriceert geen gekwalificeerde temperatuurbron of fysieke werking. De eerdere
+afwijzing van een losse tijdelijke22°C-opdracht blijft afzonderlijk open;
+deze versie verklaart of verhelpt die nog niet.
 
 Eén installatie met centrale instellingen en kamers. Nieuwe kamers gebruiken
 een wizard; bestaande kamers hebben één direct configuratiescherm met gekoppelde
@@ -16,7 +33,7 @@ verandert geen apparaatinstellingen of fysieke aansturing.
 Dev16 herstelt de uitlezing voor Home Assistants eigen `MQTTDiscoveryPayload`-
 object. De regressietest gebruikt nu dat echte native object, ook samen met de
 werkelijke HA-MQTT-client en een lokale testbroker. De eerdere dev15-tag en
-bestanden blijven behouden; installeer dev16 voor deze apparaatcontrole.
+bestanden blijven behouden; gebruik dev18 voor de actuele apparaatcontrole.
 
 Aanwezig sinds dev15: in het kamerscherm staat onder **Geavanceerde instellingen**
 **Apparaatinformatie controleren**. Dit leest uitsluitend op verzoek de laatst

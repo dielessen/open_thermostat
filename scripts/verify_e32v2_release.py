@@ -7,7 +7,7 @@ import tarfile
 from e32_distribution import checked_reproduction
 from e32_relink import filehash, inside
 from e32_source_inputs import verify as verify_source_inputs
-from release_notices import canonical, digest
+from release_notices import canonical, digest as canonical_digest
 
 
 def verify(package, root=None):
@@ -76,7 +76,7 @@ def verify(package, root=None):
     check(distribution["global_framework_closure_changed"] is False and distribution["physical_acceptance"] is False, "target-specific scope and pending physical acceptance")
     notices = json.loads((third_party / "installed-notices/NOTICE-INVENTORY.json").read_text())
     stored_inventory_hash = notices.pop("inventory_sha256")
-    check(digest(canonical(notices).encode()) == stored_inventory_hash, "delivered notice inventory hash")
+    check(canonical_digest(canonical(notices).encode()) == stored_inventory_hash, "delivered notice inventory hash")
     check(notices["environment"] == "e32v2" and notices["blocked"] == []
           and notices["status"] == "READY_FOR_NOTICES_PACKAGING_ONLY"
           and notices["resolved_target_specific_blockers"] == ["sdk_binary_notice_source_closure_unverified"], "scoped notice packaging qualification")

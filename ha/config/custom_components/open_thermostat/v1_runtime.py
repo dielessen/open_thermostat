@@ -12,10 +12,12 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import (
-    async_call_later, async_track_entity_registry_updated_event,
+    async_call_later, async_track_entity_registry_updated_event, async_track_device_registry_updated_event,
     async_track_state_change_event, async_track_state_report_event,
 )
 from homeassistant.util import dt as dt_util
+
+from .native_binding import native_binding_identity
 
 from .comfort_sources import ContextReport, ContextSourceProfile, CONTEXT_MAX_AGE_MS
 
@@ -108,6 +110,7 @@ class ShadowRuntime:
         self.diagnostics: dict[str, str] = {}
         self._profiles: dict[str, ReportProfile] = {}
         self._profile_owners: dict[str, object] = {}
+        self._profile_bindings: dict[str, tuple] = {}
         self._sample_keys: dict[str, str] = {}
         self._sample_times: dict[str, datetime] = {}
         self._subscriptions: list[Callable] = []
@@ -156,6 +159,8 @@ class ShadowRuntime:
                 max(0, self.clock() - observation.observed_monotonic) * 1000)
             if room is None or age >= room.maximum_age_ms:
                 quality = "stale"
+        if configured and not self._report_binding_matches(room):
+            quality, age = "binding_changed", None
         allowed = {"disabled", "unverified", "qualified", "stale", "unavailable",
                    "invalid", "profile_error", "out_of_order", "binding_changed"}
         if quality not in allowed:
@@ -182,7 +187,11 @@ class ShadowRuntime:
             raise ValueError("unknown room")
         if not callable(profile):
             raise ValueError("report profile must be callable")
+        binding = native_binding_identity(self.hass, self._resolve(self.rooms[room_id].temperature))
+        if binding is None:
+            raise ValueError("native report binding unavailable")
         owner = object()
+        self._profile_bindings[room_id] = binding
         self._profiles[room_id] = profile
         self._profile_owners[room_id] = owner
         self._withdraw(room_id, "unverified")
@@ -195,10 +204,24 @@ class ShadowRuntime:
                 return False
             self._profiles.pop(room_id, None)
             self._profile_owners.pop(room_id, None)
+            self._profile_bindings.pop(room_id, None)
             self._withdraw(room_id, "unverified")
             return True
 
         return revoke
+
+    def _report_binding_matches(self, room: RoomBinding | None) -> bool:
+        if room is None:
+            return False
+        captured = self._profile_bindings.get(room.room_id)
+        return captured is not None and captured == native_binding_identity(
+            self.hass, self._resolve(room.temperature))
+
+    def _drop_report_binding(self, room_id: str) -> None:
+        self._profiles.pop(room_id, None)
+        self._profile_owners.pop(room_id, None)
+        self._profile_bindings.pop(room_id, None)
+        self._withdraw(room_id, "binding_changed")
 
     def attach_transport(self, transport: ShadowTransport) -> None:
         if self.controller_policy_source_profile is not None:
@@ -251,10 +274,15 @@ class ShadowRuntime:
             unsub()
         self._subscriptions.clear()
         ids: set[str] = set()
+        device_ids: set[str] = set()
         for room in self.rooms.values():
             for ref in (room.temperature, *room.actuators, room.setpoint, room.window, room.presence):
                 if ref and (entity_id := self._resolve(ref)):
                     ids.add(entity_id)
+            source_id = self._resolve(room.temperature)
+            source = er.async_get(self.hass).async_get(source_id) if source_id else None
+            if source and source.device_id:
+                device_ids.add(source.device_id)
         if not ids or not self._active:
             return
         generation = self._generation
@@ -276,10 +304,25 @@ class ShadowRuntime:
             if self._bench_fault:
                 self._bench_fault("binding_changed")
             self.invalidate_context_sources()
-            for room_id in self.rooms:
-                self._withdraw(room_id, "binding_changed")
+            for room_id, room in self.rooms.items():
+                if room_id in self._profiles and not self._report_binding_matches(room):
+                    self._drop_report_binding(room_id)
+                else:
+                    self._withdraw(room_id, "binding_changed")
             self._bind_listeners()
 
+        @callback
+        def device_changed(event):
+            if not self._active or self._generation != generation:
+                return
+            for room_id, room in self.rooms.items():
+                if room_id in self._profiles and not self._report_binding_matches(room):
+                    self._drop_report_binding(room_id)
+            self._bind_listeners()
+
+        if device_ids:
+            self._subscriptions.append(async_track_device_registry_updated_event(
+                self.hass, device_ids, device_changed))
         self._subscriptions.extend([
             async_track_state_change_event(self.hass, ids, changed),
             async_track_state_report_event(self.hass, ids, reported),
@@ -319,14 +362,23 @@ class ShadowRuntime:
             return
         profile = self._profiles.get(room.room_id)
         profile_owner = self._profile_owners.get(room.room_id)
+        if profile is not None and not self._report_binding_matches(room):
+            self._drop_report_binding(room.room_id)
+            return
         try:
             report = profile(state, event_kind) if profile else None
         except Exception:
             if self._profile_owners.get(room.room_id) is profile_owner:
-                self._withdraw(room.room_id, "profile_error", value)
+                if not self._report_binding_matches(room):
+                    self._drop_report_binding(room.room_id)
+                else:
+                    self._withdraw(room.room_id, "profile_error", value)
             return
         if self._profile_owners.get(room.room_id) is not profile_owner:
             return  # callback disposed/replaced itself; old result has no owner
+        if profile is not None and not self._report_binding_matches(room):
+            self._drop_report_binding(room.room_id)
+            return
         if report is None:
             self._withdraw(room.room_id, "unverified", value)
             return
@@ -388,6 +440,9 @@ class ShadowRuntime:
                 if self._bench_owner == room_id:
                     continue
                 if observation.quality == "qualified":
+                    if not self._report_binding_matches(self.rooms.get(room_id)):
+                        self._drop_report_binding(room_id)
+                        continue
                     elapsed = max(0, self.clock() - observation.observed_monotonic)
                     age = observation.source_age_ms + math.ceil(elapsed * 1000)
                     if age >= self.rooms[room_id].maximum_age_ms:
@@ -587,4 +642,5 @@ class ShadowRuntime:
         self.decisions.clear()
         self._profiles.clear()
         self._profile_owners.clear()
+        self._profile_bindings.clear()
         self._listeners.clear()

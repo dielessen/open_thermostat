@@ -269,7 +269,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/v1_runtime.py",
-          "sha256": "029c537e353b4ad2a3f456f9e276f87ac63bf829baff142f3a00aebfecf206f9"
+          "sha256": "5de0f8bd873bf9fc8e8d5558c768069a47aa7fecccb92fae40f953f6e7074313"
         },
         {
           "path": "src/control/ControlBuildCapabilities.h",
@@ -282,9 +282,21 @@
         {
           "path": "ha/tests_native/test_report_profile_lifecycle.py",
           "sha256": "d4201bad331db6ecfdd2ddaaeb19bf26dd94f2fc0406175382b9af0d7d66d37a"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/native_binding.py",
+          "sha256": "8e6fec113bbe6ad381cc8cf280ad038a11fa4751a1bcec7d8befb0ffd620b699"
+        },
+        {
+          "path": "ha/tests_native/test_report_binding.py",
+          "sha256": "0b81b52b33ac825bc73072e1af969e8859328f27783318893684024dea882bba"
+        },
+        {
+          "path": "ha/tests_native/test_comfort_interop.py",
+          "sha256": "fde3995f284a40b016fa4b551ae602a98d56013ef91a5f3f159d9113c40cb3e8"
         }
       ],
-      "remaining_acceptance": "Meetdiagnose geleverd; observer-lifecycle nieuw getest: 31 gericht en volledige HA-suite 1637 tests + 68 subtests PASS. Native model/property-producer blijft open; registratie/cleanup kwalificeert geen meting, profile_missing is geen sensor-defectclaim."
+      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele metingsherkomst blijven open."
     },
     {
       "id": "I12",
@@ -364,7 +376,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/v1_profile_c.py",
-          "sha256": "1d95d910e870ecd466da4270a6980d93ba495ff24a6286725e732d0c4ec37cb5"
+          "sha256": "ea4621dd59e7f68f10a44563a050aecd1eea487af954c337915a6067cc1527a6"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_bench_source.py",
@@ -974,7 +986,7 @@
     {
       "id": "B04",
       "complete": false,
-      "description": "Observer-lifecycle voor vervanging/intrekking getest; productie-meetrapportprofiel/-producer aansluiten. Originele acquisitie, cache/reconnect/stale correct; geen trustvinkje of sensorwissel als omweg."
+      "description": "Observer-lifecycle en native bron-/apparaatbinding vóór pending transport getest; productie-meetrapportprofiel/-producer aansluiten. Originele acquisitie, cache/reconnect/stale correct; geen trustvinkje of sensorwissel als omweg."
     },
     {
       "id": "B05",

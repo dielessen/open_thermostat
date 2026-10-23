@@ -16,6 +16,8 @@ from homeassistant.components.climate.const import ClimateEntityFeature
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 
+from .native_binding import native_binding_identity as _dispatch_binding
+
 ACTION_TIMEOUT_SECONDS = 10.0
 
 MODE_MESSAGES = {
@@ -164,25 +166,6 @@ def review_room_targets(hass, room, entity_ids):
             "scope": "saved_local_room_targets", "external_program_checked": False,
             "external_program_present": room.schedule is not None,
             "authorizes_actuation": False, "actuators": rows}
-
-
-def _dispatch_binding(hass, entity_id):
-    """Pin native registry identity, never a display name or cached state object.
-
-    A removed/recreated row, disabled entity, device reassignment or changed
-    model invalidates this adapter. Requalification requires a new adapter.
-    This guard supplies no physical qualification of its own.
-    """
-    entity = er.async_get(hass).async_get(entity_id)
-    if entity is None or entity.disabled_by is not None:
-        return None
-    device = dr.async_get(hass).async_get(entity.device_id) if entity.device_id else None
-    if entity.device_id and device is None:
-        return None
-    return (entity.id, entity.unique_id, entity.platform, entity.config_entry_id,
-            entity.device_id,
-            (device.id, device.model, device.model_id, device.manufacturer,
-             frozenset(device.identifiers), frozenset(device.connections)) if device else None)
 
 
 class ProfileCActuator:

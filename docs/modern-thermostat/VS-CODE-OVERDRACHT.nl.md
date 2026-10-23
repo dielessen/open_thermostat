@@ -6,7 +6,7 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   92 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   95 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
@@ -124,6 +124,21 @@ subtests, nul fouten/overslagen) en twintig browserprofielen PASS. Een gerichte
 read-only HA-specialistproef heeft converters 26.115.1 uit bridge/info bevestigd;
 unsubscribe en sluiting eigen WS uitgevoerd. Zie bridge-versions/REVIEW.json in
 het bètabewijsdossier. Originele meetrapporten/echo blijven open.
+
+## Nieuwe native identiteit van meetrapportprofielen
+
+Native sensor-/apparaatbinding wordt bij registratie vastgelegd en vóór/na de
+observercallback en vóór pending transport opnieuw gecontroleerd. Native model- of
+apparaatwissel/uitschakelen trekt de oude kwalificatie en registratie in; lezen
+meldt onmiddellijk onbruikbaar. Dezelfde rij hernoemen en displaylabels behouden
+identiteit zonder nieuwe sampleleeftijd. De gedeelde private identityfunctie wordt
+ook door de actuator gebruikt. Tien nieuwe regressies (acht fouten op de vorige
+bron), 116 gerichte HA-tests inclusief comfort/context PASS. De bestaande
+synthetische comfort-fixture registreert ook een native rapportprofieleigenaar;
+de productiecontrole is niet versoepeld. Volledige 1.758 HA-checks PASS (1.690
+tests + 68 subtests), nul fouten/overslagen. Tijdelijke brokers verwijderd.
+B04-productieproducer/fysieke bron blijven open;
+geen nieuwe firmware-/webassets of fysieke actie. Zie report-binding/REVIEW.json.
 
 ## Eerstvolgende uitvoering
 

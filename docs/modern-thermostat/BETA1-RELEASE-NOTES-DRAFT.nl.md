@@ -39,6 +39,9 @@ vastgesteld. Ontvangstdiagnose alleen voldoet niet aan dit releasedoel.
   lokale kwalificatie in. Oude cleanup-callbacks en verlooptimers kunnen een
   nieuwe observer of nieuw rapport niet verwijderen; cache krijgt geen nieuwe
   acquisitietijd door herregistratie.
+- Ook een native sensor-/apparaatwissel, gewijzigd model of uitgeschakelde bron
+  trekt een bestaande meetkwalificatie in. Wachtende metingen worden vóór
+  overdracht opnieuw gecontroleerd. Een nieuwe weergavenaam vernieuwt geen meting.
 - De voorbereide kraanadapter controleert native identiteit en temperatuurgrenzen
   opnieuw vlak vóór de doelopdracht. Een andere entiteit/apparaat onder dezelfde
   naam, onbeschikbaarheid, uitschakelen of gewijzigde eenheden kan geen oude

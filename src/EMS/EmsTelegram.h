@@ -1,11 +1,11 @@
 #pragma once
+#include <stdint.h>
 #include <logger/LoggerInterface.h>
 
 #include <array>
 #include <optional>
 #include <type_traits>
 #include <vector>
-#include <stdint.h>
 
 // quite good ems reference
 // https://raw.githubusercontent.com/norberts1/hometop_HT3/master/HT3/docu/HT_EMS_Bus_messages.pdf

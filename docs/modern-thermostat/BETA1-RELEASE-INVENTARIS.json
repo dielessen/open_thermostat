@@ -527,7 +527,7 @@
         },
         {
           "path": "src/EMS/EmsTelegram.h",
-          "sha256": "26c4970fcf8dded713f8136925f2599f98188bbcb2747f885297393dcbb8d785"
+          "sha256": "fcc297ac81c66b1da11f9663e0c0a3f5266937ff92f7ba1b04c9ec47da89d3e8"
         },
         {
           "path": "test/test_native/test_classic_boiler_test_encoder.cpp",

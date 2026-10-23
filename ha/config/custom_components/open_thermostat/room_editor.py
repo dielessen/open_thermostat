@@ -233,3 +233,29 @@ async def ws_room_save(hass, connection, msg):
         connection.send_error(msg['id'], 'save_uncertain', 'Reload saved room before retrying')
     else:
         connection.send_result(msg['id'], result)
+
+
+@websocket_api.websocket_command({vol.Required('type'): 'open_thermostat/room/device_metadata',
+    vol.Required('entry_id'): str, vol.Required('room_id'): str,
+    vol.Required('token'): vol.Match(r'^[a-f0-9]{64}$')})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_room_device_metadata(hass, connection, msg):
+    """Observe only saved room bindings; never accepts topics or arbitrary IDs."""
+    from .device_metadata import async_read_selected_metadata, MetadataUnavailable
+    try:
+        entry, sub, room = _target(hass, msg['entry_id'], msg['room_id'])
+        if digest(configuration_snapshot(entry)) != msg['token']:
+            raise MetadataUnavailable('setup_changed')
+        central = central_entry(entry)
+        own = [a for a in central.data['draft']['actuators'] if a['room_id'] == room.room_id] if central else []
+        if not 1 <= len(own) <= 8 or any(a['profile'] != 'trv_room_setpoint' for a in own):
+            raise MetadataUnavailable('device_metadata_unavailable')
+        result = await async_read_selected_metadata(hass, entry,
+            [room.temperature.as_dict(), *[a['output'] for a in own]])
+    except MetadataUnavailable as err:
+        connection.send_error(msg['id'], str(err), 'Device information could not be verified')
+    except Exception:
+        connection.send_error(msg['id'], 'device_metadata_unavailable', 'Device information is unavailable')
+    else:
+        connection.send_result(msg['id'], result)

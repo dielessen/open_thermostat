@@ -22,8 +22,8 @@ from .v1_wire import digest
 
 _LOGGER = logging.getLogger(__name__)
 _KEY = DOMAIN + "_week_frontend"
-URL = "/open_thermostat/week-planner-0.4.0.dev10.js"
-ROOM_CARD_TYPE = "custom:openthermostat-room-editor-v10"
+URL = "/open_thermostat/week-planner-0.4.0.dev15.js"
+ROOM_CARD_TYPE = "custom:openthermostat-room-editor-v15"
 
 
 def _target(hass, entry_id, room_id):
@@ -131,9 +131,10 @@ async def async_setup_planner(hass):
     async def setup():
         await hass.http.async_register_static_paths([
             StaticPathConfig(URL, str(Path(__file__).parent / "frontend/week-planner.js"), False)])
-        from .room_editor import ws_room_get, ws_room_save
+        from .room_editor import ws_room_get, ws_room_save, ws_room_device_metadata
         websocket_api.async_register_command(hass, ws_room_get)
         websocket_api.async_register_command(hass, ws_room_save)
+        websocket_api.async_register_command(hass, ws_room_device_metadata)
         websocket_api.async_register_command(hass, ws_get)
         websocket_api.async_register_command(hass, ws_save)
         frontend.add_extra_js_url(hass, URL)

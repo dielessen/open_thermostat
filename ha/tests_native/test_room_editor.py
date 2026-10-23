@@ -87,6 +87,29 @@ async def test_new_api_requires_admin_before_access(hass,configured):
     p,sub,m=configured
     for user in (None,SimpleNamespace(is_admin=False)):
         c=SimpleNamespace(user=user,send_result=Mock(),send_error=Mock())
-        for handler in (ui.ws_room_get,ui.ws_room_save):
+        for handler in (ui.ws_room_get,ui.ws_room_save,ui.ws_room_device_metadata):
             with pytest.raises(Unauthorized):handler(hass,c,{'id':1,'entry_id':p.entry_id,'room_id':m['room_id'],'token':m['token'],'settings':changed(m)})
         c.send_result.assert_not_called();c.send_error.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_metadata_endpoint_reads_only_current_saved_bindings_without_save_or_activation(hass,configured,monkeypatch):
+    import inspect
+    from custom_components.open_thermostat import device_metadata
+    p,sub,m=configured;before=configuration_snapshot(p)
+    read=AsyncMock(return_value={'metadata_only':True,'physical_control_qualified':False})
+    monkeypatch.setattr(device_metadata,'async_read_selected_metadata',read)
+    c=SimpleNamespace(send_result=Mock(),send_error=Mock())
+    message={'id':1,'entry_id':p.entry_id,'room_id':m['room_id'],'token':m['token']}
+    await inspect.unwrap(ui.ws_room_device_metadata)(hass,c,message)
+    read.assert_awaited_once()
+    args=read.await_args.args
+    assert args[0] is hass and args[1] is p
+    assert [x['entity_id'] for x in args[2]]==[m['settings']['temperature_entity'],*m['settings']['radiator_entities']]
+    assert configuration_snapshot(p)==before and not p.options['shadow_enabled']
+    c.send_error.assert_not_called()
+    read.reset_mock();c.send_result.reset_mock()
+    message['token']='f'*64
+    await inspect.unwrap(ui.ws_room_device_metadata)(hass,c,message)
+    read.assert_not_called();c.send_result.assert_not_called()
+    assert c.send_error.call_args.args[1]=='setup_changed'

@@ -1,4 +1,4 @@
-# OpenThermostat Home Assistant 0.4.0.dev14 — testrelease
+# OpenThermostat Home Assistant 0.4.0.dev15 — testrelease
 
 Eén installatie met centrale instellingen en kamers. Nieuwe kamers gebruiken
 een wizard; bestaande kamers hebben één direct configuratiescherm met gekoppelde
@@ -7,7 +7,20 @@ Apparaatidentiteit, beschikbaarheid en kraangrenzen worden bij de kamer getoond.
 Deze versie herkent de officiële Home Assistant-featureflags van een klimaatapparaat
 correct; geldige temperatuurgrenzen hoeven daardoor niet onbekend te lijken.
 
-Nieuw in dev14: kies **E32 verbinden** in de centrale integratie-instellingen.
+Nieuw in dev15: in het kamerscherm staat onder **Geavanceerde instellingen**
+**Apparaatinformatie controleren**. Dit leest uitsluitend op verzoek de laatst
+gemelde Zigbee2MQTT-definities voor de opgeslagen sensor en kranen. Doeltemperatuur,
+externe temperatuurinvoer, klepstand en converteropties worden apart getoond.
+Ontbrekende informatie blijft onbekend. Een diagnostische apparaattemperatuur
+krijgt een duidelijke toelichting; die is niet automatisch een gekwalificeerde
+kamermeting. Dit is informatie over apparaatmogelijkheden, geen geslaagde fysieke
+kraanproef. Er worden geen instellingen, interviews of verwarmingscommando’s verstuurd.
+Deze uitlezing gebruikt de bestaande HA-MQTT-verbinding, twee exacte topics en
+een korte wachttijd. Andere apparaten en ruwe discovery-/brokergegevens worden
+niet naar het scherm gestuurd. Andere apparaatbronnen blijven normaal gekoppeld;
+ze kunnen deze specifieke Zigbee2MQTT-uitlezing niet altijd aanbieden.
+
+Ook aanwezig sinds dev14: kies **E32 verbinden** in de centrale integratie-instellingen.
 Vul het lokale webadres en beheerderswachtwoord in. De integratie controleert de
 werkelijke E32, bewaart de bestaande netwerkinstellingen en synchroniseert het
 kamerprogramma via de bestaande verbinding. Alleen ontvangst van een opdracht
@@ -26,7 +39,7 @@ De nieuwe E32-firmware wordt afzonderlijk getest en uitgebracht; deze release
 bevat uitsluitend de Home Assistant-integratie. Een opgeslagen instelling is
 nog geen bevestigde uitvoering op de E32.
 
-Download `OpenThermostat-HA-0.4.0.dev14.zip` en controleer de SHA256 met
+Download `OpenThermostat-HA-0.4.0.dev15.zip` en controleer de SHA256 met
 `HA-SHA256SUMS.txt`. Maak vóór installatie een back-up van de bestaande
 integratie/configuratie. Kopieer `custom_components/open_thermostat` uit de ZIP
 naar de Home Assistant-configuratiemap, controleer de configuratie en herstart

@@ -6,7 +6,7 @@ Bijgewerkt 23 oktober 2026 na volledige plan-/releaseherijking.
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   90 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   92 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
@@ -97,8 +97,9 @@ bron en TV02 in auto; oorspronkelijk property-acquisitiebewijs en gecorreleerde
 kraanecho zijn niet aangetoond. Primaire Z2M-bron traceert de ontbrekende grens
 vóór cachemerge; een state-update zelf onderscheidt nog geen rapport/read/optimistic
 write. Werk de modelspecifieke producer op die grens uit, zonder HA-last_reported
-als acquisitietijd te gebruiken. Gepinde convertersbron is referentie, geen opnieuw
-gelezen geïnstalleerde packageversie. Bewijs in het actuator-dispatch-dossier:
+als acquisitietijd te gebruiken. Latere native bridge/info-controle
+meldt converters 26.115.1 / Z2M 2.14.2 / herdsman 10.10.0; dat is expliciete
+broker-metadata, geen directe packagebron-/hashcontrole. Bewijs in het actuator-dispatch-dossier:
 HA-SOURCE-READONLY.json en PRODUCER-SOURCE-TRACE.json. Geen live wijzigingen.
 
 ## Nieuwe gedeelde UART-voltooiingscontrole
@@ -111,6 +112,18 @@ HT3-pacing is behouden; dit kwalificeert geen Classic-golfvorm, arbitrage, total
 looptijd of fysieke stop. SDK-write kan intern nog blokkeren. Default E32-TX blijft
 uit en er is niets geïnstalleerd. Bewijs in uart-completion/REVIEW.json onder het
 bètabewijsdossier. Geen nieuwe HA- of browserassets voor deze bronstap.
+
+## Nieuwe versieprojectie in HA-apparaatcontrole
+
+Metadata behoudt nu expliciet gemelde converter-/herdsmanversies uit hetzelfde
+begrensde bridge/info-abonnement. De kamereditor toont Z2M en converterpakket
+in NL/EN; ontbrekende/lege/onjuiste versies blijven onbekend. Geen benchpin als
+fallback, geen extra client of instelling, geen fysieke kwalificatie.
+Twaalf nieuwe native gevallen, volledige 1.748 HA-checks (1.680 tests + 68
+subtests, nul fouten/overslagen) en twintig browserprofielen PASS. Een gerichte
+read-only HA-specialistproef heeft converters 26.115.1 uit bridge/info bevestigd;
+unsubscribe en sluiting eigen WS uitgevoerd. Zie bridge-versions/REVIEW.json in
+het bètabewijsdossier. Originele meetrapporten/echo blijven open.
 
 ## Eerstvolgende uitvoering
 

@@ -54,6 +54,8 @@ def messages():
         return {'model': model, 'vendor': 'Synthetic fixture', 'exposes': features,
                 'private_key': 'private-not-for-output'}
     return {'custom-z2m/bridge/info': {'version': 'fixture-version', 'commit': 'fixture-commit',
+                'zigbee_herdsman_converters': {'version':'26.115.1','private_key':'private-package-extra'},
+                'zigbee_herdsman': {'version':'fixture-herdsman'},
                 'coordinator': {'password': 'private-coordinator-not-for-output'}},
         'custom-z2m/bridge/devices': [
             {'ieee_address': '0x0000000000000001', 'definition': definition('sensor fixture', [
@@ -104,6 +106,8 @@ async def test_selected_native_discovery_and_filtered_converter_declarations_no_
     calls, removed, _ = subscriptions(monkeypatch, hass)
     result = await metadata.async_read_selected_metadata(hass, parent, refs)
     assert set(calls) == set(removed) == set(messages())
+    assert result['bridge'] == {'version':'fixture-version','commit':'fixture-commit',
+        'zigbee_herdsman_converters_version':'26.115.1','zigbee_herdsman_version':'fixture-herdsman'}
     assert result['metadata_only'] and not result['physical_control_qualified']
     assert not result['measurement_acquisition_verified']
     assert result['devices'][0]['sensor_property'] == 'device_temperature'
@@ -282,3 +286,23 @@ async def test_real_existing_ha_mqtt_client_reads_exact_retained_fixture_metadat
             producer.disconnect();network.cancel();await asyncio.gather(network,return_exceptions=True)
         if hasattr(native,'_mqttc'): await native.async_disconnect()
         native.cleanup()
+
+
+@pytest.mark.parametrize("value", [None, 26, True, "26.115.1", [], {"version":None}, {"version":""},
+    {"version":False}, {"version":["26.115.1"]}, {"version":"x"*161}, {"version":"26\n.1"}])
+def test_unknown_converter_version_is_never_inferred_from_bench_or_other_fields(value):
+    result = metadata.bridge_versions({"version":"2.14.2", "commit":"fixture",
+        "zigbee_herdsman_converters":value, "config":{"password":"private-never-export"}})
+    assert result == {"version":"2.14.2", "commit":"fixture",
+        "zigbee_herdsman_converters_version":None, "zigbee_herdsman_version":None}
+
+
+def test_missing_and_explicit_package_versions_do_not_copy_extra_payload_fields():
+    assert metadata.bridge_versions({}) == {"version":None,"commit":None,
+        "zigbee_herdsman_converters_version":None,"zigbee_herdsman_version":None}
+    result=metadata.bridge_versions({"version":"2.14.2",
+        "zigbee_herdsman_converters":{"version":"26.115.1","secret":"private"},
+        "zigbee_herdsman":{"version":"fixture", "extra":{"secret":"private"}},
+        "config":{"version":"unrelated", "password":"private"}})
+    assert result == {"version":"2.14.2","commit":None,
+        "zigbee_herdsman_converters_version":"26.115.1","zigbee_herdsman_version":"fixture"}

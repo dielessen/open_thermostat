@@ -22,6 +22,9 @@ vastgesteld. Ontvangstdiagnose alleen voldoet niet aan dit releasedoel.
 - De HA-kamereditor en configuratiestatus melden conflicten met het eigen
   TV02-weekprogramma, vakantie, uit of onbekende bedrijfsmodus, in Nederlands en
   Engels. De software wijzigt daarbij geen preset of kraanmodus.
+- De apparaatcontrole toont ook de door Zigbee2MQTT gemelde software- en
+  converterversie. Niet gemelde versies blijven onbekend; configuratie en
+  geheime gegevens worden daarbij niet getoond.
 - De bestaande weekplanner, korte aanraakblokken, kamer-/apparaatinrichting,
   gecontroleerde profielsave, echte kamernamen, About, uitloggen rechtsboven en
   herstart onder Settings blijven behouden. De eerdere koude-startreparatie en

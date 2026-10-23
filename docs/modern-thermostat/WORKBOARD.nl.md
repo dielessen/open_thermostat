@@ -52,7 +52,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-90 bronverwijzingen met hashes, status en resterende acceptatie.
+92 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -64,7 +64,7 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | I03 | Automatische HTTPS-update, TLS-geheugen en catalogus | Geleverde softwarebasis | Nieuwe bèta via dezelfde normale updater controleren. |
 | I04 | Actuele/archief-releases automatisch ordenen | Geleverde softwarebasis | Nieuwe publicatie moet bestaande tags/assets behouden. |
 | I05 | About, uitloggen rechts en herstart onder Settings | Geleverde softwarebasis | Behouden; bevestiging/herstartguards opnieuw in eindregressie. |
-| I06 | Kamerinrichting, identiteiten en apparaatmetadata | Geleverde softwarebasis | Beschikbaarheid/metadata kwalificeert geen fysieke sensor of kraan. |
+| I06 | Kamerinrichting, identiteiten en apparaatmetadata | Basis geleverd; versieprojectie nieuw getest | Gemelde Z2M-/converterversie zichtbaar; ontbrekend blijft onbekend. Metadata kwalificeert geen fysieke sensor of kraan. |
 | I07 | Weekplanner, korte aanraakblokken en effectief doel | Geleverde softwarebasis | Echte programma-save/ACK bevestigd; bron-/uitval-/reconnectproef nog open. |
 | I08 | Actieve sensor/TRV/grenzen wijzigen, bewaren en opnieuw toepassen | Geleverde softwarebasis | Alleen normale expliciete save; geen live apparaatwissel tijdens installatie bewezen. |
 | I09 | HA-kaart registreren na opstart, zonder herhaald refreshen | Geleverde softwarebasis | Drie echte koude HA-sessies bewezen; versiegebonden module behouden. |
@@ -316,13 +316,37 @@ oude velden samen. De interne state-update alleen onderscheidt nog geen spontane
 rapportage, read-response of optimistische opdracht. Een productieproducer moet
 model/property en oorspronkelijke berichtsoort vóór die samenvoeging bewaren,
 met aantoonbare ouderdom en replay-/reconnectafhandeling. De converterreferentie
-v26.115.1 is geen actuele geïnstalleerde packageversie; die blijft apart te lezen.
+v26.115.1 was aanvankelijk alleen een gepinde referentie. Een gerichte latere
+read-only controle van bridge/info meldt nu converters 26.115.1, Z2M 2.14.2 en
+herdsman 10.10.0. Dit is broker-metadata, geen directe packagebron-/hashcontrole.
 Geen extra externe extensie geïnstalleerd, bron gewisseld of cacheoptie aangepast.
 
 Bewijs: `out/beta-boiler-evidence-20261023/actuator-dispatch/HA-SOURCE-READONLY.json`
 en `PRODUCER-SOURCE-TRACE.json` in hetzelfde dossier. Dit onderzoek sluit B04/B05
 niet. Het maakt de ontbrekende producentfunctie concreet; alleen extra timestamps
 op een HA-cache zijn geen implementatie daarvan.
+
+### Nieuw HA-bronwerk: volledige begrensde versieprojectie
+
+- De bestaande metadatafunctie filterde de converter-/herdsmanversies weg uit
+  bridge/info. Zij behoudt nu uitsluitend hun expliciet gemelde stringversies,
+  naast Z2M-versie/commit. Ontbrekende, lege of onbruikbare velden blijven onbekend;
+  er wordt niets uit een benchpin of ander configuratieveld afgeleid.
+- De apparaatcontrole toont de gemelde Z2M-/converterversie in Nederlands/Engels.
+  Het zijn declaraties, geen packagebron-/hashcontrole of meet-/actuatorvrijgave.
+  Geen extra abonnementspaar, brokerclient, publicatie, opslag of instelling.
+- Twaalf nieuwe native gevallen controleren ontbrekende/onjuiste versies en
+  de whitelist, naast de bestaande echte native registry-/cleanup-/privacytests.
+  Volledige HA-suite: 1.680 tests + 68 subtests = 1.748 checks PASS, nul fouten/
+  overslagen. Echte C++-peers en tijdelijke MQTT-broker gebruikt; broker verwijderd.
+  Zes metadata-browserprofielen (1440/390/320 px × NL/EN), zes TV02-profielen en
+  acht bestaande kamereditorprofielen PASS. De versievelden blijven plaintext,
+  ook bij markup; een fout/late respons verandert geen draft of kamer.
+- De HA-specialist las één exacte geselecteerde bridge/info-publicatie via native
+  MQTT/WS met deadline en expliciete unsubscribe; eigen WS gesloten, nul wijzigingen.
+  Gerapporteerd: Z2M 2.14.2, converters 26.115.1, herdsman 10.10.0. Retained metadata
+  bewijst geen meetactualiteit. B04/B05 blijven open voor de oorspronkelijke rapporten.
+  Bewijs: `out/beta-boiler-evidence-20261023/bridge-versions/REVIEW.json`.
 
 De cumulatieve releasenotes staan als concept in
 [BETA1-RELEASE-NOTES-DRAFT.nl.md](BETA1-RELEASE-NOTES-DRAFT.nl.md). Versies,
@@ -374,7 +398,7 @@ Alleen programma-ACK of beschikbaarheid van een entiteit sluit M2 niet.
 | `out/combined-release-evidence-20261023/FINAL-REVIEW.json` | Werkelijk gepubliceerde/geïnstalleerde alpha17/dev23 en instellingenbehoud |
 | `out/beta-boiler-evidence-20261023/CHECKPOINT.json` | Ontvangstsoftwarecheckpoint, geen bèta- of fysieke vrijgave |
 | `out/plan-audit-20261023/AUDIT.json` | Bron-/inventaris-/takken-/plancontrole van deze herijking |
-| `BETA1-RELEASE-INVENTARIS.json` | Alle 23 voorbereide brononderdelen en 90 bestandsverwijzingen met hashes |
+| `BETA1-RELEASE-INVENTARIS.json` | Alle 23 voorbereide brononderdelen en 92 bestandsverwijzingen met hashes |
 | `BETA1-KETELPROEF.nl.md` / `BETA1-PROEFSTAND-ONTWERP.nl.md` | Scope en nog te implementeren begrensd proefcontract |
 | `out/critical-path-20261022/SAVED-STOP-RECHECK.json` | Historisch expliciet nulcommando; geen zelfstandige stop bij communicatiewegval |
 | `out/plan-audit-20261023/*.before` | Ongewijzigde oude PLAN/WORKBOARD/overdracht/nachtvolgorde; historische bewijsregels behouden |

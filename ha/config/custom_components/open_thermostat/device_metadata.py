@@ -54,6 +54,20 @@ def _text(value, maximum=160):
     return value if type(value) is str and len(value) <= maximum and not any(ord(c) < 32 for c in value) else None
 
 
+def bridge_versions(payload):
+    """Reported software metadata only; never infer an installed package pin.
+
+    bridge/info also contains configuration. Return only this fixed whitelist;
+    package fields may be absent in older producers and then remain unknown.
+    """
+    result = {key: _text(payload.get(key)) for key in ("version", "commit")}
+    for package in ("zigbee_herdsman_converters", "zigbee_herdsman"):
+        declared = payload.get(package)
+        result[package + "_version"] = ((_text(declared.get("version")) or None)
+            if type(declared) is dict else None)
+    return result
+
+
 def _topic(value):
     return (type(value) is str and 0 < len(value.encode()) <= 256
             and not any(ord(c) < 32 or c in "#+" for c in value)
@@ -226,7 +240,7 @@ async def async_read_selected_metadata(hass, entry, references):
             if message.topic.endswith("/bridge/info"):
                 if type(payload) is not dict:
                     raise ValueError
-                observed["bridge"] = {key: _text(payload.get(key)) for key in ("version", "commit")}
+                observed["bridge"] = bridge_versions(payload)
             else:
                 if type(payload) is not list or len(payload) > 1024:
                     raise ValueError

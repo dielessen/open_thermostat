@@ -134,7 +134,7 @@
     {
       "id": "I06",
       "title": "Kamerinrichting, identiteiten en apparaatmetadata",
-      "status": "geleverd",
+      "status": "geleverd_met_nieuw_bronwerk",
       "include_in_beta": true,
       "requirements": [
         "R01",
@@ -149,10 +149,18 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/device_metadata.py",
-          "sha256": "eec21aed993417081d86365dec37304486057cd3ecb9a661d976d004b67e2c29"
+          "sha256": "9d2e5d89a6686e9a780983bb82306aeb1eb9361d31ac91929f0068aaae5b9cee"
+        },
+        {
+          "path": "ha/tests_native/test_device_metadata.py",
+          "sha256": "fa390329ce7dc6c3dc844e912274ccb2a9617f513197906b35c73684bda028f6"
+        },
+        {
+          "path": "test/ha-device-metadata-browser.cjs",
+          "sha256": "58116249d8554c683dd282ab8eb1bb445f7bb60bc95cd317981653c43459ab86"
         }
       ],
-      "remaining_acceptance": "Beschikbaarheid/metadata kwalificeert geen fysieke sensor of kraan."
+      "remaining_acceptance": "Gemelde Z2M-/converterversies behouden en zichtbaar, ontbrekend blijft onbekend. Metadata is geen directe packagebron-/hashcontrole en kwalificeert geen fysieke sensor of kraan."
     },
     {
       "id": "I07",
@@ -217,7 +225,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "21af056cba8fe73798bcb0572ac71359372ca7875b4e18b63a8f0da9f04fc38b"
+          "sha256": "7efd3fbbe56026cb169081140f32749eeeebb8d2bb58360c0df1d66525df2558"
         }
       ],
       "remaining_acceptance": "Drie echte koude HA-sessies bewezen; versiegebonden module behouden."

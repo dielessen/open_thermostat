@@ -1,6 +1,10 @@
 name: PlatformIO CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: ['**']
+    tags: ['v*', 'ha-v*']
+  pull_request:
 
 jobs:
   browser-regressions:

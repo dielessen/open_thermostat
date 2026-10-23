@@ -6,7 +6,7 @@ Bijgewerkt 24 oktober 2026 na de oorspronkelijke TV02-rapportproducer.
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   160 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   164 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
@@ -217,3 +217,7 @@ HA-test verwachtte nog afwezigheid Nederlandse geavanceerde formulieren en
 smalle ketelkaart liep op de runner buiten beeld. Test nu met echte EN/NL-
 resources en tekstomloop voor bredere fonts; afzonderlijke regressies getest.
 Nieuwe openbare eindrun nog controleren; oude rode run nooit groen noemen.
+
+### Herstel unavailable productmetingen (2026-10-24)
+
+Live oorzaak bevestigd door de HA-agent: shadow-firmware start de legacy publishers niet; de HA-producttak sloeg de gevalideerde native metrics-cache over. De productplatform-regressie faalde vóór de correctie en slaagt erna; 41 gerichte native HA-tests slagen. De producttak gebruikt nu één native eigenaar voor v2-metrics en behoudt installatiegroep/identiteiten. Alle voorbereide Classic-veld-, taal- en UI-wijzigingen blijven gebundeld in alpha20/dev26. De alpha19-tag heeft een native CI-headerfout en is niet live geïnstalleerd; tags blijven ongewijzigd. Installatie en verse HA-ketelmetingen zijn nog te bewijzen; geïnstalleerd blijft alpha18/dev24.

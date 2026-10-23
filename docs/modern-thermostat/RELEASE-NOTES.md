@@ -1,3 +1,14 @@
+# E32 V2 alpha20 — volledige passieve meetrelease met HA dev26
+
+Bundelt alle alpha19-voorbereiding: native Classic-ketelvelden, EN/NL-bediening,
+ketelprofiel en diagnose. HA dev26 herstelt bovendien de bestaande v2-sensoren
+in de productinstallatie via de gevalideerde native MQTT-cache. Een ontbrekende
+standaardheader in de native BLE-test is expliciet toegevoegd voor een schone
+CI-build. Alpha19 is niet live geïnstalleerd; historische tags worden behouden.
+
+De normale app-only update behoudt instellingen en dezelfde partitie-indeling.
+EMS-TX en fysieke uitgangen blijven geblokkeerd. Geen actieve ketelbèta-vrijgave.
+
 # E32 V2 alpha19 — ketelvelden naar HA en tweetalige bediening
 
 Gezamenlijke passieve update met HA dev25. De bestaande native MQTT-verbinding

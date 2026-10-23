@@ -183,3 +183,34 @@ def test_fixed_metric_schema_is_finite_and_not_an_arbitrary_secret_relay():
     for key,value in (("extra",{}),("totalEnergyUsedKwhV2",float("inf")),("totalEnergyUsedKwhV2",-1),
                       ("totalEnergyUsedKwhV2",True),("outdoorTemperature",-101)):
         p=data();p[key]=value;assert not valid_snapshot(p)
+
+
+@pytest.mark.asyncio
+async def test_product_sensor_entry_uses_native_metrics_without_legacy_duplicates(hass, monkeypatch):
+    from custom_components.open_thermostat.sensor import async_setup_entry
+    from custom_components.open_thermostat.heating import HeatingTracker
+    from homeassistant.components import mqtt
+    e,r,c,now=await system(hass)
+    hass.config_entries.async_update_entry(e,data={**e.data,"product_configuration":1})
+    tracker=HeatingTracker(hass,e)
+    hass.data["open_thermostat"][e.entry_id]["heating_tracker"]=tracker
+    callbacks={};added=[]
+    async def subscribe(hass,topic,callback,*args,**kwargs):
+        callbacks[topic]=callback
+        return lambda:None
+    monkeypatch.setattr(mqtt,"async_wait_for_mqtt_client",AsyncMock())
+    monkeypatch.setattr(mqtt,"async_subscribe",subscribe)
+    def add(entities,**kwargs):
+        assert kwargs.get("config_subentry_id") in e.subentries
+        added.extend(entities)
+    await async_setup_entry(hass,e,add)
+    await c.receive("fw/telemetry/ems_metrics",canonical(packet(c)))
+    metrics=[x for x in added if x.unique_id.endswith("_energy_v2")]
+    assert len(metrics)==1
+    assert metrics[0].available and metrics[0].native_value==0
+    assert "fixture/ems_metrics" not in callbacks
+    assert len({x.unique_id for x in added})==len(added)
+    c.reset_session();r._notify()
+    assert not metrics[0].available
+    await e._async_process_on_unload(hass)
+    await tracker.async_stop();await r.async_stop()

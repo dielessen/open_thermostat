@@ -7,7 +7,7 @@ from .const import CONF_TOPIC_PREFIX, DOMAIN
 from .installation_group import ensure_installation_group
 
 
-async def async_setup_sensors(hass, entry, async_add_entities):
+async def async_setup_sensors(hass, entry, async_add_entities, *, native_metrics=False):
     from .sensor import HUB_METRICS, VERSIONED_METRICS, HubMetric, DhwStatus
     group_id = ensure_installation_group(hass, entry)
     prefix = entry.data[CONF_TOPIC_PREFIX]
@@ -67,6 +67,8 @@ async def async_setup_sensors(hass, entry, async_add_entities):
     await mqtt.async_wait_for_mqtt_client(hass)
     entry.async_on_unload(await mqtt.async_subscribe(hass, f"{prefix}/status", availability))
     for topic in HUB_METRICS:
+        if native_metrics and topic == "ems_metrics":
+            continue  # Single owner: validated native cache preserves v2 identities.
         entry.async_on_unload(await mqtt.async_subscribe(hass, f"{prefix}/{topic}", handler(topic)))
 
 

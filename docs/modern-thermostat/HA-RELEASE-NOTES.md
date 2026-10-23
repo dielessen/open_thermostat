@@ -1,3 +1,16 @@
+# HA 0.4.0.dev26 — native meetkoppeling voor de productinstallatie
+
+Bundelt alle voorbereide dev25-functies met de correctie voor bestaande v2-
+meetentiteiten. De productinstallatie gebruikt nu dezelfde gevalideerde native
+MQTT-cache als de native sensorplatformtests. Eén eigenaar per meetidentiteit
+voorkomt dubbele sensoren door legacy-berichten. Entiteitsidentiteiten,
+statistiekdefinities en installatiegroep blijven behouden; verlopen of niet
+ondersteunde waarden blijven onbeschikbaar. De frontend blijft op dezelfde
+reeds vernieuwde dev25-kaartversie omdat de frontendbytes niet veranderen.
+
+Samen met E32 alpha20 worden beschikbare Classic-ketelvelden zichtbaar.
+Uitgangen blijven geblokkeerd; geen wijziging van SOURCE, kamers of programma’s.
+
 # HA 0.4.0.dev25 — actuele ketelvelden en consistente EN/NL-bediening
 
 Samen met E32 alpha19 worden beschikbare Classic-ketelvelden via de bestaande

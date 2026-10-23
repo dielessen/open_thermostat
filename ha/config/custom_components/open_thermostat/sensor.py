@@ -86,7 +86,9 @@ async def async_setup_entry(
         await async_setup_boiler_fields(hass,entry,async_add_entities)
         if is_product(entry):
             from .product_telemetry import async_setup_sensors
-            await async_setup_sensors(hass, entry, async_add_entities)
+            await async_setup_sensors(hass, entry, async_add_entities, native_metrics=True)
+            from .v1_metrics import async_setup_shadow_metrics
+            await async_setup_shadow_metrics(hass, entry, async_add_entities)
             return
         from .v1_metrics import async_setup_shadow_metrics
         await async_setup_shadow_metrics(hass,entry,async_add_entities)

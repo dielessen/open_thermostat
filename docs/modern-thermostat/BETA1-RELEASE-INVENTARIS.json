@@ -753,6 +753,22 @@
         {
           "path": "src/HeatingController.h",
           "sha256": "5a7b365cd3b8719a14d66950e2b4d1508f75914d039471013b5b11fbf2d95dbb"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/sensor.py",
+          "sha256": "4a7937a046d19bb1de491aff15a0903611ed21b203e0d37c2246fd4c4cf5555b"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/product_telemetry.py",
+          "sha256": "e1a12e2fb811c6f59c3fc1f0f4eb03bd4c672d3fd0e6957d37595082b3e6cbbd"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/v1_metrics.py",
+          "sha256": "6428bc421dc28c72bc2479b3d51b661873517f65b3e66f32e2a8d43760a5dcbb"
+        },
+        {
+          "path": "ha/tests_native/test_modern_metrics.py",
+          "sha256": "bd844690a5593f0a9bf3efb9cbfad2432ab80795e1403989cb0bf3dd272cc1a1"
         }
       ],
       "remaining_acceptance": "Native HA-projectie lokaal geverifieerd: 555 native, 1716 HA-tests +68 subtests, C++/HA-interop, 3 boardbuilds en no-TX/layoutcheck. Openbare CI/eindkandidaat en gezamenlijke uitrol nog aftekenen; echte veldvergelijking, tijdlijn/grafieken/retentie blijven open. Geen controlkwalificatie of OEM-counterstatistiek."

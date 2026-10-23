@@ -455,3 +455,12 @@ begrensde verwarmingsproef of onafhankelijke stop bij verlies van de regelaar.
 bevestigde telegrammen en terugmelding, minimumflow/naloop en stopgedrag bij
 verbindingsverlies moeten nog worden vastgesteld. De modelvraag is beantwoord;
 geen automatische TX-vrijgave of nieuwe fysieke opdracht volgt uit deze registratie.
+
+## Geautoriseerde uitrol voorbereide bron — alpha18/dev24
+
+De gebruiker heeft expliciet gevraagd de voorbereide bron nu te committen en op
+HA en E32 te installeren. Deze gezamenlijke passieve release wordt alpha18/dev24;
+zij vervangt de ambitie van de actieve eerste bèta niet. B04–B09 blijven open.
+De bestaande compile-time uitgangsblokkades blijven behouden. Na freeze volgen
+volledige CI, onafhankelijke pakketcontrole, normale OTA en HA-agentinstallatie
+met back-up/nacontrole. Uitrolbewijs: `out/prepared-rollout-20261023/`.

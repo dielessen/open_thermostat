@@ -157,7 +157,7 @@
         },
         {
           "path": "test/ha-device-metadata-browser.cjs",
-          "sha256": "58116249d8554c683dd282ab8eb1bb445f7bb60bc95cd317981653c43459ab86"
+          "sha256": "0cc00d378d6f47b7b647ef3c8db0cf8bd33bef99a9f51d24659298b59aa06f6b"
         }
       ],
       "remaining_acceptance": "Gemelde Z2M-/converterversies behouden en zichtbaar, ontbrekend blijft onbekend. Metadata is geen directe packagebron-/hashcontrole en kwalificeert geen fysieke sensor of kraan."
@@ -174,7 +174,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/week_planner.py",
-          "sha256": "d41381be52588935323491e8b187b6b2c2b6991d1523612aef48c3c480b6284b"
+          "sha256": "2ebe464c466e02c27e1477e735f5b79eda75b57c429a43b6112b049c98ffee6e"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_program_apply.py",
@@ -225,7 +225,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "7efd3fbbe56026cb169081140f32749eeeebb8d2bb58360c0df1d66525df2558"
+          "sha256": "f2e0d615cda1ee30bcf458ef985298f10bab7bc0788eb384cae5f0e00b757b04"
         }
       ],
       "remaining_acceptance": "Drie echte koude HA-sessies bewezen; versiegebonden module behouden."
@@ -396,7 +396,7 @@
         },
         {
           "path": "test/ha-tv02-mode-browser.cjs",
-          "sha256": "26ba806428bce7c0d5502e74ae7b2cd4afb147ebae184a957b42bc2444847548"
+          "sha256": "f22c9522e9988441352f7cae8896f033493635f5f85f3ca9c83f582444a67fe5"
         },
         {
           "path": "ha/tests_native/test_actuator_dispatch_binding.py",

@@ -1,3 +1,11 @@
+# HA 0.4.0.dev24 — gezamenlijke bron- en apparaatcontroles
+
+Deze release bundelt de voorbereide bronwijzigingen met E32 alpha18. Meetkwalificatie wordt ingetrokken bij vervanging van een observer of wijziging/uitschakeling van de native sensor of het apparaat. Wachtende metingen worden opnieuw gecontroleerd vóór overdracht; cache en herregistratie maken een oude meting niet vers.
+
+De kraanadapter controleert identiteit en actuele temperatuurcapaciteit vlak vóór dispatch. TV02 auto-/vakantie-/uit-/onbekende modus wordt als conflict getoond en verleent geen doelautorisatie. De apparaatcontrole toont expliciet gemelde Zigbee2MQTT- en converterpakketversies. De frontend krijgt een nieuwe cache- en kaartidentiteit.
+
+Programma, kameridentiteiten, bindings en SOURCE blijven behouden. Deze installatie wijzigt geen profiel, kraanmodus of fysieke uitgang. Het productiemeetprofiel en fysieke kraan-/ketelacceptatie blijven open; ontbrekende kwalificatie blijft zichtbaar. Alle eerdere planner-, koude-start-, inrichting- en verbindingsfixes blijven behouden.
+
 # HA 0.4.0.dev23 — gebundelde kamer- en verbindingsverbeteringen
 
 Deze release hoort bij de gezamenlijke testbatch met E32 alpha17.

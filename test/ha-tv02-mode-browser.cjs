@@ -24,14 +24,14 @@ const output=path.resolve(process.env.OPENTHERMOSTAT_TV02_EVIDENCE||path.join(__
        issues:issue?[issue]:[],authorizes_actuation:false}}]};
    };
    setMode('local_schedule_active','auto');
-   window.card=document.createElement('openthermostat-room-editor-v23');document.querySelector('main').append(card);
+   window.card=document.createElement('openthermostat-room-editor-v24');document.querySelector('main').append(card);
    card.setConfig({entry_id:model.entry_id,room_id:model.room_id});
    card.hass={language,user:{is_admin:true},callWS:async request=>{
     calls.push(request.type);if(request.type!=='open_thermostat/room/get')throw Error('Unexpected write');
     return structuredClone(model);
    }};
   },{initial,language});
-  const card=page.locator('openthermostat-room-editor-v23'),review=card.locator('.target-review[aria-label]');
+  const card=page.locator('openthermostat-room-editor-v24'),review=card.locator('.target-review[aria-label]');
   await review.waitFor();
   assert((await review.textContent()).includes(language==='nl'?'eigen weekprogramma':'automatic scheduling'));
   await review.screenshot({path:path.join(output,`AUTO-${width}-${language}.png`)});

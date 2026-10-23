@@ -1,3 +1,11 @@
+# E32 V2 alpha18 — gezamenlijke ontvangst- en diagnose-release
+
+Deze release bundelt de voorbereide bronwijzigingen met HA dev24. Settings → Keteltest toont ontvangstdiagnose, ouderdom en beschikbare ketelwaarden en biedt een downloadrapport. Originele UART-ontvangsttijden blijven behouden. De begrensde proefpolicy, gedeelde pollroute, Classic-encoder en SDK-zendcontroles zijn meegeleverd als geblokkeerde voorbereiding.
+
+E32 EMS-zenden en aanvullende GPIO-uitgangen blijven compile-time geblokkeerd. De proefbediening verleent geen verwarmingsvrijgave. Echte meetrapportproducent, fysieke kraanacceptatie, zendinterface en onafhankelijk stopgedrag blijven open. Deze release is bedoeld voor de volgende passieve praktijkcontrole, niet als afgeronde actieve ketelbèta.
+
+Normale app-only HTTPS-update, met behoud van instellingen en dezelfde partitie-indeling. Alle eerdere update-, web-, About-, dashboard- en sessieverbeteringen blijven behouden.
+
 # E32 V2 alpha17 — gebundelde update- en webverbeteringen
 
 Deze release hoort bij de gezamenlijke testbatch met Home Assistant dev23.

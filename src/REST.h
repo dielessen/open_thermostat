@@ -979,7 +979,7 @@ private:
 		DBGLOGFD(log_, logFeature_, "temporaryOverride '%s' temp: %d secs: %d\n", roomName, temperature, validSeconds);
 
 		if (!controller_.setRoomTemporaryTemperature(roomName, temperature, validSeconds)) {
-			std::stringstream error;
+			std::ostringstream error;
 			error << "Room " << roomName << " not found";
 			std::string errorStr = error.str();
 			server_.send(404, "text/plain", errorStr.c_str());

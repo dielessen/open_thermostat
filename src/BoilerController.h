@@ -135,7 +135,7 @@ public:
 
 	std::string getStatus() const {
 
-		std::stringstream ss;
+		std::ostringstream ss;
 		getStatus(ss);
 		return ss.str();
 	}

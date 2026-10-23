@@ -260,13 +260,13 @@ public:
 
 
 	std::string getFullStatus() const {
-		std::stringstream ss;
+		std::ostringstream ss;
 		getFullStatus(ss);
 		return ss.str();
 	}
 
 	std::string getRoomsStatus() const {
-		std::stringstream ss;
+		std::ostringstream ss;
 		getRoomsStatus(ss);
 		return ss.str();
 	}

@@ -165,7 +165,7 @@ std::optional<int16_t> Room::getAverageTemperature() const {
 }
 
 std::string Room::getStatus() const {
-	std::stringstream ss;
+	std::ostringstream ss;
 	getStatus(ss);
 	return ss.str();
 }

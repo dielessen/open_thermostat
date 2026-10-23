@@ -54,7 +54,7 @@ struct EmsBoilerState {
 	std::optional<uint8_t> protocolVersion;
 
 	std::string getStatus() const {
-		std::stringstream ss;
+		std::ostringstream ss;
 		getStatus(ss);
 		return ss.str();
 	}
@@ -109,7 +109,7 @@ struct EmsBoilerParams {
 	}
 
 	std::string getJSON() const {
-		std::stringstream ss;
+		std::ostringstream ss;
 		getJSON(ss);
 		return ss.str();
 	}
@@ -192,7 +192,7 @@ public:
 	}
 
 	std::string getStatus() const {
-		std::stringstream ss;
+		std::ostringstream ss;
 		getStatus(ss);
 		return ss.str();
 	}

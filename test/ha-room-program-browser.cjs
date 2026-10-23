@@ -14,14 +14,14 @@ const initial={entry_id:'fixture',room_id:'room',supported:true,editable:true,pr
  week:Object.fromEntries(days.map(day=>[day,[]]))}};
 (async()=>{
  fs.mkdirSync(out,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});const results=[];
- try{for(const [size,viewport]of [['desktop',{width:1440,height:1100}],['mobile',{width:390,height:844}]])for(const language of ['nl','en']){
+ try{for(const [size,viewport]of [['desktop',{width:1440,height:1100}],['mobile',{width:390,height:844}]])for(const language of ['nl','en'])for(const shell of ['cold','preloaded']){
   const page=await browser.newPage({viewport});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.setContent('<style>body{margin:0;font:14px Arial,sans-serif}</style><main></main>');
-  await page.evaluate(()=>{customElements.define('ha-card',class extends HTMLElement{});customElements.define('openthermostat-room-editor-v15',class extends HTMLElement{});});
-  await page.evaluate(async text=>{await import('data:text/javascript;base64,'+text)},source.toString('base64'));
+  await page.evaluate(shell=>{if(shell==='preloaded')customElements.define('ha-card',class extends HTMLElement{});customElements.define('openthermostat-room-editor-v15',class extends HTMLElement{});},shell);
+  await page.evaluate(async text=>{await Promise.race([import('data:text/javascript;base64,'+text),new Promise((_,reject)=>setTimeout(()=>reject(Error('Room editor registration blocked waiting for ha-card')),5000))])},source.toString('base64'));
   await page.evaluate(({initial,language})=>{
    window.model=structuredClone(initial);window.calls=[];window.saveMode='hold';
-   const card=window.card=document.createElement('openthermostat-room-editor-v19');document.querySelector('main').append(card);
+   const card=window.card=document.createElement('openthermostat-room-editor-v20');document.querySelector('main').append(card);
    card.setConfig({entry_id:model.entry_id,room_id:model.room_id});
    card.hass={language,user:{is_admin:true},callWS:async request=>{
     calls.push(structuredClone(request));
@@ -36,7 +36,14 @@ const initial={entry_id:'fixture',room_id:'room',supported:true,editable:true,pr
     throw Error('Unexpected command');
    }};
   },{initial,language});
-  const nl=language==='nl',card=page.locator('openthermostat-room-editor-v19');await card.locator('#name').waitFor();
+  const nl=language==='nl',card=page.locator('openthermostat-room-editor-v20');await card.locator('#name').waitFor();
+  if(shell==='cold'){
+   assert.equal(await page.evaluate(()=>!!customElements.get('ha-card')),false);
+   await card.locator('#name').fill('Retain draft across HA shell loading');
+   await page.evaluate(()=>customElements.define('ha-card',class extends HTMLElement{}));
+   assert.equal(await card.locator('#name').inputValue(),'Retain draft across HA shell loading');
+   await card.locator('#name').fill(initial.settings.name);
+  }
   const save=()=>card.locator('footer .primary');
   assert.equal(await page.evaluate(()=>calls.filter(c=>c.type.endsWith('/save')).length),0);
   assert(await card.locator('#name').isEnabled());assert(await card.locator('#base_centi_c').isEnabled());
@@ -55,7 +62,7 @@ const initial={entry_id:'fixture',room_id:'room',supported:true,editable:true,pr
   assert.equal(first.settings.temperature_entity,'sensor.room');assert.deepEqual(first.settings.radiator_entities,['climate.valve']);
   await page.evaluate(()=>finishSave());await card.locator('#name:enabled').waitFor();assert(await save().isDisabled());
   await card.getByText(nl?'De ruimte is opgeslagen en het programma is bevestigd':'The room is saved and its program is confirmed',{exact:false}).waitFor();
-  await page.screenshot({path:path.join(out,`${size}-${language}.png`),fullPage:true});
+  await page.screenshot({path:path.join(out,`${size}-${language}-${shell}.png`),fullPage:true});
   await page.evaluate(()=>window.saveMode='uncertain');await card.locator('#name').fill('Retain my intent');await save().click();
   await card.getByText(nl?'De toepassing is nog niet bevestigd.':'Application has not been confirmed.',{exact:false}).waitFor();
   assert.equal(await card.locator('#name').inputValue(),'Retain my intent');assert(await save().isDisabled());
@@ -75,7 +82,7 @@ const initial={entry_id:'fixture',room_id:'room',supported:true,editable:true,pr
   assert(await save().isDisabled());assert.equal(await page.evaluate(()=>calls.filter(c=>c.type.endsWith('/save')).length),5);
   assert.equal(await page.evaluate(()=>calls.every(c=>['open_thermostat/room/get','open_thermostat/room/save'].includes(c.type))),true);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
-  results.push({size,language,result:'PASS',hardware_locked:true,graphical_temperature_block:true,wait_for_save:true,uncertain_draft_preserved:true,reapply_explicit:true,no_device_actions:true});await page.close();
+  results.push({size,language,shell,result:'PASS',hardware_locked:true,graphical_temperature_block:true,wait_for_save:true,uncertain_draft_preserved:true,reapply_explicit:true,no_device_actions:true});await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(out,'BROWSER.json'),JSON.stringify({result:'PASS',scope:'Real shipped JS; simulated admin WS, no physical qualification',cases:results},null,2)+'\n');
  console.log(JSON.stringify({result:'PASS',cases:results.length}));

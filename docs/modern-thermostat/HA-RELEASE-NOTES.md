@@ -1,3 +1,22 @@
+# Home Assistant 0.4.0.dev20 — room page registration on direct opening
+
+The room editor previously waited for ha-card before registering its own custom
+element. A direct room URL can load before that built-in component, leaving the
+editor unregistered and showing a Lovelace Configuration error. The editor
+extends HTMLElement and has no dependency on the ha-card definition.
+
+Register immediately; a nested ha-card can upgrade later. The frontend module URL
+and managed card type advance to dev20/v20 to refresh cached dev19 clients.
+Eight desktop/mobile NL/EN browser cases now exercise both cold and preloaded
+HA shells, including preserving a draft when ha-card registers later. Four
+existing device-metadata cases remain covered. The regression failed against
+the original script and passed after removing the unnecessary wait.
+
+No room settings, schedule, SOURCE, sensor bindings or controller admission
+rules are changed. No firmware is included. Browser fixtures use simulated
+admin WebSocket responses; live deployment and the user's exact browser
+session are separate verification steps.
+
 # OpenThermostat Home Assistant 0.4.0.dev19 — testrelease
 
 Dev19 herstelt opslaan na langer geopende kamerinstellingen. Een verse

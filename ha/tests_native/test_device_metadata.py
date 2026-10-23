@@ -12,6 +12,7 @@ import pytest_asyncio
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.components import mqtt
 from homeassistant.components.mqtt.models import DATA_MQTT, MqttData, ReceiveMessage
+from homeassistant.components.mqtt.discovery import MQTTDiscoveryPayload
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from custom_components.open_thermostat import device_metadata as metadata
@@ -36,11 +37,11 @@ async def devices(hass):
             identifiers={('mqtt', identifier)})
         entity = er.async_get(hass).async_get_or_create(domain, 'mqtt', f'selected_{index}',
             config_entry=broker, device_id=device.id)
-        discovery = {'origin': {'name': 'Zigbee2MQTT'},
+        discovery = MQTTDiscoveryPayload({'origin': {'name': 'Zigbee2MQTT'},
             'device': {'identifiers': [identifier], 'name': f'Fixture {index}'},
             'state_topic': f'custom-z2m/Fixture {index}',
             'availability': [{'topic': 'custom-z2m/bridge/state'}],
-            'value_template': '{{ value_json["device_temperature"] }}' if index == 1 else ''}
+            'value_template': '{{ value_json["device_temperature"] }}' if index == 1 else ''})
         data.debug_info_entities[entity.entity_id] = {'discovery_data': {'discovery_payload': discovery},
             'transmitted': {'private history': 'must not be read or exported'}}
         references.append({'entity_id': entity.entity_id, 'platform': 'mqtt', 'unique_id': entity.unique_id})

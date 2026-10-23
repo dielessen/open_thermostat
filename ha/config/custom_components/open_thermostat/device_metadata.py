@@ -75,7 +75,9 @@ def selected_device(hass, ref):
     # Copy neither subscriptions nor transmitted/received application messages.
     stored = getattr(mqtt_data, "debug_info_entities", {}).get(entity_id, {})
     discovery = stored.get("discovery_data", {}).get("discovery_payload")
-    if type(discovery) is not dict or device is None:
+    # HA stores MQTTDiscoveryPayload, its native dict subclass. This is the
+    # trusted in-process cache; incoming broker JSON keeps strict validation.
+    if not isinstance(discovery, dict) or device is None:
         raise MetadataUnavailable("device_metadata_unavailable")
     identities = {match.group(1).lower() for source, value in device.identifiers if source == "mqtt"
                   and (match := _IEEE.fullmatch(value))}

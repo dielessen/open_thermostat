@@ -1,4 +1,4 @@
-# OpenThermostat Home Assistant 0.4.0.dev15 — testrelease
+# OpenThermostat Home Assistant 0.4.0.dev16 — testrelease
 
 Eén installatie met centrale instellingen en kamers. Nieuwe kamers gebruiken
 een wizard; bestaande kamers hebben één direct configuratiescherm met gekoppelde
@@ -7,7 +7,12 @@ Apparaatidentiteit, beschikbaarheid en kraangrenzen worden bij de kamer getoond.
 Deze versie herkent de officiële Home Assistant-featureflags van een klimaatapparaat
 correct; geldige temperatuurgrenzen hoeven daardoor niet onbekend te lijken.
 
-Nieuw in dev15: in het kamerscherm staat onder **Geavanceerde instellingen**
+Dev16 herstelt de uitlezing voor Home Assistants eigen `MQTTDiscoveryPayload`-
+object. De regressietest gebruikt nu dat echte native object, ook samen met de
+werkelijke HA-MQTT-client en een lokale testbroker. De eerdere dev15-tag en
+bestanden blijven behouden; installeer dev16 voor deze apparaatcontrole.
+
+Aanwezig sinds dev15: in het kamerscherm staat onder **Geavanceerde instellingen**
 **Apparaatinformatie controleren**. Dit leest uitsluitend op verzoek de laatst
 gemelde Zigbee2MQTT-definities voor de opgeslagen sensor en kranen. Doeltemperatuur,
 externe temperatuurinvoer, klepstand en converteropties worden apart getoond.
@@ -32,14 +37,16 @@ controlecodes blijven tijdelijk. Gewone kamerschermen en diagnoses exporteren
 het wachtwoord niet. Bij een onderbroken koppeling wordt geen bevestigde uitvoering
 voorgewend; controleer de installatiestatus voordat je opnieuw probeert.
 
-Dit is een ontwikkelrelease. De complete HA→E32→bevestiging-/kraanproef en
-verwarmingsvrijgave zijn nog niet afgerond. De optionele externe kamerdoelbron,
+Dit is een ontwikkelrelease. De normale HA→E32-configuratieketen is met dev14
+live bevestigd; de fysieke sensor-/kraan-/ketelproef en verwarmingsvrijgave
+zijn nog niet afgerond. Deze testversie blokkeert de kamereditor nog bij een
+actieve koppeling. Live wijzigen van de kamerinstellingen blijft vervolgwerk. De optionele externe kamerdoelbron,
 raamcontact en meerdere gekwalificeerde kraanprofielen zijn nog vervolgwerk.
 De nieuwe E32-firmware wordt afzonderlijk getest en uitgebracht; deze release
 bevat uitsluitend de Home Assistant-integratie. Een opgeslagen instelling is
 nog geen bevestigde uitvoering op de E32.
 
-Download `OpenThermostat-HA-0.4.0.dev15.zip` en controleer de SHA256 met
+Download `OpenThermostat-HA-0.4.0.dev16.zip` en controleer de SHA256 met
 `HA-SHA256SUMS.txt`. Maak vóór installatie een back-up van de bestaande
 integratie/configuratie. Kopieer `custom_components/open_thermostat` uit de ZIP
 naar de Home Assistant-configuratiemap, controleer de configuratie en herstart

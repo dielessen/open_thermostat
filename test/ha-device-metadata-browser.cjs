@@ -18,6 +18,7 @@ const metadata={metadata_only:true,physical_control_qualified:false,measurement_
   const page=await browser.newPage({viewport});const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.setContent('<style>body{margin:0;font:14px Arial,sans-serif}</style><main></main>');
   await page.evaluate(()=>{customElements.define('ha-card',class extends HTMLElement{});customElements.define('openthermostat-room-editor-v15',class extends HTMLElement{});});
+ await page.evaluate(()=>customElements.define('home-assistant',class extends HTMLElement{}));
   await page.evaluate(async text=>{await import('data:text/javascript;base64,'+text)},source.toString('base64'));
   await page.evaluate(({initial,metadata,language})=>{
    window.model=structuredClone(initial);window.metadata=structuredClone(metadata);window.calls=[];window.mode='ok';

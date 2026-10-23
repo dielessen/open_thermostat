@@ -14,10 +14,21 @@ const initial={measurement:{status:'profile_missing',report_profile_configured:f
  week:Object.fromEntries(days.map(day=>[day,[]]))}};
 (async()=>{
  fs.mkdirSync(out,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});const results=[];
- try{for(const [size,viewport]of [['desktop',{width:1440,height:1100}],['mobile',{width:390,height:844}]])for(const language of ['nl','en'])for(const shell of ['cold','preloaded']){
+ try{
+ const boot=await browser.newPage();
+ await boot.setContent('<home-assistant></home-assistant>');
+ await boot.evaluate(text=>{window.editorImport=import('data:text/javascript;base64,'+text);},source.toString('base64'));
+ await boot.waitForTimeout(100);
+ assert.equal(await boot.evaluate(()=>!!customElements.get('openthermostat-room-editor-v22')),false);
+ await boot.evaluate(async()=>{customElements.define('home-assistant',class extends HTMLElement{});await editorImport;});
+ assert.equal(await boot.evaluate(()=>!!customElements.get('openthermostat-room-editor-v22')),true);
+ assert.equal(await boot.evaluate(()=>!!customElements.get('ha-card')),false);
+ await boot.close();
+ for(const [size,viewport]of [['desktop',{width:1440,height:1100}],['mobile',{width:390,height:844}]])for(const language of ['nl','en'])for(const shell of ['cold','preloaded']){
   const page=await browser.newPage({viewport});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.setContent('<style>body{margin:0;font:14px Arial,sans-serif}</style><main></main>');
   await page.evaluate(shell=>{if(shell==='preloaded')customElements.define('ha-card',class extends HTMLElement{});customElements.define('openthermostat-room-editor-v15',class extends HTMLElement{});},shell);
+ await page.evaluate(()=>customElements.define('home-assistant',class extends HTMLElement{}));
   await page.evaluate(async text=>{await Promise.race([import('data:text/javascript;base64,'+text),new Promise((_,reject)=>setTimeout(()=>reject(Error('Room editor registration blocked waiting for ha-card')),5000))])},source.toString('base64'));
   await page.evaluate(({initial,language})=>{
    window.model=structuredClone(initial);window.calls=[];window.saveMode='hold';

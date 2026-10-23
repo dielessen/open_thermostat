@@ -82,9 +82,11 @@ function validate(s){
  let count=0;for(const d of DAYS){let end=0;for(const b of [...s.week[d]].sort((a,b)=>a.start-b.start)){if(![b.start,b.end,b.target_centi_c].every(Number.isInteger)||b.start<0||b.end>86400||b.start>=b.end)throw Error('invalid');if(b.target_centi_c<s.minimum_centi_c||b.target_centi_c>s.maximum_centi_c)throw Error('range');if(b.start<end)throw Error('overlap');end=b.end;if(++count>28)throw Error('limit');}}
  return s;
 }
-// Register immediately, including a direct room URL before Lovelace has loaded
-// ha-card. This editor extends HTMLElement and does not need that definition;
-// the nested ha-card can upgrade later without blocking our registration.
+// HA installs its scoped custom-element registry during frontend startup.
+// Register only after its root is defined, so an early extra-JS import cannot
+// register into the native registry that HA is about to replace. Unlike
+// ha-card, the root is loaded independently of opening a Lovelace view.
+await customElements.whenDefined('home-assistant');
 class OpenThermostatRoomEditor extends HTMLElement{
  constructor(){super();this.attachShadow({mode:'open'});this._generation=0;}
  get t(){return TEXT[this._hass?.language?.startsWith('nl')?'nl':'en'];}

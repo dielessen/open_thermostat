@@ -11,6 +11,7 @@ fs.mkdirSync(output,{recursive:true});const browser=await chromium.launch({headl
 try{for(const width of [390,320,1440])for(const language of ['nl','en']){
  const page=await browser.newPage({viewport:{width,height:900},isMobile:width<720,hasTouch:true});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.setContent('<meta name="viewport" content="width=device-width, initial-scale=1"><style>body{margin:0;font:14px Arial}</style><main></main>');
+ await page.evaluate(()=>customElements.define('home-assistant',class extends HTMLElement{}));
  await page.evaluate(async s=>{await import('data:text/javascript;base64,'+s)},source.toString('base64'));
  await page.evaluate(({initial,tag,language})=>{window.calls=[];window.card=document.createElement(tag);document.querySelector('main').append(card);card.setConfig({entry_id:'fixture',room_id:'room'});card.hass={language,user:{is_admin:true},callWS:async r=>{calls.push(r.type);if(r.type!=='open_thermostat/room/get')throw Error('Unexpected write');return structuredClone(initial);}};},{initial,tag,language});
  const card=page.locator(tag);await card.locator('.track').first().waitFor();const client=await page.context().newCDPSession(page);

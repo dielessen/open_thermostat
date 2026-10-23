@@ -1,3 +1,21 @@
+# E32 V2 alpha19 — ketelvelden naar HA en tweetalige bediening
+
+Gezamenlijke passieve update met HA dev25. De bestaande native MQTT-verbinding
+publiceert nu alle 69 voorbereide Classic-velddefinities met oorspronkelijke
+rapportleeftijd, kwaliteit en eenheden. Dat maakt geldige ontvangen ketelvelden
+zichtbaar in HA; niet ontvangen, verlopen of onbetrouwbare waarden worden niet
+als werkende meting voorgesteld. Een modelkeuze begrenst de ontvangst nooit.
+Deze decoderdekking is geen maximum voor andere EMS-ketels.
+
+Meegeleverd: English/Nederlands met onthouden E32-browserkeuze, aangevulde HA-
+vertalingen, Mijn ketel met lokale illustratie, uitgebreide berichtdiagnose en
+alle eerdere voorbereide correcties. De gewone app-only HTTPS-update behoudt
+netwerk, SOURCE, kamers en programma’s en gebruikt dezelfde partitie-indeling.
+
+E32-zenden en fysieke ketel-/kraanuitgangen blijven geblokkeerd. Dit is een
+gebundelde uitleesupdate, geen vrijgave van de actieve ketelbèta. De echte
+meetproducent-, kraan-, zendinterface- en stopacceptatie blijven apart.
+
 # E32 V2 alpha18 — gezamenlijke ontvangst- en diagnose-release
 
 Deze release bundelt de voorbereide bronwijzigingen met HA dev24. Settings → Keteltest toont ontvangstdiagnose, ouderdom en beschikbare ketelwaarden en biedt een downloadrapport. Originele UART-ontvangsttijden blijven behouden. De begrensde proefpolicy, gedeelde pollroute, Classic-encoder en SDK-zendcontroles zijn meegeleverd als geblokkeerde voorbereiding.

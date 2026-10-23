@@ -22,8 +22,8 @@ from .v1_wire import digest
 
 _LOGGER = logging.getLogger(__name__)
 _KEY = DOMAIN + "_week_frontend"
-URL = "/open_thermostat/week-planner-0.4.0.dev24.js"
-ROOM_CARD_TYPE = "custom:openthermostat-room-editor-v24"
+URL = "/open_thermostat/week-planner-0.4.0.dev25.js"
+ROOM_CARD_TYPE = "custom:openthermostat-room-editor-v25"
 
 
 def _target(hass, entry_id, room_id):

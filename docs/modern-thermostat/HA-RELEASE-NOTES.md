@@ -1,3 +1,20 @@
+# HA 0.4.0.dev25 — actuele ketelvelden en consistente EN/NL-bediening
+
+Samen met E32 alpha19 worden beschikbare Classic-ketelvelden via de bestaande
+native MQTT-sessie als leessensoren op de bestaande installatie aangeboden.
+De bronleeftijd, kwaliteit, eenheid en geldigheid blijven zichtbaar. Dit herstelt
+het ontbrekende moderne uitleespad; oude legacy-aliassen en hun historie worden
+behouden en worden niet met nieuwe meetdefinities samengevoegd. Niet door de
+ketel geleverde waarden blijven onbekend; onbetrouwbare diagnostiek blijft
+standaard uitgeschakeld.
+
+De volledige EN/NL-formuliercatalogi zijn aangevuld. De kamereditor volgt de
+HA-profieltaal, met nieuwe cache-/kaartidentiteit en behoud van oudere kaarten.
+Opgeslagen native dashboardteksten gebruiken de afgesproken Engelse terugval.
+Alle voorbereide apparaat-/meetdiagnostiek, weekplanner- en opslagcorrecties
+blijven meegenomen. Er worden geen kamerkoppelingen, programma’s, kraanmodi of
+verwarmingsvrijgaven gewijzigd. Fysieke uitgangen blijven geblokkeerd.
+
 # HA 0.4.0.dev24 — gezamenlijke bron- en apparaatcontroles
 
 Deze release bundelt de voorbereide bronwijzigingen met E32 alpha18. Meetkwalificatie wordt ingetrokken bij vervanging van een observer of wijziging/uitschakeling van de native sensor of het apparaat. Wachtende metingen worden opnieuw gecontroleerd vóór overdracht; cache en herregistratie maken een oude meting niet vers.

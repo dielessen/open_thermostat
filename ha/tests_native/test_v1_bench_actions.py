@@ -223,3 +223,30 @@ async def test_restore_failure_keeps_generic_source_fenced(action_system, monkey
     assert runtime._bench_owner == binding.room_id
     with pytest.raises(HomeAssistantError):
         await action(hass, "start", arguments(e))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('source_field', [
+    'native_plan_source', 'graph_controller_source', 'graph_data_profile',
+    'controller_policy_source_profile'])
+async def test_legacy_finite_bench_never_takes_over_a_source_owned_plan(action_system, source_field):
+    hass, e, runtime, binding, connection, emit, removed, bus = action_system
+    manager=hass.data[KEY][e.entry_id]
+    desired=copy.deepcopy(connection.client.desired)
+    mapping=copy.deepcopy(connection.client.mapping)
+    journal=copy.deepcopy(connection.client.journal)
+    stored=await connection.client.store.async_load()
+    original=getattr(runtime,source_field)
+    try:
+        # Ownership selection is enough to reject; no source DATA is promoted.
+        setattr(runtime,source_field,object())
+        with pytest.raises(HomeAssistantError,match='source-owned'):
+            await manager.start(arguments(e))
+    finally:
+        setattr(runtime,source_field,original)
+    assert manager.closed and manager.phase=='inactive' and manager.listener is None
+    assert manager.timer is None and manager.worker is None
+    assert runtime._bench_owner is None and connection.bench is None
+    assert connection.client.desired==desired and connection.client.mapping==mapping
+    assert connection.client.journal==journal
+    assert await connection.client.store.async_load()==stored

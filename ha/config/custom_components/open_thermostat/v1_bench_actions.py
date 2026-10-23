@@ -97,6 +97,13 @@ class Bench:
             if (runtime is None or connection is None or not runtime.enabled
                     or len(runtime.rooms) != 1 or not connection.client.ready):
                 raise HomeAssistantError("Enabled, admitted one-zone shadow entry required")
+            # This developer bench replaces a schema1 mapping. It cannot
+            # migrate an admitted SOURCE-owned plan/profile or its journal.
+            # Refuse before taking ownership, changing desired DATA or timers.
+            if any(getattr(runtime, name, None) is not None for name in (
+                    "native_plan_source", "graph_controller_source", "graph_data_profile",
+                    "controller_policy_source_profile")):
+                raise HomeAssistantError("Finite source bench does not support source-owned control plans")
             if runtime._bench_owner is not None or connection.bench is not None:
                 raise HomeAssistantError("Exclusive source owner already held")
             if len(canonical(data)) > 32768:

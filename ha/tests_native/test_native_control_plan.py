@@ -25,6 +25,7 @@ from test_v1_native import physical_state,source_profile
 async def native_plan(native_two,hass,monkeypatch,request):
     options=request.param if hasattr(request,"param") and type(request.param) is dict else {}
     legacy=options.get("legacy",False)
+    controller_id=options.get("controller_id","e32_test")
     parent,rad,floor,heating,output=native_two
     floor=replace(floor,base_centi_c=1900)
     sub=next(s for s in parent.subentries.values() if s.subentry_type=="zone" and s.data["room_id"]==floor.room_id)
@@ -64,12 +65,12 @@ async def native_plan(native_two,hass,monkeypatch,request):
             maximum_sensor_age_ms=120000,report_evidence="physical_report",
             minimum_supply_centi_c=group["supply_limits"]["minimum_centi_c"],
             maximum_supply_centi_c=group["supply_limits"]["maximum_centi_c"]))
-    body=dict(schema=1,kind="native_profile.shadow.v1",controller_id="e32_test",adapter_id="test_owner",
+    body=dict(schema=1,kind="native_profile.shadow.v1",controller_id=controller_id,adapter_id="test_owner",
         layout_digest=digest(layout),mapping_revision=1,zones=rows)
     if legacy:body.update(schema=2,kind="native_profile.shadow.v2",legacy_readback="schema1_quarantine_only")
     week=options.get("week",False)
     if week:body.update(schema=3,kind="native_profile.week.v1")
-    policy=NativeInstallationPolicy(parent.unique_id,"e32_test","test_owner",digest(body),legacy_readback_reviewed=legacy,week_reviewed=week)
+    policy=NativeInstallationPolicy(parent.unique_id,controller_id,"test_owner",digest(body),legacy_readback_reviewed=legacy,week_reviewed=week)
     source=NativePlanSource(policy,canonical(body),canonical(bindings));source.validate()
     monkeypatch.setattr(integration,"_NATIVE_PLAN_SOURCE_PROFILES",(source,))
     monkeypatch.setattr(integration,"_GRAPH_DATA_SOURCE_PROFILE",None)
@@ -110,11 +111,11 @@ async def native_plan(native_two,hass,monkeypatch,request):
     async with pair(hass) as peer:
         if options.get("local_source",False):
             from custom_components.open_thermostat.native_provisioning import local_device_descriptor
-            initial=await peer.request("initialize_native_local_source",controller="e32_test",boot="native_boot",
+            initial=await peer.request("initialize_native_local_source",controller=controller_id,boot="native_boot",
                 owner="test_owner",stored=canonical(legacy_record["config"]) if legacy else "",
                 local_source=canonical(local_device_descriptor(source)))
         else:
-            initial=await peer.request("initialize_native_plan",controller="e32_test",boot="native_boot",
+            initial=await peer.request("initialize_native_plan",controller=controller_id,boot="native_boot",
                 owner="test_owner",stored=canonical(legacy_record["config"]) if legacy else "",
                 source=dict(profile_digest=policy.profile_digest,mapping_revision=1,zones=rows,legacy_readback_reviewed=legacy))
         assert not initial["fault"] and initial["writes"]==0 and initial["revision"]==(1 if legacy else 0)

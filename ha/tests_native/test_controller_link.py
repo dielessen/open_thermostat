@@ -519,3 +519,37 @@ async def test_room_save_preserves_new_current_credential_instead_of_restoring_o
     assert parent.data['controller_password']=='private-fixture-two'
     assert parent.subentries[sub.subentry_id].title=='Edited room'
     assert 'private-fixture' not in json.dumps(result)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('descriptor_fault',[None,'other_owner','wrong_predecessor','boolean_alias','missing_predecessor'])
+async def test_selected_evolution_replaces_only_exact_predecessor(hass,configured,descriptor_fault):
+    from custom_components.open_thermostat import room_editor as ui
+    from custom_components.open_thermostat.native_provisioning import (
+        SOURCE_OPTION,source_selection,propose_room_source_change)
+    parent,sub,model=configured
+    reads=authenticated_readbacks();old=link.initial_controller_link(hass,parent,**reads)
+    hass.config_entries.async_update_entry(parent,options={**parent.options,SOURCE_OPTION:source_selection(old.source)})
+    model=ui.read_room(hass,parent.entry_id,model['room_id'])
+    settings=deepcopy(model['settings']);settings['maximum_centi_c']-=100
+    _,current_sub,room=ui._target(hass,parent.entry_id,model['room_id'])
+    candidate,graph,_=ui.prepare_room_edit(hass,parent,current_sub,room,settings)()
+    proposed=propose_room_source_change(hass,parent,old.source,candidate,graph.storage_document())
+    await ui.save_room(hass,parent.entry_id,model['room_id'],model['token'],settings)
+    hass.config_entries.async_update_entry(parent,options={**parent.options,SOURCE_OPTION:source_selection(proposed)})
+    reads['settings']=deepcopy(old.settings)
+    reads['settings']['mqtt'].update(native_source_device_id=old.source.policy.controller_id,
+        native_source_live_apply=True)
+    reads['status']['controlMode']='shadow'
+    if descriptor_fault=='missing_predecessor':reads['settings']['mqtt'].pop('native_shadow_source')
+    if descriptor_fault=='other_owner':reads['settings']['mqtt']['adapter_id']='other-owner'
+    if descriptor_fault=='wrong_predecessor':reads['settings']['mqtt']['native_shadow_source'][6][0][5]='f'*64
+    if descriptor_fault=='boolean_alias':reads['settings']['mqtt']['native_shadow_source'][6][0][4]=False
+    if descriptor_fault:
+        with pytest.raises(link.ControllerLinkError,match='controller_source_conflict'):
+            link.initial_controller_link(hass,parent,**reads)
+    else:
+        result=link.initial_controller_link(hass,parent,**reads)
+        assert result.source==proposed and not result.settings_unchanged
+        assert result.settings['mqtt']['native_shadow_source'][0]=='native.source.evolution.v1'
+        assert result.observed_settings['mqtt']['native_shadow_source']==old.settings['mqtt']['native_shadow_source']

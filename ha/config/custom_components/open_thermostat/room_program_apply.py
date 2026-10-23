@@ -66,7 +66,9 @@ async def save_active_program(hass, entry, sub, old, token, settings, *, binding
         raise ValueError('setup_invalid')
     for field in set(saved) - {'name', 'base_centi_c', 'week'}:
         if settings[field] != saved[field]:
-            raise ValueError('room_profile_change_required')
+            from .room_profile_apply import save_active_profile
+            return await save_active_profile(hass, entry, sub, old, token, settings,
+                binding_identities=binding_identities)
     if binding_identities is not None:
         ids = [saved['temperature_entity'], *saved['radiator_entities']]
         choices = {row['value']: row.get('identity') for rows in model['choices'].values() for row in rows}

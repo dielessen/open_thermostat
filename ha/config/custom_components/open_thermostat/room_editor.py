@@ -102,7 +102,10 @@ def read_room(hass, entry_id, room_id):
     program_context = active_program_context(hass, entry) if supported else None
     active = entry.options.get(CONF_ENABLED, False) or actual_runtime_active(hass, entry)
     program_only = active and program_context is not None and room.schedule is None
-    apply_pending = False
+    from .room_profile_apply import profile_edit_available, pending_profile_source
+    profile_editable = bool(program_only and profile_edit_available(entry, program_context[0]))
+    profile_pending = pending_profile_source(hass, entry) is not None
+    apply_pending = profile_pending
     if program_only:
         client = program_context[1].client
         accepted = client.journal['accepted']
@@ -118,8 +121,9 @@ def read_room(hass, entry_id, room_id):
         'rooms': [{'room_id': s.data['room_id'], 'name': s.title} for s in entry.subentries.values() if s.subentry_type == 'zone'],
         'choices': choices, 'time_zone': hass.config.time_zone, 'maximum_blocks': 28,
         'actuator_target_review': review_room_targets(hass, room, radiators),
-        'supported': supported, 'editable': supported and (not active or program_only),
+        'supported': supported, 'editable': supported and not profile_pending and (not active or program_only),
         'program_only': program_only, 'apply_pending': apply_pending,
+        'profile_editable': profile_editable, 'profile_apply_pending': profile_pending,
         'settings': {'name': room.name, 'emitter': 'radiator' if supported else 'unsupported',
             'temperature_entity': temperature, 'radiator_entities': radiators,
             'base_centi_c': room.base_centi_c, 'minimum_centi_c': room.minimum_target_centi_c,
@@ -210,6 +214,10 @@ def prepare_room_edit(hass, entry, sub, old, settings, *, confirm_source_change=
 
 async def save_room(hass, entry_id, room_id, token, settings, *, confirm_source_change=False, binding_identities=None):
     entry, sub, current_room = _target(hass, entry_id, room_id)
+    from .room_profile_apply import pending_profile_source, retry_saved_profile
+    if pending_profile_source(hass, entry) is not None:
+        return await retry_saved_profile(hass, entry, sub, current_room, token, settings,
+            binding_identities=binding_identities)
     if entry.options.get(CONF_ENABLED, False) or actual_runtime_active(hass, entry):
         from .room_program_apply import save_active_program
         return await save_active_program(hass, entry, sub, current_room, token, settings,

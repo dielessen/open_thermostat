@@ -156,8 +156,22 @@ def initial_controller_link(hass, entry, *, version, status, updates, settings, 
     current["mqtt"].pop("native_source_device_id")
     live = current["mqtt"].pop("native_source_live_apply")
     existing = current["mqtt"].get("native_shadow_source")
+    # A selected evolution may replace only its exact CURRENT predecessor.
+    # An older evolution descriptor retains history, but only its current tail
+    # identifies the immediately preceding policy; no historical config is applied.
+    previous_descriptor = None
+    if source.predecessor is not None:
+        previous_descriptor = local_device_descriptor(source.predecessor)
+        if existing is None:
+            raise ControllerLinkError("controller_source_conflict")
+    observed_current = existing
+    if type(existing) is list and len(existing) == 3 and existing[0] == "native.source.evolution.v1":
+        observed_current = existing[2]
+    predecessor_matches = (previous_descriptor is not None
+        and canonical(observed_current) == canonical(previous_descriptor))
     if existing is not None and (
-            canonical(existing) != canonical(descriptor) or current["mqtt"].get("adapter_id") != source.policy.adapter_id
+            (canonical(existing) != canonical(descriptor) and not predecessor_matches)
+            or current["mqtt"].get("adapter_id") != source.policy.adapter_id
             or current["mqtt"].get("base") != entry.data["topic_prefix"]
             or current["mqtt"].get("modern_shadow") is not True):
         raise ControllerLinkError("controller_source_conflict")

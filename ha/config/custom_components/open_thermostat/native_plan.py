@@ -228,8 +228,18 @@ class NativePlanSource:
         return rooms,profile
 
     async def async_configuration(self,hass,entry,*,start=None):
+        return await self._async_configuration(hass,entry,start=start)
+
+    async def async_prospective_configuration(self,hass,entry,room,draft,*,start=None):
+        """Compile pending intent; never persist it or authorize its execution."""
+        return await self._async_configuration(hass,entry,start=start,
+            room_replacement=room,draft_replacement=draft)
+
+    async def _async_configuration(self,hass,entry,*,start=None,room_replacement=None,draft_replacement=None):
         from .v1_mqtt import async_room_schedule
-        before=native_entry_state(entry);rooms,profile=self.validate_native(hass,entry)
+        before=native_entry_state(entry)
+        rooms,profile=self._validate_native_layout(hass,entry,
+            room_replacement=room_replacement,draft_replacement=draft_replacement)
         rows={z["zone_id"]:z for z in profile["zones"]};zones=[];channels=[];groups=[]
         for room in rooms:
             z=rows[room.room_id];schedule=await async_room_schedule(hass,room,start)
@@ -248,7 +258,8 @@ class NativePlanSource:
                 channels.append(dict(channel_id=cid,direction=direction,owner_id=owner,resource_id=res))
             groups.append({k:z[k] for k in ("emitter","group_id","maximum_supply_centi_c","minimum_supply_centi_c")})
         require(before==native_entry_state(entry),"native_entry_changed_during_compile")
-        self.validate_native(hass,entry) # Registry/owner/layout after LAST schedule await.
+        self._validate_native_layout(hass,entry,room_replacement=room_replacement,
+            draft_replacement=draft_replacement) # Registry/owner/layout after LAST schedule await.
         mapping=dict(channels=sorted(channels,key=lambda c:c["channel_id"]),mapping_revision=profile["mapping_revision"],mapping_schema=2)
         config=dict(schema=2,mode="shadow_plan",revision=1,profile_digest=self.policy.profile_digest,
             mapping=mapping,mapping_digest=digest(mapping),groups=sorted(groups,key=lambda g:g["group_id"]),zones=zones)

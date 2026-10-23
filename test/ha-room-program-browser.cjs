@@ -100,6 +100,18 @@ const initial={measurement:{status:'profile_missing',report_profile_configured:f
   await page.evaluate(()=>window.saveMode='ok');await save().click();await card.locator('#name:enabled').waitFor();
   assert(await save().isDisabled());assert.equal(await page.evaluate(()=>calls.filter(c=>c.type.endsWith('/save')).length),5);
   assert.equal(await page.evaluate(()=>calls.every(c=>['open_thermostat/room/get','open_thermostat/room/save'].includes(c.type))),true);
+  await page.evaluate(async()=>{model.profile_editable=true;await card.load();});
+  assert(await card.locator('#temperature_entity').isEnabled());
+  assert(await card.locator('#emitter').isDisabled());
+  await card.locator('.valves summary').click();assert(await card.locator('.valves input').isEnabled());
+  await page.evaluate(async()=>{Object.assign(model,{editable:false,program_only:false,profile_apply_pending:true,apply_pending:true});await card.load();});
+  assert(await card.locator('#name').isDisabled());assert(await card.locator('#temperature_entity').isDisabled());
+  const retryProfile=card.getByRole('button',{name:nl?'Opgeslagen instellingen toepassen':'Apply saved settings',exact:true});
+  assert(await retryProfile.isEnabled());
+  assert.equal(await page.evaluate(()=>calls.filter(c=>c.type.endsWith('/save')).length),5);
+  await page.evaluate(()=>{Object.assign(model,{editable:true,program_only:true,profile_apply_pending:false,apply_pending:false});});
+  await retryProfile.click();await card.locator('#name:enabled').waitFor();
+  assert.equal(await page.evaluate(()=>calls.filter(c=>c.type.endsWith('/save')).length),6);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
   results.push({size,language,shell,result:'PASS',hardware_locked:true,graphical_temperature_block:true,wait_for_save:true,uncertain_draft_preserved:true,reapply_explicit:true,no_device_actions:true});await page.close();
  }}finally{await browser.close();}

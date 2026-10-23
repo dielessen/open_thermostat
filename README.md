@@ -86,6 +86,7 @@ EMS-ESP-velddekking of ondersteuning voor iedere ketel/converter.
 | --- | --- | --- |
 | Eigen HA-integratie en dashboard | Kamerpagina’s, klimaatbediening, inrichting en weekplanner in één omgeving | **Beschikbaar** |
 | Bestaande HA-apparaten gebruiken | Sensoren en klimaatapparaten uit HA selecteren, met controle op eenheden, grenzen en stapgrootte | **Beschikbaar**; regelkwalificatie per apparaat blijft nodig |
+| Ketelvelden in HA | Tot 69 vaste Classic-velddefinities met bronleeftijd, eenheden en kwaliteit via de bestaande verbinding | **Voorbereid en getest in de nieuwste bron**; nog niet in de geïnstalleerde alpha18/dev24. [Details](docs/modern-thermostat/BOILER-FIELDS-V1.md) |
 | Externe wandbediening | Kamerdoelen vanuit andere bedieningen overnemen zonder terugkoppellussen | Basis **voorbereid**; complete route **gepland** |
 | E32-webinterface | Installatie, kamernamen, doelen, berekende vraag en beschikbare ketelwaarden bekijken | **Beschikbaar** |
 | Uitleg waarom er vraag is | Regelstatus en redenen voor warmtevraag of blokkering zien | **Beschikbaar als diagnosebasis**; echte opdracht-/reactietijdlijn volgt |

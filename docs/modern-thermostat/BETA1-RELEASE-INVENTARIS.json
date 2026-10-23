@@ -480,7 +480,7 @@
     {
       "id": "I17",
       "title": "Metrics, grafieken, historiegrens en CSV-export",
-      "status": "Metricsbasis behouden; native 69-veld read-only projectie aangesloten in bron",
+      "status": "Metricsbasis behouden; native 69-veld read-only projectie aangesloten en lokaal geverifieerd",
       "include_in_beta": true,
       "requirements": [
         "R15",
@@ -547,7 +547,7 @@
           "sha256": "5a7b365cd3b8719a14d66950e2b4d1508f75914d039471013b5b11fbf2d95dbb"
         }
       ],
-      "remaining_acceptance": "Versiegebonden begrensd ketelveldcontract over bestaande sessie/verbinding en HA-entiteiten aangesloten. Bronregressie/buildchecks vastleggen; gezamenlijke uitrol, echte veldvergelijking, tijdlijn/grafieken/retentie nog open. Geen controlkwalificatie of OEM-counterstatistiek."
+      "remaining_acceptance": "Native HA-projectie lokaal geverifieerd: 555 native, 1716 HA-tests +68 subtests, C++/HA-interop, 3 boardbuilds en no-TX/layoutcheck. Openbare CI/eindkandidaat en gezamenlijke uitrol nog aftekenen; echte veldvergelijking, tijdlijn/grafieken/retentie blijven open. Geen controlkwalificatie of OEM-counterstatistiek."
     },
     {
       "id": "I18",

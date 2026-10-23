@@ -12,7 +12,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.18`, normale OTA/nacontrole geslaagd |
 | Geïnstalleerde HA-integratie | `0.4.0.dev24`, via bestaande HA-agent met back-up/nacontrole |
 | Geleverde gezamenlijke bron | `6ef01d0e8468f2bb88310d165fb5d49d033b21d4` (passieve voorbereidingsrelease) |
-| Nieuwe softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; uitgebreid uitleescheckpoint `274f39d` |
+| Nieuwe softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; native keteluitleescheckpoint `fa52faa` |
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
@@ -150,7 +150,7 @@ de code afgetekend. De oorspronkelijke acceptatie in PLAN §4/§14 blijft gelden
 | Werkpakket | Stand | Open vervolg |
 | --- | --- | --- |
 | WP01 Eigen basis | Software en meerdere echte releases geleverd | Resterend fysiek F0-profiel/resource/herstelbewijs |
-| WP02 Classic | Echte passieve Classic-ontvangst; uitbreiding van 30 naar 69 velden in voorbereiding | Uitbreiding bouwen/uitrollen, veldvergelijking en native HA-projectie; actieve opvragen blijven geblokkeerd |
+| WP02 Classic | Echte passieve ontvangst; 69-velddecoder en native HA-projectie in bron getest | Gezamenlijk uitrollen en fysiek vergelijken; actieve opvragen blijven geblokkeerd |
 | WP03 Contract/bron | Native SOURCE/config/plan/readback gebouwd en toegepast | Modelspecificieke meetrapportproducent, fysieke actualiteit en uitval |
 | WP04 Kamerbediening | Kamer/week/actieve profielsave geleverd | Externe doelbron en centrale/groeps-/deviceketen compleet |
 | WP05 Actuator | Profiel-C-adapter voorbereid, geen fysieke native vrijgave | Eerste echte kraan zonder ketel, echo/readiness/fallback |
@@ -636,3 +636,30 @@ past daarmee in beide bestaande OTA-slots van 1.703.936 bytes (62.816 bytes vrij
 De post-buildguard slaagt. Er zijn geen functies of partities verwijderd.
 De HA-cache heeft ook een expliciete monotone-lokale-klokregressie: een teruggaande
 ontvangstklok mag geen bestaande of nieuwe velddeadline laten herleven.
+
+
+### Afgetekend: ketelvelden naar native HA in de bronbasis
+
+- [x] Bestaande transportverbinding/worker gebruikt; zeven begrensde veldgroepen,
+  capability-/scope-/sequencecontrole, originele leeftijd en lokale wachtrijtijd.
+- [x] Native HA-sensorprojectie voor alle 69 vaste velddefinities; kwaliteit,
+  ontbrekende gegevens, eenheden en geen onterechte counterstatistiek.
+- [x] 555 native tests; 90 betrokken gevallen tevens onder ASan/UBSan.
+- [x] Definitieve HA-run met tijdelijke loopbackbroker: **1.716 tests + 68
+  subtests geslaagd**, nul fouten/skips. Broker en eigen clients opgeruimd.
+- [x] Werkelijke C++-controller/HA-client-interop, plus vaste eenheden, schalen,
+  TTLs, bronsoorten, kwaliteiten en limieten voor alle 69 IDs vergeleken.
+- [x] Alle drie boardbuilds geslaagd: oude `esp32dev` op `0a616be`, E32/S3 op
+  `fa52faa`; productie-C++ is daarbij gelijk. E32-firmware 2.434.720 bytes;
+  oude-boardbinary 1.641.120 bytes. Werkelijke beelden passen in beide OTA-slots.
+- [x] E32-filesystem, dubbele OTA/SPIFFS, PSRAM/defaults en afwezigheid van
+  project-UART-zendaanroepen in de gecompileerde objecten gecontroleerd.
+- [x] Inventaris: 23 voorbereide onderdelen, 108 bronverwijzingen behouden.
+- [ ] Openbare CI op de nieuwe eindcommit beoordelen; oude CI-fout niet als
+  geslaagde run voorstellen. Nog geen nieuwe tag of installatie.
+- [ ] Gezamenlijke uitrol en echte veldvergelijking; daarna M2-originele
+  kamermetingen/kraanterugmelding en de afzonderlijke actieve ketelproef afronden.
+
+Bronbewijs: `out/native-boiler-telemetry-20261023/`. Deze aftekening betreft
+softwarevoorbereiding; alpha18/dev24 blijft geïnstalleerd en de actieve bèta
+blijft `NOT_READY`. De fysieke B04–B14-checks zijn niet stilzwijgend afgevinkt.

@@ -104,7 +104,7 @@ de code afgetekend. De oorspronkelijke acceptatie in PLAN §4/§14 blijft gelden
 | R05 | Open/dicht/proportioneel regelen | Bewaakte profiel-C-adapter en pure regelprofielen aanwezig | I14,I15 | Echte kraan zonder ketel; juiste regelmethode, eigen agenda, echo, afronding en uitval. |
 | R06 | Vloerkleppen | Graphdeclaraties, klep-/groepsbasis aanwezig | I16 | Actieve profiel-/wire-/uitvoerketen en eigen fysieke vloeracceptatie. |
 | R07 | Onafhankelijke zones/ketelvraag | A/B/samen/uit shadow-regellogica aanwezig | I13,I15 | Gekwalificeerde actuatoren, afgiftepad en echte begrensde ketelvraag. |
-| R08 | Classic EMS en behoud Plus | Passieve Classic- en Plusbasis geleverd; alle E32-TX geblokkeerd | I12,I21,I23 | Classic-proefcommandopad + elektrische zendmodus/stopbewijs; Plus later eigen fysieke vrijgave. |
+| R08 | Classic EMS en behoud Plus | Passieve Classic- en Plusbasis geleverd; alle E32-TX geblokkeerd | I12,I21,I23 | Classic-proefcommandopad + elektrische zendmodus/stopbewijs; Plus later eigen fysieke vrijgave. Modelonafhankelijke velddekking uitbreiden; profiel is nooit een leesfilter.  |
 | R09 | Weersafhankelijke aanvoer | Curve-/groep-/begrenzingspolicies en centrale draft aanwezig | I15,I16 | Centrale instellingen verbinden met geselecteerde regelaar, actuele buitenbron en keteluitvoer. |
 | R10 | Eigen buitenbron | Bronabstractie/binding/draft en validatie aanwezig | I16 | Normale configuratie/apply + bronkwalificatie, leeftijd, bronwisseling/uitval. |
 | R11 | Internetweer via HA | HA-bronroute ontworpen; geen volledig gekwalificeerde praktijkketen | I16 | Gratis HA-weerbron, ouderdom/terugval en internetuitval bewijzen. |
@@ -775,3 +775,22 @@ Lovelace-dashboardteksten hebben geen taalcontext per kijker: daarvoor geldt de
 gevraagde Engelse terugval. Gebruikersnamen van ruimtes/apparaten blijven staan.
 Deze uitbreiding hoort bij R29/I05/I09 en de gezamenlijke bèta; geen losse
 firmware-installatie of wijziging van ketelvrijgave.
+
+### 24 oktober — alle EMS-velden, modelonafhankelijk
+
+Expliciete gebruikerscorrectie: altijd alle beschikbare ketelentiteiten blijven
+uitlezen, ook na het aansluiten van een andere ketel. Het modelprofiel is geen
+ontvangst-/decoderfilter. De huidige 69 Classic-definities zijn geen productlimiet;
+extra families/velden vereisen nog passende decoders en transportondersteuning.
+Onbekende berichttypen en inventaris-overloop blijven zichtbaar. Regelopdrachten
+hebben een gemeenschappelijke productinterface met een onderliggende vertaling
+per EMS-variant; ontvangst is geen universele zendkwalificatie.
+Zie [EMS-uitleesbeleid](EMS-DISCOVERY-POLICY.md).
+
+Passieve waarneming voor de door gebruiker benoemde Ecomline HR 22H wordt via de
+bestaande HA-specialist voorbereid, inclusief beschikbare Recorder-historie.
+Bewijs en persoonlijk veldprofiel: `out/ecomline-observation-20261024/`. De
+geïnstalleerde decodeer-/transportdekking wordt eerst vastgesteld; broncode voor
+extra HA-velden is geen bewijs dat die al live beschikbaar zijn. Nieuwe velden
+blijven welkom en worden niet beperkt tot het lijstje van deze ketel. De fysieke
+vrijgavechecks en de status `NOT_READY` blijven ongewijzigd.

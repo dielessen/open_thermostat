@@ -84,7 +84,7 @@
         } catch (_) {if (root.isConnected) message.textContent = uiText("The boiler selection could not be loaded. Open My boiler again to retry.");}
     }
     const style = document.createElement('style');
-    style.textContent = '.boiler-summary{display:flex;align-items:center;gap:24px;background:#f3f7f7;border:1px solid #d9e5e3;border-radius:14px;padding:20px;margin:0 0 20px;max-width:100%;box-sizing:border-box}.boiler-summary img{object-fit:contain;flex:none}.boiler-summary h2{font-size:1.3rem;margin:0 0 8px}.boiler-summary p{margin:0 0 10px;color:#526a70;overflow-wrap:anywhere}.boiler-summary a{color:#076b60}.boiler-summary>div{min-width:0}@media(max-width:400px){.boiler-summary{gap:14px;padding:14px}.boiler-summary img{width:66px;height:100px}.boiler-summary h2{font-size:1.1rem}}';
+    style.textContent = '.boiler-summary{overflow-wrap:anywhere;display:flex;align-items:center;gap:24px;background:#f3f7f7;border:1px solid #d9e5e3;border-radius:14px;padding:20px;margin:0 0 20px;max-width:100%;box-sizing:border-box}.boiler-summary img{object-fit:contain;flex:none}.boiler-summary h2{font-size:1.3rem;margin:0 0 8px}.boiler-summary p{margin:0 0 10px;color:#526a70;overflow-wrap:anywhere}.boiler-summary a{color:#076b60}.boiler-summary>div{min-width:0}@media(max-width:400px){.boiler-summary{gap:14px;padding:14px}.boiler-summary img{width:66px;height:100px}.boiler-summary h2{font-size:1.1rem}}';
     document.head.append(style);
     window.BoilerDisplay = {load,mountHome,settings};
     document.addEventListener('DOMContentLoaded', () => {void load().catch(()=>{});});

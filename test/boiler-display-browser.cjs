@@ -6,7 +6,7 @@ const output=path.resolve(process.env.OPENTHERMOSTAT_BOILER_DISPLAY_EVIDENCE||pa
 const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}};
 (async()=>{
  fs.mkdirSync(output,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});const results=[];
- try{for(const [name,viewport] of [['desktop',{width:1440,height:1000}],['mobile',{width:390,height:844}],['narrow',{width:320,height:844}]]){
+ try{for(const [name,viewport] of [['desktop',{width:1440,height:1000}],['mobile',{width:390,height:844}],['narrow',{width:320,height:844}],['narrow-wide-font',{width:320,height:844}]]){
   const page=await browser.newPage({viewport});const errors=[],requests=[];let stored='none',failSave=false,invalidRead=false;
   page.on('pageerror',error=>errors.push(error.message));
   await page.route('http://opth.test/**',async route=>{
@@ -29,6 +29,7 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
   });
   await page.context().addCookies([{name:'ot_ui_lang',value:'nl',url:'http://opth.test'}]);
   await page.goto('http://opth.test/');await page.locator('#boiler-home').waitFor();
+  if(name==='narrow-wide-font')await page.addStyleTag({content:'body{font-family:DejaVu Sans,sans-serif;letter-spacing:.5px}'});
   assert.match(await page.locator('#boiler-home').innerText(),/Nog geen ketel gekozen/);
   assert.equal(await page.locator('#boiler-home img').count(),0);
   await page.locator('#boiler-home a').click();await page.locator('#boiler-model:enabled').waitFor();
@@ -41,7 +42,7 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
   await page.evaluate(()=>mainScreen());await page.locator('#boiler-home img').waitFor();
   assert.match(await page.locator('#boiler-home h2').innerText(),/Nefit Ecomline Classic/);
   await page.waitForFunction(()=>document.querySelector('#boiler-home img')?.naturalWidth>0);
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,JSON.stringify(await page.evaluate(()=>({viewport:innerWidth,overflow:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth).map(e=>({tag:e.tagName,cls:e.className,text:e.textContent.slice(0,100)})).slice(0,12)}))));
   await page.screenshot({path:path.join(output,name+'.png'),fullPage:true});
   // A full page reload reads the saved device setting, with no localStorage.
   await page.reload();await page.locator('#boiler-home img').waitFor();

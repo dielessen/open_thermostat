@@ -6,7 +6,7 @@ Bijgewerkt 24 oktober 2026 na de oorspronkelijke TV02-rapportproducer.
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   158 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   160 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
@@ -203,3 +203,17 @@ EN/NL-catalogus, Engelse standaard/terugval en browsercookie-keuze in menu,
 aanmelden en wifiherstel. HA volgt de profieltaal voor de kamereditor en native
 vertalingen; opgeslagen native dashboardteksten vallen terug op Engels. Geen
 apparaatinstallatie gedaan. Bewijs: `out/bilingual-ui-20261024/`.
+
+24 oktober: algemene EMS-eis bevestigd: altijd alle beschikbare ketelvelden,
+onafhankelijk van modelkeuze; 69 Classic-velden zijn geen maximum. Zie
+EMS-DISCOVERY-POLICY.md. Persoonlijke Ecomline HR 22H-waarneming via bestaande
+HA-specialist; native eenmalige controles na 1/6/24 uur geregistreerd en
+onafhankelijk teruggelezen, zonder levering naar chat of ketelwijzigingen.
+Bewijs en persoonlijk veldprofiel blijven lokaal in
+`out/ecomline-observation-20261024/`; de 24-uursbeoordeling is nog niet afgerond.
+
+CI op f9009eb: firmware/source-reproductie/native PASS, maar bestaande
+HA-test verwachtte nog afwezigheid Nederlandse geavanceerde formulieren en
+smalle ketelkaart liep op de runner buiten beeld. Test nu met echte EN/NL-
+resources en tekstomloop voor bredere fonts; afzonderlijke regressies getest.
+Nieuwe openbare eindrun nog controleren; oude rode run nooit groen noemen.

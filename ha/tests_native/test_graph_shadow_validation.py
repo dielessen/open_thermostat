@@ -83,7 +83,10 @@ def test_validator_not_imported_by_any_active_runtime_or_api():
                     "async_publish", "async_call", "NativePlanSource", "NativeInstallationPolicy"}, (filename, called)
                 if called == "async_graph_command":
                     assert node.args and isinstance(node.args[0], ast.Constant)
-                    assert node.args[0].value in {"prepare", "apply"}
+                    # Only the existing connection operation may request new
+                    # read-only DATA proof; other APIs keep their original set.
+                    assert node.args[0].value in {"prepare", "apply"} or (
+                        filename == "controller_connection.py" and node.args[0].value == "readback")
     tree=ast.parse((component/"v1_config_flow.py").read_text())
     for node in tree.body:
         if isinstance(node,ast.ImportFrom):

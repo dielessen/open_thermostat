@@ -291,6 +291,15 @@ class ShadowClient:
         received_scope,received_at=self._native_state_receipt
         return received_scope==scope and 0<=self.clock()-received_at<15
 
+    async def async_request_native_plan_readback(self):
+        """Explicit read-only refresh on the owning worker; never stage or apply."""
+        from .graph_shadow_validation import GraphValidationError
+        self.native_context()
+        if self.journal['staged'] is not None or self._native_apply_sent:
+            raise GraphValidationError('controller_plan_pending')
+        if not any(key[0]=='fw/snapshot_result' for key in self.pending):
+            await self.message('ha/snapshot_request','snapshot',{})
+
     async def async_prepare_native_plan(self):
         from .graph_shadow_validation import GraphValidationError
         scope=self.native_context()

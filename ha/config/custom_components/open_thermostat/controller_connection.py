@@ -67,6 +67,38 @@ async def async_wait_controller_connection(hass, entry, source, expected, *, pri
         remove()
 
 
+async def async_refresh_controller_readback(hass, entry, source, expected, connection, *, private_expected=None):
+    """An explicit save may renew DATA proof, never its source or authority."""
+    changed = asyncio.Event()
+    unsubscribe = connection.runtime.add_listener(changed.set)
+    remove_state = entry.async_on_state_change(changed.set)
+    client = connection.client
+
+    def guard():
+        _guard(hass, entry, source, expected, private_expected)
+        if _connection(hass, entry, source) is not connection or connection.client is not client:
+            raise ControllerLinkError('controller_connection_changed')
+        if client.journal['staged'] is not None:
+            raise ControllerLinkError('controller_plan_pending')
+
+    try:
+        async with asyncio.timeout(CONNECTION_TIMEOUT):
+            guard()
+            if not client.native_plan_readback_ready:
+                await connection.async_graph_command('readback')
+            while True:
+                changed.clear()
+                guard()
+                if client.native_plan_readback_ready:
+                    return
+                await changed.wait()
+    except TimeoutError:
+        raise ControllerLinkError('controller_readback_unconfirmed') from None
+    finally:
+        unsubscribe()
+        remove_state()
+
+
 async def async_synchronise_controller_plan(hass, entry, source, expected, *, private_expected=None,
                                             previous_connection=None):
     """Prepare/apply this user's exact saved intent, using the SAME native worker.

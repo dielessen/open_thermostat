@@ -8,10 +8,10 @@ from custom_components.open_thermostat.controller_link import ControllerLinkErro
 from custom_components.open_thermostat.product import configuration_snapshot
 
 
-async def drive(n, awaitable, *, drop_snapshots=False):
+async def drive(n, awaitable, *, drop_snapshots=False, steps=800):
     task=asyncio.create_task(awaitable)
     try:
-        for count in range(800):
+        for count in range(steps):
             await n.connection.queue.join()
             while n.pending:
                 topic,raw=n.pending.popleft()

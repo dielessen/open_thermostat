@@ -79,6 +79,47 @@ TEST(ShadowRuntime, DuplicateChangedPayloadAndOldSequenceNeverReapplyOverride) {
     auto old=f.command("temporary",1,3000); f.send("ha/user_command",old.get());
     ack=f.get("fw/user_command_result"); EXPECT_EQ(stringField(ack.get(),"status"),"rejected");
 }
+TEST(ShadowRuntime, ExpiredGrantDiagnosticNeverAppliesOrRetriesTheCommand) {
+    Fixture f;f.ready();auto command=f.command("temporary",1,2300);
+    const auto saved=f.store.bytes;const auto writes=f.store.writes;
+    f.now+=5000;f.tick(); // Rotate real firmware grant, keep old in-flight packet.
+    f.send("ha/user_command",command.get());
+    auto result=f.get("fw/user_command_result");
+    EXPECT_EQ(stringField(result.get(),"status"),"rejected");
+    EXPECT_EQ(stringField(result.get(),"rejection_reason"),"expired_grant");
+    f.now+=3000;f.tick();auto state=f.state();
+    EXPECT_EQ(uintField(Fixture::row(state),"target_centi_c"),2100u);
+    const auto diagnostic=field(state.get(),"last_user_command_admission");
+    ASSERT_TRUE(cJSON_IsObject(diagnostic));
+    EXPECT_EQ(stringField(diagnostic,"outcome"),"expired_grant");
+    EXPECT_EQ(stringField(diagnostic,"binding_id"),"1234abcd");
+    EXPECT_EQ(uintField(diagnostic,"sequence"),1u);
+    EXPECT_EQ(uintField(diagnostic,"received_config_revision"),1u);
+    for(auto key:{"grant_id","grant_sequence","adapter_session_id","token","password","config_digest"})
+        EXPECT_EQ(field(diagnostic,key),nullptr);
+    EXPECT_FALSE(cJSON_IsTrue(field(state.get(),"boiler_output_enabled")));
+    EXPECT_FALSE(cJSON_IsTrue(field(state.get(),"actuator_output_enabled")));
+    EXPECT_EQ(f.store.bytes,saved);EXPECT_EQ(f.store.writes,writes);
+    // An explicit new packet with the new grant may execute; the diagnostic
+    // did not consume the rejected sequence or change the admission rule.
+    f.syncSession();f.heartbeat(2);auto fresh=f.command("temporary",1,2300);
+    f.send("ha/user_command",fresh.get());state=f.state();
+    EXPECT_EQ(uintField(Fixture::row(state),"target_centi_c"),2300u);
+    EXPECT_EQ(stringField(field(state.get(),"last_user_command_admission"),"outcome"),"accepted");
+    EXPECT_EQ(f.store.bytes,saved);EXPECT_EQ(f.store.writes,writes);
+}
+TEST(ShadowRuntime, ChangedDuplicateDiagnosticDoesNotReapplyAndNewOwnerClearsIt) {
+    Fixture f;f.ready();auto command=f.command();f.send("ha/user_command",command.get());
+    cJSON_ReplaceItemInObjectCaseSensitive(command.get(),"temperature_centi_c",cJSON_CreateNumber(3000));
+    f.send("ha/user_command",command.get());auto result=f.get("fw/user_command_result");
+    EXPECT_EQ(stringField(result.get(),"rejection_reason"),"changed_duplicate");
+    f.now+=3000;f.tick();auto state=f.state();
+    EXPECT_EQ(uintField(Fixture::row(state),"target_centi_c"),2300u);
+    EXPECT_EQ(stringField(field(state.get(),"last_user_command_admission"),"outcome"),"changed_duplicate");
+    f.core->disconnected();f.core->connected(f.now);f.connect();f.heartbeat();++f.now;f.tick();state=f.state();
+    EXPECT_EQ(field(state.get(),"last_user_command_admission"),nullptr);
+    EXPECT_EQ(uintField(Fixture::row(state),"target_centi_c"),2100u);
+}
 TEST(ShadowRuntime, AtomicCommitFailuresIncludingCommittedButLostAckForceRecovery) {
     for(bool committed:{false,true}) {
         Fixture f; f.start(); f.connect(); f.heartbeat(); f.store.failSave=true; f.store.commitOnError=committed;

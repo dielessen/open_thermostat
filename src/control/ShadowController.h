@@ -192,8 +192,14 @@ private:
             if(trial->admit(stream,e,now).code!=AdmissionCode::duplicate) return;
         }
         const auto a=admission_.admit(stream,e,now);
+        if(kind==StreamKind::user_command) {
+            lastUserCommand_=UserCommandAdmission{};
+            std::copy_n(e.binding.begin(),std::min(e.binding.size(),size_t{32}),lastUserCommand_.binding.begin());
+            lastUserCommand_.sequence=e.sequence;lastUserCommand_.revision=e.revision;
+            lastUserCommand_.at=now;lastUserCommand_.code=a.code;
+        }
         if(a.code==AdmissionCode::duplicate) { result(resultTopic,e,"duplicate"); if(topic=="ha/snapshot_request") snapshot(e.sequence); return; }
-        if(a.code!=AdmissionCode::accepted) { result(resultTopic,e,"rejected"); return; }
+        if(a.code!=AdmissionCode::accepted) { result(resultTopic,e,"rejected",admissionCodeName(a.code)); return; }
         if(kind==StreamKind::heartbeat) {
             // Only a NEW accepted heartbeat can anchor a future grant. Exact
             // retries/changed duplicates never replace or re-arm this proof.
@@ -495,6 +501,7 @@ private:
         e.grantSequence=uintField(o,"grant_sequence"); e.sequence=uintField(o,"sequence"); return true;
     }
     void invalidate() {
+        lastUserCommand_=UserCommandAdmission{};
         supervisor_.invalidate();
         admission_.invalidateTransport(); session_=mappingReady_=leaseWasAlive_=false;
         sessionId_.clear(); lastOpen_.clear(); pendingGrantNonce_.clear(); issuedGrantNonce_.clear();
@@ -656,10 +663,12 @@ private:
         if(!issuedGrantNonce_.empty()) cJSON_AddStringToObject(o.get(),"grant_request_nonce",issuedGrantNonce_.c_str());
         send("fw/session",o.get());
     }
-    void result(const char *topic,const Envelope &e,const char *status) {
+    void result(const char *topic,const Envelope &e,const char *status,const char *rejectionReason=nullptr) {
         auto o=base(); cJSON_AddStringToObject(o.get(),"adapter_session_id",std::string(e.session).c_str());
         cJSON_AddStringToObject(o.get(),"binding_id",std::string(e.binding).c_str());
-        cJSON_AddNumberToObject(o.get(),"sequence",e.sequence); cJSON_AddStringToObject(o.get(),"status",status); send(topic,o.get());
+        cJSON_AddNumberToObject(o.get(),"sequence",e.sequence); cJSON_AddStringToObject(o.get(),"status",status);
+        if(rejectionReason)cJSON_AddStringToObject(o.get(),"rejection_reason",rejectionReason);
+        send(topic,o.get());
     }
     void snapshot(uint32_t request=0) {
         auto o=base(); auto cfg=configBytes_.empty()?nullptr:cJSON_Parse(configBytes_.c_str());
@@ -678,6 +687,16 @@ private:
     void state(uint64_t now,int64_t utc,bool clockValid) {
         auto o=base(); sourcePolicy(o.get()); cJSON_AddStringToObject(o.get(),"mode","shadow");
         cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",false); cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false);
+        // Same owner's bounded last admission, not a command receipt/authority
+        // or measurement timestamp. No grant, nonce, session or settings hash.
+        if(lastUserCommand_.sequence) {
+            auto diagnostic=cJSON_AddObjectToObject(o.get(),"last_user_command_admission");
+            cJSON_AddStringToObject(diagnostic,"binding_id",lastUserCommand_.binding.data());
+            cJSON_AddNumberToObject(diagnostic,"sequence",lastUserCommand_.sequence);
+            cJSON_AddNumberToObject(diagnostic,"received_config_revision",lastUserCommand_.revision);
+            cJSON_AddNumberToObject(diagnostic,"received_at_ms",static_cast<double>(lastUserCommand_.at));
+            cJSON_AddStringToObject(diagnostic,"outcome",admissionCodeName(lastUserCommand_.code));
+        }
         SeasonalSafetySnapshot safety;
         bool safetyFresh=false;
         if(seasonalSource_&&seasonalSafety_&&!policySourceFault_) {
@@ -785,6 +804,12 @@ private:
     SeasonalControllerSource::Safety seasonalSafety_;
     uint32_t policyGeneration_=0;
     bool safetyReading_=false,policySourceFault_=false;
+    struct UserCommandAdmission {
+        std::array<char,33> binding{};
+        uint32_t sequence=0,revision=0;
+        uint64_t at=0;
+        AdmissionCode code=AdmissionCode::not_configured;
+    } lastUserCommand_;
     uint32_t epoch_=0,grantSequence_=0,metricsSequence_=0;
     uint64_t nextMetrics_=0;
     uint64_t challengeUntil_=0,nextHello_=0,nextState_=0,nextGrant_=0,lastNow_=0,sessionStart_=0;

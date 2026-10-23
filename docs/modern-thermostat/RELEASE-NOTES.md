@@ -1,3 +1,29 @@
+# E32 V2 alpha.10 — bounded command-admission diagnostics
+
+Experimental bench-test candidate. The normal HA connection/configuration path
+is live-verified, while a subsequent 22°C command was rejected. Its precise
+admission reason has not yet been established; this release adds observations,
+without changing admission rules or enabling heating.
+
+- Rejected envelope acknowledgements include a static `rejection_reason` from
+  the existing admission decision. No grant token, private setting or secret hash
+  is added to diagnostics.
+- The existing authenticated state snapshot optionally includes the most recent
+  user-command admission: binding, sequence, received revision/time and outcome.
+  This bounded RAM record clears when the session/owner is invalidated. It is
+  neither an execution receipt nor a measurement timestamp or durable state.
+- Expired grants, changed duplicates and other rejected commands still cannot
+  execute. Diagnostics never retry a command, refresh a grant or change a
+  watermark. Qualified measurements, hydraulic commissioning and physical output
+  rights remain separate and unchanged.
+- Settings/update schemas and partitions are unchanged. Current HA16 sources
+  accompany this firmware source commit; no HA installation is performed by OTA.
+
+Use the immutable CI app-only release with current configuration/source/plan
+before-and-after checks. Cold/power-loss/USB recovery and physical acceptance
+remain open. The earlier live command failure is not declared fixed by adding
+its diagnostic field.
+
 # E32 V2 alpha.9 — conditional device settings for Home Assistant linking
 
 Experimental bench-test candidate. Physical boiler/TRV/GPIO authority is unchanged.

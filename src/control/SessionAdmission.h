@@ -14,6 +14,26 @@ enum class AdmissionCode {
     wrong_revision, unknown_binding, expired_grant, lease_expired,
     old_sequence, changed_duplicate, invalid_sequence, invalid_clock
 };
+// Diagnostic labels only. Never accept a packet, rotate a grant or change a
+// sequence watermark based on this representation.
+inline const char* admissionCodeName(AdmissionCode code) {
+    switch(code) {
+        case AdmissionCode::accepted:return "accepted";
+        case AdmissionCode::duplicate:return "duplicate";
+        case AdmissionCode::not_configured:return "not_configured";
+        case AdmissionCode::wrong_version:return "wrong_version";
+        case AdmissionCode::wrong_identity:return "wrong_identity";
+        case AdmissionCode::wrong_revision:return "wrong_revision";
+        case AdmissionCode::unknown_binding:return "unknown_binding";
+        case AdmissionCode::expired_grant:return "expired_grant";
+        case AdmissionCode::lease_expired:return "lease_expired";
+        case AdmissionCode::old_sequence:return "old_sequence";
+        case AdmissionCode::changed_duplicate:return "changed_duplicate";
+        case AdmissionCode::invalid_sequence:return "invalid_sequence";
+        case AdmissionCode::invalid_clock:return "invalid_clock";
+    }
+    return "unknown";
+}
 struct Admission { AdmissionCode code; uint64_t originalResult = 0; };
 struct SessionIdentity {
     std::string controller, boot, adapter, session;

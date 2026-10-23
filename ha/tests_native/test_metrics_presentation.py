@@ -211,3 +211,37 @@ async def test_actual_native_sqlite_recorder_roundtrip_preserves_zero_unknown_wi
     again=await reports.async_export(hass,{"entry_id":e.entry_id,"start":start.isoformat(),"end":end.isoformat(),"entity_ids":[item.entity_id],"limit":1})
     assert again["rows"]==1 and again["truncated"]
     reports.async_unregister_entry(hass,e.entry_id)
+
+
+@pytest.mark.asyncio
+async def test_native_boiler_view_uses_owned_enabled_renamed_fields_and_quality_groups(hass):
+    e=entry(hass);reg=er.async_get(hass)
+    def field(name, **kwargs):
+        return reg.async_get_or_create("sensor","open_thermostat",
+            f"fixture_boiler_fields_v1_{name}",config_entry=e,**kwargs)
+    flow=field("measured_flow_temperature")
+    reg.async_update_entity(flow.entity_id,new_entity_id="sensor.renamed_native_flow")
+    returned=field("measured_return_temperature")
+    inferred=field("heating_active")
+    raw=field("raw_burner_bit",disabled_by=er.RegistryEntryDisabler.INTEGRATION)
+    disabled=field("reported_burner_modulation",disabled_by=er.RegistryEntryDisabler.USER)
+    legacy=entity(hass,e,"boiler_current_flow_temperature")
+    other=entry(hass);foreign=reg.async_get_or_create("sensor","open_thermostat",
+        "fixture_boiler_fields_v1_selected_dhw_temperature",config_entry=other)
+    dashboard=RoomDashboard(hass,"fixture",e.entry_id)
+    config=dashboard._dashboard_config();boiler=next(v for v in config["views"] if v["path"]=="boiler")
+    text=str(boiler)
+    assert "sensor.renamed_native_flow" in text and returned.entity_id in text
+    assert inferred.entity_id in text and "Inferred activity" in text
+    reported=next(c for c in boiler["cards"] if c.get("title")=="Reported boiler fields")
+    assert inferred.entity_id not in str(reported)
+    for missing in [raw.entity_id,disabled.entity_id,foreign.entity_id,legacy.entity_id]:
+        assert missing not in text
+    graphs=[c for c in boiler["cards"] if c["type"]=="history-graph"]
+    assert graphs and all(inferred.entity_id not in str(c) for c in graphs)
+    assert "statistics-graph" not in text and "call-service" not in text
+    reg.async_update_entity(raw.entity_id,disabled_by=None)
+    config=dashboard._dashboard_config()
+    diagnostics=next(v for v in config["views"] if v["path"]=="diagnostics")
+    assert raw.entity_id in str(diagnostics) and "Unreliable raw boiler diagnostics" in str(diagnostics)
+    assert raw.entity_id not in str(next(v for v in config["views"] if v["path"]=="boiler"))

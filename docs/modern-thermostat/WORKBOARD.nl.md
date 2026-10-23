@@ -9,9 +9,9 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
-| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.18`, normale OTA/nacontrole geslaagd |
-| Geïnstalleerde HA-integratie | `0.4.0.dev24`, via bestaande HA-agent met back-up/nacontrole |
-| Geleverde gezamenlijke bron | `6ef01d0e8468f2bb88310d165fb5d49d033b21d4` (passieve voorbereidingsrelease) |
+| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.20`, normale HTTPS-catalogusupdate/nacontrole geslaagd |
+| Geïnstalleerde HA-integratie | `0.4.0.dev26`, via bestaande HA-agent met back-up/nacontrole |
+| Geleverde gezamenlijke bron | `b2b5d17d32b0af16c935b2a11dbbbecef09f5d1e` (passieve uitleesrelease) |
 | Nieuwe softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; native keteluitleescheckpoint `fa52faa` |
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
@@ -794,3 +794,11 @@ geïnstalleerde decodeer-/transportdekking wordt eerst vastgesteld; broncode voo
 extra HA-velden is geen bewijs dat die al live beschikbaar zijn. Nieuwe velden
 blijven welkom en worden niet beperkt tot het lijstje van deze ketel. De fysieke
 vrijgavechecks en de status `NOT_READY` blijven ongewijzigd.
+
+## Actueel herstel HA-ketelvelden — alpha20/dev26
+
+Normale automatische HTTPS-catalogusupdate naar alpha20 geslaagd; HA dev26 via bestaande specialist met privéback-up, configuratiecontrole en één Core-herstart. De E32-webhash en alle 79 HA-bronbestanden zijn exact gecontroleerd. Alle 69 ketelvelddefinities staan op hetzelfde installatieapparaat; bestaande entiteits- en apparaatidentiteiten, SOURCE rev3/digests, kamers, programma en instellingen zijn behouden.
+
+Live nabij-gelijktijdige vergelijking: 27 HA-waarden, waarvan 25 gerapporteerd en 2 afgeleid, komen qua waarde, eenheid en kwaliteit overeen met E32 REST. 22 onbetrouwbare velden zijn standaard uitgeschakeld; 20 overige velden zijn op deze momentopname onbeschikbaar. Dit is bronovereenkomst, geen onafhankelijke fysieke sensorkalibratie. Geen nulwaarden voor ontbrekende metingen of Plus-tellers; ruwe bits zijn geen vlam-/pompbewijs.
+
+De beheerde HA-ketelkaarten verwezen nog uitsluitend naar legacy-IDs. HA dev27 is hiervoor voorbereid: native veldkaarten en temperatuur-/modulatiehistorie, afzonderlijke kwaliteitsgroepen, behoud van hernoemde IDs en uitgeschakelde/andere-installatievelden. 100 gerichte native HA-tests PASS; publicatie/installatie/kaartreferenties nog open. Bewijs: `out/telemetry-rollout-20261024/HA-FIELDS-INDEPENDENT-REVIEW.json`. E32-TX/actuatoruitgangen blijven geblokkeerd; B04–B14 en actieve bèta blijven open.

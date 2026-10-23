@@ -1,3 +1,18 @@
+# HA 0.4.0.dev27 — actuele ketelvelden zichtbaar in het overzicht
+
+Het beheerde keteloverzicht gebruikt nu de native ketelsensoren die met
+alpha20/dev26 beschikbaar zijn gekomen. Aanvoer, retour, gerapporteerde
+modulatie en tapwatertemperaturen krijgen eigen historiekaarten. Alle
+beschikbare velddefinities worden via de geregistreerde entiteits-ID opgenomen;
+hernoemen, uitschakelen en installatie-eigendom blijven gerespecteerd.
+Gerapporteerde velden en afgeleide activiteit staan afzonderlijk. Ingeschakelde
+onbetrouwbare ruwe diagnostiek blijft bij Diagnostics en wordt geen vlam- of
+pompbewijs. Er worden geen oude statistieken samengevoegd of counters aangevuld.
+
+Dit rondt de HA-presentatie van de uitleesupdate af; E32 alpha20 blijft staan.
+Geen SOURCE-, kamer-, programma-, regelaar- of uitgangswijzigingen. De bestaande
+kamereditor en zijn dev25-cache-identiteit veranderen niet.
+
 # HA 0.4.0.dev26 — native meetkoppeling voor de productinstallatie
 
 Bundelt alle voorbereide dev25-functies met de correctie voor bestaande v2-

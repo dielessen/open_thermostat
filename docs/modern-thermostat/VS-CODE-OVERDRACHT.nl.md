@@ -6,13 +6,13 @@ Bijgewerkt 24 oktober 2026 na de oorspronkelijke TV02-rapportproducer.
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   164 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   166 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
 
-- Geïnstalleerd/gecontroleerd: E32 alpha18 + HA dev24, bron `6ef01d0`.
-- Actueel uitrolbewijs: `out/prepared-rollout-20261023/FINAL-REVIEW.json`.
+- Geïnstalleerd/gecontroleerd: E32 alpha20 + HA dev26, bron `b2b5d17`.
+- Actueel uitrolbewijs: `out/telemetry-rollout-20261024/`; 27 HA-ketelwaarden onafhankelijk met E32 REST vergeleken. HA dev27-overzichtsaanvulling nog in voorbereiding.
 - Bij de latere README-opname zijn verse Classic-berichten ontvangen; TX/actuatoruitgangen blijven geblokkeerd.
 - Het huidige bronwerk loopt vóór op de geïnstalleerde passieve release; publiceer/installeer geen actieve bèta op basis van alleen een geslaagde bronbuild.
 - Broncheckpoint `60c548f`: volledige GitHub CI 40027429946 PASS; 69-velden-HA-projectie voorbereid, nog niet geïnstalleerd.
@@ -221,3 +221,7 @@ Nieuwe openbare eindrun nog controleren; oude rode run nooit groen noemen.
 ### Herstel unavailable productmetingen (2026-10-24)
 
 Live oorzaak bevestigd door de HA-agent: shadow-firmware start de legacy publishers niet; de HA-producttak sloeg de gevalideerde native metrics-cache over. De productplatform-regressie faalde vóór de correctie en slaagt erna; 41 gerichte native HA-tests slagen. De producttak gebruikt nu één native eigenaar voor v2-metrics en behoudt installatiegroep/identiteiten. Alle voorbereide Classic-veld-, taal- en UI-wijzigingen blijven gebundeld in alpha20/dev26. De alpha19-tag heeft een native CI-headerfout en is niet live geïnstalleerd; tags blijven ongewijzigd. Installatie en verse HA-ketelmetingen zijn nog te bewijzen; geïnstalleerd blijft alpha18/dev24.
+
+### Actueel: HA-overzicht van native ketelvelden
+
+Alpha20/dev26 is live; 69 definities, 27 waarden (25 reported +2 inferred) en behoud van SOURCE/instellingen/identiteiten zijn geverifieerd. De automatische E32 HTTPS-catalogusroute werkt. Het bestaande beheerde boiler-overzicht had nul native veldreferenties; HA dev27 vult de eigen kaarten/grafieken aan. Nieuwe kaarttest faalde vóór de correctie en slaagt erna; 100 gerichte HA-tests PASS. Volgende stap: volledige HA-release-CI, exact pakket en HA-agentupdate zonder nieuwe firmware-upload. Oudere onderstaande/voorgaande “niet geïnstalleerd”-bronnotities zijn historische checkpoints; actieve fysieke kwalificatie blijft open.

@@ -3,9 +3,9 @@
   "as_of": "2026-10-24",
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
   "release_state": "NOT_READY",
-  "installed_source_commit": "6ef01d0e8468f2bb88310d165fb5d49d033b21d4",
-  "installed_firmware": "v0.1.0-e32v2-alpha.18",
-  "installed_ha": "0.4.0.dev24",
+  "installed_source_commit": "b2b5d17d32b0af16c935b2a11dbbbecef09f5d1e",
+  "installed_firmware": "v0.1.0-e32v2-alpha.20",
+  "installed_ha": "0.4.0.dev26",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
   "items": [
     {
@@ -305,7 +305,7 @@
           "sha256": "59cf28f381e9bb71dccd0e513e0d94678fc8aa569fb177cc986832808c1c64fd"
         }
       ],
-      "remaining_acceptance": "Behouden; bevestiging/herstartguards opnieuw in eindregressie. Nieuw: Mijn ketel/NVS-keuze en Home-illustratie voorbereid met 3 browserprofielen en originele opslaghelper-foutinvoer; 3 boardbuilds/OTA-groottes/E32-layout/no-TX/embedded-assets PASS op b3920ef, samen 8 browserprofielen PASS; gezamenlijke eindfreeze en uitrol blijven open. Geen technische ketelvrijgave door modelkeuze."
+      "remaining_acceptance": "Mijn ketel en EN/NL-bron geleverd in alpha20/dev26, exacte ingebouwde webhash geverifieerd na normale HTTPS-update. Modelkeuze geeft geen technische ketelvrijgave; gebruikersgerichte fysieke acceptatie blijft apart."
     },
     {
       "id": "I06",
@@ -501,7 +501,7 @@
     {
       "id": "I12",
       "title": "Passieve Classic-decoder en begrensde Classic-proefencoder",
-      "status": "30 velden geleverd; 69-veldbron en 24-type inventaris gebouwd/getest",
+      "status": "69 Classic-velddefinities geleverd en geregistreerd in HA",
       "include_in_beta": true,
       "requirements": [
         "R08",
@@ -542,7 +542,7 @@
           "sha256": "702c5696dbea3e6848ed624180f30b0665304ad9850ad5371dfc494966ece2da"
         }
       ],
-      "remaining_acceptance": "69 Classic-velden en begrensde HA-veldgroepen in bron aangesloten. Fysieke veldvergelijking en eventueel actieve opvragen blijven open. E32-TX blijft geblokkeerd; nieuwe bron nog niet geïnstalleerd."
+      "remaining_acceptance": "Alpha20/dev26 live: 27 HA-veldwaarden (25 reported, 2 inferred) vergeleken met E32 REST; waarde/eenheid/kwaliteit gelijk. Ongeldige/niet-ontvangen velden en onbetrouwbare diagnostiek blijven eerlijk. Langere observatie, fysieke interpretatie/bruikbaarheid en actieve opvragen niet gekwalificeerd; TX geblokkeerd."
     },
     {
       "id": "I13",
@@ -688,7 +688,7 @@
     {
       "id": "I17",
       "title": "Metrics, grafieken, historiegrens en CSV-export",
-      "status": "Metricsbasis behouden; native 69-veld read-only projectie aangesloten en lokaal geverifieerd",
+      "status": "Native ketelwaarden live; overzichtsaanvulling voorbereid",
       "include_in_beta": true,
       "requirements": [
         "R15",
@@ -708,7 +708,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/dashboard.py",
-          "sha256": "3adb16ca6522eddc8eeab5978c21164d215f50420bd7bb0dee1b3063c94a2135"
+          "sha256": "ec473d62fd789f74a5f47bf3ff015b0a74e609761cd1fd1bddd350fc2a20d6f7"
         },
         {
           "path": "src/control/MetricsTelemetry.h",
@@ -769,9 +769,13 @@
         {
           "path": "ha/tests_native/test_modern_metrics.py",
           "sha256": "bd844690a5593f0a9bf3efb9cbfad2432ab80795e1403989cb0bf3dd272cc1a1"
+        },
+        {
+          "path": "ha/tests_native/test_metrics_presentation.py",
+          "sha256": "dd0bc1e9563ef9589349ddc88a350e94748355953e5312f272e59ba0513729d2"
         }
       ],
-      "remaining_acceptance": "Native HA-projectie lokaal geverifieerd: 555 native, 1716 HA-tests +68 subtests, C++/HA-interop, 3 boardbuilds en no-TX/layoutcheck. Openbare CI/eindkandidaat en gezamenlijke uitrol nog aftekenen; echte veldvergelijking, tijdlijn/grafieken/retentie blijven open. Geen controlkwalificatie of OEM-counterstatistiek."
+      "remaining_acceptance": "Alpha20/dev26 geïnstalleerd en bron/identiteiten/instellingen behouden; 27 native waarden geverifieerd. Bestaande v2-identiteiten zijn weer echte platformobjecten; onbekende Classic/Plus-tellers worden niet nul. HA dev27-ketelkaarten voorbereid met 100 gerichte native HA-tests; exacte publieke uitrol en zichtbare native kaartreferenties nog aftekenen. Lange-termijnretentie/grafiekacceptatie en controlkwalificatie blijven apart."
     },
     {
       "id": "I18",

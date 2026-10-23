@@ -38,6 +38,17 @@ def reference(hass, selection: str) -> EntityReference:
     return EntityReference(entity_id, registered.platform, registered.unique_id)
 
 def validate_room(hass, entry, user_input: dict, old_subentry=None, *, check_ownership=True) -> RoomBinding:
+    room = _room_candidate(hass, entry, user_input, old_subentry, check_ownership=check_ownership)
+    old_mode = old_subentry.data.get("binding_mode", ROOM_CLIMATE_TRV) if old_subentry else ROOM_CLIMATE_TRV
+    if room.binding_mode == ROOM_GRAPH_DRAFT or old_mode == ROOM_GRAPH_DRAFT:
+        from .v1_heating_graph import actual_runtime_active
+        if entry.options.get(CONF_ENABLED, False) or actual_runtime_active(hass, entry):
+            raise ValueError("graph_room_runtime_off_required")
+    return room
+
+
+def _room_candidate(hass, entry, user_input: dict, old_subentry=None, *, check_ownership=True) -> RoomBinding:
+    """Read-only prospective room validation; no save or runtime permission."""
     room_id = old_subentry.data["room_id"] if old_subentry else user_input["room_id"]
     sensor = reference(hass, user_input["temperature_entity"])
     actuators = tuple(reference(hass, x) for x in user_input.get("actuator_entities", []))
@@ -65,10 +76,6 @@ def validate_room(hass, entry, user_input: dict, old_subentry=None, *, check_own
            and user_input.get("program_action", "save") != "remove_week" else {}),
     })
     old_mode = old_subentry.data.get("binding_mode", ROOM_CLIMATE_TRV) if old_subentry else ROOM_CLIMATE_TRV
-    if room.binding_mode == ROOM_GRAPH_DRAFT or old_mode == ROOM_GRAPH_DRAFT:
-        from .v1_heating_graph import actual_runtime_active
-        if entry.options.get(CONF_ENABLED, False) or actual_runtime_active(hass, entry):
-            raise ValueError("graph_room_runtime_off_required")
     if old_subentry and old_mode != room.binding_mode and user_input.get("confirm_binding_mode_change") is not True:
         raise ValueError("confirm_room_mode_change")
     sensor_state = hass.states.get(sensor.entity_id)

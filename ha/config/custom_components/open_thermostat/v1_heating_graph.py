@@ -161,11 +161,11 @@ def validate_ownership(hass, entry, document, *, room_replacement=None):
                         raise HeatingConfigError("output_has_multiple_owners")
 
 
-def validated_graph(hass, entry, document):
+def validated_graph(hass, entry, document, *, room_replacement=None):
     value = normalize_bindings(hass, document)
     rooms = {s.data["room_id"] for s in entry.subentries.values() if s.subentry_type == "zone"}
     parsed = parse_heating_draft(value, known_room_ids=rooms)
-    validate_ownership(hass, entry, value)
+    validate_ownership(hass, entry, value, room_replacement=room_replacement)
     return parsed
 
 

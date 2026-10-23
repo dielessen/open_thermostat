@@ -60,15 +60,21 @@ class NativeInstallationPolicy:
         return (p.get("controller_id")==self.controller_id and type(p.get("source_policy")) is dict
             and canonical(p["source_policy"])==canonical(expected))
 
-def _native_layout(hass,entry,*,allow_single=False):
+def _native_layout(hass,entry,*,allow_single=False,room_replacement=None,draft_replacement=None):
     """Pure desired native layout, not qualification or source-report evidence."""
     require(integration_mode(entry)==MODE_SHADOW,"native_mode")
     rooms=[RoomBinding.from_dict(dict(s.data)) for s in entry.subentries.values() if s.subentry_type=="zone"]
+    require((room_replacement is None)==(draft_replacement is None),"native_prospective_layout")
+    if room_replacement is not None:
+        require(type(room_replacement) is RoomBinding and sum(r.room_id==room_replacement.room_id for r in rooms)==1,
+            "native_room_binding")
+        rooms=[room_replacement if r.room_id==room_replacement.room_id else r for r in rooms]
     groups=heating_entries(entry)
     require((1<=len(rooms)<=2 if allow_single else len(rooms)==2) and len(groups)==1
         and len({r.room_id for r in rooms})==len(rooms),"native_two_room_limit")
     require(all(r.binding_mode==ROOM_GRAPH_DRAFT and not r.actuators and r.setpoint is None for r in rooms),"native_room_mode")
-    draft=validated_graph(hass,entry,dict(groups[0].data)["draft"])
+    document=dict(groups[0].data)["draft"] if draft_replacement is None else draft_replacement
+    draft=validated_graph(hass,entry,document,room_replacement=room_replacement)
     proposal=deepcopy(draft.control_proposal())
     require(len(proposal["groups"])==len(proposal["actuators"])==len(rooms),"native_group_limit")
     require(proposal["central"]["weather_enabled"] is False and proposal["central"]["outdoor_channel"] is None
@@ -177,11 +183,23 @@ class NativePlanSource:
         return tuple(self.documents()[1].values())
 
     def validate_native(self,hass,entry):
+        return self._validate_native_layout(hass,entry)
+
+    def validate_prospective_native(self,hass,entry,room,draft):
+        """Validate explicit pending intent against the real registry and owner.
+
+        This does not select a source, alter the entry or authorize a worker.
+        Normal runtime validation always reads the actual saved layout.
+        """
+        return self._validate_native_layout(hass,entry,room_replacement=room,draft_replacement=draft)
+
+    def _validate_native_layout(self,hass,entry,*,room_replacement=None,draft_replacement=None):
         self.validate()
         profile,bindings=self.documents()
         require(entry.unique_id==self.policy.entry_unique_id
             and entry.options.get("adapter_id",entry.data.get("adapter_id"))==self.policy.adapter_id,"native_owner")
-        rooms,draft,proposal=_native_layout(hass,entry,allow_single=self.policy.week_reviewed)
+        rooms,draft,proposal=_native_layout(hass,entry,allow_single=self.policy.week_reviewed,
+            room_replacement=room_replacement,draft_replacement=draft_replacement)
         require(len(rooms)==len(profile["zones"]),"native_room_binding")
         require(digest(proposal)==profile["layout_digest"],"native_layout_review_required")
         rows={z["zone_id"]:z for z in profile["zones"]}

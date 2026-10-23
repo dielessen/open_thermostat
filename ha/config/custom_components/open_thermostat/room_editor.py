@@ -16,7 +16,7 @@ from .const import DOMAIN
 from .product import central_entry, configuration_snapshot, commit_configuration, INSTALLATION
 from .room_setup_flow import prepare_radiator_graph
 from .schedule_compiler import compile_week
-from .v1_config_flow import validate_room
+from .v1_config_flow import _room_candidate
 from .v1_heating_graph import actual_runtime_active, selected_reference
 from .v1_model import CONF_ENABLED, ROOM_GRAPH_DRAFT
 from .v1_program import native_week, normalize_program
@@ -175,7 +175,7 @@ def prepare_room_edit(hass, entry, sub, old, settings, *, confirm_source_change=
         helper = settings['schedule_entity'] if settings['program_source'] == 'helper' else None
         if settings['program_source'] == 'helper' and not helper:
             raise ValueError('binding_missing')
-        room = validate_room(hass, entry, {'name': settings['name'].strip(), 'temperature_entity': settings['temperature_entity'],
+        room = _room_candidate(hass, entry, {'name': settings['name'].strip(), 'temperature_entity': settings['temperature_entity'],
             'binding_mode': ROOM_GRAPH_DRAFT, 'base_centi_c': settings['base_centi_c'],
             'minimum_target_temperature': settings['minimum_centi_c'] / 100,
             'maximum_target_temperature': settings['maximum_centi_c'] / 100,

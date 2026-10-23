@@ -512,7 +512,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/boiler_fields.py",
-          "sha256": "ca9cf779f72cab50819daf6181e386412a12b9d1590d3c5648af6cd12b2b0c96"
+          "sha256": "6a774b7f161382d198ed287a5c5d2cc63ef260a6ad9fb8c11fcbf69b467c3e2e"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_boiler_fields.py",
@@ -520,7 +520,7 @@
         },
         {
           "path": "ha/tests_native/test_boiler_fields.py",
-          "sha256": "89acf2d18fb160d027d8681c2a27c1a0ff63e59561fa50eb47d46e309ac3d911"
+          "sha256": "8c2f66e0aa49c670846bfb3fe7629fea4c83dcd67c146e722b74828d0bca74e1"
         },
         {
           "path": "ha/tests_native/test_boiler_fields_interop.py",

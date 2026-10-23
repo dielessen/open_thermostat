@@ -143,3 +143,14 @@ async def test_existing_worker_forwards_arrival_time_without_additional_io(hass)
         connection.client.receive.assert_awaited_once_with('fw/telemetry/boiler_fields','field-fixture',retained=False,received_at=100.0)
     finally:
         worker.cancel();await asyncio.gather(worker,return_exceptions=True)
+
+
+@pytest.mark.asyncio
+async def test_reversed_local_clock_cannot_revive_cached_or_new_field_deadlines(hass):
+    e,r,c,now=await system(hass);c.boiler_fields_supported=True
+    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c)))
+    now[0]=99
+    assert not c.boiler_fields.reading(1,99)['usable']
+    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c,2,sampled=11000,observed=10000)))
+    assert c.boiler_fields.invalid and not c.boiler_fields.reading(1,99)['usable']
+    c.send.assert_not_awaited();await r.async_stop()

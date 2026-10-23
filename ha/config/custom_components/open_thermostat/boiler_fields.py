@@ -129,6 +129,8 @@ class BoilerFieldCache:
             raise ValueError("boiler sequence")
         if sequence <= self.sequence:
             return
+        if self.received is not None and now < self.received:
+            raise ValueError("boiler local clock reversed")
         if value["sampled_at_ms"] < self.sampled:
             raise ValueError("boiler source clock reversed")
         pending = {}

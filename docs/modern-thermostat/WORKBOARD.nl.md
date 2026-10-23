@@ -629,3 +629,10 @@ De effectieve linkregel verklaart de uitgeschakelde LTO: Arduino voegt ná het
 pre-script `-fno-lto` toe. De oude-board-hook draait nu na het framework en haalt
 alleen voor `esp32dev` die tegenstrijdige vlag weg. De guardregressie controleert
 ook de uiteindelijke vlagkeuze. E32/S3 zijn niet naar dit profiel overgezet.
+
+
+De uiteindelijke oude-boardbinary met effectieve LTO is **1.641.120 bytes** en
+past daarmee in beide bestaande OTA-slots van 1.703.936 bytes (62.816 bytes vrij).
+De post-buildguard slaagt. Er zijn geen functies of partities verwijderd.
+De HA-cache heeft ook een expliciete monotone-lokale-klokregressie: een teruggaande
+ontvangstklok mag geen bestaande of nieuwe velddeadline laten herleven.

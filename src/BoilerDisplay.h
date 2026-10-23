@@ -7,7 +7,8 @@
 namespace heating {
 // Presentation only. No controller, EMS address, limits or driver dependency.
 inline bool validBoilerDisplayModel(std::string_view model) {
-    return model == "none" || model == "nefit-ecomline-classic";
+    return model == "none" || model == "nefit-ecomline-classic"
+        || model == "nefit-ecomline-classic-hrc-22h";
 }
 inline std::optional<std::string> readBoilerDisplayModel() {
     nvs_handle_t handle;

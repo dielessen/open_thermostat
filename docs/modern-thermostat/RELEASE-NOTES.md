@@ -1,3 +1,17 @@
+# E32 V2 alpha21 — profiel Nefit Ecomline Classic HRC 22H
+
+Settings → My boiler bevat nu het afzonderlijke profiel Nefit Ecomline Classic
+HRC 22H, het door de gebruiker bevestigde exacte model. Home toont de volledige
+naam en bestaande familie-illustratie. De oudere generieke Classic-keuze blijft
+bewaard en geldig. Opslaan en oorspronkelijke NVS-readback zijn voor beide
+identiteiten getest; de opslagmelding volgt English/Nederlands.
+
+Het bronprofiel bewaart de waargenomen gerapporteerde kandidaatvelden, met apart
+vermelde afgeleide activiteit en nog niet fysiek bewezen bruikbaarheid. Een
+modelkeuze begrenst nooit de EMS-ontvangst en kiest geen busadressen, limieten of
+zendmodus. Alle eerdere uitlees-, taal- en interfacecorrecties blijven behouden.
+E32-TX en fysieke uitgangen blijven geblokkeerd; geen actieve ketelbèta-vrijgave.
+
 # E32 V2 alpha20 — volledige passieve meetrelease met HA dev26
 
 Bundelt alle alpha19-voorbereiding: native Classic-ketelvelden, EN/NL-bediening,

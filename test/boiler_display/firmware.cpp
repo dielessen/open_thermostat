@@ -34,6 +34,8 @@ int main() {
     assert(saveBoilerDisplayModel("nefit-ecomline-classic"));
     // Reconstruct from storage without any retained caller/browser state.
     assert(readBoilerDisplayModel()=="nefit-ecomline-classic");
+    assert(saveBoilerDisplayModel("nefit-ecomline-classic-hrc-22h"));
+    assert(readBoilerDisplayModel()=="nefit-ecomline-classic-hrc-22h");
     const auto previous=stored;const auto count=writes;
     assert(!saveBoilerDisplayModel("unreviewed-model")&&writes==count&&stored==previous);
     commitError=true;assert(!saveBoilerDisplayModel("none"));commitError=false;

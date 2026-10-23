@@ -18,7 +18,7 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
     if(request.method()==='POST'){
      if(failSave)return route.fulfill({status:503,body:'storage failure'});
      const body=request.postDataJSON();assert.deepEqual(Object.keys(body),['model']);
-     assert(['none','nefit-ecomline-classic'].includes(body.model));stored=body.model;
+     assert(['none','nefit-ecomline-classic','nefit-ecomline-classic-hrc-22h'].includes(body.model));stored=body.model;
     }
     return route.fulfill({contentType:'application/json',body:JSON.stringify({model:invalidRead?'<img src=https://foreign.test/p.png>':stored})});
    }
@@ -33,14 +33,14 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
   assert.match(await page.locator('#boiler-home').innerText(),/Nog geen ketel gekozen/);
   assert.equal(await page.locator('#boiler-home img').count(),0);
   await page.locator('#boiler-home a').click();await page.locator('#boiler-model:enabled').waitFor();
-  assert.equal(await page.locator('#boiler-model option').count(),2);
-  await page.locator('#boiler-model').selectOption('nefit-ecomline-classic');
+  assert.equal(await page.locator('#boiler-model option').count(),3);
+  await page.locator('#boiler-model').selectOption('nefit-ecomline-classic-hrc-22h');
   assert.equal(await page.locator('figure img').getAttribute('src'),'/boiler-nefit-ecomline.svg');
   await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).click();
   await page.getByRole('status').filter({hasText:'Ketelkeuze opgeslagen'}).waitFor();
-  assert.equal(stored,'nefit-ecomline-classic');
+  assert.equal(stored,'nefit-ecomline-classic-hrc-22h');
   await page.evaluate(()=>mainScreen());await page.locator('#boiler-home img').waitFor();
-  assert.match(await page.locator('#boiler-home h2').innerText(),/Nefit Ecomline Classic/);
+  assert.match(await page.locator('#boiler-home h2').innerText(),/Nefit Ecomline Classic HRC 22H/);
   await page.waitForFunction(()=>document.querySelector('#boiler-home img')?.naturalWidth>0);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,JSON.stringify(await page.evaluate(()=>({viewport:innerWidth,overflow:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth).map(e=>({tag:e.tagName,cls:e.className,text:e.textContent.slice(0,100)})).slice(0,12)}))));
   await page.screenshot({path:path.join(output,name+'.png'),fullPage:true});
@@ -48,11 +48,11 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
   await page.reload();await page.locator('#boiler-home img').waitFor();
   assert.equal(await page.evaluate(()=>localStorage.length),0);
   await page.locator('#boiler-home a').click();await page.locator('#boiler-model:enabled').waitFor();
-  assert.equal(await page.locator('#boiler-model').inputValue(),'nefit-ecomline-classic');
+  assert.equal(await page.locator('#boiler-model').inputValue(),'nefit-ecomline-classic-hrc-22h');
   failSave=true;await page.locator('#boiler-model').selectOption('none');
   await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).click();
   await page.getByRole('status').filter({hasText:'Opslaan kon niet worden bevestigd'}).waitFor();
-  assert.equal(stored,'nefit-ecomline-classic');
+  assert.equal(stored,'nefit-ecomline-classic-hrc-22h');
   assert.equal(await page.locator('#boiler-model').inputValue(),'none');
   failSave=false;await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).click();
   await page.getByRole('status').filter({hasText:'Ketelkeuze opgeslagen'}).waitFor();

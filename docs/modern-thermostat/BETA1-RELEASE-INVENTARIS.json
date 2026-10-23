@@ -138,11 +138,11 @@
         },
         {
           "path": "src/BoilerDisplay.h",
-          "sha256": "b64cd1105f9ba6f3be2ce9b0627fd9595606e213fa269e96bd51b2ef7bc47aca"
+          "sha256": "eabe83fb2998925d5b79644cd5670533a1b4303f3d81b96a26cf087f29069302"
         },
         {
           "path": "data/html/boiler-display.js",
-          "sha256": "c78652bab252b583e2ba8c10268996e6f318e3d4433e07ba7e6ac75ce1b654be"
+          "sha256": "9c4c1aff407ee224b0df991060c42a02a61bd460327f0941d7356e3f0feef83a"
         },
         {
           "path": "data/html/boiler_display.html",
@@ -154,7 +154,7 @@
         },
         {
           "path": "test/boiler_display/firmware.cpp",
-          "sha256": "1e452f207c9a3558eaf87d3554f4c9caacf5ec01d7170b78e428137122ad06cc"
+          "sha256": "596d51d79f08ae9924fb7f8fe108412fdd35aefb717ab656e75cbe02c4d838d0"
         },
         {
           "path": "test/boiler_display/include/nvs.h",
@@ -162,7 +162,7 @@
         },
         {
           "path": "test/boiler-display-browser.cjs",
-          "sha256": "5d6773a366968e7330bfa1b26cc88d8fb3d61758f33d58ecc3561ce5031733b9"
+          "sha256": "2d3b96fa0acb458e38e618756905e6c7b7769cc27911b9bc2f94e257e4c9e76f"
         },
         {
           "path": "platformio.ini",
@@ -278,7 +278,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "86cede0a82c1cb682acb758dce6fe9f3193515620f6abf67fc25bed2c40bc34a"
+          "sha256": "857b6bd515005386afa44cb3b78b258ae2626f4b80d9775798ffbe1705cfb356"
         },
         {
           "path": "data/html/ui-language.js",
@@ -303,9 +303,13 @@
         {
           "path": "ha/tests_native/test_v1_heating_draft.py",
           "sha256": "59cf28f381e9bb71dccd0e513e0d94678fc8aa569fb177cc986832808c1c64fd"
+        },
+        {
+          "path": "docs/modern-thermostat/boiler-profiles/nefit-ecomline-classic-hrc-22h.json",
+          "sha256": "2d063ef67f856823269a2c602b5b966ea73e749cef9b9e972b3a97aefd3fd77e"
         }
       ],
-      "remaining_acceptance": "Mijn ketel en EN/NL-bron geleverd in alpha20/dev26, exacte ingebouwde webhash geverifieerd na normale HTTPS-update. Modelkeuze geeft geen technische ketelvrijgave; gebruikersgerichte fysieke acceptatie blijft apart."
+      "remaining_acceptance": "Mijn ketel en EN/NL-bron geleverd in alpha20/dev26, exacte ingebouwde webhash geverifieerd na normale HTTPS-update. Modelkeuze geeft geen technische ketelvrijgave; gebruikersgerichte fysieke acceptatie blijft apart. Nieuw exact profiel HRC 22H op expliciete gebruikersbevestiging; originele NVS-helper en 4 browserprofielen PASS, openbare alpha21-build/uitrol en keuze-readback nog aftekenen. De oude HR22H/H22-alternatieven zijn historische onzekerheid, niet het bevestigde model."
     },
     {
       "id": "I06",

@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "id": "nefit-ecomline-classic-hrc-22h",
+  "name": "Nefit Ecomline Classic HRC 22H",
+  "family": "Nefit Ecomline Classic",
+  "identity_basis": "User explicitly confirmed exact model on2026-10-24; no independent serial-label inspection claimed.",
+  "illustration": "/boiler-nefit-ecomline.svg",
+  "illustration_scope": "Existing family illustration; not an exact product photograph.",
+  "observed_topology": {
+    "adapter": "Bosch EasyControl Adapter",
+    "part_number": "8737908035",
+    "version": "V2.3",
+    "basis": "user reported; wiring not requalified by model selection"
+  },
+  "observation": {
+    "date": "2026-10-24",
+    "firmware_source": "b2b5d17d32b0af16c935b2a11dbbbecef09f5d1e",
+    "protocol_profile": "classic_observed",
+    "reported_candidates": [
+      "reported_selected_flow_temperature",
+      "measured_flow_temperature",
+      "measured_return_temperature",
+      "reported_burner_modulation",
+      "reported_requested_power_limit",
+      "raw_boiler_state",
+      "selected_dhw_temperature",
+      "measured_dhw_temperature",
+      "dhw_enabled",
+      "display_code",
+      "service_number",
+      "configured_heating_temperature",
+      "reported_dhw_target",
+      "ionisation_current",
+      "hydraulic_switch_temperature",
+      "reported_heating_pump_modulation",
+      "dhw_hysteresis_on",
+      "dhw_charge_optimisation_enabled",
+      "dhw_flow_temperature_offset",
+      "dhw_circulation_enabled",
+      "configured_dhw_circulation_mode",
+      "dhw_disinfection_temperature",
+      "configured_dhw_charge_type",
+      "configured_dhw_comfort_mode",
+      "reported_dhw_type"
+    ],
+    "inferred_fields": [
+      "heating_active",
+      "dhw_active"
+    ],
+    "candidate_meaning": "Received valid/fresh reported values agree between firmware REST and HA. This does not prove physical sensor presence, calibration, nominal specifications or usefulness; constant zero/configuration fields require further observation."
+  },
+  "read_policy": {
+    "all_available_entities": true,
+    "restrict_to_profile_fields": false,
+    "discover_additional_fields": true,
+    "unknown_invalid_stale": "unavailable; never replaced with zero",
+    "unreliable": "disabled by default; diagnostic only",
+    "model_selection_changes_decoder_or_bus_queries": false
+  },
+  "control": {
+    "qualified": false,
+    "model_selection_enables_output": false,
+    "ems_tx_and_physical_outputs": "remain blocked until separate active beta acceptance"
+  },
+  "unverified_specifications": [
+    "nominal heat output",
+    "control limits",
+    "physical flame/pump interpretation",
+    "heat/gas/water meter equivalence"
+  ]
+}

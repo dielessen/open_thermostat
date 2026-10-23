@@ -4,6 +4,8 @@
         none: {name: uiText("No boiler selected yet")},
         'nefit-ecomline-classic': {name: 'Nefit Ecomline Classic', image: '/boiler-nefit-ecomline.svg',
             note: uiText("Classic monitoring via the Bosch EasyControl Adapter; control is still in beta development.")},
+        'nefit-ecomline-classic-hrc-22h': {name: 'Nefit Ecomline Classic HRC 22H', image: '/boiler-nefit-ecomline.svg',
+            note: uiText("Classic monitoring via the Bosch EasyControl Adapter; control is still in beta development.")},
     });
     let selected = null, generation = 0;
     function valid(data) { return data && typeof data.model === 'string' && Object.hasOwn(models, data.model); }
@@ -63,7 +65,7 @@
         select.addEventListener('change',picture);
         root.addEventListener('submit',async event => {
             event.preventDefault();const model = select.value;if (!Object.hasOwn(models,model)) return;
-            const own = ++generation;select.disabled = save.disabled = true;message.textContent = 'Opslaan…';
+            const own = ++generation;select.disabled = save.disabled = true;message.textContent = uiText("Saving…");
             try {
                 const response = await fetch('/config/boiler-display', {method:'POST',
                     headers:{'Content-Type':'application/json'},body:JSON.stringify({model})});

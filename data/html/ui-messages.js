@@ -213,6 +213,7 @@ window.OT_UI_MESSAGES = {
   "Open OpenThermostat on your home network": "Open OpenThermostat op je thuisnetwerk",
   "Open WiFi setup": "Open wifi-installatie",
   "Set up OpenThermostat": "OpenThermostat instellen",
+  "Saving…": "Opslaan…",
   "Saving could not be confirmed. Reload to check the saved selection.": "Opslaan kon niet worden bevestigd. Laad opnieuw om de opgeslagen keuze te controleren.",
   "Storage temperature 1": "Opslagtemperatuur 1",
   "Storage temperature 2": "Opslagtemperatuur 2",

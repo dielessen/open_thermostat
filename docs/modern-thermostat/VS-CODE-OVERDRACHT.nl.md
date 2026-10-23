@@ -6,7 +6,7 @@ Bijgewerkt 24 oktober 2026 na de oorspronkelijke TV02-rapportproducer.
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   165 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   166 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
@@ -225,3 +225,7 @@ Live oorzaak bevestigd door de HA-agent: shadow-firmware start de legacy publish
 ### Actueel: HA-overzicht van native ketelvelden
 
 Alpha20/dev26 is live; 69 definities, 27 waarden (25 reported +2 inferred) en behoud van SOURCE/instellingen/identiteiten zijn geverifieerd. De automatische E32 HTTPS-catalogusroute werkt. Het bestaande beheerde boiler-overzicht had nul native veldreferenties; HA dev27 vult de eigen kaarten/grafieken aan. Nieuwe kaarttest faalde vóór de correctie en slaagt erna; 100 gerichte HA-tests PASS. Volgende stap: volledige HA-release-CI, exact pakket en HA-agentupdate zonder nieuwe firmware-upload. Oudere onderstaande/voorgaande “niet geïnstalleerd”-bronnotities zijn historische checkpoints; actieve fysieke kwalificatie blijft open.
+
+### Exacte gebruikersbevestiging ketelmodel (24 oktober 2026)
+
+Gebruiker bevestigt **Nefit Ecomline Classic HRC 22H**; eerdere HR22H/H22-alternatieven zijn hiermee historisch. Bronprofiel: `boiler-profiles/nefit-ecomline-classic-hrc-22h.json`. Exacte keuze op E32 Home/Settings voorbereid voor alpha21; oudere generieke keuze blijft geldig. Originele NVS-opslag/readback met foutinvoer en 4 browserprofielen PASS. Geen nominale specificaties of fysieke controlkwalificatie afgeleid uit de modelnaam; alle beschikbare velden blijven onafhankelijk van de modelkeuze gelezen. HA dev27-overzichtsrelease hoort hierbij en verandert niet door de E32-profieltoevoeging.

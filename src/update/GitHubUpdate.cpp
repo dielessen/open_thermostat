@@ -86,8 +86,10 @@ struct NativeOta {
     bool write(const uint8_t *data,size_t size){return open&&mbedtls_sha256_update_ret(&hash,data,size)==0&&esp_ota_write(handle,data,size)==ESP_OK;}
     bool hashMatches(const std::string &expected){uint8_t sum[32];return mbedtls_sha256_finish_ret(&hash,sum)==0&&digest(sum,32)==expected;}
     bool end(){if(!open)return false;open=false;return esp_ota_end(handle)==ESP_OK;}
-    bool readbackMatches(uint32_t size,const std::string &expected){
-        mbedtls_sha256_context readback;mbedtls_sha256_init(&readback);uint8_t sum[32],bytes[4096];
+    // Keep flash-readback scratch out of execute()'s long-lived TLS frame.
+    // The checksum covers the same complete image, independent of chunk size.
+    [[gnu::noinline]] bool readbackMatches(uint32_t size,const std::string &expected){
+        mbedtls_sha256_context readback;mbedtls_sha256_init(&readback);uint8_t sum[32],bytes[1024];
         bool ok=mbedtls_sha256_starts_ret(&readback,0)==0;
         for(uint32_t off=0;ok&&off<size;){const auto n=std::min<uint32_t>(sizeof(bytes),size-off);ok=esp_partition_read(partition,off,bytes,n)==ESP_OK&&mbedtls_sha256_update_ret(&readback,bytes,n)==0;off+=n;delay(1);}
         ok=ok&&mbedtls_sha256_finish_ret(&readback,sum)==0&&digest(sum,32)==expected;mbedtls_sha256_free(&readback);return ok;

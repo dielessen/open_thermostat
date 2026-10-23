@@ -1,3 +1,25 @@
+# E32 V2 alpha.8 — bounded OTA upload headers and updater stack
+
+Experimental bench-test candidate. Keep EMS disconnected; physical outputs remain
+blocked until the existing commissioning checks pass.
+
+- Authenticated multipart app/filesystem uploads no longer append three security
+  headers for every chunk. The final response emits them once; cookie, origin,
+  CSRF and updater-busy checks still run for each chunk and the final route.
+- Flash SHA readback uses a separate non-inlined 1 KiB scratch frame, keeping its
+  buffer out of the updater's TLS/download frame. Exact image length, board marker,
+  streamed SHA, native validation, whole-image flash SHA and boot selection remain
+  required. This bounds stack use; it does not establish the cause of the earlier
+  alpha.6 manifest-stage reset.
+- Alpha.7 was installed app-only on the development E32 and its published
+  source/UI/ELF identities, confirmed boot and saved settings/program were verified.
+  Its GitHub install attempt had reset to idle; local upload installed it but
+  exposed the duplicate headers. These observations are not acceptance of alpha.8
+  or proof of cold recovery, physical TRV operation or boiler heating.
+
+Publish only through the existing full CI/release pipeline. Upload only the exact
+published `firmware.bin`; preserve filesystem/settings and the previous valid slot.
+
 # E32 V2 alpha.7 — controller status and separate firmware release discovery
 
 Experimental bench-test candidate. **Keep EMS disconnected; boiler, TRV and

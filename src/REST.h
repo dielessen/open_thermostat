@@ -209,11 +209,15 @@ private:
 		server_.on(uri,method,handler,upload);
 #endif
 	}
-	bool authorize() {
+	bool authorize(bool responseHeaders=true) {
 #ifdef OPENTHERMOSTAT_E32V2
-		server_.sendHeader("Cache-Control","no-store");
-		server_.sendHeader("X-Content-Type-Options","nosniff");
-		server_.sendHeader("X-Frame-Options","DENY");
+		// Upload callbacks run for every chunk. WebServer appends sendHeader()
+		// calls until the response, so headers belong to the final route gate.
+		if(responseHeaders) {
+			server_.sendHeader("Cache-Control","no-store");
+			server_.sendHeader("X-Content-Type-Options","nosniff");
+			server_.sendHeader("X-Frame-Options","DENY");
+		}
 		const auto method=server_.method()==HTTP_GET?"GET":server_.method()==HTTP_POST?"POST":server_.method()==HTTP_DELETE?"DELETE":"OTHER";
 		String canonical=WiFi.softAPIP().toString();
 		if(listenPort_!=80) canonical+=":"+String(listenPort_);
@@ -1282,7 +1286,7 @@ button.onclick=async()=>{if(!file.files.length){status.textContent='Select spiff
 	void handleOTAUpdate() {
 		HTTPUpload &upload = server_.upload();
 		if(upload.status==UPLOAD_FILE_START) ota_=OTAUpload{};
-		if(!authorize()) {ota_.success=false;ota_.error=ESP_ERR_INVALID_STATE;ota_.errorMessage="Upload not authorized or updater busy";return;}
+		if(!authorize(false)) {ota_.success=false;ota_.error=ESP_ERR_INVALID_STATE;ota_.errorMessage="Upload not authorized or updater busy";return;}
 
 		if (upload.status == UPLOAD_FILE_START) {
 			auto size = server_.arg("size");
@@ -1395,7 +1399,7 @@ button.onclick=async()=>{if(!file.files.length){status.textContent='Select spiff
 	void handleOTAFFSUpdate() {
 		HTTPUpload &upload = server_.upload();
 		if(upload.status==UPLOAD_FILE_START) ota_=OTAUpload{};
-		if(!authorize()) {ota_.success=false;ota_.error=ESP_ERR_INVALID_STATE;ota_.errorMessage="Upload not authorized or updater busy";return;}
+		if(!authorize(false)) {ota_.success=false;ota_.error=ESP_ERR_INVALID_STATE;ota_.errorMessage="Upload not authorized or updater busy";return;}
 
 		if (upload.status == UPLOAD_FILE_START) {
 			auto size = server_.arg("size");

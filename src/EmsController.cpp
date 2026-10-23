@@ -302,6 +302,13 @@ bool EmsController::processPoll(uint8_t deviceId) {
 }
 
 void EmsController::processTelegram(uint8_t *data, uint8_t length) {
+#ifdef OPENTHERMOSTAT_E32V2
+	const auto errors = uart_.rxErrors.load(std::memory_order_relaxed);
+	if (boilerTestUartErrorsSeen_ != errors) {
+		boilerTestUartErrorsSeen_ = errors;
+		boilerTestTransportFault_.store(true, std::memory_order_release);
+	}
+#endif
 	// Only the UART task updates confirmation accounting, including recovery.
 	const auto resets = uart_.resets.load(std::memory_order_relaxed);
 	if (uartResetsSeen_ != resets) {

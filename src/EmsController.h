@@ -322,6 +322,7 @@ private:
 	static constexpr BoilerTestPollDriver::Encoder boilerTestEncoder_ = nullptr;
 	bool processBoilerTestPoll();
 	std::atomic<bool> boilerTestTransportFault_{false};
+	uint32_t boilerTestUartErrorsSeen_ = 0; // UART task only
 #endif
 	control::TemperatureSample outdoorSample_;
 

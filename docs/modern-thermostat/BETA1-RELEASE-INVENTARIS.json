@@ -547,11 +547,11 @@
         },
         {
           "path": "src/EmsController.h",
-          "sha256": "6d11da32499a8bb4122abbadd858b431ae94dac7b5d493417d3af4788577dfad"
+          "sha256": "c8b5b068bd99146e8fdf4d7fca6e253eff802d8ebd957d79f4bbdca6c50ae584"
         },
         {
           "path": "src/EmsController.cpp",
-          "sha256": "12a6169bd9ea8bc8a228415885262bc7dcf429b5d886539ed44e55626d9638fb"
+          "sha256": "eedabcc8fbbe8178e8d2a0c36f88b7d374d42e8c4ea80757ba91894295339b3f"
         },
         {
           "path": "test/boiler-test-browser.cjs",

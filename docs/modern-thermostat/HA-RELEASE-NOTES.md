@@ -1,3 +1,11 @@
+# HA 0.4.0.dev21 — korte weekblokken betrouwbaar verplaatsen
+
+Een kort temperatuurblok wordt op een aanraakscherm bij slepen nu als geheel verplaatst, met behoud van duur en temperatuur. De vaste randzone kon voorheen het hele blok innemen en daardoor onbedoeld de begintijd wijzigen. Op muisbediening houdt ieder blok een middengebied om te verplaatsen; grotere blokken blijven aan de randen te verlengen of in te korten. Exacte tijden blijven in de velden onder de planner instelbaar.
+
+De browserregressie gebruikt echte Chromium-aanraakgebeurtenissen op 320, 390 en 1440px, Nederlands en Engels. Deze controleert korte blokken, muisbediening, tijdvelden, overlap, daggrenzen, annuleren en afwezigheid van automatisch opslaan. Dit is schermemulatie, geen fysieke telefoonacceptatie.
+
+De koude-startoplossing uit dev20 blijft behouden. Deze HA-update bevat geen firmware en verandert geen opgeslagen kamerprogramma of apparaatbindingen.
+
 # Home Assistant 0.4.0.dev20 — room page registration on direct opening
 
 The room editor previously waited for ha-card before registering its own custom

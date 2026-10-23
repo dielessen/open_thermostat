@@ -21,7 +21,7 @@ const initial={entry_id:'fixture',room_id:'room',supported:true,editable:true,pr
   await page.evaluate(async text=>{await Promise.race([import('data:text/javascript;base64,'+text),new Promise((_,reject)=>setTimeout(()=>reject(Error('Room editor registration blocked waiting for ha-card')),5000))])},source.toString('base64'));
   await page.evaluate(({initial,language})=>{
    window.model=structuredClone(initial);window.calls=[];window.saveMode='hold';
-   const card=window.card=document.createElement('openthermostat-room-editor-v20');document.querySelector('main').append(card);
+   const card=window.card=document.createElement('openthermostat-room-editor-v21');document.querySelector('main').append(card);
    card.setConfig({entry_id:model.entry_id,room_id:model.room_id});
    card.hass={language,user:{is_admin:true},callWS:async request=>{
     calls.push(structuredClone(request));
@@ -36,7 +36,7 @@ const initial={entry_id:'fixture',room_id:'room',supported:true,editable:true,pr
     throw Error('Unexpected command');
    }};
   },{initial,language});
-  const nl=language==='nl',card=page.locator('openthermostat-room-editor-v20');await card.locator('#name').waitFor();
+  const nl=language==='nl',card=page.locator('openthermostat-room-editor-v21');await card.locator('#name').waitFor();
   if(shell==='cold'){
    assert.equal(await page.evaluate(()=>!!customElements.get('ha-card')),false);
    await card.locator('#name').fill('Retain draft across HA shell loading');

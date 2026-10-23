@@ -172,6 +172,37 @@ async def test_actual_discovery_base_expansion_and_friendly_name_prefix_without_
     with pytest.raises(metadata.MetadataUnavailable): metadata.selected_device(hass, refs[0])
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize('fault', [None, 'missing_device_availability', 'wrong_device_name', 'ambiguous_bridge', 'invalid_generic_state'])
+async def test_native_climate_discovery_without_generic_state_topic(hass, devices, fault):
+    # Observed Z2M climate discovery: separate climate topics, no state_topic.
+    _, refs, discoveries = devices
+    d = discoveries[1]
+    d.pop('state_topic')
+    d['availability'] = [{'topic': 'custom-z2m/bridge/state'},
+                         {'topic': 'custom-z2m/Fixture 2/availability'}]
+    if fault == 'missing_device_availability': d['availability'].pop()
+    if fault == 'wrong_device_name': d['device']['name'] = 'Another device'
+    if fault == 'ambiguous_bridge':
+        d['availability'] += [{'topic': 'other/bridge/state'},
+                              {'topic': 'other/Fixture 2/availability'}]
+    if fault == 'invalid_generic_state': d['state_topic'] = 'custom-z2m/anything/#'
+    if fault:
+        with pytest.raises(metadata.MetadataUnavailable, match='device_metadata_prefix_unknown'):
+            metadata.selected_device(hass, refs[1])
+    else:
+        assert metadata.selected_device(hass, refs[1]).prefix == 'custom-z2m'
+
+
+@pytest.mark.asyncio
+async def test_sensor_without_state_topic_is_not_inferred_from_climate_availability(hass, devices):
+    _, refs, discoveries = devices
+    d = discoveries[0]; d.pop('state_topic')
+    d['availability'].append({'topic': 'custom-z2m/Fixture 1/availability'})
+    with pytest.raises(metadata.MetadataUnavailable, match='device_metadata_prefix_unknown'):
+        metadata.selected_device(hass, refs[0])
+
+
 @pytest.mark.parametrize('fault', ['boolean_access', 'invalid_features', 'no_definition', 'depth', 'too_many'])
 def test_malformed_or_unbounded_definitions_cannot_appear_supported(fault):
     row = deepcopy(messages()['custom-z2m/bridge/devices'][1])

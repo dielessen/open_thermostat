@@ -1,4 +1,4 @@
-# OpenThermostat Home Assistant 0.4.0.dev16 — testrelease
+# OpenThermostat Home Assistant 0.4.0.dev17 — testrelease
 
 Eén installatie met centrale instellingen en kamers. Nieuwe kamers gebruiken
 een wizard; bestaande kamers hebben één direct configuratiescherm met gekoppelde
@@ -6,6 +6,12 @@ apparaten, temperaturen en een grafisch weekprogramma met temperatuurblokken.
 Apparaatidentiteit, beschikbaarheid en kraangrenzen worden bij de kamer getoond.
 Deze versie herkent de officiële Home Assistant-featureflags van een klimaatapparaat
 correct; geldige temperatuurgrenzen hoeven daardoor niet onbekend te lijken.
+
+Dev17 herkent Zigbee2MQTT-klimaatapparaten zonder algemeen `state_topic`.
+De prefix wordt uitsluitend afgeleid uit zowel de gepubliceerde bridge- als
+de exacte apparaatbeschikbaarheid, gekoppeld aan de bestaande apparaatidentiteit.
+Ontbrekende, ongeldige en tegenstrijdige gegevens blijven geweigerd. Deze versie
+verandert geen apparaatinstellingen of fysieke aansturing.
 
 Dev16 herstelt de uitlezing voor Home Assistants eigen `MQTTDiscoveryPayload`-
 object. De regressietest gebruikt nu dat echte native object, ook samen met de

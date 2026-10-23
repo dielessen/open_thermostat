@@ -1,3 +1,22 @@
+# E32 V2 alpha.9 — conditional device settings for Home Assistant linking
+
+Experimental bench-test candidate. Physical boiler/TRV/GPIO authority is unchanged.
+
+- Authenticated device-settings reads return an opaque random ETag associated
+  with this boot, browser session and the complete saved settings. The private
+  settings digest stays on the controller; broker/weather secret hashes are not
+  exposed as ETags.
+- A settings POST with `If-Match` is rejected with HTTP412 before merging or
+  saving if another edit changed the settings or the session/readback expired.
+  Unquoted, weak, wildcard, combined and other-session tags are rejected. Existing
+  local forms remain compatible; cookie, origin, CSRF and update guards remain.
+- This is the firmware prerequisite for the normal Home Assistant connection
+  step under development. It does not itself install that integration flow,
+  select a room profile, validate measurements or enable heating.
+
+Use the immutable CI release assets, app-only with private before/after snapshots.
+Cold/power-loss/USB recovery and physical room/boiler acceptance remain separate.
+
 # E32 V2 alpha.8 — bounded OTA upload headers and updater stack
 
 Experimental bench-test candidate. Keep EMS disconnected; physical outputs remain

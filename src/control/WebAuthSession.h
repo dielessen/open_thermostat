@@ -13,6 +13,9 @@ public:
     static constexpr const char *cookieName = "OTSESSION";
     struct Session {
         std::array<char,65> token{}, csrf{};
+        // Boot/session-local readback fence. Only the random tag is returned;
+        // never expose a hash of settings containing broker/weather secrets.
+        std::array<char,65> settingsHash{}, settingsTag{};
         uint64_t issued = 0, until = 0;
         bool occupied = false;
     };
@@ -58,13 +61,42 @@ public:
         const auto *session = find(token,now);
         return session && hexToken(proof) && equal(proof,view(session->csrf));
     }
+    std::string_view settingsReadback(std::string_view token,std::string_view hash,
+            std::string_view randomTag,uint64_t now) {
+        if (!hexToken(hash) || !hexToken(randomTag)) return {};
+        for (const auto &session : sessions_) {
+            if (live(session,now) && (equal(randomTag,view(session.token)) ||
+                    equal(randomTag,view(session.csrf)))) return {};
+        }
+        for (auto &session : sessions_) {
+            if (!live(session,now) || !equal(token,view(session.token))) continue;
+            if (hexToken(view(session.settingsTag)) && equal(hash,view(session.settingsHash)))
+                return view(session.settingsTag);
+            if (equal(randomTag,view(session.settingsTag))) return {};
+            for (std::size_t i=0;i<64;++i) {
+                session.settingsHash[i]=hash[i]; session.settingsTag[i]=randomTag[i];
+            }
+            return view(session.settingsTag);
+        }
+        return {};
+    }
+    bool settingsReadbackMatches(std::string_view token,std::string_view quotedTag,
+            std::string_view currentHash,uint64_t now) const {
+        const auto *session=find(token,now);
+        return session && hexToken(currentHash) && quotedTag.size()==66 &&
+            quotedTag.front()=='"' && quotedTag.back()=='"' &&
+            hexToken(view(session->settingsTag)) &&
+            equal(quotedTag.substr(1,64),view(session->settingsTag)) &&
+            equal(currentHash,view(session->settingsHash));
+    }
     const Session *issue(std::string_view token,std::string_view proof,uint64_t now,std::string_view replacing = {}) {
         if (!hexToken(token) || !hexToken(proof) || equal(token,proof) || now > UINT64_MAX-lifetimeMs) return nullptr;
         Session *slot = nullptr;
         for (auto &session : sessions_) {
             // Never issue a token/proof that aliases another live session.
             if (live(session,now) && (equal(token,view(session.token)) || equal(proof,view(session.csrf)) ||
-                equal(token,view(session.csrf)) || equal(proof,view(session.token)))) return nullptr;
+                equal(token,view(session.csrf)) || equal(proof,view(session.token)) ||
+                equal(token,view(session.settingsTag)) || equal(proof,view(session.settingsTag)))) return nullptr;
             if (live(session,now) && equal(replacing,view(session.token))) slot = &session;
         }
         if (!slot) for (auto &session : sessions_) if (!live(session,now)) { slot = &session; break; }

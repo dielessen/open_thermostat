@@ -82,8 +82,8 @@ public:
 
 		server_.enableCORS(false);
 		server_.enableCrossOrigin(false);
-		const char *headers[]{"Origin","Sec-Fetch-Site","Cookie","X-OpenThermostat-CSRF","Content-Type"};
-		server_.collectHeaders(headers,5);
+		const char *headers[]{"Origin","Sec-Fetch-Site","Cookie","X-OpenThermostat-CSRF","Content-Type","If-Match"};
+		server_.collectHeaders(headers,6);
 #ifdef OPENTHERMOSTAT_E32V2
 		route("/login",HTTP_GET,[this] { serveFile("/login.html"); });
 		route("/auth/login",HTTP_POST,[this] { login(); });
@@ -574,6 +574,12 @@ private:
 		auto previous=control::parseControlJson(std::string_view(saved.c_str(),saved.length()),true);
 		if(server_.method()==HTTP_GET) {
 			if(!previous||!cJSON_IsObject(previous.get())) { server_.send(500,"text/plain","Invalid saved network settings"); return; }
+            std::array<char,65> nonce{};
+            if(!randomToken(nonce)) { server_.send(503,"text/plain","Readback token unavailable"); return; }
+            const auto tag=sessions_.settingsReadback(requestToken().c_str(),
+                control::sha256Hex(std::string_view(saved.c_str(),saved.length())),nonce.data(),networkNow());
+            if(tag.empty()) { server_.send(503,"text/plain","Readback token unavailable"); return; }
+            server_.sendHeader("ETag",String("\"")+tag.data()+"\"");
 			for(auto pair:{std::make_pair("mqtt","password"),std::make_pair("openweather","appid")}) {
 				auto section=cJSON_GetObjectItemCaseSensitive(previous.get(),pair.first);
 				if(cJSON_IsObject(section)) { cJSON_DeleteItemFromObjectCaseSensitive(section,pair.second); cJSON_AddStringToObject(section,pair.second,""); }
@@ -589,6 +595,14 @@ private:
             }
 			server_.send(200,"application/json",control::printJson(previous.get()).c_str()); return;
 		}
+        // Existing local forms remain compatible. The HA link client sends the
+        // exact GET ETag, fencing all persisted settings (including secrets)
+        // before any merge/save; a stale read must never overwrite another edit.
+        if(server_.hasHeader("If-Match")&&!sessions_.settingsReadbackMatches(requestToken().c_str(),
+                server_.header("If-Match").c_str(),
+                control::sha256Hex(std::string_view(saved.c_str(),saved.length())),networkNow())) {
+            server_.send(412,"application/json","{\"error\":\"device_settings_changed\"}");return;
+        }
 		auto body=server_.arg("plain");
 		auto candidate=control::parseControlJson(std::string_view(body.c_str(),body.length()),true);
 		if(!candidate||!cJSON_IsObject(candidate.get())) { server_.send(400,"text/plain","Invalid bounded network settings"); return; }

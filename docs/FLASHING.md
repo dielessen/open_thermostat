@@ -1,5 +1,17 @@
 # Flash the E32 V2 — easy step-by-step guide
 
+**Current release route (23 October 2026):** alpha17 / HA dev23 is the verified
+installed baseline. Use the normal in-device HTTPS updater for future verified
+app updates; preserve settings. The first boiler-test beta is being prepared.
+The USB and alpha.1 instructions below are historical/recovery guidance, not a
+request to flash another image now. See the current modern-thermostat WORKBOARD.
+
+
+**Modern shadow candidate:** first read [the candidate guide](modern-thermostat/INTEGRATED-TEST.nl.md).
+The 20 October WiFi-fix build uses owner-requested fixed local credentials;
+see [its short installation guide](modern-thermostat/WIFI-FIX.nl.md).
+Its checksum, SSID and network modes differ from historical alpha.1 below.
+
 **Use a USB-C data cable and a browser. No Python, PlatformIO or separate programmer needed.**
 
 > This guide is for **test release v0.1.0-e32v2-alpha.1** on a **BBQKees E32 V2 with 16 MB flash**.

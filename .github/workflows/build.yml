@@ -12,6 +12,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Check prepared beta source and current plan coverage
+        run: python3 scripts/verify_beta_release_inventory.py
       - uses: actions/setup-node@v4
         with:
           node-version: '24'

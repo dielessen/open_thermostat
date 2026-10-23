@@ -1,4 +1,34 @@
+## Actueel op 23 oktober — alpha17/dev23 geleverd, eerste bèta in voorbereiding
+
+De gezamenlijke alpha17/dev23-release is gepubliceerd, geïnstalleerd en
+gecontroleerd. De normale HTTPS-updater/certificaatcontrole en huidige/archief-
+indeling werken. Oudere versie- en installatieregels hieronder zijn historische
+receipts. De nieuwe eerste bèta is nog niet gepubliceerd; zie WORKBOARD §6.
+Geen bestaande tag/download vervangen of per losse reparatie opnieuw flashen.
+
+## E32 alpha15 uitgevoerd — 2026-10-23
+
+De E32 draait nu `v0.1.0-e32v2-alpha.15`, bron `043862c154eb314ad70f96c88062a716962c2a5e`. Het apparaat heeft de release zelf via HTTPS ontdekt, gedownload en app-only geïnstalleerd; de nieuwe boot is bevestigd. Alle zeven instellingen-/programmasnapshots zijn gelijk gebleven; SOURCE-policy/configrevision/digest en uitgeschakelde uitgangen zijn behouden. HA blijft de reeds geïnstalleerde dev20.
+
+About, Sign out rechtsboven en Restart onder Settings staan nu live. Rechtstreekse Chromium-controle op het apparaat op 1280/390/320px PASS: exacte HTML-bron, About/credits, geen horizontale overflow, herstartbevestiging annuleren zonder opdracht. De bestaande 42 Node-tests en samengestelde browserproeven PASS. Volledige CI `39959955216` PASS, openbare downloads onafhankelijk geverifieerd: 1030 pakketcontroles/552 Gitbronbestanden plus echte ELF/embeddedweb/TLS-allocatoridentiteit PASS.
+
+De publicatieworkflows op deze kandidaat bevatten nu `scripts/organize_releases.py`. De echte alpha15-publicatie heeft automatisch alpha15 als Actueel en alpha14 als Archief gelabeld, en de actuele downloadtabellen bijgewerkt. Catalogus idempotent; alle 22 publieke records passen in de firmwareparser. Voor toekomstige publicaties verdergaan vanaf deze schone kandidaat; de oudere GitHub-main bevat deze workflowwijzigingen nog niet. Tags en bestaande downloads niet vervangen.
+
+Bewijs: `out/e32-alpha15-evidence-20261023/FINAL-REVIEW.json`, inclusief onafhankelijke deelcontroles en live screenshots. Dit sluit de voorbereide About/navigatie/releasebeheerwerkzaamheden af. Afzonderlijke langdurige/hardware-/verwarmingskwalificatie wordt hiermee niet geclaimd.
+
 # Firmware bijwerken via jouw GitHub Releases
+
+**Release-indeling:** kies in het overzicht bovenaan een release tussen
+**E32-firmware** en **Home Assistant**. De nieuwste versies dragen `Actueel`;
+oudere software heeft het voorvoegsel `Archief`. Bronpakketten zijn afzonderlijk
+gelabeld. Historische toelichtingen blijven uitklapbaar beschikbaar. Tags en
+publieke downloadlinks blijven behouden.
+
+**Actueel 23 oktober:** alpha.14 is werkelijk via de ingebouwde GitHub-updater
+vanuit alpha.13 geïnstalleerd, met behouden configuratie en bevestigde opstart.
+De HTTPS-geheugenfout is gericht verholpen met taakgebonden externe TLS-allocatie;
+certificaatcontrole blijft ingeschakeld. Oude firmware kan voor deze correctie
+nog één normale app-only upload nodig hebben; Marks E32 is al bijgewerkt.
 
 **Gepubliceerd23okt:** [HA0.4.0.dev13](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev13).
 Afzonderlijke integratie-ZIP; bron en werkelijk gedownloade checksums gecontroleerd.

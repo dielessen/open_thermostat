@@ -1,0 +1,911 @@
+{
+  "schema": 1,
+  "as_of": "2026-10-23",
+  "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
+  "release_state": "NOT_READY",
+  "installed_source_commit": "86f99a96a9673424425d752f582ca4361e2f2b4c",
+  "installed_firmware": "v0.1.0-e32v2-alpha.17",
+  "installed_ha": "0.4.0.dev23",
+  "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
+  "items": [
+    {
+      "id": "I01",
+      "title": "Eigen project, bron/licenties en reproduceerbaar pakket",
+      "status": "geleverd",
+      "include_in_beta": true,
+      "requirements": [
+        "R28",
+        "R30"
+      ],
+      "files": [
+        {
+          "path": "scripts/e32_source_closure.py",
+          "sha256": "63a426fe0c5fd0049072958fd74aa5caad7d379ac5db15619914510f21f65dc8"
+        },
+        {
+          "path": "scripts/e32_relink.py",
+          "sha256": "29c7b401cd4503d34ef9bc973f59939a81945ee291f9561825ee09667a9d2736"
+        },
+        {
+          "path": "scripts/package_e32v2_release.py",
+          "sha256": "82a3f42df822f6c2eb5b9a6b48b7a0325aedfde87cdbeef90e3eaf074583ba62"
+        },
+        {
+          "path": "docs/third-party/shipped-policy.json",
+          "sha256": "b4bf3ddea88737ab2310e82bde34bbe4f01fecd0678a14f2c4e6e3aebfe61008"
+        }
+      ],
+      "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
+    },
+    {
+      "id": "I02",
+      "title": "Weblogin, sessies, CSRF, setup en herstelroutes",
+      "status": "geleverd",
+      "include_in_beta": true,
+      "requirements": [
+        "R28"
+      ],
+      "files": [
+        {
+          "path": "src/control/WebAuthSession.h",
+          "sha256": "2fc6299394ffb94c05ac8196519259a932c492ddad84d5458f2f2a4798437529"
+        },
+        {
+          "path": "src/control/HttpAccessPolicy.h",
+          "sha256": "bb48cb696ad51e4f7ffbefddb63fec182fac18910a2a15e06d1ad8edfcb39a4d"
+        },
+        {
+          "path": "data/html/auth-client.js",
+          "sha256": "3d2ff3c3a3054f6e4a45f45cbec629e4f16cb7faf71abfa3426593417f64ff59"
+        }
+      ],
+      "remaining_acceptance": "Fysieke AP-/uitval-/herstelmatrix blijft apart."
+    },
+    {
+      "id": "I03",
+      "title": "Automatische HTTPS-update, TLS-geheugen en catalogus",
+      "status": "geleverd",
+      "include_in_beta": true,
+      "requirements": [
+        "R28",
+        "R29",
+        "R30"
+      ],
+      "files": [
+        {
+          "path": "src/update/GitHubUpdate.cpp",
+          "sha256": "b53644fdb6b98c3fb6a2aa45cf1a3a35e734cfa928f1efd3f48f7319c8de4887"
+        },
+        {
+          "path": "src/update/IndexedReleaseCatalog.h",
+          "sha256": "39f6bea7b771e1635e149b7291feec4d6548628210200109d845465f88863d14"
+        },
+        {
+          "path": "src/update/TlsAllocationPolicy.h",
+          "sha256": "507fb9fb0d545c23238865afa880434d54fa10d329c00f2281583977a6504dc2"
+        }
+      ],
+      "remaining_acceptance": "Nieuwe bèta via dezelfde normale updater controleren."
+    },
+    {
+      "id": "I04",
+      "title": "Actuele/archief-releases automatisch ordenen",
+      "status": "geleverd",
+      "include_in_beta": true,
+      "requirements": [
+        "R28"
+      ],
+      "files": [
+        {
+          "path": "scripts/organize_releases.py",
+          "sha256": "36d632c0469c18c2e92651287304c5c669a2d9b1df672913d5c6e66e768440a5"
+        },
+        {
+          "path": ".github/workflows/build.yml",
+          "sha256": "b01c65b1069d5644f0b2ec94b2aaa6c1760f09d449efb0a968315859e4d37b53"
+        }
+      ],
+      "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
+    },
+    {
+      "id": "I05",
+      "title": "About, uitloggen rechts en herstart onder Settings",
+      "status": "geleverd",
+      "include_in_beta": true,
+      "requirements": [
+        "R29"
+      ],
+      "files": [
+        {
+          "path": "data/html/about.html",
+          "sha256": "22a57d48c200c5b1349fd36d26a865ef8dd6da6f46ce1c349e250387c149607a"
+        },
+        {
+          "path": "data/html/index.html",
+          "sha256": "4ae1bc53a7053f3f2fa781d1b5f49d5419592e7b2cfd3c11703360428c653a32"
+        },
+        {
+          "path": "data/html/device-restart.js",
+          "sha256": "e42ca502023c50783bcdee4ec8509c3720ab423ce84a93a0d020943ce97493f6"
+        }
+      ],
+      "remaining_acceptance": "Behouden; bevestiging/herstartguards opnieuw in eindregressie."
+    },
+    {
+      "id": "I06",
+      "title": "Kamerinrichting, identiteiten en apparaatmetadata",
+      "status": "geleverd",
+      "include_in_beta": true,
+      "requirements": [
+        "R01",
+        "R03",
+        "R04",
+        "R29"
+      ],
+      "files": [
+        {
+          "path": "ha/config/custom_components/open_thermostat/room_editor.py",
+          "sha256": "aba896c7fca9f1e4480834503995a18bbe781669db0c662cad961c036bae6d43"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/device_metadata.py",
+          "sha256": "eec21aed993417081d86365dec37304486057cd3ecb9a661d976d004b67e2c29"
+        }
+      ],
+      "remaining_acceptance": "Beschikbaarheid/metadata kwalificeert geen fysieke sensor of kraan."
+    },
+    {
+      "id": "I07",
+      "title": "Weekplanner, korte aanraakblokken en effectief doel",
+      "status": "geleverd",
+      "include_in_beta": true,
+      "requirements": [
+        "R01",
+        "R18"
+      ],
+      "files": [
+        {
+          "path": "ha/config/custom_components/open_thermostat/week_planner.py",
+          "sha256": "d41381be52588935323491e8b187b6b2c2b6991d1523612aef48c3c480b6284b"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/room_program_apply.py",
+          "sha256": "03486d865edb8bcccade93a8df862bb476b7376aee18ca0d3ed54184af6fd438"
+        },
+        {
+          "path": "src/control/NativeControlPlan.h",
+          "sha256": "28f98bdbae4e51fdaacc75eb390062303c318145e15306cbe64832d0212a499f"
+        }
+      ],
+      "remaining_acceptance": "Echte programma-save/ACK bevestigd; bron-/uitval-/reconnectproef nog open."
+    },
+    {
+      "id": "I08",
+      "title": "Actieve sensor/TRV/grenzen wijzigen, bewaren en opnieuw toepassen",
+      "status": "geleverd",
+      "include_in_beta": true,
+      "requirements": [
+        "R01",
+        "R03",
+        "R04",
+        "R28"
+      ],
+      "files": [
+        {
+          "path": "ha/config/custom_components/open_thermostat/room_profile_apply.py",
+          "sha256": "2cf5940f6284f344392ea416db3ae14c3529d3564d44abbc18f20cb75e703697"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/native_provisioning.py",
+          "sha256": "b683bbc9d4c40b60c41724521233143d23a807cf34bf1087a2b839f14a59c5f4"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/controller_link.py",
+          "sha256": "f6b4a58189cd78446eca04718677e2e1fca73d8d1ffe3c3e08f9723298a1dde4"
+        }
+      ],
+      "remaining_acceptance": "Alleen normale expliciete save; geen live apparaatwissel tijdens installatie bewezen."
+    },
+    {
+      "id": "I09",
+      "title": "HA-kaart registreren na opstart, zonder herhaald refreshen",
+      "status": "geleverd",
+      "include_in_beta": true,
+      "requirements": [
+        "R29"
+      ],
+      "files": [
+        {
+          "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
+          "sha256": "6198c8359f3b3ef0d043283a8e65df49b7b9be774e75fe48f8c0b4cea762c5e7"
+        }
+      ],
+      "remaining_acceptance": "Drie echte koude HA-sessies bewezen; versiegebonden module behouden."
+    },
+    {
+      "id": "I10",
+      "title": "Kamernamen op E32 en juiste statische webroutes",
+      "status": "geleverd",
+      "include_in_beta": true,
+      "requirements": [
+        "R25",
+        "R29"
+      ],
+      "files": [
+        {
+          "path": "src/control/RoomDisplayNames.h",
+          "sha256": "04536af9116462469e8fad5a6589831e1a4f70ed4038713d852858acf00830aa"
+        },
+        {
+          "path": "src/control/StaticAssetRoute.h",
+          "sha256": "82c0c4cd0c21d21ce52a82e4876e2edcbeb3b63366fdcc821e7fe2b77a2f367c"
+        },
+        {
+          "path": "src/REST.h",
+          "sha256": "d8fc4421f88a726c93990d22673bd2ac7acdb99ad2cdd2143a632e3348baad7f"
+        }
+      ],
+      "remaining_acceptance": "Badkamer live bevestigd; geen nieuwe seriële opname van de logstilte."
+    },
+    {
+      "id": "I11",
+      "title": "Meetstatus en geheugen-/toelatingsdiagnose",
+      "status": "geleverd",
+      "include_in_beta": true,
+      "requirements": [
+        "R03",
+        "R24",
+        "R25",
+        "R30"
+      ],
+      "files": [
+        {
+          "path": "ha/config/custom_components/open_thermostat/v1_runtime.py",
+          "sha256": "5c4734d29ccdf6769b997d08cf25ffebe1e3759df2c5f5475b341963335c8a76"
+        },
+        {
+          "path": "src/control/ControlBuildCapabilities.h",
+          "sha256": "4f3b0c9a80141c63bc7e6e24bbfa9e470bbbbfb99794f23a962cda654be279df"
+        },
+        {
+          "path": "src/control/ControlUiSnapshot.h",
+          "sha256": "02c4f69354e7ad1dca05a74dd47856fb17fde76d3ee78bc5ed3e5c2615c79196"
+        }
+      ],
+      "remaining_acceptance": "profile_missing blijft een open productiebron, geen sensor-defectclaim."
+    },
+    {
+      "id": "I12",
+      "title": "Passieve Classic-decoder, protocolfamilies en veldkwaliteit",
+      "status": "geleverd",
+      "include_in_beta": true,
+      "requirements": [
+        "R08",
+        "R15",
+        "R16"
+      ],
+      "files": [
+        {
+          "path": "src/EMS/ClassicBoilerMonitor.h",
+          "sha256": "1cc69f29ba740342b1ac6ba333e73416af2461e493c4967167815aa6417c802f"
+        },
+        {
+          "path": "src/EMS/BoilerCapabilities.h",
+          "sha256": "be918a342ea476b05a1487fe68db4996abe038988e04c22f1f50d137e3865c3b"
+        },
+        {
+          "path": "test/test_native/test_classic_boiler.cpp",
+          "sha256": "6063e2beff8e9626f7204a0110271d7d68adacc6b24dfcfcc0dfa68767ae5bfe"
+        }
+      ],
+      "remaining_acceptance": "Fysieke E32-ontvangst en vereiste pariteit nog aantonen; TX blijft dicht."
+    },
+    {
+      "id": "I13",
+      "title": "Ketencontract, SOURCE, journal, configuratie en readback",
+      "status": "geleverd",
+      "include_in_beta": true,
+      "requirements": [
+        "R01",
+        "R07",
+        "R18",
+        "R24"
+      ],
+      "files": [
+        {
+          "path": "src/control/NativeSourceProvisioning.h",
+          "sha256": "be3ee50aa7cb5d99239c582dd213b596457c1712f0de67a9f30229a36ddb827d"
+        },
+        {
+          "path": "src/control/ShadowController.h",
+          "sha256": "89319815b36c87680d60f3c1046bd713d871aceefbc5b6b2388833a7b402a937"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/native_plan.py",
+          "sha256": "1362911e3f90527f6e4dee315c0b1baeb41ae6279b04991e24d3ae0d96253b84"
+        }
+      ],
+      "remaining_acceptance": "Logische provisioning/programma-ACK werkt; verse fysieke meet- en actuatorbewijzen ontbreken."
+    },
+    {
+      "id": "I14",
+      "title": "Kraanadapter profiel C en tijdelijke bronbench",
+      "status": "deels",
+      "include_in_beta": true,
+      "requirements": [
+        "R03",
+        "R04",
+        "R05"
+      ],
+      "files": [
+        {
+          "path": "ha/config/custom_components/open_thermostat/v1_profile_c.py",
+          "sha256": "ec7bb16605813f53a1a8f84f2d40a5e24a83b0a653aaf0d4aca2a73eeb67d04a"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/v1_bench_source.py",
+          "sha256": "3325828c4e123bfcd2ce31c460429b1f3bb7616b314fba05a011d06f36117fa4"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/v1_bench_actions.py",
+          "sha256": "1352091626fe1265adef1db87c6b7430a46dc380b1a0fb61da9b40bbc4312493"
+        }
+      ],
+      "remaining_acceptance": "Geen vrijgegeven native fysieke route; oude bench expliciet geblokkeerd op SOURCE."
+    },
+    {
+      "id": "I15",
+      "title": "Kamerregelaar, seizoensbeleid en hydraulische supervisor",
+      "status": "deels",
+      "include_in_beta": true,
+      "requirements": [
+        "R07",
+        "R09",
+        "R22",
+        "R23",
+        "R24"
+      ],
+      "files": [
+        {
+          "path": "src/control/ZoneRegulator.h",
+          "sha256": "8a64a55fdecc8aeb965c8f1c6d59f360652a0f30910cc5f801f5874db3c849c5"
+        },
+        {
+          "path": "src/control/HydraulicSupervisor.h",
+          "sha256": "df47ec24b215ca3b517ef96a8411311d4b1d4e1b0584cbcae0cc8a0304df371e"
+        },
+        {
+          "path": "src/control/SeasonalControllerSource.h",
+          "sha256": "2b8563020eb766c111bbc09097b87d9016a37259aa70a37676b160a8d04ddb74"
+        }
+      ],
+      "remaining_acceptance": "Regellogica/shadow voorbereid; hydraulische profiel- en uitvoerketen niet gekwalificeerd."
+    },
+    {
+      "id": "I16",
+      "title": "Groepswaterdoelen, vloer, menger en centrale graph-config",
+      "status": "deels",
+      "include_in_beta": true,
+      "requirements": [
+        "R06",
+        "R09",
+        "R10",
+        "R11",
+        "R23"
+      ],
+      "files": [
+        {
+          "path": "src/control/GroupWaterPolicy.h",
+          "sha256": "46aabd1f31d385d06ddcb46926cbecc04a9151dde2bae468e6c4ae1faf7182bd"
+        },
+        {
+          "path": "src/control/MixerPolicy.h",
+          "sha256": "e782cde57bc22fcfd91ac8c784e37344e4a884932a1839b50f9bf3b6355b226f"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/v1_heating_graph.py",
+          "sha256": "e27867e1e4bd5c1dd50982c5258a19b0dd582a0a874f950222c1caf4ef4d758f"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/graph_draft_compile.py",
+          "sha256": "51a27db9813d0dd43132cea72b3730ddeb5ed8f9694c3ffc45d7e08b0cab344b"
+        }
+      ],
+      "remaining_acceptance": "Pure policies/declaraties en begrensde DATA-paden aanwezig; niet gelijk aan actieve groepen/pomp/menger."
+    },
+    {
+      "id": "I17",
+      "title": "Metrics, grafieken, historiegrens en CSV-export",
+      "status": "deels",
+      "include_in_beta": true,
+      "requirements": [
+        "R15",
+        "R16",
+        "R17",
+        "R25",
+        "R26"
+      ],
+      "files": [
+        {
+          "path": "ha/config/custom_components/open_thermostat/metrics_reports.py",
+          "sha256": "da1ddc6b8ea6f609361a61e9befdcaab5d21cdce1c8a0aedca3e33451ecb1f41"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/metric_snapshot.py",
+          "sha256": "325a870fb02a2cb6fd428ec231b2407dec2bd89268a783f29a05ef3563697e55"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/dashboard.py",
+          "sha256": "c129e0cf31a72ddaa6d813e6daf0cf4069d119bf967326789cf63acdbbee1db2"
+        },
+        {
+          "path": "src/control/MetricsTelemetry.h",
+          "sha256": "e55268dfa26a89705133220c298953f2deaccf135fb0b3c7aa41f0e450585f2b"
+        }
+      ],
+      "remaining_acceptance": "Niet opnieuw vanaf nul bouwen; echte Classic-tijdlijn, Recorder-retentie/migratie en grafiekacceptatie open."
+    },
+    {
+      "id": "I18",
+      "title": "Comfortprioriteiten, raam/aanwezigheidscontext en HEAT/OFF",
+      "status": "deels",
+      "include_in_beta": true,
+      "requirements": [
+        "R02",
+        "R19",
+        "R20",
+        "R21",
+        "R22"
+      ],
+      "files": [
+        {
+          "path": "src/control/EffectiveTarget.h",
+          "sha256": "0a1e228d45c0d1b448819da055f26864cd29ada14459d1bf9b740e77535baf10"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/comfort_sources.py",
+          "sha256": "8a293ca9ae870b7f95969a35228a46b3c38d0ad87e9220b8210c58680fd91016"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/v1_climate.py",
+          "sha256": "f9c283ad4985724c36220776933e61f2b766b2224e05ec140610a47f9f95efc1"
+        }
+      ],
+      "remaining_acceptance": "Logische/oudere opt-in paden bestaan; native eenvoudige kamereditor/bronkwalificatie niet compleet."
+    },
+    {
+      "id": "I19",
+      "title": "Thermisch model, optimum-start, uitlopen en curveaanpassing",
+      "status": "deels",
+      "include_in_beta": true,
+      "requirements": [
+        "R12",
+        "R13",
+        "R14"
+      ],
+      "files": [
+        {
+          "path": "src/control/ThermalResponseModel.h",
+          "sha256": "13f8bde5e682a53354b027bf8e97b663a2e588d9c7a1ef6135d8445c0084feb9"
+        },
+        {
+          "path": "src/control/ThermalCoastModel.h",
+          "sha256": "4fa02f5be1e2fe48d9624cd8298dae1bad81624d436a924f1cc1f9cb3e981883"
+        },
+        {
+          "path": "src/control/CurveAdaptation.h",
+          "sha256": "fdb2ef611b7dd2901f538be9bf68be7532a3cdad43030642cb298129a42f8576"
+        },
+        {
+          "path": "src/control/ModelResourceGate.h",
+          "sha256": "fb444552dc500c8aeba16a88eb2595d15a2989fca7112badda03f561445168c1"
+        }
+      ],
+      "remaining_acceptance": "Code/replay/opslag aanwezig en behouden; geen bewezen leerwinst of actieve vrijgave. Geen nieuwe F9-stage vóór M2."
+    },
+    {
+      "id": "I20",
+      "title": "Meldingen, batterij en modelspecifieke tapwaterpresentatie",
+      "status": "deels",
+      "include_in_beta": true,
+      "requirements": [
+        "R27",
+        "R31"
+      ],
+      "files": [
+        {
+          "path": "ha/config/custom_components/open_thermostat/blueprints/low_battery.yaml",
+          "sha256": "2f7b26e1ae80e6a2ca516b80a2510641571f943808e47852f9ecdcf11839ae2c"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/dhw.py",
+          "sha256": "371ef24125acd1d1d7836cb11b3be6eda962f2522e215628774035af6d023400"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/diagnostics.py",
+          "sha256": "7232eb803ab0b56e69e43e993dccbefa7ea748c2f60f7b06e8d92cc8d337d132"
+        }
+      ],
+      "remaining_acceptance": "Niet generiek als werkende onderhouds-/tapwaterregeling presenteren; modelgerichte acceptatie open."
+    },
+    {
+      "id": "I21",
+      "title": "Keteltest-pagina, ontvangstdiagnose en meetrapport",
+      "status": "nieuw_getest",
+      "include_in_beta": true,
+      "requirements": [
+        "R08",
+        "R15",
+        "R16",
+        "R25",
+        "R29"
+      ],
+      "files": [
+        {
+          "path": "data/html/boiler_test.html",
+          "sha256": "291381b6e358c041d5e3fde762093178f908c3ad2b7b3f9e1f493057521e4c47"
+        },
+        {
+          "path": "src/EmsController.h",
+          "sha256": "2ead78219cd91b182a2ea23358b6fa6ed056ea5414647e6c4f4b5740e443da05"
+        },
+        {
+          "path": "src/EmsController.cpp",
+          "sha256": "bd40fbb7ab47134ae428f9854ac83e32ac20be7520c9b4f8aa7031f87df07db6"
+        },
+        {
+          "path": "test/boiler-test-browser.cjs",
+          "sha256": "ae3799d1fc18b9aefdfd95f7dec27036ec845a3d3bad8d47b850778d25035e85"
+        }
+      ],
+      "remaining_acceptance": "18 native + 43 GUI-regressies en 3 browserschermen PASS; nog niet geïnstalleerd."
+    }
+  ],
+  "requirements": [
+    {
+      "id": "R01",
+      "title": "Kamerdoel en identiteit",
+      "software_status": "Gebouwd en geleverd; programma-save/ACK op echte E32 bewezen",
+      "inventory_ids": "I06–I08,I13",
+      "remaining_acceptance": "Verse fysieke meetketen en volledige ruimteproef.",
+      "product_accepted": false
+    },
+    {
+      "id": "R02",
+      "title": "Externe kamerdoelbediening",
+      "software_status": "Bindings/modelbasis aanwezig; moderne kamerketen onvolledig",
+      "inventory_ids": "I18",
+      "remaining_acceptance": "Editor + profiel/identiteit + één override per fysieke bediening + echopreventie.",
+      "product_accepted": false
+    },
+    {
+      "id": "R03",
+      "title": "Gemengde temperatuursensoren",
+      "software_status": "Binding, normalisatie en stale-guards aanwezig; productie-meetprofiel ontbreekt",
+      "inventory_ids": "I06,I11,I13,I14",
+      "remaining_acceptance": "Modelspecifieke meetrapportproducent, echte acquisitie en uitval; geen diagnostische device_temp als ambientbewijs.",
+      "product_accepted": false
+    },
+    {
+      "id": "R04",
+      "title": "Meerdere TRVs per kamer/merken",
+      "software_status": "Declaraties en selecties bestaan; huidig native radiatorcontract één TRV per kamer",
+      "inventory_ids": "I06,I08,I14,I16",
+      "remaining_acceptance": "Ondersteunde modellen en groepsfeedback; native uitbreiding niet als geleverd claimen.",
+      "product_accepted": false
+    },
+    {
+      "id": "R05",
+      "title": "Open/dicht/proportioneel regelen",
+      "software_status": "Bewaakte profiel-C-adapter en pure regelprofielen aanwezig",
+      "inventory_ids": "I14,I15",
+      "remaining_acceptance": "Echte kraan zonder ketel; juiste regelmethode, eigen agenda, echo, afronding en uitval.",
+      "product_accepted": false
+    },
+    {
+      "id": "R06",
+      "title": "Vloerkleppen",
+      "software_status": "Graphdeclaraties, klep-/groepsbasis aanwezig",
+      "inventory_ids": "I16",
+      "remaining_acceptance": "Actieve profiel-/wire-/uitvoerketen en eigen fysieke vloeracceptatie.",
+      "product_accepted": false
+    },
+    {
+      "id": "R07",
+      "title": "Onafhankelijke zones/ketelvraag",
+      "software_status": "A/B/samen/uit shadow-regellogica aanwezig",
+      "inventory_ids": "I13,I15",
+      "remaining_acceptance": "Gekwalificeerde actuatoren, afgiftepad en echte begrensde ketelvraag.",
+      "product_accepted": false
+    },
+    {
+      "id": "R08",
+      "title": "Classic EMS en behoud Plus",
+      "software_status": "Passieve Classic- en Plusbasis geleverd; alle E32-TX geblokkeerd",
+      "inventory_ids": "I12,I21",
+      "remaining_acceptance": "Classic-proefcommandopad + elektrische zendmodus/stopbewijs; Plus later eigen fysieke vrijgave.",
+      "product_accepted": false
+    },
+    {
+      "id": "R09",
+      "title": "Weersafhankelijke aanvoer",
+      "software_status": "Curve-/groep-/begrenzingspolicies en centrale draft aanwezig",
+      "inventory_ids": "I15,I16",
+      "remaining_acceptance": "Centrale instellingen verbinden met geselecteerde regelaar, actuele buitenbron en keteluitvoer.",
+      "product_accepted": false
+    },
+    {
+      "id": "R10",
+      "title": "Eigen buitenbron",
+      "software_status": "Bronabstractie/binding/draft en validatie aanwezig",
+      "inventory_ids": "I16",
+      "remaining_acceptance": "Normale configuratie/apply + bronkwalificatie, leeftijd, bronwisseling/uitval.",
+      "product_accepted": false
+    },
+    {
+      "id": "R11",
+      "title": "Internetweer via HA",
+      "software_status": "HA-bronroute ontworpen; geen volledig gekwalificeerde praktijkketen",
+      "inventory_ids": "I16",
+      "remaining_acceptance": "Gratis HA-weerbron, ouderdom/terugval en internetuitval bewijzen.",
+      "product_accepted": false
+    },
+    {
+      "id": "R12",
+      "title": "Zelflerende kamerregeling",
+      "software_status": "Model-, begrenzings-, resource- en replaycode aanwezig",
+      "inventory_ids": "I19",
+      "remaining_acceptance": "Niet actief vrijgegeven; getoetste meetdata, baseline/comfortvoordeel en modelrollback.",
+      "product_accepted": false
+    },
+    {
+      "id": "R13",
+      "title": "Optimum-start",
+      "software_status": "Opwarmmodel en begrensd advies/replay aanwezig",
+      "inventory_ids": "I19",
+      "remaining_acceptance": "Aansluiten na M2/stabiele basis; meerdere vergelijkbare echte starts en comfortbewijs.",
+      "product_accepted": false
+    },
+    {
+      "id": "R14",
+      "title": "Uitlopen/curve leren",
+      "software_status": "Coast- en curve-adaptatiecode/opslag/replay aanwezig",
+      "inventory_ids": "I19",
+      "remaining_acceptance": "Afzonderlijke toelating en meetbaar comfort-/curvebewijs; geen leerwinstclaim.",
+      "product_accepted": false
+    },
+    {
+      "id": "R15",
+      "title": "Alle relevante keteldata",
+      "software_status": "Veldinventaris/Classic-decoder en kwaliteitslabels aanwezig",
+      "inventory_ids": "I12,I17,I21",
+      "remaining_acceptance": "Vereiste betrouwbare velden op eigen E32 ontvangen en vergelijken; unsupported/unreliable expliciet.",
+      "product_accepted": false
+    },
+    {
+      "id": "R16",
+      "title": "Brander/modulatiegrafieken",
+      "software_status": "Metrics-/presentatiecode aanwezig; ontvangstscherm nieuw getest",
+      "inventory_ids": "I17,I21",
+      "remaining_acceptance": "Echte CV/DHW-tijdlijn, gaten en herkomst; vlam/pompbit niet onafhankelijk betrouwbaar.",
+      "product_accepted": false
+    },
+    {
+      "id": "R17",
+      "title": "Historie/statistics/CSV",
+      "software_status": "Recordergrens, metrics-schema en read-only CSV-code aanwezig",
+      "inventory_ids": "I17",
+      "remaining_acceptance": "Werkelijke retentie/omvang, oude deltahistorie/migratie, reset/gaten en mobiele grafiekacceptatie.",
+      "product_accepted": false
+    },
+    {
+      "id": "R18",
+      "title": "Weekprogramma/override",
+      "software_status": "Native weekeditor/UTC-plan/apply geleverd; echte save/ACK bewezen",
+      "inventory_ids": "I07,I13",
+      "remaining_acceptance": "Volledige fysieke stale/reconnect/tijd-/overrideketen; huidige 1–2 kamer-/bytebudgetten behouden.",
+      "product_accepted": false
+    },
+    {
+      "id": "R19",
+      "title": "Comfort/eco/away/vakantie/boost",
+      "software_status": "Prioriteits-/expiry-/opt-in comfortcode aanwezig",
+      "inventory_ids": "I18",
+      "remaining_acceptance": "Normale huidige producteditor/bronketen en conflicten compleet; geen nieuwe F10-stage vóór M2.",
+      "product_accepted": false
+    },
+    {
+      "id": "R20",
+      "title": "Aanwezigheid/geofencing",
+      "software_status": "Opt-in logische HA-contextbasis aanwezig",
+      "inventory_ids": "I18",
+      "remaining_acceptance": "Modelspecifieke contextactualiteit en complete gebruikersroute; P2 blijft later.",
+      "product_accepted": false
+    },
+    {
+      "id": "R21",
+      "title": "Raam-open",
+      "software_status": "Zone-inhibit/prioriteits-/contextcode aanwezig",
+      "inventory_ids": "I18",
+      "remaining_acceptance": "Native kamereditor/contract voor huidige SOURCE en stabiele contactactualiteit; later F10.",
+      "product_accepted": false
+    },
+    {
+      "id": "R22",
+      "title": "Vorst/zomer",
+      "software_status": "Seizoens-/prioriteitspolicy en bounded frost-target aanwezig",
+      "inventory_ids": "I15,I18",
+      "remaining_acceptance": "Installatiegebonden fysieke bescherming bij uitval; softwaretarget is geen bewezen vorstbeveiliging.",
+      "product_accepted": false
+    },
+    {
+      "id": "R23",
+      "title": "Anti-pendelen/hydrauliek",
+      "software_status": "Supervisor-, timing-, waterbudget- en minimumlastcode aanwezig",
+      "inventory_ids": "I15,I16",
+      "remaining_acceptance": "Actieve profiel/readiness/flow/pomp/naloopketen en fysieke kleinste-last/DHW-proeven.",
+      "product_accepted": false
+    },
+    {
+      "id": "R24",
+      "title": "Uitval HA/MQTT/sensor/E32",
+      "software_status": "Lease/session/boot/stale/owner-guards aanwezig",
+      "inventory_ids": "I11,I13,I15",
+      "remaining_acceptance": "Werkelijke uitvalmatrix, E32-powerloss/ketelstop, actuatorfallback en exclusieve overdracht.",
+      "product_accepted": false
+    },
+    {
+      "id": "R25",
+      "title": "Waarom stoken",
+      "software_status": "Redencodes, kamervraag en dashboard geleverd; diagnose uitgebreid",
+      "inventory_ids": "I10,I11,I15,I17,I21",
+      "remaining_acceptance": "Echte opdrachtentijdlijn en gecontroleerde vraag/verzending/ketelreactie apart zichtbaar.",
+      "product_accepted": false
+    },
+    {
+      "id": "R26",
+      "title": "Verbruik/kosten/comfort",
+      "software_status": "Metrics/export/schatlabels gedeeltelijk aanwezig",
+      "inventory_ids": "I17",
+      "remaining_acceptance": "Echte gas-/warmtemeter en kostenbron/kalibratie; geen verzonnen besparing of fysiek gasvolume.",
+      "product_accepted": false
+    },
+    {
+      "id": "R27",
+      "title": "Meldingen/onderhoud/batterij",
+      "software_status": "Diagnostics/Repairs en batterijblueprintbasis aanwezig",
+      "inventory_ids": "I20",
+      "remaining_acceptance": "Passende meldingen en echte fout-/batterij-/geen-responsscenario’s; geen automatische ketelreset.",
+      "product_accepted": false
+    },
+    {
+      "id": "R28",
+      "title": "Open/lokaal/veilig/herstelbaar",
+      "software_status": "Eigen bron, auth, HTTPS-updates en behoud/rollback deels live bewezen",
+      "inventory_ids": "I01–I04,I08",
+      "remaining_acceptance": "Concrete ACL/HTTP/AP-/koude herstel-/uitvalmatrix; oorspronkelijke backupwaiver blijft geldig.",
+      "product_accepted": false
+    },
+    {
+      "id": "R29",
+      "title": "Modern eenvoudig scherm",
+      "software_status": "HA-kamer/week, koude-startfix, E32-dashboard/About/navigatie geleverd",
+      "inventory_ids": "I05–I11,I21",
+      "remaining_acceptance": "Ontbrekende centrale/uitvoerfuncties en complete gebruikersacceptatie; echte latentie/geen ongefundeerde speedup.",
+      "product_accepted": false
+    },
+    {
+      "id": "R30",
+      "title": "Schaalbaar/onderhoudbaar",
+      "software_status": "CI/build/source-/budgetguards en 1–2 native kamers aanwezig",
+      "inventory_ids": "I01,I03,I11,I13",
+      "remaining_acceptance": "Acht zones zijn productdoel: maximumconfig/heap/NVS/powerloss/72u nog open.",
+      "product_accepted": false
+    },
+    {
+      "id": "R31",
+      "title": "Optionele tapwaterbediening",
+      "software_status": "Modelspecifieke read-only presentatie/bewaking aanwezig",
+      "inventory_ids": "I20",
+      "remaining_acceptance": "Alleen echt ondersteunde writefuncties later apart testen; DHW/legionellabeveiliging behouden.",
+      "product_accepted": false
+    }
+  ],
+  "release_checks": [
+    {
+      "id": "B01",
+      "complete": true,
+      "description": "Alle 31 eisen, 11 fasen en 8 werkpakketten opnieuw beoordeeld; oude statusregels uit actuele lijst gehaald."
+    },
+    {
+      "id": "B02",
+      "complete": true,
+      "description": "Alle bekende voorbereide brononderdelen geïnventariseerd en in bètabasis behouden; geen bron-/testbestand uit hoofdwerkmap ontbreekt."
+    },
+    {
+      "id": "B03",
+      "complete": true,
+      "description": "Nieuwe ontvangstdiagnose/Keteltest/rapport gebouwd en getest: 18 native, 43 GUI-regressies, 3 echte Chromiumviewports met fixture-HTTP, normale E32-build."
+    },
+    {
+      "id": "B04",
+      "complete": false,
+      "description": "Productie-meetrapportprofiel/-producer en lifecycle aansluiten; originele acquisitie, cache/reconnect/stale correct; geen trustvinkje of sensorwissel als omweg."
+    },
+    {
+      "id": "B05",
+      "complete": false,
+      "description": "Juiste native TRV-route en profiel/readiness/echo/foutafhandeling voor eerste proefkamer afronden; fysieke proef eerst zonder ketel."
+    },
+    {
+      "id": "B06",
+      "complete": false,
+      "description": "Bestaande supervisor koppelen aan vereiste actuele profiel-/feedback-/DHW-/hydraulische voorwaarden; geen generieke flowaanname."
+    },
+    {
+      "id": "B07",
+      "complete": false,
+      "description": "Eindige expliciete proefstand: vaste temperatuur-/tijdgrens, stopprioriteit, exclusieve eigenaar, geen herstart/hervat/retry van oude vraag."
+    },
+    {
+      "id": "B08",
+      "complete": false,
+      "description": "Correct Classic-commandopad en laatste zendcontrole: geen positieve oude queue-inhoud na deadline/stop/conflict/reset; niet de generieke Plusroute hergebruiken."
+    },
+    {
+      "id": "B09",
+      "complete": false,
+      "description": "Concrete TX-interface en aansluit-/stopvoorwaarden vaststellen: timing/polariteit/arbitrage, converterketen, minimumflow/naloop, onafhankelijke stop/herstel en Tado óf E32."
+    },
+    {
+      "id": "B10",
+      "complete": false,
+      "description": "Bestaande voorbereide gebruikersfuncties en juiste onbekend-/draft-/geblokkeerdstatussen in eindkandidaat controleren; niets stilzwijgend laten verdwijnen."
+    },
+    {
+      "id": "B11",
+      "complete": false,
+      "description": "Versies/bron bevriezen, volledige CI/3 boards/native/HA/C++/browser/release-/source-/licentie-/compatibiliteitschecks op die exacte kandidaat."
+    },
+    {
+      "id": "B12",
+      "complete": false,
+      "description": "Openbare pakketten/bron/ELF/web/checksums en updatecatalogus onafhankelijk controleren; volledige releasenotes met open punten en herstelroute."
+    },
+    {
+      "id": "B13",
+      "complete": false,
+      "description": "Eén E32-update via normale updater en HA indien gewijzigd via bestaande HA-agent, met back-up/nacontrole en behoud van programma/bindings/identiteiten."
+    },
+    {
+      "id": "B14",
+      "complete": false,
+      "description": "Echte passieve ontvangst en afzonderlijke gecontroleerde start/stop/terugmelding aftekenen zodra B09 fysieke aansluiting toelaat; software- en praktijkbewijs apart bewaren."
+    }
+  ],
+  "phases": [
+    "F0",
+    "F1",
+    "F2",
+    "F3",
+    "F4",
+    "F5",
+    "F6",
+    "F7",
+    "F8",
+    "F9",
+    "F10"
+  ],
+  "work_packages": [
+    "WP01",
+    "WP02",
+    "WP03",
+    "WP04",
+    "WP05",
+    "WP06",
+    "WP07",
+    "WP08"
+  ],
+  "authoritative_workboard": "docs/modern-thermostat/WORKBOARD.nl.md",
+  "runtime_source_checkpoint": "cebb0a25296b690a2a2d699bccacb65ed0f69da7"
+}

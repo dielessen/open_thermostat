@@ -1296,3 +1296,35 @@ Tien nieuwe gevallen; 84 gerichte HA-tests PASS. De volledige CI en het
 vooraf falende geval staan bij `out/actuator-lifetime-20261024/`. B05 blijft open
 voor de oorspronkelijke live producenten/pins, causale doelkoppeling, schema-
 eigenaarschap en fysieke kraan-/fallbackkwalificatie.
+
+
+## WP02: actuele passieve controle van alle ketelvelden (24 oktober 2026)
+
+De bestaande HA-specialist heeft een afzonderlijke actuele snapshot gemaakt,
+geen zesuurscontrole en geen historie-/continue-dekkingsproef. Twee E32-REST-
+opnamen rond de HA-uitlezing bevatten elk 69 velddefinities. De huidige grens
+van de decoder is hiermee waargenomen, niet tot maximum of modelfilter gemaakt.
+
+| Uitkomst in dit leesvenster | Aantal | Betekenis |
+| --- | --- | --- |
+| Geldig, gemeld | 25 | Beschikbare gerapporteerde waarden; fysieke sensor/kalibratie niet bewezen |
+| Geldig, afgeleid | 2 | CV/DHW-afleiding; geen onafhankelijke vlam-/pompwaarneming |
+| Onbetrouwbare diagnostiek | 22 | E32 verwerkt de velden; native HA-entiteiten bleven uitgeschakeld |
+| Ongeldig gemeld | 7 | Geen nul invullen; geen bewijs dat hardware ontbreekt |
+| Nog niet waargenomen, gemeld | 13 | In deze boot/snapshot onbekend; geen permanente unsupported-claim |
+
+Alle 27 beschikbare HA-waarden passen in waarde, eenheid en kwaliteit bij beide
+REST-opnamen; nul verschillen. Het backend-leesvenster was circa 1,08 seconde.
+Elf HA-waarden waren nul: nul blijft een gemelde waarde, geen bewijs van
+fysieke bruikbaarheid. De bronwaarnemingsmarkeringen verschillen tussen HA en
+REST; er wordt geen exacte ouderdomsgelijkheid geclaimd en HA-last_updated is
+niet als acquisitietijd gebruikt. De bronregistraties bewaren die verschillen.
+
+De geïnstalleerde basis blijft alpha23/dev29, bron `5f31dd7`; alle gemelde fysieke
+uitgangen bleven uit. Eigen HA-/E32-sessies zijn gesloten. Geen bediening,
+configuratie, busopvraag, software-update of schedulerwijziging uitgevoerd. Het
+ketelprofiel bevat alleen de gedateerde veldgroepen/tellingen en grenzen van dit
+bewijs, geen ruwe huishoudwaarden of native apparaatidentiteiten. Read-all blijft
+aan; profielkeuze beperkt geen decoder. Bewijs:
+`out/passive-field-review-20261024/INDEPENDENT-PARITY.json` en `PUBLIC-SUMMARY.json`.
+B04–B14 blijven open voor de afzonderlijke bron-, installatie- en fysieke eisen.

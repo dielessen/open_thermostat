@@ -318,7 +318,7 @@
         },
         {
           "path": "docs/modern-thermostat/boiler-profiles/nefit-ecomline-classic-hrc-22h.json",
-          "sha256": "f8c4c58cb914a7429298848f42b8ea2f59eb5771c0010c7fbccf944ce71a5891"
+          "sha256": "8332ebcc0e8ab5cbdf725a94ff4f0ab740cfd8cc0d9a278f81f0d99c3ecd524d"
         }
       ],
       "remaining_acceptance": "HRC22H/modelkeuze, EN/NL, About/navigatie en incrementeel dashboard geleverd in alpha23/HA29. Normale HTTPS-update, exacte running-ELF/web/source en modelreadback geverifieerd. Shipped-browserproeven bewijzen behoud van openstatus/focus/scroll; op de module zijn exacte geserveerde webbytes bewezen, geen live browserpixels. Modelkeuze verandert geen decoder/adressen/ontvangst/aansturing en verleent geen technische ketelvrijgave. Lange beheer-/herstel- en fysieke kwalificatie blijven afzonderlijk open."
@@ -665,7 +665,7 @@
           "sha256": "27ad8c15d1e8bd12d4be74bdb105d75dea2bbed4f47393c5c3b1acab4bad64f5"
         }
       ],
-      "remaining_acceptance": "Alpha21/HA27 live: 69 definities, laatste nabije HA/REST-vergelijking26waarden (24reported/2inferred), eerdereboot27. Oorspronkelijke bronleeftijd, waarde, eenheid en kwaliteit vergeleken. Ontbrekende/ongeldige/verlopen waarden blijven onbekend,22onbetrouwbare diagnostiekvelden standaarduit. Langere observatie en fysieke bruikbaarheid/kalibratie apart; TX geblokkeerd."
+      "remaining_acceptance": "Alpha23/HA29 live: actuele afzonderlijke snapshot met69definities,27HA/REST waarde-/eenheid-/kwaliteitsmatches (25reported/2inferred),20unknown/unavailable en22onbetrouwbare diagnostiekentiteiten uitgeschakeld. Originele bronwaarnemingsmarkeringen/kwaliteit apart bewaard; geen exacte ouderdomspariteit, acquisitie-, continue-dekkings- of fysieke bruikbaarheidsclaim. Read-all onafhankelijk van model; TX/uitgangen blijven geblokkeerd. Langere observatie en fysieke validatie blijven open."
     },
     {
       "id": "I13",

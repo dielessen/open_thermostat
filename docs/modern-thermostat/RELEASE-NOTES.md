@@ -1,3 +1,34 @@
+# E32 V2 alpha24 + Home Assistant dev30 — gebundelde controle- en ontvangstbasis
+
+Bundelt alle voorbereide wijzigingen sinds alpha23/dev29 in één gezamenlijke
+passieve kandidaat. Dit is geen actieve ketelbèta of vrijgave van fysieke uitvoer.
+
+- Eindige ketelproeven bewaken te late basis-/stopbevestigingen en behouden hun
+  oorspronkelijke deadline bij leaseverlies of fasewisseling.
+- De shadow-controller is gekoppeld aan de hydraulische supervisor met afzonderlijke
+  bronleeftijden en boot-/eigenaar-/sessiebinding. Een fout hervat niet vanzelf.
+  De concrete productiebronnen blijven standaard ongeconfigureerd.
+- Logredactie beschermt ook opmaakcodes en lange regels vóór beide logsinks.
+  De EMS-encoder weigert te grote frames en ongeldige READ-payloads.
+- HA dev30 voegt read-only supervisordiagnose, strengere levensduur van wachtende
+  kraandoelen en privé installatiepins voor oorspronkelijke TV02-ontvangst toe.
+  Onzekere gedispatchte kraanacties krijgen geen automatische vervolgopdracht.
+- Het Ecomline-profiel bewaart de actuele passieve veldreview en afzonderlijke
+  Recorder-waarneming. Drie variërende temperatuurvelden zijn kandidaten voor
+  verdere validatie; geen claim van gekalibreerde meting of continu zes uur bewijs.
+- Het installatiedraaiboek bevat back-up, versiecompatibiliteit, bronpins,
+  afzonderlijke Z2M-producentinstallatie, ontvangstacceptatie en beperkte terugval.
+
+Bestaande dashboardverversing, logging/syslog, EN/NL-bediening, modelkeuze,
+69 ketelvelddefinities, weekplanner en instellingen blijven meegenomen.
+Instellingenformaat en partitie-indeling blijven gelijk; de normale HTTPS-update
+is app-only. HA blijft een apart pakket met dezelfde dev28/v28-frontendbytes.
+
+De openbare bronlijsten blijven leeg. Een privébestand of extension installeren
+verleent geen meet-/flow-/klep-/aansturingskwalificatie. De update wisselt geen
+sensor, kraanmodus, programma, SOURCE-eigenaar of syslogbestemming. EMS-TX,
+forwarder en fysieke uitgangen blijven geblokkeerd; Tado blijft de actieve regelaar.
+
 # E32 V2 alpha23 + Home Assistant dev29 — logging en stabiele bediening
 
 Alpha22 bleef een niet-gepubliceerde kandidaat: de openbare native loggertest

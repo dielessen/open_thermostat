@@ -1,3 +1,27 @@
+# HA 0.4.0.dev30 — supervisor, eindige kraandoelen en privé ontvangstpins
+
+Gezamenlijke kandidaat met E32 alpha24; bundelt alle HA-wijzigingen sinds dev29.
+De standaard fysieke uitvoer blijft geblokkeerd. Dit is geen actieve ketelbèta.
+
+- Read-only supervisordiagnose toont gemelde fase en regelintenties met beperkte
+  ontvangstouderdom. Verlopen, ontbrekende of ongeldige status wordt ingetrokken;
+  diagnose verleent geen bevoegdheid en verwerpt geen geldige kamerbeslissingen.
+- De voorbereide kraanadapter begrenst wachttijd én serviceaanroep binnen dezelfde
+  actiedeadline. Een nieuwer wachtend doel vervangt een ouder. Een onzekere afloop
+  na dispatch blokkeert vervolgacties binnen dezelfde adapter, zonder retry.
+- Oorspronkelijke TV02-ontvangstpins kunnen uit het privébestand
+  `.openthermostat-original-tv02.json` op de HA-configroot worden gelezen bij
+  normale native opstart. Strikt schema, privérechten, identiteitsbinding en
+  foutisolatie; geen Store, watcher, extra MQTT-client of apparaatopdracht.
+  Ontbrekend/ongeldig bestand laat normale controlleropstart werken.
+
+De update installeert geen Zigbee2MQTT-producent, verandert geen meetselectie of
+kraanmodus en kent geen bron-/flow-/klepkwalificatie toe. Werkelijke originele
+ontvangst vereist afzonderlijk beoordeelde private pins en producentinstallatie.
+Kamers, programma's, SOURCE, registry-identiteiten en historie blijven behouden.
+De frontendbytes veranderen niet: de bestaande dev28/v28-resource-/kaartidentiteit
+blijft geldig en wordt niet op basis van het manifestnummer vervangen.
+
 # HA 0.4.0.dev29 — oorspronkelijke TV02-ontvangst zichtbaar
 
 Bundelt de voorbereide oorspronkelijke TV02-datapointontvangst via de bestaande

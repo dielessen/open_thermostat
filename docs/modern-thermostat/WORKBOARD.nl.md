@@ -1415,3 +1415,21 @@ is afzonderlijk gecontroleerd op binding, ongewijzigde installatie en gesloten
 beheersessies. Ontbrekende native extensionbeheercontrole blijft apart van
 ontbrekende package-/loaderhashattestatie. B05 en B13 blijven open; een draaiboek
 of succesvolle bindingcontrole is geen producentontvangst of bèta-vrijgave.
+
+
+## B11–B13: gezamenlijke kandidaat alpha24/dev30 voorbereiden (24 oktober 2026)
+
+Alle bronwijzigingen sinds de geïnstalleerde alpha23/dev29 worden samen gebouwd
+als kandidaat alpha24/dev30. De twee tagnamen waren bij controle nog ongebruikt;
+versies en pakketnotities zijn bijgewerkt. Geen bestaande tag/download vervangen.
+Dit is de passieve bundel met deadline-/logger-/encoderreparaties, hydraulische
+controllerkoppeling, read-only HA-supervisordiagnose, kraandoellevensduur en privé
+TV02-ontvangstpins. Alle 23 voorbereide onderdelen blijven behouden.
+
+De nieuwe bronversies zijn geen publicatie- of installatiebewijs. De actuele
+installatie blijft alpha23/dev29; B11–B14 en de actieve bèta blijven open totdat
+hun eigen checks zijn uitgevoerd. Bron-/pakket-CI en onafhankelijk gedownloade
+assets worden bij de kandidaat vastgelegd in
+`out/combined-alpha24-dev30-20261024/`. De bestaande HA frontendidentiteit dev28/v28
+blijft gelijk omdat de frontendbytes gelijk blijven. Geen SOURCE-/sensor-/
+kraanmodus-/programmawijziging of fysieke uitgangsvrijgave.

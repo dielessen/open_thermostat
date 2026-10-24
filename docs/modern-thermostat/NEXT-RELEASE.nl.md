@@ -104,3 +104,13 @@ gevalideerde parameters. Nieuwe F9/F10-ontwikkeling volgt na M2. Acht zones,
 vloer/menger, grafiek-/historieacceptatie, comfort en onbeheerd verwarmingsbedrijf
 houden hun eigen acceptatievoorwaarden. Niets wordt op basis van alleen aanwezige
 code of een geslaagde build als werkende fysieke functie afgevinkt.
+
+## 7. Nieuwe extra functie: direct BLE / zelfstandige E32
+
+[Uitbreiding X01](SHELLY-BLU-TRV-STANDALONE.nl.md) voegt Shelly BLU TRV via
+Bluetooth en een expliciete lokale E32-modus toe aan het ontwikkelplan. De
+bestaande HA-functies blijven behouden. Haalbaarheid onderzocht met officiële
+GATT-documentatie; nog geen driver, koppeling of lokale regelvrijgave geleverd.
+Eerst één kraan uitlezen en zonder ketel kwalificeren, daarna lokale
+programmering/eigendom/opslag/tijd en de bestaande stop-/uitvalvoorwaarden verbinden.
+Dit wijzigt de al geïnstalleerde alpha28/dev37 niet en is geen nieuwe release.

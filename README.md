@@ -108,6 +108,8 @@ EMS-ESP-velddekking of ondersteuning voor iedere ketel/converter.
 | Mogelijkheid | Wat je ermee kunt | Status |
 | --- | --- | --- |
 | Eigen HA-integratie en dashboard | Kamerpagina’s, klimaatbediening, inrichting en weekplanner in één omgeving | **Beschikbaar** |
+| Directe Bluetooth-kranen | Shelly BLU TRV rechtstreeks koppelen aan E32; extra mogelijkheid naast HA-apparaten | **Onderzocht/gepland**, nog geen driver of praktijkkwalificatie. [Ontwerp](docs/modern-thermostat/SHELLY-BLU-TRV-STANDALONE.nl.md) |
+| Zelfstandige E32-modus | Lokale verwarmingskern met eigen bronnen, programma, opslag en bewaking; HA optioneel voor bediening | **Gepland**; expliciet eigendom en fysieke stop-/uitvalacceptatie vereist |
 | Bestaande HA-apparaten gebruiken | Sensoren en klimaatapparaten uit HA selecteren, met controle op eenheden, grenzen en stapgrootte | **Beschikbaar**; regelkwalificatie per apparaat blijft nodig |
 | Ketelvelden in HA | 69 huidige Classic-velddefinities met bronleeftijd, eenheden en kwaliteit via de bestaande verbinding; modelkeuze begrenst de ontvangst niet | **Beschikbaar** met eigen overzicht en drie historiekaarten. Waarde, eenheid en kwaliteit zijn met de E32 vergeleken; gerapporteerde en afgeleide velden staan apart. [Details](docs/modern-thermostat/BOILER-FIELDS-V1.md) |
 | Externe wandbediening | Kamerdoelen vanuit andere bedieningen overnemen zonder terugkoppellussen | Basis **voorbereid**; complete route **gepland** |

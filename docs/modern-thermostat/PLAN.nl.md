@@ -45,6 +45,16 @@ in WORKBOARD §6 is de uitvoervolgorde; na ieder pakket status en bewijs bijwerk
 De overige paragrafen hieronder beschrijven het blijvende ontwerp en de
 acceptatiecriteria, geen tweede concurrerende afvinklijst.
 
+## Aanvulling Mark 24 oktober: directe Bluetooth-kranen en zelfstandig bedrijf
+
+Naast alle bestaande functionaliteit komt een optionele rechtstreekse
+Shelly BLU TRV-koppeling en een expliciete lokale E32-regelmodus zonder
+Home Assistant in de regelketen. Ontwerp en fasering:
+[uitbreiding X01](SHELLY-BLU-TRV-STANDALONE.nl.md). De 31 oorspronkelijke eisen,
+voorbereide code en bestaande HA-route blijven behouden. Zelfstandig bedrijf
+vereist lokale bronnen, planning/tijd, opslag, één eigenaar en dezelfde fysieke
+veiligheidsacceptatie. Het verruimen van de HA-lease verleent die functie niet.
+
 ## Aanvulling Mark 23 oktober: GitHub-releases en E32-upgrades
 
 Mark geeft opdracht om de geteste wijzigingen netjes als GitHub-releases uit te

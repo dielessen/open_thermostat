@@ -111,6 +111,21 @@ Dat verklaart het eerdere pendelen niet en bewijst geen onafhankelijke vlammetin
 Alle uitgangen blijven geblokkeerd; niets geïnstalleerd, herstart of aangestuurd.
 Bewijs: `out/stability-check-20261024/SAFE-RESULT.json` en `REVIEW.json`.
 
+### Uitbreiding X01 — direct Bluetooth en zelfstandige E32
+
+Nieuwe gebruikersopdracht: Shelly BLU TRV rechtstreeks koppelen en een lokale
+E32-bedrijfsmodus toevoegen. **Aanvullend op alle bestaande functies; onderzocht,
+nog niet gebouwd of geïnstalleerd.** De technische haalbaarheid steunt op de
+Shelly-GATT-documentatie en onze bestaande NimBLE-stack. Uitwerking:
+[directe BLE-/standalone-route](SHELLY-BLU-TRV-STANDALONE.nl.md).
+
+Volgorde: apparaatgebonden alleen-lezen BLE-basis → begrensde proefkraan zonder
+ketel → lokale eigenaar/programmering/tijd/opslag → integratie en uitvalproeven.
+Bestaande P0-opstartdiagnose en M2-werk blijven lopen. Dezelfde regelkern en
+veiligheidsvoorwaarden blijven gelden; geen tweede schrijver of langere HA-lease
+als vervanging voor zelfstandigheid. Bestaande 31 eisen/23 onderdelen blijven behouden.
+HA-only apparaten, Recorder en HA-automatiseringen houden hun eigen afhankelijkheid.
+
 ## 2. Af, geleverd en dus ook in de volgende release behouden
 
 - [x] Eigen bron-/SDK-/licentie-/herlinkbasis en onveranderlijke pakketten.

@@ -2,6 +2,8 @@
 
 Herstelt vrije/minimaal vrije heap, grootste vrije blok, CPU-temperatuur en uptime samen met E32 alpha25. Bestaande entity unique IDs en geschiedenis blijven behouden. De HA-entiteiten bestaan ook vóór het eerste rapport. Live rapporten zijn elke 15 seconden beschikbaar; na 45 seconden zonder geldig rapport of bij offline wordt beschikbaarheid ingetrokken. Een HA-only herstart vereist geen E32-herstart. Uitgeschakelde RTC-temperatuur blijft onbekend. Legacy modus blijft intact.
 
+Instellingen en status maken in Engels en Nederlands duidelijk dat schaduwmodus alleen uitleest en berekent. Een bevestigde configuratie en passende kraandoelen worden apart uitgelegd; zij worden niet gepresenteerd als bewijs van kraanbeweging of veilig ketelstoppen.
+
 Dit gebruikt dezelfde native verbinding en bestaande HA-runtime voor verval; er worden geen kraan- of ketelopdrachten toegevoegd. Alle functies en correcties uit dev32 zijn meegenomen. Zonder bijbehorende E32 alpha25 blijven deze native diagnosewaarden niet beschikbaar.
 
 # HA 0.4.0.dev32 — rapportlevensduur en verklaarbare transportafwijzingen

@@ -869,6 +869,7 @@
             var html = '<section class="product-dashboard" aria-label="OpenThermostat">'+
                 uiHtml("<header class=\"pd-heading\"><div><p class=\"pd-eyebrow\">OpenThermostat · E32</p><h1>Your heating system</h1><p>Boiler data and heat demand in one place.</p></div><span class=\"pd-badge\">Managed by Home Assistant</span></header>")+
                 '<div class="pd-status"><strong>'+dashboardText(mode)+'</strong><span>'+dashboardText(freshText)+'</span></div>'+
+                '<p class="pd-help" data-dashboard-key="shadow-mode-help">'+uiText("Shadow mode: the E32 reads data and calculates demand. Valve and boiler commands remain disabled until the physical command and safe-stop tests are completed.")+'</p>'+
                 '<div class="pd-facts">'+
                 fact(uiText("Flow · reported"),dashboardNumber(ems.currentFlowTemperature,10,-20,150),'°C',uiText("Feedback from the boiler."))+
                 fact(uiText("Boiler target · read back"),dashboardNumber(ems.selectedFlowTemperature,1,0,150),'°C',uiText("Reported setpoint; no evidence of a new command."))+

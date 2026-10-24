@@ -5,7 +5,7 @@
         "title": "OpenThermostat mode",
         "menu_options": {
           "legacy": "Existing legacy integration",
-          "shadow": "v1 shadow test mode (disabled by default)"
+          "shadow": "Read and calculate only (shadow mode)"
         }
       },
       "confirm": {
@@ -24,8 +24,8 @@
         }
       },
       "shadow": {
-        "title": "Isolated shadow mode",
-        "description": "Shadow only: no boiler or actuator actions. Copy this generated adapter owner ID into the E32 provisioning screen. Enable separately in options.",
+        "title": "Read and calculate without device control",
+        "description": "The E32 receives data and calculates heat demand, but sends no valve or boiler commands. Heating stays with your existing thermostat. Active control awaits verified measurements, command confirmation and a successful stop test. Copy this connection ID to the E32 and enable calculations separately in options.",
         "data": {
           "topic_prefix": "Controller MQTT prefix (1–32 ASCII letters/digits, - or _)",
           "adapter_id": "Provisioned firmware adapter owner ID"
@@ -107,8 +107,8 @@
         }
       },
       "installation_source": {
-        "title": "Review an independent logical installation profile",
-        "description": "Keep shadow runtime OFF. This profile describes the reviewed room bindings and regulator limits, not physical source or safety qualification. Device-local settings must independently match it before the existing session/config readback can succeed.",
+        "title": "Advanced: check installation profile",
+        "description": "Keep calculations off during this check. This technical profile identifies the rooms, devices and control limits belonging to this E32. It does not turn heating control on. HA and E32 settings must match; HA then checks the room plan returned by the E32. Measurements, valve operation and safe stopping are tested separately.",
         "data": {
           "controller_id": "Exact E32 controller ID (from device settings)",
           "legacy_readback": "Allow known old schema1 records in read-only quarantine",
@@ -272,7 +272,7 @@
       },
       "configuration_status": {
         "title": "Installation status",
-        "description": "Configured rooms: **{rooms}**\n\nController: **{connection}**\n\nControl: **{runtime}**\n\nA saved configuration is not confirmation that the controller has accepted it. You can configure rooms while disconnected.\n\n**Saved valve-target check**\n\n{actuator_checks}\n\nThis compares reported capabilities; it does not confirm valve position or authorize physical control.",
+        "description": "Configured rooms: **{rooms}**\n\nController: **{connection}**\n\nControl: **{runtime}**\n\nA saved configuration is not confirmation that the controller has accepted it. You can configure rooms while disconnected.\n\n**Saved valve-target check**\n\n{actuator_checks}\n\nThis compares reported capabilities; it does not confirm valve position or authorize physical control.\n\n**What do these checks mean?**\nConfiguration confirmed: the E32 returned the saved room plan. Calculations enabled: heat demand is calculated only. Valve-target check: compares saved temperatures with reported valve limits and flags mismatches. These checks do not prove that a valve opens or the boiler stops. Those physical tests remain separate; shadow mode keeps valve and boiler commands disabled.",
         "submit": "Close"
       },
       "program": {

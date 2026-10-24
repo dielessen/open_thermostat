@@ -1690,3 +1690,7 @@ zendtransactiekoppeling en alle toepasselijke benchvoorwaarden afronden.
 ### Herstel ESP-eigen diagnose — kandidaat, nog niet geïnstalleerd
 
 De native MQTT-tak keerde terug vóór registratie van de legacy DeviceStatusReporter. HA luisterde voor CPU-temperatuur, vrij/minimaal geheugen, grootste vrije blok en uptime nog naar de legacy topic/availability. Kandidaatbron publiceert deze zes velden elke 15 seconden over dezelfde native MQTT-verbinding; HA behoudt bestaande unique IDs, gebruikt native availability en trekt beschikbaarheid na 45 seconden zonder geldige meting in. Uitgeschakelde RTC-temperatuur blijft onbekend. Dit is afzonderlijk van de 69 ketelvelden en geeft geen regelbevoegdheid. Installatie en actuele waarden zijn nog niet bewezen; geïnstalleerd blijven HA dev32 en E32 alpha24.
+
+### Duidelijke bediening en controles — kandidaat, nog niet geïnstalleerd
+
+HA-installatiestatus toont voor actieve berekeningen expliciet ‘Alleen uitlezen en berekenen (schaduwmodus)’. HA en E32 leggen uit dat configuratieteruglezing, bruikbare metingen, passende kraandoelen en fysieke opdracht-/stopproeven verschillende controles zijn. E32-instellingen en dashboard tonen de betekenis van deze modus in EN/NL. Deze presentatiewijziging verandert geen instelling, toelatingscontrole of uitgang.

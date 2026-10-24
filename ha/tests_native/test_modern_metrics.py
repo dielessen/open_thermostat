@@ -33,7 +33,7 @@ async def system(hass,enabled=True):
                     "config_revision":1,"config_digest":"a"*64,"mapping_ready":True}
     client.verified=True;client.grant_until=110;client.lease_until=115;client.last_rx=100;client.metrics_supported=True
     runtime.attach_transport(client)
-    hass.data.setdefault("open_thermostat",{})[e.entry_id]={"v1_runtime":runtime,"v1_connection":SimpleNamespace(client=client)}
+    hass.data.setdefault("open_thermostat",{})[e.entry_id]={"v1_runtime":runtime,"v1_connection":SimpleNamespace(client=client,prefix="fixture/v1/")}
     return e,runtime,client,now
 
 @pytest.mark.asyncio
@@ -208,6 +208,8 @@ async def test_product_sensor_entry_uses_native_metrics_without_legacy_duplicate
     metrics=[x for x in added if x.unique_id.endswith("_energy_v2")]
     assert len(metrics)==1
     assert metrics[0].available and metrics[0].native_value==0
+    assert "fixture/device_status" not in callbacks
+    assert "fixture/v1/fw/telemetry/device_status" in callbacks
     assert "fixture/ems_metrics" not in callbacks
     assert len({x.unique_id for x in added})==len(added)
     c.reset_session();r._notify()

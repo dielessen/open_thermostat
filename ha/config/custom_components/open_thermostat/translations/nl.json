@@ -811,7 +811,7 @@
         "title": "OpenThermostat-modus",
         "menu_options": {
           "legacy": "Bestaande oude integratie",
-          "shadow": "v1-shadow-testmodus (standaard uitgeschakeld)"
+          "shadow": "Alleen uitlezen en berekenen (schaduwmodus)"
         }
       },
       "confirm": {
@@ -830,8 +830,8 @@
         }
       },
       "shadow": {
-        "title": "Geïsoleerde shadow-modus",
-        "description": "Alleen shadow: geen ketel- of actuatoracties. Kopieer dit gegenereerde adaptereigenaar-ID naar het E32-inrichtingsscherm. Schakel afzonderlijk in bij opties.",
+        "title": "Uitlezen en berekenen zonder aansturing",
+        "description": "De E32 ontvangt gegevens en berekent warmtevraag, maar stuurt geen kranen of ketel aan. Bestaande verwarming blijft via de huidige thermostaat werken. Actieve aansturing wacht op bevestigde metingen, opdrachtbevestiging en een geslaagde stopproef. Kopieer dit verbindings-ID naar de E32 en schakel de berekeningen apart in bij opties.",
         "data": {
           "topic_prefix": "MQTT-prefix regelaar (1–32 ASCII-letters/cijfers, - of _)",
           "adapter_id": "In firmware vastgelegd adaptereigenaar-ID"
@@ -913,8 +913,8 @@
         }
       },
       "installation_source": {
-        "title": "Onafhankelijk logisch installatieprofiel beoordelen",
-        "description": "Laat de shadow-runtime UIT. Dit profiel beschrijft de beoordeelde ruimtekoppelingen en regelgrenzen, geen kwalificatie van fysieke bronnen of beveiliging. Lokale apparaatinstellingen moeten onafhankelijk overeenkomen voordat de bestaande sessie-/configuratieteruglezing kan slagen.",
+        "title": "Geavanceerd: installatieprofiel controleren",
+        "description": "Laat de berekeningen uit tijdens deze controle. Dit technische profiel legt vast welke ruimtes, apparaten en regelgrenzen bij deze E32 horen. Het is geen schakelaar om de verwarming te activeren. De gegevens in HA en E32 moeten overeenkomen; daarna controleert HA het teruggelezen kamerplan. Metingen, kraanwerking en veilig stoppen worden afzonderlijk getest.",
         "data": {
           "controller_id": "Exact E32-controller-ID (uit apparaatinstellingen)",
           "legacy_readback": "Bekende oude schema1-records in alleen-lezenquarantaine toestaan",
@@ -1078,7 +1078,7 @@
       },
       "configuration_status": {
         "title": "Status installatie",
-        "description": "Ingestelde ruimtes: **{rooms}**\n\nRegelaar: **{connection}**\n\nRegeling: **{runtime}**\n\nOpgeslagen betekent nog niet dat de regelaar de configuratie heeft toegepast. Je kunt ruimtes ook zonder verbinding instellen.\n\n**Controle opgeslagen kraandoelen**\n\n{actuator_checks}\n\nDit vergelijkt gemelde eigenschappen; het bevestigt geen klepstand of fysieke vrijgave.",
+        "description": "Ingestelde ruimtes: **{rooms}**\n\nRegelaar: **{connection}**\n\nRegeling: **{runtime}**\n\nOpgeslagen betekent nog niet dat de regelaar de configuratie heeft toegepast. Je kunt ruimtes ook zonder verbinding instellen.\n\n**Controle opgeslagen kraandoelen**\n\n{actuator_checks}\n\nDit vergelijkt gemelde eigenschappen; het bevestigt geen klepstand of fysieke vrijgave.\n\n**Wat betekenen deze controles?**\nConfiguratie bevestigd: de E32 heeft het opgeslagen kamerplan teruggeleverd. Berekeningen aan: warmtevraag wordt alleen berekend. Controle kraandoelen: vergelijkt ingestelde temperaturen met de gemelde kraangrenzen en meldt afwijkingen. Geen van deze controles bewijst dat een kraan opent of de ketel stopt. Die fysieke proeven staan nog apart; in schaduwmodus blijven kraan- en ketelopdrachten uit.",
         "submit": "Sluiten"
       },
       "program": {

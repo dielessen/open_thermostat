@@ -193,6 +193,8 @@ TEST(HydraulicControllerSource, LocalFaultAcknowledgementRequiresFreshCurrentOwn
     r.safety.dhwActive=true;
     EXPECT_FALSE(r.f.core->acknowledgeHydraulicFault(r.f.now,evidence));
     r.safety.dhwActive=false;
+    // A changed safety fact is a new producer acquisition, not old cached proof.
+    ++r.f.now;evidence=freshFacts(r.context,r.f.now);
     ASSERT_TRUE(r.f.core->acknowledgeHydraulicFault(r.f.now,evidence));
     EXPECT_FALSE(cJSON_IsTrue(field(r.supervisor(r.f.state()),"heat_intent")));
     r.flow=false;r.f.now+=101;auto opening=r.update();
@@ -369,6 +371,101 @@ TEST(HydraulicSourceGate, EverySimultaneouslyRejectedFactNeedsNewProof) {
         EXPECT_FALSE(rejected.inputs.limitsKnownSafe||rejected.inputs.faultStateKnown||rejected.inputs.waterTarget)<<unrepaired;
         EXPECT_TRUE(gate.evaluate(108,1000,owner,freshFacts(owner,108)).inputs.limitsKnownSafe);
     }
+}
+
+TEST(HydraulicSourceGate, RejectedFutureEvidenceCannotBecomeFreshWhenClockCatchesUp) {
+    const HydraulicOwnerContext owner{1,2,1,100,"boot1"};
+    for(bool primed:{false,true})for(unsigned field=0;field<6;++field) {
+        HydraulicFeedbackGate gate;
+        auto snapshot=freshFacts(owner,101);
+        snapshot.readinessConfirmed=snapshot.independentFlowConfirmed=true;
+        snapshot.feedbackCommand=1;snapshot.feedbackAt=snapshot.flowAt=101;
+        if(primed)ASSERT_TRUE(gate.evaluate(102,1000,owner,snapshot).inputs.limitsKnownSafe);
+        const std::array<uint64_t*,6> times{&snapshot.limitsAt,&snapshot.faultAt,&snapshot.dhwAt,
+            &snapshot.waterTargetAt,&snapshot.feedbackAt,&snapshot.flowAt};
+        *times[field]=110;
+        ASSERT_STREQ(gate.evaluate(103,1000,owner,snapshot).reason,"hydraulic_feedback_future");
+        const auto caughtUp=gate.evaluate(110,1000,owner,snapshot);
+        EXPECT_STREQ(caughtUp.reason,"hydraulic_feedback_reordered")<<field<<primed;
+        EXPECT_FALSE(caughtUp.inputs.limitsKnownSafe||caughtUp.inputs.faultStateKnown||caughtUp.inputs.dhwStateKnown
+            ||caughtUp.inputs.waterTarget||caughtUp.inputs.readinessConfirmed||caughtUp.inputs.independentFlowConfirmed)<<field<<primed;
+        auto replacement=freshFacts(owner,111);
+        replacement.readinessConfirmed=replacement.independentFlowConfirmed=true;
+        replacement.feedbackCommand=1;replacement.feedbackAt=replacement.flowAt=111;
+        const auto recovered=gate.evaluate(111,1000,owner,replacement).inputs;
+        EXPECT_TRUE(recovered.limitsKnownSafe&&recovered.faultStateKnown&&recovered.dhwStateKnown
+            &&recovered.waterTarget&&recovered.readinessConfirmed&&recovered.independentFlowConfirmed)<<field<<primed;
+    }
+}
+TEST(HydraulicSourceGate, RejectedFutureFenceDoesNotRenewUnrelatedFactsOrTrustWrongOwner) {
+    HydraulicFeedbackGate gate;const HydraulicOwnerContext owner{1,2,1,100,"boot1"};
+    auto first=freshFacts(owner,101);ASSERT_TRUE(gate.evaluate(102,1000,owner,first).inputs.limitsKnownSafe);
+    auto rejected=first;rejected.waterTargetAt=110;
+    ASSERT_STREQ(gate.evaluate(103,1000,owner,rejected).reason,"hydraulic_feedback_future");
+    auto repaired=first;repaired.waterTargetAt=111;
+    ASSERT_TRUE(gate.evaluate(111,1000,owner,repaired).inputs.waterTarget);
+    const auto expiry=gate.evaluate(1101,1000,owner,repaired).inputs;
+    EXPECT_FALSE(expiry.limitsKnownSafe||expiry.faultStateKnown||expiry.dhwStateKnown);
+    EXPECT_TRUE(expiry.waterTarget);
+    HydraulicFeedbackGate isolated;auto foreign=rejected;++foreign.ownerGeneration;
+    EXPECT_STREQ(isolated.evaluate(103,1000,owner,foreign).reason,"hydraulic_feedback_owner_mismatch");
+    // A foreign future stamp must not poison this owner's acquisition fence.
+    EXPECT_TRUE(isolated.evaluate(104,1000,owner,freshFacts(owner,104)).inputs.limitsKnownSafe);
+}
+TEST(HydraulicSourceGate, EveryFutureFieldStaysRetiredWhenOnlyAnotherFieldIsReplaced) {
+    const HydraulicOwnerContext owner{1,2,1,100,"boot1"};
+    for(unsigned field=0;field<3;++field) {
+        HydraulicFeedbackGate gate;auto rejected=freshFacts(owner,101);
+        rejected.limitsAt=110;rejected.faultAt=111;rejected.waterTargetAt=112;
+        ASSERT_STREQ(gate.evaluate(103,1000,owner,rejected).reason,"hydraulic_feedback_future");
+        auto partial=freshFacts(owner,120);
+        if(field==0)partial.limitsAt=110;
+        if(field==1)partial.faultAt=111;
+        if(field==2)partial.waterTargetAt=112;
+        EXPECT_STREQ(gate.evaluate(120,1000,owner,partial).reason,"hydraulic_feedback_reordered")<<field;
+        EXPECT_TRUE(gate.evaluate(121,1000,owner,freshFacts(owner,121)).inputs.limitsKnownSafe);
+    }
+}
+TEST(HydraulicSourceGate, ClockReversalHiddenByOwnerStartFenceStillInvalidatesGate) {
+    HydraulicFeedbackGate gate;const HydraulicOwnerContext owner{1,2,1,100,"boot1"};
+    ASSERT_TRUE(gate.evaluate(102,1000,owner,freshFacts(owner,101)).inputs.limitsKnownSafe);
+    EXPECT_STREQ(gate.evaluate(99,1000,owner,freshFacts(owner,101)).reason,"hydraulic_feedback_owner_mismatch");
+    EXPECT_STREQ(gate.evaluate(103,1000,owner,freshFacts(owner,103)).reason,"hydraulic_feedback_clock_invalid");
+    EXPECT_FALSE(gate.evaluate(104,1000,owner,freshFacts(owner,104)).inputs.limitsKnownSafe);
+}
+TEST(HydraulicSourceGate, ClockReversalDuringWrongOwnerSnapshotCannotRestoreNewSafeFacts) {
+    HydraulicFeedbackGate gate;const HydraulicOwnerContext owner{1,2,1,100,"boot1"};
+    ASSERT_TRUE(gate.evaluate(102,1000,owner,freshFacts(owner,101)).inputs.limitsKnownSafe);
+    auto foreign=freshFacts(owner,101);++foreign.ownerGeneration;
+    ASSERT_STREQ(gate.evaluate(101,1000,owner,foreign).reason,"hydraulic_feedback_owner_mismatch");
+    EXPECT_STREQ(gate.evaluate(103,1000,owner,freshFacts(owner,103)).reason,"hydraulic_feedback_clock_invalid");
+}
+TEST(HydraulicControllerSource, RejectedFutureSafetyReportCannotRestoreShadowHeatAfterClockCatchup) {
+    HydraulicRig r;r.heat();
+    auto rejected=freshFacts(r.context,r.f.now);
+    rejected.limitsAt=r.f.now+5;
+    rejected.readinessConfirmed=rejected.independentFlowConfirmed=true;
+    rejected.feedbackCommand=r.command;rejected.feedbackAt=rejected.flowAt=r.f.now;
+    r.live=false;r.feedback=rejected;
+    EXPECT_FALSE(cJSON_IsTrue(field(r.supervisor(r.update()),"heat_intent")));
+    r.f.now=rejected.limitsAt;
+    const auto caughtUp=r.update();
+    EXPECT_STREQ(stringField(r.supervisor(caughtUp),"feedback_status").c_str(),"hydraulic_feedback_reordered");
+    EXPECT_FALSE(cJSON_IsTrue(field(r.supervisor(caughtUp),"heat_intent")));
+    EXPECT_FALSE(r.f.core->hydraulicIntent().physicalOutputsEnabled);
+}
+
+TEST(HydraulicControllerSource, FaultAcknowledgementCannotReuseRejectedFutureSeasonalSafety) {
+    HydraulicRig r;r.heat();r.ready=false;r.update();
+    ASSERT_EQ(r.f.core->hydraulicIntent().phase,HydraulicPhase::fault);
+    r.safety.sampledAt=r.f.now+5;
+    EXPECT_FALSE(r.f.core->acknowledgeHydraulicFault(r.f.now,freshFacts(r.context,r.f.now)));
+    r.f.now=r.safety.sampledAt;
+    EXPECT_FALSE(r.f.core->acknowledgeHydraulicFault(r.f.now,freshFacts(r.context,r.f.now)));
+    ++r.f.now;r.safety.sampledAt=r.f.now;
+    EXPECT_TRUE(r.f.core->acknowledgeHydraulicFault(r.f.now,freshFacts(r.context,r.f.now)));
+    EXPECT_FALSE(r.f.core->hydraulicIntent().heatIntent);
+    EXPECT_FALSE(r.f.core->hydraulicIntent().physicalOutputsEnabled);
 }
 
 }

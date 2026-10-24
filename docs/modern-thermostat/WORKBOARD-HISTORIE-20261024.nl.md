@@ -1744,3 +1744,84 @@ alpha27/dev36 blijft staan. Geen B04–B14-/fysieke vrijgave. Zie
 
 [Testplan](BETA1-KETELPROEF.nl.md). M2 en B04–B14 blijven open; een handmatige
 ketelreactie is geen automatische kamer-/kraanacceptatie.
+
+
+## Gearchiveerde leverings- en diagnosecheckpoints vóór HA38
+
+Deze hieronder bewaarde notities zijn historisch. De actuele status staat in het werkbord.
+
+### Geleverd in alpha28 / HA dev37
+
+| Onderdeel | Uitgewerkt en gecontroleerd | Levering / resterend |
+| --- | --- | --- |
+| Settings → EMS-apparaten | Herkende afzenders, ontvangen product/versie, entiteiten, kwaliteit/ouderdom; EN/NL, zoekfilter en stabiele verversing | Geïnstalleerd en gecontroleerd |
+| E32-sessiebewaking | Verlopen rechten herleven niet bij teruggaande klok; ook diagnostische lezingen bewaakt | Geïnstalleerd en gecontroleerd |
+| HA-sessiebewaking | Ongeldige/teruggaande monotone klok trekt sessie en wachtende opdrachten in; reconnect herstelt geen oude rechten | Geïnstalleerd; herstel via nieuwe transportinstantie |
+| Betrouwbare herhaling na wachten | Iedere retry controleert opnieuw actuele tijd, lease, SOURCE en de oorspronkelijke wachtrijregistratie; ingetrokken/vervangen opdrachten worden overgeslagen | Geïnstalleerd en gecontroleerd |
+| HA-opstart en editor | Opruimen bij fouten/annulering, behoud van vervangende eigenaar, te grote kraanmetadata veilig afgewezen | Geïnstalleerd en gecontroleerd |
+| Webnavigatie en EMS-tabel | Late antwoorden overschrijven geen nieuwe pagina; bestaande rijen behouden en waarden gecontroleerd | Geïnstalleerd en gecontroleerd |
+| Actief keteltestplan | Nulmeting, voorwaarden, stopproef, begrensde vraag, naloop, afzonderlijke uitval en herstel beschreven | Fysieke voorwaarden en proef nog open |
+
+Gezamenlijke bron `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f`: tag-CI geslaagd,
+2167 HA-tests op beide ondersteunde Core-versies, exacte openbare pakketten en
+werkelijke installatie met back-up/nacontrole gecontroleerd. De 13 nieuwe retry-
+gevallen blijven meegenomen. Zie [installatieverslag](INSTALLATIE-HA37-ALPHA28-20261024.nl.md).
+Alle 23 onderdelen blijven behouden; geen fysieke proef-/bèta-vrijgave.
+
+### Pendelonderzoek — vastgesteld en nog onbekend
+
+Read-only momentopname van 24 oktober 16:26 CEST: E32 alpha27/HA dev36 bevestigd;
+EMS-TX/polls/proefframes: 0, alle uitgangen geblokkeerd, geen UART-fouten of ongeldige
+telegrammen. Geen bewijs van OpenThermostat-aansturing. De geschiedenis toont
+vijf volledige warmwatergerelateerde vermogensperiodes van circa 3–4 minuten met
+10–12 minuten tussen starts, ook nadat Tado voor de kamer idle meldde. Dit zijn
+telemetriewaarnemingen, geen onafhankelijke ontstekingstelling.
+
+Oorzaak en werkelijk begin blijven onbekend. Warmwatergebruik/bijwarmen is de
+onderzoeksrichting; indirecte elektrische invloed is niet volledig uitgesloten.
+Geen instellingen gewijzigd of zendproef uitgevoerd. Veilig lokaal bewijs:
+`out/boiler-cycling-20261024/SAFE-RESULT.json` en `REVIEW.json`.
+
+### Voorcontrole van alpha27/dev36 — 24 oktober, 17:00–17:01 CEST
+
+Twee meetmomenten, 70 seconden uiteen: dezelfde E32-boot, HA dev36 geladen,
+actuele native verbinding en ongewijzigde configuratierevisie 4. Alle 83 HA-bronbestanden,
+105 registryrecords, programma's/bindings en pins/producer gelijk aan de geïnstalleerde
+basis. Web-/statusroutes bereikbaar; 19 nieuwe EMS-rapporten, alle ontvangstfouttellers 0.
+Vrij geheugen circa 77–80 kB, grootste blok circa 70–74 kB, CPU circa 53 °C; minimale
+vrije heap onveranderd 40612 bytes. Dit is een korte beschikbaarheidscontrole,
+geen uitspraak over een langetermijngeheugenlek of fysieke regelwerking.
+
+Oorspronkelijk TV02-bericht ontvangen: `commandDataResponse` met
+`local_temperature_centi_c`. Ontvangststatus `received_unqualified`, causale
+opdrachtbevestiging/readiness/regelkwalificatie alle false. B05 blijft open.
+De gekozen RTCGQ11LM blijft diagnostisch, `profile_missing` en niet bruikbaar
+als gekwalificeerde ruimtemeting. RTC uitgeschakeld/temperatuur onbekend is verwacht.
+
+De laatste begrensde ketelgeschiedenis van 16:31–17:01 CEST bevat 0% gemeld vermogen,
+code 0H en afkoelende aanvoer 62→54 °C, zonder nieuwe positieve vermogensperiode.
+Dat verklaart het eerdere pendelen niet en bewijst geen onafhankelijke vlammeting.
+Alle uitgangen blijven geblokkeerd; niets geïnstalleerd, herstart of aangestuurd.
+Bewijs: `out/stability-check-20261024/SAFE-RESULT.json` en `REVIEW.json`.
+
+### Voorbereid voor volgende bundel — TV02-opstartdiagnose
+
+Alleen-lezen onderzoek via de HA-specialist: de opgeslagen bron, registry/model en
+huidige MQTT-discovery voldoen nu aan de controles; de diagnose blijft leeg na de
+opstartafwijzing. De oorspronkelijke binnenste fout is niet gelogd. Te late
+metadata is dus een reproduceerbaar softwaregeval, geen bewezen incidentoorzaak.
+
+Reparatie in voorbereiding: ontbrekende discovery mag wachten op de bestaande
+worker/poll, met vooraf vastgelegde registry-identiteit, kamerselectie en maximale
+leeftijd. Vervanging/uitschakeling/model- of bronwijziging trekt deze toelating
+blijvend in. Alleen oorspronkelijke nieuwe rapporten vullen de diagnose; geen
+cacheherstel, commandobevestiging of regelvrijgave. Per workerpass maximaal één
+nieuwe diagnose-subscriptie met één seconde wachtbudget; fouten blijven buiten
+de regelsessie. Definitieve afwijzingen krijgen uitsluitend vaste openbare
+redencodes, zonder apparaatidentiteiten of ruwe foutteksten.
+
+Gerichte regressie: 137 gevallen geslaagd, waaronder 16 nieuwe opstart-/uitval-/
+privacygevallen. Volledige controle van exact dezelfde definitieve bron op HA Core
+2026.10.2 en 2026.10.3: **2183 gevallen per versie, geen fout/error/skip**. Nog niet gepubliceerd/geïnstalleerd; B05 blijft open voor
+werkelijke ontvangst, causale kraantransactie en fysieke proef. Bewijs:
+`out/release-tv02-startup-20261024/`.

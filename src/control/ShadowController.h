@@ -147,7 +147,7 @@ public:
         try {safety=seasonalSafety_();} catch(...) {policySourceFault_=true;}
         safetyReading_=false;
         if(policySourceFault_||hydraulicSourceFault_||!current()||now<lastNow_
-            ||now<safety.sampledAt||now-safety.sampledAt>=seasonalSource_->maximumSafetyAgeMs
+            ||!acceptSeasonalSafety(now,safety)
             ||!safety.limitsKnownSafe||!safety.dhwStateKnown||safety.dhwActive||safety.allOff||safety.preempted)return false;
         return supervisor_.clearFault(true);
     }
@@ -323,6 +323,28 @@ private:
         const auto effective=legacyQuarantine_?nativePlanSource_->predecessor.get():nativePlanSource_.get();
         return effective&&next.valid()&&next.predecessor&&next.controllerId==controller_
             &&next.adapterId==owner_&&next.predecessor->profileDigest==effective->profileDigest;
+    }
+    // Shared by normal policy evaluation AND fault acknowledgement. Re-reading
+    // the producer never makes rejected/cached evidence fresh or immutable again.
+    bool acceptSeasonalSafety(uint64_t now,const SeasonalSafetySnapshot& safety) {
+        if(!seasonalSource_)return false;
+        const auto acquiredAt=safety.sampledAt;
+        const auto value=uint8_t(safety.limitsKnownSafe)|(uint8_t(safety.dhwStateKnown)<<1)
+            |(uint8_t(safety.dhwActive)<<2)|(uint8_t(safety.summer)<<3)
+            |(uint8_t(safety.allOff)<<4)|(uint8_t(safety.preempted)<<5);
+        if(!acquiredAt) {
+            retiredSafetyThrough_=std::max(retiredSafetyThrough_,lastSafetyAt_);
+            return false;
+        }
+        if(acquiredAt>now||acquiredAt<lastSafetyAt_
+            ||(acquiredAt==lastSafetyAt_&&value!=lastSafetyValue_)
+            ||now-acquiredAt>=seasonalSource_->maximumSafetyAgeMs) {
+            retiredSafetyThrough_=std::max(retiredSafetyThrough_,std::max(acquiredAt,lastSafetyAt_));
+            return false;
+        }
+        if(acquiredAt<=retiredSafetyThrough_)return false;
+        lastSafetyAt_=acquiredAt;lastSafetyValue_=uint8_t(value);
+        return true;
     }
     void selectNativeSource(const NativePlanInstallationSource& source,SeasonalControllerSource::Safety safety) {
         const auto nativePlanSource=&source;
@@ -800,7 +822,7 @@ private:
                 try {
 #endif
                     safety=seasonalSafety_();
-                    safetyFresh=now>=safety.sampledAt&&now-safety.sampledAt<seasonalSource_->maximumSafetyAgeMs;
+                    safetyFresh=acceptSeasonalSafety(now,safety);
 #if defined(__cpp_exceptions)
                 } catch(...) {safety={};safetyFresh=false;}
 #endif
@@ -944,6 +966,8 @@ private:
     SeasonalControllerSource::Safety seasonalSafety_;
     uint32_t policyGeneration_=0;
     bool safetyReading_=false,policySourceFault_=false;
+    uint64_t lastSafetyAt_=0,retiredSafetyThrough_=0;
+    uint8_t lastSafetyValue_=0;
     struct UserCommandAdmission {
         std::array<char,33> binding{};
         uint32_t sequence=0,revision=0;

@@ -784,7 +784,7 @@
         },
         {
           "path": "src/control/ShadowController.h",
-          "sha256": "a053852d60041157828eb0915f51fccd0b15dddcb828ca69697165484811ee63"
+          "sha256": "98c26af97d7f9fe8bc9dfc3064168e738a8270620767288663a01ce8680b5b9a"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/native_plan.py",
@@ -930,11 +930,11 @@
         },
         {
           "path": "src/control/HydraulicControllerSource.h",
-          "sha256": "ebe97124916e1be91bb2ed77b25023a9891fe2129f7ec7f2b827db2c9e2f1d38"
+          "sha256": "fd516850afb3d25d145fd4b3c2d4ddd02a615a38df2f56fb596bddb91b96d28f"
         },
         {
           "path": "test/test_native/test_hydraulic_controller_source.cpp",
-          "sha256": "3cf976cf6207f6ed1afc9aff2319484298d4ebb9dafb0c4f4d5a313f874a18ac"
+          "sha256": "b0b4579d91c90ce0d4438ea9beb949d2a7d82cb7c9817276e76056c5b51739db"
         },
         {
           "path": "test/test_native/include/ShadowControllerFixture.h",
@@ -969,7 +969,7 @@
           "sha256": "54a6e25b20fd75255855d900853daeb8f6180417d00e9859b244bd5cb83d269e"
         }
       ],
-      "remaining_acceptance": "Lokale lease-expiry bij stille HA en offline naloop/klokgrenzen gebouwd/getest; logische intenties zijn geen fysieke stop. Werkelijke producenten, installatieprofiel en fysieke uitvoer-/uitvalketen blijven open."
+      "remaining_acceptance": "Lokale lease-expiry bij stille HA en offline naloop/klokgrenzen gebouwd/getest; logische intenties zijn geen fysieke stop. Werkelijke producenten, installatieprofiel en fysieke uitvoer-/uitvalketen blijven open. B06 toekomstige-feitquarantaine en klokfences bronmatig afgerond met twaalf regressies/677 native tests en gedeelde veiligheidscontrole voor zonepolicy/storingsbevestiging; nog niet geïnstalleerd, geen fysieke producent- of regelkwalificatie."
     },
     {
       "id": "I16",
@@ -1605,12 +1605,12 @@
     {
       "id": "B05",
       "complete": false,
-      "description": "TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur, originele datapuntproducer en native HA-ontvangst/lifecycle geleverd; privé pins en producent geplaatst, één bron geregistreerd. Natuurlijke temperatuurontvangst vóór update bevestigd; na herstart diagnose leeg met bronbindingswaarschuwing. Diagnose-lifecycle herstellen; causale zendtransactiekoppeling/doelecho, schema-eigenaarschap en profiel/readiness/fallback nog afronden. Fysieke proef eerst zonder ketel."
+      "description": "TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur en oorspronkelijke ontvangst/lifecycle geleverd; HA38-opstartherstel geïnstalleerd. Pins/producent behouden, huidige diagnose wachtend/stale en ongekwalificeerd. Nieuwe natuurlijke ontvangst, causale zendtransactiekoppeling/doelecho, schema-eigenaarschap en profiel/readiness/fallback nog bewijzen. Fysieke proef eerst zonder ketel."
     },
     {
       "id": "B06",
       "complete": false,
-      "description": "Supervisor aan bron-eigen profiel en actuele afzonderlijk gedateerde veiligheids-/DHW-/water-/kraan-/flowfeiten gekoppeld en in controller getest; werkelijke producenten, installatieprofiel en fysieke kwalificatie blijven open. Geen generieke flowaanname."
+      "description": "Supervisor aan bron-eigen profiel en afzonderlijk gedateerde veiligheids-/DHW-/water-/kraan-/flowfeiten gekoppeld/getest; toekomstige afgewezen feiten en klokterugloop blijven softwarematig ingetrokken. Gedeelde veiligheidscontrole blokkeert ook ontbrekende/oudere/tegenstrijdige acquisities bij zonepolicy en storingsbevestiging. Werkelijke producenten, installatieprofiel en fysieke kwalificatie blijven open. Geen generieke flowaanname."
     },
     {
       "id": "B07",

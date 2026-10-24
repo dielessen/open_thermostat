@@ -48,15 +48,17 @@ public:
     struct Result {HydraulicInputs inputs;const char* reason="hydraulic_feedback_unavailable";};
     Result evaluate(uint64_t now,uint32_t maximumAge,const HydraulicOwnerContext& owner,
                     const HydraulicFeedbackSnapshot& s) {
+        // The local clock is independent of producer identity. Observe it even
+        // when an owner/start/budget fence below rejects this snapshot, so a
+        // rollback cannot hide behind that early return and later recover.
+        if(haveTime_&&now<lastNow_)clockInvalid_=true;
+        haveTime_=true;lastNow_=std::max(lastNow_,now);
         const auto bootEnd=std::find(s.bootId.begin(),s.bootId.end(),'\0');
         if(owner.bootId.empty()||owner.bootId.size()>32||std::string_view(s.bootId.data(),size_t(bootEnd-s.bootId.begin()))!=owner.bootId
             ||maximumAge<100||maximumAge>30000||!owner.generation||!owner.revision||owner.startedAt>now
             ||s.ownerGeneration!=owner.generation||s.configRevision!=owner.revision||s.ownerStartedAt!=owner.startedAt)
             return deny(nullptr,"hydraulic_feedback_owner_mismatch");
-        if(clockInvalid_||(haveTime_&&now<lastNow_)) {
-            clockInvalid_=true;return deny(&s,"hydraulic_feedback_clock_invalid");
-        }
-        haveTime_=true;lastNow_=now;
+        if(clockInvalid_)return deny(&s,"hydraulic_feedback_clock_invalid");
         const std::array<uint64_t,6> times{s.limitsAt,s.faultAt,s.dhwAt,s.waterTargetAt,s.feedbackAt,s.flowAt};
         const std::array<uint64_t,6> values{
             uint64_t(s.limitsKnownSafe)|(uint64_t(s.limitTripped)<<1),
@@ -69,10 +71,15 @@ public:
         uint8_t rejected=0;const char* reason=nullptr;
         for(size_t i=0;i<times.size();++i) {
             const bool future=times[i]>now;
-            const bool replay=times[i]&&(times[i]<lastAt_[i]
+            const bool replay=times[i]&&(times[i]<=retiredThrough_[i]||times[i]<lastAt_[i]
                 ||(times[i]==lastAt_[i]&&(values[i]!=lastValue_[i]||revoked_[i])));
             if(future||replay) {
                 rejected|=uint8_t(1u<<i);
+                // Quarantine rejected proof separately from ACCEPTED acquisition
+                // watermarks. A future stamp must not become permission merely
+                // because time catches up; only a strictly newer fact can replace
+                // it. No timestamp+1 arithmetic (UINT64_MAX stays safely retired).
+                retiredThrough_[i]=std::max(retiredThrough_[i],times[i]);
                 if(!reason)reason=future?"hydraulic_feedback_future":"hydraulic_feedback_reordered";
             }
         }
@@ -112,7 +119,7 @@ private:
     }
     uint64_t lastNow_=0;
     bool haveTime_=false,clockInvalid_=false;
-    std::array<uint64_t,6> lastAt_{},lastValue_{};
+    std::array<uint64_t,6> lastAt_{},lastValue_{},retiredThrough_{};
     std::array<bool,6> revoked_{};
 };
 }

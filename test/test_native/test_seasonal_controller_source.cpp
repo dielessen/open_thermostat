@@ -269,4 +269,60 @@ TEST(SeasonalControllerSource, MissingOrWrongExplicitPeerPolicyEchoNeverCreatesS
         f.send("ha/open_session",open.get());EXPECT_EQ(f.output.count("fw/session"),1u);EXPECT_EQ(f.store.writes,0u);
     }
 }
+TEST(SeasonalControllerSource, FutureSafetyCannotReviveWhenClockCatchesUp) {
+    Fixture f;auto pin=sourceFor();auto safety=safe();bind(f,pin,safety);readyPinned(f);
+    safety.sampledAt=f.now;report(f);
+    const auto first=report(f);ASSERT_TRUE(cJSON_IsTrue(field(Fixture::row(first),"demand")));
+    safety.sampledAt=f.now+5;
+    EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(report(f)),"demand")));
+    f.now=safety.sampledAt;
+    const auto caughtUp=report(f);outputsFalse(caughtUp);
+    EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(caughtUp),"demand")));
+    ++f.now;safety.sampledAt=f.now;
+    EXPECT_TRUE(cJSON_IsTrue(field(Fixture::row(report(f)),"demand")));
+}
+TEST(SeasonalControllerSource, OlderSafetySnapshotCannotReplaceRetiredFutureProof) {
+    Fixture f;auto pin=sourceFor();auto safety=safe();bind(f,pin,safety);readyPinned(f);
+    safety.sampledAt=f.now;report(f);
+    const auto acquired=safety.sampledAt;
+    safety.sampledAt=f.now+5;const auto rejectedAt=safety.sampledAt;
+    EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(report(f)),"demand")));
+    safety.sampledAt=acquired;
+    EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(report(f)),"demand")));
+    f.now=rejectedAt+1;safety.sampledAt=f.now;
+    EXPECT_TRUE(cJSON_IsTrue(field(Fixture::row(report(f)),"demand")));
+}
+
+TEST(SeasonalControllerSource, MissingSafetyTimeCannotRevivePreviousCachedProof) {
+    Fixture f;auto pin=sourceFor();auto safety=safe();bind(f,pin,safety);readyPinned(f);
+    safety.sampledAt=f.now;report(f);
+    const auto acquired=safety.sampledAt;safety.sampledAt=0;
+    EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(report(f)),"demand")));
+    safety.sampledAt=acquired;
+    EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(report(f)),"demand")));
+    ++f.now;safety.sampledAt=f.now;
+    EXPECT_TRUE(cJSON_IsTrue(field(Fixture::row(report(f)),"demand")));
+}
+TEST(SeasonalControllerSource, ReorderedSafetyTimeCannotReviveAcceptedCachedProof) {
+    Fixture f;auto pin=sourceFor();auto safety=safe();bind(f,pin,safety);readyPinned(f);
+    safety.sampledAt=f.now;report(f);
+    const auto acquired=safety.sampledAt;safety.sampledAt=acquired-1;
+    EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(report(f)),"demand")));
+    safety.sampledAt=acquired;
+    EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(report(f)),"demand")));
+    ++f.now;safety.sampledAt=f.now;
+    EXPECT_TRUE(cJSON_IsTrue(field(Fixture::row(report(f)),"demand")));
+}
+
+TEST(SeasonalControllerSource, ChangedSafetyAtSameAcquisitionCannotReleaseWithdrawal) {
+    Fixture f;auto pin=sourceFor();auto safety=safe();bind(f,pin,safety);readyPinned(f);
+    safety.sampledAt=f.now;report(f);
+    safety.dhwActive=true;
+    EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(report(f)),"demand")));
+    safety.dhwActive=false;
+    EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(report(f)),"demand")));
+    ++f.now;safety.sampledAt=f.now;
+    EXPECT_TRUE(cJSON_IsTrue(field(Fixture::row(report(f)),"demand")));
+}
+
 }

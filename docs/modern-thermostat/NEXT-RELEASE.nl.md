@@ -144,3 +144,11 @@ annulering/toegangsverlies, maximaal één bestand en selectie pas na het volled
 geautoriseerde verzoek. Zestien nieuwe native tests en elf REST-grensscenario's;
 665 native tests geslaagd. Nog niet geïnstalleerd of opnieuw gepubliceerd.
 [Onderzoek en resterend herstelbewijs](OTA-UPLOAD-ONDERZOEK-20261024.nl.md).
+
+B06-veiligheidsfeiten: afgewezen toekomstige meettijden kunnen later niet opnieuw
+als toestemming gelden; klokterugloop blijft ingetrokken bij eigenaarafwijzing.
+Twaalf regressies toegevoegd; in afzonderlijke voorproeven faalden vijf hydraulische
+en zes gedeelde-policygevallen. Laatste native suite: 677 geslaagd. Zonepolicy en
+storingsbevestiging delen dezelfde controle op toekomstige, ontbrekende, oudere
+en tegenstrijdige acquisities; E32- en ESP32-build gecontroleerd. De fysieke producenten en installatie-
+kwalificatie blijven open. Zie [bewijs](VEILIGHEIDSFEITEN-20261024.nl.md).

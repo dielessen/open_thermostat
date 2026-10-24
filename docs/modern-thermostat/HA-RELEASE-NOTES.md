@@ -1,3 +1,18 @@
+# HA 0.4.0.dev31 — TV02-ontvangst voor native installatiekamers
+
+Herstelt de oorspronkelijke TV02-ontvanger voor kamers waarvan de gekozen kraan
+in de centrale installatieconfiguratie staat. De ontvanger valideert dezelfde
+native configuratie-eigenaar als de kamereditor. Ontbrekende, dubbele, gewijzigde
+of ongeldige koppelingen worden afgewezen; een ingetrokken bron herleeft niet
+vanzelf. Identiteits-, ouderdoms- en replaycontroles blijven behouden.
+
+Deze gerichte vervolgupdate maakt ontvangstacceptatie mogelijk na de gezamenlijke
+alpha24/dev30-bundel. E32 alpha24 blijft staan. Geen apparaatopdracht, automatische
+kraanmoduswijziging of bronkwalificatie. De al geplaatste privé ontvangstpins en
+ontvangende Zigbee2MQTT-extension blijven behouden; het pakket bevat geen privé
+pins. Kamers, programma's, SOURCE, registry en historie blijven behouden.
+Frontendbytes en dev28/v28-kaartidentiteit blijven gelijk.
+
 # HA 0.4.0.dev30 — supervisor, eindige kraandoelen en privé ontvangstpins
 
 Gezamenlijke kandidaat met E32 alpha24; bundelt alle HA-wijzigingen sinds dev29.

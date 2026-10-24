@@ -1525,3 +1525,15 @@ Deze correctie gaat mee in de volgende grotere bundel. Er is geen tweede kleine
 release, stille livepatch of vervanging van alpha24/dev30 gedaan. De geïnstalleerde
 bron blijft `a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`; daadwerkelijke HA-
 ontvangstacceptatie blijft open tot de nieuwe bron normaal is geleverd.
+
+
+## B05: normale levering van de bronfix via HA dev31 voorbereid
+
+De volledige bron-CI 40071267003 is PASS: 2011 HA-checks zonder fout/skip en
+82 componentbestanden exact gecontroleerd. Om oorspronkelijke ontvangst werkelijk
+te kunnen toetsen, krijgt de geteste fix een unieke HA-versie dev31. Dit is een
+gerichte ontvangstherstelupdate na de grotere alpha24/dev30-bundel; E32 alpha24
+blijft staan. Geen tagvervanging, stille livepatch of nieuwe firmware alleen om
+broncommits gelijk te trekken. Pakketcontrole, normale installatie via de
+HA-specialist met verse back-up en natuurlijke ontvangstacceptatie volgen in
+`out/ha-dev31-native-binding-20261024/`. Nog geen installatieclaim.

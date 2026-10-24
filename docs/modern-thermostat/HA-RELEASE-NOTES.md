@@ -1,4 +1,4 @@
-# HA 0.4.0.dev41 — duidelijke temperatuurbronkeuze en M2-ontvangertoelating
+# HA 0.4.0.dev42 — duidelijke temperatuurbronkeuze en M2-ontvangertoelating
 
 Grotere onderhoudskandidaat met behoud van alle bestaande functies en instellingen.
 
@@ -11,7 +11,13 @@ De ontvangerkern wordt niet door de productie-fabriek geselecteerd. Normale
 FW→HA-bedrading, actuele leasebinding, causale oorspronkelijke kraanecho en fysieke
 kwalificatie blijven open. Dit is geen actieve bèta of vrijgave van kraan-/keteluitvoer.
 
-59 nieuwe basisgevallen plus vier aanvullende eigenaarsgrensregressies. Gerichte
+59 nieuwe basisgevallen plus vier aanvullende eigenaarsgrensregressies.
+Een extra regressie toetst vertraagde eerste kamerberichten. De testopstelling
+begint de minimum-uit-wachttijd pas na beide werkelijke firmwaremetingen;
+de 120-secondenregel en alle oorspronkelijke vraag-/stopasserties blijven behouden.
+De ongepubliceerde dev41-tag blijft staan als afgewezen CI-kandidaat.
+De oorspronkelijke intermitterende CI-fout had geen volledige trace; de nieuwe
+verliesinjectie reproduceert dezelfde assertiefout, niet de bewezen CI-oorzaak. Gerichte
 HA- en koude browserproeven op desktop/mobiel in beide talen slagen; volledige
 Core 2026.10.2/2026.10.3- en exacte tag-CI blijven afzonderlijke leveringsvoorwaarden.
 
@@ -27,9 +33,11 @@ without new broker traffic or source replacement. Missing optional native metada
 cannot break the editor. Frontend v41 retains v38/v35 compatibility. A default-deny
 M2 receiver admission kernel is prepared with receiver-owned grants, bounded input,
 strict ownership and no uncertain retry; it is not wired into production actuation.
+Test warmup now waits for both actual firmware measurements before counting
+the unchanged minimum-off interval; a lost-startup-report regression covers this.
 E32 firmware and physical output blocks remain unchanged.
 
-[Werkbord en resterende voorwaarden](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0.dev41/docs/modern-thermostat/WORKBOARD.nl.md).
+[Werkbord en resterende voorwaarden](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0.dev42/docs/modern-thermostat/WORKBOARD.nl.md).
 
 # HA 0.4.0.dev40 — blijvende klokbewaking van de M2-kraanadapter
 

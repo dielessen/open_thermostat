@@ -61,3 +61,16 @@ Bewijs: `out/m2-release-candidate-20261024/`; definitieve aantallen na testafron
 Geen volledige M2- of actieve bèta-vrijgave. E32-watchdogherstel, echte geschikte
 kamerbron, normale ontvangstroute en causale kraan-/ketelproeven blijven open.
 Alle eerder voorbereide functies en 31 producteisen blijven behouden.
+
+## Definitieve kandidaat na dev41-CI
+
+Dev41 is niet gepubliceerd of geïnstalleerd: de tag-CI faalde in een bestaande
+kamerstoptest. Twaalf gerichte herhalingen slaagden; de exacte oorspronkelijke
+CI-oorzaak is zonder trace onbekend. Een gerichte verloren-opstartberichtproef
+reproduceert dezelfde vraagassertie: de minimum-uit-wachttijd begon vóór de eerste
+werkelijke vloerkamermeting. De fixture wacht nu begrensd op beide oorspronkelijke
+firmwaremetingen en telt daarna de ongewijzigde 121 seconden. Alle bestaande
+asserties en 120-secondenbeleid blijven staan. De nieuwe regressie faalt vóór
+en slaagt na deze wijziging; 39 gerichte kamer-/HVAC-proeven slagen.
+De opvolgende kandidaat heet HA42; frontend blijft dev41/v41. Oude tag behouden,
+geen geforceerde verplaatsing of vervanging van assets.

@@ -635,7 +635,7 @@
         },
         {
           "path": "src/control/ModernTransport.h",
-          "sha256": "230cd1c88a85c60b59eaa47b51d859425173d88dbe095e10f1fced3b77d85d18"
+          "sha256": "d9baabee0443fe1db87cc3dd42ef26bb27139e48d7bb580d1ff331fc6b1470ba"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/device_diagnostics.py",
@@ -858,7 +858,7 @@
         },
         {
           "path": "test/test_native/test_hydraulic_controller_source.cpp",
-          "sha256": "72d45e395702d18682ab15826c6ee5c22e7d6f37e18cddabfa7c768ff70d31ef"
+          "sha256": "c0edaba5f1017b6cd24c3c078a1fdcab78f957078eccebf1a8f0cf2582d22eae"
         },
         {
           "path": "test/test_native/include/ShadowControllerFixture.h",

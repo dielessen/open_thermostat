@@ -13,7 +13,7 @@ nog geen nieuwe publieke tag, flash, HA-herstart of fysieke vrijgave uitgevoerd.
 | --- | --- | --- |
 | Automatische update onderzoeken | Eén blijvend native updatecontrolepunt, actuele reset-/bootpartitiegegevens en EN/NL-diagnose; geen opslag per pakket/poll | Native opslag-/reconstructiegevallen, updaterbrowser, echte E32-build; echte powerloss nog open |
 | HA-uitval | Bestaande lokale15s-lease wordt ook bij stille HA en werkende broker exact ingetrokken; geen oude heartbeat als herstel | Echte C++-controller met synthetische bronfeiten |
-| Netwerkuitval / naloop | Lokale offline ticks blijven de oorspronkelijke naloopdeadline volgen, zonder publish of externe observers | Pure supervisor en echte controller; geen fysiek pomp-/klepbewijs |
+| Netwerkuitval / naloop | Lokale offline ticks blijven de oorspronkelijke naloopdeadline volgen, zonder publish of externe observers, ook na native SOURCE-lockout | Pure supervisor en echte controller; geen fysiek pomp-/klepbewijs |
 | Teruggaande klok | Een verlopen, eerder behouden pad-/pompintentie kan niet herleven door een oudere timestamp | Deterministische bestaande bron faalt, gecorrigeerde bron slaagt |
 | Duidelijke uitvalbediening | Uitklapbare EN/NL-uitleg op Home, behouden tijdens verversen | Echte Chromiumbrowser op desktop en mobiel |
 | TV02-ontvangst | Ontvangstmetadata blijft na verval inspecteerbaar zonder oude datapointwaarden, privé-ID's of regelbevoegdheid | Native HA-tests met echte Node-producent en lifecycle |

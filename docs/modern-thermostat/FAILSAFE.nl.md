@@ -31,7 +31,7 @@ Metingen, kraanfeedback, limieten, tapwaterstatus en flow behouden eigen deadlin
    MQTT-stopbericht naar een onbereikbare HA-installatie is geen oplossing.
 3. Alleen een eerder aangevraagd, voor deze installatie beoordeeld nalooppad mag
    tijdelijk behouden blijven. De lokale bewaking blijft ook zonder netwerk
-   doorlopen en verlengt de oorspronkelijke eindtijd niet. Dit opent geen nieuwe
+   doorlopen, ook na een native SOURCE-blokkade, en verlengt de oorspronkelijke eindtijd niet. Een blokkade probeert niet opnieuw te verbinden. Dit opent geen nieuwe
    klep en kent geen doorstroming toe op basis van een doelwaarde.
 4. Verlopen naloopintenties kunnen door een teruggaande klok niet opnieuw actief
    worden. Lokale fouten blijven vergrendeld waar het bestaande profiel dat vereist.

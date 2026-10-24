@@ -216,8 +216,14 @@ public:
         } catch(...) {inhibitNativeSourceMutation();return false;}
     }
     void loop() {
-        if(!valid_||(!controller_&&!graphController_)) return;
+        if(!controller_&&!graphController_) return;
         auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
+        if(!valid_) {
+            // SOURCE lockout also disconnects its owner. It must not freeze an
+            // already running local withdrawal deadline or attempt reconnect.
+            if(controller_)controller_->tick(now,0,false);
+            return;
+        }
         if(!heating::networkConnected()||!client_.connected()) {
             if(wasConnected_) { ui_.clear(); withOwner([](auto& owner){owner.disconnected();}); wasConnected_=false; }
             // Advance local withdrawal deadlines even if network/reconnect fails.

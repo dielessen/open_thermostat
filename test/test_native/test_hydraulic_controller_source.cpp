@@ -249,6 +249,21 @@ TEST(HydraulicControllerSource, SilentHaExpiresOnLocalLeaseEvenWhenBrokerAndObse
     EXPECT_FALSE(r.f.core->hydraulicIntent().physicalOutputsEnabled);
 }
 
+TEST(HydraulicControllerSource, SourceLockoutCannotFreezeLocalPostrunOrStartReconnect) {
+    HydraulicRig r;
+    r.source.profile.withdrawalPolicies[static_cast<size_t>(WithdrawalCause::adapterLost)]=WithdrawalPolicy::retainExistingPathAndPump;
+    r.heat();const auto last=r.f.now;
+    r.f.core->inhibitNativeSourceMutation();
+    ASSERT_TRUE(r.f.core->faulted());
+    ASSERT_TRUE(r.f.core->hydraulicIntent().pumpIntent);
+    const auto output=r.f.output;
+    r.f.now=last+100;r.f.tick();
+    EXPECT_FALSE(r.f.core->hydraulicIntent().pumpIntent);
+    EXPECT_FALSE(r.f.core->hydraulicIntent().openPathIntent);
+    EXPECT_FALSE(r.f.core->hydraulicIntent().heatIntent);
+    EXPECT_EQ(r.f.output,output);
+}
+
 TEST(HydraulicSourceGate, PreviousBootCannotMatchEvenWhenAllLocalCountersAndTimesRepeat) {
     HydraulicFeedbackGate gate;HydraulicOwnerContext first{1,2,1,100,"boot1"};
     const auto snapshot=freshFacts(first,101);

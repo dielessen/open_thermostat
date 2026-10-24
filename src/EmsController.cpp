@@ -380,6 +380,7 @@ void EmsController::decodeTelegram(uint8_t *data, uint8_t length, uint64_t recei
             std::lock_guard<std::mutex> lock(telemetryMutex_);
             // A queued pre-command report must never become post-command stop
             // evidence simply because loop() decodes it after the command.
+            deviceInventory_.observe(telegram, receivedAtMs);
             monitor_.receive(telegram, receivedAtMs);
             receiveOutdoorTemperature(outdoorSample_, telegram, receivedAtMs);
         }

@@ -6,6 +6,7 @@
 #include "EMS/EmsTelegram.h"
 #include "EMS/EmsFrameQueue.h"
 #include "EMS/ClassicBoilerMonitor.h"
+#include "EMS/EmsDeviceInventory.h"
 #include "EMS/OutdoorTemperatureSample.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "EMS/BoilerTestService.h"
@@ -216,6 +217,12 @@ public:
         if(!emsConfig_.emsEnabled)return;
         monitor_.writeFieldGroup(out,static_cast<uint64_t>(esp_timer_get_time()/1000),group);
     }
+    void getDeviceStatus(std::ostream &ss) const {
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
+        ss<<"{\"enabled\":"<<(emsConfig_.emsEnabled?"true":"false")<<",\"inventory\":";
+        deviceInventory_.writeJSON(ss,now);ss<<",\"boiler\":";monitor_.writeJSON(ss,now);ss<<'}';
+    }
 	void getTelemetryStatus(std::ostream &ss, [[maybe_unused]] std::string_view operatorSession = {}) const {
 		std::lock_guard<std::mutex> lock(telemetryMutex_);
 		// Keep the existing field-level telemetry contract and add transport
@@ -318,6 +325,7 @@ private:
 	EmsBoilerParams boilerParams_;
 	mutable std::mutex telemetryMutex_;
 	ClassicBoilerMonitor monitor_;
+    EmsDeviceInventory deviceInventory_;
 #ifdef OPENTHERMOSTAT_E32V2
 	// No installed reviewed test profile/encoder addressing yet. No request/config flag
 	// can fill this in or change the board's independent physical TX lock.

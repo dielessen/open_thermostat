@@ -121,6 +121,10 @@ public:
 		route("/status", [this]() { status(); });
 		route("/status/boiler", [this]() { boilerStatus(); });
 		route("/status/ems", [this]() { emsStatus(); });
+        route("/status/ems/devices", HTTP_GET, [this]() {
+            ib::viewable_stringbuf buf;std::ostream ss(&buf);
+            controller_.getEMSDeviceStatus(ss);server_.sendView(200,"application/json"sv,buf.view());
+        });
 		route("/status/ems/telemetry", HTTP_GET, [this]() {
 			ib::viewable_stringbuf buf;
 			std::ostream ss(&buf);

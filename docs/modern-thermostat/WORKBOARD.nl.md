@@ -18,7 +18,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 232 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 240 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
 met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
@@ -29,6 +29,31 @@ geen bestaande tag of download is vervangen.
 Een meegeleverd model of geslaagde simulatie bewijst geen aangesloten functie,
 ketelreactie of productacceptatie. Alle oorspronkelijke fasen blijven open waar
 verplichte fysieke of langere-termijnproeven ontbreken.
+
+## Prioriteiten na de geleverde alpha27/dev36-bundel
+
+Alle 31 eisen, 23 brononderdelen, 11 fasen, 8 werkpakketten en 14 releasepoorten
+zijn opnieuw naast de geïnstalleerde basis gelegd. B01–B03 zijn softwarematig af;
+B04–B14 blijven open voor de genoemde volledige bèta-uitkomst. De geleverde
+passieve bundel sluit die actieve poorten niet. Oudere losse bewijsregels zijn
+historisch; de tabellen en deze volgorde bepalen nieuw werk.
+
+| Prioriteit | Punt / koppeling | Eerstvolgende concrete uitkomst | Wat buiten software blijft |
+| --- | --- | --- | --- |
+| P0 | Geldigheid en uitval, R24/B05–B08 | Ontvangertoelating nalopen op grant-/leaseverval, replay en teruggaande klok; regressie vóór/na bij gevonden fout | Geen claim van fysieke ketelstop of voedingsuitval |
+| P0 | Echte kamerbron, R03/B04/WP03 | Brongebonden acquisitie-/profielketen afmaken met echte oorspronkelijke rapporten | RTCGQ11LM device_temperature niet als kamerbron kwalificeren; geen automatische sensorwissel |
+| P0 | Kraantransactie, R05/B05/WP05 | Normale FW→HA-route met HA-ontvangergrant en bestaande adapter verbinden; native zendtransactie aan oorspronkelijke echo koppelen | Exact geïnstalleerde converterbron ontbreekt nog in bestaande toegang; geen cache/serviceacceptatie als ACK |
+| P0 | Veiligheidsproducenten, R07/R23/B06/WP06 | Afzonderlijke gedateerde limiet/DHW/water/kraan/flowfeiten en installatieprofiel aansluiten | Geen generieke flow-/pompaanname of ongekwalificeerde vrijgave |
+| P1, expliciete gebruikersopdracht nu | EMS-apparatenweergave, R15/R25/R29/I11/I12/I21 | Settings → EMS-apparaten met echte afzenders, ontvangen product/versie en entiteiten, kwaliteit/ouderdom en stabiel vernieuwen in EN/NL | Passief, geen scan; decoderloze apparaten en ontbrekende identiteit eerlijk aangeven |
+| P1 | Classic-zender en stopketen, R08/B07–B08/WP02 | Bestaande bounded policy, pollqueue/encoder en laatste dispatchcontrole afronden | TX/adres/masker en fysieke zender pas na B09 beoordelen |
+| P1 | Installatieacceptatie, R22–R24/B09 | Bestaande acceptatiekaart concreet maken voor UART/arbitrage/Tado óf E32/minimumflow/naloop/onafhankelijke stop | Fysieke feiten blijven open; vragen bundelen voor de proef, niet iedere bronstap blokkeren |
+| P1 | HTTPS-herstelbaarheid, R28/I03/WP08 | Geïnstalleerde checkpointdiagnose gebruiken bij gericht onderzocht vervolg | Vorige workerfout onbekend; app-only succes is geen workerreparatie of reden voor replay |
+| P2 na M2 | Productafwerking en schaal, R01/R02/R04/R06/R09–R21/R26/R27/R30/R31 | Bestaande editor/groep/vloer/weer/metrics/historie/comfort/leerbasis gecontroleerd verbinden en toetsen | Acht zones/72u, echte grafiektijdlijn, externe meter en modelspecifieke writefuncties niet fictief aftekenen |
+| Releasepoort na relevante implementatie | R28/R29/B10–B14 | Eén gezamenlijke freeze, volledige regressie, exact pakket en uitrol met back-up/readback | Geen aparte kleine release voor ieder bronpunt; fysieke proef blijft afzonderlijk |
+
+Leren/PI/PID en blijvend bewaarde, gevalideerde parameters per ruimte blijven
+verplicht voor de definitieve versie (R12); nieuwe F9/F10-stages volgen na M2.
+Een ontbrekende fysieke waarneming blokkeert onafhankelijk softwarewerk niet.
 
 ## 2. Af, geleverd en dus ook in de volgende release behouden
 
@@ -58,7 +83,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-228 bronverwijzingen met hashes, status en resterende acceptatie.
+240 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -67,7 +92,7 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | --- | --- | --- | --- |
 | I01 | Eigen project, bron/licenties en reproduceerbaar pakket | Geleverde softwarebasis | Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. |
 | I02 | Weblogin, sessies, CSRF, setup en herstelroutes | Geleverde softwarebasis | Fysieke AP-/uitval-/herstelmatrix blijft apart. |
-| I03 | Automatische HTTPS-update, TLS-geheugen en catalogus | Geleverde basis; blijvende diagnose voorbereid | Alpha26-afwijking blijft open. Eén begrensd checkpoint en EN/NL-webdiagnose gebouwd/getest; nog niet geïnstalleerd, geen blinde updaterherhaling. |
+| I03 | Automatische HTTPS-update, TLS-geheugen en catalogus | Geleverde basis inclusief blijvende diagnose | Checkpoint/EN/NL-diagnose geleverd in alpha27; oorspronkelijke HTTPS-afwijking blijft onverklaard. Geen blinde updaterherhaling. |
 | I04 | Actuele/archief-releases automatisch ordenen | Geleverde softwarebasis | Nieuwe publicatie moet bestaande tags/assets behouden. |
 | I05 | About, uitloggen rechts en herstart onder Settings | Geleverde softwarebasis | Behouden; bevestiging/herstartguards opnieuw in eindregressie. |
 | I06 | Kamerinrichting, identiteiten en apparaatmetadata | Geleverd inclusief versieprojectie | Gemelde Z2M-/converterversie zichtbaar; ontbrekend blijft onbekend. Metadata kwalificeert geen fysieke sensor of kraan. |
@@ -1915,3 +1940,13 @@ replay. Verse93-bestandenbackup met gecontroleerde hashes. Volledige105registry-
 records/2devices, programma's, SOURCErev4 en pins/producer behouden. Alleuitgangen
 blijven geblokkeerd, EMSsent/polls0. B04–B14 blijven open waar end-to-end/fysiek
 bewijs ontbreekt; ontvangst is geen kraanbevestiging. Zie installatieverslag.
+
+### Nieuwe prioriteitsbatch — EMS-apparaten en ontvangerklok
+
+- [x] Gevraagde Settings → EMS-apparaten gebouwd: passief ontvangen afzenders, versie/product-ID indien werkelijk gemeld, entiteiten met waarde/status/kwaliteit/ouderdom, EN/NL, filter en stabiel openblijven bij vernieuwen. Geen scan/query/writer. Volgende bundel, nog niet geïnstalleerd.
+- [x] P0-tijdfout reproduceerbaar opgelost: `expired_grant → accepted` bij teruggaande lokale klok wordt `expired_grant → invalid_clock`. Toelating, grantrotatie en ook diagnostische deadline-/leaselezingen delen één sessiegebonden klokwatermerk. Fout blijft tot een daadwerkelijk nieuwe toegelaten sessie; identieke begin/retry kan niets resetten. Dit sluit de ontbrekende echte HA-ontvangerroute niet.
+- [x] Softwarecontrole:649native, zes EN/NL-browserprofielen,17webunitchecks; concrete apparaat-/stop-/voedingsproeven niet uitgevoerd.
+- [ ] Volgende P0-uitvoering: ontbrekende M2-kamerbron, HA-ontvangergrant en native zendtransactiereceipt; werkelijke veiligheidsproducenten daarna. De toegangsgrens voor geïnstalleerde converterbron is nog open, geen nieuwe toegangsroute gemaakt.
+
+Zie [EMS-apparaten](EMS-APPARATEN.nl.md); bestaande B04–B14 en alle31producteisen
+blijven behouden. Geleverde alpha27/dev36 en voorbereide nieuwe bron zijn gescheiden.

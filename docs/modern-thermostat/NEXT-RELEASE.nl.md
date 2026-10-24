@@ -10,6 +10,23 @@ pakketten. De onderstaande bundel is daarmee geleverd; fysieke vrijgave blijft
 open. De bestaande native HTTPS-worker is niet opnieuw getest of als gerepareerd
 verklaard. Details staan in `INSTALLATIE-HA36-ALPHA27-20261024.nl.md`.
 
+## Nieuwe batch en prioriteit
+
+De onderstaande bundel is al geleverd. Nieuwe prioriteiten staan op het werkbord:
+eerst tijd-/uitvaltoelating en ontbrekende M2-bron/actuator-/veiligheidsketen.
+De expliciete gebruikersopdracht **Settings → EMS-apparaten** is gebouwd en getest, nog niet geïnstalleerd:
+passief ontvangen afzenders, product/versie indien werkelijk gerapporteerd,
+ontvangen entiteiten met waarde/kwaliteit/ouderdom en telegramtypen. Decoderloze
+apparaten blijven zichtbaar zonder verzonnen entiteiten. Openklappen en zoekfilter
+blijven bij vernieuwen behouden. Geen scan of writefunctie.
+
+Daarnaast is een P0-fout in sessietoelating gerepareerd: een verlopen grant of
+lease mag bij een teruggaande ontvangerklok niet herleven, ook niet via een
+diagnostische deadlinelezing. Een sessiegebonden klokwatermerk en vergrendelde
+fout bewaken de bestaande toelating; alleen een echt nieuwe sessie kan herstellen.
+Deze twee bronpunten gaan mee in de volgende bundel; de tabel hieronder beschrijft
+de reeds geleverde alpha27/dev36-bundel.
+
 ## Gebundelde wijzigingen
 
 | Onderdeel | Concrete wijziging | Controle |

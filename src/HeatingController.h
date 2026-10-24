@@ -199,6 +199,7 @@ public:
 		emsMetrics_.getRoomObservation(ss);
 		ss << "}";
 	}
+	void getEMSDeviceStatus(std::ostream &ss) const { ems_.getDeviceStatus(ss); }
 	void getEMSTelemetryStatus(std::ostream &ss, std::string_view operatorSession = {}) const {
 		ems_.getTelemetryStatus(ss, operatorSession);
 	}

@@ -2,9 +2,10 @@
 
 Opdracht van 23 oktober 2026: doorwerken tot één samenhangende eerste bèta voor
 het koppelen van de ketel, terugmelden van gegevens en testen van de aansturing.
-De geïnstalleerde basis is E32 alpha17 / HA dev23, broncommit
-`86f99a96a9673424425d752f582ca4361e2f2b4c`. Nieuwe ontwikkeling gebeurt apart
-op `work/beta-boiler-20261023`. Deze tekst is geen bèta-vrijgave.
+De geïnstalleerde passieve basis is E32 alpha23 / HA dev29, broncommit
+`5f31dd780a5b98d81048f9d592f8209e657d7305`. Vervolgontwikkeling gebeurt op
+`work/beta-boiler-20261023`. De actuele afvinklijst staat in
+[WORKBOARD](WORKBOARD.nl.md); deze tekst is geen actieve bèta-vrijgave.
 
 ## Wat de bèta moet opleveren
 
@@ -30,9 +31,11 @@ op `work/beta-boiler-20261023`. Deze tekst is geen bèta-vrijgave.
 ## Bekende aansluiting en ontbrekend bewijs
 
 Bekende keten uit de bestaande onderzoeksnotities: Tado **of** E32 → EMS →
-Bosch iRT↔EMS-converter → iRT → HRC22H/UBA. Twee actieve masters tegelijk zijn
-geen proefopstelling. Exact convertermodel/revisie en gedrag bij verlies van EMS,
-convertervoeding en iRT zijn nog niet vastgesteld.
+Bosch EasyControl Adapter 8737908035 V2.3 → iRT → Nefit Ecomline Classic
+HRC 22H/UBA. Model en adapterrevisie zijn door de gebruiker opgegeven. Twee actieve
+masters tegelijk zijn geen proefopstelling. Het gedrag bij verlies van EMS,
+convertervoeding en iRT is nog niet fysiek vastgesteld. Zolang Tado actief blijft,
+blijft de E32 uitsluitend passief.
 
 Het opgeslagen historische nulcommando bevestigt een latere gerapporteerde CV-stop
 en nul brandervermogen; het bewijst geen autonome stop bij communicatiewegval.
@@ -67,6 +70,25 @@ Classic-keten sturen. Een verwisselbare compileervlag is geen TX-vrijgave.
   SOURCE/config-ACK-acceptatie open. Een diagnostische apparaattemperatuur of
   ontbrekend meetprofiel wordt niet stilzwijgend een gekwalificeerde ruimtesensor.
 
-Actuele uitvoerbestanden: `out/beta-boiler-evidence-20261023/` in de hoofdwerkmap.
-Nog geen nieuwe release gepubliceerd, geen firmware geïnstalleerd en geen echte
-ketelopdracht verstuurd voor deze ontwikkeltak.
+De passieve gezamenlijke release alpha23/dev29 is gepubliceerd en via de normale
+updater geïnstalleerd; bewijs staat onder `out/next-release-20261024/`.
+Vervolgbron en deadlinecontroles staan onder `out/pre-tx-preparation-20261024/`.
+Er is geen actieve bèta vrijgegeven of fysieke zendopdracht uitgevoerd.
+
+## Grens vóór de eerste fysieke zendproef
+
+De softwareketen heeft afzonderlijke grenzen: oorspronkelijke meet-/kraanontvangst,
+profiel-/eigenaarschapstoets, proefpolicy, laatste pollcontrole, UART-voltooiing en
+strikt latere stopwaarneming. Een groene test bij één grens heft de andere niet op.
+Bij vertraagde verwerking blijven warmtevraag-, lease- en stopdeadlines absoluut;
+een late uitmelding maakt een verlopen proef niet alsnog geslaagd.
+
+Vóór een nulvraag naar de echte installatie ontbreken nog het beoordeelde
+adres/masker en proefprofiel, elektrische TX-kwalificatie, één actieve eigenaar,
+het afgifte-/nalooppad en een onafhankelijke stopmogelijkheid. Ook een nulvraag is
+een zendopdracht en valt buiten de huidige uitsluitend passieve toestemming.
+De eerste positieve vraag volgt pas na een gecontroleerde nulproef met verse
+gemelde stop. Voor automatische kamerregeling zijn daarnaast de oorspronkelijke
+ruimtebron en kraan, causale echo/readiness en uitval/fallback afzonderlijk nodig.
+Geen van deze fysieke voorwaarden wordt door modelselectie of een compileervlag
+ingevuld.

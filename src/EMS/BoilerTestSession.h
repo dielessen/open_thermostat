@@ -121,7 +121,13 @@ public:
     void step(uint64_t now, const Gates& gates, const ClassicBoilerMonitor& monitor) {
         if (!observeTime(now) || phase_ == Phase::idle || phase_ == Phase::completed) return;
         if (phase_ == Phase::fault) {
-            if (zeroSent_ && reportedOff(monitor, now, zeroSentAt_)) stopConfirmed_ = true;
+            const bool confirmed = zeroSent_ && reportedOff(monitor, now, zeroSentAt_);
+            if (stopConfirmed_ && !confirmed) {
+                // Lost/stale stop proof needs a NEW zero and subsequent report.
+                // Old tickets and their write cooldown cannot postpone it.
+                ++epoch_; zeroSent_ = false; sent_ = false;
+            }
+            stopConfirmed_ = confirmed;
             return; // no automatic recovery or new session after a fault
         }
         if (!gates.allowsZero()) { fail("transmitter_or_owner_lost"); return; }
@@ -158,7 +164,8 @@ public:
 
     Intent next(uint64_t now, const Gates& gates, const ClassicBoilerMonitor& monitor) {
         step(now, gates, monitor);
-        if (inFlight_ || !gates.allowsZero() || !session_) return {};
+        if (inFlight_ || !gates.allowsZero() || !session_
+            || (phase_ == Phase::fault && stopConfirmed_)) return {};
         const Command command = phase_ == Phase::heating ? Command::positive
             : phase_ == Phase::baseline || phase_ == Phase::stopping || phase_ == Phase::fault ? Command::zero : Command::none;
         if (command == Command::none || (sent_ && now >= sentAt_ && now - sentAt_ < profile_.writeIntervalMs)) return {};
@@ -202,7 +209,16 @@ private:
         return now <= std::numeric_limits<uint64_t>::max() - duration;
     }
     bool observeTime(uint64_t now) {
-        if (haveTime_ && now < lastNow_) { if (active()) fail("monotonic_clock_reversed"); return false; }
+        if (haveTime_ && now < lastNow_) {
+            if (active()) {
+                fail("monotonic_clock_reversed");
+                // A previously faulted session must also retire stop proof.
+                // Returning to an older clock cannot retain its confirmation.
+                if (stopConfirmed_ || zeroSent_ || sent_) ++epoch_;
+                stopConfirmed_=false;zeroSent_=false;sent_=false;
+            }
+            return false;
+        }
         haveTime_ = true; lastNow_ = now; return true;
     }
     bool fresh(const BoilerSample& sample, uint64_t now) const {

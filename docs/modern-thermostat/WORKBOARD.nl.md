@@ -1814,3 +1814,39 @@ Afgeronde softwaredeelpunten van deze bundel (nog niet geïnstalleerd):
 - [x] Nieuwe beheerde HA-module/tag naast v28, met behoud van handmatige kaarttags.
 
 Deze deelpunten veranderen de oorspronkelijke vrijgavechecks B04–B14 niet.
+
+
+## B06–B08: supervisorbron en Classic-stop verder afgemaakt (24 oktober 2026)
+
+De vrijgave blijft fysiek geblokkeerd. In de bestaande bronroute zijn deze
+softwaredeelpunten afgerond voor dezelfde gezamenlijke release:
+
+- [x] Bij een ongeldige snapshottijd blijven stop, limiettrip, ketelfout,
+  DHW-prioriteit en actuatorfout van de juiste huidige eigenaar restrictief.
+- [x] Een afgewezen/ontbrekend/verlopen bronbewijs wordt niet door herhaling
+  opnieuw geldig; alleen een strikt nieuwere getroffen waarneming herstelt het.
+- [x] Andere bronvelden behouden hun eigen deadlines; geen verjonging of
+  verplicht opnieuw acquisitie uitvoeren voor ongewijzigde, nog geldige velden.
+- [x] Teruggaande feedbackklok blijft geblokkeerd tot reconstructie van de bron-eigenaar.
+- [x] Echte controller samengesteld met verschillende terugvalpolicies: een
+  foutieve waterdoeltijd kan een actuele stop-/DHW-/limiet-/ketelfout niet maskeren.
+- [x] Classic-fouttoestand behoudt poll-eigenaarschap en biedt bij verse gemelde
+  stop geen overbodige nul aan; geen automatische herstart of legacy-terugval.
+- [x] Verlies van stopfeedback trekt bevestiging en oude nultickets in; nieuwe
+  nul heeft geen oude schrijf-wachttijd en vereist een strikt later ontvangen stopmelding.
+- [x] Engelse stopbevestiging in de bestaande ketelproefpagina gecorrigeerd; Yes/Ja getest.
+
+Acht eerste regressies op de vorige bron: zeven falen, één bestaande weigering
+van een verkeerde eigenaar blijft geldig. Rechtstreeks uitgevoerde GoogleTest
+bevestigt dit onafhankelijk van de extra SIGHUP-status die PlatformIO bij een
+falend testproces rapporteert. Na correctie: 637 native tests PASS, waaronder
+12 nieuwe gevallen; 87 gerichte ASan/UBSan-gevallen met lekcontrole PASS, 60
+HA-supervisortests en drie NL/EN-browserformaten PASS. Echte E32-build PASS.
+De native feedbackgate groeit vast van104 naar120 bytes; proefpolicy blijft176
+bytes. Geen extra heapstructuur, taak, client, watcher, bronproducent of fysieke opdracht.
+
+De normale M2-actuatorroute is hiermee niet aangesloten of vrijgegeven. De
+ontbrekende oorspronkelijke kamermeting, unieke native zendtransactie/causale
+echo en werkelijke hydraulische producenten/installatiekwalificatie blijven
+open. B04–B14 blijven open; geen nieuwe kleine release of installatie van deze
+bronwijziging. Bewijs: `out/release-control-gates-20261024/`.

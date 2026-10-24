@@ -23,6 +23,10 @@ nog geen nieuwe publieke tag, flash, HA-herstart of fysieke vrijgave uitgevoerd.
 | Incrementele systeemlog | Hele batch valideren vóór cursor/historie; ongeldige suffix verbruikt geen geldige prefix, eigen cursor na bootwissel | Oude bron faalt op cursor3 versus2; vier EN/NL-browserprofielen slagen |
 | Betrouwbare instellingenopslag | Onzekere log-/ketelopslag blokkeert herhaalde submit met behoud van concept; ketelkeuze heeft afzonderlijke GET-readback en begrensde verzoeken | Echo zonder opslag en verloren readback tonen geen succes en veroorzaken geen retry |
 | Actualiteit van meet- en buitenbronnen | Verlopen waarnemingen blijven ingetrokken; herhaalde weerberekeningen vernieuwen hun oorspronkelijke geldigheid niet | Twee regressies vóór/na, 625 native tests en E32-build; fysieke bronkwalificatie blijft open |
+| Supervisor bij ongeldig feedbackveld | Stop/limiet/ketelfout/DHW/actuatorfout van juiste eigenaar blijven restrictief; geen positieve feiten uit afgewezen snapshot | Directe brongevallen en echte controller met verschillende terugvalpolicies |
+| Levensduur van hydraulische bronfeiten | Getroffen bewijs ingetrokken na afwijzing/verval; alleen strikt nieuwe waarneming herstelt, andere brondeadlines blijven oorspronkelijk | Native replay-, klok- en onafhankelijke-bronproeven; teruggaande feedbackklok blijft geblokkeerd |
+| Classic-stop in fouttoestand | Geen overbodige nul bij verse stopmelding; bij verlies nieuw nulticket en latere melding, zonder oude wachttijd of legacy-terugval | Echte sessie, service en pollroute; fout blijft vergrendeld en positieve vraag uit |
+| Stopdiagnose in twee talen | Bevestigde stop correct Yes/Ja op de bestaande ketelproefpagina | NL/EN met drie browserformaten; uitsluitend HTTP-fixtures |
 | Eigen ketelprofiel | Nieuwe passieve HRC22H-momentopname met69 gedefinieerde velden en expliciete kwaliteitsgroepen | Gescheiden diagnostisch snapshot; geen leesfilter, kalibratie of regeling |
 
 Alle 23 voorbereide inventarisonderdelen blijven meegenomen. De bestaande
@@ -64,7 +68,8 @@ Bron- en testbewijs voor deze bundel:
 `out/next-release-completion-20261024/` en
 `out/source-freshness-20261024/` en
 `out/actuator-owner-loss-20261024/` en
-`out/release-diagnostics-bundle-20261024/`. De volledige CI-uitkomst wordt gekoppeld
+`out/release-diagnostics-bundle-20261024/` en
+`out/release-control-gates-20261024/`. De volledige CI-uitkomst wordt gekoppeld
 aan de exacte bevroren broncommit in `FINAL-REVIEW.json`; lokale checks alleen
 sluiten de publieke release- of fysieke poorten niet.
 

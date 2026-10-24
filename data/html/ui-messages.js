@@ -250,6 +250,7 @@ window.OT_UI_MESSAGES = {
   "No boiler messages received yet.": "Nog geen ketelberichten ontvangen.",
   "No test prepared yet.": "Nog geen proef voorbereid.",
   "No field decoder yet": "Nog geen velddecoder",
+  "Yes": "Ja",
   "Not confirmed yet": "Nog niet bevestigd",
   "Zero commands transmitted": "Nulopdrachten verzonden",
   "Unknown": "Onbekend",

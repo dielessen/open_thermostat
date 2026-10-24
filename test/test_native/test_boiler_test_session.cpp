@@ -382,4 +382,63 @@ TEST_F(BoilerTest, EarlierOperatorDeadlineWinsWhenBothDeadlinesHavePassed) {
     EXPECT_STREQ(candidate.reason(), "reported_stop_timeout");
 }
 
+TEST_F(BoilerTest, FaultKeepsItsLatchButDoesNotResendZeroWhileStopEvidenceIsFresh) {
+    heating();const auto positive=session.next(102,gates,monitor);
+    ASSERT_FALSE(testing_detail::instantTransmission(session,positive,102,false,gates,monitor));
+    const auto zero=session.next(103,gates,monitor);
+    ASSERT_TRUE(testing_detail::instantTransmission(session,zero,103,true,gates,monitor));
+    report(104);session.step(104,gates,monitor);
+    ASSERT_TRUE(session.reportedStopConfirmed());
+    EXPECT_EQ(session.next(203,gates,monitor).command,Command::none);
+    EXPECT_FALSE(session.mayTransmit(zero,203,gates,monitor));
+    EXPECT_EQ(session.phase(),Phase::fault);
+    EXPECT_EQ(session.prepare(11,2,40,1000,203,gates,monitor),Reply::refused);
+}
+TEST_F(BoilerTest, LossOfFaultStopEvidenceRequiresANewZeroAndPostCommandReport) {
+    // Long write spacing must not postpone a newly necessary stop.
+    profile.writeIntervalMs=10000;BoilerTestSession candidate{11,profile};
+    report(90);ASSERT_EQ(candidate.prepare(11,1,40,1000,100,gates,monitor),Reply::accepted);
+    const auto initial=candidate.next(100,gates,monitor);
+    ASSERT_FALSE(testing_detail::instantTransmission(candidate,initial,100,false,gates,monitor));
+    const auto zero=candidate.next(101,gates,monitor);
+    ASSERT_TRUE(testing_detail::instantTransmission(candidate,zero,101,true,gates,monitor));
+    report(102);candidate.step(102,gates,monitor);ASSERT_TRUE(candidate.reportedStopConfirmed());
+    EXPECT_EQ(candidate.next(103,gates,monitor).command,Command::none);
+    report(104,true,20);candidate.step(104,gates,monitor);
+    EXPECT_FALSE(candidate.reportedStopConfirmed());
+    const auto renewed=candidate.next(104,gates,monitor);
+    ASSERT_EQ(renewed.command,Command::zero);
+    EXPECT_NE(renewed.epoch,zero.epoch);
+    EXPECT_FALSE(candidate.mayTransmit(zero,104,gates,monitor));
+    ASSERT_TRUE(testing_detail::instantTransmission(candidate,renewed,104,true,gates,monitor));
+    candidate.step(104,gates,monitor);EXPECT_FALSE(candidate.reportedStopConfirmed());
+    report(105);candidate.step(105,gates,monitor);EXPECT_TRUE(candidate.reportedStopConfirmed());
+    EXPECT_EQ(candidate.phase(),Phase::fault);
+}
+TEST_F(BoilerTest, ExpiredFaultStopEvidenceCannotRemainConfirmedOrWaitForOldCooldown) {
+    profile.writeIntervalMs=10000;BoilerTestSession candidate{11,profile};
+    report(90);ASSERT_EQ(candidate.prepare(11,1,40,1000,100,gates,monitor),Reply::accepted);
+    const auto failed=candidate.next(100,gates,monitor);
+    ASSERT_FALSE(testing_detail::instantTransmission(candidate,failed,100,false,gates,monitor));
+    const auto zero=candidate.next(101,gates,monitor);
+    ASSERT_TRUE(testing_detail::instantTransmission(candidate,zero,101,true,gates,monitor));
+    report(102);candidate.step(102,gates,monitor);ASSERT_TRUE(candidate.reportedStopConfirmed());
+    candidate.step(2102,gates,monitor);
+    EXPECT_FALSE(candidate.reportedStopConfirmed());
+    EXPECT_EQ(candidate.next(2102,gates,monitor).command,Command::zero);
+}
+
+TEST_F(BoilerTest, ReversedClockRetiresFaultStopProofAndOldZeroTicket) {
+    heating();const auto positive=session.next(102,gates,monitor);
+    ASSERT_FALSE(testing_detail::instantTransmission(session,positive,102,false,gates,monitor));
+    const auto zero=session.next(103,gates,monitor);
+    ASSERT_TRUE(testing_detail::instantTransmission(session,zero,103,true,gates,monitor));
+    report(104);session.step(104,gates,monitor);ASSERT_TRUE(session.reportedStopConfirmed());
+    session.step(103,gates,monitor);
+    EXPECT_FALSE(session.reportedStopConfirmed());
+    EXPECT_EQ(session.phase(),Phase::fault);
+    EXPECT_FALSE(session.mayTransmit(zero,105,gates,monitor));
+    EXPECT_EQ(session.next(105,gates,monitor).command,Command::zero);
+}
+
 } // namespace

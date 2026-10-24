@@ -117,7 +117,7 @@
     if (test) {
       for (const [label,value] of [[uiText("Positive commands transmitted"),number(test.positive_frames)],
         [uiText("Zero commands transmitted"),number(test.zero_frames)],[uiText("Remaining heat demand time"),age(test.heat_remaining_ms)],
-        [uiText("Stop reported after command"),test.reported_stop_confirmed ? 'Ja' : uiText("Not confirmed yet")]]) {
+        [uiText("Stop reported after command"),test.reported_stop_confirmed ? uiText("Yes") : uiText("Not confirmed yet")]]) {
         cell(testFacts,'dt',label);cell(testFacts,'dd',value);
       }
     }

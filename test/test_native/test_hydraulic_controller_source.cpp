@@ -272,4 +272,84 @@ TEST(HydraulicSourceGate, PreviousBootCannotMatchEvenWhenAllLocalCountersAndTime
     EXPECT_TRUE(gate.evaluate(102,1000,reboot,freshFacts(reboot,101)).inputs.limitsKnownSafe);
 }
 
+TEST(HydraulicSourceGate, InvalidCurrentSnapshotPreservesOnlyAssertedRestrictions) {
+    HydraulicFeedbackGate gate;const HydraulicOwnerContext owner{1,2,1,100,"boot1"};
+    const auto first=freshFacts(owner,101);
+    ASSERT_TRUE(gate.evaluate(102,1000,owner,first).inputs.limitsKnownSafe);
+    auto invalid=freshFacts(owner,103);invalid.waterTargetAt=104;
+    invalid.limitTripped=invalid.boilerFault=invalid.dhwActive=invalid.stop=invalid.actuatorFailure=true;
+    invalid.readinessConfirmed=invalid.independentFlowConfirmed=true;
+    invalid.feedbackAt=invalid.flowAt=103;invalid.feedbackCommand=1;
+    const auto checked=gate.evaluate(103,1000,owner,invalid);
+    ASSERT_STREQ(checked.reason,"hydraulic_feedback_future");
+    const auto& in=checked.inputs;
+    EXPECT_TRUE(in.limitTripped&&in.boilerFault&&in.dhwActive&&in.stop&&in.actuatorFailure);
+    EXPECT_FALSE(in.limitsKnownSafe||in.faultStateKnown||in.dhwStateKnown
+        ||in.readinessConfirmed||in.independentFlowConfirmed||in.waterTarget);
+    // The rejected aggregate cannot make the previously retired cache valid.
+    EXPECT_STREQ(gate.evaluate(104,1000,owner,first).reason,"hydraulic_feedback_reordered");
+    const auto recovered=freshFacts(owner,105);
+    EXPECT_TRUE(gate.evaluate(105,1000,owner,recovered).inputs.limitsKnownSafe);
+}
+TEST(HydraulicSourceGate, WrongOwnerCannotSupplyEvenRestrictiveFacts) {
+    HydraulicFeedbackGate gate;const HydraulicOwnerContext owner{1,2,1,100,"boot1"};
+    auto wrong=freshFacts(owner,101);++wrong.ownerGeneration;
+    wrong.limitTripped=wrong.boilerFault=wrong.dhwActive=wrong.stop=wrong.actuatorFailure=true;
+    const auto in=gate.evaluate(102,1000,owner,wrong).inputs;
+    EXPECT_FALSE(in.limitTripped||in.boilerFault||in.dhwActive||in.stop||in.actuatorFailure);
+}
+TEST(HydraulicSourceGate, ClockRegressionCannotRestoreEvidenceEvenWithNewerFacts) {
+    HydraulicFeedbackGate gate;const HydraulicOwnerContext owner{1,2,1,100,"boot1"};
+    const auto first=freshFacts(owner,101);
+    ASSERT_TRUE(gate.evaluate(200,1000,owner,first).inputs.limitsKnownSafe);
+    EXPECT_STREQ(gate.evaluate(199,1000,owner,first).reason,"hydraulic_feedback_clock_invalid");
+    EXPECT_FALSE(gate.evaluate(201,1000,owner,freshFacts(owner,201)).inputs.limitsKnownSafe);
+    HydraulicFeedbackGate reconstructed;
+    EXPECT_TRUE(reconstructed.evaluate(201,1000,owner,freshFacts(owner,201)).inputs.limitsKnownSafe);
+}
+TEST(HydraulicSourceGate, ExpiredFactsAreRetiredWithoutAdvancingAcquisitionTimes) {
+    HydraulicFeedbackGate gate;const HydraulicOwnerContext owner{1,2,1,100,"boot1"};
+    const auto first=freshFacts(owner,101);
+    ASSERT_TRUE(gate.evaluate(102,1000,owner,first).inputs.limitsKnownSafe);
+    EXPECT_FALSE(gate.evaluate(1101,1000,owner,first).inputs.limitsKnownSafe);
+    EXPECT_STREQ(gate.evaluate(1102,1000,owner,first).reason,"hydraulic_feedback_reordered");
+    EXPECT_TRUE(gate.evaluate(1103,1000,owner,freshFacts(owner,1103)).inputs.limitsKnownSafe);
+}
+TEST(HydraulicControllerSource, MalformedUnrelatedTimeCannotHideAnyCurrentWithdrawalCause) {
+    for(unsigned loss=0;loss<4;++loss) {
+        HydraulicRig r;
+        r.source.profile.withdrawalPolicies.fill(WithdrawalPolicy::retainExistingPathAndPump);
+        const auto cause=loss==0?WithdrawalCause::limitTrip:loss==1?WithdrawalCause::boilerFault:
+            loss==2?WithdrawalCause::dhwPriority:WithdrawalCause::normalStop;
+        r.source.profile.withdrawalPolicies[static_cast<size_t>(cause)]=WithdrawalPolicy::withdrawHeatOnly;
+        r.heat();
+        r.alter=[&,loss](auto& snapshot) {
+            snapshot.waterTargetAt=r.f.now+1;
+            if(loss==0)snapshot.limitTripped=true;
+            if(loss==1)snapshot.boilerFault=true;
+            if(loss==2)snapshot.dhwActive=true;
+            if(loss==3)snapshot.stop=true;
+        };
+        const auto state=r.update();const auto h=r.supervisor(state);
+        EXPECT_FALSE(cJSON_IsTrue(field(h,"heat_intent")))<<loss;
+        EXPECT_FALSE(cJSON_IsTrue(field(h,"pump_intent")))<<loss;
+        EXPECT_STREQ(stringField(h,"path_intent").c_str(),"none")<<loss;
+        EXPECT_FALSE(r.f.core->hydraulicIntent().physicalOutputsEnabled);
+    }
+}
+
+TEST(HydraulicSourceGate, RepairNeedsNewAffectedFactWithoutRenewingUnrelatedLifetimes) {
+    HydraulicFeedbackGate gate;const HydraulicOwnerContext owner{1,2,1,100,"boot1"};
+    const auto first=freshFacts(owner,101);
+    ASSERT_TRUE(gate.evaluate(102,1000,owner,first).inputs.limitsKnownSafe);
+    auto invalid=first;invalid.waterTargetAt=104;
+    EXPECT_STREQ(gate.evaluate(103,1000,owner,invalid).reason,"hydraulic_feedback_future");
+    auto repaired=first;repaired.waterTargetAt=105;
+    const auto in=gate.evaluate(105,1000,owner,repaired).inputs;
+    EXPECT_TRUE(in.limitsKnownSafe&&in.faultStateKnown&&in.dhwStateKnown&&in.waterTarget);
+    const auto expired=gate.evaluate(1101,1000,owner,repaired).inputs;
+    EXPECT_FALSE(expired.limitsKnownSafe||expired.faultStateKnown||expired.dhwStateKnown);
+    EXPECT_TRUE(expired.waterTarget);
+}
+
 }

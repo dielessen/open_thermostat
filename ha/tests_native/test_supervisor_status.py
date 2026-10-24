@@ -306,3 +306,13 @@ async def test_fractional_monotonic_epoch_does_not_extend_supervisor_receipt(int
     assert client.supervisor_payload is not None
     bus.now+=1
     assert client.supervisor_payload is None
+
+
+def test_feedback_clock_fault_is_diagnostic_only_and_keeps_outputs_disabled():
+    value=status()
+    value.update(phase="fault",reason="limits_unknown",feedback_status="hydraulic_feedback_clock_invalid",
+                 heat_intent=False,pump_intent=False,path_intent="none",water_target_centi_c=None)
+    out=supervisor_status(value)
+    assert out["feedback_status"]=="hydraulic_feedback_clock_invalid"
+    assert out["control_qualified"] is False and out["physical_outputs_enabled"] is False
+    assert out["heat_intent"] is False and out["water_target_centi_c"] is None

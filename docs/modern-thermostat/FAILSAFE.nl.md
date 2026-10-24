@@ -82,3 +82,40 @@ Bronnen: [PLAN §12](PLAN.nl.md#12-uitval-afhankelijkheid-en-veiligheid),
 [werkbord](WORKBOARD.nl.md), `SessionAdmission.h`, `HydraulicSupervisor.h`,
 `ShadowController.h`, `ModernTransport.h` en het bewijs in
 `out/next-release-completion-20261024/`.
+
+
+## Voorbereide sluiting van feedback- en stopcontroles
+
+De volgende bron bewaart bij een afgewezen feedbacksnapshot uitsluitend gemelde
+beperkingen van de juiste huidige eigenaar: limiettrip, ketelfout, DHW-prioriteit,
+stop en actuatorfout. Een ongeldige tijd van een ander veld kan deze beperkingen
+niet verbergen. Gegevens van een andere eigenaar worden ook niet als beperking
+gebruikt. Er komen geen positieve veiligheidsfeiten, readiness, flow of waterdoelen
+uit een afgewezen snapshot terug. Een gemelde ketelfout vereist geen geldig
+bewijs van foutloosheid om de logische fouttoestand te vergrendelen.
+
+De getroffen bronwaarneming wordt ingetrokken zonder haar acquisitietijd of
+sequence te vernieuwen. Alleen een strikt nieuwere waarneming kan dat bronveld
+herstellen. Andere velden behouden hun eigen oorspronkelijke geldigheid; herstel
+van één veld verjongt deze niet. Ontbrekende en verlopen waarnemingen blijven
+ook ingetrokken. Een teruggaande feedbackklok blokkeert kwalificatie tot de
+bron-eigenaar opnieuw wordt opgebouwd; een leasevernieuwing wist dit niet.
+
+Bij een gefaalde Classic-proef blijft de fouttoestand eigenaar van de pollroute.
+Zolang een geslaagde nul en strikt latere, nog verse CV-uit/nulvermogenmelding
+beschikbaar zijn, biedt deze route geen overbodige nul aan en valt zij niet
+terug naar legacy. Bij verlopen/strijdige feedback of teruggaande tijd vervalt
+het stopbewijs; oude tickets vervallen en de oude schrijf-wachttijd kan een
+nieuwe nul niet vertragen. Stopbevestiging vraagt daarna opnieuw een werkelijk
+voltooide nul en een latere melding. De fout wordt niet gewist, een positieve
+vraag wordt niet hervat en nieuwe fysieke stopzekerheid wordt niet verzonnen.
+Dit wijzigt geen beleid voor blijvend onbekende stopfeedback of onafhankelijke
+hardwareterugval; die fysieke acceptatie blijft open.
+
+Bewijs: `out/release-control-gates-20261024/`: 637 native tests, 87 geselecteerde
+controller-/Classic-/service-/poll-/encodergevallen onder ASan/UBSan met
+lekcontrole, 60 HA-supervisortests en drie echte browserformaten met fixture-HTTP.
+De bestaande stopbevestiging staat ook in het Engels correct als Yes (NL: Ja).
+Alle extra bronstaat blijft vast begrensd: de native feedbackgate is 120 bytes
+(16 extra), de proefpolicy blijft 176 bytes. Dit zijn host-sizes, geen bewijs
+van live E32-heap/stack of fysieke werking. Geen nieuwe taak, client of wachtrij.

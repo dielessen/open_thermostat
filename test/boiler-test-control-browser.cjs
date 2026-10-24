@@ -112,9 +112,17 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   await page.evaluate(()=>mainScreen());await page.waitForTimeout(1300);
   assert.equal(requests.filter(r=>r.method==='POST').length,before);
   assert.equal(requests.some(r=>r.method==='POST'&&!r.path.startsWith('/boiler/test/')),false);
+  // The same reported stop is translated after reopening in English.
+  await page.context().addCookies([{name:'ot_ui_lang',value:'en',url:'http://boiler.test'}]);
+  await page.reload();await page.waitForFunction(()=>typeof loadNativePage==='function');
+  await page.evaluate(()=>loadNativePage('boiler_test'));
+  await page.locator('[data-test-facts] dd').filter({hasText:/^Yes$/}).waitFor();
+  assert.equal(await page.locator('[data-test-facts] dd').filter({hasText:/^Ja$/}).count(),0);
+  await page.waitForTimeout(1300);assert.equal(requests.filter(r=>r.method==='POST').length,before);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   assert.deepEqual(errors,[]);
   results.push({width,result:'PASS',fixtureOnly:true,noAutoStartOrResume:true,csrfPresent:true,stopWhilePending:true,
-   uncertainStopNotReplayed:true,lateStartIgnored:true,staleReadbackIgnored:width===1280,navigationStopsRenewal:true,physicalProof:false});
+   uncertainStopNotReplayed:true,lateStartIgnored:true,staleReadbackIgnored:width===1280,navigationStopsRenewal:true,englishStopConfirmation:true,physicalProof:false});
   await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(out,'BROWSER.json'),JSON.stringify({result:'PASS',cases:results},null,2)+'\n');

@@ -52,7 +52,11 @@ public:
         if(owner.bootId.empty()||owner.bootId.size()>32||std::string_view(s.bootId.data(),size_t(bootEnd-s.bootId.begin()))!=owner.bootId
             ||maximumAge<100||maximumAge>30000||!owner.generation||!owner.revision||owner.startedAt>now
             ||s.ownerGeneration!=owner.generation||s.configRevision!=owner.revision||s.ownerStartedAt!=owner.startedAt)
-            return {{},"hydraulic_feedback_owner_mismatch"};
+            return deny(nullptr,"hydraulic_feedback_owner_mismatch");
+        if(clockInvalid_||(haveTime_&&now<lastNow_)) {
+            clockInvalid_=true;return deny(&s,"hydraulic_feedback_clock_invalid");
+        }
+        haveTime_=true;lastNow_=now;
         const std::array<uint64_t,6> times{s.limitsAt,s.faultAt,s.dhwAt,s.waterTargetAt,s.feedbackAt,s.flowAt};
         const std::array<uint64_t,6> values{
             uint64_t(s.limitsKnownSafe)|(uint64_t(s.limitTripped)<<1),
@@ -62,16 +66,15 @@ public:
             uint64_t(s.readinessConfirmed)|(uint64_t(s.feedbackCommand)<<1),uint64_t(s.independentFlowConfirmed)};
         // Validate the whole snapshot before committing any replay watermark.
         for(size_t i=0;i<times.size();++i) {
-            if(times[i]>now)return {{},"hydraulic_feedback_future"};
+            if(times[i]>now)return deny(&s,"hydraulic_feedback_future",i);
             if(times[i]&&(times[i]<lastAt_[i]||(times[i]==lastAt_[i]&&(values[i]!=lastValue_[i]||revoked_[i]))))
-                return {{},"hydraulic_feedback_reordered"};
+                return deny(&s,"hydraulic_feedback_reordered",i);
         }
+        const auto fresh=[&](uint64_t at){return at>owner.startedAt&&now>=at&&now-at<maximumAge;};
         for(size_t i=0;i<times.size();++i) {
-            if(times[i]){lastAt_[i]=times[i];lastValue_[i]=values[i];revoked_[i]=false;}
-            else if(lastAt_[i])revoked_[i]=true; // Missing evidence retires that cached fact.
+            if(times[i]){lastAt_[i]=times[i];lastValue_[i]=values[i];revoked_[i]=!fresh(times[i]);}
+            else if(lastAt_[i])revoked_[i]=true; // Missing/expired evidence retires that cached fact.
         }
-        const auto fresh=[&](uint64_t at){return maximumAge>=100&&maximumAge<=30000
-            &&at>owner.startedAt&&now>=at&&now-at<maximumAge;};
         HydraulicInputs in;
         in.limitsKnownSafe=s.limitsKnownSafe&&fresh(s.limitsAt);in.limitTripped=s.limitTripped;
         in.faultStateKnown=s.faultStateKnown&&fresh(s.faultAt);in.boilerFault=s.boilerFault;
@@ -84,6 +87,24 @@ public:
         return {in,"hydraulic_feedback_received"};
     }
 private:
+    Result deny(const HydraulicFeedbackSnapshot* current,const char* reason,size_t fact=6) {
+        // Retire the affected proof without advancing its acquisition watermark.
+        // An unrelated fact retains its own original lifetime; fixing one bad
+        // field must not require reacquiring or rejuvenating all other fields.
+        for(size_t i=0;i<lastAt_.size();++i)if(lastAt_[i]&&(fact==6||fact==i))revoked_[i]=true;
+        HydraulicInputs in;
+        if(current) {
+            // Only AFTER the owner fence: preserve asserted restrictions even
+            // when an unrelated timestamp is invalid. Never preserve permission,
+            // readiness, flow, target or source age from a rejected aggregate.
+            in.limitTripped=current->limitTripped;in.boilerFault=current->boilerFault;
+            in.dhwActive=current->dhwActive;in.stop=current->stop;
+            in.actuatorFailure=current->actuatorFailure;
+        }
+        return {in,reason};
+    }
+    uint64_t lastNow_=0;
+    bool haveTime_=false,clockInvalid_=false;
     std::array<uint64_t,6> lastAt_{},lastValue_{};
     std::array<bool,6> revoked_{};
 };

@@ -137,7 +137,9 @@ public:
         }
         if (in.limitTripped) latch(now,WithdrawalCause::limitTrip,"limit_trip");
         if (in.actuatorFailure) latch(now,WithdrawalCause::readinessLost,"actuator_failure");
-        if (in.faultStateKnown && in.boilerFault) latch(now,WithdrawalCause::boilerFault,"boiler_fault");
+        // An asserted fault can only restrict; freshness of the no-fault proof
+        // remains independently required before heat is permitted.
+        if (in.boilerFault) latch(now,WithdrawalCause::boilerFault,"boiler_fault");
         if (!in.adapterAlive && (lastResult_.openPathIntent || lastResult_.pumpIntent || latched_))
             latch(now,WithdrawalCause::adapterLost,"adapter_unavailable");
         if (latched_) {

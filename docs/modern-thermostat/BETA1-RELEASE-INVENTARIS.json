@@ -305,7 +305,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "d17349dc97eb7a5c3799b8564e0e5bcd3ffb2fd013955ce86e7a7b677a9fc21e"
+          "sha256": "733156e7f22200461b9a27140c4b1d12302df51ca68435cbc7442df0cfa692e9"
         },
         {
           "path": "data/html/ui-language.js",
@@ -563,7 +563,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "d17349dc97eb7a5c3799b8564e0e5bcd3ffb2fd013955ce86e7a7b677a9fc21e"
+          "sha256": "733156e7f22200461b9a27140c4b1d12302df51ca68435cbc7442df0cfa692e9"
         },
         {
           "path": "data/html/system-log.js",
@@ -862,7 +862,7 @@
         },
         {
           "path": "src/control/HydraulicSupervisor.h",
-          "sha256": "f4f337b61ae40be8c918bb0fb76b26418804561dfef194ad7cde805c8cdff86e"
+          "sha256": "068785a73651eccfebfd4c58cad22e2947efeefce0dab427d77ce63f01097c97"
         },
         {
           "path": "src/control/SeasonalControllerSource.h",
@@ -870,11 +870,11 @@
         },
         {
           "path": "src/control/HydraulicControllerSource.h",
-          "sha256": "a68a56b62cb39ba051f432af68eebdbaf4b2ac321568fc3eef93b9e8e7219089"
+          "sha256": "bf5abb54812f3307f6681fa36f672379bddefca486a01be5424f5cf721fb19dc"
         },
         {
           "path": "test/test_native/test_hydraulic_controller_source.cpp",
-          "sha256": "c0edaba5f1017b6cd24c3c078a1fdcab78f957078eccebf1a8f0cf2582d22eae"
+          "sha256": "0ca3d7fbf7c88b4363f6f482b84ad92469d6156e874d5a27482fad81f913f1f9"
         },
         {
           "path": "test/test_native/include/ShadowControllerFixture.h",
@@ -882,7 +882,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/supervisor_status.py",
-          "sha256": "b61da4487c8df951be489e3fa060f123f9b412cc5bc9582a173a9fbafa58f1a5"
+          "sha256": "b606a3efad344e9526f25b7d5e4cf65aaf6d75d60af2a2b15b98c56bf45dd1c2"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_wire.py",
@@ -890,11 +890,15 @@
         },
         {
           "path": "ha/tests_native/test_supervisor_status.py",
-          "sha256": "995a33fa00a4f57dbb8906fa2d7720d65f4ffa9d8fbe17c8430e26a7a95c10ef"
+          "sha256": "24d847adbfe5832108975404185cd179143c0f5b2984d22dd73776b760c3d8cf"
         },
         {
           "path": "test/test_native/test_supervisor_correction.cpp",
           "sha256": "ad863895107ae049d9507a0691efdfb32ad7b2e8cefb809d3e6620a48fca57f9"
+        },
+        {
+          "path": "docs/modern-thermostat/FAILSAFE.nl.md",
+          "sha256": "2bec1af8bf4090a3b0383cc985ea1e745c838c9d356a0d2b2fb71d95cfd6514e"
         }
       ],
       "remaining_acceptance": "Lokale lease-expiry bij stille HA en offline naloop/klokgrenzen gebouwd/getest; logische intenties zijn geen fysieke stop. Werkelijke producenten, installatieprofiel en fysieke uitvoer-/uitvalketen blijven open."
@@ -1133,7 +1137,7 @@
       "files": [
         {
           "path": "data/html/boiler_test.html",
-          "sha256": "4f64791eb41879788300e5bfad2e1e0c64f2f59a558de5494b12027ff45e8203"
+          "sha256": "2dccb35499c987469499b73d7f4cbc996ea20e079924a077e78f0f4a3f8035bc"
         },
         {
           "path": "src/EmsController.h",
@@ -1164,7 +1168,7 @@
       "files": [
         {
           "path": "src/EMS/BoilerTestSession.h",
-          "sha256": "393c12219c6b3b24f33c990c59fb9e455c6abdabe152277d5cb1018b6a4c13a4"
+          "sha256": "8652f5728eed37b5f19d19befb6c8f14a3ef442c2bd64f1e7bbdbddafb07b93f"
         },
         {
           "path": "src/EMS/EmsFrameQueue.h",
@@ -1172,7 +1176,7 @@
         },
         {
           "path": "test/test_native/test_boiler_test_session.cpp",
-          "sha256": "af6bbd09c6f7542a6024e8b2d7deeb6ea44aa0731975641e3177b8760b9b59f7"
+          "sha256": "34f6d7b0fada037b55b18e23bc8eb5cbf667af4cb2334d5e546bd967adf82a49"
         },
         {
           "path": "test/test_native/test_ems_frame_queue.cpp",
@@ -1221,7 +1225,7 @@
         },
         {
           "path": "test/boiler-test-control-browser.cjs",
-          "sha256": "26ee5d8062532c3fbe4b2e6d6230cf722481ab2a04d0014490b4a7edbf8b3c26"
+          "sha256": "51dbedc9d65f60f6453bd6f4cea1e2a75547cf91438e90feae07c022e21ccc0d"
         },
         {
           "path": "src/EMS/BoilerTestPollDriver.h",
@@ -1229,7 +1233,7 @@
         },
         {
           "path": "test/test_native/test_boiler_test_poll.cpp",
-          "sha256": "f642f7109c9b09a6a0d04612f7508e00e58ba9bad5dd96d4c04eac5345122db7"
+          "sha256": "42d4755862ec2f671a2d0c57be021696506ba9a8d80736068c8a32997eb2f992"
         },
         {
           "path": "src/EMS/PacedUartWrite.h",

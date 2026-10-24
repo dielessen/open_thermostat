@@ -12,7 +12,7 @@ REASONS = frozenset({
     "source_unavailable", "stop", "water_target_invalid",
 })
 FEEDBACK = frozenset({"hydraulic_feedback_unavailable", "hydraulic_feedback_owner_mismatch",
-                     "hydraulic_feedback_future", "hydraulic_feedback_reordered", "hydraulic_feedback_received"})
+                     "hydraulic_feedback_future", "hydraulic_feedback_reordered", "hydraulic_feedback_clock_invalid", "hydraulic_feedback_received"})
 INTENT_KEYS = frozenset({"feedback_status", "heat_intent", "pump_intent", "path_intent",
                          "opening_command", "water_target_centi_c"})
 MAX_AGE_SECONDS = 15

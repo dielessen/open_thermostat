@@ -137,4 +137,31 @@ TEST_F(BoilerPoll, TransportFaultInvalidatesOldPositiveAndNeverAutomaticallyRear
     EXPECT_NE(status().find("\"phase\":\"fault\""),std::string::npos);
     EXPECT_NE(status().find("\"positive_frames\":0"),std::string::npos);
 }
+TEST_F(BoilerPoll, FreshFaultStopRetainsOwnershipWithoutRedundantWritesOrRestart) {
+    prepare();succeeds=false;ASSERT_EQ(poll(),Result::failed);
+    succeeds=true;++now;ASSERT_EQ(poll(),Result::sent);
+    report(++now);service.tick(now,gates,monitor);
+    ASSERT_NE(status().find("\"reported_stop_confirmed\":true"),std::string::npos);
+    now+=100;EXPECT_EQ(poll(),Result::waiting);EXPECT_EQ(writes,2);
+    EXPECT_TRUE(service.active());
+    EXPECT_NE(status().find("\"phase\":\"fault\""),std::string::npos);
+    EXPECT_EQ(service.action("start",action,owner,now,gates,monitor).http,409);
+    EXPECT_EQ(poll(),Result::waiting);EXPECT_EQ(writes,2);
+}
+TEST_F(BoilerPoll, ExpiredFaultStopRequiresFreshZeroAndLaterReportWithoutLegacyFallback) {
+    prepare();succeeds=false;ASSERT_EQ(poll(),Result::failed);
+    succeeds=true;++now;ASSERT_EQ(poll(),Result::sent);
+    report(++now);service.tick(now,gates,monitor);
+    ASSERT_NE(status().find("\"reported_stop_confirmed\":true"),std::string::npos);
+    now+=profile.reportTtlMs;service.tick(now,gates,monitor);
+    EXPECT_NE(status().find("\"reported_stop_confirmed\":false"),std::string::npos);
+    ASSERT_EQ(poll(),Result::sent);EXPECT_EQ(writes,3);
+    EXPECT_NE(status().find("\"reported_stop_confirmed\":false"),std::string::npos);
+    report(++now);service.tick(now,gates,monitor);
+    EXPECT_NE(status().find("\"reported_stop_confirmed\":true"),std::string::npos);
+    EXPECT_EQ(poll(),Result::waiting);EXPECT_EQ(writes,3);
+    EXPECT_NE(status().find("\"positive_frames\":0"),std::string::npos);
+    EXPECT_NE(status().find("\"phase\":\"fault\""),std::string::npos);
+}
+
 } // namespace

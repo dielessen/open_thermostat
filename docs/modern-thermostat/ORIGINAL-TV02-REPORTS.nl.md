@@ -1,11 +1,12 @@
 # Oorspronkelijke TV02-kraanberichten
 
 Status: ontvangstkern en EN/NL-diagnose geleverd in dev29, privé pin-loader
-in dev30 en native graph-broncorrectie in dev31. Producent en één expliciet
-privémanifest zijn geplaatst en teruggelezen. HA dev31 is normaal geïnstalleerd
+in dev30 en native graph-broncorrectie in dev31; dev32 behoudt deze en bindt de rapport-
+levensduur aan de gekozen maximale leeftijd. Producent en één expliciet
+privémanifest zijn geplaatst en teruggelezen. HA dev32 is normaal geïnstalleerd
 en bindt precies één bron uit de centrale installatieconfiguratie; de eerdere
-afwijzing is verdwenen. Tijdens één 20s-observatie kwam geen natuurlijk rapport
-binnen: oorspronkelijke ontvangst blijft `WAITING`. B05 blijft open voor echte
+afwijzing is verdwenen. Tijdens de eerdere dev31-observatie kwam geen natuurlijk rapport binnen; de
+dev32-nacontrole houdt ontvangst op `WAITING`, zonder extra subscription. B05 blijft open voor echte
 ontvangst, causale doelbinding, eigenaarschap, readiness en fysieke proef zonder
 ketel. Deze producent verleent geen regelbevoegdheid.
 
@@ -222,3 +223,21 @@ en afzonderlijke installatieacceptatie staan in
 [ORIGINAL-TV02-DEPLOYMENT](ORIGINAL-TV02-DEPLOYMENT.nl.md). Het bestand verleent
 uitsluitend ontvangstbindingen; de bestaande native guards en alle false-
 kwalificatievlaggen blijven behouden. Deze loader is nog niet op HA geïnstalleerd.
+
+
+## Causale doelkoppeling: concrete bronafhankelijkheid
+
+De referentieconverter v26.115.1 kiest voor TV02 `tuyaBase` met datapoints en
+DP16 als doel. [Apparaatdefinitie](https://github.com/Koenkk/zigbee-herdsman-converters/blob/v26.115.1/src/devices/tuya.ts).
+Het bijbehorende datapoint-zendpad gebruikt een vaste Tuya-sequence 1 en retourneert
+standaard optimistische state. De lage helper kan een sequence teruggeven, maar
+de doelconverter exporteert geen opdrachtgebonden HA-receipt.
+[Converter/helper](https://github.com/Koenkk/zigbee-herdsman-converters/blob/v26.115.1/src/lib/tuya.ts).
+
+Daaruit volgt voor B05: passend doel plus die sequence is geen unieke causale ACK.
+Een volgende zenderkoppeling moet de echte native zendtransactie aan de bedoelde
+actie, sessie en apparaatbinding koppelen vóór ontvangstcorrelatie. De huidige
+producent en profiel-C-serviceroute worden niet stilzwijgend hiervoor vrijgegeven.
+Dit is brononderzoek: geïnstalleerde converterbytes, apparaatgedrag, exclusief
+eigenaarschap, klepstand en flow zijn hiermee niet geattesteerd. Geen opdracht of
+installatie uitgevoerd. Hashes/controlebewijs: `out/tv02-causal-source-review-20261024/`.

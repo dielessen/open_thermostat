@@ -1,6 +1,6 @@
 # OpenThermostat — actuele overdracht
 
-Bijgewerkt 24 oktober 2026 na geleverde alpha24/dev31 en onafhankelijke installatiecontrole.
+Bijgewerkt 24 oktober 2026 na geleverde alpha24/dev32 en onafhankelijke installatiecontrole.
 
 1. Lees [WORKBOARD](WORKBOARD.nl.md): de enige actuele afvinklijst met alle 31
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
@@ -12,13 +12,17 @@ Bijgewerkt 24 oktober 2026 na geleverde alpha24/dev31 en onafhankelijke installa
 ## Actuele bron en installatie
 
 **Geïnstalleerd en gecontroleerd:** E32 alpha24, bron `a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`;
-HA dev31, bron `92f5e2b189f4e3eb5bfa544fb41d206a1b9f3ec2`. De gerichte HA-update
-herstelt native TV02-graphselectie zonder extra E32-OTA. Eén bron geregistreerd,
+HA dev32, bron `e63c06bca41d7e22895fd0100c3d6ca2a916ce4a`. De HA-bundel
+behoudt native TV02-graphselectie en corrigeert rapportpolicy/klok/afwijzingsdiagnose zonder extra E32-OTA. Eén bron geregistreerd,
 oude bindingsafwijzing weg; geen natuurlijk rapport in de 20s-observatie, dus
 ontvangst nog `WAITING`. Verse scoped back-up, één Core-herstart, alle instellingen
 en 105 registryrecords behouden. Bewijs:
-`out/ha-dev31-native-binding-20261024/`. De gezamenlijke voorafgaande bundel en
+`out/transport-rejection-diagnostic-20261024/`. De gezamenlijke voorafgaande bundel en
 haar volledige installatiebewijs staan in `out/combined-alpha24-dev30-20261024/`.
+
+Na dev32: transport `shadow_ready`, nieuwe historische afwijzingsdiagnose bereikbaar
+en null (normaal), één TV02-bron nog `waiting`, meetprofiel `profile_missing`.
+Alle 82 uiteindelijke live hashes exact; geen fysieke vrijgave.
 
 De gezamenlijke batch behoudt logging/syslog en incrementeel dashboard en levert
 de deadline-/encoder-/logcorrecties, hydraulische controllerkoppeling, read-only

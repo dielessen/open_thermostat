@@ -4,7 +4,7 @@
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
   "release_state": "NOT_READY",
   "installed_firmware": "v0.1.0-e32v2-alpha.24",
-  "installed_ha": "0.4.0.dev31",
+  "installed_ha": "0.4.0.dev32",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
   "items": [
     {
@@ -742,7 +742,7 @@
         },
         {
           "path": "docs/modern-thermostat/ORIGINAL-TV02-REPORTS.nl.md",
-          "sha256": "1ae93082e662f4bcf6dde2c0d100cd50d613cf8c6fca6f7b3614c2d8add6699f"
+          "sha256": "473e8a0bb796dcd55fa40f13ede15a28dac372490f76dbdf7a8d1688e1183ee2"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/original_tv02.py",
@@ -786,7 +786,7 @@
         },
         {
           "path": "docs/modern-thermostat/ORIGINAL-TV02-DEPLOYMENT.nl.md",
-          "sha256": "8efb67e146cd8091608ec61f350a7b586918c6f19f36f319cc63bff72923d90d"
+          "sha256": "f74090930e6fe78a2b9ddc5cca21ae406976b269445117297d2711be4f45a797"
         }
       ],
       "remaining_acceptance": "TV02-modus/native identiteit/doelcapaciteit en oorspronkelijke HA-ontvangst met MQTT/registry-lifecycle en NL/EN-weergave geleverd. Privé pin-loader dev30 en graph-bronfix dev31 geïnstalleerd; één expliciete bron en ontvangende Zigbee-producent geplaatst en geverifieerd. Geen natuurlijk rapport in één 20s-observatie: ontvangst WAITING. Echte oorspronkelijke ontvangst, causale doel-echo, exclusief eigenaarschap, profiel/readiness/fallback en fysieke proef zonder ketel blijven open. Ontvangst verleent geen opdrachtbevestiging, klepstand of aansturingsvrijgave."
@@ -1465,7 +1465,7 @@
     {
       "id": "B05",
       "complete": false,
-      "description": "TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur, originele datapuntproducer en native HA-ontvangst/lifecycle gebouwd/getest; privé ontvangstpin-loader gebouwd/getest; concrete bronpins/installatie, causale doelkoppeling, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel."
+      "description": "TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur, originele datapuntproducer en native HA-ontvangst/lifecycle geleverd; privé pins en producent geplaatst, één bron geregistreerd. Nog natuurlijke rapportontvangst, causale zendtransactiekoppeling, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel."
     },
     {
       "id": "B06",
@@ -1538,6 +1538,6 @@
   ],
   "authoritative_workboard": "docs/modern-thermostat/WORKBOARD.nl.md",
   "base_runtime_checkpoint": "cebb0a25296b690a2a2d699bccacb65ed0f69da7",
-  "installed_ha_source_commit": "92f5e2b189f4e3eb5bfa544fb41d206a1b9f3ec2",
+  "installed_ha_source_commit": "e63c06bca41d7e22895fd0100c3d6ca2a916ce4a",
   "installed_firmware_source_commit": "a1fe06be5e709ff4c6477b7b9be6c8dbd7573987"
 }

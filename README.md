@@ -13,17 +13,18 @@ en welke nog op de roadmap staan.
 [Mogelijkheden](#alle-mogelijkheden) · [Roadmap](#wat-we-nog-gaan-bouwen) ·
 [Screenshots](#screenshots) · [Documentatie](#documentatie)
 
-**Nieuwe gezamenlijke passieve release:** [E32 alpha24](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.24) + [Home Assistant dev30](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev30). Beide publicatieworkflows en de onafhankelijke pakketcontrole zijn geslaagd.
+**Actuele passieve releases:** [E32 alpha24](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.24) + [Home Assistant dev32](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev32). Gepubliceerd, normaal geïnstalleerd en onafhankelijk gecontroleerd.
 
-**Geïnstalleerd en gecontroleerd: E32 alpha24 + [Home Assistant dev31](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev31).** Kamerinrichting,
+**Geïnstalleerd en gecontroleerd: E32 alpha24 + [Home Assistant dev32](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev32).** Kamerinrichting,
 weekprogramma’s, interfaces en passief uitlezen zijn beschikbaar. De regelkern
 is grotendeels voorbereid, maar actieve kamer- en ketelaansturing zijn nog niet
 vrijgegeven op de E32 V2. De huidige native inrichting ondersteunt **1–2 kamers,
 met één radiatorknop per kamer**; acht zones is het uitbreidingsdoel.
 
-**Ontvangstherstel dev31:** de TV02-ontvanger bindt nu de gekozen kraan uit de
-centrale kamerinstallatie. Eén bron is geladen; natuurlijke oorspronkelijke
-rapportontvangst is nog niet bevestigd. Geen nieuwe E32-flash nodig.
+**Nieuw in HA dev32:** rapporten blijven aan hun geldigheidsinstelling gebonden;
+klokfouten worden veilig afgehandeld en HA-diagnostiek kan de laatste passende
+transportafwijzing met een veilige redencode tonen. De TV02-bron is geregistreerd;
+natuurlijke oorspronkelijke ontvangst is nog niet bevestigd. Geen extra E32-flash.
 
 **Nieuw in de gezamenlijke bundel:** strengere proefdeadlines en kraandoellevensduur,
 gekoppelde hydraulische supervisorkern, read-only HA-supervisordiagnose en een

@@ -15,7 +15,9 @@ bindt precies één bron; de oude afwijzing `source binding unavailable` is weg.
 Tijdens één passieve observatie van 20 seconden kwam geen oorspronkelijk rapport
 binnen. Ontvangst staat daarom op `WAITING`, niet op bewezen geslaagd of defect.
 Er is geen meet-/kraan-/flowkwalificatie of fysieke opdracht uitgevoerd.
-Bewijs: `out/ha-dev31-native-binding-20261024/` en WORKBOARD B05.
+HA dev32 behoudt deze bronbinding en corrigeert de rapportpolicy-/klokgrenzen.
+De dev32-nacontrole toont nog één bron `WAITING` en geen kwalificatie.
+Bewijs: `out/transport-rejection-diagnostic-20261024/` en WORKBOARD B05.
 
 ## Bestand en eigenaarschap
 

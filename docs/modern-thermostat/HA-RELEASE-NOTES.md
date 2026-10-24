@@ -1,3 +1,9 @@
+# HA 0.4.0.dev33 — ESP-eigen diagnose via native MQTT
+
+Herstelt vrije/minimaal vrije heap, grootste vrije blok, CPU-temperatuur en uptime samen met E32 alpha25. Bestaande entity unique IDs en geschiedenis blijven behouden. De HA-entiteiten bestaan ook vóór het eerste rapport. Live rapporten zijn elke 15 seconden beschikbaar; na 45 seconden zonder geldig rapport of bij offline wordt beschikbaarheid ingetrokken. Een HA-only herstart vereist geen E32-herstart. Uitgeschakelde RTC-temperatuur blijft onbekend. Legacy modus blijft intact.
+
+Dit gebruikt dezelfde native verbinding en bestaande HA-runtime voor verval; er worden geen kraan- of ketelopdrachten toegevoegd. Alle functies en correcties uit dev32 zijn meegenomen. Zonder bijbehorende E32 alpha25 blijven deze native diagnosewaarden niet beschikbaar.
+
 # HA 0.4.0.dev32 — rapportlevensduur en verklaarbare transportafwijzingen
 
 Bundelt alle HA-correcties sinds dev31. E32 alpha24 blijft staan; deze uitgave

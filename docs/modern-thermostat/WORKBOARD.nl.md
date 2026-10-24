@@ -114,7 +114,7 @@ de code afgetekend. De oorspronkelijke acceptatie in PLAN §4/§14 blijft gelden
 | R09 | Weersafhankelijke aanvoer | Curve-/groep-/begrenzingspolicies en centrale draft aanwezig | I15,I16 | Centrale instellingen verbinden met geselecteerde regelaar, actuele buitenbron en keteluitvoer. |
 | R10 | Eigen buitenbron | Bronabstractie/binding/draft en validatie aanwezig | I16 | Normale configuratie/apply + bronkwalificatie, leeftijd, bronwisseling/uitval. |
 | R11 | Internetweer via HA | HA-bronroute ontworpen; geen volledig gekwalificeerde praktijkketen | I16 | Gratis HA-weerbron, ouderdom/terugval en internetuitval bewijzen. |
-| R12 | Zelflerende kamerregeling | Model-, begrenzings-, resource- en replaycode aanwezig | I19 | Niet actief vrijgegeven; getoetste meetdata, baseline/comfortvoordeel en modelrollback. |
+| R12 | Zelflerende kamerregeling | Model-, begrenzings-, resource- en replaycode aanwezig | I19 | Verplicht in definitieve versie: per ruimte leren en gevalideerde modellen/regelparameters blijvend bewaren en gecontroleerd herstellen na herstart. Tijdelijke I-correctie blijft veilig resetbaar. Niet actief vrijgegeven; getoetste meetdata, baseline/comfortvoordeel en modelrollback blijven vereist. |
 | R13 | Optimum-start | Opwarmmodel en begrensd advies/replay aanwezig | I19 | Aansluiten na M2/stabiele basis; meerdere vergelijkbare echte starts en comfortbewijs. |
 | R14 | Uitlopen/curve leren | Coast- en curve-adaptatiecode/opslag/replay aanwezig | I19 | Afzonderlijke toelating en meetbaar comfort-/curvebewijs; geen leerwinstclaim. |
 | R15 | Alle relevante keteldata | 69 native velddefinities geleverd op alpha21/dev27; laatste controle 26 beschikbaar, eerdere boot 27 | I12,I17,I21 | Vereiste betrouwbare velden op eigen E32 ontvangen en vergelijken; unsupported/unreliable expliciet. |
@@ -1686,3 +1686,7 @@ zit de geselecteerde TV02 op de radiator of is een losse proefkraan beschikbaar?
 Deze informatie is opgevraagd. Een antwoord is geen zendtoestemming of
 profielkwalificatie; de actieve routes blijven geblokkeerd. Eerst bron-/
 zendtransactiekoppeling en alle toepasselijke benchvoorwaarden afronden.
+
+### Herstel ESP-eigen diagnose — kandidaat, nog niet geïnstalleerd
+
+De native MQTT-tak keerde terug vóór registratie van de legacy DeviceStatusReporter. HA luisterde voor CPU-temperatuur, vrij/minimaal geheugen, grootste vrije blok en uptime nog naar de legacy topic/availability. Kandidaatbron publiceert deze zes velden elke 15 seconden over dezelfde native MQTT-verbinding; HA behoudt bestaande unique IDs, gebruikt native availability en trekt beschikbaarheid na 45 seconden zonder geldige meting in. Uitgeschakelde RTC-temperatuur blijft onbekend. Dit is afzonderlijk van de 69 ketelvelden en geeft geen regelbevoegdheid. Installatie en actuele waarden zijn nog niet bewezen; geïnstalleerd blijven HA dev32 en E32 alpha24.

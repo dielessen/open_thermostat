@@ -2,6 +2,7 @@
 #ifdef OPENTHERMOSTAT_E32V2
 #include "ShadowController.h"
 #include "ControlUiSnapshot.h"
+#include "DeviceDiagnostics.h"
 #include "NativeSourceProvisioning.h"
 #include "GraphSessionOwner.h"
 #include "GraphControlStoreView.h"
@@ -231,12 +232,19 @@ public:
                 subscriptions=client_.subscribe(topic.c_str(),0)&&subscriptions;
             }
             if(!subscriptions) { client_.disconnect(); return; }
-            withOwner([&](auto& owner){owner.connected(now);}); wasConnected_=true;
+            withOwner([&](auto& owner){owner.connected(now);}); wasConnected_=true; nextDeviceDiagnostics_=0;
             client_.publish(willTopic.c_str(),"online",false);
         }
         const auto utc=std::time(nullptr);
         withOwner([&](auto& owner){owner.tick(now,utc,clockValid());});
         client_.loop();
+        // Observation only, on the existing native connection. Never control input.
+        if(client_.connected() && now>=nextDeviceDiagnostics_) {
+            nextDeviceDiagnostics_=now+15000;
+            const auto bytes=deviceDiagnosticsJson(ESP.getFreeHeap(), ESP.getMinFreeHeap(),
+                ESP.getMaxAllocHeap(), temperatureRead(), now/1000);
+            client_.publish((base_+"fw/telemetry/device_status").c_str(),bytes.c_str(),false);
+        }
     }
 private:
     template<class F>void withOwner(F&& action) {
@@ -254,7 +262,7 @@ private:
     std::unique_ptr<ShadowController> controller_;
     std::unique_ptr<GraphSessionOwner> graphController_;
     ControlUiSnapshot ui_;
-    uint64_t nextConnect_=0;
+    uint64_t nextConnect_=0,nextDeviceDiagnostics_=0;
     std::atomic<bool> valid_{false},wasConnected_{false};
     bool graph_=false;
 };

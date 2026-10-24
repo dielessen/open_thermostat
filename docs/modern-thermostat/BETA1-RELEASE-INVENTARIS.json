@@ -612,9 +612,29 @@
         {
           "path": "test/logging_runtime/main.cpp",
           "sha256": "2589f2909a2f7e11a6289d02783e0e1675545eadc214e44eafcdfc6730cd2972"
+        },
+        {
+          "path": "src/control/DeviceDiagnostics.h",
+          "sha256": "22b8e70d15ba0783b12147edb36b26649f8b5fcfb1663498a57d0f27b0f866ec"
+        },
+        {
+          "path": "src/control/ModernTransport.h",
+          "sha256": "afb7994c4b0f2f7f285ef45af1bde39dd4fcfb03d742adb46ecadd82d722f4fc"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/device_diagnostics.py",
+          "sha256": "69e25b2c9c587119e9f598e7ae92f1b993af026f2be80584accf540dd09b5d11"
+        },
+        {
+          "path": "ha/tests_native/test_device_diagnostics.py",
+          "sha256": "26ccd4575901effe7d8cc7ad464c638c8727d20f4c20da7084bfe5add28b1ffa"
+        },
+        {
+          "path": "test/test_native/test_device_diagnostics.cpp",
+          "sha256": "55b043452a1e42cbbadf0b7ede8a5b983b64ef2c5aec91cd811f513e65e4d6de"
         }
       ],
-      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding geleverd/getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele acquisitie-/ouderdomsvalidatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten als ambient bron. WSDCGQ11LM-eventproducer voorbereid/getest, niet op Z2M geïnstalleerd. Native HA-ontvanger en room-status geleverd zonder QualifiedReport-vrijgave. Web-/native systeemlog en RFC5424 UDP-syslog geleverd in alpha23; beschermde routes/RAM-buffer en standaard uit zonder bestemming gecontroleerd. Externe collector en lange heap-/stack-/belastingproef blijven open. Geen fysieke regelautorisatie."
+      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding geleverd/getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele acquisitie-/ouderdomsvalidatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten als ambient bron. WSDCGQ11LM-eventproducer voorbereid/getest, niet op Z2M geïnstalleerd. Native HA-ontvanger en room-status geleverd zonder QualifiedReport-vrijgave. Web-/native systeemlog en RFC5424 UDP-syslog geleverd in alpha23; beschermde routes/RAM-buffer en standaard uit zonder bestemming gecontroleerd. Externe collector en lange heap-/stack-/belastingproef blijven open. Geen fysieke regelautorisatie. ESP-eigen diagnose hersteld in kandidaatbron; echte HA-waarden en ontvangst/verval na installatie van bijbehorende HA/E32-versies nog verifiëren."
     },
     {
       "id": "I12",
@@ -946,11 +966,11 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/sensor.py",
-          "sha256": "4a7937a046d19bb1de491aff15a0903611ed21b203e0d37c2246fd4c4cf5555b"
+          "sha256": "5f4fdb5cf9fb9b5f9048ba375ac328a7983cd561de757e6e312c21f029078c60"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/product_telemetry.py",
-          "sha256": "e1a12e2fb811c6f59c3fc1f0f4eb03bd4c672d3fd0e6957d37595082b3e6cbbd"
+          "sha256": "7aee57a5ce8c522a26bae0a4bf2254704bb054137e059a17e747f66e56965a49"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_metrics.py",
@@ -1023,7 +1043,7 @@
           "sha256": "fb444552dc500c8aeba16a88eb2595d15a2989fca7112badda03f561445168c1"
         }
       ],
-      "remaining_acceptance": "Code/replay/opslag aanwezig en behouden; geen bewezen leerwinst of actieve vrijgave. Geen nieuwe F9-stage vóór M2."
+      "remaining_acceptance": "Code/replay/opslag aanwezig en behouden; geen bewezen leerwinst of actieve vrijgave. Geen nieuwe F9-stage vóór M2. Definitieve versie vereist blijvend gevalideerd leren per ruimte en gecontroleerd herstel na herstart; tijdelijke I-correctie is geen blijvend model."
     },
     {
       "id": "I20",

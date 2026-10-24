@@ -90,6 +90,8 @@ async def async_setup_entry(
             from .v1_metrics import async_setup_shadow_metrics
             await async_setup_shadow_metrics(hass, entry, async_add_entities)
             return
+        from .device_diagnostics import async_setup_device_diagnostics
+        await async_setup_device_diagnostics(hass,entry,async_add_entities)
         from .v1_metrics import async_setup_shadow_metrics
         await async_setup_shadow_metrics(hass,entry,async_add_entities)
         return

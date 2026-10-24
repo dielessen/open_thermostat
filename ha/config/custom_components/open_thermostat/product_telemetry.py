@@ -11,6 +11,9 @@ async def async_setup_sensors(hass, entry, async_add_entities, *, native_metrics
     from .sensor import HUB_METRICS, VERSIONED_METRICS, HubMetric, DhwStatus
     group_id = ensure_installation_group(hass, entry)
     prefix = entry.data[CONF_TOPIC_PREFIX]
+    if native_metrics:
+        from .device_diagnostics import async_setup_device_diagnostics
+        await async_setup_device_diagnostics(hass, entry, async_add_entities, config_subentry_id=group_id)
     tracker = hass.data[DOMAIN][entry.entry_id]["heating_tracker"]
     online = False
     entities = {}
@@ -67,7 +70,7 @@ async def async_setup_sensors(hass, entry, async_add_entities, *, native_metrics
     await mqtt.async_wait_for_mqtt_client(hass)
     entry.async_on_unload(await mqtt.async_subscribe(hass, f"{prefix}/status", availability))
     for topic in HUB_METRICS:
-        if native_metrics and topic == "ems_metrics":
+        if native_metrics and topic in {"ems_metrics", "device_status"}:
             continue  # Single owner: validated native cache preserves v2 identities.
         entry.async_on_unload(await mqtt.async_subscribe(hass, f"{prefix}/{topic}", handler(topic)))
 

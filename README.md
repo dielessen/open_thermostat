@@ -13,32 +13,33 @@ en welke nog op de roadmap staan.
 [Mogelijkheden](#alle-mogelijkheden) · [Roadmap](#wat-we-nog-gaan-bouwen) ·
 [Screenshots](#screenshots) · [Documentatie](#documentatie)
 
-**Gepubliceerd:** [HA dev40](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev40) en [E32 alpha30](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.30).
-**Werkelijk geïnstalleerd:** HA dev40 en E32 alpha28. De alpha29-upload mislukte;
-de module herstartte met een task-watchdogreset (code 6). De betrokken taak en
-oorzaak zijn nog onbekend. Er volgt geen blinde uploadherhaling.
+**Gepubliceerd:** [HA dev43](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev43) en [E32 alpha30](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.30).
+**Werkelijk geïnstalleerd:** HA dev43 en E32 alpha28. De eerdere alpha29-upload
+mislukte met een task-watchdogreset; betrokken taak en oorzaak blijven onbekend.
+Er volgt geen blinde uploadherhaling.
 
 Kamerinrichting, weekprogramma's, webinterfaces, passief EMS uitlezen en
 Settings → EMS-apparaten zijn beschikbaar. De huidige native inrichting ondersteunt
 **1–2 kamers, één radiatorknop per kamer**; acht zones blijft het uitbreidingsdoel.
 Tado blijft de actieve regelaar; fysieke uitgangen blijven geblokkeerd.
 
-HA dev40 behoudt de reparatie van oorspronkelijke-rapportdiagnose bij vertraagde metadata en
-registrywijzigingen, met duidelijke EN/NL-meldingen en frontend v38/v35-compatibiliteit.
-Ketelwaarden die na een transportfout zijn ingetrokken, worden pas bij nieuwe
-oorspronkelijke ontvangst beschikbaar. De bijbehorende firmwarebundel verbetert
-rapportvolgorde, veiligheidsfeit-intrekking en transactionele app-upload.
-De voorbereide M2-kraanadapter trekt zich blijvend in bij klokverlies; deze
-reparatie verleent geen fysieke bedieningsbevoegdheid.
-Vrij geheugen, CPU-temperatuur en uptime zijn gecontroleerd. Instellingen,
-programma's, SOURCE en koppelingen zijn behouden met back-up en onafhankelijke
-nacontrole. Nieuwe TV02-ontvangst en fysieke regelkwalificatie blijven open.
-[Installatie-uitkomst en vervolg](docs/modern-thermostat/INSTALLATIE-HA40-20261024.nl.md).
+HA dev43 legt direct in Nederlands/Engels uit wanneer een gekozen sensor interne
+apparaattemperatuur meet of diagnostisch is. Ontbrekende optionele metadata
+verhindert het laden van de kamer niet. Bestaande kaarten blijven werken;
+instellingen, programma's en koppelingen zijn behouden.
+De voorbereide M2-ontvanger gebruikt oorspronkelijke HA-grants en weigert replay,
+vervangen eigenaarschap en herhaling na een onzekere uitkomst. Deze kern is nog
+niet op de normale kraanroute aangesloten en verleent geen fysieke bevoegdheid.
+Vrij geheugen, CPU-temperatuur en uptime zijn opnieuw gecontroleerd.
+Back-up, alle 84 livebestanden en de afzonderlijke nacontrole zijn geverifieerd.
+[Installatie-uitkomst en vervolg](docs/modern-thermostat/INSTALLATIE-HA43-20261024.nl.md).
 
-**English:** HA dev40 is installed and independently verified; E32 remains on alpha28 after the
-alpha29 upload failed with a task-watchdog reset. The responsible task and cause
-are unknown. Configuration is preserved; boiler/valve outputs remain disabled.
-Shelly/Xiaomi Bluetooth support remains planned.
+**English:** HA dev43 is installed and independently verified. Room setup explains
+internal/diagnostic temperature sources without replacing or qualifying a sensor.
+The prepared M2 receiver remains outside production actuation. Configuration and
+existing cards are preserved; E32 remains on alpha28 with the earlier watchdog
+recovery unresolved. Physical outputs remain disabled; Shelly/Xiaomi Bluetooth
+support remains planned.
 
 ## Alle mogelijkheden
 

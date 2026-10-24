@@ -1,7 +1,8 @@
 # M2/B04/B05 — ontvangerkern en zichtbare bronkeuze
 
-24 oktober 2026. Bronwerk voor één grotere HA-releasekandidaat; nog niet
-geïnstalleerd. Huidige productie: HA40/E32alpha28. Geen fysieke handeling.
+24 oktober 2026. Geleverd in HA43, bron `97eb9a0`, gepubliceerd en geïnstalleerd.
+Afzonderlijke nacontrole 21:17:50 UTC: 38 checks geslaagd. E32alpha28 behouden;
+geen fysieke handeling of M2-/ketelvrijgave. [Installatieverslag](INSTALLATIE-HA43-20261024.nl.md).
 
 ## Eén oorspronkelijk ontvangervenster
 
@@ -55,8 +56,11 @@ Vier extra eigenaarsgrensgevallen faalden in de eerste nieuwe ontvangerkern en
 zijn vóór enige installatie hersteld: intrekken tijdens een callback en hergebruik
 van dezelfde adapter kunnen geen grant of dispatch meer doorlaten.
 Gerichte en volledige HA-regressies, koude browserupgrade in drie kaartversies,
-Nederlands/Engels en desktop/mobiel worden in de kandidaat gecontroleerd.
-Bewijs: `out/m2-release-candidate-20261024/`; definitieve aantallen na testafronding.
+Nederlands/Engels en desktop/mobiel zijn gecontroleerd in de definitieve kandidaat.
+Definitief: 2281 gevallen per Core 2026.10.2/2026.10.3 zonder fout/skip, alle
+zeven softwarepoorten en tag-CI geslaagd. Leveringsbewijs staat in
+`out/ha-dev43-release-20261024/`; gericht voor/na-bewijs blijft in
+`out/m2-release-candidate-20261024/`.
 
 Geen volledige M2- of actieve bèta-vrijgave. E32-watchdogherstel, echte geschikte
 kamerbron, normale ontvangstroute en causale kraan-/ketelproeven blijven open.
@@ -93,3 +97,15 @@ HA-serviceafhandeling wordt de kunstmatige testklok weer voorwaarts op de native
 loop-epoch aangesloten. 101 gerichte lokale proeven slagen; ook 46 kamer-/HVAC-
 gevallen met een opnieuw gebouwde C++-runner. Exacte definitieve CI blijft de
 leveringsvoorwaarde. Eerdere onbekende CI-kameroorzaak niet als gerepareerd claimen.
+
+## Werkelijk geleverd
+
+HA43 is gepubliceerd en geladen op Core 2026.10.3. Alle 84 livebestanden zijn
+afzonderlijk gelijk aan de openbare ZIP en bevroren Git-bron bevonden. De werkelijke
+kamerweergave geeft `internal_device_temperature` en `authorizes_control=false`;
+de geselecteerde meting blijft `profile_missing`. Twee eigen kamerkaarten
+migreren v38→v41, handmatige kaarten/resources en overige dashboardvelden blijven
+behouden. Verse HA40-back-up met 93 payloads en alle 38 onafhankelijke nacontroles
+slagen. Geen E32-upload/herstart of kraan-/ketelopdracht. De normale M2-bedrading,
+oorspronkelijke echo en fysieke kwalificatie blijven open. De eerdere incidentele
+CI-kamerassertie blijft expliciet onderzoek vóór actieve M2; geen reparatieclaim.

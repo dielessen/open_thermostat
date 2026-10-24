@@ -4,7 +4,7 @@
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
   "release_state": "NOT_READY",
   "installed_firmware": "v0.1.0-e32v2-alpha.28",
-  "installed_ha": "0.4.0.dev37",
+  "installed_ha": "0.4.0.dev43",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
   "items": [
     {
@@ -1616,12 +1616,12 @@
     {
       "id": "B04",
       "complete": false,
-      "description": "Observer-lifecycle/native binding en originele WSDCGQ11LM-producer/HA-ontvangstdiagnose gebouwd/getest; productie-meetprofiel met echte acquisitie-/bronkwalificatie en fysieke validatie afronden. Geen trustvinkje of sensorwissel als omweg."
+      "description": "Observer-lifecycle/native binding en originele WSDCGQ11LM-producer/HA-ontvangstdiagnose gebouwd/getest; productie-meetprofiel met echte acquisitie-/bronkwalificatie en fysieke validatie afronden. HA43 toont de interne/diagnostische bron direct met uitleg; dit kwalificeert geen meting. Geen trustvinkje of sensorwissel als omweg."
     },
     {
       "id": "B05",
       "complete": false,
-      "description": "TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur en oorspronkelijke ontvangst/lifecycle geleverd; HA38-opstartherstel geïnstalleerd. Pins/producent behouden, huidige diagnose wachtend/stale en ongekwalificeerd. Nieuwe natuurlijke ontvangst, causale zendtransactiekoppeling/doelecho, schema-eigenaarschap en profiel/readiness/fallback nog bewijzen. Fysieke proef eerst zonder ketel."
+      "description": "TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur en oorspronkelijke ontvangst/lifecycle geleverd; HA38-opstartherstel en HA43-ontvangerkern geleverd; de kern is niet geselecteerd door de normale fabriek. Pins/producent behouden, huidige diagnose wachtend/stale en ongekwalificeerd. Nieuwe natuurlijke ontvangst, causale zendtransactiekoppeling/doelecho, schema-eigenaarschap en profiel/readiness/fallback nog bewijzen. Fysieke proef eerst zonder ketel."
     },
     {
       "id": "B06",
@@ -1646,7 +1646,7 @@
     {
       "id": "B10",
       "complete": false,
-      "description": "Bestaande voorbereide gebruikersfuncties en juiste onbekend-/draft-/geblokkeerdstatussen in eindkandidaat controleren; niets stilzwijgend laten verdwijnen."
+      "description": "HA43-bronkeuze/kaartcompatibiliteit geleverd en gecontroleerd. Overige bestaande voorbereide gebruikersfuncties en juiste onbekend-/draft-/geblokkeerdstatussen in eindkandidaat controleren; niets stilzwijgend laten verdwijnen."
     },
     {
       "id": "B11",
@@ -1694,6 +1694,6 @@
   ],
   "authoritative_workboard": "docs/modern-thermostat/WORKBOARD.nl.md",
   "base_runtime_checkpoint": "cebb0a25296b690a2a2d699bccacb65ed0f69da7",
-  "installed_ha_source_commit": "0aeff4dbaed9f187228e5621545b428648edfce5",
-  "installed_firmware_source_commit": "e9ae314f2519ac4208f89d183b4a73a96131d8a4"
+  "installed_ha_source_commit": "97eb9a03f7968dd043e6542979a4815887e9704b",
+  "installed_firmware_source_commit": "3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f"
 }

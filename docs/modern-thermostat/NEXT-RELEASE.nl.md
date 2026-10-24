@@ -1,4 +1,4 @@
-# Onderhoudsrelease HA dev40 — E32 alpha30 blijft beschikbaar
+# Onderhoudsrelease HA dev43 — E32 alpha30 blijft beschikbaar
 
 Bijgewerkt: 24 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
@@ -15,7 +15,7 @@ en alle negen openbare downloads vergeleken. HA39 is geïnstalleerd en de afzond
 nacontrole van 18:54 UTC is geslaagd. De oude alpha28-uploader blijft een
 herstelpunt: nieuwe broncode bewijst geen reparatie van de eerdere watchdogreset.
 
-## Voorbereid voor de volgende grotere kandidaat
+## Geleverd in HA43 — bronkeuze en voorbereide ontvanger
 
 B04/B05/B10: gesloten HA-ontvangertoelating met oorspronkelijke vijfseconden-grants,
 exacte scope en zonder replay, plus directe EN/NL-bronkeuze-uitleg in de kamereditor.
@@ -37,20 +37,22 @@ doelterugmelding blijven open. [Uitwerking](M2-KRAAN-KLOK-20261024.nl.md).
 | Onderdeel | Geïnstalleerd | Stand |
 | --- | --- | --- |
 | E32 | `v0.1.0-e32v2-alpha.28`, bron `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f` | Passief EMS uitlezen; TX, forwarding en fysieke uitvoer geblokkeerd |
-| Home Assistant | `0.4.0.dev40`, bron `a01bc68d211b310090568e8b2b83d3e652782866` | Geladen op Core 2026.10.3; frontend dev38/v38 met v35-alias |
+| Home Assistant | `0.4.0.dev43`, bron `97eb9a03f7968dd043e6542979a4815887e9704b` | Geladen op Core 2026.10.3; frontend dev41/v41 met v38/v35-aliases |
 | Actieve regelaar | Tado | Geen automatische ketel- of kraansturing door OpenThermostat |
 
-Bron/pakket/ELF/web, alle 83 HA-bestanden en behoud van instellingen, programma's
-en identiteiten zijn gecontroleerd. Zie [installatieverslag](INSTALLATIE-HA40-20261024.nl.md).
+Bron/pakket/ELF/web, alle 84 HA-bestanden en behoud van instellingen, programma's
+en identiteiten zijn gecontroleerd. Zie [installatieverslag](INSTALLATIE-HA43-20261024.nl.md).
 De uitgebreide geleverde bundel staat in de [werkbordhistorie](WORKBOARD-HISTORIE-20261024.nl.md).
 
-### Actuele installatie — 24 oktober, nacontrole 19:28 UTC
+### Actuele installatie — 24 oktober, nacontrole 21:17:50 UTC
 
-HA dev40 geladen; 83 bestanden exact publieke ZIP/Git, verse HA39-back-up van
-93 bestanden en één normale Core-herstart. Instellingen, programma’s, SOURCE,
-registry en bronpins behouden. E32alpha28 niet gewijzigd; nul uploads of
-E32-herstarts, TX/polls/testframes nul. Afzonderlijke nacontrole geslaagd.
-[Installatieverslag HA40](INSTALLATIE-HA40-20261024.nl.md).
+HA dev43 geladen; 84 bestanden exact publieke ZIP/Git, verse HA40-back-up van
+93 bestanden en één normale Core-herstart. Alle 38 afzonderlijke nacontroles
+slagen. Instellingen, programma’s, SOURCE, registry en bronpins behouden; alleen
+twee eigen kamerkaarten gaan van v38 naar v41. E32alpha28 niet gewijzigd;
+nul uploads/herstarts, TX/polls/testframes nul. 2281 testgevallen per Core,
+zeven softwarepoorten en definitieve tag-CI geslaagd; vier downloads bytegelijk.
+[Installatieverslag HA43](INSTALLATIE-HA43-20261024.nl.md).
 
 ### Historische HA39-installatie — nacontrole 18:54 UTC
 
@@ -87,7 +89,7 @@ Eerdere alpha28/dev37-installatie hieronder blijft historische basis.
 geslaagd. Openbare pakketten, live HA-bestanden en echte E32-boot apart gecontroleerd.
 Bewijs: `out/combined-dev37-alpha28-20261024/FINAL-REVIEW.json`.
 
-Alle 23 voorbereide onderdelen met 245 bronverwijzingen blijven in de
+Alle 23 voorbereide onderdelen met 252 actuele bronverwijzingen blijven in de
 [release-inventaris](BETA1-RELEASE-INVENTARIS.json). Bestaande regeling,
 supervisor, groepen/vloer/menger, historie/CSV, comfort en leren blijven behouden.
 Hun ontbrekende verbindingen en fysieke acceptatie staan op het werkbord.
@@ -96,8 +98,9 @@ Hun ontbrekende verbindingen en fysieke acceptatie staan op het werkbord.
 
 | Volgorde | Werk | Gereed wanneer |
 | --- | --- | --- |
+| P0 vóór actieve M2 | Eerdere incidentele CI-kamerassertie causaal verklaren | Definitieve regressies en herhaalproeven slagen; oorspronkelijke afwijking nog niet causaal verklaard |
 | P0 vóór fysieke proef | Gemeld pendelen verklaren en passieve nulmeting beoordelen | Oorzaak of concrete vervolgmeting vastgelegd; geschikte stabiele proefbeginsituatie |
-| P0 software, B05 diagnose | Voorbereide reparatie voor late MQTT-discovery afronden en meenemen in gezamenlijke bundel | Definitieve regressie en levering; daarna dezelfde opgeslagen bron controleren zonder pin-/bindingwissel of geforceerde rapportage |
+| P0, B05 ontvangst | Softwareherstel voor late MQTT-discovery is geleverd in HA38 en behouden in HA43; oorspronkelijke ontvangst kwalificeren | Echte nieuwe ontvangst via dezelfde bron/pins/producent; geen geforceerde rapportage of cachekwalificatie |
 | P0 software, B04 | Echte geschikte kamerbron met oorspronkelijk rapport en meetprofiel | Werkelijke acquisitie/actualiteit en uitval bewezen; geen diagnostische device_temperature als ruimtemeting |
 | P0 software, B05/M2 | Normale FW→HA-kraanroute met HA-ontvangergrant en bestaande adapter afronden | Native zendtransactie aan oorspronkelijke kraanecho gekoppeld; profiel, modus, eigenaarschap en fallback getoetst |
 | P0 software, B06 | Werkelijke veiligheids-/DHW-/water-/kraan-/flowfeiten aansluiten | Iedere bron met eigen geldigheid en beoordeeld installatieprofiel; geen generieke flowaanname |

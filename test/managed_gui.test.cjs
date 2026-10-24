@@ -17,7 +17,7 @@ function page(){
   val(...args){if(args.length){values[selector]=args[0];return this;}return values[selector]??'';},
   prop(key,...args){if(args.length){checks[selector+key]=args[0];return this;}return checks[selector+key]??false;},
   attr(){return this;},each(){},addClass(){},removeClass(){}});
- const context={document,$:jq,console,clearInterval(){},setInterval(){},URL,Promise,
+ const context={document,$:jq,console,clearInterval(){},setInterval(){},setTimeout,clearTimeout,AbortController,URL,Promise,
   fetch:async(input,init={})=>{calls.push({input,init});return new Response('{}',{status:201});},
   alert:x=>alerts.push(x),confirm:()=>false,window:{addEventListener(){},location:{hash:''}}};
  Object.assign(context,require('./helpers/ui-language.cjs')('en'));vm.createContext(context);

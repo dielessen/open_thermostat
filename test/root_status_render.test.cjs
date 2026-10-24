@@ -5,6 +5,7 @@ const fixture=require('./fixtures/root-status-ems-metadata-only.json');
 function rootPage(){
  const html=fs.readFileSync(path.join(__dirname,'../data/html/index.html'),'utf8');
  class Element{
+  querySelector(){return null;}
   constructor(){this.children=[];this.innerHTML='';this.classList={add(){}};}
   appendChild(x){this.children.push(x);return x;}
   append(x){this.children.push(x);}

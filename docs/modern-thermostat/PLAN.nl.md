@@ -1030,3 +1030,9 @@ langere bewaring, met aparte logniveaus, filters/export en begrensde RAM-/UDP-
 buffers. De bestaande netwerk-, MQTT-, NTP-/tijdzone- en update-instellingen
 blijven behouden. Specificatie en bewaarbeperkingen: [LOGGING.nl.md](LOGGING.nl.md).
 Deze diagnosefunctie kwalificeert geen fysieke meet-/kraan-/ketelketen.
+
+
+Dashboardaanvulling 2026-10-24: incrementele E32-dashboardupdates, behoud van open
+onderdelen/focus/scroll en foutbestendige, niet-overlappende statuspolls zijn in de
+bron voorbereid en met de echte webassets in Chromium getest. Opgenomen onder I05;
+installatie gaat mee met de grotere bètabatch. Actuele checks: WORKBOARD.nl.md.

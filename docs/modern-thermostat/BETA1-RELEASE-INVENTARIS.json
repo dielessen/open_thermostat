@@ -130,7 +130,7 @@
         },
         {
           "path": "data/html/index.html",
-          "sha256": "2c06bb8be08112b3d0b642de8647cb10e56ed97e60891b51c6dee858612e0c24"
+          "sha256": "42116105636cfab9ce557d5d70d43d58276141f7414d3b95e3d0e08734d1f276"
         },
         {
           "path": "data/html/device-restart.js",
@@ -234,7 +234,7 @@
         },
         {
           "path": "test/dashboard-browser.cjs",
-          "sha256": "538d1c1a65c8056ebf17a0eb0c22dc1eba6d5536c4d954a83b50128ac510d151"
+          "sha256": "585fc876e81c827cb9b2c985e5582d48bb3e8d7abe2e6b8101c6d4c06b6516fe"
         },
         {
           "path": "test/device_restart.test.cjs",
@@ -242,7 +242,7 @@
         },
         {
           "path": "test/managed_gui.test.cjs",
-          "sha256": "eb067b2172fde0c780079281e4e3546ba5f4fa032f344caed864b3d2b230af54"
+          "sha256": "eecf79170cdc7d7066f3a7d6ca9b28c000e14329d264cdffc0de3df25d98f7aa"
         },
         {
           "path": "test/onboarding/browser.cjs",
@@ -258,7 +258,7 @@
         },
         {
           "path": "test/root_status_render.test.cjs",
-          "sha256": "f8912e3896c82395b68201f5961cbc5f7fa688b13a78ff04163be725cb6763fc"
+          "sha256": "84b026fe674b96d8eff481fcd196a42cc837aae48eb3e6b9feeb92317017c7e1"
         },
         {
           "path": "test/test_native/test_http_access.cpp",
@@ -309,7 +309,7 @@
           "sha256": "2d063ef67f856823269a2c602b5b966ea73e749cef9b9e972b3a97aefd3fd77e"
         }
       ],
-      "remaining_acceptance": "Mijn ketel/EN-NL en exact door gebruiker bevestigd Nefit Ecomline Classic HRC22H-profiel geleverd in alpha21/HA27. Normale HTTPS-update, exacte running-ELF/webhash en model-ID uit NVS/readback geverifieerd. Originele opslaghelper en 4 browserprofielen PASS. Generieke keuze blijft geldig; modelkeuze verandert geen decoder/ontvangst/aansturing. Geen technische ketelvrijgave door modelkeuze."
+      "remaining_acceptance": "Mijn ketel/EN-NL en exact door gebruiker bevestigd Nefit Ecomline Classic HRC22H-profiel geleverd in alpha21/HA27. Normale HTTPS-update, exacte running-ELF/webhash en model-ID uit NVS/readback geverifieerd. Originele opslaghelper en 4 browserprofielen PASS. Generieke keuze blijft geldig; modelkeuze verandert geen decoder/ontvangst/aansturing. Geen technische ketelvrijgave door modelkeuze. Incrementele dashboardverversing met behoud van details/focus/scroll en begrensde foutbestendige polls voorbereid/getest; nog gezamenlijk installeren en op de E32 nakijken."
     },
     {
       "id": "I06",
@@ -524,7 +524,7 @@
         },
         {
           "path": "data/html/index.html",
-          "sha256": "2c06bb8be08112b3d0b642de8647cb10e56ed97e60891b51c6dee858612e0c24"
+          "sha256": "42116105636cfab9ce557d5d70d43d58276141f7414d3b95e3d0e08734d1f276"
         },
         {
           "path": "data/html/ui-messages.js",

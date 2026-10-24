@@ -948,3 +948,24 @@ logger/NVS/native hooks en loopback-UDP onder ASan/UBSan/leakcontrole PASS;
 UI-taalprofielen en 46 bestaande webunitchecks PASS. Generieke ESP32/S3-builds
 PASS; E32-build/layout/no-TX/ingebedde assets PASS vóór bronfreeze. Deze bewijzen
 zijn geen live collector-/RAM/stack-/duurlastacceptatie of bèta-vrijgave.
+
+
+### Dashboardverversing — voorbereid voor de gezamenlijke bèta
+
+- [x] Oorzaak hersteld in de bron: iedere tien seconden werd het volledige
+  dashboard vervangen. Nu blijven bestaande DOM-elementen behouden en veranderen
+  alleen tekst, attributen en daadwerkelijk toegevoegde/verwijderde onderdelen.
+- [x] Open details, toetsenbordfocus en scrollpositie blijven behouden;
+  ruimtekaarten volgen hun zone-ID bij herschikking. Nieuwe ruimtes beginnen dicht.
+  De ketelillustratie en bijbehorende link worden niet opnieuw opgebouwd.
+- [x] Hoogstens één statusrequest tegelijk; 15-seconden timeout, afbreken bij
+  navigatie en bestaande generatiecontrole. Een tijdelijke fout toont een melding
+  met behoud van het dashboard; de volgende succesvolle poll herstelt automatisch.
+- [x] Echte Chromium-test op desktop/mobiel gebruikt de bestaande 10-secondenpoll:
+  gewijzigde meetwaarden, dezelfde nodes/openstatus/focus/scroll, herschikking,
+  vervanging van ruimtes, fout/herstel, begrensde requests en bestaande escaping/
+  stale-onderdrukking. Daarnaast 46 webunitchecks en bestaande model-/taalprofielen.
+- [ ] Installeren en nakijken op de E32 als onderdeel van de gezamenlijke release.
+  Dit is bronvoorbereiding, geen afzonderlijke release of live aansturingsproef.
+
+Bewijs: `out/dashboard-refresh-20261024/`. B04–B14 blijven ongewijzigd open.

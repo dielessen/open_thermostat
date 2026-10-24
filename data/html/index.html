@@ -393,6 +393,7 @@
 		var lastLoadedStatus;
         var controlUiMode = 'unknown', controllerModePromise, chartPromise;
         var navigationGeneration = 0;
+        var statusPoll = null;
         const legacyEditorPages = ['program','room_management','room_setup','curve','hardware','rooms'];
 
         function applyControlMode(status) {
@@ -525,6 +526,7 @@
 
 		function clearMainContainer() {
             navigationGeneration++;
+            if (statusPoll) { statusPoll.abort(); statusPoll = null; }
 			if (intervalID) {
 				clearInterval(intervalID);
 			}
@@ -533,18 +535,34 @@
 		}
 
 		function showRooms() {
+            if (statusPoll) return; // Slow requests never overlap the next timer tick.
             const navigation = navigationGeneration;
-			fetch(hostName + '/status')
+            const request = new AbortController();
+            statusPoll = request;
+            const timeout = setTimeout(function() { request.abort(); }, 15000);
+			fetch(hostName + '/status', {signal: request.signal})
                 .then(validateResponse)
 				.then(res => res.json())
 				.then((out) => {
+                    if (navigation !== navigationGeneration) return;
+                    document.getElementById('dashboard-poll-error')?.remove();
                     applyControlMode(out);
 					lastLoadedStatus = out;
-                    if (navigation === navigationGeneration) updateRooms(lastLoadedStatus);
-					// A late poll may update mode metadata, never replace a newly navigated form.
+                    updateRooms(lastLoadedStatus);
+					// A late poll must never replace a newly navigated form.
                 }).catch(() => {
-                    if (navigation === navigationGeneration)
-                        document.getElementById('maincontainer').textContent = uiText("Status unavailable. Check the connection and reload.");
+                    if (navigation !== navigationGeneration) return;
+                    var main = document.getElementById('maincontainer');
+                    var notice = document.getElementById('dashboard-poll-error');
+                    if (!notice) {
+                        notice = document.createElement('p'); notice.id = 'dashboard-poll-error';
+                        notice.className = 'alert alert-warning'; notice.setAttribute('role','status');
+                        main.prepend(notice);
+                    }
+                    notice.textContent = uiText("Status unavailable. Check the connection and reload.");
+                }).finally(function() {
+                    clearTimeout(timeout);
+                    if (statusPoll === request) statusPoll = null;
                 });
 		}
 
@@ -798,6 +816,39 @@
             return '<svg class="pd-trend" viewBox="0 0 260 56" role="img" aria-label="Recent temperature feedback and target" data-i18n-aria-label="Recent temperature feedback and target"><path d="'+line(2)+'" class="pd-target-line"/><path d="'+line(1)+'" class="pd-actual-line"/></svg>'+
                 uiHtml("<p class=\"pd-help\">Solid: reported · dotted: target · ")+Math.max(1,Math.round(span/1000))+' s</p>';
         }
+        // Reconcile the trusted, escaped dashboard template against existing nodes.
+        // Native details.open and the separately owned boiler illustration remain untouched.
+        function patchDashboard(current, next) {
+            if (current.nodeType === Node.TEXT_NODE) {
+                if (current.nodeValue !== next.nodeValue) current.nodeValue = next.nodeValue;
+                return;
+            }
+            Array.from(current.attributes).forEach(function(attr) {
+                if (attr.name !== 'open' && !next.hasAttribute(attr.name)) current.removeAttribute(attr.name);
+            });
+            Array.from(next.attributes).forEach(function(attr) {
+                if (attr.name !== 'open' && current.getAttribute(attr.name) !== attr.value)
+                    current.setAttribute(attr.name,attr.value);
+            });
+            function key(node) {
+                return node.nodeType === Node.ELEMENT_NODE ?
+                    node.namespaceURI + ':' + node.tagName + ':' +
+                    (node.getAttribute('data-dashboard-key') || node.getAttribute('class') || '') : '#text';
+            }
+            var previous = Array.from(current.childNodes).filter(function(node) { return node.id !== 'boiler-home'; });
+            var remaining = previous.slice();
+            var cursor = current.firstChild;
+            if (cursor && cursor.id === 'boiler-home') cursor = cursor.nextSibling;
+            Array.from(next.childNodes).forEach(function(wanted) {
+                var index = remaining.findIndex(function(node) { return key(node) === key(wanted); });
+                var node;
+                if (index < 0) node = wanted.cloneNode(true);
+                else { node = remaining.splice(index,1)[0]; patchDashboard(node,wanted); }
+                if (node !== cursor) current.insertBefore(node,cursor);
+                cursor = node.nextSibling;
+            });
+            remaining.forEach(function(node) { node.remove(); });
+        }
         function renderInstallationDashboard(status) {
             var control = status.control || {}, ems = status.ems || {};
             var state = control.fresh === true && control.state && typeof control.state === 'object' && !Array.isArray(control.state) && Array.isArray(control.state.zones) ? control.state : null;
@@ -831,7 +882,7 @@
             rows.forEach(function(row,index) {
                 var name = dashboardRoomName(row,index);
                 var actual = dashboardNumber(row.temperature_centi_c,100,-50,80), target = dashboardNumber(row.target_centi_c,100,5,35);
-                html += '<article class="pd-room"><div class="pd-room-title"><h3>'+dashboardText(name)+'</h3><span class="pd-badge'+(row.demand===true?' pd-request':'')+'">'+dashboardBool(row.demand,uiText("Requesting heat"),uiText("No request"))+uiHtml("</span></div><div class=\"pd-room-temperatures\"><div><span class=\"pd-flow-label\">Reported</span>")+dashboardValue(actual,'°C')+uiHtml("</div><div><span class=\"pd-flow-label\">Target</span>")+dashboardValue(target,'°C')+'</div></div><p class="pd-help">'+dashboardText(dashboardReason(row.reason))+'</p>'+dashboardTrend(row,index)+
+                html += '<article class="pd-room" data-dashboard-key="'+dashboardText(String(state.boot_id || '')+':'+(typeof row.zone_id === 'string' && /^[a-f0-9]{8}$/.test(row.zone_id) ? row.zone_id : 'index_'+index))+'"><div class="pd-room-title"><h3>'+dashboardText(name)+'</h3><span class="pd-badge'+(row.demand===true?' pd-request':'')+'">'+dashboardBool(row.demand,uiText("Requesting heat"),uiText("No request"))+uiHtml("</span></div><div class=\"pd-room-temperatures\"><div><span class=\"pd-flow-label\">Reported</span>")+dashboardValue(actual,'°C')+uiHtml("</div><div><span class=\"pd-flow-label\">Target</span>")+dashboardValue(target,'°C')+'</div></div><p class="pd-help">'+dashboardText(dashboardReason(row.reason))+'</p>'+dashboardTrend(row,index)+
                     uiHtml("<details class=\"pd-room-detail\"><summary>Details</summary><p>Room ID: ")+dashboardText(row.zone_id || uiText("not reported"))+uiHtml("<br>Reason code: ")+dashboardText(row.reason || uiText("not reported"))+uiHtml("<br>Valve control: ")+dashboardBool(actuatorEnabled,uiText('enabled'),uiText('blocked'))+uiHtml("</p><p class=\"pd-help\">A request does not prove valve position or delivered heat. Change settings and programs in Home Assistant.</p></details></article>");
             });
             html += uiHtml("</div><div class=\"pd-lower\"><section class=\"pd-panel\"><h2>Commands to the boiler</h2><p>")+dashboardBool(boilerEnabled,uiText("Control is enabled according to the controller."),uiText("The controller reports blocked outputs."))+uiHtml("</p><p class=\"pd-help\">No confirmed command timeline is available yet. Calculated room demand is not presented as a transmitted or executed boiler command.</p></section>")+
@@ -842,8 +893,20 @@
             Object.keys(booleans).forEach(function(key){html+='<dt>'+booleans[key]+'</dt><dd>'+dashboardBool(ems[key],uiText("On"),uiText("Off"))+'</dd>';});
             [['currentWarmWaterTemperature',uiText("Hot water · reported"),10,-20,150,'°C'],['selectedWarmWaterTemperature',uiText("Hot water target · read back"),1,0,150,'°C'],['warmWaterFlow',uiText("Hot water flow rate"),10,0,100,'L/min'],['outdoorTemperature',uiText("Outdoor temperature · boiler source"),100,-60,60,'°C']].forEach(function(item){html+='<dt>'+item[1]+'</dt><dd>'+dashboardValue(dashboardNumber(ems[item[0]],item[2],item[3],item[4]),item[5])+'</dd>';});
             html += uiHtml("</dl><p class=\"pd-help\">Unavailable means unsupported, missing or expired; a measured zero remains zero. Telemetry is not an independent physical flame or heat measurement.</p></details>")+dashboardBuildSupport(status.control_build)+'</div></section>';
-            document.getElementById('maincontainer').innerHTML = html;
-            if (typeof BoilerDisplay !== 'undefined') BoilerDisplay.mountHome(document.querySelector('.product-dashboard'));
+            var main = document.getElementById('maincontainer');
+            var current = main.querySelector('.product-dashboard');
+            if (current) {
+                var template = document.createElement('template'); template.innerHTML = html;
+                var focused = document.activeElement, left = window.scrollX, top = window.scrollY;
+                patchDashboard(current,template.content.firstElementChild);
+                // Moving a keyed room may otherwise blur its focused summary in some browsers.
+                if (focused && focused.isConnected && current.contains(focused) && document.activeElement !== focused)
+                    focused.focus({preventScroll:true});
+                if (window.scrollX !== left || window.scrollY !== top) window.scrollTo(left,top);
+            } else {
+                main.innerHTML = html;
+                if (typeof BoilerDisplay !== 'undefined') BoilerDisplay.mountHome(main.querySelector('.product-dashboard'));
+            }
         }
 
 		function updateRooms(status) {

@@ -12,6 +12,10 @@ echte C++→native-HA-berichten getoetst. Dit geeft nog geen normale aangesloten
 kraanroute, oorspronkelijke doelecho of fysieke kwalificatie.
 [Voortgang en bewijs](M2-FW-HA-INTEROPERABILITEIT-20261024.nl.md).
 
+De volgende voorbereide schakel bewaakt actuele bron/lease en oorspronkelijke
+deadlines rond codering en transport. Vijf reproduceerbare grensfouten gesloten;
+geen nieuwe MQTT-route of fysieke toestemming. [Details](M2-SOURCE-TRANSPORT-20261025.nl.md).
+
 Dit is geen nieuwe kleine onderhoudsrelease. HA43 en E32alpha28 blijven draaien;
 het werkbord houdt alle resterende functies en vrijgavevoorwaarden bij.
 E32-herstelbaarheid, de echte geschikte kamerbron en causale kraanterugmelding
@@ -102,7 +106,7 @@ Eerdere alpha28/dev37-installatie hieronder blijft historische basis.
 geslaagd. Openbare pakketten, live HA-bestanden en echte E32-boot apart gecontroleerd.
 Bewijs: `out/combined-dev37-alpha28-20261024/FINAL-REVIEW.json`.
 
-Alle 23 voorbereide onderdelen met 256 actuele bronverwijzingen blijven in de
+Alle 23 voorbereide onderdelen met 265 actuele bronverwijzingen blijven in de
 [release-inventaris](BETA1-RELEASE-INVENTARIS.json). Bestaande regeling,
 supervisor, groepen/vloer/menger, historie/CSV, comfort en leren blijven behouden.
 Hun ontbrekende verbindingen en fysieke acceptatie staan op het werkbord.

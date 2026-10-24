@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "1f1ab439025cec46aa2187488df8b9a390d8cd76b5dc731c34c947ac39cabb09"
+          "sha256": "85416165ab5b98da55d83033d35d83e1d8b23cc0a50716901e8eadde3cee18f2"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
@@ -149,7 +149,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "1f1ab439025cec46aa2187488df8b9a390d8cd76b5dc731c34c947ac39cabb09"
+          "sha256": "85416165ab5b98da55d83033d35d83e1d8b23cc0a50716901e8eadde3cee18f2"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -559,7 +559,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "1f1ab439025cec46aa2187488df8b9a390d8cd76b5dc731c34c947ac39cabb09"
+          "sha256": "85416165ab5b98da55d83033d35d83e1d8b23cc0a50716901e8eadde3cee18f2"
         },
         {
           "path": "platformio.ini",
@@ -784,7 +784,7 @@
         },
         {
           "path": "src/control/ShadowController.h",
-          "sha256": "16a13d81a3a28c386486a4e98b928d3937cebe7eb27026c50283bc7f74a75974"
+          "sha256": "e079192de01316d51b4fc914a81b79c118ae2832286223ba2201a55d7e4b5fc4"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/native_plan.py",
@@ -792,11 +792,11 @@
         },
         {
           "path": "src/control/SessionAdmission.h",
-          "sha256": "dd0bd50ed80335b82e2ff75907475249111380065eb2f9b75f0706aa5491ea0c"
+          "sha256": "d3dccaae09fc95b72f0124062022e3c6bec45ac10b0cf5f245803ebcdab59277"
         },
         {
           "path": "test/test_native/test_session_admission.cpp",
-          "sha256": "227229fd583cfebfbc296ba785b64fefdbbc3c6c6d4dbe62899abad49a81b83e"
+          "sha256": "ede66bfd76f7e929116b1b0aead60a5b973e28bac0dc7a74513d13c242ac6303"
         }
       ],
       "remaining_acceptance": "Logische provisioning/programma-ACK werkt; verse fysieke meet- en actuatorbewijzen ontbreken."
@@ -804,7 +804,7 @@
     {
       "id": "I14",
       "title": "Kraanadapter profiel C, TV02-moduscontrole en tijdelijke bronbench",
-      "status": "HA38-opstartherstel en HA43-ontvangertoelating geleverd; firmware-intentie en echte C++/HA-interoperabiliteit voorbereid",
+      "status": "HA38-opstartherstel en HA43-ontvangertoelating geleverd; firmware-intentie en actuele bron-/lease-/transportcontrole voorbereid/getest",
       "include_in_beta": true,
       "requirements": [
         "R03",
@@ -918,11 +918,11 @@
         },
         {
           "path": "src/control/ActuatorIntent.h",
-          "sha256": "ccd7e3dead6ebeac18d7c66725dfc7f794cd5ab77d0e1b80d6f2cadbf3f5bc43"
+          "sha256": "48e24f09d55b6b683b55b96ffdf1a605dbf644953d09dea8738dd66fefcc222a"
         },
         {
           "path": "test/test_native/test_actuator_intent.cpp",
-          "sha256": "8118e40ac1f77a780f03c4f04bf148d17a75f76f667ad147240cf9c758cbd4aa"
+          "sha256": "d9b806a5258cd589eebb80f52bda2b488b9af983defe14dcd00fd0a070884d8c"
         },
         {
           "path": "test/interop/actuator_intent_runner.cpp",
@@ -931,9 +931,45 @@
         {
           "path": "ha/tests_native/test_actuator_intent_interop.py",
           "sha256": "4eb379b844d7ba1609e6b6ea6950b97d96d315a9c29daa7aeff6731415d336ac"
+        },
+        {
+          "path": "src/control/ActuatorDispatch.h",
+          "sha256": "575a555fd686a09d35689a512eddc9f756dc9fb691ab376d56318d99a3624783"
+        },
+        {
+          "path": "test/test_native/test_actuator_dispatch.cpp",
+          "sha256": "8d4c284ad4134073852efc3fa465b211a67a8947468043bc71ca8a506e9291a1"
+        },
+        {
+          "path": "test/interop/actuator_dispatch_runner.cpp",
+          "sha256": "5f2c3982f913f57fd6c2624266883e06777de81204c1273b95f620ecafbdb56d"
+        },
+        {
+          "path": "ha/tests_native/test_actuator_dispatch_interop.py",
+          "sha256": "e642d8a01d20c56073e324ae5a27ae17d526543247feb2f1ae5e3a67c865ee59"
+        },
+        {
+          "path": "src/control/ActuatorScope.h",
+          "sha256": "f4e1d0f38edcb1c05502aac9cbe505d2f82aaaaa13379f6d04c37a9438e71a38"
+        },
+        {
+          "path": "src/control/SessionAdmission.h",
+          "sha256": "d3dccaae09fc95b72f0124062022e3c6bec45ac10b0cf5f245803ebcdab59277"
+        },
+        {
+          "path": "src/control/ShadowController.h",
+          "sha256": "e079192de01316d51b4fc914a81b79c118ae2832286223ba2201a55d7e4b5fc4"
+        },
+        {
+          "path": "test/test_native/test_session_admission.cpp",
+          "sha256": "ede66bfd76f7e929116b1b0aead60a5b973e28bac0dc7a74513d13c242ac6303"
+        },
+        {
+          "path": "test/test_native/test_actuator_session_context.cpp",
+          "sha256": "b06fca442e050bf3041b9195bd94dab973a1fb3f9a09eb6b9ecb0f46378b3ad7"
         }
       ],
-      "remaining_acceptance": "HA38-opstartherstel geleverd; eerdere oorspronkelijke TV02-ontvangst blijkt uit stale-diagnose, huidige wachtende/stale status blijft ongekwalificeerd. HA43-ontvangerkern geleverd zonder normale fabrieksselectie; firmwaretegenhanger met oorspronkelijke aanvraag-/leasegrenzen en echte C++/HA-tests voorbereid voor de grotere release. Normale actuele SOURCE-/lease-/transportbedrading en verzendtijdcontrole, verse ontvangst, unieke native zendtransactie/causale echo, schema-eigenaarschap en fysieke werking blijven open. Geïnstalleerde converterbron niet bereikbaar via bestaande toegestane toegang; versies/diagnostiek zijn geen bron- of ACK-bewijs."
+      "remaining_acceptance": "HA38-opstartherstel geleverd; eerdere oorspronkelijke TV02-ontvangst blijkt uit stale-diagnose, huidige wachtende/stale status blijft ongekwalificeerd. HA43-ontvangerkern geleverd zonder normale fabrieksselectie; firmwaretegenhanger met oorspronkelijke aanvraag-/leasegrenzen en echte C++/HA-tests voorbereid voor de grotere release. Normale actuele SOURCE-/lease-/transportbedrading en verzendtijdcontrole, verse ontvangst, unieke native zendtransactie/causale echo, schema-eigenaarschap en fysieke werking blijven open. Geïnstalleerde converterbron niet bereikbaar via bestaande toegestane toegang; versies/diagnostiek zijn geen bron- of ACK-bewijs. Actuele transportgrens met onafhankelijke kloklezingen en blijvend kleiner deadlineplafond voorbereid; normale SOURCE-/profiel-/grant-/transportselectie ontbreekt. Intrekking is geen fysieke sluiting of bewezen failsafe. Read-only sessiecontext uit de bestaande controller en SessionAdmission toegevoegd/getest, zonder leasevernieuwing of fysieke autorisatie. Deze context is nog geen geselecteerde profiel-/transportroute."
     },
     {
       "id": "I15",

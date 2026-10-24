@@ -121,6 +121,8 @@ public:
         if (s.kind == StreamKind::heartbeat) { leaseFrom_ = now; leaseUntil_ = now + leaseMs_; }
         return {AdmissionCode::accepted, immutableResult};
     }
+    // Current original local lease only. Reading never extends or renews it.
+    uint64_t leaseDeadline(uint64_t now) const {return alive(now)?leaseUntil_:0;}
     // Source-age normalization can add this conservative delay bound after admission.
     uint64_t grantElapsed(uint64_t now) const {
         return transportValid_ && observeClock(now) && grantValid_ && now >= grantFrom_ && now < grantUntil_ ? now - grantFrom_ : UINT64_MAX;

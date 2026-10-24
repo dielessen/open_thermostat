@@ -1,5 +1,6 @@
 #pragma once
 #include "BoundedJson.h"
+#include "ActuatorScope.h"
 #include <algorithm>
 #include <cstdint>
 #include <functional>
@@ -12,18 +13,7 @@ namespace heating::control {
 // HA retains the authoritative original grant deadline on its own clock.
 class ActuatorIntent {
 public:
-    struct Scope {
-        std::string controller,boot,adapter,session,digest,binding;
-        uint32_t epoch=0,revision=0;
-        bool valid()const {
-            return validId(controller)&&validId(boot)&&validId(adapter)&&validId(session)&&validHex(digest)
-                &&validId(binding)&&epoch&&revision;
-        }
-        bool operator==(const Scope& o)const {
-            return controller==o.controller&&boot==o.boot&&adapter==o.adapter&&session==o.session
-                &&digest==o.digest&&binding==o.binding&&epoch==o.epoch&&revision==o.revision;
-        }
-    };
+    using Scope=ActuatorScope;
     using Authority=std::function<bool()>;
     explicit ActuatorIntent(Scope scope,Authority authority={})
         :scope_(std::move(scope)),authority_(std::move(authority)) { retired_=!scope_.valid(); }
@@ -46,7 +36,7 @@ public:
             if(!root||!cJSON_IsObject(root.get())||cJSON_GetArraySize(root.get())!=13
                     ||print(root.get())!=raw||!match(root.get()))return false;
             const auto nonce=textValue(root.get(),"grant_id");
-            if(!validId(nonce)||!numberValue(root.get(),"grant_ms",5000,5000))return false;
+            if(!Scope::validId(nonce)||!numberValue(root.get(),"grant_ms",5000,5000))return false;
             const auto field=cJSON_GetObjectItemCaseSensitive(root.get(),"grant_sequence");
             if(!numberValue(root.get(),"grant_sequence",1,UINT32_MAX))return false;
             const auto sequence=static_cast<uint32_t>(field->valuedouble);
@@ -54,7 +44,9 @@ public:
             if(sequence==grantSequence_) {
                 // Exact duplicate is inert, including a changed local request
                 // or lease deadline. A changed nonce at the same counter fails.
-                return nonce==grant_&&!consumed_&&now<deadline_;
+                if(nonce!=grant_)return false;
+                deadline_=std::min(deadline_,leaseUntil);
+                return !consumed_&&now<deadline_;
             }
             if(nonce==grant_)return false;
             const auto deadline=std::min(requestStarted+5000,leaseUntil);
@@ -69,6 +61,7 @@ public:
     std::string command(int target,const Scope& current,uint64_t now,uint64_t leaseUntil) {
         if(!admitted(current,now))return {};
         if(now>=leaseUntil){retire();return {};}
+        deadline_=std::min(deadline_,leaseUntil);
         if(grant_.empty()||consumed_||now>=deadline_||target<500||target>3500)return {};
         if(sequence_==UINT32_MAX){retire();return {};}
         try {
@@ -88,6 +81,15 @@ public:
         } catch(...) {retire();return {};}
     }
 private:
+    friend class ActuatorDispatch;
+    // Validation of THIS owner's already prepared frame, not resend permission.
+    // Only the serialized transport owner uses this after sampling fresh facts.
+    bool dispatchCurrent(const Scope& current,uint64_t now,uint64_t leaseUntil) {
+        if(!admitted(current,now))return false;
+        if(now>=leaseUntil){retire();return false;}
+        deadline_=std::min(deadline_,leaseUntil);
+        return !grant_.empty()&&consumed_&&sequence_&&now<deadline_;
+    }
     bool admitted(const Scope& current,uint64_t now) {
         if(retired_)return false;
         if(checking_){retire();return false;}
@@ -103,17 +105,6 @@ private:
         return true;
     }
     static void need(bool ok){if(!ok)throw std::bad_alloc();}
-    static bool validId(std::string_view value) {
-        if(value.empty()||value.size()>32)return false;
-        for(unsigned char c:value)if(!((c>='a'&&c<='z')||(c>='A'&&c<='Z')||
-                (c>='0'&&c<='9')||c=='_'||c=='-'))return false;
-        return true;
-    }
-    static bool validHex(std::string_view value) {
-        if(value.size()!=64)return false;
-        for(char c:value)if(!((c>='a'&&c<='f')||(c>='0'&&c<='9')))return false;
-        return true;
-    }
     static std::string print(const cJSON* root) {
         std::unique_ptr<char,decltype(&cJSON_free)> text(cJSON_PrintUnformatted(root),cJSON_free);
         need(bool(text));return text.get();

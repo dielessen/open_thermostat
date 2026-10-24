@@ -210,3 +210,21 @@ TEST_F(SessionTest, HaActuatorReceiverClockFaultIsAlsoSticky) {
 }
 
 }
+namespace {
+TEST_F(SessionTest, LeaseDeadlineReadsCannotRenewAndRemainIndependentOfGrant) {
+    EXPECT_EQ(gate.leaseDeadline(1000),16000u);
+    EXPECT_EQ(gate.leaseDeadline(15000),16000u);
+    EXPECT_EQ(gate.grantDeadline(15000),0u);
+    EXPECT_EQ(gate.leaseDeadline(15999),16000u);
+    EXPECT_EQ(gate.leaseDeadline(16000),0u);
+}
+TEST_F(SessionTest, LeaseDeadlineCannotSurviveDisconnectOrClockReversal) {
+    EXPECT_EQ(gate.leaseDeadline(1100),16000u);
+    EXPECT_EQ(gate.leaseDeadline(1099),0u);
+    EXPECT_EQ(gate.leaseDeadline(1200),0u);
+    auto fresh=identity;fresh.epoch=2;fresh.session="session-b";
+    ASSERT_TRUE(gate.begin(fresh));
+    EXPECT_EQ(gate.leaseDeadline(1200),0u);
+    gate.invalidateTransport();EXPECT_EQ(gate.leaseDeadline(1200),0u);
+}
+}

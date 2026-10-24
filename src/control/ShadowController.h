@@ -8,6 +8,7 @@
 #include "Measurement.h"
 #include "ScheduleDocument.h"
 #include "SessionAdmission.h"
+#include "ActuatorScope.h"
 #include "ZoneRegulator.h"
 #include "SeasonalControllerSource.h"
 #include "NativeControlPlan.h"
@@ -157,6 +158,20 @@ public:
         ++epoch_; connected_=true; newChallenge(now); nextHello_=nextState_=now;
     }
     void disconnected() { connected_=false; invalidate(); }
+    // Local read-only context for a configured normalized actuator channel.
+    // Not a broker/API endpoint, source qualification or output-enable path.
+    std::optional<ActuatorSessionContext> actuatorSessionContext(std::string_view binding,uint64_t now) const {
+        if(!SessionAdmission::validId(binding)||!connected_||!session_||!mappingReady_||fault_
+                ||legacyQuarantine_||nativeReceiving_||!config_->revision||now<lastNow_)return std::nullopt;
+        bool bound=false;
+        for(size_t i=0;i<config_->count;++i)if(config_->zones[i].actuator==binding){bound=true;break;}
+        if(!bound)return std::nullopt;
+        const auto lease=admission_.leaseDeadline(now),grant=admission_.grantDeadline(now);
+        if(!lease||!grant)return std::nullopt;
+        ActuatorSessionContext context{{controller_,boot_,owner_,sessionId_,digest_,std::string(binding),
+            epoch_,config_->revision},lease,grant};
+        return context.scope.valid()?std::optional<ActuatorSessionContext>(std::move(context)):std::nullopt;
+    }
     // Internal read-only intent, not physical feedback or actuation authority.
     const HydraulicSupervisor::Result& hydraulicIntent() const {return supervisor_.lastIntent();}
     void tick(uint64_t now,int64_t utc,bool clockValid) {

@@ -109,3 +109,10 @@ TEST(ActuatorIntent, ObservedLeaseLossCannotBeUndoneByRenewal) {
     }
 }
 }
+namespace {
+TEST(ActuatorIntent, ShorterLeaseOnExactGrantReadCanNeverBeExtendedAgain) {
+    ActuatorIntent a(scope(),[]{return true;});ASSERT_TRUE(a.accept(grant(),scope(),100,100,4000));
+    ASSERT_TRUE(a.accept(grant(),scope(),150,100,200));
+    EXPECT_TRUE(a.command(2100,scope(),201,30000).empty());
+}
+}

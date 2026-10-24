@@ -38,7 +38,7 @@ alpha28-uploader-watchdogoorzaak en herstelroute blijven onbekend.
 | Laatste livecontrole | 24 oktober 21:17:50 UTC: HA43 geladen en E32alpha28 bevestigd; 38 onafhankelijke checks geslaagd, instellingen/back-up behouden, uitgangen geblokkeerd; TV02 ongekwalificeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 256 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 265 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
 met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
@@ -104,6 +104,25 @@ bronreview v2 geslaagd. Zie [uitwerking en grenzen](M2-FW-HA-INTEROPERABILITEIT-
 **B05 blijft open:** de normale SOURCE-/lease-eigenaar en transportbedrading,
 causale oorspronkelijke Tuya-zendtransactie/echo en fysieke kwalificatie ontbreken.
 Geen nieuwe release/tag of productie-installatie alleen voor deze tussenstap.
+
+### Verder voorbereid — bron-/leasecontrole op de transportgrens
+
+`ActuatorDispatch` verbindt de afzender met actuele lokale bron-/kloklezingen en
+de bestaande synchrone transportfunctie, inclusief controle na codering en
+na overdracht. Geen normale fabrieksselectie of nieuwe MQTT-route. Vijf
+reproduceerbare lease-/intrekkingsgrensfouten zijn gesloten; 728 native tests
+en 32 gerichte strikte ASan/UBSan-proeven slagen; 2.297 HA-gevallen per Core
+slagen. De sanitizerpoort is met een echte foutproef gecontroleerd. De nieuwe C++/HA-proeven toetsen de
+gehele voorbereide keten met synthetische feiten; geen fysieke opdracht.
+[Uitwerking en open grenzen](M2-SOURCE-TRANSPORT-20261025.nl.md).
+
+De bestaande controller levert nu daarnaast een read-only actuele sessiecontext
+uit eigen configuratie/SessionAdmission. Zeven nieuwe native proeven toetsen echte
+handshake, deadlines, disconnect/reconnect en nul fysieke bevoegdheid.
+
+Normale SOURCE-/profiel-/grant-/transportselectie, causale oorspronkelijke echo en fysieke
+kwalificatie blijven B05-openpunten. Transportacceptatie is geen kraan-ACK;
+intrekken verhindert nieuwe opdrachten maar bewijst geen fysieke sluiting.
 
 ### Geleverd in HA40 — B05/M2-kraanadapter
 

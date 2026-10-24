@@ -4,7 +4,7 @@
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
   "release_state": "NOT_READY",
   "installed_firmware": "v0.1.0-e32v2-alpha.24",
-  "installed_ha": "0.4.0.dev32",
+  "installed_ha": "0.4.0.dev33",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
   "items": [
     {
@@ -1558,6 +1558,6 @@
   ],
   "authoritative_workboard": "docs/modern-thermostat/WORKBOARD.nl.md",
   "base_runtime_checkpoint": "cebb0a25296b690a2a2d699bccacb65ed0f69da7",
-  "installed_ha_source_commit": "e63c06bca41d7e22895fd0100c3d6ca2a916ce4a",
+  "installed_ha_source_commit": "db2141cbe077cb8b35d8ef0f6e436b719308b3aa",
   "installed_firmware_source_commit": "a1fe06be5e709ff4c6477b7b9be6c8dbd7573987"
 }

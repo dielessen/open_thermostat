@@ -13,15 +13,17 @@ en welke nog op de roadmap staan.
 [Mogelijkheden](#alle-mogelijkheden) · [Roadmap](#wat-we-nog-gaan-bouwen) ·
 [Screenshots](#screenshots) · [Documentatie](#documentatie)
 
-**Actuele passieve releases:** [E32 alpha24](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.24) + [Home Assistant dev32](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev32). Gepubliceerd, normaal geïnstalleerd en onafhankelijk gecontroleerd.
+**Actuele passieve releases:** [E32 alpha26](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.26) + [Home Assistant dev33](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev33). Pakketten, bron en softwarecontroles zijn geverifieerd.
 
-**Geïnstalleerd en gecontroleerd: E32 alpha24 + [Home Assistant dev32](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev32).** Kamerinrichting,
+**Actuele proefinstallatie: E32 alpha24 + [Home Assistant dev33](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev33).** Alpha26 draait nog niet aantoonbaar na de eerste updatepoging; het diagnoseherstel wordt afzonderlijk nagecontroleerd. Kamerinrichting,
 weekprogramma’s, interfaces en passief uitlezen zijn beschikbaar. De regelkern
 is grotendeels voorbereid, maar actieve kamer- en ketelaansturing zijn nog niet
 vrijgegeven op de E32 V2. De huidige native inrichting ondersteunt **1–2 kamers,
 met één radiatorknop per kamer**; acht zones is het uitbreidingsdoel.
 
-**Nieuw in HA dev32:** rapporten blijven aan hun geldigheidsinstelling gebonden;
+**Nieuw in alpha26/dev33:** herstel van ESP-geheugen, CPU-temperatuur en uptime via native MQTT, met behoud van bestaande HA-identiteiten. HA en E32 leggen schaduwmodus en de installatiecontroles in EN/NL uit. Live diagnosewaarden wachten op bevestigde installatie van alpha26.
+
+**Eerder in HA dev32:** rapporten blijven aan hun geldigheidsinstelling gebonden;
 klokfouten worden veilig afgehandeld en HA-diagnostiek kan de laatste passende
 transportafwijzing met een veilige redencode tonen. De TV02-bron is geregistreerd;
 natuurlijke oorspronkelijke ontvangst is nog niet bevestigd. Geen extra E32-flash.

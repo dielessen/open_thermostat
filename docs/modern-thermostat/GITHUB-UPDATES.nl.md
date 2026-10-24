@@ -2,20 +2,23 @@
 
 ## Actuele installatie — 24 oktober 2026
 
-De gecontroleerde installatie draait E32 `v0.1.0-e32v2-alpha.24`, bron
-`a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`, en HA `0.4.0.dev32`, bron
-`e63c06bca41d7e22895fd0100c3d6ca2a916ce4a`. De gezamenlijke alpha24/dev30-bundel
-is gevolgd door de HA-correctiebundel dev32; er is geen extra E32-OTA
-uitgevoerd. De TV02-ontvanger bindt nu één bron. In de eerdere dev31-observatie
-van 20 seconden kwam geen oorspronkelijk rapport binnen; de dev32-nacontrole
-toont nog `WAITING`, zonder extra subscription of geforceerd rapport.
-De nieuwe laatste-afwijzingsdiagnose is bereikbaar; na de update is HA
-`shadow_ready` en is geen afwijzing bewaard. Alle 82 live bestanden zijn met het
-openbare pakket vergeleken; kamers/programma’s en SOURCE zijn behouden.
+De gecontroleerde HA-installatie draait `0.4.0.dev33`, bron
+`db2141cbe077cb8b35d8ef0f6e436b719308b3aa`: alle 83 live componentbestanden zijn
+vergeleken met het openbare pakket. Kamers, programma’s, SOURCE rev4, registry,
+frontend v28 en privé pins/producent zijn behouden.
+
+E32 draait momenteel nog `v0.1.0-e32v2-alpha.24`, bron
+`a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`. Alpha26 is gepubliceerd en de bron,
+ELF, webinterface en controlesommen zijn onafhankelijk gecontroleerd. De eerste
+normale updateaanvraag gaf HTTP202 en een reboot; daarna was alpha24 opnieuw
+zichtbaar. De oorzaak en een eventuele rollback zijn niet bewezen. Een bestaande
+app-only upload wordt als afzonderlijke herstelroute beoordeeld. Live
+CPU-/geheugen-/uptimewaarden zijn nog niet hersteld; er wordt geen succes afgevinkt.
+
 Zie het [werkbord](WORKBOARD.nl.md) voor de actuele acceptatiechecks. De eerste
 actieve bèta is niet vrijgegeven.
 
-De normale E32-HTTPS-updater werkt. HA-updates verlopen via de bestaande
+De normale E32-HTTPS-updater heeft in deze poging geen bevestigde nieuwe boot opgeleverd; herstel blijft open. HA-updates verlopen via de bestaande
 HA-agent, met back-up en nacontrole. Nieuwe releases krijgen nieuwe versies;
 bestaande tags/downloads blijven behouden. Main-CI-pakketten die gepubliceerde
 versienummers hergebruiken zijn

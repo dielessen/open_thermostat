@@ -9,19 +9,19 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
-| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.24`, normale HTTPS-catalogusupdate en exacte ELF/web/nacontrole geslaagd |
-| Geïnstalleerde HA-integratie | `0.4.0.dev32`, via bestaande HA-agent met verse back-up/nacontrole; één oorspronkelijke TV02-bron geregistreerd, ontvangst nog `WAITING` |
-| Geleverde bron | E32 `a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`; HA `e63c06bca41d7e22895fd0100c3d6ca2a916ce4a`, alle 82 live componentbestanden gelijk aan het HA-pakket |
+| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.24` aangetroffen na één onzekere alpha26-updatepoging; alpha26 is gepubliceerd maar nog niet als draaiend bevestigd |
+| Geïnstalleerde HA-integratie | `0.4.0.dev33`, via bestaande HA-agent met verse back-up/nacontrole; 105 registryrecords en alle koppelingen behouden |
+| Geleverde bron | E32 `a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`; HA `db2141cbe077cb8b35d8ef0f6e436b719308b3aa`, alle 83 live componentbestanden gelijk aan het HA-pakket |
 | Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; alpha24/dev30-bundel, HA dev31-ontvangstherstel en HA dev32-rapportpolicy/klok/afwijzingsdiagnose geleverd |
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 213 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 218 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
-met het E32-pakket vergeleken. De latere HA-updates dev31/dev32 zijn afzonderlijk met
+met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33 zijn afzonderlijk met
 hun eigen publieke pakket, Git-bron en alle live hashes gecontroleerd. Historische checkpoints en afgewezen kandidaten blijven bewaard;
 geen bestaande tag of download is vervangen.
 
@@ -1702,3 +1702,11 @@ De bevroren alpha25-tag kreeg geen openbare release of OTA: de publicatiecontrol
 ### Voorbereiding volgende HA-bundel — niet geïnstalleerd
 
 Parallelle main-CI vond een fractionele-klokgrens bij de alleen-lezen supervisordiagnose: een exact verlopen rapport kon door aftrekken van klokwaarden nog korter dan 15 seconden lijken. Een deterministische repro faalt vóór de correctie en slaagt met directe deadlinevergelijking. De kandidaat voor dev34 behoudt alle overige code; actieve regel-/opdracht-/leasecontroles zijn niet gewijzigd. Gepubliceerde pakketten en de installatie dev33 blijven bevroren.
+
+### Actuele uitvoering diagnoseherstel
+
+HA dev33 is geïnstalleerd: alle 83 live bestanden, frontend v28, 105 registryrecords, SOURCE rev4, programma’s en privé pins/producent zijn gecontroleerd behouden. De zes diagnose-entiteiten bestaan zonder restored-status, maar hebben nog geen live E32-waarden.
+
+E32 alpha26 is gepubliceerd met geteste bron, ELF/web en 1109 onafhankelijke pakketchecks. Eén normale updateaanvraag gaf HTTP202 en een herstart, maar daarna draaide aantoonbaar alpha24. Oorzaak en automatische rollback zijn niet bewezen; de relevante oude RAM-logs waren al overschreven. Hetzelfde HTTPS-pad wordt niet blind herhaald. De bestaande app-only webupload wordt als afzonderlijke herstelroute beoordeeld; er is nog geen geslaagd herstelbewijs. Fysieke uitgangen blijven geblokkeerd.
+
+Vóór een volgende tag: render en controleer de versiegebonden publicatienotities voor beide kanalen met de bestaande organizer; geen nieuwe tag op basis van alleen geslaagde builds.

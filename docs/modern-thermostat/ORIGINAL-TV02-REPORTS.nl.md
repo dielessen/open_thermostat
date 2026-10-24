@@ -205,3 +205,15 @@ werkelijke kraanopdracht. De normale shadow-route maakt deze adapter niet aan;
 standaardautoriteit blijft afwezig. Oorspronkelijke rapporten blijven zonder
 causale doelkoppeling, readiness of flowkwalificatie. Bewijs:
 `out/actuator-lifetime-20261024/`.
+
+
+## Privé installatiebestand in vervolgbron
+
+De normale integratieopstart kan nu ook een expliciet, privé installatiebestand
+lezen wanneer er geen gecompileerde bronpins zijn. Dit voorkomt dat native
+apparaatidentiteiten in openbare releasecode moeten staan. De standaard blijft
+leeg/afwezig. Het exacte schema, privacy-/omvangsgrenzen, gecompileerde voorrang
+en afzonderlijke installatieacceptatie staan in
+[ORIGINAL-TV02-DEPLOYMENT](ORIGINAL-TV02-DEPLOYMENT.nl.md). Het bestand verleent
+uitsluitend ontvangstbindingen; de bestaande native guards en alle false-
+kwalificatievlaggen blijven behouden. Deze loader is nog niet op HA geïnstalleerd.

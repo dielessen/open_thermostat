@@ -743,7 +743,7 @@
         },
         {
           "path": "docs/modern-thermostat/ORIGINAL-TV02-REPORTS.nl.md",
-          "sha256": "264e36fa0a73a8a236cf9e933238765dac6a04f9e9048af66825449c4be5e4fb"
+          "sha256": "6404f346e841943b664474a5c752e517f891e91ffada89393ccd07e0d02e9f7f"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/original_tv02.py",
@@ -771,11 +771,23 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/__init__.py",
-          "sha256": "0e861829e733c8ccaba30b97cc89c4192db9e7f4520ed09bade9e29ab115072b"
+          "sha256": "bd141ab765852ecd209fbeee0782316fa29834f3ca762a4a031d7dfd3e920b89"
         },
         {
           "path": "ha/tests_native/test_actuator_command_lifetime.py",
           "sha256": "63f26484fecbbe6122cece20ed9c687aa5f4a9e4f7bcee54cc0711b8a3ebb62f"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/diagnostic_source_manifest.py",
+          "sha256": "a35ec748a514044db600fbe2422fe52e040bd4217d6bf26709bea689f0cdca4c"
+        },
+        {
+          "path": "ha/tests_native/test_diagnostic_source_manifest.py",
+          "sha256": "025afbd29f6834c1bdfa0f252a9abad77671890fb40b1f7762c7255590048344"
+        },
+        {
+          "path": "docs/modern-thermostat/ORIGINAL-TV02-DEPLOYMENT.nl.md",
+          "sha256": "3972893c3a51b9c56982345527ab6028600bbd46ddb3ee435f411e61d4537782"
         }
       ],
       "remaining_acceptance": "TV02-modus/native identiteit/doelcapaciteit en oorspronkelijke HA-ontvangst met MQTT/registry-lifecycle en NL/EN-weergave geleverd in HA dev29. Standaard bronpins leeg; zelfstandige Zigbee-producent nog niet geïnstalleerd/gekoppeld. Concrete bronpins en echte oorspronkelijke ontvangst, causale doel-echo, exclusief eigenaarschap, profiel/readiness/fallback en fysieke proef zonder ketel blijven open. Ontvangen doel/bedrijfsmodus verleent geen opdrachtbevestiging, klepstand of aansturingsvrijgave."
@@ -1454,7 +1466,7 @@
     {
       "id": "B05",
       "complete": false,
-      "description": "TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur, originele datapuntproducer en native HA-ontvangst/lifecycle gebouwd/getest; concrete bronpins/installatie, causale doelkoppeling, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel."
+      "description": "TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur, originele datapuntproducer en native HA-ontvangst/lifecycle gebouwd/getest; privé ontvangstpin-loader gebouwd/getest; concrete bronpins/installatie, causale doelkoppeling, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel."
     },
     {
       "id": "B06",

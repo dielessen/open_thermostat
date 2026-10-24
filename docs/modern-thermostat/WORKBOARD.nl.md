@@ -18,7 +18,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 210 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 213 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Alle 80 HA-componentbestanden zijn ook met het E32-pakket
 vergeleken. Historische checkpoints en afgewezen kandidaten blijven bewaard;
@@ -53,7 +53,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-210 bronverwijzingen met hashes, status en resterende acceptatie.
+213 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -479,7 +479,7 @@ gekoppeld; het concept is geen nieuwe release of extra afvinklijst.
 - [x] B02 Alle bekende voorbereide brononderdelen geïnventariseerd en in bètabasis behouden; geen bron-/testbestand uit hoofdwerkmap ontbreekt.
 - [x] B03 Nieuwe ontvangstdiagnose/Keteltest/rapport gebouwd en getest: 18 native, 43 GUI-regressies, 3 echte Chromiumviewports met fixture-HTTP, normale E32-build.
 - [ ] B04 Observer-lifecycle/native binding en originele WSDCGQ11LM-producer/HA-ontvangstdiagnose gebouwd/getest; productie-meetprofiel met echte acquisitie-/bronkwalificatie en fysieke validatie afronden. Geen trustvinkje of sensorwissel als omweg.
-- [ ] B05 TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur, originele datapuntproducer en native HA-ontvangst/lifecycle gebouwd/getest; concrete bronpins/installatie, causale doelkoppeling, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel.
+- [ ] B05 TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur, originele datapuntproducer en native HA-ontvangst/lifecycle gebouwd/getest; privé ontvangstpin-loader gebouwd/getest; concrete bronpins/installatie, causale doelkoppeling, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel.
 - [ ] B06 Supervisor aan bron-eigen profiel en actuele afzonderlijk gedateerde veiligheids-/DHW-/water-/kraan-/flowfeiten gekoppeld en in controller getest; werkelijke producenten, installatieprofiel en fysieke kwalificatie blijven open. Geen generieke flowaanname.
 - [ ] B07 Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten.
 - [ ] B08 Poll-executor, Classic-flow/nulformaat en gecontroleerde SDK-zendresultaten aangesloten/getest; installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute.
@@ -1363,3 +1363,30 @@ Privé bronbewijs: `ecomline-observation-20261024/CHECK-6H.json` in de bestaande
 HA-artifactruimte. Smal projectbewijs:
 `out/long-observation-review-20261024/INDEPENDENT-HISTORY.json`. B04–B14 blijven
 open voor hun afzonderlijke acceptatie. De bestaande +24h-taak is ongewijzigd.
+
+
+## B05: privé ontvangstpins zonder installatie-IDs in releasecode (24 oktober 2026)
+
+De normale HA-opstart kan nu een expliciet installatiebestand uit de HA-configroot
+lezen voor ontvangstdiagnose. De gecompileerde bronpins behouden voorrang;
+ontbrekend bestand/defaulttuple geeft nog steeds geen TV02-pins. Exact schema,
+privémodus, gewone bestanden zonder symlink, maximaal 32 KiB/64 rijen en stabiele
+lezing begrenzen deze optionele bron. Native referentie/model/registry/kamer en
+expliciete fabrikant/endpoint blijven vereist. Opties, eerste pakketten en
+brokerdata vullen de pins niet in.
+
+Een fout of ongeldige binding schakelt alleen de diagnose uit, niet de gewone
+controller. Geen nieuw bestandsschrijver, Store, timer, client, watcher, modus-
+reparatie of apparaatopdracht. De loader installeert geen Z2M-extension en
+kwalificeert geen sensor, causale echo, klepstand of flow. Een geldige pin laat
+een synthetisch origineel rapport via de bestaande worker binnenkomen met alle
+kwalificatievlaggen false en `profile_missing` ongewijzigd.
+
+40 nieuwe gevallen; 91 gerichte HA-checks PASS. De integratie-opstart is met
+echte HA-registries getest, inclusief ontbrekende/verkeerde kamer/model,
+options-only, defecte/te grote/veranderende bestanden, symlink/FIFO/directory,
+gecompileerde voorrang en descriptoropruiming. Details:
+[ORIGINAL-TV02-DEPLOYMENT](ORIGINAL-TV02-DEPLOYMENT.nl.md). Bewijs en volledige
+CI: `out/diagnostic-source-manifest-20261024/`. Nog geen privébestand of nieuwe
+integratie op productie geïnstalleerd. De concrete producentinstallatie/pins,
+causale doelkoppeling en fysieke B05-proef blijven open.

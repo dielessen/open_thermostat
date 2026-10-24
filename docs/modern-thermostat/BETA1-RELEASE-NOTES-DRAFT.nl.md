@@ -59,6 +59,9 @@ vastgesteld. Ontvangstdiagnose alleen voldoet niet aan dit releasedoel.
   Alleen het nieuwste wachtende doel blijft geldig. Na een onzekere afloop van
   een gedispatchte actie blokkeert dezelfde adapter vervolgdoelen, zonder retry
   of automatische hervatting. Dit levert geen fysieke kraanbevestiging.
+- Beoordeelde TV02-ontvangstpins kunnen in een privé installatiebestand staan,
+  buiten de openbare integratiecode. Ontbrekende of ongeldige pins houden de
+  normale controller werkend; de pins verlenen geen regelbevoegdheid.
 - De eindige ketelproef bewaakt ook te late stop- en basisbevestigingen. Een
   verlopen deadline wordt niet vernieuwd door een later bericht of leaseverlies.
 - De EMS-encoder weigert te grote frames en READ-opdrachten met overtollige

@@ -170,6 +170,17 @@ def _selected_original_tv02_sources(entry):
         return ()
     return tuple(source for source in sources if source.entry_unique_id == entry.unique_id)
 
+async def _async_selected_original_tv02_sources(hass, entry):
+    from .v1_model import MODE_SHADOW, integration_mode
+    if integration_mode(entry) != MODE_SHADOW:
+        return ()
+    # Explicit compiled installation pins take precedence, including a malformed
+    # selection: never substitute another source after its review failed.
+    if _ORIGINAL_TV02_DIAGNOSTIC_SOURCES != ():
+        return _selected_original_tv02_sources(entry)
+    from .diagnostic_source_manifest import async_selected_sources
+    return await async_selected_sources(hass, entry)
+
 _GRAPH_CONTROLLER_ENTRY_SOURCES = ()
 
 def _selected_graph_controller_source(entry):
@@ -344,7 +355,7 @@ async def async_setup_entry(hass, entry):
         await runtime.async_start()
         if runtime.enabled:
             from .v1_mqtt import NativeShadowConnection
-            diagnostic_sources = _selected_original_tv02_sources(entry)
+            diagnostic_sources = await _async_selected_original_tv02_sources(hass, entry)
             diagnostic_kwargs = {"tv02_sources": diagnostic_sources} if diagnostic_sources else {}
             connection = (NativeShadowConnection(runtime, graph_profile, **diagnostic_kwargs)
                           if graph_profile is not None else NativeShadowConnection(runtime, **diagnostic_kwargs))

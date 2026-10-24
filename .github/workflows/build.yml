@@ -284,7 +284,7 @@ jobs:
           path: |
             out/ha-acceptance.xml
             out/ha-core-2026.10.2.xml
-            out/climate-warmup-trace.json
+            out/climate-warmup-trace*.json
           if-no-files-found: error
       - name: Remove temporary MQTT fixture
         if: always()

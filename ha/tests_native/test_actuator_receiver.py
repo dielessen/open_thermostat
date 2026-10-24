@@ -34,15 +34,24 @@ def intent(grant, sequence=1, **changes):
 
 
 @pytest.mark.asyncio
-async def test_grant_reads_and_command_receipt_cannot_renew_original_window(hass):
+@pytest.mark.parametrize('origin', [None, 123.456])
+async def test_grant_reads_and_command_receipt_cannot_renew_original_window(hass, origin):
     receiver, scope, clock, calls = setup(hass)
+    if origin is not None:
+        clock[0] = origin
+    issued_at = clock[0]
     grant = receiver.issue(scope=scope)
-    clock[0] += 4.9
+    clock[0] = issued_at + 4.9
     assert receiver.issue(scope=scope) == grant
-    clock[0] += .1
+    # Two fractional increments can land one ULP BEFORE the expiry. Test the
+    # exact contract boundary from its original anchor, not elapsed addition.
+    clock[0] = issued_at + 5.0
     with pytest.raises(HomeAssistantError, match='expired'):
         await receiver.async_receive(intent(grant), scope=scope)
     assert calls == []
+    # Native asyncio.timeout_at uses the real loop epoch. The artificial
+    # rounding origin above is admission-only; align forward before real IO.
+    clock[0] = max(clock[0], hass.loop.time())
     fresh = receiver.issue(scope=scope)
     assert fresh['grant_id'] != grant['grant_id'] and fresh['grant_sequence'] == 2
     receipt = await receiver.async_receive(intent(fresh), scope=scope)

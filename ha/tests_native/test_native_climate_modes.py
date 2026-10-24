@@ -72,7 +72,8 @@ async def test_native_entities_offer_owned_heat_off_without_claiming_real_heatin
         assert state.attributes["actuator_output_enabled"] is False
 
 @pytest.mark.asyncio
-async def test_real_native_climate_services_stop_A_then_B_and_resume_only_A(native_climates,hass):
+@pytest.mark.parametrize("trace_attempt", range(8))
+async def test_real_native_climate_services_stop_A_then_B_and_resume_only_A(native_climates,hass,trace_attempt):
     n=native_climates;await n.settle(16,16)
     a,b=n.entities[n.rad.room_id],n.entities[n.floor.room_id]
     async def service(entity,mode):
@@ -82,7 +83,7 @@ async def test_real_native_climate_services_stop_A_then_B_and_resume_only_A(nati
     await service(a,"off")
     # Synthetic finite fixture inputs only: keep an exact C++ replay even if
     # the timing assertion fails in a faster/different CI environment.
-    trace_path=Path("out/climate-warmup-trace.json")
+    trace_path=Path(f"out/climate-warmup-trace-{trace_attempt}.json")
     trace_path.parent.mkdir(parents=True,exist_ok=True)
     trace_path.write_text(json.dumps(dict(clock=n.peer.clock,
         events=[dict(op=op,**args) for op,args,_ in n.peer.trace],

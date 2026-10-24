@@ -1,8 +1,18 @@
-# Onderhoudsrelease HA dev38 / E32 alpha29 — gedeeltelijk geïnstalleerd
+# Onderhoudsrelease HA dev39 / E32 alpha30 — releasevoorbereiding
 
 Bijgewerkt: 24 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
 het [masterplan](PLAN.nl.md) bewaart alle 31 producteisen en acceptatievoorwaarden.
+
+## Kandidaat dev39 / alpha30
+
+De volgende gezamenlijke bundel bevat alle bronwijzigingen sinds dev38/alpha29:
+transactionele handmatige app-upload, intrekking van verworpen veiligheidsfeiten,
+veldgebonden ontvangstvolgorde van ketelrapporten en blijvende HA-cache-intrekking.
+689 firmwaretests en 2195 HA-testgevallen per ondersteunde Core-versie zijn lokaal
+geslaagd. Definitieve tag-CI, onafhankelijke pakketcontrole en installatie/readback
+zijn nog afzonderlijke releasevoorwaarden. De oude alpha28-uploader blijft een
+herstelpunt: nieuwe broncode bewijst geen reparatie van de eerdere watchdogreset.
 
 ## 1. Wat draait er nu?
 

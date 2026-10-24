@@ -1,3 +1,22 @@
+# E32 V2 alpha30 — ketelrapporten, veiligheidsfeiten en uploadcontrole
+
+Gezamenlijke passieve onderhoudsbundel met Home Assistant dev39; alle eerder voorbereide functies blijven behouden.
+
+- Ketelwaarden volgen de oorspronkelijke ontvangstvolgorde per veld. Oudere telegrammen overschrijven geen nieuwe waarden; tegenstrijdige waarden van dezelfde acquisitie blijven onbruikbaar tot een nieuwe meting.
+- Veiligheids- en hydraulische feiten herleven niet door herhaling, klokterugloop of het verstrijken van een eerder ongeldige toekomsttijd. Een geldige acquisitie bij uptime nul blijft ondersteund.
+- Handmatige app-upload controleert exacte bestandsgrootte, afgebroken overdracht en volledige multipart-afhandeling voordat de opstartpartitie wordt gekozen. Native OTA-handles worden eenmaal afgesloten.
+- HA trekt ongeldig geworden ketelwaarden blijvend in tot oorspronkelijke nieuwe ontvangst, ook na een transportfout of update van een andere veldgroep.
+
+Lokaal gecontroleerd: 689 firmwaretests, 11 REST-uploadscenario's en 2195 HA-testgevallen per Core 2026.10.2/2026.10.3. De verplichte release-CI controleert de bevroren bron en pakketten afzonderlijk.
+
+Installatiegrens: de eerdere alpha29-upload eindigde op de geïnstalleerde alpha28 met een task-watchdogreset; de oorzaak is onbekend. Deze bronwijzigingen bewijzen geen herstel van die al draaiende uploader. Geen blinde OTA-herhaling; installatie vereist een onderbouwde herstelroute en controle van de echte bootidentiteit.
+
+EMS-TX, forwarding en fysieke uitgangen blijven geblokkeerd. Actieve bèta, fysieke start-/stopproeven en de nieuwe Shelly-/Xiaomi-Bluetoothdrivers blijven open. Pendelen en native HTTPS-updater zijn niet als opgelost aangemerkt.
+
+English: passive combined maintenance release with ordered boiler field acquisition, persistent retirement of rejected safety facts and HA cached values, and transactional manual upload validation. Existing alpha28 upload watchdog recovery remains unproven; no automatic retry or active heating qualification.
+
+[Actueel werkbord](https://github.com/dielessen/open_thermostat/blob/v0.1.0-e32v2-alpha.30/docs/modern-thermostat/WORKBOARD.nl.md).
+
 # E32 V2 alpha29 — gezamenlijke diagnose- en onderhoudsbundel
 
 Bundelt alle voorbereide software met Home Assistant dev38 op bron

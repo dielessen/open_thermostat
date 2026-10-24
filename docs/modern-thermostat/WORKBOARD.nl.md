@@ -12,7 +12,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.28`; latere alpha29-upload mislukt met task-watchdogreset 6; taak/oorzaak onbekend, geen retry |
 | Geïnstalleerde HA-integratie | `0.4.0.dev38`, bron d131c50, geladen op Core 2026.10.3; 83 bestanden exact, 105 registryrecords en koppelingen behouden |
 | Geleverde bron | HA `d131c503f42e6b834a0815db8384983a7fc1b46f`; E32 `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f`; 83 HA-bestanden exact |
-| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; volgende bronbundel bevat uploadhardening en veiligheidsfeit-/klokfences; eerdere software en geïnstalleerde basis blijven behouden |
+| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; kandidaat HA39/E32alpha30 bevat uploadhardening, veiligheidsfeit-/klokfences en ketelrapport-/HA-cache-intrekking; eerdere software en geïnstalleerde basis blijven behouden |
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |

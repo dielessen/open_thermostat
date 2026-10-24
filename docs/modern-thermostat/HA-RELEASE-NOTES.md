@@ -1,3 +1,20 @@
+# HA 0.4.0.dev39 — betrouwbare ketelwaarden na fouten en intrekking
+
+Gezamenlijke passieve onderhoudsbundel met E32 alpha30; alle eerdere functies en frontend v38 blijven behouden.
+
+- Een transportfout trekt de eerder opgeslagen acquisities van ketelwaarden in. Een geldig bericht voor een andere veldgroep maakt die oude waarden niet opnieuw beschikbaar.
+- Een expliciete ongeldige waarde mag dezelfde acquisitie intrekken; een herhaalde oude numerieke waarde kan die intrekking niet ongedaan maken. Alleen aantoonbaar nieuwe ontvangst herstelt beschikbaarheid.
+- Firmware verwerkt telegrammen per oorspronkelijke veldtijd, behoudt recente waarden bij vertraagde ontvangst en trekt tegenstrijdige gelijktijdige waarden in.
+- Bestaande entiteitsidentiteiten, eenheden, statistieken, instellingen en MQTT-contracten blijven behouden.
+
+Lokaal getest op echte Core 2026.10.2 en 2026.10.3: 2195 testgevallen per versie, zonder fouten of skips; de gezamenlijke firmwarebasis heeft 689 geslaagde tests. Release-CI en onafhankelijke pakketcontrole zijn afzonderlijke leveringsvoorwaarden.
+
+Geen fysieke regelvrijgave. De geïnstalleerde E32 kan achterblijven op alpha28 zolang de eerdere task-watchdogreset geen onderbouwde herstelroute heeft; HA-installatie en E32-installatie worden afzonderlijk gecontroleerd. Nieuwe Bluetoothdrivers en M2/start-/stopkwalificatie blijven open.
+
+English: retires boiler field acquisitions across invalid transport frames and explicit withdrawal. Unrelated valid groups or cached replay cannot revive them; strictly newer original readings are required. Entity IDs and storage contracts are preserved; passive operation remains enforced.
+
+[Actueel werkbord](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0.dev39/docs/modern-thermostat/WORKBOARD.nl.md).
+
 # HA 0.4.0.dev38 — oorspronkelijke rapporten en compatibele bediening
 
 Onderdeel van de gezamenlijke onderhoudsbundel met E32 alpha29 op bron

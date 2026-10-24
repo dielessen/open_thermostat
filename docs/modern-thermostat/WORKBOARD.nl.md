@@ -1105,3 +1105,29 @@ verwerkingspauze en twee tegelijk verlopen deadlines. Volledige native suite:
 broncorrectie. Bewijs: `out/pre-tx-preparation-20261024/`.
 Dit is nog geen nieuwe installatie of fysieke timing-/stopkwalificatie.
 B04–B14 blijven open; geïnstalleerd blijft alpha23/dev29 en TX blijft geblokkeerd.
+
+
+### Passieve preflight vóór zendproeven — 24 oktober
+
+De HA-specialist heeft alpha23/dev29, gelijke geaccepteerde SOURCE, ongewijzigde
+bindings en uitgeschakelde uitgangen opnieuw bevestigd, zonder configuratie- of
+apparaatopdrachten. De kamerbron blijft `profile_missing`; de TV02 meldt `auto`
+met `local_schedule_active`. Deze conflicten zijn niet automatisch gerepareerd.
+
+De oorspronkelijke producentbestanden zijn niet geïnstalleerd. De bestaande
+beheerroute toont de gedeelde Z2M-data, maar niet de werkelijk draaiende
+packagebestanden/loader. Er is geen alternatieve toegang of restart geprobeerd.
+Een afzonderlijke offline specialistreview controleert nu de exacte bronbundle:
+6/6 hashes onveranderd, 24 producenttests PASS, geen apparaatcommando in
+constructor/start/stop/berichtpad. Alleen bestaande inbound events kunnen een
+QoS0/niet-retained diagnosebericht op het eigen bridge-topic produceren; de
+apparatenlijsten zijn leeg. Dit bewijst niet de werkelijke loader/SDK of een
+installatie. De producentcode en tests zijn gelijk aan het geïnstalleerde
+release-Gitobject; de meegeleverde TV02-documentatie is de bijgewerkte tekst.
+
+Bewijs: `out/pre-tx-preparation-20261024/LIVE-PASSIVE-PREFLIGHT-REVIEW.json`,
+`PRODUCER-OFFLINE-INDEPENDENT-REVIEW.json` en `PRODUCER-BUNDLE-GIT-ATTESTATION.json`.
+De vervolggrens blijft een gecontroleerde ontvangst-/kraanproef en vervolgens
+installatiegebonden elektrische TX-/stopkwalificatie. Er is nog geen actieve
+bèta-GO; B04–B14 blijven open. Een geblokkeerde fysieke voorwaarde wordt niet
+opgelost door een trustvlag, sensorwissel of het vrijzetten van de TX-compileergrens.

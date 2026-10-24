@@ -10,9 +10,9 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
 | Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.24`, normale HTTPS-catalogusupdate en exacte ELF/web/nacontrole geslaagd |
-| Geïnstalleerde HA-integratie | `0.4.0.dev30`, via bestaande HA-agent met verse back-up/nacontrole |
-| Geleverde bron | E32 en HA `a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`; alle 82 HA-componentbestanden gelijk aan het E32-bronpakket en de installatie |
-| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; gezamenlijke passieve alpha24/dev30-release geleverd |
+| Geïnstalleerde HA-integratie | `0.4.0.dev31`, via bestaande HA-agent met verse back-up/nacontrole; één oorspronkelijke TV02-bron geregistreerd, ontvangst nog `WAITING` |
+| Geleverde bron | E32 `a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`; HA `92f5e2b189f4e3eb5bfa544fb41d206a1b9f3ec2`, alle 82 live componentbestanden gelijk aan het HA-pakket |
+| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; alpha24/dev30-bundel en HA dev31-ontvangstherstel geleverd; rapportpolicy-/klokcorrecties voor volgende bundel voorbereid |
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
@@ -20,8 +20,9 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
 met 213 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
-ELF/webidentiteit. Alle 82 HA-componentbestanden zijn ook met het E32-pakket
-vergeleken. Historische checkpoints en afgewezen kandidaten blijven bewaard;
+ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
+met het E32-pakket vergeleken. De latere HA-only dev31-fix is afzonderlijk met
+haar eigen publieke pakket, Git-bron en alle live hashes gecontroleerd. Historische checkpoints en afgewezen kandidaten blijven bewaard;
 geen bestaande tag of download is vervangen.
 
 **Afvinken:** `[x]` geldt alleen voor de genoemde software-/leveringsuitkomst.
@@ -45,9 +46,11 @@ verplichte fysieke of langere-termijnproeven ontbreken.
 - [x] Gezamenlijke passieve alpha24/dev30-bundel gepubliceerd en normaal geïnstalleerd; 82 HA-bestanden, nieuwe E32-boot, ELF/web/bron en behoud onafhankelijk gecontroleerd.
 
 Bewijs: `out/combined-release-evidence-20261023/FINAL-REVIEW.json` en deelreviews.
-De 1694 HA-tests horen bij die historische bron. De actuele alpha24/dev30-
+De 1694 HA-tests horen bij die historische bron. De gezamenlijke alpha24/dev30-
 levering heeft 2003 HA-checks zonder fout/skip en een afzonderlijk geïnstalleerde
-bron-/runtimecontrole in `out/combined-alpha24-dev30-20261024/`. Seriële stilte na de routereparatie is niet opnieuw fysiek
+bron-/runtimecontrole in `out/combined-alpha24-dev30-20261024/`. HA dev31 voegt
+het geteste graph-bronherstel toe met 2011 geslaagde HA-checks en afzonderlijk
+installatiebewijs in `out/ha-dev31-native-binding-20261024/`. Seriële stilte na de routereparatie is niet opnieuw fysiek
 opgenomen; correcte live HTTP-/assetroutering wel.
 
 ## 3. Alles wat voorbereid is, meenemen in de bèta
@@ -505,7 +508,7 @@ Alleen programma-ACK of beschikbaarheid van een entiteit sluit M2 niet.
 
 ## 7. Werkafspraken en bijwerken na iedere taak
 
-1. Eén actieve integratietak; gepubliceerde bron/tags en geïnstalleerde alpha23/dev29-basis intact laten.
+1. Eén actieve integratietak; bestaande gepubliceerde bron/tags en de per component vastgelegde geïnstalleerde basis intact laten.
 2. Per taak: broncommit, relevante testuitkomst, inventaris-ID en resterende acceptatie bijwerken. Geen vinkje zonder bijbehorend bewijs.
 3. Alles wat al voorbereid is behouden; onafgemaakte code zichtbaar beperkt houden. Geen nieuwe comfort-/leer-/P2-stage vóór M2.
 4. Grotere samenhangende release, geen tags/uploads/flashes per losse reparatie.
@@ -1590,3 +1593,34 @@ Bewijs: `out/original-report-policy-20261024/`. Deze bronwijzigingen worden
 gebundeld; geen nieuwe release/installatie. Actueel blijft alpha24/dev31 met één
 geregistreerde TV02-bron en oorspronkelijke ontvangst `WAITING`. B04/B05 blijven
 open voor echte bron-/acquisitie-/causale en fysieke kwalificatie.
+
+Volledige bron-CI `40073641234` op `a948bd806807e5c65e2ef56fcdc0809679d18831`
+is PASS: browser, native en alle drie ESP32-builds, bronreproductie en 2040
+HA-checks zonder fout/skip. De lokale opt-in MQTT-check slaagt in die CI met zijn
+fixture. Het gedownloade CI-pakket is onafhankelijk met alle 82 Git-bronbestanden
+en het echte JUnit-rapport vergeleken. Het hergebruikte dev31-nummer in dat
+CI-pakket is uitsluitend bouwbewijs en wordt niet over de bestaande release
+gepubliceerd of geïnstalleerd.
+
+Een afzonderlijke read-only controle om 07:20:18 UTC ziet nog één TV02-bron met
+`WAITING`, zonder actuele veldnamen/rapportleeftijd. Deze status bewaart geen
+levenslang ontvangsttotaal en bewijst geen afwezig Zigbeeverkeer. HA meldde ook
+`transport_status=rejected`, terwijl native E32-telemetrie actueel was. Dat is
+een apart te onderzoeken waarneming; geen bewezen configuratie-, lease- of
+apparaatfout. Het aansluitende read-only onderzoek bereikte zijn providertijdlimiet
+zonder eindrapport; eerst de al verzamelde resultaten en owned sessieafronding
+auditen, geen brede scan of configuratie-apply blind herhalen.
+
+De completion-audit heeft de reeds verzamelde native resultaten teruggevonden:
+laatste uitlezing 07:23:54.343 UTC `shadow_ready`, SOURCE/journal gelijk en niet
+gestaged, planhorizon geldig. Geen nieuwe live query of mutatie voor die audit;
+alle bekende eigen leessessies gesloten. De historische afwijzingsreden blijft
+`UNKNOWN`: de huidige HA-projectie bewaart alleen generiek `rejected`, niet de
+reply-specifieke reden. Een Recorder-read kwam terug maar de orkestratie meldde
+`history_parse_failed`; er is geen bewezen native Recorderfout of historie-export.
+Die route niet blind herhalen. Dit ondersteunt geen reparatie/apply of claim
+van een blijvende storing. Volgende gerichte bewijsstap is eerst het bestaande
+resultaatformaat controleren, of bij een volgende echte afwijzing de begrensde
+reply-specifieke diagnose vastleggen via de bestaande ontvanger. Geen extra
+client, watcher of fysieke opdracht. Auditbewijs: `TRANSPORT-SUMMARY.json` en
+`INDEPENDENT-TRANSPORT-REVIEW.json` in hetzelfde dossier.

@@ -23,6 +23,7 @@ De uitgebreide geleverde bundel staat in de [werkbordhistorie](WORKBOARD-HISTORI
 | Settings → EMS-apparaten | Per ontvangen afzender identiteit indien bekend, telegramtypen en entiteiten met waarde/kwaliteit/ouderdom; EN/NL, zoekfilter en behouden openklapstatus |
 | E32-klokbewaking | Verlopen grant/lease kan bij teruggaande klok niet herleven; ook diagnostische lezingen gecontroleerd |
 | HA-klokbewaking | Ongeldige/teruggaande monotone klok trekt sessie, wachtende opdrachten en bewijzen in; oude rechten herstellen niet door reconnect |
+| Herhalen na vertraagde verzending | Deadline/lease en SOURCE opnieuw controleren na wachten; geen herhaling van ingetrokken of vervangen opdrachten, geen heartbeat op verlopen sessie |
 | HA-opstart en annulering | Vroege fouten ruimen eigen resources op; een oude setup verwijdert geen nieuwe eigenaar |
 | Kamereditor | Te grote numerieke kraanmetadata wordt afgewezen zonder editorcrash |
 | Webnavigatie | Vertraagde pagina-antwoorden kunnen een nieuwere pagina niet overschrijven of oude scripts uitvoeren |
@@ -32,9 +33,11 @@ De uitgebreide geleverde bundel staat in de [werkbordhistorie](WORKBOARD-HISTORI
 **Gebouwd en getest, nog niet geïnstalleerd.** Broncheckpoint
 `34aa3e8b0525e41d0ae93e5afd299d59f238595f`: alle zeven CI-jobs geslaagd;
 2154 HA-tests op zowel Core 2026.10.2 als Core 2026.10.3, zonder fouten of skips.
-Bewijs: `out/ha-session-clock-20261024/FINAL-REVIEW.json`.
+Bewijs: `out/ha-session-clock-20261024/FINAL-REVIEW.json`. De aanvullende
+wachtrijfix heeft 13 nieuwe regressiegevallen; haar eigen bron-/test-/CI-bewijs staat
+in `out/retry-await-fence-20261024/FINAL-REVIEW.json`. Nog niet geïnstalleerd.
 
-Alle 23 voorbereide onderdelen met 244 bronverwijzingen blijven in de
+Alle 23 voorbereide onderdelen met 245 bronverwijzingen blijven in de
 [release-inventaris](BETA1-RELEASE-INVENTARIS.json). Bestaande regeling,
 supervisor, groepen/vloer/menger, historie/CSV, comfort en leren blijven behouden.
 Hun ontbrekende verbindingen en fysieke acceptatie staan op het werkbord.

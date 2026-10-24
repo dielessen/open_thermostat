@@ -18,7 +18,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 244 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 245 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
 met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
@@ -62,6 +62,7 @@ Een ontbrekende fysieke waarneming blokkeert onafhankelijk softwarewerk niet.
 | Settings → EMS-apparaten | Herkende afzenders, ontvangen product/versie, entiteiten, kwaliteit/ouderdom; EN/NL, zoekfilter en stabiele verversing | Samen verpakken en installeren |
 | E32-sessiebewaking | Verlopen rechten herleven niet bij teruggaande klok; ook diagnostische lezingen bewaakt | Samen verpakken en installeren |
 | HA-sessiebewaking | Ongeldige/teruggaande monotone klok trekt sessie en wachtende opdrachten in; reconnect herstelt geen oude rechten | Samen verpakken en installeren; herstel via nieuwe transportinstantie |
+| Betrouwbare herhaling na wachten | Iedere retry controleert opnieuw actuele tijd, lease, SOURCE en de oorspronkelijke wachtrijregistratie; ingetrokken/vervangen opdrachten worden overgeslagen | Samen verpakken en installeren |
 | HA-opstart en editor | Opruimen bij fouten/annulering, behoud van vervangende eigenaar, te grote kraanmetadata veilig afgewezen | Samen verpakken en installeren |
 | Webnavigatie en EMS-tabel | Late antwoorden overschrijven geen nieuwe pagina; bestaande rijen behouden en waarden gecontroleerd | Samen verpakken en installeren |
 | Actief keteltestplan | Nulmeting, voorwaarden, stopproef, begrensde vraag, naloop, afzonderlijke uitval en herstel beschreven | Fysieke voorwaarden en proef nog open |
@@ -70,6 +71,11 @@ Broncheckpoint `34aa3e8b0525e41d0ae93e5afd299d59f238595f`: alle zeven CI-jobs
 geslaagd, **2154 HA-tests op zowel Core 2026.10.2 als Core 2026.10.3**, zonder
 fouten of skips. Dit is softwarebewijs; geen nieuwe installatie of fysieke proef.
 Alle eerdere 23 onderdelen blijven behouden. Zie [releaseoverzicht](NEXT-RELEASE.nl.md).
+
+De aanvullende wachtrijfix is reproduceerbaar op de vorige bron en gedekt door
+13 nieuwe gevallen, inclusief wachten tot deadline/leaseverlies, afsluiten,
+vervangen, SOURCE-wijziging en teruggaande klok. Actuele test-/CI-uitkomst:
+`out/retry-await-fence-20261024/FINAL-REVIEW.json`. Nog niet geïnstalleerd.
 
 ### Pendelonderzoek — vastgesteld en nog onbekend
 
@@ -113,7 +119,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-244 bronverwijzingen met hashes, status en resterende acceptatie.
+245 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -269,7 +275,7 @@ Alleen programma-ACK of beschikbaarheid van een entiteit sluit M2 niet.
 | --- | --- |
 | [Volgende release](NEXT-RELEASE.nl.md) | Kort overzicht: geïnstalleerd, klaar voor bundel, open vervolg |
 | [Masterplan](PLAN.nl.md) | Alle 31 oorspronkelijke eisen en acceptatievoorwaarden |
-| [Release-inventaris](BETA1-RELEASE-INVENTARIS.json) | Alle 23 onderdelen en244gecontroleerde bronverwijzingen |
+| [Release-inventaris](BETA1-RELEASE-INVENTARIS.json) | Alle 23 onderdelen en245gecontroleerde bronverwijzingen |
 | [Keteltestplan](BETA1-KETELPROEF.nl.md) | Volgorde van toekomstige stop-/zend-/uitvalproeven |
 | [Pre-TX-kaart](ECOMLINE-PRE-TX-ACCEPTATIE.nl.md) | Nog benodigde installatiegegevens en fysieke voorwaarden |
 | [Installatieverslag](INSTALLATIE-HA36-ALPHA27-20261024.nl.md) | Werkelijk geleverde alpha27/dev36 en behoudsbewijs |

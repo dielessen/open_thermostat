@@ -1249,34 +1249,51 @@ class ShadowClient:
         await future # Only admitted fw/state confirms a target. Never store/replay commands.
 
     async def poll(self):
-        if self.closed:
+        async def current_time():
+            # A publish awaits the existing MQTT transport. Its completion may
+            # consume the budget, close this owner or change native SOURCE.
+            if self.closed:
+                return None
+            if not self.clock_current():
+                self.changed()
+                return None
+            if self.native_plan_source is not None and not self.native_source_current():
+                self.require_native_plan_review()
+                return None
+            now = self.clock()
+            if self.session and (now - self.last_rx >= 15
+                    or (self.lease_until and now >= self.lease_until)):
+                await self.async_disconnected()
+                return None
+            return now
+
+        if await current_time() is None:
             return
-        if not self.clock_current():
-            self.changed()
-            return
-        if self.native_plan_source is not None and not self.native_source_current():
-            self.require_native_plan_review()
-            return # No old exact-byte retry after SOURCE/registry/owner drift.
-        now = self.clock()
         for key, item in list(self.pending.items()):
+            now = await current_time()
+            if now is None:
+                return
+            if self.pending.get(key) is not item:
+                continue # An earlier await retired/replaced this snapshot row.
             if now >= item["deadline"] or now - item["sent"] >= 8 or item["tries"] >= 3:
                 self.pending.pop(key, None)
                 if item["future"] is not None and not item["future"].done():
                     item["future"].set_exception(HomeAssistantError("Shadow acknowledgement timed out; effect unknown"))
                 self.error = "ack_timeout_effect_unknown"
             elif now - item["last"] >= 2:
-                if not self.clock_current():
-                    self.changed()
-                    return
                 # Critical: exact original complete bytes, including original grant.
                 item["tries"] += 1
                 item["last"] = now
                 await self.send(item["topic"], item["raw"])
+        now = await current_time()
+        if now is None:
+            return
         if self.session and now < self.grant_until:
             if not any(k[0] == "fw/heartbeat_result" for k in self.pending):
                 await self.message("ha/heartbeat", "adapter", {})
-        if self.session and (now - self.last_rx >= 15 or (self.lease_until and now >= self.lease_until)):
-            await self.async_disconnected()
+        now = await current_time()
+        if now is None:
+            return
         self.changed()
 
     async def async_close(self):

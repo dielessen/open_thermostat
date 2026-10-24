@@ -31,6 +31,7 @@ jobs:
           node test/updates/browser.cjs
           node test/dashboard-browser.cjs
           node test/boiler-display-browser.cjs
+          node test/system-log-browser.cjs
           node test/ui-language-browser.cjs
           node test/boiler-test-browser.cjs
           node test/boiler-test-control-browser.cjs
@@ -125,6 +126,9 @@ jobs:
           /tmp/open-thermostat-onboarding-test
           g++ -std=c++17 -Wall -Wextra -Werror -Isrc -Itest/boiler_display/include test/boiler_display/firmware.cpp -o /tmp/open-thermostat-boiler-display-test
           /tmp/open-thermostat-boiler-display-test
+          g++ -std=c++17 -Wall -Wextra -I.pio/libdeps/native/esp32_utilities/src -c .pio/libdeps/native/esp32_utilities/src/logger/Logger.cpp -o /tmp/open-thermostat-vendor-logger.o
+          g++ -std=c++17 -Wall -Wextra -Werror -pthread -DOPENTHERMOSTAT_E32V2 -Isrc -Itest/logging_runtime/include -Itest/boiler_display/include -I.pio/libdeps/native/esp32_utilities/src -I.pio/libdeps/native/cJSON test/logging_runtime/main.cpp src/diagnostics/NativeLog.cpp /tmp/open-thermostat-vendor-logger.o .pio/libdeps/native/cJSON/cJSON.c -o /tmp/open-thermostat-logging-test
+          /tmp/open-thermostat-logging-test
           python -m unittest discover -s ha/tests -p 'test_*.py' -v
       - name: Build firmware
         if: matrix.environment != 'native'

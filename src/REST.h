@@ -21,6 +21,9 @@
 #endif
 #endif
 #include "Logging.h"
+#ifdef OPENTHERMOSTAT_E32V2
+#include "diagnostics/LogRuntime.h"
+#endif
 
 #include <esp_ota_ops.h>
 #include <esp_spi_flash.h>
@@ -155,6 +158,11 @@ public:
 		route("/hardware/test/gpio", HTTP_POST, [this]() { gpioTestStart(); });
 		route("/hardware/test/gpio", HTTP_DELETE, [this]() { gpioTestStop(); });
 		route("/config/debug", [this]() { configDebug(); });
+#ifdef OPENTHERMOSTAT_E32V2
+        route("/config/logging",[this] { loggingSettings(); });
+        route("/status/logs",HTTP_GET,[this] { systemLogs(); });
+        route("/logs/clear",HTTP_POST,[this] { diagnostics::runtime.log.clear();server_.send(200,"application/json","{}"); });
+#endif
 
 		route("/config/program/current", [this]() { configProgramCurrent(); }); // get selected program
 		route("/config/reboot", HTTP_POST, [this]() { configReboot(); });
@@ -917,6 +925,43 @@ private:
 		controller_.stopManualGpioTest();
 		server_.send(200, "text/plain", "OK");
 	}
+
+#ifdef OPENTHERMOSTAT_E32V2
+    void loggingSettings() {
+        if(server_.method()==HTTP_POST){
+            const auto body=server_.arg("plain");
+            const auto settings=diagnostics::parseSettings(std::string_view(body.c_str(),body.length()));
+            if(!settings){server_.send(400,"text/plain","Invalid logging settings");return;}
+            if(!diagnostics::runtime.save(*settings)){server_.send(503,"text/plain","Logging settings save could not be confirmed");return;}
+        }
+        if(!diagnostics::runtime.storageReady){server_.send(503,"text/plain","Logging settings unavailable");return;}
+        server_.send(200,"application/json",diagnostics::settingsJson(diagnostics::runtime.log.settings()).c_str());
+    }
+    void systemLogs() {
+        const auto afterText=server_.arg("after");uint64_t after=0;
+        if(afterText.length()>16){server_.send(400,"text/plain","Invalid log cursor");return;}
+        for(char c:afterText){if(c<'0'||c>'9'){server_.send(400,"text/plain","Invalid log cursor");return;}after=after*10+uint64_t(c-'0');}
+        if(after>9007199254740991ULL){server_.send(400,"text/plain","Invalid log cursor");return;}
+        auto& log=diagnostics::runtime.log;const auto stats=log.stats();
+        auto root=std::unique_ptr<cJSON,decltype(&cJSON_Delete)>(cJSON_CreateObject(),cJSON_Delete);
+        if(!root){server_.send(503);return;}
+        cJSON_AddNumberToObject(root.get(),"boot",diagnostics::runtime.boot);
+        cJSON_AddNumberToObject(root.get(),"latest",stats.latest);cJSON_AddNumberToObject(root.get(),"oldest",stats.oldest);
+        cJSON_AddNumberToObject(root.get(),"retained",stats.retained);cJSON_AddNumberToObject(root.get(),"overwritten",stats.overwritten);
+        cJSON_AddNumberToObject(root.get(),"truncated",stats.truncated);cJSON_AddNumberToObject(root.get(),"redacted",stats.redacted);
+        cJSON_AddNumberToObject(root.get(),"syslog_dropped",stats.syslogDropped);cJSON_AddNumberToObject(root.get(),"syslog_sent",stats.sent);
+        cJSON_AddNumberToObject(root.get(),"contention_dropped",stats.contention);
+        auto rows=cJSON_AddArrayToObject(root.get(),"records");diagnostics::Record record;
+        for(size_t i=0;i<diagnostics::SystemLog::PageSize&&log.next(after,record);++i){
+            auto row=cJSON_CreateObject();cJSON_AddItemToArray(rows,row);
+            cJSON_AddNumberToObject(row,"sequence",record.sequence);cJSON_AddNumberToObject(row,"uptime_ms",record.uptimeMs);
+            cJSON_AddNumberToObject(row,"level",record.level);cJSON_AddStringToObject(row,"feature",record.feature.data());cJSON_AddStringToObject(row,"message",record.text.data());after=record.sequence;
+        }
+        auto text=std::unique_ptr<char,decltype(&cJSON_free)>(cJSON_PrintUnformatted(root.get()),cJSON_free);
+        if(!text){server_.send(503);return;}
+        server_.send(200,"application/json",text.get());
+    }
+#endif
 
 	void configDebug() {
 		DBGLOGFD(log_, logFeature_, "configDebug METHOD %d\n", server_.method());

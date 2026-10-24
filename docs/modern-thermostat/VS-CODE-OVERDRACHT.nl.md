@@ -6,10 +6,16 @@ Bijgewerkt 24 oktober 2026 na de native TV02-ontvangst/lifecycle.
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   171 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   196 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
+
+**Nieuwe gebruikersaanvulling:** E32-systeemlog + RFC5424 UDP-syslog voorbereid
+voor dezelfde grotere bèta. Zie [LOGGING.nl.md](LOGGING.nl.md): 32-regels RAM,
+aparte web-/syslogniveaus, filters/pauze/download/lokaal wissen, NVS-readback,
+begrensde wachtrij en native Arduino/ESP-IDF-capture. Geen nieuwe live bestemming
+of installatie. Bron/testbewijs: `out/logging-20261024/`.
 
 **Eerstvolgende uitvoering:** de oorspronkelijke TV02-ontvangstkern én native
 MQTT-/registry-lifecycle staan in de bètabron en slagen in 222 gerichte HA-checks.

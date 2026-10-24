@@ -15,6 +15,11 @@
 #include <logger/Logger.h>
 #include <logger/LoggerSerialSink.h>
 #include <logger/LoggerSocketSink.h>
+#ifdef OPENTHERMOSTAT_E32V2
+#include "diagnostics/LogRuntime.h"
+#include "diagnostics/BufferedLogger.h"
+#include "diagnostics/NativeLogCapture.h"
+#endif
 
 #include "config.h"
 #include "Filesystem.h"
@@ -219,10 +224,24 @@ void setup() {
 		Serial.printf("Local setup WiFi password: %s\nHTTP admin password: %s\nType setup + Enter over USB to reboot into WiFi-only setup for 15 minutes.\n",heating::deviceAccess.setupPassword().c_str(),heating::deviceAccess.password().c_str());
 	}
 #endif
+#ifdef OPENTHERMOSTAT_E32V2
+    heating::diagnostics::runtime.begin();
+    heating::logger = std::make_shared<heating::diagnostics::BufferedLogger>(
+        std::vector<std::shared_ptr<ib::logger::LoggerSinkInterface>>{
+            std::make_shared<ib::logger::LoggerSerialSink>(ib::logger::LoggerInterface::LogLevel::TRACE)},
+        heating::diagnostics::runtime.log,heating::diagnostics::uptimeMs);
+#else
 	heating::logger = std::make_shared<ib::logger::Logger>(
 		std::vector<std::shared_ptr<ib::logger::LoggerSinkInterface>>{
 			std::make_shared<ib::logger::LoggerSerialSink>(ib::logger::LoggerInterface::LogLevel::TRACE)});
+#endif
+#ifdef OPENTHERMOSTAT_E32V2
+    heating::diagnostics::installNativeLogCapture();
+#endif
 	DBGLOGFI(heating::logger, appLogFeature(), "Free memory %d/%d (minimum was: %d) MaxAlloc: %d STARTUP\n", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap());
+#ifdef OPENTHERMOSTAT_E32V2
+    DBGLOGFI(heating::logger,appLogFeature(),"Reset reason: %d; recent logs are RAM-only\n",int(esp_reset_reason()));
+#endif
 
 #ifndef OPENTHERMOSTAT_E32V2
 	pinMode(ONBOARD_LED, OUTPUT);
@@ -339,6 +358,11 @@ void loop() {
 	}
 
 	heating::controller->loop();
+#ifdef OPENTHERMOSTAT_E32V2
+    // At most one nonblocking UDP datagram per 100 ms, after controller work.
+    static const auto logHostname=config::getNetworkConfig().hostname;
+    heating::diagnostics::runtime.poll(heating::networkConnected()&&!heating::wifiAPMode,logHostname.c_str());
+#endif
 
 #ifdef OPENTHERMOSTAT_E32V2
 	if (heating::wifiAPMode || heating::networkConnected()) {

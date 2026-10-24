@@ -95,6 +95,7 @@ EMS-ESP-velddekking of ondersteuning voor iedere ketel/converter.
 | Uitleg waarom er vraag is | Regelstatus en redenen voor warmtevraag of blokkering zien | **Beschikbaar als diagnosebasis**; echte opdracht-/reactietijdlijn volgt |
 | Grafieken, historie en CSV | Temperatuur, vraag, brander/modulatie en tapwater over tijd analyseren | Metrics-/opslag-/exportcode **voorbereid**; volledige actuele productroute nog afronden |
 | Verbruik, kosten en comfort | Metergegevens en duidelijk gelabelde schattingen combineren | **Deels voorbereid**; echte bronnen/kalibratie en presentatie volgen |
+| Systeemlog en syslog | Recente E32-logregels bekijken/filteren/downloaden; langer bewaren op een eigen RFC5424 UDP-collector | **Voorbereid voor volgende bèta**; [gebruik en grenzen](docs/modern-thermostat/LOGGING.nl.md) |
 | Meldingen en onderhoud | Diagnose-, batterij- en foutinformatie benutten | Basis **aanwezig**; complete scenario’s en meldingen nog afronden |
 | Lokaal en open | Eigen broncode, lokale E32 en koppeling via lokale MQTT-broker; geen verplichte thermostaatcloud | **Beschikbaar**; via HA gekoppelde apparaten blijven afhankelijk van HA/MQTT |
 | Beheer en updates | Weblogin, About, uitloggen, herstarten onder Settings, HTTPS-updater en herstelroutes | **Beschikbaar**; normale update behoudt instellingen |

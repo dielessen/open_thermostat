@@ -52,7 +52,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-171 bronverwijzingen met hashes, status en resterende acceptatie.
+196 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -69,7 +69,7 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | I08 | Actieve sensor/TRV/grenzen wijzigen, bewaren en opnieuw toepassen | Geleverde softwarebasis | Alleen normale expliciete save; geen live apparaatwissel tijdens installatie bewezen. |
 | I09 | HA-kaart registreren na opstart, zonder herhaald refreshen | Geleverde softwarebasis | Drie echte koude HA-sessies bewezen; versiegebonden module behouden. |
 | I10 | Kamernamen op E32 en juiste statische webroutes | Geleverde softwarebasis | Badkamer live bevestigd; geen nieuwe seriële opname van de logstilte. |
-| I11 | Meetstatus en geheugen-/toelatingsdiagnose | Geleverd inclusief observer-lifecycle/bronidentiteit | Vervangen/intrekken en native bron-/apparaatwissel trekken oude kwalificatie in; pending transport wordt opnieuw gecontroleerd. Productieprofiel blijft open. |
+| I11 | Meetstatus, systeemlog en geheugen-/toelatingsdiagnose | Observer-lifecycle/bronidentiteit geleverd; web/syslog voorbereid | Vervangen/intrekken en native bron-/apparaatwissel trekken oude kwalificatie in; pending transport wordt opnieuw gecontroleerd. Productieprofiel blijft open. |
 | I12 | Passieve Classic-decoder en Classic-proefencoder | Decoder en geblokkeerde encoder geleverd | Vast 0x1A-flow/nulformaat gebouwd; beoordeelde bronadressering, fysieke UART-/stopkwalificatie en ontvangstpariteit blijven open. |
 | I13 | Ketencontract, SOURCE, journal, configuratie en readback | Geleverde softwarebasis | Logische provisioning/programma-ACK werkt; verse fysieke meet- en actuatorbewijzen ontbreken. |
 | I14 | Kraanadapter profiel C, TV02-moduscontrole en bronbench | Modus-/identiteitscontrole geleverd; fysieke route nog onvolledig | Native identiteit en doelcapaciteit vlak vóór dispatch opnieuw gecontroleerd; TV02 auto/vakantie/uit/onbekend zichtbaar en vóór doelactie geweigerd. Verse kraanecho, exclusief eigenaarschap en fysieke werking blijven open; oude bench op SOURCE geblokkeerd. |
@@ -123,7 +123,7 @@ de code afgetekend. De oorspronkelijke acceptatie in PLAN §4/§14 blijft gelden
 | R24 | Uitval HA/MQTT/sensor/E32 | Lease/session/boot/stale/owner-guards aanwezig | I11,I13,I15,I23 | Werkelijke uitvalmatrix, E32-powerloss/ketelstop, actuatorfallback en exclusieve overdracht. |
 | R25 | Waarom stoken | Redencodes, kamervraag en dashboard geleverd; diagnose uitgebreid | I10,I11,I15,I17,I21,I23 | Echte opdrachtentijdlijn en gecontroleerde vraag/verzending/ketelreactie apart zichtbaar. |
 | R26 | Verbruik/kosten/comfort | Metrics/export/schatlabels gedeeltelijk aanwezig | I17 | Echte gas-/warmtemeter en kostenbron/kalibratie; geen verzonnen besparing of fysiek gasvolume. |
-| R27 | Meldingen/onderhoud/batterij | Diagnostics/Repairs en batterijblueprintbasis aanwezig | I20 | Passende meldingen en echte fout-/batterij-/geen-responsscenario’s; geen automatische ketelreset. |
+| R27 | Meldingen/onderhoud/batterij | Diagnostics/Repairs en batterijbasis aanwezig; systeemlog/syslog voorbereid | I11,I20 | Passende meldingen en echte fout-/batterij-/geen-responsscenario’s; geen automatische ketelreset. |
 | R28 | Open/lokaal/veilig/herstelbaar | Eigen bron, auth, HTTPS-updates en behoud/rollback deels live bewezen | I01–I04,I08,I23 | Concrete ACL/HTTP/AP-/koude herstel-/uitvalmatrix; oorspronkelijke backupwaiver blijft geldig. |
 | R29 | Modern eenvoudig scherm | HA-kamer/week, koude-startfix, E32-dashboard/About/navigatie geleverd | I05–I11,I21,I23 | Ontbrekende centrale/uitvoerfuncties en complete gebruikersacceptatie; echte latentie/geen ongefundeerde speedup. |
 | R30 | Schaalbaar/onderhoudbaar | CI/build/source-/budgetguards en 1–2 native kamers aanwezig | I01,I03,I11,I13 | Acht zones zijn productdoel: maximumconfig/heap/NVS/powerloss/72u nog open. |
@@ -921,3 +921,30 @@ actuele bron gebouwd en een tijdelijke localhost-MQTT-broker. Brokerafwezigheid
 na afloop onafhankelijk gecontroleerd. De 222 gerichte checks zijn hierin
 inbegrepen. Geen fysieke kraan-/ketelproef of nieuwe productie-installatie.
 Bewijs: `out/tv02-lifecycle-20261024/HA-ACCEPTANCE.xml` en `BROKER-FINAL.json`.
+
+
+### Gebruikersaanvulling — systeemlog in webinterface en instelbare syslog
+
+- [x] Bron voorbereid: 32-regels RAM-log, niveaus/modulefilter, pauzeren,
+  tekstdownload en lokaal wissen; Nederlandse/Engelse webinterface.
+- [x] Eigen persistente instellingen met NVS-commit/readback; standaard geen
+  externe bestemming. RFC5424/UDP, IPv4, poort, apart web-/syslogniveau en
+  optionele INFO-markeringen. Geen logschrijfacties naar flash.
+- [x] Gewone applicatie-, Arduino- en ESP-IDF-logs aangesloten; native USB-uitvoer
+  behouden. Begrensde niet-blokkerende capture, afscherming en verliescounters.
+- [x] Bronopname toegevoegd aan I11; bestaande meet-/regelbronkwalificatie niet
+  omzeild. Instellingen houden bestaande auth/CSRF/methode-/update-/proefguards.
+- [ ] Exacte gezamenlijke release verifiëren/installeren en ontvangst op een door
+  de gebruiker gekozen collector plus lange runtime-/heap-/stackbelasting bewijzen.
+
+Gebruik en beperkingen: [LOGGING.nl.md](LOGGING.nl.md). Deze functie gaat mee in
+de grotere bètabatch; er is hiervoor geen losse kleine release of live server-
+/configuratiewijziging uitgevoerd. B04–B14 blijven voor de actieve bèta gelden.
+
+
+Loggingbatch — bronverificatie: 573 native gevallen (18 nieuw), echte firmware-
+logger/NVS/native hooks en loopback-UDP onder ASan/UBSan/leakcontrole PASS;
+4 NL/EN logging-browserprofielen, 4 bestaande modelkeuzeprofielen, 4 bestaande
+UI-taalprofielen en 46 bestaande webunitchecks PASS. Generieke ESP32/S3-builds
+PASS; E32-build/layout/no-TX/ingebedde assets PASS vóór bronfreeze. Deze bewijzen
+zijn geen live collector-/RAM/stack-/duurlastacceptatie of bèta-vrijgave.

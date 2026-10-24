@@ -1,0 +1,139 @@
+#pragma once
+#include <algorithm>
+#include <array>
+#include <atomic>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <mutex>
+#include <string>
+#include <string_view>
+
+namespace heating::diagnostics {
+struct Settings {
+    bool enabled = false;
+    std::array<char,16> server{};
+    uint16_t port = 514;
+    uint8_t syslogLevel = 3, webLevel = 3;
+    uint32_t markSeconds = 0;
+};
+inline bool ipv4(std::string_view text) {
+    unsigned parts[4]{}, index=0, digits=0;
+    for (char c:text) {
+        if (c=='.') { if(!digits || index==3) return false; ++index; digits=0; }
+        else if(c>='0'&&c<='9') { if(digits==1&&parts[index]==0)return false; if(++digits>3) return false; parts[index]=parts[index]*10+unsigned(c-'0'); if(parts[index]>255)return false; }
+        else return false;
+    }
+    return index==3 && digits && parts[0]>0 && parts[0]<224;
+}
+inline bool valid(const Settings& s) {
+    const auto end=std::find(s.server.begin(),s.server.end(),'\0');
+    if(end==s.server.end() || !s.port || s.webLevel>5 || s.syslogLevel>5 || s.markSeconds>86400) return false;
+    const std::string_view host(s.server.data(),size_t(end-s.server.begin()));
+    return (host.empty() ? !s.enabled : ipv4(host));
+}
+struct Record {
+    uint64_t sequence=0, uptimeMs=0;
+    uint8_t level=0;
+    std::array<char,17> feature{};
+    std::array<char,193> text{};
+};
+struct Stats {
+    uint64_t latest=0, oldest=0, overwritten=0, truncated=0, redacted=0;
+    uint64_t syslogDropped=0, sent=0, contention=0;
+    size_t retained=0, pending=0;
+};
+inline bool sensitive(std::string_view text) {
+    // Whole-message suppression: do not attempt to parse partially formatted
+    // credential/config payloads or expose a secret before its label.
+    const auto lower=[](char c){return c>='A'&&c<='Z'?char(c+32):c;};
+    for(std::string_view key:{"password","passwd","authorization","cookie","csrf","token","secret","ssid","username","payload","credential","bearer","api_key","apikey","body","://","{", "networkconfig", "mqttconfig"}) {
+        if(key.size()>text.size())continue;
+        for(size_t i=0;i+key.size()<=text.size();++i)
+            if(std::equal(key.begin(),key.end(),text.begin()+i,[&](char a,char b){return a==lower(b);}))return true;
+    }
+    return false;
+}
+class SystemLog {
+public:
+    static constexpr size_t Capacity=32, QueueCapacity=8, PageSize=8;
+    void configure(const Settings& settings) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        settings_=settings;
+        stats_.syslogDropped+=queued_;
+        queued_=0; head_=0;
+    }
+    Settings settings() const { std::lock_guard<std::mutex> lock(mutex_); return settings_; }
+    void append(uint8_t level,std::string_view feature,std::string_view text,uint64_t uptime,bool truncated=false) {
+        if(!level || level>5) return;
+        std::unique_lock<std::mutex> lock(mutex_,std::try_to_lock);
+        if(!lock.owns_lock()) { ++contention_; return; }
+        const bool web=level<=settings_.webLevel;
+        const bool remote=settings_.enabled&&level<=settings_.syslogLevel;
+        if(!web&&!remote) return;
+        Record record; record.sequence=++stats_.latest;record.uptimeMs=uptime;record.level=level;
+        const bool redact=truncated||sensitive(text)||sensitive(feature);
+        if(redact) { text="[sensitive log content omitted]";feature="Log";++stats_.redacted; }
+        auto copy=[](auto& dest,std::string_view source) {
+            size_t n=0;bool escaped=false;
+            for(char c:source) {
+                if(c==27){escaped=true;continue;}
+                if(escaped){if(c>='@'&&c<='~'&&c!='[')escaped=false;continue;}
+                if(n+1==dest.size())break;
+                dest[n++]=(c>=32&&c<=126)?c:' ';
+            }
+            while(n&&dest[n-1]==' ')--n;
+            dest[n]='\0';
+        };
+        if(truncated || text.size()>=record.text.size()) ++stats_.truncated;
+        copy(record.feature,feature);copy(record.text,text);
+        if(web) {
+            if(count_==Capacity) { start_=(start_+1)%Capacity;--count_;++stats_.overwritten; }
+            records_[(start_+count_++)%Capacity]=record;
+        }
+        if(remote) {
+            if(!connected_)++stats_.syslogDropped;
+            else if(queued_==QueueCapacity)++stats_.syslogDropped;
+            else queue_[(head_+queued_++)%QueueCapacity]=record;
+        }
+    }
+    bool next(uint64_t after,Record& out) const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        for(size_t i=0;i<count_;++i) {const auto& r=records_[(start_+i)%Capacity];if(r.sequence>after){out=r;return true;}}
+        return false;
+    }
+    bool pop(Record& out,Settings& settings) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if(!queued_)return false;
+        out=queue_[head_];head_=(head_+1)%QueueCapacity;--queued_;settings=settings_;return true;
+    }
+    void online() {std::lock_guard<std::mutex> lock(mutex_);connected_=true;}
+    void offline() {std::lock_guard<std::mutex> lock(mutex_);connected_=false;stats_.syslogDropped+=queued_;queued_=0;head_=0;}
+    void noteContention(){++contention_;}
+    void sent(bool success) {std::lock_guard<std::mutex> lock(mutex_);if(success)++stats_.sent;else ++stats_.syslogDropped;}
+    void clear() {std::lock_guard<std::mutex> lock(mutex_);start_=count_=0;}
+    Stats stats() const {
+        std::lock_guard<std::mutex> lock(mutex_);auto s=stats_;s.retained=count_;s.pending=queued_;
+        s.oldest=count_?records_[start_].sequence:0;s.contention=contention_.load();return s;
+    }
+private:
+    mutable std::mutex mutex_;
+    Settings settings_;
+    bool connected_=true; // Standalone core tests inject availability; firmware begins offline.
+    std::array<Record,Capacity> records_{};
+    std::array<Record,QueueCapacity> queue_{};
+    size_t start_=0,count_=0,head_=0,queued_=0;
+    Stats stats_;
+    std::atomic<uint32_t> contention_{0};
+};
+inline std::string rfc5424(const Record& record,std::string_view hostname) {
+    char host[65]{};size_t n=0;
+    for(char c:hostname) {if(n==64)break;host[n++]=(c>32&&c<127)?c:'_';}
+    if(!n)std::strcpy(host,"openthermostat");
+    const unsigned severity=record.level==1?3:record.level==2?4:record.level==3?6:7;
+    char message[512]{};
+    std::snprintf(message,sizeof(message),"<%u>1 - %s openthermostat - - - uptime_ms=%llu seq=%llu [%s] %s",
+        16*8+severity,host,(unsigned long long)record.uptimeMs,(unsigned long long)record.sequence,record.feature.data(),record.text.data());
+    return message;
+}
+} // namespace heating::diagnostics

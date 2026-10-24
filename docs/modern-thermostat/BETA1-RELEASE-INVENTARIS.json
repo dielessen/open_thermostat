@@ -60,7 +60,7 @@
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
-          "sha256": "923404b6c6844c04853b34349491dbdb142a56e39cb5dee106230800cb52d7e7"
+          "sha256": "208b9caf3f0bbbec14650e94c2bf19efaa7c60db35de778a6a79d95eac60d4f1"
         },
         {
           "path": "data/html/auth-client.js",
@@ -110,7 +110,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "2ec2510996a273bea4777d7a049ca470477da0f2ef01233e7c80b2d3c476fdb5"
+          "sha256": "d90dffdec0f8423230d09ab58dbc3cc1cf9cffd942040c4a77f7fc6a3fc84461"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -130,7 +130,7 @@
         },
         {
           "path": "data/html/index.html",
-          "sha256": "62222490e37d7a3856f6a2a0c7763bdabb075ff5d83b4f830d83f2d11fdecb29"
+          "sha256": "2c06bb8be08112b3d0b642de8647cb10e56ed97e60891b51c6dee858612e0c24"
         },
         {
           "path": "data/html/device-restart.js",
@@ -166,7 +166,7 @@
         },
         {
           "path": "platformio.ini",
-          "sha256": "95b45f52f2787482c850b5e02fb2495a138b1250087889ae1dd7fa51b8f25e71"
+          "sha256": "81b14ea09d02d2f91ee9de89b4f014326e938e0d69e3b9719341dc32cd74d8f8"
         },
         {
           "path": "data/html/curve.html",
@@ -278,7 +278,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "857b6bd515005386afa44cb3b78b258ae2626f4b80d9775798ffbe1705cfb356"
+          "sha256": "3eee2ce1e135dc60c68e6375707bc51f103729a301b1a4a3c112b303cf91c8a3"
         },
         {
           "path": "data/html/ui-language.js",
@@ -430,21 +430,24 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "332ce3469450af745dcf70f0ae36a6dc81b7d98337d069322f7a10d40e1a6055"
+          "sha256": "09889d2535f4385797a81d9218bb27e99a8a151827afee9439f720d44e543b1d"
         }
       ],
       "remaining_acceptance": "Badkamer live bevestigd; geen nieuwe seriële opname van de logstilte."
     },
     {
       "id": "I11",
-      "title": "Meetstatus en geheugen-/toelatingsdiagnose",
+      "title": "Meetstatus, systeemlogging en geheugen-/toelatingsdiagnose",
       "status": "Geleverd inclusief observer-lifecycle/bronidentiteit",
       "include_in_beta": true,
       "requirements": [
         "R03",
         "R24",
         "R25",
-        "R30"
+        "R30",
+        "R27",
+        "R28",
+        "R29"
       ],
       "files": [
         {
@@ -498,9 +501,109 @@
         {
           "path": "ha/tests_native/test_original_temperature.py",
           "sha256": "198ed600d442c36e492468eb70b3b2ebc17efdcdbef637142a1c37a15c2d241d"
+        },
+        {
+          "path": ".github/workflows/build.yml",
+          "sha256": "d90dffdec0f8423230d09ab58dbc3cc1cf9cffd942040c4a77f7fc6a3fc84461"
+        },
+        {
+          "path": "platformio.ini",
+          "sha256": "81b14ea09d02d2f91ee9de89b4f014326e938e0d69e3b9719341dc32cd74d8f8"
+        },
+        {
+          "path": "src/main.cpp",
+          "sha256": "6dfbacc592a78353ba47374d903d46dcba25975998055a8f34c5d8419959829d"
+        },
+        {
+          "path": "src/REST.h",
+          "sha256": "09889d2535f4385797a81d9218bb27e99a8a151827afee9439f720d44e543b1d"
+        },
+        {
+          "path": "src/control/HttpAccessPolicy.h",
+          "sha256": "208b9caf3f0bbbec14650e94c2bf19efaa7c60db35de778a6a79d95eac60d4f1"
+        },
+        {
+          "path": "data/html/index.html",
+          "sha256": "2c06bb8be08112b3d0b642de8647cb10e56ed97e60891b51c6dee858612e0c24"
+        },
+        {
+          "path": "data/html/ui-messages.js",
+          "sha256": "3eee2ce1e135dc60c68e6375707bc51f103729a301b1a4a3c112b303cf91c8a3"
+        },
+        {
+          "path": "data/html/system-log.js",
+          "sha256": "2836a019177b9a2edacecd56b075573ea3bda547bedf5603e2a846385aaa8d94"
+        },
+        {
+          "path": "data/html/system_log.html",
+          "sha256": "e05fb0f40dc6dcdbbda4418a89548d555634812bd7f6e990fa00def1e59c7525"
+        },
+        {
+          "path": "test/test_native/test_system_log.cpp",
+          "sha256": "2848dfa0d49caa66c8d68cd57cb5f4c442d0da94edc2c8056aac76571b8b70a9"
+        },
+        {
+          "path": "test/system-log-browser.cjs",
+          "sha256": "57516e82d6735e96bd402ede048337626b68e2a58b389131d5c9f62deb98f814"
+        },
+        {
+          "path": "docs/modern-thermostat/LOGGING.nl.md",
+          "sha256": "0ee521d1d215fd05efdebb6d05071ded6dc05ff8c0c6bfe71f34f0ff5dbadf70"
+        },
+        {
+          "path": "src/diagnostics/BufferedLogger.h",
+          "sha256": "9c37bac2d86a3e41f85cdf4bc1065aa058df3c111cab082167d2804e336a54fb"
+        },
+        {
+          "path": "src/diagnostics/LogRuntime.h",
+          "sha256": "ed1718f58816a87c9ffb6f28aa061be1a531ded6bc582673e715df7d42b78bd1"
+        },
+        {
+          "path": "src/diagnostics/LogSettings.h",
+          "sha256": "27b29da933ecf09805963719ae53a8582caff13342762392af2f1ec1e8782db3"
+        },
+        {
+          "path": "src/diagnostics/LogStorage.h",
+          "sha256": "67b5634246b6d586422b581651b9a2426eda561bf6201ff089c93e59a3d5102e"
+        },
+        {
+          "path": "src/diagnostics/NativeLog.cpp",
+          "sha256": "916d155911378caa77c32da452dd31d4d745944e5cca38e1ea01093f81ed6486"
+        },
+        {
+          "path": "src/diagnostics/NativeLogCapture.h",
+          "sha256": "b459a188d08ab208a656d747ade01340ba99f0e714dd77ca4671f10d14c86c7e"
+        },
+        {
+          "path": "src/diagnostics/SystemLog.h",
+          "sha256": "aa8e1bb3c5000b8a103fd0f80428f424bc67af70cbd8cc50916ff49d2396efa9"
+        },
+        {
+          "path": "test/logging_runtime/include/esp_log.h",
+          "sha256": "172955e08be0ed400c6505d56580624237a3ceb1d7b591d2c58910b0d7ab7b61"
+        },
+        {
+          "path": "test/logging_runtime/include/esp_system.h",
+          "sha256": "967c85281f1c0e86e28cda73e0be6d97dc34664ce89ed178d8924ef45307c3b1"
+        },
+        {
+          "path": "test/logging_runtime/include/esp_timer.h",
+          "sha256": "885e32a4d8d8d250b48fd1d36e531c3dc3e2757797175bce8ad42831eadd2022"
+        },
+        {
+          "path": "test/logging_runtime/include/lwip/inet.h",
+          "sha256": "10d2d031ee443b5a280b717953bdd7d277015c8e1249a8e5e1563d07ed1b4ab9"
+        },
+        {
+          "path": "test/logging_runtime/include/lwip/sockets.h",
+          "sha256": "05d018c04425a5cc6a819c104147f774b4bdc8a1b1acf87afa1b91826e2443c6"
+        },
+        {
+          "path": "test/logging_runtime/main.cpp",
+          "sha256": "2589f2909a2f7e11a6289d02783e0e1675545eadc214e44eafcdfc6730cd2972"
         }
       ],
-      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele metingsherkomst blijven open. Originele WSDCGQ11LM-eventproducer voorbereid met 11 Node-tests; niet geïnstalleerd. Native HA-ontvanger en room-status gebouwd/getest, zonder QualifiedReport; echte acquisitie-/ouderdomsvalidatie en fysieke bronkwalificatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten."
+      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele metingsherkomst blijven open. Originele WSDCGQ11LM-eventproducer voorbereid met 11 Node-tests; niet geïnstalleerd. Native HA-ontvanger en room-status gebouwd/getest, zonder QualifiedReport; echte acquisitie-/ouderdomsvalidatie en fysieke bronkwalificatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten. Web-/native systeemlog en RFC5424 UDP-syslog voorbereid; productie-installatie/collectorontvangst en lange heap-/stack-/belastingproef open. Geen fysieke regelautorisatie."
     },
     {
       "id": "I12",
@@ -971,7 +1074,7 @@
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
-          "sha256": "923404b6c6844c04853b34349491dbdb142a56e39cb5dee106230800cb52d7e7"
+          "sha256": "208b9caf3f0bbbec14650e94c2bf19efaa7c60db35de778a6a79d95eac60d4f1"
         },
         {
           "path": "src/update/ReleasePolicy.h",

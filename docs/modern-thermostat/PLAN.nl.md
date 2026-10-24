@@ -1021,3 +1021,12 @@ Startadvies: M2 uit §1 met **één eenvoudig bereikbare radiatorzone met losse 
 - Projectregister en dagnotitie behouden eerdere fysieke open punten; dit plan is de leidende bron voor **nieuwe productontwikkeling**, niet een overschrijving van historische testresultaten.
 
 **Definitie van klaar:** niet dat de firmware compileert, een kaart verschijnt of een commando geaccepteerd is. Klaar voor een fase betekent dat haar expliciete software-, fysieke en/of langere-termijnproeven met reproduceerbaar bewijs geslaagd zijn. Anders blijft die fase `in_progress` of `blocked`.
+
+
+## Aanvulling Mark 24 oktober — systeemlogging en externe bewaring
+
+De grotere bètabatch bevat een web-logweergave en instelbare syslogserver voor
+langere bewaring, met aparte logniveaus, filters/export en begrensde RAM-/UDP-
+buffers. De bestaande netwerk-, MQTT-, NTP-/tijdzone- en update-instellingen
+blijven behouden. Specificatie en bewaarbeperkingen: [LOGGING.nl.md](LOGGING.nl.md).
+Deze diagnosefunctie kwalificeert geen fysieke meet-/kraan-/ketelketen.

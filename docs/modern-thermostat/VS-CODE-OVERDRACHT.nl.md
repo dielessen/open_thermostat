@@ -1,64 +1,57 @@
 # OpenThermostat — actuele overdracht
 
-Bijgewerkt 24 oktober 2026 na de native TV02-ontvangst/lifecycle.
+Bijgewerkt 24 oktober 2026 na geleverde alpha23/dev29 en de publicatiemetadatareparatie.
 
 1. Lees [WORKBOARD](WORKBOARD.nl.md): de enige actuele afvinklijst met alle 31
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   196 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   200 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
 
-Voorbereide gezamenlijke kandidaat: alpha23/dev29 (TV02-ontvangstweergave,
-systeemlog/syslog en incrementeel dashboard). Nog niet geïnstalleerd.
-Bewijs en actuele releasecontroles: `out/next-release-20261024/`.
+**Geïnstalleerd en onafhankelijk gecontroleerd:** E32 alpha23 + HA dev29, beide
+bron `5f31dd780a5b98d81048f9d592f8209e657d7305`. Publicatiebeheer/capaciteitscorrectie
+staat aanvullend op `aaeba7d`; dit verandert de geïnstalleerde firmwarebytes niet.
+Bewijs: `out/next-release-20261024/LIVE-INDEPENDENT-REVIEW.json`.
 
-**Nieuwe gebruikersaanvulling:** E32-systeemlog + RFC5424 UDP-syslog voorbereid
-voor dezelfde grotere bèta. Zie [LOGGING.nl.md](LOGGING.nl.md): 32-regels RAM,
-aparte web-/syslogniveaus, filters/pauze/download/lokaal wissen, NVS-readback,
-begrensde wachtrij en native Arduino/ESP-IDF-capture. Geen nieuwe live bestemming
-of installatie. Bron/testbewijs: `out/logging-20261024/`.
+De gezamenlijke batch levert systeemlog/optionele syslog, incrementeel dashboard
+en oorspronkelijke TV02-ontvangst/lifecycle plus NL/EN-weergave. De module draait
+na één normale app-only HTTPS-update; HA is via de bestaande specialist met een
+verse scoped back-up en één Core-herstart geplaatst. Alle 80 HA-bestanden en de
+running-ELF/web/source-hashes komen overeen met de openbare onveranderlijke tag.
 
-**Eerstvolgende uitvoering:** de oorspronkelijke TV02-ontvangstkern én native
-MQTT-/registry-lifecycle staan in de bètabron en slagen in 222 gerichte HA-checks.
-De standaard bronpins zijn leeg; fabrikant/endpoint worden niet geraden of uit het
-eerste bericht overgenomen. Bronpins/extensioninstallatie, echte ontvangst,
-causale doelkoppeling en fysieke kraanproef zonder ketel blijven open. De huidige
-frontend toont de room/get-ontvangstsamenvatting nu in de voorbereide dev28/v28-kandidaat. Geen nieuwe
-installatie of fysieke regelvrijgave; zie ORIGINAL-TV02-REPORTS.nl.md en WORKBOARD.
-De oudere broncheckpoints hieronder zijn historische onderbouwing.
+Systeemlog is echt uitgelezen: 32 RAM-regels, beschermde GET-routes HTTP 200, niveaus/
+filter/pauze/download en native Arduino/IDF-capture. Syslog staat uit zonder
+bestemming. Collector-/lange heap-/stackproeven blijven open: zie LOGGING.nl.md.
 
-- Geïnstalleerd/gecontroleerd: E32 alpha21 (bron `f96cda7`) + HA dev27 (bron `faf8272`).
-- Uitrolbewijs: `out/boiler-profile-rollout-20261024/FINAL-INDEPENDENT-LIVE.json`;
-  HRC 22H-profielkeuze, native ketelvelden en HA-kaartreferenties gecontroleerd.
-  Laatste gerapporteerde controle 26 velden beschikbaar, eerdere boot 27;
-  unsupported/onbetrouwbaar blijft onbekend. Profielkeuze beperkt geen uitlezing.
-- Automatische HTTPS-update en HA-agentuitrol werken. SOURCE, weekprogramma,
-  bindings en installatie-identiteiten behouden. Normale dagelijkse UTC-planhorizon
-  kan de SOURCE-revisie verhogen; gebruik verse readback, geen hardcoded revisie.
-- TX en fysieke actuatoruitgangen blijven geblokkeerd. Geen actieve bèta-vrijgave.
-- Broncheckpoint `528914e`: pure oorspronkelijke TV02-ontvangstkern, 153 gerichte
-  checks. De native MQTT-/registry-lifecycle en room/get-projectie zijn nu ook in
-  bron aangesloten met lege standaardpins; actuele bewijsmap
-  `out/tv02-lifecycle-20261024/`, 222 gerichte HA-checks PASS.
-- De originele WSDCGQ11LM-temperatuurproducer/native ontvangstdiagnose is behouden.
-  Werkelijke bronacquisitie en fysieke kwalificatie blijven open. De laatst bekende
-  geselecteerde RTCGQ11LM device_temperature wordt niet als ambientbewijs gebruikt.
-- Read-only HA-preflight: geselecteerde TV02-fingerprint `_TZE200_hue3yfsn`,
-  endpoint 1 bevestigd uit bestaande cache; registry/cache-firmwareverschil blijft
-  onbekend. RTCGQ11LM device_temperature blijft geselecteerd, WSDCGQ11LM-alternatief
-  niet beschikbaar. Geen oorspronkelijke meet-/kraanrapporten hiermee bewezen.
-- Geen source-/sensor-/TRV-wissel, Z2M-extensioninstallatie of nieuwe fysieke
-  opdracht voor deze bronbatch. Bestaande observaties blijven los daarvan bestaan.
-- Eerst B04 echt meetprofiel/bronvalidatie en B05 oorspronkelijke ontvangst/causale
-  kraanecho afronden; daarna B06–B09 proefketen en installatievoorwaarden. Pas dan
-  gezamenlijke freeze, volledige CI, gecontroleerde uitrol en fysiek proefrapport.
-- Werk verder in `out/beta-boiler-20261023`, branch `work/beta-boiler-20261023`.
-  Laat `out/plan-batch-20261023` en de overige bestaande werkbomen intact.
-- De historische details hieronder zijn bewijscheckpoints; WORKBOARD bepaalt de
-  actuele stand en bewaart alle 31 eisen, voorbereide functies en open controles.
+De normale updater kon de 33.010-byte release-API niet in zijn buffer van 32.768 bytes
+opnemen. Alleen de dubbele samenvatting is verwijderd; alle volledige originele
+notities/tags/assets behouden. Actuele API: 30.621 bytes. Nieuwe publicaties krijgen
+begrensde versienotities plus onveranderlijke bronlink en kop-/UTF-8-controle.
+Zes regressies plus volledige CI van de publicatiecorrectie groen. Een gewone
+releasecontrole op alpha23 zelf is ook PASS (alpha23/alpha21, checked, geen fout).
+De oorspronkelijke +6h/+24h-jobs zijn met behoud van IDs/tijden/overige velden via
+de bestaande native root-/admin-eigenaarsroute van de actuele basis voorzien;
+de HA-specialist had daarvoor onvoldoende sessiescope. Geen nieuwe planning.
+
+SOURCE was bij nacontrole revisie4/digest `78012d7e…`, HA/E32 gelijk, vers/ready,
+zonder staged restant. Week/bindings/credentials/105 registryrecords en HRC22H-
+model behouden. Dit is geen permanente revisiefence: lees voor een volgende
+mutatie steeds de verse geaccepteerde staat en reconcilieer normale UTC-horizon.
+
+Laatste meetmoment: 27 native ketelvelden beschikbaar, 25 reported + 2 inferred,
+nul vergelijkingsverschillen; 20 unsupported/invalid/stale unavailable en 22
+onbetrouwbare velden uitgeschakeld. Beschikbaarheid blijft momentafhankelijk en
+modelkeuze begrenst de ontvangst nooit.
+
+**Eerstvolgende uitvoering:** B04/B05, echte bronpins/extension/ontvangst en
+fysieke kraanproef zonder ketel. De HA-ontvangers en frontend zijn nu geïnstalleerd;
+de Z2M-producent/pins en causale ACK/readiness zijn nog niet gekwalificeerd.
+Diagnostische motion-device-temperature wordt geen ambient meting. Daarna de
+complete hydraulische/zend-/start-stopketen. TX en alle fysieke uitgangen blijven
+false; actieve bèta-GO blijft NOT_READY. Oude checkpoints hieronder zijn historie.
 
 ## Historisch checkpoint: poll-executor
 

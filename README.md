@@ -13,11 +13,15 @@ en welke nog op de roadmap staan.
 [Mogelijkheden](#alle-mogelijkheden) · [Roadmap](#wat-we-nog-gaan-bouwen) ·
 [Screenshots](#screenshots) · [Documentatie](#documentatie)
 
-**Geïnstalleerd en gecontroleerd: E32 alpha21 + Home Assistant dev27.** Kamerinrichting,
+**Geïnstalleerd en gecontroleerd: E32 alpha23 + Home Assistant dev29.** Kamerinrichting,
 weekprogramma’s, interfaces en passief uitlezen zijn beschikbaar. De regelkern
 is grotendeels voorbereid, maar actieve kamer- en ketelaansturing zijn nog niet
 vrijgegeven op de E32 V2. De huidige native inrichting ondersteunt **1–2 kamers,
 met één radiatorknop per kamer**; acht zones is het uitbreidingsdoel.
+
+**Nieuw in deze uitgave:** systeemlog en instelbare syslog, dashboardupdates met
+behoud van open onderdelen, en oorspronkelijke TV02-ontvangstdiagnose in de HA-
+kamereditor. De normale HTTPS-updater is op de echte E32 gebruikt en gecontroleerd.
 
 ## Alle mogelijkheden
 
@@ -38,7 +42,7 @@ verwarmingsinstallatie.
 | Langzame tijdproportionele regeling | PI-vraag omzetten naar lange aan/uit-cycli met minimum aan- en uittijd voor geschikte kleppen | **Voorbereid** |
 | Lokaal regelende radiatorkraan | De eigen regeling van de kraan respecteren en daarboven kamerdoel en ketelvraag coördineren | **Voorbereid**; geen tweede concurrerende PI op de kraan |
 | Slimme radiatorkranen via HA | Bestaande HA-apparaten selecteren, mogelijkheden controleren en modusconflicten zichtbaar maken | Selectie/controle **beschikbaar**; fysieke doelopdracht en terugmelding **voorbereid** |
-| Originele sensor- en kraanberichten | [WSDCGQ11LM-meetberichten](docs/modern-thermostat/ORIGINAL-ZIGBEE-REPORTS.nl.md) en [TV02-datapoints](docs/modern-thermostat/ORIGINAL-TV02-REPORTS.nl.md) onderscheiden van cachewaarden | **Voorbereid en getest**; niet geïnstalleerd, geen fysieke regelvrijgave |
+| Originele sensor- en kraanberichten | [WSDCGQ11LM-meetberichten](docs/modern-thermostat/ORIGINAL-ZIGBEE-REPORTS.nl.md) en [TV02-datapoints](docs/modern-thermostat/ORIGINAL-TV02-REPORTS.nl.md) onderscheiden van cachewaarden | **HA-ontvangst en diagnose geleverd**; Zigbee-extensions, bronpins en fysieke bronkwalificatie nog afronden |
 | Meer zones en kranen | Acht gevalideerde zones, meerdere kranen per kamer en meer merken | **Gepland**; huidige inrichting heeft één kraan per kamer |
 
 Een geselecteerde sensor is nog geen gekwalificeerde regelmeting. De actuele
@@ -88,14 +92,14 @@ EMS-ESP-velddekking of ondersteuning voor iedere ketel/converter.
 | --- | --- | --- |
 | Eigen HA-integratie en dashboard | Kamerpagina’s, klimaatbediening, inrichting en weekplanner in één omgeving | **Beschikbaar** |
 | Bestaande HA-apparaten gebruiken | Sensoren en klimaatapparaten uit HA selecteren, met controle op eenheden, grenzen en stapgrootte | **Beschikbaar**; regelkwalificatie per apparaat blijft nodig |
-| Ketelvelden in HA | 69 huidige Classic-velddefinities met bronleeftijd, eenheden en kwaliteit via de bestaande verbinding; modelkeuze begrenst de ontvangst niet | **Beschikbaar** met eigen overzicht en drie historiekaarten in HA dev27. Waarde, eenheid en kwaliteit zijn met de E32 vergeleken; gerapporteerde en afgeleide velden staan apart. [Details](docs/modern-thermostat/BOILER-FIELDS-V1.md) |
+| Ketelvelden in HA | 69 huidige Classic-velddefinities met bronleeftijd, eenheden en kwaliteit via de bestaande verbinding; modelkeuze begrenst de ontvangst niet | **Beschikbaar** met eigen overzicht en drie historiekaarten. Waarde, eenheid en kwaliteit zijn met de E32 vergeleken; gerapporteerde en afgeleide velden staan apart. [Details](docs/modern-thermostat/BOILER-FIELDS-V1.md) |
 | Externe wandbediening | Kamerdoelen vanuit andere bedieningen overnemen zonder terugkoppellussen | Basis **voorbereid**; complete route **gepland** |
-| E32-webinterface | Installatie, kamernamen, doelen, berekende vraag en beschikbare ketelwaarden bekijken | **Beschikbaar** |
+| E32-webinterface | Installatie, kamernamen, doelen, berekende vraag en beschikbare ketelwaarden bekijken; open details blijven staan tijdens verversen | **Beschikbaar** |
 | Nederlands en Engels / Dutch and English | E32: taalkeuze in menu en bij aanmelden/wifi-installatie. HA: profieltaal voor kamereditor en native vertalingen; vaste opgeslagen dashboardteksten vallen terug op Engels | **Beschikbaar**; Engels is standaard en terugval |
 | Uitleg waarom er vraag is | Regelstatus en redenen voor warmtevraag of blokkering zien | **Beschikbaar als diagnosebasis**; echte opdracht-/reactietijdlijn volgt |
 | Grafieken, historie en CSV | Temperatuur, vraag, brander/modulatie en tapwater over tijd analyseren | Metrics-/opslag-/exportcode **voorbereid**; volledige actuele productroute nog afronden |
 | Verbruik, kosten en comfort | Metergegevens en duidelijk gelabelde schattingen combineren | **Deels voorbereid**; echte bronnen/kalibratie en presentatie volgen |
-| Systeemlog en syslog | Recente E32-logregels bekijken/filteren/downloaden; langer bewaren op een eigen RFC5424 UDP-collector | **Voorbereid voor volgende bèta**; [gebruik en grenzen](docs/modern-thermostat/LOGGING.nl.md) |
+| Systeemlog en syslog | Recente E32-logregels bekijken/filteren/downloaden; langer bewaren op een eigen RFC5424 UDP-collector | **Beschikbaar**; externe syslog staat standaard uit. [Gebruik en grenzen](docs/modern-thermostat/LOGGING.nl.md) |
 | Meldingen en onderhoud | Diagnose-, batterij- en foutinformatie benutten | Basis **aanwezig**; complete scenario’s en meldingen nog afronden |
 | Lokaal en open | Eigen broncode, lokale E32 en koppeling via lokale MQTT-broker; geen verplichte thermostaatcloud | **Beschikbaar**; via HA gekoppelde apparaten blijven afhankelijk van HA/MQTT |
 | Beheer en updates | Weblogin, About, uitloggen, herstarten onder Settings, HTTPS-updater en herstelroutes | **Beschikbaar**; normale update behoudt instellingen |

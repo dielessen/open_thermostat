@@ -9,19 +9,20 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
-| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.21`, normale HTTPS-catalogusupdate/nacontrole geslaagd |
-| Geïnstalleerde HA-integratie | `0.4.0.dev27`, via bestaande HA-agent met back-up/nacontrole |
-| Geleverde bron | E32 `f96cda7fe56b78c23d9a714abb28a2f7d21d57db`; HA `faf827205d8105043e85eea5db84b67d06bab34e` (HA-componentbestanden ook exact in E32-bron) |
-| Nieuwe softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; native keteluitleescheckpoint `fa52faa` |
+| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.23`, normale HTTPS-catalogusupdate en exacte ELF/web/nacontrole geslaagd |
+| Geïnstalleerde HA-integratie | `0.4.0.dev29`, via bestaande HA-agent met verse back-up/nacontrole |
+| Geleverde bron | E32 en HA `5f31dd780a5b98d81048f9d592f8209e657d7305`; alle 80 HA-componentbestanden gelijk aan het E32-bronpakket |
+| Nieuwe softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; publicatiebeheer/capaciteitscorrectie `aaeba7d` |
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
 
-**Broncontrole:** alle bron-/testbestanden uit de hoofdwerkmap zijn in de
-bètabasis aanwezig. De enige testafwijking is een spatie aan het regeleinde,
-geen ontbrekende test. Negen bestaande gekoppelde werkbomen zijn schoon. De oude
-niet-samengevoegde alpha7-catalogustak is functioneel ingehaald door de latere
-geleverde catalogus; deze wordt niet blind opnieuw toegepast.
+**Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
+met 200 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
+ELF/webidentiteit. Alle 80 HA-componentbestanden zijn ook met het E32-pakket
+vergeleken. Historische checkpoints en afgewezen kandidaten blijven bewaard;
+geen bestaande tag of download is vervangen.
 
 **Afvinken:** `[x]` geldt alleen voor de genoemde software-/leveringsuitkomst.
 Een meegeleverd model of geslaagde simulatie bewijst geen aangesloten functie,
@@ -52,7 +53,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-196 bronverwijzingen met hashes, status en resterende acceptatie.
+200 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -69,10 +70,10 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | I08 | Actieve sensor/TRV/grenzen wijzigen, bewaren en opnieuw toepassen | Geleverde softwarebasis | Alleen normale expliciete save; geen live apparaatwissel tijdens installatie bewezen. |
 | I09 | HA-kaart registreren na opstart, zonder herhaald refreshen | Geleverde softwarebasis | Drie echte koude HA-sessies bewezen; versiegebonden module behouden. |
 | I10 | Kamernamen op E32 en juiste statische webroutes | Geleverde softwarebasis | Badkamer live bevestigd; geen nieuwe seriële opname van de logstilte. |
-| I11 | Meetstatus, systeemlog en geheugen-/toelatingsdiagnose | Observer-lifecycle/bronidentiteit geleverd; web/syslog voorbereid | Vervangen/intrekken en native bron-/apparaatwissel trekken oude kwalificatie in; pending transport wordt opnieuw gecontroleerd. Productieprofiel blijft open. |
+| I11 | Meetstatus, systeemlog en geheugen-/toelatingsdiagnose | Observer/native identiteit en web-/syslogsoftware geleverd | Oude kwalificatie wordt ingetrokken bij bron-/apparaatwissel; productie-meetprofiel, externe collector en lange resourceproef blijven open. |
 | I12 | Passieve Classic-decoder en Classic-proefencoder | Decoder en geblokkeerde encoder geleverd | Vast 0x1A-flow/nulformaat gebouwd; beoordeelde bronadressering, fysieke UART-/stopkwalificatie en ontvangstpariteit blijven open. |
 | I13 | Ketencontract, SOURCE, journal, configuratie en readback | Geleverde softwarebasis | Logische provisioning/programma-ACK werkt; verse fysieke meet- en actuatorbewijzen ontbreken. |
-| I14 | Kraanadapter profiel C, TV02-moduscontrole en bronbench | Modus-/identiteitscontrole geleverd; fysieke route nog onvolledig | Native identiteit en doelcapaciteit vlak vóór dispatch opnieuw gecontroleerd; TV02 auto/vakantie/uit/onbekend zichtbaar en vóór doelactie geweigerd. Verse kraanecho, exclusief eigenaarschap en fysieke werking blijven open; oude bench op SOURCE geblokkeerd. |
+| I14 | Kraanadapter profiel C, TV02-moduscontrole en bronbench | Modus/identiteit en oorspronkelijke HA-ontvangst/diagnose geleverd; fysieke route onvolledig | Native identiteit en doelcapaciteit vlak vóór dispatch opnieuw gecontroleerd; TV02 auto/vakantie/uit/onbekend zichtbaar en vóór doelactie geweigerd. Verse kraanecho, exclusief eigenaarschap en fysieke werking blijven open; oude bench op SOURCE geblokkeerd. |
 | I15 | Kamerregelaar, seizoensbeleid en hydraulische supervisor | Voorbereide code, functie nog onvolledig | Regellogica/shadow voorbereid; hydraulische profiel- en uitvoerketen niet gekwalificeerd. |
 | I16 | Groepswaterdoelen, vloer, menger en centrale graph-config | Voorbereide code, functie nog onvolledig | Pure policies/declaraties en begrensde DATA-paden aanwezig; niet gelijk aan actieve groepen/pomp/menger. |
 | I17 | Metrics, grafieken, historiegrens en CSV-export | Voorbereide code, functie nog onvolledig | Niet opnieuw vanaf nul bouwen; echte Classic-tijdlijn, Recorder-retentie/migratie en grafiekacceptatie open. |
@@ -1026,3 +1027,59 @@ samenvatting veroorzaakten dit. Het gaat om de metadata, niet de firmwaregrootte
 
 Bewijs: `out/next-release-20261024/UPDATER-METADATA-REPAIR.json`. Geen wijziging van
 SOURCE, instellingen, programma of fysieke vrijgave door deze publicatiereparatie.
+
+
+## Geleverde gezamenlijke passieve release — alpha23/dev29
+
+- [x] Openbaar gepubliceerd en geïnstalleerd uit bron `5f31dd7`; volledige
+  bronreproductie, 3 boardbuilds, 573 native firmwaregevallen, 1.840 HA-tests
+  plus 68 subtests en 14 browser-suites geslaagd. 46 webunitchecks inbegrepen.
+- [x] Negen openbare downloads zonder credentials opgehaald en gecontroleerd;
+  1.780 onafhankelijke E32-pakketchecks. Alle 80 HA-bestanden gelijk aan Git en
+  het firmwarepakket; echte running-ELF/web/source-identiteit gelijk aan de tag.
+- [x] Systeemlog/syslog en incrementeel dashboard geleverd; log-/instellingen-GETs
+  HTTP 200, buffer 32, standaard syslog uit zonder bestemming. Twee korte samples
+  rond 74KB vrij intern geheugen; dit is geen lange belastingkwalificatie.
+- [x] Oorspronkelijke TV02-ontvangst/lifecycle en NL/EN-diagnose geleverd in HA29.
+  De v28-frontendidentiteit is bewust behouden omdat de frontendbytes gelijk zijn.
+  Extension-/bronpins blijven leeg; geen oorspronkelijke fysieke ontvangst bewezen.
+- [x] Verse scoped dev27-back-up, één HA Core-herstart en één normale E32 app-only
+  HTTPS-update met automatische OTA-boot. Geen extra E32-reboot of rollback.
+- [x] SOURCE-revisie4/digest `78012d7e…` op het meetmoment gelijk tussen HA/E32,
+  vers/ready en niets staged. Week, bindings, credentials, 105 registryrecords en
+  HRC22H-model behouden. Toekomstige controles lezen steeds de verse revisie.
+- [x] 27 native ketelvelden beschikbaar: 25 reported + 2 inferred, nul E32/HA-
+  vergelijkingsverschillen. 20 unavailable blijven onbekend; 22 onbetrouwbare velden
+  blijven uitgeschakeld. Dit zijn momentwaarden, geen volledige fysieke dekking.
+- [x] Eerdere catalogusfout server-side hersteld: actuele metadata 30.621 bytes
+  tegenover de limiet van 32.768 bytes. Oorspronkelijke notities/assets/tags behouden. Zes
+  aanvullende publicatieregressies en volledige CI `40053834962` groen.
+- [ ] Originele bron-/kraankwalificatie, collector-/lange resourceproef en actieve
+  ketel-/start-stopacceptatie blijven open. B04–B14 en bèta-GO onveranderd open.
+
+Bewijs: `out/next-release-20261024/LIVE-INDEPENDENT-REVIEW.json`,
+`PUBLIC-PREINSTALL-INDEPENDENT-REVIEW.json`, `UPDATER-METADATA-REPAIR.json` en de
+private scoped installatie-/rollbackreceipts bij de bestaande HA-specialist.
+Geen live browserpixels of flashdump geclaimd: geserveerde exacte bytes/hashes,
+echte descriptor en native OTA-verificatie zijn de bewezen installatiegrens.
+
+
+### Afgerond: updater op nieuwe firmware en geplande waarnemingen
+
+- [x] Ook op draaiende alpha23 één gewone releasecontrole uitgevoerd: terminal
+  `checked`, fout leeg, passende alpha23/alpha21 gevonden. Geen firmwaredownload,
+  tweede installatie, herstart of configuratie-/SOURCE-write bij deze proef.
+- [x] De bestaande twee meetjobs behouden: dezelfde IDs, enabled, tijdstippen
+  24 oktober 04:58:01.424 UTC en 22:58:01.424 UTC, eigenaar/model/timeouts,
+  delivery en deleteAfterRun. Alleen een actuele software-/bootbasis toegevoegd
+  aan de oorspronkelijke berichten; geen job erbij en niets opnieuw ingepland.
+- [x] Specialist kon deze jobs niet lezen door zijn sessiescope; de bevoegde
+  bestaande root-/admin-Gatewayroute heeft uitsluitend de twee native Automations-
+  berichten bijgewerkt. Onafhankelijke herlezing bewijst behoud van alle overige
+  configuratie en alle andere opgevraagde jobs. Geen HA-configuratiehandeling.
+- [x] Oudere versiereferenties blijven historische context; controles lezen de
+  verse SOURCE en behandelen de bewuste OTA/Core-bootgrens correct. De mislukte
+  oorspronkelijke +1h-proef blijft FAILED/UNKNOWN, geen achteraf gerepareerd bewijs.
+
+Bewijs: `MONITOR-BASELINE-OWNER-REVIEW.json` en `POSTINSTALL-DISCOVERY-REVIEW.json`
+in `out/next-release-20261024/`. Lange/actieve acceptaties blijven ongewijzigd open.

@@ -3,9 +3,9 @@
   "as_of": "2026-10-24",
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
   "release_state": "NOT_READY",
-  "installed_source_commit": "f96cda7fe56b78c23d9a714abb28a2f7d21d57db",
-  "installed_firmware": "v0.1.0-e32v2-alpha.21",
-  "installed_ha": "0.4.0.dev27",
+  "installed_source_commit": "5f31dd780a5b98d81048f9d592f8209e657d7305",
+  "installed_firmware": "v0.1.0-e32v2-alpha.23",
+  "installed_ha": "0.4.0.dev29",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
   "items": [
     {
@@ -321,7 +321,7 @@
           "sha256": "2d063ef67f856823269a2c602b5b966ea73e749cef9b9e972b3a97aefd3fd77e"
         }
       ],
-      "remaining_acceptance": "Mijn ketel/EN-NL en exact door gebruiker bevestigd Nefit Ecomline Classic HRC22H-profiel geleverd in alpha21/HA27. Normale HTTPS-update, exacte running-ELF/webhash en model-ID uit NVS/readback geverifieerd. Originele opslaghelper en 4 browserprofielen PASS. Generieke keuze blijft geldig; modelkeuze verandert geen decoder/ontvangst/aansturing. Geen technische ketelvrijgave door modelkeuze. Incrementele dashboardverversing met behoud van details/focus/scroll en begrensde foutbestendige polls voorbereid/getest; nog gezamenlijk installeren en op de E32 nakijken."
+      "remaining_acceptance": "HRC22H/modelkeuze, EN/NL, About/navigatie en incrementeel dashboard geleverd in alpha23/HA29. Normale HTTPS-update, exacte running-ELF/web/source en modelreadback geverifieerd. Shipped-browserproeven bewijzen behoud van openstatus/focus/scroll; op de module zijn exacte geserveerde webbytes bewezen, geen live browserpixels. Modelkeuze verandert geen decoder/adressen/ontvangst/aansturing en verleent geen technische ketelvrijgave. Lange beheer-/herstel- en fysieke kwalificatie blijven afzonderlijk open."
     },
     {
       "id": "I06",
@@ -560,7 +560,7 @@
         },
         {
           "path": "docs/modern-thermostat/LOGGING.nl.md",
-          "sha256": "0ee521d1d215fd05efdebb6d05071ded6dc05ff8c0c6bfe71f34f0ff5dbadf70"
+          "sha256": "b88be605a1841600f1315f18a742828e20137938bf453651bca754a4c662be65"
         },
         {
           "path": "src/diagnostics/BufferedLogger.h",
@@ -615,7 +615,7 @@
           "sha256": "2589f2909a2f7e11a6289d02783e0e1675545eadc214e44eafcdfc6730cd2972"
         }
       ],
-      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele metingsherkomst blijven open. Originele WSDCGQ11LM-eventproducer voorbereid met 11 Node-tests; niet geïnstalleerd. Native HA-ontvanger en room-status gebouwd/getest, zonder QualifiedReport; echte acquisitie-/ouderdomsvalidatie en fysieke bronkwalificatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten. Web-/native systeemlog en RFC5424 UDP-syslog voorbereid; productie-installatie/collectorontvangst en lange heap-/stack-/belastingproef open. Geen fysieke regelautorisatie."
+      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding geleverd/getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele acquisitie-/ouderdomsvalidatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten als ambient bron. WSDCGQ11LM-eventproducer voorbereid/getest, niet op Z2M geïnstalleerd. Native HA-ontvanger en room-status geleverd zonder QualifiedReport-vrijgave. Web-/native systeemlog en RFC5424 UDP-syslog geleverd in alpha23; beschermde routes/RAM-buffer en standaard uit zonder bestemming gecontroleerd. Externe collector en lange heap-/stack-/belastingproef blijven open. Geen fysieke regelautorisatie."
     },
     {
       "id": "I12",
@@ -739,7 +739,7 @@
         },
         {
           "path": "docs/modern-thermostat/ORIGINAL-TV02-REPORTS.nl.md",
-          "sha256": "49b8d3ca0cb18d1468b177ebd62c0494a8006c21aa1217f0236d1c1c314c24dc"
+          "sha256": "7ebdfa1639433c02e1ece80d6de6f8c91a74006ca2b8da778d4234b0903674d8"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/original_tv02.py",
@@ -766,7 +766,7 @@
           "sha256": "b17b7e944c47ba775d1625d65b05ce42994612cc57c046becdde9e39ec593c84"
         }
       ],
-      "remaining_acceptance": "TV02-modus/native identiteit/doelcapaciteit en oorspronkelijke producer/HA-ontvangst met native MQTT/registry-lifecycle gebouwd/getest. Standaard bronpins leeg, geen productie-installatie. Concrete fabrikant/endpoint-pins, echte ontvangst, frontendweergave, causale doel-echo, exclusief eigenaarschap, profiel/readiness/fallback en fysieke proef zonder ketel blijven open. Dev28/v28 toont oorspronkelijke ontvangstrapporten tweetalig zonder werking/ACK-vrijgave; productiebronpins/installatie en fysieke validatie blijven open."
+      "remaining_acceptance": "TV02-modus/native identiteit/doelcapaciteit en oorspronkelijke HA-ontvangst met MQTT/registry-lifecycle en NL/EN-weergave geleverd in HA dev29. Standaard bronpins leeg; zelfstandige Zigbee-producent nog niet geïnstalleerd/gekoppeld. Concrete bronpins en echte oorspronkelijke ontvangst, causale doel-echo, exclusief eigenaarschap, profiel/readiness/fallback en fysieke proef zonder ketel blijven open. Ontvangen doel/bedrijfsmodus verleent geen opdrachtbevestiging, klepstand of aansturingsvrijgave."
     },
     {
       "id": "I15",

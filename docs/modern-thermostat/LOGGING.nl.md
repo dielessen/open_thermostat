@@ -1,8 +1,11 @@
 # Systeemlog en externe syslog
 
-Status: voorbereid voor de gezamenlijke volgende bèta; nog niet op de E32
-geïnstalleerd. De huidige installatie blijft alpha21 / HA dev27. Deze functie
-verandert geen kamerbinding, SOURCE, weekprogramma of ketelvrijgave.
+Status: geleverd en geïnstalleerd met E32 alpha23, in de gezamenlijke batch met
+HA dev29. De beschermde log- en instellingenroutes zijn op de echte E32 gelezen;
+de RAM-buffer is begrensd op 32 regels. Syslog staat uit en er is geen externe
+bestemming ingesteld. Collectorontvangst en lange runtime-/heap-/stackbelasting
+blijven afzonderlijke open proeven. Deze functie verandert geen kamerbinding,
+SOURCE, weekprogramma of ketelvrijgave.
 
 ## Gebruik
 

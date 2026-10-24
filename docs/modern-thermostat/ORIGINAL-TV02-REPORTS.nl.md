@@ -1,6 +1,6 @@
 # Oorspronkelijke TV02-kraanberichten
 
-Status: producent, HA-ontvangstkern en native lifecycle voorbereid en getest; niet geïnstalleerd. B05 blijft open
+Status: HA-ontvangstkern, native lifecycle en tweetalige diagnoseweergave geleverd in HA dev29. De Zigbee2MQTT-producent/bronpins zijn nog niet geïnstalleerd of gekwalificeerd. B05 blijft open
 voor concrete bronpins/installatie, koppeling aan een doelopdracht, eigenaarschap, readiness en
 fysieke proef zonder ketel. Deze producent verleent geen regelbevoegdheid.
 
@@ -153,3 +153,19 @@ fouten of overslagen, acht opnieuw gebouwde C++-peers en een tijdelijke lokale
 MQTT-testfixture. De fixture is na afloop verwijderd. Dit bewijst de bronketen;
 een geïnstalleerde extension, oorspronkelijke fysieke ontvangst en kraanreactie
 blijven afzonderlijke open acceptatiepunten.
+
+
+## Diagnose in de kamereditor
+
+HA dev29 levert de ongewijzigde dev28/v28-editoridentiteit met Nederlands en
+Engels volgens de HA-profieltaal. De controle van gekoppelde TV02-kranen toont
+beschikbare oorspronkelijke rapporten: gemeld doel, eigen kraantemperatuur,
+programma, verwarmingsstop en vorstbeveiliging. Ontvangstouderdom geldt bij laden;
+het is geen bevestigde acquisitietijd van de fysieke temperatuurmeting.
+
+Verouderde/onderbroken/ongeldige rapporten tonen geen oude datapointwaarden.
+Niet-opgeslagen kraan-/doel-/programmaveranderingen gebruiken de diagnose van de
+opgeslagen koppeling niet als bewijs voor het concept. Er is geen extra polling,
+MQTT-client, automatische kraanmodusreparatie of doelopdracht toegevoegd.
+Ontvangst bewijst geen causale opdrachtbevestiging, klepstand of geleverde warmte.
+De standaard bronpins blijven leeg; de echte bron-/kraanproef blijft B05.

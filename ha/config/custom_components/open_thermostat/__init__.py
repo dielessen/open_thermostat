@@ -1,6 +1,7 @@
 """OpenThermostat room entities and optional dashboard."""
 
 import logging
+from contextlib import AsyncExitStack
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -14,32 +15,42 @@ _LOGGER = logging.getLogger(__name__)
 _RELOAD_DASHBOARDS = DOMAIN + "_reload_dashboards"
 
 
+def _drop_setup_state(hass, entry_id, state):
+    """A failed old setup may only remove its own published state."""
+    entries = hass.data.get(DOMAIN, {})
+    if entries.get(entry_id) is state:
+        entries.pop(entry_id, None)
+
+
+async def _cleanup_setup_bench(hass, entry_id, owner):
+    from .v1_bench_actions import KEY, async_unregister_entry
+    if hass.data.get(KEY, {}).get(entry_id) is owner:
+        await async_unregister_entry(hass, entry_id)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up the thermostat hub and its room entities."""
     prefix = entry.data[CONF_TOPIC_PREFIX]
     state = hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {"duration_minutes": {}}
-    tracker = HeatingTracker(hass, entry)
-    state["heating_tracker"] = tracker
-    await tracker.async_start()
-    dr.async_get(hass).async_get_or_create(
-        config_entry_id=entry.entry_id,
-        identifiers={(DOMAIN, prefix)},
-        name="OpenThermostat",
-        manufacturer="intuibase",
-        model="OpenThermostat",
-    )
-    if entry.options.get(CONF_CREATE_DASHBOARD, False):
-        dashboard = RoomDashboard(hass, prefix, entry.entry_id)
-        await dashboard.async_start()
-        state["dashboard"] = dashboard
-    try:
+    # Register each inverse before startup: failures and CancelledError both
+    # unwind partial subscriptions, platforms and presentation in reverse order.
+    async with AsyncExitStack() as cleanup:
+        cleanup.callback(_drop_setup_state, hass, entry.entry_id, state)
+        tracker = HeatingTracker(hass, entry)
+        state["heating_tracker"] = tracker
+        cleanup.push_async_callback(tracker.async_stop)
+        await tracker.async_start()
+        dr.async_get(hass).async_get_or_create(
+            config_entry_id=entry.entry_id, identifiers={(DOMAIN, prefix)},
+            name="OpenThermostat", manufacturer="intuibase", model="OpenThermostat")
+        if entry.options.get(CONF_CREATE_DASHBOARD, False):
+            dashboard = RoomDashboard(hass, prefix, entry.entry_id)
+            state["dashboard"] = dashboard
+            cleanup.push_async_callback(dashboard.async_stop)
+            await dashboard.async_start()
+        cleanup.push_async_callback(hass.config_entries.async_unload_platforms, entry, PLATFORMS)
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    except Exception:
-        if dashboard := state.get("dashboard"):
-            await dashboard.async_stop()
-        hass.data[DOMAIN].pop(entry.entry_id, None)
-        await tracker.async_stop()
-        raise
+        cleanup.pop_all()
     return True
 
 
@@ -339,18 +350,22 @@ async def async_setup_entry(hass, entry):
             from homeassistant.exceptions import ConfigEntryError
             raise ConfigEntryError("context_profile_binding") from None
         raise
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {"v1_runtime": runtime}
-    group_kwargs = {}
-    if product:
-        from .installation_group import ensure_installation_group
-        group_kwargs["config_subentry_id"] = ensure_installation_group(hass, entry)
-    dr.async_get(hass).async_get_or_create(
-        config_entry_id=entry.entry_id, identifiers={(DOMAIN, entry.data[CONF_TOPIC_PREFIX])},
-        name="OpenThermostat", manufacturer="intuibase", model="OpenThermostat", **group_kwargs)
-    try:
+    state = {"v1_runtime": runtime}
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = state
+    async with AsyncExitStack() as cleanup:
+        cleanup.callback(_drop_setup_state, hass, entry.entry_id, state)
+        cleanup.push_async_callback(runtime.async_stop)
+        group_kwargs = {}
+        if product:
+            from .installation_group import ensure_installation_group
+            group_kwargs["config_subentry_id"] = ensure_installation_group(hass, entry)
+        dr.async_get(hass).async_get_or_create(
+            config_entry_id=entry.entry_id, identifiers={(DOMAIN, entry.data[CONF_TOPIC_PREFIX])},
+            name="OpenThermostat", manufacturer="intuibase", model="OpenThermostat", **group_kwargs)
         if product:
             tracker = HeatingTracker(hass, entry)
-            hass.data[DOMAIN][entry.entry_id]["heating_tracker"] = tracker
+            state["heating_tracker"] = tracker
+            cleanup.push_async_callback(tracker.async_stop)
             await tracker.async_start()
         await runtime.async_start()
         if runtime.enabled:
@@ -359,41 +374,34 @@ async def async_setup_entry(hass, entry):
             diagnostic_kwargs = {"tv02_sources": diagnostic_sources} if diagnostic_sources else {}
             connection = (NativeShadowConnection(runtime, graph_profile, **diagnostic_kwargs)
                           if graph_profile is not None else NativeShadowConnection(runtime, **diagnostic_kwargs))
-            hass.data[DOMAIN][entry.entry_id]["v1_connection"] = connection
+            state["v1_connection"] = connection
+            cleanup.push_async_callback(connection.async_close)
             await connection.async_start()
-        from .v1_bench_actions import async_register_entry
+        from .v1_bench_actions import KEY as BENCH_KEY, async_register_entry
         async_register_entry(hass, entry)
+        cleanup.push_async_callback(_cleanup_setup_bench, hass, entry.entry_id,
+                                    hass.data.get(BENCH_KEY, {}).get(entry.entry_id))
         platforms = [Platform.CLIMATE, Platform.SENSOR]
         if product:
             platforms.append(Platform.BINARY_SENSOR)
+        cleanup.push_async_callback(hass.config_entries.async_unload_platforms, entry, platforms)
         await hass.config_entries.async_forward_entry_setups(entry, platforms)
         if entry.options.get(CONF_CREATE_DASHBOARD,False):
             dashboard=hass.data.get(_RELOAD_DASHBOARDS, {}).pop(entry.entry_id, None)
             existing_dashboard = dashboard is not None
             if dashboard is None:
                 dashboard=RoomDashboard(hass,entry.data[CONF_TOPIC_PREFIX],entry.entry_id)
-            hass.data[DOMAIN][entry.entry_id]["dashboard"]=dashboard
+            state["dashboard"]=dashboard
+            cleanup.push_async_callback(dashboard.async_stop)
             if not existing_dashboard:
                 await dashboard.async_start()
             dashboard.set_rooms(set(runtime.rooms))
-    except Exception:
-        try:
-            if dashboard:=hass.data[DOMAIN][entry.entry_id].get("dashboard"):
-                await dashboard.async_stop()
-        finally:
-            from .v1_bench_actions import async_unregister_entry
-            try:
-                await async_unregister_entry(hass, entry.entry_id)
-            finally:
-                await runtime.async_stop()
-                if tracker := hass.data[DOMAIN][entry.entry_id].get("heating_tracker"):
-                    await tracker.async_stop()
-                hass.data[DOMAIN].pop(entry.entry_id, None)
-        raise
-    from .metrics_reports import async_register_entry, async_unregister_entry
-    async_register_entry(hass, entry)
-    entry.async_on_unload(lambda: async_unregister_entry(hass, entry.entry_id))
-    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
+        from .metrics_reports import async_register_entry, async_unregister_entry
+        cleanup.callback(async_unregister_entry, hass, entry.entry_id)
+        async_register_entry(hass, entry)
+        entry.async_on_unload(lambda: async_unregister_entry(hass, entry.entry_id))
+        entry.async_on_unload(entry.add_update_listener(_async_options_updated))
+        cleanup.pop_all()
     return True
 
 async def async_unload_entry(hass, entry):

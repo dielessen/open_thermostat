@@ -142,3 +142,12 @@ async def test_real_native_climate_feature_flags_are_valid_capability_metadata(h
     current = State('climate.native_flags', 'heat', attrs)
     assert type(current.attributes['supported_features']) is ClimateEntityFeature
     assert target_capability(hass, current).target(21) == 21
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('key',['min_temp','max_temp','target_temp_step'])
+async def test_oversized_integer_metadata_is_unavailable_without_crashing_editor(hass,key):
+    binding=room(hass)
+    state(hass,binding,**{key:10**500})
+    result=review(hass,binding)
+    assert result['actuators'][0]['issues']==['capability_unavailable']
+    assert not result['authorizes_actuation']

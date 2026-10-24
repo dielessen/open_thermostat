@@ -396,6 +396,7 @@
         var controlUiMode = 'unknown', controllerModePromise, chartPromise;
         var navigationGeneration = 0;
         var statusPoll = null;
+        var pageLoadRequest = null;
         const legacyEditorPages = ['program','room_management','room_setup','curve','hardware','rooms'];
 
         function applyControlMode(status) {
@@ -445,8 +446,18 @@
                 }
                 if (page === 'curve') await ensureChart();
                 if (navigation !== navigationGeneration) return false;
-                $('#maincontainer').load(page + '.html');
-                return true;
+                // Fetch without injecting: an obsolete response must never run
+                // its inline scripts or replace the newly selected page.
+                const request = $.ajax({url: page + '.html', dataType: 'html', timeout: 10000});
+                pageLoadRequest = request;
+                try {
+                    const html = await request;
+                    if (navigation !== navigationGeneration) return false;
+                    $('#maincontainer').html(html);
+                    return true;
+                } finally {
+                    if (pageLoadRequest === request) pageLoadRequest = null;
+                }
             } catch (error) {
                 if (navigation === navigationGeneration) {
                     document.getElementById('maincontainer').textContent =
@@ -529,6 +540,7 @@
 		function clearMainContainer() {
             window.EMSDevicesPage?.unmount();
             navigationGeneration++;
+            if (pageLoadRequest) { pageLoadRequest.abort(); pageLoadRequest = null; }
             if (statusPoll) { statusPoll.abort(); statusPoll = null; }
 			if (intervalID) {
 				clearInterval(intervalID);

@@ -27,6 +27,13 @@ fout bewaken de bestaande toelating; alleen een echt nieuwe sessie kan herstelle
 Deze twee bronpunten gaan mee in de volgende bundel; de tabel hieronder beschrijft
 de reeds geleverde alpha27/dev36-bundel.
 
+Nieuwe codecontrole in dezelfde batch: HA-opstartfouten/annulering ruimt ook
+vroeg gepubliceerde resources op; oude setup kan een nieuwe eigenaar niet wissen.
+Grote numerieke kraanmetadata veroorzaakt geen editorcrash. Een laat pagina-
+antwoord kan nieuwe navigatie niet meer vervangen of oude scripts uitvoeren.
+De EMS-tabel hergebruikt rijen, ordent nieuwe adressen juist en valideert waarden
+strikter. Zie [codecontrole](CODECONTROLE-20261024.nl.md). Nog niet geïnstalleerd.
+
 ## Gebundelde wijzigingen
 
 | Onderdeel | Concrete wijziging | Controle |

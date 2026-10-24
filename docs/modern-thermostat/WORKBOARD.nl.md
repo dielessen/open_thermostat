@@ -18,7 +18,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 240 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 243 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
 met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
@@ -83,7 +83,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-240 bronverwijzingen met hashes, status en resterende acceptatie.
+243 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -1950,3 +1950,16 @@ bewijs ontbreekt; ontvangst is geen kraanbevestiging. Zie installatieverslag.
 
 Zie [EMS-apparaten](EMS-APPARATEN.nl.md); bestaande B04–B14 en alle31producteisen
 blijven behouden. Geleverde alpha27/dev36 en voorbereide nieuwe bron zijn gescheiden.
+
+### Codecontrole na de EMS-apparatenbatch
+
+- [x] Brede code-/syntaxisinventaris:511projectcodebestanden,260syntaxiscontroles; inhoudelijke review van ownership, setup/cleanup, annulering, timing, metadata, buffers en UI. Geen garantie dat alle code foutvrij is.
+- [x] HA-opruiming gerepareerd bij vroege groeps-/connectionfout en legacy/shadow-annulering; oude cleanup verwijdert geen nieuwe eigenaar. Standaard AsyncExitStack, geen nieuwe achtergrondtaak.
+- [x] Kamereditor behandelt te grote min/max/stapmetadata als onbruikbaar in plaats van interne fout.
+- [x] Late HTML-antwoorden kunnen geen nieuwere pagina vervangen of hun scripts uitvoeren. Navigatie trekt de lopende aanvraag in, HTTP-fout is zichtbaar.
+- [x] EMS-rijen behouden hun identiteit; cache blijft begrensd door bekende velden. Nieuwe adressen juist geordend, boolean/waarde/status gecontroleerd en EN/NL-getallen opgemaakt.
+- [x]178gerichte HA-tests,40webunittests,18Chromiumprofielen en E32-build geslaagd. Complete CI blijft gekoppeld aan de exacte bron.
+
+Deze correcties zijn voorbereid voor de volgende gezamenlijke release; live
+alpha27/dev36 blijft staan. Geen B04–B14-/fysieke vrijgave. Zie
+[codecontrole](CODECONTROLE-20261024.nl.md) voor reproducties en grenzen.

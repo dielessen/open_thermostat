@@ -34,18 +34,28 @@ function snapshot(){
   const status=page.locator('#ems-devices-status');await status.filter({hasText:lang==='nl'?'Momentopname bijgewerkt':'Snapshot updated'}).waitFor();
   assert.equal(await page.locator('#ems-device-list details').count(),2);
   const boiler=page.locator('details[data-address="8"]'),other=page.locator('details[data-address="16"]');await boiler.locator('summary').click();
-  assert.equal(await boiler.locator('tbody tr').count(),3);assert.match(await boiler.innerText(),/47.2 °C/);assert.match(await boiler.innerText(),lang==='nl'?/Onbetrouwbaar/:/Unreliable/);assert.match(await boiler.innerText(),lang==='nl'?/Verlopen/:/Expired/);
+  assert.equal(await boiler.locator('tbody tr').count(),3);assert.match(await boiler.innerText(),(lang==='nl'?/47,2 °C/:/47.2 °C/));assert.match(await boiler.innerText(),lang==='nl'?/Onbetrouwbaar/:/Unreliable/);assert.match(await boiler.innerText(),lang==='nl'?/Verlopen/:/Expired/);
   assert(!((await boiler.innerText()).includes('Nefit')),'No selected model presented as received identification');
   await other.locator('summary').click();assert.match(await other.innerText(),lang==='nl'?/nog niet worden gedecodeerd/:/not available yet/);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.screenshot({path:path.join(output,`${lang}-${width}.png`),fullPage:true});
   await page.locator('#ems-search').fill('measured_flow');assert.equal(await boiler.locator('tbody tr').count(),1);
+  await page.evaluate(()=>{window.keptFlowRow=[...document.querySelectorAll('tbody tr')].find(r=>r.textContent.includes('measured_flow_temperature'));});
   data.boiler.fields.measured_flow_temperature.value=48.1;await page.locator('#ems-refresh').click();await status.filter({hasText:lang==='nl'?'Momentopname bijgewerkt':'Snapshot updated'}).waitFor();
-  assert.equal(await boiler.getAttribute('open'),'');assert.equal(await other.getAttribute('open'),'');assert.equal(await page.locator('#ems-search').inputValue(),'measured_flow');assert.match(await boiler.innerText(),/48.1 °C/);
+  assert.equal(await page.evaluate(()=>keptFlowRow===[...document.querySelectorAll('tbody tr')].find(r=>r.textContent.includes('measured_flow_temperature'))),true,'Existing entity row must be updated in place');
+  assert.equal(await boiler.getAttribute('open'),'');assert.equal(await other.getAttribute('open'),'');assert.equal(await page.locator('#ems-search').inputValue(),'measured_flow');assert.match(await boiler.innerText(),(lang==='nl'?/48,1 °C/:/48.1 °C/));
   await page.locator('#ems-search').fill('');await page.locator('#ems-show-unknown').check();assert.equal(await boiler.locator('tbody tr').count(),69);
-  fail=true;await page.locator('#ems-refresh').click();await status.filter({hasText:lang==='nl'?'Vernieuwen mislukt':'Refresh failed'}).waitFor();assert.equal(await boiler.getAttribute('open'),'');assert.equal(await page.locator('#ems-devices').getAttribute('data-failed'),'true');assert.match(await boiler.innerText(),/48.1 °C/);
+  data.boiler.fields.pressure.unit='bool';data.boiler.fields.pressure.value='off';
+  await page.locator('#ems-refresh').click();await status.filter({hasText:lang==='nl'?'Vernieuwen mislukt':'Refresh failed'}).waitFor({timeout:6000});
+  assert.equal(await page.locator('#ems-devices').getAttribute('data-failed'),'true');
+  data=snapshot();data.boiler.fields.measured_flow_temperature.value=48.1;
+  fail=true;await page.locator('#ems-refresh').click();await status.filter({hasText:lang==='nl'?'Vernieuwen mislukt':'Refresh failed'}).waitFor();assert.equal(await boiler.getAttribute('open'),'');assert.equal(await page.locator('#ems-devices').getAttribute('data-failed'),'true');assert.match(await boiler.innerText(),(lang==='nl'?/48,1 °C/:/48.1 °C/));
   fail=false;data.boiler.fields.bad={value:'<img src=x onerror=alert(1)>',unit:'text',state:'valid',quality:'reported',source_type:24,source_address:8,age_ms:0};data.inventory.devices[0].address=16; // Duplicate identity invalidates entire snapshot.
   await page.locator('#ems-refresh').click();await status.filter({hasText:lang==='nl'?'Vernieuwen mislukt':'Refresh failed'}).waitFor();assert.equal(await page.locator('#ems-device-list img').count(),0);assert.equal(await page.locator('#ems-device-list details').count(),2);
+  data=snapshot();data.inventory.devices=[data.inventory.devices[1]];
+  await page.locator('#ems-refresh').click();await status.filter({hasText:lang==='nl'?'Momentopname bijgewerkt':'Snapshot updated'}).waitFor();
+  data=snapshot();await page.locator('#ems-refresh').click();await status.filter({hasText:lang==='nl'?'Momentopname bijgewerkt':'Snapshot updated'}).waitFor();
+  assert.deepEqual(await page.locator('#ems-device-list details').evaluateAll(nodes=>nodes.map(n=>n.dataset.address)),['8','16']);
   data=snapshot();data.inventory.devices=[];await page.locator('#ems-refresh').click();await status.filter({hasText:lang==='nl'?'Momentopname bijgewerkt':'Snapshot updated'}).waitFor();assert.equal(await page.locator('#ems-device-list details').count(),0);assert.match(await page.locator('#ems-device-list').innerText(),lang==='nl'?/Nog geen/:/No EMS/);
   // Navigating away cancels a bounded in-flight read; no late repaint/new polling.
   hold=true;await page.locator('#ems-refresh').click();await page.waitForFunction(()=>document.querySelector('#ems-refresh').disabled);await page.evaluate(()=>loadNativePage('about'));await page.locator('#ems-devices').waitFor({state:'detached'});if(pending)await pending.fulfill({contentType:'application/json',body:JSON.stringify(snapshot())}).catch(()=>{});

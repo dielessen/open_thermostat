@@ -104,8 +104,11 @@ def target_capability(hass, state):
         raise HomeAssistantError("TRV has no target-temperature capability")
     unit = attrs.get("unit_of_measurement", hass.config.units.temperature_unit)
     values = [attrs.get("min_temp"), attrs.get("max_temp"), attrs.get("target_temp_step")]
-    if unit not in ("°C", "°F") or any(isinstance(x, bool) or not isinstance(x, (int, float))
-            or not math.isfinite(x) for x in values):
+    try:
+        finite = all(type(x) in (int, float) and math.isfinite(x) for x in values)
+    except OverflowError:
+        finite = False
+    if unit not in ("°C", "°F") or not finite:
         raise HomeAssistantError("TRV capability bounds unverified")
     low, high, step = (Decimal(str(x)) for x in values)
     if step <= 0 or low >= high:

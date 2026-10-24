@@ -34,6 +34,7 @@ jobs:
           node test/dashboard-browser.cjs
           node test/boiler-display-browser.cjs
           node test/ems-devices-browser.cjs
+          node test/navigation-browser.cjs
           node test/system-log-browser.cjs
           node test/ui-language-browser.cjs
           node test/boiler-test-browser.cjs

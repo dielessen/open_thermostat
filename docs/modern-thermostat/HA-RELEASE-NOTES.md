@@ -1,6 +1,6 @@
-# HA 0.4.0.dev34 — voorbereiding volgende bundel
+# HA 0.4.0.dev34 — diagnose en duidelijke bediening afgerond
 
-Nog niet gepubliceerd of geïnstalleerd. De gecontroleerde installatie blijft dev33.
+Bundelt alle eerdere HA-correcties en de native ESP-diagnose met de EN/NL-uitleg van instellingen en controles. Hoort bij E32 alpha26; die firmware hoeft hiervoor niet opnieuw geflasht te worden.
 
 - Ontvangstouderdom van de alleen-lezen supervisordiagnose vergelijkt direct met de vervaldeadline. Daarmee blijft een exact verlopen rapport niet zichtbaar door afronding bij het aftrekken van twee klokwaarden.
 - Een deterministische proef met een fractioneel klokbegin toont de oorspronkelijke fout en het herstel. Regelbevoegdheid, opdrachten, leases, bronkwalificatie en fysieke uitgangen veranderen niet.

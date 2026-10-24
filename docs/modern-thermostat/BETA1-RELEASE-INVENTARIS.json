@@ -1593,7 +1593,7 @@
     {
       "id": "B05",
       "complete": false,
-      "description": "TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur, originele datapuntproducer en native HA-ontvangst/lifecycle geleverd; privé pins en producent geplaatst, één bron geregistreerd. Nog natuurlijke rapportontvangst, causale zendtransactiekoppeling, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel."
+      "description": "TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur, originele datapuntproducer en native HA-ontvangst/lifecycle geleverd; privé pins en producent geplaatst, één bron geregistreerd. Natuurlijke oorspronkelijke temperatuurontvangst bevestigd; causale zendtransactiekoppeling/doelecho, schema-eigenaarschap en profiel/readiness/fallback nog afronden. Fysieke proef eerst zonder ketel."
     },
     {
       "id": "B06",

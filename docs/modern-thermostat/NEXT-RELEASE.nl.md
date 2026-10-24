@@ -16,6 +16,18 @@ Bron/pakket/ELF/web, alle 83 HA-bestanden en behoud van instellingen, programma'
 en identiteiten zijn gecontroleerd. Zie [installatieverslag](INSTALLATIE-HA36-ALPHA27-20261024.nl.md).
 De uitgebreide geleverde bundel staat in de [werkbordhistorie](WORKBOARD-HISTORIE-20261024.nl.md).
 
+### Laatste controle van de geïnstalleerde omgeving
+
+24 oktober 17:00–17:01 CEST: HA geladen, E32 dezelfde boot/uptime +70 s,
+19 nieuwe EMS-rapporten, ontvangstfouten/TX/polls 0. Vrij geheugen circa 77–80 kB,
+CPU circa 53 °C. De onderzochte web-/statusroutes werken en instellingen zijn behouden.
+Oorspronkelijke TV02-temperatuurontvangst is nu bevestigd; doelecho en kraanwerking
+blijven ongekwalificeerd. De gekozen kamerbron heeft nog geen bruikbaar meetprofiel.
+
+Korte runtimecontrole geslaagd binnen deze grenzen; geen lange-duurproef of
+actieve verwarmingsacceptatie. Geen update/herstart/aansturing uitgevoerd.
+Bewijs: `out/stability-check-20261024/SAFE-RESULT.json`.
+
 ## 2. Klaar om in de volgende release mee te nemen
 
 | Onderdeel | Wat verandert er? |
@@ -70,6 +82,10 @@ tussen starts, ook nadat Tado voor de kamer idle meldde.
 Telemetrie bewijst geen exact aantal fysieke ontstekingen en sluit indirecte
 elektrische invloed niet volledig uit. Geen instellingen gewijzigd of zendproef
 gedaan. Bewijs: `out/boiler-cycling-20261024/SAFE-RESULT.json`.
+
+De latere controle van 17:00–17:01 CEST toont in de voorafgaande 30 minuten alleen
+code 0H/0% gemeld vermogen en afkoeling, zonder nieuwe positieve vermogensperiode.
+De eerdere oorzaak blijft onbekend; dit is geen bewijs van een reparatie.
 
 ## 5. Wanneer is de actieve bèta gereed?
 

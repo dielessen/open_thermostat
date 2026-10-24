@@ -16,6 +16,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
+| Laatste livecontrole | 24 oktober 17:00–17:01 CEST: HA geladen, E32-uptime +70 s, 19 nieuwe EMS-rapporten, fouten/TX/polls 0; oorspronkelijke TV02-temperatuur ontvangen maar niet regelgekwalificeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
 met 245 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
@@ -90,6 +91,28 @@ Oorzaak en werkelijk begin blijven onbekend. Warmwatergebruik/bijwarmen is de
 onderzoeksrichting; indirecte elektrische invloed is niet volledig uitgesloten.
 Geen instellingen gewijzigd of zendproef uitgevoerd. Veilig lokaal bewijs:
 `out/boiler-cycling-20261024/SAFE-RESULT.json` en `REVIEW.json`.
+
+### Live stabiliteitscontrole — 24 oktober, 17:00–17:01 CEST
+
+Twee meetmomenten, 70 seconden uiteen: dezelfde E32-boot, HA dev36 geladen,
+actuele native verbinding en ongewijzigde configuratierevisie 4. Alle 83 HA-bronbestanden,
+105 registryrecords, programma's/bindings en pins/producer gelijk aan de geïnstalleerde
+basis. Web-/statusroutes bereikbaar; 19 nieuwe EMS-rapporten, alle ontvangstfouttellers 0.
+Vrij geheugen circa 77–80 kB, grootste blok circa 70–74 kB, CPU circa 53 °C; minimale
+vrije heap onveranderd 40612 bytes. Dit is een korte beschikbaarheidscontrole,
+geen uitspraak over een langetermijngeheugenlek of fysieke regelwerking.
+
+Oorspronkelijk TV02-bericht ontvangen: `commandDataResponse` met
+`local_temperature_centi_c`. Ontvangststatus `received_unqualified`, causale
+opdrachtbevestiging/readiness/regelkwalificatie alle false. B05 blijft open.
+De gekozen RTCGQ11LM blijft diagnostisch, `profile_missing` en niet bruikbaar
+als gekwalificeerde ruimtemeting. RTC uitgeschakeld/temperatuur onbekend is verwacht.
+
+De laatste begrensde ketelgeschiedenis van 16:31–17:01 CEST bevat 0% gemeld vermogen,
+code 0H en afkoelende aanvoer 62→54 °C, zonder nieuwe positieve vermogensperiode.
+Dat verklaart het eerdere pendelen niet en bewijst geen onafhankelijke vlammeting.
+Alle uitgangen blijven geblokkeerd; niets geïnstalleerd, herstart of aangestuurd.
+Bewijs: `out/stability-check-20261024/SAFE-RESULT.json` en `REVIEW.json`.
 
 ## 2. Af, geleverd en dus ook in de volgende release behouden
 
@@ -237,7 +260,7 @@ onafhankelijk bron-/testwerk hoeven niet te wachten op een fysieke waarneming.
 - [x] B02 Alle bekende voorbereide brononderdelen geïnventariseerd en in bètabasis behouden; geen bron-/testbestand uit hoofdwerkmap ontbreekt.
 - [x] B03 Nieuwe ontvangstdiagnose/Keteltest/rapport gebouwd en getest: 18 native, 43 GUI-regressies, 3 echte Chromiumviewports met fixture-HTTP, normale E32-build.
 - [ ] B04 Observer-lifecycle/native binding en originele WSDCGQ11LM-producer/HA-ontvangstdiagnose gebouwd/getest; productie-meetprofiel met echte acquisitie-/bronkwalificatie en fysieke validatie afronden. Geen trustvinkje of sensorwissel als omweg.
-- [ ] B05 TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur, originele datapuntproducer en native HA-ontvangst/lifecycle geleverd; privé pins en producent geplaatst, één bron geregistreerd. Nog natuurlijke rapportontvangst, causale zendtransactiekoppeling, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel.
+- [ ] B05 TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur, originele datapuntproducer en native HA-ontvangst/lifecycle geleverd; privé pins en producent geplaatst, één bron geregistreerd. Natuurlijke oorspronkelijke temperatuurontvangst bevestigd; causale zendtransactiekoppeling/doelecho, schema-eigenaarschap en profiel/readiness/fallback nog afronden. Fysieke proef eerst zonder ketel.
 - [ ] B06 Supervisor aan bron-eigen profiel en actuele afzonderlijk gedateerde veiligheids-/DHW-/water-/kraan-/flowfeiten gekoppeld en in controller getest; werkelijke producenten, installatieprofiel en fysieke kwalificatie blijven open. Geen generieke flowaanname.
 - [ ] B07 Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten.
 - [ ] B08 Poll-executor, Classic-flow/nulformaat en gecontroleerde SDK-zendresultaten aangesloten/getest; installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute.

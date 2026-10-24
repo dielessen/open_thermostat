@@ -1,3 +1,17 @@
+# E32 V2 alpha26 — ESP-diagnose en duidelijke instellingen
+
+Herstelt de ESP-eigen diagnose in de native MQTT-modus, samen met HA dev33.
+Alle bestaande voorbereide functies uit alpha24 en de HA-correcties blijven behouden.
+
+- Vrije/minimaal vrije interne heap, grootste vrije geheugenblok, CPU-temperatuur en uptime worden elke 15 seconden via dezelfde MQTT-verbinding verstuurd. De uitgeschakelde RTC-temperatuur blijft onbekend.
+- HA dev33 behoudt de bestaande diagnose-identiteiten en trekt de beschikbaarheid na 45 seconden zonder geldige meting in. Een HA-herstart vereist geen E32-herstart.
+- De E32-instellingen en het dashboard leggen schaduwmodus in Engels en Nederlands uit: gegevens uitlezen en warmtevraag berekenen, zonder kraan- of ketelopdrachten. EMS-ontvangst en het installatieprofiel zijn geen vrijgave voor fysieke aansturing.
+- HA dev33 legt configuratiebevestiging, kraandoelcontroles en berekeningen afzonderlijk uit. Betrouwbare bronmetingen, bevestigde opdrachten en veilig stopgedrag moeten nog afzonderlijk worden afgetekend.
+
+De normale HTTPS-update blijft app-only met dezelfde partities en instellingen.
+Home Assistant blijft een apart pakket; de bestaande dev28/v28-kamerkaart blijft gelijk.
+De ketelontvangst blijft passief, Tado blijft regelen en alle fysieke uitgangen blijven geblokkeerd.
+
 # E32 V2 alpha24 + Home Assistant dev30 — gebundelde controle- en ontvangstbasis
 
 Bundelt alle voorbereide wijzigingen sinds alpha23/dev29 in één gezamenlijke

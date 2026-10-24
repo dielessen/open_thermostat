@@ -1694,3 +1694,7 @@ De native MQTT-tak keerde terug vóór registratie van de legacy DeviceStatusRep
 ### Duidelijke bediening en controles — kandidaat, nog niet geïnstalleerd
 
 HA-installatiestatus toont voor actieve berekeningen expliciet ‘Alleen uitlezen en berekenen (schaduwmodus)’. HA en E32 leggen uit dat configuratieteruglezing, bruikbare metingen, passende kraandoelen en fysieke opdracht-/stopproeven verschillende controles zijn. E32-instellingen en dashboard tonen de betekenis van deze modus in EN/NL. Deze presentatiewijziging verandert geen instelling, toelatingscontrole of uitgang.
+
+### Publicatiecontrole firmwarekandidaat
+
+De bevroren alpha25-tag kreeg geen openbare release of OTA: de publicatiecontrole weigerde de niet-bijgewerkte firmware-releasenotities. Tag en pakketten zijn niet overschreven. De gecorrigeerde firmwarekandidaat is alpha26; de componentbron van het reeds gepubliceerde HA dev33 blijft exact behouden.

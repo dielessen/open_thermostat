@@ -15,23 +15,22 @@ wat eerder is voorbereid moet in de releasebasis behouden blijven. Daarom is
 ieder voorbereid onderdeel opgenomen in de [release-inventaris](BETA1-RELEASE-INVENTARIS.json)
 en in [WORKBOARD §3](WORKBOARD.nl.md#3-alles-wat-voorbereid-is-meenemen-in-de-bèta).
 
-- **Geleverd:** E32 alpha23 / HA dev29 (bron `5f31dd7`); normale
-  updater en HA-agentuitrol met behoud van instellingen, programma en identiteiten
-  bewezen. Het exacte HRC 22H-presentatieprofiel en native ketelvelden/HA-overzicht
-  zijn geleverd. De huidige SOURCE-revisie wordt live gelezen; normale dagelijkse
-  horizonvernieuwing is geen configuratieverlies.
-- **Meegeleverd/gecontroleerd:** ketelontvangstdiagnose, Settings → Keteltest,
-  meetrapport en de voorbereide geblokkeerde proefketen. Tijdens de latere
-  README-opname zijn verse Classic-rapporten ontvangen; volledige veldpariteit
-  en actieve verwarmingsacceptatie blijven open.
-- **Code reeds voorbereid:** regelaars/supervisor, water-/vloer-/mengerpolicies,
-  metrics/grafieken/CSV, comfort/context, modellen/optimum-start/coast/curve.
-  Deze code niet opnieuw als geheel ongeprogrammeerd aanduiden. De complete
-  actieve productketen, bronkwalificatie en fysieke acceptatie zijn niet af.
-- **Nog nodig voor de gevraagde bèta:** productie-meet-/TRV-keten, begrensde
-  proefsupervisor, Classic-commandopad/laatste zendcontrole en concrete fysieke
-  interface-/stopvoorwaarden; daarna één bevroren kandidaat met volledige
-  releaseverificatie/publicatie/gecoördineerde uitrol en afzonderlijk proefrapport.
+- **Geïnstalleerd:** E32 alpha27 (`dd6a963`) en HA dev36 (`c41b7a6`),
+  met behoud van instellingen, programma's en identiteiten. E32 leest passief;
+  Tado blijft de actieve regelaar. Details: [installatieverslag](INSTALLATIE-HA36-ALPHA27-20261024.nl.md).
+- **Klaar voor de volgende bundel:** EMS-apparatenpagina, sessie-/klokbewaking
+  op E32 en HA, opstartherstel en web-/editorcorrecties. Broncheckpoint `34aa3e8`
+  heeft volledige CI; deze wijzigingen zijn nog niet geïnstalleerd.
+- **Voorbereide productbasis behouden:** regelaars/supervisor, water-/vloer-/
+  mengerpolicies, metrics/grafieken/CSV, comfort/context en leermodellen. De
+  ontbrekende aansluiting en praktijkkwalificatie staan per eis op het werkbord.
+- **Nog nodig voor actieve bèta:** actuele meetbron en native kraantransactie,
+  werkelijke veiligheidsfeiten, beoordeeld installatie-/TX-/stopprofiel en
+  gecontroleerde fysieke proeven. Policy, Classic-encoder en laatste
+  verzendcontrole zijn al gebouwd; ontbrekende kwalificatie blijft zichtbaar open.
+- **Nu vóór fysieke proeven:** het gemelde pendelen onderzoeken. De passieve
+  controle toont geen OpenThermostat-verzending; warmwatergerelateerde periodes
+  zijn waargenomen, maar de oorzaak is nog onbekend. Zie het actuele werkbord.
 
 Software aanwezig, software geleverd en fysieke werking bewezen zijn aparte
 statussen. Bestaande onvolledige features gaan als begrensde bron mee, zonder
@@ -330,7 +329,7 @@ Tado-/Honeywell-achtige functies worden dus **expliciet** als kern of optie opge
 ## 5. Domeinmodel en configuratie-eigenaarschap
 
 De concrete gebruikersroute, algemene/circuit-/kamerinstellingen en afbouw van
-HA-managed E32-editors staan in [WORKBOARD§2–4](WORKBOARD.nl.md#2-waar-configureren-en-bedienen-we-straks).
+HA-managed E32-editors staan in [WORKBOARD§2–4](WORKBOARD.nl.md#2-af-geleverd-en-dus-ook-in-de-volgende-release-behouden).
 Weersinstellingen horen voor Marks gedeelde circuit centraal, niet per kamer.
 Een aparte mengkring kan eigen grenzen/curve vragen. Vloer-/binaire klep- en
 proportionele klepprofielen worden niet met een TRV of mengklep vereenzelvigd.
@@ -743,7 +742,7 @@ Nieuwe integratie-/firmwareversies onderhandelen capabilities. Ondersteunde comb
 
 **Dit zijn de volledige acceptatiespecificaties, niet een tweede statuslijst.**
 Actuele status, bewezen deelresultaten, eigenaren en volgende bewijsacties voor
-alle 11 fasen F0–F10 staan in [WORKBOARD§5](WORKBOARD.nl.md#5-de-11-productfasen--bijgewerkt-en-afgevinkt-waar-bewezen).
+alle 11 fasen F0–F10 staan in [WORKBOARD§5](WORKBOARD.nl.md#5-de-11-productfasen).
 Onderstaande punten blijven als vereisten behouden; daarom geen losse afvinkvakjes
 hier die na uitvoering opnieuw achterlopen. Softwarevoorbereiding mag onafhankelijk
 van fysieke commissioning doorgaan; een planupdate is geen ketel-/flashvrijgave.

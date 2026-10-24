@@ -1,122 +1,88 @@
-# Volgende gezamenlijke release — inhoud en resterende poorten
+# Volgende gezamenlijke release
 
-## Geïnstalleerde basis
+Bijgewerkt: 24 oktober 2026. Dit is het korte releaseoverzicht.
+Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
+het [masterplan](PLAN.nl.md) bewaart alle 31 producteisen en acceptatievoorwaarden.
 
-E32 alpha27 en HA dev36 zijn gepubliceerd, geïnstalleerd en onafhankelijk teruggelezen.
-Firmwarebron `dd6a9635865c6ecd2bf1c553c3292ae13dfb53ae`; HA-bron
-`c41b7a6e12730f88eb98960299be3236c6494457`. Alle 83 HA-bronbestanden,
-frontend dev35/v35 en E32 ELF/web/bootidentiteit komen overeen met de openbare
-pakketten. De onderstaande bundel is daarmee geleverd; fysieke vrijgave blijft
-open. De bestaande native HTTPS-worker is niet opnieuw getest of als gerepareerd
-verklaard. Details staan in `INSTALLATIE-HA36-ALPHA27-20261024.nl.md`.
+## 1. Wat draait er nu?
 
-## Nieuwe batch en prioriteit
-
-De onderstaande bundel is al geleverd. Nieuwe prioriteiten staan op het werkbord:
-eerst tijd-/uitvaltoelating en ontbrekende M2-bron/actuator-/veiligheidsketen.
-De expliciete gebruikersopdracht **Settings → EMS-apparaten** is gebouwd en getest, nog niet geïnstalleerd:
-passief ontvangen afzenders, product/versie indien werkelijk gerapporteerd,
-ontvangen entiteiten met waarde/kwaliteit/ouderdom en telegramtypen. Decoderloze
-apparaten blijven zichtbaar zonder verzonnen entiteiten. Openklappen en zoekfilter
-blijven bij vernieuwen behouden. Geen scan of writefunctie.
-
-Daarnaast is een P0-fout in sessietoelating gerepareerd: een verlopen grant of
-lease mag bij een teruggaande ontvangerklok niet herleven, ook niet via een
-diagnostische deadlinelezing. Een sessiegebonden klokwatermerk en vergrendelde
-fout bewaken de bestaande toelating; alleen een echt nieuwe sessie kan herstellen.
-Deze twee bronpunten gaan mee in de volgende bundel; de tabel hieronder beschrijft
-de reeds geleverde alpha27/dev36-bundel.
-
-Nieuwe codecontrole in dezelfde batch: HA-opstartfouten/annulering ruimt ook
-vroeg gepubliceerde resources op; oude setup kan een nieuwe eigenaar niet wissen.
-Grote numerieke kraanmetadata veroorzaakt geen editorcrash. Een laat pagina-
-antwoord kan nieuwe navigatie niet meer vervangen of oude scripts uitvoeren.
-De EMS-tabel hergebruikt rijen, ordent nieuwe adressen juist en valideert waarden
-strikter. Zie [codecontrole](CODECONTROLE-20261024.nl.md). Nog niet geïnstalleerd.
-
-## Actieve bèta en gemeld pendelen
-
-Het concrete [testplan](BETA1-KETELPROEF.nl.md#praktisch-testplan-voor-de-actieve-bèta--24-oktober-2026)
-legt de volgorde vast: pendelonderzoek, passieve nulmeting, exacte kandidaat,
-beoordeelde installatie-/stopkaart, nulproef, één begrensde warmtevraag, stop/naloop,
-afzonderlijke uitvalproeven en terugkeer naar Tado. Geen zendproef gestart.
-Onverklaard pendelen wordt eerst onderzocht. Handmatige keteltest en automatische
-kamerregeling hebben afzonderlijke vrijgave; M2 blijft vereist voor die laatste.
-Er is nog geen onderbouwde kalenderdatum voor de actieve bèta.
-
-Ook de bestaande HA-transportowner trekt bij teruggaande/ongeldige monotone klok
-alle sessie-/grantbewijzen in. Herverbinden kan die niet herstellen: de normale
-integratieherlaadroute maakt een nieuwe owner. Geen nieuwe taak/client/timer.
-Deze broncorrectie is nog niet geïnstalleerd.
-
-## Gebundelde wijzigingen
-
-| Onderdeel | Concrete wijziging | Controle |
+| Onderdeel | Geïnstalleerd | Stand |
 | --- | --- | --- |
-| Automatische update onderzoeken | Eén blijvend native updatecontrolepunt, actuele reset-/bootpartitiegegevens en EN/NL-diagnose; geen opslag per pakket/poll | Native opslag-/reconstructiegevallen, updaterbrowser, echte E32-build; echte powerloss nog open |
-| HA-uitval | Bestaande lokale15s-lease wordt ook bij stille HA en werkende broker exact ingetrokken; geen oude heartbeat als herstel | Echte C++-controller met synthetische bronfeiten |
-| Netwerkuitval / naloop | Lokale offline ticks blijven de oorspronkelijke naloopdeadline volgen, zonder publish of externe observers, ook na native SOURCE-lockout | Pure supervisor en echte controller; geen fysiek pomp-/klepbewijs |
-| Teruggaande klok | Een verlopen, eerder behouden pad-/pompintentie kan niet herleven door een oudere timestamp | Deterministische bestaande bron faalt, gecorrigeerde bron slaagt |
-| Duidelijke uitvalbediening | Uitklapbare EN/NL-uitleg op Home, behouden tijdens verversen | Echte Chromiumbrowser op desktop en mobiel |
-| Kraanopdracht bij verlies van eigenaarschap | Bevoegdheid, native binding, bedrijfsmodus en capability worden ook na de lopende HA-service gecontroleerd; onzeker resultaat blokkeert vervolgdoelen | Native HA-regressies met geblokkeerde synthetische service; geen echte zendbevestiging |
-| TV02-ontvangst | Ontvangstmetadata blijft na verval inspecteerbaar zonder oude datapointwaarden, privé-ID's of regelbevoegdheid | Native HA-tests met echte Node-producent en lifecycle |
-| M2-opdrachtlevensduur | Genummerde lokale opdrachten in bestaande adapter: oorspronkelijke deadline, gedeeld duplicaatresultaat, hoogste volgnummer, correcte eenheid en annulering | 32 nieuwe / 200 gerichte HA-tests; gewone wire-route en native Zigbee-receipt blijven open |
-| HA-kraanontvangst in EN/NL | Laatste berichttype, ontvangstouderdom en aanwezige gegevensnamen ook na verval; geen oude waarden of fysieke bevestiging | Zes browserprofielen plus native HA-keten |
-| Bijgewerkte HA-editor | Eigen module-URL en kaarttag v35; bestaande v28 kan de nieuwe beheerde kaart niet verdringen, handmatige kaarten blijven compatibel | Koude/preloaded browserproeven en native editor-/dashboardtests |
-| Incrementele systeemlog | Hele batch valideren vóór cursor/historie; ongeldige suffix verbruikt geen geldige prefix, eigen cursor na bootwissel | Oude bron faalt op cursor3 versus2; vier EN/NL-browserprofielen slagen |
-| Betrouwbare instellingenopslag | Onzekere log-/ketelopslag blokkeert herhaalde submit met behoud van concept; ketelkeuze heeft afzonderlijke GET-readback en begrensde verzoeken | Echo zonder opslag en verloren readback tonen geen succes en veroorzaken geen retry |
-| Actualiteit van meet- en buitenbronnen | Verlopen waarnemingen blijven ingetrokken; herhaalde weerberekeningen vernieuwen hun oorspronkelijke geldigheid niet | Twee regressies vóór/na, 625 native tests en E32-build; fysieke bronkwalificatie blijft open |
-| Supervisor bij ongeldig feedbackveld | Stop/limiet/ketelfout/DHW/actuatorfout van juiste eigenaar blijven restrictief; geen positieve feiten uit afgewezen snapshot | Directe brongevallen en echte controller met verschillende terugvalpolicies |
-| Levensduur van hydraulische bronfeiten | Getroffen bewijs ingetrokken na afwijzing/verval; alleen strikt nieuwe waarneming herstelt, andere brondeadlines blijven oorspronkelijk | Native replay-, klok- en onafhankelijke-bronproeven; teruggaande feedbackklok blijft geblokkeerd |
-| Classic-stop in fouttoestand | Geen overbodige nul bij verse stopmelding; bij verlies nieuw nulticket en latere melding, zonder oude wachttijd of legacy-terugval | Echte sessie, service en pollroute; fout blijft vergrendeld en positieve vraag uit |
-| Stopdiagnose in twee talen | Bevestigde stop correct Yes/Ja op de bestaande ketelproefpagina | NL/EN met drie browserformaten; uitsluitend HTTP-fixtures |
-| Eigen ketelprofiel | Nieuwe passieve HRC22H-momentopname met69 gedefinieerde velden en expliciete kwaliteitsgroepen | Gescheiden diagnostisch snapshot; geen leesfilter, kalibratie of regeling |
+| E32 | `v0.1.0-e32v2-alpha.27`, bron `dd6a9635865c6ecd2bf1c553c3292ae13dfb53ae` | Passief EMS uitlezen; TX, forwarding en fysieke uitvoer geblokkeerd |
+| Home Assistant | `0.4.0.dev36`, bron `c41b7a6e12730f88eb98960299be3236c6494457` | Geladen op Core 2026.10.3; frontend dev35/v35 |
+| Actieve regelaar | Tado | Geen automatische ketel- of kraansturing door OpenThermostat |
 
-Alle 23 voorbereide inventarisonderdelen blijven meegenomen. De bestaande
-kamerplanner, configuratie-/readbackketen, EMS-decoders, regulator, supervisor,
-groep-/vloer-/mengerpolicies, historie-/CSV-, comfort- en leerbasis blijven intact.
-Onvolledige of fysiek ongekwalificeerde code wordt hierdoor niet aangezet.
+Bron/pakket/ELF/web, alle 83 HA-bestanden en behoud van instellingen, programma's
+en identiteiten zijn gecontroleerd. Zie [installatieverslag](INSTALLATIE-HA36-ALPHA27-20261024.nl.md).
+De uitgebreide geleverde bundel staat in de [werkbordhistorie](WORKBOARD-HISTORIE-20261024.nl.md).
 
-## Wat kan niet worden afgevinkt met een softwarebuild?
+## 2. Klaar om in de volgende release mee te nemen
 
-- **B04:** de geselecteerde RTCGQ11LM levert diagnostische apparaattemperatuur.
-  Er ontbreekt nog een geschikte oorspronkelijke kamermeting met beoordeeld
-  meetprofiel. Geen automatische sensorwissel of trustvinkje.
-- **B05:** eerdere oorspronkelijke TV02-ontvangst is nu afgeleid uit de bestaande
-  `stale`-ontvangerstatus. Verse ontvangst, unieke native zendtransactiereceipt,
-  causale echo, exclusief schema-eigenaarschap en fysieke kraanproef blijven open.
-  Een HA-serviceacceptatie of gelijke doelwaarde is geen opdrachtbevestiging.
-- **B06–B09:** werkelijke limiet-/DHW-/water-/kraan-/flowproducenten,
-  installatieprofiel, UART-interface/adressering, onafhankelijke stop, minimumflow
-  en fysieke HA-/broker-/E32-/EMS-uitval moeten nog worden afgerond/beoordeeld.
-- **B10–B14:** finale productcontrole, nieuwe ongebruikte versies/tagfreeze,
-  publieke bron-/ELF-/web-/pakketcontrole en gecoördineerde uitrol/acceptatie horen
-  bij de exacte gezamenlijke eindkandidaat. Niet op basis van een losse reparatie.
+| Onderdeel | Wat verandert er? |
+| --- | --- |
+| Settings → EMS-apparaten | Per ontvangen afzender identiteit indien bekend, telegramtypen en entiteiten met waarde/kwaliteit/ouderdom; EN/NL, zoekfilter en behouden openklapstatus |
+| E32-klokbewaking | Verlopen grant/lease kan bij teruggaande klok niet herleven; ook diagnostische lezingen gecontroleerd |
+| HA-klokbewaking | Ongeldige/teruggaande monotone klok trekt sessie, wachtende opdrachten en bewijzen in; oude rechten herstellen niet door reconnect |
+| HA-opstart en annulering | Vroege fouten ruimen eigen resources op; een oude setup verwijdert geen nieuwe eigenaar |
+| Kamereditor | Te grote numerieke kraanmetadata wordt afgewezen zonder editorcrash |
+| Webnavigatie | Vertraagde pagina-antwoorden kunnen een nieuwere pagina niet overschrijven of oude scripts uitvoeren |
+| EMS-tabel | Bestaande rijen hergebruikt, adressen correct geordend, waarden gecontroleerd en getallen volgens EN/NL weergegeven |
+| Keteltestplan | Concrete volgorde en criteria voor toekomstige stop-, zend-, naloop- en uitvalproeven |
 
-De automatische HTTPS-afwijking is nog onverklaard. De nieuwe diagnose is
-voorbereiding op gericht onderzoek; zij repareert de oude poging niet en geeft
-geen toestemming om dezelfde route blind te herhalen. De eerste installatie
-van nieuwe diagnose vanuit oude firmware heeft zelf nog geen nieuwe checkpoint-
-registratie. De bestaande app-only herstelroute blijft afzonderlijk beoordeeld.
+**Gebouwd en getest, nog niet geïnstalleerd.** Broncheckpoint
+`34aa3e8b0525e41d0ae93e5afd299d59f238595f`: alle zeven CI-jobs geslaagd;
+2154 HA-tests op zowel Core 2026.10.2 als Core 2026.10.3, zonder fouten of skips.
+Bewijs: `out/ha-session-clock-20261024/FINAL-REVIEW.json`.
 
-## Vast vervolg en bewijs
+Alle 23 voorbereide onderdelen met 244 bronverwijzingen blijven in de
+[release-inventaris](BETA1-RELEASE-INVENTARIS.json). Bestaande regeling,
+supervisor, groepen/vloer/menger, historie/CSV, comfort en leren blijven behouden.
+Hun ontbrekende verbindingen en fysieke acceptatie staan op het werkbord.
 
-Volg de bestaande M2-volgorde: oorspronkelijke bron en native actuatortransactie,
-begrensde supervisor, Classic-zender/stop, dan pas de gezamenlijke freeze en uitrol.
-Geen F9/F10-ontwikkelstage vóór M2. De definitieve versie blijft per ruimte leren
-met blijvend bewaarde, gevalideerde parameters vereisen; dit wordt niet geschrapt.
+## 3. Wat doen we hierna?
 
-Bron- en testbewijs voor deze bundel:
-`out/update-diagnostics-20261024/` en
-`out/next-release-completion-20261024/` en
-`out/source-freshness-20261024/` en
-`out/actuator-owner-loss-20261024/` en
-`out/release-diagnostics-bundle-20261024/` en
-`out/release-control-gates-20261024/` en
-`out/m2-actuator-commands-20261024/`. De volledige CI-uitkomst wordt gekoppeld
-aan de exacte bevroren broncommit in `FINAL-REVIEW.json`; lokale checks alleen
-sluiten de publieke release- of fysieke poorten niet.
+| Volgorde | Werk | Gereed wanneer |
+| --- | --- | --- |
+| P0 vóór fysieke proef | Gemeld pendelen verklaren en passieve nulmeting beoordelen | Oorzaak of concrete vervolgmeting vastgelegd; geschikte stabiele proefbeginsituatie |
+| P0 software, B04 | Echte geschikte kamerbron met oorspronkelijk rapport en meetprofiel | Werkelijke acquisitie/actualiteit en uitval bewezen; geen diagnostische device_temperature als ruimtemeting |
+| P0 software, B05/M2 | Normale FW→HA-kraanroute met HA-ontvangergrant en bestaande adapter afronden | Native zendtransactie aan oorspronkelijke kraanecho gekoppeld; profiel, modus, eigenaarschap en fallback getoetst |
+| P0 software, B06 | Werkelijke veiligheids-/DHW-/water-/kraan-/flowfeiten aansluiten | Iedere bron met eigen geldigheid en beoordeeld installatieprofiel; geen generieke flowaanname |
+| P1, B07–B09 | Classic-TX-/stopketen afronden en installatievoorwaarden beoordelen | Adres/masker, interface/polariteit/arbitrage, afgifte/naloop, onafhankelijke stop en één actieve schrijver vastgesteld |
+| Release, B10–B13 | Eén gezamenlijke kandidaat bevriezen, verifiëren, publiceren en installeren | Exacte bron/pakketten, volledige CI, checksums, herstelroute, backup en nacontrole |
+| Fysiek, B14 | Afzonderlijk toegelaten stop-/zend-/uitvalproeven uitvoeren | Gemeten reactie en stop binnen beoordeelde grenzen; gecontroleerd herstel vastgelegd |
 
-Het [werkbord](WORKBOARD.nl.md) blijft de enige afvinklijst; dit document is de
-releaseoverdracht. [Uitvalaanpak](FAILSAFE.nl.md) beschrijft het gewenste gedrag,
-de geïmplementeerde softwarecontroles en de nog ontbrekende fysieke terugval.
+Onafhankelijk softwarewerk kan doorgaan terwijl fysieke gegevens ontbreken.
+Een begrensde handmatige ketelproef en automatische kamerregeling hebben
+verschillende voorwaarden: die laatste vereist ook de volledige M2-kamer-/kraanketen.
+
+## 4. Pendelen: wat weten we?
+
+De passieve controle van 24 oktober 16:26 CEST bevestigt **0 EMS-verzendingen,
+0 polls en alle uitgangen geblokkeerd**. Geen UART-fouten of ongeldige telegrammen;
+geen bewijs van OpenThermostat-aansturing. De beschikbare geschiedenis toont
+warmwatergerelateerde vermogensperiodes van ongeveer 3–4 minuten met 10–12 minuten
+tussen starts, ook nadat Tado voor de kamer idle meldde.
+
+**Oorzaak nog onbekend.** Warmwatergebruik/bijwarmen is de onderzoeksrichting.
+Telemetrie bewijst geen exact aantal fysieke ontstekingen en sluit indirecte
+elektrische invloed niet volledig uit. Geen instellingen gewijzigd of zendproef
+gedaan. Bewijs: `out/boiler-cycling-20261024/SAFE-RESULT.json`.
+
+## 5. Wanneer is de actieve bèta gereed?
+
+Er is nog geen onderbouwde kalenderdatum. De softwarekandidaat kan met
+geblokkeerde uitgangen worden geleverd; actieve proeven volgen pas na de
+bijbehorende installatie- en stopvoorwaarden. Het [testplan](BETA1-KETELPROEF.nl.md)
+beschrijft nulmeting → fysieke proefkaart → stop in rust → één begrensde vraag →
+stop/naloop → afzonderlijke uitval → terugkeer naar Tado.
+
+De oudere native HTTPS-updaterfout blijft onverklaard; checkpointdiagnose is
+geleverd, maar bewijst geen reparatie. Geen blinde herhaling van de mislukte route.
+
+## 6. Blijvend in het productplan
+
+Alle 31 eisen blijven gelden, inclusief per ruimte leren en blijvend bewaarde,
+gevalideerde parameters. Nieuwe F9/F10-ontwikkeling volgt na M2. Acht zones,
+vloer/menger, grafiek-/historieacceptatie, comfort en onbeheerd verwarmingsbedrijf
+houden hun eigen acceptatievoorwaarden. Niets wordt op basis van alleen aanwezige
+code of een geslaagde build als werkende fysieke functie afgevinkt.

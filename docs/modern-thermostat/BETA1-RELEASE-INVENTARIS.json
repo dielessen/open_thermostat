@@ -52,7 +52,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "b1edcd8087b8750f3f0c426e2374fd4f9b603d5d3bdaedb83f8ae75802cee837"
+          "sha256": "c60c3334455ba37bcbe8c962b696dac5e2d31c5569766a013c47dc3b7be42d7e"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
@@ -122,7 +122,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "b1edcd8087b8750f3f0c426e2374fd4f9b603d5d3bdaedb83f8ae75802cee837"
+          "sha256": "c60c3334455ba37bcbe8c962b696dac5e2d31c5569766a013c47dc3b7be42d7e"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -516,7 +516,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "b1edcd8087b8750f3f0c426e2374fd4f9b603d5d3bdaedb83f8ae75802cee837"
+          "sha256": "c60c3334455ba37bcbe8c962b696dac5e2d31c5569766a013c47dc3b7be42d7e"
         },
         {
           "path": "platformio.ini",

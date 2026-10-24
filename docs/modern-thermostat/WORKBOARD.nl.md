@@ -1231,3 +1231,22 @@ kamerbeslissingen niet. Geen nieuwe timer, opslag, MQTT-client of actuatorroute.
 64 gerichte HA-checks PASS, met opnieuw gebouwde echte C++-controller. Volledige
 CI en de afzonderlijke read-only broninstallatiebeoordeling staan bij het bewijs
 in `out/beta-source-chain-20261024/`. B04–B14 blijven open; niet geïnstalleerd.
+
+
+## B11/B12: HA-pakket vóór de release-tag controleren (24 oktober 2026)
+
+Op `main` werden de HA-tests wel uitgevoerd, maar waren het HA-pakket en de
+pakketcontroles beperkt tot `ha-v`-tags. De kandidaatworkflow bouwt en bewaart nu
+ook vóór een tag het HA-pakket na de volledige HA/C++-interopsuite. Het originele
+JUnit-rapport wordt als afzonderlijk artefact bewaard, ook bij een mislukte suite.
+De publicatietaken blijven ongewijzigd aan passende release-tags gebonden.
+
+Dit maakt een onafhankelijke gezamenlijke pakketcontrole mogelijk vóór enige
+publicatie of installatie. Een CI-artefact met de bestaande alpha23/dev29-versie
+is uitsluitend een broncheckpoint: niet over een gepubliceerde versie heen
+installeren/publiceren. Definitieve nieuwe versies en alle resterende bron-,
+installatie- en fysieke voorwaarden moeten bij de echte freeze ingevuld zijn.
+B11/B12 worden hiermee niet als volledig afgerond afgevinkt.
+
+De zeven pakket-unittests slagen lokaal. Exacte kandidaat-/CI-/pakketresultaten:
+`out/combined-candidate-20261024/`. Geen tags, productie-update of zendproef.

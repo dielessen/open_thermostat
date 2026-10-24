@@ -1,6 +1,6 @@
 # OpenThermostat + Home Assistant — masterplan
 
-**Geactualiseerd op 23 oktober 2026.** Alle 31 eisen R01–R31 en de oorspronkelijke
+**Geactualiseerd op 24 oktober 2026.** Alle 31 eisen R01–R31 en de oorspronkelijke
 acceptatiepoorten F0–F10 hieronder blijven gelden. De actuele stand, voltooid
 softwarewerk, open uitvoering en releasechecklist staan uitsluitend in
 [WORKBOARD](WORKBOARD.nl.md). De eerdere statusinleiding is ongewijzigd bewaard
@@ -15,8 +15,11 @@ wat eerder is voorbereid moet in de releasebasis behouden blijven. Daarom is
 ieder voorbereid onderdeel opgenomen in de [release-inventaris](BETA1-RELEASE-INVENTARIS.json)
 en in [WORKBOARD §3](WORKBOARD.nl.md#3-alles-wat-voorbereid-is-meenemen-in-de-bèta).
 
-- **Geleverd:** E32 alpha18 / HA dev24, bron `6ef01d0`, één update per component;
-  behoud van instellingen, SOURCE/revisie, programma en identiteiten bewezen.
+- **Geleverd:** E32 alpha21 (`f96cda7`) / HA dev27 (`faf8272`); normale
+  updater en HA-agentuitrol met behoud van instellingen, programma en identiteiten
+  bewezen. Het exacte HRC 22H-presentatieprofiel en native ketelvelden/HA-overzicht
+  zijn geleverd. De huidige SOURCE-revisie wordt live gelezen; normale dagelijkse
+  horizonvernieuwing is geen configuratieverlies.
 - **Meegeleverd/gecontroleerd:** ketelontvangstdiagnose, Settings → Keteltest,
   meetrapport en de voorbereide geblokkeerde proefketen. Tijdens de latere
   README-opname zijn verse Classic-rapporten ontvangen; volledige veldpariteit

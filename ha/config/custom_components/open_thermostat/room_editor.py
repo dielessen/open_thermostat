@@ -116,11 +116,17 @@ def read_room(hass, entry_id, room_id):
     measurement = (runtime.measurement_status(room_id) if callable(getattr(runtime, 'measurement_status', None))
                    else {'status': 'inactive', 'report_profile_configured': False,
                          'sample_age_ms': None, 'usable': False})
+    actuator_review = review_room_targets(hass, room, radiators)
+    originals = (runtime.actuator_report_status(room_id)
+                 if callable(getattr(runtime, 'actuator_report_status', None)) else {})
+    for actuator in actuator_review['actuators']:
+        if actuator['entity_id'] in originals:
+            actuator['original_report'] = originals[actuator['entity_id']]
     return {'entry_id': entry_id, 'room_id': room_id, 'token': digest(configuration_snapshot(entry)),
         'measurement': measurement,
         'rooms': [{'room_id': s.data['room_id'], 'name': s.title} for s in entry.subentries.values() if s.subentry_type == 'zone'],
         'choices': choices, 'time_zone': hass.config.time_zone, 'maximum_blocks': 28,
-        'actuator_target_review': review_room_targets(hass, room, radiators),
+        'actuator_target_review': actuator_review,
         'supported': supported, 'editable': supported and not profile_pending and (not active or program_only),
         'program_only': program_only, 'apply_pending': apply_pending,
         'profile_editable': profile_editable, 'profile_apply_pending': profile_pending,

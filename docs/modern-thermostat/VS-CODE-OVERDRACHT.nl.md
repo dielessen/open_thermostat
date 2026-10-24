@@ -1,34 +1,54 @@
 # OpenThermostat — actuele overdracht
 
-Bijgewerkt 24 oktober 2026 na de oorspronkelijke TV02-rapportproducer.
+Bijgewerkt 24 oktober 2026 na de native TV02-ontvangst/lifecycle.
 
 1. Lees [WORKBOARD](WORKBOARD.nl.md): de enige actuele afvinklijst met alle 31
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   166 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   171 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
 
+**Eerstvolgende uitvoering:** de oorspronkelijke TV02-ontvangstkern én native
+MQTT-/registry-lifecycle staan in de bètabron en slagen in 222 gerichte HA-checks.
+De standaard bronpins zijn leeg; fabrikant/endpoint worden niet geraden of uit het
+eerste bericht overgenomen. Bronpins/extensioninstallatie, echte ontvangst,
+causale doelkoppeling en fysieke kraanproef zonder ketel blijven open. De huidige
+frontend toont de nieuwe room/get-ontvangstsamenvatting nog niet. Geen nieuwe
+installatie of fysieke regelvrijgave; zie ORIGINAL-TV02-REPORTS.nl.md en WORKBOARD.
+De oudere broncheckpoints hieronder zijn historische onderbouwing.
+
 - Geïnstalleerd/gecontroleerd: E32 alpha21 (bron `f96cda7`) + HA dev27 (bron `faf8272`).
-- Actueel uitrolbewijs: `out/boiler-profile-rollout-20261024/FINAL-INDEPENDENT-LIVE.json`; profielkeuze en HA-overzicht live geverifieerd. Laatste26veldwaarden, eerdereboot27; bronontvangst blijft modelonafhankelijk.
-- Bij de latere README-opname zijn verse Classic-berichten ontvangen; TX/actuatoruitgangen blijven geblokkeerd.
-- Het huidige bronwerk loopt vóór op de geïnstalleerde passieve release; publiceer/installeer geen actieve bèta op basis van alleen een geslaagde bronbuild.
-- Broncheckpoint `60c548f`: volledige GitHub CI 40027429946 PASS; 69-velden-HA-projectie voorbereid, nog niet geïnstalleerd.
-- Nieuwste bronstap: originele Zigbee-temperatuurproducer plus native HA-ontvanger/room-status; broncontract in ORIGINAL-ZIGBEE-REPORTS.nl.md. Producent/ontvangstdiagnose zijn gebouwd en getest; echte acquisitie-/bronkwalificatie en fysieke validatie staan open. Niet geïnstalleerd, geen QualifiedReport.
-- HA-ontvangstcheckpoint `0e2793b`: volledige GitHub CI 40030592815 PASS.
-- Nieuwe expliciet gevraagde gebruikersfunctie: Settings → Mijn ketel, NVS-persistente modelkeuze en SVG op Home. Eerste model Nefit Ecomline Classic; presentatie geeft geen technische vrijgave. Bron b3920ef: 3 boardbuilds/layout/no-TX/nieuwe embedded-assets, 8 browserprofielen en NVS-helper PASS. Nog niet geïnstalleerd.
-- Nieuwste B05-bronstap: oorspronkelijke TV02-datapuntproducer, 13 nieuwe + 11 bestaande producenttests PASS. Native echo-consument/causale doelkoppeling en fysieke proef blijven open; zie ORIGINAL-TV02-REPORTS.nl.md. Niet geïnstalleerd.
-- Eerst B04 echt meetprofiel/bronvalidatie en B05 verse kraanecho afronden, daarna B06–B09 proefketen en installatievoorwaarden; pas dan gezamenlijke freeze/uitrol.
-- Onderstaande bronstappen zijn historische checkpoints; zie WORKBOARD voor hun actuele status.
-- Laat de bevroren `out/plan-batch-20261023` intact.
+- Uitrolbewijs: `out/boiler-profile-rollout-20261024/FINAL-INDEPENDENT-LIVE.json`;
+  HRC 22H-profielkeuze, native ketelvelden en HA-kaartreferenties gecontroleerd.
+  Laatste gerapporteerde controle 26 velden beschikbaar, eerdere boot 27;
+  unsupported/onbetrouwbaar blijft onbekend. Profielkeuze beperkt geen uitlezing.
+- Automatische HTTPS-update en HA-agentuitrol werken. SOURCE, weekprogramma,
+  bindings en installatie-identiteiten behouden. Normale dagelijkse UTC-planhorizon
+  kan de SOURCE-revisie verhogen; gebruik verse readback, geen hardcoded revisie.
+- TX en fysieke actuatoruitgangen blijven geblokkeerd. Geen actieve bèta-vrijgave.
+- Broncheckpoint `528914e`: pure oorspronkelijke TV02-ontvangstkern, 153 gerichte
+  checks. De native MQTT-/registry-lifecycle en room/get-projectie zijn nu ook in
+  bron aangesloten met lege standaardpins; actuele bewijsmap
+  `out/tv02-lifecycle-20261024/`, 222 gerichte HA-checks PASS.
+- De originele WSDCGQ11LM-temperatuurproducer/native ontvangstdiagnose is behouden.
+  Werkelijke bronacquisitie en fysieke kwalificatie blijven open. De laatst bekende
+  geselecteerde RTCGQ11LM device_temperature wordt niet als ambientbewijs gebruikt.
+- Read-only HA-preflight: geselecteerde TV02-fingerprint `_TZE200_hue3yfsn`,
+  endpoint 1 bevestigd uit bestaande cache; registry/cache-firmwareverschil blijft
+  onbekend. RTCGQ11LM device_temperature blijft geselecteerd, WSDCGQ11LM-alternatief
+  niet beschikbaar. Geen oorspronkelijke meet-/kraanrapporten hiermee bewezen.
+- Geen source-/sensor-/TRV-wissel, Z2M-extensioninstallatie of nieuwe fysieke
+  opdracht voor deze bronbatch. Bestaande observaties blijven los daarvan bestaan.
+- Eerst B04 echt meetprofiel/bronvalidatie en B05 oorspronkelijke ontvangst/causale
+  kraanecho afronden; daarna B06–B09 proefketen en installatievoorwaarden. Pas dan
+  gezamenlijke freeze, volledige CI, gecontroleerde uitrol en fysiek proefrapport.
 - Werk verder in `out/beta-boiler-20261023`, branch `work/beta-boiler-20261023`.
-- `cebb0a2`: ontvangstdiagnose en Settings → Keteltest met downloadrapport;
-  18 native, 43 GUI, 3 Chromiumviewports en normale E32-build geslaagd.
-  Geen nieuwe release/installatie/fysieke ketelopdracht voor dit checkpoint.
-- Planherijking voegt actuele PLAN/WORKBOARD en inventaris aan de kandidaat toe;
-  de kandidaat-HEAD kan daardoor nieuwer zijn dan het ontvangstcheckpoint.
+  Laat `out/plan-batch-20261023` en de overige bestaande werkbomen intact.
+- De historische details hieronder zijn bewijscheckpoints; WORKBOARD bepaalt de
+  actuele stand en bewaart alle 31 eisen, voorbereide functies en open controles.
 
 ## Historisch checkpoint: poll-executor
 
@@ -249,3 +269,11 @@ de bestaande uitgeschakelde foutjob is PASS:26 actuele veldwaarden,629 begrensde
 Recorder-rijen over67 entiteiten; historie gedeeltelijk, oude1h-gap ongewijzigd.
 Retryjob na succes native verwijderd, geen nieuwe joblaag. Vervolgobservaties
 blijven op de bestaande+6h/+24h-tijden staan.
+
+
+Volledige HA-regressie van de TV02-lifecyclebatch: **1.840 tests + 68 subtests =
+1.908 checks PASS**, nul fouten/overslagen, met alle acht C++-peers opnieuw uit
+actuele bron gebouwd en een tijdelijke localhost-MQTT-broker. Brokerafwezigheid
+na afloop onafhankelijk gecontroleerd. De 222 gerichte checks zijn hierin
+inbegrepen. Geen fysieke kraan-/ketelproef of nieuwe productie-installatie.
+Bewijs: `out/tv02-lifecycle-20261024/HA-ACCEPTANCE.xml` en `BROKER-FINAL.json`.

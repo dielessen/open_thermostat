@@ -33,10 +33,10 @@ def receive(owner, value=None, **kwargs):
     return owner.receive(json.dumps(packet() if value is None else value), **args)
 
 
-def test_actual_node_producer_not_a_handwritten_wire_fixture():
+def producer_packet(ieee='0x0000000000000001'):
     script = r'''
 const Producer = require('./integrations/zigbee2mqtt/original-tv02.cjs');
-const device = {ieeeAddr:'0x0000000000000001', interviewed:true,
+const device = {ieeeAddr:process.argv[1], interviewed:true,
  definition:{model:'TV02-Zigbee'}, zh:{modelID:'TS0601',manufacturerName:'_TZE200_hue3yfsn'}};
 const mqtt = {isConnected:()=>true,publish:(_topic,raw)=>{console.log(raw);return Promise.resolve();}};
 const bus = {onDeviceMessage(){},removeListeners(){}};
@@ -50,8 +50,12 @@ p.onMessage({device,endpoint:{ID:1},cluster:'manuSpecificTuya',type:'commandData
  {dp:107,datatype:1,data:Buffer.from('00','hex')},
  {dp:10,datatype:1,data:Buffer.from('01','hex')}]}});await p.stop();})();
 '''
-    raw = subprocess.check_output(['node', '-e', script], cwd=ROOT, text=True).strip()
-    result = decode(raw)
+    raw = subprocess.check_output(['node', '-e', script, ieee], cwd=ROOT, text=True).strip()
+    return raw
+
+
+def test_actual_node_producer_not_a_handwritten_wire_fixture():
+    result = decode(producer_packet())
     assert {f['property']: f['value'] for f in result['fields']} == dict(
         target_centi_c=2100, local_temperature_centi_c=2200, preset='manual',
         heating_stop=False, frost_protection=True)

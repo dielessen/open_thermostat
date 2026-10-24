@@ -151,3 +151,23 @@ async def test_prospective_room_edit_is_readonly_and_revalidates_registry_identi
     with pytest.raises(ValueError):
         candidate()
     assert configuration_snapshot(p) == before
+
+
+@pytest.mark.asyncio
+async def test_original_actuator_receive_summary_preserves_room_config_and_readiness(hass,configured):
+    p,sub,model=configured
+    selected=model['settings']['radiator_entities'][0]
+    report={'status':'received_unqualified','received_age_ms':15,'fields':{'target_centi_c':2100},
+            'command_correlated':False,'valve_ready':False,'control_qualified':False}
+    runtime=SimpleNamespace(enabled=False,actuator_report_status=lambda room_id:{selected:dict(report)})
+    hass.data['open_thermostat'][p.entry_id]['v1_runtime']=runtime
+    before=configuration_snapshot(p)
+    result=ui.read_room(hass,p.entry_id,model['room_id'])
+    row=result['actuator_target_review']['actuators'][0]
+    assert row['original_report']==report
+    assert not result['actuator_target_review']['authorizes_actuation']
+    assert result['measurement']['status']=='inactive'
+    assert configuration_snapshot(p)==before
+    # No configured receive source means the existing room/get shape is retained.
+    runtime.actuator_report_status=lambda room_id:{}
+    assert 'original_report' not in ui.read_room(hass,p.entry_id,model['room_id'])['actuator_target_review']['actuators'][0]

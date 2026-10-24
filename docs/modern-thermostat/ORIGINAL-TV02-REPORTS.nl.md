@@ -1,7 +1,7 @@
 # Oorspronkelijke TV02-kraanberichten
 
-Status: producent en pure HA-ontvangstkern voorbereid en getest; niet geïnstalleerd. B05 blijft open
-voor de native MQTT-/registrykoppeling, koppeling aan een doelopdracht, eigenaarschap, readiness en
+Status: producent, HA-ontvangstkern en native lifecycle voorbereid en getest; niet geïnstalleerd. B05 blijft open
+voor concrete bronpins/installatie, koppeling aan een doelopdracht, eigenaarschap, readiness en
 fysieke proef zonder ketel. Deze producent verleent geen regelbevoegdheid.
 
 De zelfstandige Z2M-extension `integrations/zigbee2mqtt/original-tv02.cjs` luistert
@@ -65,9 +65,9 @@ de omlopende/herhalende Tuya-sequence zijn geen opdrachtbevestiging. Een passend
 doel of handmatige preset bewijst geen exclusief eigenaarschap, verse causale
 doel-echo, motorbeweging, geopende kraan of hydraulische doorstroming.
 
-De volgende stap is een native HA-consument met deze oorspronkelijke herkomst,
-verloop-/reconnectbeleid en een beoordeelde koppeling aan de werkelijk verzonden
-doelopdracht. De bestaande profiel-C-adapter blijft standaard geblokkeerd.
+De native HA-consument bewaart deze oorspronkelijke herkomst en het
+verloop-/reconnectbeleid. Een beoordeelde koppeling aan de werkelijk verzonden
+doelopdracht ontbreekt nog. De bestaande profiel-C-adapter blijft standaard geblokkeerd.
 
 ## Bron en controle
 
@@ -100,13 +100,56 @@ een losse preset vult geen eerder gemeld doel aan. Publieke status bevat geen
 IEEE, producer-UUID of ruwe packet. Ontvangsttijd blijft ontvangsttijd;
 `command_correlated`, `valve_ready` en `control_qualified` blijven false.
 
-Deze kern is nog **niet** aangesloten op de native MQTT-worker, dynamische
-registry-/bindingintrekking of kamereditor. Er worden geen extra abonnementen,
-clients, timers, services of fysieke opdrachten aangemaakt. Die lifecyclekoppeling
-is de eerstvolgende bronstap; een causale doel-echo en exclusief eigenaarschap
-vragen daarna afzonderlijk bewijs vóór enige fysieke vrijgave.
+De kern is inmiddels aangesloten op de bestaande native MQTT-worker en
+registry-/bindingintrekking; room/get biedt de veilige ontvangstsamenvatting
+optioneel aan onder actuator_target_review. De huidige frontend toont deze nieuwe
+ontvangstsamenvatting nog niet. Een causale doel-echo en exclusief eigenaarschap
+vragen afzonderlijk bewijs vóór enige fysieke vrijgave.
 
 Controle: 98 gerichte HA-tests voor deze kern en de bestaande temperatuurontvangst,
 inclusief werkelijk door de Node-producent opgebouwd wirebericht, oorspronkelijke
 DP-grenswaarden, herhaling, reconnect, wachtrijouderdom en klokfouten. Dit is
 bron-/testbewijs; de geïnstalleerde HA dev27 en E32 alpha21 wijzigen hierdoor niet.
+
+## Native lifecycle en expliciete bronpins
+
+`NativeShadowConnection(..., tv02_sources=())` heeft standaard geen TV02-bronpins
+of rapportabonnement. Alleen een expliciete bron-eigen `Tv02DiagnosticSource`
+bindt de integratie-identiteit, kamer, reeds geselecteerde native MQTT-climate,
+beoordeelde fabrikant en endpoint. Een optie, discovery-vendor, brokerbericht,
+HA-state of eerste ontvangen datapoint stelt deze pins niet in. De werkelijke
+pins/extensioninstallatie blijven een afzonderlijke gecontroleerde uitvoeringsstap.
+Een pin autoriseert geen kraanbediening.
+
+`OriginalTv02Reports` controleert het native registry-record, apparaatmodel
+TV02-Zigbee, IEEE en werkelijk ontdekte Z2M-prefix. Zowel bij ontvangst/status
+als via de bestaande entity-/device-registrylisteners wordt herkomst opnieuw
+getoetst. Verwijderen, uitschakelen, apparaat-/model-/kamerbindingwissel of
+gewijzigde discovery trekt de diagnose in tot heropbouw. Een waargenomen wijziging
+die later wordt teruggedraaid maakt oude bewijsdata niet opnieuw geldig.
+
+Dezelfde bestaande MQTT-client, worker en 64-plaatsenqueue verwerken de berichten.
+Temperatuur en TV02 delen maximaal één wachtend diagnostisch bericht; de helft
+van de queue blijft gereserveerd voor de bestaande keten. Hoogstens één exact
+topic per geselecteerde Z2M-prefix wordt toegevoegd. Identiteit wordt vóór dispatch
+gezocht in maximaal 64 expliciete bindings; onbekende apparaten worden niet
+bewaard. Geen extra client, worker, timer, Store, discovery of fysieke opdracht.
+
+Een verbroken verbinding trekt beide diagnoses onmiddellijk in, vóór eerder
+wachtende berichten kunnen worden toegelaten. Replay-watermerken blijven binnen
+deze eigenaar behouden; heropbouw is geen authenticatie van onbekende historische
+producer-runs. Optionele abonnements-/diagnosefouten raken alleen de diagnose.
+Unload verwijdert de eigen subscriptions en runtimeverwijzing; een oude opruiming
+verwijdert geen nieuwe eigenaar. Geen verandering aan SOURCE, controllerlease,
+meetkwalificatie, kraanreadiness of TX-lock.
+
+Gerichte controle: 222 HA-checks PASS, met de echte HA-registries en bestaande
+C++-interop waar de bestaande suites dat gebruiken. Inclusief 23 nieuwe lifecyclegevallen
+en één nieuw room/get-geval. Volledige regressie en actuele bronpins zijn apart vastgelegd
+in `out/tv02-lifecycle-20261024/`; dit blijft offline softwarebewijs.
+
+Volledige HA-regressie: 1.840 tests + 68 subtests = 1.908 checks PASS, zonder
+fouten of overslagen, acht opnieuw gebouwde C++-peers en een tijdelijke lokale
+MQTT-testfixture. De fixture is na afloop verwijderd. Dit bewijst de bronketen;
+een geïnstalleerde extension, oorspronkelijke fysieke ontvangst en kraanreactie
+blijven afzonderlijke open acceptatiepunten.

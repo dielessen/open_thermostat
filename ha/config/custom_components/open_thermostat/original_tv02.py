@@ -5,6 +5,7 @@ binding, monotonic arrival and connection generation. No client/timer or writes.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 import json
 import math
 import re
@@ -188,4 +189,131 @@ class Tv02Reception:
             else:
                 result.update(status="received_unqualified", received_age_ms=age,
                     fields={field["property"]: field["value"] for field in report["fields"]})
+        return result
+
+
+@dataclass(frozen=True)
+class Tv02DiagnosticSource:
+    """Explicit source-owned receive pin; never loaded from options or broker JSON.
+
+    The producer uses this same reviewed manufacturer/endpoint. A matching source
+    is diagnostic metadata only and cannot authorize a valve action.
+    """
+
+    entry_unique_id: str
+    room_id: str
+    reference: object
+    manufacturer: str
+    endpoint: int
+
+
+class OriginalTv02Reports:
+    """Selected native TV02 ownership around the pure bounded receiver.
+
+    Default pins are empty. No fingerprint or endpoint is guessed from a friendly
+    name, HA state, first arriving packet or a different TS0601 device.
+    """
+
+    SUFFIX = "/bridge/openthermostat/original_tv02"
+
+    def __init__(self, runtime, sources=()):
+        from homeassistant.helpers import device_registry as dr
+        from .device_metadata import MetadataUnavailable, selected_device
+        from .native_binding import native_binding_identity
+        from .v1_model import EntityReference
+
+        if type(sources) is not tuple or len(sources) > 64:
+            raise ValueError("invalid TV02 diagnostic sources")
+        self.runtime = runtime
+        self.epoch = 0
+        self.bindings = {}
+        self.retired = set()
+        self.by_ieee = {}
+        seen_devices = set()
+        for source in sources:
+            if (type(source) is not Tv02DiagnosticSource
+                    or type(source.entry_unique_id) is not str
+                    or not source.entry_unique_id
+                    or source.entry_unique_id != runtime.entry.unique_id
+                    or type(source.reference) is not EntityReference
+                    or type(source.room_id) is not str):
+                raise ValueError("invalid TV02 diagnostic source")
+            room = runtime.rooms.get(source.room_id)
+            if room is None or source.reference not in room.actuators:
+                raise ValueError("TV02 source is not a selected actuator")
+            try:
+                selected = selected_device(runtime.hass, source.reference.as_dict())
+            except (MetadataUnavailable, ValueError) as error:
+                raise ValueError("TV02 native source unavailable") from error
+            identity = native_binding_identity(runtime.hass, selected.entity_id)
+            device = dr.async_get(runtime.hass).async_get(selected.device_id)
+            key = (source.room_id, source.reference)
+            if (not selected.entity_id.startswith("climate.") or identity is None
+                    or device is None or device.model_id != "TV02-Zigbee"
+                    or key in self.bindings or selected.ieee in seen_devices):
+                raise ValueError("invalid TV02 native identity")
+            core = Tv02Reception(ieee=selected.ieee, manufacturer=source.manufacturer,
+                endpoint=source.endpoint, maximum_age_ms=room.maximum_age_ms,
+                clock=runtime.clock)
+            self.bindings[key] = (selected, identity, core)
+            self.by_ieee[selected.ieee] = key
+            seen_devices.add(selected.ieee)
+        self.topics = frozenset(selected.prefix + self.SUFFIX
+            for selected, _, _ in self.bindings.values())
+
+    def _current(self, key):
+        from .device_metadata import MetadataUnavailable, selected_device
+        from .native_binding import native_binding_identity
+
+        if key in self.retired:
+            return False
+        room_id, reference = key
+        room = self.runtime.rooms.get(room_id)
+        selected, identity, core = self.bindings[key]
+        try:
+            current = (room is not None and reference in room.actuators
+                and selected_device(self.runtime.hass, reference.as_dict()) == selected
+                and native_binding_identity(self.runtime.hass, selected.entity_id) == identity)
+        except (MetadataUnavailable, ValueError):
+            current = False
+        if not current:
+            self.retired.add(key)
+            core.invalidate("binding_changed")
+        return current
+
+    def invalidate(self, reason="disconnected"):
+        self.epoch += 1
+        for _, _, core in self.bindings.values():
+            core.invalidate(reason)
+
+    def recheck(self):
+        """Use existing native registry events; no additional listeners."""
+        before = len(self.retired)
+        for key in self.bindings:
+            self._current(key)
+        return len(self.retired) != before
+
+    def receive(self, topic, raw, *, retained, received_at, received_unix_ms, epoch):
+        if (topic not in self.topics or retained is not False
+                or type(epoch) is not int or epoch != self.epoch):
+            return False
+        try:
+            report = decode(raw)
+        except (ValueError, TypeError, UnicodeError, RecursionError):
+            return False
+        key = self.by_ieee.get(report["device_ieee"])
+        if key is None:
+            return False
+        selected, _, core = self.bindings[key]
+        if topic != selected.prefix + self.SUFFIX or not self._current(key):
+            return False
+        return core.receive(raw, retained=retained, received_at=received_at,
+            received_unix_ms=received_unix_ms, epoch=core.epoch)
+
+    def status(self, room_id):
+        result = {}
+        for key, (selected, _, core) in self.bindings.items():
+            if key[0] == room_id:
+                self._current(key)
+                result[selected.entity_id] = core.status()
         return result

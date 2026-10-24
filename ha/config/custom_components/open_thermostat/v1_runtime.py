@@ -78,6 +78,7 @@ class ShadowRuntime:
         self.graph_data_profile=graph_data_profile
         self.hass, self.entry = hass, entry
         self.original_temperature_reports = None
+        self.original_tv02_reports = None
         self.rooms = {room.room_id: room for room in rooms}
         if len(self.rooms) != len(rooms) or len(rooms) > 8:
             raise ValueError("duplicate/excess rooms")
@@ -182,6 +183,12 @@ class ShadowRuntime:
                 result["original_report"] = original
         return result
 
+    def actuator_report_status(self, room_id: str) -> dict:
+        """Original receive diagnostics only, separate from control readiness."""
+        if self.original_tv02_reports is None:
+            return {}
+        return self.original_tv02_reports.status(room_id)
+
     def set_report_profile(self, room_id: str, profile: ReportProfile) -> Callable[[], bool]:
         """Attach a trusted observer; dispose with the returned scoped revoker.
 
@@ -285,10 +292,11 @@ class ShadowRuntime:
             for ref in (room.temperature, *room.actuators, room.setpoint, room.window, room.presence):
                 if ref and (entity_id := self._resolve(ref)):
                     ids.add(entity_id)
-            source_id = self._resolve(room.temperature)
-            source = er.async_get(self.hass).async_get(source_id) if source_id else None
-            if source and source.device_id:
-                device_ids.add(source.device_id)
+            for ref in (room.temperature, *room.actuators):
+                source_id = self._resolve(ref)
+                source = er.async_get(self.hass).async_get(source_id) if source_id else None
+                if source and source.device_id:
+                    device_ids.add(source.device_id)
         if not ids or not self._active:
             return
         generation = self._generation
@@ -307,6 +315,8 @@ class ShadowRuntime:
         def registry_changed(event):
             if not self._active or self._generation != generation:
                 return
+            if self.original_tv02_reports is not None and self.original_tv02_reports.recheck():
+                self._notify()
             if self._bench_fault:
                 self._bench_fault("binding_changed")
             self.invalidate_context_sources()
@@ -321,6 +331,8 @@ class ShadowRuntime:
         def device_changed(event):
             if not self._active or self._generation != generation:
                 return
+            if self.original_tv02_reports is not None and self.original_tv02_reports.recheck():
+                self._notify()
             for room_id, room in self.rooms.items():
                 if room_id in self._profiles and not self._report_binding_matches(room):
                     self._drop_report_binding(room_id)

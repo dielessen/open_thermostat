@@ -75,7 +75,7 @@ async def async_build_configuration(runtime):
 
 class NativeShadowConnection:
     """One bounded worker; native listeners/timers are all owned and removed."""
-    def __init__(self, runtime, graph_profile=None):
+    def __init__(self, runtime, graph_profile=None, *, tv02_sources=()):
         self.runtime, self.hass, self.entry = runtime, runtime.hass, runtime.entry
         self.graph_profile = graph_profile
         self.prefix = self.entry.data["topic_prefix"] + ("/v2/" if graph_profile is not None else "/v1/")
@@ -88,6 +88,8 @@ class NativeShadowConnection:
         self.closed = False
         self.bench = None
         self.original_reports = None
+        from .original_tv02 import OriginalTv02Reports
+        self.tv02_reports = OriginalTv02Reports(runtime, tv02_sources)
         self.original_pending = False
 
     async def async_start(self):
@@ -135,6 +137,7 @@ class NativeShadowConnection:
         from .original_temperature import OriginalTemperatureReports
         self.original_reports = OriginalTemperatureReports(self.runtime)
         self.runtime.original_temperature_reports = self.original_reports
+        self.runtime.original_tv02_reports = self.tv02_reports
         self.worker = self.hass.async_create_background_task(self.run(), "OpenThermostat shadow MQTT")
 
         @callback
@@ -148,6 +151,7 @@ class NativeShadowConnection:
         def connection_status(connected):
             if not connected:
                 self.original_reports.invalidate()
+                self.tv02_reports.invalidate()
                 if self.graph_profile is not None or self.runtime.native_plan_source is not None:
                     # Existing Store await can yield inside the same worker.
                     # Fence graph DATA immediately, not behind that in-flight IO.
@@ -164,15 +168,19 @@ class NativeShadowConnection:
             # free. Original report traffic cannot fill it or reset control.
             if self.closed or self.original_pending or self.queue.qsize() >= 32:
                 return
-            from .original_temperature import MAX_BYTES
-            if (message.topic not in self.original_reports.topics or message.retain
+            from .original_temperature import MAX_BYTES as TEMPERATURE_BYTES
+            from .original_tv02 import MAX_BYTES as TV02_BYTES
+            owner = (self.tv02_reports if message.topic in self.tv02_reports.topics
+                     else self.original_reports)
+            maximum = TV02_BYTES if owner is self.tv02_reports else TEMPERATURE_BYTES
+            if (message.topic not in owner.topics or message.retain
                     or type(message.payload) not in (str, bytes)
-                    or len(message.payload) > MAX_BYTES):
+                    or len(message.payload) > maximum):
                 return
             try:
-                self.queue.put_nowait(("original_temperature", (message,
-                    self.runtime.clock(), int(dt_util.utcnow().timestamp() * 1000),
-                    self.original_reports.epoch)))
+                self.queue.put_nowait(("original_tv02" if owner is self.tv02_reports
+                    else "original_temperature", (message, self.runtime.clock(),
+                    int(dt_util.utcnow().timestamp() * 1000), owner.epoch)))
                 self.original_pending = True
             except asyncio.QueueFull:
                 return
@@ -181,15 +189,15 @@ class NativeShadowConnection:
             self.unsubs.append(await mqtt.async_subscribe(
                 self.hass, self.prefix + "fw/#", received, qos=0, encoding="utf-8"))
             self.unsubs.append(mqtt.async_subscribe_connection_status(self.hass, connection_status))
-            for topic in sorted(self.original_reports.topics):
-                try:
-                    self.unsubs.append(await mqtt.async_subscribe(
-                        self.hass, topic, original_received, qos=0, encoding=None))
-                except Exception:
-                    # Optional reception diagnostics must not break startup of
-                    # the existing native connection if this topic is denied.
-                    self.original_reports.invalidate("unavailable")
-                    break
+            for owner in (self.original_reports, self.tv02_reports):
+                for topic in sorted(owner.topics):
+                    try:
+                        self.unsubs.append(await mqtt.async_subscribe(
+                            self.hass, topic, original_received, qos=0, encoding=None))
+                    except Exception:
+                        # Optional diagnostics cannot break the control owner.
+                        owner.invalidate("unavailable")
+                        break
             if self.graph_profile is None:
                 self.bind_schedules()
             if self.graph_profile is None and any(r.schedule or r.week_program is not None for r in self.runtime.rooms.values()):
@@ -284,18 +292,19 @@ class NativeShadowConnection:
         while True:
             kind, data = await self.queue.get()
             try:
-                if kind == "original_temperature":
+                if kind in ("original_temperature", "original_tv02"):
                     message, received_at, received_unix_ms, epoch = data
                     self.original_pending = False
+                    owner = self.tv02_reports if kind == "original_tv02" else self.original_reports
                     try:
-                        if self.original_reports.receive(message.topic, message.payload,
+                        if owner.receive(message.topic, message.payload,
                                 retained=message.retain, received_at=received_at,
                                 received_unix_ms=received_unix_ms, epoch=epoch):
                             self.runtime._notify()
                     except Exception:
                         # A diagnostic observer cannot reset a control session,
                         # even if a native registry/listener unexpectedly fails.
-                        self.original_reports.invalidate("unavailable")
+                        owner.invalidate("unavailable")
                 elif kind == "boiler_message":
                     message,received_at=data
                     await self.client.receive("fw/telemetry/boiler_fields",message.payload,
@@ -406,6 +415,9 @@ class NativeShadowConnection:
             self.original_reports.invalidate("closed")
             if self.runtime.original_temperature_reports is self.original_reports:
                 self.runtime.original_temperature_reports = None
+        self.tv02_reports.invalidate("closed")
+        if self.runtime.original_tv02_reports is self.tv02_reports:
+            self.runtime.original_tv02_reports = None
         self.original_pending = False
         if self.client is not None:
             self.client.reset_session()

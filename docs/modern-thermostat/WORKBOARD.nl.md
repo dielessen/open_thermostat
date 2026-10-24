@@ -52,7 +52,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-108 bronverwijzingen met hashes, status en resterende acceptatie.
+171 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -111,8 +111,8 @@ de code afgetekend. De oorspronkelijke acceptatie in PLAN §4/§14 blijft gelden
 | R12 | Zelflerende kamerregeling | Model-, begrenzings-, resource- en replaycode aanwezig | I19 | Niet actief vrijgegeven; getoetste meetdata, baseline/comfortvoordeel en modelrollback. |
 | R13 | Optimum-start | Opwarmmodel en begrensd advies/replay aanwezig | I19 | Aansluiten na M2/stabiele basis; meerdere vergelijkbare echte starts en comfortbewijs. |
 | R14 | Uitlopen/curve leren | Coast- en curve-adaptatiecode/opslag/replay aanwezig | I19 | Afzonderlijke toelating en meetbaar comfort-/curvebewijs; geen leerwinstclaim. |
-| R15 | Alle relevante keteldata | 30 velden geleverd; 69-veldbron en 24-type inventaris getest | I12,I17,I21 | Vereiste betrouwbare velden op eigen E32 ontvangen en vergelijken; unsupported/unreliable expliciet. |
-| R16 | Brander/modulatiegrafieken | Metrics-/presentatiecode aanwezig; ontvangstscherm nieuw getest | I17,I21 | Echte CV/DHW-tijdlijn, gaten en herkomst; vlam/pompbit niet onafhankelijk betrouwbaar. |
+| R15 | Alle relevante keteldata | 69 native velddefinities geleverd op alpha21/dev27; laatste controle 26 beschikbaar, eerdere boot 27 | I12,I17,I21 | Vereiste betrouwbare velden op eigen E32 ontvangen en vergelijken; unsupported/unreliable expliciet. |
+| R16 | Brander/modulatiegrafieken | Native ketelkaarten en drie historiekaarten geleverd; gerapporteerd/afgeleid gescheiden | I17,I21 | Echte CV/DHW-tijdlijn, gaten en herkomst; vlam/pompbit niet onafhankelijk betrouwbaar. |
 | R17 | Historie/statistics/CSV | Recordergrens, metrics-schema en read-only CSV-code aanwezig | I17 | Werkelijke retentie/omvang, oude deltahistorie/migratie, reset/gaten en mobiele grafiekacceptatie. |
 | R18 | Weekprogramma/override | Native weekeditor/UTC-plan/apply geleverd; echte save/ACK bewezen | I07,I13 | Volledige fysieke stale/reconnect/tijd-/overrideketen; huidige 1–2 kamer-/bytebudgetten behouden. |
 | R19 | Comfort/eco/away/vakantie/boost | Prioriteits-/expiry-/opt-in comfortcode aanwezig | I18 | Normale huidige producteditor/bronketen en conflicten compleet; geen nieuwe F10-stage vóór M2. |
@@ -150,7 +150,7 @@ de code afgetekend. De oorspronkelijke acceptatie in PLAN §4/§14 blijft gelden
 | Werkpakket | Stand | Open vervolg |
 | --- | --- | --- |
 | WP01 Eigen basis | Software en meerdere echte releases geleverd | Resterend fysiek F0-profiel/resource/herstelbewijs |
-| WP02 Classic | Echte passieve ontvangst; 69-velddecoder en native HA-projectie in bron getest | Gezamenlijk uitrollen en fysiek vergelijken; actieve opvragen blijven geblokkeerd |
+| WP02 Classic | 69-velddecoder en native HA-projectie geleverd op alpha21/dev27 | Langere CV/DHW-veldvergelijking en ontvangstdekking; actieve opvragen blijven geblokkeerd |
 | WP03 Contract/bron | Native SOURCE/config/plan/readback gebouwd en toegepast | Modelspecificieke meetrapportproducent, fysieke actualiteit en uitval |
 | WP04 Kamerbediening | Kamer/week/actieve profielsave geleverd | Externe doelbron en centrale/groeps-/deviceketen compleet |
 | WP05 Actuator | Profiel-C-adapter voorbereid, geen fysieke native vrijgave | Eerste echte kraan zonder ketel, echo/readiness/fallback |
@@ -478,7 +478,7 @@ gekoppeld; het concept is geen nieuwe release of extra afvinklijst.
 - [x] B02 Alle bekende voorbereide brononderdelen geïnventariseerd en in bètabasis behouden; geen bron-/testbestand uit hoofdwerkmap ontbreekt.
 - [x] B03 Nieuwe ontvangstdiagnose/Keteltest/rapport gebouwd en getest: 18 native, 43 GUI-regressies, 3 echte Chromiumviewports met fixture-HTTP, normale E32-build.
 - [ ] B04 Observer-lifecycle/native binding en originele WSDCGQ11LM-producer/HA-ontvangstdiagnose gebouwd/getest; productie-meetprofiel met echte acquisitie-/bronkwalificatie en fysieke validatie afronden. Geen trustvinkje of sensorwissel als omweg.
-- [ ] B05 TV02-modus/native identiteit/doelcapaciteit en originele datapuntproducer gebouwd/getest; native HA-echo-consument, causale doelkoppeling, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel.
+- [ ] B05 TV02-modus/native identiteit/doelcapaciteit, originele datapuntproducer en native HA-ontvangst/lifecycle gebouwd/getest; concrete bronpins/installatie, causale doelkoppeling, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel.
 - [ ] B06 Bestaande supervisor koppelen aan vereiste actuele profiel-/feedback-/DHW-/hydraulische voorwaarden; geen generieke flowaanname.
 - [ ] B07 Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten.
 - [ ] B08 Poll-executor, Classic-flow/nulformaat en gecontroleerde SDK-zendresultaten aangesloten/getest; installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute.
@@ -867,3 +867,57 @@ B04–B14 en actieve bèta blijven NOT_READY.
 Geen nieuwe installatie of fysieke opdracht. E32 alpha21 / HA dev27 blijven
 geïnstalleerd, B05 blijft open en de actieve bèta blijft NOT_READY. Bewijs:
 `out/tv02-consumer-20261024/`.
+
+
+### Vervolg B05 — native ontvangst/lifecycle aangesloten in de bètabron
+
+- [x] TV02-ontvangstkern aangesloten op de bestaande MQTT-client/worker, met
+  expliciete bronpins en een gedeeld maximum van één wachtend diagnostisch
+  bericht voor temperatuur en TV02.
+- [x] Native registry-/model-/discovery-/kamerwijziging trekt oude diagnose in;
+  disconnect verwerpt ook al wachtende berichten. Unload ruimt alleen eigen
+  abonnementen en runtimeverwijzingen op.
+- [x] Room/get kan de veilige ontvangstsamenvatting naast de bestaande
+  kraandoelcontrole leveren, zonder SOURCE/configuratie of readiness te wijzigen.
+- [x] 222 gerichte HA-checks PASS. Bestaande client-/controller-/kamerregressies
+  meegenomen; geen nieuwe browser-/fysieke acceptatie geclaimd.
+- [ ] Bronpins voor de werkelijk geselecteerde kraan beoordelen, extension via de
+  bestaande specialist gecontroleerd installeren en echte oorspronkelijke ontvangst
+  bewijzen. De standaard pinlijst blijft leeg; de huidige frontendweergave en
+  causale opdrachtkoppeling volgen apart.
+
+De actuele uitvoeringsgrens is hiermee verder dan de pure ontvangstkern van
+`528914e`. E32 alpha21 / HA dev27 blijven geïnstalleerd; B04/B05 en de actieve
+bèta blijven open. Bewijs: `out/tv02-lifecycle-20261024/`.
+
+
+### B04/B05 — werkelijke geselecteerde bronmetadata gecontroleerd
+
+De bestaande HA-specialist heeft op 24 oktober 2026 om 00:45 UTC de actuele
+selecties tweemaal ongewijzigd teruggelezen en bestaande metadata/cache bekeken:
+TV02-Zigbee / TS0601, fabrikantfingerprint `_TZE200_hue3yfsn`, endpoint 1 en een
+voltooid cached interview. Dit past bij het voorbereide decoderprofiel. Het is
+geen nieuw apparaatinterview, verse datapoint of fysieke kraankwalificatie.
+Z2M meldt 2.14.2 en converters 26.115.1; packagebestanden zijn niet geattesteerd.
+De cached moduleversie verschilt van de registryversie; de werkelijke huidige
+kraanfirmware blijft daarom onbekend.
+
+Voor B04 blijft RTCGQ11LM `device_temperature` geselecteerd. De aanwezige aparte
+WSDCGQ11LM `temperature`-entiteit was niet beschikbaar en is niet geselecteerd.
+Er is niets omgeschakeld en geen acquisitiebewijs aangenomen. Het volgende
+praktijkbewijs vraagt een beschikbare passende ruimtemeting, beoordeelde
+bronacquisitie en oorspronkelijke rapporten; een trustvinkje lost dit niet op.
+
+Geen SOURCE-/configuratie-/kraandoel-/moduswijziging, MQTT-publicatie, devicequery,
+installatie, herstart of schedulerwijziging. Privé-identiteiten blijven uitsluitend
+in het private HA-rapport; de openbare bron bevat geen woning-IEEE-adressen.
+Bewijs: `out/tv02-lifecycle-20261024/HA-PREFLIGHT-INDEPENDENT-REVIEW.json` en het
+0600-rapport `TV02-READONLY-PREFLIGHT.json` in de bestaande HA-artefactmap.
+
+
+Volledige HA-regressie van de TV02-lifecyclebatch: **1.840 tests + 68 subtests =
+1.908 checks PASS**, nul fouten/overslagen, met alle acht C++-peers opnieuw uit
+actuele bron gebouwd en een tijdelijke localhost-MQTT-broker. Brokerafwezigheid
+na afloop onafhankelijk gecontroleerd. De 222 gerichte checks zijn hierin
+inbegrepen. Geen fysieke kraan-/ketelproef of nieuwe productie-installatie.
+Bewijs: `out/tv02-lifecycle-20261024/HA-ACCEPTANCE.xml` en `BROKER-FINAL.json`.

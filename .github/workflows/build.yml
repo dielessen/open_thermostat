@@ -14,6 +14,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check prepared beta source and current plan coverage
         run: python3 scripts/verify_beta_release_inventory.py
+      - name: Test release metadata and installed updater size compatibility
+        run: python3 -m unittest discover -s scripts -p test_organize_releases.py -v
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -307,7 +309,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$RELEASE_TAG" --verify-tag --prerelease --title "OpenThermostat E32 V2 $RELEASE_TAG" --notes-file docs/modern-thermostat/RELEASE-NOTES.md release-assets/*
+          python scripts/organize_releases.py --repository "$GITHUB_REPOSITORY" --publication-notes-for "$RELEASE_TAG" --output out/publication-notes.md
+          gh release create "$RELEASE_TAG" --verify-tag --prerelease --title "OpenThermostat E32 V2 $RELEASE_TAG" --notes-file out/publication-notes.md release-assets/*
       - name: Refresh release channels, current downloads and archive labels
         env:
           GH_TOKEN: ${{ github.token }}
@@ -356,7 +359,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$RELEASE_TAG" --verify-tag --prerelease --title "OpenThermostat Home Assistant $RELEASE_TAG" --notes-file docs/modern-thermostat/HA-RELEASE-NOTES.md ha-release-assets/*
+          python scripts/organize_releases.py --repository "$GITHUB_REPOSITORY" --publication-notes-for "$RELEASE_TAG" --output out/publication-notes.md
+          gh release create "$RELEASE_TAG" --verify-tag --prerelease --title "OpenThermostat Home Assistant $RELEASE_TAG" --notes-file out/publication-notes.md ha-release-assets/*
       - name: Refresh release channels, current downloads and archive labels
         env:
           GH_TOKEN: ${{ github.token }}

@@ -41,6 +41,18 @@
         {
           "path": "scripts/test_esp32_size_link.py",
           "sha256": "feb001ff5666f9cece969e0f59a28a7b0440bbdb19631c3c6d377bcca847f1f6"
+        },
+        {
+          "path": "scripts/organize_releases.py",
+          "sha256": "74500e9912b61d88285148a68b74ac190ec3cf9e73825075b7fccacdfd3aa73c"
+        },
+        {
+          "path": "scripts/test_organize_releases.py",
+          "sha256": "104634340db21a1d1e105b3bbd5faa4ea750531117635f9d467ebfef65e28bcd"
+        },
+        {
+          "path": ".github/workflows/build.yml",
+          "sha256": "b1edcd8087b8750f3f0c426e2374fd4f9b603d5d3bdaedb83f8ae75802cee837"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
@@ -106,11 +118,11 @@
       "files": [
         {
           "path": "scripts/organize_releases.py",
-          "sha256": "36d632c0469c18c2e92651287304c5c669a2d9b1df672913d5c6e66e768440a5"
+          "sha256": "74500e9912b61d88285148a68b74ac190ec3cf9e73825075b7fccacdfd3aa73c"
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "09c47804398ff4b129ec34cf02a1577d1ece51b5daf4c092f552b89eefd20cad"
+          "sha256": "b1edcd8087b8750f3f0c426e2374fd4f9b603d5d3bdaedb83f8ae75802cee837"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -504,7 +516,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "09c47804398ff4b129ec34cf02a1577d1ece51b5daf4c092f552b89eefd20cad"
+          "sha256": "b1edcd8087b8750f3f0c426e2374fd4f9b603d5d3bdaedb83f8ae75802cee837"
         },
         {
           "path": "platformio.ini",

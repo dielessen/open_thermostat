@@ -49,6 +49,31 @@ def first_section(notes):
     return summary if len(summary) <= 2800 else ''
 
 
+def publication_notes(notes, repository, tag):
+    """Bound future release API responses; full history stays at the immutable tag."""
+    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*', repository):
+        raise ValueError('invalid_repository')
+    channel, version = classify(tag)
+    if channel not in ('firmware', 'ha'):
+        raise ValueError('invalid_publication_tag')
+    lines = notes.strip().splitlines()
+    expected = (f'# E32 V2 alpha{version[3]}' if channel == 'firmware' else
+                f'# HA {version[0]}.{version[1]}.{version[2]}.dev{version[3]}')
+    if not lines or not (lines[0] == expected or lines[0].startswith(expected+' ')):
+        raise ValueError('publication_notes_version_mismatch')
+    for index, line in enumerate(lines[1:], 1):
+        if line.startswith('# '):
+            lines = lines[:index]
+            break
+    document = 'RELEASE-NOTES.md' if channel == 'firmware' else 'HA-RELEASE-NOTES.md'
+    current = '\n'.join(lines).rstrip()
+    url = f'https://github.com/{repository}/blob/{tag}/docs/modern-thermostat/{document}'
+    result = current+'\n\n[Volledige releasenotities en historie / Full release notes and history]('+url+')\n'
+    if len(result.encode()) > 6000:
+        raise ValueError('publication_notes_too_large; shorten current summary, retain full history in source')
+    return result
+
+
 def label(channel, version):
     if channel == 'firmware':
         return 'E32-firmware', f'alpha.{version[3]}'
@@ -58,7 +83,7 @@ def label(channel, version):
 
 
 def plan(releases, repository):
-    if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repository):
+    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*', repository):
         raise ValueError('invalid_repository')
     latest = {}
     for release in releases:
@@ -108,12 +133,17 @@ def plan(releases, repository):
             status = '**Archief — voor de actuele testversies gebruik je het overzicht hieronder.**'
         notes = original_notes(release.get('body'))
         sections = [status, overview]
-        if current or channel == 'source':
-            if summary := first_section(notes):
-                sections += ['## Deze versie\n\n'+summary]
-        sections += ['<details>\n<summary>Volledige oorspronkelijke releasenotities en bewijs</summary>\n\n'
-                     +START+'\n'+notes+'\n'+END+'\n\n</details>']
-        body = '\n\n'.join(sections)+'\n'
+        original = '<details>\n<summary>Volledige oorspronkelijke releasenotities en bewijs</summary>\n\n'+START+'\n'+notes+'\n'+END+'\n\n</details>'
+        summary = first_section(notes) if current or channel == 'source' else ''
+        if summary:
+            sections.append('## Deze versie\n\n'+summary)
+        body = '\n\n'.join(sections+[original])+'\n'
+        # Older installed firmware bounds each complete GitHub API response at
+        # 32 KiB. Preserve originals verbatim; drop only the optional duplicate.
+        if len(body.encode()) > 21000 and summary:
+            body = '\n\n'.join([status, overview, original])+'\n'
+        if len(body.encode()) > 21000:
+            raise ValueError('release_notes_exceed_updater_budget:'+release['tag_name'])
         if release['name'] != name or (release.get('body') or '') != body:
             changes.append({'id': release['id'], 'tag': release['tag_name'], 'name': name, 'body': body})
     return changes
@@ -146,7 +176,21 @@ def main():
     parser.add_argument('--input', type=Path, help='Saved release API inventory instead of a fresh read')
     parser.add_argument('--output', type=Path, required=True, help='Reviewable metadata change plan')
     parser.add_argument('--apply', action='store_true', help='Apply only the planned title/body edits')
+    parser.add_argument('--publication-notes-for', help='Write bounded notes before publishing this canonical firmware/HA tag')
     args = parser.parse_args()
+    if args.publication_notes_for:
+        if args.input or args.apply:
+            parser.error('publication notes cannot edit releases or consume a release inventory')
+        channel, _ = classify(args.publication_notes_for)
+        if channel not in ('firmware','ha'):
+            parser.error('expected canonical firmware or HA tag')
+        document = 'RELEASE-NOTES.md' if channel == 'firmware' else 'HA-RELEASE-NOTES.md'
+        notes = (Path(__file__).resolve().parents[1]/'docs/modern-thermostat'/document).read_text()
+        rendered = publication_notes(notes,args.repository,args.publication_notes_for)
+        args.output.parent.mkdir(parents=True,exist_ok=True)
+        args.output.write_text(rendered)
+        print(json.dumps({'tag':args.publication_notes_for,'bytes':len(rendered.encode()),'full_history_in_tagged_source':True}))
+        return
     releases = json.loads(args.input.read_text()) if args.input else fetch(args.repository)
     changes = plan(releases, args.repository)
     args.output.parent.mkdir(parents=True, exist_ok=True)

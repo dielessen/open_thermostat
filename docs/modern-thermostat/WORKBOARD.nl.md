@@ -1004,3 +1004,25 @@ Dev29 krijgt de complete oorspronkelijke TV02-/lifecycle-/UI-notities en behoudt
 expliciet de identieke dev28/v28-frontendbytes en -identiteit. De gezamenlijke
 kandidaat is daarom alpha23/dev29. Geen extra functionele versie tussentijds
 geïnstalleerd. Alle openbare gates moeten op de definitieve bron groen zijn.
+
+
+### Normale E32-updater — publicatiemetadata begrensd
+
+De gezamenlijke installatie bereikte HA dev29 met behoudsbewijs; de E32 bleef
+veilig op alpha21 omdat het actuele GitHub-releaseantwoord 33.010 bytes was bij
+32.768 bytes maximum. De uitgebreide oorspronkelijke notities plus een dubbele
+samenvatting veroorzaakten dit. Het gaat om de metadata, niet de firmwaregrootte.
+
+- [x] Oorzaak onafhankelijk gemeten met dezelfde API/Accept/User-Agent als de E32.
+- [x] Alleen de optionele dubbele samenvatting verwijderd: antwoord 30.621 bytes.
+  Alle oorspronkelijke notities, tags, bron, releasestatus en assets behouden;
+  catalogus opnieuw idempotent. Geen nieuwe firmware of controleversoepeling.
+- [x] Toekomstige publicaties gebruiken de huidige versiesectie plus een vaste
+  link naar de volledige notities/historie in de onveranderlijke Git-tag. UTF-8-
+  bytegrens en controle dat de releasekop bij de tag past vóór publicatie.
+- [x] Zes gerichte regressies: behoud/idempotentie, begrensd API-envelope,
+  versiekop, veilige identiteit en bytegrens; standaard browser-CI neemt ze mee.
+- [ ] E32 normale catalogus/app-only update en exacte postchecks opnieuw uitvoeren.
+
+Bewijs: `out/next-release-20261024/UPDATER-METADATA-REPAIR.json`. Geen wijziging van
+SOURCE, instellingen, programma of fysieke vrijgave door deze publicatiereparatie.

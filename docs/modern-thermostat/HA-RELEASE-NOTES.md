@@ -1,3 +1,10 @@
+# HA 0.4.0.dev34 — voorbereiding volgende bundel
+
+Nog niet gepubliceerd of geïnstalleerd. De gecontroleerde installatie blijft dev33.
+
+- Ontvangstouderdom van de alleen-lezen supervisordiagnose vergelijkt direct met de vervaldeadline. Daarmee blijft een exact verlopen rapport niet zichtbaar door afronding bij het aftrekken van twee klokwaarden.
+- Een deterministische proef met een fractioneel klokbegin toont de oorspronkelijke fout en het herstel. Regelbevoegdheid, opdrachten, leases, bronkwalificatie en fysieke uitgangen veranderen niet.
+
 # HA 0.4.0.dev33 — ESP-eigen diagnose via native MQTT
 
 Herstelt vrije/minimaal vrije heap, grootste vrije blok, CPU-temperatuur en uptime samen met E32 alpha25. Bestaande entity unique IDs en geschiedenis blijven behouden. De HA-entiteiten bestaan ook vóór het eerste rapport. Live rapporten zijn elke 15 seconden beschikbaar; na 45 seconden zonder geldig rapport of bij offline wordt beschikbaarheid ingetrokken. Een HA-only herstart vereist geen E32-herstart. Uitgeschakelde RTC-temperatuur blijft onbekend. Legacy modus blijft intact.

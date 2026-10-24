@@ -196,10 +196,13 @@ class ShadowClient:
     def supervisor_payload(self):
         # Receipt age describes this diagnostic snapshot, never acquisition or
         # physical feedback freshness. No new timer, Store or command path.
-        age=self.clock()-self._supervisor_received
+        now=self.clock()
+        age=now-self._supervisor_received
         if self._supervisor is None:
             return None
-        if not self.ready or not 0<=age<SUPERVISOR_MAX_AGE:
+        # Compare the deadline directly: subtracting across a binary exponent
+        # boundary can round an expired 15-second interval down below 15.
+        if not self.ready or not self._supervisor_received<=now<self._supervisor_received+SUPERVISOR_MAX_AGE:
             self._supervisor=None # Observed expiry/loss cannot revive after clock recovery.
             return None
         return dict(self._supervisor, receipt_age_ms=int(age*1000))

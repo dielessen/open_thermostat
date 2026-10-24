@@ -1698,3 +1698,7 @@ HA-installatiestatus toont voor actieve berekeningen expliciet ‘Alleen uitleze
 ### Publicatiecontrole firmwarekandidaat
 
 De bevroren alpha25-tag kreeg geen openbare release of OTA: de publicatiecontrole weigerde de niet-bijgewerkte firmware-releasenotities. Tag en pakketten zijn niet overschreven. De gecorrigeerde firmwarekandidaat is alpha26; de componentbron van het reeds gepubliceerde HA dev33 blijft exact behouden.
+
+### Voorbereiding volgende HA-bundel — niet geïnstalleerd
+
+Parallelle main-CI vond een fractionele-klokgrens bij de alleen-lezen supervisordiagnose: een exact verlopen rapport kon door aftrekken van klokwaarden nog korter dan 15 seconden lijken. Een deterministische repro faalt vóór de correctie en slaagt met directe deadlinevergelijking. De kandidaat voor dev34 behoudt alle overige code; actieve regel-/opdracht-/leasecontroles zijn niet gewijzigd. Gepubliceerde pakketten en de installatie dev33 blijven bevroren.

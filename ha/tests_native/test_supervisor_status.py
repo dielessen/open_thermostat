@@ -292,3 +292,17 @@ async def test_last_rejection_is_single_history_and_success_keeps_normal_lease_s
         client.send.assert_not_awaited()
     finally:
         await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_fractional_monotonic_epoch_does_not_extend_supervisor_receipt(integrated):
+    _,client,bus,_=integrated
+    # Straddles a binary exponent boundary; subtracting clocks yields
+    # 14.99999999999909 instead of exactly 15 at this integer-ms deadline.
+    bus.clock_base=8191.3333333333
+    await bus.start()
+    bus.now+=14999
+    client.last_rx=bus.clock();client.grant_until=client.lease_until=bus.clock()+100
+    assert client.supervisor_payload is not None
+    bus.now+=1
+    assert client.supervisor_payload is None

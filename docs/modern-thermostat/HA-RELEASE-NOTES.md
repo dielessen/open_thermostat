@@ -1,3 +1,31 @@
+# HA 0.4.0.dev40 — blijvende klokbewaking van de M2-kraanadapter
+
+Onderhoudsrelease met alle eerdere functies en de voorbereide B05/M2-reparatie.
+De E32-firmware heeft geen nieuwe runtimewijzigingen; alpha30 blijft de actuele
+firmwaredownload. Geen overbodige nieuwe firmwaretag of E32-installatie.
+
+- Een teruggaande, ongeldige of niet-eindige monotone klok trekt de bestaande kraanadapter blijvend in. Herstelde tijd, een nieuw doel of herstelde autorisatie kan oude bevoegdheid niet herstellen.
+- De controle omvat wachten, iedere autorisatiecallback, de laatste controle vóór verzending en de terugkeer van de HA-service. Ook een weigering of exception kan klokverlies niet verbergen.
+- Klokverlies tijdens een mogelijk verzonden opdracht houdt de fysieke uitkomst onbekend en verhindert herhaling. Een exacte duplicate blijft uitsluitend een historisch service-acceptatiereceipt, zonder nieuwe IO of kraanbevestiging.
+- Geen wijziging aan entiteits-ID’s, statistieken, instellingen, MQTT-contracten of frontend v38/v35-compatibiliteit.
+
+14 nieuwe regressiegevallen; 13 faalden op de oude bron. Alle 141 gerichte gevallen
+slagen op echte Core 2026.10.2 en 2026.10.3; onafhankelijke bronreview geslaagd.
+Definitieve tag-CI en pakketcontrole blijven afzonderlijke leveringsvoorwaarden.
+
+Passieve onderhoudsrelease. De M2-adapter heeft nog geen normale FW→HA-zendroute
+of gekwalificeerde fysieke terugmelding; ketel-/kraanuitgangen blijven geblokkeerd.
+De geïnstalleerde E32 blijft alpha28 zolang de eerdere watchdogoorzaak/herstelroute
+onbekend is. Geen actieve bèta-, Bluetooth-, pendel- of updaterreparatieclaim.
+
+English: preserves every existing feature and adds latched monotonic-clock
+validation throughout the prepared M2 actuator adapter. Invalid/reversed time
+cannot revive an old command budget; uncertain dispatch is never retried.
+Historical duplicates remain acceptance-only. No physical actuation is enabled;
+E32 alpha30 remains the latest firmware release, with alpha28 still installed.
+
+[Actueel werkbord](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0.dev40/docs/modern-thermostat/WORKBOARD.nl.md).
+
 # HA 0.4.0.dev39 — betrouwbare ketelwaarden na fouten en intrekking
 
 Gezamenlijke passieve onderhoudsbundel met E32 alpha30; alle eerdere functies en frontend v38 blijven behouden.

@@ -71,3 +71,12 @@ blijven vereist. Nieuwe acquisitie betekent een echte waarneming, niet het opnie
 dateren van een cachewaarde. Er zijn geen netwerk-/apparaatopdrachten, herstart,
 flashpoging of runtimewijziging uitgevoerd. HA dev38 en E32 alpha28 blijven de
 laatst gecontroleerde installatie; de nieuwe code is nog niet geïnstalleerd.
+
+## Compatibiliteitscorrectie na volledige HA/FW-proef
+
+Uptime nul kan een echte acquisitietijd zijn. De bekende-statusvlaggen zijn bepalend;
+een lege interne tijdgrens wordt nu met een afzonderlijke aanwezigheidsmarkering
+onderscheiden van een echte tijd nul. Een ingetrokken nul-acquisitie blijft
+net als iedere andere tijd ingetrokken tot strikt nieuwer bewijs beschikbaar is.
+Twee extra native regressies en de echte HA/FW-proeven bewaken dit. Details en
+actuele gecombineerde resultaten: [ketelrapporten](KETELRAPPORT-VOLGORDE-20261024.nl.md).

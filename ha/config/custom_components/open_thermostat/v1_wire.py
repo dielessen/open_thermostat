@@ -783,7 +783,7 @@ class ShadowClient:
             self.boiler_fields.accept(p["values"],p["group"],p["sequence"],received_at)
             self.runtime.diagnostics["boiler_fields"]="read_only_not_control_qualified"
         except (ValueError,TypeError,KeyError,OverflowError):
-            self.boiler_fields.invalid=True
+            self.boiler_fields.invalidate()
             self.runtime.diagnostics["boiler_fields"]="invalid_read_only_fields"
         self.runtime._notify()
 

@@ -721,7 +721,7 @@
       "files": [
         {
           "path": "src/EMS/ClassicBoilerMonitor.h",
-          "sha256": "066ed274138ffc1fa66fc962c34db5eb1daecb2cfcde6b958683a7492ec966e4"
+          "sha256": "434e43a9cff4acbe7ea2df87c90473d5b07f4c3345fe2269d53100bf254ee6b7"
         },
         {
           "path": "src/EMS/BoilerCapabilities.h",
@@ -729,7 +729,7 @@
         },
         {
           "path": "test/test_native/test_classic_boiler.cpp",
-          "sha256": "2c18513687353bb0cec1582d284b0d162d90787138e7f9ed451ff4384dc1fe02"
+          "sha256": "a431e37c29d586beea7af549a23b9b172ceb8520dddd2bcefa50ed8ed621fa09"
         },
         {
           "path": "src/EMS/ClassicBoilerTestEncoder.h",
@@ -745,7 +745,7 @@
         },
         {
           "path": "src/EMS/BoilerTelegramInventory.h",
-          "sha256": "b5c53b3f8d0c43ada9945039a0a2fb06942c355292eaa009b9c70b3876e58c5b"
+          "sha256": "7b83ef764370e8a541f801708499f022d7985dbb485dcb6387be9a7f6efe7a8d"
         },
         {
           "path": "docs/modern-thermostat/EMS-DISCOVERY-POLICY.md",
@@ -764,7 +764,7 @@
           "sha256": "da4e35b08b35887fb231aae153a7a2139d6d17e17cbf6f852f8f8b979a8774ed"
         }
       ],
-      "remaining_acceptance": "Alpha23/HA29 live: actuele afzonderlijke snapshot met69definities,27HA/REST waarde-/eenheid-/kwaliteitsmatches (25reported/2inferred),20unknown/unavailable en22onbetrouwbare diagnostiekentiteiten uitgeschakeld. Originele bronwaarnemingsmarkeringen/kwaliteit apart bewaard; geen exacte ouderdomspariteit, acquisitie-, continue-dekkings- of fysieke bruikbaarheidsclaim. Read-all onafhankelijk van model; TX/uitgangen blijven geblokkeerd. Langere observatie en fysieke validatie blijven open. Gepland +6h-moment:4u32Recorder-venster,165entiteitsantwoorden/532regels,geen open paginering; drie variërende native temperatuurvelden. Geen continue acquisitie-/fysieke werkingsclaim; oorspronkelijke +1h blijftFAILED/UNKNOWN."
+      "remaining_acceptance": "Alpha23/HA29 live: actuele afzonderlijke snapshot met69definities,27HA/REST waarde-/eenheid-/kwaliteitsmatches (25reported/2inferred),20unknown/unavailable en22onbetrouwbare diagnostiekentiteiten uitgeschakeld. Originele bronwaarnemingsmarkeringen/kwaliteit apart bewaard; geen exacte ouderdomspariteit, acquisitie-, continue-dekkings- of fysieke bruikbaarheidsclaim. Read-all onafhankelijk van model; TX/uitgangen blijven geblokkeerd. Langere observatie en fysieke validatie blijven open. Gepland +6h-moment:4u32Recorder-venster,165entiteitsantwoorden/532regels,geen open paginering; drie variërende native temperatuurvelden. Geen continue acquisitie-/fysieke werkingsclaim; oorspronkelijke +1h blijftFAILED/UNKNOWN. Bronmatig: per-veld rapportvolgorde en blijvende HA-intrekking gecorrigeerd, 10 native/6 HA-regressies toegevoegd; 689 native tests inclusief nul-uptimecompatibiliteit. Nog niet geïnstalleerd; fysieke bron-/zend-/stopkwalificatie blijft open."
     },
     {
       "id": "I13",
@@ -784,7 +784,7 @@
         },
         {
           "path": "src/control/ShadowController.h",
-          "sha256": "98c26af97d7f9fe8bc9dfc3064168e738a8270620767288663a01ce8680b5b9a"
+          "sha256": "16a13d81a3a28c386486a4e98b928d3937cebe7eb27026c50283bc7f74a75974"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/native_plan.py",
@@ -946,7 +946,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_wire.py",
-          "sha256": "5bd47e67d1def3d90dd368f74ffcdffa32f08d0be17387bf702c547213718cb6"
+          "sha256": "7740822529275d97d24ee08bc21ba99f46a9f481d7bfd4b5e1a09c7b4765d225"
         },
         {
           "path": "ha/tests_native/test_supervisor_status.py",
@@ -1050,7 +1050,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/boiler_fields.py",
-          "sha256": "6a774b7f161382d198ed287a5c5d2cc63ef260a6ad9fb8c11fcbf69b467c3e2e"
+          "sha256": "83bfb67d2b32a3d251ae3fed23bb43848d2b88ba1ea4dbb5679edc09e75a73f3"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_boiler_fields.py",
@@ -1058,7 +1058,7 @@
         },
         {
           "path": "ha/tests_native/test_boiler_fields.py",
-          "sha256": "96ae7edd39c9fceeb1aa013c90a63cf9013be1c96bbedb8622369640a708c8c8"
+          "sha256": "725e46efdf64c76c7c9f385f266022766fb60559b70d018119f75d62a01b1521"
         },
         {
           "path": "ha/tests_native/test_boiler_fields_interop.py",
@@ -1066,7 +1066,7 @@
         },
         {
           "path": "test/test_native/test_boiler_field_telemetry.cpp",
-          "sha256": "7933554979683403e66581a60a5b1abafc0c01c9b49f26f255e56da95058f5cb"
+          "sha256": "efa3e83d03bfff7241658cb6a993dfade34a6ecf072efe9e3ac7319a0730e123"
         },
         {
           "path": "test/interop/shadow_runner.cpp",
@@ -1105,7 +1105,7 @@
           "sha256": "dd0bc1e9563ef9589349ddc88a350e94748355953e5312f272e59ba0513729d2"
         }
       ],
-      "remaining_acceptance": "Alpha21/HA27 bron/gezondheid/readback geverifieerd. Eigen Boiler observations toont alle47ingeschakelde native definities met3historiekaarten en aparte reported/inferredgroepen; disabled/foreign/rawonbetrouwbarevelden niet in gerapporteerde grafieken. Alle105registryrecords en bestaande statistiekidentiteiten behouden. 1818HA-tests,1094pakketchecks,651firmwarebronbestanden/79HA-bronbestanden. Doorlopende24h-retentie/bruikbaarheid blijft observatie; eerste geplande1hcontrole faalde op toolbody en blijft UNKNOWN;6h/24hpayloads hersteld, native geïsoleerde retry PASS: alle actuele velden,629 begrensde Recorder-rijen/67 entiteiten; historie expliciet gedeeltelijk. Geen controlkwalificatie."
+      "remaining_acceptance": "Alpha21/HA27 bron/gezondheid/readback geverifieerd. Eigen Boiler observations toont alle47ingeschakelde native definities met3historiekaarten en aparte reported/inferredgroepen; disabled/foreign/rawonbetrouwbarevelden niet in gerapporteerde grafieken. Alle105registryrecords en bestaande statistiekidentiteiten behouden. 1818HA-tests,1094pakketchecks,651firmwarebronbestanden/79HA-bronbestanden. Doorlopende24h-retentie/bruikbaarheid blijft observatie; eerste geplande1hcontrole faalde op toolbody en blijft UNKNOWN;6h/24hpayloads hersteld, native geïsoleerde retry PASS: alle actuele velden,629 begrensde Recorder-rijen/67 entiteiten; historie expliciet gedeeltelijk. Geen controlkwalificatie. Bronmatig: per-veld rapportvolgorde en blijvende HA-intrekking gecorrigeerd, 10 native/6 HA-regressies toegevoegd; 689 native tests inclusief nul-uptimecompatibiliteit. Nog niet geïnstalleerd; fysieke bron-/zend-/stopkwalificatie blijft open."
     },
     {
       "id": "I18",
@@ -1244,14 +1244,14 @@
         },
         {
           "path": "test/test_native/test_boiler_test_session.cpp",
-          "sha256": "34f6d7b0fada037b55b18e23bc8eb5cbf667af4cb2334d5e546bd967adf82a49"
+          "sha256": "65958510cc173afaf97ccf9ef612ad9c4523d56a2cf7e907bfc3b3879f08075a"
         },
         {
           "path": "test/test_native/test_ems_frame_queue.cpp",
           "sha256": "faa0bfa19f58d47172c7d335ca8e0a7eade1316d0f91c4d72337aad293ce433b"
         }
       ],
-      "remaining_acceptance": "20 policytests en 5 queue-tests binnen 80 unieke ASan/UBSan-gevallen PASS. Poll-executor aangesloten, begin/finish bewaart IO-historie. Beoordeelde installatieadressering en fysieke TX-/stopkwalificatie open."
+      "remaining_acceptance": "20 policytests en 5 queue-tests binnen 80 unieke ASan/UBSan-gevallen PASS. Poll-executor aangesloten, begin/finish bewaart IO-historie. Beoordeelde installatieadressering en fysieke TX-/stopkwalificatie open. Bronmatig: per-veld rapportvolgorde en blijvende HA-intrekking gecorrigeerd, 10 native/6 HA-regressies toegevoegd; 689 native tests inclusief nul-uptimecompatibiliteit. Nog niet geïnstalleerd; fysieke bron-/zend-/stopkwalificatie blijft open."
     },
     {
       "id": "I23",
@@ -1301,7 +1301,7 @@
         },
         {
           "path": "test/test_native/test_boiler_test_poll.cpp",
-          "sha256": "42d4755862ec2f671a2d0c57be021696506ba9a8d80736068c8a32997eb2f992"
+          "sha256": "360e0f8c4d82fe4de3493f31c9e4bc92270555f4c686bd8a86cc8134d0c2a048"
         },
         {
           "path": "src/EMS/PacedUartWrite.h",
@@ -1328,7 +1328,7 @@
           "sha256": "ac496fb5e60732f1727cf7b49a80043983a3be5a0a4c353ffe7b481f55d73566"
         }
       ],
-      "remaining_acceptance": "Poll-executor, Classic-formaat en gedeelde gecontroleerde SDK-zendroute aangesloten/getest; 80 native ASan/UBSan PASS. Webassets ongewijzigd, eerder 3 controlviewports PASS. Beoordeeld profiel/adressering/masker, hydraulische gates, totale UART-latentie en fysieke UART-/stopkwalificatie open; default E32-TX blijft geblokkeerd."
+      "remaining_acceptance": "Poll-executor, Classic-formaat en gedeelde gecontroleerde SDK-zendroute aangesloten/getest; 80 native ASan/UBSan PASS. Webassets ongewijzigd, eerder 3 controlviewports PASS. Beoordeeld profiel/adressering/masker, hydraulische gates, totale UART-latentie en fysieke UART-/stopkwalificatie open; default E32-TX blijft geblokkeerd. Bronmatig: per-veld rapportvolgorde en blijvende HA-intrekking gecorrigeerd, 10 native/6 HA-regressies toegevoegd; 689 native tests inclusief nul-uptimecompatibiliteit. Nog niet geïnstalleerd; fysieke bron-/zend-/stopkwalificatie blijft open."
     }
   ],
   "requirements": [
@@ -1615,12 +1615,12 @@
     {
       "id": "B07",
       "complete": false,
-      "description": "Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten."
+      "description": "Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; oude/tegenstrijdige ketelrapporten bevestigen geen stop of positieve toestemming. Afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten."
     },
     {
       "id": "B08",
       "complete": false,
-      "description": "Poll-executor, Classic-flow/nulformaat en gecontroleerde SDK-zendresultaten aangesloten/getest; installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute."
+      "description": "Poll-executor, Classic-flow/nulformaat en gecontroleerde SDK-zendresultaten aangesloten/getest; monitor en HA-overdracht behouden per veld volgorde/intrekking. Installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute."
     },
     {
       "id": "B09",

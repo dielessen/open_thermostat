@@ -48,7 +48,7 @@ historisch; de tabellen en deze volgorde bepalen nieuw werk.
 | P0 | Kraantransactie, R05/B05/WP05 | Normale FW→HA-route met HA-ontvangergrant en bestaande adapter verbinden; native zendtransactie aan oorspronkelijke echo koppelen | Exact geïnstalleerde converterbron ontbreekt nog in bestaande toegang; geen cache/serviceacceptatie als ACK |
 | P0 | Veiligheidsproducenten, R07/R23/B06/WP06 | Softwarefences voor alle zes gedateerde feiten afgerond/getest; echte producenten en installatieprofiel aansluiten | Geen generieke flow-/pompaanname of ongekwalificeerde vrijgave |
 | Geleverd | EMS-apparatenweergave, R15/R25/R29/I11/I12/I21 | Geïnstalleerd op alpha28, echte GET en twee apparaten gecontroleerd | Passief; ontbrekende identiteit/decoder blijft zichtbaar |
-| P1 | Classic-zender en stopketen, R08/B07–B08/WP02 | Bestaande bounded policy, pollqueue/encoder en laatste dispatchcontrole afronden | TX/adres/masker en fysieke zender pas na B09 beoordelen |
+| P1 | Classic-zender en stopketen, R08/B07–B08/WP02 | Rapportvolgorde en HA-intrekking softwarematig afgerond; beoordeeld profiel en echte zend-/stopketen kwalificeren | TX/adres/masker en fysieke zender pas na B09 beoordelen |
 | P1 | Installatieacceptatie, R22–R24/B09 | Bestaande acceptatiekaart concreet maken voor UART/arbitrage/Tado óf E32/minimumflow/naloop/onafhankelijke stop | Fysieke feiten blijven open; vragen bundelen voor de proef, niet iedere bronstap blokkeren |
 | P1 | HTTPS-herstelbaarheid, R28/I03/WP08 | Geïnstalleerde checkpointdiagnose gebruiken bij gericht onderzocht vervolg | Vorige workerfout onbekend; app-only succes is geen workerreparatie of reden voor replay |
 | P2 na M2 | Productafwerking en schaal, R01/R02/R04/R06/R09–R21/R26/R27/R30/R31 | Bestaande editor/groep/vloer/weer/metrics/historie/comfort/leerbasis gecontroleerd verbinden en toetsen | Acht zones/72u, echte grafiektijdlijn, externe meter en modelspecifieke writefuncties niet fictief aftekenen |
@@ -110,7 +110,7 @@ Dit levert geen actieve bèta of Bluetooth-driver op. Bewijs:
 - [x] Hoogstens één firmwarebestand per verzoek. Opstartpartitie pas kiezen in de
   laatste geautoriseerde handler na het volledig verwerkte multipart-verzoek.
 - [x] Zestien nieuwe native foutgevallen en elf uitvoerbare REST-grensscenario's;
-  uploadbatch 665 geslaagd; huidige totaalsuite 677. REST-proef opgenomen in bestaande CI-nativegate.
+  uploadbatch 665 geslaagd; huidige totaalsuite 689. REST-proef opgenomen in bestaande CI-nativegate.
 - [ ] Herstel van de watchdogfout op echte hardware bewijzen. Deze bronhardening
   is geen oorzaakverklaring en is nog niet geïnstalleerd of als nieuwe versie gepubliceerd.
 
@@ -135,6 +135,29 @@ Zie [offline uploadonderzoek](OTA-UPLOAD-ONDERZOEK-20261024.nl.md).
   stop-/flow-/DHW-proeven kwalificeren. Alle fysieke uitvoer blijft geblokkeerd.
 
 Bewijs en grenzen: [veiligheidsfeiten](VEILIGHEIDSFEITEN-20261024.nl.md).
+
+### Afgewerkt in de volgende bronbundel — B07/B08 ketelrapporten
+
+- [x] Vertraagde veldupdates overschrijven geen nieuwere ketelgegevens; oudere
+  deeltelegrammen kunnen ontbrekende velden nog met hun oorspronkelijke leeftijd aanvullen.
+- [x] Tegenstrijdige waarden op dezelfde acquisitietijd blijven ongeldig totdat
+  strikt nieuwer bewijs beschikbaar is. Ontvangsttellingen blijven alle rapporten tellen.
+- [x] Echte proefpolicy/poll-executor: oude uit-berichten bevestigen geen stop en
+  kunnen nieuwere DHW-prioriteit niet verbergen om een positieve vraag toe te laten.
+- [x] HA-cache: een andere veldgroep of hogere publicatiesequentie herstelt geen
+  ingetrokken oude waarde. Geldige null-intrekking behoudt de oorspronkelijke deadline
+  en trekt alleen de betrokken entiteit in, zonder andere geldige velden te verbergen.
+- [x] Tien rapport-/overdrachtsregressies, twee nul-uptimecompatibiliteitstests en
+  zes HA-regressies toegevoegd; negen native en zes HA-gevallen faalden vóór reparatie.
+  Native totaalsuite 689 en beide firmwarebuilds geslaagd; 2195 HA-gevallen per
+  ondersteunde Core-versie, zonder fouten of skips. Eigen testfixture opgeruimd.
+- [x] Volledige HA/FW-controle vond een nul-uptimeregressie in de vorige aanscherping;
+  echte acquisitie bij uptime nul hersteld met afzonderlijke interne markeringen.
+  Gewijzigde proef-feiten krijgen een eigen nieuwe acquisitietijd.
+- [ ] Beoordeeld profiel, bron-/installatiekwalificatie, echte UART en fysieke
+  start/stop-/DHW-proeven afronden; geen automatische fysieke vrijgave.
+
+Bewijs: [ketelrapportvolgorde en HA-overdracht](KETELRAPPORT-VOLGORDE-20261024.nl.md).
 
 ### Uitbreiding X01 — direct Bluetooth en zelfstandige E32
 
@@ -306,8 +329,8 @@ onafhankelijk bron-/testwerk hoeven niet te wachten op een fysieke waarneming.
 - [ ] B04 Observer-lifecycle/native binding en originele WSDCGQ11LM-producer/HA-ontvangstdiagnose gebouwd/getest; productie-meetprofiel met echte acquisitie-/bronkwalificatie en fysieke validatie afronden. Geen trustvinkje of sensorwissel als omweg.
 - [ ] B05 TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur en oorspronkelijke ontvangst/lifecycle geleverd; HA38-opstartherstel geïnstalleerd. Pins/producent behouden, huidige diagnose wachtend/stale en ongekwalificeerd. Nieuwe natuurlijke ontvangst, causale zendtransactiekoppeling/doelecho, schema-eigenaarschap en profiel/readiness/fallback nog bewijzen. Fysieke proef eerst zonder ketel.
 - [ ] B06 Supervisor aan bron-eigen profiel en afzonderlijk gedateerde veiligheids-/DHW-/water-/kraan-/flowfeiten gekoppeld/getest; toekomstige afgewezen feiten en klokterugloop blijven softwarematig ingetrokken. Gedeelde veiligheidscontrole blokkeert ook ontbrekende/oudere/tegenstrijdige acquisities bij zonepolicy en storingsbevestiging. Werkelijke producenten, installatieprofiel en fysieke kwalificatie blijven open. Geen generieke flowaanname.
-- [ ] B07 Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten.
-- [ ] B08 Poll-executor, Classic-flow/nulformaat en gecontroleerde SDK-zendresultaten aangesloten/getest; installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute.
+- [ ] B07 Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; oude/tegenstrijdige ketelrapporten bevestigen geen stop of positieve toestemming. Afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten.
+- [ ] B08 Poll-executor, Classic-flow/nulformaat en gecontroleerde SDK-zendresultaten aangesloten/getest; monitor en HA-overdracht behouden per veld volgorde/intrekking. Installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute.
 - [ ] B09 Modelgebonden pre-TX-acceptatiekaart en fabrikantbronnen beoordeeld; concrete TX-interface, timing/polariteit/arbitrage, adres/masker, minimumflow/naloop, onafhankelijke stop/herstel en Tado óf E32 nog fysiek vaststellen.
 - [ ] B10 Bestaande voorbereide gebruikersfuncties en juiste onbekend-/draft-/geblokkeerdstatussen in eindkandidaat controleren; niets stilzwijgend laten verdwijnen.
 - [ ] B11 Versies/bron bevriezen, volledige CI/3 boards/native/HA/C++/browser/release-/source-/licentie-/compatibiliteitschecks op die exacte kandidaat.

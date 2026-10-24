@@ -461,3 +461,61 @@ TEST(EmsEncoding, ReadRequestCannotSilentlyDiscardAdditionalPayload) {
     EmsTelegram telegram(EmsTelegram::READ, 0x0B, 8, 0, 0x18, {27, 42});
     EXPECT_TRUE(telegram.encodeToRawDataWithCRC().empty());
 }
+
+
+TEST(ClassicBoiler, DelayedReportCannotOverwriteNewerValueOrItsOriginalAge) {
+    ClassicBoilerMonitor m;
+    m.receive(data(0x18,{45,1,0x72,80,30,9}),200);
+    m.receive(data(0x18,{20,1,0x00,40,0,0}),100);
+    EXPECT_EQ(m.value(BoilerField::selectedFlow,201),4500);
+    EXPECT_EQ(m.value(BoilerField::modulation,201),30);
+    EXPECT_EQ(m.value(BoilerField::heatingActive,201),1);
+    EXPECT_EQ(m.sample(BoilerField::modulation).observedMs,200u);
+}
+TEST(ClassicBoiler, DelayedPartialStillAddsMissingFieldsWithoutChangingNewerFields) {
+    ClassicBoilerMonitor m;
+    m.receive(data(0x18,{25},4),200);
+    m.receive(data(0x18,{40,1,0x72,80,0,0}),100);
+    EXPECT_EQ(m.value(BoilerField::modulation,201),25);
+    EXPECT_EQ(m.sample(BoilerField::modulation).observedMs,200u);
+    EXPECT_EQ(m.value(BoilerField::flow,201),3700);
+    EXPECT_EQ(m.sample(BoilerField::flow).observedMs,100u);
+    EXPECT_EQ(m.value(BoilerField::heatingActive,201),0);
+}
+TEST(ClassicBoiler, SameTimeConflictingFieldStaysInvalidUntilStrictlyNewReport) {
+    ClassicBoilerMonitor m;
+    m.receive(data(0x18,{30},4),200);
+    m.receive(data(0x18,{0},4),200);
+    EXPECT_FALSE(m.value(BoilerField::modulation,201));
+    m.receive(data(0x18,{30},4),200);
+    EXPECT_FALSE(m.value(BoilerField::modulation,201));
+    m.receive(data(0x18,{0},4),201);
+    EXPECT_EQ(m.value(BoilerField::modulation,201),0);
+}
+TEST(ClassicBoiler, SameTimeInvalidSentinelCannotBeRepairedFromConflictingCache) {
+    ClassicBoilerMonitor m;
+    m.receive(data(0x18,{255},4),200);
+    m.receive(data(0x18,{0},4),200);
+    EXPECT_FALSE(m.value(BoilerField::modulation,201));
+    m.receive(data(0x18,{0},4),201);
+    EXPECT_EQ(m.value(BoilerField::modulation,201),0);
+}
+TEST(ClassicReception, LateFrameCountsButCannotMoveLatestReceptionBackwards) {
+    ClassicBoilerMonitor m;
+    m.receive(data(0x18,{40}),200);
+    m.receive(data(0x18,{0},4),100);
+    std::ostringstream out;m.writeReceptionJSON(out,250);
+    auto json=std::unique_ptr<cJSON,decltype(&cJSON_Delete)>(cJSON_Parse(out.str().c_str()),cJSON_Delete);
+    ASSERT_TRUE(json);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(json.get(),"report_count")),2);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(json.get(),"last_report_age_ms")),50);
+    std::ostringstream full;m.writeJSON(full,250);
+    auto all=std::unique_ptr<cJSON,decltype(&cJSON_Delete)>(cJSON_Parse(full.str().c_str()),cJSON_Delete);
+    ASSERT_TRUE(all);
+    auto inventory=cJSON_GetObjectItem(all.get(),"telegram_inventory");
+    ASSERT_TRUE(inventory);
+    auto first=cJSON_GetArrayItem(cJSON_GetObjectItem(inventory,"types"),0);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(first,"frames")),2);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(first,"age_ms")),50);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(first,"last_offset")),0);
+}

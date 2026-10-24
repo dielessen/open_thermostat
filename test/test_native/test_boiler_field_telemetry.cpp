@@ -48,4 +48,20 @@ TEST(BoilerFieldTelemetry, UnknownFieldsAndQualityForgeryAreRejectedWithoutSchem
     cJSON_SetNumberValue(quality,1);EXPECT_TRUE(validBoilerGroup(j.get(),0));
     cJSON_AddStringToObject(j.get(),"credential","NO_RELAY");EXPECT_FALSE(validBoilerGroup(j.get(),0));
 }
+TEST(BoilerFieldTelemetry, SameTimeConflictPublishesNullWithOriginalAcquisitionAndValidSchema) {
+    ClassicBoilerMonitor m;
+    m.receive(EmsTelegram(EmsTelegram::BROADCAST,8,0,4,0x18,std::vector<uint8_t>{30}),100);
+    m.receive(EmsTelegram(EmsTelegram::BROADCAST,8,0,4,0x18,std::vector<uint8_t>{0}),100);
+    std::ostringstream out;m.writeFieldGroup(out,200,0);
+    auto json=parseControlJson(out.str());ASSERT_TRUE(validBoilerGroup(json.get(),0));
+    const auto row=cJSON_GetArrayItem(field(json.get(),"fields"),4);
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetArrayItem(row,1)));
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetArrayItem(row,2)),100);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetArrayItem(row,4)),24);
+    m.receive(EmsTelegram(EmsTelegram::BROADCAST,8,0,4,0x18,std::vector<uint8_t>{0}),201);
+    std::ostringstream newer;m.writeFieldGroup(newer,201,0);
+    const auto recovered=parseControlJson(newer.str());ASSERT_TRUE(validBoilerGroup(recovered.get(),0));
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetArrayItem(cJSON_GetArrayItem(field(recovered.get(),"fields"),4),1)),0);
+}
+
 }

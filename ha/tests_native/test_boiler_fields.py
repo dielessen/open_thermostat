@@ -155,3 +155,53 @@ async def test_reversed_local_clock_cannot_revive_cached_or_new_field_deadlines(
     assert c.session is None and c.error == 'local_monotonic_clock_invalid'
     assert c.boiler_fields.reading(1,99) is None
     c.send.assert_not_awaited();await r.async_stop()
+
+@pytest.mark.asyncio
+async def test_same_acquisition_null_retires_only_affected_entity_without_renewing_age(hass):
+    e,r,c,now=await system(hass);c.boiler_fields_supported=True;added=[]
+    await async_setup_boiler_fields(hass,e,lambda entities:added.extend(entities))
+    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c)))
+    deadline=c.boiler_fields.records[4][1]
+    p=packet(c,2);p['values']['fields'][4][1]=None
+    await c.receive('fw/telemetry/boiler_fields',canonical(p))
+    assert not c.boiler_fields.invalid
+    assert not added[4].available and added[4].native_value is None
+    assert added[1].available and added[1].native_value==45
+    assert c.boiler_fields.records[4][1]==deadline
+    c.send.assert_not_awaited();await r.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_null_retirement_cannot_reappear_after_other_group_or_same_acquisition_cache(hass):
+    e,r,c,now=await system(hass);c.boiler_fields_supported=True
+    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c)))
+    p=packet(c,2);p['values']['fields'][4][1]=None
+    await c.receive('fw/telemetry/boiler_fields',canonical(p))
+    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c,3,group=1)))
+    assert not c.boiler_fields.reading(4,100)['usable']
+    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c,4)))
+    assert not c.boiler_fields.reading(4,100)['usable']
+    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c,5,sampled=11000,observed=10000)))
+    assert c.boiler_fields.reading(4,100)['usable']
+    c.send.assert_not_awaited();await r.async_stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('fault',['changed','future','reordered','oversize'])
+async def test_invalid_group_cannot_revive_old_fields_via_unrelated_group(hass,fault):
+    e,r,c,now=await system(hass);c.boiler_fields_supported=True
+    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c)))
+    p=packet(c,2)
+    if fault=='changed':p['values']['fields'][4][1]=30
+    if fault=='future':p['values']['fields'][4][2]=10001
+    if fault=='reordered':p['values']['fields'][4][2]=8000
+    await c.receive('fw/telemetry/boiler_fields','x'*2049 if fault=='oversize' else canonical(p))
+    assert c.boiler_fields.invalid
+    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c,3,group=1)))
+    assert not c.boiler_fields.reading(4,100)['usable']
+    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c,4)))
+    assert not c.boiler_fields.reading(4,100)['usable']
+    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c,5,sampled=11000,observed=10000)))
+    assert c.boiler_fields.reading(4,100)['usable'] and c.ready
+    assert c.last_rx==100 and c.grant_until==110 and c.lease_until==115
+    c.send.assert_not_awaited();await r.async_stop()

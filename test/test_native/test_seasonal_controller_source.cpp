@@ -325,4 +325,22 @@ TEST(SeasonalControllerSource, ChangedSafetyAtSameAcquisitionCannotReleaseWithdr
     EXPECT_TRUE(cJSON_IsTrue(field(Fixture::row(report(f)),"demand")));
 }
 
+TEST(SeasonalControllerSource, ExplicitKnownSafetyAtUptimeZeroIsNotAnAbsentAcquisition) {
+    Fixture f;auto pin=sourceFor();pin.maximumSafetyAgeMs=120000;
+    auto safety=safe();safety.sampledAt=0;bind(f,pin,safety);readyPinned(f);
+    const auto state=report(f);outputsFalse(state);
+    EXPECT_TRUE(cJSON_IsTrue(field(Fixture::row(state),"demand")));
+    EXPECT_EQ(losses(state),0u);
+}
+TEST(SeasonalControllerSource, RetiredZeroAcquisitionCannotBeConfusedWithEmptyFence) {
+    Fixture f;auto pin=sourceFor();pin.maximumSafetyAgeMs=120000;
+    auto safety=safe();safety.sampledAt=0;bind(f,pin,safety);readyPinned(f);
+    safety.dhwStateKnown=false;
+    EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(report(f)),"demand")));
+    safety.dhwStateKnown=true;
+    EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(report(f)),"demand")));
+    ++f.now;safety.sampledAt=f.now;
+    EXPECT_TRUE(cJSON_IsTrue(field(Fixture::row(report(f)),"demand")));
+}
+
 }

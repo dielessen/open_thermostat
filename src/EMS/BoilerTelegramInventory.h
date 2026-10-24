@@ -23,9 +23,13 @@ public:
             entry->type = type;
         }
         increment(entry->frames);
-        entry->offset = offset;
-        entry->size = static_cast<uint16_t>(size);
-        entry->observedMs = now;
+        // Count every received frame, but metadata describing the most recent
+        // acquisition must not regress when an older queued frame arrives.
+        if(entry->frames==1||now>=entry->observedMs) {
+            entry->offset = offset;
+            entry->size = static_cast<uint16_t>(size);
+            entry->observedMs = now;
+        }
     }
     void writeJSON(std::ostream &ss, uint64_t now) const {
         ss << "{\"capacity\":" << capacity << ",\"untracked_frames\":" << untracked_ << ",\"types\":[";

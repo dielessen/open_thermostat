@@ -233,6 +233,7 @@ TEST_F(BoilerTest, FeedbackExpiryWithdrawsBeforeHeatAndOperatorDeadlines) {
 
 TEST_F(BoilerTest, EveryLostGateInvalidatesPendingPositiveAtFinalSendBoundary) {
     for (int index = 0; index < 5; ++index) {
+        monitor=ClassicBoilerMonitor{}; // Each independent case has its own RX lifetime.
         BoilerTestSession candidate{11, profile};
         report(90);
         ASSERT_EQ(candidate.prepare(11, 1, 40, 1000, 100, gates, monitor), Reply::accepted);
@@ -310,6 +311,7 @@ TEST_F(BoilerTest, StopFeedbackMustFollowActualCompletionNotJustBegin) {
 // to start, even when the newest telegram reports off.
 TEST_F(BoilerTest, BaselineDeadlineWinsOverFreshOffAtOrAfterDeadline) {
     for (const uint64_t at : {3100u, 3101u, 6000u, 9000u}) {
+        monitor=ClassicBoilerMonitor{}; // Each independent case has its own RX lifetime.
         BoilerTestSession candidate{11, profile};
         report(90);
         ASSERT_EQ(candidate.prepare(11, 1, 40, 1000, 100, gates, monitor), Reply::accepted);
@@ -439,6 +441,27 @@ TEST_F(BoilerTest, ReversedClockRetiresFaultStopProofAndOldZeroTicket) {
     EXPECT_EQ(session.phase(),Phase::fault);
     EXPECT_FALSE(session.mayTransmit(zero,105,gates,monitor));
     EXPECT_EQ(session.next(105,gates,monitor).command,Command::zero);
+}
+
+TEST_F(BoilerTest, OlderOffCannotHideNewerRunningStateAndConfirmBaseline) {
+    prepare();const auto zero=session.next(100,gates,monitor);
+    ASSERT_TRUE(testing_detail::instantTransmission(session,zero,100,true,gates,monitor));
+    report(110,true,30);report(105,false,0);
+    session.step(111,gates,monitor);
+    EXPECT_EQ(session.phase(),Phase::baseline);
+    EXPECT_FALSE(session.reportedStopConfirmed());
+    report(112,false,0);session.step(112,gates,monitor);
+    EXPECT_EQ(session.phase(),Phase::ready);
+}
+TEST_F(BoilerTest, OlderOffCannotHideNewerRunningStateAndConfirmExplicitStop) {
+    heating();session.stop(103);
+    const auto zero=session.next(103,gates,monitor);
+    ASSERT_TRUE(testing_detail::instantTransmission(session,zero,103,true,gates,monitor));
+    report(110,true,30);report(105,false,0);session.step(111,gates,monitor);
+    EXPECT_EQ(session.phase(),Phase::stopping);
+    EXPECT_FALSE(session.reportedStopConfirmed());
+    report(112,false,0);session.step(112,gates,monitor);
+    EXPECT_EQ(session.phase(),Phase::completed);
 }
 
 } // namespace

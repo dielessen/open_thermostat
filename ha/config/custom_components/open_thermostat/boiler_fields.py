@@ -122,6 +122,15 @@ class BoilerFieldCache:
         self.invalid = False
         self.records = {}
         self.received = None
+        self.retired = {}
+
+    def invalidate(self):
+        # A later valid GROUP cannot restore old permission for OTHER fields.
+        # Keep acquisition fences separate from global stream availability.
+        self.invalid = True
+        for index, (field, _) in self.records.items():
+            if field[2] is not None:
+                self.retired[index] = max(self.retired.get(index, -1), field[2])
 
     def accept(self, value, group, sequence, now):
         validate_group(value, group)
@@ -142,6 +151,11 @@ class BoilerFieldCache:
                     raise ValueError("boiler acquisition reversed")
                 if observed == old[0][2]:
                     if tuple(field) != old[0]:
+                        # Firmware may withdraw a conflicting acquisition as
+                        # null. This only restricts, preserving its old deadline.
+                        if raw is None and old[0][1] is not None:
+                            pending[index] = (tuple(field), old[1])
+                            continue
                         raise ValueError("boiler acquisition changed")
                     # Even a different publication sequence cannot extend the deadline.
                     continue
@@ -165,6 +179,7 @@ class BoilerFieldCache:
         usable = (not self.invalid and self.profile == "classic_observed"
                   and self.received is not None and 0 <= now-self.received < 20
                   and deadline is not None and now < deadline
-                  and field[1] is not None and field[3] != 1)
+                  and field[1] is not None and field[3] != 1
+                  and field[2] > self.retired.get(index, -1))
         return {"raw": field[1], "observed_at_ms": field[2], "quality": field[3],
                 "source_type": field[4], "usable": usable, "profile": self.profile}

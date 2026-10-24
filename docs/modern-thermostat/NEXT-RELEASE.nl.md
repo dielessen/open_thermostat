@@ -110,7 +110,7 @@ bestaande HA-functies blijven behouden. Haalbaarheid onderzocht met officiële
 GATT-documentatie; nog geen driver, koppeling of lokale regelvrijgave geleverd.
 Eerst één kraan uitlezen en zonder ketel kwalificeren, daarna lokale
 programmering/eigendom/opslag/tijd en de bestaande stop-/uitvalvoorwaarden verbinden.
-Dit wijzigt de al geïnstalleerde alpha28/dev37 niet en is geen nieuwe release.
+Dit wijzigt de laatst gecontroleerde installatie HA38/E32alpha28 niet en is geen nieuwe release.
 
 X01 omvat ook de Shelly BLU H&T Display ZB (SBHT-103C) en een tweetalige
 [Bluetooth-apparaatpagina onder Settings](BLUETOOTH-APPARATEN.nl.md): vinden,
@@ -122,11 +122,11 @@ Ook opgenomen in X01: Xiaomi Smart Temperature and Humidity Monitor 3
 een geldige apparaatsleutel; de verkrijgingsroute en praktijkkwalificatie zijn
 nog open. Originele sensorfirmware heeft de voorkeur; geen automatische flash.
 
-Voorbereide softwarecorrectie: de TV02-diagnose kan late MQTT-metadata toelaten
-voor dezelfde vooraf vastgelegde bron, met begrensde subscripties en veilige
-redencodes. 137 gerichte tests slagen; volledige definitieve regressie: 2183 gevallen op
-elk van beide ondersteunde Core-versies, zonder fout/error/skip.
-De oude opstartoorzaak is niet bewezen en de huidige installatie is ongewijzigd.
+HA38 levert het TV02-opstart-/lifecycleherstel voor dezelfde vooraf vastgelegde
+bron, met begrensde subscripties en veilige redencodes. De huidige diagnose is
+wachtend/stale en ongekwalificeerd; echte nieuwe ontvangst en causale echo blijven
+open. De oude incidentoorzaak is niet bewezen. Eerdere bronproeven blijven bewaard
+in de [werkbordhistorie](WORKBOARD-HISTORIE-20261024.nl.md).
 
 ## Onderhoudsrelease dev38 / alpha29
 
@@ -137,18 +137,16 @@ exact gecontroleerd. Hoogste prioriteit is offline onderzoek van de mislukte
 E32-upload en een onderbouwde herstelroute. Zie het actuele installatieverslag.
 Geen actieve bèta of werkende Shelly-/Xiaomi-driver claimen.
 
-## Voorbereid voor de volgende bundel
+## Voorbereid voor de volgende gezamenlijke bundel
 
-Handmatige app-upload: strikte grootte en exacte ontvangen lengte, opruimen bij
-annulering/toegangsverlies, maximaal één bestand en selectie pas na het volledige
-geautoriseerde verzoek. Zestien nieuwe native tests en elf REST-grensscenario's;
-665 native tests geslaagd. Nog niet geïnstalleerd of opnieuw gepubliceerd.
-[Onderzoek en resterend herstelbewijs](OTA-UPLOAD-ONDERZOEK-20261024.nl.md).
+| Onderdeel | Software afgewerkt | Nog nodig voor praktijk/levering |
+| --- | --- | --- |
+| I03 uploadherstelbaarheid | Strikte/exacte lengte, opruimen bij annulering/toegangsverlies, één appbestand en selectie na volledig geautoriseerd verzoek; 16 nieuwe native en 11 REST-grensscenario's | Onderbouwde herstelroute voor alpha28; watchdogtaak/oorzaak onbekend. [Bewijs](OTA-UPLOAD-ONDERZOEK-20261024.nl.md) |
+| B06 veiligheidsfeiten | Afgewezen toekomstige/oudere/tegenstrijdige acquisities blijven ingetrokken; gedeelde zonepolicy-/storingscontrole en correcte nul-uptimemarkeerders | Werkelijke producenten, bron-/installatiekwalificatie, minimumflow en naloop. [Bewijs](VEILIGHEIDSFEITEN-20261024.nl.md) |
+| B07/B08 en R15 ketelrapporten | Per veld nieuwste originele meting behouden; oudere deeltelegrammen vullen ontbrekende velden; HA herstelt ingetrokken cache niet via een andere groep; 12 native en 6 HA-regressies in deze batch | Beoordeeld profiel, adres/masker, echte UART en fysieke start/stop-/DHW-proeven. [Bewijs](KETELRAPPORT-VOLGORDE-20261024.nl.md) |
 
-B06-veiligheidsfeiten: afgewezen toekomstige meettijden kunnen later niet opnieuw
-als toestemming gelden; klokterugloop blijft ingetrokken bij eigenaarafwijzing.
-Twaalf regressies toegevoegd; in afzonderlijke voorproeven faalden vijf hydraulische
-en zes gedeelde-policygevallen. Laatste native suite: 677 geslaagd. Zonepolicy en
-storingsbevestiging delen dezelfde controle op toekomstige, ontbrekende, oudere
-en tegenstrijdige acquisities; E32- en ESP32-build gecontroleerd. De fysieke producenten en installatie-
-kwalificatie blijven open. Zie [bewijs](VEILIGHEIDSFEITEN-20261024.nl.md).
+De gecombineerde native suite telt **689 geslaagde tests**; beide firmwarebuilds
+zijn gecontroleerd. Op elk van HA Core 2026.10.2 en 2026.10.3 slagen **2195 gevallen**,
+zonder fouten of skips. Pakket-/release-CI op een bevroren eindkandidaat blijft vereist. Alle 23 voorbereide onderdelen en 31 producteisen blijven behouden.
+Niets uit deze bronbundel is opnieuw geïnstalleerd of gepubliceerd als release.
+De huidige installatie en de fysieke releasepoorten blijven hierboven afzonderlijk vermeld.

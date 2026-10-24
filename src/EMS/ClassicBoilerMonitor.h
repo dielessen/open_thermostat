@@ -136,12 +136,22 @@ public:
         // Counts decoded boiler reports, never polls, CRC failures or our own
         // requests. A frame need not contain a complete usable measurement.
         if (reportCount_ != UINT64_MAX) ++reportCount_;
-        lastReportMs_ = now;
+        lastReportMs_ = std::max(lastReportMs_, now);
         capabilities_.observe(t.getTypeId());
         if (family != BoilerProtocol::classic) return false; // Plus processors remain intact.
         const auto put = [&](BoilerField field, std::optional<int32_t> v,
                              BoilerQuality quality = BoilerQuality::reported) {
-            samples_[index(field)] = {v, now, t.getTypeId(), quality, true};
+            auto& current=samples_[index(field)];
+            if(current.observed&&now<=current.observedMs) {
+                // Packet order is not acquisition order. Keep the newest fact
+                // per FIELD, so an older partial can still fill missing fields.
+                // Same-time contradictions retire this field until a strictly
+                // newer report; replaying either cached value cannot repair it.
+                if(now==current.observedMs&&(current.raw!=v||current.quality!=quality
+                    ||current.sourceType!=t.getTypeId()))current.raw.reset();
+                return;
+            }
+            current = {v, now, t.getTypeId(), quality, true};
         };
         const auto byte = [&](BoilerField f, uint8_t offset, int scale = 1, int maximum = 254) {
             if (auto b = t.byteAt(offset)) put(f, *b <= maximum ? std::optional<int32_t>(*b * scale) : std::nullopt);

@@ -332,18 +332,17 @@ private:
         const auto value=uint8_t(safety.limitsKnownSafe)|(uint8_t(safety.dhwStateKnown)<<1)
             |(uint8_t(safety.dhwActive)<<2)|(uint8_t(safety.summer)<<3)
             |(uint8_t(safety.allOff)<<4)|(uint8_t(safety.preempted)<<5);
-        if(!acquiredAt) {
-            retiredSafetyThrough_=std::max(retiredSafetyThrough_,lastSafetyAt_);
-            return false;
-        }
-        if(acquiredAt>now||acquiredAt<lastSafetyAt_
-            ||(acquiredAt==lastSafetyAt_&&value!=lastSafetyValue_)
+        // Uptime zero can be a real acquisition. Known-state flags distinguish
+        // usable safety evidence; zero must not double as an empty watermark.
+        if(acquiredAt>now||(haveSafetyFact_&&(acquiredAt<lastSafetyAt_
+                ||(acquiredAt==lastSafetyAt_&&value!=lastSafetyValue_)))
             ||now-acquiredAt>=seasonalSource_->maximumSafetyAgeMs) {
             retiredSafetyThrough_=std::max(retiredSafetyThrough_,std::max(acquiredAt,lastSafetyAt_));
+            haveRetiredSafety_=true;
             return false;
         }
-        if(acquiredAt<=retiredSafetyThrough_)return false;
-        lastSafetyAt_=acquiredAt;lastSafetyValue_=uint8_t(value);
+        if(haveRetiredSafety_&&acquiredAt<=retiredSafetyThrough_)return false;
+        haveSafetyFact_=true;lastSafetyAt_=acquiredAt;lastSafetyValue_=uint8_t(value);
         return true;
     }
     void selectNativeSource(const NativePlanInstallationSource& source,SeasonalControllerSource::Safety safety) {
@@ -968,6 +967,7 @@ private:
     bool safetyReading_=false,policySourceFault_=false;
     uint64_t lastSafetyAt_=0,retiredSafetyThrough_=0;
     uint8_t lastSafetyValue_=0;
+    bool haveSafetyFact_=false,haveRetiredSafety_=false;
     struct UserCommandAdmission {
         std::array<char,33> binding{};
         uint32_t sequence=0,revision=0;

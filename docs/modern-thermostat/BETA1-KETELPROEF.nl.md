@@ -92,3 +92,9 @@ gemelde stop. Voor automatische kamerregeling zijn daarnaast de oorspronkelijke
 ruimtebron en kraan, causale echo/readiness en uitval/fallback afzonderlijk nodig.
 Geen van deze fysieke voorwaarden wordt door modelselectie of een compileervlag
 ingevuld.
+
+
+De modelgebonden [pre-TX-acceptatiekaart](ECOMLINE-PRE-TX-ACCEPTATIE.nl.md) bevat
+de op 24 oktober opnieuw beoordeelde fabrikantbronnen en de nog benodigde
+installatiegegevens. Zij vult geen adres, proefgrens of gegarandeerde stoptermijn
+in en autoriseert geen verlies- of zendproef.

@@ -67,5 +67,27 @@
     "control limits",
     "physical flame/pump interpretation",
     "heat/gas/water meter equivalence"
-  ]
+  ],
+  "manufacturer_documentation": {
+    "reviewed_on": "2026-10-24",
+    "scope": "Family compatibility and documented fault indications only; not installed revision, physical acceptance or actuator authority",
+    "compatibility": {
+      "url": "https://www.nefit-bosch.nl/media/country_pool/products/thermostaten/6720882620.pdf",
+      "document": "6720882620 (2024/10), page 1",
+      "sha256": "2ecf5e404ca5d70d26483ff97217536b7230998b0e9f563b52a0fc65b3d55b71",
+      "family": "EcomLine HR(C), iRT, EasyControl Adapter",
+      "sales_number_in_document": "7736701654",
+      "reported_part_number_mapping_verified": false
+    },
+    "adapter_manual": {
+      "url": "https://www.bosch-homecomfort.com/pl/media/country_pool/dokumenty/wsparcie/apps/6720888197.pdf",
+      "document": "6720888197 (2019/07), Dutch pages 33-35",
+      "sha256": "480efaf39194341aac6e9207e0cbf31f191c7fbf61bf4bc1a0ddbac169b247e6",
+      "protocol_scope": "EMS conversion including iRT for UBA 1.5; functions may be limited by conversion",
+      "fault_scope": "Communication faults and power loss described; reviewed table does not specify a maximum CV-stop timeout",
+      "installed_uba_revision_verified": false,
+      "independent_stop_timeout_ms": null
+    },
+    "acceptance_card": "../ECOMLINE-PRE-TX-ACCEPTATIE.nl.md"
+  }
 }

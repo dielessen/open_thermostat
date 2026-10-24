@@ -1,9 +1,14 @@
 # BBQKees Gateway E32 V2 — experimental native port
 
-**Not hardware validated. Not a replacement for the installed EMS-ESP yet.**
-Nothing was flashed or connected to a boiler during development. This target is
-compile-tested preparation, not a claim that Ethernet, PSRAM or EMS works on a
-physical gateway. There is deliberately **no runtime setting or build flag to
+**Physical transmission and autonomous heating remain unqualified.**
+The initial port investigation below describes the disconnected development
+scope of 17 October 2026. Since then, the passive alpha23/dev29 baseline has
+been installed and Classic reception observed on the user's E32. Current
+installation/release evidence is recorded in
+[WORKBOARD](modern-thermostat/WORKBOARD.nl.md); that passive evidence does not
+qualify transmission, Ethernet coexistence, physical hydraulics or fail-safe stop.
+The model-specific remaining acceptance is in the
+[pre-TX installation card](modern-thermostat/ECOMLINE-PRE-TX-ACCEPTATIE.nl.md). There is deliberately **no runtime setting or build flag to
 enable EMS transmission**. Enabling `emsEnabled` permits reception only.
 
 ## Scope and sources (checked 2026-10-17)

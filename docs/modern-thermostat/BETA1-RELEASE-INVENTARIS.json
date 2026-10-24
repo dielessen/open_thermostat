@@ -318,7 +318,7 @@
         },
         {
           "path": "docs/modern-thermostat/boiler-profiles/nefit-ecomline-classic-hrc-22h.json",
-          "sha256": "2d063ef67f856823269a2c602b5b966ea73e749cef9b9e972b3a97aefd3fd77e"
+          "sha256": "f8c4c58cb914a7429298848f42b8ea2f59eb5771c0010c7fbccf944ce71a5891"
         }
       ],
       "remaining_acceptance": "HRC22H/modelkeuze, EN/NL, About/navigatie en incrementeel dashboard geleverd in alpha23/HA29. Normale HTTPS-update, exacte running-ELF/web/source en modelreadback geverifieerd. Shipped-browserproeven bewijzen behoud van openstatus/focus/scroll; op de module zijn exacte geserveerde webbytes bewezen, geen live browserpixels. Modelkeuze verandert geen decoder/adressen/ontvangst/aansturing en verleent geen technische ketelvrijgave. Lange beheer-/herstel- en fysieke kwalificatie blijven afzonderlijk open."
@@ -1167,6 +1167,10 @@
         {
           "path": "test/test_native/test_paced_uart_write.cpp",
           "sha256": "e9d608fa2db47aabe0f1ba56ab5121a08ab9e1b5d3e0647cc2c62cbb688be897"
+        },
+        {
+          "path": "docs/modern-thermostat/ECOMLINE-PRE-TX-ACCEPTATIE.nl.md",
+          "sha256": "ac496fb5e60732f1727cf7b49a80043983a3be5a0a4c353ffe7b481f55d73566"
         }
       ],
       "remaining_acceptance": "Poll-executor, Classic-formaat en gedeelde gecontroleerde SDK-zendroute aangesloten/getest; 80 native ASan/UBSan PASS. Webassets ongewijzigd, eerder 3 controlviewports PASS. Beoordeeld profiel/adressering/masker, hydraulische gates, totale UART-latentie en fysieke UART-/stopkwalificatie open; default E32-TX blijft geblokkeerd."
@@ -1466,7 +1470,7 @@
     {
       "id": "B09",
       "complete": false,
-      "description": "Concrete TX-interface en aansluit-/stopvoorwaarden vaststellen: timing/polariteit/arbitrage, converterketen, minimumflow/naloop, onafhankelijke stop/herstel en Tado óf E32."
+      "description": "Modelgebonden pre-TX-acceptatiekaart en fabrikantbronnen beoordeeld; concrete TX-interface, timing/polariteit/arbitrage, adres/masker, minimumflow/naloop, onafhankelijke stop/herstel en Tado óf E32 nog fysiek vaststellen."
     },
     {
       "id": "B10",

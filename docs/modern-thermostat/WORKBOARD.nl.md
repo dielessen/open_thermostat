@@ -18,7 +18,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 208 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 209 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Alle 80 HA-componentbestanden zijn ook met het E32-pakket
 vergeleken. Historische checkpoints en afgewezen kandidaten blijven bewaard;
@@ -53,7 +53,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-208 bronverwijzingen met hashes, status en resterende acceptatie.
+209 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -483,7 +483,7 @@ gekoppeld; het concept is geen nieuwe release of extra afvinklijst.
 - [ ] B06 Supervisor aan bron-eigen profiel en actuele afzonderlijk gedateerde veiligheids-/DHW-/water-/kraan-/flowfeiten gekoppeld en in controller getest; werkelijke producenten, installatieprofiel en fysieke kwalificatie blijven open. Geen generieke flowaanname.
 - [ ] B07 Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten.
 - [ ] B08 Poll-executor, Classic-flow/nulformaat en gecontroleerde SDK-zendresultaten aangesloten/getest; installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute.
-- [ ] B09 Concrete TX-interface en aansluit-/stopvoorwaarden vaststellen: timing/polariteit/arbitrage, converterketen, minimumflow/naloop, onafhankelijke stop/herstel en Tado óf E32.
+- [ ] B09 Modelgebonden pre-TX-acceptatiekaart en fabrikantbronnen beoordeeld; concrete TX-interface, timing/polariteit/arbitrage, adres/masker, minimumflow/naloop, onafhankelijke stop/herstel en Tado óf E32 nog fysiek vaststellen.
 - [ ] B10 Bestaande voorbereide gebruikersfuncties en juiste onbekend-/draft-/geblokkeerdstatussen in eindkandidaat controleren; niets stilzwijgend laten verdwijnen.
 - [ ] B11 Versies/bron bevriezen, volledige CI/3 boards/native/HA/C++/browser/release-/source-/licentie-/compatibiliteitschecks op die exacte kandidaat.
 - [ ] B12 Openbare pakketten/bron/ELF/web/checksums en updatecatalogus onafhankelijk controleren; volledige releasenotes met open punten en herstelroute.
@@ -1250,3 +1250,26 @@ B11/B12 worden hiermee niet als volledig afgerond afgevinkt.
 
 De zeven pakket-unittests slagen lokaal. Exacte kandidaat-/CI-/pakketresultaten:
 `out/combined-candidate-20261024/`. Geen tags, productie-update of zendproef.
+
+
+## B09: fabrikantbewijs en concrete installatiekaart (24 oktober 2026)
+
+De officiële adapterhandleiding 6720888197 (2019/07) en compatibiliteitsmatrix
+6720882620 (2024/10) zijn rechtstreeks gedownload, gehasht en beoordeeld; de
+matrix is ook visueel gecontroleerd. Familiedocumentatie ondersteunt de
+EcomLine HR(C)-iRT-route via EasyControl Adapter. De relatie tussen verkoopnummer
+7736701654 en het opgegeven onderdeelnummer 8737908035 is niet onafhankelijk
+vastgesteld; ook de geïnstalleerde UBA-revisie blijft onbevestigd.
+
+De beoordeelde storingssectie beschrijft communicatieverlies en voedingsverlies,
+maar specificeert geen maximale CV-stoptermijn. Er is daarom geen timeout of
+zelfstandige stopgarantie aan het profiel toegevoegd. De profielnotities blijven
+read-only; alle ontvangen ondersteunde velden blijven uitleesbaar.
+
+[ECOMLINE-PRE-TX-ACCEPTATIE](ECOMLINE-PRE-TX-ACCEPTATIE.nl.md) legt per onderdeel
+het resterende installatiebewijs en een afzonderlijke toekomstige proefregistratie
+vast. De E32-portnotitie onderscheidt nu de oude losgekoppelde ontwikkelscope van
+de werkelijk geïnstalleerde passieve basis. B09 blijft open. Geen fysieke proef,
+profielkwalificatie, configuratiewijziging of nieuwe software-installatie. Bewijs:
+`out/installation-review-20261024/`. Het gezamenlijke pakketcheckpoint `fbed431`
+blijft intact; deze aanvulling wijzigt alleen documentatie en profielnotities.

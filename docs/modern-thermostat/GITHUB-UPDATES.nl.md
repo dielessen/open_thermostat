@@ -2,8 +2,8 @@
 
 ## Actuele installatie — 24 oktober 2026
 
-De gecontroleerde HA-installatie draait `0.4.0.dev33`, bron
-`db2141cbe077cb8b35d8ef0f6e436b719308b3aa`: alle 83 live componentbestanden zijn
+De gecontroleerde HA-installatie draait `0.4.0.dev34`, bron
+`0aeff4dbaed9f187228e5621545b428648edfce5`: alle 83 live componentbestanden zijn
 vergeleken met het openbare pakket. Kamers, programma’s, SOURCE rev4, registry,
 frontend v28 en privé pins/producent zijn behouden.
 

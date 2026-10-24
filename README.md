@@ -13,15 +13,17 @@ en welke nog op de roadmap staan.
 [Mogelijkheden](#alle-mogelijkheden) · [Roadmap](#wat-we-nog-gaan-bouwen) ·
 [Screenshots](#screenshots) · [Documentatie](#documentatie)
 
-**Actuele passieve releases:** [E32 alpha26](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.26) + [Home Assistant dev33](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev33). Pakketten, bron en softwarecontroles zijn geverifieerd.
+**Actuele passieve releases:** [E32 alpha26](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.26) + [Home Assistant dev34](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev34). Pakketten, bron en softwarecontroles zijn geverifieerd.
 
-**Geïnstalleerd en gecontroleerd: E32 alpha26 + [Home Assistant dev33](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev33).** Kamerinrichting,
+**Geïnstalleerd en gecontroleerd: E32 alpha26 + [Home Assistant dev34](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev34).** Kamerinrichting,
 weekprogramma’s, interfaces en passief uitlezen zijn beschikbaar. De regelkern
 is grotendeels voorbereid, maar actieve kamer- en ketelaansturing zijn nog niet
 vrijgegeven op de E32 V2. De huidige native inrichting ondersteunt **1–2 kamers,
 met één radiatorknop per kamer**; acht zones is het uitbreidingsdoel.
 
-**Nieuw in alpha26/dev33:** herstel van ESP-geheugen, CPU-temperatuur en uptime via native MQTT, met behoud van bestaande HA-identiteiten. HA en E32 leggen schaduwmodus en de installatiecontroles in EN/NL uit. Vijf ESP-diagnosewaarden zijn met twee gewone updates in HA bevestigd; de uitgeschakelde RTC-temperatuur blijft onbekend. Het automatische HTTPS-updatepad blijft een apart open herstelpunt; deze firmware is via de bestaande app-only webupload geïnstalleerd.
+**Sinds alpha26/dev33:** herstel van ESP-geheugen, CPU-temperatuur en uptime via native MQTT, met behoud van bestaande HA-identiteiten. HA en E32 leggen schaduwmodus en de installatiecontroles in EN/NL uit. Vijf ESP-diagnosewaarden zijn met twee gewone updates in HA bevestigd; de uitgeschakelde RTC-temperatuur blijft onbekend. Het automatische HTTPS-updatepad blijft een apart open herstelpunt; deze firmware is via de bestaande app-only webupload geïnstalleerd.
+
+**Nieuw in HA dev34:** verlopen alleen-lezen supervisordiagnose verdwijnt ook bij fractionele klokwaarden op de exacte deadline. Alle eerdere interface- en diagnosefuncties zijn behouden.
 
 **Eerder in HA dev32:** rapporten blijven aan hun geldigheidsinstelling gebonden;
 klokfouten worden veilig afgehandeld en HA-diagnostiek kan de laatste passende
@@ -32,8 +34,7 @@ natuurlijke oorspronkelijke ontvangst is nog niet bevestigd. Geen extra E32-flas
 gekoppelde hydraulische supervisorkern, read-only HA-supervisordiagnose en een
 privé pin-loader voor oorspronkelijke TV02-ontvangst. Concrete bronkwalificatie
 en fysieke uitvoer blijven open. Systeemlog/syslog en dashboardupdates met behoud
-van open onderdelen blijven meegenomen. De normale HTTPS-update is op de echte
-E32 gebruikt en gecontroleerd.
+van open onderdelen blijven meegenomen. De automatische HTTPS-update heeft eerder gewerkt, maar het recent afwijkende downloadpad blijft open; alpha26 is via de bestaande app-only webupload geleverd.
 
 ## Alle mogelijkheden
 

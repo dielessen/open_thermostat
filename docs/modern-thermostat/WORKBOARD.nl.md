@@ -10,9 +10,9 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
 | Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.26`, na één bestaande app-only webupload met verse back-up; bron, ELF/web, bevestigde boot en live ESP-diagnose gecontroleerd |
-| Geïnstalleerde HA-integratie | `0.4.0.dev33`, via bestaande HA-agent met verse back-up/nacontrole; 105 registryrecords en alle koppelingen behouden |
-| Geleverde bron | E32 `e9ae314f2519ac4208f89d183b4a73a96131d8a4`; HA `db2141cbe077cb8b35d8ef0f6e436b719308b3aa`, alle 83 live componentbestanden gelijk aan het HA-pakket |
-| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; alpha26/dev33 geleverd met herstel ESP-diagnose en EN/NL-uitleg; alle eerdere bron behouden. Dev34 is voorbereid, getest en nog niet gepubliceerd/geïnstalleerd |
+| Geïnstalleerde HA-integratie | `0.4.0.dev34`, via bestaande HA-agent met verse back-up/nacontrole; 105 registryrecords en alle koppelingen behouden |
+| Geleverde bron | E32 `e9ae314f2519ac4208f89d183b4a73a96131d8a4`; HA `0aeff4dbaed9f187228e5621545b428648edfce5`, alle 83 live componentbestanden gelijk aan het HA-pakket |
+| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; alpha26/dev34 geleverd met herstel ESP-diagnose en EN/NL-uitleg; alle eerdere bron behouden. Dev34 is gepubliceerd en geïnstalleerd met exacte live bestandscontrole |
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
@@ -21,7 +21,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 met 218 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
-met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33 zijn afzonderlijk met
+met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
 hun eigen publieke pakket, Git-bron en alle live hashes gecontroleerd. Historische checkpoints en afgewezen kandidaten blijven bewaard;
 geen bestaande tag of download is vervangen.
 
@@ -1716,3 +1716,11 @@ Vóór een volgende tag: render en controleer de versiegebonden publicatienotiti
 De afzonderlijk beoordeelde bestaande app-only upload gaf HTTP200/success; daarna draait alpha26 (`e9ae314…`) met de exacte publieke ELF- en webidentiteit en `boot_pending=false`. Twee gewone niet-retained berichten met 15 seconden verschil kwamen exact overeen met de bestaande HA-entiteiten: vijf numerieke ESP-waarden (vrije/minimale heap, grootste blok, CPU-temperatuur, uptime), RTC terecht onbekend. Vier live webbestanden komen exact overeen met de bevroren bron en bevatten de EN/NL-uitleg. Alle 105 registryrecords, kamers/programma’s, SOURCE rev4, privé pins/producent en instellingen zijn behouden; uitgangen blijven uit.
 
 De mislukte native HTTPS-poging en haar bewijs blijven bewaard. Het automatische downloadpad is **niet** als hersteld afgevinkt. De bestaande eenmalige 24-uurscontrole behoudt eigenaar, tijdstip, aflevering en grenzen; alleen de verwachte software-identiteiten zijn aangepast naar alpha26/dev33. De voorbereidende dev34-correctie heeft volledige geslaagde CI, maar is niet geïnstalleerd.
+
+### Release afgerond — HA dev34 en E32 alpha26
+
+HA `0.4.0.dev34` is gepubliceerd en via de bestaande HA-agent geïnstalleerd met verse, beperkte back-up en één normale Core-herstart. Alle 83 live componentbestanden komen overeen met het openbare pakket van `0aeff4dbaed9f187228e5621545b428648edfce5`; frontend v28, 105 registryrecords, kamers/programma’s, SOURCE rev4, privé pins/producent en instellingen zijn behouden. De alleen-lezen supervisordiagnose gebruikt nu een directe deadlinevergelijking; actieve toelatings-, lease- en regelpaden zijn ongewijzigd. De openbare ZIP is 506204 bytes, SHA256 `a048b9d70ddc811272b93deeabef042a2b77270be7a060b3e340c98fb2388786`. Beide CI-runs (`40082916715`, `40082916725`) slagen; 2066 HA-tests zonder fouten of skips en browsertests geslaagd.
+
+E32 alpha26 blijft exact dezelfde geïnstalleerde firmware: bron `e9ae314f2519ac4208f89d183b4a73a96131d8a4`, ELF/web en bevestigde boot opnieuw gecontroleerd. Vijf ESP-waarden zijn numeriek, de uitgeschakelde RTC blijft onbekend. Geen extra flash of E32-herstart. EMS-TX, forwarder en actuatoruitvoer blijven geblokkeerd; Tado blijft actief. Dit sluit de softwarelevering af, niet de actieve bèta of de resterende fysieke roadmapproeven. Het automatische HTTPS-updatepad blijft open. De bestaande eenmalige controle verwacht nu dev34/alpha26; eigenaar, tijdstip, aflevering en grenzen zijn behouden.
+
+Bewijs: `out/release-finalize-20261024/PACKAGE-REVIEW.json`, `FINAL-REVIEW.json` en de afzonderlijke specialist-installatie-/livehash-/preservatiebewijzen. Oudere voorbereidende/onbevestigde notities hierboven zijn historische checkpoints.

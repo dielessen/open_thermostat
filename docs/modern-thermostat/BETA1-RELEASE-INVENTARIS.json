@@ -787,7 +787,7 @@
         },
         {
           "path": "docs/modern-thermostat/ORIGINAL-TV02-DEPLOYMENT.nl.md",
-          "sha256": "3972893c3a51b9c56982345527ab6028600bbd46ddb3ee435f411e61d4537782"
+          "sha256": "86ce1df1a0448964ef4fa505b542e90262408b2a67cbad270e799ecaddcb98f9"
         }
       ],
       "remaining_acceptance": "TV02-modus/native identiteit/doelcapaciteit en oorspronkelijke HA-ontvangst met MQTT/registry-lifecycle en NL/EN-weergave geleverd in HA dev29. Standaard bronpins leeg; zelfstandige Zigbee-producent nog niet geïnstalleerd/gekoppeld. Concrete bronpins en echte oorspronkelijke ontvangst, causale doel-echo, exclusief eigenaarschap, profiel/readiness/fallback en fysieke proef zonder ketel blijven open. Ontvangen doel/bedrijfsmodus verleent geen opdrachtbevestiging, klepstand of aansturingsvrijgave."

@@ -1,10 +1,28 @@
-## Actueel op 23 oktober — alpha17/dev23 geleverd, eerste bèta in voorbereiding
+# Firmware en Home Assistant bijwerken
 
-De gezamenlijke alpha17/dev23-release is gepubliceerd, geïnstalleerd en
-gecontroleerd. De normale HTTPS-updater/certificaatcontrole en huidige/archief-
-indeling werken. Oudere versie- en installatieregels hieronder zijn historische
-receipts. De nieuwe eerste bèta is nog niet gepubliceerd; zie WORKBOARD §6.
-Geen bestaande tag/download vervangen of per losse reparatie opnieuw flashen.
+## Actuele installatie — 24 oktober 2026
+
+De gecontroleerde installatie draait E32 `v0.1.0-e32v2-alpha.23` en HA
+`0.4.0.dev29`, beide uit broncommit
+`5f31dd780a5b98d81048f9d592f8209e657d7305`. Zie het
+[werkbord](WORKBOARD.nl.md) voor de actuele acceptatiechecks. Latere bronwijzigingen
+zijn nog niet geïnstalleerd; de eerste actieve bèta is niet vrijgegeven.
+
+De normale E32-HTTPS-updater werkt. HA-updates verlopen via de bestaande
+HA-agent, met back-up en nacontrole. Nieuwe releases krijgen nieuwe versies;
+bestaande tags/downloads blijven behouden. Main-CI-pakketten met dezelfde
+alpha23/dev29-versienummers zijn bouwbewijs en mogen de bestaande releases
+niet vervangen.
+
+De ketel is aangesloten voor passieve ontvangst. Tado blijft actief; E32-TX,
+forwarder en fysieke actuatoruitvoer blijven geblokkeerd. Een software-update
+verleent geen toestemming voor een zendproef.
+
+## Historische uitvoeringsbewijzen
+
+De onderstaande gedateerde versies beschrijven eerdere updates. Hun oude
+installatiestatus en aansluitinstructies zijn geen actuele apparaatstatus.
+De algemene app-only updaterroute en controlevoorwaarden blijven van toepassing.
 
 ## E32 alpha15 uitgevoerd — 2026-10-23
 
@@ -49,7 +67,8 @@ gezond is geïnstalleerd. De onderstaande E32-route en voorwaarden blijven apart
 
 Bron: https://github.com/dielessen/open_thermostat/releases.
 Deze releases zijn nog **experimentele testreleases**. EMS-/TRV-/GPIO-uitvoer
-blijft geblokkeerd; dit is geen vrijgave voor verwarming. Houd EMS los.
+blijft geblokkeerd; dit is geen vrijgave voor verwarming. De actuele
+aansluitstatus staat bovenaan; deze historische tekst vraagt geen loskoppeling.
 
 ## Eenmalige overstap vanuit de vorige testbuild
 

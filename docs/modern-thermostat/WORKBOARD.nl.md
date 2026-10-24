@@ -1390,3 +1390,28 @@ gecompileerde voorrang en descriptoropruiming. Details:
 CI: `out/diagnostic-source-manifest-20261024/`. Nog geen privébestand of nieuwe
 integratie op productie geïnstalleerd. De concrete producentinstallatie/pins,
 causale doelkoppeling en fysieke B05-proef blijven open.
+
+
+## B05/B13: installatiepad en actuele update-instructies (24 oktober 2026)
+
+De bestaande HA-specialist heeft de huidige geselecteerde kamer, native MQTT-
+actuatoridentiteit en opgeslagen binding opnieuw vergeleken met het privé
+TV02-concept: alle bindingchecks gelijk. De bestaande bridgecache bevestigt
+fabrikant en expliciet endpoint; dit is geen nieuwe fysieke fingerprintmeting.
+HA dev29 en E32 alpha23 blijven geïnstalleerd, met `profile_missing` en alle
+fysieke uitgangen uit. Geen producent of privémanifest is geïnstalleerd.
+
+Het [installatiedraaiboek](ORIGINAL-TV02-DEPLOYMENT.nl.md) legt de gezamenlijke
+versie-/pakketcontrole, tussenversiecompatibiliteit, verse privé back-up,
+hercontrole van pins, normale HA-/E32-update, afzonderlijke producentinstallatie,
+spontane ontvangstacceptatie en beperkte terugval vast. De
+[update-instructies](GITHUB-UPDATES.nl.md) onderscheiden nu de actuele alpha23/
+dev29-installatie van historische alpha14/15/17-status en oude aansluitinstructies.
+Bestaande main-CI-pakketten met dezelfde versies worden niet geïnstalleerd.
+
+Bewijs: `out/receive-installation-review-20261024/`. De eerste specialist-CLI
+bereikte zijn tijdlimiet ná het schrijven van een duurzaam receipt; dat receipt
+is afzonderlijk gecontroleerd op binding, ongewijzigde installatie en gesloten
+beheersessies. Ontbrekende native extensionbeheercontrole blijft apart van
+ontbrekende package-/loaderhashattestatie. B05 en B13 blijven open; een draaiboek
+of succesvolle bindingcontrole is geen producentontvangst of bèta-vrijgave.

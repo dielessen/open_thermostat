@@ -7,16 +7,25 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 ## 1. Waar staan we?
 
+**Gezamenlijke release dev39 / alpha30:** bron `3bad1747`, beide onveranderlijke
+Git-tags gepubliceerd, alle drie CI-runs geslaagd; negen openbare downloads
+bytegelijk aan CI. Onafhankelijke bron-/pakketreview geslaagd (2424 pakketchecks).
+HA39 geïnstalleerd met verse 93-bestandenback-up en behouden 105 registryrecords;
+afzonderlijke nacontrole van 18:54 UTC geslaagd. E32alpha30 is niet geïnstalleerd: de eerdere
+alpha28-uploader-watchdogoorzaak en herstelroute blijven onbekend.
+[Installatieverslag](INSTALLATIE-HA39-ALPHA30-20261024.nl.md).
+
+
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
 | Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.28`; latere alpha29-upload mislukt met task-watchdogreset 6; taak/oorzaak onbekend, geen retry |
-| Geïnstalleerde HA-integratie | `0.4.0.dev38`, bron d131c50, geladen op Core 2026.10.3; 83 bestanden exact, 105 registryrecords en koppelingen behouden |
-| Geleverde bron | HA `d131c503f42e6b834a0815db8384983a7fc1b46f`; E32 `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f`; 83 HA-bestanden exact |
-| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; kandidaat HA39/E32alpha30 bevat uploadhardening, veiligheidsfeit-/klokfences en ketelrapport-/HA-cache-intrekking; eerdere software en geïnstalleerde basis blijven behouden |
+| Geïnstalleerde HA-integratie | `0.4.0.dev39`, bron 3bad174, geladen op Core 2026.10.3; 83 bestanden exact, 105 registryrecords en koppelingen behouden |
+| Geleverde bron | HA `3bad1747f53cd82dcf1bf5953787b42459ef8187`; E32 `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f`; 83 HA-bestanden exact |
+| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; gepubliceerde HA39/E32alpha30-bundel bevat uploadhardening, veiligheidsfeit-/klokfences en ketelrapport-/HA-cache-intrekking; eerdere software en geïnstalleerde basis blijven behouden |
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
-| Laatste livecontrole | 24 oktober 17:07 UTC: HA38 geladen en E32alpha28 bevestigd; instellingen/back-up behouden, uitgangen geblokkeerd; TV02 ongekwalificeerd/wachtend |
+| Laatste livecontrole | 24 oktober 18:54 UTC: HA39 geladen en E32alpha28 bevestigd; instellingen/back-up behouden, uitgangen geblokkeerd; TV02 ongekwalificeerd/wachtend |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
 met 248 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
@@ -31,7 +40,7 @@ Een meegeleverd model of geslaagde simulatie bewijst geen aangesloten functie,
 ketelreactie of productacceptatie. Alle oorspronkelijke fasen blijven open waar
 verplichte fysieke of langere-termijnproeven ontbreken.
 
-## Prioriteiten na HA38 en de mislukte alpha29-installatie
+## Prioriteiten na HA39 en de geblokkeerde E32-installatie
 
 Alle 31 eisen, 23 brononderdelen, 11 fasen, 8 werkpakketten en 14 releasepoorten
 zijn opnieuw naast de geïnstalleerde basis gelegd. B01–B03 zijn softwarematig af;

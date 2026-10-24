@@ -13,8 +13,8 @@ en welke nog op de roadmap staan.
 [Mogelijkheden](#alle-mogelijkheden) · [Roadmap](#wat-we-nog-gaan-bouwen) ·
 [Screenshots](#screenshots) · [Documentatie](#documentatie)
 
-**Gepubliceerd:** [HA dev38](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev38) en [E32 alpha29](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.29).
-**Werkelijk geïnstalleerd:** HA dev38 en E32 alpha28. De alpha29-upload mislukte;
+**Gepubliceerd:** [HA dev39](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev39) en [E32 alpha30](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.30).
+**Werkelijk geïnstalleerd:** HA dev39 en E32 alpha28. De alpha29-upload mislukte;
 de module herstartte met een task-watchdogreset (code 6). De betrokken taak en
 oorzaak zijn nog onbekend. Er volgt geen blinde uploadherhaling.
 
@@ -23,14 +23,17 @@ Settings → EMS-apparaten zijn beschikbaar. De huidige native inrichting onders
 **1–2 kamers, één radiatorknop per kamer**; acht zones blijft het uitbreidingsdoel.
 Tado blijft de actieve regelaar; fysieke uitgangen blijven geblokkeerd.
 
-HA dev38 herstelt oorspronkelijke-rapportdiagnose bij vertraagde metadata en
+HA dev39 behoudt de reparatie van oorspronkelijke-rapportdiagnose bij vertraagde metadata en
 registrywijzigingen, met duidelijke EN/NL-meldingen en frontend v38/v35-compatibiliteit.
+Ketelwaarden die na een transportfout zijn ingetrokken, worden pas bij nieuwe
+oorspronkelijke ontvangst beschikbaar. De bijbehorende firmwarebundel verbetert
+rapportvolgorde, veiligheidsfeit-intrekking en transactionele app-upload.
 Vrij geheugen, CPU-temperatuur en uptime zijn gecontroleerd. Instellingen,
 programma's, SOURCE en koppelingen zijn behouden met back-up en onafhankelijke
 nacontrole. Nieuwe TV02-ontvangst en fysieke regelkwalificatie blijven open.
-[Installatie-uitkomst en vervolg](docs/modern-thermostat/INSTALLATIE-HA38-ALPHA29-20261024.nl.md).
+[Installatie-uitkomst en vervolg](docs/modern-thermostat/INSTALLATIE-HA39-ALPHA30-20261024.nl.md).
 
-**English:** HA dev38 is installed and verified; E32 remains on alpha28 after the
+**English:** HA dev39 is installed and verified; E32 remains on alpha28 after the
 alpha29 upload failed with a task-watchdog reset. The responsible task and cause
 are unknown. Configuration is preserved; boiler/valve outputs remain disabled.
 Shelly/Xiaomi Bluetooth support remains planned.

@@ -1,17 +1,18 @@
-# Onderhoudsrelease HA dev39 / E32 alpha30 — releasevoorbereiding
+# Onderhoudsrelease HA dev39 / E32 alpha30 — gedeeltelijk geïnstalleerd
 
 Bijgewerkt: 24 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
 het [masterplan](PLAN.nl.md) bewaart alle 31 producteisen en acceptatievoorwaarden.
 
-## Kandidaat dev39 / alpha30
+## Geleverde bundel dev39 / alpha30
 
-De volgende gezamenlijke bundel bevat alle bronwijzigingen sinds dev38/alpha29:
+De gezamenlijke bundel bevat alle bronwijzigingen sinds dev38/alpha29:
 transactionele handmatige app-upload, intrekking van verworpen veiligheidsfeiten,
 veldgebonden ontvangstvolgorde van ketelrapporten en blijvende HA-cache-intrekking.
 689 firmwaretests en 2195 HA-testgevallen per ondersteunde Core-versie zijn lokaal
-geslaagd. Definitieve tag-CI, onafhankelijke pakketcontrole en installatie/readback
-zijn nog afzonderlijke releasevoorwaarden. De oude alpha28-uploader blijft een
+geslaagd. Alle drie definitieve CI-runs zijn geslaagd, beide tags gepubliceerd
+en alle negen openbare downloads vergeleken. HA39 is geïnstalleerd en de afzonderlijke
+nacontrole van 18:54 UTC is geslaagd. De oude alpha28-uploader blijft een
 herstelpunt: nieuwe broncode bewijst geen reparatie van de eerdere watchdogreset.
 
 ## 1. Wat draait er nu?
@@ -19,14 +20,21 @@ herstelpunt: nieuwe broncode bewijst geen reparatie van de eerdere watchdogreset
 | Onderdeel | Geïnstalleerd | Stand |
 | --- | --- | --- |
 | E32 | `v0.1.0-e32v2-alpha.28`, bron `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f` | Passief EMS uitlezen; TX, forwarding en fysieke uitvoer geblokkeerd |
-| Home Assistant | `0.4.0.dev38`, bron `d131c503f42e6b834a0815db8384983a7fc1b46f` | Geladen op Core 2026.10.3; frontend dev38/v38 met v35-alias |
+| Home Assistant | `0.4.0.dev39`, bron `3bad1747f53cd82dcf1bf5953787b42459ef8187` | Geladen op Core 2026.10.3; frontend dev38/v38 met v35-alias |
 | Actieve regelaar | Tado | Geen automatische ketel- of kraansturing door OpenThermostat |
 
 Bron/pakket/ELF/web, alle 83 HA-bestanden en behoud van instellingen, programma's
 en identiteiten zijn gecontroleerd. Zie [installatieverslag](INSTALLATIE-HA37-ALPHA28-20261024.nl.md).
 De uitgebreide geleverde bundel staat in de [werkbordhistorie](WORKBOARD-HISTORIE-20261024.nl.md).
 
-### Laatste installatiecontrole — 24 oktober, na 17:07 UTC
+### Actuele installatie — 24 oktober, nacontrole 18:54 UTC
+
+HA dev39 geladen; 83 bestanden exact, verse gecontroleerde back-up van 93 bestanden,
+één normale Core-herstart. E32alpha28 en alle instellingen/koppelingen behouden;
+geen E32-upload of herstart. Uitgangen geblokkeerd, TX/polls/testframes nul.
+Afzonderlijke nacontrole geslaagd; zie [installatieverslag](INSTALLATIE-HA39-ALPHA30-20261024.nl.md).
+
+### Historische installatiecontrole — 24 oktober, na 17:07 UTC
 
 HA dev38 exact geladen; E32 blijft alpha28 na één mislukte alpha29-upload.
 Resetcode 6 bevestigt een task-watchdogreset, maar taak en oorzaak zijn onbekend.

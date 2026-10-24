@@ -18,7 +18,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 200 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 202 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Alle 80 HA-componentbestanden zijn ook met het E32-pakket
 vergeleken. Historische checkpoints en afgewezen kandidaten blijven bewaard;
@@ -53,7 +53,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-201 bronverwijzingen met hashes, status en resterende acceptatie.
+202 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -1166,3 +1166,27 @@ Bewijs: `out/pre-tx-preparation-20261024/ha-full-routing.xml`,
 `official-z2m-loader/REVIEW.json`. De oorspronkelijke ontvangst, causale echo,
 exclusief kraaneigenaarschap/readiness en fysieke zend-/stopkwalificatie blijven
 open. B04–B14 en actieve bèta-GO blijven onveranderd open.
+
+
+### Code-audit — logredactie en EMS-serialisatie
+
+De codecontrole heeft vier reproduceerbare fouten hersteld voor de volgende
+gezamenlijke release:
+
+- ANSI-opmaak kon een gevoelig label splitsen, waarna de logweergave het weer
+  samenvoegde. Redactie controleert nu ook de volledige genormaliseerde tekst,
+  vóór inkorting; dezelfde normalisatie bepaalt beide sinks zonder heapallocatie.
+- Een vectorlengte van 256 bytes werd in de EMS-constructor vernauwd tot nul.
+  De vector blijft nu volledig eigendom van het telegram; de encoder weigert
+  een ongeldige lengte in plaats van een ingekort telegram te produceren.
+- Te lange Classic-/Plus-frames worden vóór opbouw/checksum geweigerd. Bestaande
+  geldige frames tot 32 bytes inclusief CRC blijven behouden.
+- Een leesverzoek met extra payload wordt geweigerd; extra bytes verdwijnen
+  niet meer stilzwijgend uit de geserialiseerde opdracht.
+
+Zes nieuwe native regressiegevallen. De fouten zijn met falende tests vóór de
+correcties aangetoond; na correctie 585 native tests PASS. Daarnaast 48 gerichte
+gevallen onder ASan/UBSan/leakcontrole, de werkelijke logger-/NVS-/SDK-hook-/
+lokale UDP-test, 46 webunitgevallen en 101 tooling-/pakketgevallen PASS.
+Bewijs en exacte dekking: `out/code-audit-20261024/`. Dit is code-/testbewijs,
+geen fysieke ketel-/zendkwalificatie; de geïnstalleerde versie wijzigt niet.

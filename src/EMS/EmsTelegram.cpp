@@ -84,10 +84,12 @@ EmsTelegram EmsTelegram::getFromRawData(ib::logger::LoggerInterface &log,
 
 std::vector<uint8_t> EmsTelegram::encodeToRawDataWithCRC() const {
 	std::vector<uint8_t> rawData;
-	static constexpr uint8_t maxRawTelegramLength = 32;
-	rawData.reserve(maxRawTelegramLength); // TODO calculate how much buffer we need
-
-	// TODO check buffer overflow if there is too much data
+    static constexpr size_t maxRawTelegramLength = 32;
+    const size_t headerLength = typeId_ > 0xFF ? 6 : 4;
+    const bool read = operation_ == operation_t::READ;
+    if ((read && data_.size() > 1)
+        || (!read && data_.size() > maxRawTelegramLength - headerLength - 1)) return {};
+    rawData.reserve(headerLength + (read ? 1 : data_.size()) + 1);
 
 	rawData.push_back(source_ | 0x80); // 0
 	rawData.push_back(destination_);   // 1
@@ -98,7 +100,6 @@ std::vector<uint8_t> EmsTelegram::encodeToRawDataWithCRC() const {
 	rawData.push_back(typeId_ > 0xFF ? 0xFF : typeId_); // 2 - typeId for EMS1 -  0xFF marker for EMS2
 	rawData.push_back(offset_);							// 4
 
-	uint8_t crcPos = 0;
 	if (typeId_ > 0xFF) {									 // EMS2
 		if (operation_ == operation_t::READ) {				 // READ REQUEST
 			rawData.push_back(data_.empty() ? 0 : data_[0]); // 4 message data - requested length

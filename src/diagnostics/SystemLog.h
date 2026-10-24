@@ -43,17 +43,40 @@ struct Stats {
     uint64_t syslogDropped=0, sent=0, contention=0;
     size_t retained=0, pending=0;
 };
+// One normalization for redaction and both output sinks. Inspect the complete
+// input before the visible record is shortened; never allocate in the log hook.
+template<class Sink>
+inline void visibleLogCharacters(std::string_view text, Sink sink) {
+    bool escaped=false;
+    for(char c:text) {
+        if(c==27){escaped=true;continue;}
+        if(escaped){if(c>='@'&&c<='~'&&c!='[')escaped=false;continue;}
+        if(!sink((c>=32&&c<=126)?c:' '))return;
+    }
+}
 inline bool sensitive(std::string_view text) {
-    // Whole-message suppression: do not attempt to parse partially formatted
-    // credential/config payloads or expose a secret before its label.
+    // Whole-message suppression: include labels separated by terminal formatting.
+    constexpr std::string_view keys[]={"password","passwd","authorization","cookie","csrf","token","secret","ssid","username","payload","credential","bearer","api_key","apikey","body","://","{", "networkconfig", "mqttconfig"};
     const auto lower=[](char c){return c>='A'&&c<='Z'?char(c+32):c;};
-    for(std::string_view key:{"password","passwd","authorization","cookie","csrf","token","secret","ssid","username","payload","credential","bearer","api_key","apikey","body","://","{", "networkconfig", "mqttconfig"}) {
+    for(auto key:keys) {
         if(key.size()>text.size())continue;
         for(size_t i=0;i+key.size()<=text.size();++i)
             if(std::equal(key.begin(),key.end(),text.begin()+i,[&](char a,char b){return a==lower(b);}))return true;
     }
-    return false;
+    std::array<char,16> tail{};size_t used=0;bool found=false;
+    visibleLogCharacters(text,[&](char c){
+        if(used==tail.size()) {std::move(tail.begin()+1,tail.end(),tail.begin());--used;}
+        tail[used++]=lower(c);
+        for(auto key:keys) {
+            if(key.size()<=used&&std::equal(key.begin(),key.end(),tail.begin()+used-key.size())) {
+                found=true;return false;
+            }
+        }
+        return true;
+    });
+    return found;
 }
+
 class SystemLog {
 public:
     static constexpr size_t Capacity=32, QueueCapacity=8, PageSize=8;
@@ -75,13 +98,11 @@ public:
         const bool redact=truncated||sensitive(text)||sensitive(feature);
         if(redact) { text="[sensitive log content omitted]";feature="Log";++stats_.redacted; }
         auto copy=[](auto& dest,std::string_view source) {
-            size_t n=0;bool escaped=false;
-            for(char c:source) {
-                if(c==27){escaped=true;continue;}
-                if(escaped){if(c>='@'&&c<='~'&&c!='[')escaped=false;continue;}
-                if(n+1==dest.size())break;
-                dest[n++]=(c>=32&&c<=126)?c:' ';
-            }
+            size_t n=0;
+            visibleLogCharacters(source,[&](char c){
+                if(n+1==dest.size())return false;
+                dest[n++]=c;return true;
+            });
             while(n&&dest[n-1]==' ')--n;
             dest[n]='\0';
         };

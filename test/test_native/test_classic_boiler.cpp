@@ -440,3 +440,24 @@ TEST(ClassicExpanded, CatalogIsBoundedAndFiltersForeignAndReadTraffic) {
 }
 
 }
+
+TEST(EmsEncoding, VectorPayloadLengthNeverWrapsAtOneByteBoundary) {
+    EmsTelegram telegram(EmsTelegram::WRITE, 0x0B, 8, 0, 0x1A, std::vector<uint8_t>(256, 42));
+    EXPECT_EQ(telegram.dataSize(), 256u);
+    EXPECT_TRUE(telegram.encodeToRawDataWithCRC().empty());
+}
+TEST(EmsEncoding, RejectsFramesLargerThanTheReceiveProtocolLimit) {
+    for (const auto type : {0x1A, 0x2E0}) {
+        const size_t maximum = type == 0x1A ? 27 : 25;
+        EmsTelegram valid(EmsTelegram::WRITE, 0x0B, 8, 0, type, std::vector<uint8_t>(maximum, 42));
+        const auto bytes = valid.encodeToRawDataWithCRC();
+        ASSERT_EQ(bytes.size(), 32u);
+        EXPECT_NO_THROW(EmsTelegram::fromRawData(bytes.data(), bytes.size()));
+        EmsTelegram oversized(EmsTelegram::WRITE, 0x0B, 8, 0, type, std::vector<uint8_t>(maximum + 1, 42));
+        EXPECT_TRUE(oversized.encodeToRawDataWithCRC().empty());
+    }
+}
+TEST(EmsEncoding, ReadRequestCannotSilentlyDiscardAdditionalPayload) {
+    EmsTelegram telegram(EmsTelegram::READ, 0x0B, 8, 0, 0x18, {27, 42});
+    EXPECT_TRUE(telegram.encodeToRawDataWithCRC().empty());
+}

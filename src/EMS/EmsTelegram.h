@@ -6,6 +6,7 @@
 #include <optional>
 #include <type_traits>
 #include <vector>
+#include <utility>
 
 // quite good ems reference
 // https://raw.githubusercontent.com/norberts1/hometop_HT3/master/HT3/docu/HT_EMS_Bus_messages.pdf
@@ -24,8 +25,9 @@ public:
 	static constexpr uint8_t maxEmsDataLength = 27; // EMS1.0
 
 	EmsTelegram(operation_t operation, uint8_t source, uint8_t destination, uint8_t offset, uint16_t typeId, std::vector<uint8_t> data) :
-		EmsTelegram(operation, source, destination, offset, typeId, data.data(), data.size()) {
-	}
+        operation_(operation), source_(source), destination_(destination), offset_(offset),
+        typeId_(typeId), data_(std::move(data)) {
+    }
 
 	EmsTelegram(operation_t operation, uint8_t source, uint8_t destination, uint8_t offset, uint16_t typeId, uint8_t *data, uint8_t dataLength) :
 		operation_(operation),

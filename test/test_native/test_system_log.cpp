@@ -37,4 +37,31 @@ TEST(SystemLog, NativeCredentialOrLongPayloadNeverEntersVisibleRing){
     EXPECT_STREQ(r.text.data(),"[sensitive log content omitted]");EXPECT_EQ(log.stats().truncated,1u);
 }
 
+TEST(SystemLog, TerminalFormattingCannotHideSensitiveLabelsFromEitherSink) {
+    for (const auto* text : {"pass\x1b[31mword=private-value", "To\x1b[0mken private-value", "https:\x1b[0m//user:private-value@host"}) {
+        SystemLog log; log.configure(remote()); log.append(3, "App", text, 1);
+        Record local, packet; Settings destination;
+        ASSERT_TRUE(log.next(0, local)); ASSERT_TRUE(log.pop(packet, destination));
+        EXPECT_STREQ(local.text.data(), "[sensitive log content omitted]");
+        EXPECT_STREQ(packet.text.data(), local.text.data());
+        EXPECT_EQ(log.stats().redacted, 1u);
+    }
+    SystemLog log; log.append(3, "pass\x1b[0mword", "private-value", 1);
+    Record local; ASSERT_TRUE(log.next(0, local));
+    EXPECT_STREQ(local.feature.data(), "Log");
+    EXPECT_STREQ(local.text.data(), "[sensitive log content omitted]");
+}
+TEST(SystemLog, RedactionScansNormalizedLabelBeyondVisibleRecordBoundary) {
+    SystemLog log;
+    log.append(3, "App", "private-value" + std::string(220, 'x') + "pass\x1b[0mword", 1);
+    Record local; ASSERT_TRUE(log.next(0, local));
+    EXPECT_STREQ(local.text.data(), "[sensitive log content omitted]");
+}
+TEST(SystemLog, HarmlessTerminalFormattingRemainsReadableWithoutRedaction) {
+    SystemLog log; log.append(3, "\x1b[32mApp\x1b[0m", "\x1b[32mready\x1b[0m", 1);
+    Record local; ASSERT_TRUE(log.next(0, local));
+    EXPECT_STREQ(local.feature.data(), "App"); EXPECT_STREQ(local.text.data(), "ready");
+    EXPECT_EQ(log.stats().redacted, 0u);
+}
+
 }

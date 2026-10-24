@@ -552,7 +552,7 @@
         },
         {
           "path": "test/test_native/test_system_log.cpp",
-          "sha256": "2848dfa0d49caa66c8d68cd57cb5f4c442d0da94edc2c8056aac76571b8b70a9"
+          "sha256": "ca15817b6be4753874877b6a9f85e8593d8812ff6e622c771c29ebc4d0971b32"
         },
         {
           "path": "test/system-log-browser.cjs",
@@ -588,7 +588,7 @@
         },
         {
           "path": "src/diagnostics/SystemLog.h",
-          "sha256": "aa8e1bb3c5000b8a103fd0f80428f424bc67af70cbd8cc50916ff49d2396efa9"
+          "sha256": "9c201c5f897dfbd6b0bfa62e784e0284e2d22df569ccba0ad979158c405e1612"
         },
         {
           "path": "test/logging_runtime/include/esp_log.h",
@@ -638,7 +638,7 @@
         },
         {
           "path": "test/test_native/test_classic_boiler.cpp",
-          "sha256": "927114a8eaed2936b796e4fcbfeed2c113719eb252dfcedc1211ac3f3395d726"
+          "sha256": "2c18513687353bb0cec1582d284b0d162d90787138e7f9ed451ff4384dc1fe02"
         },
         {
           "path": "src/EMS/ClassicBoilerTestEncoder.h",
@@ -646,7 +646,7 @@
         },
         {
           "path": "src/EMS/EmsTelegram.h",
-          "sha256": "fcc297ac81c66b1da11f9663e0c0a3f5266937ff92f7ba1b04c9ec47da89d3e8"
+          "sha256": "e065da3e859fbd3c2e92fe0f0b1722788c8e91f69d28e562314d5ffd2ff59ff3"
         },
         {
           "path": "test/test_native/test_classic_boiler_test_encoder.cpp",
@@ -659,6 +659,10 @@
         {
           "path": "docs/modern-thermostat/EMS-DISCOVERY-POLICY.md",
           "sha256": "702c5696dbea3e6848ed624180f30b0665304ad9850ad5371dfc494966ece2da"
+        },
+        {
+          "path": "src/EMS/EmsTelegram.cpp",
+          "sha256": "27ad8c15d1e8bd12d4be74bdb105d75dea2bbed4f47393c5c3b1acab4bad64f5"
         }
       ],
       "remaining_acceptance": "Alpha21/HA27 live: 69 definities, laatste nabije HA/REST-vergelijking26waarden (24reported/2inferred), eerdereboot27. Oorspronkelijke bronleeftijd, waarde, eenheid en kwaliteit vergeleken. Ontbrekende/ongeldige/verlopen waarden blijven onbekend,22onbetrouwbare diagnostiekvelden standaarduit. Langere observatie en fysieke bruikbaarheid/kalibratie apart; TX geblokkeerd."

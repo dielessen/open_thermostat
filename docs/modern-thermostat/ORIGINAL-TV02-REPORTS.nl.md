@@ -1,8 +1,14 @@
 # Oorspronkelijke TV02-kraanberichten
 
-Status: HA-ontvangstkern, native lifecycle en tweetalige diagnoseweergave geleverd in HA dev29. De Zigbee2MQTT-producent/bronpins zijn nog niet geïnstalleerd of gekwalificeerd. B05 blijft open
-voor concrete bronpins/installatie, koppeling aan een doelopdracht, eigenaarschap, readiness en
-fysieke proef zonder ketel. Deze producent verleent geen regelbevoegdheid.
+Status: HA-ontvangstkern en EN/NL-diagnose geleverd in dev29, privé pin-loader
+geleverd in dev30. Producent en één expliciet privémanifest zijn geplaatst en
+teruggelezen. De live dev30-ontvanger wijst de native graph-kamer nog af omdat
+haar gekozen kraan in de centrale installatie staat en de oude kameractuatorlijst
+leeg is. Een broncorrectie leest die werkelijke configuratie-eigenaar met dezelfde
+expliciete identiteit-/levensduurguards; deze correctie is nog niet geïnstalleerd.
+Natuurlijke oorspronkelijke rapportontvangst blijft onbevestigd. B05 blijft open
+voor echte ontvangst, causale doelbinding, eigenaarschap, readiness en fysieke
+proef zonder ketel. Deze producent verleent geen regelbevoegdheid.
 
 De zelfstandige Z2M-extension `integrations/zigbee2mqtt/original-tv02.cjs` luistert
 naar oorspronkelijke `deviceMessage`-events op `manuSpecificTuya`. Zij gebruikt

@@ -9,10 +9,10 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
-| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.23`, normale HTTPS-catalogusupdate en exacte ELF/web/nacontrole geslaagd |
-| Geïnstalleerde HA-integratie | `0.4.0.dev29`, via bestaande HA-agent met verse back-up/nacontrole |
-| Geleverde bron | E32 en HA `5f31dd780a5b98d81048f9d592f8209e657d7305`; alle 80 HA-componentbestanden gelijk aan het E32-bronpakket |
-| Nieuwe softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; publicatiebeheer/capaciteitscorrectie `aaeba7d` |
+| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.24`, normale HTTPS-catalogusupdate en exacte ELF/web/nacontrole geslaagd |
+| Geïnstalleerde HA-integratie | `0.4.0.dev30`, via bestaande HA-agent met verse back-up/nacontrole |
+| Geleverde bron | E32 en HA `a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`; alle 82 HA-componentbestanden gelijk aan het E32-bronpakket en de installatie |
+| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; gezamenlijke passieve alpha24/dev30-release geleverd |
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
@@ -20,7 +20,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
 met 213 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
-ELF/webidentiteit. Alle 80 HA-componentbestanden zijn ook met het E32-pakket
+ELF/webidentiteit. Alle 82 HA-componentbestanden zijn ook met het E32-pakket
 vergeleken. Historische checkpoints en afgewezen kandidaten blijven bewaard;
 geen bestaande tag of download is vervangen.
 
@@ -42,10 +42,12 @@ verplichte fysieke of langere-termijnproeven ontbreken.
 - [x] Echte kamernamen op het E32-dashboard en expliciete statische webroutes.
 - [x] Meetstatus, toelatings-/geheugendiagnose en passieve Classic-decoderbasis.
 - [x] Alpha17/dev23 gepubliceerd, geïnstalleerd en onafhankelijk gecontroleerd met behouden instellingen/programmas.
+- [x] Gezamenlijke passieve alpha24/dev30-bundel gepubliceerd en normaal geïnstalleerd; 82 HA-bestanden, nieuwe E32-boot, ELF/web/bron en behoud onafhankelijk gecontroleerd.
 
 Bewijs: `out/combined-release-evidence-20261023/FINAL-REVIEW.json` en deelreviews.
-De 1694 HA-tests horen bij die geleverde bron, niet bij een nog niet gebouwde
-nieuwe eindrelease. Seriële stilte na de routereparatie is niet opnieuw fysiek
+De 1694 HA-tests horen bij die historische bron. De actuele alpha24/dev30-
+levering heeft 2003 HA-checks zonder fout/skip en een afzonderlijk geïnstalleerde
+bron-/runtimecontrole in `out/combined-alpha24-dev30-20261024/`. Seriële stilte na de routereparatie is niet opnieuw fysiek
 opgenomen; correcte live HTTP-/assetroutering wel.
 
 ## 3. Alles wat voorbereid is, meenemen in de bèta
@@ -1433,3 +1435,93 @@ assets worden bij de kandidaat vastgelegd in
 `out/combined-alpha24-dev30-20261024/`. De bestaande HA frontendidentiteit dev28/v28
 blijft gelijk omdat de frontendbytes gelijk blijven. Geen SOURCE-/sensor-/
 kraanmodus-/programmawijziging of fysieke uitgangsvrijgave.
+
+
+## Gezamenlijke passieve release alpha24/dev30 gepubliceerd (24 oktober 2026)
+
+Beide nieuwe, onvervangende tags wijzen naar
+`a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`. Main-CI `40067038967` en de
+publicatieruns E32 `40067564931` en HA `40067565237` zijn PASS. De gedownloade
+publieke app, updatermanifest en HA-ZIP zijn bytegelijk aan de onafhankelijk
+beoordeelde kandidaat. 1740 gezamenlijke pakketchecks, 1108 aanvullende
+E32-verifierchecks, 682 exacte Git-bronbestanden, 213 voorbereide bronverwijzingen
+en 2003 HA-checks zonder fout/skip. Dit is geen actieve ketelbèta-vrijgave.
+
+De werkelijke Z2M-frontend heeft `config.advanced.enable_external_js: true`
+gemeld. Een tijdelijke exacte retained-metadataread via de bestaande HA-MQTT-
+verbinding toont nul extensions en geen naam-/klasseconflict; de subscription is
+weer verwijderd. Daarmee is de eerdere 50KB-frontendcollectorgrens voor de
+extensielijst omzeild via een bestaande readroute, zonder nieuwe brokerclient of
+apparaatopdracht. De privé gepinde producent verschilt uitsluitend in één
+`DEVICE_BINDINGS`-array; codehash en syntax zijn afzonderlijk gecontroleerd.
+Geen producentontvangst, readiness, acquisitie- of actuatorvrijgave geclaimd.
+
+De normale gezamenlijke installatie is via de bestaande HA-specialist uitgevoerd:
+één Core-herstart en één normale app-only OTA, nieuwe OTA-boot bevestigd, alle
+82 HA-bestanden en running-ELF/web/source exact. Programma/koppelingen/journal,
+105 registryrecords, model, syslog en alle E32-instellingen behouden; geen staged
+SOURCE. Alle uitgangen false. Na de boot: 69 definities, 24 beschikbare velden
+met gelijke waarde/eenheid/kwaliteit, 22 diagnostische velden uit en 23 onbekend/
+onbeschikbaar. Dit moment is geen acquisitie-/fysieke kwalificatie. Bewijs:
+`out/combined-alpha24-dev30-20261024/` en `out/z2m-receive-guard-20261024/`.
+
+
+De bestaande +24h-observatietaak is door de native root-eigenaarsroute opnieuw
+gelezen en uitsluitend in de verwachte installatieversies/bron bijgewerkt naar
+alpha24/dev30/a1fe06b. Tijd 24 oktober 22:58:01.424 UTC, eigenaar, model, tools,
+timeout, delivery, enabled en deleteAfterRun exact behouden; geen nieuwe job of
+run. De HA-specialist had hiervoor geen callerscope. Native readback en volledige
+veldvergelijking: `out/combined-alpha24-dev30-20261024/MONITOR-REVIEW.json`.
+
+
+## B05: privé pins en producent geplaatst, HA-bronbinding nog afgewezen
+
+- [x] Privémanifest op de HA-configroot: één expliciete pin, regulier 0600-bestand,
+  hash gelijk aan het eerder beoordeelde privéconcept; geen SOURCE-/sensorwijziging.
+- [x] Eén zelfstandige ontvangende TV02-extension via normale native beheerroute
+  opgeslagen en geladen. Exacte teruggelezen codehash gelijk aan de onafhankelijke
+  privé voorbereiding; native startlog bevestigd. Geen apparaatopdracht.
+- [ ] Oorspronkelijke HA-ontvangst: de ontvanger weigert de bron met de statische
+  melding `source binding unavailable`. Natuurlijke rapportontvangst onbevestigd.
+
+De mutatieturn bereikte zijn providertijdlimiet. De afzonderlijke read-only audit
+stelde de actuele uitkomst vast zonder writes te herhalen: één manifestwrite,
+één integratie-entryreload en één extension-save; geen extra Core-herstart,
+remove of rollback. Project/accepted SOURCE/kamer-/TRV-instellingen behouden,
+uitgangen false. Actuele metadata-readsubscription expliciet opgezegd; alle
+bekende eigen sessies gesloten. Bij een oudere timeoutcollector ontbrak een
+expliciete unsubscribe-ACK; diens socketafsluiting is wel bewezen. Geen claim
+dat alle servercallbacks afzonderlijk zijn geïnventariseerd.
+
+Native entity/device zijn ingeschakeld, entry/kamer/ref komen overeen, discovery
+is aanwezig en native `model_id` is `TV02-Zigbee`. Deze guards zijn dus geen
+bewezen oorzaak. De exacte eerste weigering is vervolgens lokaal gereproduceerd met een privé
+native snapshot: een graph-kamer heeft geen oude kameractuators. Haar gekozen
+output staat onder de centrale installatie-eigenaar. Geen live Python-evaluator
+of versoepelde identiteit-/model-/prefixguard toegevoegd. B05 en alle fysieke kwalificaties
+blijven open. Bewijs: `out/z2m-receive-guard-20261024/`.
+
+
+## B05: bronfix voor de werkelijke native graph-eigenaar, nog niet geleverd
+
+De oude constructor op de echte privésnapshot geeft `TV02 source is not a selected
+actuator`: `RoomBinding.actuators` is in deze native graph-inrichting bewust leeg.
+Entry/kamer/model/discovery/native identiteit slagen. De aangepaste ontvanger
+leest uitsluitend voor graph-kamers de unieke centrale configuratie-eigenaar,
+valideert het bestaande begrensde heating-draftschema en matcht de expliciete
+privéreferentie met de gekozen TRV-output van dezelfde kamer. Er wordt geen
+oude actuatorlijst gevuld, SOURCE gewijzigd, bron vervangen of profiel toegekend.
+Bij elk status-/ontvangstmoment wordt dezelfde eigenaar opnieuw gecontroleerd;
+verwijdering/ongeldigheid trekt de bron blijvend in. Geen fallback naar legacy.
+
+De oorspronkelijke code faalt op de nieuwe regressie; de nieuwe code bindt in de
+privé replay precies één bron. Acht nieuwe gevallen plus bestaande lifecycle,
+manifest, metadata en kamereditor: 143 PASS, één bestaande localhost-MQTT-check
+lokaal overgeslagen wegens afwezigheid van zijn opt-in fixture. De volledige CI
+verzorgt die fixture en bewaart zijn eigen resultaat. Privacyfixture blijft buiten
+Git; alleen hashes/guarduitkomsten staan in `out/tv02-binding-replay-20261024/`.
+
+Deze correctie gaat mee in de volgende grotere bundel. Er is geen tweede kleine
+release, stille livepatch of vervanging van alpha24/dev30 gedaan. De geïnstalleerde
+bron blijft `a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`; daadwerkelijke HA-
+ontvangstacceptatie blijft open tot de nieuwe bron normaal is geleverd.

@@ -207,6 +207,26 @@ class Tv02DiagnosticSource:
     endpoint: int
 
 
+def _selected_actuator_references(runtime, room):
+    """Read the room's actual configuration owner; never create control bindings."""
+    from .v1_model import EntityReference, ROOM_GRAPH_DRAFT
+    if room.binding_mode != ROOM_GRAPH_DRAFT:
+        return room.actuators
+    from .product import central_entry
+    from .v1_heating_draft import parse_heating_draft
+    try:
+        central = central_entry(runtime.entry)
+        if central is None:
+            raise ValueError("missing graph owner")
+        graph = parse_heating_draft(central.data["draft"], known_room_ids=set(runtime.rooms))
+        return tuple(EntityReference.from_dict(row["output"])
+            for row in graph.storage_document()["actuators"]
+            if row["room_id"] == room.room_id and row["profile"] == "trv_room_setpoint")
+    except (ValueError, TypeError, KeyError):
+        # A graph room never falls back to its deliberately empty legacy lane.
+        raise ValueError("TV02 native graph source unavailable") from None
+
+
 class OriginalTv02Reports:
     """Selected native TV02 ownership around the pure bounded receiver.
 
@@ -239,7 +259,7 @@ class OriginalTv02Reports:
                     or type(source.room_id) is not str):
                 raise ValueError("invalid TV02 diagnostic source")
             room = runtime.rooms.get(source.room_id)
-            if room is None or source.reference not in room.actuators:
+            if room is None or source.reference not in _selected_actuator_references(runtime, room):
                 raise ValueError("TV02 source is not a selected actuator")
             try:
                 selected = selected_device(runtime.hass, source.reference.as_dict())
@@ -271,7 +291,7 @@ class OriginalTv02Reports:
         room = self.runtime.rooms.get(room_id)
         selected, identity, core = self.bindings[key]
         try:
-            current = (room is not None and reference in room.actuators
+            current = (room is not None and reference in _selected_actuator_references(self.runtime, room)
                 and selected_device(self.runtime.hass, reference.as_dict()) == selected
                 and native_binding_identity(self.runtime.hass, selected.entity_id) == identity)
         except (MetadataUnavailable, ValueError):

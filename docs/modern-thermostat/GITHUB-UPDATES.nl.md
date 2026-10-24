@@ -2,17 +2,18 @@
 
 ## Actuele installatie — 24 oktober 2026
 
-De gecontroleerde installatie draait E32 `v0.1.0-e32v2-alpha.23` en HA
-`0.4.0.dev29`, beide uit broncommit
-`5f31dd780a5b98d81048f9d592f8209e657d7305`. Zie het
-[werkbord](WORKBOARD.nl.md) voor de actuele acceptatiechecks. Latere bronwijzigingen
-zijn nog niet geïnstalleerd; de eerste actieve bèta is niet vrijgegeven.
+De gecontroleerde installatie draait E32 `v0.1.0-e32v2-alpha.24` en HA
+`0.4.0.dev30`, beide uit broncommit
+`a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`. Zie het
+[werkbord](WORKBOARD.nl.md) voor de actuele acceptatiechecks. De gezamenlijke
+passieve release is via de normale routes geïnstalleerd en
+onafhankelijk gecontroleerd; de eerste actieve bèta is niet vrijgegeven.
 
 De normale E32-HTTPS-updater werkt. HA-updates verlopen via de bestaande
 HA-agent, met back-up en nacontrole. Nieuwe releases krijgen nieuwe versies;
-bestaande tags/downloads blijven behouden. Main-CI-pakketten met dezelfde
-alpha23/dev29-versienummers zijn bouwbewijs en mogen de bestaande releases
-niet vervangen.
+bestaande tags/downloads blijven behouden. Main-CI-pakketten die gepubliceerde
+versienummers hergebruiken zijn
+bouwbewijs en mogen bestaande releases niet vervangen.
 
 De ketel is aangesloten voor passieve ontvangst. Tado blijft actief; E32-TX,
 forwarder en fysieke actuatoruitvoer blijven geblokkeerd. Een software-update

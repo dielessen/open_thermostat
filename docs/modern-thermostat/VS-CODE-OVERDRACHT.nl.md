@@ -1,26 +1,28 @@
 # OpenThermostat — actuele overdracht
 
-Bijgewerkt 24 oktober 2026 na geleverde alpha23/dev29 en de publicatiemetadatareparatie.
+Bijgewerkt 24 oktober 2026 na geleverde alpha24/dev30 en onafhankelijke installatiecontrole.
 
 1. Lees [WORKBOARD](WORKBOARD.nl.md): de enige actuele afvinklijst met alle 31
    eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
 2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
 3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
-   200 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   213 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
    begrensde code die nog niet als complete productfunctie is aangesloten.
 
 ## Actuele bron en installatie
 
-**Geïnstalleerd en onafhankelijk gecontroleerd:** E32 alpha23 + HA dev29, beide
-bron `5f31dd780a5b98d81048f9d592f8209e657d7305`. Publicatiebeheer/capaciteitscorrectie
-staat aanvullend op `aaeba7d`; dit verandert de geïnstalleerde firmwarebytes niet.
-Bewijs: `out/next-release-20261024/LIVE-INDEPENDENT-REVIEW.json`.
+**Geïnstalleerd en onafhankelijk gecontroleerd:** E32 alpha24 + HA dev30, beide
+bron `a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`. Beide publicaties en normale
+updates zijn geslaagd. Bewijs:
+`out/combined-alpha24-dev30-20261024/INDEPENDENT-INSTALL-REVIEW.json`.
 
-De gezamenlijke batch levert systeemlog/optionele syslog, incrementeel dashboard
-en oorspronkelijke TV02-ontvangst/lifecycle plus NL/EN-weergave. De module draait
-na één normale app-only HTTPS-update; HA is via de bestaande specialist met een
-verse scoped back-up en één Core-herstart geplaatst. Alle 80 HA-bestanden en de
-running-ELF/web/source-hashes komen overeen met de openbare onveranderlijke tag.
+De gezamenlijke batch behoudt logging/syslog en incrementeel dashboard en levert
+de deadline-/encoder-/logcorrecties, hydraulische controllerkoppeling, read-only
+HA-supervisordiagnose, begrensde kraandoellevensduur en privé TV02-pin-loader.
+Eén app-only HTTPS-update, verse scoped back-up en één HA Core-herstart. Alle
+82 HA-bestanden en running-ELF/web/source-hashes komen overeen met de openbare
+onveranderlijke tags. Frontendbytes en dev28/v28-kaartidentiteit blijven gelijk.
+Bronkwalificatie en fysieke uitvoer blijven open.
 
 Systeemlog is echt uitgelezen: 32 RAM-regels, beschermde GET-routes HTTP 200, niveaus/
 filter/pauze/download en native Arduino/IDF-capture. Syslog staat uit zonder
@@ -28,7 +30,7 @@ bestemming. Collector-/lange heap-/stackproeven blijven open: zie LOGGING.nl.md.
 
 De normale updater kon de 33.010-byte release-API niet in zijn buffer van 32.768 bytes
 opnemen. Alleen de dubbele samenvatting is verwijderd; alle volledige originele
-notities/tags/assets behouden. Actuele API: 30.621 bytes. Nieuwe publicaties krijgen
+notities/tags/assets behouden. Bij die reparatie was het gecontroleerde antwoord 30.621 bytes. Nieuwe publicaties krijgen
 begrensde versienotities plus onveranderlijke bronlink en kop-/UTF-8-controle.
 Zes regressies plus volledige CI van de publicatiecorrectie groen. Een gewone
 releasecontrole op alpha23 zelf is ook PASS (alpha23/alpha21, checked, geen fout).
@@ -41,8 +43,8 @@ zonder staged restant. Week/bindings/credentials/105 registryrecords en HRC22H-
 model behouden. Dit is geen permanente revisiefence: lees voor een volgende
 mutatie steeds de verse geaccepteerde staat en reconcilieer normale UTC-horizon.
 
-Laatste meetmoment: 27 native ketelvelden beschikbaar, 25 reported + 2 inferred,
-nul vergelijkingsverschillen; 20 unsupported/invalid/stale unavailable en 22
+Laatste post-update meetmoment: 24 native ketelvelden beschikbaar met gelijke
+waarde/eenheid/kwaliteit, nul vergelijkingsverschillen; 23 onbekend/onbeschikbaar en 22
 onbetrouwbare velden uitgeschakeld. Beschikbaarheid blijft momentafhankelijk en
 modelkeuze begrenst de ontvangst nooit.
 

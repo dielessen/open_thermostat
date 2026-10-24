@@ -369,3 +369,87 @@ async def test_normal_integration_startup_passes_only_reviewed_diagnostic_source
     finally:
         if parent.entry_id in hass.data.get('open_thermostat', {}):
             assert await integration.async_unload_entry(hass, parent)
+
+
+async def graph_system(hass, devices):
+    """Native product rooms own outputs in the installation, not RoomBinding."""
+    from custom_components.open_thermostat.product import PRODUCT_CONFIG, INSTALLATION, default_document
+    from custom_components.open_thermostat.v1_model import ROOM_GRAPH_DRAFT
+    runtime, old, source, now = await system(hass, devices)
+    room = replace(old, actuators=(), binding_mode=ROOM_GRAPH_DRAFT)
+    runtime.rooms[room.room_id] = room
+    document = default_document()
+    document['groups'] = [dict(group_id='radiators', name='Radiators', emitter='radiator',
+        supply_limits=dict(minimum_centi_c=2000, maximum_centi_c=4500), pump=None,
+        pump_start_delay_s=0, postrun_s=0, mixing=None)]
+    document['actuators'] = [dict(actuator_id='selected', room_id=room.room_id,
+        group_id='radiators', profile='trv_room_setpoint', output=source.reference.as_dict(), settings={})]
+    hass.config_entries.async_update_entry(runtime.entry,
+        data={**runtime.entry.data, PRODUCT_CONFIG:1, INSTALLATION:dict(draft=document)})
+    return runtime,room,source,now,document
+
+
+@pytest.mark.asyncio
+async def test_native_product_graph_selected_output_with_empty_legacy_actuators(hass,devices):
+    from custom_components.open_thermostat.product import configuration_snapshot
+    runtime,room,source,_,_ = await graph_system(hass,devices)
+    before=configuration_snapshot(runtime.entry)
+    try:
+        assert room.actuators==()
+        connection=NativeShadowConnection(runtime,tv02_sources=(source,))
+        assert len(connection.tv02_reports.bindings)==1
+        runtime.original_tv02_reports=connection.tv02_reports
+        assert receive(connection.tv02_reports)
+        status=runtime.actuator_report_status(room.room_id)[source.reference.entity_id]
+        assert status['fields']=={'target_centi_c':2100}
+        assert not status['control_qualified'] and not status['valve_ready'] and not status['command_correlated']
+        assert runtime.measurement_status(room.room_id)['status']=='profile_missing'
+        assert not runtime._profiles and runtime._bench_owner is None
+        assert configuration_snapshot(runtime.entry)==before
+    finally:
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('fault',['missing_owner','malformed_owner','malformed_draft','duplicate_output','other_room','removed_output'])
+async def test_graph_source_rejects_missing_malformed_or_other_selection_without_legacy_fallback(hass,devices,fault):
+    from copy import deepcopy
+    from custom_components.open_thermostat.product import INSTALLATION
+    runtime,room,source,_,document=await graph_system(hass,devices)
+    try:
+        # Even a stale legacy tuple cannot authorize a graph-room report source.
+        runtime.rooms[room.room_id]=replace(room,actuators=(source.reference,))
+        data=deepcopy(dict(runtime.entry.data))
+        if fault=='missing_owner':data.pop(INSTALLATION)
+        elif fault=='malformed_owner':data[INSTALLATION]=[]
+        elif fault=='malformed_draft':data[INSTALLATION]['draft']['extra']=True
+        elif fault=='duplicate_output':
+            duplicate=deepcopy(data[INSTALLATION]['draft']['actuators'][0]);duplicate['actuator_id']='second'
+            data[INSTALLATION]['draft']['actuators'].append(duplicate)
+        elif fault=='other_room':
+            runtime.rooms['deadbeef']=replace(room,room_id='deadbeef')
+            data[INSTALLATION]['draft']['actuators'][0]['room_id']='deadbeef'
+        elif fault=='removed_output':data[INSTALLATION]['draft']['actuators']=[]
+        hass.config_entries.async_update_entry(runtime.entry,data=data)
+        with pytest.raises(ValueError):OriginalTv02Reports(runtime,(source,))
+    finally:
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_graph_output_removal_retires_existing_source_and_readdition_cannot_revive_it(hass,devices):
+    from copy import deepcopy
+    from custom_components.open_thermostat.product import INSTALLATION
+    runtime,room,source,_,_=await graph_system(hass,devices)
+    try:
+        reports=OriginalTv02Reports(runtime,(source,));assert receive(reports)
+        original=deepcopy(dict(runtime.entry.data));removed=deepcopy(original)
+        removed[INSTALLATION]['draft']['actuators']=[]
+        hass.config_entries.async_update_entry(runtime.entry,data=removed)
+        assert reports.recheck()
+        assert reports.status(room.room_id)[source.reference.entity_id]['status']=='binding_changed'
+        hass.config_entries.async_update_entry(runtime.entry,data=original)
+        assert not receive(reports,packet(sequence=2,device_ieee='0x0000000000000002'))
+        assert reports.status(room.room_id)[source.reference.entity_id]['fields']=={}
+    finally:
+        await runtime.async_stop()

@@ -1,8 +1,20 @@
 # Privé installatiepins voor oorspronkelijke TV02-ontvangst
 
-Status: bronvoorbereiding na HA dev29, nog niet geïnstalleerd. Onderdeel van
-WORKBOARD B05. Dit koppelt uitsluitend ontvangstdiagnose; het kwalificeert geen
+Status: de privé pin-loader is geleverd en geïnstalleerd in HA dev30. Concrete
+privépins en de producent hebben afzonderlijke installatie-/ontvangstacceptatie
+op WORKBOARD B05. Dit koppelt uitsluitend ontvangstdiagnose; het kwalificeert geen
 meting, doelopdracht, klepstand, flow of actuatoruitvoer.
+
+## Actuele installatieacceptatie
+
+Op 24 oktober zijn één privépin en de ontvangende producent geplaatst. De pin-
+en codehash zijn onafhankelijk teruggelezen; de producent heeft een native
+startlog. De HA-ontvanger wijst de bron nog af met `source binding unavailable`.
+Oorspronkelijke ontvangst is daarom niet bevestigd. Entry-/kamer-/ref-/model-
+guards die native konden worden gelezen slagen. Een privé replay wees de oude
+kameractuatorlijst aan: de gekozen TRV staat in de centrale native graph-owner.
+De broncorrectie daarvoor is voorbereid, maar nog niet normaal geleverd. Er is geen meet-/kraan-/flowkwalificatie of
+fysieke opdracht uitgevoerd. Actueel bewijs staat op WORKBOARD B05.
 
 ## Bestand en eigenaarschap
 
@@ -74,10 +86,11 @@ Bewijs: `out/diagnostic-source-manifest-20261024/`.
 
 ## Draaiboek voor de gezamenlijke update
 
-Voer dit via de bestaande HA-agent uit, samen met B11–B13. De huidige
-main-CI-pakketten gebruiken nog alpha23/dev29 en zijn geen nieuwe installeerbare
-release. Een privéconcept in een agent-artifactmap is evenmin een geïnstalleerd
-manifest.
+Voer dit via de bestaande HA-agent uit, samen met B11–B13. De gepubliceerde
+alpha24/dev30-release is exact gecontroleerd en normaal
+geïnstalleerd. Main-CI-pakketten die een bestaand versienummer hergebruiken zijn
+geen vervangende release. Een privéconcept in een agent-artifactmap is evenmin
+een geïnstalleerd manifest.
 
 1. Leg één gezamenlijke broncommit vast met nieuwe, ongebruikte E32- en
    HA-versies. Beoordeel eerst de HA/E32-tussenversiecompatibiliteit en kies

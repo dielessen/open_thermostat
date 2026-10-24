@@ -3,9 +3,9 @@
   "as_of": "2026-10-24",
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
   "release_state": "NOT_READY",
-  "installed_source_commit": "5f31dd780a5b98d81048f9d592f8209e657d7305",
-  "installed_firmware": "v0.1.0-e32v2-alpha.23",
-  "installed_ha": "0.4.0.dev29",
+  "installed_source_commit": "a1fe06be5e709ff4c6477b7b9be6c8dbd7573987",
+  "installed_firmware": "v0.1.0-e32v2-alpha.24",
+  "installed_ha": "0.4.0.dev30",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
   "items": [
     {
@@ -743,11 +743,11 @@
         },
         {
           "path": "docs/modern-thermostat/ORIGINAL-TV02-REPORTS.nl.md",
-          "sha256": "6404f346e841943b664474a5c752e517f891e91ffada89393ccd07e0d02e9f7f"
+          "sha256": "29a0951ca9b8db9441a8eec293efb00f2d188f0d86b55c6b04a5ef4ea7a2f816"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/original_tv02.py",
-          "sha256": "575e42d345568d4a1811c6ca4781f6c5f3955d838735d481a33bd340b789e80b"
+          "sha256": "2d3776364cda88a5166fb8b70aaaad05f487413c8caed2c424c43d00a1f71078"
         },
         {
           "path": "ha/tests_native/test_original_tv02.py",
@@ -755,7 +755,7 @@
         },
         {
           "path": "ha/tests_native/test_original_tv02_lifecycle.py",
-          "sha256": "6f03f789f30c21b1e52dddce4d2972c3c0fcc65e93d27980ea2b3ec16fe20ce0"
+          "sha256": "84641e2a84e70f5b51bbeede0ff6058eba492b617db0974f500e309905b42c5b"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_editor.py",
@@ -787,7 +787,7 @@
         },
         {
           "path": "docs/modern-thermostat/ORIGINAL-TV02-DEPLOYMENT.nl.md",
-          "sha256": "86ce1df1a0448964ef4fa505b542e90262408b2a67cbad270e799ecaddcb98f9"
+          "sha256": "f8c3cf2ddce678af35c41b04d5df30801a3c869b6885d99bb325871ca5ab4aea"
         }
       ],
       "remaining_acceptance": "TV02-modus/native identiteit/doelcapaciteit en oorspronkelijke HA-ontvangst met MQTT/registry-lifecycle en NL/EN-weergave geleverd in HA dev29. Standaard bronpins leeg; zelfstandige Zigbee-producent nog niet geïnstalleerd/gekoppeld. Concrete bronpins en echte oorspronkelijke ontvangst, causale doel-echo, exclusief eigenaarschap, profiel/readiness/fallback en fysieke proef zonder ketel blijven open. Ontvangen doel/bedrijfsmodus verleent geen opdrachtbevestiging, klepstand of aansturingsvrijgave."

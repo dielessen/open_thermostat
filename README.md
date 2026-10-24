@@ -13,15 +13,20 @@ en welke nog op de roadmap staan.
 [Mogelijkheden](#alle-mogelijkheden) · [Roadmap](#wat-we-nog-gaan-bouwen) ·
 [Screenshots](#screenshots) · [Documentatie](#documentatie)
 
-**Geïnstalleerd en gecontroleerd: E32 alpha23 + Home Assistant dev29.** Kamerinrichting,
+**Nieuwe gezamenlijke passieve release:** [E32 alpha24](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.24) + [Home Assistant dev30](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev30). Beide publicatieworkflows en de onafhankelijke pakketcontrole zijn geslaagd.
+
+**Geïnstalleerd en gecontroleerd: E32 alpha24 + Home Assistant dev30.** Kamerinrichting,
 weekprogramma’s, interfaces en passief uitlezen zijn beschikbaar. De regelkern
 is grotendeels voorbereid, maar actieve kamer- en ketelaansturing zijn nog niet
 vrijgegeven op de E32 V2. De huidige native inrichting ondersteunt **1–2 kamers,
 met één radiatorknop per kamer**; acht zones is het uitbreidingsdoel.
 
-**Nieuw in deze uitgave:** systeemlog en instelbare syslog, dashboardupdates met
-behoud van open onderdelen, en oorspronkelijke TV02-ontvangstdiagnose in de HA-
-kamereditor. De normale HTTPS-updater is op de echte E32 gebruikt en gecontroleerd.
+**Nieuw in deze uitgave:** strengere proefdeadlines en kraandoellevensduur,
+gekoppelde hydraulische supervisorkern, read-only HA-supervisordiagnose en een
+privé pin-loader voor oorspronkelijke TV02-ontvangst. Concrete bronkwalificatie
+en fysieke uitvoer blijven open. Systeemlog/syslog en dashboardupdates met behoud
+van open onderdelen blijven meegenomen. De normale HTTPS-update is op de echte
+E32 gebruikt en gecontroleerd.
 
 ## Alle mogelijkheden
 

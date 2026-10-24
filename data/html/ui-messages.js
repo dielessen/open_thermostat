@@ -1,5 +1,9 @@
 /* Fixed English UI messages mapped to Nederlands. User data and wire identifiers are excluded. */
 window.OT_UI_MESSAGES = {
+  "Connection loss and fallback": "Verbindingsuitval en terugval",
+  "An unreachable HA web page alone does not mean the heating connection has failed.": "Een onbereikbare HA-webpagina betekent op zichzelf niet dat de verwarmingsverbinding is uitgevallen.",
+  "Without HA heartbeats, control permission expires locally on the E32 after 15 seconds. Reconnecting does not restore old commands or qualified measurements. This software deadline is not proof that the boiler has physically stopped.": "Zonder HA-heartbeats verloopt de regeltoestemming na 15 seconden lokaal op de E32. Opnieuw verbinden herstelt geen oude opdrachten of gekwalificeerde metingen. Deze softwaredeadline bewijst niet dat de ketel fysiek is gestopt.",
+  "An unpowered E32 cannot send a stop command. Boiler timeout, local valve behaviour and minimum flow during pump overrun require installation-specific tests. This version keeps physical outputs disabled.": "Een E32 zonder voeding kan geen stopopdracht versturen. De keteltimeout, het lokale kraangedrag en de minimumdoorstroming tijdens pompnaloop moeten per installatie worden getest. In deze versie blijven fysieke uitgangen uitgeschakeld.",
   "Update diagnostics": "Updatediagnose",
   "The last saved checkpoint helps investigate an interrupted update. It does not confirm installation or rollback. Manual uploads are not recorded here.": "Het laatste opgeslagen controlepunt helpt bij onderzoek van een onderbroken update. Het bevestigt geen installatie of terugval. Handmatige uploads worden hier niet vastgelegd.",
   "Downloading firmware": "Firmware downloaden",

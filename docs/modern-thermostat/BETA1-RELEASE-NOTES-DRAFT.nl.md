@@ -76,7 +76,7 @@ gezamenlijke commit en de bijbehorende volledige checks.
   stop-/vorstbeveiligingsdatapoints met type en raw bytes. Ontbrekende velden
   worden niet uit de cache aangevuld. Dit is nog geen causale doel-echo,
   klepstand, readiness of fysieke kraanvrijgave. De native HA-ontvanger en
-  lifecycle zijn gebouwd/getest; concrete bronpins en producentinstallatie blijven open.
+  lifecycle zijn gebouwd/getest; één concrete bronpin en producent zijn inmiddels geïnstalleerd; eerdere geaccepteerde ontvangst blijkt uit stale-status. Verse ontvangst en causale/fysieke kwalificatie blijven open.
 
 - Een voorbereide Z2M-bronbrug bewaart originele WSDCGQ11LM-temperatuurberichten
   los van de state-cache. De native HA-ontvanger en kamerstatus tonen
@@ -143,3 +143,8 @@ geen succesvolle fysieke ketelproef.
   Nederlandse native vertalingen zijn aangevuld. Statische opgeslagen
   Lovelace-dashboardteksten blijven consequent Engels omdat ze geen taalcontext
   per gebruiker hebben. Eigen namen en technische identifiers blijven behouden.
+
+
+## Aanvullingen voor de volgende gezamenlijke bundel
+
+De gebundelde uitval-/naloop-/klokcorrecties, blijvende updatediagnose, TV02-ontvangstmetadata en actuele passieve ketelprofielobservatie staan in [NEXT-RELEASE](NEXT-RELEASE.nl.md). De actieve hardwarepoorten blijven open; er is geen nieuwe softwareversie geïnstalleerd of actieve bèta vrijgegeven.

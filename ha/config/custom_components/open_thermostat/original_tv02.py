@@ -176,7 +176,8 @@ class Tv02Reception:
 
     def status(self):
         result = dict(status=self.reason, received_age_ms=None, fields={},
-            command_correlated=False, valve_ready=False, control_qualified=False)
+            command_correlated=False, valve_ready=False, control_qualified=False,
+            last_reception=None)
         now = self._now()
         if now is None:
             result["status"] = "clock_invalid"
@@ -184,6 +185,12 @@ class Tv02Reception:
             report, source_age, received_at = self.record
             elapsed_ms = (now - received_at) * 1000
             age = source_age + math.ceil(elapsed_ms) if math.isfinite(elapsed_ms) else None
+            # Bounded receive metadata survives expiry, never old datapoint
+            # values, producer/device IDs or command/acquisition qualification.
+            result["last_reception"] = dict(scope="reception_only",
+                message_kind=report["message_kind"],
+                received_age_ms=age if age is not None and 0 <= age <= 2**53-1 else None,
+                properties=sorted(field["property"] for field in report["fields"]))
             if age is None or age >= self.maximum_age_ms:
                 result["status"] = "stale"
             else:

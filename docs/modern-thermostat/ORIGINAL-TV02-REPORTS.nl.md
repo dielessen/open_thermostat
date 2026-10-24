@@ -241,3 +241,20 @@ producent en profiel-C-serviceroute worden niet stilzwijgend hiervoor vrijgegeve
 Dit is brononderzoek: geïnstalleerde converterbytes, apparaatgedrag, exclusief
 eigenaarschap, klepstand en flow zijn hiermee niet geattesteerd. Geen opdracht of
 installatie uitgevoerd. Hashes/controlebewijs: `out/tv02-causal-source-review-20261024/`.
+
+
+## Volgende bundel: laatste ontvangst blijft verklaarbaar
+
+De afzonderlijke passieve controle van 24 oktober zag in de geïnstalleerde
+ontvanger `stale` in plaats van `waiting`. Volgens de exacte geïnstalleerde bron
+betekent dit dat een rapport eerder is geaccepteerd; berichtsoort en ouderdom
+zijn in die oude projectie niet meer zichtbaar. Er is geen nieuw rapport
+opgevraagd en geen causale of fysieke bevestiging afgeleid.
+
+De vervolgbron geeft daarom optioneel `last_reception`: alleen berichtsoort,
+ontvangstouderdom en maximaal vijf aanwezige propertynamen. Na verval blijven
+`fields={}` en de actuele `received_age_ms=null`; de oude waarden komen niet
+terug. Deze metadata is uitsluitend `reception_only`, bevat geen apparaat-/
+produceridentiteiten en wordt bij disconnect, bronwissel of klokfout ingetrokken.
+Niet veilig als JSON-getal uitdrukbare ouderdom blijft null. De metadata verleent
+geen opdracht-, klep-, meet- of flowkwalificatie. Dit is nog niet geïnstalleerd.

@@ -104,6 +104,42 @@ def test_no_merged_fields_no_control_promotion_and_private_identity():
     assert owner.status()['status']=='stale' and owner.status()['fields']=={}
 
 
+def test_expired_reception_retains_only_bounded_receive_metadata_not_values_or_identity():
+    owner, now = receiver()
+    assert owner.status()['last_reception'] is None
+    assert receive(owner)
+    now[0] = 110
+    status = owner.status()
+    assert status['last_reception'] == dict(scope='reception_only',
+        message_kind='commandDataReport', received_age_ms=10000,
+        properties=['target_centi_c'])
+    assert status['status'] == 'stale' and status['fields'] == {}
+    assert status['received_age_ms'] is None
+    metadata = json.dumps(status['last_reception'])
+    assert '2100' not in metadata and '0x0000' not in metadata and RUN not in metadata
+    assert not any(status[key] for key in ('command_correlated', 'valve_ready', 'control_qualified'))
+    owner.invalidate()
+    assert owner.status()['last_reception'] is None
+
+
+def test_receive_metadata_does_not_refresh_from_replay_or_reveal_an_unbounded_age():
+    owner, now = receiver()
+    assert receive(owner, packet(message_kind='commandDataResponse'))
+    now[0] = 105
+    assert not receive(owner, received_at=105)
+    status = owner.status()
+    assert status['last_reception']['received_age_ms'] == 5000
+    assert status['last_reception']['message_kind'] == 'commandDataResponse'
+    assert status['command_correlated'] is False
+    now[0] = 1e20
+    status = owner.status()
+    assert status['status'] == 'stale' and status['fields'] == {}
+    assert status['last_reception']['received_age_ms'] is None
+    now[0] = 104
+    status = owner.status()
+    assert status['status'] == 'clock_invalid' and status['last_reception'] is None
+
+
 def test_duplicate_does_not_refresh_deadline_and_reconnect_rejects_pending_and_replay():
     owner,now=receiver(); assert receive(owner)
     now[0]=105

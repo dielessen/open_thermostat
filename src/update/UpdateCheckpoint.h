@@ -41,8 +41,9 @@ inline bool validCheckpoint(const UpdateCheckpoint &c) {
         validTag(c.fromVersion) && validTag(c.targetVersion) && hex(c.fromSource,40);
 }
 
-// Storage uses one atomic native NVS blob. A failed write retains the previous
-// saved checkpoint; the caller exposes save_failed rather than claiming success.
+// Storage uses one bounded native NVS blob. On failure the RAM view retains
+// the last confirmed snapshot; actual flash outcome may be unknown. The caller
+// exposes save_failed rather than claiming the latest checkpoint was persisted.
 template<class Storage> class UpdateCheckpointJournal {
     Storage &storage_;
     UpdateCheckpoint saved_{};

@@ -18,7 +18,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 222 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 223 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
 met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
@@ -58,7 +58,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-222 bronverwijzingen met hashes, status en resterende acceptatie.
+223 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -1731,3 +1731,14 @@ Bewijs: `out/release-finalize-20261024/PACKAGE-REVIEW.json`, `FINAL-REVIEW.json`
 De bekende HTTPS-afwijking verloor het relevante RAM-bewijs na herstart. De bron bewaart nu maximaal één native NVS-controlepunt met fase, oorspronkelijke/doelversie, broncommit, bytes en HTTP-resultaat. De bestaande statusroute toont ook de actuele SDK-resetreden en boot-/app-partitieadressen. EN/NL-updatediagnose blijft open tijdens verversen. Geen extra taak, verbinding, herhaalpoging of wijziging aan de OTA-verificatie-/selectie-/bootregels. Opslagfalen is expliciet en geeft geen automatische herstelactie.
 
 611 native tests, waaronder zeven nieuwe opslag-/reconstructiegevallen, geslaagd. Browser- en E32-buildbewijs staan in `out/update-diagnostics-20261024/`. De browserproef houdt nu ook rekening met de korte afwezigheid van de DOM tijdens de bestaande echte herlaadactie; dit verandert geen productgedrag. Zie [grenzen en vervolg](UPDATE-DIAGNOSTICS.nl.md). Dit is voorbereid bronwerk voor de volgende grotere bundel: alpha26/dev34 blijven geïnstalleerd, de oude oorzaak en fysieke update-/powerlossacceptatie blijven open. M2-bron-/kraanwerk en B04–B14 zijn hiermee niet afgetekend.
+
+
+### Volgende gezamenlijke release: HA-uitval, lokale naloop en bronbewijs
+
+De bundel omvat nu de eerder voorbereide blijvende updatediagnose, lokaal doorlopende offline naloopbewaking, de klokregressiecorrectie, EN/NL-uitleg op Home en begrensde TV02-ontvangstmetadata. Zie [releaseoverdracht](NEXT-RELEASE.nl.md) en [uitvalaanpak](FAILSAFE.nl.md). De E32 gebruikt bestaande lokale leases; er is geen nieuwe watcher, verbinding of automatische overname door Tado. Alle fysieke uitgangen blijven geblokkeerd.
+
+Zes nieuwe native gevallen bewijzen stille HA met werkende broker, exacte15s-lease, uitblijven van oude-heartbeatherstel, offline naloop zonder publish/observer en geen herleving bij klokterugloop. De klokrepro faalt op de bestaande bron en slaagt na correctie. De cumulatieve native suite slaagt met617 gevallen;121 gerichte HA-checks slagen inclusief twee nieuwe metadata-/privacy-/replaygevallen. Browsertests controleren beide viewports en behoud van uitgeklapte uitvaluitleg; de volledige bronfreeze-CI hoort bij het bewijsdossier.
+
+De afzonderlijke passieve HA-agentcontrole zag69 EMS-velden:25 vers gerapporteerd,2 afgeleid,22 onbetrouwbaar,7 ongeldig en13 onbekend. Het HRC22H-profiel bewaart deze momentopname zonder de uitlezing te filteren of fysieke sensorkalibratie te claimen. De oorspronkelijke TV02-ontvanger is nu stale in plaats van waiting: er was eerdere geaccepteerde ontvangst, maar geen verse/causale/kraan-/flowkwalificatie. De gekozen kamertemperatuurbron blijft diagnostische RTCGQ11LM device_temperature zonder meetprofiel; geen bronwissel uitgevoerd.
+
+Alpha26/dev34, SOURCE rev4, kamers/programma’s en pins/producent zijn ongewijzigd. Geen firmware-/HA-installatie, herstart, geforceerd rapport of fysieke opdracht. De forwarderstand is in deze momentopname niet opnieuw als instelling uitgelezen; eerdere disabled-acceptatie blijft afzonderlijk. B04–B14 blijven open waar implementatie, onafhankelijke fysieke stop-/uitvalproef, eindfreeze of uitrol nog ontbreken; geen actieve bèta-PASS. Bewijs: `out/next-release-completion-20261024/`.

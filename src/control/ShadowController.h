@@ -157,10 +157,12 @@ public:
         ++epoch_; connected_=true; newChallenge(now); nextHello_=nextState_=now;
     }
     void disconnected() { connected_=false; invalidate(); }
+    // Internal read-only intent, not physical feedback or actuation authority.
+    const HydraulicSupervisor::Result& hydraulicIntent() const {return supervisor_.lastIntent();}
     void tick(uint64_t now,int64_t utc,bool clockValid) {
-        if(!connected_) return;
         if(now<lastNow_) { fault_=true; invalidate(); }
-        lastNow_=now;
+        lastNow_=std::max(lastNow_,now);
+        if(!connected_) {supervisor_.advanceWithoutOwner(now);return;}
         if(session_ && !admission_.alive(now) && (leaseWasAlive_ || now>=sessionStart_+leaseMs)) { invalidate(); newChallenge(now); }
         if(now>=challengeUntil_) newChallenge(now);
         if(session_ && now>=nextGrant_) {

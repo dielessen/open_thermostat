@@ -223,5 +223,50 @@
     "original_failed_one_hour_check_status": "FAILED/UNKNOWN; not repaired by retrospective history",
     "read_scope_independent_of_model": true,
     "control_qualified": false
+  },
+  "passive_followup": {
+    "date": "2026-10-24T10:14:45.721415+00:00",
+    "firmware_source": "e9ae314f2519ac4208f89d183b4a73a96131d8a4",
+    "firmware_version": "v0.1.0-e32v2-alpha.26",
+    "scope": "Single passive decoder REST snapshot; no new calibration or HA/REST parity claim. Profile remains descriptive and never filters reads.",
+    "fields_defined": 69,
+    "quality_counts": {
+      "explicit_unsupported": 0,
+      "fresh_valid_reported": 25,
+      "inferred": 2,
+      "invalid": 7,
+      "stale": 0,
+      "unknown": 13,
+      "unreliable": 22,
+      "valid_reported": 25
+    },
+    "candidate_fields": [
+      "reported_selected_flow_temperature",
+      "measured_flow_temperature",
+      "measured_return_temperature",
+      "reported_burner_modulation",
+      "reported_requested_power_limit",
+      "raw_boiler_state",
+      "selected_dhw_temperature",
+      "measured_dhw_temperature",
+      "dhw_enabled",
+      "display_code",
+      "service_number",
+      "configured_heating_temperature",
+      "reported_dhw_target",
+      "ionisation_current",
+      "hydraulic_switch_temperature",
+      "reported_heating_pump_modulation",
+      "dhw_hysteresis_on",
+      "dhw_charge_optimisation_enabled",
+      "dhw_flow_temperature_offset",
+      "dhw_circulation_enabled",
+      "configured_dhw_circulation_mode",
+      "dhw_disinfection_temperature",
+      "configured_dhw_charge_type",
+      "configured_dhw_comfort_mode",
+      "reported_dhw_type"
+    ],
+    "control_qualified": false
   }
 }

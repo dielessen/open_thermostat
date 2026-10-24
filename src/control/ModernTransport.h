@@ -220,6 +220,9 @@ public:
         auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
         if(!heating::networkConnected()||!client_.connected()) {
             if(wasConnected_) { ui_.clear(); withOwner([](auto& owner){owner.disconnected();}); wasConnected_=false; }
+            // Advance local withdrawal deadlines even if network/reconnect fails.
+            // Offline owner ticks never publish or consult remote observers.
+            withOwner([&](auto& owner){owner.tick(now,0,false);});
             if(!heating::networkConnected()||now<nextConnect_) return;
             nextConnect_=now+5000;
             const auto id=cfg_.clientId.empty()?cfg_.base:cfg_.clientId;

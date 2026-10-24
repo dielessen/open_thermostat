@@ -34,11 +34,14 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   // Drive the actual ten-second poll, not a replacement renderer or fixture-only function.
   await page.locator('.pd-room-detail summary').first().click();
   await page.locator('.pd-lower > details:not(.pd-build) > summary').click();
+  await page.locator('[data-dashboard-key="connection-fallback-help"] > summary').click();
+  assert.match(await page.locator('[data-dashboard-key="connection-fallback-help"]').innerText(),/15 seconden/);
   await page.evaluate(()=>{
    window.keptDashboard=document.querySelector('.product-dashboard');
    window.keptRoom=document.querySelector('.pd-room');
    window.keptDetails=keptRoom.querySelector('details');
    window.keptBuild=document.querySelector('.pd-build');
+   window.keptFallback=document.querySelector('[data-dashboard-key="connection-fallback-help"]');
    window.keptBoilerDetails=document.querySelector('.pd-lower > details:not(.pd-build)');
    window.keptBoiler=document.getElementById('boiler-home');
    keptDetails.querySelector('summary').focus();
@@ -49,7 +52,7 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   await page.clock.runFor(10000);
   await page.waitForFunction(()=>document.querySelector('.pd-facts').textContent.includes('48.7'));
   assert.equal(await page.evaluate(()=>keptDashboard===document.querySelector('.product-dashboard') &&
-   keptRoom===document.querySelector('.pd-room') && keptDetails.open && keptBuild.open && keptBoilerDetails.open &&
+   keptRoom===document.querySelector('.pd-room') && keptDetails.open && keptBuild.open && keptBoilerDetails.open && keptFallback.open &&
    keptBoiler===document.getElementById('boiler-home') && document.activeElement===keptDetails.querySelector('summary') && scrollY===keptScroll),true);
   status.control.state.zones.reverse();
   await page.evaluate(s=>updateRooms(s),status);

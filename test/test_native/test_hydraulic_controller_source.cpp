@@ -212,6 +212,43 @@ TEST(HydraulicControllerSource, FaultAcknowledgementCannotRecoverAReplacedOrDisc
     EXPECT_FALSE(cJSON_IsTrue(field(r.supervisor(r.update()),"heat_intent")));
 }
 
+TEST(HydraulicControllerSource, DisconnectedControllerAgesLocalPostrunWithoutNetworkOrObservers) {
+    HydraulicRig r;
+    unsigned safetyReads=0;const auto observer=r.f.seasonalSafety;
+    r.f.seasonalSafety=[&] {++safetyReads;return observer();};
+    r.source.profile.withdrawalPolicies[static_cast<size_t>(WithdrawalCause::adapterLost)]=WithdrawalPolicy::retainExistingPathAndPump;
+    r.heat();
+    const auto stoppedAt=r.f.now;
+    r.f.core->disconnected();
+    ASSERT_TRUE(r.f.core->hydraulicIntent().pumpIntent);
+    const auto output=r.f.output;
+    const auto readsBefore=safetyReads;
+    r.afterFeedback=[] {ADD_FAILURE()<<"offline hydraulic observer";};
+    r.f.now=stoppedAt+99;r.f.tick();
+    EXPECT_TRUE(r.f.core->hydraulicIntent().pumpIntent);
+    EXPECT_FALSE(r.f.core->hydraulicIntent().heatIntent);
+    r.f.now=stoppedAt+100;r.f.tick();
+    EXPECT_FALSE(r.f.core->hydraulicIntent().pumpIntent);
+    EXPECT_FALSE(r.f.core->hydraulicIntent().openPathIntent);
+    EXPECT_EQ(r.f.output,output); // No publish, handshake or synthetic feedback.
+    EXPECT_EQ(safetyReads,readsBefore);
+    EXPECT_FALSE(r.f.core->hydraulicIntent().physicalOutputsEnabled);
+}
+
+TEST(HydraulicControllerSource, SilentHaExpiresOnLocalLeaseEvenWhenBrokerAndObserversRemainAlive) {
+    HydraulicRig r;r.heat();
+    r.f.syncSession();r.f.heartbeat(2);const auto lastHeartbeat=r.f.now;
+    const auto ack=r.f.get("fw/heartbeat_result");ASSERT_EQ(stringField(ack.get(),"status"),"accepted");
+    r.f.now=lastHeartbeat+ShadowController::leaseMs-1;r.f.tick();
+    ASSERT_TRUE(r.f.core->hydraulicIntent().heatIntent);
+    r.f.now=lastHeartbeat+ShadowController::leaseMs;r.f.tick();
+    EXPECT_FALSE(r.f.core->hydraulicIntent().heatIntent);
+    // An old packet is not a reconnect or fresh admission.
+    r.f.heartbeat(2);++r.f.now;r.f.tick();
+    EXPECT_FALSE(r.f.core->hydraulicIntent().heatIntent);
+    EXPECT_FALSE(r.f.core->hydraulicIntent().physicalOutputsEnabled);
+}
+
 TEST(HydraulicSourceGate, PreviousBootCannotMatchEvenWhenAllLocalCountersAndTimesRepeat) {
     HydraulicFeedbackGate gate;HydraulicOwnerContext first{1,2,1,100,"boot1"};
     const auto snapshot=freshFacts(first,101);

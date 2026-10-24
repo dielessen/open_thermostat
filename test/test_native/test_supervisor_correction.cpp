@@ -124,6 +124,55 @@ TEST(SupervisorCorrection, TransportInvalidationWithdrawsAndLatchesWithoutDiscar
     EXPECT_FALSE(r.heatIntent);EXPECT_FALSE(r.pumpIntent);EXPECT_EQ(r.phase,HydraulicPhase::fault);
 }
 
+TEST(SupervisorCorrection, DisconnectedLocalTicksExpireReviewedPostrunWithoutExtendingIt) {
+    HydraulicSupervisor h(policy());auto i=input();heating(h,i);
+    h.invalidate();
+    auto r=h.advanceWithoutOwner(301);
+    EXPECT_FALSE(r.heatIntent);EXPECT_TRUE(r.pumpIntent);EXPECT_TRUE(r.openPathIntent);
+    for(uint64_t t:{400,600,799}) {
+        r=h.advanceWithoutOwner(t);
+        EXPECT_TRUE(r.pumpIntent);EXPECT_FALSE(r.heatIntent);
+    }
+    r=h.advanceWithoutOwner(800); // Last qualified state300 + original postrun500.
+    EXPECT_FALSE(r.pumpIntent);EXPECT_FALSE(r.openPathIntent);
+    EXPECT_FALSE(r.heatIntent);EXPECT_EQ(r.phase,HydraulicPhase::fault);
+    r=h.advanceWithoutOwner(900);
+    EXPECT_FALSE(r.pumpIntent);EXPECT_FALSE(r.openPathIntent);
+    EXPECT_FALSE(r.physicalOutputsEnabled);
+}
+
+TEST(SupervisorCorrection, OfflineTickCannotStartAnyPathPumpOrHeatBeforeFirstOwner) {
+    HydraulicSupervisor h(policy());
+    for(uint64_t t:{0,1,1000,10000}) {
+        const auto r=h.advanceWithoutOwner(t);
+        EXPECT_FALSE(r.heatIntent);EXPECT_FALSE(r.pumpIntent);EXPECT_FALSE(r.openPathIntent);
+        EXPECT_FALSE(r.physicalOutputsEnabled);
+    }
+}
+
+TEST(SupervisorCorrection, ClockReversalCannotResurrectExpiredWithdrawalEvenWithRetainingTimingPolicy) {
+    for(bool offline:{false,true}) {
+        auto p=policy();p.withdrawalPolicies[static_cast<size_t>(C::timingFault)]=P::retainExistingPathAndPump;
+        HydraulicSupervisor h(p);auto i=input();heating(h,i);
+        i.boilerFault=true;ASSERT_TRUE(h.step(301,i).pumpIntent);
+        EXPECT_FALSE(h.step(801,i).pumpIntent);
+        auto r=offline?h.advanceWithoutOwner(800):h.step(800,i);
+        EXPECT_FALSE(r.pumpIntent);EXPECT_FALSE(r.openPathIntent);EXPECT_FALSE(r.heatIntent);
+        r=offline?h.advanceWithoutOwner(801):h.step(801,i);
+        EXPECT_FALSE(r.pumpIntent);EXPECT_FALSE(r.openPathIntent);
+    }
+}
+
+TEST(SupervisorCorrection, ClockReversalCannotHideSimultaneousMoreRestrictiveLimitTrip) {
+    auto p=policy();p.withdrawalPolicies[static_cast<size_t>(C::timingFault)]=P::retainExistingPathAndPump;
+    p.withdrawalPolicies[static_cast<size_t>(C::limitTrip)]=P::withdrawHeatOnly;
+    HydraulicSupervisor h(p);auto i=input();heating(h,i);
+    i.boilerFault=true;ASSERT_TRUE(h.step(301,i).pumpIntent);
+    ASSERT_TRUE(h.step(500,i).pumpIntent);
+    i.limitTripped=true;const auto r=h.step(400,i);
+    EXPECT_FALSE(r.pumpIntent);EXPECT_FALSE(r.openPathIntent);EXPECT_FALSE(r.heatIntent);
+}
+
 TEST(SupervisorCorrection, SimultaneousReadinessAndFlowLossUsesMostRestrictiveReviewedPolicyImmediately) {
     auto p=policy();
     p.withdrawalPolicies[static_cast<size_t>(C::readinessLost)]=P::retainExistingPathAndPump;

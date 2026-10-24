@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "0a6555a32c3c34bbf90b74be62a112c213bbbde235e7438951adc843b2d41cc8"
+          "sha256": "a4333a328d839e517a406142fcbb0226c1df1514a6cec078164e5ec93b405bf4"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
@@ -149,7 +149,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "0a6555a32c3c34bbf90b74be62a112c213bbbde235e7438951adc843b2d41cc8"
+          "sha256": "a4333a328d839e517a406142fcbb0226c1df1514a6cec078164e5ec93b405bf4"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -559,7 +559,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "0a6555a32c3c34bbf90b74be62a112c213bbbde235e7438951adc843b2d41cc8"
+          "sha256": "a4333a328d839e517a406142fcbb0226c1df1514a6cec078164e5ec93b405bf4"
         },
         {
           "path": "platformio.ini",
@@ -910,7 +910,7 @@
         },
         {
           "path": "ha/tests_native/test_actuator_receiver.py",
-          "sha256": "b2a1bc93b05195dde634dbb72e121532ae5f0fccc3031bc8284c2425eacfe6c7"
+          "sha256": "a045f241c3849e8bca3293ac72e1d31a2282e97159b5016ab4730fe8ff0c3de4"
         },
         {
           "path": "ha/tests_native/test_temperature_source_review.py",

@@ -49,7 +49,7 @@ kaarten ook met alleen de nieuwe module blijven laden.
 
 ## Verificatie en grenzen
 
-54 ontvangertests; 9 bronkeuzetests (zes oorspronkelijke gevallen reproduceren
+55 ontvangertests; 9 bronkeuzetests (zes oorspronkelijke gevallen reproduceren
 ontbrekende uitleg op de oude bron, drie aanvullende metadatafoutgevallen).
 Vier extra eigenaarsgrensgevallen faalden in de eerste nieuwe ontvangerkern en
 zijn vóór enige installatie hersteld: intrekken tijdens een callback en hergebruik
@@ -74,3 +74,22 @@ asserties en 120-secondenbeleid blijven staan. De nieuwe regressie faalt vóór
 en slaagt na deze wijziging; 39 gerichte kamer-/HVAC-proeven slagen.
 De opvolgende kandidaat heet HA42; frontend blijft dev41/v41. Oude tag behouden,
 geen geforceerde verplaatsing of vervanging van assets.
+
+## Controle vóór HA43
+
+De extra begincontrole sluit de afzonderlijke verloren-opstartberichtregressie,
+maar de kamerassertie faalde ook daarna in de HA42-bron-CI. HA42-tag-CI is daarom
+vóór publicatie geannuleerd. Geen HA41/HA42-release gepubliceerd of geïnstalleerd.
+Gerichte testinstrumentatie bewaart nu de volledige eindige kunstmatige
+C++-invoer, inclusief klokwaarden, bij acht herhalingen. Native uitgangen blijven
+in iedere replay uit. Een onafhankelijke bronreview beoordeelde deze beperkte
+diagnostiek vóór de Git-push.
+
+De volgende diagnostische CI vond een andere fout: het optellen van 4,9 en 0,1
+seconden landde één floating-point-eenheid vóór de verwachte grens. Klokoorsprong
+123,456 reproduceert dit. De test gebruikt nu het oorspronkelijke anker plus exact
+vijf seconden; de productiegrens en uitvoercode zijn niet gewijzigd. Voor echte
+HA-serviceafhandeling wordt de kunstmatige testklok weer voorwaarts op de native
+loop-epoch aangesloten. 101 gerichte lokale proeven slagen; ook 46 kamer-/HVAC-
+gevallen met een opnieuw gebouwde C++-runner. Exacte definitieve CI blijft de
+leveringsvoorwaarde. Eerdere onbekende CI-kameroorzaak niet als gerepareerd claimen.

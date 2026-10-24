@@ -7,7 +7,15 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 ## 1. Waar staan we?
 
-**Gezamenlijke release dev39 / alpha30:** bron `3bad1747`, beide onveranderlijke
+**Actuele HA-release dev40:** bron `a01bc68`, gepubliceerd en geïnstalleerd op
+Core 2026.10.3. Alle 83 bestanden exact; verse HA39-back-up van 93 bestanden en
+behouden instellingen/koppelingen. Bron-/tag-CI geslaagd, 2209 gevallen per
+ondersteunde Core-versie en 208 onafhankelijke pakketchecks. Vier openbare
+downloads exact CI; afzonderlijke nacontrole van 19:28 UTC geslaagd. E32alpha30-downloads/tag
+blijven ongewijzigd; de module blijft alpha28 met de bestaande herstelblokkade.
+[Installatieverslag](INSTALLATIE-HA40-20261024.nl.md).
+
+**Vorige gezamenlijke release dev39 / alpha30:** bron `3bad1747`, beide onveranderlijke
 Git-tags gepubliceerd, alle drie CI-runs geslaagd; negen openbare downloads
 bytegelijk aan CI. Onafhankelijke bron-/pakketreview geslaagd (2424 pakketchecks).
 HA39 geïnstalleerd met verse 93-bestandenback-up en behouden 105 registryrecords;
@@ -19,13 +27,13 @@ alpha28-uploader-watchdogoorzaak en herstelroute blijven onbekend.
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
 | Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.28`; latere alpha29-upload mislukt met task-watchdogreset 6; taak/oorzaak onbekend, geen retry |
-| Geïnstalleerde HA-integratie | `0.4.0.dev39`, bron 3bad174, geladen op Core 2026.10.3; 83 bestanden exact, 105 registryrecords en koppelingen behouden |
-| Geleverde bron | HA `3bad1747f53cd82dcf1bf5953787b42459ef8187`; E32 `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f`; 83 HA-bestanden exact |
-| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; gepubliceerde HA39/E32alpha30-bundel bevat uploadhardening, veiligheidsfeit-/klokfences en ketelrapport-/HA-cache-intrekking; eerdere software en geïnstalleerde basis blijven behouden |
+| Geïnstalleerde HA-integratie | `0.4.0.dev40`, bron a01bc68, geladen op Core 2026.10.3; 83 bestanden exact, 105 registryrecords en koppelingen behouden |
+| Geïnstalleerde bron | HA `a01bc68d211b310090568e8b2b83d3e652782866`; E32 `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f`; 83 HA-bestanden exact |
+| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; HA40 voegt blijvende M2-adapterklokbewaking toe; de eerdere HA39/E32alpha30-bundel bevat uploadhardening, veiligheidsfeit-/klokfences en ketelrapport-/HA-cache-intrekking; eerdere software en geïnstalleerde basis blijven behouden |
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
-| Laatste livecontrole | 24 oktober 18:54 UTC: HA39 geladen en E32alpha28 bevestigd; instellingen/back-up behouden, uitgangen geblokkeerd; TV02 ongekwalificeerd/wachtend |
+| Laatste livecontrole | 24 oktober 19:28 UTC: HA40 geladen en E32alpha28 bevestigd; instellingen/back-up behouden, uitgangen geblokkeerd; TV02 ongekwalificeerd/wachtend |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
 met 249 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
@@ -40,7 +48,7 @@ Een meegeleverd model of geslaagde simulatie bewijst geen aangesloten functie,
 ketelreactie of productacceptatie. Alle oorspronkelijke fasen blijven open waar
 verplichte fysieke of langere-termijnproeven ontbreken.
 
-## Prioriteiten na HA39 en de geblokkeerde E32-installatie
+## Prioriteiten na HA40 en de geblokkeerde E32-installatie
 
 Alle 31 eisen, 23 brononderdelen, 11 fasen, 8 werkpakketten en 14 releasepoorten
 zijn opnieuw naast de geïnstalleerde basis gelegd. B01–B03 zijn softwarematig af;
@@ -67,15 +75,16 @@ Leren/PI/PID en blijvend bewaarde, gevalideerde parameters per ruimte blijven
 verplicht voor de definitieve versie (R12); nieuwe F9/F10-stages volgen na M2.
 Een ontbrekende fysieke waarneming blokkeert onafhankelijk softwarewerk niet.
 
-### Voorbereid voor de volgende bundel — B05/M2-kraanadapter
+### Geleverd in HA40 — B05/M2-kraanadapter
 
 De kraanadapter bewaakt nu één monotone kloklevensduur per toegelaten eigenaar.
 Klokterugloop/ongeldige tijd trekt de adapter blijvend in, ook bij weigering of
 exception in een autorisatiecallback en na wachten of dispatch. Bij een al
 verzonden opdracht blijft de fysieke uitkomst unknown; geen automatische retry.
 14 nieuwe regressiegevallen, waarvan 13 vóór reparatie falen; alle 141 gerichte
-tests slagen op Core 2026.10.2 en 2026.10.3. Bronwerk, niet geïnstalleerd;
-HA39/E32alpha28 en fysieke blokkades blijven behouden. De normale ontvangstroute,
+tests slagen op Core 2026.10.2 en 2026.10.3; volledige tag-CI 2209 per versie.
+HA40 geïnstalleerd en onafhankelijk gecontroleerd; E32alpha28 en fysieke
+blokkades blijven behouden. De normale ontvangstroute,
 causale doel-echo en fysieke kwalificatie blijven open.
 [Uitwerking en bewijs](M2-KRAAN-KLOK-20261024.nl.md).
 
@@ -88,9 +97,9 @@ warmwaterbedrijf; dat bewijst geen oorzaak. Eerdere controles: TX/polls/proeffra
 De volledige nulmetingen en eerdere TV02-/releasecheckpoints staan in de
 [historie](WORKBOARD-HISTORIE-20261024.nl.md).
 
-### Gepubliceerde onderhoudsrelease — HA dev38 / E32 alpha29
+### Historisch checkpoint — HA dev38 / E32 alpha29
 
-HA dev38 is geïnstalleerd; E32 blijft alpha28 na één mislukte upload en
+Destijds was HA dev38 geïnstalleerd; E32 bleef alpha28 na één mislukte upload en
 task-watchdogreset (code 6; taak/oorzaak onbekend). Hoogste prioriteit: offline
 uploadonderzoek en onderbouwde herstelroute, zonder blinde retry.
 [Actuele installatie-uitkomst](INSTALLATIE-HA38-ALPHA29-20261024.nl.md).

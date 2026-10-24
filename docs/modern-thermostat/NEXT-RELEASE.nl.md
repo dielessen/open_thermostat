@@ -1,10 +1,10 @@
-# Onderhoudsrelease HA dev39 / E32 alpha30 — gedeeltelijk geïnstalleerd
+# Onderhoudsrelease HA dev40 — E32 alpha30 blijft beschikbaar
 
 Bijgewerkt: 24 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
 het [masterplan](PLAN.nl.md) bewaart alle 31 producteisen en acceptatievoorwaarden.
 
-## Geleverde bundel dev39 / alpha30
+## Eerdere gezamenlijke bundel dev39 / alpha30
 
 De gezamenlijke bundel bevat alle bronwijzigingen sinds dev38/alpha29:
 transactionele handmatige app-upload, intrekking van verworpen veiligheidsfeiten,
@@ -15,12 +15,13 @@ en alle negen openbare downloads vergeleken. HA39 is geïnstalleerd en de afzond
 nacontrole van 18:54 UTC is geslaagd. De oude alpha28-uploader blijft een
 herstelpunt: nieuwe broncode bewijst geen reparatie van de eerdere watchdogreset.
 
-## Voorbereid voor de volgende gezamenlijke bundel
+## Geleverde HA40-release
 
 B05/M2: de Profile-C-kraanadapter trekt zijn eigenaar blijvend in bij
 klokterugloop of ongeldige tijd, vóór en na serviceafhandeling. 14 nieuwe
-regressies; alle 141 gerichte tests op beide Core-versies geslaagd. Nog niet
-geïnstalleerd en geen fysieke vrijgave. De normale FW→HA-route en echte
+regressies; alle 141 gerichte tests en 2209 volledige gevallen op beide
+Core-versies geslaagd. Gepubliceerd en geïnstalleerd op bron `a01bc68`;
+afzonderlijke nacontrole van 19:28 UTC geslaagd. Geen fysieke vrijgave. De normale FW→HA-route en echte
 doelterugmelding blijven open. [Uitwerking](M2-KRAAN-KLOK-20261024.nl.md).
 
 ## 1. Wat draait er nu?
@@ -28,14 +29,22 @@ doelterugmelding blijven open. [Uitwerking](M2-KRAAN-KLOK-20261024.nl.md).
 | Onderdeel | Geïnstalleerd | Stand |
 | --- | --- | --- |
 | E32 | `v0.1.0-e32v2-alpha.28`, bron `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f` | Passief EMS uitlezen; TX, forwarding en fysieke uitvoer geblokkeerd |
-| Home Assistant | `0.4.0.dev39`, bron `3bad1747f53cd82dcf1bf5953787b42459ef8187` | Geladen op Core 2026.10.3; frontend dev38/v38 met v35-alias |
+| Home Assistant | `0.4.0.dev40`, bron `a01bc68d211b310090568e8b2b83d3e652782866` | Geladen op Core 2026.10.3; frontend dev38/v38 met v35-alias |
 | Actieve regelaar | Tado | Geen automatische ketel- of kraansturing door OpenThermostat |
 
 Bron/pakket/ELF/web, alle 83 HA-bestanden en behoud van instellingen, programma's
-en identiteiten zijn gecontroleerd. Zie [installatieverslag](INSTALLATIE-HA37-ALPHA28-20261024.nl.md).
+en identiteiten zijn gecontroleerd. Zie [installatieverslag](INSTALLATIE-HA40-20261024.nl.md).
 De uitgebreide geleverde bundel staat in de [werkbordhistorie](WORKBOARD-HISTORIE-20261024.nl.md).
 
-### Actuele installatie — 24 oktober, nacontrole 18:54 UTC
+### Actuele installatie — 24 oktober, nacontrole 19:28 UTC
+
+HA dev40 geladen; 83 bestanden exact publieke ZIP/Git, verse HA39-back-up van
+93 bestanden en één normale Core-herstart. Instellingen, programma’s, SOURCE,
+registry en bronpins behouden. E32alpha28 niet gewijzigd; nul uploads of
+E32-herstarts, TX/polls/testframes nul. Afzonderlijke nacontrole geslaagd.
+[Installatieverslag HA40](INSTALLATIE-HA40-20261024.nl.md).
+
+### Historische HA39-installatie — nacontrole 18:54 UTC
 
 HA dev39 geladen; 83 bestanden exact, verse gecontroleerde back-up van 93 bestanden,
 één normale Core-herstart. E32alpha28 en alle instellingen/koppelingen behouden;

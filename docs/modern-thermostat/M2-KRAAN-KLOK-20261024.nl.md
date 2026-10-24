@@ -1,8 +1,10 @@
 # M2/B05 — kloklevensduur van de kraanadapter
 
-24 oktober 2026. Broncorrectie voor de volgende gezamenlijke bundel; niet
-geïnstalleerd. De productie blijft HA39/E32alpha28. Geen fysieke opdracht,
-bronwijziging, MQTT-actie of updaterproef uitgevoerd.
+24 oktober 2026. Geleverd in HA dev40 op bron `a01bc68`, geïnstalleerd en
+onafhankelijk gecontroleerd om 19:28 UTC. E32 blijft alpha28. Onderstaande
+nota bewaart het broncheckpoint van vóór deze levering; toen draaide HA39.
+Geen fysieke opdracht, bronwijziging, MQTT-actie of E32-updaterproef uitgevoerd.
+[Leveringsbewijs](INSTALLATIE-HA40-20261024.nl.md).
 
 ## Wat is opgelost in de bron?
 

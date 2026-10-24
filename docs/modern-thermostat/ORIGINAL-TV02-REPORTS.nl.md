@@ -102,14 +102,16 @@ IEEE, producer-UUID of ruwe packet. Ontvangsttijd blijft ontvangsttijd;
 
 De kern is inmiddels aangesloten op de bestaande native MQTT-worker en
 registry-/bindingintrekking; room/get biedt de veilige ontvangstsamenvatting
-optioneel aan onder actuator_target_review. De huidige frontend toont deze nieuwe
-ontvangstsamenvatting nog niet. Een causale doel-echo en exclusief eigenaarschap
+optioneel aan onder actuator_target_review. De editor in HA dev29 toont de
+ontvangstsamenvatting zodra de expliciete bron werkelijk rapporten ontvangt;
+de standaard bronpins blijven leeg. Een causale doel-echo en exclusief eigenaarschap
 vragen afzonderlijk bewijs vóór enige fysieke vrijgave.
 
 Controle: 98 gerichte HA-tests voor deze kern en de bestaande temperatuurontvangst,
 inclusief werkelijk door de Node-producent opgebouwd wirebericht, oorspronkelijke
 DP-grenswaarden, herhaling, reconnect, wachtrijouderdom en klokfouten. Dit is
-bron-/testbewijs; de geïnstalleerde HA dev27 en E32 alpha21 wijzigen hierdoor niet.
+bron-/testbewijs van dit historische checkpoint; de toen geïnstalleerde HA dev27
+en E32 alpha21 wijzigden tijdens die bronstap niet.
 
 ## Native lifecycle en expliciete bronpins
 
@@ -120,6 +122,15 @@ beoordeelde fabrikant en endpoint. Een optie, discovery-vendor, brokerbericht,
 HA-state of eerste ontvangen datapoint stelt deze pins niet in. De werkelijke
 pins/extensioninstallatie blijven een afzonderlijke gecontroleerde uitvoeringsstap.
 Een pin autoriseert geen kraanbediening.
+
+Vervolgbron na HA dev29 verbindt deze expliciete pins ook met de normale
+integratieopstart via `_ORIGINAL_TV02_DIAGNOSTIC_SOURCES`. De standaardtuple
+blijft leeg; selectie gebeurt uitsluitend voor de passende integratie-identiteit.
+Opties of een ontvangen bericht vullen de tuple niet in. Een ongeldige of na een
+native wijziging niet meer passende pin schakelt alleen deze optionele diagnose
+uit met een generieke logmelding; de bestaande regelverbinding blijft starten.
+Er wordt geen vervangend apparaat gekozen. Deze vervolgstap is nog niet op HA
+geïnstalleerd en is geen bronkwalificatie of actuatorvrijgave.
 
 `OriginalTv02Reports` controleert het native registry-record, apparaatmodel
 TV02-Zigbee, IEEE en werkelijk ontdekte Z2M-prefix. Zowel bij ontvangst/status

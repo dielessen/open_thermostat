@@ -1,5 +1,7 @@
 """OpenThermostat room entities and optional dashboard."""
 
+import logging
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
@@ -8,6 +10,7 @@ from .const import CONF_CREATE_DASHBOARD, CONF_TOPIC_PREFIX, DOMAIN, PLATFORMS
 from .dashboard import RoomDashboard
 from .heating import HeatingTracker
 
+_LOGGER = logging.getLogger(__name__)
 _RELOAD_DASHBOARDS = DOMAIN + "_reload_dashboards"
 
 
@@ -148,6 +151,24 @@ def _selected_graph_data_profile(entry):
 # Empty preserves existing conservative API1 behavior; no physical qualification.
 _COMFORT_CONTEXT_SOURCE_PROFILES = ()
 _CONTROLLER_POLICY_SOURCE_PROFILES = ()
+
+# Reviewed installation-owned diagnostic pins only. Empty until separately
+# reviewed; options, discovery and first reports never populate this tuple.
+_ORIGINAL_TV02_DIAGNOSTIC_SOURCES = ()
+
+def _selected_original_tv02_sources(entry):
+    from .original_tv02 import Tv02DiagnosticSource
+    from .v1_model import MODE_SHADOW, integration_mode
+    if integration_mode(entry) != MODE_SHADOW:
+        return ()
+    sources = _ORIGINAL_TV02_DIAGNOSTIC_SOURCES
+    if (type(sources) is not tuple or len(sources) > 64
+            or any(type(source) is not Tv02DiagnosticSource
+                or type(source.entry_unique_id) is not str or not source.entry_unique_id
+                for source in sources)):
+        _LOGGER.warning("Original TV02 diagnostics disabled: invalid source selection")
+        return ()
+    return tuple(source for source in sources if source.entry_unique_id == entry.unique_id)
 
 _GRAPH_CONTROLLER_ENTRY_SOURCES = ()
 
@@ -323,7 +344,10 @@ async def async_setup_entry(hass, entry):
         await runtime.async_start()
         if runtime.enabled:
             from .v1_mqtt import NativeShadowConnection
-            connection = NativeShadowConnection(runtime,graph_profile) if graph_profile is not None else NativeShadowConnection(runtime)
+            diagnostic_sources = _selected_original_tv02_sources(entry)
+            diagnostic_kwargs = {"tv02_sources": diagnostic_sources} if diagnostic_sources else {}
+            connection = (NativeShadowConnection(runtime, graph_profile, **diagnostic_kwargs)
+                          if graph_profile is not None else NativeShadowConnection(runtime, **diagnostic_kwargs))
             hass.data[DOMAIN][entry.entry_id]["v1_connection"] = connection
             await connection.async_start()
         from .v1_bench_actions import async_register_entry

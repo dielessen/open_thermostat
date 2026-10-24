@@ -508,7 +508,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_mqtt.py",
-          "sha256": "7656209cb3d28e0c092343e69623eff6fff6c5bb7b3d283462a9c8bfb80775c3"
+          "sha256": "7e1dfabe250ae424661cb770d66aef120c3d2d1f629c2432d5cb9cbb88a1e4cd"
         },
         {
           "path": "ha/tests_native/test_original_temperature.py",
@@ -739,7 +739,7 @@
         },
         {
           "path": "docs/modern-thermostat/ORIGINAL-TV02-REPORTS.nl.md",
-          "sha256": "7ebdfa1639433c02e1ece80d6de6f8c91a74006ca2b8da778d4234b0903674d8"
+          "sha256": "47a594018e4a01819a186ae35563ab374c95693df5da8ad0542ffb92d7d53244"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/original_tv02.py",
@@ -751,7 +751,7 @@
         },
         {
           "path": "ha/tests_native/test_original_tv02_lifecycle.py",
-          "sha256": "6fe616da1059acc03338eea275c219473b3dfd9653c94881a1936ab807c41725"
+          "sha256": "6f03f789f30c21b1e52dddce4d2972c3c0fcc65e93d27980ea2b3ec16fe20ce0"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_editor.py",
@@ -764,6 +764,10 @@
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
           "sha256": "b17b7e944c47ba775d1625d65b05ce42994612cc57c046becdde9e39ec593c84"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/__init__.py",
+          "sha256": "0e861829e733c8ccaba30b97cc89c4192db9e7f4520ed09bade9e29ab115072b"
         }
       ],
       "remaining_acceptance": "TV02-modus/native identiteit/doelcapaciteit en oorspronkelijke HA-ontvangst met MQTT/registry-lifecycle en NL/EN-weergave geleverd in HA dev29. Standaard bronpins leeg; zelfstandige Zigbee-producent nog niet geïnstalleerd/gekoppeld. Concrete bronpins en echte oorspronkelijke ontvangst, causale doel-echo, exclusief eigenaarschap, profiel/readiness/fallback en fysieke proef zonder ketel blijven open. Ontvangen doel/bedrijfsmodus verleent geen opdrachtbevestiging, klepstand of aansturingsvrijgave."

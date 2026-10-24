@@ -53,7 +53,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-200 bronverwijzingen met hashes, status en resterende acceptatie.
+201 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -1131,3 +1131,38 @@ De vervolggrens blijft een gecontroleerde ontvangst-/kraanproef en vervolgens
 installatiegebonden elektrische TX-/stopkwalificatie. Er is nog geen actieve
 bèta-GO; B04–B14 blijven open. Een geblokkeerde fysieke voorwaarde wordt niet
 opgelost door een trustvlag, sensorwissel of het vrijzetten van de TX-compileergrens.
+
+
+### B05-vervolgbron — normale HA-opstart en diagnose-isolatie
+
+De normale integratieopstart geeft nu de expliciete bron-eigen
+`_ORIGINAL_TV02_DIAGNOSTIC_SOURCES` door aan de bestaande MQTT-eigenaar,
+uitsluitend voor de juiste integratie-identiteit. Voorheen bestond dat
+constructorargument alleen als aansluitpunt voor apart opgebouwde ontvangers.
+De standaardtuple blijft leeg; opties, discovery en eerste berichten kiezen
+geen fabrikant/endpoint of bron. Er is geen nieuwe client, worker of opslag.
+
+Een ongeldige of door een native wijziging onbruikbaar geworden optionele pin
+maakt nu alleen deze diagnose leeg met een generieke logmelding. De bestaande
+regelverbinding blijft starten; er wordt geen ander apparaat aangenomen.
+Negen nieuwe regressiegevallen dekken de normale echte integratieopstart,
+lege/expliciete selectie, andere installatie, genegeerde opties, bounds en zes
+ongeldige bindingssituaties. Gerichte lifecycle: 32 tests PASS. Volledige HA-suite:
+1.849 tests + 68 subtests = 1.917 checks PASS, zonder overslagen. De tijdelijke
+lokale MQTT-fixture is verwijderd en onafhankelijk als afwezig gecontroleerd.
+Dit bronwerk is nog niet geïnstalleerd; HA blijft dev29 en alle uitgangen uit.
+
+Een aanvullende native alleen-lezen snapshot ziet de draaiende Z2M 2.14.2-1,
+bridgeversie 2.14.2 en een retained extensielijst met 0 bestanden. Dat toont geen
+bestands-/klassenaamconflict, maar bewijst geen actuele producentstart of
+hot-loadtoelating. De officiële gepinde loader heeft save/remove zonder
+controllerherstart; zijn startcallback vangt fouten af, zodat alleen een
+succesvolle save-respons geen werkende producent bewijst. De werkelijke
+`enable_external_js`-waarde is niet vastgesteld; er is niets ingeschakeld,
+geladen, herstart of naar een apparaat gestuurd.
+
+Bewijs: `out/pre-tx-preparation-20261024/ha-full-routing.xml`,
+`MQTT-FIXTURE-CLEANUP.json`, `LOADER-CAPABILITY-READ-REVIEW.json` en
+`official-z2m-loader/REVIEW.json`. De oorspronkelijke ontvangst, causale echo,
+exclusief kraaneigenaarschap/readiness en fysieke zend-/stopkwalificatie blijven
+open. B04–B14 en actieve bèta-GO blijven onveranderd open.

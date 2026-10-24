@@ -288,3 +288,84 @@ async def test_actual_node_producer_crosses_native_mqtt_worker_into_runtime_with
         client.receive.assert_not_awaited()
     finally:
         await connection.async_close();await runtime.async_stop()
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('fault', ['room', 'manufacturer', 'endpoint', 'model', 'duplicate', 'non_tuple'])
+async def test_invalid_optional_diagnostic_pin_keeps_native_connection_running(hass, devices, monkeypatch, fault, caplog):
+    runtime, room, source, _ = await system(hass, devices)
+    subscriptions, removed, _ = mqtt_boundary(monkeypatch)
+    if fault == 'room': source = replace(source, room_id='deadbeef')
+    elif fault == 'manufacturer': source = replace(source, manufacturer='unsupported')
+    elif fault == 'endpoint': source = replace(source, endpoint=True)
+    elif fault == 'model':
+        entity = er.async_get(hass).async_get(source.reference.entity_id)
+        dr.async_get(hass).async_update_device(entity.device_id, model_id='another-model')
+    pins = [source] if fault == 'non_tuple' else (source, source) if fault == 'duplicate' else (source,)
+    connection = NativeShadowConnection(runtime, tv02_sources=pins)
+    try:
+        await connection.async_start()
+        assert set(subscriptions) == {'fixture/v1/fw/#'}
+        assert connection.client is not None and not connection.worker.done()
+        assert not connection.tv02_reports.topics
+        assert runtime.actuator_report_status(room.room_id) == {}
+        assert runtime.measurement_status(room.room_id)['status'] == 'profile_missing'
+        assert 'source binding unavailable' in caplog.text
+        assert '0x0000' not in caplog.text
+    finally:
+        await connection.async_close()
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_reviewed_source_selection_is_entry_scoped_and_ignores_options(hass, devices, monkeypatch):
+    import custom_components.open_thermostat as integration
+    runtime, room, source, _ = await system(hass, devices)
+    try:
+        # Even a correctly typed object in an option is not source selection.
+        hass.config_entries.async_update_entry(runtime.entry, options={
+            **runtime.entry.options, 'tv02_sources': [{'entry_unique_id': source.entry_unique_id,
+                'room_id': source.room_id, 'reference': source.reference.as_dict(),
+                'manufacturer': source.manufacturer, 'endpoint': source.endpoint}],
+            'tv02_control_qualified': True})
+        assert integration._selected_original_tv02_sources(runtime.entry) == ()
+        other = replace(source, entry_unique_id='another-installation')
+        monkeypatch.setattr(integration, '_ORIGINAL_TV02_DIAGNOSTIC_SOURCES', (other, source))
+        assert integration._selected_original_tv02_sources(runtime.entry) == (source,)
+        for invalid in ([source], (object(),), (replace(source, entry_unique_id=True),), (source,) * 65):
+            monkeypatch.setattr(integration, '_ORIGINAL_TV02_DIAGNOSTIC_SOURCES', invalid)
+            assert integration._selected_original_tv02_sources(runtime.entry) == ()
+    finally:
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('reviewed', [False, True])
+async def test_normal_integration_startup_passes_only_reviewed_diagnostic_sources(hass, devices, monkeypatch, reviewed):
+    import custom_components.open_thermostat as integration
+    from custom_components.open_thermostat import v1_mqtt
+    _, refs, _ = devices
+    reference = EntityReference.from_dict(refs[1])
+    entity = er.async_get(hass).async_get(reference.entity_id)
+    dr.async_get(hass).async_update_device(entity.device_id, model_id='TV02-Zigbee')
+    room = RoomBinding('a1b2c3d4', 'TV02 original', EntityReference.from_dict(refs[0]), (reference,))
+    parent = entry(hass, enabled=True, room=room)
+    source = Tv02DiagnosticSource(parent.unique_id, room.room_id, reference, '_TZE200_hue3yfsn', 1)
+    monkeypatch.setattr(integration, '_ORIGINAL_TV02_DIAGNOSTIC_SOURCES', (source,) if reviewed else ())
+    subscriptions, _, _ = mqtt_boundary(monkeypatch)
+    monkeypatch.setattr(hass.config_entries, 'async_forward_entry_setups', AsyncMock())
+    monkeypatch.setattr(hass.config_entries, 'async_unload_platforms', AsyncMock(return_value=True))
+    captured = []
+    def connection(runtime, *args, **kwargs):
+        captured.append(kwargs)
+        return NativeShadowConnection(runtime, *args, **kwargs)
+    monkeypatch.setattr(v1_mqtt, 'NativeShadowConnection', connection)
+    try:
+        assert await integration.async_setup_entry(hass, parent)
+        assert captured == ([{'tv02_sources': (source,)}] if reviewed else [{}])
+        assert set(subscriptions) == ({'fixture/v1/fw/#', TOPIC} if reviewed else {'fixture/v1/fw/#'})
+        runtime = hass.data['open_thermostat'][parent.entry_id]['v1_runtime']
+        assert runtime.measurement_status(room.room_id)['status'] == 'profile_missing'
+        assert not runtime._profiles and not runtime._pending
+    finally:
+        if parent.entry_id in hass.data.get('open_thermostat', {}):
+            assert await integration.async_unload_entry(hass, parent)

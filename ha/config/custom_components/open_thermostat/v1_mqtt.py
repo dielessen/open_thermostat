@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from datetime import timedelta
 
 from homeassistant.components import mqtt
@@ -19,6 +20,9 @@ from homeassistant.util import dt as dt_util
 from .schedule_compiler import async_compile_schedule, compile_week
 from .v1_program import native_week
 from .v1_wire import ShadowClient, identifier
+
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_room_schedule(hass,room,start=None):
@@ -89,7 +93,14 @@ class NativeShadowConnection:
         self.bench = None
         self.original_reports = None
         from .original_tv02 import OriginalTv02Reports
-        self.tv02_reports = OriginalTv02Reports(runtime, tv02_sources)
+        try:
+            self.tv02_reports = OriginalTv02Reports(runtime, tv02_sources)
+        except (ValueError, TypeError):
+            # An optional diagnostic pin can become invalid across a native
+            # registry/config reload. Never disable the controller connection
+            # or infer a replacement; rebuild an empty diagnostic owner only.
+            _LOGGER.warning("Original TV02 diagnostics disabled: source binding unavailable")
+            self.tv02_reports = OriginalTv02Reports(runtime)
         self.original_pending = False
 
     async def async_start(self):

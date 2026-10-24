@@ -5,6 +5,10 @@ nog niet geïmplementeerd of op een echte kraan getest.** Dit is een uitbreiding
 naast de bestaande HA-route. De actuele uitvoering staat uitsluitend op het
 [werkbord](WORKBOARD.nl.md); dit document is het ontwerp voor uitbreiding X01.
 
+Ook gepland: **Shelly BLU H&T Display ZB** en
+[Settings → Bluetooth-apparaten](BLUETOOTH-APPARATEN.nl.md), inclusief
+kamertoewijzing, EN/NL en afzonderlijke bronkwalificatie.
+
 ## Wat is bevestigd?
 
 De [gelinkte Standalone-productpagina](https://www.shelly.com/de/products/shelly-blu-trv-standalone)

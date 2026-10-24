@@ -108,6 +108,7 @@ EMS-ESP-velddekking of ondersteuning voor iedere ketel/converter.
 | Mogelijkheid | Wat je ermee kunt | Status |
 | --- | --- | --- |
 | Eigen HA-integratie en dashboard | Kamerpagina’s, klimaatbediening, inrichting en weekplanner in één omgeving | **Beschikbaar** |
+| Directe Bluetooth-sensoren | Shelly BLU H&T Display ZB; Settings voor toevoegen en kamertoewijzing, in EN/NL | **Gepland**, nog niet geïmplementeerd of fysiek getest. [Ontwerp](docs/modern-thermostat/BLUETOOTH-APPARATEN.nl.md) |
 | Directe Bluetooth-kranen | Shelly BLU TRV rechtstreeks koppelen aan E32; extra mogelijkheid naast HA-apparaten | **Onderzocht/gepland**, nog geen driver of praktijkkwalificatie. [Ontwerp](docs/modern-thermostat/SHELLY-BLU-TRV-STANDALONE.nl.md) |
 | Zelfstandige E32-modus | Lokale verwarmingskern met eigen bronnen, programma, opslag en bewaking; HA optioneel voor bediening | **Gepland**; expliciet eigendom en fysieke stop-/uitvalacceptatie vereist |
 | Bestaande HA-apparaten gebruiken | Sensoren en klimaatapparaten uit HA selecteren, met controle op eenheden, grenzen en stapgrootte | **Beschikbaar**; regelkwalificatie per apparaat blijft nodig |

@@ -119,7 +119,12 @@ nog niet gebouwd of geïnstalleerd.** De technische haalbaarheid steunt op de
 Shelly-GATT-documentatie en onze bestaande NimBLE-stack. Uitwerking:
 [directe BLE-/standalone-route](SHELLY-BLU-TRV-STANDALONE.nl.md).
 
-Volgorde: apparaatgebonden alleen-lezen BLE-basis → begrensde proefkraan zonder
+Ook toegevoegd aan X01: **Shelly BLU H&T Display ZB (SBHT-103C)** en
+Settings → Bluetooth-apparaten, met EN/NL-onboarding, expliciete kamertoewijzing,
+beveiliging en zichtbare meetkwaliteit/bronuitval.
+[Ontwerp en acceptatie](BLUETOOTH-APPARATEN.nl.md); nog niet geïmplementeerd.
+
+Volgorde: apparaatgebonden alleen-lezen BLE-basis inclusief sensor → begrensde proefkraan zonder
 ketel → lokale eigenaar/programmering/tijd/opslag → integratie en uitvalproeven.
 Bestaande P0-opstartdiagnose en M2-werk blijven lopen. Dezelfde regelkern en
 veiligheidsvoorwaarden blijven gelden; geen tweede schrijver of langere HA-lease

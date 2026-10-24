@@ -114,3 +114,8 @@ GATT-documentatie; nog geen driver, koppeling of lokale regelvrijgave geleverd.
 Eerst één kraan uitlezen en zonder ketel kwalificeren, daarna lokale
 programmering/eigendom/opslag/tijd en de bestaande stop-/uitvalvoorwaarden verbinden.
 Dit wijzigt de al geïnstalleerde alpha28/dev37 niet en is geen nieuwe release.
+
+X01 omvat ook de Shelly BLU H&T Display ZB (SBHT-103C) en een tweetalige
+[Bluetooth-apparaatpagina onder Settings](BLUETOOTH-APPARATEN.nl.md): vinden,
+beveiligd toevoegen waar nodig, kamertoewijzing en meetkwaliteit/uitval zichtbaar.
+Dit onderdeel is ontworpen, nog niet gebouwd of op echte apparaten getest.

@@ -9,9 +9,9 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
-| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.20`, normale HTTPS-catalogusupdate/nacontrole geslaagd |
-| Geïnstalleerde HA-integratie | `0.4.0.dev26`, via bestaande HA-agent met back-up/nacontrole |
-| Geleverde gezamenlijke bron | `b2b5d17d32b0af16c935b2a11dbbbecef09f5d1e` (passieve uitleesrelease) |
+| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.21`, normale HTTPS-catalogusupdate/nacontrole geslaagd |
+| Geïnstalleerde HA-integratie | `0.4.0.dev27`, via bestaande HA-agent met back-up/nacontrole |
+| Geleverde bron | E32 `f96cda7fe56b78c23d9a714abb28a2f7d21d57db`; HA `faf827205d8105043e85eea5db84b67d06bab34e` (HA-componentbestanden ook exact in E32-bron) |
 | Nieuwe softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; native keteluitleescheckpoint `fa52faa` |
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
@@ -806,3 +806,47 @@ De beheerde HA-ketelkaarten verwezen nog uitsluitend naar legacy-IDs. HA dev27 i
 ## Bevestigd gebruikersmodel en profiel — HRC 22H
 
 De gebruiker heeft het exacte model bevestigd als **Nefit Ecomline Classic HRC 22H**. De nieuwe presentatiekeuze en het bronprofiel zijn toegevoegd voor alpha21, met 25 gerapporteerde kandidaatvelden en apart 2 afgeleide activiteiten. Dit vervangt de eerdere modelonzekerheid, geen technische acceptatie. Originele NVS-helper en 4 smalle/desktop-browserprofielen PASS; publieke alpha21-uitrol en echte keuze-readback staan nog open. Alle veldontvangst blijft modelonafhankelijk; geen busopdrachten of uitgangsvrijgave.
+
+## Geleverde profiel- en HA-overzichtsrelease — alpha21/dev27
+
+Nefit Ecomline Classic HRC22H is de expliciet door de gebruiker bevestigde
+identiteit en staat nu opgeslagen als E32-weergavekeuze. De oudere HR22H/H22-
+alternatieven blijven alleen historische notities. Het bronprofiel bewaart
+25 eerder gerapporteerde kandidaten, met onbewezen fysieke bruikbaarheid en
+aparte afgeleide activiteit. Alle veldontvangst blijft onafhankelijk van model.
+
+Alpha21 is via de normale HTTPS-catalogusroute geplaatst; running-ELF-SHA en
+embedded-webhash komen exact overeen met het onveranderlijke CI-pakket. HA27
+is via de specialist met scoped back-up, broncontrole en één Core-herstart
+geplaatst. 1094 onafhankelijke pakketchecks,651 firmwarebronbestanden,79 HA-
+componentbestanden en1818 native HA-tests PASS. De vaste kamereditor blijft
+terecht op de ongewijzigde dev25/v25-frontendidentiteit.
+
+Het bestaande beheerde keteloverzicht bevat nu47 ingeschakelde native velden en
+3 historiekaarten: aanvoer/retour/gerapporteerde selectie, modulatie en tapwater.
+Gerapporteerde en afgeleide velden staan apart;22 standaard uitgeschakelde ruwe
+onbetrouwbare velden blijven buiten gerapporteerde kaarten/grafieken. Laatste
+controle:26 waarden,24 reported+2 inferred; beschikbaarheid is momentafhankelijk.
+Alle105 entiteitsrecords, apparaatgroep, kamers, week en instellingen behouden;
+alleen de expliciet gevraagde weergavemodelkeuze is gewijzigd. De controle van
+unitlabels normaliseert wire `degC/uA/bool/bits/code/text` naar HA `°C/µA/geen
+unit`; ongenormaliseerde operationele checkerlabels waren geen productfout.
+
+SOURCE3→4 is gereconcilieerd: uitsluitend15-daagse UTC-horizon +86400 seconden,
+beide pure compilaties en digests exact, volledig gelijke opgeslagen week en
+gebruikersintentie. Updates moeten de verse geaccepteerde revisie/digest als
+fence nemen; geen herstel naar3 of oude helper-DIG uit revision1.
+
+Bewijs: `out/boiler-profile-rollout-20261024/FINAL-INDEPENDENT-LIVE.json` en
+`SOURCE4-INDEPENDENT-REVIEW.json`. Native+1h-observatie faalde vóór dataverzameling
+op de Fileeditor-aanroepbody; dit blijft FAILED/UNKNOWN. De bewezen URLencoded-
+body en HA-eerst volgorde staan in de toekomstige+6h/+24h-jobpayloads; de bestaande
+uitgeschakelde foutjob is eenmalig native geïsoleerd herbeproefd: PASS. Alle
+actuele velden zijn gelezen, plus629 Recorder-rijen voor67 entiteiten binnen
+een expliciet begrensd historiebudget;26 entiteiten hebben nog meer rijen. Dit
+is gedeeltelijke retrospectieve historie, geen volledige periode-extrema of
+herstel van de oorspronkelijke fysieke1h-momentopname. De retryjob is na succes
+native verwijderd; de twee toekomstige controles en alle overige jobdefinities
+zijn behouden. Geen nieuwe planner/permanente watcher. Langere bruikbaarheids-
+beoordeling blijft open totdat de geplande waarnemingen zijn uitgevoerd. TX/actuatoruitgangen blijven false;
+B04–B14 en actieve bèta blijven NOT_READY.

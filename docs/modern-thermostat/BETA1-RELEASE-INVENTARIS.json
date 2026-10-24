@@ -3,9 +3,9 @@
   "as_of": "2026-10-24",
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
   "release_state": "NOT_READY",
-  "installed_source_commit": "b2b5d17d32b0af16c935b2a11dbbbecef09f5d1e",
-  "installed_firmware": "v0.1.0-e32v2-alpha.20",
-  "installed_ha": "0.4.0.dev26",
+  "installed_source_commit": "f96cda7fe56b78c23d9a714abb28a2f7d21d57db",
+  "installed_firmware": "v0.1.0-e32v2-alpha.21",
+  "installed_ha": "0.4.0.dev27",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
   "items": [
     {
@@ -309,7 +309,7 @@
           "sha256": "2d063ef67f856823269a2c602b5b966ea73e749cef9b9e972b3a97aefd3fd77e"
         }
       ],
-      "remaining_acceptance": "Mijn ketel en EN/NL-bron geleverd in alpha20/dev26, exacte ingebouwde webhash geverifieerd na normale HTTPS-update. Modelkeuze geeft geen technische ketelvrijgave; gebruikersgerichte fysieke acceptatie blijft apart. Nieuw exact profiel HRC 22H op expliciete gebruikersbevestiging; originele NVS-helper en 4 browserprofielen PASS, openbare alpha21-build/uitrol en keuze-readback nog aftekenen. De oude HR22H/H22-alternatieven zijn historische onzekerheid, niet het bevestigde model."
+      "remaining_acceptance": "Mijn ketel/EN-NL en exact door gebruiker bevestigd Nefit Ecomline Classic HRC22H-profiel geleverd in alpha21/HA27. Normale HTTPS-update, exacte running-ELF/webhash en model-ID uit NVS/readback geverifieerd. Originele opslaghelper en 4 browserprofielen PASS. Generieke keuze blijft geldig; modelkeuze verandert geen decoder/ontvangst/aansturing. Geen technische ketelvrijgave door modelkeuze."
     },
     {
       "id": "I06",
@@ -546,7 +546,7 @@
           "sha256": "702c5696dbea3e6848ed624180f30b0665304ad9850ad5371dfc494966ece2da"
         }
       ],
-      "remaining_acceptance": "Alpha20/dev26 live: 27 HA-veldwaarden (25 reported, 2 inferred) vergeleken met E32 REST; waarde/eenheid/kwaliteit gelijk. Ongeldige/niet-ontvangen velden en onbetrouwbare diagnostiek blijven eerlijk. Langere observatie, fysieke interpretatie/bruikbaarheid en actieve opvragen niet gekwalificeerd; TX geblokkeerd."
+      "remaining_acceptance": "Alpha21/HA27 live: 69 definities, laatste nabije HA/REST-vergelijking26waarden (24reported/2inferred), eerdereboot27. Oorspronkelijke bronleeftijd, waarde, eenheid en kwaliteit vergeleken. Ontbrekende/ongeldige/verlopen waarden blijven onbekend,22onbetrouwbare diagnostiekvelden standaarduit. Langere observatie en fysieke bruikbaarheid/kalibratie apart; TX geblokkeerd."
     },
     {
       "id": "I13",
@@ -692,7 +692,7 @@
     {
       "id": "I17",
       "title": "Metrics, grafieken, historiegrens en CSV-export",
-      "status": "Native ketelwaarden live; overzichtsaanvulling voorbereid",
+      "status": "Native ketelvelden en eigen overzicht/grafieken geleverd",
       "include_in_beta": true,
       "requirements": [
         "R15",
@@ -779,7 +779,7 @@
           "sha256": "dd0bc1e9563ef9589349ddc88a350e94748355953e5312f272e59ba0513729d2"
         }
       ],
-      "remaining_acceptance": "Alpha20/dev26 geïnstalleerd en bron/identiteiten/instellingen behouden; 27 native waarden geverifieerd. Bestaande v2-identiteiten zijn weer echte platformobjecten; onbekende Classic/Plus-tellers worden niet nul. HA dev27-ketelkaarten voorbereid met 100 gerichte native HA-tests; exacte publieke uitrol en zichtbare native kaartreferenties nog aftekenen. Lange-termijnretentie/grafiekacceptatie en controlkwalificatie blijven apart."
+      "remaining_acceptance": "Alpha21/HA27 bron/gezondheid/readback geverifieerd. Eigen Boiler observations toont alle47ingeschakelde native definities met3historiekaarten en aparte reported/inferredgroepen; disabled/foreign/rawonbetrouwbarevelden niet in gerapporteerde grafieken. Alle105registryrecords en bestaande statistiekidentiteiten behouden. 1818HA-tests,1094pakketchecks,651firmwarebronbestanden/79HA-bronbestanden. Doorlopende24h-retentie/bruikbaarheid blijft observatie; eerste geplande1hcontrole faalde op toolbody en blijft UNKNOWN;6h/24hpayloads hersteld, native geïsoleerde retry PASS: alle actuele velden,629 begrensde Recorder-rijen/67 entiteiten; historie expliciet gedeeltelijk. Geen controlkwalificatie."
     },
     {
       "id": "I18",
@@ -1347,5 +1347,6 @@
     "WP08"
   ],
   "authoritative_workboard": "docs/modern-thermostat/WORKBOARD.nl.md",
-  "base_runtime_checkpoint": "cebb0a25296b690a2a2d699bccacb65ed0f69da7"
+  "base_runtime_checkpoint": "cebb0a25296b690a2a2d699bccacb65ed0f69da7",
+  "installed_ha_source_commit": "faf827205d8105043e85eea5db84b67d06bab34e"
 }

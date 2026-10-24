@@ -11,8 +11,8 @@ Bijgewerkt 24 oktober 2026 na de oorspronkelijke TV02-rapportproducer.
 
 ## Actuele bron en installatie
 
-- Geïnstalleerd/gecontroleerd: E32 alpha20 + HA dev26, bron `b2b5d17`.
-- Actueel uitrolbewijs: `out/telemetry-rollout-20261024/`; 27 HA-ketelwaarden onafhankelijk met E32 REST vergeleken. HA dev27-overzichtsaanvulling nog in voorbereiding.
+- Geïnstalleerd/gecontroleerd: E32 alpha21 (bron `f96cda7`) + HA dev27 (bron `faf8272`).
+- Actueel uitrolbewijs: `out/boiler-profile-rollout-20261024/FINAL-INDEPENDENT-LIVE.json`; profielkeuze en HA-overzicht live geverifieerd. Laatste26veldwaarden, eerdereboot27; bronontvangst blijft modelonafhankelijk.
 - Bij de latere README-opname zijn verse Classic-berichten ontvangen; TX/actuatoruitgangen blijven geblokkeerd.
 - Het huidige bronwerk loopt vóór op de geïnstalleerde passieve release; publiceer/installeer geen actieve bèta op basis van alleen een geslaagde bronbuild.
 - Broncheckpoint `60c548f`: volledige GitHub CI 40027429946 PASS; 69-velden-HA-projectie voorbereid, nog niet geïnstalleerd.
@@ -229,3 +229,23 @@ Alpha20/dev26 is live; 69 definities, 27 waarden (25 reported +2 inferred) en be
 ### Exacte gebruikersbevestiging ketelmodel (24 oktober 2026)
 
 Gebruiker bevestigt **Nefit Ecomline Classic HRC 22H**; eerdere HR22H/H22-alternatieven zijn hiermee historisch. Bronprofiel: `boiler-profiles/nefit-ecomline-classic-hrc-22h.json`. Exacte keuze op E32 Home/Settings voorbereid voor alpha21; oudere generieke keuze blijft geldig. Originele NVS-opslag/readback met foutinvoer en 4 browserprofielen PASS. Geen nominale specificaties of fysieke controlkwalificatie afgeleid uit de modelnaam; alle beschikbare velden blijven onafhankelijk van de modelkeuze gelezen. HA dev27-overzichtsrelease hoort hierbij en verandert niet door de E32-profieltoevoeging.
+
+### Actueel geleverd: alpha21/HA27 en HRC22H
+
+De uitrol is voltooid en onafhankelijk gecontroleerd: exact geselecteerd model
+`nefit-ecomline-classic-hrc-22h`, firmware-ELF/webhash,79 HA-bestanden, gezonde
+HA27-opstart,47 native veldreferenties en3 historiekaarten. Alle105 IDs en
+gebruikersinstellingen behouden; alleen het gevraagde displaymodel gewijzigd.
+SOURCE4 is de juiste huidige baseline na bewezen dagelijkse UTC-horizonverversing;
+geen reset naar3. Laatste26 actuele HA/REST-waarden komen overeen na de normale
+wire→HA-unitconversie. NOT_READY blijft gelden voor actieve fysieke aansturing.
+
+De eerste+1h-nativejob was FAILED/UNKNOWN door een onjuist gevormde beheeraanroep.
+`MONITOR-ROUTE-TEMPLATE.json` in de HA-agentworkspace bewijst de juiste URLencoded
+stringbody + form-header, geen poort. HA-registry/current/history eerst; optioneel
+E32-supplement mag geslaagde HA-data niet weggooien. Toekomstige+6h/+24h-payloads
+zijn hersteld met behouden tijden en overige jobs. Native geïsoleerde retry van
+de bestaande uitgeschakelde foutjob is PASS:26 actuele veldwaarden,629 begrensde
+Recorder-rijen over67 entiteiten; historie gedeeltelijk, oude1h-gap ongewijzigd.
+Retryjob na succes native verwijderd, geen nieuwe joblaag. Vervolgobservaties
+blijven op de bestaande+6h/+24h-tijden staan.

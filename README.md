@@ -13,7 +13,7 @@ en welke nog op de roadmap staan.
 [Mogelijkheden](#alle-mogelijkheden) · [Roadmap](#wat-we-nog-gaan-bouwen) ·
 [Screenshots](#screenshots) · [Documentatie](#documentatie)
 
-**Geïnstalleerd en gecontroleerd: E32 alpha20 + Home Assistant dev26.** Kamerinrichting,
+**Geïnstalleerd en gecontroleerd: E32 alpha21 + Home Assistant dev27.** Kamerinrichting,
 weekprogramma’s, interfaces en passief uitlezen zijn beschikbaar. De regelkern
 is grotendeels voorbereid, maar actieve kamer- en ketelaansturing zijn nog niet
 vrijgegeven op de E32 V2. De huidige native inrichting ondersteunt **1–2 kamers,
@@ -50,7 +50,7 @@ compatibiliteitsverklaring voor iedere TV02-variant.
 
 | Mogelijkheid | Wat je ermee kunt | Status |
 | --- | --- | --- |
-| Je eigen ketel op Home | Model kiezen onder Settings → Mijn ketel, met een lokale illustratie op de beginpagina | **Beschikbaar** voor de Classic-familie; het bevestigde profiel [Nefit Ecomline Classic HRC 22H](docs/modern-thermostat/boiler-profiles/nefit-ecomline-classic-hrc-22h.json) volgt in alpha21. Keuze blijft op de E32 bewaard |
+| Je eigen ketel op Home | Model kiezen onder Settings → Mijn ketel, met een lokale illustratie op de beginpagina | **Beschikbaar**, inclusief [Nefit Ecomline Classic HRC 22H](docs/modern-thermostat/boiler-profiles/nefit-ecomline-classic-hrc-22h.json); volledige modelnaam en familie-illustratie. Keuze blijft op de E32 bewaard |
 | EMS-ketelgegevens uitlezen | Beschikbare temperaturen, doelen, modulatie en overige gedecodeerde ketelwaarden bekijken | **Beschikbaar**; verse Classic-berichten ontvangen op de E32 |
 | Classic en EMS Plus | Decoderbasis voor beide protocolfamilies behouden | **Beschikbaar als basis**; velddekking en ondersteuning blijven ketelafhankelijk |
 | Datakwaliteit | Zien of een waarde gemeten, afgeleid, verouderd, onbetrouwbaar of niet beschikbaar is | **Beschikbaar** |
@@ -88,10 +88,10 @@ EMS-ESP-velddekking of ondersteuning voor iedere ketel/converter.
 | --- | --- | --- |
 | Eigen HA-integratie en dashboard | Kamerpagina’s, klimaatbediening, inrichting en weekplanner in één omgeving | **Beschikbaar** |
 | Bestaande HA-apparaten gebruiken | Sensoren en klimaatapparaten uit HA selecteren, met controle op eenheden, grenzen en stapgrootte | **Beschikbaar**; regelkwalificatie per apparaat blijft nodig |
-| Ketelvelden in HA | 69 huidige Classic-velddefinities met bronleeftijd, eenheden en kwaliteit via de bestaande verbinding; modelkeuze begrenst de ontvangst niet | **Beschikbaar** in alpha20/dev26; 27 waarden met de E32 vergeleken, waarvan 25 gerapporteerd en 2 afgeleid. De overzichtskaarten worden aangevuld in HA dev27. [Details](docs/modern-thermostat/BOILER-FIELDS-V1.md) |
+| Ketelvelden in HA | 69 huidige Classic-velddefinities met bronleeftijd, eenheden en kwaliteit via de bestaande verbinding; modelkeuze begrenst de ontvangst niet | **Beschikbaar** met eigen overzicht en drie historiekaarten in HA dev27. Waarde, eenheid en kwaliteit zijn met de E32 vergeleken; gerapporteerde en afgeleide velden staan apart. [Details](docs/modern-thermostat/BOILER-FIELDS-V1.md) |
 | Externe wandbediening | Kamerdoelen vanuit andere bedieningen overnemen zonder terugkoppellussen | Basis **voorbereid**; complete route **gepland** |
 | E32-webinterface | Installatie, kamernamen, doelen, berekende vraag en beschikbare ketelwaarden bekijken | **Beschikbaar** |
-| Nederlands en Engels / Dutch and English | E32: taalkeuze in menu en bij aanmelden/wifi-installatie. HA: profieltaal voor kamereditor en native vertalingen; vaste opgeslagen dashboardteksten vallen terug op Engels | **Beschikbaar** in alpha20/dev26; Engels is standaard en terugval |
+| Nederlands en Engels / Dutch and English | E32: taalkeuze in menu en bij aanmelden/wifi-installatie. HA: profieltaal voor kamereditor en native vertalingen; vaste opgeslagen dashboardteksten vallen terug op Engels | **Beschikbaar**; Engels is standaard en terugval |
 | Uitleg waarom er vraag is | Regelstatus en redenen voor warmtevraag of blokkering zien | **Beschikbaar als diagnosebasis**; echte opdracht-/reactietijdlijn volgt |
 | Grafieken, historie en CSV | Temperatuur, vraag, brander/modulatie en tapwater over tijd analyseren | Metrics-/opslag-/exportcode **voorbereid**; volledige actuele productroute nog afronden |
 | Verbruik, kosten en comfort | Metergegevens en duidelijk gelabelde schattingen combineren | **Deels voorbereid**; echte bronnen/kalibratie en presentatie volgen |

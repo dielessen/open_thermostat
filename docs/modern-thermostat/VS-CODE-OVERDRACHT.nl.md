@@ -11,7 +11,7 @@ Bijgewerkt 24 oktober 2026 na de native TV02-ontvangst/lifecycle.
 
 ## Actuele bron en installatie
 
-Voorbereide gezamenlijke kandidaat: alpha23/dev28 (TV02-ontvangstweergave,
+Voorbereide gezamenlijke kandidaat: alpha23/dev29 (TV02-ontvangstweergave,
 systeemlog/syslog en incrementeel dashboard). Nog niet geïnstalleerd.
 Bewijs en actuele releasecontroles: `out/next-release-20261024/`.
 

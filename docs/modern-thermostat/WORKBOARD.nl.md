@@ -996,3 +996,11 @@ ongewijzigd: de testcompile geeft de standaardheader expliciet mee. De bestaande
 alpha22-tag wordt niet herschreven; de gezamenlijke E32-kandidaat wordt alpha23.
 HA dev28 houdt zijn ongewijzigde componentbron en eigen onafhankelijke gates.
 Installatie blijft pending totdat de nieuwe E32-pakketcontroles groen zijn.
+
+
+Pakketcontrole vóór publicatie: HA dev28 bevatte nog de historische dev27-
+pakketnotities. De tag-run is vóór publicatie gestopt; tag/bron blijven bewaard.
+Dev29 krijgt de complete oorspronkelijke TV02-/lifecycle-/UI-notities en behoudt
+expliciet de identieke dev28/v28-frontendbytes en -identiteit. De gezamenlijke
+kandidaat is daarom alpha23/dev29. Geen extra functionele versie tussentijds
+geïnstalleerd. Alle openbare gates moeten op de definitieve bron groen zijn.

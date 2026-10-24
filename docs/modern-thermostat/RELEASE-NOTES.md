@@ -1,4 +1,4 @@
-# E32 V2 alpha23 + Home Assistant dev28 — logging en stabiele bediening
+# E32 V2 alpha23 + Home Assistant dev29 — logging en stabiele bediening
 
 Alpha22 bleef een niet-gepubliceerde kandidaat: de openbare native loggertest
 vereiste een expliciete cstdint-header bij de vendorcompilatie. Die testbuild is
@@ -16,7 +16,7 @@ alpha21/dev27. Geen vrijgave voor actieve ketel- of kraanaansturing.
 - E32-dashboard: meetwaarden verversen zonder open details, toetsenbordfocus,
   scrollpositie of de ketelillustratie opnieuw op te bouwen. Statusverzoeken
   overlappen niet; verbindingsfouten laten de pagina staan met een melding.
-- HA: oorspronkelijke TV02-datapointontvangst via de bestaande native MQTT-
+- HA dev29: oorspronkelijke TV02-datapointontvangst via de bestaande native MQTT-
   lifecycle, met expliciete bronpins, ouderdoms- en identiteitscontrole.
   De kamerpagina toont beschikbare oorspronkelijke rapporten in English of
   Nederlands, inclusief gerapporteerd doel, eigen kraantemperatuur, programma,

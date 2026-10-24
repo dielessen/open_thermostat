@@ -1,3 +1,32 @@
+# HA 0.4.0.dev29 — oorspronkelijke TV02-ontvangst zichtbaar
+
+Bundelt de voorbereide oorspronkelijke TV02-datapointontvangst via de bestaande
+native MQTT-verbinding en registry-lifecycle. Ontvangst is begrensd, controleert
+de expliciet vastgelegde apparaatidentiteit en bronleeftijd en maakt verouderde,
+retained, herhaalde of verkeerd gekoppelde rapporten niet opnieuw actueel.
+De standaard bronpinlijst blijft leeg. Productiebronpins, Zigbee2MQTT-extension
+installatie en echte oorspronkelijke rapportontvangst moeten apart beoordeeld
+worden; de update schakelt deze niet automatisch in.
+
+De kamereditor toont beschikbare oorspronkelijke rapporten in Nederlands of
+Engels: gemeld doel, eigen kraantemperatuur, programma, verwarmingsstop en
+vorstbeveiliging. De ontvangstouderdom geldt bij laden. Ontvangst is geen
+opdrachtbevestiging, klepstand, bewezen warmteafgifte of aansturingsvrijgave.
+Verlopen, onderbroken of ongeldige rapporten tonen geen oude datapointwaarden.
+Conceptwijzigingen gebruiken niet de diagnose van een oude opgeslagen koppeling.
+
+De gewijzigde editor heeft de eigen dev28/v28-cache-/kaartidentiteit; dev29
+behoudt diezelfde frontendbytes en voegt complete pakketnotities toe.
+Bestaande handmatige kaarten blijven compatibel. Er is geen extra polling,
+MQTT-client, automatische kraanmodusreparatie of setpointopdracht toegevoegd.
+Bestaande meetentiteiten, historie, kamers, weekprogramma's, SOURCE en apparaat-
+identiteiten blijven behouden. Dit is de gezamenlijke passieve testbatch met
+E32 alpha23 (logging/syslog en stabiele dashboardverversing). Fysieke
+ketel-/kraanuitgangen blijven geblokkeerd en de actieve bèta blijft open.
+
+Dev28 bleef een ongepubliceerde pakketkandidaat; de bestaande tag blijft
+behouden. Dev29 bevat de volledige bijgewerkte Nederlandstalige pakketnotities.
+
 # HA 0.4.0.dev27 — actuele ketelvelden zichtbaar in het overzicht
 
 Het beheerde keteloverzicht gebruikt nu de native ketelsensoren die met

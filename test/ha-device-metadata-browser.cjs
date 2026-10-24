@@ -23,7 +23,7 @@ const metadata={bridge:{version:'2.14.2',zigbee_herdsman_converters_version:'26.
   await page.evaluate(async text=>{await import('data:text/javascript;base64,'+text)},source.toString('base64'));
   await page.evaluate(({initial,metadata,language})=>{
    window.model=structuredClone(initial);window.metadata=structuredClone(metadata);window.calls=[];window.mode='ok';
-   const card=window.card=document.createElement('openthermostat-room-editor-v28');document.querySelector('main').append(card);
+   const card=window.card=document.createElement('openthermostat-room-editor-v35');document.querySelector('main').append(card);
    card.setConfig({entry_id:model.entry_id,room_id:model.room_id});
    card.hass={language,user:{is_admin:true},callWS:async request=>{
     calls.push(structuredClone(request));
@@ -36,7 +36,7 @@ const metadata={bridge:{version:'2.14.2',zigbee_herdsman_converters_version:'26.
     throw Error('Unexpected or write request');
    }};
   },{initial,metadata,language});
-  const nl=language==='nl',card=page.locator('openthermostat-room-editor-v28');await card.locator('#name').waitFor();
+  const nl=language==='nl',card=page.locator('openthermostat-room-editor-v35');await card.locator('#name').waitFor();
   assert.match(await card.locator('.measurement-state').innerText(),nl?/oorspronkelijk sensorbericht is ontvangen/:/original sensor report was received/);
   assert.match(await card.locator('.measurement-state').innerText(),nl?/getoetst meetprofiel ontbreekt/:/reviewed measurement profile is still missing/);
   await page.evaluate(()=>{card._model.measurement.original_report.status='stale';card.renderMeasurementStatus();});

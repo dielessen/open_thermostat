@@ -1773,3 +1773,44 @@ Tuya-sequence1, optimistische HA-state en een gelijke doelwaarde blijven onvoldo
 voor causale ACK/readiness. B05 en de gezamenlijke release blijven open.
 Bewijs: `out/actuator-owner-loss-20261024/`; uitsluitend synthetische services en
 echte HA-registers, geen productieactie of fysieke kraan-/ketelopdracht.
+
+
+## Grotere vervolgbundel: ontvangst, loghistorie en betrouwbare bediening (24 oktober 2026)
+
+Deze samenhangende softwarepunten zijn toegevoegd aan de gezamenlijke release:
+
+| Planonderdeel | Voorbereide uitwerking | Nog open |
+| --- | --- | --- |
+| WP05 / I14 kraanontvangst | EN/NL-berichttype, ontvangstouderdom en aanwezige gegevensnamen zichtbaar na verval; oude waarden blijven verborgen | Echte unieke zendtransactie, causale echo, readiness en fysieke proef |
+| I09 / R29 HA-kaart laden | Unieke volgende frontend-URL/tag v35; registratie naast bestaande v28 en compatibele handmatige tags | Normale gezamenlijke levering en echte koude sessies met deze nieuwe versie |
+| WP07 / I11 systeemlog | Volledige batchvalidatie vóór historie/cursor, oplopende begrensde volgnummers en correcte bootwissel | Collector-/langdurige belasting- en fysieke uitvalproeven |
+| WP08 / R28 loginstellingen | Onzekere opslag blokkeert nieuwe submit; invoer behouden, heropenen leest opgeslagen waarden | Gezamenlijke installatie en fysieke opslag-/powerlossacceptatie |
+| I05 / R29 ketelprofielkeuze | Afzonderlijke GET na POST, echo is geen opgeslagen toestand; begrensde verzoeken en geen herhaalde submit na onzeker resultaat | Nieuwe gezamenlijke levering; profielkeuze verleent geen ketelvrijgave |
+
+Drie scenario's falen aantoonbaar op de vorige bron: ontbrekende ontvangstmetadata,
+logcursor3 in plaats van2 na een ongeldige suffix, en opnieuw beschikbare opslag
+na een onzekere ketelwrite. De nieuwe browserproeven controleren ook een correct
+POST-antwoord zonder opgeslagen ketelkeuze en een verloren GET-readback na een
+wel opgeslagen write. Geen succesmelding of replay bij die onzekere afloop.
+
+Dit is bronvoorbereiding voor dezelfde grotere release. Geïnstalleerd blijven
+HA dev34/frontend v28 en E32 alpha26; geen nieuwe tag, livepatch, HA-herstart,
+firmwareflash, syslogbestemming of kraan-/ketelopdracht. De volgende beheerde
+frontend gebruikt alvast de ongebruikte dev35-URL/v35-tag; de manifestversie
+wordt bij de gezamenlijke freeze gecontroleerd. Alle 23 inventarisonderdelen
+blijven behouden, B04–B14 en de oorspronkelijke M2-volgorde blijven open.
+Bewijs: `out/release-diagnostics-bundle-20261024/`.
+
+
+Afgeronde softwaredeelpunten van deze bundel (nog niet geïnstalleerd):
+
+- [x] Oorspronkelijke TV02-ontvangstmetadata in de EN/NL-editor aangesloten.
+- [x] Ongeldige/verlopen datapointwaarden blijven verborgen; ingetrokken bron
+  toont geen oude ontvangstsamenvatting.
+- [x] Volledige logbatch valideren vóór incrementele cursor en historie wijzigen.
+- [x] Onzekere loginstellingen kunnen vanuit dezelfde pagina niet opnieuw worden verstuurd.
+- [x] Ketelprofielkeuze onafhankelijk teruglezen; POST-echo alleen geeft geen succes.
+- [x] Ketelverzoeken begrensd; verloren readback blokkeert herhaling en behoudt het concept.
+- [x] Nieuwe beheerde HA-module/tag naast v28, met behoud van handmatige kaarttags.
+
+Deze deelpunten veranderen de oorspronkelijke vrijgavechecks B04–B14 niet.

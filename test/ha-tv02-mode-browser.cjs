@@ -24,14 +24,14 @@ const output=path.resolve(process.env.OPENTHERMOSTAT_TV02_EVIDENCE||path.join(__
        issues:issue?[issue]:[],authorizes_actuation:false}}]};
    };
    setMode('local_schedule_active','auto');
-   window.card=document.createElement('openthermostat-room-editor-v28');document.querySelector('main').append(card);
+   window.card=document.createElement('openthermostat-room-editor-v35');document.querySelector('main').append(card);
    card.setConfig({entry_id:model.entry_id,room_id:model.room_id});
    card.hass={language,user:{is_admin:true},callWS:async request=>{
     calls.push(request.type);if(request.type!=='open_thermostat/room/get')throw Error('Unexpected write');
     return structuredClone(model);
    }};
   },{initial,language});
-  const card=page.locator('openthermostat-room-editor-v28'),review=card.locator('.target-review[aria-label]');
+  const card=page.locator('openthermostat-room-editor-v35'),review=card.locator('.target-review[aria-label]');
   await review.waitFor();
   assert((await review.textContent()).includes(language==='nl'?'eigen weekprogramma':'automatic scheduling'));
   await review.screenshot({path:path.join(output,`AUTO-${width}-${language}.png`)});
@@ -65,8 +65,36 @@ const output=path.resolve(process.env.OPENTHERMOSTAT_TV02_EVIDENCE||path.join(__
    assert(!(await original.textContent()).includes(language==='nl'?'21,5':'21.5'));
    assert.equal(await original.locator('dl').count(),0);
   }
+  // Expired values stay hidden while the bounded reception summary is useful.
+  await page.evaluate(async()=>{
+   model.actuator_target_review.actuators[0].original_report={status:'stale',received_age_ms:null,fields:{},
+    command_correlated:false,valve_ready:false,control_qualified:false,
+    last_reception:{scope:'reception_only',message_kind:'commandDataReport',received_age_ms:125000,
+     properties:['target_centi_c','preset']}};await card.load();
+  });
+  const reception=original.locator('.valve-reception-metadata');
+  assert.equal(await reception.count(),1);
+  assert((await reception.innerText()).includes(language==='nl'?'Apparaatrapport':'Device report'));
+  assert((await reception.innerText()).includes('125'));
+  assert((await reception.innerText()).includes(language==='nl'?'Aanwezige gegevens':'Present data'));
+  assert.equal(await original.locator('dl').count(),0);
+  await original.screenshot({path:path.join(output,`STALE-RECEPTION-${width}-${language}.png`)});
+  await page.evaluate(async()=>{model.actuator_target_review.actuators[0].original_report.last_reception.received_age_ms=null;await card.load();});
+  assert((await reception.innerText()).includes(language==='nl'?'ouderdom onbekend':'age unknown'));
+  for(const patch of [{scope:'qualified'},{message_kind:{toString:7}},{message_kind:'<img src=x>'},{received_age_ms:-1},
+   {received_age_ms:Number.MAX_SAFE_INTEGER+1},{properties:['target_centi_c','target_centi_c']},
+   {properties:['private_device_ieee']},{properties:[]},{properties:['<img src=x>']}]){
+   await page.evaluate(async patch=>{model.actuator_target_review.actuators[0].original_report.last_reception={
+    scope:'reception_only',message_kind:'commandDataReport',received_age_ms:125000,properties:['preset'],...patch};await card.load();},patch);
+   assert.equal(await reception.count(),0);assert.equal(await original.locator('dl,img,script').count(),0);
+  }
+  for(const state of ['waiting','disconnected','binding_changed','clock_invalid','run_limit','closed']){
+   await page.evaluate(async state=>{model.actuator_target_review.actuators[0].original_report.status=state;
+    model.actuator_target_review.actuators[0].original_report.last_reception={scope:'reception_only',message_kind:'commandDataReport',received_age_ms:1,properties:['preset']};await card.load();},state);
+   assert.equal(await reception.count(),0);
+  }
   // A malformed/unknown payload never becomes a readiness claim or arbitrary HTML.
-  for(const patch of [{status:'<img src=x onerror=alert(1)>'},{command_correlated:true},{valve_ready:true},
+  for(const patch of [{status:{toString:7}},{status:'<img src=x onerror=alert(1)>'},{command_correlated:true},{valve_ready:true},
    {control_qualified:true},{received_age_ms:-1},{fields:{target_centi_c:'2150'}},
    {fields:{local_temperature_centi_c:6001}},{fields:{preset:'<img src=x>'}},
    {fields:{heating_stop:'false'}},{fields:{frost_protection:0}},{fields:{unexpected:'payload'}}]){
@@ -88,7 +116,7 @@ const output=path.resolve(process.env.OPENTHERMOSTAT_TV02_EVIDENCE||path.join(__
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   assert.deepEqual(await page.evaluate(()=>[...new Set(calls)]),['open_thermostat/room/get']);
   assert.deepEqual(errors,[]);
-  results.push({width,language,result:'PASS',readOnly:true,noModeRepair:true,originalReportStates:true,typedFieldsAndZeroFalse:true,invalidReportsHidden:true,draftIsolated:true,physicalReadinessClaimed:false});
+  results.push({width,language,result:'PASS',readOnly:true,noModeRepair:true,originalReportStates:true,typedFieldsAndZeroFalse:true,invalidReportsHidden:true,staleReceptionMetadata:true,invalidReceptionHidden:true,draftIsolated:true,physicalReadinessClaimed:false});
   await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(output,'RESULT.json'),JSON.stringify({status:'PASS',results},null,2)+'\n');

@@ -258,3 +258,24 @@ terug. Deze metadata is uitsluitend `reception_only`, bevat geen apparaat-/
 produceridentiteiten en wordt bij disconnect, bronwissel of klokfout ingetrokken.
 Niet veilig als JSON-getal uitdrukbare ouderdom blijft null. De metadata verleent
 geen opdracht-, klep-, meet- of flowkwalificatie. Dit is nog niet geïnstalleerd.
+
+
+## Ontvangstdiagnose afgemaakt in de voorbereide HA-editor
+
+De volgende editor toont optionele `last_reception` nu ook na verval: vertaald
+berichttype, ontvangstouderdom bij laden (of expliciet onbekend) en namen van
+maximaal vijf aanwezige gegevens. Het gaat uitsluitend om ontvangstmetadata;
+verlopen datapointwaarden blijven verborgen. Bij intrekking/disconnect/klokfout
+wordt deze samenvatting niet getoond. Onbekende soorten, kwalificatiescope,
+dubbele/onbekende propertynamen en onveilige ouderdom worden niet weergegeven.
+Er komen geen privé-identiteiten, ruwe payloads, opdrachtbevestiging of readiness bij.
+
+De beheerde editor krijgt een nieuwe, nog niet geleverde URL
+`week-planner-0.4.0.dev35.js` en tag `openthermostat-room-editor-v35`. Daardoor
+kan een reeds geregistreerde v28 de volgende beheerde kaart niet verdringen.
+Bestaande handmatige kaarttags blijven compatibel. HA blijft geïnstalleerd op
+dev34 met frontend v28; de integratieversie wordt pas bij de gezamenlijke freeze
+gewijzigd. Browserproeven gebruiken NL/EN en 1440/390/320 px; een bestaande v28
+is ook vóór import van de volgende versie geregistreerd. Geen nieuwe polling,
+apparaatopdracht, productie-installatie of fysieke vrijgave.
+Bewijs: `out/release-diagnostics-bundle-20261024/`.

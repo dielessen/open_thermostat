@@ -7,7 +7,7 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
 (async()=>{
  fs.mkdirSync(output,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});const results=[];
  try{for(const [name,viewport] of [['desktop',{width:1440,height:1000}],['mobile',{width:390,height:844}],['narrow',{width:320,height:844}],['narrow-wide-font',{width:320,height:844}]]){
-  const page=await browser.newPage({viewport});const errors=[],requests=[];let stored='none',failSave=false,invalidRead=false;
+  const page=await browser.newPage({viewport});const errors=[],requests=[];let stored='none',failSave=false,invalidRead=false,echoOnly=false,holdReadback=false,heldReadback=null;
   page.on('pageerror',error=>errors.push(error.message));
   await page.route('http://opth.test/**',async route=>{
    const request=route.request(),url=new URL(request.url()),p=url.pathname;
@@ -15,10 +15,11 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
    if(p==='/auth/session')return route.fulfill({contentType:'application/json',body:JSON.stringify({authenticated:true,csrf:'a'.repeat(64)})});
    if(p==='/status')return route.fulfill({contentType:'application/json',body:JSON.stringify(status)});
    if(p==='/config/boiler-display'){
+    if(holdReadback&&request.method()==='GET'){heldReadback=route;return;}
     if(request.method()==='POST'){
      if(failSave)return route.fulfill({status:503,body:'storage failure'});
      const body=request.postDataJSON();assert.deepEqual(Object.keys(body),['model']);
-     assert(['none','nefit-ecomline-classic','nefit-ecomline-classic-hrc-22h'].includes(body.model));stored=body.model;
+     assert(['none','nefit-ecomline-classic','nefit-ecomline-classic-hrc-22h'].includes(body.model));if(echoOnly)return route.fulfill({contentType:'application/json',body:JSON.stringify({model:body.model})});stored=body.model;
     }
     return route.fulfill({contentType:'application/json',body:JSON.stringify({model:invalidRead?'<img src=https://foreign.test/p.png>':stored})});
    }
@@ -54,16 +55,41 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
   await page.getByRole('status').filter({hasText:'Opslaan kon niet worden bevestigd'}).waitFor();
   assert.equal(stored,'nefit-ecomline-classic-hrc-22h');
   assert.equal(await page.locator('#boiler-model').inputValue(),'none');
-  failSave=false;await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).click();
+  assert(await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).isDisabled());
+  const writesBeforeRetry=requests.filter(r=>r.method==='POST').length;
+  await page.evaluate(()=>document.querySelector('#boiler-model').closest('form').requestSubmit());
+  assert.equal(requests.filter(r=>r.method==='POST').length,writesBeforeRetry);
+  failSave=false;echoOnly=true;
+  await page.evaluate(()=>loadNativePage('boiler_display'));await page.locator('#boiler-model:enabled').waitFor();
+  await page.locator('#boiler-model').selectOption('none');
+  await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).click();
+  await page.getByRole('status').filter({hasText:'Opslaan kon niet worden bevestigd'}).waitFor();
+  assert.equal(stored,'nefit-ecomline-classic-hrc-22h','POST echo is not persisted readback');
+  assert(await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).isDisabled());
+  echoOnly=false;await page.evaluate(()=>loadNativePage('boiler_display'));await page.locator('#boiler-model:enabled').waitFor();
+  await page.locator('#boiler-model').selectOption('none');
+  await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).click();
   await page.getByRole('status').filter({hasText:'Ketelkeuze opgeslagen'}).waitFor();
   await page.evaluate(()=>mainScreen());await page.locator('#boiler-home').waitFor();
   assert.equal(await page.locator('#boiler-home img').count(),0);
+  if(name==='desktop'){
+   await page.locator('#boiler-home a').click();await page.locator('#boiler-model:enabled').waitFor();
+   await page.locator('#boiler-model').selectOption('nefit-ecomline-classic-hrc-22h');
+   holdReadback=true;const beforeTimeout=requests.filter(r=>r.method==='POST').length;
+   await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).click();
+   await page.getByRole('status').filter({hasText:'Opslaan kon niet worden bevestigd'}).waitFor({timeout:8000});
+   assert(heldReadback,'independent readback was not attempted');
+   assert.equal(stored,'nefit-ecomline-classic-hrc-22h','timeout must not assume the write failed');
+   assert(await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).isDisabled());
+   assert.equal(requests.filter(r=>r.method==='POST').length,beforeTimeout+1,'lost readback retried a mutation');
+   holdReadback=false;await heldReadback.fulfill({contentType:'application/json',body:JSON.stringify({model:stored})});
+  }
   invalidRead=true;await page.reload();
   await page.getByRole('heading',{name:'Ketelkeuze niet beschikbaar'}).waitFor();
   assert.equal(await page.locator('#boiler-home img').count(),0);
   assert(!requests.some(r=>r.path.includes('foreign.test')));
   assert(requests.filter(r=>r.method==='POST').every(r=>r.path==='/config/boiler-display'&&r.csrf==='a'.repeat(64)));
-  assert.deepEqual(errors,[]);results.push({viewport:name,result:'PASS',saved_model_display:true,readback_after_reload:true,save_failure_preserves_draft:true,unknown_model_not_rendered:true,control_writes:0});
+  assert.deepEqual(errors,[]);results.push({viewport:name,result:'PASS',saved_model_display:true,readback_after_reload:true,save_failure_preserves_draft:true,uncertain_save_no_replay:true,post_echo_not_readback:true,unknown_model_not_rendered:true,control_writes:0});
   await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(output,'BROWSER.json'),JSON.stringify({result:'PASS',scope:'Shipped UI and SVG; simulated HTTP/storage, no physical device change',cases:results},null,2)+'\n');

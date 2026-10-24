@@ -8,6 +8,14 @@
             note: uiText("Classic monitoring via the Bosch EasyControl Adapter; control is still in beta development.")},
     });
     let selected = null, generation = 0;
+    async function request(options={}) {
+        const controller=new AbortController(),deadline=setTimeout(()=>controller.abort(),5000);
+        try {
+            const response=await fetch('/config/boiler-display',{cache:'no-store',...options,signal:controller.signal});
+            if(!response.ok)throw Error('request');
+            return await response.json();
+        } finally {clearTimeout(deadline);}
+    }
     function valid(data) { return data && typeof data.model === 'string' && Object.hasOwn(models, data.model); }
     function renderHome() {
         const box = document.getElementById('boiler-home');
@@ -32,9 +40,7 @@
     async function load() {
         const own = ++generation;
         try {
-            const response = await fetch('/config/boiler-display', {cache:'no-store'});
-            if (!response.ok) throw Error('read');
-            const data = await response.json();
+            const data = await request();
             if (!valid(data)) throw Error('model');
             if (own === generation) { selected = data.model; renderHome(); }
             return own === generation ? data.model : selected;
@@ -50,6 +56,7 @@
     }
     async function settings(root) {
         const select = root.querySelector('select'), save = root.querySelector('button[type=submit]');
+        let saving=false, uncertain=false;
         const message = root.querySelector('[role=status]'), preview = root.querySelector('figure');
         function picture() {
             preview.replaceChildren(); const model = models[select.value];
@@ -64,20 +71,22 @@
         }
         select.addEventListener('change',picture);
         root.addEventListener('submit',async event => {
-            event.preventDefault();const model = select.value;if (!Object.hasOwn(models,model)) return;
+            event.preventDefault();const model = select.value;if (saving||uncertain||!root.isConnected||!Object.hasOwn(models,model)) return;
+            saving=true;
             const own = ++generation;select.disabled = save.disabled = true;message.textContent = uiText("Saving…");
             try {
-                const response = await fetch('/config/boiler-display', {method:'POST',
+                const result = await request({method:'POST',
                     headers:{'Content-Type':'application/json'},body:JSON.stringify({model})});
-                if (!response.ok) throw Error('save');
-                const result = await response.json();
                 if (!valid(result) || result.model !== model) throw Error('readback');
+                const actual=await request();
+                if(!valid(actual)||actual.model!==model)throw Error('readback');
                 if (own === generation) {selected = model;renderHome();}
                 if (root.isConnected) message.textContent = uiText("Boiler selection saved. Your boiler appears on the home page.");
             } catch (_) {
+                uncertain=true;
                 if (own === generation) {selected = null;renderHome();}
                 if (root.isConnected) message.textContent = uiText("Saving could not be confirmed. Reload to check the saved selection.");
-            } finally {if (root.isConnected) select.disabled = save.disabled = false;}
+            } finally {saving=false;if (root.isConnected){select.disabled=false;save.disabled=uncertain;}}
         });
         select.disabled = save.disabled = true;
         try {

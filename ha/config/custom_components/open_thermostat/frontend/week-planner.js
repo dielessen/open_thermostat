@@ -6,6 +6,7 @@ const TEXT={
 };
 const clone=x=>JSON.parse(JSON.stringify(x));
 Object.assign(TEXT.nl,{
+ valveReceptionTitle:'Laatste ontvangst',valveReceptionProperties:'Aanwezige gegevens',valveReceptionAgeUnknown:'Ontvangstouderdom onbekend',valveReceptionKinds:{commandDataResponse:'Apparaatantwoord',commandDataReport:'Apparaatrapport',commandActiveStatusReport:'Actueel apparaatrapport',commandActiveStatusReportAlt:'Actueel apparaatrapport'},
  valveReportTitle:'Oorspronkelijk kraanbericht',valveReportAge:'Ontvangstouderdom bij laden',valveReportSeconds:'s',
  valveReportDisclaimer:'Een ontvangen doel is geen bevestiging van een opdracht, klepstand of geleverde warmte. De fysieke werking is nog niet bevestigd.',
  valveReportUnavailable:'De oorspronkelijke kraanontvangst is niet beschikbaar of kon niet worden beoordeeld.',
@@ -37,6 +38,7 @@ Object.assign(TEXT.nl,{
  reviewStep:'stap',reviewOutside:'valt buiten het kraanbereik',reviewRounds:'wordt afgerond naar',reviewDetails:'Temperaturen die aandacht vragen',reviewBase:'Basistemperatuur'
 });
 Object.assign(TEXT.en,{
+ valveReceptionTitle:'Last reception',valveReceptionProperties:'Present data',valveReceptionAgeUnknown:'Reception age unknown',valveReceptionKinds:{commandDataResponse:'Device response',commandDataReport:'Device report',commandActiveStatusReport:'Current device report',commandActiveStatusReportAlt:'Current device report'},
  valveReportTitle:'Original valve report',valveReportAge:'Reception age when loaded',valveReportSeconds:'s',
  valveReportDisclaimer:'A received target does not confirm a command, valve position or delivered heat. Physical operation is not confirmed yet.',
  valveReportUnavailable:'Original valve reception is unavailable or could not be assessed.',
@@ -218,7 +220,7 @@ class OpenThermostatRoomEditor extends HTMLElement{
   const box=el('section',null,{class:'original-valve-report'});parent.append(box);
   box.append(el('h4',this.t.valveReportTitle));
   const recognized=report&&report.command_correlated===false&&report.valve_ready===false&&report.control_qualified===false&&
-   Object.hasOwn(this.t.valveReportStates,report.status);
+   typeof report.status==='string'&&Object.hasOwn(this.t.valveReportStates,report.status);
   let valid=!!recognized;
   const fresh=recognized&&report.status==='received_unqualified',fields=report?.fields;
   const number=(value,min,max,step=1)=>Number.isSafeInteger(value)&&value>=min&&value<=max&&value%step===0;
@@ -240,6 +242,22 @@ class OpenThermostatRoomEditor extends HTMLElement{
     list.append(el('dt',this.t.valveReportFields[key]+':'),el('dd',text));
    }
    box.append(list);
+  }
+  // Optional reception-only metadata survives expiry; field values do not.
+  const reception=report?.last_reception;
+  if(valid&&['received_unqualified','stale'].includes(report.status)&&reception&&reception.scope==='reception_only'&&
+   typeof reception.message_kind==='string'&&Object.hasOwn(this.t.valveReceptionKinds,reception.message_kind)&&
+   (reception.received_age_ms===null||number(reception.received_age_ms,0,Number.MAX_SAFE_INTEGER))&&
+   Array.isArray(reception.properties)&&reception.properties.length>=1&&reception.properties.length<=5&&
+   new Set(reception.properties).size===reception.properties.length&&
+   reception.properties.every(key=>typeof key==='string'&&Object.hasOwn(this.t.valveReportFields,key))){
+   const details=el('div',null,{class:'valve-reception-metadata'});
+   details.append(el('h4',this.t.valveReceptionTitle),el('p',this.t.valveReceptionKinds[reception.message_kind]));
+   const age=reception.received_age_ms;
+   details.append(el('p',age===null?this.t.valveReceptionAgeUnknown:
+    `${this.t.valveReportAge}: ${new Intl.NumberFormat(this._hass.language||'en',{maximumFractionDigits:2}).format(age/1000)} ${this.t.valveReportSeconds}`));
+   details.append(el('p',`${this.t.valveReceptionProperties}: ${reception.properties.map(key=>this.t.valveReportFields[key]).join(', ')}`));
+   box.append(details);
   }
   box.append(el('small',this.t.valveReportDisclaimer));
  }
@@ -271,7 +289,8 @@ class OpenThermostatRoomEditor extends HTMLElement{
 }
 const STYLE=`:host{display:block;color:var(--primary-text-color,#233044);--accent:#e67638;--soft:color-mix(in srgb,var(--accent) 10%,var(--card-background-color,#fff))}*{box-sizing:border-box}ha-card{display:block;background:var(--ha-card-background,var(--card-background-color,#fff));border-radius:22px;padding:26px;max-width:1440px;margin:auto}header{margin-bottom:24px}.eyebrow{text-transform:uppercase;letter-spacing:.15em;font-size:.7rem;font-weight:700;color:var(--secondary-text-color,#657388)}h1{margin:6px 0;font-size:1.7rem;letter-spacing:-.03em}h2{font-size:1.25rem;margin:0 0 8px}h3{font-size:.95rem;margin:0 0 12px}.layout{display:grid;grid-template-columns:minmax(210px,290px) minmax(0,1fr);gap:30px}.settings{padding-right:24px;border-right:1px solid var(--divider-color,#e4e9ef)}.field{margin-bottom:18px}label{display:block;font-size:.85rem;font-weight:600;margin-bottom:7px}small,.help{display:block;font-size:.8rem;line-height:1.5;color:var(--secondary-text-color,#637184)}.field small{margin-top:6px}.binding-state{margin:-10px 0 18px;line-height:1.5;overflow-wrap:anywhere}.help{margin:0 0 18px}input,select{font:inherit;color:inherit;background:var(--card-background-color,#fff);border:1px solid var(--divider-color,#cbd5df);padding:10px 11px;border-radius:10px;width:100%;min-height:44px}input:disabled,select:disabled{opacity:.6}button{font:inherit;border:1px solid var(--divider-color,#d5dee7);background:transparent;color:inherit;border-radius:10px;padding:9px 13px;min-height:44px;cursor:pointer}button:hover{background:var(--soft)}button:disabled{opacity:.45;cursor:default}button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible,summary:focus-visible{outline:3px solid var(--primary-color,#079cc2);outline-offset:2px}details{border:1px solid var(--divider-color,#e1e7ed);border-radius:12px;padding:11px;margin:8px 0 16px}.target-review{border:1px solid var(--divider-color,#e1e7ed);border-radius:12px;padding:14px;margin:16px 0 20px;overflow-wrap:anywhere}.target-review h3{margin:0 0 8px}.target-review p{font-size:.8rem;line-height:1.5;margin:8px 0}.target-review article+article{border-top:1px solid var(--divider-color,#e1e7ed);padding-top:8px;margin-top:12px}.original-valve-report{border-top:1px solid var(--divider-color,#e1e7ed);margin-top:12px;padding-top:10px}.original-valve-report h4{font-size:.82rem;margin:0 0 8px}.original-valve-report dl{font-size:.78rem;line-height:1.5;margin:8px 0}.original-valve-report dt{font-weight:600}.original-valve-report dd{margin:0 0 7px}.target-review strong{font-size:.85rem}.target-review .attention{border-left:3px solid var(--accent);padding-left:9px}.target-review details{padding:8px;margin:10px 0}.target-review li{font-size:.78rem;line-height:1.5;margin:7px 0}.target-review ul{padding-left:18px;margin:8px 0}.target-review small{font-size:.72rem}summary{cursor:pointer;font-size:.85rem;font-weight:600;min-height:24px}.advanced{margin-top:22px}.advanced[open] summary{margin-bottom:18px}.check{display:flex;gap:9px;align-items:center;font-weight:400;margin:10px 0}.check input{width:20px;min-height:20px;flex:none}.axis,.day{display:grid;grid-template-columns:83px minmax(0,1fr) 38px;gap:7px;align-items:center}.axis>div{display:flex;justify-content:space-between;font-size:.7rem;color:var(--secondary-text-color,#708094)}.axis{margin:20px 0 8px}.day{margin-bottom:8px}.day-name{font-size:.78rem}.day>button{border:0;padding:4px;min-width:34px;font-size:1.3rem}.track{height:62px;border-radius:9px;position:relative;background:repeating-linear-gradient(to right,transparent 0,transparent calc(25% - 1px),var(--divider-color,#dce4ed) calc(25% - 1px),var(--divider-color,#dce4ed) 25%),var(--secondary-background-color,#f2f5f8);touch-action:pan-y;cursor:crosshair;overflow:hidden}.block{position:absolute;top:5px;bottom:5px;min-height:0;padding:4px 2px;border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);border-radius:6px;background:var(--soft);overflow:hidden;cursor:ew-resize;color:var(--primary-text-color,#243449);user-select:none}.block b{font-size:.88rem;display:block}.block small{font-size:.59rem;white-space:nowrap;overflow:hidden;color:inherit}.block.selected{background:var(--accent);color:#fff;border-color:var(--accent)}.empty{position:absolute;left:9px;top:22px;font-size:.72rem;color:var(--secondary-text-color,#8b98a8);pointer-events:none}.ghost{position:absolute;top:0;bottom:0;background:#e6763866;border:2px dashed var(--accent);font-size:.65rem;pointer-events:none;z-index:3;padding:6px;white-space:nowrap}.add{margin:10px 0 0}.inline{background:var(--secondary-background-color,#f5f7fa);padding:17px;border-radius:14px;margin-top:20px}.block-fields{display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:10px}.block-fields .field{margin-bottom:12px;min-width:0}.danger{color:var(--error-color,#b54335);background:var(--card-background-color,#fff)}.copy-days{display:flex;flex-wrap:wrap;gap:4px 15px}footer{display:flex;gap:10px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--divider-color,#e1e7ed);padding-top:18px;margin-top:25px}.status{flex:1 1 260px;font-size:.85rem;line-height:1.5;font-weight:600;margin:0}.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}.primary:hover{background:#d5662c}.fine{margin-top:13px;font-size:.72rem}.notice{padding:14px;border-radius:12px;background:var(--soft);line-height:1.5}@media(max-width:720px){ha-card{padding:18px;border-radius:16px}.layout{grid-template-columns:1fr;gap:25px}.settings{border:0;border-bottom:1px solid var(--divider-color,#e1e7ed);padding:0 0 15px}.axis,.day{grid-template-columns:64px minmax(0,1fr) 30px;gap:4px}.day-name{font-size:.7rem}.block small{display:none}.block b{font-size:.72rem}.empty{font-size:.61rem;left:5px}.block-fields{gap:7px}.block-fields label{font-size:.72rem}.block-fields input{padding:9px 5px}footer{padding-bottom:10px}footer .primary{flex:1}footer .status{flex-basis:100%}.fine{margin-top:6px}}`;
 // Versioned managed tag prevents an already registered old editor winning after an update.
-if(!customElements.get('openthermostat-room-editor-v28'))customElements.define('openthermostat-room-editor-v28',OpenThermostatRoomEditor);
+if(!customElements.get('openthermostat-room-editor-v35'))customElements.define('openthermostat-room-editor-v35',OpenThermostatRoomEditor);
+if(!customElements.get('openthermostat-room-editor-v28'))customElements.define('openthermostat-room-editor-v28',class extends OpenThermostatRoomEditor{});
 if(!customElements.get('openthermostat-room-editor-v25'))customElements.define('openthermostat-room-editor-v25',class extends OpenThermostatRoomEditor{});
 if(!customElements.get('openthermostat-room-editor-v24'))customElements.define('openthermostat-room-editor-v24',class extends OpenThermostatRoomEditor{});
 if(!customElements.get('openthermostat-room-editor'))customElements.define('openthermostat-room-editor',class extends OpenThermostatRoomEditor{});

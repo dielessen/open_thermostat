@@ -109,3 +109,22 @@ De E32-linkercontrole bevestigt ook dat de bestaande SDK-wrapper daadwerkelijk
 naar de nieuwe `log_printfv`-capture doorstuurt en dat de originele UART-functie
 behouden is. De onafhankelijke firmwarecontrole blijft slagen voor partities,
 dubbele OTA/SPIFFS, inert/defaultveilig gedrag en geen project-EMS-UART-TX.
+
+
+## Voorbereid voor de volgende gezamenlijke release
+
+De browser valideert een volledige logpagina vóór hij de historie of cursor
+bijwerkt. Een geldige beginregel vóór een ongeldige regel wordt niet meer
+verbruikt; de volgende normale leesbeurt vraagt dezelfde cursor opnieuw.
+Volgnummers blijven niet-negatief, oplopend en binnen de gemelde laatste regel.
+Een nieuwe boot begint met een lege browserhistorie en een eigen cursor. De
+limieten van acht regels per antwoord en 256 browserregels blijven behouden.
+Filtering, pauze, invoervelden en de bestaande incrementele polling blijven staan.
+
+Na een onzekere opslag van loginstellingen blijft het concept zichtbaar en is
+opnieuw opslaan vanuit die pagina geblokkeerd, ook bij een programmatische submit.
+Open de instellingen opnieuw om de opgeslagen waarden te lezen vóór een nieuwe
+expliciete opslag. Er volgt geen automatische retry of sysloginschakeling.
+Deze aanvulling is bronvoorbereiding, geen firmware-installatie of collectorproef.
+Browserbewijs en vergelijking met de oude bron:
+`out/release-diagnostics-bundle-20261024/`.

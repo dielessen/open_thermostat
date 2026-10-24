@@ -6,7 +6,7 @@ window.SystemLogPage = (() => {
     if(active)active.abort();
     const controller=new AbortController();active=controller;
     const {signal}=controller, get=id=>root.querySelector('#'+id), text=s=>uiText(s);
-    const state={rows:[],cursor:0,boot:null,paused:false,busy:false,dirty:false,saving:false,epoch:0};
+    const state={rows:[],cursor:0,boot:null,paused:false,busy:false,dirty:false,saving:false,uncertain:false,epoch:0};
     const alive=()=>!signal.aborted&&root.isConnected;
     let timer=null;
     const observer=new MutationObserver(()=>{if(!root.isConnected)controller.abort();});
@@ -42,18 +42,21 @@ window.SystemLogPage = (() => {
       try{
         const data=await request('/status/logs?after='+state.cursor);
         if(!alive()||state.paused||epoch!==state.epoch)return;
-        if(!Number.isSafeInteger(data.boot)||!Number.isSafeInteger(data.latest)||!Array.isArray(data.records)||data.records.length>8)throw Error('invalid');
-        if(state.boot!==null&&state.boot!==data.boot){state.cursor=0;state.rows=[];}
-        else{
-          for(const r of data.records){
-            if(!Number.isSafeInteger(r.sequence)||r.sequence<=state.cursor||!Number.isFinite(r.uptime_ms)||r.uptime_ms<0||!Number.isInteger(r.level)||r.level<1||r.level>5||typeof r.feature!=='string'||r.feature.length>16||typeof r.message!=='string'||r.message.length>192)throw Error('invalid');
-            state.rows.push(r);state.cursor=r.sequence;
-          }
-          state.rows=state.rows.slice(-256);
-          // Off or remote-only logging can advance the sequence without web rows.
-          if(data.records.length===0)state.cursor=Math.max(state.cursor,data.latest);
+        if(!Number.isSafeInteger(data.boot)||data.boot<0||!Number.isSafeInteger(data.latest)||data.latest<0||!Array.isArray(data.records)||data.records.length>8)throw Error('invalid');
+        const restarted=state.boot!==null&&state.boot!==data.boot;
+        let cursor=restarted?0:state.cursor;
+        if(!restarted&&data.latest<cursor)throw Error('invalid');
+        // Validate the WHOLE batch before changing history or its cursor. A bad
+        // suffix must not consume valid earlier rows and hide them on retry.
+        for(const r of data.records){
+          if(!r||!Number.isSafeInteger(r.sequence)||r.sequence<=cursor||r.sequence>data.latest||!Number.isFinite(r.uptime_ms)||r.uptime_ms<0||!Number.isInteger(r.level)||r.level<1||r.level>5||typeof r.feature!=='string'||r.feature.length>16||typeof r.message!=='string'||r.message.length>192)throw Error('invalid');
+          cursor=r.sequence;
         }
-        state.boot=data.boot;
+        // An old-boot cursor can suppress the new boot's first response. Retry
+        // from zero instead of treating that empty page as complete history.
+        if(data.records.length===0&&!restarted)cursor=Math.max(cursor,data.latest);
+        state.rows=(restarted?[]:state.rows).concat(data.records).slice(-256);
+        state.cursor=cursor;state.boot=data.boot;
         const count=k=>Number.isSafeInteger(data[k])&&data[k]>=0?data[k]:'?';
         get('log-counters').textContent=`${text('Overwritten')}: ${count('overwritten')} · ${text('Redacted')}: ${count('redacted')} · ${text('Truncated')}: ${count('truncated')} · ${text('Syslog sent (unconfirmed)')}: ${count('syslog_sent')} · ${text('Syslog dropped')}: ${count('syslog_dropped')} · ${text('Busy drops')}: ${count('contention_dropped')}`;
         get('log-status').textContent='';render();
@@ -81,7 +84,7 @@ window.SystemLogPage = (() => {
       get('log-port').value=s.port;get('log-syslog-level').value=s.syslog_level;get('log-web-level').value=s.web_level;get('log-mark').value=s.mark_interval_s;
     }
     on(form,'submit',async event=>{
-      event.preventDefault();if(state.saving||!form.reportValidity())return;
+      event.preventDefault();if(state.saving||state.uncertain||!form.reportValidity())return;
       const candidate={syslog_enabled:get('log-enabled').checked,server:get('log-server').value.trim(),port:Number(get('log-port').value),syslog_level:Number(get('log-syslog-level').value),web_level:Number(get('log-web-level').value),mark_interval_s:Number(get('log-mark').value)};
       state.saving=true;for(const input of form.querySelectorAll('input,select,button'))input.disabled=true;
       // No automatic retry of a mutation. Readback must match all requested values.
@@ -90,10 +93,10 @@ window.SystemLogPage = (() => {
         const actual=await request('/config/logging');
         if(!Object.keys(candidate).every(k=>saved[k]===candidate[k]&&actual[k]===candidate[k]))throw Error('readback');
         if(alive()){state.dirty=false;get('log-settings-status').textContent=text('Logging settings saved and verified.');}
-      }catch{if(alive())get('log-settings-status').textContent=text('Logging settings save could not be confirmed. Reload before retrying.');}
-      finally{state.saving=false;if(alive())for(const input of form.querySelectorAll('input,select,button'))input.disabled=false;}
+      }catch{state.uncertain=true;if(alive())get('log-settings-status').textContent=text('Logging settings save could not be confirmed. Reload before retrying.');}
+      finally{state.saving=false;if(alive()){for(const input of form.querySelectorAll('input,select,button'))input.disabled=false;get('log-save').disabled=state.uncertain;}}
     });
-    request('/config/logging').then(s=>{if(alive()){if(!state.dirty)fill(s);get('log-save').disabled=false;}})
+    request('/config/logging').then(s=>{if(alive()){if(!state.dirty&&!state.saving&&!state.uncertain)fill(s);get('log-save').disabled=state.saving||state.uncertain;}})
       .catch(()=>{if(alive())get('log-settings-status').textContent=text('Logging settings unavailable. Reload to retry.');});
     render();poll();
   }

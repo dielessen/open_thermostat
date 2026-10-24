@@ -6,7 +6,7 @@ const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.
  fs.mkdirSync(output,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});const results=[];
  try{for(const [lang,width]of [['en',1440],['nl',1440],['en',320],['nl',320]]){
   const page=await browser.newPage({viewport:{width,height:1000},acceptDownloads:true}),errors=[],requests=[];
-  let settings={syslog_enabled:false,server:'',port:514,syslog_level:3,web_level:3,mark_interval_s:0},failSave=false,logReads=0,boot=123;
+  let settings={syslog_enabled:false,server:'',port:514,syslog_level:3,web_level:3,mark_interval_s:0},failSave=false,logReads=0,boot=123,latest=2;const cursors=[];
   let rows=[{sequence:1,uptime_ms:1000,level:3,feature:'App',message:'ready'},
     {sequence:2,uptime_ms:2000,level:2,feature:'EMS',message:'<img src="https://foreign.test/x"> fault'}];
   page.on('pageerror',e=>errors.push(e.message));
@@ -19,8 +19,9 @@ const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.
    if(p==='/status')return json({controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}});
    if(p==='/config/boiler-display')return json({model:'none'});
    if(p==='/status/logs'){
-    ++logReads;const after=Number(url.searchParams.get('after')||0);
-    return json({boot,latest:2,oldest:rows[0]?.sequence||0,retained:rows.length,overwritten:4,truncated:1,redacted:2,syslog_dropped:3,syslog_sent:5,contention_dropped:0,records:rows.filter(r=>r.sequence>after).slice(0,8)});
+    ++logReads;const after=Number(url.searchParams.get('after')||0);cursors.push(after);
+    latest=Math.max(latest,...rows.map(r=>r.sequence));
+    return json({boot,latest,oldest:rows[0]?.sequence||0,retained:rows.length,overwritten:4,truncated:1,redacted:2,syslog_dropped:3,syslog_sent:5,contention_dropped:0,records:rows.filter(r=>r.sequence>after).slice(0,8)});
    }
    if(p==='/logs/clear'){assert.equal(req.method(),'POST');rows=[];return json({});}
    if(p==='/config/logging'){
@@ -41,6 +42,15 @@ const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.
   await page.waitForFunction(()=>document.querySelector('#log-lines')?.textContent.includes('fault'));
   assert.equal(await page.locator('#log-lines img').count(),0);
   assert.match(await page.locator('#log-counters').innerText(),lang==='nl'?/Overschreven: 4/:/Overwritten: 4/);
+  // A valid prefix followed by a malformed row must consume no cursor.
+  rows.push({sequence:3,uptime_ms:3000,level:3,feature:'App',message:'valid prefix'},
+    {sequence:4,uptime_ms:4000,level:9,feature:'App',message:'corrected suffix'});
+  await page.waitForFunction(()=>/unavailable|niet beschikbaar/.test(document.querySelector('#log-status')?.textContent));
+  assert(!(await page.locator('#log-lines').innerText()).includes('valid prefix'));
+  const invalidReadCount=logReads;rows[3].level=3;
+  await page.waitForFunction(()=>document.querySelector('#log-lines')?.textContent.includes('corrected suffix'));
+  assert.equal(cursors[invalidReadCount],2,'malformed batch advanced the incremental cursor');
+  assert.equal((await page.locator('#log-lines').innerText()).split('valid prefix').length-1,1);
   await page.locator('#log-pause').click();const paused=logReads;
   await page.waitForTimeout(2300);assert.equal(logReads,paused);
   await page.locator('#log-search').fill('EMS');assert(!((await page.locator('#log-lines').innerText()).includes('ready')));
@@ -56,11 +66,15 @@ const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.
   failSave=true;await page.locator('#log-port').fill('5515');await page.locator('#log-save').click();
   await page.waitForFunction(()=>/could not be confirmed|niet bevestigd/.test(document.querySelector('#log-settings-status')?.textContent));
   assert.equal(await page.locator('#log-port').inputValue(),'5515');assert.equal(settings.port,5514);
+  assert(await page.locator('#log-save').isDisabled());
+  const writesBeforeRetry=requests.filter(r=>r.path==='/config/logging'&&r.method==='POST').length;
+  await page.evaluate(()=>document.querySelector('#log-settings').requestSubmit());
+  assert.equal(requests.filter(r=>r.path==='/config/logging'&&r.method==='POST').length,writesBeforeRetry);
   await page.locator('#log-clear').click();await page.waitForFunction(()=>document.querySelector('#log-lines')?.textContent==='');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.screenshot({path:path.join(output,lang+'-'+width+'.png'),fullPage:true});
   if(lang==='en'&&width===1440){
-   ++boot;rows=[{sequence:1,uptime_ms:100,level:3,feature:'App',message:'after restart'}];
+   ++boot;latest=1;rows=[{sequence:1,uptime_ms:100,level:3,feature:'App',message:'after restart'}];
   }
   await page.locator('#log-pause').click();
   if(lang==='en'&&width===1440)await page.waitForFunction(()=>document.querySelector('#log-lines')?.textContent.includes('after restart'));
@@ -68,7 +82,7 @@ const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.
   const readsBeforeLeave=logReads;await page.evaluate(()=>mainScreen());await page.waitForTimeout(2300);assert.equal(logReads,readsBeforeLeave);
   assert(requests.filter(r=>r.method==='POST').every(r=>['/config/logging','/logs/clear'].includes(r.path)&&r.csrf==='a'.repeat(64)));
   assert(!requests.some(r=>r.origin!=='http://opth.test'));assert.deepEqual(errors,[]);
-  results.push({lang,width,result:'PASS',pause_filter_download:true,save_readback_failure_draft:true,no_background_poll_after_navigation:true,no_control_writes:true});await page.close();
+  results.push({lang,width,result:'PASS',pause_filter_download:true,save_readback_failure_draft:true,uncertain_save_no_replay:true,atomic_incremental_batches:true,no_background_poll_after_navigation:true,no_control_writes:true});await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(output,'BROWSER.json'),JSON.stringify({result:'PASS',scope:'Real web assets with isolated HTTP fixtures, no live controller',profiles:results},null,2)+'\n');console.log(JSON.stringify({result:'PASS',profiles:results.length}));
 })().catch(error=>{console.error(error);process.exitCode=1;});

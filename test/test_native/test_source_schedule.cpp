@@ -72,6 +72,36 @@ TEST(SourceSample, UnavailableInvalidProfileAndClockResetAreNotHiddenByOtherSamp
     EXPECT_FALSE(b.observe(21,TemperatureUnit::celsius,SampleEvidence::physical_report,0,0,200,p));
 }
 
+TEST(SourceSample, KnownExpiryCannotBeUndoneByAnEarlierReadOfTheSameObservation) {
+    TemperatureProfile p;p.maximumAgeMs=1000;TemperatureSample s;
+    ASSERT_TRUE(s.observe(20,TemperatureUnit::celsius,SampleEvidence::physical_report,0,0,10000,p));
+    ASSERT_TRUE(s.value(10999));EXPECT_FALSE(s.value(11000));
+    EXPECT_FALSE(s.value(10999));EXPECT_EQ(s.state(10000),SampleState::stale);
+    EXPECT_EQ(s.age(11000),1000u); // Original diagnostic age remains available.
+}
+
+TEST(SourceSample, DiagnosticExpiryAndBeforeReceiptClockFailureAlsoRetireTheObservation) {
+    for(bool diagnostic:{false,true}) {
+        TemperatureProfile p;p.maximumAgeMs=1000;TemperatureSample s;
+        ASSERT_TRUE(s.observe(20,TemperatureUnit::celsius,SampleEvidence::physical_report,0,0,10000,p));
+        if(diagnostic)EXPECT_EQ(s.age(11000),1000u);
+        else EXPECT_FALSE(s.value(9999));
+        EXPECT_FALSE(s.value(10000));
+        auto copied=s;EXPECT_FALSE(copied.value(10000));
+    }
+}
+
+TEST(SourceSample, OnlyANewAdmittedObservationCanReplaceRetiredEvidence) {
+    TemperatureProfile p;p.maximumAgeMs=1000;TemperatureSample s,independent;
+    ASSERT_TRUE(s.observe(20,TemperatureUnit::celsius,SampleEvidence::physical_report,0,0,10000,p));
+    ASSERT_TRUE(independent.observe(20,TemperatureUnit::celsius,SampleEvidence::physical_report,0,0,11000,p));
+    EXPECT_FALSE(s.value(11000));EXPECT_TRUE(independent.value(11000));
+    EXPECT_FALSE(s.observe(20,TemperatureUnit::celsius,SampleEvidence::cache_read,0,0,11000,p));
+    EXPECT_FALSE(s.value(11000));
+    ASSERT_TRUE(s.observe(20,TemperatureUnit::celsius,SampleEvidence::physical_report,0,0,11001,p));
+    EXPECT_EQ(s.value(11001),2000);
+}
+
 constexpr int64_t monday=1792368000; // Fixed UTC fixture epoch, not a system clock.
 TEST(UtcSchedule, BoundaryAdjacentAndBaseIntervalsUseOneEffectiveTarget) {
     UtcSchedule s;

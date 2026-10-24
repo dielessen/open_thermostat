@@ -17,9 +17,10 @@ nog geen nieuwe publieke tag, flash, HA-herstart of fysieke vrijgave uitgevoerd.
 | Teruggaande klok | Een verlopen, eerder behouden pad-/pompintentie kan niet herleven door een oudere timestamp | Deterministische bestaande bron faalt, gecorrigeerde bron slaagt |
 | Duidelijke uitvalbediening | Uitklapbare EN/NL-uitleg op Home, behouden tijdens verversen | Echte Chromiumbrowser op desktop en mobiel |
 | TV02-ontvangst | Ontvangstmetadata blijft na verval inspecteerbaar zonder oude datapointwaarden, privé-ID's of regelbevoegdheid | Native HA-tests met echte Node-producent en lifecycle |
+| Actualiteit van meet- en buitenbronnen | Verlopen waarnemingen blijven ingetrokken; herhaalde weerberekeningen vernieuwen hun oorspronkelijke geldigheid niet | Twee regressies vóór/na, 625 native tests en E32-build; fysieke bronkwalificatie blijft open |
 | Eigen ketelprofiel | Nieuwe passieve HRC22H-momentopname met69 gedefinieerde velden en expliciete kwaliteitsgroepen | Gescheiden diagnostisch snapshot; geen leesfilter, kalibratie of regeling |
 
-Alle23 voorbereide inventarisonderdelen blijven meegenomen. De bestaande
+Alle 23 voorbereide inventarisonderdelen blijven meegenomen. De bestaande
 kamerplanner, configuratie-/readbackketen, EMS-decoders, regulator, supervisor,
 groep-/vloer-/mengerpolicies, historie-/CSV-, comfort- en leerbasis blijven intact.
 Onvolledige of fysiek ongekwalificeerde code wordt hierdoor niet aangezet.
@@ -55,7 +56,8 @@ met blijvend bewaarde, gevalideerde parameters vereisen; dit wordt niet geschrap
 
 Bron- en testbewijs voor deze bundel:
 `out/update-diagnostics-20261024/` en
-`out/next-release-completion-20261024/`. De volledige CI-uitkomst wordt gekoppeld
+`out/next-release-completion-20261024/` en
+`out/source-freshness-20261024/`. De volledige CI-uitkomst wordt gekoppeld
 aan de exacte bevroren broncommit in `FINAL-REVIEW.json`; lokale checks alleen
 sluiten de publieke release- of fysieke poorten niet.
 

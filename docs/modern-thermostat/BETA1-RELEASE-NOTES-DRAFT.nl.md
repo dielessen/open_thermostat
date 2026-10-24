@@ -148,3 +148,6 @@ geen succesvolle fysieke ketelproef.
 ## Aanvullingen voor de volgende gezamenlijke bundel
 
 De gebundelde uitval-/naloop-/klokcorrecties, blijvende updatediagnose, TV02-ontvangstmetadata en actuele passieve ketelprofielobservatie staan in [NEXT-RELEASE](NEXT-RELEASE.nl.md). De actieve hardwarepoorten blijven open; er is geen nieuwe softwareversie geïnstalleerd of actieve bèta vrijgegeven.
+
+
+De bronactualiteitscorrecties zijn toegevoegd aan dezelfde volgende bundel: een verlopen waarneming herleeft niet door een oudere leestijd en herhaalde weerberekeningen verlengen de oorspronkelijke geldigheidsduur niet. Providerberekeningstijd blijft onderscheiden van fysieke acquisitie. Zie [SOURCE-FRESHNESS](SOURCE-FRESHNESS.nl.md); geen nieuwe live bronkwalificatie of uitrol.

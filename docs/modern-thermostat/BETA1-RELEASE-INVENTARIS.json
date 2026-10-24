@@ -648,6 +648,14 @@
         {
           "path": "test/test_native/test_device_diagnostics.cpp",
           "sha256": "55b043452a1e42cbbadf0b7ede8a5b983b64ef2c5aec91cd811f513e65e4d6de"
+        },
+        {
+          "path": "src/control/Measurement.h",
+          "sha256": "3db91e0e841d6c6c941a8926de0ee6eb357de5795c468550355d9515f0942816"
+        },
+        {
+          "path": "test/test_native/test_source_schedule.cpp",
+          "sha256": "82a6ee3d478870ae61194f976a7412bd6a1b7fa185582297f336ad35e1606880"
         }
       ],
       "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding geleverd/getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele acquisitie-/ouderdomsvalidatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten als ambient bron. WSDCGQ11LM-eventproducer voorbereid/getest, niet op Z2M geïnstalleerd. Native HA-ontvanger en room-status geleverd zonder QualifiedReport-vrijgave. Web-/native systeemlog en RFC5424 UDP-syslog geleverd in alpha23; beschermde routes/RAM-buffer en standaard uit zonder bestemming gecontroleerd. Externe collector en lange heap-/stack-/belastingproef blijven open. Geen fysieke regelautorisatie. ESP-eigen diagnose op alpha26/dev33 geïnstalleerd en twee gewone live pakketten exact met HA vergeleken. Softwaretests dekken verval; langdurige fysieke logging-/resourceproeven blijven afzonderlijk open."
@@ -911,6 +919,18 @@
         {
           "path": "ha/config/custom_components/open_thermostat/graph_draft_compile.py",
           "sha256": "51a27db9813d0dd43132cea72b3730ddeb5ed8f9694c3ffc45d7e08b0cab344b"
+        },
+        {
+          "path": "src/control/WeatherObservation.h",
+          "sha256": "a5800f8f5a8a6b022919f4aa752733f27b6f82b29a881aa928eb65460e2b1bd4"
+        },
+        {
+          "path": "src/OpenWeather.h",
+          "sha256": "787f6068dc16c74e727821745eafd88e4c2a311c5a8beb5c6d953427bd774c4e"
+        },
+        {
+          "path": "test/test_native/test_outdoor_sources.cpp",
+          "sha256": "5af2af6b7303e839bfac96336892278b6ad47f099792e00bdb89889e6458cce3"
         }
       ],
       "remaining_acceptance": "Pure policies/declaraties en begrensde DATA-paden aanwezig; niet gelijk aan actieve groepen/pomp/menger."

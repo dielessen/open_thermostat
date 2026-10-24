@@ -18,7 +18,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 223 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 228 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
 met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
@@ -58,7 +58,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-223 bronverwijzingen met hashes, status en resterende acceptatie.
+228 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -1742,3 +1742,12 @@ Zeven nieuwe native gevallen bewijzen stille HA met werkende broker, exacte15s-l
 De afzonderlijke passieve HA-agentcontrole zag69 EMS-velden:25 vers gerapporteerd,2 afgeleid,22 onbetrouwbaar,7 ongeldig en13 onbekend. Het HRC22H-profiel bewaart deze momentopname zonder de uitlezing te filteren of fysieke sensorkalibratie te claimen. De oorspronkelijke TV02-ontvanger is nu stale in plaats van waiting: er was eerdere geaccepteerde ontvangst, maar geen verse/causale/kraan-/flowkwalificatie. De gekozen kamertemperatuurbron blijft diagnostische RTCGQ11LM device_temperature zonder meetprofiel; geen bronwissel uitgevoerd.
 
 Alpha26/dev34, SOURCE rev4, kamers/programma’s en pins/producent zijn ongewijzigd. Geen firmware-/HA-installatie, herstart, geforceerd rapport of fysieke opdracht. De forwarderstand is in deze momentopname niet opnieuw als instelling uitgelezen; eerdere disabled-acceptatie blijft afzonderlijk. B04–B14 blijven open waar implementatie, onafhankelijke fysieke stop-/uitvalproef, eindfreeze of uitrol nog ontbreken; geen actieve bèta-PASS. Bewijs: `out/next-release-completion-20261024/`.
+
+
+### Bronactualiteit: verlopen blijft verlopen
+
+De gedeelde meetkern bewaart verval per waarneming, ook als dit via een diagnoseread wordt vastgesteld. Een oudere leestijd kan oude meetdata niet opnieuw bruikbaar maken. Nieuwe al toegelaten fysieke waarnemingen blijven mogelijk; cache/device-seen/restored blijft ongeschikt als meetbewijs.
+
+De bestaande OpenWeather-eigenaar houdt daarnaast één begrensd ontvangstrecord bij: hetzelfde berekeningstijdstip kan een ingetrokken/verlopen bron niet herstellen of de oorspronkelijke geldigheidsduur verlengen bij een teruglopende UTC-klok. Afwijkende/oudere berichten worden geweigerd; klok-/bronintrekking blijft gelden tot passend nieuw bewijs. Providerberekeningstijd wordt niet als fysieke acquisitietijd voorgesteld. Geen nieuwe taak, client, Store, instelling, bronkwalificatie of fysieke actie.
+
+Zeven nieuwe native gevallen; de volledige native suite slaagt met 625 tests. Beide afzonderlijke regressies falen op de oude bron en slagen met de correctie. De echte E32-build slaagt. Alle 23 voorbereide onderdelen blijven behouden; de nieuwe bronverwijzingen zijn in de inventaris opgenomen. [Broncontract en grenzen](SOURCE-FRESHNESS.nl.md); bewijs `out/source-freshness-20261024/`. De geïnstalleerde alpha26/dev34 en alle open M2-/bèta-/fysieke poorten blijven ongewijzigd.

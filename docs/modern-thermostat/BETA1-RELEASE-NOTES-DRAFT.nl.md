@@ -34,12 +34,39 @@ vastgesteld. Ontvangstdiagnose alleen voldoet niet aan dit releasedoel.
   herstart onder Settings blijven behouden. De eerdere koude-startreparatie en
   normale automatische update blijven onderdeel van de basis.
 
+## Gebundeld sinds de geïnstalleerde passieve basis
+
+- Het E32-dashboard ververst afzonderlijke onderdelen. Opengeklapte kaarten,
+  invoerfocus en scrollpositie blijven behouden. Verzoeken overlappen niet en
+  late antwoorden kunnen een nieuwere pagina niet overschrijven.
+- Settings bevat een begrensd lokaal logboek en optionele UDP-syslog naar een
+  ingesteld IPv4-adres. Syslog staat standaard uit; de webinterface biedt
+  Nederlands en Engels. Gevoelige logregels worden vóór opslag/verzending
+  afgeschermd, ook bij opmaakcodes of lange regels.
+- De normale HA-opstart kan bron-eigen TV02-rapportontvangers selecteren zonder
+  een algemene instellingenoptie die fysieke kwalificatie toekent. Een foutieve
+  optionele bronpin verhindert de gewone controlleropstart niet.
+- De echte shadow-controller is verbonden met de hydraulische supervisor.
+  Limieten, storing, tapwater, waterdoel, kraanfeedback en onafhankelijke flow
+  behouden afzonderlijke leeftijden en zijn aan boot/eigenaar/sessie/revisie
+  gebonden. Warmtevraag alleen bewijst geen open kraan of flow. Na een fout
+  volgt geen automatische hervatting; lokale bevestiging en nieuwe feedback
+  zijn nodig. De standaard bronselectie blijft leeg en fysieke uitvoer geblokkeerd.
+- De eindige ketelproef bewaakt ook te late stop- en basisbevestigingen. Een
+  verlopen deadline wordt niet vernieuwd door een later bericht of leaseverlies.
+- De EMS-encoder weigert te grote frames en READ-opdrachten met overtollige
+  payload; lengteafkapping kan geen andere opdracht construeren.
+
+Deze punten zijn bronvoorbereiding; de definitieve freeze vermeldt de exacte
+gezamenlijke commit en de bijbehorende volledige checks.
+
 ## Correctheid van rapporten en opdrachten
 
 - Een voorbereide TV02-producent bewaart originele doel-/temperatuur-/preset-/
   stop-/vorstbeveiligingsdatapoints met type en raw bytes. Ontbrekende velden
   worden niet uit de cache aangevuld. Dit is nog geen causale doel-echo,
-  klepstand, readiness of fysieke kraanvrijgave; native HA-koppeling staat open.
+  klepstand, readiness of fysieke kraanvrijgave. De native HA-ontvanger en
+  lifecycle zijn gebouwd/getest; concrete bronpins en producentinstallatie blijven open.
 
 - Een voorbereide Z2M-bronbrug bewaart originele WSDCGQ11LM-temperatuurberichten
   los van de state-cache. De native HA-ontvanger en kamerstatus tonen
@@ -77,11 +104,12 @@ vastgesteld. Ontvangstdiagnose alleen voldoet niet aan dit releasedoel.
 
 De model-/comfort-/vloer-/menger-/metrics-/CSV-code blijft in de bronbasis. Dat
 betekent geen fysieke vrijgave van die functies, acht zones of bewezen leerwinst.
-De voorbereide bron is inmiddels geleverd als passieve alpha18/dev24-release
-(commit `6ef01d0`); de actieve bèta uit dit concept blijft niet vrijgegeven.
+De geïnstalleerde passieve basis is alpha23/dev29 (broncommit `5f31dd7`).
+Aanvullende bronwijzigingen worden in deze grotere batch verzameld; de actieve
+bèta uit dit concept blijft niet vrijgegeven.
 
 B04–B09 in het werkbord bevatten nog open implementatie en kwalificatie: de
-modelspecifieke originele meetrapportproducer, verse kraanecho/eigenaarschap,
+installatie en kwalificatie van de originele meetrapportproducenten, verse kraanecho/eigenaarschap,
 hydraulische voorwaarden en de beoordeelde fysieke zend-/stoproute. De huidige
 software heeft daarom geen ingevuld proefprofiel/adressering en houdt E32-TX en
 standaardactuatie geblokkeerd. Een diagnostische apparaattemperatuur is geen
@@ -96,7 +124,7 @@ back-up en nacontrole. Programma, bindings en identiteiten moeten behouden blijv
 
 De herstelroute en fysieke aansluit-/stopvoorwaarden worden vóór vrijgave aan de
 exacte kandidaat gekoppeld. Dit concept verleent zelf geen publicatie- of installatieopdracht. De afzonderlijk
-geautoriseerde passieve alpha18/dev24-uitrol staat in WORKBOARD; die bewijst
+geautoriseerde passieve alpha23/dev29-uitrol staat in WORKBOARD; die bewijst
 geen succesvolle fysieke ketelproef.
 
 - Taal: E32-menu en herstelpagina’s bieden English/Nederlands met een onthouden

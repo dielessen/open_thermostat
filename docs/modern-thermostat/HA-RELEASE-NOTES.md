@@ -1,3 +1,14 @@
+# HA 0.4.0.dev35 — gezamenlijke diagnose- en veiligheidsbundel
+
+Bundelt alle voorbereide HA-wijzigingen sinds dev34, samen met E32 alpha27.
+
+- Frontend dev35/v35 met duidelijkere EN/NL-status voor verouderde TV02-ontvangst, zonder oude waarden als actuele kraanbevestiging te presenteren.
+- Strengere binding en levensduur van kraanopdrachten: herhaalde opdrachten delen één serviceaanroep en oorspronkelijke deadline; annulering of onzekere uitvoering veroorzaakt geen automatische herhaling.
+- Verlies van eigenaar, koppeling of kraanmodus tijdens een serviceaanroep blokkeert automatische vervolgacties.
+- Aanvullende supervisordiagnose voor ongeldige feedbackklokken.
+
+De opdrachtadapter is voorbereid, maar nog niet aangesloten als normale firmware-naar-HA-zendroute. Een HA-servicebevestiging bewijst geen kraanbeweging. Bestaande kamers, programma's, SOURCE, registry, ontvangstpins en producent blijven behouden. Geen automatische bronkwalificatie of apparaatopdrachten. Tado blijft regelen; dit is een passieve prerelease, geen actieve ketelbèta.
+
 # HA 0.4.0.dev34 — diagnose en duidelijke bediening afgerond
 
 Bundelt alle eerdere HA-correcties en de native ESP-diagnose met de EN/NL-uitleg van instellingen en controles. Hoort bij E32 alpha26; die firmware hoeft hiervoor niet opnieuw geflasht te worden.

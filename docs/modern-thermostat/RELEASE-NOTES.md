@@ -1,3 +1,16 @@
+# E32 V2 alpha27 + Home Assistant dev35 — gebundelde failsafe en bediening
+
+Bundelt alle voorbereide wijzigingen sinds alpha26/dev34 in één passieve prerelease.
+
+- HA-heartbeat en begrensde naloop bij verbindingsverlies; onbruikbare of verouderde bronmetingen kunnen niet opnieuw geldig worden door herhaalde verwerking.
+- Strengere hydraulische feedback: ongeldige deelbewijzen verliezen hun geldigheid; beperkende foutsignalen blijven behouden. Een klokterugloop blokkeert positieve vrijgave.
+- Begrensde ketelproeven bewaken stopbevestigingen en vragen opnieuw bewijs na verlopen of tegenstrijdige feedback.
+- Persistente, begrensde updatercontrolepunten ondersteunen toekomstige foutdiagnose. De eerdere HTTPS-updatefout is hiermee niet als opgelost aangetoond.
+- Logging verwerkt complete gevalideerde pagina's; onzekere opslag blokkeert een automatische herhaling. Ketelinstellingen worden na opslaan onafhankelijk teruggelezen.
+- EN/NL-bediening en HA frontend dev35/v35, met duidelijkere verouderde TV02-ontvangst en voorbereide opdrachtcontroles.
+
+Alle geïnventariseerde voorbereide functies blijven meegenomen. Partities en instellingenformaat blijven gelijk; firmware-installatie is app-only. Bestaande configuratie, programma's, SOURCE en ontvangstpins blijven behouden. De normale kraanzendroute en fysieke acceptatie zijn nog open. EMS-TX, forwarder en fysieke uitgangen blijven geblokkeerd, Tado blijft regelen. Geen automatische zendproef of vrijgave voor actieve ketelregeling.
+
 # E32 V2 alpha26 — ESP-diagnose en duidelijke instellingen
 
 Herstelt de ESP-eigen diagnose in de native MQTT-modus, samen met HA dev33.

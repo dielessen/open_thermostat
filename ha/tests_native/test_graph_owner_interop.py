@@ -53,7 +53,7 @@ async def pair(hass,*,stored="",anchor=None):
                                       stderr=(await stderr_task).decode(errors="replace")))
         value=json.loads(line)
         assert value["boiler_output_enabled"] is value["actuator_output_enabled"] is False
-        trace.append((op,kwargs,value))
+        trace.append((op,{"now":int(clock[0]*1000),**kwargs},value))
         return value
     async def deliver(frames):
         for frame in frames:await client.receive(frame["topic"],frame["raw"])

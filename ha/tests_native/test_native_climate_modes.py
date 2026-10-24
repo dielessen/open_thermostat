@@ -80,6 +80,13 @@ async def test_real_native_climate_services_stop_A_then_B_and_resume_only_A(nati
             {"entity_id":entity.entity_id,"hvac_mode":mode},blocking=True))
         await hass.async_block_till_done()
     await service(a,"off")
+    # Synthetic finite fixture inputs only: keep an exact C++ replay even if
+    # the timing assertion fails in a faster/different CI environment.
+    trace_path=Path("out/climate-warmup-trace.json")
+    trace_path.parent.mkdir(parents=True,exist_ok=True)
+    trace_path.write_text(json.dumps(dict(clock=n.peer.clock,
+        events=[dict(op=op,**args) for op,args,_ in n.peer.trace],
+        decisions={k:vars(v) for k,v in n.runtime.decisions.items()}),default=str))
     assert a.hvac_mode==HVACMode.OFF and a.target_temperature is None
     assert not n.runtime.decisions[n.rad.room_id].demand and n.runtime.decisions[n.floor.room_id].demand, n.runtime.decisions
     assert b.hvac_mode==HVACMode.HEAT and b.target_temperature==19

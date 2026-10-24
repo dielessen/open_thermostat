@@ -134,3 +134,82 @@ async def test_wait_and_service_share_one_budget_not_two_full_windows(hass,monke
     actuator._lock.release()
     with pytest.raises(HomeAssistantError,match='physical outcome unknown'):await task
     assert len(calls)==1 and actuator._outcome_unknown
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('loss', ['authorization', 'profile', 'binding', 'capability', 'unavailable', 'mode', 'model', 'completion_callback'])
+async def test_owner_loss_during_service_retires_queued_and_future_targets(hass, monkeypatch, loss):
+    from homeassistant.helpers import entity_registry as er
+
+    actuator = fixture(hass, monkeypatch, 1)
+    entity_id = actuator.entity_id
+    if loss in ('mode', 'model'):
+        from test_tv02_operating_mode import setup
+        binding, _ = setup(hass)
+        actuator = ProfileCActuator(hass, binding.actuators[0].entity_id,
+                                   qualified_profile=True)
+        entity_id = actuator.entity_id
+    authorized = True
+    checks = 0
+
+    def authorize():
+        nonlocal checks
+        checks += 1
+        if loss == 'completion_callback' and checks == 3:
+            er.async_get(hass).async_update_entity(entity_id, new_entity_id='climate.rebound')
+        return authorized
+
+    actuator._authorize = authorize
+    calls = []
+    started, release = asyncio.Event(), asyncio.Event()
+
+    async def handler(call):
+        calls.append(call.data)
+        started.set()
+        await release.wait()
+
+    hass.services.async_register('climate', 'set_temperature', handler)
+    first = asyncio.create_task(actuator.async_set_room_target(21))
+    await started.wait()
+    queued = asyncio.create_task(actuator.async_set_room_target(19))
+    await asyncio.sleep(0)
+    try:
+        if loss == 'authorization':
+            authorized = False
+        elif loss == 'profile':
+            actuator._qualified = False
+        elif loss == 'binding':
+            er.async_get(hass).async_update_entity(entity_id, new_entity_id='climate.rebound')
+        elif loss == 'model':
+            from homeassistant.helpers import device_registry as dr
+            device_id = er.async_get(hass).async_get(entity_id).device_id
+            dr.async_get(hass).async_update_device(device_id, model_id='other-model')
+        elif loss == 'mode':
+            from test_tv02_operating_mode import mode
+            mode(hass, binding, 'auto')
+        elif loss == 'completion_callback':
+            pass  # The callback changes identity at the completion boundary.
+        else:
+            state = hass.states.get(entity_id)
+            attrs = dict(state.attributes)
+            if loss == 'capability':
+                attrs['target_temp_step'] = 1
+            hass.states.async_set(entity_id, 'unavailable' if loss == 'unavailable' else 'heat', attrs)
+        release.set()
+        results = await asyncio.gather(first, queued, return_exceptions=True)
+        assert isinstance(results[0], HomeAssistantError), 'owner loss returned service acceptance'
+        assert 'physical outcome unknown' in str(results[0])
+        assert isinstance(results[1], HomeAssistantError)
+        assert actuator._outcome_unknown
+        # Restoring a lease alone must not clear the uncertain physical outcome.
+        authorized = True
+        actuator._qualified = True
+        with pytest.raises(HomeAssistantError, match='requalification required'):
+            await actuator.async_set_room_target(18)
+        assert len(calls) == 1
+    finally:
+        release.set()
+        for task in (first, queued):
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(first, queued, return_exceptions=True)

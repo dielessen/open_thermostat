@@ -750,7 +750,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/v1_profile_c.py",
-          "sha256": "44a403ce7c4eaa6f2cba7e7b1b070b310b418aa03e14c54788d364c8e20446c4"
+          "sha256": "5f6bbf2ea65587874fea384584e2e5a5aa6a6bc693b4a3c6a3621de969dc2df3"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_bench_source.py",
@@ -818,7 +818,7 @@
         },
         {
           "path": "ha/tests_native/test_actuator_command_lifetime.py",
-          "sha256": "63f26484fecbbe6122cece20ed9c687aa5f4a9e4f7bcee54cc0711b8a3ebb62f"
+          "sha256": "67c0e8cab5ffb37d8bfeb59db4f0aca3f0ce75d5ff16f42a414fe2531fcdb824"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/diagnostic_source_manifest.py",

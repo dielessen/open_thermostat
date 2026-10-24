@@ -234,9 +234,26 @@ class ProfileCActuator:
                         {"entity_id": self.entity_id, "temperature": float(actual)},
                         blocking=True,
                     )
+                    # The service yields to HA while the source lease, registry
+                    # and device metadata may change. Acceptance belongs only
+                    # to the original reviewed owner, never a replacement.
+                    # Losing that owner cannot undo a dispatched command.
+                    authorized = self._authorize()
+                    if not authorized or not self._qualified:
+                        raise HomeAssistantError("TRV owner lost during action")
+                    if _dispatch_binding(self.hass, self.entity_id) != self._binding:
+                        raise HomeAssistantError("TRV native binding changed during action")
+                    completed_mode = reported_operating_mode(self.hass, self.entity_id)
+                    if ((operating_mode is None) != (completed_mode is None)
+                            or completed_mode is not None and completed_mode["issues"]):
+                        raise HomeAssistantError("TRV operating mode changed during action")
+                    if target_capability(self.hass, self.hass.states.get(self.entity_id)) != capability:
+                        raise HomeAssistantError("TRV capability changed during action")
                     if self.hass.loop.time() >= deadline:
                         raise HomeAssistantError("TRV action completed after deadline")
-                    return float(actual) # Service acceptance only, NEVER readiness.
+                    # A newer queued target does not erase historical service
+                    # acceptance. It still cannot confirm an echo or readiness.
+                    return float(actual)
         except TimeoutError as err:
             if dispatched:
                 self._outcome_unknown = True

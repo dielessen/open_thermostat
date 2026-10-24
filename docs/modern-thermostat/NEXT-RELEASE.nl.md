@@ -16,6 +16,7 @@ nog geen nieuwe publieke tag, flash, HA-herstart of fysieke vrijgave uitgevoerd.
 | Netwerkuitval / naloop | Lokale offline ticks blijven de oorspronkelijke naloopdeadline volgen, zonder publish of externe observers, ook na native SOURCE-lockout | Pure supervisor en echte controller; geen fysiek pomp-/klepbewijs |
 | Teruggaande klok | Een verlopen, eerder behouden pad-/pompintentie kan niet herleven door een oudere timestamp | Deterministische bestaande bron faalt, gecorrigeerde bron slaagt |
 | Duidelijke uitvalbediening | Uitklapbare EN/NL-uitleg op Home, behouden tijdens verversen | Echte Chromiumbrowser op desktop en mobiel |
+| Kraanopdracht bij verlies van eigenaarschap | Bevoegdheid, native binding, bedrijfsmodus en capability worden ook na de lopende HA-service gecontroleerd; onzeker resultaat blokkeert vervolgdoelen | Native HA-regressies met geblokkeerde synthetische service; geen echte zendbevestiging |
 | TV02-ontvangst | Ontvangstmetadata blijft na verval inspecteerbaar zonder oude datapointwaarden, privé-ID's of regelbevoegdheid | Native HA-tests met echte Node-producent en lifecycle |
 | Actualiteit van meet- en buitenbronnen | Verlopen waarnemingen blijven ingetrokken; herhaalde weerberekeningen vernieuwen hun oorspronkelijke geldigheid niet | Twee regressies vóór/na, 625 native tests en E32-build; fysieke bronkwalificatie blijft open |
 | Eigen ketelprofiel | Nieuwe passieve HRC22H-momentopname met69 gedefinieerde velden en expliciete kwaliteitsgroepen | Gescheiden diagnostisch snapshot; geen leesfilter, kalibratie of regeling |
@@ -57,7 +58,8 @@ met blijvend bewaarde, gevalideerde parameters vereisen; dit wordt niet geschrap
 Bron- en testbewijs voor deze bundel:
 `out/update-diagnostics-20261024/` en
 `out/next-release-completion-20261024/` en
-`out/source-freshness-20261024/`. De volledige CI-uitkomst wordt gekoppeld
+`out/source-freshness-20261024/` en
+`out/actuator-owner-loss-20261024/`. De volledige CI-uitkomst wordt gekoppeld
 aan de exacte bevroren broncommit in `FINAL-REVIEW.json`; lokale checks alleen
 sluiten de publieke release- of fysieke poorten niet.
 

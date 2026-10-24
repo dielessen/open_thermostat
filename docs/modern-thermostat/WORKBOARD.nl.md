@@ -1751,3 +1751,25 @@ De gedeelde meetkern bewaart verval per waarneming, ook als dit via een diagnose
 De bestaande OpenWeather-eigenaar houdt daarnaast één begrensd ontvangstrecord bij: hetzelfde berekeningstijdstip kan een ingetrokken/verlopen bron niet herstellen of de oorspronkelijke geldigheidsduur verlengen bij een teruglopende UTC-klok. Afwijkende/oudere berichten worden geweigerd; klok-/bronintrekking blijft gelden tot passend nieuw bewijs. Providerberekeningstijd wordt niet als fysieke acquisitietijd voorgesteld. Geen nieuwe taak, client, Store, instelling, bronkwalificatie of fysieke actie.
 
 Zeven nieuwe native gevallen; de volledige native suite slaagt met 625 tests. Beide afzonderlijke regressies falen op de oude bron en slagen met de correctie. De echte E32-build slaagt. Alle 23 voorbereide onderdelen blijven behouden; de nieuwe bronverwijzingen zijn in de inventaris opgenomen. [Broncontract en grenzen](SOURCE-FRESHNESS.nl.md); bewijs `out/source-freshness-20261024/`. De geïnstalleerde alpha26/dev34 en alle open M2-/bèta-/fysieke poorten blijven ongewijzigd.
+
+
+## B05: verlies van kraan-eigenaarschap tijdens een lopende service (24 oktober 2026)
+
+Vijf regressies op de vorige bron tonen dat intrekking van autorisatie/profiel,
+gewijzigde native binding/capability of onbeschikbaarheid tijdens de HA-service
+nog tot een geaccepteerd resultaat leidden. De adapter controleert deze feiten
+nu ook na de service, binnen dezelfde oorspronkelijke deadline. Ook een gewijzigd
+TV02-model, terugkeer naar een lokaal programma en een mutatie vanuit de laatste
+autorisatiecallback worden gecontroleerd. De reeds verstuurde opdracht kan niet
+worden teruggenomen: de fysieke uitkomst blijft onzeker, dezelfde adapter blokkeert
+wachtende en toekomstige doelen. Alleen herstel van de lease wist dit niet.
+Een nieuw wachtend doel ontkent de historische acceptatie van een eerdere,
+ongewijzigde service niet. Geen retry, presetwijziging of generieke stopopdracht.
+
+Dit sluit een fout in de bestaande begrensde adapter; de normale M2-actuatorroute
+is nog niet aangesloten. De bestaande oorspronkelijke TV02-producent observeert
+uitsluitend ontvangst en kan geen unieke native zendtransactie leveren. Vaste
+Tuya-sequence1, optimistische HA-state en een gelijke doelwaarde blijven onvoldoende
+voor causale ACK/readiness. B05 en de gezamenlijke release blijven open.
+Bewijs: `out/actuator-owner-loss-20261024/`; uitsluitend synthetische services en
+echte HA-registers, geen productieactie of fysieke kraan-/ketelopdracht.

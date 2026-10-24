@@ -2,10 +2,13 @@
 
 ## Geïnstalleerde basis
 
-E32 alpha26 en HA dev34 zijn gepubliceerd en onafhankelijk gecontroleerd.
-Hun bron, pakketten en instellingen worden niet vervangen door een main-CI-build
-met hetzelfde versienummer. De volgende software hieronder is voorbereid; er is
-nog geen nieuwe publieke tag, flash, HA-herstart of fysieke vrijgave uitgevoerd.
+E32 alpha27 en HA dev36 zijn gepubliceerd, geïnstalleerd en onafhankelijk teruggelezen.
+Firmwarebron `dd6a9635865c6ecd2bf1c553c3292ae13dfb53ae`; HA-bron
+`c41b7a6e12730f88eb98960299be3236c6494457`. Alle 83 HA-bronbestanden,
+frontend dev35/v35 en E32 ELF/web/bootidentiteit komen overeen met de openbare
+pakketten. De onderstaande bundel is daarmee geleverd; fysieke vrijgave blijft
+open. De bestaande native HTTPS-worker is niet opnieuw getest of als gerepareerd
+verklaard. Details staan in `INSTALLATIE-HA36-ALPHA27-20261024.nl.md`.
 
 ## Gebundelde wijzigingen
 

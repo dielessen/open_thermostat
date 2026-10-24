@@ -9,16 +9,16 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
-| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.26`, na één bestaande app-only webupload met verse back-up; bron, ELF/web, bevestigde boot en live ESP-diagnose gecontroleerd |
-| Geïnstalleerde HA-integratie | `0.4.0.dev34`, via bestaande HA-agent met verse back-up/nacontrole; 105 registryrecords en alle koppelingen behouden |
-| Geleverde bron | E32 `e9ae314f2519ac4208f89d183b4a73a96131d8a4`; HA `0aeff4dbaed9f187228e5621545b428648edfce5`, alle 83 live componentbestanden gelijk aan het HA-pakket |
-| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; alpha26/dev34 geleverd met herstel ESP-diagnose en EN/NL-uitleg; alle eerdere bron behouden. Dev34 is gepubliceerd en geïnstalleerd met exacte live bestandscontrole |
+| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.27`, één app-only upload; bron/ELF/web en stabiele boot bevestigd, instellingen behouden |
+| Geïnstalleerde HA-integratie | `0.4.0.dev36`, geladen op Core2026.10.3; room/get hersteld, 105 registryrecords en koppelingen behouden |
+| Geleverde bron | E32 `dd6a9635865c6ecd2bf1c553c3292ae13dfb53ae`; HA `c41b7a6e12730f88eb98960299be3236c6494457`, alle 83 live componentbestanden gelijk aan het HA-pakket |
+| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; alpha27/dev36 bundelt alle voorbereide software, met failsafe, diagnose, bediening en Core-compatibiliteit; eerdere bron behouden |
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 228 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 232 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
 met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
@@ -1902,3 +1902,16 @@ kern-API-bronnen zijn tussen deze patchversies byte-identiek. De volledige CI
 controleert beide echte runtimes. E32 alpha27 hoeft niet opnieuw te worden
 uitgebracht. Bron-, pakket-, back-up- en live installatiebewijs blijft gescheiden;
 B04–B14 en fysieke kwalificatie worden hierdoor niet afgevinkt.
+
+### Gezamenlijke installatie bevestigd — HA dev36 / E32 alpha27
+
+24 oktober 2026, 13:19 UTC: beide publieke pakketten daadwerkelijk geïnstalleerd
+en onafhankelijk teruggelezen. HA dev36 herstelt de Core2026.10.3-opstartblokkade;
+room/get werkt weer, alle83 live hashes exact en frontend dev35/v35 geladen.
+E32 alpha27 heeft exacte bron/ELF/webidentiteit, boot_pending=false en behouden
+instellingen. Eén app-upload: de managementproxy gaf een time-out, maar de
+oorspronkelijke backendreceipt bevestigde HTTP200 en de werkelijke boot; geen
+replay. Verse93-bestandenbackup met gecontroleerde hashes. Volledige105registry-
+records/2devices, programma's, SOURCErev4 en pins/producer behouden. Alleuitgangen
+blijven geblokkeerd, EMSsent/polls0. B04–B14 blijven open waar end-to-end/fysiek
+bewijs ontbreekt; ontvangst is geen kraanbevestiging. Zie installatieverslag.

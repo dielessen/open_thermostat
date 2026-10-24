@@ -1,7 +1,7 @@
 # Updatediagnose na een herstart
 
-Status: voorbereid voor de volgende gezamenlijke release; nog niet geïnstalleerd.
-De gecontroleerde apparaten blijven E32 alpha26 en HA dev34. De onverklaarde
+Status: meegeleverd en geïnstalleerd in E32 alpha27 / HA dev36 op 24 oktober.
+De installatie liep via de afzonderlijke app-only uploadroute. De onverklaarde
 HTTPS-poging op alpha26 wordt hiermee niet achteraf verklaard of gerepareerd.
 
 Onder firmware bijwerken staat **Updatediagnose / Update diagnostics**. Dit

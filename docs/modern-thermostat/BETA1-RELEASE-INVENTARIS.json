@@ -3,8 +3,8 @@
   "as_of": "2026-10-24",
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
   "release_state": "NOT_READY",
-  "installed_firmware": "v0.1.0-e32v2-alpha.26",
-  "installed_ha": "0.4.0.dev34",
+  "installed_firmware": "v0.1.0-e32v2-alpha.27",
+  "installed_ha": "0.4.0.dev36",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
   "items": [
     {

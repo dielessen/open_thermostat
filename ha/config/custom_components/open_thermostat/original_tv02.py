@@ -291,7 +291,8 @@ class OriginalTv02Reports:
         room = self.runtime.rooms.get(room_id)
         selected, identity, core = self.bindings[key]
         try:
-            current = (room is not None and reference in _selected_actuator_references(self.runtime, room)
+            current = (room is not None and room.maximum_age_ms == core.maximum_age_ms
+                and reference in _selected_actuator_references(self.runtime, room)
                 and selected_device(self.runtime.hass, reference.as_dict()) == selected
                 and native_binding_identity(self.runtime.hass, selected.entity_id) == identity)
         except (MetadataUnavailable, ValueError):

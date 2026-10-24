@@ -92,7 +92,8 @@ class OriginalTemperatureReports:
         self.reasons = {}
         self.retired = set()
         self.clock_watermark = runtime.clock()
-        self.clock_failed = False
+        self.clock_failed = (type(self.clock_watermark) not in (int, float)
+            or not math.isfinite(self.clock_watermark))
         for room in runtime.rooms.values():
             try:
                 selected = selected_device(self.hass, room.temperature.as_dict())
@@ -109,7 +110,8 @@ class OriginalTemperatureReports:
 
     def _now(self):
         now = self.runtime.clock()
-        if (self.clock_failed or not math.isfinite(now) or now < self.clock_watermark):
+        if (self.clock_failed or type(now) not in (int, float)
+                or not math.isfinite(now) or now < self.clock_watermark):
             self.clock_failed = True
             self.invalidate("clock_invalid")
             return None
@@ -128,7 +130,8 @@ class OriginalTemperatureReports:
             return False
         # Entity rename can change its display id; the captured diagnostic owner
         # is deliberately withdrawn until the next native connection rebuild.
-        current = (selected == binding.selected and native_binding_identity(
+        current = (room is not None and room.maximum_age_ms == binding.maximum_age_ms
+            and selected == binding.selected and native_binding_identity(
             self.hass, selected.entity_id) == binding.identity)
         if not current:
             self.retired.add(room_id)
@@ -162,7 +165,10 @@ class OriginalTemperatureReports:
                 self.records.pop(room_id, None)
                 self.reasons[room_id] = "binding_changed"
                 continue
-            age = source_age + math.ceil((now - received_at) * 1000)
+            elapsed_ms = (now - received_at) * 1000
+            if not math.isfinite(elapsed_ms):
+                continue
+            age = source_age + math.ceil(elapsed_ms)
             if source_age < 0 or age >= binding.maximum_age_ms:
                 continue
             run = value["producer_run_id"]

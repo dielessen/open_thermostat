@@ -453,3 +453,54 @@ async def test_graph_output_removal_retires_existing_source_and_readdition_canno
         assert reports.status(room.room_id)[source.reference.entity_id]['fields']=={}
     finally:
         await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('maximum_age_ms', [1000, 20000])
+@pytest.mark.parametrize('graph', [False, True])
+@pytest.mark.parametrize('first_check', ['status', 'receive', 'recheck'])
+async def test_changed_room_freshness_policy_retires_original_tv02_owner(hass, devices, maximum_age_ms, graph, first_check):
+    if graph:
+        runtime, room, source, now, _ = await graph_system(hass, devices)
+    else:
+        runtime, room, source, now = await system(hass, devices)
+    reports = OriginalTv02Reports(runtime, (source,))
+    try:
+        assert receive(reports)
+        runtime.rooms[room.room_id] = replace(room, maximum_age_ms=maximum_age_ms)
+        if first_check == 'receive':
+            assert not receive(reports, packet(sequence=2, device_ieee='0x0000000000000002'))
+        elif first_check == 'recheck':
+            assert reports.recheck()
+        status = reports.status(room.room_id)[source.reference.entity_id]
+        assert status['status'] == 'binding_changed'
+        assert status['fields'] == {}
+        assert not receive(reports, packet(sequence=2, device_ieee='0x0000000000000002'))
+        runtime.rooms[room.room_id] = room
+        assert not receive(reports, packet(sequence=3, device_ieee='0x0000000000000002'))
+        assert reports.status(room.room_id)[source.reference.entity_id]['status'] == 'binding_changed'
+        runtime.rooms[room.room_id] = replace(room, maximum_age_ms=maximum_age_ms)
+        rebuilt = OriginalTv02Reports(runtime, (source,))
+        assert rebuilt.status(room.room_id)[source.reference.entity_id]['status'] == 'waiting'
+        assert receive(rebuilt)
+        now[0] += maximum_age_ms / 1000
+        status = rebuilt.status(room.room_id)[source.reference.entity_id]
+        assert status['status'] == 'stale' and status['fields'] == {}
+        assert not status['command_correlated'] and not status['valve_ready'] and not status['control_qualified']
+    finally:
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_room_display_rename_preserves_original_tv02_lifetime(hass, devices):
+    runtime, room, source, now = await system(hass, devices)
+    reports = OriginalTv02Reports(runtime, (source,))
+    try:
+        assert receive(reports)
+        runtime.rooms[room.room_id] = replace(room, name='Changed display name')
+        now[0] += 1
+        status = reports.status(room.room_id)[source.reference.entity_id]
+        assert status['status'] == 'received_unqualified'
+        assert status['received_age_ms'] == 1000
+    finally:
+        await runtime.async_stop()

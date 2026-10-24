@@ -1563,3 +1563,30 @@ instellingen. Alleen de actuele updatebasis vermeldt nu afzonderlijk alpha24/a1f
 en dev31/92f5, inclusief `WAITING` voor oorspronkelijke ontvangst. Geen nieuwe
 job of run. Native readback vergelijkt alle overige velden exact;
 `MONITOR-REVIEW.json` bewaart het openbare controlebewijs.
+
+
+## B04/B05: rapportlevensduur gebonden aan de actuele kamerpolicy
+
+Broncontrole na dev31 vond twee reproduceerbare gaten in de optionele diagnose:
+beide oorspronkelijke ontvangers behielden hun oude maximale rapportleeftijd
+wanneer de runtime-kamerpolicy veranderde; de temperatuurontvanger kon bij een
+verkeerd getypeerde klok of overlopende tijdsdelta een uitzondering geven. Dit
+is regressiebewijs, geen vastgestelde oorzaak van een storing op de installatie.
+
+De ontvangers trekken hun bron nu blijvend in bij gewijzigde `maximum_age_ms`.
+Een latere terugzetting hergebruikt geen oude rapporten; een normale nieuwe
+ontvangsteigenaar begint leeg en handhaaft de nieuwe grens. Alleen een andere
+weergavenaam laat de bron en haar oorspronkelijke ontvangsttijd intact. Dit is
+getest voor native graph-kamers én legacy-koppelingen, via status, ontvangst en
+de bestaande registry-recheck. Temperatuurdiagnose behandelt ongeldige initiële
+of latere klokwaarden als blijvend `clock_invalid` en weigert een overlopende
+ontvangsttijd zonder uitzondering. Geen nieuwe timer, client of bevoegdheid.
+
+Vóór de fixes falen vier policygevallen en vier klok-/overflowgevallen aantoonbaar;
+de corresponderende controlegevallen slagen. Na correctie: 224 gerichte native
+HA-checks PASS en één bestaande opt-in localhost-MQTT-check lokaal overgeslagen
+wegens ontbrekende fixture; volledige CI levert daarvoor de geïsoleerde fixture.
+Bewijs: `out/original-report-policy-20261024/`. Deze bronwijzigingen worden
+gebundeld; geen nieuwe release/installatie. Actueel blijft alpha24/dev31 met één
+geregistreerde TV02-bron en oorspronkelijke ontvangst `WAITING`. B04/B05 blijven
+open voor echte bron-/acquisitie-/causale en fysieke kwalificatie.

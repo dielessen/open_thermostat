@@ -1,5 +1,6 @@
 """Real HA registries/lifecycle and actual Node producer; isolated MQTT boundary."""
 import asyncio
+from dataclasses import replace
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -286,4 +287,93 @@ async def test_existing_mqtt_worker_subscription_lifecycle_without_control_or_ex
         assert runtime.original_temperature_reports is None
         assert set(removed) == {'fixture/v1/fw/#', TOPIC, 'status'}
         assert connection.queue.empty() and connection.worker.done()
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('maximum_age_ms', [1000, 20000])
+@pytest.mark.parametrize('first_check', ['status', 'receive'])
+async def test_changed_room_freshness_policy_retires_original_temperature_owner(hass, devices, maximum_age_ms, first_check):
+    runtime, room, reports, now = await system(hass, devices)
+    try:
+        assert receive(reports)
+        runtime.rooms[room.room_id] = replace(room, maximum_age_ms=maximum_age_ms)
+        if first_check == 'receive':
+            assert not receive(reports, packet(2))
+        status = reports.status(room.room_id)
+        assert status['status'] == 'binding_changed'
+        assert status['value_centi_c'] is None
+        assert not receive(reports, packet(2))
+        runtime.rooms[room.room_id] = room
+        assert not receive(reports, packet(3))
+        assert reports.status(room.room_id)['status'] == 'binding_changed'
+        runtime.rooms[room.room_id] = replace(room, maximum_age_ms=maximum_age_ms)
+        rebuilt = OriginalTemperatureReports(runtime)
+        assert rebuilt.status(room.room_id)['status'] == 'waiting'
+        assert receive(rebuilt)
+        now[0] += maximum_age_ms / 1000
+        assert rebuilt.status(room.room_id)['status'] == 'stale'
+        assert rebuilt.status(room.room_id)['value_centi_c'] is None
+        assert not rebuilt.status(room.room_id)['control_qualified']
+    finally:
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_room_display_rename_preserves_original_temperature_lifetime(hass, devices):
+    runtime, room, reports, now = await system(hass, devices)
+    try:
+        assert receive(reports)
+        runtime.rooms[room.room_id] = replace(room, name='Changed display name')
+        now[0] += 1
+        assert reports.status(room.room_id)['status'] == 'received_unqualified'
+        assert reports.status(room.room_id)['received_age_ms'] == 1000
+    finally:
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('bad_clock', [None, '101', object(), float('nan'), float('inf')])
+async def test_invalid_clock_retires_original_temperature_without_diagnostic_exception(hass, devices, bad_clock):
+    runtime, room, reports, now = await system(hass, devices)
+    try:
+        assert receive(reports)
+        now[0] = bad_clock
+        assert reports.status(room.room_id)['status'] == 'clock_invalid'
+        assert reports.status(room.room_id)['value_centi_c'] is None
+        assert not receive(reports, packet(2))
+        now[0] = 101
+        assert reports.status(room.room_id)['status'] == 'clock_invalid'
+        assert not receive(reports, packet(3), received_at=101)
+    finally:
+        now[0] = 101
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_overflowing_arrival_delta_rejects_temperature_packet_without_exception(hass, devices):
+    runtime, room, reports, now = await system(hass, devices)
+    try:
+        now[0] = 1e308
+        assert not receive(reports, received_at=-1e308)
+        assert reports.status(room.room_id)['status'] == 'waiting'
+        assert not runtime._profiles
+    finally:
+        now[0] = 101
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('bad_clock', [None, '100', True, float('nan'), float('inf')])
+async def test_invalid_initial_temperature_clock_cannot_be_repaired_by_later_time(hass, devices, bad_clock):
+    runtime, room, _, now = await system(hass, devices)
+    try:
+        now[0] = bad_clock
+        reports = OriginalTemperatureReports(runtime)
+        now[0] = 101
+        assert reports.status(room.room_id)['status'] == 'clock_invalid'
+        assert not receive(reports, received_at=101)
+        assert reports.status(room.room_id)['value_centi_c'] is None
+    finally:
+        now[0] = 101
         await runtime.async_stop()

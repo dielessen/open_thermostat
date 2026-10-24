@@ -13,28 +13,31 @@ en welke nog op de roadmap staan.
 [Mogelijkheden](#alle-mogelijkheden) · [Roadmap](#wat-we-nog-gaan-bouwen) ·
 [Screenshots](#screenshots) · [Documentatie](#documentatie)
 
-**Actuele passieve releases:** [E32 alpha26](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.26) + [Home Assistant dev34](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev34). Pakketten, bron en softwarecontroles zijn geverifieerd.
+**Gepubliceerd, geïnstalleerd en gecontroleerd:** [E32 alpha28](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.28) + [Home Assistant dev37](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev37).
+Kamerinrichting, weekprogramma's, webinterfaces en passief uitlezen zijn beschikbaar.
+De huidige native inrichting ondersteunt **1–2 kamers, één radiatorknop per kamer**;
+acht zones blijft het uitbreidingsdoel. Tado blijft de actieve regelaar.
 
-**Geïnstalleerd en gecontroleerd: E32 alpha26 + [Home Assistant dev34](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev34).** Kamerinrichting,
-weekprogramma’s, interfaces en passief uitlezen zijn beschikbaar. De regelkern
-is grotendeels voorbereid, maar actieve kamer- en ketelaansturing zijn nog niet
-vrijgegeven op de E32 V2. De huidige native inrichting ondersteunt **1–2 kamers,
-met één radiatorknop per kamer**; acht zones is het uitbreidingsdoel.
+**Nieuw:** Settings → EMS-apparaten met ontvangen afzenders en entiteiten,
+kwaliteit/ouderdom en stabiele EN/NL-weergave. Sessies en opdrachten behouden hun
+oorspronkelijke geldigheid; vertraagde verzending of navigatie herstelt geen oude
+opdracht/pagina. HA-opstart/cleanup en kraanmetadata zijn robuuster afgehandeld.
 
-**Sinds alpha26/dev33:** herstel van ESP-geheugen, CPU-temperatuur en uptime via native MQTT, met behoud van bestaande HA-identiteiten. HA en E32 leggen schaduwmodus en de installatiecontroles in EN/NL uit. Vijf ESP-diagnosewaarden zijn met twee gewone updates in HA bevestigd; de uitgeschakelde RTC-temperatuur blijft onbekend. Het automatische HTTPS-updatepad blijft een apart open herstelpunt; deze firmware is via de bestaande app-only webupload geïnstalleerd.
+Vrij geheugen, CPU-temperatuur en uptime blijven beschikbaar. Instellingen,
+programma's, SOURCE, koppelingen en identiteiten zijn met back-up/nacontrole behouden.
+De E32 is via één bestaande app-only webupload bijgewerkt; de eerdere native
+HTTPS-updaterafwijking is nog onverklaard.
 
-**Nieuw in HA dev34:** verlopen alleen-lezen supervisordiagnose verdwijnt ook bij fractionele klokwaarden op de exacte deadline. Alle eerdere interface- en diagnosefuncties zijn behouden.
+**Nog open:** de oorspronkelijke TV02-ontvangstdiagnose geeft na deze HA-herstart
+een bronbindingswaarschuwing; pins en producent zijn behouden. De geschikte
+kamerbron, causale kraanbevestiging en fysieke ketel-/stopproeven blijven open.
+Actieve kamer-/ketelsturing is nog niet vrijgegeven. [Installatie en grenzen](docs/modern-thermostat/INSTALLATIE-HA37-ALPHA28-20261024.nl.md).
 
-**Eerder in HA dev32:** rapporten blijven aan hun geldigheidsinstelling gebonden;
-klokfouten worden veilig afgehandeld en HA-diagnostiek kan de laatste passende
-transportafwijzing met een veilige redencode tonen. De TV02-bron is geregistreerd;
-natuurlijke oorspronkelijke ontvangst is nog niet bevestigd. Geen extra E32-flash.
-
-**Nieuw in de gezamenlijke bundel:** strengere proefdeadlines en kraandoellevensduur,
-gekoppelde hydraulische supervisorkern, read-only HA-supervisordiagnose en een
-privé pin-loader voor oorspronkelijke TV02-ontvangst. Concrete bronkwalificatie
-en fysieke uitvoer blijven open. Systeemlog/syslog en dashboardupdates met behoud
-van open onderdelen blijven meegenomen. De automatische HTTPS-update heeft eerder gewerkt, maar het recent afwijkende downloadpad blijft open; alpha26 is via de bestaande app-only webupload geleverd.
+**English:** E32 alpha28 and HA dev37 are installed and verified with preserved
+configuration. New passive EMS device inventory, session/deadline fences and
+reliable setup/navigation are included. Boiler/valve outputs stay disabled.
+Original-TV02 startup diagnostics remain an explicit open issue; active heating
+is not yet qualified.
 
 ## Alle mogelijkheden
 
@@ -69,6 +72,7 @@ compatibiliteitsverklaring voor iedere TV02-variant.
 | --- | --- | --- |
 | Je eigen ketel op Home | Model kiezen onder Settings → Mijn ketel, met een lokale illustratie op de beginpagina | **Beschikbaar**, inclusief [Nefit Ecomline Classic HRC 22H](docs/modern-thermostat/boiler-profiles/nefit-ecomline-classic-hrc-22h.json); volledige modelnaam en familie-illustratie. Keuze blijft op de E32 bewaard |
 | EMS-ketelgegevens uitlezen | Beschikbare temperaturen, doelen, modulatie en overige gedecodeerde ketelwaarden bekijken | **Beschikbaar**; verse Classic-berichten ontvangen op de E32 |
+| EMS-apparaten onder Settings | Ontvangen apparaten, beschikbare entiteiten, bronkwaliteit en ouderdom per afzender bekijken; zoekfilter en open details blijven behouden | **Beschikbaar**, passief en EN/NL; geen actieve scan |
 | Classic en EMS Plus | Decoderbasis voor beide protocolfamilies behouden | **Beschikbaar als basis**; velddekking en ondersteuning blijven ketelafhankelijk |
 | Datakwaliteit | Zien of een waarde gemeten, afgeleid, verouderd, onbetrouwbaar of niet beschikbaar is | **Beschikbaar** |
 | Centrale ketelvraag | Warmtevraag uit kamers samenbrengen en voorwaarden voor verwarmen beoordelen | **Voorbereid**; rekent mee zonder actieve uitvoer |

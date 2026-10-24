@@ -1,4 +1,4 @@
-# Gezamenlijke release alpha28 / HA dev37 — voorbereiding en resterend werk
+# Gezamenlijke release alpha28 / HA dev37 — geïnstalleerd en resterend werk
 
 Bijgewerkt: 24 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
@@ -8,27 +8,27 @@ het [masterplan](PLAN.nl.md) bewaart alle 31 producteisen en acceptatievoorwaard
 
 | Onderdeel | Geïnstalleerd | Stand |
 | --- | --- | --- |
-| E32 | `v0.1.0-e32v2-alpha.27`, bron `dd6a9635865c6ecd2bf1c553c3292ae13dfb53ae` | Passief EMS uitlezen; TX, forwarding en fysieke uitvoer geblokkeerd |
-| Home Assistant | `0.4.0.dev36`, bron `c41b7a6e12730f88eb98960299be3236c6494457` | Geladen op Core 2026.10.3; frontend dev35/v35 |
+| E32 | `v0.1.0-e32v2-alpha.28`, bron `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f` | Passief EMS uitlezen; TX, forwarding en fysieke uitvoer geblokkeerd |
+| Home Assistant | `0.4.0.dev37`, bron `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f` | Geladen op Core 2026.10.3; frontend dev35/v35 |
 | Actieve regelaar | Tado | Geen automatische ketel- of kraansturing door OpenThermostat |
 
 Bron/pakket/ELF/web, alle 83 HA-bestanden en behoud van instellingen, programma's
-en identiteiten zijn gecontroleerd. Zie [installatieverslag](INSTALLATIE-HA36-ALPHA27-20261024.nl.md).
+en identiteiten zijn gecontroleerd. Zie [installatieverslag](INSTALLATIE-HA37-ALPHA28-20261024.nl.md).
 De uitgebreide geleverde bundel staat in de [werkbordhistorie](WORKBOARD-HISTORIE-20261024.nl.md).
 
-### Laatste controle van de geïnstalleerde omgeving
+### Laatste installatiecontrole — 24 oktober 17:30 CEST
 
-24 oktober 17:00–17:01 CEST: HA geladen, E32 dezelfde boot/uptime +70 s,
-19 nieuwe EMS-rapporten, ontvangstfouten/TX/polls 0. Vrij geheugen circa 77–80 kB,
-CPU circa 53 °C. De onderzochte web-/statusroutes werken en instellingen zijn behouden.
-Oorspronkelijke TV02-temperatuurontvangst is nu bevestigd; doelecho en kraanwerking
-blijven ongekwalificeerd. De gekozen kamerbron heeft nog geen bruikbaar meetprofiel.
+HA37 geladen en alpha28 daadwerkelijk gestart met exacte bron/ELF/web, boot bevestigd.
+Verse 93-bestandenback-up; instellingen, 105 registryrecords, programma's, SOURCE en
+pins/producer behouden. Eén HA-herstart en één app-only E32-upload; de oorspronkelijke
+HTTP 200/bootbewijzen bevestigen succes ondanks de proxytime-out. EMS-apparatenpagina
+werkt en toont twee afzenders. Alle uitgangen blijven geblokkeerd.
 
-Korte runtimecontrole geslaagd binnen deze grenzen; geen lange-duurproef of
-actieve verwarmingsacceptatie. Geen update/herstart/aansturing uitgevoerd.
-Bewijs: `out/stability-check-20261024/SAFE-RESULT.json`.
+Nog open: oorspronkelijke TV02-ontvangstdiagnose is na opstart leeg met een
+bronbindingswaarschuwing; de gekozen kamerbron mist kwalificatie. Dit is geen
+actieve regelacceptatie. Details en veilig bewijs staan in het installatieverslag.
 
-## 2. Inhoud van kandidaat alpha28 / HA dev37
+## 2. Geleverde inhoud van alpha28 / HA dev37
 
 | Onderdeel | Wat verandert er? |
 | --- | --- |
@@ -42,12 +42,10 @@ Bewijs: `out/stability-check-20261024/SAFE-RESULT.json`.
 | EMS-tabel | Bestaande rijen hergebruikt, adressen correct geordend, waarden gecontroleerd en getallen volgens EN/NL weergegeven |
 | Keteltestplan | Concrete volgorde en criteria voor toekomstige stop-, zend-, naloop- en uitvalproeven |
 
-**Gebouwd en getest; nieuwe versies alpha28/dev37 worden nu verpakt. Nog niet geïnstalleerd.** Broncheckpoint
-`34aa3e8b0525e41d0ae93e5afd299d59f238595f`: alle zeven CI-jobs geslaagd;
-2154 HA-tests op zowel Core 2026.10.2 als Core 2026.10.3, zonder fouten of skips.
-Bewijs: `out/ha-session-clock-20261024/FINAL-REVIEW.json`. De aanvullende
-wachtrijfix heeft 13 nieuwe regressiegevallen; haar eigen bron-/test-/CI-bewijs staat
-in `out/retry-await-fence-20261024/FINAL-REVIEW.json`. Nog niet geïnstalleerd.
+**Gepubliceerd, geïnstalleerd en gecontroleerd.** Bron `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f`,
+2167 HA-tests op beide echte Core-versies zonder fout/skip, alle zeven softwarejobs
+geslaagd. Openbare pakketten, live HA-bestanden en echte E32-boot apart gecontroleerd.
+Bewijs: `out/combined-dev37-alpha28-20261024/FINAL-REVIEW.json`.
 
 Alle 23 voorbereide onderdelen met 245 bronverwijzingen blijven in de
 [release-inventaris](BETA1-RELEASE-INVENTARIS.json). Bestaande regeling,
@@ -59,6 +57,7 @@ Hun ontbrekende verbindingen en fysieke acceptatie staan op het werkbord.
 | Volgorde | Werk | Gereed wanneer |
 | --- | --- | --- |
 | P0 vóór fysieke proef | Gemeld pendelen verklaren en passieve nulmeting beoordelen | Oorzaak of concrete vervolgmeting vastgelegd; geschikte stabiele proefbeginsituatie |
+| P0 software, B05 diagnose | TV02-bronbindingswaarschuwing na opstart onderzoeken/herstellen | Dezelfde opgeslagen bron registreert weer zonder pin-/bindingwissel of geforceerde rapportage |
 | P0 software, B04 | Echte geschikte kamerbron met oorspronkelijk rapport en meetprofiel | Werkelijke acquisitie/actualiteit en uitval bewezen; geen diagnostische device_temperature als ruimtemeting |
 | P0 software, B05/M2 | Normale FW→HA-kraanroute met HA-ontvangergrant en bestaande adapter afronden | Native zendtransactie aan oorspronkelijke kraanecho gekoppeld; profiel, modus, eigenaarschap en fallback getoetst |
 | P0 software, B06 | Werkelijke veiligheids-/DHW-/water-/kraan-/flowfeiten aansluiten | Iedere bron met eigen geldigheid en beoordeeld installatieprofiel; geen generieke flowaanname |

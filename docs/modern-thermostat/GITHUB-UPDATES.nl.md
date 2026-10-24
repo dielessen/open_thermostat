@@ -2,15 +2,11 @@
 
 ## Actuele installatie — 24 oktober 2026
 
-De laatste onafhankelijk gecontroleerde installatie is HA `0.4.0.dev36`
-(bron `c41b7a6e12730f88eb98960299be3236c6494457`) en E32
-`v0.1.0-e32v2-alpha.27` (bron `dd6a9635865c6ecd2bf1c553c3292ae13dfb53ae`).
-Zie [installatieverslag](INSTALLATIE-HA36-ALPHA27-20261024.nl.md).
-
-De nieuwe gezamenlijke kandidaat is **HA dev37 / E32 alpha28**: EMS-apparaten,
-klok-/sessiebewaking, betrouwbare retries, HA-opruiming en webnavigatie. Publicatie,
-exacte pakketten en daadwerkelijke installatie worden afzonderlijk gecontroleerd.
-Het [werkbord](WORKBOARD.nl.md) vermeldt de laatst bewezen installatiestatus.
+De gecontroleerde installatie is **HA dev37 / E32 alpha28**, beide bron
+`3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f`. Bron/ELF/web,83 live HA-bestanden,
+configuratiebehoud en bevestigde E32-boot zijn gecontroleerd. Zie
+[installatieverslag](INSTALLATIE-HA37-ALPHA28-20261024.nl.md). De EMS-apparatenpagina
+werkt; de optionele oorspronkelijke TV02-diagnose heeft nog een opstartwaarschuwing.
 
 HA-installatie verloopt via de bestaande HA-specialist met verse back-up en
 nacontrole. De native HTTPS-updaterfout is nog onverklaard; deze route wordt niet

@@ -9,14 +9,14 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
-| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.27`, één app-only upload; bron/ELF/web en stabiele boot bevestigd, instellingen behouden |
-| Geïnstalleerde HA-integratie | `0.4.0.dev36`, geladen op Core 2026.10.3; room/get hersteld, 105 registryrecords en koppelingen behouden |
-| Geleverde bron | E32 `dd6a9635865c6ecd2bf1c553c3292ae13dfb53ae`; HA `c41b7a6e12730f88eb98960299be3236c6494457`, alle 83 live componentbestanden gelijk aan het HA-pakket |
-| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; alpha27/dev36 bundelt alle voorbereide software, met failsafe, diagnose, bediening en Core-compatibiliteit; eerdere bron behouden |
+| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.28`, één app-only upload; bron/ELF/web en stabiele boot bevestigd, instellingen behouden |
+| Geïnstalleerde HA-integratie | `0.4.0.dev37`, geladen op Core 2026.10.3; room/get hersteld, 105 registryrecords en koppelingen behouden |
+| Geleverde bron | E32 en HA `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f`, alle 83 live componentbestanden gelijk aan het HA-pakket |
+| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; alpha28/dev37 bundelt alle voorbereide software, met failsafe, diagnose, bediening en Core-compatibiliteit; eerdere bron behouden |
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
-| Laatste livecontrole | 24 oktober 17:00–17:01 CEST: HA geladen, E32-uptime +70 s, 19 nieuwe EMS-rapporten, fouten/TX/polls 0; oorspronkelijke TV02-temperatuur ontvangen maar niet regelgekwalificeerd |
+| Laatste livecontrole | 24 oktober 17:30 CEST: HA37 geladen, alpha28 stabiele boot, instellingen behouden, twee EMS-apparaten zichtbaar; TV02-ontvangstdiagnose heeft nog een bronbindingswaarschuwing |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
 met 245 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
@@ -31,7 +31,7 @@ Een meegeleverd model of geslaagde simulatie bewijst geen aangesloten functie,
 ketelreactie of productacceptatie. Alle oorspronkelijke fasen blijven open waar
 verplichte fysieke of langere-termijnproeven ontbreken.
 
-## Prioriteiten na de geleverde alpha27/dev36-bundel
+## Prioriteiten na de geleverde alpha28/dev37-bundel
 
 Alle 31 eisen, 23 brononderdelen, 11 fasen, 8 werkpakketten en 14 releasepoorten
 zijn opnieuw naast de geïnstalleerde basis gelegd. B01–B03 zijn softwarematig af;
@@ -42,10 +42,11 @@ historisch; de tabellen en deze volgorde bepalen nieuw werk.
 | Prioriteit | Punt / koppeling | Eerstvolgende concrete uitkomst | Wat buiten software blijft |
 | --- | --- | --- | --- |
 | P0 vóór fysieke proef | Gemeld pendelen | Onderzoek richting warmwaterbedrijf vervolgen: gebruik/bijwarmen onderscheiden; stabiele nulmeting vastleggen | Geen bewezen oorzaak; geen zendproef bij onverklaarde instabiliteit |
+| P0 | TV02-opstartdiagnose, B05 | Bronbindingswaarschuwing reproduceren en diagnose-lifecycle herstellen voor dezelfde opgeslagen bron | Geen andere pin/binding of geforceerd apparaatbericht als omweg |
 | P0 | Echte kamerbron, R03/B04/WP03 | Brongebonden acquisitie-/profielketen afmaken met echte oorspronkelijke rapporten | RTCGQ11LM device_temperature niet als kamerbron kwalificeren; geen automatische sensorwissel |
 | P0 | Kraantransactie, R05/B05/WP05 | Normale FW→HA-route met HA-ontvangergrant en bestaande adapter verbinden; native zendtransactie aan oorspronkelijke echo koppelen | Exact geïnstalleerde converterbron ontbreekt nog in bestaande toegang; geen cache/serviceacceptatie als ACK |
 | P0 | Veiligheidsproducenten, R07/R23/B06/WP06 | Afzonderlijke gedateerde limiet/DHW/water/kraan/flowfeiten en installatieprofiel aansluiten | Geen generieke flow-/pompaanname of ongekwalificeerde vrijgave |
-| Klaar voor bundel | EMS-apparatenweergave, R15/R25/R29/I11/I12/I21 | Gebouwd en getest; meenemen in volgende gezamenlijke installatie | Nog niet geïnstalleerd; passief, ontbrekende identiteit/decoder blijft zichtbaar |
+| Geleverd | EMS-apparatenweergave, R15/R25/R29/I11/I12/I21 | Geïnstalleerd op alpha28, echte GET en twee apparaten gecontroleerd | Passief; ontbrekende identiteit/decoder blijft zichtbaar |
 | P1 | Classic-zender en stopketen, R08/B07–B08/WP02 | Bestaande bounded policy, pollqueue/encoder en laatste dispatchcontrole afronden | TX/adres/masker en fysieke zender pas na B09 beoordelen |
 | P1 | Installatieacceptatie, R22–R24/B09 | Bestaande acceptatiekaart concreet maken voor UART/arbitrage/Tado óf E32/minimumflow/naloop/onafhankelijke stop | Fysieke feiten blijven open; vragen bundelen voor de proef, niet iedere bronstap blokkeren |
 | P1 | HTTPS-herstelbaarheid, R28/I03/WP08 | Geïnstalleerde checkpointdiagnose gebruiken bij gericht onderzocht vervolg | Vorige workerfout onbekend; app-only succes is geen workerreparatie of reden voor replay |
@@ -56,27 +57,23 @@ Leren/PI/PID en blijvend bewaarde, gevalideerde parameters per ruimte blijven
 verplicht voor de definitieve versie (R12); nieuwe F9/F10-stages volgen na M2.
 Een ontbrekende fysieke waarneming blokkeert onafhankelijk softwarewerk niet.
 
-### Klaar voor de volgende gezamenlijke release — nog niet geïnstalleerd
+### Geleverd in alpha28 / HA dev37
 
-| Onderdeel | Uitgewerkt en gecontroleerd | Resterend voor levering |
+| Onderdeel | Uitgewerkt en gecontroleerd | Levering / resterend |
 | --- | --- | --- |
-| Settings → EMS-apparaten | Herkende afzenders, ontvangen product/versie, entiteiten, kwaliteit/ouderdom; EN/NL, zoekfilter en stabiele verversing | Samen verpakken en installeren |
-| E32-sessiebewaking | Verlopen rechten herleven niet bij teruggaande klok; ook diagnostische lezingen bewaakt | Samen verpakken en installeren |
-| HA-sessiebewaking | Ongeldige/teruggaande monotone klok trekt sessie en wachtende opdrachten in; reconnect herstelt geen oude rechten | Samen verpakken en installeren; herstel via nieuwe transportinstantie |
-| Betrouwbare herhaling na wachten | Iedere retry controleert opnieuw actuele tijd, lease, SOURCE en de oorspronkelijke wachtrijregistratie; ingetrokken/vervangen opdrachten worden overgeslagen | Samen verpakken en installeren |
-| HA-opstart en editor | Opruimen bij fouten/annulering, behoud van vervangende eigenaar, te grote kraanmetadata veilig afgewezen | Samen verpakken en installeren |
-| Webnavigatie en EMS-tabel | Late antwoorden overschrijven geen nieuwe pagina; bestaande rijen behouden en waarden gecontroleerd | Samen verpakken en installeren |
+| Settings → EMS-apparaten | Herkende afzenders, ontvangen product/versie, entiteiten, kwaliteit/ouderdom; EN/NL, zoekfilter en stabiele verversing | Geïnstalleerd en gecontroleerd |
+| E32-sessiebewaking | Verlopen rechten herleven niet bij teruggaande klok; ook diagnostische lezingen bewaakt | Geïnstalleerd en gecontroleerd |
+| HA-sessiebewaking | Ongeldige/teruggaande monotone klok trekt sessie en wachtende opdrachten in; reconnect herstelt geen oude rechten | Geïnstalleerd; herstel via nieuwe transportinstantie |
+| Betrouwbare herhaling na wachten | Iedere retry controleert opnieuw actuele tijd, lease, SOURCE en de oorspronkelijke wachtrijregistratie; ingetrokken/vervangen opdrachten worden overgeslagen | Geïnstalleerd en gecontroleerd |
+| HA-opstart en editor | Opruimen bij fouten/annulering, behoud van vervangende eigenaar, te grote kraanmetadata veilig afgewezen | Geïnstalleerd en gecontroleerd |
+| Webnavigatie en EMS-tabel | Late antwoorden overschrijven geen nieuwe pagina; bestaande rijen behouden en waarden gecontroleerd | Geïnstalleerd en gecontroleerd |
 | Actief keteltestplan | Nulmeting, voorwaarden, stopproef, begrensde vraag, naloop, afzonderlijke uitval en herstel beschreven | Fysieke voorwaarden en proef nog open |
 
-Broncheckpoint `34aa3e8b0525e41d0ae93e5afd299d59f238595f`: alle zeven CI-jobs
-geslaagd, **2154 HA-tests op zowel Core 2026.10.2 als Core 2026.10.3**, zonder
-fouten of skips. Dit is softwarebewijs; geen nieuwe installatie of fysieke proef.
-Alle eerdere 23 onderdelen blijven behouden. Zie [releaseoverzicht](NEXT-RELEASE.nl.md).
-
-De aanvullende wachtrijfix is reproduceerbaar op de vorige bron en gedekt door
-13 nieuwe gevallen, inclusief wachten tot deadline/leaseverlies, afsluiten,
-vervangen, SOURCE-wijziging en teruggaande klok. Actuele test-/CI-uitkomst:
-`out/retry-await-fence-20261024/FINAL-REVIEW.json`. Nog niet geïnstalleerd.
+Gezamenlijke bron `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f`: tag-CI geslaagd,
+2167 HA-tests op beide ondersteunde Core-versies, exacte openbare pakketten en
+werkelijke installatie met back-up/nacontrole gecontroleerd. De 13 nieuwe retry-
+gevallen blijven meegenomen. Zie [installatieverslag](INSTALLATIE-HA37-ALPHA28-20261024.nl.md).
+Alle 23 onderdelen blijven behouden; geen fysieke proef-/bèta-vrijgave.
 
 ### Pendelonderzoek — vastgesteld en nog onbekend
 
@@ -92,7 +89,7 @@ onderzoeksrichting; indirecte elektrische invloed is niet volledig uitgesloten.
 Geen instellingen gewijzigd of zendproef uitgevoerd. Veilig lokaal bewijs:
 `out/boiler-cycling-20261024/SAFE-RESULT.json` en `REVIEW.json`.
 
-### Live stabiliteitscontrole — 24 oktober, 17:00–17:01 CEST
+### Voorcontrole van alpha27/dev36 — 24 oktober, 17:00–17:01 CEST
 
 Twee meetmomenten, 70 seconden uiteen: dezelfde E32-boot, HA dev36 geladen,
 actuele native verbinding en ongewijzigde configuratierevisie 4. Alle 83 HA-bronbestanden,
@@ -260,7 +257,7 @@ onafhankelijk bron-/testwerk hoeven niet te wachten op een fysieke waarneming.
 - [x] B02 Alle bekende voorbereide brononderdelen geïnventariseerd en in bètabasis behouden; geen bron-/testbestand uit hoofdwerkmap ontbreekt.
 - [x] B03 Nieuwe ontvangstdiagnose/Keteltest/rapport gebouwd en getest: 18 native, 43 GUI-regressies, 3 echte Chromiumviewports met fixture-HTTP, normale E32-build.
 - [ ] B04 Observer-lifecycle/native binding en originele WSDCGQ11LM-producer/HA-ontvangstdiagnose gebouwd/getest; productie-meetprofiel met echte acquisitie-/bronkwalificatie en fysieke validatie afronden. Geen trustvinkje of sensorwissel als omweg.
-- [ ] B05 TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur, originele datapuntproducer en native HA-ontvangst/lifecycle geleverd; privé pins en producent geplaatst, één bron geregistreerd. Natuurlijke oorspronkelijke temperatuurontvangst bevestigd; causale zendtransactiekoppeling/doelecho, schema-eigenaarschap en profiel/readiness/fallback nog afronden. Fysieke proef eerst zonder ketel.
+- [ ] B05 TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur, originele datapuntproducer en native HA-ontvangst/lifecycle geleverd; privé pins en producent geplaatst, één bron geregistreerd. Natuurlijke temperatuurontvangst vóór update bevestigd; na herstart diagnose leeg met bronbindingswaarschuwing. Diagnose-lifecycle herstellen; causale zendtransactiekoppeling/doelecho, schema-eigenaarschap en profiel/readiness/fallback nog afronden. Fysieke proef eerst zonder ketel.
 - [ ] B06 Supervisor aan bron-eigen profiel en actuele afzonderlijk gedateerde veiligheids-/DHW-/water-/kraan-/flowfeiten gekoppeld en in controller getest; werkelijke producenten, installatieprofiel en fysieke kwalificatie blijven open. Geen generieke flowaanname.
 - [ ] B07 Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten.
 - [ ] B08 Poll-executor, Classic-flow/nulformaat en gecontroleerde SDK-zendresultaten aangesloten/getest; installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute.
@@ -301,7 +298,7 @@ Alleen programma-ACK of beschikbaarheid van een entiteit sluit M2 niet.
 | [Release-inventaris](BETA1-RELEASE-INVENTARIS.json) | Alle 23 onderdelen en245gecontroleerde bronverwijzingen |
 | [Keteltestplan](BETA1-KETELPROEF.nl.md) | Volgorde van toekomstige stop-/zend-/uitvalproeven |
 | [Pre-TX-kaart](ECOMLINE-PRE-TX-ACCEPTATIE.nl.md) | Nog benodigde installatiegegevens en fysieke voorwaarden |
-| [Installatieverslag](INSTALLATIE-HA36-ALPHA27-20261024.nl.md) | Werkelijk geleverde alpha27/dev36 en behoudsbewijs |
+| [Installatieverslag](INSTALLATIE-HA37-ALPHA28-20261024.nl.md) | Werkelijk geleverde alpha28/dev37, behoudsbewijs en TV02-diagnosebeperking |
 | [Werkbordhistorie](WORKBOARD-HISTORIE-20261024.nl.md) | Ongewijzigd vroeger uitvoeringslog; geen actuele planning |
 | `out/ha-session-clock-20261024/FINAL-REVIEW.json` | Laatste softwarecheckpoint en volledige CI |
 | `out/boiler-cycling-20261024/SAFE-RESULT.json` | Begrensd passief pendelonderzoek; oorzaak niet bewezen |

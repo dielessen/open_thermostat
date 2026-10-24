@@ -3,8 +3,8 @@
   "as_of": "2026-10-24",
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
   "release_state": "NOT_READY",
-  "installed_firmware": "v0.1.0-e32v2-alpha.27",
-  "installed_ha": "0.4.0.dev36",
+  "installed_firmware": "v0.1.0-e32v2-alpha.28",
+  "installed_ha": "0.4.0.dev37",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
   "items": [
     {
@@ -889,7 +889,7 @@
           "sha256": "36a432e31ee382c16a960a80584c36e1ab2515f2f2d15972f42f02415d9006c1"
         }
       ],
-      "remaining_acceptance": "Eerdere oorspronkelijke TV02-ontvangst blijkt uit geïnstalleerde stale-status; verse ontvangst, unieke native zendtransactie/causale echo, schema-eigenaarschap en fysieke werking blijven open. Begrensde ontvangstmetadata na verval voorbereid/getest; geen oude waarden of readiness vrijgegeven."
+      "remaining_acceptance": "Eerdere oorspronkelijke TV02-ontvangst blijkt uit geïnstalleerde stale-status; verse ontvangst, unieke native zendtransactie/causale echo, schema-eigenaarschap en fysieke werking blijven open. Begrensde ontvangstmetadata na verval voorbereid/getest; geen oude waarden of readiness vrijgegeven. Na HA37-herstart oorspronkelijke TV02-diagnose leeg met bronbindingswaarschuwing; oorzaak en diagnose-lifecycle herstellen zonder bronwissel."
     },
     {
       "id": "I15",
@@ -1593,7 +1593,7 @@
     {
       "id": "B05",
       "complete": false,
-      "description": "TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur, originele datapuntproducer en native HA-ontvangst/lifecycle geleverd; privé pins en producent geplaatst, één bron geregistreerd. Natuurlijke oorspronkelijke temperatuurontvangst bevestigd; causale zendtransactiekoppeling/doelecho, schema-eigenaarschap en profiel/readiness/fallback nog afronden. Fysieke proef eerst zonder ketel."
+      "description": "TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur, originele datapuntproducer en native HA-ontvangst/lifecycle geleverd; privé pins en producent geplaatst, één bron geregistreerd. Natuurlijke temperatuurontvangst vóór update bevestigd; na herstart diagnose leeg met bronbindingswaarschuwing. Diagnose-lifecycle herstellen; causale zendtransactiekoppeling/doelecho, schema-eigenaarschap en profiel/readiness/fallback nog afronden. Fysieke proef eerst zonder ketel."
     },
     {
       "id": "B06",

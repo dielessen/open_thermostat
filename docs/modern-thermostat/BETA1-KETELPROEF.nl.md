@@ -2,9 +2,8 @@
 
 Opdracht van 23 oktober 2026: doorwerken tot één samenhangende eerste bèta voor
 het koppelen van de ketel, terugmelden van gegevens en testen van de aansturing.
-De huidige geïnstalleerde passieve basis is E32 alpha27
-(bron `dd6a9635865c6ecd2bf1c553c3292ae13dfb53ae`) en HA dev36
-(bron `c41b7a6e12730f88eb98960299be3236c6494457`). Vervolgontwikkeling gebeurt op
+De huidige geïnstalleerde passieve basis is E32 alpha28 en HA dev37
+(beide bron `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f`). Vervolgontwikkeling gebeurt op
 `work/beta-boiler-20261023`. De actuele afvinklijst staat in
 [WORKBOARD](WORKBOARD.nl.md); deze tekst is geen actieve bèta-vrijgave.
 

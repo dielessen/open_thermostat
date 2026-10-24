@@ -15,12 +15,12 @@ wat eerder is voorbereid moet in de releasebasis behouden blijven. Daarom is
 ieder voorbereid onderdeel opgenomen in de [release-inventaris](BETA1-RELEASE-INVENTARIS.json)
 en in [WORKBOARD §3](WORKBOARD.nl.md#3-alles-wat-voorbereid-is-meenemen-in-de-bèta).
 
-- **Geïnstalleerd:** E32 alpha27 (`dd6a963`) en HA dev36 (`c41b7a6`),
+- **Geïnstalleerd:** E32 alpha28 en HA dev37 (beide bron `3efb0a1`),
   met behoud van instellingen, programma's en identiteiten. E32 leest passief;
-  Tado blijft de actieve regelaar. Details: [installatieverslag](INSTALLATIE-HA36-ALPHA27-20261024.nl.md).
-- **Klaar voor de volgende bundel:** EMS-apparatenpagina, sessie-/klokbewaking
-  op E32 en HA, opstartherstel en web-/editorcorrecties. Broncheckpoint `34aa3e8`
-  heeft volledige CI; deze wijzigingen zijn nog niet geïnstalleerd.
+  Tado blijft de actieve regelaar. Details: [installatieverslag](INSTALLATIE-HA37-ALPHA28-20261024.nl.md).
+- **Geleverd in deze bundel:** EMS-apparatenpagina, sessie-/klokbewaking
+  op E32 en HA, opstartherstel en web-/editorcorrecties. Bron `3efb0a1`
+  heeft volledige CI en gecontroleerde installatie. TV02-opstartdiagnose blijft open.
 - **Voorbereide productbasis behouden:** regelaars/supervisor, water-/vloer-/
   mengerpolicies, metrics/grafieken/CSV, comfort/context en leermodellen. De
   ontbrekende aansluiting en praktijkkwalificatie staan per eis op het werkbord.

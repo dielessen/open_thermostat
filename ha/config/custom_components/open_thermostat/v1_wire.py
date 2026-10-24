@@ -28,6 +28,13 @@ GRANT_NONCE_CAPABILITY = "session.grant_nonce.v1"
 ROOM_NAMES_CAPABILITY = "display.room_names.v1"
 COMFORT_CAPABILITY = "comfort.target.v1"
 COMFORT_MODES = {"auto","off","temporary","boost","away","vacation","frost"}
+# Fixed firmware admission labels only; arbitrary peer text stays private.
+_REJECTION_REASONS = frozenset(("not_configured", "wrong_version", "wrong_identity",
+    "wrong_revision", "unknown_binding", "expired_grant", "lease_expired",
+    "old_sequence", "changed_duplicate", "invalid_sequence", "invalid_clock"))
+_RESULT_STREAMS = {"fw/heartbeat_result": "heartbeat", "fw/config_result": "configuration",
+    "fw/observation_result": "observation", "fw/user_command_result": "user_command",
+    "fw/snapshot_result": "snapshot"}
 
 
 def canonical(value):
@@ -139,6 +146,7 @@ class ShadowClient:
         self.verified = False
         self.closed = False
         self.error = "not_connected"
+        self._last_rejection = None
         self._nonce = lambda: secrets.token_hex(12)
         self._close_io = None
         self.room_names_supported=False
@@ -153,6 +161,36 @@ class ShadowClient:
         self._metrics_highwater=0
         self._supervisor=None
         self._supervisor_received=0.0
+
+    @property
+    def last_rejection_payload(self):
+        """One historical reply, never current admission or readiness evidence."""
+        if self._last_rejection is None:
+            return None
+        record, received, watermark = self._last_rejection
+        now = self.clock()
+        if (type(now) not in (int, float) or not math.isfinite(now)
+                or not math.isfinite(now - received) or now < watermark):
+            self._last_rejection = None
+            return None
+        age_ms = (now - received) * 1000
+        if not math.isfinite(age_ms):
+            self._last_rejection = None
+            return None
+        self._last_rejection = (record, received, now)
+        return dict(record, received_age_ms=math.ceil(age_ms))
+
+    def _record_rejection(self, topic, payload, pending):
+        now = self.clock()
+        stream = _RESULT_STREAMS.get(topic)
+        if (stream is None or type(now) not in (int, float) or not math.isfinite(now)
+                or not 0 <= now - pending["sent"] < 8 or not now < pending["deadline"]):
+            return
+        reason = payload.get("rejection_reason")
+        if type(reason) is not str or reason not in _REJECTION_REASONS:
+            reason = "unknown_reason"
+        self._last_rejection = (dict(stream=stream, status=payload["status"], reason=reason,
+            scope="historical_matching_reply_only", control_qualified=False), now, now)
 
     @property
     def supervisor_payload(self):
@@ -423,7 +461,9 @@ class ShadowClient:
         """
         expected={"api","controller_id","boot_id","epoch","config_revision","config_digest",
                   "adapter_session_id","binding_id","sequence","status"}
-        if (set(p)!=expected or not integer(p["sequence"],1) or p["binding_id"]!="config"
+        if (set(p)-{"rejection_reason"}!=expected
+                or ("rejection_reason" in p and p["status"]!="rejected")
+                or not integer(p["sequence"],1) or p["binding_id"]!="config"
                 or not integer(p["config_revision"]) or not self.native_source_current()
                 or self.session is None or p["adapter_session_id"]!=self.session["adapter_session_id"]):
             return True
@@ -609,6 +649,7 @@ class ShadowClient:
         self.journal = snapshot
 
     def reset_session(self):
+        self._last_rejection = None
         self._native_state_receipt=None
         self._native_refresh_pending=False
         self._native_legacy_supported=False
@@ -912,6 +953,7 @@ class ShadowClient:
             self.pending.pop(key)
             status = p["status"]
             if status in {"rejected", "conflict", "storage_fault", "mapping_conflict"}:
+                self._record_rejection(topic, p, pending)
                 self.error = status
                 if topic == "fw/user_command_result" and not pending["future"].done():
                     pending["future"].set_exception(HomeAssistantError("Firmware rejected shadow command"))

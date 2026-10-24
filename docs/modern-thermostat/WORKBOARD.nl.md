@@ -1624,3 +1624,26 @@ resultaatformaat controleren, of bij een volgende echte afwijzing de begrensde
 reply-specifieke diagnose vastleggen via de bestaande ontvanger. Geen extra
 client, watcher of fysieke opdracht. Auditbewijs: `TRANSPORT-SUMMARY.json` en
 `INDEPENDENT-TRANSPORT-REVIEW.json` in hetzelfde dossier.
+
+
+## B10: begrensde afwijzingsdiagnose en gezamenlijke HA dev32-bundel
+
+De al aanwezige E32 `rejection_reason` verdween uit HA-diagnostiek. De bestaande
+ontvanger bewaart nu maximaal één passende, tijdige, aangevraagde afwijzing in de
+actuele configuratie/sessie. Alleen vaste stroom/status/redencodes en lokale
+ontvangstouderdom worden geëxporteerd; geen replybytes, pins, binding-ID of
+peer-tekst. Dit is expliciet historische diagnose, geen bevoegdheid of actuele
+uitgangsstatus. Gezonde state/ACK blijft onafhankelijk; sessiereset en een
+geconstateerde klokfout verwijderen de diagnose. Geen extra client/timer/Store.
+
+Een tweede schemafout is lokaal gereproduceerd: `native_config_result` negeerde
+een echte afwijzing met het optionele redenveld. Die reply wordt nu doorgegeven
+aan de bestaande foutafhandeling. Extra velden en een redenveld bij een
+successtatus blijven geweigerd; readback- en toelatingsregels blijven geldig.
+De replay bewijst deze schemafout, niet de historische live afwijzingsreden.
+
+Deze wijzigingen en de rapportpolicy-/klokcorrecties worden samen bevroren als
+HA dev32, zonder extra E32-flash. De tagnnaam was ongebruikt. Volledige CI,
+onafhankelijke pakketcontrole en normale specialistinstallatie met verse scoped
+back-up volgen op deze exacte kandidaat. Tot bewijs blijft alpha24/dev31 de
+geïnstalleerde basis. Bron-/testbewijs: `out/transport-rejection-diagnostic-20261024/`.

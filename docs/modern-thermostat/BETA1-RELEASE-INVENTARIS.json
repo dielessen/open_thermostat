@@ -834,11 +834,11 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_wire.py",
-          "sha256": "927d7275b553696878e2f85c67f6e12d70f729ab2498453d4701aa52f7470a0b"
+          "sha256": "733b1716b2102b273317cdd5b465f6efef6687b5f62a567fb02473ba7fadaa9a"
         },
         {
           "path": "ha/tests_native/test_supervisor_status.py",
-          "sha256": "f6c90e70e99c14c226ed30264c4aa68d4a77cfe3865d4e03cf6e3931e9e3b829"
+          "sha256": "d499915cdf36047467aaa47699c4a81cf587e9b7c31f696b0edfdef17d0117cf"
         }
       ],
       "remaining_acceptance": "Controllerkoppeling met bron-eigen profiel, afzonderlijke factleeftijden en lokale foutbevestiging gebouwd/getest; werkelijke producenten, installatieprofiel, fysieke hydrauliek en uitvoerketen nog niet gekwalificeerd."
@@ -1045,7 +1045,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/diagnostics.py",
-          "sha256": "73135fbd11c8d2334a74a897de4c08c05bb43eb995a3efa7de6950162df6a1dc"
+          "sha256": "66b3e5420a12a8596042f3637fcac545cac256aa7782151eeaeb2c84ac82b69d"
         }
       ],
       "remaining_acceptance": "Niet generiek als werkende onderhouds-/tapwaterregeling presenteren; modelgerichte acceptatie open."

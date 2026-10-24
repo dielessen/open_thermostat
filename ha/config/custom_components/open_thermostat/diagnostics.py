@@ -22,6 +22,7 @@ async def async_get_config_entry_diagnostics(hass, entry):
     if runtime is None:
         return result
     client = runtime._transport
+    result["read_only_last_rejection"] = getattr(client, "last_rejection_payload", None)
     supervisor = getattr(client, "supervisor_payload", None)
     result["read_only_supervisor"] = {
         "available": supervisor is not None,

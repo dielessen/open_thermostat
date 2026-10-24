@@ -1,3 +1,27 @@
+# HA 0.4.0.dev32 — rapportlevensduur en verklaarbare transportafwijzingen
+
+Bundelt alle HA-correcties sinds dev31. E32 alpha24 blijft staan; deze uitgave
+verleent geen fysieke meet-, kraan- of ketelkwalificatie.
+
+- Oorspronkelijke temperatuur- en TV02-rapporten blijven gebonden aan de gekozen
+  maximale rapportleeftijd. Een policywijziging trekt de oude ontvanger in;
+  terugzetten hergebruikt geen oude rapporten. Een nieuwe eigenaar begint leeg.
+- Ongeldige klokwaarden en overlopende tijdsdelta's worden veilig afgehandeld.
+- De bestaande ontvanger bewaart maximaal één historische afwijzing voor een
+  actuele, aangevraagde reply. HA-diagnostiek toont alleen vaste stroom-, status-
+  en redencodes met ontvangstouderdom. Onbekende peer-tekst wordt niet uitgevoerd
+  of geëxporteerd. Een latere gezonde status maakt dit geen actuele storing.
+  Een sessiewissel of geconstateerde klokfout verwijdert deze diagnose.
+- Native configuratieafwijzingen met het optionele `rejection_reason`-veld worden
+  correct als afwijzing verwerkt; zij verdwijnen niet door een te strikt schema.
+  Succes blijft uitsluitend via de bestaande readback-/SOURCE-controles geldig.
+
+Kamers, programma's, koppelingen, accepted SOURCE/journal, registry, dashboard,
+privé TV02-pins en ontvangende producent blijven behouden. Geen extra client,
+watcher, automatische retry of apparaatopdracht. De frontendbytes en bestaande
+dev28/v28-kaartidentiteit blijven gelijk. Natuurlijke TV02-ontvangst, causale
+opdrachtbevestiging en fysieke acceptaties blijven afzonderlijke open checks.
+
 # HA 0.4.0.dev31 — TV02-ontvangst voor native installatiekamers
 
 Herstelt de oorspronkelijke TV02-ontvanger voor kamers waarvan de gekozen kraan

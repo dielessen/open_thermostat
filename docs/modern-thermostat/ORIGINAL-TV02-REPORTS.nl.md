@@ -1,7 +1,7 @@
 # Oorspronkelijke TV02-kraanberichten
 
-Status: producentbron voorbereid en getest; niet geïnstalleerd. B05 blijft open
-voor de HA-consument, koppeling aan een doelopdracht, eigenaarschap, readiness en
+Status: producent en pure HA-ontvangstkern voorbereid en getest; niet geïnstalleerd. B05 blijft open
+voor de native MQTT-/registrykoppeling, koppeling aan een doelopdracht, eigenaarschap, readiness en
 fysieke proef zonder ketel. Deze producent verleent geen regelbevoegdheid.
 
 De zelfstandige Z2M-extension `integrations/zigbee2mqtt/original-tv02.cjs` luistert
@@ -83,3 +83,30 @@ bestaande temperatuurproducentgevallen. Gouden DP-bytes, strict model/type/range
 ontbrekende properties, cachevrije verwerking, sequence-omloop, SDK-fouten en
 concurrent stop/herstart slagen. Dit zijn geïsoleerde API-/Node-tests, geen
 geïnstalleerde Z2M-, fysieke kraan- of ketelproef.
+
+## HA-ontvangstkern voor dezelfde bètabatch
+
+`original_tv02.py` controleert schema 1 en decodeert iedere oorspronkelijke DP
+onafhankelijk opnieuw uit `raw_hex`. Model, ondersteunde fabrikant, IEEE, endpoint,
+berichtsoort, types en bereiken moeten exact passen. Een extra of dubbele sleutel,
+dubbele DP, afwijkende afgeleide waarde of beweerde regelkwalificatie wordt geweigerd.
+
+`Tv02Reception` bindt één expliciete IEEE/fabrikant/endpointcombinatie. Retained,
+oude ontvangstgeneraties, toekomstige of verlopen ontvangst en herhaalde/teruggekeerde
+producer-runs worden geweigerd. Maximaal acht run-watermerken blijven behouden,
+ook bij disconnect. De lokale wachttijd telt mee voor ontvangstouderdom; een
+klokteruggang blokkeert tot heropbouw. Elk rapport vervangt het vorige volledig:
+een losse preset vult geen eerder gemeld doel aan. Publieke status bevat geen
+IEEE, producer-UUID of ruwe packet. Ontvangsttijd blijft ontvangsttijd;
+`command_correlated`, `valve_ready` en `control_qualified` blijven false.
+
+Deze kern is nog **niet** aangesloten op de native MQTT-worker, dynamische
+registry-/bindingintrekking of kamereditor. Er worden geen extra abonnementen,
+clients, timers, services of fysieke opdrachten aangemaakt. Die lifecyclekoppeling
+is de eerstvolgende bronstap; een causale doel-echo en exclusief eigenaarschap
+vragen daarna afzonderlijk bewijs vóór enige fysieke vrijgave.
+
+Controle: 98 gerichte HA-tests voor deze kern en de bestaande temperatuurontvangst,
+inclusief werkelijk door de Node-producent opgebouwd wirebericht, oorspronkelijke
+DP-grenswaarden, herhaling, reconnect, wachtrijouderdom en klokfouten. Dit is
+bron-/testbewijs; de geïnstalleerde HA dev27 en E32 alpha21 wijzigen hierdoor niet.

@@ -850,3 +850,20 @@ native verwijderd; de twee toekomstige controles en alle overige jobdefinities
 zijn behouden. Geen nieuwe planner/permanente watcher. Langere bruikbaarheids-
 beoordeling blijft open totdat de geplande waarnemingen zijn uitgevoerd. TX/actuatoruitgangen blijven false;
 B04–B14 en actieve bèta blijven NOT_READY.
+
+
+### Vervolg B05 — oorspronkelijke TV02-ontvangstkern voorbereid
+
+- [x] Pure HA-decoder en begrensde ontvangstkern toegevoegd aan dezelfde bètabatch:
+  onafhankelijke raw-DP-controle, exacte bronbinding, replay-/disconnectgeneratie,
+  ontvangstouderdom inclusief wachttijd en maximaal acht producer-runs.
+- [x] 98 gerichte HA-tests voor TV02/temperatuurontvangst PASS; het nieuwe
+  interoperabiliteitsgeval voert de echte Node-producent uit. Iedere status houdt
+  opdrachtcorrelatie, kraanreadiness en regelkwalificatie false.
+- [ ] Eerstvolgende uitvoering: aansluiten op de bestaande native MQTT-worker,
+  geselecteerde registry-identiteit en intrekking bij bronwijziging; daarna
+  afzonderlijk causale doelkoppeling en fysieke kraanproef zonder ketel.
+
+Geen nieuwe installatie of fysieke opdracht. E32 alpha21 / HA dev27 blijven
+geïnstalleerd, B05 blijft open en de actieve bèta blijft NOT_READY. Bewijs:
+`out/tv02-consumer-20261024/`.

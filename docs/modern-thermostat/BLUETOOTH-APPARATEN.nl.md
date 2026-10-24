@@ -15,6 +15,43 @@ Temperatuurveld 0x45 is een getekend 16-bits getal in stappen van 0,1 °C.
 Een drukknopbericht bevat geen nieuwe temperatuurmeting.
 Andere H&T-uitvoeringen krijgen pas ondersteuning na afzonderlijke profielcontrole.
 
+### Xiaomi Smart Temperature and Humidity Monitor 3
+
+Ook gevraagd: **MJWSD05MMC**, door Xiaomi bevestigd als BLE 5.0-model in de
+[Nederlandse specificaties](https://www.mi.com/nl/product/xiaomi-smart-temperature-and-humidity-monitor-3/specs/).
+De [BLE Monitor-projectdocumentatie](https://custom-components.github.io/ble_monitor/encrypted_advertisements)
+vermeldt voor dit exacte model temperatuur, luchtvochtigheid en batterij via
+versleutelde advertenties. Dit is een haalbaarheidsreferentie; onze E32 heeft
+nog geen gekwalificeerde decoder voor dit model.
+
+Neem een afzonderlijk Xiaomi/MiBeacon-profiel op in dezelfde apparaatpagina.
+De bestaande onversleutelde MJ_HT_V1-decoder bewijst geen ondersteuning voor
+deze Monitor 3. Identificeer de echte hardware/firmware en het advertentieformaat;
+de naam ‘Monitor 3’ geeft geen vrijgave voor Mini, Pro of andere revisies.
+
+Bij versleutelde data toont de UI **‘Apparaatsleutel nodig / Device key required’**.
+Bied een beveiligd invoerveld voor een passende bindkey, controleer formaat en
+bevestig de sleutel pas na een authentiek ontsleuteld apparaatbericht. Bewaar
+geen Xiaomi-accountwachtwoord op de E32. De bruikbare verkrijgingsroute voor de
+sleutel bij dit exacte model blijft een expliciet onderzoekspunt; geen automatische
+sleutelextractie of volledige onboarding zonder app/cloud beloven. Bestaande
+projecten zoals [xiaomi-ble](https://github.com/Bluetooth-Devices/xiaomi-ble) zijn
+protocol-/testreferenties, geen direct te installeren firmwaredriver.
+
+Voorkeursroute is de originele sensorfirmware. Een eventueel afzonderlijk
+custom-firmwareprofiel vereist eigen variant-/herstelcontrole en expliciete keuze;
+toevoegen mag nooit automatisch flashen. Na verkrijgen en lokaal opslaan van een
+geldige sleutel is het ontwerpdoel rechtstreeks uitlezen door de E32 zonder HA
+in de ontvangstroute. Dat moet nog met een echt apparaat worden bewezen.
+
+Acceptatie omvat naast de algemene proeven hieronder: correcte en verkeerde
+sleutel, gewijzigde sleutel na reset/herkoppelen, authenticatiefout, tellerverloop
+en herhaling, gedeeltelijke meetberichten, herstart en batterijverlies. Geen
+bronkwalificatie herstellen uit een eerder opgeslagen meetwaarde. Meet de echte
+rapportage- en acquisitiegrenzen; neem de Shelly-beaconperiode niet over.
+Sleutelverkrijging, offline ontvangst en regelgeschiktheid krijgen elk eigen
+bewijs. De UI scheidt een ontbrekende sleutel van een niet bereikbaar apparaat.
+
 ## Settings → Bluetooth devices / Instellingen → Bluetooth-apparaten
 
 Alle teksten beschikbaar in Engels en Nederlands, inclusief fouten en hulp.
@@ -83,7 +120,8 @@ temperaturen, corrupte/ontbrekende velden, verkeerde sleutels, herhaling en
 identiteitsverwisseling. UI-proeven controleren EN/NL, afbreken, dubbel klikken,
 timeouts, opgeslagen readback en behoud van open details.
 
-Daarna één echte SBHT-103C plus één TRV, eerst zonder ketel: model/firmware
+Daarna per sensorprofiel een echt apparaat (SBHT-103C en MJWSD05MMC), samen
+met één TRV en eerst zonder ketel: model/firmware
 vastleggen, onboarding en herstart doorlopen, batterij-/bereikuitval en herstel
 meten, actuele metingen vergelijken met een referentie, en bewijzen dat
 verouderde gegevens geen regelbevoegdheid houden. Passieve advertentiereceptie
@@ -97,7 +135,11 @@ alleen een sensor toevoegen realiseert dat nog niet.
 ## English
 
 Planned additional support: Shelly BLU H&T Display ZB (SBHT-103C), alongside the
-BLU TRV. Settings → Bluetooth devices will offer bounded discovery, verified
+BLU TRV, and Xiaomi Smart Temperature and Humidity Monitor 3 (MJWSD05MMC).
+The Xiaomi profile requires authenticated decoding of its encrypted reports;
+the exact device-key acquisition workflow remains to be validated. Prefer stock
+firmware, never flash automatically, and do not store Xiaomi account passwords.
+Settings → Bluetooth devices will offer bounded discovery, verified
 identity, required security setup, measurement preview, explicit room assignment
 and persistent configuration. All UI text and help must support English and Dutch.
 

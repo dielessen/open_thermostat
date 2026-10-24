@@ -121,7 +121,9 @@ Shelly-GATT-documentatie en onze bestaande NimBLE-stack. Uitwerking:
 
 Ook toegevoegd aan X01: **Shelly BLU H&T Display ZB (SBHT-103C)** en
 Settings → Bluetooth-apparaten, met EN/NL-onboarding, expliciete kamertoewijzing,
-beveiliging en zichtbare meetkwaliteit/bronuitval.
+beveiliging en zichtbare meetkwaliteit/bronuitval. Ook gevraagd: **Xiaomi Monitor 3
+(MJWSD05MMC)** via een apart versleuteld BLE-profiel; verkrijging van de
+apparaatsleutel en echte ontvangst/meetkwaliteit moeten nog worden bewezen.
 [Ontwerp en acceptatie](BLUETOOTH-APPARATEN.nl.md); nog niet geïmplementeerd.
 
 Volgorde: apparaatgebonden alleen-lezen BLE-basis inclusief sensor → begrensde proefkraan zonder

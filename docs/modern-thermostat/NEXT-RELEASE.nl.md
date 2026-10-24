@@ -119,3 +119,8 @@ X01 omvat ook de Shelly BLU H&T Display ZB (SBHT-103C) en een tweetalige
 [Bluetooth-apparaatpagina onder Settings](BLUETOOTH-APPARATEN.nl.md): vinden,
 beveiligd toevoegen waar nodig, kamertoewijzing en meetkwaliteit/uitval zichtbaar.
 Dit onderdeel is ontworpen, nog niet gebouwd of op echte apparaten getest.
+
+Ook opgenomen in X01: Xiaomi Smart Temperature and Humidity Monitor 3
+(MJWSD05MMC), via dezelfde Bluetooth-pagina. Versleutelde ontvangst vereist
+een geldige apparaatsleutel; de verkrijgingsroute en praktijkkwalificatie zijn
+nog open. Originele sensorfirmware heeft de voorkeur; geen automatische flash.

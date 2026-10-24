@@ -3,9 +3,8 @@
   "as_of": "2026-10-24",
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
   "release_state": "NOT_READY",
-  "installed_source_commit": "a1fe06be5e709ff4c6477b7b9be6c8dbd7573987",
   "installed_firmware": "v0.1.0-e32v2-alpha.24",
-  "installed_ha": "0.4.0.dev30",
+  "installed_ha": "0.4.0.dev31",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
   "items": [
     {
@@ -743,7 +742,7 @@
         },
         {
           "path": "docs/modern-thermostat/ORIGINAL-TV02-REPORTS.nl.md",
-          "sha256": "29a0951ca9b8db9441a8eec293efb00f2d188f0d86b55c6b04a5ef4ea7a2f816"
+          "sha256": "1ae93082e662f4bcf6dde2c0d100cd50d613cf8c6fca6f7b3614c2d8add6699f"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/original_tv02.py",
@@ -787,10 +786,10 @@
         },
         {
           "path": "docs/modern-thermostat/ORIGINAL-TV02-DEPLOYMENT.nl.md",
-          "sha256": "f8c3cf2ddce678af35c41b04d5df30801a3c869b6885d99bb325871ca5ab4aea"
+          "sha256": "8efb67e146cd8091608ec61f350a7b586918c6f19f36f319cc63bff72923d90d"
         }
       ],
-      "remaining_acceptance": "TV02-modus/native identiteit/doelcapaciteit en oorspronkelijke HA-ontvangst met MQTT/registry-lifecycle en NL/EN-weergave geleverd in HA dev29. Standaard bronpins leeg; zelfstandige Zigbee-producent nog niet geïnstalleerd/gekoppeld. Concrete bronpins en echte oorspronkelijke ontvangst, causale doel-echo, exclusief eigenaarschap, profiel/readiness/fallback en fysieke proef zonder ketel blijven open. Ontvangen doel/bedrijfsmodus verleent geen opdrachtbevestiging, klepstand of aansturingsvrijgave."
+      "remaining_acceptance": "TV02-modus/native identiteit/doelcapaciteit en oorspronkelijke HA-ontvangst met MQTT/registry-lifecycle en NL/EN-weergave geleverd. Privé pin-loader dev30 en graph-bronfix dev31 geïnstalleerd; één expliciete bron en ontvangende Zigbee-producent geplaatst en geverifieerd. Geen natuurlijk rapport in één 20s-observatie: ontvangst WAITING. Echte oorspronkelijke ontvangst, causale doel-echo, exclusief eigenaarschap, profiel/readiness/fallback en fysieke proef zonder ketel blijven open. Ontvangst verleent geen opdrachtbevestiging, klepstand of aansturingsvrijgave."
     },
     {
       "id": "I15",
@@ -1539,5 +1538,6 @@
   ],
   "authoritative_workboard": "docs/modern-thermostat/WORKBOARD.nl.md",
   "base_runtime_checkpoint": "cebb0a25296b690a2a2d699bccacb65ed0f69da7",
-  "installed_ha_source_commit": "faf827205d8105043e85eea5db84b67d06bab34e"
+  "installed_ha_source_commit": "92f5e2b189f4e3eb5bfa544fb41d206a1b9f3ec2",
+  "installed_firmware_source_commit": "a1fe06be5e709ff4c6477b7b9be6c8dbd7573987"
 }

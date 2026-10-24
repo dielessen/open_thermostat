@@ -1537,3 +1537,29 @@ blijft staan. Geen tagvervanging, stille livepatch of nieuwe firmware alleen om
 broncommits gelijk te trekken. Pakketcontrole, normale installatie via de
 HA-specialist met verse back-up en natuurlijke ontvangstacceptatie volgen in
 `out/ha-dev31-native-binding-20261024/`. Nog geen installatieclaim.
+
+
+## B05: HA dev31 geleverd; bron geregistreerd, natuurlijke ontvangst wacht
+
+- [x] Nieuwe onvervangende HA-tag `ha-v0.4.0.dev31`, bron `92f5e2b189f4e3eb5bfa544fb41d206a1b9f3ec2`.
+  Main-CI 40072179731 en tag-CI 40072196113 PASS; 2011 HA-checks zonder fout/skip.
+  Publieke ZIP onafhankelijk byte-voor-byte met alle 82 bronbestanden vergeleken.
+- [x] Normale specialistinstallatie met verse scoped back-up en één Core-herstart.
+  HA geladen, precies één TV02-bron geregistreerd, oude bindingsfout verdwenen.
+  Kamers/weekprogramma's/koppelingen, volledige entry/registry/journal, geaccepteerde
+  SOURCE, dashboard, privé manifest/extension en E32-model/syslog behouden.
+- [ ] Natuurlijke oorspronkelijke ontvangst: nul rapporten in één begrensde
+  observatie van 20 seconden. Status `WAITING`; dit bewijst geen apparaatstoring.
+
+E32 alpha24 blijft bron `a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`; nul OTA's en
+geen nieuwe pinwrite/extension-save of apparaatopdracht. Alle uitgangen false,
+Tado actief en meetprofiel nog `profile_missing`. De release-inventaris legt
+firmware- en HA-bron afzonderlijk vast; de oude HA-commitverwijzing is gecorrigeerd.
+B04–B14 en hun fysieke/bronkwalificaties blijven open. Ontvangstregistratie alleen
+sluit B05 niet. Bewijs: `out/ha-dev31-native-binding-20261024/`.
+
+De bestaande +24h-taak houdt tijdstip 24 oktober 22:58:01.424 UTC en alle overige
+instellingen. Alleen de actuele updatebasis vermeldt nu afzonderlijk alpha24/a1fe
+en dev31/92f5, inclusief `WAITING` voor oorspronkelijke ontvangst. Geen nieuwe
+job of run. Native readback vergelijkt alle overige velden exact;
+`MONITOR-REVIEW.json` bewaart het openbare controlebewijs.

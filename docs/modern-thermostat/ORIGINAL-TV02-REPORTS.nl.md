@@ -1,14 +1,13 @@
 # Oorspronkelijke TV02-kraanberichten
 
-Status: HA-ontvangstkern en EN/NL-diagnose geleverd in dev29, privé pin-loader
-geleverd in dev30. Producent en één expliciet privémanifest zijn geplaatst en
-teruggelezen. De live dev30-ontvanger wijst de native graph-kamer nog af omdat
-haar gekozen kraan in de centrale installatie staat en de oude kameractuatorlijst
-leeg is. Een broncorrectie leest die werkelijke configuratie-eigenaar met dezelfde
-expliciete identiteit-/levensduurguards; deze correctie is nog niet geïnstalleerd.
-Natuurlijke oorspronkelijke rapportontvangst blijft onbevestigd. B05 blijft open
-voor echte ontvangst, causale doelbinding, eigenaarschap, readiness en fysieke
-proef zonder ketel. Deze producent verleent geen regelbevoegdheid.
+Status: ontvangstkern en EN/NL-diagnose geleverd in dev29, privé pin-loader
+in dev30 en native graph-broncorrectie in dev31. Producent en één expliciet
+privémanifest zijn geplaatst en teruggelezen. HA dev31 is normaal geïnstalleerd
+en bindt precies één bron uit de centrale installatieconfiguratie; de eerdere
+afwijzing is verdwenen. Tijdens één 20s-observatie kwam geen natuurlijk rapport
+binnen: oorspronkelijke ontvangst blijft `WAITING`. B05 blijft open voor echte
+ontvangst, causale doelbinding, eigenaarschap, readiness en fysieke proef zonder
+ketel. Deze producent verleent geen regelbevoegdheid.
 
 De zelfstandige Z2M-extension `integrations/zigbee2mqtt/original-tv02.cjs` luistert
 naar oorspronkelijke `deviceMessage`-events op `manuSpecificTuya`. Zij gebruikt

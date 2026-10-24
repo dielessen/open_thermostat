@@ -2,12 +2,14 @@
 
 ## Actuele installatie — 24 oktober 2026
 
-De gecontroleerde installatie draait E32 `v0.1.0-e32v2-alpha.24` en HA
-`0.4.0.dev30`, beide uit broncommit
-`a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`. Zie het
-[werkbord](WORKBOARD.nl.md) voor de actuele acceptatiechecks. De gezamenlijke
-passieve release is via de normale routes geïnstalleerd en
-onafhankelijk gecontroleerd; de eerste actieve bèta is niet vrijgegeven.
+De gecontroleerde installatie draait E32 `v0.1.0-e32v2-alpha.24`, bron
+`a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`, en HA `0.4.0.dev31`, bron
+`92f5e2b189f4e3eb5bfa544fb41d206a1b9f3ec2`. De gezamenlijke alpha24/dev30-bundel
+is gevolgd door de gerichte HA-ontvangstcorrectie dev31; er is geen extra E32-OTA
+uitgevoerd. De TV02-ontvanger bindt nu één bron; tijdens de 20 seconden durende
+passieve observatie kwam geen oorspronkelijk rapport binnen (`WAITING`).
+Zie het [werkbord](WORKBOARD.nl.md) voor de actuele acceptatiechecks. De eerste
+actieve bèta is niet vrijgegeven.
 
 De normale E32-HTTPS-updater werkt. HA-updates verlopen via de bestaande
 HA-agent, met back-up en nacontrole. Nieuwe releases krijgen nieuwe versies;

@@ -7,14 +7,15 @@ meting, doelopdracht, klepstand, flow of actuatoruitvoer.
 
 ## Actuele installatieacceptatie
 
-Op 24 oktober zijn één privépin en de ontvangende producent geplaatst. De pin-
+Op 24 oktober zijn één privépin en de ontvangende producent geplaatst. Hun pin-
 en codehash zijn onafhankelijk teruggelezen; de producent heeft een native
-startlog. De HA-ontvanger wijst de bron nog af met `source binding unavailable`.
-Oorspronkelijke ontvangst is daarom niet bevestigd. Entry-/kamer-/ref-/model-
-guards die native konden worden gelezen slagen. Een privé replay wees de oude
-kameractuatorlijst aan: de gekozen TRV staat in de centrale native graph-owner.
-De broncorrectie daarvoor is voorbereid, maar nog niet normaal geleverd. Er is geen meet-/kraan-/flowkwalificatie of
-fysieke opdracht uitgevoerd. Actueel bewijs staat op WORKBOARD B05.
+startlog. HA dev31 is vervolgens via de normale updateroute met verse back-up
+geïnstalleerd. De ontvanger leest de gekozen TRV uit de centrale installatie en
+bindt precies één bron; de oude afwijzing `source binding unavailable` is weg.
+Tijdens één passieve observatie van 20 seconden kwam geen oorspronkelijk rapport
+binnen. Ontvangst staat daarom op `WAITING`, niet op bewezen geslaagd of defect.
+Er is geen meet-/kraan-/flowkwalificatie of fysieke opdracht uitgevoerd.
+Bewijs: `out/ha-dev31-native-binding-20261024/` en WORKBOARD B05.
 
 ## Bestand en eigenaarschap
 

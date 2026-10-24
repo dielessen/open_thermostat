@@ -539,7 +539,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_mqtt.py",
-          "sha256": "7e1dfabe250ae424661cb770d66aef120c3d2d1f629c2432d5cb9cbb88a1e4cd"
+          "sha256": "a300b41b0dff0edd8a72e79aed4de7b3fdf0305f1e26b10789642aa999ec3226"
         },
         {
           "path": "ha/tests_native/test_original_temperature.py",
@@ -842,7 +842,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/original_tv02.py",
-          "sha256": "d4ee01ec93fc80c80c9ff6de7147f07050c62f2eddf589316812eddc5b81724d"
+          "sha256": "6c505ef642c34f48a54442574375594d4e3d2d5d5ba12fa4e1312f976eb44855"
         },
         {
           "path": "ha/tests_native/test_original_tv02.py",
@@ -850,7 +850,7 @@
         },
         {
           "path": "ha/tests_native/test_original_tv02_lifecycle.py",
-          "sha256": "c1d025dcce82b2363780a03c4951adbe93ac1975aa5aff673da01f32547a16ab"
+          "sha256": "395f12fb07c051765217b09df2d5c76ab2de0c124f584d0319e1c40c35ea9b49"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_editor.py",

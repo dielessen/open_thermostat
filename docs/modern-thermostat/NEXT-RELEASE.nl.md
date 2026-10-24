@@ -57,7 +57,7 @@ Hun ontbrekende verbindingen en fysieke acceptatie staan op het werkbord.
 | Volgorde | Werk | Gereed wanneer |
 | --- | --- | --- |
 | P0 vóór fysieke proef | Gemeld pendelen verklaren en passieve nulmeting beoordelen | Oorzaak of concrete vervolgmeting vastgelegd; geschikte stabiele proefbeginsituatie |
-| P0 software, B05 diagnose | TV02-bronbindingswaarschuwing na opstart onderzoeken/herstellen | Dezelfde opgeslagen bron registreert weer zonder pin-/bindingwissel of geforceerde rapportage |
+| P0 software, B05 diagnose | Voorbereide reparatie voor late MQTT-discovery afronden en meenemen in gezamenlijke bundel | Definitieve regressie en levering; daarna dezelfde opgeslagen bron controleren zonder pin-/bindingwissel of geforceerde rapportage |
 | P0 software, B04 | Echte geschikte kamerbron met oorspronkelijk rapport en meetprofiel | Werkelijke acquisitie/actualiteit en uitval bewezen; geen diagnostische device_temperature als ruimtemeting |
 | P0 software, B05/M2 | Normale FW→HA-kraanroute met HA-ontvangergrant en bestaande adapter afronden | Native zendtransactie aan oorspronkelijke kraanecho gekoppeld; profiel, modus, eigenaarschap en fallback getoetst |
 | P0 software, B06 | Werkelijke veiligheids-/DHW-/water-/kraan-/flowfeiten aansluiten | Iedere bron met eigen geldigheid en beoordeeld installatieprofiel; geen generieke flowaanname |
@@ -124,3 +124,9 @@ Ook opgenomen in X01: Xiaomi Smart Temperature and Humidity Monitor 3
 (MJWSD05MMC), via dezelfde Bluetooth-pagina. Versleutelde ontvangst vereist
 een geldige apparaatsleutel; de verkrijgingsroute en praktijkkwalificatie zijn
 nog open. Originele sensorfirmware heeft de voorkeur; geen automatische flash.
+
+Voorbereide softwarecorrectie: de TV02-diagnose kan late MQTT-metadata toelaten
+voor dezelfde vooraf vastgelegde bron, met begrensde subscripties en veilige
+redencodes. 137 gerichte tests slagen; volledige definitieve regressie: 2183 gevallen op
+elk van beide ondersteunde Core-versies, zonder fout/error/skip.
+De oude opstartoorzaak is niet bewezen en de huidige installatie is ongewijzigd.

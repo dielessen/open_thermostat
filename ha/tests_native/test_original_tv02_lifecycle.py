@@ -504,3 +504,239 @@ async def test_room_display_rename_preserves_original_tv02_lifetime(hass, device
         assert status['received_age_ms'] == 1000
     finally:
         await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_late_native_discovery_attaches_same_pinned_diagnostic_on_existing_poll(hass, devices, monkeypatch):
+    from homeassistant.components.mqtt.models import DATA_MQTT
+    runtime, room, source, _ = await system(hass, devices)
+    subscriptions, removed, _ = mqtt_boundary(monkeypatch)
+    discovery = hass.data[DATA_MQTT].debug_info_entities.pop(source.reference.entity_id)
+    connection = NativeShadowConnection(runtime, tv02_sources=(source,))
+    try:
+        await connection.async_start()
+        assert TOPIC not in subscriptions
+        status = runtime.actuator_report_status(room.room_id)[source.reference.entity_id]
+        assert status['status'] == 'metadata_unavailable' and not status['fields']
+        hass.data[DATA_MQTT].debug_info_entities[source.reference.entity_id] = discovery
+        connection.enqueue(('poll', None))
+        await connection.queue.join()
+        assert TOPIC in subscriptions
+        assert runtime.actuator_report_status(room.room_id)[source.reference.entity_id]['status'] == 'waiting'
+        subscriptions[TOPIC](SimpleNamespace(topic=TOPIC, payload=json.dumps(
+            packet(device_ieee='0x0000000000000002')), retain=False))
+        await connection.queue.join()
+        status = runtime.actuator_report_status(room.room_id)[source.reference.entity_id]
+        assert status['status'] == 'received_unqualified'
+        assert not any(status[k] for k in ('control_qualified', 'valve_ready', 'command_correlated'))
+        for _ in range(3): connection.enqueue(('poll', None))
+        await connection.queue.join()
+    finally:
+        await connection.async_close()
+        assert removed.count(TOPIC) == 1
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('fault', ['model', 'disabled', 'room', 'age', 'reference', 'replaced'])
+async def test_delayed_diagnostic_never_recaptures_changed_binding(hass, devices, monkeypatch, fault):
+    from homeassistant.components.mqtt.models import DATA_MQTT
+    runtime, room, source, _ = await system(hass, devices)
+    subscriptions, _, _ = mqtt_boundary(monkeypatch)
+    discovery = hass.data[DATA_MQTT].debug_info_entities.pop(source.reference.entity_id)
+    connection = NativeShadowConnection(runtime, tv02_sources=(source,))
+    try:
+        await connection.async_start()
+        registry = er.async_get(hass)
+        entity = registry.async_get(source.reference.entity_id)
+        if fault == 'model':
+            dr.async_get(hass).async_update_device(entity.device_id, model_id='other')
+        elif fault == 'disabled':
+            registry.async_update_entity(entity.entity_id, disabled_by=er.RegistryEntryDisabler.USER)
+        elif fault == 'room': runtime.rooms[room.room_id] = replace(room, actuators=())
+        elif fault == 'age': runtime.rooms[room.room_id] = replace(room, maximum_age_ms=20000)
+        elif fault == 'reference':
+            runtime.rooms[room.room_id] = replace(room, actuators=(room.temperature,))
+        else:
+            registry.async_remove(entity.entity_id)
+            registry.async_get_or_create('climate', 'mqtt', entity.unique_id, device_id=entity.device_id)
+        await hass.async_block_till_done()
+        connection.enqueue(('poll', None))
+        await connection.queue.join()
+        # Even restoration must not revive the captured diagnostic owner.
+        runtime.rooms[room.room_id] = room
+        if fault == 'model': dr.async_get(hass).async_update_device(entity.device_id, model_id='TV02-Zigbee')
+        elif fault == 'disabled': registry.async_update_entity(entity.entity_id, disabled_by=None)
+        hass.data[DATA_MQTT].debug_info_entities[source.reference.entity_id] = discovery
+        connection.enqueue(('poll', None))
+        await connection.queue.join()
+        assert TOPIC not in subscriptions
+        status = runtime.actuator_report_status(room.room_id)[source.reference.entity_id]
+        assert status['status'] == 'binding_changed' and status['fields'] == {}
+    finally:
+        await connection.async_close()
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_late_diagnostic_failure_never_resets_control_session(hass, devices, monkeypatch):
+    runtime, room, source, _ = await system(hass, devices)
+    mqtt_boundary(monkeypatch)
+    connection = NativeShadowConnection(runtime, tv02_sources=(source,))
+    try:
+        await connection.async_start()
+        connection.client.poll = AsyncMock()
+        reset = Mock(wraps=connection.client.reset_session)
+        monkeypatch.setattr(connection.client, 'reset_session', reset)
+        monkeypatch.setattr(connection.tv02_reports, 'recheck', Mock(side_effect=RuntimeError('private failure')))
+        connection.enqueue(('poll', None))
+        await connection.queue.join()
+        reset.assert_not_called()
+        connection.client.poll.assert_awaited_once()
+        assert not connection.worker.done()
+        assert runtime.actuator_report_status(room.room_id)[source.reference.entity_id]['status'] == 'unavailable'
+    finally:
+        await connection.async_close()
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_late_diagnostic_subscription_failure_is_bounded(hass, devices, monkeypatch):
+    from homeassistant.components.mqtt.models import DATA_MQTT
+    runtime, room, source, _ = await system(hass, devices)
+    subscriptions, _, _ = mqtt_boundary(monkeypatch)
+    discovery = hass.data[DATA_MQTT].debug_info_entities.pop(source.reference.entity_id)
+    connection = NativeShadowConnection(runtime, tv02_sources=(source,))
+    try:
+        await connection.async_start()
+        original = mqtt.async_subscribe
+        calls = []
+        async def denied(h, topic, cb, **kwargs):
+            calls.append(topic)
+            if topic == TOPIC: raise RuntimeError('private denied')
+            return await original(h, topic, cb, **kwargs)
+        monkeypatch.setattr(mqtt, 'async_subscribe', denied)
+        hass.data[DATA_MQTT].debug_info_entities[source.reference.entity_id] = discovery
+        connection.client.poll = AsyncMock()
+        for _ in range(4):
+            connection.enqueue(('poll', None))
+            await connection.queue.join()
+        assert calls == [TOPIC] and TOPIC not in subscriptions
+        assert connection.client.poll.await_count == 4
+        assert runtime.actuator_report_status(room.room_id)[source.reference.entity_id]['status'] == 'unavailable'
+    finally:
+        await connection.async_close()
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_late_subscription_timeout_returns_to_control_worker(hass, devices, monkeypatch):
+    import asyncio
+    from homeassistant.components.mqtt.models import DATA_MQTT
+    runtime, room, source, _ = await system(hass, devices)
+    mqtt_boundary(monkeypatch)
+    discovery = hass.data[DATA_MQTT].debug_info_entities.pop(source.reference.entity_id)
+    connection = NativeShadowConnection(runtime, tv02_sources=(source,))
+    try:
+        await connection.async_start()
+        cancelled = []
+        async def stalled(*args, **kwargs):
+            try:
+                await asyncio.Event().wait()
+            finally:
+                cancelled.append(True)
+        monkeypatch.setattr(mqtt, 'async_subscribe', stalled)
+        hass.data[DATA_MQTT].debug_info_entities[source.reference.entity_id] = discovery
+        connection.client.poll = AsyncMock()
+        connection.enqueue(('poll', None))
+        async with asyncio.timeout(3):
+            await connection.queue.join()
+        assert cancelled == [True]
+        connection.client.poll.assert_awaited_once()
+        assert not connection.worker.done()
+        assert runtime.actuator_report_status(room.room_id)[source.reference.entity_id]['status'] == 'unavailable'
+    finally:
+        await connection.async_close()
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_close_during_late_subscription_removes_just_returned_listener(hass, devices, monkeypatch):
+    from homeassistant.components.mqtt.models import DATA_MQTT
+    runtime, room, source, _ = await system(hass, devices)
+    mqtt_boundary(monkeypatch)
+    discovery = hass.data[DATA_MQTT].debug_info_entities.pop(source.reference.entity_id)
+    connection = NativeShadowConnection(runtime, tv02_sources=(source,))
+    removed = []
+    try:
+        await connection.async_start()
+        async def subscribe_and_close(*args, **kwargs):
+            await connection.async_close()
+            return lambda: removed.append(TOPIC)
+        monkeypatch.setattr(mqtt, 'async_subscribe', subscribe_and_close)
+        hass.data[DATA_MQTT].debug_info_entities[source.reference.entity_id] = discovery
+        await connection._async_attach_tv02_topics()
+        assert removed == [TOPIC]
+        assert connection.closed and connection.worker.done()
+        assert runtime.original_tv02_reports is None
+    finally:
+        await connection.async_close()
+        await runtime.async_stop()
+
+
+@pytest.mark.parametrize('error, expected', [
+    (ValueError('invalid TV02 native identity'), 'native_identity_invalid'),
+    (ValueError('private identifier: secret'), 'source_validation_failed'),
+    (TypeError({'private': 'secret'}), 'source_validation_failed'),
+])
+def test_binding_failure_logs_fixed_reason_only(error, expected):
+    from custom_components.open_thermostat.original_tv02 import binding_failure_reason
+    assert binding_failure_reason(error) == expected
+    outer = ValueError('TV02 native source unavailable')
+    outer.__cause__ = ValueError('device_metadata_provider_unknown')
+    assert binding_failure_reason(outer) == 'metadata_provider_unknown'
+
+
+@pytest.mark.asyncio
+async def test_late_diagnostic_listener_failure_does_not_reset_control(hass, devices, monkeypatch):
+    from homeassistant.components.mqtt.models import DATA_MQTT
+    runtime, room, source, _ = await system(hass, devices)
+    mqtt_boundary(monkeypatch)
+    discovery = hass.data[DATA_MQTT].debug_info_entities.pop(source.reference.entity_id)
+    connection = NativeShadowConnection(runtime, tv02_sources=(source,))
+    try:
+        await connection.async_start()
+        hass.data[DATA_MQTT].debug_info_entities[source.reference.entity_id] = discovery
+        connection.client.poll = AsyncMock()
+        reset = Mock(wraps=connection.client.reset_session)
+        monkeypatch.setattr(connection.client, 'reset_session', reset)
+        monkeypatch.setattr(runtime, '_notify', Mock(side_effect=RuntimeError('private listener failure')))
+        connection.enqueue(('poll', None))
+        await connection.queue.join()
+        reset.assert_not_called()
+        connection.client.poll.assert_awaited_once()
+        assert not connection.worker.done()
+        assert connection.tv02_reports.status(room.room_id)[source.reference.entity_id]['status'] == 'unavailable'
+    finally:
+        monkeypatch.setattr(runtime, '_notify', Mock())
+        await connection.async_close()
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_multiple_new_diagnostic_topics_share_one_subscription_budget(hass, devices, monkeypatch):
+    runtime, room, source, _ = await system(hass, devices)
+    subscriptions, removed, _ = mqtt_boundary(monkeypatch)
+    connection = NativeShadowConnection(runtime, tv02_sources=(source,))
+    try:
+        await connection.async_start()
+        # Exercise transport budgeting only; no additional source is selected.
+        monkeypatch.setattr(connection.tv02_reports, 'recheck', Mock(return_value=False))
+        connection.tv02_reports.topics = frozenset((TOPIC, 'diagnostic/one', 'diagnostic/two'))
+        await connection._async_attach_tv02_topics()
+        assert len(set(subscriptions) & {'diagnostic/one', 'diagnostic/two'}) == 1
+        await connection._async_attach_tv02_topics()
+        assert {'diagnostic/one', 'diagnostic/two'} <= set(subscriptions)
+    finally:
+        await connection.async_close()
+        await runtime.async_stop()

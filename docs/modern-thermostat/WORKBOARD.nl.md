@@ -42,7 +42,7 @@ historisch; de tabellen en deze volgorde bepalen nieuw werk.
 | Prioriteit | Punt / koppeling | Eerstvolgende concrete uitkomst | Wat buiten software blijft |
 | --- | --- | --- | --- |
 | P0 vóór fysieke proef | Gemeld pendelen | Onderzoek richting warmwaterbedrijf vervolgen: gebruik/bijwarmen onderscheiden; stabiele nulmeting vastleggen | Geen bewezen oorzaak; geen zendproef bij onverklaarde instabiliteit |
-| P0 | TV02-opstartdiagnose, B05 | Bronbindingswaarschuwing reproduceren en diagnose-lifecycle herstellen voor dezelfde opgeslagen bron | Geen andere pin/binding of geforceerd apparaatbericht als omweg |
+| P0 | TV02-opstartdiagnose, B05 | Opstartreparatie voorbereid: ontbrekende MQTT-metadata later toelaten voor de vooraf vastgelegde bron; volledige regressie en gezamenlijke levering afronden | Oorzaak vorige herstart niet bewezen; geen live herstel of andere pin/binding als omweg |
 | P0 | Echte kamerbron, R03/B04/WP03 | Brongebonden acquisitie-/profielketen afmaken met echte oorspronkelijke rapporten | RTCGQ11LM device_temperature niet als kamerbron kwalificeren; geen automatische sensorwissel |
 | P0 | Kraantransactie, R05/B05/WP05 | Normale FW→HA-route met HA-ontvangergrant en bestaande adapter verbinden; native zendtransactie aan oorspronkelijke echo koppelen | Exact geïnstalleerde converterbron ontbreekt nog in bestaande toegang; geen cache/serviceacceptatie als ACK |
 | P0 | Veiligheidsproducenten, R07/R23/B06/WP06 | Afzonderlijke gedateerde limiet/DHW/water/kraan/flowfeiten en installatieprofiel aansluiten | Geen generieke flow-/pompaanname of ongekwalificeerde vrijgave |
@@ -110,6 +110,28 @@ code 0H en afkoelende aanvoer 62→54 °C, zonder nieuwe positieve vermogensperi
 Dat verklaart het eerdere pendelen niet en bewijst geen onafhankelijke vlammeting.
 Alle uitgangen blijven geblokkeerd; niets geïnstalleerd, herstart of aangestuurd.
 Bewijs: `out/stability-check-20261024/SAFE-RESULT.json` en `REVIEW.json`.
+
+### Voorbereid voor volgende bundel — TV02-opstartdiagnose
+
+Alleen-lezen onderzoek via de HA-specialist: de opgeslagen bron, registry/model en
+huidige MQTT-discovery voldoen nu aan de controles; de diagnose blijft leeg na de
+opstartafwijzing. De oorspronkelijke binnenste fout is niet gelogd. Te late
+metadata is dus een reproduceerbaar softwaregeval, geen bewezen incidentoorzaak.
+
+Reparatie in voorbereiding: ontbrekende discovery mag wachten op de bestaande
+worker/poll, met vooraf vastgelegde registry-identiteit, kamerselectie en maximale
+leeftijd. Vervanging/uitschakeling/model- of bronwijziging trekt deze toelating
+blijvend in. Alleen oorspronkelijke nieuwe rapporten vullen de diagnose; geen
+cacheherstel, commandobevestiging of regelvrijgave. Per workerpass maximaal één
+nieuwe diagnose-subscriptie met één seconde wachtbudget; fouten blijven buiten
+de regelsessie. Definitieve afwijzingen krijgen uitsluitend vaste openbare
+redencodes, zonder apparaatidentiteiten of ruwe foutteksten.
+
+Gerichte regressie: 137 gevallen geslaagd, waaronder 16 nieuwe opstart-/uitval-/
+privacygevallen. Volledige controle van exact dezelfde definitieve bron op HA Core
+2026.10.2 en 2026.10.3: **2183 gevallen per versie, geen fout/error/skip**. Nog niet gepubliceerd/geïnstalleerd; B05 blijft open voor
+werkelijke ontvangst, causale kraantransactie en fysieke proef. Bewijs:
+`out/release-tv02-startup-20261024/`.
 
 ### Uitbreiding X01 — direct Bluetooth en zelfstandige E32
 

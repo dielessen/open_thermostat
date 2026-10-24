@@ -92,16 +92,19 @@ class NativeShadowConnection:
         self.closed = False
         self.bench = None
         self.original_reports = None
-        from .original_tv02 import OriginalTv02Reports
+        from .original_tv02 import OriginalTv02Reports, binding_failure_reason
         try:
-            self.tv02_reports = OriginalTv02Reports(runtime, tv02_sources)
-        except (ValueError, TypeError):
+            self.tv02_reports = OriginalTv02Reports(runtime, tv02_sources, defer_missing_metadata=True)
+        except (ValueError, TypeError) as error:
             # An optional diagnostic pin can become invalid across a native
             # registry/config reload. Never disable the controller connection
             # or infer a replacement; rebuild an empty diagnostic owner only.
-            _LOGGER.warning("Original TV02 diagnostics disabled: source binding unavailable")
+            _LOGGER.warning("Original TV02 diagnostics disabled: source binding unavailable (%s)",
+                binding_failure_reason(error))
             self.tv02_reports = OriginalTv02Reports(runtime)
         self.original_pending = False
+        self.tv02_subscription_attempts = set()
+        self._original_received = None
 
     async def async_start(self):
         if self.graph_profile is not None and getattr(self.runtime,"controller_policy_source_profile",None) is not None:
@@ -196,11 +199,12 @@ class NativeShadowConnection:
             except asyncio.QueueFull:
                 return
 
+        self._original_received = original_received
         try:
             self.unsubs.append(await mqtt.async_subscribe(
                 self.hass, self.prefix + "fw/#", received, qos=0, encoding="utf-8"))
             self.unsubs.append(mqtt.async_subscribe_connection_status(self.hass, connection_status))
-            for owner in (self.original_reports, self.tv02_reports):
+            for owner in (self.original_reports,):
                 for topic in sorted(owner.topics):
                     try:
                         self.unsubs.append(await mqtt.async_subscribe(
@@ -209,6 +213,7 @@ class NativeShadowConnection:
                         # Optional diagnostics cannot break the control owner.
                         owner.invalidate("unavailable")
                         break
+            await self._async_attach_tv02_topics()
             if self.graph_profile is None:
                 self.bind_schedules()
             if self.graph_profile is None and any(r.schedule or r.week_program is not None for r in self.runtime.rooms.values()):
@@ -218,6 +223,39 @@ class NativeShadowConnection:
         except Exception:
             await self.async_close()
             raise
+
+    async def _async_attach_tv02_topics(self):
+        """Resolve startup-only metadata on the existing worker/poll, no new job."""
+        if self.closed or self.runtime.original_tv02_reports is not self.tv02_reports:
+            return
+        try:
+            changed = self.tv02_reports.recheck()
+        except Exception:
+            # Optional diagnostic metadata must never reset a control lease.
+            self.tv02_reports.invalidate("unavailable")
+            return
+        # At most one new topic per pass: total optional wait stays <=1s,
+        # including installations that use multiple distinct Z2M prefixes.
+        for topic in sorted(self.tv02_reports.topics - self.tv02_subscription_attempts)[:1]:
+            self.tv02_subscription_attempts.add(topic)
+            try:
+                # Late optional metadata must not hold the control worker
+                # indefinitely while HA waits for a broker subscription.
+                async with asyncio.timeout(1):
+                    unsubscribe = await mqtt.async_subscribe(
+                        self.hass, topic, self._original_received, qos=0, encoding=None)
+            except Exception:
+                self.tv02_reports.invalidate("unavailable")
+                break
+            if self.closed or self.runtime.original_tv02_reports is not self.tv02_reports:
+                unsubscribe()
+                return
+            self.unsubs.append(unsubscribe)
+        if changed:
+            try:
+                self.runtime._notify()
+            except Exception:
+                self.tv02_reports.invalidate("unavailable")
 
     async def async_graph_command(self, command, *args):
         """Explicit action joins SAME bounded worker; readback only requests DATA."""
@@ -329,6 +367,7 @@ class NativeShadowConnection:
                         self.bench.request_stop("firmware_transport_disconnected")
                     await self.client.async_disconnected()
                 elif kind == "poll":
+                    await self._async_attach_tv02_topics()
                     await self.client.poll()
                     self.check_bench_admission()
                 elif kind == "graph_command":

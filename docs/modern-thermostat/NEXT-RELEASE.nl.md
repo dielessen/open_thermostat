@@ -1,4 +1,4 @@
-# Volgende gezamenlijke release
+# Gezamenlijke release alpha28 / HA dev37 — voorbereiding en resterend werk
 
 Bijgewerkt: 24 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
@@ -28,7 +28,7 @@ Korte runtimecontrole geslaagd binnen deze grenzen; geen lange-duurproef of
 actieve verwarmingsacceptatie. Geen update/herstart/aansturing uitgevoerd.
 Bewijs: `out/stability-check-20261024/SAFE-RESULT.json`.
 
-## 2. Klaar om in de volgende release mee te nemen
+## 2. Inhoud van kandidaat alpha28 / HA dev37
 
 | Onderdeel | Wat verandert er? |
 | --- | --- |
@@ -42,7 +42,7 @@ Bewijs: `out/stability-check-20261024/SAFE-RESULT.json`.
 | EMS-tabel | Bestaande rijen hergebruikt, adressen correct geordend, waarden gecontroleerd en getallen volgens EN/NL weergegeven |
 | Keteltestplan | Concrete volgorde en criteria voor toekomstige stop-, zend-, naloop- en uitvalproeven |
 
-**Gebouwd en getest, nog niet geïnstalleerd.** Broncheckpoint
+**Gebouwd en getest; nieuwe versies alpha28/dev37 worden nu verpakt. Nog niet geïnstalleerd.** Broncheckpoint
 `34aa3e8b0525e41d0ae93e5afd299d59f238595f`: alle zeven CI-jobs geslaagd;
 2154 HA-tests op zowel Core 2026.10.2 als Core 2026.10.3, zonder fouten of skips.
 Bewijs: `out/ha-session-clock-20261024/FINAL-REVIEW.json`. De aanvullende

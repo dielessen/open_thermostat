@@ -1,3 +1,20 @@
+# E32 V2 alpha28 + Home Assistant dev37 — stabiele bediening en EMS-apparaten
+
+Gezamenlijke passieve prerelease met alle geteste fixes sinds alpha27/dev36.
+
+- Settings → EMS-apparaten toont werkelijk ontvangen afzenders, product/versie indien bekend en entiteiten met kwaliteit/ouderdom. Nederlands/Engels, zoekfilter en openklapstatus blijven bij vernieuwen behouden. Geen actieve scan.
+- Verlopen E32- en HA-sessierechten herleven niet na een teruggaande klok. HA trekt bij een ongeldige monotone klok de sessie en wachtende opdrachten in; herstel vereist een nieuwe transportinstantie.
+- Iedere HA-herhaling controleert na wachten opnieuw tijd, lease, SOURCE en de oorspronkelijke wachtrijregistratie. Geen oude opdracht na intrekking of vervanging; oorspronkelijke bytes en deadlines blijven behouden.
+- HA-opstart en annulering ruimen eigen resources op zonder een vervangende eigenaar te verwijderen. Te grote numerieke kraanmetadata veroorzaakt geen editorcrash.
+- Vertraagde webantwoorden kunnen een nieuwere pagina niet overschrijven of oude scripts uitvoeren. De EMS-tabel hergebruikt rijen en controleert waarden en volgorde.
+- Het actuele plan scheidt geïnstalleerd, voorbereid en fysieke acceptatie; de toekomstige stop-/zend-/uitvalproef is concreet beschreven.
+
+Partities en instellingenformaat blijven gelijk. E32-installatie is app-only; HA heeft een apart pakket. Bestaande instellingen, programma's, SOURCE/journal, registry en ontvangstproducent blijven behouden. Frontend dev35/v35 blijft dezelfde versie met dezelfde bytes.
+
+EMS-TX, forwarder en fysieke kraan-/keteluitvoer blijven geblokkeerd; Tado blijft de actieve regelaar. De normale M2-kraanzendroute, geschikte kamerbron en fysieke stop-/uitvalkwalificatie zijn nog open. Het eerdere pendelen en de native HTTPS-updaterafwijking worden niet als gerepareerd geclaimd. Geen blinde herhaling van die HTTPS-route.
+
+**English:** Combined passive maintenance release: EMS device inventory under Settings with EN/NL display, stable filtering/expanded rows, monotonic session fences, current-owner/deadline checks after awaited MQTT sends, reliable HA setup cleanup, metadata validation and stale-navigation protection. Configuration is preserved; boiler/valve transmission remains disabled. No active heating qualification or claimed cycling/HTTPS-updater repair.
+
 # E32 V2 alpha27 + Home Assistant dev35 — gebundelde failsafe en bediening
 
 Bundelt alle voorbereide wijzigingen sinds alpha26/dev34 in één passieve prerelease.

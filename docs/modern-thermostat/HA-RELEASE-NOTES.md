@@ -1,3 +1,18 @@
+# HA 0.4.0.dev37 — sessies, wachtrij en betrouwbaar opstarten
+
+Gezamenlijke uitgave met E32 alpha28; alle eerdere functies en fixes blijven behouden.
+
+- Ongeldige/teruggaande monotone klok trekt sessie, grants en wachtende opdrachten in; reconnect herstelt geen oude bevoegdheid.
+- Retries controleren na iedere wachtende verzending opnieuw de actuele lease/deadline, SOURCE en de oorspronkelijke opdrachtregistratie. Ingetrokken/vervangen opdrachten worden niet opnieuw aangeboden; geen heartbeat op een verlopen sessie.
+- Opstartfouten en annulering ruimen ook vroeg aangemaakte resources op; oude cleanup kan een nieuwe eigenaar niet verwijderen.
+- Te grote numerieke kraanmetadata wordt als onbruikbare capability afgewezen zonder editorcrash.
+
+Ondersteunde native Core-versies blijven 2026.10.2 en 2026.10.3, met volledige tests op beide echte runtimes. Geen frontendwijziging: module dev35/v35 blijft byte-identiek. Kamers, programma's, SOURCE, registry, ontvangstpins en producent blijven behouden.
+
+Geen automatische kraan-/ketelopdrachten of nieuwe ontvangergrant-route. Een ontvangen TV02-temperatuurbericht is geen causale kraanbevestiging. Tado blijft regelen; actieve M2-/ketelacceptatie blijft open.
+
+**English:** Combined with E32 alpha28. Retires session evidence on invalid/backward monotonic time, rechecks queue ownership and original deadlines after awaited publishes, fixes failed/cancelled HA setup cleanup and oversized target metadata. Supports actual Core2026.10.2/2026.10.3; unchanged frontend and preserved configuration. Boiler/valve actuation stays disabled.
+
 # HA 0.4.0.dev36 — Core 2026.10.3 en gezamenlijke E32 alpha27-bundel
 
 Neemt alle wijzigingen uit dev35 mee en herstelt de opstartblokkade na een Core-update naar 2026.10.3. De expliciete ondersteunde versies zijn nu 2026.10.2 en 2026.10.3; andere versies blijven geweigerd voor de native configuratietransactie. Alle vijf versiecontroles gebruiken dezelfde lijst. De volledige suite draait op beide echte Core-versies; er wordt geen versienummer of HA-API nagebootst. Instellingen en registry worden niet opnieuw aangemaakt.

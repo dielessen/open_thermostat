@@ -2,32 +2,26 @@
 
 ## Actuele installatie — 24 oktober 2026
 
-De gecontroleerde HA-installatie draait `0.4.0.dev34`, bron
-`0aeff4dbaed9f187228e5621545b428648edfce5`: alle 83 live componentbestanden zijn
-vergeleken met het openbare pakket. Kamers, programma’s, SOURCE rev4, registry,
-frontend v28 en privé pins/producent zijn behouden.
+De laatste onafhankelijk gecontroleerde installatie is HA `0.4.0.dev36`
+(bron `c41b7a6e12730f88eb98960299be3236c6494457`) en E32
+`v0.1.0-e32v2-alpha.27` (bron `dd6a9635865c6ecd2bf1c553c3292ae13dfb53ae`).
+Zie [installatieverslag](INSTALLATIE-HA36-ALPHA27-20261024.nl.md).
 
-E32 draait `v0.1.0-e32v2-alpha.26`, bron
-`e9ae314f2519ac4208f89d183b4a73a96131d8a4`. Na een onzekere normale HTTPS-poging
-is hetzelfde openbare pakket via de bestaande app-only webupload geïnstalleerd,
-met verse back-up. De exacte ELF/webidentiteit en bevestigde boot zijn geverifieerd.
-Twee gewone niet-retained ESP-berichten kwamen exact overeen met HA: geheugen,
-CPU-temperatuur en uptime zijn hersteld; de uitgeschakelde RTC blijft onbekend.
-Vier live webbestanden en de EN/NL-uitleg zijn met de bevroren bron vergeleken.
-Alle instellingen, SOURCE/journal, kamers/programma’s, registry en privé pins zijn behouden.
+De nieuwe gezamenlijke kandidaat is **HA dev37 / E32 alpha28**: EMS-apparaten,
+klok-/sessiebewaking, betrouwbare retries, HA-opruiming en webnavigatie. Publicatie,
+exacte pakketten en daadwerkelijke installatie worden afzonderlijk gecontroleerd.
+Het [werkbord](WORKBOARD.nl.md) vermeldt de laatst bewezen installatiestatus.
 
-Zie het [werkbord](WORKBOARD.nl.md) voor de actuele acceptatiechecks. De eerste
-actieve bèta is niet vrijgegeven.
+HA-installatie verloopt via de bestaande HA-specialist met verse back-up en
+nacontrole. De native HTTPS-updaterfout is nog onverklaard; deze route wordt niet
+blind herhaald. Voor deze installatie gebruiken we de eerder geslaagde bestaande
+app-only webupload. Een proxytime-out is geen bewijs van mislukking: eerst de
+uitkomst van de oorspronkelijke upload en de werkelijke boot vaststellen,
+zonder dezelfde upload opnieuw te sturen. Geen factory-/SPIFFS-upload of wisactie.
 
-Het automatische HTTPS-downloadpad is nog niet als hersteld bewezen. De afwijkende poging en de geslaagde bestaande app-only herstelroute blijven afzonderlijk geregistreerd. HA-updates verlopen via de bestaande
-HA-agent, met back-up en nacontrole. Nieuwe releases krijgen nieuwe versies;
-bestaande tags/downloads blijven behouden. Main-CI-pakketten die gepubliceerde
-versienummers hergebruiken zijn
-bouwbewijs en mogen bestaande releases niet vervangen.
-
-De ketel is aangesloten voor passieve ontvangst. Tado blijft actief; E32-TX,
-forwarder en fysieke actuatoruitvoer blijven geblokkeerd. Een software-update
-verleent geen toestemming voor een zendproef.
+Alle instellingen, SOURCE/journal, programma's, identiteiten en ontvangstpins
+moeten behouden blijven. Tado blijft regelen; E32-TX, forwarder en kraan-/
+keteluitgangen blijven geblokkeerd. Deze update is geen fysieke zendproef.
 
 ## Historische uitvoeringsbewijzen
 

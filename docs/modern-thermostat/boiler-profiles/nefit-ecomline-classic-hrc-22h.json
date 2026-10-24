@@ -191,5 +191,37 @@
     "control_qualified": false,
     "missing_field_means_unsupported": false,
     "zero_means_useful_physical_measurement": false
+  },
+  "recorder_observation": {
+    "check": "scheduled +6h read-only observation",
+    "recorded_on": "2026-10-24",
+    "requested_start_utc": "2026-10-24T00:26:18.867218+00:00",
+    "requested_end_utc": "2026-10-24T04:58:44.704Z",
+    "requested_window_seconds": 16345.836782,
+    "history_entity_responses": 165,
+    "native_field_definitions": 69,
+    "history_rows": 532,
+    "recorder_query_batches": 34,
+    "recorder_pagination_complete_for_requested_window": true,
+    "numeric_variation_fields": [
+      "measured_flow_temperature",
+      "measured_return_temperature",
+      "measured_dhw_temperature"
+    ],
+    "monitoring_candidates_for_next_independent_physical_check": [
+      "measured_flow_temperature",
+      "measured_return_temperature",
+      "measured_dhw_temperature"
+    ],
+    "candidate_basis": "Varying numeric Recorder entity states; not physical sensor presence, calibration or acquisition proof",
+    "minimal_response": true,
+    "original_per_row_quality_provenance_available": false,
+    "continuous_six_hour_valid_measurements_verified": false,
+    "history_includes_authorized_restart_and_boot_boundary": true,
+    "cross_boot_counter_comparison_performed": false,
+    "physical_ch_dhw_established": false,
+    "original_failed_one_hour_check_status": "FAILED/UNKNOWN; not repaired by retrospective history",
+    "read_scope_independent_of_model": true,
+    "control_qualified": false
   }
 }

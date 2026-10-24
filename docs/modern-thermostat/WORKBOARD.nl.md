@@ -1328,3 +1328,38 @@ bewijs, geen ruwe huishoudwaarden of native apparaatidentiteiten. Read-all blijf
 aan; profielkeuze beperkt geen decoder. Bewijs:
 `out/passive-field-review-20261024/INDEPENDENT-PARITY.json` en `PUBLIC-SUMMARY.json`.
 B04–B14 blijven open voor de afzonderlijke bron-, installatie- en fysieke eisen.
+
+
+## WP02: gepland +6h-moment en onafhankelijke Recorder-review (24 oktober 2026)
+
+De bestaande native taak heeft de passieve controle uitgevoerd, zonder nieuwe
+taak, bediening, configuratie of busopvraag. Het aangevraagde Recorder-venster
+loopt van 00:26:18 tot 04:58:44 UTC: circa **4 uur en 32 minuten**, niet zes uur
+aaneengesloten gekwalificeerde metingen. De onafhankelijke review telt 34
+geslaagde opvragen in batches van hoogstens vijf entiteiten, 165 unieke
+entiteitsantwoorden en 532 statusregels. Iedere antwoordtelling en periode past;
+er zijn geen gemelde vervolgpagina's overgeslagen. De 165 antwoorden omvatten
+ook legacy/projectdiagnose en zijn geen 165 ketelsensoren. Alle 69 huidige native
+velddefinities hebben een expliciet historieantwoord, ook als er geen bruikbare
+meting is opgeslagen.
+
+In de native Recorder-waarden variëren `measured_flow_temperature`,
+`measured_return_temperature` en `measured_dhw_temperature`. Het ketelprofiel
+noemt deze als volgende kandidaten voor onafhankelijke praktijkvalidatie.
+Constante instellingen/nulwaarden worden daarmee niet nutteloos verklaard en
+er wordt geen veld verwijderd of door het model uitgesloten.
+
+De huidige gestructureerde ontvangst bevat opnieuw 25 geldige gemelde en twee
+afgeleide velden; 22 onbetrouwbare diagnostiekvelden blijven apart. De minimale
+Recorder-antwoorden bevatten geen oorspronkelijke kwaliteit/acquisitie per
+regel. Het venster omvat ook toegestane herstarts en een bootgrens. Daarom geen
+cross-boot-countervergelijking, bewezen fysieke CV/DHW-cyclus, gas-/warmtemeting
+of continue bronkwalificatie. De oorspronkelijke mislukte +1h-controle blijft
+FAILED/UNKNOWN; deze retrospectieve opvraag herstelt dat niet.
+
+De specialist heeft eigen logout/cookie-opruiming bevestigd. Zijn eindrapport en
+de onafhankelijke controle stemmen overeen over scope/tellingen/paginering.
+Privé bronbewijs: `ecomline-observation-20261024/CHECK-6H.json` in de bestaande
+HA-artifactruimte. Smal projectbewijs:
+`out/long-observation-review-20261024/INDEPENDENT-HISTORY.json`. B04–B14 blijven
+open voor hun afzonderlijke acceptatie. De bestaande +24h-taak is ongewijzigd.

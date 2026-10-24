@@ -64,6 +64,7 @@ class ActuatorReceiver:
         self._clock_watermark = None
         self._retired = False
         self._grant_sequence = 0
+        self._consumed_grant_sequence = 0
         self._grant = None
         self._deadline = None
         self._sequence = 0
@@ -110,7 +111,8 @@ class ActuatorReceiver:
     def issue(self, *, scope):
         """Return one grant with ORIGINAL deadline; repeated reads never renew it."""
         now = self._current(scope)
-        if self._grant is not None and now < self._deadline:
+        if (self._grant is not None and now < self._deadline
+                and self._consumed_grant_sequence != self._grant_sequence):
             return dict(self._grant)
         if self._result is not None and not self._result.done():
             raise HomeAssistantError('Actuator receiver action pending; no new grant')
@@ -165,10 +167,15 @@ class ActuatorReceiver:
         if (self._grant is None or payload['grant_id'] != self._grant['grant_id']
                 or payload['grant_sequence'] != self._grant_sequence or now >= self._deadline):
             raise HomeAssistantError('Actuator receiver grant missing or expired')
+        if self._consumed_grant_sequence == self._grant_sequence:
+            raise HomeAssistantError('Actuator receiver grant already consumed')
         deadline = self._deadline
         result = self._adapter.hass.loop.create_future()
         result.add_done_callback(lambda f: None if f.cancelled() else f.exception())
         self._sequence, self._key, self._result = sequence, key, result
+        # Consume before callbacks or awaits. Exact duplicates above still share
+        # the original result; a higher command sequence needs a fresh grant.
+        self._consumed_grant_sequence = self._grant_sequence
         try:
             # Final callback may consume the remaining original window.
             if self._current(scope) >= deadline:

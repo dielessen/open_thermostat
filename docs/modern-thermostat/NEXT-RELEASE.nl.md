@@ -1,6 +1,6 @@
 # Grotere bèta in voorbereiding — geïnstalleerde basis HA43 / E32 alpha28
 
-Bijgewerkt: 24 oktober 2026. Dit is het korte releaseoverzicht.
+Bijgewerkt: 25 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
 het [masterplan](PLAN.nl.md) bewaart alle 31 producteisen en acceptatievoorwaarden.
 
@@ -15,6 +15,12 @@ kraanroute, oorspronkelijke doelecho of fysieke kwalificatie.
 De volgende voorbereide schakel bewaakt actuele bron/lease en oorspronkelijke
 deadlines rond codering en transport. Vijf reproduceerbare grensfouten gesloten;
 geen nieuwe MQTT-route of fysieke toestemming. [Details](M2-SOURCE-TRANSPORT-20261025.nl.md).
+
+Aanvullend wordt één grant nu ook aan HA-zijde na de eerste toegelaten opdracht
+verbruikt. Een hoger volgnummer kan hetzelfde grant niet opnieuw gebruiken;
+een exact duplicaat veroorzaakt geen nieuwe serviceaanroep. De regressie is
+vóór herstel gereproduceerd en na herstel gecontroleerd op beide Core-versies.
+Dit herstel is lokaal voorbereid voor de gezamenlijke release, nog niet uitgerold.
 
 Dit is geen nieuwe kleine onderhoudsrelease. HA43 en E32alpha28 blijven draaien;
 het werkbord houdt alle resterende functies en vrijgavevoorwaarden bij.

@@ -1,6 +1,6 @@
 # OpenThermostat — actueel werkbord en releasechecklist
 
-**Bijgewerkt: 24 oktober 2026.** Dit is de enige actuele afvinklijst. Het
+**Bijgewerkt: 25 oktober 2026.** Dit is de enige actuele afvinklijst. Het
 [masterplan](PLAN.nl.md) bewaart alle 31 eisen en oorspronkelijke acceptatievoorwaarden.
 Oude uitvoeringsnotities zijn gearchiveerd; hun oude woorden “open” en “niet
 geïnstalleerd” bepalen de huidige stand niet meer.
@@ -87,6 +87,17 @@ Een ontbrekende fysieke waarneming blokkeert onafhankelijk softwarewerk niet.
 [Uitwerking en verificatie](M2-ONTVANGER-EN-BRONKEUZE-20261024.nl.md).
 
 ### In voorbereiding voor de grotere bèta — FW→HA-kraanberichten
+
+**Aanvullende ontvangercontrole 25 oktober:** een reproduceerbare fout liet na
+serviceacceptatie een tweede nieuw volgnummer met hetzelfde vijfseconden-grant
+toe. De ontvanger verbruikt het grant nu vóór callbacks/awaits. Exacte duplicaten
+blijven het oorspronkelijke resultaat delen; een volgende nieuwe opdracht vereist
+een nieuw grant. Dit verandert geen serviceacceptatie in een kraan-ACK en sluit
+B05 niet. Bronwijziging nog niet gepubliceerd of geïnstalleerd; gerichte regressie
+vóór herstel faalt, daarna slagen 146 gerelateerde gevallen en de volledige
+regressie van 2.298 gevallen (2.230 tests + 68 subtests) op beide Core-versies.
+De eigen tijdelijke localhost-testbroker is gestopt en verwijderd.
+Bewijs: `out/large-beta-grant-20261025/` in de bronwerkboom.
 
 De firmwaretegenhanger `ActuatorIntent` kan het bestaande HA-grant lezen en een
 exacte `room_target`-envelop produceren. Dit blijft broncode in voorbereiding,

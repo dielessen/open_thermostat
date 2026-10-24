@@ -906,11 +906,11 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/actuator_receiver.py",
-          "sha256": "9ae03da03bdf7ff81efb156ab44a8fa5969f19fb6bfdf502fb3bcac8fdc8e896"
+          "sha256": "097d92eb9fee1df2710f647d84efeee246e539bee5236be31a93a7c5a2dd4bd2"
         },
         {
           "path": "ha/tests_native/test_actuator_receiver.py",
-          "sha256": "a045f241c3849e8bca3293ac72e1d31a2282e97159b5016ab4730fe8ff0c3de4"
+          "sha256": "928bb97645a0bab087c77613d541b5c46b742e5cac7d5492d4c003d9d380ef9d"
         },
         {
           "path": "ha/tests_native/test_temperature_source_review.py",

@@ -119,6 +119,23 @@ async def test_retained_and_previous_grant_cannot_dispatch(hass):
 
 
 @pytest.mark.asyncio
+async def test_consumed_grant_cannot_admit_a_second_new_command(hass):
+    receiver, scope, _, calls = setup(hass)
+    grant = receiver.issue(scope=scope)
+    raw = intent(grant)
+    await receiver.async_receive(raw, scope=scope)
+    with pytest.raises(HomeAssistantError, match='consumed'):
+        await receiver.async_receive(intent(grant, 2), scope=scope)
+    assert len(calls) == 1
+    assert (await receiver.async_receive(raw, scope=scope)).duplicate
+    fresh = receiver.issue(scope=scope)
+    assert fresh['grant_sequence'] == grant['grant_sequence'] + 1
+    assert fresh['grant_id'] != grant['grant_id']
+    await receiver.async_receive(intent(fresh, 2), scope=scope)
+    assert len(calls) == 2
+
+
+@pytest.mark.asyncio
 async def test_historical_duplicate_never_redispatches_after_grant_expiry(hass):
     receiver, scope, clock, calls = setup(hass)
     grant = receiver.issue(scope=scope)

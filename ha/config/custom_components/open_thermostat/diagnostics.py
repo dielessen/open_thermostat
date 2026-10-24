@@ -22,6 +22,13 @@ async def async_get_config_entry_diagnostics(hass, entry):
     if runtime is None:
         return result
     client = runtime._transport
+    supervisor = getattr(client, "supervisor_payload", None)
+    result["read_only_supervisor"] = {
+        "available": supervisor is not None,
+        "snapshot": supervisor,
+        "control_qualified": False,
+        "scope": "reported_shadow_intent_only",
+    }
     result["read_only_metrics"] = {
         "supported": bool(getattr(client,"metrics_supported",False)),
         "available": getattr(client,"metrics_payload",None) is not None,

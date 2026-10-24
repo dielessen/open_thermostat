@@ -15,6 +15,7 @@ import secrets
 
 from homeassistant.exceptions import HomeAssistantError
 
+from .supervisor_status import supervisor_status, MAX_AGE_SECONDS as SUPERVISOR_MAX_AGE
 from .v1_model import Observation, RoomDecision
 from .session_grant import register_grant_proof, consume_grant_proof, MAX_GRANT_PROOFS
 from .boiler_fields import CAPABILITY as BOILER_CAPABILITY, BoilerFieldCache, MAX_BYTES as MAX_BOILER_BYTES
@@ -150,6 +151,20 @@ class ShadowClient:
         self._metrics=None
         self._metrics_received=0.0
         self._metrics_highwater=0
+        self._supervisor=None
+        self._supervisor_received=0.0
+
+    @property
+    def supervisor_payload(self):
+        # Receipt age describes this diagnostic snapshot, never acquisition or
+        # physical feedback freshness. No new timer, Store or command path.
+        age=self.clock()-self._supervisor_received
+        if self._supervisor is None:
+            return None
+        if not self.ready or not 0<=age<SUPERVISOR_MAX_AGE:
+            self._supervisor=None # Observed expiry/loss cannot revive after clock recovery.
+            return None
+        return dict(self._supervisor, receipt_age_ms=int(age*1000))
 
     @property
     def metrics_payload(self):
@@ -622,6 +637,8 @@ class ShadowClient:
         self._metrics=None
         self._metrics_received=0.0
         self._metrics_highwater=0
+        self._supervisor=None
+        self._supervisor_received=0.0
         self.boiler_fields.reset()
 
     def require_graph_source_review(self):
@@ -921,6 +938,7 @@ class ShadowClient:
                 raise ValueError("not shadow state")
             if not self.ready or not p["adapter_alive"]:
                 self._native_state_receipt=None
+                self._supervisor=None
                 self.runtime.decisions.clear()
                 self.changed()
                 return
@@ -951,6 +969,15 @@ class ShadowClient:
                     row["target_source"],row.get("comfort_mode"),row.get("override_remaining_ms",0),row.get("vacation_until_utc",0))
             if self.native_plan_source is not None:
                 self._native_state_receipt=(self.native_context(),self.clock())
+            # Optional diagnostics cannot reject otherwise valid room decisions.
+            # Missing/malformed data replaces, rather than preserves, old intent.
+            self._supervisor=None
+            if "supervisor" in p:
+                try:
+                    self._supervisor=supervisor_status(p["supervisor"])
+                except (ValueError, TypeError):
+                    pass
+            self._supervisor_received=self.clock()
             self.runtime.decisions = decisions
             self.error = "shadow_ready"
             self.changed()

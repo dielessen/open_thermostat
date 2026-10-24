@@ -52,6 +52,9 @@ vastgesteld. Ontvangstdiagnose alleen voldoet niet aan dit releasedoel.
   gebonden. Warmtevraag alleen bewijst geen open kraan of flow. Na een fout
   volgt geen automatische hervatting; lokale bevestiging en nieuwe feedback
   zijn nodig. De standaard bronselectie blijft leeg en fysieke uitvoer geblokkeerd.
+- Het HA-diagnosebestand toont de gemelde supervisorfase en regelintenties
+  apart van fysieke uitvoer. Onbekende of verlopen status verdwijnt; diagnose
+  kan geen regelbevoegdheid toekennen of kamerbeslissingen veranderen.
 - De eindige ketelproef bewaakt ook te late stop- en basisbevestigingen. Een
   verlopen deadline wordt niet vernieuwd door een later bericht of leaseverlies.
 - De EMS-encoder weigert te grote frames en READ-opdrachten met overtollige

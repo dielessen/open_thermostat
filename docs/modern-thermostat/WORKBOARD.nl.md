@@ -18,7 +18,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 205 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 208 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Alle 80 HA-componentbestanden zijn ook met het E32-pakket
 vergeleken. Historische checkpoints en afgewezen kandidaten blijven bewaard;
@@ -53,7 +53,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-205 bronverwijzingen met hashes, status en resterende acceptatie.
+208 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -74,7 +74,7 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | I12 | Passieve Classic-decoder en Classic-proefencoder | Decoder en geblokkeerde encoder geleverd | Vast 0x1A-flow/nulformaat gebouwd; beoordeelde bronadressering, fysieke UART-/stopkwalificatie en ontvangstpariteit blijven open. |
 | I13 | Ketencontract, SOURCE, journal, configuratie en readback | Geleverde softwarebasis | Logische provisioning/programma-ACK werkt; verse fysieke meet- en actuatorbewijzen ontbreken. |
 | I14 | Kraanadapter profiel C, TV02-moduscontrole en bronbench | Modus/identiteit en oorspronkelijke HA-ontvangst/diagnose geleverd; fysieke route onvolledig | Native identiteit en doelcapaciteit vlak vóór dispatch opnieuw gecontroleerd; TV02 auto/vakantie/uit/onbekend zichtbaar en vóór doelactie geweigerd. Verse kraanecho, exclusief eigenaarschap en fysieke werking blijven open; oude bench op SOURCE geblokkeerd. |
-| I15 | Kamerregelaar, seizoensbeleid en hydraulische supervisor | Voorbereide code, functie nog onvolledig | Regellogica/shadow voorbereid; hydraulische profiel- en uitvoerketen niet gekwalificeerd. |
+| I15 | Kamerregelaar, seizoensbeleid en hydraulische supervisor | Voorbereide code, functie nog onvolledig | Controller-/supervisorkoppeling en HA-diagnose gebouwd; werkelijke producenten, installatieprofiel en fysieke uitvoerketen niet gekwalificeerd. |
 | I16 | Groepswaterdoelen, vloer, menger en centrale graph-config | Voorbereide code, functie nog onvolledig | Pure policies/declaraties en begrensde DATA-paden aanwezig; niet gelijk aan actieve groepen/pomp/menger. |
 | I17 | Metrics, grafieken, historiegrens en CSV-export | Voorbereide code, functie nog onvolledig | Niet opnieuw vanaf nul bouwen; echte Classic-tijdlijn, Recorder-retentie/migratie en grafiekacceptatie open. |
 | I18 | Comfortprioriteiten, raam/aanwezigheidscontext en HEAT/OFF | Voorbereide code, functie nog onvolledig | Logische/oudere opt-in paden bestaan; native eenvoudige kamereditor/bronkwalificatie niet compleet. |
@@ -1211,3 +1211,23 @@ Lokaal: 602 native tests PASS; 54 gerichte controller-/policytests ook onder
 AddressSanitizer/UndefinedBehaviorSanitizer met lekcontrole PASS. Bewijs:
 `out/supervisor-integration-20261024/`. B06 blijft open voor werkelijke producenten,
 een beoordeeld installatieprofiel en fysieke kwalificatie. Nog niet geïnstalleerd.
+
+
+## B06/B10: supervisor-diagnose in HA (24 oktober 2026)
+
+De native HA-client verwerkt nu de bestaande supervisorstatus uit dezelfde
+gecontroleerde kamerstatus. Het HA-diagnosebestand toont fase, reden en
+optionele warmte-/pomp-/afgiftepadintenties afzonderlijk van fysieke uitvoer.
+De vier bestaande supervisorvelden blijven compatibel; aanvullende intenties
+moeten als volledige, begrensde groep binnenkomen. Alleen bekende velden en
+redencodes worden geëxporteerd, geen extra wiretekst, identiteiten of opdrachten.
+
+De diagnose is maximaal 15 seconden na lokale ontvangst beschikbaar, vereist
+een geldige huidige sessie en verdwijnt bij ontbrekende/ongeldige data, verlies,
+verloop of waargenomen klokteruggang. Dat is ontvangstouderdom, geen acquisitie-
+of feedbackkwalificatie. Ongeldige optionele diagnose verandert geldige
+kamerbeslissingen niet. Geen nieuwe timer, opslag, MQTT-client of actuatorroute.
+
+64 gerichte HA-checks PASS, met opnieuw gebouwde echte C++-controller. Volledige
+CI en de afzonderlijke read-only broninstallatiebeoordeling staan bij het bewijs
+in `out/beta-source-chain-20261024/`. B04–B14 blijven open; niet geïnstalleerd.

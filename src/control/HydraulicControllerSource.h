@@ -64,12 +64,19 @@ public:
             uint64_t(s.dhwStateKnown)|(uint64_t(s.dhwActive)<<1),
             s.waterTarget?(uint64_t(uint16_t(*s.waterTarget))|(uint64_t{1}<<16)):0,
             uint64_t(s.readinessConfirmed)|(uint64_t(s.feedbackCommand)<<1),uint64_t(s.independentFlowConfirmed)};
-        // Validate the whole snapshot before committing any replay watermark.
+        // Inspect ALL fields before retiring proof or committing watermarks.
+        // Fixing the first bad field must not resurrect another rejected field.
+        uint8_t rejected=0;const char* reason=nullptr;
         for(size_t i=0;i<times.size();++i) {
-            if(times[i]>now)return deny(&s,"hydraulic_feedback_future",i);
-            if(times[i]&&(times[i]<lastAt_[i]||(times[i]==lastAt_[i]&&(values[i]!=lastValue_[i]||revoked_[i]))))
-                return deny(&s,"hydraulic_feedback_reordered",i);
+            const bool future=times[i]>now;
+            const bool replay=times[i]&&(times[i]<lastAt_[i]
+                ||(times[i]==lastAt_[i]&&(values[i]!=lastValue_[i]||revoked_[i])));
+            if(future||replay) {
+                rejected|=uint8_t(1u<<i);
+                if(!reason)reason=future?"hydraulic_feedback_future":"hydraulic_feedback_reordered";
+            }
         }
+        if(rejected)return deny(&s,reason,rejected);
         const auto fresh=[&](uint64_t at){return at>owner.startedAt&&now>=at&&now-at<maximumAge;};
         for(size_t i=0;i<times.size();++i) {
             if(times[i]){lastAt_[i]=times[i];lastValue_[i]=values[i];revoked_[i]=!fresh(times[i]);}
@@ -87,11 +94,11 @@ public:
         return {in,"hydraulic_feedback_received"};
     }
 private:
-    Result deny(const HydraulicFeedbackSnapshot* current,const char* reason,size_t fact=6) {
+    Result deny(const HydraulicFeedbackSnapshot* current,const char* reason,uint8_t affected=0x3f) {
         // Retire the affected proof without advancing its acquisition watermark.
         // An unrelated fact retains its own original lifetime; fixing one bad
         // field must not require reacquiring or rejuvenating all other fields.
-        for(size_t i=0;i<lastAt_.size();++i)if(lastAt_[i]&&(fact==6||fact==i))revoked_[i]=true;
+        for(size_t i=0;i<lastAt_.size();++i)if(lastAt_[i]&&(affected&(1u<<i)))revoked_[i]=true;
         HydraulicInputs in;
         if(current) {
             // Only AFTER the owner fence: preserve asserted restrictions even

@@ -352,4 +352,23 @@ TEST(HydraulicSourceGate, RepairNeedsNewAffectedFactWithoutRenewingUnrelatedLife
     EXPECT_TRUE(expired.waterTarget);
 }
 
+TEST(HydraulicSourceGate, EverySimultaneouslyRejectedFactNeedsNewProof) {
+    const HydraulicOwnerContext owner{1,2,1,100,"boot1"};
+    for(unsigned unrepaired=0;unrepaired<3;++unrepaired) {
+        HydraulicFeedbackGate gate;const auto first=freshFacts(owner,101);
+        ASSERT_TRUE(gate.evaluate(102,1000,owner,first).inputs.limitsKnownSafe);
+        auto invalid=first;invalid.limitsAt=104;invalid.faultAt=105;invalid.waterTargetAt=106;
+        invalid.boilerFault=true;
+        EXPECT_STREQ(gate.evaluate(103,1000,owner,invalid).reason,"hydraulic_feedback_future");
+        auto partial=freshFacts(owner,107);
+        if(unrepaired==0)partial.limitsAt=101;
+        if(unrepaired==1)partial.faultAt=101;
+        if(unrepaired==2)partial.waterTargetAt=101;
+        const auto rejected=gate.evaluate(107,1000,owner,partial);
+        EXPECT_STREQ(rejected.reason,"hydraulic_feedback_reordered")<<unrepaired;
+        EXPECT_FALSE(rejected.inputs.limitsKnownSafe||rejected.inputs.faultStateKnown||rejected.inputs.waterTarget)<<unrepaired;
+        EXPECT_TRUE(gate.evaluate(108,1000,owner,freshFacts(owner,108)).inputs.limitsKnownSafe);
+    }
+}
+
 }

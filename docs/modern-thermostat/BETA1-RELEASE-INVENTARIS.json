@@ -870,11 +870,11 @@
         },
         {
           "path": "src/control/HydraulicControllerSource.h",
-          "sha256": "bf5abb54812f3307f6681fa36f672379bddefca486a01be5424f5cf721fb19dc"
+          "sha256": "ebe97124916e1be91bb2ed77b25023a9891fe2129f7ec7f2b827db2c9e2f1d38"
         },
         {
           "path": "test/test_native/test_hydraulic_controller_source.cpp",
-          "sha256": "0ca3d7fbf7c88b4363f6f482b84ad92469d6156e874d5a27482fad81f913f1f9"
+          "sha256": "3cf976cf6207f6ed1afc9aff2319484298d4ebb9dafb0c4f4d5a313f874a18ac"
         },
         {
           "path": "test/test_native/include/ShadowControllerFixture.h",
@@ -898,7 +898,7 @@
         },
         {
           "path": "docs/modern-thermostat/FAILSAFE.nl.md",
-          "sha256": "2bec1af8bf4090a3b0383cc985ea1e745c838c9d356a0d2b2fb71d95cfd6514e"
+          "sha256": "b97e15cde078a6b29d64f38617ba077cdbc69df67bfacfb6ffea0c997d9d33e0"
         }
       ],
       "remaining_acceptance": "Lokale lease-expiry bij stille HA en offline naloop/klokgrenzen gebouwd/getest; logische intenties zijn geen fysieke stop. Werkelijke producenten, installatieprofiel en fysieke uitvoer-/uitvalketen blijven open."

@@ -1839,8 +1839,8 @@ softwaredeelpunten afgerond voor dezelfde gezamenlijke release:
 Acht eerste regressies op de vorige bron: zeven falen, één bestaande weigering
 van een verkeerde eigenaar blijft geldig. Rechtstreeks uitgevoerde GoogleTest
 bevestigt dit onafhankelijk van de extra SIGHUP-status die PlatformIO bij een
-falend testproces rapporteert. Na correctie: 637 native tests PASS, waaronder
-12 nieuwe gevallen; 87 gerichte ASan/UBSan-gevallen met lekcontrole PASS, 60
+falend testproces rapporteert. Na correctie: 638 native tests PASS, waaronder
+13 nieuwe gevallen; 88 gerichte ASan/UBSan-gevallen met lekcontrole PASS, 60
 HA-supervisortests en drie NL/EN-browserformaten PASS. Echte E32-build PASS.
 De native feedbackgate groeit vast van104 naar120 bytes; proefpolicy blijft176
 bytes. Geen extra heapstructuur, taak, client, watcher, bronproducent of fysieke opdracht.
@@ -1850,3 +1850,11 @@ ontbrekende oorspronkelijke kamermeting, unieke native zendtransactie/causale
 echo en werkelijke hydraulische producenten/installatiekwalificatie blijven
 open. B04–B14 blijven open; geen nieuwe kleine release of installatie van deze
 bronwijziging. Bewijs: `out/release-control-gates-20261024/`.
+
+
+Aanvullende combinatiereview binnen dezelfde bronbundel: alle gelijktijdig
+foutieve velden worden in één vaste bitmaskercontrole ingetrokken. Alleen het
+eerste veld herstellen kan geen oud foutloosheids- of waterdoelbewijs terugbrengen.
+De rechtstreekse regressie faalt op bron `c24a316`; de eerdere CI40091742362 is
+bewust geannuleerd voor een nieuwe volledige run op de gecorrigeerde bron.
+Onafhankelijke brondeadlines blijven behouden; geen extra dynamische opslag.

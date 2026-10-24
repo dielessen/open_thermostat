@@ -94,7 +94,7 @@ gebruikt. Er komen geen positieve veiligheidsfeiten, readiness, flow of waterdoe
 uit een afgewezen snapshot terug. Een gemelde ketelfout vereist geen geldig
 bewijs van foutloosheid om de logische fouttoestand te vergrendelen.
 
-De getroffen bronwaarneming wordt ingetrokken zonder haar acquisitietijd of
+Alle gelijktijdig getroffen bronwaarnemingen worden ingetrokken zonder haar acquisitietijd of
 sequence te vernieuwen. Alleen een strikt nieuwere waarneming kan dat bronveld
 herstellen. Andere velden behouden hun eigen oorspronkelijke geldigheid; herstel
 van één veld verjongt deze niet. Ontbrekende en verlopen waarnemingen blijven
@@ -112,7 +112,7 @@ vraag wordt niet hervat en nieuwe fysieke stopzekerheid wordt niet verzonnen.
 Dit wijzigt geen beleid voor blijvend onbekende stopfeedback of onafhankelijke
 hardwareterugval; die fysieke acceptatie blijft open.
 
-Bewijs: `out/release-control-gates-20261024/`: 637 native tests, 87 geselecteerde
+Bewijs: `out/release-control-gates-20261024/`: 638 native tests, 88 geselecteerde
 controller-/Classic-/service-/poll-/encodergevallen onder ASan/UBSan met
 lekcontrole, 60 HA-supervisortests en drie echte browserformaten met fixture-HTTP.
 De bestaande stopbevestiging staat ook in het Engels correct als Yes (NL: Ja).

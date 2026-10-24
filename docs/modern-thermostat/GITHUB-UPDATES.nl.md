@@ -7,18 +7,19 @@ De gecontroleerde HA-installatie draait `0.4.0.dev33`, bron
 vergeleken met het openbare pakket. Kamers, programma’s, SOURCE rev4, registry,
 frontend v28 en privé pins/producent zijn behouden.
 
-E32 draait momenteel nog `v0.1.0-e32v2-alpha.24`, bron
-`a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`. Alpha26 is gepubliceerd en de bron,
-ELF, webinterface en controlesommen zijn onafhankelijk gecontroleerd. De eerste
-normale updateaanvraag gaf HTTP202 en een reboot; daarna was alpha24 opnieuw
-zichtbaar. De oorzaak en een eventuele rollback zijn niet bewezen. Een bestaande
-app-only upload wordt als afzonderlijke herstelroute beoordeeld. Live
-CPU-/geheugen-/uptimewaarden zijn nog niet hersteld; er wordt geen succes afgevinkt.
+E32 draait `v0.1.0-e32v2-alpha.26`, bron
+`e9ae314f2519ac4208f89d183b4a73a96131d8a4`. Na een onzekere normale HTTPS-poging
+is hetzelfde openbare pakket via de bestaande app-only webupload geïnstalleerd,
+met verse back-up. De exacte ELF/webidentiteit en bevestigde boot zijn geverifieerd.
+Twee gewone niet-retained ESP-berichten kwamen exact overeen met HA: geheugen,
+CPU-temperatuur en uptime zijn hersteld; de uitgeschakelde RTC blijft onbekend.
+Vier live webbestanden en de EN/NL-uitleg zijn met de bevroren bron vergeleken.
+Alle instellingen, SOURCE/journal, kamers/programma’s, registry en privé pins zijn behouden.
 
 Zie het [werkbord](WORKBOARD.nl.md) voor de actuele acceptatiechecks. De eerste
 actieve bèta is niet vrijgegeven.
 
-De normale E32-HTTPS-updater heeft in deze poging geen bevestigde nieuwe boot opgeleverd; herstel blijft open. HA-updates verlopen via de bestaande
+Het automatische HTTPS-downloadpad is nog niet als hersteld bewezen. De afwijkende poging en de geslaagde bestaande app-only herstelroute blijven afzonderlijk geregistreerd. HA-updates verlopen via de bestaande
 HA-agent, met back-up en nacontrole. Nieuwe releases krijgen nieuwe versies;
 bestaande tags/downloads blijven behouden. Main-CI-pakketten die gepubliceerde
 versienummers hergebruiken zijn

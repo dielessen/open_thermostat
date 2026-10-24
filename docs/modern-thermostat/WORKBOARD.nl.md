@@ -9,10 +9,10 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
-| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.24` aangetroffen na één onzekere alpha26-updatepoging; alpha26 is gepubliceerd maar nog niet als draaiend bevestigd |
+| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.26`, na één bestaande app-only webupload met verse back-up; bron, ELF/web, bevestigde boot en live ESP-diagnose gecontroleerd |
 | Geïnstalleerde HA-integratie | `0.4.0.dev33`, via bestaande HA-agent met verse back-up/nacontrole; 105 registryrecords en alle koppelingen behouden |
-| Geleverde bron | E32 `a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`; HA `db2141cbe077cb8b35d8ef0f6e436b719308b3aa`, alle 83 live componentbestanden gelijk aan het HA-pakket |
-| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; alpha24/dev30-bundel, HA dev31-ontvangstherstel en HA dev32-rapportpolicy/klok/afwijzingsdiagnose geleverd |
+| Geleverde bron | E32 `e9ae314f2519ac4208f89d183b4a73a96131d8a4`; HA `db2141cbe077cb8b35d8ef0f6e436b719308b3aa`, alle 83 live componentbestanden gelijk aan het HA-pakket |
+| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; alpha26/dev33 geleverd met herstel ESP-diagnose en EN/NL-uitleg; alle eerdere bron behouden. Dev34 is voorbereid, getest en nog niet gepubliceerd/geïnstalleerd |
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
@@ -1710,3 +1710,9 @@ HA dev33 is geïnstalleerd: alle 83 live bestanden, frontend v28, 105 registryre
 E32 alpha26 is gepubliceerd met geteste bron, ELF/web en 1109 onafhankelijke pakketchecks. Eén normale updateaanvraag gaf HTTP202 en een herstart, maar daarna draaide aantoonbaar alpha24. Oorzaak en automatische rollback zijn niet bewezen; de relevante oude RAM-logs waren al overschreven. Hetzelfde HTTPS-pad wordt niet blind herhaald. De bestaande app-only webupload wordt als afzonderlijke herstelroute beoordeeld; er is nog geen geslaagd herstelbewijs. Fysieke uitgangen blijven geblokkeerd.
 
 Vóór een volgende tag: render en controleer de versiegebonden publicatienotities voor beide kanalen met de bestaande organizer; geen nieuwe tag op basis van alleen geslaagde builds.
+
+### Nacontrole: diagnoseherstel geslaagd
+
+De afzonderlijk beoordeelde bestaande app-only upload gaf HTTP200/success; daarna draait alpha26 (`e9ae314…`) met de exacte publieke ELF- en webidentiteit en `boot_pending=false`. Twee gewone niet-retained berichten met 15 seconden verschil kwamen exact overeen met de bestaande HA-entiteiten: vijf numerieke ESP-waarden (vrije/minimale heap, grootste blok, CPU-temperatuur, uptime), RTC terecht onbekend. Vier live webbestanden komen exact overeen met de bevroren bron en bevatten de EN/NL-uitleg. Alle 105 registryrecords, kamers/programma’s, SOURCE rev4, privé pins/producent en instellingen zijn behouden; uitgangen blijven uit.
+
+De mislukte native HTTPS-poging en haar bewijs blijven bewaard. Het automatische downloadpad is **niet** als hersteld afgevinkt. De bestaande eenmalige 24-uurscontrole behoudt eigenaar, tijdstip, aflevering en grenzen; alleen de verwachte software-identiteiten zijn aangepast naar alpha26/dev33. De voorbereidende dev34-correctie heeft volledige geslaagde CI, maar is niet geïnstalleerd.

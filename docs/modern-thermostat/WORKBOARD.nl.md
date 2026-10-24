@@ -969,3 +969,20 @@ zijn geen live collector-/RAM/stack-/duurlastacceptatie of bèta-vrijgave.
   Dit is bronvoorbereiding, geen afzonderlijke release of live aansturingsproef.
 
 Bewijs: `out/dashboard-refresh-20261024/`. B04–B14 blijven ongewijzigd open.
+
+
+### Gezamenlijke releasekandidaat alpha22/dev28
+
+- [x] Oorspronkelijke TV02-room/get-diagnose zichtbaar gemaakt in de HA-editor,
+  NL/EN, met typed/bounded waarden en expliciet ontvangst/werking-onderscheid.
+  Stale/ongeldige/onderbroken rapporten tonen geen oude datapointwaarden.
+- [x] Nieuwe editoridentiteit dev28/v28; bestaande v25/v24/handmatige aliases
+  blijven beschikbaar. Browserproef omvat een reeds geregistreerde oude v25.
+- [x] Kandidaten alpha22/dev28 bundelen TV02-ontvangst, E32-systeemlog/syslog en
+  incrementele dashboardfix, plus alle eerdere geïnventariseerde bron.
+- [ ] Volledige controles op de bevroren kandidaat, openbare pakketten en uitrol
+  aftekenen met afzonderlijk bewijs. Installed blijft alpha21/dev27 tot die tijd.
+
+Dit is een passieve testreleasekandidaat; B04–B14 worden niet door deze UI- of
+versiewijziging afgevinkt. Bronpins blijven leeg; er is geen apparaatselectie of
+fysieke aansturing veranderd. Bewijs: `out/next-release-20261024/`.

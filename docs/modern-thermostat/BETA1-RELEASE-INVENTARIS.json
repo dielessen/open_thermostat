@@ -337,7 +337,7 @@
         },
         {
           "path": "test/ha-device-metadata-browser.cjs",
-          "sha256": "237c26119fdd84f90bc945a35d235b589c14806cd19fae5328e594c89b1e771a"
+          "sha256": "a88f85a3f13d62c5073b97df71f08b05ce93c0601b1a04b306d1bff99ed80ce6"
         }
       ],
       "remaining_acceptance": "Gemelde Z2M-/converterversies behouden en zichtbaar, ontbrekend blijft onbekend. Metadata is geen directe packagebron-/hashcontrole en kwalificeert geen fysieke sensor of kraan."
@@ -354,7 +354,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/week_planner.py",
-          "sha256": "bb2e2ab91eb12442931c6ae3ceb629730b2cc3f35940c1947357c5269b59bb67"
+          "sha256": "46186e8a08afa641bc1654d0c826a5f9c7d5aac6af7982a68b54933bb09f4f57"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_program_apply.py",
@@ -405,7 +405,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "e417d70751367bacc67b094722bf53e97923cd502058963e51aa4b0600480f32"
+          "sha256": "b17b7e944c47ba775d1625d65b05ce42994612cc57c046becdde9e39ec593c84"
         }
       ],
       "remaining_acceptance": "Drie echte koude HA-sessies bewezen; versiegebonden module behouden."
@@ -711,7 +711,7 @@
         },
         {
           "path": "test/ha-tv02-mode-browser.cjs",
-          "sha256": "aff29c361673c3a255f5619f90d662a7950e83ff59175b75901c26c204c86855"
+          "sha256": "e150b44f57e3a7fec503496d13fbf3e51516948d7c2162a51362077404a3884c"
         },
         {
           "path": "ha/tests_native/test_actuator_dispatch_binding.py",
@@ -748,9 +748,13 @@
         {
           "path": "ha/tests_native/test_room_editor.py",
           "sha256": "01552ef90ac17cf98711cd1c7fac0dd9fc37089359760a782dfbe3c1c8a5eed9"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
+          "sha256": "b17b7e944c47ba775d1625d65b05ce42994612cc57c046becdde9e39ec593c84"
         }
       ],
-      "remaining_acceptance": "TV02-modus/native identiteit/doelcapaciteit en oorspronkelijke producer/HA-ontvangst met native MQTT/registry-lifecycle gebouwd/getest. Standaard bronpins leeg, geen productie-installatie. Concrete fabrikant/endpoint-pins, echte ontvangst, frontendweergave, causale doel-echo, exclusief eigenaarschap, profiel/readiness/fallback en fysieke proef zonder ketel blijven open."
+      "remaining_acceptance": "TV02-modus/native identiteit/doelcapaciteit en oorspronkelijke producer/HA-ontvangst met native MQTT/registry-lifecycle gebouwd/getest. Standaard bronpins leeg, geen productie-installatie. Concrete fabrikant/endpoint-pins, echte ontvangst, frontendweergave, causale doel-echo, exclusief eigenaarschap, profiel/readiness/fallback en fysieke proef zonder ketel blijven open. Dev28/v28 toont oorspronkelijke ontvangstrapporten tweetalig zonder werking/ACK-vrijgave; productiebronpins/installatie en fysieke validatie blijven open."
     },
     {
       "id": "I15",

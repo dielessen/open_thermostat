@@ -24,14 +24,14 @@ const output=path.resolve(process.env.OPENTHERMOSTAT_TV02_EVIDENCE||path.join(__
        issues:issue?[issue]:[],authorizes_actuation:false}}]};
    };
    setMode('local_schedule_active','auto');
-   window.card=document.createElement('openthermostat-room-editor-v25');document.querySelector('main').append(card);
+   window.card=document.createElement('openthermostat-room-editor-v28');document.querySelector('main').append(card);
    card.setConfig({entry_id:model.entry_id,room_id:model.room_id});
    card.hass={language,user:{is_admin:true},callWS:async request=>{
     calls.push(request.type);if(request.type!=='open_thermostat/room/get')throw Error('Unexpected write');
     return structuredClone(model);
    }};
   },{initial,language});
-  const card=page.locator('openthermostat-room-editor-v25'),review=card.locator('.target-review[aria-label]');
+  const card=page.locator('openthermostat-room-editor-v28'),review=card.locator('.target-review[aria-label]');
   await review.waitFor();
   assert((await review.textContent()).includes(language==='nl'?'eigen weekprogramma':'automatic scheduling'));
   await review.screenshot({path:path.join(output,`AUTO-${width}-${language}.png`)});
@@ -46,12 +46,49 @@ const output=path.resolve(process.env.OPENTHERMOSTAT_TV02_EVIDENCE||path.join(__
   const text=await review.textContent();
   assert(text.includes(language==='nl'?'Passende doelen bewijzen geen klepstand':'Compatible targets do not prove valve position'));
   assert(!text.includes(language==='nl'?'eigen weekprogramma':'automatic scheduling'));
+  await page.evaluate(async()=>{
+   model.actuator_target_review.actuators[0].original_report={status:'received_unqualified',received_age_ms:1250,
+    fields:{target_centi_c:2150,local_temperature_centi_c:0,preset:'manual',heating_stop:false,frost_protection:true},
+    command_correlated:false,valve_ready:false,control_qualified:false};await card.load();
+  });
+  const original=card.locator('.original-valve-report');await original.waitFor({timeout:3000});
+  let originalText=(await original.textContent()).replace(/:/g,': ');
+  assert(originalText.includes(language==='nl'?'Oorspronkelijk kraanbericht':'Original valve report'));
+  assert(originalText.includes(language==='nl'?'geen bevestiging':'does not confirm'));
+  assert(originalText.includes(language==='nl'?'Ontvangstouderdom bij laden':'Reception age when loaded'));
+  assert(originalText.includes(language==='nl'?'21,5':'21.5'));assert(originalText.includes('0 °C'));
+  assert(originalText.includes(language==='nl'?'Verwarmingsstop: Uit':'Heating stop: Off'));
+  assert(originalText.includes(language==='nl'?'Vorstbeveiliging: Aan':'Frost protection: On'));
+  await original.screenshot({path:path.join(output,`ORIGINAL-${width}-${language}.png`)});
+  for(const state of ['waiting','stale','disconnected','binding_changed','clock_invalid','run_limit','closed','unavailable']){
+   await page.evaluate(async state=>{model.actuator_target_review.actuators[0].original_report.status=state;await card.load();},state);
+   assert(!(await original.textContent()).includes(language==='nl'?'21,5':'21.5'));
+   assert.equal(await original.locator('dl').count(),0);
+  }
+  // A malformed/unknown payload never becomes a readiness claim or arbitrary HTML.
+  for(const patch of [{status:'<img src=x onerror=alert(1)>'},{command_correlated:true},{valve_ready:true},
+   {control_qualified:true},{received_age_ms:-1},{fields:{target_centi_c:'2150'}},
+   {fields:{local_temperature_centi_c:6001}},{fields:{preset:'<img src=x>'}},
+   {fields:{heating_stop:'false'}},{fields:{frost_protection:0}},{fields:{unexpected:'payload'}}]){
+   await page.evaluate(async patch=>{
+    model.actuator_target_review.actuators[0].original_report={status:'received_unqualified',received_age_ms:0,
+     fields:{target_centi_c:2150},command_correlated:false,valve_ready:false,control_qualified:false,...patch};
+    await card.load();
+   },patch);
+   assert.equal(await original.locator('dl,img,script').count(),0);
+  }
+  await page.evaluate(async()=>{
+   const row=model.actuator_target_review.actuators[0];row.original_report={status:'received_unqualified',received_age_ms:0,
+    fields:{target_centi_c:500},command_correlated:false,valve_ready:false,control_qualified:false};await card.load();
+  });
+  assert.equal(await original.locator('dl').count(),1);
   await card.locator('#base_centi_c').fill('21.5');
   assert((await review.textContent()).includes(language==='nl'?'Na Alles opslaan':'Save all'));
+  assert.equal(await card.locator('.original-valve-report').count(),0);
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   assert.deepEqual(await page.evaluate(()=>[...new Set(calls)]),['open_thermostat/room/get']);
   assert.deepEqual(errors,[]);
-  results.push({width,language,result:'PASS',readOnly:true,noModeRepair:true,physicalReadinessClaimed:false});
+  results.push({width,language,result:'PASS',readOnly:true,noModeRepair:true,originalReportStates:true,typedFieldsAndZeroFalse:true,invalidReportsHidden:true,draftIsolated:true,physicalReadinessClaimed:false});
   await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(output,'RESULT.json'),JSON.stringify({status:'PASS',results},null,2)+'\n');

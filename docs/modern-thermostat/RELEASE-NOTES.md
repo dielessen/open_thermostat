@@ -1,3 +1,37 @@
+# E32 V2 alpha22 + Home Assistant dev28 — logging en stabiele bediening
+
+Gezamenlijke passieve testrelease met alle voorbereide wijzigingen sinds
+alpha21/dev27. Geen vrijgave voor actieve ketel- of kraanaansturing.
+
+- E32: systeemlog in Settings, met niveaus, modulefilter, pauzeren, downloaden
+  en lokaal wissen. Begrensde RAM-opslag; geen logarchief in flash.
+- E32: optionele RFC5424 UDP-syslogserver met IPv4-adres, poort, eigen niveau
+  en markeringen. Instellingen worden pas na NVS-readback toegepast.
+  Extern loggen staat standaard uit; bestemming en ontvangst blijven lokaal
+  in te stellen en te controleren. Zie LOGGING.nl.md.
+- E32-dashboard: meetwaarden verversen zonder open details, toetsenbordfocus,
+  scrollpositie of de ketelillustratie opnieuw op te bouwen. Statusverzoeken
+  overlappen niet; verbindingsfouten laten de pagina staan met een melding.
+- HA: oorspronkelijke TV02-datapointontvangst via de bestaande native MQTT-
+  lifecycle, met expliciete bronpins, ouderdoms- en identiteitscontrole.
+  De kamerpagina toont beschikbare oorspronkelijke rapporten in English of
+  Nederlands, inclusief gerapporteerd doel, eigen kraantemperatuur, programma,
+  verwarmingsstop en vorstbeveiliging. Ontvangst bewijst geen opdrachtbevestiging,
+  klepstand of geleverde warmte. Standaard bronpins blijven leeg: zonder apart
+  beoordeelde bron en extension verschijnen geen oorspronkelijke rapporten.
+- HA-editor krijgt een eigen dev28/v28-identiteit zodat een oude browserkaart
+  de nieuwe weergave niet kan overschrijven. Oude handmatige kaarten blijven
+  compatibel. Geen nieuwe polling of automatische kraancommando's.
+
+De app-only HTTPS-update gebruikt dezelfde partitie-indeling en behoudt bestaande
+instellingen. HA is een afzonderlijk pakket; de firmware installeert dit niet.
+Eerdere ketelprofielen, modelonafhankelijke ontvangst, 69 voorbereide velddefinities,
+EN/NL-bediening en configuratie-/programmastructuren blijven behouden.
+
+Fysieke bron-/kraan-/zendinterface-/start-stopkwalificatie blijft open. E32 EMS-TX,
+forwarder en fysieke uitgangen blijven compile-time geblokkeerd. Deze release
+verandert geen meetselectie, weekprogramma, SOURCE-eigendom of syslogbestemming.
+
 # E32 V2 alpha21 — profiel Nefit Ecomline Classic HRC 22H
 
 Settings → My boiler bevat nu het afzonderlijke profiel Nefit Ecomline Classic

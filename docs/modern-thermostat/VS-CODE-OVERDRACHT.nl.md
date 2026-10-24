@@ -11,6 +11,10 @@ Bijgewerkt 24 oktober 2026 na de native TV02-ontvangst/lifecycle.
 
 ## Actuele bron en installatie
 
+Voorbereide gezamenlijke kandidaat: alpha22/dev28 (TV02-ontvangstweergave,
+systeemlog/syslog en incrementeel dashboard). Nog niet geïnstalleerd.
+Bewijs en actuele releasecontroles: `out/next-release-20261024/`.
+
 **Nieuwe gebruikersaanvulling:** E32-systeemlog + RFC5424 UDP-syslog voorbereid
 voor dezelfde grotere bèta. Zie [LOGGING.nl.md](LOGGING.nl.md): 32-regels RAM,
 aparte web-/syslogniveaus, filters/pauze/download/lokaal wissen, NVS-readback,
@@ -22,7 +26,7 @@ MQTT-/registry-lifecycle staan in de bètabron en slagen in 222 gerichte HA-chec
 De standaard bronpins zijn leeg; fabrikant/endpoint worden niet geraden of uit het
 eerste bericht overgenomen. Bronpins/extensioninstallatie, echte ontvangst,
 causale doelkoppeling en fysieke kraanproef zonder ketel blijven open. De huidige
-frontend toont de nieuwe room/get-ontvangstsamenvatting nog niet. Geen nieuwe
+frontend toont de room/get-ontvangstsamenvatting nu in de voorbereide dev28/v28-kandidaat. Geen nieuwe
 installatie of fysieke regelvrijgave; zie ORIGINAL-TV02-REPORTS.nl.md en WORKBOARD.
 De oudere broncheckpoints hieronder zijn historische onderbouwing.
 

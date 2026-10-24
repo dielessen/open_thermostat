@@ -15,6 +15,14 @@ en alle negen openbare downloads vergeleken. HA39 is geïnstalleerd en de afzond
 nacontrole van 18:54 UTC is geslaagd. De oude alpha28-uploader blijft een
 herstelpunt: nieuwe broncode bewijst geen reparatie van de eerdere watchdogreset.
 
+## Voorbereid voor de volgende gezamenlijke bundel
+
+B05/M2: de Profile-C-kraanadapter trekt zijn eigenaar blijvend in bij
+klokterugloop of ongeldige tijd, vóór en na serviceafhandeling. 14 nieuwe
+regressies; alle 141 gerichte tests op beide Core-versies geslaagd. Nog niet
+geïnstalleerd en geen fysieke vrijgave. De normale FW→HA-route en echte
+doelterugmelding blijven open. [Uitwerking](M2-KRAAN-KLOK-20261024.nl.md).
+
 ## 1. Wat draait er nu?
 
 | Onderdeel | Geïnstalleerd | Stand |

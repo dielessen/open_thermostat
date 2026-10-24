@@ -814,7 +814,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/v1_profile_c.py",
-          "sha256": "be897e4bbaec0bb599f809e297e6409b7b45d3edbb58bd301d3470a5b19873f4"
+          "sha256": "3313143f4e2bc1c91b4a65d24fa824f6fe3361f6fb778c4e8fb915eed85fe339"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_bench_source.py",
@@ -899,6 +899,10 @@
         {
           "path": "ha/tests_native/test_actuator_command_intake.py",
           "sha256": "36a432e31ee382c16a960a80584c36e1ab2515f2f2d15972f42f02415d9006c1"
+        },
+        {
+          "path": "ha/tests_native/test_actuator_clock_lifetime.py",
+          "sha256": "e55ada27b84b92d869cc399c8cfc0490535d9726e03961c68137bbef0013f375"
         }
       ],
       "remaining_acceptance": "Eerdere oorspronkelijke TV02-ontvangst blijkt uit geïnstalleerde stale-status; verse ontvangst, unieke native zendtransactie/causale echo, schema-eigenaarschap en fysieke werking blijven open. Begrensde ontvangstmetadata na verval voorbereid/getest; geen oude waarden of readiness vrijgegeven. Na HA37-herstart oorspronkelijke TV02-diagnose leeg met bronbindingswaarschuwing; oorzaak en diagnose-lifecycle herstellen zonder bronwissel."

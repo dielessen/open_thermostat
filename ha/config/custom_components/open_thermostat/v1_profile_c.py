@@ -212,12 +212,31 @@ class ProfileCActuator:
         # Reconstruct only after SOURCE-owner outcome review/requalification.
         # Lease renewal or another target cannot clear an uncertain dispatch.
         self._outcome_unknown = False
+        self._last_clock = None
+        self._clock_invalid = False
         self._binding = _dispatch_binding(hass, entity_id)
         # One latest result plus a lifetime high-water sequence. No Store,
         # dispatch task, retry queue or resetting an original command budget.
         self._command_sequence = 0
         self._command_key = self._command_result = None
         self._command_mode = self._legacy_mode = False
+
+    def _now(self) -> float:
+        # One admitted owner uses one monotonic clock lifetime. Clock recovery
+        # cannot restore an old command budget or undo an uncertain dispatch.
+        if self._clock_invalid:
+            raise HomeAssistantError("TRV monotonic clock invalid; source-owner requalification required")
+        now = self.hass.loop.time()
+        try:
+            valid = (type(now) in (int, float) and math.isfinite(now) and now >= 0
+                     and (self._last_clock is None or now >= self._last_clock))
+        except OverflowError:
+            valid = False
+        if not valid:
+            self._clock_invalid = True
+            raise HomeAssistantError("TRV monotonic clock invalid; source-owner requalification required")
+        self._last_clock = now
+        return now
 
     async def async_apply_command(self, command: RoomTargetCommand) -> ActuatorServiceReceipt:
         """Deduplicate an already admitted command within THIS owner only.
@@ -248,7 +267,7 @@ class ProfileCActuator:
                 raise HomeAssistantError("TRV duplicate command payload changed")
             receipt = await asyncio.shield(self._command_result)
             return replace(receipt, duplicate=True) # Historical acceptance, no IO.
-        now = self.hass.loop.time()
+        now = self._now()
         if not now < command.deadline <= now + ACTION_TIMEOUT_SECONDS:
             raise HomeAssistantError("TRV command expired or exceeds original action budget; no command sent")
         self._command_mode = True
@@ -285,10 +304,11 @@ class ProfileCActuator:
     async def _execute_target(self, celsius: float, *, deadline: float | None = None) -> tuple[float, str]:
         from .v1_model import target_centi
         target_centi(celsius)
+        now = self._now()
         self._request += 1
         request = self._request
         if deadline is None:
-            deadline = self.hass.loop.time() + ACTION_TIMEOUT_SECONDS
+            deadline = now + ACTION_TIMEOUT_SECONDS
         dispatched = False
 
         def current():
@@ -296,8 +316,16 @@ class ProfileCActuator:
                 raise HomeAssistantError("TRV previous action outcome unknown; source-owner requalification required")
             if request != self._request:
                 raise HomeAssistantError("TRV target superseded before dispatch")
-            if self.hass.loop.time() >= deadline:
+            if self._now() >= deadline:
                 raise HomeAssistantError("TRV target expired before dispatch; no command sent")
+
+        def authorize_current():
+            # Observe the clock even when an authorization observer refuses or
+            # raises. A later restored callback must not hide clock loss.
+            try:
+                return self._authorize()
+            finally:
+                self._now()
 
         try:
             # One original budget includes waiting for this serialized owner.
@@ -306,14 +334,14 @@ class ProfileCActuator:
             async with asyncio.timeout_at(deadline):
                 async with self._lock:
                     current()
-                    if not self._qualified or not self._authorize():
+                    if not self._qualified or not authorize_current():
                         raise HomeAssistantError("Profile C bench actuation is disabled")
                     if self._binding is None or _dispatch_binding(self.hass, self.entity_id) != self._binding:
                         raise HomeAssistantError("TRV native binding changed; requalification required")
                     capability = target_capability(self.hass, self.hass.states.get(self.entity_id))
                     actual = capability.target(celsius)
                     operating_mode = reported_operating_mode(self.hass, self.entity_id)
-                    if not self._authorize():
+                    if not authorize_current():
                         raise HomeAssistantError("Bench authorization expired or invalid target")
                     current_mode = reported_operating_mode(self.hass, self.entity_id)
                     if (operating_mode is None) != (current_mode is None):
@@ -337,7 +365,7 @@ class ProfileCActuator:
                     # and device metadata may change. Acceptance belongs only
                     # to the original reviewed owner, never a replacement.
                     # Losing that owner cannot undo a dispatched command.
-                    authorized = self._authorize()
+                    authorized = authorize_current()
                     if not authorized or not self._qualified:
                         raise HomeAssistantError("TRV owner lost during action")
                     if _dispatch_binding(self.hass, self.entity_id) != self._binding:
@@ -348,7 +376,7 @@ class ProfileCActuator:
                         raise HomeAssistantError("TRV operating mode changed during action")
                     if target_capability(self.hass, self.hass.states.get(self.entity_id)) != capability:
                         raise HomeAssistantError("TRV capability changed during action")
-                    if self.hass.loop.time() >= deadline:
+                    if self._now() >= deadline:
                         raise HomeAssistantError("TRV action completed after deadline")
                     # A newer queued target does not erase historical service
                     # acceptance. It still cannot confirm an echo or readiness.

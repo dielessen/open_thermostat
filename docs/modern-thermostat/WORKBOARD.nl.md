@@ -28,7 +28,7 @@ alpha28-uploader-watchdogoorzaak en herstelroute blijven onbekend.
 | Laatste livecontrole | 24 oktober 18:54 UTC: HA39 geladen en E32alpha28 bevestigd; instellingen/back-up behouden, uitgangen geblokkeerd; TV02 ongekwalificeerd/wachtend |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 248 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 249 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
 met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
@@ -66,6 +66,18 @@ historisch; de tabellen en deze volgorde bepalen nieuw werk.
 Leren/PI/PID en blijvend bewaarde, gevalideerde parameters per ruimte blijven
 verplicht voor de definitieve versie (R12); nieuwe F9/F10-stages volgen na M2.
 Een ontbrekende fysieke waarneming blokkeert onafhankelijk softwarewerk niet.
+
+### Voorbereid voor de volgende bundel — B05/M2-kraanadapter
+
+De kraanadapter bewaakt nu één monotone kloklevensduur per toegelaten eigenaar.
+Klokterugloop/ongeldige tijd trekt de adapter blijvend in, ook bij weigering of
+exception in een autorisatiecallback en na wachten of dispatch. Bij een al
+verzonden opdracht blijft de fysieke uitkomst unknown; geen automatische retry.
+14 nieuwe regressiegevallen, waarvan 13 vóór reparatie falen; alle 141 gerichte
+tests slagen op Core 2026.10.2 en 2026.10.3. Bronwerk, niet geïnstalleerd;
+HA39/E32alpha28 en fysieke blokkades blijven behouden. De normale ontvangstroute,
+causale doel-echo en fysieke kwalificatie blijven open.
+[Uitwerking en bewijs](M2-KRAAN-KLOK-20261024.nl.md).
 
 ### Pendelen — praktijkonderzoek blijft open
 

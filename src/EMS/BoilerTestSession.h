@@ -112,7 +112,10 @@ public:
         const char* reason = cause == StopCause::explicitStop ? "explicit_stop"
             : cause == StopCause::heatDeadline ? "heat_deadline"
             : cause == StopCause::operatorLeaseExpired ? "operator_lease_expired" : "proving_conditions_lost";
-        enter(Phase::stopping, reason, now);
+        // Expiry is an event at its fixed deadline, not at the later owner tick.
+        const uint64_t at = cause == StopCause::heatDeadline && heatUntil_ <= now ? heatUntil_
+            : cause == StopCause::operatorLeaseExpired && operatorUntil_ <= now ? operatorUntil_ : now;
+        enter(Phase::stopping, reason, at);
     }
 
     void step(uint64_t now, const Gates& gates, const ClassicBoilerMonitor& monitor) {
@@ -122,12 +125,27 @@ public:
             return; // no automatic recovery or new session after a fault
         }
         if (!gates.allowsZero()) { fail("transmitter_or_owner_lost"); return; }
+        // Preserve a baseline/stop timeout before lease loss can change phase
+        // and accidentally create a new proving window.
+        if ((phase_ == Phase::baseline || phase_ == Phase::stopping)
+            && now - phaseAt_ >= profile_.stopTimeoutMs) {
+            fail("reported_stop_timeout"); return;
+        }
         if (phase_ == Phase::heating && (now >= heatUntil_ || now >= operatorUntil_
             || !gates.allowsHeat() || !feedbackValid(monitor, now))) {
-            stop(now, now >= heatUntil_ ? StopCause::heatDeadline : StopCause::provingConditionsLost);
+            stop(now, now >= operatorUntil_ && (operatorUntil_ <= heatUntil_ || now < heatUntil_)
+                ? StopCause::operatorLeaseExpired
+                : now >= heatUntil_ ? StopCause::heatDeadline : StopCause::provingConditionsLost);
         } else if ((phase_ == Phase::baseline || phase_ == Phase::ready)
             && (now >= operatorUntil_ || !gates.allowsHeat() || !feedbackValid(monitor, now))) {
-            stop(now, StopCause::provingConditionsLost);
+            stop(now, now >= operatorUntil_ ? StopCause::operatorLeaseExpired : StopCause::provingConditionsLost);
+        }
+        // The fixed proving deadline wins over a late callback/report. Otherwise
+        // a stalled owner could admit heat after its baseline timeout, or mark
+        // an expired stop successful. Recovery still requires a new fault-zero.
+        if ((phase_ == Phase::baseline || phase_ == Phase::stopping)
+            && now - phaseAt_ >= profile_.stopTimeoutMs) {
+            fail("reported_stop_timeout"); return;
         }
         if ((phase_ == Phase::baseline || phase_ == Phase::stopping) && zeroSent_
             && reportedOff(monitor, now, zeroSentAt_)) {
@@ -135,8 +153,7 @@ public:
             if (phase_ == Phase::baseline) {
                 phase_ = Phase::ready; reason_ = "reported_stop_baseline_confirmed"; ++epoch_;
             } else { phase_ = Phase::completed; reason_ = "reported_stop_confirmed"; ++epoch_; }
-        } else if ((phase_ == Phase::baseline || phase_ == Phase::stopping)
-            && now - phaseAt_ >= profile_.stopTimeoutMs) fail("reported_stop_timeout");
+        }
     }
 
     Intent next(uint64_t now, const Gates& gates, const ClassicBoilerMonitor& monitor) {

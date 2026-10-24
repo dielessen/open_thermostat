@@ -305,4 +305,81 @@ TEST_F(BoilerTest, StopFeedbackMustFollowActualCompletionNotJustBegin) {
     report(112);session.step(112,gates,monitor);
     EXPECT_EQ(session.phase(),Phase::ready);
 }
+
+// A delayed owner callback must not turn an expired baseline into permission
+// to start, even when the newest telegram reports off.
+TEST_F(BoilerTest, BaselineDeadlineWinsOverFreshOffAtOrAfterDeadline) {
+    for (const uint64_t at : {3100u, 3101u, 6000u, 9000u}) {
+        BoilerTestSession candidate{11, profile};
+        report(90);
+        ASSERT_EQ(candidate.prepare(11, 1, 40, 1000, 100, gates, monitor), Reply::accepted);
+        const auto zero = candidate.next(100, gates, monitor);
+        ASSERT_TRUE(testing_detail::instantTransmission(candidate, zero, 100, true, gates, monitor));
+        report(at);
+        candidate.step(at, gates, monitor);
+        EXPECT_EQ(candidate.phase(), Phase::fault);
+        EXPECT_STREQ(candidate.reason(), "reported_stop_timeout");
+        EXPECT_FALSE(candidate.reportedStopConfirmed());
+        EXPECT_FALSE(candidate.canStart(at, gates, monitor));
+    }
+}
+
+TEST_F(BoilerTest, StopDeadlineWinsOverFreshOffButDoesNotPreventRecoveryZero) {
+    heating();
+    session.stop(200);
+    auto zero = session.next(200, gates, monitor);
+    ASSERT_TRUE(testing_detail::instantTransmission(session, zero, 200, true, gates, monitor));
+    report(3200);
+    session.step(3200, gates, monitor);
+    EXPECT_EQ(session.phase(), Phase::fault);
+    EXPECT_FALSE(session.reportedStopConfirmed());
+    zero = session.next(3200, gates, monitor);
+    ASSERT_EQ(zero.command, Command::zero);
+    ASSERT_TRUE(testing_detail::instantTransmission(session, zero, 3200, true, gates, monitor));
+    report(3201); session.step(3201, gates, monitor);
+    EXPECT_TRUE(session.reportedStopConfirmed());
+    EXPECT_EQ(session.phase(), Phase::fault);
+}
+
+TEST_F(BoilerTest, OffJustBeforeStopDeadlineStillCompletes) {
+    heating(); session.stop(200);
+    const auto zero = session.next(200, gates, monitor);
+    ASSERT_TRUE(testing_detail::instantTransmission(session, zero, 200, true, gates, monitor));
+    report(3199); session.step(3199, gates, monitor);
+    EXPECT_EQ(session.phase(), Phase::completed);
+    EXPECT_TRUE(session.reportedStopConfirmed());
+}
+
+
+TEST_F(BoilerTest, DelayedHeatDeadlineDoesNotRenewStopBudget) {
+    heating();
+    report(4102);
+    session.step(4102, gates, monitor); // heat deadline 1102 + stop budget 3000
+    EXPECT_EQ(session.phase(), Phase::fault);
+    EXPECT_STREQ(session.reason(), "reported_stop_timeout");
+    EXPECT_EQ(session.next(4102, gates, monitor).command, Command::zero);
+}
+
+TEST_F(BoilerTest, ExpiredReadyLeaseDoesNotRenewStopBudgetOnLateTick) {
+    baseline();
+    report(8100); // operator deadline 5100 + stop budget 3000
+    session.step(8100, gates, monitor);
+    EXPECT_EQ(session.phase(), Phase::fault);
+    EXPECT_EQ(session.next(8100, gates, monitor).command, Command::zero);
+}
+
+TEST_F(BoilerTest, EarlierOperatorDeadlineWinsWhenBothDeadlinesHavePassed) {
+    profile.maximumHeatMs = 10000;
+    BoilerTestSession candidate{11, profile};
+    report(90);
+    ASSERT_EQ(candidate.prepare(11, 1, 40, 10000, 100, gates, monitor), Reply::accepted);
+    auto zero = candidate.next(100, gates, monitor);
+    ASSERT_TRUE(testing_detail::instantTransmission(candidate, zero, 100, true, gates, monitor));
+    report(101); candidate.step(101, gates, monitor);
+    ASSERT_EQ(candidate.start(11, 1, 102, gates, monitor), Reply::accepted);
+    report(11000); candidate.step(11000, gates, monitor);
+    EXPECT_EQ(candidate.phase(), Phase::fault); // lease 5100 expired before heat 10102
+    EXPECT_STREQ(candidate.reason(), "reported_stop_timeout");
+}
+
 } // namespace

@@ -1083,3 +1083,25 @@ echte descriptor en native OTA-verificatie zijn de bewezen installatiegrens.
 
 Bewijs: `MONITOR-BASELINE-OWNER-REVIEW.json` en `POSTINSTALL-DISCOVERY-REVIEW.json`
 in `out/next-release-20261024/`. Lange/actieve acceptaties blijven ongewijzigd open.
+
+
+### Voorbereiding zendproef — harde deadlines bij vertraagde verwerking
+
+In de volgende gezamenlijke bètabatch is `BoilerTestSession` aangescherpt:
+
+- De vaste stopbasis-/stopdeadline wordt vóór een late uitmelding beoordeeld.
+  Een verse uitmelding op of na de deadline kan een verlopen stopbasis niet
+  alsnog startklaar maken of een verlopen stopproef als geslaagd markeren.
+- Verlopen operatorlease of warmtevraag begint de stoptijd op de oorspronkelijke
+  deadline, ook wanneer de eigenaar pas later weer draait. De vroegste van beide
+  deadlines geldt. Een al verlopen stopbasis krijgt door leaseverlies geen
+  nieuwe observatietijd.
+- Een fout blijft vergrendeld. Een nieuwe nulvraag met strikt latere ontvangst
+  kan nog gemelde stop aantonen, maar herstelt geen startbevoegdheid.
+
+Zes nieuwe regressiegevallen, inclusief exacte grens, net ervoor/erna, lange
+verwerkingspauze en twee tegelijk verlopen deadlines. Volledige native suite:
+579 tests PASS. De twee oorspronkelijke late-uitmeldinggevallen faalden vóór de
+broncorrectie. Bewijs: `out/pre-tx-preparation-20261024/`.
+Dit is nog geen nieuwe installatie of fysieke timing-/stopkwalificatie.
+B04–B14 blijven open; geïnstalleerd blijft alpha23/dev29 en TX blijft geblokkeerd.

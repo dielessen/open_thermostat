@@ -136,3 +136,11 @@ geïnstalleerd, E32 alpha29 nog niet. Alle 23 voorbereide onderdelen behouden.
 exact gecontroleerd. Hoogste prioriteit is offline onderzoek van de mislukte
 E32-upload en een onderbouwde herstelroute. Zie het actuele installatieverslag.
 Geen actieve bèta of werkende Shelly-/Xiaomi-driver claimen.
+
+## Voorbereid voor de volgende bundel
+
+Handmatige app-upload: strikte grootte en exacte ontvangen lengte, opruimen bij
+annulering/toegangsverlies, maximaal één bestand en selectie pas na het volledige
+geautoriseerde verzoek. Zestien nieuwe native tests en elf REST-grensscenario's;
+665 native tests geslaagd. Nog niet geïnstalleerd of opnieuw gepubliceerd.
+[Onderzoek en resterend herstelbewijs](OTA-UPLOAD-ONDERZOEK-20261024.nl.md).

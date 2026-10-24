@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "b86a40f2a9564b8ad98b40ac12c9d5ca9df061272aeeacc6ddc5d8dafd511c9a"
+          "sha256": "0a6555a32c3c34bbf90b74be62a112c213bbbde235e7438951adc843b2d41cc8"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
@@ -118,9 +118,21 @@
         {
           "path": "data/html/update.html",
           "sha256": "bc2a135e55375d95771f65bca2efb28f4cdc121183aef857375d91e5c28817e4"
+        },
+        {
+          "path": "src/update/ManualAppUpload.h",
+          "sha256": "47a61a6f5baf2e62acbdd737d51167c3ab1beafa41c4c1d35cf5ca203c50819e"
+        },
+        {
+          "path": "test/test_native/test_manual_app_upload.cpp",
+          "sha256": "6bf47c682978ad2735ff5e6474b27e2a318b5085d40d7abb68053d004908040e"
+        },
+        {
+          "path": "test/manual_ota/run.py",
+          "sha256": "31b934c7ef309036f6af0e05057aff08ef5cb3d74b689bdaad5ae401f168d8ad"
         }
       ],
-      "remaining_acceptance": "Alpha26 HTTPS-afwijking blijft onverklaard; geen blinde herhaling. Blijvende enkelvoudige NVS-updatediagnose en EN/NL-webpresentatie geleverd in alpha27/dev36. Echte flash-/powerloss-/herstelacceptatie en normale update op een afzonderlijk beoordeelde kandidaat blijven open."
+      "remaining_acceptance": "Alpha26 HTTPS-afwijking blijft onverklaard; geen blinde herhaling. Blijvende enkelvoudige NVS-updatediagnose en EN/NL-webpresentatie geleverd in alpha27/dev36. Echte flash-/powerloss-/herstelacceptatie en normale update op een afzonderlijk beoordeelde kandidaat blijven open. Alpha29 app-only upload mislukte met reset6; HA38/E32alpha28 blijft werkelijke basis. Strikte lengte, handle-opruiming en selectie na volledig geautoriseerd verzoek zijn bronmatig voorbereid; geen oorzaakbewijs, herstelproef of installatievrijgave. De bestaande native HTTPS-checkpointscope blijft ongewijzigd."
     },
     {
       "id": "I04",
@@ -137,7 +149,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "b86a40f2a9564b8ad98b40ac12c9d5ca9df061272aeeacc6ddc5d8dafd511c9a"
+          "sha256": "0a6555a32c3c34bbf90b74be62a112c213bbbde235e7438951adc843b2d41cc8"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -473,7 +485,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "2c19050e7443e761645f62fcc60329c6229070c1f2278f80b87cc0a6f7d59306"
+          "sha256": "a31a773b955ec3714887bbb9217fa1d47bd472d1d9159c5ebca02eaddced3f0e"
         }
       ],
       "remaining_acceptance": "Badkamer live bevestigd; geen nieuwe seriële opname van de logstilte."
@@ -547,7 +559,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "b86a40f2a9564b8ad98b40ac12c9d5ca9df061272aeeacc6ddc5d8dafd511c9a"
+          "sha256": "0a6555a32c3c34bbf90b74be62a112c213bbbde235e7438951adc843b2d41cc8"
         },
         {
           "path": "platformio.ini",
@@ -559,7 +571,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "2c19050e7443e761645f62fcc60329c6229070c1f2278f80b87cc0a6f7d59306"
+          "sha256": "a31a773b955ec3714887bbb9217fa1d47bd472d1d9159c5ebca02eaddced3f0e"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",

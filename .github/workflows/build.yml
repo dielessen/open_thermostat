@@ -126,6 +126,7 @@ jobs:
         if: matrix.environment == 'native'
         run: |
           pio test -e native --verbose
+          python test/manual_ota/run.py
           g++ -std=c++20 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Itest/onboarding/include -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/esp32_utilities/src test/onboarding/firmware.cpp .pio/libdeps/native/cJSON/cJSON.c -o /tmp/open-thermostat-onboarding-test
           /tmp/open-thermostat-onboarding-test
           g++ -std=c++17 -Wall -Wextra -Werror -Isrc -Itest/boiler_display/include test/boiler_display/firmware.cpp -o /tmp/open-thermostat-boiler-display-test

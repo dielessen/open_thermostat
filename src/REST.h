@@ -6,6 +6,7 @@
 #include "SetupNetwork.h"
 #include "control/HttpAccessPolicy.h"
 #include "control/ManagedDeviceSettings.h"
+#include "update/ManualAppUpload.h"
 #include "control/CaptivePortalPolicy.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "EmbeddedWebAssets.h"
@@ -234,7 +235,13 @@ public:
 	}
 
 	void handle() {
+		// Pinned WebServer parses the complete multipart body synchronously in
+		// one handleClient() call. Each request owns at most one app transaction.
+		appUpload_.reset(appBackend_);
+		appBackend_.error=ESP_OK;
 		server_.handleClient();
+		// Includes disconnect/parse failure and a failed final authorization.
+		appUpload_.cancel(appBackend_);
 	}
 
 private:
@@ -1419,114 +1426,52 @@ button.onclick=async()=>{if(!file.files.length){status.textContent=uiText("Selec
 
 	void handleOTAUpdate() {
 		HTTPUpload &upload = server_.upload();
-		if(upload.status==UPLOAD_FILE_START) ota_=OTAUpload{};
-		if(!authorize(false)) {ota_.success=false;ota_.error=ESP_ERR_INVALID_STATE;ota_.errorMessage="Upload not authorized or updater busy";return;}
-
-		if (upload.status == UPLOAD_FILE_START) {
-			auto size = server_.arg("size");
-			long fileSize = atol(size.c_str());
-
-			DBGLOGFD(log_, logFeature_, "handleOTA START '%s', totalSize: '%zu'\n", upload.filename.c_str(), fileSize);
-
-			ota_ = OTAUpload{};
-
-			ota_.partition = esp_ota_get_next_update_partition(NULL);
-			if (!ota_.partition) {
-				DBGLOGFD(log_, logFeature_, "OTA partition not found\n");
-				ota_.errorMessage = "OTA partition not found"sv;
-				ota_.error = -1;
-				return;
-			}
-
-			if (fileSize > 0 && fileSize > ota_.partition->size) {
-				DBGLOGFD(log_, logFeature_, "handleOTAFFSUpdate Partition size %zu smaller than binary file %zu!\n", ota_.partition->size, fileSize);
-				ota_.errorMessage = "Partition smaller than file"sv;
-				ota_.error = -1;
-				return;
-			}
-
-
-			DBGLOGFD(log_, logFeature_, "handleOTA Found partition '%s', size: %d, encrypted: %d\n", ota_.partition->label, ota_.partition->size, ota_.partition->encrypted);
-
-			DBGLOGFD(log_, logFeature_, "Beginning OTA\n");
-
-			if (esp_ota_mark_app_valid_cancel_rollback() != ESP_OK) {
-				DBGLOGFD(log_, logFeature_, "Beginning OTA: esp_ota_mark_app_valid_cancel_rollback failed\n");
-			}
-
-			ota_.error = esp_ota_begin(ota_.partition, OTA_SIZE_UNKNOWN, &ota_.handle);
-			if (ota_.error != ESP_OK) {
-				DBGLOGFD(log_, logFeature_, "Beginning OTA failed!\n");
-				return;
-			}
-			ota_.started = true;
-
-			DBGLOGFD(log_, logFeature_, "Beginning OTA handle: %d\n", ota_.handle);
-		} else if (upload.status == UPLOAD_FILE_WRITE) {
-			if (!ota_.started || ota_.error != ESP_OK) {
-				if (!ota_.writeErrorReported) {
-					DBGLOGFD(log_, logFeature_, "handleOTA writing skipped, OTA error: %d\n", ota_.error);
-					ota_.writeErrorReported = true;
-				}
-				return;
-			}
-
-			DBGLOGFD(log_, logFeature_, "handleOTA writing to OTA handle %d, size: %zu\n", ota_.handle, upload.currentSize);
-
-			ota_.error = esp_ota_write(ota_.handle, upload.buf, upload.currentSize);
-			if (ota_.error != ESP_OK) {
-				DBGLOGFD(log_, logFeature_, "handleOTA writing to OTA handle %d, size: %zu FAILED, error: %d\n", ota_.handle, upload.currentSize, ota_.error);
-				esp_ota_abort(ota_.handle);
-				return;
-			}
-		} else if (upload.status == UPLOAD_FILE_END) {
-			if (!ota_.started || ota_.error != ESP_OK) {
-				DBGLOGFD(log_, logFeature_, "handleOTA upload end, error: %d\n", ota_.error);
-				return;
-			}
-
-			DBGLOGFD(log_, logFeature_, "handleOTA ending OTA\n");
-
-			ota_.error = esp_ota_end(ota_.handle);
-			if (ota_.error != ESP_OK) {
-				DBGLOGFD(log_, logFeature_, "handleOTA finalizing OTA handle %d, FAILED, error: %d\n", ota_.handle, ota_.error);
-				return;
-			}
-
-			DBGLOGFD(log_, logFeature_, "handleOTA setting boot partition\n");
-
-			ota_.error = esp_ota_set_boot_partition(ota_.partition);
-			if (ota_.error != ESP_OK) {
-				DBGLOGFD(log_, logFeature_, "handleOTA setting boot partition FAILED, error: %d\n", ota_.error);
-				return;
-			}
-			ota_.success = true;
-
-		} else if (upload.status == UPLOAD_FILE_ABORTED) {
-			if (!ota_.started) {
-				DBGLOGFD(log_, logFeature_, "handleOTA upload aborted, OTA not started. Error: %d\n", ota_.error);
-				return;
-			}
-			DBGLOGFD(log_, logFeature_, "handleOTA ABORTED\n");
-			esp_ota_abort(ota_.handle);
+		if(!authorize(false)) {
+			appUpload_.cancel(appBackend_);
+			return;
+		}
+		bool ok=false;
+		if(upload.status==UPLOAD_FILE_START) {
+			appBackend_.partition=esp_ota_get_next_update_partition(nullptr);
+			const auto size=server_.arg("size");
+			ok=appUpload_.begin(appBackend_,std::string_view(size.c_str(),size.length()),
+				appBackend_.partition?appBackend_.partition->size:0);
+			DBGLOGFI(log_,logFeature_,"App upload begin: expected %zu, native error %d, result %s\n",
+				appUpload_.expected(),appBackend_.error,appUpload_.reason());
+		} else if(upload.status==UPLOAD_FILE_WRITE) {
+			ok=appUpload_.append(appBackend_,upload.buf,upload.currentSize);
+		} else if(upload.status==UPLOAD_FILE_END) {
+			ok=appUpload_.finish(appBackend_);
+			DBGLOGFI(log_,logFeature_,"App upload validation: received %zu/%zu, native error %d, result %s\n",
+				appUpload_.received(),appUpload_.expected(),appBackend_.error,appUpload_.reason());
+		} else if(upload.status==UPLOAD_FILE_ABORTED) {
+			appUpload_.cancel(appBackend_);
+		}
+		if(!ok && upload.status!=UPLOAD_FILE_WRITE) {
+			DBGLOGFI(log_,logFeature_,"App upload stopped: %s (native %d)\n",appUpload_.reason(),appBackend_.error);
 		}
 	}
 
 	void handleOTAResponse() {
-		auto ctype = "text/plain"sv;
-		if (ota_.success) {
-			server_.sendView(200, ctype, "success"sv);
+		const auto ctype="text/plain"sv;
+		if(server_.uri()=="/ota") {
+			// Final route authorization has already run. No image is selected
+			// until the entire request (including all multipart files) is valid.
+			if(!appUpload_.select(appBackend_)) {
+				const auto message="Failure: "s+appUpload_.reason()+" ("+std::to_string(appBackend_.error)+")";
+				server_.sendView(500,ctype,message);
+				return;
+			}
+			DBGLOGFI(log_,logFeature_,"App upload boot slot selected: %zu bytes\n",appUpload_.received());
+			server_.sendView(200,ctype,"success"sv);
 #ifdef OPENTHERMOSTAT_E32V2
-			// This response is shared with SPIFFS; only a selected app schedules
-			// automatic restart, after the HTTP response has been sent.
-			if(server_.uri()=="/ota") update::firmwareInstalled();
+			update::firmwareInstalled();
 #endif
+		} else if(ota_.success) {
+			server_.sendView(200,ctype,"success"sv);
 		} else {
-			ib::viewable_stringbuf payloadBuf;
-			std::ostream ss(&payloadBuf);
-			ss << "Failure: ";
-			ss << ota_.errorMessage << " (" << ota_.error << ')';
-			server_.sendView(500, ctype, payloadBuf.view());
+			const auto message="Failure: "s+ota_.errorMessage+" ("+std::to_string(ota_.error)+")";
+			server_.sendView(500,ctype,message);
 		}
 	}
 
@@ -1692,6 +1637,23 @@ button.onclick=async()=>{if(!file.files.length){status.textContent=uiText("Selec
 		mbedtls_sha256_free(&checksum);
 		return result == 0 && std::memcmp(actual.data(), expected.data(), actual.size()) == 0;
 	}
+
+	struct AppOtaBackend {
+		const esp_partition_t *partition=nullptr;
+		esp_ota_handle_t handle=0;
+		esp_err_t error=ESP_OK;
+		bool begin(size_t size) {
+			// Erase only the validated declared length. Never acknowledge the
+			// running app's pending boot merely because an upload was requested.
+			error=esp_ota_begin(partition,size,&handle);
+			return error==ESP_OK;
+		}
+		bool write(const void *bytes,size_t size) {error=esp_ota_write(handle,bytes,size);return error==ESP_OK;}
+		bool end() {error=esp_ota_end(handle);handle=0;return error==ESP_OK;}
+		bool select() {error=esp_ota_set_boot_partition(partition);return error==ESP_OK;}
+		void abort() {esp_ota_abort(handle);handle=0;}
+	} appBackend_;
+	update::ManualAppUpload appUpload_;
 
 	struct OTAUpload {
 		bool started = false;

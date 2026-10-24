@@ -9,17 +9,17 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
-| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.28`, één app-only upload; bron/ELF/web en stabiele boot bevestigd, instellingen behouden |
+| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.28`; latere alpha29-upload mislukt met task-watchdogreset 6; taak/oorzaak onbekend, geen retry |
 | Geïnstalleerde HA-integratie | `0.4.0.dev38`, bron d131c50, geladen op Core 2026.10.3; 83 bestanden exact, 105 registryrecords en koppelingen behouden |
-| Geleverde bron | E32 en HA `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f`, alle 83 live componentbestanden gelijk aan het HA-pakket |
+| Geleverde bron | HA `d131c503f42e6b834a0815db8384983a7fc1b46f`; E32 `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f`; 83 HA-bestanden exact |
 | Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; alpha28/dev37 bundelt alle voorbereide software, met failsafe, diagnose, bediening en Core-compatibiliteit; eerdere bron behouden |
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
-| Laatste livecontrole | 24 oktober 17:30 CEST: HA37 geladen, alpha28 stabiele boot, instellingen behouden, twee EMS-apparaten zichtbaar; TV02-ontvangstdiagnose heeft nog een bronbindingswaarschuwing |
+| Laatste livecontrole | 24 oktober 17:07 UTC: HA38 geladen en E32alpha28 bevestigd; instellingen/back-up behouden, uitgangen geblokkeerd; TV02 ongekwalificeerd/wachtend |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 245 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 248 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
 met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
@@ -31,7 +31,7 @@ Een meegeleverd model of geslaagde simulatie bewijst geen aangesloten functie,
 ketelreactie of productacceptatie. Alle oorspronkelijke fasen blijven open waar
 verplichte fysieke of langere-termijnproeven ontbreken.
 
-## Prioriteiten na de geleverde alpha28/dev37-bundel
+## Prioriteiten na HA38 en de mislukte alpha29-installatie
 
 Alle 31 eisen, 23 brononderdelen, 11 fasen, 8 werkpakketten en 14 releasepoorten
 zijn opnieuw naast de geïnstalleerde basis gelegd. B01–B03 zijn softwarematig af;
@@ -41,8 +41,9 @@ historisch; de tabellen en deze volgorde bepalen nieuw werk.
 
 | Prioriteit | Punt / koppeling | Eerstvolgende concrete uitkomst | Wat buiten software blijft |
 | --- | --- | --- | --- |
+| P0 | E32-upload / R28/I03 | Voorbereide transactiehardening bouwen en controleren; onderbouwde herstelroute voor alpha28 vaststellen | Reset6 is bekend; taak/oorzaak onbekend, geen blinde retry of native HTTPS-proef |
 | P0 vóór fysieke proef | Gemeld pendelen | Onderzoek richting warmwaterbedrijf vervolgen: gebruik/bijwarmen onderscheiden; stabiele nulmeting vastleggen | Geen bewezen oorzaak; geen zendproef bij onverklaarde instabiliteit |
-| P0 | TV02-opstartdiagnose, B05 | Opstartreparatie voorbereid: ontbrekende MQTT-metadata later toelaten voor de vooraf vastgelegde bron; volledige regressie en gezamenlijke levering afronden | Oorzaak vorige herstart niet bewezen; geen live herstel of andere pin/binding als omweg |
+| P0 | TV02-opstartdiagnose, B05 | Softwareherstel geleverd in HA38; oorspronkelijke nieuwe ontvangst en bronkwalificatie nog bewijzen | Wachtende/stale diagnose bewijst geen fysieke ontvangst, kraan-ACK of regelbevoegdheid |
 | P0 | Echte kamerbron, R03/B04/WP03 | Brongebonden acquisitie-/profielketen afmaken met echte oorspronkelijke rapporten | RTCGQ11LM device_temperature niet als kamerbron kwalificeren; geen automatische sensorwissel |
 | P0 | Kraantransactie, R05/B05/WP05 | Normale FW→HA-route met HA-ontvangergrant en bestaande adapter verbinden; native zendtransactie aan oorspronkelijke echo koppelen | Exact geïnstalleerde converterbron ontbreekt nog in bestaande toegang; geen cache/serviceacceptatie als ACK |
 | P0 | Veiligheidsproducenten, R07/R23/B06/WP06 | Afzonderlijke gedateerde limiet/DHW/water/kraan/flowfeiten en installatieprofiel aansluiten | Geen generieke flow-/pompaanname of ongekwalificeerde vrijgave |
@@ -165,6 +166,22 @@ Verse back-up en onafhankelijke nacontrole bevestigen HA38/E32alpha28. Een nieuw
 voorcontrole voorkomt deze noteversiefout vóór publicatie.
 Dit levert geen actieve bèta of Bluetooth-driver op. Bewijs:
 `out/release-source-lifecycle-20261024/` en `out/combined-dev38-alpha29-20261024/`.
+
+### Voorbereid na de release — handmatige app-upload
+
+- [x] Strikt decimale positieve bestandsgrootte, binnen de inactieve apppartitie;
+  alleen de opgegeven omvang aanbieden aan native `esp_ota_begin`.
+- [x] Afgebroken, te korte, te lange of ongeautoriseerde uploads kunnen niet selecteren;
+  native handles worden precies één keer vrijgegeven. Native `end` verbruikt de handle
+  ook bij fouten; een nieuwe upload bevestigt geen oude pending boot.
+- [x] Hoogstens één firmwarebestand per verzoek. Opstartpartitie pas kiezen in de
+  laatste geautoriseerde handler na het volledig verwerkte multipart-verzoek.
+- [x] Zestien nieuwe native foutgevallen en elf uitvoerbare REST-grensscenario's;
+  laatste native suite 665 geslaagd. REST-proef opgenomen in bestaande CI-nativegate.
+- [ ] Herstel van de watchdogfout op echte hardware bewijzen. Deze bronhardening
+  is geen oorzaakverklaring en is nog niet geïnstalleerd of als nieuwe versie gepubliceerd.
+
+Zie [offline uploadonderzoek](OTA-UPLOAD-ONDERZOEK-20261024.nl.md).
 
 ### Uitbreiding X01 — direct Bluetooth en zelfstandige E32
 

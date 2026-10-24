@@ -364,7 +364,7 @@
         },
         {
           "path": "test/ha-device-metadata-browser.cjs",
-          "sha256": "2569c9ea3c2ce7b7571b5b3f9fa49fd97980f90f5aacfdbc4e5c46330e4c2995"
+          "sha256": "901cf55d39c619a7001f945747f0bc94ba93a706323d1fc98cdc5e255fce32bd"
         }
       ],
       "remaining_acceptance": "Gemelde Z2M-/converterversies behouden en zichtbaar, ontbrekend blijft onbekend. Metadata is geen directe packagebron-/hashcontrole en kwalificeert geen fysieke sensor of kraan."
@@ -381,7 +381,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/week_planner.py",
-          "sha256": "3a4d72daff105258d22112b4a93568d1a72ac44cfa60f4c3c66b2927f1e8c494"
+          "sha256": "bb9b5cb47540f775cbd8e6409232b3ad6648296c74b96f72aea7652d378cd956"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_program_apply.py",
@@ -432,15 +432,15 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "475125ed2d0378ce2bb2bb9f9c43d62340c2792523eb56a286577f10f6d61fdc"
+          "sha256": "4c13628feb9c93da692666003318712672a3fa12117a76484c99ea1d2265a1c4"
         },
         {
           "path": "test/ha-planner-touch-browser.cjs",
-          "sha256": "66a21d3dc2c6f3e6a7305ed418356b93f7e0514475f2da90663d3166f19099e5"
+          "sha256": "bed820d196577c3033841cb8a402952f007fc06c7188a780260f2e8e09be0255"
         },
         {
           "path": "test/ha-room-program-browser.cjs",
-          "sha256": "f31f4229ccd46063f07ef7a2d7d2be49d881d18a4edf3b7a9aab00a5cf0264bd"
+          "sha256": "46f803373a3270536f6fd3028b8a32e3c5c0c3a2ce64283fd1f78c81543307e0"
         },
         {
           "path": "ha/tests_native/test_setup_failure_cleanup.py",
@@ -495,7 +495,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/v1_runtime.py",
-          "sha256": "67b17f6db202dd45f2ce5fe4cec9b940ffbd853ecfca79d35aa1c7d8306b7e64"
+          "sha256": "6d4917af75436621c019962d08b4a80d8645ab91ffbae7a5bd582992bb62e688"
         },
         {
           "path": "src/control/ControlBuildCapabilities.h",
@@ -535,7 +535,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/original_temperature.py",
-          "sha256": "8026aa0ecfcbfbe9a19c0b0244271f83f5df91bc2d8608096dd2f9ae7d918e46"
+          "sha256": "12ce29cb4637886185174a8a93cabfd956e169fe0b9cd7f129be1c038ac5d04e"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_mqtt.py",
@@ -543,7 +543,7 @@
         },
         {
           "path": "ha/tests_native/test_original_temperature.py",
-          "sha256": "41d8b117f2c9d8ec752e88bb52666e215cb4da15acb5764185799369f7d25839"
+          "sha256": "b2e36e083e4eb51cc48fb4221029d58918b9e4c610a7c93a7047aa79004b4f46"
         },
         {
           "path": ".github/workflows/build.yml",
@@ -822,7 +822,7 @@
         },
         {
           "path": "test/ha-tv02-mode-browser.cjs",
-          "sha256": "92808735bb27b3b9ead482a103435bd6faaa186a4d6a2ed8216d867176c7511c"
+          "sha256": "6a5730fe3fc061a073697c80fbbe90874a0dbe60d900809db3442abd1435a5c5"
         },
         {
           "path": "ha/tests_native/test_actuator_dispatch_binding.py",
@@ -862,7 +862,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "475125ed2d0378ce2bb2bb9f9c43d62340c2792523eb56a286577f10f6d61fdc"
+          "sha256": "4c13628feb9c93da692666003318712672a3fa12117a76484c99ea1d2265a1c4"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/__init__.py",

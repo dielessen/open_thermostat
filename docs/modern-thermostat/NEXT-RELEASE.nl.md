@@ -130,3 +130,12 @@ voor dezelfde vooraf vastgelegde bron, met begrensde subscripties en veilige
 redencodes. 137 gerichte tests slagen; volledige definitieve regressie: 2183 gevallen op
 elk van beide ondersteunde Core-versies, zonder fout/error/skip.
 De oude opstartoorzaak is niet bewezen en de huidige installatie is ongewijzigd.
+
+## Gezamenlijke onderhoudskandidaat dev38 / alpha29
+
+In voorbereiding, nog niet geïnstalleerd. Bundelt TV02-opstartherstel, directe
+intrekking van oorspronkelijke sensordiagnose bij native identiteitswijzigingen
+en EN/NL-ontvangstmeldingen met een nieuwe frontendversie. Alle 23 onderdelen
+blijven behouden. Geen actieve bèta of al werkende Shelly-/Xiaomi-driver claimen.
+Volledige regressie, onafhankelijke review en exacte pakketcontrole blijven
+voorwaarden voor publicatie/installatie; zie het actuele werkbord.

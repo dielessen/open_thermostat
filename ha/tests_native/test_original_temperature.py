@@ -377,3 +377,69 @@ async def test_invalid_initial_temperature_clock_cannot_be_repaired_by_later_tim
     finally:
         now[0] = 101
         await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('change', ['model', 'entity_disabled', 'device_disabled', 'replacement'])
+async def test_native_events_retire_temperature_source_before_registry_is_restored(hass, devices, change):
+    runtime, binding, reports, now = await system(hass, devices)
+    registry = er.async_get(hass)
+    entity = registry.async_get(binding.temperature.entity_id)
+    device_registry = dr.async_get(hass)
+    try:
+        assert receive(reports)
+        if change == 'model': device_registry.async_update_device(entity.device_id, model_id='RTCGQ11LM')
+        elif change == 'entity_disabled': registry.async_update_entity(entity.entity_id, disabled_by=er.RegistryEntryDisabler.USER)
+        elif change == 'device_disabled': device_registry.async_update_device(entity.device_id, disabled_by=dr.DeviceEntryDisabler.USER)
+        else:
+            registry.async_remove(entity.entity_id)
+            registry.async_get_or_create('sensor', 'mqtt', entity.unique_id, device_id=entity.device_id)
+        await hass.async_block_till_done()
+        if change == 'model': device_registry.async_update_device(entity.device_id, model_id='WSDCGQ11LM')
+        elif change == 'entity_disabled': registry.async_update_entity(entity.entity_id, disabled_by=None)
+        elif change == 'device_disabled': device_registry.async_update_device(entity.device_id, disabled_by=None)
+        await hass.async_block_till_done()
+        status = reports.status(binding.room_id)
+        assert status['status'] == 'binding_changed' and status['value_centi_c'] is None
+        assert not receive(reports, packet(2))
+        assert not reports.records
+        assert not status['control_qualified'] and not status['acquisition_age_verified']
+        assert runtime.measurement_status(binding.room_id)['status'] == 'profile_missing'
+    finally:
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_room_display_name_update_keeps_original_temperature_evidence(hass, devices):
+    runtime, binding, reports, now = await system(hass, devices)
+    entity = er.async_get(hass).async_get(binding.temperature.entity_id)
+    try:
+        assert receive(reports)
+        er.async_get(hass).async_update_entity(entity.entity_id, name='New display name')
+        dr.async_get(hass).async_update_device(entity.device_id, name_by_user='New device label')
+        await hass.async_block_till_done()
+        assert reports.status(binding.room_id)['status'] == 'received_unqualified'
+        assert receive(reports, packet(2))
+    finally:
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_optional_observer_error_does_not_skip_other_registry_guard(hass, devices, monkeypatch):
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+    runtime, binding, reports, now = await system(hass, devices)
+    second = SimpleNamespace(recheck=Mock(return_value=True), invalidate=Mock())
+    runtime.original_tv02_reports = second
+    try:
+        monkeypatch.setattr(reports, 'recheck', Mock(side_effect=RuntimeError('private observer error')))
+        entity = er.async_get(hass).async_get(binding.temperature.entity_id)
+        dr.async_get(hass).async_update_device(entity.device_id, name_by_user='Harmless label')
+        await hass.async_block_till_done()
+        second.recheck.assert_called()
+        assert reports.status(binding.room_id)['status'] == 'unavailable'
+        assert runtime.measurement_status(binding.room_id)['status'] == 'profile_missing'
+        assert not runtime._profiles and not runtime._pending
+    finally:
+        runtime.original_tv02_reports = None
+        await runtime.async_stop()

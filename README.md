@@ -13,6 +13,8 @@ en welke nog op de roadmap staan.
 [Mogelijkheden](#alle-mogelijkheden) · [Roadmap](#wat-we-nog-gaan-bouwen) ·
 [Screenshots](#screenshots) · [Documentatie](#documentatie)
 
+**Volgende onderhoudskandidaat in voorbereiding:** HA dev38 / E32 alpha29, met herstel van de oorspronkelijke-rapportdiagnose en duidelijke EN/NL-ontvangstmeldingen. Nog niet geïnstalleerd; Bluetooth-ondersteuning blijft gepland.
+
 **Gepubliceerd, geïnstalleerd en gecontroleerd:** [E32 alpha28](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.28) + [Home Assistant dev37](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev37).
 Kamerinrichting, weekprogramma's, webinterfaces en passief uitlezen zijn beschikbaar.
 De huidige native inrichting ondersteunt **1–2 kamers, één radiatorknop per kamer**;

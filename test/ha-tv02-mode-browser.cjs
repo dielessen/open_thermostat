@@ -24,14 +24,14 @@ const output=path.resolve(process.env.OPENTHERMOSTAT_TV02_EVIDENCE||path.join(__
        issues:issue?[issue]:[],authorizes_actuation:false}}]};
    };
    setMode('local_schedule_active','auto');
-   window.card=document.createElement('openthermostat-room-editor-v35');document.querySelector('main').append(card);
+   window.card=document.createElement('openthermostat-room-editor-v38');document.querySelector('main').append(card);
    card.setConfig({entry_id:model.entry_id,room_id:model.room_id});
    card.hass={language,user:{is_admin:true},callWS:async request=>{
     calls.push(request.type);if(request.type!=='open_thermostat/room/get')throw Error('Unexpected write');
     return structuredClone(model);
    }};
   },{initial,language});
-  const card=page.locator('openthermostat-room-editor-v35'),review=card.locator('.target-review[aria-label]');
+  const card=page.locator('openthermostat-room-editor-v38'),review=card.locator('.target-review[aria-label]');
   await review.waitFor();
   assert((await review.textContent()).includes(language==='nl'?'eigen weekprogramma':'automatic scheduling'));
   await review.screenshot({path:path.join(output,`AUTO-${width}-${language}.png`)});
@@ -60,10 +60,12 @@ const output=path.resolve(process.env.OPENTHERMOSTAT_TV02_EVIDENCE||path.join(__
   assert(originalText.includes(language==='nl'?'Verwarmingsstop: Uit':'Heating stop: Off'));
   assert(originalText.includes(language==='nl'?'Vorstbeveiliging: Aan':'Frost protection: On'));
   await original.screenshot({path:path.join(output,`ORIGINAL-${width}-${language}.png`)});
-  for(const state of ['waiting','stale','disconnected','binding_changed','clock_invalid','run_limit','closed','unavailable']){
+  for(const state of ['metadata_unavailable','waiting','stale','disconnected','binding_changed','clock_invalid','run_limit','closed','unavailable']){
    await page.evaluate(async state=>{model.actuator_target_review.actuators[0].original_report.status=state;await card.load();},state);
    assert(!(await original.textContent()).includes(language==='nl'?'21,5':'21.5'));
    assert.equal(await original.locator('dl').count(),0);
+   if(state==='metadata_unavailable')assert((await original.innerText()).includes(language==='nl'?'Wachten op apparaatmetadata':'Waiting for device metadata'));
+   if(state==='unavailable')assert((await original.innerText()).includes(language==='nl'?'De ontvangst van kraanberichten is niet beschikbaar.':'Original valve report reception is unavailable.'));
   }
   // Expired values stay hidden while the bounded reception summary is useful.
   await page.evaluate(async()=>{

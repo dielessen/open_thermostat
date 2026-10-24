@@ -133,6 +133,34 @@ privacygevallen. Volledige controle van exact dezelfde definitieve bron op HA Co
 werkelijke ontvangst, causale kraantransactie en fysieke proef. Bewijs:
 `out/release-tv02-startup-20261024/`.
 
+### Gezamenlijke onderhoudskandidaat — HA dev38 / E32 alpha29
+
+In voorbereiding; de geïnstalleerde basis blijft dev37/alpha28. De volgende
+bundel behoudt alle 23 voorbereide onderdelen en voegt aan de TV02-opstartreparatie
+het volgende toe:
+
+- Oorspronkelijke temperatuurrapporten verliezen hun diagnosegeldigheid direct
+  bij native model-/identiteitswijziging of uitschakeling. Terugzetten van de
+  registry herstelt de oude ontvangst niet; alleen een nieuw beoordeelde eigenaar
+  kan opnieuw beginnen. Gewone gebruikersnamen blijven behouden.
+- Beide oorspronkelijke-rapportwaarnemers worden vanuit de bestaande native
+  registrygebeurtenissen gecontroleerd. Een fout in één waarnemer verhindert de
+  controle van de andere niet. Geen nieuwe listeners, taken of fysieke opdrachten.
+- Metadata-wachten en niet-beschikbare kraanontvangst krijgen duidelijke EN/NL-
+  meldingen. Frontendmodule en kaartidentiteit gaan naar dev38/v38 zodat de
+  aangepaste pagina bij een update geladen wordt; oude waarden blijven verborgen.
+
+Zes nieuwe native regressiegevallen; vóór reparatie faalden de drie tijdelijke
+model-/uitschakelgevallen. 142 gerichte tests en vier browserregressies slagen.
+Volledige controle: 2189 gevallen op elk van Core 2026.10.2 en 2026.10.3
+geslaagd, zonder fouten/errors/skips.
+Onafhankelijke live voorcontrole geslaagd; bronreview vond één v35-compatibiliteitsprobleem,
+hersteld met alias en expliciete koude upgradeproef. Vier browserregressies
+opnieuw geslaagd; laatste review en exacte release-CI volgen.
+Publicatie en installatie pas na exacte release-CI/pakketcontrole en verse back-up.
+Dit levert geen actieve bèta of Bluetooth-driver op. Bewijs:
+`out/release-source-lifecycle-20261024/` en `out/combined-dev38-alpha29-20261024/`.
+
 ### Uitbreiding X01 — direct Bluetooth en zelfstandige E32
 
 Nieuwe gebruikersopdracht: Shelly BLU TRV rechtstreeks koppelen en een lokale

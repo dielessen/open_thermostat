@@ -19,10 +19,28 @@ const initial={measurement:{status:'profile_missing',report_profile_configured:f
  await boot.setContent('<home-assistant></home-assistant>');
  await boot.evaluate(text=>{window.editorImport=import('data:text/javascript;base64,'+text);},source.toString('base64'));
  await boot.waitForTimeout(100);
- assert.equal(await boot.evaluate(()=>!!customElements.get('openthermostat-room-editor-v35')),false);
+ assert.equal(await boot.evaluate(()=>!!customElements.get('openthermostat-room-editor-v38')),false);
  await boot.evaluate(async()=>{customElements.define('home-assistant',class extends HTMLElement{});await editorImport;});
- assert.equal(await boot.evaluate(()=>!!customElements.get('openthermostat-room-editor-v35')),true);
+ assert.equal(await boot.evaluate(()=>!!customElements.get('openthermostat-room-editor-v38')),true);
  assert.equal(await boot.evaluate(()=>!!customElements.get('ha-card')),false);
+ // Existing saved v35 cards must render with ONLY the new module loaded.
+ await boot.evaluate(initial=>{
+  window.upgradeCalls=[];
+  for(const tag of ['openthermostat-room-editor-v35','openthermostat-room-editor-v38']){
+   const card=document.createElement(tag);document.body.append(card);
+   card.setConfig({entry_id:initial.entry_id,room_id:initial.room_id});
+   card.hass={language:'en',user:{is_admin:true},callWS:async request=>{
+    upgradeCalls.push(request.type);
+    if(request.type!=='open_thermostat/room/get')throw Error('Upgrade probe must not write');
+    return structuredClone(initial);
+   }};
+  }
+ },initial);
+ for(const tag of ['openthermostat-room-editor-v35','openthermostat-room-editor-v38']){
+  await boot.locator(tag+' #name').waitFor();
+  assert.equal(await boot.locator(tag+' #name').inputValue(),initial.settings.name);
+ }
+ assert.deepEqual(await boot.evaluate(()=>upgradeCalls),['open_thermostat/room/get','open_thermostat/room/get']);
  await boot.close();
  for(const [size,viewport]of [['desktop',{width:1440,height:1100}],['mobile',{width:390,height:844}]])for(const language of ['nl','en'])for(const shell of ['cold','preloaded']){
   const page=await browser.newPage({viewport});const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -32,7 +50,7 @@ const initial={measurement:{status:'profile_missing',report_profile_configured:f
   await page.evaluate(async text=>{await Promise.race([import('data:text/javascript;base64,'+text),new Promise((_,reject)=>setTimeout(()=>reject(Error('Room editor registration blocked waiting for ha-card')),5000))])},source.toString('base64'));
   await page.evaluate(({initial,language})=>{
    window.model=structuredClone(initial);window.calls=[];window.saveMode='hold';
-   const card=window.card=document.createElement('openthermostat-room-editor-v35');document.querySelector('main').append(card);
+   const card=window.card=document.createElement('openthermostat-room-editor-v38');document.querySelector('main').append(card);
    card.setConfig({entry_id:model.entry_id,room_id:model.room_id});
    card.hass={language,user:{is_admin:true},callWS:async request=>{
     calls.push(structuredClone(request));
@@ -47,7 +65,7 @@ const initial={measurement:{status:'profile_missing',report_profile_configured:f
     throw Error('Unexpected command');
    }};
   },{initial,language});
-  const nl=language==='nl',card=page.locator('openthermostat-room-editor-v35');await card.locator('#name').waitFor();
+  const nl=language==='nl',card=page.locator('openthermostat-room-editor-v38');await card.locator('#name').waitFor();
   assert.match(await card.locator('.measurement-state').innerText(),nl?/getoetst meetprofiel ontbreekt/:/reviewed measurement profile is still missing/);
   for(const status of ['qualified','stale','unverified','inactive']){
    await page.evaluate(status=>{card._model.measurement.status=status;card.refreshStatus();},status);

@@ -315,8 +315,7 @@ class ShadowRuntime:
         def registry_changed(event):
             if not self._active or self._generation != generation:
                 return
-            if self.original_tv02_reports is not None and self.original_tv02_reports.recheck():
-                self._notify()
+            self._recheck_original_reports()
             if self._bench_fault:
                 self._bench_fault("binding_changed")
             self.invalidate_context_sources()
@@ -331,8 +330,7 @@ class ShadowRuntime:
         def device_changed(event):
             if not self._active or self._generation != generation:
                 return
-            if self.original_tv02_reports is not None and self.original_tv02_reports.recheck():
-                self._notify()
+            self._recheck_original_reports()
             for room_id, room in self.rooms.items():
                 if room_id in self._profiles and not self._report_binding_matches(room):
                     self._drop_report_binding(room_id)
@@ -473,6 +471,20 @@ class ShadowRuntime:
             raise
         except Exception:
             self.diagnostics["transport"] = "observation_failed"
+            self._notify()
+
+    def _recheck_original_reports(self) -> None:
+        """Registry changes fence both optional observers, never the controller."""
+        changed = False
+        for owner in (self.original_temperature_reports, self.original_tv02_reports):
+            if owner is None:
+                continue
+            try:
+                changed = owner.recheck() or changed
+            except Exception:
+                owner.invalidate("unavailable")
+                changed = True
+        if changed:
             self._notify()
 
     def _notify(self) -> None:

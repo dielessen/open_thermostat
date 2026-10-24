@@ -137,6 +137,19 @@ class OriginalTemperatureReports:
             self.retired.add(room_id)
         return current
 
+    def recheck(self):
+        """Retire changed native identities on existing registry events.
+
+        Restoring registry fields must not revive earlier reception evidence.
+        No new owner, discovery fallback or source qualification is created.
+        """
+        before = len(self.retired)
+        for room_id in self.bindings:
+            if not self._current(room_id):
+                self.records.pop(room_id, None)
+                self.reasons[room_id] = "binding_changed"
+        return len(self.retired) != before
+
     def invalidate(self, reason="disconnected"):
         self.epoch += 1
         self.records.clear()

@@ -13,33 +13,27 @@ en welke nog op de roadmap staan.
 [Mogelijkheden](#alle-mogelijkheden) · [Roadmap](#wat-we-nog-gaan-bouwen) ·
 [Screenshots](#screenshots) · [Documentatie](#documentatie)
 
-**Volgende onderhoudskandidaat in voorbereiding:** HA dev38 / E32 alpha29, met herstel van de oorspronkelijke-rapportdiagnose en duidelijke EN/NL-ontvangstmeldingen. Nog niet geïnstalleerd; Bluetooth-ondersteuning blijft gepland.
+**Gepubliceerd:** [HA dev38](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev38) en [E32 alpha29](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.29).
+**Werkelijk geïnstalleerd:** HA dev38 en E32 alpha28. De alpha29-upload mislukte;
+de module herstartte met een task-watchdogreset (code 6). De betrokken taak en
+oorzaak zijn nog onbekend. Er volgt geen blinde uploadherhaling.
 
-**Gepubliceerd, geïnstalleerd en gecontroleerd:** [E32 alpha28](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.28) + [Home Assistant dev37](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev37).
-Kamerinrichting, weekprogramma's, webinterfaces en passief uitlezen zijn beschikbaar.
-De huidige native inrichting ondersteunt **1–2 kamers, één radiatorknop per kamer**;
-acht zones blijft het uitbreidingsdoel. Tado blijft de actieve regelaar.
+Kamerinrichting, weekprogramma's, webinterfaces, passief EMS uitlezen en
+Settings → EMS-apparaten zijn beschikbaar. De huidige native inrichting ondersteunt
+**1–2 kamers, één radiatorknop per kamer**; acht zones blijft het uitbreidingsdoel.
+Tado blijft de actieve regelaar; fysieke uitgangen blijven geblokkeerd.
 
-**Nieuw:** Settings → EMS-apparaten met ontvangen afzenders en entiteiten,
-kwaliteit/ouderdom en stabiele EN/NL-weergave. Sessies en opdrachten behouden hun
-oorspronkelijke geldigheid; vertraagde verzending of navigatie herstelt geen oude
-opdracht/pagina. HA-opstart/cleanup en kraanmetadata zijn robuuster afgehandeld.
+HA dev38 herstelt oorspronkelijke-rapportdiagnose bij vertraagde metadata en
+registrywijzigingen, met duidelijke EN/NL-meldingen en frontend v38/v35-compatibiliteit.
+Vrij geheugen, CPU-temperatuur en uptime zijn gecontroleerd. Instellingen,
+programma's, SOURCE en koppelingen zijn behouden met back-up en onafhankelijke
+nacontrole. Nieuwe TV02-ontvangst en fysieke regelkwalificatie blijven open.
+[Installatie-uitkomst en vervolg](docs/modern-thermostat/INSTALLATIE-HA38-ALPHA29-20261024.nl.md).
 
-Vrij geheugen, CPU-temperatuur en uptime blijven beschikbaar. Instellingen,
-programma's, SOURCE, koppelingen en identiteiten zijn met back-up/nacontrole behouden.
-De E32 is via één bestaande app-only webupload bijgewerkt; de eerdere native
-HTTPS-updaterafwijking is nog onverklaard.
-
-**Nog open:** de oorspronkelijke TV02-ontvangstdiagnose geeft na deze HA-herstart
-een bronbindingswaarschuwing; pins en producent zijn behouden. De geschikte
-kamerbron, causale kraanbevestiging en fysieke ketel-/stopproeven blijven open.
-Actieve kamer-/ketelsturing is nog niet vrijgegeven. [Installatie en grenzen](docs/modern-thermostat/INSTALLATIE-HA37-ALPHA28-20261024.nl.md).
-
-**English:** E32 alpha28 and HA dev37 are installed and verified with preserved
-configuration. New passive EMS device inventory, session/deadline fences and
-reliable setup/navigation are included. Boiler/valve outputs stay disabled.
-Original-TV02 startup diagnostics remain an explicit open issue; active heating
-is not yet qualified.
+**English:** HA dev38 is installed and verified; E32 remains on alpha28 after the
+alpha29 upload failed with a task-watchdog reset. The responsible task and cause
+are unknown. Configuration is preserved; boiler/valve outputs remain disabled.
+Shelly/Xiaomi Bluetooth support remains planned.
 
 ## Alle mogelijkheden
 

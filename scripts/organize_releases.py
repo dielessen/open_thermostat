@@ -74,6 +74,21 @@ def publication_notes(notes, repository, tag):
     return result
 
 
+
+def verify_publication_notes(root, repository="dielessen/open_thermostat"):
+    """Fail release preparation before builds/tags when current notes are stale."""
+    root = Path(root)
+    firmware = json.loads((root / "release.json").read_text())["version"]
+    ha_version = json.loads((root / "ha/config/custom_components/open_thermostat/manifest.json").read_text())["version"]
+    tags = {"firmware": firmware, "ha": "ha-v" + ha_version}
+    for channel, filename in (("firmware", "RELEASE-NOTES.md"), ("ha", "HA-RELEASE-NOTES.md")):
+        if classify(tags[channel])[0] != channel:
+            raise ValueError("invalid_publication_tag")
+        publication_notes((root / "docs/modern-thermostat" / filename).read_text(),
+                          repository, tags[channel])
+    return tags
+
+
 def label(channel, version):
     if channel == 'firmware':
         return 'E32-firmware', f'alpha.{version[3]}'

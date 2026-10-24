@@ -17,6 +17,8 @@ def require(condition, message):
 
 def verify(root, inventory):
     root = Path(root).resolve()
+    from organize_releases import verify_publication_notes
+    verify_publication_notes(root)
     require(inventory.get("schema") == 1, "Unknown inventory schema")
     items = inventory["items"]
     ids = [item["id"] for item in items]
@@ -53,7 +55,8 @@ def verify(root, inventory):
             "Release checklist must cover B01–B14 exactly once")
     return {"result": "PASS", "prepared_items": len(items), "source_references": files,
             "requirements": 31, "phases": 11, "work_packages": 8, "release_checks": 14,
-            "release_state": inventory["release_state"], "physical_qualification_checked": False}
+            "release_state": inventory["release_state"], "physical_qualification_checked": False,
+            "publication_notes_checked": True}
 
 
 if __name__ == "__main__":

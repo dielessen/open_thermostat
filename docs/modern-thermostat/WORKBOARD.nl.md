@@ -10,7 +10,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
 | Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.28`, één app-only upload; bron/ELF/web en stabiele boot bevestigd, instellingen behouden |
-| Geïnstalleerde HA-integratie | `0.4.0.dev37`, geladen op Core 2026.10.3; room/get hersteld, 105 registryrecords en koppelingen behouden |
+| Geïnstalleerde HA-integratie | `0.4.0.dev38`, bron d131c50, geladen op Core 2026.10.3; 83 bestanden exact, 105 registryrecords en koppelingen behouden |
 | Geleverde bron | E32 en HA `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f`, alle 83 live componentbestanden gelijk aan het HA-pakket |
 | Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; alpha28/dev37 bundelt alle voorbereide software, met failsafe, diagnose, bediening en Core-compatibiliteit; eerdere bron behouden |
 | Doel volgende release | Eerste samenhangende bèta: aansluiten, ketelgegevens zien en begrensde start/stop kunnen beproeven |
@@ -133,11 +133,13 @@ privacygevallen. Volledige controle van exact dezelfde definitieve bron op HA Co
 werkelijke ontvangst, causale kraantransactie en fysieke proef. Bewijs:
 `out/release-tv02-startup-20261024/`.
 
-### Gezamenlijke onderhoudskandidaat — HA dev38 / E32 alpha29
+### Gepubliceerde onderhoudsrelease — HA dev38 / E32 alpha29
 
-In voorbereiding; de geïnstalleerde basis blijft dev37/alpha28. De volgende
-bundel behoudt alle 23 voorbereide onderdelen en voegt aan de TV02-opstartreparatie
-het volgende toe:
+HA dev38 is geïnstalleerd; E32 blijft alpha28 na één mislukte upload en
+task-watchdogreset (code 6; taak/oorzaak onbekend). Hoogste prioriteit: offline
+uploadonderzoek en onderbouwde herstelroute, zonder blinde retry.
+[Actuele installatie-uitkomst](INSTALLATIE-HA38-ALPHA29-20261024.nl.md).
+De bundel behoudt alle 23 voorbereide onderdelen en voegt het volgende toe:
 
 - Oorspronkelijke temperatuurrapporten verliezen hun diagnosegeldigheid direct
   bij native model-/identiteitswijziging of uitschakeling. Terugzetten van de
@@ -156,8 +158,11 @@ Volledige controle: 2189 gevallen op elk van Core 2026.10.2 en 2026.10.3
 geslaagd, zonder fouten/errors/skips.
 Onafhankelijke live voorcontrole geslaagd; bronreview vond één v35-compatibiliteitsprobleem,
 hersteld met alias en expliciete koude upgradeproef. Vier browserregressies
-opnieuw geslaagd; laatste review en exacte release-CI volgen.
-Publicatie en installatie pas na exacte release-CI/pakketcontrole en verse back-up.
+opnieuw geslaagd; onafhankelijke bron/pakketreview en software-CI geslaagd.
+Publicatiejobs faalden op oude noteheaders; eerste publicatie is met gecorrigeerde
+tekst en ongewijzigde CI-pakketten hersteld. Publieke downloads exact gecontroleerd.
+Verse back-up en onafhankelijke nacontrole bevestigen HA38/E32alpha28. Een nieuwe
+voorcontrole voorkomt deze noteversiefout vóór publicatie.
 Dit levert geen actieve bèta of Bluetooth-driver op. Bewijs:
 `out/release-source-lifecycle-20261024/` en `out/combined-dev38-alpha29-20261024/`.
 

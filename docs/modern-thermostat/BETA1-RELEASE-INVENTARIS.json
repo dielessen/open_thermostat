@@ -43,11 +43,11 @@
         },
         {
           "path": "scripts/organize_releases.py",
-          "sha256": "74500e9912b61d88285148a68b74ac190ec3cf9e73825075b7fccacdfd3aa73c"
+          "sha256": "8f753c1878f798ddf3ed9d6fee2b1ad3e021ec7643ac0884fb021a0fe71437b2"
         },
         {
           "path": "scripts/test_organize_releases.py",
-          "sha256": "104634340db21a1d1e105b3bbd5faa4ea750531117635f9d467ebfef65e28bcd"
+          "sha256": "61c1be2d94da9e1828813ef3726aefb8aa87d5d1bdac327b938f2fe8768ff191"
         },
         {
           "path": ".github/workflows/build.yml",
@@ -133,7 +133,7 @@
       "files": [
         {
           "path": "scripts/organize_releases.py",
-          "sha256": "74500e9912b61d88285148a68b74ac190ec3cf9e73825075b7fccacdfd3aa73c"
+          "sha256": "8f753c1878f798ddf3ed9d6fee2b1ad3e021ec7643ac0884fb021a0fe71437b2"
         },
         {
           "path": ".github/workflows/build.yml",

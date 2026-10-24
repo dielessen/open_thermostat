@@ -1,4 +1,4 @@
-# Gezamenlijke release alpha28 / HA dev37 — geïnstalleerd en resterend werk
+# Onderhoudsrelease HA dev38 / E32 alpha29 — gedeeltelijk geïnstalleerd
 
 Bijgewerkt: 24 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
@@ -9,24 +9,21 @@ het [masterplan](PLAN.nl.md) bewaart alle 31 producteisen en acceptatievoorwaard
 | Onderdeel | Geïnstalleerd | Stand |
 | --- | --- | --- |
 | E32 | `v0.1.0-e32v2-alpha.28`, bron `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f` | Passief EMS uitlezen; TX, forwarding en fysieke uitvoer geblokkeerd |
-| Home Assistant | `0.4.0.dev37`, bron `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f` | Geladen op Core 2026.10.3; frontend dev35/v35 |
+| Home Assistant | `0.4.0.dev38`, bron `d131c503f42e6b834a0815db8384983a7fc1b46f` | Geladen op Core 2026.10.3; frontend dev38/v38 met v35-alias |
 | Actieve regelaar | Tado | Geen automatische ketel- of kraansturing door OpenThermostat |
 
 Bron/pakket/ELF/web, alle 83 HA-bestanden en behoud van instellingen, programma's
 en identiteiten zijn gecontroleerd. Zie [installatieverslag](INSTALLATIE-HA37-ALPHA28-20261024.nl.md).
 De uitgebreide geleverde bundel staat in de [werkbordhistorie](WORKBOARD-HISTORIE-20261024.nl.md).
 
-### Laatste installatiecontrole — 24 oktober 17:30 CEST
+### Laatste installatiecontrole — 24 oktober, na 17:07 UTC
 
-HA37 geladen en alpha28 daadwerkelijk gestart met exacte bron/ELF/web, boot bevestigd.
-Verse 93-bestandenback-up; instellingen, 105 registryrecords, programma's, SOURCE en
-pins/producer behouden. Eén HA-herstart en één app-only E32-upload; de oorspronkelijke
-HTTP 200/bootbewijzen bevestigen succes ondanks de proxytime-out. EMS-apparatenpagina
-werkt en toont twee afzenders. Alle uitgangen blijven geblokkeerd.
-
-Nog open: oorspronkelijke TV02-ontvangstdiagnose is na opstart leeg met een
-bronbindingswaarschuwing; de gekozen kamerbron mist kwalificatie. Dit is geen
-actieve regelacceptatie. Details en veilig bewijs staan in het installatieverslag.
+HA dev38 exact geladen; E32 blijft alpha28 na één mislukte alpha29-upload.
+Resetcode 6 bevestigt een task-watchdogreset, maar taak en oorzaak zijn onbekend.
+Geen herhaling uitgevoerd. Instellingen en verse 93-bestandenback-up zijn
+onafhankelijk gecontroleerd; alle uitgangen blijven geblokkeerd.
+[Actuele installatie-uitkomst](INSTALLATIE-HA38-ALPHA29-20261024.nl.md).
+Eerdere alpha28/dev37-installatie hieronder blijft historische basis.
 
 ## 2. Geleverde inhoud van alpha28 / HA dev37
 
@@ -131,11 +128,11 @@ redencodes. 137 gerichte tests slagen; volledige definitieve regressie: 2183 gev
 elk van beide ondersteunde Core-versies, zonder fout/error/skip.
 De oude opstartoorzaak is niet bewezen en de huidige installatie is ongewijzigd.
 
-## Gezamenlijke onderhoudskandidaat dev38 / alpha29
+## Onderhoudsrelease dev38 / alpha29
 
-In voorbereiding, nog niet geïnstalleerd. Bundelt TV02-opstartherstel, directe
-intrekking van oorspronkelijke sensordiagnose bij native identiteitswijzigingen
-en EN/NL-ontvangstmeldingen met een nieuwe frontendversie. Alle 23 onderdelen
-blijven behouden. Geen actieve bèta of al werkende Shelly-/Xiaomi-driver claimen.
-Volledige regressie, onafhankelijke review en exacte pakketcontrole blijven
-voorwaarden voor publicatie/installatie; zie het actuele werkbord.
+Gepubliceerd uit `d131c503f42e6b834a0815db8384983a7fc1b46f`; HA dev38
+geïnstalleerd, E32 alpha29 nog niet. Alle 23 voorbereide onderdelen behouden.
+2189 tests per Core-versie en vier browserregressies geslaagd; publieke pakketten
+exact gecontroleerd. Hoogste prioriteit is offline onderzoek van de mislukte
+E32-upload en een onderbouwde herstelroute. Zie het actuele installatieverslag.
+Geen actieve bèta of werkende Shelly-/Xiaomi-driver claimen.

@@ -1,3 +1,21 @@
+# E32 V2 alpha29 — gezamenlijke diagnose- en onderhoudsbundel
+
+Bundelt alle voorbereide software met Home Assistant dev38 op bron
+`d131c503f42e6b834a0815db8384983a7fc1b46f`.
+
+- Herstel van TV02-ontvangstdiagnose bij laat beschikbare MQTT-metadata.
+- Oorspronkelijke sensordiagnose wordt ingetrokken bij gewijzigde/uitgeschakelde native apparaatidentiteit; oude informatie herleeft niet.
+- Duidelijke EN/NL-ontvangstmeldingen; frontend v38 behoudt bestaande v35-kaarten.
+- Alle 23 voorbereide onderdelen blijven behouden. Geen wijzigingen aan instellingen of opslaglayout.
+
+Passieve onderhoudsrelease: EMS-TX, forwarding en fysieke ketel-/kraanuitvoer blijven geblokkeerd. Actieve bèta, Shelly-/Xiaomi-Bluetoothdrivers en fysieke stop-/uitvalproeven zijn nog niet gereed. Het eerdere pendelen en de native HTTPS-updaterafwijking zijn niet als opgelost aangemerkt.
+
+Alle zeven softwarepoorten zijn geslaagd; 2189 HA-testgevallen per ondersteunde Core-versie, zonder fouten/skips. Installeer alleen het passende app-only firmwarebestand via de bestaande herstelbare route; behoud instellingen en controleer de echte bootidentiteit.
+
+English: combined passive maintenance bundle with HA dev38. Fixes diagnostic source lifetime/startup and preserves older room cards. No active heating or Bluetooth device support is enabled.
+
+[Wijzigingen en resterende voorwaarden in de bron](https://github.com/dielessen/open_thermostat/blob/v0.1.0-e32v2-alpha.29/docs/modern-thermostat/WORKBOARD.nl.md). Het aparte historiebestand in deze bron bevat de eerdere releasegeschiedenis.
+
 # E32 V2 alpha28 + Home Assistant dev37 — stabiele bediening en EMS-apparaten
 
 Gezamenlijke passieve prerelease met alle geteste fixes sinds alpha27/dev36.

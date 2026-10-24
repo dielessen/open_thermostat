@@ -1,3 +1,19 @@
+# HA 0.4.0.dev38 — oorspronkelijke rapporten en compatibele bediening
+
+Onderdeel van de gezamenlijke onderhoudsbundel met E32 alpha29 op bron
+`d131c503f42e6b834a0815db8384983a7fc1b46f`.
+
+- TV02-diagnose kan wachten op late MQTT-discovery met vooraf vastgelegde apparaatidentiteit; geen automatische bronvervanging.
+- Native registrywijzigingen trekken oorspronkelijke temperatuurdiagnose in, ook wanneer instellingen daarna worden teruggezet. Gewone naamswijzigingen blijven werken.
+- EN/NL-meldingen voor ontbrekende metadata en niet-beschikbare ontvangst; geen oude waarden bij fout-/wachtstatus.
+- Frontend dev38/v38 met compatibiliteitsalias voor bestaande v35-kaarten, gecontroleerd bij koude browserlading.
+
+Getest op echte Home Assistant Core 2026.10.2 en 2026.10.3: 2189 gevallen per versie zonder fouten/skips. Browserregressies en upgradeproef geslaagd. Geen fysieke regelvrijgave of automatische sensorwissel. Shelly-/Xiaomi-Bluetoothondersteuning blijft gepland; M2 en fysieke ketel-/kraanproeven blijven open.
+
+English: restores optional original-report diagnostics safely, retires changed sensor identities, and adds clear reception states while preserving existing v35 room cards. Passive operation remains enforced.
+
+[Wijzigingen en resterende voorwaarden in de bron](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0.dev38/docs/modern-thermostat/WORKBOARD.nl.md). Het aparte historiebestand in deze bron bevat de eerdere releasegeschiedenis.
+
 # HA 0.4.0.dev37 — sessies, wachtrij en betrouwbaar opstarten
 
 Gezamenlijke uitgave met E32 alpha28; alle eerdere functies en fixes blijven behouden.

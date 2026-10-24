@@ -59,4 +59,38 @@ class ReleaseNotesTests(unittest.TestCase):
             release.publication_notes('# HA 0.4.0.dev29\n\n'+'温'*2500,'owner/project','ha-v0.4.0.dev29')
 
 
+
+
+class PublicationPreflightTests(unittest.TestCase):
+    def setUp(self):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        self.directory = TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.root = Path(self.directory.name)
+        (self.root / 'ha/config/custom_components/open_thermostat').mkdir(parents=True)
+        (self.root / 'docs/modern-thermostat').mkdir(parents=True)
+        (self.root / 'release.json').write_text(json.dumps({'version': 'v0.1.0-e32v2-alpha.29'}))
+        self.ha = self.root / 'ha/config/custom_components/open_thermostat/manifest.json'
+        self.ha.write_text(json.dumps({'version': '0.4.0.dev38'}))
+        (self.root / 'docs/modern-thermostat/RELEASE-NOTES.md').write_text('# E32 V2 alpha29\n\nCurrent.\n\n# E32 V2 alpha28\n\nHistory.')
+        (self.root / 'docs/modern-thermostat/HA-RELEASE-NOTES.md').write_text('# HA 0.4.0.dev38\n\nCurrent.\n\n# HA 0.4.0.dev37\n\nHistory.')
+
+    def test_current_publication_preflight_preserves_history_and_checks_both_versions(self):
+        before = {p: p.read_bytes() for p in self.root.rglob('*') if p.is_file()}
+        self.assertEqual(release.verify_publication_notes(self.root),
+                         {'firmware': 'v0.1.0-e32v2-alpha.29', 'ha': 'ha-v0.4.0.dev38'})
+        self.assertEqual({p: p.read_bytes() for p in before}, before)
+
+    def test_firmware_version_bump_without_notes_is_rejected_before_build(self):
+        (self.root / 'release.json').write_text(json.dumps({'version': 'v0.1.0-e32v2-alpha.30'}))
+        with self.assertRaisesRegex(ValueError, 'publication_notes_version_mismatch'):
+            release.verify_publication_notes(self.root)
+
+    def test_ha_version_bump_without_notes_is_rejected_before_build(self):
+        self.ha.write_text(json.dumps({'version': '0.4.0.dev39'}))
+        with self.assertRaisesRegex(ValueError, 'publication_notes_version_mismatch'):
+            release.verify_publication_notes(self.root)
+
+
 if __name__=='__main__':unittest.main()

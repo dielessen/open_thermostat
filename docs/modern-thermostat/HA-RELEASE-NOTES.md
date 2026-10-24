@@ -1,3 +1,19 @@
+# HA 0.4.0.dev44 — native kraanroute en gezamenlijke ontvangstcontrole
+
+Gezamenlijke prerelease met E32 alpha31; alle bestaande functies, instellingen en 23 voorbereide onderdelen blijven behouden.
+
+- Grantaanvragen en kraanopdrachten gebruiken de bestaande native MQTT-worker en verbinding, zonder extra clients, timers, opslag of wachtrijen. De productfabriek blijft standaard gesloten.
+- Lokale controller-/sessie-/config-/bindingcontrole en oorspronkelijke ontvangst-/leasedeadlines begrenzen opdrachten. Eén grant laat één nieuwe opdracht toe; duplicaten vernieuwen geen venster of serviceaanroep.
+- Firmware-offline of gewijzigde scope trekt een bestaande eigenaar direct vóór de workerqueue in, ook als die op de servicelock wacht. De adapter controleert de context opnieuw vóór en na de oorspronkelijke bronautorisatie.
+- Uitgeschakeld, ingetrokken of overmatig optioneel kraanverkeer kan de shadow-sessie niet via de gedeelde queue resetten. Normale periodieke hello-berichten verlengen geen kraangrant.
+- Alle eerdere ESP-/EMS-diagnose, bronkeuze-uitleg en EN/NL-bediening blijven behouden. Frontend dev41/v41 met v38/v35-compatibiliteit blijft bytegelijk; geen automatische bronwissel of nieuwe fysieke autorisatie.
+
+Dit pakket kan met de laatst geverifieerde E32alpha28 blijven werken: het veronderstelt geen nieuwe firmwarefunctie. Een daadwerkelijk gekwalificeerde product-SOURCE-fabriek, normale firmware-MQTT-zendroute, oorspronkelijke causale Tuya-echo en fysieke acceptatie blijven open. Serviceacceptatie is geen kraan-ACK of bewezen afgiftepad. Dit is geen actieve ketelbèta; Tado blijft regelen en fysieke uitgangen blijven geblokkeerd.
+
+E32-updateherstel is afzonderlijk geblokkeerd door de eerdere onverklaarde watchdogreset. HA-installatie vereist het exact geteste pakket, verse back-up, één normale herstart en onafhankelijke nacontrole. Geen claims over opgelost pendelen, native HTTPS-herstel of nieuwe Shelly-/Xiaomi-drivers.
+
+English: native-worker actuator grant/command handling with default-denied product authority, original receiver deadlines, one-use grants, immediate scope/offline fencing and optional-queue isolation. Configuration and frontend remain compatible with installed alpha28. Service acceptance is not a physical valve acknowledgement; active heating and E32 recovery remain separate acceptance gates.
+
 # HA 0.4.0.dev43 — duidelijke temperatuurbronkeuze en M2-ontvangertoelating
 
 Grotere onderhoudskandidaat met behoud van alle bestaande functies en instellingen.

@@ -551,7 +551,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_mqtt.py",
-          "sha256": "a300b41b0dff0edd8a72e79aed4de7b3fdf0305f1e26b10789642aa999ec3226"
+          "sha256": "a5c8b393cfaf5429033e96355541fdd3b19aeb3413bff2f1d20c45c8c04998f0"
         },
         {
           "path": "ha/tests_native/test_original_temperature.py",
@@ -906,7 +906,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/actuator_receiver.py",
-          "sha256": "097d92eb9fee1df2710f647d84efeee246e539bee5236be31a93a7c5a2dd4bd2"
+          "sha256": "b9f7c2eec66d7b11ef01b48d1a6c02ff15c87e5e1b665e0de2b6d2377722d098"
         },
         {
           "path": "ha/tests_native/test_actuator_receiver.py",
@@ -926,7 +926,7 @@
         },
         {
           "path": "test/interop/actuator_intent_runner.cpp",
-          "sha256": "d59186e4ce304e8f6423d26685062a011444e692af8e750bc4a72d39505095c6"
+          "sha256": "ea32ddf89077f78949b23badc37bcf9a5fdfefe1dd78284f8820cad938e4283f"
         },
         {
           "path": "ha/tests_native/test_actuator_intent_interop.py",
@@ -967,6 +967,14 @@
         {
           "path": "test/test_native/test_actuator_session_context.cpp",
           "sha256": "b06fca442e050bf3041b9195bd94dab973a1fb3f9a09eb6b9ecb0f46378b3ad7"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/actuator_wire.py",
+          "sha256": "bf38962967b474716ecea932dea40d0987db9d709ae3640487d28667419a341d"
+        },
+        {
+          "path": "ha/tests_native/test_actuator_wire.py",
+          "sha256": "293e62884443d9d0347a1d193faaf9f99c5722824b31b89afe5539562e12ecf7"
         }
       ],
       "remaining_acceptance": "HA38-opstartherstel geleverd; eerdere oorspronkelijke TV02-ontvangst blijkt uit stale-diagnose, huidige wachtende/stale status blijft ongekwalificeerd. HA43-ontvangerkern geleverd zonder normale fabrieksselectie; firmwaretegenhanger met oorspronkelijke aanvraag-/leasegrenzen en echte C++/HA-tests voorbereid voor de grotere release. Normale actuele SOURCE-/lease-/transportbedrading en verzendtijdcontrole, verse ontvangst, unieke native zendtransactie/causale echo, schema-eigenaarschap en fysieke werking blijven open. Geïnstalleerde converterbron niet bereikbaar via bestaande toegestane toegang; versies/diagnostiek zijn geen bron- of ACK-bewijs. Actuele transportgrens met onafhankelijke kloklezingen en blijvend kleiner deadlineplafond voorbereid; normale SOURCE-/profiel-/grant-/transportselectie ontbreekt. Intrekking is geen fysieke sluiting of bewezen failsafe. Read-only sessiecontext uit de bestaande controller en SessionAdmission toegevoegd/getest, zonder leasevernieuwing of fysieke autorisatie. Deze context is nog geen geselecteerde profiel-/transportroute."
@@ -1014,7 +1022,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_wire.py",
-          "sha256": "7740822529275d97d24ee08bc21ba99f46a9f481d7bfd4b5e1a09c7b4765d225"
+          "sha256": "32f9f79c960d1d081ff9dc25a6fff19748144bbb799f751b2e1d6d003508aa30"
         },
         {
           "path": "ha/tests_native/test_supervisor_status.py",

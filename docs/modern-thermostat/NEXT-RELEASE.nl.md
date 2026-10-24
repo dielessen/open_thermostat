@@ -22,6 +22,11 @@ een exact duplicaat veroorzaakt geen nieuwe serviceaanroep. De regressie is
 vóór herstel gereproduceerd en na herstel gecontroleerd op beide Core-versies.
 Dit herstel is lokaal voorbereid voor de gezamenlijke release, nog niet uitgerold.
 
+De HA-kraanberichten zijn nu op de bestaande native worker aangesloten, inclusief
+oorspronkelijke queue-/leasedeadlines en contextcontrole na wachten op de
+servicelock. De productfabriek blijft gesloten; normale firmware-MQTT-bedrading en
+oorspronkelijke kraanecho blijven open. [Uitwerking](M2-NATIVE-KRAANROUTE-20261025.nl.md).
+
 Dit is geen nieuwe kleine onderhoudsrelease. HA43 en E32alpha28 blijven draaien;
 het werkbord houdt alle resterende functies en vrijgavevoorwaarden bij.
 E32-herstelbaarheid, de echte geschikte kamerbron en causale kraanterugmelding
@@ -112,7 +117,7 @@ Eerdere alpha28/dev37-installatie hieronder blijft historische basis.
 geslaagd. Openbare pakketten, live HA-bestanden en echte E32-boot apart gecontroleerd.
 Bewijs: `out/combined-dev37-alpha28-20261024/FINAL-REVIEW.json`.
 
-Alle 23 voorbereide onderdelen met 265 actuele bronverwijzingen blijven in de
+Alle 23 voorbereide onderdelen met 267 actuele bronverwijzingen blijven in de
 [release-inventaris](BETA1-RELEASE-INVENTARIS.json). Bestaande regeling,
 supervisor, groepen/vloer/menger, historie/CSV, comfort en leren blijven behouden.
 Hun ontbrekende verbindingen en fysieke acceptatie staan op het werkbord.

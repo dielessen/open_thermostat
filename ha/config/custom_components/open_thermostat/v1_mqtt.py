@@ -79,7 +79,7 @@ async def async_build_configuration(runtime):
 
 class NativeShadowConnection:
     """One bounded worker; native listeners/timers are all owned and removed."""
-    def __init__(self, runtime, graph_profile=None, *, tv02_sources=()):
+    def __init__(self, runtime, graph_profile=None, *, tv02_sources=(), actuator_factory=None):
         self.runtime, self.hass, self.entry = runtime, runtime.hass, runtime.entry
         self.graph_profile = graph_profile
         self.prefix = self.entry.data["topic_prefix"] + ("/v2/" if graph_profile is not None else "/v1/")
@@ -105,6 +105,10 @@ class NativeShadowConnection:
         self.original_pending = False
         self.tv02_subscription_attempts = set()
         self._original_received = None
+        from .actuator_wire import ActuatorWire
+        if graph_profile is not None and actuator_factory is not None:
+            raise ValueError('Actuator factory requires the API1 connection')
+        self.actuator_wire = ActuatorWire(self, actuator_factory)
 
     async def async_start(self):
         if self.graph_profile is not None and getattr(self.runtime,"controller_policy_source_profile",None) is not None:
@@ -156,7 +160,26 @@ class NativeShadowConnection:
 
         @callback
         def received(message):
-            if message.topic == self.prefix + "fw/telemetry/boiler_fields":
+            from .actuator_wire import actuator_topic
+            if message.topic.startswith(self.prefix):
+                # Narrowing-only fence while the sole worker may await IO.
+                self.actuator_wire.observe(message.topic[len(self.prefix):],
+                    message.payload, retained=message.retain)
+            if actuator_topic(message.topic.removeprefix(self.prefix)):
+                if (not self.actuator_wire.accepting or message.retain
+                        or type(message.payload) is not str or len(message.payload) > 2048):
+                    return
+                # Optional traffic leaves half the existing queue for control.
+                # Pressure retires only this route, never the shadow session.
+                if self.queue.qsize() >= 32:
+                    self.actuator_wire.retire()
+                    return
+                try:
+                    # Original arrival includes time in the existing queue.
+                    self.queue.put_nowait(("actuator_message", (message, self.client.clock())))
+                except Exception:
+                    self.actuator_wire.retire()
+            elif message.topic == self.prefix + "fw/telemetry/boiler_fields":
                 self.enqueue(("boiler_message", (message,self.hass.loop.time())))
             else:
                 self.enqueue(("message", message))
@@ -164,6 +187,7 @@ class NativeShadowConnection:
         @callback
         def connection_status(connected):
             if not connected:
+                self.actuator_wire.transport_lost()
                 self.original_reports.invalidate()
                 self.tv02_reports.invalidate()
                 if self.graph_profile is not None or self.runtime.native_plan_source is not None:
@@ -323,6 +347,7 @@ class NativeShadowConnection:
             self.queue.put_nowait(item)
         except asyncio.QueueFull:
             # Invalidate immediately; don't queue stop behind 64 stale messages.
+            self.actuator_wire.transport_lost()
             self.client.reset_session()
             self.client.error = "receive_queue_overflow"
             self.client.changed()
@@ -358,10 +383,16 @@ class NativeShadowConnection:
                     message,received_at=data
                     await self.client.receive("fw/telemetry/boiler_fields",message.payload,
                         retained=message.retain,received_at=received_at)
+                elif kind == "actuator_message":
+                    message, received_at = data
+                    if message.topic.startswith(self.prefix):
+                        await self.actuator_wire.receive(message.topic[len(self.prefix):],
+                            message.payload, retained=message.retain, received_at=received_at)
                 elif kind == "message":
                     if data.topic.startswith(self.prefix):
                         await self.client.receive(data.topic[len(self.prefix):], data.payload, retained=data.retain)
                         self.check_bench_admission()
+                        self.actuator_wire.check_current()
                 elif kind == "disconnect":
                     if self.bench:
                         self.bench.request_stop("firmware_transport_disconnected")
@@ -369,6 +400,7 @@ class NativeShadowConnection:
                 elif kind == "poll":
                     await self._async_attach_tv02_topics()
                     await self.client.poll()
+                    self.actuator_wire.check_current()
                     self.check_bench_admission()
                 elif kind == "graph_command":
                     future, command, args = data
@@ -461,6 +493,7 @@ class NativeShadowConnection:
         if self.closed:
             return
         self.closed = True
+        self.actuator_wire.retire()
         if self.original_reports is not None:
             self.original_reports.invalidate("closed")
             if self.runtime.original_temperature_reports is self.original_reports:

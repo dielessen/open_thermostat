@@ -38,7 +38,7 @@ alpha28-uploader-watchdogoorzaak en herstelroute blijven onbekend.
 | Laatste livecontrole | 24 oktober 21:17:50 UTC: HA43 geladen en E32alpha28 bevestigd; 38 onafhankelijke checks geslaagd, instellingen/back-up behouden, uitgangen geblokkeerd; TV02 ongekwalificeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 265 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 267 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
 met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
@@ -87,6 +87,14 @@ Een ontbrekende fysieke waarneming blokkeert onafhankelijk softwarewerk niet.
 [Uitwerking en verificatie](M2-ONTVANGER-EN-BRONKEUZE-20261024.nl.md).
 
 ### In voorbereiding voor de grotere bèta — FW→HA-kraanberichten
+
+**HA-workerbedrading 25 oktober:** grantaanvragen en opdrachten lopen nu door de
+bestaande native worker en MQTT-verbinding. Actuele lokale sessie/config/binding,
+oorspronkelijke ontvangsttijd en lease begrenzen de ontvanger. Dezelfde context
+beperkt ook de adapter na wachten op zijn servicelock. De productfabriek levert
+nog geen fysieke kraaneigenaar; firmware-MQTT-bedrading, echte SOURCE-kwalificatie
+en causale kraanecho blijven open. Geen fysieke opdracht of bèta-vrijgave.
+[Contract, tests en grenzen](M2-NATIVE-KRAANROUTE-20261025.nl.md).
 
 **Aanvullende ontvangercontrole 25 oktober:** een reproduceerbare fout liet na
 serviceacceptatie een tweede nieuw volgnummer met hetzelfde vijfseconden-grant

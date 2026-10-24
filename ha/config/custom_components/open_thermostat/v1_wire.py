@@ -235,6 +235,20 @@ class ShadowClient:
                 and now < self.grant_until and now < self.lease_until
                 and now - self.last_rx < 15)
 
+    def actuator_scope(self, binding):
+        """Current local transport context only; never physical qualification."""
+        from .actuator_receiver import ActuatorScope
+        if not identifier(binding) or not self.ready or self.identity is None:
+            return None
+        record = self.known(self.session['config_revision'], self.session['config_digest'])
+        if (record is None or not any(z.get('actuator_id') == binding
+                                     for z in record['config']['zones'])):
+            return None
+        scope = ActuatorScope(*self.identity, self.adapter_id,
+            self.session['adapter_session_id'], self.session['config_revision'],
+            self.session['config_digest'], binding)
+        return scope if scope.valid() else None
+
     def clock_current(self):
         """Retire all proofs on clock failure; reconnect cannot revive this owner.
 

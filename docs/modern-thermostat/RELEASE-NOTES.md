@@ -1,3 +1,18 @@
+# E32 V2 alpha31 — gezamenlijke M2-bron-, sessie- en transportbundel
+
+Gezamenlijke passieve prerelease met Home Assistant dev44. Behoudt alle 23 voorbereide onderdelen en bestaande instellingen; geen actieve ketelbèta.
+
+- Voorbereide C++-kraanencoder en verzendcontrole bewaken exacte bron/sessie/config/binding, oorspronkelijke aanvraagdeadline en actuele lease. Kortere deadlines kunnen later niet opnieuw groeien; onzekere overdracht krijgt geen automatische retry.
+- De echte lokale controller levert een begrensde sessiecontext zonder rechten te vernieuwen of fysieke bevoegdheid te verlenen. Geheugenfouten en intrekking sluiten de eigenaar blijvend.
+- HA dev44 verbindt grantaanvragen en opdrachten aan de bestaande native worker en bewaakt ook scope-/offlineverlies vóór de wachtrij. Serviceacceptatie blijft geen kraan-ACK.
+- Strikte sanitizerpoorten en echte C++→HA-interoperabiliteit controleren de voorbereide keten; alle eerdere diagnose-, EMS-, UI-, bronkeuze- en uploadcontroles blijven behouden.
+
+De productfabriek selecteert geen fysieke kraaneigenaar. Firmware-MQTT-zendbedrading, geschikte kamerbron, causale oorspronkelijke kraanecho, installatiekwalificatie en fysieke stop-/uitvalproeven blijven open. EMS-TX, forwarding en fysieke uitgangen blijven geblokkeerd; Tado blijft regelen. Nieuwe Shelly-/Xiaomi-Bluetoothdrivers zijn niet als gereed aangemerkt.
+
+Installatiegrens: de eerdere upload via de geïnstalleerde alpha28 gaf een task-watchdogreset waarvan taak/oorzaak nog onbekend is. Alpha31 bewijst geen herstel van die draaiende uploader. Geen blinde OTA-herhaling; behoud instellingen en bepaal eerst een onderbouwde herstelroute. Het eerdere pendelen en de native HTTPS-updaterfout zijn niet als opgelost geclaimd.
+
+English: combined passive prerelease with HA dev44, preserving prepared features and configuration. Adds source/session/deadline fences and native-worker actuator message handling with default-denied physical authority. No active boiler qualification, original valve ACK, new Bluetooth drivers or proven alpha28 uploader recovery. Do not blindly retry the failed installed upload route.
+
 # E32 V2 alpha30 — ketelrapporten, veiligheidsfeiten en uploadcontrole
 
 Gezamenlijke passieve onderhoudsbundel met Home Assistant dev39; alle eerder voorbereide functies blijven behouden.

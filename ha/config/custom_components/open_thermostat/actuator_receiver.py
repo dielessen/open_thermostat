@@ -69,6 +69,53 @@ class ActuatorReceiver:
         self._deadline = None
         self._sequence = 0
         self._key = self._result = None
+        self._context_bound = False
+
+    @property
+    def scope(self):
+        return self._scope
+
+    @property
+    def grant_deadline(self):
+        return self._deadline
+
+    def bind_context(self, provider):
+        """Narrow both admission and final service authorization exactly once.
+
+        The native worker supplies a LOCAL current-session reader. This adds
+        a restriction; neither existing profile nor source authority is granted.
+        The adapter checks it again after waiting for its existing service lock.
+        """
+        if self._context_bound or not callable(provider) or self._retired:
+            raise ValueError('Actuator receiver context already bound or invalid')
+        self._context_bound = True
+
+        def current():
+            try:
+                value = provider()
+                valid = type(value) is ActuatorScope and value == self._scope
+            except BaseException:
+                self.retire()
+                raise
+            if not valid or self._retired:
+                self.retire()
+                return False
+            return True
+
+        def restrict(original):
+            def authorize():
+                if not current():
+                    return False
+                try:
+                    approved = original()
+                except BaseException:
+                    self.retire()
+                    raise
+                return current() and approved is True
+            return authorize
+
+        self._authorize = restrict(self._authorize)
+        self._adapter._authorize = restrict(self._adapter._authorize)
 
     def retire(self):
         self._retired = True
@@ -108,11 +155,21 @@ class ActuatorReceiver:
             raise HomeAssistantError('Actuator receiver authorization lost; requalification required')
         return now
 
-    def issue(self, *, scope):
+    def issue(self, *, scope, not_after=None):
         """Return one grant with ORIGINAL deadline; repeated reads never renew it."""
         now = self._current(scope)
+        if not_after is not None:
+            try:
+                valid = (type(not_after) in (int, float) and math.isfinite(not_after)
+                         and now < not_after <= now + GRANT_SECONDS)
+            except OverflowError:
+                valid = False
+            if not valid:
+                raise HomeAssistantError('Actuator receiver original grant budget expired or invalid')
         if (self._grant is not None and now < self._deadline
                 and self._consumed_grant_sequence != self._grant_sequence):
+            if not_after is not None:
+                self._deadline = min(self._deadline, not_after)
             return dict(self._grant)
         if self._result is not None and not self._result.done():
             raise HomeAssistantError('Actuator receiver action pending; no new grant')
@@ -123,6 +180,8 @@ class ActuatorReceiver:
         # Sequence prevents local nonce reuse even if RNG repeats; no wrap.
         nonce = f'r{self._grant_sequence:08x}{secrets.token_hex(10)}'
         self._deadline = now + GRANT_SECONDS
+        if not_after is not None:
+            self._deadline = min(self._deadline, not_after)
         if not math.isfinite(self._deadline) or self._deadline <= now:
             self.retire()
             raise HomeAssistantError('Actuator receiver clock cannot represent grant deadline')

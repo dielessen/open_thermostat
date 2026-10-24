@@ -93,7 +93,7 @@
       "files": [
         {
           "path": "src/update/GitHubUpdate.cpp",
-          "sha256": "b53644fdb6b98c3fb6a2aa45cf1a3a35e734cfa928f1efd3f48f7319c8de4887"
+          "sha256": "4823d483b74154217ef6a1176a7384b328d25fcb6924bda4c8fe9b43279e5f2a"
         },
         {
           "path": "src/update/IndexedReleaseCatalog.h",
@@ -102,9 +102,25 @@
         {
           "path": "src/update/TlsAllocationPolicy.h",
           "sha256": "507fb9fb0d545c23238865afa880434d54fa10d329c00f2281583977a6504dc2"
+        },
+        {
+          "path": "src/update/UpdateCheckpoint.h",
+          "sha256": "0b1deb73e0540bc45604b11a57b6f49086e4f2a2cb36faf77d718471f17f21da"
+        },
+        {
+          "path": "test/test_native/test_update_checkpoint.cpp",
+          "sha256": "cab7c146b8e9c6440a56624af5371a999964379e4a69166590a67794d75127f1"
+        },
+        {
+          "path": "test/updates/browser.cjs",
+          "sha256": "7a8118ebe7ad9bda5bee133ac71a897ff615f71522ec4ec7fd288f4f2745ae41"
+        },
+        {
+          "path": "data/html/update.html",
+          "sha256": "bc2a135e55375d95771f65bca2efb28f4cdc121183aef857375d91e5c28817e4"
         }
       ],
-      "remaining_acceptance": "Nieuwe bèta via dezelfde normale updater controleren."
+      "remaining_acceptance": "Alpha26 HTTPS-afwijking blijft onverklaard; geen blinde herhaling. Blijvende enkelvoudige NVS-updatediagnose en EN/NL-webpresentatie voorbereid/getest, nog niet geïnstalleerd. Echte flash-/powerloss-/herstelacceptatie en normale update op een afzonderlijk beoordeelde kandidaat blijven open."
     },
     {
       "id": "I04",
@@ -225,7 +241,7 @@
         },
         {
           "path": "data/html/update.html",
-          "sha256": "f583a2cc3708761549dcc947706a6e920bc3108c5399a83f55230c3ac01c6dc5"
+          "sha256": "bc2a135e55375d95771f65bca2efb28f4cdc121183aef857375d91e5c28817e4"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/strings.json",
@@ -281,7 +297,7 @@
         },
         {
           "path": "test/updates/browser.cjs",
-          "sha256": "2624a766edc2b8f3168c09fe742e2636df6cdc5cb6945ebb5681ea9f3304906c"
+          "sha256": "7a8118ebe7ad9bda5bee133ac71a897ff615f71522ec4ec7fd288f4f2745ae41"
         },
         {
           "path": "test/web_auth_client.test.cjs",
@@ -289,7 +305,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "5c6ed1790f6abc3238e626cf1dfd400ec94d025735b774390f2b84a4b4a61b33"
+          "sha256": "19887943fd0bf13b63c04c04e82ad8709edb4f5371e9a43b64cb2cb3e2c82d0b"
         },
         {
           "path": "data/html/ui-language.js",
@@ -539,7 +555,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "5c6ed1790f6abc3238e626cf1dfd400ec94d025735b774390f2b84a4b4a61b33"
+          "sha256": "19887943fd0bf13b63c04c04e82ad8709edb4f5371e9a43b64cb2cb3e2c82d0b"
         },
         {
           "path": "data/html/system-log.js",

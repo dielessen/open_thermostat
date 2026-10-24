@@ -5,8 +5,8 @@ const assets=path.resolve(__dirname,'../../data/html');
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});let count=0;
  const pass=name=>{++count;console.log('PASS '+name);};let page,sim,errors;
- async function scene(){
-  if(page)await page.close();page=await browser.newPage({viewport:{width:390,height:844}});errors=[];
+ async function scene(language='nl',width=390){
+  if(page)await page.close();page=await browser.newPage({viewport:{width,height:844}});errors=[];
   sim={installed:'v0.1.0-e32v2-alpha.2',phase:'idle',error:'',busy:false,can_check:true,boot_pending:false,reboot_required:false,reboot_scheduled:false,selected:'',rollback_available:false,received:0,total:0,releases:[],posts:[],accept:true,drop:false,confirm:true,dialogs:0,uploadStatus:200,navigations:0};
   page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{++sim.dialogs;return sim.confirm?d.accept():d.dismiss();});
   await page.route('http://opth.test/**',async route=>{
@@ -19,11 +19,26 @@ const assets=path.resolve(__dirname,'../../data/html');
    if(p==='/deps/jquery.min.js.gz')return route.fulfill({contentType:'text/javascript',body:zlib.gunzipSync(fs.readFileSync(path.join(assets,p)))});
    return route.fulfill({status:404,body:'not found'});
   });
-  await page.context().addCookies([{name:'ot_ui_lang',value:'nl',url:'http://opth.test'}]);
+  await page.context().addCookies([{name:'ot_ui_lang',value:language,url:'http://opth.test'}]);
   await page.goto('http://opth.test/');await page.waitForFunction(()=>document.getElementById('installedVersion').textContent.startsWith('v'));
  }
  try {
   await scene();assert.equal(await page.isDisabled('#installRelease'),true);assert.equal(sim.posts.length,0);pass('page shows installed version without checking or installing automatically');
+  assert.match(await page.textContent('#updateCheckpoint'),/geen opgeslagen/);
+  await page.click('#updateDiagnostics summary');
+  sim.last_saved_checkpoint={attempt:7,from_version:'v0.1.0-e32v2-alpha.24',target_version:'v0.1.0-e32v2-alpha.26',stage:'boot_slot_selected',received:2565504,total:2565504,http_status:200};sim.reset_reason=3;
+  await page.waitForFunction(()=>document.getElementById('updateCheckpoint').textContent.includes('poging: 7'));
+  assert.match(await page.textContent('#updateCheckpoint'),/installatie niet bevestigd/);
+  assert.equal(await page.locator('#updateDiagnostics').evaluate(el=>el.open),true);
+  assert.equal(sim.posts.length,0);assert.equal(sim.dialogs,0);
+  pass('saved checkpoint is read-only, translated, preserves expanded details and never claims installation success');
+  sim.checkpoint_save_failed=true;
+  await page.waitForFunction(()=>document.getElementById('updateCheckpoint').textContent.includes('kon niet worden opgeslagen'));
+  assert.match(await page.textContent('#updateCheckpoint'),/oudere opgeslagen/);
+  sim.checkpoint_save_failed=false;sim.last_saved_checkpoint=null;
+  await page.waitForFunction(()=>document.getElementById('updateCheckpoint').textContent.includes('geen opgeslagen'));
+  assert.equal(await page.locator('#updateDiagnostics').evaluate(el=>el.open),true);
+  pass('failed or absent persistence is explicit and cannot retain an old rendered checkpoint');
   await page.click('#checkReleases');assert.equal(sim.posts[0].path,'/updates/check');pass('explicit check queues only the authenticated local device action');
   sim.phase='checked';sim.releases=[{tag:'v0.1.0-e32v2-alpha.3',prerelease:true},{tag:sim.installed,prerelease:true}];
   await page.waitForFunction(()=>document.getElementById('releaseChoice').options.length===2);assert.match(await page.textContent('#releaseChoice'),/testrelease/);pass('release choices visibly label prereleases and the installed version');
@@ -34,7 +49,7 @@ const assets=path.resolve(__dirname,'../../data/html');
   sim.phase='error';sim.busy=false;sim.error='Checksum mismatch';await page.waitForFunction(()=>document.getElementById('releaseStatus').textContent.includes('Checksum mismatch'));assert.equal(await page.isVisible('#restartRelease'),false);pass('checksum failure cannot display an update-success/reboot action');
   sim.error='';sim.phase='ready_to_reboot';sim.reboot_required=true;sim.received=1000;await page.waitForFunction(()=>!document.getElementById('restartRelease').hidden);assert.equal(await page.isDisabled('#installRelease'),true);
   await Promise.all([page.waitForResponse(r=>r.url().endsWith('/updates/reboot')),page.click('#restartRelease')]);assert.equal(sim.posts.at(-1).path,'/updates/reboot');pass('older firmware without automatic-restart status retains manual restart fallback');
-  sim.reboot_required=false;sim.phase='idle';sim.installed='v0.1.0-e32v2-alpha.3';await page.waitForFunction(()=>document.getElementById('installedVersion').textContent.endsWith('alpha.3'));
+  sim.reboot_required=false;sim.phase='idle';sim.installed='v0.1.0-e32v2-alpha.3';await page.waitForFunction(()=>document.getElementById('installedVersion')?.textContent.endsWith('alpha.3'));
   assert.equal(await page.isDisabled('#installRelease'),true);pass('reconnect reads installed version and will not silently reinstall it');
   sim.drop=true;await page.waitForFunction(()=>document.getElementById('releaseStatus').textContent.includes('niet bereikbaar'));sim.drop=false;await page.waitForFunction(()=>!document.getElementById('releaseStatus').textContent.includes('niet bereikbaar'));pass('network interruption is unconfirmed, then status polling recovers');
   sim.rollback_available=true;await page.waitForFunction(()=>!document.getElementById('rollbackRelease').hidden);sim.confirm=false;let before=sim.posts.length;await page.click('#rollbackRelease');assert.equal(sim.posts.length,before);
@@ -48,18 +63,25 @@ const assets=path.resolve(__dirname,'../../data/html');
   pass('device-scheduled restart is visible without confirmation or browser reboot command');
   sim.drop=true;await page.waitForFunction(()=>document.getElementById('releaseStatus').textContent.includes('Herstart bezig'));
   sim.drop=false;sim.installed='v0.1.0-e32v2-alpha.4';sim.reboot_required=false;sim.reboot_scheduled=false;sim.busy=false;sim.phase='idle';
-  await page.waitForFunction(()=>document.getElementById('installedVersion').textContent.endsWith('alpha.4'));
+  await page.waitForFunction(()=>document.getElementById('installedVersion')?.textContent.endsWith('alpha.4'));
   assert.equal(sim.navigations,2);assert.equal(sim.posts.length,0);pass('post-reboot status verifies target version and reloads matching shipped UI once');
   await scene();await page.setInputFiles('#FirmwarePath',{name:'firmware.bin',mimeType:'application/octet-stream',buffer:Buffer.from('test image fixture')});
   await page.click('#FirmwareSubmit');await page.waitForFunction(()=>document.getElementById('progressbar').textContent.includes('automatisch'));
   assert.equal(sim.dialogs,0);assert.deepEqual(sim.posts,[{path:'/ota'}]);assert.equal(await page.isDisabled('#FirmwareSubmit'),true);pass('successful manual app upload needs no second confirmation or reboot POST');
-  sim.installed='v0.1.0-e32v2-alpha.4';await page.waitForFunction(()=>document.getElementById('installedVersion').textContent.endsWith('alpha.4'));assert.equal(sim.navigations,2);pass('manual app reconnect also refreshes the new UI after version readback');
+  sim.installed='v0.1.0-e32v2-alpha.4';await page.waitForFunction(()=>document.getElementById('installedVersion')?.textContent.endsWith('alpha.4'));assert.equal(sim.navigations,2);pass('manual app reconnect also refreshes the new UI after version readback');
   await scene();sim.uploadStatus=500;await page.setInputFiles('#FirmwarePath',{name:'firmware.bin',mimeType:'application/octet-stream',buffer:Buffer.from('bad fixture')});
   await page.click('#FirmwareSubmit');await page.waitForFunction(()=>!document.getElementById('FirmwareSubmit').disabled);
   assert.equal(sim.dialogs,1);assert.deepEqual(sim.posts,[{path:'/ota'}]);assert.ok(!(await page.textContent('#progressbar')).includes('automatisch'));pass('rejected app upload cannot claim automatic restart or issue a reboot command');
   await scene();sim.confirm=false;await page.selectOption('#FirmwareType','fs');await page.setInputFiles('#FirmwarePath',{name:'spiffs.bin',mimeType:'application/octet-stream',buffer:Buffer.from('filesystem fixture')});
   await page.click('#FirmwareSubmit');await page.waitForFunction(()=>!document.getElementById('FirmwareSubmit').disabled);
   assert.equal(sim.dialogs,1);assert.deepEqual(sim.posts,[{path:'/otafs'}]);pass('filesystem upload remains separate and does not acquire app automatic-restart semantics');
+  await scene('en',320);await page.click('#updateDiagnostics summary');
+  assert.match(await page.textContent('#updateCheckpoint'),/No saved update checkpoint/);
+  sim.last_saved_checkpoint={attempt:1,from_version:sim.installed,target_version:'v0.1.0-e32v2-alpha.27',stage:'boot_slot_selected',received:1024,total:1024,http_status:200};
+  await page.waitForFunction(()=>document.getElementById('updateCheckpoint').textContent.includes('Saved attempt: 1'));
+  assert.match(await page.textContent('#updateCheckpoint'),/installation not confirmed/);
+  assert.equal(sim.posts.length,0);assert.equal(sim.dialogs,0);
+  pass('English update diagnostics use the same read-only semantics on a narrow screen');
   assert.deepEqual(errors,[]);console.log(count+' updater browser scenarios passed (simulated HTTP; no hardware OTA proof)');
  } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

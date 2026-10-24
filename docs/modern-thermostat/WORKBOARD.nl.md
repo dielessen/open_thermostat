@@ -18,7 +18,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 218 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 222 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
 met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
@@ -58,7 +58,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-213 bronverwijzingen met hashes, status en resterende acceptatie.
+222 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -67,7 +67,7 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | --- | --- | --- | --- |
 | I01 | Eigen project, bron/licenties en reproduceerbaar pakket | Geleverde softwarebasis | Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. |
 | I02 | Weblogin, sessies, CSRF, setup en herstelroutes | Geleverde softwarebasis | Fysieke AP-/uitval-/herstelmatrix blijft apart. |
-| I03 | Automatische HTTPS-update, TLS-geheugen en catalogus | Geleverde softwarebasis | Nieuwe bèta via dezelfde normale updater controleren. |
+| I03 | Automatische HTTPS-update, TLS-geheugen en catalogus | Geleverde basis; blijvende diagnose voorbereid | Alpha26-afwijking blijft open. Eén begrensd checkpoint en EN/NL-webdiagnose gebouwd/getest; nog niet geïnstalleerd, geen blinde updaterherhaling. |
 | I04 | Actuele/archief-releases automatisch ordenen | Geleverde softwarebasis | Nieuwe publicatie moet bestaande tags/assets behouden. |
 | I05 | About, uitloggen rechts en herstart onder Settings | Geleverde softwarebasis | Behouden; bevestiging/herstartguards opnieuw in eindregressie. |
 | I06 | Kamerinrichting, identiteiten en apparaatmetadata | Geleverd inclusief versieprojectie | Gemelde Z2M-/converterversie zichtbaar; ontbrekend blijft onbekend. Metadata kwalificeert geen fysieke sensor of kraan. |
@@ -1724,3 +1724,10 @@ HA `0.4.0.dev34` is gepubliceerd en via de bestaande HA-agent geïnstalleerd met
 E32 alpha26 blijft exact dezelfde geïnstalleerde firmware: bron `e9ae314f2519ac4208f89d183b4a73a96131d8a4`, ELF/web en bevestigde boot opnieuw gecontroleerd. Vijf ESP-waarden zijn numeriek, de uitgeschakelde RTC blijft onbekend. Geen extra flash of E32-herstart. EMS-TX, forwarder en actuatoruitvoer blijven geblokkeerd; Tado blijft actief. Dit sluit de softwarelevering af, niet de actieve bèta of de resterende fysieke roadmapproeven. Het automatische HTTPS-updatepad blijft open. De bestaande eenmalige controle verwacht nu dev34/alpha26; eigenaar, tijdstip, aflevering en grenzen zijn behouden.
 
 Bewijs: `out/release-finalize-20261024/PACKAGE-REVIEW.json`, `FINAL-REVIEW.json` en de afzonderlijke specialist-installatie-/livehash-/preservatiebewijzen. Oudere voorbereidende/onbevestigde notities hierboven zijn historische checkpoints.
+
+
+### Volgende gezamenlijke bundel: blijvende updatediagnose
+
+De bekende HTTPS-afwijking verloor het relevante RAM-bewijs na herstart. De bron bewaart nu maximaal één native NVS-controlepunt met fase, oorspronkelijke/doelversie, broncommit, bytes en HTTP-resultaat. De bestaande statusroute toont ook de actuele SDK-resetreden en boot-/app-partitieadressen. EN/NL-updatediagnose blijft open tijdens verversen. Geen extra taak, verbinding, herhaalpoging of wijziging aan de OTA-verificatie-/selectie-/bootregels. Opslagfalen is expliciet en geeft geen automatische herstelactie.
+
+611 native tests, waaronder zeven nieuwe opslag-/reconstructiegevallen, geslaagd. Browser- en E32-buildbewijs staan in `out/update-diagnostics-20261024/`. De browserproef houdt nu ook rekening met de korte afwezigheid van de DOM tijdens de bestaande echte herlaadactie; dit verandert geen productgedrag. Zie [grenzen en vervolg](UPDATE-DIAGNOSTICS.nl.md). Dit is voorbereid bronwerk voor de volgende grotere bundel: alpha26/dev34 blijven geïnstalleerd, de oude oorzaak en fysieke update-/powerlossacceptatie blijven open. M2-bron-/kraanwerk en B04–B14 zijn hiermee niet afgetekend.

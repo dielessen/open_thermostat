@@ -4,6 +4,11 @@
   <p><span data-i18n="Releases from">Releases from</span> <a href="https://github.com/dielessen/open_thermostat/releases" target="_blank" rel="noopener">dielessen/open_thermostat</a><span data-i18n=". Installation starts only when you press the button. Your WiFi, rooms and programs are retained; the web interface is updated with the firmware.">. Installation starts only when you press the button. Your WiFi, rooms and programs are retained; the web interface is updated with the firmware.</span></p>
   <p><span data-i18n="Installed:">Installed:</span> <strong id="installedVersion"><span data-i18n="Loading…">Loading…</span></strong></p>
   <p id="releaseStatus" role="status" aria-live="polite"></p>
+  <details class="mb-3" id="updateDiagnostics">
+   <summary data-i18n="Update diagnostics">Update diagnostics</summary>
+   <p data-i18n="The last saved checkpoint helps investigate an interrupted update. It does not confirm installation or rollback. Manual uploads are not recorded here.">The last saved checkpoint helps investigate an interrupted update. It does not confirm installation or rollback. Manual uploads are not recorded here.</p>
+   <pre id="updateCheckpoint" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
+  </details>
   <button type="button" id="checkReleases" class="btn btn-secondary mb-3" disabled><span data-i18n="Check for updates">Check for updates</span></button>
   <label for="releaseChoice" class="d-block"><span data-i18n="Available compatible releases">Available compatible releases</span></label>
   <select id="releaseChoice" class="form-control mb-3" disabled><option value="" data-i18n="Check for updates first">Check for updates first</option></select>
@@ -89,6 +94,19 @@
   if(!s.busy&&!s.can_check&&!s.reboot_required)message+=uiText(" Connect to your home network and wait for valid network time (NTP).");
   if(s.boot_pending)message+=uiText(" This startup is still being checked; installation will become available afterwards.");
   $id('releaseStatus').textContent=message;
+  const saved=s.last_saved_checkpoint;
+  const stageNames={manifest:uiText("Checking release data…"),downloading:uiText("Downloading firmware"),verifying:uiText("Verifying firmware"),boot_slot_selected:uiText("Boot slot selected; installation not confirmed"),error:uiText("Update error")};
+  const lines=saved?[
+   uiText("Saved attempt: ")+saved.attempt,
+   uiText("From version: ")+saved.from_version,
+   uiText("Target version: ")+saved.target_version,
+   uiText("Last saved stage: ")+(stageNames[saved.stage]||uiText("Unknown")),
+   uiText("Bytes at checkpoint: ")+saved.received+' / '+saved.total,
+   uiText("HTTP result at checkpoint (0 = not recorded): ")+saved.http_status
+  ]:[uiText("No saved update checkpoint is available.")];
+  if(s.checkpoint_save_failed)lines.push(uiText("The latest checkpoint could not be saved. Older saved information may be shown."));
+  if(Number.isInteger(s.reset_reason))lines.push(uiText("Reset reason (ESP-IDF code): ")+s.reset_reason);
+  $id('updateCheckpoint').textContent=lines.join('\n');
   const p=$id('releaseProgress');p.hidden=!s.busy&&!s.reboot_required;
   if(s.total>0){p.max=s.total;p.value=s.received;p.setAttribute('aria-label',uiText("Firmware received: ")+s.received+uiText(" of ")+s.total+' bytes');}else p.removeAttribute('value');
   controls();

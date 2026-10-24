@@ -6,6 +6,7 @@
 #include "RestartTimer.h"
 #include "DownloadTextBuffer.h"
 #include "TlsAllocationPolicy.h"
+#include "UpdateCheckpoint.h"
 #include "EmbeddedWebAssets.h"
 #include "DeviceAccess.h"
 #include "Filesystem.h"
@@ -14,6 +15,8 @@
 #include <WiFiClientSecure.h>
 #include <esp_ota_ops.h>
 #include <esp_heap_caps.h>
+#include <esp_system.h>
+#include <nvs.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <mbedtls/sha256.h>
@@ -44,6 +47,31 @@ namespace {
 struct State {std::string phase="idle",error,selected;uint32_t received=0,total=0;bool reboot=false;std::vector<Release> releases;};
 State state;std::mutex stateMutex;
 std::atomic<bool> working{false};RestartTimer rebootTimer;
+struct CheckpointStorage {
+    bool read(UpdateCheckpoint &value) {
+        nvs_handle_t handle;
+        if(nvs_open("ot_update_diag",NVS_READONLY,&handle)!=ESP_OK)return false;
+        size_t size=0;
+        bool ok=nvs_get_blob(handle,"last",nullptr,&size)==ESP_OK&&size==sizeof(value);
+        if(ok)ok=nvs_get_blob(handle,"last",&value,&size)==ESP_OK&&size==sizeof(value);
+        nvs_close(handle);return ok;
+    }
+    bool write(const UpdateCheckpoint &value) {
+        nvs_handle_t handle;
+        if(nvs_open("ot_update_diag",NVS_READWRITE,&handle)!=ESP_OK)return false;
+        const bool ok=nvs_set_blob(handle,"last",&value,sizeof(value))==ESP_OK&&nvs_commit(handle)==ESP_OK;
+        nvs_close(handle);return ok;
+    }
+};
+CheckpointStorage checkpointStorage;
+UpdateCheckpointJournal<CheckpointStorage> checkpointJournal(checkpointStorage);
+std::mutex checkpointMutex;
+void checkpoint(UpdateStage stage,int httpStatus) {
+    uint32_t received,total;
+    {std::lock_guard<std::mutex> lock(stateMutex);received=state.received;total=state.total;}
+    std::lock_guard<std::mutex> lock(checkpointMutex);
+    checkpointJournal.advance(stage,received,total,httpStatus);
+}
 void phase(const std::string &name,const std::string &error="") {std::lock_guard<std::mutex> lock(stateMutex);state.phase=name;state.error=error;}
 void progress(uint32_t count,uint32_t total){std::lock_guard<std::mutex> lock(stateMutex);state.received=count;state.total=total;}
 bool pendingBoot() {esp_ota_img_states_t s;return esp_ota_get_state_partition(esp_ota_get_running_partition(),&s)==ESP_OK&&s==ESP_OTA_IMG_PENDING_VERIFY;}
@@ -155,18 +183,23 @@ void execute(bool install) {
         std::vector<Release> releases;ok=releaseList(releases,error);
         if(ok){std::lock_guard<std::mutex> lock(stateMutex);state.releases=std::move(releases);state.phase="checked";}
     } else {
+        {std::lock_guard<std::mutex> lock(checkpointMutex);
+         checkpointJournal.begin(embedded::version,embedded::source,tag);}
+        int httpStatus=0;
         std::string raw;Manifest manifest;
-        if(text(assetUrl(tag,"e32v2-update.json"),4096,raw,error)&&parseManifest(raw,tag,manifest)) {
-            progress(0,manifest.size);phase("downloading");NativeOta backend;VerifiedOta<NativeOta> transfer(backend,manifest);
+        if(textResponse(assetUrl(tag,"e32v2-update.json"),4096,raw,error,httpStatus)&&parseManifest(raw,tag,manifest)) {
+            progress(0,manifest.size);phase("downloading");checkpoint(UpdateStage::Download,httpStatus);
+            NativeOta backend;VerifiedOta<NativeOta> transfer(backend,manifest);
             if(transfer.begin()) {
                 ImageSink sink(transfer,manifest.size);
-                if(download(assetUrl(tag,"firmware.bin"),sink,error,manifest.size)) {
-                    phase("verifying");ok=transfer.finish();
-                    if(ok)firmwareInstalled();
+                if(download(assetUrl(tag,"firmware.bin"),sink,error,manifest.size,&httpStatus)) {
+                    phase("verifying");checkpoint(UpdateStage::Verify,httpStatus);ok=transfer.finish();
+                    if(ok){checkpoint(UpdateStage::Selected,httpStatus);firmwareInstalled();}
                     else error="Firmwarecontrole, checksum of flash-readback mislukt; oude firmware blijft geselecteerd.";
                 }
             } else error="Geen passende vrije OTA-partitie of huidige opstart nog niet bevestigd.";
         } else if(error.empty())error="Deze release past niet bij dit bord, instellingenformaat of updateformaat.";
+        if(!ok)checkpoint(UpdateStage::Error,httpStatus);
     }
     if(!ok)phase("error",error);
 }
@@ -216,6 +249,26 @@ std::string status() {
     cJSON_AddBoolToObject(root.get(),"reboot_required",snapshot.reboot);cJSON_AddBoolToObject(root.get(),"rollback_available",!pendingBoot()&&previous()!=nullptr);
     cJSON_AddBoolToObject(root.get(),"reboot_scheduled",rebootTimer.pending());
     cJSON_AddNumberToObject(root.get(),"received",snapshot.received);cJSON_AddNumberToObject(root.get(),"total",snapshot.total);
+    cJSON_AddNumberToObject(root.get(),"reset_reason",int(esp_reset_reason()));
+    const auto running=esp_ota_get_running_partition(),boot=esp_ota_get_boot_partition();
+    if(running)cJSON_AddNumberToObject(root.get(),"running_partition_address",running->address);
+    if(boot)cJSON_AddNumberToObject(root.get(),"boot_partition_address",boot->address);
+    {std::lock_guard<std::mutex> lock(checkpointMutex);
+     const auto saved=checkpointJournal.saved();
+     cJSON_AddBoolToObject(root.get(),"checkpoint_save_failed",checkpointJournal.saveFailed());
+     if(!saved)cJSON_AddNullToObject(root.get(),"last_saved_checkpoint");
+     else {
+        auto record=cJSON_AddObjectToObject(root.get(),"last_saved_checkpoint");
+        cJSON_AddStringToObject(record,"scope","native_https_install_only");
+        cJSON_AddNumberToObject(record,"attempt",saved->attempt);
+        cJSON_AddStringToObject(record,"stage",updateStageName(saved->stage));
+        cJSON_AddStringToObject(record,"from_version",saved->fromVersion);
+        cJSON_AddStringToObject(record,"from_source",saved->fromSource);
+        cJSON_AddStringToObject(record,"target_version",saved->targetVersion);
+        cJSON_AddNumberToObject(record,"received",saved->received);
+        cJSON_AddNumberToObject(record,"total",saved->total);
+        cJSON_AddNumberToObject(record,"http_status",saved->httpStatus);
+     }}
     auto list=cJSON_AddArrayToObject(root.get(),"releases");for(const auto &r:snapshot.releases){auto entry=cJSON_CreateObject();cJSON_AddStringToObject(entry,"tag",r.tag.c_str());cJSON_AddBoolToObject(entry,"prerelease",r.prerelease);cJSON_AddItemToArray(list,entry);}
     char *raw=cJSON_PrintUnformatted(root.get());std::string result=raw?raw:"{}";cJSON_free(raw);return result;
 }

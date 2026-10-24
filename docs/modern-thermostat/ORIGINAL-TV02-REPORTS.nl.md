@@ -180,3 +180,28 @@ opgeslagen koppeling niet als bewijs voor het concept. Er is geen extra polling,
 MQTT-client, automatische kraanmodusreparatie of doelopdracht toegevoegd.
 Ontvangst bewijst geen causale opdrachtbevestiging, klepstand of geleverde warmte.
 De standaard bronpins blijven leeg; de echte bron-/kraanproef blijft B05.
+
+
+## Eindige doellevensduur in de voorbereide adapter
+
+De bronadapter begrenst het doel vanaf het aannemen van de oproep, inclusief
+wachten op zijn geserialiseerde eigenaar en de HA-serviceaanroep. Het nieuwste
+wachtende doel trekt oudere wachtende doelen in; annulering van dat nieuwste
+doel maakt een oud doel niet opnieuw geldig. Identiteit, doelcapaciteit en
+TV02-modus worden nog steeds vlak vóór dispatch gecontroleerd, plus de
+oorspronkelijke deadline na synchrone autorisatiecallbacks.
+
+Timeout, annulering, servicefout of te late voltooiing na dispatch laat de fysieke
+uitkomst onbekend. Dezelfde adapter blokkeert daarna alle vervolgdoelen; opnieuw
+autoriseren of een nieuwe doelwaarde herstelt dit niet. Alleen een bron-eigenaar
+kan na afzonderlijke beoordeling/herkwalificatie een nieuwe adapter opbouwen.
+Dit is geen automatische stop of universele kraan-dichtopdracht. Een nog niet
+verzonden verlopen/geannuleerde oproep geeft daarentegen geen fysieke
+uitkomst-onzekerheid. Een al gedispatchte oproep wordt niet als ongedaan gemaakt
+weergegeven omdat inmiddels een nieuwer doel wacht.
+
+Tien nieuwe synthetische native HA-gevallen; 84 gerichte HA-checks PASS. Geen
+werkelijke kraanopdracht. De normale shadow-route maakt deze adapter niet aan;
+standaardautoriteit blijft afwezig. Oorspronkelijke rapporten blijven zonder
+causale doelkoppeling, readiness of flowkwalificatie. Bewijs:
+`out/actuator-lifetime-20261024/`.

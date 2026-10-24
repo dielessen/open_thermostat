@@ -178,42 +178,76 @@ class ProfileCActuator:
         self._qualified = qualified_profile
         self._authorize = authorize or (lambda: False)
         self._lock = asyncio.Lock()
+        self._request = 0
+        # Reconstruct only after SOURCE-owner outcome review/requalification.
+        # Lease renewal or another target cannot clear an uncertain dispatch.
+        self._outcome_unknown = False
         self._binding = _dispatch_binding(hass, entity_id)
 
     async def async_set_room_target(self, celsius: float) -> float:
         from .v1_model import target_centi
         target_centi(celsius)
-        async with self._lock:
-            if not self._qualified or not self._authorize():
-                raise HomeAssistantError("Profile C bench actuation is disabled")
-            if self._binding is None or _dispatch_binding(self.hass, self.entity_id) != self._binding:
-                raise HomeAssistantError("TRV native binding changed; requalification required")
-            capability = target_capability(self.hass, self.hass.states.get(self.entity_id))
-            actual = capability.target(celsius)
-            operating_mode = reported_operating_mode(self.hass, self.entity_id)
-            if not self._authorize():
-                raise HomeAssistantError("Bench authorization expired or invalid target")
-            current_mode = reported_operating_mode(self.hass, self.entity_id)
-            if (operating_mode is None) != (current_mode is None):
-                raise HomeAssistantError("TRV model changed before target dispatch")
-            if current_mode is not None and current_mode["issues"]:
-                raise HomeAssistantError("TV02 local operating mode conflicts with external target")
-            if self._binding is None or _dispatch_binding(self.hass, self.entity_id) != self._binding:
-                raise HomeAssistantError("TRV native binding changed; requalification required")
-            current_capability = target_capability(self.hass, self.hass.states.get(self.entity_id))
-            if current_capability != capability or current_capability.target(celsius) != actual:
-                raise HomeAssistantError("TRV capability changed before target dispatch")
-            # No await or external callback between these final checks and dispatch.
-            # A successful HA call is action acceptance only, NEVER valve readiness.
-            try:
-                async with asyncio.timeout(ACTION_TIMEOUT_SECONDS):
+        self._request += 1
+        request = self._request
+        deadline = self.hass.loop.time() + ACTION_TIMEOUT_SECONDS
+        dispatched = False
+
+        def current():
+            if self._outcome_unknown:
+                raise HomeAssistantError("TRV previous action outcome unknown; source-owner requalification required")
+            if request != self._request:
+                raise HomeAssistantError("TRV target superseded before dispatch")
+            if self.hass.loop.time() >= deadline:
+                raise HomeAssistantError("TRV target expired before dispatch; no command sent")
+
+        try:
+            # One original budget includes waiting for this serialized owner.
+            # A newer queued request retires older queued targets, without
+            # pretending an already dispatched action can be unsent.
+            async with asyncio.timeout_at(deadline):
+                async with self._lock:
+                    current()
+                    if not self._qualified or not self._authorize():
+                        raise HomeAssistantError("Profile C bench actuation is disabled")
+                    if self._binding is None or _dispatch_binding(self.hass, self.entity_id) != self._binding:
+                        raise HomeAssistantError("TRV native binding changed; requalification required")
+                    capability = target_capability(self.hass, self.hass.states.get(self.entity_id))
+                    actual = capability.target(celsius)
+                    operating_mode = reported_operating_mode(self.hass, self.entity_id)
+                    if not self._authorize():
+                        raise HomeAssistantError("Bench authorization expired or invalid target")
+                    current_mode = reported_operating_mode(self.hass, self.entity_id)
+                    if (operating_mode is None) != (current_mode is None):
+                        raise HomeAssistantError("TRV model changed before target dispatch")
+                    if current_mode is not None and current_mode["issues"]:
+                        raise HomeAssistantError("TV02 local operating mode conflicts with external target")
+                    if self._binding is None or _dispatch_binding(self.hass, self.entity_id) != self._binding:
+                        raise HomeAssistantError("TRV native binding changed; requalification required")
+                    current_capability = target_capability(self.hass, self.hass.states.get(self.entity_id))
+                    if current_capability != capability or current_capability.target(celsius) != actual:
+                        raise HomeAssistantError("TRV capability changed before target dispatch")
+                    current() # Synchronous observers may have consumed the budget.
+                    # No await or external callback between final check and dispatch.
+                    dispatched = True
                     await self.hass.services.async_call(
                         "climate", "set_temperature",
                         {"entity_id": self.entity_id, "temperature": float(actual)},
                         blocking=True,
                     )
-            except TimeoutError as err:
-                # Cancellation does not prove a remote action was cancelled.
-                # No retry or readiness is synthesized from this uncertainty.
+                    if self.hass.loop.time() >= deadline:
+                        raise HomeAssistantError("TRV action completed after deadline")
+                    return float(actual) # Service acceptance only, NEVER readiness.
+        except TimeoutError as err:
+            if dispatched:
+                self._outcome_unknown = True
                 raise HomeAssistantError("TRV action timed out; physical outcome unknown") from err
-            return float(actual)
+            raise HomeAssistantError("TRV target expired before dispatch; no command sent") from err
+        except asyncio.CancelledError:
+            if dispatched:
+                self._outcome_unknown = True
+            raise
+        except Exception as err:
+            if dispatched:
+                self._outcome_unknown = True
+                raise HomeAssistantError("TRV action failed; physical outcome unknown") from err
+            raise

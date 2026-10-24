@@ -18,7 +18,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 209 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 210 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Alle 80 HA-componentbestanden zijn ook met het E32-pakket
 vergeleken. Historische checkpoints en afgewezen kandidaten blijven bewaard;
@@ -53,7 +53,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-209 bronverwijzingen met hashes, status en resterende acceptatie.
+210 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -479,7 +479,7 @@ gekoppeld; het concept is geen nieuwe release of extra afvinklijst.
 - [x] B02 Alle bekende voorbereide brononderdelen geïnventariseerd en in bètabasis behouden; geen bron-/testbestand uit hoofdwerkmap ontbreekt.
 - [x] B03 Nieuwe ontvangstdiagnose/Keteltest/rapport gebouwd en getest: 18 native, 43 GUI-regressies, 3 echte Chromiumviewports met fixture-HTTP, normale E32-build.
 - [ ] B04 Observer-lifecycle/native binding en originele WSDCGQ11LM-producer/HA-ontvangstdiagnose gebouwd/getest; productie-meetprofiel met echte acquisitie-/bronkwalificatie en fysieke validatie afronden. Geen trustvinkje of sensorwissel als omweg.
-- [ ] B05 TV02-modus/native identiteit/doelcapaciteit, originele datapuntproducer en native HA-ontvangst/lifecycle gebouwd/getest; concrete bronpins/installatie, causale doelkoppeling, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel.
+- [ ] B05 TV02-modus/native identiteit/doelcapaciteit, eindige doellevensduur, originele datapuntproducer en native HA-ontvangst/lifecycle gebouwd/getest; concrete bronpins/installatie, causale doelkoppeling, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel.
 - [ ] B06 Supervisor aan bron-eigen profiel en actuele afzonderlijk gedateerde veiligheids-/DHW-/water-/kraan-/flowfeiten gekoppeld en in controller getest; werkelijke producenten, installatieprofiel en fysieke kwalificatie blijven open. Geen generieke flowaanname.
 - [ ] B07 Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten.
 - [ ] B08 Poll-executor, Classic-flow/nulformaat en gecontroleerde SDK-zendresultaten aangesloten/getest; installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute.
@@ -1273,3 +1273,26 @@ de werkelijk geïnstalleerde passieve basis. B09 blijft open. Geen fysieke proef
 profielkwalificatie, configuratiewijziging of nieuwe software-installatie. Bewijs:
 `out/installation-review-20261024/`. Het gezamenlijke pakketcheckpoint `fbed431`
 blijft intact; deze aanvulling wijzigt alleen documentatie en profielnotities.
+
+
+## B05: geen oude kraandoelen na wachten of onzekere afloop (24 oktober 2026)
+
+Een nieuwe falende regressietest op de oude bron toont dat wachten op de
+adapter-lock niet door de bestaande servicetimeout werd begrensd. Een oude
+opdracht kon daardoor later alsnog worden verstuurd. De oorspronkelijke
+doeldeadline omvat nu zowel lock-wachttijd als dispatch. Het nieuwste wachtende
+doel vervangt oudere wachtende doelen. Een laatste deadlinecontrole vangt ook
+synchrone callbacks op die de tijd hebben opgebruikt.
+
+Na timeout, annulering, fout of late voltooiing tijdens een gedispatchte actie
+blijft de fysieke uitkomst onbekend en blokkeert dezelfde adapter vervolgdoelen
+tot een bron-eigenaar na afzonderlijke beoordeling/herkwalificatie een nieuwe
+adapter opbouwt. Er volgt geen retry, modusreparatie, gesimuleerde kraanstand of
+generieke fysieke stopopdracht. Serviceacceptatie blijft onderscheiden van
+causale echo/readiness/flow. De normale native shadow-route roept de adapter
+nog steeds niet aan; geen apparaat-/ketelopdracht of productieaanpassing.
+
+Tien nieuwe gevallen; 84 gerichte HA-tests PASS. De volledige CI en het
+vooraf falende geval staan bij `out/actuator-lifetime-20261024/`. B05 blijft open
+voor de oorspronkelijke live producenten/pins, causale doelkoppeling, schema-
+eigenaarschap en fysieke kraan-/fallbackkwalificatie.

@@ -55,6 +55,10 @@ vastgesteld. Ontvangstdiagnose alleen voldoet niet aan dit releasedoel.
 - Het HA-diagnosebestand toont de gemelde supervisorfase en regelintenties
   apart van fysieke uitvoer. Onbekende of verlopen status verdwijnt; diagnose
   kan geen regelbevoegdheid toekennen of kamerbeslissingen veranderen.
+- De voorbereide kraanadapter begrenst ook de wachttijd vóór een doelopdracht.
+  Alleen het nieuwste wachtende doel blijft geldig. Na een onzekere afloop van
+  een gedispatchte actie blokkeert dezelfde adapter vervolgdoelen, zonder retry
+  of automatische hervatting. Dit levert geen fysieke kraanbevestiging.
 - De eindige ketelproef bewaakt ook te late stop- en basisbevestigingen. Een
   verlopen deadline wordt niet vernieuwd door een later bericht of leaseverlies.
 - De EMS-encoder weigert te grote frames en READ-opdrachten met overtollige

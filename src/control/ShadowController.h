@@ -13,6 +13,7 @@
 #include "NativeControlPlan.h"
 #include "RoomDisplayNames.h"
 #include "HydraulicSupervisor.h"
+#include "HydraulicControllerSource.h"
 #include <algorithm>
 #include <functional>
 #include <set>
@@ -58,6 +59,8 @@ inline bool canonicalConfig(const cJSON *o) {
 }
 
 
+// Single serialized controller owner, including feedback and local fault
+// acknowledgement. Providers observe existing facts; they issue no commands.
 class ShadowController {
 public:
     using Hash=std::function<std::string(std::string_view)>;
@@ -73,7 +76,8 @@ public:
                      ControlStore &store,Hash hash,Nonce nonce,Publish publish,Metrics metrics={},
                      const SeasonalControllerSource* seasonalSource=nullptr,
                      SeasonalControllerSource::Safety safety={},
-                     const NativePlanInstallationSource* nativePlanSource=nullptr,BoilerFields boilerFields={})
+                     const NativePlanInstallationSource* nativePlanSource=nullptr,BoilerFields boilerFields={},
+                     const HydraulicControllerSource* hydraulicSource=nullptr,HydraulicFeedbackProvider hydraulicFeedback={})
         :controller_(std::move(controller)),boot_(std::move(boot)),owner_(std::move(owner)),
          store_(store),hash_(std::move(hash)),nonce_(std::move(nonce)),publish_(std::move(publish)),metrics_(std::move(metrics)),admission_(owner_),boilerFields_(std::move(boilerFields)) {
         if(!SessionAdmission::validId(controller_)||!SessionAdmission::validId(boot_)||!SessionAdmission::validId(owner_)) { fault_=true; return; }
@@ -88,6 +92,14 @@ public:
             }
             seasonalSource_=std::make_unique<SeasonalControllerSource>(*seasonalSource);
             seasonalSafety_=std::move(safety);
+        }
+        if(hydraulicSource) {
+            if(!hydraulicSource->valid()||hydraulicSource->controllerId!=controller_
+                ||hydraulicSource->adapterId!=owner_||!seasonalSource_||!hydraulicFeedback
+                ||hydraulicSource->profileDigest!=seasonalSource_->profileDigest) {fault_=true;return;}
+            hydraulicSource_=std::make_unique<HydraulicControllerSource>(*hydraulicSource);
+            hydraulicFeedback_=std::move(hydraulicFeedback);
+            supervisor_=HydraulicSupervisor(hydraulicSource_->profile);
         }
         loadSavedConfiguration();
     }
@@ -115,6 +127,30 @@ public:
     }
     void inhibitNativeSourceMutation() {fault_=true;disconnected();}
 
+    // Local reviewed SOURCE owner only; deliberately no HTTP/MQTT/reset flag.
+    // Acknowledging a fault cannot renew postrun or create a heat intent. The
+    // next cycle still needs a new opening command and subsequent feedback.
+    bool acknowledgeHydraulicFault(uint64_t now,const HydraulicFeedbackSnapshot& evidence) {
+        if(!hydraulicSource_||hydraulicSourceFault_||policySourceFault_||hydraulicReading_||safetyReading_
+            ||supervisor_.lastIntent().phase!=HydraulicPhase::fault||now<lastNow_)return false;
+        const HydraulicOwnerContext context{policyGeneration_,config_->revision,
+            supervisor_.lastIntent().openingCommand,sessionStart_,boot_};
+        const auto current=[&] {return session_&&mappingReady_&&!fault_&&admission_.alive(now)
+            &&context.generation==policyGeneration_&&context.revision==config_->revision&&context.startedAt==sessionStart_
+            &&seasonalSource_&&seasonalSource_->profileDigest==hydraulicSource_->profileDigest;};
+        if(!current())return false;
+        const auto checked=hydraulicGate_.evaluate(now,hydraulicSource_->maximumFactAgeMs,context,evidence);
+        const auto& in=checked.inputs;
+        if(!in.limitsKnownSafe||in.limitTripped||!in.faultStateKnown||in.boilerFault
+            ||!in.dhwStateKnown||in.dhwActive||in.stop||in.actuatorFailure)return false;
+        SeasonalSafetySnapshot safety;safetyReading_=true;
+        try {safety=seasonalSafety_();} catch(...) {policySourceFault_=true;}
+        safetyReading_=false;
+        if(policySourceFault_||hydraulicSourceFault_||!current()||now<lastNow_
+            ||now<safety.sampledAt||now-safety.sampledAt>=seasonalSource_->maximumSafetyAgeMs
+            ||!safety.limitsKnownSafe||!safety.dhwStateKnown||safety.dhwActive||safety.allOff||safety.preempted)return false;
+        return supervisor_.clearFault(true);
+    }
     void connected(uint64_t now) {
         invalidate();
         if(epoch_==UINT32_MAX) { fault_=true; return; }
@@ -770,6 +806,23 @@ private:
             }
             safetyFresh=safetyFresh&&!policySourceFault_;
         }
+        HydraulicFeedbackGate::Result hydraulicFacts;
+        if(hydraulicSource_&&!hydraulicSourceFault_) {
+            const auto generation=policyGeneration_,revision=config_->revision;
+            const auto startedAt=sessionStart_;
+            if(hydraulicReading_)hydraulicSourceFault_=true;
+            else if(seasonalSource_&&seasonalSource_->profileDigest==hydraulicSource_->profileDigest) {
+                hydraulicReading_=true;
+                try {
+                    const HydraulicOwnerContext context{generation,revision,supervisor_.lastIntent().openingCommand,startedAt,boot_};
+                    const auto snapshot=hydraulicFeedback_(context);
+                    if(!hydraulicSourceFault_&&generation==policyGeneration_&&revision==config_->revision
+                        &&startedAt==sessionStart_&&now>=lastNow_&&session_&&mappingReady_&&!fault_&&admission_.alive(now))
+                        hydraulicFacts=hydraulicGate_.evaluate(now,hydraulicSource_->maximumFactAgeMs,context,snapshot);
+                } catch(...) {hydraulicSourceFault_=true;}
+                hydraulicReading_=false;
+            }
+        }
         // A synchronous native observer may invalidate ownership. Recheck AFTER
         // it returns, never use a pre-callback alive/admission snapshot.
         const bool alive=session_&&mappingReady_&&!fault_&&admission_.alive(now);
@@ -836,17 +889,38 @@ private:
             cJSON_AddNumberToObject(row,"sample_state",static_cast<int>(z.sample.state(now)));
             cJSON_AddStringToObject(row,"target_source",source); cJSON_AddBoolToObject(row,"demand",z.demand); cJSON_AddStringToObject(row,"reason",reason);
         }
-        // No installation has been qualified through this api1 contract.
-        // Actual shadow request is visible; it NEVER becomes hydraulic readiness.
-        HydraulicInputs inputs;
-        inputs.adapterAlive=alive; inputs.sourceValid=requestedHeat;
-        inputs.heatDemand=requestedHeat;
-        const auto hydraulic=supervisor_.step(now,inputs);
+        HydraulicInputs inputs=hydraulicSource_?hydraulicFacts.inputs:HydraulicInputs{};
+        inputs.adapterAlive=alive;inputs.sourceValid=requestedHeat;inputs.heatDemand=requestedHeat;
+        if(hydraulicSource_) {
+            // Compose restrictions from the CURRENT selected policy as well.
+            inputs.limitsKnownSafe=inputs.limitsKnownSafe&&safetyFresh&&safety.limitsKnownSafe;
+            inputs.dhwStateKnown=inputs.dhwStateKnown&&safetyFresh&&safety.dhwStateKnown;
+            inputs.dhwActive=inputs.dhwActive||safety.dhwActive;
+            inputs.stop=inputs.stop||safety.allOff||safety.preempted;
+        }
+        HydraulicSupervisor::Result hydraulic;
+        // Before the first admitted owner there is no active hydraulic lifetime
+        // to invalidate. Later ownership loss still reaches the SAME supervisor.
+        const bool hydraulicOwnerReady=alive&&config_->revision&&config_->count;
+        if(!hydraulicSource_||hydraulicOwnerReady||hydraulicStarted_) {
+            hydraulicStarted_=hydraulicStarted_||bool(hydraulicSource_&&hydraulicOwnerReady);
+            hydraulic=supervisor_.step(now,inputs);
+        } else hydraulic.reason="adapter_unavailable";
         auto status=cJSON_AddObjectToObject(o.get(),"supervisor");
         cJSON_AddStringToObject(status,"phase",hydraulicPhaseName(hydraulic.phase));
         cJSON_AddStringToObject(status,"reason",hydraulic.reason);
         cJSON_AddBoolToObject(status,"requested_heat",requestedHeat);
         cJSON_AddBoolToObject(status,"physical_outputs_enabled",false);
+        if(hydraulicSource_) {
+            cJSON_AddStringToObject(status,"feedback_status",hydraulicFacts.reason);
+            cJSON_AddBoolToObject(status,"heat_intent",hydraulic.heatIntent);
+            cJSON_AddBoolToObject(status,"pump_intent",hydraulic.pumpIntent);
+            cJSON_AddStringToObject(status,"path_intent",hydraulic.pathIntent==HydraulicPathIntent::requestQualifiedPath
+                ?"request_qualified_path":hydraulic.pathIntent==HydraulicPathIntent::retainExistingPath?"retain_existing_path":"none");
+            cJSON_AddNumberToObject(status,"opening_command",hydraulic.openingCommand);
+            if(hydraulic.waterTarget)cJSON_AddNumberToObject(status,"water_target_centi_c",*hydraulic.waterTarget);
+            else cJSON_AddNullToObject(status,"water_target_centi_c");
+        }
         send("fw/state/zones",o.get());
     }
     std::string controller_,boot_,owner_,digest_,configBytes_,challenge_,grant_,sessionId_,clientNonce_,lastOpen_;
@@ -858,6 +932,10 @@ private:
     // control configuration or increase its policy/channel limits.
     std::array<std::array<char,maximumRoomDisplayNameBytes*2+1>,2> roomNamesHex_{};
     HydraulicSupervisor supervisor_;
+    std::unique_ptr<HydraulicControllerSource> hydraulicSource_;
+    HydraulicFeedbackProvider hydraulicFeedback_;
+    HydraulicFeedbackGate hydraulicGate_;
+    bool hydraulicReading_=false,hydraulicSourceFault_=false,hydraulicStarted_=false;
     std::unique_ptr<SeasonalControllerSource> seasonalSource_;
     std::unique_ptr<NativePlanInstallationSource> nativePlanSource_;
     bool nativeReceiving_=false,legacyQuarantine_=false;

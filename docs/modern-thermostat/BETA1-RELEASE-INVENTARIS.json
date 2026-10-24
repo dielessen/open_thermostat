@@ -685,7 +685,7 @@
         },
         {
           "path": "src/control/ShadowController.h",
-          "sha256": "9ebd1b14650ce5609a0fe0ab116575e1aa2216274c74992dfc9ce5c699709560"
+          "sha256": "096f851e16d8b25e3e5fc122c1aef4be4654292e1efcbf45bf82b1f3d07fba3d"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/native_plan.py",
@@ -800,9 +800,21 @@
         {
           "path": "src/control/SeasonalControllerSource.h",
           "sha256": "2b8563020eb766c111bbc09097b87d9016a37259aa70a37676b160a8d04ddb74"
+        },
+        {
+          "path": "src/control/HydraulicControllerSource.h",
+          "sha256": "a68a56b62cb39ba051f432af68eebdbaf4b2ac321568fc3eef93b9e8e7219089"
+        },
+        {
+          "path": "test/test_native/test_hydraulic_controller_source.cpp",
+          "sha256": "ab7b4f427f547460cf603a5f3045adb00dcf6e972b80c744dcc85ebf0285d8dc"
+        },
+        {
+          "path": "test/test_native/include/ShadowControllerFixture.h",
+          "sha256": "d4bd7a1838dd50217e712abab5f66c0d0912852e5cc624c5370f2f6fbe9f9d3a"
         }
       ],
-      "remaining_acceptance": "Regellogica/shadow voorbereid; hydraulische profiel- en uitvoerketen niet gekwalificeerd."
+      "remaining_acceptance": "Controllerkoppeling met bron-eigen profiel, afzonderlijke factleeftijden en lokale foutbevestiging gebouwd/getest; werkelijke producenten, installatieprofiel, fysieke hydrauliek en uitvoerketen nog niet gekwalificeerd."
     },
     {
       "id": "I16",
@@ -895,7 +907,7 @@
         },
         {
           "path": "test/test_native/include/ShadowControllerFixture.h",
-          "sha256": "b76751c688150795c853be171f4bca551621acd2c2646608001f2dd1c355cb6d"
+          "sha256": "d4bd7a1838dd50217e712abab5f66c0d0912852e5cc624c5370f2f6fbe9f9d3a"
         },
         {
           "path": "src/MQTT.h",
@@ -1427,7 +1439,7 @@
     {
       "id": "B06",
       "complete": false,
-      "description": "Bestaande supervisor koppelen aan vereiste actuele profiel-/feedback-/DHW-/hydraulische voorwaarden; geen generieke flowaanname."
+      "description": "Supervisor aan bron-eigen profiel en actuele afzonderlijk gedateerde veiligheids-/DHW-/water-/kraan-/flowfeiten gekoppeld en in controller getest; werkelijke producenten, installatieprofiel en fysieke kwalificatie blijven open. Geen generieke flowaanname."
     },
     {
       "id": "B07",

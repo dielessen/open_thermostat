@@ -18,7 +18,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 202 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 205 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Alle 80 HA-componentbestanden zijn ook met het E32-pakket
 vergeleken. Historische checkpoints en afgewezen kandidaten blijven bewaard;
@@ -53,7 +53,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-202 bronverwijzingen met hashes, status en resterende acceptatie.
+205 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -155,7 +155,7 @@ de code afgetekend. De oorspronkelijke acceptatie in PLAN §4/§14 blijft gelden
 | WP03 Contract/bron | Native SOURCE/config/plan/readback gebouwd en toegepast | Modelspecificieke meetrapportproducent, fysieke actualiteit en uitval |
 | WP04 Kamerbediening | Kamer/week/actieve profielsave geleverd | Externe doelbron en centrale/groeps-/deviceketen compleet |
 | WP05 Actuator | Profiel-C-adapter voorbereid, geen fysieke native vrijgave | Eerste echte kraan zonder ketel, echo/readiness/fallback |
-| WP06 Supervisor | Pure policies en geselecteerde shadowlogica bestaan | Kwalificatie en complete hydraulische-/keteluitvoerketen |
+| WP06 Supervisor | Policies en controllerkoppeling met eigen profiel, afzonderlijke bronleeftijden en lokale foutbevestiging gebouwd | Werkelijke bronproducenten/installatieprofiel, praktijkkwalificatie en keteluitvoer |
 | WP07 Metrics | Metrics/Recorder/CSV/grafiekcode aanwezig | Echte dataketen, historie-/grafiekacceptatie |
 | WP08 Beveiliging/herstel | Auth/setup/update/ETag/methodguards en live behoudsbewijs | Concrete ACL/AP/koude herstel-/powerlossmatrix vóór passende live inzet |
 
@@ -480,7 +480,7 @@ gekoppeld; het concept is geen nieuwe release of extra afvinklijst.
 - [x] B03 Nieuwe ontvangstdiagnose/Keteltest/rapport gebouwd en getest: 18 native, 43 GUI-regressies, 3 echte Chromiumviewports met fixture-HTTP, normale E32-build.
 - [ ] B04 Observer-lifecycle/native binding en originele WSDCGQ11LM-producer/HA-ontvangstdiagnose gebouwd/getest; productie-meetprofiel met echte acquisitie-/bronkwalificatie en fysieke validatie afronden. Geen trustvinkje of sensorwissel als omweg.
 - [ ] B05 TV02-modus/native identiteit/doelcapaciteit, originele datapuntproducer en native HA-ontvangst/lifecycle gebouwd/getest; concrete bronpins/installatie, causale doelkoppeling, schema-eigenaarschap en profiel/readiness/fallback afronden. Fysieke proef eerst zonder ketel.
-- [ ] B06 Bestaande supervisor koppelen aan vereiste actuele profiel-/feedback-/DHW-/hydraulische voorwaarden; geen generieke flowaanname.
+- [ ] B06 Supervisor aan bron-eigen profiel en actuele afzonderlijk gedateerde veiligheids-/DHW-/water-/kraan-/flowfeiten gekoppeld en in controller getest; werkelijke producenten, installatieprofiel en fysieke kwalificatie blijven open. Geen generieke flowaanname.
 - [ ] B07 Eindige proefpolicy en controller/HTTP/webbediening gebouwd/getest; afronden met beoordeeld profiel en echte zender. Vaste grenzen/stopprioriteit/operatorbinding, geen automatisch hervatten.
 - [ ] B08 Poll-executor, Classic-flow/nulformaat en gecontroleerde SDK-zendresultaten aangesloten/getest; installatieadressering/masker en fysieke UART-zender kwalificeren. Geen oude positieve intentie na deadline/stop/conflict/reset; geen generieke Plusroute.
 - [ ] B09 Concrete TX-interface en aansluit-/stopvoorwaarden vaststellen: timing/polariteit/arbitrage, converterketen, minimumflow/naloop, onafhankelijke stop/herstel en Tado óf E32.
@@ -503,7 +503,7 @@ Alleen programma-ACK of beschikbaarheid van een entiteit sluit M2 niet.
 
 ## 7. Werkafspraken en bijwerken na iedere taak
 
-1. Eén actieve integratietak; bevroren alpha17/dev23-bron intact laten.
+1. Eén actieve integratietak; gepubliceerde bron/tags en geïnstalleerde alpha23/dev29-basis intact laten.
 2. Per taak: broncommit, relevante testuitkomst, inventaris-ID en resterende acceptatie bijwerken. Geen vinkje zonder bijbehorend bewijs.
 3. Alles wat al voorbereid is behouden; onafgemaakte code zichtbaar beperkt houden. Geen nieuwe comfort-/leer-/P2-stage vóór M2.
 4. Grotere samenhangende release, geen tags/uploads/flashes per losse reparatie.
@@ -1190,3 +1190,24 @@ gevallen onder ASan/UBSan/leakcontrole, de werkelijke logger-/NVS-/SDK-hook-/
 lokale UDP-test, 46 webunitgevallen en 101 tooling-/pakketgevallen PASS.
 Bewijs en exacte dekking: `out/code-audit-20261024/`. Dit is code-/testbewijs,
 geen fysieke ketel-/zendkwalificatie; de geïnstalleerde versie wijzigt niet.
+
+
+## B06: supervisor in de echte shadow-controller (24 oktober 2026)
+
+De bestaande hydraulische supervisor ontvangt nu een onveranderlijk bronprofiel
+en afzonderlijk gedateerde veiligheids-, storings-, DHW-, waterdoel-, kraan- en
+flowfeiten. Boot, eigenaar, sessie en configuratierevisie moeten overeenkomen.
+Dubbele berichten verlengen geen geldigheid; teruglopende, toekomstige of
+tegenstrijdige feiten leveren geen toestemming. Kamerwarmtevraag verzint geen
+kraanstand of onafhankelijke flow. Actuele seizoensvoorwaarden blijven beperken.
+
+Na uitval hervat de supervisor niet automatisch. Een lokale broncode-interface
+voor foutbevestiging vereist verse veilige feiten van de huidige eigenaar; een
+volgende cyclus vereist opnieuw een openingsopdracht en latere terugmelding.
+Er is geen HTTP/MQTT-trustvinkje toegevoegd. De standaardselectie blijft leeg en
+alle fysieke uitgangen blijven geblokkeerd.
+
+Lokaal: 602 native tests PASS; 54 gerichte controller-/policytests ook onder
+AddressSanitizer/UndefinedBehaviorSanitizer met lekcontrole PASS. Bewijs:
+`out/supervisor-integration-20261024/`. B06 blijft open voor werkelijke producenten,
+een beoordeeld installatieprofiel en fysieke kwalificatie. Nog niet geïnstalleerd.

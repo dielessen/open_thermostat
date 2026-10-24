@@ -15,7 +15,7 @@ wat eerder is voorbereid moet in de releasebasis behouden blijven. Daarom is
 ieder voorbereid onderdeel opgenomen in de [release-inventaris](BETA1-RELEASE-INVENTARIS.json)
 en in [WORKBOARD §3](WORKBOARD.nl.md#3-alles-wat-voorbereid-is-meenemen-in-de-bèta).
 
-- **Geleverd:** E32 alpha21 (`f96cda7`) / HA dev27 (`faf8272`); normale
+- **Geleverd:** E32 alpha23 / HA dev29 (bron `5f31dd7`); normale
   updater en HA-agentuitrol met behoud van instellingen, programma en identiteiten
   bewezen. Het exacte HRC 22H-presentatieprofiel en native ketelvelden/HA-overzicht
   zijn geleverd. De huidige SOURCE-revisie wordt live gelezen; normale dagelijkse
@@ -104,11 +104,13 @@ via de afgebakende migratie/bronchecks in het werkbord, niet door dit planonderh
 upstream `67b76391f2f81d5d5acd5a8d4675067fddc74448`. Actuele bron-/installatieversies
 staan per bewijs in het werkbord. De geleverde PDF1.0 blijft historisch.
 
-### Actuele ontwikkelopstelling en configuratieroute — correctie Mark, 22 oktober
+### Configuratieroute — keuze Mark, 22 oktober; aansluitstatus bijgewerkt 24 oktober
 
-Mark meldt dat **de E32 fysiek los van de ketel staat** en dat dit project geen
-productie-installatie is. Dit is de actuele gebruikersbevestiging; er is in deze
-planronde geen onafhankelijke bekabelingsproef uitgevoerd. We bouwen en richten
+Op 22 oktober meldde Mark dat de E32 los van de ketel stond. Inmiddels is de
+keten aangesloten voor passieve ontvangst; die is in de latere installatie- en
+veldcontroles vastgelegd. Tado blijft de actieve regelaar; E32-zenden en fysieke
+uitgangen blijven geblokkeerd. Een actieve aansluit-/stopproef is niet afgetekend.
+We bouwen en richten
 meteen de **normale productconfiguratie** in: één OpenThermostat-installatie met
 centrale ketel-/circuitinstellingen en ruimtes via de gewone wizard.
 

@@ -81,7 +81,8 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
             return self.async_abort(reason="setup_changed")
         # The single subentry-map transaction below is pinned to the actual
         # reviewed HA core implementation. Fail closed on an untested core.
-        if HA_VERSION != "2026.10.2":
+        from .product import SUPPORTED_HA_VERSIONS
+        if HA_VERSION not in SUPPORTED_HA_VERSIONS:
             return self.async_abort(reason="setup_platform_unsupported")
         if integration_mode(entry) != MODE_SHADOW:
             return self.async_abort(reason="shadow_mode_required")

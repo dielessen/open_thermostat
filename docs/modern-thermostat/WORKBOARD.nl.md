@@ -1889,3 +1889,16 @@ blijven de echte native zendtransactie, causale echo en fysieke kwalificatie nod
 Geen automatische retry, kraanmodusreparatie, Store, nieuwe wachtrij of client.
 B05/M2 en B04–B14 blijven open. Geen publicatie, installatie of fysieke opdracht.
 Bewijs: `out/m2-actuator-commands-20261024/`.
+
+### Gezamenlijke publicatie alpha27 en HA-compatibiliteit — 24 oktober
+
+Alpha27 en dev35 zijn gepubliceerd uit dd6a963. Tijdens de installatiepreflight
+bleek de live Core bijgewerkt naar 2026.10.3: de bestaande exacte 2026.10.2-guard
+veroorzaakt setup_error/unknown_command vóór room/get-registratie. Daarom zijn
+geen pakketten geïnstalleerd. HA dev36 neemt dev35 volledig mee en accepteert
+expliciet de twee geteste Core-versies 2026.10.2 en 2026.10.3. Dezelfde vijf
+guards delen één lijst; overige versies blijven geweigerd. De zeven gebruikte
+kern-API-bronnen zijn tussen deze patchversies byte-identiek. De volledige CI
+controleert beide echte runtimes. E32 alpha27 hoeft niet opnieuw te worden
+uitgebracht. Bron-, pakket-, back-up- en live installatiebewijs blijft gescheiden;
+B04–B14 en fysieke kwalificatie worden hierdoor niet afgevinkt.

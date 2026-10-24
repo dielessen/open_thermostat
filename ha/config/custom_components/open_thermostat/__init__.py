@@ -97,11 +97,11 @@ async def async_migrate_entry(hass, entry):
     if entry.version > 3:
         return False
     if entry.version < 3:
-        from .product import PRODUCT_CONFIG, PRODUCT_VERSION, SUPPORTED_HA, HA_VERSION, INSTALLATION
+        from .product import PRODUCT_CONFIG, PRODUCT_VERSION, SUPPORTED_HA_VERSIONS, HA_VERSION, INSTALLATION
         from .v1_model import MODE_SHADOW, integration_mode
         data = {**entry.data, "integration_mode": entry.data.get("integration_mode", "legacy")}
         managed = integration_mode(entry) == MODE_SHADOW
-        if managed and HA_VERSION != SUPPORTED_HA:
+        if managed and HA_VERSION not in SUPPORTED_HA_VERSIONS:
             return False
         if managed:
             data[PRODUCT_CONFIG] = PRODUCT_VERSION

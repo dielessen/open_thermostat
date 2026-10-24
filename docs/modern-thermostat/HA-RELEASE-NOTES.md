@@ -1,3 +1,9 @@
+# HA 0.4.0.dev36 — Core 2026.10.3 en gezamenlijke E32 alpha27-bundel
+
+Neemt alle wijzigingen uit dev35 mee en herstelt de opstartblokkade na een Core-update naar 2026.10.3. De expliciete ondersteunde versies zijn nu 2026.10.2 en 2026.10.3; andere versies blijven geweigerd voor de native configuratietransactie. Alle vijf versiecontroles gebruiken dezelfde lijst. De volledige suite draait op beide echte Core-versies; er wordt geen versienummer of HA-API nagebootst. Instellingen en registry worden niet opnieuw aangemaakt.
+
+Gezamenlijke passieve uitgave met E32 alpha27; geen nieuwe firmwarevariant nodig. De eerder gepubliceerde dev35 blijft historisch behouden en wordt niet geïnstalleerd. Dit is geen vrijgave voor kraan- of ketelopdrachten.
+
 # HA 0.4.0.dev35 — gezamenlijke diagnose- en veiligheidsbundel
 
 Bundelt alle voorbereide HA-wijzigingen sinds dev34, samen met E32 alpha27.

@@ -6,7 +6,7 @@ from homeassistant.const import __version__ as HA_VERSION
 
 PRODUCT_CONFIG = "product_configuration"
 PRODUCT_VERSION = 1
-SUPPORTED_HA = "2026.10.2"
+SUPPORTED_HA_VERSIONS = ("2026.10.2", "2026.10.3")
 INSTALLATION = "installation_configuration"
 
 
@@ -61,7 +61,7 @@ def configuration_snapshot(entry):
 
 def commit_configuration(hass, entry, before, **changes):
     """One pinned HA core Store transaction; never device I/O or activation."""
-    if HA_VERSION != SUPPORTED_HA:
+    if HA_VERSION not in SUPPORTED_HA_VERSIONS:
         raise ValueError("setup_platform_unsupported")
     if (hass.config_entries.async_get_entry(entry.entry_id) is not entry
             or configuration_snapshot(entry) != before):

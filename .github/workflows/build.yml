@@ -258,6 +258,11 @@ jobs:
       - name: Test native HA lifecycle and actual firmware packet interop
         run: |
           ROOM_METRICS_EVIDENCE_DIR=out python -m pytest ha/tests ha/tests_native -vv -o faulthandler_timeout=60 --junitxml=out/ha-acceptance.xml
+      - name: Verify retained Core 2026.10.2 compatibility with actual native runtime
+        run: |
+          pip install --no-deps homeassistant==2026.10.2
+          python -m pytest ha/tests ha/tests_native -q -o faulthandler_timeout=60 --junitxml=out/ha-core-2026.10.2.xml
+          pip install --no-deps homeassistant==2026.10.3
       - name: Verify and package exact HA-only candidate
         run: |
           python -B -m unittest discover -s scripts -p test_package_ha_release.py -v
@@ -273,7 +278,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: home-assistant-acceptance
-          path: out/ha-acceptance.xml
+          path: |
+            out/ha-acceptance.xml
+            out/ha-core-2026.10.2.xml
           if-no-files-found: error
       - name: Remove temporary MQTT fixture
         if: always()

@@ -36,9 +36,9 @@ async def async_connect_installation(hass, entry, address, password):
     from . import (_selected_graph_data_profile, _selected_graph_controller_source,
                    _selected_controller_policy_source_profile, _NATIVE_PLAN_SOURCE_PROFILES)
     from homeassistant.config_entries import ConfigEntryState
-    from .product import HA_VERSION, SUPPORTED_HA
+    from .product import HA_VERSION, SUPPORTED_HA_VERSIONS
 
-    if (HA_VERSION != SUPPORTED_HA or not is_product(entry)
+    if (HA_VERSION not in SUPPORTED_HA_VERSIONS or not is_product(entry)
             or integration_mode(entry) != MODE_SHADOW):
         raise ControllerLinkError("controller_room_configuration_invalid")
     if not any(s.subentry_type == "zone" for s in entry.subentries.values()):

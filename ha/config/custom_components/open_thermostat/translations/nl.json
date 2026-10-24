@@ -130,7 +130,7 @@
         "advanced_room_required": "Deze kamer heeft geavanceerde comfort-, vloer-, meng- of groepsinstellingen. Gebruik Geavanceerde kamerinstellingen om die te behouden. Er is niets aangepast.",
         "room_saved": "Kamer en radiatorgroep opgeslagen. De regeling blijft uit.",
         "setup_save_uncertain": "Opslaan kon niet worden bevestigd. Open de kamerinstelling opnieuw en controleer de opgeslagen kamer en groep voordat je opnieuw probeert.",
-        "setup_platform_unsupported": "Deze kamerinstelling is getest met Home Assistant 2026.10.2. Jouw versie wordt hiervoor nog niet ondersteund. Er is niets aangepast."
+        "setup_platform_unsupported": "Deze kamerinstelling is getest met Home Assistant 2026.10.2 en 2026.10.3. Jouw versie wordt hiervoor nog niet ondersteund. Er is niets aangepast."
       }
     },
     "zone": {
@@ -433,7 +433,7 @@
         "advanced_room_required": "Deze ruimte heeft aanvullende regelinstellingen die deze eenvoudige route nog niet kan aanpassen. De bestaande inrichting is behouden.",
         "room_saved": "Ruimte en koppelingen opgeslagen. De regeling is niet ingeschakeld.",
         "setup_save_uncertain": "Opslaan kon niet worden bevestigd. Open de kamerinstelling opnieuw en controleer de opgeslagen kamer en groep voordat je opnieuw probeert.",
-        "setup_platform_unsupported": "Deze kamerinstelling is getest met Home Assistant 2026.10.2. Jouw versie wordt hiervoor nog niet ondersteund. Er is niets aangepast."
+        "setup_platform_unsupported": "Deze kamerinstelling is getest met Home Assistant 2026.10.2 en 2026.10.3. Jouw versie wordt hiervoor nog niet ondersteund. Er is niets aangepast."
       }
     },
     "heating": {
@@ -1294,7 +1294,7 @@
       "advanced_room_required": "Deze ruimte heeft aanvullende regelinstellingen die deze eenvoudige route nog niet kan aanpassen. De bestaande inrichting is behouden.",
       "room_saved": "Ruimte en koppelingen opgeslagen. De regeling is niet ingeschakeld.",
       "setup_save_uncertain": "Opslaan kon niet worden bevestigd. Open de kamerinstelling opnieuw en controleer de opgeslagen kamer en groep voordat je opnieuw probeert.",
-      "setup_platform_unsupported": "Deze kamerinstelling is getest met Home Assistant 2026.10.2. Jouw versie wordt hiervoor nog niet ondersteund. Er is niets aangepast.",
+      "setup_platform_unsupported": "Deze kamerinstelling is getest met Home Assistant 2026.10.2 en 2026.10.3. Jouw versie wordt hiervoor nog niet ondersteund. Er is niets aangepast.",
       "installation_saved": "Installatie opgeslagen. De instelling activeert geen verwarming.",
       "room_removed": "Ruimte en eigen koppelingen verwijderd. Apparaten en historie zijn behouden.",
       "no_rooms": "Er zijn nog geen ruimtes. Gebruik Ruimte toevoegen op de integratiepagina.",

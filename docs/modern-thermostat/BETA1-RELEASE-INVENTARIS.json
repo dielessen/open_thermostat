@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "c60c3334455ba37bcbe8c962b696dac5e2d31c5569766a013c47dc3b7be42d7e"
+          "sha256": "9425ca34ca79a7b106852ae42cd80dd82dea1d02d10c09620e039e8a93ef549b"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
@@ -137,7 +137,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "c60c3334455ba37bcbe8c962b696dac5e2d31c5569766a013c47dc3b7be42d7e"
+          "sha256": "9425ca34ca79a7b106852ae42cd80dd82dea1d02d10c09620e039e8a93ef549b"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -245,15 +245,15 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/strings.json",
-          "sha256": "5ca0a0823a24fe530a601cabb47b2b7b4e4253654100b16ccb90987e2bc11e17"
+          "sha256": "d854e9e958a1f52030514a50f3e169bfb822a1e6ee65c1bb0fd591436fe9a068"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/en.json",
-          "sha256": "5ca0a0823a24fe530a601cabb47b2b7b4e4253654100b16ccb90987e2bc11e17"
+          "sha256": "d854e9e958a1f52030514a50f3e169bfb822a1e6ee65c1bb0fd591436fe9a068"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/nl.json",
-          "sha256": "6b5afead8169888312d87324104175174def3fee9ba8a560cdc13855d56ba23b"
+          "sha256": "e324847d518885bd9399bdf77bef7b28e8ce13b02406c8face142f0df0bcfec5"
         },
         {
           "path": "src/control/CaptivePortalPolicy.h",
@@ -539,7 +539,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "c60c3334455ba37bcbe8c962b696dac5e2d31c5569766a013c47dc3b7be42d7e"
+          "sha256": "9425ca34ca79a7b106852ae42cd80dd82dea1d02d10c09620e039e8a93ef549b"
         },
         {
           "path": "platformio.ini",
@@ -822,7 +822,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/__init__.py",
-          "sha256": "bd141ab765852ecd209fbeee0782316fa29834f3ca762a4a031d7dfd3e920b89"
+          "sha256": "4e1a01860c021e2881e95a9fc3aa3314965ec013ebfe23676784b50f7acef205"
         },
         {
           "path": "ha/tests_native/test_actuator_command_lifetime.py",

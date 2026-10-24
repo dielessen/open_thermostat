@@ -488,7 +488,7 @@
       "advanced_room_required": "This room has floor, mixing, multiple-group or external comfort controls. Use Advanced room settings to preserve that configuration. Nothing has been changed.",
       "room_saved": "Room and radiator group saved. Heating remains disabled.",
       "setup_save_uncertain": "Saving could not be confirmed. Reopen room setup and check the saved room and group before trying again.",
-      "setup_platform_unsupported": "This room setup has been verified with Home Assistant 2026.10.2. Your version is not supported by this setup yet; nothing has been changed.",
+      "setup_platform_unsupported": "This room setup has been verified with Home Assistant 2026.10.2 and 2026.10.3. Your version is not supported by this setup yet; nothing has been changed.",
       "installation_saved": "Installation saved. Heating was not activated.",
       "room_removed": "Room and its bindings removed. Devices and history are preserved.",
       "no_rooms": "No rooms yet. Use Add room on the integration page.",
@@ -656,7 +656,7 @@
         "advanced_room_required": "This room has floor, mixing, multiple-group or external comfort controls. Use Advanced room settings to preserve that configuration. Nothing has been changed.",
         "room_saved": "Room and radiator group saved. Heating remains disabled.",
         "setup_save_uncertain": "Saving could not be confirmed. Reopen room setup and check the saved room and group before trying again.",
-        "setup_platform_unsupported": "This room setup has been verified with Home Assistant 2026.10.2. Your version is not supported by this setup yet; nothing has been changed."
+        "setup_platform_unsupported": "This room setup has been verified with Home Assistant 2026.10.2 and 2026.10.3. Your version is not supported by this setup yet; nothing has been changed."
       }
     },
     "zone": {
@@ -959,7 +959,7 @@
         "advanced_room_required": "This room has floor, mixing, multiple-group or external comfort controls. Use Advanced room settings to preserve that configuration. Nothing has been changed.",
         "room_saved": "Room and radiator group saved. Heating remains disabled.",
         "setup_save_uncertain": "Saving could not be confirmed. Reopen room setup and check the saved room and group before trying again.",
-        "setup_platform_unsupported": "This room setup has been verified with Home Assistant 2026.10.2. Your version is not supported by this setup yet; nothing has been changed."
+        "setup_platform_unsupported": "This room setup has been verified with Home Assistant 2026.10.2 and 2026.10.3. Your version is not supported by this setup yet; nothing has been changed."
       }
     },
     "heating": {

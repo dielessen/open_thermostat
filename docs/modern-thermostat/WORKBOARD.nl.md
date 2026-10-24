@@ -1858,3 +1858,34 @@ eerste veld herstellen kan geen oud foutloosheids- of waterdoelbewijs terugbreng
 De rechtstreekse regressie faalt op bron `c24a316`; de eerdere CI40091742362 is
 bewust geannuleerd voor een nieuwe volledige run op de gecorrigeerde bron.
 Onafhankelijke brondeadlines blijven behouden; geen extra dynamische opslag.
+
+
+## B05 / M2: genummerde opdrachten en oorspronkelijke HA-deadline (24 oktober 2026)
+
+De bestaande kraanadapter krijgt een lokale, bron-eigen opdrachtingang. Deze
+softwaredeelpunten zijn voorbereid voor dezelfde gezamenlijke release:
+
+- [x] Integer Celsiusdoel en positief uint32-volgnummer met oorspronkelijke
+  HA-monotone deadline; wachten en service delen het bestaande maximale tijdsbudget.
+- [x] Duplicaat deelt één lopende uitkomst of ontvangt historische serviceacceptatie;
+  een gewijzigd duplicaat krijgt geen nieuwe dispatch of deadline.
+- [x] Eén laatste resultaat plus het hoogste toegelaten volgnummer; oudere
+  nummers en wrap blijven geweigerd nadat hun resultaat is vervangen.
+- [x] Duplicaat annuleren kan de uitvoerende eigenaar niet annuleren. Uitvoerende
+  annulering/fout wordt bewaard; onzekere fysieke afloop blokkeert vervolgacties.
+- [x] Wachtende doelen worden vervangen door het nieuwste; resultaten van een
+  eerdere lopende en nieuwere opdracht blijven aan het juiste volgnummer gekoppeld.
+- [x] Immutable serviceacceptatie met werkelijk afgeronde native waarde/eenheid;
+  apparaatrapport, readiness en regelkwalificatie blijven false.
+- [x] Ongenummerde proefingang blijft compatibel; beide ingangen kunnen niet
+  binnen dezelfde eigenaar worden gemengd om de volgnummers te omzeilen.
+
+32 nieuwe HA-gevallen; 200 gerichte adapter-/model-/native-bronregressies PASS.
+Deze ingang is geen broker-API en krijgt geen settingsvinkje of eigen uitvoertaak.
+De normale shadow-verbinding roept haar niet aan. De toekomstige native ontvanger
+moet actuele boot/sessie/config/binding en een eigen HA-ontvangstvenster toelaten;
+een firmwaredeadline of een bij ontvangst vernieuwde TTL voldoet niet. Daarna
+blijven de echte native zendtransactie, causale echo en fysieke kwalificatie nodig.
+Geen automatische retry, kraanmodusreparatie, Store, nieuwe wachtrij of client.
+B05/M2 en B04–B14 blijven open. Geen publicatie, installatie of fysieke opdracht.
+Bewijs: `out/m2-actuator-commands-20261024/`.

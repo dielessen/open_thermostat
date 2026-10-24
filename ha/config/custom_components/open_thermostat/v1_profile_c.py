@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 from decimal import Decimal, DecimalException, ROUND_HALF_UP
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from collections.abc import Callable
 
 from homeassistant.core import HomeAssistant
@@ -168,6 +168,33 @@ def review_room_targets(hass, room, entity_ids):
             "authorizes_actuation": False, "actuators": rows}
 
 
+@dataclass(frozen=True, slots=True)
+class RoomTargetCommand:
+    """Already admitted LOCAL command; deadline is on the HA receiver's clock.
+
+    This is not a broker schema or session/freshness proof. The future native
+    owner must validate those BEFORE invoking this existing serialized adapter.
+    One adapter belongs to one immutable binding and admitted owner lifetime.
+    """
+    sequence: int
+    target_centi_c: int
+    deadline: float
+
+
+@dataclass(frozen=True, slots=True)
+class ActuatorServiceReceipt:
+    sequence: int
+    requested_centi_c: int
+    native_target: float
+    native_unit: str
+    duplicate: bool = False
+    status: str = field(default="ha_action_accepted", init=False)
+    scope: str = field(default="service_acceptance_only", init=False)
+    device_reported: bool = field(default=False, init=False)
+    valve_ready: bool = field(default=False, init=False)
+    control_qualified: bool = field(default=False, init=False)
+
+
 class ProfileCActuator:
     def __init__(self, hass: HomeAssistant, entity_id: str, *,
                  qualified_profile: bool = False,
@@ -183,13 +210,82 @@ class ProfileCActuator:
         # Lease renewal or another target cannot clear an uncertain dispatch.
         self._outcome_unknown = False
         self._binding = _dispatch_binding(hass, entity_id)
+        # One latest result plus a lifetime high-water sequence. No Store,
+        # dispatch task, retry queue or resetting an original command budget.
+        self._command_sequence = 0
+        self._command_key = self._command_result = None
+        self._command_mode = self._legacy_mode = False
+
+    async def async_apply_command(self, command: RoomTargetCommand) -> ActuatorServiceReceipt:
+        """Deduplicate an already admitted command within THIS owner only.
+
+        An exact repeat shares the original outcome; an evicted older command
+        is rejected rather than replayed. Cancellation of a waiting duplicate
+        cannot cancel a possibly dispatched original action. The normal native
+        shadow connection does not invoke this API or create actuation authority.
+        """
+        if (type(command) is not RoomTargetCommand
+                or type(command.sequence) is not int or not 1 <= command.sequence <= 4294967295
+                or type(command.target_centi_c) is not int or not 500 <= command.target_centi_c <= 3500
+                or type(command.deadline) not in (int, float)):
+            raise HomeAssistantError("Invalid local TRV command")
+        try:
+            finite = math.isfinite(command.deadline)
+        except OverflowError:
+            finite = False
+        if not finite:
+            raise HomeAssistantError("Invalid local TRV command deadline")
+        if self._legacy_mode:
+            raise HomeAssistantError("TRV owner already uses unsequenced actions; rebuild the admitted owner")
+        key = (command.sequence, command.target_centi_c, command.deadline)
+        if command.sequence < self._command_sequence:
+            raise HomeAssistantError("TRV command sequence is older than the admitted high-water mark")
+        if command.sequence == self._command_sequence:
+            if key != self._command_key:
+                raise HomeAssistantError("TRV duplicate command payload changed")
+            receipt = await asyncio.shield(self._command_result)
+            return replace(receipt, duplicate=True) # Historical acceptance, no IO.
+        now = self.hass.loop.time()
+        if not now < command.deadline <= now + ACTION_TIMEOUT_SECONDS:
+            raise HomeAssistantError("TRV command expired or exceeds original action budget; no command sent")
+        self._command_mode = True
+        result = self.hass.loop.create_future()
+        # The owner also awaits the action directly. Mark an unobserved cached
+        # failure retrieved, while preserving it for exact duplicate callers.
+        def settled(future):
+            if not future.cancelled():
+                future.exception()
+        result.add_done_callback(settled)
+        self._command_sequence, self._command_key, self._command_result = command.sequence, key, result
+        try:
+            actual, unit = await self._execute_target(command.target_centi_c / 100,
+                                                      deadline=command.deadline)
+            receipt = ActuatorServiceReceipt(command.sequence, command.target_centi_c, actual, unit)
+        except asyncio.CancelledError:
+            result.set_exception(HomeAssistantError("TRV command owner cancelled; no automatic retry"))
+            raise
+        except Exception as error:
+            result.set_exception(error)
+            raise
+        result.set_result(receipt)
+        return receipt
 
     async def async_set_room_target(self, celsius: float) -> float:
         from .v1_model import target_centi
         target_centi(celsius)
+        if self._command_mode:
+            raise HomeAssistantError("TRV owner requires sequenced commands; unsequenced action refused")
+        self._legacy_mode = True
+        actual, _unit = await self._execute_target(celsius)
+        return actual
+
+    async def _execute_target(self, celsius: float, *, deadline: float | None = None) -> tuple[float, str]:
+        from .v1_model import target_centi
+        target_centi(celsius)
         self._request += 1
         request = self._request
-        deadline = self.hass.loop.time() + ACTION_TIMEOUT_SECONDS
+        if deadline is None:
+            deadline = self.hass.loop.time() + ACTION_TIMEOUT_SECONDS
         dispatched = False
 
         def current():
@@ -253,7 +349,7 @@ class ProfileCActuator:
                         raise HomeAssistantError("TRV action completed after deadline")
                     # A newer queued target does not erase historical service
                     # acceptance. It still cannot confirm an echo or readiness.
-                    return float(actual)
+                    return float(actual), capability.unit
         except TimeoutError as err:
             if dispatched:
                 self._outcome_unknown = True

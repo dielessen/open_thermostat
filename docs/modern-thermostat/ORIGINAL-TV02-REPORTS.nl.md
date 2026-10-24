@@ -279,3 +279,48 @@ gewijzigd. Browserproeven gebruiken NL/EN en 1440/390/320 px; een bestaande v28
 is ook vóór import van de volgende versie geregistreerd. Geen nieuwe polling,
 apparaatopdracht, productie-installatie of fysieke vrijgave.
 Bewijs: `out/release-diagnostics-bundle-20261024/`.
+
+
+## M2: lokale opdrachtlevensduur in dezelfde kraanadapter
+
+De voorbereide `ProfileCActuator.async_apply_command` neemt een immutable lokale
+`RoomTargetCommand` aan: positief uint32-volgnummer, integer kamerdoel in honderdsten
+Celsius en een oorspronkelijke absolute deadline op de monotone HA-klok. De
+maximale looptijd blijft tien seconden inclusief wachten op de bestaande lock en
+de service. Een deadline uit de firmwareklok mag hier niet rechtstreeks worden
+gebruikt. De toekomstige ontvanger moet eerst de boot/sessie/config/binding en
+een eigen versheidsvenster toelaten; deze lokale methode bewijst die toelating niet.
+
+Binnen één bron-eigenaar geldt:
+
+- Een exact duplicaat deelt het lopende resultaat of krijgt de historische
+  serviceacceptatie terug. Geen tweede service, nieuw tijdsbudget of nieuwe target.
+- Hetzelfde volgnummer met gewijzigd doel/deadline wordt geweigerd. Alleen het
+  laatste resultaat wordt bewaard; oudere nummers blijven door het hoogste
+  toegelaten volgnummer geweigerd, ook nadat hun resultaat is vervangen. Geen wrap.
+- De geserialiseerde adapter blijft oudere wachtende doelen vervangen door het
+  nieuwste doel. Een al verstuurde eerdere actie houdt haar eigen historische
+  resultaat; zij kan het resultaat van een nieuwere opdracht niet overschrijven.
+- Annuleren van een wachtend duplicaat annuleert de oorspronkelijke actie niet.
+  Annuleren van de uitvoerende eigenaar wordt als uitkomst bewaard. Als dispatch
+  al was begonnen blijft de bestaande fysieke onzekerheid vervolgacties blokkeren.
+- Fouten en verlopen opdrachten worden bij duplicaten niet opnieuw geprobeerd.
+  De oude ongenummerde proefmethode blijft compatibel, maar kan binnen dezelfde
+  eigenaar niet met genummerde opdrachten worden gemengd.
+
+De immutable `ActuatorServiceReceipt` bewaart het gevraagde Celsiusdoel, de werkelijk
+gebruikte afgeronde native waarde en eenheid, plus `ha_action_accepted` en
+`service_acceptance_only`. `device_reported`, `valve_ready` en `control_qualified`
+blijven false. Een historische herhaling is expliciet `duplicate:true`, ook nadat
+de oorspronkelijke deadline verstreken is. De receipt bevat geen entity-/apparaat-ID.
+
+Dit breidt dezelfde bestaande eigenaar uit: geen nieuwe uitvoertaak, timer,
+wachtrij, MQTT-client, Store, GUI-vrijgave of normale wire-handler. Een toekomstige
+native sessie moet een eigen adapterlevensduur krijgen; deze lokale cache bewijst
+geen duplicaatveiligheid over herstarts heen. De normale shadow-keten roept deze
+methode niet aan. FW→HA-versheidsbewijs, native Zigbee-zendtransactie, causale echo,
+exclusief programma-eigenaarschap en fysieke kraan/readiness/flow blijven open.
+
+32 nieuwe native HA-gevallen plus bestaande adapter-/model-/bronregressies:
+200 gerichte tests PASS. Echte HA-services/registers met synthetische handler,
+geen MQTT/device-I/O. Bewijs: `out/m2-actuator-commands-20261024/`.

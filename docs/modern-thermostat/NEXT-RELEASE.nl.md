@@ -18,6 +18,7 @@ nog geen nieuwe publieke tag, flash, HA-herstart of fysieke vrijgave uitgevoerd.
 | Duidelijke uitvalbediening | Uitklapbare EN/NL-uitleg op Home, behouden tijdens verversen | Echte Chromiumbrowser op desktop en mobiel |
 | Kraanopdracht bij verlies van eigenaarschap | Bevoegdheid, native binding, bedrijfsmodus en capability worden ook na de lopende HA-service gecontroleerd; onzeker resultaat blokkeert vervolgdoelen | Native HA-regressies met geblokkeerde synthetische service; geen echte zendbevestiging |
 | TV02-ontvangst | Ontvangstmetadata blijft na verval inspecteerbaar zonder oude datapointwaarden, privé-ID's of regelbevoegdheid | Native HA-tests met echte Node-producent en lifecycle |
+| M2-opdrachtlevensduur | Genummerde lokale opdrachten in bestaande adapter: oorspronkelijke deadline, gedeeld duplicaatresultaat, hoogste volgnummer, correcte eenheid en annulering | 32 nieuwe / 200 gerichte HA-tests; gewone wire-route en native Zigbee-receipt blijven open |
 | HA-kraanontvangst in EN/NL | Laatste berichttype, ontvangstouderdom en aanwezige gegevensnamen ook na verval; geen oude waarden of fysieke bevestiging | Zes browserprofielen plus native HA-keten |
 | Bijgewerkte HA-editor | Eigen module-URL en kaarttag v35; bestaande v28 kan de nieuwe beheerde kaart niet verdringen, handmatige kaarten blijven compatibel | Koude/preloaded browserproeven en native editor-/dashboardtests |
 | Incrementele systeemlog | Hele batch valideren vóór cursor/historie; ongeldige suffix verbruikt geen geldige prefix, eigen cursor na bootwissel | Oude bron faalt op cursor3 versus2; vier EN/NL-browserprofielen slagen |
@@ -69,7 +70,8 @@ Bron- en testbewijs voor deze bundel:
 `out/source-freshness-20261024/` en
 `out/actuator-owner-loss-20261024/` en
 `out/release-diagnostics-bundle-20261024/` en
-`out/release-control-gates-20261024/`. De volledige CI-uitkomst wordt gekoppeld
+`out/release-control-gates-20261024/` en
+`out/m2-actuator-commands-20261024/`. De volledige CI-uitkomst wordt gekoppeld
 aan de exacte bevroren broncommit in `FINAL-REVIEW.json`; lokale checks alleen
 sluiten de publieke release- of fysieke poorten niet.
 

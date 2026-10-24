@@ -38,7 +38,7 @@ alpha28-uploader-watchdogoorzaak en herstelroute blijven onbekend.
 | Laatste livecontrole | 24 oktober 21:17:50 UTC: HA43 geladen en E32alpha28 bevestigd; 38 onafhankelijke checks geslaagd, instellingen/back-up behouden, uitgangen geblokkeerd; TV02 ongekwalificeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 252 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 256 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
 met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
@@ -85,6 +85,25 @@ Een ontbrekende fysieke waarneming blokkeert onafhankelijk softwarewerk niet.
 - Frontend dev41/v41 met behoud van v38/v35-kaarten; koude upgrade, conceptkeuze en beide talen getest. Geïnstalleerd en onafhankelijk gecontroleerd; geen fysieke vrijgave.
 
 [Uitwerking en verificatie](M2-ONTVANGER-EN-BRONKEUZE-20261024.nl.md).
+
+### In voorbereiding voor de grotere bèta — FW→HA-kraanberichten
+
+De firmwaretegenhanger `ActuatorIntent` kan het bestaande HA-grant lezen en een
+exacte `room_target`-envelop produceren. Dit blijft broncode in voorbereiding,
+zonder productie-selectie, publisher, nieuwe brokerroute of fysieke opdracht.
+De C++-bytes worden daadwerkelijk door de native HA43-ontvanger en de bestaande
+Profile-C-adapter gecontroleerd; de ontvangst bewijst alleen serviceacceptatie.
+
+Oorspronkelijke lokale aanvraag- en leasedeadlines begrenzen het venster; een
+herhaald grant verlengt dat niet. Eén grant produceert maximaal één opdracht,
+zonder automatische retry. Scopeverlies, waargenomen leaseverlies, klokterugloop
+en intrekken tijdens autorisatie blokkeren deze eigenaar blijvend.
+702 native tests en 2.287 HA-gevallen per ondersteunde Core slagen; onafhankelijke
+bronreview v2 geslaagd. Zie [uitwerking en grenzen](M2-FW-HA-INTEROPERABILITEIT-20261024.nl.md).
+
+**B05 blijft open:** de normale SOURCE-/lease-eigenaar en transportbedrading,
+causale oorspronkelijke Tuya-zendtransactie/echo en fysieke kwalificatie ontbreken.
+Geen nieuwe release/tag of productie-installatie alleen voor deze tussenstap.
 
 ### Geleverd in HA40 — B05/M2-kraanadapter
 

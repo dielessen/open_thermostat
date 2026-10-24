@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "a4333a328d839e517a406142fcbb0226c1df1514a6cec078164e5ec93b405bf4"
+          "sha256": "1f1ab439025cec46aa2187488df8b9a390d8cd76b5dc731c34c947ac39cabb09"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
@@ -132,7 +132,7 @@
           "sha256": "31b934c7ef309036f6af0e05057aff08ef5cb3d74b689bdaad5ae401f168d8ad"
         }
       ],
-      "remaining_acceptance": "Alpha26 HTTPS-afwijking blijft onverklaard; geen blinde herhaling. Blijvende enkelvoudige NVS-updatediagnose en EN/NL-webpresentatie geleverd in alpha27/dev36. Echte flash-/powerloss-/herstelacceptatie en normale update op een afzonderlijk beoordeelde kandidaat blijven open. Alpha29 app-only upload mislukte met reset6; HA38/E32alpha28 blijft werkelijke basis. Strikte lengte, handle-opruiming en selectie na volledig geautoriseerd verzoek zijn bronmatig voorbereid; geen oorzaakbewijs, herstelproef of installatievrijgave. De bestaande native HTTPS-checkpointscope blijft ongewijzigd."
+      "remaining_acceptance": "Alpha26 HTTPS-afwijking blijft onverklaard; geen blinde herhaling. Blijvende enkelvoudige NVS-updatediagnose en EN/NL-webpresentatie geleverd in alpha27/dev36. Echte flash-/powerloss-/herstelacceptatie en normale update op een afzonderlijk beoordeelde kandidaat blijven open. Alpha29 app-only upload mislukte met reset6; Actuele basis is HA43/E32alpha28; de mislukte upload is niet herhaald. Strikte lengte, handle-opruiming en selectie na volledig geautoriseerd verzoek zijn bronmatig voorbereid; geen oorzaakbewijs, herstelproef of installatievrijgave. De bestaande native HTTPS-checkpointscope blijft ongewijzigd."
     },
     {
       "id": "I04",
@@ -149,7 +149,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "a4333a328d839e517a406142fcbb0226c1df1514a6cec078164e5ec93b405bf4"
+          "sha256": "1f1ab439025cec46aa2187488df8b9a390d8cd76b5dc731c34c947ac39cabb09"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -559,7 +559,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "a4333a328d839e517a406142fcbb0226c1df1514a6cec078164e5ec93b405bf4"
+          "sha256": "1f1ab439025cec46aa2187488df8b9a390d8cd76b5dc731c34c947ac39cabb09"
         },
         {
           "path": "platformio.ini",
@@ -764,7 +764,7 @@
           "sha256": "da4e35b08b35887fb231aae153a7a2139d6d17e17cbf6f852f8f8b979a8774ed"
         }
       ],
-      "remaining_acceptance": "Alpha23/HA29 live: actuele afzonderlijke snapshot met69definities,27HA/REST waarde-/eenheid-/kwaliteitsmatches (25reported/2inferred),20unknown/unavailable en22onbetrouwbare diagnostiekentiteiten uitgeschakeld. Originele bronwaarnemingsmarkeringen/kwaliteit apart bewaard; geen exacte ouderdomspariteit, acquisitie-, continue-dekkings- of fysieke bruikbaarheidsclaim. Read-all onafhankelijk van model; TX/uitgangen blijven geblokkeerd. Langere observatie en fysieke validatie blijven open. Gepland +6h-moment:4u32Recorder-venster,165entiteitsantwoorden/532regels,geen open paginering; drie variërende native temperatuurvelden. Geen continue acquisitie-/fysieke werkingsclaim; oorspronkelijke +1h blijftFAILED/UNKNOWN. Bronmatig: per-veld rapportvolgorde en blijvende HA-intrekking gecorrigeerd, 10 native/6 HA-regressies toegevoegd; 689 native tests inclusief nul-uptimecompatibiliteit. Nog niet geïnstalleerd; fysieke bron-/zend-/stopkwalificatie blijft open."
+      "remaining_acceptance": "Alpha23/HA29 live: actuele afzonderlijke snapshot met69definities,27HA/REST waarde-/eenheid-/kwaliteitsmatches (25reported/2inferred),20unknown/unavailable en22onbetrouwbare diagnostiekentiteiten uitgeschakeld. Originele bronwaarnemingsmarkeringen/kwaliteit apart bewaard; geen exacte ouderdomspariteit, acquisitie-, continue-dekkings- of fysieke bruikbaarheidsclaim. Read-all onafhankelijk van model; TX/uitgangen blijven geblokkeerd. Langere observatie en fysieke validatie blijven open. Gepland +6h-moment:4u32Recorder-venster,165entiteitsantwoorden/532regels,geen open paginering; drie variërende native temperatuurvelden. Geen continue acquisitie-/fysieke werkingsclaim; oorspronkelijke +1h blijftFAILED/UNKNOWN. Bronmatig: per-veld rapportvolgorde en blijvende HA-intrekking gecorrigeerd, 10 native/6 HA-regressies toegevoegd; 689 native tests inclusief nul-uptimecompatibiliteit. HA-cachecorrectie opgenomen in de geverifieerde HA43-bronbestanden. E32-correctie beschikbaar in alpha30, maar de module draait nog alpha28; geen E32-installatie- of fysieke bron-/zend-/stopkwalificatieclaim."
     },
     {
       "id": "I13",
@@ -804,7 +804,7 @@
     {
       "id": "I14",
       "title": "Kraanadapter profiel C, TV02-moduscontrole en tijdelijke bronbench",
-      "status": "Modus-/identiteitscontrole geleverd; native oorspronkelijke ontvangst/lifecycle voorbereid",
+      "status": "HA38-opstartherstel en HA43-ontvangertoelating geleverd; firmware-intentie en echte C++/HA-interoperabiliteit voorbereid",
       "include_in_beta": true,
       "requirements": [
         "R03",
@@ -915,9 +915,25 @@
         {
           "path": "ha/tests_native/test_temperature_source_review.py",
           "sha256": "f11160f51ffa05b26ef54be13942543bb9846c39ee74e1427b28ae2cd253dbbb"
+        },
+        {
+          "path": "src/control/ActuatorIntent.h",
+          "sha256": "ccd7e3dead6ebeac18d7c66725dfc7f794cd5ab77d0e1b80d6f2cadbf3f5bc43"
+        },
+        {
+          "path": "test/test_native/test_actuator_intent.cpp",
+          "sha256": "8118e40ac1f77a780f03c4f04bf148d17a75f76f667ad147240cf9c758cbd4aa"
+        },
+        {
+          "path": "test/interop/actuator_intent_runner.cpp",
+          "sha256": "d59186e4ce304e8f6423d26685062a011444e692af8e750bc4a72d39505095c6"
+        },
+        {
+          "path": "ha/tests_native/test_actuator_intent_interop.py",
+          "sha256": "4eb379b844d7ba1609e6b6ea6950b97d96d315a9c29daa7aeff6731415d336ac"
         }
       ],
-      "remaining_acceptance": "Eerdere oorspronkelijke TV02-ontvangst blijkt uit geïnstalleerde stale-status; verse ontvangst, unieke native zendtransactie/causale echo, schema-eigenaarschap en fysieke werking blijven open. Begrensde ontvangstmetadata na verval voorbereid/getest; geen oude waarden of readiness vrijgegeven. Na HA37-herstart oorspronkelijke TV02-diagnose leeg met bronbindingswaarschuwing; oorzaak en diagnose-lifecycle herstellen zonder bronwissel."
+      "remaining_acceptance": "HA38-opstartherstel geleverd; eerdere oorspronkelijke TV02-ontvangst blijkt uit stale-diagnose, huidige wachtende/stale status blijft ongekwalificeerd. HA43-ontvangerkern geleverd zonder normale fabrieksselectie; firmwaretegenhanger met oorspronkelijke aanvraag-/leasegrenzen en echte C++/HA-tests voorbereid voor de grotere release. Normale actuele SOURCE-/lease-/transportbedrading en verzendtijdcontrole, verse ontvangst, unieke native zendtransactie/causale echo, schema-eigenaarschap en fysieke werking blijven open. Geïnstalleerde converterbron niet bereikbaar via bestaande toegestane toegang; versies/diagnostiek zijn geen bron- of ACK-bewijs."
     },
     {
       "id": "I15",
@@ -985,7 +1001,7 @@
           "sha256": "54a6e25b20fd75255855d900853daeb8f6180417d00e9859b244bd5cb83d269e"
         }
       ],
-      "remaining_acceptance": "Lokale lease-expiry bij stille HA en offline naloop/klokgrenzen gebouwd/getest; logische intenties zijn geen fysieke stop. Werkelijke producenten, installatieprofiel en fysieke uitvoer-/uitvalketen blijven open. B06 toekomstige-feitquarantaine en klokfences bronmatig afgerond met twaalf regressies/677 native tests en gedeelde veiligheidscontrole voor zonepolicy/storingsbevestiging; nog niet geïnstalleerd, geen fysieke producent- of regelkwalificatie."
+      "remaining_acceptance": "Lokale lease-expiry bij stille HA en offline naloop/klokgrenzen gebouwd/getest; logische intenties zijn geen fysieke stop. Werkelijke producenten, installatieprofiel en fysieke uitvoer-/uitvalketen blijven open. B06 toekomstige-feitquarantaine en klokfences bronmatig afgerond met twaalf regressies/677 native tests en gedeelde veiligheidscontrole voor zonepolicy/storingsbevestiging; HA-deel opgenomen in geverifieerde HA43-bronbestanden; E32-deel beschikbaar in alpha30, module blijft alpha28. Geen fysieke producent- of regelkwalificatie."
     },
     {
       "id": "I16",
@@ -1121,7 +1137,7 @@
           "sha256": "dd0bc1e9563ef9589349ddc88a350e94748355953e5312f272e59ba0513729d2"
         }
       ],
-      "remaining_acceptance": "Alpha21/HA27 bron/gezondheid/readback geverifieerd. Eigen Boiler observations toont alle47ingeschakelde native definities met3historiekaarten en aparte reported/inferredgroepen; disabled/foreign/rawonbetrouwbarevelden niet in gerapporteerde grafieken. Alle105registryrecords en bestaande statistiekidentiteiten behouden. 1818HA-tests,1094pakketchecks,651firmwarebronbestanden/79HA-bronbestanden. Doorlopende24h-retentie/bruikbaarheid blijft observatie; eerste geplande1hcontrole faalde op toolbody en blijft UNKNOWN;6h/24hpayloads hersteld, native geïsoleerde retry PASS: alle actuele velden,629 begrensde Recorder-rijen/67 entiteiten; historie expliciet gedeeltelijk. Geen controlkwalificatie. Bronmatig: per-veld rapportvolgorde en blijvende HA-intrekking gecorrigeerd, 10 native/6 HA-regressies toegevoegd; 689 native tests inclusief nul-uptimecompatibiliteit. Nog niet geïnstalleerd; fysieke bron-/zend-/stopkwalificatie blijft open."
+      "remaining_acceptance": "Alpha21/HA27 bron/gezondheid/readback geverifieerd. Eigen Boiler observations toont alle47ingeschakelde native definities met3historiekaarten en aparte reported/inferredgroepen; disabled/foreign/rawonbetrouwbarevelden niet in gerapporteerde grafieken. Alle105registryrecords en bestaande statistiekidentiteiten behouden. 1818HA-tests,1094pakketchecks,651firmwarebronbestanden/79HA-bronbestanden. Doorlopende24h-retentie/bruikbaarheid blijft observatie; eerste geplande1hcontrole faalde op toolbody en blijft UNKNOWN;6h/24hpayloads hersteld, native geïsoleerde retry PASS: alle actuele velden,629 begrensde Recorder-rijen/67 entiteiten; historie expliciet gedeeltelijk. Geen controlkwalificatie. Bronmatig: per-veld rapportvolgorde en blijvende HA-intrekking gecorrigeerd, 10 native/6 HA-regressies toegevoegd; 689 native tests inclusief nul-uptimecompatibiliteit. HA-cachecorrectie opgenomen in de geverifieerde HA43-bronbestanden. E32-correctie beschikbaar in alpha30, maar de module draait nog alpha28; geen E32-installatie- of fysieke bron-/zend-/stopkwalificatieclaim."
     },
     {
       "id": "I18",
@@ -1236,7 +1252,7 @@
           "sha256": "b3cccd5b1e764482bc28a8c7dbbe90bb3e2a67f64199ad6614883c54ad167b32"
         }
       ],
-      "remaining_acceptance": "Alle 69 velden/rapport en maximaal 24 ontvangen typen getest op 1280/390/320 px; bestaande actieve-proefguards eveneens. Drie boardbuilds en E32-layout/defaults/no-TX-objectcontrole PASS. Nieuwe bron nog niet uitgerold. Native HA-projectie voor alle 69 velden voorbereid en getest in broncheckpoint 60c548f; nog niet geïnstalleerd. Fysieke veldvalidatie blijft open."
+      "remaining_acceptance": "Alle 69 velden/rapport en maximaal 24 ontvangen typen getest op 1280/390/320 px; bestaande actieve-proefguards eveneens. Drie boardbuilds en E32-layout/defaults/no-TX-objectcontrole PASS. E32-bron beschikbaar in alpha30, module draait alpha28. Native HA-projectie voor alle 69 velden voorbereid/getest in broncheckpoint 60c548f en opgenomen in de geverifieerde HA43-bestanden; dat bewijst geen nieuwe of bruikbare waarde voor ieder ketelveld. Fysieke veldvalidatie blijft open."
     },
     {
       "id": "I22",
@@ -1267,7 +1283,7 @@
           "sha256": "faa0bfa19f58d47172c7d335ca8e0a7eade1316d0f91c4d72337aad293ce433b"
         }
       ],
-      "remaining_acceptance": "20 policytests en 5 queue-tests binnen 80 unieke ASan/UBSan-gevallen PASS. Poll-executor aangesloten, begin/finish bewaart IO-historie. Beoordeelde installatieadressering en fysieke TX-/stopkwalificatie open. Bronmatig: per-veld rapportvolgorde en blijvende HA-intrekking gecorrigeerd, 10 native/6 HA-regressies toegevoegd; 689 native tests inclusief nul-uptimecompatibiliteit. Nog niet geïnstalleerd; fysieke bron-/zend-/stopkwalificatie blijft open."
+      "remaining_acceptance": "20 policytests en 5 queue-tests binnen 80 unieke ASan/UBSan-gevallen PASS. Poll-executor aangesloten, begin/finish bewaart IO-historie. Beoordeelde installatieadressering en fysieke TX-/stopkwalificatie open. Bronmatig: per-veld rapportvolgorde en blijvende HA-intrekking gecorrigeerd, 10 native/6 HA-regressies toegevoegd; 689 native tests inclusief nul-uptimecompatibiliteit. HA-cachecorrectie opgenomen in de geverifieerde HA43-bronbestanden. E32-correctie beschikbaar in alpha30, maar de module draait nog alpha28; geen E32-installatie- of fysieke bron-/zend-/stopkwalificatieclaim."
     },
     {
       "id": "I23",
@@ -1344,7 +1360,7 @@
           "sha256": "ac496fb5e60732f1727cf7b49a80043983a3be5a0a4c353ffe7b481f55d73566"
         }
       ],
-      "remaining_acceptance": "Poll-executor, Classic-formaat en gedeelde gecontroleerde SDK-zendroute aangesloten/getest; 80 native ASan/UBSan PASS. Webassets ongewijzigd, eerder 3 controlviewports PASS. Beoordeeld profiel/adressering/masker, hydraulische gates, totale UART-latentie en fysieke UART-/stopkwalificatie open; default E32-TX blijft geblokkeerd. Bronmatig: per-veld rapportvolgorde en blijvende HA-intrekking gecorrigeerd, 10 native/6 HA-regressies toegevoegd; 689 native tests inclusief nul-uptimecompatibiliteit. Nog niet geïnstalleerd; fysieke bron-/zend-/stopkwalificatie blijft open."
+      "remaining_acceptance": "Poll-executor, Classic-formaat en gedeelde gecontroleerde SDK-zendroute aangesloten/getest; 80 native ASan/UBSan PASS. Webassets ongewijzigd, eerder 3 controlviewports PASS. Beoordeeld profiel/adressering/masker, hydraulische gates, totale UART-latentie en fysieke UART-/stopkwalificatie open; default E32-TX blijft geblokkeerd. Bronmatig: per-veld rapportvolgorde en blijvende HA-intrekking gecorrigeerd, 10 native/6 HA-regressies toegevoegd; 689 native tests inclusief nul-uptimecompatibiliteit. HA-cachecorrectie opgenomen in de geverifieerde HA43-bronbestanden. E32-correctie beschikbaar in alpha30, maar de module draait nog alpha28; geen E32-installatie- of fysieke bron-/zend-/stopkwalificatieclaim."
     }
   ],
   "requirements": [

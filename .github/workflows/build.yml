@@ -242,6 +242,7 @@ jobs:
           g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_validation_runner.cpp out/graph-cjson.o -ldl -o out/graph-validation-runner
           g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_configuration_runner.cpp out/graph-cjson.o -ldl -o out/graph-configuration-runner
           g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_session_runner.cpp out/graph-cjson.o -ldl -o out/graph-session-runner
+          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -I.pio/libdeps/native/cJSON test/interop/actuator_intent_runner.cpp out/graph-cjson.o -o out/actuator-intent-runner
           g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_control_projection_runner.cpp out/graph-cjson.o -ldl -o out/graph-control-projection-runner
           g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/packed_schedule_runner.cpp out/graph-cjson.o -ldl -o out/packed-schedule-runner
           g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/topology_review_runner.cpp out/graph-cjson.o -ldl -o out/topology-review-runner

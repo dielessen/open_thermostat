@@ -176,7 +176,14 @@ async def test_registered_actions_durable_mapping_exclusion_raw_fw_and_restore(a
     assert stopped["normal_mapping_restored"] is True
     assert runtime._bench_owner is None and connection.bench is None
     assert connection.client.journal["accepted"]["mapping"] == original
+    # A mapping ACK may precede the next confirmed state frame. The climate
+    # must already expose no old bench temperature while that frame is pending.
+    assert climate.current_temperature is None
+    async with asyncio.timeout(5):
+        while binding.room_id not in runtime.decisions:
+            await asyncio.sleep(0.01)
     assert runtime.decisions[binding.room_id].current_centi_c is None
+    assert runtime.decisions[binding.room_id].demand is False
     assert "zigbee2mqtt/selected" in removed
 
 @pytest.mark.asyncio

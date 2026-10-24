@@ -15,6 +15,14 @@ en alle negen openbare downloads vergeleken. HA39 is geïnstalleerd en de afzond
 nacontrole van 18:54 UTC is geslaagd. De oude alpha28-uploader blijft een
 herstelpunt: nieuwe broncode bewijst geen reparatie van de eerdere watchdogreset.
 
+## Voorbereid voor de volgende grotere kandidaat
+
+B04/B05/B10: gesloten HA-ontvangertoelating met oorspronkelijke vijfseconden-grants,
+exacte scope en zonder replay, plus directe EN/NL-bronkeuze-uitleg in de kamereditor.
+De ontvangstkern is niet door de normale fabriek geselecteerd; afzender/leasebinding,
+causale echo en fysieke kwalificatie blijven open. Frontend v41 behoudt v38/v35.
+[Details en bewijs](M2-ONTVANGER-EN-BRONKEUZE-20261024.nl.md).
+
 ## Geleverde HA40-release
 
 B05/M2: de Profile-C-kraanadapter trekt zijn eigenaar blijvend in bij

@@ -36,7 +36,7 @@ alpha28-uploader-watchdogoorzaak en herstelroute blijven onbekend.
 | Laatste livecontrole | 24 oktober 19:28 UTC: HA40 geladen en E32alpha28 bevestigd; instellingen/back-up behouden, uitgangen geblokkeerd; TV02 ongekwalificeerd/wachtend |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 249 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 252 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
 met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
@@ -74,6 +74,14 @@ historisch; de tabellen en deze volgorde bepalen nieuw werk.
 Leren/PI/PID en blijvend bewaarde, gevalideerde parameters per ruimte blijven
 verplicht voor de definitieve versie (R12); nieuwe F9/F10-stages volgen na M2.
 Een ontbrekende fysieke waarneming blokkeert onafhankelijk softwarewerk niet.
+
+### Voorbereide grotere kandidaat — B04/B05/B10
+
+- HA-ontvangertoelating als standaard gesloten, brongebonden kern: vijfsecondenvenster op de HA-klok, exacte scope/grant/sequence en één lopende actie. Geen verlenging bij ontvangst of retry; historische serviceacceptatie blijft geen kraan-ACK. Nog niet geselecteerd door de normale native fabriek; FW-wireafzender, huidige leasebinding en causale oorspronkelijke echo blijven open.
+- Kamereditor: directe EN/NL-waarschuwing voor de gekozen interne apparaattemperatuur en diagnostische entiteiten. Gewone getalwaarden kwalificeren geen bron; ontbrekende native metadata blokkeert de editor niet. Geen automatische sensorwissel.
+- Frontend dev41/v41 met behoud van v38/v35-kaarten; koude upgrade, conceptkeuze en beide talen getest. Nog geen installatie of fysieke vrijgave.
+
+[Uitwerking en verificatie](M2-ONTVANGER-EN-BRONKEUZE-20261024.nl.md).
 
 ### Geleverd in HA40 — B05/M2-kraanadapter
 

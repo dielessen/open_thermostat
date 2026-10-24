@@ -26,7 +26,7 @@ const initial={measurement:{status:'profile_missing',report_profile_configured:f
  // Existing saved v35 cards must render with ONLY the new module loaded.
  await boot.evaluate(initial=>{
   window.upgradeCalls=[];
-  for(const tag of ['openthermostat-room-editor-v35','openthermostat-room-editor-v38']){
+  for(const tag of ['openthermostat-room-editor-v35','openthermostat-room-editor-v38','openthermostat-room-editor-v41']){
    const card=document.createElement(tag);document.body.append(card);
    card.setConfig({entry_id:initial.entry_id,room_id:initial.room_id});
    card.hass={language:'en',user:{is_admin:true},callWS:async request=>{
@@ -36,11 +36,11 @@ const initial={measurement:{status:'profile_missing',report_profile_configured:f
    }};
   }
  },initial);
- for(const tag of ['openthermostat-room-editor-v35','openthermostat-room-editor-v38']){
+ for(const tag of ['openthermostat-room-editor-v35','openthermostat-room-editor-v38','openthermostat-room-editor-v41']){
   await boot.locator(tag+' #name').waitFor();
   assert.equal(await boot.locator(tag+' #name').inputValue(),initial.settings.name);
  }
- assert.deepEqual(await boot.evaluate(()=>upgradeCalls),['open_thermostat/room/get','open_thermostat/room/get']);
+ assert.deepEqual(await boot.evaluate(()=>upgradeCalls),['open_thermostat/room/get','open_thermostat/room/get','open_thermostat/room/get']);
  await boot.close();
  for(const [size,viewport]of [['desktop',{width:1440,height:1100}],['mobile',{width:390,height:844}]])for(const language of ['nl','en'])for(const shell of ['cold','preloaded']){
   const page=await browser.newPage({viewport});const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -67,6 +67,17 @@ const initial={measurement:{status:'profile_missing',report_profile_configured:f
   },{initial,language});
   const nl=language==='nl',card=page.locator('openthermostat-room-editor-v38');await card.locator('#name').waitFor();
   assert.match(await card.locator('.measurement-state').innerText(),nl?/getoetst meetprofiel ontbreekt/:/reviewed measurement profile is still missing/);
+  const callsBeforeSourceReview=await page.evaluate(()=>calls.length);
+  await page.evaluate(()=>{card._model.temperature_source_review={reason:'internal_device_temperature',authorizes_control:false};card.refreshStatus();});
+  assert.match(await card.locator('.temperature-source-review').innerText(),nl?/interne apparaattemperatuur/:/internal device temperature/);
+  await page.evaluate(()=>{card._model.choices.sensor.push({value:'sensor.other_diagnostic',label:'Other',status:'available',temperature_role:'diagnostic'});card._settings.temperature_entity='sensor.other_diagnostic';card.refreshStatus();});
+  assert.match(await card.locator('.temperature-source-review').innerText(),nl?/diagnostiek/:/diagnostic/);
+  assert.doesNotMatch(await card.locator('.temperature-source-review').innerText(),nl?/interne apparaattemperatuur/:/internal device temperature/);
+  await page.evaluate(()=>{card._settings.temperature_entity='sensor.new_room_air';card.refreshStatus();});
+  assert.equal(await card.locator('.temperature-source-review').innerText(),'');
+  await page.evaluate(()=>{card._settings.temperature_entity=card._model.settings.temperature_entity;delete card._model.temperature_source_review;card.refreshStatus();});
+  assert.equal(await page.evaluate(()=>calls.length),callsBeforeSourceReview);
+
   for(const status of ['qualified','stale','unverified','inactive']){
    await page.evaluate(status=>{card._model.measurement.status=status;card.refreshStatus();},status);
    assert((await card.locator('.measurement-state').innerText()).length>20);

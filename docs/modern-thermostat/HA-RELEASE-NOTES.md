@@ -1,3 +1,36 @@
+# HA 0.4.0.dev41 — duidelijke temperatuurbronkeuze en M2-ontvangertoelating
+
+Grotere onderhoudskandidaat met behoud van alle bestaande functies en instellingen.
+
+- De kamereditor waarschuwt direct in Nederlands/Engels wanneer de gekozen bron interne apparaattemperatuur is. Diagnostische sensoren krijgen een herkenbaar label; geen verborgen automatische bronwissel of kwalificatie van een gewone cachewaarde.
+- Ontbrekende/corrupte optionele native MQTT-metadata verhindert het laden van de kamer niet. De waarschuwing volgt de actuele conceptkeuze en blijft niet aan een vervangende sensor plakken.
+- Frontend dev41/v41 met expliciete v38/v35-compatibiliteit; bestaande handmatige kaarten blijven werken. Alleen eigen gegenereerde kaart-/resourceverwijzingen mogen bij de update meegaan.
+- Nieuwe voorbereide M2-ontvangerkern: standaard gesloten, exact lokaal bron-/sessie-/config-/bindingbezit, vijf seconden geldigheid op de HA-klok, één lopende opdracht en geen verlenging bij ontvangst. Duplicates zijn alleen historisch; onzekere of geannuleerde acties worden niet herhaald. Callback-intrekking en hergebruik van dezelfde adapter kunnen de eigenaar niet omzeilen.
+
+De ontvangerkern wordt niet door de productie-fabriek geselecteerd. Normale
+FW→HA-bedrading, actuele leasebinding, causale oorspronkelijke kraanecho en fysieke
+kwalificatie blijven open. Dit is geen actieve bèta of vrijgave van kraan-/keteluitvoer.
+
+59 nieuwe basisgevallen plus vier aanvullende eigenaarsgrensregressies. Gerichte
+HA- en koude browserproeven op desktop/mobiel in beide talen slagen; volledige
+Core 2026.10.2/2026.10.3- en exacte tag-CI blijven afzonderlijke leveringsvoorwaarden.
+
+Entiteits-ID’s, eenheden, statistieken, SOURCE/journal en instellingenformaat blijven
+behouden. E32-runtimecode is niet gewijzigd: firmwaredownload alpha30 blijft staan,
+de module blijft alpha28 totdat de onbekende uploader-watchdogoorzaak en een
+onderbouwde herstelroute zijn vastgesteld. Geen blinde upload/herstart/rollback.
+Bluetoothondersteuning, fysieke bron-/kraan-/ketelproeven en langdurige stabiliteit
+worden niet als afgevinkt voorgesteld.
+
+English: room setup now explains internal/diagnostic temperature sources immediately,
+without new broker traffic or source replacement. Missing optional native metadata
+cannot break the editor. Frontend v41 retains v38/v35 compatibility. A default-deny
+M2 receiver admission kernel is prepared with receiver-owned grants, bounded input,
+strict ownership and no uncertain retry; it is not wired into production actuation.
+E32 firmware and physical output blocks remain unchanged.
+
+[Werkbord en resterende voorwaarden](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0.dev41/docs/modern-thermostat/WORKBOARD.nl.md).
+
 # HA 0.4.0.dev40 — blijvende klokbewaking van de M2-kraanadapter
 
 Onderhoudsrelease met alle eerdere functies en de voorbereide B05/M2-reparatie.

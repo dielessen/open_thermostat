@@ -364,7 +364,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/room_editor.py",
-          "sha256": "15dffd0b29ab695edef265b9c8d811a4bf9a56bf7213d9a17549e735bbf88a1d"
+          "sha256": "70961ced6465280ce5f7b7c198a3ed050616b3a9fb955bd3155116fd81faba43"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/device_metadata.py",
@@ -393,7 +393,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/week_planner.py",
-          "sha256": "bb9b5cb47540f775cbd8e6409232b3ad6648296c74b96f72aea7652d378cd956"
+          "sha256": "85578a64986f259c62ae75cd372029eff0883bf903cce92c5630def31ece1e8e"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_program_apply.py",
@@ -444,7 +444,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "4c13628feb9c93da692666003318712672a3fa12117a76484c99ea1d2265a1c4"
+          "sha256": "5a8ac05a1636a6598d20c63d50c52e8cab92bdff44df8a4e98d9ad85b006b30a"
         },
         {
           "path": "test/ha-planner-touch-browser.cjs",
@@ -452,7 +452,7 @@
         },
         {
           "path": "test/ha-room-program-browser.cjs",
-          "sha256": "46f803373a3270536f6fd3028b8a32e3c5c0c3a2ce64283fd1f78c81543307e0"
+          "sha256": "a8883683a0df41d47705f2f89bacc4cf308eada2fe079cbcbed47021c85b8dfc"
         },
         {
           "path": "ha/tests_native/test_setup_failure_cleanup.py",
@@ -866,7 +866,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_editor.py",
-          "sha256": "15dffd0b29ab695edef265b9c8d811a4bf9a56bf7213d9a17549e735bbf88a1d"
+          "sha256": "70961ced6465280ce5f7b7c198a3ed050616b3a9fb955bd3155116fd81faba43"
         },
         {
           "path": "ha/tests_native/test_room_editor.py",
@@ -874,7 +874,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "4c13628feb9c93da692666003318712672a3fa12117a76484c99ea1d2265a1c4"
+          "sha256": "5a8ac05a1636a6598d20c63d50c52e8cab92bdff44df8a4e98d9ad85b006b30a"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/__init__.py",
@@ -903,6 +903,18 @@
         {
           "path": "ha/tests_native/test_actuator_clock_lifetime.py",
           "sha256": "e55ada27b84b92d869cc399c8cfc0490535d9726e03961c68137bbef0013f375"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/actuator_receiver.py",
+          "sha256": "9ae03da03bdf7ff81efb156ab44a8fa5969f19fb6bfdf502fb3bcac8fdc8e896"
+        },
+        {
+          "path": "ha/tests_native/test_actuator_receiver.py",
+          "sha256": "b2a1bc93b05195dde634dbb72e121532ae5f0fccc3031bc8284c2425eacfe6c7"
+        },
+        {
+          "path": "ha/tests_native/test_temperature_source_review.py",
+          "sha256": "f11160f51ffa05b26ef54be13942543bb9846c39ee74e1427b28ae2cd253dbbb"
         }
       ],
       "remaining_acceptance": "Eerdere oorspronkelijke TV02-ontvangst blijkt uit geïnstalleerde stale-status; verse ontvangst, unieke native zendtransactie/causale echo, schema-eigenaarschap en fysieke werking blijven open. Begrensde ontvangstmetadata na verval voorbereid/getest; geen oude waarden of readiness vrijgegeven. Na HA37-herstart oorspronkelijke TV02-diagnose leeg met bronbindingswaarschuwing; oorzaak en diagnose-lifecycle herstellen zonder bronwissel."

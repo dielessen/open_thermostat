@@ -10,6 +10,7 @@ import probatio as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import callback
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
@@ -23,6 +24,7 @@ from .v1_program import native_week, normalize_program
 from .v1_wire import digest
 from .week_planner import _target
 from .v1_profile_c import review_room_targets
+from .device_metadata import selected_device, MetadataUnavailable
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,9 +43,33 @@ def _choice(hass, item):
             valid = False
         if not valid:
             status = 'invalid_temperature'
-    return {'value': item.entity_id,
+    result = {'value': item.entity_id,
             'label': state.name if state else item.name or item.original_name or item.entity_id,
             'status': status, 'identity': {'platform': item.platform, 'unique_id': item.unique_id}}
+    if item.entity_id.startswith('sensor.'):
+        result['temperature_role'] = ('diagnostic' if item.entity_category == EntityCategory.DIAGNOSTIC
+                                      else 'unreviewed')
+    return result
+
+
+def _temperature_source_review(hass, reference, selection):
+    # Native metadata only: no broker request, state sample, pin or admission.
+    reason, status = 'original_report_required', 'unreviewed'
+    item = er.async_get(hass).async_get(selection)
+    if selection.startswith('unresolved:') or item is None or item.disabled_by is not None:
+        reason, status = 'binding_unavailable', 'unavailable'
+    else:
+        if item.entity_category == EntityCategory.DIAGNOSTIC:
+            reason, status = 'diagnostic_entity', 'review_required'
+        try:
+            metadata = selected_device(hass, reference.as_dict())
+        except (MetadataUnavailable, TypeError, AttributeError, KeyError):
+            pass  # Missing/malformed native metadata cannot break the room editor.
+        else:
+            if metadata.sensor_property == 'device_temperature':
+                reason, status = 'internal_device_temperature', 'review_required'
+    return {'status': status, 'reason': reason, 'scope': 'native_entity_metadata_only',
+            'authorizes_control': False}
 
 
 def _guard(hass, entry, sub, token):
@@ -124,6 +150,7 @@ def read_room(hass, entry_id, room_id):
             actuator['original_report'] = originals[actuator['entity_id']]
     return {'entry_id': entry_id, 'room_id': room_id, 'token': digest(configuration_snapshot(entry)),
         'measurement': measurement,
+        'temperature_source_review': _temperature_source_review(hass, room.temperature, temperature),
         'rooms': [{'room_id': s.data['room_id'], 'name': s.title} for s in entry.subentries.values() if s.subentry_type == 'zone'],
         'choices': choices, 'time_zone': hass.config.time_zone, 'maximum_blocks': 28,
         'actuator_target_review': actuator_review,

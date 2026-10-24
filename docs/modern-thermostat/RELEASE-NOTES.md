@@ -1,4 +1,8 @@
-# E32 V2 alpha22 + Home Assistant dev28 — logging en stabiele bediening
+# E32 V2 alpha23 + Home Assistant dev28 — logging en stabiele bediening
+
+Alpha22 bleef een niet-gepubliceerde kandidaat: de openbare native loggertest
+vereiste een expliciete cstdint-header bij de vendorcompilatie. Die testbuild is
+hersteld; de bestaande tag blijft behouden.
 
 Gezamenlijke passieve testrelease met alle voorbereide wijzigingen sinds
 alpha21/dev27. Geen vrijgave voor actieve ketel- of kraanaansturing.

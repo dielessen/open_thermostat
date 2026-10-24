@@ -110,7 +110,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "d90dffdec0f8423230d09ab58dbc3cc1cf9cffd942040c4a77f7fc6a3fc84461"
+          "sha256": "09c47804398ff4b129ec34cf02a1577d1ece51b5daf4c092f552b89eefd20cad"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -504,7 +504,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "d90dffdec0f8423230d09ab58dbc3cc1cf9cffd942040c4a77f7fc6a3fc84461"
+          "sha256": "09c47804398ff4b129ec34cf02a1577d1ece51b5daf4c092f552b89eefd20cad"
         },
         {
           "path": "platformio.ini",

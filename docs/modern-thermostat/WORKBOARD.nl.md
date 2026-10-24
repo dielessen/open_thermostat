@@ -986,3 +986,13 @@ Bewijs: `out/dashboard-refresh-20261024/`. B04–B14 blijven ongewijzigd open.
 Dit is een passieve testreleasekandidaat; B04–B14 worden niet door deze UI- of
 versiewijziging afgevinkt. Bronpins blijven leeg; er is geen apparaatselectie of
 fysieke aansturing veranderd. Bewijs: `out/next-release-20261024/`.
+
+
+Kandidaatcorrectie: openbare CI van `8f99809` vond in de losse Logger.cpp-
+native testcompilatie een ontbrekende expliciete `<cstdint>`-include op de
+runnercompiler. De 573 native gevallen en firmwarebuilds waren hiervoor groen;
+de aanvullende helpercompile hield publicatie terecht tegen. Vendorbron blijft
+ongewijzigd: de testcompile geeft de standaardheader expliciet mee. De bestaande
+alpha22-tag wordt niet herschreven; de gezamenlijke E32-kandidaat wordt alpha23.
+HA dev28 houdt zijn ongewijzigde componentbron en eigen onafhankelijke gates.
+Installatie blijft pending totdat de nieuwe E32-pakketcontroles groen zijn.

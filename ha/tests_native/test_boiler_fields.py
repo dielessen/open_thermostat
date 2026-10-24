@@ -152,5 +152,6 @@ async def test_reversed_local_clock_cannot_revive_cached_or_new_field_deadlines(
     now[0]=99
     assert not c.boiler_fields.reading(1,99)['usable']
     await c.receive('fw/telemetry/boiler_fields',canonical(packet(c,2,sampled=11000,observed=10000)))
-    assert c.boiler_fields.invalid and not c.boiler_fields.reading(1,99)['usable']
+    assert c.session is None and c.error == 'local_monotonic_clock_invalid'
+    assert c.boiler_fields.reading(1,99) is None
     c.send.assert_not_awaited();await r.async_stop()

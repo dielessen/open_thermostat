@@ -18,7 +18,7 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 243 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 244 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
 met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
@@ -83,7 +83,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-243 bronverwijzingen met hashes, status en resterende acceptatie.
+244 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -1963,3 +1963,12 @@ blijven behouden. Geleverde alpha27/dev36 en voorbereide nieuwe bron zijn gesche
 Deze correcties zijn voorbereid voor de volgende gezamenlijke release; live
 alpha27/dev36 blijft staan. Geen B04–B14-/fysieke vrijgave. Zie
 [codecontrole](CODECONTROLE-20261024.nl.md) voor reproducties en grenzen.
+
+### Vervolg op P0-tijdtoelating en actieve proefplanning
+
+- [x] Bestaande HA-transportowner bewaakt nu ready, ontvangst, uitgaand envelop, native context en retries tegen teruggaande/ongeldige monotone klok. Sessies, wachtende opdrachten en bewijzen ingetrokken; reconnect kan dezelfde owner niet herstellen. Bronwerk, nog niet geïnstalleerd.
+- [x] Bestaand ketelproefdocument uitgebreid tot opeenvolgend draaiboek met pendelonderzoek, nulmeting, bevroren kandidaat, fysieke voorwaarden, stop vóór positieve vraag, begrensde vraag, stop/naloop, afzonderlijke uitval en gecontroleerd herstel. Geen TX uitgevoerd.
+- [ ] Gemeld voortdurend pendelen: actuele passieve toestand en geschiedenis onderzoeken via bestaande HA-specialist. Zonder bevinding geen oorzaak invullen of actieve zendproef beginnen.
+
+[Testplan](BETA1-KETELPROEF.nl.md). M2 en B04–B14 blijven open; een handmatige
+ketelreactie is geen automatische kamer-/kraanacceptatie.

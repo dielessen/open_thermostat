@@ -103,6 +103,8 @@ class ShadowClient:
         self.source_policy_matched=False
         self.graph_source_review_required=False
         self.send, self.store, self.clock = send, store, clock
+        self._clock_watermark = None
+        self._clock_fault = False
         self.desired, self.mapping = json.loads(canonical(desired)), json.loads(canonical(mapping))
         self.native_plan_source=getattr(runtime,"native_plan_source",None)
         self.native_plan_template=json.loads(canonical(control_plan)) if control_plan is not None else None
@@ -196,6 +198,8 @@ class ShadowClient:
     def supervisor_payload(self):
         # Receipt age describes this diagnostic snapshot, never acquisition or
         # physical feedback freshness. No new timer, Store or command path.
+        if not self.clock_current():
+            return None
         now=self.clock()
         age=now-self._supervisor_received
         if self._supervisor is None:
@@ -221,6 +225,8 @@ class ShadowClient:
 
     @property
     def ready(self):
+        if not self.clock_current():
+            return False
         now = self.clock()
         return (not self.closed and not self.graph_source_review_required
                 and not self._native_horizon_inhibit
@@ -228,6 +234,28 @@ class ShadowClient:
                 and self.session.get("mapping_ready") is True
                 and now < self.grant_until and now < self.lease_until
                 and now - self.last_rx < 15)
+
+    def clock_current(self):
+        """Retire all proofs on clock failure; reconnect cannot revive this owner.
+
+        A new transport owner (normal integration reload) is required after an
+        invalid monotonic clock. Never translate or rebase old deadlines.
+        """
+        if self._clock_fault:
+            return False
+        now = self.clock()
+        try:
+            finite = type(now) in (int, float) and math.isfinite(now)
+        except OverflowError:
+            finite = False
+        if (not finite or now < 0
+                or (self._clock_watermark is not None and now < self._clock_watermark)):
+            self._clock_fault = True
+            self.reset_session()
+            self.error = "local_monotonic_clock_invalid"
+            return False
+        self._clock_watermark = now
+        return True
 
     def changed(self):
         self.runtime.diagnostics["transport"] = self.error
@@ -289,7 +317,7 @@ class ShadowClient:
 
     def native_context(self):
         from .graph_shadow_validation import GraphValidationError
-        if (not self.native_source_current() or not self.identity or not self.session
+        if (not self.clock_current() or not self.native_source_current() or not self.identity or not self.session
                 or not self.source_policy_matched or self.clock()>=self.grant_until
                 or self.clock()>=self.lease_until or self.clock()-self.last_rx>=15):
             raise GraphValidationError("native_plan_live_readback_required")
@@ -702,6 +730,9 @@ class ShadowClient:
     async def receive(self, topic, raw, *, retained=False, received_at=None):
         if self.closed or retained or self.graph_source_review_required or self.native_plan_fenced:
             return
+        if not self.clock_current():
+            self.changed()
+            return
         if topic == "fw/telemetry/boiler_fields":
             self.receive_boiler_fields(raw,received_at)
             return # Read-only: never renew a control lease or a room measurement.
@@ -1084,6 +1115,8 @@ class ShadowClient:
         self.changed()
 
     def envelope(self, binding):
+        if not self.clock_current():
+            raise HomeAssistantError("Local monotonic clock invalid; reload required")
         if self.native_plan_source is not None and not self.native_source_current():
             self.require_native_plan_review()
             raise HomeAssistantError("Native installation/entry/registry changed")
@@ -1218,6 +1251,9 @@ class ShadowClient:
     async def poll(self):
         if self.closed:
             return
+        if not self.clock_current():
+            self.changed()
+            return
         if self.native_plan_source is not None and not self.native_source_current():
             self.require_native_plan_review()
             return # No old exact-byte retry after SOURCE/registry/owner drift.
@@ -1229,6 +1265,9 @@ class ShadowClient:
                     item["future"].set_exception(HomeAssistantError("Shadow acknowledgement timed out; effect unknown"))
                 self.error = "ack_timeout_effect_unknown"
             elif now - item["last"] >= 2:
+                if not self.clock_current():
+                    self.changed()
+                    return
                 # Critical: exact original complete bytes, including original grant.
                 item["tries"] += 1
                 item["last"] = now

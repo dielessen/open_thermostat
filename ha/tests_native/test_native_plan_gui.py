@@ -88,7 +88,11 @@ async def test_unmatched_or_stale_cpp_ACK_cannot_change_public_state_or_deadline
     before=(n.client.last_rx,n.client.grant_until,n.client.lease_until,deepcopy(n.client.journal))
     await n.client.receive("fw/config_result",json.dumps(value),retained=wrong=="retained")
     assert n.client.graph_status["device_result"] is None
-    assert (n.client.last_rx,n.client.grant_until,n.client.lease_until,n.client.journal)==before
+    if wrong == "clock_reversal":
+        assert n.client.session is None and n.client.grant_until == n.client.lease_until == 0
+        assert n.client.last_rx == before[0] and n.client.journal == before[3]
+    else:
+        assert (n.client.last_rx,n.client.grant_until,n.client.lease_until,n.client.journal)==before
     assert not n.client.ready
 
 @pytest.mark.asyncio

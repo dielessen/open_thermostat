@@ -100,14 +100,17 @@ async def test_expiry_clock_reversal_disconnect_and_adapter_loss_hide_cached_int
     assert client.supervisor_payload is not None
     bus.now+=1
     assert client.supervisor_payload is None
-    bus.now=start-1
-    assert client.supervisor_payload is None
-    bus.now=start
+    # Exercise adapter loss/recovery while time still moves forwards.
     wire["adapter_alive"]=False
     await client.receive("fw/state/zones",canonical(wire))
     assert client.supervisor_payload is None
     await client.receive("fw/state/zones",canonical(frame(bus)))
     assert client.supervisor_payload is not None
+    bus.now=start-1
+    assert client.supervisor_payload is None and not client.ready
+    bus.now=start+15001
+    await client.receive("fw/state/zones",canonical(wire))
+    assert client.session is None and client.supervisor_payload is None
     client.reset_session()
     assert client._supervisor is None and client.supervisor_payload is None
 
@@ -299,7 +302,8 @@ async def test_fractional_monotonic_epoch_does_not_extend_supervisor_receipt(int
     _,client,bus,_=integrated
     # Straddles a binary exponent boundary; subtracting clocks yields
     # 14.99999999999909 instead of exactly 15 at this integer-ms deadline.
-    bus.clock_base=8191.3333333333
+    # The new epoch must also be ahead of the runtime fixture clock.
+    bus.clock_base=2**(int(bus.clock_base).bit_length()+1)-0.6666666667
     await bus.start()
     bus.now+=14999
     client.last_rx=bus.clock();client.grant_until=client.lease_until=bus.clock()+100

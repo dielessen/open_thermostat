@@ -934,11 +934,11 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_wire.py",
-          "sha256": "98e9678afcf170d43e0e69b7843263dfdff00ec02547a0bd19564ecfcc6b2bbe"
+          "sha256": "c622087b24789f8980863a14590e362dbd46ba9564054d976fdf63cd9ddbe7b1"
         },
         {
           "path": "ha/tests_native/test_supervisor_status.py",
-          "sha256": "24d847adbfe5832108975404185cd179143c0f5b2984d22dd73776b760c3d8cf"
+          "sha256": "6b2992edcf9f2ddb316b3b7052c10db880b32ae0de56ebf2bb55855e2ffcd02f"
         },
         {
           "path": "test/test_native/test_supervisor_correction.cpp",
@@ -947,6 +947,10 @@
         {
           "path": "docs/modern-thermostat/FAILSAFE.nl.md",
           "sha256": "b97e15cde078a6b29d64f38617ba077cdbc69df67bfacfb6ffea0c997d9d33e0"
+        },
+        {
+          "path": "ha/tests_native/test_session_clock_fence.py",
+          "sha256": "7aad169dd6a2ba9776d7c64fd4c611d243679327f277070c9b9a3775a3241ea5"
         }
       ],
       "remaining_acceptance": "Lokale lease-expiry bij stille HA en offline naloop/klokgrenzen gebouwd/getest; logische intenties zijn geen fysieke stop. Werkelijke producenten, installatieprofiel en fysieke uitvoer-/uitvalketen blijven open."
@@ -1038,7 +1042,7 @@
         },
         {
           "path": "ha/tests_native/test_boiler_fields.py",
-          "sha256": "8c2f66e0aa49c670846bfb3fe7629fea4c83dcd67c146e722b74828d0bca74e1"
+          "sha256": "96ae7edd39c9fceeb1aa013c90a63cf9013be1c96bbedb8622369640a708c8c8"
         },
         {
           "path": "ha/tests_native/test_boiler_fields_interop.py",

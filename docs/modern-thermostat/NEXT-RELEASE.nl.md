@@ -34,6 +34,21 @@ antwoord kan nieuwe navigatie niet meer vervangen of oude scripts uitvoeren.
 De EMS-tabel hergebruikt rijen, ordent nieuwe adressen juist en valideert waarden
 strikter. Zie [codecontrole](CODECONTROLE-20261024.nl.md). Nog niet geïnstalleerd.
 
+## Actieve bèta en gemeld pendelen
+
+Het concrete [testplan](BETA1-KETELPROEF.nl.md#praktisch-testplan-voor-de-actieve-bèta--24-oktober-2026)
+legt de volgorde vast: pendelonderzoek, passieve nulmeting, exacte kandidaat,
+beoordeelde installatie-/stopkaart, nulproef, één begrensde warmtevraag, stop/naloop,
+afzonderlijke uitvalproeven en terugkeer naar Tado. Geen zendproef gestart.
+Onverklaard pendelen wordt eerst onderzocht. Handmatige keteltest en automatische
+kamerregeling hebben afzonderlijke vrijgave; M2 blijft vereist voor die laatste.
+Er is nog geen onderbouwde kalenderdatum voor de actieve bèta.
+
+Ook de bestaande HA-transportowner trekt bij teruggaande/ongeldige monotone klok
+alle sessie-/grantbewijzen in. Herverbinden kan die niet herstellen: de normale
+integratieherlaadroute maakt een nieuwe owner. Geen nieuwe taak/client/timer.
+Deze broncorrectie is nog niet geïnstalleerd.
+
 ## Gebundelde wijzigingen
 
 | Onderdeel | Concrete wijziging | Controle |

@@ -2,8 +2,9 @@
 
 Opdracht van 23 oktober 2026: doorwerken tot één samenhangende eerste bèta voor
 het koppelen van de ketel, terugmelden van gegevens en testen van de aansturing.
-De geïnstalleerde passieve basis is E32 alpha23 / HA dev29, broncommit
-`5f31dd780a5b98d81048f9d592f8209e657d7305`. Vervolgontwikkeling gebeurt op
+De huidige geïnstalleerde passieve basis is E32 alpha27
+(bron `dd6a9635865c6ecd2bf1c553c3292ae13dfb53ae`) en HA dev36
+(bron `c41b7a6e12730f88eb98960299be3236c6494457`). Vervolgontwikkeling gebeurt op
 `work/beta-boiler-20261023`. De actuele afvinklijst staat in
 [WORKBOARD](WORKBOARD.nl.md); deze tekst is geen actieve bèta-vrijgave.
 
@@ -98,3 +99,63 @@ De modelgebonden [pre-TX-acceptatiekaart](ECOMLINE-PRE-TX-ACCEPTATIE.nl.md) beva
 de op 24 oktober opnieuw beoordeelde fabrikantbronnen en de nog benodigde
 installatiegegevens. Zij vult geen adres, proefgrens of gegarandeerde stoptermijn
 in en autoriseert geen verlies- of zendproef.
+
+## Praktisch testplan voor de actieve bèta — 24 oktober 2026
+
+Dit is het gevraagde toekomstige draaiboek, geen opdracht om nu te zenden.
+De melding van voortdurend pendelen wordt eerst afzonderlijk onderzocht met
+actuele zendstatus en ketel-/Tado-geschiedenis. Een onverklaarde instabiele
+begintoestand is geen geschikte nulmeting voor een zendproef.
+
+### Volgorde en voorwaarden
+
+| Stap | Uitvoering | Vereiste uitkomst vóór de volgende stap |
+| --- | --- | --- |
+| 0. Pendelen onderzoeken | Alleen lezen: geïnstalleerde versies, TX-/polltellers, uitgangsblokkades, aanvoer/retour, gemeld vermogen, CV/DHW en beschikbare Tado-vraag naast de gemelde start-/stoptijden leggen | Actueel zendgedrag vastgesteld; werkelijke starts onderscheiden van onbetrouwbare statusbits. Oorzaak of een concrete vervolgmeting vastgelegd, stabiele beginsituatie beoordeeld |
+| 1. Passieve nulmeting | Onder bestaande Tado-regeling gedurende een afgesproken observatievenster ketelreactie registreren; geen kraan-/ketelopdracht. Bij voorkeur minstens één volledige vraag-/rustovergang waarnemen | Ontvangstkwaliteit/leeftijd bekend; CV en tapwater gescheiden; bestaande starts en temperaturen als referentie opgeslagen |
+| 2. Softwarekandidaat bevriezen | Alle voorbereide onderdelen bundelen; volledige CI, firmwarebuild, pakket-/bronhashes, backup/herstel en readback uitvoeren. Simulator bewijst queue, oorspronkelijke deadlines, stopprioriteit en geen oude vraag na herstel | Exacte proefkandidaat herkenbaar; regressie geslaagd; standaarduitgangen nog geblokkeerd. Installatie via bestaande HA-specialist, met backup en nacontrole |
+| 3. Fysieke proefkaart beoordelen | B09/pre-TX-kaart invullen: werkelijke interface/polariteit/arbitrage, adres/masker, één actieve eigenaar, open afgiftepad/minimumflow/naloop, onafhankelijke stop en herstel | Alle vereiste gegevens beoordeeld. Geen automatische keuze van zendadres of grenswaarden uit modelnaam/ontvangst |
+| 4. Stopproef in rust | Na afzonderlijke fysieke proefvrijgave Tado gecontroleerd als schrijver overdragen; één eindige nulproef via de normale testbediening. Verzending en strikt latere stopwaarneming apart registreren | Geen onverwachte warmtevraag; echte zendvoltooiing en verse gerapporteerde CV-stop binnen vooraf beoordeelde termijn. Geen serviceacceptatie of oude nul als bewijs |
+| 5. Eén begrensde warmtevraag | Alleen na stap4: één lage, vooraf beoordeelde temperatuurvraag met korte eindige looptijd, toezicht en open afgiftepad. Geen gewone kamerregeling tegelijk | Gevraagde waarde, werkelijk verzonden telegram en latere ketelreactie aantoonbaar verbonden; geen ongewenste starts of overschrijding |
+| 6. Expliciete stop en naloop | Warmtevraag intrekken via dezelfde normale route; CV-stop, vermogen, temperaturen en beoordeelde naloop volgen | Strikt latere stop binnen de vastgelegde termijn; afgiftepad tijdens naloop behouden; geen spontane hervatting of achtergebleven positieve vraag |
+| 7. Uitval apart beproeven | Pas na geslaagde normale stop en beoordeelde onafhankelijke stopvoorziening: HA-uitval, MQTT-uitval, bronverlies en E32-/communicatieverlies afzonderlijk volgens hun eigen proefkaart | Elke route heeft eigen gemeten stop-/terugvaluitkomst. Een geslaagde softwarelease bewijst geen stop bij E32-voedingsverlies |
+| 8. Terugzetten en beoordelen | Proef beëindigen, positieve opdrachten ongeldig maken, E32 weer RX-only en gecontroleerd Tado als enige schrijver herstellen | Versies, TX-blokkades, normaal regelgedrag en bewaarde configuratie teruggelezen; verslag met PASS/FAIL/UNKNOWN per proef |
+
+Stap4–8 worden niet uitgevoerd zolang de proefkaart niet compleet is. Fysieke
+bedrading of overdracht gebeurt door een geschikte uitvoerder; dit document
+bevat geen instructie om nu aansluitingen los te nemen. De grenzen voor maximale
+temperatuur, proefduur, feedbackouderdom, stoptermijn en naloop worden vooraf
+uit het beoordeelde installatieprofiel overgenomen en in het verslag gezet.
+Ontbreekt één grens of de onafhankelijke stoproute, dan start de proef niet.
+Een willekeurige temperatuur of een software-timeout vult dit niet in.
+
+### Direct afbreken
+
+Bij onverwacht starten/pendelen, te hoge temperatuur, verlies van het afgiftepad,
+conflicterend eigenaarschap, foutstatus, verouderde feedback of uitblijvende stop
+wordt de proef afgebroken via de vooraf beoordeelde stoproute. Geen automatische
+herhaling na een onzeker resultaat. Daarna pas de vastgelegde herstelroute naar
+Tado uitvoeren en controleren; niet aannemen dat herverbinden oude vraag wist.
+
+### Kraanproef en vrijgave van automatische kamers
+
+De begrensde handmatige ketelproef is een aparte mijlpaal. Voor automatische
+ruimteregeling blijven M2 en B04–B06 vereist: echte geschikte kamerbron, normale
+FW→HA-opdrachtroute met HA-ontvangergrant, oorspronkelijke native kraantransactie
+en causale echo, beoordeelde modus/eigenaarschap en actuele hydraulische feiten.
+Een handmatig reagerende ketel sluit die poorten niet. De kraanproef gebruikt
+haar eigen opstelling en veroorzaakt geen ketelvraag.
+
+### Wanneer kan de bèta uit?
+
+De volgende gezamenlijke softwarekandidaat kan vóór fysieke TX worden geleverd
+met de uitgangen geblokkeerd. De actieve bèta voor keteltesten volgt pas na de
+software-, installatie- en stopvoorwaarden hierboven; automatische kamerregeling
+pas na de aanvullende M2-poorten. Een kalenderdatum is nu niet onderbouwd omdat
+het pendelonderzoek, fysieke TX-/stopkwalificatie en native kraanbevestiging nog
+openstaan. De resultaten bepalen de datum, niet een nieuwe alpha-naam.
+
+Het verslag bevat minimaal: exact pakket/bron, tijdlijn van opdracht →
+zendvoltooiing → verse ketelreactie → stop/naloop, beoordeelde grenzen,
+telemetriekwaliteit, feitelijke operatorwaarneming en herstelcontrole. Ruwe
+privé-identiteiten en credentials komen niet in het openbare verslag.

@@ -4,7 +4,6 @@ import argparse
 import ast
 import hashlib
 import json
-import re
 import subprocess
 import xml.etree.ElementTree as ET
 import zipfile
@@ -62,7 +61,8 @@ def package(root, output, results):
     integration = root/'ha/config/custom_components/open_thermostat'
     manifest = json.loads((integration/'manifest.json').read_text())
     version = manifest['version']
-    if manifest['domain'] != 'open_thermostat' or not re.fullmatch(r'\d+\.\d+\.\d+(?:[a-zA-Z0-9.+-]*)', version):
+    from organize_releases import classify
+    if manifest['domain'] != 'open_thermostat' or classify('ha-v'+version)[0] != 'ha':
         raise ValueError('invalid_HA_release_identity')
     tests = native_summary(results)
     evidence = native_evidence(results,root,head)

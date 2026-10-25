@@ -2,6 +2,7 @@
 #include "BleDeviceConfig.h"
 #include "ShellyHtDisplayAdvertisement.h"
 #include "MiBeaconMonitor3Advertisement.h"
+#include "ShellyTrvAdvertisement.h"
 #include <atomic>
 #include <mutex>
 
@@ -11,7 +12,9 @@ enum class BleObservationStatus { waiting, key_required, received, stale, malfor
     encryption_required, crypto_unavailable, pending_restart, configuration_invalid, clock_invalid };
 struct BleObservationSnapshot {
     BleObservationStatus status = BleObservationStatus::waiting;
-    std::optional<int16_t> temperature, humidity;
+    std::optional<int16_t> temperature, humidity, targetTemperature, externalTemperature;
+    std::optional<uint8_t> stateRevision;
+    std::optional<uint32_t> targetTemperatureAgeMs, externalTemperatureAgeMs, stateRevisionAgeMs;
     std::optional<uint8_t> battery, lightLevel, button;
     std::optional<bool> batteryLow, light;
     std::optional<uint32_t> temperatureAgeMs, humidityAgeMs, batteryAgeMs, lastAcceptedAgeMs, counter;
@@ -134,6 +137,9 @@ public:
         const auto decoded=binding.profile==ManagedBleProfile::xiaomiMonitor3
             ? decodeBoundMiBeaconMonitor3Advertisement(binding.address,frame.bytes.data(),frame.size,
                 binding.hasKey?&binding.key:nullptr,decryptor_,workspace_)
+            : binding.profile==ManagedBleProfile::shellyTrv
+            ? decodeBoundShellyTrvAdvertisement(binding.address,frame.bytes.data(),frame.size,
+                binding.hasKey?&binding.key:nullptr,binding.encryption==ManagedBleEncryption::bthomeV2,decryptor_,workspace_)
             : decodeBoundShellyHtDisplayAdvertisement(binding.address,frame.bytes.data(),frame.size,
                 binding.hasKey?&binding.key:nullptr,binding.encryption==ManagedBleEncryption::bthomeV2,decryptor_,workspace_);
         if (!readClock() || !enabled() || frame.generation != generation_.load(std::memory_order_acquire)) return;
@@ -163,6 +169,13 @@ public:
         assign(value.frame.firmware32, value.at[7], decoded.firmware32, frame.at);
         assign(value.frame.firmware24, value.at[8], decoded.firmware24, frame.at);
         assign(value.frame.declaredDeviceType, value.identityAt, decoded.declaredDeviceType, frame.at);
+        assign(value.frame.targetTemperature,value.at[9],decoded.targetTemperature,frame.at);
+        // A complete TRV temperature report without the optional external value
+        // explicitly withdraws its prior external reading, not its age/TTL only.
+        if(binding.profile==ManagedBleProfile::shellyTrv&&decoded.temperature&&!decoded.externalTemperature)
+            value.frame.externalTemperature.reset();
+        assign(value.frame.externalTemperature,value.at[10],decoded.externalTemperature,frame.at);
+        assign(value.frame.stateRevision,value.at[11],decoded.stateRevision,frame.at);
         value.acceptedAt = frame.at; value.haveAccepted = true; value.authenticated = decoded.authenticated;
         value.rssi = frame.rssiKnown ? std::optional<int8_t>(frame.rssi) : std::nullopt;
         value.status = BleObservationStatus::received;
@@ -202,6 +215,12 @@ public:
         if (value.frame.declaredDeviceType) out.declaredDeviceAgeMs = age(*now, value.identityAt);
         out.firmware32 = fresh(value.frame.firmware32, value.at[7], *now, identityLifetimeMs);
         out.firmware24 = fresh(value.frame.firmware24, value.at[8], *now, identityLifetimeMs);
+        out.targetTemperature=fresh(value.frame.targetTemperature,value.at[9],*now,valueLifetimeMs);
+        out.externalTemperature=fresh(value.frame.externalTemperature,value.at[10],*now,valueLifetimeMs);
+        out.stateRevision=fresh(value.frame.stateRevision,value.at[11],*now,valueLifetimeMs);
+        if(value.frame.targetTemperature)out.targetTemperatureAgeMs=age(*now,value.at[9]);
+        if(value.frame.externalTemperature)out.externalTemperatureAgeMs=age(*now,value.at[10]);
+        if(value.frame.stateRevision)out.stateRevisionAgeMs=age(*now,value.at[11]);
         out.rssi = value.rssi; out.authenticated = value.authenticated;
         if (value.haveCounter) out.counter = value.highestCounter;
         out.oldCounterDrops = value.oldCounterDrops;
@@ -219,7 +238,7 @@ private:
     };
     struct Value {
         ShellyHtDisplayFrame frame;
-        std::array<uint64_t, 9> at{};
+        std::array<uint64_t, 12> at{};
         uint64_t identityAt = 0, acceptedAt = 0;
         uint32_t highestCounter = 0, oldCounterDrops = 0;
         std::optional<int8_t> rssi;

@@ -14,6 +14,11 @@ pakketten volgen na de gezamenlijke bronfreeze en releasecontroles.
   Dit is nog geen meetbron voor de verwarmingsregeling; praktijkproeven,
   sleutelverkrijging, kamerbronkwalificatie en TRV-aansturing blijven open. [Uitleg](BLUETOOTH-APPARATEN.nl.md).
 
+- **Shelly BLU TRV uitlezen op de E32.** Een afzonderlijk diagnoseprofiel toont
+  gemeld doel, berekende TRV-temperatuur en eventuele externe temperatuur apart.
+  De gegevens betekenen geen bevestigde kraanpositie of verwarmingsopdracht.
+  Rechtstreekse kraanbediening en de echte apparaatproef blijven open.
+
 - **Historie exporteren per dag, week of maand.** De gewone HA-actie ondersteunt
   maximaal 31 dagen, met een installatiekeuze en Nederlandse/Engelse uitleg.
   De export gebruikt bestaande Recorder-historie; ontbrekende gegevens blijven
@@ -74,7 +79,9 @@ Home Assistant Core 2026.10.4 without replacing existing settings or entity IDs.
 CSV exports, automatic firmware-update checks with a dashboard notice, and clearer
 clock-failure messages in English and Dutch. A new Bluetooth settings page connects
 local Shelly BLU H&T Display and Xiaomi Monitor 3 reception with separate encrypted bindings, write-only keys
-and bounded diagnostics; these readings are not qualified heating inputs. It fixes retired measurements being
+and bounded diagnostics. A separate Shelly BLU TRV diagnostic profile keeps reported
+target, calculated temperature and optional external temperature separate; it does
+not control the valve or confirm command delivery. These readings are not qualified heating inputs. It fixes retired measurements being
 requeued, failing screen callbacks, invalid numeric readings, bounded BLE scan
 recovery and discovery, and names that broke JSON or room controls. The legacy
 room controller pauses when device time is unavailable and uses a 100 ms SDK clock

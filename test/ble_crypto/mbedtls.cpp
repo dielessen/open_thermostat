@@ -229,3 +229,12 @@ TEST(BleCryptoObserver, RealAuthenticationQueueAgeAndReplayAreConnected) {
     EXPECT_EQ(observer.snapshot(f.address).status,heating::control::BleObservationStatus::authentication_failed);
     EXPECT_FALSE(observer.snapshot(f.address).battery);EXPECT_EQ(observer.snapshot(f.address).counter,1122869u);
 }
+
+TEST(BleCrypto, TrvSeparateInstancesUseRealCcmAndWrongKeyLeaksNoPartialReport) {
+    Fixture f;f.bytes=packet(hex("d2fc41e9455a571cd6008b709d2256955c467d14000000b1547ebc"));
+    auto r=decodeBoundShellyTrvAdvertisement(f.address,f.bytes.data(),f.bytes.size(),&f.key,true,f.cipher,f.workspace);
+    ASSERT_EQ(r.status,BleSensorFrameStatus::decoded);EXPECT_TRUE(r.authenticated);EXPECT_EQ(r.encryptionCounter,20u);
+    EXPECT_EQ(r.targetTemperature,2200);EXPECT_EQ(r.temperature,2150);EXPECT_EQ(r.externalTemperature,2000);EXPECT_EQ(r.stateRevision,63);
+    f.key[0]^=1;r=decodeBoundShellyTrvAdvertisement(f.address,f.bytes.data(),f.bytes.size(),&f.key,true,f.cipher,f.workspace);
+    EXPECT_EQ(r.status,BleSensorFrameStatus::authentication_failed);EXPECT_FALSE(r.temperature);EXPECT_FALSE(r.targetTemperature);EXPECT_FALSE(r.externalTemperature);EXPECT_FALSE(r.stateRevision);
+}

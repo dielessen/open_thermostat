@@ -150,15 +150,15 @@ Actuele resultaten en bronhashes staan bij de bundelcontrole. De private opslag
 heeft daarnaast 32 gerichte SDK-grensgevallen, samen met de echte regelconfiguratieopslag, onder ASan/UBSan: eigen namespace,
 read-only ontbrekende selectie, netwerkbehoud, commit-/terugleesfouten,
 terminator-/groottegrenzen en geen sleutel in de oudere netwerkreader. Ook de normale graph-configuratieschrijver bewaart nu de modelreservering; een geforceerde stringallocatiefout sluit de NVS-handle en behoudt de eerdere callerbytes.
-De native suite heeft nu 893 geslaagde gevallen. Apart slagen 39 eigenaar-/
-instellingen-/MiBeacon-parsergevallen en 24 echte Mbed-TLS-/ontvangstgevallen
+De native suite heeft nu 906 geslaagde gevallen. Apart slagen 52 eigenaar-/
+instellingen-/MiBeacon-/TRV-parsergevallen en 25 echte Mbed-TLS-/ontvangstgevallen
 onder ASan/UBSan/leakcontrole; de eerdere 18 sessiegevallen blijven behouden.
-Acht browserprofielen dekken beide modellen, EN/NL en 1280/320 pixels, inclusief
+Twaalf browserprofielen dekken de drie profielen, EN/NL en 1280/320 pixels, inclusief
 behoud van invoer/focus en geen oude metingen onder een gewijzigde conceptbron.
 
 Open blijven: echte SBHT-103C-/MJWSD05MMC-ontvangst, sleutelverkrijging, hardware-/firmware-
 variant, reboot-/batterij-/radio-/resourceproeven, blijvende anti-replay en
-acquisitiekwalificatie. Shelly TRV en zelfstandig regelen zijn nog afzonderlijke implementatiepunten;
+acquisitiekwalificatie. Shelly TRV-bediening en zelfstandig regelen zijn nog afzonderlijke implementatiepunten;
 ook beide sensorprofielen houden hun fysieke acceptatie apart. Geen werkende
 zelfstandige thermostaat of fysieke regelautorisatie afvinken op deze diagnosepagina.
 
@@ -171,6 +171,29 @@ A separate Monitor3 profile now uses the two upstream product declarations and
 MiBeacon AES-CCM with its own nonce/AAD. Real-device acceptance, key acquisition,
 persistent replay/acquisition qualification, TRV control and standalone heating
 remain open. Nothing has been deployed.
+
+## Shelly BLU TRV: lokale diagnoseontvangst
+
+Dezelfde ongepubliceerde bundel bevat ook een expliciet `shelly_blu_trv`-profiel
+voor SBTR-001AEU. Volgens de [fabrikantbeschrijving](https://shelly-api-docs.shelly.cloud/docs-ble/Devices/BLU_ZB/trv/)
+hebben de herhaalde temperatuurvelden verschillende betekenissen: gemeld doel,
+berekende TRV-temperatuur en optioneel externe temperatuur. De ontvanger houdt
+ze apart, met hun oorspronkelijke ontvangstleeftijd. Een volledig rapport
+zonder externe temperatuur verwijdert de oude externe waarde. Batterij- of
+statusberichten vernieuwen geen temperatuur.
+
+BTHome-versleuteling gebruikt dezelfde echte AES-CCM-controle met een expliciete
+bindkey. De statusrevisie blijft een ruwe diagnosewaarde; zij bevestigt geen
+opdracht, kleppositie of afgifte. De modelkeuze is een opgeslagen selectie en
+geen bewezen apparaatidentiteit. De pagina verklaart dit in Nederlands en Engels.
+
+Er worden geen GATT-verbinding, pairing, kalibratie, schemawijziging, boost of
+kraanopdracht uitgevoerd. Eenmalige temperatuurvelden, onbekende objecten,
+verkeerde lengtes of corrupte berichten leveren geen gedeeltelijke waarden op.
+Ook dit profiel blijft **geen gekwalificeerde kamerbron of actuator**.
+Echte apparaat-/firmwareacceptatie, sleutelverkrijging, beveiligde verbinding,
+causale opdrachtterugmelding, stopgedrag en zelfstandige regeling blijven open.
+De protocolproeven gebruiken fixtures, geen ontvangen TRV-pakket.
 
 ## Gevraagde profielen en protocolreferenties
 

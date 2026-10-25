@@ -7,7 +7,7 @@
 
 namespace heating::control {
 using ManagedBleAddress = std::array<uint8_t, 6>;
-enum class ManagedBleProfile : uint8_t { none = 0, shellyHtDisplay = 1, xiaomiMonitor3 = 2 };
+enum class ManagedBleProfile : uint8_t { none = 0, shellyHtDisplay = 1, xiaomiMonitor3 = 2, shellyTrv = 3 };
 enum class ManagedBleEncryption : uint8_t { plain = 0, bthomeV2 = 1, miBeaconV4V5 = 2 };
 inline void wipeBleKey(BleBindKey& key) noexcept {
     volatile uint8_t* out = key.data();
@@ -111,7 +111,8 @@ inline bool validManagedBleName(std::string_view value) noexcept {
 }
 inline const char* managedBleProfileName(ManagedBleProfile profile) noexcept {
     switch(profile){case ManagedBleProfile::shellyHtDisplay:return "shelly_ht_display";
-        case ManagedBleProfile::xiaomiMonitor3:return "xiaomi_monitor_3";default:return nullptr;}
+        case ManagedBleProfile::xiaomiMonitor3:return "xiaomi_monitor_3";
+        case ManagedBleProfile::shellyTrv:return "shelly_blu_trv";default:return nullptr;}
 }
 inline const char* managedBleEncryptionName(ManagedBleEncryption encryption) noexcept {
     switch(encryption){case ManagedBleEncryption::plain:return "none";
@@ -119,7 +120,7 @@ inline const char* managedBleEncryptionName(ManagedBleEncryption encryption) noe
         case ManagedBleEncryption::miBeaconV4V5:return "mibeacon_v4_v5";default:return nullptr;}
 }
 inline bool validManagedBleProfileEncryption(ManagedBleProfile profile,ManagedBleEncryption encryption) noexcept {
-    return (profile==ManagedBleProfile::shellyHtDisplay
+    return ((profile==ManagedBleProfile::shellyHtDisplay||profile==ManagedBleProfile::shellyTrv)
         && (encryption==ManagedBleEncryption::plain||encryption==ManagedBleEncryption::bthomeV2))
         || (profile==ManagedBleProfile::xiaomiMonitor3&&encryption==ManagedBleEncryption::miBeaconV4V5);
 }

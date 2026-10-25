@@ -155,7 +155,7 @@ jobs:
           /tmp/open-thermostat-shelly-ht-test
           g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/googletest/googletest/include test/ble_crypto/mbedtls.cpp test/ble_crypto/mibeacon.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -Wl,--wrap=calloc -Wl,-Bstatic -lmbedcrypto -Wl,-Bdynamic -lpthread -o /tmp/open-thermostat-ble-crypto-test
           /tmp/open-thermostat-ble-crypto-test
-          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_ble_device_settings.cpp test/test_native/test_managed_ble_observer.cpp test/test_native/test_mibeacon_monitor3.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-ble-owner-test
+          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_ble_device_settings.cpp test/test_native/test_managed_ble_observer.cpp test/test_native/test_mibeacon_monitor3.cpp test/test_native/test_shelly_trv.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-ble-owner-test
           /tmp/open-thermostat-ble-owner-test
           g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -Itest/bluetooth_storage/include -Itest/onboarding/include test/bluetooth_storage/main.cpp test/bluetooth_storage/allocation.cpp -o /tmp/open-thermostat-ble-storage-test
           /tmp/open-thermostat-ble-storage-test
@@ -264,7 +264,7 @@ jobs:
 
   home-assistant-native:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

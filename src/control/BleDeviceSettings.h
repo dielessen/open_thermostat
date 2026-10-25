@@ -78,7 +78,7 @@ inline BleSettingsError readManagedBleBindings(const cJSON* settings, ManagedBle
         const auto at = [&](int index) { return cJSON_GetArrayItem(row, index); };
         if (!parseManagedBleAddress(bleSettingText(at(0)), value.address)) return fail(BleSettingsError::invalid_address);
         if (out.find(value.address)) return fail(BleSettingsError::duplicate_address);
-        if (!bleSettingInteger(at(1), 1, 2)) return fail(BleSettingsError::unsupported_profile);
+        if (!bleSettingInteger(at(1), 1, 3)) return fail(BleSettingsError::unsupported_profile);
         value.profile = static_cast<ManagedBleProfile>(at(1)->valueint);
         if (!bleSettingInteger(at(2), 0, 2)) return fail(BleSettingsError::invalid_encryption);
         value.encryption = static_cast<ManagedBleEncryption>(at(2)->valueint);
@@ -170,6 +170,7 @@ inline BleSettingsError prepareManagedBleSettings(const cJSON* previous, const c
         const auto profile = bleSettingText(bleSetting(row,"profile"));
         if(profile=="shelly_ht_display")value.profile=ManagedBleProfile::shellyHtDisplay;
         else if(profile=="xiaomi_monitor_3")value.profile=ManagedBleProfile::xiaomiMonitor3;
+        else if(profile=="shelly_blu_trv")value.profile=ManagedBleProfile::shellyTrv;
         else return fail(BleSettingsError::unsupported_profile);
         const auto encryption = bleSettingText(bleSetting(row,"encryption"));
         if(encryption=="bthome_v2")value.encryption=ManagedBleEncryption::bthomeV2;

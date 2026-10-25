@@ -3,10 +3,10 @@ const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(__dirname,'../out/bluetooth-browser');
 const publicFixtureKey='231d39c1d7cc1ab1aee224cd096db932';
-function snapshot(profile='shelly_ht_display'){const result={schema:1,pending_restart:false,config_error:'none',queue_drops:0,scan_pending:false,discovery_full:false,nearby:['5448e68f80a5'],devices:[{address:'5448e68f80a5',profile:'shelly_ht_display',name:'Room <img src=x onerror=alert(1)>',encryption:'bthome_v2',key_stored:true,control_qualified:false,measurement_qualified:false,message_integrity:true,status:'received',temperature:2350,humidity:4500,battery:80,temperature_age_ms:100,humidity_age_ms:100,battery_age_ms:100,last_accepted_age_ms:100,counter:4,rssi:-60,declared_device_type:12,firmware_32:1,firmware_24:2,light_level:1,button:null,battery_low:false,light:true,old_counter_drops:0}]};if(profile==='xiaomi_monitor_3')Object.assign(result.devices[0],{profile,encryption:'mibeacon_v4_v5',declared_device_type:0x2832,firmware_32:null,firmware_24:null,light_level:null,light:null,battery_low:null});return result;}
+function snapshot(profile='shelly_ht_display'){const result={schema:1,pending_restart:false,config_error:'none',queue_drops:0,scan_pending:false,discovery_full:false,nearby:['5448e68f80a5'],devices:[{address:'5448e68f80a5',profile:'shelly_ht_display',name:'Room <img src=x onerror=alert(1)>',encryption:'bthome_v2',key_stored:true,control_qualified:false,measurement_qualified:false,message_integrity:true,status:'received',temperature:2350,humidity:4500,battery:80,temperature_age_ms:100,humidity_age_ms:100,battery_age_ms:100,last_accepted_age_ms:100,target_temperature:null,external_temperature:null,state_revision:null,target_temperature_age_ms:null,external_temperature_age_ms:null,state_revision_age_ms:null,counter:4,rssi:-60,declared_device_type:12,firmware_32:1,firmware_24:2,light_level:1,button:null,battery_low:false,light:true,old_counter_drops:0}]};if(profile==='xiaomi_monitor_3')Object.assign(result.devices[0],{profile,encryption:'mibeacon_v4_v5',declared_device_type:0x2832,firmware_32:null,firmware_24:null,light_level:null,light:null,battery_low:null});if(profile==='shelly_blu_trv')Object.assign(result.devices[0],{profile,target_temperature:2200,external_temperature:2110,state_revision:63,target_temperature_age_ms:100,external_temperature_age_ms:100,state_revision_age_ms:100,humidity:null,declared_device_type:null,firmware_32:null,firmware_24:null,light_level:null,light:null,battery_low:null});return result;}
 (async()=>{
  fs.mkdirSync(output,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});const results=[];
- try{for(const lang of ['en','nl'])for(const width of [1280,320])for(const profile of ['shelly_ht_display','xiaomi_monitor_3']){
+ try{for(const lang of ['en','nl'])for(const width of [1280,320])for(const profile of ['shelly_ht_display','xiaomi_monitor_3','shelly_blu_trv']){
   const page=await browser.newPage({viewport:{width,height:900}}),errors=[],requests=[];let data=snapshot(profile),fail=false,conflict=false,storageFull=false;
   page.on('pageerror',e=>errors.push(e.message));await page.context().addCookies([{name:'ot_ui_lang',value:lang,url:'http://opth.test'}]);
   await page.addInitScript(()=>{const original=window.setTimeout;window.setTimeout=(fn,ms,...args)=>original(fn,ms===5000?80:ms,...args);});
@@ -21,7 +21,7 @@ function snapshot(profile='shelly_ht_display'){const result={schema:1,pending_re
       if(storageFull)return route.fulfill({status:507,contentType:'application/json',body:'{\"error\":\"bluetooth_storage_full\"}'});
       if(conflict)return route.fulfill({status:412,contentType:'application/json',body:'{"error":"device_settings_changed"}'});
       const payload=JSON.parse(req.postData());if(payload.reset_invalid===true){assert.equal(payload.devices.length,0);data.config_error='none';data.pending_restart=true;return route.fulfill({status:201,contentType:'application/json',body:'{"changed":true,"pending_restart":true}'});}assert.equal(payload.devices.length,1);assert.equal(payload.devices[0].bindkey,publicFixtureKey);assert.equal(payload.devices[0].profile,profile);
-      data.devices[0].name=payload.devices[0].name;data.pending_restart=true;data.devices[0].status='pending_restart';for(const key of ['temperature','humidity','battery','battery_low','light','light_level','button'])data.devices[0][key]=null;
+      data.devices[0].name=payload.devices[0].name;data.pending_restart=true;data.devices[0].status='pending_restart';for(const key of ['temperature','humidity','battery','battery_low','light','light_level','button','target_temperature','external_temperature','state_revision'])data.devices[0][key]=null;
       return route.fulfill({status:201,contentType:'application/json',body:'{"changed":true,"pending_restart":true}'});
     }
     if(fail)return route.fulfill({status:503,contentType:'application/json',body:'{"error":"fixture_failure"}'});
@@ -36,6 +36,11 @@ function snapshot(profile='shelly_ht_display'){const result={schema:1,pending_re
   const root=page.locator('#bluetooth-page'),status=page.locator('#ble-status'),box=page.locator('#ble-rows fieldset');await box.waitFor();
   await page.waitForFunction(()=>document.querySelector('#ble-save')?.disabled===false);
   assert.equal(await box.locator('input[type=password]').inputValue(),'');assert.equal(await root.locator('img').count(),0);assert.equal(await box.locator('input').nth(1).inputValue(),data.devices[0].name);
+  if(profile==='shelly_blu_trv'){
+    assert.match(await box.locator('[data-readings]').innerText(),lang==='nl'?/Berekende TRV-temperatuur/:/Calculated TRV temperature/);
+    const extra=await box.locator('[data-extra]').textContent();assert.match(extra,lang==='nl'?/Gemeld doel \(°C\): 22/:/Reported target \(°C\): 22/);assert.match(extra,/21.1/);assert.match(extra,/63/);
+    assert(!String(await box.locator('[data-readings]').innerText()).includes(lang==='nl'?'Luchtvochtigheid':'Humidity'));
+  }
   const name=box.locator('input').nth(1);await name.fill('Draft – Zoë');await name.focus();
   const details=root.locator('details').first();await details.locator('summary').click();await name.focus();
   data.devices[0].temperature=2410;await page.waitForFunction(()=>document.querySelector('[data-readings]')?.textContent.includes('24'));
@@ -48,7 +53,7 @@ function snapshot(profile='shelly_ht_display'){const result={schema:1,pending_re
   await choice.selectOption(profile==='shelly_ht_display'?'xiaomi_monitor_3':'shelly_ht_display');assert.match(await box.locator('[data-readings]').innerText(),lang==='nl'?/Sla op en herstart/:/Save and restart/);
   if(profile==='shelly_ht_display')assert.equal(await box.locator('[data-ble-field=encryption] option').count(),1);
   await choice.selectOption(profile);await page.waitForFunction(()=>document.querySelector('[data-readings]')?.textContent.includes('24'));
-  if(profile==='shelly_ht_display'){
+  if(profile!=='xiaomi_monitor_3'){
     await box.locator('[data-ble-field=encryption]').selectOption('none');assert.equal(await box.locator('[data-ble-field=key_action]').isDisabled(),true);assert.equal(await box.locator('input[type=password]').isVisible(),false);
     await box.locator('[data-ble-field=encryption]').selectOption('bthome_v2');assert.equal(await box.locator('[data-ble-field=key_action]').inputValue(),'keep');await page.waitForFunction(()=>document.querySelector('[data-readings]')?.textContent.includes('24'));
   }

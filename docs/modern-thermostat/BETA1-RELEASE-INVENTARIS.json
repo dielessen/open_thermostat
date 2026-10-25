@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "3e350cbb712acecccc895232c1b061790dc444cbd0103a495a4dc19f19f0cd02"
+          "sha256": "2a971c17b4691f65abfecef65476164d93a7f4f23fce7b0bcc178ce865320205"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -71,15 +71,15 @@
         },
         {
           "path": "docs/modern-thermostat/BETA1-UITVOERING.nl.md",
-          "sha256": "c5992858676ff14f22d61c7f38a4998d875f83f9f9f53312644b52da2ad43171"
+          "sha256": "58903b6625108b500427dc719ca43d8a93af95b82ad75d4182f88f60a1e3c08d"
         },
         {
           "path": "README.md",
-          "sha256": "11d47e1d055e7548d86ddc46f446db8d78d6c91472322b7472e10385383f2976"
+          "sha256": "471c37ee114a9daaa25ba427a7bce3aae0045e80b7bede382e8a4abf45ad165a"
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
-          "sha256": "be67c294d3f823717ac18be9c9bdaf2612deffe83610e259e48d0e8aa187df13"
+          "sha256": "3196620375d7286e8924f18f44125de45edf3b191bfc5562040716e4cc789ba1"
         },
         {
           "path": "scripts/verify_alpha36_beta_path.py",
@@ -99,7 +99,7 @@
         },
         {
           "path": "scripts/test_package_ha_release.py",
-          "sha256": "d121f3199de5dc2eaeb02df5fef994ac8e0802c1e2c4d03e34ab9c0bfecac63f"
+          "sha256": "5b85896bd6ee3fcd2f1c3cd45483d488c6110d038216223521527ff026facfd1"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
@@ -237,7 +237,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "3e350cbb712acecccc895232c1b061790dc444cbd0103a495a4dc19f19f0cd02"
+          "sha256": "2a971c17b4691f65abfecef65476164d93a7f4f23fce7b0bcc178ce865320205"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -405,7 +405,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "da639e8fa62606e8dad5c1d525b1777360d81c455e0e30d15e5477d865d5ab32"
+          "sha256": "2d8c474665ea9befb01492e638440362b3d682fc23749a365e0e1e8f628aa9a3"
         },
         {
           "path": "data/html/ui-language.js",
@@ -707,7 +707,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "3e350cbb712acecccc895232c1b061790dc444cbd0103a495a4dc19f19f0cd02"
+          "sha256": "2a971c17b4691f65abfecef65476164d93a7f4f23fce7b0bcc178ce865320205"
         },
         {
           "path": "platformio.ini",
@@ -731,7 +731,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "da639e8fa62606e8dad5c1d525b1777360d81c455e0e30d15e5477d865d5ab32"
+          "sha256": "2d8c474665ea9befb01492e638440362b3d682fc23749a365e0e1e8f628aa9a3"
         },
         {
           "path": "data/html/system-log.js",
@@ -879,7 +879,7 @@
         },
         {
           "path": "docs/modern-thermostat/BLUETOOTH-APPARATEN.nl.md",
-          "sha256": "2c8b8eb0be3d5060752e1344c29afd787355879ccecc7b0aab6bceb172b942f3"
+          "sha256": "d9f198b493fbb84f48df6d33c0f892df0cd76976e0693c3912e81d5d8eae42f0"
         },
         {
           "path": "src/diagnostics/EmsLogCapture.h",
@@ -911,15 +911,15 @@
         },
         {
           "path": "src/control/BleDeviceConfig.h",
-          "sha256": "55289f56a2111689d0e8bc9f43b478a66bab9d0d57f1fe2a492d48a2fc166313"
+          "sha256": "4eadd0b925a1d4feae4f88dd03004af4e08050f22b08782cc550d6c217ccdae4"
         },
         {
           "path": "src/control/BleDeviceSettings.h",
-          "sha256": "1477f6cc8c01e2e70761ed466f6e8ca2e0562ccd8706ad5ca986ad5093deea61"
+          "sha256": "fd773b5dcd94c0459f1bfaa70bf8f807d97634032ce36adc8a0643d23550ae39"
         },
         {
           "path": "src/control/BleObservationJson.h",
-          "sha256": "555670c3affa4d5cf411c80d8518b6eb0714d6ffef2de02cab1f7e9ca48c4a1c"
+          "sha256": "199c6657bbf8be4ceab3b57f9c66ad82c49d31af7ff9a358f419a85833b3b6f6"
         },
         {
           "path": "src/control/BleServiceData.h",
@@ -931,7 +931,7 @@
         },
         {
           "path": "src/control/ManagedBleObserver.h",
-          "sha256": "a43f4636322722cc981e02d773c3dab37a335c2b981f157e0d0c56dcaa94d877"
+          "sha256": "4e10c5b82089116cb3a00701f533f0f5ac842751122bc8ee291ff9471747f6b6"
         },
         {
           "path": "src/control/MbedTlsBleCcm.h",
@@ -939,27 +939,27 @@
         },
         {
           "path": "data/html/bluetooth.html",
-          "sha256": "be81ca23bd1ffb3bc81449977158499bfc83d3cfa1a705f3ab80b2a187f32214"
+          "sha256": "98993b9f99ba06f49e50265fc43d258aba32350f7a6554cc6942ab060775e160"
         },
         {
           "path": "data/html/bluetooth.js",
-          "sha256": "71c02948b33fd9d70c83f75ae20eb404b569ea9791b83f9342cc842366d9c08f"
+          "sha256": "d4efffdd68857454e2c2db7fb9b9f02119bf92a54e349f8336d3d0e8b8ed9724"
         },
         {
           "path": "test/ble_crypto/mbedtls.cpp",
-          "sha256": "78e26e311d1c5b224b13eef926553797ddc24a1153a80cf9a04774b99d9d12a3"
+          "sha256": "8dd62b50945d770007983ad3ba5f2a0635da391e60454206d04fa93921babea1"
         },
         {
           "path": "test/bluetooth-browser.cjs",
-          "sha256": "b1edb308acf563277ddeaeda57da32100d34e70e58b2a193f55c2051a6907513"
+          "sha256": "328f5a8336b9b766e5e07f55cad40127122aa2a3e82813b65e015a6c0349d0a3"
         },
         {
           "path": "test/test_native/test_ble_device_settings.cpp",
-          "sha256": "80b2ccb588444ed919e6f12ad163fafd3f9a14fac91279120689d6bb4a520d85"
+          "sha256": "215c57d25e4b7fce3d3f8b3adcfa9e69fbd82e67adbf1e448f937e2d8daf9c2b"
         },
         {
           "path": "test/test_native/test_managed_ble_observer.cpp",
-          "sha256": "c187b19657ae84e550e2b5c36e4ee2008c84f6cde7f1fddca2539d76c945760e"
+          "sha256": "893eb7a9edf8e560fdec4f88e980c2ddfa80b9d1754aa8d9c0f9a2e1d2fe0b1c"
         },
         {
           "path": "test/test_native/test_http_access.cpp",
@@ -1027,7 +1027,7 @@
         },
         {
           "path": "src/control/BleSensorFrame.h",
-          "sha256": "9338cd1f85d61c1e17333fa15b479efad6ddcac98faca62ff9ec869a9884f1c4"
+          "sha256": "7b4e73dad09d6292481e849baa52b6b49622e638b0b6d425f219cb1c0d998ff2"
         },
         {
           "path": "src/control/MiBeaconMonitor3Advertisement.h",
@@ -1052,6 +1052,14 @@
         {
           "path": "test/bluetooth_storage/allocation.cpp",
           "sha256": "ad25df7500fe7b461d55c40321d6441db99d83f3c255858f8081a22d4135c72f"
+        },
+        {
+          "path": "src/control/ShellyTrvAdvertisement.h",
+          "sha256": "efa5ae7c50e877340599987154bcaff52771dd3043df0f98852d0a8d4f7a2215"
+        },
+        {
+          "path": "test/test_native/test_shelly_trv.cpp",
+          "sha256": "39647de185418fefb1758c4d8f026cc59ca660c70a500d1c67c804a9a45d7d16"
         }
       ],
       "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding geleverd/getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele acquisitie-/ouderdomsvalidatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten als ambient bron. WSDCGQ11LM-eventproducer voorbereid/getest, niet op Z2M geïnstalleerd. Native HA-ontvanger en room-status geleverd zonder QualifiedReport-vrijgave. Web-/native systeemlog en RFC5424 UDP-syslog geleverd in alpha23; beschermde routes/RAM-buffer en standaard uit zonder bestemming gecontroleerd. Externe collector en lange heap-/stack-/belastingproef blijven open. Geen fysieke regelautorisatie. ESP-eigen diagnose op alpha26/dev33 geïnstalleerd en twee gewone live pakketten exact met HA vergeleken. Softwaretests dekken verval; langdurige fysieke logging-/resourceproeven blijven afzonderlijk open. Geleverd en live teruggelezen in HA46: begrensde, niet-blijvende oorspronkelijke ontvangsttellers via bestaande HA-diagnostiek. Geen producent- of fysieke kwalificatie. Geleverd in HA47: één native opstart over async-programma/Store/MQTT-grenzen, cleanup bij cancel/close en begrensde optionele temperatuurdiagnose. Tien baselinegevallen falen vóór correctie, 139 gerichte/2349volledigeHA-gevallen perCore slagen. HA47 uitgerold met verse HA46-back-up96 en44 afzonderlijke nacontroles. Beperkte HA46-controle05:46UTC ziet1TV02-callback/enqueue/workeracceptatie; stale en ongekwalificeerd, geen upstreamoorzaak of fysieke ACK. Na Coreherstart nieuweRAMowner: bij06:47UTC nul counters/TV02waiting, geen oudbericht alsnieuwekwalificatie. Actieve/fysiekevrijgave blijftopen. X01: pure SBHT-103C-BTHome-decoder voorbereid,798native/16sanitizer/ESP32syntaxPASS; NIETgeselecteerd door BLE-runtime. Geen nieuwe reader, Settings/onboarding, AES/sleutels, replay-/acquisitiekwalificatie of fysieke apparaatondersteuning. Xiaomi/BLUTRV blijven open. HA48 geïnstalleerd: cleanup na gewone callbackexception; aparte nacontrole08:43UTC46PASS,86 live/96back-up exact. Nieuwe RAM-owner blijft ongekwalificeerd. Pure Shelly-decoderbron gepubliceerd in alpha35, niet op E32 geïnstalleerd en niet runtimegeselecteerd. Voor volgende firmware: ESP/EMS/beide-weergave, begrensde deferred RX-framelogging en onafhankelijke syslogbronkeuze met oude6/nieuwe8veldinstellingen. Native25/UDPloopback/NVS/vierbrowserprofielen PASS; echte EMS-/collector-/belastingproeven nog open. Geen installatie. Grote-beta-uitvoering: normale E32 SBHT-103C-diagnoseontvangst/EN-NL-settings nu aangesloten met acht bindings, echte SDK AES-CCM/MIC, verborgen sleutels, conditionele duurzame save, oorspronkelijke callbackleeftijden, vaste wachtrij en boot-lokale tellerafwijzing. Geen extra task/client of actuatorwrite; geen QualifiedReport of kamerregelbron. 871 native gevallen PASS; volledige actuele board/browser/sanitizerresultaten bij bundelbewijs. Historische pure-decoderstatus hierboven beschrijft oudere bron. Echte sensor-/radio-/sleutelverkrijgings-/reboot-/resourceproeven, blijvende replay-/acquisitiekwalificatie, Xiaomi/TRV en zelfstandig regelen blijven open. Niets geïnstalleerd. Core4-P0 in dezelfde bètabron hersteld: publieke installatiegroep erft private transactiepin niet meer; echte Core2026.10.4 toegevoegd na RECORD/sourcevergelijking met .3. 2428 volledige gevallen perCore.2/.3/.4 PASS, resources daarna afzonderlijk30/3/3 PASS. Native HA-readback bevestigt liveCore4/dev48/setup_error; geïnstalleerde Python-bronhashes UNKNOWN, niets geïnstalleerd. Globale finale freeze/liveherstel blijven open. Voor eerste uitrol private BLE-opslag afgezonderd in één begrensde ot_bluetooth/settings-blob: sleutels komen niet in het netwerkdocument dat rollbackfirmware terugstuurt. Netwerkrestore importeert geen nieuwe bindings. Onafhankelijke boot-/sessielokale readbackfences voor netwerk/Bluetooth; huidige harde RAM-grens2048bytes. 875 native,18auth/26owner-sanitizer,15opslag-/36bestaandeonboardinggevallen en4browserprofielen PASS; drie boardbuilds en ongewijzigde layout/default/noTX-check PASS. Eerdere onuitgerolde netwerkblobopslag hierboven is door deze private route vervangen. Geen fysieke kwalificatie/installatie. Monitor3-software aangesloten in dezelfde beta: apart MiBeacon4/5-profiel, upstreamproductdeclaraties0x2832/0x4c47, eigen omgekeerde MAC/nonce12/AAD11/MIC4; geen CGG1/legacy/Shellyfallback. Strikte TLV/floatgrenzen en boot-lokale tellerbewaking via bestaande ontvanger. 888native/39eigenaar-parser-sanitizer/24echtecrypto-sanitizer,8browserprofielen/47node/2navigatie/2dashboard/4taal,3boards/layoutPASS. Geen oude metingen onder gewijzigde conceptbron/-sleutel. Echte modelopname, sleutelverkrijging, acquisitie-/blijvende replaykwalificatie en zelfstandige kamer-/TRV-regeling blijven open. Historische oude ontwerptekst is geen actuele claim van afwezige software. Geen installatie."

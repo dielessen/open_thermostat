@@ -1,5 +1,17 @@
 /* Fixed English UI messages mapped to Nederlands. User data and wire identifiers are excluded. */
 window.OT_UI_MESSAGES = {
+  "Add a Shelly BLU H&T Display, Xiaomi Monitor 3 or Shelly BLU TRV by its Bluetooth address. Reception is local and does not need Home Assistant. These diagnostic readings cannot control heating.": "Voeg een Shelly BLU H&T Display, Xiaomi Monitor 3 of Shelly BLU TRV toe met het Bluetoothadres. Ontvangst werkt lokaal zonder Home Assistant. Deze diagnosewaarden kunnen de verwarming niet aansturen.",
+  "TRV readings show a reported target and calculated temperature, not valve position or confirmed command feedback.": "TRV-waarden tonen een gemeld doel en berekende temperatuur, geen kleppositie of bevestigde opdrachtterugmelding.",
+
+  "Calculated TRV temperature": "Berekende TRV-temperatuur",
+  "Button event (raw)": "Knopgebeurtenis (ruw)",
+  "Reported target (°C)": "Gemeld doel (°C)",
+  "External sensor temperature (°C)": "Externe sensortemperatuur (°C)",
+  "Reported state revision (diagnostic)": "Gemelde statusrevisie (diagnose)",
+  "Target report age (ms)": "Leeftijd doelrapport (ms)",
+  "External report age (ms)": "Leeftijd extern rapport (ms)",
+  "State revision age (ms)": "Leeftijd statusrevisie (ms)",
+
   "Not enough device storage for this change. The saved Bluetooth settings were not changed.": "Onvoldoende apparaatopslag voor deze wijziging. De opgeslagen Bluetoothinstellingen zijn niet gewijzigd.",
 
   "Enter a Bluetooth address with six hexadecimal pairs.": "Voer een Bluetoothadres met zes hexadecimale paren in.",

@@ -97,3 +97,17 @@ TEST_F(ObserverTest, ButtonAndIdentityHaveTheirOwnLifetime) {
 }
 static_assert(sizeof(ManagedBleObserver<ObserverCrypto>)<=4096,"observer resident budget changed");
 }
+TEST_F(ObserverTest, TrvTemperatureInstancesStaySeparateAndMissingExternalWithdrawsOnlyThatField) {
+    bindings.devices[0].profile=ManagedBleProfile::shellyTrv;ASSERT_TRUE(observer.initialize(bindings));
+    receive(packet({0x45,220,0,0x45,215,0,0x45,200,0,0x54,1,63}));
+    auto s=status();ASSERT_EQ(s.temperature,2150);EXPECT_EQ(s.targetTemperature,2200);EXPECT_EQ(s.externalTemperature,2000);EXPECT_EQ(s.stateRevision,63);
+    observerNow=2000;receive(packet({1,90}),2000);s=status();EXPECT_EQ(s.temperatureAgeMs,1000);EXPECT_EQ(s.targetTemperatureAgeMs,1000);EXPECT_EQ(s.externalTemperatureAgeMs,1000);
+    observerNow=3000;receive(packet({0x45,225,0,0x45,216,0}),3000);s=status();EXPECT_EQ(s.targetTemperature,2250);EXPECT_EQ(s.temperature,2160);EXPECT_FALSE(s.externalTemperature);EXPECT_FALSE(s.externalTemperatureAgeMs);EXPECT_EQ(s.stateRevisionAgeMs,2000);
+    observerNow=183000;s=status();EXPECT_FALSE(s.temperature);EXPECT_FALSE(s.targetTemperature);EXPECT_FALSE(s.stateRevision);EXPECT_FALSE(s.authorizesActuation);EXPECT_FALSE(s.measurementQualified);
+}
+TEST_F(ObserverTest, TrvMalformedReportWithdrawsEveryFieldWithoutRenewingTheOldCounter) {
+    bindings=config(true);bindings.devices[0].profile=ManagedBleProfile::shellyTrv;ASSERT_TRUE(observer.initialize(bindings));
+    receive(packet({0x45,220,0,0x45,215,0},10));ASSERT_EQ(status().temperature,2150);
+    observerNow=2000;receive(packet({0x45,225,0},11),2000);auto s=status();EXPECT_EQ(s.status,BleObservationStatus::malformed);EXPECT_FALSE(s.temperature);EXPECT_FALSE(s.targetTemperature);EXPECT_FALSE(s.externalTemperature);EXPECT_EQ(s.counter,10u);
+    observerNow=3000;receive(packet({0x45,220,0,0x45,215,0},10),3000);EXPECT_FALSE(status().temperature);EXPECT_EQ(status().counter,10u);
+}

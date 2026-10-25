@@ -13,7 +13,7 @@ leidend; ontbrekende fysieke feiten worden niet met softwarevinkjes afgetekend.
 De verse alleen-lezen HA-controle ziet Core **2026.10.4**, integratie **dev48**
 en `setup_error: setup_platform_unsupported`. De lokale oorzaak is
 nagebootst op de echte Core: de versiepin blokkeerde ook de presentatiegroep.
-Het herstel slaagt met 2.428 gevallen per Core (.2/.3/.4) en gaat in deze grote
+Het herstel slaagt bij broncheckpoint `be56dd9` met 2.431 gevallen per Core (.2/.3/.4), met brongebonden rapporten en gaat in deze grote
 bèta mee; er is geen tussentijdse HA-installatie.
 [Oorzaak, controles en uitrolgrens](HA-CORE4-OPSTART.nl.md).
 
@@ -28,11 +28,11 @@ Zie [het werkbord](WORKBOARD.nl.md) en [CSV-gebruik](HISTORIE-EXPORT.nl.md).
 Dit is nog geen gepubliceerde of geïnstalleerde versie.
 
 Ook de normale E32-pagina voor Bluetoothapparaten en lokale SBHT-103C-/
-MJWSD05MMC-diagnoseontvangst is aangesloten, met echte AES-CCM, verborgen bindkeys,
+MJWSD05MMC-/SBTR-001AEU-diagnoseontvangst is aangesloten, met echte AES-CCM, verborgen bindkeys,
 begrensde privéopslag/wachtrij en ontvangstleeftijden. De sleutels staan buiten
 het netwerkdocument, zodat ook de oudere netwerkreader ze na rollback niet kan
 terugsturen. Dit levert nog geen
-gekwalificeerde regelbron; fysieke sensoracceptatie, TRV en zelfstandig regelen blijven open.
+gekwalificeerde regelbron; fysieke apparaatacceptatie, TRV-bediening en zelfstandig regelen blijven open.
 [Uitvoering en grenzen](BLUETOOTH-APPARATEN.nl.md).
 
 ## GitHub-releasenotities — alle bestaande versies bijgewerkt

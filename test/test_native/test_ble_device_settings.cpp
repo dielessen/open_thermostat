@@ -107,7 +107,7 @@ TEST(BleDeviceSettings, UnknownFutureBindingsArePreservedByNetworkRecoveryButNot
 TEST(BleDeviceSettings, InvalidSecretsAndPrivilegeFieldsAreNeverStoredOrProjected) {
     const std::vector<std::pair<const char*,const char*>> bad{
         {"address", "00:00:00:00:00:00"}, {"address", "ff:ff:ff:ff:ff:ff"},
-        {"profile", "shelly_blu_trv"}, {"encryption", "auto"}, {"bindkey", "short"},
+        {"profile", "unreviewed_trv"}, {"encryption", "auto"}, {"bindkey", "short"},
         {"bindkey", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}, {"name", "\n"},
         {"name", "                                         "}, {"key_action", "guess"}};
     for (const auto& value : bad) {
@@ -183,4 +183,21 @@ TEST(BleDeviceSettings, AProfileSwitchNeverCopiesTheOtherProtocolsStoredKey) {
     cJSON_ReplaceItemInObjectCaseSensitive(row,"profile",cJSON_CreateString("xiaomi_monitor_3"));cJSON_ReplaceItemInObjectCaseSensitive(row,"encryption",cJSON_CreateString("mibeacon_v4_v5"));
     ManagedBleBindings next;ControlJson candidate(nullptr,cJSON_Delete);bool changed=false;
     ASSERT_EQ(prepareManagedBleSettings(old.get(),patch.get(),next,candidate,changed),BleSettingsError::none);ASSERT_TRUE(changed);EXPECT_FALSE(next.devices[0].hasKey);EXPECT_EQ(text(candidate.get()).find(publicKey),std::string::npos);
+}
+TEST(BleDeviceSettings, TrvProfileRoundtripsPrivatelyAndCannotReuseAnotherProfilesKey) {
+    auto old=configured(),patch=request("keep");auto row=cJSON_GetArrayItem(cJSON_GetObjectItemCaseSensitive(patch.get(),"devices"),0);
+    cJSON_ReplaceItemInObjectCaseSensitive(row,"profile",cJSON_CreateString("shelly_blu_trv"));
+    ManagedBleBindings next,restored;ControlJson candidate(nullptr,cJSON_Delete);bool changed=false;
+    ASSERT_EQ(prepareManagedBleSettings(old.get(),patch.get(),next,candidate,changed),BleSettingsError::none);
+    ASSERT_TRUE(changed);ASSERT_EQ(next.devices[0].profile,ManagedBleProfile::shellyTrv);EXPECT_FALSE(next.devices[0].hasKey);
+    ASSERT_EQ(readManagedBleBindings(candidate.get(),restored),BleSettingsError::none);EXPECT_TRUE(next.same(restored));
+    auto projection=publicManagedBleBindings(restored);ASSERT_TRUE(projection);EXPECT_EQ(text(projection.get()).find(publicKey),std::string::npos);
+}
+TEST(BleDeviceSettings, TrvCannotSelectXiaomiEncryptionOrClaimActuatorAuthority) {
+    auto old=baseline(),patch=request();auto row=cJSON_GetArrayItem(cJSON_GetObjectItemCaseSensitive(patch.get(),"devices"),0);
+    cJSON_ReplaceItemInObjectCaseSensitive(row,"profile",cJSON_CreateString("shelly_blu_trv"));
+    cJSON_ReplaceItemInObjectCaseSensitive(row,"encryption",cJSON_CreateString("mibeacon_v4_v5"));
+    ManagedBleBindings next;ControlJson candidate(nullptr,cJSON_Delete);bool changed=false;
+    EXPECT_EQ(prepareManagedBleSettings(old.get(),patch.get(),next,candidate,changed),BleSettingsError::invalid_encryption);
+    EXPECT_FALSE(candidate);EXPECT_FALSE(changed);
 }

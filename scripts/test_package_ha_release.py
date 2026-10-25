@@ -55,6 +55,14 @@ class HARelease(unittest.TestCase):
             self.assertEqual(zip.read('custom_components/open_thermostat/__init__.py'), (self.integration/'__init__.py').read_bytes())
             self.assertFalse(any('.storage' in name or name.endswith('.bin') for name in zip.namelist()))
 
+    def test_only_canonical_ha_release_versions_can_be_packaged(self):
+        for version in ('0.4.0.beta1','0.4.0b01','00.4.0b1','0.4.0bogus','0.4.0b4294967296'):
+            with self.subTest(version=version):
+                (self.integration/'manifest.json').write_text(json.dumps(dict(domain='open_thermostat',version=version)))
+                self.commit()
+                with self.assertRaisesRegex(ValueError,'invalid_HA_release_identity'):
+                    package(self.root,self.root/'out/a',self.results)
+
     def test_dirty_worktree_denied(self):
         (self.integration/'__init__.py').write_text('changed')
         with self.assertRaisesRegex(ValueError, 'requires_clean_source'):

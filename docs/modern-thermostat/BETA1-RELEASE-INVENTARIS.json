@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "412bf5f4b7ac02fc3c700d73cfcbc62c2680a72734af2280e4ed84aa2a265bf5"
+          "sha256": "3c6a74c4c16493d864208134a657c2718c86e3b7a076334f414e18e0be053721"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
@@ -93,7 +93,7 @@
       "files": [
         {
           "path": "src/update/GitHubUpdate.cpp",
-          "sha256": "4823d483b74154217ef6a1176a7384b328d25fcb6924bda4c8fe9b43279e5f2a"
+          "sha256": "7692b1bef74666ed1d7b02f2129a2f36b96b5a8bf191ad4fbe2b7e28d25c29be"
         },
         {
           "path": "src/update/IndexedReleaseCatalog.h",
@@ -105,19 +105,19 @@
         },
         {
           "path": "src/update/UpdateCheckpoint.h",
-          "sha256": "e4de4725463c424eaa11bd816b3b80413918ac5368d77b56ee8b4f8afb0d54ce"
+          "sha256": "d0abeece291fcc57db1a4f36e2042b08dfe8c91152a58168090319db09517659"
         },
         {
           "path": "test/test_native/test_update_checkpoint.cpp",
-          "sha256": "cab7c146b8e9c6440a56624af5371a999964379e4a69166590a67794d75127f1"
+          "sha256": "a42f72242fdbb689ad7411fdd1f49b42b4ff1ccb282fffcdb3f4b2f7f40407cc"
         },
         {
           "path": "test/updates/browser.cjs",
-          "sha256": "7a8118ebe7ad9bda5bee133ac71a897ff615f71522ec4ec7fd288f4f2745ae41"
+          "sha256": "e11947692e9987aec585deada5c818583f79fb17b1ab6c5c7acdabd55ad80704"
         },
         {
           "path": "data/html/update.html",
-          "sha256": "bc2a135e55375d95771f65bca2efb28f4cdc121183aef857375d91e5c28817e4"
+          "sha256": "ec6a409b28d41ec396ebe1f2986e2a42de995fa341edfe0caa9f93ef73457b92"
         },
         {
           "path": "src/update/ManualAppUpload.h",
@@ -130,9 +130,21 @@
         {
           "path": "test/manual_ota/run.py",
           "sha256": "31b934c7ef309036f6af0e05057aff08ef5cb3d74b689bdaad5ae401f168d8ad"
+        },
+        {
+          "path": "src/update/VerifiedOta.h",
+          "sha256": "89af17149631d5ab2a0b261e0e398ad24650e2d9224559231a8f4200a891e657"
+        },
+        {
+          "path": "test/test_native/test_github_update.cpp",
+          "sha256": "ff267de2b4e5c161890636b6e47b346c3be508fcc6577075d81de4c8fc157dd7"
+        },
+        {
+          "path": "docs/modern-thermostat/UPDATE-VERIFICATIE-CHECKPOINTS-20261025.nl.md",
+          "sha256": "0cf8a24a78f6a390bebfb8ce1aafbbdf4d9aeeedce187ad503f6ec96fa3292c9"
         }
       ],
-      "remaining_acceptance": "Alpha26 HTTPS-afwijking blijft onverklaard; geen blinde herhaling. Blijvende enkelvoudige NVS-updatediagnose en EN/NL-webpresentatie geleverd in alpha27/dev36. Echte flash-/powerloss-/herstelacceptatie en normale update op een afzonderlijk beoordeelde kandidaat blijven open. Alpha29 app-only upload mislukte met reset6; Verse basis 25 oktober 01:50 UTC is HA44/E32alpha31; uitvoerder en methode van die installatie onbekend. Deze opdracht heeft geen E32-upload gestart; eerdere watchdogoorzaak blijft open. Strikte lengte, handle-opruiming en selectie na volledig geautoriseerd verzoek zijn bronmatig voorbereid; geen oorzaakbewijs, herstelproef of installatievrijgave. De bestaande native HTTPS-checkpointscope blijft ongewijzigd."
+      "remaining_acceptance": "Alpha26 HTTPS-afwijking blijft onverklaard; geen blinde herhaling. Blijvende enkelvoudige NVS-updatediagnose en EN/NL-webpresentatie geleverd in alpha27/dev36. Echte flash-/powerloss-/herstelacceptatie en normale update op een afzonderlijk beoordeelde kandidaat blijven open. Alpha29 app-only upload mislukte met reset6; Verse basis 25 oktober 01:50 UTC is HA44/E32alpha31; uitvoerder en methode van die installatie onbekend. Deze opdracht heeft geen E32-upload gestart; eerdere watchdogoorzaak blijft open. Strikte lengte, handle-opruiming en selectie na volledig geautoriseerd verzoek zijn bronmatig voorbereid; geen oorzaakbewijs, herstelproef of installatievrijgave. De bestaande native HTTPS-checkpointscope blijft ongewijzigd. Volgende bronbundel: vier begrensde checkpoints vóór checksum/image/readback/bootselectie met EN/NL-status, 782 native/40 sanitizer/24 updaterbrowsergevallen en compile geslaagd; niet geflasht. Dit verklaart of herstelt de oudere watchdog niet."
     },
     {
       "id": "I04",
@@ -149,7 +161,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "412bf5f4b7ac02fc3c700d73cfcbc62c2680a72734af2280e4ed84aa2a265bf5"
+          "sha256": "3c6a74c4c16493d864208134a657c2718c86e3b7a076334f414e18e0be053721"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -253,7 +265,7 @@
         },
         {
           "path": "data/html/update.html",
-          "sha256": "bc2a135e55375d95771f65bca2efb28f4cdc121183aef857375d91e5c28817e4"
+          "sha256": "ec6a409b28d41ec396ebe1f2986e2a42de995fa341edfe0caa9f93ef73457b92"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/strings.json",
@@ -309,7 +321,7 @@
         },
         {
           "path": "test/updates/browser.cjs",
-          "sha256": "7a8118ebe7ad9bda5bee133ac71a897ff615f71522ec4ec7fd288f4f2745ae41"
+          "sha256": "e11947692e9987aec585deada5c818583f79fb17b1ab6c5c7acdabd55ad80704"
         },
         {
           "path": "test/web_auth_client.test.cjs",
@@ -317,7 +329,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "18b333daf17f3f71b27302bad517568debb06f75b2e8e88cc095b563cfe22be9"
+          "sha256": "42ccb40380cb3b612480eb98719809c7a8d920b57c10d380b1d4d94d1b8eb3b9"
         },
         {
           "path": "data/html/ui-language.js",
@@ -559,7 +571,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "412bf5f4b7ac02fc3c700d73cfcbc62c2680a72734af2280e4ed84aa2a265bf5"
+          "sha256": "3c6a74c4c16493d864208134a657c2718c86e3b7a076334f414e18e0be053721"
         },
         {
           "path": "platformio.ini",
@@ -583,7 +595,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "18b333daf17f3f71b27302bad517568debb06f75b2e8e88cc095b563cfe22be9"
+          "sha256": "42ccb40380cb3b612480eb98719809c7a8d920b57c10d380b1d4d94d1b8eb3b9"
         },
         {
           "path": "data/html/system-log.js",

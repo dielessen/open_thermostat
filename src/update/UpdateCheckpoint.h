@@ -6,7 +6,10 @@
 namespace heating::update {
 // One last SAVED checkpoint, not a command journal or proof of a rollback.
 // No clocks, URLs, error strings, credentials or dynamically allocated payload.
-enum class UpdateStage : uint32_t { Manifest=1, Download, Verify, Selected, Error };
+// Values1..5 and the164-byte schema1 blob retain their existing meanings.
+// The added stages mean only "saved before operation", never its success.
+enum class UpdateStage : uint32_t { Manifest=1, Download, Verify, Selected, Error,
+    Hash, Image, Readback, Selecting };
 struct UpdateCheckpoint {
     uint32_t schema=1, attempt=0;
     UpdateStage stage=UpdateStage::Manifest;
@@ -25,6 +28,10 @@ inline const char *updateStageName(UpdateStage stage) {
     case UpdateStage::Verify:return "verifying";
     case UpdateStage::Selected:return "boot_slot_selected";
     case UpdateStage::Error:return "error";
+    case UpdateStage::Hash:return "before_hash_verification";
+    case UpdateStage::Image:return "before_image_validation";
+    case UpdateStage::Readback:return "before_flash_readback";
+    case UpdateStage::Selecting:return "before_boot_slot_selection";
     }
     return "unknown";
 }
@@ -33,7 +40,7 @@ template<size_t N> inline bool terminated(const char (&text)[N]) {
 }
 inline bool validCheckpoint(const UpdateCheckpoint &c) {
     return c.schema==1 && c.attempt!=0 &&
-        c.stage>=UpdateStage::Manifest && c.stage<=UpdateStage::Error &&
+        c.stage>=UpdateStage::Manifest && c.stage<=UpdateStage::Selecting &&
         c.total<=maxImageBytes && c.received<=c.total &&
         c.httpStatus>=-32768 && c.httpStatus<=599 &&
         c.reserved[0]==0 && c.reserved[1]==0 && c.reserved[2]==0 &&

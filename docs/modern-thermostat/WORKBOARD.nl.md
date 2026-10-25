@@ -84,7 +84,7 @@ alpha28-uploader-watchdogoorzaak en herstelroute blijven onbekend.
 [Verse alpha31-waarneming en grenzen](WAARNEMING-E32-ALPHA31-20261025.nl.md).
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 282 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 285 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
 met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
@@ -106,7 +106,7 @@ historisch; de tabellen en deze volgorde bepalen nieuw werk.
 
 | Prioriteit | Punt / koppeling | Eerstvolgende concrete uitkomst | Wat buiten software blijft |
 | --- | --- | --- | --- |
-| P0 | E32-upload / R28/I03 | Uploadhardening in 6a23e3c gebouwd/getest; eerdere alpha28-uploaderreset onderscheiden van de vers waargenomen alpha31 en vervolgroute beoordelen | Oude reset6-oorzaak onbekend; huidige31 waargenomen zonder actor-/methodebewijs, geen blinde retry of native HTTPS-proef |
+| P0 | E32-upload / R28/I03 | Uploadhardening geleverd; volgende bronbundel voegt vier vaste verificatiecheckpoints toe, 782 native/40 sanitizer/24 updaterbrowsergevallen en E32-compile geslaagd. Gerichter herstelonderzoek voorbereiden | Oude reset6-oorzaak onbekend; huidige31 waargenomen zonder actor-/methodebewijs, geen blinde retry of native HTTPS-proef |
 | P0 vóór actieve M2 | Incidentele CI-kamerassertie | Eerdere afwijking causaal verklaren; acht naspeelbare herhalingen per Core behouden | Definitieve HA43-CI en twee diagnostische native jobs slagen; oorspronkelijke oorzaak onbekend, geen fysieke vrijgave |
 | P0 vóór fysieke proef | Gemeld pendelen | Onderzoek richting warmwaterbedrijf vervolgen: gebruik/bijwarmen onderscheiden; stabiele nulmeting vastleggen | Geen bewezen oorzaak; geen zendproef bij onverklaarde instabiliteit |
 | P0 | TV02-opstartdiagnose, B05 | Softwareherstel geleverd in HA38; oorspronkelijke nieuwe ontvangst en bronkwalificatie nog bewijzen | Wachtende/stale diagnose bewijst geen fysieke ontvangst, kraan-ACK of regelbevoegdheid |
@@ -123,6 +123,21 @@ historisch; de tabellen en deze volgorde bepalen nieuw werk.
 Leren/PI/PID en blijvend bewaarde, gevalideerde parameters per ruimte blijven
 verplicht voor de definitieve versie (R12); nieuwe F9/F10-stages volgen na M2.
 Een ontbrekende fysieke waarneming blokkeert onafhankelijk softwarewerk niet.
+
+### Volgende bronbundel — updateverificatie gericht onderscheiden
+
+Vier vaste pre-operatiecheckpoints gebruiken de bestaande NVS-journal:
+checksum, native imagevalidatie, flash-readback en bootselectie. Dezelfde
+verificatiepoorten blijven in dezelfde volgorde verplicht. Oude schema1/164-byte
+checkpoints blijven leesbaar; opslagfalen behoudt de laatste bevestigde snapshot.
+De bestaande status-UI vertaalt alle vier fasen in EN/NL; lezen start geen update.
+
+Negen nieuwe native gevallen, totaal 782 geslaagd; 40 updatergevallen ook onder
+ASan/UBSan, 24 updaterbrowsergevallen en vier taal-/schermprofielen geslaagd.
+E32-compile geslaagd. Geen nieuwe firmwarepublicatie/installatie, blinde retry,
+herstelbewijs of verklaring van de historische watchdog. De bestaande HA46 /
+E32alpha31-installatie blijft behouden. De inventaris heeft nu 285 bronverwijzingen.
+[Betekenis en verificatie](UPDATE-VERIFICATIE-CHECKPOINTS-20261025.nl.md).
 
 ### Geleverd in HA46 / alpha33 — oorspronkelijke ontvangstdiagnostiek
 

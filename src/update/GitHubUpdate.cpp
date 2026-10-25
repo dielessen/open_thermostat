@@ -193,7 +193,15 @@ void execute(bool install) {
             if(transfer.begin()) {
                 ImageSink sink(transfer,manifest.size);
                 if(download(assetUrl(tag,"firmware.bin"),sink,error,manifest.size,&httpStatus)) {
-                    phase("verifying");checkpoint(UpdateStage::Verify,httpStatus);ok=transfer.finish();
+                    phase("verifying");checkpoint(UpdateStage::Verify,httpStatus);
+                    ok=transfer.finish([httpStatus](OtaVerificationStep step) {
+                        switch(step) {
+                        case OtaVerificationStep::Hash:checkpoint(UpdateStage::Hash,httpStatus);break;
+                        case OtaVerificationStep::Image:checkpoint(UpdateStage::Image,httpStatus);break;
+                        case OtaVerificationStep::Readback:checkpoint(UpdateStage::Readback,httpStatus);break;
+                        case OtaVerificationStep::Select:checkpoint(UpdateStage::Selecting,httpStatus);break;
+                        }
+                    });
                     if(ok){checkpoint(UpdateStage::Selected,httpStatus);firmwareInstalled();}
                     else error="Firmwarecontrole, checksum of flash-readback mislukt; oude firmware blijft geselecteerd.";
                 }

@@ -14,7 +14,7 @@ const assets=path.resolve(__dirname,'../../data/html');
    if(p==='/updates/status'){if(sim.drop)return route.abort();return route.fulfill({contentType:'application/json',json:sim});}
    if(p.startsWith('/updates/')){sim.posts.push({path:p,body:req.postDataJSON()});return route.fulfill({status:sim.accept?202:409,body:sim.accept?'Queued':'Injected rejection'});}
    if(p==='/ota'||p==='/otafs'){sim.posts.push({path:p});return route.fulfill({status:sim.uploadStatus,body:sim.uploadStatus===200?'success':'Injected upload failure'});}
-   if(p==='/'){++sim.navigations;return route.fulfill({contentType:'text/html',body:'<script src="/ui-messages.js"></script><script src="/ui-language.js"></script><script src="/deps/jquery.min.js.gz"></script><script>const hostName="";function mainScreen(){}</script>'+fs.readFileSync(path.join(assets,'update.html'),'utf8')});}
+   if(p==='/'){++sim.navigations;return route.fulfill({contentType:'text/html',body:'<meta charset="utf-8"><script src="/ui-messages.js"></script><script src="/ui-language.js"></script><script src="/deps/jquery.min.js.gz"></script><script>const hostName="";function mainScreen(){}</script>'+fs.readFileSync(path.join(assets,'update.html'),'utf8')});}
    if(['/ui-language.js','/ui-messages.js'].includes(p))return route.fulfill({contentType:'text/javascript',body:fs.readFileSync(path.join(assets,p))});
    if(p==='/deps/jquery.min.js.gz')return route.fulfill({contentType:'text/javascript',body:zlib.gunzipSync(fs.readFileSync(path.join(assets,p)))});
    return route.fulfill({status:404,body:'not found'});
@@ -82,6 +82,21 @@ const assets=path.resolve(__dirname,'../../data/html');
   assert.match(await page.textContent('#updateCheckpoint'),/installation not confirmed/);
   assert.equal(sim.posts.length,0);assert.equal(sim.dialogs,0);
   pass('English update diagnostics use the same read-only semantics on a narrow screen');
+  for(const language of ['nl','en']) {
+   await scene(language,320);await page.click('#updateDiagnostics summary');
+   const stages=[['before_hash_verification',language==='nl'?'Vóór controle van de firmwarechecksum':'Before firmware checksum verification'],
+    ['before_image_validation',language==='nl'?'Vóór de native imagevalidatie':'Before native image validation'],
+    ['before_flash_readback',language==='nl'?'Vóór het onafhankelijk teruglezen van flash':'Before independent flash readback'],
+    ['before_boot_slot_selection',language==='nl'?'nog niet gekozen':'not yet selected']];
+   for(const [stage,text] of stages) {
+    sim.last_saved_checkpoint={attempt:2,from_version:sim.installed,target_version:'v0.1.0-e32v2-alpha.34',stage,received:1024,total:1024,http_status:200};
+    try {await page.waitForFunction(text=>document.getElementById('updateCheckpoint').textContent.includes(text),text);}
+    catch(error){throw new Error(language+' '+stage+': '+await page.textContent('#updateCheckpoint')+'; pageerrors='+errors.join(','),{cause:error});}
+    assert.equal(await page.locator('#updateDiagnostics').evaluate(el=>el.open),true);
+    assert.equal(sim.posts.length,0);assert.equal(sim.dialogs,0);assert.deepEqual(errors,[]);
+   }
+   pass(language+' detailed saved verification stages remain read-only and distinguish preselection');
+  }
   assert.deepEqual(errors,[]);console.log(count+' updater browser scenarios passed (simulated HTTP; no hardware OTA proof)');
  } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

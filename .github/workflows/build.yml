@@ -134,6 +134,8 @@ jobs:
           /tmp/open-thermostat-actuator-test
           g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -DOPENTHERMOSTAT_E32V2 -Itest/deadline_write/include -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/deadline_write/adapter.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-deadline-socket-test
           /tmp/open-thermostat-deadline-socket-test
+          g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_github_update.cpp test/test_native/test_update_checkpoint.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-update-checkpoint-test
+          /tmp/open-thermostat-update-checkpoint-test
           python test/manual_ota/run.py
           g++ -std=c++20 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Itest/onboarding/include -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/esp32_utilities/src test/onboarding/firmware.cpp .pio/libdeps/native/cJSON/cJSON.c -o /tmp/open-thermostat-onboarding-test
           /tmp/open-thermostat-onboarding-test

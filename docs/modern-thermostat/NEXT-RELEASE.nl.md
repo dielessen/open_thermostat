@@ -21,6 +21,17 @@ pakket/Git en alle instellingen, programma's, koppelingen en kaarten behouden.
 E32 alpha31 blijft op dezelfde boot; er is geen firmwareactie uitgevoerd.
 [Installatie en bewijs](INSTALLATIE-HA46-ALPHA33-20261025.nl.md).
 
+## Volgende grotere bundel — gerichte updaterinstrumentatie
+
+De volgende bronbundel onderscheidt nu vier opgeslagen stappen vóór checksum,
+native imagevalidatie, onafhankelijk flash-readback en bootselectie. Oude
+checkpoints blijven leesbaar; de UI toont de betekenis in Nederlands/Engels.
+782 native gevallen, 40 sanitizergevallen en 24 updaterbrowsergevallen slagen;
+E32-compile geslaagd. De bewaarinventaris bevat nu 285 bronverwijzingen bij
+ongewijzigd 23 onderdelen en 31 eisen. Dit is nog geen nieuwe publicatie of
+firmware-installatie en verklaart de oudere watchdog niet.
+[Uitwerking en bewijs](UPDATE-VERIFICATIE-CHECKPOINTS-20261025.nl.md).
+
 ## Historische grotere release HA45 / E32 alpha32
 
 HA45 is geïnstalleerd op bron `3f12d8b`, met een verse HA44-back-up van 95 payloads

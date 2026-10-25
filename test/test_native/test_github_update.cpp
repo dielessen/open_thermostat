@@ -226,3 +226,78 @@ TEST(GitHubCatalog, FailureBeyondTwoMatchesCannotReplacePreviousChoices) {
     EXPECT_FALSE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),1u);
     EXPECT_EQ(out[0].tag,"v99");EXPECT_EQ(error,"fixture transport failure");
 }
+
+TEST(GitHubOta, VerificationObserverRunsBeforeEachBackendGateInOrder) {
+    Backend b;VerifiedOta<Backend> transfer(b,manifest());
+    ASSERT_TRUE(transfer.begin());const auto bytes=image();
+    ASSERT_TRUE(transfer.append(bytes.data(),bytes.size()));
+    std::vector<OtaVerificationStep> observed;
+    ASSERT_TRUE(transfer.finish([&](OtaVerificationStep step) {
+        observed.push_back(step);
+        switch(step) {
+        case OtaVerificationStep::Hash:EXPECT_EQ(b.hashes,0u);break;
+        case OtaVerificationStep::Image:EXPECT_EQ(b.hashes,1u);EXPECT_EQ(b.ends,0u);break;
+        case OtaVerificationStep::Readback:EXPECT_EQ(b.ends,1u);EXPECT_EQ(b.reads,0u);break;
+        case OtaVerificationStep::Select:EXPECT_EQ(b.reads,1u);EXPECT_EQ(b.selects,0u);break;
+        }
+    }));
+    EXPECT_EQ(observed,(std::vector<OtaVerificationStep>{OtaVerificationStep::Hash,
+        OtaVerificationStep::Image,OtaVerificationStep::Readback,OtaVerificationStep::Select}));
+    EXPECT_FALSE(transfer.finish([&](OtaVerificationStep){ADD_FAILURE()<<"Repeated completion observed";}));
+}
+TEST(GitHubOta, FailedGateCannotEmitLaterVerificationCheckpoints) {
+    const std::vector<OtaVerificationStep> order{OtaVerificationStep::Hash,
+        OtaVerificationStep::Image,OtaVerificationStep::Readback,OtaVerificationStep::Select};
+    for(size_t fault=0;fault<order.size();++fault) {
+        Backend b;
+        if(fault==0)b.hashOk=false;if(fault==1)b.endOk=false;
+        if(fault==2)b.readOk=false;if(fault==3)b.selectOk=false;
+        VerifiedOta<Backend> transfer(b,manifest());ASSERT_TRUE(transfer.begin());
+        const auto bytes=image();ASSERT_TRUE(transfer.append(bytes.data(),bytes.size()));
+        std::vector<OtaVerificationStep> observed;
+        EXPECT_FALSE(transfer.finish([&](OtaVerificationStep step){observed.push_back(step);}));
+        EXPECT_EQ(observed,std::vector<OtaVerificationStep>(order.begin(),order.begin()+fault+1));
+        EXPECT_FALSE(transfer.finish([&](OtaVerificationStep){ADD_FAILURE()<<"Failed transfer retried";}));
+        EXPECT_EQ(b.selects,fault==3?1u:0u);
+    }
+}
+TEST(GitHubOta, ObserverFailureRetiresTransferBeforeItsBackendOperation) {
+    for(unsigned fault=0;fault<4;++fault) {
+        Backend b;VerifiedOta<Backend> transfer(b,manifest());ASSERT_TRUE(transfer.begin());
+        const auto bytes=image();ASSERT_TRUE(transfer.append(bytes.data(),bytes.size()));
+        unsigned observed=0;
+        EXPECT_FALSE(transfer.finish([&](OtaVerificationStep){if(observed++==fault)throw 1;}));
+        EXPECT_EQ(observed,fault+1);
+        EXPECT_EQ(b.hashes,fault>0?1u:0u);EXPECT_EQ(b.ends,fault>1?1u:0u);
+        EXPECT_EQ(b.reads,fault>2?1u:0u);EXPECT_EQ(b.selects,0u);
+        EXPECT_FALSE(transfer.finish());
+    }
+}
+TEST(GitHubOta, IncompleteImageEmitsNoVerificationCheckpoint) {
+    Backend b;VerifiedOta<Backend> transfer(b,manifest());ASSERT_TRUE(transfer.begin());
+    const auto bytes=image();ASSERT_TRUE(transfer.append(bytes.data(),bytes.size()-1));
+    EXPECT_FALSE(transfer.finish([](OtaVerificationStep){ADD_FAILURE()<<"Incomplete image observed";}));
+    EXPECT_EQ(b.hashes,0u);EXPECT_EQ(b.selects,0u);
+}
+
+TEST(GitHubOta, ObserverReentryCannotRepeatOrAdvanceVerification) {
+    for(unsigned fault=0;fault<4;++fault) {
+        Backend b;VerifiedOta<Backend> transfer(b,manifest());ASSERT_TRUE(transfer.begin());
+        const auto bytes=image();ASSERT_TRUE(transfer.append(bytes.data(),bytes.size()));
+        unsigned observed=0;
+        EXPECT_FALSE(transfer.finish([&](OtaVerificationStep){
+            if(observed++==fault)EXPECT_FALSE(transfer.finish());
+        }));
+        EXPECT_EQ(observed,fault+1);EXPECT_EQ(b.hashes,fault>0?1u:0u);
+        EXPECT_EQ(b.ends,fault>1?1u:0u);EXPECT_EQ(b.reads,fault>2?1u:0u);
+        EXPECT_EQ(b.selects,0u);EXPECT_FALSE(transfer.finish());
+    }
+}
+TEST(GitHubOta, ObserverInvalidAppendCannotBeIgnoredByOuterCompletion) {
+    Backend b;VerifiedOta<Backend> transfer(b,manifest());ASSERT_TRUE(transfer.begin());
+    const auto bytes=image();ASSERT_TRUE(transfer.append(bytes.data(),bytes.size()));
+    EXPECT_FALSE(transfer.finish([&](OtaVerificationStep){
+        EXPECT_FALSE(transfer.append(bytes.data(),1));
+    }));
+    EXPECT_EQ(b.hashes,0u);EXPECT_EQ(b.selects,0u);EXPECT_FALSE(transfer.finish());
+}

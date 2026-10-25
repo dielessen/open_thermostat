@@ -95,3 +95,44 @@ TEST(UpdateCheckpoint, AttemptCounterWrapIsBoundedAndNeverUsesUnknownSentinel) {
     UpdateCheckpointJournal journal(storage);ASSERT_TRUE(journal.begin(from,source,target));
     EXPECT_EQ(journal.saved()->attempt,1u);
 }
+
+TEST(UpdateCheckpoint, LegacyStageNumbersAndBlobLayoutRetainTheirMeaning) {
+    EXPECT_EQ(sizeof(UpdateCheckpoint),164u);
+    unsigned value=1;
+    for(const auto stage:{UpdateStage::Manifest,UpdateStage::Download,UpdateStage::Verify,
+            UpdateStage::Selected,UpdateStage::Error}) {
+        EXPECT_EQ(static_cast<unsigned>(stage),value++);
+        Storage storage;{UpdateCheckpointJournal journal(storage);ASSERT_TRUE(journal.begin(from,source,target));}
+        storage.bytes.stage=stage;
+        UpdateCheckpointJournal legacy(storage);ASSERT_NE(legacy.saved(),nullptr);
+        EXPECT_EQ(legacy.saved()->stage,stage);EXPECT_EQ(storage.writes,1u);
+    }
+}
+TEST(UpdateCheckpoint, PreOperationStageSurvivesRebootWithoutClaimingCompletion) {
+    for(const auto &stage:std::vector<std::pair<UpdateStage,const char*>>{
+        {UpdateStage::Hash,"before_hash_verification"},{UpdateStage::Image,"before_image_validation"},
+        {UpdateStage::Readback,"before_flash_readback"},{UpdateStage::Selecting,"before_boot_slot_selection"}}) {
+        Storage storage;
+        {UpdateCheckpointJournal journal(storage);ASSERT_TRUE(journal.begin(from,source,target));
+         ASSERT_TRUE(journal.advance(stage.first,1024,1024,200));}
+        UpdateCheckpointJournal rebooted(storage);ASSERT_NE(rebooted.saved(),nullptr);
+        EXPECT_EQ(rebooted.saved()->stage,stage.first);
+        EXPECT_STREQ(updateStageName(rebooted.saved()->stage),stage.second);
+        EXPECT_NE(rebooted.saved()->stage,UpdateStage::Selected);
+        EXPECT_EQ(storage.writes,2u);
+        for(unsigned i=0;i<20;++i)ASSERT_NE(rebooted.saved(),nullptr);
+        EXPECT_EQ(storage.writes,2u);
+    }
+}
+TEST(UpdateCheckpoint, FailedDetailedStageSaveDoesNotInventProgress) {
+    Storage storage;UpdateCheckpointJournal journal(storage);
+    ASSERT_TRUE(journal.begin(from,source,target));
+    ASSERT_TRUE(journal.advance(UpdateStage::Hash,1024,1024,200));
+    storage.writeOk=false;
+    EXPECT_FALSE(journal.advance(UpdateStage::Image,1024,1024,200));
+    EXPECT_FALSE(journal.advance(UpdateStage::Selecting,1024,1024,200));
+    EXPECT_EQ(journal.saved()->stage,UpdateStage::Hash);EXPECT_TRUE(journal.saveFailed());
+    EXPECT_EQ(storage.writes,3u);
+    UpdateCheckpointJournal rebooted(storage);ASSERT_NE(rebooted.saved(),nullptr);
+    EXPECT_EQ(rebooted.saved()->stage,UpdateStage::Hash);
+}

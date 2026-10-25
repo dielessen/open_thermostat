@@ -95,7 +95,7 @@
   if(s.boot_pending)message+=uiText(" This startup is still being checked; installation will become available afterwards.");
   $id('releaseStatus').textContent=message;
   const saved=s.last_saved_checkpoint;
-  const stageNames={manifest:uiText("Checking release data…"),downloading:uiText("Downloading firmware"),verifying:uiText("Verifying firmware"),boot_slot_selected:uiText("Boot slot selected; installation not confirmed"),error:uiText("Update error")};
+  const stageNames={manifest:uiText("Checking release data…"),downloading:uiText("Downloading firmware"),verifying:uiText("Verifying firmware"),boot_slot_selected:uiText("Boot slot selected; installation not confirmed"),before_hash_verification:uiText("Before firmware checksum verification"),before_image_validation:uiText("Before native image validation"),before_flash_readback:uiText("Before independent flash readback"),before_boot_slot_selection:uiText("Before boot slot selection; not yet selected"),error:uiText("Update error")};
   const lines=saved?[
    uiText("Saved attempt: ")+saved.attempt,
    uiText("From version: ")+saved.from_version,

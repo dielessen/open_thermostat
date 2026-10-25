@@ -12,7 +12,7 @@ def snapshot(root):
     tracked=subprocess.check_output(['git','ls-files','-z'],cwd=root).decode().split('\0')
     files={}
     for name in tracked:
-        if name.startswith('ha/') or name in ('scripts/ha_test_evidence.py','scripts/package_ha_release.py'):
+        if name.startswith(('ha/','integrations/zigbee2mqtt/')) or name in ('scripts/ha_test_evidence.py','scripts/package_ha_release.py','scripts/zigbee_report_companion.py','scripts/prepare_original_report_pins.py'):
             path=root/name
             # Removed/replaced/symlink source may never attest as clean.
             if not path.is_file() or path.is_symlink():

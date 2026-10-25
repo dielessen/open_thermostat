@@ -19,6 +19,11 @@ pakketten volgen na de gezamenlijke bronfreeze en releasecontroles.
   De gegevens betekenen geen bevestigde kraanpositie of verwarmingsopdracht.
   Rechtstreekse kraanbediening en de echte apparaatproef blijven open.
 
+- **Ontvangstextensies meegeleverd.** De bestaande oorspronkelijke Zigbee-
+  rapportproducenten krijgen een apart optioneel bronpakket binnen dezelfde
+  release. Privé apparaatkoppelingen worden vóór installatie gecontroleerd
+  behouden; de gewone HA-installatie installeert dit pakket niet automatisch.
+
 - **Historie exporteren per dag, week of maand.** De gewone HA-actie ondersteunt
   maximaal 31 dagen, met een installatiekeuze en Nederlandse/Engelse uitleg.
   De export gebruikt bestaande Recorder-historie; ontbrekende gegevens blijven
@@ -80,7 +85,8 @@ worden afgemaakt of in de praktijk worden gekwalificeerd. Het
 
 This single beta bundle is still being prepared. It also repairs startup on
 Home Assistant Core 2026.10.4 without replacing existing settings or entity IDs. It adds day/week/month Recorder
-CSV exports, automatic firmware-update checks with a dashboard notice, and clearer
+CSV exports, an optional receive-only Zigbee2MQTT companion with checked private-binding
+preservation, automatic firmware-update checks with a dashboard notice, and clearer
 clock-failure messages in English and Dutch. A new Bluetooth settings page connects
 local Shelly BLU H&T Display and Xiaomi Monitor 3 reception with separate encrypted bindings, write-only keys
 and bounded diagnostics. A separate Shelly BLU TRV diagnostic profile keeps reported

@@ -312,6 +312,7 @@ jobs:
       - name: Verify and package exact HA-only candidate
         run: |
           python -B -m unittest discover -s scripts -p test_package_ha_release.py -v
+          python -B -m unittest discover -s scripts -p test_prepare_original_report_pins.py -v
           python scripts/package_ha_release.py --output out/ha-release --native-results out/ha-acceptance.xml
       - name: Preserve verified HA release assets
         uses: actions/upload-artifact@v4
@@ -405,15 +406,81 @@ jobs:
           assert report['status']=='PASS_PACKAGE_INTEGRITY_ONLY'
           assert not manifest['firmware_included'] and not report['live_HA_data_included']
           assert manifest['native_test_summary']['failures']==manifest['native_test_summary']['errors']==0
+          assert manifest['asset']=='OpenThermostat-HA-'+manifest['version']+'.zip'
+          assert manifest['native_test_evidence']==report['native_test_evidence']
+          assert manifest['native_test_evidence']['source_commit']==os.environ['EXPECTED_COMMIT']
+          assert manifest['native_test_evidence']['clean_source'] is True and manifest['native_test_evidence']['unchanged_source'] is True
+          import sys
+          sys.path.insert(0,'scripts')
+          from zigbee_report_companion import SOURCES
+          from ha_test_evidence import snapshot
+          assert manifest['native_test_evidence']['source_sha256']==snapshot(Path.cwd())['source_sha256']
+          assert manifest['optional_companions']==report['optional_companions']
+          assert len(manifest['optional_companions'])==1
+          companion=manifest['optional_companions'][0]
+          assert companion['kind']=='optional_zigbee2mqtt_receive_only'
+          assert companion['source_commit']==os.environ['EXPECTED_COMMIT']
+          assert all(companion[key] is False for key in ('private_bindings_included','live_HA_data_included','installed','authorizes_control'))
+          assert companion['archive_sources']==SOURCES
+          assert set(companion['source_files'])==set(SOURCES.values())
+          assert companion['asset']=='OpenThermostat-Zigbee2MQTT-original-reports-'+manifest['version']+'.zip'
+          assert companion['size']==(assets/companion['asset']).stat().st_size
+          assert hashlib.sha256((assets/companion['asset']).read_bytes()).hexdigest()==companion['sha256']
+          with zipfile.ZipFile(assets/companion['asset']) as optional:
+              assert optional.testzip() is None
+              assert len(optional.namelist())==len(set(optional.namelist()))
+              assert set(optional.namelist())==set(SOURCES)|{'SOURCE.json','SHA256SUMS.txt'}
+              for member,source in SOURCES.items():
+                  expected=Path(source).read_bytes()
+                  assert optional.read(member)==expected
+                  assert hashlib.sha256(expected).hexdigest()==companion['source_files'][source]
+              source=json.loads(optional.read('SOURCE.json'))
+              assert set(source)=={'schema','kind','source_commit','source_files','archive_sources','private_bindings_included','live_HA_data_included','installed','authorizes_control'}
+              assert source['schema']==1
+              assert source=={key:companion[key] for key in source}
+              checked=set()
+              for line in optional.read('SHA256SUMS.txt').decode().splitlines():
+                  expected,name=line.split('  ',1)
+                  assert name not in checked
+                  checked.add(name)
+                  assert hashlib.sha256(optional.read(name)).hexdigest()==expected
+              assert checked==set(optional.namelist())-{'SHA256SUMS.txt'}
+          allowed={manifest['asset'],companion['asset'],'ha-release.json','ha-software-verification.json','HA-SHA256SUMS.txt'}
+          assert {p.name for p in assets.iterdir()}==allowed
+          checked=set()
           for line in (assets/'HA-SHA256SUMS.txt').read_text().splitlines():
               expected,name=line.split('  ',1)
-              assert Path(name).name==name
+              assert Path(name).name==name and name not in checked
+              checked.add(name)
               assert hashlib.sha256((assets/name).read_bytes()).hexdigest()==expected
+          assert checked==allowed-{'HA-SHA256SUMS.txt'}
           assert hashlib.sha256((assets/manifest['asset']).read_bytes()).hexdigest()==manifest['sha256']
           with zipfile.ZipFile(assets/manifest['asset']) as package:
               assert package.testzip() is None
+              assert len(package.namelist())==len(set(package.namelist()))
+              assert set(package.namelist())==set(manifest['integration_source_files'])|{'LICENSE','LEESMIJ.nl.txt','SOURCE.json','notices/PLATFORM.txt','SHA256SUMS.txt'}
               for name,expected in manifest['integration_source_files'].items():
+                  assert name.startswith('custom_components/open_thermostat/')
+                  tagged=Path('ha/config')/name
+                  assert package.read(name)==tagged.read_bytes()
                   assert hashlib.sha256(package.read(name)).hexdigest()==expected
+              source=json.loads(package.read('SOURCE.json'))
+              assert source['source_commit']==os.environ['EXPECTED_COMMIT']
+              assert source['integration_version']==manifest['version']
+              assert source['source_files']==manifest['integration_source_files']
+              assert source['native_test_evidence']==manifest['native_test_evidence']
+              assert source['native_test_summary']==manifest['native_test_summary']==report['native_test_summary']
+              assert source['source_kind']=='clean_git_commit'
+              assert source['firmware_included'] is False and source['live_HA_data_included'] is False
+              assert package.read('LICENSE')==Path('LICENSE').read_bytes()
+              assert package.read('LEESMIJ.nl.txt')==Path('docs/modern-thermostat/HA-RELEASE-NOTES.md').read_bytes()
+              checked=set()
+              for line in package.read('SHA256SUMS.txt').decode().splitlines():
+                  expected,name=line.split('  ',1)
+                  assert name not in checked
+                  checked.add(name)
+                  assert hashlib.sha256(package.read(name)).hexdigest()==expected
+              assert checked==set(package.namelist())-{'SHA256SUMS.txt'}
           PYTHON
       - name: Publish HA prerelease without replacing previous releases
         env:

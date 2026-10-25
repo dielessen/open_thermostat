@@ -220,6 +220,7 @@ Beide pakketten zijn afzonderlijk geïnstalleerd en gecontroleerd, met behoud va
 instellingen, weekprogramma, koppelingen en identiteiten. De firmware gebruikt
 [bron 7ddf341](https://github.com/dielessen/open_thermostat/commit/7ddf3410666d814850275433d9dddd266e5d83ba),
 de HA-integratie [bron 70135db](https://github.com/dielessen/open_thermostat/commit/70135db3c86df1f970265bc426fe5e35729c8261).
+De grote bèta krijgt daarnaast een optioneel Z2M-bronpakket voor de bestaande oorspronkelijke ontvangstextensies, met gecontroleerd behoud van privé bindings; geen automatische installatie. [Uitleg](docs/modern-thermostat/Z2M-RELEASE-COMPANION.nl-en.md).
 De eerste grote bèta is in bewerking; er wordt geen losse alpha37 tussendoor
 uitgebracht. [Voortgang en resterende voorwaarden](docs/modern-thermostat/BETA1-UITVOERING.nl.md).
 

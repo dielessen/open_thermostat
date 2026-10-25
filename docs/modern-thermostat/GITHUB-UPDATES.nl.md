@@ -179,3 +179,7 @@ Eerste niet-wissende bootstrap -> releasecontrole -> echte download/update ->
 herstart/versie/UI -> wifi/kamers/programmaconfiguratie behouden. Daarnaast:
 verbroken download, afgewezen/corrupte upload, vorige-slotterugkeer en
 USB-herstel. Browserfixtures en host-foutinjecties zijn geen fysieke OTA-proef.
+
+## Optionele oorspronkelijke Zigbee-rapporten in dezelfde bèta
+
+De HA-release krijgt naast de gewone integratie-ZIP ook `OpenThermostat-Zigbee2MQTT-original-reports-<versie>.zip`. Dit is een afzonderlijk ontvangstbronpakket voor bestaande Z2M-installaties die de oorspronkelijke sensormeldingen gebruiken, geen extra release en geen automatisch geïnstalleerde HA-component. Broncommit en checksums horen bij dezelfde bundel. Publieke templates zijn ongeconfigureerd; gebruik gecontroleerd behoud van privé pins vóór een eventuele installatie via de HA-specialist. [Volledige instructies in NL/EN](Z2M-RELEASE-COMPANION.nl-en.md).

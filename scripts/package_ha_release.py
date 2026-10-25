@@ -51,6 +51,20 @@ def native_evidence(path, root, head):
                 junit_sha256=digest(Path(path).read_bytes()))
 
 
+def verified_archive(archive, files):
+    with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zip:
+        for name, data in sorted(files.items()):
+            info = zipfile.ZipInfo(name, (2026, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o100644 << 16
+            zip.writestr(info, data)
+    with zipfile.ZipFile(archive) as zip:
+        if zip.testzip() is not None or len(zip.namelist())!=len(set(zip.namelist())) or set(zip.namelist()) != set(files):
+            raise ValueError('HA_archive_integrity_conflict')
+        if any(zip.read(name) != data for name, data in files.items()):
+            raise ValueError('HA_archive_payload_conflict')
+
+
 def package(root, output, results):
     root = Path(root).resolve(); output = Path(output).resolve()
     if output.exists() and any(output.iterdir()):
@@ -66,6 +80,8 @@ def package(root, output, results):
         raise ValueError('invalid_HA_release_identity')
     tests = native_summary(results)
     evidence = native_evidence(results,root,head)
+    from zigbee_report_companion import payload as companion_payload
+    companion_files,companion_source=companion_payload(root,head)
     files = {}
     for path in sorted(integration.rglob('*')):
         relative = path.relative_to(integration)
@@ -95,25 +111,20 @@ def package(root, output, results):
     files['SHA256SUMS.txt'] = ''.join(digest(data)+'  '+name+'\n' for name, data in sorted(files.items())).encode()
     output.mkdir(parents=True, exist_ok=True)
     archive = output/('OpenThermostat-HA-'+version+'.zip')
-    with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zip:
-        for name, data in sorted(files.items()):
-            info = zipfile.ZipInfo(name, (2026, 1, 1, 0, 0, 0))
-            info.compress_type = zipfile.ZIP_DEFLATED
-            info.external_attr = 0o100644 << 16
-            zip.writestr(info, data)
-    with zipfile.ZipFile(archive) as zip:
-        if zip.testzip() is not None or set(zip.namelist()) != set(files):
-            raise ValueError('HA_archive_integrity_conflict')
-        if any(zip.read(name) != data for name, data in files.items()):
-            raise ValueError('HA_archive_payload_conflict')
+    verified_archive(archive,files)
+    companion_archive=output/("OpenThermostat-Zigbee2MQTT-original-reports-"+version+".zip")
+    verified_archive(companion_archive,companion_files)
+    companion={**companion_source,"asset":companion_archive.name,
+        "sha256":digest(companion_archive.read_bytes()),"size":companion_archive.stat().st_size,
+        "archive_payloads_verified":len(companion_files)}
     metadata = dict(version=version, tag='ha-v'+version, source_commit=head, asset=archive.name,
                     sha256=digest(archive.read_bytes()), size=archive.stat().st_size,
                     integration_source_files=source_hashes, native_test_summary=tests, native_test_evidence=evidence,
-                    firmware_included=False, prerelease=True)
+                    firmware_included=False, prerelease=True, optional_companions=[companion])
     (output/'ha-release.json').write_text(json.dumps(metadata, indent=2)+'\n')
     report = dict(status='PASS_PACKAGE_INTEGRITY_ONLY', source_commit=head, integration_version=version,
                   integration_source_files=len(source_hashes), native_test_summary=tests, native_test_evidence=evidence,
-                  archive_payloads_verified=len(files), firmware_included=False,
+                  archive_payloads_verified=len(files), optional_companions=[companion], firmware_included=False,
                   live_HA_data_included=False, physical_heating_approval=False)
     (output/'ha-software-verification.json').write_text(json.dumps(report, indent=2)+'\n')
     (output/'HA-SHA256SUMS.txt').write_text(''.join(digest(path.read_bytes())+'  '+path.name+'\n'

@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "2a971c17b4691f65abfecef65476164d93a7f4f23fce7b0bcc178ce865320205"
+          "sha256": "b4a07c75c4070a8aeb3d932cd699feb78ad4c62d94eb460ef9d48f3e33dd0064"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -71,15 +71,15 @@
         },
         {
           "path": "docs/modern-thermostat/BETA1-UITVOERING.nl.md",
-          "sha256": "04175d53be53de60f250c5e74eaeb074aa268a164034524a5b26b87d4caed9df"
+          "sha256": "2ded9eab3433f0182fcb9723e73d08d0a7115d81dfb977cad43d8d77529d077f"
         },
         {
           "path": "README.md",
-          "sha256": "471c37ee114a9daaa25ba427a7bce3aae0045e80b7bede382e8a4abf45ad165a"
+          "sha256": "c43a9ad0e3cf16a619b8f1661733c972e0eb69d773bd1009f6b9698d34a17649"
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
-          "sha256": "c8e0c27fd94afc7078aeaf636de3214f3fffad5f289b2dfa166f1fbdcf07c913"
+          "sha256": "2bbca78a9d592a30b857353f90cd718ba559423638fc7e2db56362d475c28806"
         },
         {
           "path": "scripts/verify_alpha36_beta_path.py",
@@ -91,7 +91,7 @@
         },
         {
           "path": "scripts/ha_test_evidence.py",
-          "sha256": "8de884088f1154ff08ca4b77572348c66e04f788d5d8a1e9495c506fb530f4f5"
+          "sha256": "494cbc075223fdb7d23c46147860fed87c2848192b53771baf6e0a59b96ada33"
         },
         {
           "path": "ha/conftest.py",
@@ -99,7 +99,23 @@
         },
         {
           "path": "scripts/test_package_ha_release.py",
-          "sha256": "5b85896bd6ee3fcd2f1c3cd45483d488c6110d038216223521527ff026facfd1"
+          "sha256": "f3c0eb87efe3f1738e8c4a1a04047cfefb051254263740fa8dff17804b7c91fc"
+        },
+        {
+          "path": "scripts/zigbee_report_companion.py",
+          "sha256": "f3a9e49854ed2bb15d95137d26947630ae3a91ade5433eb1e713655b81b5123a"
+        },
+        {
+          "path": "scripts/prepare_original_report_pins.py",
+          "sha256": "299413e1d58cc2c678c4e524e1d11cdbd71e3ce9bc7a7c0782e787c4f95a3c12"
+        },
+        {
+          "path": "scripts/test_prepare_original_report_pins.py",
+          "sha256": "26bebd24c5f6f7883efd8dfd583da8192e18cdf563166bd37f27ea25ff854057"
+        },
+        {
+          "path": "docs/modern-thermostat/Z2M-RELEASE-COMPANION.nl-en.md",
+          "sha256": "c100c7e2a498e70fcdff1304bbb056060a1ae17a724d8dd00db94b33829216a4"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
@@ -237,7 +253,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "2a971c17b4691f65abfecef65476164d93a7f4f23fce7b0bcc178ce865320205"
+          "sha256": "b4a07c75c4070a8aeb3d932cd699feb78ad4c62d94eb460ef9d48f3e33dd0064"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -707,7 +723,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "2a971c17b4691f65abfecef65476164d93a7f4f23fce7b0bcc178ce865320205"
+          "sha256": "b4a07c75c4070a8aeb3d932cd699feb78ad4c62d94eb460ef9d48f3e33dd0064"
         },
         {
           "path": "platformio.ini",

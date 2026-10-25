@@ -4,7 +4,7 @@
 #include <limits>
 
 namespace heating::update {
-// A bounded fast path for this repository's canonical E32 alpha channel.
+// A bounded fast path for this repository's canonical E32 release channels.
 // Unknown version formats retain the general release scan. Annotated tags
 // resolve one exact immutable tag object before a manifest is accepted.
 // A tag is only a candidate: its public release and exact manifest are required.
@@ -26,7 +26,9 @@ inline std::string singleString(const cJSON *object,const char *name) {
     const auto item=singleField(object,name);
     return cJSON_IsString(item)?item->valuestring:"";
 }
-inline bool alphaVersion(std::string_view tag,std::array<uint32_t,4> &result) {
+// major/minor/patch, channel (alpha < beta < rc < stable), sequence.
+// Parse canonical tags only; no lexical comparison or publication-date guessing.
+inline bool firmwareVersion(std::string_view tag,std::array<uint32_t,5> &result) {
     if(!validTag(tag))return false;
     size_t position=1;
     auto number=[&](uint32_t &out) {
@@ -39,28 +41,46 @@ inline bool alphaVersion(std::string_view tag,std::array<uint32_t,4> &result) {
         if(position==start||(position-start>1&&tag[start]=='0'))return false;
         out=value;return true;
     };
-    std::array<uint32_t,4> parsed{};
+    std::array<uint32_t,5> parsed{};
     for(unsigned i=0;i<3;++i) {
         if(!number(parsed[i]))return false;
         if(i<2&&(position==tag.size()||tag[position++]!='.'))return false;
     }
-    constexpr std::string_view suffix="-e32v2-alpha.";
-    if(tag.substr(position,suffix.size())!=suffix)return false;
-    position+=suffix.size();
-    if(!number(parsed[3])||position!=tag.size())return false;
-    result=parsed;return true;
+    constexpr std::string_view board="-e32v2";
+    if(tag.substr(position,board.size())!=board)return false;
+    position+=board.size();
+    if(position==tag.size()) {parsed[3]=3;result=parsed;return true;}
+    const std::array<std::string_view,3> channels{{"-alpha.","-beta.","-rc."}};
+    for(uint32_t stage=0;stage<channels.size();++stage) {
+        const auto suffix=channels[stage];
+        if(tag.substr(position,suffix.size())!=suffix)continue;
+        position+=suffix.size();parsed[3]=stage;
+        if(!number(parsed[4])||position!=tag.size())return false;
+        result=parsed;return true;
+    }
+    return false;
+}
+inline bool alphaVersion(std::string_view tag,std::array<uint32_t,4> &result) {
+    std::array<uint32_t,5> parsed{};
+    if(!firmwareVersion(tag,parsed)||parsed[3]!=0)return false;
+    result={parsed[0],parsed[1],parsed[2],parsed[4]};return true;
 }
 
-// Availability is an upgrade indication, never merely a different tag or a
-// downgrade. Unknown release channels remain selectable in the update page.
-inline std::string newerAlphaRelease(std::string_view installed,const std::vector<Release> &releases) {
-    std::array<uint32_t,4> current{},candidate{};
-    if(!alphaVersion(installed,current))return {};
+// Availability never recommends a less mature channel than the installed one.
+// All verified choices remain selectable explicitly on the update page.
+inline std::string newerFirmwareRelease(std::string_view installed,const std::vector<Release> &releases) {
+    std::array<uint32_t,5> current{},candidate{};
+    if(!firmwareVersion(installed,current))return {};
+    const auto minimumStage=current[3];
     std::string latest;
-    for(const auto &release:releases)if(alphaVersion(release.tag,candidate)&&candidate>current) {
-        current=candidate;latest=release.tag;
-    }
+    for(const auto &release:releases)
+        if(firmwareVersion(release.tag,candidate)&&candidate[3]>=minimumStage&&candidate>current) {
+            current=candidate;latest=release.tag;
+        }
     return latest;
+}
+inline std::string newerAlphaRelease(std::string_view installed,const std::vector<Release> &releases) {
+    return newerFirmwareRelease(installed,releases);
 }
 
 // Fetch(url, byteLimit, body, error, status) supplies an actual HTTP status.
@@ -68,7 +88,7 @@ inline std::string newerAlphaRelease(std::string_view installed,const std::vecto
 // failure. Never publish a partially verified choice list after another error.
 template<class Fetch>
 IndexedCatalogResult discoverIndexedReleases(Fetch &&fetch,std::vector<Release> &out,std::string &error) {
-    struct Candidate {std::string tag,source;std::array<uint32_t,4> version;bool annotated=false;};
+    struct Candidate {std::string tag,source;std::array<uint32_t,5> version;bool annotated=false;};
     std::string raw;int status=0;
     if(!fetch(releaseReferenceApi,32768,raw,error,status))return IndexedCatalogResult::Legacy;
     auto root=releaseJson(raw);
@@ -80,7 +100,7 @@ IndexedCatalogResult discoverIndexedReleases(Fetch &&fetch,std::vector<Release> 
         constexpr std::string_view prefix="refs/tags/";
         if(ref.substr(0,prefix.size())!=prefix)return IndexedCatalogResult::Legacy;
         Candidate candidate;candidate.tag=ref.substr(prefix.size());
-        if(!alphaVersion(candidate.tag,candidate.version))return IndexedCatalogResult::Legacy;
+        if(!firmwareVersion(candidate.tag,candidate.version))return IndexedCatalogResult::Legacy;
         const auto object=singleField(item,"object");
         candidate.source=singleString(object,"sha");
         const auto type=singleString(object,"type");

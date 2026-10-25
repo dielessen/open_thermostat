@@ -11,7 +11,7 @@ START = '<!-- openthermostat-original-notes:start -->'
 END = '<!-- openthermostat-original-notes:end -->'
 USER_NOTES = '<!-- user-release-notes:v1 -->'
 PATTERNS = {
-    'firmware': r'v(\d+)\.(\d+)\.(\d+)-e32v2-alpha\.(\d+)',
+    'firmware': r'v(\d+)\.(\d+)\.(\d+)-e32v2(?:-(alpha|beta|rc)\.(\d+))?',
     'ha': r'ha-v(\d+)\.(\d+)\.(\d+)\.dev(\d+)',
     'source': r'sources-e32v2-(\d{8})\.(\d+)',
 }
@@ -20,8 +20,21 @@ PATTERNS = {
 def classify(tag):
     for channel, pattern in PATTERNS.items():
         if match := re.fullmatch(pattern, tag):
+            if channel == 'firmware':
+                major, minor, patch, stage, sequence = match.groups()
+                numbers = (major, minor, patch) + ((sequence,) if sequence is not None else ())
+                if any((len(n)>1 and n.startswith('0')) or int(n)>2**32-1 for n in numbers):
+                    return None, ()
+                return channel, (int(major), int(minor), int(patch),
+                                 {'alpha':0, 'beta':1, 'rc':2, None:3}[stage], int(sequence or 0))
             return channel, tuple(map(int, match.groups()))
     return None, ()
+
+
+def firmware_heading(version):
+    if version[3] == 3:
+        return f'# E32 V2 {version[0]}.{version[1]}.{version[2]}'
+    return f'# E32 V2 {("alpha", "beta", "rc")[version[3]]}{version[4]}'
 
 
 def original_notes(body):
@@ -59,7 +72,7 @@ def publication_notes(notes, repository, tag, require_user_notes=False):
     if channel not in ('firmware', 'ha'):
         raise ValueError('invalid_publication_tag')
     lines = notes.strip().splitlines()
-    expected = (f'# E32 V2 alpha{version[3]}' if channel == 'firmware' else
+    expected = (firmware_heading(version) if channel == 'firmware' else
                 f'# HA {version[0]}.{version[1]}.{version[2]}.dev{version[3]}')
     if not lines or not (lines[0] == expected or lines[0].startswith(expected+' ')):
         raise ValueError('publication_notes_version_mismatch')
@@ -104,7 +117,7 @@ def user_summary(tag, repository, root=None):
     path = root / 'docs/modern-thermostat' / filename
     if not path.is_file():
         return ''
-    expected = (f'# E32 V2 alpha{version[3]}' if channel == 'firmware' else
+    expected = (firmware_heading(version) if channel == 'firmware' else
                 f'# HA {version[0]}.{version[1]}.{version[2]}.dev{version[3]}')
     lines = path.read_text().splitlines()
     for index, line in enumerate(lines):
@@ -124,7 +137,8 @@ def user_summary(tag, repository, root=None):
 
 def label(channel, version):
     if channel == 'firmware':
-        return 'E32-firmware', f'alpha.{version[3]}'
+        return 'E32-firmware', (f'{version[0]}.{version[1]}.{version[2]}' if version[3] == 3
+                                else f'{("alpha", "beta", "rc")[version[3]]}.{version[4]}')
     if channel == 'ha':
         return 'Home Assistant', f'{version[0]}.{version[1]}.{version[2]}.dev{version[3]}'
     return 'Bronpakket E32 SDK', f'{version[0]}.{version[1]}'

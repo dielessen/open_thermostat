@@ -709,3 +709,46 @@ async def test_replaced_temperature_owner_is_preserved_when_old_subscribe_return
     finally:
         await connection.async_close()
         await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_diagnostic_status_survives_finite_clock_scaling_overflow(hass, devices):
+    runtime, binding, reports, now = await system(hass, devices)
+    try:
+        assert receive(reports)
+        now[0] = 1e308
+        result = reports.status(binding.room_id)
+        assert result['status'] == 'stale'
+        assert result['value_centi_c'] is None
+        assert result['received_age_ms'] is None
+    finally:
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('kwargs', [
+    {'retained': None}, {'retained': 0}, {'epoch': False},
+    {'received_unix_ms': -1}, {'received_unix_ms': 2**53},
+])
+async def test_temperature_reception_rejects_ambiguous_transport_metadata(hass, devices, kwargs):
+    runtime, binding, reports, _ = await system(hass, devices)
+    try:
+        assert not receive(reports, **kwargs)
+        assert reports.status(binding.room_id)['status'] == 'waiting'
+    finally:
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_oversized_integer_clock_retires_diagnostics_without_exception(hass, devices):
+    runtime, binding, reports, now = await system(hass, devices)
+    try:
+        assert receive(reports)
+        now[0] = 10**1000
+        result = reports.status(binding.room_id)
+        assert result['status'] == 'clock_invalid'
+        now[0] = 101
+        assert reports.status(binding.room_id)['status'] == 'clock_invalid'
+        assert not receive(reports, packet(sequence=2), received_at=101)
+    finally:
+        await runtime.async_stop()

@@ -10,7 +10,7 @@ import json
 import math
 import re
 
-from .original_temperature import _constant, _pairs
+from .original_temperature import _constant, _pairs, _finite_time
 
 MAX_BYTES = 2048
 MAX_RUNS = 8
@@ -132,7 +132,7 @@ class Tv02Reception:
 
     def _now(self):
         now = self.clock()
-        if (self.clock_failed or type(now) not in (int, float) or not math.isfinite(now)
+        if (self.clock_failed or not _finite_time(now)
                 or self.watermark is not None and now < self.watermark):
             self.clock_failed = True
             self.invalidate("clock_invalid")
@@ -150,7 +150,7 @@ class Tv02Reception:
         if (report["device_ieee"], report["manufacturer"], report["endpoint"]) != self.identity:
             return False
         now = self._now()
-        if (now is None or type(received_at) not in (int, float) or not math.isfinite(received_at)
+        if (now is None or not _finite_time(received_at)
                 or received_at > now or not _integer(received_unix_ms, 0, 2**53-1)):
             return False
         source_age = received_unix_ms - report["received_at_unix_ms"]

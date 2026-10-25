@@ -156,3 +156,83 @@ async def test_bad_registration_does_not_replace_existing_owner(hass, invalid):
         assert release() is True
     finally:
         await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('fault', ['backward', 'overflow', 'huge_integer', 'nan'])
+async def test_measurement_clock_fault_retires_report_and_cannot_recover_old_owner(hass, fault):
+    binding = room(hass)
+    now = [100.0]
+    runtime = ShadowRuntime(hass, entry(hass, enabled=True), [binding], clock=lambda: now[0])
+    transport = LocalTransport()
+    runtime.attach_transport(transport)
+    await runtime.async_start()
+    runtime.set_report_profile(binding.room_id, source_profile)
+    try:
+        physical_state(hass, binding, key='clock-source-1')
+        await hass.async_block_till_done()
+        assert runtime.measurement_status(binding.room_id)['usable']
+        now[0] = 105
+        assert runtime.measurement_status(binding.room_id)['usable']
+        now[0] = {'backward': 104, 'overflow': 1e308,
+                  'huge_integer': 10**1000, 'nan': float('nan')}[fault]
+        assert not runtime.measurement_status(binding.room_id)['usable']
+        now[0] = 106
+        runtime.set_report_profile(binding.room_id, source_profile)
+        physical_state(hass, binding, key='clock-source-2')
+        await hass.async_block_till_done()
+        assert not runtime.measurement_status(binding.room_id)['usable']
+        assert runtime.observations[binding.room_id].quality != 'qualified'
+    finally:
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_source_callback_clock_rollback_cannot_qualify_new_report(hass):
+    binding = room(hass)
+    now = [100.0]
+    runtime = ShadowRuntime(hass, entry(hass, enabled=True), [binding], clock=lambda: now[0])
+    runtime.attach_transport(LocalTransport())
+    await runtime.async_start()
+    def source(state, kind):
+        now[0] = 99
+        return source_profile(state, kind)
+    runtime.set_report_profile(binding.room_id, source)
+    try:
+        physical_state(hass, binding, key='callback-clock')
+        await hass.async_block_till_done()
+        assert not runtime.measurement_status(binding.room_id)['usable']
+        assert runtime.observations[binding.room_id].quality != 'qualified'
+    finally:
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_queue_rebasing_preserves_age_at_the_same_monotonic_anchor(hass):
+    binding = room(hass)
+    now, advancing = [100.0], [False]
+    def clock():
+        value = now[0]
+        if advancing[0]:
+            now[0] += 1
+        return value
+    runtime = ShadowRuntime(hass, entry(hass, enabled=True), [binding], clock=clock)
+    transport = LocalTransport()
+    runtime.attach_transport(transport)
+    await runtime.async_start()
+    runtime.set_report_profile(binding.room_id, source_profile)
+    try:
+        physical_state(hass, binding, key='original-queue-anchor')
+        await hass.async_block_till_done()
+        original = runtime.observations[binding.room_id]
+        assert original.quality == 'qualified'
+        now[0], advancing[0] = 105, True
+        runtime._pending[binding.room_id] = original
+        await runtime._flush(runtime._generation)
+        sent = transport.observations[-1][1]
+        assert sent.quality == 'qualified'
+        assert sent.source_age_ms == original.source_age_ms + round(
+            (sent.observed_monotonic-original.observed_monotonic)*1000)
+    finally:
+        advancing[0] = False
+        await runtime.async_stop()

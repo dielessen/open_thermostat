@@ -245,3 +245,36 @@ async def test_native_boiler_view_uses_owned_enabled_renamed_fields_and_quality_
     diagnostics=next(v for v in config["views"] if v["path"]=="diagnostics")
     assert raw.entity_id in str(diagnostics) and "Unreliable raw boiler diagnostics" in str(diagnostics)
     assert raw.entity_id not in str(next(v for v in config["views"] if v["path"]=="boiler"))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('change', ['unload', 'disable', 'rename', 'replace', 'reassign'])
+async def test_export_rechecks_owner_after_recorder_await_before_returning_history(hass, monkeypatch, change):
+    e = entry(hass)
+    owned = entity(hass, e, 'energy')
+    reports.async_register_entry(hass, e)
+    registry = er.async_get(hass)
+    async def query(_):
+        if change == 'unload':
+            reports.async_unregister_entry(hass, e.entry_id)
+        elif change == 'disable':
+            registry.async_update_entity(owned.entity_id, disabled_by=er.RegistryEntryDisabler.USER)
+        elif change == 'rename':
+            registry.async_update_entity(owned.entity_id, new_entity_id='sensor.changed_during_export')
+        elif change == 'replace':
+            registry.async_remove(owned.entity_id)
+            replacement = registry.async_get_or_create('sensor', 'open_thermostat',
+                'replacement_hub_energy', config_entry=e)
+            registry.async_update_entity(replacement.entity_id, new_entity_id=owned.entity_id)
+        else:
+            other = entry(hass)
+            registry.async_update_entity(owned.entity_id, config_entry_id=other.entry_id)
+        return {owned.entity_id: [State(owned.entity_id, '17')]}
+    executor = AsyncMock(side_effect=query)
+    monkeypatch.setattr(reports, 'get_instance', lambda _: SimpleNamespace(async_add_executor_job=executor))
+    try:
+        with pytest.raises(HomeAssistantError, match='changed during export'):
+            await reports.async_export(hass, arguments(e, [owned.entity_id]))
+        assert executor.await_count == 1
+    finally:
+        reports.async_unregister_entry(hass, e.entry_id)

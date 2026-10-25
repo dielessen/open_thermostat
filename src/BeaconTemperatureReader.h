@@ -4,6 +4,7 @@
 #include "Logging.h"
 #include "BeaconBleAddress.h"
 #include "control/BleTemperatureAdvertisement.h"
+#include "control/BleScanLifecycle.h"
 
 #include <NimBLEDevice.h>
 #include <NimBLEAdvertisedDevice.h>
@@ -37,11 +38,16 @@ public:
 
 		esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
 
-		if (NimBLEDevice::init("HeatingController")) {
-			DBGLOGFD(log_, logFeature_, "NimBLEDevice initialized successfully.\n");
+		if (!NimBLEDevice::init("HeatingController")) {
+			scanLifecycle_.close();
+			DBGLOGFD(log_, logFeature_, "NimBLE initialization failed.\n");
+			return;
 		}
+		DBGLOGFD(log_, logFeature_, "NimBLEDevice initialized successfully.\n");
 		NimBLEScan *pBLEScan = NimBLEDevice::getScan();
+		if (!pBLEScan) { scanLifecycle_.close(); return; }
 
+		pBLEScan->setMaxResults(0); // Callback-only: do not retain every nearby advertiser.
 		pBLEScan->setScanCallbacks(this, true);
 		pBLEScan->setActiveScan(true);
 		pBLEScan->setInterval(100); // 100ms
@@ -50,39 +56,38 @@ public:
 		DBGLOGFD(log_, logFeature_, "BLE initialized successfully.\n");
 	}
 
-	void shutDownBLE() { NimBLEDevice::deinit(true); }
+	void shutDownBLE() {
+		scanLifecycle_.close(); // Late callbacks cannot enable scanning again.
+		NimBLEDevice::deinit(true);
+	}
 
-	bool isScanPending() { return bluetoothScanPending_; }
+	bool isScanPending() { return scanLifecycle_.pending(); }
 
 	void triggerScan() {
-		if (bluetoothScanPending_) {
-			DBGLOGFD(log_, logFeature_, "Scan pending\n");
-			return;
-		}
-
-		auto now = millis();
-		if (lastScanFinishedMillis_ != 0 && !ib::millisDurationPassed(now, lastScanFinishedMillis_, 1000ul * config_.scanInterval)) {
-			DBGLOGFD(log_, logFeature_, "Scan interval %ds didn't pass yet\n", config_.scanInterval);
-			return;
-		}
-
-		bluetoothScanPending_ = true;
+		// Zero means unlimited scanning in NimBLE, not a disabled scan.
+		if (!config_.scanTime) return;
+		const auto now = static_cast<uint32_t>(millis());
+		if (!scanLifecycle_.begin(now, uint32_t(config_.scanInterval) * 1000u)) return;
 		DBGLOGFD(log_, logFeature_, "Scan start %ds\n", config_.scanTime);
-
-		NimBLEScan *pBLEScan = NimBLEDevice::getScan();
-		auto res = pBLEScan->start(config_.scanTime * 1000, false, true);
-
-		DBGLOGFD(log_, logFeature_, "Scan start  result: %d\n", res);
+		auto scan = NimBLEDevice::getScan();
+		const bool started = scan && scan->start(uint32_t(config_.scanTime) * 1000u, false, false);
+		if (!started) {
+			// Failed start has no guaranteed onScanEnd callback. Release ownership
+			// with a cooldown instead of leaving all later scans permanently blocked.
+			scanLifecycle_.complete(static_cast<uint32_t>(millis()), [] {}, true);
+		}
+		DBGLOGFD(log_, logFeature_, "Scan start result: %d\n", started);
 	}
 
 	void scanFinished() {
-		bluetoothScanPending_ = false;
-		lastScanFinishedMillis_ = millis();
-		NimBLEDevice::getScan()->clearResults();
+		scanLifecycle_.complete(static_cast<uint32_t>(millis()), [] {
+			if (auto scan = NimBLEDevice::getScan()) scan->clearResults();
+		});
 		DBGLOGFD(log_, logFeature_, "Scan finished\n");
 	}
 
 	void onResult(NimBLEAdvertisedDevice const *advertisedDevice) final {
+		if (!advertisedDevice || !scanLifecycle_.acceptsReports()) return;
 		auto payload = advertisedDevice->getPayload();
 		auto addr = advertisedDevice->getAddress();
 
@@ -94,7 +99,7 @@ public:
 	void onDiscovered(const NimBLEAdvertisedDevice *advertisedDevice) final {
 		// DBGLOGFD(log_, logFeature_, "ON DISCOVERED  SERVICE DATA COUNT %zu / %s, payload size: %zu\n", advertisedDevice->getServiceDataCount(), advertisedDevice->getName().c_str(), payload.size());
 	}
-	void onScanEnd(const NimBLEScanResults &scanResults, int reason) {
+	void onScanEnd(const NimBLEScanResults &scanResults, int reason) override {
 		DBGLOGFD(log_, logFeature_, "onScanEnd %d / %d\n", scanResults.getCount(), reason);
 		scanFinished();
 	}
@@ -110,9 +115,8 @@ public:
 private:
 	static BeaconTemperatureReader *stReader_;
 	ReportTemperature_t pushTemperature_;
-	std::atomic_bool bluetoothScanPending_ = false;
+	control::BleScanLifecycle scanLifecycle_;
 	config::BluetoothConfig config_ = config::getBluetoothConfig();
-	unsigned long lastScanFinishedMillis_ = 0;
 };
 }
 

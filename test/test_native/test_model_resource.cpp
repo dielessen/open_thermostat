@@ -6,6 +6,8 @@
 #include <memory>
 #include <fstream>
 #include <cstdlib>
+#include <stdexcept>
+#include <tuple>
 using namespace heating::control;
 namespace {
 constexpr uint32_t epoch=1790812800;
@@ -43,16 +45,21 @@ struct Backend:ControlStore {
     std::string bytes;
     bool readOk=true,writeOk=true,corrupt=false,commitOnError=false;
     unsigned reads=0,writes=0,unboundedCalls=0;
+    unsigned throwReadAt=0;
+    bool throwBeforeSave=false,throwAfterCommit=false;
     ModelResourceGate* reenterOnSave=nullptr;
     ControlPartitionStats stats{20480,630,20,610,true};
     bool load(std::string&) override{++unboundedCalls;return false;}
     bool save(std::string_view)override{++unboundedCalls;return false;}
     bool loadBounded(std::string& out,size_t maximum)override {
-        ++reads;if(!readOk||bytes.size()>maximum)return false;out=bytes;return true;
+        ++reads;if(throwReadAt==reads)throw std::runtime_error("read failure");
+        if(!readOk||bytes.size()>maximum)return false;out=bytes;return true;
     }
     bool saveBounded(std::string_view in,size_t maximum)override {
-        ++writes;if(in.size()>maximum)return false;
+        ++writes;if(throwBeforeSave)throw std::runtime_error("write failure");
+        if(in.size()>maximum)return false;
         if(writeOk||commitOnError)bytes.assign(in);
+        if(throwAfterCommit)throw std::runtime_error("ambiguous committed write");
         if(corrupt&&!bytes.empty()){bytes[0]='X';}
         if(reenterOnSave)reenterOnSave->begin(0,ModelKind::warm);
         return writeOk;
@@ -374,4 +381,47 @@ TEST(ModelResources, NonemptyCurveDecodeHashCannotRestoreOverSharedOwnerStorageF
     decodeReentryGate=nullptr;
 }
 
+}
+
+namespace {
+class ModelCheckpointException : public ::testing::TestWithParam<std::tuple<int,int>> {};
+TEST_P(ModelCheckpointException, RetiresSharedOwnerWithoutRetryingAmbiguousStorage) {
+    const auto [kind,stage]=GetParam();
+    ModelResourceGate gate(testModelResourcePlan());Triple models(gate,0);
+    ASSERT_TRUE(models.load());ASSERT_TRUE(models.maximumSnapshots());
+    models.warm.setMode(LearningMode::shadow);models.coast.setMode(LearningMode::shadow);
+    models.curve.setMode(LearningMode::shadow);
+    auto& backend=kind==0?models.w:kind==1?models.c:models.v;
+    if(stage==0)backend.throwReadAt=backend.reads+1;
+    if(stage==1)backend.throwBeforeSave=true;
+    if(stage==2)backend.throwAfterCommit=true;
+    if(stage==3)backend.throwReadAt=backend.reads+2;
+    const auto checkpoint=[&] {
+        return kind==0?models.ws.checkpoint(models.warm,1):
+            kind==1?models.cs.checkpoint(models.coast,1):models.vs.checkpoint(models.curve,1);
+    };
+    bool saved=true;
+    ASSERT_NO_THROW(saved=checkpoint());EXPECT_FALSE(saved);
+    EXPECT_FALSE(gate.healthy());
+    EXPECT_EQ(models.warm.mode(),LearningMode::disabled);
+    EXPECT_EQ(models.coast.mode(),LearningMode::disabled);
+    EXPECT_EQ(models.curve.mode(),LearningMode::disabled);
+    if(stage==2||stage==3){EXPECT_FALSE(backend.bytes.empty());}
+    const auto reads=backend.reads,writes=backend.writes;
+    EXPECT_FALSE(checkpoint());EXPECT_EQ(backend.reads,reads);EXPECT_EQ(backend.writes,writes);
+}
+INSTANTIATE_TEST_SUITE_P(AllModelStores,ModelCheckpointException,
+    ::testing::Combine(::testing::Values(0,1,2),::testing::Values(0,1,2,3)));
+TEST(ModelResources, ExceptionDuringLoadCannotLeaveTheModelStoreRetryable) {
+    for(int kind=0;kind<3;++kind) {
+        ModelResourceGate gate(testModelResourcePlan());Triple models(gate,0);
+        auto& backend=kind==0?models.w:kind==1?models.c:models.v;
+        backend.throwReadAt=1;
+        const auto load=[&] {return kind==0?models.ws.load(models.warm):
+            kind==1?models.cs.load(models.coast):models.vs.load(models.curve);};
+        bool restored=true;
+        ASSERT_NO_THROW(restored=load());EXPECT_FALSE(restored);EXPECT_FALSE(gate.healthy());
+        EXPECT_FALSE(load());EXPECT_EQ(backend.reads,1u);
+    }
+}
 }

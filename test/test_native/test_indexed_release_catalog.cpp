@@ -74,3 +74,41 @@ TEST(IndexedRelease, AvailabilityIsNumericUpgradeAndNeverDifferentOrOlderTag) {
  EXPECT_EQ(newerAlphaRelease("unknown",{{tag(12),true}}),"");
  EXPECT_EQ(newerAlphaRelease(tag(9),{}),"");
 }
+
+TEST(IndexedRelease, BetaRcAndStableVersionsHaveExplicitCanonicalNumericOrder) {
+ std::array<uint32_t,5> version{};
+ EXPECT_TRUE(firmwareVersion("v0.1.0-e32v2-beta.1",version));
+ EXPECT_EQ(version,(std::array<uint32_t,5>{0,1,0,1,1}));
+ EXPECT_TRUE(firmwareVersion("v0.1.0-e32v2-rc.2",version));
+ EXPECT_EQ(version,(std::array<uint32_t,5>{0,1,0,2,2}));
+ EXPECT_TRUE(firmwareVersion("v0.1.0-e32v2",version));
+ EXPECT_EQ(version,(std::array<uint32_t,5>{0,1,0,3,0}));
+ for(const auto bad:{"v0.1.0-e32v2-beta.01","v0.1.0-e32v2-beta.-1",
+   "v0.1.0-e32v2-beta.4294967296","v0.1.0-e32v2-beta.1/x",
+   "v0.1.0-e32v2-preview.1","v0.1.0-e32v2-rc","v0.1.0-e32v2.1"})
+   EXPECT_FALSE(firmwareVersion(bad,version));
+}
+TEST(IndexedRelease, UpgradeNotificationCrossesToBetaButNeverBackToLessMatureChannel) {
+ const std::string beta="v0.1.0-e32v2-beta.1",rc="v0.1.0-e32v2-rc.1",stable="v0.1.0-e32v2";
+ EXPECT_EQ(newerFirmwareRelease(tag(36),{{beta,true},{tag(999),true}}),beta);
+ EXPECT_EQ(newerFirmwareRelease(beta,{{tag(999),true},{"v0.2.0-e32v2-alpha.1",true}}),"");
+ EXPECT_EQ(newerFirmwareRelease(beta,{{rc,true},{stable,false}}),stable);
+ EXPECT_EQ(newerFirmwareRelease(stable,{{"v0.2.0-e32v2-beta.1",true}}),"");
+ EXPECT_EQ(newerFirmwareRelease(stable,{{"v0.2.0-e32v2",false}}),"v0.2.0-e32v2");
+}
+TEST(IndexedRelease, MixedAlphaAndBetaIndexStillVerifiesExactPublicReleaseAndManifest) {
+ Fetch f;f.index("["+ref(36)+","+ref(37)+"]");f.add(36);f.add(37);
+ const auto old=tag(37),beta=std::string("v0.1.0-e32v2-beta.1");
+ for(auto &response:f.responses) {
+  auto &body=response.second.second;size_t at=0;
+  while((at=body.find(old,at))!=std::string::npos){body.replace(at,old.size(),beta);at+=beta.size();}
+ }
+ const auto oldRelease=std::string(releaseApi)+"/tags/"+old;
+ f.responses[std::string(releaseApi)+"/tags/"+beta]=f.responses[oldRelease];f.responses.erase(oldRelease);
+ f.responses[assetUrl(beta,"e32v2-update.json")]=f.responses[assetUrl(old,"e32v2-update.json")];
+ f.responses.erase(assetUrl(old,"e32v2-update.json"));
+ std::vector<Release> out;std::string error;
+ ASSERT_EQ(discoverIndexedReleases(f,out,error),IndexedCatalogResult::Complete);
+ ASSERT_EQ(out.size(),2u);EXPECT_EQ(out[0].tag,beta);EXPECT_EQ(out[1].tag,tag(36));
+ EXPECT_EQ(f.calls.size(),5u);
+}

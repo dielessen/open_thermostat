@@ -6,6 +6,7 @@
 #include "BuiltinGpioPort.h"
 #include "PcfGpioPort.h"
 #include "BeaconTemperatureReader.h"
+#include "control/BleDeviceDiscovery.h"
 #include "OpenWeather.h"
 #include "PeriodicCounter.h"
 #include "EmsController.h"
@@ -393,7 +394,7 @@ private:
 	void pushTemperatureData(BleAddress_t address, std::optional<int16_t> temperature, std::optional<int16_t> humidity, std::optional<int8_t> battery) {
 		std::lock_guard<std::mutex> lock(roomsAccessMutex_);
 
-		devicesFound_.emplace(address);
+		devicesFound_.remember(address); // Discovery cap never skips configured-room updates.
 
 		auto room = std::find_if(std::begin(rooms_), std::end(rooms_), [&adr = address](auto const &room) { return (adr == room->getSensorAddress()); });
 		if (room == std::end(rooms_)) {
@@ -450,7 +451,7 @@ private:
 	std::string currentProgram_;
 	std::vector<std::shared_ptr<heating::Room>> rooms_;
 	std::unordered_map<std::string, uint8_t> valveLabelMap_{buildValveLabelMap()};
-	BeaconTemperatureReader::BleDevices_t devicesFound_;
+	control::BleDeviceDiscovery devicesFound_;
 	mutable std::mutex roomsAccessMutex_;
 
 	// Informational observation epoch only, never an authentication token / NVS value.

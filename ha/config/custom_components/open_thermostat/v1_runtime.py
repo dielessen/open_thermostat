@@ -40,6 +40,8 @@ ReportProfile = Callable[[Any, str], QualifiedReport | None]
 class ShadowRuntime:
     def __init__(self, hass: HomeAssistant, entry: Any, rooms: list[RoomBinding], *, graph_data_profile=None, context_source_profiles=(), controller_policy_source_profile=None, graph_controller_source=None,native_plan_source=None, clock: Callable[[], float] | None = None):
         self.clock = clock if clock is not None else hass.loop.time
+        self._measurement_clock_watermark = None
+        self._measurement_clock_failed = False
         if graph_data_profile is not None:
             from .graph_wire import GraphSourceProfile
             if not isinstance(graph_data_profile,GraphSourceProfile):
@@ -144,6 +146,32 @@ class ShadowRuntime:
         self._listeners.add(listener)
         return lambda: self._listeners.discard(listener)
 
+    def _measurement_now(self):
+        """One clock read per boundary; failure retires this runtime's evidence.
+
+        Registering a new report callback cannot repair a broken clock owner.
+        Milliseconds stay within the exact integer range of the wire/UI domain.
+        """
+        if self._measurement_clock_failed:
+            return None
+        try:
+            now = self.clock()
+            valid = (type(now) in (int, float) and 0 <= now <= (2**53-1)/1000
+                     and math.isfinite(now))
+        except Exception:
+            valid = False
+        if (not valid or self._measurement_clock_watermark is not None
+                and now < self._measurement_clock_watermark):
+            self._measurement_clock_failed = True
+            for room_id in self.rooms:
+                current = self.observations.get(room_id)
+                if (current is not None and current.quality == "qualified"
+                        and room_id != self._bench_owner):
+                    self._withdraw(room_id, "invalid")
+            return None
+        self._measurement_clock_watermark = now
+        return now
+
     def measurement_status(self, room_id: str) -> dict:
         """Current measurement evidence only; no grants, identities or sample keys.
 
@@ -157,10 +185,14 @@ class ShadowRuntime:
         if (observation is not None and quality == "qualified"
                 and observation.observed_monotonic is not None
                 and observation.source_age_ms is not None):
-            age = observation.source_age_ms + math.ceil(
-                max(0, self.clock() - observation.observed_monotonic) * 1000)
-            if room is None or age >= room.maximum_age_ms:
-                quality = "stale"
+            now = self._measurement_now()
+            if now is None or now < observation.observed_monotonic:
+                quality = "invalid"
+            else:
+                age = observation.source_age_ms + math.ceil(
+                    (now - observation.observed_monotonic) * 1000)
+                if room is None or age >= room.maximum_age_ms:
+                    quality = "stale"
         if configured and not self._report_binding_matches(room):
             quality, age = "binding_changed", None
         allowed = {"disabled", "unverified", "qualified", "stale", "unavailable",
@@ -370,6 +402,9 @@ class ShadowRuntime:
 
     @callback
     def _observe(self, room: RoomBinding, event_kind: str) -> None:
+        if self._measurement_now() is None:
+            self._withdraw(room.room_id, "invalid")
+            return
         source_id = self._resolve(room.temperature)
         state = self.hass.states.get(source_id) if source_id else None
         value = temperature_c(state)
@@ -401,6 +436,10 @@ class ShadowRuntime:
         if not isinstance(report, QualifiedReport) or not isinstance(report.sample_key, str) or not report.sample_key or not isinstance(report.sampled_at, datetime) or report.sampled_at.tzinfo is None:
             self._withdraw(room.room_id, "unverified", value)
             return
+        observed_at = self._measurement_now()
+        if observed_at is None:
+            self._withdraw(room.room_id, "invalid")
+            return
         now = dt_util.utcnow()
         age_ms = (now - report.sampled_at).total_seconds() * 1000
         if age_ms < 0 or age_ms >= room.maximum_age_ms:
@@ -429,7 +468,7 @@ class ShadowRuntime:
 
         self._expiries[room.room_id] = async_call_later(
             self.hass, (room.maximum_age_ms - age_ms) / 1000, expired)
-        self._record(room.room_id, Observation(value, "qualified", math.ceil(age_ms), report.sample_key, self.clock()))
+        self._record(room.room_id, Observation(value, "qualified", math.ceil(age_ms), report.sample_key, observed_at))
 
     @callback
     def _withdraw(self, room_id: str, quality: str, value: float | None = None) -> None:
@@ -459,13 +498,17 @@ class ShadowRuntime:
                     if not self._report_binding_matches(self.rooms.get(room_id)):
                         self._drop_report_binding(room_id)
                         continue
-                    elapsed = max(0, self.clock() - observation.observed_monotonic)
-                    age = observation.source_age_ms + math.ceil(elapsed * 1000)
-                    if age >= self.rooms[room_id].maximum_age_ms:
-                        observation = Observation(None, "stale")
+                    now = self._measurement_now()
+                    if now is None or now < observation.observed_monotonic:
+                        observation = Observation(None, "invalid")
                     else:
-                        observation = replace(observation, source_age_ms=age,
-                                              observed_monotonic=self.clock())
+                        age = observation.source_age_ms + math.ceil(
+                            (now - observation.observed_monotonic) * 1000)
+                        if age >= self.rooms[room_id].maximum_age_ms:
+                            observation = Observation(None, "stale")
+                        else:
+                            observation = replace(observation, source_age_ms=age,
+                                                  observed_monotonic=now)
                 await self._transport.async_observation(room_id, observation)
         except asyncio.CancelledError:
             raise

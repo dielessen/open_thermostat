@@ -88,6 +88,26 @@ class ReleaseNotesTests(unittest.TestCase):
 
 
 
+class BetaReleaseNotesTests(unittest.TestCase):
+    def test_alpha_beta_rc_stable_sort_and_labels(self):
+        tags=['v0.1.0-e32v2-alpha.99','v0.1.0-e32v2-beta.1',
+              'v0.1.0-e32v2-rc.1','v0.1.0-e32v2']
+        versions=[release.classify(tag)[1] for tag in tags]
+        self.assertEqual(sorted(versions),versions)
+        self.assertEqual(release.label('firmware',versions[1])[1],'beta.1')
+        self.assertEqual(release.firmware_heading(versions[1]),'# E32 V2 beta1')
+        self.assertEqual(release.firmware_heading(versions[3]),'# E32 V2 0.1.0')
+        for tag in ['v0.1.0-e32v2-beta.01','v0.1.0-e32v2-beta.4294967296']:
+            self.assertIsNone(release.classify(tag)[0])
+
+    def test_beta_publication_uses_same_required_reader_sections(self):
+        notes='# E32 V2 beta1\n'+release.USER_NOTES+'\n## Nieuw\nFeatures\n## Opgelost\nFixes\n## Bijwerken en gebruik\nUsage\n## English\nSummary'
+        self.assertIn('Features',release.publication_notes(notes,'owner/project',
+                      'v0.1.0-e32v2-beta.1',require_user_notes=True))
+        with self.assertRaisesRegex(ValueError,'version_mismatch'):
+            release.publication_notes(notes,'owner/project','v0.1.0-e32v2-alpha.1',True)
+
+
 class HistoricalNotesTests(unittest.TestCase):
     def test_all_curated_records_have_sections_and_bound_original(self):
         from pathlib import Path

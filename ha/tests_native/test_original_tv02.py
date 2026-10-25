@@ -228,3 +228,23 @@ def test_queue_delay_counts_against_original_arrival_not_worker_time():
     assert owner.status()['status']=='stale'
     owner,now=receiver(); now[0]=110
     assert not receive(owner)
+
+
+def test_oversized_integer_clock_is_latched_without_crashing_status():
+    owner, now = receiver()
+    assert receive(owner)
+    now[0] = 10**1000
+    assert owner.status()['status'] == 'clock_invalid'
+    now[0] = 101
+    assert not receive(owner, packet(sequence=2), received_at=101)
+    assert owner.status()['status'] == 'clock_invalid'
+
+
+def test_finite_clock_scaling_overflow_withdraws_fields():
+    owner, now = receiver()
+    assert receive(owner)
+    now[0] = 1e308
+    result = owner.status()
+    assert result['status'] == 'stale'
+    assert result['fields'] == {}
+    assert result['last_reception']['received_age_ms'] is None

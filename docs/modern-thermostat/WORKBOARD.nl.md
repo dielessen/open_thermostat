@@ -1,5 +1,13 @@
 # OpenThermostat — actueel werkbord en releasechecklist
 
+## Eén grote bèta — doorwerken zonder tussenreleases
+
+De uitvoeringsopdracht is uitgebreid: alle uitvoerbare roadmaponderdelen in één
+bètakandidaat verwerken. Geen losse alpha37-release, tussentijdse E32-flash of
+HA-installatie. De volgorde en open implementatiepunten staan in
+[BETA1-UITVOERING.nl.md](BETA1-UITVOERING.nl.md). B04–B14 blijven inhoudelijk
+leidend; ontbrekende fysieke feiten worden niet met softwarevinkjes afgetekend.
+
 ## GitHub-releasenotities — alle bestaande versies bijgewerkt
 
 Alle 65 releases (64 gepubliceerd en één concept) hebben begrijpelijke Nederlandse
@@ -10,13 +18,13 @@ alleen de tijdelijke concept-URL. Alle API-antwoorden passen binnen 32 KiB;
 onafhankelijke readback en een tweede planning zonder wijzigingen slagen.
 Historische teksten zijn versiegebonden vastgelegd in USER-RELEASE-NOTES.json.
 
-## Alpha37 — kandidaat voor de volgende bundel
+## Alpha37-voorbereiding — meenemen in de grote bèta, geen losse uitgave
 
 Alpha36 is via de normale GitHub-route geïnstalleerd en onafhankelijk geaccepteerd.
 De opvolgende kandidaat bundelt automatische12ucontrole, dashboardmelding,
 vijfminutencache, wachten tijdens ketelproeven en de voorbereide Zigbee-
 eigenaars-/publicatiefixes. HA48 blijft bytegelijk. De updatepoort staat op
-pendingalpha37; publicatie/installatie/nacontrole moeten nog slagen. Alle fysieke
+de grote bèta als opvolger; publicatie/installatie/nacontrole moeten nog slagen. Alle fysieke
 ketel-/kraan-/bronkwalificaties blijven afzonderlijk open.
 
 

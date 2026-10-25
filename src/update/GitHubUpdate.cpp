@@ -252,7 +252,7 @@ bool requestRollback(){
 }
 std::string availability() {
     std::lock_guard<std::mutex> lock(stateMutex);
-    const auto latest=newerAlphaRelease(embedded::version,state.releases);
+    const auto latest=newerFirmwareRelease(embedded::version,state.releases);
     auto root=control::ControlJson(cJSON_CreateObject(),cJSON_Delete);
     cJSON_AddBoolToObject(root.get(),"known",checkSchedule.known());
     cJSON_AddBoolToObject(root.get(),"available",!latest.empty());

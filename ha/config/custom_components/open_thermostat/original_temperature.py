@@ -25,6 +25,17 @@ _KEYS = frozenset(("schema", "producer", "producer_run_id", "sequence", "device_
     "sampled_at_unix_ms", "acquisition_age_verified", "control_qualified", "dropped_reports"))
 
 
+def _finite_time(value):
+    # int is unbounded in Python. math.isfinite(huge_int) can itself raise;
+    # transport diagnostics must retire that clock rather than crash a page.
+    if type(value) not in (int, float):
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
+
+
 def _pairs(pairs):
     result = {}
     for key, value in pairs:
@@ -92,8 +103,7 @@ class OriginalTemperatureReports:
         self.reasons = {}
         self.retired = set()
         self.clock_watermark = runtime.clock()
-        self.clock_failed = (type(self.clock_watermark) not in (int, float)
-            or not math.isfinite(self.clock_watermark))
+        self.clock_failed = not _finite_time(self.clock_watermark)
         for room in runtime.rooms.values():
             try:
                 selected = selected_device(self.hass, room.temperature.as_dict())
@@ -110,8 +120,7 @@ class OriginalTemperatureReports:
 
     def _now(self):
         now = self.runtime.clock()
-        if (self.clock_failed or type(now) not in (int, float)
-                or not math.isfinite(now) or now < self.clock_watermark):
+        if (self.clock_failed or not _finite_time(now) or now < self.clock_watermark):
             self.clock_failed = True
             self.invalidate("clock_invalid")
             return None
@@ -157,16 +166,17 @@ class OriginalTemperatureReports:
         # Replay watermarks survive reconnect. No cache requalification.
 
     def receive(self, topic, raw, *, retained, received_at, received_unix_ms, epoch):
-        if topic not in self.topics or retained or epoch != self.epoch:
+        if (topic not in self.topics or retained is not False
+                or type(epoch) is not int or epoch != self.epoch):
             return False
         try:
             value = decode(raw)
         except (ValueError, UnicodeError, RecursionError, TypeError):
             return False
         now = self._now()
-        if (type(received_at) not in (int, float) or not math.isfinite(received_at)
+        if (not _finite_time(received_at)
                 or now is None or received_at > now
-                or type(received_unix_ms) is not int):
+                or type(received_unix_ms) is not int or not 0 <= received_unix_ms <= 2**53-1):
             return False
         source_age = received_unix_ms - value["received_at_unix_ms"]
         accepted = False
@@ -215,9 +225,9 @@ class OriginalTemperatureReports:
             result["status"] = "binding_changed"
         elif record := self.records.get(room_id):
             value, kind, source_age, received_at = record
-            elapsed = now - received_at
-            age = source_age + math.ceil(max(0, elapsed) * 1000) if math.isfinite(elapsed) else None
-            if age is None or elapsed < 0 or age >= self.bindings[room_id].maximum_age_ms:
+            elapsed_ms = (now - received_at) * 1000
+            age = source_age + math.ceil(elapsed_ms) if math.isfinite(elapsed_ms) else None
+            if age is None or elapsed_ms < 0 or age >= self.bindings[room_id].maximum_age_ms:
                 result["status"] = "stale"
             else:
                 result.update(status="received_unqualified", received_age_ms=age,

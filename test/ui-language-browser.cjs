@@ -29,6 +29,8 @@ const out=path.resolve(process.env.OPENTHERMOSTAT_LANGUAGE_EVIDENCE||'out/ui-lan
   assert.equal(await page.locator('html').getAttribute('lang'),language);
   assert.equal(await page.locator('.pd-room h3').innerText(),'Settings'); // User data matches a translated label.
   assert.equal(await page.locator('.product-dashboard h1').innerText(),choose('Your heating system','Je verwarmingsinstallatie'));
+  const paused=await page.evaluate(()=>showRoom({name:'Room',tempSet:2100,enabled:true,controlStatus:'clock_unavailable'},{boiler:false},'default').textContent);
+  assert.ok(paused.includes(choose('Waiting for device time; heating is paused.','Wachten op de apparaattijd; verwarming is gepauzeerd.')));
   assert.match(await page.locator('#boiler-home').innerText(),new RegExp(choose('No boiler selected yet','Nog geen ketel gekozen')));
   await page.evaluate(()=>loadNativePage('boiler_display'));await page.locator('#boiler-model:enabled').waitFor();
   assert.equal(await page.locator('#boiler-model option').first().getAttribute('value'),'none');

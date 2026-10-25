@@ -1024,13 +1024,17 @@
 				programName = uiText("Temporary (") + getTimeLeftFromSecs(room.temporaryProgramSecondsLeft) + ")";
 			}
 
+			if (room.controlStatus === 'clock_unavailable') {
+				programName = uiText("Waiting for device time; heating is paused.");
+			}
+
 			let lowBatteryStyle = '';
 			if (room.batteryLevel !== undefined && room.batteryLevel < 6) {
 				lowBatteryStyle = 'fill: red; animation: blink 1s linear infinite alternate;';
 			}
 
 			var cont = `
-			<div class='col m-1 border border-3 rounded-lg bg-light' onclick='setTemporaryTemp(event, "` + escapeHtml(room.name) + `");' style='width: 9rem; height: 8rem;'>
+			<div class='col m-1 border border-3 rounded-lg bg-light' style='width: 9rem; height: 8rem;'>
 				<div class='row justify-content-center' style='font-size: 0.9rem;'>` + escapeHtml(room.name) + `</div>
 				<div class='row justify-content-center' style='font-size: 1.5rem; font-weight: bold;'>` + meanTemp + `&deg;C</div>
 				<div class='row justify-content-center' style='font-size: 0.8rem;'>` + setTemp + `&deg;C</div>
@@ -1045,6 +1049,9 @@
 
 			var roomElement = document.createElement('div');
 			roomElement.innerHTML = cont;
+			roomElement.firstElementChild.addEventListener('click', function(event) {
+				setTemporaryTemp(event, room.name);
+			});
 			return roomElement;
 
 		}

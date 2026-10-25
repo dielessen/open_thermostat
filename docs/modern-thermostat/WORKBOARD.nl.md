@@ -22,6 +22,20 @@ Ongeldige bestaande kamerwaarden blijven onbekend; foutieve doelen worden vóór
 verzending geweigerd. Gerichte echte HA-regressies worden bij deze bronstand
 vastgelegd. De volledige bèta- en praktijkacceptatie blijven afzonderlijk open.
 
+## In de grote bètabundel — kamerstatus en bediening
+
+De bestaande kamerroute verwerkt namen, programma's en kleplabels als geldige
+JSON-strings. De browser geeft kamernamen als gegevens aan een klikhandler door;
+een apostrof of quote breekt de temperatuurbediening niet. Onbekende vochtigheid,
+batterij en gemiddelde temperatuur verschijnen niet als een verzonnen nul.
+
+De legacy-regelaar gebruikt bij klokfalen geen oningevulde tijdvelden of
+weekdagindex en trekt zijn vorige warmtevraag in. Een EN/NL-tekst verklaart de
+pauze; de SDK-klokaanvraag gebruikt een time-out van 100 ms. Native tests compileren nu de
+echte Room.cpp, RoomConfig.cpp en tijdelijke override. De SDK-klok is een
+expliciete native testgrens. Dit bewijst geen nieuwe praktijkwerking en verklaart
+geen eerder pendelen in de moderne E32-route. [Conceptreleasenotities](BETA1-RELEASE-NOTES.nl-en.md).
+
 ## GitHub-releasenotities — alle bestaande versies bijgewerkt
 
 Alle 65 releases (64 gepubliceerd en één concept) hebben begrijpelijke Nederlandse

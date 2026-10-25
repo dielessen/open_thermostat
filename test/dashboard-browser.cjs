@@ -120,12 +120,35 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   assert.equal(await page.locator('[data-dashboard-key="firmware-update"]').count(),0);
   status.firmware_update.version='v0.1.0-e32v2-alpha.99';
   await page.evaluate(s=>updateRooms(s),status);
+  // Exercise the shipped legacy tile too: names are data, never inline JS.
+  for (const name of ["Guest's \"room\"\\floor\nZoë", 'x");window.__roomInjection=1;//']) {
+   await page.evaluate(name=>{
+    window.legacyPriorStatus=lastLoadedStatus;window.legacyPriorMode=controlUiMode;
+    controlUiMode='legacy';lastLoadedStatus={rooms:[{name,tempSet:2100}]};
+    $('#temporaryTempModal').removeClass('fade');
+    const tile=showRoom({name,tempSet:2100,enabled:true},{boiler:false},'default');
+    tile.id='legacy-room-check';document.body.append(tile);
+   },name);
+   await page.locator('#legacy-room-check > div').click();
+   assert.equal(await page.locator('#temporaryTempModalRoomName').textContent(),name);
+   assert.equal(await page.locator('#temporaryTempModalTemperature').inputValue(),'21');
+   assert.equal(await page.evaluate(()=>window.__roomInjection),undefined);
+   await page.evaluate(()=>{
+    $('#temporaryTempModal').modal('hide');document.getElementById('legacy-room-check').remove();
+    lastLoadedStatus=window.legacyPriorStatus;controlUiMode=window.legacyPriorMode;
+   });
+  }
+  const legacyClockText=await page.evaluate(()=>{
+   const tile=showRoom({name:'Clock check',tempSet:2100,enabled:true,controlStatus:'clock_unavailable'},{boiler:false},'default');
+   return tile.textContent;
+  });
+  assert.match(legacyClockText,/Wachten op de apparaattijd; verwarming is gepauzeerd/);
   await page.locator('[data-dashboard-key="firmware-update"] button').click();
   await page.locator('#updateHeading').waitFor();
   await page.waitForFunction(()=>document.getElementById('installedVersion')?.textContent==='v0.1.0-e32v2-alpha.31');
   assert.equal(await page.locator('#githubUpdate').isVisible(),true);
   assert.equal(requests.some(r=>r.method!=='GET'),false);
-  assert.deepEqual(errors,[]);results.push({viewport:label,result:'PASS',rooms:8,initialRequests,compiledSupportReadback:!!buildCapabilities,automaticPollPreservesNodesOpenFocusScroll:true,keyedRoomReorder:true,replacedRoomStartsClosed:true,transientFailureRecovery:true,singleInflightPoll:true,staleSuppressed:true,safeText:true,horizontalOverflow:false,deviceProof:false});await page.close();
+  assert.deepEqual(errors,[]);results.push({viewport:label,result:'PASS',rooms:8,initialRequests,compiledSupportReadback:!!buildCapabilities,automaticPollPreservesNodesOpenFocusScroll:true,keyedRoomReorder:true,replacedRoomStartsClosed:true,transientFailureRecovery:true,singleInflightPoll:true,staleSuppressed:true,safeText:true,legacyRoomNamesAreData:true,horizontalOverflow:false,deviceProof:false});await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(out,'BROWSER.json'),JSON.stringify({result:'PASS',source:'shipped index.html and local assets, fixture HTTP',cases:results},null,2)+'\n');console.log(JSON.stringify({result:'PASS',viewports:results.length}));
 })().catch(e=>{console.error(e);process.exitCode=1;});

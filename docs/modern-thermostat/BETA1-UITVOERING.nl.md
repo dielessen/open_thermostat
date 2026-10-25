@@ -87,6 +87,17 @@ Alle overige geïnventariseerde brononderdelen blijven behouden.
   vangen ook exceptions op. Een onzekere schrijfactie sluit de gedeelde eigenaar
   en wordt niet herhaald. Dit bewaart de bestaande gegevensformaten en verleent
   geen automatische leer- of regelbevoegdheid.
+- Bestaande kamerstatus gebruikt correcte JSON-strings voor namen, programma's,
+  ID's en kleplabels. De browser geeft de kamernaam als gegevens door aan de
+  klikhandler. Quote-/apostrof-/regeleindnamen blijven bedienbaar; onbekende
+  vochtigheid, batterij en gemiddelde temperatuur worden niet als nul verzonnen.
+- De oude kamerregeling trekt warmtevraag in bij een ongeldige lokale tijd,
+  toont de reden in EN/NL en gebruikt een SDK-kloktime-out van 100 ms per kamer.
+  Uren/minuten/weekdagen worden vóór gebruik gecontroleerd. Dit is de legacy-
+  regelroute, geen verklaring voor eerder pendelen onder de moderne E32-route.
+- De nieuwe native tests compileren de echte Room.cpp en RoomConfig.cpp en de
+  echte tijdelijke override. De SDK-klok blijft een expliciete testgrens;
+  een native uitslag bewijst geen fysieke klok-/ketel-/stopwerking.
 - CSV-export ondersteunt nu dag/week/maand tot 31 dagen met dezelfde limieten
   van 64 entiteiten, 5.000 rijen en 1 MiB. De normale HA-actie heeft een
   installatiekeuzelijst en volledige NL/EN-velduitleg. De echte native
@@ -94,6 +105,8 @@ Alle overige geïnventariseerde brononderdelen blijven behouden.
 - CSV-export controleert na Recorder-wachttijd opnieuw de exacte entiteiten en
   geladen eigenaar. Verwijderen, vervangen, hernoemen, uitschakelen of verplaatsen
   tijdens export levert geen gedeeltelijk resultaat onder de oude identiteit op.
+
+Het [concept voor gebruikers](BETA1-RELEASE-NOTES.nl-en.md) wordt met de bundel bijgehouden.
 
 Bewijs wordt verzameld onder `out/large-beta-20261025/`. Volledige tests gelden
 alleen voor de daarbij vastgelegde bronstand; een latere wijziging vereist de

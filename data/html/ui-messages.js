@@ -1,5 +1,6 @@
 /* Fixed English UI messages mapped to Nederlands. User data and wire identifiers are excluded. */
 window.OT_UI_MESSAGES = {
+  "Waiting for device time; heating is paused.": "Wachten op de apparaattijd; verwarming is gepauzeerd.",
   "Firmware update available:": "Firmware-update beschikbaar:",
   "View update": "Update bekijken",
   "Checks run automatically every 12 hours, starting five minutes after startup. Successful results are reused for five minutes. Installation always requires your confirmation.": "Updates worden automatisch iedere 12 uur gecontroleerd, vanaf vijf minuten na het opstarten. Geslaagde resultaten worden vijf minuten hergebruikt. Installeren vereist altijd jouw bevestiging.",

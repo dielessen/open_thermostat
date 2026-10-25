@@ -3,6 +3,7 @@
 #include "config.h"
 #include "Logging.h"
 #include "RTCTimeHelpers.h"
+#include "control/JsonString.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "control/ModernTransport.h"
 #endif
@@ -45,8 +46,8 @@ public:
 		if(observationContext_) observationContext_(context);
 		ss << "{\"rooms\": ";
 		getRoomsStatus_(ss);
-		ss << ",\"activeProgram\":" << std::quoted(getActiveProgram_())
-			<< ",\"boilerStarted\":" << (getBoilerStarted_() ? "true" : "false");
+		ss << ",\"activeProgram\":"; control::writeJsonString(ss, getActiveProgram_());
+		ss << ",\"boilerStarted\":" << (getBoilerStarted_() ? "true" : "false");
 		if(observationContext_) ss << ",\"roomObservation\":" << context.str();
 		ss << "}";
 	}

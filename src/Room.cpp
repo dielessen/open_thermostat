@@ -2,6 +2,7 @@
 
 
 #include "Room.h"
+#include "control/JsonString.h"
 #include <limits>
 
 namespace heating {
@@ -31,13 +32,21 @@ void Room::createTemporaryOverride(int16_t temperature, uint32_t validSeconds) {
 std::tuple<Room::TemperatureStatus, std::optional<uint8_t>> Room::shouldStartBoilerAndHeat() {
 	std::lock_guard<std::mutex> lock(mutex_);
 
+	// A rejected reading/clock must also retire the previously reported demand.
+	stats = {};
+	stats.controlStatus_ = "temperature_unavailable";
 	// start heat boiler, continue heat, data error
 	if (!isTemperatureValid()) {
 		DBGLOGFD(log_, logFeature_, "SSB  %-15.15s no samples\n", config_.name_.c_str());
 		return std::make_tuple(Room::TemperatureStatus::MISSING_TEMPERATURE, std::nullopt);
 	}
 
-	auto [time, dayOfTheWeek] = getTimeNow();
+	const auto localTime = getTimeNow();
+	if (!localTime) {
+		stats.controlStatus_ = "clock_unavailable";
+		return std::make_tuple(Room::TemperatureStatus::TIME_UNAVAILABLE, std::nullopt);
+	}
+	const auto [time, dayOfTheWeek] = *localTime;
 
 	auto [currentSet, currentProgram] = getTemperatureSet(time, dayOfTheWeek);
 	stats.currentProgram_ = currentProgram;
@@ -48,7 +57,7 @@ std::tuple<Room::TemperatureStatus, std::optional<uint8_t>> Room::shouldStartBoi
 
 	auto meanTemperature = getAverageTemperature();
 	if (!meanTemperature.has_value()) {
-		DBGLOGFD(log_, logFeature_, "SSB  %-15.15s %d dOw: %d mean: %d, set: %d, margin: u%d/d%d Boiler: 0 Heat: 1 no samples\n", config_.name_.c_str(), time, dayOfTheWeek, meanTemperature, currentSet, getTemperatureMarginUp(), getTemperatureMarginDown());
+		DBGLOGFD(log_, logFeature_, "SSB  %-15.15s %d dOw: %d mean: %d, set: %d, margin: u%d/d%d Boiler: 0 Heat: 1 no samples\n", config_.name_.c_str(), time, dayOfTheWeek, meanTemperature.value_or(0), currentSet, getTemperatureMarginUp(), getTemperatureMarginDown());
 		return std::make_tuple(Room::TemperatureStatus::MISSING_TEMPERATURE, std::nullopt);
 	}
 
@@ -58,7 +67,7 @@ std::tuple<Room::TemperatureStatus, std::optional<uint8_t>> Room::shouldStartBoi
 	stats.shouldHeat_ = shouldContinueHeating;
 	stats.shouldStartBoiler_ = shouldStartBoiler;
 
-	DBGLOGFD(log_, logFeature_, "SSB  %-15.15s %d mean: %d, set: %d, margin: u%d/d%d Override: %d left Boiler: %d Heat: %d. Boiler temp override: %d\n", config_.name_.c_str(), time, meanTemperature, currentSet, getTemperatureMarginUp(), getTemperatureMarginDown(), (temporaryOverride_ && temporaryOverride_->isValid()) ? temporaryOverride_->getSecondsLeft() : 0, shouldStartBoiler, shouldContinueHeating, currentProgram ? currentProgram->getHeatingTemperatureOverride().value_or(0) : 0);
+	DBGLOGFD(log_, logFeature_, "SSB  %-15.15s %d mean: %d, set: %d, margin: u%d/d%d Override: %d left Boiler: %d Heat: %d. Boiler temp override: %d\n", config_.name_.c_str(), time, meanTemperature.value_or(0), currentSet, getTemperatureMarginUp(), getTemperatureMarginDown(), (temporaryOverride_ && temporaryOverride_->isValid()) ? temporaryOverride_->getSecondsLeft() : 0, shouldStartBoiler, shouldContinueHeating, currentProgram ? currentProgram->getHeatingTemperatureOverride().value_or(0) : 0);
 
 	Room::TemperatureStatus status{Room::TemperatureStatus::TEMPERATURE_OK};
 	if (shouldStartBoiler) {
@@ -67,6 +76,7 @@ std::tuple<Room::TemperatureStatus, std::optional<uint8_t>> Room::shouldStartBoi
 		status = Room::TemperatureStatus::CONTINUE_HEATING;
 	}
 
+	stats.controlStatus_ = status == Room::TemperatureStatus::TEMPERATURE_OK ? "satisfied" : "heat_requested";
 	return std::make_tuple(status, currentProgram ? currentProgram->getHeatingTemperatureOverride() : std::optional<uint8_t>{});
 }
 
@@ -82,7 +92,8 @@ bool Room::isTemperatureValid() const {
 
 	auto lastSampleTime = std::get<0>(temperatureData_.newest());
 	if (lastSampleTime + std::chrono::minutes(5) < clock_t::now()) {
-		DBGLOGFD(log_, logFeature_, "isTemperatureValid %-15.15s temperature too old, last read time: %ld, current: %ld\n", config_.name_.c_str(), lastSampleTime, millis());
+		const auto sampleMs = std::chrono::duration_cast<std::chrono::milliseconds>(lastSampleTime.time_since_epoch()).count();
+		DBGLOGFD(log_, logFeature_, "isTemperatureValid %-15.15s temperature too old, last read time: %lld, current: %lu\n", config_.name_.c_str(), static_cast<long long>(sampleMs), millis());
 		return false;
 	}
 	return true;
@@ -122,14 +133,16 @@ int16_t Room::getTemperatureMarginDown() const {
 	return config_.temperatureMarginDown_;
 }
 
-std::pair<uint16_t, uint8_t> Room::getTimeNow() const {
-	struct tm timeinfo;
-	auto result = getLocalTime(&timeinfo);
-	if (!result) {
+std::optional<std::pair<uint16_t, uint8_t>> Room::getTimeNow() const {
+	struct tm timeinfo{};
+	// Keep the SDK retry bound short (default is 5 s per room).
+	if (!getLocalTime(&timeinfo, 100) || timeinfo.tm_hour < 0 || timeinfo.tm_hour > 23
+		|| timeinfo.tm_min < 0 || timeinfo.tm_min > 59 || timeinfo.tm_wday < 0 || timeinfo.tm_wday > 6) {
 		DBGLOGFI(log_, logFeature_, "TIME ERROR\n");
+		return std::nullopt;
 	}
-	uint16_t time = timeinfo.tm_hour * 100 + timeinfo.tm_min;
-	return {time, timeinfo.tm_wday};
+	return std::make_pair(static_cast<uint16_t>(timeinfo.tm_hour * 100 + timeinfo.tm_min),
+		static_cast<uint8_t>(timeinfo.tm_wday));
 }
 
 std::optional<int16_t> Room::getAverageTemperature() const {
@@ -177,18 +190,22 @@ void Room::getStatus(std::ostream &ss) const {
 void Room::getStatus(std::ostream &ss, bool isBeingHeated) const {
 	std::lock_guard<std::mutex> lock(mutex_);
 
-	ss << "{\"name\": \"" << config_.name_ << "\", \"id\": \"" << config_.id_ << "\", \"enabled\": " << (config_.enabled_ ? "true" : "false");
+	ss << "{\"name\": "; control::writeJsonString(ss, config_.name_);
+	ss << ", \"id\": "; control::writeJsonString(ss, config_.id_);
+	ss << ", \"enabled\": " << (config_.enabled_ ? "true" : "false");
+	ss << ", \"controlStatus\": "; control::writeJsonString(ss, stats.controlStatus_);
 
 	if (!temperatureData_.empty()) {
 		auto [lastSampleTime, lastSampleTemp] = temperatureData_.newest();
 		ss << ", \"currentTemp\": " << lastSampleTemp;
-		ss << ", \"currentHumidity\": " << currentHumidity_.load();
+		const auto humidity = currentHumidity_.load();
+		if (humidity >= 0 && humidity <= 10000) ss << ", \"currentHumidity\": " << humidity;
 		ss << ", \"currentTempAgeMs\": " << std::chrono::duration_cast<std::chrono::milliseconds>(clock_t::now() - lastSampleTime).count();
 		auto batteryLevel = batteryLevel_.load();
-		if (batteryLevel >= 0) {
+		if (batteryLevel >= 0 && batteryLevel <= 100) {
 			ss << ", \"batteryLevel\": " << static_cast<int>(batteryLevel);
 		}
-		ss << ", \"meanTemp\": " << getAverageTemperature().value_or(0);
+		if (const auto mean = getAverageTemperature()) ss << ", \"meanTemp\": " << *mean;
 	}
 
 	auto temperatureSet = (stats.currentProgram_ ? stats.currentProgram_->temperature_ : config_.baseTemperature_);
@@ -207,7 +224,7 @@ void Room::getStatus(std::ostream &ss, bool isBeingHeated) const {
 	if (currentProgramName.empty()) {
 		ss << ", \"currentProgram\": null";
 	} else {
-		ss << ", \"currentProgram\": \"" << currentProgramName << "\"";
+		ss << ", \"currentProgram\": "; control::writeJsonString(ss, currentProgramName);
 	}
 	ss << ", \"tempSet\": " << temperatureSet ;
 	ss << ", \"tempMarginUp\": " << (int)config_.temperatureMarginUp_;
@@ -224,12 +241,9 @@ void Room::getStatus(std::ostream &ss, bool isBeingHeated) const {
 
 	auto const &valves = stats.currentProgram_ && !stats.currentProgram_->valves_.empty() ? stats.currentProgram_->valves_ : config_.valves_;
 	for (auto const &valve : valves) {
-		if (firstValve) {
-			ss << "\"" << valve << "\"";
-			firstValve = false;
-		} else {
-			ss << ", \"" << valve << "\"";
-		}
+		if (!firstValve) ss << ", ";
+		firstValve = false;
+		control::writeJsonString(ss, valve);
 	}
 	ss << "]}";
 }

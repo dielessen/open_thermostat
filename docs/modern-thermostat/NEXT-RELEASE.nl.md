@@ -45,6 +45,15 @@ selecties. Ecomline Classic HRC22H heeft nog geen gecontroleerde originele foto;
 de generieke tekening wordt niet meer gebruikt. Onzekere groepen blijven zonder beeld.
 Deze wijzigingen zijn nog niet op de module geïnstalleerd.
 
+## Voor volgende release — ESP-/EMS-logging
+
+Systeemlog krijgt ESP / EMS / beide als weergavefilter. Beide bronnen kunnen
+onafhankelijk naar dezelfde syslogserver; nieuwe bronvinkjes worden opgeslagen
+met teruglezing. Ontvangen EMS-frames worden begrensd in de decode-lus gelogd,
+zonder UART-callback of busaansturing te veranderen. Oudere logginginstellingen
+blijven leesbaar. [Gebruik, tests en grenzen](LOGGING.nl.md).
+Nog niet op de module geïnstalleerd; externe collector/hardwarebelasting open.
+
 ## Meegeleverd in HA48 / alpha35 — bewijs en beperkingen
 
 De native afsluitroute ruimt de overige eigen handles, worker en wachtrij ook

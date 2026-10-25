@@ -2,12 +2,18 @@
   <h1 data-i18n="System log">System log</h1>
   <p data-i18n="Recent logs are kept in RAM and disappear after a restart. Configure a syslog server for longer retention.">Recent logs are kept in RAM and disappear after a restart. Configure a syslog server for longer retention.</p>
   <div class="d-flex flex-wrap gap-2 mb-2">
+    <label><span data-i18n="Log source">Log source</span> <select id="log-source" class="form-control">
+      <option value="all" data-i18n="ESP and EMS">ESP and EMS</option>
+      <option value="esp" data-i18n="ESP logs">ESP logs</option>
+      <option value="ems" data-i18n="EMS logs">EMS logs</option>
+    </select></label>
     <label><span data-i18n="Log level">Log level</span> <select id="log-filter" class="form-control"></select></label>
     <label><span data-i18n="Filter module or message">Filter module or message</span> <input id="log-search" class="form-control" maxlength="64"></label>
     <button id="log-pause" class="btn btn-secondary" type="button"></button>
     <button id="log-download" class="btn btn-secondary" type="button" data-i18n="Download log">Download log</button>
     <button id="log-clear" class="btn btn-outline-secondary" type="button" data-i18n="Clear local log">Clear local log</button>
   </div>
+  <p class="small text-muted" data-i18n="The source filter only changes this view. EMS logs include received frames processed by the controller, not a complete bus recording. Clearing removes both ESP and EMS local logs.">The source filter only changes this view. EMS logs include received frames processed by the controller, not a complete bus recording. Clearing removes both ESP and EMS local logs.</p>
   <p id="log-counters" class="small text-muted"></p>
   <p id="log-status" role="status" aria-live="polite"></p>
   <pre id="log-lines" style="max-height:420px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#111;color:#eee;padding:1rem" tabindex="0" aria-label="System log"></pre>
@@ -17,6 +23,8 @@
       <label class="col-md-6 mb-2"><span data-i18n="Web log level">Web log level</span><select id="log-web-level" class="form-control"></select></label>
       <label class="col-md-6 mb-2"><span data-i18n="Syslog level">Syslog level</span><select id="log-syslog-level" class="form-control"></select></label>
       <label class="col-12 mb-2"><input type="checkbox" id="log-enabled"> <span data-i18n="Enable syslog">Enable syslog</span></label>
+      <label class="col-md-6 mb-2"><input type="checkbox" id="log-syslog-esp" checked> <span data-i18n="Send ESP logs to syslog">Send ESP logs to syslog</span></label>
+      <label class="col-md-6 mb-2"><input type="checkbox" id="log-syslog-ems" checked> <span data-i18n="Send EMS logs to syslog">Send EMS logs to syslog</span></label>
       <label class="col-md-6 mb-2"><span data-i18n="Syslog server IPv4 address">Syslog server IPv4 address</span><input id="log-server" class="form-control" maxlength="15" placeholder="192.168.1.10" inputmode="decimal"></label>
       <label class="col-md-3 mb-2"><span data-i18n="UDP port">UDP port</span><input id="log-port" class="form-control" type="number" min="1" max="65535" value="514" required></label>
       <label class="col-md-3 mb-2"><span data-i18n="Mark interval (seconds, 0 = off)">Mark interval (seconds, 0 = off)</span><input id="log-mark" class="form-control" type="number" min="0" max="86400" value="0" required></label>

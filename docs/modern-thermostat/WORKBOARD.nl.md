@@ -34,6 +34,14 @@ SmartLine. Ecomline Classic HRC22H nog zonder geverifieerde originele foto;
 generieke tekening niet meer geselecteerd. Afbeeldingen blijven op originele host.
 [Ontwerp en grenzen](KETELCATALOGUS.nl.md). Geen firmware- of HA-installatie.
 
+## Voor volgende release — gescheiden ESP-/EMS-logbronnen
+
+Webfilter ESP / EMS / beide, begrensde RX-framelogging buiten UART-callback en
+onafhankelijk opgeslagen bronvinkjes voor dezelfde RFC5424-collector voorbereid.
+REST/syslog dragen een bronlabel; afscherming en gedeelde begrensde buffers blijven
+behouden. Native25, UDP-loopback/NVS en vier EN/NL-browserprofielen slagen.
+Geen hardware-, collector- of firmware-installatieclaim. [Grenzen](LOGGING.nl.md).
+
 ## Historische release HA47 / E32 alpha34 — gepubliceerd en HA geïnstalleerd
 
 Beide onveranderlijke tags staan op bron `6f21f34`. Alle toepasselijke main-/tag-CI,

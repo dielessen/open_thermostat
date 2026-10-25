@@ -1,6 +1,7 @@
 #include "diagnostics/SystemLog.h"
 #include "diagnostics/LogSettings.h"
 #include "diagnostics/NativeLogCapture.h"
+#include "diagnostics/EmsLogCapture.h"
 #include "control/HttpAccessPolicy.h"
 #include <gtest/gtest.h>
 #include <thread>
@@ -16,7 +17,7 @@ TEST(SystemLog, ClearingLocalLogDoesNotEraseRemoteOrReuseCursor){SystemLog log;l
 TEST(SystemLog, CredentialAndPayloadMessagesAreSuppressedForBothSinks){for(const auto* secret:{"Password: hunter2","AUTHORIZATION Bearer hidden","Cookie: hidden","csrf=hidden","myToken hidden","SECRET hidden","SSID private","userName admin","payload hidden","{\"pass\":\"hidden\"}","https://u:p@host"}){SystemLog log;log.configure(remote());log.append(1,"App",secret,0);Record local,remoteRecord;Settings target;ASSERT_TRUE(log.next(0,local));ASSERT_TRUE(log.pop(remoteRecord,target));EXPECT_STREQ(local.text.data(),"[sensitive log content omitted]");EXPECT_STREQ(local.text.data(),remoteRecord.text.data());EXPECT_EQ(log.stats().redacted,1u);}}
 TEST(SystemLog, TruncatedPrintfInputIsSuppressedAndControlCharactersAreSingleLine){SystemLog log;log.append(3,"App","partial",0,true);Record r;ASSERT_TRUE(log.next(0,r));EXPECT_STREQ(r.text.data(),"[sensitive log content omitted]");EXPECT_EQ(log.stats().truncated,1u);log.append(3,"App\nspoof","hello\r\nworld",1);ASSERT_TRUE(log.next(1,r));EXPECT_STREQ(r.text.data(),"hello  world");EXPECT_STREQ(r.feature.data(),"App spoof");}
 TEST(SystemLog, FieldSizesAndSendFailureCountersAreBounded){SystemLog log;log.append(3,std::string(80,'f'),std::string(1000,'x'),0);Record r;ASSERT_TRUE(log.next(0,r));EXPECT_EQ(std::strlen(r.feature.data()),16u);EXPECT_EQ(std::strlen(r.text.data()),192u);EXPECT_EQ(log.stats().truncated,1u);log.sent(true);log.sent(false);EXPECT_EQ(log.stats().sent,1u);EXPECT_EQ(log.stats().syslogDropped,1u);}
-TEST(SystemLog, SyslogHasActualRfc5424HeaderSeverityAndSingleMessage){Record r;r.sequence=7;r.uptimeMs=12000;std::strcpy(r.feature.data(),"EMS");std::strcpy(r.text.data(),"ready");for(const auto& item:std::array<std::pair<int,int>,5>{{{1,131},{2,132},{3,134},{4,135},{5,135}}}){r.level=item.first;const auto frame=rfc5424(r,"heatingtest");EXPECT_EQ(frame,"<"+std::to_string(item.second)+">1 - heatingtest openthermostat - - - uptime_ms=12000 seq=7 [EMS] ready");EXPECT_LT(frame.size(),512u);}}
+TEST(SystemLog, SyslogHasActualRfc5424HeaderSeverityAndSingleMessage){Record r;r.sequence=7;r.uptimeMs=12000;std::strcpy(r.feature.data(),"EMS");std::strcpy(r.text.data(),"ready");for(const auto& item:std::array<std::pair<int,int>,5>{{{1,131},{2,132},{3,134},{4,135},{5,135}}}){r.level=item.first;const auto frame=rfc5424(r,"heatingtest");EXPECT_EQ(frame,"<"+std::to_string(item.second)+">1 - heatingtest openthermostat - - - uptime_ms=12000 seq=7 source=esp [EMS] ready");EXPECT_LT(frame.size(),512u);}}
 TEST(SystemLog, SyslogHostnameCannotInjectHeaders){Record r;r.level=3;auto frame=rfc5424(r,"host\r\n spoof");EXPECT_EQ(frame.find('\r'),std::string::npos);EXPECT_EQ(frame.find('\n'),std::string::npos);EXPECT_NE(frame.find("host___spoof"),std::string::npos);}
 TEST(SystemLog, ConcurrentReceptionHasUniqueMonotonicRetainedEvents){SystemLog log;std::thread a([&]{for(int i=0;i<10000;++i)log.append(3,"A","message",i);});std::thread b([&]{for(int i=0;i<10000;++i)log.append(3,"B","message",i);});a.join();b.join();Record r;uint64_t cursor=0;size_t count=0;while(log.next(cursor,r)){EXPECT_GT(r.sequence,cursor);cursor=r.sequence;++count;}EXPECT_LE(count,32u);EXPECT_EQ(log.stats().latest+log.stats().contention,20000u);}
 TEST(LogSettings, CanonicalRoundtripIncludesIndependentLevelsAndOptionalMark){auto s=remote();s.webLevel=5;s.syslogLevel=2;s.port=5514;s.markSeconds=600;const auto parsed=parseSettings(settingsJson(s));ASSERT_TRUE(parsed);EXPECT_EQ(settingsJson(*parsed),settingsJson(s));}
@@ -64,4 +65,39 @@ TEST(SystemLog, HarmlessTerminalFormattingRemainsReadableWithoutRedaction) {
     EXPECT_EQ(log.stats().redacted, 0u);
 }
 
+}
+
+TEST(SystemLog, RemoteSourceChoicesAreIndependentOfWebHistory) {
+    for(const bool esp : {false,true})for(const bool ems : {false,true}) {
+        SystemLog log;auto settings=remote();settings.syslogEsp=esp;settings.syslogEms=ems;
+        log.configure(settings);log.append(3,"App","ready",1);log.append(3,"EmsControl","received",2);
+        EXPECT_EQ(log.stats().retained,2u);EXPECT_EQ(log.stats().pending,size_t(esp)+size_t(ems));
+        Record record;Settings destination;
+        if(esp){ASSERT_TRUE(log.pop(record,destination));EXPECT_EQ(record.source,Source::esp);}
+        if(ems){ASSERT_TRUE(log.pop(record,destination));EXPECT_EQ(record.source,Source::ems);}
+        EXPECT_FALSE(log.pop(record,destination));
+    }
+}
+TEST(SystemLog, EmsSourceIsPreservedThroughRedactionAndSyslogHeader) {
+    SystemLog log;log.configure(remote());log.append(2,"EmsVerbose","secret hidden",5);
+    Record record;ASSERT_TRUE(log.next(0,record));EXPECT_EQ(record.source,Source::ems);
+    EXPECT_STREQ(record.feature.data(),"Log");EXPECT_NE(rfc5424(record,"test").find("source=ems"),std::string::npos);
+    EXPECT_EQ(sourceForFeature("Arduino"),Source::esp);EXPECT_EQ(sourceForFeature("EMS"),Source::ems);
+}
+TEST(SystemLog, DeferredRxRecordsBoundedOriginalFrameAndReceptionTime) {
+    SystemLog log;uint8_t frame[33]{};for(unsigned i=0;i<33;++i)frame[i]=uint8_t(i);
+    captureEmsRx(log,frame,33,8,16,0x18,0,1234);
+    Record record;ASSERT_TRUE(log.next(0,record));EXPECT_EQ(record.source,Source::ems);EXPECT_EQ(record.uptimeMs,1234u);
+    EXPECT_NE(std::string(record.text.data()).find("RX src=08 dst=10 type=0018 offset=0 len=33 frame=00 01"),std::string::npos);
+    EXPECT_NE(std::string(record.text.data()).find("1F 20"),std::string::npos);
+    EXPECT_EQ(log.stats().truncated,0u);EXPECT_EQ(log.stats().redacted,0u);
+    captureEmsRx(log,nullptr,7,0,0,0,0,0);captureEmsRx(log,frame,34,0,0,0,0,0);captureEmsRx(log,frame,6,0,0,0,0,0);
+    EXPECT_EQ(log.stats().latest,1u);
+}
+TEST(LogSettings, LegacySixFieldSettingsLoadWithoutEnablingSyslogAndNewSourcesRoundtrip) {
+    const auto legacy=R"({"syslog_enabled":false,"server":"","port":514,"syslog_level":3,"web_level":3,"mark_interval_s":0})";
+    auto old=parseSettings(legacy);ASSERT_TRUE(old);EXPECT_FALSE(old->enabled);EXPECT_TRUE(old->syslogEsp);EXPECT_TRUE(old->syslogEms);
+    old->syslogEsp=false;auto parsed=parseSettings(settingsJson(*old));ASSERT_TRUE(parsed);EXPECT_FALSE(parsed->syslogEsp);EXPECT_TRUE(parsed->syslogEms);
+    std::string partial=legacy;partial.insert(1,"\"syslog_esp\":true,");EXPECT_FALSE(parseSettings(partial));
+    auto invalid=settingsJson(*old);invalid.replace(invalid.find("\"syslog_ems\":true"),17,"\"syslog_ems\":1");EXPECT_FALSE(parseSettings(invalid));
 }

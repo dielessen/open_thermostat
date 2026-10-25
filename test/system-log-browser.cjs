@@ -6,9 +6,9 @@ const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.
  fs.mkdirSync(output,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});const results=[];
  try{for(const [lang,width]of [['en',1440],['nl',1440],['en',320],['nl',320]]){
   const page=await browser.newPage({viewport:{width,height:1000},acceptDownloads:true}),errors=[],requests=[];
-  let settings={syslog_enabled:false,server:'',port:514,syslog_level:3,web_level:3,mark_interval_s:0},failSave=false,logReads=0,boot=123,latest=2;const cursors=[];
-  let rows=[{sequence:1,uptime_ms:1000,level:3,feature:'App',message:'ready'},
-    {sequence:2,uptime_ms:2000,level:2,feature:'EMS',message:'<img src="https://foreign.test/x"> fault'}];
+  let settings={syslog_enabled:false,server:'',port:514,syslog_level:3,web_level:3,mark_interval_s:0,syslog_esp:true,syslog_ems:true},failSave=false,logReads=0,boot=123,latest=2;const cursors=[];
+  let rows=[{sequence:1,uptime_ms:1000,level:3,source:'esp',feature:'App',message:'ready'},
+    {sequence:2,uptime_ms:2000,level:2,source:'ems',feature:'EMS',message:'<img src="https://foreign.test/x"> fault'}];
   page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/*',async route=>{
    const req=route.request(),url=new URL(req.url()),p=url.pathname;
@@ -42,6 +42,16 @@ const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.
   await page.waitForFunction(()=>document.querySelector('#log-lines')?.textContent.includes('fault'));
   assert.equal(await page.locator('#log-lines img').count(),0);
   assert.match(await page.locator('#log-counters').innerText(),lang==='nl'?/Overschreven: 4/:/Overwritten: 4/);
+  // The view filter never saves settings or changes collection/cursors.
+  const writesBeforeFilter=requests.filter(r=>r.method==='POST').length;
+  await page.locator('#log-source').selectOption('ems');
+  assert((await page.locator('#log-lines').innerText()).includes('fault'));
+  assert(!(await page.locator('#log-lines').innerText()).includes('[App]'));
+  await page.locator('#log-source').selectOption('esp');
+  assert((await page.locator('#log-lines').innerText()).includes('ready'));
+  assert(!(await page.locator('#log-lines').innerText()).includes('fault'));
+  await page.locator('#log-source').selectOption('all');
+  assert.equal(requests.filter(r=>r.method==='POST').length,writesBeforeFilter);
   // A valid prefix followed by a malformed row must consume no cursor.
   rows.push({sequence:3,uptime_ms:3000,level:3,feature:'App',message:'valid prefix'},
     {sequence:4,uptime_ms:4000,level:9,feature:'App',message:'corrected suffix'});
@@ -60,9 +70,17 @@ const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.
   await page.locator('#log-search').fill('');
   await page.locator('#log-enabled').check();await page.locator('#log-server').fill('192.168.1.10');await page.locator('#log-port').fill('5514');
   await page.locator('#log-mark').fill('600');await page.locator('#log-web-level').selectOption('4');
+  await page.locator('#log-syslog-esp').uncheck();
   await page.locator('#log-save').click();
   await page.waitForFunction(()=>/saved and verified|opgeslagen en gecontroleerd/.test(document.querySelector('#log-settings-status')?.textContent));
   assert.equal(settings.port,5514);assert.equal(settings.server,'192.168.1.10');assert.equal(settings.web_level,4);
+  assert.equal(settings.syslog_esp,false);assert.equal(settings.syslog_ems,true);
+  // Both sources can be enabled, independently of the EMS-only web view.
+  await page.locator('#log-source').selectOption('ems');
+  await page.locator('#log-syslog-esp').check();await page.locator('#log-save').click();
+  await page.waitForFunction(()=>/saved and verified|opgeslagen en gecontroleerd/.test(document.querySelector('#log-settings-status')?.textContent));
+  assert.equal(settings.syslog_esp,true);assert.equal(settings.syslog_ems,true);
+  await page.locator('#log-source').selectOption('all');
   failSave=true;await page.locator('#log-port').fill('5515');await page.locator('#log-save').click();
   await page.waitForFunction(()=>/could not be confirmed|niet bevestigd/.test(document.querySelector('#log-settings-status')?.textContent));
   assert.equal(await page.locator('#log-port').inputValue(),'5515');assert.equal(settings.port,5514);

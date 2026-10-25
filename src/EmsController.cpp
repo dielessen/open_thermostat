@@ -1,5 +1,9 @@
 #include "Logging.h"
 #include "EmsController.h"
+#ifdef OPENTHERMOSTAT_E32V2
+#include "diagnostics/LogRuntime.h"
+#include "diagnostics/EmsLogCapture.h"
+#endif
 
 #include "EMS/UBADeviceVersion.h"
 #include "EMS/UBAFactory.h"
@@ -384,6 +388,11 @@ void EmsController::decodeTelegram(uint8_t *data, uint8_t length, uint64_t recei
             monitor_.receive(telegram, receivedAtMs);
             receiveOutdoorTemperature(outdoorSample_, telegram, receivedAtMs);
         }
+#ifdef OPENTHERMOSTAT_E32V2
+        diagnostics::captureEmsRx(diagnostics::runtime.log,data,length,
+            telegram.getSenderId(),telegram.getDestinationId(),telegram.getTypeId(),
+            telegram.getOffset(),receivedAtMs);
+#endif
         // Passive monitor also sees boiler reports addressed to another master.
         // Legacy registered callbacks retain their original destination admission.
         if (data[1] != 0 && telegram.getDestinationId() != deviceId_) {

@@ -966,7 +966,7 @@ private:
         for(size_t i=0;i<diagnostics::SystemLog::PageSize&&log.next(after,record);++i){
             auto row=cJSON_CreateObject();cJSON_AddItemToArray(rows,row);
             cJSON_AddNumberToObject(row,"sequence",record.sequence);cJSON_AddNumberToObject(row,"uptime_ms",record.uptimeMs);
-            cJSON_AddNumberToObject(row,"level",record.level);cJSON_AddStringToObject(row,"feature",record.feature.data());cJSON_AddStringToObject(row,"message",record.text.data());after=record.sequence;
+            cJSON_AddNumberToObject(row,"level",record.level);cJSON_AddStringToObject(row,"source",diagnostics::sourceName(record.source));cJSON_AddStringToObject(row,"feature",record.feature.data());cJSON_AddStringToObject(row,"message",record.text.data());after=record.sequence;
         }
         auto text=std::unique_ptr<char,decltype(&cJSON_free)>(cJSON_PrintUnformatted(root.get()),cJSON_free);
         if(!text){server_.send(503);return;}

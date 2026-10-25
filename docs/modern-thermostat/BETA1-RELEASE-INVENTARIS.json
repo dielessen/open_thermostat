@@ -329,7 +329,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "54d61ef270c7f3416577d5e59c94ac1df038285eed62a8893d52f8496f77c924"
+          "sha256": "fe71cc349f3cae7ca7385ae513d3fcd2e3de299ae5697e0ca8bbc858efc79f8c"
         },
         {
           "path": "data/html/ui-language.js",
@@ -513,7 +513,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "a31a773b955ec3714887bbb9217fa1d47bd472d1d9159c5ebca02eaddced3f0e"
+          "sha256": "3dc4dff23c0d20f27bce240839cc905f520db139f3331e947e85eb748dcc8e9a"
         }
       ],
       "remaining_acceptance": "Badkamer live bevestigd; geen nieuwe seriële opname van de logstilte."
@@ -599,7 +599,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "a31a773b955ec3714887bbb9217fa1d47bd472d1d9159c5ebca02eaddced3f0e"
+          "sha256": "3dc4dff23c0d20f27bce240839cc905f520db139f3331e947e85eb748dcc8e9a"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
@@ -611,27 +611,27 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "54d61ef270c7f3416577d5e59c94ac1df038285eed62a8893d52f8496f77c924"
+          "sha256": "fe71cc349f3cae7ca7385ae513d3fcd2e3de299ae5697e0ca8bbc858efc79f8c"
         },
         {
           "path": "data/html/system-log.js",
-          "sha256": "93e310055b7d8f908b7f64925dcbb37c3908959cce80eb61481df53c5c7a2d30"
+          "sha256": "b4523a2be5c6cc50066d45759e3755f129addffebf0bdc426e891d79acae431f"
         },
         {
           "path": "data/html/system_log.html",
-          "sha256": "e05fb0f40dc6dcdbbda4418a89548d555634812bd7f6e990fa00def1e59c7525"
+          "sha256": "062d1ed66309971dbbe7c1806413428ee3704eee992cc1c8f39da949cea813af"
         },
         {
           "path": "test/test_native/test_system_log.cpp",
-          "sha256": "ca15817b6be4753874877b6a9f85e8593d8812ff6e622c771c29ebc4d0971b32"
+          "sha256": "4ee0aeb399ddfbdd187131c53d208a9b469b8ea4046ad274ea14348104924595"
         },
         {
           "path": "test/system-log-browser.cjs",
-          "sha256": "36eb0812ceb14259564c67566dd8cd0c9ed218b37668d6d310f288e3ac44b092"
+          "sha256": "8e6992c13e5ee33acb95f98d016f676b92f2f6cd810ce9401da201072c15fc75"
         },
         {
           "path": "docs/modern-thermostat/LOGGING.nl.md",
-          "sha256": "35b98c44387b9eb9cca463620f7f3cdbd17dee165b5b8b0959b7c2897afdba7d"
+          "sha256": "b4b7e0cdc9d9151b3d68eb9096b50bd268871fba03adc10d1bdca65db7c9ab86"
         },
         {
           "path": "src/diagnostics/BufferedLogger.h",
@@ -643,7 +643,7 @@
         },
         {
           "path": "src/diagnostics/LogSettings.h",
-          "sha256": "27b29da933ecf09805963719ae53a8582caff13342762392af2f1ec1e8782db3"
+          "sha256": "700f0a85abbaddadc07129825a0e5af2e2a2522a63d4fafdd31026614108a3bf"
         },
         {
           "path": "src/diagnostics/LogStorage.h",
@@ -659,7 +659,7 @@
         },
         {
           "path": "src/diagnostics/SystemLog.h",
-          "sha256": "9c201c5f897dfbd6b0bfa62e784e0284e2d22df569ccba0ad979158c405e1612"
+          "sha256": "cc5e01c6d215a2a16e3c99cb0028cc7761225065775317d27dc60403bcddb54f"
         },
         {
           "path": "test/logging_runtime/include/esp_log.h",
@@ -683,7 +683,7 @@
         },
         {
           "path": "test/logging_runtime/main.cpp",
-          "sha256": "2589f2909a2f7e11a6289d02783e0e1675545eadc214e44eafcdfc6730cd2972"
+          "sha256": "b3daaa8a32a6d669fde20877146faaff43a5d6c034913eec0d12b24e880ed465"
         },
         {
           "path": "src/control/DeviceDiagnostics.h",
@@ -760,9 +760,13 @@
         {
           "path": "docs/modern-thermostat/BLUETOOTH-APPARATEN.nl.md",
           "sha256": "3a7515a70ddc2e8e99af1c05de2bf9133beadc6212a1afa5e7c78862bf26cfbe"
+        },
+        {
+          "path": "src/diagnostics/EmsLogCapture.h",
+          "sha256": "b468ed43368c542587c9d3c986d055cd81bdae7cbad0f97be3d54689c35269b2"
         }
       ],
-      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding geleverd/getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele acquisitie-/ouderdomsvalidatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten als ambient bron. WSDCGQ11LM-eventproducer voorbereid/getest, niet op Z2M geïnstalleerd. Native HA-ontvanger en room-status geleverd zonder QualifiedReport-vrijgave. Web-/native systeemlog en RFC5424 UDP-syslog geleverd in alpha23; beschermde routes/RAM-buffer en standaard uit zonder bestemming gecontroleerd. Externe collector en lange heap-/stack-/belastingproef blijven open. Geen fysieke regelautorisatie. ESP-eigen diagnose op alpha26/dev33 geïnstalleerd en twee gewone live pakketten exact met HA vergeleken. Softwaretests dekken verval; langdurige fysieke logging-/resourceproeven blijven afzonderlijk open. Geleverd en live teruggelezen in HA46: begrensde, niet-blijvende oorspronkelijke ontvangsttellers via bestaande HA-diagnostiek. Geen producent- of fysieke kwalificatie. Geleverd in HA47: één native opstart over async-programma/Store/MQTT-grenzen, cleanup bij cancel/close en begrensde optionele temperatuurdiagnose. Tien baselinegevallen falen vóór correctie, 139 gerichte/2349volledigeHA-gevallen perCore slagen. HA47 uitgerold met verse HA46-back-up96 en44 afzonderlijke nacontroles. Beperkte HA46-controle05:46UTC ziet1TV02-callback/enqueue/workeracceptatie; stale en ongekwalificeerd, geen upstreamoorzaak of fysieke ACK. Na Coreherstart nieuweRAMowner: bij06:47UTC nul counters/TV02waiting, geen oudbericht alsnieuwekwalificatie. Actieve/fysiekevrijgave blijftopen. X01: pure SBHT-103C-BTHome-decoder voorbereid,798native/16sanitizer/ESP32syntaxPASS; NIETgeselecteerd door BLE-runtime. Geen nieuwe reader, Settings/onboarding, AES/sleutels, replay-/acquisitiekwalificatie of fysieke apparaatondersteuning. Xiaomi/BLUTRV blijven open. HA48 geïnstalleerd: cleanup na gewone callbackexception; aparte nacontrole08:43UTC46PASS,86 live/96back-up exact. Nieuwe RAM-owner blijft ongekwalificeerd. Pure Shelly-decoderbron gepubliceerd in alpha35, niet op E32 geïnstalleerd en niet runtimegeselecteerd."
+      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding geleverd/getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele acquisitie-/ouderdomsvalidatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten als ambient bron. WSDCGQ11LM-eventproducer voorbereid/getest, niet op Z2M geïnstalleerd. Native HA-ontvanger en room-status geleverd zonder QualifiedReport-vrijgave. Web-/native systeemlog en RFC5424 UDP-syslog geleverd in alpha23; beschermde routes/RAM-buffer en standaard uit zonder bestemming gecontroleerd. Externe collector en lange heap-/stack-/belastingproef blijven open. Geen fysieke regelautorisatie. ESP-eigen diagnose op alpha26/dev33 geïnstalleerd en twee gewone live pakketten exact met HA vergeleken. Softwaretests dekken verval; langdurige fysieke logging-/resourceproeven blijven afzonderlijk open. Geleverd en live teruggelezen in HA46: begrensde, niet-blijvende oorspronkelijke ontvangsttellers via bestaande HA-diagnostiek. Geen producent- of fysieke kwalificatie. Geleverd in HA47: één native opstart over async-programma/Store/MQTT-grenzen, cleanup bij cancel/close en begrensde optionele temperatuurdiagnose. Tien baselinegevallen falen vóór correctie, 139 gerichte/2349volledigeHA-gevallen perCore slagen. HA47 uitgerold met verse HA46-back-up96 en44 afzonderlijke nacontroles. Beperkte HA46-controle05:46UTC ziet1TV02-callback/enqueue/workeracceptatie; stale en ongekwalificeerd, geen upstreamoorzaak of fysieke ACK. Na Coreherstart nieuweRAMowner: bij06:47UTC nul counters/TV02waiting, geen oudbericht alsnieuwekwalificatie. Actieve/fysiekevrijgave blijftopen. X01: pure SBHT-103C-BTHome-decoder voorbereid,798native/16sanitizer/ESP32syntaxPASS; NIETgeselecteerd door BLE-runtime. Geen nieuwe reader, Settings/onboarding, AES/sleutels, replay-/acquisitiekwalificatie of fysieke apparaatondersteuning. Xiaomi/BLUTRV blijven open. HA48 geïnstalleerd: cleanup na gewone callbackexception; aparte nacontrole08:43UTC46PASS,86 live/96back-up exact. Nieuwe RAM-owner blijft ongekwalificeerd. Pure Shelly-decoderbron gepubliceerd in alpha35, niet op E32 geïnstalleerd en niet runtimegeselecteerd. Voor volgende firmware: ESP/EMS/beide-weergave, begrensde deferred RX-framelogging en onafhankelijke syslogbronkeuze met oude6/nieuwe8veldinstellingen. Native25/UDPloopback/NVS/vierbrowserprofielen PASS; echte EMS-/collector-/belastingproeven nog open. Geen installatie."
     },
     {
       "id": "I12",
@@ -1393,7 +1397,7 @@
         },
         {
           "path": "src/EmsController.cpp",
-          "sha256": "e648a360d9e2620cbee8637e742fe63fa7138fb8245007e8586f039f3c29b3d2"
+          "sha256": "98dcd6d285f9739510f4b55f7d70e4267fd531880cfe2733ff94e2ab84faa3b9"
         },
         {
           "path": "test/boiler-test-browser.cjs",

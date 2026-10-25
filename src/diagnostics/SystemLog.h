@@ -12,6 +12,7 @@
 namespace heating::diagnostics {
 struct Settings {
     bool enabled = false;
+    bool syslogEsp = true, syslogEms = true;
     std::array<char,16> server{};
     uint16_t port = 514;
     uint8_t syslogLevel = 3, webLevel = 3;
@@ -32,7 +33,13 @@ inline bool valid(const Settings& s) {
     const std::string_view host(s.server.data(),size_t(end-s.server.begin()));
     return (host.empty() ? !s.enabled : ipv4(host));
 }
+enum class Source : uint8_t { esp, ems };
+inline const char* sourceName(Source source) { return source == Source::ems ? "ems" : "esp"; }
+inline Source sourceForFeature(std::string_view feature) {
+    return feature.substr(0,3)=="EMS" || feature.substr(0,3)=="Ems" ? Source::ems : Source::esp;
+}
 struct Record {
+    Source source=Source::esp;
     uint64_t sequence=0, uptimeMs=0;
     uint8_t level=0;
     std::array<char,17> feature{};
@@ -91,10 +98,12 @@ public:
         if(!level || level>5) return;
         std::unique_lock<std::mutex> lock(mutex_,std::try_to_lock);
         if(!lock.owns_lock()) { ++contention_; return; }
+        const auto source=sourceForFeature(feature);
         const bool web=level<=settings_.webLevel;
-        const bool remote=settings_.enabled&&level<=settings_.syslogLevel;
+        const bool remote=settings_.enabled&&level<=settings_.syslogLevel
+            &&(source==Source::ems?settings_.syslogEms:settings_.syslogEsp);
         if(!web&&!remote) return;
-        Record record; record.sequence=++stats_.latest;record.uptimeMs=uptime;record.level=level;
+        Record record; record.source=source;record.sequence=++stats_.latest;record.uptimeMs=uptime;record.level=level;
         const bool redact=truncated||sensitive(text)||sensitive(feature);
         if(redact) { text="[sensitive log content omitted]";feature="Log";++stats_.redacted; }
         auto copy=[](auto& dest,std::string_view source) {
@@ -153,8 +162,8 @@ inline std::string rfc5424(const Record& record,std::string_view hostname) {
     if(!n)std::strcpy(host,"openthermostat");
     const unsigned severity=record.level==1?3:record.level==2?4:record.level==3?6:7;
     char message[512]{};
-    std::snprintf(message,sizeof(message),"<%u>1 - %s openthermostat - - - uptime_ms=%llu seq=%llu [%s] %s",
-        16*8+severity,host,(unsigned long long)record.uptimeMs,(unsigned long long)record.sequence,record.feature.data(),record.text.data());
+    std::snprintf(message,sizeof(message),"<%u>1 - %s openthermostat - - - uptime_ms=%llu seq=%llu source=%s [%s] %s",
+        16*8+severity,host,(unsigned long long)record.uptimeMs,(unsigned long long)record.sequence,sourceName(record.source),record.feature.data(),record.text.data());
     return message;
 }
 } // namespace heating::diagnostics

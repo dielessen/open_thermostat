@@ -19,10 +19,11 @@ window.SystemLogPage = (() => {
     }
     get('log-lines').setAttribute('aria-label',text('System log'));
     options(get('log-filter'),true);options(get('log-web-level'));options(get('log-syslog-level'));
+    const sourceOf = row => row.source ?? (/^(EMS|Ems)/.test(row.feature)?'ems':'esp');
     function render(){
-      const level=Number(get('log-filter').value),search=get('log-search').value.toLocaleLowerCase();
-      const lines=state.rows.filter(r=>r.level<=level&&`${r.feature} ${r.message}`.toLocaleLowerCase().includes(search))
-        .map(r=>`${(r.uptime_ms/1000).toFixed(3)}s #${r.sequence} ${text(levels[r.level]).toLocaleUpperCase()} [${r.feature}] ${r.message}`);
+      const source=get('log-source').value,level=Number(get('log-filter').value),search=get('log-search').value.toLocaleLowerCase();
+      const lines=state.rows.filter(r=>(source==='all'||sourceOf(r)===source)&&r.level<=level&&`${r.feature} ${r.message}`.toLocaleLowerCase().includes(search))
+        .map(r=>`${(r.uptime_ms/1000).toFixed(3)}s #${r.sequence} ${text(levels[r.level]).toLocaleUpperCase()} [${sourceOf(r).toUpperCase()}] [${r.feature}] ${r.message}`);
       get('log-lines').textContent=lines.join('\n');
       get('log-pause').textContent=text(state.paused?'Resume':'Pause');
     }
@@ -49,7 +50,7 @@ window.SystemLogPage = (() => {
         // Validate the WHOLE batch before changing history or its cursor. A bad
         // suffix must not consume valid earlier rows and hide them on retry.
         for(const r of data.records){
-          if(!r||!Number.isSafeInteger(r.sequence)||r.sequence<=cursor||r.sequence>data.latest||!Number.isFinite(r.uptime_ms)||r.uptime_ms<0||!Number.isInteger(r.level)||r.level<1||r.level>5||typeof r.feature!=='string'||r.feature.length>16||typeof r.message!=='string'||r.message.length>192)throw Error('invalid');
+          if(!r||!Number.isSafeInteger(r.sequence)||r.sequence<=cursor||r.sequence>data.latest||!Number.isFinite(r.uptime_ms)||r.uptime_ms<0||!Number.isInteger(r.level)||r.level<1||r.level>5||typeof r.feature!=='string'||r.feature.length>16||typeof r.message!=='string'||r.message.length>192||(r.source!==undefined&&!['esp','ems'].includes(r.source)))throw Error('invalid');
           cursor=r.sequence;
         }
         // An old-boot cursor can suppress the new boot's first response. Retry
@@ -64,7 +65,7 @@ window.SystemLogPage = (() => {
       finally{state.busy=false;if(alive()&&!state.paused)timer=setTimeout(poll,2000);}
     }
     on(get('log-pause'),'click',()=>{state.paused=!state.paused;clearTimeout(timer);render();if(!state.paused)poll();});
-    on(get('log-filter'),'change',render);on(get('log-search'),'input',render);
+    on(get('log-source'),'change',render);on(get('log-filter'),'change',render);on(get('log-search'),'input',render);
     on(get('log-download'),'click',()=>{
       const header=`OpenThermostat boot=${state.boot} — ${text('Received browser history; gaps may exist.')}`;
       const blob=new Blob([header+'\n'+get('log-lines').textContent+'\n'],{type:'text/plain;charset=utf-8'});
@@ -80,12 +81,12 @@ window.SystemLogPage = (() => {
     const form=get('log-settings');
     on(form,'input',()=>{state.dirty=true;});
     function fill(s){
-      get('log-enabled').checked=s.syslog_enabled;get('log-server').value=s.server;
+      get('log-enabled').checked=s.syslog_enabled;get('log-syslog-esp').checked=s.syslog_esp??true;get('log-syslog-ems').checked=s.syslog_ems??true;get('log-server').value=s.server;
       get('log-port').value=s.port;get('log-syslog-level').value=s.syslog_level;get('log-web-level').value=s.web_level;get('log-mark').value=s.mark_interval_s;
     }
     on(form,'submit',async event=>{
       event.preventDefault();if(state.saving||state.uncertain||!form.reportValidity())return;
-      const candidate={syslog_enabled:get('log-enabled').checked,server:get('log-server').value.trim(),port:Number(get('log-port').value),syslog_level:Number(get('log-syslog-level').value),web_level:Number(get('log-web-level').value),mark_interval_s:Number(get('log-mark').value)};
+      const candidate={syslog_enabled:get('log-enabled').checked,syslog_esp:get('log-syslog-esp').checked,syslog_ems:get('log-syslog-ems').checked,server:get('log-server').value.trim(),port:Number(get('log-port').value),syslog_level:Number(get('log-syslog-level').value),web_level:Number(get('log-web-level').value),mark_interval_s:Number(get('log-mark').value)};
       state.saving=true;for(const input of form.querySelectorAll('input,select,button'))input.disabled=true;
       // No automatic retry of a mutation. Readback must match all requested values.
       try{

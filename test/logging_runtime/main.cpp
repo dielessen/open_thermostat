@@ -47,7 +47,7 @@ int main(){
     fake_microseconds=100000;runtime.poll(true,"heatingtest");
     char bytes[1024]{};const auto length=recv(receiver,bytes,sizeof(bytes),0);assert(length>0);
     const std::string frame(bytes,length);
-    assert(frame=="<132>1 - heatingtest openthermostat - - - uptime_ms=0 seq=1 [EMS] Temperature 42 C");
+    assert(frame=="<132>1 - heatingtest openthermostat - - - uptime_ms=0 seq=1 source=ems [EMS] Temperature 42 C");
     assert(runtime.log.stats().sent==1&&runtime.log.stats().pending==0);
     assert(sink->output.find("Temperature 42 C")!=std::string::npos);
     logger.printf(ib::logger::LoggerInterface::LogLevel::ERROR,feature,"Password: fake-test-secret");
@@ -88,5 +88,21 @@ int main(){
     arduinoMessage("[E] %s",std::string(700,'x').c_str());
     assert(nativeOutput.size()==704); // Original UART path is not truncated by capture.
     assert(nativeLog.next(record.sequence,record)&&std::string(record.text.data())=="[sensitive log content omitted]");
+    // Persist source choices, then exercise actual nonblocking UDP on loopback.
+    s.markSeconds=0;s.syslogEsp=false;s.syslogEms=true;assert(runtime.save(s));
+    LogRuntime restored;restored.begin();assert(!restored.log.settings().syslogEsp&&restored.log.settings().syslogEms);
+    runtime.poll(true,"heatingtest");
+    runtime.log.append(3,"App","must stay local",uptimeMs());
+    runtime.log.append(3,"EMS","source-only EMS",uptimeMs());
+    assert(runtime.log.stats().pending==1);
+    fake_microseconds+=100000;runtime.poll(true,"heatingtest");
+    auto sourceLength=recv(receiver,bytes,sizeof(bytes),0);assert(sourceLength>0);
+    assert(std::string(bytes,sourceLength).find("source=ems [EMS] source-only EMS")!=std::string::npos);
+    s.syslogEsp=true;assert(runtime.save(s));runtime.poll(true,"heatingtest");
+    runtime.log.append(3,"App","ESP together",uptimeMs());runtime.log.append(3,"EMS","EMS together",uptimeMs());
+    for(const auto source:{"source=esp","source=ems"}){
+        fake_microseconds+=100000;runtime.poll(true,"heatingtest");sourceLength=recv(receiver,bytes,sizeof(bytes),0);assert(sourceLength>0);
+        assert(std::string(bytes,sourceLength).find(source)!=std::string::npos);
+    }
     close(receiver);std::cout<<"PASS actual logger, NVS failure/readback, native SDK hooks and real RFC5424 UDP transport\n";
 }

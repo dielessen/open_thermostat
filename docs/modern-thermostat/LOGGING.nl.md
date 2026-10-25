@@ -7,6 +7,47 @@ bestemming ingesteld. Collectorontvangst en lange runtime-/heap-/stackbelasting
 blijven afzonderlijke open proeven. Deze functie verandert geen kamerbinding,
 SOURCE, weekprogramma of ketelvrijgave.
 
+## Voor volgende release — ESP en EMS afzonderlijk
+
+Bronwijziging van25 oktober2026, nog niet op de E32 geïnstalleerd:
+
+- Kies **ESP en EMS**, **ESP-logs** of **EMS-logs** boven de logregels. Dit is een
+  weergavefilter; verzameling, syslogkeuze en cursor worden niet gewijzigd.
+  Download bevat de zichtbare selectie. Lokaal wissen wist beide categorieën.
+- Zet onder Logging settings afzonderlijk **ESP-logs naar syslog sturen** en
+  **EMS-logs naar syslog sturen** aan of uit. Beide kunnen tegelijk aan; adres,
+  poort en niveau blijven de bestaande gemeenschappelijke sysloginstellingen.
+- Elke nieuwe REST-regel bevat `source: esp|ems`; RFC5424-berichten bevatten
+  `source=esp|ems`, zodat de collector dezelfde bronnen kan scheiden. De bron
+  blijft behouden als een gevoelige regel wordt afgeschermd.
+- EMS bevat de bestaande modules met EMS/Ems-prefix en nu ook begrensde RX-
+  regels op INFO met afzender, bestemming, type, offset, lengte en framehex.
+  De ontvangsttijd is de bestaande UART-enqueue-tijd. Formatteren gebeurt pas
+  na parsing in de bestaande decode-lus, buiten de monitorlock; geen logging
+  of netwerkwerk toegevoegd aan UART-callback/ISR.
+- Dit is geen volledige busopname: alleen ontvangen frames die de bestaande
+  controlleradmissie en decode bereiken. Pollbytes, verworpen frames, volle
+  ontvangstrijen en niet-toegelaten foreignverkeer zijn geen complete hextrace.
+  Er worden geen extra scans, busqueries of zendopdrachten voor logging uitgevoerd.
+  Een bestaande TX-/enqueue-logregel bewijst geen fysieke verzending of ACK.
+- RAM32, browser256, pagina8 en UDP-wachtrij8 blijven gedeeld en begrensd.
+  Veel EMS-verkeer kan andere regels overschrijven; counters blijven zichtbaar.
+  Verzendtempo blijft maximaal één pakket/100ms; UDP bewijst geen collectoropslag.
+- Oude opgeslagen instellingen met zes velden laden met beide bronvinkjes aan,
+  maar behouden de bestaande syslog-aan/uitstand en bestemming. Nieuwe opslag
+  schrijft acht velden en verifieert beide bronkeuzes door teruglezing. Onvolledige,
+  dubbele, verkeerd getypeerde of onbekende velden worden geweigerd. Deze
+  migratie is geen garantie dat oudere firmware de achtveldenopslag kan lezen.
+
+Gerichte broncontrole:25 native logging-/settingsgevallen, echte NVS/logger-
+keten met UDP naar uitsluitend loopback, en vier EN/NL-browserprofielen inclusief
+bronfilter, onafhankelijke syslogkeuze en onzekere opslag. De echte collector,
+EMS-hardwaretrace en langdurige belasting blijven afzonderlijke acceptatie.
+Alle25 gerichte gevallen slagen ook onder ASan/UBSan. De volledige lokale E32-
+compile/link slaagt (75,6s;75816bytes statisch RAM,2613429bytes app). Dit is een
+bouwcontrole van bronwerk, geen releasepakket of installatie.
+Lokaal bewijs: `out/esp-ems-logging-20261025/`.
+
 ## Gebruik
 
 Open **Settings → System log / Instellingen → Systeemlog** op de E32.

@@ -132,7 +132,7 @@ alleen voor de daarbij vastgelegde bronstand; een latere wijziging vereist de
 passende aanvullende controle. Deze lijst is geen publicatie-, installatie- of
 fysieke acceptatieclaim. De grote bèta is nog in bewerking.
 
-De uitgiftehulpmiddelen herkennen nu ook canonieke HA-versies met `a`, `b`, `rc` en zonder ontwikkelsuffix. De eerste bètaverpakking test verplicht de ongewijzigde alpha36-parser met het werkelijke manifest/image; bewijs gaat mee in de checksums. 18 releasenotitiegevallen, 4 voorgangercompatibiliteitsgevallen en 59 gerichte releasescriptgevallen slagen. Versies zijn nog niet bevroren en er is niets gepubliceerd of geïnstalleerd.
+De uitgiftehulpmiddelen herkennen nu ook canonieke HA-versies met `a`, `b`, `rc` en zonder ontwikkelsuffix. De eerste bètaverpakking test verplicht de ongewijzigde alpha36-parser met het werkelijke manifest/image; bewijs gaat mee in de checksums. 18 releasenotitiegevallen, 4 voorgangercompatibiliteitsgevallen en 59 gerichte releasescriptgevallen slagen. Dit was een broncheckpoint vóór het vastzetten van de kandidaatversies; er is niets gepubliceerd of geïnstalleerd.
 
 Bij verdere broncontrole is een integer-overloop bij een extreem grote monotone tijdsprong in het opwarmmodel gereproduceerd onder UBSan en hersteld vóór de rekenstappen. 893 native en 58 model-/opslaggevallen onder sanitizers slagen; de uitloop-/curveguards begrenzen de tijd al vóór rekenen. De werkelijke NVS-configuratieopslag is afzonderlijk testbaar gemaakt: 32 gedeelde SDK-opslaggevallen, inclusief allocatiefout en reservering, slagen. Drie boards en de bestaande E32-layout/default/no-TX-controle slagen. Dit activeert geen leermodel of keteluitvoer.
 
@@ -157,3 +157,13 @@ Vervolg alleen-lezen bronbewijs op 25 oktober 18:11:44 UTC: de bestaande TV02-pr
 ## Gezamenlijke softwarekandidaat vastzetten
 
 De kandidaatversies zijn E32 `v0.1.0-e32v2-beta.1` en HA `0.4.0b1`, inclusief het optionele Z2M-bronpakket uit dezelfde commit. Dit bevriest de software-identiteit voor de volledige lokale controles en verpakking; het is geen publicatie, installatie of fysieke vrijgave. De geïnstalleerde basis blijft alpha36/dev48 en de laatste HA-startstatus blijft setup_error. B04–B14 blijven afzonderlijk open op het werkbord; ontbrekende bron-/veiligheids-/zenderkwalificatie wordt niet als gereed afgevinkt. Bron/versies en alle daadwerkelijke controle-uitkomsten worden in de kandidaatbewijzen gekoppeld, vóór eventuele uitgifte.
+
+De volledige E32-kit bewaart nu ook het exacte firmware-ELF, de linkerkaart en
+ingebedde webidentiteit onder `symbols/`. De ELF-SHA256 moet overeenkomen met de
+app-descriptor in het echte OTA-bestand; gekopieerde symbolen worden onafhankelijk
+nagelezen. Zes negatieve/positieve pakketgevallen controleren verkeerde/stale
+identiteit, gewijzigde bestanden, symlinks en onbedoelde onderzoeksbestanden.
+De bestaande volledige releaseverifier blijft ongewijzigd verplicht.
+De opstartlog gebruikt de SDK-hexrepresentatie in plaats van een binaire hash
+als C-string te behandelen. De gezamenlijke eindcontrole wordt na deze wijziging
+opnieuw uitgevoerd; eerdere checkpointbewijzen blijven afzonderlijk bewaard.

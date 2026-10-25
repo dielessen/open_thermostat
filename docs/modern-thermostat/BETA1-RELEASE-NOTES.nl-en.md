@@ -39,6 +39,10 @@ pakketten volgen na de gezamenlijke bronfreeze en releasecontroles.
 
 ## Opgelost
 
+- De volledige E32-download bewaart de exacte foutanalysesymbolen en linkerkaart.
+  Ze worden onafhankelijk aan het firmwarebestand gekoppeld. De opstartlog toont
+  de firmware-identiteit als leesbare hextekst. OTA gebruikt het gewone firmwarebestand.
+
 - OpenThermostat kan weer opstarten op Home Assistant Core **2026.10.4**.
   Een versiecontrole blokkeerde onbedoeld het maken van de weergavegroep
   ‘Installatie en ketel’. Instellingen en bestaande entiteitidentiteiten blijven
@@ -100,3 +104,7 @@ blind retries. Configuration loads close safely on allocation failure, shared st
 reservations are preserved, and extreme model clock gaps are rejected before arithmetic. Missing history or measurements are never invented. The original-report extensions now bound their shutdown wait without retrying
 or treating a timeout as successful delivery. Active boiler, valve, learning and standalone Bluetooth acceptance remain open; no intermediate
 release or device installation has been performed.
+
+The full E32 download also preserves exact panic symbols and the linker map,
+independently bound to the firmware image. Startup prints the ELF identity as hex.
+These diagnostic files are not firmware installation files.

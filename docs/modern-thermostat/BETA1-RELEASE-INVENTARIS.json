@@ -27,7 +27,7 @@
         },
         {
           "path": "scripts/package_e32v2_release.py",
-          "sha256": "1d029e79c920effdd02b46b70b01dbff5531813ca1f516da70e9dbcf08a41f20"
+          "sha256": "f785d5a533404a9d4d86e7c8ede81a0451134bed15d5c3cd68188337f6b1579c"
         },
         {
           "path": "docs/third-party/shipped-policy.json",
@@ -71,7 +71,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA1-UITVOERING.nl.md",
-          "sha256": "b5cd2fed86d3faaa9e6de277c2a1d47254d2663cec59696c1954d0e022ffa79b"
+          "sha256": "13cbb4e8ccdc88570e2fb46dc57c79f33e2134fb8ca4e5524e4f1251198fe7f1"
         },
         {
           "path": "README.md",
@@ -79,7 +79,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
-          "sha256": "2bbca78a9d592a30b857353f90cd718ba559423638fc7e2db56362d475c28806"
+          "sha256": "03965592fbcc50584f1ad62c03d0b5dce4f0f00e189abebe0efa0bc47245fcf7"
         },
         {
           "path": "scripts/verify_alpha36_beta_path.py",

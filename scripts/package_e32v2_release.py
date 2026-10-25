@@ -11,7 +11,6 @@ import zipfile
 from verify_e32v2_release import verify
 from release_notices import collect, require_publishable, export as export_notices
 from e32_distribution import prepare as prepare_distribution
-from e32_symbols import export as export_symbols
 
 root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
@@ -73,6 +72,7 @@ with tarfile.open(pkg/"source.tar.gz") as archive:
 firmware = (pkg/"firmware.bin").read_bytes()
 manifest = {**release,"ui":"embedded","asset":"firmware.bin","source_commit":head,"web_sha256":meta["web_sha256"],"size":len(firmware),"sha256":hashlib.sha256(firmware).hexdigest()}
 (pkg/"e32v2-update.json").write_text(json.dumps(manifest,indent=2)+"\n")
+from e32_symbols import export as export_symbols
 export_symbols(build,pkg)
 subprocess.run([sys.executable,str(core/"tool-esptoolpy/esptool.py"),"--chip","esp32","merge_bin","--output",str(pkg/"e32v2-factory.bin"),"--target-offset","0","--flash_mode","dio","--flash_freq","80m","--flash_size","16MB","0x1000",str(pkg/"bootloader.bin"),"0x8000",str(pkg/"partitions.bin"),"0xe000",str(pkg/"boot_app0.bin"),"0x10000",str(pkg/"firmware.bin"),"0x710000",str(pkg/"spiffs.bin")],check=True)
 (pkg/"README.md").write_text("# OpenThermostat E32 V2 — "+release["version"]+"\n\nRead docs/modern-thermostat/GITHUB-UPDATES.nl.md.\n\nfirmware.bin: settings-preserving application-only bootstrap/OTA; includes web UI.\ne32v2-factory.bin: separate clean USB installation at0x0; full erase DELETES SETTINGS. Never offer this factory file as an OTA app.\n\nsymbols/: exact firmware.elf, firmware.map and embedded-web.json with independently checked SYMBOLS.json; ELF SHA256 must match the OTA image descriptor. For panic decoding, never installation.\nthird-party/vendor-source-inputs.zip: pinned original vendor source snapshots and notices.\nthird-party/installed-notices: unchanged installed/original notices and inventory.\nrelink/: exact application source, actual objects, link recipe and verified changed-library relink evidence. Read relink/README.md. Altered proof ELF files are excluded from this package.\nSDK/runtime reproduction recipes and safe source preparation are included in source.tar.gz; see docs/third-party/e32v2-reproduction/README.md.\n\nExperimental prerelease, outputs remain blocked, keep EMS disconnected.\nSoftware verification is not physical update/failure/recovery acceptance.\n")

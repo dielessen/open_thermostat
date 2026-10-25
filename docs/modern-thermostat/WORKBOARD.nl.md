@@ -13,7 +13,7 @@ leidend; ontbrekende fysieke feiten worden niet met softwarevinkjes afgetekend.
 Verse native HA-readback bevestigt dev48 met `setup_error` na de Core-update.
 De lokale groepsversieblokkade is gereproduceerd en gecorrigeerd. Publieke
 presentatie erft de private transactiepin niet meer; echte Core4-compatibiliteit
-is samen met Core2/3 gecontroleerd: 2.428 gevallen per Core, nul fouten/skips;
+is samen met Core2/3 gecontroleerd: 2.431 gevallen per Core, nul fouten/skips;
 NL/EN-foutteksten apart gecontroleerd. Geen tussentijdse installatie, dus de
 productiefout is nog niet als live hersteld afgevinkt.
 [Bewijs en grenzen](HA-CORE4-OPSTART.nl.md).
@@ -84,7 +84,7 @@ P0 R03/B04 en R05/B05, alleen bronmatig voorbereid voor temperatuur en TV02:
 - Het publicatieslot bestaat vóór de MQTT-SDK-aanroep. Direct geneste ontvangst
   start geen tweede publicatie; direct stoppen wacht op datzelfde SDK-resultaat.
 
-Alle 36 producenttests slagen. Voor/na-bewijs staat onder
+Alle 40 producenttests slagen, inclusief de begrensde publicatie-afsluiting. Voor/na-bewijs staat onder
 `out/receiver-lifecycle-20261025/`, `out/receiver-shutdown-20261025/` en
 `out/receiver-publication-20261025/`. Geen wachtrij/retry, productie-installatie,
 bronkwalificatie, kraan-ACK of ketelopdracht. Fysieke B04/B05-acceptatie blijft open.

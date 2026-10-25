@@ -27,7 +27,7 @@
         },
         {
           "path": "scripts/package_e32v2_release.py",
-          "sha256": "edab3a5ea8f415020148eda25a541c0704a5637b20b14654452cf15f40db219e"
+          "sha256": "1d029e79c920effdd02b46b70b01dbff5531813ca1f516da70e9dbcf08a41f20"
         },
         {
           "path": "docs/third-party/shipped-policy.json",
@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "b4a07c75c4070a8aeb3d932cd699feb78ad4c62d94eb460ef9d48f3e33dd0064"
+          "sha256": "53b4dbff28449e0ef0a77860559bb19b3419d87b875032447fd13051a0047a78"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -116,6 +116,14 @@
         {
           "path": "docs/modern-thermostat/Z2M-RELEASE-COMPANION.nl-en.md",
           "sha256": "c100c7e2a498e70fcdff1304bbb056060a1ae17a724d8dd00db94b33829216a4"
+        },
+        {
+          "path": "scripts/e32_symbols.py",
+          "sha256": "838fa46d2a4f9a7f6e3d7f8124867547234f4fd0f68c252f9829c11556195cb0"
+        },
+        {
+          "path": "scripts/test_e32_symbols.py",
+          "sha256": "2c5739c7e308c7bb63cc7074103ea63a57605bffdc2d706d4f3407b2f866059f"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
@@ -253,7 +261,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "b4a07c75c4070a8aeb3d932cd699feb78ad4c62d94eb460ef9d48f3e33dd0064"
+          "sha256": "53b4dbff28449e0ef0a77860559bb19b3419d87b875032447fd13051a0047a78"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -723,7 +731,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "b4a07c75c4070a8aeb3d932cd699feb78ad4c62d94eb460ef9d48f3e33dd0064"
+          "sha256": "53b4dbff28449e0ef0a77860559bb19b3419d87b875032447fd13051a0047a78"
         },
         {
           "path": "platformio.ini",
@@ -731,7 +739,7 @@
         },
         {
           "path": "src/main.cpp",
-          "sha256": "fe24f375afb5e66a0486c7d30cf25dc148f283c347fe40a0e34c99197ff8bec7"
+          "sha256": "4c92a4306ce8d7f6823a68b98fabb058b36d9e62c6ff5e3364b123dd0c778ed5"
         },
         {
           "path": "src/REST.h",

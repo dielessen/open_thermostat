@@ -256,7 +256,9 @@ void setup() {
 	DBGLOGFI(heating::logger, appLogFeature(), "Project: %s, version: %s\n", app->project_name, app->version);
 	DBGLOGFI(heating::logger, appLogFeature(), "Build: %s %s\n", app->date, app->time);
 	DBGLOGFI(heating::logger, appLogFeature(), "IDF: %s\n", app->idf_ver);
-	DBGLOGFI(heating::logger, appLogFeature(), "Firmware sha256: %s\n", app->app_elf_sha256);
+	char elfSha256[65]{};
+	esp_ota_get_app_elf_sha256(elfSha256, sizeof(elfSha256));
+	DBGLOGFI(heating::logger, appLogFeature(), "Firmware sha256: %s\n", elfSha256);
 	DBGLOGFI(heating::logger, appLogFeature(), "Partition: %s, size: %d, encrypted: %d\n", partition->label, partition->size, partition->encrypted);
 	DBGLOGFI(heating::logger, appLogFeature(), "-----------------------");
 	DBGLOGFI(heating::logger, appLogFeature(), "Starting up");

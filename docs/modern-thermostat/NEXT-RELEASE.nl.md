@@ -19,6 +19,12 @@ bèta mee; er is geen tussentijdse HA-installatie.
 
 ## In bewerking voor dezelfde bèta
 
+De volledige E32-download bewaart voortaan ook de exacte ELF-symbolen en linkerkaart,
+met een onafhankelijke koppeling aan de firmwarehash en bronversie. Dit maakt latere
+foutanalyse mogelijk zonder afhankelijkheid van tijdelijke CI-downloads. De opstartlog
+toont de ELF-hash als leesbare hextekst. Deze bestanden zijn voor diagnose; OTA blijft
+het gewone firmwarebestand gebruiken.
+
 De bundel bevat nu ook dag-/week-/maandexport tot 31 dagen via de gewone HA-actie,
 met installatiekeuze en NL/EN-uitleg. Daarnaast zijn meetintrekking bij falende
 schermcallbacks, profielvervanging en ongeldige lokale klok hersteld. De klokfout

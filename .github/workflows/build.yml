@@ -77,6 +77,7 @@ jobs:
           pip install platformio==6.2.0 intelhex==2.3.0 cryptography==41.0.7
           pio pkg install -e e32v2
           python -B -m unittest discover -s scripts -p 'test_e32_source*.py' -v
+          python -B -m unittest discover -s scripts -p test_e32_symbols.py -v
           python -B -m unittest discover -s scripts -p test_release_notices.py -v
           python -B -m unittest discover -s scripts -p test_ca_snapshot.py -v
       - name: Retrieve the pinned source-only distribution
@@ -242,6 +243,7 @@ jobs:
           git fetch --no-tags origin 7ddf3410666d814850275433d9dddd266e5d83ba
           python -m unittest discover -s scripts -p test_alpha36_beta_path.py -v
           python scripts/package_e32v2_release.py --output out/e32v2 --release-output out/release --source-inputs out/vendor-source-inputs.zip --sdk-reproduction out/e32-source-proof/source-reproduction.json
+          python scripts/e32_symbols.py --package out/e32v2
           g++ -std=c++20 -Isrc -I.pio/libdeps/native/cJSON test/updates/image_check.cpp .pio/libdeps/native/cJSON/cJSON.c -l:libcrypto.so.3 -o /tmp/ota-image-check
           /tmp/ota-image-check out/e32v2/e32v2-update.json out/e32v2/firmware.bin
       - name: Upload verified E32 V2 bench-test package

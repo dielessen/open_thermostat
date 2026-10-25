@@ -400,3 +400,11 @@ voorbereid voor temperatuur- en TV02-producent. Een fout laat geen actieve
 schijneigenaar achter; registratie kan na geslaagde cleanup opnieuw plaatsvinden.
 Ook een cleanupfout blijft expliciet zichtbaar, met publicatie uitgeschakeld.
 Geen installatie of fysieke kwalificatie; bestaande M2-acceptatie blijft open.
+
+### Veilige afsluiting bij SDK-cleanupfouten
+
+De voorbereide temperatuur-/TV02-producenten wachten nu ook bij mislukte
+luisteraarverwijdering op de oude publicatie. Parallel stoppen en starten kan
+daardoor geen nieuwe run mengen met de oude run. Een achtergebleven callback
+blijft inert; herstart vereist geslaagde cleanup. Alle 32 lokale producenttests
+slagen. Bronwerk voor de volgende bundel; geen installatie of B04/B05-vrijgave.

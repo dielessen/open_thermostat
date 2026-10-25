@@ -221,3 +221,80 @@ test('registration cleanup failure preserves both errors and disables retained c
     await f.producer.stop();
     assert.equal(f.emitter.listenerCount('deviceMessage'), 0);
 });
+
+test('failed stop cleanup still drains publication and fences a concurrent restart', async () => {
+    for (const detachFirst of [false, true]) {
+        const f = setup();
+        await f.producer.start();
+        const oldRun = f.producer.run;
+        const bus = f.producer.eventBus;
+        const remove = bus.removeListeners.bind(bus);
+        const failure = Error('stop cleanup failed');
+        bus.removeListeners = owner => {
+            if (detachFirst) remove(owner);
+            throw failure;
+        };
+        let complete;
+        f.mqtt.publish = () => new Promise(resolve => { complete = resolve; });
+        f.emitter.emit('deviceMessage', frame());
+        let settled = false;
+        const stopping = f.producer.stop();
+        const stopped = stopping.then(() => { settled = true; }, error => {
+            settled = true;
+            assert.equal(error, failure);
+        });
+        const restarting = f.producer.start();
+        const restarted = assert.rejects(restarting, error => error === failure);
+        await Promise.resolve();
+        assert.equal(settled, false);
+        assert.equal(f.producer.active, false);
+        assert.equal(f.producer.run, oldRun);
+        assert.equal(f.producer.sequence, 1);
+        f.emitter.emit('deviceMessage', frame());
+        assert.equal(f.producer.sequence, 1);
+        complete();
+        await Promise.all([stopped, restarted]);
+        assert.equal(f.producer.run, null);
+        assert.equal(f.producer.devices.size, 0);
+        assert.equal(f.producer.pending, null);
+        assert.equal(f.producer.cleanupRequired, true);
+        await assert.rejects(f.producer.start(), error => error === failure);
+        bus.removeListeners = remove;
+        await f.producer.stop();
+        assert.equal(f.emitter.listenerCount('deviceMessage'), 0);
+        await f.producer.start();
+        assert.notEqual(f.producer.run, oldRun);
+        assert.equal(f.emitter.listenerCount('deviceMessage'), 1);
+        assert.equal(f.producer.sequence, 0);
+        f.mqtt.publish = () => {};
+        f.emitter.emit('deviceMessage', frame());
+        assert.equal(f.producer.sequence, 1);
+        await f.producer.stop();
+    }
+});
+
+test('stop cleanup failure without publication is shared and remains recoverable', async () => {
+    const f = setup();
+    await f.producer.start();
+    const bus = f.producer.eventBus;
+    const remove = bus.removeListeners.bind(bus);
+    const failure = Error('cleanup unavailable');
+    let attempts = 0;
+    bus.removeListeners = () => { attempts++; throw failure; };
+    const results = await Promise.allSettled([
+        f.producer.stop(), f.producer.stop(), f.producer.start(),
+    ]);
+    assert.equal(attempts, 1);
+    assert(results.every(result => result.status === 'rejected' && result.reason === failure));
+    assert.equal(f.producer.run, null);
+    assert.equal(f.producer.devices.size, 0);
+    assert.equal(f.producer.active, false);
+    f.emitter.emit('deviceMessage', frame());
+    assert.equal(f.calls.length, 0);
+    bus.removeListeners = remove;
+    await f.producer.start();
+    assert.equal(f.emitter.listenerCount('deviceMessage'), 1);
+    f.emitter.emit('deviceMessage', frame());
+    assert.equal(f.calls.length, 1);
+    await f.producer.stop();
+});

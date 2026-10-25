@@ -74,12 +74,23 @@ module.exports = class OpenThermostatOriginalTemperature {
             return;
         }
         this.active = false;
-        this.eventBus.removeListeners(this);
-        // Do not return with a previous owner's publication still running.
+        // A failed SDK cleanup must not bypass draining the old publication.
+        // Retained callbacks are inert until cleanup succeeds on a later call.
+        this.cleanupRequired = true;
+        let cleanupError;
+        try {
+            this.eventBus.removeListeners(this);
+            this.cleanupRequired = false;
+        } catch (error) {
+            cleanupError = error;
+        }
         const stopping = (async () => {
-            if (this.pending) await this.pending;
+            // Always yield once so concurrent start/stop sees this owner even
+            // when there is no publication to drain.
+            await this.pending;
             this.run = null;
             this.devices?.clear();
+            if (this.cleanupRequired) throw cleanupError;
         })();
         this.stopping = stopping;
         try { await stopping; }

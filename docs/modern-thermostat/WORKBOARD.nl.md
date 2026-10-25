@@ -17,6 +17,17 @@ niet publiceren. Voor/na-regressies en de volledige lokale producenttests zijn
 vastgelegd in `out/receiver-lifecycle-20261025/`. Alleen bronmatig voorbereid;
 geen installatie, bronkwalificatie, kraan-ACK of ketelopdracht.
 
+## Voor volgende bundel — veilige afsluiting van Zigbee-producenten
+
+P0 R03/B04 en R05/B05: ook bij een SDK-fout tijdens luisteraarverwijdering
+wachten temperatuur- en TV02-producent op de lopende MQTT-publicatie. Gelijktijdig
+stoppen/herstarten deelt deze afsluiting; een cleanupfout blijft zichtbaar en
+blokkeert een nieuwe eigenaar totdat opruimen daadwerkelijk slaagt. Zowel fouten
+vóór als na gedeeltelijk verwijderen, met en zonder lopende publicatie, zijn
+getest. Alle 32 producenttests slagen; twee nieuwe drainregressies falen op de
+vorige bron. Bewijs: `out/receiver-shutdown-20261025/`. Geen productie-installatie
+of fysieke kwalificatie; B04/B05 blijven open.
+
 ## Alpha36 — gepubliceerd; E32-installatie blijft open
 
 Alle voorbereide catalogus-/afbeeldings-/navigatie-/loggingwijzigingen samengevoegd

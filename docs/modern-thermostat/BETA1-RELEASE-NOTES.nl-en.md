@@ -63,6 +63,10 @@ pakketten volgen na de gezamenlijke bronfreeze en releasecontroles.
 - Fouten bij het bewaren van leermodellen worden opgevangen. Een onzekere
   schrijfactie wordt niet automatisch herhaald.
 
+- Een vastgelopen MQTT-publicatie houdt het afsluiten van de ontvangstextensie
+  niet langer onbeperkt tegen. Een nieuwe ontvangst-run wacht wel op afhandeling
+  van de oude publicatie; een time-out wordt geen verzendbevestiging.
+
 ## Wat blijft nog open?
 
 De bestaande functies en voorbereide onderdelen blijven behouden. Dit concept
@@ -87,6 +91,6 @@ recovery and discovery, and names that broke JSON or room controls. The legacy
 room controller pauses when device time is unavailable and uses a 100 ms SDK clock
 timeout. CSV export rechecks ownership; model-storage failures cannot trigger
 blind retries. Configuration loads close safely on allocation failure, shared storage
-reservations are preserved, and extreme model clock gaps are rejected before arithmetic. Missing history or measurements are never invented. Active boiler,
-valve, learning and standalone Bluetooth acceptance remain open; no intermediate
+reservations are preserved, and extreme model clock gaps are rejected before arithmetic. Missing history or measurements are never invented. The original-report extensions now bound their shutdown wait without retrying
+or treating a timeout as successful delivery. Active boiler, valve, learning and standalone Bluetooth acceptance remain open; no intermediate
 release or device installation has been performed.

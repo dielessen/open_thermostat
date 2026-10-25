@@ -5,6 +5,20 @@ const {randomUUID} = require('node:crypto');
 // Source-reviewed target: Zigbee2MQTT 2.14.2, converters 26.115.1.
 // Populate only explicitly selected IEEE/model bindings before installation.
 // This producer is observational; no entry here authorizes heating control.
+// Only an explicit stop with an outstanding SDK publication creates this
+// one-shot deadline. No scheduler, reconnect loop, cancellation or retry.
+const STOP_DRAIN_MS = 5000;
+async function drainOriginalPublication(pending) {
+    if (!pending) { await pending; return; }
+    let timer;
+    try {
+        await Promise.race([pending, new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error(
+                'Original report publication did not drain before shutdown deadline')), STOP_DRAIN_MS);
+        })]);
+    } finally { clearTimeout(timer); }
+}
+
 const DEVICE_BINDINGS = Object.freeze([]);
 const TOPIC = 'bridge/openthermostat/original_tv02';
 
@@ -73,6 +87,7 @@ module.exports = class OpenThermostatOriginalTv02 {
     async start() {
         if (this.stopping) await this.stopping;
         if (this.active) return;
+        if (this.pending) throw new Error('Previous original report publication has not drained');
         if (this.cleanupRequired) {
             this.eventBus.removeListeners(this);
             this.cleanupRequired = false;
@@ -114,11 +129,13 @@ module.exports = class OpenThermostatOriginalTv02 {
 
     async stop() {
         if (this.stopping) return this.stopping;
-        if (!this.active) {
+        if (!this.active && !this.pending) {
             if (this.cleanupRequired) {
                 this.eventBus.removeListeners(this);
                 this.cleanupRequired = false;
             }
+            this.run = null;
+            this.devices?.clear();
             return;
         }
         this.active = false;
@@ -135,7 +152,14 @@ module.exports = class OpenThermostatOriginalTv02 {
         const stopping = (async () => {
             // Always yield once so concurrent start/stop sees this owner even
             // when there is no publication to drain.
-            await this.pending;
+            try { await drainOriginalPublication(this.pending); }
+            catch (error) {
+                // Leave run/pending identity intact. Neither timeout nor a late
+                // SDK callback authorizes a replacement owner or proves delivery.
+                if (cleanupError) throw new AggregateError([cleanupError, error],
+                    'Original report listener cleanup and publication drain failed');
+                throw error;
+            }
             this.run = null;
             this.devices?.clear();
             if (this.cleanupRequired) throw cleanupError;

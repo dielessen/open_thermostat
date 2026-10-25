@@ -71,7 +71,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA1-UITVOERING.nl.md",
-          "sha256": "58903b6625108b500427dc719ca43d8a93af95b82ad75d4182f88f60a1e3c08d"
+          "sha256": "04175d53be53de60f250c5e74eaeb074aa268a164034524a5b26b87d4caed9df"
         },
         {
           "path": "README.md",
@@ -79,7 +79,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
-          "sha256": "3196620375d7286e8924f18f44125de45edf3b191bfc5562040716e4cc789ba1"
+          "sha256": "c8e0c27fd94afc7078aeaf636de3214f3fffad5f289b2dfa166f1fbdcf07c913"
         },
         {
           "path": "scripts/verify_alpha36_beta_path.py",
@@ -683,15 +683,15 @@
         },
         {
           "path": "integrations/zigbee2mqtt/original-temperature.cjs",
-          "sha256": "7b0d76f350374af00b488f492e1b16e8bb3a72ad2360481ac8f5aff46f8822ac"
+          "sha256": "4784427bf4025d5d2fb58cd74081789a3e6ce2694fb92c8b677fc07f55efea7c"
         },
         {
           "path": "test/zigbee2mqtt/original-temperature.test.cjs",
-          "sha256": "9f1814ddb74d9919774b2c2581e92e742782e28139467bae374232847e4e317f"
+          "sha256": "57f8a73c2823a5b5db65cc9c457bffb807c212d47e886295035cb3be7cc7d2d7"
         },
         {
           "path": "docs/modern-thermostat/ORIGINAL-ZIGBEE-REPORTS.nl.md",
-          "sha256": "842eee960b992b6acefd10125935f52caaf1524eed266f455549ab260cf686d7"
+          "sha256": "03538a442d4697b7bbc793b2a62317b9ba4060f5c87f990f09a19053661d137d"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/original_temperature.py",
@@ -1198,15 +1198,15 @@
         },
         {
           "path": "integrations/zigbee2mqtt/original-tv02.cjs",
-          "sha256": "0f270ef16f84757bd6d5e82db8f8351c663ea65fef844d48bdbf733254df2ee2"
+          "sha256": "96cb930fe6a899303f1b20e793111bc1cd8121e1e3d43cfd95155a7ae6e94ecf"
         },
         {
           "path": "test/zigbee2mqtt/original-tv02.test.cjs",
-          "sha256": "ca02d1520ebb9b75ffcdeaf61a41d8a292b8a31c78d09876a657b5147e19e01c"
+          "sha256": "ff2759d5b48b933ced8d6991553127e9289edf136c65e073f4b441e90bf383bf"
         },
         {
           "path": "docs/modern-thermostat/ORIGINAL-TV02-REPORTS.nl.md",
-          "sha256": "1cdf50603df5b9cb2f3847ab48fbefeb4c7def4be7494152757432dde3843a5b"
+          "sha256": "0e9e34197d6baa5edebdc66e0c4ebbf91cf8ba8b58f1d6410069b6711e7750fd"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/original_tv02.py",

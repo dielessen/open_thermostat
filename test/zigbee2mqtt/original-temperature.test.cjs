@@ -348,3 +348,51 @@ test('stop inside SDK publish drains that same publication before a fresh owner 
         await f.producer.stop();
     }
 });
+
+test('shutdown deadline refuses a fresh owner until the original SDK publication really drains', async t => {
+    t.mock.timers.enable({apis:['setTimeout']});
+    const f=setup();await f.producer.start();const oldRun=f.producer.run;
+    let complete;
+    f.mqtt.publish=()=>new Promise(resolve=>{complete=resolve;});
+    f.emitter.emit('deviceMessage',frame());const pending=f.producer.pending;
+    let shutdownError;
+    const stopping=f.producer.stop().catch(error=>{shutdownError=error;});
+    try {
+        t.mock.timers.tick(5000);
+        for(let i=0;i<8;++i)await Promise.resolve();
+        assert.match(shutdownError?.message||'no shutdown error',/publication did not drain/);
+        assert.equal(f.producer.active,false);assert.equal(f.producer.run,oldRun);
+        assert.equal(f.producer.pending,pending);
+        await assert.rejects(f.producer.start(),/publication has not drained/);
+        complete();await pending;
+        assert.equal(f.producer.active,false); // Late completion never restarts.
+        await f.producer.start();assert.notEqual(f.producer.run,oldRun);
+        assert.equal(f.producer.sequence,0);assert.equal(f.emitter.listenerCount('deviceMessage'),1);
+        t.mock.timers.tick(5000);await Promise.resolve();assert.equal(f.producer.active,true);
+    } finally {complete();await stopping;await f.producer.stop();}
+});
+
+test('cleanup failure and shutdown deadline preserve both errors and share one stop owner', async t => {
+    t.mock.timers.enable({apis:['setTimeout']});
+    const f=setup();await f.producer.start();const run=f.producer.run;
+    let complete;f.mqtt.publish=()=>new Promise(resolve=>{complete=resolve;});
+    f.emitter.emit('deviceMessage',frame());const pending=f.producer.pending;
+    const original=f.producer.eventBus.removeListeners;let removals=0;
+    f.producer.eventBus.removeListeners=()=>{++removals;throw Error('listener removal failed');};
+    const errors=[];
+    const stopping=f.producer.stop().catch(error=>{errors.push(error);});
+    const duplicate=f.producer.stop().catch(error=>{errors.push(error);});
+    const starting=f.producer.start().catch(error=>{errors.push(error);});
+    try {
+        t.mock.timers.tick(5000);await Promise.all([stopping,duplicate,starting]);
+        assert.equal(errors.length,3);assert.equal(errors[0],errors[1]);assert.equal(errors[1],errors[2]);
+        assert(errors[0] instanceof AggregateError);assert.equal(errors[0].errors.length,2);
+        assert.match(errors[0].errors[0].message,/listener removal/);
+        assert.match(errors[0].errors[1].message,/publication did not drain/);
+        assert.equal(removals,1);assert.equal(f.producer.run,run);assert.equal(f.producer.active,false);
+        complete();await pending;assert.equal(f.producer.active,false);
+        f.producer.eventBus.removeListeners=original;
+        await f.producer.stop();assert.equal(f.producer.run,null);assert.equal(f.producer.devices.size,0);
+        await f.producer.start();assert.notEqual(f.producer.run,run);
+    } finally {complete();f.producer.eventBus.removeListeners=original;await f.producer.stop();}
+});

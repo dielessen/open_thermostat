@@ -120,3 +120,21 @@ Bronreferenties:
 Reproduceerbare broncontrole: `node --test test/zigbee2mqtt/original-temperature.test.cjs`.
 De 11 tests gebruiken een echte Node-eventemitter met geïsoleerde SDK-interfaces;
 ze bewijzen geen geïnstalleerde extension, fysieke sensoracquisitie of ketelactie.
+
+## Afsluiten van de Z2M-producent in de grote bèta
+
+De ongepubliceerde bron begrenst wachten op één lopende SDK-publicatie met een
+vijfseconden-eventloopdeadline. Alleen expliciet stoppen met zo'n publicatie
+maakt een eenmalige timer; normale ontvangst krijgt geen timer of extra client.
+Een time-out bevestigt geen verzending en annuleert geen SDK-werk. De oude run
+blijft gesloten; opnieuw starten wordt geweigerd zolang die publicatie nog
+openstaat. Late afronding start niets automatisch. Een volgende expliciete
+start krijgt pas na werkelijk afgehandeld SDK-werk een nieuwe run-ID.
+
+Gelijktijdige stop/start deelt dezelfde afsluiteigenaar. Als zowel listener-
+opruimen als de deadline faalt, blijven beide fouten zichtbaar. Een latere
+expliciete cleanup wist de oude run/pins pas na afhandeling. Dit is geen harde
+realtimegarantie bij een geblokkeerde Node-eventloop of bewijs van MQTT-aflevering.
+De 40 gezamenlijke Node-gevallen voor beide producenten slagen; twee deadline-
+gevallen faalden vóór de correctie. Wireformaten en alle false-kwalificaties
+blijven behouden. De bronreparatie is niet op Zigbee2MQTT geïnstalleerd.

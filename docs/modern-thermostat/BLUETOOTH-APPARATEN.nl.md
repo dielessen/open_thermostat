@@ -147,10 +147,10 @@ publieke BTHome-voorbeeld en onafhankelijk gemaakte protocolfixtures; geen
 echte apparaatsleutel of productieverbinding. Boardbuilds controleren de echte
 SDK-koppeling; browserproeven gebruiken uitsluitend nagebootste HTTP-antwoorden.
 Actuele resultaten en bronhashes staan bij de bundelcontrole. De private opslag
-heeft daarnaast 23 gerichte SDK-grensgevallen onder ASan/UBSan: eigen namespace,
+heeft daarnaast 32 gerichte SDK-grensgevallen, samen met de echte regelconfiguratieopslag, onder ASan/UBSan: eigen namespace,
 read-only ontbrekende selectie, netwerkbehoud, commit-/terugleesfouten,
-terminator-/groottegrenzen en geen sleutel in de oudere netwerkreader.
-De native suite heeft nu 892 geslaagde gevallen. Apart slagen 39 eigenaar-/
+terminator-/groottegrenzen en geen sleutel in de oudere netwerkreader. Ook de normale graph-configuratieschrijver bewaart nu de modelreservering; een geforceerde stringallocatiefout sluit de NVS-handle en behoudt de eerdere callerbytes.
+De native suite heeft nu 893 geslaagde gevallen. Apart slagen 39 eigenaar-/
 instellingen-/MiBeacon-parsergevallen en 24 echte Mbed-TLS-/ontvangstgevallen
 onder ASan/UBSan/leakcontrole; de eerdere 18 sessiegevallen blijven behouden.
 Acht browserprofielen dekken beide modellen, EN/NL en 1280/320 pixels, inclusief

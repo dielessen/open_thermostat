@@ -76,3 +76,5 @@ grouping. The beta decouples public registry grouping from private Store write
 qualification and explicitly tests/adds Core 2026.10.4. Unreviewed private writes
 remain blocked. Live read-only evidence reports dev48 in setup_error; installed
 Python source hashes were not read. No interim deployment or device operation.
+
+Aanvullende verpakkingscontrole: native pytest schrijft broncommit/hash, schone/ongewijzigde bron en de echte Core-versie naar XML. De packager weigert ontbrekend, verouderd, dubbel of onbeoordeeld bewijs. Tien packagergevallen en acht echte Core4-groepsgevallen slagen; de ontwikkelrun is correct als niet-schoon gemarkeerd en is dus geen verpakkingsbewijs. Definitieve bronfreeze en volledige suites volgen apart.

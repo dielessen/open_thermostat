@@ -52,6 +52,9 @@ pakketten volgen na de gezamenlijke bronfreeze en releasecontroles.
   SDK-standaard van vijf seconden per kamer.
 - Een wijziging van eigenaar of entiteit tijdens CSV-export breekt de export af;
   gegevens verschijnen niet onder een inmiddels andere koppeling.
+- Bij geheugentekort tijdens laden blijven eerdere configuratiegegevens behouden.
+  Bluetooth- en regelinstellingen houden rekening met gereserveerde opslagruimte.
+- Een extreme tijdsprong veroorzaakt geen rekenoverloop in het voorbereide opwarmmodel.
 - Fouten bij het bewaren van leermodellen worden opgevangen. Een onzekere
   schrijfactie wordt niet automatisch herhaald.
 
@@ -76,6 +79,7 @@ requeued, failing screen callbacks, invalid numeric readings, bounded BLE scan
 recovery and discovery, and names that broke JSON or room controls. The legacy
 room controller pauses when device time is unavailable and uses a 100 ms SDK clock
 timeout. CSV export rechecks ownership; model-storage failures cannot trigger
-blind retries. Missing history or measurements are never invented. Active boiler,
+blind retries. Configuration loads close safely on allocation failure, shared storage
+reservations are preserved, and extreme model clock gaps are rejected before arithmetic. Missing history or measurements are never invented. Active boiler,
 valve, learning and standalone Bluetooth acceptance remain open; no intermediate
 release or device installation has been performed.

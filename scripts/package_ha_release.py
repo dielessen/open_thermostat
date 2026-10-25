@@ -1,6 +1,7 @@
 """Package a clean Home Assistant integration commit; never includes firmware or HA storage."""
 from pathlib import Path
 import argparse
+import ast
 import hashlib
 import json
 import re
@@ -16,10 +17,39 @@ def digest(data):
 def native_summary(path):
     tree = ET.parse(path).getroot()
     suites = [tree] if tree.tag == 'testsuite' else list(tree.iter('testsuite'))
-    result = {key: sum(int(s.get(key, 0)) for s in suites) for key in ('tests', 'failures', 'errors', 'skipped')}
+    counts=[{key:int(s.get(key,0)) for key in ('tests','failures','errors','skipped')} for s in suites]
+    if not counts or any(value<0 for row in counts for value in row.values()):
+        raise ValueError('native_HA_suite_not_passed')
+    result = {key:sum(row[key] for row in counts) for key in ('tests','failures','errors','skipped')}
     if result['tests'] <= result['skipped'] or result['failures'] or result['errors']:
         raise ValueError('native_HA_suite_not_passed')
     return result
+
+
+def native_evidence(path, root, head):
+    from ha_test_evidence import snapshot
+    properties={}
+    for prop in ET.parse(path).getroot().iter('property'):
+        name=prop.get('name','')
+        if not name.startswith('opth.'):continue
+        if name in properties:raise ValueError('native_HA_duplicate_source_evidence')
+        properties[name]=prop.get('value')
+    current=snapshot(root)
+    expected={'opth.source_commit':head,'opth.source_sha256':current['source_sha256'],
+              'opth.clean_source':'true','opth.unchanged_source':'true'}
+    if not current['clean_source'] or any(properties.get(k)!=v for k,v in expected.items()):
+        raise ValueError('native_HA_source_evidence_missing_or_stale')
+    product=Path(root)/'ha/config/custom_components/open_thermostat/product.py'
+    declarations=[node.value for node in ast.parse(product.read_text()).body
+                  if isinstance(node,ast.Assign) and any(isinstance(t,ast.Name)
+                  and t.id=='SUPPORTED_HA_VERSIONS' for t in node.targets)]
+    if len(declarations)!=1:raise ValueError('native_HA_reviewed_core_declaration_invalid')
+    reviewed=ast.literal_eval(declarations[0])
+    if not isinstance(reviewed,tuple) or properties.get('opth.ha_core') not in reviewed:
+        raise ValueError('native_HA_core_not_reviewed')
+    return dict(source_commit=head,source_sha256=current['source_sha256'],
+                ha_core=properties['opth.ha_core'],clean_source=True,unchanged_source=True,
+                junit_sha256=digest(Path(path).read_bytes()))
 
 
 def package(root, output, results):
@@ -35,6 +65,7 @@ def package(root, output, results):
     if manifest['domain'] != 'open_thermostat' or not re.fullmatch(r'\d+\.\d+\.\d+(?:[a-zA-Z0-9.+-]*)', version):
         raise ValueError('invalid_HA_release_identity')
     tests = native_summary(results)
+    evidence = native_evidence(results,root,head)
     files = {}
     for path in sorted(integration.rglob('*')):
         relative = path.relative_to(integration)
@@ -54,7 +85,7 @@ def package(root, output, results):
     files['LICENSE'] = (root/'LICENSE').read_bytes()
     files['LEESMIJ.nl.txt'] = (root/'docs/modern-thermostat/HA-RELEASE-NOTES.md').read_bytes()
     source = dict(source_commit=head, source_kind='clean_git_commit', integration_version=version,
-                  source_files=source_hashes, native_test_summary=tests,
+                  source_files=source_hashes, native_test_summary=tests, native_test_evidence=evidence,
                   firmware_included=False, live_HA_data_included=False)
     files['SOURCE.json'] = (json.dumps(source, indent=2)+'\n').encode()
     files['notices/PLATFORM.txt'] = (b'Project source: MIT; original LICENSE included.\n'
@@ -77,11 +108,11 @@ def package(root, output, results):
             raise ValueError('HA_archive_payload_conflict')
     metadata = dict(version=version, tag='ha-v'+version, source_commit=head, asset=archive.name,
                     sha256=digest(archive.read_bytes()), size=archive.stat().st_size,
-                    integration_source_files=source_hashes, native_test_summary=tests,
+                    integration_source_files=source_hashes, native_test_summary=tests, native_test_evidence=evidence,
                     firmware_included=False, prerelease=True)
     (output/'ha-release.json').write_text(json.dumps(metadata, indent=2)+'\n')
     report = dict(status='PASS_PACKAGE_INTEGRITY_ONLY', source_commit=head, integration_version=version,
-                  integration_source_files=len(source_hashes), native_test_summary=tests,
+                  integration_source_files=len(source_hashes), native_test_summary=tests, native_test_evidence=evidence,
                   archive_payloads_verified=len(files), firmware_included=False,
                   live_HA_data_included=False, physical_heating_approval=False)
     (output/'ha-software-verification.json').write_text(json.dumps(report, indent=2)+'\n')

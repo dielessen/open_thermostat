@@ -10,6 +10,7 @@
 #include "TopologyControlStoreView.h"
 #include "GraphFloorControlStoreView.h"
 #include "ControlPartitionBudget.h"
+#include "NvsControlStore.h"
 #include "Network.h"
 #include "config.h"
 #include "DeviceNetworkSettings.h"
@@ -24,6 +25,7 @@
 #include <atomic>
 
 namespace heating::control {
+static_assert(ShadowController::maximumConfigBytes==ControlPartitionBudget::configBytes);
 inline std::string sha256Hex(std::string_view bytes) {
     unsigned char hash[32];
     if(mbedtls_sha256_ret(reinterpret_cast<const unsigned char *>(bytes.data()),bytes.size(),hash,0)!=0) return {};
@@ -39,40 +41,6 @@ inline std::string randomControlId() {
     for(size_t i=0;i<16;++i) { out[2*i]=digits[value[i]>>4]; out[2*i+1]=digits[value[i]&15]; }
     return out;
 }
-class NvsControlStore final:public ControlStore {
-public:
-    explicit NvsControlStore(ControlStorageProfile profile=ControlStorageProfile::legacy_api1):profile_(profile) {}
-    bool load(std::string &bytes) override {
-        nvs_handle_t handle;
-        auto err=nvs_open("ot_control",NVS_READONLY,&handle);
-        if(err==ESP_ERR_NVS_NOT_FOUND) { bytes.clear(); return true; }
-        if(err!=ESP_OK) return false;
-        size_t size=0;
-        err=nvs_get_blob(handle,"config",nullptr,&size);
-        if(err==ESP_ERR_NVS_NOT_FOUND) { nvs_close(handle); bytes.clear(); return true; }
-        if(err!=ESP_OK||size==0||size>ShadowController::maximumConfigBytes) { nvs_close(handle); return false; }
-        bytes.resize(size); err=nvs_get_blob(handle,"config",bytes.data(),&size); nvs_close(handle);
-        return err==ESP_OK&&size==bytes.size();
-    }
-    bool save(std::string_view bytes) override {
-        if(bytes.empty()||bytes.size()>ShadowController::maximumConfigBytes) return false;
-        if(profile_==ControlStorageProfile::graph_shadow_v2) {
-            nvs_stats_t stats{};
-            const auto partition=esp_partition_find_first(ESP_PARTITION_TYPE_DATA,ESP_PARTITION_SUBTYPE_DATA_NVS,"nvs");
-            if(!partition||nvs_get_stats("nvs",&stats)!=ESP_OK
-                ||!ControlPartitionBudget::permitsGraphWrite(
-                    {partition->size,stats.total_entries,
-                     stats.used_entries,stats.free_entries,true},bytes.size())) return false;
-        } else if(profile_!=ControlStorageProfile::legacy_api1) return false;
-        nvs_handle_t handle;
-        if(nvs_open("ot_control",NVS_READWRITE,&handle)!=ESP_OK) return false;
-        auto err=nvs_set_blob(handle,"config",bytes.data(),bytes.size());
-        if(err==ESP_OK) err=nvs_commit(handle);
-        nvs_close(handle); return err==ESP_OK;
-    }
-private:
-    ControlStorageProfile profile_;
-};
 
 // Source-owned reviewed pin, NOT a remotely supplied config/capability. No
 // current settings/default factory supplies this; explicit use selects /v2/

@@ -7,6 +7,8 @@ import unittest
 import zipfile
 
 from package_ha_release import package
+from ha_test_evidence import snapshot
+import xml.etree.ElementTree as ET
 
 
 class HARelease(unittest.TestCase):
@@ -15,6 +17,7 @@ class HARelease(unittest.TestCase):
         self.root = Path(self.tmp.name); self.integration = self.root/'ha/config/custom_components/open_thermostat'
         self.integration.mkdir(parents=True)
         (self.integration/'__init__.py').write_text('# fixture integration\n')
+        (self.integration/'product.py').write_text('SUPPORTED_HA_VERSIONS=("2026.10.2","2026.10.3","2026.10.4")\n')
         (self.integration/'manifest.json').write_text(json.dumps(dict(domain='open_thermostat', version='0.4.0.dev11')))
         (self.root/'LICENSE').write_text('Original fixture license\n')
         notes = self.root/'docs/modern-thermostat/HA-RELEASE-NOTES.md'; notes.parent.mkdir(parents=True)
@@ -22,7 +25,21 @@ class HARelease(unittest.TestCase):
         subprocess.run(['git', 'init', '-q'], cwd=self.root, check=True)
         self.commit()
         self.results = self.root/'out/native.xml'; self.results.parent.mkdir()
-        self.results.write_text('<testsuites><testsuite tests="5" errors="0" failures="0" skipped="1"/></testsuites>')
+        suite=ET.Element('testsuite',tests='5',errors='0',failures='0',skipped='1')
+        props=ET.SubElement(suite,'properties')
+        values={**snapshot(self.root),'unchanged_source':True,'ha_core':'2026.10.4'}
+        for name,value in values.items():
+            ET.SubElement(props,'property',name='opth.'+name,value=str(value).lower() if isinstance(value,bool) else value)
+        ET.ElementTree(suite).write(self.results)
+
+    def refresh_evidence(self):
+        tree=ET.parse(self.results)
+        for prop in tree.getroot().iter('property'):
+            field=prop.get('name','').removeprefix('opth.')
+            if field in snapshot(self.root):
+                value=snapshot(self.root)[field]
+                prop.set('value',str(value).lower() if isinstance(value,bool) else value)
+        tree.write(self.results)
 
     def commit(self):
         subprocess.run(['git', 'add', '-A'], cwd=self.root, check=True)
@@ -48,20 +65,58 @@ class HARelease(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'suite_not_passed'):
             package(self.root, self.root/'out/a', self.results)
 
+    def test_negative_counts_cannot_cancel_failures_or_fabricate_executed_cases(self):
+        for document in [
+            '<testsuite tests="-5" errors="0" failures="0" skipped="-6"/>',
+            '<testsuites><testsuite tests="5" failures="1"/><testsuite tests="5" failures="-1"/></testsuites>',
+        ]:
+            self.results.write_text(document)
+            with self.assertRaisesRegex(ValueError,'suite_not_passed'):
+                package(self.root,self.root/'out/a',self.results)
+
     def test_all_skipped_native_suite_denied(self):
         self.results.write_text('<testsuite tests="5" errors="0" failures="0" skipped="5"/>')
         with self.assertRaisesRegex(ValueError, 'suite_not_passed'):
             package(self.root, self.root/'out/a', self.results)
 
     def test_committed_external_symlink_denied(self):
-        (self.integration/'leak.py').symlink_to(self.root/'LICENSE'); self.commit()
-        with self.assertRaisesRegex(ValueError, 'symlink_not_allowed'):
+        (self.integration/'leak.py').symlink_to(self.root/'LICENSE'); self.commit(); self.refresh_evidence()
+        with self.assertRaisesRegex(ValueError, 'source_evidence_missing_or_stale|symlink_not_allowed'):
             package(self.root, self.root/'out/a', self.results)
 
     def test_committed_private_or_unknown_payload_denied(self):
-        (self.integration/'.storage').write_text('private fixture'); self.commit()
+        (self.integration/'.storage').write_text('private fixture'); self.commit(); self.refresh_evidence()
         with self.assertRaisesRegex(ValueError, 'unexpected_HA_source_file'):
             package(self.root, self.root/'out/a', self.results)
+
+    def test_missing_stale_or_inconsistent_native_evidence_denied(self):
+        original=self.results.read_bytes()
+        for field,value in [('source_commit','a'*40),('source_sha256','b'*64),
+                            ('clean_source','false'),('unchanged_source','false')]:
+            with self.subTest(field=field):
+                tree=ET.parse(self.results)
+                for prop in tree.getroot().iter('property'):
+                    if prop.get('name')=='opth.'+field:prop.set('value',value)
+                tree.write(self.results)
+                with self.assertRaisesRegex(ValueError,'source_evidence_missing_or_stale'):
+                    package(self.root,self.root/'out/a',self.results)
+                self.results.write_bytes(original)
+        self.results.write_text('<testsuite tests="5" errors="0" failures="0" skipped="0"/>')
+        with self.assertRaisesRegex(ValueError,'source_evidence_missing_or_stale'):
+            package(self.root,self.root/'out/a',self.results)
+
+    def test_duplicate_and_unreviewed_core_evidence_denied(self):
+        original=self.results.read_bytes();tree=ET.parse(self.results)
+        for prop in tree.getroot().iter('property'):
+            if prop.get('name')=='opth.ha_core':prop.set('value','2026.11.0')
+        tree.write(self.results)
+        with self.assertRaisesRegex(ValueError,'core_not_reviewed'):
+            package(self.root,self.root/'out/a',self.results)
+        self.results.write_bytes(original);tree=ET.parse(self.results)
+        ET.SubElement(tree.getroot().find('properties'),'property',name='opth.ha_core',value='2026.10.4')
+        tree.write(self.results)
+        with self.assertRaisesRegex(ValueError,'duplicate_source_evidence'):
+            package(self.root,self.root/'out/a',self.results)
 
     def test_existing_release_output_not_overwritten(self):
         target = self.root/'out/a'; package(self.root, target, self.results)

@@ -117,14 +117,20 @@ public:
             if (in.monotonicMs<last_.monotonicMs) discontinuity=true;
             else {
                 const auto dt=in.monotonicMs-last_.monotonicMs;
-                const auto wallMs=(in.utc-last_.utc)*1000;
-                const auto timingError=wallMs-static_cast<int64_t>(dt);
-                if (dt>profile_.maximumGapMs || timingError < -2000 || timingError>2000
-                    || in.targetGeneration!=last_.targetGeneration) discontinuity=true;
-                const int64_t change=*in.temperatureCentiC-*last_.temperatureCentiC;
-                if ((!dt && change) || (dt && (change>0?change:-change)*3600000
-                        >static_cast<int64_t>(profile_.maximumRateCentiCPerHour)*static_cast<int64_t>(dt)))
+                // Bound unsigned elapsed time BEFORE conversion/multiplication.
+                // A corrupt/overflowing source clock must not reach signed rate
+                // arithmetic, even though its gap would later be rejected.
+                if (dt>profile_.maximumGapMs || in.targetGeneration!=last_.targetGeneration)
                     discontinuity=true;
+                else {
+                    const auto wallMs=(in.utc-last_.utc)*1000;
+                    const auto timingError=wallMs-static_cast<int64_t>(dt);
+                    if (timingError < -2000 || timingError>2000) discontinuity=true;
+                    const int64_t change=*in.temperatureCentiC-*last_.temperatureCentiC;
+                    if ((!dt && change) || (dt && (change>0?change:-change)*3600000
+                            >static_cast<int64_t>(profile_.maximumRateCentiCPerHour)*static_cast<int64_t>(dt)))
+                        discontinuity=true;
+                }
             }
         }
         if (discontinuity) {

@@ -86,7 +86,7 @@ Alle overige geïnventariseerde brononderdelen blijven behouden.
   [Bediening, softwarebewijs en open proeven](BLUETOOTH-APPARATEN.nl.md).
 - Xiaomi Monitor3: een apart MiBeacon v4/v5-profiel met twee expliciete
   productdeclaraties en eigen nonce/AAD, strikte gehele-/float-TLV's en
-  oorspronkelijke veldleeftijden. 892 native/39 parser-eigenaar-/24 echte
+  oorspronkelijke veldleeftijden. 893 native/39 parser-eigenaar-/24 echte
   cryptogevallen en acht browserprofielen slagen. Geen kamerregelbron of
   fysieke sensorclaim; sleutelverkrijging, acquisitie en praktijk blijven open.
 - Bluetooth: een mislukte scanstart blokkeert latere scans niet blijvend;
@@ -133,3 +133,7 @@ passende aanvullende controle. Deze lijst is geen publicatie-, installatie- of
 fysieke acceptatieclaim. De grote bèta is nog in bewerking.
 
 De uitgiftehulpmiddelen herkennen nu ook canonieke HA-versies met `a`, `b`, `rc` en zonder ontwikkelsuffix. De eerste bètaverpakking test verplicht de ongewijzigde alpha36-parser met het werkelijke manifest/image; bewijs gaat mee in de checksums. 18 releasenotitiegevallen, 4 voorgangercompatibiliteitsgevallen en 59 gerichte releasescriptgevallen slagen. Versies zijn nog niet bevroren en er is niets gepubliceerd of geïnstalleerd.
+
+Bij verdere broncontrole is een integer-overloop bij een extreem grote monotone tijdsprong in het opwarmmodel gereproduceerd onder UBSan en hersteld vóór de rekenstappen. 893 native en 58 model-/opslaggevallen onder sanitizers slagen; de uitloop-/curveguards begrenzen de tijd al vóór rekenen. De werkelijke NVS-configuratieopslag is afzonderlijk testbaar gemaakt: 32 gedeelde SDK-opslaggevallen, inclusief allocatiefout en reservering, slagen. Drie boards en de bestaande E32-layout/default/no-TX-controle slagen. Dit activeert geen leermodel of keteluitvoer.
+
+De HA-packager vereist voortaan broncommit, bronhash, schone en ongewijzigde testbron en werkelijke beoordeelde HA-Core-versie in de native XML-uitslag. Ontbrekend, verouderd of dubbel bewijs en negatieve testtellingen worden geweigerd. Tien packagergevallen slagen; acht echte Core4-groepsgevallen tonen dat een ongeschone ontwikkelrun correct als ongeschikt voor verpakken wordt gemarkeerd. Een nieuwe volledige schone testrun volgt vóór de eindverpakking.

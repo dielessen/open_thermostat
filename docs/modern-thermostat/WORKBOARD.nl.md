@@ -664,7 +664,7 @@ onafhankelijk bron-/testwerk hoeven niet te wachten op een fysieke waarneming.
 - [ ] B10 HA43-bronkeuze/kaartcompatibiliteit geleverd en gecontroleerd. Overige bestaande voorbereide gebruikersfuncties en juiste onbekend-/draft-/geblokkeerdstatussen in eindkandidaat controleren; niets stilzwijgend laten verdwijnen.
 - [ ] B11 Versies/bron bevriezen, volledige CI/3 boards/native/HA/C++/browser/release-/source-/licentie-/compatibiliteitschecks op die exacte kandidaat.
 - [ ] B12 Openbare pakketten/bron/ELF/web/checksums en updatecatalogus onafhankelijk controleren; volledige releasenotes met open punten en herstelroute.
-- [ ] B13 Eén E32-update via normale updater en HA indien gewijzigd via bestaande HA-agent, met back-up/nacontrole en behoud van programma/bindings/identiteiten.
+- [ ] B13 Verplichte updatepoort per release: één native GitHub-update via de HA-agent, verse back-up, exacte versie/bron/ELF/web na bevestigde nieuwe boot, instellingenbehoud en afzonderlijke nacontrole; zonder vastgelegd PASS geen volgende reguliere release.
 - [ ] B14 Echte passieve ontvangst en afzonderlijke gecontroleerde start/stop/terugmelding aftekenen zodra B09 fysieke aansluiting toelaat; software- en praktijkbewijs apart bewaren.
 
 B04–B09 bevatten concrete onafgemaakte implementatie/kwalificatie; de release
@@ -713,3 +713,11 @@ achtergrondcontrole start niet zolang de controller ontbreekt of de ketelproef
 actief is; die controle kan daardoor geen keepalive van de proef blokkeren.
 Uitstel verbruikt geen poging en start geen wachtrij. 45 gerichte native gevallen
 en de E32-build slagen. Geen ketelproef of firmwareactie voor deze broncontrole.
+
+### Verplicht: flashen en controleren vóór de opvolgende release
+
+[Het updateproces](E32-UPDATE-PROCES.nl.md) en `E32-UPDATE-GATE.json` bewaren de
+stand per versie. De tag-publicatiepoort controleert de SHA256-gebonden vorige
+acceptatie en de exacte pending-kandidaat. Bronwerk mag doorgaan; een opvolgende
+reguliere release wordt geblokkeerd bij ontbrekende/mislukte installatie of
+onafhankelijke nacontrole. Alpha36 begint als pending, niet fictief geaccepteerd.

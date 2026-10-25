@@ -12,6 +12,15 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Validate mandatory E32 update acceptance policy
+        run: python3 scripts/verify_e32_update_gate.py
+      - name: Block successor E32 publication without accepted predecessor
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          E32_RELEASE_CANDIDATE: ${{ github.ref_name }}
+        run: python3 scripts/verify_e32_update_gate.py --candidate "$E32_RELEASE_CANDIDATE"
+      - name: Test E32 update acceptance gate
+        run: python3 -m unittest discover -s scripts -p test_verify_e32_update_gate.py -v
       - name: Check prepared beta source and current plan coverage
         run: python3 scripts/verify_beta_release_inventory.py
       - name: Test release metadata and installed updater size compatibility

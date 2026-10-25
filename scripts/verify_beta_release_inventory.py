@@ -19,6 +19,8 @@ def verify(root, inventory):
     root = Path(root).resolve()
     from organize_releases import verify_publication_notes
     verify_publication_notes(root)
+    from verify_e32_update_gate import POLICY, verify as verify_update_gate
+    verify_update_gate(root, json.loads((root / POLICY).read_text()))
     require(inventory.get("schema") == 1, "Unknown inventory schema")
     items = inventory["items"]
     ids = [item["id"] for item in items]

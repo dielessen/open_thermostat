@@ -449,3 +449,11 @@ achtergrondcontrole start niet zolang de controller ontbreekt of de ketelproef
 actief is; die controle kan daardoor geen keepalive van de proef blokkeren.
 Uitstel verbruikt geen poging en start geen wachtrij. 45 gerichte native gevallen
 en de E32-build slagen. Geen ketelproef of firmwareactie voor deze broncontrole.
+
+## Verplichte flash- en nacontrolepoort
+
+Vanaf nu geen volgende reguliere E32-release zonder bewezen native GitHub-update
+en afzonderlijke nacontrole van de vorige release. Exacte nieuwe versie/bron/ELF/
+web, bevestigde boot, stijgende uptime, back-up en instellingenbehoud zijn
+verplicht. CI-publicatie controleert het versiegebonden acceptatierapport; een
+build of HTTP202 is onvoldoende. [Proces](E32-UPDATE-PROCES.nl.md).

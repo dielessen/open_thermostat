@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "1b28178272d547b4146d401651680efda1d00bc9c7e731c806d88f386a2a80ee"
+          "sha256": "5203d53dc684a331eeeaa49f31f16bbaff35cc8879dd11358d1c68a1be84b6ab"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
@@ -150,6 +150,18 @@
         {
           "path": "test/test_native/test_release_check_schedule.cpp",
           "sha256": "4a666485c8e6afcc54758e05bf7fbbb1a75a065a97a48e90797315ec6aff68ea"
+        },
+        {
+          "path": "scripts/verify_e32_update_gate.py",
+          "sha256": "a7d3161e215c9eb9485201d206019a3cc4b577cea8695be68e52c3bed34876db"
+        },
+        {
+          "path": "scripts/test_verify_e32_update_gate.py",
+          "sha256": "f15dcfa23aa244385b58b7a51275a6be6d1338c75653ace5e9f4d2da94a08631"
+        },
+        {
+          "path": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md",
+          "sha256": "fa4d850aac7e580509ec1b0f90d7628e44e33a8adbf62a25ac4b680d85a29bbe"
         }
       ],
       "remaining_acceptance": "Alpha26 HTTPS-afwijking blijft onverklaard; geen blinde herhaling. Blijvende enkelvoudige NVS-updatediagnose en EN/NL-webpresentatie geleverd in alpha27/dev36. Echte flash-/powerloss-/herstelacceptatie en normale update op een afzonderlijk beoordeelde kandidaat blijven open. Alpha29 app-only upload mislukte met reset6; Verse basis 25 oktober 01:50 UTC is HA44/E32alpha31; uitvoerder en methode van die installatie onbekend. Deze opdracht heeft geen E32-upload gestart; eerdere watchdogoorzaak blijft open. Strikte lengte, handle-opruiming en selectie na volledig geautoriseerd verzoek zijn bronmatig voorbereid; geen oorzaakbewijs, herstelproef of installatievrijgave. De bestaande native HTTPS-checkpointscope blijft ongewijzigd. Gepubliceerd in alpha34: vier begrensde checkpoints vóór checksum/image/readback/bootselectie met EN/NL-status, 782 native/40 sanitizer/24 updaterbrowsergevallen en compile geslaagd; niet geflasht door deze opdracht; HA47 met verse back-up/nacontrole geïnstalleerd. Dit verklaart of herstelt de oudere watchdog niet."
@@ -169,7 +181,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "1b28178272d547b4146d401651680efda1d00bc9c7e731c806d88f386a2a80ee"
+          "sha256": "5203d53dc684a331eeeaa49f31f16bbaff35cc8879dd11358d1c68a1be84b6ab"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -595,7 +607,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "1b28178272d547b4146d401651680efda1d00bc9c7e731c806d88f386a2a80ee"
+          "sha256": "5203d53dc684a331eeeaa49f31f16bbaff35cc8879dd11358d1c68a1be84b6ab"
         },
         {
           "path": "platformio.ini",
@@ -1837,7 +1849,7 @@
     {
       "id": "B13",
       "complete": false,
-      "description": "Eén E32-update via normale updater en HA indien gewijzigd via bestaande HA-agent, met back-up/nacontrole en behoud van programma/bindings/identiteiten."
+      "description": "Verplichte updatepoort per release: één native GitHub-update via de HA-agent, verse back-up, exacte versie/bron/ELF/web na bevestigde nieuwe boot, instellingenbehoud en afzonderlijke nacontrole; zonder vastgelegd PASS geen volgende reguliere release."
     },
     {
       "id": "B14",

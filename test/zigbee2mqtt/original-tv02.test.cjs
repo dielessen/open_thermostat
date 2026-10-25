@@ -17,7 +17,7 @@ function frame(rows = [dp(16,2,'000000d7')]) {
 function fixture(Type=Selected) {
     const emitter=new EventEmitter(), listeners=new Map(), calls=[];
     const eventBus={onDeviceMessage(owner,fn){listeners.set(owner,fn);emitter.on('deviceMessage',fn);},
-        removeListeners(owner){emitter.off('deviceMessage',listeners.get(owner));listeners.delete(owner);}};
+        removeListeners(owner){if(listeners.has(owner))emitter.off('deviceMessage',listeners.get(owner));listeners.delete(owner);}};
     const mqtt={isConnected:()=>true,publish(topic,payload,options){calls.push({topic,payload:JSON.parse(payload),options});}};
     const forbidden=new Proxy({}, {get(){throw Error('cache/control access');}});
     return {producer:new Type(forbidden,mqtt,forbidden,forbidden,eventBus),emitter,mqtt,calls,listeners};
@@ -140,4 +140,66 @@ test('invalid or duplicate binding cannot register any producer listener',async(
         const f=fixture(Invalid);await assert.rejects(f.producer.start(),/Invalid original TV02 binding/);
         assert.equal(f.listeners.size,0);assert.equal(f.calls.length,0);
     }
+});
+
+test('failed listener registration releases owner and permits a clean restart', async () => {
+    for (const attachFirst of [false, true]) {
+        const f = fixture();
+        const bus = f.producer.eventBus;
+        const register = bus.onDeviceMessage.bind(bus);
+        const failure = Error('registration failed');
+        bus.onDeviceMessage = (owner, listener) => {
+            if (attachFirst) register(owner, listener);
+            throw failure;
+        };
+        await assert.rejects(f.producer.start(), error => error === failure);
+        assert.equal(f.producer.active, false);
+        assert.equal(f.producer.run, null);
+        assert.equal(f.producer.devices.size, 0);
+        assert.equal(f.emitter.listenerCount('deviceMessage'), 0);
+        f.emitter.emit('deviceMessage', frame());
+        assert.equal(f.calls.length, 0);
+        bus.onDeviceMessage = register;
+        await f.producer.start();
+        assert.equal(f.emitter.listenerCount('deviceMessage'), 1);
+        f.emitter.emit('deviceMessage', frame());
+        assert.equal(f.calls.length, 1);
+        assert.equal(f.calls[0].payload.sequence, 1);
+        await f.producer.stop();
+        assert.equal(f.emitter.listenerCount('deviceMessage'), 0);
+    }
+});
+
+test('registration cleanup failure preserves both errors and disables retained callback', async () => {
+    const f = fixture();
+    const bus = f.producer.eventBus;
+    const register = bus.onDeviceMessage.bind(bus);
+    const remove = bus.removeListeners.bind(bus);
+    const failure = Error('registration failed');
+    const cleanupFailure = Error('cleanup failed');
+    bus.onDeviceMessage = (owner, listener) => { register(owner, listener); throw failure; };
+    bus.removeListeners = () => { throw cleanupFailure; };
+    await assert.rejects(f.producer.start(), error => {
+        assert(error instanceof AggregateError);
+        assert.deepEqual(error.errors, [failure, cleanupFailure]);
+        return true;
+    });
+    assert.equal(f.producer.active, false);
+    assert.equal(f.producer.run, null);
+    assert.equal(f.producer.devices.size, 0);
+    f.emitter.emit('deviceMessage', frame());
+    assert.equal(f.calls.length, 0);
+    // The SDK failed cleanup: do not claim that the listener disappeared.
+    assert.equal(f.emitter.listenerCount('deviceMessage'), 1);
+    // Restart must first retry cleanup, never add a second listener.
+    await assert.rejects(f.producer.start(), error => error === cleanupFailure);
+    assert.equal(f.emitter.listenerCount('deviceMessage'), 1);
+    bus.removeListeners = remove;
+    bus.onDeviceMessage = register;
+    await f.producer.start();
+    assert.equal(f.emitter.listenerCount('deviceMessage'), 1);
+    f.emitter.emit('deviceMessage', frame());
+    assert.equal(f.calls.length, 1);
+    await f.producer.stop();
+    assert.equal(f.emitter.listenerCount('deviceMessage'), 0);
 });

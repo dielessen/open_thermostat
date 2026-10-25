@@ -392,3 +392,11 @@ zijn gecontroleerd. Op elk van HA Core 2026.10.2 en 2026.10.3 slagen **2195 geva
 zonder fouten of skips. Pakket-/release-CI op een bevroren eindkandidaat blijft vereist. Alle 23 voorbereide onderdelen en 31 producteisen blijven behouden.
 Niets uit deze bronbundel is opnieuw geïnstalleerd of gepubliceerd als release.
 De huidige installatie en de fysieke releasepoorten blijven hierboven afzonderlijk vermeld.
+
+## Voor volgende bundel: oorspronkelijke Zigbee-ontvangers
+
+P0 R03/B04 en R05/B05: herstel na gedeeltelijk mislukte luisteraarregistratie
+voorbereid voor temperatuur- en TV02-producent. Een fout laat geen actieve
+schijneigenaar achter; registratie kan na geslaagde cleanup opnieuw plaatsvinden.
+Ook een cleanupfout blijft expliciet zichtbaar, met publicatie uitgeschakeld.
+Geen installatie of fysieke kwalificatie; bestaande M2-acceptatie blijft open.

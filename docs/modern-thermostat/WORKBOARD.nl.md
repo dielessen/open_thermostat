@@ -7,6 +7,16 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 ## 1. Waar staan we?
 
+## Voor volgende bundel — herstel na mislukte Zigbee-luisteraarregistratie
+
+P0 R03/B04 en R05/B05: beide oorspronkelijke Zigbee-producenten trekken hun
+lokale eigenaar nu in wanneer luisteraarregistratie faalt. Ook een deels
+gekoppelde luisteraar wordt opgeruimd; opnieuw starten werkt daarna. Als ook
+opruimen faalt, blijven beide fouten zichtbaar en kan de achtergebleven callback
+niet publiceren. Voor/na-regressies en de volledige lokale producenttests zijn
+vastgelegd in `out/receiver-lifecycle-20261025/`. Alleen bronmatig voorbereid;
+geen installatie, bronkwalificatie, kraan-ACK of ketelopdracht.
+
 ## Alpha36 — gepubliceerd; E32-installatie blijft open
 
 Alle voorbereide catalogus-/afbeeldings-/navigatie-/loggingwijzigingen samengevoegd
@@ -161,7 +171,7 @@ Een meegeleverd model of geslaagde simulatie bewijst geen aangesloten functie,
 ketelreactie of productacceptatie. Alle oorspronkelijke fasen blijven open waar
 verplichte fysieke of langere-termijnproeven ontbreken.
 
-## Prioriteiten na HA48 en de gepubliceerde E32 alpha35
+## Prioriteiten na HA48 en de gepubliceerde E32 alpha36
 
 Alle 31 eisen, 23 brononderdelen, 11 fasen, 8 werkpakketten en 14 releasepoorten
 zijn opnieuw naast de geïnstalleerde basis gelegd. B01–B03 zijn softwarematig af;

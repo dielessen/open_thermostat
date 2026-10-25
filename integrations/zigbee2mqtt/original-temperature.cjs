@@ -13,6 +13,7 @@ module.exports = class OpenThermostatOriginalTemperature {
         this.mqtt = mqtt;
         this.eventBus = eventBus;
         this.active = false;
+        this.cleanupRequired = false;
         this.pending = null;
         this.stopping = null;
         this.run = null;
@@ -26,6 +27,10 @@ module.exports = class OpenThermostatOriginalTemperature {
     async start() {
         if (this.stopping) await this.stopping;
         if (this.active) return;
+        if (this.cleanupRequired) {
+            this.eventBus.removeListeners(this);
+            this.cleanupRequired = false;
+        }
         const bindings = new Map();
         for (const binding of this.bindings) {
             if (!binding || !/^0x[0-9a-f]{16}$/.test(binding.ieee)
@@ -39,12 +44,35 @@ module.exports = class OpenThermostatOriginalTemperature {
         this.sequence = 0;
         this.dropped = 0;
         this.active = true;
-        this.eventBus.onDeviceMessage(this, this.onMessage);
+        try {
+            this.eventBus.onDeviceMessage(this, this.onMessage);
+        } catch (error) {
+            // Registration may throw after attaching the listener. Withdraw
+            // ownership first so even a retained callback cannot publish.
+            this.active = false;
+            this.run = null;
+            this.devices.clear();
+            this.cleanupRequired = true;
+            try {
+                this.eventBus.removeListeners(this);
+                this.cleanupRequired = false;
+            } catch (cleanupError) {
+                throw new AggregateError([error, cleanupError],
+                    'Original report listener registration and cleanup failed');
+            }
+            throw error;
+        }
     }
 
     async stop() {
         if (this.stopping) return this.stopping;
-        if (!this.active) return;
+        if (!this.active) {
+            if (this.cleanupRequired) {
+                this.eventBus.removeListeners(this);
+                this.cleanupRequired = false;
+            }
+            return;
+        }
         this.active = false;
         this.eventBus.removeListeners(this);
         // Do not return with a previous owner's publication still running.

@@ -7,7 +7,18 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 ## 1. Waar staan we?
 
-**Actuele gezamenlijke release HA44 / E32 alpha31:** bron `659879e`, beide
+**Actuele grotere release HA45 / E32 alpha32:** bron `3f12d8b`, beide tags en
+negen downloads gepubliceerd. Alle definitieve CI- en onafhankelijke bron-/pakketreviews
+slagen: 767 native kerngevallen, 4 lokale socketadaptergevallen en 2.333 HA-gevallen
+per ondersteunde Core. 75 native gevallen ook onder sanitizers (geen extra unieke gevallen).
+
+**HA45 geïnstalleerd:** 85 livebestanden exact publiek pakket/Git, verse HA44-back-up
+van 95 payloads en één normale Core-herstart. Afzonderlijke alleen-lezen nacontrole
+25 oktober 03:09:24 UTC: alle 38 controles geslaagd, instellingen/programma's/kaarten
+behouden. E32 alpha31 en dezelfde boot behouden; alpha32 is gepubliceerd maar niet
+geflasht door deze opdracht. [Installatieverslag](INSTALLATIE-HA45-ALPHA32-20261025.nl.md).
+
+**Vorige gezamenlijke release HA44 / E32 alpha31:** bron `659879e`, beide
 onveranderlijke tags en negen downloads gepubliceerd. Alle drie definitieve
 CI-runs slagen; 728 native firmwaretests en 2.323 HA-gevallen per ondersteunde
 Core, nul fouten/skips. Onafhankelijke bron-, hoofd- en definitieve tagpakketreview
@@ -44,14 +55,14 @@ alpha28-uploader-watchdogoorzaak en herstelroute blijven onbekend.
 
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
-| Geïnstalleerde firmware | Vers waargenomen E32 `v0.1.0-e32v2-alpha.31`, bron659879e/ELF045dfe53; uitvoerder/methode onbekend. Oudere alpha29-watchdogoorzaak blijft open; geen flash door deze opdracht |
-| Geïnstalleerde HA-integratie | `0.4.0.dev44`, bron 659879e, geladen op Core 2026.10.3; 85 bestanden exact, 105 registryrecords en koppelingen behouden |
-| Geïnstalleerde bron | HA `659879e52b3e0e517e8dea1e28edb2d189c38c77`; E32 `659879e52b3e0e517e8dea1e28edb2d189c38c77`; 85 HA-bestanden exact |
-| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; HA44 levert native kraanberichtbedrading met standaard gesloten productfabriek; eerdere bronkeuze-/klok-/upload-/ketelrapportcontroles en alle 23 voorbereide onderdelen blijven behouden |
+| Geïnstalleerde firmware | Vers waargenomen E32 `v0.1.0-e32v2-alpha.31`, bron659879e/ELF045dfe53; uitvoerder/methode onbekend. Oudere alpha28-watchdogoorzaak blijft open; geen flash door deze opdracht |
+| Geïnstalleerde HA-integratie | `0.4.0.dev45`, bron 3f12d8b, geladen op Core 2026.10.3; 85 bestanden exact, 105 registryrecords en koppelingen behouden |
+| Geïnstalleerde bron | HA `3f12d8b63895b1b13202d34cc02c714f953aa2de`; E32 `659879e52b3e0e517e8dea1e28edb2d189c38c77`; 85 HA-bestanden exact |
+| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; HA45 levert aanvraagcorrelatie, beschermd kanaalbeheer en nonblocking writes naast native kraanberichtbedrading met standaard gesloten productfabriek; eerdere bronkeuze-/klok-/upload-/ketelrapportcontroles en alle 23 voorbereide onderdelen blijven behouden |
 | Doel volgende release | Eerste actieve bèta: huidige passieve ketelkoppeling behouden en begrensde start/stop beproeven na bron-/kraan-/installatiekwalificatie |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
-| Laatste livecontrole | 25 oktober 01:50:09 UTC: HA44/85 bestanden bevestigd; E32alpha31 waargenomen, SOURCE5 en instellingen behouden, uitgangen geblokkeerd. Identiteitswijziging stopte terecht de voorcontrole; aparte baselinebeoordeling volgt |
+| Laatste livecontrole | 25 oktober 03:09:24 UTC: HA45/85 bestanden en verse back-up95 exact; E32alpha31 op dezelfde boot, SOURCE5 en instellingen behouden, uitgangen geblokkeerd. Alle 38 onafhankelijke nacontroles geslaagd |
 
 [Verse alpha31-waarneming en grenzen](WAARNEMING-E32-ALPHA31-20261025.nl.md).
 
@@ -68,7 +79,7 @@ Een meegeleverd model of geslaagde simulatie bewijst geen aangesloten functie,
 ketelreactie of productacceptatie. Alle oorspronkelijke fasen blijven open waar
 verplichte fysieke of langere-termijnproeven ontbreken.
 
-## Prioriteiten na HA44 en de geblokkeerde E32-installatie
+## Prioriteiten na HA45 en de gepubliceerde E32 alpha32
 
 Alle 31 eisen, 23 brononderdelen, 11 fasen, 8 werkpakketten en 14 releasepoorten
 zijn opnieuw naast de geïnstalleerde basis gelegd. B01–B03 zijn softwarematig af;

@@ -1,8 +1,21 @@
-# Volgende actieve bèta — waargenomen basis HA44 / E32 alpha31
+# Volgende actieve bèta — geïnstalleerde basis HA45 / E32 alpha31
 
 Bijgewerkt: 25 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
 het [masterplan](PLAN.nl.md) bewaart alle 31 producteisen en acceptatievoorwaarden.
+
+## Grotere release HA45 / E32 alpha32 — gepubliceerd
+
+HA45 is geïnstalleerd op bron `3f12d8b`, met een verse HA44-back-up van 95 payloads
+en één normale Core-herstart. De afzonderlijke nacontrole van 03:09 UTC slaagt:
+38 controles, alle 85 livebestanden exact publiek pakket/Git, instellingen en
+kaarten behouden. E32 blijft alpha31 op bron `659879e`; alpha32 is gepubliceerd,
+zonder firmwareactie door deze opdracht. Alle 23 onderdelen en 279 bronverwijzingen
+blijven opgenomen. [Installatieverslag](INSTALLATIE-HA45-ALPHA32-20261025.nl.md).
+
+767 native kerngevallen, 4 lokale socketadaptergevallen en 2.333 HA-gevallen per
+ondersteunde Core slagen; alle definitieve CI- en pakketreviews zijn geslaagd.
+Actieve product- en fysieke kwalificatie blijven open.
 
 ## Gezamenlijke release HA44 / E32 alpha31
 
@@ -32,7 +45,7 @@ E32-upload gestart. De oudere alpha28-momentopname is historisch. De eerdere
 watchdogoorzaak/herstelroute blijven open; geen nieuwe flashpoging.
 [Waarneming en bewijs](WAARNEMING-E32-ALPHA31-20261025.nl.md).
 
-## Gezamenlijke kandidaat HA45 / E32 alpha32
+## Geleverd in HA45 / E32 alpha32
 
 De oorspronkelijke firmware-aanvraag en het grantantwoord worden nu per kanaal
 gekoppeld, inclusief aanvraagvolgnummer, oorspronkelijke deadline en gedeeld
@@ -40,7 +53,7 @@ klokwatermerk. De optionele aansluiting gebruikt dezelfde MQTT-client/loop;
 de productfabriek blijft gesloten. [Uitwerking en grenzen](M2-AANVRAAG-EN-KANAAL-20261025.nl.md).
 De bundel omvat ook beschermd kanaalbeheer en deadlinegebonden nonblocking writes
 op dezelfde socket, plus een correct gefaseerde ACK-test. Regressie, definitieve
-bronreview en exacte CI/publicatie worden afgerond; nog geen installatieclaim.
+bronreview en exacte CI/publicatie zijn geslaagd; HA45 is geïnstalleerd.
 
 ## Volgende stap naar actieve bèta
 
@@ -83,11 +96,11 @@ doelterugmelding blijven open. [Uitwerking](M2-KRAAN-KLOK-20261024.nl.md).
 | Onderdeel | Geïnstalleerd | Stand |
 | --- | --- | --- |
 | E32 | `v0.1.0-e32v2-alpha.31`, bron `659879e52b3e0e517e8dea1e28edb2d189c38c77`; vers waargenomen 01:50 UTC | Passief EMS uitlezen; TX, forwarding en fysieke uitvoer geblokkeerd |
-| Home Assistant | `0.4.0.dev44`, bron `659879e52b3e0e517e8dea1e28edb2d189c38c77` | Geladen op Core 2026.10.3; frontend dev41/v41 met v38/v35-aliases |
+| Home Assistant | `0.4.0.dev45`, bron `3f12d8b63895b1b13202d34cc02c714f953aa2de` | Geladen op Core 2026.10.3; frontend dev41/v41 met v38/v35-aliases |
 | Actieve regelaar | Tado | Geen automatische ketel- of kraansturing door OpenThermostat |
 
 Bron/pakket/ELF/web, alle 85 HA-bestanden en behoud van instellingen, programma's
-en identiteiten zijn gecontroleerd. Zie [installatieverslag](INSTALLATIE-HA44-ALPHA31-20261025.nl.md).
+en identiteiten zijn gecontroleerd. Zie [installatieverslag](INSTALLATIE-HA45-ALPHA32-20261025.nl.md).
 De uitgebreide geleverde bundel staat in de [werkbordhistorie](WORKBOARD-HISTORIE-20261024.nl.md).
 
 ### Historische HA43-installatie — 24 oktober, nacontrole 21:17:50 UTC

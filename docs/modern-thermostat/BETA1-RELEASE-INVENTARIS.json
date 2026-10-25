@@ -4,7 +4,7 @@
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
   "release_state": "NOT_READY",
   "installed_firmware": "v0.1.0-e32v2-alpha.31",
-  "installed_ha": "0.4.0.dev44",
+  "installed_ha": "0.4.0.dev45",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
   "items": [
     {
@@ -1025,7 +1025,7 @@
           "sha256": "0e1a5f7ab31a7cda1c0279ce39f15bf3aed0e6e587efb65fe0a232d76fae3921"
         }
       ],
-      "remaining_acceptance": "HA44-workerbedrading geïnstalleerd. Nieuwe oorspronkelijke aanvraag/grant-correlatie, firmwarekanaal, bewaakte inventaris en deadlinegebonden nonblocking socketoverdracht voorbereid voor één grotere release; normale productfabriek blijft gesloten. Gekwalificeerde lokale SOURCE, oorspronkelijke sensoracquisitie, unieke native zendtransactie/causale kraanecho, schema-eigenaarschap en fysieke stop-/uitvalkwalificatie ontbreken nog. Geïnstalleerde converterbron blijft onbekend via bestaande toegang. Transport-/serviceacceptatie bewijst geen klepstand of fysieke failsafe. E32 is vers waargenomen op alpha31; deze opdracht heeft geen firmware geüpload. Alpha32-bronwerk is niet door deze opdracht geflasht."
+      "remaining_acceptance": "HA45 met native workerbedrading geïnstalleerd. Nieuwe oorspronkelijke aanvraag/grant-correlatie, firmwarekanaal, bewaakte inventaris en deadlinegebonden nonblocking socketoverdracht gepubliceerd in de grotere HA45/alpha32-release; HA45 geïnstalleerd; normale productfabriek blijft gesloten. Gekwalificeerde lokale SOURCE, oorspronkelijke sensoracquisitie, unieke native zendtransactie/causale kraanecho, schema-eigenaarschap en fysieke stop-/uitvalkwalificatie ontbreken nog. Geïnstalleerde converterbron blijft onbekend via bestaande toegang. Transport-/serviceacceptatie bewijst geen klepstand of fysieke failsafe. E32 is vers waargenomen op alpha31; deze opdracht heeft geen firmware geüpload. Alpha32-bronwerk is niet door deze opdracht geflasht."
     },
     {
       "id": "I15",
@@ -1802,7 +1802,7 @@
   ],
   "authoritative_workboard": "docs/modern-thermostat/WORKBOARD.nl.md",
   "base_runtime_checkpoint": "cebb0a25296b690a2a2d699bccacb65ed0f69da7",
-  "installed_ha_source_commit": "659879e52b3e0e517e8dea1e28edb2d189c38c77",
+  "installed_ha_source_commit": "3f12d8b63895b1b13202d34cc02c714f953aa2de",
   "installed_firmware_source_commit": "659879e52b3e0e517e8dea1e28edb2d189c38c77",
-  "installation_observed_at_utc": "2026-10-25T01:50:09.764610+00:00"
+  "installation_observed_at_utc": "2026-10-25T03:09:24.609864+00:00"
 }

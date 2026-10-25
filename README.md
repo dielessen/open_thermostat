@@ -13,40 +13,35 @@ en welke nog op de roadmap staan.
 [Mogelijkheden](#alle-mogelijkheden) · [Roadmap](#wat-we-nog-gaan-bouwen) ·
 [Screenshots](#screenshots) · [Documentatie](#documentatie)
 
-**Gepubliceerd:** [HA dev44](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev44) en [E32 alpha31](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.31), bron `659879e`.
-**Vers waargenomen:** HA dev44 en E32 alpha31 (25 oktober 01:50 UTC).
-Versie, bron, ELF en web komen overeen met de gepubliceerde alpha31. Deze
-opdracht heeft geen E32-upload gestart; uitvoerder en methode van de gewijzigde
-installatie zijn niet vastgesteld. De oudere uploader-watchdogoorzaak blijft open.
-[Waarneming en bewijsgrenzen](docs/modern-thermostat/WAARNEMING-E32-ALPHA31-20261025.nl.md).
+**Gepubliceerd:** [HA dev45](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev45) en [E32 alpha32](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.32), bron `3f12d8b`.
+**Geïnstalleerd en onafhankelijk gecontroleerd:** HA dev45; E32 alpha31 behouden
+(25 oktober 03:09 UTC). Deze opdracht heeft geen E32-upload uitgevoerd.
+De eerdere uploader-watchdogoorzaak en herstelroute blijven open.
+[Installatie en bewijs](docs/modern-thermostat/INSTALLATIE-HA45-ALPHA32-20261025.nl.md).
 
 Kamerinrichting, weekprogramma's, webinterfaces, passief EMS uitlezen en
 Settings → EMS-apparaten zijn beschikbaar. De huidige native inrichting ondersteunt
 **1–2 kamers, één radiatorknop per kamer**; acht zones blijft het uitbreidingsdoel.
 Tado blijft de actieve regelaar; fysieke uitgangen blijven geblokkeerd.
 
-HA dev44 verbindt kraanberichten met de bestaande native worker en bewaakt
-bron/sessie, oorspronkelijke deadlines, duplicaten en verlies van eigenaarschap.
-Zonder afzonderlijk gekwalificeerde lokale bronfabriek blijft die route gesloten.
-De normale firmwarezendroute, geschikte kamerbron en oorspronkelijke kraanecho
-blijven open. Interne apparaattemperatuur wordt in Nederlands/Engels uitgelegd;
-een gewone diagnostische waarde wordt geen regelbron.
+Deze grotere bundel koppelt oorspronkelijke kraanaanvragen en grants aan een
+volgnummer en oorspronkelijke deadline. Beschermd kanaalbeheer, gedeelde
+klokbewaking en nonblocking writes gebruiken de bestaande MQTT-verbinding.
+De productfabriek blijft gesloten totdat geschikte kamerbronnen, oorspronkelijke
+kraanecho en fysieke stop-/uitvalproeven zijn gekwalificeerd.
 
-728 firmwaretests en 2.323 HA-testgevallen per ondersteunde Core slagen; alle
-release-CI en negen openbare downloads zijn gecontroleerd. Alle 85 live
-HA-bestanden en de verse HA43-back-up van 94 bestanden zijn onafhankelijk
-geverifieerd. Instellingen, programma's, koppelingen en bestaande kaarten behouden;
-frontend dev41/v41 met v38/v35-compatibiliteit blijft ongewijzigd.
-[Installatie-uitkomst en vervolg](docs/modern-thermostat/INSTALLATIE-HA44-ALPHA31-20261025.nl.md).
+767 native kerngevallen en 4 lokale socketadaptergevallen slagen; 75 hiervan ook
+onder sanitizers. Per ondersteunde Core slagen 2.333 HA-testgevallen. Alle negen
+openbare downloads zijn gecontroleerd. De 85 geïnstalleerde HA-bestanden en verse
+HA44-back-up van 95 payloads zijn onafhankelijk vergeleken. Instellingen,
+programma's, koppelingen en kaarten behouden; frontend dev41/v41 met v38/v35-aliases.
 
-**English:** HA dev44 is installed and independently verified; E32 alpha31 is
-published and now observed running, following the earlier alpha28 checkpoint.
-This task did not upload firmware; the installation actor/method are unknown. Native-worker actuator messages
-have strict session/deadline/queue fences, with physical authority denied by
-default. Configuration, programmes and cards are preserved. Firmware send wiring,
-original valve feedback, suitable ambient source and physical qualification remain
-open; the earlier uploader watchdog recovery and Shelly/Xiaomi support remain
-unproven/planned. Tado continues to control heating.
+**English:** HA dev45 and E32 alpha32 are published. HA45 is installed with a fresh
+HA44 backup and an independent read-only postcheck; E32 alpha31 remains running.
+This task performed no firmware upload. Request correlation, guarded channels,
+shared clocks and nonblocking writes remain behind product qualification gates.
+Physical feedback/stop tests and earlier uploader recovery remain open. Tado
+continues to control heating; the active beta is not yet qualified.
 
 ## Alle mogelijkheden
 

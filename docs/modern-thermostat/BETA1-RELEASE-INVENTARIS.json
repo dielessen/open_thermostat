@@ -71,7 +71,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA1-UITVOERING.nl.md",
-          "sha256": "4d8e1a9556cd704a1c2a25cdfcc9a76d235afe4ef58c8a604213c910eee9a54b"
+          "sha256": "fdb139929c4c6279123645a7847e3361aed4deb4e8df148295c0acd96d4491b6"
         },
         {
           "path": "README.md",
@@ -659,7 +659,7 @@
         },
         {
           "path": "src/main.cpp",
-          "sha256": "89795688eeb9cdb48da18d3fd71758d07d7f380453bf5f579d8d0add4a8ab9c4"
+          "sha256": "fe24f375afb5e66a0486c7d30cf25dc148f283c347fe40a0e34c99197ff8bec7"
         },
         {
           "path": "src/REST.h",
@@ -1350,7 +1350,7 @@
         },
         {
           "path": "src/HeatingController.h",
-          "sha256": "2b823d69f1ada3083a0ddbdaf6cc7ce4953ecbd91bdfda634b98bc0bfca69c57"
+          "sha256": "ec40e20c3db9a422ae14dad469eff3e20751a281fdfe3a23045bfa86dda18c4d"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/sensor.py",
@@ -1549,7 +1549,7 @@
         },
         {
           "path": "src/HeatingController.h",
-          "sha256": "2b823d69f1ada3083a0ddbdaf6cc7ce4953ecbd91bdfda634b98bc0bfca69c57"
+          "sha256": "ec40e20c3db9a422ae14dad469eff3e20751a281fdfe3a23045bfa86dda18c4d"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",

@@ -73,6 +73,10 @@ Alle overige geïnventariseerde brononderdelen blijven behouden.
 - Bluetooth: een mislukte scanstart blokkeert latere scans niet blijvend;
   opruimen blijft exclusief en afsluiten kan niet door een late callback worden
   teruggedraaid. De bestaande scanner bewaart geen onbeperkte SDK-resultaten.
+- Herstel-AP van de oudere ESP32-borden wacht niet meer in een eigen lus op
+  een Bluetooth-eindcallback. De reader sluit zijn ontvangst vóór de normale
+  NimBLE-afsluiting. De drie boardbuilds slagen; een echte AP-proef staat apart.
+  De E32 gebruikte deze lus niet: dit verklaart geen eerdere E32-flashstoring.
 - Bluetoothontdekking gebruikt een vaste lijst van maximaal 32 adressen zonder
   heapgroei. Een volle ontdeklijst verhindert geen verwerking van een reeds
   ingestelde kamersensor; handmatig adres invoeren blijft mogelijk.

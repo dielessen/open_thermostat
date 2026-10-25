@@ -373,10 +373,11 @@ public:
 		bluetoothScan_ = false;
 	}
 
-	void waitUntilBluetoothScanFinishAndDeinitBLE() {
-		while (tempReader_.isScanPending()) {
-			delay(1);
-		}
+	void stopBluetoothAndDeinitBLE() {
+		bluetoothScan_ = false;
+		// NimBLE deinit stops its host/scan through the SDK. Do not wait for
+		// onScanEnd first: a missing callback could prevent AP recovery forever.
+		// The reader closes report admission BEFORE asking the SDK to stop.
 		tempReader_.shutDownBLE();
 	}
 

@@ -125,8 +125,7 @@ void WifiSetUp(config::WiFiConfig const &wifiConfig, config::NetworkConfig const
 		DBGLOGFI(heating::logger, appLogFeature(), "Starting Access Point\n");
 #ifndef OPENTHERMOSTAT_E32V2
 		if (heating::controller) {
-			heating::controller->stopBluetoothScan();
-			heating::controller->waitUntilBluetoothScanFinishAndDeinitBLE();
+			heating::controller->stopBluetoothAndDeinitBLE();
 			DBGLOGFI(heating::logger, appLogFeature(), "Starting Access Point. Stopped bluetooth scan\n");
 		}
 #endif

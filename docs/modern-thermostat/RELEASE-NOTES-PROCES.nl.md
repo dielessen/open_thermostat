@@ -35,3 +35,10 @@ Controleer vóór aanpassen op GitHub de volledige bewerkplanning, versies en
 claimdekking. Bewaar de oude metadata. Lees na aanpassing de echte publieke
 beschrijvingen terug, controleer tags/status/downloadidentiteiten, de JSON-omvang
 voor de updater en een tweede organizerplanning zonder wijzigingen.
+
+Historische releases hebben daarnaast een per-versie geredigeerde samenvatting in
+`USER-RELEASE-NOTES.json`, inclusief de SHA256 van de oorspronkelijke notities.
+De CLI gebruikt deze samenvattingen ook voor archieven en bronpakketten. Als de
+onderliggende historische tekst verandert, stopt hij voor herbeoordeling. Bekende
+fouten blijven zichtbaar bij de versie waarin ze voorkomen, met verwijzing naar
+de latere oplossing. Een bronpakket blijft uitdrukkelijk geen installatiebestand.

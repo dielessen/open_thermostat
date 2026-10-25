@@ -1,5 +1,15 @@
 # OpenThermostat — actueel werkbord en releasechecklist
 
+## GitHub-releasenotities — alle bestaande versies bijgewerkt
+
+Alle 65 releases (64 gepubliceerd en één concept) hebben begrijpelijke Nederlandse
+versie-uitleg en een Engelse samenvatting. Nieuwe functies, opgeloste fouten en
+bekende beperkingen staan vóór de technische historie. Oorspronkelijke notities,
+tags, publicatiestatus en downloadidentiteiten zijn behouden. GitHub vernieuwde
+alleen de tijdelijke concept-URL. Alle API-antwoorden passen binnen 32 KiB;
+onafhankelijke readback en een tweede planning zonder wijzigingen slagen.
+Historische teksten zijn versiegebonden vastgelegd in USER-RELEASE-NOTES.json.
+
 ## Alpha37 — kandidaat voor de volgende bundel
 
 Alpha36 is via de normale GitHub-route geïnstalleerd en onafhankelijk geaccepteerd.

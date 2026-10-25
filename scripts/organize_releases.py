@@ -1,5 +1,6 @@
 """Organize release titles/notes; never mutate tags, assets or release status."""
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -129,7 +130,25 @@ def label(channel, version):
     return 'Bronpakket E32 SDK', f'{version[0]}.{version[1]}'
 
 
-def plan(releases, repository):
+def archive_summary(tag, notes, root=None):
+    root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+    path = root / 'docs/modern-thermostat/USER-RELEASE-NOTES.json'
+    records = json.loads(path.read_text())
+    if records['schema'] != 1:
+        raise ValueError('unsupported_archive_notes_schema')
+    entry = records['releases'].get(tag)
+    if entry is None:
+        return ''
+    if hashlib.sha256(notes.encode()).hexdigest() != entry['original_notes_sha256']:
+        raise ValueError('archive_original_notes_changed:'+tag)
+    summary = entry['summary']
+    if any(section not in summary for section in (USER_NOTES, '## Nieuw', '## Opgelost',
+                                                  '## Bijwerken en gebruik', '## English')):
+        raise ValueError('incomplete_archive_summary:'+tag)
+    return summary
+
+
+def plan(releases, repository, include_archive=False):
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*', repository):
         raise ValueError('invalid_repository')
     latest = {}
@@ -180,7 +199,12 @@ def plan(releases, repository):
             status = '**Archief — voor de actuele testversies gebruik je het overzicht hieronder.**'
         notes = original_notes(release.get('body'))
         reader_notes = user_summary(release['tag_name'], repository)
-        sections = [status, reader_notes, overview] if reader_notes else [status, overview]
+        if not reader_notes and include_archive:
+            reader_notes = archive_summary(release['tag_name'], notes)
+        release_overview = overview
+        if include_archive and reader_notes and not current:
+            release_overview = '## Welke download heb je nodig?\n\n[Gebruik de actuele firmware- en Home Assistant-versies]('+base+'). Firmware en HA zijn afzonderlijke downloads.'
+        sections = [status, reader_notes, release_overview] if reader_notes else [status, release_overview]
         original = '<details>\n<summary>Volledige oorspronkelijke releasenotities en bewijs</summary>\n\n'+START+'\n'+notes+'\n'+END+'\n\n</details>'
         summary = first_section(notes) if not reader_notes and (current or channel == 'source') else ''
         if summary:
@@ -240,7 +264,7 @@ def main():
         print(json.dumps({'tag':args.publication_notes_for,'bytes':len(rendered.encode()),'full_history_in_tagged_source':True}))
         return
     releases = json.loads(args.input.read_text()) if args.input else fetch(args.repository)
-    changes = plan(releases, args.repository)
+    changes = plan(releases, args.repository, include_archive=True)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(changes, indent=2)+'\n')
     applied = 0
@@ -253,7 +277,7 @@ def main():
                 break
             # Concurrent firmware/HA publications can finish during this pass.
             # Re-read and converge on the latest complete public catalog.
-            changes = plan(fetch(args.repository), args.repository)
+            changes = plan(fetch(args.repository), args.repository, include_archive=True)
             if not changes:
                 break
             history.extend(changes)

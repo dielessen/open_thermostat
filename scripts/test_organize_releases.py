@@ -88,6 +88,29 @@ class ReleaseNotesTests(unittest.TestCase):
 
 
 
+class HistoricalNotesTests(unittest.TestCase):
+    def test_all_curated_records_have_sections_and_bound_original(self):
+        from pathlib import Path
+        records=json.loads((Path(release.__file__).resolve().parents[1]/
+            'docs/modern-thermostat/USER-RELEASE-NOTES.json').read_text())['releases']
+        self.assertEqual(len(records),63)
+        for tag,entry in records.items():
+            self.assertIsNotNone(release.classify(tag)[0])
+            self.assertEqual(len(entry['original_notes_sha256']),64)
+            for header in ('## Nieuw','## Opgelost','## Bijwerken en gebruik','## English'):
+                self.assertIn(header,entry['summary'])
+            with self.assertRaisesRegex(ValueError,'original_notes_changed'):
+                release.archive_summary(tag,'changed original')
+
+    def test_known_defects_and_source_package_remain_explicit(self):
+        from pathlib import Path
+        records=json.loads((Path(release.__file__).resolve().parents[1]/
+            'docs/modern-thermostat/USER-RELEASE-NOTES.json').read_text())['releases']
+        self.assertIn('Bekend probleem',records['ha-v0.4.0.dev18']['summary'])
+        self.assertIn('niet in deze oorspronkelijke download',records['v0.1.0-e32v2-alpha.1']['summary'])
+        self.assertIn('geen firmwarebestand',records['sources-e32v2-20261023.1']['summary'])
+
+
 class PublicationPreflightTests(unittest.TestCase):
     def setUp(self):
         from pathlib import Path

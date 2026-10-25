@@ -7,6 +7,13 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 ## 1. Waar staan we?
 
+**Gezamenlijke freeze HA47 / E32 alpha34:** de volgende twee bronstappen worden
+samengevoegd: gerichte updatercheckpoints en één native HA-opstarteigenaar over
+async-leesgrenzen. Alle 23 onderdelen, 286 verwijzingen en 31 eisen behouden.
+Publicatie volgt na exacte bron-/CI-/pakketreviews; daarna HA47 via de bestaande
+agent met verse actuele HA46-back-up en afzonderlijke nacontrole. Geen E32-flash
+of fysieke vrijgave. Bewijs: `out/combined-dev47-alpha34-20261025/`.
+
 ## Grotere release HA46 / E32 alpha33 — gepubliceerd
 
 Beide tags zijn gepubliceerd op bron `2d32ad3`; alle toepasselijke main-/tag-CI,

@@ -4,6 +4,14 @@ Bijgewerkt: 25 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
 het [masterplan](PLAN.nl.md) bewaart alle 31 producteisen en acceptatievoorwaarden.
 
+## Gezamenlijke releasekandidaat HA47 / E32 alpha34
+
+De updatercheckpoints en HA-opstartcorrectie worden nu samen bevroren voor
+publicatie. Alle 23 onderdelen, 286 bronverwijzingen en 31 eisen blijven behouden.
+Exacte bron-/CI-/daadwerkelijke pakketreview en publieke downloads volgen vóór
+HA-uitrol met verse HA46-back-up en afzonderlijke nacontrole. Er is op dit
+checkpoint nog geen nieuwe tag, productie-installatie of fysieke vrijgave.
+
 ## Grotere release HA46 / E32 alpha33 — gepubliceerd
 
 Beide tags zijn gepubliceerd op bron `2d32ad3`; alle toepasselijke main-/tag-CI,

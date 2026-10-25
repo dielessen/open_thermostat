@@ -1,3 +1,19 @@
+# E32 V2 alpha34 — gerichte updaterdiagnose en robuuste HA-opstart
+
+Gezamenlijke bundel met Home Assistant dev47, met behoud van alle 23 voorbereide onderdelen en 31 producteisen. Passieve voorbereidingsrelease; actieve bèta blijft NOT_READY.
+
+- De bestaande begrensde updatejournal bewaart nu vóór checksumcontrole, native imagevalidatie, onafhankelijk flash-readback en bootselectie een afzonderlijke fase.
+- De bestaande EN/NL-statuspagina maakt duidelijk dat een opgeslagen "vóór"-fase geen uitgevoerde bewerking, geslaagde installatie of resetoorzaak bewijst. Schema 1 / 164 bytes en oude stagenummers 1–5 blijven behouden; geen chunklogging of nieuwe worker/route/retry.
+- Alle verificatiepoorten blijven in dezelfde volgorde verplicht. Een fout, exception of callbackherintrede bereikt geen volgende overdracht of bootselectie. 40 updatergevallen slagen ook onder strikte ASan/UBSan.
+- HA dev47 sluit laat herlevende opstarttaken en listeners bij afsluiten/annuleren en beschermt tegen dubbele start. Programma-, Store- en optionele diagnosegrenzen zijn op echte native HA-runtimes getoetst.
+- 782 native firmwaregevallen, 24 updaterbrowsergevallen en 2.349 HA-gevallen per ondersteunde Core slagen lokaal. De definitieve exacte CI-/bron-/pakketreviews blijven afzonderlijke releasepoorten.
+
+EMS-TX, forwarding en fysieke uitgangen blijven geblokkeerd. Geschikte oorspronkelijke kamermetingen, causale kraanecho en fysieke start-/stop-/uitvalacceptatie blijven open. Bluetoothdrivers, actieve PID-/leerkwalificatie en overige roadmapdoelen worden niet als voltooid voorgesteld.
+
+Installatiegrens: gerichte checkpoints leveren toekomstig onderzoeksmateriaal, geen herstelbewijs voor de eerdere geïnstalleerde uploaderwatchdog of native HTTPS-afwijking. Handmatige uploads worden niet door deze journal vastgelegd. De eerder waargenomen alpha31-installatiemethode is onbekend; geen blinde nieuwe upload/reboot/HTTPS-proef door deze releaseopdracht. HA kan afzonderlijk worden bijgewerkt met verse back-up en onafhankelijke nacontrole.
+
+English: four bounded persisted pre-operation checkpoints distinguish checksum, image validation, independent flash readback and boot-slot selection. They preserve verification gates and do not imply completion or reset causation. HA dev47 adds single-owner asynchronous startup and bounded optional original-temperature diagnostics. Existing features/settings remain intact. No physical boiler/valve qualification or proven installed-updater recovery is claimed.
+
 # E32 V2 alpha33 — bewaakte callbackgrenzen en oorspronkelijke ontvangstdiagnostiek
 
 Gezamenlijke voorbereidingsrelease met HA dev46; alle 23 voorbereide onderdelen, 31 producteisen en bestaande instellingen blijven behouden.

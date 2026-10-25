@@ -1,3 +1,20 @@
+# HA 0.4.0.dev47 — robuuste opstart en gezamenlijke updaterdiagnose
+
+Gezamenlijke bundel met E32 alpha34. Alle 23 voorbereide onderdelen en 31 eisen blijven behouden, inclusief eerdere ontvangstdiagnostiek en verzendcontroles.
+
+- Eén native opstarteigenaar over programma-, Store- en MQTT-leesgrenzen. Afsluiten/annuleren kan geen oude worker, listener of timer later opnieuw starten.
+- Dubbele start vervangt de eerste verbinding niet. Late unsubscribe-handles worden direct opgeruimd; een andere ontvanger blijft behouden.
+- De optionele oorspronkelijke temperatuurdiagnose deelt één aanmeldbudget van één seconde; een diagnosefout laat de bestaande besturingsverbinding beschikbaar. Geen nieuwe abonnementen, workers, routes of retries.
+- De gezamenlijke firmware bewaart vier gerichte checkpoints vóór checksum, imagevalidatie, flash-readback en bootselectie. De bestaande statuspagina verklaart die in Nederlands en Engels.
+- Tien nieuwe HA-grensgevallen falen aantoonbaar vóór herstel; 2.349 volledige HA-gevallen per ondersteunde Core slagen lokaal. Native firmware: 782 gevallen, waaronder 40 updatergevallen ook onder ASan/UBSan; 24 updaterbrowsergevallen.
+- Frontend dev41/v41 met v38/v35-aliases blijft bytegelijk. Geen kaart-, instellingen-, bron- of fysieke autorisatiemigratie.
+
+HA47 blijft compatibel met de waargenomen E32 alpha31. Een oorspronkelijke TV02-workerontvangst is passief geobserveerd maar stale en ongekwalificeerd; dit is geen causale kraan-ACK. Geschikte kamerbron, product-SOURCE-fabriek, fysieke stop-/uitvalkwalificatie en eerdere E32-herstelroute blijven open. Tado blijft de actieve regelaar; deze bundel geeft geen fysieke uitvoer vrij.
+
+Publicatie/HA-uitrol vereist exacte bevroren bron, volledige CI, onafhankelijke daadwerkelijke pakketreview, verse actuele HA46-back-up en afzonderlijke nacontrole. Geen blinde E32-flashherhaling of claim dat de eerdere watchdog/HTTPS/pendeloorzaak is opgelost.
+
+English: native HA startup retains one owner across asynchronous configuration, journal and subscription boundaries. Closing/cancelling cannot revive a worker/listener/timer; duplicate startup cannot replace the first owner. Original-temperature diagnostics have one bounded optional subscription wait. The combined firmware adds four persisted pre-verification checkpoints with EN/NL explanations. Existing cards/settings and alpha31 compatibility are preserved; source/valve feedback, physical stop qualification and updater recovery remain separate open gates.
+
 # HA 0.4.0.dev46 — oorspronkelijke ontvangstdiagnostiek en gezamenlijke verzendcontrole
 
 Gezamenlijke voorbereidingsrelease met E32 alpha33. Alle 23 voorbereide onderdelen en bestaande instellingen, programma's en kaarten blijven behouden.

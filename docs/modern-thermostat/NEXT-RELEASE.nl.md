@@ -408,3 +408,11 @@ luisteraarverwijdering op de oude publicatie. Parallel stoppen en starten kan
 daardoor geen nieuwe run mengen met de oude run. Een achtergebleven callback
 blijft inert; herstart vereist geslaagde cleanup. Alle 32 lokale producenttests
 slagen. Bronwerk voor de volgende bundel; geen installatie of B04/B05-vrijgave.
+
+### Begrensde publicatie bij directe MQTT-callbacks
+
+Het publicatieslot wordt vóór de SDK-aanroep gereserveerd. Geneste ontvangst kan
+geen tweede publicatie starten; stoppen vanuit de SDK wacht op het oorspronkelijke
+resultaat, ook bij afwijzing. Vier voor/na-regressies toegevoegd; alle 36
+producenttests slagen. Dit blijft bronwerk voor de volgende gezamenlijke bundel,
+zonder installatie of fysieke kwalificatie.

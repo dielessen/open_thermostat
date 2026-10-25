@@ -7,26 +7,21 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 ## 1. Waar staan we?
 
-## Voor volgende bundel — herstel na mislukte Zigbee-luisteraarregistratie
+## Voor volgende bundel — betrouwbare oorspronkelijke Zigbee-ontvangst
 
-P0 R03/B04 en R05/B05: beide oorspronkelijke Zigbee-producenten trekken hun
-lokale eigenaar nu in wanneer luisteraarregistratie faalt. Ook een deels
-gekoppelde luisteraar wordt opgeruimd; opnieuw starten werkt daarna. Als ook
-opruimen faalt, blijven beide fouten zichtbaar en kan de achtergebleven callback
-niet publiceren. Voor/na-regressies en de volledige lokale producenttests zijn
-vastgelegd in `out/receiver-lifecycle-20261025/`. Alleen bronmatig voorbereid;
-geen installatie, bronkwalificatie, kraan-ACK of ketelopdracht.
+P0 R03/B04 en R05/B05, alleen bronmatig voorbereid voor temperatuur en TV02:
 
-## Voor volgende bundel — veilige afsluiting van Zigbee-producenten
+- Mislukte luisteraarregistratie trekt de eigenaar in en ruimt gedeeltelijke
+  registratie op. Falen registratie én cleanup, dan blijven beide fouten zichtbaar.
+- Afsluiten wacht ook bij cleanupfouten op de lopende publicatie. Parallel starten
+  kan pas een nieuwe eigenaar maken nadat de oude afsluiting en cleanup slagen.
+- Het publicatieslot bestaat vóór de MQTT-SDK-aanroep. Direct geneste ontvangst
+  start geen tweede publicatie; direct stoppen wacht op datzelfde SDK-resultaat.
 
-P0 R03/B04 en R05/B05: ook bij een SDK-fout tijdens luisteraarverwijdering
-wachten temperatuur- en TV02-producent op de lopende MQTT-publicatie. Gelijktijdig
-stoppen/herstarten deelt deze afsluiting; een cleanupfout blijft zichtbaar en
-blokkeert een nieuwe eigenaar totdat opruimen daadwerkelijk slaagt. Zowel fouten
-vóór als na gedeeltelijk verwijderen, met en zonder lopende publicatie, zijn
-getest. Alle 32 producenttests slagen; twee nieuwe drainregressies falen op de
-vorige bron. Bewijs: `out/receiver-shutdown-20261025/`. Geen productie-installatie
-of fysieke kwalificatie; B04/B05 blijven open.
+Alle 36 producenttests slagen. Voor/na-bewijs staat onder
+`out/receiver-lifecycle-20261025/`, `out/receiver-shutdown-20261025/` en
+`out/receiver-publication-20261025/`. Geen wachtrij/retry, productie-installatie,
+bronkwalificatie, kraan-ACK of ketelopdracht. Fysieke B04/B05-acceptatie blijft open.
 
 ## Alpha36 — gepubliceerd; E32-installatie blijft open
 

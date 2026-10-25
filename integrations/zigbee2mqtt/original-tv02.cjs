@@ -180,22 +180,28 @@ module.exports = class OpenThermostatOriginalTv02 {
         // defaults, so an application-level deferred send would risk a later
         // connection. The connection check cannot eliminate a network race;
         // consumers must enforce their own session/challenge and age policy.
+        const encodedPayload = JSON.stringify(payload);
+        if (Buffer.byteLength(encodedPayload) > 2048) {
+            this.dropped = Math.min(this.dropped + 1, Number.MAX_SAFE_INTEGER);
+            return;
+        }
+        // Reserve the publication before entering SDK code: synchronous SDK
+        // callbacks may receive another frame or stop this owner immediately.
+        let resolvePending;
+        const pending = new Promise(resolve => { resolvePending = resolve; });
+        this.pending = pending;
+        const finish = (failed = false) => {
+            if (failed) this.dropped = Math.min(this.dropped + 1, Number.MAX_SAFE_INTEGER);
+            if (this.pending === pending) this.pending = null;
+            resolvePending();
+        };
         try {
-            const raw = JSON.stringify(payload);
-            if (Buffer.byteLength(raw) > 2048) {
-                this.dropped = Math.min(this.dropped + 1, Number.MAX_SAFE_INTEGER);
-                return;
-            }
-            const result = this.mqtt.publish(TOPIC, raw, {
+            const result = this.mqtt.publish(TOPIC, encodedPayload, {
                 clientOptions: {retain: false, qos: 0}, skipLog: true,
             });
-            const pending = Promise.resolve(result).catch(() => {
-                this.dropped = Math.min(this.dropped + 1, Number.MAX_SAFE_INTEGER);
-            });
-            this.pending = pending;
-            void pending.finally(() => { if (this.pending === pending) this.pending = null; });
+            void Promise.resolve(result).then(() => finish(), () => finish(true));
         } catch {
-            this.dropped = Math.min(this.dropped + 1, Number.MAX_SAFE_INTEGER);
+            finish(true);
         }
     }
 };

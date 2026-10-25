@@ -280,3 +280,53 @@ test('stop cleanup failure without publication is shared and remains recoverable
     assert.equal(f.calls.length, 1);
     await f.producer.stop();
 });
+
+test('reentrant reception during SDK publish cannot exceed one outstanding publication', async () => {
+    const f = fixture();
+    await f.producer.start();
+    let calls = 0, complete;
+    f.mqtt.publish = () => {
+        calls++;
+        if (calls === 1) f.emitter.emit('deviceMessage', frame());
+        return new Promise(resolve => { complete = resolve; });
+    };
+    f.emitter.emit('deviceMessage', frame());
+    assert.equal(calls, 1);
+    assert.equal(f.producer.sequence, 1);
+    assert.equal(f.producer.dropped, 1);
+    const pending = f.producer.pending;
+    complete(); await pending;
+    assert.equal(f.producer.pending, null);
+    assert.equal(calls, 1);
+    await f.producer.stop();
+});
+
+test('stop inside SDK publish drains that same publication before a fresh owner starts', async () => {
+    for (const rejected of [false, true]) {
+        const f = fixture();
+        await f.producer.start();
+        const oldRun = f.producer.run;
+        let complete, stopping, restarting, settled = false;
+        f.mqtt.publish = () => {
+            stopping = f.producer.stop().then(() => { settled = true; });
+            restarting = f.producer.start();
+            return new Promise((resolve, reject) => {
+                complete = () => rejected ? reject(Error('SDK failure')) : resolve();
+            });
+        };
+        f.emitter.emit('deviceMessage', frame());
+        await Promise.resolve();
+        await Promise.resolve();
+        assert.equal(settled, false);
+        assert.equal(f.producer.run, oldRun);
+        assert.equal(f.producer.active, false);
+        complete();
+        await Promise.all([stopping, restarting]);
+        assert.notEqual(f.producer.run, oldRun);
+        assert.equal(f.producer.sequence, 0);
+        assert.equal(f.producer.dropped, 0);
+        assert.equal(f.producer.pending, null);
+        assert.equal(f.emitter.listenerCount('deviceMessage'), 1);
+        await f.producer.stop();
+    }
+});

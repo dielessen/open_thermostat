@@ -142,17 +142,24 @@ module.exports = class OpenThermostatOriginalTemperature {
         // defaults, so an application-level deferred send would risk a later
         // connection. The connection check cannot eliminate a network race;
         // consumers must enforce their own session/challenge and age policy.
+        const encodedPayload = JSON.stringify(payload);
+        // Reserve the publication before entering SDK code: synchronous SDK
+        // callbacks may receive another frame or stop this owner immediately.
+        let resolvePending;
+        const pending = new Promise(resolve => { resolvePending = resolve; });
+        this.pending = pending;
+        const finish = (failed = false) => {
+            if (failed) this.dropped = Math.min(this.dropped + 1, Number.MAX_SAFE_INTEGER);
+            if (this.pending === pending) this.pending = null;
+            resolvePending();
+        };
         try {
-            const result = this.mqtt.publish(TOPIC, JSON.stringify(payload), {
+            const result = this.mqtt.publish(TOPIC, encodedPayload, {
                 clientOptions: {retain: false, qos: 0}, skipLog: true,
             });
-            const pending = Promise.resolve(result).catch(() => {
-                this.dropped = Math.min(this.dropped + 1, Number.MAX_SAFE_INTEGER);
-            });
-            this.pending = pending;
-            void pending.finally(() => { if (this.pending === pending) this.pending = null; });
+            void Promise.resolve(result).then(() => finish(), () => finish(true));
         } catch {
-            this.dropped = Math.min(this.dropped + 1, Number.MAX_SAFE_INTEGER);
+            finish(true);
         }
     }
 };

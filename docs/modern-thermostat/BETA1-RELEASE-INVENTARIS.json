@@ -563,11 +563,11 @@
         },
         {
           "path": "integrations/zigbee2mqtt/original-temperature.cjs",
-          "sha256": "0b60ccc6b8be92bb621a55d5489019d53b74d054a80898ca5da475caeb64e664"
+          "sha256": "7b0d76f350374af00b488f492e1b16e8bb3a72ad2360481ac8f5aff46f8822ac"
         },
         {
           "path": "test/zigbee2mqtt/original-temperature.test.cjs",
-          "sha256": "01199347e949aeece88efb5153bd2a66f42cf16b3d876288e4100dfbd12790b4"
+          "sha256": "9f1814ddb74d9919774b2c2581e92e742782e28139467bae374232847e4e317f"
         },
         {
           "path": "docs/modern-thermostat/ORIGINAL-ZIGBEE-REPORTS.nl.md",
@@ -902,11 +902,11 @@
         },
         {
           "path": "integrations/zigbee2mqtt/original-tv02.cjs",
-          "sha256": "ab98b03d3eb847bf332d1d2718693666df90e9b48b17eedda9861ca7841da4ba"
+          "sha256": "0f270ef16f84757bd6d5e82db8f8351c663ea65fef844d48bdbf733254df2ee2"
         },
         {
           "path": "test/zigbee2mqtt/original-tv02.test.cjs",
-          "sha256": "4a92db1ddba5dff0179aff2115cd6e97c3a5c3686e20019d6a034654894a98e0"
+          "sha256": "ca02d1520ebb9b75ffcdeaf61a41d8a292b8a31c78d09876a657b5147e19e01c"
         },
         {
           "path": "docs/modern-thermostat/ORIGINAL-TV02-REPORTS.nl.md",

@@ -1,3 +1,19 @@
+# HA 0.4.0.dev46 — oorspronkelijke ontvangstdiagnostiek en gezamenlijke verzendcontrole
+
+Gezamenlijke voorbereidingsrelease met E32 alpha33. Alle 23 voorbereide onderdelen en bestaande instellingen, programma's en kaarten blijven behouden.
+
+- De bestaande HA-diagnostiekdownload toont begrensde RAM-tellers voor oorspronkelijke temperatuur- en TV02-ontvangst: callbacks, plaatsing, vroege drops en workeracceptatie/-afwijzing/-fouten.
+- Twee vaste groepen zonder topics, apparaat-ID's, berichtinhoud of exceptionteksten. Tellers zijn per verbindingseigenaar, niet per apparaat of blijvend. Geen teller of snapshot kwalificeert een meetbron of kraan-ACK.
+- De bestaande queue en halve-queue-reservering blijven leidend. Een mislukte timestampregistratie wordt als drop zichtbaar en kan de MQTT-callback niet laten vastlopen op die exception.
+- De gezamenlijke E32-bundel bewaakt herintrede op de laatste overdrachtsgrens én op beschikbaarheids-/klokcallbacks tijdens kanaaltoelating. De bestaande socketproef bevestigt dat geweigerde herintrede geen byte overdraagt.
+- Bestaande kamer- en firmwareberichten blijven bytecontractueel gelijk. Frontend dev41/v41 en v38/v35-aliases blijven behouden; er is geen kaart- of instellingenmigratie.
+
+HA46 blijft compatibel met de waargenomen alpha31 en de eerdere alpha28; de optionele voorbereide kanaalroute vereist minimaal HA45. Ontvangsttellers lossen een onbekende externe producent- of bindingsfout niet op en geven geen geschikte kamermeting, fysieke feedback of regelbevoegdheid. Product-SOURCE blijft gesloten; Tado blijft actief.
+
+Publicatie/uitrol vereist exacte bron-, CI-, pakket- en downloadcontrole, verse actuele HA-back-up en afzonderlijke nacontrole via de bestaande HA-agent. Eerdere E32-uploaderwatchdog, native HTTPS-fout en pendeloorzaak blijven open; geen blinde firmwareherhaling.
+
+English: bounded original-ingress counters in the existing HA diagnostics download distinguish callback drops from worker outcomes without payloads or identifiers. Counter scope is the connection owner's RAM lifetime, not per-device traffic or control authority. The combined firmware bundle closes handoff/availability/clock callback recursion. Existing frontend aliases and alpha31 compatibility remain. Physical feedback, ambient qualification and E32 updater recovery are separate open gates.
+
 # HA 0.4.0.dev45 — oorspronkelijke grantcorrelatie en grotere firmwarebundel
 
 Gezamenlijke voorbereidingsrelease met E32 alpha32; bestaande functies, programma's en alle 23 voorbereide onderdelen blijven behouden.

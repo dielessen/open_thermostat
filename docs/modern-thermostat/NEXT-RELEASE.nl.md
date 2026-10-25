@@ -17,7 +17,7 @@ blijven opgenomen. [Installatieverslag](INSTALLATIE-HA45-ALPHA32-20261025.nl.md)
 ondersteunde Core slagen; alle definitieve CI- en pakketreviews zijn geslaagd.
 Actieve product- en fysieke kwalificatie blijven open.
 
-## In voorbereiding voor de volgende grotere bundel
+## In voorbereiding: HA46 / E32 alpha33
 
 De laatste controle vóór overdracht aan de bestaande socket is verder onderzocht.
 Callbackproblemen bij de eindcontrole én de gewone kanaaltoelating zijn bronmatig gecorrigeerd, met zes
@@ -25,6 +25,12 @@ gerichte kanaalgevallen plus een echte lokale socketproef. Alle betrokken kanale
 geblokkeerd; normale overdracht blijft mogelijk. De wijziging is nog niet
 als release gepubliceerd of geïnstalleerd. 773 native kerngevallen en 5 socketgevallen
 slagen; E32-build geslaagd. [Bewijs en grenzen](M2-LAATSTE-VERZENDCONTROLE-20261025.nl.md).
+De bestaande HA-diagnostiekdownload krijgt daarnaast begrensde ontvangsttellers
+voor temperatuur en TV02. Daarmee worden vroege drops en workerafwijzingen
+zichtbaar zonder nieuwe subscriptions, privéberichtinhoud of regelbevoegdheid.
+223 gerichte tests en 2.339 volledige lokale gevallen per ondersteunde Core slagen.
+Exacte CI, pakketcontrole en uitrol worden per bevroren commit gecontroleerd. [Werking en grenzen](ORIGINAL-INGRESS-DIAGNOSTIEK.nl.md).
+De actuele inventaris behoudt alle 23 onderdelen met nu 282 bronverwijzingen.
 De fysieke bron-/kraan-/stopkwalificatie en het eerdere updaterherstel blijven open.
 
 ## Gezamenlijke release HA44 / E32 alpha31

@@ -102,6 +102,8 @@ class NativeShadowConnection:
             _LOGGER.warning("Original TV02 diagnostics disabled: source binding unavailable (%s)",
                 binding_failure_reason(error))
             self.tv02_reports = OriginalTv02Reports(runtime)
+        from .original_ingress import OriginalIngressDiagnostics
+        self.original_ingress = OriginalIngressDiagnostics()
         self.original_pending = False
         self.tv02_subscription_attempts = set()
         self._original_received = None
@@ -109,6 +111,14 @@ class NativeShadowConnection:
         if graph_profile is not None and actuator_factory is not None:
             raise ValueError('Actuator factory requires the API1 connection')
         self.actuator_wire = ActuatorWire(self, actuator_factory)
+
+    def original_ingress_status(self):
+        result = self.original_ingress.snapshot()
+        result["closed"] = self.closed
+        result["receiver_initialized"] = self.original_reports is not None
+        for lane, owner in (("temperature", self.original_reports), ("tv02", self.tv02_reports)):
+            result["lanes"][lane]["configured_topics"] = len(owner.topics) if owner is not None else 0
+        return result
 
     async def async_start(self):
         if self.graph_profile is not None and getattr(self.runtime,"controller_policy_source_profile",None) is not None:
@@ -202,25 +212,46 @@ class NativeShadowConnection:
 
         @callback
         def original_received(message):
-            # One pending diagnostic event, with half the existing queue kept
-            # free. Original report traffic cannot fill it or reset control.
-            if self.closed or self.original_pending or self.queue.qsize() >= 32:
+            # Same one pending event and half-queue reservation as before.
+            topic = getattr(message, "topic", None)
+            if type(topic) is not str:
+                self.original_ingress.unrouted()
+                return
+            owner = (self.tv02_reports if topic in self.tv02_reports.topics
+                     else self.original_reports)
+            if topic not in owner.topics:
+                self.original_ingress.unrouted()
+                return
+            lane = "tv02" if owner is self.tv02_reports else "temperature"
+            self.original_ingress.record(lane, "callback")
+            if self.closed:
+                self.original_ingress.record(lane, "dropped_closed")
+                return
+            if self.original_pending or self.queue.qsize() >= 32:
+                self.original_ingress.record(lane, "dropped_busy")
                 return
             from .original_temperature import MAX_BYTES as TEMPERATURE_BYTES
             from .original_tv02 import MAX_BYTES as TV02_BYTES
-            owner = (self.tv02_reports if message.topic in self.tv02_reports.topics
-                     else self.original_reports)
             maximum = TV02_BYTES if owner is self.tv02_reports else TEMPERATURE_BYTES
-            if (message.topic not in owner.topics or message.retain
-                    or type(message.payload) not in (str, bytes)
-                    or len(message.payload) > maximum):
+            if message.retain:
+                self.original_ingress.record(lane, "dropped_retained")
+                return
+            if type(message.payload) not in (str, bytes) or len(message.payload) > maximum:
+                self.original_ingress.record(lane, "dropped_payload")
+                return
+            try:
+                received_at = self.runtime.clock()
+                received_unix_ms = int(dt_util.utcnow().timestamp() * 1000)
+            except Exception:
+                self.original_ingress.record(lane, "dropped_timestamp")
                 return
             try:
                 self.queue.put_nowait(("original_tv02" if owner is self.tv02_reports
-                    else "original_temperature", (message, self.runtime.clock(),
-                    int(dt_util.utcnow().timestamp() * 1000), owner.epoch)))
+                    else "original_temperature", (message, received_at, received_unix_ms, owner.epoch)))
                 self.original_pending = True
+                self.original_ingress.record(lane, "enqueued")
             except asyncio.QueueFull:
+                self.original_ingress.record(lane, "dropped_queue_full")
                 return
 
         self._original_received = original_received
@@ -370,12 +401,16 @@ class NativeShadowConnection:
                     message, received_at, received_unix_ms, epoch = data
                     self.original_pending = False
                     owner = self.tv02_reports if kind == "original_tv02" else self.original_reports
+                    lane = "tv02" if kind == "original_tv02" else "temperature"
                     try:
-                        if owner.receive(message.topic, message.payload,
-                                retained=message.retain, received_at=received_at,
-                                received_unix_ms=received_unix_ms, epoch=epoch):
+                        accepted = owner.receive(message.topic, message.payload,
+                            retained=message.retain, received_at=received_at,
+                            received_unix_ms=received_unix_ms, epoch=epoch)
+                        self.original_ingress.record(lane, "worker_accepted" if accepted else "worker_rejected")
+                        if accepted:
                             self.runtime._notify()
                     except Exception:
+                        self.original_ingress.record(lane, "worker_error")
                         # A diagnostic observer cannot reset a control session,
                         # even if a native registry/listener unexpectedly fails.
                         owner.invalidate("unavailable")

@@ -1,3 +1,19 @@
+# E32 V2 alpha33 — bewaakte callbackgrenzen en oorspronkelijke ontvangstdiagnostiek
+
+Gezamenlijke voorbereidingsrelease met HA dev46; alle 23 voorbereide onderdelen, 31 producteisen en bestaande instellingen blijven behouden.
+
+- De laatste nonblocking overdrachtscontrole heeft een eigen herintredebewaking. Beschikbaarheid en klok bewaken ook hun eigen callbackgrens, zodat dezelfde controle niet via gewone kanaaltoelating kan worden omzeild.
+- Geneste callbacks trekken alle betrokken kanaaleigenaren blijvend in. Beschikbaarheidscallbacks kunnen geen extra eigenaar aanmaken. Normale laatste controle binnen de bestaande zendcallback blijft mogelijk.
+- Zes nieuwe kanaalgevallen en een aanvullende echte lokale socketproef dekken de herintredepaden. De oude code verstuurt in die socketproef een byte; de gecorrigeerde grens houdt dezelfde socket leeg.
+- De meegeleverde HA46-companion voegt begrensde oorspronkelijke ontvangsttellers toe aan de bestaande HA-diagnostiekdownload, zonder extra MQTT-abonnement, worker, opslag of apparaatopdracht.
+- Eerdere oorspronkelijke aanvraagcorrelatie, eenmalige grants, gedeelde klok en oorspronkelijke deadlines blijven behouden. Fysieke productautoriteit blijft standaard gesloten.
+
+De firmwareketen is voorbereid, niet fysiek gekwalificeerd. Geschikte oorspronkelijke kamermeting, causale kraanecho, veiligheidsproducenten en fysieke stop-/uitvalproeven blijven open. Serviceacceptatie en ontvangsttellers zijn geen fysieke ACK. Tado blijft regelen; EMS-TX, forwarding en fysieke uitvoer blijven geblokkeerd. De optionele kanaalroute vereist minimaal HA45, de diagnostiekdownloadfunctie HA46.
+
+De eerdere uploaderwatchdog, HTTPS-afwijking en pendeloorzaak worden niet als opgelost voorgesteld. Alpha33-publicatie bewijst geen installatie of herstel van de eerder mislukte route. Geen blinde firmwareherhaling. Shelly/Xiaomi-drivers en volledige PID-/leerkwalificatie blijven roadmapwerk.
+
+English: independent guards at final handoff, availability and shared-clock callback boundaries retire all channel owners on recursion, including reentry from normal admission. A real local socket regression confirms zero-byte refusal. The included HA46 companion adds bounded receive diagnostics without control authority. Product-source/physical feedback qualification and earlier E32 updater recovery remain open; publication is not installation.
+
 # E32 V2 alpha32 — oorspronkelijke kraanaanvraag en bewaakte socketoverdracht
 
 Grotere gezamenlijke voorbereidingsrelease met HA dev45. Alle 23 voorbereide onderdelen, 31 producteisen en bestaande instellingen blijven behouden.

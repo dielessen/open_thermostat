@@ -67,7 +67,7 @@ alpha28-uploader-watchdogoorzaak en herstelroute blijven onbekend.
 [Verse alpha31-waarneming en grenzen](WAARNEMING-E32-ALPHA31-20261025.nl.md).
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 279 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 282 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
 met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
@@ -106,6 +106,20 @@ historisch; de tabellen en deze volgorde bepalen nieuw werk.
 Leren/PI/PID en blijvend bewaarde, gevalideerde parameters per ruimte blijven
 verplicht voor de definitieve versie (R12); nieuwe F9/F10-stages volgen na M2.
 Een ontbrekende fysieke waarneming blokkeert onafhankelijk softwarewerk niet.
+
+### Volgende grotere bundel — oorspronkelijke ontvangstdiagnostiek
+
+De bestaande HA-diagnostiekdownload krijgt vaste RAM-tellers voor temperatuur-
+en TV02-verkeer: callback, plaatsing, vroege drops en workeracceptatie/-afwijzing/
+-fouten. Er zijn geen topics, unieke ID's of berichtinhouden in de snapshot.
+Geen nieuwe route, abonnement, worker of opslag. De bestaande wachtrijreservering
+blijft behouden; counters geven geen meet-/kraankwalificatie.
+
+223 gerichte native HA-gevallen slagen, inclusief de echte bestaande worker en
+beide ontvangers. Volledige lokale suite: 2.339 gevallen per Core 2026.10.2/2026.10.3,
+nul fouten of skips. Kandidaat HA46 / E32 alpha33 bundelt dit met de eerdere
+verzendcontroles. Exacte CI/publicatie/uitrol blijven afzonderlijke poorten.
+[Betekenis, begrenzing en verificatie](ORIGINAL-INGRESS-DIAGNOSTIEK.nl.md).
 
 ### Volgende grotere bundel — laatste verzendcontrole
 

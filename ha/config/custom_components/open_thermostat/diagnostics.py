@@ -21,6 +21,13 @@ async def async_get_config_entry_diagnostics(hass, entry):
     result["dhw"] = entry_snapshot(hass, entry)
     if runtime is None:
         return result
+    connection = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("v1_connection")
+    from .v1_mqtt import NativeShadowConnection
+    result["read_only_original_ingress"] = {"available": False, "snapshot": None,
+        "control_qualified": False}
+    if isinstance(connection, NativeShadowConnection) and connection.runtime is runtime:
+        result["read_only_original_ingress"] = {"available": True,
+            "snapshot": connection.original_ingress_status(), "control_qualified": False}
     client = runtime._transport
     result["read_only_last_rejection"] = getattr(client, "last_rejection_payload", None)
     supervisor = getattr(client, "supervisor_payload", None)

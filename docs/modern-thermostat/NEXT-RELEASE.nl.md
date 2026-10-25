@@ -27,10 +27,29 @@ De volgende bronbundel onderscheidt nu vier opgeslagen stappen vóór checksum,
 native imagevalidatie, onafhankelijk flash-readback en bootselectie. Oude
 checkpoints blijven leesbaar; de UI toont de betekenis in Nederlands/Engels.
 782 native gevallen, 40 sanitizergevallen en 24 updaterbrowsergevallen slagen;
-E32-compile geslaagd. De bewaarinventaris bevat nu 285 bronverwijzingen bij
-ongewijzigd 23 onderdelen en 31 eisen. Dit is nog geen nieuwe publicatie of
+E32-compile geslaagd. De updaterstap behield 23 onderdelen en 31 eisen; met de
+HA-opstartcorrectie hieronder bevat de actuele inventaris 286 bronverwijzingen. Dit is nog geen nieuwe publicatie of
 firmware-installatie en verklaart de oudere watchdog niet.
 [Uitwerking en bewijs](UPDATE-VERIFICATIE-CHECKPOINTS-20261025.nl.md).
+
+## Volgende grotere bundel — HA-opstart en afsluiten
+
+De native opstart behoudt nu één eigenaar over programma-, Store- en MQTT-
+leesgrenzen. Afsluiten of annuleren kan de oude verbinding niet later alsnog
+laten starten; een dubbele start vervangt de eerste eigenaar niet. De optionele
+temperatuurdiagnose heeft één begrensd aanmeldbudget en ruimt late handles op.
+Alle tien nieuwe gevallen falen op de oude code; 139 gerichte en 2.349 volledige
+HA-gevallen per ondersteunde Core slagen. Dit bronwerk komt samen met de
+updatercheckpoints in de volgende bundel; nog geen nieuwe uitrol.
+[Uitwerking en bewijs](HA-OPSTART-LIFECYCLE-20261025.nl.md).
+
+Een afzonderlijke alleen-lezen controle van **05:46:49 UTC** ziet bij de huidige
+TV02-owner één callback/enqueue/workeracceptatie, zonder getelde drops of fouten.
+Het oorspronkelijke lokale-temperatuurbericht is inmiddels stale; dit bewijst
+ontvangst, geen kraan-ACK, positie of regelkwalificatie. De gekozen interne
+kamerbron blijft onbruikbaar en heeft nul oorspronkelijke topics. SOURCE5 en
+instellingen behouden; nul productie-/deviceacties. Geen nieuwe E32-/bestandsaudit.
+De bewaarinventaris behoudt nu alle 23 onderdelen met 286 bronverwijzingen.
 
 ## Historische grotere release HA45 / E32 alpha32
 

@@ -563,11 +563,11 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_mqtt.py",
-          "sha256": "e0560cff56104d2d1313d0671c33a52effb0629d7546200ac5c52d551ff3503d"
+          "sha256": "939b2e691fbae8d9d2945085619a474aabcf614787fd409ca1a82e46dd805694"
         },
         {
           "path": "ha/tests_native/test_original_temperature.py",
-          "sha256": "b2e36e083e4eb51cc48fb4221029d58918b9e4c610a7c93a7047aa79004b4f46"
+          "sha256": "85e71e0e0d924fffb8e606e84d5bc941a357ea7ee7a3de30185603ec9a719504"
         },
         {
           "path": ".github/workflows/build.yml",
@@ -728,9 +728,13 @@
         {
           "path": "docs/modern-thermostat/ORIGINAL-INGRESS-DIAGNOSTIEK.nl.md",
           "sha256": "40e28f51f1a1d3caacfb2fe7e59d50708e6355fca1558dbb192ea9f4ac4b728f"
+        },
+        {
+          "path": "docs/modern-thermostat/HA-OPSTART-LIFECYCLE-20261025.nl.md",
+          "sha256": "812a4cdfb85c42aa05c2d820337cd352c951e87025e31120960ffbb6b9ccb0b2"
         }
       ],
-      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding geleverd/getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele acquisitie-/ouderdomsvalidatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten als ambient bron. WSDCGQ11LM-eventproducer voorbereid/getest, niet op Z2M geïnstalleerd. Native HA-ontvanger en room-status geleverd zonder QualifiedReport-vrijgave. Web-/native systeemlog en RFC5424 UDP-syslog geleverd in alpha23; beschermde routes/RAM-buffer en standaard uit zonder bestemming gecontroleerd. Externe collector en lange heap-/stack-/belastingproef blijven open. Geen fysieke regelautorisatie. ESP-eigen diagnose op alpha26/dev33 geïnstalleerd en twee gewone live pakketten exact met HA vergeleken. Softwaretests dekken verval; langdurige fysieke logging-/resourceproeven blijven afzonderlijk open. Geleverd en live teruggelezen in HA46: begrensde, niet-blijvende oorspronkelijke ontvangsttellers via bestaande HA-diagnostiek. Geen producent- of fysieke kwalificatie."
+      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding geleverd/getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele acquisitie-/ouderdomsvalidatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten als ambient bron. WSDCGQ11LM-eventproducer voorbereid/getest, niet op Z2M geïnstalleerd. Native HA-ontvanger en room-status geleverd zonder QualifiedReport-vrijgave. Web-/native systeemlog en RFC5424 UDP-syslog geleverd in alpha23; beschermde routes/RAM-buffer en standaard uit zonder bestemming gecontroleerd. Externe collector en lange heap-/stack-/belastingproef blijven open. Geen fysieke regelautorisatie. ESP-eigen diagnose op alpha26/dev33 geïnstalleerd en twee gewone live pakketten exact met HA vergeleken. Softwaretests dekken verval; langdurige fysieke logging-/resourceproeven blijven afzonderlijk open. Geleverd en live teruggelezen in HA46: begrensde, niet-blijvende oorspronkelijke ontvangsttellers via bestaande HA-diagnostiek. Geen producent- of fysieke kwalificatie. Volgende bronbundel: één native opstart over async-programma/Store/MQTT-grenzen, cleanup bij cancel/close en begrensde optionele temperatuurdiagnose. Tien baselinegevallen falen vóór correctie, 139 gerichte/2349volledigeHA-gevallen perCore slagen. Nog niet uitgerold. Beperkte HA46-controle05:46UTC ziet1TV02-callback/enqueue/workeracceptatie; stale en ongekwalificeerd, geen upstreamoorzaak of fysieke ACK."
     },
     {
       "id": "I12",

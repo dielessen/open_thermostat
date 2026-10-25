@@ -90,6 +90,8 @@ class NativeShadowConnection:
         self.schedule_unsubs = []
         self.timer = None
         self.closed = False
+        self._starting = False
+        self._started = False
         self.bench = None
         self.original_reports = None
         from .original_tv02 import OriginalTv02Reports, binding_failure_reason
@@ -121,6 +123,22 @@ class NativeShadowConnection:
         return result
 
     async def async_start(self):
+        if self.closed:
+            return
+        if self._starting or self._started:
+            raise ConfigEntryError("shadow_connection_already_started")
+        self._starting = True
+        try:
+            await self._async_start()
+            self._started = not self.closed
+        except (Exception, asyncio.CancelledError):
+            # Covers initial configuration/journal awaits as well as listeners.
+            await self.async_close()
+            raise
+        finally:
+            self._starting = False
+
+    async def _async_start(self):
         if self.graph_profile is not None and getattr(self.runtime,"controller_policy_source_profile",None) is not None:
             raise ConfigEntryError("controller_policy_graph_conflict")
         if getattr(self.runtime,"graph_data_profile",None) is not None and self.runtime.graph_data_profile!=self.graph_profile:
@@ -148,16 +166,24 @@ class NativeShadowConnection:
                 plan,mapping=await self.runtime.native_plan_source.async_configuration(self.hass,self.entry)
                 zones=plan["zones"]
             else:zones,mapping=await async_build_configuration(self.runtime)
+            if self.closed:
+                return
             self.client = ShadowClient(
                 self.runtime, adapter, self.publish,
                 Store(self.hass, 1, f"open_thermostat.v1.{self.entry.entry_id}"),
                 zones, mapping, self.hass.loop.time,control_plan=plan)
         await self.client.async_start()
+        if self.closed:
+            return
         if self.runtime.graph_controller_source is not None:
             await self.client.async_stage_graph_source_readback()
+            if self.closed:
+                return
             # A native control Store await must not hide graph/config/registry
             # drift. Recheck known SOURCE DATA before any subscribe/publish.
             await self.runtime.graph_controller_source.async_configuration(self.hass,self.entry)
+            if self.closed:
+                return
         if self.runtime.native_plan_source is not None and not self.client.native_source_current():
             raise ConfigEntryError("native_plan_source_changed_during_start")
         self.runtime.attach_transport(self.client)
@@ -256,26 +282,44 @@ class NativeShadowConnection:
 
         self._original_received = original_received
         try:
-            self.unsubs.append(await mqtt.async_subscribe(
-                self.hass, self.prefix + "fw/#", received, qos=0, encoding="utf-8"))
+            unsubscribe = await mqtt.async_subscribe(
+                self.hass, self.prefix + "fw/#", received, qos=0, encoding="utf-8")
+            if self.closed:
+                unsubscribe()
+                return
+            self.unsubs.append(unsubscribe)
             self.unsubs.append(mqtt.async_subscribe_connection_status(self.hass, connection_status))
-            for owner in (self.original_reports,):
-                for topic in sorted(owner.topics):
-                    try:
-                        self.unsubs.append(await mqtt.async_subscribe(
-                            self.hass, topic, original_received, qos=0, encoding=None))
-                    except Exception:
-                        # Optional diagnostics cannot break the control owner.
-                        owner.invalidate("unavailable")
-                        break
+            owner = self.original_reports
+            try:
+                # One total budget for all optional temperature topics. Match
+                # the existing TV02 wait bound; never block native startup on
+                # diagnostic subscription completion indefinitely.
+                async with asyncio.timeout(1):
+                    for topic in sorted(owner.topics):
+                        unsubscribe = await mqtt.async_subscribe(
+                            self.hass, topic, original_received, qos=0, encoding=None)
+                        if self.closed or self.runtime.original_temperature_reports is not owner:
+                            unsubscribe()
+                            break
+                        self.unsubs.append(unsubscribe)
+            except Exception:
+                if not self.closed and self.runtime.original_temperature_reports is owner:
+                    owner.invalidate("unavailable")
+            if self.closed:
+                return
+            if self.runtime.original_temperature_reports is not owner:
+                await self.async_close()
+                return
             await self._async_attach_tv02_topics()
+            if self.closed:
+                return
             if self.graph_profile is None:
                 self.bind_schedules()
             if self.graph_profile is None and any(r.schedule or r.week_program is not None for r in self.runtime.rooms.values()):
                 self.unsubs.append(async_track_utc_time_change(
                     self.hass, refresh, hour=0, minute=0, second=0))
             self.arm()
-        except Exception:
+        except (Exception, asyncio.CancelledError):
             await self.async_close()
             raise
 

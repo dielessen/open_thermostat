@@ -79,12 +79,13 @@ alpha28-uploader-watchdogoorzaak en herstelroute blijven onbekend.
 | Doel volgende release | Eerste actieve bèta: huidige passieve ketelkoppeling behouden en begrensde start/stop beproeven na bron-/kraan-/installatiekwalificatie |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
-| Laatste livecontrole | 25 oktober 05:12:15 UTC: HA46/86 bestanden en verse HA45-back-up95 exact; E32alpha31 op dezelfde boot, SOURCE5 en instellingen behouden, uitgangen geblokkeerd. Alle 38 onafhankelijke nacontroles geslaagd |
+| Laatste volledige installatiecontrole | 25 oktober 05:12:15 UTC: HA46/86 bestanden en verse HA45-back-up95 exact; E32alpha31 op dezelfde boot, SOURCE5 en instellingen behouden, uitgangen geblokkeerd. Alle 38 onafhankelijke nacontroles geslaagd |
+| Laatste beperkte ontvangstcontrole | 25 oktober 05:46:49 UTC: HA46/shadow_ready, SOURCE5/digests behouden, TV02-owner met één callback/enqueue/acceptatie en stale lokale temperatuur; kamermeting ongekwalificeerd. Acht checks / nul productieacties, geen nieuwe directe E32- of volledige bronhashaudit |
 
 [Verse alpha31-waarneming en grenzen](WAARNEMING-E32-ALPHA31-20261025.nl.md).
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 285 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 286 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
 met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
@@ -109,7 +110,7 @@ historisch; de tabellen en deze volgorde bepalen nieuw werk.
 | P0 | E32-upload / R28/I03 | Uploadhardening geleverd; volgende bronbundel voegt vier vaste verificatiecheckpoints toe, 782 native/40 sanitizer/24 updaterbrowsergevallen en E32-compile geslaagd. Gerichter herstelonderzoek voorbereiden | Oude reset6-oorzaak onbekend; huidige31 waargenomen zonder actor-/methodebewijs, geen blinde retry of native HTTPS-proef |
 | P0 vóór actieve M2 | Incidentele CI-kamerassertie | Eerdere afwijking causaal verklaren; acht naspeelbare herhalingen per Core behouden | Definitieve HA43-CI en twee diagnostische native jobs slagen; oorspronkelijke oorzaak onbekend, geen fysieke vrijgave |
 | P0 vóór fysieke proef | Gemeld pendelen | Onderzoek richting warmwaterbedrijf vervolgen: gebruik/bijwarmen onderscheiden; stabiele nulmeting vastleggen | Geen bewezen oorzaak; geen zendproef bij onverklaarde instabiliteit |
-| P0 | TV02-opstartdiagnose, B05 | Softwareherstel geleverd in HA38; oorspronkelijke nieuwe ontvangst en bronkwalificatie nog bewijzen | Wachtende/stale diagnose bewijst geen fysieke ontvangst, kraan-ACK of regelbevoegdheid |
+| P0 | TV02-opstartdiagnose, B05 | HA38-opstartherstel geleverd; verse beperkte HA46-controle 05:46 UTC toont één oorspronkelijke workeracceptatie. Volgende bronbundel sluit late/cancel/dubbele opstart; 2.349 HA-gevallen per Core geslaagd | Ontvangst is nu geobserveerd maar stale; terugkerende verse ontvangst, oorspronkelijke causale echo en fysieke bron-/kraankwalificatie blijven open |
 | P0 | Echte kamerbron, R03/B04/WP03 | Brongebonden acquisitie-/profielketen afmaken met echte oorspronkelijke rapporten | RTCGQ11LM device_temperature niet als kamerbron kwalificeren; geen automatische sensorwissel |
 | P0 | Kraantransactie, R05/B05/WP05 | HA-workerbedrading geleverd in HA44; normale firmware-MQTT-route en product-SOURCE-fabriek verbinden, native zendtransactie aan oorspronkelijke echo koppelen | Exact geïnstalleerde converterbron ontbreekt nog in bestaande toegang; geen cache/serviceacceptatie als ACK |
 | P0 | Veiligheidsproducenten, R07/R23/B06/WP06 | Softwarefences voor alle zes gedateerde feiten afgerond/getest; echte producenten en installatieprofiel aansluiten | Geen generieke flow-/pompaanname of ongekwalificeerde vrijgave |
@@ -136,8 +137,30 @@ Negen nieuwe native gevallen, totaal 782 geslaagd; 40 updatergevallen ook onder
 ASan/UBSan, 24 updaterbrowsergevallen en vier taal-/schermprofielen geslaagd.
 E32-compile geslaagd. Geen nieuwe firmwarepublicatie/installatie, blinde retry,
 herstelbewijs of verklaring van de historische watchdog. De bestaande HA46 /
-E32alpha31-installatie blijft behouden. De inventaris heeft nu 285 bronverwijzingen.
+E32 alpha31-installatie blijft behouden. De actuele inventaris heeft 286 bronverwijzingen
+na toevoeging van de HA-opstartcorrectie hieronder.
 [Betekenis en verificatie](UPDATE-VERIFICATIE-CHECKPOINTS-20261025.nl.md).
+
+### Volgende bronbundel — native opstart blijft bij één eigenaar
+
+Annuleren/afsluiten tijdens programma-/Store-lezingen kan geen transport, worker,
+listener of timer meer achteraf aanmaken. Dubbele start wordt geweigerd zonder
+de eerste eigenaar te sluiten; een afgesloten object start niet opnieuw.
+Late unsubscribe-handles worden direct opgeruimd. De optionele temperatuur-
+aanmelding deelt één seconde totaalbudget; beschikbare besturing blijft intact
+bij die diagnosefout. Geen nieuw abonnement, worker, route, retry of uitvoerfunctie.
+
+Tien negatieve baselinegevallen falen vóór herstel; 139 gerichte en 2.349 volledige
+HA-gevallen per Core 2026.10.2/2026.10.3 slagen. Zeven pakkettests slagen.
+Dezelfde bundel behoudt de eerdere updatercheckpoints en alle 23 onderdelen,
+nu 286 bronverwijzingen. Geen nieuwe publicatie of productie-installatie.
+[Uitwerking, oorspronkelijke fouten en bewijs](HA-OPSTART-LIFECYCLE-20261025.nl.md).
+
+De beperkte livecontrole 05:46 UTC via de bestaande HA-agent toont oorspronkelijke
+TV02-workerontvangst (1), zonder getelde drops/fouten; het bericht is stale en
+geen causale kraan-ACK. Temperatuur heeft nul oorspronkelijke topics en blijft
+`profile_missing`. SOURCE5/digests behouden, nul productie-/deviceacties. De diagnose
+kwalificeert geen kamerbron/afgiftepad; fysieke B04–B14-poorten blijven open.
 
 ### Geleverd in HA46 / alpha33 — oorspronkelijke ontvangstdiagnostiek
 

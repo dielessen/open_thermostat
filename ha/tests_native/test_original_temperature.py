@@ -443,3 +443,229 @@ async def test_optional_observer_error_does_not_skip_other_registry_guard(hass, 
     finally:
         runtime.original_tv02_reports = None
         await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_optional_temperature_stall_is_bounded_without_closing_control(hass, devices, monkeypatch):
+    runtime, binding, _, _ = await system(hass, devices)
+    cancelled, removed = [], []
+    async def subscribe(_hass, topic, callback, **kwargs):
+        if topic == TOPIC:
+            try:
+                await asyncio.Event().wait()
+            finally:
+                cancelled.append(topic)
+        return lambda: removed.append(topic)
+    monkeypatch.setattr(mqtt, 'async_subscribe', subscribe)
+    monkeypatch.setattr(mqtt, 'async_subscribe_connection_status', lambda *_: lambda: removed.append('status'))
+    monkeypatch.setattr(mqtt, 'async_publish', AsyncMock())
+    connection = NativeShadowConnection(runtime)
+    try:
+        async with asyncio.timeout(3):
+            await connection.async_start()
+        assert cancelled == [TOPIC]
+        assert not connection.closed and not connection.worker.done()
+        assert connection.timer is not None
+        assert runtime.measurement_status(binding.room_id)['original_report']['status'] == 'unavailable'
+        assert not runtime.measurement_status(binding.room_id)['usable']
+    finally:
+        await connection.async_close()
+        assert set(removed) == {'fixture/v1/fw/#', 'status'}
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('close_topic', ['fixture/v1/fw/#', TOPIC])
+async def test_close_during_startup_unsubscribes_late_handle_and_never_rearms(hass, devices, monkeypatch, close_topic):
+    runtime, _, _, _ = await system(hass, devices)
+    removed, attempted, status_attached = [], [], []
+    connection = NativeShadowConnection(runtime)
+    async def subscribe(_hass, topic, callback, **kwargs):
+        attempted.append(topic)
+        if topic == close_topic:
+            await connection.async_close()
+        return lambda: removed.append(topic)
+    monkeypatch.setattr(mqtt, 'async_subscribe', subscribe)
+    def status(*_):
+        status_attached.append(True)
+        return lambda: removed.append('status')
+    monkeypatch.setattr(mqtt, 'async_subscribe_connection_status', status)
+    monkeypatch.setattr(mqtt, 'async_publish', AsyncMock())
+    try:
+        await connection.async_start()
+        assert connection.closed and connection.worker.done()
+        assert connection.timer is None
+        assert connection.unsubs == connection.schedule_unsubs == []
+        assert removed.count(close_topic) == 1
+        if close_topic != TOPIC:
+            assert attempted == ['fixture/v1/fw/#'] and not status_attached
+        assert runtime.original_temperature_reports is None and runtime.original_tv02_reports is None
+    finally:
+        await connection.async_close()
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_cancel_during_optional_startup_closes_owned_worker_and_listeners(hass, devices, monkeypatch):
+    runtime, _, _, _ = await system(hass, devices)
+    entered = asyncio.Event()
+    removed = []
+    async def subscribe(_hass, topic, callback, **kwargs):
+        if topic == TOPIC:
+            entered.set()
+            await asyncio.Event().wait()
+        return lambda: removed.append(topic)
+    monkeypatch.setattr(mqtt, 'async_subscribe', subscribe)
+    monkeypatch.setattr(mqtt, 'async_subscribe_connection_status', lambda *_: lambda: removed.append('status'))
+    monkeypatch.setattr(mqtt, 'async_publish', AsyncMock())
+    connection = NativeShadowConnection(runtime)
+    startup = asyncio.create_task(connection.async_start())
+    try:
+        async with asyncio.timeout(3):
+            await entered.wait()
+        startup.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await startup
+        assert connection.closed and connection.worker.done()
+        assert connection.timer is None and connection.unsubs == []
+        assert set(removed) == {'fixture/v1/fw/#', 'status'}
+        assert runtime.original_temperature_reports is None and runtime.original_tv02_reports is None
+    finally:
+        if not startup.done():
+            startup.cancel()
+        await asyncio.gather(startup, return_exceptions=True)
+        await connection.async_close()
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('boundary', ['configuration', 'journal'])
+@pytest.mark.parametrize('cancel', [False, True])
+async def test_close_or_cancel_while_initial_reads_pending_cannot_attach_late_owner(hass, devices, monkeypatch, boundary, cancel):
+    from custom_components.open_thermostat import v1_mqtt
+    runtime, binding, previous_reports, _ = await system(hass, devices)
+    entered, release = asyncio.Event(), asyncio.Event()
+    if boundary == 'configuration':
+        original = v1_mqtt.async_build_configuration
+        async def load(*args):
+            entered.set()
+            await release.wait()
+            return await original(*args)
+        monkeypatch.setattr(v1_mqtt, 'async_build_configuration', load)
+    else:
+        original = v1_mqtt.Store.async_load
+        async def load(store):
+            if store.key == f'open_thermostat.v1.{runtime.entry.entry_id}':
+                entered.set()
+                await release.wait()
+            return await original(store)
+        monkeypatch.setattr(v1_mqtt.Store, 'async_load', load)
+    subscribe = AsyncMock(return_value=lambda: None)
+    monkeypatch.setattr(mqtt, 'async_subscribe', subscribe)
+    monkeypatch.setattr(mqtt, 'async_subscribe_connection_status', lambda *_: lambda: None)
+    monkeypatch.setattr(mqtt, 'async_publish', AsyncMock())
+    connection = NativeShadowConnection(runtime)
+    startup = asyncio.create_task(connection.async_start())
+    try:
+        async with asyncio.timeout(3):
+            await entered.wait()
+        if cancel:
+            startup.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await startup
+        else:
+            await connection.async_close()
+            release.set()
+            async with asyncio.timeout(3):
+                await startup
+        assert connection.closed
+        assert connection.worker is None and connection.timer is None
+        assert runtime._transport is None
+        assert runtime.original_temperature_reports is previous_reports
+        assert previous_reports.status(binding.room_id)["status"] == "waiting"
+        assert runtime.original_tv02_reports is None
+        subscribe.assert_not_awaited()
+    finally:
+        release.set()
+        if not startup.done():
+            startup.cancel()
+        await asyncio.gather(startup, return_exceptions=True)
+        await connection.async_close()
+        # Negative baseline probes may expose the old resurrected worker.
+        if connection.worker and not connection.worker.done():
+            connection.worker.cancel()
+            await asyncio.gather(connection.worker, return_exceptions=True)
+        if connection.timer:
+            connection.timer()
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_duplicate_or_closed_start_cannot_replace_existing_connection_owner(hass, devices, monkeypatch):
+    from custom_components.open_thermostat import v1_mqtt
+    from homeassistant.exceptions import ConfigEntryError
+    runtime, _, _, _ = await system(hass, devices)
+    entered, release = asyncio.Event(), asyncio.Event()
+    original = v1_mqtt.async_build_configuration
+    async def configuration(*args):
+        entered.set()
+        await release.wait()
+        return await original(*args)
+    monkeypatch.setattr(v1_mqtt, 'async_build_configuration', configuration)
+    subscribe = AsyncMock(return_value=lambda: None)
+    monkeypatch.setattr(mqtt, 'async_subscribe', subscribe)
+    monkeypatch.setattr(mqtt, 'async_subscribe_connection_status', lambda *_: lambda: None)
+    monkeypatch.setattr(mqtt, 'async_publish', AsyncMock())
+    connection = NativeShadowConnection(runtime)
+    startup = asyncio.create_task(connection.async_start())
+    try:
+        async with asyncio.timeout(3):
+            await entered.wait()
+        with pytest.raises(ConfigEntryError, match='shadow_connection_already_started'):
+            async with asyncio.timeout(3):
+                await connection.async_start()
+        assert not connection.closed and connection.worker is None
+        release.set()
+        await startup
+        worker, client, attempts = connection.worker, connection.client, subscribe.await_count
+        with pytest.raises(ConfigEntryError, match='shadow_connection_already_started'):
+            await connection.async_start()
+        assert not connection.closed and connection.worker is worker and not worker.done()
+        assert runtime._transport is client and subscribe.await_count == attempts
+        await connection.async_close()
+        await connection.async_start()
+        assert connection.closed and worker.done() and connection.timer is None
+        assert runtime.original_temperature_reports is None and runtime.original_tv02_reports is None
+        assert subscribe.await_count == attempts
+    finally:
+        release.set()
+        if not startup.done():
+            startup.cancel()
+        await asyncio.gather(startup, return_exceptions=True)
+        await connection.async_close()
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_replaced_temperature_owner_is_preserved_when_old_subscribe_returns(hass, devices, monkeypatch):
+    runtime, binding, _, _ = await system(hass, devices)
+    replacement, removed = [], []
+    async def subscribe(_hass, topic, callback, **kwargs):
+        if topic == TOPIC:
+            replacement.append(OriginalTemperatureReports(runtime))
+            runtime.original_temperature_reports = replacement[0]
+        return lambda: removed.append(topic)
+    monkeypatch.setattr(mqtt, 'async_subscribe', subscribe)
+    monkeypatch.setattr(mqtt, 'async_subscribe_connection_status', lambda *_: lambda: removed.append('status'))
+    monkeypatch.setattr(mqtt, 'async_publish', AsyncMock())
+    connection = NativeShadowConnection(runtime)
+    try:
+        await connection.async_start()
+        assert connection.closed and connection.worker.done() and connection.timer is None
+        assert connection.unsubs == []
+        assert runtime.original_temperature_reports is replacement[0]
+        assert replacement[0].status(binding.room_id)['status'] == 'waiting'
+        assert set(removed) == {'fixture/v1/fw/#', 'status', TOPIC}
+    finally:
+        await connection.async_close()
+        await runtime.async_stop()

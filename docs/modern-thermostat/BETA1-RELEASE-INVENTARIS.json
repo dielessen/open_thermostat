@@ -563,11 +563,11 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_mqtt.py",
-          "sha256": "939b2e691fbae8d9d2945085619a474aabcf614787fd409ca1a82e46dd805694"
+          "sha256": "4d9db29efda380262f04db63a5a736fd690968270a302200ca965793e7c352d3"
         },
         {
           "path": "ha/tests_native/test_original_temperature.py",
-          "sha256": "85e71e0e0d924fffb8e606e84d5bc941a357ea7ee7a3de30185603ec9a719504"
+          "sha256": "172c69377f2a36cda49c4d46935396cc920aee28dc54ac784d8963586f61592c"
         },
         {
           "path": ".github/workflows/build.yml",
@@ -731,7 +731,7 @@
         },
         {
           "path": "docs/modern-thermostat/HA-OPSTART-LIFECYCLE-20261025.nl.md",
-          "sha256": "aadf4d77f2925b28a897908e0e3b2194f45e93e6e80f4c805b3dbad04641c3cd"
+          "sha256": "b3acd4f59378142c29b6abd70cb4b5a80d9b846f13c1eecf46b76ae730e5a84e"
         }
       ],
       "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding geleverd/getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele acquisitie-/ouderdomsvalidatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten als ambient bron. WSDCGQ11LM-eventproducer voorbereid/getest, niet op Z2M geïnstalleerd. Native HA-ontvanger en room-status geleverd zonder QualifiedReport-vrijgave. Web-/native systeemlog en RFC5424 UDP-syslog geleverd in alpha23; beschermde routes/RAM-buffer en standaard uit zonder bestemming gecontroleerd. Externe collector en lange heap-/stack-/belastingproef blijven open. Geen fysieke regelautorisatie. ESP-eigen diagnose op alpha26/dev33 geïnstalleerd en twee gewone live pakketten exact met HA vergeleken. Softwaretests dekken verval; langdurige fysieke logging-/resourceproeven blijven afzonderlijk open. Geleverd en live teruggelezen in HA46: begrensde, niet-blijvende oorspronkelijke ontvangsttellers via bestaande HA-diagnostiek. Geen producent- of fysieke kwalificatie. Geleverd in HA47: één native opstart over async-programma/Store/MQTT-grenzen, cleanup bij cancel/close en begrensde optionele temperatuurdiagnose. Tien baselinegevallen falen vóór correctie, 139 gerichte/2349volledigeHA-gevallen perCore slagen. HA47 uitgerold met verse HA46-back-up96 en44 afzonderlijke nacontroles. Beperkte HA46-controle05:46UTC ziet1TV02-callback/enqueue/workeracceptatie; stale en ongekwalificeerd, geen upstreamoorzaak of fysieke ACK. Na Coreherstart nieuweRAMowner: bij06:47UTC nul counters/TV02waiting, geen oudbericht alsnieuwekwalificatie. Actieve/fysiekevrijgave blijftopen."

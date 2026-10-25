@@ -108,3 +108,49 @@ late listener handles are removed. All ten new cases fail against the old
 source and pass after correction. Delayed subscribe boundaries are injected
 fixtures, not a diagnosed production broker failure. HA47 deployment is recorded
 separately; physical qualification remains open.
+
+## Voorbereid voor de volgende bundel — volledige cleanup bij callbackfout
+
+Nog niet geïnstalleerd: als de timer- of unsubscribe-callback een gewone exception
+geeft, brak afsluiten voorheen af vóór de overige handles, worker en wachtrij.
+Omdat de verbinding dan al gesloten was, sloeg een tweede afsluitpoging de
+resterende cleanup over. Drie afzonderlijke regressies reproduceren dit met
+een timer-, abonnement- en programma-abonnementfout op de ongewijzigde bron.
+Dit is een geïnjecteerde callbackfout, geen vastgestelde oorzaak van een eerder
+productieincident.
+
+De correctie neemt de eigen handles eerst uit de verbinding en probeert ze elk
+eenmaal. Een gewone callbackexception geeft een algemene waarschuwing zonder
+private foutdetails; de overige cleanup, workerannulering en wachtrijafhandeling
+gaan door. Een mislukte callback wordt niet automatisch herhaald. De code kan
+niet bewijzen dat die falende callback zijn onderliggende registratie verwijderde;
+de gesloten eigenaar weigert vervolgens nieuwe queue-invoer.
+
+Alle 162 gerichte temperatuur-/TV02-/actuator-wiregevallen slagen op echte
+Core2026.10.2 en Core2026.10.3; drie baselinegevallen falen vóór de correctie.
+Bewijs: `out/native-close-ownership-20261025/`. Geen productie- of apparaatwijziging
+voor deze broncorrectie. De bestaande HA47-installatie blijft afzonderlijk gelden.
+
+**English:** Prepared for the next bundle, not installed: one failing cleanup
+callback no longer prevents removal attempts for the remaining owned handles,
+worker cancellation or queue cleanup. Failed removal is logged without private
+exception details and is not retried automatically. All162 targeted cases pass
+on each supported Core; the three regressions fail against the original source.
+
+### Verse HA47-ontvangstcontrole, 25 oktober 07:09:13 UTC
+
+De bestaande native HA-specialist las alleen normale HA-diagnostiek en states:
+HA47 geladen, transport klaar, SOURCE5 en beide digests behouden; negen controles
+geslaagd, alle wijzigings-/apparaat-/E32-requesttellers nul. De huidige TV02-owner
+telt één callback/enqueue/workeracceptatie zonder drops of fouten. Het rapport is
+stale (554.472ms ontvangstmetadata), `commandDataResponse` met alleen lokale
+temperatuur. Dit bewijst geen uitgevoerde opdracht, kraanstand of gekwalificeerde
+regeling. De 06:47-snapshot had nul; onafgebroken dezelfde owner is niet bewezen.
+De temperatuurroute heeft nog nul topics; de geselecteerde interne apparaatsensor
+blijft `profile_missing` en onbruikbaar. E32-boot/versie zijn hier niet opnieuw
+uitgelezen. Bewijs: `SAFE-READONLY-RECEPTION.json` en `ROOT-READONLY-REVIEW.json`
+in de hierboven genoemde cleanup-bewijsmap. De broncorrectie is nog niet live.
+
+**English:** A fresh read-only HA47 snapshot records one original TV02 report
+accepted by the observer, already stale and unqualified. No command, write or
+direct E32 request occurred. Room ambient-source qualification remains open.

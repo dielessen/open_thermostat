@@ -583,13 +583,19 @@ class NativeShadowConnection:
         self.original_pending = False
         if self.client is not None:
             self.client.reset_session()
-        if self.timer:
-            self.timer()
-            self.timer = None
-        for unsub in (*self.unsubs, *self.schedule_unsubs):
-            unsub()
+        # Detach handles before invoking external cleanup code. One failing
+        # callback must not strand other listeners, the worker or queued jobs;
+        # a repeated close must not retry an uncertain removal automatically.
+        callbacks = ((self.timer,) if self.timer else ()) + tuple(self.unsubs) + tuple(self.schedule_unsubs)
+        self.timer = None
         self.unsubs.clear()
         self.schedule_unsubs.clear()
+        for remove in callbacks:
+            try:
+                remove()
+            except Exception:
+                # Callback details can contain private broker/entity metadata.
+                _LOGGER.warning("Native connection cleanup callback failed")
         if self.worker and self.worker is not asyncio.current_task():
             self.worker.cancel()
             await asyncio.gather(self.worker, return_exceptions=True)

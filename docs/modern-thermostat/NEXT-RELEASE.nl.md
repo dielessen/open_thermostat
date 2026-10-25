@@ -20,6 +20,14 @@ publiek pakket/Git en alle instellingen, programma's, koppelingen en kaarten beh
 E32 alpha31 blijft op dezelfde boot; alpha34 is gepubliceerd, zonder firmwareactie.
 [Installatie en bewijs](INSTALLATIE-HA47-ALPHA34-20261025.nl.md).
 
+## Voorbereid voor de volgende grotere bundel
+
+De native afsluitroute ruimt de overige eigen handles, worker en wachtrij ook
+op als één cleanupcallback een gewone exception geeft. Drie gevallen falen
+vóór correctie; 162 gerichte gevallen per ondersteunde Core slagen erna.
+Dit is bronvoorbereiding, nog niet geïnstalleerd en geen verklaring voor een
+eerder productieincident. [Bewijs en beperking](HA-OPSTART-LIFECYCLE-20261025.nl.md).
+
 ## Historische release HA46 / E32 alpha33
 
 Beide tags zijn gepubliceerd op bron `2d32ad3`; alle toepasselijke main-/tag-CI,

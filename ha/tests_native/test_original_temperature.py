@@ -21,6 +21,46 @@ RUN = '00000000-0000-4000-8000-000000000001'
 TOPIC = 'custom-z2m/bridge/openthermostat/original_temperature'
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize('failure', ['timer', 'subscription', 'schedule'])
+async def test_close_callback_failure_cannot_strand_worker_or_other_owned_callbacks(hass, devices, failure, caplog):
+    runtime, _, _, _ = await system(hass, devices)
+    connection = NativeShadowConnection(runtime)
+    called = []
+    def cleanup(name):
+        def remove():
+            called.append(name)
+            if name == failure:
+                raise RuntimeError('private cleanup detail')
+        return remove
+    connection.timer = cleanup('timer')
+    connection.unsubs.extend([cleanup('subscription'), cleanup('last_subscription')])
+    connection.schedule_unsubs.extend([cleanup('schedule'), cleanup('last_schedule')])
+    worker_entered = asyncio.Event()
+    async def worker():
+        worker_entered.set()
+        await asyncio.Event().wait()
+    connection.worker = asyncio.create_task(worker())
+    pending = asyncio.get_running_loop().create_future()
+    connection.queue.put_nowait(('graph_command', (pending,)))
+    try:
+        await worker_entered.wait()
+        await connection.async_close()
+        assert called == ['timer', 'subscription', 'last_subscription', 'schedule', 'last_schedule']
+        assert connection.timer is None and connection.unsubs == [] and connection.schedule_unsubs == []
+        assert connection.worker.done() and pending.cancelled()
+        async with asyncio.timeout(1):
+            await connection.queue.join()
+        await connection.async_close()
+        assert len(called) == 5  # A failed callback is not automatically retried.
+        assert 'Native connection cleanup callback failed' in caplog.text
+        assert 'private cleanup detail' not in caplog.text
+    finally:
+        connection.worker.cancel()
+        await asyncio.gather(connection.worker, return_exceptions=True)
+        await runtime.async_stop()
+
+
 def packet(sequence=1, run=RUN, **changes):
     value = dict(schema=1, producer='openthermostat.z2m.original_temperature',
         producer_run_id=run, sequence=sequence, device_ieee='0x0000000000000001',

@@ -78,14 +78,14 @@ historisch; de tabellen en deze volgorde bepalen nieuw werk.
 
 | Prioriteit | Punt / koppeling | Eerstvolgende concrete uitkomst | Wat buiten software blijft |
 | --- | --- | --- | --- |
-| P0 | E32-upload / R28/I03 | Uploadhardening in 6a23e3c gebouwd/getest; onderbouwde herstelroute voor de geïnstalleerde alpha28 vaststellen | Reset6 is bekend; taak/oorzaak onbekend, geen blinde retry of native HTTPS-proef |
+| P0 | E32-upload / R28/I03 | Uploadhardening in 6a23e3c gebouwd/getest; eerdere alpha28-uploaderreset onderscheiden van de vers waargenomen alpha31 en vervolgroute beoordelen | Oude reset6-oorzaak onbekend; huidige31 waargenomen zonder actor-/methodebewijs, geen blinde retry of native HTTPS-proef |
 | P0 vóór actieve M2 | Incidentele CI-kamerassertie | Eerdere afwijking causaal verklaren; acht naspeelbare herhalingen per Core behouden | Definitieve HA43-CI en twee diagnostische native jobs slagen; oorspronkelijke oorzaak onbekend, geen fysieke vrijgave |
 | P0 vóór fysieke proef | Gemeld pendelen | Onderzoek richting warmwaterbedrijf vervolgen: gebruik/bijwarmen onderscheiden; stabiele nulmeting vastleggen | Geen bewezen oorzaak; geen zendproef bij onverklaarde instabiliteit |
 | P0 | TV02-opstartdiagnose, B05 | Softwareherstel geleverd in HA38; oorspronkelijke nieuwe ontvangst en bronkwalificatie nog bewijzen | Wachtende/stale diagnose bewijst geen fysieke ontvangst, kraan-ACK of regelbevoegdheid |
 | P0 | Echte kamerbron, R03/B04/WP03 | Brongebonden acquisitie-/profielketen afmaken met echte oorspronkelijke rapporten | RTCGQ11LM device_temperature niet als kamerbron kwalificeren; geen automatische sensorwissel |
 | P0 | Kraantransactie, R05/B05/WP05 | HA-workerbedrading geleverd in HA44; normale firmware-MQTT-route en product-SOURCE-fabriek verbinden, native zendtransactie aan oorspronkelijke echo koppelen | Exact geïnstalleerde converterbron ontbreekt nog in bestaande toegang; geen cache/serviceacceptatie als ACK |
 | P0 | Veiligheidsproducenten, R07/R23/B06/WP06 | Softwarefences voor alle zes gedateerde feiten afgerond/getest; echte producenten en installatieprofiel aansluiten | Geen generieke flow-/pompaanname of ongekwalificeerde vrijgave |
-| Geleverd | EMS-apparatenweergave, R15/R25/R29/I11/I12/I21 | Geïnstalleerd op alpha28, echte GET en twee apparaten gecontroleerd | Passief; ontbrekende identiteit/decoder blijft zichtbaar |
+| Geleverd | EMS-apparatenweergave, R15/R25/R29/I11/I12/I21 | Eerder geleverd op alpha28, echte GET en twee apparaten gecontroleerd; huidige versie31 apart waargenomen | Passief; ontbrekende identiteit/decoder blijft zichtbaar |
 | P1 | Classic-zender en stopketen, R08/B07–B08/WP02 | Rapportvolgorde en HA-intrekking softwarematig afgerond; beoordeeld profiel en echte zend-/stopketen kwalificeren | TX/adres/masker en fysieke zender pas na B09 beoordelen |
 | P1 | Installatieacceptatie, R22–R24/B09 | Bestaande acceptatiekaart concreet maken voor UART/arbitrage/Tado óf E32/minimumflow/naloop/onafhankelijke stop | Fysieke feiten blijven open; vragen bundelen voor de proef, niet iedere bronstap blokkeren |
 | P1 | HTTPS-herstelbaarheid, R28/I03/WP08 | Geïnstalleerde checkpointdiagnose gebruiken bij gericht onderzocht vervolg | Vorige workerfout onbekend; app-only succes is geen workerreparatie of reden voor replay |

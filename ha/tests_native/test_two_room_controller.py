@@ -50,6 +50,15 @@ async def two_controller(native_two,hass,monkeypatch,request):
     if out:=os.environ.get("OPENTHERMOSTAT_TWO_CONTROLLER_EVIDENCE"):
         (Path(out).parent/"SOURCE-FIXTURE.json").write_text(canonical(dict(stored=raw,source=ctor))+chr(10))
     mode=getattr(request,"param","ok")
+    if isinstance(mode, tuple) and mode[0] == "runtime_clock_origin":
+        # Preserve the actual runtime, but give its default clock a deliberately
+        # different epoch. The fixture must align it with the finite peer clock.
+        from custom_components.open_thermostat.v1_runtime import ShadowRuntime
+        original_init = ShadowRuntime.__init__
+        def initialize_runtime(self, *args, **kwargs):
+            kwargs.setdefault("clock", lambda: mode[1])
+            original_init(self, *args, **kwargs)
+        monkeypatch.setattr(ShadowRuntime, "__init__", initialize_runtime)
     if mode=="wrong_profile":ctor["profile_digest"]="0"*64
     elif mode=="wrong_config":ctor["control_digest"]="0"*64
     elif mode=="future_version":ctor["profile_version"]="two-room-targets.v999"
@@ -80,6 +89,9 @@ async def two_controller(native_two,hass,monkeypatch,request):
             assert await integration.async_setup_entry(hass,parent)
             state=hass.data["open_thermostat"][parent.entry_id];runtime=state["v1_runtime"];connection=state["v1_connection"];client=connection.client
             client.clock=lambda:peer.clock[0]
+            # Observation stamps and wire-age subtraction must use the same
+            # monotonic domain. Host uptime must not age finite fixture samples.
+            runtime.clock=lambda:peer.clock[0]
             for r in (rad,floor):runtime.set_report_profile(r.room_id,source_profile)
             if n:=holder.get("n"):n.runtime,n.connection,n.client=runtime,connection,client
         async def stop():

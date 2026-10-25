@@ -86,6 +86,10 @@ async def test_real_native_climate_services_stop_A_then_B_and_resume_only_A(nati
     trace_path=Path(f"out/climate-warmup-trace-{trace_attempt}.json")
     trace_path.parent.mkdir(parents=True,exist_ok=True)
     trace_path.write_text(json.dumps(dict(clock=n.peer.clock,
+        clock_domains=dict(runtime=n.runtime.clock(), transport=n.client.clock(), host_loop=hass.loop.time()),
+        observations={key:dict(source_age_ms=value.source_age_ms,
+            observed_monotonic=value.observed_monotonic, quality=value.quality)
+            for key,value in n.runtime.observations.items()},
         events=[dict(op=op,**args) for op,args,_ in n.peer.trace],
         decisions={k:vars(v) for k,v in n.runtime.decisions.items()}),default=str))
     assert a.hvac_mode==HVACMode.OFF and a.target_temperature is None
@@ -115,6 +119,16 @@ async def test_native_turn_off_on_helpers_reuse_same_command_and_auto_target(nat
     await command(n,a.async_turn_on())
     assert a.hvac_mode==HVACMode.HEAT and a.target_temperature==21
     assert n.entities[n.floor.room_id].target_temperature==19
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("two_controller", [("runtime_clock_origin", origin) for origin in (50.0, 100.0, 150.0, 500.0)],
+    indirect=True, ids=["epoch50", "epoch100", "epoch150", "epoch500"])
+async def test_native_room_stop_is_independent_of_host_monotonic_epoch(native_climates, hass, request):
+    # Exercise the entire unchanged service/ACK path and its original demand
+    # assertions, not an alternate controller or a relaxed warmup deadline.
+    await test_real_native_climate_services_stop_A_then_B_and_resume_only_A(
+        native_climates, hass, "epoch-" + str(request.node.callspec.params["two_controller"][1]))
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mode",["cool","heat_cool","auto","",None])

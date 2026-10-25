@@ -109,3 +109,40 @@ behouden. Verse HA40-back-up met 93 payloads en alle 38 onafhankelijke nacontrol
 slagen. Geen E32-upload/herstart of kraan-/ketelopdracht. De normale M2-bedrading,
 oorspronkelijke echo en fysieke kwalificatie blijven open. De eerdere incidentele
 CI-kamerassertie blijft expliciet onderzoek vóór actieve M2; geen reparatieclaim.
+
+## Volgende bundel: één klokdomein in de eindige kamerfixture
+
+25 oktober2026; bronvoorbereiding, geen productie- of apparaatwijziging. De
+fixture gaf de HA-wireclient de kunstmatige C++-klok100..221s, maar liet de
+ontvanger observaties stempelen met de werkelijke host-uptime. Het aftrekken
+van die twee domeinen kon dezelfde verse synthetische rapporten kunstmatig oud
+maken. De fixture koppelt nu ook de runtimeklok aan haar bestaande peerklok,
+inclusief een normale fixture-reload. Globale HA-/loopklokken veranderen niet.
+
+Vier nieuwe gevallen oefenen het volledige bestaande service/ACK/stop/hervatpad
+met geïnjecteerde begin-epochs50/100/150/500. Op ongewijzigde fixturecode falen
+de eerste twee en slagen de laatste twee; na correctie slagen alle50 gerichte
+kamer-/HVAC-gevallen per echte Core2026.10.2 en2026.10.3. De bestaande acht
+herhalingen, 121s-warmup, 120s-minimum-uit en alle demand-/stopasserties blijven
+behouden. De bestaande eindige replaytrace bewaart voortaan ook beide gebruikte
+klokwaarden, hostloopwaarde en oorspronkelijke observatietijden. Laatste
+metadata-uitbreiding is afzonderlijk herspeeld; de volledige gecombineerde
+bundel slaagt lokaal met2.356 gevallen per Core (2.288tests+68subtests), nul
+fouten/errors/skips. Beide onafhankelijke offline bronreviews slagen zonder
+bevindingen. Exacte releasefreeze, pakket-/tag-CI en installatie blijven aparte
+poorten; deze bronstap publiceert geen nieuwe versie.
+
+Dit bewijst de klokdomeinfout in de fixture. De negatieve proef eindigt met
+`sensor_unavailable`; de historische CI-afwijking had
+`shadow_low_load_or_satisfied`. Zonder de toenmalige volledige trace is de
+oorspronkelijke CI-oorzaak hiermee **niet** bewezen of afgevinkt. Er is geen
+reparatieclaim voor pendelen, de updater-watchdog of fysieke regeling.
+Bewijs: `out/climate-ci-causality-20261025/`, inclusief oorspronkelijke XML en
+alle vier voor/na-traces. Productie blijft HA47/E32alpha31.
+
+**English:** The finite two-room fixture now uses the same monotonic domain
+for observation stamps and wire-age calculation. Four host-epoch regressions
+exercise the unchanged native service path; two fail before correction and
+all pass afterwards. Original timing/safety assertions remain. This is a
+test-fixture repair; the older CI incident has a different final reason and
+its historical cause remains unproven. No production or device action.

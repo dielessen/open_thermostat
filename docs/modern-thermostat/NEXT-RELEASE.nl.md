@@ -28,6 +28,17 @@ vóór correctie; 162 gerichte gevallen per ondersteunde Core slagen erna.
 Dit is bronvoorbereiding, nog niet geïnstalleerd en geen verklaring voor een
 eerder productieincident. [Bewijs en beperking](HA-OPSTART-LIFECYCLE-20261025.nl.md).
 
+Ook de kamer-/HVAC-testopstelling gebruikt nu één klokdomein voor ontvangst
+en meetleeftijd. Vier epochproeven toetsen het volledige bestaande servicepad;
+50 gerichte gevallen per ondersteunde Core slagen. Regeltijden en veiligheids-
+asserties blijven behouden; de oudere CI-oorzaak blijft afzonderlijk onbekend.
+[Uitwerking en bewijs](M2-ONTVANGER-EN-BRONKEUZE-20261024.nl.md).
+
+De gecombineerde voorbereiding met de cleanupfix is volledig lokaal getoetst:
+2.356 gevallen per Core2026.10.2 en2026.10.3, nul fouten of skips; zeven
+pakketunittests en twee onafhankelijke offline bronreviews slagen. Geen nieuwe
+releaseversie of installatie voor deze bronstap. Alle fysieke poorten blijven open.
+
 ## Historische release HA46 / E32 alpha33
 
 Beide tags zijn gepubliceerd op bron `2d32ad3`; alle toepasselijke main-/tag-CI,

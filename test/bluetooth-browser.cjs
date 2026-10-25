@@ -7,7 +7,7 @@ function snapshot(profile='shelly_ht_display'){const result={schema:1,pending_re
 (async()=>{
  fs.mkdirSync(output,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});const results=[];
  try{for(const lang of ['en','nl'])for(const width of [1280,320])for(const profile of ['shelly_ht_display','xiaomi_monitor_3']){
-  const page=await browser.newPage({viewport:{width,height:900}}),errors=[],requests=[];let data=snapshot(profile),fail=false,conflict=false;
+  const page=await browser.newPage({viewport:{width,height:900}}),errors=[],requests=[];let data=snapshot(profile),fail=false,conflict=false,storageFull=false;
   page.on('pageerror',e=>errors.push(e.message));await page.context().addCookies([{name:'ot_ui_lang',value:lang,url:'http://opth.test'}]);
   await page.addInitScript(()=>{const original=window.setTimeout;window.setTimeout=(fn,ms,...args)=>original(fn,ms===5000?80:ms,...args);});
   await page.route('http://opth.test/**',async route=>{
@@ -18,6 +18,7 @@ function snapshot(profile='shelly_ht_display'){const result={schema:1,pending_re
    if(p==='/config/bluetooth'||p==='/bluetooth/status'){
     if(req.method()==='POST'){
       assert.equal(req.headers()['if-match'],'"'+'b'.repeat(64)+'"');assert.equal(req.headers()['x-openthermostat-csrf'],'a'.repeat(64));
+      if(storageFull)return route.fulfill({status:507,contentType:'application/json',body:'{\"error\":\"bluetooth_storage_full\"}'});
       if(conflict)return route.fulfill({status:412,contentType:'application/json',body:'{"error":"device_settings_changed"}'});
       const payload=JSON.parse(req.postData());if(payload.reset_invalid===true){assert.equal(payload.devices.length,0);data.config_error='none';data.pending_restart=true;return route.fulfill({status:201,contentType:'application/json',body:'{"changed":true,"pending_restart":true}'});}assert.equal(payload.devices.length,1);assert.equal(payload.devices[0].bindkey,publicFixtureKey);assert.equal(payload.devices[0].profile,profile);
       data.devices[0].name=payload.devices[0].name;data.pending_restart=true;data.devices[0].status='pending_restart';for(const key of ['temperature','humidity','battery','battery_low','light','light_level','button'])data.devices[0][key]=null;
@@ -57,6 +58,7 @@ function snapshot(profile='shelly_ht_display'){const result={schema:1,pending_re
   // Polling never changes the key action, typed key, name, focus or panel state.
   await key.focus();const before=requests.filter(r=>r.path==='/bluetooth/status').length;await page.waitForTimeout(200);assert(requests.filter(r=>r.path==='/bluetooth/status').length>before);
   assert.equal(await key.inputValue(),publicFixtureKey);assert.equal(await key.evaluate(e=>e===document.activeElement),true);
+  storageFull=true;await page.locator('#ble-save').click();await status.filter({hasText:lang==='nl'?'Onvoldoende apparaatopslag':'Not enough device storage'}).waitFor();assert.equal(data.pending_restart,false);assert.equal(await name.inputValue(),'Draft – Zoë');await page.waitForFunction(()=>document.querySelector('#ble-rows input[type=password]')?.value==='');storageFull=false;await key.fill(publicFixtureKey);
   conflict=true;await page.locator('#ble-save').click();await status.filter({hasText:lang==='nl'?'elders gewijzigd':'changed elsewhere'}).waitFor();assert.equal(await name.inputValue(),'Draft – Zoë');assert.equal(await key.inputValue(),'');
   conflict=false;await key.fill(publicFixtureKey);await page.locator('#ble-save').click();await page.waitForFunction(()=>document.querySelector('#ble-rows input[type=password]')?.value==='');assert.equal(data.pending_restart,true);
   assert.equal(await page.locator('#ble-rows input[type=password]').inputValue(),'');assert.equal(await page.locator('#ble-rows input').nth(1).inputValue(),'Draft – Zoë');

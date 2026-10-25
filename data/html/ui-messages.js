@@ -1,5 +1,7 @@
 /* Fixed English UI messages mapped to Nederlands. User data and wire identifiers are excluded. */
 window.OT_UI_MESSAGES = {
+  "Not enough device storage for this change. The saved Bluetooth settings were not changed.": "Onvoldoende apparaatopslag voor deze wijziging. De opgeslagen Bluetoothinstellingen zijn niet gewijzigd.",
+
   "Enter a Bluetooth address with six hexadecimal pairs.": "Voer een Bluetoothadres met zes hexadecimale paren in.",
   "Each Bluetooth address can be added only once.": "Elk Bluetoothadres kan maar één keer worden toegevoegd.",
   "Enter exactly 32 hexadecimal characters for the bindkey.": "Voer precies 32 hexadecimale tekens voor de bindkey in.",

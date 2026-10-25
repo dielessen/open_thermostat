@@ -100,6 +100,19 @@ blijven fouten: geen automatische wisactie of poging om netwerkruimte vrij te
 maken. Een ontbrekende selectie wordt alleen-lezen als leeg geïnterpreteerd;
 corruptie krijgt geen opgeslagen/default- of netwerkfallback.
 
+Vóór schrijven worden de actuele NVS-statistieken en de bestaande 20 KiB-
+partitie gecontroleerd. De nieuwe blob moet passen zonder oude bytes alvast
+vrij te rekenen, met ruimte voor vervanging van de regelconfiguratie,
+garbage collection en de reservering van een eventuele modelopslageigenaar.
+Onbekende of inconsistente statistieken weigeren de wijziging. De API meldt
+onvoldoende ruimte vóór het sluiten van de huidige ontvanger; de opslaglaag
+controleert opnieuw vóór het openen van een schrijfnamespace. Geen automatische
+wisactie. Dit bewijst geen aaneengesloten vrije pagina's of fysieke capaciteit.
+Een gefaalde modelopslageigenaar houdt zijn reservering tot zijn vernietiging;
+deze backend blijft voorbereid en is niet als normale leerroute geactiveerd.
+De grensberekening heeft 10 sanitizergevallen; de voorbereide NVS-modelbackend
+heeft daarnaast 21 hostgevallen met echte Mbed-TLS-SHA en een nagebootste SDK.
+
 - `GET /config/bluetooth`: publieke instellingen plus ontvangststatus en een
   sessiegebonden ETag voor precies de actuele private instellingen. De netwerk-
   en Bluetoothformulieren hebben elk een eigen begrensde readbackcontrole en
@@ -134,10 +147,10 @@ publieke BTHome-voorbeeld en onafhankelijk gemaakte protocolfixtures; geen
 echte apparaatsleutel of productieverbinding. Boardbuilds controleren de echte
 SDK-koppeling; browserproeven gebruiken uitsluitend nagebootste HTTP-antwoorden.
 Actuele resultaten en bronhashes staan bij de bundelcontrole. De private opslag
-heeft daarnaast 15 gerichte SDK-grensgevallen onder ASan/UBSan: eigen namespace,
+heeft daarnaast 23 gerichte SDK-grensgevallen onder ASan/UBSan: eigen namespace,
 read-only ontbrekende selectie, netwerkbehoud, commit-/terugleesfouten,
 terminator-/groottegrenzen en geen sleutel in de oudere netwerkreader.
-De native suite heeft nu 888 geslaagde gevallen. Apart slagen 39 eigenaar-/
+De native suite heeft nu 892 geslaagde gevallen. Apart slagen 39 eigenaar-/
 instellingen-/MiBeacon-parsergevallen en 24 echte Mbed-TLS-/ontvangstgevallen
 onder ASan/UBSan/leakcontrole; de eerdere 18 sessiegevallen blijven behouden.
 Acht browserprofielen dekken beide modellen, EN/NL en 1280/320 pixels, inclusief

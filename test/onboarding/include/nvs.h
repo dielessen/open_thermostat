@@ -11,9 +11,10 @@ using Values=std::map<std::string,std::vector<unsigned char>>;
 inline std::map<std::string,Values> committed;
 struct Handle {std::string name;Values staged;};
 inline std::map<int,Handle> handles;
-inline std::string failCommit,corruptRead,failOpen; inline int next=1;
+inline std::string failCommit,corruptRead,failOpen; inline int next=1; inline unsigned openCalls=0;
 }
 inline int nvs_open(const char* name,int mode,nvs_handle_t* h){
+ ++testNvs::openCalls;
  if(name==testNvs::failOpen)return 2;
  if(mode==NVS_READONLY&&!testNvs::committed.count(name))return ESP_ERR_NVS_NOT_FOUND;
  *h=testNvs::next++;testNvs::handles[*h]={name,{}};return ESP_OK;

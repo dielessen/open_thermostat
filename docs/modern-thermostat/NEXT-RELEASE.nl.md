@@ -529,3 +529,5 @@ publicatiecontrole vereist deze opbouw voor volgende versies. Twaalf gerichte
 tests slagen. Beide publieke teksten zijn exact teruggelezen; programmabestanden,
 tags en releasestatus zijn behouden, evenals de overige 63 releasebeschrijvingen.
 Zie [het notitieproces](RELEASE-NOTES-PROCES.nl.md).
+
+De private Bluetooth-opslag controleert vóór schrijven de verse NVS-statistieken, inclusief ruimte voor regelconfiguratievervanging, garbage collection en een bestaande modelreservering. Onbekende of onvoldoende opslag weigert de wijziging; er wordt niets automatisch gewist. Deze controle activeert geen leer- of regelroute.

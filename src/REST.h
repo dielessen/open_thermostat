@@ -645,7 +645,7 @@ private:
 
 
 #ifdef OPENTHERMOSTAT_E32V2
-    void bluetoothSettings(bool statusOnly=false) {
+    void bluetoothSettings(bool statusOnly=false) try {
         if(update::busy()) {server_.send(503,"application/json","{\"error\":\"bluetooth_resources_unavailable\"}");return;}
         const auto saved=readDeviceBluetoothSettings();
         auto previous=control::parseControlJson({saved.c_str(),saved.length()},true);
@@ -690,13 +690,22 @@ private:
             server_.send(code,"application/json",(std::string("{\"error\":\"")+control::bleSettingsErrorName(error)+"\"}").c_str());return;
         }
         if(!changed) {server_.send(200,"application/json","{\"changed\":false}");return;}
-        controller_.stopManagedBle();
         const auto encoded=control::printJson(candidate.get());
+        if(encoded.empty()) {server_.send(503,"application/json","{\"error\":\"bluetooth_resources_unavailable\"}");return;}
+        if(!bluetoothStorageHasRoom(encoded.size()+1)) {
+            server_.send(507,"application/json","{\"error\":\"bluetooth_storage_full\"}");return;
+        }
+        controller_.stopManagedBle();
         if(!saveDeviceBluetoothSettings(encoded)) {
             server_.send(503,"application/json","{\"error\":\"bluetooth_save_unconfirmed\"}");return;
         }
         server_.send(201,"application/json","{\"changed\":true,\"pending_restart\":true}");
+    } catch(...) {
+        // The writer closes observation admission before any durable mutation.
+        // A JSON/heap exception cannot claim saved settings or retry a write.
+        server_.send(503,"application/json","{\"error\":\"bluetooth_resources_unavailable\"}");
     }
+
 #endif
 
 	void configDevice() {

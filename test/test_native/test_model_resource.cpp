@@ -53,7 +53,8 @@ struct Backend:ControlStore {
     bool save(std::string_view)override{++unboundedCalls;return false;}
     bool loadBounded(std::string& out,size_t maximum)override {
         ++reads;if(throwReadAt==reads)throw std::runtime_error("read failure");
-        if(!readOk||bytes.size()>maximum)return false;out=bytes;return true;
+        if(!readOk||bytes.size()>maximum)return false;
+        out=bytes;return true;
     }
     bool saveBounded(std::string_view in,size_t maximum)override {
         ++writes;if(throwBeforeSave)throw std::runtime_error("write failure");

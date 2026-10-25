@@ -57,3 +57,17 @@ TEST(ControlPartitionBudget, UnknownModelCountsCannotWrapOrSilentlyDropReservati
     }
 }
 }
+TEST(ControlPartitionBudget, BluetoothLeavesTheOriginalControlAndGcMarginAfterItsNewBlob) {
+    EXPECT_FALSE(ControlPartitionBudget::permitsBluetoothWrite(healthy(334),2048));
+    EXPECT_TRUE(ControlPartitionBudget::permitsBluetoothWrite(healthy(335),2048));
+    // New private blob70 + own namespace1 have NOT been reclaimed from old data.
+    EXPECT_TRUE(ControlPartitionBudget::permitsGraphWrite(healthy(335-70-1),4096));
+    const ControlModelReservation models{1,1,1};
+    EXPECT_FALSE(ControlPartitionBudget::permitsBluetoothWrite(healthy(397),2048,models));
+    EXPECT_TRUE(ControlPartitionBudget::permitsBluetoothWrite(healthy(398),2048,models));
+}
+TEST(ControlPartitionBudget, BluetoothRejectsUnknownBudgetInvalidSizesAndOverflowReservations) {
+    auto bad=healthy();bad.valid=false;EXPECT_FALSE(ControlPartitionBudget::permitsBluetoothWrite(bad,100));
+    for(auto bytes:{size_t(0),size_t(2),size_t(2049),SIZE_MAX})EXPECT_FALSE(ControlPartitionBudget::permitsBluetoothWrite(healthy(),bytes));
+    EXPECT_FALSE(ControlPartitionBudget::permitsBluetoothWrite(healthy(),100,{SIZE_MAX,0,0}));
+}

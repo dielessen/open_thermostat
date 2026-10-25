@@ -33,5 +33,21 @@ int main() {
     blob={'x',0};assert(readDeviceBluetoothSettings().empty());pass("undersized stored blob has no fallback");
     testNvs::committed["ot_bluetooth"].erase("settings");assert(readDeviceBluetoothSettings()=="{\"bt\":{}}");assert(testNvs::handles.empty());pass("missing key in existing namespace is read-only empty selection");
     assert(testNvs::committed.at("ot_network")==networkBefore);pass("all private failure cases preserve the unrelated network store");
+    const auto allBefore=testNvs::committed;
+    const auto noWrite=[&]{const auto opens=testNvs::openCalls;assert(!saveDeviceBluetoothSettings(privateSettings));assert(testNvs::openCalls==opens);assert(testNvs::committed==allBefore);};
+    testBluetoothStorage::missingPartition=true;noWrite();testBluetoothStorage::missingPartition=false;pass("missing partition rejected before namespace open");
+    testBluetoothStorage::partitionBytes=40960;noWrite();testBluetoothStorage::partitionBytes=20480;pass("wrong partition geometry rejected before namespace open");
+    testBluetoothStorage::failStats=true;noWrite();testBluetoothStorage::failStats=false;pass("unreadable fresh stats reject before namespace open");
+    const auto statistics=testBluetoothStorage::stats;
+    testBluetoothStorage::stats.used_entries=1;noWrite();testBluetoothStorage::stats=statistics;pass("inconsistent stats reject without rewriting any namespace");
+    testBluetoothStorage::stats={629,1,630,4};noWrite();testBluetoothStorage::stats=statistics;pass("private data cannot consume control replacement and GC reserve");
+    const auto queries=testBluetoothStorage::statsCalls;assert(saveDeviceBluetoothSettings(privateSettings));assert(testBluetoothStorage::statsCalls==queries+1);pass("each valid write uses fresh stats, not a cached budget");
+    int modelOwner=0;assert(control::controlModelStorageReservation.claim(&modelOwner,{1,1,1}));
+    const auto bytes=privateSettings.size()+1;
+    const auto minimum=3+control::ControlPartitionBudget::blobEntries(bytes)+control::ControlPartitionBudget::blobEntries(4096)+control::ControlPartitionBudget::entriesPerPage;
+    testBluetoothStorage::stats={630-minimum,minimum,630,4};
+    assert(control::ControlPartitionBudget::permitsBluetoothWrite({20480,630,630-minimum,minimum,true},bytes));
+    const auto modelOpens=testNvs::openCalls;assert(!saveDeviceBluetoothSettings(privateSettings));assert(testNvs::openCalls==modelOpens);pass("selected model checkpoints keep their reservation against Bluetooth writes");
+    control::controlModelStorageReservation.release(&modelOwner);assert(saveDeviceBluetoothSettings(privateSettings));testBluetoothStorage::stats=statistics;pass("only the actual model owner's release removes its future checkpoint reservation");
     std::cout<<cases<<" storage cases PASS\n";
 }

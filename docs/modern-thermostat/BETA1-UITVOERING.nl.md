@@ -131,3 +131,5 @@ Bewijs wordt verzameld onder `out/large-beta-20261025/`. Volledige tests gelden
 alleen voor de daarbij vastgelegde bronstand; een latere wijziging vereist de
 passende aanvullende controle. Deze lijst is geen publicatie-, installatie- of
 fysieke acceptatieclaim. De grote bèta is nog in bewerking.
+
+De uitgiftehulpmiddelen herkennen nu ook canonieke HA-versies met `a`, `b`, `rc` en zonder ontwikkelsuffix. De eerste bètaverpakking test verplicht de ongewijzigde alpha36-parser met het werkelijke manifest/image; bewijs gaat mee in de checksums. 18 releasenotitiegevallen, 4 voorgangercompatibiliteitsgevallen en 59 gerichte releasescriptgevallen slagen. Versies zijn nog niet bevroren en er is niets gepubliceerd of geïnstalleerd.

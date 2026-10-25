@@ -100,6 +100,36 @@ class BetaReleaseNotesTests(unittest.TestCase):
         for tag in ['v0.1.0-e32v2-beta.01','v0.1.0-e32v2-beta.4294967296']:
             self.assertIsNone(release.classify(tag)[0])
 
+    def test_ha_pep440_stages_sort_and_preserve_download_identity(self):
+        tags=['ha-v0.4.0.dev48','ha-v0.4.0a1','ha-v0.4.0b1',
+              'ha-v0.4.0rc1','ha-v0.4.0']
+        versions=[release.classify(tag)[1] for tag in tags]
+        self.assertEqual(sorted(versions),versions)
+        for tag,version in zip(tags,versions):
+            expected=tag.removeprefix('ha-v')
+            self.assertEqual(release.label('ha',version),('Home Assistant',expected))
+            notes='# HA '+expected+'\n'+release.USER_NOTES+'\n## Nieuw\nFeatures\n## Opgelost\nFixes\n## Bijwerken en gebruik\nUsage\n## English\nSummary'
+            rendered=release.publication_notes(notes,'owner/project',tag,True)
+            self.assertIn('/blob/'+tag+'/',rendered)
+        for tag in ['ha-v0.4.0b01','ha-v00.4.0b1','ha-v0.4.0b4294967296',
+                    'ha-v0.4.0.beta1','ha-v0.4.0b','ha-v0.4.0.dev1rc1']:
+            self.assertIsNone(release.classify(tag)[0],tag)
+
+    def test_ha_beta_overview_uses_beta_asset_and_archives_dev(self):
+        rows=[]
+        for index,version in enumerate(('0.4.0.dev48','0.4.0b1'),1):
+            rows.append(dict(id=index,tag_name='ha-v'+version,draft=False,
+                name='old',body='Original '+version,assets=[dict(
+                    name='OpenThermostat-HA-'+version+'.zip',
+                    browser_download_url='https://example.test/'+version+'.zip')]))
+        changes=release.plan(rows,'owner/project')
+        self.assertIn('Archief',changes[0]['name'])
+        self.assertIn('Actueel',changes[1]['name'])
+        self.assertIn('OpenThermostat-HA-0.4.0b1.zip',changes[1]['body'])
+        self.assertEqual(release.original_notes(changes[0]['body']),'Original 0.4.0.dev48')
+        updated=[{**row,**{k:change[k] for k in ('name','body')}} for row,change in zip(rows,changes)]
+        self.assertEqual(release.plan(updated,'owner/project'),[])
+
     def test_beta_publication_uses_same_required_reader_sections(self):
         notes='# E32 V2 beta1\n'+release.USER_NOTES+'\n## Nieuw\nFeatures\n## Opgelost\nFixes\n## Bijwerken en gebruik\nUsage\n## English\nSummary'
         self.assertIn('Features',release.publication_notes(notes,'owner/project',

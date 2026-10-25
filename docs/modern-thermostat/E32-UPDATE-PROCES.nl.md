@@ -37,6 +37,28 @@ beschadigde receipt of teruggaande versie blokkeert de opvolger. Gewoon bronwerk
 en CI-tests mogen doorgaan terwijl een fysieke acceptatie openstaat.
 Deze controle valideert vastgelegd bewijs; ze voert zelf geen hardwareproef uit.
 
+### Eerste bèta vanaf de geïnstalleerde alpha36
+
+De bètabundel voert `scripts/verify_alpha36_beta_path.py` verplicht uit op het
+werkelijke manifest en `firmware.bin`, vóór de pakketchecksums. De proef haalt
+vier ongewijzigde headers uit de exact geaccepteerde alpha36-bron
+`7ddf3410666d814850275433d9dddd266e5d83ba`, controleert hun vaste hashes en
+compileert de oude manifest-/cataloguscode. Ontbrekende bron blokkeert verpakken;
+CI haalt vooraf precies die commit op. Er wordt geen oude parser aangepast.
+
+Alpha36 kent de bètanaam niet in de snelle index en kiest daarom de bestaande
+algemene releasezoekroute. De hostproef controleert alle twaalf toegestane
+posities, exact manifest-/imagehash en ingebedde versie-/bron-/webmarker,
+en behoud van de oude keuzelijst bij een mislukte manifestdownload. De bèta
+moet dus tussen de eerste twaalf releaseberichten staan. Het bewijs heet
+`alpha36-beta-compatibility.json` en gaat mee in pakket en checksumlijst.
+
+De fixtures hebben vier geslaagde tests, inclusief verkeerde layout en
+tegenstrijdige image-identiteit. Dit is uitsluitend een lokale parser-/pakket-
+controle: echte GitHub/TLS/heap/flash/boot en afzonderlijke nacontrole blijven
+hieronder verplicht. Geen tussenrelease of extra installatie nodig op grond
+van deze broncontrole; fysieke geschiktheid wordt niet vooruit afgetekend.
+
 ## 2. Verse voorcontrole en behoud
 
 Alle HA-/E32-beheer via de bestaande HA-agent. Controleer onmiddellijk vooraf:

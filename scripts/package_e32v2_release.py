@@ -76,6 +76,11 @@ subprocess.run([sys.executable,str(core/"tool-esptoolpy/esptool.py"),"--chip","e
 (pkg/"README.md").write_text("# OpenThermostat E32 V2 — "+release["version"]+"\n\nRead docs/modern-thermostat/GITHUB-UPDATES.nl.md.\n\nfirmware.bin: settings-preserving application-only bootstrap/OTA; includes web UI.\ne32v2-factory.bin: separate clean USB installation at0x0; full erase DELETES SETTINGS. Never offer this factory file as an OTA app.\n\nthird-party/vendor-source-inputs.zip: pinned original vendor source snapshots and notices.\nthird-party/installed-notices: unchanged installed/original notices and inventory.\nrelink/: exact application source, actual objects, link recipe and verified changed-library relink evidence. Read relink/README.md. Altered proof ELF files are excluded from this package.\nSDK/runtime reproduction recipes and safe source preparation are included in source.tar.gz; see docs/third-party/e32v2-reproduction/README.md.\n\nExperimental prerelease, outputs remain blocked, keep EMS disconnected.\nSoftware verification is not physical update/failure/recovery acceptance.\n")
 factory=(pkg/"e32v2-factory.bin").read_bytes()
 (pkg/"FACTORY-CHECK.txt").write_text("Offset:0x0; full clean installation deletes settings\nLength:"+str(len(factory))+"\nMD5 before first boot:"+hashlib.md5(factory).hexdigest()+"\n")
+if "-e32v2-beta." in release["version"]:
+    from verify_alpha36_beta_path import verify as verify_predecessor
+    compatibility = verify_predecessor(root,pkg/"e32v2-update.json",pkg/"firmware.bin")
+    (pkg/"alpha36-beta-compatibility.json").write_text(json.dumps(compatibility,indent=2)+"\n")
+    shutil.copy2(pkg/"alpha36-beta-compatibility.json",assets/"alpha36-beta-compatibility.json")
 (pkg/"SHA256SUMS.txt").write_text("".join(hashlib.sha256(p.read_bytes()).hexdigest()+"  "+str(p.relative_to(pkg))+"\n" for p in sorted(pkg.rglob("*")) if p.is_file() and p.name!="SHA256SUMS.txt"))
 report = verify(pkg,root)
 (assets/"software-verification.json").write_text(json.dumps(report,indent=2)+"\n")

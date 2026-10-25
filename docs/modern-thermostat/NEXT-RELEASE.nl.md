@@ -39,6 +39,13 @@ De gecombineerde voorbereiding met de cleanupfix is volledig lokaal getoetst:
 pakketunittests en twee onafhankelijke offline bronreviews slagen. Geen nieuwe
 releaseversie of installatie voor deze bronstap. Alle fysieke poorten blijven open.
 
+X01 heeft nu een eerste pure Shelly SBHT-103C-decoderbasis:798native tests,
+16aparte sanitizergevallen en ESP32-syntaxcontrole slagen. Deze parser wordt
+nog niet door de BLE-reader geselecteerd. Settings/onboarding, sleutels,
+bron-/replaykwalificatie en echte apparaatproeven blijven open. De actuele
+bronvoorbereiding bewaart23onderdelen en31eisen, nu met289bronverwijzingen.
+[Uitwerking en grenzen](BLUETOOTH-APPARATEN.nl.md).
+
 ## Historische release HA46 / E32 alpha33
 
 Beide tags zijn gepubliceerd op bron `2d32ad3`; alle toepasselijke main-/tag-CI,
@@ -63,7 +70,7 @@ native imagevalidatie, onafhankelijk flash-readback en bootselectie. Oude
 checkpoints blijven leesbaar; de UI toont de betekenis in Nederlands/Engels.
 782 native gevallen, 40 sanitizergevallen en 24 updaterbrowsergevallen slagen;
 E32-compile geslaagd. De updaterstap behield 23 onderdelen en 31 eisen; met de
-HA-opstartcorrectie hieronder bevat de actuele inventaris 286 bronverwijzingen.
+HA-opstartcorrectie hieronder bevat de gepubliceerde HA47-inventaris 286 bronverwijzingen.
 Dit is gepubliceerd in alpha34,
 zonder firmware-installatie door deze opdracht; de oudere watchdog blijft onverklaard.
 [Uitwerking en bewijs](UPDATE-VERIFICATIE-CHECKPOINTS-20261025.nl.md).

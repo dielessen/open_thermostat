@@ -1,9 +1,55 @@
 # Bluetooth-apparaten onder Settings
 
-Uitbreiding X01, 24 oktober 2026. **Ontwerp en acceptatievoorwaarden;
-nog geen geïmplementeerde of fysiek geteste ondersteuning.** De uitvoering staat
+Uitbreiding X01, bijgewerkt25oktober2026. **Ontwerp met eerste geteste
+decoderbasis; nog geen aangesloten of fysiek geteste apparaatondersteuning.** De uitvoering staat
 op het [werkbord](WORKBOARD.nl.md). Dit vult het
 [BLE-/standalone-ontwerp](SHELLY-BLU-TRV-STANDALONE.nl.md) aan.
+
+## Voorbereid: passieve SBHT-103C-decoder
+
+`src/control/ShellyHtDisplayAdvertisement.h` levert een pure parser voor het
+gedocumenteerde SBHT-103C-deel van [BTHomev2](https://bthome.io/format/).
+Temperatuur, vochtigheid, batterij, batterijwaarschuwing, licht/lichtniveau,
+knop en ruwe firmware-/modeldeclaraties worden afzonderlijk gedecodeerd.
+Temperatuur gebruikt getekende little-endian0,1°C; de projectgrens
+−40..85°C wordt vóór omzetting naar honderdsten gecontroleerd.
+De [Shelly-identificatietabel](https://shelly-api-docs.shelly.cloud/docs-ble/common/)
+vermeldt0x000C voor dit model. Zo'n broadcastdeclaratie is geen authenticatie.
+
+De volledige AD-container wordt eerst gecontroleerd; afgebroken of dubbele
+services, verkeerd geordende/dubbele objecten, onbekende objecten en ongeldige
+waarden leveren geen gedeeltelijke meetwaarden op. Dit is een strikte subset,
+geen algemene BTHome-parser: toekomstige extra objecten worden geweigerd.
+Een versleuteld formaat geeft alleen `key_required`, zonder meetwaarden of
+identiteit. Authenticatie, AES-CCM en sleutelbeheer zijn hier nog niet geïmplementeerd;
+het formaatlabel bewijst geen geldig cryptografisch bericht.
+
+Er is geen veldcache: batterij-, identificatie- en knoppakketten krijgen geen
+eerdere temperatuur mee. Een teller wordt alleen als ontvangen getal getoond;
+herhaling/omloop, echte acquisitietijd en adres-/sleutelbinding worden niet
+gekwalificeerd. Een gewone beacon bevat geen modelidentificatie. De toekomstige
+apparaateigenaar moet de expliciet gekozen bron en haar kwaliteit beoordelen.
+
+798 native tests slagen, inclusief16nieuwe decodergevallen en bestaande legacy
+BLE-tests. De16gevallen slagen ook onder ASan/UBSan/leakcontrole, met12.000
+begrensde willekeurige buffers en6.656mutaties van een synthetisch profielpakket.
+De echte ESP32-toolchain controleert de headersyntax met warnings als fouten;
+dit is geen complete firmware-/radio- of praktijkproef. Een eerste testsamenstelling
+faalde op een GoogleTest-macrocombinatie; die testsyntax is gecorrigeerd en de
+foutuitvoer blijft bewaard.
+
+De normale NimBLE-reader selecteert deze parser nog niet; een regressie bewaakt
+dat dezelfde Shelly-advertentie door de legacy-reader wordt geweigerd. Geen
+extra scanner, verbinding, taak, write, fysieke opdracht of bronwissel.
+Settings/onboarding, sleutels, replay-/bronlevensduur, runtimebedrading, Xiaomi
+Monitor3 en BLUTRV blijven open. Bewijs: `out/shelly-ht-decoder-20261025/`.
+
+**English:** Prepared strict SBHT-103C advertisement decoder, not a connected
+device driver. Sixteen new cases pass within798native tests and separately
+under sanitizers; the ESP32 toolchain accepts the header. Whole-container and
+field validation is atomic. Encrypted input exposes no measurements. Address
+binding, authenticated decryption, replay/acquisition qualification, runtime
+onboarding and real-device acceptance remain open. Existing BLE routing is unchanged.
 
 ## Eerste ondersteunde profielen
 

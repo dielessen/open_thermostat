@@ -13,6 +13,6 @@ bool requestReboot();
 bool requestRollback();
 std::string status();
 std::string availability(); // Cached local summary; never starts network work.
-void loop();
+void loop(bool automaticAllowed);
 }
 #endif

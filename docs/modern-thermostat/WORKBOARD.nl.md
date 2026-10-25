@@ -705,3 +705,11 @@ Alleen programma-ACK of beschikbaarheid van een entiteit sluit M2 niet.
 Lokale `out/`-dossiers worden niet integraal gepubliceerd wegens mogelijke
 privégegevens. Nieuwe voortgang wordt in de actuele tabellen verwerkt; uitgebreide
 uitvoeringslogs horen in het bewijsdossier of de historie, niet onder de checklist.
+
+### Achtergrondcontrole wacht op een actieve ketelproef
+
+De hoofdloop geeft de bestaande proefstatus door aan de updateplanner. Een
+achtergrondcontrole start niet zolang de controller ontbreekt of de ketelproef
+actief is; die controle kan daardoor geen keepalive van de proef blokkeren.
+Uitstel verbruikt geen poging en start geen wachtrij. 45 gerichte native gevallen
+en de E32-build slagen. Geen ketelproef of firmwareactie voor deze broncontrole.

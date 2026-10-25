@@ -29,3 +29,12 @@ TEST(ReleaseCheckSchedule, CacheAndRetryIntervalsSurviveMillisRollover) {
     EXPECT_FALSE(s.cached(t+s.cacheMs));
     EXPECT_FALSE(s.due(t+s.intervalMs-1,true));EXPECT_TRUE(s.due(t+s.intervalMs,true));
 }
+TEST(ReleaseCheckSchedule, ActiveTestInhibitsWithoutConsumingTheNextAttempt) {
+    ReleaseCheckSchedule s;
+    EXPECT_FALSE(s.due(s.initialDelayMs,false));
+    EXPECT_FALSE(s.due(s.initialDelayMs+60000,false));
+    EXPECT_TRUE(s.due(s.initialDelayMs+60000,true));
+    s.attempted(s.initialDelayMs+60000);
+    EXPECT_FALSE(s.due(s.initialDelayMs+60000+s.intervalMs,false));
+    EXPECT_TRUE(s.due(s.initialDelayMs+60000+s.intervalMs,true));
+}

@@ -93,7 +93,7 @@
       "files": [
         {
           "path": "src/update/GitHubUpdate.cpp",
-          "sha256": "01a7e4db26d2ae3b036478d0af2fc13eda6107dddd9f673fccda07542f77c856"
+          "sha256": "6e1333cc08fa24a9b925af6a1febb6b4b628f30397ba1adc05e5ca68c0656ba3"
         },
         {
           "path": "src/update/IndexedReleaseCatalog.h",
@@ -149,7 +149,7 @@
         },
         {
           "path": "test/test_native/test_release_check_schedule.cpp",
-          "sha256": "e067ffe2caa1f40024379c8e4ef414b21104de7c2000bd3e371edcc076eccf5e"
+          "sha256": "4a666485c8e6afcc54758e05bf7fbbb1a75a065a97a48e90797315ec6aff68ea"
         }
       ],
       "remaining_acceptance": "Alpha26 HTTPS-afwijking blijft onverklaard; geen blinde herhaling. Blijvende enkelvoudige NVS-updatediagnose en EN/NL-webpresentatie geleverd in alpha27/dev36. Echte flash-/powerloss-/herstelacceptatie en normale update op een afzonderlijk beoordeelde kandidaat blijven open. Alpha29 app-only upload mislukte met reset6; Verse basis 25 oktober 01:50 UTC is HA44/E32alpha31; uitvoerder en methode van die installatie onbekend. Deze opdracht heeft geen E32-upload gestart; eerdere watchdogoorzaak blijft open. Strikte lengte, handle-opruiming en selectie na volledig geautoriseerd verzoek zijn bronmatig voorbereid; geen oorzaakbewijs, herstelproef of installatievrijgave. De bestaande native HTTPS-checkpointscope blijft ongewijzigd. Gepubliceerd in alpha34: vier begrensde checkpoints vóór checksum/image/readback/bootselectie met EN/NL-status, 782 native/40 sanitizer/24 updaterbrowsergevallen en compile geslaagd; niet geflasht door deze opdracht; HA47 met verse back-up/nacontrole geïnstalleerd. Dit verklaart of herstelt de oudere watchdog niet."
@@ -603,7 +603,7 @@
         },
         {
           "path": "src/main.cpp",
-          "sha256": "6dfbacc592a78353ba47374d903d46dcba25975998055a8f34c5d8419959829d"
+          "sha256": "89795688eeb9cdb48da18d3fd71758d07d7f380453bf5f579d8d0add4a8ab9c4"
         },
         {
           "path": "src/REST.h",

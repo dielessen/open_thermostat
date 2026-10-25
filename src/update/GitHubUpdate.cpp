@@ -300,13 +300,13 @@ std::string status() {
     auto list=cJSON_AddArrayToObject(root.get(),"releases");for(const auto &r:snapshot.releases){auto entry=cJSON_CreateObject();cJSON_AddStringToObject(entry,"tag",r.tag.c_str());cJSON_AddBoolToObject(entry,"prerelease",r.prerelease);cJSON_AddItemToArray(list,entry);}
     char *raw=cJSON_PrintUnformatted(root.get());std::string result=raw?raw:"{}";cJSON_free(raw);return result;
 }
-void loop() {
+void loop(bool automaticAllowed) {
     const auto now=millis();if(rebootTimer.due(now,working.load())){ESP.restart();return;}
     static bool pending=pendingBoot();static uint32_t start=now,stable=0;
     if(!pending){
         bool due;
         {std::lock_guard<std::mutex> lock(stateMutex);
-         due=checkSchedule.due(now,!working.load()&&!rebootTimer.pending()&&!state.reboot);}
+         due=checkSchedule.due(now,automaticAllowed&&!working.load()&&!rebootTimer.pending()&&!state.reboot);}
         if(due&&ready()&&!pendingBoot())checkReleases();
         return;
     }

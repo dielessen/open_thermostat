@@ -1,5 +1,15 @@
 # Volgende actieve bèta — geïnstalleerde basis HA48 / E32 alpha36
 
+## Alpha37 — kandidaat voor de volgende bundel
+
+Alpha36 is via de normale GitHub-route geïnstalleerd en onafhankelijk geaccepteerd.
+De opvolgende kandidaat bundelt automatische12ucontrole, dashboardmelding,
+vijfminutencache, wachten tijdens ketelproeven en de voorbereide Zigbee-
+eigenaars-/publicatiefixes. HA48 blijft bytegelijk. De updatepoort staat op
+pendingalpha37; publicatie/installatie/nacontrole moeten nog slagen. Alle fysieke
+ketel-/kraan-/bronkwalificaties blijven afzonderlijk open.
+
+
 Bijgewerkt: 25 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
 het [masterplan](PLAN.nl.md) bewaart alle 31 producteisen en acceptatievoorwaarden.

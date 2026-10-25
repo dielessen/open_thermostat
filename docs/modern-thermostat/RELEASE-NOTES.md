@@ -1,3 +1,32 @@
+# E32 V2 alpha37 — automatische updatecontrole en dashboardmelding
+<!-- user-release-notes:v1 -->
+
+## Nieuw
+
+- **De E32 controleert zelf op updates:** iedere twaalf uur, vanaf vijf minuten na opstarten. Downloaden en installeren doe je nog steeds zelf.
+- **Update zichtbaar op het dashboard:** bij een nieuwere compatibele versie verschijnt een melding met een knop naar de updatepagina.
+- **Sneller opnieuw controleren:** een geslaagde controle wordt vijf minuten hergebruikt. Het dashboard leest de lokale status en vraagt niet zelf GitHub op.
+
+## Opgelost
+
+- Voorbereide Zigbee-ontvangers ruimen fouten bij starten en stoppen beter op. Een herstart kan geen oude en nieuwe ontvanger door elkaar laten lopen.
+- Gelijktijdige ontvangst kan geen dubbele publicatie starten. Stoppen wacht ook bij opruimfouten op de lopende publicatie.
+- Een automatische updatecontrole wacht zolang een ketelproef actief is.
+
+## Bijwerken en gebruik
+
+Werk bij via de firmware-updatepagina van de E32. Je netwerk, kamers, programma's en loginstellingen blijven behouden. Home Assistant dev48 hoeft niet opnieuw geïnstalleerd te worden.
+
+Dit is een testversie. De ontvangstfixes voegen geen nieuwe sensorkoppeling toe en schakelen geen ketel- of kraansturing in. Na een mislukte automatische controle wordt niet voortdurend opnieuw geprobeerd; handmatig controleren blijft mogelijk.
+
+## English
+
+**New:** automatic release checks every twelve hours after a five-minute startup delay, a dashboard update notice, and a five-minute cache for successful checks. Installation remains manual.
+
+**Fixed:** prepared Zigbee receivers clean up failed startup/shutdown safely and prevent overlapping publications or mixed owners. Background release checks wait during an active boiler test.
+
+**Updating:** use the E32 update page. Settings, rooms, programs and logging preferences are retained; HA dev48 needs no reinstall. This test release does not enable new sensor pairing or physical heating control.
+
 # E32 V2 alpha36 — meer ketelkeuze en betere logging
 <!-- user-release-notes:v1 -->
 

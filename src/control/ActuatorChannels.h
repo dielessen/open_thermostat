@@ -103,6 +103,9 @@ private:
     };
     uint64_t readClock() {
         if(retired_)throw std::runtime_error("Actuator transport retired");
+        if(readingClock_){retire();throw std::runtime_error("Actuator transport clock reentry");}
+        readingClock_=true;
+        struct Exit {bool& reading;~Exit(){reading=false;}} exit{readingClock_};
         Callback callback(*this);
         uint64_t now;
         try{now=clock_();}catch(...){retire();throw;}
@@ -122,6 +125,9 @@ private:
     bool enter(){if(retired_)return false;if(busy_||inCallback_){retire();return false;}busy_=true;return true;}
     bool usable() {
         if(retired_)return false;
+        if(checkingAvailability_){retire();return false;}
+        checkingAvailability_=true;
+        struct Exit {bool& checking;~Exit(){checking=false;}} exit{checkingAvailability_};
         bool available=false;
         try{Callback callback(*this);available=available_();}catch(...){retire();return false;}
         if(!available||retired_){retire();return false;}
@@ -130,7 +136,7 @@ private:
     Factory factory_;Context context_;Available available_;
     ActuatorChannel::Clock clock_;ActuatorChannel::Send send_;
     std::vector<std::unique_ptr<ActuatorChannel>> channels_;
-    bool retired_=false,busy_=false,inCallback_=false,haveClock_=false,checkingHandoff_=false;
+    bool retired_=false,busy_=false,inCallback_=false,haveClock_=false,checkingHandoff_=false,readingClock_=false,checkingAvailability_=false;
     uint64_t lastClock_=0;
 };
 }

@@ -994,11 +994,11 @@
         },
         {
           "path": "src/control/ActuatorChannels.h",
-          "sha256": "7f4b1b9aec2e28a7c2a3a016249a5dbad7ac54878399f80f7f7347535d641af0"
+          "sha256": "29dc1d2754e1ebdf0d3389d6db9ab6ca8a0a6e10a9e3c8719d5ffa31931db7f5"
         },
         {
           "path": "test/test_native/test_actuator_channels.cpp",
-          "sha256": "4ba13f904b5c403e57f4c47b9a3b7850cf9cac093c865534cf5a047bfced8cb1"
+          "sha256": "0aa65296fe5e422791a75a6489ea37b09f4556f198f342d1028e3bd4d5df23b0"
         },
         {
           "path": "src/control/DeadlineWrite.h",

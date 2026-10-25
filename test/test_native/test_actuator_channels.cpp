@@ -6,7 +6,7 @@ namespace {
 using Outcome=ActuatorChannel::Outcome;
 struct ChannelsFixture {
     uint64_t now=1000;bool network=true,tcp=true,authority=true;
-    int factories=0,sends=0,availabilityReads=0,contextReads=0;bool sendResult=true;std::function<void()> onFactory,onSource,onSend,onAvailable,onContext;
+    int factories=0,sends=0,availabilityReads=0,contextReads=0;bool sendResult=true;std::function<void()> onFactory,onSource,onSend,onAvailable,onContext,onClock;
     ActuatorChannels* pointer=nullptr;
     heating::control::ActuatorScope scope(std::string_view binding){return {"ctrl","boot","ha","session",std::string(64,'a'),std::string(binding),1,4};}
     ActuatorChannels channels{
@@ -15,7 +15,7 @@ struct ChannelsFixture {
             return [&,original]{if(onSource)onSource();return ActuatorChannel::Facts{original,16000,authority};};
         },
         [&](std::string_view binding,uint64_t)->std::optional<heating::control::ActuatorSessionContext>{++contextReads;if(onContext)onContext();return heating::control::ActuatorSessionContext{scope(binding),16000,16000};},
-        [&]{++availabilityReads;if(onAvailable)onAvailable();return network&&tcp;},[&]{return now;},
+        [&]{++availabilityReads;if(onAvailable)onAvailable();return network&&tcp;},[&]{if(onClock)onClock();return now;},
         [&](std::string_view,std::string_view,uint64_t){++sends;if(onSend)onSend();return sendResult;}};
     ChannelsFixture(){pointer=&channels;}
     std::string grant(){return "{\"adapter_id\":\"ha\",\"adapter_session_id\":\"session\",\"api\":1,\"binding_id\":\"valve\",\"boot_id\":\"boot\",\"command_kind\":\"room_target\",\"config_digest\":\""+std::string(64,'a')+"\",\"config_revision\":4,\"controller_id\":\"ctrl\",\"epoch\":1,\"grant_id\":\"receiver1\",\"grant_ms\":5000,\"grant_sequence\":1,\"request_sequence\":1}";}
@@ -153,5 +153,20 @@ TEST(ActuatorChannels, OrdinaryFinalHandoffAndExpiredDeadlineRemainBounded) {
     f.onSend=[&]{EXPECT_TRUE(f.channels.beforeHandoff(5000));};
     EXPECT_EQ(a->request(),Outcome::transport_accepted);EXPECT_FALSE(f.channels.retired());EXPECT_EQ(f.sends,1);
     EXPECT_FALSE(f.channels.beforeHandoff(f.now));EXPECT_FALSE(f.channels.retired());
+}
+}
+
+namespace {
+TEST(ActuatorChannels, AvailabilityCannotReenterHandoffFromNormalAdmission) {
+    ChannelsFixture f;int calls=0;
+    f.onAvailable=[&]{if(++calls==1){EXPECT_FALSE(f.channels.beforeHandoff(5000));}};
+    EXPECT_EQ(f.channels.get("valve"),nullptr);EXPECT_TRUE(f.channels.retired());
+    EXPECT_EQ(calls,1);EXPECT_EQ(f.factories,0);EXPECT_EQ(f.sends,0);
+}
+TEST(ActuatorChannels, ClockCannotReenterHandoffFromNormalAdmission) {
+    ChannelsFixture f;int calls=0;
+    f.onClock=[&]{if(++calls==1){EXPECT_FALSE(f.channels.beforeHandoff(5000));}};
+    EXPECT_EQ(f.channels.get("valve"),nullptr);EXPECT_TRUE(f.channels.retired());
+    EXPECT_EQ(calls,1);EXPECT_EQ(f.factories,0);EXPECT_EQ(f.sends,0);
 }
 }

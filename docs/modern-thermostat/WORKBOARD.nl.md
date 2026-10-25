@@ -113,12 +113,12 @@ Een begrensde regressieproef op de gepubliceerde alpha32-bron bevestigt drie
 callbackproblemen in de voorbereide `beforeHandoff`-grens: recursie via
 beschikbaarheid, recursie via de klok en toelating van een nieuw kanaal vanuit
 de beschikbaarheidscontrole. De broncorrectie bewaakt die grens afzonderlijk en
-behandelt beschikbaarheid als callback. Betrokken kanalen worden bij herintrede
+bewaakt ook beschikbaarheid en klok op hun eigen callbackgrens. Betrokken kanalen worden bij herintrede
 blijvend ingetrokken. Normale controle binnen een zendcallback blijft mogelijk.
 
-Vier kanaalgevallen en één echte lokale socketproef zijn toegevoegd; drie
-kanaalgevallen en de socketproef falen aantoonbaar vóór de correctie. Alle 771
-native kerngevallen en 5 socketgevallen slagen; 75 kerngevallen ook onder
+Zes kanaalgevallen en één echte lokale socketproef zijn toegevoegd; vijf
+kanaalgevallen en de socketproef falen aantoonbaar vóór de correctie. Alle 773
+native kerngevallen en 5 socketgevallen slagen; 77 kerngevallen ook onder
 sanitizers en debugiteratoren. E32-build geslaagd. De wijziging is nog niet
 als release gepubliceerd of geïnstalleerd.
 [Reproductie en releasegrens](M2-LAATSTE-VERZENDCONTROLE-20261025.nl.md).

@@ -1,10 +1,27 @@
-# Volgende actieve bèta — geïnstalleerde basis HA45 / E32 alpha31
+# Volgende actieve bèta — geïnstalleerde basis HA46 / E32 alpha31
 
 Bijgewerkt: 25 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
 het [masterplan](PLAN.nl.md) bewaart alle 31 producteisen en acceptatievoorwaarden.
 
-## Grotere release HA45 / E32 alpha32 — gepubliceerd
+## Grotere release HA46 / E32 alpha33 — gepubliceerd
+
+Beide tags zijn gepubliceerd op bron `2d32ad3`; alle toepasselijke main-/tag-CI,
+bronreviews en daadwerkelijke publieke pakketreviews slagen. De bundel bevat
+begrensde oorspronkelijke ontvangstdiagnostiek en extra herintredebewaking bij
+socketoverdracht en kanaaltoelating. 773 native kerngevallen, 5 lokale socketgevallen
+en 2.339 HA-gevallen per ondersteunde Core slagen. Alle 23 onderdelen en 282
+bronverwijzingen blijven opgenomen. E32 alpha33 is gepubliceerd; de module blijft
+op alpha31. Actieve bèta blijft **NOT_READY**.
+
+HA dev46 is geïnstalleerd op bron `2d32ad3`, met een verse HA45-back-up van
+95 payloads en één normale Core-herstart. De afzonderlijke nacontrole van
+25 oktober 05:12:15 UTC slaagt: 38 controles, alle 86 livebestanden exact publiek
+pakket/Git en alle instellingen, programma's, koppelingen en kaarten behouden.
+E32 alpha31 blijft op dezelfde boot; er is geen firmwareactie uitgevoerd.
+[Installatie en bewijs](INSTALLATIE-HA46-ALPHA33-20261025.nl.md).
+
+## Historische grotere release HA45 / E32 alpha32
 
 HA45 is geïnstalleerd op bron `3f12d8b`, met een verse HA44-back-up van 95 payloads
 en één normale Core-herstart. De afzonderlijke nacontrole van 03:09 UTC slaagt:
@@ -16,22 +33,6 @@ blijven opgenomen. [Installatieverslag](INSTALLATIE-HA45-ALPHA32-20261025.nl.md)
 767 native kerngevallen, 4 lokale socketadaptergevallen en 2.333 HA-gevallen per
 ondersteunde Core slagen; alle definitieve CI- en pakketreviews zijn geslaagd.
 Actieve product- en fysieke kwalificatie blijven open.
-
-## In voorbereiding: HA46 / E32 alpha33
-
-De laatste controle vóór overdracht aan de bestaande socket is verder onderzocht.
-Callbackproblemen bij de eindcontrole én de gewone kanaaltoelating zijn bronmatig gecorrigeerd, met zes
-gerichte kanaalgevallen plus een echte lokale socketproef. Alle betrokken kanalen worden bij herintrede
-geblokkeerd; normale overdracht blijft mogelijk. De wijziging is nog niet
-als release gepubliceerd of geïnstalleerd. 773 native kerngevallen en 5 socketgevallen
-slagen; E32-build geslaagd. [Bewijs en grenzen](M2-LAATSTE-VERZENDCONTROLE-20261025.nl.md).
-De bestaande HA-diagnostiekdownload krijgt daarnaast begrensde ontvangsttellers
-voor temperatuur en TV02. Daarmee worden vroege drops en workerafwijzingen
-zichtbaar zonder nieuwe subscriptions, privéberichtinhoud of regelbevoegdheid.
-223 gerichte tests en 2.339 volledige lokale gevallen per ondersteunde Core slagen.
-Exacte CI, pakketcontrole en uitrol worden per bevroren commit gecontroleerd. [Werking en grenzen](ORIGINAL-INGRESS-DIAGNOSTIEK.nl.md).
-De actuele inventaris behoudt alle 23 onderdelen met nu 282 bronverwijzingen.
-De fysieke bron-/kraan-/stopkwalificatie en het eerdere updaterherstel blijven open.
 
 ## Gezamenlijke release HA44 / E32 alpha31
 
@@ -112,11 +113,11 @@ doelterugmelding blijven open. [Uitwerking](M2-KRAAN-KLOK-20261024.nl.md).
 | Onderdeel | Geïnstalleerd | Stand |
 | --- | --- | --- |
 | E32 | `v0.1.0-e32v2-alpha.31`, bron `659879e52b3e0e517e8dea1e28edb2d189c38c77`; vers waargenomen 01:50 UTC | Passief EMS uitlezen; TX, forwarding en fysieke uitvoer geblokkeerd |
-| Home Assistant | `0.4.0.dev45`, bron `3f12d8b63895b1b13202d34cc02c714f953aa2de` | Geladen op Core 2026.10.3; frontend dev41/v41 met v38/v35-aliases |
+| Home Assistant | `0.4.0.dev46`, bron `2d32ad3c84f8439540a04e2d87fdd5a8265f3670` | Geladen op Core 2026.10.3; frontend dev41/v41 met v38/v35-aliases |
 | Actieve regelaar | Tado | Geen automatische ketel- of kraansturing door OpenThermostat |
 
-Bron/pakket/ELF/web, alle 85 HA-bestanden en behoud van instellingen, programma's
-en identiteiten zijn gecontroleerd. Zie [installatieverslag](INSTALLATIE-HA45-ALPHA32-20261025.nl.md).
+Bron/pakket/ELF/web, alle 86 HA-bestanden en behoud van instellingen, programma's
+en identiteiten zijn gecontroleerd. Zie [installatieverslag](INSTALLATIE-HA46-ALPHA33-20261025.nl.md).
 De uitgebreide geleverde bundel staat in de [werkbordhistorie](WORKBOARD-HISTORIE-20261024.nl.md).
 
 ### Historische HA43-installatie — 24 oktober, nacontrole 21:17:50 UTC

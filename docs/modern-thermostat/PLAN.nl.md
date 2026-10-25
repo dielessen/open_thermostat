@@ -15,18 +15,20 @@ wat eerder is voorbereid moet in de releasebasis behouden blijven. Daarom is
 ieder voorbereid onderdeel opgenomen in de [release-inventaris](BETA1-RELEASE-INVENTARIS.json)
 en in [WORKBOARD §3](WORKBOARD.nl.md#3-alles-wat-voorbereid-is-meenemen-in-de-bèta).
 
-- **Geïnstalleerd:** HA dev45 (bron `3f12d8b`) en E32 alpha31 (bron `659879e`).
-  Afzonderlijke nacontrole 25 oktober 03:09 UTC: 38 controles geslaagd, 85 HA-bestanden
-  exact en verse HA44-back-up van 95 payloads gecontroleerd. Instellingen, programma's
-  en kaarten behouden. Tado blijft actief. [Installatieverslag](INSTALLATIE-HA45-ALPHA32-20261025.nl.md).
-- **Gepubliceerd:** HA dev45 en E32 alpha32 op bron `3f12d8b`. Deze opdracht voerde
+- **Geïnstalleerd:** HA dev46 (bron `2d32ad3`) en E32 alpha31 (bron `659879e`).
+  Afzonderlijke nacontrole 25 oktober 05:12:15 UTC: 38 controles geslaagd, 86 HA-bestanden
+  exact en verse HA45-back-up van 95 payloads gecontroleerd. Instellingen, programma's
+  en kaarten behouden. Tado blijft actief. [Installatieverslag](INSTALLATIE-HA46-ALPHA33-20261025.nl.md).
+- **Gepubliceerd:** HA dev46 en E32 alpha33 op bron `2d32ad3`. Deze opdracht voerde
   geen E32-upload uit. De eerdere uploader-watchdogoorzaak/herstelroute blijven open;
   de uitvoerder/methode van de waargenomen alpha31-installatie zijn onbekend.
   [Eerdere waarneming](WAARNEMING-E32-ALPHA31-20261025.nl.md).
 - **Geleverde softwarebasis:** EMS-apparatenpagina, sessie-/klokbewaking,
   opstartherstel, web-/editorcorrecties en HA-kraanberichtbedrading met standaard
   gesloten productfabriek, oorspronkelijke aanvraagcorrelatie, beschermd kanaalbeheer
-  en deadlinegebonden nonblocking writes. Dit kwalificeert geen meetbron of fysieke kraanroute.
+  en deadlinegebonden nonblocking writes. HA46 voegt begrensde ontvangstdiagnostiek toe;
+  alpha33-bron bewaakt ook herintrede bij de laatste socketcontrole en kanaaltoelating.
+  Dit kwalificeert geen meetbron of fysieke kraanroute.
 - **Voorbereide productbasis behouden:** regelaars/supervisor, water-/vloer-/
   mengerpolicies, metrics/grafieken/CSV, comfort/context en leermodellen. De
   ontbrekende aansluiting en praktijkkwalificatie staan per eis op het werkbord.

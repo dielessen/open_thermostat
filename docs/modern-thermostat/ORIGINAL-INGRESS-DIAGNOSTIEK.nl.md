@@ -6,7 +6,7 @@
 en een gekozen interne apparaattemperatuur; de oorzaak van ontbrekende
 originals of de werkelijke externe producentstart is daarmee niet vastgesteld.
 
-## Waar te vinden na installatie van de volgende bundel
+## Waar te vinden vanaf HA46
 
 Gebruik de bestaande Home Assistant-actie **Diagnostiek downloaden / Download
 diagnostics** bij de integratie. `read_only_original_ingress` bevat de momentopname
@@ -74,8 +74,7 @@ De tests gebruiken de echte native HA-worker en de bestaande ontvangers, met
 uitsluitend synthetische MQTT-randen. Ze controleren temperatuur én TV02,
 replay, retained, wachtrijreservering, timestamp-/workerfouten, privéscheiding,
 begrensde tellers, losse snapshots en levensduur. Bewijs en definitieve
-suite-uitkomsten: `out/original-ingress-diagnostics-20261025/`. Geen productie-
-installatie of fysieke proef uitgevoerd.
+suite-uitkomsten: `out/original-ingress-diagnostics-20261025/`. Geen fysieke proef uitgevoerd. De actuele HA-installatie staat in NEXT-RELEASE.
 
 **English:** The existing HA diagnostics download gains bounded, nonpersistent
 original-ingress counters for temperature and TV02. They distinguish callback

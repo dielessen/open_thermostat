@@ -7,7 +7,24 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 ## 1. Waar staan we?
 
-**Actuele grotere release HA45 / E32 alpha32:** bron `3f12d8b`, beide tags en
+## Grotere release HA46 / E32 alpha33 — gepubliceerd
+
+Beide tags zijn gepubliceerd op bron `2d32ad3`; alle toepasselijke main-/tag-CI,
+bronreviews en daadwerkelijke publieke pakketreviews slagen. De bundel bevat
+begrensde oorspronkelijke ontvangstdiagnostiek en extra herintredebewaking bij
+socketoverdracht en kanaaltoelating. 773 native kerngevallen, 5 lokale socketgevallen
+en 2.339 HA-gevallen per ondersteunde Core slagen. Alle 23 onderdelen en 282
+bronverwijzingen blijven opgenomen. E32 alpha33 is gepubliceerd; de module blijft
+op alpha31. Actieve bèta blijft **NOT_READY**.
+
+HA dev46 is geïnstalleerd op bron `2d32ad3`, met een verse HA45-back-up van
+95 payloads en één normale Core-herstart. De afzonderlijke nacontrole van
+25 oktober 05:12:15 UTC slaagt: 38 controles, alle 86 livebestanden exact publiek
+pakket/Git en alle instellingen, programma's, koppelingen en kaarten behouden.
+E32 alpha31 blijft op dezelfde boot; er is geen firmwareactie uitgevoerd.
+[Installatie en bewijs](INSTALLATIE-HA46-ALPHA33-20261025.nl.md).
+
+**Historische grotere release HA45 / E32 alpha32:** bron `3f12d8b`, beide tags en
 negen downloads gepubliceerd. Alle definitieve CI- en onafhankelijke bron-/pakketreviews
 slagen: 767 native kerngevallen, 4 lokale socketadaptergevallen en 2.333 HA-gevallen
 per ondersteunde Core. 75 native gevallen ook onder sanitizers (geen extra unieke gevallen).
@@ -56,13 +73,13 @@ alpha28-uploader-watchdogoorzaak en herstelroute blijven onbekend.
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
 | Geïnstalleerde firmware | Vers waargenomen E32 `v0.1.0-e32v2-alpha.31`, bron659879e/ELF045dfe53; uitvoerder/methode onbekend. Oudere alpha28-watchdogoorzaak blijft open; geen flash door deze opdracht |
-| Geïnstalleerde HA-integratie | `0.4.0.dev45`, bron 3f12d8b, geladen op Core 2026.10.3; 85 bestanden exact, 105 registryrecords en koppelingen behouden |
-| Geïnstalleerde bron | HA `3f12d8b63895b1b13202d34cc02c714f953aa2de`; E32 `659879e52b3e0e517e8dea1e28edb2d189c38c77`; 85 HA-bestanden exact |
-| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; HA45 levert aanvraagcorrelatie, beschermd kanaalbeheer en nonblocking writes naast native kraanberichtbedrading met standaard gesloten productfabriek; eerdere bronkeuze-/klok-/upload-/ketelrapportcontroles en alle 23 voorbereide onderdelen blijven behouden |
+| Geïnstalleerde HA-integratie | `0.4.0.dev46`, bron 2d32ad3, geladen op Core 2026.10.3; 86 bestanden exact, 105 registryrecords en koppelingen behouden |
+| Geïnstalleerde bron | HA `2d32ad3c84f8439540a04e2d87fdd5a8265f3670`; E32 `659879e52b3e0e517e8dea1e28edb2d189c38c77`; 86 HA-bestanden exact |
+| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; HA46 levert ook begrensde ontvangstdiagnostiek; alpha33-bron bevat aanvullende callbackbewaking naast aanvraagcorrelatie, beschermd kanaalbeheer en native kraanberichtbedrading met standaard gesloten productfabriek; eerdere bronkeuze-/klok-/upload-/ketelrapportcontroles en alle 23 voorbereide onderdelen blijven behouden |
 | Doel volgende release | Eerste actieve bèta: huidige passieve ketelkoppeling behouden en begrensde start/stop beproeven na bron-/kraan-/installatiekwalificatie |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
-| Laatste livecontrole | 25 oktober 03:09:24 UTC: HA45/85 bestanden en verse back-up95 exact; E32alpha31 op dezelfde boot, SOURCE5 en instellingen behouden, uitgangen geblokkeerd. Alle 38 onafhankelijke nacontroles geslaagd |
+| Laatste livecontrole | 25 oktober 05:12:15 UTC: HA46/86 bestanden en verse HA45-back-up95 exact; E32alpha31 op dezelfde boot, SOURCE5 en instellingen behouden, uitgangen geblokkeerd. Alle 38 onafhankelijke nacontroles geslaagd |
 
 [Verse alpha31-waarneming en grenzen](WAARNEMING-E32-ALPHA31-20261025.nl.md).
 
@@ -79,7 +96,7 @@ Een meegeleverd model of geslaagde simulatie bewijst geen aangesloten functie,
 ketelreactie of productacceptatie. Alle oorspronkelijke fasen blijven open waar
 verplichte fysieke of langere-termijnproeven ontbreken.
 
-## Prioriteiten na HA45 en de gepubliceerde E32 alpha32
+## Prioriteiten na HA46 en de gepubliceerde E32 alpha33
 
 Alle 31 eisen, 23 brononderdelen, 11 fasen, 8 werkpakketten en 14 releasepoorten
 zijn opnieuw naast de geïnstalleerde basis gelegd. B01–B03 zijn softwarematig af;
@@ -107,9 +124,9 @@ Leren/PI/PID en blijvend bewaarde, gevalideerde parameters per ruimte blijven
 verplicht voor de definitieve versie (R12); nieuwe F9/F10-stages volgen na M2.
 Een ontbrekende fysieke waarneming blokkeert onafhankelijk softwarewerk niet.
 
-### Volgende grotere bundel — oorspronkelijke ontvangstdiagnostiek
+### Geleverd in HA46 / alpha33 — oorspronkelijke ontvangstdiagnostiek
 
-De bestaande HA-diagnostiekdownload krijgt vaste RAM-tellers voor temperatuur-
+De bestaande HA-diagnostiekdownload bevat vaste RAM-tellers voor temperatuur-
 en TV02-verkeer: callback, plaatsing, vroege drops en workeracceptatie/-afwijzing/
 -fouten. Er zijn geen topics, unieke ID's of berichtinhouden in de snapshot.
 Geen nieuwe route, abonnement, worker of opslag. De bestaande wachtrijreservering
@@ -117,11 +134,11 @@ blijft behouden; counters geven geen meet-/kraankwalificatie.
 
 223 gerichte native HA-gevallen slagen, inclusief de echte bestaande worker en
 beide ontvangers. Volledige lokale suite: 2.339 gevallen per Core 2026.10.2/2026.10.3,
-nul fouten of skips. Kandidaat HA46 / E32 alpha33 bundelt dit met de eerdere
-verzendcontroles. Exacte CI/publicatie/uitrol blijven afzonderlijke poorten.
+nul fouten of skips. HA46 / E32 alpha33 bundelt dit met de eerdere
+verzendcontroles; definitieve CI en onafhankelijke pakket-/publicatiereviews slagen.
 [Betekenis, begrenzing en verificatie](ORIGINAL-INGRESS-DIAGNOSTIEK.nl.md).
 
-### Volgende grotere bundel — laatste verzendcontrole
+### Geleverd in alpha33-bron — laatste verzendcontrole
 
 Een begrensde regressieproef op de gepubliceerde alpha32-bron bevestigt drie
 callbackproblemen in de voorbereide `beforeHandoff`-grens: recursie via
@@ -133,8 +150,8 @@ blijvend ingetrokken. Normale controle binnen een zendcallback blijft mogelijk.
 Zes kanaalgevallen en één echte lokale socketproef zijn toegevoegd; vijf
 kanaalgevallen en de socketproef falen aantoonbaar vóór de correctie. Alle 773
 native kerngevallen en 5 socketgevallen slagen; 77 kerngevallen ook onder
-sanitizers en debugiteratoren. E32-build geslaagd. De wijziging is nog niet
-als release gepubliceerd of geïnstalleerd.
+sanitizers en debugiteratoren. E32-build en publicatie alpha33 geslaagd.
+E32 blijft alpha31; deze broncorrectie is niet op de module geïnstalleerd.
 [Reproductie en releasegrens](M2-LAATSTE-VERZENDCONTROLE-20261025.nl.md).
 Geen aanwijzing dat dit de eerdere uploader-watchdog of het pendelen verklaart.
 

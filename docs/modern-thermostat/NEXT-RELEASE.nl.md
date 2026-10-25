@@ -1,36 +1,41 @@
-# Grotere bèta in voorbereiding — geïnstalleerde basis HA43 / E32 alpha28
+# Volgende actieve bèta — geïnstalleerde basis HA44 / E32 alpha28
 
 Bijgewerkt: 25 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
 het [masterplan](PLAN.nl.md) bewaart alle 31 producteisen en acceptatievoorwaarden.
 
-## Volgende gezamenlijke release
+## Gezamenlijke release HA44 / E32 alpha31
 
-Eerst de ontbrekende M2-bron-/kraanketen samenhangend uitwerken en toetsen.
-De C++-tegenhanger van de bestaande HA-ontvanger is nu voorbereid en wordt met
-echte C++→native-HA-berichten getoetst. Dit geeft nog geen normale aangesloten
-kraanroute, oorspronkelijke doelecho of fysieke kwalificatie.
-[Voortgang en bewijs](M2-FW-HA-INTEROPERABILITEIT-20261024.nl.md).
+Beide onveranderlijke tags en alle negen openbare downloads zijn gepubliceerd op
+bron `659879e`. Bron-/pakket-/tagreview en alle drie CI-runs geslaagd: 728 native
+firmwaretests en 2.323 HA-gevallen per Core 2026.10.2/2026.10.3. Alle 23 voorbereide
+onderdelen met 267 bronverwijzingen blijven opgenomen.
 
-De volgende voorbereide schakel bewaakt actuele bron/lease en oorspronkelijke
-deadlines rond codering en transport. Vijf reproduceerbare grensfouten gesloten;
-geen nieuwe MQTT-route of fysieke toestemming. [Details](M2-SOURCE-TRANSPORT-20261025.nl.md).
+**HA44 is geïnstalleerd en onafhankelijk gecontroleerd:** 85 livebestanden exact
+publieke ZIP/Git, verse HA43-back-up van 94 bestanden, één normale Core-herstart.
+Instellingen, programma's, bindingen, registry en frontend behouden. Nacontrole
+25 oktober 00:32:01 UTC: alle 20 checks geslaagd. De actuele SOURCE-revisie5 is
+behouden; de voorafgaande horizonverschuiving wijzigde geen programma of binding.
+[Installatieverslag](INSTALLATIE-HA44-ALPHA31-20261025.nl.md).
 
-Aanvullend wordt één grant nu ook aan HA-zijde na de eerste toegelaten opdracht
-verbruikt. Een hoger volgnummer kan hetzelfde grant niet opnieuw gebruiken;
-een exact duplicaat veroorzaakt geen nieuwe serviceaanroep. De regressie is
-vóór herstel gereproduceerd en na herstel gecontroleerd op beide Core-versies.
-Dit herstel is lokaal voorbereid voor de gezamenlijke release, nog niet uitgerold.
+De native HA-worker verwerkt nu grantaanvragen en kraanopdrachten, met lokale
+sessie-/config-/bindingcontrole, oorspronkelijke deadlines, eenmalige grants en
+onmiddellijke intrekking bij scopeverlies. Optioneel verkeer kan de shadow-sessie
+niet via een volle queue resetten. De echte C++-bytes worden via deze worker en
+de bewaakte serviceadapter beproefd; serviceacceptatie blijft geen fysieke ACK.
+[Uitwerking](M2-NATIVE-KRAANROUTE-20261025.nl.md).
 
-De HA-kraanberichten zijn nu op de bestaande native worker aangesloten, inclusief
-oorspronkelijke queue-/leasedeadlines en contextcontrole na wachten op de
-servicelock. De productfabriek blijft gesloten; normale firmware-MQTT-bedrading en
-oorspronkelijke kraanecho blijven open. [Uitwerking](M2-NATIVE-KRAANROUTE-20261025.nl.md).
+**E32 alpha31 is niet geïnstalleerd.** De module reageert op alpha28. De eerdere
+uploader-watchdogtaak/oorzaak en herstelroute blijven onbekend; geen blinde retry.
+Nieuwe firmwarecode repareert de al draaiende uploader niet vóór die eerste update.
 
-Dit is geen nieuwe kleine onderhoudsrelease. HA43 en E32alpha28 blijven draaien;
-het werkbord houdt alle resterende functies en vrijgavevoorwaarden bij.
-E32-herstelbaarheid, de echte geschikte kamerbron en causale kraanterugmelding
-blijven voorwaarden voor actieve proeven en mogen niet als gereed worden afgevinkt.
+## Volgende stap naar actieve bèta
+
+De product-kraanfabriek blijft gesloten. Normale firmware-MQTT-grant-/zendbedrading,
+actuele gekwalificeerde SOURCE, geschikte kamerbron, causale oorspronkelijke
+kraanecho en fysieke stop-/uitvalproeven blijven open. E32-herstelbaarheid moet
+ook worden vastgesteld. De volledige actieve bèta is daarom nog niet vrijgegeven.
+[Voorbereide firmwareketen](M2-SOURCE-TRANSPORT-20261025.nl.md).
 
 ## Eerdere gezamenlijke bundel dev39 / alpha30
 
@@ -65,14 +70,14 @@ doelterugmelding blijven open. [Uitwerking](M2-KRAAN-KLOK-20261024.nl.md).
 | Onderdeel | Geïnstalleerd | Stand |
 | --- | --- | --- |
 | E32 | `v0.1.0-e32v2-alpha.28`, bron `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f` | Passief EMS uitlezen; TX, forwarding en fysieke uitvoer geblokkeerd |
-| Home Assistant | `0.4.0.dev43`, bron `97eb9a03f7968dd043e6542979a4815887e9704b` | Geladen op Core 2026.10.3; frontend dev41/v41 met v38/v35-aliases |
+| Home Assistant | `0.4.0.dev44`, bron `659879e52b3e0e517e8dea1e28edb2d189c38c77` | Geladen op Core 2026.10.3; frontend dev41/v41 met v38/v35-aliases |
 | Actieve regelaar | Tado | Geen automatische ketel- of kraansturing door OpenThermostat |
 
-Bron/pakket/ELF/web, alle 84 HA-bestanden en behoud van instellingen, programma's
-en identiteiten zijn gecontroleerd. Zie [installatieverslag](INSTALLATIE-HA43-20261024.nl.md).
+Bron/pakket/ELF/web, alle 85 HA-bestanden en behoud van instellingen, programma's
+en identiteiten zijn gecontroleerd. Zie [installatieverslag](INSTALLATIE-HA44-ALPHA31-20261025.nl.md).
 De uitgebreide geleverde bundel staat in de [werkbordhistorie](WORKBOARD-HISTORIE-20261024.nl.md).
 
-### Actuele installatie — 24 oktober, nacontrole 21:17:50 UTC
+### Historische HA43-installatie — 24 oktober, nacontrole 21:17:50 UTC
 
 HA dev43 geladen; 84 bestanden exact publieke ZIP/Git, verse HA40-back-up van
 93 bestanden en één normale Core-herstart. Alle 38 afzonderlijke nacontroles

@@ -7,7 +7,22 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 ## 1. Waar staan we?
 
-**Actuele HA-release dev43:** bron `97eb9a0`, gepubliceerd en geïnstalleerd op
+**Actuele gezamenlijke release HA44 / E32 alpha31:** bron `659879e`, beide
+onveranderlijke tags en negen downloads gepubliceerd. Alle drie definitieve
+CI-runs slagen; 728 native firmwaretests en 2.323 HA-gevallen per ondersteunde
+Core, nul fouten/skips. Onafhankelijke bron-, hoofd- en definitieve tagpakketreview
+geslaagd. Alle negen publieke bestanden exact eigen tag-CI; de aanvullende
+E32-distributieverschillen door buildmetadata zijn afzonderlijk gecontroleerd.
+
+**HA44 geïnstalleerd:** 85 bestanden exact publieke ZIP/Git, verse HA43-back-up
+van 94 bestanden en één normale Core-herstart. Afzonderlijke nacontrole
+25 oktober 00:32:01 UTC: alle 20 checks geslaagd. Alle instellingen, programma's,
+koppelingen en frontend behouden. SOURCE5 bleef behouden; de voorafgaande
+horizonrollover veranderde geen gebruikersprogramma. E32 blijft aantoonbaar
+alpha28; geen upload/herstart, herstelblokkade en fysieke uitgangen blijven dicht.
+[Installatieverslag](INSTALLATIE-HA44-ALPHA31-20261025.nl.md).
+
+**Vorige HA-release dev43:** bron `97eb9a0`, gepubliceerd en geïnstalleerd op
 Core 2026.10.3. Alle 84 bestanden exact publieke ZIP/Git; verse HA40-back-up van
 93 bestanden en één normale Core-herstart. Zeven softwarepoorten en exacte tag-CI
 geslaagd; 2281 gevallen per ondersteunde Core-versie, 1028 onafhankelijke
@@ -29,13 +44,13 @@ alpha28-uploader-watchdogoorzaak en herstelroute blijven onbekend.
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
 | Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.28`; latere alpha29-upload mislukt met task-watchdogreset 6; taak/oorzaak onbekend, geen retry |
-| Geïnstalleerde HA-integratie | `0.4.0.dev43`, bron 97eb9a0, geladen op Core 2026.10.3; 84 bestanden exact, 105 registryrecords en koppelingen behouden |
-| Geïnstalleerde bron | HA `97eb9a03f7968dd043e6542979a4815887e9704b`; E32 `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f`; 84 HA-bestanden exact |
-| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; HA43 levert bronkeuze-uitleg en de voorbereide, niet geselecteerde M2-ontvangerkern; HA40 bracht blijvende M2-adapterklokbewaking; de eerdere HA39/E32alpha30-bundel bevat uploadhardening, veiligheidsfeit-/klokfences en ketelrapport-/HA-cache-intrekking; eerdere software en geïnstalleerde basis blijven behouden |
+| Geïnstalleerde HA-integratie | `0.4.0.dev44`, bron 659879e, geladen op Core 2026.10.3; 85 bestanden exact, 105 registryrecords en koppelingen behouden |
+| Geïnstalleerde bron | HA `659879e52b3e0e517e8dea1e28edb2d189c38c77`; E32 `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f`; 85 HA-bestanden exact |
+| Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; HA44 levert native kraanberichtbedrading met standaard gesloten productfabriek; eerdere bronkeuze-/klok-/upload-/ketelrapportcontroles en alle 23 voorbereide onderdelen blijven behouden |
 | Doel volgende release | Eerste actieve bèta: huidige passieve ketelkoppeling behouden en begrensde start/stop beproeven na bron-/kraan-/installatiekwalificatie |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
-| Laatste livecontrole | 24 oktober 21:17:50 UTC: HA43 geladen en E32alpha28 bevestigd; 38 onafhankelijke checks geslaagd, instellingen/back-up behouden, uitgangen geblokkeerd; TV02 ongekwalificeerd |
+| Laatste livecontrole | 25 oktober 00:32:01 UTC: HA44 geladen, alle 85 hashes en 94-back-uppayloads gecontroleerd; 20 onafhankelijke checks geslaagd; E32alpha28, SOURCE5 en instellingen behouden, uitgangen geblokkeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
 met 267 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
@@ -50,7 +65,7 @@ Een meegeleverd model of geslaagde simulatie bewijst geen aangesloten functie,
 ketelreactie of productacceptatie. Alle oorspronkelijke fasen blijven open waar
 verplichte fysieke of langere-termijnproeven ontbreken.
 
-## Prioriteiten na HA43 en de geblokkeerde E32-installatie
+## Prioriteiten na HA44 en de geblokkeerde E32-installatie
 
 Alle 31 eisen, 23 brononderdelen, 11 fasen, 8 werkpakketten en 14 releasepoorten
 zijn opnieuw naast de geïnstalleerde basis gelegd. B01–B03 zijn softwarematig af;
@@ -65,7 +80,7 @@ historisch; de tabellen en deze volgorde bepalen nieuw werk.
 | P0 vóór fysieke proef | Gemeld pendelen | Onderzoek richting warmwaterbedrijf vervolgen: gebruik/bijwarmen onderscheiden; stabiele nulmeting vastleggen | Geen bewezen oorzaak; geen zendproef bij onverklaarde instabiliteit |
 | P0 | TV02-opstartdiagnose, B05 | Softwareherstel geleverd in HA38; oorspronkelijke nieuwe ontvangst en bronkwalificatie nog bewijzen | Wachtende/stale diagnose bewijst geen fysieke ontvangst, kraan-ACK of regelbevoegdheid |
 | P0 | Echte kamerbron, R03/B04/WP03 | Brongebonden acquisitie-/profielketen afmaken met echte oorspronkelijke rapporten | RTCGQ11LM device_temperature niet als kamerbron kwalificeren; geen automatische sensorwissel |
-| P0 | Kraantransactie, R05/B05/WP05 | Normale FW→HA-route met HA-ontvangergrant en bestaande adapter verbinden; native zendtransactie aan oorspronkelijke echo koppelen | Exact geïnstalleerde converterbron ontbreekt nog in bestaande toegang; geen cache/serviceacceptatie als ACK |
+| P0 | Kraantransactie, R05/B05/WP05 | HA-workerbedrading geleverd in HA44; normale firmware-MQTT-route en product-SOURCE-fabriek verbinden, native zendtransactie aan oorspronkelijke echo koppelen | Exact geïnstalleerde converterbron ontbreekt nog in bestaande toegang; geen cache/serviceacceptatie als ACK |
 | P0 | Veiligheidsproducenten, R07/R23/B06/WP06 | Softwarefences voor alle zes gedateerde feiten afgerond/getest; echte producenten en installatieprofiel aansluiten | Geen generieke flow-/pompaanname of ongekwalificeerde vrijgave |
 | Geleverd | EMS-apparatenweergave, R15/R25/R29/I11/I12/I21 | Geïnstalleerd op alpha28, echte GET en twee apparaten gecontroleerd | Passief; ontbrekende identiteit/decoder blijft zichtbaar |
 | P1 | Classic-zender en stopketen, R08/B07–B08/WP02 | Rapportvolgorde en HA-intrekking softwarematig afgerond; beoordeeld profiel en echte zend-/stopketen kwalificeren | TX/adres/masker en fysieke zender pas na B09 beoordelen |
@@ -101,7 +116,7 @@ serviceacceptatie een tweede nieuw volgnummer met hetzelfde vijfseconden-grant
 toe. De ontvanger verbruikt het grant nu vóór callbacks/awaits. Exacte duplicaten
 blijven het oorspronkelijke resultaat delen; een volgende nieuwe opdracht vereist
 een nieuw grant. Dit verandert geen serviceacceptatie in een kraan-ACK en sluit
-B05 niet. Bronwijziging nog niet gepubliceerd of geïnstalleerd; gerichte regressie
+B05 niet. Deze ontvangerfix is meegeleverd in de geïnstalleerde HA44; gerichte regressie
 vóór herstel faalt, daarna slagen 146 gerelateerde gevallen en de volledige
 regressie van 2.298 gevallen (2.230 tests + 68 subtests) op beide Core-versies.
 De eigen tijdelijke localhost-testbroker is gestopt en verwijderd.

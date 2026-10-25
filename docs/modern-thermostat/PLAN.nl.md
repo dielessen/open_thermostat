@@ -15,11 +15,13 @@ wat eerder is voorbereid moet in de releasebasis behouden blijven. Daarom is
 ieder voorbereid onderdeel opgenomen in de [release-inventaris](BETA1-RELEASE-INVENTARIS.json)
 en in [WORKBOARD §3](WORKBOARD.nl.md#3-alles-wat-voorbereid-is-meenemen-in-de-bèta).
 
-- **Geïnstalleerd:** E32 alpha28 (bron `3efb0a1`) en HA dev44 (bron `659879e`),
+- **Geïnstalleerd:** E32 alpha31 en HA dev44 (beide bron `659879e`), vers waargenomen
+  op 25 oktober 01:50 UTC,
   met behoud van instellingen, programma's en identiteiten. E32 leest passief;
   Tado blijft de actieve regelaar. Details: [installatieverslag](INSTALLATIE-HA44-ALPHA31-20261025.nl.md).
-- **Gepubliceerd:** E32 alpha31 en HA dev44. De E32-update is niet uitgevoerd:
-  de oorzaak van de eerdere uploader-watchdogreset en de herstelroute blijven open.
+- **Gepubliceerd:** E32 alpha31 en HA dev44. Deze opdracht heeft geen E32-update gestart;
+  de uitvoerder/methode van de verse alpha31-waarneming zijn onbekend. De eerdere
+  uploader-watchdogoorzaak en herstelroute blijven open. [Bewijs](WAARNEMING-E32-ALPHA31-20261025.nl.md).
 - **Geleverde softwarebasis:** EMS-apparatenpagina, sessie-/klokbewaking,
   opstartherstel, web-/editorcorrecties en HA-kraanberichtbedrading met standaard
   gesloten productfabriek. Dit kwalificeert geen meetbron of fysieke kraanroute.

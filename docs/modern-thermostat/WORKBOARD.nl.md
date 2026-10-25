@@ -18,8 +18,9 @@ E32-distributieverschillen door buildmetadata zijn afzonderlijk gecontroleerd.
 van 94 bestanden en één normale Core-herstart. Afzonderlijke nacontrole
 25 oktober 00:32:01 UTC: alle 20 checks geslaagd. Alle instellingen, programma's,
 koppelingen en frontend behouden. SOURCE5 bleef behouden; de voorafgaande
-horizonrollover veranderde geen gebruikersprogramma. E32 blijft aantoonbaar
-alpha28; geen upload/herstart, herstelblokkade en fysieke uitgangen blijven dicht.
+horizonrollover veranderde geen gebruikersprogramma. Die nacontrole zag E32
+alpha28; de nieuwere alleen-lezen waarneming van 01:50 UTC ziet alpha31. Deze
+opdracht heeft geen E32-upload gestart; oude watchdogoorzaak en fysieke poorten blijven open.
 [Installatieverslag](INSTALLATIE-HA44-ALPHA31-20261025.nl.md).
 
 **Vorige HA-release dev43:** bron `97eb9a0`, gepubliceerd en geïnstalleerd op
@@ -43,14 +44,16 @@ alpha28-uploader-watchdogoorzaak en herstelroute blijven onbekend.
 
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
-| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.28`; latere alpha29-upload mislukt met task-watchdogreset 6; taak/oorzaak onbekend, geen retry |
+| Geïnstalleerde firmware | Vers waargenomen E32 `v0.1.0-e32v2-alpha.31`, bron659879e/ELF045dfe53; uitvoerder/methode onbekend. Oudere alpha29-watchdogoorzaak blijft open; geen flash door deze opdracht |
 | Geïnstalleerde HA-integratie | `0.4.0.dev44`, bron 659879e, geladen op Core 2026.10.3; 85 bestanden exact, 105 registryrecords en koppelingen behouden |
-| Geïnstalleerde bron | HA `659879e52b3e0e517e8dea1e28edb2d189c38c77`; E32 `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f`; 85 HA-bestanden exact |
+| Geïnstalleerde bron | HA `659879e52b3e0e517e8dea1e28edb2d189c38c77`; E32 `659879e52b3e0e517e8dea1e28edb2d189c38c77`; 85 HA-bestanden exact |
 | Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; HA44 levert native kraanberichtbedrading met standaard gesloten productfabriek; eerdere bronkeuze-/klok-/upload-/ketelrapportcontroles en alle 23 voorbereide onderdelen blijven behouden |
 | Doel volgende release | Eerste actieve bèta: huidige passieve ketelkoppeling behouden en begrensde start/stop beproeven na bron-/kraan-/installatiekwalificatie |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
-| Laatste livecontrole | 25 oktober 00:32:01 UTC: HA44 geladen, alle 85 hashes en 94-back-uppayloads gecontroleerd; 20 onafhankelijke checks geslaagd; E32alpha28, SOURCE5 en instellingen behouden, uitgangen geblokkeerd |
+| Laatste livecontrole | 25 oktober 01:50:09 UTC: HA44/85 bestanden bevestigd; E32alpha31 waargenomen, SOURCE5 en instellingen behouden, uitgangen geblokkeerd. Identiteitswijziging stopte terecht de voorcontrole; aparte baselinebeoordeling volgt |
+
+[Verse alpha31-waarneming en grenzen](WAARNEMING-E32-ALPHA31-20261025.nl.md).
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
 met 279 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/

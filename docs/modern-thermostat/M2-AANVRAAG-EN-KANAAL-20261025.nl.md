@@ -1,7 +1,7 @@
 # M2 — oorspronkelijke kraanaanvraag en firmwarekanaal
 
-25 oktober 2026. Werk voor de volgende grotere release. Geïnstalleerd blijft
-HA44/E32alpha28. De productfabriek is niet geselecteerd; geen fysieke opdracht,
+25 oktober 2026. Werk voor de volgende grotere release. Vers waargenomen is
+HA44/E32alpha31 (verse alleen-lezen waarneming; geen upload door deze opdracht). De productfabriek is niet geselecteerd; geen fysieke opdracht,
 nieuwe publicatie of E32-update door deze bronstap.
 
 ## Wat de software verbindt

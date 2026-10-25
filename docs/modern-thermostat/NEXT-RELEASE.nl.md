@@ -1,4 +1,4 @@
-# Volgende actieve bèta — geïnstalleerde basis HA44 / E32 alpha28
+# Volgende actieve bèta — waargenomen basis HA44 / E32 alpha31
 
 Bijgewerkt: 25 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
@@ -25,9 +25,12 @@ niet via een volle queue resetten. De echte C++-bytes worden via deze worker en
 de bewaakte serviceadapter beproefd; serviceacceptatie blijft geen fysieke ACK.
 [Uitwerking](M2-NATIVE-KRAANROUTE-20261025.nl.md).
 
-**E32 alpha31 is niet geïnstalleerd.** De module reageert op alpha28. De eerdere
-uploader-watchdogtaak/oorzaak en herstelroute blijven onbekend; geen blinde retry.
-Nieuwe firmwarecode repareert de al draaiende uploader niet vóór die eerste update.
+**Vers waargenomen: E32 alpha31.** Alleen-lezen controle 25 oktober 01:50 UTC
+bevestigt bron659879e/ELF045dfe53 en normale beschikbaarheid. De uitvoerder en
+methode van die gewijzigde installatie zijn onbekend; deze opdracht heeft geen
+E32-upload gestart. De oudere alpha28-momentopname is historisch. De eerdere
+watchdogoorzaak/herstelroute blijven open; geen nieuwe flashpoging.
+[Waarneming en bewijs](WAARNEMING-E32-ALPHA31-20261025.nl.md).
 
 ## Gezamenlijke kandidaat HA45 / E32 alpha32
 
@@ -79,7 +82,7 @@ doelterugmelding blijven open. [Uitwerking](M2-KRAAN-KLOK-20261024.nl.md).
 
 | Onderdeel | Geïnstalleerd | Stand |
 | --- | --- | --- |
-| E32 | `v0.1.0-e32v2-alpha.28`, bron `3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f` | Passief EMS uitlezen; TX, forwarding en fysieke uitvoer geblokkeerd |
+| E32 | `v0.1.0-e32v2-alpha.31`, bron `659879e52b3e0e517e8dea1e28edb2d189c38c77`; vers waargenomen 01:50 UTC | Passief EMS uitlezen; TX, forwarding en fysieke uitvoer geblokkeerd |
 | Home Assistant | `0.4.0.dev44`, bron `659879e52b3e0e517e8dea1e28edb2d189c38c77` | Geladen op Core 2026.10.3; frontend dev41/v41 met v38/v35-aliases |
 | Actieve regelaar | Tado | Geen automatische ketel- of kraansturing door OpenThermostat |
 

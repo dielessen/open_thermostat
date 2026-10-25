@@ -14,9 +14,11 @@ en welke nog op de roadmap staan.
 [Screenshots](#screenshots) · [Documentatie](#documentatie)
 
 **Gepubliceerd:** [HA dev44](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev44) en [E32 alpha31](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.31), bron `659879e`.
-**Werkelijk geïnstalleerd:** HA dev44 en E32 alpha28. De E32 reageert normaal;
-de eerdere upload gaf een task-watchdogreset waarvan de oorzaak onbekend blijft.
-Alpha31 is beschikbaar, maar er is geen nieuwe E32-upload uitgevoerd.
+**Vers waargenomen:** HA dev44 en E32 alpha31 (25 oktober 01:50 UTC).
+Versie, bron, ELF en web komen overeen met de gepubliceerde alpha31. Deze
+opdracht heeft geen E32-upload gestart; uitvoerder en methode van de gewijzigde
+installatie zijn niet vastgesteld. De oudere uploader-watchdogoorzaak blijft open.
+[Waarneming en bewijsgrenzen](docs/modern-thermostat/WAARNEMING-E32-ALPHA31-20261025.nl.md).
 
 Kamerinrichting, weekprogramma's, webinterfaces, passief EMS uitlezen en
 Settings → EMS-apparaten zijn beschikbaar. De huidige native inrichting ondersteunt
@@ -38,7 +40,8 @@ frontend dev41/v41 met v38/v35-compatibiliteit blijft ongewijzigd.
 [Installatie-uitkomst en vervolg](docs/modern-thermostat/INSTALLATIE-HA44-ALPHA31-20261025.nl.md).
 
 **English:** HA dev44 is installed and independently verified; E32 alpha31 is
-published while the module remains on alpha28. Native-worker actuator messages
+published and now observed running, following the earlier alpha28 checkpoint.
+This task did not upload firmware; the installation actor/method are unknown. Native-worker actuator messages
 have strict session/deadline/queue fences, with physical authority denied by
 default. Configuration, programmes and cards are preserved. Firmware send wiring,
 original valve feedback, suitable ambient source and physical qualification remain

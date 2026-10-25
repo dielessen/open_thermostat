@@ -3,7 +3,7 @@
   "as_of": "2026-10-25",
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
   "release_state": "NOT_READY",
-  "installed_firmware": "v0.1.0-e32v2-alpha.28",
+  "installed_firmware": "v0.1.0-e32v2-alpha.31",
   "installed_ha": "0.4.0.dev44",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
   "items": [
@@ -132,7 +132,7 @@
           "sha256": "31b934c7ef309036f6af0e05057aff08ef5cb3d74b689bdaad5ae401f168d8ad"
         }
       ],
-      "remaining_acceptance": "Alpha26 HTTPS-afwijking blijft onverklaard; geen blinde herhaling. Blijvende enkelvoudige NVS-updatediagnose en EN/NL-webpresentatie geleverd in alpha27/dev36. Echte flash-/powerloss-/herstelacceptatie en normale update op een afzonderlijk beoordeelde kandidaat blijven open. Alpha29 app-only upload mislukte met reset6; Actuele basis is HA44/E32alpha28; de mislukte upload is niet herhaald. Strikte lengte, handle-opruiming en selectie na volledig geautoriseerd verzoek zijn bronmatig voorbereid; geen oorzaakbewijs, herstelproef of installatievrijgave. De bestaande native HTTPS-checkpointscope blijft ongewijzigd."
+      "remaining_acceptance": "Alpha26 HTTPS-afwijking blijft onverklaard; geen blinde herhaling. Blijvende enkelvoudige NVS-updatediagnose en EN/NL-webpresentatie geleverd in alpha27/dev36. Echte flash-/powerloss-/herstelacceptatie en normale update op een afzonderlijk beoordeelde kandidaat blijven open. Alpha29 app-only upload mislukte met reset6; Verse basis 25 oktober 01:50 UTC is HA44/E32alpha31; uitvoerder en methode van die installatie onbekend. Deze opdracht heeft geen E32-upload gestart; eerdere watchdogoorzaak blijft open. Strikte lengte, handle-opruiming en selectie na volledig geautoriseerd verzoek zijn bronmatig voorbereid; geen oorzaakbewijs, herstelproef of installatievrijgave. De bestaande native HTTPS-checkpointscope blijft ongewijzigd."
     },
     {
       "id": "I04",
@@ -1025,7 +1025,7 @@
           "sha256": "0e1a5f7ab31a7cda1c0279ce39f15bf3aed0e6e587efb65fe0a232d76fae3921"
         }
       ],
-      "remaining_acceptance": "HA44-workerbedrading geïnstalleerd. Nieuwe oorspronkelijke aanvraag/grant-correlatie, firmwarekanaal, bewaakte inventaris en deadlinegebonden nonblocking socketoverdracht voorbereid voor één grotere release; normale productfabriek blijft gesloten. Gekwalificeerde lokale SOURCE, oorspronkelijke sensoracquisitie, unieke native zendtransactie/causale kraanecho, schema-eigenaarschap en fysieke stop-/uitvalkwalificatie ontbreken nog. Geïnstalleerde converterbron blijft onbekend via bestaande toegang. Transport-/serviceacceptatie bewijst geen klepstand of fysieke failsafe. E32 blijft alpha28; nieuw bronwerk is niet geflasht."
+      "remaining_acceptance": "HA44-workerbedrading geïnstalleerd. Nieuwe oorspronkelijke aanvraag/grant-correlatie, firmwarekanaal, bewaakte inventaris en deadlinegebonden nonblocking socketoverdracht voorbereid voor één grotere release; normale productfabriek blijft gesloten. Gekwalificeerde lokale SOURCE, oorspronkelijke sensoracquisitie, unieke native zendtransactie/causale kraanecho, schema-eigenaarschap en fysieke stop-/uitvalkwalificatie ontbreken nog. Geïnstalleerde converterbron blijft onbekend via bestaande toegang. Transport-/serviceacceptatie bewijst geen klepstand of fysieke failsafe. E32 is vers waargenomen op alpha31; deze opdracht heeft geen firmware geüpload. Alpha32-bronwerk is niet door deze opdracht geflasht."
     },
     {
       "id": "I15",
@@ -1803,5 +1803,6 @@
   "authoritative_workboard": "docs/modern-thermostat/WORKBOARD.nl.md",
   "base_runtime_checkpoint": "cebb0a25296b690a2a2d699bccacb65ed0f69da7",
   "installed_ha_source_commit": "659879e52b3e0e517e8dea1e28edb2d189c38c77",
-  "installed_firmware_source_commit": "3efb0a1b5d76a16bb019e082cd6ccbf0bf6a190f"
+  "installed_firmware_source_commit": "659879e52b3e0e517e8dea1e28edb2d189c38c77",
+  "installation_observed_at_utc": "2026-10-25T01:50:09.764610+00:00"
 }

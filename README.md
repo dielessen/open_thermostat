@@ -13,39 +13,37 @@ en welke nog op de roadmap staan.
 [Mogelijkheden](#alle-mogelijkheden) · [Roadmap](#wat-we-nog-gaan-bouwen) ·
 [Screenshots](#screenshots) · [Documentatie](#documentatie)
 
-**Gepubliceerd:** [HA dev47](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev47) en [E32 alpha34](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.34), bron `6f21f34`.
-HA dev47 is geïnstalleerd met een verse HA46-back-up van 96 bestanden en één
-normale Core-herstart. De afzonderlijke nacontrole van 25 oktober 06:47:49 UTC
-slaagt: 44 controles, alle 86 bestanden exact en instellingen, programma's,
-koppelingen en kaarten behouden. E32 alpha31 blijft op dezelfde boot;
-deze opdracht heeft geen firmware-upload uitgevoerd.
-[Installatie en bewijs](docs/modern-thermostat/INSTALLATIE-HA47-ALPHA34-20261025.nl.md).
+**Gepubliceerd:** [HA dev48](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev48) en [E32 alpha35](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.35), bron `70135db3`.
+HA48 is geïnstalleerd met verse HA47-back-up van 96 bestanden en één normale
+Core-herstart. Alle 86 componentbestanden zijn exact teruggelezen; instellingen,
+programma's, koppelingen en kaarten zijn behouden. E32 alpha31 is opnieuw direct
+waargenomen op dezelfde boot. Alpha35 is gepubliceerd, maar niet geüpload:
+de eerdere uploader-watchdog en herstelroute blijven open.
+[Installatie en afzonderlijke nacontrole](docs/modern-thermostat/INSTALLATIE-HA48-ALPHA35-20261025.nl.md).
 
 Kamerinrichting, weekprogramma's, webinterfaces, passief EMS uitlezen en
 Settings → EMS-apparaten zijn beschikbaar. De huidige native inrichting ondersteunt
 **1–2 kamers, één radiatorknop per kamer**; acht zones blijft het uitbreidingsdoel.
 Tado-configuratie blijft behouden; fysieke OpenThermostat-uitgangen blijven geblokkeerd.
 
-Deze grotere bundel voorkomt dat een afgesloten of geannuleerde HA-opstart
-later alsnog oude listeners, workers of timers aanmaakt. Dubbele start vervangt
-de bestaande eigenaar niet. De firmwarebron voegt vier opgeslagen controlepunten
-toe voor updateonderzoek, met Nederlandse en Engelse uitleg. Ontvangstdiagnostiek,
-beschermd kanaalbeheer en alle eerdere functies blijven behouden. Geschikte
-kamerbron, oorspronkelijke kraanecho en fysieke stop-/uitvalproeven blijven open.
+Deze bundel behoudt bewaakte HA-opstart en ontvangstdiagnostiek en laat cleanup
+doorgaan na een gewone callbackexception. Vier klokregressies bewaken de
+kamerfixture. De firmware bevat een geteste pure Shelly SBHT-103C-decoderbasis;
+Bluetooth-koppeling en runtimeondersteuning daarvan blijven op de roadmap.
 
-782 native kerngevallen en 2.349 HA-gevallen per ondersteunde Core slagen.
-Alle definitieve CI-, bron- en daadwerkelijke pakketcontroles zijn geslaagd;
-alle negen openbare downloads zijn vergeleken met hun eigen tag-CI.
-De fysieke actieve bèta is nog niet vrijgegeven; eerdere E32-updaterherstelvragen
-blijven open. [Releaseverslag](docs/modern-thermostat/INSTALLATIE-HA47-ALPHA34-20261025.nl.md).
+798 native kerngevallen en 2.356 HA-gevallen per ondersteunde Core slagen.
+Alle toepasselijke CI-, bron- en publieke pakketcontroles zijn geslaagd.
+De actieve bèta blijft **NOT_READY**: meetbron, oorspronkelijke kraanecho,
+fysieke stop-/uitvalproeven en E32-herstelbaarheid blijven afzonderlijk open.
+[Releaseverslag](docs/modern-thermostat/INSTALLATIE-HA48-ALPHA35-20261025.nl.md).
 
-**English:** HA dev47 and E32 alpha34 are published from source `6f21f34`.
-HA47 is installed with a fresh 96-file HA46 backup and 44 independent postchecks
+**English:** HA dev48 and E32 alpha35 are published from source `70135db3`.
+HA48 is installed with a fresh 96-file HA47 backup; all 46 independent postchecks
 passed. Settings and cards are preserved; E32 alpha31 remains on the same boot.
-This task performed no firmware upload. The bundle adds single-owner async HA
-startup and four bounded pre-verification update checkpoints. Physical source,
-feedback/stop qualification and installed-updater recovery remain open. All
-existing features and roadmap requirements are retained.
+No firmware was uploaded. This bundle adds cleanup after ordinary callback
+exceptions, clock regressions and a pure Shelly decoder that is not connected
+to the BLE runtime. Physical qualification and updater recovery remain open.
+All existing features and roadmap requirements are retained.
 
 ## Alle mogelijkheden
 

@@ -15,15 +15,15 @@ wat eerder is voorbereid moet in de releasebasis behouden blijven. Daarom is
 ieder voorbereid onderdeel opgenomen in de [release-inventaris](BETA1-RELEASE-INVENTARIS.json)
 en in [WORKBOARD §3](WORKBOARD.nl.md#3-alles-wat-voorbereid-is-meenemen-in-de-bèta).
 
-- **Geïnstalleerd:** HA dev47 (bron `6f21f34`) en E32 alpha31 (bron `659879e`).
-  Afzonderlijke nacontrole 25 oktober 06:47:49 UTC: 44 controles geslaagd, 86 HA-bestanden
-  exact en verse HA46-back-up van 96 payloads gecontroleerd. Instellingen, programma's
-  en kaarten behouden. Tado-configuratie behouden; geen fysieke opdrachten.
-  [Installatieverslag](INSTALLATIE-HA47-ALPHA34-20261025.nl.md).
-- **Gepubliceerd:** HA dev47 en E32 alpha34 op bron `6f21f34`. Deze opdracht voerde
-  geen E32-upload uit. De eerdere uploader-watchdogoorzaak/herstelroute blijven open;
-  de uitvoerder/methode van de waargenomen alpha31-installatie zijn onbekend.
-  [Eerdere waarneming](WAARNEMING-E32-ALPHA31-20261025.nl.md).
+- **Geïnstalleerd:** HA dev48 (bron `70135db3`) en E32 alpha31 (bron `659879e`).
+  Verse HA47-back-up van 96, één normale Core-herstart en 86 exacte componentbestanden.
+  Instellingen, programma's, koppelingen en kaarten behouden. Tado-configuratie
+  behouden; geen fysieke opdrachten. [Installatie en aparte nacontrole](INSTALLATIE-HA48-ALPHA35-20261025.nl.md).
+- **Gepubliceerd:** HA dev48 en E32 alpha35 op bron `70135db3`. Deze opdracht voerde
+  geen E32-upload uit. De oudere uploader-watchdogoorzaak/herstelroute blijven open;
+  de actor/methode van de eerdere alpha31-installatie zijn onbekend.
+  HA48 levert cleanup na callbackexception en de gedeelde klokfixture met vier
+  regressies. Alpha35 bevat een pure Shelly-decoderbasis, nog zonder BLE-runtimekoppeling.
 - **Geleverde softwarebasis:** EMS-apparatenpagina, sessie-/klokbewaking,
   opstartherstel, web-/editorcorrecties en HA-kraanberichtbedrading met standaard
   gesloten productfabriek, oorspronkelijke aanvraagcorrelatie, beschermd kanaalbeheer

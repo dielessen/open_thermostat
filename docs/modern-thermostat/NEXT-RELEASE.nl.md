@@ -1,16 +1,21 @@
-# Volgende actieve bèta — geïnstalleerde basis HA47 / E32 alpha31
+# Volgende actieve bèta — geïnstalleerde basis HA48 / E32 alpha31
 
 Bijgewerkt: 25 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
 het [masterplan](PLAN.nl.md) bewaart alle 31 producteisen en acceptatievoorwaarden.
 
-## HA48 / E32 alpha35 — gezamenlijke release wordt afgewerkt
+## Grotere release HA48 / E32 alpha35 — gepubliceerd, HA geïnstalleerd
 
-De voorbereide cleanupfix, klokregressies en Shelly-decoderbasis worden samen
-bevroren, gebouwd en als twee onveranderlijke tags gepubliceerd. Installatie
-volgt uitsluitend het exact gecontroleerde publieke pakket, met verse HA47-
-back-up en aparte nacontrole. Actieve/fysieke vrijgave blijft NOT_READY; de
-E32-herstel-/uploadgate wordt afzonderlijk beoordeeld vóór firmwareacties.
+Beide tags staan op bron `70135db3`. Main- en tag-CI en alle negen publieke
+pakketten zijn gecontroleerd. HA48 is met verse HA47-back-up van 96 en één normale
+Core-herstart geïnstalleerd: alle 86 bestanden exact, SOURCE5, instellingen,
+programma's, koppelingen en kaarten behouden. De bundel levert cleanup na een
+gewone callbackexception, vier klokregressies en een pure Shelly-decoderbasis.
+798 native en 2.356 HA-gevallen per Core slagen; de parser is nog niet geselecteerd
+door de BLE-runtime. E32 alpha35 is gepubliceerd, niet geïnstalleerd; actuele
+module alpha31 blijft behouden. Uploadgate en actieve bèta blijven **NOT_READY**.
+Alle 23 onderdelen, 289 bronverwijzingen en 31 eisen blijven behouden.
+[Installatie, aparte nacontrole en grenzen](INSTALLATIE-HA48-ALPHA35-20261025.nl.md).
 
 ## Historische release HA47 / E32 alpha34 — gepubliceerd en HA geïnstalleerd
 
@@ -28,13 +33,12 @@ publiek pakket/Git en alle instellingen, programma's, koppelingen en kaarten beh
 E32 alpha31 blijft op dezelfde boot; alpha34 is gepubliceerd, zonder firmwareactie.
 [Installatie en bewijs](INSTALLATIE-HA47-ALPHA34-20261025.nl.md).
 
-## Voorbereid voor de volgende grotere bundel
+## Meegeleverd in HA48 / alpha35 — bewijs en beperkingen
 
 De native afsluitroute ruimt de overige eigen handles, worker en wachtrij ook
 op als één cleanupcallback een gewone exception geeft. Drie gevallen falen
 vóór correctie; 162 gerichte gevallen per ondersteunde Core slagen erna.
-Dit is bronvoorbereiding, nog niet geïnstalleerd en geen verklaring voor een
-eerder productieincident. [Bewijs en beperking](HA-OPSTART-LIFECYCLE-20261025.nl.md).
+Dit is in HA48 geïnstalleerd en geen verklaring voor een eerder productieincident. [Bewijs en beperking](HA-OPSTART-LIFECYCLE-20261025.nl.md).
 
 Ook de kamer-/HVAC-testopstelling gebruikt nu één klokdomein voor ontvangst
 en meetleeftijd. Vier epochproeven toetsen het volledige bestaande servicepad;
@@ -43,9 +47,8 @@ asserties blijven behouden; de oudere CI-oorzaak blijft afzonderlijk onbekend.
 [Uitwerking en bewijs](M2-ONTVANGER-EN-BRONKEUZE-20261024.nl.md).
 
 De gecombineerde voorbereiding met de cleanupfix is volledig lokaal getoetst:
-2.356 gevallen per Core2026.10.2 en2026.10.3, nul fouten of skips; zeven
-pakketunittests en twee onafhankelijke offline bronreviews slagen. Geen nieuwe
-releaseversie of installatie voor deze bronstap. Alle fysieke poorten blijven open.
+2.356 gevallen per Core 2026.10.2 en2026.10.3, nul fouten of skips; zeven
+pakketunittests en twee onafhankelijke offline bronreviews slagen. Deze bronstap is nu meegeleverd in de gezamenlijke release. Alle fysieke poorten blijven open.
 
 X01 heeft nu een eerste pure Shelly SBHT-103C-decoderbasis:798native tests,
 16aparte sanitizergevallen en ESP32-syntaxcontrole slagen. Deze parser wordt
@@ -208,7 +211,7 @@ De uitgebreide geleverde bundel staat in de [werkbordhistorie](WORKBOARD-HISTORI
 HA dev43 geladen; 84 bestanden exact publieke ZIP/Git, verse HA40-back-up van
 93 bestanden en één normale Core-herstart. Alle 38 afzonderlijke nacontroles
 slagen. Instellingen, programma’s, SOURCE, registry en bronpins behouden; alleen
-twee eigen kamerkaarten gaan van v38 naar v41. E32alpha28 niet gewijzigd;
+twee eigen kamerkaarten gaan van v38 naar v41. E32 alpha28 niet gewijzigd;
 nul uploads/herstarts, TX/polls/testframes nul. 2281 testgevallen per Core,
 zeven softwarepoorten en definitieve tag-CI geslaagd; vier downloads bytegelijk.
 [Installatieverslag HA43](INSTALLATIE-HA43-20261024.nl.md).
@@ -216,7 +219,7 @@ zeven softwarepoorten en definitieve tag-CI geslaagd; vier downloads bytegelijk.
 ### Historische HA39-installatie — nacontrole 18:54 UTC
 
 HA dev39 geladen; 83 bestanden exact, verse gecontroleerde back-up van 93 bestanden,
-één normale Core-herstart. E32alpha28 en alle instellingen/koppelingen behouden;
+één normale Core-herstart. E32 alpha28 en alle instellingen/koppelingen behouden;
 geen E32-upload of herstart. Uitgangen geblokkeerd, TX/polls/testframes nul.
 Afzonderlijke nacontrole geslaagd; zie [installatieverslag](INSTALLATIE-HA39-ALPHA30-20261024.nl.md).
 
@@ -315,7 +318,7 @@ bestaande HA-functies blijven behouden. Haalbaarheid onderzocht met officiële
 GATT-documentatie; nog geen driver, koppeling of lokale regelvrijgave geleverd.
 Eerst één kraan uitlezen en zonder ketel kwalificeren, daarna lokale
 programmering/eigendom/opslag/tijd en de bestaande stop-/uitvalvoorwaarden verbinden.
-Dit wijzigt de laatst gecontroleerde installatie HA38/E32alpha28 niet en is geen nieuwe release.
+Dit wijzigt de laatst gecontroleerde installatie HA38/E32 alpha28 niet en is geen nieuwe release.
 
 X01 omvat ook de Shelly BLU H&T Display ZB (SBHT-103C) en een tweetalige
 [Bluetooth-apparaatpagina onder Settings](BLUETOOTH-APPARATEN.nl.md): vinden,

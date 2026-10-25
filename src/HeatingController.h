@@ -17,7 +17,7 @@
 #include "control/BleDeviceSettings.h"
 #include "control/ManagedBleObserver.h"
 #include "control/MbedTlsBleCcm.h"
-#include "DeviceNetworkSettings.h"
+#include "DeviceBluetoothSettings.h"
 #include <esp_timer.h>
 #include "update/GitHubUpdate.h"
 #endif
@@ -114,7 +114,7 @@ public:
 		DBGLOGFI(log_, logFeature_, "HeatingController constructed\n");
 		bluetoothScan_ = true;
 #ifdef OPENTHERMOSTAT_E32V2
-        const auto raw = readDeviceNetworkSettings();
+        const auto raw = readDeviceBluetoothSettings();
         auto root = control::parseControlJson({raw.c_str(), raw.length()}, true);
         std::unique_ptr<control::ManagedBleBindings> bindings(new(std::nothrow) control::ManagedBleBindings);
         if (bindings && control::readManagedBleBindings(root.get(), *bindings) == control::BleSettingsError::none)

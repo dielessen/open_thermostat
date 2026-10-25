@@ -50,14 +50,25 @@ worden niet aan de verwarmingsregelaar, kraanroute of HA-meetkwalificatie gevoer
 
 ### Opslaan en publieke API
 
-De versiegebonden compacte lijst staat in `bt.devices` in het bestaande
-`ot_network/settings`-blob. Geen nieuwe partitie/namespace en geen schrijfcyclus
-per advertentie. De bestaande totale grens van 2048 bytes geldt ook met broker-,
-netwerk- en installatieprofielinstellingen; bij ruimtegebrek wordt de volledige
-wijziging geweigerd, zonder afkappen of andere instellingen te wissen.
+De versiegebonden compacte lijst en de sleutels staan **samen in één privéblob**
+`ot_bluetooth/settings`, buiten het netwerkdocument. Dit is bewust gewijzigd
+vóór uitrol: oudere firmware kan onbekende netwerkvelden terugsturen. Door
+sleutels nooit in dat document te plaatsen, kunnen die ook bij terugrollen niet
+via de oudere netwerkreader verschijnen. De ongewijzigde netwerkreader en de
+nieuwe opslagfuncties worden samen in de hostproef uitgevoerd.
+
+De private blob is begrensd op 2048 bytes inclusief NUL, in de bestaande
+NVS-partitie. Er is geen partitievergroting, tweede sleuteltransactie of
+schrijfcyclus per advertentie. Acht bindings met elk een sleutel en een naam
+van 40 bytes passen binnen de geteste JSON-grens. Opslag-/commit-/terugleesfouten
+blijven fouten: geen automatische wisactie of poging om netwerkruimte vrij te
+maken. Een ontbrekende selectie wordt alleen-lezen als leeg geïnterpreteerd;
+corruptie krijgt geen opgeslagen/default- of netwerkfallback.
 
 - `GET /config/bluetooth`: publieke instellingen plus ontvangststatus en een
-  sessiegebonden ETag voor precies de actuele complete instellingen.
+  sessiegebonden ETag voor precies de actuele private instellingen. De netwerk-
+  en Bluetoothformulieren hebben elk een eigen begrensde readbackcontrole en
+  maken elkaars ongewijzigde formulier niet ongeldig.
 - `POST /config/bluetooth`: sessie/CSRF/origin, update-/ketelproefbewaking en
   verplichte `If-Match`. Alleen exact hetzelfde adres/profiel/versleuteling kan
   de bestaande sleutel behouden; vervangen en wissen zijn expliciete acties.
@@ -69,8 +80,9 @@ wijziging geweigerd, zonder afkappen of andere instellingen te wissen.
   cooldown en de bestaande scannerlevensduur blijven gelden.
 
 Bindkeys worden nooit teruggestuurd, ook niet door `GET /config/device`, en niet
-in browseropslag bewaard. De oudere netwerkpagina behoudt verborgen bindings
-bij opslaan. Een expliciete volledige configuratierestore wordt gevalideerd.
+in browseropslag bewaard. Nieuwe bindings kunnen niet via een netwerkrestore
+worden ingevoerd. Gewone netwerkopslag verandert de private lijst niet;
+onbekende oudere netwerkvelden worden behouden en niet als nieuwe bron gelezen.
 Opslaan sluit de oude ontvanger **vóór** de duurzame schrijf-/terugleescontrole;
 een onzekere schrijfactie blijft gesloten en wordt niet blind herhaald.
 De nieuwe lijst wordt na een handmatige apparaatherstart actief. Een ongeldige
@@ -86,7 +98,12 @@ en `test/bluetooth-browser.cjs`. De volledige bibliotheek gebruikt het officiël
 publieke BTHome-voorbeeld en onafhankelijk gemaakte protocolfixtures; geen
 echte apparaatsleutel of productieverbinding. Boardbuilds controleren de echte
 SDK-koppeling; browserproeven gebruiken uitsluitend nagebootste HTTP-antwoorden.
-Actuele resultaten en bronhashes staan bij de bundelcontrole.
+Actuele resultaten en bronhashes staan bij de bundelcontrole. De private opslag
+heeft daarnaast 15 gerichte SDK-grensgevallen onder ASan/UBSan: eigen namespace,
+read-only ontbrekende selectie, netwerkbehoud, commit-/terugleesfouten,
+terminator-/groottegrenzen en geen sleutel in de oudere netwerkreader.
+De native suite heeft nu 875 geslaagde gevallen; 18 sessie- en 26 eigenaar-/
+instellingengevallen slagen ook apart onder ASan/UBSan/leakcontrole.
 
 Open blijven: echte SBHT-103C-ontvangst, sleutelverkrijging, hardware-/firmware-
 variant, reboot-/batterij-/radio-/resourceproeven, blijvende anti-replay en

@@ -209,6 +209,11 @@ inline BleSettingsError prepareManagedBleSettings(const cJSON* previous, const c
     return BleSettingsError::none;
 }
 
+// New bindings/keys belong only to the private store. In particular a full
+// network restore must not put them in the older firmware's echoed document.
+inline bool networkSettingsContainManagedBleBindings(const cJSON* settings) noexcept {
+    return bleSetting(bleSetting(settings,"bt"),"devices") != nullptr;
+}
 // An older network form must neither receive bindkeys nor erase bindings it
 // does not understand. Explicit device edits use the Bluetooth form/API.
 inline void redactManagedBleSettings(cJSON* settings) noexcept {

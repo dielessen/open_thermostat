@@ -11,11 +11,13 @@ public:
     static constexpr std::size_t maximumSessions = 4;
     static constexpr uint64_t lifetimeMs = 7ULL * 24 * 60 * 60 * 1000;
     static constexpr const char *cookieName = "OTSESSION";
+    enum class SettingsScope : uint8_t { network=0, bluetooth=1 };
+    struct SettingsFence { std::array<char,65> hash{}, tag{}; };
     struct Session {
         std::array<char,65> token{}, csrf{};
         // Boot/session-local readback fence. Only the random tag is returned;
         // never expose a hash of settings containing broker/weather secrets.
-        std::array<char,65> settingsHash{}, settingsTag{};
+        std::array<SettingsFence,2> settings{};
         uint64_t issued = 0, until = 0;
         bool occupied = false;
     };
@@ -62,32 +64,33 @@ public:
         return session && hexToken(proof) && equal(proof,view(session->csrf));
     }
     std::string_view settingsReadback(std::string_view token,std::string_view hash,
-            std::string_view randomTag,uint64_t now) {
-        if (!hexToken(hash) || !hexToken(randomTag)) return {};
-        for (const auto &session : sessions_) {
-            if (live(session,now) && (equal(randomTag,view(session.token)) ||
-                    equal(randomTag,view(session.csrf)))) return {};
+            std::string_view randomTag,uint64_t now,SettingsScope scope=SettingsScope::network) {
+        if (!validScope(scope)||!hexToken(hash)||!hexToken(randomTag))return {};
+        const auto selected=static_cast<std::size_t>(scope);
+        for(const auto& session:sessions_) {
+            if(!live(session,now))continue;
+            if(equal(randomTag,view(session.token))||equal(randomTag,view(session.csrf)))return {};
+            for(std::size_t i=0;i<session.settings.size();++i)
+                if(equal(randomTag,view(session.settings[i].tag))
+                        && !(equal(token,view(session.token))&&i==selected))return {};
         }
-        for (auto &session : sessions_) {
-            if (!live(session,now) || !equal(token,view(session.token))) continue;
-            if (hexToken(view(session.settingsTag)) && equal(hash,view(session.settingsHash)))
-                return view(session.settingsTag);
-            if (equal(randomTag,view(session.settingsTag))) return {};
-            for (std::size_t i=0;i<64;++i) {
-                session.settingsHash[i]=hash[i]; session.settingsTag[i]=randomTag[i];
-            }
-            return view(session.settingsTag);
+        for(auto& session:sessions_) {
+            if(!live(session,now)||!equal(token,view(session.token)))continue;
+            auto& fence=session.settings[selected];
+            if(hexToken(view(fence.tag))&&equal(hash,view(fence.hash)))return view(fence.tag);
+            if(equal(randomTag,view(fence.tag)))return {};
+            for(std::size_t i=0;i<64;++i){fence.hash[i]=hash[i];fence.tag[i]=randomTag[i];}
+            return view(fence.tag);
         }
         return {};
     }
     bool settingsReadbackMatches(std::string_view token,std::string_view quotedTag,
-            std::string_view currentHash,uint64_t now) const {
-        const auto *session=find(token,now);
-        return session && hexToken(currentHash) && quotedTag.size()==66 &&
-            quotedTag.front()=='"' && quotedTag.back()=='"' &&
-            hexToken(view(session->settingsTag)) &&
-            equal(quotedTag.substr(1,64),view(session->settingsTag)) &&
-            equal(currentHash,view(session->settingsHash));
+            std::string_view currentHash,uint64_t now,SettingsScope scope=SettingsScope::network) const {
+        const auto* session=find(token,now);
+        if(!session||!validScope(scope))return false;
+        const auto& fence=session->settings[static_cast<std::size_t>(scope)];
+        return hexToken(currentHash)&&quotedTag.size()==66&&quotedTag.front()=='"'&&quotedTag.back()=='"'
+            &&hexToken(view(fence.tag))&&equal(quotedTag.substr(1,64),view(fence.tag))&&equal(currentHash,view(fence.hash));
     }
     const Session *issue(std::string_view token,std::string_view proof,uint64_t now,std::string_view replacing = {}) {
         if (!hexToken(token) || !hexToken(proof) || equal(token,proof) || now > UINT64_MAX-lifetimeMs) return nullptr;
@@ -96,7 +99,7 @@ public:
             // Never issue a token/proof that aliases another live session.
             if (live(session,now) && (equal(token,view(session.token)) || equal(proof,view(session.csrf)) ||
                 equal(token,view(session.csrf)) || equal(proof,view(session.token)) ||
-                equal(token,view(session.settingsTag)) || equal(proof,view(session.settingsTag)))) return nullptr;
+                tagAliases(session,token) || tagAliases(session,proof))) return nullptr;
             if (live(session,now) && equal(replacing,view(session.token))) slot = &session;
         }
         if (!slot) for (auto &session : sessions_) if (!live(session,now)) { slot = &session; break; }
@@ -119,6 +122,11 @@ public:
     void loginSucceeded() { failed_ = 0; }
     static std::string_view view(const std::array<char,65> &s) { return {s.data(),64}; }
 private:
+    static bool validScope(SettingsScope scope) {return scope==SettingsScope::network||scope==SettingsScope::bluetooth;}
+    static bool tagAliases(const Session& session,std::string_view value) {
+        for(const auto& fence:session.settings)if(equal(value,view(fence.tag)))return true;
+        return false;
+    }
     static bool live(const Session &session,uint64_t now) {
         return session.occupied && now >= session.issued && now < session.until;
     }
@@ -127,6 +135,7 @@ private:
     unsigned failed_ = 0;
 };
 
+static_assert(sizeof(WebAuthSession)<=2048,"Web session memory budget changed");
 inline bool publicAuthResource(std::string_view path) {
     return path == "/login" || path == "/login.js" || path == "/ui-language.js" || path == "/ui-messages.js" || path == "/auth-client.js" || path == "/auth/login";
 }

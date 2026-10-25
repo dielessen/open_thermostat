@@ -78,7 +78,9 @@ Alle overige geïnventariseerde brononderdelen blijven behouden.
   buiten 0–100% blijven onbekend. Ongeldige doelen worden vóór verzending geweigerd.
 - Bluetoothapparaten: normale E32-instellingen en lokale SBHT-103C-
   diagnoseontvangst zijn aangesloten met acht bindings, echte AES-CCM,
-  verborgen sleutels, verplichte ETag, duurzame terugleescontrole en expliciete
+  verborgen sleutels in één afzonderlijke privéblob (ook buiten bereik van de
+  oudere netwerkreader bij rollback), onafhankelijke formulier-ETags, duurzame
+  terugleescontrole en expliciete
   herstart. Vaste wachtrij, oorspronkelijke ontvangstleeftijden en boot-lokale
   tellers; geen HA-/kamerregelbron, kraanwrite of fysieke kwalificatie.
   [Bediening, softwarebewijs en open proeven](BLUETOOTH-APPARATEN.nl.md).

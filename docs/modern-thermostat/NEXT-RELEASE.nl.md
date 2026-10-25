@@ -29,7 +29,9 @@ Dit is nog geen gepubliceerde of geïnstalleerde versie.
 
 Ook de normale E32-pagina voor Bluetoothapparaten en lokale SBHT-103C-
 diagnoseontvangst is aangesloten, met echte AES-CCM, verborgen bindkeys,
-begrensde opslag/wachtrij en ontvangstleeftijden. Dit levert nog geen
+begrensde privéopslag/wachtrij en ontvangstleeftijden. De sleutels staan buiten
+het netwerkdocument, zodat ook de oudere netwerkreader ze na rollback niet kan
+terugsturen. Dit levert nog geen
 gekwalificeerde regelbron; Xiaomi/TRV en zelfstandig regelen blijven open.
 [Uitvoering en grenzen](BLUETOOTH-APPARATEN.nl.md).
 

@@ -1,5 +1,10 @@
 /* Fixed English UI messages mapped to Nederlands. User data and wire identifiers are excluded. */
 window.OT_UI_MESSAGES = {
+  "Bluetooth settings could not be read. Existing data was kept.": "Bluetoothinstellingen konden niet worden gelezen. De bestaande gegevens zijn behouden.",
+
+  "At most 8 devices, stored separately from network settings. Saving never truncates other settings. Readings expire after three minutes; battery-only messages do not renew temperature.": "Maximaal 8 apparaten, afzonderlijk van de netwerkinstellingen opgeslagen. Opslaan kapt andere instellingen nooit af. Metingen verlopen na drie minuten; berichten met alleen de batterij verversen de temperatuur niet.",
+  "Bluetooth settings are too large. Remove a device or shorten names.": "De Bluetoothinstellingen zijn te groot. Verwijder een apparaat of verkort namen.",
+
   "Bluetooth reception details": "Bluetoothontvangstdetails",
   "Message integrity (last accepted report)": "Berichtintegriteit (laatst geaccepteerde bericht)",
   "Signal strength (dBm)": "Signaalsterkte (dBm)",

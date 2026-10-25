@@ -153,3 +153,17 @@ TEST(BleDeviceSettings, SharedStorageLimitRejectsWholeCandidateAndPreservesExist
     ManagedBleBindings next;ControlJson candidate(nullptr,cJSON_Delete);bool changed=false;
     EXPECT_EQ(prepareManagedBleSettings(old.get(),patch.get(),next,candidate,changed),BleSettingsError::settings_too_large);EXPECT_FALSE(candidate);EXPECT_FALSE(changed);EXPECT_EQ(next.count,0);EXPECT_EQ(text(old.get()),before);
 }
+
+TEST(BleDeviceSettings, NetworkRestoreMustNotImportThePrivateDeviceList) {
+    auto normal=baseline();EXPECT_FALSE(networkSettingsContainManagedBleBindings(normal.get()));
+    auto privateRoot=configured();EXPECT_TRUE(networkSettingsContainManagedBleBindings(privateRoot.get()));
+    auto nullList=json("{\"bt\":{\"devices\":null}}");EXPECT_TRUE(networkSettingsContainManagedBleBindings(nullList.get()));
+}
+TEST(BleDeviceSettings, EightMaximumLengthEncryptedBindingsFitThePrivateStore) {
+    auto old=json("{\"bt\":{}}");auto patch=json("{\"devices\":[]}");auto rows=cJSON_GetObjectItemCaseSensitive(patch.get(),"devices");
+    for(unsigned i=0;i<8;++i){auto one=request();auto row=cJSON_DetachItemFromArray(cJSON_GetObjectItemCaseSensitive(one.get(),"devices"),0);const auto address="5448e68f80a"+std::to_string(i);cJSON_ReplaceItemInObjectCaseSensitive(row,"address",cJSON_CreateString(address.c_str()));cJSON_ReplaceItemInObjectCaseSensitive(row,"name",cJSON_CreateString(std::string(40,'a').c_str()));ASSERT_TRUE(cJSON_AddItemToArray(rows,row));}
+    ManagedBleBindings next,restored;ControlJson candidate(nullptr,cJSON_Delete);bool changed=false;
+    ASSERT_EQ(prepareManagedBleSettings(old.get(),patch.get(),next,candidate,changed),BleSettingsError::none);EXPECT_EQ(next.count,8);EXPECT_LT(text(candidate.get()).size(),2048u);
+    ASSERT_EQ(readManagedBleBindings(candidate.get(),restored),BleSettingsError::none);EXPECT_TRUE(next.same(restored));
+    for(unsigned i=0;i<8;++i){EXPECT_TRUE(restored.devices[i].hasKey);EXPECT_EQ(std::string(restored.devices[i].name.data()).size(),40u);}
+}

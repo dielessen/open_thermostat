@@ -162,3 +162,31 @@ TEST(WebAuth, SettingsReadbackTagCannotBecomeANewLoginCookieOrCsrfProof) {
     EXPECT_NE(sessions.find(token('a'),103),nullptr);
     EXPECT_FALSE(sessions.csrf(token('a'),token('d'),103));
 }
+
+TEST(WebAuth, SeparateSettingsStoresKeepIndependentOpaqueReadbackFences) {
+    WebAuthSession sessions;using Scope=WebAuthSession::SettingsScope;
+    ASSERT_NE(sessions.issue(token('a'),token('b'),100),nullptr);
+    ASSERT_EQ(sessions.settingsReadback(token('a'),token('c'),token('d'),101),token('d'));
+    ASSERT_EQ(sessions.settingsReadback(token('a'),token('e'),token('f'),102,Scope::bluetooth),token('f'));
+    EXPECT_TRUE(sessions.settingsReadbackMatches(token('a'),'"'+token('d')+'"',token('c'),103));
+    EXPECT_TRUE(sessions.settingsReadbackMatches(token('a'),'"'+token('f')+'"',token('e'),103,Scope::bluetooth));
+    EXPECT_FALSE(sessions.settingsReadbackMatches(token('a'),'"'+token('f')+'"',token('e'),103));
+    EXPECT_FALSE(sessions.settingsReadbackMatches(token('a'),'"'+token('d')+'"',token('c'),103,Scope::bluetooth));
+    EXPECT_EQ(sessions.settingsReadback(token('a'),token('1'),token('2'),104),token('2'));
+    EXPECT_TRUE(sessions.settingsReadbackMatches(token('a'),'"'+token('f')+'"',token('e'),105,Scope::bluetooth));
+    EXPECT_FALSE(sessions.settingsReadbackMatches(token('a'),'"'+token('f')+'"',token('3'),105,Scope::bluetooth));
+}
+TEST(WebAuth, ReadbackScopesCannotAliasTokensProofsOrEachOther) {
+    WebAuthSession sessions;using Scope=WebAuthSession::SettingsScope;
+    ASSERT_NE(sessions.issue(token('a'),token('b'),100),nullptr);
+    ASSERT_EQ(sessions.settingsReadback(token('a'),token('c'),token('d'),101),token('d'));
+    EXPECT_TRUE(sessions.settingsReadback(token('a'),token('e'),token('d'),102,Scope::bluetooth).empty());
+    EXPECT_TRUE(sessions.settingsReadback(token('a'),token('e'),token('a'),102,Scope::bluetooth).empty());
+    EXPECT_TRUE(sessions.settingsReadback(token('a'),token('e'),token('b'),102,Scope::bluetooth).empty());
+    ASSERT_EQ(sessions.settingsReadback(token('a'),token('e'),token('f'),102,Scope::bluetooth),token('f'));
+    EXPECT_EQ(sessions.issue(token('f'),token('1'),103),nullptr);
+    EXPECT_EQ(sessions.issue(token('1'),token('f'),103),nullptr);
+    EXPECT_TRUE(sessions.settingsReadback(token('a'),token('1'),token('f'),104).empty());
+    EXPECT_TRUE(sessions.settingsReadback(token('a'),token('1'),token('2'),104,static_cast<Scope>(255)).empty());
+    EXPECT_FALSE(sessions.settingsReadbackMatches(token('a'),'"'+token('f')+'"',token('e'),104,static_cast<Scope>(255)));
+}

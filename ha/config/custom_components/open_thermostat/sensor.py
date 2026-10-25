@@ -17,6 +17,8 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util.unit_conversion import DurationConverter, EnergyConverter
 
 from .room_identity import room_device_name, room_key
+from .room_values import room_value
+from .metric_snapshot import finite as finite_number
 from .const import CONF_TOPIC_PREFIX, DOMAIN
 from .program import room_program_name
 from .heating import HeatingTracker, DEFINITION
@@ -306,11 +308,7 @@ class RoomMetric(SensorEntity):
 
     def update_value(self, value: object, online: bool) -> None:
         """Apply a raw sensor value."""
-        self._attr_native_value = (
-            value / self._divisor
-            if isinstance(value, (int, float)) and not isinstance(value, bool)
-            else None
-        )
+        self._attr_native_value = room_value(self._field, value)
         self._attr_available = online
         if self.entity_id is not None:
             self.async_write_ha_state()
@@ -622,7 +620,7 @@ class HubMetric(SensorEntity):
         if self._versioned:
             # Old numerical fields must NEVER feed the new statistic IDs.
             old_value = payload.get(field)
-            if isinstance(old_value, (int, float)) and not isinstance(old_value, bool) and math.isfinite(old_value):
+            if finite_number(old_value):
                 self._legacy_schema_seen = True
                 if self.hass is not None and self._entry_id:
                     note_legacy_metrics(self.hass, self._entry_id)
@@ -650,7 +648,7 @@ class HubMetric(SensorEntity):
             value = None
         self._attr_native_value = (
             value / self._divisor
-            if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+            if finite_number(value)
             else value if self._metric in {"boiler_display_code", "boiler_service_code", "boiler_protocol_version"}
                 and isinstance(value, str) and value else None
         )

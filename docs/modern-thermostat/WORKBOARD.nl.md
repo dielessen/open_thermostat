@@ -8,6 +8,20 @@ HA-installatie. De volgorde en open implementatiepunten staan in
 [BETA1-UITVOERING.nl.md](BETA1-UITVOERING.nl.md). B04–B14 blijven inhoudelijk
 leidend; ontbrekende fysieke feiten worden niet met softwarevinkjes afgetekend.
 
+## In de grote bètabundel — meetketen, meldingen en maandexport
+
+Nog niet geïnstalleerd: CSV-export via de normale HA-actie ondersteunt maximaal
+31 dagen, met een installatiekeuze en NL/EN-velduitleg. Ontbrekende Recorder-data
+blijft ontbreken; de bestaande rij-/groottegrenzen en eigenaarscontrole blijven.
+[Gebruik en grenzen](HISTORIE-EXPORT.nl.md).
+
+Schermcallbacks kunnen een meetintrekking niet meer onderbreken en een tijdens
+zo'n callback vervangen bronprofiel kan geen oude meting opnieuw verzenden.
+Een ongeldige lokale meetklok meldt HA via Repairs, met NL/EN-hersteluitleg.
+Ongeldige bestaande kamerwaarden blijven onbekend; foutieve doelen worden vóór
+verzending geweigerd. Gerichte echte HA-regressies worden bij deze bronstand
+vastgelegd. De volledige bèta- en praktijkacceptatie blijven afzonderlijk open.
+
 ## GitHub-releasenotities — alle bestaande versies bijgewerkt
 
 Alle 65 releases (64 gepubliceerd en één concept) hebben begrijpelijke Nederlandse
@@ -59,7 +73,7 @@ automatische poging; geen snelle retrylus. Geen controle tijdens pending boot,
 installatie/herstart of zonder thuisnetwerk/geldige tijd. Een geslaagde controle
 blijft vijf minuten in RAM beschikbaar voor herhaalde handmatige controles.
 Het dashboard leest de lokale samenvatting via de bestaande statuspoll en toont
-alleen numeriek nieuwere compatibele alpha-versies, met een knop naar Updates.
+alleen numeriek nieuwere compatibele firmwareversies (alpha/beta/rc/stabiel), met een knop naar Updates.
 Geen automatische installatie of firmwareactie in deze opdracht. 44 gerichte
 native gevallen, 26 Node-gevallen, dashboardbrowser en E32-compile geslaagd;
 updaterbrowser apart gecontroleerd. Volledige releasegate/uitrol blijft open.
@@ -590,7 +604,7 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | I14 | Kraanadapter profiel C, TV02-moduscontrole en bronbench | Modus/identiteit en oorspronkelijke HA-ontvangst/diagnose geleverd; fysieke route onvolledig | Native identiteit en doelcapaciteit vlak vóór dispatch opnieuw gecontroleerd; TV02 auto/vakantie/uit/onbekend zichtbaar en vóór doelactie geweigerd. Verse kraanecho, exclusief eigenaarschap en fysieke werking blijven open; oude bench op SOURCE geblokkeerd. |
 | I15 | Kamerregelaar, seizoensbeleid en hydraulische supervisor | Voorbereide code, functie nog onvolledig | Controller-/supervisorkoppeling en HA-diagnose gebouwd; werkelijke producenten, installatieprofiel en fysieke uitvoerketen niet gekwalificeerd. |
 | I16 | Groepswaterdoelen, vloer, menger en centrale graph-config | Voorbereide code, functie nog onvolledig | Pure policies/declaraties en begrensde DATA-paden aanwezig; niet gelijk aan actieve groepen/pomp/menger. |
-| I17 | Metrics, grafieken, historiegrens en CSV-export | Voorbereide code, functie nog onvolledig | Niet opnieuw vanaf nul bouwen; echte Classic-tijdlijn, Recorder-retentie/migratie en grafiekacceptatie open. |
+| I17 | Metrics, grafieken, historiegrens en CSV-export | Native velden/grafieken en begrensde Recorder-CSV; maandexport in bètabron | echte Classic-tijdlijn, Recorder-retentie/migratie en grafiekacceptatie open. |
 | I18 | Comfortprioriteiten, raam/aanwezigheidscontext en HEAT/OFF | Voorbereide code, functie nog onvolledig | Logische/oudere opt-in paden bestaan; native eenvoudige kamereditor/bronkwalificatie niet compleet. |
 | I19 | Thermisch model, optimum-start, uitlopen en curveaanpassing | Voorbereide code, functie nog onvolledig | Code/replay/opslag aanwezig en behouden; geen bewezen leerwinst of actieve vrijgave. Geen nieuwe F9-stage vóór M2. |
 | I20 | Meldingen, batterij en modelspecifieke tapwaterpresentatie | Voorbereide code, functie nog onvolledig | Niet generiek als werkende onderhouds-/tapwaterregeling presenteren; modelgerichte acceptatie open. |
@@ -628,7 +642,7 @@ de code afgetekend. De oorspronkelijke acceptatie in PLAN §4/§14 blijft gelden
 | R14 | Uitlopen/curve leren | Coast- en curve-adaptatiecode/opslag/replay aanwezig | I19 | Afzonderlijke toelating en meetbaar comfort-/curvebewijs; geen leerwinstclaim. |
 | R15 | Alle relevante keteldata | 69 native velddefinities geleverd op alpha21/dev27; laatste controle 26 beschikbaar, eerdere boot 27 | I12,I17,I21 | Vereiste betrouwbare velden op eigen E32 ontvangen en vergelijken; unsupported/unreliable expliciet. |
 | R16 | Brander/modulatiegrafieken | Native ketelkaarten en drie historiekaarten geleverd; gerapporteerd/afgeleid gescheiden | I17,I21 | Echte CV/DHW-tijdlijn, gaten en herkomst; vlam/pompbit niet onafhankelijk betrouwbaar. |
-| R17 | Historie/statistics/CSV | Recordergrens, metrics-schema en read-only CSV-code aanwezig | I17 | Werkelijke retentie/omvang, oude deltahistorie/migratie, reset/gaten en mobiele grafiekacceptatie. |
+| R17 | Historie/statistics/CSV | Read-only Recorder-CSV tot 31 dagen met native installatiekeuze/NL/EN in bètabron; eigenaarscontrole na wachttijd | I17 | Werkelijke retentie/omvang, oude deltahistorie/migratie, reset/gaten en mobiele grafiekacceptatie. |
 | R18 | Weekprogramma/override | Native weekeditor/UTC-plan/apply geleverd; echte save/ACK bewezen | I07,I13 | Volledige fysieke stale/reconnect/tijd-/overrideketen; huidige 1–2 kamer-/bytebudgetten behouden. |
 | R19 | Comfort/eco/away/vakantie/boost | Prioriteits-/expiry-/opt-in comfortcode aanwezig | I18 | Normale huidige producteditor/bronketen en conflicten compleet; geen nieuwe F10-stage vóór M2. |
 | R20 | Aanwezigheid/geofencing | Opt-in logische HA-contextbasis aanwezig | I18 | Modelspecifieke contextactualiteit en complete gebruikersroute; P2 blijft later. |
@@ -638,7 +652,7 @@ de code afgetekend. De oorspronkelijke acceptatie in PLAN §4/§14 blijft gelden
 | R24 | Uitval HA/MQTT/sensor/E32 | Lease/session/boot/stale/owner-guards aanwezig | I11,I13,I15,I23 | Werkelijke uitvalmatrix, E32-powerloss/ketelstop, actuatorfallback en exclusieve overdracht. |
 | R25 | Waarom stoken | Redencodes, kamervraag en dashboard geleverd; diagnose uitgebreid | I10,I11,I15,I17,I21,I23 | Echte opdrachtentijdlijn en gecontroleerde vraag/verzending/ketelreactie apart zichtbaar. |
 | R26 | Verbruik/kosten/comfort | Metrics/export/schatlabels gedeeltelijk aanwezig | I17 | Echte gas-/warmtemeter en kostenbron/kalibratie; geen verzonnen besparing of fysiek gasvolume. |
-| R27 | Meldingen/onderhoud/batterij | Diagnostics/Repairs en batterijbasis aanwezig; systeemlog/syslog voorbereid | I11,I20 | Passende meldingen en echte fout-/batterij-/geen-responsscenario’s; geen automatische ketelreset. |
+| R27 | Meldingen/onderhoud/batterij | Diagnostics/Repairs en batterijbasis aanwezig; bèta voegt installatiegebonden klokmelding met NL/EN-herstel toe | I11,I20 | Passende meldingen en echte fout-/batterij-/geen-responsscenario’s; geen automatische ketelreset. |
 | R28 | Open/lokaal/veilig/herstelbaar | Eigen bron, auth, HTTPS-updates en behoud/rollback deels live bewezen | I01–I04,I08,I23 | Concrete ACL/HTTP/AP-/koude herstel-/uitvalmatrix; oorspronkelijke backupwaiver blijft geldig. |
 | R29 | Modern eenvoudig scherm | HA-kamer/week, koude-startfix, E32-dashboard/About/navigatie geleverd | I05–I11,I21,I23 | Ontbrekende centrale/uitvoerfuncties en complete gebruikersacceptatie; echte latentie/geen ongefundeerde speedup. |
 | R30 | Schaalbaar/onderhoudbaar | CI/build/source-/budgetguards en 1–2 native kamers aanwezig | I01,I03,I11,I13 | Acht zones zijn productdoel: maximumconfig/heap/NVS/powerloss/72u nog open. |

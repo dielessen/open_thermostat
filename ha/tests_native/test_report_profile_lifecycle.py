@@ -236,3 +236,99 @@ async def test_queue_rebasing_preserves_age_at_the_same_monotonic_anchor(hass):
     finally:
         advancing[0] = False
         await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_failing_ui_listener_cannot_interrupt_measurement_withdrawal_or_other_listeners(hass):
+    binding, runtime, transport, _ = await setup(hass)
+    called = []
+    def bad():
+        called.append('bad')
+        raise RuntimeError('private listener details')
+    def good():
+        called.append('good')
+    runtime.add_listener(bad)
+    runtime.add_listener(good)
+    try:
+        runtime._withdraw(binding.room_id, 'unavailable')
+        await hass.async_block_till_done()
+        assert set(called) == {'bad', 'good'}
+        assert transport.observations[-1][1].quality == 'unavailable'
+        assert runtime.diagnostics['listener'] == 'notification_failed'
+        assert 'private listener details' not in str(runtime.diagnostics)
+    finally:
+        runtime._listeners.discard(bad)
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_listener_replacing_profile_cannot_overwrite_withdrawal_with_old_qualified_report(hass):
+    binding, runtime, transport, _ = await setup(hass)
+    replaced = [False]
+    def replace_profile():
+        if not replaced[0]:
+            replaced[0] = True
+            runtime.set_report_profile(binding.room_id, source_profile)
+    runtime.add_listener(replace_profile)
+    try:
+        before = len(transport.observations)
+        old = runtime.observations[binding.room_id]
+        assert old.quality == 'qualified'
+        runtime._record(binding.room_id, old)
+        await hass.async_block_till_done()
+        assert not runtime.measurement_status(binding.room_id)['usable']
+        forwarded = transport.observations[before:]
+        assert forwarded and all(o.quality != 'qualified' for _, o in forwarded)
+        assert transport.observations[-1][1].quality == 'unverified'
+    finally:
+        runtime._listeners.discard(replace_profile)
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_clock_failure_creates_entry_scoped_repair_and_only_healthy_owner_clears_it(hass):
+    from homeassistant.helpers import issue_registry as ir
+    binding, runtime, _, _ = await setup(hass)
+    entry_id = runtime.entry.entry_id
+    hass.data.setdefault('open_thermostat', {})[entry_id] = {'v1_runtime': runtime}
+    issue_id = f'measurement_clock_{entry_id}'
+    try:
+        runtime.clock = lambda: float('nan')
+        assert not runtime.measurement_status(binding.room_id)['usable']
+        issue = ir.async_get(hass).async_get_issue('open_thermostat', issue_id)
+        assert issue is not None
+        assert issue.severity is ir.IssueSeverity.ERROR
+        assert not issue.is_fixable and not issue.is_persistent
+        runtime.clock = lambda: 200.0
+        runtime.measurement_status(binding.room_id)
+        assert ir.async_get(hass).async_get_issue('open_thermostat', issue_id) is issue
+        replacement = ShadowRuntime(hass, runtime.entry, [binding], clock=lambda: 300.0)
+        # An unpublished replacement cannot clear the current owner's warning.
+        assert replacement._measurement_now() == 300.0
+        assert ir.async_get(hass).async_get_issue('open_thermostat', issue_id) is issue
+        hass.data['open_thermostat'][entry_id]['v1_runtime'] = replacement
+        assert replacement._measurement_now() == 300.0
+        assert ir.async_get(hass).async_get_issue('open_thermostat', issue_id) is None
+        # Retired callbacks may not create an issue for the replacement.
+        runtime._measurement_now()
+        assert ir.async_get(hass).async_get_issue('open_thermostat', issue_id) is None
+    finally:
+        await runtime.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_repair_registry_failure_never_blocks_measurement_withdrawal(hass, monkeypatch):
+    from homeassistant.helpers import issue_registry as ir
+    binding, runtime, transport, _ = await setup(hass)
+    hass.data.setdefault('open_thermostat', {})[runtime.entry.entry_id] = {'v1_runtime': runtime}
+    def fail(*args, **kwargs):
+        raise RuntimeError('private registry detail')
+    monkeypatch.setattr(ir, 'async_create_issue', fail)
+    try:
+        runtime.clock = lambda: float('nan')
+        assert not runtime.measurement_status(binding.room_id)['usable']
+        await hass.async_block_till_done()
+        assert transport.observations[-1][1].quality == 'invalid'
+        assert runtime.diagnostics['repair'] == 'notification_failed'
+    finally:
+        await runtime.async_stop()

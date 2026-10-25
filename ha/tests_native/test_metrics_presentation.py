@@ -153,7 +153,7 @@ async def test_timezones_ranges_and_disabled_or_duplicate_entities_rejected_with
     e=entry(hass);item=entity(hass,e,"energy");reports.async_register_entry(hass,e)
     executor=AsyncMock();monkeypatch.setattr(reports,"get_instance",lambda _:SimpleNamespace(async_add_executor_job=executor))
     for data in ({"start":"2026-01-01T00:00:00","end":"2026-01-01T01:00:00Z"},
-                 {"start":"2026-01-01T00:00:00Z","end":"2026-01-03T01:00:00Z"},
+                 {"start":"2026-01-01T00:00:00Z","end":"2026-02-02T00:00:00Z"},
                  {"entity_ids":[item.entity_id,item.entity_id]}):
         with pytest.raises(HomeAssistantError):
             await reports.async_export(hass,{**arguments(e),**data})
@@ -208,6 +208,12 @@ async def test_actual_native_sqlite_recorder_roundtrip_preserves_zero_unknown_wi
     rows=list(csv.reader(io.StringIO(result["csv"])))
     assert [row[2] for row in rows[1:]]==["1","0","unknown"]
     assert not result["truncated"] and "NEVER_EXPORT" not in result["csv"]
+    # A full month uses the same real bounded SQLite/Recorder query. This
+    # verifies query coverage, not that a user's Recorder retains 31 days.
+    month=await reports.async_export(hass,{"entry_id":e.entry_id,
+        "start":(end-timedelta(days=31)).isoformat(),"end":end.isoformat(),
+        "entity_ids":[item.entity_id],"limit":10})
+    assert month["csv"] == result["csv"] and month["rows"] == 3
     again=await reports.async_export(hass,{"entry_id":e.entry_id,"start":start.isoformat(),"end":end.isoformat(),"entity_ids":[item.entity_id],"limit":1})
     assert again["rows"]==1 and again["truncated"]
     reports.async_unregister_entry(hass,e.entry_id)
@@ -278,3 +284,58 @@ async def test_export_rechecks_owner_after_recorder_await_before_returning_histo
         assert executor.await_count == 1
     finally:
         reports.async_unregister_entry(hass, e.entry_id)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('days', [1, 7, 28, 30, 31])
+async def test_day_week_and_month_exports_keep_the_same_bounded_native_query(hass, monkeypatch, days):
+    e = entry(hass)
+    item = entity(hass, e, 'energy')
+    reports.async_register_entry(hass, e)
+    end = datetime.now(timezone.utc)-timedelta(seconds=1)
+    start = end-timedelta(days=days)
+    async def query(call):
+        assert call.args[1:] == (start, end)
+        assert call.keywords['limit'] == 3
+        assert call.keywords['no_attributes'] is True
+        assert call.keywords['include_start_time_state'] is False
+        return {item.entity_id:[State(item.entity_id, str(i)) for i in range(3)]}
+    executor = AsyncMock(side_effect=query)
+    monkeypatch.setattr(reports, 'get_instance', lambda _: SimpleNamespace(async_add_executor_job=executor))
+    try:
+        result = await reports.async_export(hass, {'entry_id':e.entry_id,
+            'start':start.isoformat(),'end':end.isoformat(),'entity_ids':[item.entity_id],'limit':2})
+        assert result['rows'] == 2 and result['truncated']
+        assert not result['database_writes']
+        assert executor.await_count == 1
+    finally:
+        reports.async_unregister_entry(hass, e.entry_id)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('language,expected', [('en','Export history as CSV'),('nl','Historie exporteren als CSV')])
+async def test_native_export_action_resources_have_bilingual_help_and_installation_selector(hass, monkeypatch, language, expected):
+    import json
+    from pathlib import Path
+    from homeassistant import loader
+    from homeassistant.helpers import translation, selector
+    from homeassistant.util import yaml as yaml_util
+    component = Path(__file__).resolve().parents[1]/'config/custom_components/open_thermostat'
+    loader.async_setup(hass)
+    integration = loader.Integration(hass, 'custom_components.open_thermostat', component,
+        json.loads((component/'manifest.json').read_text()),
+        top_level_files={p.name for p in component.iterdir()})
+    monkeypatch.setattr(translation, 'async_get_integrations', AsyncMock(return_value={'open_thermostat':integration}))
+    resources = await translation.async_get_translations(hass, language, 'services', {'open_thermostat'})
+    prefix = 'component.open_thermostat.services.export_metrics_csv.'
+    assert resources[prefix+'name'] == expected
+    assert '31' in resources[prefix+'description']
+    assert '31' in resources[prefix+'fields.end.description']
+    for field in ('entry_id','start','end','entity_ids','limit','include_units'):
+        assert resources[prefix+'fields.'+field+'.name']
+        assert resources[prefix+'fields.'+field+'.description']
+    data = yaml_util.load_yaml(str(component/'services.yaml'))
+    config = data['export_metrics_csv']['fields']['entry_id']['selector']
+    actual = selector.selector(config)
+    assert isinstance(actual, selector.ConfigEntrySelector)
+    assert actual.config['integration'] == 'open_thermostat'

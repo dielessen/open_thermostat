@@ -191,7 +191,7 @@ def project_definition(value):
                   "gettable_declared": bool(access & 4)}
         for key in ("value_min", "value_max", "value_step"):
             number = row.get(key)
-            if type(number) in (int, float) and math.isfinite(number) and abs(number) <= 1e6:
+            if type(number) in (int, float) and abs(number) <= 1e6 and math.isfinite(number):
                 result[key] = number
         for key in ("type", "unit"):
             if (text := _text(row.get(key), 32)) is not None:

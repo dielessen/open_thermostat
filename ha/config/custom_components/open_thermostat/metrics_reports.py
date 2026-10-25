@@ -17,6 +17,7 @@ from .const import DOMAIN
 KEY = DOMAIN + "_metrics_reports"
 SERVICE = "export_metrics_csv"
 MAX_ENTITIES, MAX_ROWS, MAX_BYTES = 64, 5000, 1048576
+MAX_INTERVAL_DAYS = 31
 
 
 def _rows(value):
@@ -150,8 +151,8 @@ async def async_export(hass, data):
     if entry_id not in hass.data.get(KEY, set()):
         raise HomeAssistantError("Entry is not loaded for metrics reporting")
     start, end = _utc(data["start"]), _utc(data["end"])
-    if end <= start or end-start > timedelta(days=1) or end > datetime.now(timezone.utc)+timedelta(seconds=5):
-        raise HomeAssistantError("Use a past nonempty interval of at most 24 hours")
+    if end <= start or end-start > timedelta(days=MAX_INTERVAL_DAYS) or end > datetime.now(timezone.utc)+timedelta(seconds=5):
+        raise HomeAssistantError("Use a past nonempty interval of at most 31 days")
     owned = owned_entities(hass, entry_id)
     selected = tuple(data.get("entity_ids", sorted(owned)))
     if not selected or len(selected)>MAX_ENTITIES or len(set(selected))!=len(selected) or not set(selected)<=owned.keys():

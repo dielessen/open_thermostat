@@ -60,6 +60,16 @@ Alle overige geïnventariseerde brononderdelen blijven behouden.
   profielcallback herstelt geen oude bevoegdheid. Wachtrijvertraging gebruikt
   dezelfde klokwaarde voor leeftijd en tijdanker, zodat verwerking de meting
   niet jonger maakt.
+- Kamermeldingen: een falende UI-luisteraar onderbreekt geen intrekking.
+  Synchroon vervangen van een bronprofiel kan geen oude gekwalificeerde meting
+  opnieuw in de verzendwachtrij zetten. Een ongeldige lokale meetklok geeft een
+  installatiegebonden NL/EN-melding in HA Repairs; alleen een gezonde nieuwe
+  eigenaar kan deze wissen. Meldingsfouten blokkeren geen intrekking.
+  Dezelfde klok bewaakt raamcontact en aanwezigheid, inclusief de conservatieve
+  state-leeftijdroute; klokherstel of een nieuw bericht herstelt die oude eigenaar niet.
+- Bestaande kamerweergave: ongeldige getallen en booleans worden geen temperatuur,
+  vochtigheid of batterijpercentage. Ongeldige vochtigheidssentinels en waarden
+  buiten 0–100% blijven onbekend. Ongeldige doelen worden vóór verzending geweigerd.
 - Bluetooth: een mislukte scanstart blokkeert latere scans niet blijvend;
   opruimen blijft exclusief en afsluiten kan niet door een late callback worden
   teruggedraaid. De bestaande scanner bewaart geen onbeperkte SDK-resultaten.
@@ -73,6 +83,10 @@ Alle overige geïnventariseerde brononderdelen blijven behouden.
   vangen ook exceptions op. Een onzekere schrijfactie sluit de gedeelde eigenaar
   en wordt niet herhaald. Dit bewaart de bestaande gegevensformaten en verleent
   geen automatische leer- of regelbevoegdheid.
+- CSV-export ondersteunt nu dag/week/maand tot 31 dagen met dezelfde limieten
+  van 64 entiteiten, 5.000 rijen en 1 MiB. De normale HA-actie heeft een
+  installatiekeuzelijst en volledige NL/EN-velduitleg. De echte native
+  SQLite/Recorder-route en vertaalresources zijn getoetst.
 - CSV-export controleert na Recorder-wachttijd opnieuw de exacte entiteiten en
   geladen eigenaar. Verwijderen, vervangen, hernoemen, uitschakelen of verplaatsen
   tijdens export levert geen gedeeltelijk resultaat onder de oude identiteit op.

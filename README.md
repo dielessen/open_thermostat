@@ -124,7 +124,7 @@ EMS-ESP-velddekking of ondersteuning voor iedere ketel/converter.
 | E32-webinterface | Installatie, kamernamen, doelen, berekende vraag en beschikbare ketelwaarden bekijken; open details blijven staan tijdens verversen | **Beschikbaar** |
 | Nederlands en Engels / Dutch and English | E32: taalkeuze in menu en bij aanmelden/wifi-installatie. HA: profieltaal voor kamereditor en native vertalingen; vaste opgeslagen dashboardteksten vallen terug op Engels | **Beschikbaar**; Engels is standaard en terugval |
 | Uitleg waarom er vraag is | Regelstatus en redenen voor warmtevraag of blokkering zien | **Beschikbaar als diagnosebasis**; echte opdracht-/reactietijdlijn volgt |
-| Grafieken, historie en CSV | Temperatuur, vraag, brander/modulatie en tapwater over tijd analyseren | Metrics-/opslag-/exportcode **voorbereid**; volledige actuele productroute nog afronden |
+| Grafieken, historie en CSV | Temperatuur, vraag, brander/modulatie en tapwater over tijd analyseren | Recorder-overzichten en alleen-lezen CSV-actie **beschikbaar**. In de grote bèta: dag/week/maand tot 31 dagen met NL/EN-bediening; nog niet geïnstalleerd. [Gebruik en grenzen](docs/modern-thermostat/HISTORIE-EXPORT.nl.md) |
 | Verbruik, kosten en comfort | Metergegevens en duidelijk gelabelde schattingen combineren | **Deels voorbereid**; echte bronnen/kalibratie en presentatie volgen |
 | Systeemlog en syslog | Recente E32-logregels bekijken/filteren/downloaden; langer bewaren op een eigen RFC5424 UDP-collector | **Beschikbaar**; externe syslog staat standaard uit. **Geleverd en geïnstalleerd in alpha36:** ESP/EMS-weergave en onafhankelijke doorstuurkeuze voor beide bronnen. [Gebruik en grenzen](docs/modern-thermostat/LOGGING.nl.md) |
 | Meldingen en onderhoud | Diagnose-, batterij- en foutinformatie benutten | Basis **aanwezig**; complete scenario’s en meldingen nog afronden |
@@ -198,13 +198,15 @@ diensten afhankelijk.
 
 | Onderdeel | Huidige uitgave | Gebruik |
 | --- | --- | --- |
-| E32 V2 | [v0.1.0-e32v2-alpha.18](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.18) | Toepassingsupdate via de normale E32-updater |
-| Home Assistant | [0.4.0.dev24](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev24) | Afzonderlijk HA-integratiepakket; de firmware installeert dit niet |
+| E32 V2 | [v0.1.0-e32v2-alpha.36](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.36) | Toepassingsupdate via de normale E32-updater |
+| Home Assistant | [0.4.0.dev48](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev48) | Afzonderlijk HA-integratiepakket; de firmware installeert dit niet |
 
-Dit softwarepaar komt uit [dezelfde broncommit](https://github.com/dielessen/open_thermostat/commit/6ef01d0e8468f2bb88310d165fb5d49d033b21d4).
-De volledige CI slaagt, inclusief drie firmwareboards, native tests,
-SDK-bronreproductie, browsers en **1.758 HA-checks**. Bij de gecontroleerde uitrol
-zijn instellingen, weekprogramma, bindings en identiteiten behouden.
+Beide pakketten zijn afzonderlijk geïnstalleerd en gecontroleerd, met behoud van
+instellingen, weekprogramma, koppelingen en identiteiten. De firmware gebruikt
+[bron 7ddf341](https://github.com/dielessen/open_thermostat/commit/7ddf3410666d814850275433d9dddd266e5d83ba),
+de HA-integratie [bron 70135db](https://github.com/dielessen/open_thermostat/commit/70135db3c86df1f970265bc426fe5e35729c8261).
+De eerste grote bèta is in bewerking; er wordt geen losse alpha37 tussendoor
+uitgebracht. [Voortgang en resterende voorwaarden](docs/modern-thermostat/BETA1-UITVOERING.nl.md).
 
 - [Normale updates, bron en pakketten](docs/modern-thermostat/GITHUB-UPDATES.nl.md)
 - [Installeren, back-up en herstel](docs/FLASHING.md)

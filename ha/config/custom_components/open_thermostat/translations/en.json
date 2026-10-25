@@ -1345,6 +1345,47 @@
     "room_model_v2": {
       "title": "Select bounded room-model definition v2",
       "description": "Existing unqualified room energy/time history is retained unchanged. New room models use separate v2 entities and do not restore or backfill old totals. Unknown/stale inputs produce gaps. Room request plus reported CH is not proof of actual room heat or flow; radiator output is modeled using a 10 °C return-temperature drop and exponent 1.3, not metered. Existing firmware without observation metadata cannot qualify these models. Review user-managed cards; no Recorder data was rewritten."
+    },
+    "measurement_clock": {
+      "title": "Room measurements stopped: invalid local clock",
+      "description": "OpenThermostat detected an invalid or backward-running local timing clock. Previously qualified room measurements have been withdrawn and will not be reused by this runtime. Heating control cannot rely on those measurements. Check Home Assistant host health, then reload this OpenThermostat integration. Only a healthy replacement runtime clears this warning; new measurements still need their normal source checks. Reloading does not authorize boiler or valve commands. Window and presence signals also become unknown until a healthy new owner receives usable information."
+    }
+  },
+  "services": {
+    "export_metrics_csv": {
+      "name": "Export history as CSV",
+      "description": "Export a day, week or month of recorded history (up to 31 days). Only administrators can export. The export uses existing Recorder history and does not change it. Missing or already purged history stays missing. Large exports stop at the row or size limit.",
+      "fields": {
+        "entry_id": {
+          "name": "Installation",
+          "description": "Choose the OpenThermostat installation whose history you want to export."
+        },
+        "start": {
+          "name": "From",
+          "description": "Start date and time with timezone, for example 2026-10-01T00:00:00+02:00."
+        },
+        "end": {
+          "name": "Until",
+          "description": "Past end date and time with timezone. Choose an interval of up to 31 days."
+        },
+        "entity_ids": {
+          "name": "Sensors and entities",
+          "description": "Optional: choose specific enabled entities from this installation. Leave empty to include its available entities, up to 64."
+        },
+        "limit": {
+          "name": "Maximum rows",
+          "description": "Up to 5000 rows. If the export is truncated, select fewer entities or a shorter period."
+        },
+        "include_units": {
+          "name": "Include recorded units",
+          "description": "Include each value’s recorded unit when available. A missing unit stays empty; current units are not substituted."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_room_temperature": {
+      "message": "Enter a valid temperature within the room limits."
     }
   }
 }

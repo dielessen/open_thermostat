@@ -342,3 +342,42 @@ async def test_native_setup_wrong_source_binding_is_explicit_error_and_no_owner_
         with pytest.raises(ConfigEntryError,match="context_profile_invalid"):
             integration._selected_context_source_profiles(parent)
     emit(dict(scenario="native_setup_invalid_source",explicit_error=True,no_owner_or_fallback=True))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('bad_clock', [99, float('nan'), float('inf'), 10**500])
+async def test_context_clock_fault_withdraws_all_logical_proofs_and_cannot_recover(context, bad_clock):
+    runtime, _, _, binding, *_ = context
+    now = [100.0]
+    runtime.clock = lambda: now[0]
+    await both(context)
+    assert runtime.comfort_context(binding)['window_open'] is False
+    assert runtime.comfort_context(binding)['presence_away'] is False
+    now[0] = bad_clock
+    values = runtime.comfort_context(binding)
+    assert values['window_open'] is values['presence_away'] is None
+    now[0] = 101.0
+    await publish(context, key='after-clock-fault')
+    await publish(context, kind='presence', key='after-clock-fault')
+    values = runtime.comfort_context(binding)
+    assert values['window_open'] is values['presence_away'] is None
+
+
+@pytest.mark.asyncio
+async def test_state_age_fallback_is_also_unknown_after_clock_failure(context):
+    runtime, _, _, binding, *_ = context
+    now = [100.0]
+    fallback = ShadowRuntime(runtime.hass, runtime.entry, [binding], clock=lambda: now[0])
+    await fallback.async_start()
+    try:
+        assert fallback.comfort_context(binding)['window_open'] is False
+        now[0] = 99.0
+        result = fallback.comfort_context(binding)
+        assert result['window_open'] is result['presence_away'] is None
+        now[0] = 101.0
+        runtime.hass.states.async_set(binding.window.entity_id, 'on')
+        await runtime.hass.async_block_till_done()
+        result = fallback.comfort_context(binding)
+        assert result['window_open'] is result['presence_away'] is None
+    finally:
+        await fallback.async_stop()

@@ -10,13 +10,14 @@ from typing import Any, Protocol
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import entity_registry as er, issue_registry as ir
 from homeassistant.helpers.event import (
     async_call_later, async_track_entity_registry_updated_event, async_track_device_registry_updated_event,
     async_track_state_change_event, async_track_state_report_event,
 )
 from homeassistant.util import dt as dt_util
 
+from .const import DOMAIN
 from .native_binding import native_binding_identity
 
 from .comfort_sources import ContextReport, ContextSourceProfile, CONTEXT_MAX_AGE_MS
@@ -39,7 +40,7 @@ ReportProfile = Callable[[Any, str], QualifiedReport | None]
 
 class ShadowRuntime:
     def __init__(self, hass: HomeAssistant, entry: Any, rooms: list[RoomBinding], *, graph_data_profile=None, context_source_profiles=(), controller_policy_source_profile=None, graph_controller_source=None,native_plan_source=None, clock: Callable[[], float] | None = None):
-        self.clock = clock if clock is not None else hass.loop.time
+        self.clock = clock if clock is not None else lambda: hass.loop.time()
         self._measurement_clock_watermark = None
         self._measurement_clock_failed = False
         if graph_data_profile is not None:
@@ -163,14 +164,36 @@ class ShadowRuntime:
         if (not valid or self._measurement_clock_watermark is not None
                 and now < self._measurement_clock_watermark):
             self._measurement_clock_failed = True
+            self.invalidate_context_sources()
+            self._comfort_context_cache.clear()
             for room_id in self.rooms:
                 current = self.observations.get(room_id)
                 if (current is not None and current.quality == "qualified"
                         and room_id != self._bench_owner):
                     self._withdraw(room_id, "invalid")
+            self._measurement_clock_repair(failed=True)
             return None
         self._measurement_clock_watermark = now
+        self._measurement_clock_repair(failed=False)
         return now
+
+    def _measurement_clock_repair(self, *, failed: bool) -> None:
+        """Only the published runtime owns its entry's repair notification."""
+        if self.hass.data.get(DOMAIN, {}).get(self.entry.entry_id, {}).get("v1_runtime") is not self:
+            return
+        issue_id = f"measurement_clock_{self.entry.entry_id}"
+        try:
+            registry = ir.async_get(self.hass)
+            if failed:
+                ir.async_create_issue(self.hass, DOMAIN, issue_id,
+                    is_fixable=False, is_persistent=False,
+                    severity=ir.IssueSeverity.ERROR,
+                    translation_key="measurement_clock")
+            elif registry.async_get_issue(DOMAIN, issue_id) is not None:
+                ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+        except Exception:
+            # A presentation/storage failure cannot prevent invalidation.
+            self.diagnostics["repair"] = "notification_failed"
 
     def measurement_status(self, room_id: str) -> dict:
         """Current measurement evidence only; no grants, identities or sample keys.
@@ -480,8 +503,16 @@ class ShadowRuntime:
     def _record(self, room_id: str, observation: Observation) -> None:
         if self._bench_owner == room_id:
             return
+        generation = self._generation
+        profile_owner = self._profile_owners.get(room_id)
         self.observations[room_id] = observation
         self._notify()
+        # A listener may replace the source or stop the runtime synchronously.
+        # Never queue the superseded report over the resulting withdrawal.
+        if (self.observations.get(room_id) is not observation
+                or self._generation != generation
+                or self._profile_owners.get(room_id) is not profile_owner):
+            return
         if self.transport_ready:
             self._pending[room_id] = observation
             if self._task is None or self._task.done():
@@ -532,7 +563,11 @@ class ShadowRuntime:
 
     def _notify(self) -> None:
         for listener in tuple(self._listeners):
-            listener()
+            try:
+                listener()
+            except Exception:
+                # Presentation callbacks must not interrupt safety withdrawals.
+                self.diagnostics["listener"] = "notification_failed"
 
     async def async_set_temperature(self, room_id: str, celsius: float) -> None:
         if room_id not in self.rooms or not self.transport_ready:
@@ -575,6 +610,9 @@ class ShadowRuntime:
         profile=self._context_source_profiles.get(key)
         if profile is None:
             return
+        generation = self._generation
+        if self._measurement_now() is None:
+            return
         state_id=self._resolve(getattr(room,kind))
         state=self.hass.states.get(state_id) if state_id else None
         old=self._context_source_values.pop(key,None)
@@ -603,6 +641,9 @@ class ShadowRuntime:
             # Never expose exception text, report IDs, payloads or private source labels.
             self.diagnostics[room.room_id]="context_profile_error"
             return
+        observed_at = self._measurement_now()
+        if observed_at is None or not self._active or self._generation != generation:
+            return
         value=state.state==allowed[0]
         if prior is not None:
             if report.sample_key==prior[0]:
@@ -614,7 +655,7 @@ class ShadowRuntime:
                 return
             if report.sampled_at<=prior[1]:
                 return
-        proof=(math.ceil(age),self.hass.loop.time(),value)
+        proof=(math.ceil(age),observed_at,value)
         self._context_source_values[key]=proof
         self._context_source_watermarks[key]=(report.sample_key,report.sampled_at,value,proof)
 
@@ -622,7 +663,10 @@ class ShadowRuntime:
         proof=self._context_source_values.get(key)
         if not self._active or proof is None:
             return None,86400000
-        elapsed=self.hass.loop.time()-proof[1]
+        now = self._measurement_now()
+        if now is None:
+            return None,86400000
+        elapsed=now-proof[1]
         age=proof[0]+math.ceil(elapsed*1000)
         if not 0<=elapsed or not 0<=age<CONTEXT_MAX_AGE_MS:
             self._context_source_values.pop(key,None)
@@ -654,6 +698,10 @@ class ShadowRuntime:
         Unknown, future, stale or restored state cannot become known by re-reading.
         """
         result={}
+        now = self._measurement_now()
+        if now is None:
+            return {"window_open": None, "presence_away": None,
+                    "window_age_ms": 86400000, "presence_age_ms": 86400000}
         for ref,key,on,off in ((room.window,"window", "on","off"),
                               (room.presence,"presence","not_home","home")):
             cache_key=(room.room_id,key)
@@ -677,9 +725,9 @@ class ShadowRuntime:
                 # Older timestamps cannot renew a context after out-of-order input.
                 if prior and token and prior[0] and token[1]<=prior[0][1]:
                     value=None;age=86400000
-                prior=(token,age,self.hass.loop.time(),value)
+                prior=(token,age,now,value)
                 self._comfort_context_cache[cache_key]=prior
-            elapsed=self.hass.loop.time()-prior[2]
+            elapsed=now-prior[2]
             age=prior[1]+math.ceil(elapsed*1000)
             value=prior[3] if 0<=elapsed and 0<=age<120000 else None
             result["window_open" if key=="window" else "presence_away"]=value

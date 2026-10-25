@@ -8,6 +8,16 @@ HA-installatie. De volgorde en open implementatiepunten staan in
 [BETA1-UITVOERING.nl.md](BETA1-UITVOERING.nl.md). B04–B14 blijven inhoudelijk
 leidend; ontbrekende fysieke feiten worden niet met softwarevinkjes afgetekend.
 
+## In bewerking voor dezelfde bèta
+
+De bundel bevat nu ook dag-/week-/maandexport tot 31 dagen via de gewone HA-actie,
+met installatiekeuze en NL/EN-uitleg. Daarnaast zijn meetintrekking bij falende
+schermcallbacks, profielvervanging en ongeldige lokale klok hersteld. De klokfout
+geeft een HA Repairs-melding en maakt raam-/aanwezigheidssignalen onbekend.
+Ongeldige kamerwaarden en te grote getallen verstoren de statusverwerking niet.
+Zie [het werkbord](WORKBOARD.nl.md) en [CSV-gebruik](HISTORIE-EXPORT.nl.md).
+Dit is nog geen gepubliceerde of geïnstalleerde versie.
+
 ## GitHub-releasenotities — alle bestaande versies bijgewerkt
 
 Alle 65 releases (64 gepubliceerd en één concept) hebben begrijpelijke Nederlandse

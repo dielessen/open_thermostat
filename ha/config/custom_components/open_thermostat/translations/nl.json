@@ -1343,6 +1343,47 @@
     "room_model_v2": {
       "title": "Begrensde ruimtemodeldefinitie v2 kiezen",
       "description": "Bestaande ongekwalificeerde ruimte-energie- en tijdhistorie blijft ongewijzigd. Nieuwe ruimtemodellen gebruiken aparte v2-entiteiten en herstellen of aanvullen geen oude totalen. Onbekende/verouderde invoer levert gaten op. Ruimtevraag plus gemelde CV-activiteit bewijst geen werkelijke ruimtewarmte of doorstroming; radiatorafgifte wordt gemodelleerd met 10 °C retourverschil en exponent 1,3, niet gemeten. Bestaande firmware zonder waarnemingsmetadata kan deze modellen niet kwalificeren. Controleer eigen kaarten; Recorder-gegevens zijn niet herschreven."
+    },
+    "measurement_clock": {
+      "title": "Kamermetingen gestopt: ongeldige lokale klok",
+      "description": "OpenThermostat heeft een ongeldige of teruglopende lokale tijdmeting vastgesteld. Eerder gekwalificeerde kamermetingen zijn ingetrokken en worden door deze runtime niet opnieuw gebruikt. De verwarmingsregeling kan niet op deze metingen vertrouwen. Controleer de gezondheid van de Home Assistant-host en herlaad daarna deze OpenThermostat-integratie. Alleen een gezonde vervangende runtime wist deze melding; nieuwe metingen moeten nog steeds de normale broncontroles doorlopen. Herladen geeft geen toestemming voor ketel- of kraanopdrachten. Raam- en aanwezigheidssignalen worden eveneens onbekend totdat een gezonde nieuwe eigenaar bruikbare informatie ontvangt."
+    }
+  },
+  "services": {
+    "export_metrics_csv": {
+      "name": "Historie exporteren als CSV",
+      "description": "Exporteer een dag, week of maand met opgeslagen historie (maximaal 31 dagen). Alleen beheerders kunnen exporteren. De export gebruikt bestaande Recorder-historie en wijzigt die niet. Ontbrekende of al gewiste historie blijft ontbreken. Grote exports stoppen bij de rij- of groottelimiet.",
+      "fields": {
+        "entry_id": {
+          "name": "Installatie",
+          "description": "Kies de OpenThermostat-installatie waarvan je de historie wilt exporteren."
+        },
+        "start": {
+          "name": "Vanaf",
+          "description": "Begindatum en -tijd met tijdzone, bijvoorbeeld 2026-10-01T00:00:00+02:00."
+        },
+        "end": {
+          "name": "Tot",
+          "description": "Einddatum en -tijd in het verleden, met tijdzone. Kies een periode van maximaal 31 dagen."
+        },
+        "entity_ids": {
+          "name": "Sensoren en entiteiten",
+          "description": "Optioneel: kies specifieke ingeschakelde entiteiten van deze installatie. Laat leeg voor de beschikbare entiteiten, tot maximaal 64."
+        },
+        "limit": {
+          "name": "Maximumaantal rijen",
+          "description": "Maximaal 5000 rijen. Kies minder entiteiten of een kortere periode als de export is afgekapt."
+        },
+        "include_units": {
+          "name": "Opgeslagen eenheden meenemen",
+          "description": "Voeg de destijds opgeslagen eenheid toe als die bekend is. Een ontbrekende eenheid blijft leeg; de huidige eenheid wordt niet ingevuld."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_room_temperature": {
+      "message": "Voer een geldige temperatuur binnen de kamergrenzen in."
     }
   }
 }

@@ -427,3 +427,17 @@ een numeriek nieuwere compatibele alpha en opent de updatepagina. Geen extra
 GitHub-aanvraag vanuit het dashboard, geen automatische installatie of flashwrites
 voor de cache. EN/NL-uitleg toegevoegd. Herstel van de oude upload-watchdog blijft
 een afzonderlijk onderzoek; deze voorbereiding bewijst dat herstel niet.
+
+### Onderzoek: native GitHub-route apart beoordelen
+
+Vers read-only bewijs bevat native alpha28→31-`boot_slot_selected`, HTTP200 en
+alle bytes. Dit past bij het publieke alpha31-manifest en de huidige bevestigde
+alpha31-boot. De GitHub-route is aanwezig; een losse commit is pas installeerbaar
+na gepubliceerde build en manifest. De onbekende multipart-watchdog en een
+nieuwe native installatievrijgave blijven afzonderlijke beoordelingen.
+Zie [onderzoek](E32-GITHUB-UPDATE-ONDERZOEK-20261025.nl.md).
+
+De CI-dashboardproef vond een fixturefout: de nieuwe knop opende de updatepagina,
+maar de HTTP-fixture gaf daar404 op lokale updatestatus. Die fixture levert nu
+het expliciete updaterantwoord; de proef wacht ook op versie-readback en behoudt
+de zichtbaarheid-/GET-only-asserties. Geen productie404 of herstelde uploadclaim.

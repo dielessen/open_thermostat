@@ -190,6 +190,16 @@ Een meegeleverd model of geslaagde simulatie bewijst geen aangesloten functie,
 ketelreactie of productacceptatie. Alle oorspronkelijke fasen blijven open waar
 verplichte fysieke of langere-termijnproeven ontbreken.
 
+## GitHub-updater — nieuwe afzonderlijke herstelbeoordeling
+
+Verse read-only controle10:10:44UTC vindt een native alpha28→31-controlepunt:
+HTTP200, alle2.595.888bytes ontvangen, `boot_slot_selected`. Publiek manifest en
+actuele31-bron/web passen; vier native bronbestanden zijn gelijk tussen28/31.
+Dit bewijst meer dan idle/bereikbaarheid. De mislukte multipart-upload blijft
+apart: reset6, taak/stack/oorzaakUNKNOWN. De native vervolgroute wordt afzonderlijk
+beoordeeld; nog geen nieuwe controle/installatie/herstart uitgevoerd.
+[Feiten, routes en grenzen](E32-GITHUB-UPDATE-ONDERZOEK-20261025.nl.md).
+
 ## Prioriteiten na HA48 en de gepubliceerde E32 alpha36
 
 Alle 31 eisen, 23 brononderdelen, 11 fasen, 8 werkpakketten en 14 releasepoorten

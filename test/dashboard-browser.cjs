@@ -12,6 +12,12 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   await page.route('http://opth.test/**',async route=>{
    const req=route.request(),p=new URL(req.url()).pathname;requests.push({path:p,method:req.method()});
    if(p==='/auth/session')return route.fulfill({contentType:'application/json',body:JSON.stringify({authenticated:true,csrf:'a'.repeat(64)})});
+   if(p==='/updates/status')return route.fulfill({contentType:'application/json',json:{
+    installed:'v0.1.0-e32v2-alpha.31',phase:'checked',error:'',busy:false,
+    can_check:true,boot_pending:false,reboot_required:false,reboot_scheduled:false,
+    rollback_available:false,received:0,total:0,
+    releases:[{tag:'v0.1.0-e32v2-alpha.99',prerelease:true}],
+   }});
    if(p==='/status'){
     if(holdStatus)await new Promise(resolve=>pendingStatus=resolve);
     return route.fulfill({status:failStatus?503:200,contentType:'application/json',body:JSON.stringify(status)});
@@ -116,6 +122,8 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   await page.evaluate(s=>updateRooms(s),status);
   await page.locator('[data-dashboard-key="firmware-update"] button').click();
   await page.locator('#updateHeading').waitFor();
+  await page.waitForFunction(()=>document.getElementById('installedVersion')?.textContent==='v0.1.0-e32v2-alpha.31');
+  assert.equal(await page.locator('#githubUpdate').isVisible(),true);
   assert.equal(requests.some(r=>r.method!=='GET'),false);
   assert.deepEqual(errors,[]);results.push({viewport:label,result:'PASS',rooms:8,initialRequests,compiledSupportReadback:!!buildCapabilities,automaticPollPreservesNodesOpenFocusScroll:true,keyedRoomReorder:true,replacedRoomStartsClosed:true,transientFailureRecovery:true,singleInflightPoll:true,staleSuppressed:true,safeText:true,horizontalOverflow:false,deviceProof:false});await page.close();
  }}finally{await browser.close();}

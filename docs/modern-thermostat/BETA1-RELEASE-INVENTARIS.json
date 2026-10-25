@@ -293,7 +293,7 @@
         },
         {
           "path": "test/dashboard-browser.cjs",
-          "sha256": "8f48bafbdc580cb218d2258f9f484773883787df47349bd37e6471169dbbaadf"
+          "sha256": "fb46a1231213e3c3e22d6a9ea6865ef35d333b19dab3409aaeee2118aff639be"
         },
         {
           "path": "test/device_restart.test.cjs",

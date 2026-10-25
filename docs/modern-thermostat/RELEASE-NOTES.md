@@ -1,4 +1,34 @@
-# E32 V2 alpha37 — automatische updatecontrole en dashboardmelding
+# E32 V2 beta1 — grote bundel voor ontvangst, bediening en herstel
+<!-- user-release-notes:v1 -->
+
+## Nieuw
+
+- **Bluetooth onder Instellingen:** Shelly BLU H&T Display, Xiaomi Monitor 3 en Shelly BLU TRV hebben een eigen diagnoseprofiel. Ontvangst werkt lokaal op de E32. De TRV toont gemeld doel, berekende temperatuur en eventuele externe temperatuur apart.
+- **Verborgen sleutels:** bindkeys blijven in aparte privéopslag en worden niet teruggestuurd. Invoer en open details blijven staan tijdens verversen. Uitleg en fouten zijn Nederlands en Engels.
+- **Automatische updatecontrole:** iedere twaalf uur, met een dashboardmelding. Een geslaagde controle blijft vijf minuten beschikbaar; installeren blijft een aparte actie.
+
+## Opgelost
+
+- Ongeldige meetwaarden en ontbrekende vochtigheid/gemiddelden worden geen verzonnen nulwaarden. Namen met aanhalingstekens of regeleinden breken de kamerbediening en JSON niet meer.
+- De oudere kamerregeling pauzeert netjes als apparaattijd ontbreekt. De klokaanvraag gebruikt een SDK-time-out van 100 ms in plaats van vijf seconden per kamer.
+- Bluetooth herstelt na een mislukte scan. Een volle ontdeklijst blokkeert ingestelde sensoren niet; wijziging van een conceptbron toont geen metingen van de oude bron.
+- Opslaan bewaakt ruimte voor regelinstellingen en leermodellen. Geheugentekort tijdens laden sluit de opslag netjes af. Een extreme tijdsprong veroorzaakt geen rekenoverloop in het opwarmmodel.
+
+## Bijwerken en gebruik
+
+Dit is één gezamenlijke **softwarekandidaat**, samen met HA 0.4.0b1. Gebruik voor E32 uitsluitend de gewone firmware-updater met `firmware.bin`; instellingen en programma's blijven behouden. De bètabundel controleert ook het updatepad vanaf alpha36 met het echte eindbestand. HA heeft zijn eigen download; optionele oorspronkelijke Zigbee-rapporten krijgen een afzonderlijk bronpakket binnen dezelfde release.
+
+Bluetoothwaarden zijn diagnose, geen gekwalificeerde verwarmingsbron. Pairing, kraanbediening, zelfstandig regelen en de fysieke ketelproef zijn nog niet vrijgegeven. Alle voorbereide regel-/leeronderdelen blijven behouden. [Actuele voorwaarden en voortgang](https://github.com/dielessen/open_thermostat/blob/v0.1.0-e32v2-beta.1/docs/modern-thermostat/WORKBOARD.nl.md).
+
+## English
+
+**New:** local diagnostic profiles for Shelly BLU H&T Display, Xiaomi Monitor 3 and Shelly BLU TRV, write-only private bindkeys, preserved form/details, Dutch/English messages, and automatic update checks with a dashboard notice. TRV target, calculated and optional external temperature remain separate.
+
+**Fixed:** invalid/unknown values, quoted room names, unavailable device time, BLE scan recovery, stale draft readings, shared storage reservations, allocation cleanup and extreme model clock arithmetic.
+
+**Updating:** this joint software candidate pairs with HA 0.4.0b1. Use normal app-only E32 OTA; HA and the optional receive-only Zigbee companion are separate downloads. The exact final package must pass alpha36 discovery/image compatibility. Physical boiler/valve control, qualified Bluetooth heating inputs and standalone regulation remain unavailable pending their acceptance. Source preparation does not constitute a physical test.
+
+# E32 V2 alpha37 — ongepubliceerde voorbereiding, opgenomen in beta1
 <!-- user-release-notes:v1 -->
 
 ## Nieuw

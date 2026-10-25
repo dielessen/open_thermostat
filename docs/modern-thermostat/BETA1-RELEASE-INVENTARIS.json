@@ -59,11 +59,11 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
-          "sha256": "f3e38deaba7103d6fc737f7e1081b16972d310df868bdccf0d4234fdf6d7d6ed"
+          "sha256": "40c01815b6dac372b69e7e8626ed7fc6eecbfc680689530e4f8f95bcae0256f0"
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
-          "sha256": "64a00ff649f85ce6f2447bb4d724dcb8362fc2fa68ee98fd12b992c2f6f971a5"
+          "sha256": "5508823465c49f879c5d893942019a4ed27355f8e8fc78bfca3e167eaa516f17"
         },
         {
           "path": "docs/modern-thermostat/USER-RELEASE-NOTES.json",
@@ -71,7 +71,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA1-UITVOERING.nl.md",
-          "sha256": "2ded9eab3433f0182fcb9723e73d08d0a7115d81dfb977cad43d8d77529d077f"
+          "sha256": "b5cd2fed86d3faaa9e6de277c2a1d47254d2663cec59696c1954d0e022ffa79b"
         },
         {
           "path": "README.md",

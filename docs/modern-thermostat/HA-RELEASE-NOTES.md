@@ -1,3 +1,33 @@
+# HA 0.4.0b1 — opstartherstel, maandexport en betrouwbare meetverwerking
+<!-- user-release-notes:v1 -->
+
+## Nieuw
+
+- **Historie exporteren per dag, week of maand:** tot 31 dagen uit bestaande Recorder-gegevens, met installatiekeuze en Nederlandse/Engelse uitleg. Ontbrekende historie blijft ontbreken.
+- **Duidelijke klokmelding:** een defecte lokale meetklok geeft een installatiegebonden Repairs-melding. Ook raam- en aanwezigheidssignalen worden dan onbekend.
+- **Optioneel Zigbee-bronpakket:** de bestaande oorspronkelijke ontvangstextensies komen apart mee in dezelfde release. Een gecontroleerd hulpmiddel bewaart privé apparaatkoppelingen vóór installatie; niets wordt automatisch geïnstalleerd.
+
+## Opgelost
+
+- OpenThermostat start weer op Core **2026.10.4**. Een versiecontrole blokkeerde onbedoeld de weergavegroep ‘Installatie en ketel’. Core .2 en .3 blijven afzonderlijk getest; onbeoordeelde private configuratiewrites blijven geblokkeerd.
+- Een schermfout of vervangen sensorprofiel kan geen ingetrokken meting terugbrengen. Ongeldige temperaturen, percentages en extreem grote getallen worden geweigerd.
+- CSV-export controleert na wachten opnieuw wie de entiteiten bezit. Gegevens verschijnen niet onder een gewijzigde koppeling.
+- De oorspronkelijke Zigbee-ontvangstextensies wachten bij afsluiten niet onbeperkt op MQTT. Een time-out bevestigt geen verzending en start geen nieuwe ontvanger zolang oud SDK-werk nog openstaat.
+
+## Bijwerken en gebruik
+
+Gebruik `OpenThermostat-HA-0.4.0b1.zip` via de bestaande HA-beheerroute. Kamers, programma's, entiteitidentiteiten en koppelingen blijven behouden. Dit is de HA-helft van dezelfde softwarekandidaat als E32 beta1. Het optionele Z2M-bronpakket is geen HA-component; bewaar private pins en volg de meegeleverde NL/EN-instructies.
+
+De E32 biedt daarnaast lokale Bluetoothdiagnose. Deze HA-update kwalificeert die gegevens niet als kamerbron en geeft geen fysieke kraan-/ketelsturing, zelfstandig verwarmen of actieve leerregeling vrij. [Volledig werkbord en resterende voorwaarden](https://github.com/dielessen/open_thermostat/blob/ha-v0.4.0b1/docs/modern-thermostat/WORKBOARD.nl.md).
+
+## English
+
+**New:** day/week/month Recorder CSV exports up to 31 days, an installation selector, Dutch/English guidance, entry-scoped clock Repairs, and an optional receive-only Zigbee2MQTT companion with checked private-binding preservation.
+
+**Fixed:** Core 2026.10.4 startup, interrupted measurement withdrawal, old-profile callbacks, invalid numbers, ownership changes during export and unbounded original-report extension shutdown. Actual Core .2/.3/.4 compatibility is checked separately.
+
+**Updating:** use the HA ZIP through the existing administration method. Rooms, schedules and entity identities are preserved. E32 beta1 and the optional Z2M companion are separate downloads from the same candidate. No automatic companion installation or boiler/valve/learning authority is introduced. Physical acceptance and qualified room-source work remain open.
+
 # HA 0.4.0.dev48 — betrouwbaarder afsluiten en herladen
 <!-- user-release-notes:v1 -->
 

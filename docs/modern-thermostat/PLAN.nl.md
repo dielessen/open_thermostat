@@ -15,17 +15,15 @@ wat eerder is voorbereid moet in de releasebasis behouden blijven. Daarom is
 ieder voorbereid onderdeel opgenomen in de [release-inventaris](BETA1-RELEASE-INVENTARIS.json)
 en in [WORKBOARD §3](WORKBOARD.nl.md#3-alles-wat-voorbereid-is-meenemen-in-de-bèta).
 
-- **Geïnstalleerd:** HA dev48 (bron `70135db3`) en E32 alpha31 (bron `659879e`).
-  Verse HA47-back-up van 96, één normale Core-herstart en 86 exacte componentbestanden.
-  Instellingen, programma's, koppelingen en kaarten behouden. Tado-configuratie
-  behouden; geen fysieke opdrachten. [Installatie en aparte nacontrole](INSTALLATIE-HA48-ALPHA35-20261025.nl.md).
-- **Gepubliceerd:** E32 alpha36 (bron `7ddf341`) en HA dev48 (bron `70135db3`).
-  Alpha36 bundelt navigatie/catalogus/originele externe beelden en ESP-/EMS-logging
-  met legacybronkeuzebehoud. Alle toepasselijke main/tag/software-/pakketreviews slagen.
-  Verse controle 25 oktober 09:41:46UTC: HA48 / 86 bestanden exact en geladen; geen
-  herinstallatie nodig. E32 alpha31 reageert; geen firmwareactie. Oude upload-
-  watchdog-/herstelroute en actor/methodealpha31 blijven onbekend; uploadgateNOT_READY.
-  [Actuele oplevering](OPLEVERING-ALPHA36-20261025.nl.md).
+- **Geïnstalleerd:** HA dev48 (bron `70135db3`) en E32 alpha36 (bron `7ddf341`).
+  Native GitHub-update met één commando, verse back-up van 10 payloads, 36 installatiecontroles
+  en 45 afzonderlijke nacontroles PASS. Exacte bron/ELF/web, 31 geserveerde UI-bestanden,
+  86 HA-bestanden, SOURCE5, programma's/bindings/instellingen behouden.
+  [Installatie en bewijs](INSTALLATIE-E32-ALPHA36-20261025.nl.md).
+- **Gepubliceerd:** E32 alpha36 en HA dev48. Normale updatepoort accepteert alpha36;
+  iedere opvolgende reguliere release vereist eigen update-/nacontrolebewijs via
+  [verplicht proces](E32-UPDATE-PROCES.nl.md). Oude multipart-watchdogoorzaak blijft
+  onbekend; actieve ketel-/kraan-/installatiekwalificatie blijft apart NOT_READY.
 - **Geleverde softwarebasis:** EMS-apparatenpagina, sessie-/klokbewaking,
   opstartherstel, web-/editorcorrecties en HA-kraanberichtbedrading met standaard
   gesloten productfabriek, oorspronkelijke aanvraagcorrelatie, beschermd kanaalbeheer

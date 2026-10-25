@@ -36,18 +36,19 @@ Geen automatische installatie of firmwareactie in deze opdracht. 44 gerichte
 native gevallen, 26 Node-gevallen, dashboardbrowser en E32-compile geslaagd;
 updaterbrowser apart gecontroleerd. Volledige releasegate/uitrol blijft open.
 
-## Alpha36 — gepubliceerd; E32-installatie blijft open
+## Alpha36 — geïnstalleerd via de normale GitHub-updater
 
-Alle voorbereide catalogus-/afbeeldings-/navigatie-/loggingwijzigingen samengevoegd
-op bron `7ddf341`. Compatibiliteitsfix bewaart bronvinkjes bij oude log-POST.
-Main/tag alle softwarejobs PASS,803 native/2356 gerapporteerde HA-tests per Core,
-onafhankelijke bron-/pakketreviews PASS;1927 pakketchecks per build en vijf
-publieke downloads exact. Alle 23 onderdelen/294 refs/31 eisen behouden.
+Op 25 oktober om 10:29 UTC één native installatiecommando; firmware en manifest komen
+rechtstreeks van GitHub. Nieuwe alpha36-boot bevestigd, bron `7ddf341`, ELF `ef313784`,
+web `2b858b3e` exact; alle 36 installatiecontroles en 45 afzonderlijke nacontroles PASS.
+31 geserveerde UI-bestanden exact, alle 86 HA48-bestanden en 13 projecthashes behouden;
+zes loggingvelden gelijk, nieuwe bronflags alleen API-defaults, geen settingssave.
+Verse back-up van 10 payloads nagelezen. Alle uitgangen uit, TX/poll/test 0.
 
-Verse controle09:41:46UTC: HA48 / 86 bestanden exact en geladen; geen herinstallatie
-nodig. E32 alpha31 op dezelfde boot; geen firmwareactie. Alpha36 is gepubliceerd,
-maar uploadgateNOT_READY wegens onbekende oude watchdog-/herstelroute.
-[Oplevering en resterende uitrol](OPLEVERING-ALPHA36-20261025.nl.md).
+De normale updatepoort accepteert nu alpha36. Iedere opvolgende reguliere release
+vereist opnieuw een geslaagde installatie en onafhankelijke nacontrole. De
+multipart-watchdogoorzaak blijft open; actieve bèta blijft NOT_READY.
+[Installatie, acceptatie en proces](INSTALLATIE-E32-ALPHA36-20261025.nl.md).
 
 ## Grotere release HA48 / E32 alpha35 — gepubliceerd, HA geïnstalleerd
 
@@ -62,7 +63,7 @@ module alpha31 blijft behouden. Uploadgate en actieve bèta blijven **NOT_READY*
 Alle 23 onderdelen, 289 bronverwijzingen en 31 eisen blijven behouden.
 [Installatie, aparte nacontrole en grenzen](INSTALLATIE-HA48-ALPHA35-20261025.nl.md).
 
-## Voor volgende release — publieke ketelcatalogus
+## Geleverd in alpha36 — publieke ketelcatalogus
 
 About staat direct na Settings. Alle31 BOILER-productgroepen uit de vastgelegde
 EMS-ESP-bron plus officiële documentatievermeldingen staan in een catalogus van
@@ -76,7 +77,7 @@ SmartLine. Ecomline Classic HRC22H nog zonder geverifieerde originele foto;
 generieke tekening niet meer geselecteerd. Afbeeldingen blijven op originele host.
 [Ontwerp en grenzen](KETELCATALOGUS.nl.md). Geen firmware- of HA-installatie.
 
-## Voor volgende release — gescheiden ESP-/EMS-logbronnen
+## Geleverd in alpha36 — gescheiden ESP-/EMS-logbronnen
 
 Webfilter ESP / EMS / beide, begrensde RX-framelogging buiten UART-callback en
 onafhankelijk opgeslagen bronvinkjes voor dezelfde RFC5424-collector voorbereid.
@@ -165,14 +166,14 @@ alpha28-uploader-watchdogoorzaak en herstelroute blijven onbekend.
 
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
-| Geïnstalleerde firmware | Vers waargenomen E32 `v0.1.0-e32v2-alpha.31`, bron 659879e/ELF045dfe53; uitvoerder/methode onbekend. Oudere alpha28-watchdogoorzaak blijft open; geen flash door deze opdracht |
+| Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.36`, bron `7ddf341`, ELF `ef313784`, web `2b858b3e`; één native GitHub-update en 45 afzonderlijke nacontroles geslaagd |
 | Geïnstalleerde HA-integratie | `0.4.0.dev48`, bron 70135db3, geladen op Core 2026.10.3; 86 bestanden exact, 105 registryrecords en koppelingen behouden |
-| Geïnstalleerde bron | HA `6f21f34ff773645645c98dc2602337c648e18ffe`; E32 `659879e52b3e0e517e8dea1e28edb2d189c38c77`; 86 HA-bestanden exact |
+| Geïnstalleerde bron | HA `70135db3c86df1f970265bc426fe5e35729c8261`; E32 `7ddf3410666d814850275433d9dddd266e5d83ba`;86 HA-bestanden exact |
 | Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; HA48 levert bewaakte async-opstart/afsluiten, cleanup na callbackexception en ontvangstdiagnostiek; alpha35-bron bevat pure Shelly-decoderbasis en updatercheckpoints naast de eerdere beveiligde aanvraag-, kanaal- en socketoverdracht. Productfabriek blijft gesloten; alle 23 voorbereide onderdelen behouden |
 | Doel volgende release | Eerste actieve bèta: huidige passieve ketelkoppeling behouden en begrensde start/stop beproeven na bron-/kraan-/installatiekwalificatie |
 | Nog geen bèta-vrijgave | Actieve proef-/zendketen en concrete fysieke voorwaarden ontbreken nog |
 | Huidige fysieke grens | Geen bewezen echte kraan-/ketelregeling; E32-TX en actuatoruitgangen geblokkeerd |
-| Laatste volledige installatiecontrole | 25 oktober 08:43:56 UTC: HA48 / 86 bestanden en verse HA47-back-up van 96 exact; E32 alpha31 op dezelfde boot, SOURCE5/instellingen behouden, uitgangen geblokkeerd. Alle 46 afzonderlijke nacontroles geslaagd |
+| Laatste volledige installatiecontrole | 25 oktober 10:37 UTC: alpha36/HA48, verse back-up van 10 payloads, 36 installatiecontroles en 45 afzonderlijke checks PASS; instellingen/SOURCE5 behouden en uitgangen uit |
 | Beperkte ontvangstcontrole vóór uitrol | 25 oktober 05:46:49 UTC: HA46/shadow_ready, SOURCE5/digests behouden, TV02-owner met één callback/enqueue/acceptatie en stale lokale temperatuur; kamermeting ongekwalificeerd. Acht checks / nul productieacties, geen nieuwe directe E32- of volledige bronhashaudit |
 
 [Verse alpha31-waarneming en grenzen](WAARNEMING-E32-ALPHA31-20261025.nl.md).
@@ -210,7 +211,7 @@ historisch; de tabellen en deze volgorde bepalen nieuw werk.
 
 | Prioriteit | Punt / koppeling | Eerstvolgende concrete uitkomst | Wat buiten software blijft |
 | --- | --- | --- | --- |
-| P0 | E32-upload / R28/I03 | Uploadhardening geleverd; alpha34-bron levert vier vaste verificatiecheckpoints, 782 native/40 sanitizer/24 updaterbrowsergevallen en E32-compile geslaagd. Gerichter herstelonderzoek voorbereiden | Oude reset6-oorzaak onbekend; huidige31 waargenomen zonder actor-/methodebewijs, geen blinde retry of native HTTPS-proef |
+| P0 | E32-update / R28/I03 | Native alpha31→36 geïnstalleerd/geaccepteerd; volgende release verplicht nieuwe update/nacontrole met SHA256-gebonden bewijs | Oude multipart-watchdog niet verklaard; geen blinde fallback, actieve fysieke poorten blijven apart |
 | P0 vóór actieve M2 | Incidentele CI-kamerassertie | Klokdomeinfout in de eindige kamerfixture hersteld en gepubliceerd in HA48: twee van vier epochregressies falen vóór correctie; 50 gerichte gevallen per Core slagen erna. Acht bestaande replays behouden; oude afwijking verder causaal onderzoeken | Definitieve HA43-CI en twee diagnostische native jobs slagen; oorspronkelijke oorzaak onbekend, geen fysieke vrijgave |
 | P0 vóór fysieke proef | Gemeld pendelen | Onderzoek richting warmwaterbedrijf vervolgen: gebruik/bijwarmen onderscheiden; stabiele nulmeting vastleggen | Geen bewezen oorzaak; geen zendproef bij onverklaarde instabiliteit |
 | P0 | TV02-opstartdiagnose, B05 | HA38-opstartherstel geleverd; verse beperkte HA46-controle 05:46 UTC toont één oorspronkelijke workeracceptatie. HA47 sluit late/cancel/dubbele opstart; 2.349 HA-gevallen per Core geslaagd. HA48 levert cleanup na callbackexception: 3 negatieve/162 gerichte en 2.356 volledige gevallen per Core gecontroleerd; geïnstalleerd | Ontvangst is nu geobserveerd maar stale; terugkerende verse ontvangst, oorspronkelijke causale echo en fysieke bron-/kraankwalificatie blijven open |
@@ -720,4 +721,4 @@ en de E32-build slagen. Geen ketelproef of firmwareactie voor deze broncontrole.
 stand per versie. De tag-publicatiepoort controleert de SHA256-gebonden vorige
 acceptatie en de exacte pending-kandidaat. Bronwerk mag doorgaan; een opvolgende
 reguliere release wordt geblokkeerd bij ontbrekende/mislukte installatie of
-onafhankelijke nacontrole. Alpha36 begint als pending, niet fictief geaccepteerd.
+onafhankelijke nacontrole. Alpha36 is pas na de echte installatie en afzonderlijke nacontrole geaccepteerd.

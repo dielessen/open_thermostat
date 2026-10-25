@@ -9,7 +9,7 @@ SOURCE, weekprogramma of ketelvrijgave.
 
 ## Gepubliceerd in alpha36 — ESP en EMS afzonderlijk
 
-Gepubliceerd op 25 oktober 2026; E32 alpha31 opnieuw waargenomen, alpha36 nog niet geïnstalleerd:
+Gepubliceerd en via de normale GitHub-updater geïnstalleerd op 25 oktober 2026. Afzonderlijke nacontrole bevestigt31 UI-bestanden exact; zes bestaande loggingvelden behouden en nieuwe bronflags default true/true, zonder settingssave:
 
 - Kies **ESP en EMS**, **ESP-logs** of **EMS-logs** boven de logregels. Dit is een
   weergavefilter; verzameling, syslogkeuze en cursor worden niet gewijzigd.

@@ -1,3 +1,7 @@
+> Dit is het historische publicatieverslag vóór installatie. Alpha36 is daarna
+> via GitHub geïnstalleerd en afzonderlijk geaccepteerd; zie
+> [het actuele installatieverslag](INSTALLATIE-E32-ALPHA36-20261025.nl.md).
+
 # Alpha36 — gepubliceerd; HA48 actueel, E32-installatie geblokkeerd
 
 25 oktober 2026. [Alpha36](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.36)

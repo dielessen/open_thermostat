@@ -14,12 +14,13 @@ en welke nog op de roadmap staan.
 [Screenshots](#screenshots) · [Documentatie](#documentatie)
 
 **Gepubliceerd:** [E32 alpha36](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.36), bron `7ddf341`, en [HA dev48](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev48), bron `70135db3`.
-HA48 is al geïnstalleerd. De verse controle van 25 oktober 09:41:46UTC bevestigt
-alle 86 bestanden exact, Core 2026.10.3 en geladen integratie. Voor deze bundel
-zijn geen HA-componentwijzigingen of herinstallatie nodig. De E32 reageert op
-alpha31; alpha36 is gepubliceerd maar niet geïnstalleerd. De eerdere uploader-
-watchdog en onbewezen herstelroute blokkeren herhaling van de firmware-upload.
-[Oplevering en actuele uitrolstatus](docs/modern-thermostat/OPLEVERING-ALPHA36-20261025.nl.md).
+**Geïnstalleerd en gecontroleerd:** E32 alpha36 via één native GitHub-update,
+HA48 ongewijzigd. Alle 36 installatiecontroles en 45 afzonderlijke nacontroles slagen:
+bron/ELF/web, 31 geserveerde UI-bestanden,86 HA-bestanden en instellingen/programma's/
+koppelingen gecontroleerd. Verse back-up nagelezen. Iedere volgende E32-release
+vereist opnieuw een bewezen update en aparte nacontrole.
+[Installatie en bewijs](docs/modern-thermostat/INSTALLATIE-E32-ALPHA36-20261025.nl.md) ·
+[Verplicht updateproces](docs/modern-thermostat/E32-UPDATE-PROCES.nl.md).
 
 Kamerinrichting, weekprogramma's, webinterfaces, passief EMS uitlezen en
 Settings → EMS-apparaten zijn beschikbaar. De huidige native inrichting ondersteunt
@@ -35,15 +36,15 @@ onzekere groepen blijven leeg. Functionele profielimport blijft op de roadmap.
 803 native kerngevallen en 2.356 gerapporteerde HA-tests per ondersteunde Core
 slagen. Alle toepasselijke main-/tag-CI en onafhankelijke bron-/pakketcontroles
 zijn geslaagd; alle vijf nieuwe publieke downloads zijn exact met hun eigen
-tagbuild vergeleken. De actieve bèta en E32-uploadgate blijven **NOT_READY**.
+tagbuild vergeleken. De normale GitHub-updatepoort accepteert alpha36; de actieve bèta blijft **NOT_READY** voor haar fysieke voorwaarden.
 
-**English:** E32 alpha36 is published from source `7ddf341`; HA dev48 remains
-installed from `70135db3`, with all 86 component files freshly verified unchanged.
-The bundle adds 60 display choices, four original externally hosted model images,
-ESP/EMS log selection and independent syslog source routing, including legacy
-client preservation. No HA reinstall was needed. The E32 was freshly observed
-on alpha31; no firmware upload was attempted because the earlier upload watchdog
-and recovery route remain unresolved. Physical qualification remains open.
+**English:** E32 alpha36 is installed through one native GitHub update; HA48
+remains unchanged. All 36 installation checks and 45 separate postchecks pass, including
+exact firmware/source/ELF/web identities,31 served UI assets,86 HA component files,
+settings, programs, bindings and the fresh backup. Every successor E32 release
+requires recorded update acceptance and an independent postcheck. Physical boiler
+and valve qualification remains open. Scheduled checks/dashboard notifications
+are prepared for the next bundle and are not running in alpha36.
 
 ## Alle mogelijkheden
 
@@ -76,7 +77,7 @@ compatibiliteitsverklaring voor iedere TV02-variant.
 
 | Mogelijkheid | Wat je ermee kunt | Status |
 | --- | --- | --- |
-| Je eigen ketel op Home | Model kiezen onder Settings → Mijn ketel; keuze blijft lokaal bewaard | **Beschikbaar** voor Ecomline Classic/HRC22H. **Geleverd in alpha36, nog niet op de module geïnstalleerd:** 60 keuzes met EMS-ESP-productgroepen en officiële ketelvermeldingen; publieke afbeeldingen buiten de ESP. Vermelding kwalificeert geen nieuwe driver. [Catalogus en profielopslag](docs/modern-thermostat/KETELCATALOGUS.nl.md) |
+| Je eigen ketel op Home | Model kiezen onder Settings → Mijn ketel; keuze blijft lokaal bewaard | **Beschikbaar** voor Ecomline Classic/HRC22H. **Geleverd en geïnstalleerd in alpha36:** 60 keuzes met EMS-ESP-productgroepen en officiële ketelvermeldingen; publieke afbeeldingen buiten de ESP. Vermelding kwalificeert geen nieuwe driver. [Catalogus en profielopslag](docs/modern-thermostat/KETELCATALOGUS.nl.md) |
 | EMS-ketelgegevens uitlezen | Beschikbare temperaturen, doelen, modulatie en overige gedecodeerde ketelwaarden bekijken | **Beschikbaar**; verse Classic-berichten ontvangen op de E32 |
 | EMS-apparaten onder Settings | Ontvangen apparaten, beschikbare entiteiten, bronkwaliteit en ouderdom per afzender bekijken; zoekfilter en open details blijven behouden | **Beschikbaar**, passief en EN/NL; geen actieve scan |
 | Classic en EMS Plus | Decoderbasis voor beide protocolfamilies behouden | **Beschikbaar als basis**; velddekking en ondersteuning blijven ketelafhankelijk |
@@ -125,7 +126,7 @@ EMS-ESP-velddekking of ondersteuning voor iedere ketel/converter.
 | Uitleg waarom er vraag is | Regelstatus en redenen voor warmtevraag of blokkering zien | **Beschikbaar als diagnosebasis**; echte opdracht-/reactietijdlijn volgt |
 | Grafieken, historie en CSV | Temperatuur, vraag, brander/modulatie en tapwater over tijd analyseren | Metrics-/opslag-/exportcode **voorbereid**; volledige actuele productroute nog afronden |
 | Verbruik, kosten en comfort | Metergegevens en duidelijk gelabelde schattingen combineren | **Deels voorbereid**; echte bronnen/kalibratie en presentatie volgen |
-| Systeemlog en syslog | Recente E32-logregels bekijken/filteren/downloaden; langer bewaren op een eigen RFC5424 UDP-collector | **Beschikbaar**; externe syslog staat standaard uit. **Geleverd in alpha36, nog niet op de module geïnstalleerd:** ESP/EMS-weergave en onafhankelijke doorstuurkeuze voor beide bronnen. [Gebruik en grenzen](docs/modern-thermostat/LOGGING.nl.md) |
+| Systeemlog en syslog | Recente E32-logregels bekijken/filteren/downloaden; langer bewaren op een eigen RFC5424 UDP-collector | **Beschikbaar**; externe syslog staat standaard uit. **Geleverd en geïnstalleerd in alpha36:** ESP/EMS-weergave en onafhankelijke doorstuurkeuze voor beide bronnen. [Gebruik en grenzen](docs/modern-thermostat/LOGGING.nl.md) |
 | Meldingen en onderhoud | Diagnose-, batterij- en foutinformatie benutten | Basis **aanwezig**; complete scenario’s en meldingen nog afronden |
 | Lokaal en open | Eigen broncode, lokale E32 en koppeling via lokale MQTT-broker; geen verplichte thermostaatcloud | **Beschikbaar**; via HA gekoppelde apparaten blijven afhankelijk van HA/MQTT |
 | Beheer en updates | Weblogin, About, uitloggen, herstarten onder Settings, HTTPS-updater en herstelroutes | **Beschikbaar**; normale update behoudt instellingen |

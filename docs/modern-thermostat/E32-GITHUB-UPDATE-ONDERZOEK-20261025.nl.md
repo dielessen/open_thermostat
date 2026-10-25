@@ -1,3 +1,7 @@
+> Vervolg afgerond: alpha36 is via de native GitHub-route geïnstalleerd en
+> afzonderlijk geaccepteerd. Zie [installatie en bewijs](INSTALLATIE-E32-ALPHA36-20261025.nl.md).
+> Hieronder staat de voorafgaande routebeoordeling; de oude multipart-oorzaak blijft onbekend.
+
 # E32: GitHub-update onderscheiden van bestandsupload
 
 ## Nieuwe waarneming

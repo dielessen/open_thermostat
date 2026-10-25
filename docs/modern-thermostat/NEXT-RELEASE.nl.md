@@ -1,21 +1,22 @@
-# Volgende actieve bèta — geïnstalleerde basis HA48 / E32 alpha31
+# Volgende actieve bèta — geïnstalleerde basis HA48 / E32 alpha36
 
 Bijgewerkt: 25 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
 het [masterplan](PLAN.nl.md) bewaart alle 31 producteisen en acceptatievoorwaarden.
 
-## Alpha36 — gepubliceerd; HA48 actueel, E32-uitrol geblokkeerd
+## Alpha36 — via GitHub geïnstalleerd en onafhankelijk geaccepteerd
 
-Navigatie,60 modelkeuzes, originele publieke afbeeldingen en ESP-/EMS-logging
-zijn samen gepubliceerd vanaf bron `7ddf341`. Oude open logpagina's bewaren de
-nieuwe syslogbronkeuzes. Main/tag-CI, onafhankelijke bron-/pakketreviews,1.927
-pakketchecks op beide builds en alle vijf publieke downloads slagen.
+Navigatie,60 modelkeuzes, publieke modelbeelden en ESP-/EMS-logging draaien nu
+op de E32. Eén native GitHub-installatiecommando, normale automatische herstart,
+alle 36 installatiecontroles en 45 afzonderlijke nacontroles geslaagd. Exacte bron/
+ELF/web, 31 geserveerde UI-bestanden, alle 86 HA48-bestanden, SOURCE5, instellingen,
+programma's en koppelingen gecontroleerd. Back-up van tien payloads nagelezen.
 
-Verse native controle 25 oktober 09:41:46UTC: HA48 geladen, alle 86 bestanden exact;
-geen componentwijzigingen of herinstallatie nodig. E32 alpha31 reageert, updater
-idle, uitgangen uit en TX/poll/test0. Oude upload-watchdog/herstelroute nog
-onbekend; **alpha36 niet geïnstalleerd**, geen upload/HTTPS-retry/herstart.
-[Oplevering en uitrolstatus](OPLEVERING-ALPHA36-20261025.nl.md).
+De normale GitHub-updatepoort accepteert alpha36. Voor iedere opvolgende release
+zijn opnieuw installatie en afzonderlijke nacontrole verplicht; CI-publicatie
+controleert het versiegebonden bewijs. De oude multipart-watchdog is hiermee niet
+oorzakelijk verklaard. Actieve bèta/fysieke ketel- en kraanproeven blijven open.
+[Installatie en bewijs](INSTALLATIE-E32-ALPHA36-20261025.nl.md).
 
 ## Grotere release HA48 / E32 alpha35 — gepubliceerd, HA geïnstalleerd
 
@@ -56,7 +57,7 @@ Ontbrekende modelafbeeldingen blijven leeg. [Hosting en profielontwerp](KETELCAT
 Vier oorspronkelijke modelafbeeldingen zijn gekoppeld met bronlink, voor vijf
 selecties. Ecomline Classic HRC22H heeft nog geen gecontroleerde originele foto;
 de generieke tekening wordt niet meer gebruikt. Onzekere groepen blijven zonder beeld.
-Deze wijzigingen zijn nog niet op de module geïnstalleerd.
+Deze wijzigingen zijn op alpha36 geïnstalleerd; 31 geserveerde UI-bestanden onafhankelijk exact gecontroleerd.
 
 ## Meegeleverd in alpha36 — ESP-/EMS-logging
 
@@ -65,7 +66,7 @@ onafhankelijk naar dezelfde syslogserver; nieuwe bronvinkjes worden opgeslagen
 met teruglezing. Ontvangen EMS-frames worden begrensd in de decode-lus gelogd,
 zonder UART-callback of busaansturing te veranderen. Oudere logginginstellingen
 blijven leesbaar. [Gebruik, tests en grenzen](LOGGING.nl.md).
-Nog niet op de module geïnstalleerd; externe collector/hardwarebelasting open.
+Op alpha36 geïnstalleerd; externe collector/hardwarebelasting blijven open.
 
 ## Meegeleverd in HA48 / alpha35 — bewijs en beperkingen
 

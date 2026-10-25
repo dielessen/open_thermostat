@@ -3,7 +3,7 @@
   "as_of": "2026-10-25",
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
   "release_state": "NOT_READY",
-  "installed_firmware": "v0.1.0-e32v2-alpha.31",
+  "installed_firmware": "v0.1.0-e32v2-alpha.36",
   "installed_ha": "0.4.0.dev48",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
   "items": [
@@ -162,9 +162,17 @@
         {
           "path": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md",
           "sha256": "fa4d850aac7e580509ec1b0f90d7628e44e33a8adbf62a25ac4b680d85a29bbe"
+        },
+        {
+          "path": "docs/modern-thermostat/INSTALLATIE-E32-ALPHA36-20261025.nl.md",
+          "sha256": "31bad0fcbd4ef2431c3cef1626925a9885c239d10f4f84b1df3873aae557b2c8"
+        },
+        {
+          "path": "docs/modern-thermostat/update-acceptance/e32-alpha36-20261025.json",
+          "sha256": "b539cbd73a6c483ddd3f4822bba4ec546bb89efd639045ccd95b991c5a487fe3"
         }
       ],
-      "remaining_acceptance": "Alpha26 HTTPS-afwijking blijft onverklaard; geen blinde herhaling. Blijvende enkelvoudige NVS-updatediagnose en EN/NL-webpresentatie geleverd in alpha27/dev36. Echte flash-/powerloss-/herstelacceptatie en normale update op een afzonderlijk beoordeelde kandidaat blijven open. Alpha29 app-only upload mislukte met reset6; Verse basis 25 oktober 01:50 UTC is HA44/E32alpha31; uitvoerder en methode van die installatie onbekend. Deze opdracht heeft geen E32-upload gestart; eerdere watchdogoorzaak blijft open. Strikte lengte, handle-opruiming en selectie na volledig geautoriseerd verzoek zijn bronmatig voorbereid; geen oorzaakbewijs, herstelproef of installatievrijgave. De bestaande native HTTPS-checkpointscope blijft ongewijzigd. Gepubliceerd in alpha34: vier begrensde checkpoints vóór checksum/image/readback/bootselectie met EN/NL-status, 782 native/40 sanitizer/24 updaterbrowsergevallen en compile geslaagd; niet geflasht door deze opdracht; HA47 met verse back-up/nacontrole geïnstalleerd. Dit verklaart of herstelt de oudere watchdog niet."
+      "remaining_acceptance": "Native GitHub-update alpha31→36 met verse back-up en één installatiecommando geslaagd:36 installatiecontroles,45 afzonderlijke nacontroles, exacte bron/ELF/web/31UI en behoud van86 HA-bestanden/13 projecthashes/zes loggingvelden. Iedere opvolgende reguliere release vereist nieuw update-/nacontrolebewijs volgens E32-UPDATE-PROCES en CI-gate. Oude multipart-watchdog en nativealpha26-afwijking blijven oorzakelijk onbekend; geen blinde fallback/retry. Fysieke powerloss/rollback/herstelkwalificatie en actieve ketel-/kraanpoorten blijven apart open. Automatische12ucontrole/dashboardmelding voorbereid naalpha36, niet geïnstalleerd."
     },
     {
       "id": "I04",
@@ -651,7 +659,7 @@
         },
         {
           "path": "docs/modern-thermostat/LOGGING.nl.md",
-          "sha256": "95d9b15bf60408f4cbeb5fa3f7d9789bd9403d43175b963066d1c7d1f0b61a3f"
+          "sha256": "74bc7836a5bb2fd505fb02091ef994b6b06610db70f91128e859d6df01089a74"
         },
         {
           "path": "src/diagnostics/BufferedLogger.h",
@@ -1883,9 +1891,11 @@
   "authoritative_workboard": "docs/modern-thermostat/WORKBOARD.nl.md",
   "base_runtime_checkpoint": "cebb0a25296b690a2a2d699bccacb65ed0f69da7",
   "installed_ha_source_commit": "70135db3c86df1f970265bc426fe5e35729c8261",
-  "installed_firmware_source_commit": "659879e52b3e0e517e8dea1e28edb2d189c38c77",
-  "installation_observed_at_utc": "2026-10-25T08:43:56.078320+00:00",
+  "installed_firmware_source_commit": "7ddf3410666d814850275433d9dddd266e5d83ba",
+  "installation_observed_at_utc": "2026-10-25T10:37:03.162816+00:00",
   "published_firmware": "v0.1.0-e32v2-alpha.36",
   "published_firmware_source_commit": "7ddf3410666d814850275433d9dddd266e5d83ba",
-  "runtime_verified_at_utc": "2026-10-25T09:41:46.873787+00:00"
+  "runtime_verified_at_utc": "2026-10-25T10:37:03.162816+00:00",
+  "ha_installation_observed_at_utc": "2026-10-25T08:43:56.078320+00:00",
+  "firmware_installation_observed_at_utc": "2026-10-25T10:31:55.712341+00:00"
 }

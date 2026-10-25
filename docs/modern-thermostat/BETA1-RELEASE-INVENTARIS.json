@@ -631,7 +631,7 @@
         },
         {
           "path": "docs/modern-thermostat/LOGGING.nl.md",
-          "sha256": "6e8bda19efaf7a2b8dde76804c01af5a7eff33380dcc24bd338c5d5002a4ee41"
+          "sha256": "95d9b15bf60408f4cbeb5fa3f7d9789bd9403d43175b963066d1c7d1f0b61a3f"
         },
         {
           "path": "src/diagnostics/BufferedLogger.h",
@@ -1864,5 +1864,8 @@
   "base_runtime_checkpoint": "cebb0a25296b690a2a2d699bccacb65ed0f69da7",
   "installed_ha_source_commit": "70135db3c86df1f970265bc426fe5e35729c8261",
   "installed_firmware_source_commit": "659879e52b3e0e517e8dea1e28edb2d189c38c77",
-  "installation_observed_at_utc": "2026-10-25T08:43:56.078320+00:00"
+  "installation_observed_at_utc": "2026-10-25T08:43:56.078320+00:00",
+  "published_firmware": "v0.1.0-e32v2-alpha.36",
+  "published_firmware_source_commit": "7ddf3410666d814850275433d9dddd266e5d83ba",
+  "runtime_verified_at_utc": "2026-10-25T09:41:46.873787+00:00"
 }

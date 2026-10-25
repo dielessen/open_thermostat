@@ -7,9 +7,9 @@ bestemming ingesteld. Collectorontvangst en lange runtime-/heap-/stackbelasting
 blijven afzonderlijke open proeven. Deze functie verandert geen kamerbinding,
 SOURCE, weekprogramma of ketelvrijgave.
 
-## Voor volgende release — ESP en EMS afzonderlijk
+## Gepubliceerd in alpha36 — ESP en EMS afzonderlijk
 
-Bronwijziging van25 oktober2026, nog niet op de E32 geïnstalleerd:
+Gepubliceerd op 25 oktober 2026; E32 alpha31 opnieuw waargenomen, alpha36 nog niet geïnstalleerd:
 
 - Kies **ESP en EMS**, **ESP-logs** of **EMS-logs** boven de logregels. Dit is een
   weergavefilter; verzameling, syslogkeuze en cursor worden niet gewijzigd.
@@ -48,7 +48,7 @@ compile/link slaagt (75,6s;75816bytes statisch RAM,2613429bytes app). Dit is een
 bouwcontrole van bronwerk, geen releasepakket of installatie.
 Lokaal bewijs: `out/esp-ems-logging-20261025/`.
 
-### Aanvulling in alpha36-kandidaat: oudere open logpagina
+### Meegeleverd in alpha36: oudere open logpagina
 
 Een oud zesvelds-POST naar de nieuwe firmware bewaart de bestaande twee
 bronvinkjes. Alleen een expliciet achtvelds-verzoek wijzigt ze. Opslag uit de
@@ -177,3 +177,12 @@ expliciete opslag. Er volgt geen automatische retry of sysloginschakeling.
 Deze aanvulling is bronvoorbereiding, geen firmware-installatie of collectorproef.
 Browserbewijs en vergelijking met de oude bron:
 `out/release-diagnostics-bundle-20261024/`.
+
+## Releasecontrole alpha36
+
+Volledige main/tag-CI slagen: 803 native kerngevallen en beide HA-Core-versies.
+De extra legacybronkeuzeproef brengt de gerichte logging-/settingssuite op 26;
+NVS/logger/UDP-loopback slaagt eveneens. Pakketten krijgen1927 volledige
+contextchecks per build; publieke downloads zijn exact de tagbestanden.
+De verse native runtimecontrole09:41UTC ziet nog alpha31; geen firmwareactie
+of echte externe collectorproef. [Uitrolstatus](OPLEVERING-ALPHA36-20261025.nl.md).

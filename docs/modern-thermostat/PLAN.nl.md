@@ -19,11 +19,13 @@ en in [WORKBOARD §3](WORKBOARD.nl.md#3-alles-wat-voorbereid-is-meenemen-in-de-b
   Verse HA47-back-up van 96, één normale Core-herstart en 86 exacte componentbestanden.
   Instellingen, programma's, koppelingen en kaarten behouden. Tado-configuratie
   behouden; geen fysieke opdrachten. [Installatie en aparte nacontrole](INSTALLATIE-HA48-ALPHA35-20261025.nl.md).
-- **Gepubliceerd:** HA dev48 en E32 alpha35 op bron `70135db3`. Deze opdracht voerde
-  geen E32-upload uit. De oudere uploader-watchdogoorzaak/herstelroute blijven open;
-  de actor/methode van de eerdere alpha31-installatie zijn onbekend.
-  HA48 levert cleanup na callbackexception en de gedeelde klokfixture met vier
-  regressies. Alpha35 bevat een pure Shelly-decoderbasis, nog zonder BLE-runtimekoppeling.
+- **Gepubliceerd:** E32 alpha36 (bron `7ddf341`) en HA dev48 (bron `70135db3`).
+  Alpha36 bundelt navigatie/catalogus/originele externe beelden en ESP-/EMS-logging
+  met legacybronkeuzebehoud. Alle toepasselijke main/tag/software-/pakketreviews slagen.
+  Verse controle 25 oktober 09:41:46UTC: HA48 / 86 bestanden exact en geladen; geen
+  herinstallatie nodig. E32 alpha31 reageert; geen firmwareactie. Oude upload-
+  watchdog-/herstelroute en actor/methodealpha31 blijven onbekend; uploadgateNOT_READY.
+  [Actuele oplevering](OPLEVERING-ALPHA36-20261025.nl.md).
 - **Geleverde softwarebasis:** EMS-apparatenpagina, sessie-/klokbewaking,
   opstartherstel, web-/editorcorrecties en HA-kraanberichtbedrading met standaard
   gesloten productfabriek, oorspronkelijke aanvraagcorrelatie, beschermd kanaalbeheer

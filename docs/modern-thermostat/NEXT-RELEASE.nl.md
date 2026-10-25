@@ -4,14 +4,18 @@ Bijgewerkt: 25 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
 het [masterplan](PLAN.nl.md) bewaart alle 31 producteisen en acceptatievoorwaarden.
 
-## Kandidaat alpha36 — gezamenlijke firmwarebundel wordt afgerond
+## Alpha36 — gepubliceerd; HA48 actueel, E32-uitrol geblokkeerd
 
 Navigatie,60 modelkeuzes, originele publieke afbeeldingen en ESP-/EMS-logging
-worden als één firmwarekandidaat bevroren. Een extra compatibiliteitsfix voorkomt
-dat een oude open logpagina de nieuwe syslogbronkeuze terugzet. HA48 heeft geen
-componentwijzigingen en blijft de geïnstalleerde HA-basis. Bevroren volledige CI,
-werkelijke pakketten en onafhankelijke bron-/pakketcontrole moeten slagen vóór
-publicatie. E32-installatie blijft afhankelijk van de afzonderlijke herstelgate.
+zijn samen gepubliceerd vanaf bron `7ddf341`. Oude open logpagina's bewaren de
+nieuwe syslogbronkeuzes. Main/tag-CI, onafhankelijke bron-/pakketreviews,1.927
+pakketchecks op beide builds en alle vijf publieke downloads slagen.
+
+Verse native controle 25 oktober 09:41:46UTC: HA48 geladen, alle 86 bestanden exact;
+geen componentwijzigingen of herinstallatie nodig. E32 alpha31 reageert, updater
+idle, uitgangen uit en TX/poll/test0. Oude upload-watchdog/herstelroute nog
+onbekend; **alpha36 niet geïnstalleerd**, geen upload/HTTPS-retry/herstart.
+[Oplevering en uitrolstatus](OPLEVERING-ALPHA36-20261025.nl.md).
 
 ## Grotere release HA48 / E32 alpha35 — gepubliceerd, HA geïnstalleerd
 
@@ -42,9 +46,9 @@ publiek pakket/Git en alle instellingen, programma's, koppelingen en kaarten beh
 E32 alpha31 blijft op dezelfde boot; alpha34 is gepubliceerd, zonder firmwareactie.
 [Installatie en bewijs](INSTALLATIE-HA47-ALPHA34-20261025.nl.md).
 
-## Voor volgende release — navigatie en modelcatalogus
+## Meegeleverd in alpha36 — navigatie en modelcatalogus
 
-About staat na Settings. De modellenkeuze bevat nu 60 selecties met alle31
+About staat na Settings. De modellenkeuze bevat nu 60 selecties met alle 31
 EMS-ESP-productgroepen en aanvullende officiële ketelvermeldingen. Afbeeldingen
 staan publiek buiten de ESP; de compacte catalogus en opgeslagen keuze werken
 zonder internet. Nieuwe vermeldingen activeren geen driver of zendprofiel.
@@ -54,7 +58,7 @@ selecties. Ecomline Classic HRC22H heeft nog geen gecontroleerde originele foto;
 de generieke tekening wordt niet meer gebruikt. Onzekere groepen blijven zonder beeld.
 Deze wijzigingen zijn nog niet op de module geïnstalleerd.
 
-## Voor volgende release — ESP-/EMS-logging
+## Meegeleverd in alpha36 — ESP-/EMS-logging
 
 Systeemlog krijgt ESP / EMS / beide als weergavefilter. Beide bronnen kunnen
 onafhankelijk naar dezelfde syslogserver; nieuwe bronvinkjes worden opgeslagen
@@ -172,7 +176,7 @@ de bewaakte serviceadapter beproefd; serviceacceptatie blijft geen fysieke ACK.
 [Uitwerking](M2-NATIVE-KRAANROUTE-20261025.nl.md).
 
 **Vers waargenomen: E32 alpha31.** Alleen-lezen controle 25 oktober 01:50 UTC
-bevestigt bron659879e/ELF045dfe53 en normale beschikbaarheid. De uitvoerder en
+bevestigt bron 659879e/ELF045dfe53 en normale beschikbaarheid. De uitvoerder en
 methode van die gewijzigde installatie zijn onbekend; deze opdracht heeft geen
 E32-upload gestart. De oudere alpha28-momentopname is historisch. De eerdere
 watchdogoorzaak/herstelroute blijven open; geen nieuwe flashpoging.

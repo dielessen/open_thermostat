@@ -13,42 +13,39 @@ en welke nog op de roadmap staan.
 [Mogelijkheden](#alle-mogelijkheden) · [Roadmap](#wat-we-nog-gaan-bouwen) ·
 [Screenshots](#screenshots) · [Documentatie](#documentatie)
 
-**Gepubliceerd:** [HA dev46](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev46) en [E32 alpha33](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.33), bron `2d32ad3`.
-HA dev46 is geïnstalleerd op bron `2d32ad3`, met een verse HA45-back-up van
-95 payloads en één normale Core-herstart. De afzonderlijke nacontrole van
-25 oktober 05:12:15 UTC slaagt: 38 controles, alle 86 livebestanden exact publiek
-pakket/Git en alle instellingen, programma's, koppelingen en kaarten behouden.
-E32 alpha31 blijft op dezelfde boot; er is geen firmwareactie uitgevoerd.
-[Installatie en bewijs](docs/modern-thermostat/INSTALLATIE-HA46-ALPHA33-20261025.nl.md).
+**Gepubliceerd:** [HA dev47](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev47) en [E32 alpha34](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-alpha.34), bron `6f21f34`.
+HA dev47 is geïnstalleerd met een verse HA46-back-up van 96 bestanden en één
+normale Core-herstart. De afzonderlijke nacontrole van 25 oktober 06:47:49 UTC
+slaagt: 44 controles, alle 86 bestanden exact en instellingen, programma's,
+koppelingen en kaarten behouden. E32 alpha31 blijft op dezelfde boot;
+deze opdracht heeft geen firmware-upload uitgevoerd.
+[Installatie en bewijs](docs/modern-thermostat/INSTALLATIE-HA47-ALPHA34-20261025.nl.md).
 
 Kamerinrichting, weekprogramma's, webinterfaces, passief EMS uitlezen en
 Settings → EMS-apparaten zijn beschikbaar. De huidige native inrichting ondersteunt
 **1–2 kamers, één radiatorknop per kamer**; acht zones blijft het uitbreidingsdoel.
-Tado blijft de actieve regelaar; fysieke uitgangen blijven geblokkeerd.
+Tado-configuratie blijft behouden; fysieke OpenThermostat-uitgangen blijven geblokkeerd.
 
-Deze grotere bundel voegt begrensde oorspronkelijke ontvangstdiagnostiek toe aan
-de bestaande HA-diagnostiekdownload. Vroege drops en workeruitkomsten worden
-onderscheiden zonder privéberichtinhoud of blijvende opslag. De laatste
-socketoverdracht en kanaaltoelating bewaken herintrede via callbacks. Dit bouwt
-voort op gekoppelde aanvragen/grants, beschermd kanaalbeheer en nonblocking writes
-via de bestaande MQTT-verbinding. De productfabriek blijft gesloten totdat
-kamerbron, oorspronkelijke kraanecho en fysieke stop-/uitvalproeven zijn gekwalificeerd.
+Deze grotere bundel voorkomt dat een afgesloten of geannuleerde HA-opstart
+later alsnog oude listeners, workers of timers aanmaakt. Dubbele start vervangt
+de bestaande eigenaar niet. De firmwarebron voegt vier opgeslagen controlepunten
+toe voor updateonderzoek, met Nederlandse en Engelse uitleg. Ontvangstdiagnostiek,
+beschermd kanaalbeheer en alle eerdere functies blijven behouden. Geschikte
+kamerbron, oorspronkelijke kraanecho en fysieke stop-/uitvalproeven blijven open.
 
-773 native kerngevallen en 5 lokale socketadaptergevallen slagen; 77 kerngevallen
-ook onder sanitizers. Per ondersteunde Core slagen 2.339 HA-testgevallen.
-Alle negen openbare downloads zijn vergeleken met hun eigen tag-CI en onafhankelijk
-beoordeeld. De twee volledige E32-archieven zijn niet bytegelijk; alle 41 uitgepakte
-bestandssysteembestanden zijn gelijk. De precieze verschillen en grenzen staan in
-het [releaseverslag](docs/modern-thermostat/INSTALLATIE-HA46-ALPHA33-20261025.nl.md).
+782 native kerngevallen en 2.349 HA-gevallen per ondersteunde Core slagen.
+Alle definitieve CI-, bron- en daadwerkelijke pakketcontroles zijn geslaagd;
+alle negen openbare downloads zijn vergeleken met hun eigen tag-CI.
+De fysieke actieve bèta is nog niet vrijgegeven; eerdere E32-updaterherstelvragen
+blijven open. [Releaseverslag](docs/modern-thermostat/INSTALLATIE-HA47-ALPHA34-20261025.nl.md).
 
-**English:** HA dev46 and E32 alpha33 are published from source `2d32ad3`.
-HA46 is installed with a fresh 95-file HA45 backup and 38 independent postchecks
-passed. Configuration and cards are preserved. E32 alpha31 remains on the same
-boot; this task performed no firmware upload.
-Bounded original-ingress diagnostics and additional callback recursion guards
-are included. Physical source/feedback/stop qualification and earlier uploader
-recovery remain open. Tado continues to control heating; the active beta is
-not yet qualified. All existing features and roadmap requirements are retained.
+**English:** HA dev47 and E32 alpha34 are published from source `6f21f34`.
+HA47 is installed with a fresh 96-file HA46 backup and 44 independent postchecks
+passed. Settings and cards are preserved; E32 alpha31 remains on the same boot.
+This task performed no firmware upload. The bundle adds single-owner async HA
+startup and four bounded pre-verification update checkpoints. Physical source,
+feedback/stop qualification and installed-updater recovery remain open. All
+existing features and roadmap requirements are retained.
 
 ## Alle mogelijkheden
 

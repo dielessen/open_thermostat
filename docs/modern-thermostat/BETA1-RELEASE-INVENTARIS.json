@@ -4,7 +4,7 @@
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
   "release_state": "NOT_READY",
   "installed_firmware": "v0.1.0-e32v2-alpha.31",
-  "installed_ha": "0.4.0.dev46",
+  "installed_ha": "0.4.0.dev47",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
   "items": [
     {
@@ -141,10 +141,10 @@
         },
         {
           "path": "docs/modern-thermostat/UPDATE-VERIFICATIE-CHECKPOINTS-20261025.nl.md",
-          "sha256": "0cf8a24a78f6a390bebfb8ce1aafbbdf4d9aeeedce187ad503f6ec96fa3292c9"
+          "sha256": "6118897c07ec028906f6c36d01a9b3ebb032bdfd86bd935bfbf94f9b56d67c2f"
         }
       ],
-      "remaining_acceptance": "Alpha26 HTTPS-afwijking blijft onverklaard; geen blinde herhaling. Blijvende enkelvoudige NVS-updatediagnose en EN/NL-webpresentatie geleverd in alpha27/dev36. Echte flash-/powerloss-/herstelacceptatie en normale update op een afzonderlijk beoordeelde kandidaat blijven open. Alpha29 app-only upload mislukte met reset6; Verse basis 25 oktober 01:50 UTC is HA44/E32alpha31; uitvoerder en methode van die installatie onbekend. Deze opdracht heeft geen E32-upload gestart; eerdere watchdogoorzaak blijft open. Strikte lengte, handle-opruiming en selectie na volledig geautoriseerd verzoek zijn bronmatig voorbereid; geen oorzaakbewijs, herstelproef of installatievrijgave. De bestaande native HTTPS-checkpointscope blijft ongewijzigd. Volgende bronbundel: vier begrensde checkpoints vóór checksum/image/readback/bootselectie met EN/NL-status, 782 native/40 sanitizer/24 updaterbrowsergevallen en compile geslaagd; niet geflasht. Dit verklaart of herstelt de oudere watchdog niet."
+      "remaining_acceptance": "Alpha26 HTTPS-afwijking blijft onverklaard; geen blinde herhaling. Blijvende enkelvoudige NVS-updatediagnose en EN/NL-webpresentatie geleverd in alpha27/dev36. Echte flash-/powerloss-/herstelacceptatie en normale update op een afzonderlijk beoordeelde kandidaat blijven open. Alpha29 app-only upload mislukte met reset6; Verse basis 25 oktober 01:50 UTC is HA44/E32alpha31; uitvoerder en methode van die installatie onbekend. Deze opdracht heeft geen E32-upload gestart; eerdere watchdogoorzaak blijft open. Strikte lengte, handle-opruiming en selectie na volledig geautoriseerd verzoek zijn bronmatig voorbereid; geen oorzaakbewijs, herstelproef of installatievrijgave. De bestaande native HTTPS-checkpointscope blijft ongewijzigd. Gepubliceerd in alpha34: vier begrensde checkpoints vóór checksum/image/readback/bootselectie met EN/NL-status, 782 native/40 sanitizer/24 updaterbrowsergevallen en compile geslaagd; niet geflasht door deze opdracht; HA47 met verse back-up/nacontrole geïnstalleerd. Dit verklaart of herstelt de oudere watchdog niet."
     },
     {
       "id": "I04",
@@ -731,10 +731,10 @@
         },
         {
           "path": "docs/modern-thermostat/HA-OPSTART-LIFECYCLE-20261025.nl.md",
-          "sha256": "812a4cdfb85c42aa05c2d820337cd352c951e87025e31120960ffbb6b9ccb0b2"
+          "sha256": "aadf4d77f2925b28a897908e0e3b2194f45e93e6e80f4c805b3dbad04641c3cd"
         }
       ],
-      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding geleverd/getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele acquisitie-/ouderdomsvalidatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten als ambient bron. WSDCGQ11LM-eventproducer voorbereid/getest, niet op Z2M geïnstalleerd. Native HA-ontvanger en room-status geleverd zonder QualifiedReport-vrijgave. Web-/native systeemlog en RFC5424 UDP-syslog geleverd in alpha23; beschermde routes/RAM-buffer en standaard uit zonder bestemming gecontroleerd. Externe collector en lange heap-/stack-/belastingproef blijven open. Geen fysieke regelautorisatie. ESP-eigen diagnose op alpha26/dev33 geïnstalleerd en twee gewone live pakketten exact met HA vergeleken. Softwaretests dekken verval; langdurige fysieke logging-/resourceproeven blijven afzonderlijk open. Geleverd en live teruggelezen in HA46: begrensde, niet-blijvende oorspronkelijke ontvangsttellers via bestaande HA-diagnostiek. Geen producent- of fysieke kwalificatie. Volgende bronbundel: één native opstart over async-programma/Store/MQTT-grenzen, cleanup bij cancel/close en begrensde optionele temperatuurdiagnose. Tien baselinegevallen falen vóór correctie, 139 gerichte/2349volledigeHA-gevallen perCore slagen. Nog niet uitgerold. Beperkte HA46-controle05:46UTC ziet1TV02-callback/enqueue/workeracceptatie; stale en ongekwalificeerd, geen upstreamoorzaak of fysieke ACK."
+      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding geleverd/getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele acquisitie-/ouderdomsvalidatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten als ambient bron. WSDCGQ11LM-eventproducer voorbereid/getest, niet op Z2M geïnstalleerd. Native HA-ontvanger en room-status geleverd zonder QualifiedReport-vrijgave. Web-/native systeemlog en RFC5424 UDP-syslog geleverd in alpha23; beschermde routes/RAM-buffer en standaard uit zonder bestemming gecontroleerd. Externe collector en lange heap-/stack-/belastingproef blijven open. Geen fysieke regelautorisatie. ESP-eigen diagnose op alpha26/dev33 geïnstalleerd en twee gewone live pakketten exact met HA vergeleken. Softwaretests dekken verval; langdurige fysieke logging-/resourceproeven blijven afzonderlijk open. Geleverd en live teruggelezen in HA46: begrensde, niet-blijvende oorspronkelijke ontvangsttellers via bestaande HA-diagnostiek. Geen producent- of fysieke kwalificatie. Geleverd in HA47: één native opstart over async-programma/Store/MQTT-grenzen, cleanup bij cancel/close en begrensde optionele temperatuurdiagnose. Tien baselinegevallen falen vóór correctie, 139 gerichte/2349volledigeHA-gevallen perCore slagen. HA47 uitgerold met verse HA46-back-up96 en44 afzonderlijke nacontroles. Beperkte HA46-controle05:46UTC ziet1TV02-callback/enqueue/workeracceptatie; stale en ongekwalificeerd, geen upstreamoorzaak of fysieke ACK. Na Coreherstart nieuweRAMowner: bij06:47UTC nul counters/TV02waiting, geen oudbericht alsnieuwekwalificatie. Actieve/fysiekevrijgave blijftopen."
     },
     {
       "id": "I12",
@@ -1830,7 +1830,7 @@
   ],
   "authoritative_workboard": "docs/modern-thermostat/WORKBOARD.nl.md",
   "base_runtime_checkpoint": "cebb0a25296b690a2a2d699bccacb65ed0f69da7",
-  "installed_ha_source_commit": "2d32ad3c84f8439540a04e2d87fdd5a8265f3670",
+  "installed_ha_source_commit": "6f21f34ff773645645c98dc2602337c648e18ffe",
   "installed_firmware_source_commit": "659879e52b3e0e517e8dea1e28edb2d189c38c77",
-  "installation_observed_at_utc": "2026-10-25T05:12:15.017318+00:00"
+  "installation_observed_at_utc": "2026-10-25T06:47:49.695683+00:00"
 }

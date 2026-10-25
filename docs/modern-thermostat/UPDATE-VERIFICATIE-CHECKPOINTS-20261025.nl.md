@@ -1,8 +1,8 @@
 # Updatediagnose — controlepunten vóór de verificatiestappen
 
-25 oktober 2026. Bronwerk voor de volgende grotere bundel na HA46 / alpha33.
-Geen nieuwe release, firmware-installatie of herstelproef door deze wijziging.
-De geverifieerde productie blijft HA46 / E32 alpha31.
+25 oktober 2026. Gepubliceerd in E32 alpha34, samen met HA47.
+HA47 is geïnstalleerd; de E32 blijft op alpha31 en deze opdracht voerde geen
+firmware-installatie of herstelproef uit. [Installatie en bewijs](INSTALLATIE-HA47-ALPHA34-20261025.nl.md).
 
 ## Wat verandert
 
@@ -70,5 +70,5 @@ blijven open waar hun oorspronkelijke acceptatie nog ontbreekt.
 checkpoints: checksum, native image validation, independent flash readback and
 boot-slot selection. They describe the last confirmed save, not successful
 execution or a reset cause. Verification order, rejection gates and read-only
-status semantics remain intact. This is source preparation for the next bundle;
-no firmware update, retry, recovery or physical qualification was performed.
+status semantics remain intact. Published as alpha34 source with HA47; no firmware
+update, retry, recovery or physical qualification was performed.

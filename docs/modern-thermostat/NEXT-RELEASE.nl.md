@@ -1,18 +1,26 @@
-# Volgende actieve bèta — geïnstalleerde basis HA46 / E32 alpha31
+# Volgende actieve bèta — geïnstalleerde basis HA47 / E32 alpha31
 
 Bijgewerkt: 25 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
 het [masterplan](PLAN.nl.md) bewaart alle 31 producteisen en acceptatievoorwaarden.
 
-## Gezamenlijke releasekandidaat HA47 / E32 alpha34
+## Grotere release HA47 / E32 alpha34 — gepubliceerd en HA geïnstalleerd
 
-De updatercheckpoints en HA-opstartcorrectie worden nu samen bevroren voor
-publicatie. Alle 23 onderdelen, 286 bronverwijzingen en 31 eisen blijven behouden.
-Exacte bron-/CI-/daadwerkelijke pakketreview en publieke downloads volgen vóór
-HA-uitrol met verse HA46-back-up en afzonderlijke nacontrole. Er is op dit
-checkpoint nog geen nieuwe tag, productie-installatie of fysieke vrijgave.
+Beide onveranderlijke tags staan op bron `6f21f34`. Alle toepasselijke main-/tag-CI,
+bronreviews en daadwerkelijke publieke pakketcontroles slagen. De bundel verenigt
+robuuste HA-opstart/afsluiten met vier gerichte updatercheckpoints en EN/NL-uitleg.
+782 native gevallen en 2.349 HA-gevallen per ondersteunde Core slagen. Alle 23
+onderdelen, 286 bronverwijzingen en 31 eisen blijven behouden. Actieve bèta blijft
+**NOT_READY**; bron-/kraan-/installatiekwalificatie staan afzonderlijk open.
 
-## Grotere release HA46 / E32 alpha33 — gepubliceerd
+HA dev47 is geïnstalleerd op bron `6f21f34`, met een verse HA46-back-up van
+96 bestanden en één normale Core-herstart. De afzonderlijke nacontrole van
+25 oktober **06:47:49 UTC** slaagt: 44 controles, alle 86 livebestanden exact
+publiek pakket/Git en alle instellingen, programma's, koppelingen en kaarten behouden.
+E32 alpha31 blijft op dezelfde boot; alpha34 is gepubliceerd, zonder firmwareactie.
+[Installatie en bewijs](INSTALLATIE-HA47-ALPHA34-20261025.nl.md).
+
+## Historische release HA46 / E32 alpha33
 
 Beide tags zijn gepubliceerd op bron `2d32ad3`; alle toepasselijke main-/tag-CI,
 bronreviews en daadwerkelijke publieke pakketreviews slagen. De bundel bevat
@@ -29,35 +37,38 @@ pakket/Git en alle instellingen, programma's, koppelingen en kaarten behouden.
 E32 alpha31 blijft op dezelfde boot; er is geen firmwareactie uitgevoerd.
 [Installatie en bewijs](INSTALLATIE-HA46-ALPHA33-20261025.nl.md).
 
-## Volgende grotere bundel — gerichte updaterinstrumentatie
+## Geleverd in alpha34-bron — gerichte updaterinstrumentatie
 
-De volgende bronbundel onderscheidt nu vier opgeslagen stappen vóór checksum,
+De alpha34-bron onderscheidt vier opgeslagen stappen vóór checksum,
 native imagevalidatie, onafhankelijk flash-readback en bootselectie. Oude
 checkpoints blijven leesbaar; de UI toont de betekenis in Nederlands/Engels.
 782 native gevallen, 40 sanitizergevallen en 24 updaterbrowsergevallen slagen;
 E32-compile geslaagd. De updaterstap behield 23 onderdelen en 31 eisen; met de
-HA-opstartcorrectie hieronder bevat de actuele inventaris 286 bronverwijzingen. Dit is nog geen nieuwe publicatie of
-firmware-installatie en verklaart de oudere watchdog niet.
+HA-opstartcorrectie hieronder bevat de actuele inventaris 286 bronverwijzingen.
+Dit is gepubliceerd in alpha34,
+zonder firmware-installatie door deze opdracht; de oudere watchdog blijft onverklaard.
 [Uitwerking en bewijs](UPDATE-VERIFICATIE-CHECKPOINTS-20261025.nl.md).
 
-## Volgende grotere bundel — HA-opstart en afsluiten
+## Geleverd in HA47 — opstart en afsluiten
 
 De native opstart behoudt nu één eigenaar over programma-, Store- en MQTT-
 leesgrenzen. Afsluiten of annuleren kan de oude verbinding niet later alsnog
 laten starten; een dubbele start vervangt de eerste eigenaar niet. De optionele
 temperatuurdiagnose heeft één begrensd aanmeldbudget en ruimt late handles op.
 Alle tien nieuwe gevallen falen op de oude code; 139 gerichte en 2.349 volledige
-HA-gevallen per ondersteunde Core slagen. Dit bronwerk komt samen met de
-updatercheckpoints in de volgende bundel; nog geen nieuwe uitrol.
+HA-gevallen per ondersteunde Core slagen. Dit bronwerk is geleverd in HA47,
+samen met de gepubliceerde alpha34-updatercheckpoints.
 [Uitwerking en bewijs](HA-OPSTART-LIFECYCLE-20261025.nl.md).
 
-Een afzonderlijke alleen-lezen controle van **05:46:49 UTC** ziet bij de huidige
+De afzonderlijke alleen-lezen controle vóór de uitrol van **05:46:49 UTC** zag bij de toenmalige
 TV02-owner één callback/enqueue/workeracceptatie, zonder getelde drops of fouten.
 Het oorspronkelijke lokale-temperatuurbericht is inmiddels stale; dit bewijst
 ontvangst, geen kraan-ACK, positie of regelkwalificatie. De gekozen interne
 kamerbron blijft onbruikbaar en heeft nul oorspronkelijke topics. SOURCE5 en
 instellingen behouden; nul productie-/deviceacties. Geen nieuwe E32-/bestandsaudit.
-De bewaarinventaris behoudt nu alle 23 onderdelen met 286 bronverwijzingen.
+Na de HA47-herstart is de RAM-eigenaar nieuw: bij de nacontrole van 06:47:49 UTC
+zijn de tellers nul en TV02 `waiting`. Oude ontvangst wordt niet als verse meting
+hergebruikt. De bewaarinventaris behoudt alle 23 onderdelen met 286 bronverwijzingen.
 
 ## Historische grotere release HA45 / E32 alpha32
 
@@ -150,12 +161,12 @@ doelterugmelding blijven open. [Uitwerking](M2-KRAAN-KLOK-20261024.nl.md).
 
 | Onderdeel | Geïnstalleerd | Stand |
 | --- | --- | --- |
-| E32 | `v0.1.0-e32v2-alpha.31`, bron `659879e52b3e0e517e8dea1e28edb2d189c38c77`; vers waargenomen 01:50 UTC | Passief EMS uitlezen; TX, forwarding en fysieke uitvoer geblokkeerd |
-| Home Assistant | `0.4.0.dev46`, bron `2d32ad3c84f8439540a04e2d87fdd5a8265f3670` | Geladen op Core 2026.10.3; frontend dev41/v41 met v38/v35-aliases |
+| E32 | `v0.1.0-e32v2-alpha.31`, bron `659879e52b3e0e517e8dea1e28edb2d189c38c77`; dezelfde boot bevestigd 06:47 UTC | Passief EMS uitlezen; TX, forwarding en fysieke uitvoer geblokkeerd |
+| Home Assistant | `0.4.0.dev47`, bron `6f21f34ff773645645c98dc2602337c648e18ffe` | Geladen op Core 2026.10.3; frontend dev41/v41 met v38/v35-aliases |
 | Actieve regelaar | Tado | Geen automatische ketel- of kraansturing door OpenThermostat |
 
 Bron/pakket/ELF/web, alle 86 HA-bestanden en behoud van instellingen, programma's
-en identiteiten zijn gecontroleerd. Zie [installatieverslag](INSTALLATIE-HA46-ALPHA33-20261025.nl.md).
+en identiteiten zijn gecontroleerd. Zie [installatieverslag](INSTALLATIE-HA47-ALPHA34-20261025.nl.md).
 De uitgebreide geleverde bundel staat in de [werkbordhistorie](WORKBOARD-HISTORIE-20261024.nl.md).
 
 ### Historische HA43-installatie — 24 oktober, nacontrole 21:17:50 UTC

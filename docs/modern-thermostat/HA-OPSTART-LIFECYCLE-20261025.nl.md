@@ -1,8 +1,9 @@
 # HA-opstart — één eigenaar over async-leesgrenzen
 
-25 oktober 2026. Bronwerk voor de volgende grotere bundel, samen met de
-[updatercheckpoints](UPDATE-VERIFICATIE-CHECKPOINTS-20261025.nl.md).
-De geïnstalleerde basis blijft HA46 / E32 alpha31; dit is geen nieuwe uitrol.
+25 oktober 2026. Geleverd in HA47, samen met de gepubliceerde
+[alpha34-updatercheckpoints](UPDATE-VERIFICATIE-CHECKPOINTS-20261025.nl.md).
+HA47 is geïnstalleerd en onafhankelijk nagecontroleerd; E32 blijft alpha31.
+[Installatie en grenzen](INSTALLATIE-HA47-ALPHA34-20261025.nl.md).
 
 ## Reproduceerbaar probleem
 
@@ -105,5 +106,5 @@ an old worker/listener/timer; duplicate startup cannot replace the first owner.
 Optional original-temperature subscription uses one bounded total wait and
 late listener handles are removed. All ten new cases fail against the old
 source and pass after correction. Delayed subscribe boundaries are injected
-fixtures, not a diagnosed production broker failure. No physical qualification
-or deployment is implied.
+fixtures, not a diagnosed production broker failure. HA47 deployment is recorded
+separately; physical qualification remains open.

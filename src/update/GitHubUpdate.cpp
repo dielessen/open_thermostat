@@ -1,6 +1,7 @@
 #ifdef OPENTHERMOSTAT_E32V2
 #include "GitHubUpdate.h"
 #include "ReleaseCatalog.h"
+#include "ReleaseCheckSchedule.h"
 #include "IndexedReleaseCatalog.h"
 #include "VerifiedOta.h"
 #include "RestartTimer.h"
@@ -45,7 +46,7 @@ namespace heating {extern bool wifiAPMode;}
 namespace heating::update {
 namespace {
 struct State {std::string phase="idle",error,selected;uint32_t received=0,total=0;bool reboot=false;std::vector<Release> releases;};
-State state;std::mutex stateMutex;
+State state;std::mutex stateMutex;ReleaseCheckSchedule checkSchedule;
 std::atomic<bool> working{false};RestartTimer rebootTimer;
 struct CheckpointStorage {
     bool read(UpdateCheckpoint &value) {
@@ -209,6 +210,7 @@ void execute(bool install) {
         } else if(error.empty())error="Deze release past niet bij dit bord, instellingenformaat of updateformaat.";
         if(!ok)checkpoint(UpdateStage::Error,httpStatus);
     }
+    if(!install){std::lock_guard<std::mutex> lock(stateMutex);checkSchedule.completed(millis(),ok);}
     if(!ok)phase("error",error);
 }
 void worker(void *argument){
@@ -219,11 +221,14 @@ void worker(void *argument){
     vTaskDelete(nullptr);
 }
 bool start(bool install,const std::string &tag="") {
-    if(busy()||!ready()||(install&&pendingBoot()))return false;
-    {std::lock_guard<std::mutex> lock(stateMutex);if(state.reboot)return false;
-      if(install&&(tag==embedded::version||!validTag(tag)||std::none_of(state.releases.begin(),state.releases.end(),[&](const Release &r){return r.tag==tag;})))return false;
+    if(busy()||!ready()||pendingBoot())return false;
+    if(!install){std::lock_guard<std::mutex> lock(stateMutex);if(!state.reboot&&checkSchedule.cached(millis()))return true;}
+    bool expected=false;
+    if(!working.compare_exchange_strong(expected,true))return false;
+    {std::lock_guard<std::mutex> lock(stateMutex);if(state.reboot){working.store(false);return false;}
+      if(install&&(tag==embedded::version||!validTag(tag)||std::none_of(state.releases.begin(),state.releases.end(),[&](const Release &r){return r.tag==tag;}))){working.store(false);return false;}
       state.phase=install?"manifest":"checking";state.error.clear();state.selected=tag;state.received=state.total=0;}
-    working.store(true);
+    if(!install){std::lock_guard<std::mutex> lock(stateMutex);checkSchedule.attempted(millis());}
     if(xTaskCreate(worker,"github-ota",12288,install?reinterpret_cast<void*>(1):nullptr,1,nullptr)!=pdPASS){working.store(false);phase("error","Onvoldoende geheugen voor updatecontrole.");return false;}
     return true;
 }
@@ -245,6 +250,18 @@ bool requestRollback(){
     if(busy()||pendingBoot())return false;const auto p=previous();if(!p||esp_ota_set_boot_partition(p)!=ESP_OK)return false;
     phase("rolling_back");rebootTimer.schedule(millis(),1000);return true;
 }
+std::string availability() {
+    std::lock_guard<std::mutex> lock(stateMutex);
+    const auto latest=newerAlphaRelease(embedded::version,state.releases);
+    auto root=control::ControlJson(cJSON_CreateObject(),cJSON_Delete);
+    cJSON_AddBoolToObject(root.get(),"known",checkSchedule.known());
+    cJSON_AddBoolToObject(root.get(),"available",!latest.empty());
+    cJSON_AddStringToObject(root.get(),"version",latest.c_str());
+    cJSON_AddNumberToObject(root.get(),"interval_seconds",ReleaseCheckSchedule::intervalMs/1000);
+    if(checkSchedule.known())cJSON_AddNumberToObject(root.get(),"checked_age_seconds",checkSchedule.age(millis())/1000);
+    else cJSON_AddNullToObject(root.get(),"checked_age_seconds");
+    char *raw=cJSON_PrintUnformatted(root.get());std::string result=raw?raw:"{}";cJSON_free(raw);return result;
+}
 std::string status() {
     State snapshot;{std::lock_guard<std::mutex> lock(stateMutex);snapshot=state;}
     auto root=control::ControlJson(cJSON_CreateObject(),cJSON_Delete);
@@ -253,7 +270,7 @@ std::string status() {
     cJSON_AddStringToObject(root.get(),"build_marker",embedded::imageMarker);
     cJSON_AddStringToObject(root.get(),"phase",snapshot.phase.c_str());cJSON_AddStringToObject(root.get(),"error",snapshot.error.c_str());
     cJSON_AddStringToObject(root.get(),"selected",snapshot.selected.c_str());cJSON_AddBoolToObject(root.get(),"busy",busy());
-    cJSON_AddBoolToObject(root.get(),"can_check",ready()&&!busy()&&!snapshot.reboot);cJSON_AddBoolToObject(root.get(),"boot_pending",pendingBoot());
+    cJSON_AddBoolToObject(root.get(),"can_check",ready()&&!busy()&&!snapshot.reboot&&!pendingBoot());cJSON_AddBoolToObject(root.get(),"boot_pending",pendingBoot());
     cJSON_AddBoolToObject(root.get(),"reboot_required",snapshot.reboot);cJSON_AddBoolToObject(root.get(),"rollback_available",!pendingBoot()&&previous()!=nullptr);
     cJSON_AddBoolToObject(root.get(),"reboot_scheduled",rebootTimer.pending());
     cJSON_AddNumberToObject(root.get(),"received",snapshot.received);cJSON_AddNumberToObject(root.get(),"total",snapshot.total);
@@ -277,13 +294,22 @@ std::string status() {
         cJSON_AddNumberToObject(record,"total",saved->total);
         cJSON_AddNumberToObject(record,"http_status",saved->httpStatus);
      }}
+    {std::lock_guard<std::mutex> lock(stateMutex);
+     cJSON_AddBoolToObject(root.get(),"check_cached",checkSchedule.cached(millis()));
+     cJSON_AddNumberToObject(root.get(),"automatic_check_interval_seconds",ReleaseCheckSchedule::intervalMs/1000);}
     auto list=cJSON_AddArrayToObject(root.get(),"releases");for(const auto &r:snapshot.releases){auto entry=cJSON_CreateObject();cJSON_AddStringToObject(entry,"tag",r.tag.c_str());cJSON_AddBoolToObject(entry,"prerelease",r.prerelease);cJSON_AddItemToArray(list,entry);}
     char *raw=cJSON_PrintUnformatted(root.get());std::string result=raw?raw:"{}";cJSON_free(raw);return result;
 }
 void loop() {
     const auto now=millis();if(rebootTimer.due(now,working.load())){ESP.restart();return;}
     static bool pending=pendingBoot();static uint32_t start=now,stable=0;
-    if(!pending)return;
+    if(!pending){
+        bool due;
+        {std::lock_guard<std::mutex> lock(stateMutex);
+         due=checkSchedule.due(now,!working.load()&&!rebootTimer.pending()&&!state.reboot);}
+        if(due&&ready()&&!pendingBoot())checkReleases();
+        return;
+    }
     if(networkConnected()&&deviceAccess.ready()&&filesystem.isMounted()&&embedded::imageMarker[0]) {
         if(!stable)stable=now;
         if(uint32_t(now-stable)>=20000&&esp_ota_mark_app_valid_cancel_rollback()==ESP_OK){pending=false;Serial.println("OTA boot confirmed: network, access, filesystem and embedded UI ready");}

@@ -23,6 +23,19 @@ Alle 36 producenttests slagen. Voor/na-bewijs staat onder
 `out/receiver-publication-20261025/`. Geen wachtrij/retry, productie-installatie,
 bronkwalificatie, kraan-ACK of ketelopdracht. Fysieke B04/B05-acceptatie blijft open.
 
+## Voor volgende bundel — automatische updatecontrole en dashboardmelding
+
+De E32 controleert vanaf vijf minuten na opstarten iedere twaalf uur de bestaande
+compatibele releasecatalogus. Iedere poging, ook een fout, verschuift de volgende
+automatische poging; geen snelle retrylus. Geen controle tijdens pending boot,
+installatie/herstart of zonder thuisnetwerk/geldige tijd. Een geslaagde controle
+blijft vijf minuten in RAM beschikbaar voor herhaalde handmatige controles.
+Het dashboard leest de lokale samenvatting via de bestaande statuspoll en toont
+alleen numeriek nieuwere compatibele alpha-versies, met een knop naar Updates.
+Geen automatische installatie of firmwareactie in deze opdracht. 44 gerichte
+native gevallen, 26 Node-gevallen, dashboardbrowser en E32-compile geslaagd;
+updaterbrowser apart gecontroleerd. Volledige releasegate/uitrol blijft open.
+
 ## Alpha36 — gepubliceerd; E32-installatie blijft open
 
 Alle voorbereide catalogus-/afbeeldings-/navigatie-/loggingwijzigingen samengevoegd

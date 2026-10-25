@@ -130,3 +130,14 @@ test('bounded UTF-8 room label decoding preserves names and rejects malformed wi
   assert.equal(p.dashboardRoomName({name_utf8_hex:encoded},0),'Ruimte 1');
  assert.equal(p.dashboardRoomName({name:'Existing label'},1),'Existing label');
 });
+
+test('cached update notice hides unknown/current data and escapes or rejects external tags',()=>{
+ const p=rootPage();
+ assert.equal(p.dashboardUpdateNotice(undefined),'');
+ assert.equal(p.dashboardUpdateNotice({known:false,available:true,version:'v9'}),'');
+ assert.equal(p.dashboardUpdateNotice({known:true,available:false,version:'v9'}),'');
+ assert.equal(p.dashboardUpdateNotice({known:true,available:true,version:'<img src=x>'}),'');
+ const html=p.dashboardUpdateNotice({known:true,available:true,version:'v0.1.0-e32v2-alpha.99'});
+ assert.match(html,/Firmware-update beschikbaar:/);assert.match(html,/Update bekijken/);
+ assert.match(html,/loadNativePage/);assert.doesNotMatch(html,/fetch|installRelease|updates\/check/);
+});

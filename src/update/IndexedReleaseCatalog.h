@@ -51,6 +51,18 @@ inline bool alphaVersion(std::string_view tag,std::array<uint32_t,4> &result) {
     result=parsed;return true;
 }
 
+// Availability is an upgrade indication, never merely a different tag or a
+// downgrade. Unknown release channels remain selectable in the update page.
+inline std::string newerAlphaRelease(std::string_view installed,const std::vector<Release> &releases) {
+    std::array<uint32_t,4> current{},candidate{};
+    if(!alphaVersion(installed,current))return {};
+    std::string latest;
+    for(const auto &release:releases)if(alphaVersion(release.tag,candidate)&&candidate>current) {
+        current=candidate;latest=release.tag;
+    }
+    return latest;
+}
+
 // Fetch(url, byteLimit, body, error, status) supplies an actual HTTP status.
 // Only a release-metadata 404 means an unpublished candidate, not a network
 // failure. Never publish a partially verified choice list after another error.

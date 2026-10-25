@@ -93,11 +93,11 @@
       "files": [
         {
           "path": "src/update/GitHubUpdate.cpp",
-          "sha256": "7692b1bef74666ed1d7b02f2129a2f36b96b5a8bf191ad4fbe2b7e28d25c29be"
+          "sha256": "01a7e4db26d2ae3b036478d0af2fc13eda6107dddd9f673fccda07542f77c856"
         },
         {
           "path": "src/update/IndexedReleaseCatalog.h",
-          "sha256": "39f6bea7b771e1635e149b7291feec4d6548628210200109d845465f88863d14"
+          "sha256": "abbd451094c788a48801c0f346d30815e77220912cd81ddf3616dc89882b921c"
         },
         {
           "path": "src/update/TlsAllocationPolicy.h",
@@ -117,7 +117,7 @@
         },
         {
           "path": "data/html/update.html",
-          "sha256": "ec6a409b28d41ec396ebe1f2986e2a42de995fa341edfe0caa9f93ef73457b92"
+          "sha256": "b8413679d1cdc9863804ae489bfb0a77c055d3df7963b9aec8de21e9d0ecdfaa"
         },
         {
           "path": "src/update/ManualAppUpload.h",
@@ -142,6 +142,14 @@
         {
           "path": "docs/modern-thermostat/UPDATE-VERIFICATIE-CHECKPOINTS-20261025.nl.md",
           "sha256": "6118897c07ec028906f6c36d01a9b3ebb032bdfd86bd935bfbf94f9b56d67c2f"
+        },
+        {
+          "path": "src/update/ReleaseCheckSchedule.h",
+          "sha256": "2694443e596deeb809be67f0a24afd06daa9482b74c656a6c7a55eb74b6e6e73"
+        },
+        {
+          "path": "test/test_native/test_release_check_schedule.cpp",
+          "sha256": "e067ffe2caa1f40024379c8e4ef414b21104de7c2000bd3e371edcc076eccf5e"
         }
       ],
       "remaining_acceptance": "Alpha26 HTTPS-afwijking blijft onverklaard; geen blinde herhaling. Blijvende enkelvoudige NVS-updatediagnose en EN/NL-webpresentatie geleverd in alpha27/dev36. Echte flash-/powerloss-/herstelacceptatie en normale update op een afzonderlijk beoordeelde kandidaat blijven open. Alpha29 app-only upload mislukte met reset6; Verse basis 25 oktober 01:50 UTC is HA44/E32alpha31; uitvoerder en methode van die installatie onbekend. Deze opdracht heeft geen E32-upload gestart; eerdere watchdogoorzaak blijft open. Strikte lengte, handle-opruiming en selectie na volledig geautoriseerd verzoek zijn bronmatig voorbereid; geen oorzaakbewijs, herstelproef of installatievrijgave. De bestaande native HTTPS-checkpointscope blijft ongewijzigd. Gepubliceerd in alpha34: vier begrensde checkpoints vóór checksum/image/readback/bootselectie met EN/NL-status, 782 native/40 sanitizer/24 updaterbrowsergevallen en compile geslaagd; niet geflasht door deze opdracht; HA47 met verse back-up/nacontrole geïnstalleerd. Dit verklaart of herstelt de oudere watchdog niet."
@@ -181,7 +189,7 @@
         },
         {
           "path": "data/html/index.html",
-          "sha256": "bcdf14c7a1fcd35f806d2076fe1e806a48c9e5b9aaf9fd2e7511b7f832e822a9"
+          "sha256": "f5fe923dfdb2fbca0d040cf2fda72d738f11dc37cdb0343b5ff048fec79ec966"
         },
         {
           "path": "data/html/device-restart.js",
@@ -265,7 +273,7 @@
         },
         {
           "path": "data/html/update.html",
-          "sha256": "ec6a409b28d41ec396ebe1f2986e2a42de995fa341edfe0caa9f93ef73457b92"
+          "sha256": "b8413679d1cdc9863804ae489bfb0a77c055d3df7963b9aec8de21e9d0ecdfaa"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/strings.json",
@@ -285,7 +293,7 @@
         },
         {
           "path": "test/dashboard-browser.cjs",
-          "sha256": "89617d651dedac667514a4f027a8806f346bdd9c2e375e9ffb7a2192f965878e"
+          "sha256": "8f48bafbdc580cb218d2258f9f484773883787df47349bd37e6471169dbbaadf"
         },
         {
           "path": "test/device_restart.test.cjs",
@@ -309,7 +317,7 @@
         },
         {
           "path": "test/root_status_render.test.cjs",
-          "sha256": "84b026fe674b96d8eff481fcd196a42cc837aae48eb3e6b9feeb92317017c7e1"
+          "sha256": "1dc8e217eee076d68507145583ab18214029a13e8a86f9e6508de1005f833a48"
         },
         {
           "path": "test/test_native/test_http_access.cpp",
@@ -329,7 +337,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "fe71cc349f3cae7ca7385ae513d3fcd2e3de299ae5697e0ca8bbc858efc79f8c"
+          "sha256": "97e7347947a7336da707ce697108ab8a3222155fcb392d132d7b9f2fba843bd7"
         },
         {
           "path": "data/html/ui-language.js",
@@ -607,11 +615,11 @@
         },
         {
           "path": "data/html/index.html",
-          "sha256": "bcdf14c7a1fcd35f806d2076fe1e806a48c9e5b9aaf9fd2e7511b7f832e822a9"
+          "sha256": "f5fe923dfdb2fbca0d040cf2fda72d738f11dc37cdb0343b5ff048fec79ec966"
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "fe71cc349f3cae7ca7385ae513d3fcd2e3de299ae5697e0ca8bbc858efc79f8c"
+          "sha256": "97e7347947a7336da707ce697108ab8a3222155fcb392d132d7b9f2fba843bd7"
         },
         {
           "path": "data/html/system-log.js",
@@ -1266,7 +1274,7 @@
         },
         {
           "path": "src/HeatingController.h",
-          "sha256": "bc6f3ca50a6f9ee91c68cf808409b6d35177008ba20020850f6ac14647bcedf5"
+          "sha256": "ed60e351ae86e39e780f46c9d7edc24264720b690147eb2807f43507329a462f"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/sensor.py",
@@ -1457,7 +1465,7 @@
         },
         {
           "path": "src/HeatingController.h",
-          "sha256": "bc6f3ca50a6f9ee91c68cf808409b6d35177008ba20020850f6ac14647bcedf5"
+          "sha256": "ed60e351ae86e39e780f46c9d7edc24264720b690147eb2807f43507329a462f"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",

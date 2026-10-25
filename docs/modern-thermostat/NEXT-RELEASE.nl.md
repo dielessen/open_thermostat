@@ -416,3 +416,14 @@ geen tweede publicatie starten; stoppen vanuit de SDK wacht op het oorspronkelij
 resultaat, ook bij afwijzing. Vier voor/na-regressies toegevoegd; alle 36
 producenttests slagen. Dit blijft bronwerk voor de volgende gezamenlijke bundel,
 zonder installatie of fysieke kwalificatie.
+
+## Automatische updatecontrole — voorbereid, niet geïnstalleerd
+
+Vanaf vijf minuten na opstarten iedere twaalf uur controleren, uitsluitend met
+netwerk/geldige tijd en buiten update/herstart/bootvalidatie. Ook fouten wachten
+tot de volgende automatische periode; handmatige controle blijft mogelijk.
+Geslaagde resultaten worden vijf minuten in RAM hergebruikt. Het dashboard toont
+een numeriek nieuwere compatibele alpha en opent de updatepagina. Geen extra
+GitHub-aanvraag vanuit het dashboard, geen automatische installatie of flashwrites
+voor de cache. EN/NL-uitleg toegevoegd. Herstel van de oude upload-watchdog blijft
+een afzonderlijk onderzoek; deze voorbereiding bewijst dat herstel niet.

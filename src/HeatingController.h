@@ -13,6 +13,7 @@
 #include "MQTT.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "control/ControlBuildCapabilities.h"
+#include "update/GitHubUpdate.h"
 #endif
 #include <esp_system.h>
 #include "Room.h"
@@ -230,6 +231,7 @@ public:
 		ss << ",\"controlMode\":\"" << (modernMode()?"shadow":"legacy") << "\"";
 		ss << ",";
 #ifdef OPENTHERMOSTAT_E32V2
+        ss << "\"firmware_update\":" << update::availability() << ",";
         ss << "\"control_build\":";
         control::writeControlBuildCapabilities(ss);
         // Read-only SDK counters also remain available in modern mode, where

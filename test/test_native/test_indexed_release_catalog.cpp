@@ -66,3 +66,11 @@ TEST(IndexedRelease, ExistingAnnotatedTagsAreResolvedOnlyWhenSelected) {
  auto wrong=object;wrong.replace(wrong.find(tag(1)),tag(1).size(),tag(9));f.responses[url]={200,wrong};
  EXPECT_EQ(discoverIndexedReleases(f,out,error),IndexedCatalogResult::Failed);EXPECT_EQ(out[0].tag,"previous");
 }
+
+TEST(IndexedRelease, AvailabilityIsNumericUpgradeAndNeverDifferentOrOlderTag) {
+ EXPECT_EQ(newerAlphaRelease(tag(9),{{tag(8),true},{tag(9),true}}),"");
+ EXPECT_EQ(newerAlphaRelease(tag(9),{{tag(10),true},{tag(12),true},{tag(11),true}}),tag(12));
+ EXPECT_EQ(newerAlphaRelease(tag(9),{{"ha-v0.4.0.dev99",true},{"vgarbage",false}}),"");
+ EXPECT_EQ(newerAlphaRelease("unknown",{{tag(12),true}}),"");
+ EXPECT_EQ(newerAlphaRelease(tag(9),{}),"");
+}

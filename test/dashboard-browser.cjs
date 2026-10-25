@@ -97,6 +97,26 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   await page.evaluate(s=>updateRooms(s),status);assert.equal(await page.locator('.pd-room h3').first().innerText(),'Ruimte 1');
   status=fixture();status.control.state.zones[0].name='<img src=x onerror=alert(1)>';status.ems.displayCode='<script>alert(2)</script>';
   await page.evaluate(s=>updateRooms(s),status);assert.equal(await page.locator('.pd-room img').count(),0);assert.match(await page.locator('.pd-room h3').first().innerText(),/<img/);
+  const beforeUpdateRequests=requests.length;
+  status.firmware_update={known:true,available:true,version:'v0.1.0-e32v2-alpha.99'};
+  await page.evaluate(s=>updateRooms(s),status);
+  assert.match(await page.locator('[data-dashboard-key="firmware-update"]').innerText(),/Firmware-update beschikbaar: v0.1.0-e32v2-alpha.99/);
+  assert.equal(await page.locator('[data-dashboard-key="firmware-update"] button').innerText(),'Update bekijken');
+  assert.equal(requests.length,beforeUpdateRequests);
+  status.firmware_update.available=false;
+  await page.evaluate(s=>updateRooms(s),status);
+  assert.equal(await page.locator('[data-dashboard-key="firmware-update"]').count(),0);
+  status.firmware_update.available=true;status.firmware_update.known=false;
+  await page.evaluate(s=>updateRooms(s),status);
+  assert.equal(await page.locator('[data-dashboard-key="firmware-update"]').count(),0);
+  status.firmware_update.known=true;status.firmware_update.version='<img src=x onerror=alert(1)>';
+  await page.evaluate(s=>updateRooms(s),status);
+  assert.equal(await page.locator('[data-dashboard-key="firmware-update"]').count(),0);
+  status.firmware_update.version='v0.1.0-e32v2-alpha.99';
+  await page.evaluate(s=>updateRooms(s),status);
+  await page.locator('[data-dashboard-key="firmware-update"] button').click();
+  await page.locator('#updateHeading').waitFor();
+  assert.equal(requests.some(r=>r.method!=='GET'),false);
   assert.deepEqual(errors,[]);results.push({viewport:label,result:'PASS',rooms:8,initialRequests,compiledSupportReadback:!!buildCapabilities,automaticPollPreservesNodesOpenFocusScroll:true,keyedRoomReorder:true,replacedRoomStartsClosed:true,transientFailureRecovery:true,singleInflightPoll:true,staleSuppressed:true,safeText:true,horizontalOverflow:false,deviceProof:false});await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(out,'BROWSER.json'),JSON.stringify({result:'PASS',source:'shipped index.html and local assets, fixture HTTP',cases:results},null,2)+'\n');console.log(JSON.stringify({result:'PASS',viewports:results.length}));

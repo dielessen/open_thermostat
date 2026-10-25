@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "as_of": "2026-10-24",
+  "as_of": "2026-10-25",
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
   "release_state": "NOT_READY",
   "installed_firmware": "v0.1.0-e32v2-alpha.28",
-  "installed_ha": "0.4.0.dev43",
+  "installed_ha": "0.4.0.dev44",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
   "items": [
     {
@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "85416165ab5b98da55d83033d35d83e1d8b23cc0a50716901e8eadde3cee18f2"
+          "sha256": "6b9681fafa1ab15cbac45c05769d389e3c5d999ba32a527e7e4b45db02a68347"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
@@ -149,7 +149,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "85416165ab5b98da55d83033d35d83e1d8b23cc0a50716901e8eadde3cee18f2"
+          "sha256": "6b9681fafa1ab15cbac45c05769d389e3c5d999ba32a527e7e4b45db02a68347"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -559,7 +559,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "85416165ab5b98da55d83033d35d83e1d8b23cc0a50716901e8eadde3cee18f2"
+          "sha256": "6b9681fafa1ab15cbac45c05769d389e3c5d999ba32a527e7e4b45db02a68347"
         },
         {
           "path": "platformio.ini",
@@ -663,7 +663,7 @@
         },
         {
           "path": "src/control/ModernTransport.h",
-          "sha256": "d9baabee0443fe1db87cc3dd42ef26bb27139e48d7bb580d1ff331fc6b1470ba"
+          "sha256": "1eda7cfa3841694430068e5621a4aa87a1b74009401c51547b99f65227f04cb0"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/device_diagnostics.py",
@@ -910,7 +910,7 @@
         },
         {
           "path": "ha/tests_native/test_actuator_receiver.py",
-          "sha256": "928bb97645a0bab087c77613d541b5c46b742e5cac7d5492d4c003d9d380ef9d"
+          "sha256": "aaf9fbe1bdd18e082000aa8463e68b2505aacde9fce92219950813160f210a83"
         },
         {
           "path": "ha/tests_native/test_temperature_source_review.py",
@@ -918,7 +918,7 @@
         },
         {
           "path": "src/control/ActuatorIntent.h",
-          "sha256": "48e24f09d55b6b683b55b96ffdf1a605dbf644953d09dea8738dd66fefcc222a"
+          "sha256": "de486a6eddfa10890daa0ddaec65f990d3d439568be40e54f221e6dd143e286e"
         },
         {
           "path": "test/test_native/test_actuator_intent.cpp",
@@ -970,14 +970,62 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/actuator_wire.py",
-          "sha256": "bf38962967b474716ecea932dea40d0987db9d709ae3640487d28667419a341d"
+          "sha256": "b34ea4ec479d04f7b6b57cb6c242554ddbe3f1e2956e962e0e6951ed35e6b857"
         },
         {
           "path": "ha/tests_native/test_actuator_wire.py",
-          "sha256": "293e62884443d9d0347a1d193faaf9f99c5722824b31b89afe5539562e12ecf7"
+          "sha256": "2151893a6e16cc85541ff16675f86085ab06b0eef7940003f4183fe518a3086c"
+        },
+        {
+          "path": "src/control/ActuatorChannel.h",
+          "sha256": "9e2ca03090a3c58d0bf90929ad71ef43782a74edf2dc89d0d1323c7027e9c54b"
+        },
+        {
+          "path": "test/test_native/test_actuator_channel.cpp",
+          "sha256": "612880587958bfd4f53378ca7f0670d2f747dd6ff81338d8518b2ea8c1ea2b7b"
+        },
+        {
+          "path": "test/interop/actuator_channel_runner.cpp",
+          "sha256": "8cfad9b0fc13ae5b5643657f9d162155bb66ab5e17476f8a60e82f7c47b74125"
+        },
+        {
+          "path": "ha/tests_native/test_actuator_channel_interop.py",
+          "sha256": "4d64b29004532612e8b73cc7dabcaaf4d4c52e8f1addd7e088b092d96a432c52"
+        },
+        {
+          "path": "src/control/ActuatorChannels.h",
+          "sha256": "b654560c3458ede1dd51c4b69fcb214ad09da08f04ff010a8e15e037fa4c1ea5"
+        },
+        {
+          "path": "test/test_native/test_actuator_channels.cpp",
+          "sha256": "81c47e3aa65cab2c62020e05dbd8ea6380ce4062a539ab33c7431b08021e2313"
+        },
+        {
+          "path": "src/control/DeadlineWrite.h",
+          "sha256": "2f52fbf362a0647982df5d7d7388e2daf28149a0f4182ea69c7f75edb5e95f5b"
+        },
+        {
+          "path": "src/control/DeadlineWiFiClient.h",
+          "sha256": "8efb46f6b1e8d9c9318d69a1b1712b359aaddb64d73cace90e7cdf94a6173e5f"
+        },
+        {
+          "path": "test/test_native/test_deadline_write.cpp",
+          "sha256": "06eae8158c04c4f32db9867f9cf3471eec29c8a4ac749390a11bd6376595fe8c"
+        },
+        {
+          "path": "test/deadline_write/adapter.cpp",
+          "sha256": "a96a48d48699c4fb255db1333bf2a90f407256d9c695ea7e2bca95850e65550a"
+        },
+        {
+          "path": "test/deadline_write/include/WiFiClient.h",
+          "sha256": "28e5109a311162dc6ed1be57bb533777f7d27ccee3f9bf4fe9602378ce6105f1"
+        },
+        {
+          "path": "test/deadline_write/include/lwip/sockets.h",
+          "sha256": "0e1a5f7ab31a7cda1c0279ce39f15bf3aed0e6e587efb65fe0a232d76fae3921"
         }
       ],
-      "remaining_acceptance": "HA38-opstartherstel geleverd; eerdere oorspronkelijke TV02-ontvangst blijkt uit stale-diagnose, huidige wachtende/stale status blijft ongekwalificeerd. HA43-ontvangerkern geleverd zonder normale fabrieksselectie; firmwaretegenhanger met oorspronkelijke aanvraag-/leasegrenzen en echte C++/HA-tests voorbereid voor de grotere release. Normale actuele SOURCE-/lease-/transportbedrading en verzendtijdcontrole, verse ontvangst, unieke native zendtransactie/causale echo, schema-eigenaarschap en fysieke werking blijven open. Geïnstalleerde converterbron niet bereikbaar via bestaande toegestane toegang; versies/diagnostiek zijn geen bron- of ACK-bewijs. Actuele transportgrens met onafhankelijke kloklezingen en blijvend kleiner deadlineplafond voorbereid; normale SOURCE-/profiel-/grant-/transportselectie ontbreekt. Intrekking is geen fysieke sluiting of bewezen failsafe. Read-only sessiecontext uit de bestaande controller en SessionAdmission toegevoegd/getest, zonder leasevernieuwing of fysieke autorisatie. Deze context is nog geen geselecteerde profiel-/transportroute."
+      "remaining_acceptance": "HA44-workerbedrading geïnstalleerd. Nieuwe oorspronkelijke aanvraag/grant-correlatie, firmwarekanaal, bewaakte inventaris en deadlinegebonden nonblocking socketoverdracht voorbereid voor één grotere release; normale productfabriek blijft gesloten. Gekwalificeerde lokale SOURCE, oorspronkelijke sensoracquisitie, unieke native zendtransactie/causale kraanecho, schema-eigenaarschap en fysieke stop-/uitvalkwalificatie ontbreken nog. Geïnstalleerde converterbron blijft onbekend via bestaande toegang. Transport-/serviceacceptatie bewijst geen klepstand of fysieke failsafe. E32 blijft alpha28; nieuw bronwerk is niet geflasht."
     },
     {
       "id": "I15",

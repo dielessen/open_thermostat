@@ -1,5 +1,6 @@
 """Normal explicit apply over real HA Store/worker and actual C++ packet peer."""
 import asyncio
+from types import SimpleNamespace
 import pytest
 
 from test_native_control_plan import native_plan, native_two
@@ -8,7 +9,7 @@ from custom_components.open_thermostat.controller_link import ControllerLinkErro
 from custom_components.open_thermostat.product import configuration_snapshot
 
 
-async def drive(n, awaitable, *, drop_snapshots=False, steps=800):
+async def drive(n, awaitable, *, drop_snapshots=False, steps=800, on_frames=None):
     task=asyncio.create_task(awaitable)
     try:
         for count in range(steps):
@@ -18,6 +19,7 @@ async def drive(n, awaitable, *, drop_snapshots=False, steps=800):
                 reply=await n.peer.request('receive',topic=topic,raw=raw)
                 frames=[f for f in reply['frames'] if not (drop_snapshots and f['topic']=='fw/config_snapshot')]
                 await n.deliver(frames)
+                if on_frames is not None:on_frames(frames)
             if task.done():
                 return await task
             # Slow monotone peer time, never overwrite a grant/readiness flag.
@@ -47,11 +49,34 @@ async def test_explicit_saved_plan_uses_same_native_worker_and_verified_cpp_read
 
 
 @pytest.mark.asyncio
-async def test_cpp_ack_without_snapshots_never_completes_normal_apply(native_plan,hass,monkeypatch):
+@pytest.mark.parametrize('prepare_delay', [0, .2])
+async def test_cpp_ack_without_snapshots_never_completes_normal_apply(native_plan,hass,monkeypatch,prepare_delay):
     n=native_plan;before=configuration_snapshot(n.parent)
-    monkeypatch.setattr(operation,'CONNECTION_TIMEOUT',.15)
+    original = n.connection.async_graph_command
+    async def delayed(command, *args):
+        if command == 'prepare' and prepare_delay:
+            await asyncio.sleep(prepare_delay)
+        return await original(command, *args)
+    monkeypatch.setattr(n.connection, 'async_graph_command', delayed)
+    # Reach the scenario's actual ACK before expiring its real asyncio timeout.
+    # Host scheduling/prepare time must not turn this into a pre-ACK timeout.
+    deadlines=[]
+    def timeout(_seconds):
+        deadline=asyncio.timeout(None)
+        deadlines.append(deadline)
+        return deadline
+    monkeypatch.setattr(operation,'asyncio',SimpleNamespace(Event=asyncio.Event,timeout=timeout))
+    ack_seen=False
+    def after_frames(frames):
+        nonlocal ack_seen
+        if not ack_seen and any(f['topic']=='fw/config_result' for f in frames):
+            ack_seen=True
+            assert not n.client.current_native_room_state_verified
+            deadlines[-1].reschedule(hass.loop.time()+.01)
     with pytest.raises(ControllerLinkError,match='^controller_plan_unconfirmed$'):
-        await drive(n,operation.async_synchronise_controller_plan(hass,n.parent,n.source,before),drop_snapshots=True)
+        await drive(n,operation.async_synchronise_controller_plan(hass,n.parent,n.source,before),
+                    drop_snapshots=True,on_frames=after_frames)
+    assert ack_seen and deadlines[-1].expired()
     assert not n.client.current_native_room_state_verified and not n.client.ready
     assert configuration_snapshot(n.parent)==before
     assert any(f['topic']=='fw/config_result' for _,_,reply in n.peer.trace for f in reply['frames'])

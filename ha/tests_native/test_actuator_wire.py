@@ -295,3 +295,42 @@ async def test_actuator_burst_does_not_overflow_or_reset_existing_shadow_worker(
     assert n.client.ready and n.client.session == before and n.client.last_rx == last_rx
     assert not factories and not n.services
     assert not any('actuator' in topic for topic, _ in n.publications)
+
+
+@pytest.mark.asyncio
+async def test_unconsumed_grant_cannot_be_relabelled_as_reply_to_newer_request(hass):
+    w, r, s, clock, calls, pubs, _, _ = fixture(hass)
+    await w.receive(REQUEST+s.binding_id, request(s), received_at=clock[0])
+    first = pubs[-1][1]
+    assert first['request_sequence'] == 1
+    original_deadline = r.grant_deadline
+    clock[0] += 1
+    await w.receive(REQUEST+s.binding_id, request(s, 2), received_at=clock[0])
+    assert len(pubs) == 1
+    state = w._owners[s.binding_id]
+    assert state['sequence'] == 1 and state['grant']['grant_id'] == first['grant_id']
+    assert r.grant_deadline == original_deadline
+    # The original request can still get its original, unrenewed reply.
+    await w.receive(REQUEST+s.binding_id, request(s), received_at=clock[0])
+    assert pubs[-1][1] == first and len(pubs) == 2
+    await w.receive(COMMAND+s.binding_id, intent(first), received_at=clock[0])
+    assert len(calls) == 1
+    # Consumption permits a new grant for request2, not reuse of the old grant.
+    await w.receive(REQUEST+s.binding_id, request(s, 2), received_at=clock[0])
+    assert pubs[-1][1]['request_sequence'] == 2
+    assert pubs[-1][1]['grant_id'] != first['grant_id']
+
+
+@pytest.mark.asyncio
+async def test_refused_relabel_still_preserves_shorter_original_receiver_deadline(hass):
+    w, r, s, clock, calls, pubs, _, client = fixture(hass)
+    started = clock[0]
+    await w.receive(REQUEST+s.binding_id, request(s), received_at=started)
+    client.lease_until = started+2
+    clock[0] = started+1
+    await w.receive(REQUEST+s.binding_id, request(s, 2), received_at=clock[0])
+    assert len(pubs) == 1 and r.grant_deadline == started+2
+    assert w._owners[s.binding_id]['deadline'] == r.grant_deadline
+    clock[0] = started+2
+    await w.receive(REQUEST+s.binding_id, request(s), received_at=clock[0])
+    assert len(pubs) == 1 and calls == []

@@ -1,6 +1,6 @@
 # OpenThermostat + Home Assistant — masterplan
 
-**Geactualiseerd op 24 oktober 2026.** Alle 31 eisen R01–R31 en de oorspronkelijke
+**Geactualiseerd op 25 oktober 2026.** Alle 31 eisen R01–R31 en de oorspronkelijke
 acceptatiepoorten F0–F10 hieronder blijven gelden. De actuele stand, voltooid
 softwarewerk, open uitvoering en releasechecklist staan uitsluitend in
 [WORKBOARD](WORKBOARD.nl.md). De eerdere statusinleiding is ongewijzigd bewaard
@@ -15,12 +15,14 @@ wat eerder is voorbereid moet in de releasebasis behouden blijven. Daarom is
 ieder voorbereid onderdeel opgenomen in de [release-inventaris](BETA1-RELEASE-INVENTARIS.json)
 en in [WORKBOARD §3](WORKBOARD.nl.md#3-alles-wat-voorbereid-is-meenemen-in-de-bèta).
 
-- **Geïnstalleerd:** E32 alpha28 en HA dev37 (beide bron `3efb0a1`),
+- **Geïnstalleerd:** E32 alpha28 (bron `3efb0a1`) en HA dev44 (bron `659879e`),
   met behoud van instellingen, programma's en identiteiten. E32 leest passief;
-  Tado blijft de actieve regelaar. Details: [installatieverslag](INSTALLATIE-HA37-ALPHA28-20261024.nl.md).
-- **Geleverd in deze bundel:** EMS-apparatenpagina, sessie-/klokbewaking
-  op E32 en HA, opstartherstel en web-/editorcorrecties. Bron `3efb0a1`
-  heeft volledige CI en gecontroleerde installatie. TV02-opstartdiagnose blijft open.
+  Tado blijft de actieve regelaar. Details: [installatieverslag](INSTALLATIE-HA44-ALPHA31-20261025.nl.md).
+- **Gepubliceerd:** E32 alpha31 en HA dev44. De E32-update is niet uitgevoerd:
+  de oorzaak van de eerdere uploader-watchdogreset en de herstelroute blijven open.
+- **Geleverde softwarebasis:** EMS-apparatenpagina, sessie-/klokbewaking,
+  opstartherstel, web-/editorcorrecties en HA-kraanberichtbedrading met standaard
+  gesloten productfabriek. Dit kwalificeert geen meetbron of fysieke kraanroute.
 - **Voorbereide productbasis behouden:** regelaars/supervisor, water-/vloer-/
   mengerpolicies, metrics/grafieken/CSV, comfort/context en leermodellen. De
   ontbrekende aansluiting en praktijkkwalificatie staan per eis op het werkbord.

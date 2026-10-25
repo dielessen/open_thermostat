@@ -29,6 +29,16 @@ de bewaakte serviceadapter beproefd; serviceacceptatie blijft geen fysieke ACK.
 uploader-watchdogtaak/oorzaak en herstelroute blijven onbekend; geen blinde retry.
 Nieuwe firmwarecode repareert de al draaiende uploader niet vóór die eerste update.
 
+## Gezamenlijke kandidaat HA45 / E32 alpha32
+
+De oorspronkelijke firmware-aanvraag en het grantantwoord worden nu per kanaal
+gekoppeld, inclusief aanvraagvolgnummer, oorspronkelijke deadline en gedeeld
+klokwatermerk. De optionele aansluiting gebruikt dezelfde MQTT-client/loop;
+de productfabriek blijft gesloten. [Uitwerking en grenzen](M2-AANVRAAG-EN-KANAAL-20261025.nl.md).
+De bundel omvat ook beschermd kanaalbeheer en deadlinegebonden nonblocking writes
+op dezelfde socket, plus een correct gefaseerde ACK-test. Regressie, definitieve
+bronreview en exacte CI/publicatie worden afgerond; nog geen installatieclaim.
+
 ## Volgende stap naar actieve bèta
 
 De product-kraanfabriek blijft gesloten. Normale firmware-MQTT-grant-/zendbedrading,

@@ -1,3 +1,19 @@
+# HA 0.4.0.dev45 — oorspronkelijke grantcorrelatie en grotere firmwarebundel
+
+Gezamenlijke voorbereidingsrelease met E32 alpha32; bestaande functies, programma's en alle 23 voorbereide onderdelen blijven behouden.
+
+- De bestaande native worker antwoordt met het oorspronkelijke aanvraagvolgnummer. Vertraagde grants kunnen geen nieuw firmwarevenster lenen.
+- Een nog ongebruikt grant blijft bij zijn oorspronkelijke aanvraag; een hoger aanvraagvolgnummer kan het niet herlabelen. Een verkorte ontvangerdeadline blijft ook na zo'n geweigerde aanvraag bewaard.
+- De echte C++-aanvraag/grant/opdracht gaat door de native HA-worker naar de bewaakte serviceadapter, inclusief duplicaat- en uitvalproeven. Serviceacceptatie blijft geen oorspronkelijke kraanecho of regelbevoegdheid.
+- De ACK-zonder-snapshotproef bereikt nu eerst de echte ACK-fase voordat haar echte asyncio-timeout afloopt. Vertraagde voorbereiding is apart getoetst; de productie-timeout van 90 seconden blijft ongewijzigd. De oudere incidentele CI-kameroorzaak blijft afzonderlijk onbekend.
+- Frontend dev41/v41 met v38/v35-compatibiliteit blijft bytegelijk; geen kaartmigratie, automatische sensorwissel of nieuwe productfabriek. Instellingen en identiteiten behouden.
+
+HA dev45 blijft compatibel met de geïnstalleerde E32 alpha28; de nieuwe voorbereide firmwarekanaalroute vereist dev45. Product-SOURCE-selectie, geschikte oorspronkelijke meetbron, causale kraanecho en fysieke acceptatie blijven open. Dit is geen actieve ketelbèta: Tado blijft regelen en fysieke uitgangen blijven geblokkeerd.
+
+Uitrol vereist exacte CI-/pakketcontrole, verse actuele back-up en onafhankelijke nacontrole. De eerdere E32-uploaderwatchdog, native HTTPS-fout en gemeld pendelen worden niet als gerepareerd voorgesteld.
+
+English: original request-sequence correlation on the existing worker; unconsumed grants cannot be relabelled or regain a shortened deadline. Actual C++/worker/service and disconnect regressions preserve one-use ownership. Existing cards and alpha28 compatibility remain; product actuation, original physical feedback and E32 recovery are still unqualified.
+
 # HA 0.4.0.dev44 — native kraanroute en gezamenlijke ontvangstcontrole
 
 Gezamenlijke prerelease met E32 alpha31; alle bestaande functies, instellingen en 23 voorbereide onderdelen blijven behouden.

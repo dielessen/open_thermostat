@@ -27,7 +27,7 @@ def setup(hass, *, qualified=True, authorize=None):
 
 
 def intent(grant, sequence=1, **changes):
-    value = {k: v for k, v in grant.items() if k != 'grant_ms'}
+    value = {k: v for k, v in grant.items() if k not in ('grant_ms', 'request_sequence')}
     value.update(sequence=sequence, target_centi_c=2100)
     value.update(changes)
     return json.dumps(value, separators=(',', ':'))

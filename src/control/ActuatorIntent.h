@@ -33,8 +33,10 @@ public:
                 ||requestStarted>UINT64_MAX-5000)return false;
         try {
             auto root=parseControlJson(raw);
-            if(!root||!cJSON_IsObject(root.get())||cJSON_GetArraySize(root.get())!=13
+            const auto fields=root?cJSON_GetArraySize(root.get()):0;
+            if(!root||!cJSON_IsObject(root.get())||(fields!=13&&fields!=14)
                     ||print(root.get())!=raw||!match(root.get()))return false;
+            if(fields==14&&!numberValue(root.get(),"request_sequence",1,UINT32_MAX))return false;
             const auto nonce=textValue(root.get(),"grant_id");
             if(!Scope::validId(nonce)||!numberValue(root.get(),"grant_ms",5000,5000))return false;
             const auto field=cJSON_GetObjectItemCaseSensitive(root.get(),"grant_sequence");

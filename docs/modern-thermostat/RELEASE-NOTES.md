@@ -1,3 +1,19 @@
+# E32 V2 alpha32 — oorspronkelijke kraanaanvraag en bewaakte socketoverdracht
+
+Grotere gezamenlijke voorbereidingsrelease met HA dev45. Alle 23 voorbereide onderdelen, 31 producteisen en bestaande instellingen blijven behouden.
+
+- Complete voorbereide aanvraag/grant/opdrachtketen: eigen aanvraagvolgnummer, oorspronkelijke lokale begintijd, exacte sessie/config/binding en eenmalig grant. Een vertraagd antwoord krijgt geen nieuw tijdvenster.
+- Optionele kanaalbedrading op dezelfde MQTT-client en loop. Maximaal acht eigenaren; callbackherintrede, SOURCE-wissel en disconnect trekken in zonder heropbouw of automatische retry. Dit kwalificeert geen achtzone-installatie.
+- Eén gedeeld monotone-klokwatermerk en blijvend kleiner deadlineplafond, ook op context- en socketgrenzen. De actuele lokale netwerkstatus telt mee wanneer TCP nog verbonden lijkt.
+- Tijdens uitsluitend de expliciete actuatorpublish gebruikt dezelfde socket een nonblocking write zonder SDK-wacht/retry. Partiële, late of mislukte IO trekt eerst alle eigenaren in en sluit de bestaande socket zonder extra MQTT-write. Gewoon shadowverkeer behoudt zijn SDK-pad.
+- Native kern, echte C++/HA-workeruitwisseling, strikte sanitizer-/iteratorcontroles en vier echte lokale socketproeven; exacte bron-/tag-CI en pakketcontrole blijven publicatievoorwaarden.
+
+De product-SOURCE-fabriek blijft gesloten. Dit pakket geeft geen kraan-/ketelbevoegdheid, fysieke ACK, afgiftepad of bewezen stopgarantie. Tado blijft regelen. Geschikte oorspronkelijke kamermeting, causale kraanecho, veiligheidsproducenten en fysieke kwalificatie blijven open. De nieuwe aanvraagroute vereist de bijbehorende HA dev45.
+
+De eerdere alpha28-uploaderwatchdog en native HTTPS-fout zijn niet als opgelost geclaimd. Alpha32-publicatie bewijst geen installatie; geen blinde uploadherhaling. Shelly/Xiaomi-drivers en actieve PID-/leerkwalificatie blijven roadmapwerk.
+
+English: combined preparation release with HA dev45: correlated original requests, single-use grants, bounded channel ownership, a shared lifetime clock and nonblocking writes on the existing MQTT socket. Partial/late/failed IO is never retried. Default product authority remains denied; physical feedback/stop qualification and E32 update recovery remain open.
+
 # E32 V2 alpha31 — gezamenlijke M2-bron-, sessie- en transportbundel
 
 Gezamenlijke passieve prerelease met Home Assistant dev44. Behoudt alle 23 voorbereide onderdelen en bestaande instellingen; geen actieve ketelbèta.

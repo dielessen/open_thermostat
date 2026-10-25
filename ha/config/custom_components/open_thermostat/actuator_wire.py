@@ -171,12 +171,21 @@ class ActuatorWire:
                     client = self.connection.client
                     deadline = min(received_at + GRANT_SECONDS, client.lease_until, client.grant_until)
                     grant = state['receiver'].issue(scope=scope, not_after=deadline)
+                    if (state['grant'] is not None
+                            and grant['grant_id'] == state['grant']['grant_id']):
+                        # The unconsumed original grant still belongs to the
+                        # original request. Never relabel it with a new budget.
+                        state['deadline'] = min(state['deadline'], state['receiver'].grant_deadline)
+                        return True
                     state.update(sequence=sequence, request=payload, grant=grant,
                                  deadline=min(deadline, state['receiver'].grant_deadline))
                 if self.scope(binding) != scope or self._now() >= state['deadline']:
                     self.retire()
                     return True
-                await self.connection.publish('ha/actuator_grant/' + binding, canonical(grant))
+                # Bind the reply to the original firmware request. A delayed
+                # older grant must not borrow a later request's local budget.
+                await self.connection.publish('ha/actuator_grant/' + binding,
+                    canonical(dict(grant, request_sequence=sequence)))
             elif state is not None:
                 receipt = await state['receiver'].async_receive(raw, scope=scope)
                 if self.scope(binding) != scope or self._now() >= state['deadline']:

@@ -1,6 +1,7 @@
 #pragma once
 #ifdef OPENTHERMOSTAT_E32V2
 #include "ShadowController.h"
+#include "ActuatorChannels.h"
 #include "ControlUiSnapshot.h"
 #include "DeviceDiagnostics.h"
 #include "NativeSourceProvisioning.h"
@@ -12,7 +13,7 @@
 #include "Network.h"
 #include "config.h"
 #include "DeviceNetworkSettings.h"
-#include <WiFiClient.h>
+#include "DeadlineWiFiClient.h"
 #include <PubSubClient.h>
 #include <esp_timer.h>
 #include <esp_system.h>
@@ -84,6 +85,10 @@ struct GraphSourceProfile {
 // legacy connection when explicitly provisioned, not an extra bridge/client.
 class ModernTransport {
 public:
+    // Trusted LOCAL qualification, never settings or a received capability.
+    // No current product call supplies this factory. A session alone provides
+    // no authority: its authorizesActuation() remains false.
+    using ActuatorFactory=ActuatorChannels::Factory;
     explicit ModernTransport(config::MqttConfig cfg,ShadowController::Metrics metrics={},
                              const GraphSourceProfile* graphProfile=nullptr,
                              const SeasonalControllerSource* seasonalSource=nullptr,
@@ -92,10 +97,12 @@ public:
                              const TopologyControlHandoffSource* topologyHandoff=nullptr,
                              const GraphFloorControlHandoffSource* floorBridge=nullptr,
                              const NativePlanInstallationSource* nativePlanSource=nullptr,
-                             ShadowController::BoilerFields boilerFields={})
+                             ShadowController::BoilerFields boilerFields={},
+                             ActuatorFactory actuatorFactory={})
         :cfg_(std::move(cfg)),client_(network_),
          store_((graphProfile||graphHandoff||topologyHandoff||floorBridge||nativePlanSource||cfg_.nativeSourceRequested)?ControlStorageProfile::graph_shadow_v2:ControlStorageProfile::legacy_api1),
          graph_(graphProfile!=nullptr) {
+        if(graph_&&actuatorFactory){valid_=false;return;}
         char mac[17]; snprintf(mac,sizeof(mac),"e32_%012llx",static_cast<unsigned long long>(ESP.getEfuseMac()));
         std::unique_ptr<NativePlanInstallationSource> locallyProvisioned;
         if(cfg_.nativeSourceRequested) {
@@ -162,11 +169,42 @@ public:
             controller_=std::make_unique<ShadowController>(mac,randomControlId(),cfg_.adapterId,*selectedStore,
                 sha256Hex,randomControlId,publish,std::move(metrics),seasonalSource,std::move(safety),nativePlanSource,std::move(boilerFields));
         }
+        if(actuatorFactory) {
+            actuatorChannels_=std::make_unique<ActuatorChannels>(std::move(actuatorFactory),
+                [this](std::string_view binding,uint64_t now){return controller_->actuatorSessionContext(binding,now);},
+                [this]{return valid_&&wasConnected_&&heating::networkConnected()&&client_.connected()&&clockValid();},
+                monotonicMs,[this](std::string_view suffix,std::string_view raw,uint64_t deadline){
+                    const auto topic=base_+std::string(suffix);
+                    if(!actuatorChannels_||!network_.beginDeadlineWrite([this,deadline]{
+                            return actuatorChannels_->beforeHandoff(deadline);
+                        }))return false;
+                    bool published=false,complete=false;
+                    try {
+                        published=client_.publish(topic.c_str(),
+                            reinterpret_cast<const uint8_t*>(raw.data()),raw.size(),false);
+                        complete=network_.finishDeadlineWrite();
+                    }catch(...){network_.finishDeadlineWrite();actuatorChannels_->retire();network_.stop();throw;}
+                    // Partial MQTT frames cannot be followed by another packet.
+                    // Close the same socket without a further MQTT write/retry.
+                    if(!published||!complete){actuatorChannels_->retire();network_.stop();return false;}
+                    return true;
+                });
+        }
         client_.setCallback([this](char *topic,uint8_t *payload,unsigned int length) {
             const std::string_view full(topic);
             if(length>8192||full.substr(0,base_.size())!=base_) return;
             const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
             const auto utc=std::time(nullptr);
+            const auto suffix=full.substr(base_.size());
+            if(suffix.substr(0,18)=="ha/actuator_grant/") {
+                // PubSubClient's public callback has no retain metadata. The
+                // channel instead requires its outstanding local request,
+                // exact fresh session/sequence and original local deadline.
+                // This route is not selected by the current product factory.
+                if(actuatorChannels_)actuatorChannels_->receive(suffix,
+                    std::string_view(reinterpret_cast<char *>(payload),length));
+                return;
+            }
             withOwner([&](auto& owner){owner.receive(full.substr(base_.size()),
                 std::string_view(reinterpret_cast<char *>(payload),length),now,utc,clockValid());});
         });
@@ -190,6 +228,7 @@ public:
         } catch(...) {return false;}
     }
     void inhibitNativeSourceMutation() {
+        retireActuators();
         ui_.clear();
         if(controller_)controller_->inhibitNativeSourceMutation();
         valid_=false;
@@ -211,6 +250,7 @@ public:
                 inhibitNativeSourceMutation();return false;
             }
             ui_.clear(); // Successful SOURCE replacement cannot expose the prior owner state.
+            retireActuators();
             cfg_.nativeSourceJson=selection;
             return true;
         } catch(...) {inhibitNativeSourceMutation();return false;}
@@ -225,7 +265,7 @@ public:
             return;
         }
         if(!heating::networkConnected()||!client_.connected()) {
-            if(wasConnected_) { ui_.clear(); withOwner([](auto& owner){owner.disconnected();}); wasConnected_=false; }
+            if(wasConnected_) { retireActuators(); ui_.clear(); withOwner([](auto& owner){owner.disconnected();}); wasConnected_=false; }
             // Advance local withdrawal deadlines even if network/reconnect fails.
             // Offline owner ticks never publish or consult remote observers.
             withOwner([&](auto& owner){owner.tick(now,0,false);});
@@ -240,6 +280,8 @@ public:
                 const auto topic=base_+suffix;
                 subscriptions=client_.subscribe(topic.c_str(),0)&&subscriptions;
             }
+            if(actuatorChannels_&&!actuatorChannels_->retired())
+                subscriptions=client_.subscribe((base_+"ha/actuator_grant/+").c_str(),0)&&subscriptions;
             if(!subscriptions) { client_.disconnect(); return; }
             withOwner([&](auto& owner){owner.connected(now);}); wasConnected_=true; nextDeviceDiagnostics_=0;
             client_.publish(willTopic.c_str(),"online",false);
@@ -247,6 +289,7 @@ public:
         const auto utc=std::time(nullptr);
         withOwner([&](auto& owner){owner.tick(now,utc,clockValid());});
         client_.loop();
+        if(actuatorChannels_)actuatorChannels_->checkCurrent();
         // Observation only, on the existing native connection. Never control input.
         if(client_.connected() && now>=nextDeviceDiagnostics_) {
             nextDeviceDiagnostics_=now+15000;
@@ -255,7 +298,16 @@ public:
             client_.publish((base_+"fw/telemetry/device_status").c_str(),bytes.c_str(),false);
         }
     }
+    // Internal callers use the SAME serialized task as loop(), never a REST,
+    // MQTT command or a second task. No current product caller selects this.
+    ActuatorChannel* actuatorChannel(std::string_view binding) {
+        return actuatorChannels_?actuatorChannels_->get(binding):nullptr;
+    }
 private:
+    static uint64_t monotonicMs(){return static_cast<uint64_t>(esp_timer_get_time()/1000);}
+    void retireActuators(){
+        if(actuatorChannels_)actuatorChannels_->retire();
+    }
     template<class F>void withOwner(F&& action) {
         if(graphController_)action(*graphController_);
         else if(controller_)action(*controller_);
@@ -264,7 +316,7 @@ private:
     // manual wall time is not sufficient after boot; no RTC assumed on E32.
     static bool clockValid();
     config::MqttConfig cfg_; std::string base_,sourceNetworkBase_; // ephemeral bounded<2048, never logged/persisted.
-    WiFiClient network_; PubSubClient client_; NvsControlStore store_;
+    DeadlineWiFiClient network_; PubSubClient client_; NvsControlStore store_;
     std::unique_ptr<GraphControlStoreView> graphControlView_;
     std::unique_ptr<TopologyControlStoreView> topologyControlView_;
     std::unique_ptr<GraphFloorControlStoreView> floorControlView_;
@@ -274,6 +326,7 @@ private:
     uint64_t nextConnect_=0,nextDeviceDiagnostics_=0;
     std::atomic<bool> valid_{false},wasConnected_{false};
     bool graph_=false;
+    std::unique_ptr<ActuatorChannels> actuatorChannels_;
 };
 }
 #endif

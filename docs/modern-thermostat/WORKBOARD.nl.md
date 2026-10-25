@@ -53,7 +53,7 @@ alpha28-uploader-watchdogoorzaak en herstelroute blijven onbekend.
 | Laatste livecontrole | 25 oktober 00:32:01 UTC: HA44 geladen, alle 85 hashes en 94-back-uppayloads gecontroleerd; 20 onafhankelijke checks geslaagd; E32alpha28, SOURCE5 en instellingen behouden, uitgangen geblokkeerd |
 
 **Broncontrole:** de release-inventaris bewaart alle 23 voorbereide onderdelen
-met 267 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
+met 279 gecontroleerde bronverwijzingen. Het gepubliceerde bron-/licentie-/
 herlinkpakket is onafhankelijk vergeleken met de exacte Git-tag en bijbehorende
 ELF/webidentiteit. Bij de gezamenlijke alpha24/dev30-bundel zijn alle 82 HA-componentbestanden ook
 met het E32-pakket vergeleken. De latere HA-updates dev31/dev32/dev33/dev34 zijn afzonderlijk met
@@ -92,6 +92,17 @@ historisch; de tabellen en deze volgorde bepalen nieuw werk.
 Leren/PI/PID en blijvend bewaarde, gevalideerde parameters per ruimte blijven
 verplicht voor de definitieve versie (R12); nieuwe F9/F10-stages volgen na M2.
 Een ontbrekende fysieke waarneming blokkeert onafhankelijk softwarewerk niet.
+
+### In uitvoering — oorspronkelijke FW-aanvraag en transportkanaal
+
+De volgende bundel verbindt aanvraagvolgnummer, oorspronkelijke lokale deadline,
+HA-antwoord en eenmalige opdracht. Optionele firmwarebedrading gebruikt de bestaande
+MQTT-client en loop, met intrekking bij disconnect/SOURCE-wissel. De productfabriek
+blijft gesloten; normale regelaarselectie, oorspronkelijke kraanecho en fysieke
+kwalificatie blijven open. [Uitwerking](M2-AANVRAAG-EN-KANAAL-20261025.nl.md).
+Deze samenhangende wijzigingen vormen kandidaat HA45 / E32 alpha32. Geen aparte
+release per bronfix; definitieve regressie/review en alle exacte CI-/pakket-/
+uitrolpoorten blijven vereist. De actieve bèta blijft NOT_READY.
 
 ### Geleverd in HA43 — B04/B05/B10
 

@@ -1,4 +1,5 @@
 #include "control/DeadlineWiFiClient.h"
+#include "control/ActuatorChannels.h"
 #include <gtest/gtest.h>
 #include <unistd.h>
 #include <cerrno>
@@ -36,5 +37,24 @@ TEST(DeadlineWiFiClient, LatePostcheckDoesNotPretendAlreadyWrittenBytesCanBeUndo
     ASSERT_TRUE(client.beginDeadlineWrite([&]{return ++checks==1;}));
     EXPECT_EQ(client.write(data,1),1u);EXPECT_FALSE(client.finishDeadlineWrite());
     ASSERT_EQ(::recv(pair.sockets[1],&received,1,0),1);EXPECT_EQ(received,7);EXPECT_EQ(client.ordinaryWrites,0);
+}
+}
+
+namespace {
+TEST(DeadlineWiFiClient, RecursiveHandoffPredicateSendsNoBytesOnExistingSocket) {
+    Pair pair;DeadlineWiFiClient client;client.fixtureSocket(pair.sockets[0]);
+    const uint8_t data[]{42};uint8_t received=0;int calls=0;
+    heating::control::ActuatorChannels* owner=nullptr;
+    heating::control::ActuatorChannels channels{
+        [](const auto&)->heating::control::ActuatorChannel::Source{return {};},
+        [](std::string_view,uint64_t)->std::optional<heating::control::ActuatorSessionContext>{return {};},
+        [&]{if(++calls==1){EXPECT_FALSE(owner->beforeHandoff(5000));}return true;},
+        []()->uint64_t{return 1000;},
+        [](std::string_view,std::string_view,uint64_t){ADD_FAILURE();return false;}};
+    owner=&channels;
+    ASSERT_TRUE(client.beginDeadlineWrite([&]{return channels.beforeHandoff(5000);}));
+    EXPECT_EQ(client.write(data,1),0u);EXPECT_FALSE(client.finishDeadlineWrite());
+    EXPECT_TRUE(channels.retired());EXPECT_EQ(calls,1);EXPECT_EQ(client.ordinaryWrites,0);
+    EXPECT_EQ(::recv(pair.sockets[1],&received,1,0),-1);EXPECT_EQ(errno,EAGAIN);
 }
 }

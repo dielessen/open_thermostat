@@ -107,16 +107,33 @@ Leren/PI/PID en blijvend bewaarde, gevalideerde parameters per ruimte blijven
 verplicht voor de definitieve versie (R12); nieuwe F9/F10-stages volgen na M2.
 Een ontbrekende fysieke waarneming blokkeert onafhankelijk softwarewerk niet.
 
-### In uitvoering — oorspronkelijke FW-aanvraag en transportkanaal
+### Volgende grotere bundel — laatste verzendcontrole
+
+Een begrensde regressieproef op de gepubliceerde alpha32-bron bevestigt drie
+callbackproblemen in de voorbereide `beforeHandoff`-grens: recursie via
+beschikbaarheid, recursie via de klok en toelating van een nieuw kanaal vanuit
+de beschikbaarheidscontrole. De broncorrectie bewaakt die grens afzonderlijk en
+behandelt beschikbaarheid als callback. Betrokken kanalen worden bij herintrede
+blijvend ingetrokken. Normale controle binnen een zendcallback blijft mogelijk.
+
+Vier kanaalgevallen en één echte lokale socketproef zijn toegevoegd; drie
+kanaalgevallen en de socketproef falen aantoonbaar vóór de correctie. Alle 771
+native kerngevallen en 5 socketgevallen slagen; 75 kerngevallen ook onder
+sanitizers en debugiteratoren. E32-build geslaagd. De wijziging is nog niet
+als release gepubliceerd of geïnstalleerd.
+[Reproductie en releasegrens](M2-LAATSTE-VERZENDCONTROLE-20261025.nl.md).
+Geen aanwijzing dat dit de eerdere uploader-watchdog of het pendelen verklaart.
+
+### Geleverd in HA45 / alpha32 — oorspronkelijke FW-aanvraag en transportkanaal
 
 De volgende bundel verbindt aanvraagvolgnummer, oorspronkelijke lokale deadline,
 HA-antwoord en eenmalige opdracht. Optionele firmwarebedrading gebruikt de bestaande
 MQTT-client en loop, met intrekking bij disconnect/SOURCE-wissel. De productfabriek
 blijft gesloten; normale regelaarselectie, oorspronkelijke kraanecho en fysieke
 kwalificatie blijven open. [Uitwerking](M2-AANVRAAG-EN-KANAAL-20261025.nl.md).
-Deze samenhangende wijzigingen vormen kandidaat HA45 / E32 alpha32. Geen aparte
-release per bronfix; definitieve regressie/review en alle exacte CI-/pakket-/
-uitrolpoorten blijven vereist. De actieve bèta blijft NOT_READY.
+Deze samenhangende wijzigingen zijn gepubliceerd als HA45 / E32 alpha32. HA45 is
+geïnstalleerd en onafhankelijk gecontroleerd; E32 blijft op alpha31. De actieve
+bèta blijft NOT_READY.
 
 ### Geleverd in HA43 — B04/B05/B10
 

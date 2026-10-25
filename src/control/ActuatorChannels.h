@@ -23,7 +23,16 @@ public:
     size_t size()const{return channels_.size();}
     // The existing socket writer uses this immediately at actual nonblocking
     // handoff, sharing every clock observation with all channel owners.
-    bool beforeHandoff(uint64_t deadline){return usable()&&readClock()<deadline;}
+    bool beforeHandoff(uint64_t deadline) {
+        // This entry is also used inside the send callback, so the inventory's
+        // general operation guard cannot be acquired here. Fence this boundary
+        // independently: availability/clock callbacks must not recurse into it.
+        if(checkingHandoff_){retire();return false;}
+        checkingHandoff_=true;
+        struct Exit {bool& checking;~Exit(){checking=false;}} exit{checkingHandoff_};
+        try{return usable()&&readClock()<deadline;}
+        catch(...){retire();return false;}
+    }
     void retire(){retired_=true;for(auto& channel:channels_)channel->retire();}
     ActuatorChannel* get(std::string_view binding) {
         if(!enter())return nullptr;
@@ -114,14 +123,14 @@ private:
     bool usable() {
         if(retired_)return false;
         bool available=false;
-        try{available=available_();}catch(...){retire();return false;}
+        try{Callback callback(*this);available=available_();}catch(...){retire();return false;}
         if(!available||retired_){retire();return false;}
         return true;
     }
     Factory factory_;Context context_;Available available_;
     ActuatorChannel::Clock clock_;ActuatorChannel::Send send_;
     std::vector<std::unique_ptr<ActuatorChannel>> channels_;
-    bool retired_=false,busy_=false,inCallback_=false,haveClock_=false;
+    bool retired_=false,busy_=false,inCallback_=false,haveClock_=false,checkingHandoff_=false;
     uint64_t lastClock_=0;
 };
 }

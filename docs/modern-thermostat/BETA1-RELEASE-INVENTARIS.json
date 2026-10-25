@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "6b9681fafa1ab15cbac45c05769d389e3c5d999ba32a527e7e4b45db02a68347"
+          "sha256": "412bf5f4b7ac02fc3c700d73cfcbc62c2680a72734af2280e4ed84aa2a265bf5"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
@@ -149,7 +149,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "6b9681fafa1ab15cbac45c05769d389e3c5d999ba32a527e7e4b45db02a68347"
+          "sha256": "412bf5f4b7ac02fc3c700d73cfcbc62c2680a72734af2280e4ed84aa2a265bf5"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -559,7 +559,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "6b9681fafa1ab15cbac45c05769d389e3c5d999ba32a527e7e4b45db02a68347"
+          "sha256": "412bf5f4b7ac02fc3c700d73cfcbc62c2680a72734af2280e4ed84aa2a265bf5"
         },
         {
           "path": "platformio.ini",
@@ -994,11 +994,11 @@
         },
         {
           "path": "src/control/ActuatorChannels.h",
-          "sha256": "b654560c3458ede1dd51c4b69fcb214ad09da08f04ff010a8e15e037fa4c1ea5"
+          "sha256": "7f4b1b9aec2e28a7c2a3a016249a5dbad7ac54878399f80f7f7347535d641af0"
         },
         {
           "path": "test/test_native/test_actuator_channels.cpp",
-          "sha256": "81c47e3aa65cab2c62020e05dbd8ea6380ce4062a539ab33c7431b08021e2313"
+          "sha256": "4ba13f904b5c403e57f4c47b9a3b7850cf9cac093c865534cf5a047bfced8cb1"
         },
         {
           "path": "src/control/DeadlineWrite.h",
@@ -1014,7 +1014,7 @@
         },
         {
           "path": "test/deadline_write/adapter.cpp",
-          "sha256": "a96a48d48699c4fb255db1333bf2a90f407256d9c695ea7e2bca95850e65550a"
+          "sha256": "6a0252e0c5f11bd1292d18337da0443944a0d479a11c46d81ecc0762fa4eba7e"
         },
         {
           "path": "test/deadline_write/include/WiFiClient.h",
@@ -1025,7 +1025,7 @@
           "sha256": "0e1a5f7ab31a7cda1c0279ce39f15bf3aed0e6e587efb65fe0a232d76fae3921"
         }
       ],
-      "remaining_acceptance": "HA45 met native workerbedrading geïnstalleerd. Nieuwe oorspronkelijke aanvraag/grant-correlatie, firmwarekanaal, bewaakte inventaris en deadlinegebonden nonblocking socketoverdracht gepubliceerd in de grotere HA45/alpha32-release; HA45 geïnstalleerd; normale productfabriek blijft gesloten. Gekwalificeerde lokale SOURCE, oorspronkelijke sensoracquisitie, unieke native zendtransactie/causale kraanecho, schema-eigenaarschap en fysieke stop-/uitvalkwalificatie ontbreken nog. Geïnstalleerde converterbron blijft onbekend via bestaande toegang. Transport-/serviceacceptatie bewijst geen klepstand of fysieke failsafe. E32 is vers waargenomen op alpha31; deze opdracht heeft geen firmware geüpload. Alpha32-bronwerk is niet door deze opdracht geflasht."
+      "remaining_acceptance": "HA45 met native workerbedrading geïnstalleerd. Nieuwe oorspronkelijke aanvraag/grant-correlatie, firmwarekanaal, bewaakte inventaris en deadlinegebonden nonblocking socketoverdracht gepubliceerd in de grotere HA45/alpha32-release; HA45 geïnstalleerd; normale productfabriek blijft gesloten. Gekwalificeerde lokale SOURCE, oorspronkelijke sensoracquisitie, unieke native zendtransactie/causale kraanecho, schema-eigenaarschap en fysieke stop-/uitvalkwalificatie ontbreken nog. Geïnstalleerde converterbron blijft onbekend via bestaande toegang. Transport-/serviceacceptatie bewijst geen klepstand of fysieke failsafe. E32 is vers waargenomen op alpha31; deze opdracht heeft geen firmware geüpload. Alpha32-bronwerk is niet door deze opdracht geflasht. Aanvullende broncorrectie na HA45/alpha32: herintrede bij de laatste handoff en kanaaltoelating vanuit beschikbaarheid worden gesloten; nog niet gepubliceerd of geïnstalleerd."
     },
     {
       "id": "I15",

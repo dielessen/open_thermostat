@@ -119,3 +119,39 @@ TEST(ActuatorChannels, ContextRetirementKeepsExistingPointersStableAndRetired) {
     EXPECT_EQ(existing->request(),Outcome::refused);EXPECT_EQ(f.sends,0);
 }
 }
+
+namespace {
+TEST(ActuatorChannels, RecursiveFinalHandoffAvailabilityRetiresEveryOwnerBeforeIO) {
+    ChannelsFixture f;auto* a=f.channels.get("valve");auto* b=f.channels.get("other");
+    ASSERT_NE(a,nullptr);ASSERT_NE(b,nullptr);
+    int nested=0;
+    // Bounded even on the defective implementation: this test must not overflow.
+    f.onAvailable=[&]{if(++nested==1){EXPECT_FALSE(f.channels.beforeHandoff(5000));}};
+    EXPECT_FALSE(f.channels.beforeHandoff(5000));
+    EXPECT_TRUE(f.channels.retired());EXPECT_TRUE(a->retired());EXPECT_TRUE(b->retired());
+    EXPECT_EQ(nested,1);EXPECT_EQ(f.sends,0);
+}
+TEST(ActuatorChannels, FinalHandoffAvailabilityCannotAdmitAnotherOwner) {
+    ChannelsFixture f;auto* a=f.channels.get("valve");ASSERT_NE(a,nullptr);
+    int reads=0;
+    f.onAvailable=[&]{if(++reads==1){EXPECT_EQ(f.channels.get("other"),nullptr);}};
+    EXPECT_FALSE(f.channels.beforeHandoff(5000));
+    EXPECT_TRUE(f.channels.retired());EXPECT_TRUE(a->retired());
+    EXPECT_EQ(f.channels.size(),1u);EXPECT_EQ(f.factories,1);EXPECT_EQ(f.sends,0);
+}
+TEST(ActuatorChannels, RecursiveFinalHandoffClockRetiresBeforeIO) {
+    int reads=0;ActuatorChannels* owner=nullptr;
+    ActuatorChannels channels{[](const auto&)->ActuatorChannel::Source{return {};},
+        [](std::string_view,uint64_t)->std::optional<heating::control::ActuatorSessionContext>{return {};},
+        []{return true;},[&]()->uint64_t{if(++reads==1){EXPECT_FALSE(owner->beforeHandoff(5000));}return 1000;},
+        [](std::string_view,std::string_view,uint64_t){ADD_FAILURE();return true;}};
+    owner=&channels;
+    EXPECT_FALSE(channels.beforeHandoff(5000));EXPECT_TRUE(channels.retired());EXPECT_EQ(reads,1);
+}
+TEST(ActuatorChannels, OrdinaryFinalHandoffAndExpiredDeadlineRemainBounded) {
+    ChannelsFixture f;auto* a=f.channels.get("valve");ASSERT_NE(a,nullptr);
+    f.onSend=[&]{EXPECT_TRUE(f.channels.beforeHandoff(5000));};
+    EXPECT_EQ(a->request(),Outcome::transport_accepted);EXPECT_FALSE(f.channels.retired());EXPECT_EQ(f.sends,1);
+    EXPECT_FALSE(f.channels.beforeHandoff(f.now));EXPECT_FALSE(f.channels.retired());
+}
+}

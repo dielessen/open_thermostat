@@ -1,43 +1,31 @@
-# E32 V2 alpha36 — modelcatalogus, originele afbeeldingen en ESP-/EMS-logging
+# E32 V2 alpha36 — meer ketelkeuze en betere logging
+<!-- user-release-notes:v1 -->
 
-Deze passieve firmwarebundel verenigt de voorbereide navigatie, ketelcatalogus
-en loggingwijzigingen. HA0.4.0.dev48 blijft ongewijzigd; geen nieuwe HA-installatie
-nodig voor deze firmwarefuncties. Publicatie is geen E32-installatiebewijs.
+## Nieuw
 
-- About staat rechts na Settings. Modelkeuze bevat60 selecties met alle31
-  vastgelegde EMS-ESP-productgroepen en aanvullende officiële ketelvermeldingen.
-  Een catalogusvermelding bevestigt geen ondersteunde of gekwalificeerde driver.
-- Vier oorspronkelijke modelafbeeldingen op vijf selecties, met herkomstlink;
-  beelden laden rechtstreeks van publieke fabrikant-/specialisthosts. Geen
-  afbeeldingbestanden in de ESP. Ecomline Classic HRC22H heeft nog geen
-  gecontroleerde originele foto; onzekere groepen blijven zonder afbeelding.
-- Compacte modelcatalogus en gekozen model blijven lokaal beschikbaar. Het
-  profiel-/importontwerp staat in Git; functionele regelprofielimport is nog niet
-  gebouwd en modelkeuze verandert geen decoder, busadres, limiet of zendbevoegdheid.
-- Systeemlog heeft ESP / EMS / beide als weergavefilter. Beide bronnen kunnen
-  onafhankelijk naar dezelfde RFC5424-UDP-collector worden doorgestuurd.
-  REST/syslog dragen een bronlabel; afscherming blijft behouden.
-- Begrensde EMS-RX-hexregels na parsing in de bestaande decode-lus. UART-callback,
-  receive-admissie en fysieke uitvoer blijven ongewijzigd. Geen volledige busopname;
-  gedeelde RAM-/UDP-buffers kunnen regels verliezen en tellen dat.
-- Oude zesvelds-loginstellingen blijven leesbaar. Een oude open webpagina mag
-  bestaande bronvinkjes niet terugzetten bij opslaan; expliciete achtvelds-
-  instellingen worden met teruglezing bewaard. Oude firmware kan deze nieuwe
-  loggingopslag niet vanzelf teruglezen; exporteer logginginstellingen vóór downgrade.
+- **Meer ketelkeuze:** 60 modellen en modelgroepen onder **Instellingen → Mijn ketel**.
+- **Ketelafbeeldingen:** bij enkele modellen verschijnt een originele afbeelding met een bronlink. De keuze blijft ook zonder internet beschikbaar.
+- **Overzichtelijk systeemlog:** kies alleen E32-meldingen, alleen EMS-berichten van de ketel of beide.
+- **Logs langer bewaren:** kies apart welke E32- en EMS-meldingen je naar je eigen logserver (syslog) stuurt.
+- **Over sneller bereikbaar:** staat nu direct rechts naast Instellingen.
 
-Gerichte logging-/settings-/NVS-/UDP-/browsercontroles en volledige bevroren CI,
-bron- en pakketverificatie horen bij deze kandidaat. Alle23 voorbereide onderdelen
-zijn behouden. Actieve bèta en E32-uploadgate blijven NOT_READY: eerdere
-upload-watchdogoorzaak en herstelroute zijn niet bewezen. Geen blinde upload,
-HTTPS-proef, fysieke sensor-/kraan-/ketelvrijgave of bewezen pendelreparatie.
+## Opgelost
 
-English: consolidated passive firmware maintenance release with60 local display
-selections, four original externally hosted model images with attribution, About
-after Settings, selectable ESP/EMS web logs and independently persisted syslog
-source routing. A legacy open logging page preserves existing source choices.
-No new HA integration code, cloud-dependent control, enabled EMS outputs or
-physical qualification. Missing exact-model images, functional profile import,
-collector/hardware acceptance and updater recovery remain separate open items.
+- Opslaan vanuit een oudere, nog geopende logpagina zet je nieuwe logkeuzes niet meer terug.
+
+## Bijwerken en gebruik
+
+Werk bij via de firmware-updatepagina van de E32. Je netwerk, kamers en programma's blijven behouden. Home Assistant dev48 hoeft hiervoor niet opnieuw geïnstalleerd te worden.
+
+Dit is een testversie. Een ketelmodel kiezen past de weergave aan; de ketelaansturing is nog niet vrijgegeven. Niet ieder model heeft al een eigen foto; die ontbreekt ook nog voor de Ecomline Classic HRC22H.
+
+## English
+
+**New:** 60 boiler/model-group choices, original images for selected models, separate E32/EMS log views and syslog options, and About directly after Settings.
+
+**Fixed:** saving from an older open log page preserves the new log-source choices.
+
+**Updating:** use the E32 firmware-update page. Network settings, rooms and programs are retained; HA dev48 does not need reinstalling. This is a test release; boiler control remains disabled. Images are not available for every model.
 
 # E32 V2 alpha35 — gezamenlijke HA48-bundel en sensorvoorbereiding
 

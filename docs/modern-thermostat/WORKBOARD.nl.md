@@ -722,3 +722,11 @@ stand per versie. De tag-publicatiepoort controleert de SHA256-gebonden vorige
 acceptatie en de exacte pending-kandidaat. Bronwerk mag doorgaan; een opvolgende
 reguliere release wordt geblokkeerd bij ontbrekende/mislukte installatie of
 onafhankelijke nacontrole. Alpha36 is pas na de echte installatie en afzonderlijke nacontrole geaccepteerd.
+
+### Releasenotities voor gebruikers
+
+Actuele E32-/HA-notities zijn op GitHub herschreven naar concrete nieuwe functies,
+fixes en bijwerkinformatie, in Nederlands en Engels. Publicatietooling vereist
+het formaat en bewaart het bij later opruimen. Twaalf tests en publieke
+teruglezing slagen; geen softwaredownloads, tags of versies vervangen.
+[Werkwijze](RELEASE-NOTES-PROCES.nl.md).

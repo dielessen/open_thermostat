@@ -458,3 +458,14 @@ en afzonderlijke nacontrole van de vorige release. Exacte nieuwe versie/bron/ELF
 web, bevestigde boot, stijgende uptime, back-up en instellingenbehoud zijn
 verplicht. CI-publicatie controleert het versiegebonden acceptatierapport; een
 build of HTTP202 is onvoldoende. [Proces](E32-UPDATE-PROCES.nl.md).
+
+## Duidelijke releasenotities — aangepast op GitHub
+
+De actuele E32 alpha36- en HA48-beschrijvingen beginnen nu met **Nieuw**,
+**Opgelost** en **Bijwerken en gebruik**, gevolgd door een Engelse samenvatting.
+Technische oorspronkelijke notities blijven uitklapbaar beschikbaar. De
+release-organizer bewaart deze gebruikerstekst boven de downloadtabel; de
+publicatiecontrole vereist deze opbouw voor volgende versies. Twaalf gerichte
+tests slagen. Beide publieke teksten zijn exact teruggelezen; programmabestanden,
+tags en releasestatus zijn behouden, evenals de overige 63 releasebeschrijvingen.
+Zie [het notitieproces](RELEASE-NOTES-PROCES.nl.md).

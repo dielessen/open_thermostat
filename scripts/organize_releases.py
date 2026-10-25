@@ -8,6 +8,7 @@ import tempfile
 
 START = '<!-- openthermostat-original-notes:start -->'
 END = '<!-- openthermostat-original-notes:end -->'
+USER_NOTES = '<!-- user-release-notes:v1 -->'
 PATTERNS = {
     'firmware': r'v(\d+)\.(\d+)\.(\d+)-e32v2-alpha\.(\d+)',
     'ha': r'ha-v(\d+)\.(\d+)\.(\d+)\.dev(\d+)',
@@ -49,7 +50,7 @@ def first_section(notes):
     return summary if len(summary) <= 2800 else ''
 
 
-def publication_notes(notes, repository, tag):
+def publication_notes(notes, repository, tag, require_user_notes=False):
     """Bound future release API responses; full history stays at the immutable tag."""
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*', repository):
         raise ValueError('invalid_repository')
@@ -67,6 +68,9 @@ def publication_notes(notes, repository, tag):
             break
     document = 'RELEASE-NOTES.md' if channel == 'firmware' else 'HA-RELEASE-NOTES.md'
     current = '\n'.join(lines).rstrip()
+    if require_user_notes and (USER_NOTES not in current or
+            any(section not in current for section in ('## Nieuw', '## Opgelost', '## Bijwerken en gebruik', '## English'))):
+        raise ValueError('publication_notes_need_user_features_fixes_update_and_English')
     url = f'https://github.com/{repository}/blob/{tag}/docs/modern-thermostat/{document}'
     result = current+'\n\n[Volledige releasenotities en historie / Full release notes and history]('+url+')\n'
     if len(result.encode()) > 6000:
@@ -85,8 +89,36 @@ def verify_publication_notes(root, repository="dielessen/open_thermostat"):
         if classify(tags[channel])[0] != channel:
             raise ValueError("invalid_publication_tag")
         publication_notes((root / "docs/modern-thermostat" / filename).read_text(),
-                          repository, tags[channel])
+                          repository, tags[channel], require_user_notes=True)
     return tags
+
+
+def user_summary(tag, repository, root=None):
+    """Use deliberately edited reader notes, never guess features from code."""
+    channel, version = classify(tag)
+    if channel not in ('firmware', 'ha'):
+        return ''
+    root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+    filename = 'RELEASE-NOTES.md' if channel == 'firmware' else 'HA-RELEASE-NOTES.md'
+    path = root / 'docs/modern-thermostat' / filename
+    if not path.is_file():
+        return ''
+    expected = (f'# E32 V2 alpha{version[3]}' if channel == 'firmware' else
+                f'# HA {version[0]}.{version[1]}.{version[2]}.dev{version[3]}')
+    lines = path.read_text().splitlines()
+    for index, line in enumerate(lines):
+        if line == expected or line.startswith(expected+' '):
+            section_lines = lines[index:]
+            for end, following in enumerate(section_lines[1:], 1):
+                if following.startswith('# '):
+                    section_lines = section_lines[:end]
+                    break
+            section = '\n'.join(section_lines)
+            if USER_NOTES not in section:
+                return ''
+            rendered = publication_notes(section, repository, tag, require_user_notes=True)
+            return '\n'.join(rendered.splitlines()[1:]).strip()
+    return ''
 
 
 def label(channel, version):
@@ -147,9 +179,10 @@ def plan(releases, repository):
             name = f'Archief · {title} · {short}'
             status = '**Archief — voor de actuele testversies gebruik je het overzicht hieronder.**'
         notes = original_notes(release.get('body'))
-        sections = [status, overview]
+        reader_notes = user_summary(release['tag_name'], repository)
+        sections = [status, reader_notes, overview] if reader_notes else [status, overview]
         original = '<details>\n<summary>Volledige oorspronkelijke releasenotities en bewijs</summary>\n\n'+START+'\n'+notes+'\n'+END+'\n\n</details>'
-        summary = first_section(notes) if current or channel == 'source' else ''
+        summary = first_section(notes) if not reader_notes and (current or channel == 'source') else ''
         if summary:
             sections.append('## Deze versie\n\n'+summary)
         body = '\n\n'.join(sections+[original])+'\n'
@@ -201,7 +234,7 @@ def main():
             parser.error('expected canonical firmware or HA tag')
         document = 'RELEASE-NOTES.md' if channel == 'firmware' else 'HA-RELEASE-NOTES.md'
         notes = (Path(__file__).resolve().parents[1]/'docs/modern-thermostat'/document).read_text()
-        rendered = publication_notes(notes,args.repository,args.publication_notes_for)
+        rendered = publication_notes(notes,args.repository,args.publication_notes_for,require_user_notes=True)
         args.output.parent.mkdir(parents=True,exist_ok=True)
         args.output.write_text(rendered)
         print(json.dumps({'tag':args.publication_notes_for,'bytes':len(rendered.encode()),'full_history_in_tagged_source':True}))

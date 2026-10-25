@@ -1,16 +1,27 @@
-# HA 0.4.0.dev48 — volledige cleanup en gezamenlijke Bluetooth-voorbereiding
+# HA 0.4.0.dev48 — betrouwbaarder afsluiten en herladen
+<!-- user-release-notes:v1 -->
 
-Gezamenlijke release met E32 alpha35. Alle23onderdelen,31eisen en289bronverwijzingen blijven behouden.
+## Nieuw
 
-- Native afsluiten probeert alle eigen timer-/unsubscribe-handles, ook na een gewone callbackexception. Workerannulering en wachtrijafhandeling gaan door; private foutdetails worden niet gelogd. Een falende externe verwijdering is niet bewezen succesvol en wordt niet automatisch herhaald.
-- De eindige kamerfixture gebruikt één klokdomein voor observaties en wire-leeftijd. Vier epochregressies behouden de bestaande service-/ACK-/stopasserties, acht herhalingen en120s-minimum-uit. De oudere CI-afwijking had een andere eindreden; haar historische oorzaak blijft onbekend.
-- De gezamenlijke bron bevat een pure Shelly SBHT-103C/BTHome-decoder met volledige container-/veldvalidatie. Deze is NIET geselecteerd door de BLE-reader; koppeling, sleutels, replay/acquisitiekwalificatie en fysieke ontvangst blijven open. Geen werkende Bluetooth-driver of automatische bronwissel claimen.
-- Lokaal2356HA-gevallen per ondersteunde Core,798native firmwaregevallen en16decodergevallen onder sanitizers geslaagd. Exacte bevroren main-/tag-CI en pakketreviews blijven leveringsvoorwaarden.
-- HA-frontend41/v41 en v38/v35-aliases blijven bytegelijk. Geen kaart-/instellingen-/SOURCE-migratie of fysieke autorisatie. Compatibel met de laatst geverifieerde E32alpha31.
+Deze onderhoudsupdate richt zich op betrouwbaarheid; er zijn geen nieuwe instellingen of bedieningsopties.
 
-Actieve ketelbèta blijft NOT_READY. Oorspronkelijke kamermeting, causale TV02-echo, veiligheidsproducenten, installatiekwalificatie en de oude uploader-watchdog zijn niet hiermee opgelost. HA-uitrol vereist verse huidigeHA47-back-up en afzonderlijke nacontrole. E32-installatie vereist een onderbouwde herstel-/uploadroute; geen blinde herhaling.
+## Opgelost
 
-English: HA48 continues remaining cleanup after an ordinary removal callback fails, without logging private exception details or retrying uncertain removal. Room-fixture observation/wire clocks now share one epoch; original timing and safety assertions remain. The shared alpha35 source prepares a strict Shelly H&T Display decoder, not an enabled driver or pairing flow. Settings/cards and alpha31 compatibility remain; physical qualification and updater recovery stay separate.
+- Bij het stoppen of herladen van de integratie worden achtergrondtaken beter opgeruimd. Ook als één onderdeel een fout geeft, gaat het opruimen van de overige onderdelen door.
+
+## Bijwerken en gebruik
+
+Je kamers, weekprogramma's, koppelingen en dashboardkaarten blijven behouden. Deze versie is samen met E32 alpha36 gecontroleerd.
+
+Dit is een testversie. Directe Bluetooth-koppeling met Shelly- en Xiaomi-apparaten is nog in ontwikkeling. De ketelaansturing is nog niet vrijgegeven.
+
+## English
+
+**New:** this maintenance release focuses on reliability and adds no new settings.
+
+**Fixed:** stopping or reloading the integration continues cleaning up background tasks even if one component reports an error.
+
+**Updating:** rooms, weekly programs, connections and dashboard cards are retained. Verified with E32 alpha36. Direct Shelly/Xiaomi Bluetooth pairing is still in development; boiler control remains disabled.
 
 # HA 0.4.0.dev47 — robuuste opstart en gezamenlijke updaterdiagnose
 

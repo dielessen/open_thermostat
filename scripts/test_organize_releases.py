@@ -51,6 +51,33 @@ class ReleaseNotesTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'version'):
             release.publication_notes(notes.replace('dev29','dev27'),'owner/project','ha-v0.4.0.dev29')
 
+    def test_user_features_and_fixes_precede_downloads_and_originals_survive(self):
+        row=self.row('Original technical record.')
+        row['tag_name']='v0.1.0-e32v2-alpha.36'
+        result=release.plan([row],'owner/project')[0]
+        self.assertLess(result['body'].index('## Nieuw'), result['body'].index('## Welke download'))
+        self.assertIn('## Opgelost',result['body']);self.assertIn('## English',result['body'])
+        self.assertEqual(release.original_notes(result['body']),row['body'])
+        self.assertEqual(release.plan([{**row,**{k:result[k] for k in ('name','body')}}], 'owner/project'),[])
+
+    def test_valid_reader_notes_are_not_silently_dropped_by_legacy_teaser_limit(self):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        with TemporaryDirectory() as tmp:
+            root=Path(tmp);doc=root/'docs/modern-thermostat/RELEASE-NOTES.md'
+            doc.parent.mkdir(parents=True)
+            doc.write_text('# E32 V2 alpha36\n'+release.USER_NOTES+'\n## Nieuw\n'+
+                'Visible '*420+'\n## Opgelost\nFix\n## Bijwerken en gebruik\nUpdate\n## English\nNew.\n')
+            rendered=release.user_summary('v0.1.0-e32v2-alpha.36','owner/project',root)
+            self.assertIn('Visible '*420,rendered)
+            self.assertIn('## English',rendered)
+
+    def test_production_publication_requires_reader_sections(self):
+        notes='# E32 V2 alpha36\n\nOnly technical details.'
+        with self.assertRaisesRegex(ValueError,'need_user'):
+            release.publication_notes(notes,'owner/project','v0.1.0-e32v2-alpha.36',require_user_notes=True)
+        self.assertEqual(release.user_summary('v0.1.0-e32v2-alpha.999','owner/project'),'')
+
     def test_publication_utf8_byte_bound_and_invalid_identity(self):
         for repo,tag in [('owner/project','bad'),('../project','ha-v0.4.0.dev29')]:
             with self.assertRaises(ValueError):
@@ -73,8 +100,8 @@ class PublicationPreflightTests(unittest.TestCase):
         (self.root / 'release.json').write_text(json.dumps({'version': 'v0.1.0-e32v2-alpha.29'}))
         self.ha = self.root / 'ha/config/custom_components/open_thermostat/manifest.json'
         self.ha.write_text(json.dumps({'version': '0.4.0.dev38'}))
-        (self.root / 'docs/modern-thermostat/RELEASE-NOTES.md').write_text('# E32 V2 alpha29\n\nCurrent.\n\n# E32 V2 alpha28\n\nHistory.')
-        (self.root / 'docs/modern-thermostat/HA-RELEASE-NOTES.md').write_text('# HA 0.4.0.dev38\n\nCurrent.\n\n# HA 0.4.0.dev37\n\nHistory.')
+        (self.root / 'docs/modern-thermostat/RELEASE-NOTES.md').write_text('# E32 V2 alpha29\n<!-- user-release-notes:v1 -->\n## Nieuw\nCurrent.\n## Opgelost\nFix.\n## Bijwerken en gebruik\nKeep settings.\n## English\nFixes.\n# E32 V2 alpha28\nHistory.')
+        (self.root / 'docs/modern-thermostat/HA-RELEASE-NOTES.md').write_text('# HA 0.4.0.dev38\n<!-- user-release-notes:v1 -->\n## Nieuw\nCurrent.\n## Opgelost\nFix.\n## Bijwerken en gebruik\nKeep settings.\n## English\nFixes.\n# HA 0.4.0.dev37\nHistory.')
 
     def test_current_publication_preflight_preserves_history_and_checks_both_versions(self):
         before = {p: p.read_bytes() for p in self.root.rglob('*') if p.is_file()}

@@ -43,15 +43,27 @@
         },
         {
           "path": "scripts/organize_releases.py",
-          "sha256": "8f753c1878f798ddf3ed9d6fee2b1ad3e021ec7643ac0884fb021a0fe71437b2"
+          "sha256": "7e764d312b2e0b2fada9682440283326fe808f7fd9500a6d09ef858fbfd6f2de"
         },
         {
           "path": "scripts/test_organize_releases.py",
-          "sha256": "61c1be2d94da9e1828813ef3726aefb8aa87d5d1bdac327b938f2fe8768ff191"
+          "sha256": "c9386cacf5452e59581984130df2a0fe87fac3491dc6002d77c989845cd7201c"
         },
         {
           "path": ".github/workflows/build.yml",
           "sha256": "5203d53dc684a331eeeaa49f31f16bbaff35cc8879dd11358d1c68a1be84b6ab"
+        },
+        {
+          "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
+          "sha256": "33331ad6805fe4423e432853575e9d278102c13579f592dd67daf2d194a11326"
+        },
+        {
+          "path": "docs/modern-thermostat/RELEASE-NOTES.md",
+          "sha256": "5d1f224de24976edc16ea90f6fbc64d5c14086eced51d2b27a1b1803c633c37b"
+        },
+        {
+          "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
+          "sha256": "64a00ff649f85ce6f2447bb4d724dcb8362fc2fa68ee98fd12b992c2f6f971a5"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
@@ -185,7 +197,7 @@
       "files": [
         {
           "path": "scripts/organize_releases.py",
-          "sha256": "8f753c1878f798ddf3ed9d6fee2b1ad3e021ec7643ac0884fb021a0fe71437b2"
+          "sha256": "7e764d312b2e0b2fada9682440283326fe808f7fd9500a6d09ef858fbfd6f2de"
         },
         {
           "path": ".github/workflows/build.yml",

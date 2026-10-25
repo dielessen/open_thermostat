@@ -1,3 +1,17 @@
+# E32 V2 alpha35 — gezamenlijke HA48-bundel en sensorvoorbereiding
+
+Deze passieve voorbereidingsrelease bundelt alle eerdere functies met HA0.4.0.dev48 en de geteste Shelly SBHT-103C-decoderbasis.
+
+- Pure BTHomev2-parser voor temperatuur, vochtigheid, batterij, licht en afzonderlijke identificatie-/knopvelden. Afgebroken, dubbele, ongeordende, onbekende of ongeldige objecten leveren geen gedeeltelijke meetwaarde op.
+- Versleutelde frames leveren alleen een key_required-formaatstatus; geen ontsleuteling, authenticatie of meetwaarden. Broadcastmodelinformatie en pakketteller zijn geen vertrouwde identiteit of nieuwe acquisitie.
+- Geen veldcache, dynamische parserallocatie of selectie door de huidige BLE-reader. Settings/onboarding, apparaatsleutels, bron-/replaykwalificatie, Xiaomi Monitor3 en BLUTRV blijven open.
+-798native tests,16afzonderlijke decoder-sanitizergevallen en echteESP32-toolchain-syntaxcontrole slagen lokaal. Volledige bevroren builds/CI en werkelijke pakketreviews blijven vereist. De gezamenlijke HA bevat de cleanupcorrectie en de gevalideerde klokfixture.
+- Alle23voorbereide onderdelen/31eisen behouden. Bestaande updatercheckpoints, EN/NL-uitleg, bron-/sessie-/deadlinepoorten blijven behouden; productfabriek, ketel-/kraanuitvoer en EMS-TX blijven gesloten.
+
+Geen actieve bèta, fysieke sensor-/kraankwalificatie, opgelost pendelen of gerepareerde oude upload-watchdog claimen. Publicatie is geen installatiebewijs; firmware-update alleen via aantoonbaar beoordeelde herstelbare route.
+
+English: shared HA48/alpha35 maintenance bundle with a strict passive SBHT-103C decoder foundation. The current BLE reader does not select it; encrypted bytes never become measurements, and model/counter declarations never grant physical freshness or authority. Existing updater, settings and output blocks remain. Pairing, keys, physical tests and recovery are separate gates.
+
 # E32 V2 alpha34 — gerichte updaterdiagnose en robuuste HA-opstart
 
 Gezamenlijke bundel met Home Assistant dev47, met behoud van alle 23 voorbereide onderdelen en 31 producteisen. Passieve voorbereidingsrelease; actieve bèta blijft NOT_READY.

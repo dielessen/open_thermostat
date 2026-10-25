@@ -4,7 +4,15 @@ Bijgewerkt: 25 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
 het [masterplan](PLAN.nl.md) bewaart alle 31 producteisen en acceptatievoorwaarden.
 
-## Grotere release HA47 / E32 alpha34 — gepubliceerd en HA geïnstalleerd
+## HA48 / E32 alpha35 — gezamenlijke release wordt afgewerkt
+
+De voorbereide cleanupfix, klokregressies en Shelly-decoderbasis worden samen
+bevroren, gebouwd en als twee onveranderlijke tags gepubliceerd. Installatie
+volgt uitsluitend het exact gecontroleerde publieke pakket, met verse HA47-
+back-up en aparte nacontrole. Actieve/fysieke vrijgave blijft NOT_READY; de
+E32-herstel-/uploadgate wordt afzonderlijk beoordeeld vóór firmwareacties.
+
+## Historische release HA47 / E32 alpha34 — gepubliceerd en HA geïnstalleerd
 
 Beide onveranderlijke tags staan op bron `6f21f34`. Alle toepasselijke main-/tag-CI,
 bronreviews en daadwerkelijke publieke pakketcontroles slagen. De bundel verenigt

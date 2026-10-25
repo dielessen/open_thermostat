@@ -3,7 +3,7 @@
 #include "control/BoundedJson.h"
 #include <optional>
 namespace heating::diagnostics {
-inline std::optional<Settings> parseSettings(std::string_view json) {
+inline std::optional<Settings> parseSettings(std::string_view json,const Settings& current=Settings{}) {
     if(json.size()>256)return std::nullopt;
     auto root=control::parseControlJson(json,true);
     if(!root||!cJSON_IsObject(root.get()))return std::nullopt;
@@ -19,6 +19,7 @@ inline std::optional<Settings> parseSettings(std::string_view json) {
     const auto port=number("port",1,65535),sys=number("syslog_level",0,5),web=number("web_level",0,5),mark=number("mark_interval_s",0,86400);
     if(!port||!sys||!web||!mark)return std::nullopt;
     Settings s;
+    s.syslogEsp=current.syslogEsp;s.syslogEms=current.syslogEms;
     if(fields==8){
         const auto esp=field("syslog_esp"),ems=field("syslog_ems");
         if(!cJSON_IsBool(esp)||!cJSON_IsBool(ems))return std::nullopt;

@@ -1,3 +1,44 @@
+# E32 V2 alpha36 — modelcatalogus, originele afbeeldingen en ESP-/EMS-logging
+
+Deze passieve firmwarebundel verenigt de voorbereide navigatie, ketelcatalogus
+en loggingwijzigingen. HA0.4.0.dev48 blijft ongewijzigd; geen nieuwe HA-installatie
+nodig voor deze firmwarefuncties. Publicatie is geen E32-installatiebewijs.
+
+- About staat rechts na Settings. Modelkeuze bevat60 selecties met alle31
+  vastgelegde EMS-ESP-productgroepen en aanvullende officiële ketelvermeldingen.
+  Een catalogusvermelding bevestigt geen ondersteunde of gekwalificeerde driver.
+- Vier oorspronkelijke modelafbeeldingen op vijf selecties, met herkomstlink;
+  beelden laden rechtstreeks van publieke fabrikant-/specialisthosts. Geen
+  afbeeldingbestanden in de ESP. Ecomline Classic HRC22H heeft nog geen
+  gecontroleerde originele foto; onzekere groepen blijven zonder afbeelding.
+- Compacte modelcatalogus en gekozen model blijven lokaal beschikbaar. Het
+  profiel-/importontwerp staat in Git; functionele regelprofielimport is nog niet
+  gebouwd en modelkeuze verandert geen decoder, busadres, limiet of zendbevoegdheid.
+- Systeemlog heeft ESP / EMS / beide als weergavefilter. Beide bronnen kunnen
+  onafhankelijk naar dezelfde RFC5424-UDP-collector worden doorgestuurd.
+  REST/syslog dragen een bronlabel; afscherming blijft behouden.
+- Begrensde EMS-RX-hexregels na parsing in de bestaande decode-lus. UART-callback,
+  receive-admissie en fysieke uitvoer blijven ongewijzigd. Geen volledige busopname;
+  gedeelde RAM-/UDP-buffers kunnen regels verliezen en tellen dat.
+- Oude zesvelds-loginstellingen blijven leesbaar. Een oude open webpagina mag
+  bestaande bronvinkjes niet terugzetten bij opslaan; expliciete achtvelds-
+  instellingen worden met teruglezing bewaard. Oude firmware kan deze nieuwe
+  loggingopslag niet vanzelf teruglezen; exporteer logginginstellingen vóór downgrade.
+
+Gerichte logging-/settings-/NVS-/UDP-/browsercontroles en volledige bevroren CI,
+bron- en pakketverificatie horen bij deze kandidaat. Alle23 voorbereide onderdelen
+zijn behouden. Actieve bèta en E32-uploadgate blijven NOT_READY: eerdere
+upload-watchdogoorzaak en herstelroute zijn niet bewezen. Geen blinde upload,
+HTTPS-proef, fysieke sensor-/kraan-/ketelvrijgave of bewezen pendelreparatie.
+
+English: consolidated passive firmware maintenance release with60 local display
+selections, four original externally hosted model images with attribution, About
+after Settings, selectable ESP/EMS web logs and independently persisted syslog
+source routing. A legacy open logging page preserves existing source choices.
+No new HA integration code, cloud-dependent control, enabled EMS outputs or
+physical qualification. Missing exact-model images, functional profile import,
+collector/hardware acceptance and updater recovery remain separate open items.
+
 # E32 V2 alpha35 — gezamenlijke HA48-bundel en sensorvoorbereiding
 
 Deze passieve voorbereidingsrelease bundelt alle eerdere functies met HA0.4.0.dev48 en de geteste Shelly SBHT-103C-decoderbasis.

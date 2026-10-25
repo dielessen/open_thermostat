@@ -941,7 +941,7 @@ private:
     void loggingSettings() {
         if(server_.method()==HTTP_POST){
             const auto body=server_.arg("plain");
-            const auto settings=diagnostics::parseSettings(std::string_view(body.c_str(),body.length()));
+            const auto settings=diagnostics::parseSettings(std::string_view(body.c_str(),body.length()),diagnostics::runtime.log.settings());
             if(!settings){server_.send(400,"text/plain","Invalid logging settings");return;}
             if(!diagnostics::runtime.save(*settings)){server_.send(503,"text/plain","Logging settings save could not be confirmed");return;}
         }

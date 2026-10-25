@@ -98,6 +98,11 @@ int main(){
     fake_microseconds+=100000;runtime.poll(true,"heatingtest");
     auto sourceLength=recv(receiver,bytes,sizeof(bytes),0);assert(sourceLength>0);
     assert(std::string(bytes,sourceLength).find("source=ems [EMS] source-only EMS")!=std::string::npos);
+    // An old open six-field page may update levels/address, but must not reset source choices.
+    const auto legacy=R"({"syslog_enabled":true,"server":"127.0.0.1","port":514,"syslog_level":3,"web_level":3,"mark_interval_s":0})";
+    auto migrated=parseSettings(legacy,runtime.log.settings());assert(migrated&&!migrated->syslogEsp&&migrated->syslogEms);
+    migrated->port=s.port;assert(runtime.save(*migrated));
+    assert(!loadSettings()->syslogEsp&&loadSettings()->syslogEms);
     s.syslogEsp=true;assert(runtime.save(s));runtime.poll(true,"heatingtest");
     runtime.log.append(3,"App","ESP together",uptimeMs());runtime.log.append(3,"EMS","EMS together",uptimeMs());
     for(const auto source:{"source=esp","source=ems"}){

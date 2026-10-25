@@ -7,6 +7,14 @@ geïnstalleerd” bepalen de huidige stand niet meer.
 
 ## 1. Waar staan we?
 
+## Kandidaat alpha36 — één bundel, releasecontrole loopt
+
+Alle voorbereide catalogus-/afbeeldings-/navigatie-/loggingwijzigingen worden
+samen opgenomen. Legacy log-POST bewaart nu bestaande ESP-/EMS-bronvinkjes;
+nieuwe expliciete keuzes blijven mogelijk. HA48-code is ongewijzigd. Bevroren
+CI, bron- en werkelijke pakketreviews vóór publicatie; geen E32-upload op de
+onopgeloste herstelgate en geen actieve/fysieke vrijgave.
+
 ## Grotere release HA48 / E32 alpha35 — gepubliceerd, HA geïnstalleerd
 
 Beide tags staan op bron `70135db3`. Main- en tag-CI en alle negen publieke

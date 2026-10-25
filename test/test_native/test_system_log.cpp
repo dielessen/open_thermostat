@@ -101,3 +101,16 @@ TEST(LogSettings, LegacySixFieldSettingsLoadWithoutEnablingSyslogAndNewSourcesRo
     std::string partial=legacy;partial.insert(1,"\"syslog_esp\":true,");EXPECT_FALSE(parseSettings(partial));
     auto invalid=settingsJson(*old);invalid.replace(invalid.find("\"syslog_ems\":true"),17,"\"syslog_ems\":1");EXPECT_FALSE(parseSettings(invalid));
 }
+
+TEST(LogSettings, LegacyClientSavePreservesExplicitSourceSelection) {
+    const auto legacy=R"({"syslog_enabled":true,"server":"127.0.0.1","port":5514,"syslog_level":4,"web_level":2,"mark_interval_s":0})";
+    for(bool esp:{false,true})for(bool ems:{false,true}) {
+        Settings current;current.syslogEsp=esp;current.syslogEms=ems;
+        const auto changed=parseSettings(legacy,current);ASSERT_TRUE(changed);
+        EXPECT_EQ(changed->syslogEsp,esp);EXPECT_EQ(changed->syslogEms,ems);
+        EXPECT_TRUE(changed->enabled);EXPECT_EQ(changed->port,5514);EXPECT_EQ(changed->webLevel,2);
+        auto explicitSettings=*changed;explicitSettings.syslogEsp=!esp;explicitSettings.syslogEms=!ems;
+        const auto explicitSave=parseSettings(settingsJson(explicitSettings),current);ASSERT_TRUE(explicitSave);
+        EXPECT_EQ(explicitSave->syslogEsp,!esp);EXPECT_EQ(explicitSave->syslogEms,!ems);
+    }
+}

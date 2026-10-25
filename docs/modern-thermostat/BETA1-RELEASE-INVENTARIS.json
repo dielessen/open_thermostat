@@ -513,7 +513,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "3dc4dff23c0d20f27bce240839cc905f520db139f3331e947e85eb748dcc8e9a"
+          "sha256": "e1c140a784a323ec127af2d2bc8597b77323bc1b63de931430150e2e552dcb93"
         }
       ],
       "remaining_acceptance": "Badkamer live bevestigd; geen nieuwe seriële opname van de logstilte."
@@ -599,7 +599,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "3dc4dff23c0d20f27bce240839cc905f520db139f3331e947e85eb748dcc8e9a"
+          "sha256": "e1c140a784a323ec127af2d2bc8597b77323bc1b63de931430150e2e552dcb93"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
@@ -623,7 +623,7 @@
         },
         {
           "path": "test/test_native/test_system_log.cpp",
-          "sha256": "4ee0aeb399ddfbdd187131c53d208a9b469b8ea4046ad274ea14348104924595"
+          "sha256": "a8dad7573497f51f6227d6cabbad0e0c812ffae15a982d56ad05c98645f18a68"
         },
         {
           "path": "test/system-log-browser.cjs",
@@ -631,7 +631,7 @@
         },
         {
           "path": "docs/modern-thermostat/LOGGING.nl.md",
-          "sha256": "b4b7e0cdc9d9151b3d68eb9096b50bd268871fba03adc10d1bdca65db7c9ab86"
+          "sha256": "6e8bda19efaf7a2b8dde76804c01af5a7eff33380dcc24bd338c5d5002a4ee41"
         },
         {
           "path": "src/diagnostics/BufferedLogger.h",
@@ -643,7 +643,7 @@
         },
         {
           "path": "src/diagnostics/LogSettings.h",
-          "sha256": "700f0a85abbaddadc07129825a0e5af2e2a2522a63d4fafdd31026614108a3bf"
+          "sha256": "50f35908eed752b24948a2ab2469b1ae8b9d796ad992b755cd44a7faf21ed97c"
         },
         {
           "path": "src/diagnostics/LogStorage.h",
@@ -683,7 +683,7 @@
         },
         {
           "path": "test/logging_runtime/main.cpp",
-          "sha256": "b3daaa8a32a6d669fde20877146faaff43a5d6c034913eec0d12b24e880ed465"
+          "sha256": "3e84728495f6d99acda43fdfcfe1c290c1682d1d176293e429e04838bc7df246"
         },
         {
           "path": "src/control/DeviceDiagnostics.h",

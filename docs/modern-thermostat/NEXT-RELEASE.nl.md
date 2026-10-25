@@ -4,6 +4,15 @@ Bijgewerkt: 25 oktober 2026. Dit is het korte releaseoverzicht.
 Het [werkbord](WORKBOARD.nl.md) bevat de enige actuele checklist en prioriteiten;
 het [masterplan](PLAN.nl.md) bewaart alle 31 producteisen en acceptatievoorwaarden.
 
+## Kandidaat alpha36 — gezamenlijke firmwarebundel wordt afgerond
+
+Navigatie,60 modelkeuzes, originele publieke afbeeldingen en ESP-/EMS-logging
+worden als één firmwarekandidaat bevroren. Een extra compatibiliteitsfix voorkomt
+dat een oude open logpagina de nieuwe syslogbronkeuze terugzet. HA48 heeft geen
+componentwijzigingen en blijft de geïnstalleerde HA-basis. Bevroren volledige CI,
+werkelijke pakketten en onafhankelijke bron-/pakketcontrole moeten slagen vóór
+publicatie. E32-installatie blijft afhankelijk van de afzonderlijke herstelgate.
+
 ## Grotere release HA48 / E32 alpha35 — gepubliceerd, HA geïnstalleerd
 
 Beide tags staan op bron `70135db3`. Main- en tag-CI en alle negen publieke

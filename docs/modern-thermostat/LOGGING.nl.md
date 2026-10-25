@@ -48,6 +48,14 @@ compile/link slaagt (75,6s;75816bytes statisch RAM,2613429bytes app). Dit is een
 bouwcontrole van bronwerk, geen releasepakket of installatie.
 Lokaal bewijs: `out/esp-ems-logging-20261025/`.
 
+### Aanvulling in alpha36-kandidaat: oudere open logpagina
+
+Een oud zesvelds-POST naar de nieuwe firmware bewaart de bestaande twee
+bronvinkjes. Alleen een expliciet achtvelds-verzoek wijzigt ze. Opslag uit de
+oude firmware blijft bij laden met de oorspronkelijke standaardkeuzes werken;
+readback en de actieve destination-/levelvelden blijven verplicht. Dit voorkomt
+onbedoeld opnieuw doorsturen van een bewust uitgezette bron door een oude tab.
+
 ## Gebruik
 
 Open **Settings → System log / Instellingen → Systeemlog** op de E32.

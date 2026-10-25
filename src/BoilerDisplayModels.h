@@ -62,5 +62,7 @@ inline constexpr std::string_view boilerDisplayModelIds[] = {
     "emsesp-doc-supraeco",
     "emsesp-doc-wlw196i-wsw196i",
     "emsesp-doc-condens-2300-5000i",
+    "nefit-trendline-ii",
+    "buderus-gb162",
 };
 }

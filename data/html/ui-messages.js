@@ -1,5 +1,6 @@
 /* Fixed English UI messages mapped to Nederlands. User data and wire identifiers are excluded. */
 window.OT_UI_MESSAGES = {
+  "Product image source": "Bron productafbeelding",
   "Listed by EMS-ESP. Monitoring and control in OpenThermostat have not been verified for this model.": "Vermeld door EMS-ESP. Uitlezen en aansturen in OpenThermostat zijn voor dit model nog niet gecontroleerd.",
   "Model families are listed from EMS-ESP. A listing does not confirm support in OpenThermostat. Images load from public hosting; the saved selection works offline.": "Modelfamilies komen uit EMS-ESP. Een vermelding bevestigt geen ondersteuning in OpenThermostat. Afbeeldingen laden vanaf publieke hosting; de opgeslagen keuze werkt offline.",
   "Existing local models": "Bestaande lokale modellen",

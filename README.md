@@ -76,7 +76,7 @@ compatibiliteitsverklaring voor iedere TV02-variant.
 
 | Mogelijkheid | Wat je ermee kunt | Status |
 | --- | --- | --- |
-| Je eigen ketel op Home | Model kiezen onder Settings → Mijn ketel; keuze blijft lokaal bewaard | **Beschikbaar** voor Ecomline Classic/HRC22H. **Voor volgende firmware voorbereid:** 58 keuzes met EMS-ESP-productgroepen en officiële ketelvermeldingen; publieke afbeeldingen buiten de ESP. Vermelding kwalificeert geen nieuwe driver. [Catalogus en profielopslag](docs/modern-thermostat/KETELCATALOGUS.nl.md) |
+| Je eigen ketel op Home | Model kiezen onder Settings → Mijn ketel; keuze blijft lokaal bewaard | **Beschikbaar** voor Ecomline Classic/HRC22H. **Voor volgende firmware voorbereid:** 60 keuzes met EMS-ESP-productgroepen en officiële ketelvermeldingen; publieke afbeeldingen buiten de ESP. Vermelding kwalificeert geen nieuwe driver. [Catalogus en profielopslag](docs/modern-thermostat/KETELCATALOGUS.nl.md) |
 | EMS-ketelgegevens uitlezen | Beschikbare temperaturen, doelen, modulatie en overige gedecodeerde ketelwaarden bekijken | **Beschikbaar**; verse Classic-berichten ontvangen op de E32 |
 | EMS-apparaten onder Settings | Ontvangen apparaten, beschikbare entiteiten, bronkwaliteit en ouderdom per afzender bekijken; zoekfilter en open details blijven behouden | **Beschikbaar**, passief en EN/NL; geen actieve scan |
 | Classic en EMS Plus | Decoderbasis voor beide protocolfamilies behouden | **Beschikbaar als basis**; velddekking en ondersteuning blijven ketelafhankelijk |

@@ -193,7 +193,7 @@
         },
         {
           "path": "data/html/boiler-display.js",
-          "sha256": "e785e0fe2bb8023592e31676846631fd2939f872fedcffa9d031063008a6e61d"
+          "sha256": "f1c712a0fa14ee045c2af346b3d94f77c941db1751f27e48cd15f6c8a2a235ab"
         },
         {
           "path": "data/html/boiler_display.html",
@@ -213,7 +213,7 @@
         },
         {
           "path": "test/boiler-display-browser.cjs",
-          "sha256": "01b195244510b77b1db981b0628500e0e7dd3ec7c50f254a0ecb8d1194ee73e3"
+          "sha256": "0c2f372decea8c5f775764c1adf177ec26420cbd052bc31fe9a65dbc1e4fd047"
         },
         {
           "path": "platformio.ini",
@@ -329,7 +329,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "4da6bca47fd571025ae7dbb31f5fa1423dff428a37b4f659eecc56d740060e69"
+          "sha256": "54d61ef270c7f3416577d5e59c94ac1df038285eed62a8893d52f8496f77c924"
         },
         {
           "path": "data/html/ui-language.js",
@@ -357,26 +357,26 @@
         },
         {
           "path": "docs/modern-thermostat/boiler-profiles/nefit-ecomline-classic-hrc-22h.json",
-          "sha256": "1787dc7fc40dd155bb3d0a91f0ff85909001875ea384e1303fce54cc93391dad"
+          "sha256": "d6e5f4468bc5b7c8ce9eb1a683bdff6092c4f971b929c2ebfa8be13be4f8077b"
         },
         {
           "path": "public/boilers/catalog-v1.json",
-          "sha256": "9bc13dca118d6378e42264e15104033b2e6184c8fe2979a7a2d86d03aaeb4478"
+          "sha256": "f308c5efed6bbfc6ebef1e79c9dfaa4f0aaabd57a2aa18d9e78e25277f76144d"
         },
         {
           "path": "src/BoilerDisplayModels.h",
-          "sha256": "8a1aff56f4ef2d6eb5e2100a0110966f55057b27817ec9d0eae2538fa265d0e7"
+          "sha256": "198fca2168d470044478a18198b6144c2a5b9710a00dbd385e480c6f0ef0efa1"
         },
         {
           "path": "scripts/generate_boiler_catalog.py",
-          "sha256": "676d444ad59a167d447e93bbc44e0a8936500bd41daca885e10a7caff4d001fc"
+          "sha256": "9176a0af6f385971c18567aeac9b2eecdf9430f9bf8ab6cf7c288690024cb552"
         },
         {
           "path": "docs/modern-thermostat/KETELCATALOGUS.nl.md",
-          "sha256": "67a676b15da2ca1c503094e1e04093940918960edd9dccc45114bc9f2e44fea2"
+          "sha256": "bbcec61cb5781daa029efb837311a5a909c7778b2867b16b1b1dff99cd6dc6f8"
         }
       ],
-      "remaining_acceptance": "HRC22H/modelkeuze, EN/NL, About/navigatie en incrementeel dashboard geleverd in alpha23/HA29. Normale HTTPS-update, exacte running-ELF/web/source en modelreadback geverifieerd. Shipped-browserproeven bewijzen behoud van openstatus/focus/scroll; op de module zijn exacte geserveerde webbytes bewezen, geen live browserpixels. Modelkeuze verandert geen decoder/adressen/ontvangst/aansturing en verleent geen technische ketelvrijgave. Lange beheer-/herstel- en fysieke kwalificatie blijven afzonderlijk open. Voor volgende release:58 presentatiekeuzes uit31 EMS-ESP-productgroepen plus officiële keteldocumentatie; bronverwijzingen behouden, afbeelding buiten ESP. Nieuwe modellen niet als ondersteunde driver gekwalificeerd; modelafbeeldingen en functionele profielimport/opslag nog open."
+      "remaining_acceptance": "HRC22H/modelkeuze, EN/NL, About/navigatie en incrementeel dashboard geleverd in alpha23/HA29. Normale HTTPS-update, exacte running-ELF/web/source en modelreadback geverifieerd. Shipped-browserproeven bewijzen behoud van openstatus/focus/scroll; op de module zijn exacte geserveerde webbytes bewezen, geen live browserpixels. Modelkeuze verandert geen decoder/adressen/ontvangst/aansturing en verleent geen technische ketelvrijgave. Lange beheer-/herstel- en fysieke kwalificatie blijven afzonderlijk open. Voor volgende release:60 presentatiekeuzes uit31 EMS-ESP-productgroepen plus officiële keteldocumentatie; bronverwijzingen behouden, afbeelding buiten ESP. Nieuwe modellen niet als ondersteunde driver gekwalificeerd; modelafbeeldingen en functionele profielimport/opslag nog open. Vier oorspronkelijke modelafbeeldingen voor vijf keuzes met bronvermelding; modellen met onzekere afbeelding en Ecomline Classic HRC22H blijven zonder foto. Geen generieke vervanging of firmware-installatie."
     },
     {
       "id": "I06",
@@ -611,7 +611,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "4da6bca47fd571025ae7dbb31f5fa1423dff428a37b4f659eecc56d740060e69"
+          "sha256": "54d61ef270c7f3416577d5e59c94ac1df038285eed62a8893d52f8496f77c924"
         },
         {
           "path": "data/html/system-log.js",

@@ -1,8 +1,8 @@
 # Ketelcatalogus, publieke afbeeldingen en lokale profielen
 
-25 oktober 2026. De modellenkeuze bevat nu 58 selecties: drie bestaande keuzes,
+25 oktober 2026. De modellenkeuze bevat nu 60 selecties: drie bestaande keuzes,
 alle 31 BOILER-productgroepen uit de vastgelegde EMS-ESP-database en aanvullende
-vermeldingen uit de officiële ketellijst. Overlappende familienamen zijn bewust
+vermeldingen uit de officiële ketellijst, plus twee specifieke fotokeuzes. Overlappende familienamen zijn bewust
 herkenbaar gehouden: een marketingnaam is geen uniek EMS-product-ID. Wildcards
 worden niet uitgebreid tot verzonnen uitvoeringen. Dit is geen lijst van alle
 ooit geproduceerde EMS-apparaten en geen verklaring dat onze drivers ieder model
@@ -24,7 +24,8 @@ vermeldingen gekoppeld. De bestaande Ecomline Classic HRC22H-keuze blijft bestaa
 - Alleen de geselecteerde sleutel wordt opgeslagen in de bestaande NVS-namespace;
   expliciete opslag en onafhankelijke readback blijven behouden. Geen losse
   cloudbestanden of nieuwe caches op de ESP.
-- Afbeeldingen staan onder `public/boilers/images`, buiten de ingebedde webassets.
+- Afbeeldingsverwijzingen staan in de publieke catalogus; de originele bestanden
+  blijven op de fabrikant-/specialisthost, buiten de ingebedde webassets.
   De browser haalt ze rechtstreeks via HTTPS op, zonder referrer. De E32 maakt
   daarvoor geen TLS-verbinding en slaat geen afbeeldingen op.
 - Bij een ontbrekende/offline afbeelding verdwijnt het afbeeldingselement;
@@ -34,18 +35,29 @@ vermeldingen gekoppeld. De bestaande Ecomline Classic HRC22H-keuze blijft bestaa
   berichtfilter, aanvoertemperatuurgrens of zendbevoegdheid. Read-all blijft
   onafhankelijk van de gekozen presentatienaam.
 
-De bestaande eigen Ecomline-illustratie is naar public verplaatst. Zij is een
-illustratie, geen fabrikantsfoto. Voor andere modellen is `image: null` totdat
-een passende afbeelding met vastgelegde herkomst/gebruiksrechten beschikbaar is.
-Er zijn geen willekeurige of onjuiste ketelfoto's ingevuld.
+Vier oorspronkelijke modelafbeeldingen zijn gecontroleerd en gekoppeld aan vijf
+selecties: Nefit TrendLine II en Buderus GB162 van de fabrikant; ProLine HRC en
+SmartLine uit de modeltabel van BBQKees. ProLine en SmartLine zijn productrenders,
+geen fotografische opname. De bronlink staat bij de afbeelding in de UI; exact
+model/jaargang/vermogen wordt niet afgeleid uit een familiefoto.
+
+De generieke Ecomline-illustratie wordt niet meer geselecteerd. Het bestand blijft
+alleen als bestaande projectbron en geïsoleerde browsertestfixture bewaard.
+Voor EcomLine Classic HRC22H is nog geen originele, verifieerbare productafbeelding
+gevonden: de officiële oude archiefhost resolveert hier niet; de leveranciers-
+vermelding is gevonden maar de bijbehorende foto kon niet worden geverifieerd.
+Er worden geen afbeeldingen van een ander model of particuliere advertenties
+voor in de plaats gezet. Overige onzekere familiegroepen blijven zonder foto.
 
 ## Hostingbesluit
 
 GitHub blijft de bron van waarheid: catalogus en profielen krijgen schema- en
 versienummers en kunnen samen met een release worden beoordeeld. De eerste
-publieke afbeelding gebruikt de bestaande publieke repository via raw GitHub;
-hiervoor is geen Pages-configuratie, account of betaalde cloud nodig. De URL
-werkt pas zodra deze bronwijziging op de publieke mainbranch staat.
+publieke catalogus bevat originele HTTPS-afbeeldingsverwijzingen en vastgelegde
+bronpagina's, uitgever, afgebeeld model, controlesom, datum en variantbeperking.
+De browser laadt de afbeelding direct van de oorspronkelijke publieke host.
+Er zijn geen nieuwe fabrikant- of derdenafbeeldingen naar de repository gekopieerd;
+herpublicatierechten worden niet geclaimd. Geen nieuwe account/cloud nodig.
 
 Bij een grotere mediacollectie kan alleen de afbeeldingsbasis naar een eigen
 statische host/CDN verhuizen. GitHub Pages is een mogelijke vervolgstap, maar

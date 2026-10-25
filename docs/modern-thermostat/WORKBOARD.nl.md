@@ -24,10 +24,14 @@ Alle 23 onderdelen, 289 bronverwijzingen en 31 eisen blijven behouden.
 
 About staat direct na Settings. Alle31 BOILER-productgroepen uit de vastgelegde
 EMS-ESP-bron plus officiële documentatievermeldingen staan in een catalogus van
-58 selecties. Alleen compacte weergavegegevens staan in de firmware; afbeeldingen
+60 selecties. Alleen compacte weergavegegevens staan in de firmware; afbeeldingen
 staan onder public en worden door de browser geladen. Geen cloudafhankelijkheid
 voor bediening en geen automatische driver-/regelprofielwissel. Foto's voor de
 nieuwe modellen en functionele profielimport blijven open.
+Vier modelafbeeldingen op vijf selecties met bronlink voorbereid; fabrikant-
+afbeeldingen voor TrendLine II/GB162 en specialistproductrenders voor ProLine/
+SmartLine. Ecomline Classic HRC22H nog zonder geverifieerde originele foto;
+generieke tekening niet meer geselecteerd. Afbeeldingen blijven op originele host.
 [Ontwerp en grenzen](KETELCATALOGUS.nl.md). Geen firmware- of HA-installatie.
 
 ## Historische release HA47 / E32 alpha34 — gepubliceerd en HA geïnstalleerd

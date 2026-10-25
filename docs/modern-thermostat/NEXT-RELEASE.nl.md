@@ -35,11 +35,14 @@ E32 alpha31 blijft op dezelfde boot; alpha34 is gepubliceerd, zonder firmwareact
 
 ## Voor volgende release — navigatie en modelcatalogus
 
-About staat na Settings. De modellenkeuze bevat nu58 selecties met alle31
+About staat na Settings. De modellenkeuze bevat nu 60 selecties met alle31
 EMS-ESP-productgroepen en aanvullende officiële ketelvermeldingen. Afbeeldingen
 staan publiek buiten de ESP; de compacte catalogus en opgeslagen keuze werken
 zonder internet. Nieuwe vermeldingen activeren geen driver of zendprofiel.
 Ontbrekende modelafbeeldingen blijven leeg. [Hosting en profielontwerp](KETELCATALOGUS.nl.md).
+Vier oorspronkelijke modelafbeeldingen zijn gekoppeld met bronlink, voor vijf
+selecties. Ecomline Classic HRC22H heeft nog geen gecontroleerde originele foto;
+de generieke tekening wordt niet meer gebruikt. Onzekere groepen blijven zonder beeld.
 Deze wijzigingen zijn nog niet op de module geïnstalleerd.
 
 ## Meegeleverd in HA48 / alpha35 — bewijs en beperkingen

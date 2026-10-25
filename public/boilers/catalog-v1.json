@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "catalog_version": "2026-10-25.1",
+  "catalog_version": "2026-10-25.2",
   "purpose": "presentation_catalog_only",
   "control_profiles": false,
   "sources": {
@@ -29,15 +29,27 @@
       "id": "nefit-ecomline-classic",
       "name": "Nefit Ecomline Classic",
       "kind": "local",
-      "image": "https://raw.githubusercontent.com/dielessen/open_thermostat/main/public/boilers/images/nefit-ecomline.svg",
-      "source": "local"
+      "image": null,
+      "source": "local",
+      "image_status": "original_model_image_not_verified",
+      "image_research": [
+        "Official manufacturer archive URL no longer resolves in this environment",
+        "Supplier HRC22H listing found, image not retrievable/verified",
+        "Private resale/forum photos not substituted"
+      ]
     },
     {
       "id": "nefit-ecomline-classic-hrc-22h",
       "name": "Nefit Ecomline Classic HRC 22H",
       "kind": "local",
-      "image": "https://raw.githubusercontent.com/dielessen/open_thermostat/main/public/boilers/images/nefit-ecomline.svg",
-      "source": "local"
+      "image": null,
+      "source": "local",
+      "image_status": "original_model_image_not_verified",
+      "image_research": [
+        "Official manufacturer archive URL no longer resolves in this environment",
+        "Supplier HRC22H listing found, image not retrievable/verified",
+        "Private resale/forum photos not substituted"
+      ]
     },
     {
       "id": "emsesp-product-8",
@@ -153,11 +165,25 @@
       "id": "emsesp-product-122",
       "name": "Proline",
       "kind": "family",
-      "image": null,
+      "image": "https://bbqkees-electronics.nl/wp-content/uploads/ems-devices/nefit/boilers/Nefit-proline-hrc-ems.jpg",
       "source": "emsesp-library",
       "product_id": 122,
       "upstream_flag": "EMS_DEVICE_FLAG_NONE",
-      "validation": "listed_upstream_only"
+      "validation": "listed_upstream_only",
+      "image_provenance": {
+        "url": "https://bbqkees-electronics.nl/wp-content/uploads/ems-devices/nefit/boilers/Nefit-proline-hrc-ems.jpg",
+        "source_page": "https://bbqkees-electronics.nl/ketels-nefit/?lang=nl",
+        "publisher": "BBQKees",
+        "kind": "specialist_product_rendering",
+        "sha256_at_review": "0740a0ea732b7b06aa4962b828a7b12e9f775f4b72c1ed24f82237a6bcfea340",
+        "reviewed_at": "2026-10-25",
+        "bytes_at_review": 13933,
+        "content_type": "image/jpeg",
+        "hosting": "external_original_reference",
+        "redistribution_license": "not_claimed; no copied media published",
+        "depicted_model": "Nefit ProLine HRC (EMS)",
+        "scope": "model_family; no exact output/year variant claim"
+      }
     },
     {
       "id": "emsesp-product-123",
@@ -465,17 +491,45 @@
       "id": "emsesp-doc-nefit-proline",
       "name": "Nefit Proline",
       "kind": "family",
-      "image": null,
+      "image": "https://bbqkees-electronics.nl/wp-content/uploads/ems-devices/nefit/boilers/Nefit-proline-hrc-ems.jpg",
       "source": "emsesp-docs",
-      "validation": "listed_upstream_only"
+      "validation": "listed_upstream_only",
+      "image_provenance": {
+        "url": "https://bbqkees-electronics.nl/wp-content/uploads/ems-devices/nefit/boilers/Nefit-proline-hrc-ems.jpg",
+        "source_page": "https://bbqkees-electronics.nl/ketels-nefit/?lang=nl",
+        "publisher": "BBQKees",
+        "kind": "specialist_product_rendering",
+        "sha256_at_review": "0740a0ea732b7b06aa4962b828a7b12e9f775f4b72c1ed24f82237a6bcfea340",
+        "reviewed_at": "2026-10-25",
+        "bytes_at_review": 13933,
+        "content_type": "image/jpeg",
+        "hosting": "external_original_reference",
+        "redistribution_license": "not_claimed; no copied media published",
+        "depicted_model": "Nefit ProLine HRC (EMS)",
+        "scope": "model_family; no exact output/year variant claim"
+      }
     },
     {
       "id": "emsesp-doc-nefit-smartline",
       "name": "Nefit Smartline",
       "kind": "family",
-      "image": null,
+      "image": "https://bbqkees-electronics.nl/wp-content/uploads/ems-devices/nefit/boilers/Nefit-smartline-ems.jpg",
       "source": "emsesp-docs",
-      "validation": "listed_upstream_only"
+      "validation": "listed_upstream_only",
+      "image_provenance": {
+        "url": "https://bbqkees-electronics.nl/wp-content/uploads/ems-devices/nefit/boilers/Nefit-smartline-ems.jpg",
+        "source_page": "https://bbqkees-electronics.nl/ketels-nefit/?lang=nl",
+        "publisher": "BBQKees",
+        "kind": "specialist_product_rendering",
+        "sha256_at_review": "e55b3505c21c59ef95dbec89a73658b05218d545b9f99f9240114ffda24d8dcc",
+        "reviewed_at": "2026-10-25",
+        "bytes_at_review": 9004,
+        "content_type": "image/jpeg",
+        "hosting": "external_original_reference",
+        "redistribution_license": "not_claimed; no copied media published",
+        "depicted_model": "Nefit SmartLine",
+        "scope": "model_family; no exact output/year variant claim"
+      }
     },
     {
       "id": "emsesp-doc-gc7000f-gc700iw-gc9800iw",
@@ -540,6 +594,50 @@
       "image": null,
       "source": "emsesp-docs",
       "validation": "listed_upstream_only"
+    },
+    {
+      "id": "nefit-trendline-ii",
+      "name": "Nefit TrendLine II",
+      "kind": "family",
+      "image": "https://www.nefit-bosch.nl/media/country_pool/professioneel/productafbeeldingen/cv-ketels/nefit_trendlineii.jpg",
+      "source": "manufacturer-media",
+      "validation": "presentation_only_not_control_qualified",
+      "image_provenance": {
+        "url": "https://www.nefit-bosch.nl/media/country_pool/professioneel/productafbeeldingen/cv-ketels/nefit_trendlineii.jpg",
+        "source_page": "https://www.nefit-bosch.nl/professioneel/installateurs/promotiemateriaal-installateurs/",
+        "publisher": "Nefit Bosch",
+        "kind": "manufacturer_product_photo",
+        "sha256_at_review": "c3265f0d6ca9dfe66ef1e9ce700e36a4c47ad4adb66d985463f3bcaea2f1c4c4",
+        "reviewed_at": "2026-10-25",
+        "bytes_at_review": 2022852,
+        "content_type": "image/jpeg",
+        "hosting": "external_original_reference",
+        "redistribution_license": "not_claimed; no copied media published",
+        "depicted_model": "Nefit TrendLine II",
+        "scope": "model_family; regional/output/year variants may differ"
+      }
+    },
+    {
+      "id": "buderus-gb162",
+      "name": "Buderus Logamax plus GB162",
+      "kind": "family",
+      "image": "https://www.bosch-homecomfort.com/us/media/country_pool/service_support/discontinued-products/gb162_550x310.webp",
+      "source": "manufacturer-media",
+      "validation": "presentation_only_not_control_qualified",
+      "image_provenance": {
+        "url": "https://www.bosch-homecomfort.com/us/media/country_pool/service_support/discontinued-products/gb162_550x310.webp",
+        "source_page": "https://www.bosch-homecomfort.com/us/en/residential/service-support/discontinued-products/discontinued-boilers/buderus-gb162/",
+        "publisher": "Bosch Home Comfort",
+        "kind": "manufacturer_product_photo",
+        "sha256_at_review": "04df4f81a5e2c38b0ebcadc5e32b464eca8f65e4e669abadab32acb5661aca21",
+        "reviewed_at": "2026-10-25",
+        "bytes_at_review": 2228,
+        "content_type": "image/webp",
+        "hosting": "external_original_reference",
+        "redistribution_license": "not_claimed; no copied media published",
+        "depicted_model": "Buderus Logamax plus GB162",
+        "scope": "model_family; regional/output/year variants may differ"
+      }
     }
   ]
 }

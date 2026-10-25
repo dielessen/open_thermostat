@@ -3,6 +3,7 @@ from pathlib import Path
 import argparse
 import json
 import re
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 START = '    // BEGIN GENERATED BOILER CATALOG\n'
@@ -19,12 +20,28 @@ def generate(check=False):
         assert re.fullmatch(r'[a-z0-9-]{1,63}', m['id'])
         assert 0 < len(m['name']) < 200
         if m['image']:
-            prefix = 'https://raw.githubusercontent.com/dielessen/open_thermostat/main/public/boilers/images/'
-            assert m['image'].startswith(prefix)
-            filename = m['image'][len(prefix):]
-            assert re.fullmatch(r'[a-z0-9-]+\.(svg|webp|png|jpg)', filename)
-            assert (ROOT / 'public/boilers/images' / filename).is_file()
-    compact = [{k: m[k] for k in ('id', 'name', 'kind', 'image')} for m in models]
+            image = urlsplit(m['image'])
+            allowed = {
+                'www.nefit-bosch.nl': '/media/country_pool/professioneel/productafbeeldingen/',
+                'www.bosch-homecomfort.com': '/us/media/country_pool/service_support/discontinued-products/',
+                'bbqkees-electronics.nl': '/wp-content/uploads/ems-devices/nefit/boilers/',
+            }
+            assert image.scheme == 'https' and not image.username and not image.password
+            assert image.netloc in allowed and image.path.startswith(allowed[image.netloc])
+            assert not image.query and not image.fragment
+            proof = m['image_provenance']
+            assert proof['url'] == m['image'] and proof['depicted_model'] and proof['scope']
+            assert re.fullmatch('[0-9a-f]{64}', proof['sha256_at_review'])
+            page = urlsplit(proof['source_page'])
+            assert page.scheme == 'https' and page.netloc == image.netloc
+    compact = []
+    for m in models:
+        entry = {k: m[k] for k in ('id', 'name', 'kind', 'image')}
+        if m['image']:
+            entry['imageSource'] = m['image_provenance']['source_page']
+            entry['imageCredit'] = m['image_provenance']['publisher']
+            entry['imageModel'] = m['image_provenance']['depicted_model']
+        compact.append(entry)
     js = ROOT / 'data/html/boiler-display.js'
     source = js.read_text()
     assert source.count(START) == source.count(END) == 1

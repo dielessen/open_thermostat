@@ -4,7 +4,7 @@
   "name": "Nefit Ecomline Classic HRC 22H",
   "family": "Nefit Ecomline Classic",
   "identity_basis": "User explicitly confirmed exact model on2026-10-24; no independent serial-label inspection claimed.",
-  "illustration": "/boiler-nefit-ecomline.svg",
+  "illustration": "https://raw.githubusercontent.com/dielessen/open_thermostat/main/public/boilers/images/nefit-ecomline.svg",
   "illustration_scope": "Existing family illustration; not an exact product photograph.",
   "observed_topology": {
     "adapter": "Bosch EasyControl Adapter",

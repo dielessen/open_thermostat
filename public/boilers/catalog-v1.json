@@ -1,0 +1,545 @@
+{
+  "schema": 1,
+  "catalog_version": "2026-10-25.1",
+  "purpose": "presentation_catalog_only",
+  "control_profiles": false,
+  "sources": {
+    "emsesp-library": {
+      "url": "https://github.com/emsesp/EMS-ESP32/blob/8f7049b47a1641cc22c91c63cfb27c1278b282ed/src/core/device_library.h",
+      "commit": "8f7049b47a1641cc22c91c63cfb27c1278b282ed",
+      "sha256": "d18a57e535816286b22f93147293f086809f62191d6862a0782eaf11793a4bef",
+      "product_groups": 31
+    },
+    "emsesp-docs": {
+      "url": "https://github.com/emsesp/docs/blob/227c21a942211724f0c481d295fd7f22f976422b/docs/Boilers.md",
+      "commit": "227c21a942211724f0c481d295fd7f22f976422b",
+      "sha256": "c58268b5449592ad87d5bf12512498fc37d45463c744f2fc070b345b6cad5674",
+      "documented_groups": 28
+    }
+  },
+  "models": [
+    {
+      "id": "none",
+      "name": "No boiler selected yet",
+      "kind": "none",
+      "image": null,
+      "source": "local"
+    },
+    {
+      "id": "nefit-ecomline-classic",
+      "name": "Nefit Ecomline Classic",
+      "kind": "local",
+      "image": "https://raw.githubusercontent.com/dielessen/open_thermostat/main/public/boilers/images/nefit-ecomline.svg",
+      "source": "local"
+    },
+    {
+      "id": "nefit-ecomline-classic-hrc-22h",
+      "name": "Nefit Ecomline Classic HRC 22H",
+      "kind": "local",
+      "image": "https://raw.githubusercontent.com/dielessen/open_thermostat/main/public/boilers/images/nefit-ecomline.svg",
+      "source": "local"
+    },
+    {
+      "id": "emsesp-product-8",
+      "name": "CS5800i, CS6800i, WLW176i, WLW186i",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 8,
+      "upstream_flag": "EMS_DEVICE_FLAG_CS6800",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-11",
+      "name": "Greenstar 2000",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 11,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-12",
+      "name": "C1200W",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 12,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-16",
+      "name": "CS5800iG",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 16,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-64",
+      "name": "BK13/BK15, Smartline, GB1*2",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 64,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-72",
+      "name": "Logano GB1*5, Logamatic MC10",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 72,
+      "upstream_flag": "EMS_DEVICE_FLAG_EMS",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-81",
+      "name": "Cascade CM10",
+      "kind": "module",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 81,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-84",
+      "name": "Logamax Plus GB022",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 84,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-95",
+      "name": "Condens, Logamax/Logomatic, Cerapur Top, Greenstar, Generic HT3",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 95,
+      "upstream_flag": "EMS_DEVICE_FLAG_HT3",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-115",
+      "name": "Topline, GB162",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 115,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-121",
+      "name": "Cascade MCM10",
+      "kind": "module",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 121,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-122",
+      "name": "Proline",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 122,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-123",
+      "name": "GB*72, Trendline, Cerapur, Greenstar Si",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 123,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-131",
+      "name": "GB212",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 131,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-132",
+      "name": "GC7000F",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 132,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-133",
+      "name": "Logano GB125/KB195i, Logamatic MC110",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 133,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-154",
+      "name": "Greenstar 30Ri Compact",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 154,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-155",
+      "name": "Suprapur-o",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 155,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-167",
+      "name": "Cerapur Aero",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 167,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-168",
+      "name": "Hybrid Heatpump",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 168,
+      "upstream_flag": "EMS_DEVICE_FLAG_HYBRID",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-170",
+      "name": "Logano GB212",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 170,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-172",
+      "name": "Enviline, Compress 6000AW, Hybrid 3000-7000iAW, SupraEco/Geo 5xx, WLW196i/WSW196i",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 172,
+      "upstream_flag": "EMS_DEVICE_FLAG_HEATPUMP",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-173",
+      "name": "Geo 5xx",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 173,
+      "upstream_flag": "EMS_DEVICE_FLAG_HEATPUMP",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-195",
+      "name": "Condens 5000i, Greenstar 8000/GC9800IW, GB192i*2",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 195,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-203",
+      "name": "Logamax U122, Cerapur",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 203,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-206",
+      "name": "Ecomline Excellent",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 206,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-208",
+      "name": "Logamax Plus, GB192, Condens GC9000, Greenstar ErP",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 208,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-210",
+      "name": "Cascade MC400",
+      "kind": "module",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 210,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-211",
+      "name": "EasyControl Adapter",
+      "kind": "module",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 211,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-219",
+      "name": "Greenstar HIU, Logamax kompakt WS170",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 219,
+      "upstream_flag": "EMS_DEVICE_FLAG_HIU",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-product-234",
+      "name": "Logamax Plus GB122, Condense 2300, Junkers Cerapur GC2200W",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 234,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-bk13-bk15",
+      "name": "BK13, BK15",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-gb125-gb135-gb1x2i-gb162-gbx72-gb212-gb162-gb192",
+      "name": "GB125, GB135, GB1x2i, GB162, GBx72, GB212, GB162, GB192, GB122, GB192i.2",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-mc10",
+      "name": "MC10",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-cascade-cm10-mc400",
+      "name": "Cascade CM10, MC400",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-logano",
+      "name": "Logano",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-logamax-plus-gb022-u122",
+      "name": "Logamax Plus GB022, U122",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-logamatic-mc10-mc110",
+      "name": "Logamatic MC10, MC110",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-condens-2500-gc9000",
+      "name": "Condens 2500, GC9000",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-bosch-junkers-cerapur-gc2200w",
+      "name": "Bosch/Junkers Cerapur GC2200W",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-logomatic",
+      "name": "Logomatic",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-bosch-junkers-cerapur-top-aero",
+      "name": "Bosch/Junkers Cerapur Top, Aero",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-bosch-junkers-cerapur-zsb-14-3-a",
+      "name": "Bosch/Junkers Cerapur ZSB 14-3 A",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-greenstar-si-30ri-compact-erp-hiu-8000",
+      "name": "Greenstar Si, 30Ri Compact, ErP, HIU, 8000",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-nefit-topline-trendline",
+      "name": "Nefit Topline, Trendline",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-nefit-proline",
+      "name": "Nefit Proline",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-nefit-smartline",
+      "name": "Nefit Smartline",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-gc7000f-gc700iw-gc9800iw",
+      "name": "GC7000F, GC700iW, GC9800IW",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-kb195i",
+      "name": "KB195i",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-enviline",
+      "name": "Enviline",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-compress-6000aw",
+      "name": "Compress 6000AW",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-hybrid-3000-7000iaw",
+      "name": "Hybrid 3000-7000iAW",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-supraeco",
+      "name": "SupraEco",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-wlw196i-wsw196i",
+      "name": "WLW196i, WSW196i",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    },
+    {
+      "id": "emsesp-doc-condens-2300-5000i",
+      "name": "Condens 2300, 5000i",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only"
+    }
+  ]
+}

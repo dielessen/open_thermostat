@@ -1,12 +1,24 @@
 'use strict';
 (() => {
-    const models = Object.freeze({
-        none: {name: uiText("No boiler selected yet")},
-        'nefit-ecomline-classic': {name: 'Nefit Ecomline Classic', image: '/boiler-nefit-ecomline.svg',
-            note: uiText("Classic monitoring via the Bosch EasyControl Adapter; control is still in beta development.")},
-        'nefit-ecomline-classic-hrc-22h': {name: 'Nefit Ecomline Classic HRC 22H', image: '/boiler-nefit-ecomline.svg',
-            note: uiText("Classic monitoring via the Bosch EasyControl Adapter; control is still in beta development.")},
-    });
+    // BEGIN GENERATED BOILER CATALOG
+    const catalog = [{"id":"none","name":"No boiler selected yet","kind":"none","image":null},{"id":"nefit-ecomline-classic","name":"Nefit Ecomline Classic","kind":"local","image":"https://raw.githubusercontent.com/dielessen/open_thermostat/main/public/boilers/images/nefit-ecomline.svg"},{"id":"nefit-ecomline-classic-hrc-22h","name":"Nefit Ecomline Classic HRC 22H","kind":"local","image":"https://raw.githubusercontent.com/dielessen/open_thermostat/main/public/boilers/images/nefit-ecomline.svg"},{"id":"emsesp-product-8","name":"CS5800i, CS6800i, WLW176i, WLW186i","kind":"heatpump","image":null},{"id":"emsesp-product-11","name":"Greenstar 2000","kind":"family","image":null},{"id":"emsesp-product-12","name":"C1200W","kind":"family","image":null},{"id":"emsesp-product-16","name":"CS5800iG","kind":"family","image":null},{"id":"emsesp-product-64","name":"BK13/BK15, Smartline, GB1*2","kind":"family","image":null},{"id":"emsesp-product-72","name":"Logano GB1*5, Logamatic MC10","kind":"family","image":null},{"id":"emsesp-product-81","name":"Cascade CM10","kind":"module","image":null},{"id":"emsesp-product-84","name":"Logamax Plus GB022","kind":"family","image":null},{"id":"emsesp-product-95","name":"Condens, Logamax/Logomatic, Cerapur Top, Greenstar, Generic HT3","kind":"family","image":null},{"id":"emsesp-product-115","name":"Topline, GB162","kind":"family","image":null},{"id":"emsesp-product-121","name":"Cascade MCM10","kind":"module","image":null},{"id":"emsesp-product-122","name":"Proline","kind":"family","image":null},{"id":"emsesp-product-123","name":"GB*72, Trendline, Cerapur, Greenstar Si","kind":"family","image":null},{"id":"emsesp-product-131","name":"GB212","kind":"family","image":null},{"id":"emsesp-product-132","name":"GC7000F","kind":"family","image":null},{"id":"emsesp-product-133","name":"Logano GB125/KB195i, Logamatic MC110","kind":"family","image":null},{"id":"emsesp-product-154","name":"Greenstar 30Ri Compact","kind":"family","image":null},{"id":"emsesp-product-155","name":"Suprapur-o","kind":"family","image":null},{"id":"emsesp-product-167","name":"Cerapur Aero","kind":"family","image":null},{"id":"emsesp-product-168","name":"Hybrid Heatpump","kind":"heatpump","image":null},{"id":"emsesp-product-170","name":"Logano GB212","kind":"family","image":null},{"id":"emsesp-product-172","name":"Enviline, Compress 6000AW, Hybrid 3000-7000iAW, SupraEco/Geo 5xx, WLW196i/WSW196i","kind":"heatpump","image":null},{"id":"emsesp-product-173","name":"Geo 5xx","kind":"heatpump","image":null},{"id":"emsesp-product-195","name":"Condens 5000i, Greenstar 8000/GC9800IW, GB192i*2","kind":"family","image":null},{"id":"emsesp-product-203","name":"Logamax U122, Cerapur","kind":"family","image":null},{"id":"emsesp-product-206","name":"Ecomline Excellent","kind":"family","image":null},{"id":"emsesp-product-208","name":"Logamax Plus, GB192, Condens GC9000, Greenstar ErP","kind":"family","image":null},{"id":"emsesp-product-210","name":"Cascade MC400","kind":"module","image":null},{"id":"emsesp-product-211","name":"EasyControl Adapter","kind":"module","image":null},{"id":"emsesp-product-219","name":"Greenstar HIU, Logamax kompakt WS170","kind":"family","image":null},{"id":"emsesp-product-234","name":"Logamax Plus GB122, Condense 2300, Junkers Cerapur GC2200W","kind":"family","image":null},{"id":"emsesp-doc-bk13-bk15","name":"BK13, BK15","kind":"family","image":null},{"id":"emsesp-doc-gb125-gb135-gb1x2i-gb162-gbx72-gb212-gb162-gb192","name":"GB125, GB135, GB1x2i, GB162, GBx72, GB212, GB162, GB192, GB122, GB192i.2","kind":"family","image":null},{"id":"emsesp-doc-mc10","name":"MC10","kind":"family","image":null},{"id":"emsesp-doc-cascade-cm10-mc400","name":"Cascade CM10, MC400","kind":"family","image":null},{"id":"emsesp-doc-logano","name":"Logano","kind":"family","image":null},{"id":"emsesp-doc-logamax-plus-gb022-u122","name":"Logamax Plus GB022, U122","kind":"family","image":null},{"id":"emsesp-doc-logamatic-mc10-mc110","name":"Logamatic MC10, MC110","kind":"family","image":null},{"id":"emsesp-doc-condens-2500-gc9000","name":"Condens 2500, GC9000","kind":"family","image":null},{"id":"emsesp-doc-bosch-junkers-cerapur-gc2200w","name":"Bosch/Junkers Cerapur GC2200W","kind":"family","image":null},{"id":"emsesp-doc-logomatic","name":"Logomatic","kind":"family","image":null},{"id":"emsesp-doc-bosch-junkers-cerapur-top-aero","name":"Bosch/Junkers Cerapur Top, Aero","kind":"family","image":null},{"id":"emsesp-doc-bosch-junkers-cerapur-zsb-14-3-a","name":"Bosch/Junkers Cerapur ZSB 14-3 A","kind":"family","image":null},{"id":"emsesp-doc-greenstar-si-30ri-compact-erp-hiu-8000","name":"Greenstar Si, 30Ri Compact, ErP, HIU, 8000","kind":"family","image":null},{"id":"emsesp-doc-nefit-topline-trendline","name":"Nefit Topline, Trendline","kind":"family","image":null},{"id":"emsesp-doc-nefit-proline","name":"Nefit Proline","kind":"family","image":null},{"id":"emsesp-doc-nefit-smartline","name":"Nefit Smartline","kind":"family","image":null},{"id":"emsesp-doc-gc7000f-gc700iw-gc9800iw","name":"GC7000F, GC700iW, GC9800IW","kind":"family","image":null},{"id":"emsesp-doc-kb195i","name":"KB195i","kind":"family","image":null},{"id":"emsesp-doc-enviline","name":"Enviline","kind":"family","image":null},{"id":"emsesp-doc-compress-6000aw","name":"Compress 6000AW","kind":"family","image":null},{"id":"emsesp-doc-hybrid-3000-7000iaw","name":"Hybrid 3000-7000iAW","kind":"family","image":null},{"id":"emsesp-doc-supraeco","name":"SupraEco","kind":"family","image":null},{"id":"emsesp-doc-wlw196i-wsw196i","name":"WLW196i, WSW196i","kind":"family","image":null},{"id":"emsesp-doc-condens-2300-5000i","name":"Condens 2300, 5000i","kind":"family","image":null}];
+    // END GENERATED BOILER CATALOG
+    const models = Object.freeze(Object.fromEntries(catalog.map(model => [model.id, {
+        ...model,
+        name: model.id === 'none' ? uiText("No boiler selected yet") : model.name,
+        note: model.kind === 'local'
+            ? uiText("Classic monitoring via the Bosch EasyControl Adapter; control is still in beta development.")
+            : model.kind === 'none' ? '' : uiText("Listed by EMS-ESP. Monitoring and control in OpenThermostat have not been verified for this model.")
+    }])));
+    function appendPicture(parent, model, width, height) {
+        if (!model?.image) return;
+        const image = document.createElement('img');
+        image.alt = uiText("Illustration of the selected boiler");
+        image.width = width; image.height = height;
+        image.referrerPolicy = 'no-referrer';
+        image.addEventListener('error', () => image.remove(), {once: true});
+        image.src = model.image; parent.append(image);
+    }
     let selected = null, generation = 0;
     async function request(options={}) {
         const controller=new AbortController(),deadline=setTimeout(()=>controller.abort(),5000);
@@ -22,11 +34,7 @@
         if (!box) return;
         box.replaceChildren();
         const model = selected === null ? null : models[selected];
-        if (model?.image) {
-            const image = document.createElement('img');
-            image.src = model.image; image.alt = uiText("Illustration of a Nefit Ecomline Classic boiler");
-            image.width = 92; image.height = 140; box.append(image);
-        }
+        appendPicture(box, model, 92, 140);
         const text = document.createElement('div'), title = document.createElement('h2');
         title.textContent = model ? model.name : uiText("Boiler selection unavailable");
         text.append(title);
@@ -60,14 +68,26 @@
         const message = root.querySelector('[role=status]'), preview = root.querySelector('figure');
         function picture() {
             preview.replaceChildren(); const model = models[select.value];
-            if (model?.image) {
-                const image = document.createElement('img');image.src = model.image;
-                image.alt = uiText("Illustration of the selected boiler");image.width = 130;image.height = 198;
-                preview.append(image);
-            }
+            appendPicture(preview, model, 130, 198);
+            const note = document.createElement('figcaption');
+            note.textContent = model?.note || '';
+            preview.append(note);
         }
+        const groups = new Map();
+        const groupLabels = {
+            local: uiText("Existing local models"),
+            family: uiText("EMS-ESP model families"),
+            heatpump: uiText("EMS-ESP heat pumps"),
+            module: uiText("EMS-ESP modules and adapters")
+        };
         for (const [id,model] of Object.entries(models)) {
-            const option = document.createElement('option');option.value=id;option.textContent=model.name;select.append(option);
+            const option = document.createElement('option');option.value=id;option.textContent=model.name;
+            if (model.kind === 'none') {select.append(option);continue;}
+            if (!groups.has(model.kind)) {
+                const group = document.createElement('optgroup');group.label = groupLabels[model.kind];
+                groups.set(model.kind,group);select.append(group);
+            }
+            groups.get(model.kind).append(option);
         }
         select.addEventListener('change',picture);
         root.addEventListener('submit',async event => {

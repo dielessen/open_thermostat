@@ -33,6 +33,15 @@ publiek pakket/Git en alle instellingen, programma's, koppelingen en kaarten beh
 E32 alpha31 blijft op dezelfde boot; alpha34 is gepubliceerd, zonder firmwareactie.
 [Installatie en bewijs](INSTALLATIE-HA47-ALPHA34-20261025.nl.md).
 
+## Voor volgende release — navigatie en modelcatalogus
+
+About staat na Settings. De modellenkeuze bevat nu58 selecties met alle31
+EMS-ESP-productgroepen en aanvullende officiële ketelvermeldingen. Afbeeldingen
+staan publiek buiten de ESP; de compacte catalogus en opgeslagen keuze werken
+zonder internet. Nieuwe vermeldingen activeren geen driver of zendprofiel.
+Ontbrekende modelafbeeldingen blijven leeg. [Hosting en profielontwerp](KETELCATALOGUS.nl.md).
+Deze wijzigingen zijn nog niet op de module geïnstalleerd.
+
 ## Meegeleverd in HA48 / alpha35 — bewijs en beperkingen
 
 De native afsluitroute ruimt de overige eigen handles, worker en wachtrij ook

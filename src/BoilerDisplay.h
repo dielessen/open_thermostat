@@ -1,5 +1,6 @@
 #pragma once
 #include <nvs.h>
+#include "BoilerDisplayModels.h"
 #include <optional>
 #include <string>
 #include <string_view>
@@ -7,8 +8,8 @@
 namespace heating {
 // Presentation only. No controller, EMS address, limits or driver dependency.
 inline bool validBoilerDisplayModel(std::string_view model) {
-    return model == "none" || model == "nefit-ecomline-classic"
-        || model == "nefit-ecomline-classic-hrc-22h";
+    for (const auto id : boilerDisplayModelIds) if (model == id) return true;
+    return false;
 }
 inline std::optional<std::string> readBoilerDisplayModel() {
     nvs_handle_t handle;

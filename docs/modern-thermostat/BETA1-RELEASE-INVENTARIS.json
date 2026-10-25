@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "14b1a420e103474d811ea5052c939a168e8afad395b4451101fe4c28bb36a2fc"
+          "sha256": "1b28178272d547b4146d401651680efda1d00bc9c7e731c806d88f386a2a80ee"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
@@ -161,7 +161,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "14b1a420e103474d811ea5052c939a168e8afad395b4451101fe4c28bb36a2fc"
+          "sha256": "1b28178272d547b4146d401651680efda1d00bc9c7e731c806d88f386a2a80ee"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -181,7 +181,7 @@
         },
         {
           "path": "data/html/index.html",
-          "sha256": "8398958e6f673edab676ce24e35fc2dcebdd89283ec51b2dcb13ebae67ce630a"
+          "sha256": "bcdf14c7a1fcd35f806d2076fe1e806a48c9e5b9aaf9fd2e7511b7f832e822a9"
         },
         {
           "path": "data/html/device-restart.js",
@@ -189,23 +189,23 @@
         },
         {
           "path": "src/BoilerDisplay.h",
-          "sha256": "eabe83fb2998925d5b79644cd5670533a1b4303f3d81b96a26cf087f29069302"
+          "sha256": "49aafa5ee989950b4f6703cf39dcfb9bed50fe8e1f1790cc4b7f0d9f73ad57c4"
         },
         {
           "path": "data/html/boiler-display.js",
-          "sha256": "500783abd74533897530ff1042f5bc164faeba00fe16e6922cbc7046357b3324"
+          "sha256": "e785e0fe2bb8023592e31676846631fd2939f872fedcffa9d031063008a6e61d"
         },
         {
           "path": "data/html/boiler_display.html",
-          "sha256": "fc28fddcb95b87d10b903968dabb34bd58889017804281148953792b2f712b1e"
+          "sha256": "80ee528da23448e954feee0ca61cc4c67cb7222d49f34a74cbb9dcf708ac96ab"
         },
         {
-          "path": "data/html/boiler-nefit-ecomline.svg",
+          "path": "public/boilers/images/nefit-ecomline.svg",
           "sha256": "88b80e2e76345e34960afa9724ac1d356df2a2cda99d94d00d44c287412d0fef"
         },
         {
           "path": "test/boiler_display/firmware.cpp",
-          "sha256": "596d51d79f08ae9924fb7f8fe108412fdd35aefb717ab656e75cbe02c4d838d0"
+          "sha256": "83651704563f12cf50babd2f233b9aa814040a41297c83f9f8c72748c613b86e"
         },
         {
           "path": "test/boiler_display/include/nvs.h",
@@ -213,11 +213,11 @@
         },
         {
           "path": "test/boiler-display-browser.cjs",
-          "sha256": "030281ec2087dc1bfb039b2071710093a9f9783c73b1c1c5501926764d56f20a"
+          "sha256": "01b195244510b77b1db981b0628500e0e7dd3ec7c50f254a0ecb8d1194ee73e3"
         },
         {
           "path": "platformio.ini",
-          "sha256": "609149d24e0d8c8dcab13c72c6b0e7768f17fc3eb66bdcaebb247c5fd99b8020"
+          "sha256": "08314d1ee42a127fa9edc9a15fe6524bd2af936fb14fc7d4b92e446aa8b07e2d"
         },
         {
           "path": "data/html/curve.html",
@@ -329,7 +329,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "42ccb40380cb3b612480eb98719809c7a8d920b57c10d380b1d4d94d1b8eb3b9"
+          "sha256": "4da6bca47fd571025ae7dbb31f5fa1423dff428a37b4f659eecc56d740060e69"
         },
         {
           "path": "data/html/ui-language.js",
@@ -357,10 +357,26 @@
         },
         {
           "path": "docs/modern-thermostat/boiler-profiles/nefit-ecomline-classic-hrc-22h.json",
-          "sha256": "9d7f05a1a6399b6ff54d7afd8407b98314fef298626c4f0e53f4b843f7339319"
+          "sha256": "1787dc7fc40dd155bb3d0a91f0ff85909001875ea384e1303fce54cc93391dad"
+        },
+        {
+          "path": "public/boilers/catalog-v1.json",
+          "sha256": "9bc13dca118d6378e42264e15104033b2e6184c8fe2979a7a2d86d03aaeb4478"
+        },
+        {
+          "path": "src/BoilerDisplayModels.h",
+          "sha256": "8a1aff56f4ef2d6eb5e2100a0110966f55057b27817ec9d0eae2538fa265d0e7"
+        },
+        {
+          "path": "scripts/generate_boiler_catalog.py",
+          "sha256": "676d444ad59a167d447e93bbc44e0a8936500bd41daca885e10a7caff4d001fc"
+        },
+        {
+          "path": "docs/modern-thermostat/KETELCATALOGUS.nl.md",
+          "sha256": "67a676b15da2ca1c503094e1e04093940918960edd9dccc45114bc9f2e44fea2"
         }
       ],
-      "remaining_acceptance": "HRC22H/modelkeuze, EN/NL, About/navigatie en incrementeel dashboard geleverd in alpha23/HA29. Normale HTTPS-update, exacte running-ELF/web/source en modelreadback geverifieerd. Shipped-browserproeven bewijzen behoud van openstatus/focus/scroll; op de module zijn exacte geserveerde webbytes bewezen, geen live browserpixels. Modelkeuze verandert geen decoder/adressen/ontvangst/aansturing en verleent geen technische ketelvrijgave. Lange beheer-/herstel- en fysieke kwalificatie blijven afzonderlijk open."
+      "remaining_acceptance": "HRC22H/modelkeuze, EN/NL, About/navigatie en incrementeel dashboard geleverd in alpha23/HA29. Normale HTTPS-update, exacte running-ELF/web/source en modelreadback geverifieerd. Shipped-browserproeven bewijzen behoud van openstatus/focus/scroll; op de module zijn exacte geserveerde webbytes bewezen, geen live browserpixels. Modelkeuze verandert geen decoder/adressen/ontvangst/aansturing en verleent geen technische ketelvrijgave. Lange beheer-/herstel- en fysieke kwalificatie blijven afzonderlijk open. Voor volgende release:58 presentatiekeuzes uit31 EMS-ESP-productgroepen plus officiële keteldocumentatie; bronverwijzingen behouden, afbeelding buiten ESP. Nieuwe modellen niet als ondersteunde driver gekwalificeerd; modelafbeeldingen en functionele profielimport/opslag nog open."
     },
     {
       "id": "I06",
@@ -571,11 +587,11 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "14b1a420e103474d811ea5052c939a168e8afad395b4451101fe4c28bb36a2fc"
+          "sha256": "1b28178272d547b4146d401651680efda1d00bc9c7e731c806d88f386a2a80ee"
         },
         {
           "path": "platformio.ini",
-          "sha256": "609149d24e0d8c8dcab13c72c6b0e7768f17fc3eb66bdcaebb247c5fd99b8020"
+          "sha256": "08314d1ee42a127fa9edc9a15fe6524bd2af936fb14fc7d4b92e446aa8b07e2d"
         },
         {
           "path": "src/main.cpp",
@@ -591,11 +607,11 @@
         },
         {
           "path": "data/html/index.html",
-          "sha256": "8398958e6f673edab676ce24e35fc2dcebdd89283ec51b2dcb13ebae67ce630a"
+          "sha256": "bcdf14c7a1fcd35f806d2076fe1e806a48c9e5b9aaf9fd2e7511b7f832e822a9"
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "42ccb40380cb3b612480eb98719809c7a8d920b57c10d380b1d4d94d1b8eb3b9"
+          "sha256": "4da6bca47fd571025ae7dbb31f5fa1423dff428a37b4f659eecc56d740060e69"
         },
         {
           "path": "data/html/system-log.js",

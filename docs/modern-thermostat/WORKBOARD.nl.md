@@ -20,6 +20,16 @@ module alpha31 blijft behouden. Uploadgate en actieve bèta blijven **NOT_READY*
 Alle 23 onderdelen, 289 bronverwijzingen en 31 eisen blijven behouden.
 [Installatie, aparte nacontrole en grenzen](INSTALLATIE-HA48-ALPHA35-20261025.nl.md).
 
+## Voor volgende release — publieke ketelcatalogus
+
+About staat direct na Settings. Alle31 BOILER-productgroepen uit de vastgelegde
+EMS-ESP-bron plus officiële documentatievermeldingen staan in een catalogus van
+58 selecties. Alleen compacte weergavegegevens staan in de firmware; afbeeldingen
+staan onder public en worden door de browser geladen. Geen cloudafhankelijkheid
+voor bediening en geen automatische driver-/regelprofielwissel. Foto's voor de
+nieuwe modellen en functionele profielimport blijven open.
+[Ontwerp en grenzen](KETELCATALOGUS.nl.md). Geen firmware- of HA-installatie.
+
 ## Historische release HA47 / E32 alpha34 — gepubliceerd en HA geïnstalleerd
 
 Beide onveranderlijke tags staan op bron `6f21f34`. Alle toepasselijke main-/tag-CI,

@@ -3,12 +3,20 @@ const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html');
 const output=path.resolve(process.env.OPENTHERMOSTAT_BOILER_DISPLAY_EVIDENCE||path.join(__dirname,'../out/boiler-display-browser'));
+const catalog=JSON.parse(fs.readFileSync(path.resolve(__dirname,'../public/boilers/catalog-v1.json')));
+const imageURL=catalog.models.find(m=>m.id==='nefit-ecomline-classic').image;
 const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}};
 (async()=>{
  fs.mkdirSync(output,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});const results=[];
  try{for(const [name,viewport] of [['desktop',{width:1440,height:1000}],['mobile',{width:390,height:844}],['narrow',{width:320,height:844}],['narrow-wide-font',{width:320,height:844}]]){
-  const page=await browser.newPage({viewport});const errors=[],requests=[];let stored='none',failSave=false,invalidRead=false,echoOnly=false,holdReadback=false,heldReadback=null;
+  const page=await browser.newPage({viewport});const errors=[],requests=[];let stored='none',failSave=false,invalidRead=false,echoOnly=false,holdReadback=false,heldReadback=null,imagesOffline=false;
   page.on('pageerror',error=>errors.push(error.message));
+  await page.route('https://raw.githubusercontent.com/**',route=>{
+   assert.equal(route.request().url(),imageURL);
+   assert.equal(route.request().method(),'GET');
+   assert.equal(route.request().headers().referer,undefined);
+   return imagesOffline?route.abort():route.fulfill({contentType:'image/svg+xml',body:fs.readFileSync(path.resolve(__dirname,'../public/boilers/images/nefit-ecomline.svg'))});
+  });
   await page.route('http://opth.test/**',async route=>{
    const request=route.request(),url=new URL(request.url()),p=url.pathname;
    requests.push({path:p,method:request.method(),csrf:request.headers()['x-openthermostat-csrf']});
@@ -19,7 +27,7 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
     if(request.method()==='POST'){
      if(failSave)return route.fulfill({status:503,body:'storage failure'});
      const body=request.postDataJSON();assert.deepEqual(Object.keys(body),['model']);
-     assert(['none','nefit-ecomline-classic','nefit-ecomline-classic-hrc-22h'].includes(body.model));if(echoOnly)return route.fulfill({contentType:'application/json',body:JSON.stringify({model:body.model})});stored=body.model;
+     assert(catalog.models.some(m=>m.id===body.model));if(echoOnly)return route.fulfill({contentType:'application/json',body:JSON.stringify({model:body.model})});stored=body.model;
     }
     return route.fulfill({contentType:'application/json',body:JSON.stringify({model:invalidRead?'<img src=https://foreign.test/p.png>':stored})});
    }
@@ -34,9 +42,9 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
   assert.match(await page.locator('#boiler-home').innerText(),/Nog geen ketel gekozen/);
   assert.equal(await page.locator('#boiler-home img').count(),0);
   await page.locator('#boiler-home a').click();await page.locator('#boiler-model:enabled').waitFor();
-  assert.equal(await page.locator('#boiler-model option').count(),3);
+  assert.equal(await page.locator('#boiler-model option').count(),catalog.models.length);
   await page.locator('#boiler-model').selectOption('nefit-ecomline-classic-hrc-22h');
-  assert.equal(await page.locator('figure img').getAttribute('src'),'/boiler-nefit-ecomline.svg');
+  assert.equal(await page.locator('figure img').getAttribute('src'),imageURL);
   await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).click();
   await page.getByRole('status').filter({hasText:'Ketelkeuze opgeslagen'}).waitFor();
   assert.equal(stored,'nefit-ecomline-classic-hrc-22h');
@@ -84,6 +92,21 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
    assert.equal(requests.filter(r=>r.method==='POST').length,beforeTimeout+1,'lost readback retried a mutation');
    holdReadback=false;await heldReadback.fulfill({contentType:'application/json',body:JSON.stringify({model:stored})});
   }
+  // A newly catalogued model persists without fetching any remote profile or image.
+  await page.evaluate(()=>loadNativePage('boiler_display'));await page.locator('#boiler-model:enabled').waitFor();
+  await page.locator('#boiler-model').selectOption('emsesp-product-195');
+  assert.match(await page.locator('figure').innerText(),/nog niet gecontroleerd/);
+  await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).click();
+  await page.getByRole('status').filter({hasText:'Ketelkeuze opgeslagen'}).waitFor();
+  await page.reload();await page.getByRole('heading',{name:catalog.models.find(m=>m.id==='emsesp-product-195').name,exact:true}).waitFor();
+  assert.equal(await page.locator('#boiler-home img').count(),0);
+  // Unavailable public image never disables selection or the local dashboard.
+  imagesOffline=true;stored='nefit-ecomline-classic';await page.reload();
+  await page.getByRole('heading',{name:'Nefit Ecomline Classic',exact:true}).waitFor();
+  await page.waitForFunction(()=>!document.querySelector('#boiler-home img'));
+  await page.locator('#boiler-home a').click();await page.locator('#boiler-model:enabled').waitFor();
+  assert.equal(await page.locator('#boiler-model').inputValue(),'nefit-ecomline-classic');
+  assert.equal(await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).isEnabled(),true);
   invalidRead=true;await page.reload();
   await page.getByRole('heading',{name:'Ketelkeuze niet beschikbaar'}).waitFor();
   assert.equal(await page.locator('#boiler-home img').count(),0);

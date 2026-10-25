@@ -36,6 +36,10 @@ int main() {
     assert(readBoilerDisplayModel()=="nefit-ecomline-classic");
     assert(saveBoilerDisplayModel("nefit-ecomline-classic-hrc-22h"));
     assert(readBoilerDisplayModel()=="nefit-ecomline-classic-hrc-22h");
+    for (const auto id : boilerDisplayModelIds) {
+        assert(saveBoilerDisplayModel(std::string(id)));
+        assert(readBoilerDisplayModel()==id);
+    }
     const auto previous=stored;const auto count=writes;
     assert(!saveBoilerDisplayModel("unreviewed-model")&&writes==count&&stored==previous);
     commitError=true;assert(!saveBoilerDisplayModel("none"));commitError=false;

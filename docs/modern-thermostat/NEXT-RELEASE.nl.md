@@ -27,12 +27,12 @@ Ongeldige kamerwaarden en te grote getallen verstoren de statusverwerking niet.
 Zie [het werkbord](WORKBOARD.nl.md) en [CSV-gebruik](HISTORIE-EXPORT.nl.md).
 Dit is nog geen gepubliceerde of geïnstalleerde versie.
 
-Ook de normale E32-pagina voor Bluetoothapparaten en lokale SBHT-103C-
-diagnoseontvangst is aangesloten, met echte AES-CCM, verborgen bindkeys,
+Ook de normale E32-pagina voor Bluetoothapparaten en lokale SBHT-103C-/
+MJWSD05MMC-diagnoseontvangst is aangesloten, met echte AES-CCM, verborgen bindkeys,
 begrensde privéopslag/wachtrij en ontvangstleeftijden. De sleutels staan buiten
 het netwerkdocument, zodat ook de oudere netwerkreader ze na rollback niet kan
 terugsturen. Dit levert nog geen
-gekwalificeerde regelbron; Xiaomi/TRV en zelfstandig regelen blijven open.
+gekwalificeerde regelbron; fysieke sensoracceptatie, TRV en zelfstandig regelen blijven open.
 [Uitvoering en grenzen](BLUETOOTH-APPARATEN.nl.md).
 
 ## GitHub-releasenotities — alle bestaande versies bijgewerkt
@@ -400,7 +400,7 @@ vloer/menger, grafiek-/historieacceptatie, comfort en onbeheerd verwarmingsbedri
 houden hun eigen acceptatievoorwaarden. Niets wordt op basis van alleen aanwezige
 code of een geslaagde build als werkende fysieke functie afgevinkt.
 
-## 7. Nieuwe extra functie: direct BLE / zelfstandige E32
+## 7. Historisch X01-ontwerp — actuele uitvoering bovenaan
 
 [Uitbreiding X01](SHELLY-BLU-TRV-STANDALONE.nl.md) voegt Shelly BLU TRV via
 Bluetooth en een expliciete lokale E32-modus toe aan het ontwikkelplan. De
@@ -408,12 +408,16 @@ bestaande HA-functies blijven behouden. Haalbaarheid onderzocht met officiële
 GATT-documentatie; nog geen driver, koppeling of lokale regelvrijgave geleverd.
 Eerst één kraan uitlezen en zonder ketel kwalificeren, daarna lokale
 programmering/eigendom/opslag/tijd en de bestaande stop-/uitvalvoorwaarden verbinden.
-Dit wijzigt de laatst gecontroleerde installatie HA38/E32 alpha28 niet en is geen nieuwe release.
+Deze oorspronkelijke ontwerpuitbreiding wijzigde destijds HA38/E32 alpha28 niet
+en was geen nieuwe release. De actuele basis en nieuwe software staan bovenaan.
 
 X01 omvat ook de Shelly BLU H&T Display ZB (SBHT-103C) en een tweetalige
 [Bluetooth-apparaatpagina onder Settings](BLUETOOTH-APPARATEN.nl.md): vinden,
 beveiligd toevoegen waar nodig, kamertoewijzing en meetkwaliteit/uitval zichtbaar.
-Dit onderdeel is ontworpen, nog niet gebouwd of op echte apparaten getest.
+Dit was de ontwerpstand bij HA38. In de ongepubliceerde grote bèta zijn
+instellingen, private sleutels en lokale Shelly-/Xiaomi-diagnoseontvangst inmiddels
+aangesloten. Kamertoewijzing als gekwalificeerde regelbron en echte apparaatproeven
+blijven open; de actuele stand staat bovenaan en op het werkbord.
 
 Ook opgenomen in X01: Xiaomi Smart Temperature and Humidity Monitor 3
 (MJWSD05MMC), via dezelfde Bluetooth-pagina. Versleutelde ontvangst vereist
@@ -433,7 +437,8 @@ geïnstalleerd, E32 alpha29 nog niet. Alle 23 voorbereide onderdelen behouden.
 2189 tests per Core-versie en vier browserregressies geslaagd; publieke pakketten
 exact gecontroleerd. Hoogste prioriteit is offline onderzoek van de mislukte
 E32-upload en een onderbouwde herstelroute. Zie het actuele installatieverslag.
-Geen actieve bèta of werkende Shelly-/Xiaomi-driver claimen.
+Bij deze historische uitgave was nog geen aangesloten Shelly-/Xiaomi-driver
+beschikbaar. Dit is geen actuele uitspraak over de ongepubliceerde bètabron.
 
 ## Voorbereid voor de volgende gezamenlijke bundel
 

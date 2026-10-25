@@ -3,26 +3,12 @@
 #include <cstdint>
 #include <optional>
 #include "BthomeV2Codec.h"
+#include "BleSensorFrame.h"
 
 namespace heating::control {
 
-enum class ShellyHtFrameStatus { not_present, malformed, key_required, decoded,
-    encryption_required, authentication_failed, crypto_unavailable };
-
-// Prepared SBHT-103C wire subset, NOT selected by the normal BLE reader.
-// No state/cache, address binding, replay/authentication or acquisition proof.
-// Even F0 is a broadcast declaration, not authenticated device identity.
-struct ShellyHtDisplayFrame {
-    ShellyHtFrameStatus status = ShellyHtFrameStatus::not_present;
-    bool triggerBased = false;
-    bool authenticated = false; // message integrity only, never measurement/actuation qualification
-    std::optional<uint32_t> encryptionCounter;
-    std::optional<uint8_t> packetId, battery, lightLevel, button;
-    std::optional<bool> batteryLow, light;
-    std::optional<int16_t> temperature, humidity; // hundredths C / percent
-    std::optional<uint16_t> declaredDeviceType;
-    std::optional<uint32_t> firmware32, firmware24; // raw separate declarations
-};
+using ShellyHtFrameStatus = BleSensorFrameStatus;
+using ShellyHtDisplayFrame = BleSensorFrame;
 
 // Strict object parser for an already opened service. An advertisement/nonce
 // counter is not proof of a new physical acquisition.

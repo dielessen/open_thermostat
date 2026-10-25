@@ -167,3 +167,20 @@ TEST(BleDeviceSettings, EightMaximumLengthEncryptedBindingsFitThePrivateStore) {
     ASSERT_EQ(readManagedBleBindings(candidate.get(),restored),BleSettingsError::none);EXPECT_TRUE(next.same(restored));
     for(unsigned i=0;i<8;++i){EXPECT_TRUE(restored.devices[i].hasKey);EXPECT_EQ(std::string(restored.devices[i].name.data()).size(),40u);}
 }
+TEST(BleDeviceSettings, Monitor3HasItsOwnExplicitProfileAndEncryptionAndRoundtripsPrivately) {
+    auto old=json("{\"bt\":{}}");auto patch=request();auto row=cJSON_GetArrayItem(cJSON_GetObjectItemCaseSensitive(patch.get(),"devices"),0);
+    cJSON_ReplaceItemInObjectCaseSensitive(row,"profile",cJSON_CreateString("xiaomi_monitor_3"));
+    cJSON_ReplaceItemInObjectCaseSensitive(row,"encryption",cJSON_CreateString("mibeacon_v4_v5"));
+    ManagedBleBindings next,restored;ControlJson candidate(nullptr,cJSON_Delete);bool changed=false;
+    ASSERT_EQ(prepareManagedBleSettings(old.get(),patch.get(),next,candidate,changed),BleSettingsError::none);
+    ASSERT_EQ(readManagedBleBindings(candidate.get(),restored),BleSettingsError::none);EXPECT_TRUE(next.same(restored));
+    EXPECT_EQ(restored.devices[0].profile,ManagedBleProfile::xiaomiMonitor3);EXPECT_EQ(restored.devices[0].encryption,ManagedBleEncryption::miBeaconV4V5);EXPECT_TRUE(restored.devices[0].hasKey);
+    const auto publicData=publicManagedBleBindings(restored);ASSERT_TRUE(publicData);const auto projected=text(publicData.get());EXPECT_NE(projected.find("xiaomi_monitor_3"),std::string::npos);EXPECT_EQ(projected.find(publicKey),std::string::npos);
+    for(auto wrong:{"none","bthome_v2"}){cJSON_ReplaceItemInObjectCaseSensitive(row,"encryption",cJSON_CreateString(wrong));EXPECT_EQ(prepareManagedBleSettings(old.get(),patch.get(),next,candidate,changed),BleSettingsError::invalid_encryption);EXPECT_FALSE(candidate);}
+}
+TEST(BleDeviceSettings, AProfileSwitchNeverCopiesTheOtherProtocolsStoredKey) {
+    auto old=configured();auto patch=request("keep");auto row=cJSON_GetArrayItem(cJSON_GetObjectItemCaseSensitive(patch.get(),"devices"),0);
+    cJSON_ReplaceItemInObjectCaseSensitive(row,"profile",cJSON_CreateString("xiaomi_monitor_3"));cJSON_ReplaceItemInObjectCaseSensitive(row,"encryption",cJSON_CreateString("mibeacon_v4_v5"));
+    ManagedBleBindings next;ControlJson candidate(nullptr,cJSON_Delete);bool changed=false;
+    ASSERT_EQ(prepareManagedBleSettings(old.get(),patch.get(),next,candidate,changed),BleSettingsError::none);ASSERT_TRUE(changed);EXPECT_FALSE(next.devices[0].hasKey);EXPECT_EQ(text(candidate.get()).find(publicKey),std::string::npos);
+}

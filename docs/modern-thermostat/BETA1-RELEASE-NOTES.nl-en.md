@@ -7,11 +7,12 @@ pakketten volgen na de gezamenlijke bronfreeze en releasecontroles.
 ## Nieuw
 
 - **Bluetoothapparaten onder Instellingen.** Je kunt een Shelly BLU H&T Display
-  toevoegen op adres en de ontvangst lokaal bekijken, met of zonder
-  versleuteling. Sleutels blijven verborgen; temperatuur, vochtigheid, batterij
+  of Xiaomi Monitor 3 toevoegen op adres en de ontvangst lokaal bekijken.
+  Shelly ondersteunt expliciet met/zonder versleuteling; Xiaomi heeft een
+  afzonderlijk versleuteld profiel. Sleutels blijven verborgen; temperatuur, vochtigheid, batterij
   en ontvangstdiagnose verversen zonder je invoer te overschrijven.
   Dit is nog geen meetbron voor de verwarmingsregeling; praktijkproeven,
-  Xiaomi en TRV-aansturing blijven open. [Uitleg](BLUETOOTH-APPARATEN.nl.md).
+  sleutelverkrijging, kamerbronkwalificatie en TRV-aansturing blijven open. [Uitleg](BLUETOOTH-APPARATEN.nl.md).
 
 - **Historie exporteren per dag, week of maand.** De gewone HA-actie ondersteunt
   maximaal 31 dagen, met een installatiekeuze en Nederlandse/Engelse uitleg.
@@ -59,7 +60,7 @@ pakketten volgen na de gezamenlijke bronfreeze en releasecontroles.
 De bestaande functies en voorbereide onderdelen blijven behouden. Dit concept
 geeft nog geen actieve ketel-, kraan- of zelfstandig-Bluetoothregeling vrij.
 Oorspronkelijke metingen, causale kraanterugmelding, installatie-/stopveiligheid,
-de normale leerroute, Xiaomi/TRV en zelfstandige Bluetoothregeling moeten nog
+de normale leerroute, fysieke Bluetoothacceptatie/TRV en zelfstandige regeling moeten nog
 worden afgemaakt of in de praktijk worden gekwalificeerd. Het
 [werkbord](WORKBOARD.nl.md) blijft de actuele checklist.
 
@@ -69,7 +70,7 @@ This single beta bundle is still being prepared. It also repairs startup on
 Home Assistant Core 2026.10.4 without replacing existing settings or entity IDs. It adds day/week/month Recorder
 CSV exports, automatic firmware-update checks with a dashboard notice, and clearer
 clock-failure messages in English and Dutch. A new Bluetooth settings page connects
-local Shelly BLU H&T Display reception with encrypted bindings, write-only keys
+local Shelly BLU H&T Display and Xiaomi Monitor 3 reception with separate encrypted bindings, write-only keys
 and bounded diagnostics; these readings are not qualified heating inputs. It fixes retired measurements being
 requeued, failing screen callbacks, invalid numeric readings, bounded BLE scan
 recovery and discovery, and names that broke JSON or room controls. The legacy

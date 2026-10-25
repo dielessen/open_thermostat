@@ -78,18 +78,19 @@ inline BleSettingsError readManagedBleBindings(const cJSON* settings, ManagedBle
         const auto at = [&](int index) { return cJSON_GetArrayItem(row, index); };
         if (!parseManagedBleAddress(bleSettingText(at(0)), value.address)) return fail(BleSettingsError::invalid_address);
         if (out.find(value.address)) return fail(BleSettingsError::duplicate_address);
-        if (!bleSettingInteger(at(1), 1, 1)) return fail(BleSettingsError::unsupported_profile);
-        value.profile = ManagedBleProfile::shellyHtDisplay;
-        if (!bleSettingInteger(at(2), 0, 1)) return fail(BleSettingsError::invalid_encryption);
+        if (!bleSettingInteger(at(1), 1, 2)) return fail(BleSettingsError::unsupported_profile);
+        value.profile = static_cast<ManagedBleProfile>(at(1)->valueint);
+        if (!bleSettingInteger(at(2), 0, 2)) return fail(BleSettingsError::invalid_encryption);
         value.encryption = static_cast<ManagedBleEncryption>(at(2)->valueint);
         if (!cJSON_IsNull(at(3))) {
-            if (value.encryption != ManagedBleEncryption::bthomeV2
+            if (value.encryption == ManagedBleEncryption::plain
                     || !parseBleHex(bleSettingText(at(3)), value.key)) return fail(BleSettingsError::invalid_key);
             value.hasKey = true;
         }
         if (!cJSON_IsString(at(4)) || !validManagedBleName(bleSettingText(at(4)))) return fail(BleSettingsError::invalid_name);
         const auto name = bleSettingText(at(4));
         std::copy(name.begin(), name.end(), value.name.begin());
+        if(!validManagedBleProfileEncryption(value.profile,value.encryption)) return fail(BleSettingsError::invalid_encryption);
         out.devices[out.count++] = value;
     }
     out.sort();
@@ -108,8 +109,8 @@ inline ControlJson publicManagedBleBindings(const ManagedBleBindings& bindings) 
         if (!appendBleJson(out.get(), row)) return {nullptr, cJSON_Delete};
         const auto address = printBleHex(device.address);
         if (!cJSON_AddStringToObject(row, "address", address.data())
-                || !cJSON_AddStringToObject(row, "profile", "shelly_ht_display")
-                || !cJSON_AddStringToObject(row, "encryption", device.encryption == ManagedBleEncryption::bthomeV2 ? "bthome_v2" : "none")
+                || !cJSON_AddStringToObject(row, "profile", managedBleProfileName(device.profile))
+                || !cJSON_AddStringToObject(row, "encryption", managedBleEncryptionName(device.encryption))
                 || !cJSON_AddStringToObject(row, "name", device.name.data())
                 || !cJSON_AddBoolToObject(row, "key_stored", device.hasKey)
                 || !cJSON_AddBoolToObject(row, "control_qualified", false)) return {nullptr, cJSON_Delete};
@@ -166,19 +167,22 @@ inline BleSettingsError prepareManagedBleSettings(const cJSON* previous, const c
         if (!parseManagedBleAddress(bleSettingText(bleSetting(row, "address")), value.address))
             return fail(BleSettingsError::invalid_address);
         if (next.find(value.address)) return fail(BleSettingsError::duplicate_address);
-        if (bleSettingText(bleSetting(row, "profile")) != "shelly_ht_display")
-            return fail(BleSettingsError::unsupported_profile);
-        value.profile = ManagedBleProfile::shellyHtDisplay;
-        const auto encryption = bleSettingText(bleSetting(row, "encryption"));
-        if (encryption == "bthome_v2") value.encryption = ManagedBleEncryption::bthomeV2;
-        else if (encryption != "none") return fail(BleSettingsError::invalid_encryption);
+        const auto profile = bleSettingText(bleSetting(row,"profile"));
+        if(profile=="shelly_ht_display")value.profile=ManagedBleProfile::shellyHtDisplay;
+        else if(profile=="xiaomi_monitor_3")value.profile=ManagedBleProfile::xiaomiMonitor3;
+        else return fail(BleSettingsError::unsupported_profile);
+        const auto encryption = bleSettingText(bleSetting(row,"encryption"));
+        if(encryption=="bthome_v2")value.encryption=ManagedBleEncryption::bthomeV2;
+        else if(encryption=="mibeacon_v4_v5")value.encryption=ManagedBleEncryption::miBeaconV4V5;
+        else if(encryption!="none")return fail(BleSettingsError::invalid_encryption);
+        if(!validManagedBleProfileEncryption(value.profile,value.encryption))return fail(BleSettingsError::invalid_encryption);
         const auto name = bleSettingText(bleSetting(row, "name"));
         if (!cJSON_IsString(bleSetting(row, "name")) || !validManagedBleName(name)) return fail(BleSettingsError::invalid_name);
         std::copy(name.begin(), name.end(), value.name.begin());
         const auto action = bleSettingText(bleSetting(row, "key_action"));
         const auto supplied = bleSetting(row, "bindkey");
         if (action == "set") {
-            if (value.encryption != ManagedBleEncryption::bthomeV2 || !parseBleHex(bleSettingText(supplied), value.key))
+            if (value.encryption == ManagedBleEncryption::plain || !parseBleHex(bleSettingText(supplied), value.key))
                 return fail(BleSettingsError::invalid_key);
             value.hasKey = true;
         } else if (action == "keep" || action == "clear") {

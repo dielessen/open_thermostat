@@ -3,11 +3,11 @@ const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(__dirname,'../out/bluetooth-browser');
 const publicFixtureKey='231d39c1d7cc1ab1aee224cd096db932';
-function snapshot(){return {schema:1,pending_restart:false,config_error:'none',queue_drops:0,scan_pending:false,discovery_full:false,nearby:['5448e68f80a5'],devices:[{address:'5448e68f80a5',profile:'shelly_ht_display',name:'Room <img src=x onerror=alert(1)>',encryption:'bthome_v2',key_stored:true,control_qualified:false,measurement_qualified:false,message_integrity:true,status:'received',temperature:2350,humidity:4500,battery:80,temperature_age_ms:100,humidity_age_ms:100,battery_age_ms:100,last_accepted_age_ms:100,counter:4,rssi:-60,declared_device_type:12,firmware_32:1,firmware_24:2,light_level:1,button:null,battery_low:false,light:true,old_counter_drops:0}]};}
+function snapshot(profile='shelly_ht_display'){const result={schema:1,pending_restart:false,config_error:'none',queue_drops:0,scan_pending:false,discovery_full:false,nearby:['5448e68f80a5'],devices:[{address:'5448e68f80a5',profile:'shelly_ht_display',name:'Room <img src=x onerror=alert(1)>',encryption:'bthome_v2',key_stored:true,control_qualified:false,measurement_qualified:false,message_integrity:true,status:'received',temperature:2350,humidity:4500,battery:80,temperature_age_ms:100,humidity_age_ms:100,battery_age_ms:100,last_accepted_age_ms:100,counter:4,rssi:-60,declared_device_type:12,firmware_32:1,firmware_24:2,light_level:1,button:null,battery_low:false,light:true,old_counter_drops:0}]};if(profile==='xiaomi_monitor_3')Object.assign(result.devices[0],{profile,encryption:'mibeacon_v4_v5',declared_device_type:0x2832,firmware_32:null,firmware_24:null,light_level:null,light:null,battery_low:null});return result;}
 (async()=>{
  fs.mkdirSync(output,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});const results=[];
- try{for(const lang of ['en','nl'])for(const width of [1280,320]){
-  const page=await browser.newPage({viewport:{width,height:900}}),errors=[],requests=[];let data=snapshot(),fail=false,conflict=false;
+ try{for(const lang of ['en','nl'])for(const width of [1280,320])for(const profile of ['shelly_ht_display','xiaomi_monitor_3']){
+  const page=await browser.newPage({viewport:{width,height:900}}),errors=[],requests=[];let data=snapshot(profile),fail=false,conflict=false;
   page.on('pageerror',e=>errors.push(e.message));await page.context().addCookies([{name:'ot_ui_lang',value:lang,url:'http://opth.test'}]);
   await page.addInitScript(()=>{const original=window.setTimeout;window.setTimeout=(fn,ms,...args)=>original(fn,ms===5000?80:ms,...args);});
   await page.route('http://opth.test/**',async route=>{
@@ -19,7 +19,7 @@ function snapshot(){return {schema:1,pending_restart:false,config_error:'none',q
     if(req.method()==='POST'){
       assert.equal(req.headers()['if-match'],'"'+'b'.repeat(64)+'"');assert.equal(req.headers()['x-openthermostat-csrf'],'a'.repeat(64));
       if(conflict)return route.fulfill({status:412,contentType:'application/json',body:'{"error":"device_settings_changed"}'});
-      const payload=JSON.parse(req.postData());if(payload.reset_invalid===true){assert.equal(payload.devices.length,0);data.config_error='none';data.pending_restart=true;return route.fulfill({status:201,contentType:'application/json',body:'{"changed":true,"pending_restart":true}'});}assert.equal(payload.devices.length,1);assert.equal(payload.devices[0].bindkey,publicFixtureKey);
+      const payload=JSON.parse(req.postData());if(payload.reset_invalid===true){assert.equal(payload.devices.length,0);data.config_error='none';data.pending_restart=true;return route.fulfill({status:201,contentType:'application/json',body:'{"changed":true,"pending_restart":true}'});}assert.equal(payload.devices.length,1);assert.equal(payload.devices[0].bindkey,publicFixtureKey);assert.equal(payload.devices[0].profile,profile);
       data.devices[0].name=payload.devices[0].name;data.pending_restart=true;data.devices[0].status='pending_restart';for(const key of ['temperature','humidity','battery','battery_low','light','light_level','button'])data.devices[0][key]=null;
       return route.fulfill({status:201,contentType:'application/json',body:'{"changed":true,"pending_restart":true}'});
     }
@@ -39,11 +39,21 @@ function snapshot(){return {schema:1,pending_restart:false,config_error:'none',q
   const details=root.locator('details').first();await details.locator('summary').click();await name.focus();
   data.devices[0].temperature=2410;await page.waitForFunction(()=>document.querySelector('[data-readings]')?.textContent.includes('24'));
   assert.equal(await name.inputValue(),'Draft – Zoë');assert.equal(await name.evaluate(e=>e===document.activeElement),true);assert.equal(await details.getAttribute('open'),'');
-  if(!await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)){await page.screenshot({path:path.join(output,`overflow-${lang}-${width}.png`),fullPage:true});console.log(await page.evaluate(()=>[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth+1).map(e=>({tag:e.tagName,id:e.id,width:e.getBoundingClientRect().width,text:e.textContent.slice(0,90)})).slice(-15)));}assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  await page.screenshot({path:path.join(output,`${lang}-${width}.png`),fullPage:true});
+  if(!await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)){await page.screenshot({path:path.join(output,`overflow-${profile}-${lang}-${width}.png`),fullPage:true});console.log(await page.evaluate(()=>[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth+1).map(e=>({tag:e.tagName,id:e.id,width:e.getBoundingClientRect().width,text:e.textContent.slice(0,90)})).slice(-15)));}assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await page.screenshot({path:path.join(output,`${profile}-${lang}-${width}.png`),fullPage:true});
+  const mac=box.locator('input').nth(0),choice=box.locator('[data-ble-field=profile]');
+  await mac.fill('54:48:e6:8f:80:a6');await page.waitForTimeout(160);assert.match(await box.locator('[data-readings]').innerText(),lang==='nl'?/Sla op en herstart/:/Save and restart/);assert.equal(await box.locator('[data-extra]').textContent(),'—');
+  await mac.fill('54:48:e6:8f:80:a5');await page.waitForFunction(()=>document.querySelector('[data-readings]')?.textContent.includes('24'));
+  await choice.selectOption(profile==='shelly_ht_display'?'xiaomi_monitor_3':'shelly_ht_display');assert.match(await box.locator('[data-readings]').innerText(),lang==='nl'?/Sla op en herstart/:/Save and restart/);
+  if(profile==='shelly_ht_display')assert.equal(await box.locator('[data-ble-field=encryption] option').count(),1);
+  await choice.selectOption(profile);await page.waitForFunction(()=>document.querySelector('[data-readings]')?.textContent.includes('24'));
+  if(profile==='shelly_ht_display'){
+    await box.locator('[data-ble-field=encryption]').selectOption('none');assert.equal(await box.locator('[data-ble-field=key_action]').isDisabled(),true);assert.equal(await box.locator('input[type=password]').isVisible(),false);
+    await box.locator('[data-ble-field=encryption]').selectOption('bthome_v2');assert.equal(await box.locator('[data-ble-field=key_action]').inputValue(),'keep');await page.waitForFunction(()=>document.querySelector('[data-readings]')?.textContent.includes('24'));
+  }
   fail=true;await page.waitForFunction(()=>document.querySelector('[data-readings]')?.textContent.includes(document.cookie.includes('ot_ui_lang=nl')?'niet beschikbaar':'unavailable'));
   assert.equal(await name.inputValue(),'Draft – Zoë');fail=false;
-  await box.locator('select').nth(1).selectOption('set');const key=box.locator('input[type=password]');await key.fill(publicFixtureKey);
+  await box.locator('[data-ble-field=key_action]').selectOption('set');const key=box.locator('input[type=password]');await key.fill(publicFixtureKey);
   // Polling never changes the key action, typed key, name, focus or panel state.
   await key.focus();const before=requests.filter(r=>r.path==='/bluetooth/status').length;await page.waitForTimeout(200);assert(requests.filter(r=>r.path==='/bluetooth/status').length>before);
   assert.equal(await key.inputValue(),publicFixtureKey);assert.equal(await key.evaluate(e=>e===document.activeElement),true);
@@ -55,7 +65,7 @@ function snapshot(){return {schema:1,pending_restart:false,config_error:'none',q
   data.config_error='invalid_bluetooth_settings';data.devices=[];await page.locator('#ble-reload').click();await page.locator('#ble-reset').waitFor({state:'visible'});assert.equal(await page.locator('#ble-add').isDisabled(),true);page.once('dialog',dialog=>dialog.accept());await page.locator('#ble-reset').click();await page.locator('#ble-reset').waitFor({state:'hidden'});assert.equal(data.config_error,'none');
   await page.evaluate(()=>loadNativePage('about'));await root.waitFor({state:'detached'});const count=requests.filter(r=>r.path==='/bluetooth/status').length;await page.waitForTimeout(220);assert.equal(requests.filter(r=>r.path==='/bluetooth/status').length,count);
   assert(!requests.some(r=>/test\/start|updates\/(install|reboot)|config\/temporary/.test(r.path)));assert.deepEqual(errors,[]);
-  results.push({lang,width,result:'PASS',mock_http_only:true,keys_write_only:true,draft_preserved_during_poll:true});await page.close();
+  results.push({lang,width,profile,result:'PASS',mock_http_only:true,keys_write_only:true,draft_preserved_during_poll:true});await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(output,'RESULT.json'),JSON.stringify(results,null,2));console.log(JSON.stringify(results));
 })().catch(e=>{console.error(e);process.exitCode=1;});

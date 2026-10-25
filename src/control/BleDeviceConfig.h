@@ -7,8 +7,8 @@
 
 namespace heating::control {
 using ManagedBleAddress = std::array<uint8_t, 6>;
-enum class ManagedBleProfile : uint8_t { none = 0, shellyHtDisplay = 1 };
-enum class ManagedBleEncryption : uint8_t { plain = 0, bthomeV2 = 1 };
+enum class ManagedBleProfile : uint8_t { none = 0, shellyHtDisplay = 1, xiaomiMonitor3 = 2 };
+enum class ManagedBleEncryption : uint8_t { plain = 0, bthomeV2 = 1, miBeaconV4V5 = 2 };
 inline void wipeBleKey(BleBindKey& key) noexcept {
     volatile uint8_t* out = key.data();
     for (std::size_t i = 0; i < key.size(); ++i) out[i] = 0;
@@ -109,11 +109,25 @@ inline bool validManagedBleName(std::string_view value) noexcept {
     }
     return validRoomDisplayNameHex({encoded.data(), 2*value.size()});
 }
+inline const char* managedBleProfileName(ManagedBleProfile profile) noexcept {
+    switch(profile){case ManagedBleProfile::shellyHtDisplay:return "shelly_ht_display";
+        case ManagedBleProfile::xiaomiMonitor3:return "xiaomi_monitor_3";default:return nullptr;}
+}
+inline const char* managedBleEncryptionName(ManagedBleEncryption encryption) noexcept {
+    switch(encryption){case ManagedBleEncryption::plain:return "none";
+        case ManagedBleEncryption::bthomeV2:return "bthome_v2";
+        case ManagedBleEncryption::miBeaconV4V5:return "mibeacon_v4_v5";default:return nullptr;}
+}
+inline bool validManagedBleProfileEncryption(ManagedBleProfile profile,ManagedBleEncryption encryption) noexcept {
+    return (profile==ManagedBleProfile::shellyHtDisplay
+        && (encryption==ManagedBleEncryption::plain||encryption==ManagedBleEncryption::bthomeV2))
+        || (profile==ManagedBleProfile::xiaomiMonitor3&&encryption==ManagedBleEncryption::miBeaconV4V5);
+}
 inline bool validManagedBleBinding(const ManagedBleBinding& value) noexcept {
     const auto end = std::find(value.name.begin(), value.name.end(), '\0');
-    return value.profile == ManagedBleProfile::shellyHtDisplay
-        && (value.encryption == ManagedBleEncryption::plain || value.encryption == ManagedBleEncryption::bthomeV2)
+    return validManagedBleProfileEncryption(value.profile,value.encryption)
         && !(value.encryption == ManagedBleEncryption::plain && value.hasKey)
+        && (value.hasKey||std::all_of(value.key.begin(),value.key.end(),[](auto b){return b==0;}))
         && std::any_of(value.address.begin(), value.address.end(), [](auto b) { return b != 0; })
         && std::any_of(value.address.begin(), value.address.end(), [](auto b) { return b != 255; })
         && end != value.name.end()

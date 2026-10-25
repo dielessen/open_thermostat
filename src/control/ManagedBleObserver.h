@@ -1,6 +1,7 @@
 #pragma once
 #include "BleDeviceConfig.h"
 #include "ShellyHtDisplayAdvertisement.h"
+#include "MiBeaconMonitor3Advertisement.h"
 #include <atomic>
 #include <mutex>
 
@@ -113,17 +114,28 @@ public:
         const auto& binding = bindings_.devices[frame.device];
         // Rejection-only prefilter: unverified old counters never refresh values,
         // advance the high-water mark, or claim a newly authenticated replay.
-        if (binding.encryption == ManagedBleEncryption::bthomeV2 && value.haveCounter) {
-            const auto raw = findBleServiceData(frame.bytes.data(), frame.size, 0xfcd2);
-            if (raw.status == BleServiceStatus::present && raw.size >= 11 && (raw.data[0] & 1)) {
-                const auto p = raw.data + raw.size - 8;
-                const uint32_t sequence = uint32_t(p[0]) | (uint32_t(p[1]) << 8) | (uint32_t(p[2]) << 16) | (uint32_t(p[3]) << 24);
-                if (sequence <= value.highestCounter) { if (value.oldCounterDrops != UINT32_MAX) ++value.oldCounterDrops; return; }
+        if (value.haveCounter) {
+            std::optional<uint32_t> sequence;
+            if(binding.encryption==ManagedBleEncryption::bthomeV2) {
+                const auto raw=findBleServiceData(frame.bytes.data(),frame.size,0xfcd2);
+                if(raw.status==BleServiceStatus::present&&raw.size>=11&&(raw.data[0]&1)) {
+                    const auto p=raw.data+raw.size-8;
+                    sequence=uint32_t(p[0])|(uint32_t(p[1])<<8)|(uint32_t(p[2])<<16)|(uint32_t(p[3])<<24);
+                }
+            } else if(binding.encryption==ManagedBleEncryption::miBeaconV4V5) {
+                const auto raw=inspectMiBeaconMonitor3(binding.address,frame.bytes.data(),frame.size);
+                if(raw.status==BleSensorFrameStatus::decoded)sequence=raw.counter; // Rejection only, no authentication claim.
+            }
+            if(sequence&&*sequence<=value.highestCounter) {
+                if(value.oldCounterDrops!=UINT32_MAX)++value.oldCounterDrops;
+                return;
             }
         }
-        const auto decoded = decodeBoundShellyHtDisplayAdvertisement(binding.address,
-            frame.bytes.data(), frame.size, binding.hasKey ? &binding.key : nullptr,
-            binding.encryption == ManagedBleEncryption::bthomeV2, decryptor_, workspace_);
+        const auto decoded=binding.profile==ManagedBleProfile::xiaomiMonitor3
+            ? decodeBoundMiBeaconMonitor3Advertisement(binding.address,frame.bytes.data(),frame.size,
+                binding.hasKey?&binding.key:nullptr,decryptor_,workspace_)
+            : decodeBoundShellyHtDisplayAdvertisement(binding.address,frame.bytes.data(),frame.size,
+                binding.hasKey?&binding.key:nullptr,binding.encryption==ManagedBleEncryption::bthomeV2,decryptor_,workspace_);
         if (!readClock() || !enabled() || frame.generation != generation_.load(std::memory_order_acquire)) return;
         if (decoded.status == ShellyHtFrameStatus::not_present) return;
         if (decoded.status != ShellyHtFrameStatus::decoded) {
@@ -171,7 +183,7 @@ public:
         const auto& binding = bindings_.devices[index];
         out.status = value.status;
         if (!value.haveAccepted && value.status == BleObservationStatus::waiting
-                && binding.encryption == ManagedBleEncryption::bthomeV2 && !binding.hasKey) out.status = BleObservationStatus::key_required;
+                && binding.encryption != ManagedBleEncryption::plain && !binding.hasKey) out.status = BleObservationStatus::key_required;
         if (value.haveAccepted) {
             out.lastAcceptedAgeMs = age(*now, value.acceptedAt);
             if (out.status == BleObservationStatus::received && *now - value.acceptedAt >= valueLifetimeMs) out.status = BleObservationStatus::stale;

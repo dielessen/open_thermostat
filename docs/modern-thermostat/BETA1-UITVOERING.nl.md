@@ -84,6 +84,11 @@ Alle overige geïnventariseerde brononderdelen blijven behouden.
   herstart. Vaste wachtrij, oorspronkelijke ontvangstleeftijden en boot-lokale
   tellers; geen HA-/kamerregelbron, kraanwrite of fysieke kwalificatie.
   [Bediening, softwarebewijs en open proeven](BLUETOOTH-APPARATEN.nl.md).
+- Xiaomi Monitor3: een apart MiBeacon v4/v5-profiel met twee expliciete
+  productdeclaraties en eigen nonce/AAD, strikte gehele-/float-TLV's en
+  oorspronkelijke veldleeftijden. 888 native/39 parser-eigenaar-/24 echte
+  cryptogevallen en acht browserprofielen slagen. Geen kamerregelbron of
+  fysieke sensorclaim; sleutelverkrijging, acquisitie en praktijk blijven open.
 - Bluetooth: een mislukte scanstart blokkeert latere scans niet blijvend;
   opruimen blijft exclusief en afsluiten kan niet door een late callback worden
   teruggedraaid. De bestaande scanner bewaart geen onbeperkte SDK-resultaten.

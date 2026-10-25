@@ -1,16 +1,16 @@
 # Bluetooth-apparaten onder Settings
 
 Uitbreiding X01, bijgewerkt 25 oktober 2026. **Software voor lokale
-SBHT-103C-diagnoseontvangst aangesloten in de ongepubliceerde grote bèta.**
+SBHT-103C-/MJWSD05MMC-diagnoseontvangst aangesloten in de ongepubliceerde grote bèta.**
 Nog geen fysieke apparaatacceptatie of vrijgave als regelbron. De geïnstalleerde
 basis blijft E32 alpha36 / HA dev48; er is niets geflasht of geïnstalleerd.
 Het [werkbord](WORKBOARD.nl.md) blijft de acceptatiechecklist.
 
-## Aangesloten: lokale Shelly-ontvangst en apparaatinstellingen
+## Aangesloten: lokale Shelly-/Xiaomi-ontvangst en apparaatinstellingen
 
 De E32-pagina **Settings → Bluetooth devices / Instellingen → Bluetoothapparaten**
-beheert maximaal acht expliciet gekozen **Shelly BLU H&T Display, SBHT-103C**-
-adressen. Een zoekactie toont maximaal 32 sinds opstarten waargenomen adressen;
+beheert maximaal acht expliciet gekozen adressen, met de afzonderlijke profielen
+**Shelly BLU H&T Display, SBHT-103C** en **Xiaomi Monitor 3, MJWSD05MMC**. Een zoekactie toont maximaal 32 sinds opstarten waargenomen adressen;
 modelselectie blijft handmatig. Een adres, naam of RSSI bewijst geen model.
 De pagina is Engels/Nederlands en wordt alleen op E32 met de sessie-API getoond.
 
@@ -22,9 +22,44 @@ hoofdloop verwerkt maximaal één frame per keer; geen extra taak, BLE-client,
 koppelverzoek, kraanwrite of automatische bronwissel. De legacy ATC/MJ_HT_V1-route
 blijft afzonderlijk werken en selecteert dit nieuwe profiel niet.
 
+### Xiaomi Monitor 3: apart MiBeacon-profiel
+
+Het profiel `xiaomi_monitor_3` accepteert uitsluitend de productdeclaraties
+`0x2832` en `0x4c47` uit de [upstream apparatentabel](https://github.com/Bluetooth-Devices/xiaomi-ble/blob/main/src/xiaomi_ble/devices.py)
+(blob `af2186eae54f0e8ff0bb35b3640ec4bae0a15f92`). `0x0b48` hoort bij
+CGG1-ENCRYPTED en is nadrukkelijk geen Monitor3-profiel.
+
+De [upstream parser](https://github.com/Bluetooth-Devices/xiaomi-ble/blob/main/src/xiaomi_ble/parser.py)
+(blob `1b85f93c42a5ef6cb709f7c03b007d43d04de61a`) levert de protocolreferentie:
+service FE95, MiBeacon v4/v5, AES-CCM met MIC4 en AAD `11`. De nonce gebruikt
+het **omgekeerde** display-MAC, product-ID, frameteller en drie extra
+counterbytes. Dit is bewust een andere route dan BTHomev2. Een meegezonden MAC
+moet bij het geselecteerde adres horen; mesh, verkeerde versie/product-ID,
+onversleutelde input, kapotte of dubbele containers worden geweigerd.
+
+De strikte TLV-subset leest `1004/1006/100a/100d` en
+`4c01/4c02/4c03/4c08`: temperatuur, vochtigheid en batterij. Getekende gehele
+waarden en IEEE-floats worden vóór omzetting begrensd; NaN/oneindig,
+afgebroken of dubbele semantische velden en onbekende objecten leveren geen
+partiële meetwaarden op. Eenzelfde versleuteld pakket met de naam ‘MJ_HT_V1’
+wordt ook door de oude reader geweigerd. Er wordt geen oude firmware aangepast.
+
+De normale profielkeuze biedt voor Xiaomi alleen MiBeacon-versleuteling.
+Een protocol-/profielwissel neemt geen opgeslagen sleutel van het andere
+profiel over. Ontvangst onder een nog niet opgeslagen adres, profiel of sleutel
+wordt niet als de nieuwe koppeling getoond: de meetweergave wacht op opslaan
+en herstart, terwijl de invoer behouden blijft.
+
+De fixtures zijn onafhankelijk met Python AESCCM gemaakt; ze zijn **geen echte
+Monitor3-opname**. Upstream's huidige tests bevatten geen expliciet benoemde
+Monitor3-opname. Werkelijke variant/firmware, sleutelverkrijging,
+rapportage-/acquisitiegrenzen, radio en batterij-/herstartgedrag blijven dus te
+toetsen. Een werkende fysieke sensor of regelbron wordt hier niet afgevinkt.
+
 ### Sleutel, integriteit en levensduur
 
-Ondersteund zijn de expliciete keuzes onversleuteld en BTHome v2 AES-CCM.
+Voor Shelly zijn de expliciete keuzes onversleuteld en BTHome v2 AES-CCM
+beschikbaar; Xiaomi gebruikt uitsluitend het afzonderlijke MiBeacon v4/v5-profiel.
 De gebruiker voert een bestaande bindkey in als 32 hexadecimale tekens.
 Mbed TLS uit de firmware-SDK controleert de MIC met de gekozen MAC en sleutel;
 nonce en ontbrekende v2-AAD volgen het [officiële protocol](https://bthome.io/encryption/).
@@ -102,13 +137,16 @@ Actuele resultaten en bronhashes staan bij de bundelcontrole. De private opslag
 heeft daarnaast 15 gerichte SDK-grensgevallen onder ASan/UBSan: eigen namespace,
 read-only ontbrekende selectie, netwerkbehoud, commit-/terugleesfouten,
 terminator-/groottegrenzen en geen sleutel in de oudere netwerkreader.
-De native suite heeft nu 875 geslaagde gevallen; 18 sessie- en 26 eigenaar-/
-instellingengevallen slagen ook apart onder ASan/UBSan/leakcontrole.
+De native suite heeft nu 888 geslaagde gevallen. Apart slagen 39 eigenaar-/
+instellingen-/MiBeacon-parsergevallen en 24 echte Mbed-TLS-/ontvangstgevallen
+onder ASan/UBSan/leakcontrole; de eerdere 18 sessiegevallen blijven behouden.
+Acht browserprofielen dekken beide modellen, EN/NL en 1280/320 pixels, inclusief
+behoud van invoer/focus en geen oude metingen onder een gewijzigde conceptbron.
 
-Open blijven: echte SBHT-103C-ontvangst, sleutelverkrijging, hardware-/firmware-
+Open blijven: echte SBHT-103C-/MJWSD05MMC-ontvangst, sleutelverkrijging, hardware-/firmware-
 variant, reboot-/batterij-/radio-/resourceproeven, blijvende anti-replay en
-acquisitiekwalificatie. Xiaomi Monitor 3, Shelly TRV en zelfstandig regelen
-zijn nog afzonderlijke implementatie-/acceptatiepunten. Geen werkende
+acquisitiekwalificatie. Shelly TRV en zelfstandig regelen zijn nog afzonderlijke implementatiepunten;
+ook beide sensorprofielen houden hun fysieke acceptatie apart. Geen werkende
 zelfstandige thermostaat of fysieke regelautorisatie afvinken op deze diagnosepagina.
 
 **English:** The unpublished beta connects bounded, local SBHT-103C reception
@@ -116,8 +154,10 @@ and EN/NL device settings to the existing E32 scanner. It supports explicit
 plain/encrypted bindings, real SDK AES-CCM verification, write-only bindkeys,
 conditional durable storage, original reception ages and boot-local replay
 rejection. Diagnostics remain separate from qualified control measurements.
-Real-device acceptance, persistent replay/acquisition qualification, Xiaomi,
-TRV control and standalone heating remain open. Nothing has been deployed.
+A separate Monitor3 profile now uses the two upstream product declarations and
+MiBeacon AES-CCM with its own nonce/AAD. Real-device acceptance, key acquisition,
+persistent replay/acquisition qualification, TRV control and standalone heating
+remain open. Nothing has been deployed.
 
 ## Gevraagde profielen en protocolreferenties
 
@@ -136,9 +176,10 @@ Ook gevraagd: **MJWSD05MMC**, door Xiaomi bevestigd als BLE 5.0-model in de
 De [BLE Monitor-projectdocumentatie](https://custom-components.github.io/ble_monitor/encrypted_advertisements)
 vermeldt voor dit exacte model temperatuur, luchtvochtigheid en batterij via
 versleutelde advertenties. Dit is een haalbaarheidsreferentie; onze E32 heeft
-nog geen gekwalificeerde decoder voor dit model.
+nu een apart softwareprofiel voor dit formaat, maar nog geen fysiek
+gekwalificeerde decoder voor deze hardware.
 
-Neem een afzonderlijk Xiaomi/MiBeacon-profiel op in dezelfde apparaatpagina.
+Het afzonderlijke Xiaomi/MiBeacon-profiel staat nu op dezelfde apparaatpagina.
 De bestaande onversleutelde MJ_HT_V1-decoder bewijst geen ondersteuning voor
 deze Monitor 3. Identificeer de echte hardware/firmware en het advertentieformaat;
 de naam ‘Monitor 3’ geeft geen vrijgave voor Mini, Pro of andere revisies.
@@ -252,14 +293,16 @@ alleen een sensor toevoegen realiseert dat nog niet.
 
 ## English
 
-Planned additional support: Shelly BLU H&T Display ZB (SBHT-103C), alongside the
-BLU TRV, and Xiaomi Smart Temperature and Humidity Monitor 3 (MJWSD05MMC).
+The unpublished beta connects local diagnostic reception/settings for Shelly
+BLU H&T Display ZB (SBHT-103C) and Xiaomi Monitor 3 (MJWSD05MMC). BLU TRV
+control and the full standalone/qualified room route remain planned.
 The Xiaomi profile requires authenticated decoding of its encrypted reports;
 the exact device-key acquisition workflow remains to be validated. Prefer stock
 firmware, never flash automatically, and do not store Xiaomi account passwords.
-Settings → Bluetooth devices will offer bounded discovery, verified
-identity, required security setup, measurement preview, explicit room assignment
-and persistent configuration. All UI text and help must support English and Dutch.
+The diagnostic page offers bounded discovery, explicit profiles, write-only keys
+and persistent private configuration. Full key acquisition/bonding, physical
+identity/acquisition qualification and room assignment remain future work.
+All UI text and help support English and Dutch.
 
 Device presence, bonding, received data and qualified room measurements remain
 distinct. Reject malformed, unauthenticated and replayed data; expire old

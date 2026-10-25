@@ -22,6 +22,18 @@ vereist opnieuw een bewezen update en aparte nacontrole.
 [Installatie en bewijs](docs/modern-thermostat/INSTALLATIE-E32-ALPHA36-20261025.nl.md) ·
 [Verplicht updateproces](docs/modern-thermostat/E32-UPDATE-PROCES.nl.md).
 
+**Actuele HA-status:** na de update naar Core **2026.10.4** ziet de laatste
+alleen-lezen controle `setup_error` bij dev48. De opstartreparatie is lokaal
+uitgewerkt en getest op Core .2/.3/.4, maar nog niet geïnstalleerd: alle
+uitvoerbare verbeteringen gaan in één grote bèta, zonder tusseninstallaties.
+[Oorzaak en herstelstatus](docs/modern-thermostat/HA-CORE4-OPSTART.nl.md).
+
+**In dezelfde bèta voorbereid:** lokale Bluetoothontvangst voor Shelly BLU H&T
+Display en Xiaomi Monitor 3, met EN/NL-apparaatinstellingen, echte
+berichtontsleuteling en verborgen sleutels. Dit zijn nog diagnostische
+ontvangstwaarden; echte apparaatproeven en vrijgave als verwarmingsbron staan
+apart. [Voortgang](docs/modern-thermostat/BLUETOOTH-APPARATEN.nl.md).
+
 Kamerinrichting, weekprogramma's, webinterfaces, passief EMS uitlezen en
 Settings → EMS-apparaten zijn beschikbaar. De huidige native inrichting ondersteunt
 **1–2 kamers, één radiatorknop per kamer**; acht zones blijft het uitbreidingsdoel.
@@ -33,12 +45,15 @@ syslogdoorsturing. Een oude open logpagina bewaart de nieuwe bronvinkjes.
 Modelkeuze verleent geen extra driver- of zendbevoegdheid; afbeeldingen voor
 onzekere groepen blijven leeg. Functionele profielimport blijft op de roadmap.
 
-803 native kerngevallen en 2.356 gerapporteerde HA-tests per ondersteunde Core
+Voor de gepubliceerde bundel slagen 803 native kerngevallen en 2.356 gerapporteerde HA-tests per ondersteunde Core
 slagen. Alle toepasselijke main-/tag-CI en onafhankelijke bron-/pakketcontroles
 zijn geslaagd; alle vijf nieuwe publieke downloads zijn exact met hun eigen
 tagbuild vergeleken. De normale GitHub-updatepoort accepteert alpha36; de actieve bèta blijft **NOT_READY** voor haar fysieke voorwaarden.
 
-**English:** E32 alpha36 is installed through one native GitHub update; HA48
+**English:** The latest read-only check reports dev48 in setup_error after Core
+updated to 2026.10.4. A tested startup repair and local Shelly/Xiaomi Bluetooth
+diagnostics are being prepared in one beta; neither has been deployed.
+E32 alpha36 is installed through one native GitHub update; HA48
 remains unchanged. All 36 installation checks and 45 separate postchecks pass, including
 exact firmware/source/ELF/web identities,31 served UI assets,86 HA component files,
 settings, programs, bindings and the fresh backup. Every successor E32 release
@@ -115,7 +130,7 @@ EMS-ESP-velddekking of ondersteuning voor iedere ketel/converter.
 | Mogelijkheid | Wat je ermee kunt | Status |
 | --- | --- | --- |
 | Eigen HA-integratie en dashboard | Kamerpagina’s, klimaatbediening, inrichting en weekplanner in één omgeving | **Beschikbaar** |
-| Directe Bluetooth-sensoren | Shelly BLU H&T Display ZB en Xiaomi Monitor 3 (MJWSD05MMC, apparaatsleutel vereist); Settings voor toevoegen en kamertoewijzing, in EN/NL | **In voorbereiding**: SBHT-103C-decoder getest; koppelen, sleutels, runtime en praktijkproeven nog open. [Ontwerp en voortgang](docs/modern-thermostat/BLUETOOTH-APPARATEN.nl.md) |
+| Directe Bluetooth-sensoren | Shelly BLU H&T Display ZB en Xiaomi Monitor 3 (MJWSD05MMC, bindkey vereist); lokale ontvangst en EN/NL-instellingen op E32 | **Aangesloten in de ongepubliceerde bètabron**: begrensde diagnoseontvangst, afzonderlijke crypto-/profielkeuze en private sleutelopslag. Echte apparaatacceptatie, acquisitiekwalificatie en kamerregelbron nog open. [Voortgang](docs/modern-thermostat/BLUETOOTH-APPARATEN.nl.md) |
 | Directe Bluetooth-kranen | Shelly BLU TRV rechtstreeks koppelen aan E32; extra mogelijkheid naast HA-apparaten | **Onderzocht/gepland**, nog geen driver of praktijkkwalificatie. [Ontwerp](docs/modern-thermostat/SHELLY-BLU-TRV-STANDALONE.nl.md) |
 | Zelfstandige E32-modus | Lokale verwarmingskern met eigen bronnen, programma, opslag en bewaking; HA optioneel voor bediening | **Gepland**; expliciet eigendom en fysieke stop-/uitvalacceptatie vereist |
 | Bestaande HA-apparaten gebruiken | Sensoren en klimaatapparaten uit HA selecteren, met controle op eenheden, grenzen en stapgrootte | **Beschikbaar**; regelkwalificatie per apparaat blijft nodig |

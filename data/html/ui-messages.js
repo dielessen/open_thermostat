@@ -1,5 +1,24 @@
 /* Fixed English UI messages mapped to Nederlands. User data and wire identifiers are excluded. */
 window.OT_UI_MESSAGES = {
+  "Enter a Bluetooth address with six hexadecimal pairs.": "Voer een Bluetoothadres met zes hexadecimale paren in.",
+  "Each Bluetooth address can be added only once.": "Elk Bluetoothadres kan maar één keer worden toegevoegd.",
+  "Enter exactly 32 hexadecimal characters for the bindkey.": "Voer precies 32 hexadecimale tekens voor de bindkey in.",
+  "Use a single-line name of at most 40 UTF-8 bytes.": "Gebruik een naam op één regel van maximaal 40 UTF-8-bytes.",
+  "Select the encryption offered for this device profile.": "Kies de versleuteling die bij dit apparaatprofiel hoort.",
+  "This Bluetooth device profile is not supported.": "Dit Bluetoothapparaatprofiel wordt niet ondersteund.",
+  "You can add at most 8 Bluetooth devices.": "Je kunt maximaal 8 Bluetoothapparaten toevoegen.",
+  "Select whether to keep, replace or clear the bindkey.": "Kies of je de bindkey wilt behouden, vervangen of wissen.",
+  "Bluetooth settings were rejected. Check the device fields.": "Bluetoothinstellingen zijn geweigerd. Controleer de apparaatvelden.",
+  "Bluetooth is temporarily unavailable. Wait for the device, then try again.": "Bluetooth is tijdelijk niet beschikbaar. Wacht op het apparaat en probeer het daarna opnieuw.",
+
+  "Bluetooth device": "Bluetoothapparaat",
+  "Device profile": "Apparaatprofiel",
+  "Xiaomi Monitor 3 (MJWSD05MMC)": "Xiaomi Monitor 3 (MJWSD05MMC)",
+  "MiBeacon v4/v5 encrypted": "MiBeacon v4/v5 versleuteld",
+  "Save and restart to receive data for this device.": "Sla op en herstart om gegevens voor dit apparaat te ontvangen.",
+  "Add a Shelly BLU H&T Display or Xiaomi Monitor 3 by its Bluetooth address. Reception is local and does not need Home Assistant. These diagnostic readings are not yet available as a heating control source.": "Voeg een Shelly BLU H&T Display of Xiaomi Monitor 3 toe met zijn Bluetoothadres. Ontvangst gebeurt lokaal en heeft Home Assistant niet nodig. Deze diagnosemetingen zijn nog niet beschikbaar als meetbron voor de verwarmingsregeling.",
+  "Changes take effect after a manual device restart in Settings. Shelly TRV control is not available in this device list yet.": "Wijzigingen worden actief na een handmatige apparaatherstart onder Instellingen. Shelly TRV-aansturing is nog niet beschikbaar in deze apparatenlijst.",
+
   "Bluetooth settings could not be read. Existing data was kept.": "Bluetoothinstellingen konden niet worden gelezen. De bestaande gegevens zijn behouden.",
 
   "At most 8 devices, stored separately from network settings. Saving never truncates other settings. Readings expire after three minutes; battery-only messages do not renew temperature.": "Maximaal 8 apparaten, afzonderlijk van de netwerkinstellingen opgeslagen. Opslaan kapt andere instellingen nooit af. Metingen verlopen na drie minuten; berichten met alleen de batterij verversen de temperatuur niet.",

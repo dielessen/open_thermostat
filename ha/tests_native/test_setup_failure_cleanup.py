@@ -101,3 +101,36 @@ async def test_cleanup_exception_still_removes_only_its_own_state(hass,monkeypat
         await integration.async_setup_entry(hass,parent)
     assert len(stopped)==1 and not stopped[0]._active
     assert parent.entry_id not in hass.data.get(DOMAIN,{})
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('version_label',['2026.10.4','2026.11.0'])
+async def test_existing_product_starts_without_a_presentation_version_gate_and_unloads_cleanly(hass,monkeypatch,version_label):
+    """Real current Core lifecycle; other labels test guard independence, not future-Core qualification."""
+    from custom_components.open_thermostat import product,installation_group
+    from homeassistant.helpers import device_registry as dr
+    parent=entry(hass,room=room(hass),enabled=False)
+    hass.config_entries.async_update_entry(parent,data={**parent.data,PRODUCT_CONFIG:1})
+    before=dict(parent.data);listeners=[]
+    async def subscribe(hass,topic,callback,**kwargs):
+        token=object();listeners.append(token)
+        return lambda:listeners.remove(token)
+    monkeypatch.setattr(mqtt,'async_wait_for_mqtt_client',AsyncMock())
+    monkeypatch.setattr(mqtt,'async_subscribe',subscribe)
+    publish=AsyncMock();monkeypatch.setattr(mqtt,'async_publish',publish)
+    forward=AsyncMock();monkeypatch.setattr(hass.config_entries,'async_forward_entry_setups',forward)
+    monkeypatch.setattr(product,'HA_VERSION',version_label)
+    monkeypatch.setattr(installation_group,'HA_VERSION',version_label,raising=False)
+    try:
+        assert await integration.async_setup_entry(hass,parent)
+        state=hass.data[DOMAIN][parent.entry_id]
+        assert 'heating_tracker' in state and not state['v1_runtime'].enabled
+        assert 'v1_connection' not in state and listeners
+        assert dr.async_get(hass).async_get_device_by_identifier((DOMAIN,parent.data['topic_prefix']),parent.entry_id)
+        assert dict(parent.data)==before
+        forward.assert_awaited_once();publish.assert_not_called()
+    finally:
+        if parent.entry_id in hass.data.get(DOMAIN,{}):
+            assert await integration.async_unload_entry(hass,parent)
+        await parent._async_process_on_unload(hass)
+    assert not listeners and parent.entry_id not in hass.data.get(DOMAIN,{})
+    publish.assert_not_called()

@@ -6,7 +6,7 @@ from homeassistant.const import __version__ as HA_VERSION
 
 PRODUCT_CONFIG = "product_configuration"
 PRODUCT_VERSION = 1
-SUPPORTED_HA_VERSIONS = ("2026.10.2", "2026.10.3")
+SUPPORTED_HA_VERSIONS = ("2026.10.2", "2026.10.3", "2026.10.4")
 INSTALLATION = "installation_configuration"
 
 

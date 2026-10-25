@@ -28,6 +28,11 @@ pakketten volgen na de gezamenlijke bronfreeze en releasecontroles.
 
 ## Opgelost
 
+- OpenThermostat kan weer opstarten op Home Assistant Core **2026.10.4**.
+  Een versiecontrole blokkeerde onbedoeld het maken van de weergavegroep
+  ‘Installatie en ketel’. Instellingen en bestaande entiteitidentiteiten blijven
+  behouden. Dit is in de bètabron hersteld; nog niet op je HA geïnstalleerd.
+
 - Een fout bij het bijwerken van het scherm onderbreekt geen meetintrekking.
   Ook het vervangen van een sensorprofiel kan geen oude meting terugbrengen.
 - Ongeldige of teruglopende lokale meettijd maakt ook raam- en
@@ -60,7 +65,8 @@ worden afgemaakt of in de praktijk worden gekwalificeerd. Het
 
 ## English
 
-This single beta bundle is still being prepared. It adds day/week/month Recorder
+This single beta bundle is still being prepared. It also repairs startup on
+Home Assistant Core 2026.10.4 without replacing existing settings or entity IDs. It adds day/week/month Recorder
 CSV exports, automatic firmware-update checks with a dashboard notice, and clearer
 clock-failure messages in English and Dutch. A new Bluetooth settings page connects
 local Shelly BLU H&T Display reception with encrypted bindings, write-only keys

@@ -8,6 +8,16 @@ HA-installatie. De volgorde en open implementatiepunten staan in
 [BETA1-UITVOERING.nl.md](BETA1-UITVOERING.nl.md). B04–B14 blijven inhoudelijk
 leidend; ontbrekende fysieke feiten worden niet met softwarevinkjes afgetekend.
 
+## P0: HA-opstart op de actuele Core 2026.10.4
+
+Verse native HA-readback bevestigt dev48 met `setup_error` na de Core-update.
+De lokale groepsversieblokkade is gereproduceerd en gecorrigeerd. Publieke
+presentatie erft de private transactiepin niet meer; echte Core4-compatibiliteit
+is samen met Core2/3 gecontroleerd: 2.428 gevallen per Core, nul fouten/skips;
+NL/EN-foutteksten apart gecontroleerd. Geen tussentijdse installatie, dus de
+productiefout is nog niet als live hersteld afgevinkt.
+[Bewijs en grenzen](HA-CORE4-OPSTART.nl.md).
+
 ## In de grote bètabundel — meetketen, meldingen en maandexport
 
 Nog niet geïnstalleerd: CSV-export via de normale HA-actie ondersteunt maximaal
@@ -223,7 +233,7 @@ alpha28-uploader-watchdogoorzaak en herstelroute blijven onbekend.
 | Onderdeel | Vastgestelde stand |
 | --- | --- |
 | Geïnstalleerde firmware | E32 `v0.1.0-e32v2-alpha.36`, bron `7ddf341`, ELF `ef313784`, web `2b858b3e`; één native GitHub-update en 45 afzonderlijke nacontroles geslaagd |
-| Geïnstalleerde HA-integratie | `0.4.0.dev48`, bron 70135db3, geladen op Core 2026.10.3; 86 bestanden exact, 105 registryrecords en koppelingen behouden |
+| Geïnstalleerde HA-integratie | `0.4.0.dev48`; vorige volledige installatiecontrole op Core 2026.10.3 met 86 exacte bestanden/105 behouden registryrecords. Nieuwe alleen-lezen controle: Core 2026.10.4, `setup_error`; actuele Python-bronhashes niet gelezen |
 | Geïnstalleerde bron | HA `70135db3c86df1f970265bc426fe5e35729c8261`; E32 `7ddf3410666d814850275433d9dddd266e5d83ba`;86 HA-bestanden exact |
 | Softwarebasis | `out/beta-boiler-20261023`, `work/beta-boiler-20261023`; HA48 levert bewaakte async-opstart/afsluiten, cleanup na callbackexception en ontvangstdiagnostiek; alpha35-bron bevat pure Shelly-decoderbasis en updatercheckpoints naast de eerdere beveiligde aanvraag-, kanaal- en socketoverdracht. Productfabriek blijft gesloten; alle 23 voorbereide onderdelen behouden |
 | Doel volgende release | Eerste actieve bèta: huidige passieve ketelkoppeling behouden en begrensde start/stop beproeven na bron-/kraan-/installatiekwalificatie |

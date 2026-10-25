@@ -8,6 +8,15 @@ HA-installatie. De volgorde en open implementatiepunten staan in
 [BETA1-UITVOERING.nl.md](BETA1-UITVOERING.nl.md). B04–B14 blijven inhoudelijk
 leidend; ontbrekende fysieke feiten worden niet met softwarevinkjes afgetekend.
 
+## Prioriteit: HA-opstart na Core 2026.10.4
+
+De verse alleen-lezen HA-controle ziet Core **2026.10.4**, integratie **dev48**
+en `setup_error: setup_platform_unsupported`. De lokale oorzaak is
+nagebootst op de echte Core: de versiepin blokkeerde ook de presentatiegroep.
+Het herstel slaagt met 2.428 gevallen per Core (.2/.3/.4) en gaat in deze grote
+bèta mee; er is geen tussentijdse HA-installatie.
+[Oorzaak, controles en uitrolgrens](HA-CORE4-OPSTART.nl.md).
+
 ## In bewerking voor dezelfde bèta
 
 De bundel bevat nu ook dag-/week-/maandexport tot 31 dagen via de gewone HA-actie,

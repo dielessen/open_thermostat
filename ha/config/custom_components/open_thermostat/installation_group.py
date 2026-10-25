@@ -9,7 +9,7 @@ from homeassistant.config_entries import ConfigSubentry
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
-from .product import HA_VERSION, SUPPORTED_HA_VERSIONS, is_product
+from .product import is_product
 
 GROUP_TYPE = "installation"
 GROUP_UNIQUE_ID = "controller_overview"
@@ -23,8 +23,11 @@ def ensure_installation_group(hass, entry):
     subentry. Move the entity associations first, without yielding, so the
     queued event observes the complete new association and preserves IDs.
     """
-    if not is_product(entry) or HA_VERSION not in SUPPORTED_HA_VERSIONS:
-        raise ValueError("setup_platform_unsupported")
+    # These are public registry/subentry APIs, not the private atomic Store
+    # transaction used by configuration editors. A new Core patch must not
+    # prevent existing telemetry from starting merely to create a heading.
+    if not is_product(entry):
+        raise ValueError("installation_group_not_product")
     groups = [s for s in entry.subentries.values() if s.subentry_type == GROUP_TYPE]
     if len(groups) > 1 or any(s.unique_id != GROUP_UNIQUE_ID or dict(s.data) for s in groups):
         raise ValueError("installation_group_conflict")

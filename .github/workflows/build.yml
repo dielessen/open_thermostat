@@ -296,11 +296,13 @@ jobs:
       - name: Test native HA lifecycle and actual firmware packet interop
         run: |
           ROOM_METRICS_EVIDENCE_DIR=out python -m pytest ha/tests ha/tests_native -vv -o faulthandler_timeout=60 --junitxml=out/ha-acceptance.xml
-      - name: Verify retained Core 2026.10.2 compatibility with actual native runtime
+      - name: Verify retained Core 2026.10.2/2026.10.3 compatibility with actual native runtime
         run: |
           pip install --no-deps homeassistant==2026.10.2
           python -m pytest ha/tests ha/tests_native -q -o faulthandler_timeout=60 --junitxml=out/ha-core-2026.10.2.xml
           pip install --no-deps homeassistant==2026.10.3
+          python -m pytest ha/tests ha/tests_native -q -o faulthandler_timeout=60 --junitxml=out/ha-core-2026.10.3.xml
+          pip install --no-deps homeassistant==2026.10.4
       - name: Verify and package exact HA-only candidate
         run: |
           python -B -m unittest discover -s scripts -p test_package_ha_release.py -v
@@ -319,6 +321,7 @@ jobs:
           path: |
             out/ha-acceptance.xml
             out/ha-core-2026.10.2.xml
+            out/ha-core-2026.10.3.xml
             out/climate-warmup-trace*.json
           if-no-files-found: error
       - name: Remove temporary MQTT fixture

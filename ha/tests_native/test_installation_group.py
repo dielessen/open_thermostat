@@ -85,3 +85,30 @@ async def test_device_move_failure_restores_entities_and_removes_only_new_empty_
     assert registry.async_get(hub.id).config_subentry_id is None
     assert all(er.async_get(hass).async_get(e.entity_id).config_subentry_id is None for e in records)
     assert er.async_get(hass).async_get(room_record.entity_id)==room_record
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('core_version',['2026.10.4','2026.11.0'])
+async def test_presentation_group_does_not_block_startup_on_a_different_core_version(hass,monkeypatch,core_version):
+    """Public registry grouping must not inherit the private Store write pin."""
+    from custom_components.open_thermostat import installation_group,product
+    parent,hub,room_device,records,room_record=existing(hass)
+    before_data=deepcopy(dict(parent.data));before_options=dict(parent.options)
+    monkeypatch.setattr(product,'HA_VERSION',core_version)
+    monkeypatch.setattr(installation_group,'HA_VERSION',core_version,raising=False)
+    gid=ensure_installation_group(hass,parent)
+    await hass.async_block_till_done()
+    assert ensure_installation_group(hass,parent)==gid
+    assert dict(parent.data)==before_data and dict(parent.options)==before_options
+    assert all(er.async_get(hass).async_get(e.entity_id).id==e.id for e in records)
+    assert dr.async_get(hass).async_get(hub.id).config_subentry_id==gid
+    assert er.async_get(hass).async_get(room_record.entity_id)==room_record
+
+@pytest.mark.asyncio
+async def test_presentation_compatibility_does_not_enable_unreviewed_private_configuration_writes(hass,monkeypatch):
+    from custom_components.open_thermostat import installation_group,product
+    parent,*_=existing(hass);before=configuration_snapshot(parent)
+    monkeypatch.setattr(product,'HA_VERSION','2026.11.0')
+    monkeypatch.setattr(installation_group,'HA_VERSION','2026.11.0',raising=False)
+    with pytest.raises(ValueError,match='setup_platform_unsupported'):
+        product.commit_configuration(hass,parent,before,title='must not be saved')
+    assert configuration_snapshot(parent)==before

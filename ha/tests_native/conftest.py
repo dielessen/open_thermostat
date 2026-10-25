@@ -1,4 +1,4 @@
-"""Real supported HA 2026.10.2/2026.10.3 core/registries; no broker, devices, network or production config."""
+"""Real supported HA 2026.10.2/2026.10.3/2026.10.4 core/registries; no broker, devices, network or production config."""
 import sys
 from pathlib import Path
 import socket

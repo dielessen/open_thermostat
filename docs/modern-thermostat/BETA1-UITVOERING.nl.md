@@ -52,6 +52,12 @@ Alle overige geïnventariseerde brononderdelen blijven behouden.
 
 ## Uitvoering van deze bundel
 
+- P0 HA-opstart: de gemelde Core4-versieblokkade is lokaal gereproduceerd.
+  Presentatiegroep en private opslagtransactie zijn ontkoppeld; Core2026.10.4
+  wordt expliciet toegevoegd/getest naast .2/.3. De live dev48 blijft volgens
+  de laatste alleen-lezen controle in setup_error; geen tussentijdse uitrol.
+  [Onderzoek en acceptatie](HA-CORE4-OPSTART.nl.md).
+
 - Ontvangstdiagnose: verkeerd getypeerde retained-/sessiemetadata wordt geweigerd;
   extreem grote klokwaarden en millisecondenoverloop veroorzaken geen crash of
   hernieuwde meetkwalificatie. Gerichte native HA-regressies zijn uitgevoerd.

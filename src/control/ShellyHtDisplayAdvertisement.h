@@ -2,10 +2,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include "BthomeV2Codec.h"
 
 namespace heating::control {
 
-enum class ShellyHtFrameStatus { not_present, malformed, key_required, decoded };
+enum class ShellyHtFrameStatus { not_present, malformed, key_required, decoded,
+    encryption_required, authentication_failed, crypto_unavailable };
 
 // Prepared SBHT-103C wire subset, NOT selected by the normal BLE reader.
 // No state/cache, address binding, replay/authentication or acquisition proof.
@@ -13,6 +15,8 @@ enum class ShellyHtFrameStatus { not_present, malformed, key_required, decoded }
 struct ShellyHtDisplayFrame {
     ShellyHtFrameStatus status = ShellyHtFrameStatus::not_present;
     bool triggerBased = false;
+    bool authenticated = false; // message integrity only, never measurement/actuation qualification
+    std::optional<uint32_t> encryptionCounter;
     std::optional<uint8_t> packetId, battery, lightLevel, button;
     std::optional<bool> batteryLow, light;
     std::optional<int16_t> temperature, humidity; // hundredths C / percent
@@ -20,32 +24,12 @@ struct ShellyHtDisplayFrame {
     std::optional<uint32_t> firmware32, firmware24; // raw separate declarations
 };
 
-// Entire BLE AD container, including the 16-bit FCD2 service UUID. Local names
-// are never used as model evidence. No partial data returned on parse failure.
-inline ShellyHtDisplayFrame decodeShellyHtDisplayAdvertisement(const uint8_t* bytes, std::size_t size) {
+// Strict object parser for an already opened service. An advertisement/nonce
+// counter is not proof of a new physical acquisition.
+inline ShellyHtDisplayFrame decodeShellyHtDisplayService(const uint8_t* service, std::size_t serviceSize) {
     using Status = ShellyHtFrameStatus;
     const auto failure=[](Status status) { ShellyHtDisplayFrame r; r.status=status; return r; };
-    if (!bytes || !size || size>255) return failure(Status::malformed);
-    const uint8_t* service=nullptr;
-    std::size_t serviceSize=0;
-    for (std::size_t i=0; i<size;) {
-        const auto length=bytes[i++];
-        if (!length) {
-            while (i<size) if (bytes[i++]) return failure(Status::malformed);
-            break;
-        }
-        if (length>size-i) return failure(Status::malformed);
-        if (bytes[i]==0x16) {
-            if (length<3) return failure(Status::malformed);
-            if (bytes[i+1]==0xd2 && bytes[i+2]==0xfc) {
-                if (service) return failure(Status::malformed);
-                service=bytes+i+3; serviceSize=length-3;
-            }
-        }
-        i+=length;
-    }
-    if (!service) return {};
-    if (serviceSize<2) return failure(Status::malformed);
+    if (!service || serviceSize<2 || serviceSize>251) return failure(Status::malformed);
     const auto info=service[0];
     // Version2, no reserved bits. Trigger flag is descriptive, not freshness.
     if ((info&0xe0)!=0x40 || (info&0x1a)) return failure(Status::malformed);
@@ -110,6 +94,41 @@ inline ShellyHtDisplayFrame decodeShellyHtDisplayAdvertisement(const uint8_t* by
         }
     }
     result.status=Status::decoded;
+    return result;
+}
+
+// Local names are not model evidence. The full AD suffix is validated first.
+inline ShellyHtDisplayFrame decodeShellyHtDisplayAdvertisement(const uint8_t* bytes, std::size_t size) {
+    const auto service = findBleServiceData(bytes, size, 0xfcd2);
+    if (service.status == BleServiceStatus::malformed) {
+        ShellyHtDisplayFrame result; result.status = ShellyHtFrameStatus::malformed; return result;
+    }
+    if (service.status == BleServiceStatus::absent) return {};
+    return decodeShellyHtDisplayService(service.data, service.size);
+}
+
+template<class Decryptor>
+ShellyHtDisplayFrame decodeBoundShellyHtDisplayAdvertisement(const std::array<uint8_t,6>& address,
+        const uint8_t* bytes, std::size_t size, const BleBindKey* key, bool requireEncryption,
+        Decryptor& decryptor, BthomeWorkspace& workspace) {
+    const auto opened = openBthomeV2(address, bytes, size, key, requireEncryption, decryptor, workspace);
+    if (opened.status == BthomeOpenStatus::opened) {
+        auto result = decodeShellyHtDisplayService(opened.data, opened.size);
+        if (result.status == ShellyHtFrameStatus::decoded) {
+            result.authenticated = opened.authenticated;
+            result.encryptionCounter = opened.counter;
+        }
+        return result;
+    }
+    ShellyHtDisplayFrame result;
+    switch (opened.status) {
+        case BthomeOpenStatus::not_present: result.status = ShellyHtFrameStatus::not_present; break;
+        case BthomeOpenStatus::key_required: result.status = ShellyHtFrameStatus::key_required; break;
+        case BthomeOpenStatus::encryption_required: result.status = ShellyHtFrameStatus::encryption_required; break;
+        case BthomeOpenStatus::authentication_failed: result.status = ShellyHtFrameStatus::authentication_failed; break;
+        case BthomeOpenStatus::crypto_unavailable: result.status = ShellyHtFrameStatus::crypto_unavailable; break;
+        default: result.status = ShellyHtFrameStatus::malformed; break;
+    }
     return result;
 }
 }

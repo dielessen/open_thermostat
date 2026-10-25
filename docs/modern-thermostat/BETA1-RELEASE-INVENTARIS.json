@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "5203d53dc684a331eeeaa49f31f16bbaff35cc8879dd11358d1c68a1be84b6ab"
+          "sha256": "a5e8feb4fb155417a6389f772b48d434855cb236893c7df5bf43371fffddc138"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -71,7 +71,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA1-UITVOERING.nl.md",
-          "sha256": "5c719c20b784dec6bff9e370943a7cbe1c723485b9db515e73e154f07faab19c"
+          "sha256": "9cd11fb07efe538d3a5ef1809b7b2641bd24a05e8732d937eb287e2b265c81b7"
         },
         {
           "path": "README.md",
@@ -79,7 +79,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
-          "sha256": "72d15ca3bd6b1b63ac604b97c016616c7cd8d202501e4be23ec653d0c0c1cbdb"
+          "sha256": "f7eda59fa824e3983da286680653060a35066c851eac767fa721b9057778ee16"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync."
@@ -99,7 +99,7 @@
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
-          "sha256": "208b9caf3f0bbbec14650e94c2bf19efaa7c60db35de778a6a79d95eac60d4f1"
+          "sha256": "22bb75ccfc0af10865b92d3b15bd4c69fc40db42a4e90b29a2c7a1b6e5615d70"
         },
         {
           "path": "data/html/auth-client.js",
@@ -217,7 +217,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "5203d53dc684a331eeeaa49f31f16bbaff35cc8879dd11358d1c68a1be84b6ab"
+          "sha256": "a5e8feb4fb155417a6389f772b48d434855cb236893c7df5bf43371fffddc138"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -237,7 +237,7 @@
         },
         {
           "path": "data/html/index.html",
-          "sha256": "d4ffd44b94cbaaddbe36cf1c7529f43c08070d769e41b8297cace7406b4ab42a"
+          "sha256": "ef0b4cdbd8b65ddc9461b62c7d83784eb63183fd5f0d47f75204910049dd1c30"
         },
         {
           "path": "data/html/device-restart.js",
@@ -273,7 +273,7 @@
         },
         {
           "path": "platformio.ini",
-          "sha256": "08314d1ee42a127fa9edc9a15fe6524bd2af936fb14fc7d4b92e446aa8b07e2d"
+          "sha256": "0e7a8f049e0202dbd34daa042e1eae33919da533a42904e2358e7cde5393ebf9"
         },
         {
           "path": "data/html/curve.html",
@@ -369,7 +369,7 @@
         },
         {
           "path": "test/test_native/test_http_access.cpp",
-          "sha256": "d870504990f21fcfd90e7ee7ec1ff8f61bfce4f52b219e52ac351f003713eff7"
+          "sha256": "37c2bbcc5cabbdf20d91aa2ed11f43f1eebb4b89332d39a511bfd503511698d0"
         },
         {
           "path": "test/test_native/test_web_auth.cpp",
@@ -385,7 +385,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "2b600b83c718d68ae6d8a69a1431d76bc663d9fc13b584306efd30e40453e927"
+          "sha256": "7a6694c688f55f5ecde51cb1b979e57f7b8ba2e4548733489912c9d0511bba33"
         },
         {
           "path": "data/html/ui-language.js",
@@ -581,7 +581,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "e1c140a784a323ec127af2d2bc8597b77323bc1b63de931430150e2e552dcb93"
+          "sha256": "70f3963122ec1059631ee39696ebf2a3f602a9ad3a49b3065126d9598388e6ed"
         },
         {
           "path": "src/Room.cpp",
@@ -687,11 +687,11 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "5203d53dc684a331eeeaa49f31f16bbaff35cc8879dd11358d1c68a1be84b6ab"
+          "sha256": "a5e8feb4fb155417a6389f772b48d434855cb236893c7df5bf43371fffddc138"
         },
         {
           "path": "platformio.ini",
-          "sha256": "08314d1ee42a127fa9edc9a15fe6524bd2af936fb14fc7d4b92e446aa8b07e2d"
+          "sha256": "0e7a8f049e0202dbd34daa042e1eae33919da533a42904e2358e7cde5393ebf9"
         },
         {
           "path": "src/main.cpp",
@@ -699,19 +699,19 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "e1c140a784a323ec127af2d2bc8597b77323bc1b63de931430150e2e552dcb93"
+          "sha256": "70f3963122ec1059631ee39696ebf2a3f602a9ad3a49b3065126d9598388e6ed"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
-          "sha256": "208b9caf3f0bbbec14650e94c2bf19efaa7c60db35de778a6a79d95eac60d4f1"
+          "sha256": "22bb75ccfc0af10865b92d3b15bd4c69fc40db42a4e90b29a2c7a1b6e5615d70"
         },
         {
           "path": "data/html/index.html",
-          "sha256": "d4ffd44b94cbaaddbe36cf1c7529f43c08070d769e41b8297cace7406b4ab42a"
+          "sha256": "ef0b4cdbd8b65ddc9461b62c7d83784eb63183fd5f0d47f75204910049dd1c30"
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "2b600b83c718d68ae6d8a69a1431d76bc663d9fc13b584306efd30e40453e927"
+          "sha256": "7a6694c688f55f5ecde51cb1b979e57f7b8ba2e4548733489912c9d0511bba33"
         },
         {
           "path": "data/html/system-log.js",
@@ -851,7 +851,7 @@
         },
         {
           "path": "src/control/ShellyHtDisplayAdvertisement.h",
-          "sha256": "e0f70a90b7048a567810bb8e3648819e35ded3dbd810f17cb1bee8bab9e2f9c2"
+          "sha256": "931fd8a8e61862a68f586377fdfe2ec997a79bec6df5f73eeb760e70e8a3a606"
         },
         {
           "path": "test/test_native/test_shelly_ht_advertisement.cpp",
@@ -859,7 +859,7 @@
         },
         {
           "path": "docs/modern-thermostat/BLUETOOTH-APPARATEN.nl.md",
-          "sha256": "3a7515a70ddc2e8e99af1c05de2bf9133beadc6212a1afa5e7c78862bf26cfbe"
+          "sha256": "a723f2a1f60a688f98b5f0c1157b40bc0eceb718681073b17fae5da3a0c48f3d"
         },
         {
           "path": "src/diagnostics/EmsLogCapture.h",
@@ -884,9 +884,69 @@
         {
           "path": "ha/tests_native/test_context_source_binding.py",
           "sha256": "b2e437af8761920931a678dbbaa8dc1eb29b475b736de870eff3f58ac548749d"
+        },
+        {
+          "path": "src/control/BleCcm.h",
+          "sha256": "5d47618aabbd2bf3572de12586616deac43378003c23e9e75269790c9830599e"
+        },
+        {
+          "path": "src/control/BleDeviceConfig.h",
+          "sha256": "4ecdda7f84a3c0e4849a463160fcc6afa9df3a32f9dcad2200f706c38e0e0859"
+        },
+        {
+          "path": "src/control/BleDeviceSettings.h",
+          "sha256": "eaaa865aa85e0ea352f5cbfc887b2aec83d57aa5d324ed86e9f493facdec42c5"
+        },
+        {
+          "path": "src/control/BleObservationJson.h",
+          "sha256": "555670c3affa4d5cf411c80d8518b6eb0714d6ffef2de02cab1f7e9ca48c4a1c"
+        },
+        {
+          "path": "src/control/BleServiceData.h",
+          "sha256": "166ca2c4c542ae3213b89e829aa4649853431647a05899c09ad647128ec67564"
+        },
+        {
+          "path": "src/control/BthomeV2Codec.h",
+          "sha256": "1e87a02edca034b2c02f40a70ed7f9b4bf93bd61d91555bc282364809dceb1ad"
+        },
+        {
+          "path": "src/control/ManagedBleObserver.h",
+          "sha256": "7c64ae8eb7826b6929bc54115cbba907dd7be166289ed922e8dfb46222b7d5eb"
+        },
+        {
+          "path": "src/control/MbedTlsBleCcm.h",
+          "sha256": "62fc47ccf88944577a0377446a0613082b540d8388400377dd0cb80c35cdf801"
+        },
+        {
+          "path": "data/html/bluetooth.html",
+          "sha256": "dc69c12d80b13ac97057b990ae1cf7da733d99f3d6f88c7c941f999cbe6800da"
+        },
+        {
+          "path": "data/html/bluetooth.js",
+          "sha256": "eaf8f8b2cbbc7dcb3e985b40a46933f697d05884fc1525631857cd6df4b8a1c1"
+        },
+        {
+          "path": "test/ble_crypto/mbedtls.cpp",
+          "sha256": "78e26e311d1c5b224b13eef926553797ddc24a1153a80cf9a04774b99d9d12a3"
+        },
+        {
+          "path": "test/bluetooth-browser.cjs",
+          "sha256": "e1b271fba9ac3810e87649871023847cdaff30795a5a25acd4f4cbf4146bc229"
+        },
+        {
+          "path": "test/test_native/test_ble_device_settings.cpp",
+          "sha256": "a28e11a44917fbfd08daf63444964d55d16f6c60479fa391e6edee1c47d6146e"
+        },
+        {
+          "path": "test/test_native/test_managed_ble_observer.cpp",
+          "sha256": "c187b19657ae84e550e2b5c36e4ee2008c84f6cde7f1fddca2539d76c945760e"
+        },
+        {
+          "path": "test/test_native/test_http_access.cpp",
+          "sha256": "37c2bbcc5cabbdf20d91aa2ed11f43f1eebb4b89332d39a511bfd503511698d0"
         }
       ],
-      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding geleverd/getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele acquisitie-/ouderdomsvalidatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten als ambient bron. WSDCGQ11LM-eventproducer voorbereid/getest, niet op Z2M geïnstalleerd. Native HA-ontvanger en room-status geleverd zonder QualifiedReport-vrijgave. Web-/native systeemlog en RFC5424 UDP-syslog geleverd in alpha23; beschermde routes/RAM-buffer en standaard uit zonder bestemming gecontroleerd. Externe collector en lange heap-/stack-/belastingproef blijven open. Geen fysieke regelautorisatie. ESP-eigen diagnose op alpha26/dev33 geïnstalleerd en twee gewone live pakketten exact met HA vergeleken. Softwaretests dekken verval; langdurige fysieke logging-/resourceproeven blijven afzonderlijk open. Geleverd en live teruggelezen in HA46: begrensde, niet-blijvende oorspronkelijke ontvangsttellers via bestaande HA-diagnostiek. Geen producent- of fysieke kwalificatie. Geleverd in HA47: één native opstart over async-programma/Store/MQTT-grenzen, cleanup bij cancel/close en begrensde optionele temperatuurdiagnose. Tien baselinegevallen falen vóór correctie, 139 gerichte/2349volledigeHA-gevallen perCore slagen. HA47 uitgerold met verse HA46-back-up96 en44 afzonderlijke nacontroles. Beperkte HA46-controle05:46UTC ziet1TV02-callback/enqueue/workeracceptatie; stale en ongekwalificeerd, geen upstreamoorzaak of fysieke ACK. Na Coreherstart nieuweRAMowner: bij06:47UTC nul counters/TV02waiting, geen oudbericht alsnieuwekwalificatie. Actieve/fysiekevrijgave blijftopen. X01: pure SBHT-103C-BTHome-decoder voorbereid,798native/16sanitizer/ESP32syntaxPASS; NIETgeselecteerd door BLE-runtime. Geen nieuwe reader, Settings/onboarding, AES/sleutels, replay-/acquisitiekwalificatie of fysieke apparaatondersteuning. Xiaomi/BLUTRV blijven open. HA48 geïnstalleerd: cleanup na gewone callbackexception; aparte nacontrole08:43UTC46PASS,86 live/96back-up exact. Nieuwe RAM-owner blijft ongekwalificeerd. Pure Shelly-decoderbron gepubliceerd in alpha35, niet op E32 geïnstalleerd en niet runtimegeselecteerd. Voor volgende firmware: ESP/EMS/beide-weergave, begrensde deferred RX-framelogging en onafhankelijke syslogbronkeuze met oude6/nieuwe8veldinstellingen. Native25/UDPloopback/NVS/vierbrowserprofielen PASS; echte EMS-/collector-/belastingproeven nog open. Geen installatie."
+      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding geleverd/getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele acquisitie-/ouderdomsvalidatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten als ambient bron. WSDCGQ11LM-eventproducer voorbereid/getest, niet op Z2M geïnstalleerd. Native HA-ontvanger en room-status geleverd zonder QualifiedReport-vrijgave. Web-/native systeemlog en RFC5424 UDP-syslog geleverd in alpha23; beschermde routes/RAM-buffer en standaard uit zonder bestemming gecontroleerd. Externe collector en lange heap-/stack-/belastingproef blijven open. Geen fysieke regelautorisatie. ESP-eigen diagnose op alpha26/dev33 geïnstalleerd en twee gewone live pakketten exact met HA vergeleken. Softwaretests dekken verval; langdurige fysieke logging-/resourceproeven blijven afzonderlijk open. Geleverd en live teruggelezen in HA46: begrensde, niet-blijvende oorspronkelijke ontvangsttellers via bestaande HA-diagnostiek. Geen producent- of fysieke kwalificatie. Geleverd in HA47: één native opstart over async-programma/Store/MQTT-grenzen, cleanup bij cancel/close en begrensde optionele temperatuurdiagnose. Tien baselinegevallen falen vóór correctie, 139 gerichte/2349volledigeHA-gevallen perCore slagen. HA47 uitgerold met verse HA46-back-up96 en44 afzonderlijke nacontroles. Beperkte HA46-controle05:46UTC ziet1TV02-callback/enqueue/workeracceptatie; stale en ongekwalificeerd, geen upstreamoorzaak of fysieke ACK. Na Coreherstart nieuweRAMowner: bij06:47UTC nul counters/TV02waiting, geen oudbericht alsnieuwekwalificatie. Actieve/fysiekevrijgave blijftopen. X01: pure SBHT-103C-BTHome-decoder voorbereid,798native/16sanitizer/ESP32syntaxPASS; NIETgeselecteerd door BLE-runtime. Geen nieuwe reader, Settings/onboarding, AES/sleutels, replay-/acquisitiekwalificatie of fysieke apparaatondersteuning. Xiaomi/BLUTRV blijven open. HA48 geïnstalleerd: cleanup na gewone callbackexception; aparte nacontrole08:43UTC46PASS,86 live/96back-up exact. Nieuwe RAM-owner blijft ongekwalificeerd. Pure Shelly-decoderbron gepubliceerd in alpha35, niet op E32 geïnstalleerd en niet runtimegeselecteerd. Voor volgende firmware: ESP/EMS/beide-weergave, begrensde deferred RX-framelogging en onafhankelijke syslogbronkeuze met oude6/nieuwe8veldinstellingen. Native25/UDPloopback/NVS/vierbrowserprofielen PASS; echte EMS-/collector-/belastingproeven nog open. Geen installatie. Grote-beta-uitvoering: normale E32 SBHT-103C-diagnoseontvangst/EN-NL-settings nu aangesloten met acht bindings, echte SDK AES-CCM/MIC, verborgen sleutels, conditionele duurzame save, oorspronkelijke callbackleeftijden, vaste wachtrij en boot-lokale tellerafwijzing. Geen extra task/client of actuatorwrite; geen QualifiedReport of kamerregelbron. 871 native gevallen PASS; volledige actuele board/browser/sanitizerresultaten bij bundelbewijs. Historische pure-decoderstatus hierboven beschrijft oudere bron. Echte sensor-/radio-/sleutelverkrijgings-/reboot-/resourceproeven, blijvende replay-/acquisitiekwalificatie, Xiaomi/TRV en zelfstandig regelen blijven open. Niets geïnstalleerd."
     },
     {
       "id": "I12",
@@ -1386,7 +1446,7 @@
         },
         {
           "path": "src/HeatingController.h",
-          "sha256": "ec40e20c3db9a422ae14dad469eff3e20751a281fdfe3a23045bfa86dda18c4d"
+          "sha256": "9fbe8188cd376ca2fc32a6ead77ad45a12b88787645bd90fb34d575310309cfa"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/sensor.py",
@@ -1585,11 +1645,11 @@
         },
         {
           "path": "src/HeatingController.h",
-          "sha256": "ec40e20c3db9a422ae14dad469eff3e20751a281fdfe3a23045bfa86dda18c4d"
+          "sha256": "9fbe8188cd376ca2fc32a6ead77ad45a12b88787645bd90fb34d575310309cfa"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
-          "sha256": "208b9caf3f0bbbec14650e94c2bf19efaa7c60db35de778a6a79d95eac60d4f1"
+          "sha256": "22bb75ccfc0af10865b92d3b15bd4c69fc40db42a4e90b29a2c7a1b6e5615d70"
         },
         {
           "path": "src/update/ReleasePolicy.h",

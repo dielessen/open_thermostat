@@ -14,6 +14,7 @@
 #include "update/GitHubUpdate.h"
 #include "control/WebAuthSession.h"
 #include "control/NativeSourceProvisioning.h"
+#include "control/BleObservationJson.h"
 #include <esp_system.h>
 // Pinned Arduino WebServer verbose logging prints HTTP headers and form bodies.
 // Never build the credential endpoint with that unredacted library trace enabled.
@@ -164,6 +165,12 @@ public:
 		route("/hardware/test/gpio", HTTP_DELETE, [this]() { gpioTestStop(); });
 		route("/config/debug", [this]() { configDebug(); });
 #ifdef OPENTHERMOSTAT_E32V2
+        route("/config/bluetooth",[this] { bluetoothSettings(); });
+        route("/bluetooth/status",HTTP_GET,[this] { bluetoothSettings(true); });
+        route("/config/bluetooth/scan",HTTP_POST,[this] {
+            const bool accepted=controller_.requestBleDiscovery();
+            server_.send(accepted?202:409,"application/json",accepted?"{\"scan_started\":true}":"{\"error\":\"bluetooth_scan_not_started\"}");
+        });
         route("/config/logging",[this] { loggingSettings(); });
         route("/status/logs",HTTP_GET,[this] { systemLogs(); });
         route("/logs/clear",HTTP_POST,[this] { diagnostics::runtime.log.clear();server_.send(200,"application/json","{}"); });
@@ -636,6 +643,62 @@ private:
 
 	}
 
+
+#ifdef OPENTHERMOSTAT_E32V2
+    void bluetoothSettings(bool statusOnly=false) {
+        if(update::busy()) {server_.send(503,"application/json","{\"error\":\"bluetooth_resources_unavailable\"}");return;}
+        const auto saved=readDeviceNetworkSettings();
+        auto previous=control::parseControlJson({saved.c_str(),saved.length()},true);
+        if(!previous || !cJSON_IsObject(previous.get())) { server_.send(503,"application/json","{\"error\":\"device_settings_unavailable\"}");return; }
+        std::unique_ptr<control::ManagedBleBindings> bindings(new(std::nothrow) control::ManagedBleBindings);
+        if(!bindings) { server_.send(503,"application/json","{\"error\":\"bluetooth_resources_unavailable\"}");return; }
+        const auto storedError=control::readManagedBleBindings(previous.get(),*bindings);
+        if(server_.method()==HTTP_GET) {
+            auto devices=control::publicManagedBleBindings(*bindings);
+            control::ControlJson result(cJSON_CreateObject(),cJSON_Delete);
+            if(!devices || !result || !cJSON_AddNumberToObject(result.get(),"schema",1)
+                    || !cJSON_AddBoolToObject(result.get(),"pending_restart",controller_.managedBlePending())
+                    || !cJSON_AddStringToObject(result.get(),"config_error",control::bleSettingsErrorName(storedError))
+                    || !cJSON_AddNumberToObject(result.get(),"queue_drops",controller_.managedBleQueueDrops())
+                    || !cJSON_AddBoolToObject(result.get(),"scan_pending",controller_.bleScanPending())) { server_.send(503);return; }
+            for(size_t i=0;i<bindings->count;++i) if(!control::addBleObservation(cJSON_GetArrayItem(devices.get(),i),controller_.managedBleSnapshot(bindings->devices[i].address))) {server_.send(503);return;}
+            if(!cJSON_AddItemToObject(result.get(),"devices",devices.get())) {server_.send(503);return;} devices.release();
+            std::unique_ptr<control::BleDeviceDiscovery> discovered(new(std::nothrow) control::BleDeviceDiscovery);
+            if(!discovered) {server_.send(503);return;} controller_.copyBleDiscovery(*discovered);
+            auto nearby=cJSON_AddArrayToObject(result.get(),"nearby");
+            if(!nearby || !cJSON_AddBoolToObject(result.get(),"discovery_full",discovered->overflowed())) {server_.send(503);return;}
+            for(const auto& address:*discovered) if(!control::appendBleJson(nearby,cJSON_CreateString(control::printBleHex(address).data()))) {server_.send(503);return;}
+            if(!statusOnly) {
+                std::array<char,65> nonce{};
+                if(!randomToken(nonce)) {server_.send(503);return;}
+                const auto tag=sessions_.settingsReadback(requestToken().c_str(),control::sha256Hex({saved.c_str(),saved.length()}),nonce.data(),networkNow());
+                if(tag.empty()) {server_.send(503);return;}
+                server_.sendHeader("ETag",String("\"")+tag.data()+"\"");
+            }
+            server_.sendHeader("Cache-Control","no-store");
+            server_.send(200,"application/json",control::printJson(result.get()).c_str());return;
+        }
+        if(!server_.hasHeader("If-Match") || !sessions_.settingsReadbackMatches(requestToken().c_str(),server_.header("If-Match").c_str(),control::sha256Hex({saved.c_str(),saved.length()}),networkNow())) {
+            server_.send(412,"application/json","{\"error\":\"device_settings_changed\"}");return;
+        }
+        const auto body=server_.arg("plain");
+        auto request=control::parseControlJson({body.c_str(),body.length()},true);
+        control::ControlJson candidate(nullptr,cJSON_Delete); bool changed=false;
+        const auto error=control::prepareManagedBleSettings(previous.get(),request.get(),*bindings,candidate,changed);
+        if(error!=control::BleSettingsError::none) {
+            const auto code=error==control::BleSettingsError::allocation_failed?503:error==control::BleSettingsError::settings_too_large?413:400;
+            server_.send(code,"application/json",(std::string("{\"error\":\"")+control::bleSettingsErrorName(error)+"\"}").c_str());return;
+        }
+        if(!changed) {server_.send(200,"application/json","{\"changed\":false}");return;}
+        controller_.stopManagedBle();
+        const String encoded(control::printJson(candidate.get()).c_str());
+        if(!saveDeviceNetworkSettings(encoded)) {
+            server_.send(503,"application/json","{\"error\":\"bluetooth_save_unconfirmed\"}");return;
+        }
+        server_.send(201,"application/json","{\"changed\":true,\"pending_restart\":true}");
+    }
+#endif
+
 	void configDevice() {
 #ifdef OPENTHERMOSTAT_E32V2
 		auto saved=readDeviceNetworkSettings();
@@ -648,6 +711,7 @@ private:
                 control::sha256Hex(std::string_view(saved.c_str(),saved.length())),nonce.data(),networkNow());
             if(tag.empty()) { server_.send(503,"text/plain","Readback token unavailable"); return; }
             server_.sendHeader("ETag",String("\"")+tag.data()+"\"");
+			control::redactManagedBleSettings(previous.get());
 			for(auto pair:{std::make_pair("mqtt","password"),std::make_pair("openweather","appid")}) {
 				auto section=cJSON_GetObjectItemCaseSensitive(previous.get(),pair.first);
 				if(cJSON_IsObject(section)) { cJSON_DeleteItemFromObjectCaseSensitive(section,pair.second); cJSON_AddStringToObject(section,pair.second,""); }
@@ -674,6 +738,18 @@ private:
 		auto body=server_.arg("plain");
 		auto candidate=control::parseControlJson(std::string_view(body.c_str(),body.length()),true);
 		if(!candidate||!cJSON_IsObject(candidate.get())) { server_.send(400,"text/plain","Invalid bounded network settings"); return; }
+        if (!previous || !control::retainManagedBleSettings(previous.get(),candidate.get())) {
+            server_.send(400,"application/json","{\"error\":\"stored_bluetooth_config_invalid\"}");return;
+        }
+        const auto oldBle=control::bleSetting(control::bleSetting(previous.get(),"bt"),"devices");
+        const auto nextBle=control::bleSetting(control::bleSetting(candidate.get(),"bt"),"devices");
+        const bool bleChanged = (oldBle || nextBle) && !cJSON_Compare(oldBle,nextBle,true);
+        if (bleChanged) {
+            std::unique_ptr<control::ManagedBleBindings> checked(new(std::nothrow) control::ManagedBleBindings);
+            if (!checked || control::readManagedBleBindings(candidate.get(),*checked)!=control::BleSettingsError::none) {
+                server_.send(400,"application/json","{\"error\":\"invalid_bluetooth_settings\"}");return;
+            }
+        }
         const auto sourceApply=control::field(candidate.get(),"native_source_apply");
         if(sourceApply&&!cJSON_IsBool(sourceApply)) {server_.send(400,"text/plain","Invalid source-only apply request");return;}
         const bool sourceOnly=cJSON_IsTrue(sourceApply);
@@ -741,6 +817,7 @@ private:
                 server_.send(409,"text/plain","SOURCE lineage does not match the actual current durable plan; read back and resolve pending/conflict before selection");return;
             }
         }
+		if(bleChanged) controller_.stopManagedBle(); // Close values before any ambiguous durable write.
 		if(!saveDeviceNetworkSettings(encoded)) {
             if(sourceOnly)controller_.inhibitNativeSourceMutation(); // ambiguous commit: never operate old policy.
             server_.send(500,"text/plain",sourceOnly?

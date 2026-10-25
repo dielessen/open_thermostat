@@ -558,7 +558,7 @@ Settings → Bluetooth-apparaten, met EN/NL-onboarding, expliciete kamertoewijzi
 beveiliging en zichtbare meetkwaliteit/bronuitval. Ook gevraagd: **Xiaomi Monitor 3
 (MJWSD05MMC)** via een apart versleuteld BLE-profiel; verkrijging van de
 apparaatsleutel en echte ontvangst/meetkwaliteit moeten nog worden bewezen.
-[Ontwerp en acceptatie](BLUETOOTH-APPARATEN.nl.md). Eerste pure SBHT-103C-decoder voorbereid/getest: 798 native gevallen, 16 aparte sanitizergevallen en ESP32-syntaxcontrole slagen. Normale reader/onboarding/sleutels/replay-/acquisitiekwalificatie nog niet aangesloten; geen werkende Shelly-/Xiaomi-driver of fysieke vrijgave.
+[Uitvoering en acceptatie](BLUETOOTH-APPARATEN.nl.md). In dezelfde ongepubliceerde bèta is nu de normale E32-instellingen-/ontvangstroute voor SBHT-103C-diagnose aangesloten: acht expliciete bindings, echte AES-CCM/MIC, sleutelredactie, sessiegebonden conditional save, oorspronkelijke ontvangstleeftijd en boot-lokale tellerafwijzing. Dezelfde scanner, geen nieuwe taak of actuatorwrite. 871 native gevallen slagen; uitgebreide bundel-/browsercontroles worden vastgelegd. Echte apparaatacceptatie, blijvende replay-/acquisitiekwalificatie, Xiaomi, TRV en zelfstandige regeling blijven open. Geen fysieke vrijgave of installatie.
 
 Volgorde: apparaatgebonden alleen-lezen BLE-basis inclusief sensor → begrensde proefkraan zonder
 ketel → lokale eigenaar/programmering/tijd/opslag → integratie en uitvalproeven.

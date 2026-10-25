@@ -18,6 +18,12 @@ Ongeldige kamerwaarden en te grote getallen verstoren de statusverwerking niet.
 Zie [het werkbord](WORKBOARD.nl.md) en [CSV-gebruik](HISTORIE-EXPORT.nl.md).
 Dit is nog geen gepubliceerde of geïnstalleerde versie.
 
+Ook de normale E32-pagina voor Bluetoothapparaten en lokale SBHT-103C-
+diagnoseontvangst is aangesloten, met echte AES-CCM, verborgen bindkeys,
+begrensde opslag/wachtrij en ontvangstleeftijden. Dit levert nog geen
+gekwalificeerde regelbron; Xiaomi/TRV en zelfstandig regelen blijven open.
+[Uitvoering en grenzen](BLUETOOTH-APPARATEN.nl.md).
+
 ## GitHub-releasenotities — alle bestaande versies bijgewerkt
 
 Alle 65 releases (64 gepubliceerd en één concept) hebben begrijpelijke Nederlandse

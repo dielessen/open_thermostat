@@ -1,59 +1,110 @@
 # Bluetooth-apparaten onder Settings
 
-Uitbreiding X01, bijgewerkt25oktober2026. **Ontwerp met eerste geteste
-decoderbasis; nog geen aangesloten of fysiek geteste apparaatondersteuning.** De uitvoering staat
-op het [werkbord](WORKBOARD.nl.md). Dit vult het
-[BLE-/standalone-ontwerp](SHELLY-BLU-TRV-STANDALONE.nl.md) aan.
+Uitbreiding X01, bijgewerkt 25 oktober 2026. **Software voor lokale
+SBHT-103C-diagnoseontvangst aangesloten in de ongepubliceerde grote bèta.**
+Nog geen fysieke apparaatacceptatie of vrijgave als regelbron. De geïnstalleerde
+basis blijft E32 alpha36 / HA dev48; er is niets geflasht of geïnstalleerd.
+Het [werkbord](WORKBOARD.nl.md) blijft de acceptatiechecklist.
 
-## Voorbereid: passieve SBHT-103C-decoder
+## Aangesloten: lokale Shelly-ontvangst en apparaatinstellingen
 
-`src/control/ShellyHtDisplayAdvertisement.h` levert een pure parser voor het
-gedocumenteerde SBHT-103C-deel van [BTHomev2](https://bthome.io/format/).
-Temperatuur, vochtigheid, batterij, batterijwaarschuwing, licht/lichtniveau,
-knop en ruwe firmware-/modeldeclaraties worden afzonderlijk gedecodeerd.
-Temperatuur gebruikt getekende little-endian0,1°C; de projectgrens
-−40..85°C wordt vóór omzetting naar honderdsten gecontroleerd.
-De [Shelly-identificatietabel](https://shelly-api-docs.shelly.cloud/docs-ble/common/)
-vermeldt0x000C voor dit model. Zo'n broadcastdeclaratie is geen authenticatie.
+De E32-pagina **Settings → Bluetooth devices / Instellingen → Bluetoothapparaten**
+beheert maximaal acht expliciet gekozen **Shelly BLU H&T Display, SBHT-103C**-
+adressen. Een zoekactie toont maximaal 32 sinds opstarten waargenomen adressen;
+modelselectie blijft handmatig. Een adres, naam of RSSI bewijst geen model.
+De pagina is Engels/Nederlands en wordt alleen op E32 met de sessie-API getoond.
 
-De volledige AD-container wordt eerst gecontroleerd; afgebroken of dubbele
-services, verkeerd geordende/dubbele objecten, onbekende objecten en ongeldige
-waarden leveren geen gedeeltelijke meetwaarden op. Dit is een strikte subset,
-geen algemene BTHome-parser: toekomstige extra objecten worden geweigerd.
-Een versleuteld formaat geeft alleen `key_required`, zonder meetwaarden of
-identiteit. Authenticatie, AES-CCM en sleutelbeheer zijn hier nog niet geïmplementeerd;
-het formaatlabel bewijst geen geldig cryptografisch bericht.
+Dezelfde bestaande NimBLE-scanner ontvangt de advertenties. Zonder ingestelde
+profielen verandert het automatische scangedrag van modern HA-bedrijf niet.
+Met profielen werkt de lokale ontvangst zonder HA. De SDK-callback kopieert
+alleen ingestelde adressen naar een vaste wachtrij van vier frames. De bestaande
+hoofdloop verwerkt maximaal één frame per keer; geen extra taak, BLE-client,
+koppelverzoek, kraanwrite of automatische bronwissel. De legacy ATC/MJ_HT_V1-route
+blijft afzonderlijk werken en selecteert dit nieuwe profiel niet.
 
-Er is geen veldcache: batterij-, identificatie- en knoppakketten krijgen geen
-eerdere temperatuur mee. Een teller wordt alleen als ontvangen getal getoond;
-herhaling/omloop, echte acquisitietijd en adres-/sleutelbinding worden niet
-gekwalificeerd. Een gewone beacon bevat geen modelidentificatie. De toekomstige
-apparaateigenaar moet de expliciet gekozen bron en haar kwaliteit beoordelen.
+### Sleutel, integriteit en levensduur
 
-798 native tests slagen, inclusief16nieuwe decodergevallen en bestaande legacy
-BLE-tests. De16gevallen slagen ook onder ASan/UBSan/leakcontrole, met12.000
-begrensde willekeurige buffers en6.656mutaties van een synthetisch profielpakket.
-De echte ESP32-toolchain controleert de headersyntax met warnings als fouten;
-dit is geen complete firmware-/radio- of praktijkproef. Een eerste testsamenstelling
-faalde op een GoogleTest-macrocombinatie; die testsyntax is gecorrigeerd en de
-foutuitvoer blijft bewaard.
+Ondersteund zijn de expliciete keuzes onversleuteld en BTHome v2 AES-CCM.
+De gebruiker voert een bestaande bindkey in als 32 hexadecimale tekens.
+Mbed TLS uit de firmware-SDK controleert de MIC met de gekozen MAC en sleutel;
+nonce en ontbrekende v2-AAD volgen het [officiële protocol](https://bthome.io/encryption/).
+Verkeerde sleutel, gewijzigde inhoud, te lange/afgebroken containers en
+plaintext bij een versleuteld profiel leveren geen metingen op.
 
-De normale NimBLE-reader selecteert deze parser nog niet; een regressie bewaakt
-dat dezelfde Shelly-advertentie door de legacy-reader wordt geweigerd. Geen
-extra scanner, verbinding, taak, write, fysieke opdracht of bronwissel.
-Settings/onboarding, sleutels, replay-/bronlevensduur, runtimebedrading, Xiaomi
-Monitor3 en BLUTRV blijven open. Bewijs: `out/shelly-ht-decoder-20261025/`.
+Iedere veldleeftijd begint bij de oorspronkelijke SDK-ontvangst, vóór de wachtrij.
+Temperatuur, vochtigheid, batterij en licht verlopen na drie minuten; knoppen
+na twee seconden; model-/firmwaredeclaraties na 65 minuten. Een batterij-,
+knop- of identificatiebericht vernieuwt geen eerdere temperatuur. Een defecte
+of teruglopende ontvangstklok sluit de eigenaar tot herstart. Tijdens een
+firmware-update wacht ontsleuteling; wachtrijvertraging maakt berichten niet jonger.
+Nieuwe uitgebreide Bluetooth-HTTP-reads worden tijdens de update afgewezen om
+niet tegelijk extra JSON-buffers naast TLS toe te laten.
 
-**English:** Prepared strict SBHT-103C advertisement decoder, not a connected
-device driver. Sixteen new cases pass within798native tests and separately
-under sanitizers; the ESP32 toolchain accepts the header. Whole-container and
-field validation is atomic. Encrypted input exposes no measurements. Address
-binding, authenticated decryption, replay/acquisition qualification, runtime
-onboarding and real-device acceptance remain open. Existing BLE routing is unchanged.
+Alleen een geldig geauthenticeerd en strikt gedecodeerd bericht verhoogt de
+ontvangen 32-bits teller. Oude/herhaalde tellers vernieuwen geen waarden of
+leeftijden. Dit geldt **binnen dezelfde boot**; na herstart is nog geen blijvende
+anti-replaykwalificatie aanwezig. Berichtintegriteit bewijst bovendien geen
+fysieke acquisitietijd. Daarom blijven `measurement_qualified` en
+`control_qualified` expliciet onwaar. De gegevens zijn diagnoseontvangst en
+worden niet aan de verwarmingsregelaar, kraanroute of HA-meetkwalificatie gevoerd.
 
-## Eerste ondersteunde profielen
+### Opslaan en publieke API
 
-Naast de Shelly BLU TRV nemen we de **Shelly BLU H&T Display ZB, SBHT-103C** op.
+De versiegebonden compacte lijst staat in `bt.devices` in het bestaande
+`ot_network/settings`-blob. Geen nieuwe partitie/namespace en geen schrijfcyclus
+per advertentie. De bestaande totale grens van 2048 bytes geldt ook met broker-,
+netwerk- en installatieprofielinstellingen; bij ruimtegebrek wordt de volledige
+wijziging geweigerd, zonder afkappen of andere instellingen te wissen.
+
+- `GET /config/bluetooth`: publieke instellingen plus ontvangststatus en een
+  sessiegebonden ETag voor precies de actuele complete instellingen.
+- `POST /config/bluetooth`: sessie/CSRF/origin, update-/ketelproefbewaking en
+  verplichte `If-Match`. Alleen exact hetzelfde adres/profiel/versleuteling kan
+  de bestaande sleutel behouden; vervangen en wissen zijn expliciete acties.
+- `GET /bluetooth/status`: alleen status, zonder formuliervelden of ETag te
+  vernieuwen. Polling laat invoer, focus en open panelen staan. Fouten maken de
+  getoonde ontvangstwaarden onbekend en laten het conceptformulier behouden.
+- `POST /config/bluetooth/scan`: één expliciete begrensde zoekscan; geen GET-
+  neveneffect of automatische herhaling na weigering. Scaninstellingen,
+  cooldown en de bestaande scannerlevensduur blijven gelden.
+
+Bindkeys worden nooit teruggestuurd, ook niet door `GET /config/device`, en niet
+in browseropslag bewaard. De oudere netwerkpagina behoudt verborgen bindings
+bij opslaan. Een expliciete volledige configuratierestore wordt gevalideerd.
+Opslaan sluit de oude ontvanger **vóór** de duurzame schrijf-/terugleescontrole;
+een onzekere schrijfactie blijft gesloten en wordt niet blind herhaald.
+De nieuwe lijst wordt na een handmatige apparaatherstart actief. Een ongeldige
+lijst kan na expliciete bevestiging worden leeggemaakt, met behoud van andere
+instellingen; een onleesbare volledige netwerkconfig wordt niet stil vervangen.
+
+### Softwarecontrole en resterende acceptatie
+
+De bestaande en nieuwe native suites en losse echte-Mbed-TLS/sanitizergevallen
+staan bij `test/test_native/test_ble_device_settings.cpp`,
+`test/test_native/test_managed_ble_observer.cpp`, `test/ble_crypto/mbedtls.cpp`
+en `test/bluetooth-browser.cjs`. De volledige bibliotheek gebruikt het officiële
+publieke BTHome-voorbeeld en onafhankelijk gemaakte protocolfixtures; geen
+echte apparaatsleutel of productieverbinding. Boardbuilds controleren de echte
+SDK-koppeling; browserproeven gebruiken uitsluitend nagebootste HTTP-antwoorden.
+Actuele resultaten en bronhashes staan bij de bundelcontrole.
+
+Open blijven: echte SBHT-103C-ontvangst, sleutelverkrijging, hardware-/firmware-
+variant, reboot-/batterij-/radio-/resourceproeven, blijvende anti-replay en
+acquisitiekwalificatie. Xiaomi Monitor 3, Shelly TRV en zelfstandig regelen
+zijn nog afzonderlijke implementatie-/acceptatiepunten. Geen werkende
+zelfstandige thermostaat of fysieke regelautorisatie afvinken op deze diagnosepagina.
+
+**English:** The unpublished beta connects bounded, local SBHT-103C reception
+and EN/NL device settings to the existing E32 scanner. It supports explicit
+plain/encrypted bindings, real SDK AES-CCM verification, write-only bindkeys,
+conditional durable storage, original reception ages and boot-local replay
+rejection. Diagnostics remain separate from qualified control measurements.
+Real-device acceptance, persistent replay/acquisition qualification, Xiaomi,
+TRV control and standalone heating remain open. Nothing has been deployed.
+
+## Gevraagde profielen en protocolreferenties
+
+De gevraagde reeks omvat naast Shelly BLU TRV de **Shelly BLU H&T Display ZB, SBHT-103C**.
 Volgens de [officiële documentatie](https://shelly-api-docs.shelly.cloud/docs-ble/Devices/BLU_ZB/ht_display/)
 zendt deze BTHome-bakens met temperatuur, vochtigheid, licht en batterijstatus
 iedere 60 seconden; apparaatidentificatie wordt ieder uur uitgezonden.
@@ -98,7 +149,11 @@ rapportage- en acquisitiegrenzen; neem de Shelly-beaconperiode niet over.
 Sleutelverkrijging, offline ontvangst en regelgeschiktheid krijgen elk eigen
 bewijs. De UI scheidt een ontbrekende sleutel van een niet bereikbaar apparaat.
 
-## Settings → Bluetooth devices / Instellingen → Bluetooth-apparaten
+## Nog te bouwen: volledige onboarding en koppeling aan kamers
+
+Onderstaande stappen zijn het verdere doelontwerp, niet de hierboven aangesloten
+diagnosepagina. Kamerselectie, bonds, sleutelverkrijging en regelbronkwalificatie
+zijn nog niet beschikbaar.
 
 Alle teksten beschikbaar in Engels en Nederlands, inclusief fouten en hulp.
 De gebruiker doorloopt deze stappen:
@@ -135,7 +190,7 @@ regeling. Geen fabrieksreset, andere bron of warmteopdracht als bijwerking.
 
 Voor deze sensor beschrijft Shelly: eerst één druk voor setup (‘SEt’), daarna
 vier drukken voor het Bluetooth-koppelvenster (‘BLe’, één minuut). Vier drukken
-buiten setup keren juist de displaykleuren om. De UI geeft daarom modelspecifieke
+buiten setup keren juist de displaykleuren om. De volledige onboarding moet daarom modelspecifieke
 instructies en een link naar de fabrikant.
 
 De [Shelly-beveiligingsdocumentatie](https://shelly-api-docs.shelly.cloud/docs-ble/encryption/)

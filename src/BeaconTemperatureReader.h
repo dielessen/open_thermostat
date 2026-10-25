@@ -63,22 +63,26 @@ public:
 
 	bool isScanPending() { return scanLifecycle_.pending(); }
 
-	void triggerScan() {
+	bool triggerScan(uint32_t durationMs = 0) {
 		// Zero means unlimited scanning in NimBLE, not a disabled scan.
-		if (!config_.scanTime) return;
+		if (!config_.scanTime) return false;
 		const auto now = static_cast<uint32_t>(millis());
-		if (!scanLifecycle_.begin(now, uint32_t(config_.scanInterval) * 1000u)) return;
+		if (!scanLifecycle_.begin(now, uint32_t(config_.scanInterval) * 1000u)) return false;
 		DBGLOGFD(log_, logFeature_, "Scan start %ds\n", config_.scanTime);
 		auto scan = NimBLEDevice::getScan();
-		const bool started = scan && scan->start(uint32_t(config_.scanTime) * 1000u, false, false);
+		const bool started = scan && scan->start(durationMs ? std::min<uint32_t>(durationMs, 30000) : uint32_t(config_.scanTime) * 1000u, false, false);
 		if (!started) {
 			// Failed start has no guaranteed onScanEnd callback. Release ownership
 			// with a cooldown instead of leaving all later scans permanently blocked.
 			scanLifecycle_.complete(static_cast<uint32_t>(millis()), [] {}, true);
 		}
 		DBGLOGFD(log_, logFeature_, "Scan start result: %d\n", started);
+        return started;
 	}
 
+    using RawObserver = std::function<void(const BleAddress_t&, int, const uint8_t*, size_t)>;
+    // Set once during construction, before the existing scanner can start.
+    void setRawObserver(RawObserver observer) { rawObserver_ = std::move(observer); }
 	void scanFinished() {
 		scanLifecycle_.complete(static_cast<uint32_t>(millis()), [] {
 			if (auto scan = NimBLEDevice::getScan()) scan->clearResults();
@@ -88,7 +92,7 @@ public:
 
 	void onResult(NimBLEAdvertisedDevice const *advertisedDevice) final {
 		if (!advertisedDevice || !scanLifecycle_.acceptsReports()) return;
-		auto payload = advertisedDevice->getPayload();
+		const auto& payload = advertisedDevice->getPayload();
 		auto addr = advertisedDevice->getAddress();
 
 		// DBGLOGFD(log_, logFeature_, "ON RESULT SERVICE DATA COUNT %zu / %s, payload size: %zu address: %s\n", advertisedDevice->getServiceDataCount(), advertisedDevice->getName().c_str(), payload.size(), advertisedDevice->getAddress().toString().c_str());
@@ -104,10 +108,11 @@ public:
 		scanFinished();
 	}
 
-	void parseAdvertisment(uint8_t const *bda, int rssi, uint8_t *payload, size_t payloadSize) {
-		(void)rssi;
+	void parseAdvertisment(uint8_t const *bda, int rssi, uint8_t const *payload, size_t payloadSize) {
+
 		if (!bda) return;
 		const BleAddress_t address{bda[5], bda[4], bda[3], bda[2], bda[1], bda[0]};
+		if (rawObserver_) rawObserver_(address, rssi, payload, payloadSize);
 		const auto report = control::decodeBleTemperatureAdvertisement(address, payload, payloadSize);
 		if (report) pushTemperature_(address, report->temperature, report->humidity, report->battery);
 	}
@@ -115,6 +120,7 @@ public:
 private:
 	static BeaconTemperatureReader *stReader_;
 	ReportTemperature_t pushTemperature_;
+    RawObserver rawObserver_;
 	control::BleScanLifecycle scanLifecycle_;
 	config::BluetoothConfig config_ = config::getBluetoothConfig();
 };

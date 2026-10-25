@@ -8,6 +8,7 @@
 	<script src="/boiler-display.js"></script>
     <script src="/system-log.js"></script>
     <script src="/ems-devices.js"></script>
+    <script src="/bluetooth.js"></script>
 	<script src="/device-restart.js" defer></script>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -298,6 +299,7 @@
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="curve"><span data-i18n="Boiler and heating curve">Boiler and heating curve</span></a></li>
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="hardware"><span data-i18n="Hardware configuration">Hardware configuration</span></a></li>
 							<li><a class="dropdown-item" href="#" data-page="update"><span data-i18n="Firmware update">Firmware update</span></a></li>
+							<li data-bluetooth-settings hidden><a class="dropdown-item" href="#" data-page="bluetooth"><span data-i18n="Bluetooth devices">Bluetooth devices</span></a></li>
 							<li><a class="dropdown-item" href="#" data-page="ems_devices"><span data-i18n="EMS devices">EMS devices</span></a></li>
 							<li><a class="dropdown-item" href="#" data-page="boiler_test"><span data-i18n="Boiler test">Boiler test</span></a></li>
 							<li><a class="dropdown-item" href="#" data-page="boiler_display"><span data-i18n="My boiler">My boiler</span></a></li>
@@ -539,6 +541,7 @@
 
 		function clearMainContainer() {
             window.EMSDevicesPage?.unmount();
+            window.BluetoothPage?.unmount();
             navigationGeneration++;
             if (pageLoadRequest) { pageLoadRequest.abort(); pageLoadRequest = null; }
             if (statusPoll) { statusPoll.abort(); statusPoll = null; }

@@ -5,6 +5,7 @@ namespace heating::control {
 // Method/origin decisions separate from Arduino networking for direct tests.
 inline bool allowedHttpMethod(std::string_view path,std::string_view method) {
     if(path=="/boiler/test/prepare"||path=="/boiler/test/start"||path=="/boiler/test/keepalive"||path=="/boiler/test/stop") return method=="POST";
+    if(path=="/config/bluetooth/scan") return method=="POST";
     if(path=="/logs/clear") return method=="POST";
     if(path=="/auth/login"||path=="/auth/logout") return method=="POST";
     if(path=="/updates/check"||path=="/updates/install"||path=="/updates/reboot"||path=="/updates/rollback")return method=="POST";

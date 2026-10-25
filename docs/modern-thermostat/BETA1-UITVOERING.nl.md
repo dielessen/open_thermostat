@@ -70,6 +70,12 @@ Alle overige geïnventariseerde brononderdelen blijven behouden.
 - Bestaande kamerweergave: ongeldige getallen en booleans worden geen temperatuur,
   vochtigheid of batterijpercentage. Ongeldige vochtigheidssentinels en waarden
   buiten 0–100% blijven onbekend. Ongeldige doelen worden vóór verzending geweigerd.
+- Bluetoothapparaten: normale E32-instellingen en lokale SBHT-103C-
+  diagnoseontvangst zijn aangesloten met acht bindings, echte AES-CCM,
+  verborgen sleutels, verplichte ETag, duurzame terugleescontrole en expliciete
+  herstart. Vaste wachtrij, oorspronkelijke ontvangstleeftijden en boot-lokale
+  tellers; geen HA-/kamerregelbron, kraanwrite of fysieke kwalificatie.
+  [Bediening, softwarebewijs en open proeven](BLUETOOTH-APPARATEN.nl.md).
 - Bluetooth: een mislukte scanstart blokkeert latere scans niet blijvend;
   opruimen blijft exclusief en afsluiten kan niet door een late callback worden
   teruggedraaid. De bestaande scanner bewaart geen onbeperkte SDK-resultaten.

@@ -1,0 +1,61 @@
+// Shipped Settings assets, mocked HTTP only; no radio, device or broker actions.
+const {chromium}=require('playwright-core');
+const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
+const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(__dirname,'../out/bluetooth-browser');
+const publicFixtureKey='231d39c1d7cc1ab1aee224cd096db932';
+function snapshot(){return {schema:1,pending_restart:false,config_error:'none',queue_drops:0,scan_pending:false,discovery_full:false,nearby:['5448e68f80a5'],devices:[{address:'5448e68f80a5',profile:'shelly_ht_display',name:'Room <img src=x onerror=alert(1)>',encryption:'bthome_v2',key_stored:true,control_qualified:false,measurement_qualified:false,message_integrity:true,status:'received',temperature:2350,humidity:4500,battery:80,temperature_age_ms:100,humidity_age_ms:100,battery_age_ms:100,last_accepted_age_ms:100,counter:4,rssi:-60,declared_device_type:12,firmware_32:1,firmware_24:2,light_level:1,button:null,battery_low:false,light:true,old_counter_drops:0}]};}
+(async()=>{
+ fs.mkdirSync(output,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});const results=[];
+ try{for(const lang of ['en','nl'])for(const width of [1280,320]){
+  const page=await browser.newPage({viewport:{width,height:900}}),errors=[],requests=[];let data=snapshot(),fail=false,conflict=false;
+  page.on('pageerror',e=>errors.push(e.message));await page.context().addCookies([{name:'ot_ui_lang',value:lang,url:'http://opth.test'}]);
+  await page.addInitScript(()=>{const original=window.setTimeout;window.setTimeout=(fn,ms,...args)=>original(fn,ms===5000?80:ms,...args);});
+  await page.route('http://opth.test/**',async route=>{
+   const req=route.request(),p=new URL(req.url()).pathname;requests.push({path:p,method:req.method(),body:req.postData()});
+   if(p==='/auth/session')return route.fulfill({contentType:'application/json',body:JSON.stringify({authenticated:true,csrf:'a'.repeat(64)})});
+   if(p==='/status')return route.fulfill({contentType:'application/json',body:JSON.stringify({controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}})});
+   if(p==='/config/boiler-display')return route.fulfill({contentType:'application/json',body:'{"model":"none"}'});
+   if(p==='/config/bluetooth'||p==='/bluetooth/status'){
+    if(req.method()==='POST'){
+      assert.equal(req.headers()['if-match'],'"'+'b'.repeat(64)+'"');assert.equal(req.headers()['x-openthermostat-csrf'],'a'.repeat(64));
+      if(conflict)return route.fulfill({status:412,contentType:'application/json',body:'{"error":"device_settings_changed"}'});
+      const payload=JSON.parse(req.postData());if(payload.reset_invalid===true){assert.equal(payload.devices.length,0);data.config_error='none';data.pending_restart=true;return route.fulfill({status:201,contentType:'application/json',body:'{"changed":true,"pending_restart":true}'});}assert.equal(payload.devices.length,1);assert.equal(payload.devices[0].bindkey,publicFixtureKey);
+      data.devices[0].name=payload.devices[0].name;data.pending_restart=true;data.devices[0].status='pending_restart';for(const key of ['temperature','humidity','battery','battery_low','light','light_level','button'])data.devices[0][key]=null;
+      return route.fulfill({status:201,contentType:'application/json',body:'{"changed":true,"pending_restart":true}'});
+    }
+    if(fail)return route.fulfill({status:503,contentType:'application/json',body:'{"error":"fixture_failure"}'});
+    const body=JSON.stringify(data);assert(!body.includes(publicFixtureKey));return route.fulfill({contentType:'application/json',headers:{ETag:'"'+'b'.repeat(64)+'"'},body});
+   }
+   if(p==='/config/bluetooth/scan'){assert.equal(req.method(),'POST');return route.fulfill({status:202,contentType:'application/json',body:'{"scan_started":true}'});}
+   const file=path.join(assets,p==='/'?'index.html':p);if(!file.startsWith(assets+'/')||!fs.existsSync(file))return route.fulfill({status:404,body:''});
+   let body=fs.readFileSync(file);if(p.endsWith('.gz'))body=zlib.gunzipSync(body);
+   return route.fulfill({contentType:/\.js(?:\.gz)?$/.test(p)?'application/javascript':p.endsWith('.css.gz')?'text/css':'text/html',body});
+  });
+  await page.goto('http://opth.test/');await page.locator('#auth-sign-out').waitFor();if(await page.locator('.navbar-toggler').isVisible())await page.locator('.navbar-toggler').click();await page.locator('#navbarDropdownMenuLink').click();await page.locator('a[data-page="bluetooth"]').click();
+  const root=page.locator('#bluetooth-page'),status=page.locator('#ble-status'),box=page.locator('#ble-rows fieldset');await box.waitFor();
+  await page.waitForFunction(()=>document.querySelector('#ble-save')?.disabled===false);
+  assert.equal(await box.locator('input[type=password]').inputValue(),'');assert.equal(await root.locator('img').count(),0);assert.equal(await box.locator('input').nth(1).inputValue(),data.devices[0].name);
+  const name=box.locator('input').nth(1);await name.fill('Draft – Zoë');await name.focus();
+  const details=root.locator('details').first();await details.locator('summary').click();await name.focus();
+  data.devices[0].temperature=2410;await page.waitForFunction(()=>document.querySelector('[data-readings]')?.textContent.includes('24'));
+  assert.equal(await name.inputValue(),'Draft – Zoë');assert.equal(await name.evaluate(e=>e===document.activeElement),true);assert.equal(await details.getAttribute('open'),'');
+  if(!await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)){await page.screenshot({path:path.join(output,`overflow-${lang}-${width}.png`),fullPage:true});console.log(await page.evaluate(()=>[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth+1).map(e=>({tag:e.tagName,id:e.id,width:e.getBoundingClientRect().width,text:e.textContent.slice(0,90)})).slice(-15)));}assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await page.screenshot({path:path.join(output,`${lang}-${width}.png`),fullPage:true});
+  fail=true;await page.waitForFunction(()=>document.querySelector('[data-readings]')?.textContent.includes(document.cookie.includes('ot_ui_lang=nl')?'niet beschikbaar':'unavailable'));
+  assert.equal(await name.inputValue(),'Draft – Zoë');fail=false;
+  await box.locator('select').nth(1).selectOption('set');const key=box.locator('input[type=password]');await key.fill(publicFixtureKey);
+  // Polling never changes the key action, typed key, name, focus or panel state.
+  await key.focus();const before=requests.filter(r=>r.path==='/bluetooth/status').length;await page.waitForTimeout(200);assert(requests.filter(r=>r.path==='/bluetooth/status').length>before);
+  assert.equal(await key.inputValue(),publicFixtureKey);assert.equal(await key.evaluate(e=>e===document.activeElement),true);
+  conflict=true;await page.locator('#ble-save').click();await status.filter({hasText:lang==='nl'?'elders gewijzigd':'changed elsewhere'}).waitFor();assert.equal(await name.inputValue(),'Draft – Zoë');assert.equal(await key.inputValue(),'');
+  conflict=false;await key.fill(publicFixtureKey);await page.locator('#ble-save').click();await page.waitForFunction(()=>document.querySelector('#ble-rows input[type=password]')?.value==='');assert.equal(data.pending_restart,true);
+  assert.equal(await page.locator('#ble-rows input[type=password]').inputValue(),'');assert.equal(await page.locator('#ble-rows input').nth(1).inputValue(),'Draft – Zoë');
+  assert.equal(await page.evaluate(()=>Object.values(localStorage).some(s=>s.includes('231d39c1d7cc1ab1aee224cd096db932'))),false);
+  await page.locator('#ble-scan').click();assert(requests.some(r=>r.path==='/config/bluetooth/scan'&&r.method==='POST'));
+  data.config_error='invalid_bluetooth_settings';data.devices=[];await page.locator('#ble-reload').click();await page.locator('#ble-reset').waitFor({state:'visible'});assert.equal(await page.locator('#ble-add').isDisabled(),true);page.once('dialog',dialog=>dialog.accept());await page.locator('#ble-reset').click();await page.locator('#ble-reset').waitFor({state:'hidden'});assert.equal(data.config_error,'none');
+  await page.evaluate(()=>loadNativePage('about'));await root.waitFor({state:'detached'});const count=requests.filter(r=>r.path==='/bluetooth/status').length;await page.waitForTimeout(220);assert.equal(requests.filter(r=>r.path==='/bluetooth/status').length,count);
+  assert(!requests.some(r=>/test\/start|updates\/(install|reboot)|config\/temporary/.test(r.path)));assert.deepEqual(errors,[]);
+  results.push({lang,width,result:'PASS',mock_http_only:true,keys_write_only:true,draft_preserved_during_poll:true});await page.close();
+ }}finally{await browser.close();}
+ fs.writeFileSync(path.join(output,'RESULT.json'),JSON.stringify(results,null,2));console.log(JSON.stringify(results));
+})().catch(e=>{console.error(e);process.exitCode=1;});

@@ -43,6 +43,7 @@ jobs:
           node test/dashboard-browser.cjs
           node test/boiler-display-browser.cjs
           node test/ems-devices-browser.cjs
+          node test/bluetooth-browser.cjs
           node test/navigation-browser.cjs
           node test/system-log-browser.cjs
           node test/ui-language-browser.cjs
@@ -131,6 +132,11 @@ jobs:
           python-version: '3.11'
       - name: Install PlatformIO Core
         run: pip install platformio==6.2.0 intelhex==2.3.0
+      - name: Install host-only BLE crypto test library
+        if: matrix.environment == 'native'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libmbedtls-dev
       - name: Run native tests
         if: matrix.environment == 'native'
         env:
@@ -147,6 +153,10 @@ jobs:
           /tmp/open-thermostat-update-checkpoint-test
           g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_shelly_ht_advertisement.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-shelly-ht-test
           /tmp/open-thermostat-shelly-ht-test
+          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/googletest/googletest/include test/ble_crypto/mbedtls.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -Wl,--wrap=calloc -Wl,-Bstatic -lmbedcrypto -Wl,-Bdynamic -lpthread -o /tmp/open-thermostat-ble-crypto-test
+          /tmp/open-thermostat-ble-crypto-test
+          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_ble_device_settings.cpp test/test_native/test_managed_ble_observer.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-ble-owner-test
+          /tmp/open-thermostat-ble-owner-test
           python test/manual_ota/run.py
           g++ -std=c++20 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Itest/onboarding/include -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/esp32_utilities/src test/onboarding/firmware.cpp .pio/libdeps/native/cJSON/cJSON.c -o /tmp/open-thermostat-onboarding-test
           /tmp/open-thermostat-onboarding-test

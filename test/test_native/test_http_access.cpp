@@ -59,3 +59,14 @@ TEST(NetworkBoot, FirstBootAndExplicitRecoveryNeverStartEthernetClockAlongsideWi
         if(configured&&!recovery) { EXPECT_TRUE(plan.ethernet); EXPECT_FALSE(plan.setupAp); }
     }
 }
+TEST(HttpAccess, BluetoothDiscoveryRequiresAnExplicitProtectedPost) {
+    EXPECT_FALSE(allowedHttpMethod("/config/bluetooth/scan","GET"));
+    EXPECT_TRUE(allowedHttpMethod("/config/bluetooth/scan","POST"));
+    EXPECT_FALSE(allowedHttpMethod("/config/bluetooth/scan","DELETE"));
+    EXPECT_TRUE(allowedHttpMethod("/config/bluetooth","GET"));
+    EXPECT_TRUE(allowedHttpMethod("/config/bluetooth","POST"));
+    EXPECT_FALSE(allowedHttpMethod("/bluetooth/status","POST"));
+    EXPECT_TRUE(boilerTestMutationBlocked("/config/bluetooth",true));
+    EXPECT_TRUE(boilerTestMutationBlocked("/config/bluetooth/scan",true));
+    EXPECT_EQ(portalAccess(true,true,"10.10.10.1","10.10.10.1","/config/bluetooth","POST"),PortalAccess::Authenticated);
+}

@@ -14,6 +14,11 @@
 #include "MQTT.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "control/ControlBuildCapabilities.h"
+#include "control/BleDeviceSettings.h"
+#include "control/ManagedBleObserver.h"
+#include "control/MbedTlsBleCcm.h"
+#include "DeviceNetworkSettings.h"
+#include <esp_timer.h>
 #include "update/GitHubUpdate.h"
 #endif
 #include <esp_system.h>
@@ -108,9 +113,23 @@ public:
 	explicit HeatingController(std::shared_ptr<ib::logger::LoggerInterface> log) : log_(std::move(log)), logFeature_(log_ ? log_->addFeature("HeatCtrl") : 0), openWeather_(log_, config::getOpenWeatherConfig()), currentProgram_(config::getCurrentProgram()), rooms_(buildRoomsFromConfig()) {
 		DBGLOGFI(log_, logFeature_, "HeatingController constructed\n");
 		bluetoothScan_ = true;
+#ifdef OPENTHERMOSTAT_E32V2
+        const auto raw = readDeviceNetworkSettings();
+        auto root = control::parseControlJson({raw.c_str(), raw.length()}, true);
+        std::unique_ptr<control::ManagedBleBindings> bindings(new(std::nothrow) control::ManagedBleBindings);
+        if (bindings && control::readManagedBleBindings(root.get(), *bindings) == control::BleSettingsError::none)
+            managedBle_.initialize(*bindings);
+        else managedBle_.disable(control::BleObserverStop::configuration_invalid);
+        tempReader_.setRawObserver([this](const BleAddress_t& address, int rssi, const uint8_t* data, size_t size) {
+            const auto now = bleReceiptClock();
+            managedBle_.capture(address, rssi, data, size, now);
+            std::lock_guard<std::mutex> lock(roomsAccessMutex_);
+            bleDiscovery_.remember(address);
+        });
+#endif
 	}
 
-	~HeatingController() {}
+	~HeatingController() { stopBluetoothAndDeinitBLE(); }
 
 	void operate() {
 		// Modern shadow runtime owns its targets. Never execute the old room
@@ -174,11 +193,24 @@ public:
 	}
 
 	void loop() {
+#ifdef OPENTHERMOSTAT_E32V2
+        managedBle_.processOne(update::busy());
+        if (mqtt_.modernMode() && bluetoothScan_ && managedBle_.wantsAutomaticScan() && !update::busy()) tempReader_.triggerScan();
+#endif
 		mqtt_.loop();
 		ems_.loop();
 	}
 	bool modernMode() const { return mqtt_.modernMode(); }
 #ifdef OPENTHERMOSTAT_E32V2
+    void stopManagedBle() { managedBle_.disable(control::BleObserverStop::configuration_changed); }
+    auto managedBleSnapshot(const control::ManagedBleAddress& address) { return managedBle_.snapshot(address); }
+    bool managedBlePending() const { return !managedBle_.enabled(); }
+    uint32_t managedBleQueueDrops() const { return managedBle_.queueDrops(); }
+    bool requestBleDiscovery() { return bluetoothScan_ && tempReader_.triggerScan(30000); }
+    bool bleScanPending() { return tempReader_.isScanPending(); }
+    void copyBleDiscovery(control::BleDeviceDiscovery& out) const {
+        std::lock_guard<std::mutex> lock(roomsAccessMutex_); out = bleDiscovery_;
+    }
     bool nativeSourceCurrent(std::string_view expected,std::string_view savedSettings) const {return mqtt_.nativeSourceCurrent(expected,savedSettings);}
     bool nativeSourceHotReady(std::string_view expected,std::string_view savedSettings) const {return mqtt_.nativeSourceHotReady(expected,savedSettings);}
     bool nativeSourceCanApply(std::string_view expected,std::string_view next,std::string_view saved) const {return mqtt_.nativeSourceCanApply(expected,next,saved);}
@@ -375,6 +407,9 @@ public:
 
 	void stopBluetoothAndDeinitBLE() {
 		bluetoothScan_ = false;
+#ifdef OPENTHERMOSTAT_E32V2
+        stopManagedBle();
+#endif
 		// NimBLE deinit stops its host/scan through the SDK. Do not wait for
 		// onScanEnd first: a missing callback could prevent AP recovery forever.
 		// The reader closes report admission BEFORE asking the SDK to stop.
@@ -440,6 +475,13 @@ private:
 	}
 
 	std::atomic_bool bluetoothScan_;
+#ifdef OPENTHERMOSTAT_E32V2
+    static uint64_t bleReceiptClock() { return static_cast<uint64_t>(esp_timer_get_time()) / 1000; }
+    control::MbedTlsBleCcm bleCrypto_;
+    control::ManagedBleObserver<control::MbedTlsBleCcm> managedBle_{bleCrypto_, bleReceiptClock};
+    control::BleDeviceDiscovery bleDiscovery_;
+    static_assert(sizeof(decltype(managedBle_)) <= 4096, "BLE observer resident budget changed");
+#endif
 	BeaconTemperatureReader tempReader_{log_, [this](BleAddress_t address, std::optional<int16_t> temperature, std::optional<int16_t> humidity, std::optional<int8_t> battery) { pushTemperatureData(std::move(address), temperature, humidity, battery); }};
 	OpenWeather openWeather_;
 	ems::EmsController ems_{log_};

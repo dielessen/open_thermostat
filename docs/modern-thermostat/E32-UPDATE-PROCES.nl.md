@@ -1,5 +1,15 @@
 # Verplicht update- en acceptatieproces per E32-release
 
+**Latere proefwaarneming:** na de installatieacceptatie toont een nieuwe directe
+lezing een afgeronde configuratie-uitlezing en nulvraagproef met gemelde stop:
+3 voltooide buswisselingen, 0 antwoordfouten, 2 nulframes en 0 positieve frames.
+De hoofdagent gaf deze proefcommando's niet; de status identificeert de bediener
+niet. De aanvoer was62°C, waardoor warmte terecht op `flow_outside_trial_limits`
+bleef geblokkeerd (vereist5–<50°C). [Oorspronkelijke waarneming en hashes](BETA4-FIRST-ZERO-OBSERVATION-20261026.json).
+Dit actualiseert de eerdere tekst “nog geen proef”: de nulvraag is nu in software
+als afgerond gezien; fysieke waarneming en positieve warmte-/stopproef blijven open.
+
+
 **Actuele stand 26 oktober:** beta.4 uit `9ecb4da` is gepubliceerd en via één
 native GitHub-update geïnstalleerd. Alle negen exacte-tag-CI-validatiejobs en
 2.250 onafhankelijke pakketcontroles slagen. De [installatieacceptatie](update-acceptance/e32-beta4-20261026.json)

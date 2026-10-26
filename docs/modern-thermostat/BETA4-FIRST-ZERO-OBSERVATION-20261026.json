@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "scope": "Later read-only observation after successful beta.4 installation; collector issued no configuration-read or trial command",
+  "version": "v0.1.0-e32v2-beta.4",
+  "source_commit": "9ecb4da0f052b82efb99cdda75679ba67d3299ac",
+  "uptime_seconds": 706,
+  "configuration_read": {
+    "revision": 1,
+    "phase": "completed",
+    "reason": "configuration_received",
+    "emitted_at_ms": 445820,
+    "response_at_ms": 445837
+  },
+  "test": {
+    "revision": 1,
+    "phase": "completed",
+    "reason": "reported_stop_confirmed",
+    "positive_frames": 0,
+    "zero_frames": 2,
+    "reported_stop_confirmed": true,
+    "stop_reference_emitted_at_ms": 583406,
+    "owned": false,
+    "restart_required": false
+  },
+  "transport_transmitted_frames": 3,
+  "manual_transaction": {
+    "completed_exchanges": 3,
+    "rejected_writes": 0,
+    "reply_errors": 0
+  },
+  "measured_flow": {
+    "value": 62,
+    "unit": "degC",
+    "state": "valid",
+    "quality": "reported",
+    "source_type": 24,
+    "source_address": 8,
+    "age_ms": 1497,
+    "observed_at_ms": 705124
+  },
+  "heat_trial_reason": "flow_outside_trial_limits",
+  "actor": "Not established by this status response; no attribution to the owner or another client is inferred.",
+  "physical_heat_trial_completed": false,
+  "physical_site_and_stop_qualification_completed": false,
+  "original_responses": {
+    "final-observation/version.json": "6e6436b82b0652b67433452e3ce4a4abfb4d8eb7d44e277073dfc58dffdd0dd0",
+    "final-observation/status.json": "82e0e908bb8d724e6e6bc51d60f747d28fa77e9c73975a4c2d0dffd3b965ead9",
+    "final-observation/telemetry.json": "c0b0a65589c9878512c6cafeb1e59cec192f03add82c89aa4fbf88476305bd7c",
+    "final-observation/updates.json": "31c803ef23cf25ef39bc9ec0b2b0807b5a4147b9b04f50f7864cdedf6d0326e8"
+  },
+  "collector_own_session_logout_sha256": "a75adb399acb12b6e825b8f88fce0fe29c6da3ddd19340ec245e9d8e0e43b4af"
+}

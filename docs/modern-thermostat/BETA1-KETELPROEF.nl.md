@@ -1,5 +1,15 @@
 # Eerste bèta: ketel aansluiten, gegevens ontvangen en aansturing beproeven
 
+**Latere proefwaarneming:** na de installatieacceptatie toont een nieuwe directe
+lezing een afgeronde configuratie-uitlezing en nulvraagproef met gemelde stop:
+3 voltooide buswisselingen, 0 antwoordfouten, 2 nulframes en 0 positieve frames.
+De hoofdagent gaf deze proefcommando's niet; de status identificeert de bediener
+niet. De aanvoer was62°C, waardoor warmte terecht op `flow_outside_trial_limits`
+bleef geblokkeerd (vereist5–<50°C). [Oorspronkelijke waarneming en hashes](BETA4-FIRST-ZERO-OBSERVATION-20261026.json).
+Dit actualiseert de eerdere tekst “nog geen proef”: de nulvraag is nu in software
+als afgerond gezien; fysieke waarneming en positieve warmte-/stopproef blijven open.
+
+
 ## Actuele beta.4-voorbereiding: bediende commissioningproef
 
 Beta.4 is gepubliceerd, native geïnstalleerd en onafhankelijk geaccepteerd op

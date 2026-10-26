@@ -115,6 +115,43 @@ TEST(ClassicSettingBus, ClosureCannotReenterAndAcquireNewExchange){
     });
     EXPECT_EQ(event.result,Result::writeClosed);EXPECT_EQ(event.revision,7u);EXPECT_EQ(f.closures,1);
 }
+TEST(ClassicSettingBus, ClockGateAndClosureCallbacksCannotTakeOverOrDuplicateCompletion){
+    for(int kind=0;kind<3;++kind)for(int reenterAt=0;reenterAt<6;++reenterAt){
+        SCOPED_TRACE(::testing::Message()<<"kind="<<kind<<" callback="<<reenterAt);
+        Exchange f;f.emit(kind==2);const uint8_t status=kind==1?4:1;
+        uint8_t reply[]={8,11,0x16,1,45,0};reply[5]=EmsTelegram::calculateCRC(reply,5);
+        const uint8_t* bytes=kind==2?reply:&status;const size_t length=kind==2?6:1;
+        int callbacks=0,nestedClosures=0;
+        const auto reenter=[&]{
+            if(callbacks++!=reenterAt)return;
+            const auto nested=f.bus.receive(bytes,length,f.now,[&]{return f.now;},[]{return true;},[&]{
+                ++nestedClosures;return true;
+            });
+            EXPECT_EQ(nested.result,Result::none);EXPECT_EQ(nested.revision,0u);EXPECT_EQ(nestedClosures,0);
+            EXPECT_FALSE(f.bus.begin(f.frame(),Setting::heatingTemperature,45,8,false,f.now));
+            EXPECT_TRUE(f.bus.active());
+        };
+        const auto event=f.bus.receive(bytes,length,f.now,[&]{reenter();return f.now;},
+            [&]{reenter();return true;},[&]{++f.closures;reenter();return true;});
+        EXPECT_EQ(event.result,kind==1?Result::rejected:kind==2?Result::readClosed:Result::writeClosed);
+        EXPECT_EQ(event.revision,7u);EXPECT_EQ(callbacks,6);EXPECT_EQ(nestedClosures,0);EXPECT_EQ(f.closures,1);
+        EXPECT_FALSE(f.bus.active());EXPECT_EQ(f.receive(bytes,length).result,Result::none);EXPECT_EQ(f.closures,1);
+        EXPECT_TRUE(f.bus.begin(f.frame(),Setting::heatingTemperature,45,8,false,f.now));
+    }
+}
+TEST(ClassicSettingBus, EveryCallbackExceptionReleasesReceiveGuardWithoutRetry){
+    for(int throwAt=0;throwAt<6;++throwAt){
+        SCOPED_TRACE(throwAt);
+        Exchange f;f.emit();const uint8_t status=1;int callbacks=0;
+        const auto fault=[&]{if(callbacks++==throwAt)throw std::runtime_error("callback");};
+        const auto event=f.bus.receive(&status,1,f.now,[&]{fault();return f.now;},[&]{fault();return true;},
+            [&]{++f.closures;fault();return true;});
+        EXPECT_EQ(event.result,Result::failed);EXPECT_EQ(event.revision,7u);EXPECT_FALSE(f.bus.active());
+        EXPECT_EQ(f.closures,throwAt<3?0:1);
+        EXPECT_EQ(f.receive(&status,1).result,Result::none);EXPECT_EQ(f.closures,throwAt<3?0:1);
+        EXPECT_TRUE(f.bus.begin(f.frame(),Setting::heatingTemperature,45,8,false,f.now));
+    }
+}
 TEST(ClassicSettingBus, WriteStatusClosureThenReadClosureThenReadbackCompletesTransaction){
     using Transaction=ClassicBoilerSettingTransaction;
     Transaction t{42,true};Exchange f;uint64_t ms=100;

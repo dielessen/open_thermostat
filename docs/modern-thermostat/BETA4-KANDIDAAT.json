@@ -19,7 +19,8 @@
     "b6fe339a9dea06207ae94588948e620a119341e7",
     "8455910d1df07409234828ac892e49d4558cff97",
     "171d3be603ab81f295a6bd7ed141b2df45b35b7e",
-    "1947b9ce49ddc11f5d36dbcde2f69f62b678b1a7"
+    "1947b9ce49ddc11f5d36dbcde2f69f62b678b1a7",
+    "86c42d8fc5e320eae319ca9cbeabb9d13ebc55fb"
   ],
   "release_notes": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.en.md",
   "changes": [
@@ -30,7 +31,8 @@
     "Fixed source-bound sensorless Ecomline pressure policy; separate method review and per-trial declaration required; all physical write gates remain disabled",
     "Manual bus completion retains original RX time and rechecks deadline/transport after closure IO; no reentrant completion or retries",
     "Configuration acquisition bound to the current live operator session; withdrawn emitted requests retain finite bus ownership without successful confirmation",
-    "Settings transaction guards the complete poll dispatch before clock/permission/send callbacks; nested processing cannot duplicate write or readback requests; no automatic retries"
+    "Settings transaction guards the complete poll dispatch before clock/permission/send callbacks; nested processing cannot duplicate write or readback requests; no automatic retries",
+    "Manual and settings bus completion guards cover all receive callbacks; nested receive/begin cannot duplicate acknowledgement or replace the current exchange; no automatic retries"
   ],
   "acceptance_before_freeze": [
     "Actual beta.3 native installation and independent postcheck recorded per E32-UPDATE-PROCES.nl.md",
@@ -43,7 +45,7 @@
     "commit": "1947b9ce49ddc11f5d36dbcde2f69f62b678b1a7",
     "run": "https://github.com/dielessen/open_thermostat/actions/runs/40360870809",
     "conclusion": "success",
-    "scope": "pre-freeze source including cancellation UI, receipt-bound updater proof, session-bound acquisition and release housekeeping; all nine validation jobs passed; later settings transaction reentry fix requires its own CI; not installation acceptance"
+    "scope": "pre-freeze source including cancellation UI, receipt-bound updater proof, session-bound acquisition and release housekeeping; all nine validation jobs passed; later settings transaction and bus completion reentry fixes require their own CI; not installation acceptance"
   },
   "writable_boiler_inventory": "docs/modern-thermostat/BOILER-WRITE-INVENTORY.json",
   "prepared_settings_backend": {
@@ -139,5 +141,15 @@
     "pressure_declaration_follows_profile": true,
     "withdrawal_survives_invalid_status": true,
     "state": "CI_VERIFIED_PRE_FREEZE"
+  },
+  "bus_completion_callbacks": {
+    "state": "LOCAL_VERIFIED_PENDING_CI",
+    "manual_and_settings_receive_guarded": true,
+    "regressions_failed_on_previous_core": 2,
+    "local_sanitizer_tests": 109,
+    "reentry_scenarios": 36,
+    "callback_exception_scenarios": 12,
+    "evidence": "out/beta4-bus-reentry/",
+    "physical_write_enabled": false
   }
 }

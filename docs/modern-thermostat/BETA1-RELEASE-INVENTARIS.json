@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "eb1a8a71f6ef27427b08145c1317dbb814b0863fb6cb52c11a6d30032987152e"
+          "sha256": "0afd22a649452157e466db06c8045f89ddfa5234a3454f4dac57d0c7944b48b2"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -143,7 +143,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA4-KANDIDAAT.json",
-          "sha256": "697f9c733ca2c814768e2728c59cc41645dc20ad4cd7f71b424830c5529fe4e2"
+          "sha256": "018e8fa36436834ca1209a20e37484f4f36fe46d1365d9e6f694b8d983ca78e8"
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.nl-en.md",
@@ -163,7 +163,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.en.md",
-          "sha256": "dd7f1bf4cc3a1a1f85cd135450d934312df9a138ec8ecea621a694da60be81ad"
+          "sha256": "5106363b52a8fcd71ae1ff10edd17358e11b572a47c782b63f05644e116b0bbe"
         },
         {
           "path": "scripts/verify_accepted_update_path.py",
@@ -1956,11 +1956,11 @@
         },
         {
           "path": "src/EMS/ManualClassicTransaction.h",
-          "sha256": "0d9bab828995b2d49060a504c1e823fc24f5f10437348c1d02e11216095a492d"
+          "sha256": "2a2f79a3056757dbe037abca7ffd36cc92ef76303088332bef2bc98cbe1984cf"
         },
         {
           "path": "test/test_native/test_manual_classic_transaction.cpp",
-          "sha256": "726e8cbfcd225e4ef9d3d219f3e443608b464236876a0906ab2fb47e7e3599f6"
+          "sha256": "f88d81ab89efee32b80cb213733e4ccc9dd32bc50eec030fd2660fbf11913328"
         }
       ],
       "remaining_acceptance": "Actuele bron: concrete softwarepolicy voor de eerste bediende nulvraag (15s feedbackactualiteit, 5s operatorlease, 1s write-interval, 30s stopwaarneming per fase), zonder positieve vraag. Classic-serviceadres0x0B/ketel0x08/masker0 is expliciet aangesloten en blijft onder waargenomen busidentiteit/adresconflictcontrole. Stopafronding vereist daadwerkelijke verzending en strikt latere Classic-rapporten. Het concrete softwarewarmteprofiel (40–45°C/maximaal60s, actuele Classic-temperatuur/druk en CV-configuratie) is aangesloten; fysieke installatie-/adapter-/TX-/stopkwalificatie en frozen gezamenlijke releaseacceptatie blijven open. Beide fysieke bordtoelatingen blijven false; geïnstalleerde beta.1/HA0.4.0b1 blijft ongewijzigd. Stopbasis, stopafronding en foutterugmelding vereisen nu ook een verse strikt latere gerapporteerde nul gevraagde aanvoertemperatuur; een branderpauze met positieve vraag voldoet niet. Voor-/na-regressie op de oude en nieuwe policy bevestigt dit verschil."
@@ -2133,11 +2133,11 @@
         },
         {
           "path": "src/EMS/ClassicSettingBusExchange.h",
-          "sha256": "8aeef7900f10077be9a4e3d80f4021306dc017ec3c371d631a2d4d70cf51f45d"
+          "sha256": "a6cbe66e6444c5d3a932d74ecd33d6066b451e874928955ebc91153b8d3a59e8"
         },
         {
           "path": "test/test_native/test_classic_setting_bus_exchange.cpp",
-          "sha256": "0a56fd3e2f30982d21e6322a5193d0af162500f2f5883fc8d37ad3cb85084cf3"
+          "sha256": "552688d1da04e14b0b76bcb8b4e2ac244cfd55bbaad3b29ec5d6a0aadbc0b7d5"
         },
         {
           "path": "src/EMS/ClassicBoilerSettingsService.h",

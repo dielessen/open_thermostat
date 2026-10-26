@@ -53,7 +53,7 @@ Een ontwikkelimage met hetzelfde beta.3-versielabel telt niet als dit publieke p
 | P0 — modelprofiel zonder digitale drukmeting | Apart brongebonden Ecomline-profiel geïmplementeerd: afzonderlijke drukcontrolemethode vereist, met een nieuwe verklaring per warmteproef. De methodepoort blijft uit | Passende fysieke drukcontrolemethode voor deze installatie beoordelen en vastleggen; geen digitale drukwaarde eisen of verzinnen. Overige meet-, installatie- en stopvoorwaarden blijven behouden |
 | P0 — configuratieontvangst | Eenmalige uitleesroute is aangesloten in HTTP, UART-poll en NL/EN-bediening; afronden met kandidaat- en fysieke controle | Echte latere boilerrespons levert CV-aan/uit en temperatuur met originele ontvangsttijd; standaard TX blijft uit tot afzonderlijke vrijgave |
 | P0 — handmatige proefvariant | Bronbeoordeling en installatiekaart B07–B09 afronden voor de echte E32/EasyControl/Classic-keten | Expliciete adres-/interface-/timing-/arbitragebeoordeling en passende afgifte-, stop- en overdrachtsvoorwaarden; geen willekeurig openzetten van algemene TX |
-| P0 — gezamenlijke freeze | Volledige CI en 2.236 onafhankelijke pakketcontroles geslaagd op `1947b9c`; latere bescherming van de instellingstransactie lokaal gecontroleerd met 67 sanitizertests en E32-build, eigen CI volgt. Beta.4-versie en bron nog niet bevroren | Exacte kandidaat met volledige native-/HA-/browser-/board-/bron-/licentie-/pakketcontroles; ontwikkelbewijs apart houden |
+| P0 — gezamenlijke freeze | Volledige CI en 2.236 onafhankelijke pakketcontroles geslaagd op `1947b9c`; latere bescherming van instellingstransactie en busafsluiting lokaal gecontroleerd met 109 sanitizertests en E32-build, eigen CI volgt. Beta.4-versie en bron nog niet bevroren | Exacte kandidaat met volledige native-/HA-/browser-/board-/bron-/licentie-/pakketcontroles; ontwikkelbewijs apart houden |
 | P0 — release en installatie | Eén gezamenlijke publicatie en installatie na kandidaatacceptatie | Begrijpelijke Engelse GitHub-notities, actuele README en juiste assets/manifest/checksums; HA via de bestaande native HA-specialist met back-up; E32 via native GitHub-OTA |
 | P0 — onafhankelijke nacontrole | Nieuwe boot, versie/bron/ELF/web en instellingenbehoud vastleggen | Verse readback en acceptatierapport; HTTP202 of alleen een build telt niet als geslaagde installatie |
 | P0 — afzonderlijke ketelproef | B14 uitvoeren zodra de fysieke voorwaarden en proefopdracht gelden | Nulmeting → nulvraag/latere stopmelding → eindige warmtevraag → stop/naloop → afzonderlijke uitval/herstel → terug naar Tado |
@@ -109,8 +109,12 @@ niet alsnog geldig. Toekomstige ontvangsttijden blijven ongeldig.
 Na de enige toegelaten afsluitbyte worden de transportpoort en dezelfde
 200ms-busdeadline opnieuw gecontroleerd. Een verlopen, teruglopende klok of
 weggevallen transportpoort wordt fout, ook als de SDK-write zelf slaagde.
-Tijdens afsluit-IO kan geen nieuwe transactie worden geopend of dezelfde
-ontvangst opnieuw een afsluitbyte sturen. De fout blijft via de bestaande
+De bescherming omvat nu ook de eerste kloklezing en de toelatingscontroles,
+zowel in `ManualClassicTransaction` (I22) als `ClassicSettingBusExchange` (I23).
+Een geneste ontvangst of nieuwe transactie kan de huidige afhandeling niet
+overnemen, haar intentie wijzigen of een tweede afsluitbyte sturen. Exceptions
+geven de reservering weer vrij zonder automatisch opnieuw te proberen.
+De fout blijft via de bestaande
 controllerroute een transportfout; dit is geen bewijs van fysieke CV-stop.
 
 De oorspronkelijke ontvangsttijd wordt door de echte UART-eigenaar doorgegeven;
@@ -118,11 +122,14 @@ geen nieuw HTTP-pad, vrijgave of automatische herhaling. Standaard TX blijft uit
 Deze wijziging maakt de voorbereide bron consistenter met de bestaande strengere
 instellingenroute. Zij stelt geen werkelijke adaptertiming of proefacceptatie vast.
 
-Lokale controle: 41 native gevallen met ASAN/UBSAN geslaagd; standaard E32-build
-en standaardblokkadecontrole geslaagd. De geïsoleerde handmatige compilevariant
-slaagt eveneens; alleen `EmsController.cpp.o` bevat de verwachte UART-write.
-De proefvariant is uitsluitend gebouwd, niet geïnstalleerd. Bewijs staat onder
-`out/beta4-manual-reply/`.
+Lokale controle van de aanvulling: 109 tests in negen suites met ASAN/UBSAN,
+inclusief 36 herintredescenario's bij positieve status, weigering en teruglezen,
+plus twaalf exceptions op de klok-/toelatings-/afsluitposities. De twee nieuwe
+regressies falen op de oude kern en slagen na de wijziging. Standaard E32-build,
+filesystem en standaardblokkadecontrole slagen. Bewijs staat onder
+`out/beta4-bus-reentry/`; de afzonderlijke compilevarianten en volledige CI
+volgen op de nieuwe bron. Het eerdere bewijs met 41 gevallen en handmatige
+compilevariant blijft bewaard onder `out/beta4-manual-reply/`.
 
 ## Actuele software- en pakketpreflight — 26 oktober
 
@@ -133,8 +140,8 @@ Dit omvat de sessiegebonden uitlezing, de laatste UI-aanvulling hieronder en het
 opslagonderhoud. De eerdere bron `171d3be` heeft eveneens een volledig geslaagde
 eigen CI. Publicatiejobs zijn uitsluitend
 voor tags bedoeld en zijn in deze ontwikkelruns overgeslagen.
-De latere transactiefix hieronder is apart lokaal gecontroleerd en vereist een
-eigen CI; dit eerdere groene checkpoint geldt daarvoor niet als eindbewijs.
+De latere transactie- en busafsluitfixes zijn apart lokaal gecontroleerd en
+vereisen een eigen CI; dit eerdere groene checkpoint geldt daarvoor niet als eindbewijs.
 
 Het werkelijk gedownloade E32-pakket van `1947b9c` is onafhankelijk tegen de exacte Git-bron,
 firmware, webbestanden, ELF, factory-slices, checksums, bron-/licentiemateriaal

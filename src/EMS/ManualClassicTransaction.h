@@ -29,6 +29,10 @@ public:
     template<class Clock,class Gate,class Close>
     Result receive(const uint8_t* bytes,size_t length,uint64_t acquiredAt,Clock clock,Gate gate,Close close){
         if(state_==State::idle||closing_)return Result::none;
+        // Reserve before any external callback, including clock/admission.
+        // Nested receive/begin must not consume or replace this exchange.
+        closing_=true;
+        struct Release{bool& value;~Release(){value=false;}}release{closing_};
         try{
             auto now=clock();
             if(now<lastNow_||(state_==State::waiting&&now-emittedAt_>=replyWindowUs))return retire();
@@ -45,8 +49,7 @@ public:
             // another completion byte. Recheck time and transport after match.
             const bool permitted=gate();now=clock();
             if(!permitted||now<lastNow_||now-emittedAt_>=replyWindowUs)return retire();
-            state_=State::idle;closing_=true;
-            struct Release{bool& value;~Release(){value=false;}}release{closing_};
+            state_=State::idle;
             if(!close())return Result::failed;
             const bool stillPermitted=gate();const auto finished=clock();
             if(!stillPermitted||finished<now||finished-emittedAt_>=replyWindowUs)return Result::failed;

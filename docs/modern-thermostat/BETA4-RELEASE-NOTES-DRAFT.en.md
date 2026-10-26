@@ -34,6 +34,9 @@ are unchanged.
 - Prepared manual boiler diagnostics only count a bus exchange as completed
   when its acknowledgement finishes within the reply window and the transport
   remains available. Delayed processing cannot turn an old reply into a new one.
+- Prepared manual tests and settings readback prevent repeated bus completion
+  during nested timing or permission checks. A nested call cannot replace the
+  current exchange; exceptions release its guard without retrying completion.
 - The prepared settings path guards timing and permission checks as part of
   each send, preventing nested processing from sending the same write or read
   request twice. Exceptions release the guard without retrying the request.

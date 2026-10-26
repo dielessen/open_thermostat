@@ -93,6 +93,44 @@ TEST_F(ManualTransaction, ClosureWithinWindowSucceedsButCannotReenterOrRearmTran
     EXPECT_EQ(receive(&status,1),ManualClassicTransaction::Result::none);
     EXPECT_TRUE(transaction.begin(frame.data.data(),frame.length,now));
 }
+TEST_F(ManualTransaction, ClockGateAndClosureCallbacksCannotTakeOverOrDuplicateCompletion){
+    for(int kind=0;kind<3;++kind)for(int reenterAt=0;reenterAt<6;++reenterAt){
+        SCOPED_TRACE(::testing::Message()<<"kind="<<kind<<" callback="<<reenterAt);
+        transaction=ManualClassicTransaction{};now=100;closures=0;emit(kind==2);
+        const uint8_t status=kind==1?4:1;
+        uint8_t reply[]={8,0x0b,0x16,0,255,55,0};reply[6]=EmsTelegram::calculateCRC(reply,6);
+        const uint8_t* bytes=kind==2?reply:&status;const size_t length=kind==2?7:1;
+        const auto frame=request(kind==2);int callbacks=0,nestedClosures=0;
+        const auto reenter=[&]{
+            if(callbacks++!=reenterAt)return;
+            EXPECT_EQ(transaction.receive(bytes,length,now,[&]{return now;},[]{return true;},[&]{
+                ++nestedClosures;return true;
+            }),ManualClassicTransaction::Result::none);
+            EXPECT_EQ(nestedClosures,0);
+            EXPECT_FALSE(transaction.begin(frame.data.data(),frame.length,now));
+        };
+        const auto result=transaction.receive(bytes,length,now,[&]{reenter();return now;},
+            [&]{reenter();return true;},[&]{++closures;reenter();return true;});
+        EXPECT_EQ(result,kind==1?ManualClassicTransaction::Result::rejected:ManualClassicTransaction::Result::closed);
+        EXPECT_EQ(callbacks,6);EXPECT_EQ(nestedClosures,0);EXPECT_EQ(closures,1);
+        EXPECT_EQ(receive(bytes,length),ManualClassicTransaction::Result::none);EXPECT_EQ(closures,1);
+        EXPECT_TRUE(transaction.begin(frame.data.data(),frame.length,now));
+    }
+}
+TEST_F(ManualTransaction, EveryCallbackExceptionReleasesReceiveGuardWithoutRetry){
+    for(int throwAt=0;throwAt<6;++throwAt){
+        SCOPED_TRACE(throwAt);
+        transaction=ManualClassicTransaction{};now=100;closures=0;emit();
+        const uint8_t status=1;int callbacks=0;
+        const auto fault=[&]{if(callbacks++==throwAt)throw std::runtime_error("callback");};
+        EXPECT_EQ(transaction.receive(&status,1,now,[&]{fault();return now;},[&]{fault();return true;},
+            [&]{++closures;fault();return true;}),ManualClassicTransaction::Result::failed);
+        EXPECT_EQ(closures,throwAt<3?0:1);
+        EXPECT_EQ(receive(&status,1),ManualClassicTransaction::Result::none);
+        EXPECT_EQ(closures,throwAt<3?0:1);
+        const auto frame=request();EXPECT_TRUE(transaction.begin(frame.data.data(),frame.length,now));
+    }
+}
 TEST_F(ManualTransaction, DeadlineExpiresWithoutAnyClosureAndNeverReplays){
     emit();now=100+ManualClassicTransaction::replyWindowUs;const uint8_t status=1;
     EXPECT_EQ(receive(&status,1),ManualClassicTransaction::Result::failed);EXPECT_EQ(closures,0);

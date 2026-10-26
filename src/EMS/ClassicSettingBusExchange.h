@@ -39,6 +39,10 @@ public:
     Event receive(const uint8_t* bytes,size_t length,uint64_t acquiredAt,
                   Clock clock,Gate gate,Close close) {
         if (state_==State::idle || closing_) return {Result::none,0};
+        // Clock and admission callbacks share the same ownership protection
+        // as completion-byte IO; none may reenter or replace this exchange.
+        closing_=true;
+        struct Release { bool& value; ~Release(){value=false;} } release{closing_};
         const auto revision=revision_;
         try {
             auto now=clock();
@@ -54,8 +58,7 @@ public:
             const bool rejected=status && bytes[0]==4;
             const bool permitted=gate(); now=clock();
             if (!permitted || now<lastNow_ || now-emittedAt_>=replyWindowUs) return retire();
-            state_=State::idle; closing_=true;
-            struct Release { bool& value; ~Release(){value=false;} } release{closing_};
+            state_=State::idle;
             if (!close()) return {Result::failed,revision};
             const bool stillPermitted=gate(); const auto finished=clock();
             if (!stillPermitted || finished<now || finished-emittedAt_>=replyWindowUs)

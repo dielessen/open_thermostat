@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "state": "VERIFIED_DRAFT",
+  "branch": "release/e32v2-beta4-candidate",
+  "source_commit": "daf01fcd1a7aa45b1931812ca38996618ed493ff",
+  "version": "v0.1.0-e32v2-beta.4",
+  "draft_pr": "https://github.com/dielessen/open_thermostat/pull/2",
+  "development_branch": "review/mark-vscode-20261021",
+  "development_version": "v0.1.0-e32v2-beta.3",
+  "formal_freeze": false,
+  "merged_into_development": false,
+  "ci": {
+    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40386250477",
+    "conclusion": "success",
+    "validation_jobs_passed": 9,
+    "validation_jobs": [
+      "browser-regressions",
+      "source-reproduction",
+      "home-assistant-native",
+      "manual-route-compile",
+      "settings-route-compile",
+      "build (e32v2)",
+      "build (esp32dev)",
+      "build (esp32s3)",
+      "build (native)"
+    ]
+  },
+  "package": {
+    "independent_checks": 2240,
+    "artifact_id": 12680687819,
+    "firmware_bytes": 2877856,
+    "firmware_sha256": "757ca4f7efa289b705f2bd489ecfbfc6b315e1664129f1a0a1fecb5a0056de47",
+    "web_sha256": "ae8db6e10a85c3e309323ff5f8a27fb4b422ce0acb5ca9e3fe5f8446b4ac32ef",
+    "manifest_sha256": "a28b5fdafdece73f85ed8ac0afa294422c33acc97745b273ecea5dee4d8de584",
+    "archive_sha256": "e9eb175658d7b877369ccb4c9fa6ca468645494d378ea4007595c327f8de77f5",
+    "original_alpha36_updater": "PASS_HOST_ONLY",
+    "accepted_beta1_updater": "PASS_HOST_ONLY",
+    "physical_update_tested": false
+  },
+  "scroll_test": {
+    "fixed": "Wait for the complete keyboard scroll animation and an actual refreshed RSSI; verify the last device is inside the viewport",
+    "local_rounds_passed": 2,
+    "local_profile_language_viewport_cases_passed": 24,
+    "previous_ci_failure": "One-pixel animation race in the test at eaa85ec; no production UI change"
+  },
+  "publication": {
+    "allowed": false,
+    "accepted_predecessor": "v0.1.0-e32v2-beta.1",
+    "pending_tag": "v0.1.0-e32v2-beta.3",
+    "blocker": "Beta.3 installation acceptance remains incomplete: original receipts have not been recovered and the stored E32 session returns HTTP 401; an authenticated read channel is required",
+    "tag_created": false,
+    "release_published": false,
+    "device_installation_performed": false,
+    "boiler_trial_performed": false
+  },
+  "storage": {
+    "temporary_package_download_removed": true,
+    "evidence_directory": "out/beta4-versioned-daf01fc",
+    "existing_backups_receipts_and_worktrees_preserved": true,
+    "source_worktree": "out/beta4-candidate-source",
+    "source_worktree_preserved_for_pending_candidate": true
+  },
+  "readonly_e32_connectivity": {
+    "at_utc": "2026-10-26T19:35:15.103715+00:00",
+    "route": "GET /status/version",
+    "existing_session_reused": true,
+    "login_requests": 0,
+    "configuration_or_device_commands": 0,
+    "http_status": 401,
+    "result": "STORED_SESSION_NOT_AUTHORIZED"
+  }
+}

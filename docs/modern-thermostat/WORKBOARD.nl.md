@@ -3,6 +3,12 @@
 Actuele uitvoeringsvolgorde en bundeloverzicht: [volgende gezamenlijke bèta](NEXT-RELEASE.nl.md).
 Alle oudere voortgangsnotities blijven bewaard in de [planhistorie](NEXT-RELEASE-HISTORY-20261026.nl.md).
 
+**Afzonderlijk versievoorstel:** [concept-PR #2](https://github.com/dielessen/open_thermostat/pull/2)
+bevat nu een echte beta.4-kandidaat met bijbehorende Engelse releasenotities.
+Het pakket is onafhankelijk gecontroleerd; de actuele bewijsstand en de nog
+open publicatievoorwaarden staan in [het kandidaatrapport](BETA4-VERSIONED-PREVIEW.json).
+De ontwikkelbranch blijft beta.3; er is nog geen tag, publicatie of installatie.
+
 Actueel ontwikkelwerk: beta.4 krijgt een uitvoerbare, bijgewoonde Ecomline Classic-
 commissioningproef met een nieuwe manometerwaarde per warmtevoorbereiding en een
 scrollbare Bluetoothlijst met maximaal 128 ontdekte adressen. Algemene TX en

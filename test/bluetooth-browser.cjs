@@ -71,11 +71,17 @@ function snapshot(profile='shelly_ht_display'){const result={schema:1,pending_re
   assert.equal(await found.getAttribute('role'),'region');
   assert.equal(await found.evaluate(node=>node.scrollHeight>node.clientHeight),true);
   await found.focus();await page.keyboard.press('End');
-  await page.waitForFunction(()=>{const node=document.querySelector('#ble-nearby');return Math.abs(node.scrollHeight-node.clientHeight-node.scrollTop)<2;});
+  // Keyboard scrolling may still be animating one pixel from the bottom.
+  // Measure polling stability only after the actual animation endpoint.
+  await page.waitForFunction(()=>{const node=document.querySelector('#ble-nearby');return node.scrollHeight-node.clientHeight-node.scrollTop===0;});
   const scrolled=await found.evaluate(node=>node.scrollTop);
-  many[0].rssi=-91;await page.waitForTimeout(240);
+  many[0].rssi=-91;
+  await page.waitForFunction(()=>document.querySelector('[data-ble-address="000000000000"]').parentElement.textContent.includes('-91 dBm'));
   assert.equal(await found.evaluate(node=>node.scrollTop),scrolled);
-  assert.equal(await found.locator('[data-ble-address="00000000007f"]').isVisible(),true);
+  assert.equal(await found.locator('[data-ble-address="00000000007f"]').evaluate(node=>{
+    const button=node.getBoundingClientRect(),region=document.querySelector('#ble-nearby').getBoundingClientRect();
+    return button.top>=region.top && button.bottom<=region.bottom;
+  }),true);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   data.discovery_full=true;await page.locator('#ble-discovery-full').waitFor({state:'visible'});
   data.discovery_full=false;data.nearby_devices=hints;data.nearby=hints.map(d=>d.address);

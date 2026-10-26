@@ -6,6 +6,14 @@ the published and accepted installation.
 
 ## New
 
+- **One boiler page.** Boiler test now also contains the settings, received
+  devices and values, and telegram reference. The separate EMS devices menu
+  entry is removed; existing page links open Boiler test.
+- **Visible entity access.** Read-only values, configurable settings and
+  commands have distinct labels and filters. The complete pinned EMS-ESP
+  boiler catalogue includes all 258 model-dependent definitions, with types,
+  options, bounds and E32 implementation status. Catalogue entries do not
+  grant write permission or assert support by the connected boiler.
 - Boiler-test read and zero-test buttons explain missing setup confirmations,
   unavailable feedback and hot-water operation. Confirmations still apply to
   one read or trial and must be repeated afterwards.

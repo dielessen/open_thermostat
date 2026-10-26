@@ -10,6 +10,8 @@
   "installed": false,
   "physical_trial_executed": false,
   "changes": [
+    "Consolidate received entities, guarded settings editor and all device/telegram references into Boiler test; retain old page links as aliases",
+    "Expose read-only, configurable and command access separately from actual E32 support and permission; all258 pinned boiler definitions remain searchable/filterable",
     "Explain missing site confirmations at the settings-read and zero-test buttons",
     "Show measured flow temperature and actual trial bounds when heat preparation is blocked; show reported/inferred hot-water activity as such",
     "Distinguish failed update check from failed firmware installation",
@@ -19,5 +21,6 @@
   "https_root_cause_proven_fixed": false,
   "accepted_predecessor_receipt": "docs/modern-thermostat/update-acceptance/e32-beta4-20261026.json",
   "evidence_directory": "out/post-beta4-control-guidance",
-  "release_notes": "docs/modern-thermostat/RELEASE-NOTES.md"
+  "release_notes": "docs/modern-thermostat/RELEASE-NOTES.md",
+  "ems_access_review": "docs/modern-thermostat/EMS-ENTITY-ACCESS-REVIEW.en.md"
 }

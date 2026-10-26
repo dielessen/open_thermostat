@@ -1,8 +1,13 @@
 <section class="product-dashboard" id="boiler-test">
   <h1><span data-i18n="Boiler test">Boiler test</span></h1>
+  <nav class="d-flex flex-wrap" style="gap:12px;margin-bottom:16px" aria-label="Boiler sections" data-i18n-aria-label="Boiler sections">
+    <a href="#boiler-entities-panel" data-i18n="Entities and settings">Entities and settings</a>
+    <a href="#boiler-test-controls" data-i18n="Test control">Test control</a>
+    <a href="#boiler-test-reception" data-i18n="Connection and reception">Connection and reception</a>
+  </nav>
   <p><span data-i18n="Check boiler data reception and the availability of a bounded test.">Check boiler data reception and the availability of a bounded test.</span></p>
   <p role="status" aria-live="polite" data-reception><span data-i18n="Checking reception…">Checking reception…</span></p>
-  <div class="pd-panel">
+  <div class="pd-panel" id="boiler-test-reception">
     <h2><span data-i18n="Connection and reception">Connection and reception</span></h2>
     <dl class="pd-detail-grid" data-transport></dl>
     <button class="btn btn-outline-secondary" type="button" data-download disabled><span data-i18n="Download measurement report">Download measurement report</span></button>
@@ -18,8 +23,9 @@
     <p data-inventory-status><span data-i18n="Message overview not yet available.">Message overview not yet available.</span></p>
     <div style="overflow-x:auto"><table class="table"><thead><tr><th><span data-i18n="Type">Type</span></th><th><span data-i18n="Messages">Messages</span></th><th>Decoder</th><th><span data-i18n="Age">Age</span></th></tr></thead><tbody data-telegrams></tbody></table></div>
   </div>
-  <div class="pd-panel"><h2><span data-i18n="Test control">Test control</span></h2>
+  <div class="pd-panel" id="boiler-test-controls"><h2><span data-i18n="Test control">Test control</span></h2>
     <h3><span data-i18n="Heat trial profile">Heat trial profile</span></h3>
+    <p class="pd-help" data-i18n="The limits below apply to this commissioning trial. The requested temperature is a target; it does not mean the boiler must start its burner.">The limits below apply to this commissioning trial. The requested temperature is a target; it does not mean the boiler must start its burner.</p>
     <p data-heat-status role="status" aria-live="polite"></p>
     <dl class="pd-detail-grid" data-heat-limits></dl>
     <p data-test-state role="status" aria-live="polite"><span data-i18n="Checking test status…">Checking test status…</span></p>
@@ -56,6 +62,7 @@
     <p data-test-action role="status" aria-live="polite"></p>
     <dl class="pd-detail-grid" data-test-facts></dl>
   </div>
+  <div data-boiler-entities-host id="boiler-entities-panel"><p role="status" data-i18n="Loading boiler entities…">Loading boiler entities…</p></div>
 </section>
 <script>
 (() => {
@@ -172,6 +179,29 @@
   function clearSiteDeclarations() { siteOwner.checked = siteStop.checked = sitePath.checked = sitePressure.checked = false;sitePressureValue.value=''; }
   let test = null, held = null, lastScope = null, pending = false, stopping = false, renewal = null, supervisionEpoch = 0;
   const lifecycle = new AbortController();
+  // The former devices page is now a shared panel inside this page. Loading
+  // or navigating never executes a boiler command, including a settings write.
+  (async () => {
+    const host=root.querySelector('[data-boiler-entities-host]');
+    const request=new AbortController(),abort=()=>request.abort();
+    lifecycle.signal.addEventListener('abort',abort,{once:true});
+    const timeout=setTimeout(abort,5000);
+    try {
+      const response=await fetch('/ems_devices.html',{cache:'no-store',signal:request.signal});
+      if(!response.ok)throw Error('panel');
+      const html=await response.text();if(html.length>32768)throw Error('panel size');
+      if(!root.isConnected||lifecycle.signal.aborted)return;
+      const template=document.createElement('template');template.innerHTML=html;
+      template.content.querySelectorAll('script').forEach(node=>node.remove());
+      host.replaceChildren(template.content);
+      OpenThermostatLanguage.apply(host);
+      if(!window.EMSDevicesPage)throw Error('panel controller');
+      EMSDevicesPage.mount(host.querySelector('#ems-devices'));
+    } catch(_) {
+      if(root.isConnected&&!lifecycle.signal.aborted)
+        host.textContent=uiText("Boiler entities could not be loaded. Test controls and reception remain separate.");
+    } finally {clearTimeout(timeout);lifecycle.signal.removeEventListener('abort',abort);}
+  })();
   const readButton = root.querySelector('[data-read-configuration]');
   const readStatus = root.querySelector('[data-read-status]');
   const readHelp = root.querySelector('[data-read-help]');

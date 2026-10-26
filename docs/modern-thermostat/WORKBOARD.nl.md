@@ -11,7 +11,10 @@ De oudere voortgangsnotities blijven ongewijzigd in de
 Configuratie-uitlezing en nulvraag met gemelde stop zijn op beta.4 waargenomen.
 De laatste knopdiagnose toont75 °C en afgeleid tapwaterbedrijf; positieve warmte
 blijft geblokkeerd. Beta.5 bereidt duidelijkere knopvoorwaarden en GitHub-
-verbindingsdiagnostiek voor. Geen nieuwe publicatie/installatie of fysieke proef
+verbindingsdiagnostiek voor. Alle entiteiten, instelbaarheid en protocolreferenties
+komen samen op Keteltest; de aparte EMS-apparatenmenuoptie vervalt. De volledige
+catalogus blijft bereikbaar, ook zonder herkend product-ID. Geen nieuwe
+publicatie/installatie of fysieke proef
 uitgevoerd in die ontwikkelstap. Algemene ketel-/kraanuitvoer en blijvende
 instellingenwrites blijven uit. [Actuele knoppenwaarneming](BETA4-TEST-BUTTONS-20261026.json).
 

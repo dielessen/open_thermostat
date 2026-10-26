@@ -87,6 +87,69 @@ window.EMSDevicesPage=(()=>{
     const description=id=>{if(!labels.has(id))labels.set(id,label(id));return labels.get(id);};
     const visible=()=>document.visibilityState==='visible';
     const fresh=()=>performance.now()>=metadataAt&&performance.now()-metadataAt<30000;
+    const nativeFields=Object.fromEntries(Object.entries(settingFields).map(([entity,spec])=>[spec[0],entity]));
+    function nativeSupport(entity){
+      if(entity==='selflowtemp')return text('Manual Classic trial only');
+      if(!Object.hasOwn(settingFields,entity))return text('Not implemented on E32');
+      if(!settingsSnapshot)return text('Classic setting; availability unknown');
+      return text(validOperation(settingsSnapshot)&&settingsSnapshot.available&&fresh()&&measurementFresh
+        ?'Classic editor available':'Classic setting; changes blocked');
+    }
+    function fieldAccess(id){
+      if(Object.hasOwn(nativeFields,id))return {kind:'write',label:nativeSupport(nativeFields[id])};
+      if(id==='reported_selected_flow_temperature')return {kind:'command',label:text('Manual Classic trial only')};
+      return {kind:'read',label:text('Read only on E32')};
+    }
+    function badge(access,label){const node=el('span',label,'ems-access');node.dataset.access=access;return node;}
+    const catalogue=new Map();
+    const models=Object.entries(reference.groups).filter(([key])=>key.startsWith('boiler:'))
+      .sort((a,b)=>a[1].name.localeCompare(b[1].name));
+    const modelSelect=get('ems-catalog-model');
+    modelSelect.append(el('option',text('All boiler model references')));modelSelect.firstChild.value='all';
+    for(const [key,group] of models){
+      const option=el('option',group.name+' · '+key.split(':')[1]);option.value=key;modelSelect.append(option);
+      for(const index of group.fields){
+        if(!catalogue.has(index))catalogue.set(index,{index,entity:reference.entities[index],models:[]});
+        catalogue.get(index).models.push({key,name:group.name});
+      }
+    }
+    const catalogueRows=[...catalogue.values()].sort((a,b)=>a.entity[0].localeCompare(b.entity[0])||a.index-b.index);
+    let catalogueLimit=50;
+    function renderCatalogue(){
+      const query=get('ems-catalog-search').value.trim().toLocaleLowerCase(),access=get('ems-catalog-access').value,model=modelSelect.value;
+      const matches=catalogueRows.filter(row=>{
+        const spec=row.entity,kind=spec[4]?(spec[2].startsWith('cmd')?'command':'write'):'read';
+        return (access==='all'||kind===access)&&(model==='all'||row.models.some(m=>m.key===model))
+          &&(spec.slice(0,4).join(' ')+' '+row.models.map(m=>m.name).join(' ')).toLocaleLowerCase().includes(query);
+      });
+      const body=get('ems-catalog-rows');body.replaceChildren();
+      for(const row of matches.slice(0,catalogueLimit)){
+        const [id,name,type,unit,writable]=row.entity,kind=writable?(type.startsWith('cmd')?'command':'write'):'read';
+        const tr=el('tr');tr.dataset.entity=id;tr.dataset.access=kind;
+        const title=el('td',name);title.append(el('code',id));
+        const accessCell=el('td');accessCell.append(badge(kind,text(kind==='command'?'Command':kind==='write'?'Configurable in EMS-ESP':'Read only in EMS-ESP')));
+        const numeric=type.match(/^(u?int\d+|float) \(>=(-?\d+(?:\.\d+)?)<=(-?\d+(?:\.\d+)?)\)$/);
+        const typeLabel=type.startsWith('boolean')?text('Off')+' / '+text('On')
+          :numeric?numeric[1]+' · '+numeric[2]+' … '+numeric[3]:type.replaceAll('\\|',' / ');
+        const modelCell=el('td'),modelDetails=el('details',undefined,'ems-models');
+        modelDetails.append(el('summary',row.models.length+' '+text('model references')),
+          el('p',row.models.map(m=>m.name+' ['+m.key.split(':')[1]+']').join(' · ')));
+        modelCell.append(modelDetails);
+        tr.append(title,accessCell,el('td',typeLabel+(unit?' · '+(unit==='C'?'°C':unit):'')),
+          el('td',writable?nativeSupport(id):text('Read only on E32')),modelCell);
+        for(const [index,label] of ['EMS-ESP access','Type, options and limits','E32 support','Models'].entries())
+          tr.children[index+1].dataset.label=text(label);
+        body.append(tr);
+      }
+      get('ems-catalog-status').textContent=catalogueRows.length
+        ?Math.min(catalogueLimit,matches.length)+' / '+matches.length+' '+text('matching entity definitions')+' · '+catalogueRows.length+' '+text('total boiler entity definitions')
+        :text('EMS reference unavailable; received readings remain available.');
+      get('ems-catalog-more').hidden=catalogueLimit>=matches.length;
+    }
+    for(const input of [get('ems-catalog-search'),get('ems-catalog-access'),modelSelect])
+      input.addEventListener(input.tagName==='INPUT'?'input':'change',()=>{catalogueLimit=50;renderCatalogue();},{signal:owner.signal});
+    get('ems-catalog-more').addEventListener('click',()=>{catalogueLimit+=50;renderCatalogue();},{signal:owner.signal});
+    renderCatalogue();
     function clearConfirmations(){if(editor){editor.exclusive.checked=false;editor.stop.checked=false;}}
     function resetDraft(){if(editor){editor.entity.value='';editor.value.value='';editor.boolean.value='';}clearConfirmations();}
     function readyToPrepare(){return alive()&&visible()&&!interrupted&&!busy&&fresh()&&validOperation(settingsSnapshot)
@@ -180,6 +243,10 @@ window.EMSDevicesPage=(()=>{
     }
     function renderSettings(){
       renderEditor();
+      renderCatalogue();
+      for(const r of records.values())for(const [id,row] of r.rowCache??[]){
+        const access=fieldAccess(id);row.children[6].replaceChildren(badge(access.kind,access.label));
+      }
       const message=get('ems-settings-status'),wrap=get('ems-settings-table'),rows=get('ems-settings-rows');
       wrap.hidden=!settingsSnapshot;
       if(!settingsSnapshot){message.textContent=text('Boiler setting definitions are unavailable. Received EMS readings remain below.');return;}
@@ -188,8 +255,8 @@ window.EMSDevicesPage=(()=>{
       for(const [id,[field,name,unit,min,max]] of Object.entries(settingFields)){
         let row=rows.querySelector('[data-setting="'+id+'"]');
         if(!row){row=el('tr');row.dataset.setting=id;const title=el('td',text(name));title.append(el('code',id));
-          row.append(title,el('td'),el('td'),el('td'),el('td'));
-          for(const [index,label] of ['Reported value','Status','Age','Protocol range'].entries())row.children[index+1].dataset.label=text(label);
+          row.append(title,el('td'),el('td'),el('td'),el('td'),el('td'));
+          for(const [index,label] of ['Reported value','Status','Age','Protocol range','E32 access'].entries())row.children[index+1].dataset.label=text(label);
           rows.append(row);}
         const sample=measurementFresh&&snapshot?.inventory.devices.some(d=>d.address===8)?snapshot.boiler.fields[field]:null;
         const usable=sample?.state==='valid'&&sample.quality==='reported'&&sample.source_type===22&&sample.unit===unit&&sample.age_ms!==null&&sample.age_ms<600000;
@@ -199,6 +266,7 @@ window.EMSDevicesPage=(()=>{
         update(row.children[2],text(!measurementFresh?'Snapshot unavailable':!sample?'Not received':sample.quality!=='reported'?quality[sample.quality]:sample.state==='valid'&&!usable?'Unverified reading':states[sample.state]));
         update(row.children[3],sample?age(sample.age_ms):'—');
         update(row.children[4],unit==='bool'?text('Off')+' / '+text('On'):min+' … '+max+' '+(unit==='degC'?'°C':text('min')));
+        row.children[5].replaceChildren(badge('write',nativeSupport(id)));
       }
     }
     function fields(d){return d.address===8?Object.entries(snapshot.boiler.fields):[];}
@@ -243,7 +311,7 @@ window.EMSDevicesPage=(()=>{
     }
     function render(){
       if(!snapshot||!alive())return;
-      const search=get('ems-search').value.trim().toLocaleLowerCase(),showUnknown=get('ems-show-unknown').checked;
+      const search=get('ems-search').value.trim().toLocaleLowerCase(),showUnknown=get('ems-show-unknown').checked,access=get('ems-access').value;
       const ids=new Set(snapshot.inventory.devices.map(d=>d.address));
       for(const [id,r] of records)if(!ids.has(id)){r.box.remove();records.delete(id);}
       if(!ids.size){list.replaceChildren(el('p',text(snapshot.enabled?'No EMS device reports received yet.':'EMS reception is disabled.')));return;}
@@ -252,7 +320,7 @@ window.EMSDevicesPage=(()=>{
         if(!r){
           if(!records.size)list.replaceChildren();
           const box=el('details'),summary=el('summary'),title=el('span'),badge=el('span',undefined,'ems-device-status'),body=el('div',undefined,'ems-device-body'),meta=el('p',undefined,'ems-device-meta'),wrap=el('div',undefined,'ems-table-wrap'),table=el('table'),head=el('thead'),tr=el('tr'),rows=el('tbody'),empty=el('p'),telegrams=el('p',undefined,'ems-device-meta');
-          for(const name of ['Entity','Value','Status','Quality','Telegram','Age'])tr.append(el('th',text(name)));head.append(tr);table.append(head,rows);wrap.append(table);body.append(meta,wrap,empty,telegrams);summary.append(title,badge);box.append(summary,body);box.dataset.address=d.address;list.append(box);const ref=el('details'),refTitle=el('summary',text('EMS-ESP entity reference')),refBody=el('div');
+          for(const name of ['Entity','Value','Status','Quality','Telegram','Age','E32 access'])tr.append(el('th',text(name)));head.append(tr);table.append(head,rows);wrap.append(table);body.append(meta,wrap,empty,telegrams);summary.append(title,badge);box.append(summary,body);box.dataset.address=d.address;list.append(box);const ref=el('details'),refTitle=el('summary',text('EMS-ESP entity reference')),refBody=el('div');
           ref.className='ems-reference';ref.append(refTitle,refBody);
           const library=el('details'),libraryTitle=el('summary',text('Telegram library')),libraryBody=el('div');
           library.className='ems-library';library.append(libraryTitle,libraryBody);body.append(ref,library);
@@ -271,7 +339,7 @@ window.EMSDevicesPage=(()=>{
         if(r.library.open)renderLibrary(r,d);
         r.badge.textContent=received+' '+text('received entities')+' · '+(d.age_ms===null?text('Unknown'):d.age_ms>=30000?text('No recent report'):text('Report received'));
         r.meta.textContent=text('Product ID')+': '+(d.product_id===null?text('Unknown'):d.product_id)+' · '+text('Version')+': '+(d.version??text('Unknown'))+' · '+text('Brand ID')+': '+(d.brand_id===null?text('Unknown'):d.brand_id)+' · '+text('Last report')+': '+age(d.age_ms)+' · '+text('Frames')+': '+d.frames;
-        const visible=entries.filter(([id,v])=>(showUnknown||v.state!=='unknown')&&(id+' '+description(id)).toLocaleLowerCase().includes(search));
+        const visible=entries.filter(([id,v])=>(showUnknown||v.state!=='unknown')&&(access==='all'||fieldAccess(id).kind===access)&&(id+' '+description(id)).toLocaleLowerCase().includes(search));
         const wanted=new Set(visible.map(([id])=>id));
         for(const row of [...r.rows.children])if(!wanted.has(row.dataset.field))row.remove();
         let position=r.rows.firstElementChild;
@@ -280,7 +348,7 @@ window.EMSDevicesPage=(()=>{
           if(!row){
             row=el('tr');row.dataset.field=id;
             const name=el('td',description(id));name.append(el('code',id));
-            row.append(name,el('td',undefined,'ems-value'),el('td'),el('td'),el('td'),el('td'));r.rowCache.set(id,row);
+            row.append(name,el('td',undefined,'ems-value'),el('td'),el('td'),el('td'),el('td'),el('td'));r.rowCache.set(id,row);
           }
           let value='—';
           if(v.value!==null){value=v.unit==='bool'?text(v.value?'On':'Off'):typeof v.value==='number'?format.format(v.value):v.value;const unit=Object.hasOwn(units,v.unit)?units[v.unit]:v.unit;if(unit)value+=' '+unit;}
@@ -288,6 +356,7 @@ window.EMSDevicesPage=(()=>{
           update(cells[1],value);update(cells[2],text(states[v.state]));update(cells[3],text(quality[v.quality]));
           cells[3].className=v.quality==='unreliable'?'ems-warning':'';
           update(cells[4],v.source_type?hex(v.source_type):'—');update(cells[5],age(v.age_ms));
+          const local=fieldAccess(id);cells[6].replaceChildren(badge(local.kind,local.label));
           if(row!==position)r.rows.insertBefore(row,position);position=row.nextElementSibling;
         }
         r.wrap.hidden=!visible.length;r.empty.hidden=!!visible.length;
@@ -320,7 +389,7 @@ window.EMSDevicesPage=(()=>{
         if(previousBoot&&settingsSnapshot&&previousBoot!==settingsSnapshot.boot_id)resetDraft();
         if(generation===editGeneration&&visible())interrupted=false;
         reconcileSetting();
-        expiryTimer=setTimeout(()=>{if(alive()){clearConfirmations();renderEditor();}},30000);
+        expiryTimer=setTimeout(()=>{if(alive()){clearConfirmations();renderSettings();}},30000);
         if(devices.status!=='fulfilled')throw Error('devices');
         const next=devices.value;measurementFresh=true;
         if(!alive())return;snapshot=next;root.dataset.failed='false';render();
@@ -328,7 +397,7 @@ window.EMSDevicesPage=(()=>{
       }catch(_){if(alive()){measurementFresh=false;root.dataset.failed='true';status.textContent=text('Refresh failed. Previously displayed values are an older snapshot.');}}
       finally{clearTimeout(deadline);owner.signal.removeEventListener('abort',abort);busy=false;if(alive()){renderSettings();get('ems-refresh').disabled=false;}}
     }
-    get('ems-search').addEventListener('input',render,{signal:owner.signal});get('ems-show-unknown').addEventListener('change',render,{signal:owner.signal});get('ems-refresh').addEventListener('click',refresh,{signal:owner.signal});refresh();
+    get('ems-search').addEventListener('input',render,{signal:owner.signal});get('ems-access').addEventListener('change',render,{signal:owner.signal});get('ems-show-unknown').addEventListener('change',render,{signal:owner.signal});get('ems-refresh').addEventListener('click',refresh,{signal:owner.signal});refresh();
   }
   return Object.freeze({mount,unmount});
 })();

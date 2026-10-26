@@ -59,7 +59,7 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
-          "sha256": "e2fa44c7125e3571e317edb49e4757cc8121ef0dc2ab7bccb7c9e1d4e7004c7f"
+          "sha256": "b5007afa1f91e77ba28ef8269c534cd1c98bca4514a5e49e0e55efabad98ffdd"
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "54583cf81fb8f995176e4f12e75e976daf4026cd8e512b444df1e4df853319bd"
+          "sha256": "036d75c37c95c1ec86e2cdb3c4e0166eb0f50604eec5483bbd25fa33b4ce2447"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -393,7 +393,7 @@
         },
         {
           "path": "data/html/index.html",
-          "sha256": "a0144e4164a5fbb5d584d6d2068e26ca948fb6411ec444bc58057b31e0c9ac84"
+          "sha256": "1ab8b36f4839c1409826f746b1a880532a3c2f14efc35fc0b1aaa452118f05a2"
         },
         {
           "path": "data/html/device-restart.js",
@@ -541,7 +541,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "82b554ad847f36608272ea4a8b1f4a55eea7a47925463a8c26831a2613ff428a"
+          "sha256": "008a61a95c2e29da032a311e901485fb753df1791739c51dc85a8e1a5c54bb84"
         },
         {
           "path": "data/html/ui-language.js",
@@ -863,11 +863,11 @@
         },
         {
           "path": "data/html/index.html",
-          "sha256": "a0144e4164a5fbb5d584d6d2068e26ca948fb6411ec444bc58057b31e0c9ac84"
+          "sha256": "1ab8b36f4839c1409826f746b1a880532a3c2f14efc35fc0b1aaa452118f05a2"
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "82b554ad847f36608272ea4a8b1f4a55eea7a47925463a8c26831a2613ff428a"
+          "sha256": "008a61a95c2e29da032a311e901485fb753df1791739c51dc85a8e1a5c54bb84"
         },
         {
           "path": "data/html/system-log.js",
@@ -971,15 +971,15 @@
         },
         {
           "path": "data/html/ems-devices.js",
-          "sha256": "0862034eb966cbf15d917400e45180e12d41546b045da8ae3e3b3b96e518d3ae"
+          "sha256": "7c4bd90ca2ee38f9fb32eb71a456886e6c42009ff12bf1bc0eb23f29b53ed036"
         },
         {
           "path": "data/html/ems_devices.html",
-          "sha256": "ecb51a5aae03ab72c74eca2396e1dae885a4216206600d9e052fa20f0fe0445a"
+          "sha256": "8f012d1a2881a87e344c0312facc4dd332ad03ba7acccbc2e2463dd07c567047"
         },
         {
           "path": "test/ems-devices-browser.cjs",
-          "sha256": "a06e777960f19bc3fa4db3167f7255c77da3ff7a49156ace95528d6f1131396b"
+          "sha256": "ceaecc083518f4571088e66de965b43ead193958a9ed07437554f2ba254f719c"
         },
         {
           "path": "docs/modern-thermostat/EMS-APPARATEN.nl.md",
@@ -1240,6 +1240,10 @@
         {
           "path": "data/html/ems-reference.js.gz",
           "sha256": "e68959f3acd8ade7e2645d6737ba97f55b43675a359cec1e05204e4714e7ec5a"
+        },
+        {
+          "path": "docs/modern-thermostat/EMS-ENTITY-ACCESS-REVIEW.en.md",
+          "sha256": "1f6891d6d54048926ae7f1267b4e91d3ea5332cf181ad968af5710cb924e8350"
         }
       ],
       "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding geleverd/getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele acquisitie-/ouderdomsvalidatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten als ambient bron. WSDCGQ11LM-eventproducer voorbereid/getest, niet op Z2M geïnstalleerd. Native HA-ontvanger en room-status geleverd zonder QualifiedReport-vrijgave. Web-/native systeemlog en RFC5424 UDP-syslog geleverd in alpha23; beschermde routes/RAM-buffer en standaard uit zonder bestemming gecontroleerd. Externe collector en lange heap-/stack-/belastingproef blijven open. Geen fysieke regelautorisatie. ESP-eigen diagnose op alpha26/dev33 geïnstalleerd en twee gewone live pakketten exact met HA vergeleken. Softwaretests dekken verval; langdurige fysieke logging-/resourceproeven blijven afzonderlijk open. Geleverd en live teruggelezen in HA46: begrensde, niet-blijvende oorspronkelijke ontvangsttellers via bestaande HA-diagnostiek. Geen producent- of fysieke kwalificatie. Geleverd in HA47: één native opstart over async-programma/Store/MQTT-grenzen, cleanup bij cancel/close en begrensde optionele temperatuurdiagnose. Tien baselinegevallen falen vóór correctie, 139 gerichte/2349volledigeHA-gevallen perCore slagen. HA47 uitgerold met verse HA46-back-up96 en44 afzonderlijke nacontroles. Beperkte HA46-controle05:46UTC ziet1TV02-callback/enqueue/workeracceptatie; stale en ongekwalificeerd, geen upstreamoorzaak of fysieke ACK. Na Coreherstart nieuweRAMowner: bij06:47UTC nul counters/TV02waiting, geen oudbericht alsnieuwekwalificatie. Actieve/fysiekevrijgave blijftopen. X01: pure SBHT-103C-BTHome-decoder voorbereid,798native/16sanitizer/ESP32syntaxPASS; NIETgeselecteerd door BLE-runtime. Geen nieuwe reader, Settings/onboarding, AES/sleutels, replay-/acquisitiekwalificatie of fysieke apparaatondersteuning. Xiaomi/BLUTRV blijven open. HA48 geïnstalleerd: cleanup na gewone callbackexception; aparte nacontrole08:43UTC46PASS,86 live/96back-up exact. Nieuwe RAM-owner blijft ongekwalificeerd. Pure Shelly-decoderbron gepubliceerd in alpha35, niet op E32 geïnstalleerd en niet runtimegeselecteerd. Voor volgende firmware: ESP/EMS/beide-weergave, begrensde deferred RX-framelogging en onafhankelijke syslogbronkeuze met oude6/nieuwe8veldinstellingen. Native25/UDPloopback/NVS/vierbrowserprofielen PASS; echte EMS-/collector-/belastingproeven nog open. Geen installatie. Grote-beta-uitvoering: normale E32 SBHT-103C-diagnoseontvangst/EN-NL-settings nu aangesloten met acht bindings, echte SDK AES-CCM/MIC, verborgen sleutels, conditionele duurzame save, oorspronkelijke callbackleeftijden, vaste wachtrij en boot-lokale tellerafwijzing. Geen extra task/client of actuatorwrite; geen QualifiedReport of kamerregelbron. 871 native gevallen PASS; volledige actuele board/browser/sanitizerresultaten bij bundelbewijs. Historische pure-decoderstatus hierboven beschrijft oudere bron. Echte sensor-/radio-/sleutelverkrijgings-/reboot-/resourceproeven, blijvende replay-/acquisitiekwalificatie, Xiaomi/TRV en zelfstandig regelen blijven open. Niets geïnstalleerd. Core4-P0 in dezelfde bètabron hersteld: publieke installatiegroep erft private transactiepin niet meer; echte Core2026.10.4 toegevoegd na RECORD/sourcevergelijking met .3. 2428 volledige gevallen perCore.2/.3/.4 PASS, resources daarna afzonderlijk30/3/3 PASS. Native HA-readback bevestigt liveCore4/dev48/setup_error; geïnstalleerde Python-bronhashes UNKNOWN, niets geïnstalleerd. Globale finale freeze/liveherstel blijven open. Voor eerste uitrol private BLE-opslag afgezonderd in één begrensde ot_bluetooth/settings-blob: sleutels komen niet in het netwerkdocument dat rollbackfirmware terugstuurt. Netwerkrestore importeert geen nieuwe bindings. Onafhankelijke boot-/sessielokale readbackfences voor netwerk/Bluetooth; huidige harde RAM-grens2048bytes. 875 native,18auth/26owner-sanitizer,15opslag-/36bestaandeonboardinggevallen en4browserprofielen PASS; drie boardbuilds en ongewijzigde layout/default/noTX-check PASS. Eerdere onuitgerolde netwerkblobopslag hierboven is door deze private route vervangen. Geen fysieke kwalificatie/installatie. Monitor3-software aangesloten in dezelfde beta: apart MiBeacon4/5-profiel, upstreamproductdeclaraties0x2832/0x4c47, eigen omgekeerde MAC/nonce12/AAD11/MIC4; geen CGG1/legacy/Shellyfallback. Strikte TLV/floatgrenzen en boot-lokale tellerbewaking via bestaande ontvanger. 888native/39eigenaar-parser-sanitizer/24echtecrypto-sanitizer,8browserprofielen/47node/2navigatie/2dashboard/4taal,3boards/layoutPASS. Geen oude metingen onder gewijzigde conceptbron/-sleutel. Echte modelopname, sleutelverkrijging, acquisitie-/blijvende replaykwalificatie en zelfstandige kamer-/TRV-regeling blijven open. Historische oude ontwerptekst is geen actuele claim van afwezige software. Geen installatie. EMS-referentie uitgebreid met6042entiteiten/105groepen,274benoemde telegram-ID’s/1853offsetdefinities, productherkenning en ESP-default. Dit is volledige referentiedekking van de vastgelegde exports, geen volledige functionele decoder-/schrijfdekking. Productfamiliedecoders, HA-entiteiten, schrijfencoders en fysieke kwalificatie blijven open; zie EMS-DEKKING.nl.md. Nog niet geïnstalleerd."
@@ -1913,7 +1917,7 @@
       "files": [
         {
           "path": "data/html/boiler_test.html",
-          "sha256": "15ef964dd66c7dcfdecabd76f68ae19f849aa1e66999bbeae06e0f0c4b97f243"
+          "sha256": "53bd767e338894479b62a7e6a6e5c4292d24c22c86841368d84d6f27cb84de82"
         },
         {
           "path": "src/EmsController.h",
@@ -1981,6 +1985,10 @@
         {
           "path": "test/test_native/test_manual_classic_transaction.cpp",
           "sha256": "f88d81ab89efee32b80cb213733e4ccc9dd32bc50eec030fd2660fbf11913328"
+        },
+        {
+          "path": "docs/modern-thermostat/THERMOSTAT-SETPOINT-REVIEW.en.md",
+          "sha256": "205454d8fb541361b17cd0b50bedc0ec69ed7d654b89547cf322e6ed053b6bcf"
         }
       ],
       "remaining_acceptance": "Actuele bron: concrete softwarepolicy voor de eerste bediende nulvraag (15s feedbackactualiteit, 5s operatorlease, 1s write-interval, 30s stopwaarneming per fase), zonder positieve vraag. Classic-serviceadres0x0B/ketel0x08/masker0 is expliciet aangesloten en blijft onder waargenomen busidentiteit/adresconflictcontrole. Stopafronding vereist daadwerkelijke verzending en strikt latere Classic-rapporten. Het concrete softwarewarmteprofiel (40–45°C/maximaal60s, actuele Classic-temperatuur/druk en CV-configuratie) is aangesloten; fysieke installatie-/adapter-/TX-/stopkwalificatie en frozen gezamenlijke releaseacceptatie blijven open. Beide fysieke bordtoelatingen blijven false; geïnstalleerde beta.1/HA0.4.0b1 blijft ongewijzigd. Stopbasis, stopafronding en foutterugmelding vereisen nu ook een verse strikt latere gerapporteerde nul gevraagde aanvoertemperatuur; een branderpauze met positieve vraag voldoet niet. Voor-/na-regressie op de oude en nieuwe policy bevestigt dit verschil."

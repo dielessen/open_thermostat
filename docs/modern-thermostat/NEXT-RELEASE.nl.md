@@ -51,6 +51,29 @@ en [pre-TX-kaart](ECOMLINE-PRE-TX-ACCEPTATIE.nl.md) blijven leidend.
 Een softwarematige stopmelding sluit fysieke start/stop-/naloopkwalificatie niet af.
 Deze ontwikkelopdracht start geen proef en verandert geen temperatuurgrens.
 
+## Leesbare en instelbare entiteiten samen op Keteltest
+
+**Regelprincipe verduidelijkt:** een normale thermostaat kan de gewenste
+`selflowtemp` uit kamervraag/stooklijn afleiden. De bestaande eis5–<50°C is
+een eigen grens voor deze eerste handmatige commissioningproef, geen EMS/iRT-
+voorwaarde. Setpointoverdracht en zichtbare brander-/warmtereactie moeten
+afzonderlijk worden beoordeeld. Een al warme ketel kan terecht niet ontsteken
+bij een lagere vraag. [Onderbouwing en afbakening](THERMOSTAT-SETPOINT-REVIEW.en.md).
+De fysieke proefgrenzen zijn met deze uitleg niet verruimd.
+
+Op verzoek van de gebruiker zijn de apparaat-/entiteitentabel, vier Classic-
+instellingen en alle protocolreferenties opgenomen op Keteltest. De aparte
+EMS-apparatenmenuoptie vervalt; bestaande paginalinks komen op Keteltest uit.
+Leeswaarden, instelbare waarden en commando’s hebben eigen labels/filters.
+De volledige vastgelegde EMS-ESP-ketelcatalogus blijft bereikbaar, ook zonder
+herkend product-ID: 258 definitievarianten, 252 entiteitsnamen en 31 modelgroepen.
+Per item zijn EMS-ESP-mogelijkheid en de werkelijke E32-implementatie/toelating
+apart zichtbaar. Vier Classic-instellingen zijn voorbereid, blijvend schrijven
+blijft in de standaardfirmware uit; overige writers zijn zichtbaar als nog niet
+geïmplementeerd. Er worden geen schrijfrechten uit de catalogus afgeleid.
+[Onderzoek naar de officiële EMS-ESP-implementatie](EMS-ENTITY-ACCESS-REVIEW.en.md).
+Dit is beta.5-bronwerk, nog geen publicatie/installatie of ketelbediening.
+
 ## Eerstvolgende softwarewerk, in volgorde
 
 | Prioriteit | Werk | Vereist resultaat |

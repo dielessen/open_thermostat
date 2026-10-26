@@ -301,7 +301,6 @@
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="hardware"><span data-i18n="Hardware configuration">Hardware configuration</span></a></li>
 							<li><a class="dropdown-item" href="#" data-page="update"><span data-i18n="Firmware update">Firmware update</span></a></li>
 							<li data-bluetooth-settings hidden><a class="dropdown-item" href="#" data-page="bluetooth"><span data-i18n="Bluetooth devices">Bluetooth devices</span></a></li>
-							<li><a class="dropdown-item" href="#" data-page="ems_devices"><span data-i18n="EMS devices">EMS devices</span></a></li>
 							<li><a class="dropdown-item" href="#" data-page="boiler_test"><span data-i18n="Boiler test">Boiler test</span></a></li>
 							<li><a class="dropdown-item" href="#" data-page="boiler_display"><span data-i18n="My boiler">My boiler</span></a></li>
 							<li><a class="dropdown-item" href="#" data-page="system_log"><span data-i18n="System log">System log</span></a></li>
@@ -437,6 +436,8 @@
             return chartPromise;
         }
         async function loadNativePage(page) {
+            // Preserve existing saved links while keeping one boiler page.
+            if (page === 'ems_devices') page = 'boiler_test';
             clearMainContainer();
             const navigation = navigationGeneration;
             try {

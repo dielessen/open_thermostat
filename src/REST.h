@@ -297,8 +297,9 @@ private:
 		// Never issue WWW-Authenticate: browsers must not maintain a competing HTTP-auth cache.
 		if(control::publicAuthResource(server_.uri().c_str())) return true;
 		const auto token=requestToken();
+		const auto accessNow=networkNow();
 		const auto decision=control::webAuthDecision(sessions_,server_.uri().c_str(),method,token.c_str(),
-			server_.header("X-OpenThermostat-CSRF").c_str(),networkNow(),portal==control::PortalAccess::Setup);
+			server_.header("X-OpenThermostat-CSRF").c_str(),accessNow,portal==control::PortalAccess::Setup);
 		if(decision==control::WebAuthDecision::redirect_login){
 			server_.sendHeader("Location","/login");server_.send(303,"text/plain","Sign in to OpenThermostat");return false;
 		}
@@ -313,6 +314,7 @@ private:
 		if(controller_.modernMode()&&control::legacyControlWrite(server_.uri().c_str(),method)) {
 			server_.send(409,"text/plain","HA-managed shadow mode: legacy control writer disabled"); return false;
 		}
+		sessions_.touch(token.c_str(),accessNow);
 #endif
 		return true;
 	}
@@ -367,7 +369,7 @@ private:
 		const auto token=requestToken();const auto now=networkNow();
 		const auto *session=sessions_.find(token.c_str(),now);
 		if(!session){server_.send(401,"application/json","{\"error\":\"authentication_required\"}");return;}
-		const auto response=std::string("{\"authenticated\":true,\"csrf\":\"")+session->csrf.data()+"\",\"expires_in\":"+std::to_string((session->until-now)/1000)+"}";
+		const auto response=std::string("{\"authenticated\":true,\"csrf\":\"")+session->csrf.data()+"\",\"expires_in\":"+std::to_string(sessions_.remainingMs(token.c_str(),now)/1000)+"}";
 		server_.send(200,"application/json",response.c_str());
 	}
 	void logout() {

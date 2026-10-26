@@ -1003,7 +1003,7 @@ window.OT_UI_MESSAGES = {
   "The page could not be loaded. Check the connection and try again.": "De pagina kon niet worden geladen. Controleer de verbinding en probeer opnieuw.",
   "The request timed out. Check device status before trying again.": "Het verzoek is verlopen. Controleer de apparaatstatus voordat je het opnieuw probeert.",
   "Then save this program.": "Sla daarna dit programma op.",
-  "This browser stays signed in for up to seven days. A device restart ends the session. Use only your trusted local network; this device currently uses HTTP.": "Deze browser blijft maximaal zeven dagen aangemeld. Een herstart beëindigt de sessie. Gebruik alleen je vertrouwde lokale netwerk; dit apparaat gebruikt momenteel HTTP.",
+  "This session expires after 30 minutes without contact from this browser, or after seven days at most. A device restart ends the session. Use only your trusted local network; this device currently uses HTTP.": "Deze sessie verloopt na 30 minuten zonder contact vanuit deze browser, en uiterlijk na zeven dagen. Een herstart beëindigt de sessie. Gebruik alleen je vertrouwde lokale netwerk; dit apparaat gebruikt momenteel HTTP.",
   "This project started from": "Dit project begon als",
   "This will directly control GPIO outputs, bypassing normal heating logic for the set duration.": "Dit stuurt GPIO-uitgangen rechtstreeks aan en omzeilt de normale verwarmingsregeling gedurende de ingestelde tijd.",
   "Thursday": "Donderdag",

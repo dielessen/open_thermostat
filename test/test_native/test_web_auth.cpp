@@ -17,7 +17,10 @@ TEST(WebAuth, MobileAndDesktopSessionsDoNotInvalidateEachOther) {
 }
 TEST(WebAuth, ReadingDoesNotExtendAbsoluteLifetimeOrReviveExpiredSession) {
     WebAuthSession s; ASSERT_NE(s.issue(token('a'),token('b'),100),nullptr);
-    EXPECT_NE(s.find(token('a'),100),nullptr); EXPECT_NE(s.find(token('a'),99+WebAuthSession::lifetimeMs),nullptr);
+    EXPECT_NE(s.find(token('a'),100),nullptr);
+    for(uint64_t now=100+WebAuthSession::idleTimeoutMs/2;now<100+WebAuthSession::lifetimeMs;now+=WebAuthSession::idleTimeoutMs/2)
+        ASSERT_TRUE(s.touch(token('a'),now));
+    EXPECT_NE(s.find(token('a'),99+WebAuthSession::lifetimeMs),nullptr);
     EXPECT_EQ(s.find(token('a'),100+WebAuthSession::lifetimeMs),nullptr);
     EXPECT_FALSE(s.csrf(token('a'),token('b'),100+WebAuthSession::lifetimeMs));
     EXPECT_EQ(s.find(token('a'),99),nullptr);
@@ -210,4 +213,43 @@ TEST(WebAuth, RecoveryRejectsInvalidEntropyAliasesAndClockWithoutRevokingSession
     EXPECT_EQ(s.issue(token('c'),token('b'),101,{},true),nullptr);
     EXPECT_EQ(s.issue(token('c'),token('d'),UINT64_MAX,{},true),nullptr);
     EXPECT_NE(s.find(token('a'),102),nullptr);EXPECT_TRUE(s.csrf(token('a'),token('b'),102));
+}
+
+TEST(WebAuth, IdleSessionExpiresAtBoundaryAndCannotBeRevivedByLookupsOrRequests) {
+    WebAuthSession s;ASSERT_NE(s.issue(token('a'),token('b'),100),nullptr);
+    const auto deadline=100+WebAuthSession::idleTimeoutMs;
+    EXPECT_NE(s.find(token('a'),deadline-1),nullptr);
+    EXPECT_TRUE(s.csrf(token('a'),token('b'),deadline-1));
+    EXPECT_EQ(s.remainingMs(token('a'),deadline-1),1u);
+    EXPECT_EQ(s.find(token('a'),deadline),nullptr);
+    EXPECT_FALSE(s.touch(token('a'),deadline));
+    EXPECT_FALSE(s.csrf(token('a'),token('b'),deadline));
+    EXPECT_EQ(s.remainingMs(token('a'),deadline),0u);
+}
+TEST(WebAuth, AuthenticatedActivityOnlyRenewsItsOwnSessionWithoutMovingHardDeadline) {
+    WebAuthSession s;ASSERT_NE(s.issue(token('a'),token('b'),100),nullptr);
+    ASSERT_NE(s.issue(token('c'),token('d'),100),nullptr);
+    const auto activeAt=100+WebAuthSession::idleTimeoutMs/2;
+    ASSERT_TRUE(s.touch(token('a'),activeAt));
+    EXPECT_NE(s.find(token('a'),100+WebAuthSession::idleTimeoutMs),nullptr);
+    EXPECT_EQ(s.find(token('c'),100+WebAuthSession::idleTimeoutMs),nullptr);
+    EXPECT_EQ(s.remainingMs(token('a'),activeAt),WebAuthSession::idleTimeoutMs);
+    EXPECT_EQ(s.find(token('a'),activeAt-1),nullptr);
+    EXPECT_FALSE(s.touch(token('a'),activeAt-1));
+    EXPECT_EQ(s.find(token('a'),activeAt+WebAuthSession::idleTimeoutMs),nullptr);
+}
+TEST(WebAuth, IdleSlotsAreReusedWithoutEvictingTheActiveBrowser) {
+    WebAuthSession s;for(int i=0;i<4;++i)ASSERT_NE(s.issue(token('0'+i*2),token('1'+i*2),100),nullptr);
+    ASSERT_TRUE(s.touch(token('0'),100+WebAuthSession::idleTimeoutMs/2));
+    ASSERT_NE(s.issue(token('8'),token('9'),100+WebAuthSession::idleTimeoutMs),nullptr);
+    EXPECT_NE(s.find(token('0'),100+WebAuthSession::idleTimeoutMs),nullptr);
+    EXPECT_NE(s.find(token('8'),100+WebAuthSession::idleTimeoutMs),nullptr);
+    EXPECT_EQ(s.find(token('2'),100+WebAuthSession::idleTimeoutMs),nullptr);
+}
+TEST(WebAuth, RejectedRequestsCannotRefreshAStoredSession) {
+    WebAuthSession s;ASSERT_NE(s.issue(token('a'),token('b'),100),nullptr);
+    const auto at=100+WebAuthSession::idleTimeoutMs-1;
+    EXPECT_EQ(webAuthDecision(s,"/config/device","POST",token('a'),"wrong",at,false),WebAuthDecision::csrf_required);
+    EXPECT_EQ(webAuthDecision(s,"/status","GET",token('c'),"",at,false),WebAuthDecision::authentication_required);
+    EXPECT_EQ(s.find(token('a'),at+1),nullptr);
 }

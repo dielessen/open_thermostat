@@ -358,3 +358,25 @@ Voor de bestaande firmware wist een handmatige herstart van uitsluitend de E32
 bootlokale sessies en behoudt opgeslagen instellingen. Alleen uitvoeren als er
 geen update of ketelproef loopt; geen ketelreset, factory-reset of automatische
 herstart vanuit diagnose. De bestaande installatieopdracht blijft open.
+
+## Automatisch vervallen ongebruikte websessies — vervolg op herstart
+
+De gebruiker heeft de E32 handmatig herstart en vraagt om automatisch verval.
+De bron voegt **30 minuten zonder toegelaten geauthenticeerde HTTP-aanvraag**
+toe aan de bestaande absolute grens van zeven dagen. Geldige aanvragen na
+method/origin/auth/CSRF- en mutatiecontroles vernieuwen uitsluitend `lastSeen`
+van hun eigen sessie. Een nog communicerend dashboard blijft dus aangemeld;
+een achtergelaten beheersessie zonder aanvragen houdt geen plaats zeven dagen vast.
+Opzoekingen of afgewezen aanvragen vernieuwen niets. Verlopen tokens worden
+niet hersteld door late aanvragen; een nieuwe login kan de vrijgekomen plaats
+hergebruiken. Bij klokterugloop wordt geen sessie vernieuwd. `expires_in` geeft
+de kortste resterende termijn weer. De cookie heeft nog steeds maximaal zeven
+dagen geldigheid; de server handhaaft de kortere inactiviteitsgrens.
+
+De eerder voorbereide expliciete hersteloptie met nieuwe wachtwoordcontrole
+blijft behouden. Login-uitleg is aangepast in EN/NL. Gerichte regressies: 24 native
+WebAuth-gevallen, 20 JavaScript-auth/taalgevallen en 9 scenario's met de werkelijke
+C++-loginhandler tegen gesimuleerde HTTP-/apparaatgrenzen slagen. De E32-build
+slaagt eveneens. Nieuwe firmware
+is nog niet gepubliceerd of geïnstalleerd; de gebruikersherstart levert deze
+bronwijzigingen niet vanzelf op. Geen extra herstart of apparaatmutatie uitgevoerd.

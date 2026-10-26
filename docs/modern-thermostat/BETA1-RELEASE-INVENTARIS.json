@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "a99759e7e643010c70bfe1ba3b2f31225e44a30673358dfae543bf918c75959e"
+          "sha256": "0445a432e1f4a7fbc004ef736b8c8c6dfe91541e1ea05d51268858cd0d7cd248"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -155,7 +155,7 @@
       "files": [
         {
           "path": "src/control/WebAuthSession.h",
-          "sha256": "eb9875d855ec028311b2ee3bda2f89b3189e22d1718b7f01b630c09866ca1aef"
+          "sha256": "2caadfdb5273777dde2c275a5188b399b35e5f85c7883d4cb5137c3deb0edc85"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
@@ -167,7 +167,7 @@
         },
         {
           "path": "data/html/login.html",
-          "sha256": "04ea3d8b84753470f4f622107d09e2e6e76a0da1010720c430b932f063869fba"
+          "sha256": "a1d6f2cd79ba5462b264624b63f53045df96619b730cef225cc9ffd18316fe86"
         },
         {
           "path": "data/html/login.js",
@@ -175,7 +175,7 @@
         },
         {
           "path": "test/test_native/test_web_auth.cpp",
-          "sha256": "c1e7186294baf87bbe57304cc46be193309ab5a8ac3c6926714092b5bab0f2c9"
+          "sha256": "26b051c56ea7bc01d5f9b0eea69e776f2fa7c14234f77ee42a7c02dbd7a4c46a"
         },
         {
           "path": "test/web_auth_client.test.cjs",
@@ -186,7 +186,7 @@
           "sha256": "eacf2d10e848c6352eef717e29d6f144b6b43f75818e60cbcb6837227d03982d"
         }
       ],
-      "remaining_acceptance": "Fysieke AP-/uitval-/herstelmatrix blijft apart. Expliciet wachtwoordgeverifieerd herstel van volle websessies is na beta.3 voorbereid en gericht getest; publicatie, installatie en live herstel nog niet uitgevoerd."
+      "remaining_acceptance": "Fysieke AP-/uitval-/herstelmatrix blijft apart. Na beta.3 zijn expliciet wachtwoordgeverifieerd herstel van volle websessies en 30-minuten-inactiviteitsverval voorbereid en gericht getest; publicatie, installatie en live herstel/verval nog niet uitgevoerd."
     },
     {
       "id": "I03",
@@ -373,7 +373,7 @@
         },
         {
           "path": "data/html/login.html",
-          "sha256": "04ea3d8b84753470f4f622107d09e2e6e76a0da1010720c430b932f063869fba"
+          "sha256": "a1d6f2cd79ba5462b264624b63f53045df96619b730cef225cc9ffd18316fe86"
         },
         {
           "path": "data/html/login.js",
@@ -461,7 +461,7 @@
         },
         {
           "path": "test/test_native/test_web_auth.cpp",
-          "sha256": "c1e7186294baf87bbe57304cc46be193309ab5a8ac3c6926714092b5bab0f2c9"
+          "sha256": "26b051c56ea7bc01d5f9b0eea69e776f2fa7c14234f77ee42a7c02dbd7a4c46a"
         },
         {
           "path": "test/updates/browser.cjs",
@@ -473,7 +473,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "8011a6bd697ebd091806bad4411fed68b813273e1412e6e0635849e9237425e4"
+          "sha256": "9787752201a96f00671786dff963092c945a6cb4d5654e8b6633b8c68bfd7b57"
         },
         {
           "path": "data/html/ui-language.js",
@@ -669,7 +669,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "dda0f71afca488068f9af2a16b05ee0cbed86be902cc44b5eb5532efb6903c66"
+          "sha256": "6c855f83d72c6269bc1cfd2712ed97aa5aca6bd042f1c401658c0fa6dd9c428c"
         },
         {
           "path": "src/Room.cpp",
@@ -787,7 +787,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "dda0f71afca488068f9af2a16b05ee0cbed86be902cc44b5eb5532efb6903c66"
+          "sha256": "6c855f83d72c6269bc1cfd2712ed97aa5aca6bd042f1c401658c0fa6dd9c428c"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
@@ -799,7 +799,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "8011a6bd697ebd091806bad4411fed68b813273e1412e6e0635849e9237425e4"
+          "sha256": "9787752201a96f00671786dff963092c945a6cb4d5654e8b6633b8c68bfd7b57"
         },
         {
           "path": "data/html/system-log.js",
@@ -1083,11 +1083,11 @@
         },
         {
           "path": "src/control/WebAuthSession.h",
-          "sha256": "eb9875d855ec028311b2ee3bda2f89b3189e22d1718b7f01b630c09866ca1aef"
+          "sha256": "2caadfdb5273777dde2c275a5188b399b35e5f85c7883d4cb5137c3deb0edc85"
         },
         {
           "path": "test/test_native/test_web_auth.cpp",
-          "sha256": "c1e7186294baf87bbe57304cc46be193309ab5a8ac3c6926714092b5bab0f2c9"
+          "sha256": "26b051c56ea7bc01d5f9b0eea69e776f2fa7c14234f77ee42a7c02dbd7a4c46a"
         },
         {
           "path": "test/onboarding/include/nvs.h",

@@ -10,6 +10,7 @@ class WebAuthSession {
 public:
     static constexpr std::size_t maximumSessions = 4;
     static constexpr uint64_t lifetimeMs = 7ULL * 24 * 60 * 60 * 1000;
+    static constexpr uint64_t idleTimeoutMs = 30ULL * 60 * 1000;
     static constexpr const char *cookieName = "OTSESSION";
     enum class SettingsScope : uint8_t { network=0, bluetooth=1 };
     struct SettingsFence { std::array<char,65> hash{}, tag{}; };
@@ -18,7 +19,7 @@ public:
         // Boot/session-local readback fence. Only the random tag is returned;
         // never expose a hash of settings containing broker/weather secrets.
         std::array<SettingsFence,2> settings{};
-        uint64_t issued = 0, until = 0;
+        uint64_t issued = 0, until = 0, lastSeen = 0;
         bool occupied = false;
     };
     static bool hexToken(std::string_view value) {
@@ -58,6 +59,22 @@ public:
         if (!hexToken(token)) return nullptr;
         for (const auto &session : sessions_) if (live(session,now) && equal(token,view(session.token))) return &session;
         return nullptr;
+    }
+    // Call only after the HTTP method, origin, authentication and CSRF gates.
+    // Lookups alone must not renew sessions or revive an expired token.
+    bool touch(std::string_view token,uint64_t now) {
+        if (!hexToken(token)) return false;
+        for (auto &session : sessions_) if (live(session,now) && equal(token,view(session.token))) {
+            session.lastSeen = now;
+            return true;
+        }
+        return false;
+    }
+    uint64_t remainingMs(std::string_view token,uint64_t now) const {
+        const auto* session = find(token,now);
+        if (!session) return 0;
+        const auto idleRemaining = idleTimeoutMs-(now-session->lastSeen);
+        return session->until-now < idleRemaining ? session->until-now : idleRemaining;
     }
     bool csrf(std::string_view token,std::string_view proof,uint64_t now) const {
         const auto *session = find(token,now);
@@ -109,7 +126,7 @@ public:
         if (!slot) return nullptr; // Do not evict another browser to admit a new one.
         *slot = Session{};
         for (std::size_t i = 0; i < 64; ++i) { slot->token[i] = token[i]; slot->csrf[i] = proof[i]; }
-        slot->issued = now; slot->until = now+lifetimeMs; slot->occupied = true;
+        slot->issued = now; slot->lastSeen = now; slot->until = now+lifetimeMs; slot->occupied = true;
         return slot;
     }
     void revoke(std::string_view token) {
@@ -131,7 +148,8 @@ private:
         return false;
     }
     static bool live(const Session &session,uint64_t now) {
-        return session.occupied && now >= session.issued && now < session.until;
+        return session.occupied && now >= session.issued && now < session.until
+            && now >= session.lastSeen && now-session.lastSeen < idleTimeoutMs;
     }
     std::array<Session,maximumSessions> sessions_{};
     uint64_t failedFrom_ = 0;

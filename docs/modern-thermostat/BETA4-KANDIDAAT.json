@@ -2,7 +2,7 @@
   "schema": 1,
   "date": "2026-10-26",
   "planned_tag": "v0.1.0-e32v2-beta.4",
-  "state": "PREPARING_NOT_FROZEN",
+  "state": "DRAFT_VERSIONED_CANDIDATE",
   "component": "e32_firmware_only",
   "previous_published_tag": "v0.1.0-e32v2-beta.3",
   "unchanged_ha_tag": "ha-v0.4.0b3",
@@ -220,5 +220,17 @@
     "all_four_builds": "PASS",
     "independent_package_checks": 2240,
     "validation_jobs_passed": 9
+  },
+  "versioned_preview": {
+    "branch": "release/e32v2-beta4-candidate",
+    "base_commit": "b9eecdfdacbeec3ebdd5bd0769ce44bc361a14fb",
+    "version": "v0.1.0-e32v2-beta.4",
+    "state": "CI_PENDING",
+    "merged_into_development": false,
+    "formal_freeze": false,
+    "publication_performed": false,
+    "installation_performed": false,
+    "pending_tag_unchanged": "v0.1.0-e32v2-beta.3",
+    "purpose": "Review a complete versioned beta.4 package before predecessor acceptance permits merging, tagging or publication"
   }
 }

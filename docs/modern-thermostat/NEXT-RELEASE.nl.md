@@ -9,6 +9,18 @@ onderdelen en hun 465 bronverwijzingen. De
 [volledige voortgangshistorie](NEXT-RELEASE-HISTORY-20261026.nl.md) blijft bewaard;
 oude versies en aantallen daarin zijn historische checkpoints.
 
+## Apart versievoorstel — geen publicatie
+
+Deze branch `release/e32v2-beta4-candidate` bereidt een **conceptkandidaat met
+versienummer beta.4** voor. Hij is gebaseerd op het volledig gecontroleerde
+ontwikkelcheckpoint en wordt afzonderlijk via CI en het werkelijke pakket
+gecontroleerd. Dit voorstel is nog niet samengevoegd met de ontwikkelbranch.
+
+De ontwikkelbranch houdt haar bestaande versie; de updatepoort houdt beta.3
+pending en beta.1 geaccepteerd. Er is geen tag, publicatie, installatie of
+ketelproef uitgevoerd. De beta.4-voorstelbuild vervangt geen openbare beta.3.
+De uiteindelijke freeze en publicatie wachten nog op de vorige acceptatie.
+
 ## Doel en afbakening
 
 Eén gezamenlijke HA/E32-bèta waarmee we na passende vrijgave de ketel
@@ -683,8 +695,9 @@ volledig gecontroleerd. Bronartefacten met nog beta.3 als ontwikkelversie zijn
 geen nieuwe release of installatiedoel en vervangen de bestaande beta.3-assets niet.
 
 Beta.3 staat nog pending in de updatepoort. Tot echte installatie en onafhankelijke
-nacontrole zijn vastgelegd blijven release.json, pending_tag en de openbare tags
-ongewijzigd. Gewoon bronwerk, conceptnotities en CI gaan door; een beta.4-freeze
+nacontrole zijn vastgelegd blijven de versie van de ontwikkelbranch, pending_tag
+en de openbare tags ongewijzigd. Alleen de afzonderlijke, nog niet samengevoegde
+conceptbranch hierboven bevat alvast het beta.4-versievoorstel. Gewoon bronwerk, conceptnotities en CI gaan door; een beta.4-freeze
 of publicatie wordt niet als gereed afgetekend. De gebruiker heeft aangegeven
 zelf te installeren; in deze stap worden geen apparaatmutaties uitgevoerd.
 

@@ -387,7 +387,7 @@ void EmsController::processTelegram(uint8_t *data, uint8_t length) {
     // Original UART receive owner closes only a matching private transaction.
     // Never defer bus completion to web/loop telemetry decoding.
     processBoilerSettingsReply(data,length?length-1:0,receivedAtUs);
-    processManualReply(data,length?length-1:0);
+    processManualReply(data,length?length-1:0,receivedAtUs);
 #endif
 	// UART context: answer polls immediately; copy ordinary frames without waiting.
 #ifdef OPENTHERMOSTAT_E32V2

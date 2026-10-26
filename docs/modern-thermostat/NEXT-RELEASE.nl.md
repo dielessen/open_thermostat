@@ -90,6 +90,31 @@ Dit is ontwikkelbewijs vóór freeze.
 De feitelijke controlemethode en fysieke proef zijn nog niet beoordeeld of
 uitgevoerd; deze codewijziging tekent B07–B09/B14 niet af.
 
+## Handmatige busafsluiting: oorspronkelijke ontvangsttijd en nacontrole
+
+De voorbereide `ManualClassicTransaction` controleert nu de oorspronkelijke
+microseconden-ontvangsttijd tegenover de afgeronde verzending. Een vóór of
+tegelijk met de verzending ontvangen antwoord wordt door latere verwerking
+niet alsnog geldig. Toekomstige ontvangsttijden blijven ongeldig.
+
+Na de enige toegelaten afsluitbyte worden de transportpoort en dezelfde
+200ms-busdeadline opnieuw gecontroleerd. Een verlopen, teruglopende klok of
+weggevallen transportpoort wordt fout, ook als de SDK-write zelf slaagde.
+Tijdens afsluit-IO kan geen nieuwe transactie worden geopend of dezelfde
+ontvangst opnieuw een afsluitbyte sturen. De fout blijft via de bestaande
+controllerroute een transportfout; dit is geen bewijs van fysieke CV-stop.
+
+De oorspronkelijke ontvangsttijd wordt door de echte UART-eigenaar doorgegeven;
+geen nieuw HTTP-pad, vrijgave of automatische herhaling. Standaard TX blijft uit.
+Deze wijziging maakt de voorbereide bron consistenter met de bestaande strengere
+instellingenroute. Zij stelt geen werkelijke adaptertiming of proefacceptatie vast.
+
+Lokale controle: 41 native gevallen met ASAN/UBSAN geslaagd; standaard E32-build
+en standaardblokkadecontrole geslaagd. De geïsoleerde handmatige compilevariant
+slaagt eveneens; alleen `EmsController.cpp.o` bevat de verwachte UART-write.
+De proefvariant is uitsluitend gebouwd, niet geïnstalleerd. Bewijs staat onder
+`out/beta4-manual-reply/`.
+
 ## GitHub en releaseonderhoud — 26 oktober
 
 De openbare hoofdpagina krijgt een Engelse README met de actuele gepubliceerde
@@ -106,7 +131,11 @@ De volledige bron-CI op `ff54e0f` is geslaagd:
 Dit omvat de boardbuilds, native-/browser-/HA-controles en beide afzonderlijke
 compileproeven. Publicatiejobs waren overgeslagen. De daarna gewijzigde
 README-/releasehulpmiddelen krijgen eigen controles; dit eerdere CI-bewijs
-wordt niet als bewijs voor latere wijzigingen voorgesteld.
+wordt niet als bewijs voor latere wijzigingen voorgesteld. Ook het latere
+Engelse documentatie-/releasecheckpoint `d5e354a` is volledig geslaagd in
+[CI-run 40338704546](https://github.com/dielessen/open_thermostat/actions/runs/40338704546).
+De sensorloze drukroute en de hierna verbeterde busafsluiting hebben hun eigen
+bron-/CI-identiteit; eerdere groene runs vervangen die controle niet.
 
 ## Bekende opstelling — niet opnieuw uitvragen
 
@@ -220,13 +249,12 @@ geen digitale druksensor heeft. Dit is opstellingsinformatie van de gebruiker;
 de historische ongeldige `pressure`-waarde is hiervoor geen zelfstandig bewijs.
 De zoektocht naar een ontbrekende digitale drukmeting vervalt voor deze opstelling.
 
-De huidige `ClassicHeatTrialEnvelope` vereist nog wel verse gerapporteerde druk
-uit `0x18`, naast CV-instellingen uit `0x16`. Dat is een mismatch tussen de huidige
-softwareguard en deze opstelling, geen ontvangstreparatie. Het modelgebonden
-proefprofiel moet worden herzien met passende afzonderlijke controle van de
-installatiedruk, zonder een digitale meetwaarde te verzinnen. De software is
-hiermee nog niet aangepast of vrijgegeven; temperatuur-, configuratie-, stop-,
-flow- en overige installatievoorwaarden blijven gelden.
+Tijdens deze alleen-lezencontrole vereiste de toenmalige
+`ClassicHeatTrialEnvelope` nog gerapporteerde digitale druk uit `0x18`. Die
+mismatch is inmiddels in de bron herzien met het afzonderlijke sensorloze
+profiel hierboven; de fysieke drukcontrolemethode blijft te beoordelen.
+Dit herstelt geen digitale ontvangst en verzint geen meetwaarde. Temperatuur-,
+configuratie-, stop-, flow- en overige installatievoorwaarden blijven gelden.
 Bewijs: `out/beta-live-readiness/`, lokaal en zonder publicatie van ruwe diagnostiek.
 Geen configuratie-, installatie-, herstart-, kraan- of ketelopdracht uitgevoerd.
 
@@ -237,10 +265,11 @@ Geen configuratie-, installatie-, herstart-, kraan- of ketelopdracht uitgevoerd.
 - Concreet softwareprofiel: 40–45 °C, maximaal 60 seconden warmte; operatorlease
   5 seconden, write-cadans minimaal 1 seconde, stopwaarneming 30 seconden per fase.
   Dit zijn softwaregrenzen, geen gemeten fysieke stopgarantie.
-- De huidige implementatie vereist verse Classic-temperatuur/druk en CV-configuratie;
-  ontbrekende, ongeldige, toekomstige of verlopen metingen geven geen warmtevrijgave.
-  De digitale drukeis moet voor de bevestigde opstelling zonder digitale druksensor
-  modelgebonden worden herzien; dit is nog open implementatiewerk.
+- De implementatie vereist verse Classic-watertemperatuur en CV-configuratie.
+  Het vaste sensorloze profiel vereist afzonderlijke beoordeling van de
+  drukcontrolemethode plus een nieuwe verklaring per warmtevoorbereiding; het
+  profiel met digitale druksensor blijft gerapporteerde druk bewaken. Ontbrekende,
+  ongeldige, toekomstige of verlopen vereiste metingen geven geen warmtevrijgave.
 - Auth/CSRF, boot/revisie/bediener en nieuwe opstellingsverklaringen per proef;
   geen automatische hervatting na heropenen, onderbreking of onzekere aanvraag.
 - Private UART-route met vaste adreskeuze, pollmasker-/adresconflictcontrole,
@@ -355,8 +384,8 @@ EMS-ESP-dekking. Het ketelprofiel mag ontvangen ondersteunde velden niet beperke
   GitHub-update en onafhankelijke nacontrole van de vorige release slaagden.
   Zie [updateproces](E32-UPDATE-PROCES.nl.md).
 - HA-installatie via de bestaande native HA-specialist, met back-up en nacontrole.
-- NL/EN-gebruikersnotities met nieuwe functies, fixes, bijwerken en beperkingen:
-  [conceptnotities](BETA-NEXT-RELEASE-NOTES.nl-en.md),
+- Engelse GitHub-gebruikersnotities met nieuwe functies, fixes, bijwerken en beperkingen:
+  [actuele beta.4-conceptnotities](BETA4-RELEASE-NOTES-DRAFT.en.md),
   [notitieproces](RELEASE-NOTES-PROCES.nl.md).
 - Alle details en oudere checkpoints blijven vindbaar in de
   [historie](NEXT-RELEASE-HISTORY-20261026.nl.md); die is geen actuele afvinklijst.

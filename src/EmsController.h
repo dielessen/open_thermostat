@@ -421,10 +421,10 @@ private:
         if(sent)txFrames_.fetch_add(1,std::memory_order_relaxed);
         return sent;
     }
-    void processManualReply(const uint8_t* data,size_t length){
+    void processManualReply(const uint8_t* data,size_t length,uint64_t acquiredAtUs){
         if constexpr(!board::emsManualTestTransmitAllowed)return;
         else {
-            const auto result=manualTransaction_.receive(data,length,
+            const auto result=manualTransaction_.receive(data,length,acquiredAtUs,
                 []{return static_cast<uint64_t>(esp_timer_get_time());},
                 [this]{return manualTransportReviewed();},[this]{
                     const uint8_t completion=0x0b;

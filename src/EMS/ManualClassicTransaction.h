@@ -12,6 +12,7 @@ public:
     // Engineering reply window, not a measured adapter or physical stop limit.
     static constexpr uint64_t replyWindowUs=200000;
     bool begin(const uint8_t* frame,size_t length,uint64_t now){
+        if(closing_)return false;
         if(state_!=State::idle){state_=State::idle;return false;}
         if(!frame||length!=6||frame[0]!=0x0b||frame[3]!=0
             ||frame[5]!=EmsTelegram::calculateCRC(frame,5))return false;
@@ -26,13 +27,15 @@ public:
         emittedAt_=lastNow_=now;state_=State::waiting;
     }
     template<class Clock,class Gate,class Close>
-    Result receive(const uint8_t* bytes,size_t length,Clock clock,Gate gate,Close close){
-        if(state_==State::idle)return Result::none;
+    Result receive(const uint8_t* bytes,size_t length,uint64_t acquiredAt,Clock clock,Gate gate,Close close){
+        if(state_==State::idle||closing_)return Result::none;
         try{
             auto now=clock();
             if(now<lastNow_||(state_==State::waiting&&now-emittedAt_>=replyWindowUs))return retire();
             lastNow_=now;
-            if(state_!=State::waiting||now<=emittedAt_||!bytes)return Result::none;
+            // Processing time cannot make an old/equal/future acquisition a
+            // reply to this emission. The UART owner captures this before IO.
+            if(state_!=State::waiting||!bytes||acquiredAt<=emittedAt_||acquiredAt>now)return Result::none;
             const bool writeStatus=!read_&&length==1&&(bytes[0]==1||bytes[0]==4);
             const bool readResponse=read_&&length==7&&bytes[0]==8&&bytes[1]==0x0b
                 &&bytes[2]==0x16&&bytes[3]==0&&bytes[6]==EmsTelegram::calculateCRC(bytes,6);
@@ -41,14 +44,18 @@ public:
             // Retire BEFORE IO: no exception, second status or replay may send
             // another completion byte. Recheck time and transport after match.
             const bool permitted=gate();now=clock();
-            state_=State::idle;
-            if(!permitted||now<lastNow_||now-emittedAt_>=replyWindowUs||!close())return Result::failed;
+            if(!permitted||now<lastNow_||now-emittedAt_>=replyWindowUs)return retire();
+            state_=State::idle;closing_=true;
+            struct Release{bool& value;~Release(){value=false;}}release{closing_};
+            if(!close())return Result::failed;
+            const bool stillPermitted=gate();const auto finished=clock();
+            if(!stillPermitted||finished<now||finished-emittedAt_>=replyWindowUs)return Result::failed;
             return rejected?Result::rejected:Result::closed;
         }catch(...){return retire();}
     }
 private:
     Result retire(){state_=State::idle;return Result::failed;}
     enum class State {idle,reserved,waiting};
-    State state_=State::idle;bool read_=false;uint64_t emittedAt_=0,lastNow_=0;
+    State state_=State::idle;bool read_=false,closing_=false;uint64_t emittedAt_=0,lastNow_=0;
 };
 }

@@ -12,7 +12,7 @@ struct ManualTransaction:testing::Test {
         return frame;
     }
     void emit(bool read=false){auto frame=request(read);ASSERT_TRUE(transaction.begin(frame.data.data(),frame.length,now));transaction.finish(true,now);++now;}
-    auto receive(const uint8_t* data,size_t length){return transaction.receive(data,length,[&]{return now;},[&]{return gate;},[&]{++closures;return closeOk;});}
+    auto receive(const uint8_t* data,size_t length){return transaction.receive(data,length,now,[&]{return now;},[&]{return gate;},[&]{++closures;return closeOk;});}
 };
 TEST_F(ManualTransaction, NoIdlePongOrUnsolicitedReplyCanCloseBus){
     const uint8_t status=1;EXPECT_EQ(receive(&status,1),ManualClassicTransaction::Result::none);EXPECT_EQ(closures,0);
@@ -46,6 +46,53 @@ TEST_F(ManualTransaction, ExactEmissionTimestampIsNotLaterReply){
     emit();--now;const uint8_t status=1;EXPECT_EQ(receive(&status,1),ManualClassicTransaction::Result::none);
     ++now;EXPECT_EQ(receive(&status,1),ManualClassicTransaction::Result::closed);
 }
+TEST_F(ManualTransaction, AcquisitionTimeCannotBeReplacedByLaterProcessingTime){
+    emit();now=200;const uint8_t status=1;
+    for(uint64_t acquired:{uint64_t(99),uint64_t(100),uint64_t(201)}){
+        EXPECT_EQ(transaction.receive(&status,1,acquired,[&]{return now;},[&]{return gate;},[&]{++closures;return true;}),
+            ManualClassicTransaction::Result::none);
+    }
+    EXPECT_EQ(closures,0);
+    EXPECT_EQ(receive(&status,1),ManualClassicTransaction::Result::closed);
+    EXPECT_EQ(closures,1);
+}
+TEST_F(ManualTransaction, FinalTimeAndPermissionMustRemainValidAfterClosureIo){
+    for(bool read:{false,true})for(int failure=0;failure<4;++failure){
+        transaction=ManualClassicTransaction{};now=100;closures=0;gate=true;emit(read);
+        const uint8_t status=1;uint8_t reply[]={8,0x0b,0x16,0,255,55,0};
+        reply[6]=EmsTelegram::calculateCRC(reply,6);
+        const uint8_t* bytes=read?reply:&status;const size_t length=read?7:1;
+        bool closed=false;
+        const auto result=transaction.receive(bytes,length,now,[&]{return now;},[&]{
+            if(closed&&failure==3)throw std::runtime_error("post-close gate");
+            return gate;
+        },[&]{
+            ++closures;closed=true;
+            if(failure==0)gate=false;
+            if(failure==1)now=100+ManualClassicTransaction::replyWindowUs;
+            if(failure==2)--now;
+            return true;
+        });
+        EXPECT_EQ(result,ManualClassicTransaction::Result::failed)<<"read="<<read<<" failure="<<failure;
+        EXPECT_EQ(closures,1);
+        EXPECT_EQ(receive(bytes,length),ManualClassicTransaction::Result::none);
+        EXPECT_EQ(closures,1);
+    }
+}
+TEST_F(ManualTransaction, ClosureWithinWindowSucceedsButCannotReenterOrRearmTransaction){
+    emit();const uint8_t status=4;const auto frame=request();
+    const auto result=transaction.receive(&status,1,now,[&]{return now;},[&]{return gate;},[&]{
+        ++closures;
+        EXPECT_FALSE(transaction.begin(frame.data.data(),frame.length,now));
+        EXPECT_EQ(receive(&status,1),ManualClassicTransaction::Result::none);
+        now=100+ManualClassicTransaction::replyWindowUs-1;
+        return true;
+    });
+    EXPECT_EQ(result,ManualClassicTransaction::Result::rejected);
+    EXPECT_EQ(closures,1);
+    EXPECT_EQ(receive(&status,1),ManualClassicTransaction::Result::none);
+    EXPECT_TRUE(transaction.begin(frame.data.data(),frame.length,now));
+}
 TEST_F(ManualTransaction, DeadlineExpiresWithoutAnyClosureAndNeverReplays){
     emit();now=100+ManualClassicTransaction::replyWindowUs;const uint8_t status=1;
     EXPECT_EQ(receive(&status,1),ManualClassicTransaction::Result::failed);EXPECT_EQ(closures,0);
@@ -53,14 +100,14 @@ TEST_F(ManualTransaction, DeadlineExpiresWithoutAnyClosureAndNeverReplays){
 }
 TEST_F(ManualTransaction, TimeOrTransportLossDuringFinalAdmissionSuppressesClosure){
     emit();const uint8_t status=1;
-    auto result=transaction.receive(&status,1,[&]{return now;},[&]{now+=ManualClassicTransaction::replyWindowUs;return true;},[&]{++closures;return true;});
+    auto result=transaction.receive(&status,1,now,[&]{return now;},[&]{now+=ManualClassicTransaction::replyWindowUs;return true;},[&]{++closures;return true;});
     EXPECT_EQ(result,ManualClassicTransaction::Result::failed);EXPECT_EQ(closures,0);
     emit();gate=false;EXPECT_EQ(receive(&status,1),ManualClassicTransaction::Result::failed);EXPECT_EQ(closures,0);
 }
 TEST_F(ManualTransaction, FailedOrThrowingClosureIsNeverRetried){
     emit();const uint8_t status=1;closeOk=false;EXPECT_EQ(receive(&status,1),ManualClassicTransaction::Result::failed);
     EXPECT_EQ(receive(&status,1),ManualClassicTransaction::Result::none);EXPECT_EQ(closures,1);
-    emit();EXPECT_EQ(transaction.receive(&status,1,[&]{return now;},[]{return true;},[]()->bool{throw std::runtime_error("close");}),ManualClassicTransaction::Result::failed);
+    emit();EXPECT_EQ(transaction.receive(&status,1,now,[&]{return now;},[]{return true;},[]()->bool{throw std::runtime_error("close");}),ManualClassicTransaction::Result::failed);
     EXPECT_EQ(receive(&status,1),ManualClassicTransaction::Result::none);EXPECT_EQ(closures,1);
 }
 TEST_F(ManualTransaction, ClockRollbackRetiresTransactionWithoutIo){

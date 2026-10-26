@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "ed455feee0005e9d605ddd9e929d042f3496b18b88a8bc1d9edd10b6dd33d88e"
+          "sha256": "7de29e57d45700f2007f938b5933bcd31eb89ad076d08f98fcd8964d6fdf708c"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -143,7 +143,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA4-KANDIDAAT.json",
-          "sha256": "e54fa30cd14e8e08b69c684a4dcf1bcb0019333d82273ca07e36d69c30d8e4ba"
+          "sha256": "26c5b1f8a9c0c7824f1a56a8d5301fa0f628ded2242ec68fc3b4ce4d92de5337"
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.nl-en.md",
@@ -163,7 +163,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.en.md",
-          "sha256": "5e17182bf009c7bd738b2115d782ed6937bcf36ff30f814b21c013f9442a91d6"
+          "sha256": "29117b9b0532b42ca682fb4a9624a85b1a3ef1d2b4bd205fcc3f96250aa070fa"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -1873,11 +1873,11 @@
         },
         {
           "path": "src/EmsController.h",
-          "sha256": "778a9483b9c13f86cf1679bbd8876765f9cc86974fb2157defea98ba756132a6"
+          "sha256": "9d665b1b101c59d9d61fb9db9205c421b47f5ed7b9ae44db82753a6e3c07b550"
         },
         {
           "path": "src/EmsController.cpp",
-          "sha256": "b2505e9608af26aebab5a1f1251888302ebe075b4d9fe42898c80058cf6283d9"
+          "sha256": "d40a580f102ecb6a75ce66ce24639167fb4638098dcb644c751ecef4da1cca31"
         },
         {
           "path": "test/boiler-test-browser.cjs",
@@ -1932,11 +1932,11 @@
         },
         {
           "path": "src/EMS/ManualClassicTransaction.h",
-          "sha256": "7b4ee96913fd6311a3d53466eb655634a185acd571cd1cb807d5d28298762a43"
+          "sha256": "0d9bab828995b2d49060a504c1e823fc24f5f10437348c1d02e11216095a492d"
         },
         {
           "path": "test/test_native/test_manual_classic_transaction.cpp",
-          "sha256": "60321de91c43e65bb03f01ec12ec1423dd48ebf1882cec82c1c93d8178386cf7"
+          "sha256": "726e8cbfcd225e4ef9d3d219f3e443608b464236876a0906ab2fb47e7e3599f6"
         }
       ],
       "remaining_acceptance": "Actuele bron: concrete softwarepolicy voor de eerste bediende nulvraag (15s feedbackactualiteit, 5s operatorlease, 1s write-interval, 30s stopwaarneming per fase), zonder positieve vraag. Classic-serviceadres0x0B/ketel0x08/masker0 is expliciet aangesloten en blijft onder waargenomen busidentiteit/adresconflictcontrole. Stopafronding vereist daadwerkelijke verzending en strikt latere Classic-rapporten. Het concrete softwarewarmteprofiel (40–45°C/maximaal60s, actuele Classic-temperatuur/druk en CV-configuratie) is aangesloten; fysieke installatie-/adapter-/TX-/stopkwalificatie en frozen gezamenlijke releaseacceptatie blijven open. Beide fysieke bordtoelatingen blijven false; geïnstalleerde beta.1/HA0.4.0b1 blijft ongewijzigd. Stopbasis, stopafronding en foutterugmelding vereisen nu ook een verse strikt latere gerapporteerde nul gevraagde aanvoertemperatuur; een branderpauze met positieve vraag voldoet niet. Voor-/na-regressie op de oude en nieuwe policy bevestigt dit verschil."

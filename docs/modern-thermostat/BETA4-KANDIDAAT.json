@@ -10,7 +10,11 @@
   "implementation_commits": [
     "2739212ed8b050535841d7639fe245a767616c85",
     "997fda1f5e4bc3deb15e7e24476eaad5533d03d2",
-    "cbf494ca3eb9e1c9febcde24b5e2a27c3b1623fc"
+    "cbf494ca3eb9e1c9febcde24b5e2a27c3b1623fc",
+    "5edab0ce2002229eeca62bb8514d65a9bcce79f5",
+    "ff54e0f65bd5be8af1fb9dcab9dadc1409df68e6",
+    "d5e354acdb91205ea1014fc984f4bcff54f1b13a",
+    "81c9c01a292f3ba7996f83365f83eedc82014660"
   ],
   "release_notes": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.en.md",
   "changes": [
@@ -18,7 +22,8 @@
     "30-minute authenticated-request inactivity limit; absolute seven-day limit unchanged",
     "Local generic boiler illustration for missing or unavailable profile images",
     "Separate browser-test timeout from dependency installation time",
-    "Fixed source-bound sensorless Ecomline pressure policy; separate method review and per-trial declaration required; all physical write gates remain disabled"
+    "Fixed source-bound sensorless Ecomline pressure policy; separate method review and per-trial declaration required; all physical write gates remain disabled",
+    "Manual bus completion retains original RX time and rechecks deadline/transport after closure IO; no reentrant completion or retries"
   ],
   "acceptance_before_freeze": [
     "Actual beta.3 native installation and independent postcheck recorded per E32-UPDATE-PROCES.nl.md",
@@ -28,10 +33,10 @@
   "publication_state": "BLOCKED_PENDING_PREDECESSOR_ACCEPTANCE",
   "runtime_actions_performed": false,
   "source_ci": {
-    "commit": "ff54e0f65bd5be8af1fb9dcab9dadc1409df68e6",
-    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40333594425",
+    "commit": "d5e354acdb91205ea1014fc984f4bcff54f1b13a",
+    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40338704546",
     "conclusion": "success",
-    "scope": "pre-freeze source, including guarded Classic settings; nine validation jobs passed; publication jobs skipped; not installation acceptance"
+    "scope": "pre-freeze source including English publication tooling; nine validation jobs passed; later sensorless pressure and manual bus completion changes require their own CI; not installation acceptance"
   },
   "writable_boiler_inventory": "docs/modern-thermostat/BOILER-WRITE-INVENTORY.json",
   "prepared_settings_backend": {

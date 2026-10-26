@@ -31,6 +31,9 @@ are unchanged.
   Ordinary login does not sign other browsers out; recovery requires a separate choice.
 - A failed model image falls back to the generic illustration and clears the
   unavailable photo's credit.
+- Prepared manual boiler diagnostics only count a bus exchange as completed
+  when its acknowledgement finishes within the reply window and the transport
+  remains available. Delayed processing cannot turn an old reply into a new one.
 
 ## Updating
 

@@ -6,6 +6,7 @@
 #include "VerifiedOta.h"
 #include "RestartTimer.h"
 #include "DownloadTextBuffer.h"
+#include "DownloadFailure.h"
 #include "TlsAllocationPolicy.h"
 #include "UpdateCheckpoint.h"
 #include "EmbeddedWebAssets.h"
@@ -45,7 +46,7 @@ extern "C" void *__wrap_esp_mbedtls_mem_calloc(size_t count,size_t size) {
 namespace heating {extern bool wifiAPMode;}
 namespace heating::update {
 namespace {
-struct State {std::string phase="idle",error,selected;uint32_t received=0,total=0;bool reboot=false;std::vector<Release> releases;};
+struct State {std::string phase="idle",error,selected,operation="none";DownloadFailure downloadError;uint32_t received=0,total=0;bool reboot=false;std::vector<Release> releases;};
 State state;std::mutex stateMutex;ReleaseCheckSchedule checkSchedule;
 std::atomic<bool> working{false};RestartTimer rebootTimer;
 struct CheckpointStorage {
@@ -75,6 +76,10 @@ void checkpoint(UpdateStage stage,int httpStatus) {
 }
 void phase(const std::string &name,const std::string &error="") {std::lock_guard<std::mutex> lock(stateMutex);state.phase=name;state.error=error;}
 void progress(uint32_t count,uint32_t total){std::lock_guard<std::mutex> lock(stateMutex);state.received=count;state.total=total;}
+void failedDownload(const DownloadFailure &failure,std::string &error) {
+    error=downloadFailureMessage(failure);
+    std::lock_guard<std::mutex> lock(stateMutex);state.downloadError=failure;
+}
 bool pendingBoot() {esp_ota_img_states_t s;return esp_ota_get_state_partition(esp_ota_get_running_partition(),&s)==ESP_OK&&s==ESP_OTA_IMG_PENDING_VERIFY;}
 const esp_partition_t *previous() {
     const auto p=esp_ota_get_next_update_partition(nullptr);esp_ota_img_states_t s;
@@ -103,6 +108,9 @@ bool download(std::string url,Sink &sink,std::string &error,uint32_t exactSize=0
     if(!ready()){error="Verbind met thuiswifi en wacht op een geldige netwerktijd (NTP).";return false;}
     for(unsigned redirects=0;redirects<=4;++redirects) {
         if(!allowedDownloadUrl(url)){error="Onverwachte downloadlocatie geweigerd.";return false;}
+        // An indexed-catalog miss can fall back to another request. A later
+        // parse/validation error must not inherit that earlier HTTP failure.
+        {std::lock_guard<std::mutex> lock(stateMutex);state.downloadError={};}
         WiFiClientSecure client;client.setCACertBundle(embedded::caBundle);client.setHandshakeTimeout(15);
         HTTPClient http;http.setConnectTimeout(10000);http.setTimeout(10000);http.setReuse(false);
         http.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);http.setUserAgent("OpenThermostat-E32V2");
@@ -112,10 +120,15 @@ bool download(std::string url,Sink &sink,std::string &error,uint32_t exactSize=0
         const int code=http.GET();
         if(responseStatus)*responseStatus=code;
         if(code==301||code==302||code==303||code==307||code==308) {url=http.header("Location").c_str();http.end();continue;}
-        if(code!=200){error="GitHub/HTTPS antwoord "+std::to_string(code)+"; controleer internet, tijd en API-limiet.";http.end();return false;}
+        if(code!=200){
+            // HTTPClient maps connection failures to negative integers. Capture
+            // the native TLS result BEFORE end() destroys the secure client.
+            char ignored[64]{};const int tlsCode=code<0?client.lastError(ignored,sizeof(ignored)):0;
+            failedDownload(downloadFailure(code,tlsCode,url),error);http.end();return false;
+        }
         if(exactSize&&http.getSize()>=0&&uint32_t(http.getSize())!=exactSize){error="Downloadgrootte wijkt af van de release.";http.end();return false;}
         const int count=http.writeToStream(&sink);http.end();
-        if(count<0||(exactSize&&uint32_t(count)!=exactSize)){error="Download afgebroken, te groot of onvolledig; oude firmware blijft geselecteerd.";return false;}
+        if(count<0||(exactSize&&uint32_t(count)!=exactSize)){failedDownload(downloadFailure(code,0,url,true,count),error);return false;}
         return true;
     }
     error="Te veel downloadomleidingen.";return false;
@@ -227,7 +240,8 @@ bool start(bool install,const std::string &tag="") {
     if(!working.compare_exchange_strong(expected,true))return false;
     {std::lock_guard<std::mutex> lock(stateMutex);if(state.reboot){working.store(false);return false;}
       if(install&&(tag==embedded::version||!validTag(tag)||std::none_of(state.releases.begin(),state.releases.end(),[&](const Release &r){return r.tag==tag;}))){working.store(false);return false;}
-      state.phase=install?"manifest":"checking";state.error.clear();state.selected=tag;state.received=state.total=0;}
+      state.phase=install?"manifest":"checking";state.operation=install?"install":"check";
+      state.error.clear();state.downloadError={};state.selected=tag;state.received=state.total=0;}
     if(!install){std::lock_guard<std::mutex> lock(stateMutex);checkSchedule.attempted(millis());}
     if(xTaskCreate(worker,"github-ota",12288,install?reinterpret_cast<void*>(1):nullptr,1,nullptr)!=pdPASS){working.store(false);phase("error","Onvoldoende geheugen voor updatecontrole.");return false;}
     return true;
@@ -248,6 +262,7 @@ void firmwareInstalled(){
 bool requestReboot(){if(!manualRebootAllowed(busy(),pendingBoot()))return false;rebootTimer.schedule(millis(),1000);return true;}
 bool requestRollback(){
     if(busy()||pendingBoot())return false;const auto p=previous();if(!p||esp_ota_set_boot_partition(p)!=ESP_OK)return false;
+    {std::lock_guard<std::mutex> lock(stateMutex);state.operation="rollback";state.downloadError={};}
     phase("rolling_back");rebootTimer.schedule(millis(),1000);return true;
 }
 std::string availability() {
@@ -269,6 +284,17 @@ std::string status() {
     cJSON_AddStringToObject(root.get(),"web_sha256",embedded::webSha);cJSON_AddStringToObject(root.get(),"repository",repository);
     cJSON_AddStringToObject(root.get(),"build_marker",embedded::imageMarker);
     cJSON_AddStringToObject(root.get(),"phase",snapshot.phase.c_str());cJSON_AddStringToObject(root.get(),"error",snapshot.error.c_str());
+    cJSON_AddStringToObject(root.get(),"operation",snapshot.operation.c_str());
+    if(snapshot.error.empty()||std::string_view(snapshot.downloadError.kind)=="none"
+        ||snapshot.error!=downloadFailureMessage(snapshot.downloadError))cJSON_AddNullToObject(root.get(),"download_error");
+    else {
+        auto failure=cJSON_AddObjectToObject(root.get(),"download_error");
+        cJSON_AddStringToObject(failure,"kind",snapshot.downloadError.kind);
+        cJSON_AddStringToObject(failure,"host",snapshot.downloadError.host);
+        cJSON_AddNumberToObject(failure,"http_status",snapshot.downloadError.httpStatus);
+        cJSON_AddNumberToObject(failure,"client_code",snapshot.downloadError.clientCode);
+        cJSON_AddNumberToObject(failure,"tls_code",snapshot.downloadError.tlsCode);
+    }
     cJSON_AddStringToObject(root.get(),"selected",snapshot.selected.c_str());cJSON_AddBoolToObject(root.get(),"busy",busy());
     cJSON_AddBoolToObject(root.get(),"can_check",ready()&&!busy()&&!snapshot.reboot&&!pendingBoot());cJSON_AddBoolToObject(root.get(),"boot_pending",pendingBoot());
     cJSON_AddBoolToObject(root.get(),"reboot_required",snapshot.reboot);cJSON_AddBoolToObject(root.get(),"rollback_available",!pendingBoot()&&previous()!=nullptr);

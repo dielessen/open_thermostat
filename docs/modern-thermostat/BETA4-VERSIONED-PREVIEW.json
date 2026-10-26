@@ -17,7 +17,7 @@
   },
   "package": {
     "independent_checks": 2250,
-    "artifact_id": 12680687819,
+    "artifact_id": 12688683394,
     "firmware_bytes": 2877856,
     "firmware_sha256": "1f9d49c93922acdd0bb23b5e74643761fdd0dc76af516e068bb4f17535528a01",
     "web_sha256": "ae8db6e10a85c3e309323ff5f8a27fb4b422ce0acb5ca9e3fe5f8446b4ac32ef",
@@ -47,10 +47,10 @@
   },
   "storage": {
     "temporary_package_download_removed": true,
-    "evidence_directory": "out/beta4-versioned-daf01fc",
+    "evidence_directory": "out/beta4-final-9ecb4da",
     "existing_backups_receipts_and_worktrees_preserved": true,
     "source_worktree": "out/beta4-candidate-source",
-    "source_worktree_preserved_for_pending_candidate": true
+    "source_worktree_preserved_for_pending_candidate": false
   },
   "readonly_e32_connectivity": {
     "at_utc": "2026-10-26T19:35:15.103715+00:00",

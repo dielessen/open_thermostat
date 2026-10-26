@@ -37,8 +37,10 @@
     </fieldset>
     <p><span data-i18n="Read the boiler heating settings once before preparing a heat test. This sends a read request, not a heat demand or settings change. Confirm the setup above first.">Read the boiler heating settings once before preparing a heat test. This sends a read request, not a heat demand or settings change. Confirm the setup above first.</span></p>
     <button class="btn btn-outline-secondary" type="button" data-read-configuration disabled><span data-i18n="Read heating settings once">Read heating settings once</span></button>
+    <p class="pd-help" data-read-help role="status" aria-live="polite"></p>
     <p data-read-status role="status" aria-live="polite"></p>
     <button class="btn btn-outline-secondary" type="button" data-test-zero disabled><span data-i18n="Run zero-only test">Run zero-only test</span></button>
+    <p class="pd-help" data-zero-help role="status" aria-live="polite"></p>
     <form data-test-form>
       <label class="d-block"><span data-i18n="Desired flow temperature (°C)">Desired flow temperature (°C)</span><input class="form-control" data-test-flow type="number" step="1" required disabled></label>
       <label class="d-block"><span data-i18n="Maximum heat demand (seconds)">Maximum heat demand (seconds)</span><input class="form-control" data-test-duration type="number" step="1" required disabled></label>
@@ -72,7 +74,7 @@
     classic_reports_received: uiText("Fresh EMS Classic boiler messages received."),
     plus_reports_received: uiText("Fresh EMS Plus boiler messages received.")
   };
-  let report = null;
+  let report = null, currentFields = {};
   const testState = root.querySelector('[data-test-state]');
   const heatStatus = root.querySelector('[data-heat-status]');
   const heatLimits = root.querySelector('[data-heat-limits]');
@@ -113,6 +115,12 @@
       heatStatus.textContent = uiText("Heat trial conditions unavailable. Check the test status."); return;
     }
     heatStatus.textContent = heatReasons[value.reason];
+    const measured=currentFields.measured_flow_temperature;
+    if(value.reason==='flow_outside_trial_limits' && measured?.state==='valid' && measured.quality==='reported'
+        && measured.unit==='degC' && Number.isFinite(measured.value))
+      heatStatus.textContent += ' '+uiText("Measured flow temperature: ")
+        +new Intl.NumberFormat(document.documentElement.lang||'en').format(measured.value)+' °C. '
+        +uiText("Required for this trial: ")+limits.minimum_measured_flow_centi/100+'–<'+limits.maximum_measured_flow_centi/100+' °C.';
     const format = number => new Intl.NumberFormat(document.documentElement.lang || 'en').format(number);
     for (const [label,text] of [
       [uiText("Requested flow temperature"),format(limits.minimum_flow_c)+'–'+format(limits.maximum_flow_c)+' °C'],
@@ -166,6 +174,8 @@
   const lifecycle = new AbortController();
   const readButton = root.querySelector('[data-read-configuration]');
   const readStatus = root.querySelector('[data-read-status]');
+  const readHelp = root.querySelector('[data-read-help]');
+  const zeroHelp = root.querySelector('[data-zero-help]');
   let configurationRead = null, lastConfigurationRead = null;
   const readLabels = {
     idle:uiText("Heating settings have not been requested in this session."),
@@ -208,6 +218,12 @@
     readButton.disabled = !configurationRead || !configurationRead.available || !test
       || configurationRead.boot_id !== test.boot_id || pending || stopping
       || !siteOwner.checked || !siteStop.checked || document.visibilityState !== 'visible';
+    readHelp.textContent = !configurationRead || !test ? uiText("Wait for a valid test and heating-settings read status.")
+      : pending || stopping || configurationRead.active ? uiText("Wait for the current request to finish.")
+      : !configurationRead.available ? uiText("Reading is currently unavailable. Check the read status and connection.")
+      : !siteOwner.checked || !siteStop.checked
+        ? uiText("Confirm that Tado is disconnected and that you can switch off the boiler locally to enable reading. Confirm these again after each read or test.")
+      : uiText("The read button is ready. Reading the settings does not request heat.");
   }
   readButton.addEventListener('click',async () => {
     if (readButton.disabled || !configurationRead || !root.isConnected) return;
@@ -342,6 +358,14 @@
     } else testState.textContent = uiText("Test status unavailable. No heat demand will be started.");
     flowInput.disabled = durationInput.disabled = !test || !test.can_prepare || pending || configurationRead?.active === true;
     zeroButton.disabled = !test || test.can_prepare_zero !== true || pending || !siteReady(false) || configurationRead?.active === true;
+    const dhw=currentFields.dhw_active;
+    zeroHelp.textContent = !test ? uiText("Wait for a valid test status.")
+      : !['idle','completed'].includes(test.phase) ? testState.textContent
+      : dhw?.state==='valid' && ['reported','inferred'].includes(dhw.quality) && dhw.value===1
+        ? uiText("Boiler feedback indicates hot-water operation. Wait until it ends before preparing a test.")
+      : test.can_prepare_zero !== true ? uiText("The zero test is waiting for valid boiler feedback and test permission.")
+      : !siteReady(false) ? uiText("Confirm that Tado is disconnected and that you can switch off the boiler locally to enable the zero test.")
+      : uiText("The zero test is ready. It will not send a positive heat demand.");
     prepareButton.disabled = !test || !test.can_prepare || pending || !siteReady(true) || configurationRead?.active === true;
     startButton.disabled = !test || !test.can_start || !sameScope(held, test) || pending || configurationRead?.active === true;
     // Stop stays available with the last known scoped session after read failure.
@@ -539,6 +563,7 @@
       if (!data || !data.reception || !data.transport || !data.fields || !labels[data.reception.state]) throw Error(uiText("Unknown status"));
       const entries = Object.entries(data.fields);
       if (entries.length > 96) throw Error(uiText("Too much data"));
+      currentFields=data.fields;
       paintTest(data.test);
       paintHeatTrial(data.heat_trial);
       paintRead(data.configuration_read);
@@ -582,6 +607,7 @@
     } catch (error) {
       if (!root.isConnected) return;
       message.textContent = uiText("Reception status unavailable. Check the connection.");
+      currentFields={};
       transport.replaceChildren(); fields.replaceChildren(); telegrams.replaceChildren(); inventoryStatus.textContent = uiText("Message overview unavailable."); report = null; download.disabled = true;
       paintTest(null);
       paintHeatTrial(null);

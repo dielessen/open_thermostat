@@ -43,9 +43,12 @@ const out=path.resolve(process.env.OPENTHERMOSTAT_CONFIGURATION_EVIDENCE||'out/b
   assert.equal(await button.isDisabled(),true);assert.equal(posts.length,0);
   assert.equal(await page.locator('[data-site-pressure-label]').isHidden(),true);
   assert.match(await button.innerText(),lang==='nl'?/CV-instellingen/:/Read heating/);
-  read={...read,available:true,observed_at_ms:102};await page.locator('[data-site-owner]').check();
+  read={...read,available:true,observed_at_ms:102};
+  await page.locator('[data-read-help]').filter({hasText:lang==='nl'?'Bevestig dat Tado los is':'Confirm that Tado is disconnected'}).waitFor();
+  await page.locator('[data-site-owner]').check();
   assert.equal(await button.isDisabled(),true);await page.locator('[data-site-stop]').check();await button.waitFor({state:'visible'});
   await page.waitForFunction(()=>!document.querySelector('[data-read-configuration]').disabled);
+  assert.match(await page.locator('[data-read-help]').innerText(),lang==='nl'?/De uitleesknop is beschikbaar/:/The read button is ready/);
   // Cancel and visibility lost DURING confirmation cannot send.
   page.once('dialog',dialog=>dialog.dismiss());await button.click();assert.equal(posts.length,0);
   await page.evaluate(()=>{

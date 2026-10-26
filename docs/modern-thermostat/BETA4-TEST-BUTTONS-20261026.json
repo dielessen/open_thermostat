@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "scope": "Fresh read-only diagnosis of grey boiler-test buttons; no boiler actions",
+  "date": "2026-10-26",
+  "version": "v0.1.0-e32v2-beta.4",
+  "uptime_seconds": 1216,
+  "heat_trial_reason": "flow_outside_trial_limits",
+  "measured_flow": {
+    "value": 75,
+    "unit": "degC",
+    "state": "valid",
+    "quality": "reported",
+    "source_type": 24,
+    "source_address": 8,
+    "age_ms": 1258,
+    "observed_at_ms": 1215005
+  },
+  "dhw_activity": {
+    "value": 1,
+    "unit": "bool",
+    "state": "valid",
+    "quality": "inferred",
+    "source_type": 24,
+    "source_address": 8,
+    "age_ms": 1258,
+    "observed_at_ms": 1215005
+  },
+  "heating_setting": {
+    "value": null,
+    "unit": "bool",
+    "state": "stale",
+    "quality": "reported",
+    "source_type": 22,
+    "source_address": 8,
+    "age_ms": 770426,
+    "observed_at_ms": 445837
+  },
+  "configuration_read": {
+    "available": true,
+    "active": false,
+    "phase": "completed",
+    "reason": "configuration_received"
+  },
+  "test": {
+    "phase": "completed",
+    "reason": "reported_stop_confirmed",
+    "can_prepare_zero": false,
+    "can_prepare": false,
+    "can_start": false,
+    "positive_frames": 0,
+    "zero_frames": 2
+  },
+  "production_device_commands": 0,
+  "login_requests": 1,
+  "own_logout_requests": 1,
+  "original_responses": {
+    "observation/version.json": "6e6436b82b0652b67433452e3ce4a4abfb4d8eb7d44e277073dfc58dffdd0dd0",
+    "observation/updates.json": "31c803ef23cf25ef39bc9ec0b2b0807b5a4147b9b04f50f7864cdedf6d0326e8",
+    "observation/telemetry.json": "8f74b3a9e403bf00c327ec95a47d5312c8b5fbf1ad8cfa62bfa1f736a7cbeb69",
+    "observation/status.json": "71eb56c31494ae084621294837b6d762051c2d4c925863b9b99ee8f74ae0c001"
+  }
+}

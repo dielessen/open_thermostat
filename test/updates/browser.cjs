@@ -87,6 +87,35 @@ const assets=path.resolve(__dirname,'../../data/html');
   pass('English update diagnostics use the same read-only semantics on a narrow screen');
   for(const language of ['nl','en']) {
    await scene(language,320);await page.click('#updateDiagnostics summary');
+   sim.phase='error';sim.operation='check';sim.error='Could not connect to GitHub.';
+   const descriptions={connection:language==='nl'?'Kan geen verbinding maken':'Could not connect',
+    tls:language==='nl'?'beveiligde verbinding':'secure connection',
+    http:language==='nl'?'HTTP-fout':'HTTP error',
+    transfer:language==='nl'?'onderbroken of onvolledig':'interrupted or incomplete'};
+   for(const kind of ['connection','tls','http','transfer']) {
+    sim.download_error={kind,host:'github.com',http_status:kind==='http'?403:kind==='transfer'?200:0,client_code:kind==='http'?0:-1,tls_code:kind==='tls'?-9984:0};
+    await page.waitForFunction(text=>document.getElementById('releaseStatus').textContent.includes(text),descriptions[kind]);
+    assert.match(await page.textContent('#releaseStatus'),language==='nl'?/Updatecontrole mislukt:/ : /Update check failed:/);
+    assert.equal(await page.isVisible('#updateDownloadError'),true);
+    assert.match(await page.textContent('#updateDownloadError'),/github\.com/);
+    if(kind==='tls')assert.match(await page.textContent('#updateDownloadError'),/-9984/);
+    assert.equal(await page.textContent('#installedVersion'),'v0.1.0-e32v2-alpha.2');
+    assert.equal(await page.isVisible('#restartRelease'),false);
+    assert.equal(sim.posts.length,0);
+   }
+   sim.operation='install';
+   await page.waitForFunction(text=>document.getElementById('releaseStatus').textContent.includes(text),language==='nl'?'Firmware-installatie mislukt:':'Firmware installation failed:');
+   sim.error='';sim.phase='checked';sim.operation='check';sim.download_error=null;
+   await page.waitForFunction(()=>document.getElementById('updateDownloadError').hidden);
+   assert.equal(await page.textContent('#updateDownloadError'),'');
+   sim.error='invalid diagnostics';sim.download_error={kind:'connection',host:'github.com/secret?token=value',http_status:0,client_code:-1,tls_code:0};
+   await page.waitForFunction(()=>document.getElementById('checkReleases').disabled);
+   assert.ok(!(await page.textContent('#updateDownloadError')).includes('secret'));
+   assert.equal(sim.posts.length,0);assert.deepEqual(errors,[]);
+   pass(language+' distinguishes failed catalog check from installation and hides invalid/stale transport diagnostics without commands');
+  }
+  for(const language of ['nl','en']) {
+   await scene(language,320);await page.click('#updateDiagnostics summary');
    const stages=[['before_hash_verification',language==='nl'?'Vóór controle van de firmwarechecksum':'Before firmware checksum verification'],
     ['before_image_validation',language==='nl'?'Vóór de native imagevalidatie':'Before native image validation'],
     ['before_flash_readback',language==='nl'?'Vóór het onafhankelijk teruglezen van flash':'Before independent flash readback'],

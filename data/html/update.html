@@ -8,6 +8,7 @@
    <summary data-i18n="Update diagnostics">Update diagnostics</summary>
    <p data-i18n="The last saved checkpoint helps investigate an interrupted update. It does not confirm installation or rollback. Manual uploads are not recorded here.">The last saved checkpoint helps investigate an interrupted update. It does not confirm installation or rollback. Manual uploads are not recorded here.</p>
    <pre id="updateCheckpoint" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
+   <pre id="updateDownloadError" style="white-space:pre-wrap;overflow-wrap:anywhere" hidden></pre>
   </details>
   <p data-i18n="Checks run automatically every 12 hours, starting five minutes after startup. Failed checks retry after 30 minutes. Successful results are reused for five minutes. Installation always requires your confirmation.">Checks run automatically every 12 hours, starting five minutes after startup. Failed checks retry after 30 minutes. Successful results are reused for five minutes. Installation always requires your confirmation.</p>
   <button type="button" id="checkReleases" class="btn btn-secondary mb-3" disabled><span data-i18n="Check for updates">Check for updates</span></button>
@@ -88,6 +89,12 @@
   return s&&['installed','phase','error'].every(key=>typeof s[key]==='string')
    &&s.installed.length>0&&s.installed.length<=96&&s.phase.length<=32&&s.error.length<=2048
    &&['busy','can_check','boot_pending','reboot_required','rollback_available'].every(key=>typeof s[key]==='boolean')
+   &&(s.operation===undefined||['none','check','install','rollback'].includes(s.operation))
+   &&(s.download_error===undefined||s.download_error===null||typeof s.download_error==='object'
+     &&['connection','tls','http','transfer'].includes(s.download_error.kind)
+     &&['api.github.com','github.com','release-assets.githubusercontent.com','objects.githubusercontent.com',''].includes(s.download_error.host)
+     &&Number.isInteger(s.download_error.http_status)&&s.download_error.http_status>=0&&s.download_error.http_status<=599
+     &&['client_code','tls_code'].every(key=>Number.isInteger(s.download_error[key])&&s.download_error[key]>=-2147483648&&s.download_error[key]<=2147483647))
    &&(s.reboot_scheduled===undefined||typeof s.reboot_scheduled==='boolean')
    &&(s.selected===undefined||typeof s.selected==='string'&&s.selected.length<=96)
    &&['received','total'].every(key=>Number.isSafeInteger(s[key])&&s[key]>=0&&s[key]<=4294967295)
@@ -105,6 +112,21 @@
   for(const r of s.releases)choices.add(new Option(r.tag+(r.prerelease?uiText(" (test release)"):'')+(r.tag===s.installed?uiText(" — installed"):''),r.tag));
   if(s.releases.some(r=>r.tag===old))choices.value=old;
   let message=s.error||phases[s.phase]||(s.phase==='checked'?(s.releases.length&&s.releases[0].tag!==s.installed?uiText("Compatible release found. Choose a version to install."):uiText("You already have the available version.")):uiText("Status received."));
+  if(s.error) {
+   const failure=s.download_error;
+   const descriptions={connection:uiText("Could not connect to GitHub."),tls:uiText("The secure connection to GitHub failed."),http:uiText("GitHub returned an HTTP error."),transfer:uiText("The GitHub download was interrupted or incomplete.")};
+   if(failure)message=descriptions[failure.kind];
+   if(s.operation==='check')message=uiText("Update check failed: ")+message;
+   else if(s.operation==='install')message=uiText("Firmware installation failed: ")+message;
+  }
+  const failureDetails=$id('updateDownloadError');
+  failureDetails.hidden=!s.error||!s.download_error;
+  failureDetails.textContent=(!failureDetails.hidden)?[
+   uiText("Download host: ")+s.download_error.host,
+   uiText("HTTP response code (0 = no response): ")+s.download_error.http_status,
+   uiText("HTTP client error code: ")+s.download_error.client_code,
+   uiText("TLS error code: ")+s.download_error.tls_code
+  ].join('\n'):'';
   if(s.reboot_required&&s.reboot_scheduled)message=uiText("Update verified. The device restarts automatically; wait for reconnection. Keep it powered.");
   if(!s.busy&&!s.can_check&&!s.reboot_required)message+=uiText(" Connect to your home network and wait for valid network time (NTP).");
   if(s.boot_pending)message+=uiText(" This startup is still being checked; installation will become available afterwards.");

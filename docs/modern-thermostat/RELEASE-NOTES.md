@@ -1,3 +1,34 @@
+# E32 V2 beta5 — clearer trial controls and update diagnostics
+<!-- user-release-notes:v2:en -->
+
+Draft maintenance release. Not frozen, published or installed. Beta.4 remains
+the published and accepted installation.
+
+## New
+
+- Boiler-test read and zero-test buttons explain missing setup confirmations,
+  unavailable feedback and hot-water operation. Confirmations still apply to
+  one read or trial and must be repeated afterwards.
+- A blocked heat trial shows the measured flow temperature beside the existing
+  trial window. The trial limits and all command permissions are unchanged.
+## Fixed
+
+- Update errors distinguish a failed release check from a failed installation.
+  Advanced diagnostics separate HTTP responses from local connection, TLS and
+  interrupted-transfer errors. Only the allowlisted download host and numeric
+  codes are exposed; signed redirect paths and query strings are excluded.
+
+## Updating
+
+No new HA package is required for these E32 changes.
+
+## Limitations
+
+This release does not prove
+that the observed GitHub connection failure is fixed, qualify a physical boiler
+trial or enable automatic heating, valve control or persistent boiler writes.
+No new retries, firmware installation or test command is performed by the UI.
+
 # E32 V2 beta4 — attended boiler trial and Bluetooth discovery
 <!-- user-release-notes:v2:en -->
 

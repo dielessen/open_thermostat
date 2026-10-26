@@ -27,7 +27,7 @@ ze zijn geen afgevinkte functie doordat er voorbereidende code aanwezig is.
 | Geïnstalleerde E32 | `v0.1.0-e32v2-beta.1`, bron `5e3ed30`; passieve basis |
 | Geïnstalleerde HA-integratie | `0.4.0b1`, gezamenlijke basis `5e3ed30` |
 | Voorbereide bron | Huidige branch, inclusief eenmalige configuratie-uitlezing, afzonderlijke busafsluiting en alle eerdere voorbereide wijzigingen |
-| Nieuwe gezamenlijke kandidaat | E32 beta.3 / HA 0.4.0b3 in voorbereiding op gebruikersopdracht; exacte nieuwe CI-/pakketcontrole, publicatie en installatie nog te bewijzen. Passieve release, geen vrijgave van warmteproeven |
+| Nieuwe gezamenlijke kandidaat | E32 beta.3 / HA 0.4.0b3 gepubliceerd uit `996587d`; exacte tag-CI en openbare pakketten gecontroleerd. Installatie en live nacontrole nog open wegens ontbrekende bestaande HA-beheertool in deze sessie. Passieve release, geen warmteproefvrijgave |
 | Algemene en handmatige fysieke TX | Beide uit; geen runtime- of buildflag-ontgrendeling |
 | Warmte-installatievrijgave | `manualHeatInstallationReviewed_ = false` |
 
@@ -323,3 +323,12 @@ ESP-aan/EMS-uit blijft behouden; de fixture kiest EMS nu expliciet en slaagt
 lokaal met de echte loopback-UDP-/NVS-/SDK-hooktest. Beide b2-publicatieruns
 zijn geannuleerd; tags blijven ongewijzigd. De herstelde gezamenlijke kandidaat
 is beta.3 / HA0.4.0b3 en vereist eigen volledige tag-CI en pakketcontrole.
+
+## Publicatie beta.3 / HA0.4.0b3 afgerond
+
+Beide releases uit `996587d` zijn gepubliceerd en onafhankelijk gecontroleerd.
+Zie [publicatieverslag](PUBLICATIE-BETA3-20261026.nl.md) en het bijbehorende
+geanonimiseerde JSON-rapport. Installatie, verse back-up en live nacontrole zijn
+niet uitgevoerd: de bestaande HA-beheertool is in deze sessie niet beschikbaar.
+Dit is geen vastgestelde verbindingsstoring van de apparaten. De installatieopdracht
+blijft open; updatepoort pending beta.3, accepted beta.1 ongewijzigd.

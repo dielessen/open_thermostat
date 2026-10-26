@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "date": "2026-10-26",
+  "status": "PASS_PUBLICATION_ONLY",
+  "source_commit": "996587da4a05c8a9de4a25a5b8ab3d9ed4c6f99a",
+  "e32": {
+    "status": "PASS_PUBLIC_PACKAGE_ONLY",
+    "tag": "v0.1.0-e32v2-beta.3",
+    "source_commit": "996587da4a05c8a9de4a25a5b8ab3d9ed4c6f99a",
+    "firmware_bytes": 2828000,
+    "firmware_sha256": "1bffbffa5bb1e296d1257a370442de86ab04e932c0538e395b62232e3073c49b",
+    "web_sha256": "d5a4c2ed8d617936bbb38d9dbe3635148aba674eb4d5503f9604cae1478a2682",
+    "public_assets": {
+      "RELEASE-SHA256SUMS.txt": "4777dd48d977eca9b6a97e5f35cf1589116ae758910212f3ee86b86406fedcf5",
+      "software-verification.json": "6ed0cf0e9583a150e86bd1a0c92f79112e43e6dfeeb3532875430cb4711c49d8",
+      "alpha36-beta-compatibility.json": "aafdb00abf726012805170c1d157430ce0e728095547b248f1547fbc882b31b7",
+      "open-thermostat-e32v2-v0.1.0-e32v2-beta.3.zip": "9afd41d77dd0e6a916a16a4eb42a046922171366c701bd4f4cd0b10a5f06eb6a",
+      "e32v2-update.json": "b8d075f5cb778a0fae0fe81f5985fb01467cb4e8e3961c2f0f73413363fd55dc",
+      "firmware.bin": "1bffbffa5bb1e296d1257a370442de86ab04e932c0538e395b62232e3073c49b"
+    },
+    "matches_independently_verified_tag_package": true,
+    "independent_payload_checks": 1249,
+    "workflow": {
+      "attempt": 2,
+      "conclusion": "success",
+      "headSha": "996587da4a05c8a9de4a25a5b8ab3d9ed4c6f99a",
+      "status": "completed",
+      "url": "https://github.com/dielessen/open_thermostat/actions/runs/40294573407"
+    },
+    "installed": false
+  },
+  "ha": {
+    "status": "PASS_PUBLIC_PACKAGE_ONLY",
+    "tag": "ha-v0.4.0b3",
+    "source_commit": "996587da4a05c8a9de4a25a5b8ab3d9ed4c6f99a",
+    "version": "0.4.0b3",
+    "files": 87,
+    "public_assets": {
+      "ha-software-verification.json": "c51360b5bf66fbc42b32b7dde5fa90c1f7bb8e88077e299cb40a3a9b6bccc237",
+      "HA-SHA256SUMS.txt": "39924df5385c2f1742acabcea8888933d58c63d203eaa7ee1ef91088179b1db8",
+      "OpenThermostat-Zigbee2MQTT-original-reports-0.4.0b3.zip": "55e8a6f6be07c2b87072b621f20607f3252365959ed3fa7ad36228a7c8f09890",
+      "OpenThermostat-HA-0.4.0b3.zip": "35a8a91ef53a2eb1315a42963d90ffc8e620244265a6fbc1b5cac2e717f3c9d0",
+      "ha-release.json": "47ea39faed94ae7f6e5b90511e84b8f3f670e4ff50f9e9fb7dcc230eb5ddf852"
+    },
+    "native_tests": {
+      "ha-core-2026.10.3.xml": {
+        "tests": 2450,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "ha-core-2026.10.2.xml": {
+        "tests": 2450,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "ha-acceptance.xml": {
+        "tests": 2450,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "workflow": {
+      "conclusion": "success",
+      "headSha": "996587da4a05c8a9de4a25a5b8ab3d9ed4c6f99a",
+      "status": "completed",
+      "url": "https://github.com/dielessen/open_thermostat/actions/runs/40294574045"
+    },
+    "installed": false
+  },
+  "installation": {
+    "performed": false,
+    "live_preflight_performed": false,
+    "backup_performed": false,
+    "postcheck_performed": false,
+    "reason": "Existing native HA administration tool unavailable in this Codex session; no connected document execution sessions. This does not establish any HA/E32 connectivity failure.",
+    "last_previously_recorded_e32": "v0.1.0-e32v2-beta.1",
+    "last_previously_recorded_ha": "0.4.0b1"
+  },
+  "physical_control_released": false,
+  "pressure_profile": "User confirms no digital pressure sensor; heat-trial guard adaptation remains open. No synthetic pressure value.",
+  "e32_update_acceptance_gate": "pending v0.1.0-e32v2-beta.3; accepted beta.1 unchanged"
+}

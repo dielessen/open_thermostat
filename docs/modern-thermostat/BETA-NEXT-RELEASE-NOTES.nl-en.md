@@ -1,7 +1,8 @@
-# Volgende gezamenlijke bèta — concept voor gebruikers
+# Gezamenlijke bèta beta.3 / HA 0.4.0b3 — gebruikersoverzicht
 
-Deze wijzigingen staan klaar in de broncode bovenop E32 beta.1 / HA 0.4.0b1.
-De nieuwe gezamenlijke versie is nog niet gepubliceerd of geïnstalleerd.
+Deze wijzigingen zijn gepubliceerd als E32 beta.3 / HA 0.4.0b3 bovenop de
+laatst eerder geverifieerde beta.1 / HA 0.4.0b1. Installatie en live nacontrole
+zijn in deze sessie niet uitgevoerd; zie PUBLICATIE-BETA3-20261026.nl.md.
 Fysiek verzenden en automatische ketel-/kraansturing blijven geblokkeerd.
 
 ## Nederlands

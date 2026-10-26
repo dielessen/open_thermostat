@@ -10,7 +10,8 @@ window.BluetoothPage = (() => {
   const allowedEncryption=(profile,value)=>profile==='xiaomi_monitor_3'?value==='mibeacon_v4_v5':['shelly_ht_display','shelly_blu_trv'].includes(profile)&&['none','bthome_v2'].includes(value);
   const hexAddress=s=>typeof s==='string'&&/^[0-9a-f]{12}$/.test(s);
   function valid(s) {
-    if(s?.schema!==1||typeof s.pending_restart!=='boolean'||typeof s.scan_pending!=='boolean'||typeof s.discovery_full!=='boolean'||typeof s.config_error!=='string'||!Number.isSafeInteger(s.queue_drops)||s.queue_drops<0||!Array.isArray(s.devices)||s.devices.length>8||!Array.isArray(s.nearby)||s.nearby.length>32||!s.nearby.every(hexAddress))return false;
+    const capacity=s?.discovery_capacity??32;
+    if(s?.schema!==1||!Number.isInteger(capacity)||capacity<1||capacity>128||typeof s.pending_restart!=='boolean'||typeof s.scan_pending!=='boolean'||typeof s.discovery_full!=='boolean'||typeof s.config_error!=='string'||!Number.isSafeInteger(s.queue_drops)||s.queue_drops<0||!Array.isArray(s.devices)||s.devices.length>8||!Array.isArray(s.nearby)||s.nearby.length>capacity||!s.nearby.every(hexAddress)||new Set(s.nearby).size!==s.nearby.length)return false;
     if(s.nearby_devices!==undefined&&(!Array.isArray(s.nearby_devices)||s.nearby_devices.length!==s.nearby.length||!s.nearby_devices.every((d,i)=>d?.address===s.nearby[i]&&typeof d.name==='string'&&new TextEncoder().encode(d.name).length<=40&&!/[\x00-\x1f\x7f]/.test(d.name)&&Number.isInteger(d.rssi)&&d.rssi>=-127&&d.rssi<=20)))return false;
     const seen=new Set();
     for(const d of s.devices) {
@@ -110,6 +111,8 @@ window.BluetoothPage = (() => {
         extra.textContent=labels.map(([label,key])=>t(label)+': '+show(['target_temperature','external_temperature'].includes(key)&&d[key]!==null?d[key]/100:d[key])).join(' · ');
       }
       nearbyHints=s.nearby_devices??s.nearby.map(address=>({address,name:'',rssi:null}));
+      const count=t('Devices found: ')+nearbyHints.length;
+      if(get('ble-found-count').textContent!==count)get('ble-found-count').textContent=count;
       renderNearby();
       get('ble-discovery-full').hidden=!s.discovery_full;
       get('ble-scan').disabled=s.scan_pending||saving;

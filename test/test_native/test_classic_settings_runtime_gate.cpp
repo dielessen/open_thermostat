@@ -7,9 +7,9 @@
 #include <gtest/gtest.h>
 namespace {
 using Gate=heating::ems::ClassicSettingsRuntimeGate;
-TEST(ClassicSettingsRuntime, IndependentBoardSettingsAndManualAndGeneralPermissionsRemainDisabled){
+TEST(ClassicSettingsRuntime, AttendedManualPermissionDoesNotEnableSettingsOrGeneralOutputs){
     EXPECT_FALSE(heating::board::emsSettingsTransmitAllowed);
-    EXPECT_FALSE(heating::board::emsManualTestTransmitAllowed);
+    EXPECT_TRUE(heating::board::emsManualTestTransmitAllowed);
     EXPECT_FALSE(heating::board::emsTransmitAllowed);
     EXPECT_FALSE(Gate::permitted({}));
 }

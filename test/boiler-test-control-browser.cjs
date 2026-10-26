@@ -14,6 +14,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   const page=await browser.newPage({viewport:{width,height:950}});let state=initial(),requests=[],errors=[],delayedStart=null,failStop=width===320,failClose=width===320,forcedOld=null,delayPreparation=false,delayedPreparation=null;
   page.on('pageerror',e=>errors.push(e.message));
   function update(patch){Object.assign(state,patch);state.state_sequence++;state.observed_at_ms+=100;}
+  const gaugeTrial=width===390;
   const limits={minimum_flow_c:40,maximum_flow_c:45,maximum_duration_s:60,operator_lease_ms:5000};
   let heatTrial={profile_id:'ecomline-classic-manual-v1',installation_reviewed:false,telemetry_ready:false,
    reason:'pressure_unavailable',physical_validation:false,limits:{minimum_flow_c:40,maximum_flow_c:45,maximum_duration_s:60,
@@ -38,6 +39,8 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
      assert.equal(body.revision,state.revision+1);assert.equal(body.flow_c,40);assert.equal(body.duration_s,1);
      assert.equal(body.exclusive_owner_confirmed,true);assert.equal(body.independent_stop_confirmed,true);assert.equal(body.heat_path_confirmed,true);
      assert.equal(body.pressure_check_confirmed,true);
+     if(gaugeTrial)assert.equal(body.pressure_decibar,15);
+     else assert.equal(Object.hasOwn(body,'pressure_decibar'),false);
      update({revision:body.revision,phase:'baseline',owned:true,zero_only:false,can_prepare_zero:false,can_prepare:false,can_start:false,can_stop:true,
       reported_stop_confirmed:false,operator_remaining_ms:5000,requested_flow_c:40});
     }else if(action==='close_fault'){
@@ -93,7 +96,9 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
 
   // No test code can grant real hardware permission. This is an explicit IO fixture.
   heatTrial={...heatTrial,installation_reviewed:true,separate_pressure_method_reviewed:true,telemetry_ready:true,reason:'telemetry_ready'};
-  update({available:true,blocked_reason:'',can_prepare:true,limits,site_confirmation_required:true,pressure_check_required:true});
+  if(gaugeTrial)heatTrial={...heatTrial,mode:'supervised_commissioning',installation_reviewed:false,separate_pressure_method_reviewed:false,operator_gauge_reading_required:true,limits:{...heatTrial.limits,minimum_pressure_decibar:11}};
+  const gaugeFields=gaugeTrial?{pressure_reading_required:true,pressure_reading_limits:{minimum_decibar:11,maximum_decibar:25}}:{};
+  update({available:true,blocked_reason:'',can_prepare:true,limits,site_confirmation_required:true,pressure_check_required:true,...gaugeFields});
   await page.locator('[data-test-site]').waitFor({state:'visible'});
   assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
   assert.equal(await page.locator('[data-site-owner]').isChecked(),false);
@@ -103,6 +108,15 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
   assert.equal(requests.some(r=>r.path.endsWith('/prepare')),false);
   await page.locator('[data-site-pressure]').check();
+  if(gaugeTrial){
+   assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
+   for(const invalid of ['1','2.6','1.55']){
+    await page.locator('[data-site-pressure-value]').fill(invalid);
+    assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
+   }
+   await page.locator('[data-site-pressure-value]').fill('1.5');
+   assert.match(await page.locator('[data-heat-limits]').innerText(),/fysieke acceptatie staat nog open/);
+  }
   await page.waitForFunction(()=>!document.querySelector('[data-test-prepare]').disabled);
   await page.locator('[data-test-flow]').fill('61');await page.locator('[data-test-duration]').fill('1');
   await page.locator('[data-test-prepare]').click();assert.equal(requests.some(r=>r.path.endsWith('/prepare')),false);
@@ -112,6 +126,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   assert.equal(await page.locator('[data-site-stop]').isChecked(),false);
   assert.equal(await page.locator('[data-site-path]').isChecked(),false);
   assert.equal(await page.locator('[data-site-pressure]').isChecked(),false);
+  if(gaugeTrial)assert.equal(await page.locator('[data-site-pressure-value]').inputValue(),'');
   const readySnapshot=structuredClone(state);
   assert.equal(requests.filter(r=>r.path.endsWith('/start')).length,0); // ready never auto-starts
   page.once('dialog',dialog=>dialog.dismiss());await page.locator('[data-test-start]').click();
@@ -166,8 +181,8 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   await page.evaluate(()=>loadNativePage('boiler_test'));
   await page.locator('[data-test-facts] dd').filter({hasText:/^Yes$/}).waitFor();
   assert.equal(await page.locator('[data-test-facts] dd').filter({hasText:/^Ja$/}).count(),0);
-  assert.match(await page.locator('[data-heat-limits]').innerText(),/1–2.5 bar/);
-  assert.match(await page.locator('[data-heat-limits]').innerText(),/Reviewed/);
+  assert.match(await page.locator('[data-heat-limits]').innerText(),gaugeTrial?/1.1–2.5 bar/:/1–2.5 bar/);
+  assert.match(await page.locator('[data-heat-limits]').innerText(),gaugeTrial?/physical acceptance remains open/:/Reviewed/);
   assert.match(await page.locator('[data-heat-limits]').innerText(),/Separate pressure check window/);
 
   await page.waitForTimeout(1300);assert.equal(requests.filter(r=>r.method==='POST').length,before);
@@ -248,11 +263,12 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   for(const mode of ['prepare','prepare_zero','ready','pagehide']) {
    state={...initial(),revision:state.revision,state_sequence:state.state_sequence+1,observed_at_ms:state.observed_at_ms+100,
     available:true,blocked_reason:'',can_prepare:true,can_prepare_zero:true,zero_test_available:true,
-    site_confirmation_required:true,pressure_check_required:true,operator_lease_ms:5000,limits};
+    site_confirmation_required:true,pressure_check_required:true,operator_lease_ms:5000,limits,...gaugeFields};
    await page.evaluate(()=>loadNativePage('boiler_test'));
    await page.waitForFunction(()=>!document.querySelector('[data-site-owner]').disabled);
    await page.locator('[data-site-owner]').check();await page.locator('[data-site-stop]').check();
    await page.locator('[data-site-path]').check();await page.locator('[data-site-pressure]').check();
+   if(gaugeTrial)await page.locator('[data-site-pressure-value]').fill('1.5');
    await page.locator('[data-test-flow]').fill('40');await page.locator('[data-test-duration]').fill('1');
    delayPreparation=true;delayedPreparation=null;
    if(mode==='prepare_zero')page.once('dialog',dialog=>dialog.accept());
@@ -279,7 +295,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
    assert.equal(await page.locator('[data-test-stop]').isDisabled(),false);
   }
   results.push({width,result:'PASS',fixtureOnly:true,noAutoStartOrResume:true,csrfPresent:true,stopWhilePending:true,
-   uncertainStopNotReplayed:true,lateStartIgnored:true,staleReadbackIgnored:width===1280,navigationStopsRenewal:true,englishStopConfirmation:true,zeroOnlyNlEn:true,perTestDeclarations:true,zeroNeedsNoHeatPath:true,faultClosureNlEn:true,uncertainClosureNotReplayed:true,closedDoesNotResume:true,heatEnvelopeNlEn:true,healthyTelemetryCannotUnlock:true,briefHideRetiresSupervision:true,latePreparationCannotRearm:true,pagehideRetiresSupervision:true,physicalProof:false});
+   uncertainStopNotReplayed:true,lateStartIgnored:true,staleReadbackIgnored:width===1280,navigationStopsRenewal:true,englishStopConfirmation:true,zeroOnlyNlEn:true,perTestDeclarations:true,zeroNeedsNoHeatPath:true,faultClosureNlEn:true,uncertainClosureNotReplayed:true,closedDoesNotResume:true,heatEnvelopeNlEn:true,gaugeTrial,healthyTelemetryCannotUnlock:true,briefHideRetiresSupervision:true,latePreparationCannotRearm:true,pagehideRetiresSupervision:true,physicalProof:false});
   await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(out,'BROWSER.json'),JSON.stringify({result:'PASS',cases:results},null,2)+'\n');

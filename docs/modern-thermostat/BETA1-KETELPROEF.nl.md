@@ -1,5 +1,38 @@
 # Eerste bèta: ketel aansluiten, gegevens ontvangen en aansturing beproeven
 
+## Actuele beta.4-voorbereiding: bediende commissioningproef
+
+De huidige ontwikkelbron bevat de echte afzonderlijke proefroute. Beta.4 is nog
+niet bevroren, gepubliceerd of geïnstalleerd. De onderstaande oudere checkpoints
+beschrijven de passieve voorbereiding; de actuele proefvoorwaarden zijn:
+
+1. Controleer na de toegelaten installatie de exacte versie/bron en bevestigde
+   boot. De eerdere beta.3-installatieacceptatie blijft afzonderlijk open.
+2. Bedien de proef lokaal en houd een onafhankelijke fysieke stop beschikbaar.
+   Koppel Tado als schrijver los en houd de vereiste radiatoren/afgifte open.
+   Bevestig uitsluitend voorwaarden die op dat moment werkelijk gelden.
+3. Open **Keteltest**, bevestig exclusief busbezit en onafhankelijke stop, en
+   gebruik **CV-instellingen uitlezen** als de originele Classic-instellingen
+   ontbreken of ouder dan tien minuten zijn. Er volgt één begrensde leesopdracht.
+4. Voer eerst de **nulvraagproef** uit. Kijk naar de echte latere stopmelding;
+   een verzonden frame, HTTP-antwoord of oude nulwaarde is geen stopbewijs.
+5. Voor warmte: verklaar het open afgiftepad, lees de ketelmanometer en voer de
+   waarde in bar in (1,1–2,5). Bereid bijvoorbeeld **40 °C, 10 seconden** voor.
+   Deze voorbereiding doet opnieuw een nulvraag en wacht op een latere stopmelding.
+   De manometerverklaring geldt maximaal twee minuten en moet per proef opnieuw.
+6. Druk pas daarna afzonderlijk op **Start** en bevestig. Houd de proefpagina
+   zichtbaar: de operatorlease is vijf seconden; maximale duur is zestig seconden.
+   **Stop** blijft een afzonderlijke actie. Controleer de latere ketelmelding
+   en naloop; bij onduidelijkheid gebruik je de onafhankelijke lokale stop.
+7. Leg werkelijke telegrammen, ontvangsttijden, ketelgedrag en stop/herstel vast.
+   Draag gecontroleerd terug over aan Tado. B07–B09/B14 zijn pas met het echte
+   bewijs af te tekenen; deze instructie is geen uitgevoerde proef.
+
+Automatische zones, kraanuitvoer en blijvende ketelinstellingen blijven uit.
+De manometerwaarde is een operatorwaarneming, geen digitale keteltelemetrie.
+
+## Oudere voorbereidingscheckpoints
+
 Opdracht van 23 oktober 2026: doorwerken tot één samenhangende eerste bèta voor
 het koppelen van de ketel, terugmelden van gegevens en testen van de aansturing.
 De huidige geïnstalleerde passieve basis is E32 **v0.1.0-e32v2-beta.1** en

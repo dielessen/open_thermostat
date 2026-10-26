@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "82eb0a065d758d06ac2b2b2ae0fd1ba6e0403b915554fb7416e88b584da6b023"
+          "sha256": "a0aa1cf27f4ef2925727242474e1e35d11e4ce4800a4c240679d3e56b0909360"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -75,7 +75,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "68d7e9f02d8b09ef8b2e36bad3c38241a26558739fb3dcd3251e641e858845fb"
+          "sha256": "89c36d7b9fff567be58bbb3afc8f8063ef9a70b2b98959425fb320eaae576577"
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "98fbf57f7d7b1ae3eb61c001216eb3dcf6df4cad0dfcf62df6b919c6c3c232d8"
+          "sha256": "caa990307a3b08c4e7e95ed8235182b858b519d9df8f3ae4ea3d54bb3f04e997"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -143,7 +143,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA4-KANDIDAAT.json",
-          "sha256": "ea8cc88cb90f85bf59387ef1094247f7370b6e358922dcce75556837a9392b9f"
+          "sha256": "c9b255df2e5543cee1b2710f0f10294757153825930365fe52485801c8cebfba"
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.nl-en.md",
@@ -163,7 +163,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.en.md",
-          "sha256": "5106363b52a8fcd71ae1ff10edd17358e11b572a47c782b63f05644e116b0bbe"
+          "sha256": "7acaeabcb9a84c2a674944392fe859b96b2d668a03a313aab1a0921984522baa"
         },
         {
           "path": "scripts/verify_accepted_update_path.py",
@@ -317,7 +317,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md",
-          "sha256": "61f04a8e0b265033c8ed021168c65ee9d43e52ae31b32eca95a5054efa4a7553"
+          "sha256": "4d468c12f0ead817dfda414fad446b3f9b4228d63c3e45c16e4628d94f30d0ef"
         },
         {
           "path": "docs/modern-thermostat/INSTALLATIE-E32-ALPHA36-20261025.nl.md",
@@ -353,7 +353,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "82eb0a065d758d06ac2b2b2ae0fd1ba6e0403b915554fb7416e88b584da6b023"
+          "sha256": "a0aa1cf27f4ef2925727242474e1e35d11e4ce4800a4c240679d3e56b0909360"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -521,7 +521,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "1e8bbdb7845021548589a1b23a73a7d7c2e1ac9a29621a24b27d96c62abe6656"
+          "sha256": "0cf62181488eb9494794927c90af7c6ab308de6ea846ba0f34c297c81c2793e8"
         },
         {
           "path": "data/html/ui-language.js",
@@ -717,7 +717,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "113fb53294a58cfe9c98f3a55dc017c5b2f35e93c005d4d049005979045d208a"
+          "sha256": "ffca37eda2d4c87811133ede084e9f78aa700074e3242071497eb3bc54cebac4"
         },
         {
           "path": "src/Room.cpp",
@@ -823,7 +823,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "82eb0a065d758d06ac2b2b2ae0fd1ba6e0403b915554fb7416e88b584da6b023"
+          "sha256": "a0aa1cf27f4ef2925727242474e1e35d11e4ce4800a4c240679d3e56b0909360"
         },
         {
           "path": "platformio.ini",
@@ -835,7 +835,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "113fb53294a58cfe9c98f3a55dc017c5b2f35e93c005d4d049005979045d208a"
+          "sha256": "ffca37eda2d4c87811133ede084e9f78aa700074e3242071497eb3bc54cebac4"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
@@ -847,7 +847,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "1e8bbdb7845021548589a1b23a73a7d7c2e1ac9a29621a24b27d96c62abe6656"
+          "sha256": "0cf62181488eb9494794927c90af7c6ab308de6ea846ba0f34c297c81c2793e8"
         },
         {
           "path": "data/html/system-log.js",
@@ -995,7 +995,7 @@
         },
         {
           "path": "docs/modern-thermostat/BLUETOOTH-APPARATEN.nl.md",
-          "sha256": "d9f198b493fbb84f48df6d33c0f892df0cd76976e0693c3912e81d5d8eae42f0"
+          "sha256": "56d726091b3f173826a2aff92da9e18bebfe66ca9e186cb457d303887bc50c6b"
         },
         {
           "path": "src/diagnostics/EmsLogCapture.h",
@@ -1003,7 +1003,7 @@
         },
         {
           "path": "src/control/BleDeviceDiscovery.h",
-          "sha256": "50df9af4c81860ea74bdbca18d9272cfadedcaadc52e1d6e55a19f16ff621a6c"
+          "sha256": "81d26c04001f9e60903018cd21cede54b95595fe0385c5522bc2f76c491c9cf6"
         },
         {
           "path": "src/control/BleScanLifecycle.h",
@@ -1011,7 +1011,7 @@
         },
         {
           "path": "test/test_native/test_ble_device_discovery.cpp",
-          "sha256": "144be706df6a15775bce4fd82e352c1ac6031780d0803b366d8f46665c457eed"
+          "sha256": "87cfe1eb24a11d5946a2890129b7a767a35b4db35eaac710263f90ecbd9e3488"
         },
         {
           "path": "test/test_native/test_ble_scan_lifecycle.cpp",
@@ -1055,11 +1055,11 @@
         },
         {
           "path": "data/html/bluetooth.html",
-          "sha256": "24042ebaa1cd9f968d126110989c653c2ad9744f19c34459bc25634f369ce237"
+          "sha256": "f3fd566243c2a44fd1b602b82e4700756c362eff732d62599b4d8920cc1e042e"
         },
         {
           "path": "data/html/bluetooth.js",
-          "sha256": "3fdbc970398079c1dbf6298eb7acb1f77835266a618ee2e256a079b20020fde5"
+          "sha256": "95a2c0da684b9122f56b6f1af20eea584d5d2e076cf690a939eebd0752bc4789"
         },
         {
           "path": "test/ble_crypto/mbedtls.cpp",
@@ -1067,7 +1067,7 @@
         },
         {
           "path": "test/bluetooth-browser.cjs",
-          "sha256": "9e6651f588e6c81a3f7e4b84a26d5d8fd4453db6bafd0b51e0e952852c34ed13"
+          "sha256": "e04acd23f3858f83888b0eab23e2b97db1edd5b325a4a2d743f0488248c6d30f"
         },
         {
           "path": "test/test_native/test_ble_device_settings.cpp",
@@ -1893,11 +1893,11 @@
       "files": [
         {
           "path": "data/html/boiler_test.html",
-          "sha256": "0c453f80b194240dae7de0d21221eebcbdcb7d95ea1745b243489fb24e21fb28"
+          "sha256": "41458d4d1cad0cbfa14979f31843a963b674015117b73dd0d780f9c9a698b03c"
         },
         {
           "path": "src/EmsController.h",
-          "sha256": "7d5a2d156f0684fe0b26e80fcdcf3b528543dc5a056a1f625aac3721a991644e"
+          "sha256": "819967a3d484d3612233262691a6907d4fa5d798d636fef8af90ed9de0f6ab60"
         },
         {
           "path": "src/EmsController.cpp",
@@ -1981,7 +1981,7 @@
       "files": [
         {
           "path": "src/EMS/BoilerTestService.h",
-          "sha256": "dcebb264cec3ac39324bd77a76bf5c47576dc04aebc2fae90c97fb7ff94331ec"
+          "sha256": "f33aed4f6944235dcf1b039dc565eb595a562345a2575243493da0f299138a06"
         },
         {
           "path": "src/HeatingController.h",
@@ -2005,7 +2005,7 @@
         },
         {
           "path": "test/boiler-test-control-browser.cjs",
-          "sha256": "667bda425d48daf670d056ac61f2e1b1129303d46d0fb5a21226e519e332907c"
+          "sha256": "5089c0c79d37bb0b343143c87b5d80009bd920475584d801dee1c1a8c7aebf58"
         },
         {
           "path": "src/EMS/BoilerTestPollDriver.h",
@@ -2037,7 +2037,7 @@
         },
         {
           "path": "docs/modern-thermostat/ECOMLINE-PRE-TX-ACCEPTATIE.nl.md",
-          "sha256": "e5777ad64a3bb927276678f688bf7857fc18ad55ec42808e3540c002ef8575fe"
+          "sha256": "bd8b89f664524112dc33ec0f1308e950491bb901b37f6324e02ae4abcae58302"
         },
         {
           "path": "src/EMS/ClassicEchoUartWrite.h",
@@ -2085,7 +2085,7 @@
         },
         {
           "path": "test/test_native/test_manual_classic_uart_write.cpp",
-          "sha256": "1d360b085ac885dd7da2a7d0b10031e5b7ffc62f7124da8afc1f511f1255d1c8"
+          "sha256": "07b027e3c4e55704241b1b34fd8435efbf407180ed3b406a30a748612c936f96"
         },
         {
           "path": "test/echo_write/include/driver/gpio.h",
@@ -2169,11 +2169,31 @@
         },
         {
           "path": "test/test_native/test_classic_settings_runtime_gate.cpp",
-          "sha256": "efc622d9b90897d33e48614e4a38bbbb360514c197229856d8a0e37e2e0b3b48"
+          "sha256": "9c6c76119ed91405f007a93ead307a665017cd0592c717b7acb9ec3b2d0331b1"
         },
         {
           "path": "test/boiler-settings-browser.cjs",
           "sha256": "faf857c25ba09e9709b45a470ad35e1d6032f2c59eeaaee79fe98ec462753b33"
+        },
+        {
+          "path": "src/EMS/EcomlineCommissioningProfile.h",
+          "sha256": "41fdd8e7a68870159dc137f76337d3d8dac29006e4e9c713ef2806f9b22310c6"
+        },
+        {
+          "path": "test/test_native/test_ecomline_commissioning.cpp",
+          "sha256": "b8878916ae39cd592d28eba93f7b94db74ffa7944abf9665fa9e9318de1b160c"
+        },
+        {
+          "path": "src/Board.h",
+          "sha256": "fadde0715375fa505adc1d12ef0ce7e95d2dfde1ff5dd208979e6f02cfdfec20"
+        },
+        {
+          "path": "scripts/verify_e32v2.py",
+          "sha256": "2fd0edcd513a722857cd3dab1c9fbc1c3e3e045686394e3a376c9db2447f09ad"
+        },
+        {
+          "path": "scripts/test_e32v2_verifier.py",
+          "sha256": "965cdb67f71e7c3ca56d895eda179fc6c017b03def31d26a1a3d701725800510"
         }
       ],
       "remaining_acceptance": "Actuele bron: concrete supervised softwarewarmteproef40–45°C/maximaal60s met verse Classic-temperatuur/druk/CV-configuratie, NL/EN-grenzen en blokkaderedenen. Meetwaarden kunnen de afzonderlijke installatievrijgave niet vervangen; die blijft false, evenals beide fysieke bordtoelatingen. Verlies van warmtevoorwaarden blokkeert positieve verzending, maar niet de nulvraag. Bestaande private handmatige UART-route, adres-/poll-/conflictcontrole, proefgebonden opstellingsbevestigingen en expliciete foutafsluiting blijven behouden. Softwarecontroles staan in de actuele werkbordsectie. Fysieke hardware-/adapter-/stopacceptatie en frozen gezamenlijke kandidaat met daadwerkelijke OTA/HA-backup/nacontrole blijven open; hostbewijs is geen fysieke kwalificatie. Geen installatie/publicatie. Browsertoezicht trekt nu bij visibilitychange-hidden/pagehide direct de lokale bevoegdheid in; generatiecontrole voorkomt heractivering door late warmte-/nulvraagvoorbereiding. Stop blijft apart; eerder verzonden verkeer kan niet worden teruggehaald en blijft aan de serverlease gebonden. Bevestigen is geen vrijgave: na de dialoog worden boot/revisie, lokale toezichtgeneratie, zichtbaarheid, paginaverbinding en actuele bevoegdheid opnieuw gecontroleerd voor start/nulvraagvoorbereiding/foutafsluiting; 72 gerichte browsergevallen in NL/EN slagen. Stopdiagnose bevat nu de eerste afgeronde passende nulvraagreferentie van de huidige bewijsfase (null zonder bewijs; tijdstip0 geldig), expliciete boot_monotonic_ms-klok en oorspronkelijke tijd per lokaal JSON-meetveld. Een gezamenlijke snapshottijd voorkomt verschillende peiltijden in één status. Geen nieuwe autoriteit of bus-ACK; HA-veldcontract ongewijzigd.1017native/142strikteASAN-UBSAN/146scripts/3boards PASS. Handmatige UART-grens controleert nu onafhankelijk de checksum vóór pinmapping; fout CRC geeft geen SDK/pin/echo-debt-aanroep.255 checksummutaties/40 payload-bitmutaties/21924 geldige encodercombinaties getoetst; bestaande geldige frame-/cleanupfixtures voorzien van echte CRC. Beide fysieke TX-vrijgaven blijven false; hostbewijs is geen elektrische of fysieke zendkwalificatie. Productie-encoder vergelijkt frame nu expliciet met beoordeelde adres/masker en sessie-intentie (exact6bytes/0x1A/offset0/flow/CRC); geldige CRC op afwijkende inhoud is geen toelating.1275 inhoudsmutaties en echte poll-afwijzing met uitsluitend nulvraagherstel getest. Fysieke TX-vrijgave ongewijzigd false. Read-only UART-preflight na CRC vóór pinverwerving aangesloten: wachtende RX, onbekende bufferstatus of niet-idle TX weigert zonder mapping/inversie/cleanup; preflight-exception evenzo. Late data na mapping blokkeert nog steeds write met volledige cleanup. Voor-regressie op echte SDK-adapter met hostfakes faalt; na-regressie slaagt.1026native/157striktecore+13SDK-ASAN-UBSAN/146scripts/3boards PASS; geen elektrische kwalificatie of TX-ontgrendeling. Vier Classic-instellingen: encoder en eindige write/readback-transactie voorbereid; Beveiligde HTTP-status/verzoekvalidatie aangesloten, productie-writepoort uit. Alleen-lezen NL/EN-webweergave aangesloten. UART- en sessieroute aangesloten achter afzonderlijke gesloten source/installatiepoorten. Bewerkingspad voor vier instellingen gebouwd, normale bron blijft alleen-lezen. Model-/installatiekwalificatie, overige entiteiten en fysieke schrijfacceptatie blijven open."

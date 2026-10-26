@@ -10,9 +10,12 @@
   </div>
   <button id="ble-reset" type="button" class="btn btn-outline-danger" hidden data-i18n="Clear invalid Bluetooth settings">Clear invalid Bluetooth settings</button>
   <p id="ble-status" role="status" aria-live="polite"></p>
-  <section aria-label="Bluetooth discovery"><h2 data-i18n="Nearby Bluetooth devices">Nearby Bluetooth devices</h2>
+  <section aria-label="Bluetooth discovery"><h2 id="ble-nearby-heading" data-i18n="Nearby Bluetooth devices">Nearby Bluetooth devices</h2>
     <p class="small" data-i18n="Click a device to fill in its name and address. Check the profile and save. Names are broadcast by the device and do not prove its model. Encrypted sensors still need a bindkey.">Click a device to fill in its name and address. Check the profile and save. Names are broadcast by the device and do not prove its model. Encrypted sensors still need a bindkey.</p>
-    <div id="ble-nearby"></div><p id="ble-discovery-full" class="small" hidden data-i18n="Discovery list full">Discovery list full</p>
+    <p class="small" data-i18n="Browse the devices received by this E32. Devices without a name are listed by address. Finding a device does not mean its profile is supported.">Browse the devices received by this E32. Devices without a name are listed by address. Finding a device does not mean its profile is supported.</p>
+    <p id="ble-found-count" class="small" role="status" aria-live="polite"></p>
+    <div id="ble-nearby" class="border rounded p-2" role="region" aria-labelledby="ble-nearby-heading" tabindex="0" style="max-height:min(55vh,30rem);overflow-y:auto;overscroll-behavior:contain"></div>
+    <p id="ble-discovery-full" class="small" hidden data-i18n="More devices were received than this list can hold. Search again nearer to the device you want to add.">More devices were received than this list can hold. Search again nearer to the device you want to add.</p>
   </section>
   <form id="ble-form" autocomplete="off">
     <div id="ble-rows"></div>

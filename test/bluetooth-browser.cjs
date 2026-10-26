@@ -61,6 +61,27 @@ function snapshot(profile='shelly_ht_display'){const result={schema:1,pending_re
   await addFound.waitFor({state:'detached'});assert.equal(await box.count(),1);
   data.nearby_devices=hints;data.nearby=hints.map(d=>d.address);await addFound.waitFor();
 
+  // Every received entry, including unnamed/unknown devices, is reachable in
+  // the scroll region; status polling must keep its position and saved draft.
+  const many=Array.from({length:128},(_,i)=>({address:i.toString(16).padStart(12,'0'),name:i%2?'Nearby '+i:'',rssi:-80}));
+  data.discovery_capacity=128;data.nearby_devices=many;data.nearby=many.map(d=>d.address);
+  await page.waitForFunction(()=>document.querySelectorAll('#ble-nearby [data-ble-address]').length===128);
+  assert.equal(await box.count(),1);
+  assert.match(await page.locator('#ble-found-count').textContent(),/128/);
+  assert.equal(await found.getAttribute('role'),'region');
+  assert.equal(await found.evaluate(node=>node.scrollHeight>node.clientHeight),true);
+  await found.focus();await page.keyboard.press('End');
+  await page.waitForFunction(()=>{const node=document.querySelector('#ble-nearby');return Math.abs(node.scrollHeight-node.clientHeight-node.scrollTop)<2;});
+  const scrolled=await found.evaluate(node=>node.scrollTop);
+  many[0].rssi=-91;await page.waitForTimeout(240);
+  assert.equal(await found.evaluate(node=>node.scrollTop),scrolled);
+  assert.equal(await found.locator('[data-ble-address="00000000007f"]').isVisible(),true);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  data.discovery_full=true;await page.locator('#ble-discovery-full').waitFor({state:'visible'});
+  data.discovery_full=false;data.nearby_devices=hints;data.nearby=hints.map(d=>d.address);
+  await addFound.waitFor();await page.locator('#ble-discovery-full').waitFor({state:'hidden'});
+  assert.equal(requests.filter(r=>r.method==='POST').length,0);
+
   assert.equal(await box.locator('input[type=password]').inputValue(),'');assert.equal(await root.locator('img').count(),0);assert.equal(await box.locator('input').nth(1).inputValue(),data.devices[0].name);
   if(profile==='shelly_blu_trv'){
     assert.match(await box.locator('[data-readings]').innerText(),lang==='nl'?/Berekende TRV-temperatuur/:/Calculated TRV temperature/);

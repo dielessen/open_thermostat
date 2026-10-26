@@ -1,5 +1,12 @@
 # Ecomline Classic HRC 22H — acceptatie vóór fysieke TX
 
+Actuele ontwikkelroute: beta.4 krijgt een expliciete, bediende Classic-
+commissioningproef met een nieuwe manometerwaarde en opstellingsverklaringen
+per warmtevoorbereiding. De bron kwalificeert hiermee geen fysieke installatie.
+De kaart hieronder blijft het bewijsregister voor de echte interface-, stop-,
+flow- en overdrachtswaarnemingen. Algemene regeling en blijvende instellingen-TX
+blijven uit. [Actuele bedieningsvolgorde](BETA1-KETELPROEF.nl.md#actuele-beta4-voorbereiding-bediende-commissioningproef).
+
 Bijgewerkt 26 oktober 2026. Onderdeel van WORKBOARD B09, geen tweede afvinklijst
 of uitvoeringsopdracht. Status: **niet vrijgegeven**. Tado blijft de actieve
 regelaar; E32 blijft RX-only. Ook een nulvraag valt buiten deze stap.

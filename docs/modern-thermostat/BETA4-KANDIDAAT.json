@@ -29,11 +29,12 @@
     "30-minute authenticated-request inactivity limit; absolute seven-day limit unchanged",
     "Local generic boiler illustration for missing or unavailable profile images",
     "Separate browser-test timeout from dependency installation time",
-    "Fixed source-bound sensorless Ecomline pressure policy; separate method review and per-trial declaration required; all physical write gates remain disabled",
+    "Source-bound attended Ecomline Classic commissioning with per-trial gauge reading and declarations; general and persistent-settings TX stay disabled",
     "Manual bus completion retains original RX time and rechecks deadline/transport after closure IO; no reentrant completion or retries",
     "Configuration acquisition bound to the current live operator session; withdrawn emitted requests retain finite bus ownership without successful confirmation",
     "Settings transaction guards the complete poll dispatch before clock/permission/send callbacks; nested processing cannot duplicate write or readback requests; no automatic retries",
-    "Manual and settings bus completion guards cover all receive callbacks; nested receive/begin cannot duplicate acknowledgement or replace the current exchange; no automatic retries"
+    "Manual and settings bus completion guards cover all receive callbacks; nested receive/begin cannot duplicate acknowledgement or replace the current exchange; no automatic retries",
+    "Scrollable Bluetooth discovery for up to 128 received addresses, including unnamed and unsupported devices; eight saved bindings unchanged"
   ],
   "acceptance_before_freeze": [
     "Actual beta.3 native installation and independent postcheck recorded per E32-UPDATE-PROCES.nl.md",
@@ -46,7 +47,7 @@
     "commit": "c058dd2deb0301cd7703f6df3ed9340198fc0932",
     "run": "https://github.com/dielessen/open_thermostat/actions/runs/40366412128",
     "conclusion": "success",
-    "scope": "pre-freeze source including settings dispatch and bus completion reentry fixes; all nine validation jobs passed; publication jobs skipped; not installation acceptance"
+    "scope": "pre-freeze source including settings dispatch and bus completion reentry fixes; all nine validation jobs passed; publication jobs skipped; not installation acceptance; this checkpoint predates attended commissioning and expanded Bluetooth discovery"
   },
   "writable_boiler_inventory": "docs/modern-thermostat/BOILER-WRITE-INVENTORY.json",
   "prepared_settings_backend": {
@@ -85,7 +86,13 @@
     "method_reviewed": false,
     "digital_pressure_required": false,
     "per_heat_preparation_confirmation_required": true,
-    "physical_acceptance_performed": false
+    "physical_acceptance_performed": false,
+    "operator_gauge_reading_required": true,
+    "gauge_minimum_decibar": 11,
+    "gauge_maximum_decibar": 25,
+    "gauge_maximum_age_ms": 120000,
+    "procedure_reference": "https://nefit-nl-nl-b.boschhc-documents.com/download/file/file/70542900.pdf",
+    "method_reviewed_scope": "Manufacturer boiler-manometer procedure; physical site qualification remains open"
   },
   "source_package_preflight": {
     "commit": "c058dd2deb0301cd7703f6df3ed9340198fc0932",
@@ -134,7 +141,10 @@
     "user_reported_method": "native_github",
     "method_reported_on": "2026-10-26",
     "method_independently_verified": false,
-    "readonly_postcheck_instructions": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md#actuele-opdracht-alleen-beta3-nacontrole"
+    "readonly_postcheck_instructions": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md#actuele-opdracht-alleen-beta3-nacontrole",
+    "readonly_postcheck_result": "INCOMPLETE",
+    "readonly_postcheck_report": "docs/modern-thermostat/BETA3-POSTCHECK-20261026.json",
+    "independent_postcheck_executed": true
   },
   "configuration_read_ui": {
     "withdrawal_labelled": true,
@@ -144,11 +154,11 @@
     ],
     "withdrawn_completion_rejected": true,
     "new_request_needs_fresh_declarations": true,
-    "physical_read_enabled": false,
+    "physical_read_enabled": true,
     "browser_gate": "test/boiler-configuration-read-browser.cjs",
     "pressure_declaration_follows_profile": true,
     "withdrawal_survives_invalid_status": true,
-    "state": "CI_VERIFIED_PRE_FREEZE"
+    "state": "LOCAL_NATIVE_BROWSER_BOARD_VERIFIED_PRE_FREEZE"
   },
   "bus_completion_callbacks": {
     "state": "CI_VERIFIED_PRE_FREEZE",
@@ -159,5 +169,34 @@
     "callback_exception_scenarios": 12,
     "evidence": "out/beta4-bus-reentry/",
     "physical_write_enabled": false
+  },
+  "attended_commissioning": {
+    "state": "LOCAL_NATIVE_BROWSER_BOARD_VERIFIED_PRE_FREEZE",
+    "manual_tx_source_enabled": true,
+    "automatic_tx_enabled": false,
+    "persistent_settings_tx_enabled": false,
+    "physical_qualification_complete": false,
+    "physical_trial_executed": false,
+    "minimum_flow_c": 40,
+    "maximum_flow_c": 45,
+    "maximum_duration_s": 60,
+    "operator_lease_ms": 5000,
+    "zero_baseline_required": true,
+    "separate_heat_start_required": true,
+    "native_sanitizer_tests": 282,
+    "control_browser_viewports": 3,
+    "board_verifier_fault_cases": 9,
+    "firmware_bytes": 2877936,
+    "evidence": "out/beta4-manual-trial/"
+  },
+  "bluetooth_discovery": {
+    "state": "BROWSER_NATIVE_VERIFIED_PRE_FREEZE",
+    "capacity": 128,
+    "scrollable": true,
+    "includes_unnamed_and_unknown_profiles": true,
+    "overflow_warning": true,
+    "configured_bindings_limit": 8,
+    "browser_cases": 12,
+    "physical_device_acceptance": false
   }
 }

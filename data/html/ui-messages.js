@@ -1,5 +1,11 @@
 /* Fixed English UI messages mapped to Nederlands. User data and wire identifiers are excluded. */
 window.OT_UI_MESSAGES = {
+    "Installation pressure read from the boiler gauge (bar)": "Installatiedruk afgelezen op de ketelmanometer (bar)",
+    "Read the boiler gauge before every heat trial.": "Lees de ketelmanometer vóór iedere warmteproef af.",
+    "Supervised Ecomline Classic trial; physical acceptance remains open.": "Bediende Ecomline Classic-proef; fysieke acceptatie staat nog open.",
+    "Devices found: ": "Gevonden apparaten: ",
+    "Browse the devices received by this E32. Devices without a name are listed by address. Finding a device does not mean its profile is supported.": "Bekijk de apparaten die deze E32 heeft ontvangen. Apparaten zonder naam staan op adres vermeld. Een gevonden apparaat heeft niet altijd een ondersteund profiel.",
+    "More devices were received than this list can hold. Search again nearer to the device you want to add.": "Er zijn meer apparaten ontvangen dan in deze lijst passen. Zoek opnieuw dichter bij het apparaat dat je wilt toevoegen.",
     "Refresh to prepare a settings change.": "Vernieuw om een instellingenwijziging voor te bereiden.",
     "Each change needs a fresh confirmation. Protocol ranges are not installation advice.": "Elke wijziging vraagt een nieuwe bevestiging. Protocolbereiken zijn geen installatieadvies.",
     "The request was accepted. Refresh to check the boiler readback.": "Het verzoek is geaccepteerd. Vernieuw om de terugmelding van de ketel te controleren.",

@@ -17,7 +17,7 @@ struct IO {
     bool write(const uint8_t*,size_t n){++writes;EXPECT_EQ(n,expectedLength);if(throwing==2)throw std::runtime_error("write");return writeOk;}
     bool detach(){++detached;if(throwing==3)throw std::runtime_error("detach");return detachOk;}
 };
-TEST(ManualClassicUart, DefaultsKeepManualAndLegacyPermissionsIndependentlyDisabled){EXPECT_FALSE(heating::board::emsTransmitAllowed);EXPECT_FALSE(heating::board::emsManualTestTransmitAllowed);EXPECT_FALSE(heating::board::auxiliaryGpioAllowed);}
+TEST(ManualClassicUart, AttendedTrialPermissionDoesNotEnableLegacyOrAuxiliaryOutputs){EXPECT_FALSE(heating::board::emsTransmitAllowed);EXPECT_TRUE(heating::board::emsManualTestTransmitAllowed);EXPECT_FALSE(heating::board::auxiliaryGpioAllowed);}
 TEST(ManualClassicUart, DisabledDoesNotInstantiateOrCallIo){struct Forbidden{}io;const auto r=ManualClassicUartWrite::write<false>(nullptr,999,io);EXPECT_FALSE(r.succeeded());EXPECT_FALSE(r.touched);}
 TEST(ManualClassicUart, EncoderFrameMapsOnlyForOneWriteAndAlwaysDetaches){IO io;const auto r=ManualClassicUartWrite::write<true>(frame,6,io);EXPECT_TRUE(r.succeeded());EXPECT_TRUE(r.touched);EXPECT_EQ(io.attached,1u);EXPECT_EQ(io.writes,1u);EXPECT_EQ(io.detached,1u);}
 TEST(ManualClassicUart, RejectsOtherFramesBeforeAnyMapping){

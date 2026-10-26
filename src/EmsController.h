@@ -15,6 +15,7 @@
 #include "EMS/ClassicBoilerTestEncoder.h"
 #include "EMS/ManualBusIdentity.h"
 #include "EMS/ClassicHeatTrialEnvelope.h"
+#include "EMS/EcomlineCommissioningProfile.h"
 #include "EMS/ClassicConfigurationRead.h"
 #include "EMS/ClassicBoilerSettingsService.h"
 #include "EMS/ClassicSettingsRuntimeGate.h"
@@ -264,18 +265,20 @@ public:
 		boilerTest_.writeJSON(ss, snapshotMs, operatorSession, boilerTestGates(), monitor_);
         ss<<",\"configuration_read\":";configurationRead_.writeJSON(ss,snapshotMs,configurationReadPermitted(),boilerTest_.active());
         const auto heat = heatTrialEnvelope(snapshotMs);
-        ss << ",\"heat_trial\":{\"profile_id\":\"" << ClassicHeatTrialEnvelope::profileId(manualHeatPressureSource_)
+        ss << ",\"heat_trial\":{\"mode\":\"" << EcomlineCommissioningProfile::mode
+           << "\",\"profile_id\":\"" << ClassicHeatTrialEnvelope::profileId(manualHeatPressureSource_)
            << "\",\"installation_reviewed\":" << (manualHeatInstallationReviewed_ ? "true" : "false")
            << ",\"digital_pressure_required\":"
            << (manualHeatPressureSource_ == ClassicHeatTrialEnvelope::PressureSource::reportedSensor ? "true" : "false")
            << ",\"separate_pressure_method_reviewed\":"
            << (manualPressureMethodReviewed_ ? "true" : "false")
+           << ",\"operator_gauge_reading_required\":true"
            << ",\"telemetry_ready\":" << (heat.ready ? "true" : "false")
            << ",\"reason\":\"" << heat.reason << "\",\"physical_validation\":false,\"limits\":{"
            << "\"minimum_flow_c\":" << static_cast<unsigned>(ClassicHeatTrialEnvelope::profile().minimumFlowC)
            << ",\"maximum_flow_c\":" << static_cast<unsigned>(ClassicHeatTrialEnvelope::profile().maximumFlowC)
            << ",\"maximum_duration_s\":" << ClassicHeatTrialEnvelope::profile().maximumHeatMs / 1000
-           << ",\"minimum_pressure_decibar\":" << ClassicHeatTrialEnvelope::minimumPressureDecibar
+           << ",\"minimum_pressure_decibar\":" << BoilerTestService::minimumManualPressureDecibar
            << ",\"maximum_pressure_decibar\":" << ClassicHeatTrialEnvelope::maximumPressureDecibar
            << ",\"minimum_measured_flow_centi\":" << ClassicHeatTrialEnvelope::minimumMeasuredFlowCenti
            << ",\"maximum_measured_flow_centi\":" << ClassicHeatTrialEnvelope::maximumMeasuredFlowCenti << "}}";
@@ -407,11 +410,10 @@ private:
 	ClassicBoilerMonitor monitor_;
     EmsDeviceInventory deviceInventory_;
 #ifdef OPENTHERMOSTAT_E32V2
-	// Concrete supervised software envelope. Physical installation qualification
-    // and TX permission remain separate source decisions, never HTTP settings.
-	BoilerTestService boilerTest_{(static_cast<uint64_t>(esp_random()) << 32) | esp_random(), board::emsManualTestTransmitAllowed,
-        ClassicHeatTrialEnvelope::profile(), true, true,
-        manualHeatPressureSource_ == ClassicHeatTrialEnvelope::PressureSource::separateCheck};
+	// A real, restricted attended commissioning route. Its pressure reading and
+    // site declarations are scoped to each accepted preparation, not persisted.
+	BoilerTestService boilerTest_{EcomlineCommissioningProfile::service(
+        (static_cast<uint64_t>(esp_random()) << 32) | esp_random(), board::emsManualTestTransmitAllowed)};
     ManualClassicTransaction manualTransaction_; // UART task only, never HTTP/loop.
     std::atomic<uint32_t> manualCompletions_{0},manualRejections_{0},manualReplyErrors_{0};
     template<bool Read>
@@ -456,16 +458,17 @@ private:
     ClassicConfigurationRead configurationRead_{boilerTest_.bootId(),board::emsManualTestTransmitAllowed};
     bool configurationReadPermitted() const {
         return manualTransportReviewed() && !boilerTest_.active() && !boilerSettings_.active()
-            && monitor_.capabilities().profile()==BoilerProtocol::classic;
+            && monitor_.capabilities().profile()==BoilerProtocol::classic && settingsUpdateAllowed_;
     }
     static constexpr bool manualHeatInstallationReviewed_ = false;
     // Fixed target installation: the user's Ecomline Classic has no digital
-    // pressure sensor. Reviewing a separate local pressure-check method is an
-    // additional source gate; selecting a catalogue photo cannot change it.
+    // pressure sensor. These flags record completed physical qualification;
+    // the attended commissioning profile requires a new local gauge reading
+    // instead. Neither a catalogue photo nor commissioning qualifies the site.
     static constexpr auto manualHeatPressureSource_ = ClassicHeatTrialEnvelope::PressureSource::separateCheck;
     static constexpr bool manualPressureMethodReviewed_ = false;
     ClassicHeatTrialEnvelope::Check heatTrialEnvelope(uint64_t now) const {
-        return ClassicHeatTrialEnvelope::inspect(monitor_, now, manualHeatPressureSource_, manualPressureMethodReviewed_);
+        return EcomlineCommissioningProfile::inspect(monitor_, now);
     }
     std::atomic<bool> manualSourceConflict_{false}; // Never cleared by UART reset.
     bool manualBusIdentityMatches() const {
@@ -479,11 +482,8 @@ private:
             && !resetRequested_.load(std::memory_order_relaxed);
     }
     BoilerTestSession::Gates boilerTestGates() const {
-        BoilerTestSession::Gates gates{}; // Physical heat-path review remains separate.
-        gates.transmitterReviewed = manualTransportReviewed() && !configurationRead_.active() && !boilerSettings_.active();
-        gates.pathReady = manualHeatInstallationReviewed_;
-        gates.limitsSafe = heatTrialEnvelope(static_cast<uint64_t>(esp_timer_get_time() / 1000)).ready;
-        return gates;
+        return EcomlineCommissioningProfile::gates(monitor_, static_cast<uint64_t>(esp_timer_get_time() / 1000),
+            manualTransportReviewed() && !configurationRead_.active() && !boilerSettings_.active() && settingsUpdateAllowed_);
     }
     // Fixed Classic service identity; observed mask and conflicts must still
     // match at final admission. No HTTP/config address selection or TX unlock.

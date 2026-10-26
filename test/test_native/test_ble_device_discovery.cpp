@@ -17,15 +17,15 @@ TEST(BleDeviceDiscovery, StableSortedUniqueAddressesWithoutDynamicStorage) {
 }
 TEST(BleDeviceDiscovery, ThousandsOfOtherAddressesCannotGrowOrEvictOriginalHints) {
     BleDeviceDiscovery devices;
-    for (unsigned i=0;i<32;++i) ASSERT_TRUE(devices.remember({0,0,0,0,0,uint8_t(i)}));
+    for (unsigned i=0;i<BleDeviceDiscovery::capacity;++i) ASSERT_TRUE(devices.remember({0,0,0,0,0,uint8_t(i)}));
     const auto original=devices;
-    for (unsigned i=32;i<65536;++i)
+    for (unsigned i=BleDeviceDiscovery::capacity;i<65536;++i)
         EXPECT_FALSE(devices.remember({0,0,0,0,uint8_t(i>>8),uint8_t(i)}));
-    EXPECT_EQ(devices.size(),32u);
+    EXPECT_EQ(devices.size(),BleDeviceDiscovery::capacity);
     EXPECT_TRUE(devices.overflowed());
     EXPECT_TRUE(std::equal(devices.begin(),devices.end(),original.begin()));
     EXPECT_TRUE(devices.remember({0,0,0,0,0,0}));
-    EXPECT_EQ(devices.size(),32u);
+    EXPECT_EQ(devices.size(),BleDeviceDiscovery::capacity);
 }
 
 TEST(BleDeviceDiscovery, NamesAndSignalFollowSortedAddressAndSurviveNamelessReports) {
@@ -70,9 +70,9 @@ TEST(BleDeviceDiscovery, WhitespaceOnlyAdvertisementCannotOverwriteUsableName) {
 TEST(BleDeviceDiscovery, NewDiscoveryReclaimsFullListAndClearsOldNames) {
     BleDeviceDiscovery devices;
     const uint8_t name[]={3,9,'O','K'};
-    for(uint8_t i=0;i<32;++i)ASSERT_TRUE(devices.remember({i},-50,name,sizeof name));
-    EXPECT_FALSE(devices.remember({99}));ASSERT_TRUE(devices.overflowed());
+    for(uint8_t i=0;i<BleDeviceDiscovery::capacity;++i)ASSERT_TRUE(devices.remember({i},-50,name,sizeof name));
+    EXPECT_FALSE(devices.remember({255,255,255,255,255,255}));ASSERT_TRUE(devices.overflowed());
     devices.clear();EXPECT_EQ(devices.size(),0u);EXPECT_FALSE(devices.overflowed());
-    ASSERT_TRUE(devices.remember({99},-60));EXPECT_STREQ(devices.hint(0).name.data(),"");
+    ASSERT_TRUE(devices.remember({255,255,255,255,255,255},-60));EXPECT_STREQ(devices.hint(0).name.data(),"");
     EXPECT_FALSE(devices.hint(0).completeName);EXPECT_EQ(devices.hint(0).rssi,-60);
 }

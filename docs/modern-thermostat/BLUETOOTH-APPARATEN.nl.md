@@ -10,7 +10,7 @@ Het [werkbord](WORKBOARD.nl.md) blijft de acceptatiechecklist.
 
 De E32-pagina **Settings → Bluetooth devices / Instellingen → Bluetoothapparaten**
 beheert maximaal acht expliciet gekozen adressen, met de afzonderlijke profielen
-**Shelly BLU H&T Display, SBHT-103C** en **Xiaomi Monitor 3, MJWSD05MMC**. Een zoekactie toont maximaal 32 sinds opstarten waargenomen adressen;
+**Shelly BLU H&T Display, SBHT-103C** en **Xiaomi Monitor 3, MJWSD05MMC**. De voorbereide beta.4 toont maximaal 128 waargenomen adressen in een afzonderlijk scrollvak, inclusief apparaten zonder naam en zonder ondersteund profiel. Het aantal gevonden apparaten staat erboven; bij overschrijding verschijnt een melding. Een nieuwe expliciete zoekactie wist de vorige ontdeklijst. De acht opgeslagen koppelingen staan hier los van;
 modelselectie blijft handmatig. Een adres, naam of RSSI bewijst geen model.
 De pagina is Engels/Nederlands en wordt alleen op E32 met de sessie-API getoond.
 

@@ -18,9 +18,13 @@ Een volgende pending-versie mag pas na haar eigen echte nacontrole worden geacce
 Gebruiker bevestigt op 26 oktober zowel de beta.3-installatie als de route:
 **Controleren op updates → installeren op de E32**. Dit is een gebruikersmelding
 over de native GitHub-updater. De oorspronkelijke receipts en onafhankelijke
-apparaatlezing zijn hiermee nog niet gecontroleerd. De bestaande HA-agent kan
-de volgende begrensde alleen-lezen opdracht uitvoeren zodra zijn beheertools
-beschikbaar zijn; in de huidige ontwikkelsessie ontbreken die tools.
+apparaatlezing zijn hiermee nog niet gecontroleerd. De bestaande HA-agent heeft de toegelaten alleen-lezen nacontrole uitgevoerd.
+Uitkomst: **INCOMPLETE**. Hij las HA Core2026.10.4 / integratie0.4.0b1 als
+`shadow_ready`, maar had geen gestructureerde E32-leesroute: 0 van 2 E32-
+waarnemingen en alle 13 installatiechecks onvolledig. Er zijn geen productie-
+wijzigingen uitgevoerd. Het [geanonimiseerde resultaat](BETA3-POSTCHECK-20261026.json)
+bewaart de hash van het onafhankelijke bewijs. De bestaande acceptatiepoort is
+ongewijzigd. Hieronder staat welke nog ontbrekende gegevens nodig zijn.
 
 1. Hergebruik de bestaande geauthenticeerde beheercontext en bewaar de originele
    antwoorden op de beveiligde bewijsplek. Lees op twee afzonderlijke momenten:

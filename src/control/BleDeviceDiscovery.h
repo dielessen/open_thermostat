@@ -10,7 +10,7 @@ namespace heating::control {
 class BleDeviceDiscovery {
 public:
     using Address = std::array<uint8_t,6>;
-    static constexpr std::size_t capacity = 32;
+    static constexpr std::size_t capacity = 128;
     struct Hint { std::array<char,41> name{}; bool completeName = false; int rssi = -127; };
     const Hint& hint(std::size_t index) const { return hints_[index]; }
     // Advertisement names are untrusted hints, never a model or identity proof.
@@ -68,5 +68,5 @@ private:
     std::size_t size_ = 0;
     bool overflowed_ = false;
 };
-static_assert(sizeof(BleDeviceDiscovery)<=1808,"BLE discovery memory budget changed");
+static_assert(sizeof(BleDeviceDiscovery)<=7000,"BLE discovery memory budget changed");
 }

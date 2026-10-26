@@ -15,7 +15,7 @@ class VerifierFaults(unittest.TestCase):
         cls.sandbox = tempfile.TemporaryDirectory(prefix="e32v2-verifier-")
         cls.root = Path(cls.sandbox.name)
         project = Path(__file__).resolve().parents[1]
-        for name in ("scripts/verify_e32v2.py", "boards/bbqkees_e32v2.json", "partitions_e32v2.csv"):
+        for name in ("scripts/verify_e32v2.py", "boards/bbqkees_e32v2.json", "partitions_e32v2.csv", "src/Board.h"):
             destination = cls.root / name
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(project / name, destination)
@@ -80,6 +80,25 @@ class VerifierFaults(unittest.TestCase):
             self.verify(False)
         finally:
             obj.unlink(missing_ok=True)
+
+    def test_missing_attended_uart_owner(self):
+        obj = self.build / "src/EmsController.cpp.o"
+        saved = obj.read_bytes()
+        try:
+            obj.unlink()
+            self.verify(False)
+        finally:
+            obj.write_bytes(saved)
+
+    def test_general_and_settings_source_permissions_stay_closed(self):
+        path = self.root / "src/Board.h"
+        saved = path.read_text()
+        try:
+            for flag in ("emsTransmitAllowed", "emsSettingsTransmitAllowed", "auxiliaryGpioAllowed"):
+                path.write_text(saved.replace(f"constexpr bool {flag} = false;", f"constexpr bool {flag} = true;", 1))
+                self.verify(False)
+        finally:
+            path.write_text(saved)
 
     def test_orphan_factory_program(self):
         path = self.build / "data_e32v2/programs/default.json"

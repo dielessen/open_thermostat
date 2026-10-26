@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "date": "2026-10-26",
+  "status": "INCOMPLETE",
+  "scope": "User-authorized independent read-only postcheck by the existing Home Assistant agent",
+  "observation_window_utc": "2026-10-26 17:45–17:46",
+  "ha": {
+    "core": "2026.10.4",
+    "integration": "0.4.0b1",
+    "loaded": true,
+    "state": "shadow_ready",
+    "source": 6,
+    "project_output_flags": false
+  },
+  "e32_observations": 0,
+  "required_e32_observations": 2,
+  "e32_identity": "UNKNOWN",
+  "original_beta3_receipts": "UNAVAILABLE_IN_BOUNDED_EVIDENCE",
+  "acceptance_checks": {
+    "passed": 0,
+    "failed": 0,
+    "incomplete": 13
+  },
+  "reason": "Existing agent has structured HA reads but no available structured E32 read channel; original beta.3 installation evidence was not available.",
+  "production_mutations": 0,
+  "independent_report_sha256": "1f31e16cfc8466c91ee755f6ba29d6cb917086fc35f7c4e0720131bd4355960b",
+  "acceptance_gate_advanced": false,
+  "physical_trial_executed": false
+}

@@ -700,7 +700,8 @@ private:
             std::unique_ptr<control::BleDeviceDiscovery> discovered(new(std::nothrow) control::BleDeviceDiscovery);
             if(!discovered) {server_.send(503);return;} controller_.copyBleDiscovery(*discovered);
             auto nearby=cJSON_AddArrayToObject(result.get(),"nearby");
-            if(!nearby || !cJSON_AddBoolToObject(result.get(),"discovery_full",discovered->overflowed())) {server_.send(503);return;}
+            if(!nearby || !cJSON_AddBoolToObject(result.get(),"discovery_full",discovered->overflowed())
+                    || !cJSON_AddNumberToObject(result.get(),"discovery_capacity",control::BleDeviceDiscovery::capacity)) {server_.send(503);return;}
             auto hints=cJSON_AddArrayToObject(result.get(),"nearby_devices");
             if(!hints) {server_.send(503);return;}
             size_t hintIndex=0;

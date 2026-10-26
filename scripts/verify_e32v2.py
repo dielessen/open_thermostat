@@ -61,14 +61,23 @@ board = json.loads((root / "boards/bbqkees_e32v2.json").read_text())
 assert board["build"]["mcu"] == "esp32"
 assert board["upload"]["flash_size"] == "16MB"
 assert "BOARD_HAS_PSRAM" in board["build"]["extra_flags"]
-# Check compiler output, not just a source-code guard. No project object may
-# reference a UART transmit primitive, even the timeout/reset/forwarder paths.
+# Check the shipped policy and compiler output. Only the finite, attended
+# commissioning path may own UART writes; legacy and persistent writers stay off.
+policy = (root / "src/Board.h").read_text().split("#ifdef OPENTHERMOSTAT_E32V2", 1)[1].split("#else", 1)[0]
+assert "constexpr bool emsTransmitAllowed = false;" in policy
+assert "constexpr bool emsManualTestTransmitAllowed = true;" in policy
+assert "constexpr bool auxiliaryGpioAllowed = false;" in policy
+assert "constexpr bool emsSettingsTransmitAllowed = false;" in (root / "src/Board.h").read_text()
 core = Path(os.environ.get("PLATFORMIO_CORE_DIR", Path.home() / ".platformio"))
 nm = core / "packages/toolchain-xtensa-esp32/bin/xtensa-esp32-elf-nm"
 objects = list((build / "src").rglob("*.o"))
 assert objects
-symbols = subprocess.check_output([str(nm), "-u", *map(str, objects)], text=True)
-for forbidden in ("uart_write_bytes", "uart_send_break", "uart_tx_chars", "uart_write_bytes_with_break"):
-    assert forbidden not in symbols, f"TX primitive reachable: {forbidden}"
+owners = []
+for obj in sorted(objects):
+    symbols = {line.split()[-1] for line in subprocess.check_output([str(nm), "-u", str(obj)], text=True).splitlines() if line.split()}
+    assert not symbols.intersection({"uart_send_break", "uart_tx_chars", "uart_write_bytes_with_break"}), obj
+    if "uart_write_bytes" in symbols:
+        owners.append(obj.relative_to(build).as_posix())
+assert owners == ["src/EmsController.cpp.o"], owners
 print(f"PASS: partition bounds/alignment, dual OTA ({firmware_size}/{slots[0][4]} bytes), "
-      "dual SPIFFS, inert defaults, PSRAM flags, network gate, no project UART TX references")
+      "dual SPIFFS, inert defaults, PSRAM flags, network gate, controller-only attended UART route")

@@ -1,5 +1,6 @@
 #pragma once
 #include "BoilerTestSession.h"
+#include "ClassicHeatTrialEnvelope.h"
 #include "control/BoundedJson.h"
 #include "control/WebAuthSession.h"
 #include <array>
@@ -21,10 +22,15 @@ public:
     struct Result { int http; const char* error; bool duplicate = false; };
     BoilerTestService(uint64_t boot, bool transmitCompiled,
                       BoilerTestSession::Profile profile = {}, bool driverAttached = false,
-                      bool requireSiteConfirmation = false, bool requirePressureConfirmation = false)
+                      bool requireSiteConfirmation = false, bool requirePressureConfirmation = false,
+                      bool requirePressureReading = false)
         : boot_(boot), transmitCompiled_(transmitCompiled), profile_(profile),
-          driverAttached_(driverAttached), requireSiteConfirmation_(requireSiteConfirmation || requirePressureConfirmation),
-          requirePressureConfirmation_(requirePressureConfirmation), session_(boot, profile) {}
+          driverAttached_(driverAttached), requireSiteConfirmation_(requireSiteConfirmation || requirePressureConfirmation || requirePressureReading),
+          requirePressureConfirmation_(requirePressureConfirmation || requirePressureReading),
+          requirePressureReading_(requirePressureReading), session_(boot, profile) {}
+    static constexpr uint32_t minimumManualPressureDecibar = ClassicHeatTrialEnvelope::minimumPressureDecibar + 1;
+    static constexpr uint32_t maximumManualPressureDecibar = ClassicHeatTrialEnvelope::maximumPressureDecibar;
+    static constexpr uint64_t manualPressureLifetimeMs = 120000;
     uint64_t bootId() const { return boot_; }
     bool active() const { return session_.active(); }
     void transportFault(uint64_t now) {
@@ -35,7 +41,7 @@ public:
 
     void tick(uint64_t now, const BoilerTestSession::Gates& gates, const ClassicBoilerMonitor& monitor) {
         const auto before = marker();
-        session_.step(now, effective(gates), monitor);
+        session_.step(now, effective(gates, now), monitor);
         if (marker() != before) ++stateSequence_;
     }
     Result action(std::string_view action, std::string_view body, std::string_view owner,
@@ -43,7 +49,7 @@ public:
         // Only a previously authenticated, CSRF-checked boot-local HTTP session
         // may call this API. The cookie is bound privately and NEVER published.
         if (!control::WebAuthSession::hexToken(owner)) return {401, "authentication_required"};
-        if (body.size() > 256) return {400, "invalid_request"};
+        if (body.size() > (requirePressureReading_ ? 384u : 256u)) return {400, "invalid_request"};
         const auto document = control::parseControlJson(body);
         const auto* json = document.get();
         const bool zeroOnly = action == "prepare_zero";
@@ -53,7 +59,9 @@ public:
         if (!preparing && !closing && action != "start" && action != "keepalive" && action != "stop") return {404, "unknown_action"};
         const bool validKeys = closing ? exactKeys(json, {"schema", "boot_id", "revision", "local_stop_confirmed"})
             : preparing && requireSiteConfirmation_
-            ? (preparingHeat ? (requirePressureConfirmation_
+            ? (preparingHeat ? (requirePressureReading_
+                               ? exactKeys(json, {"schema", "boot_id", "revision", "flow_c", "duration_s", "exclusive_owner_confirmed", "independent_stop_confirmed", "heat_path_confirmed", "pressure_check_confirmed", "pressure_decibar"})
+                               : requirePressureConfirmation_
                                ? exactKeys(json, {"schema", "boot_id", "revision", "flow_c", "duration_s", "exclusive_owner_confirmed", "independent_stop_confirmed", "heat_path_confirmed", "pressure_check_confirmed"})
                                : exactKeys(json, {"schema", "boot_id", "revision", "flow_c", "duration_s", "exclusive_owner_confirmed", "independent_stop_confirmed", "heat_path_confirmed"}))
                              : exactKeys(json, {"schema", "boot_id", "revision", "exclusive_owner_confirmed", "independent_stop_confirmed"}))
@@ -70,6 +78,9 @@ public:
         if (preparingHeat && requirePressureConfirmation_
             && !cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(json, "pressure_check_confirmed")))
             return {400, "pressure_confirmation_required"};
+        if (preparingHeat && requirePressureReading_
+            && !integer(json, "pressure_decibar", minimumManualPressureDecibar, maximumManualPressureDecibar))
+            return {400, "pressure_outside_trial_limits"};
         const auto* boot = cJSON_GetObjectItemCaseSensitive(json, "boot_id");
         if (!cJSON_IsString(boot) || std::string_view(boot->valuestring) != bootText()) return {409, "boot_changed"};
         const auto revision = static_cast<uint32_t>(cJSON_GetObjectItemCaseSensitive(json, "revision")->valuedouble);
@@ -82,7 +93,10 @@ public:
         if (preparing) {
             if (revision == revision_) {
                 if (!owned(owner)) return {403, "different_operator"};
-                return zeroOnly == session_.zeroOnly() && flow == flow_ && durationMs == durationMs_ ? Result{200, "", true} : Result{409, "request_changed"};
+                const bool samePressure = zeroOnly || !requirePressureReading_
+                    || (pressureDecibar_ && *pressureDecibar_ == static_cast<uint32_t>(cJSON_GetObjectItemCaseSensitive(json, "pressure_decibar")->valuedouble));
+                return zeroOnly == session_.zeroOnly() && flow == flow_ && durationMs == durationMs_ && samePressure
+                    ? Result{200, "", true} : Result{409, "request_changed"};
             }
             if (revision_ == maximumRevision || revision != revision_ + 1) return {409, "revision_changed"};
         } else {
@@ -91,7 +105,7 @@ public:
             // CURRENT session, but cannot start or renew somebody else's test.
             if (action != "stop" && !closing && !owned(owner)) return {403, "different_operator"};
         }
-        auto admitted = effective(gates, preparing);
+        auto admitted = effective(gates, now, preparing);
         if (closing) {
             if (session_.phase() == BoilerTestSession::Phase::closed) return {200, "", true};
             const auto before = marker();
@@ -107,7 +121,7 @@ public:
             ++stateSequence_;
             return {202, ""}; // request accepted, NEVER a reported stop proof
         }
-        if (const auto* blocked = blockedReason(gates, zeroOnly || (!preparing && session_.zeroOnly()), preparing)) return {409, blocked};
+        if (const auto* blocked = blockedReason(gates, now, zeroOnly || (!preparing && session_.zeroOnly()), preparing)) return {409, blocked};
         if (preparing) {
             const auto reply = session_.prepare(boot_, revision, flow, durationMs, now, admitted, monitor, zeroOnly);
             if (reply == BoilerTestSession::Reply::refused) return {409, "proving_conditions_missing"};
@@ -117,6 +131,10 @@ public:
             siteConfirmed_ = requireSiteConfirmation_;
             heatPathConfirmed_ = requireSiteConfirmation_ && preparingHeat;
             pressureConfirmed_ = requirePressureConfirmation_ && preparingHeat;
+            pressureDecibar_ = preparingHeat && requirePressureReading_
+                ? std::optional<uint32_t>(static_cast<uint32_t>(cJSON_GetObjectItemCaseSensitive(json, "pressure_decibar")->valuedouble))
+                : std::nullopt;
+            pressureDeclaredAt_ = now;
             std::copy(owner.begin(), owner.end(), owner_.begin()); owner_[64] = 0;
             positiveFrames_ = zeroFrames_ = 0;
             ++stateSequence_;
@@ -136,21 +154,21 @@ public:
     BoilerTestSession::Intent next(uint64_t now, const BoilerTestSession::Gates& gates,
                                   const ClassicBoilerMonitor& monitor) {
         const auto before = marker();
-        const auto intent = session_.next(now, effective(gates), monitor);
+        const auto intent = session_.next(now, effective(gates, now), monitor);
         if (marker() != before) ++stateSequence_;
         return intent;
     }
     bool mayTransmit(const BoilerTestSession::Intent& intent, uint64_t now,
                      const BoilerTestSession::Gates& gates, const ClassicBoilerMonitor& monitor) {
         const auto before = marker();
-        const bool allowed = session_.mayTransmit(intent, now, effective(gates), monitor);
+        const bool allowed = session_.mayTransmit(intent, now, effective(gates, now), monitor);
         if (marker() != before) ++stateSequence_;
         return allowed;
     }
     bool beginTransmit(const BoilerTestSession::Intent& intent, uint64_t now,
                        const BoilerTestSession::Gates& gates, const ClassicBoilerMonitor& monitor) {
         const auto before = marker();
-        const bool began = session_.beginTransmit(intent, now, effective(gates), monitor);
+        const bool began = session_.beginTransmit(intent, now, effective(gates, now), monitor);
         if (began || marker() != before) ++stateSequence_;
         return began;
     }
@@ -158,7 +176,7 @@ public:
                         const BoilerTestSession::Gates& gates, const ClassicBoilerMonitor& monitor) {
         const auto before = marker();
         const bool wasInFlight = session_.transmissionInFlight();
-        if (!session_.finishTransmit(intent, now, success, effective(gates), monitor)) {
+        if (!session_.finishTransmit(intent, now, success, effective(gates, now), monitor)) {
             if (marker() != before || wasInFlight != session_.transmissionInFlight()) ++stateSequence_;
             return false;
         }
@@ -168,10 +186,10 @@ public:
     }
     void writeJSON(std::ostream& out, uint64_t now, std::string_view owner,
                    const BoilerTestSession::Gates& gates, const ClassicBoilerMonitor& monitor) const {
-        const auto* blocked = blockedReason(gates, false, true); const auto admitted = effective(gates);
-        const auto preparationGates = effective(gates, true);
+        const auto* blocked = blockedReason(gates, now, false, true); const auto admitted = effective(gates, now);
+        const auto preparationGates = effective(gates, now, true);
         const bool isOwner = owned(owner);
-        const bool zeroAvailable = !blockedReason(gates, true, true);
+        const bool zeroAvailable = !blockedReason(gates, now, true, true);
         out << "{\"schema\":1,\"boot_id\":\"" << bootText() << "\",\"revision\":" << revision_
             << ",\"state_sequence\":" << stateSequence_ << ",\"observed_at_ms\":" << now
             << ",\"available\":" << (blocked ? "false" : "true")
@@ -205,6 +223,16 @@ public:
                  << ",\"maximum_flow_c\":" << static_cast<unsigned>(profile_.maximumFlowC)
                  << ",\"maximum_duration_s\":" << profile_.maximumHeatMs / 1000
                  << ",\"operator_lease_ms\":" << profile_.operatorLeaseMs << '}';
+        out << ",\"pressure_reading_required\":" << (requirePressureReading_ ? "true" : "false")
+            << ",\"pressure_reading_limits\":";
+        if (requirePressureReading_) out << "{\"minimum_decibar\":" << minimumManualPressureDecibar
+            << ",\"maximum_decibar\":" << maximumManualPressureDecibar << '}';
+        else out << "null";
+        out << ",\"operator_pressure_observation\":";
+        if (pressureDecibar_) out << "{\"source\":\"operator_boiler_gauge\",\"value_decibar\":" << *pressureDecibar_
+            << ",\"declared_at_ms\":" << pressureDeclaredAt_ << ",\"maximum_age_ms\":" << manualPressureLifetimeMs
+            << ",\"physical_validation\":false}";
+        else out << "null";
         out << ",\"physical_validation\":false}";
     }
 
@@ -220,7 +248,7 @@ private:
         return revision_ && control::WebAuthSession::hexToken(owner)
             && control::WebAuthSession::equal(owner, std::string_view(owner_.data(), 64));
     }
-    BoilerTestSession::Gates effective(BoilerTestSession::Gates gates, bool preparation = false) const {
+    BoilerTestSession::Gates effective(BoilerTestSession::Gates gates, uint64_t now, bool preparation = false) const {
         gates.transmitterReviewed = gates.transmitterReviewed && transmitCompiled_ && driverAttached_;
         if (requireSiteConfirmation_) {
             // These are operator declarations for this finite manual trial,
@@ -231,15 +259,18 @@ private:
         }
         if (requirePressureConfirmation_)
             gates.limitsSafe = gates.limitsSafe && (preparation || pressureConfirmed_);
+        if (requirePressureReading_)
+            gates.limitsSafe = gates.limitsSafe && (preparation || (pressureDecibar_ && now >= pressureDeclaredAt_
+                && now - pressureDeclaredAt_ < manualPressureLifetimeMs));
         return gates;
     }
-    const char* blockedReason(const BoilerTestSession::Gates& gates, bool zeroOnly = false, bool preparation = false) const {
+    const char* blockedReason(const BoilerTestSession::Gates& gates, uint64_t now, bool zeroOnly = false, bool preparation = false) const {
         if (!boot_) return "boot_unavailable";
         if (session_.phase() == BoilerTestSession::Phase::closed) return "restart_required";
         if (!transmitCompiled_) return "transmit_blocked";
         if (!(zeroOnly ? profile_.validForZero() : profile_.valid())) return "profile_missing";
         if (!driverAttached_) return "test_transport_missing";
-        const auto admitted = effective(gates, preparation);
+        const auto admitted = effective(gates, now, preparation);
         if (!(zeroOnly ? admitted.allowsZero() && admitted.independentStopAvailable : admitted.allowsHeat())) return "proving_conditions_missing";
         return nullptr;
     }
@@ -271,6 +302,9 @@ private:
     bool driverAttached_;
     bool requireSiteConfirmation_, siteConfirmed_ = false, heatPathConfirmed_ = false;
     bool requirePressureConfirmation_, pressureConfirmed_ = false;
+    bool requirePressureReading_ = false;
+    std::optional<uint32_t> pressureDecibar_;
+    uint64_t pressureDeclaredAt_ = 0;
     BoilerTestSession session_;
     uint32_t revision_ = 0, durationMs_ = 0;
     uint64_t positiveFrames_ = 0, zeroFrames_ = 0;

@@ -1,10 +1,20 @@
-# E32 V2 beta4 — draft: session recovery and heating settings overview
+# E32 V2 beta4 — draft: attended boiler trial and Bluetooth discovery
 <!-- user-release-notes:v2:en -->
 
 Draft only. Not frozen, published or installed. The published beta.3 downloads
 are unchanged.
 
 ## New
+
+- **Scrollable Bluetooth discovery.** Browse up to 128 received devices, including
+  unnamed devices and unsupported profiles. The list shows its count, keeps its
+  scroll position during polling and warns when full. The eight saved sensor
+  bindings remain separate; discovery does not establish profile support.
+- **An attended Ecomline Classic commissioning trial.** Read the boiler settings,
+  confirm exclusive ownership and a local stop, then prove a zero-demand baseline.
+  Starting heat requires a separate action, an open heat path and a new boiler-gauge
+  reading of 1.1–2.5 bar. Demand is bounded to 40–45 °C and at most 60 seconds,
+  with a five-second supervision lease and an explicit Stop action.
 
 - **Recover access when all four saved sessions are occupied.** Select the
   recovery option on the login page and enter your username and password again
@@ -19,8 +29,9 @@ are unchanged.
 
 - **Correct pressure requirements for the target boiler.** The Ecomline trial
   profile explains that this installation has no digital pressure sensor. It
-  requires review of a separate pressure-check method and a fresh declaration
-  for each heat trial. Neither a profile selection nor a checkbox enables control.
+  uses a fresh operator-entered mechanical gauge reading for each heat trial,
+  valid for at most two minutes. This remains separate from reported telemetry
+  and completed physical installation acceptance.
 
 ## Fixed
 
@@ -61,8 +72,9 @@ unconfirmed firmware boot. Recovery does not require a factory reset.
 
 ## Limitations
 
-Physical boiler and valve control remain disabled. Boiler settings stay
-read-only in the standard firmware. The prepared four-setting editor and the
+Automatic boiler and valve control remain disabled. The only enabled boiler
+command path is the attended commissioning trial and its one-shot configuration
+read. Persistent boiler settings stay read-only in the standard firmware. The prepared four-setting editor and the
 EMS-ESP entity reference do not grant write permission or complete EMS-ESP
-write support. The separate pressure-check method for the target installation
-still requires physical review.
+write support. The trial does not complete physical installation acceptance; its actual
+results and the independent stop still need to be recorded on site.

@@ -4,7 +4,7 @@ Bijgewerkt op 26 oktober 2026. Status: **NOT_READY voor actieve ketelproeven**.
 Dit document beschrijft het volgende werk; het [werkbord](WORKBOARD.nl.md)
 bewaakt alle 31 producteisen en 14 eindcontroles. De
 [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bewaakt alle 23 voorbereide
-onderdelen en hun 460 bronverwijzingen. De
+onderdelen en hun 465 bronverwijzingen. De
 [volledige voortgangshistorie](NEXT-RELEASE-HISTORY-20261026.nl.md) blijft bewaard;
 oude versies en aantallen daarin zijn historische checkpoints.
 
@@ -29,8 +29,8 @@ ze zijn geen afgevinkte functie doordat er voorbereidende code aanwezig is.
 | Voorbereide bron | Huidige branch, inclusief eenmalige configuratie-uitlezing, afzonderlijke busafsluiting en alle eerdere voorbereide wijzigingen |
 | Nieuwe gezamenlijke kandidaat | E32 beta.3 / HA 0.4.0b3 gepubliceerd uit `996587d`; exacte tag-CI en openbare pakketten gecontroleerd. E32-installatie door gebruiker bevestigd; native bewijs en onafhankelijke nacontrole nog open. De bestaande HA-MCP-beheertools zijn hier niet beschikbaar. Passieve release, geen warmteproefvrijgave |
 | Volgende E32-release | Beta.4 in voorbereiding: sessieherstel, 30-minuten-inactiviteitsverval, algemene ketelillustratie en voorbereid CV-instellingenoverzicht/-bedieningspad. Geen nieuwe HA-versie voor deze wijzigingen. Nog niet bevroren of gepubliceerd; beta.3-installatieacceptatie staat open |
-| Algemene en handmatige fysieke TX | Beide uit; geen runtime- of buildflag-ontgrendeling |
-| Warmte-installatievrijgave | `manualHeatInstallationReviewed_ = false` |
+| Huidige ontwikkelbron: TX | Alleen de afzonderlijke handmatige proef- en configuratieleesroute aan; algemene regeling en blijvende instellingen-TX uit. Nog niet gepubliceerd of geïnstalleerd |
+| Warmte-installatievrijgave | Fysieke kwalificatie blijft open; het expliciete commissioningprofiel vraagt per proef actuele opstellingsverklaringen en een manometerwaarde |
 
 De native HA-specialist bevestigde op 26 oktober 02:59–03:02 UTC Core2026.10.4
 en integratie0.4.0b1 als geladen. De actuele E32-versie/bron en UART-tellers
@@ -46,20 +46,46 @@ De volledige firmware-/ELF-/web-/manifesthashes staan onder
 Dit is de vergelijkingsbasis voor de latere apparaatlezing, geen live nacontrole.
 Een ontwikkelimage met hetzelfde beta.3-versielabel telt niet als dit publieke pakket.
 
-De [concrete alleen-lezen nacontroleopdracht](E32-UPDATE-PROCES.nl.md#actuele-opdracht-alleen-beta3-nacontrole)
-staat klaar voor de bestaande HA-agent: twee verse waarnemingen van versie,
-bron/ELF/web, bevestigde boot en updaterrust, plus vergelijking met de originele
-voorcontrole, installreceipts en back-up. De door de gebruiker bevestigde native
-route is vastgelegd. Ontbrekend bewijs blijft onbekend; dit vraagt geen nieuwe
-installatie, updatecheck of herstart. De native beheertools ontbreken hier nog.
+De toegelaten HA-nacontrole is uitgevoerd: **INCOMPLETE**. De agent bevestigde
+HA Core2026.10.4 / integratie0.4.0b1 als geladen en `shadow_ready`, maar kon
+geen E32-waarnemingen of oorspronkelijke beta.3-installreceipts verkrijgen.
+Alle 13 acceptatiechecks blijven onvolledig; er zijn geen productiewijzigingen
+uitgevoerd. [Resultaat en bewijshash](BETA3-POSTCHECK-20261026.json).
+
+## Actuele uitbreiding: uitvoerbare proef en Bluetoothscrollvak
+
+Op verzoek wordt beta.4 een bruikbare **handmatige commissioningproef**, in
+plaats van nog een uitsluitend passieve voorbereiding. Het vaste Classicprofiel
+verbindt de echte E32-zendroute met de bestaande eindige testpolicy. De operator
+verklaart per proef exclusief busbezit (Tado los), een lokale onafhankelijke stop
+en bij warmte een open afgiftepad. Voor iedere warmtevoorbereiding voert hij de
+manometerwaarde in: 1,1–2,5 bar, maximaal twee minuten geldig. Dit wordt geen
+verzonnen digitale ketelmeting of afgeronde fysieke installatieacceptatie.
+
+Eerst configuratie uitlezen en nulvraag met een latere echte stopmelding;
+daarna pas een afzonderlijke start, 40–45 °C, maximaal 60 seconden en een
+operatorlease van vijf seconden. Stop blijft afzonderlijk beschikbaar.
+Automatische kamer-/kraanregeling en blijvende instellingenwrites blijven uit.
+De fabrikant beschrijft de manometercontrole in de
+[Nefit gebruikersinstructie, p. 2-1](https://nefit-nl-nl-b.boschhc-documents.com/download/file/file/70542900.pdf).
+B07–B09/B14 blijven open voor de echte proef en haar meetresultaten.
+
+Bluetooth krijgt een apart scrollvak met **maximaal 128 gevonden adressen**,
+ook zonder naam of ondersteund model. Aantal en overloopmelding zijn zichtbaar;
+pollen behoudt de scrollpositie en invoer. De acht opgeslagen sensorkoppelingen
+blijven een aparte limiet. Twaalf browserprofielen (EN/NL, mobiel/desktop) en de
+begrensde ontdeklijst zijn lokaal gecontroleerd. De E32-firmware/bestandssysteem en 282 native proefgevallen met ASAN/UBSAN,
+drie bedieningsviewports (waaronder echte manometerinvoer) en negen fouteninjecties
+in de bordverifier slagen lokaal. Aanvullende browserregressies lopen nog. Het groene checkpoint
+`c058dd2` hieronder geldt voor de eerdere passieve bron.
 
 ## Eerstvolgende werk, in volgorde
 
 | Prioriteit | Werk | Vereist resultaat |
 | --- | --- | --- |
-| P0 — modelprofiel zonder digitale drukmeting | Apart brongebonden Ecomline-profiel geïmplementeerd: afzonderlijke drukcontrolemethode vereist, met een nieuwe verklaring per warmteproef. De methodepoort blijft uit | Passende fysieke drukcontrolemethode voor deze installatie beoordelen en vastleggen; geen digitale drukwaarde eisen of verzinnen. Overige meet-, installatie- en stopvoorwaarden blijven behouden |
-| P0 — configuratieontvangst | Eenmalige uitleesroute is aangesloten in HTTP, UART-poll en NL/EN-bediening; afronden met kandidaat- en fysieke controle | Echte latere boilerrespons levert CV-aan/uit en temperatuur met originele ontvangsttijd; standaard TX blijft uit tot afzonderlijke vrijgave |
-| P0 — handmatige proefvariant | Bronbeoordeling en installatiekaart B07–B09 afronden voor de echte E32/EasyControl/Classic-keten | Expliciete adres-/interface-/timing-/arbitragebeoordeling en passende afgifte-, stop- en overdrachtsvoorwaarden; geen willekeurig openzetten van algemene TX |
+| P0 — uitvoerbare proefbron | Vast Classic-commissioningprofiel met manometerinvoer en afzonderlijke proefroute aangesloten | Native-, browser-, echte ESP32- en passieve herstelvariant controleren; geen automatische of blijvende instellingenwrites |
+| P0 — configuratieontvangst | Eenmalige uitleesroute is aangesloten in HTTP, UART-poll en NL/EN-bediening; afronden met kandidaat- en fysieke controle | Echte latere boilerrespons levert CV-aan/uit en temperatuur met originele ontvangsttijd; alleen de afzonderlijke handmatige leesroute beschikbaar |
+| P0 — handmatige proefvariant | Bron en CI van het vaste commissioningprofiel afronden; proefkaart uitvoerbaar houden | Per proef echte opstellingsverklaringen; B07–B09 registreren met werkelijke interface-/timing-/stopwaarnemingen, zonder algemene TX te openen |
 | P0 — gezamenlijke freeze | Volledige CI en 2.236 onafhankelijke pakketcontroles geslaagd op `c058dd2`, inclusief bescherming van instellingstransactie en busafsluiting. Beta.4-versie en bron nog niet bevroren | Exacte kandidaat met volledige native-/HA-/browser-/board-/bron-/licentie-/pakketcontroles; ontwikkelbewijs apart houden |
 | P0 — release en installatie | Eén gezamenlijke publicatie en installatie na kandidaatacceptatie | Begrijpelijke Engelse GitHub-notities, actuele README en juiste assets/manifest/checksums; HA via de bestaande native HA-specialist met back-up; E32 via native GitHub-OTA |
 | P0 — onafhankelijke nacontrole | Nieuwe boot, versie/bron/ELF/web en instellingenbehoud vastleggen | Verse readback en acceptatierapport; HTTP202 of alleen een build telt niet als geslaagde installatie |
@@ -77,13 +103,14 @@ niet vóór deze handmatige bèta; automatische kamer-/kraanuitvoer blijft daarb
 geblokkeerd. De eigen B07–B09-voorwaarden voor ketelmetingen, zender en installatie
 blijven vereist. B14 wordt pas na de afzonderlijk toegelaten echte proef afgetekend.
 
-## Sensorloze Ecomline: drukvoorwaarden in de bron herzien
+## Eerder checkpoint: sensorloze drukvoorwaarden vóór commissioning
 
 Het vaste E32-proefprofiel gebruikt nu `ecomline-classic-separate-pressure-v1`.
 De keuze staat in de bron; een ketelfoto, ontbrekende meting of HTTP-parameter
-kan haar niet veranderen. De afzonderlijke bronpoort
-`manualPressureMethodReviewed_ = false` vereist eerst beoordeling van een
-passende lokale drukcontrolemethode. Naast de bestaande opstellingsverklaringen
+kan haar niet veranderen. In dit eerdere checkpoint vereiste de bronpoort
+`manualPressureMethodReviewed_ = false` eerst beoordeling van een
+passende lokale drukcontrolemethode. Het actuele commissioningprofiel hierboven
+vervangt deze permanente proefblokkade door een expliciete manometerprocedure. Naast de bestaande opstellingsverklaringen
 vereist iedere warmtevoorbereiding daarna een nieuwe expliciete
 `pressure_check_confirmed: true`. Een nulproef en stop vereisen deze
 warmteverklaring niet.

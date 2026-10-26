@@ -89,6 +89,11 @@ the controller's intention. Neither proves that a command was sent or accepted.
 The current Ecomline Classic installation has no digital pressure sensor; no
 synthetic pressure reading is substituted.
 
+**In development for E32 beta.4:** an attended Ecomline Classic commissioning
+trial with a zero-demand baseline, fresh boiler-gauge input and bounded heat
+demand, plus a scrollable Bluetooth discovery list for up to 128 addresses.
+These changes are not yet published; see the [draft release notes](docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.en.md).
+
 ### Home Assistant and daily use
 
 | Feature | Current status |

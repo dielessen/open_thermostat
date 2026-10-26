@@ -10,18 +10,38 @@
             ? uiText("Classic monitoring via the Bosch EasyControl Adapter; control is still in beta development.")
             : model.kind === 'none' ? '' : uiText("Listed by EMS-ESP. Monitoring and control in OpenThermostat have not been verified for this model.")
     }])));
+    // Original neutral illustration, embedded so the fallback also works offline.
+    const genericBoilerImage = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 180">' +
+        '<path d="M38 151v22m22-22v22m22-22v22" stroke="#879b9c" stroke-width="6"/>' +
+        '<rect x="13" y="8" width="94" height="149" rx="9" fill="#f8faf9" stroke="#8ca3a2" stroke-width="3"/>' +
+        '<path d="M25 24h70M25 30h70M25 36h70" stroke="#d0dcda" stroke-width="3"/>' +
+        '<rect x="25" y="113" width="70" height="28" rx="5" fill="#355957"/>' +
+        '<rect x="32" y="120" width="27" height="13" rx="2" fill="#afd4c3"/>' +
+        '<circle cx="78" cy="127" r="7" fill="#e4eeea"/>' +
+        '<path d="M78 122v5" stroke="#355957" stroke-width="2"/>' +
+        '</svg>');
     function appendPicture(parent, model, width, height) {
-        if (!model?.image) return;
+        if (!model || model.kind === 'none') return;
         const image = document.createElement('img');
-        image.alt = model.imageModel;
         image.width = width; image.height = height;
         image.referrerPolicy = 'no-referrer';
-        image.addEventListener('error', () => image.remove(), {once: true});
-        image.src = model.image; parent.append(image);
+        function useGeneric() {
+            image.alt = uiText("Generic boiler illustration");
+            image.src = genericBoilerImage;
+            parent.querySelector('[data-image-source]')?.remove();
+        }
+        if (model.image) {
+            image.alt = model.imageModel || model.name;
+            image.addEventListener('error', useGeneric, {once: true});
+            image.src = model.image;
+        } else useGeneric();
+        parent.append(image);
     }
     function appendImageSource(parent, model) {
         if (!model?.imageSource) return;
         const credit = document.createElement('p'), link = document.createElement('a');
+        credit.dataset.imageSource = '';
         link.href = model.imageSource; link.target = '_blank'; link.rel = 'noopener noreferrer';
         link.textContent = uiText("Product image source") + ': ' + model.imageCredit;
         credit.append(link); parent.append(credit);

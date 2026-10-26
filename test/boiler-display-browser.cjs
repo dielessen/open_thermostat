@@ -48,13 +48,15 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
   assert.deepEqual(labels.slice(1),[...labels.slice(1)].sort((a,b)=>a.localeCompare(b,'en')));
   for(const m of catalog.models.filter(m=>m.selectable===true)) assert(m.name.startsWith(m.brand+' '));
   await page.locator('#boiler-model').selectOption('nefit-ecomline-classic-hrc-22h');
-  assert.equal(await page.locator('figure img').count(),0,'No generic image for Ecomline');
+  assert.match(await page.locator('figure img').getAttribute('src'),/^data:image\/svg\+xml/);
+  assert.equal(await page.locator('figure img').getAttribute('alt'),'Algemene ketelillustratie');
   await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).click();
   await page.getByRole('status').filter({hasText:'Ketelkeuze opgeslagen'}).waitFor();
   assert.equal(stored,'nefit-ecomline-classic-hrc-22h');
   await page.evaluate(()=>mainScreen());await page.getByRole('heading',{name:'Nefit Ecomline Classic HRC 22H',exact:true}).waitFor();
   assert.match(await page.locator('#boiler-home h2').innerText(),/Nefit Ecomline Classic HRC 22H/);
-  assert.equal(await page.locator('#boiler-home img').count(),0);
+  assert.match(await page.locator('#boiler-home img').getAttribute('src'),/^data:image\/svg\+xml/);
+  await page.waitForFunction(()=>document.querySelector('#boiler-home img')?.naturalWidth>0);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,JSON.stringify(await page.evaluate(()=>({viewport:innerWidth,overflow:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth).map(e=>({tag:e.tagName,cls:e.className,text:e.textContent.slice(0,100)})).slice(0,12)}))));
   await page.screenshot({path:path.join(output,name+'.png'),fullPage:true});
   // A full page reload reads the saved device setting, with no localStorage.
@@ -103,7 +105,7 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
   await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).click();
   await page.getByRole('status').filter({hasText:'Ketelkeuze opgeslagen'}).waitFor();
   await page.reload();await page.getByRole('heading',{name:catalog.models.find(m=>m.id==='bosch-condens-5000i').name,exact:true}).waitFor();
-  assert.equal(await page.locator('#boiler-home img').count(),0);
+  assert.match(await page.locator('#boiler-home img').getAttribute('src'),/^data:image\/svg\+xml/);
   // Exact family imagery appears only on its own selection, with provenance.
   await page.locator('#boiler-home .boiler-setup-link').click();await page.locator('#boiler-model:enabled').waitFor();
   await page.locator('#boiler-model').selectOption('nefit-proline');
@@ -117,8 +119,12 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
   // Unavailable public image never disables selection or the local dashboard.
   imagesOffline=true;stored='emsesp-doc-nefit-smartline';await page.reload();
   await page.getByRole('heading',{name:'Nefit SmartLine',exact:true}).waitFor();
-  await page.waitForFunction(()=>!document.querySelector('#boiler-home img'),null,{timeout:8000}).catch(async error=>{throw Error(JSON.stringify({imageRequests,images:await page.locator('#boiler-home img').evaluateAll(images=>images.map(i=>({src:i.src,complete:i.complete,naturalWidth:i.naturalWidth}))),original:error.message}));});
+  await page.waitForFunction(()=>document.querySelector('#boiler-home img')?.src.startsWith('data:image/svg+xml') && document.querySelector('#boiler-home img').naturalWidth>0);
+  assert.equal(await page.locator('#boiler-home img').getAttribute('alt'),'Algemene ketelillustratie');
+  assert.equal(await page.locator('#boiler-home [data-image-source]').count(),0);
   await page.locator('#boiler-home .boiler-setup-link').click();await page.locator('#boiler-model:enabled').waitFor();
+  await page.waitForFunction(()=>document.querySelector('figure img')?.src.startsWith('data:image/svg+xml') && document.querySelector('figure img').naturalWidth>0);
+  assert.equal(await page.locator('figure [data-image-source]').count(),0);
   assert.equal(await page.locator('#boiler-model').inputValue(),'emsesp-doc-nefit-smartline');
   assert.equal(await page.locator('#boiler-model option[value=emsesp-doc-nefit-smartline]').count(),1);
   const legacyLabels=await page.locator('#boiler-model option').allTextContents();

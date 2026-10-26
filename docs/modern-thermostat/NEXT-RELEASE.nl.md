@@ -380,3 +380,19 @@ C++-loginhandler tegen gesimuleerde HTTP-/apparaatgrenzen slagen. De E32-build
 slaagt eveneens. Nieuwe firmware
 is nog niet gepubliceerd of geïnstalleerd; de gebruikersherstart levert deze
 bronwijzigingen niet vanzelf op. Geen extra herstart of apparaatmutatie uitgevoerd.
+
+## Algemene ketelillustratie als terugval — bron voorbereid
+
+Op gebruikersverzoek toont een geselecteerd ketelprofiel zonder eigen foto nu
+een neutrale, merkloze ketelillustratie op Home en bij Mijn ketel. De originele
+SVG zit in de lokale interface en vraagt geen externe afbeelding op. Ook een
+niet-ladende productfoto valt terug op deze illustratie; de bronvermelding van
+die ontbrekende foto wordt dan verborgen. Een beschikbare modelgebonden foto
+behoudt haar eigen beeld, modelomschrijving en bronvermelding. Geen geselecteerd
+of een onbekend profiel krijgt nog steeds geen ketelbeeld.
+
+Cataloguscontrole, drie taaltests en de bestaande echte Chromiumregressie op
+vier schermprofielen slagen, inclusief opgeslagen model na herladen, offline
+foto, mobiele weergave en behoud van de ketelkeuze. Alleen lokale gesimuleerde
+HTTP/opslag; geen apparaat gewijzigd. Dit bronwerk is nog niet gepubliceerd of
+geïnstalleerd en verandert de bestaande beta.3-release niet.

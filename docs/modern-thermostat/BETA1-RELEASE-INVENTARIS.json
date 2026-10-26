@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "0445a432e1f4a7fbc004ef736b8c8c6dfe91541e1ea05d51268858cd0d7cd248"
+          "sha256": "b31dd50f3dcbdd2da8aaaffaef3888dc71f9286602d24b6701f2b57dd727d047"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -337,7 +337,7 @@
         },
         {
           "path": "data/html/boiler-display.js",
-          "sha256": "028546563a44008253bcee9fa9b93bf4a80d28dc8bd754b0f9ad31c52256adb3"
+          "sha256": "25104dff0ab5bcca3186825b65e158d0160fde6faf7efea91e235916c69f1c3f"
         },
         {
           "path": "data/html/boiler_display.html",
@@ -357,7 +357,7 @@
         },
         {
           "path": "test/boiler-display-browser.cjs",
-          "sha256": "b647d2e683ab05bff602207999f65d244115536cacfda417ee79680a858df50a"
+          "sha256": "7b544cecce1f0e6a32442b05cac4cd05cc2e1c3acb573144c3ed2d5b0a0c8daa"
         },
         {
           "path": "platformio.ini",
@@ -473,7 +473,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "9787752201a96f00671786dff963092c945a6cb4d5654e8b6633b8c68bfd7b57"
+          "sha256": "2191bdaab4e5a80ba6c46c62d546fcd07962dd6f2d0da4a032154e5f0c33fb08"
         },
         {
           "path": "data/html/ui-language.js",
@@ -799,7 +799,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "9787752201a96f00671786dff963092c945a6cb4d5654e8b6633b8c68bfd7b57"
+          "sha256": "2191bdaab4e5a80ba6c46c62d546fcd07962dd6f2d0da4a032154e5f0c33fb08"
         },
         {
           "path": "data/html/system-log.js",

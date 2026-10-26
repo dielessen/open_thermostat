@@ -21,7 +21,9 @@
     "171d3be603ab81f295a6bd7ed141b2df45b35b7e",
     "1947b9ce49ddc11f5d36dbcde2f69f62b678b1a7",
     "86c42d8fc5e320eae319ca9cbeabb9d13ebc55fb",
-    "c058dd2deb0301cd7703f6df3ed9340198fc0932"
+    "c058dd2deb0301cd7703f6df3ed9340198fc0932",
+    "76a736c3ac6ab6bbd8e21627e526ad9386148005",
+    "27bb535c78cc227be9ba1bd2a3fcd1d3775be2ca"
   ],
   "release_notes": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.en.md",
   "changes": [
@@ -44,10 +46,10 @@
   "publication_state": "BLOCKED_PENDING_PREDECESSOR_ACCEPTANCE",
   "runtime_actions_performed": false,
   "source_ci": {
-    "commit": "c058dd2deb0301cd7703f6df3ed9340198fc0932",
-    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40366412128",
+    "commit": "27bb535c78cc227be9ba1bd2a3fcd1d3775be2ca",
+    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40379881348",
     "conclusion": "success",
-    "scope": "pre-freeze source including settings dispatch and bus completion reentry fixes; all nine validation jobs passed; publication jobs skipped; not installation acceptance; this checkpoint predates attended commissioning and expanded Bluetooth discovery"
+    "scope": "Pre-freeze source including attended Ecomline Classic commissioning, 128-device Bluetooth discovery and corrected package instructions; all nine validation jobs passed; publication jobs skipped; not installation or physical trial acceptance"
   },
   "writable_boiler_inventory": "docs/modern-thermostat/BOILER-WRITE-INVENTORY.json",
   "prepared_settings_backend": {
@@ -95,23 +97,26 @@
     "method_reviewed_scope": "Manufacturer boiler-manometer procedure; physical site qualification remains open"
   },
   "source_package_preflight": {
-    "commit": "c058dd2deb0301cd7703f6df3ed9340198fc0932",
+    "commit": "27bb535c78cc227be9ba1bd2a3fcd1d3775be2ca",
     "ci_version_field": "v0.1.0-e32v2-beta.3",
     "planned_tag_frozen": false,
-    "independent_package_checks": 2236,
-    "firmware_bytes": 2864480,
-    "firmware_sha256": "5935e3d7301c5ac3da28d63dbdee1dbb6241b508684a5ad99a93d5aeee70ab9f",
+    "independent_package_checks": 2240,
+    "firmware_bytes": 2877856,
+    "firmware_sha256": "f43a573a9dff0b8c26f774bd22e6cabfa83166d4a1c165aca8cb9660f31cd388",
     "alpha36_compatibility": "PASS_HOST_ONLY",
     "accepted_beta1_compatibility": "PASS_HOST_ONLY",
     "ha_runtime_source_unchanged_from_beta3": true,
     "publication_approved": false,
-    "web_sha256": "af6b170668d90eeecfc28cb740b2e8c240fa8fd06ca2afa251091809032e4f78",
-    "manifest_sha256": "4acef8947dcfcdf7da2bf107c860d39a4126cb34cd3e382eb238667553950d9e",
-    "independent_report": "out/beta4-package-c058dd2/package-verification.json",
+    "web_sha256": "ae8db6e10a85c3e309323ff5f8a27fb4b422ce0acb5ca9e3fe5f8446b4ac32ef",
+    "manifest_sha256": "4b8198172209b1590a34209d02003faed61bee3cba47ab4f9ead6abcf8a5d39a",
+    "independent_report": "out/beta4-package-27bb535/package-verification.json",
     "delivered_compatibility_reports_reproduced": true,
     "ci_archive_retained_locally": false,
     "verification_reports_retained": true,
-    "ci_artifact_id": 12669574897
+    "ci_artifact_id": 12678531886,
+    "development_package_only": true,
+    "published_beta3_assets_unchanged": true,
+    "package_readme_matches_attended_trial": true
   },
   "accepted_updater_packaging_gate": {
     "state": "CI_VERIFIED_PRE_FREEZE",
@@ -144,7 +149,8 @@
     "readonly_postcheck_instructions": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md#actuele-opdracht-alleen-beta3-nacontrole",
     "readonly_postcheck_result": "INCOMPLETE",
     "readonly_postcheck_report": "docs/modern-thermostat/BETA3-POSTCHECK-20261026.json",
-    "independent_postcheck_executed": true
+    "independent_postcheck_executed": true,
+    "public_assets_and_tag_rechecked": true
   },
   "configuration_read_ui": {
     "withdrawal_labelled": true,
@@ -158,7 +164,7 @@
     "browser_gate": "test/boiler-configuration-read-browser.cjs",
     "pressure_declaration_follows_profile": true,
     "withdrawal_survives_invalid_status": true,
-    "state": "LOCAL_NATIVE_BROWSER_BOARD_VERIFIED_PRE_FREEZE"
+    "state": "CI_VERIFIED_PRE_FREEZE"
   },
   "bus_completion_callbacks": {
     "state": "CI_VERIFIED_PRE_FREEZE",
@@ -171,7 +177,7 @@
     "physical_write_enabled": false
   },
   "attended_commissioning": {
-    "state": "LOCAL_NATIVE_BROWSER_BOARD_VERIFIED_PRE_FREEZE",
+    "state": "CI_VERIFIED_PRE_FREEZE",
     "manual_tx_source_enabled": true,
     "automatic_tx_enabled": false,
     "persistent_settings_tx_enabled": false,
@@ -186,14 +192,15 @@
     "native_sanitizer_tests": 282,
     "control_browser_viewports": 3,
     "board_verifier_fault_cases": 9,
-    "firmware_bytes": 2877936,
+    "firmware_bytes": 2877856,
     "evidence": "out/beta4-manual-trial/",
     "passive_browser_viewports": 3,
     "configuration_read_browser_cases": 4,
-    "confirmation_browser_cases": 72
+    "confirmation_browser_cases": 72,
+    "local_firmware_bytes": 2877936
   },
   "bluetooth_discovery": {
-    "state": "BROWSER_NATIVE_VERIFIED_PRE_FREEZE",
+    "state": "CI_VERIFIED_PRE_FREEZE",
     "capacity": 128,
     "scrollable": true,
     "includes_unnamed_and_unknown_profiles": true,
@@ -203,12 +210,15 @@
     "physical_device_acceptance": false
   },
   "development_checkpoint": {
-    "commit": "76a736c3ac6ab6bbd8e21627e526ad9386148005",
-    "ci_run": "https://github.com/dielessen/open_thermostat/actions/runs/40379162752",
-    "ci_state": "IN_PROGRESS",
+    "commit": "27bb535c78cc227be9ba1bd2a3fcd1d3775be2ca",
+    "ci_run": "https://github.com/dielessen/open_thermostat/actions/runs/40379881348",
+    "ci_state": "SUCCESS",
     "passive_compile": "PASS",
     "settings_compile": "PASS",
     "local_checks": "PASS",
-    "publication_approved": false
+    "publication_approved": false,
+    "all_four_builds": "PASS",
+    "independent_package_checks": 2240,
+    "validation_jobs_passed": 9
   }
 }

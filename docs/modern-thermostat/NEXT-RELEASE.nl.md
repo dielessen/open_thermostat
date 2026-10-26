@@ -1,6 +1,7 @@
 # Volgende gezamenlijke bèta — actueel uitvoeringsplan
 
-Bijgewerkt op 26 oktober 2026. Status: **NOT_READY voor actieve ketelproeven**.
+Bijgewerkt op 26 oktober 2026. Status: **softwarecontrole geslaagd; publicatie
+wacht op beta.3-installatieacceptatie**. Er is nog geen echte ketelproef uitgevoerd.
 Dit document beschrijft het volgende werk; het [werkbord](WORKBOARD.nl.md)
 bewaakt alle 31 producteisen en 14 eindcontroles. De
 [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bewaakt alle 23 voorbereide
@@ -27,13 +28,13 @@ ze zijn geen afgevinkte functie doordat er voorbereidende code aanwezig is.
 | Geïnstalleerde E32 | Gebruiker bevestigt op 26 oktober: `v0.1.0-e32v2-beta.3` geïnstalleerd via Controleren op updates → installeren op de E32. Bron/ELF/web, native installreceipts en onafhankelijke nacontrole nog niet teruggelezen; laatste formele acceptatie blijft beta.1 |
 | Geïnstalleerde HA-integratie | `0.4.0b1`, gezamenlijke basis `5e3ed30` |
 | Voorbereide bron | Huidige branch, inclusief eenmalige configuratie-uitlezing, afzonderlijke busafsluiting en alle eerdere voorbereide wijzigingen |
-| Nieuwe gezamenlijke kandidaat | E32 beta.3 / HA 0.4.0b3 gepubliceerd uit `996587d`; exacte tag-CI en openbare pakketten gecontroleerd. E32-installatie door gebruiker bevestigd; native bewijs en onafhankelijke nacontrole nog open. De bestaande HA-MCP-beheertools zijn hier niet beschikbaar. Passieve release, geen warmteproefvrijgave |
-| Volgende E32-release | Beta.4 in voorbereiding: sessieherstel, 30-minuten-inactiviteitsverval, algemene ketelillustratie en voorbereid CV-instellingenoverzicht/-bedieningspad. Geen nieuwe HA-versie voor deze wijzigingen. Nog niet bevroren of gepubliceerd; beta.3-installatieacceptatie staat open |
+| Nieuwe gezamenlijke kandidaat | E32 beta.3 / HA 0.4.0b3 gepubliceerd uit `996587d`; exacte tag-CI en openbare pakketten gecontroleerd. E32-installatie door gebruiker bevestigd; native bewijs en onafhankelijke nacontrole nog open. De HA-agent heeft HA gelezen, maar geen E32-leeskanaal. Passieve release, geen warmteproefvrijgave |
+| Volgende E32-release | Beta.4 in voorbereiding: handmatige Ecomline-proef met manometerinvoer, Bluetoothscrollvak (128), sessieherstel, inactiviteitsverval en CV-instellingenoverzicht. Geen nieuwe HA-versie voor deze wijzigingen. Nog niet bevroren of gepubliceerd; beta.3-installatieacceptatie staat open |
 | Huidige ontwikkelbron: TX | Alleen de afzonderlijke handmatige proef- en configuratieleesroute aan; algemene regeling en blijvende instellingen-TX uit. Nog niet gepubliceerd of geïnstalleerd |
 | Warmte-installatievrijgave | Fysieke kwalificatie blijft open; het expliciete commissioningprofiel vraagt per proef actuele opstellingsverklaringen en een manometerwaarde |
 
-De native HA-specialist bevestigde op 26 oktober 02:59–03:02 UTC Core2026.10.4
-en integratie0.4.0b1 als geladen. De actuele E32-versie/bron en UART-tellers
+De laatste native HA-nacontrole bevestigde op 26 oktober 17:45–17:46 UTC
+Core2026.10.4 en integratie0.4.0b1 als geladen. De actuele E32-versie/bron en UART-tellers
 werden daar niet aangeboden. De latere beta.3-installatiemelding hierboven komt
 van de gebruiker; een nieuwe onafhankelijke identiteitsteruglezing blijft nodig.
 Een lokale commit of ontwikkelbuild is geen beschikbare GitHub-update.
@@ -77,18 +78,25 @@ blijven een aparte limiet. Twaalf browserprofielen (EN/NL, mobiel/desktop) en de
 begrensde ontdeklijst zijn lokaal gecontroleerd. De E32-firmware/bestandssysteem en 282 native proefgevallen met ASAN/UBSAN,
 drie bedieningsviewports (waaronder echte manometerinvoer) en negen fouteninjecties
 in de bordverifier slagen lokaal. Aanvullende browserregressies slagen: drie passieve viewports, vier configuratie-
-uitleesgevallen en 72 bevestigingsgevallen. GitHub-CI op `76a736c` loopt nog;
-de afzonderlijke passieve en instellingen-compilevarianten slagen al. Het groene checkpoint
-`c058dd2` hieronder geldt voor de eerdere passieve bron.
+uitleesgevallen en 72 bevestigingsgevallen. De nieuwste ontwikkelbron `27bb535` slaagt voor alle vier builds, de twee
+afzonderlijke compilevarianten en de bronreproductie. Ook de browser-/HA-regressies slagen: alle negen validatiejobs van
+[CI op `27bb535`](https://github.com/dielessen/open_thermostat/actions/runs/40379881348)
+zijn groen; de publicatiejobs zijn overgeslagen. Het werkelijk gedownloade pakket slaagt voor **2.240 onafhankelijke
+controles**, inclusief exact bron-/firmware-/web-/ELF-/licentie-/herlinkmateriaal
+en beide oorspronkelijke-updaterproeven. De Engelse pakket-README beschrijft
+nu de bediende proefroute. Bewijs: `out/beta4-package-27bb535/`. De grote
+tijdelijke download is verwijderd. De versievelden zijn ontwikkelvelden, geen
+nieuwe publieke beta.3; beta.4 blijft niet-bevroren en ongepubliceerd. Het groene
+checkpoint `c058dd2` verderop geldt voor de eerdere passieve bron.
 
 ## Eerstvolgende werk, in volgorde
 
 | Prioriteit | Werk | Vereist resultaat |
 | --- | --- | --- |
-| P0 — uitvoerbare proefbron | Vast Classic-commissioningprofiel met manometerinvoer en afzonderlijke proefroute aangesloten | Native-, browser-, echte ESP32- en passieve herstelvariant controleren; geen automatische of blijvende instellingenwrites |
+| P0 — uitvoerbare proefbron | Softwarematig gecontroleerd: vast Classic-profiel, manometerinvoer, echte ESP32-proefroute, passieve herstelvariant en volledige CI | Deze bron meenemen in de uiteindelijke kandidaat; echte zend-/stopresultaten pas na installatie en aparte proef |
 | P0 — configuratieontvangst | Eenmalige uitleesroute is aangesloten in HTTP, UART-poll en NL/EN-bediening; afronden met kandidaat- en fysieke controle | Echte latere boilerrespons levert CV-aan/uit en temperatuur met originele ontvangsttijd; alleen de afzonderlijke handmatige leesroute beschikbaar |
 | P0 — handmatige proefvariant | Bron en CI van het vaste commissioningprofiel afronden; proefkaart uitvoerbaar houden | Per proef echte opstellingsverklaringen; B07–B09 registreren met werkelijke interface-/timing-/stopwaarnemingen, zonder algemene TX te openen |
-| P0 — gezamenlijke freeze | Volledige CI en 2.236 onafhankelijke pakketcontroles geslaagd op `c058dd2`, inclusief bescherming van instellingstransactie en busafsluiting. Beta.4-versie en bron nog niet bevroren | Exacte kandidaat met volledige native-/HA-/browser-/board-/bron-/licentie-/pakketcontroles; ontwikkelbewijs apart houden |
+| P0 — gezamenlijke freeze | Nieuwste bron `27bb535`: alle negen CI-validatiejobs en 2.240 onafhankelijke pakketcontroles geslaagd. Beta.4-versie en bron nog niet bevroren | Exacte kandidaat met volledige native-/HA-/browser-/board-/bron-/licentie-/pakketcontroles; ontwikkelbewijs apart houden |
 | P0 — release en installatie | Eén gezamenlijke publicatie en installatie na kandidaatacceptatie | Begrijpelijke Engelse GitHub-notities, actuele README en juiste assets/manifest/checksums; HA via de bestaande native HA-specialist met back-up; E32 via native GitHub-OTA |
 | P0 — onafhankelijke nacontrole | Nieuwe boot, versie/bron/ELF/web en instellingenbehoud vastleggen | Verse readback en acceptatierapport; HTTP202 of alleen een build telt niet als geslaagde installatie |
 | P0 — afzonderlijke ketelproef | B14 uitvoeren zodra de fysieke voorwaarden en proefopdracht gelden | Nulmeting → nulvraag/latere stopmelding → eindige warmtevraag → stop/naloop → afzonderlijke uitval/herstel → terug naar Tado |

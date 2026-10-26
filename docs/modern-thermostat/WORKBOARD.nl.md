@@ -10,6 +10,11 @@ blijvende instellingenwrites blijven uit; fysieke kwalificatie is niet afgeteken
 De [actuele details en lokale bewijsstand](NEXT-RELEASE.nl.md#actuele-uitbreiding-uitvoerbare-proef-en-bluetoothscrollvak)
 gaan vóór oudere voorbereidingsnotities hieronder.
 
+Nieuwste ontwikkelbron `27bb535`: alle negen CI-validatiejobs en 2.240
+onafhankelijke pakketcontroles geslaagd. Publicatiejobs zijn overgeslagen. De Engelse pakket-
+README sluit aan op de bediende proefroute. Grote tijdelijke downloads zijn
+verwijderd; bewijs blijft onder `out/beta4-package-27bb535/`.
+
 Het eerdere checkpoint `c058dd2` slaagde voor alle negen CI-validatiejobs en
 2.236 pakketcontroles. De toegelaten beta.3-nacontrole is nu uitgevoerd maar
 **INCOMPLETE**: HA wel gelezen, geen E32-leeskanaal of originele installreceipts.

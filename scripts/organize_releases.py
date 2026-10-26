@@ -10,6 +10,7 @@ import tempfile
 START = '<!-- openthermostat-original-notes:start -->'
 END = '<!-- openthermostat-original-notes:end -->'
 USER_NOTES = '<!-- user-release-notes:v1 -->'
+ENGLISH_USER_NOTES = '<!-- user-release-notes:v2:en -->'
 PATTERNS = {
     'firmware': r'v(\d+)\.(\d+)\.(\d+)-e32v2(?:-(alpha|beta|rc)\.(\d+))?',
     'ha': r'ha-v(\d+)\.(\d+)\.(\d+)(?:(\.dev|a|b|rc)(\d+))?',
@@ -94,11 +95,19 @@ def publication_notes(notes, repository, tag, require_user_notes=False):
             break
     document = 'RELEASE-NOTES.md' if channel == 'firmware' else 'HA-RELEASE-NOTES.md'
     current = '\n'.join(lines).rstrip()
-    if require_user_notes and (USER_NOTES not in current or
-            any(section not in current for section in ('## Nieuw', '## Opgelost', '## Bijwerken en gebruik', '## English'))):
-        raise ValueError('publication_notes_need_user_features_fixes_update_and_English')
+    if require_user_notes:
+        if ENGLISH_USER_NOTES in current:
+            sections = ('## New', '## Fixed', '## Updating', '## Limitations')
+        elif USER_NOTES in current:
+            # Preserve already published bilingual history. New notes use v2:en.
+            sections = ('## Nieuw', '## Opgelost', '## Bijwerken en gebruik', '## English')
+        else:
+            raise ValueError('publication_notes_need_user_features_fixes_update_and_limitations')
+        headings = set(current.splitlines())
+        if any(section not in headings for section in sections):
+            raise ValueError('publication_notes_need_user_features_fixes_update_and_limitations')
     url = f'https://github.com/{repository}/blob/{tag}/docs/modern-thermostat/{document}'
-    result = current+'\n\n[Volledige releasenotities en historie / Full release notes and history]('+url+')\n'
+    result = current+'\n\n[Full release notes and history]('+url+')\n'
     if len(result.encode()) > 6000:
         raise ValueError('publication_notes_too_large; shorten current summary, retain full history in source')
     return result
@@ -140,7 +149,7 @@ def user_summary(tag, repository, root=None):
                     section_lines = section_lines[:end]
                     break
             section = '\n'.join(section_lines)
-            if USER_NOTES not in section:
+            if USER_NOTES not in section and ENGLISH_USER_NOTES not in section:
                 return ''
             rendered = publication_notes(section, repository, tag, require_user_notes=True)
             return '\n'.join(rendered.splitlines()[1:]).strip()
@@ -149,11 +158,11 @@ def user_summary(tag, repository, root=None):
 
 def label(channel, version):
     if channel == 'firmware':
-        return 'E32-firmware', (f'{version[0]}.{version[1]}.{version[2]}' if version[3] == 3
+        return 'E32 firmware', (f'{version[0]}.{version[1]}.{version[2]}' if version[3] == 3
                                 else f'{("alpha", "beta", "rc")[version[3]]}.{version[4]}')
     if channel == 'ha':
         return 'Home Assistant', ha_version(version)
-    return 'Bronpakket E32 SDK', f'{version[0]}.{version[1]}'
+    return 'E32 SDK source package', f'{version[0]}.{version[1]}'
 
 
 def archive_summary(tag, notes, root=None):
@@ -185,8 +194,8 @@ def plan(releases, repository, include_archive=False):
         ):
             latest[channel] = release
     base = 'https://github.com/'+repository+'/releases'
-    table = ['## Welke download heb je nodig?', '',
-             '| Onderdeel | Actuele testversie | Bestand |',
+    table = ['## Which download do you need?', '',
+             '| Component | Current test version | File |',
              '| --- | --- | --- |']
     for channel in ('firmware', 'ha'):
         if channel not in latest:
@@ -200,9 +209,9 @@ def plan(releases, repository, include_archive=False):
         table.append(f'| {title} | [{version}]({base}/tag/{release["tag_name"]}) | '
                      f'[{filename}]({asset["browser_download_url"]}) |')
     if 'source' in latest:
-        table += ['', f'[Bron- en licentiemateriaal]({base}/tag/{latest["source"]["tag_name"]}) '
-                  'staat apart; dit is geen installatiebestand.']
-    table += ['', 'Dit zijn testreleases. Firmware en de HA-integratie hebben elk hun eigen versienummer.']
+        table += ['', f'[Source and licence material]({base}/tag/{latest["source"]["tag_name"]}) '
+                  'is supplied separately; it is not an installation file.']
+    table += ['', 'These are test releases. Firmware and the HA integration have separate version numbers.']
     overview = '\n'.join(table)
     changes = []
     for release in releases:
@@ -212,29 +221,29 @@ def plan(releases, repository, include_archive=False):
         title, short = label(channel, version)
         current = latest.get(channel, {}).get('id') == release['id']
         if release['draft']:
-            name = f'Concept · {title} · {short}'
-            status = '**Concept — nog niet gepubliceerd.**'
+            name = f'Draft · {title} · {short}'
+            status = '**Draft — not published yet.**'
         elif channel == 'source':
             name = f'{title} · {short}'
-            status = '**Bron- en licentiemateriaal voor reproduceerbaarheid.**'
+            status = '**Source and licence material for reproducibility.**'
         elif current:
-            name = f'{title} · {short} · Actueel'
-            status = f'**Actuele testversie voor {title}.**'
+            name = f'{title} · {short} · Current'
+            status = f'**Current test version for {title}.**'
         else:
-            name = f'Archief · {title} · {short}'
-            status = '**Archief — voor de actuele testversies gebruik je het overzicht hieronder.**'
+            name = f'Archive · {title} · {short}'
+            status = '**Archive — use the overview below for current test versions.**'
         notes = original_notes(release.get('body'))
         reader_notes = user_summary(release['tag_name'], repository)
         if not reader_notes and include_archive:
             reader_notes = archive_summary(release['tag_name'], notes)
         release_overview = overview
         if include_archive and reader_notes and not current:
-            release_overview = '## Welke download heb je nodig?\n\n[Gebruik de actuele firmware- en Home Assistant-versies]('+base+'). Firmware en HA zijn afzonderlijke downloads.'
+            release_overview = '## Which download do you need?\n\n[Use the current firmware and Home Assistant versions]('+base+'). Firmware and HA are separate downloads.'
         sections = [status, reader_notes, release_overview] if reader_notes else [status, release_overview]
-        original = '<details>\n<summary>Volledige oorspronkelijke releasenotities en bewijs</summary>\n\n'+START+'\n'+notes+'\n'+END+'\n\n</details>'
+        original = '<details>\n<summary>Full original release notes and evidence</summary>\n\n'+START+'\n'+notes+'\n'+END+'\n\n</details>'
         summary = first_section(notes) if not reader_notes and (current or channel == 'source') else ''
         if summary:
-            sections.append('## Deze versie\n\n'+summary)
+            sections.append('## This version\n\n'+summary)
         body = '\n\n'.join(sections+[original])+'\n'
         # Older installed firmware bounds each complete GitHub API response at
         # 32 KiB. Preserve originals verbatim; drop only the optional duplicate.

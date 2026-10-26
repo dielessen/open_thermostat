@@ -16,7 +16,7 @@ class ReleaseNotesTests(unittest.TestCase):
         change=release.plan([row], 'owner/project')[0]
         self.assertLessEqual(len(change['body'].encode()), 21000)
         self.assertEqual(release.original_notes(change['body']), notes)
-        self.assertNotIn('## Deze versie', change['body'])
+        self.assertNotIn('## This version', change['body'])
         updated={**row,'name':change['name'],'body':change['body']}
         self.assertEqual(release.plan([updated], 'owner/project'), [])
         self.assertEqual(set(change), {'id','tag','name','body'})
@@ -55,7 +55,7 @@ class ReleaseNotesTests(unittest.TestCase):
         row=self.row('Original technical record.')
         row['tag_name']='v0.1.0-e32v2-alpha.36'
         result=release.plan([row],'owner/project')[0]
-        self.assertLess(result['body'].index('## Nieuw'), result['body'].index('## Welke download'))
+        self.assertLess(result['body'].index('## Nieuw'), result['body'].index('## Which download'))
         self.assertIn('## Opgelost',result['body']);self.assertIn('## English',result['body'])
         self.assertEqual(release.original_notes(result['body']),row['body'])
         self.assertEqual(release.plan([{**row,**{k:result[k] for k in ('name','body')}}], 'owner/project'),[])
@@ -77,6 +77,35 @@ class ReleaseNotesTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'need_user'):
             release.publication_notes(notes,'owner/project','v0.1.0-e32v2-alpha.36',require_user_notes=True)
         self.assertEqual(release.user_summary('v0.1.0-e32v2-alpha.999','owner/project'),'')
+
+    def test_english_publication_and_catalog_preserve_reader_notes(self):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        notes = ('# E32 V2 beta4\n' + release.ENGLISH_USER_NOTES +
+                 '\n## New\nSession recovery.\n## Fixed\nIdle expiry.\n'
+                 '## Updating\nE32 only.\n## Limitations\nOutputs disabled.\n')
+        rendered = release.publication_notes(notes, 'owner/project', 'v0.1.0-e32v2-beta.4', True)
+        self.assertIn('Full release notes and history', rendered)
+        self.assertNotIn('Volledige', rendered)
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'docs/modern-thermostat/RELEASE-NOTES.md'
+            path.parent.mkdir(parents=True)
+            path.write_text(notes)
+            summary = release.user_summary('v0.1.0-e32v2-beta.4', 'owner/project', tmp)
+            self.assertIn('Session recovery.', summary)
+            self.assertIn('Outputs disabled.', summary)
+        for heading in ('## New', '## Fixed', '## Updating', '## Limitations'):
+            with self.assertRaisesRegex(ValueError, 'need_user'):
+                release.publication_notes(notes.replace(heading, '### Missing'),
+                                          'owner/project', 'v0.1.0-e32v2-beta.4', True)
+
+    def test_catalog_surrounding_text_is_english_without_rewriting_originals(self):
+        row = self.row('Oorspronkelijke historische notities.')
+        change = release.plan([row], 'owner/project')[0]
+        self.assertEqual(change['name'], 'E32 firmware · alpha.23 · Current')
+        self.assertIn('## Which download do you need?', change['body'])
+        self.assertIn('Full original release notes and evidence', change['body'])
+        self.assertEqual(release.original_notes(change['body']), row['body'])
 
     def test_publication_utf8_byte_bound_and_invalid_identity(self):
         for repo,tag in [('owner/project','bad'),('../project','ha-v0.4.0.dev29')]:
@@ -123,8 +152,8 @@ class BetaReleaseNotesTests(unittest.TestCase):
                     name='OpenThermostat-HA-'+version+'.zip',
                     browser_download_url='https://example.test/'+version+'.zip')]))
         changes=release.plan(rows,'owner/project')
-        self.assertIn('Archief',changes[0]['name'])
-        self.assertIn('Actueel',changes[1]['name'])
+        self.assertIn('Archive',changes[0]['name'])
+        self.assertIn('Current',changes[1]['name'])
         self.assertIn('OpenThermostat-HA-0.4.0b1.zip',changes[1]['body'])
         self.assertEqual(release.original_notes(changes[0]['body']),'Original 0.4.0.dev48')
         updated=[{**row,**{k:change[k] for k in ('name','body')}} for row,change in zip(rows,changes)]

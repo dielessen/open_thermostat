@@ -43,19 +43,19 @@
         },
         {
           "path": "scripts/organize_releases.py",
-          "sha256": "ef2dca5153ede9dc89db24c4c374dc019fbe80efe589456a5191901f4626b585"
+          "sha256": "df50320de3fa4e91abaaf68ed78985c6de67d4334fb614ce1a3bc9c196a8f955"
         },
         {
           "path": "scripts/test_organize_releases.py",
-          "sha256": "9762c67c81827ed4910a1bd894f6ab902a18b548ba2f455725de9c690066dfc6"
+          "sha256": "cdd9a8328cccf11b10e9e4821918c75466b4fe91f54c36da74c15965584faeda"
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "d07e1599365cc83351dd8ca628ca1f708eda6249df0fd7841a26e09c8fd61783"
+          "sha256": "6710bd33eba14073d9b67b9b01693b8e4a0cb6d1a0806899b288bbc6b02ccaf3"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
-          "sha256": "be0692d7b210b9104029b825e500d978b5cd2d08a2ae9849f87874f39bdc18a2"
+          "sha256": "46295ee581706c5719b399b87250f80c7cbbb7aa3e58128d3137dd379d641a43"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
@@ -75,7 +75,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "e1a523c7993add2e32387502490722e42dc38bd2c4509c6e1556b8508d837b92"
+          "sha256": "68d7e9f02d8b09ef8b2e36bad3c38241a26558739fb3dcd3251e641e858845fb"
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "690b428059e539f4b56725365302e6819d8cf199bff4f3e7246557716ddb5d94"
+          "sha256": "b89fe89e5d03c935c285d71e2bdacc1559eab85a4020e425d056d24c967a5fb5"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -143,11 +143,27 @@
         },
         {
           "path": "docs/modern-thermostat/BETA4-KANDIDAAT.json",
-          "sha256": "21b6742d4fb2c3aae87ea1ff9c0f285fe4ef2242c15506cf731aac90e1e2904f"
+          "sha256": "d4c02332cb15102a227d1b55e45ea994775fb874d7f8ab73109c88657e66531e"
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.nl-en.md",
           "sha256": "cb37044338e7e5acaedf9755c1f012cdb49271c4c76d5175ecadf9661a298db7"
+        },
+        {
+          "path": "scripts/sync_readme_releases.py",
+          "sha256": "474ba0ccc3af784ad5558a2209b7e07b50f37e9903fd86717c451084027a3006"
+        },
+        {
+          "path": "scripts/test_sync_readme_releases.py",
+          "sha256": "8125e2c771d2c8d4945b82de81e6e9d51a0c00023fbeda99343e4f442366c2bf"
+        },
+        {
+          "path": ".github/workflows/readme.yml",
+          "sha256": "83da0c1351229d1b5eabea183315b8c0100c9bdecb3103cefaaffd33e2919fdb"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.en.md",
+          "sha256": "8183173708b016cf8b7539e5a950824398ab9d6dc481c89a337681219b94b582"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -309,11 +325,11 @@
       "files": [
         {
           "path": "scripts/organize_releases.py",
-          "sha256": "ef2dca5153ede9dc89db24c4c374dc019fbe80efe589456a5191901f4626b585"
+          "sha256": "df50320de3fa4e91abaaf68ed78985c6de67d4334fb614ce1a3bc9c196a8f955"
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "d07e1599365cc83351dd8ca628ca1f708eda6249df0fd7841a26e09c8fd61783"
+          "sha256": "6710bd33eba14073d9b67b9b01693b8e4a0cb6d1a0806899b288bbc6b02ccaf3"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -783,7 +799,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "d07e1599365cc83351dd8ca628ca1f708eda6249df0fd7841a26e09c8fd61783"
+          "sha256": "6710bd33eba14073d9b67b9b01693b8e4a0cb6d1a0806899b288bbc6b02ccaf3"
         },
         {
           "path": "platformio.ini",

@@ -4,7 +4,7 @@ Bijgewerkt op 26 oktober 2026. Status: **NOT_READY voor actieve ketelproeven**.
 Dit document beschrijft het volgende werk; het [werkbord](WORKBOARD.nl.md)
 bewaakt alle 31 producteisen en 14 eindcontroles. De
 [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bewaakt alle 23 voorbereide
-onderdelen en hun 450 bronverwijzingen. De
+onderdelen en hun 454 bronverwijzingen. De
 [volledige voortgangshistorie](NEXT-RELEASE-HISTORY-20261026.nl.md) blijft bewaard;
 oude versies en aantallen daarin zijn historische checkpoints.
 
@@ -45,7 +45,7 @@ Een lokale commit of ontwikkelbuild is geen beschikbare GitHub-update.
 | P0 — configuratieontvangst | Eenmalige uitleesroute is aangesloten in HTTP, UART-poll en NL/EN-bediening; afronden met kandidaat- en fysieke controle | Echte latere boilerrespons levert CV-aan/uit en temperatuur met originele ontvangsttijd; standaard TX blijft uit tot afzonderlijke vrijgave |
 | P0 — handmatige proefvariant | Bronbeoordeling en installatiekaart B07–B09 afronden voor de echte E32/EasyControl/Classic-keten | Expliciete adres-/interface-/timing-/arbitragebeoordeling en passende afgifte-, stop- en overdrachtsvoorwaarden; geen willekeurig openzetten van algemene TX |
 | P0 — gezamenlijke freeze | Complete lokale bron-/pakketpreflight is geslaagd op `0acae7c`; na proefvariant-/installatiebeoordeling definitieve versies en bron vastleggen | Exacte kandidaat met volledige native-/HA-/browser-/board-/bron-/licentie-/pakketcontroles; ontwikkelbewijs apart houden |
-| P0 — release en installatie | Eén gezamenlijke publicatie en installatie na kandidaatacceptatie | Begrijpelijke NL/EN-notities, juiste assets/manifest/checksums; HA via de bestaande native HA-specialist met back-up; E32 via native GitHub-OTA |
+| P0 — release en installatie | Eén gezamenlijke publicatie en installatie na kandidaatacceptatie | Begrijpelijke Engelse GitHub-notities, actuele README en juiste assets/manifest/checksums; HA via de bestaande native HA-specialist met back-up; E32 via native GitHub-OTA |
 | P0 — onafhankelijke nacontrole | Nieuwe boot, versie/bron/ELF/web en instellingenbehoud vastleggen | Verse readback en acceptatierapport; HTTP202 of alleen een build telt niet als geslaagde installatie |
 | P0 — afzonderlijke ketelproef | B14 uitvoeren zodra de fysieke voorwaarden en proefopdracht gelden | Nulmeting → nulvraag/latere stopmelding → eindige warmtevraag → stop/naloop → afzonderlijke uitval/herstel → terug naar Tado |
 | Daarna — automatische zones | B04–B06/M2 afronden, kraanproef eerst zonder ketel | Oorspronkelijk verse kamermeting, echte TV02-route en causale echo, geldige profielen, bronuitval en hydrauliek bewezen |
@@ -60,6 +60,24 @@ proefacceptatie en latere automatische regeling. De fysieke M2-acceptatie gaat
 niet vóór deze handmatige bèta; automatische kamer-/kraanuitvoer blijft daarbij
 geblokkeerd. De eigen B07–B09-voorwaarden voor ketelmetingen, zender en installatie
 blijven vereist. B14 wordt pas na de afzonderlijk toegelaten echte proef afgetekend.
+
+## GitHub en releaseonderhoud — 26 oktober
+
+De openbare hoofdpagina krijgt een Engelse README met de actuele gepubliceerde
+E32 beta.3 / HA 0.4.0b3, functiegrenzen en roadmap inclusief raam- en deurcontacten.
+De laatste vastgelegde installatieacceptatie blijft beta.1/b1; beta.4 is nog een
+niet-bevroren voorbereiding. Iedere volgende release krijgt Engelse notities
+(`user-release-notes:v2:en`) en een inhoudelijke README-controle. De automatische
+versieverversing werkt alleen het downloadblok op de GitHub-standaardbranch bij;
+firmwarebron en fysieke vrijgaven veranderen hierdoor niet. Zie het
+[releaseproces](RELEASE-NOTES-PROCES.nl.md).
+
+De volledige bron-CI op `ff54e0f` is geslaagd:
+[negen validatiejobs](https://github.com/dielessen/open_thermostat/actions/runs/40333594425).
+Dit omvat de boardbuilds, native-/browser-/HA-controles en beide afzonderlijke
+compileproeven. Publicatiejobs waren overgeslagen. De daarna gewijzigde
+README-/releasehulpmiddelen krijgen eigen controles; dit eerdere CI-bewijs
+wordt niet als bewijs voor latere wijzigingen voorgesteld.
 
 ## Bekende opstelling — niet opnieuw uitvragen
 

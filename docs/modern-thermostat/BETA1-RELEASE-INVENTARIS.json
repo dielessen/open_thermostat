@@ -1067,7 +1067,7 @@
         },
         {
           "path": "test/bluetooth-browser.cjs",
-          "sha256": "e04acd23f3858f83888b0eab23e2b97db1edd5b325a4a2d743f0488248c6d30f"
+          "sha256": "87021a98e145b6d3c90fa60df226ba2ef3312323d7c88a16e6a1584b39e4da8e"
         },
         {
           "path": "test/test_native/test_ble_device_settings.cpp",

@@ -4,7 +4,7 @@ Bijgewerkt op 26 oktober 2026. Status: **NOT_READY voor actieve ketelproeven**.
 Dit document beschrijft het volgende werk; het [werkbord](WORKBOARD.nl.md)
 bewaakt alle 31 producteisen en 14 eindcontroles. De
 [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bewaakt alle 23 voorbereide
-onderdelen en hun 454 bronverwijzingen. De
+onderdelen en hun 457 bronverwijzingen. De
 [volledige voortgangshistorie](NEXT-RELEASE-HISTORY-20261026.nl.md) blijft bewaard;
 oude versies en aantallen daarin zijn historische checkpoints.
 
@@ -44,7 +44,7 @@ Een lokale commit of ontwikkelbuild is geen beschikbare GitHub-update.
 | P0 — modelprofiel zonder digitale drukmeting | Apart brongebonden Ecomline-profiel geïmplementeerd: afzonderlijke drukcontrolemethode vereist, met een nieuwe verklaring per warmteproef. De methodepoort blijft uit | Passende fysieke drukcontrolemethode voor deze installatie beoordelen en vastleggen; geen digitale drukwaarde eisen of verzinnen. Overige meet-, installatie- en stopvoorwaarden blijven behouden |
 | P0 — configuratieontvangst | Eenmalige uitleesroute is aangesloten in HTTP, UART-poll en NL/EN-bediening; afronden met kandidaat- en fysieke controle | Echte latere boilerrespons levert CV-aan/uit en temperatuur met originele ontvangsttijd; standaard TX blijft uit tot afzonderlijke vrijgave |
 | P0 — handmatige proefvariant | Bronbeoordeling en installatiekaart B07–B09 afronden voor de echte E32/EasyControl/Classic-keten | Expliciete adres-/interface-/timing-/arbitragebeoordeling en passende afgifte-, stop- en overdrachtsvoorwaarden; geen willekeurig openzetten van algemene TX |
-| P0 — gezamenlijke freeze | Complete lokale bron-/pakketpreflight is geslaagd op `0acae7c`; na proefvariant-/installatiebeoordeling definitieve versies en bron vastleggen | Exacte kandidaat met volledige native-/HA-/browser-/board-/bron-/licentie-/pakketcontroles; ontwikkelbewijs apart houden |
+| P0 — gezamenlijke freeze | Volledige CI en onafhankelijke pakketcontrole geslaagd op `4c9a33d`; nieuwe receipt-gebonden updaterproef lokaal geslaagd. Beta.4-versie en bron nog niet bevroren | Exacte kandidaat met volledige native-/HA-/browser-/board-/bron-/licentie-/pakketcontroles; ontwikkelbewijs apart houden |
 | P0 — release en installatie | Eén gezamenlijke publicatie en installatie na kandidaatacceptatie | Begrijpelijke Engelse GitHub-notities, actuele README en juiste assets/manifest/checksums; HA via de bestaande native HA-specialist met back-up; E32 via native GitHub-OTA |
 | P0 — onafhankelijke nacontrole | Nieuwe boot, versie/bron/ELF/web en instellingenbehoud vastleggen | Verse readback en acceptatierapport; HTTP202 of alleen een build telt niet als geslaagde installatie |
 | P0 — afzonderlijke ketelproef | B14 uitvoeren zodra de fysieke voorwaarden en proefopdracht gelden | Nulmeting → nulvraag/latere stopmelding → eindige warmtevraag → stop/naloop → afzonderlijke uitval/herstel → terug naar Tado |
@@ -114,6 +114,37 @@ en standaardblokkadecontrole geslaagd. De geïsoleerde handmatige compilevariant
 slaagt eveneens; alleen `EmsController.cpp.o` bevat de verwachte UART-write.
 De proefvariant is uitsluitend gebouwd, niet geïnstalleerd. Bewijs staat onder
 `out/beta4-manual-reply/`.
+
+## Actuele software- en pakketpreflight — 26 oktober
+
+De volledige [CI op `4c9a33d`](https://github.com/dielessen/open_thermostat/actions/runs/40342130211)
+is geslaagd: negen validatiejobs, waaronder alle bordbuilds, native-/browser-/
+HA-controles en beide zendroute-compileproeven. De eerdere sensorloze bron
+`81c9c01` heeft eveneens een volledig geslaagde eigen CI. Publicatiejobs zijn uitsluitend
+voor tags bedoeld en zijn in deze ontwikkelruns overgeslagen.
+
+Het werkelijk gedownloade E32-pakket is onafhankelijk tegen de exacte Git-bron,
+firmware, webbestanden, ELF, factory-slices, checksums, bron-/licentiemateriaal
+en relinkbewijs gecontroleerd: 2.229 controles geslaagd. Imagegrootte is
+2.862.416 bytes. De bestaande alpha36-hostcompatibiliteit slaagt opnieuw; HA-
+integratiebron is bytegelijk aan de gepubliceerde beta.3-bron. Lokaal bewijs:
+`out/beta4-release-preflight/`. Dit CI-pakket heeft nog versieveld beta.3 en
+andere bron dan de openbare beta.3; het is geen vervangende publieke download.
+
+De pakketbouw krijgt bovendien een verplichte proef met de **ongewijzigde
+updater uit de laatst geaccepteerde receipt**, nu beta.1. Lokaal zijn drie
+indexcatalogusgevallen, twaalf zoekposities en vijf image-/readbackgevallen met
+het echte CI-image geslaagd. Een verkeerd manifest, beschadigd image,
+ontbrekende acceptatie of veranderde bewaarde bron wordt geweigerd. Het bewijs
+wordt aan pakket en checksumlijsten gebonden. Zeven nieuwe fixtures, de vier
+bestaande alpha36-fixtures, zes updatepoortcontroles en twintig publicatiecontroles
+slagen lokaal. Deze nieuwe pakketroute krijgt nog een eigen CI; een eerdere
+groene run geldt daarvoor niet als bewijs.
+
+`accepted` blijft beta.1, `pending_tag` blijft beta.3. De werkelijke beta.3-
+installatie en onafhankelijke nacontrole staan nog open; geen opvolgerfreeze,
+publicatie, installatie of fysieke ketelactie uitgevoerd. De model-/installatie-
+en stopacceptatie blijven daarnaast afzonderlijk open.
 
 ## GitHub en releaseonderhoud — 26 oktober
 

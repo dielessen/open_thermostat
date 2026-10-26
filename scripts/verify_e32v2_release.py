@@ -30,6 +30,7 @@ def verify(package, root=None):
     check((package / "SOURCE_COMMIT.txt").read_text().strip() == m["source_commit"], "source identity")
     with tarfile.open(package / "source.tar.gz") as archive:
         members = {a.name:a for a in archive.getmembers() if a.isfile()}
+        accepted_path_required = "scripts/verify_accepted_update_path.py" in members and "-e32v2-beta." in m["version"]
         release = json.loads(archive.extractfile(members["release.json"]).read())
         check(release["version"] == m["version"], "version frozen in source")
         web = hashlib.sha256()
@@ -57,6 +58,11 @@ def verify(package, root=None):
             check(metadata["source"] == head and metadata["web_sha256"] == m["web_sha256"], "compiled registry revision")
             elf = (root / ".pio/build/e32v2/firmware.elf").read_bytes()
             check(hashlib.sha256(elf).digest() == firmware[0xb0:0xd0], "ELF matches panic hash in app descriptor")
+    if accepted_path_required:
+        from verify_accepted_update_path import verify_report
+        compatibility = json.loads((package / "accepted-predecessor-compatibility.json").read_text())
+        verify_report(package,compatibility,package/"e32v2-update.json",source_root=root)
+        check(True,"receipt-bound accepted updater catalog and image compatibility")
     # Independently inspect the delivered material, rather than relying on the
     # packager's claim that source/notices/relink objects were supplied.
     third_party = package / "third-party"

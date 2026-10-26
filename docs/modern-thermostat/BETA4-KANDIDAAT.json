@@ -14,7 +14,8 @@
     "5edab0ce2002229eeca62bb8514d65a9bcce79f5",
     "ff54e0f65bd5be8af1fb9dcab9dadc1409df68e6",
     "d5e354acdb91205ea1014fc984f4bcff54f1b13a",
-    "81c9c01a292f3ba7996f83365f83eedc82014660"
+    "81c9c01a292f3ba7996f83365f83eedc82014660",
+    "4c9a33db644103c011e2b7b683c89b4d3f711805"
   ],
   "release_notes": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.en.md",
   "changes": [
@@ -33,10 +34,10 @@
   "publication_state": "BLOCKED_PENDING_PREDECESSOR_ACCEPTANCE",
   "runtime_actions_performed": false,
   "source_ci": {
-    "commit": "d5e354acdb91205ea1014fc984f4bcff54f1b13a",
-    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40338704546",
+    "commit": "4c9a33db644103c011e2b7b683c89b4d3f711805",
+    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40342130211",
     "conclusion": "success",
-    "scope": "pre-freeze source including English publication tooling; nine validation jobs passed; later sensorless pressure and manual bus completion changes require their own CI; not installation acceptance"
+    "scope": "pre-freeze source including sensorless pressure and final manual bus completion checks; nine validation jobs passed; later accepted-updater packaging gate still needs its own CI; not installation acceptance"
   },
   "writable_boiler_inventory": "docs/modern-thermostat/BOILER-WRITE-INVENTORY.json",
   "prepared_settings_backend": {
@@ -68,5 +69,25 @@
     "digital_pressure_required": false,
     "per_heat_preparation_confirmation_required": true,
     "physical_acceptance_performed": false
+  },
+  "source_package_preflight": {
+    "commit": "4c9a33db644103c011e2b7b683c89b4d3f711805",
+    "ci_version_field": "v0.1.0-e32v2-beta.3",
+    "planned_tag_frozen": false,
+    "independent_package_checks": 2229,
+    "firmware_bytes": 2862416,
+    "firmware_sha256": "1719479f34e388a529c4de0a78aaa54a60f97a5d3e43f3f6f9ff3878aa8b25d0",
+    "alpha36_compatibility": "PASS_HOST_ONLY",
+    "accepted_beta1_compatibility": "PASS_HOST_ONLY",
+    "ha_runtime_source_unchanged_from_beta3": true,
+    "publication_approved": false
+  },
+  "accepted_updater_packaging_gate": {
+    "state": "LOCAL_VERIFIED_PENDING_OWN_CI",
+    "script": "scripts/verify_accepted_update_path.py",
+    "report": "accepted-predecessor-compatibility.json",
+    "bound_to_accepted_receipt": true,
+    "retained_sources_unmodified": true,
+    "physical_update_tested": false
   }
 }

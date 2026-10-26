@@ -83,6 +83,10 @@ if "-e32v2-beta." in release["version"]:
     compatibility = verify_predecessor(root,pkg/"e32v2-update.json",pkg/"firmware.bin")
     (pkg/"alpha36-beta-compatibility.json").write_text(json.dumps(compatibility,indent=2)+"\n")
     shutil.copy2(pkg/"alpha36-beta-compatibility.json",assets/"alpha36-beta-compatibility.json")
+    from verify_accepted_update_path import verify as verify_accepted
+    accepted_compatibility = verify_accepted(root,pkg/"e32v2-update.json",pkg/"firmware.bin")
+    (pkg/"accepted-predecessor-compatibility.json").write_text(json.dumps(accepted_compatibility,indent=2)+"\n")
+    shutil.copy2(pkg/"accepted-predecessor-compatibility.json",assets/"accepted-predecessor-compatibility.json")
 (pkg/"SHA256SUMS.txt").write_text("".join(hashlib.sha256(p.read_bytes()).hexdigest()+"  "+str(p.relative_to(pkg))+"\n" for p in sorted(pkg.rglob("*")) if p.is_file() and p.name!="SHA256SUMS.txt"))
 report = verify(pkg,root)
 (assets/"software-verification.json").write_text(json.dumps(report,indent=2)+"\n")

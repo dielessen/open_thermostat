@@ -260,6 +260,15 @@ jobs:
               shutil.copyfileobj(response,target)
           PYTHON
           git fetch --no-tags origin 7ddf3410666d814850275433d9dddd266e5d83ba
+          python - <<'PYTHON'
+          from pathlib import Path
+          import subprocess,sys
+          sys.path.insert(0,'scripts')
+          from verify_accepted_update_path import accepted_source
+          record,_=accepted_source(Path.cwd())
+          subprocess.run(['git','fetch','--no-tags','--depth=1','origin',record['source_commit']],check=True)
+          PYTHON
+          python -m unittest discover -s scripts -p test_accepted_update_path.py -v
           python -m unittest discover -s scripts -p test_alpha36_beta_path.py -v
           python scripts/package_e32v2_release.py --output out/e32v2 --release-output out/release --source-inputs out/vendor-source-inputs.zip --sdk-reproduction out/e32-source-proof/source-reproduction.json
           python scripts/e32_symbols.py --package out/e32v2

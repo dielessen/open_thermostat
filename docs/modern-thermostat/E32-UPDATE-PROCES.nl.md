@@ -60,6 +60,35 @@ controle: echte GitHub/TLS/heap/flash/boot en afzonderlijke nacontrole blijven
 hieronder verplicht. Geen tussenrelease of extra installatie nodig op grond
 van deze broncontrole; fysieke geschiktheid wordt niet vooruit afgetekend.
 
+### Aanvullend: updater van de laatst geaccepteerde bèta
+
+Nieuwe bètapakketten doorlopen ook `scripts/verify_accepted_update_path.py`.
+Deze kiest de oorspronkelijke bron uit de SHA256-gebonden acceptatiereceipt in
+`E32-UPDATE-GATE.json`, niet uit een gekozen ketelprofiel of de huidige headers.
+De CI haalt precies die Git-commit op; ontbrekende bron of receipt blokkeert
+verpakken. De eerdere vaste alpha36-proef blijft afzonderlijk behouden.
+
+De proef compileert vijf ongewijzigde productieheaders en de oorspronkelijke
+imageharness uit die geaccepteerde bron. Zij controleert de snelle tag-/release-/
+manifestcatalogus, weigering van bronverschil en mislukte overdracht met behoud
+van de oude keuzelijst, alle twaalf posities in de algemene zoekroute en vijf
+scenario's met het echte kandidaatimage via de oorspronkelijke commitpoort.
+OpenSSL controleert de hashes; HTTP en flash zijn lokale fixtures. Er worden
+geen netwerk-, flash- of bootproeven op het apparaat uitgevoerd.
+
+`accepted-predecessor-compatibility.json` gaat mee in pakket, release-assets en
+beide checksumlijsten. De onafhankelijke pakketverifier controleert receipt,
+doelmanifest, firmwarehash, aantallen en expliciete beperkingen. Met de Git-bron
+beschikbaar controleert zij ook elke bewaarde bronhash tegen de oorspronkelijke
+commit. Historische pakketten waarvan de bron deze proef nog niet bevatte blijven
+met hun eigen controles verifieerbaar.
+
+Dit is aanvullende softwarecompatibiliteit, geen fysieke updateacceptatie of
+publicatievrijgave. De huidige bètavoorbereiding blijft versieveld beta.3 voeren
+zolang beta.4 nog niet is bevroren; een CI-image met dat versieveld vervangt de
+bestaande openbare beta.3-download niet. Na echte beta.3-acceptatie en een
+beta.4-freeze moet de proef opnieuw op het definitieve beta.4-bestand slagen.
+
 ## 2. Verse voorcontrole en behoud
 
 Alle HA-/E32-beheer via de bestaande HA-agent. Controleer onmiddellijk vooraf:

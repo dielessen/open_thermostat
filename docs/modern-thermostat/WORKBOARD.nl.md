@@ -9,6 +9,12 @@ Het pakket is onafhankelijk gecontroleerd; de actuele bewijsstand en de nog
 open publicatievoorwaarden staan in [het kandidaatrapport](BETA4-VERSIONED-PREVIEW.json).
 De ontwikkelbranch blijft beta.3; er is nog geen tag, publicatie of installatie.
 
+**Vervolg vereist een proceskeuze:** actuele statuslezingen controleren identiteit
+en boot, terwijl oorspronkelijke beta.3-voorcontrole, back-up en installatie-
+bevestiging apart nodig blijven. Het [kandidaatrapport](BETA4-VERSIONED-PREVIEW.json)
+groepeert nu alle 13 checks op herstelbaarheid. Een uitzonderingsvoorstel is
+alleen een mogelijke vervolgstap; de bestaande releasepoort blijft van kracht.
+
 Actueel ontwikkelwerk: beta.4 krijgt een uitvoerbare, bijgewoonde Ecomline Classic-
 commissioningproef met een nieuwe manometerwaarde per warmtevoorbereiding en een
 scrollbare Bluetoothlijst met maximaal 128 ontdekte adressen. Algemene TX en

@@ -51,7 +51,44 @@
     "tag_created": false,
     "release_published": false,
     "device_installation_performed": false,
-    "boiler_trial_performed": false
+    "boiler_trial_performed": false,
+    "recovery_plan": {
+      "state": "AWAITING_OPERATOR_DIRECTION",
+      "check_groups": {
+        "public_software_reference": [
+          "public_package_exact"
+        ],
+        "original_installation_records_required": [
+          "fresh_preflight_passed",
+          "backup_verified",
+          "single_native_install_command",
+          "original_admission_recorded"
+        ],
+        "current_reads_plus_original_comparison_required": [
+          "download_checksum_image_readback_passed",
+          "new_boot_observed",
+          "settings_programs_bindings_preserved",
+          "outputs_remained_disabled"
+        ],
+        "authenticated_current_reads_and_independent_review": [
+          "installed_version_source_elf_web_exact",
+          "boot_confirmed",
+          "stable_uptime_observed",
+          "independent_postcheck_passed"
+        ]
+      },
+      "current_status_exports_scope": "Version/source/ELF/web and present boot state; original preflight, backup and command/admission records cannot be reconstructed from these exports.",
+      "two_status_exports_complete_installation_acceptance": false,
+      "original_evidence_status": "Not found in the available evidence; this does not establish that external original records do not exist.",
+      "available_routes": [
+        "Recover original beta.3 records and complete the authenticated read-only postcheck",
+        "Prepare a separately reviewable one-time exception proposal; no publication or gate change is authorized by choosing proposal preparation"
+      ],
+      "existing_gate_unchanged": true,
+      "beta3_marked_accepted": false,
+      "exception_approved": false,
+      "policy_source": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md"
+    }
   },
   "storage": {
     "temporary_package_download_removed": true,

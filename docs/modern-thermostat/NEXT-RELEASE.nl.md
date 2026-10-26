@@ -4,7 +4,7 @@ Bijgewerkt op 26 oktober 2026. Status: **NOT_READY voor actieve ketelproeven**.
 Dit document beschrijft het volgende werk; het [werkbord](WORKBOARD.nl.md)
 bewaakt alle 31 producteisen en 14 eindcontroles. De
 [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bewaakt alle 23 voorbereide
-onderdelen en hun 430 bronverwijzingen. De
+onderdelen en hun 432 bronverwijzingen. De
 [volledige voortgangshistorie](NEXT-RELEASE-HISTORY-20261026.nl.md) blijft bewaard;
 oude versies en aantallen daarin zijn historische checkpoints.
 
@@ -28,6 +28,7 @@ ze zijn geen afgevinkte functie doordat er voorbereidende code aanwezig is.
 | Geïnstalleerde HA-integratie | `0.4.0b1`, gezamenlijke basis `5e3ed30` |
 | Voorbereide bron | Huidige branch, inclusief eenmalige configuratie-uitlezing, afzonderlijke busafsluiting en alle eerdere voorbereide wijzigingen |
 | Nieuwe gezamenlijke kandidaat | E32 beta.3 / HA 0.4.0b3 gepubliceerd uit `996587d`; exacte tag-CI en openbare pakketten gecontroleerd. Installatie en live nacontrole nog open wegens ontbrekende bestaande HA-beheertool in deze sessie. Passieve release, geen warmteproefvrijgave |
+| Volgende E32-release | Beta.4 in voorbereiding: sessieherstel, 30-minuten-inactiviteitsverval en algemene ketelillustratie. Geen nieuwe HA-versie voor deze wijzigingen. Nog niet bevroren of gepubliceerd; beta.3-installatieacceptatie staat open |
 | Algemene en handmatige fysieke TX | Beide uit; geen runtime- of buildflag-ontgrendeling |
 | Warmte-installatievrijgave | `manualHeatInstallationReviewed_ = false` |
 
@@ -396,3 +397,25 @@ vier schermprofielen slagen, inclusief opgeslagen model na herladen, offline
 foto, mobiele weergave en behoud van de ketelkeuze. Alleen lokale gesimuleerde
 HTTP/opslag; geen apparaat gewijzigd. Dit bronwerk is nog niet gepubliceerd of
 geïnstalleerd en verandert de bestaande beta.3-release niet.
+
+## Volgende release voorbereiden — E32 beta.4
+
+De gebruiker vraagt de volgende release te maken. Het concrete concept staat in
+[BETA4-KANDIDAAT.json](BETA4-KANDIDAAT.json), met
+[NL/EN-conceptnotities](BETA4-RELEASE-NOTES-DRAFT.nl-en.md). De drie nieuwe
+E32-functies worden samen gebundeld; HA blijft op zijn bestaande openbare b3-versie.
+De drukprofielaanpassing en actieve ketelvrijgave horen niet bij deze reparatiebundel.
+
+De volledige CI van de generieke-illustratiebron loopt nog. Twee eerdere
+browserjobs bereikten hun 15-minutenlimiet nadat afhankelijkheidsinstallatie
+het grootste deel daarvan verbruikte. De CI krijgt daarom 30 minuten totale
+jobtijd, met een afzonderlijke limiet van 15 minuten voor de echte browserscenario's;
+geen test of publicatiepoort wordt overgeslagen. De actuele branch wordt opnieuw
+volledig gecontroleerd. Bronartefacten met nog beta.3 als ontwikkelversie zijn
+geen nieuwe release of installatiedoel en vervangen de bestaande beta.3-assets niet.
+
+Beta.3 staat nog pending in de updatepoort. Tot echte installatie en onafhankelijke
+nacontrole zijn vastgelegd blijven release.json, pending_tag en de openbare tags
+ongewijzigd. Gewoon bronwerk, conceptnotities en CI gaan door; een beta.4-freeze
+of publicatie wordt niet als gereed afgetekend. De gebruiker heeft aangegeven
+zelf te installeren; in deze stap worden geen apparaatmutaties uitgevoerd.

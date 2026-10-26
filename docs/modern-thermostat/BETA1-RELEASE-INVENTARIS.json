@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "c8abb7b736bd4b86419e0335b1fa64a3f1d5b6020853c17f5d9a155d7f7f43bf"
+          "sha256": "a6f08aae5fd028b483fe3804fc41edc24e827c552cf7f5dd7e7d73b9e42617a1"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "b31dd50f3dcbdd2da8aaaffaef3888dc71f9286602d24b6701f2b57dd727d047"
+          "sha256": "dff64a6cd47dd2e20eaf7df716b6f9b8c233e9a2c6b231ac046d501da1f8f82a"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -140,6 +140,14 @@
         {
           "path": "docs/modern-thermostat/BETA-NEXT-RELEASE-NOTES-HISTORY-20261026.nl-en.md",
           "sha256": "1a61845cf644ae751fbee6ee9113924ed8000bc91c79aea2f99cca74dbb00a1b"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA4-KANDIDAAT.json",
+          "sha256": "9c7f8fbae3c75db7b6b445c0f9d5e0f402fcd8ed61d928fba68d1e06078249f2"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.nl-en.md",
+          "sha256": "93291a60c7240209917457307fbdaa24dd851f694d879753fe6e79b28806eadd"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -305,7 +313,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "c8abb7b736bd4b86419e0335b1fa64a3f1d5b6020853c17f5d9a155d7f7f43bf"
+          "sha256": "a6f08aae5fd028b483fe3804fc41edc24e827c552cf7f5dd7e7d73b9e42617a1"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -775,7 +783,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "c8abb7b736bd4b86419e0335b1fa64a3f1d5b6020853c17f5d9a155d7f7f43bf"
+          "sha256": "a6f08aae5fd028b483fe3804fc41edc24e827c552cf7f5dd7e7d73b9e42617a1"
         },
         {
           "path": "platformio.ini",

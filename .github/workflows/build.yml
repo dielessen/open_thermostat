@@ -9,7 +9,9 @@ on:
 jobs:
   browser-regressions:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Dependency installation previously consumed most of the 15-minute job.
+    # Keep a separate 15-minute limit for the actual browser scenarios below.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Validate mandatory E32 update acceptance policy
@@ -35,6 +37,7 @@ jobs:
           npm install --no-save --package-lock=false playwright-core@1.63.0
           npx playwright-core install --with-deps chromium
       - name: Exercise shipped setup and room pages (simulated HTTP)
+        timeout-minutes: 15
         run: |
           node test/onboarding/browser.cjs
           node test/onboarding/network-browser.cjs

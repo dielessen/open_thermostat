@@ -53,7 +53,7 @@ Een ontwikkelimage met hetzelfde beta.3-versielabel telt niet als dit publieke p
 | P0 — modelprofiel zonder digitale drukmeting | Apart brongebonden Ecomline-profiel geïmplementeerd: afzonderlijke drukcontrolemethode vereist, met een nieuwe verklaring per warmteproef. De methodepoort blijft uit | Passende fysieke drukcontrolemethode voor deze installatie beoordelen en vastleggen; geen digitale drukwaarde eisen of verzinnen. Overige meet-, installatie- en stopvoorwaarden blijven behouden |
 | P0 — configuratieontvangst | Eenmalige uitleesroute is aangesloten in HTTP, UART-poll en NL/EN-bediening; afronden met kandidaat- en fysieke controle | Echte latere boilerrespons levert CV-aan/uit en temperatuur met originele ontvangsttijd; standaard TX blijft uit tot afzonderlijke vrijgave |
 | P0 — handmatige proefvariant | Bronbeoordeling en installatiekaart B07–B09 afronden voor de echte E32/EasyControl/Classic-keten | Expliciete adres-/interface-/timing-/arbitragebeoordeling en passende afgifte-, stop- en overdrachtsvoorwaarden; geen willekeurig openzetten van algemene TX |
-| P0 — gezamenlijke freeze | Volledige CI en 2.236 onafhankelijke pakketcontroles geslaagd op `1947b9c`, inclusief receipt-gebonden updaterproef, sessiegebonden uitlezing, laatste UI en opslagonderhoud. Beta.4-versie en bron nog niet bevroren | Exacte kandidaat met volledige native-/HA-/browser-/board-/bron-/licentie-/pakketcontroles; ontwikkelbewijs apart houden |
+| P0 — gezamenlijke freeze | Volledige CI en 2.236 onafhankelijke pakketcontroles geslaagd op `1947b9c`; latere bescherming van de instellingstransactie lokaal gecontroleerd met 67 sanitizertests en E32-build, eigen CI volgt. Beta.4-versie en bron nog niet bevroren | Exacte kandidaat met volledige native-/HA-/browser-/board-/bron-/licentie-/pakketcontroles; ontwikkelbewijs apart houden |
 | P0 — release en installatie | Eén gezamenlijke publicatie en installatie na kandidaatacceptatie | Begrijpelijke Engelse GitHub-notities, actuele README en juiste assets/manifest/checksums; HA via de bestaande native HA-specialist met back-up; E32 via native GitHub-OTA |
 | P0 — onafhankelijke nacontrole | Nieuwe boot, versie/bron/ELF/web en instellingenbehoud vastleggen | Verse readback en acceptatierapport; HTTP202 of alleen een build telt niet als geslaagde installatie |
 | P0 — afzonderlijke ketelproef | B14 uitvoeren zodra de fysieke voorwaarden en proefopdracht gelden | Nulmeting → nulvraag/latere stopmelding → eindige warmtevraag → stop/naloop → afzonderlijke uitval/herstel → terug naar Tado |
@@ -133,6 +133,8 @@ Dit omvat de sessiegebonden uitlezing, de laatste UI-aanvulling hieronder en het
 opslagonderhoud. De eerdere bron `171d3be` heeft eveneens een volledig geslaagde
 eigen CI. Publicatiejobs zijn uitsluitend
 voor tags bedoeld en zijn in deze ontwikkelruns overgeslagen.
+De latere transactiefix hieronder is apart lokaal gecontroleerd en vereist een
+eigen CI; dit eerdere groene checkpoint geldt daarvoor niet als eindbewijs.
 
 Het werkelijk gedownloade E32-pakket van `1947b9c` is onafhankelijk tegen de exacte Git-bron,
 firmware, webbestanden, ELF, factory-slices, checksums, bron-/licentiemateriaal
@@ -206,6 +208,29 @@ heropenen en nieuwe bevestiging; drie volledige bedieningsweergaven geslaagd.
 Firmware en filesystem gebouwd en de standaard E32-blokkades gecontroleerd.
 Bewijs staat lokaal onder `out/beta4-read-cancellation-ui/`; dit is geen fysieke
 nacontrole van de geïnstalleerde beta.3.
+
+## Instellingstransactie: bescherming vóór klok- en toelatingscallbacks
+
+Onderdeel I23: de voorbereide `ClassicBoilerSettingTransaction` reserveert nu de
+hele pollafhandeling vóór iedere externe klok-, toelatings- of zendcallback.
+De bestaande bescherming begon pas bij de daadwerkelijke zendcallback. In een
+hostregressie kon een geneste poll daardoor de oorspronkelijke afhandeling
+overnemen of bij de laatste controle hetzelfde schrijf-/leesverzoek tweemaal
+laten verzenden. De service heeft daarnaast haar eigen bestaande bescherming;
+de transactie bewaakt dit nu ook zelfstandig.
+
+Een geneste poll gebruikt geen callback en meldt dat de huidige afhandeling de
+poll al bezit. Fouten geven de reservering via dezelfde scope weer vrij; er is
+geen automatische herhaling. Een latere nieuwe opdracht vereist nog steeds de
+volgende revisie, cooldown en verklaringen. Instellingen-/algemene TX en de
+installatiepoort blijven uit.
+
+De nieuwe regressie faalt aantoonbaar op de oude kern. Na de wijziging slagen
+67 tests in zeven instellingensuites onder ASAN/UBSAN, inclusief twaalf
+herintredeposities bij schrijven/teruglezen en zes klok-/toelatingsexceptions.
+Normale E32-firmware, filesystem en de standaard TX-/partitiecontrole slagen.
+Bewijs: `out/beta4-settings-reentry/`. De aparte instellingencompile en volledige
+CI volgen op de nieuwe bron; geen fysieke schrijfproef of installatieacceptatie.
 
 ## Opslagonderhoud na iedere release
 

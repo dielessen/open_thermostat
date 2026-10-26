@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "28e6f3789fc5a7ff479bb112fcd149c0eb67ecfc1001f31822bad1f5b08955e7"
+          "sha256": "eb1a8a71f6ef27427b08145c1317dbb814b0863fb6cb52c11a6d30032987152e"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -143,7 +143,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA4-KANDIDAAT.json",
-          "sha256": "92cbe5e79ddae5a877a6117f0d5f2cc6a32110a495be5b422a754a795bf607d9"
+          "sha256": "697f9c733ca2c814768e2728c59cc41645dc20ad4cd7f71b424830c5529fe4e2"
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.nl-en.md",
@@ -163,7 +163,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.en.md",
-          "sha256": "712add95ec6747d156989903f41b54f103d440bdfe36851f2db4d26b824d0792"
+          "sha256": "dd7f1bf4cc3a1a1f85cd135450d934312df9a138ec8ecea621a694da60be81ad"
         },
         {
           "path": "scripts/verify_accepted_update_path.py",
@@ -2121,7 +2121,7 @@
         },
         {
           "path": "src/EMS/ClassicBoilerSettingTransaction.h",
-          "sha256": "ef88455f619f824c760d99343c743376079ac63fbbbdd53ed4f7387beacd9e0a"
+          "sha256": "4dd50a0a28755d257dc0178b2e9b3df1834f5bffee5e62cb1887fe7004ddc0b9"
         },
         {
           "path": "test/test_native/test_classic_boiler_settings_encoder.cpp",
@@ -2129,7 +2129,7 @@
         },
         {
           "path": "test/test_native/test_classic_boiler_setting_transaction.cpp",
-          "sha256": "0bfb6d2a42cfa9b5b1eb51f366cd1a852fff9e626fcfde98a92d00a39c02144e"
+          "sha256": "94b7949bfe3248cf3f260ae6c7f1ab7aa3cf373617458752fbdeaf0042ed065f"
         },
         {
           "path": "src/EMS/ClassicSettingBusExchange.h",

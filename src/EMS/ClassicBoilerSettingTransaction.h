@@ -79,7 +79,12 @@ public:
     // Even an uncertain/throwing callback is never invoked a second time.
     template<class Clock, class Gate, class Send>
     bool poll(Clock clock, Gate gate, Send send) {
+        if (inFlight_) return true;
         if (!active()) return false;
+        // Clock and permission callbacks are external code too. Reserve the
+        // entire dispatch before invoking them, including the final gate.
+        inFlight_ = true;
+        struct Release { bool& value; ~Release() { value = false; } } release{inFlight_};
         try {
             const bool initiallyPermitted = gate();
             auto now = clock(); tick(now, initiallyPermitted);
@@ -99,8 +104,6 @@ public:
             if (writing) writeAttempted_ = true;
             // Retire before external IO so re-entry cannot repeat a command.
             phase_ = Phase::failed; reason_ = "transport_uncertain";
-            inFlight_ = true;
-            struct Release { bool& value; ~Release() { value = false; } } release{inFlight_};
             if (!send(frame)) { reason_ = "transport_failed"; return true; }
             const bool stillPermitted = gate();
             const auto finished = clock();

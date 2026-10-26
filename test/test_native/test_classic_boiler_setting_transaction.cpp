@@ -134,6 +134,45 @@ TEST(ClassicSettingTransaction, ReentrantIOCannotStartAnotherTransactionOrDuplic
     EXPECT_EQ(f.sends,1);EXPECT_EQ(f.transaction.revision(),1u);
     EXPECT_EQ(f.transaction.phase(),Phase::waitingWriteStatus);
 }
+TEST(ClassicSettingTransaction, ReentrantClockAndGateCannotTakeOverOrRepeatWriteAndRead) {
+    for(bool reading:{false,true})for(int reenterAt=0;reenterAt<6;++reenterAt) {
+        SCOPED_TRACE(::testing::Message()<<"reading="<<reading<<" callback="<<reenterAt);
+        Fixture f;f.start();if(reading){f.poll();++f.now;f.ack();}
+        const int before=f.sends;int callbacks=0,nestedSends=0;
+        const auto reenter=[&]{
+            if(callbacks++!=reenterAt)return;
+            EXPECT_TRUE(f.transaction.poll([&]{return f.now;},[]{return true;},[&](const EmsRawFrame&){
+                ++nestedSends;return true;
+            }));
+            EXPECT_EQ(nestedSends,0);
+        };
+        EXPECT_TRUE(f.transaction.poll([&]{reenter();return f.now;},[&]{reenter();return true;},
+            [&](const EmsRawFrame& frame){
+                ++f.sends;
+                EXPECT_EQ(EmsTelegram::fromRawData(frame.data.data(),frame.length).getOperationType(),
+                          reading?EmsTelegram::READ:EmsTelegram::WRITE);
+                return true;
+            }));
+        EXPECT_EQ(callbacks,6);EXPECT_EQ(nestedSends,0);EXPECT_EQ(f.sends,before+1);
+        EXPECT_EQ(f.transaction.revision(),1u);
+        EXPECT_EQ(f.transaction.phase(),reading?Phase::waitingResponse:Phase::waitingWriteStatus);
+    }
+}
+TEST(ClassicSettingTransaction, ClockAndGateExceptionsReleaseThePollGuardWithoutRetry) {
+    for(int throwAt=0;throwAt<6;++throwAt) {
+        SCOPED_TRACE(throwAt);
+        Fixture f;f.start();int callbacks=0;
+        const auto fault=[&]{if(callbacks++==throwAt)throw std::runtime_error("callback");};
+        EXPECT_TRUE(f.transaction.poll([&]{fault();return f.now;},[&]{fault();return true;},
+            [&](const EmsRawFrame&){++f.sends;return true;}));
+        EXPECT_EQ(f.transaction.phase(),Phase::failed);EXPECT_STREQ(f.transaction.reason(),"transport_exception");
+        const int sent=throwAt<4?0:1;EXPECT_EQ(f.sends,sent);
+        f.poll();EXPECT_EQ(f.sends,sent);
+        auto next=intent();next.revision=2;f.now+=Transaction::cooldownMs;
+        ASSERT_EQ(f.transaction.request(next,f.now,true),Admission::accepted);
+        f.poll();EXPECT_EQ(f.sends,sent+1);
+    }
+}
 TEST(ClassicSettingTransaction, NewAttemptNeedsNextRevisionAndCooldownAndFreshConfirmations) {
     Fixture f;f.wait();++f.now;f.transaction.receive(reply(),f.now,f.now,true);
     auto next=intent();next.revision=2;

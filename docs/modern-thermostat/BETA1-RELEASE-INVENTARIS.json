@@ -27,7 +27,7 @@
         },
         {
           "path": "scripts/package_e32v2_release.py",
-          "sha256": "89397bc7f4a9d2ad91a04035e9ec27655eb682a289349fdbff28bf36f614d313"
+          "sha256": "96bef5e6bbc35960c6587d980773aa048f9ab6d67f53e945dc12215992d9a745"
         },
         {
           "path": "docs/third-party/shipped-policy.json",

@@ -75,7 +75,43 @@ manifest = {**release,"ui":"embedded","asset":"firmware.bin","source_commit":hea
 from e32_symbols import export as export_symbols
 export_symbols(build,pkg)
 subprocess.run([sys.executable,str(core/"tool-esptoolpy/esptool.py"),"--chip","esp32","merge_bin","--output",str(pkg/"e32v2-factory.bin"),"--target-offset","0","--flash_mode","dio","--flash_freq","80m","--flash_size","16MB","0x1000",str(pkg/"bootloader.bin"),"0x8000",str(pkg/"partitions.bin"),"0xe000",str(pkg/"boot_app0.bin"),"0x10000",str(pkg/"firmware.bin"),"0x710000",str(pkg/"spiffs.bin")],check=True)
-(pkg/"README.md").write_text("# OpenThermostat E32 V2 — "+release["version"]+"\n\nRead docs/modern-thermostat/GITHUB-UPDATES.nl.md.\n\nfirmware.bin: settings-preserving application-only bootstrap/OTA; includes web UI.\ne32v2-factory.bin: separate clean USB installation at0x0; full erase DELETES SETTINGS. Never offer this factory file as an OTA app.\n\nsymbols/: exact firmware.elf, firmware.map and embedded-web.json with independently checked SYMBOLS.json; ELF SHA256 must match the OTA image descriptor. For panic decoding, never installation.\nthird-party/vendor-source-inputs.zip: pinned original vendor source snapshots and notices.\nthird-party/installed-notices: unchanged installed/original notices and inventory.\nrelink/: exact application source, actual objects, link recipe and verified changed-library relink evidence. Read relink/README.md. Altered proof ELF files are excluded from this package.\nSDK/runtime reproduction recipes and safe source preparation are included in source.tar.gz; see docs/third-party/e32v2-reproduction/README.md.\n\nExperimental prerelease, outputs remain blocked, keep EMS disconnected.\nSoftware verification is not physical update/failure/recovery acceptance.\n")
+(pkg/"README.md").write_text(f"""# OpenThermostat E32 V2 — {release['version']}
+
+Experimental prerelease. Read the release notes and
+`docs/modern-thermostat/BETA1-KETELPROEF.nl.md` before an attended boiler trial.
+
+## Updating an existing installation
+
+Use the E32's normal GitHub updater with `firmware.bin`. It preserves settings
+and includes the web interface. Installation does not start a boiler trial.
+
+Automatic boiler and valve control and persistent boiler-setting writes remain
+disabled. The separate Ecomline Classic commissioning route permits a one-shot
+configuration read and an explicitly attended zero-demand/heat/stop trial.
+Every heat preparation needs current setup confirmations and a boiler-gauge
+reading of 1.1–2.5 bar. The software limits demand to 40–45 °C and at most
+60 seconds, with a five-second operator lease and a separate Stop action.
+Software verification does not complete physical installation, stop or recovery
+acceptance. Record the actual trial results separately.
+
+## Clean USB installation
+
+`e32v2-factory.bin` is a separate clean-install image at offset 0x0.
+A full erase DELETES SETTINGS. Never use this factory image for application OTA.
+
+## Source, symbols and licences
+
+- `symbols/`: exact `firmware.elf`, `firmware.map`, `embedded-web.json` and checked
+  `SYMBOLS.json`. The ELF SHA256 matches the app descriptor. For panic decoding,
+  never installation.
+- `source.tar.gz`: complete application source, documentation and SDK/runtime
+  reproduction recipes. See `docs/third-party/e32v2-reproduction/README.md`.
+- `third-party/vendor-source-inputs.zip`: pinned vendor source and notices.
+- `third-party/installed-notices/`: original installed notices and inventory.
+- `relink/`: actual application objects, link recipe and verified original and
+  changed-library relink evidence. See `relink/README.md`. Altered proof ELF
+  images are excluded from delivery.
+""")
 factory=(pkg/"e32v2-factory.bin").read_bytes()
 (pkg/"FACTORY-CHECK.txt").write_text("Offset:0x0; full clean installation deletes settings\nLength:"+str(len(factory))+"\nMD5 before first boot:"+hashlib.md5(factory).hexdigest()+"\n")
 if "-e32v2-beta." in release["version"]:

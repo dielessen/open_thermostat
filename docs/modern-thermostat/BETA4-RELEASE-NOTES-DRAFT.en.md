@@ -35,6 +35,11 @@ are unchanged.
   when its acknowledgement finishes within the reply window and the transport
   remains available. Delayed processing cannot turn an old reply into a new one.
 
+- **Prepared boiler diagnostics:** queued settings-read requests are cancelled
+  when the operator logs out or the web session expires or is replaced. An
+  already-sent read retains its bounded response window, without confirming a
+  cancelled acquisition or retrying automatically.
+
 ## Updating
 
 After publication, update the E32 through its normal GitHub updater. These

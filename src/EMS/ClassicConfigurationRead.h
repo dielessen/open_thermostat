@@ -22,11 +22,15 @@ public:
     Phase phase()const{return phase_;}
     const char* reason()const{return reason_;}
     bool available(uint64_t now,bool permitted,bool otherActive)const{
-        return compiled_&&boot_&&permitted&&!otherActive&&!active()&&revision_<maximumRevision
+        return compiled_&&boot_&&permitted&&!otherActive&&!active()&&!inIo_&&revision_<maximumRevision
             &&(!revision_||(now>=armedAt_&&now-armedAt_>=cooldownMs));
     }
-    Result request(std::string_view body,std::string_view owner,uint64_t now,bool permitted,bool otherActive){
+    Result request(std::string_view body,std::string_view owner,uint64_t now,bool permitted,bool otherActive,
+                   const control::WebAuthSession& sessions){
         if(!control::WebAuthSession::hexToken(owner))return {401,"authentication_required"};
+        const auto remaining=sessions.remainingMs(owner,now);
+        if(!remaining||remaining>UINT64_MAX-now)return {401,"authentication_required"};
+        if(inIo_)return {409,"configuration_read_busy"};
         if(body.size()>256)return {400,"invalid_request"};
         const auto doc=control::parseControlJson(body);const auto* j=doc.get();
         if(!exactFields(j,{"schema","boot_id","revision","exclusive_owner_confirmed","independent_stop_confirmed"})
@@ -43,32 +47,53 @@ public:
         if(!available(now,permitted,otherActive))return {409,"configuration_read_unavailable"};
         revision_=requested;armedAt_=lastNow_=now;emittedAt_=responseAt_=0;emitted_=false;
         std::copy(owner.begin(),owner.end(),owner_.begin());owner_[64]=0;
+        sessionObservedAt_=now;sessionUntil_=now+remaining;operatorWithdrawn_=false;
         phase_=Phase::queued;reason_="awaiting_poll";return {202,""};
+    }
+    // Only the HTTP/session owner may read the real session table. UART and
+    // telemetry paths use this cached deadline under their existing owner lock.
+    // This projection never touches or renews the authentication session.
+    void synchronizeSessions(const control::WebAuthSession& sessions,uint64_t now){
+        if(!active()||operatorWithdrawn_)return;
+        const auto remaining=sessions.remainingMs(std::string_view(owner_.data()),now);
+        if(now<sessionObservedAt_){fail("clock_changed");return;}
+        if(!remaining||remaining>UINT64_MAX-now){withdrawOperator();return;}
+        sessionObservedAt_=now;sessionUntil_=now+remaining;
     }
     void fail(const char* reason){if(active()){phase_=Phase::failed;reason_=reason;}}
     void tick(uint64_t now,bool permitted){
         if(!active())return;
         if(now<lastNow_){fail("clock_changed");return;}lastNow_=now;
+        if(now<sessionObservedAt_){fail("clock_changed");return;}
+        if(!sessionUntil_||now>=sessionUntil_)withdrawOperator();
+        if(!active())return;
         if(!permitted){fail("transport_unavailable");return;}
         if(phase_==Phase::queued&&now-armedAt_>=pollTimeoutMs)fail("poll_timeout");
-        if(phase_==Phase::waiting&&now-emittedAt_>=responseTimeoutMs)fail("response_timeout");
+        if(phase_==Phase::waiting&&now-emittedAt_>=responseTimeoutMs)
+            fail(operatorWithdrawn_?"operator_session_expired":"response_timeout");
     }
     template<class Clock,class Gate,class Write>
     bool poll(Clock clock,Gate gate,Write write){
+        if(inIo_)return true;
         if(!active())return false;
+        inIo_=true;struct Release{bool& value;~Release(){value=false;}}release{inIo_};
         try{
-            auto now=clock();tick(now,gate());
+            const bool permitted=gate();auto now=clock();tick(now,permitted);
             if(phase_!=Phase::queued)return true;
             EmsRawFrame frame{};encode(frame);
-            now=clock();tick(now,gate()); // Final admission AFTER encoding.
+            const bool finalPermission=gate();now=clock();tick(now,finalPermission); // Fresh time AFTER the final gate.
             if(phase_!=Phase::queued)return true;
             if(!write(frame)){fail("transmit_failed");return true;}
             // A successful echo proves emission only. Replies must be acquired
             // strictly after completed emission, never while queued or echoed.
             const auto finished=clock();
             if(finished<now){fail("clock_changed");return true;}
-            emittedAt_=lastNow_=finished;emitted_=true;phase_=Phase::waiting;reason_="awaiting_response";
-            tick(finished,gate());
+            emittedAt_=lastNow_=finished;emitted_=true;
+            if(phase_!=Phase::queued&&!operatorWithdrawn_)return true;
+            // A sent frame cannot be undone. Retain exclusive ownership until
+            // its response/deadline, without reviving the cancelled acquisition.
+            phase_=Phase::waiting;reason_=operatorWithdrawn_?"operator_session_expired":"awaiting_response";
+            const bool afterPermission=gate();tick(clock(),afterPermission);
         }catch(...){fail("transport_exception");}
         return true;
     }
@@ -79,6 +104,7 @@ public:
             ||telegram.getOperationType()!=EmsTelegram::WRITE||telegram.getSenderId()!=8
             ||telegram.getDestinationId()!=0x0b||telegram.getTypeId()!=0x16
             ||telegram.getOffset()!=0||telegram.dataSize()!=2)return;
+        if(operatorWithdrawn_){fail("operator_session_expired");return;}
         const auto& enabled=monitor.sample(BoilerField::heatingEnabled);
         const auto& limit=monitor.sample(BoilerField::heatingLimit);
         if(!enabled.raw||!limit.raw||enabled.observedMs!=acquiredAt||limit.observedMs!=acquiredAt
@@ -89,7 +115,8 @@ public:
         out<<"{\"schema\":1,\"boot_id\":\""<<bootText()<<"\",\"revision\":"<<revision_
             <<",\"available\":"<<(available(now,permitted,otherActive)?"true":"false")
             <<",\"active\":"<<(active()?"true":"false")<<",\"phase\":\""<<phaseName()
-            <<"\",\"reason\":\""<<reason_<<"\",\"clock\":\"boot_monotonic_ms\",\"observed_at_ms\":"<<now
+            <<"\",\"withdrawn\":"<<(operatorWithdrawn_?"true":"false")
+            <<",\"reason\":\""<<reason_<<"\",\"clock\":\"boot_monotonic_ms\",\"observed_at_ms\":"<<now
             <<",\"emitted_at_ms\":";
         if(emitted_)out<<emittedAt_;else out<<"null";
         out<<",\"response_at_ms\":";if(phase_==Phase::completed)out<<responseAt_;else out<<"null";
@@ -101,6 +128,11 @@ public:
         frame.data[5]=EmsTelegram::calculateCRC(frame.data.data(),5);
     }
 private:
+    void withdrawOperator(){
+        operatorWithdrawn_=true;sessionUntil_=0;
+        if(phase_==Phase::queued)fail("operator_session_expired");
+        else if(phase_==Phase::waiting)reason_="operator_session_expired";
+    }
     static const cJSON* field(const cJSON* j,const char* key){return cJSON_GetObjectItemCaseSensitive(j,key);}
     static std::string_view stringField(const cJSON* j,const char* key){
         const auto* v=field(j,key);return cJSON_IsString(v)?std::string_view(v->valuestring):std::string_view{};
@@ -123,7 +155,8 @@ private:
         for(int i=15;i>=0;--i){text[i]="0123456789abcdef"[value&15];value>>=4;}return text;
     }
     uint64_t boot_,armedAt_=0,lastNow_=0,emittedAt_=0,responseAt_=0;
-    bool compiled_,emitted_=false;uint32_t revision_=0;Phase phase_=Phase::idle;const char* reason_="not_requested";
+    uint64_t sessionObservedAt_=0,sessionUntil_=0;
+    bool compiled_,emitted_=false,inIo_=false,operatorWithdrawn_=false;uint32_t revision_=0;Phase phase_=Phase::idle;const char* reason_="not_requested";
     std::array<char,65> owner_{};
 };
 }

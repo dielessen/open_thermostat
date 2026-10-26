@@ -547,7 +547,7 @@ private:
 		const auto operatorSession = requestToken();
 		ib::viewable_stringbuf buf; std::ostream ss(&buf);
 		const auto code = controller_.boilerTestAction(action,
-			std::string_view(body.c_str(),body.length()), operatorSession.c_str(), ss);
+			std::string_view(body.c_str(),body.length()), operatorSession.c_str(), sessions_, ss);
 		server_.sendView(code,"application/json"sv,buf.view());
 	}
 #endif

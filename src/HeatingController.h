@@ -247,8 +247,9 @@ public:
         return ems_.boilerSettingsWrite(body,owner,sessions,out);
     }
 	bool boilerTestActive() const { return ems_.boilerTestActive(); }
-	int boilerTestAction(std::string_view action, std::string_view body, std::string_view operatorSession, std::ostream &ss) {
-		return ems_.boilerTestAction(action, body, operatorSession, ss);
+	int boilerTestAction(std::string_view action, std::string_view body, std::string_view operatorSession,
+                        const control::WebAuthSession& sessions, std::ostream &ss) {
+		return ems_.boilerTestAction(action, body, operatorSession, sessions, ss);
 	}
 #endif
 

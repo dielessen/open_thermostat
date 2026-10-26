@@ -163,7 +163,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.en.md",
-          "sha256": "29117b9b0532b42ca682fb4a9624a85b1a3ef1d2b4bd205fcc3f96250aa070fa"
+          "sha256": "9ec18c10f2e893451c8e0b2dc19cc388566edf0aaf09a2962993c68be412d139"
         },
         {
           "path": "scripts/verify_accepted_update_path.py",
@@ -705,7 +705,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "d327ddc8e15b580ca033b8cd6aa7b6009242ee830a5a28156bed829b27623ff0"
+          "sha256": "113fb53294a58cfe9c98f3a55dc017c5b2f35e93c005d4d049005979045d208a"
         },
         {
           "path": "src/Room.cpp",
@@ -823,7 +823,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "d327ddc8e15b580ca033b8cd6aa7b6009242ee830a5a28156bed829b27623ff0"
+          "sha256": "113fb53294a58cfe9c98f3a55dc017c5b2f35e93c005d4d049005979045d208a"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
@@ -1730,7 +1730,7 @@
         },
         {
           "path": "src/HeatingController.h",
-          "sha256": "148cfa2711e943ab16933de746a8c1a90aac97c354d7a726320636b3bc68c3f8"
+          "sha256": "2ba3c1da80daa879c11325e5af199a9d3dd8d59ee93013d8aa637223be553709"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/sensor.py",
@@ -1885,7 +1885,7 @@
         },
         {
           "path": "src/EmsController.h",
-          "sha256": "9d665b1b101c59d9d61fb9db9205c421b47f5ed7b9ae44db82753a6e3c07b550"
+          "sha256": "7d5a2d156f0684fe0b26e80fcdcf3b528543dc5a056a1f625aac3721a991644e"
         },
         {
           "path": "src/EmsController.cpp",
@@ -1936,11 +1936,11 @@
         },
         {
           "path": "src/EMS/ClassicConfigurationRead.h",
-          "sha256": "e69baf937b7e95e7961c3e4c6471cbef44ec5a86db14281bbcc543aeceac4bb2"
+          "sha256": "def9b81020b4050e60d1aced145de7ab0835bb539eb9ca5a2dae8f210341f689"
         },
         {
           "path": "test/test_native/test_classic_configuration_read.cpp",
-          "sha256": "3705ac4e4cb0fe8f5889ff788226c5a7fc2f6742e39837a34f54366413054ed7"
+          "sha256": "b93d5166a534adb976a8400d3865311f91c7278e15b80ee45b7b6af7c4853694"
         },
         {
           "path": "src/EMS/ManualClassicTransaction.h",
@@ -1973,7 +1973,7 @@
         },
         {
           "path": "src/HeatingController.h",
-          "sha256": "148cfa2711e943ab16933de746a8c1a90aac97c354d7a726320636b3bc68c3f8"
+          "sha256": "2ba3c1da80daa879c11325e5af199a9d3dd8d59ee93013d8aa637223be553709"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",

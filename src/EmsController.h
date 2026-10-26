@@ -287,6 +287,7 @@ public:
         std::lock_guard<std::mutex> lock(telemetryMutex_);
         settingsUpdateAllowed_=updateAllowed;
         boilerSettings_.synchronizeSessions(sessions,now);
+        configurationRead_.synchronizeSessions(sessions,now);
         settingsOwnsBus_.store(boilerSettings_.active(),std::memory_order_release);
     }
     void boilerSettingsStatus(std::ostream& out,std::string_view requester={}) const {
@@ -308,14 +309,15 @@ public:
 		std::lock_guard<std::mutex> lock(telemetryMutex_);
 		return boilerTest_.active() || configurationRead_.active();
 	}
-	int boilerTestAction(std::string_view action, std::string_view body, std::string_view operatorSession, std::ostream &ss) {
+	int boilerTestAction(std::string_view action, std::string_view body, std::string_view operatorSession,
+                        const control::WebAuthSession& sessions, std::ostream &ss) {
 		std::lock_guard<std::mutex> lock(telemetryMutex_);
 		const auto now = static_cast<uint64_t>(esp_timer_get_time() / 1000);
         if(boilerSettings_.active()&&action!="stop"&&action!="close_fault"){
             ss<<"{\"accepted\":false,\"error\":\"settings_write_active\"}";return 409;
         }
         if(action=="read_configuration") {
-            const auto result=configurationRead_.request(body,operatorSession,now,configurationReadPermitted(),boilerTest_.active());
+            const auto result=configurationRead_.request(body,operatorSession,now,configurationReadPermitted(),boilerTest_.active(),sessions);
             ss<<"{\"accepted\":"<<(result.http<300?"true":"false")<<",\"duplicate\":"<<(result.duplicate?"true":"false")
                 <<",\"error\":\""<<result.error<<"\",\"configuration_read\":";
             configurationRead_.writeJSON(ss,now,configurationReadPermitted(),boilerTest_.active());ss<<'}';return result.http;

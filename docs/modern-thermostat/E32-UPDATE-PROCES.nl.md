@@ -13,6 +13,17 @@ is vastgelegd, niet dat eerdere updates nooit gelukt zijn. De actuele geacceptee
 versie is beta.1, met vastgelegd oorspronkelijk installatie- en nacontrolebewijs.
 Een volgende pending-versie mag pas na haar eigen echte nacontrole worden geaccepteerd.
 
+## Apart conceptvoorstel voor ontbrekend beta.3-bewijs
+
+Op de afzonderlijke voorstelbranch staat een [eenmalig uitzonderingsvoorstel](E32-PUBLICATION-EXCEPTION-PROPOSAL.en.md).
+Het concept is niet goedgekeurd en wijzigt geen installatieacceptatie. De
+normale regel hierboven blijft van kracht. Alleen een expliciete besluittekst
+van de eigenaar zou één beta.4-voorrelease kunnen toestaan, met beta.3 nog
+steeds INCOMPLETE en beta.1 als laatste echte acceptatie. Het voorstel geeft
+geen toestemming voor een apparaatinstallatie of ketelproef. Alle bestaande
+software-/pakketcontroles blijven vereist. Een algemeen verzoek om verder te
+werken geldt niet als die goedkeuring.
+
 ## Actuele opdracht: alleen beta.3-nacontrole
 
 Gebruiker bevestigt op 26 oktober zowel de beta.3-installatie als de route:

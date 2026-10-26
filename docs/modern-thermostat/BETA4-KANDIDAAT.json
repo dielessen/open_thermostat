@@ -232,5 +232,14 @@
     "installation_performed": false,
     "pending_tag_unchanged": "v0.1.0-e32v2-beta.3",
     "purpose": "Review a complete versioned beta.4 package before predecessor acceptance permits merging, tagging or publication"
+  },
+  "publication_exception_proposal": {
+    "state": "DRAFT_NOT_APPROVED",
+    "branch": "proposal/e32-beta3-evidence-exception",
+    "scope": "one beta.4 prerelease publication only; beta.3 remains incomplete",
+    "record": "docs/modern-thermostat/BETA3-PUBLICATION-EXCEPTION-PROPOSAL.json",
+    "documentation": "docs/modern-thermostat/E32-PUBLICATION-EXCEPTION-PROPOSAL.en.md",
+    "active_exception": null,
+    "operator_decision_required": true
   }
 }

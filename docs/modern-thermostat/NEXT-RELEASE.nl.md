@@ -5,9 +5,21 @@ wacht op beta.3-installatieacceptatie**. Er is nog geen echte ketelproef uitgevo
 Dit document beschrijft het volgende werk; het [werkbord](WORKBOARD.nl.md)
 bewaakt alle 31 producteisen en 14 eindcontroles. De
 [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bewaakt alle 23 voorbereide
-onderdelen en hun 465 bronverwijzingen. De
+onderdelen en hun 468 bronverwijzingen. De
 [volledige voortgangshistorie](NEXT-RELEASE-HISTORY-20261026.nl.md) blijft bewaard;
 oude versies en aantallen daarin zijn historische checkpoints.
+
+## Eenmalige publicatie-uitzondering — alleen concept
+
+Deze aparte voorstelbranch voegt een [beoordeelbaar concept](E32-PUBLICATION-EXCEPTION-PROPOSAL.en.md)
+toe voor het ontbrekende historische beta.3-bewijs. Het voorstelrecord is
+`DRAFT_NOT_APPROVED`; de actieve uitzondering is null. Beta.3 blijft pending,
+beta.1 blijft geaccepteerd, en publicatie/installatie/proef zijn niet uitgevoerd.
+De bronpoort controleert nu ook de laatst gepubliceerde voorganger uit het
+kandidaatplan, zodat alleen een gewijzigde pending-tag de ontbrekende
+acceptatie niet kan overslaan. Een echte eenmalige uitzondering vereist eerst
+een expliciete, vastgelegde eigenaarsbeslissing en daarna volledige kandidaat-
+en tagcontrole.
 
 ## Apart versievoorstel — geen publicatie
 

@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "5b3107ea314dfcb8673b46a29c0df9f465113fa7ada23d56a66cddc37ca7fa49"
+          "sha256": "a26e22e8531507ce7a68cbea9064ebcaac7667adde39875cd70f562cb8843b1a"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -143,7 +143,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA4-KANDIDAAT.json",
-          "sha256": "a82d22914e654c60cfda7cb3af0d21c2c98acee8e2f5b13773f3ee88d163f245"
+          "sha256": "7d38ea0cac95c9a6bb5788555dc9eccc1dadb8c471fd3607ae5c1662dea48454"
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.nl-en.md",
@@ -188,6 +188,18 @@
         {
           "path": "scripts/test_cleanup_release_artifacts.py",
           "sha256": "9660b3ebab7a46c69277f128f076dbaf76965795c75656fc4aa43f45741d6729"
+        },
+        {
+          "path": "docs/modern-thermostat/E32-UPDATE-GATE.json",
+          "sha256": "fd70698dc3cebc758440c9071b0f29f8e68108638bbc821467e46fe4ebcf2d43"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA3-PUBLICATION-EXCEPTION-PROPOSAL.json",
+          "sha256": "ab9c427f0ff08160029df658d47771451754633dc9b96f5365c036e3a4ae54e3"
+        },
+        {
+          "path": "docs/modern-thermostat/E32-PUBLICATION-EXCEPTION-PROPOSAL.en.md",
+          "sha256": "9595e2662b5f524a595dec8e3e9dd95ce9be3d070c3469b8f2c0e16077dc19e2"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -309,15 +321,15 @@
         },
         {
           "path": "scripts/verify_e32_update_gate.py",
-          "sha256": "a7d3161e215c9eb9485201d206019a3cc4b577cea8695be68e52c3bed34876db"
+          "sha256": "b04074b563ee96cb95db0540dc206f3b568995e96307a256e01a9524b36e1e07"
         },
         {
           "path": "scripts/test_verify_e32_update_gate.py",
-          "sha256": "f15dcfa23aa244385b58b7a51275a6be6d1338c75653ace5e9f4d2da94a08631"
+          "sha256": "2c99fa83c056f581387a800daf8e530f5f0dbda1dd2ee681413b6f5a3c51cd6a"
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md",
-          "sha256": "4d468c12f0ead817dfda414fad446b3f9b4228d63c3e45c16e4628d94f30d0ef"
+          "sha256": "35391d4ec09c4e2e3c0e03a668207f6d3022bc0e0c70a4462b3cdc470092c3df"
         },
         {
           "path": "docs/modern-thermostat/INSTALLATIE-E32-ALPHA36-20261025.nl.md",

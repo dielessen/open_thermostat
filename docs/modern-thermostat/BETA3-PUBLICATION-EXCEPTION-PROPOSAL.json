@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "status": "DRAFT_NOT_APPROVED",
+  "scope": "one_prerelease_publication",
+  "candidate_tag": "v0.1.0-e32v2-beta.4",
+  "unaccepted_predecessor": "v0.1.0-e32v2-beta.3",
+  "accepted_basis_tag": "v0.1.0-e32v2-beta.1",
+  "accepted_basis_receipt_sha256": "00441d48538dc600dc0f3dcce818533a52f4a577ceeb1126d98a82cf089f1d53",
+  "predecessor_acceptance_status": "INCOMPLETE",
+  "gap_report": "docs/modern-thermostat/BETA3-POSTCHECK-20261026.json",
+  "reason": "Original beta.3 preflight, backup and native installation receipts have not been recovered. Current status reads cannot reconstruct these original records. This draft requests no activation.",
+  "device_installation_authorized": false,
+  "boiler_trial_authorized": false,
+  "approval": null,
+  "gap_report_sha256": "f437c369d6bec315613b4c8dc85e4b023a7d5f1eb629d6993cb53bb14d5d6fd3"
+}

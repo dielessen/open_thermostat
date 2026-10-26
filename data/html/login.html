@@ -3,12 +3,16 @@
     <script src="/ui-messages.js"></script>
     <script src="/ui-language.js"></script><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title data-i18n="Sign in — OpenThermostat">Sign in — OpenThermostat</title>
-<style>body{font-family:system-ui,sans-serif;max-width:26rem;margin:8vh auto;padding:1.2rem;color:#17212b}label,input,button{display:block;box-sizing:border-box;width:100%;font-size:1rem}label{margin-top:1rem}input,button{padding:.8rem;margin-top:.4rem}button{background:#1558a6;color:white;border:0;border-radius:.3rem}button:disabled{opacity:.6}#message{min-height:3em}small{color:#52606d}</style>
+<style>body{font-family:system-ui,sans-serif;max-width:26rem;margin:8vh auto;padding:1.2rem;color:#17212b}label,input,button{display:block;box-sizing:border-box;width:100%;font-size:1rem}label{margin-top:1rem}input,button{padding:.8rem;margin-top:.4rem}button{background:#1558a6;color:white;border:0;border-radius:.3rem}button:disabled{opacity:.6}input[type=checkbox]{display:inline;width:auto;margin-right:.5rem}#message{min-height:3em}small{color:#52606d}</style>
 <script src="/login.js" defer></script></head>
 <body><h1>OpenThermostat</h1><h2><span data-i18n="Sign in">Sign in</span></h2>
 <form id="login" method="post" action="/auth/login">
 <label for="username"><span data-i18n="Username">Username</span></label><input id="username" name="username" value="admin" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="64" required>
 <label for="password"><span data-i18n="Password">Password</span></label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+<div id="session-recovery" hidden>
+<label><input id="recover_sessions" name="recover_sessions" type="checkbox" value="1"><span data-i18n="End previous web sessions and sign in">End previous web sessions and sign in</span></label>
+<p data-i18n="Other browsers will be signed out. Enter your password again to confirm. Device settings stay unchanged.">Other browsers will be signed out. Enter your password again to confirm. Device settings stay unchanged.</p>
+</div>
 <button id="submit" type="submit"><span data-i18n="Sign in">Sign in</span></button>
 <p id="message" role="status" aria-live="polite"></p></form>
 <small><span data-i18n="This browser stays signed in for up to seven days. A device restart ends the session. Use only your trusted local network; this device currently uses HTTP.">This browser stays signed in for up to seven days. A device restart ends the session. Use only your trusted local network; this device currently uses HTTP.</span></small>

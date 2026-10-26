@@ -334,25 +334,30 @@ private:
 		const auto now=networkNow();
 		if(!sessions_.loginAllowed(now)){server_.sendHeader("Retry-After","30");server_.send(429,"application/json","{\"error\":\"try_again_later\"}");return;}
 		// Form decoding uses the existing native WebServer parser. No raw password in URLs/logs.
-		bool usernameSeen=false,passwordSeen=false,shape=server_.args()==2;
+		bool usernameSeen=false,passwordSeen=false,recoverySeen=false,shape=server_.args()==2||server_.args()==3;
 		for(int i=0;i<server_.args();++i){
 			const auto name=server_.argName(i);
 			if(name=="username"&&!usernameSeen)usernameSeen=true;
 			else if(name=="password"&&!passwordSeen)passwordSeen=true;
+			else if(name=="recover_sessions"&&!recoverySeen)recoverySeen=true;
 			else shape=false;
 		}
 		const auto username=server_.arg("username"),password=server_.arg("password");
-		if(!shape||!usernameSeen||!passwordSeen||username.length()>64||password.length()>128||
+		if(!shape||!usernameSeen||!passwordSeen||(recoverySeen&&server_.arg("recover_sessions")!="1")||username.length()>64||password.length()>128||
 		   server_.header("Content-Type")!="application/x-www-form-urlencoded"){
 			server_.send(400,"application/json","{\"error\":\"invalid_login_request\"}");return;
 		}
 		if(username!="admin"||!control::WebAuthSession::equal(std::string_view(password.c_str(),password.length()),deviceAccess.password())){
 			sessions_.loginFailed(now);server_.send(401,"application/json","{\"error\":\"invalid_credentials\"}");return;
 		}
+		// Recovery must not remove an operator's stop/keepalive access or interrupt OTA.
+		if(recoverySeen&&(controller_.boilerTestActive()||update::mutationBlocked("/ota"))){
+			server_.send(409,"application/json","{\"error\":\"session_recovery_busy\"}");return;
+		}
 		std::array<char,65> token{},proof{};
 		if(!randomToken(token)||!randomToken(proof)){server_.send(503,"application/json","{\"error\":\"session_unavailable\"}");return;}
 		const auto old=requestToken();
-		const auto *session=sessions_.issue(token.data(),proof.data(),now,old.c_str());
+		const auto *session=sessions_.issue(token.data(),proof.data(),now,old.c_str(),recoverySeen);
 		if(!session){server_.send(429,"application/json","{\"error\":\"session_capacity\"}");return;}
 		sessions_.loginSucceeded();
 		server_.sendHeader("Set-Cookie",String("OTSESSION=")+session->token.data()+"; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800");

@@ -4,7 +4,7 @@ Bijgewerkt op 26 oktober 2026. Status: **NOT_READY voor actieve ketelproeven**.
 Dit document beschrijft het volgende werk; het [werkbord](WORKBOARD.nl.md)
 bewaakt alle 31 producteisen en 14 eindcontroles. De
 [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bewaakt alle 23 voorbereide
-onderdelen en hun 425 bronverwijzingen. De
+onderdelen en hun 430 bronverwijzingen. De
 [volledige voortgangshistorie](NEXT-RELEASE-HISTORY-20261026.nl.md) blijft bewaard;
 oude versies en aantallen daarin zijn historische checkpoints.
 
@@ -332,3 +332,29 @@ geanonimiseerde JSON-rapport. Installatie, verse back-up en live nacontrole zijn
 niet uitgevoerd: de bestaande HA-beheertool is in deze sessie niet beschikbaar.
 Dit is geen vastgestelde verbindingsstoring van de apparaten. De installatieopdracht
 blijft open; updatepoort pending beta.3, accepted beta.1 ongewijzigd.
+
+## Websessies herstellen — bron voorbereid na beta.3
+
+De gebruiker zit buiten de webinterface met vier bezette sessieplaatsen en kan
+zonder geldige cookie niet afmelden. Een gesloten browser of verwijderde cookie
+beëindigt de bootlokale sessie niet; de absolute geldigheid is zeven dagen.
+De melding over vier aangemelde browsers was daarom misleidend.
+
+De bron voegt expliciet herstel toe aan de bestaande login. Na `session_capacity`
+verschijnt een keuze om eerdere websessies te beëindigen. De gebruiker moet die
+keuze aanvinken en het wachtwoord opnieuw invoeren. Hetzelfde POST-loginendpoint
+controleert gebruikersnaam, wachtwoord, formulier, origin en pogingslimiet;
+geen nieuwe openbare beheerroute of automatische verdringing bij gewoon aanmelden.
+Pas na geldige nieuwe tokens worden alle oude sessies en readbackbewijzen
+verwijderd en één nieuwe sessie uitgegeven. Ongeldige invoer, mislukte entropie
+of een alias laat oude sessies intact. Een actieve ketelproef of een werkende,
+gestagede of nog onbevestigde firmware-update blokkeert herstel.
+
+Gerichte controles: 20 native WebAuth-tests, 17 JavaScript-auth/login-tests,
+3 taaltests en 9 scenario's met de werkelijke C++-loginhandler en gesimuleerde
+HTTP-/apparaatgrenzen. De aangepaste E32-build slaagt.
+Dit is nog niet gepubliceerd of geïnstalleerd; beta.3 is hiermee niet gewijzigd.
+Voor de bestaande firmware wist een handmatige herstart van uitsluitend de E32
+bootlokale sessies en behoudt opgeslagen instellingen. Alleen uitvoeren als er
+geen update of ketelproef loopt; geen ketelreset, factory-reset of automatische
+herstart vanuit diagnose. De bestaande installatieopdracht blijft open.

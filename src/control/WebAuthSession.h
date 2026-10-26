@@ -92,7 +92,7 @@ public:
         return hexToken(currentHash)&&quotedTag.size()==66&&quotedTag.front()=='"'&&quotedTag.back()=='"'
             &&hexToken(view(fence.tag))&&equal(quotedTag.substr(1,64),view(fence.tag))&&equal(currentHash,view(fence.hash));
     }
-    const Session *issue(std::string_view token,std::string_view proof,uint64_t now,std::string_view replacing = {}) {
+    const Session *issue(std::string_view token,std::string_view proof,uint64_t now,std::string_view replacing = {}, bool revokeAll = false) {
         if (!hexToken(token) || !hexToken(proof) || equal(token,proof) || now > UINT64_MAX-lifetimeMs) return nullptr;
         Session *slot = nullptr;
         for (auto &session : sessions_) {
@@ -102,6 +102,9 @@ public:
                 tagAliases(session,token) || tagAliases(session,proof))) return nullptr;
             if (live(session,now) && equal(replacing,view(session.token))) slot = &session;
         }
+        // Only the credential-verified, explicit recovery route may request this.
+        // Validate entropy, clock and aliases above before invalidating any session.
+        if (revokeAll) { sessions_ = {}; slot = &sessions_[0]; }
         if (!slot) for (auto &session : sessions_) if (!live(session,now)) { slot = &session; break; }
         if (!slot) return nullptr; // Do not evict another browser to admit a new one.
         *slot = Session{};

@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "d37f226462fe6be29e5081e19ff8c7bd29eb96e3c73ed35c75a25e804ae1c0fd"
+          "sha256": "c8abb7b736bd4b86419e0335b1fa64a3f1d5b6020853c17f5d9a155d7f7f43bf"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "21f0f17207b7c556d283dbf73a4c4eb8560405cc66fa5cf00b38646b63f84f11"
+          "sha256": "a99759e7e643010c70bfe1ba3b2f31225e44a30673358dfae543bf918c75959e"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -155,7 +155,7 @@
       "files": [
         {
           "path": "src/control/WebAuthSession.h",
-          "sha256": "e3c239825bc373cf90c003df01f397172f961e44cdb997cd76fead3d512638b1"
+          "sha256": "eb9875d855ec028311b2ee3bda2f89b3189e22d1718b7f01b630c09866ca1aef"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
@@ -164,9 +164,29 @@
         {
           "path": "data/html/auth-client.js",
           "sha256": "c8cb84979ed1672833a15f637f14673f018684aaeb80a4daff8e2f583358a363"
+        },
+        {
+          "path": "data/html/login.html",
+          "sha256": "04ea3d8b84753470f4f622107d09e2e6e76a0da1010720c430b932f063869fba"
+        },
+        {
+          "path": "data/html/login.js",
+          "sha256": "0ed6f7a9135ba6c82ee53a53aafb5a4949e83e4690048a9cd8541db858864681"
+        },
+        {
+          "path": "test/test_native/test_web_auth.cpp",
+          "sha256": "c1e7186294baf87bbe57304cc46be193309ab5a8ac3c6926714092b5bab0f2c9"
+        },
+        {
+          "path": "test/web_auth_client.test.cjs",
+          "sha256": "dc909ab498fff90dc7e3cd04c88d53fba81dfcc566dd829af7af1407179f774b"
+        },
+        {
+          "path": "test/web_auth/run.py",
+          "sha256": "eacf2d10e848c6352eef717e29d6f144b6b43f75818e60cbcb6837227d03982d"
         }
       ],
-      "remaining_acceptance": "Fysieke AP-/uitval-/herstelmatrix blijft apart."
+      "remaining_acceptance": "Fysieke AP-/uitval-/herstelmatrix blijft apart. Expliciet wachtwoordgeverifieerd herstel van volle websessies is na beta.3 voorbereid en gericht getest; publicatie, installatie en live herstel nog niet uitgevoerd."
     },
     {
       "id": "I03",
@@ -285,7 +305,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "d37f226462fe6be29e5081e19ff8c7bd29eb96e3c73ed35c75a25e804ae1c0fd"
+          "sha256": "c8abb7b736bd4b86419e0335b1fa64a3f1d5b6020853c17f5d9a155d7f7f43bf"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -353,11 +373,11 @@
         },
         {
           "path": "data/html/login.html",
-          "sha256": "90e23679c282733d3b2f7562034dfd1767cb295f3008552291083af70eceebcf"
+          "sha256": "04ea3d8b84753470f4f622107d09e2e6e76a0da1010720c430b932f063869fba"
         },
         {
           "path": "data/html/login.js",
-          "sha256": "18fa18916a2be30417d0836eb585215078cb8f7f73ded636f544f94bf8e1bb71"
+          "sha256": "0ed6f7a9135ba6c82ee53a53aafb5a4949e83e4690048a9cd8541db858864681"
         },
         {
           "path": "data/html/network.html",
@@ -441,7 +461,7 @@
         },
         {
           "path": "test/test_native/test_web_auth.cpp",
-          "sha256": "0787bad92756436726735e1d7ea7f43a6461a2aa3d3794a28c8eb3a332005f8e"
+          "sha256": "c1e7186294baf87bbe57304cc46be193309ab5a8ac3c6926714092b5bab0f2c9"
         },
         {
           "path": "test/updates/browser.cjs",
@@ -449,11 +469,11 @@
         },
         {
           "path": "test/web_auth_client.test.cjs",
-          "sha256": "298b4ea3f674eba3246b5443f2e98b1f09420c5b058cf7c8472417ecd98afe22"
+          "sha256": "dc909ab498fff90dc7e3cd04c88d53fba81dfcc566dd829af7af1407179f774b"
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "a26a328db169cc74ff8aee15375b739827cd14c02c0804bcc5b6b2a7f37ea767"
+          "sha256": "8011a6bd697ebd091806bad4411fed68b813273e1412e6e0635849e9237425e4"
         },
         {
           "path": "data/html/ui-language.js",
@@ -649,7 +669,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "ca27e385ecdc6865eb8f4703603563c4d8c21b112f97d43a9a8be650e56d3271"
+          "sha256": "dda0f71afca488068f9af2a16b05ee0cbed86be902cc44b5eb5532efb6903c66"
         },
         {
           "path": "src/Room.cpp",
@@ -755,7 +775,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "d37f226462fe6be29e5081e19ff8c7bd29eb96e3c73ed35c75a25e804ae1c0fd"
+          "sha256": "c8abb7b736bd4b86419e0335b1fa64a3f1d5b6020853c17f5d9a155d7f7f43bf"
         },
         {
           "path": "platformio.ini",
@@ -767,7 +787,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "ca27e385ecdc6865eb8f4703603563c4d8c21b112f97d43a9a8be650e56d3271"
+          "sha256": "dda0f71afca488068f9af2a16b05ee0cbed86be902cc44b5eb5532efb6903c66"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
@@ -779,7 +799,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "a26a328db169cc74ff8aee15375b739827cd14c02c0804bcc5b6b2a7f37ea767"
+          "sha256": "8011a6bd697ebd091806bad4411fed68b813273e1412e6e0635849e9237425e4"
         },
         {
           "path": "data/html/system-log.js",
@@ -1063,11 +1083,11 @@
         },
         {
           "path": "src/control/WebAuthSession.h",
-          "sha256": "e3c239825bc373cf90c003df01f397172f961e44cdb997cd76fead3d512638b1"
+          "sha256": "eb9875d855ec028311b2ee3bda2f89b3189e22d1718b7f01b630c09866ca1aef"
         },
         {
           "path": "test/test_native/test_web_auth.cpp",
-          "sha256": "0787bad92756436726735e1d7ea7f43a6461a2aa3d3794a28c8eb3a332005f8e"
+          "sha256": "c1e7186294baf87bbe57304cc46be193309ab5a8ac3c6926714092b5bab0f2c9"
         },
         {
           "path": "test/onboarding/include/nvs.h",

@@ -190,3 +190,24 @@ TEST(WebAuth, ReadbackScopesCannotAliasTokensProofsOrEachOther) {
     EXPECT_TRUE(sessions.settingsReadback(token('a'),token('1'),token('2'),104,static_cast<Scope>(255)).empty());
     EXPECT_FALSE(sessions.settingsReadbackMatches(token('a'),'"'+token('f')+'"',token('e'),104,static_cast<Scope>(255)));
 }
+
+TEST(WebAuth, ExplicitCredentialRecoveryReplacesAllSessionsAndTheirSettingsFences) {
+    WebAuthSession s;
+    for(int i=0;i<4;++i) ASSERT_NE(s.issue(token('0'+i*2),token('1'+i*2),100),nullptr);
+    ASSERT_FALSE(s.settingsReadback(token('0'),token('c'),token('d'),101).empty());
+    ASSERT_NE(s.issue(token('8'),token('9'),102,{},true),nullptr);
+    for(int i=0;i<4;++i) EXPECT_EQ(s.find(token('0'+i*2),103),nullptr);
+    EXPECT_FALSE(s.settingsReadbackMatches(token('8'),"\""+token('d')+"\"",token('c'),103));
+    EXPECT_NE(s.find(token('8'),103),nullptr);
+    EXPECT_TRUE(s.csrf(token('8'),token('9'),103));
+    EXPECT_NE(s.issue(token('a'),token('b'),104),nullptr);
+}
+TEST(WebAuth, RecoveryRejectsInvalidEntropyAliasesAndClockWithoutRevokingSessions) {
+    WebAuthSession s;ASSERT_NE(s.issue(token('a'),token('b'),100),nullptr);
+    EXPECT_EQ(s.issue("bad",token('d'),101,{},true),nullptr);
+    EXPECT_EQ(s.issue(token('c'),token('c'),101,{},true),nullptr);
+    EXPECT_EQ(s.issue(token('a'),token('d'),101,{},true),nullptr);
+    EXPECT_EQ(s.issue(token('c'),token('b'),101,{},true),nullptr);
+    EXPECT_EQ(s.issue(token('c'),token('d'),UINT64_MAX,{},true),nullptr);
+    EXPECT_NE(s.find(token('a'),102),nullptr);EXPECT_TRUE(s.csrf(token('a'),token('b'),102));
+}

@@ -83,18 +83,18 @@ test('expired jQuery fragment load redirects only for own-origin 401, not transi
   c.events.ajaxError({}, {status:401}, {url:'room_management.html'});assert.deepEqual(c.redirects,['/login']);
 });
 function login(handler) {
-  let submit;const redirects=[],calls=[];const button={disabled:false},message={textContent:''};
-  const form={reportValidity:()=>true,elements:{username:{value:'admin'},password:{value:'test & symbol'}},addEventListener:(n,f)=>submit=f};
-  const context={URLSearchParams,AbortController,setTimeout,clearTimeout,fetch:async(u,i)=>{calls.push([u,i]);return handler(u,i);},document:{getElementById:id=>({login:form,submit:button,message}[id])},window:{location:{replace:u=>redirects.push(u)}}};
+  let submit;const redirects=[],calls=[];const button={disabled:false},message={textContent:''},recovery={hidden:true};
+  const form={reportValidity:()=>true,elements:{username:{value:'admin'},password:{value:'test & symbol'},recover_sessions:{checked:false}},addEventListener:(n,f)=>submit=f};
+  const context={URLSearchParams,AbortController,setTimeout,clearTimeout,fetch:async(u,i)=>{calls.push([u,i]);return handler(u,i);},document:{getElementById:id=>({login:form,submit:button,message,'session-recovery':recovery}[id])},window:{location:{replace:u=>redirects.push(u)}}};
   Object.assign(context,require('./helpers/ui-language.cjs')('en'));vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(root,'login.js'),'utf8'),context);
-  return {submit:()=>submit({preventDefault(){}}),redirects,calls,form,button,message};
+  return {submit:()=>submit({preventDefault(){}}),redirects,calls,form,button,message,recovery};
 }
 test('login sends URL-encoded credentials in POST body only and clears field',async()=>{
   const c=login(()=>json({authenticated:true}));await c.submit();assert.equal(c.calls[0][0],'/auth/login');assert.equal(c.calls[0][1].method,'POST');
   assert.equal(new URLSearchParams(c.calls[0][1].body).get('password'),'test & symbol');assert.equal(c.form.elements.password.value,'');assert.deepEqual(c.redirects,['/']);
 });
 test('login credential failure/cooldown/capacity/network errors stay in form, no browser challenge loop',async()=>{
-  for(const [status,data,expected] of [[401,{error:'invalid_credentials'},'not accepted'],[429,{error:'try_again_later'},'30 seconds'],[429,{error:'session_capacity'},'Four browsers'],[503,{},'could not sign']]){
+  for(const [status,data,expected] of [[401,{error:'invalid_credentials'},'not accepted'],[429,{error:'try_again_later'},'30 seconds'],[429,{error:'session_capacity'},'Four saved web sessions'],[503,{},'could not sign']]){
     const c=login(()=>json(data,status));await c.submit();assert.ok(c.message.textContent.includes(expected));assert.equal(c.form.elements.password.value,'');assert.equal(c.button.disabled,false);assert.equal(c.redirects.length,0);assert.equal(c.calls.length,1);
   }
   const c=login(()=>{throw Error('offline')});await c.submit();assert.ok(c.message.textContent.includes('Cannot reach'));assert.equal(c.button.disabled,false);
@@ -105,4 +105,21 @@ test('all shipped standalone and inline scripts parse after async upload integra
     const html=fs.readFileSync(path.join(root,name),'utf8');
     for(const script of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi))new vm.Script(script[1],{filename:name});
   }
+});
+
+test('session recovery requires explicit selection and a new password submission without automatic retry',async()=>{
+  let count=0;const c=login(()=>++count===1?json({error:'session_capacity'},429):json({authenticated:true}));
+  assert.equal(c.recovery.hidden,true);await c.submit();assert.equal(c.recovery.hidden,false);
+  assert.equal(new URLSearchParams(c.calls[0][1].body).has('recover_sessions'),false);
+  assert.equal(c.calls.length,1);assert.equal(c.form.elements.password.value,'');
+  c.form.elements.recover_sessions.checked=true;c.form.elements.password.value='confirmed password';
+  await c.submit();const body=new URLSearchParams(c.calls[1][1].body);
+  assert.equal(body.get('recover_sessions'),'1');assert.equal(body.get('password'),'confirmed password');
+  assert.equal(c.form.elements.password.value,'');assert.deepEqual(c.redirects,['/']);
+});
+test('busy recovery preserves the explicit form and does not retry or redirect',async()=>{
+  const c=login(()=>json({error:'session_recovery_busy'},409));c.recovery.hidden=false;c.form.elements.recover_sessions.checked=true;
+  await c.submit();assert.match(c.message.textContent,/boiler test or firmware update/);
+  assert.equal(c.calls.length,1);assert.equal(c.form.elements.password.value,'');assert.deepEqual(c.redirects,[]);
+  assert.equal(c.form.elements.recover_sessions.checked,true);
 });

@@ -45,6 +45,30 @@ TEST_F(HeatEnvelope, AbsentPressureAndInvalidTemperatureNeverBecomeUsableZeroes)
     EXPECT_STREQ(ClassicHeatTrialEnvelope::inspect(absent,101).reason,"pressure_unavailable");
     fast(101,0x7fff);EXPECT_STREQ(check(101).reason,"flow_unavailable");
 }
+TEST_F(HeatEnvelope, SensorlessProfileNeedsSeparateMethodReviewAndNeverCreatesPressureTelemetry) {
+    using Source = ClassicHeatTrialEnvelope::PressureSource;
+    monitor = ClassicBoilerMonitor{};
+    settings(100);
+    monitor.receive({EmsTelegram::BROADCAST,8,0,0,0x18,{0,0,200,80,0,0}},100);
+    ASSERT_FALSE(monitor.sample(BoilerField::pressure).raw);
+    EXPECT_STREQ(ClassicHeatTrialEnvelope::inspect(monitor,101).reason,"pressure_unavailable");
+    EXPECT_STREQ(ClassicHeatTrialEnvelope::inspect(monitor,101,Source::separateCheck).reason,"pressure_check_method_unreviewed");
+    EXPECT_TRUE(ClassicHeatTrialEnvelope::inspect(monitor,101,Source::separateCheck,true).ready);
+    EXPECT_FALSE(monitor.sample(BoilerField::pressure).raw);
+    EXPECT_FALSE(monitor.sample(BoilerField::pressure).observed);
+    EXPECT_STREQ(ClassicHeatTrialEnvelope::profileId(Source::separateCheck),"ecomline-classic-separate-pressure-v1");
+    EXPECT_STREQ(ClassicHeatTrialEnvelope::inspect(monitor,101,static_cast<Source>(99),true).reason,"pressure_source_invalid");
+}
+TEST_F(HeatEnvelope, SeparatePressureMethodDoesNotRelaxOtherMeasurementLimitsOrFreshness) {
+    using Source = ClassicHeatTrialEnvelope::PressureSource;
+    auto separate = [&](uint64_t now){return ClassicHeatTrialEnvelope::inspect(monitor,now,Source::separateCheck,true);};
+    EXPECT_TRUE(separate(101).ready);
+    EXPECT_FALSE(separate(15100).ready);
+    fast(15101,500);EXPECT_STREQ(separate(15101).reason,"flow_outside_trial_limits");
+    fast(15102);settings(15102,0);EXPECT_STREQ(separate(15102).reason,"heating_disabled");
+    settings(15103,255,44);EXPECT_STREQ(separate(15103).reason,"heating_limit_outside_trial_limits");
+    fast(615103);EXPECT_STREQ(separate(615103).reason,"heating_setting_unavailable");
+}
 TEST_F(HeatEnvelope, FutureOrExpiredLiveReportsRemovePermissionAtBoundary){
     EXPECT_FALSE(check(99).ready);EXPECT_TRUE(check(15099).ready);EXPECT_FALSE(check(15100).ready);
     fast(15101);EXPECT_TRUE(check(15101).ready);
@@ -134,5 +158,34 @@ TEST_F(HeatEnvelopeIo, OvertemperatureDuringPositiveWriteCannotDelayImmediateWit
     EXPECT_EQ(result,BoilerTestPollDriver::Result::sent);
     result=BoilerTestPollDriver::poll(service,monitor,[&]{return now;},[&]{return gates();},encode,[&](const EmsRawFrame& frame){++writes;EXPECT_EQ(frame.data[4],0);return true;});
     EXPECT_EQ(result,BoilerTestPollDriver::Result::sent);EXPECT_EQ(writes,2);
+}
+TEST_F(HeatEnvelope, SensorlessMethodLossAtFinalAdmissionWithdrawsHeatAndPreservesZero) {
+    using Source = ClassicHeatTrialEnvelope::PressureSource;
+    monitor = ClassicBoilerMonitor{};
+    settings(100);
+    const auto report = [&](uint64_t at){monitor.receive({EmsTelegram::BROADCAST,8,0,0,0x18,{0,0,200,80,0,0}},at);};
+    report(100);
+    uint64_t now=101;bool methodReviewed=true;
+    BoilerTestService service{42,true,ClassicHeatTrialEnvelope::profile(),true,true,true};
+    const auto gates=[&]{return BoilerTestSession::Gates{true,true,true,
+        ClassicHeatTrialEnvelope::inspect(monitor,now,Source::separateCheck,methodReviewed).ready,true};};
+    const std::string owner(64,'a');
+    const auto heat=R"({"schema":1,"boot_id":"000000000000002a","revision":1,"flow_c":40,"duration_s":60,"exclusive_owner_confirmed":true,"independent_stop_confirmed":true,"heat_path_confirmed":true,"pressure_check_confirmed":true})";
+    const auto scope=R"({"schema":1,"boot_id":"000000000000002a","revision":1})";
+    ASSERT_EQ(service.action("prepare",heat,owner,now,gates(),monitor).http,202);
+    auto zero=service.next(now,gates(),monitor);
+    ASSERT_TRUE(testing_detail::instantTransmission(service,zero,now,true,gates(),monitor));
+    report(++now);service.tick(now,gates(),monitor);
+    ASSERT_EQ(service.action("start",scope,owner,now,gates(),monitor).http,202);
+    unsigned reads=0,writes=0;
+    const auto changingGates=[&]{if(++reads==2)methodReviewed=false;return gates();};
+    const auto encode=[](const BoilerTestSession::Intent& intent,EmsRawFrame& frame){
+        return ClassicBoilerTestEncoder::encode(ClassicBoilerTestEncoder::Addressing::classicService(),intent,frame);};
+    const auto write=[&](const EmsRawFrame& frame){++writes;EXPECT_EQ(frame.data[4],0);return true;};
+    EXPECT_EQ(BoilerTestPollDriver::poll(service,monitor,[&]{return now;},changingGates,encode,write),BoilerTestPollDriver::Result::rejected);
+    EXPECT_EQ(writes,0u);
+    EXPECT_EQ(BoilerTestPollDriver::poll(service,monitor,[&]{return now;},gates,encode,write),BoilerTestPollDriver::Result::sent);
+    EXPECT_EQ(writes,1u);
+    EXPECT_FALSE(monitor.sample(BoilerField::pressure).observed);
 }
 }

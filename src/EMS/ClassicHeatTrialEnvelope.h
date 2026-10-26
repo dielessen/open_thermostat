@@ -8,6 +8,10 @@ namespace heating::ems {
 // The narrower trial limits/duration below are our engineering choices.
 struct ClassicHeatTrialEnvelope {
     static constexpr const char* id = "ecomline-classic-manual-v1";
+    enum class PressureSource { reportedSensor, separateCheck };
+    static constexpr const char* profileId(PressureSource source) {
+        return source == PressureSource::separateCheck ? "ecomline-classic-separate-pressure-v1" : id;
+    }
     static constexpr uint32_t configurationTtlMs = 600000;
     static constexpr int32_t minimumPressureDecibar = 10, maximumPressureDecibar = 25;
     static constexpr int32_t minimumMeasuredFlowCenti = 500, maximumMeasuredFlowCenti = 5000;
@@ -17,17 +21,26 @@ struct ClassicHeatTrialEnvelope {
         result.minimumFlowC = 40; result.maximumFlowC = 45; result.maximumHeatMs = 60000;
         return result;
     }
-    static Check inspect(const ClassicBoilerMonitor& monitor, uint64_t now) {
+    static Check inspect(const ClassicBoilerMonitor& monitor, uint64_t now,
+                         PressureSource pressureSource = PressureSource::reportedSensor,
+                         bool separatePressureMethodReviewed = false) {
         if (monitor.capabilities().profile() != BoilerProtocol::classic) return {false, "classic_required"};
         const auto liveTtl = profile().reportTtlMs;
         const auto& flow = monitor.sample(BoilerField::flow);
         if (!usable(flow, 0x18, now, liveTtl)) return {false, "flow_unavailable"};
         if (*flow.raw < minimumMeasuredFlowCenti || *flow.raw >= maximumMeasuredFlowCenti)
             return {false, "flow_outside_trial_limits"};
-        const auto& pressure = monitor.sample(BoilerField::pressure);
-        if (!usable(pressure, 0x18, now, liveTtl)) return {false, "pressure_unavailable"};
-        if (*pressure.raw < minimumPressureDecibar || *pressure.raw > maximumPressureDecibar)
-            return {false, "pressure_outside_trial_limits"};
+        if (pressureSource == PressureSource::separateCheck) {
+            // Installation-specific source decision, never inferred from a
+            // missing reading or selected boiler picture. This does not create
+            // telemetry or replace the per-test operator declaration.
+            if (!separatePressureMethodReviewed) return {false, "pressure_check_method_unreviewed"};
+        } else if (pressureSource == PressureSource::reportedSensor) {
+            const auto& pressure = monitor.sample(BoilerField::pressure);
+            if (!usable(pressure, 0x18, now, liveTtl)) return {false, "pressure_unavailable"};
+            if (*pressure.raw < minimumPressureDecibar || *pressure.raw > maximumPressureDecibar)
+                return {false, "pressure_outside_trial_limits"};
+        } else return {false, "pressure_source_invalid"};
         const auto& enabled = monitor.sample(BoilerField::heatingEnabled);
         if (!usable(enabled, 0x16, now, configurationTtlMs)) return {false, "heating_setting_unavailable"};
         if (*enabled.raw != 1) return {false, "heating_disabled"};

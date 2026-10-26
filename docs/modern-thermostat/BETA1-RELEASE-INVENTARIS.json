@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "6710bd33eba14073d9b67b9b01693b8e4a0cb6d1a0806899b288bbc6b02ccaf3"
+          "sha256": "e76ce488675d8e861ffb1d58a23b902fbd4fc4132c361a61c5c7db89ecbd3cdb"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "b89fe89e5d03c935c285d71e2bdacc1559eab85a4020e425d056d24c967a5fb5"
+          "sha256": "ed455feee0005e9d605ddd9e929d042f3496b18b88a8bc1d9edd10b6dd33d88e"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -143,7 +143,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA4-KANDIDAAT.json",
-          "sha256": "d4c02332cb15102a227d1b55e45ea994775fb874d7f8ab73109c88657e66531e"
+          "sha256": "e54fa30cd14e8e08b69c684a4dcf1bcb0019333d82273ca07e36d69c30d8e4ba"
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.nl-en.md",
@@ -163,7 +163,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.en.md",
-          "sha256": "8183173708b016cf8b7539e5a950824398ab9d6dc481c89a337681219b94b582"
+          "sha256": "5e17182bf009c7bd738b2115d782ed6937bcf36ff30f814b21c013f9442a91d6"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -329,7 +329,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "6710bd33eba14073d9b67b9b01693b8e4a0cb6d1a0806899b288bbc6b02ccaf3"
+          "sha256": "e76ce488675d8e861ffb1d58a23b902fbd4fc4132c361a61c5c7db89ecbd3cdb"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -497,7 +497,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "93fa5c286ccc5d3a76c977d1635457f98b224ad6d8d3a182c54a6e3e6cad8a28"
+          "sha256": "0213c20b1b1179896a001524e4f98029919d935561a31fdc6f00a146979e8905"
         },
         {
           "path": "data/html/ui-language.js",
@@ -799,7 +799,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "6710bd33eba14073d9b67b9b01693b8e4a0cb6d1a0806899b288bbc6b02ccaf3"
+          "sha256": "e76ce488675d8e861ffb1d58a23b902fbd4fc4132c361a61c5c7db89ecbd3cdb"
         },
         {
           "path": "platformio.ini",
@@ -823,7 +823,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "93fa5c286ccc5d3a76c977d1635457f98b224ad6d8d3a182c54a6e3e6cad8a28"
+          "sha256": "0213c20b1b1179896a001524e4f98029919d935561a31fdc6f00a146979e8905"
         },
         {
           "path": "data/html/system-log.js",
@@ -1869,11 +1869,11 @@
       "files": [
         {
           "path": "data/html/boiler_test.html",
-          "sha256": "47076ab1cd605ed301855b581f9152b1c7505e0e7cb167801fb8ba9eddf2b235"
+          "sha256": "47e3e157330f5c9bf05e61f92ef543c23c661635eb27ac46b6ea1609ef3878d5"
         },
         {
           "path": "src/EmsController.h",
-          "sha256": "685cfbb23a78e8ecf38c3bd62bf77b3b9850116bc75e809d6da76622cb7d5901"
+          "sha256": "778a9483b9c13f86cf1679bbd8876765f9cc86974fb2157defea98ba756132a6"
         },
         {
           "path": "src/EmsController.cpp",
@@ -1916,11 +1916,11 @@
         },
         {
           "path": "src/EMS/ClassicHeatTrialEnvelope.h",
-          "sha256": "11ff6583cf829a9ff6927bb029629834e0ddafa46661237a141ce070d80dfe38"
+          "sha256": "f666b10329b0598074ceb0d72e80d4ba31f00b4e0b631f2af00bdf8cab64f64c"
         },
         {
           "path": "test/test_native/test_classic_heat_trial_envelope.cpp",
-          "sha256": "886d2ab11e557c3d964a84a735d7decb50ab799a69411e60f11ab1522d6e2335"
+          "sha256": "cd0912ad627f23f1ca6cd38ebda0a5fc48d4d1b5980af6ffcc307f7a4e660a7c"
         },
         {
           "path": "src/EMS/ClassicConfigurationRead.h",
@@ -1957,7 +1957,7 @@
       "files": [
         {
           "path": "src/EMS/BoilerTestService.h",
-          "sha256": "56b07c3ffefc45cc7d97bb302ee86e9bb8e9b41163229347cc0f421387b56365"
+          "sha256": "dcebb264cec3ac39324bd77a76bf5c47576dc04aebc2fae90c97fb7ff94331ec"
         },
         {
           "path": "src/HeatingController.h",
@@ -1981,7 +1981,7 @@
         },
         {
           "path": "test/boiler-test-control-browser.cjs",
-          "sha256": "86bbe2b2ba5932684d2a6ae6bdcb23a10ab7c62b395e8ff3a39ab08f72867906"
+          "sha256": "667bda425d48daf670d056ac61f2e1b1129303d46d0fb5a21226e519e332907c"
         },
         {
           "path": "src/EMS/BoilerTestPollDriver.h",
@@ -2013,7 +2013,7 @@
         },
         {
           "path": "docs/modern-thermostat/ECOMLINE-PRE-TX-ACCEPTATIE.nl.md",
-          "sha256": "059991c35bb06f6ae2a385a5909919a7d991b3684aab063d0cfa2e9a5f23e0ad"
+          "sha256": "e5777ad64a3bb927276678f688bf7857fc18ad55ec42808e3540c002ef8575fe"
         },
         {
           "path": "src/EMS/ClassicEchoUartWrite.h",
@@ -2077,7 +2077,7 @@
         },
         {
           "path": "test/test_native/test_boiler_site_confirmation.cpp",
-          "sha256": "4e319b099668d88a08ab061b90bec0d06ab76cdb5c3ba68a962f2db767a0b540"
+          "sha256": "cce57a52795c2fcc28dfff12fa9e16c1f9af1a7cd78da96b33fa875181e6b218"
         },
         {
           "path": "test/test_native/test_boiler_fault_closure.cpp",

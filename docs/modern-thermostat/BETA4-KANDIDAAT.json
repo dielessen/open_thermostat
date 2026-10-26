@@ -17,7 +17,8 @@
     "Explicit credential-verified recovery of full browser session slots",
     "30-minute authenticated-request inactivity limit; absolute seven-day limit unchanged",
     "Local generic boiler illustration for missing or unavailable profile images",
-    "Separate browser-test timeout from dependency installation time"
+    "Separate browser-test timeout from dependency installation time",
+    "Fixed source-bound sensorless Ecomline pressure policy; separate method review and per-trial declaration required; all physical write gates remain disabled"
   ],
   "acceptance_before_freeze": [
     "Actual beta.3 native installation and independent postcheck recorded per E32-UPDATE-PROCES.nl.md",
@@ -55,5 +56,12 @@
     "compile_probe_ci_required": true,
     "web_editor_enabled_in_standard_release": false,
     "browser_gate": "test/boiler-settings-browser.cjs"
+  },
+  "sensorless_pressure_profile": {
+    "id": "ecomline-classic-separate-pressure-v1",
+    "method_reviewed": false,
+    "digital_pressure_required": false,
+    "per_heat_preparation_confirmation_required": true,
+    "physical_acceptance_performed": false
   }
 }

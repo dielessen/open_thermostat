@@ -314,6 +314,7 @@ jobs:
           assert original.count(locked) == 2, 'Review changed board policy before adjusting probe'
           assert 'constexpr bool emsTransmitAllowed = false;' in original
           assert 'static constexpr bool manualHeatInstallationReviewed_ = false;' in Path('src/EmsController.h').read_text()
+          assert 'static constexpr bool manualPressureMethodReviewed_ = false;' in Path('src/EmsController.h').read_text()
           board.write_text(original.replace(locked, locked.replace('false', 'true'), 1))
           PYTHON
       - name: Compile actual ESP32 manual route and check UART owners
@@ -375,6 +376,7 @@ jobs:
           assert 'constexpr bool emsManualTestTransmitAllowed = false;' in original
           assert 'static constexpr bool settingsInstallationReviewed_=false;' in Path('src/EmsController.h').read_text()
           assert 'static constexpr bool manualHeatInstallationReviewed_ = false;' in Path('src/EmsController.h').read_text()
+          assert 'static constexpr bool manualPressureMethodReviewed_ = false;' in Path('src/EmsController.h').read_text()
           board.write_text(original.replace(locked, locked.replace('false', 'true'), 1))
           PYTHON
       - name: Compile ESP32 settings route without installation permission

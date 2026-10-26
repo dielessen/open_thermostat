@@ -37,6 +37,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
     }else if(action==='prepare'){
      assert.equal(body.revision,state.revision+1);assert.equal(body.flow_c,40);assert.equal(body.duration_s,1);
      assert.equal(body.exclusive_owner_confirmed,true);assert.equal(body.independent_stop_confirmed,true);assert.equal(body.heat_path_confirmed,true);
+     assert.equal(body.pressure_check_confirmed,true);
      update({revision:body.revision,phase:'baseline',owned:true,zero_only:false,can_prepare_zero:false,can_prepare:false,can_start:false,can_stop:true,
       reported_stop_confirmed:false,operator_remaining_ms:5000,requested_flow_c:40});
     }else if(action==='close_fault'){
@@ -84,15 +85,24 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
   assert.equal(await page.locator('[data-test-start]').isDisabled(),true);
 
+  heatTrial={...heatTrial,profile_id:'ecomline-classic-separate-pressure-v1',digital_pressure_required:false,
+    separate_pressure_method_reviewed:false,telemetry_ready:false,reason:'pressure_check_method_unreviewed'};
+  await page.locator('[data-heat-status]').filter({hasText:'geen digitale druksensor'}).waitFor();
+  assert.match(await page.locator('[data-heat-limits]').innerText(),/Grenzen afzonderlijke drukcontrole/);
+  assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
+
   // No test code can grant real hardware permission. This is an explicit IO fixture.
-  heatTrial={...heatTrial,installation_reviewed:true};
-  update({available:true,blocked_reason:'',can_prepare:true,limits,site_confirmation_required:true});
+  heatTrial={...heatTrial,installation_reviewed:true,separate_pressure_method_reviewed:true,telemetry_ready:true,reason:'telemetry_ready'};
+  update({available:true,blocked_reason:'',can_prepare:true,limits,site_confirmation_required:true,pressure_check_required:true});
   await page.locator('[data-test-site]').waitFor({state:'visible'});
   assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
   assert.equal(await page.locator('[data-site-owner]').isChecked(),false);
   await page.locator('[data-site-owner]').check();await page.locator('[data-site-stop]').check();
   assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
   await page.locator('[data-site-path]').check();
+  assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
+  assert.equal(requests.some(r=>r.path.endsWith('/prepare')),false);
+  await page.locator('[data-site-pressure]').check();
   await page.waitForFunction(()=>!document.querySelector('[data-test-prepare]').disabled);
   await page.locator('[data-test-flow]').fill('61');await page.locator('[data-test-duration]').fill('1');
   await page.locator('[data-test-prepare]').click();assert.equal(requests.some(r=>r.path.endsWith('/prepare')),false);
@@ -101,6 +111,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   assert.equal(await page.locator('[data-site-owner]').isChecked(),false);
   assert.equal(await page.locator('[data-site-stop]').isChecked(),false);
   assert.equal(await page.locator('[data-site-path]').isChecked(),false);
+  assert.equal(await page.locator('[data-site-pressure]').isChecked(),false);
   const readySnapshot=structuredClone(state);
   assert.equal(requests.filter(r=>r.path.endsWith('/start')).length,0); // ready never auto-starts
   page.once('dialog',dialog=>dialog.dismiss());await page.locator('[data-test-start]').click();
@@ -157,6 +168,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   assert.equal(await page.locator('[data-test-facts] dd').filter({hasText:/^Ja$/}).count(),0);
   assert.match(await page.locator('[data-heat-limits]').innerText(),/1–2.5 bar/);
   assert.match(await page.locator('[data-heat-limits]').innerText(),/Reviewed/);
+  assert.match(await page.locator('[data-heat-limits]').innerText(),/Separate pressure check window/);
 
   await page.waitForTimeout(1300);assert.equal(requests.filter(r=>r.method==='POST').length,before);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
@@ -236,11 +248,11 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   for(const mode of ['prepare','prepare_zero','ready','pagehide']) {
    state={...initial(),revision:state.revision,state_sequence:state.state_sequence+1,observed_at_ms:state.observed_at_ms+100,
     available:true,blocked_reason:'',can_prepare:true,can_prepare_zero:true,zero_test_available:true,
-    site_confirmation_required:true,operator_lease_ms:5000,limits};
+    site_confirmation_required:true,pressure_check_required:true,operator_lease_ms:5000,limits};
    await page.evaluate(()=>loadNativePage('boiler_test'));
    await page.waitForFunction(()=>!document.querySelector('[data-site-owner]').disabled);
    await page.locator('[data-site-owner]').check();await page.locator('[data-site-stop]').check();
-   await page.locator('[data-site-path]').check();
+   await page.locator('[data-site-path]').check();await page.locator('[data-site-pressure]').check();
    await page.locator('[data-test-flow]').fill('40');await page.locator('[data-test-duration]').fill('1');
    delayPreparation=true;delayedPreparation=null;
    if(mode==='prepare_zero')page.once('dialog',dialog=>dialog.accept());

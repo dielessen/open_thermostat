@@ -41,7 +41,7 @@ Een lokale commit of ontwikkelbuild is geen beschikbare GitHub-update.
 
 | Prioriteit | Werk | Vereist resultaat |
 | --- | --- | --- |
-| P0 — modelprofiel zonder digitale drukmeting | Gebruiker bevestigt op 26 oktober: deze ketel heeft geen digitale druksensor. De bestaande proefguard vereist die nog wel | Modelgebonden proefvoorwaarden en implementatie herzien voor deze opstelling; geen digitale drukwaarde eisen of verzinnen. Passende controle van installatiedruk afzonderlijk vastleggen; overige meet- en stopvoorwaarden behouden |
+| P0 — modelprofiel zonder digitale drukmeting | Apart brongebonden Ecomline-profiel geïmplementeerd: afzonderlijke drukcontrolemethode vereist, met een nieuwe verklaring per warmteproef. De methodepoort blijft uit | Passende fysieke drukcontrolemethode voor deze installatie beoordelen en vastleggen; geen digitale drukwaarde eisen of verzinnen. Overige meet-, installatie- en stopvoorwaarden blijven behouden |
 | P0 — configuratieontvangst | Eenmalige uitleesroute is aangesloten in HTTP, UART-poll en NL/EN-bediening; afronden met kandidaat- en fysieke controle | Echte latere boilerrespons levert CV-aan/uit en temperatuur met originele ontvangsttijd; standaard TX blijft uit tot afzonderlijke vrijgave |
 | P0 — handmatige proefvariant | Bronbeoordeling en installatiekaart B07–B09 afronden voor de echte E32/EasyControl/Classic-keten | Expliciete adres-/interface-/timing-/arbitragebeoordeling en passende afgifte-, stop- en overdrachtsvoorwaarden; geen willekeurig openzetten van algemene TX |
 | P0 — gezamenlijke freeze | Complete lokale bron-/pakketpreflight is geslaagd op `0acae7c`; na proefvariant-/installatiebeoordeling definitieve versies en bron vastleggen | Exacte kandidaat met volledige native-/HA-/browser-/board-/bron-/licentie-/pakketcontroles; ontwikkelbewijs apart houden |
@@ -60,6 +60,35 @@ proefacceptatie en latere automatische regeling. De fysieke M2-acceptatie gaat
 niet vóór deze handmatige bèta; automatische kamer-/kraanuitvoer blijft daarbij
 geblokkeerd. De eigen B07–B09-voorwaarden voor ketelmetingen, zender en installatie
 blijven vereist. B14 wordt pas na de afzonderlijk toegelaten echte proef afgetekend.
+
+## Sensorloze Ecomline: drukvoorwaarden in de bron herzien
+
+Het vaste E32-proefprofiel gebruikt nu `ecomline-classic-separate-pressure-v1`.
+De keuze staat in de bron; een ketelfoto, ontbrekende meting of HTTP-parameter
+kan haar niet veranderen. De afzonderlijke bronpoort
+`manualPressureMethodReviewed_ = false` vereist eerst beoordeling van een
+passende lokale drukcontrolemethode. Naast de bestaande opstellingsverklaringen
+vereist iedere warmtevoorbereiding daarna een nieuwe expliciete
+`pressure_check_confirmed: true`. Een nulproef en stop vereisen deze
+warmteverklaring niet.
+
+De drukverklaring blijft bij de boot, revisie en operator van die ene proef;
+zij wordt geen ketelmeting en levert geen fysieke validatie. De keteltestpagina
+legt dit uit in EN/NL en vraagt bij elke nieuwe warmtevoorbereiding opnieuw
+bevestiging. De modelroute zonder druksensor behoudt dezelfde verse
+watertemperatuur, CV-instelling, temperatuurgrenzen, operatorlease en stopregels.
+Het bestaande profiel mét digitale sensor blijft digitale druk controleren.
+Algemene TX, handmatige TX, instellingen-TX en installatievrijgave blijven uit.
+
+Lokale softwarecontrole: 61 native tests met ASAN/UBSAN, desktop-/mobiele
+bedienings- en passieve regressies, 72 bevestigingsgevallen en 4
+configuratie-uitleesgevallen geslaagd. E32-firmware en filesystem gebouwd;
+partities, standaardblokkades en afwezigheid van project-UART-TX-verwijzingen
+gecontroleerd. Bewijs staat lokaal onder `out/beta4-sensorless-pressure/`.
+Dit is ontwikkelbewijs vóór freeze.
+
+De feitelijke controlemethode en fysieke proef zijn nog niet beoordeeld of
+uitgevoerd; deze codewijziging tekent B07–B09/B14 niet af.
 
 ## GitHub en releaseonderhoud — 26 oktober
 
@@ -420,7 +449,7 @@ geïnstalleerd en verandert de bestaande beta.3-release niet.
 
 De gebruiker vraagt de volgende release te maken. Het concrete concept staat in
 [BETA4-KANDIDAAT.json](BETA4-KANDIDAAT.json), met
-[NL/EN-conceptnotities](BETA4-RELEASE-NOTES-DRAFT.nl-en.md). De drie nieuwe
+[Engelse conceptnotities](BETA4-RELEASE-NOTES-DRAFT.en.md). De drie nieuwe
 E32-functies worden samen gebundeld; HA blijft op zijn bestaande openbare b3-versie.
 De drukprofielaanpassing en actieve ketelvrijgave horen niet bij deze reparatiebundel.
 

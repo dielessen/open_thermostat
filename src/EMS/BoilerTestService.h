@@ -21,9 +21,10 @@ public:
     struct Result { int http; const char* error; bool duplicate = false; };
     BoilerTestService(uint64_t boot, bool transmitCompiled,
                       BoilerTestSession::Profile profile = {}, bool driverAttached = false,
-                      bool requireSiteConfirmation = false)
+                      bool requireSiteConfirmation = false, bool requirePressureConfirmation = false)
         : boot_(boot), transmitCompiled_(transmitCompiled), profile_(profile),
-          driverAttached_(driverAttached), requireSiteConfirmation_(requireSiteConfirmation), session_(boot, profile) {}
+          driverAttached_(driverAttached), requireSiteConfirmation_(requireSiteConfirmation || requirePressureConfirmation),
+          requirePressureConfirmation_(requirePressureConfirmation), session_(boot, profile) {}
     uint64_t bootId() const { return boot_; }
     bool active() const { return session_.active(); }
     void transportFault(uint64_t now) {
@@ -52,7 +53,9 @@ public:
         if (!preparing && !closing && action != "start" && action != "keepalive" && action != "stop") return {404, "unknown_action"};
         const bool validKeys = closing ? exactKeys(json, {"schema", "boot_id", "revision", "local_stop_confirmed"})
             : preparing && requireSiteConfirmation_
-            ? (preparingHeat ? exactKeys(json, {"schema", "boot_id", "revision", "flow_c", "duration_s", "exclusive_owner_confirmed", "independent_stop_confirmed", "heat_path_confirmed"})
+            ? (preparingHeat ? (requirePressureConfirmation_
+                               ? exactKeys(json, {"schema", "boot_id", "revision", "flow_c", "duration_s", "exclusive_owner_confirmed", "independent_stop_confirmed", "heat_path_confirmed", "pressure_check_confirmed"})
+                               : exactKeys(json, {"schema", "boot_id", "revision", "flow_c", "duration_s", "exclusive_owner_confirmed", "independent_stop_confirmed", "heat_path_confirmed"}))
                              : exactKeys(json, {"schema", "boot_id", "revision", "exclusive_owner_confirmed", "independent_stop_confirmed"}))
             : (preparingHeat ? exactKeys(json, {"schema", "boot_id", "revision", "flow_c", "duration_s"})
                              : exactKeys(json, {"schema", "boot_id", "revision"}));
@@ -64,6 +67,9 @@ public:
                 || !cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(json, "independent_stop_confirmed"))
                 || (preparingHeat && !cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(json, "heat_path_confirmed")))))
             return {400, "site_confirmation_required"};
+        if (preparingHeat && requirePressureConfirmation_
+            && !cJSON_IsTrue(cJSON_GetObjectItemCaseSensitive(json, "pressure_check_confirmed")))
+            return {400, "pressure_confirmation_required"};
         const auto* boot = cJSON_GetObjectItemCaseSensitive(json, "boot_id");
         if (!cJSON_IsString(boot) || std::string_view(boot->valuestring) != bootText()) return {409, "boot_changed"};
         const auto revision = static_cast<uint32_t>(cJSON_GetObjectItemCaseSensitive(json, "revision")->valuedouble);
@@ -92,7 +98,7 @@ public:
             const bool closed = session_.closeFault(now, admitted, monitor);
             if (marker() != before) ++stateSequence_;
             if (!closed) return {409, "reported_stop_required"};
-            siteConfirmed_ = heatPathConfirmed_ = false;
+            siteConfirmed_ = heatPathConfirmed_ = pressureConfirmed_ = false;
             return {202, ""};
         }
         if (action == "stop") {
@@ -110,6 +116,7 @@ public:
             // and session. A new preparation must submit its declarations again.
             siteConfirmed_ = requireSiteConfirmation_;
             heatPathConfirmed_ = requireSiteConfirmation_ && preparingHeat;
+            pressureConfirmed_ = requirePressureConfirmation_ && preparingHeat;
             std::copy(owner.begin(), owner.end(), owner_.begin()); owner_[64] = 0;
             positiveFrames_ = zeroFrames_ = 0;
             ++stateSequence_;
@@ -169,6 +176,8 @@ public:
             << ",\"state_sequence\":" << stateSequence_ << ",\"observed_at_ms\":" << now
             << ",\"available\":" << (blocked ? "false" : "true")
             << ",\"site_confirmation_required\":" << (requireSiteConfirmation_ ? "true" : "false")
+            << ",\"pressure_check_required\":" << (requirePressureConfirmation_ ? "true" : "false")
+            << ",\"pressure_check_confirmed\":" << (pressureConfirmed_ ? "true" : "false")
             << ",\"can_close_fault\":" << (session_.canCloseFault(now, admitted, monitor) ? "true" : "false")
             << ",\"restart_required\":" << (session_.phase() == BoilerTestSession::Phase::closed ? "true" : "false")
             << ",\"zero_test_available\":" << (zeroAvailable ? "true" : "false")
@@ -220,6 +229,8 @@ private:
             gates.independentStopAvailable = preparation || siteConfirmed_;
             gates.pathReady = gates.pathReady && (preparation || heatPathConfirmed_);
         }
+        if (requirePressureConfirmation_)
+            gates.limitsSafe = gates.limitsSafe && (preparation || pressureConfirmed_);
         return gates;
     }
     const char* blockedReason(const BoilerTestSession::Gates& gates, bool zeroOnly = false, bool preparation = false) const {
@@ -259,6 +270,7 @@ private:
     BoilerTestSession::Profile profile_;
     bool driverAttached_;
     bool requireSiteConfirmation_, siteConfirmed_ = false, heatPathConfirmed_ = false;
+    bool requirePressureConfirmation_, pressureConfirmed_ = false;
     BoilerTestSession session_;
     uint32_t revision_ = 0, durationMs_ = 0;
     uint64_t positiveFrames_ = 0, zeroFrames_ = 0;

@@ -239,27 +239,43 @@ watercirculatie. Dit document is geen gemeten kwalificatie van deze adapter of
 installatie. Het oorspronkelijke oude Bosch-resourceadres was niet bereikbaar;
 er wordt geen succesvolle lokale download van die oorspronkelijke host geclaimd.
 
-**Correctie opstellingsgegevens, 26 oktober 2026:** de gebruiker bevestigt dat
-zijn ketel geen digitale druksensor heeft. Onderstaande digitale drukeis beschrijft
-de huidige softwareguard en is voor deze opstelling nog te herzien, geen vereiste
-om een ontbrekende sensor alsnog uit te lezen. Passende afzonderlijke controle
-van de installatiedruk moet in het modelgebonden proefprofiel worden vastgelegd.
-Geen fictieve meetwaarde of automatische proefvrijgave; overige voorwaarden en
-beide TX-blokkades blijven gelden.
+**Modelcorrectie, 26 oktober 2026:** de gebruiker bevestigt dat zijn ketel geen
+digitale druksensor heeft. De bron gebruikt voor deze installatie nu het vaste
+profiel `ecomline-classic-separate-pressure-v1`. Dit profiel vereist geen digitale
+drukmeting en vult geen ontbrekende drukwaarde in. Het oorspronkelijke profiel
+met gerapporteerde druk blijft beschikbaar voor afzonderlijk beoordeelde
+installaties die daadwerkelijk zo'n sensor hebben; ontbrekende druk schakelt
+nooit automatisch tussen profielen.
 
-Onze proefkeuzes zijn smaller: gevraagde40–45°C, maximaal60s, gerapporteerde
-druk1,0–2,5bar en gemeten watertemperatuur5 tot onder50°C. Die keuzes zijn geen
-fabrikantgarantie over fysieke temperaturen, stoptijd of minimumflow. De guard
-vereist gerapporteerde Classic0x18-metingen jonger dan15s, plus gerapporteerde
-Classic0x16-cv-instelling en lokale temperatuurgrens jonger dan10min. De hele
-proefrange moet binnen de lokale grens passen: een grens onder45 of boven90°C
-voldoet niet. Er worden geen ketelinstellingen verhoogd of cv-/tapwatermodi geschreven.
+Onze proefkeuzes blijven smaller: gevraagde40–45°C, maximaal60s, gecontroleerde
+installatiedruk1,0–2,5bar en gemeten watertemperatuur5 tot onder50°C. Dit zijn
+softwarekeuzes, geen fabrikantgarantie over fysieke temperaturen, stoptijd of
+minimumflow. De juiste lokale drukcontrolemethode voor deze installatie is nog
+te beoordelen en vast te leggen. De extra bronpoort
+`manualPressureMethodReviewed_ = false` houdt de sensorloze warmteproef tot die
+beoordeling geblokkeerd. De druk wordt niet automatisch bewaakt door dit profiel.
+De al vereiste plaatselijke aanwezigheid en onafhankelijke stop blijven nodig.
 
-De echte afgifte-/sensorbetekenis moet nog beoordeeld worden; de bronpoort
-manualHeatInstallationReviewed_ blijft false. Boilerfoto/keuze en operatorvinkjes
-kunnen deze poort niet vullen. De guard wordt na selectie/encoding opnieuw
-gelezen vóór verzending. Onbruikbare druk of te hoge temperatuur trekt positieve
-intentie in zonder een benodigde nulvraag te blokkeren. De gemelde softwaregrens
+Iedere warmtevoorbereiding vereist daarnaast een expliciete nieuwe bevestiging
+dat de installatiedruk met de beoordeelde methode binnen de getoonde proefgrenzen
+is gecontroleerd. De verklaring geldt uitsluitend voor de huidige boot/revisie
+en operator. Een ontbrekende, onware, numerieke of tekstuele verklaring wordt
+geweigerd. De status noemt dit `pressure_check_confirmed`; het is een
+operatorverklaring, geen EMS-telemetrie of bewijs van fysieke veiligheid.
+Nulvraag en stop blijven hiervan onafhankelijk bereikbaar onder hun eigen
+bestaande voorwaarden.
+
+De guard behoudt gerapporteerde Classic0x18-watertemperatuur jonger dan15s, plus
+gerapporteerde Classic0x16-cv-instelling en lokale temperatuurgrens jonger dan10min.
+De hele proefrange moet binnen de lokale grens passen: een grens onder45 of
+boven90°C voldoet niet. Er worden geen ketelinstellingen verhoogd of
+cv-/tapwatermodi geschreven. Verlies van de meetvoorwaarden trekt positieve
+intentie in zonder een benodigde nulvraag te blokkeren.
+
+De echte afgifte-/sensorbetekenis moet nog beoordeeld worden; ook de bronpoort
+`manualHeatInstallationReviewed_` blijft false. Boilerfoto/keuze en
+operatorvinkjes kunnen deze poorten niet vullen. De guard wordt na
+selectie/encoding opnieuw gelezen vóór verzending. De gemelde softwaregrens
 is geen gegarandeerde fysieke maximumtemperatuur tussen rapporten.
 
 ## Het stopmeetrapport controleren

@@ -263,9 +263,13 @@ public:
 		ss << ",\"test\":";
 		boilerTest_.writeJSON(ss, snapshotMs, operatorSession, boilerTestGates(), monitor_);
         ss<<",\"configuration_read\":";configurationRead_.writeJSON(ss,snapshotMs,configurationReadPermitted(),boilerTest_.active());
-        const auto heat = ClassicHeatTrialEnvelope::inspect(monitor_, snapshotMs);
-        ss << ",\"heat_trial\":{\"profile_id\":\"" << ClassicHeatTrialEnvelope::id
+        const auto heat = heatTrialEnvelope(snapshotMs);
+        ss << ",\"heat_trial\":{\"profile_id\":\"" << ClassicHeatTrialEnvelope::profileId(manualHeatPressureSource_)
            << "\",\"installation_reviewed\":" << (manualHeatInstallationReviewed_ ? "true" : "false")
+           << ",\"digital_pressure_required\":"
+           << (manualHeatPressureSource_ == ClassicHeatTrialEnvelope::PressureSource::reportedSensor ? "true" : "false")
+           << ",\"separate_pressure_method_reviewed\":"
+           << (manualPressureMethodReviewed_ ? "true" : "false")
            << ",\"telemetry_ready\":" << (heat.ready ? "true" : "false")
            << ",\"reason\":\"" << heat.reason << "\",\"physical_validation\":false,\"limits\":{"
            << "\"minimum_flow_c\":" << static_cast<unsigned>(ClassicHeatTrialEnvelope::profile().minimumFlowC)
@@ -404,7 +408,8 @@ private:
 	// Concrete supervised software envelope. Physical installation qualification
     // and TX permission remain separate source decisions, never HTTP settings.
 	BoilerTestService boilerTest_{(static_cast<uint64_t>(esp_random()) << 32) | esp_random(), board::emsManualTestTransmitAllowed,
-        ClassicHeatTrialEnvelope::profile(), true, true};
+        ClassicHeatTrialEnvelope::profile(), true, true,
+        manualHeatPressureSource_ == ClassicHeatTrialEnvelope::PressureSource::separateCheck};
     ManualClassicTransaction manualTransaction_; // UART task only, never HTTP/loop.
     std::atomic<uint32_t> manualCompletions_{0},manualRejections_{0},manualReplyErrors_{0};
     template<bool Read>
@@ -452,6 +457,14 @@ private:
             && monitor_.capabilities().profile()==BoilerProtocol::classic;
     }
     static constexpr bool manualHeatInstallationReviewed_ = false;
+    // Fixed target installation: the user's Ecomline Classic has no digital
+    // pressure sensor. Reviewing a separate local pressure-check method is an
+    // additional source gate; selecting a catalogue photo cannot change it.
+    static constexpr auto manualHeatPressureSource_ = ClassicHeatTrialEnvelope::PressureSource::separateCheck;
+    static constexpr bool manualPressureMethodReviewed_ = false;
+    ClassicHeatTrialEnvelope::Check heatTrialEnvelope(uint64_t now) const {
+        return ClassicHeatTrialEnvelope::inspect(monitor_, now, manualHeatPressureSource_, manualPressureMethodReviewed_);
+    }
     std::atomic<bool> manualSourceConflict_{false}; // Never cleared by UART reset.
     bool manualBusIdentityMatches() const {
         return ManualBusIdentity::matches(boilerTestAddressing_, deviceId_,
@@ -467,8 +480,7 @@ private:
         BoilerTestSession::Gates gates{}; // Physical heat-path review remains separate.
         gates.transmitterReviewed = manualTransportReviewed() && !configurationRead_.active() && !boilerSettings_.active();
         gates.pathReady = manualHeatInstallationReviewed_;
-        gates.limitsSafe = ClassicHeatTrialEnvelope::inspect(monitor_,
-            static_cast<uint64_t>(esp_timer_get_time() / 1000)).ready;
+        gates.limitsSafe = heatTrialEnvelope(static_cast<uint64_t>(esp_timer_get_time() / 1000)).ready;
         return gates;
     }
     // Fixed Classic service identity; observed mask and conflicts must still

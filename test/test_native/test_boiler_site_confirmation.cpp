@@ -72,6 +72,43 @@ TEST_F(SiteConfirmation, DuplicateCannotRenewLeaseAndControlRequestsCannotCarryD
     EXPECT_EQ(service.action("keepalive",zero,owner,200,gates,monitor).http,400);
     EXPECT_EQ(service.action("stop",scope,other,201,gates,monitor).http,202);
 }
+TEST_F(SiteConfirmation, SensorlessHeatRequiresTruePressureDeclarationEveryPreparation) {
+    BoilerTestService separate{42,true,profile,true,true,true};
+    auto confirmed = heat;
+    confirmed.insert(confirmed.size()-1,",\"pressure_check_confirmed\":true");
+    ASSERT_LE(confirmed.size(),256u);
+    EXPECT_EQ(separate.action("prepare",heat,owner,100,gates,monitor).http,400);
+    for (const auto* value : {"false","1","\"true\"","null"}) {
+        auto invalid = confirmed;
+        invalid.replace(invalid.find("pressure_check_confirmed\":true")+26,4,value);
+        EXPECT_EQ(separate.action("prepare",invalid,owner,100,gates,monitor).http,400)<<invalid;
+    }
+    gates.pathReady=false;
+    EXPECT_EQ(separate.action("prepare",confirmed,owner,100,gates,monitor).http,409);
+    gates.pathReady=true;gates.limitsSafe=false;
+    EXPECT_EQ(separate.action("prepare",confirmed,owner,100,gates,monitor).http,409);
+    gates.limitsSafe=true;
+    ASSERT_EQ(separate.action("prepare",confirmed,owner,100,gates,monitor).http,202);
+    std::ostringstream out;separate.writeJSON(out,100,owner,gates,monitor);
+    auto json=ControlJson(cJSON_Parse(out.str().c_str()),cJSON_Delete);
+    EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItem(json.get(),"pressure_check_required")));
+    EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItem(json.get(),"pressure_check_confirmed")));
+    EXPECT_FALSE(cJSON_IsTrue(cJSON_GetObjectItem(json.get(),"physical_validation")));
+    EXPECT_FALSE(monitor.sample(BoilerField::pressure).raw);
+    EXPECT_EQ(separate.action("keepalive",confirmed,owner,101,gates,monitor).http,400);
+    EXPECT_EQ(separate.action("start",scope,other,101,gates,monitor).http,403);
+    EXPECT_EQ(separate.action("prepare",heat,owner,101,gates,monitor).http,400);
+}
+TEST_F(SiteConfirmation, SeparatePressureConfirmationCannotBlockZeroOrIndependentStop) {
+    BoilerTestService separate{42,true,profile,true,false,true};
+    gates.pathReady=false;gates.limitsSafe=false;
+    ASSERT_EQ(separate.action("prepare_zero",zero,owner,100,gates,monitor).http,202);
+    EXPECT_EQ(separate.next(100,gates,monitor).command,BoilerTestSession::Command::zero);
+    EXPECT_EQ(separate.action("stop",scope,other,101,gates,monitor).http,202);
+    std::ostringstream out;separate.writeJSON(out,101,owner,gates,monitor);
+    auto json=ControlJson(cJSON_Parse(out.str().c_str()),cJSON_Delete);
+    EXPECT_FALSE(cJSON_IsTrue(cJSON_GetObjectItem(json.get(),"pressure_check_confirmed")));
+}
 TEST_F(SiteConfirmation, ZeroOnlyTimingProfileCannotCreateHeatAuthorityOrSurviveLostSupervision){
     const auto zeroProfile=BoilerTestSession::Profile::supervisedZeroOnly();
     ASSERT_TRUE(zeroProfile.validForZero());ASSERT_FALSE(zeroProfile.valid());

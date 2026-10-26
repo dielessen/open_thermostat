@@ -32,6 +32,7 @@
       <label class="d-block"><input type="checkbox" data-site-owner> <span data-i18n="Tado and other controllers are disconnected from the control path; the E32 is the only test controller.">Tado and other controllers are disconnected from the control path; the E32 is the only test controller.</span></label>
       <label class="d-block"><input type="checkbox" data-site-stop> <span data-i18n="I am present and can switch off the boiler independently of the E32.">I am present and can switch off the boiler independently of the E32.</span></label>
       <label class="d-block"><input type="checkbox" data-site-path> <span data-i18n="For a heat test: the reviewed heat dissipation path is open and available.">For a heat test: the reviewed heat dissipation path is open and available.</span></label>
+      <label class="d-block" data-site-pressure-label hidden><input type="checkbox" data-site-pressure> <span data-i18n="For this heat test: I checked the installation pressure using the reviewed separate method; it is within the displayed trial limits.">For this heat test: I checked the installation pressure using the reviewed separate method; it is within the displayed trial limits.</span></label>
     </fieldset>
     <p><span data-i18n="Read the boiler heating settings once before preparing a heat test. This sends a read request, not a heat demand or settings change. Confirm the setup above first.">Read the boiler heating settings once before preparing a heat test. This sends a read request, not a heat demand or settings change. Confirm the setup above first.</span></p>
     <button class="btn btn-outline-secondary" type="button" data-read-configuration disabled><span data-i18n="Read heating settings once">Read heating settings once</span></button>
@@ -80,6 +81,8 @@
     flow_outside_trial_limits:uiText("Measured water temperature is outside the trial limits."),
     pressure_unavailable:uiText("A fresh boiler pressure measurement is required."),
     pressure_outside_trial_limits:uiText("Boiler pressure is outside the trial limits."),
+    pressure_check_method_unreviewed:uiText("This boiler has no digital pressure sensor. A separate installation pressure check method must be reviewed before heat testing."),
+    pressure_source_invalid:uiText("Heat trial pressure conditions are unavailable."),
     heating_setting_unavailable:uiText("A recent boiler heating setting is required."),
     heating_disabled:uiText("Heating is disabled on the boiler."),
     heating_limit_unavailable:uiText("A recent boiler heating temperature limit is required."),
@@ -89,7 +92,10 @@
   function paintHeatTrial(value) {
     heatLimits.replaceChildren();
     const limits = value?.limits;
-    if (!value || value.profile_id !== 'ecomline-classic-manual-v1' || typeof value.installation_reviewed !== 'boolean'
+    const separatePressure = value?.profile_id === 'ecomline-classic-separate-pressure-v1';
+    if (!value || !['ecomline-classic-manual-v1','ecomline-classic-separate-pressure-v1'].includes(value.profile_id)
+        || (separatePressure && (value.digital_pressure_required !== false || typeof value.separate_pressure_method_reviewed !== 'boolean'))
+        || typeof value.installation_reviewed !== 'boolean'
         || typeof value.telemetry_ready !== 'boolean' || typeof value.reason !== 'string' || !Object.hasOwn(heatReasons,value.reason)
         || value.telemetry_ready !== (value.reason === 'telemetry_ready') || !limits
         || !['minimum_flow_c','maximum_flow_c','maximum_duration_s','minimum_pressure_decibar',
@@ -108,7 +114,8 @@
       [uiText("Requested flow temperature"),format(limits.minimum_flow_c)+'–'+format(limits.maximum_flow_c)+' °C'],
       [uiText("Maximum heat demand"),format(limits.maximum_duration_s)+' s'],
       [uiText("Measured water temperature window"),format(limits.minimum_measured_flow_centi/100)+'–<'+format(limits.maximum_measured_flow_centi/100)+' °C'],
-      [uiText("Boiler pressure window"),format(limits.minimum_pressure_decibar/10)+'–'+format(limits.maximum_pressure_decibar/10)+' bar'],
+      [separatePressure ? uiText("Separate pressure check window") : uiText("Boiler pressure window"),format(limits.minimum_pressure_decibar/10)+'–'+format(limits.maximum_pressure_decibar/10)+' bar'],
+      ...(separatePressure ? [[uiText("Pressure check method"),value.separate_pressure_method_reviewed ? uiText("Reviewed") : uiText("Not reviewed; heat trial remains blocked")]] : []),
       [uiText("Installation profile"),value.installation_reviewed ? uiText("Reviewed") : uiText("Not reviewed; heat trial remains blocked")]
     ]) { cell(heatLimits,'dt',label);cell(heatLimits,'dd',text); }
   }
@@ -126,15 +133,19 @@
   const siteOwner = root.querySelector('[data-site-owner]');
   const siteStop = root.querySelector('[data-site-stop]');
   const sitePath = root.querySelector('[data-site-path]');
+  const sitePressure = root.querySelector('[data-site-pressure]');
+  const sitePressureLabel = root.querySelector('[data-site-pressure-label]');
   function siteReady(heat) {
-    return !test?.site_confirmation_required || (siteOwner.checked && siteStop.checked && (!heat || sitePath.checked));
+    return (!test?.site_confirmation_required || (siteOwner.checked && siteStop.checked && (!heat || sitePath.checked)))
+      && (!heat || test?.pressure_check_required !== true || sitePressure.checked);
   }
   function siteDeclarations(heat) {
     if (!test?.site_confirmation_required) return {};
     return {exclusive_owner_confirmed:siteOwner.checked, independent_stop_confirmed:siteStop.checked,
-      ...(heat ? {heat_path_confirmed:sitePath.checked} : {})};
+      ...(heat ? {heat_path_confirmed:sitePath.checked} : {}),
+      ...(heat && test.pressure_check_required === true ? {pressure_check_confirmed:sitePressure.checked} : {})};
   }
-  function clearSiteDeclarations() { siteOwner.checked = siteStop.checked = sitePath.checked = false; }
+  function clearSiteDeclarations() { siteOwner.checked = siteStop.checked = sitePath.checked = sitePressure.checked = false; }
   let test = null, held = null, lastScope = null, pending = false, stopping = false, renewal = null, supervisionEpoch = 0;
   const lifecycle = new AbortController();
   const readButton = root.querySelector('[data-read-configuration]');
@@ -211,6 +222,9 @@
         || !Number.isSafeInteger(value.observed_at_ms) || value.observed_at_ms < 0
         || !Object.hasOwn(phases, value.phase)) return false;
     if (Object.hasOwn(value, 'site_confirmation_required') && typeof value.site_confirmation_required !== 'boolean') return false;
+    for (const key of ['pressure_check_required','pressure_check_confirmed'])
+      if (Object.hasOwn(value, key) && typeof value[key] !== 'boolean') return false;
+    if (value.pressure_check_required === true && value.site_confirmation_required !== true) return false;
     for (const key of ['can_close_fault','restart_required'])
       if (Object.hasOwn(value, key) && typeof value[key] !== 'boolean') return false;
     for (const key of ['available','owned','can_prepare','can_start','can_stop','reported_stop_confirmed'])
@@ -271,7 +285,8 @@
     if (!validTest(value) || (test && (value.boot_id !== test.boot_id || value.revision !== test.revision))) clearSiteDeclarations();
     test = validTest(value) ? value : null;
     sitePanel.hidden = !test?.site_confirmation_required;
-    for (const input of [siteOwner,siteStop,sitePath]) input.disabled = pending || !test || !['idle','completed'].includes(test.phase);
+    sitePressureLabel.hidden = test?.pressure_check_required !== true;
+    for (const input of [siteOwner,siteStop,sitePath,sitePressure]) input.disabled = pending || !test || !['idle','completed'].includes(test.phase);
     if (!test || (held && (!sameScope(held, test) || !test.owned || !['baseline','ready','heating'].includes(test.phase)))) stopRenewing();
     if (test) {
       if (test.can_stop) lastScope = {boot_id:test.boot_id, revision:test.revision};
@@ -336,7 +351,7 @@
     }, Math.min(1000, Math.floor((test.operator_lease_ms || test.limits?.operator_lease_ms) / 3)));
   }
   root.querySelector('[data-test-form]').addEventListener('submit',event => event.preventDefault());
-  for (const input of [siteOwner,siteStop,sitePath]) input.addEventListener('change',() => paintTest(test));
+  for (const input of [siteOwner,siteStop,sitePath,sitePressure]) input.addEventListener('change',() => paintTest(test));
   zeroButton.addEventListener('click',async () => {
     if (document.visibilityState !== 'visible' || zeroButton.disabled || !test) return;
     const epoch = supervisionEpoch, scope = {boot_id:test.boot_id, revision:test.revision};

@@ -17,6 +17,11 @@ are unchanged.
   Missing or expired readings stay blank. Refresh reads the local snapshot;
   it does not query the boiler.
 
+- **Correct pressure requirements for the target boiler.** The Ecomline trial
+  profile explains that this installation has no digital pressure sensor. It
+  requires review of a separate pressure-check method and a fresh declaration
+  for each heat trial. Neither a profile selection nor a checkbox enables control.
+
 ## Fixed
 
 - Abandoned web sessions expire after 30 minutes without accepted authenticated
@@ -41,5 +46,5 @@ unconfirmed firmware boot. Recovery does not require a factory reset.
 Physical boiler and valve control remain disabled. Boiler settings stay
 read-only in the standard firmware. The prepared four-setting editor and the
 EMS-ESP entity reference do not grant write permission or complete EMS-ESP
-write support. Adapting the heat-trial profile for the boiler without a digital
-pressure sensor remains separate work.
+write support. The separate pressure-check method for the target installation
+still requires physical review.

@@ -2,6 +2,8 @@
 
 // Fixed EMS-ESP E32V2/E32V2_2 bus/network wiring. Do not infer old E32 pins.
 namespace heating::board {
+// Persistent settings have their own source-reviewed permission, never a build flag.
+constexpr bool emsSettingsTransmitAllowed = false;
 constexpr int emsRx = 4;
 constexpr int emsTx = 5;
 constexpr int phyAddress = 0;

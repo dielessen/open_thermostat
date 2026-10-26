@@ -16,6 +16,8 @@
 #include "EMS/ManualBusIdentity.h"
 #include "EMS/ClassicHeatTrialEnvelope.h"
 #include "EMS/ClassicConfigurationRead.h"
+#include "EMS/ClassicBoilerSettingsService.h"
+#include "EMS/ClassicSettingsRuntimeGate.h"
 #include "EMS/ManualClassicTransaction.h"
 #include <esp_system.h>
 #endif
@@ -186,7 +188,11 @@ public:
             if (boilerTestTransportFault_.exchange(false, std::memory_order_acq_rel)) {
                 boilerTest_.transportFault(static_cast<uint64_t>(esp_timer_get_time() / 1000));
                 configurationRead_.fail("transport_fault");
+                boilerSettings_.failTransport();
             }
+            boilerSettings_.tick([]{return static_cast<uint64_t>(esp_timer_get_time());},
+                [this](std::string_view){return boilerSettingsPermitted();});
+            settingsOwnsBus_.store(boilerSettings_.active(),std::memory_order_release);
             configurationRead_.tick(static_cast<uint64_t>(esp_timer_get_time()/1000),configurationReadPermitted());
 			boilerTest_.tick(static_cast<uint64_t>(esp_timer_get_time() / 1000), boilerTestGates(), monitor_);
 		}
@@ -273,6 +279,27 @@ public:
 		ss << '}';
 	}
 #ifdef OPENTHERMOSTAT_E32V2
+    void boilerSettingsSynchronize(const control::WebAuthSession& sessions,uint64_t now,bool updateAllowed){
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        settingsUpdateAllowed_=updateAllowed;
+        boilerSettings_.synchronizeSessions(sessions,now);
+        settingsOwnsBus_.store(boilerSettings_.active(),std::memory_order_release);
+    }
+    void boilerSettingsStatus(std::ostream& out,std::string_view requester={}) const {
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        boilerSettings_.writeJSON(out,static_cast<uint64_t>(esp_timer_get_time()/1000),boilerSettingsPermitted(),requester);
+    }
+    int boilerSettingsWrite(std::string_view body,std::string_view owner,const control::WebAuthSession& sessions,std::ostream& out) {
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
+        const auto result=boilerSettings_.request(body,owner,now,boilerSettingsPermitted());
+        boilerSettings_.synchronizeSessions(sessions,now);
+        settingsOwnsBus_.store(boilerSettings_.active(),std::memory_order_release);
+        out<<"{\"accepted\":"<<(result.http<300?"true":"false")<<",\"duplicate\":"<<(result.duplicate?"true":"false")
+           <<",\"error\":\""<<result.error<<"\",\"settings\":";
+        boilerSettings_.writeJSON(out,now,boilerSettingsPermitted(),owner);out<<'}';return result.http;
+    }
+    bool boilerSettingsActive()const{std::lock_guard<std::mutex> lock(telemetryMutex_);return boilerSettings_.active();}
 	bool boilerTestActive() const {
 		std::lock_guard<std::mutex> lock(telemetryMutex_);
 		return boilerTest_.active() || configurationRead_.active();
@@ -280,6 +307,9 @@ public:
 	int boilerTestAction(std::string_view action, std::string_view body, std::string_view operatorSession, std::ostream &ss) {
 		std::lock_guard<std::mutex> lock(telemetryMutex_);
 		const auto now = static_cast<uint64_t>(esp_timer_get_time() / 1000);
+        if(boilerSettings_.active()&&action!="stop"&&action!="close_fault"){
+            ss<<"{\"accepted\":false,\"error\":\"settings_write_active\"}";return 409;
+        }
         if(action=="read_configuration") {
             const auto result=configurationRead_.request(body,operatorSession,now,configurationReadPermitted(),boilerTest_.active());
             ss<<"{\"accepted\":"<<(result.http<300?"true":"false")<<",\"duplicate\":"<<(result.duplicate?"true":"false")
@@ -403,9 +433,22 @@ private:
                 boilerTestTransportFault_.store(true,std::memory_order_release);
         }
     }
+    // Persistent-settings IO has independent source/installation gates. Both
+    // remain closed; manual heat-trial flags grant no settings permission.
+    static constexpr bool settingsInstallationReviewed_=false;
+    std::atomic<bool> settingsOwnsBus_{false};
+    bool settingsUpdateAllowed_=false; // HTTP/update owner publishes under telemetryMutex_.
+    ClassicBoilerSettingsService boilerSettings_{boilerTest_.bootId(),board::emsSettingsTransmitAllowed&&settingsInstallationReviewed_};
+    bool boilerSettingsPermitted()const{
+        return ClassicSettingsRuntimeGate::permitted({board::emsSettingsTransmitAllowed,settingsInstallationReviewed_,
+            emsConfig_.emsEnabled,monitor_.capabilities().profile()==BoilerProtocol::classic,
+            manualTransportReviewed(),boilerTest_.active(),configurationRead_.active(),settingsUpdateAllowed_});
+    }
+    bool processBoilerSettingsPoll();
+    void processBoilerSettingsReply(const uint8_t* data,size_t length,uint64_t acquiredAtUs);
     ClassicConfigurationRead configurationRead_{boilerTest_.bootId(),board::emsManualTestTransmitAllowed};
     bool configurationReadPermitted() const {
-        return manualTransportReviewed() && !boilerTest_.active()
+        return manualTransportReviewed() && !boilerTest_.active() && !boilerSettings_.active()
             && monitor_.capabilities().profile()==BoilerProtocol::classic;
     }
     static constexpr bool manualHeatInstallationReviewed_ = false;
@@ -422,7 +465,7 @@ private:
     }
     BoilerTestSession::Gates boilerTestGates() const {
         BoilerTestSession::Gates gates{}; // Physical heat-path review remains separate.
-        gates.transmitterReviewed = manualTransportReviewed() && !configurationRead_.active();
+        gates.transmitterReviewed = manualTransportReviewed() && !configurationRead_.active() && !boilerSettings_.active();
         gates.pathReady = manualHeatInstallationReviewed_;
         gates.limitsSafe = ClassicHeatTrialEnvelope::inspect(monitor_,
             static_cast<uint64_t>(esp_timer_get_time() / 1000)).ready;

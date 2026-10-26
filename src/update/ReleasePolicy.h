@@ -14,6 +14,7 @@ inline std::string releasePageUrl(unsigned page) {
 inline constexpr uint32_t maxImageBytes=3670016;
 inline bool mutationBlocked(std::string_view path,bool working,bool staged,bool pending) {
     if(path=="/boiler/test/read_configuration"||path=="/boiler/test/prepare_zero"||path=="/boiler/test/prepare"||path=="/boiler/test/start"||path=="/boiler/test/keepalive") return working||staged||pending;
+    if(path=="/boiler/settings/write")return working||staged||pending;
     if(path=="/ota"||path=="/otafs")return working||staged||pending;
     if(path=="/config/reboot"||path=="/setup/reenter")return working;
     return false;

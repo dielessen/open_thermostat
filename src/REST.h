@@ -139,6 +139,19 @@ public:
 			server_.sendView(200, "application/json"sv, buf.view());
 		});
 #ifdef OPENTHERMOSTAT_E32V2
+        route("/status/boiler/settings", HTTP_GET, [this] {
+            ib::viewable_stringbuf buf; std::ostream out(&buf);
+            const auto requester=requestToken();controller_.boilerSettingsStatus(out,requester.c_str());server_.sendView(200,"application/json"sv,buf.view());
+        });
+        route("/boiler/settings/write", HTTP_POST, [this] {
+            const auto type=server_.header("Content-Type");const auto body=server_.arg("plain");
+            if((type!="application/json"&&!type.startsWith("application/json;"))||body.length()>384) {
+                server_.send(400,"application/json","{\"accepted\":false,\"error\":\"invalid_request\"}");return;
+            }
+            const auto owner=requestToken();ib::viewable_stringbuf buf;std::ostream out(&buf);
+            const auto code=controller_.boilerSettingsWrite(std::string_view(body.c_str(),body.length()),owner.c_str(),sessions_,out);
+            server_.sendView(code,"application/json"sv,buf.view());
+        });
         route("/boiler/test/read_configuration", HTTP_POST, [this] { boilerTestAction("read_configuration"); });
 		route("/boiler/test/prepare_zero", HTTP_POST, [this] { boilerTestAction("prepare_zero"); });
 		route("/boiler/test/prepare", HTTP_POST, [this] { boilerTestAction("prepare"); });
@@ -249,7 +262,13 @@ public:
 		// one handleClient() call. Each request owns at most one app transaction.
 		appUpload_.reset(appBackend_);
 		appBackend_.error=ESP_OK;
+#ifdef OPENTHERMOSTAT_E32V2
+        controller_.boilerSettingsSynchronize(sessions_,networkNow(),!update::mutationBlocked("/boiler/settings/write"));
+#endif
 		server_.handleClient();
+#ifdef OPENTHERMOSTAT_E32V2
+        controller_.boilerSettingsSynchronize(sessions_,networkNow(),!update::mutationBlocked("/boiler/settings/write"));
+#endif
 		// Includes disconnect/parse failure and a failed final authorization.
 		appUpload_.cancel(appBackend_);
 	}
@@ -311,6 +330,9 @@ private:
 		if(server_.method()!=HTTP_GET&&control::boilerTestMutationBlocked(server_.uri().c_str(),controller_.boilerTestActive())) {
 			server_.send(409,"text/plain","Stop de ketelproef en controleer de terugmelding voor deze wijziging"); return false;
 		}
+        if(server_.method()!=HTTP_GET&&control::boilerSettingsMutationBlocked(server_.uri().c_str(),controller_.boilerSettingsActive())){
+            server_.send(409,"application/json","{\"error\":\"settings_write_active\"}");return false;
+        }
 		if(controller_.modernMode()&&control::legacyControlWrite(server_.uri().c_str(),method)) {
 			server_.send(409,"text/plain","HA-managed shadow mode: legacy control writer disabled"); return false;
 		}
@@ -361,6 +383,7 @@ private:
 		const auto old=requestToken();
 		const auto *session=sessions_.issue(token.data(),proof.data(),now,old.c_str(),recoverySeen);
 		if(!session){server_.send(429,"application/json","{\"error\":\"session_capacity\"}");return;}
+		controller_.boilerSettingsSynchronize(sessions_,networkNow(),!update::mutationBlocked("/boiler/settings/write"));
 		sessions_.loginSucceeded();
 		server_.sendHeader("Set-Cookie",String("OTSESSION=")+session->token.data()+"; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800");
 		server_.send(200,"application/json","{\"authenticated\":true}");
@@ -374,6 +397,7 @@ private:
 	}
 	void logout() {
 		const auto token=requestToken();sessions_.revoke(token.c_str());
+        controller_.boilerSettingsSynchronize(sessions_,networkNow(),!update::mutationBlocked("/boiler/settings/write"));
 		server_.sendHeader("Set-Cookie","OTSESSION=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0");
 		server_.send(200,"application/json","{\"authenticated\":false}");
 	}

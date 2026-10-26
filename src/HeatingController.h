@@ -240,6 +240,12 @@ public:
 		ems_.getTelemetryStatus(ss, operatorSession);
 	}
 #ifdef OPENTHERMOSTAT_E32V2
+    void boilerSettingsSynchronize(const control::WebAuthSession& sessions,uint64_t now,bool updateAllowed){ems_.boilerSettingsSynchronize(sessions,now,updateAllowed);}
+    bool boilerSettingsActive()const{return ems_.boilerSettingsActive();}
+    void boilerSettingsStatus(std::ostream& out,std::string_view requester={}) const { ems_.boilerSettingsStatus(out,requester); }
+    int boilerSettingsWrite(std::string_view body,std::string_view owner,const control::WebAuthSession& sessions,std::ostream& out) {
+        return ems_.boilerSettingsWrite(body,owner,sessions,out);
+    }
 	bool boilerTestActive() const { return ems_.boilerTestActive(); }
 	int boilerTestAction(std::string_view action, std::string_view body, std::string_view operatorSession, std::ostream &ss) {
 		return ems_.boilerTestAction(action, body, operatorSession, ss);

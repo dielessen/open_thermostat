@@ -119,3 +119,51 @@ TEST_F(EchoAdapter, EveryManualOperationReleasesPinAfterSdkFailure){
         }
     }
 }
+
+TEST_F(EchoAdapter, PersistentSettingBoundaryDisabledHasNoSdkCalls){
+    heating::ems::EmsEchoRxDebt debt;const uint8_t bytes[]={11,8,22,1,45,0};
+    const auto r=heating::uart_detail::writeClassicSetting<2,5,false>(bytes,6,
+        heating::ems::ClassicBoilerSettingSpec::Setting::heatingTemperature,45,debt);
+    EXPECT_FALSE(r.touched);EXPECT_EQ(state.calls,0u);
+}
+TEST_F(EchoAdapter, PersistentSettingExactWriteOrReadUsesEchoAndReleasesPin){
+    using Setting=heating::ems::ClassicBoilerSettingSpec::Setting;
+    for(bool read:{false,true}){state={};heating::ems::EmsEchoRxDebt debt;
+        uint8_t bytes[]={11,uint8_t(read?0x88:8),22,1,uint8_t(read?1:45),0};uint8_t crc=0;
+        for(int i=0;i<5;++i)crc=uint8_t((unsigned(crc)<<1)^((crc&0x80)?0x19u:0u)^bytes[i]);
+        bytes[5]=crc;
+        const auto r=read?heating::uart_detail::writeClassicSetting<2,5,true,true>(bytes,6,Setting::heatingTemperature,45,debt)
+                         :heating::uart_detail::writeClassicSetting<2,5,true>(bytes,6,Setting::heatingTemperature,45,debt);
+        EXPECT_TRUE(r.succeeded());EXPECT_EQ(state.maps,1u);EXPECT_EQ(state.bytes.size(),6u);
+        EXPECT_EQ(state.resets,1u);EXPECT_EQ(state.inputs,1u);EXPECT_EQ(state.floats,1u);
+    }
+}
+TEST_F(EchoAdapter, PersistentSettingWrongIntentOrChecksumNeverUsesSdk){
+    using Setting=heating::ems::ClassicBoilerSettingSpec::Setting;
+    for(bool wrongChecksum:{false,true}){state={};heating::ems::EmsEchoRxDebt debt;
+        uint8_t bytes[]={11,8,22,1,45,0};uint8_t crc=0;
+        for(int i=0;i<5;++i)crc=uint8_t((unsigned(crc)<<1)^((crc&0x80)?0x19u:0u)^bytes[i]);
+        bytes[5]=wrongChecksum?uint8_t(crc^1):crc;
+        const auto r=heating::uart_detail::writeClassicSetting<2,5,true>(bytes,6,Setting::heatingTemperature,wrongChecksum?45:46,debt);
+        EXPECT_FALSE(r.touched);EXPECT_EQ(state.calls,0u);EXPECT_TRUE(debt.idle());
+    }
+}
+TEST_F(EchoAdapter, PersistentSettingBusyUartEchoMismatchOrReleaseFailureCannotSucceed){
+    using Setting=heating::ems::ClassicBoilerSettingSpec::Setting;
+    for(int fault=0;fault<6;++fault){state={};heating::ems::EmsEchoRxDebt debt;
+        if(fault==0)state.pending=true;
+        if(fault==1)state.corrupt=true;
+        if(fault==2)state.resetOk=false;
+        if(fault==3)state.inputOk=false;
+        if(fault==4)state.floatOk=false;
+        if(fault==5)state.dataAfterMap=true;
+        uint8_t bytes[]={11,8,22,1,45,0};uint8_t crc=0;
+        for(int i=0;i<5;++i)crc=uint8_t((unsigned(crc)<<1)^((crc&0x80)?0x19u:0u)^bytes[i]);
+        bytes[5]=crc;
+        const auto r=heating::uart_detail::writeClassicSetting<2,5,true>(bytes,6,Setting::heatingTemperature,45,debt);
+        EXPECT_FALSE(r.succeeded());
+        if(fault==0){EXPECT_FALSE(r.touched);EXPECT_EQ(state.maps,0u);EXPECT_EQ(state.resets,0u);}
+        else{EXPECT_EQ(state.resets,1u);EXPECT_EQ(state.inputs,1u);EXPECT_EQ(state.floats,1u);}
+        if(fault>=2&&fault<=4){EXPECT_FALSE(r.detached);}
+    }
+}

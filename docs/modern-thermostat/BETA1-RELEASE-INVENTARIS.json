@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "a6f08aae5fd028b483fe3804fc41edc24e827c552cf7f5dd7e7d73b9e42617a1"
+          "sha256": "d07e1599365cc83351dd8ca628ca1f708eda6249df0fd7841a26e09c8fd61783"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "dff64a6cd47dd2e20eaf7df716b6f9b8c233e9a2c6b231ac046d501da1f8f82a"
+          "sha256": "5ba7c9e7e5242b6ddfc1e6376d6415115245eeecf03cc3d12ec1cacc6de393ba"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -143,11 +143,11 @@
         },
         {
           "path": "docs/modern-thermostat/BETA4-KANDIDAAT.json",
-          "sha256": "9c7f8fbae3c75db7b6b445c0f9d5e0f402fcd8ed61d928fba68d1e06078249f2"
+          "sha256": "21b6742d4fb2c3aae87ea1ff9c0f285fe4ef2242c15506cf731aac90e1e2904f"
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.nl-en.md",
-          "sha256": "93291a60c7240209917457307fbdaa24dd851f694d879753fe6e79b28806eadd"
+          "sha256": "cb37044338e7e5acaedf9755c1f012cdb49271c4c76d5175ecadf9661a298db7"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -167,7 +167,7 @@
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
-          "sha256": "0f210ea59b0e7c271a8998c41d36d1a4964bad6476279d101f7910dd7cfb4625"
+          "sha256": "e8957e37b0167de3837c51d04a0900fe709dfd56227d157f163d83187e8baa5c"
         },
         {
           "path": "data/html/auth-client.js",
@@ -191,7 +191,7 @@
         },
         {
           "path": "test/web_auth/run.py",
-          "sha256": "eacf2d10e848c6352eef717e29d6f144b6b43f75818e60cbcb6837227d03982d"
+          "sha256": "d936051456f18f5b0146b0fb05af386c0ff0575610c13fb3014e6ed340c28268"
         }
       ],
       "remaining_acceptance": "Fysieke AP-/uitval-/herstelmatrix blijft apart. Na beta.3 zijn expliciet wachtwoordgeverifieerd herstel van volle websessies en 30-minuten-inactiviteitsverval voorbereid en gericht getest; publicatie, installatie en live herstel/verval nog niet uitgevoerd."
@@ -313,7 +313,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "a6f08aae5fd028b483fe3804fc41edc24e827c552cf7f5dd7e7d73b9e42617a1"
+          "sha256": "d07e1599365cc83351dd8ca628ca1f708eda6249df0fd7841a26e09c8fd61783"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -481,7 +481,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "2191bdaab4e5a80ba6c46c62d546fcd07962dd6f2d0da4a032154e5f0c33fb08"
+          "sha256": "93fa5c286ccc5d3a76c977d1635457f98b224ad6d8d3a182c54a6e3e6cad8a28"
         },
         {
           "path": "data/html/ui-language.js",
@@ -677,7 +677,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "6c855f83d72c6269bc1cfd2712ed97aa5aca6bd042f1c401658c0fa6dd9c428c"
+          "sha256": "d327ddc8e15b580ca033b8cd6aa7b6009242ee830a5a28156bed829b27623ff0"
         },
         {
           "path": "src/Room.cpp",
@@ -783,7 +783,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "a6f08aae5fd028b483fe3804fc41edc24e827c552cf7f5dd7e7d73b9e42617a1"
+          "sha256": "d07e1599365cc83351dd8ca628ca1f708eda6249df0fd7841a26e09c8fd61783"
         },
         {
           "path": "platformio.ini",
@@ -791,15 +791,15 @@
         },
         {
           "path": "src/main.cpp",
-          "sha256": "4c92a4306ce8d7f6823a68b98fabb058b36d9e62c6ff5e3364b123dd0c778ed5"
+          "sha256": "ac14cdf0060d10fe0fa54abdcbb9b0642e5df31c5aab6ff02674b521a0b7e510"
         },
         {
           "path": "src/REST.h",
-          "sha256": "6c855f83d72c6269bc1cfd2712ed97aa5aca6bd042f1c401658c0fa6dd9c428c"
+          "sha256": "d327ddc8e15b580ca033b8cd6aa7b6009242ee830a5a28156bed829b27623ff0"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
-          "sha256": "0f210ea59b0e7c271a8998c41d36d1a4964bad6476279d101f7910dd7cfb4625"
+          "sha256": "e8957e37b0167de3837c51d04a0900fe709dfd56227d157f163d83187e8baa5c"
         },
         {
           "path": "data/html/index.html",
@@ -807,7 +807,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "2191bdaab4e5a80ba6c46c62d546fcd07962dd6f2d0da4a032154e5f0c33fb08"
+          "sha256": "93fa5c286ccc5d3a76c977d1635457f98b224ad6d8d3a182c54a6e3e6cad8a28"
         },
         {
           "path": "data/html/system-log.js",
@@ -911,15 +911,15 @@
         },
         {
           "path": "data/html/ems-devices.js",
-          "sha256": "059c9dd08c8ecdd1f857aa141257926cd33d4c4b2dce8c101de4a61df5d443d5"
+          "sha256": "0862034eb966cbf15d917400e45180e12d41546b045da8ae3e3b3b96e518d3ae"
         },
         {
           "path": "data/html/ems_devices.html",
-          "sha256": "506604536506ec445265ba3757ab12d413cd4091e80a8891b2705e1bf3457b7e"
+          "sha256": "ecb51a5aae03ab72c74eca2396e1dae885a4216206600d9e052fa20f0fe0445a"
         },
         {
           "path": "test/ems-devices-browser.cjs",
-          "sha256": "b00afc833ca471f8ad592e27d5e75e10fa052f843fda2a5997f4f70e4576505f"
+          "sha256": "a06e777960f19bc3fa4db3167f7255c77da3ff7a49156ace95528d6f1131396b"
         },
         {
           "path": "docs/modern-thermostat/EMS-APPARATEN.nl.md",
@@ -1246,6 +1246,18 @@
         {
           "path": "test/test_native/test_ems_readers.cpp",
           "sha256": "7d316f5f1075c2a818fdb94551f56fd67a8420ca3082897670a50f7b1adf2b96"
+        },
+        {
+          "path": "scripts/inventory_boiler_writes.py",
+          "sha256": "f532f7008bebf7c2abf12884ba31fbe4b730450512fce805908abd6d14d7a89b"
+        },
+        {
+          "path": "docs/modern-thermostat/BOILER-WRITE-INVENTORY.json",
+          "sha256": "0f82df0dc2bddd8448cc03e036fa7f8396b30ee82db065f7ea371fecf6213054"
+        },
+        {
+          "path": "public/ems/entities.csv",
+          "sha256": "a47e67286fee1c73f93d35fa6103d69fe06c1ce9255a3ee47963f049d9ef1c74"
         }
       ],
       "remaining_acceptance": "Alpha23/HA29 live: actuele afzonderlijke snapshot met69definities,27HA/REST waarde-/eenheid-/kwaliteitsmatches (25reported/2inferred),20unknown/unavailable en22onbetrouwbare diagnostiekentiteiten uitgeschakeld. Originele bronwaarnemingsmarkeringen/kwaliteit apart bewaard; geen exacte ouderdomspariteit, acquisitie-, continue-dekkings- of fysieke bruikbaarheidsclaim. Read-all onafhankelijk van model; TX/uitgangen blijven geblokkeerd. Langere observatie en fysieke validatie blijven open. Gepland +6h-moment:4u32Recorder-venster,165entiteitsantwoorden/532regels,geen open paginering; drie variërende native temperatuurvelden. Geen continue acquisitie-/fysieke werkingsclaim; oorspronkelijke +1h blijftFAILED/UNKNOWN. Bronmatig: per-veld rapportvolgorde en blijvende HA-intrekking gecorrigeerd, 10 native/6 HA-regressies toegevoegd; 689 native tests inclusief nul-uptimecompatibiliteit. HA-cachecorrectie opgenomen in de geverifieerde HA43-bronbestanden. E32-correctie opgenomen in de gepubliceerde alpha31-bron; de module is nu op alpha31 waargenomen (uitvoerder/methode onbekend). Geen firmwareactie door deze opdracht en geen fysieke bron-/zend-/stopkwalificatieclaim."
@@ -1690,7 +1702,7 @@
         },
         {
           "path": "src/HeatingController.h",
-          "sha256": "a5fc5916292cf5c397d97e60f3d67fbd325cee99815501d5fdd4035a4d8b7404"
+          "sha256": "148cfa2711e943ab16933de746a8c1a90aac97c354d7a726320636b3bc68c3f8"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/sensor.py",
@@ -1845,11 +1857,11 @@
         },
         {
           "path": "src/EmsController.h",
-          "sha256": "49ec686a79fb40165950db6988cd6e1ea4bf1ad80f179bc6795e06e3cb90d5c6"
+          "sha256": "685cfbb23a78e8ecf38c3bd62bf77b3b9850116bc75e809d6da76622cb7d5901"
         },
         {
           "path": "src/EmsController.cpp",
-          "sha256": "fbe26686e893272c8ef90313ec51b50dab1e28cbbddd20364acdbe4e51d6903b"
+          "sha256": "b2505e9608af26aebab5a1f1251888302ebe075b4d9fe42898c80058cf6283d9"
         },
         {
           "path": "test/boiler-test-browser.cjs",
@@ -1933,15 +1945,15 @@
         },
         {
           "path": "src/HeatingController.h",
-          "sha256": "a5fc5916292cf5c397d97e60f3d67fbd325cee99815501d5fdd4035a4d8b7404"
+          "sha256": "148cfa2711e943ab16933de746a8c1a90aac97c354d7a726320636b3bc68c3f8"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
-          "sha256": "0f210ea59b0e7c271a8998c41d36d1a4964bad6476279d101f7910dd7cfb4625"
+          "sha256": "e8957e37b0167de3837c51d04a0900fe709dfd56227d157f163d83187e8baa5c"
         },
         {
           "path": "src/update/ReleasePolicy.h",
-          "sha256": "790dfd8255702b5a00eea8837b02f695974cf12aae9bad5dd3fe2ceb21c8b1b8"
+          "sha256": "b538cb3d7e24205a6a7f943a1b2bfe867d641c7ea53a2bf6d44cec5e86f3cd60"
         },
         {
           "path": "test/test_native/test_boiler_test_service.cpp",
@@ -1969,11 +1981,11 @@
         },
         {
           "path": "src/EmsUartWriter.h",
-          "sha256": "e03f7b8186787a3624fdeddb64c9b731788f29fc99968a4fbf6faf6fd14fcf58"
+          "sha256": "fbbaf2b058e325cf585bfe24b93a5161a47fe455ef17b0edc93cf494eb9e0db6"
         },
         {
           "path": "src/EmsBusUart.h",
-          "sha256": "7f591878468c48833ca6eecca43a6ff9b6573d9ebcb5308f25c907f45cebe900"
+          "sha256": "f5f7558258c8700cecb9d4bd88b498a9201b84b1a935570918fb3369db0c79de"
         },
         {
           "path": "src/EmsBusUartForwarder.h",
@@ -2017,7 +2029,7 @@
         },
         {
           "path": "test/echo_write/adapter.cpp",
-          "sha256": "0fc10bfa58c45a9de52fe7d5ee3d2ab65d9a98b03904db55c786450ba1dc8aaf"
+          "sha256": "e6242ca83c7c565671282ac6da295cfc917b830977f4d73f1bf21acf3c368968"
         },
         {
           "path": "test/echo_write/include/Arduino.h",
@@ -2062,9 +2074,69 @@
         {
           "path": "test/boiler-configuration-read-browser.cjs",
           "sha256": "70f7164f82c96ae9fd4e30103f33a44f17f2efd76ac36ea9e0a57b99c2d96061"
+        },
+        {
+          "path": "src/EMS/ClassicBoilerSettingsEncoder.h",
+          "sha256": "d9ad2164143614bab68e07252c87b46872c2981557af2460b2da7e96edd7ee21"
+        },
+        {
+          "path": "src/EMS/ClassicBoilerSettingTransaction.h",
+          "sha256": "ef88455f619f824c760d99343c743376079ac63fbbbdd53ed4f7387beacd9e0a"
+        },
+        {
+          "path": "test/test_native/test_classic_boiler_settings_encoder.cpp",
+          "sha256": "7ee8d8cf29aba484c8324e11350d8fa575ca92f1e8499f544af8cbb212d8ea0b"
+        },
+        {
+          "path": "test/test_native/test_classic_boiler_setting_transaction.cpp",
+          "sha256": "0bfb6d2a42cfa9b5b1eb51f366cd1a852fff9e626fcfde98a92d00a39c02144e"
+        },
+        {
+          "path": "src/EMS/ClassicSettingBusExchange.h",
+          "sha256": "8aeef7900f10077be9a4e3d80f4021306dc017ec3c371d631a2d4d70cf51f45d"
+        },
+        {
+          "path": "test/test_native/test_classic_setting_bus_exchange.cpp",
+          "sha256": "0a56fd3e2f30982d21e6322a5193d0af162500f2f5883fc8d37ad3cb85084cf3"
+        },
+        {
+          "path": "src/EMS/ClassicBoilerSettingsService.h",
+          "sha256": "33a14a95208ad4820b05dd8d191f2dd6306bf724cd7a10f9bc2e856a1c263dad"
+        },
+        {
+          "path": "test/test_native/test_classic_boiler_settings_service.cpp",
+          "sha256": "16eeaa6f7e9e6a5c6b9ed2452d8982ea7da788b9488521c78be661649fda4128"
+        },
+        {
+          "path": "src/EMS/ClassicBoilerSettingSpec.h",
+          "sha256": "6284c2be79f2b29a49d82d7a6366ccef28b735bbae2a16b519efb99b4c523fa3"
+        },
+        {
+          "path": "src/EMS/ClassicSettingUartWrite.h",
+          "sha256": "088795ee1b15ae33ce90117306e7464e8639843fc4521a7a0877b7b9f789bc2d"
+        },
+        {
+          "path": "test/test_native/test_classic_setting_uart_write.cpp",
+          "sha256": "b26eaaac093c78978c0e7158a64baa2f9029200514525a08a468e58110004a67"
+        },
+        {
+          "path": "test/test_native/test_classic_settings_pipeline.cpp",
+          "sha256": "9484aa4cc8980d14c1c8425c0f3d60624a66358efecf88b43aaf851d6c682661"
+        },
+        {
+          "path": "src/EMS/ClassicSettingsRuntimeGate.h",
+          "sha256": "e8d0ce0d977ab4aa5ab57aa376fc0c2255ecb03faf955e821ae426ddbe7b685d"
+        },
+        {
+          "path": "test/test_native/test_classic_settings_runtime_gate.cpp",
+          "sha256": "efc622d9b90897d33e48614e4a38bbbb360514c197229856d8a0e37e2e0b3b48"
+        },
+        {
+          "path": "test/boiler-settings-browser.cjs",
+          "sha256": "faf857c25ba09e9709b45a470ad35e1d6032f2c59eeaaee79fe98ec462753b33"
         }
       ],
-      "remaining_acceptance": "Actuele bron: concrete supervised softwarewarmteproef40–45°C/maximaal60s met verse Classic-temperatuur/druk/CV-configuratie, NL/EN-grenzen en blokkaderedenen. Meetwaarden kunnen de afzonderlijke installatievrijgave niet vervangen; die blijft false, evenals beide fysieke bordtoelatingen. Verlies van warmtevoorwaarden blokkeert positieve verzending, maar niet de nulvraag. Bestaande private handmatige UART-route, adres-/poll-/conflictcontrole, proefgebonden opstellingsbevestigingen en expliciete foutafsluiting blijven behouden. Softwarecontroles staan in de actuele werkbordsectie. Fysieke hardware-/adapter-/stopacceptatie en frozen gezamenlijke kandidaat met daadwerkelijke OTA/HA-backup/nacontrole blijven open; hostbewijs is geen fysieke kwalificatie. Geen installatie/publicatie. Browsertoezicht trekt nu bij visibilitychange-hidden/pagehide direct de lokale bevoegdheid in; generatiecontrole voorkomt heractivering door late warmte-/nulvraagvoorbereiding. Stop blijft apart; eerder verzonden verkeer kan niet worden teruggehaald en blijft aan de serverlease gebonden. Bevestigen is geen vrijgave: na de dialoog worden boot/revisie, lokale toezichtgeneratie, zichtbaarheid, paginaverbinding en actuele bevoegdheid opnieuw gecontroleerd voor start/nulvraagvoorbereiding/foutafsluiting; 72 gerichte browsergevallen in NL/EN slagen. Stopdiagnose bevat nu de eerste afgeronde passende nulvraagreferentie van de huidige bewijsfase (null zonder bewijs; tijdstip0 geldig), expliciete boot_monotonic_ms-klok en oorspronkelijke tijd per lokaal JSON-meetveld. Een gezamenlijke snapshottijd voorkomt verschillende peiltijden in één status. Geen nieuwe autoriteit of bus-ACK; HA-veldcontract ongewijzigd.1017native/142strikteASAN-UBSAN/146scripts/3boards PASS. Handmatige UART-grens controleert nu onafhankelijk de checksum vóór pinmapping; fout CRC geeft geen SDK/pin/echo-debt-aanroep.255 checksummutaties/40 payload-bitmutaties/21924 geldige encodercombinaties getoetst; bestaande geldige frame-/cleanupfixtures voorzien van echte CRC. Beide fysieke TX-vrijgaven blijven false; hostbewijs is geen elektrische of fysieke zendkwalificatie. Productie-encoder vergelijkt frame nu expliciet met beoordeelde adres/masker en sessie-intentie (exact6bytes/0x1A/offset0/flow/CRC); geldige CRC op afwijkende inhoud is geen toelating.1275 inhoudsmutaties en echte poll-afwijzing met uitsluitend nulvraagherstel getest. Fysieke TX-vrijgave ongewijzigd false. Read-only UART-preflight na CRC vóór pinverwerving aangesloten: wachtende RX, onbekende bufferstatus of niet-idle TX weigert zonder mapping/inversie/cleanup; preflight-exception evenzo. Late data na mapping blokkeert nog steeds write met volledige cleanup. Voor-regressie op echte SDK-adapter met hostfakes faalt; na-regressie slaagt.1026native/157striktecore+13SDK-ASAN-UBSAN/146scripts/3boards PASS; geen elektrische kwalificatie of TX-ontgrendeling."
+      "remaining_acceptance": "Actuele bron: concrete supervised softwarewarmteproef40–45°C/maximaal60s met verse Classic-temperatuur/druk/CV-configuratie, NL/EN-grenzen en blokkaderedenen. Meetwaarden kunnen de afzonderlijke installatievrijgave niet vervangen; die blijft false, evenals beide fysieke bordtoelatingen. Verlies van warmtevoorwaarden blokkeert positieve verzending, maar niet de nulvraag. Bestaande private handmatige UART-route, adres-/poll-/conflictcontrole, proefgebonden opstellingsbevestigingen en expliciete foutafsluiting blijven behouden. Softwarecontroles staan in de actuele werkbordsectie. Fysieke hardware-/adapter-/stopacceptatie en frozen gezamenlijke kandidaat met daadwerkelijke OTA/HA-backup/nacontrole blijven open; hostbewijs is geen fysieke kwalificatie. Geen installatie/publicatie. Browsertoezicht trekt nu bij visibilitychange-hidden/pagehide direct de lokale bevoegdheid in; generatiecontrole voorkomt heractivering door late warmte-/nulvraagvoorbereiding. Stop blijft apart; eerder verzonden verkeer kan niet worden teruggehaald en blijft aan de serverlease gebonden. Bevestigen is geen vrijgave: na de dialoog worden boot/revisie, lokale toezichtgeneratie, zichtbaarheid, paginaverbinding en actuele bevoegdheid opnieuw gecontroleerd voor start/nulvraagvoorbereiding/foutafsluiting; 72 gerichte browsergevallen in NL/EN slagen. Stopdiagnose bevat nu de eerste afgeronde passende nulvraagreferentie van de huidige bewijsfase (null zonder bewijs; tijdstip0 geldig), expliciete boot_monotonic_ms-klok en oorspronkelijke tijd per lokaal JSON-meetveld. Een gezamenlijke snapshottijd voorkomt verschillende peiltijden in één status. Geen nieuwe autoriteit of bus-ACK; HA-veldcontract ongewijzigd.1017native/142strikteASAN-UBSAN/146scripts/3boards PASS. Handmatige UART-grens controleert nu onafhankelijk de checksum vóór pinmapping; fout CRC geeft geen SDK/pin/echo-debt-aanroep.255 checksummutaties/40 payload-bitmutaties/21924 geldige encodercombinaties getoetst; bestaande geldige frame-/cleanupfixtures voorzien van echte CRC. Beide fysieke TX-vrijgaven blijven false; hostbewijs is geen elektrische of fysieke zendkwalificatie. Productie-encoder vergelijkt frame nu expliciet met beoordeelde adres/masker en sessie-intentie (exact6bytes/0x1A/offset0/flow/CRC); geldige CRC op afwijkende inhoud is geen toelating.1275 inhoudsmutaties en echte poll-afwijzing met uitsluitend nulvraagherstel getest. Fysieke TX-vrijgave ongewijzigd false. Read-only UART-preflight na CRC vóór pinverwerving aangesloten: wachtende RX, onbekende bufferstatus of niet-idle TX weigert zonder mapping/inversie/cleanup; preflight-exception evenzo. Late data na mapping blokkeert nog steeds write met volledige cleanup. Voor-regressie op echte SDK-adapter met hostfakes faalt; na-regressie slaagt.1026native/157striktecore+13SDK-ASAN-UBSAN/146scripts/3boards PASS; geen elektrische kwalificatie of TX-ontgrendeling. Vier Classic-instellingen: encoder en eindige write/readback-transactie voorbereid; Beveiligde HTTP-status/verzoekvalidatie aangesloten, productie-writepoort uit. Alleen-lezen NL/EN-webweergave aangesloten. UART- en sessieroute aangesloten achter afzonderlijke gesloten source/installatiepoorten. Bewerkingspad voor vier instellingen gebouwd, normale bron blijft alleen-lezen. Model-/installatiekwalificatie, overige entiteiten en fysieke schrijfacceptatie blijven open."
     }
   ],
   "requirements": [
@@ -2230,10 +2302,10 @@
     },
     {
       "id": "R21",
-      "title": "Raam-open",
+      "title": "Raam- en deurcontacten",
       "software_status": "Zone-inhibit/prioriteits-/contextcode aanwezig",
       "inventory_ids": "I18",
-      "remaining_acceptance": "Native kamereditor/contract voor huidige SOURCE en stabiele contactactualiteit; later F10.",
+      "remaining_acceptance": "Eén of meer contacten per kamer, raam/deur-type en instelbare reactie; native kamereditor/actueel SOURCE-contract, oorspronkelijke actualiteit, contactdender, meerdere open contacten, uitval en gecontroleerd hervatten; later F10.",
       "product_accepted": false
     },
     {

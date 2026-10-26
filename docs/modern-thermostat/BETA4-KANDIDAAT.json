@@ -25,5 +25,35 @@
     "Exact final source/version freeze and full CI/public package verification"
   ],
   "publication_state": "BLOCKED_PENDING_PREDECESSOR_ACCEPTANCE",
-  "runtime_actions_performed": false
+  "runtime_actions_performed": false,
+  "source_ci": {
+    "commit": "210f71f1044d0fea506fcd778834edff7d302309",
+    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40311201734",
+    "conclusion": "success",
+    "scope": "pre-freeze source; publication jobs skipped; not installation acceptance"
+  },
+  "writable_boiler_inventory": "docs/modern-thermostat/BOILER-WRITE-INVENTORY.json",
+  "prepared_settings_backend": {
+    "state": "API_CONNECTED_WRITES_DISABLED",
+    "settings": [
+      "heatingactivated",
+      "heatingtemp",
+      "burnminperiod",
+      "pumpdelay"
+    ],
+    "physical_write_enabled": false,
+    "web_editor_implemented": true,
+    "web_overview_implemented": true,
+    "sdk_boundary_implemented": true,
+    "uart_runtime_connected": true,
+    "service_pipeline_implemented": true,
+    "operator_gate_runtime_connected": true,
+    "session_projection_thread": "HTTP owner; deadline cached under controller lock; no UART session-table access",
+    "uart_runtime_enabled": false,
+    "runtime_installation_reviewed": false,
+    "concurrency_gate_implemented": true,
+    "compile_probe_ci_required": true,
+    "web_editor_enabled_in_standard_release": false,
+    "browser_gate": "test/boiler-settings-browser.cjs"
+  }
 }

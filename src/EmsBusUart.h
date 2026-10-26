@@ -3,6 +3,7 @@
 #include "Logging.h"
 #include "Board.h"
 #include "EmsUartWriter.h"
+#include "EMS/EmsFrameQueue.h"
 
 #include <driver/uart.h>
 #include <hal/uart_types.h>
@@ -107,6 +108,28 @@ public:
 private:
 #ifdef OPENTHERMOSTAT_E32V2
     friend class ems::EmsController;
+    template<bool Read>
+    ems::ManualClassicUartWrite::Result writeBoilerSettingToEms(const ems::EmsRawFrame& frame,
+        ems::ClassicBoilerSettingSpec::Setting setting,int value){
+        if constexpr(!board::emsSettingsTransmitAllowed)return {};
+        else{
+            if(!manualTestTransportHealthy())return {};
+            const auto result=uart_detail::writeClassicSetting<UartSlot,board::emsTx,true,Read>(
+                frame.data.data(),frame.length,setting,value,echoRxDebt_);
+            if(!result.detached)manualTxFault_.store(true,std::memory_order_release);
+            return result;
+        }
+    }
+    ems::ManualClassicUartWrite::Result completeBoilerSettingTransaction(){
+        if constexpr(!board::emsSettingsTransmitAllowed)return {};
+        else{
+            if(!manualTestTransportHealthy())return {};
+            const uint8_t completion=0x0b;
+            const auto result=uart_detail::writeManualClassic<UartSlot,board::emsTx,true,false,true>(&completion,1,echoRxDebt_);
+            if(!result.detached)manualTxFault_.store(true,std::memory_order_release);
+            return result;
+        }
+    }
     // Only called after the commissioning owner's final admission, in UART task.
     template<bool ConfigurationRead=false,bool Completion=false>
     bool writeManualTestToEms(const uint8_t* data,size_t length){

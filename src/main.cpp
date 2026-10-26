@@ -325,7 +325,7 @@ void setup() {
 
 void loop() {
 #ifdef OPENTHERMOSTAT_E32V2
-	heating::update::loop(heating::controller && !heating::controller->boilerTestActive());
+	heating::update::loop(heating::controller && !heating::controller->boilerTestActive() && !heating::controller->boilerSettingsActive());
 	heating::pollSetupWifi();
 	if (heating::pollBoardNetwork()) {
 		// Common REST/NTP/mDNS startup, once per route/IP change, not in event task.

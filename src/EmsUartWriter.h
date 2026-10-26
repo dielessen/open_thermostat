@@ -3,6 +3,7 @@
 #include "EMS/ClassicEchoUartWrite.h"
 #include "EMS/EmsEchoRxDebt.h"
 #include "EMS/ManualClassicUartWrite.h"
+#include "EMS/ClassicSettingUartWrite.h"
 #include <driver/gpio.h>
 #include <driver/uart.h>
 #include <Arduino.h>
@@ -57,12 +58,8 @@ bool releaseManualTx(){
     const bool floating=gpio_set_pull_mode(pin,GPIO_FLOATING)==ESP_OK;
     return reset&&input&&floating;
 }
-template<int Slot,int TxPin,bool Enabled,bool ConfigurationRead=false,bool Completion=false>
-ems::ManualClassicUartWrite::Result writeManualClassic(const uint8_t* data,size_t length,ems::EmsEchoRxDebt& debt){
-    static_assert(!ConfigurationRead||!Completion,"Separate fixed manual operations");
-    static_assert(Slot==2&&TxPin==5,"Manual route is restricted to the reviewed E32 wiring");
-    if constexpr(Enabled){if(!debt.idle())return {};}
-    struct SDK {
+template<int Slot,int TxPin>
+struct ScopedClassicSDK {
         ems::EmsEchoRxDebt& debt;
         bool ready(){
             size_t bytes=0;
@@ -76,10 +73,27 @@ ems::ManualClassicUartWrite::Result writeManualClassic(const uint8_t* data,size_
         }
         bool write(const uint8_t* bytes,size_t size){return writeClassic<Slot,true>(bytes,size,debt);}
         bool detach(){return releaseManualTx<TxPin>();}
-    }sdk{debt};
+};
+
+template<int Slot,int TxPin,bool Enabled,bool ConfigurationRead=false,bool Completion=false>
+ems::ManualClassicUartWrite::Result writeManualClassic(const uint8_t* data,size_t length,ems::EmsEchoRxDebt& debt){
+    static_assert(!ConfigurationRead||!Completion,"Separate fixed manual operations");
+    static_assert(Slot==2&&TxPin==5,"Manual route is restricted to the reviewed E32 wiring");
+    if constexpr(Enabled){if(!debt.idle())return {};}
+    ScopedClassicSDK<Slot,TxPin> sdk{debt};
     if constexpr(Completion)return ems::ManualClassicUartWrite::completeTransaction<Enabled>(data,length,sdk);
     else if constexpr(ConfigurationRead)return ems::ManualClassicUartWrite::readConfiguration<Enabled>(data,length,sdk);
     else return ems::ManualClassicUartWrite::write<Enabled>(data,length,sdk);
+}
+
+// Separate, intent-bound settings boundary. No production caller or TX unlock.
+template<int Slot,int TxPin,bool Enabled,bool Read=false>
+ems::ClassicSettingUartWrite::Result writeClassicSetting(const uint8_t* data,size_t length,
+    ems::ClassicBoilerSettingSpec::Setting setting,int value,ems::EmsEchoRxDebt& debt){
+    static_assert(Slot==2&&TxPin==5,"Settings route is restricted to E32 wiring");
+    if constexpr(Enabled){if(!debt.idle())return {};}
+    ScopedClassicSDK<Slot,TxPin> sdk{debt};
+    return ems::ClassicSettingUartWrite::write<Enabled,Read>(data,length,setting,value,sdk);
 }
 
 } // namespace heating::uart_detail

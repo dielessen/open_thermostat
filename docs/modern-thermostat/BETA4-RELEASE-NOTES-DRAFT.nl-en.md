@@ -15,6 +15,12 @@ geïnstalleerd. De bestaande beta.3-download blijft ongewijzigd.
   productfoto niet laadt. De algemene illustratie werkt lokaal en offline,
   op het startscherm en bij Mijn ketel.
 
+- **CV-instellingen overzichtelijk bij EMS-apparaten.** De vier voorbereide
+  instellingen tonen hun werkelijk ontvangen waarde, status en meetleeftijd.
+  Op mobiel staan de details onder elkaar. Ontbrekende of verlopen waarden
+  blijven leeg; wijzigen is nog niet beschikbaar. Vernieuwen vraagt niets op
+  bij de ketel.
+
 ## Opgelost
 
 - **Achtergelaten sessies houden geen plaats zeven dagen bezet.** Na 30 minuten
@@ -39,6 +45,10 @@ installatie is voor toekomstig sessieherstel niet nodig. Deze release geeft geen
 fysieke ketel-/kraansturing vrij. Aanpassing van het warmteproefprofiel voor de
 ketel zonder digitale druksensor blijft afzonderlijk open werk.
 
+Ketelinstellingen blijven in deze release alleen-lezen. Het voorbereide
+bewerkingspad voor vier CV-instellingen geeft geen schrijfbevoegdheid; de
+algemene EMS-ESP-entiteitenreferentie is geen volledige schrijfbediening.
+
 ## English
 
 **New:** explicit recovery when all four saved web sessions are occupied. Select
@@ -55,3 +65,12 @@ rather than currently open browsers. Ordinary login does not evict other session
 verify the new boot and retained settings. These changes need no new HA version.
 Recovery is unavailable during an active boiler trial, firmware update or unconfirmed
 firmware boot. No boiler/valve control is enabled.
+
+Boiler settings remain read-only in this release. The prepared editor for four
+heating settings grants no write permission; the general EMS-ESP reference is
+metadata and does not provide complete boiler settings control.
+
+**Heating settings overview:** the EMS devices page shows the four prepared
+settings with their reported value, status and age, including a mobile layout.
+Missing or expired readings remain blank. Editing is unavailable; refreshing
+only reads the local snapshot and does not query the boiler.

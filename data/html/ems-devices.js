@@ -4,6 +4,33 @@ window.EMSDevicesPage=(()=>{
   // hides the actual local readings or invents a product identification.
   const reference=window.OT_EMS_REFERENCE||{entities:[],groups:{},devices:[],telegrams:{},
     library:{},libraryFields:[],telegramMetadata:{},boilerNames:{}};
+  const settingFields={
+    heatingactivated:['heating_enabled','Heating enabled','bool',0,1,0],
+    heatingtemp:['configured_heating_temperature','Maximum heating temperature','degC',0,90,1],
+    burnminperiod:['minimum_burner_period','Minimum burner period','min',0,120,6],
+    pumpdelay:['pump_run_on','Pump run-on','min',0,60,8]
+  };
+  function validSettings(s){
+    return s?.schema===1&&typeof s.boot_id==='string'&&/^[a-f0-9]{16}$/.test(s.boot_id)
+      &&number(s.revision)&&typeof s.available==='boolean'&&typeof s.active==='boolean'
+      &&typeof s.write_attempted==='boolean'&&s.physical_validation===false
+      &&typeof s.reason==='string'&&/^[a-z_]{1,64}$/.test(s.reason)
+      &&Array.isArray(s.settings)&&s.settings.length===4&&new Set(s.settings.map(d=>d?.entity)).size===4
+      &&s.settings.every(d=>{const expected=settingFields[d?.entity];return Object.hasOwn(settingFields,d?.entity)&&expected&&d.unit===expected[2]
+        &&d.minimum===expected[3]&&d.maximum===expected[4]&&d.offset===expected[5]&&d.telegram_type===22;});
+  }
+  function validOperation(s){
+    if(!validSettings(s)||typeof s.transport_fault!=='boolean'||typeof s.owned_by_requester!=='boolean'
+      ||!['idle','queued_write','waiting_write_status','queued_read','waiting_response','completed','failed'].includes(s.phase))return false;
+    if(s.available&&(s.active||s.transport_fault))return false;
+    if(s.active!==['queued_write','waiting_write_status','queued_read','waiting_response'].includes(s.phase))return false;
+    if(s.phase==='completed'&&s.reason!=='setting_read_back')return false;
+    if(s.revision===0)return s.phase==='idle'&&s.request===null&&s.response_at_ms===null;
+    if(s.phase==='idle'||s.phase==='completed'&&!s.write_attempted)return false;
+    const r=s.request,spec=settingFields[r?.entity];
+    return Object.hasOwn(settingFields,r?.entity)&&Number.isInteger(r.value)&&r.value>=spec[3]&&r.value<=spec[4]
+      &&(s.phase==='completed'?number(s.response_at_ms):s.response_at_ms===null);
+  }
   let active=null;
   const text=s=>uiText(s), hex=n=>'0x'+n.toString(16).toUpperCase().padStart(2,'0');
   const number=n=>Number.isSafeInteger(n)&&n>=0;
@@ -50,12 +77,130 @@ window.EMSDevicesPage=(()=>{
   function unmount(){if(active){active.abort();active=null;}}
   function mount(root){
     unmount();const owner=new AbortController();active=owner;
-    let snapshot=null,busy=false;
+    let snapshot=null,settingsSnapshot=null,measurementFresh=false,busy=false;
+    let editor=null,metadataAt=-Infinity,expiryTimer=0,editGeneration=0,interrupted=false;
+    let writeBusy=false,pendingSetting=null,mutation=null,operationNote='';
     const get=id=>root.querySelector('#'+id),list=get('ems-device-list'),status=get('ems-devices-status');
     const alive=()=>!owner.signal.aborted&&root.isConnected;
     const records=new Map(),labels=new Map();
     const format=new Intl.NumberFormat(OpenThermostatLanguage.locale,{maximumFractionDigits:2,useGrouping:false});
     const description=id=>{if(!labels.has(id))labels.set(id,label(id));return labels.get(id);};
+    const visible=()=>document.visibilityState==='visible';
+    const fresh=()=>performance.now()>=metadataAt&&performance.now()-metadataAt<30000;
+    function clearConfirmations(){if(editor){editor.exclusive.checked=false;editor.stop.checked=false;}}
+    function resetDraft(){if(editor){editor.entity.value='';editor.value.value='';editor.boolean.value='';}clearConfirmations();}
+    function readyToPrepare(){return alive()&&visible()&&!interrupted&&!busy&&fresh()&&validOperation(settingsSnapshot)
+      &&measurementFresh&&settingsSnapshot.available&&!settingsSnapshot.active&&!settingsSnapshot.transport_fault&&!pendingSetting;}
+    function draft(){
+      if(!editor||!Object.hasOwn(settingFields,editor.entity.value))return null;
+      const spec=settingFields[editor.entity.value],raw=spec[2]==='bool'?editor.boolean.value:editor.value.value;
+      const value=Number(raw);
+      return raw.trim()!==''&&Number.isInteger(value)&&value>=spec[3]&&value<=spec[4]?{entity:editor.entity.value,value}:null;
+    }
+    function ensureEditor(){
+      if(editor)return;
+      const box=get('ems-settings-editor'),entity=el('select'),value=el('input'),boolean=el('select'),exclusive=el('input'),stop=el('input'),submit=el('button',text('Send one settings change'),'btn btn-primary');
+      entity.id='ems-setting-entity';value.id='ems-setting-value';boolean.id='ems-setting-bool';submit.id='ems-setting-submit';
+      const addOption=(select,key,name)=>{const option=el('option',text(name));option.value=key;select.append(option);};
+      addOption(entity,'','Choose a setting');for(const [id,spec] of Object.entries(settingFields))addOption(entity,id,spec[1]);
+      addOption(boolean,'','Choose a value');addOption(boolean,'0','Off');addOption(boolean,'1','On');
+      value.type='number';value.step='1';value.className=boolean.className=entity.className='form-control';
+      exclusive.type=stop.type='checkbox';exclusive.id='ems-setting-exclusive';stop.id='ems-setting-stop';submit.type='button';
+      const field=(name,input)=>{const label=el('label');if(input.type==='checkbox')label.append(input,document.createTextNode(text(name)));else label.append(document.createTextNode(text(name)),input);return label;};
+      const numberLabel=field('New value',value),booleanLabel=field('New value',boolean);
+      box.append(field('Setting to change',entity),numberLabel,booleanLabel,
+        field('I confirm that the other controller is disconnected from control.',exclusive),
+        field('I am present and can stop the boiler independently.',stop),submit);
+      editor={entity,value,boolean,exclusive,stop,submit,numberLabel,booleanLabel};
+      entity.addEventListener('change',()=>{value.value='';boolean.value='';clearConfirmations();if(!pendingSetting)operationNote='';renderEditor();},{signal:owner.signal});
+      for(const input of [value,boolean,exclusive,stop])input.addEventListener('input',()=>{if(!pendingSetting&&!writeBusy&&(input===value||input===boolean))operationNote='';renderEditor();},{signal:owner.signal});
+      submit.addEventListener('click',sendSetting,{signal:owner.signal});
+    }
+    function renderEditor(){
+      const available=validOperation(settingsSnapshot)&&settingsSnapshot.available;
+      if(available)ensureEditor();
+      get('ems-settings-editor').hidden=!available;
+      get('ems-settings-operation').textContent=operationNote?text(operationNote):available&&!fresh()?text('Refresh to prepare a settings change.'):'';
+      if(!editor)return;
+      const spec=settingFields[editor.entity.value],boolean=spec?.[2]==='bool',ready=readyToPrepare()&&!writeBusy;
+      editor.numberLabel.hidden=!spec||boolean;editor.booleanLabel.hidden=!spec||!boolean;editor.value.hidden=!spec||boolean;editor.boolean.hidden=!spec||!boolean;
+      if(spec){editor.value.min=spec[3];editor.value.max=spec[4];}
+      for(const input of [editor.entity,editor.value,editor.boolean,editor.exclusive,editor.stop])input.disabled=!ready;
+      editor.submit.disabled=!ready||!draft()||!editor.exclusive.checked||!editor.stop.checked;
+    }
+    function reconcileSetting(){
+      if(!pendingSetting||!validOperation(settingsSnapshot))return;
+      const s=settingsSnapshot,p=pendingSetting;
+      if(s.boot_id!==p.boot){pendingSetting=null;resetDraft();operationNote='The boiler restarted. Review the new status before preparing another change.';return;}
+      if(s.revision===p.revision&&s.owned_by_requester&&s.request?.entity===p.entity&&s.request.value===p.value){
+        if(s.phase==='completed'&&s.reason==='setting_read_back'&&number(s.response_at_ms)){
+          pendingSetting=null;resetDraft();operationNote='The requested setting was read back from the boiler.';
+        }else if(s.phase==='failed'){
+          pendingSetting=null;resetDraft();operationNote='The settings change failed or was not confirmed. Review the status before another attempt.';
+        }
+      }
+    }
+    function interruptEditor(){
+      ++editGeneration;interrupted=true;clearConfirmations();
+      if(mutation){operationNote='The request outcome is uncertain. Refresh to inspect the status; do not repeat the request.';mutation.abort();}
+      if(alive())renderEditor();
+    }
+    document.addEventListener('visibilitychange',()=>{if(!visible())interruptEditor();},{signal:owner.signal});
+    window.addEventListener('pagehide',interruptEditor,{signal:owner.signal});
+    owner.signal.addEventListener('abort',()=>{clearTimeout(expiryTimer);mutation?.abort();},{once:true});
+    async function sendSetting(){
+      if(writeBusy||!readyToPrepare()||!draft()||!editor.exclusive.checked||!editor.stop.checked)return;
+      const intent={...draft(),boot:settingsSnapshot.boot_id,revision:settingsSnapshot.revision+1,generation:editGeneration};
+      const stillValid=()=>readyToPrepare()&&editGeneration===intent.generation&&settingsSnapshot.boot_id===intent.boot
+        &&settingsSnapshot.revision+1===intent.revision&&draft()?.entity===intent.entity&&draft()?.value===intent.value
+        &&editor.exclusive.checked&&editor.stop.checked;
+      writeBusy=true;get('ems-refresh').disabled=true;renderEditor();let timeout=0;
+      try{
+        if(!window.OpenThermostatAuth)throw Error('session');
+        const auth=await OpenThermostatAuth.ready();if(auth.legacy||!stillValid())return;
+        const spec=settingFields[intent.entity],target=spec[2]==='bool'?text(intent.value?'On':'Off'):intent.value+' '+(spec[2]==='degC'?'°C':text('min'));
+        if(!window.confirm(text('Send one persistent boiler settings change?')+'\n'+text(spec[1])+': '+target)){clearConfirmations();return;}
+        if(!stillValid()){clearConfirmations();operationNote='Preparation was interrupted. Refresh and confirm the setup again.';return;}
+        pendingSetting=intent;metadataAt=-Infinity;clearConfirmations();
+        mutation=new AbortController();timeout=setTimeout(()=>mutation?.abort(),5000);
+        operationNote='Sending one settings request.';renderEditor();
+        const response=await fetch('/boiler/settings/write',{method:'POST',cache:'no-store',signal:mutation.signal,
+          headers:{'Content-Type':'application/json'},body:JSON.stringify({schema:1,boot_id:intent.boot,revision:intent.revision,
+            entity:intent.entity,value:intent.value,exclusive_owner_confirmed:true,independent_stop_confirmed:true})});
+        if(!alive())return;
+        if([400,401,403,409,413].includes(response.status)){
+          pendingSetting=null;operationNote='The settings request was rejected. Refresh before preparing another change.';return;
+        }
+        const raw=await response.text();if(raw.length>8192)throw Error('size');const result=JSON.parse(raw),s=result.settings;
+        if(![200,202].includes(response.status)||result.accepted!==true||!validOperation(s)||!s.owned_by_requester
+          ||s.boot_id!==intent.boot||s.revision!==intent.revision||s.request?.entity!==intent.entity||s.request.value!==intent.value)throw Error('result');
+        operationNote='The request was accepted. Refresh to check the boiler readback.';
+      }catch(_){if(alive())operationNote=pendingSetting?'The request outcome is uncertain. Refresh to inspect the status; do not repeat the request.':'Preparation was interrupted. Refresh and confirm the setup again.';}
+      finally{clearTimeout(timeout);mutation=null;writeBusy=false;if(alive()){clearConfirmations();get('ems-refresh').disabled=false;renderEditor();}}
+    }
+    function renderSettings(){
+      renderEditor();
+      const message=get('ems-settings-status'),wrap=get('ems-settings-table'),rows=get('ems-settings-rows');
+      wrap.hidden=!settingsSnapshot;
+      if(!settingsSnapshot){message.textContent=text('Boiler setting definitions are unavailable. Received EMS readings remain below.');return;}
+      message.textContent=text(validOperation(settingsSnapshot)&&settingsSnapshot.available?'Each change needs a fresh confirmation. Protocol ranges are not installation advice.':'Changing settings is unavailable. Protocol ranges do not confirm support by your boiler.');
+      if(!measurementFresh)message.textContent+=' '+text('No fresh snapshot. Refresh to read reported settings.');
+      for(const [id,[field,name,unit,min,max]] of Object.entries(settingFields)){
+        let row=rows.querySelector('[data-setting="'+id+'"]');
+        if(!row){row=el('tr');row.dataset.setting=id;const title=el('td',text(name));title.append(el('code',id));
+          row.append(title,el('td'),el('td'),el('td'),el('td'));
+          for(const [index,label] of ['Reported value','Status','Age','Protocol range'].entries())row.children[index+1].dataset.label=text(label);
+          rows.append(row);}
+        const sample=measurementFresh&&snapshot?.inventory.devices.some(d=>d.address===8)?snapshot.boiler.fields[field]:null;
+        const usable=sample?.state==='valid'&&sample.quality==='reported'&&sample.source_type===22&&sample.unit===unit&&sample.age_ms!==null&&sample.age_ms<600000;
+        let value='—';
+        if(usable){value=unit==='bool'?text(sample.value?'On':'Off'):format.format(sample.value)+' '+(unit==='degC'?'°C':text('min'));}
+        update(row.children[1],value);
+        update(row.children[2],text(!measurementFresh?'Snapshot unavailable':!sample?'Not received':sample.quality!=='reported'?quality[sample.quality]:sample.state==='valid'&&!usable?'Unverified reading':states[sample.state]));
+        update(row.children[3],sample?age(sample.age_ms):'—');
+        update(row.children[4],unit==='bool'?text('Off')+' / '+text('On'):min+' … '+max+' '+(unit==='degC'?'°C':text('min')));
+      }
+    }
     function fields(d){return d.address===8?Object.entries(snapshot.boiler.fields):[];}
     function renderLibrary(r,d) {
       const key=d.telegram_types.join(',');if(r.libraryKey===key)return;r.libraryKey=key;
@@ -159,15 +304,29 @@ window.EMSDevicesPage=(()=>{
       }
     }
     async function refresh(){
-      if(busy||!alive())return;busy=true;get('ems-refresh').disabled=true;status.textContent=text('Loading EMS devices…');
+      if(busy||writeBusy||!alive())return;const generation=editGeneration;clearConfirmations();busy=true;get('ems-refresh').disabled=true;renderEditor();status.textContent=text('Loading EMS devices…');
       const request=new AbortController(),abort=()=>request.abort();owner.signal.addEventListener('abort',abort,{once:true});const deadline=setTimeout(abort,5000);
       try{
-        const response=await fetch('/status/ems/devices',{cache:'no-store',signal:request.signal});if(!response.ok)throw Error('http');
-        const raw=await response.text();if(raw.length>65536)throw Error('size');const next=JSON.parse(raw);if(!valid(next))throw Error('shape');
+        const read=async(path,limit,validate)=>{
+          const response=await fetch(path,{cache:'no-store',signal:request.signal});if(!response.ok)throw Error('http');
+          const raw=await response.text();if(raw.length>limit)throw Error('size');const next=JSON.parse(raw);if(!validate(next))throw Error('shape');return next;
+        };
+        const [devices,settings]=await Promise.allSettled([
+          read('/status/ems/devices',65536,valid),read('/status/boiler/settings',8192,validSettings)
+        ]);
+        if(!alive())return;
+        const previousBoot=settingsSnapshot?.boot_id;settingsSnapshot=settings.status==='fulfilled'?settings.value:null;
+        clearTimeout(expiryTimer);metadataAt=settingsSnapshot?performance.now():-Infinity;
+        if(previousBoot&&settingsSnapshot&&previousBoot!==settingsSnapshot.boot_id)resetDraft();
+        if(generation===editGeneration&&visible())interrupted=false;
+        reconcileSetting();
+        expiryTimer=setTimeout(()=>{if(alive()){clearConfirmations();renderEditor();}},30000);
+        if(devices.status!=='fulfilled')throw Error('devices');
+        const next=devices.value;measurementFresh=true;
         if(!alive())return;snapshot=next;root.dataset.failed='false';render();
         status.textContent=text('Snapshot updated. Refresh to read the latest values.')+(!window.OT_EMS_REFERENCE?' '+text('EMS reference unavailable; received readings remain available.'):'')+(next.inventory.untracked_frames?' '+text('Device list is full; additional reports were not listed.'):'')+(!next.enabled?' '+text('EMS reception is disabled.'):'');
-      }catch(_){if(alive()){root.dataset.failed='true';status.textContent=text('Refresh failed. Previously displayed values are an older snapshot.');}}
-      finally{clearTimeout(deadline);owner.signal.removeEventListener('abort',abort);busy=false;if(alive())get('ems-refresh').disabled=false;}
+      }catch(_){if(alive()){measurementFresh=false;root.dataset.failed='true';status.textContent=text('Refresh failed. Previously displayed values are an older snapshot.');}}
+      finally{clearTimeout(deadline);owner.signal.removeEventListener('abort',abort);busy=false;if(alive()){renderSettings();get('ems-refresh').disabled=false;}}
     }
     get('ems-search').addEventListener('input',render,{signal:owner.signal});get('ems-show-unknown').addEventListener('change',render,{signal:owner.signal});get('ems-refresh').addEventListener('click',refresh,{signal:owner.signal});refresh();
   }

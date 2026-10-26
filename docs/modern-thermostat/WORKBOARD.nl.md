@@ -1119,7 +1119,7 @@ de code afgetekend. De oorspronkelijke acceptatie in PLAN §4/§14 blijft gelden
 | R18 | Weekprogramma/override | Native weekeditor/UTC-plan/apply geleverd; echte save/ACK bewezen | I07,I13 | Volledige fysieke stale/reconnect/tijd-/overrideketen; huidige 1–2 kamer-/bytebudgetten behouden. |
 | R19 | Comfort/eco/away/vakantie/boost | Prioriteits-/expiry-/opt-in comfortcode aanwezig | I18 | Normale huidige producteditor/bronketen en conflicten compleet; geen nieuwe F10-stage vóór M2. |
 | R20 | Aanwezigheid/geofencing | Opt-in logische HA-contextbasis aanwezig | I18 | Modelspecifieke contextactualiteit en complete gebruikersroute; P2 blijft later. |
-| R21 | Raam-open | Zone-inhibit/prioriteits-/contextcode aanwezig | I18 | Native kamereditor/contract voor huidige SOURCE en stabiele contactactualiteit; later F10. |
+| R21 | Raam- en deurcontacten | Zone-inhibit/prioriteits-/contextcode aanwezig; volledige contactbediening ontbreekt | I18 | Eén of meer contacten per kamer, raam/deur-type, instelbare reactie, native editor/SOURCE, oorspronkelijke actualiteit, uitval en gecontroleerd hervatten; later F10. |
 | R22 | Vorst/zomer | Seizoens-/prioriteitspolicy en bounded frost-target aanwezig | I15,I18 | Installatiegebonden fysieke bescherming bij uitval; softwaretarget is geen bewezen vorstbeveiliging. |
 | R23 | Anti-pendelen/hydrauliek | Supervisor-, timing-, waterbudget- en minimumlastcode aanwezig | I15,I16,I23 | Actieve profiel/readiness/flow/pomp/naloopketen en fysieke kleinste-last/DHW-proeven. |
 | R24 | Uitval HA/MQTT/sensor/E32 | Lease/session/boot/stale/owner-guards aanwezig | I11,I13,I15,I23 | Werkelijke uitvalmatrix, E32-powerloss/ketelstop, actuatorfallback en exclusieve overdracht. |

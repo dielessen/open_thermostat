@@ -222,7 +222,7 @@ void EmsController::enqueueTelegramToSend(EmsTelegram telegram, bool front) {
 	// Recheck AFTER encoding and hold through queue insertion, so a preparation
 	// racing an older producer cannot leave a command for after test completion.
 	std::lock_guard<std::mutex> testOwner(telemetryMutex_);
-	if (boilerTest_.active() || configurationRead_.active() || (telegram.getOperationType() == EmsTelegram::WRITE
+	if (boilerTest_.active() || configurationRead_.active() || boilerSettings_.active() || (telegram.getOperationType() == EmsTelegram::WRITE
 		&& !monitor_.capabilities().allowsLegacyPlusWrites())) return;
 #endif
 	portENTER_CRITICAL(&txMux_);
@@ -246,6 +246,38 @@ void EmsController::enqueueTelegramToSend(EmsTelegram telegram, bool front) {
 }
 
 #ifdef OPENTHERMOSTAT_E32V2
+bool EmsController::processBoilerSettingsPoll(){
+    if constexpr(!board::emsSettingsTransmitAllowed)return false;
+    else{
+        std::unique_lock<std::mutex> lock(telemetryMutex_,std::try_to_lock);
+        if(!lock.owns_lock())return true;
+        if(boilerTestTransportFault_.load(std::memory_order_acquire))boilerSettings_.failTransport();
+        if(!boilerSettings_.active()){settingsOwnsBus_.store(false,std::memory_order_release);return false;}
+        portENTER_CRITICAL(&txMux_);txHead_=0;txSize_=0;portEXIT_CRITICAL(&txMux_);
+        const bool owned=boilerSettings_.poll([]{return static_cast<uint64_t>(esp_timer_get_time());},
+            [this](std::string_view){return boilerSettingsPermitted();},
+            [this](const EmsRawFrame& frame,ClassicBoilerSettingsEncoder::Setting setting,int value,bool read){
+                const auto result=read?uart_.writeBoilerSettingToEms<true>(frame,setting,value)
+                                      :uart_.writeBoilerSettingToEms<false>(frame,setting,value);
+                if(result.succeeded())txFrames_.fetch_add(1,std::memory_order_relaxed);
+                return result;
+            });
+        settingsOwnsBus_.store(boilerSettings_.active(),std::memory_order_release);
+        return owned;
+    }
+}
+void EmsController::processBoilerSettingsReply(const uint8_t* data,size_t length,uint64_t acquiredAtUs){
+    if constexpr(!board::emsSettingsTransmitAllowed)return;
+    else{
+        if(!settingsOwnsBus_.load(std::memory_order_acquire))return;
+        std::unique_lock<std::mutex> lock(telemetryMutex_,std::try_to_lock);
+        if(!lock.owns_lock()){boilerTestTransportFault_.store(true,std::memory_order_release);return;}
+        boilerSettings_.receive(data,length,acquiredAtUs,[]{return static_cast<uint64_t>(esp_timer_get_time());},
+            [this](std::string_view){return boilerSettingsPermitted();},
+            [this]{return uart_.completeBoilerSettingTransaction();});
+        settingsOwnsBus_.store(boilerSettings_.active(),std::memory_order_release);
+    }
+}
 bool EmsController::processBoilerTestPoll() {
 	if constexpr (!board::emsManualTestTransmitAllowed) return false;
 	// UART must never wait for a web/status owner. A busy owner suppresses this
@@ -255,6 +287,7 @@ bool EmsController::processBoilerTestPoll() {
     if (boilerTestTransportFault_.exchange(false, std::memory_order_acq_rel)) {
         boilerTest_.transportFault(static_cast<uint64_t>(esp_timer_get_time()/1000));
         configurationRead_.fail("transport_fault");
+        boilerSettings_.failTransport();
     }
 	if (boilerTest_.active() || configurationRead_.active()) {
 		// Discard legacy commands from BEFORE ownership as well as excluding new
@@ -298,7 +331,7 @@ bool EmsController::processPoll(uint8_t deviceId) {
 #endif
 	}
 #ifdef OPENTHERMOSTAT_E32V2
-	const bool testHandled = processBoilerTestPoll();
+	const bool testHandled = processBoilerSettingsPoll() || processBoilerTestPoll();
 #else
 	constexpr bool testHandled = false;
 #endif
@@ -329,7 +362,8 @@ bool EmsController::processPoll(uint8_t deviceId) {
 
 void EmsController::processTelegram(uint8_t *data, uint8_t length) {
     // Preserve acquisition order BEFORE any synchronous protocol completion IO.
-    const auto receivedAtMs=static_cast<uint64_t>(esp_timer_get_time()/1000);
+    const auto receivedAtUs=static_cast<uint64_t>(esp_timer_get_time());
+    const auto receivedAtMs=receivedAtUs/1000;
 #ifdef OPENTHERMOSTAT_E32V2
 	const auto errors = uart_.rxErrors.load(std::memory_order_relaxed);
 	if (boilerTestUartErrorsSeen_ != errors) {
@@ -352,6 +386,7 @@ void EmsController::processTelegram(uint8_t *data, uint8_t length) {
 #ifdef OPENTHERMOSTAT_E32V2
     // Original UART receive owner closes only a matching private transaction.
     // Never defer bus completion to web/loop telemetry decoding.
+    processBoilerSettingsReply(data,length?length-1:0,receivedAtUs);
     processManualReply(data,length?length-1:0);
 #endif
 	// UART context: answer polls immediately; copy ordinary frames without waiting.

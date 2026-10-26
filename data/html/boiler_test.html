@@ -32,7 +32,7 @@
       <label class="d-block"><input type="checkbox" data-site-owner> <span data-i18n="Tado and other controllers are disconnected from the control path; the E32 is the only test controller.">Tado and other controllers are disconnected from the control path; the E32 is the only test controller.</span></label>
       <label class="d-block"><input type="checkbox" data-site-stop> <span data-i18n="I am present and can switch off the boiler independently of the E32.">I am present and can switch off the boiler independently of the E32.</span></label>
       <label class="d-block"><input type="checkbox" data-site-path> <span data-i18n="For a heat test: the reviewed heat dissipation path is open and available.">For a heat test: the reviewed heat dissipation path is open and available.</span></label>
-      <label class="d-block" data-site-pressure-label hidden><input type="checkbox" data-site-pressure> <span data-i18n="For this heat test: I checked the installation pressure using the reviewed separate method; it is within the displayed trial limits.">For this heat test: I checked the installation pressure using the reviewed separate method; it is within the displayed trial limits.</span></label>
+      <label data-site-pressure-label hidden><input type="checkbox" data-site-pressure> <span data-i18n="For this heat test: I checked the installation pressure using the reviewed separate method; it is within the displayed trial limits.">For this heat test: I checked the installation pressure using the reviewed separate method; it is within the displayed trial limits.</span></label>
     </fieldset>
     <p><span data-i18n="Read the boiler heating settings once before preparing a heat test. This sends a read request, not a heat demand or settings change. Confirm the setup above first.">Read the boiler heating settings once before preparing a heat test. This sends a read request, not a heat demand or settings change. Confirm the setup above first.</span></p>
     <button class="btn btn-outline-secondary" type="button" data-read-configuration disabled><span data-i18n="Read heating settings once">Read heating settings once</span></button>
@@ -150,7 +150,7 @@
   const lifecycle = new AbortController();
   const readButton = root.querySelector('[data-read-configuration]');
   const readStatus = root.querySelector('[data-read-status]');
-  let configurationRead = null;
+  let configurationRead = null, lastConfigurationRead = null;
   const readLabels = {
     idle:uiText("Heating settings have not been requested in this session."),
     queued:uiText("Waiting for the bus to allow the read request."),
@@ -163,17 +163,29 @@
       && Number.isInteger(value.revision) && value.revision >= 0 && value.revision <= 2147483647
       && Number.isSafeInteger(value.observed_at_ms) && value.observed_at_ms >= 0
       && typeof value.available === 'boolean' && typeof value.active === 'boolean'
+      && (!Object.hasOwn(value,'withdrawn') || typeof value.withdrawn === 'boolean')
+      && (value.withdrawn !== true || (value.revision > 0 && ['waiting','failed'].includes(value.phase)))
       && Object.hasOwn(readLabels,value.phase) && typeof value.reason === 'string'
       && value.active === ['queued','waiting'].includes(value.phase)
       && !(value.available && value.active) && value.physical_validation === false;
   }
   function paintRead(value) {
-    if (validRead(value) && configurationRead && value.boot_id === configurationRead.boot_id
-        && (value.revision < configurationRead.revision || (value.revision === configurationRead.revision
-        && value.observed_at_ms < configurationRead.observed_at_ms))) return;
-    configurationRead = validRead(value) && test && value.boot_id === test.boot_id ? value : null;
-    readStatus.textContent = configurationRead ? readLabels[configurationRead.phase]
-      : uiText("Heating settings read status unavailable.");
+    if (validRead(value) && lastConfigurationRead && value.boot_id === lastConfigurationRead.boot_id
+        && (value.revision < lastConfigurationRead.revision || (value.revision === lastConfigurationRead.revision
+        && (value.observed_at_ms < lastConfigurationRead.observed_at_ms
+            || (lastConfigurationRead.withdrawn === true && value.withdrawn !== true))))) return;
+    const next = validRead(value) && test && value.boot_id === test.boot_id ? value : null;
+    if (next && (!sameScope(next,configurationRead)
+        || (next.withdrawn === true && configurationRead.withdrawn !== true)))
+      clearSiteDeclarations();
+    configurationRead = next;
+    if (next) lastConfigurationRead = next;
+    readStatus.textContent = !configurationRead ? uiText("Heating settings read status unavailable.")
+      : configurationRead.withdrawn === true
+        ? configurationRead.active
+          ? uiText("Reading cancelled. Waiting for the current request to finish.")
+          : uiText("Reading cancelled because the operator session ended. Confirm the setup again before a new request.")
+        : readLabels[configurationRead.phase];
     if (test) paintTest(test); else updateReadButton();
   }
   function updateReadButton() {
@@ -286,7 +298,9 @@
     test = validTest(value) ? value : null;
     sitePanel.hidden = !test?.site_confirmation_required;
     sitePressureLabel.hidden = test?.pressure_check_required !== true;
-    for (const input of [siteOwner,siteStop,sitePath,sitePressure]) input.disabled = pending || !test || !['idle','completed'].includes(test.phase);
+    sitePressureLabel.classList.toggle('d-block',!sitePressureLabel.hidden);
+    for (const input of [siteOwner,siteStop,sitePath,sitePressure])
+      input.disabled = pending || !test || !['idle','completed'].includes(test.phase) || configurationRead?.active === true;
     if (!test || (held && (!sameScope(held, test) || !test.owned || !['baseline','ready','heating'].includes(test.phase)))) stopRenewing();
     if (test) {
       if (test.can_stop) lastScope = {boot_id:test.boot_id, revision:test.revision};

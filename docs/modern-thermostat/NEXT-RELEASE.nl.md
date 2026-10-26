@@ -45,7 +45,7 @@ Een lokale commit of ontwikkelbuild is geen beschikbare GitHub-update.
 | P0 — modelprofiel zonder digitale drukmeting | Apart brongebonden Ecomline-profiel geïmplementeerd: afzonderlijke drukcontrolemethode vereist, met een nieuwe verklaring per warmteproef. De methodepoort blijft uit | Passende fysieke drukcontrolemethode voor deze installatie beoordelen en vastleggen; geen digitale drukwaarde eisen of verzinnen. Overige meet-, installatie- en stopvoorwaarden blijven behouden |
 | P0 — configuratieontvangst | Eenmalige uitleesroute is aangesloten in HTTP, UART-poll en NL/EN-bediening; afronden met kandidaat- en fysieke controle | Echte latere boilerrespons levert CV-aan/uit en temperatuur met originele ontvangsttijd; standaard TX blijft uit tot afzonderlijke vrijgave |
 | P0 — handmatige proefvariant | Bronbeoordeling en installatiekaart B07–B09 afronden voor de echte E32/EasyControl/Classic-keten | Expliciete adres-/interface-/timing-/arbitragebeoordeling en passende afgifte-, stop- en overdrachtsvoorwaarden; geen willekeurig openzetten van algemene TX |
-| P0 — gezamenlijke freeze | Volledige CI en onafhankelijke pakketcontrole geslaagd op `4c9a33d`; nieuwe receipt-gebonden updaterproef lokaal geslaagd. Beta.4-versie en bron nog niet bevroren | Exacte kandidaat met volledige native-/HA-/browser-/board-/bron-/licentie-/pakketcontroles; ontwikkelbewijs apart houden |
+| P0 — gezamenlijke freeze | Volledige CI geslaagd op `171d3be`, inclusief receipt-gebonden updaterproef, sessiegebonden uitlezing en opslagonderhoud. Onafhankelijke pakketcontrole op `4c9a33d`; nieuwste UI-aanvulling lokaal gecontroleerd. Beta.4-versie en bron nog niet bevroren | Exacte kandidaat met volledige native-/HA-/browser-/board-/bron-/licentie-/pakketcontroles; ontwikkelbewijs apart houden |
 | P0 — release en installatie | Eén gezamenlijke publicatie en installatie na kandidaatacceptatie | Begrijpelijke Engelse GitHub-notities, actuele README en juiste assets/manifest/checksums; HA via de bestaande native HA-specialist met back-up; E32 via native GitHub-OTA |
 | P0 — onafhankelijke nacontrole | Nieuwe boot, versie/bron/ELF/web en instellingenbehoud vastleggen | Verse readback en acceptatierapport; HTTP202 of alleen een build telt niet als geslaagde installatie |
 | P0 — afzonderlijke ketelproef | B14 uitvoeren zodra de fysieke voorwaarden en proefopdracht gelden | Nulmeting → nulvraag/latere stopmelding → eindige warmtevraag → stop/naloop → afzonderlijke uitval/herstel → terug naar Tado |
@@ -118,13 +118,15 @@ De proefvariant is uitsluitend gebouwd, niet geïnstalleerd. Bewijs staat onder
 
 ## Actuele software- en pakketpreflight — 26 oktober
 
-De volledige [CI op `4c9a33d`](https://github.com/dielessen/open_thermostat/actions/runs/40342130211)
+De volledige [CI op `171d3be`](https://github.com/dielessen/open_thermostat/actions/runs/40356501714)
 is geslaagd: negen validatiejobs, waaronder alle bordbuilds, native-/browser-/
-HA-controles en beide zendroute-compileproeven. De eerdere sensorloze bron
-`81c9c01` heeft eveneens een volledig geslaagde eigen CI. Publicatiejobs zijn uitsluitend
+HA-controles, beide zendroute-compileproeven en de receipt-gebonden updaterproef.
+Dit omvat de sessiegebonden uitlezing en het opslagonderhoud. De nieuwste
+UI-aanvulling hieronder krijgt nog een eigen CI. De eerdere bron `4c9a33d`
+heeft eveneens een volledig geslaagde eigen CI. Publicatiejobs zijn uitsluitend
 voor tags bedoeld en zijn in deze ontwikkelruns overgeslagen.
 
-Het werkelijk gedownloade E32-pakket is onafhankelijk tegen de exacte Git-bron,
+Het werkelijk gedownloade E32-pakket van `4c9a33d` is onafhankelijk tegen de exacte Git-bron,
 firmware, webbestanden, ELF, factory-slices, checksums, bron-/licentiemateriaal
 en relinkbewijs gecontroleerd: 2.229 controles geslaagd. Imagegrootte is
 2.862.416 bytes. De bestaande alpha36-hostcompatibiliteit slaagt opnieuw; HA-
@@ -139,8 +141,8 @@ het echte CI-image geslaagd. Een verkeerd manifest, beschadigd image,
 ontbrekende acceptatie of veranderde bewaarde bron wordt geweigerd. Het bewijs
 wordt aan pakket en checksumlijsten gebonden. Zeven nieuwe fixtures, de vier
 bestaande alpha36-fixtures, zes updatepoortcontroles en twintig publicatiecontroles
-slagen lokaal. Deze nieuwe pakketroute krijgt nog een eigen CI; een eerdere
-groene run geldt daarvoor niet als bewijs.
+slagen lokaal. De nieuwe pakketroute is inmiddels ook in de volledige CI op
+`b6fe339` en `171d3be` geslaagd; fysieke updateacceptatie blijft afzonderlijk.
 
 `accepted` blijft beta.1, `pending_tag` blijft beta.3. De gebruiker bevestigt nu
 de beta.3-installatie; native bewijs en onafhankelijke nacontrole staan nog open; geen opvolgerfreeze,
@@ -168,6 +170,31 @@ scenario's en 11 REST-OTA-boundarygevallen geslaagd. Standaard E32-build en
 afzonderlijke handmatige compilevariant slagen; alleen de controller bezit de
 verwachte UART-write. Bewijs: `out/beta4-read-session/`. Dit is bronwerk vóór
 freeze, geen opdracht aan het geïnstalleerde apparaat.
+
+## Geannuleerde uitlezing zichtbaar in de webbediening
+
+De keteltestpagina toont nu in EN/NL wanneer een configuratie-uitlezing is
+geannuleerd omdat de bedienersessie eindigde. Een al verstuurd verzoek blijft
+herkenbaar in afwachting van afronding; opstellingsvinkjes en nieuwe uitlezing
+blijven daarbij geblokkeerd. Een terminale annulering vraagt nieuwe
+opstellingsbevestiging. Annulering of een andere boot/revisie wist oude vinkjes.
+
+Een later statusantwoord kan een bekende annulering voor dezelfde revisie niet
+intrekken, ook niet na een tussentijds ongeldig statusantwoord. Een onjuist
+getypeerde `withdrawn`-waarde of een combinatie van annulering en succesvolle
+afronding toont onbeschikbare status. Het bestaande
+statuscontract zonder dit extra veld blijft bruikbaar. Het drukvinkje is alleen
+zichtbaar als het door de gerapporteerde proefvoorwaarden wordt vereist; de
+Bootstrap-weergaveklasse overschrijft het verbergen niet meer. Het bewerkingspad vraagt
+nog steeds uitsluitend expliciete bevestiging; geen automatische herhaling,
+proefstart of hervatting bij heropenen. Standaard TX blijft uit.
+
+Lokale controle van deze aanvulling: vier EN/NL-browserverlopen op desktop en
+mobiel, inclusief ingetrokken status, late afronding, verkeerde veldtypen,
+heropenen en nieuwe bevestiging; drie volledige bedieningsweergaven geslaagd.
+Firmware en filesystem gebouwd en de standaard E32-blokkades gecontroleerd.
+Bewijs staat lokaal onder `out/beta4-read-cancellation-ui/`; dit is geen fysieke
+nacontrole van de geïnstalleerde beta.3.
 
 ## Opslagonderhoud na iedere release
 

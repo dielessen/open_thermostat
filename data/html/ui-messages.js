@@ -35,6 +35,8 @@ window.OT_UI_MESSAGES = {
     "Read heating settings once": "CV-instellingen eenmalig uitlezen",
     "Heating settings have not been requested in this session.": "De CV-instellingen zijn in deze sessie nog niet opgevraagd.",
     "Waiting for the bus to allow the read request.": "Wachten op toestemming van de bus voor het leesverzoek.",
+    "Reading cancelled. Waiting for the current request to finish.": "Uitlezing geannuleerd. Wachten tot het huidige verzoek is afgerond.",
+    "Reading cancelled because the operator session ended. Confirm the setup again before a new request.": "Uitlezing geannuleerd omdat de bedienersessie is beëindigd. Bevestig de opstelling opnieuw voor een nieuw verzoek.",
     "Read request sent. Waiting for the boiler response.": "Leesverzoek verstuurd. Wachten op antwoord van de ketel.",
     "Heating settings received. Heat testing still requires separate preparation.": "CV-instellingen ontvangen. Een warmteproef moet nog apart worden voorbereid.",
     "Heating settings could not be read. No automatic retry. Check the measurement report.": "De CV-instellingen konden niet worden uitgelezen. Geen automatische herhaling. Controleer het meetrapport.",

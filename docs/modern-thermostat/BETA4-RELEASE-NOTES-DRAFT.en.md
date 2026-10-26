@@ -38,7 +38,11 @@ are unchanged.
 - **Prepared boiler diagnostics:** queued settings-read requests are cancelled
   when the operator logs out or the web session expires or is replaced. An
   already-sent read retains its bounded response window, without confirming a
-  cancelled acquisition or retrying automatically.
+  cancelled acquisition or retrying automatically. The page labels cancellation
+  in English and Dutch, clears earlier setup confirmations and keeps new reads
+  blocked until the current request finishes. Late status cannot retract a
+  known cancellation for the same request. Pressure confirmation appears only
+  for test profiles that require it.
 
 ## Updating
 

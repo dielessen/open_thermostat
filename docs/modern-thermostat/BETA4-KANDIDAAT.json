@@ -15,7 +15,10 @@
     "ff54e0f65bd5be8af1fb9dcab9dadc1409df68e6",
     "d5e354acdb91205ea1014fc984f4bcff54f1b13a",
     "81c9c01a292f3ba7996f83365f83eedc82014660",
-    "4c9a33db644103c011e2b7b683c89b4d3f711805"
+    "4c9a33db644103c011e2b7b683c89b4d3f711805",
+    "b6fe339a9dea06207ae94588948e620a119341e7",
+    "8455910d1df07409234828ac892e49d4558cff97",
+    "171d3be603ab81f295a6bd7ed141b2df45b35b7e"
   ],
   "release_notes": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.en.md",
   "changes": [
@@ -35,10 +38,10 @@
   "publication_state": "BLOCKED_PENDING_PREDECESSOR_ACCEPTANCE",
   "runtime_actions_performed": false,
   "source_ci": {
-    "commit": "b6fe339a9dea06207ae94588948e620a119341e7",
-    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40346196097",
+    "commit": "171d3be603ab81f295a6bd7ed141b2df45b35b7e",
+    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40356501714",
     "conclusion": "success",
-    "scope": "pre-freeze source including receipt-bound accepted updater packaging gate; nine validation jobs passed; later session-bound acquisition and cleanup changes need their own CI; not installation acceptance"
+    "scope": "pre-freeze source including receipt-bound updater proof, session-bound acquisition and release housekeeping; nine validation jobs passed; latest cancellation UI changes need their own CI; not installation acceptance"
   },
   "writable_boiler_inventory": "docs/modern-thermostat/BOILER-WRITE-INVENTORY.json",
   "prepared_settings_backend": {
@@ -98,5 +101,18 @@
     "independent_postcheck_verified": false,
     "native_update_receipts_collected_in_this_session": false,
     "acceptance_gate_advanced": false
+  },
+  "configuration_read_ui": {
+    "withdrawal_labelled": true,
+    "languages": [
+      "en",
+      "nl"
+    ],
+    "withdrawn_completion_rejected": true,
+    "new_request_needs_fresh_declarations": true,
+    "physical_read_enabled": false,
+    "browser_gate": "test/boiler-configuration-read-browser.cjs",
+    "pressure_declaration_follows_profile": true,
+    "withdrawal_survives_invalid_status": true
   }
 }

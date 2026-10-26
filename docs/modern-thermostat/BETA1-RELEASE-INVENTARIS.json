@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "2c5c9a02281aaff8c4c71feade49c2fa23719f22993cc1014c25a558dd030945"
+          "sha256": "c98f712956ca12a4d7b23ca2e83e1685e75c98134c8cc1a220640dcfbc9b17bb"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -143,7 +143,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA4-KANDIDAAT.json",
-          "sha256": "6c0b51143ce315c762b4968cef30b2f353a8dfcacf2ef21fa4a7ea16d092f7f6"
+          "sha256": "3e75cb77e3a35be077d98eafeb33a763f54cea36c402842fbc66669f0bfcda47"
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.nl-en.md",
@@ -163,7 +163,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.en.md",
-          "sha256": "9ec18c10f2e893451c8e0b2dc19cc388566edf0aaf09a2962993c68be412d139"
+          "sha256": "712add95ec6747d156989903f41b54f103d440bdfe36851f2db4d26b824d0792"
         },
         {
           "path": "scripts/verify_accepted_update_path.py",
@@ -521,7 +521,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "0213c20b1b1179896a001524e4f98029919d935561a31fdc6f00a146979e8905"
+          "sha256": "1e8bbdb7845021548589a1b23a73a7d7c2e1ac9a29621a24b27d96c62abe6656"
         },
         {
           "path": "data/html/ui-language.js",
@@ -847,7 +847,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "0213c20b1b1179896a001524e4f98029919d935561a31fdc6f00a146979e8905"
+          "sha256": "1e8bbdb7845021548589a1b23a73a7d7c2e1ac9a29621a24b27d96c62abe6656"
         },
         {
           "path": "data/html/system-log.js",
@@ -1893,7 +1893,7 @@
       "files": [
         {
           "path": "data/html/boiler_test.html",
-          "sha256": "47e3e157330f5c9bf05e61f92ef543c23c661635eb27ac46b6ea1609ef3878d5"
+          "sha256": "0c453f80b194240dae7de0d21221eebcbdcb7d95ea1745b243489fb24e21fb28"
         },
         {
           "path": "src/EmsController.h",
@@ -2113,7 +2113,7 @@
         },
         {
           "path": "test/boiler-configuration-read-browser.cjs",
-          "sha256": "70f7164f82c96ae9fd4e30103f33a44f17f2efd76ac36ea9e0a57b99c2d96061"
+          "sha256": "92f7f9149118cb5b6aed3a81d9187f8631cbf200dfc4457de0fd8a2ebbef8bc4"
         },
         {
           "path": "src/EMS/ClassicBoilerSettingsEncoder.h",

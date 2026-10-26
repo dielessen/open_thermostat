@@ -187,7 +187,10 @@
     "control_browser_viewports": 3,
     "board_verifier_fault_cases": 9,
     "firmware_bytes": 2877936,
-    "evidence": "out/beta4-manual-trial/"
+    "evidence": "out/beta4-manual-trial/",
+    "passive_browser_viewports": 3,
+    "configuration_read_browser_cases": 4,
+    "confirmation_browser_cases": 72
   },
   "bluetooth_discovery": {
     "state": "BROWSER_NATIVE_VERIFIED_PRE_FREEZE",
@@ -198,5 +201,14 @@
     "configured_bindings_limit": 8,
     "browser_cases": 12,
     "physical_device_acceptance": false
+  },
+  "development_checkpoint": {
+    "commit": "76a736c3ac6ab6bbd8e21627e526ad9386148005",
+    "ci_run": "https://github.com/dielessen/open_thermostat/actions/runs/40379162752",
+    "ci_state": "IN_PROGRESS",
+    "passive_compile": "PASS",
+    "settings_compile": "PASS",
+    "local_checks": "PASS",
+    "publication_approved": false
   }
 }

@@ -76,7 +76,9 @@ pollen behoudt de scrollpositie en invoer. De acht opgeslagen sensorkoppelingen
 blijven een aparte limiet. Twaalf browserprofielen (EN/NL, mobiel/desktop) en de
 begrensde ontdeklijst zijn lokaal gecontroleerd. De E32-firmware/bestandssysteem en 282 native proefgevallen met ASAN/UBSAN,
 drie bedieningsviewports (waaronder echte manometerinvoer) en negen fouteninjecties
-in de bordverifier slagen lokaal. Aanvullende browserregressies lopen nog. Het groene checkpoint
+in de bordverifier slagen lokaal. Aanvullende browserregressies slagen: drie passieve viewports, vier configuratie-
+uitleesgevallen en 72 bevestigingsgevallen. GitHub-CI op `76a736c` loopt nog;
+de afzonderlijke passieve en instellingen-compilevarianten slagen al. Het groene checkpoint
 `c058dd2` hieronder geldt voor de eerdere passieve bron.
 
 ## Eerstvolgende werk, in volgorde

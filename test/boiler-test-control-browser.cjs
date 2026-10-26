@@ -15,11 +15,11 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   page.on('pageerror',e=>errors.push(e.message));
   function update(patch){Object.assign(state,patch);state.state_sequence++;state.observed_at_ms+=100;}
   const gaugeTrial=width===390;
-  const limits={minimum_flow_c:40,maximum_flow_c:45,maximum_duration_s:60,operator_lease_ms:5000};
+  const limits={minimum_flow_c:40,maximum_flow_c:50,maximum_duration_s:600,operator_lease_ms:5000};
   let feedback={};
   let heatTrial={profile_id:'ecomline-classic-manual-v1',installation_reviewed:false,telemetry_ready:false,
-   reason:'pressure_unavailable',physical_validation:false,limits:{minimum_flow_c:40,maximum_flow_c:45,maximum_duration_s:60,
-    minimum_pressure_decibar:10,maximum_pressure_decibar:25,minimum_measured_flow_centi:500,maximum_measured_flow_centi:5000}};
+   reason:'pressure_unavailable',physical_validation:false,limits:{minimum_flow_c:40,maximum_flow_c:50,maximum_duration_s:600,
+    minimum_pressure_decibar:10,maximum_pressure_decibar:25,minimum_measured_flow_centi:500,maximum_measured_flow_centi:6000}};
   const response=(route,body,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)});
   await page.route('http://boiler.test/**',async route=>{
    const req=route.request(),pathname=new URL(req.url()).pathname;
@@ -37,13 +37,13 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
      assert.equal(body.exclusive_owner_confirmed,true);assert.equal(body.independent_stop_confirmed,true);
      update({revision:body.revision,phase:'baseline',owned:true,zero_only:true,can_prepare_zero:false,can_prepare:false,can_start:false,can_stop:true,reported_stop_confirmed:false});
     }else if(action==='prepare'){
-     assert.equal(body.revision,state.revision+1);assert.equal(body.flow_c,40);assert.equal(body.duration_s,1);
+     assert.equal(body.revision,state.revision+1);assert.equal(body.flow_c,50);assert.equal(body.duration_s,600);
      assert.equal(body.exclusive_owner_confirmed,true);assert.equal(body.independent_stop_confirmed,true);assert.equal(body.heat_path_confirmed,true);
      assert.equal(body.pressure_check_confirmed,true);
      if(gaugeTrial)assert.equal(body.pressure_decibar,15);
      else assert.equal(Object.hasOwn(body,'pressure_decibar'),false);
      update({revision:body.revision,phase:'baseline',owned:true,zero_only:false,can_prepare_zero:false,can_prepare:false,can_start:false,can_stop:true,
-      reported_stop_confirmed:false,operator_remaining_ms:5000,requested_flow_c:40});
+      reported_stop_confirmed:false,operator_remaining_ms:5000,requested_flow_c:50});
     }else if(action==='close_fault'){
      assert.equal(body.revision,state.revision);assert.equal(body.local_stop_confirmed,true);
      assert.deepEqual(Object.keys(body).sort(),['boot_id','local_stop_confirmed','revision','schema']);
@@ -80,7 +80,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   assert.equal(await page.locator('[data-test-start]').isDisabled(),true);
   assert.equal(requests.some(r=>r.method!=='GET'),false);
   await page.locator('[data-heat-status]').filter({hasText:'verse meting van de keteldruk'}).waitFor();
-  assert.match(await page.locator('[data-heat-limits]').innerText(),/40–45 °C/);
+  assert.match(await page.locator('[data-heat-limits]').innerText(),/40–50 °C/);
   assert.match(await page.locator('[data-heat-limits]').innerText(),/1–2,5 bar/);
   assert.match(await page.locator('[data-heat-limits]').innerText(),/Niet beoordeeld/);
   // A live hot-water cycle must explain the blocked zero and heat buttons,
@@ -89,7 +89,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
     dhw_active:{value:1,unit:'bool',state:'valid',quality:'inferred'}};
   heatTrial={...heatTrial,reason:'flow_outside_trial_limits'};
   await page.locator('[data-heat-status]').filter({hasText:'75 °C'}).waitFor();
-  assert.match(await page.locator('[data-heat-status]').innerText(),/5–<50 °C/);
+  assert.match(await page.locator('[data-heat-status]').innerText(),/5–<60 °C/);
   assert.match(await page.locator('[data-zero-help]').innerText(),/tapwaterbedrijf/);
   assert.equal(await page.locator('[data-test-zero]').isDisabled(),true);
   assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
@@ -131,9 +131,9 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
    assert.match(await page.locator('[data-heat-limits]').innerText(),/fysieke acceptatie staat nog open/);
   }
   await page.waitForFunction(()=>!document.querySelector('[data-test-prepare]').disabled);
-  await page.locator('[data-test-flow]').fill('61');await page.locator('[data-test-duration]').fill('1');
+  await page.locator('[data-test-flow]').fill('61');await page.locator('[data-test-duration]').fill('600');
   await page.locator('[data-test-prepare]').click();assert.equal(requests.some(r=>r.path.endsWith('/prepare')),false);
-  await page.locator('[data-test-flow]').fill('40');await page.locator('[data-test-prepare]').click();
+  await page.locator('[data-test-flow]').fill('50');await page.locator('[data-test-prepare]').click();
   await page.waitForFunction(()=>!document.querySelector('[data-test-start]').disabled);
   assert.equal(await page.locator('[data-site-owner]').isChecked(),false);
   assert.equal(await page.locator('[data-site-stop]').isChecked(),false);
@@ -282,7 +282,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
    await page.locator('[data-site-owner]').check();await page.locator('[data-site-stop]').check();
    await page.locator('[data-site-path]').check();await page.locator('[data-site-pressure]').check();
    if(gaugeTrial)await page.locator('[data-site-pressure-value]').fill('1.5');
-   await page.locator('[data-test-flow]').fill('40');await page.locator('[data-test-duration]').fill('1');
+   await page.locator('[data-test-flow]').fill('50');await page.locator('[data-test-duration]').fill('600');
    delayPreparation=true;delayedPreparation=null;
    if(mode==='prepare_zero')page.once('dialog',dialog=>dialog.accept());
    await page.locator(mode==='prepare_zero'?'[data-test-zero]':'[data-test-prepare]').click();

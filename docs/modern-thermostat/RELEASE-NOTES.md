@@ -1,4 +1,4 @@
-# E32 V2 beta5 — clearer trial controls and update diagnostics
+# E32 V2 beta5 — longer attended boiler trial and clearer diagnostics
 <!-- user-release-notes:v2:en -->
 
 Draft maintenance release. Not frozen, published or installed. Beta.4 remains
@@ -6,6 +6,11 @@ the published and accepted installation.
 
 ## New
 
+- **Ten-minute attended demand.** Prepare50°C for600 seconds to allow time for
+  boiler startup. The Classic trial supports40–50°C, repeated setpoints and a
+  separate5–<60°C measured-water cutoff. Fresh setup/gauge checks precede start;
+  their declarations remain valid for that finite run. A five-second supervision
+  lease, separate Start/Stop actions and later stop feedback remain required.
 - **One boiler page.** Boiler test now also contains the settings, received
   devices and values, and telegram reference. The separate EMS devices menu
   entry is removed; existing page links open Boiler test.
@@ -18,7 +23,7 @@ the published and accepted installation.
   unavailable feedback and hot-water operation. Confirmations still apply to
   one read or trial and must be repeated afterwards.
 - A blocked heat trial shows the measured flow temperature beside the existing
-  trial window. The trial limits and all command permissions are unchanged.
+  trial window. Automatic heating and persistent settings writes remain disabled.
 ## Fixed
 
 - Update errors distinguish a failed release check from a failed installation.

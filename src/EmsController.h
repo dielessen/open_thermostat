@@ -468,7 +468,7 @@ private:
     static constexpr auto manualHeatPressureSource_ = ClassicHeatTrialEnvelope::PressureSource::separateCheck;
     static constexpr bool manualPressureMethodReviewed_ = false;
     ClassicHeatTrialEnvelope::Check heatTrialEnvelope(uint64_t now) const {
-        return EcomlineCommissioningProfile::inspect(monitor_, now);
+        return EcomlineCommissioningProfile::inspect(monitor_, now, boilerTest_.heating());
     }
     std::atomic<bool> manualSourceConflict_{false}; // Never cleared by UART reset.
     bool manualBusIdentityMatches() const {
@@ -483,7 +483,7 @@ private:
     }
     BoilerTestSession::Gates boilerTestGates() const {
         return EcomlineCommissioningProfile::gates(monitor_, static_cast<uint64_t>(esp_timer_get_time() / 1000),
-            manualTransportReviewed() && !configurationRead_.active() && !boilerSettings_.active() && settingsUpdateAllowed_);
+            manualTransportReviewed() && !configurationRead_.active() && !boilerSettings_.active() && settingsUpdateAllowed_, boilerTest_.heating());
     }
     // Fixed Classic service identity; observed mask and conflicts must still
     // match at final admission. No HTTP/config address selection or TX unlock.

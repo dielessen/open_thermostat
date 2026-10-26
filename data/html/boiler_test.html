@@ -114,7 +114,7 @@
         || !['minimum_flow_c','maximum_flow_c','maximum_duration_s','minimum_pressure_decibar',
              'maximum_pressure_decibar','minimum_measured_flow_centi','maximum_measured_flow_centi'].every(key => Number.isInteger(limits[key]))
         || limits.minimum_flow_c < 5 || limits.maximum_flow_c > 90 || limits.minimum_flow_c >= limits.maximum_flow_c
-        || limits.maximum_duration_s < 1 || limits.maximum_duration_s > 120
+        || limits.maximum_duration_s < 1 || limits.maximum_duration_s > 600
         || limits.minimum_pressure_decibar < 1 || limits.maximum_pressure_decibar > 30
         || limits.minimum_pressure_decibar >= limits.maximum_pressure_decibar
         || limits.minimum_measured_flow_centi < 0 || limits.maximum_measured_flow_centi > 9000
@@ -328,7 +328,7 @@
     if (value.available || value.can_prepare || value.can_start) {
       if (!value.available || !limits || !Number.isInteger(limits.minimum_flow_c) || !Number.isInteger(limits.maximum_flow_c)
           || limits.minimum_flow_c < 5 || limits.maximum_flow_c > 90 || limits.minimum_flow_c >= limits.maximum_flow_c
-          || !Number.isInteger(limits.maximum_duration_s) || limits.maximum_duration_s < 1 || limits.maximum_duration_s > 120
+          || !Number.isInteger(limits.maximum_duration_s) || limits.maximum_duration_s < 1 || limits.maximum_duration_s > 600
           || !Number.isInteger(limits.operator_lease_ms) || limits.operator_lease_ms < 1000 || limits.operator_lease_ms > 10000) return false;
     }
     return true;
@@ -408,8 +408,8 @@
       flowInput.min = test.limits.minimum_flow_c; flowInput.max = test.limits.maximum_flow_c;
       durationInput.min = 1; durationInput.max = test.limits.maximum_duration_s;
       if(test.pressure_reading_required===true && defaultsForBoot!==test.boot_id) {
-        if(flowInput.value==='')flowInput.value=test.limits.minimum_flow_c;
-        if(durationInput.value==='')durationInput.value=Math.min(10,test.limits.maximum_duration_s);
+        if(flowInput.value==='')flowInput.value=Math.min(50,test.limits.maximum_flow_c);
+        if(durationInput.value==='')durationInput.value=Math.min(600,test.limits.maximum_duration_s);
         defaultsForBoot=test.boot_id;
       }
     }

@@ -33,6 +33,7 @@ public:
     static constexpr uint64_t manualPressureLifetimeMs = 120000;
     uint64_t bootId() const { return boot_; }
     bool active() const { return session_.active(); }
+    bool heating() const { return session_.phase() == BoilerTestSession::Phase::heating; }
     void transportFault(uint64_t now) {
         const auto before = marker();
         session_.transportFault(now);
@@ -86,7 +87,7 @@ public:
         const auto revision = static_cast<uint32_t>(cJSON_GetObjectItemCaseSensitive(json, "revision")->valuedouble);
         uint8_t flow = 0; uint32_t durationMs = 0;
         if (preparingHeat) {
-            if (!integer(json, "flow_c", 5, 90) || !integer(json, "duration_s", 1, 120)) return {400, "invalid_request"};
+            if (!integer(json, "flow_c", 5, 90) || !integer(json, "duration_s", 1, BoilerTestSession::maximumTrialMs / 1000)) return {400, "invalid_request"};
             flow = static_cast<uint8_t>(cJSON_GetObjectItemCaseSensitive(json, "flow_c")->valuedouble);
             durationMs = static_cast<uint32_t>(cJSON_GetObjectItemCaseSensitive(json, "duration_s")->valuedouble) * 1000;
         }
@@ -230,13 +231,19 @@ public:
         else out << "null";
         out << ",\"operator_pressure_observation\":";
         if (pressureDecibar_) out << "{\"source\":\"operator_boiler_gauge\",\"value_decibar\":" << *pressureDecibar_
-            << ",\"declared_at_ms\":" << pressureDeclaredAt_ << ",\"maximum_age_ms\":" << manualPressureLifetimeMs
+            << ",\"declared_at_ms\":" << pressureDeclaredAt_ << ",\"maximum_age_ms\":" << pressureLifetimeMs()
             << ",\"physical_validation\":false}";
         else out << "null";
         out << ",\"physical_validation\":false}";
     }
 
 private:
+    uint64_t pressureLifetimeMs() const {
+        // A fresh declaration is mandatory for every preparation/start. Keep
+        // that declaration for the finite attended run; keepalives cannot renew
+        // it or extend the independent heat deadline.
+        return manualPressureLifetimeMs + (heating() ? durationMs_ : 0);
+    }
     unsigned marker() const { return static_cast<unsigned>(session_.phase()) * 2 + session_.reportedStopConfirmed(); }
     static uint64_t remaining(uint64_t until, uint64_t now) { return until > now ? until - now : 0; }
     std::string bootText() const {
@@ -261,7 +268,7 @@ private:
             gates.limitsSafe = gates.limitsSafe && (preparation || pressureConfirmed_);
         if (requirePressureReading_)
             gates.limitsSafe = gates.limitsSafe && (preparation || (pressureDecibar_ && now >= pressureDeclaredAt_
-                && now - pressureDeclaredAt_ < manualPressureLifetimeMs));
+                && now - pressureDeclaredAt_ < pressureLifetimeMs()));
         return gates;
     }
     const char* blockedReason(const BoilerTestSession::Gates& gates, uint64_t now, bool zeroOnly = false, bool preparation = false) const {

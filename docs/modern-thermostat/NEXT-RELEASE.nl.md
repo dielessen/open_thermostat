@@ -14,7 +14,7 @@ De oudere voorbereidingsnotities staan ongewijzigd in de
 | E32 | Openbare beta.4, bron`9ecb4da`, geïnstalleerd via één native GitHub-update |
 | Installatieacceptatie | Alle 13 checks PASS; twaalf beperkte API-back-ups nagelezen; versie/bron/ELF/web, nieuwe boot en behoud onafhankelijk beoordeeld |
 | HA | Core2026.10.4, geladen integratie0.4.0b1, SOURCE 6. Nieuwste openbare HA-download blijft0.4.0b3; voor deze E32-onderhoudsbron is geen HA-update nodig |
-| Handmatige proef | Eenmalige configuratie-uitlezing en nulvraag met gemelde stop waargenomen; nog geen positieve warmtevraag in het vastgelegde bewijs |
+| Handmatige proef | Configuratie opnieuw uitgelezen en nulvraag met latere gemelde stop uitgevoerd; positieve warmtevraag nog niet uitgevoerd |
 | Automatische uitvoer | Automatische ketel-/kraanregeling en blijvende ketelinstellingenwrites blijven uit |
 | Ontwikkelbron | Beta.5: uitleg bij geblokkeerde proefknoppen en onderscheid tussen mislukte updatecontrole, installatie, verbinding, TLS en HTTP |
 
@@ -26,40 +26,47 @@ De historische beta.3-installatieacceptatie blijft INCOMPLETE; de expliciete
 uitzondering voor de afgeronde beta.4-publicatie is bewaard. Zij blokkeert de
 geaccepteerde beta.4 niet opnieuw.
 
-## Huidige blokkade bij de proefbediening
+## Actuele proef: nulvraag uitgevoerd, tien minuten warmte gevraagd
 
-De gebruiker meldt dat onder meer **Start heat demand** grijs is. Een nieuwe
-alleen-lezen waarneming toont75 °C aanvoer, een afgeleide tapwaterstatus actief
-en CV-instellingen ouder dan tien minuten. Daardoor zijn de warmtevoorwaarden
-niet geldig; de nulvraag kan tijdens tapwaterbedrijf eveneens geblokkeerd zijn.
-De configuratie-uitlezing zelf is beschikbaar na de twee vereiste actuele
-opstellingsbevestigingen. Deze worden na uitlezing/proef bewust gewist.
-[Waarneming en oorspronkelijke hashes](BETA4-TEST-BUTTONS-20261026.json).
+Op verzoek van de gebruiker zijn de CV-instellingen op de geïnstalleerde beta.4
+opnieuw uitgelezen en is een echte nulvraagproef uitgevoerd. De gebruiker bevestigt
+Tado los, 2 bar op de manometer en aanwezig bij de ketel met onafhankelijke stop.
+Er zijn één configuratieleesopdracht en zeven nulframes verzonden; een strikt
+latere ketelmelding bevestigt nulvraag/0%/CV uit. De ketel meldde vóór de proef
+ook al nulvraag en0%; dit bewijst geen stop vanuit een brandende ketel.
+[Oorspronkelijk bewijs en afbakening](BETA4-ATTENDED-ZERO-20261026.json).
 
-De normale volgorde is:
+Er is **geen positieve warmtevraag** gestart. Beta.4 blokkeerde bij54°C aanvoer
+omdat zijn eerste proefvenster5–<50°C is. Daarna vraagt de gebruiker expliciet
+**50°C gedurende tien minuten**. Beta.5 wordt hiervoor aangepast:
 
-1. Tado als schrijver los, lokaal toezicht en onafhankelijke stop; alleen
-   bevestigen wat daadwerkelijk geldt.
-2. CV-instellingen eenmalig uitlezen en de nulvraag/latere stop bevestigen.
-3. Geen tapwaterbedrijf; de proef vereist verse aanvoer binnen5–<50 °C.
-4. Voor warmte: open afgiftepad en actuele manometerwaarde1,1–2,5 bar.
-5. Eerst **Stopbasis controleren**, daarna afzonderlijk **Warmtevraag starten**.
-   Eerste korte proef40 °C / 10 s, toezicht op de pagina en afzonderlijke stop.
+- Vraagbereik40–50°C, maximaal600 seconden; standaard50°C/600 seconden.
+- Gemeten water blijft een afzonderlijke proefbewaking5–<60°C. Deze eigen
+  proefgrens laat een doel van50°C en enige hysterese toe. Het is geen EMS-eis.
+- CV-instellingen moeten bij voorbereiding/start jonger zijn dan tien minuten.
+  Tijdens de eenmaal gestarte proef blijven die instellingen maximaal één
+  proefduur langer geldig; nieuwe instellingen en verse liveberichten blijven
+  leidend. Geen automatische configuratie-uitlezing tijdens warmte.
+- Een manometerwaarde1,1–2,5bar moet per voorbereiding opnieuw worden opgegeven
+  en bij de start jonger zijn dan twee minuten. De verklaring geldt daarna
+  voor die eindige proef; een keepalive vernieuwt haar niet.
+- Nulbasis, afzonderlijke start, exclusief busbezit, open afgifte, lokale stop,
+  vijfseconden-operatorlease, verse Classic-terugmelding en expliciete stop blijven.
 
-De [proefvolgorde](BETA1-KETELPROEF.nl.md#actuele-beta4-voorbereiding-bediende-commissioningproef)
-en [pre-TX-kaart](ECOMLINE-PRE-TX-ACCEPTATIE.nl.md) blijven leidend.
-Een softwarematige stopmelding sluit fysieke start/stop-/naloopkwalificatie niet af.
-Deze ontwikkelopdracht start geen proef en verandert geen temperatuurgrens.
+De langere proef vereist nieuwe firmware; de bronwijziging past de geïnstalleerde
+beta.4 niet aan. Ook tien minuten50°C garandeert geen ontsteking: warmer ketelwater
+kan eerst afkoelen. Setpoint, reactie en latere stop worden apart vastgelegd.
+Autonome stop bij communicatieverlies is hiermee niet bewezen; B14 blijft open.
 
 ## Leesbare en instelbare entiteiten samen op Keteltest
 
 **Regelprincipe verduidelijkt:** een normale thermostaat kan de gewenste
-`selflowtemp` uit kamervraag/stooklijn afleiden. De bestaande eis5–<50°C is
+`selflowtemp` uit kamervraag/stooklijn afleiden. De eerdere eis5–<50°C was
 een eigen grens voor deze eerste handmatige commissioningproef, geen EMS/iRT-
 voorwaarde. Setpointoverdracht en zichtbare brander-/warmtereactie moeten
 afzonderlijk worden beoordeeld. Een al warme ketel kan terecht niet ontsteken
 bij een lagere vraag. [Onderbouwing en afbakening](THERMOSTAT-SETPOINT-REVIEW.en.md).
-De fysieke proefgrenzen zijn met deze uitleg niet verruimd.
+De later expliciet gevraagde verruiming naar50°C/600s staat hierboven afzonderlijk.
 
 Op verzoek van de gebruiker zijn de apparaat-/entiteitentabel, vier Classic-
 instellingen en alle protocolreferenties opgenomen op Keteltest. De aparte
@@ -105,12 +112,12 @@ pakketcontroles. De volgende bron is een afzonderlijk ontwikkelcheckpoint.
 
 - Ketel: Nefit Ecomline Classic HRC 22H.
 - Adapter: Bosch EasyControl Adapter 8737908035 V2.3.
-- Gateway: BBQKees E32 V2/V2.2 met ethernet; E32 parallel met Tado op de adapter.
+- Gateway: BBQKees E32 V2/V2.2 met ethernet; Tado is voor deze proef door de gebruiker bevestigd losgekoppeld.
 - De gebruiker kan Tado losnemen en de ketel onafhankelijk uitschakelen.
   Displayreset is geen normale proefstop of automatische uitvalgarantie.
 - Meerdere radiatoren staan volgens de gebruiker open; TV02 zit op een radiator.
 - Werkelijke Tado-overdracht en gemeten minimumflow/naloop zijn nog niet bewezen.
-  Kunnen losnemen is geen bevestiging dat Tado voor de proef al los is.
+  Voor deze bijgewoonde nulvraag is Tado wel expliciet bevestigd los.
 
 Het eerdere pendelen is niet causaal verklaard. De historische samenloop met
 warmwaterbedrijf bewijst geen oorzaak of reparatie. Een stabiele passieve

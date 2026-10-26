@@ -6,9 +6,9 @@ Developed independently by **Mark Dielessen**.
 
 Set up rooms, select your Home Assistant devices, edit weekly schedules and
 inspect what your boiler reports. The control and learning software is being
-extended towards coordinated heating. **The current beta keeps physical boiler
-and valve outputs disabled.** Active heating still requires installation and
-hardware acceptance.
+extended towards coordinated heating. **Automatic boiler and valve outputs remain disabled.** Beta.4 provides a
+separate attended boiler trial with setup confirmations and an independent local
+stop. Installation acceptance does not qualify automatic heating.
 
 [Downloads](https://github.com/dielessen/open_thermostat/releases) ·
 [Features](#features) · [Roadmap](#roadmap) · [Screenshots](#screenshots) ·
@@ -20,7 +20,7 @@ hardware acceptance.
 
 | Component | Version | Channel |
 | --- | --- | --- |
-| E32 V2 firmware | [v0.1.0-e32v2-beta.3](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-beta.3) | Pre-release |
+| E32 V2 firmware | [v0.1.0-e32v2-beta.4](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-beta.4) | Pre-release |
 | Home Assistant integration | [0.4.0b3](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0b3) | Pre-release |
 
 Firmware and the HA integration are separate downloads. Read each release’s
@@ -29,21 +29,22 @@ changes, compatibility notes and installation instructions before updating.
 To build the published E32 firmware, start from its exact tag:
 
 ```sh
-git clone --branch v0.1.0-e32v2-beta.3 https://github.com/dielessen/open_thermostat.git
+git clone --branch v0.1.0-e32v2-beta.4 https://github.com/dielessen/open_thermostat.git
 ```
 
 <!-- openthermostat-readme-releases:end -->
 
-Published packages and installation acceptance are tracked separately. The last
-recorded, independently checked installation is E32 beta.1 with HA 0.4.0b1;
-beta.3 installation acceptance is still pending. Publication does not enable
-physical heating.
+Published packages and installation acceptance are tracked separately. E32 beta.4
+has been installed and independently checked with HA0.4.0b1. A subsequent
+attended zero-demand trial received later stop feedback; positive heating and
+physical commissioning remain open.
 
-**Next release:** E32 beta.4 is in preparation, with explicit web-session
-recovery, 30-minute idle expiry, a local fallback boiler illustration and a
-read-only heating-settings overview. It is not frozen or published. These
-changes require no new HA package. The prepared settings editor remains disabled
-in the standard firmware. [Current release work](https://github.com/dielessen/open_thermostat/blob/review/mark-vscode-20261021/docs/modern-thermostat/NEXT-RELEASE.nl.md).
+**Next release:** E32 beta.5 is in preparation. It consolidates boiler entities
+and settings on Boiler test, distinguishes entity access and improves update
+error diagnostics. The owner-requested trial extension to50°C for ten minutes
+is being verified; it requires new firmware and is not installed. Automatic
+control and persistent settings writes remain disabled. No new HA package is
+required. [Current release work](docs/modern-thermostat/NEXT-RELEASE.nl.md).
 
 ## Features
 
@@ -78,7 +79,7 @@ are visible, but physical valve commands and fresh causal feedback remain open.
 | Classic and EMS Plus | Decoder foundations **available**; field coverage is model dependent. This is not full EMS-ESP parity. |
 | Boiler values in HA | **Available:** 69 Classic field definitions, quality and source age, with an overview and three history charts. Reported and derived values stay separate. |
 | Data quality | **Available:** measured, derived, stale, unreliable and unavailable values remain distinguishable. |
-| Boiler diagnostics | Passive reception, protocol information, counters and report download **available**. Active trial controls remain blocked. |
+| Boiler diagnostics | Passive reception, protocol information, counters and report download **available**. A separate attended Classic trial is available in beta.4 (40–45°C, at most60seconds). |
 | Heating demand, modulation and weather compensation | Calculations and policies **prepared**. Physical EMS control, full outside-source setup, flow conditions and installation tests remain open. |
 | Boiler settings | Writable-entity metadata is inventoried. Four Classic settings have a guarded source implementation: heating enabled, heating temperature, minimum burner period and pump delay. **Physical writes remain disabled.** This does not provide all writable EMS-ESP entities. |
 | Domestic hot water | **Readout where supported.** Model-specific control is planned. |
@@ -89,10 +90,10 @@ the controller's intention. Neither proves that a command was sent or accepted.
 The current Ecomline Classic installation has no digital pressure sensor; no
 synthetic pressure reading is substituted.
 
-**In development for E32 beta.4:** an attended Ecomline Classic commissioning
+**Available in E32 beta.4:** an attended Ecomline Classic commissioning
 trial with a zero-demand baseline, fresh boiler-gauge input and bounded heat
 demand, plus a scrollable Bluetooth discovery list for up to 128 addresses.
-These changes are not yet published; see the [draft release notes](docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.en.md).
+See the [published beta.4 release](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-beta.4).
 
 ### Home Assistant and daily use
 

@@ -9,16 +9,16 @@ struct EcomlineCommissioning:testing::Test {
     ClassicBoilerMonitor monitor;
     BoilerTestService service=EcomlineCommissioningProfile::service(42,true);
     std::string owner=std::string(64,'a');uint64_t now=100;
-    void fast(uint64_t at) {
+    void fast(uint64_t at,uint16_t tenths=200) {
         // No digital pressure byte. Reported zero flow demand, modulation and
         // CV/DHW state; the measured water temperature is 20 C.
-        monitor.receive({EmsTelegram::BROADCAST,8,0,0,0x18,{0,0,200,80,0,0}},at);
+        monitor.receive({EmsTelegram::BROADCAST,8,0,0,0x18,{0,uint8_t(tenths>>8),uint8_t(tenths),80,0,0}},at);
     }
     void SetUp()override{fast(now);monitor.receive({EmsTelegram::BROADCAST,8,0,0,0x16,{255,80}},now);}
-    auto gates(){return EcomlineCommissioningProfile::gates(monitor,now,true);}
+    auto gates(){return EcomlineCommissioningProfile::gates(monitor,now,true,service.heating());}
     std::string scope(){return "{\"schema\":1,\"boot_id\":\"000000000000002a\",\"revision\":1";}
-    std::string heat(std::string pressure="15") {
-        return scope()+",\"flow_c\":40,\"duration_s\":10,\"exclusive_owner_confirmed\":true,\"independent_stop_confirmed\":true,\"heat_path_confirmed\":true,\"pressure_check_confirmed\":true,\"pressure_decibar\":"+pressure+"}";
+    std::string heat(std::string pressure="15", int target=40, int seconds=10) {
+        return scope()+",\"flow_c\":"+std::to_string(target)+",\"duration_s\":"+std::to_string(seconds)+",\"exclusive_owner_confirmed\":true,\"independent_stop_confirmed\":true,\"heat_path_confirmed\":true,\"pressure_check_confirmed\":true,\"pressure_decibar\":"+pressure+"}";
     }
     auto action(const char* name,const std::string& body){return service.action(name,body,owner,now,gates(),monitor);}
     auto transmit(BoilerTestSession::Command expected) {
@@ -78,6 +78,75 @@ TEST_F(EcomlineCommissioning, GaugeExpiresDespiteKeepalivesAndDuplicateRequestsN
     EXPECT_NE(action("start",scope()+"}").http,202);
     EXPECT_EQ(service.next(now,gates(),monitor).command,BoilerTestSession::Command::zero);
 }
+
+TEST_F(EcomlineCommissioning, FiftyDegreesIsRepeatedForTenMinutesThenZeroAndLaterStopAreRequired) {
+    // Settings almost ten minutes old are admitted once, then retained only
+    // for this finite run. Live feedback and supervision stay fresh throughout.
+    now=599000;fast(now);
+    ASSERT_EQ(action("prepare",heat("20",50,600)).http,202);
+    transmit(BoilerTestSession::Command::zero);++now;fast(now);service.tick(now,gates(),monitor);
+    ASSERT_EQ(action("start",scope()+"}").http,202);
+    const auto started=now;
+    for(uint64_t elapsed=1;elapsed<600000;elapsed+=1001) {
+        now=started+elapsed;fast(now,500);
+        ASSERT_EQ(action("keepalive",scope()+"}").http,202);
+        ASSERT_TRUE(service.heating())<<elapsed;
+        const auto intent=transmit(BoilerTestSession::Command::positive);
+        EXPECT_EQ(intent.flowC,50);
+    }
+    now=started+600000;fast(now);service.tick(now,gates(),monitor);
+    EXPECT_FALSE(service.heating());
+    transmit(BoilerTestSession::Command::zero);
+    EXPECT_TRUE(service.active()); // Transmission is not later stop feedback.
+    ++now;fast(now);service.tick(now,gates(),monitor);
+    EXPECT_FALSE(service.active());
+    EXPECT_EQ(service.next(now,gates(),monitor).command,BoilerTestSession::Command::none);
+    EXPECT_NE(action("start",scope()+"}").http,202); // No restart/extension.
+}
+TEST_F(EcomlineCommissioning, TenMinuteRequestStillStopsOnLostSupervision) {
+    ASSERT_EQ(action("prepare",heat("20",50,600)).http,202);
+    transmit(BoilerTestSession::Command::zero);++now;fast(now);service.tick(now,gates(),monitor);
+    ASSERT_EQ(action("start",scope()+"}").http,202);
+    const auto started=now;
+    for(unsigned elapsed=1000;elapsed<=180000;elapsed+=1000) {
+        now=started+elapsed;fast(now,500);
+        ASSERT_EQ(action("keepalive",scope()+"}").http,202);
+    }
+    ASSERT_TRUE(service.heating()); // Gauge does not abort an admitted run at2min.
+    now+=5000;fast(now);service.tick(now,gates(),monitor);
+    EXPECT_FALSE(service.heating());
+    transmit(BoilerTestSession::Command::zero);
+    ++now;fast(now);service.tick(now,gates(),monitor);
+    EXPECT_FALSE(service.active());
+}
+
+TEST_F(EcomlineCommissioning, ExplicitStopWithdrawsLongDemandBeforeDeadline) {
+    ASSERT_EQ(action("prepare",heat("20",50,600)).http,202);
+    transmit(BoilerTestSession::Command::zero);++now;fast(now);service.tick(now,gates(),monitor);
+    ASSERT_EQ(action("start",scope()+"}").http,202);
+    transmit(BoilerTestSession::Command::positive);
+    ASSERT_EQ(action("stop",scope()+"}").http,202);
+    transmit(BoilerTestSession::Command::zero);
+    ++now;fast(now);service.tick(now,gates(),monitor);
+    EXPECT_FALSE(service.active());
+}
+TEST_F(EcomlineCommissioning, WarmWaterWithinTrialWindowCanReceiveLowerTargetButCutoffStillWithdraws) {
+    ++now;fast(now,540);ASSERT_TRUE(EcomlineCommissioningProfile::inspect(monitor,now).ready);
+    ASSERT_EQ(action("prepare",heat("20",50,600)).http,202);
+    transmit(BoilerTestSession::Command::zero);++now;fast(now,540);service.tick(now,gates(),monitor);
+    ASSERT_EQ(action("start",scope()+"}").http,202);
+    transmit(BoilerTestSession::Command::positive);
+    ++now;fast(now,600);service.tick(now,gates(),monitor);
+    EXPECT_FALSE(service.heating());
+    transmit(BoilerTestSession::Command::zero);
+}
+
+TEST_F(EcomlineCommissioning, LongTrialRejectsExcessDurationAndTemperature) {
+    EXPECT_EQ(action("prepare",heat("20",50,601)).http,400);
+    EXPECT_EQ(action("prepare",heat("20",51,600)).http,409);
+    EXPECT_FALSE(service.active());
+}
+
 TEST_F(EcomlineCommissioning, CompiledOffTransportLossAndWrongFamilyRemainClosed) {
     auto disabled=EcomlineCommissioningProfile::service(42,false);
     EXPECT_EQ(disabled.action("prepare",heat(),owner,now,gates(),monitor).http,409);

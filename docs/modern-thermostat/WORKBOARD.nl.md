@@ -8,15 +8,19 @@ De oudere voortgangsnotities blijven ongewijzigd in de
 
 ## Actieve handmatige proefbèta heeft nu voorrang
 
-Configuratie-uitlezing en nulvraag met gemelde stop zijn op beta.4 waargenomen.
-De laatste knopdiagnose toont75 °C en afgeleid tapwaterbedrijf; positieve warmte
-blijft geblokkeerd. Beta.5 bereidt duidelijkere knopvoorwaarden en GitHub-
-verbindingsdiagnostiek voor. Alle entiteiten, instelbaarheid en protocolreferenties
-komen samen op Keteltest; de aparte EMS-apparatenmenuoptie vervalt. De volledige
-catalogus blijft bereikbaar, ook zonder herkend product-ID. Geen nieuwe
-publicatie/installatie of fysieke proef
-uitgevoerd in die ontwikkelstap. Algemene ketel-/kraanuitvoer en blijvende
-instellingenwrites blijven uit. [Actuele knoppenwaarneming](BETA4-TEST-BUTTONS-20261026.json).
+De bijgewoonde beta.4-nulvraagproef is op opdracht uitgevoerd: één
+configuratieleesopdracht, zeven nulframes en een latere gemelde stop. Aanvoer54°C;
+geen positieve vraag gestart. [Bewijs](BETA4-ATTENDED-ZERO-20261026.json).
+De gebruiker vraagt vervolgens50°C gedurende tien minuten. Beta.5 ondersteunt
+hiervoor40–50°C/maximaal600s, standaard50°C/600s, met een gemeten-watergrens
+van5–<60°C, verse voorwaarden vóór start, vijfseconden-toezicht en een vaste
+warmtedeadline. De nagebootste tienminutenproef bewijst softwaregedrag; nieuwe
+firmware moet eerst worden geïnstalleerd voor een echte langere warmteproef.
+
+Beta.5 bundelt ook duidelijkere knopvoorwaarden, GitHub-verbindingsdiagnostiek
+en alle entiteiten, instelbaarheid en protocolreferenties op Keteltest. De
+volledige catalogus blijft bereikbaar, ook zonder herkend product-ID. Algemene
+ketel-/kraanuitvoer en blijvende instellingenwrites blijven uit.
 
 De 31 producteisen en 14 gezamenlijke productaftekeningen hieronder blijven behouden.
 De beta.4-software/installatie is afzonderlijk geaccepteerd; dit vinkt niet de

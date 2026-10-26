@@ -10,6 +10,7 @@
   "installed": false,
   "physical_trial_executed": false,
   "changes": [
+    "Support an explicitly started attended50C/600s demand, with repeated setpoints, fixed deadline, five-second supervision and later stop feedback; default50C/600s",
     "Consolidate received entities, guarded settings editor and all device/telegram references into Boiler test; retain old page links as aliases",
     "Expose read-only, configurable and command access separately from actual E32 support and permission; all258 pinned boiler definitions remain searchable/filterable",
     "Explain missing site confirmations at the settings-read and zero-test buttons",
@@ -17,10 +18,27 @@
     "Distinguish failed update check from failed firmware installation",
     "Capture transport/TLS/HTTP/transfer error codes and only allowlisted host names; no signed URL or SDK error text disclosure"
   ],
-  "limits_unchanged": true,
+  "limits_unchanged": false,
   "https_root_cause_proven_fixed": false,
   "accepted_predecessor_receipt": "docs/modern-thermostat/update-acceptance/e32-beta4-20261026.json",
   "evidence_directory": "out/post-beta4-control-guidance",
   "release_notes": "docs/modern-thermostat/RELEASE-NOTES.md",
-  "ems_access_review": "docs/modern-thermostat/EMS-ENTITY-ACCESS-REVIEW.en.md"
+  "ems_access_review": "docs/modern-thermostat/EMS-ENTITY-ACCESS-REVIEW.en.md",
+  "requested_trial": {
+    "target_flow_c": 50,
+    "duration_seconds": 600,
+    "maximum_measured_flow_c_exclusive": 60,
+    "supervision_lease_ms": 5000,
+    "requires_new_firmware": true
+  },
+  "zero_trial_evidence": "docs/modern-thermostat/BETA4-ATTENDED-ZERO-20261026.json",
+  "trial_evidence_directory": "out/boiler-trial-readiness",
+  "trial_local_verification": {
+    "native_cases_passed": 1170,
+    "control_browser_viewports_passed": 3,
+    "e32_build": "PASS",
+    "filesystem_build": "PASS",
+    "board_verifier": "PASS",
+    "positive_heat_executed": false
+  }
 }

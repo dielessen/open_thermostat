@@ -1,0 +1,218 @@
+{
+  "schema": 1,
+  "date": "2026-10-26",
+  "scope": "Owner-authorized attended configuration read and zero-demand trial on installed beta.4",
+  "installed_version": "v0.1.0-e32v2-beta.4",
+  "source_commit": "9ecb4da0f052b82efb99cdda75679ba67d3299ac",
+  "operator_declarations": {
+    "tado_disconnected": true,
+    "gauge_bar": 2,
+    "present_with_independent_local_stop": true,
+    "open_radiators": "Previously stated installation; not newly measured"
+  },
+  "configuration_read": {
+    "schema": 1,
+    "boot_id": "366565c127c7f1df",
+    "revision": 2,
+    "available": false,
+    "active": false,
+    "phase": "completed",
+    "withdrawn": false,
+    "reason": "configuration_received",
+    "clock": "boot_monotonic_ms",
+    "observed_at_ms": 4775411,
+    "emitted_at_ms": 4762565,
+    "response_at_ms": 4762582,
+    "physical_validation": false
+  },
+  "test": {
+    "schema": 1,
+    "boot_id": "366565c127c7f1df",
+    "revision": 2,
+    "state_sequence": 32,
+    "observed_at_ms": 4775411,
+    "available": false,
+    "site_confirmation_required": true,
+    "pressure_check_required": true,
+    "pressure_check_confirmed": false,
+    "can_close_fault": false,
+    "restart_required": false,
+    "zero_test_available": true,
+    "can_prepare_zero": true,
+    "zero_only": true,
+    "operator_lease_ms": 5000,
+    "blocked_reason": "proving_conditions_missing",
+    "phase": "completed",
+    "reason": "reported_stop_confirmed",
+    "owned": true,
+    "can_prepare": false,
+    "can_start": false,
+    "can_stop": false,
+    "transmission_in_flight": false,
+    "clock": "boot_monotonic_ms",
+    "stop_reference_emitted_at_ms": 4765266,
+    "reported_stop_confirmed": true,
+    "positive_frames": 0,
+    "zero_frames": 7,
+    "operator_remaining_ms": 3057,
+    "heat_remaining_ms": 0,
+    "requested_flow_c": null,
+    "limits": {
+      "minimum_flow_c": 40,
+      "maximum_flow_c": 45,
+      "maximum_duration_s": 60,
+      "operator_lease_ms": 5000
+    },
+    "pressure_reading_required": true,
+    "pressure_reading_limits": {
+      "minimum_decibar": 11,
+      "maximum_decibar": 25
+    },
+    "operator_pressure_observation": null,
+    "physical_validation": false
+  },
+  "initial_transmitted_frames": 3,
+  "final_transmitted_frames": 11,
+  "initial_selected_flow_c": 0,
+  "initial_modulation_percent": 0,
+  "final_flow_c": 54,
+  "result": "ZERO_COMMANDS_AND_LATER_REPORTED_STOP_CONFIRMED",
+  "positive_heat_executed": false,
+  "physical_stop_from_running_burner_proven": false,
+  "autonomous_stop_on_controller_failure_proven": false,
+  "next_requested_trial": {
+    "target_flow_c": 50,
+    "duration_seconds": 600,
+    "requires_new_firmware": true
+  },
+  "evidence": [
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/before.json",
+      "sha256": "01d103d5164682e20a307d63e604522ba7ddcab8aa18e90158d0af6d7f7cad9a"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/samples/010.json",
+      "sha256": "c3fbcceb584fc5a25dc0839ca891b389ff19c90ab271846c549beaf42ddd7465"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/001-read_configuration-intent.json",
+      "sha256": "ba019bb0557353cda09d774de157a946f47eb5ad160ab8e677756a2bfc6a4a31"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/002-prepare_zero-intent.json",
+      "sha256": "901e69298a26d766dac18e420639bb3c922b2ee6a9020f25e361899ca0b9f7d6"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/003-keepalive-intent.json",
+      "sha256": "2563b3e9bc4e23f084744031423691f7b02d1e749545ef61ac847efb95ffd4b3"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/004-keepalive-intent.json",
+      "sha256": "f0cbff194964dc8479ebc46d1698b1e62da8342d13de6dca9595f99630bd0989"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/005-keepalive-intent.json",
+      "sha256": "74b3899cd6867ccaf0e4601fe28128258242a61b3da52ba3c2f5cc764f7182aa"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/006-keepalive-intent.json",
+      "sha256": "de61643a1f0cc6c3d28364e3a46f7c6dd46bd0dbda0b884876fec69acea12927"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/007-keepalive-intent.json",
+      "sha256": "353243ad03e238835f0a40b84f23bda9fb3a33a898cbe5130656c612709d1982"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/008-keepalive-intent.json",
+      "sha256": "ee606df65699e8c1780af6db6ccf9469d339a48909025d4e3a2c391f3fa1929a"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/009-keepalive-intent.json",
+      "sha256": "8bd82b04aa39dcdd242902cc1092a087726238f4aa42a5e5c089bbaced2c6d75"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/010-keepalive-intent.json",
+      "sha256": "d47b56aa5008cac53b2632862e4f54df7b1aefd2f444559e9b73a3f45435d760"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/001-read_configuration-receipt.json",
+      "sha256": "bd48a260f1386af83a157ec43b61280a8a1b9a2ea23fb923ded31a41e0efa423"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/002-prepare_zero-receipt.json",
+      "sha256": "fd9af6d9019085200b6b42e3fc9066a9883f7b69fb692d83f45f311b05dbfc01"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/003-keepalive-receipt.json",
+      "sha256": "330cbc6eefc94712e21c85dbd2af3686268ed284df559bf035030fad3166b584"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/004-keepalive-receipt.json",
+      "sha256": "a5afdbdab98b8c8b7edea55ec9a40e1bb376b3dcafab4911aaad815e2d04f89a"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/005-keepalive-receipt.json",
+      "sha256": "4947d42f21cd1215a6749b7555ae73f72c5f407be70f719b7941d73fa2c1b59b"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/006-keepalive-receipt.json",
+      "sha256": "acde0c685b5d14a7d8977304e32e0d249bf9c75491b33c418c54e01b909cb21b"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/007-keepalive-receipt.json",
+      "sha256": "fe467f6bfb26957a2eb8bd30973c35796b082280f4af375bba2768954cb32144"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/008-keepalive-receipt.json",
+      "sha256": "78da847c64ddd4885a552d728a2ec7e75dfec27ed4cfedbc392cbed4c3ec6c3a"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/009-keepalive-receipt.json",
+      "sha256": "734e3937c1b27633697941e080fb574d627eeb7230d88c7aa0c82875b6839a5d"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/010-keepalive-receipt.json",
+      "sha256": "ed18f6bc02e40c776434eda64c99d378c6bc8981bd99bf4247bf8a611832b9c1"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/001-read_configuration-response.json",
+      "sha256": "dc9cf7ee998931d2abc17ab13ac6cae9c45e777d0b22bd2513f8fe4fc8324e29"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/002-prepare_zero-response.json",
+      "sha256": "8b5564040994bf4f4a423187a4d4fe8962455f2cdd2f257598ffd1d44feccd58"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/003-keepalive-response.json",
+      "sha256": "9f4b2d5abcc9e8443696fe6c85c9ad0f90e59e298692ca28b2f1cc60ad5d4f18"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/004-keepalive-response.json",
+      "sha256": "7c9dcc9ba46d63d1daa98b7a50b741dfefee21b71e81962993c9190610846d4a"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/005-keepalive-response.json",
+      "sha256": "23055e09c2ea9a18a554ece3cea4ff4661458af1986fba04336cf676ae51cc63"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/006-keepalive-response.json",
+      "sha256": "5902186a23a5ba62d1da11d0b78d09f0b03894b07ee9d6bcf4f49db640430c13"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/007-keepalive-response.json",
+      "sha256": "122a3ed8ffc54c693966c3dd79c9d186638f46b7975f063eedfcb3da213e930f"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/008-keepalive-response.json",
+      "sha256": "028d430573c7008ce60b384fe647973b0b6fe39e98c2da7af2060ff09e84aa00"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/009-keepalive-response.json",
+      "sha256": "893f0be806691a31eef1a44f59ad578f15586d537e0444ade35418bd8981bb30"
+    },
+    {
+      "path": "out/boiler-trial-readiness/execution/20261026T224439241892Z/010-keepalive-response.json",
+      "sha256": "de442f36a89d082e6bd954ed63d71fcd10c79f1cd9c38068978008d4bacaa505"
+    }
+  ]
+}

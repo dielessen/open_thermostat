@@ -12,6 +12,7 @@ namespace heating::ems {
 // In particular, selecting this policy cannot unlock Board::emsTransmitAllowed.
 class BoilerTestSession {
 public:
+    static constexpr uint32_t maximumTrialMs = 600000;
     enum class Phase { idle, baseline, ready, heating, stopping, completed, fault, closed };
     enum class Command { none, zero, positive };
     enum class Reply { accepted, duplicate, refused };
@@ -36,7 +37,7 @@ public:
         }
         bool valid() const {
             return validForZero() && minimumFlowC >= 5 && maximumFlowC > minimumFlowC && maximumFlowC <= 90
-                && maximumHeatMs >= 1000 && maximumHeatMs <= 120000;
+                && maximumHeatMs >= 1000 && maximumHeatMs <= maximumTrialMs;
         }
     };
     struct Gates {

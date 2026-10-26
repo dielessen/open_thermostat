@@ -16,15 +16,15 @@ struct EcomlineCommissioningProfile {
     static BoilerTestService service(uint64_t boot, bool transmitterCompiled) {
         return {boot, transmitterCompiled, ClassicHeatTrialEnvelope::profile(), true, true, true, true};
     }
-    static ClassicHeatTrialEnvelope::Check inspect(const ClassicBoilerMonitor& monitor, uint64_t now) {
+    static ClassicHeatTrialEnvelope::Check inspect(const ClassicBoilerMonitor& monitor, uint64_t now, bool heatInProgress = false) {
         return ClassicHeatTrialEnvelope::inspect(monitor, now,
-            ClassicHeatTrialEnvelope::PressureSource::separateCheck, boilerGaugeProcedureSupported);
+            ClassicHeatTrialEnvelope::PressureSource::separateCheck, boilerGaugeProcedureSupported, heatInProgress);
     }
-    static BoilerTestSession::Gates gates(const ClassicBoilerMonitor& monitor, uint64_t now, bool transportReady) {
+    static BoilerTestSession::Gates gates(const ClassicBoilerMonitor& monitor, uint64_t now, bool transportReady, bool heatInProgress = false) {
         BoilerTestSession::Gates result;
         result.transmitterReviewed = transportReady && monitor.capabilities().profile() == BoilerProtocol::classic;
         result.pathReady = attendedTrialEnabled;
-        result.limitsSafe = inspect(monitor, now).ready;
+        result.limitsSafe = inspect(monitor, now, heatInProgress).ready;
         // Site/pressure declarations belong to the service's accepted request.
         // Never fabricate exclusive ownership or an independent stop here.
         return result;

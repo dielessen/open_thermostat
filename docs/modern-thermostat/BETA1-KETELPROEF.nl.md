@@ -10,6 +10,14 @@ Dit actualiseert de eerdere tekst “nog geen proef”: de nulvraag is nu in sof
 als afgerond gezien; fysieke waarneming en positieve warmte-/stopproef blijven open.
 
 
+**Daarna werkelijk uitgevoerd op opdracht:** de CV-instellingen zijn opnieuw
+uitgelezen en de nulvraagproef is met latere stopmelding voltooid. De aanvoer
+bleef54°C; er is geen positieve warmtevraag verstuurd. De gebruiker heeft daarna
+50°C voor tien minuten gevraagd. Dat vereist de gewijzigde beta.5-proefsoftware;
+de onderstaande beta.4-grenzen beschrijven de geïnstalleerde versie.
+[Uitvoeringsbewijs](BETA4-ATTENDED-ZERO-20261026.json) en
+[actuele vervolgstap](NEXT-RELEASE.nl.md#actuele-proef-nulvraag-uitgevoerd-tien-minuten-warmte-gevraagd).
+
 ## Actuele beta.4-voorbereiding: bediende commissioningproef
 
 Beta.4 is gepubliceerd, native geïnstalleerd en onafhankelijk geaccepteerd op

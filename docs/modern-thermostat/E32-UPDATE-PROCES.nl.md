@@ -1,5 +1,20 @@
 # Verplicht update- en acceptatieproces per E32-release
 
+**Actuele opdracht 26 oktober, na bewijsherstel:** de eigenaar vraagt expliciet
+beta.4 uit te brengen en te installeren ondanks ontbrekende historische beta.3-
+receipts. Twee directe lezingen bevestigen de exacte openbare beta.3, dezelfde
+boot met oplopende uptime (36.112 → 36.117 s), bevestigd boot-slot en nul E32-TX.
+De gebruiker heeft geen vooraf bewaarde back-up of installatieverslag.
+[Herstelde toestand](BETA3-RECOVERED-STATE-20261026.json) blijft voor volledige
+historische acceptatie INCOMPLETE. De [eigenaarsopdracht](BETA4-OWNER-INSTRUCTION-20261026.json)
+activeert één publicatie-uitzondering voor beta.4; beta.1-acceptatie blijft bewaard.
+De definitieve tag wordt volledig gecontroleerd. Vóór de gevraagde installatie
+worden een verse back-up en de oorspronkelijke beta.4-responsen vastgelegd;
+daarna volgt de onafhankelijke nacontrole. Er is geen ketelproef uitgevoerd of
+met deze installatieopdracht toegestaan. Oudere blokkades hieronder zijn
+historische checkpoints en worden door deze expliciete opdracht opgevolgd.
+
+
 De volgende reguliere release mag pas worden gepubliceerd als de vorige E32-
 release via de normale GitHub-updater is geïnstalleerd en onafhankelijk
 gecontroleerd. Een build, HTTP202, volledige uploadbalk of opgeslagen
@@ -12,6 +27,17 @@ De actuele machineleesbare stand staat in `E32-UPDATE-GATE.json`.
 is vastgelegd, niet dat eerdere updates nooit gelukt zijn. De actuele geaccepteerde
 versie is beta.1, met vastgelegd oorspronkelijk installatie- en nacontrolebewijs.
 Een volgende pending-versie mag pas na haar eigen echte nacontrole worden geaccepteerd.
+
+## Apart conceptvoorstel voor ontbrekend beta.3-bewijs
+
+Op de afzonderlijke voorstelbranch staat een [eenmalig uitzonderingsvoorstel](E32-PUBLICATION-EXCEPTION-PROPOSAL.en.md).
+Het concept is niet goedgekeurd en wijzigt geen installatieacceptatie. De
+normale regel hierboven blijft van kracht. Alleen een expliciete besluittekst
+van de eigenaar zou één beta.4-voorrelease kunnen toestaan, met beta.3 nog
+steeds INCOMPLETE en beta.1 als laatste echte acceptatie. Het voorstel geeft
+geen toestemming voor een apparaatinstallatie of ketelproef. Alle bestaande
+software-/pakketcontroles blijven vereist. Een algemeen verzoek om verder te
+werken geldt niet als die goedkeuring.
 
 ## Actuele opdracht: alleen beta.3-nacontrole
 

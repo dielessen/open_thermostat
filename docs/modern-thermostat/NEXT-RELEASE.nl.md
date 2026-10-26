@@ -1,13 +1,52 @@
 # Volgende gezamenlijke bèta — actueel uitvoeringsplan
 
+**Actuele opdracht 26 oktober, na bewijsherstel:** de eigenaar vraagt expliciet
+beta.4 uit te brengen en te installeren ondanks ontbrekende historische beta.3-
+receipts. Twee directe lezingen bevestigen de exacte openbare beta.3, dezelfde
+boot met oplopende uptime (36.112 → 36.117 s), bevestigd boot-slot en nul E32-TX.
+De gebruiker heeft geen vooraf bewaarde back-up of installatieverslag.
+[Herstelde toestand](BETA3-RECOVERED-STATE-20261026.json) blijft voor volledige
+historische acceptatie INCOMPLETE. De [eigenaarsopdracht](BETA4-OWNER-INSTRUCTION-20261026.json)
+activeert één publicatie-uitzondering voor beta.4; beta.1-acceptatie blijft bewaard.
+De definitieve tag wordt volledig gecontroleerd. Vóór de gevraagde installatie
+worden een verse back-up en de oorspronkelijke beta.4-responsen vastgelegd;
+daarna volgt de onafhankelijke nacontrole. Er is geen ketelproef uitgevoerd of
+met deze installatieopdracht toegestaan. Oudere blokkades hieronder zijn
+historische checkpoints en worden door deze expliciete opdracht opgevolgd.
+
+
 Bijgewerkt op 26 oktober 2026. Status: **softwarecontrole geslaagd; publicatie
 wacht op beta.3-installatieacceptatie**. Er is nog geen echte ketelproef uitgevoerd.
 Dit document beschrijft het volgende werk; het [werkbord](WORKBOARD.nl.md)
 bewaakt alle 31 producteisen en 14 eindcontroles. De
 [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bewaakt alle 23 voorbereide
-onderdelen en hun 465 bronverwijzingen. De
+onderdelen en hun 468 bronverwijzingen. De
 [volledige voortgangshistorie](NEXT-RELEASE-HISTORY-20261026.nl.md) blijft bewaard;
 oude versies en aantallen daarin zijn historische checkpoints.
+
+## Eenmalige publicatie-uitzondering — alleen concept
+
+Deze aparte voorstelbranch voegt een [beoordeelbaar concept](E32-PUBLICATION-EXCEPTION-PROPOSAL.en.md)
+toe voor het ontbrekende historische beta.3-bewijs. Het voorstelrecord is
+`DRAFT_NOT_APPROVED`; de actieve uitzondering is null. Beta.3 blijft pending,
+beta.1 blijft geaccepteerd, en publicatie/installatie/proef zijn niet uitgevoerd.
+De bronpoort controleert nu ook de laatst gepubliceerde voorganger uit het
+kandidaatplan, zodat alleen een gewijzigde pending-tag de ontbrekende
+acceptatie niet kan overslaan. Een echte eenmalige uitzondering vereist eerst
+een expliciete, vastgelegde eigenaarsbeslissing en daarna volledige kandidaat-
+en tagcontrole.
+
+## Apart versievoorstel — geen publicatie
+
+Deze branch `release/e32v2-beta4-candidate` bereidt een **conceptkandidaat met
+versienummer beta.4** voor. Hij is gebaseerd op het volledig gecontroleerde
+ontwikkelcheckpoint en wordt afzonderlijk via CI en het werkelijke pakket
+gecontroleerd. Dit voorstel is nog niet samengevoegd met de ontwikkelbranch.
+
+De ontwikkelbranch houdt haar bestaande versie; de updatepoort houdt beta.3
+pending en beta.1 geaccepteerd. Er is geen tag, publicatie, installatie of
+ketelproef uitgevoerd. De beta.4-voorstelbuild vervangt geen openbare beta.3.
+De uiteindelijke freeze en publicatie wachten nog op de vorige acceptatie.
 
 ## Doel en afbakening
 
@@ -683,8 +722,9 @@ volledig gecontroleerd. Bronartefacten met nog beta.3 als ontwikkelversie zijn
 geen nieuwe release of installatiedoel en vervangen de bestaande beta.3-assets niet.
 
 Beta.3 staat nog pending in de updatepoort. Tot echte installatie en onafhankelijke
-nacontrole zijn vastgelegd blijven release.json, pending_tag en de openbare tags
-ongewijzigd. Gewoon bronwerk, conceptnotities en CI gaan door; een beta.4-freeze
+nacontrole zijn vastgelegd blijven de versie van de ontwikkelbranch, pending_tag
+en de openbare tags ongewijzigd. Alleen de afzonderlijke, nog niet samengevoegde
+conceptbranch hierboven bevat alvast het beta.4-versievoorstel. Gewoon bronwerk, conceptnotities en CI gaan door; een beta.4-freeze
 of publicatie wordt niet als gereed afgetekend. De gebruiker heeft aangegeven
 zelf te installeren; in deze stap worden geen apparaatmutaties uitgevoerd.
 

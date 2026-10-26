@@ -1,0 +1,234 @@
+{
+  "schema": 1,
+  "date": "2026-10-26",
+  "status": "INCOMPLETE",
+  "scope": "Recovered current beta.3 state; full historical installation acceptance remains incomplete",
+  "current_e32_state": "PASS",
+  "independent_review": "RUNNING_SEPARATELY",
+  "observations": [
+    {
+      "at_utc": "2026-10-26T20:54:48.308049+00:00",
+      "identity": {
+        "project": "arduino-lib-builder",
+        "version": "v0.1.0-e32v2-beta.3",
+        "source": "996587da4a05c8a9de4a25a5b8ab3d9ed4c6f99a",
+        "web_sha256": "d5a4c2ed8d617936bbb38d9dbe3635148aba674eb4d5503f9604cae1478a2682",
+        "date": "Mar  5 2024",
+        "time": "12:36:24",
+        "idf": "v4.4.7-dirty",
+        "sha256": "889d4b6a6288148b5a0559871a06525db5a925c057976280467b23b3cd6f4f47"
+      },
+      "uptime_seconds": 36112,
+      "test_boot_id_sha256": "88804eb3a7b16b0102d833da6d6629209855967e44c471255bf6a474a9e2ba20",
+      "update": {
+        "phase": "checked",
+        "busy": false,
+        "boot_pending": false,
+        "reboot_required": false,
+        "reboot_scheduled": false,
+        "running_partition_address": 3735552,
+        "boot_partition_address": 3735552,
+        "checkpoint_save_failed": false,
+        "error": ""
+      },
+      "last_saved_checkpoint": {
+        "scope": "native_https_install_only",
+        "attempt": 5,
+        "stage": "boot_slot_selected",
+        "from_version": "v0.1.0-e32v2-beta.1",
+        "from_source": "5e3ed30653d93b09dd65b5305accd65d079c0c06",
+        "target_version": "v0.1.0-e32v2-beta.3",
+        "received": 2828000,
+        "total": 2828000,
+        "http_status": 200
+      },
+      "transport": {
+        "enabled": true,
+        "transmit_compiled": false,
+        "poll_count": 34716,
+        "transmitted_frames": 0,
+        "receive_queue_dropped": 0,
+        "invalid_telegrams": 0,
+        "uart_errors": 0,
+        "uart_timeouts": 0,
+        "uart_resets": 0
+      },
+      "test": {
+        "phase": "idle",
+        "positive_frames": 0,
+        "zero_frames": 0,
+        "transmission_in_flight": false,
+        "blocked_reason": "transmit_blocked"
+      },
+      "outputs": {
+        "mode": "shadow",
+        "boiler_output_enabled": false,
+        "actuator_output_enabled": false
+      },
+      "physical_outputs_enabled": false
+    },
+    {
+      "at_utc": "2026-10-26T20:54:53.615865+00:00",
+      "identity": {
+        "project": "arduino-lib-builder",
+        "version": "v0.1.0-e32v2-beta.3",
+        "source": "996587da4a05c8a9de4a25a5b8ab3d9ed4c6f99a",
+        "web_sha256": "d5a4c2ed8d617936bbb38d9dbe3635148aba674eb4d5503f9604cae1478a2682",
+        "date": "Mar  5 2024",
+        "time": "12:36:24",
+        "idf": "v4.4.7-dirty",
+        "sha256": "889d4b6a6288148b5a0559871a06525db5a925c057976280467b23b3cd6f4f47"
+      },
+      "uptime_seconds": 36117,
+      "test_boot_id_sha256": "88804eb3a7b16b0102d833da6d6629209855967e44c471255bf6a474a9e2ba20",
+      "update": {
+        "phase": "checked",
+        "busy": false,
+        "boot_pending": false,
+        "reboot_required": false,
+        "reboot_scheduled": false,
+        "running_partition_address": 3735552,
+        "boot_partition_address": 3735552,
+        "checkpoint_save_failed": false,
+        "error": ""
+      },
+      "last_saved_checkpoint": {
+        "scope": "native_https_install_only",
+        "attempt": 5,
+        "stage": "boot_slot_selected",
+        "from_version": "v0.1.0-e32v2-beta.1",
+        "from_source": "5e3ed30653d93b09dd65b5305accd65d079c0c06",
+        "target_version": "v0.1.0-e32v2-beta.3",
+        "received": 2828000,
+        "total": 2828000,
+        "http_status": 200
+      },
+      "transport": {
+        "enabled": true,
+        "transmit_compiled": false,
+        "poll_count": 34721,
+        "transmitted_frames": 0,
+        "receive_queue_dropped": 0,
+        "invalid_telegrams": 0,
+        "uart_errors": 0,
+        "uart_timeouts": 0,
+        "uart_resets": 0
+      },
+      "test": {
+        "phase": "idle",
+        "positive_frames": 0,
+        "zero_frames": 0,
+        "transmission_in_flight": false,
+        "blocked_reason": "transmit_blocked"
+      },
+      "outputs": {
+        "mode": "shadow",
+        "boiler_output_enabled": false,
+        "actuator_output_enabled": false
+      },
+      "physical_outputs_enabled": false
+    }
+  ],
+  "original_response_references": [
+    {
+      "file": "observation-1-status.json",
+      "bytes": 2698,
+      "sha256": "154c6e103d2ea94e5d5fac8d0112bbeb9610722b6e31ae752a775d91e98f7d17"
+    },
+    {
+      "file": "observation-1-telemetry.json",
+      "bytes": 14961,
+      "sha256": "f483c5b263006ae21a8a03db7058abd532c3cd6f90797fe44d87c9cb4e143bb0"
+    },
+    {
+      "file": "observation-1-updates.json",
+      "bytes": 1205,
+      "sha256": "889e5fca06701facc2e39f169a34c38f83ad8cf02231ff39b48932e0bdd4ff18"
+    },
+    {
+      "file": "observation-1-version.json",
+      "bytes": 341,
+      "sha256": "b827a8fe3ca1b34b67641720fda5c3dca2c7a73d0fc352f2ab2f95ef65e18f5b"
+    },
+    {
+      "file": "observation-2-status.json",
+      "bytes": 2697,
+      "sha256": "4231d263fb7a10df707b68996982168cb81d3ef9845605fda446622df0b16393"
+    },
+    {
+      "file": "observation-2-telemetry.json",
+      "bytes": 14972,
+      "sha256": "ba126de03107267f75e918b42cd4179a0908874be5fc00afbec7e30b9b6a14af"
+    },
+    {
+      "file": "observation-2-updates.json",
+      "bytes": 1205,
+      "sha256": "889e5fca06701facc2e39f169a34c38f83ad8cf02231ff39b48932e0bdd4ff18"
+    },
+    {
+      "file": "observation-2-version.json",
+      "bytes": 341,
+      "sha256": "b827a8fe3ca1b34b67641720fda5c3dca2c7a73d0fc352f2ab2f95ef65e18f5b"
+    },
+    {
+      "file": "session-receipt.json",
+      "bytes": 3573,
+      "sha256": "2fd94742e1b0d29aaffec29bc62caa7d38a4c42c4f10144aeb70038a68588b97"
+    },
+    {
+      "file": "user-provided-updates.json",
+      "bytes": 1686,
+      "sha256": "099bbfee5ae99e6b88467a8e4b60f3ca5fda28960363ae14cefed067c370442f"
+    },
+    {
+      "file": "user-provided-version.json",
+      "bytes": 562,
+      "sha256": "38c0eca5427a8f5d2d2a518139474ef1a4df60e992e7a6a6151024abb8a8028c"
+    },
+    {
+      "file": "user-installation-statement.json",
+      "bytes": 413,
+      "sha256": "92da73f95d1d43999c3d0becb4bdb0a65a27dfce21b4050fb5e9448cab647ca5"
+    }
+  ],
+  "private_evidence_directory": "out/beta3-evidence-recovery",
+  "original_installer_source": [
+    {
+      "commit": "5e3ed30653d93b09dd65b5305accd65d079c0c06",
+      "path": "src/update/UpdateCheckpoint.h",
+      "sha256": "d0abeece291fcc57db1a4f36e2042b08dfe8c91152a58168090319db09517659"
+    },
+    {
+      "commit": "5e3ed30653d93b09dd65b5305accd65d079c0c06",
+      "path": "src/update/GitHubUpdate.cpp",
+      "sha256": "4846dbfd20bb85cf4f86aec1eec17e96492b4c1a43ea5318065769f440af882c"
+    },
+    {
+      "commit": "5e3ed30653d93b09dd65b5305accd65d079c0c06",
+      "path": "src/update/VerifiedOta.h",
+      "sha256": "89af17149631d5ab2a0b261e0e398ad24650e2d9224559231a8f4200a891e657"
+    },
+    {
+      "commit": "5e3ed30653d93b09dd65b5305accd65d079c0c06",
+      "path": "data/html/update.html",
+      "sha256": "b8413679d1cdc9863804ae489bfb0a77c055d3df7963b9aec8de21e9d0ecdfaa"
+    }
+  ],
+  "original_records": {
+    "user_statement": "Nee, ik heb alleen via de updateknop geïnstalleerd",
+    "user_retained_backup_or_installation_report": false,
+    "bounded_local_candidates_searched": 341,
+    "original_beta3_preflight_backup_admission_command_ledger_found": false,
+    "original_ui_persisted_receipts": false
+  },
+  "checkpoint_interpretation": "The native checkpoint corroborates a beta.1 to beta.3 update reaching slot selection; the original installer writes Selected only after successful hash/image/readback/select. attempt5 is a cumulative checkpoint counter, not a beta.3 command count; HTTP200 is download status, not original HTTP202 admission. Current matching image and boot do not recover the original backup, preflight or command ledger.",
+  "acceptance_gate_advanced": false,
+  "physical_trial_executed": false,
+  "read_session": {
+    "login_requests": 1,
+    "logout_requests": 1,
+    "logout_http_status": 200,
+    "session_recovery_requested": false,
+    "update_install_reboot_or_device_commands": 0
+  }
+}

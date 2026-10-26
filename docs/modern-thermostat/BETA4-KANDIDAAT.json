@@ -2,7 +2,7 @@
   "schema": 1,
   "date": "2026-10-26",
   "planned_tag": "v0.1.0-e32v2-beta.4",
-  "state": "PREPARING_NOT_FROZEN",
+  "state": "FROZEN_PENDING_EXACT_TAG_CI",
   "component": "e32_firmware_only",
   "previous_published_tag": "v0.1.0-e32v2-beta.3",
   "unchanged_ha_tag": "ha-v0.4.0b3",
@@ -39,11 +39,11 @@
     "Scrollable Bluetooth discovery for up to 128 received addresses, including unnamed and unsupported devices; eight saved bindings unchanged"
   ],
   "acceptance_before_freeze": [
-    "Actual beta.3 native installation and independent postcheck recorded per E32-UPDATE-PROCES.nl.md",
+    "Owner-approved one-time publication exception retains beta.3 acceptance INCOMPLETE; prospective beta.4 installation requires fresh backup, original receipts and independent postcheck",
     "Previous update acceptance receipt validated before changing pending_tag",
     "Exact final source/version freeze and full CI/public package verification"
   ],
-  "publication_state": "BLOCKED_PENDING_PREDECESSOR_ACCEPTANCE",
+  "publication_state": "OWNER_AUTHORIZED_PENDING_EXACT_TAG_CI",
   "runtime_actions_performed": false,
   "source_ci": {
     "commit": "27bb535c78cc227be9ba1bd2a3fcd1d3775be2ca",
@@ -129,7 +129,7 @@
   "predecessor_installation": {
     "user_reported_tag": "v0.1.0-e32v2-beta.3",
     "reported_on": "2026-10-26",
-    "state": "USER_REPORTED_INSTALLED_INDEPENDENT_ACCEPTANCE_OPEN",
+    "state": "CURRENT_STATE_VERIFIED_HISTORICAL_ACCEPTANCE_INCOMPLETE",
     "independent_postcheck_verified": false,
     "native_update_receipts_collected_in_this_session": false,
     "acceptance_gate_advanced": false,
@@ -148,9 +148,11 @@
     "method_independently_verified": false,
     "readonly_postcheck_instructions": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md#actuele-opdracht-alleen-beta3-nacontrole",
     "readonly_postcheck_result": "INCOMPLETE",
-    "readonly_postcheck_report": "docs/modern-thermostat/BETA3-POSTCHECK-20261026.json",
+    "readonly_postcheck_report": "docs/modern-thermostat/BETA3-RECOVERED-STATE-20261026.json",
     "independent_postcheck_executed": true,
-    "public_assets_and_tag_rechecked": true
+    "public_assets_and_tag_rechecked": true,
+    "direct_current_readback_verified": true,
+    "original_user_backup_or_installation_report_retained": false
   },
   "configuration_read_ui": {
     "withdrawal_labelled": true,
@@ -220,5 +222,27 @@
     "all_four_builds": "PASS",
     "independent_package_checks": 2240,
     "validation_jobs_passed": 9
-  }
+  },
+  "versioned_preview": {
+    "branch": "release/e32v2-beta4-candidate",
+    "base_commit": "b9eecdfdacbeec3ebdd5bd0769ce44bc361a14fb",
+    "version": "v0.1.0-e32v2-beta.4",
+    "state": "CI_PENDING",
+    "merged_into_development": false,
+    "formal_freeze": false,
+    "publication_performed": false,
+    "installation_performed": false,
+    "pending_tag_unchanged": "v0.1.0-e32v2-beta.3",
+    "purpose": "Review a complete versioned beta.4 package before predecessor acceptance permits merging, tagging or publication"
+  },
+  "publication_exception_proposal": {
+    "state": "DRAFT_NOT_APPROVED",
+    "branch": "proposal/e32-beta3-evidence-exception",
+    "scope": "one beta.4 prerelease publication only; beta.3 remains incomplete",
+    "record": "docs/modern-thermostat/BETA3-PUBLICATION-EXCEPTION-PROPOSAL.json",
+    "documentation": "docs/modern-thermostat/E32-PUBLICATION-EXCEPTION-PROPOSAL.en.md",
+    "active_exception": null,
+    "operator_decision_required": true
+  },
+  "owner_instruction": "docs/modern-thermostat/BETA4-OWNER-INSTRUCTION-20261026.json"
 }

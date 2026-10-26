@@ -46,14 +46,14 @@
   "publication": {
     "allowed": false,
     "accepted_predecessor": "v0.1.0-e32v2-beta.1",
-    "pending_tag": "v0.1.0-e32v2-beta.3",
-    "blocker": "Beta.3 installation acceptance remains incomplete: original receipts have not been recovered and the stored E32 session returns HTTP 401; an authenticated read channel is required",
+    "pending_tag": "v0.1.0-e32v2-beta.4",
+    "blocker": "Exact final tag CI and public package verification pending; owner authorized release and installation despite historical beta.3 evidence gap",
     "tag_created": false,
     "release_published": false,
     "device_installation_performed": false,
     "boiler_trial_performed": false,
     "recovery_plan": {
-      "state": "AWAITING_OPERATOR_DIRECTION",
+      "state": "CURRENT_STATE_RECOVERED_OWNER_DIRECTED_BETA4_INSTALL",
       "check_groups": {
         "public_software_reference": [
           "public_package_exact"
@@ -84,10 +84,12 @@
         "Recover original beta.3 records and complete the authenticated read-only postcheck",
         "Prepare a separately reviewable one-time exception proposal; no publication or gate change is authorized by choosing proposal preparation"
       ],
-      "existing_gate_unchanged": true,
+      "existing_gate_unchanged": false,
       "beta3_marked_accepted": false,
-      "exception_approved": false,
-      "policy_source": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md"
+      "exception_approved": true,
+      "policy_source": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md",
+      "owner_instruction": "docs/modern-thermostat/BETA4-OWNER-INSTRUCTION-20261026.json",
+      "current_recovery_report": "docs/modern-thermostat/BETA3-RECOVERED-STATE-20261026.json"
     }
   },
   "storage": {
@@ -104,6 +106,7 @@
     "login_requests": 0,
     "configuration_or_device_commands": 0,
     "http_status": 401,
-    "result": "STORED_SESSION_NOT_AUTHORIZED"
+    "result": "STORED_SESSION_NOT_AUTHORIZED",
+    "scope": "Historical expired-session result; superseded by the authenticated direct observations in BETA3-RECOVERED-STATE-20261026.json"
   }
 }

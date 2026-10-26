@@ -1,5 +1,20 @@
 # OpenThermostat — actueel werkbord en releasechecklist
 
+**Actuele opdracht 26 oktober, na bewijsherstel:** de eigenaar vraagt expliciet
+beta.4 uit te brengen en te installeren ondanks ontbrekende historische beta.3-
+receipts. Twee directe lezingen bevestigen de exacte openbare beta.3, dezelfde
+boot met oplopende uptime (36.112 → 36.117 s), bevestigd boot-slot en nul E32-TX.
+De gebruiker heeft geen vooraf bewaarde back-up of installatieverslag.
+[Herstelde toestand](BETA3-RECOVERED-STATE-20261026.json) blijft voor volledige
+historische acceptatie INCOMPLETE. De [eigenaarsopdracht](BETA4-OWNER-INSTRUCTION-20261026.json)
+activeert één publicatie-uitzondering voor beta.4; beta.1-acceptatie blijft bewaard.
+De definitieve tag wordt volledig gecontroleerd. Vóór de gevraagde installatie
+worden een verse back-up en de oorspronkelijke beta.4-responsen vastgelegd;
+daarna volgt de onafhankelijke nacontrole. Er is geen ketelproef uitgevoerd of
+met deze installatieopdracht toegestaan. Oudere blokkades hieronder zijn
+historische checkpoints en worden door deze expliciete opdracht opgevolgd.
+
+
 Actuele uitvoeringsvolgorde en bundeloverzicht: [volgende gezamenlijke bèta](NEXT-RELEASE.nl.md).
 Alle oudere voortgangsnotities blijven bewaard in de [planhistorie](NEXT-RELEASE-HISTORY-20261026.nl.md).
 
@@ -1084,7 +1099,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-465 bronverwijzingen met hashes, status en resterende acceptatie.
+468 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -1261,7 +1276,7 @@ Alleen programma-ACK of beschikbaarheid van een entiteit sluit M2 niet.
 | --- | --- |
 | [Volgende release](NEXT-RELEASE.nl.md) | Kort overzicht: geïnstalleerd, klaar voor bundel, open vervolg |
 | [Masterplan](PLAN.nl.md) | Alle 31 oorspronkelijke eisen en acceptatievoorwaarden |
-| [Release-inventaris](BETA1-RELEASE-INVENTARIS.json) | Alle 23 onderdelen en 465 gecontroleerde bronverwijzingen |
+| [Release-inventaris](BETA1-RELEASE-INVENTARIS.json) | Alle 23 onderdelen en 468 gecontroleerde bronverwijzingen |
 | [Keteltestplan](BETA1-KETELPROEF.nl.md) | Volgorde van toekomstige stop-/zend-/uitvalproeven |
 | [Pre-TX-kaart](ECOMLINE-PRE-TX-ACCEPTATIE.nl.md) | Nog benodigde installatiegegevens en fysieke voorwaarden |
 | [Installatieverslag](INSTALLATIE-HA37-ALPHA28-20261024.nl.md) | Werkelijk geleverde alpha28/dev37, behoudsbewijs en TV02-diagnosebeperking |

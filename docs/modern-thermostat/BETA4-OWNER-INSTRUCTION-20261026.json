@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "at_utc_recorded": "2026-10-26T21:06:09Z",
+  "actor": "repository_owner",
+  "method": "explicit_user_instruction",
+  "statement": "installeer gewoon beta 4 , waarom is dit ineens zon groot probleem ?",
+  "interpretation": "Proceed with beta.4 release and installation despite missing historical beta.3 receipts, after the owner was told the exact evidence gap. Publication is necessary for the requested native GitHub update.",
+  "candidate_tag": "v0.1.0-e32v2-beta.4",
+  "release_publication_authorized": true,
+  "device_installation_authorized": true,
+  "boiler_trial_authorized": false,
+  "predecessor_acceptance_status": "INCOMPLETE",
+  "prospective_backup_native_single_install_and_independent_postcheck_required": true
+}

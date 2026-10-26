@@ -1,8 +1,9 @@
 # Volgende E32-release — actueel uitvoeringsplan
 
-Bijgewerkt op 26 oktober 2026. **Beta.4 is gepubliceerd, native geïnstalleerd en
+Bijgewerkt op 27 oktober 2026. **Beta.4 is gepubliceerd, native geïnstalleerd en
 onafhankelijk geaccepteerd.** De volgende onderhoudsbron gebruikt beta.5;
-deze is nog niet bevroren, gepubliceerd of geïnstalleerd.
+deze is op expliciete installatieopdracht bevroren voor exacte-tag-CI.
+Publicatie en native installatie volgen pas na de verplichte controles.
 De oudere voorbereidingsnotities staan ongewijzigd in de
 [beta.4-planhistorie](NEXT-RELEASE-HISTORY-BETA4-20261026.nl.md) en de
 [eerdere planhistorie](NEXT-RELEASE-HISTORY-20261026.nl.md).

@@ -59,7 +59,7 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
-          "sha256": "c2145f20a0df4009f533c24f314300a058d6eb1325dbbdbd0e3fbecb36b42dc2"
+          "sha256": "e632d1f2f2ecdce8757eff8579ca2f30a95c4be70d2c24b21d08bcf423f94b05"
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "2a5c079a71a9ce129e12b39715b9f5bad712ecd06c1031d6e2a3090a70e3889a"
+          "sha256": "0d3659d1db321eccd861ca393e6318173410eacf09499e3a385e813c14ed9e61"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -191,7 +191,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-GATE.json",
-          "sha256": "8e99f5a383aba378bb7d38d947fa5f700f8bc81783df474064e767fe3d04d131"
+          "sha256": "4d9a959760ba1219fc6783d0bd31a821ab5e7c4c4cf7bac350f7f548fcf0bb14"
         },
         {
           "path": "docs/modern-thermostat/BETA3-PUBLICATION-EXCEPTION-PROPOSAL.json",

@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "instruction": "ja installeer hem maar",
+  "target_tag": "v0.1.0-e32v2-beta.5",
+  "scope": "Publish the checked beta.5 update if required, then install using the native GitHub updater and verify preservation.",
+  "boiler_trial_started_by_installation": false,
+  "ha_update_requested": false,
+  "trial_request_prepared_separately": {
+    "target_flow_c": 50,
+    "duration_seconds": 600
+  },
+  "limits": "No boiler/valve action, factory erase, SPIFFS replacement, forced rollback or second installation implied."
+}

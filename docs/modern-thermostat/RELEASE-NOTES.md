@@ -1,8 +1,8 @@
 # E32 V2 beta5 — longer attended boiler trial and clearer diagnostics
 <!-- user-release-notes:v2:en -->
 
-Draft maintenance release. Not frozen, published or installed. Beta.4 remains
-the published and accepted installation.
+Adds an attended ten-minute boiler demand and clearer entity/update controls.
+Firmware installation and physical boiler commissioning are verified separately.
 
 ## New
 

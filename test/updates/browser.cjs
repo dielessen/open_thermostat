@@ -93,7 +93,7 @@ const assets=path.resolve(__dirname,'../../data/html');
     http:language==='nl'?'HTTP-fout':'HTTP error',
     transfer:language==='nl'?'onderbroken of onvolledig':'interrupted or incomplete'};
    for(const kind of ['connection','tls','http','transfer']) {
-    sim.download_error={kind,host:'github.com',http_status:kind==='http'?403:kind==='transfer'?200:0,client_code:kind==='http'?0:-1,tls_code:kind==='tls'?-9984:0};
+    sim.download_error={kind,host:'github.com',http_status:kind==='http'?403:kind==='transfer'?200:0,client_code:kind==='http'?0:-1,secure_client_code:kind==='tls'?-9984:0};
     await page.waitForFunction(text=>document.getElementById('releaseStatus').textContent.includes(text),descriptions[kind]);
     assert.match(await page.textContent('#releaseStatus'),language==='nl'?/Updatecontrole mislukt:/ : /Update check failed:/);
     assert.equal(await page.isVisible('#updateDownloadError'),true);
@@ -108,7 +108,7 @@ const assets=path.resolve(__dirname,'../../data/html');
    sim.error='';sim.phase='checked';sim.operation='check';sim.download_error=null;
    await page.waitForFunction(()=>document.getElementById('updateDownloadError').hidden);
    assert.equal(await page.textContent('#updateDownloadError'),'');
-   sim.error='invalid diagnostics';sim.download_error={kind:'connection',host:'github.com/secret?token=value',http_status:0,client_code:-1,tls_code:0};
+   sim.error='invalid diagnostics';sim.download_error={kind:'connection',host:'github.com/secret?token=value',http_status:0,client_code:-1,secure_client_code:0};
    await page.waitForFunction(()=>document.getElementById('checkReleases').disabled);
    assert.ok(!(await page.textContent('#updateDownloadError')).includes('secret'));
    assert.equal(sim.posts.length,0);assert.deepEqual(errors,[]);

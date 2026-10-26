@@ -48,7 +48,7 @@ window.OT_UI_MESSAGES = {
     "Download host:": "Downloadhost:",
     "HTTP response code (0 = no response):": "HTTP-antwoordcode (0 = geen antwoord):",
     "HTTP client error code:": "HTTP-clientfoutcode:",
-    "TLS error code:": "TLS-foutcode:",
+    "Secure client result code:": "Resultaatcode beveiligde client:",
     "Measured flow temperature:": "Gemeten aanvoertemperatuur:",
     "Required for this trial:": "Vereist voor deze proef:",
     "Wait for a valid test and heating-settings read status.": "Wacht op een geldige proef- en uitleesstatus.",

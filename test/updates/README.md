@@ -12,6 +12,16 @@ version and previous-image confirmation are covered. A streamed response that
 sends headers but stalls before the JSON body completes must hit the same
 10-second request deadline. NL/EN regressions shorten only that deadline in the
 fixture; no command is retried and controls require a fresh valid status again.
+Connection/TLS/HTTP/transfer diagnostics and the distinction between a failed
+catalog check and installation are checked in English and Dutch. Invalid or
+stale diagnostic data is not rendered and cannot cause a command.
+
+`test/test_native/test_download_failure.cpp` checks the production error
+classification. In the pinned Arduino2.0.17 SDK, a negative HTTPClient return
+is not an HTTP response, and WiFiClientSecure's `lastError()` can return the
+generic socket sentinel `-1`. That sentinel does not establish a TLS failure.
+Only allowlisted host names and numeric codes are exposed; signed asset paths,
+queries and native error-text buffers are excluded.
 
 `image_check.cpp` drives the same production gate with the actual packaged app
 and independently computed OpenSSL SHA256. Success, modified data, truncation,

@@ -261,7 +261,7 @@
       "files": [
         {
           "path": "src/update/GitHubUpdate.cpp",
-          "sha256": "f38ab022b6c96946d66d5f560fe75ed21e18066c6edca6d8a9ef30e83b235a58"
+          "sha256": "820c6b12ae1f81662e962e733a1af2f385872f45b403c6b2a306c8559212f2af"
         },
         {
           "path": "src/update/IndexedReleaseCatalog.h",
@@ -281,11 +281,11 @@
         },
         {
           "path": "test/updates/browser.cjs",
-          "sha256": "8e12b3c7b38562aaae1b386dfa45ad943c96992b2e6a346c3871b2b1791a9131"
+          "sha256": "9b20d4a2700b6191fa21537d4e468b087a4972fb47077b5fa6521ccd011b4320"
         },
         {
           "path": "data/html/update.html",
-          "sha256": "e18f7b90e4b5afd049b8fe5231aeecc9895fa668ce4343cd34db3f2c1423cc50"
+          "sha256": "33231272a06838fd5dc9fc5c8b48a09c324696556627db3ccbb2292119884ed1"
         },
         {
           "path": "src/update/ManualAppUpload.h",
@@ -349,11 +349,11 @@
         },
         {
           "path": "src/update/DownloadFailure.h",
-          "sha256": "0224362a5feb217d5a633b1e751d38d623f52bb6a0dca8623f8121a77bc124c5"
+          "sha256": "9b59ccbb976d9adc91c588c2af1cfa0c05675b2fb508d9304c5d251a509e34ce"
         },
         {
           "path": "test/test_native/test_download_failure.cpp",
-          "sha256": "f5eff9b949ddb77460937eac27ff25313a276466a915938cfbd4007240e2f526"
+          "sha256": "f6adb11c16e7395e6714e8672c145410ae3d7052ce37fc63f6bca043df385cce"
         }
       ],
       "remaining_acceptance": "Native GitHub-update alpha31→36 met verse back-up en één installatiecommando geslaagd:36 installatiecontroles,45 afzonderlijke nacontroles, exacte bron/ELF/web/31UI en behoud van86 HA-bestanden/13 projecthashes/zes loggingvelden. Iedere opvolgende reguliere release vereist nieuw update-/nacontrolebewijs volgens E32-UPDATE-PROCES en CI-gate. Oude multipart-watchdog en nativealpha26-afwijking blijven oorzakelijk onbekend; geen blinde fallback/retry. Fysieke powerloss/rollback/herstelkwalificatie en actieve ketel-/kraanpoorten blijven apart open. Automatische12ucontrole/dashboardmelding voorbereid naalpha36, niet geïnstalleerd."
@@ -477,7 +477,7 @@
         },
         {
           "path": "data/html/update.html",
-          "sha256": "e18f7b90e4b5afd049b8fe5231aeecc9895fa668ce4343cd34db3f2c1423cc50"
+          "sha256": "33231272a06838fd5dc9fc5c8b48a09c324696556627db3ccbb2292119884ed1"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/strings.json",
@@ -533,7 +533,7 @@
         },
         {
           "path": "test/updates/browser.cjs",
-          "sha256": "8e12b3c7b38562aaae1b386dfa45ad943c96992b2e6a346c3871b2b1791a9131"
+          "sha256": "9b20d4a2700b6191fa21537d4e468b087a4972fb47077b5fa6521ccd011b4320"
         },
         {
           "path": "test/web_auth_client.test.cjs",
@@ -541,7 +541,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "44b580c2ab7f362e42777068233b6751a671867c97788775d601cc03ce5b2a5a"
+          "sha256": "82b554ad847f36608272ea4a8b1f4a55eea7a47925463a8c26831a2613ff428a"
         },
         {
           "path": "data/html/ui-language.js",
@@ -867,7 +867,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "44b580c2ab7f362e42777068233b6751a671867c97788775d601cc03ce5b2a5a"
+          "sha256": "82b554ad847f36608272ea4a8b1f4a55eea7a47925463a8c26831a2613ff428a"
         },
         {
           "path": "data/html/system-log.js",

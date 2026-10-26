@@ -94,7 +94,7 @@
      &&['connection','tls','http','transfer'].includes(s.download_error.kind)
      &&['api.github.com','github.com','release-assets.githubusercontent.com','objects.githubusercontent.com',''].includes(s.download_error.host)
      &&Number.isInteger(s.download_error.http_status)&&s.download_error.http_status>=0&&s.download_error.http_status<=599
-     &&['client_code','tls_code'].every(key=>Number.isInteger(s.download_error[key])&&s.download_error[key]>=-2147483648&&s.download_error[key]<=2147483647))
+     &&['client_code','secure_client_code'].every(key=>Number.isInteger(s.download_error[key])&&s.download_error[key]>=-2147483648&&s.download_error[key]<=2147483647))
    &&(s.reboot_scheduled===undefined||typeof s.reboot_scheduled==='boolean')
    &&(s.selected===undefined||typeof s.selected==='string'&&s.selected.length<=96)
    &&['received','total'].every(key=>Number.isSafeInteger(s[key])&&s[key]>=0&&s[key]<=4294967295)
@@ -125,7 +125,7 @@
    uiText("Download host: ")+s.download_error.host,
    uiText("HTTP response code (0 = no response): ")+s.download_error.http_status,
    uiText("HTTP client error code: ")+s.download_error.client_code,
-   uiText("TLS error code: ")+s.download_error.tls_code
+   uiText("Secure client result code: ")+s.download_error.secure_client_code
   ].join('\n'):'';
   if(s.reboot_required&&s.reboot_scheduled)message=uiText("Update verified. The device restarts automatically; wait for reconnection. Keep it powered.");
   if(!s.busy&&!s.can_check&&!s.reboot_required)message+=uiText(" Connect to your home network and wait for valid network time (NTP).");

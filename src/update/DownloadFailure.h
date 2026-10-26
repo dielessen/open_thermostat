@@ -32,7 +32,9 @@ inline DownloadFailure downloadFailure(int code,int tlsCode,std::string_view url
         result.kind=code==200?"none":"http";
     } else {
         result.clientCode=code<0?code:0;result.tlsCode=tlsCode;
-        result.kind=tlsCode?"tls":"connection";
+        // Arduino2.0.17 also returns -1 for socket setup/connect/timeouts.
+        // That sentinel (or a positive socket result) is not a TLS diagnosis.
+        result.kind=tlsCode < -1?"tls":"connection";
     }
     return result;
 }

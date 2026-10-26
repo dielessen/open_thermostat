@@ -13,6 +13,13 @@ TEST(DownloadFailure, CapturedTlsErrorRetainsBothNativeCodes) {
     EXPECT_STREQ(failure.kind,"tls");EXPECT_EQ(failure.clientCode,-1);
     EXPECT_EQ(failure.tlsCode,-9984);EXPECT_EQ(failure.httpStatus,0);
 }
+TEST(DownloadFailure, SecureClientSocketSentinelDoesNotProveATlsFailure) {
+    for(int secureResult:{-1,0,12}) {
+        const auto failure=downloadFailure(-1,secureResult,"https://github.com/a");
+        EXPECT_STREQ(failure.kind,"connection");EXPECT_EQ(failure.httpStatus,0);
+        EXPECT_EQ(failure.clientCode,-1);EXPECT_EQ(failure.tlsCode,secureResult);
+    }
+}
 TEST(DownloadFailure, ActualHttpStatusDoesNotInheritAnOldTlsFailure) {
     for(int status:{403,404,429,503}) {
         const auto failure=downloadFailure(status,-9984,"https://api.github.com/repos/a/b");

@@ -293,7 +293,7 @@ std::string status() {
         cJSON_AddStringToObject(failure,"host",snapshot.downloadError.host);
         cJSON_AddNumberToObject(failure,"http_status",snapshot.downloadError.httpStatus);
         cJSON_AddNumberToObject(failure,"client_code",snapshot.downloadError.clientCode);
-        cJSON_AddNumberToObject(failure,"tls_code",snapshot.downloadError.tlsCode);
+        cJSON_AddNumberToObject(failure,"secure_client_code",snapshot.downloadError.tlsCode);
     }
     cJSON_AddStringToObject(root.get(),"selected",snapshot.selected.c_str());cJSON_AddBoolToObject(root.get(),"busy",busy());
     cJSON_AddBoolToObject(root.get(),"can_check",ready()&&!busy()&&!snapshot.reboot&&!pendingBoot());cJSON_AddBoolToObject(root.get(),"boot_pending",pendingBoot());

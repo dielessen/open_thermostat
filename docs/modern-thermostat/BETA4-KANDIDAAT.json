@@ -18,7 +18,8 @@
     "4c9a33db644103c011e2b7b683c89b4d3f711805",
     "b6fe339a9dea06207ae94588948e620a119341e7",
     "8455910d1df07409234828ac892e49d4558cff97",
-    "171d3be603ab81f295a6bd7ed141b2df45b35b7e"
+    "171d3be603ab81f295a6bd7ed141b2df45b35b7e",
+    "1947b9ce49ddc11f5d36dbcde2f69f62b678b1a7"
   ],
   "release_notes": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.en.md",
   "changes": [
@@ -38,10 +39,10 @@
   "publication_state": "BLOCKED_PENDING_PREDECESSOR_ACCEPTANCE",
   "runtime_actions_performed": false,
   "source_ci": {
-    "commit": "171d3be603ab81f295a6bd7ed141b2df45b35b7e",
-    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40356501714",
+    "commit": "1947b9ce49ddc11f5d36dbcde2f69f62b678b1a7",
+    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40360870809",
     "conclusion": "success",
-    "scope": "pre-freeze source including receipt-bound updater proof, session-bound acquisition and release housekeeping; nine validation jobs passed; latest cancellation UI changes need their own CI; not installation acceptance"
+    "scope": "pre-freeze source including cancellation UI, receipt-bound updater proof, session-bound acquisition and release housekeeping; all nine validation jobs passed; publication jobs skipped; not installation acceptance"
   },
   "writable_boiler_inventory": "docs/modern-thermostat/BOILER-WRITE-INVENTORY.json",
   "prepared_settings_backend": {
@@ -75,16 +76,20 @@
     "physical_acceptance_performed": false
   },
   "source_package_preflight": {
-    "commit": "4c9a33db644103c011e2b7b683c89b4d3f711805",
+    "commit": "1947b9ce49ddc11f5d36dbcde2f69f62b678b1a7",
     "ci_version_field": "v0.1.0-e32v2-beta.3",
     "planned_tag_frozen": false,
-    "independent_package_checks": 2229,
-    "firmware_bytes": 2862416,
-    "firmware_sha256": "1719479f34e388a529c4de0a78aaa54a60f97a5d3e43f3f6f9ff3878aa8b25d0",
+    "independent_package_checks": 2236,
+    "firmware_bytes": 2864480,
+    "firmware_sha256": "0a7cac22c0cf6c46aaa23a997a3dc7cbc8e311fdc9f8a2a25988c02e7fc54af6",
     "alpha36_compatibility": "PASS_HOST_ONLY",
     "accepted_beta1_compatibility": "PASS_HOST_ONLY",
     "ha_runtime_source_unchanged_from_beta3": true,
-    "publication_approved": false
+    "publication_approved": false,
+    "web_sha256": "af6b170668d90eeecfc28cb740b2e8c240fa8fd06ca2afa251091809032e4f78",
+    "manifest_sha256": "c0c792e19715f6875f43121cf55c8989bd72e59d581e677b7de71f0751cfff35",
+    "independent_report": "out/beta4-package-1947b9c/package-verification.json",
+    "delivered_compatibility_reports_reproduced": true
   },
   "accepted_updater_packaging_gate": {
     "state": "CI_VERIFIED_PRE_FREEZE",
@@ -100,7 +105,17 @@
     "state": "USER_REPORTED_INSTALLED_INDEPENDENT_ACCEPTANCE_OPEN",
     "independent_postcheck_verified": false,
     "native_update_receipts_collected_in_this_session": false,
-    "acceptance_gate_advanced": false
+    "acceptance_gate_advanced": false,
+    "expected_published_identity": {
+      "tag": "v0.1.0-e32v2-beta.3",
+      "source_commit": "996587da4a05c8a9de4a25a5b8ab3d9ed4c6f99a",
+      "firmware_bytes": 2828000,
+      "firmware_sha256": "1bffbffa5bb1e296d1257a370442de86ab04e932c0538e395b62232e3073c49b",
+      "elf_sha256": "889d4b6a6288148b5a0559871a06525db5a925c057976280467b23b3cd6f4f47",
+      "web_sha256": "d5a4c2ed8d617936bbb38d9dbe3635148aba674eb4d5503f9604cae1478a2682",
+      "manifest_sha256": "b8d075f5cb778a0fae0fe81f5985fb01467cb4e8e3961c2f0f73413363fd55dc",
+      "evidence_scope": "Published GitHub assets and commit only; no live device observation"
+    }
   },
   "configuration_read_ui": {
     "withdrawal_labelled": true,
@@ -113,6 +128,7 @@
     "physical_read_enabled": false,
     "browser_gate": "test/boiler-configuration-read-browser.cjs",
     "pressure_declaration_follows_profile": true,
-    "withdrawal_survives_invalid_status": true
+    "withdrawal_survives_invalid_status": true,
+    "state": "CI_VERIFIED_PRE_FREEZE"
   }
 }

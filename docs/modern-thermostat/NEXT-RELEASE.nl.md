@@ -38,6 +38,14 @@ werden daar niet aangeboden. De latere beta.3-installatiemelding hierboven komt
 van de gebruiker; een nieuwe onafhankelijke identiteitsteruglezing blijft nodig.
 Een lokale commit of ontwikkelbuild is geen beschikbare GitHub-update.
 
+De verwachte openbare beta.3-identiteit is opnieuw aan de GitHub-assetdigests en
+de onderliggende commit van de annotatietag getoetst: bron `996587d`, firmware
+2.828.000 bytes.
+De volledige firmware-/ELF-/web-/manifesthashes staan onder
+`predecessor_installation.expected_published_identity` in `BETA4-KANDIDAAT.json`.
+Dit is de vergelijkingsbasis voor de latere apparaatlezing, geen live nacontrole.
+Een ontwikkelimage met hetzelfde beta.3-versielabel telt niet als dit publieke pakket.
+
 ## Eerstvolgende werk, in volgorde
 
 | Prioriteit | Werk | Vereist resultaat |
@@ -45,7 +53,7 @@ Een lokale commit of ontwikkelbuild is geen beschikbare GitHub-update.
 | P0 — modelprofiel zonder digitale drukmeting | Apart brongebonden Ecomline-profiel geïmplementeerd: afzonderlijke drukcontrolemethode vereist, met een nieuwe verklaring per warmteproef. De methodepoort blijft uit | Passende fysieke drukcontrolemethode voor deze installatie beoordelen en vastleggen; geen digitale drukwaarde eisen of verzinnen. Overige meet-, installatie- en stopvoorwaarden blijven behouden |
 | P0 — configuratieontvangst | Eenmalige uitleesroute is aangesloten in HTTP, UART-poll en NL/EN-bediening; afronden met kandidaat- en fysieke controle | Echte latere boilerrespons levert CV-aan/uit en temperatuur met originele ontvangsttijd; standaard TX blijft uit tot afzonderlijke vrijgave |
 | P0 — handmatige proefvariant | Bronbeoordeling en installatiekaart B07–B09 afronden voor de echte E32/EasyControl/Classic-keten | Expliciete adres-/interface-/timing-/arbitragebeoordeling en passende afgifte-, stop- en overdrachtsvoorwaarden; geen willekeurig openzetten van algemene TX |
-| P0 — gezamenlijke freeze | Volledige CI geslaagd op `171d3be`, inclusief receipt-gebonden updaterproef, sessiegebonden uitlezing en opslagonderhoud. Onafhankelijke pakketcontrole op `4c9a33d`; nieuwste UI-aanvulling lokaal gecontroleerd. Beta.4-versie en bron nog niet bevroren | Exacte kandidaat met volledige native-/HA-/browser-/board-/bron-/licentie-/pakketcontroles; ontwikkelbewijs apart houden |
+| P0 — gezamenlijke freeze | Volledige CI en 2.236 onafhankelijke pakketcontroles geslaagd op `1947b9c`, inclusief receipt-gebonden updaterproef, sessiegebonden uitlezing, laatste UI en opslagonderhoud. Beta.4-versie en bron nog niet bevroren | Exacte kandidaat met volledige native-/HA-/browser-/board-/bron-/licentie-/pakketcontroles; ontwikkelbewijs apart houden |
 | P0 — release en installatie | Eén gezamenlijke publicatie en installatie na kandidaatacceptatie | Begrijpelijke Engelse GitHub-notities, actuele README en juiste assets/manifest/checksums; HA via de bestaande native HA-specialist met back-up; E32 via native GitHub-OTA |
 | P0 — onafhankelijke nacontrole | Nieuwe boot, versie/bron/ELF/web en instellingenbehoud vastleggen | Verse readback en acceptatierapport; HTTP202 of alleen een build telt niet als geslaagde installatie |
 | P0 — afzonderlijke ketelproef | B14 uitvoeren zodra de fysieke voorwaarden en proefopdracht gelden | Nulmeting → nulvraag/latere stopmelding → eindige warmtevraag → stop/naloop → afzonderlijke uitval/herstel → terug naar Tado |
@@ -118,21 +126,24 @@ De proefvariant is uitsluitend gebouwd, niet geïnstalleerd. Bewijs staat onder
 
 ## Actuele software- en pakketpreflight — 26 oktober
 
-De volledige [CI op `171d3be`](https://github.com/dielessen/open_thermostat/actions/runs/40356501714)
+De volledige [CI op `1947b9c`](https://github.com/dielessen/open_thermostat/actions/runs/40360870809)
 is geslaagd: negen validatiejobs, waaronder alle bordbuilds, native-/browser-/
 HA-controles, beide zendroute-compileproeven en de receipt-gebonden updaterproef.
-Dit omvat de sessiegebonden uitlezing en het opslagonderhoud. De nieuwste
-UI-aanvulling hieronder krijgt nog een eigen CI. De eerdere bron `4c9a33d`
-heeft eveneens een volledig geslaagde eigen CI. Publicatiejobs zijn uitsluitend
+Dit omvat de sessiegebonden uitlezing, de laatste UI-aanvulling hieronder en het
+opslagonderhoud. De eerdere bron `171d3be` heeft eveneens een volledig geslaagde
+eigen CI. Publicatiejobs zijn uitsluitend
 voor tags bedoeld en zijn in deze ontwikkelruns overgeslagen.
 
-Het werkelijk gedownloade E32-pakket van `4c9a33d` is onafhankelijk tegen de exacte Git-bron,
+Het werkelijk gedownloade E32-pakket van `1947b9c` is onafhankelijk tegen de exacte Git-bron,
 firmware, webbestanden, ELF, factory-slices, checksums, bron-/licentiemateriaal
-en relinkbewijs gecontroleerd: 2.229 controles geslaagd. Imagegrootte is
-2.862.416 bytes. De bestaande alpha36-hostcompatibiliteit slaagt opnieuw; HA-
+en relinkbewijs gecontroleerd: 2.236 controles geslaagd. Imagegrootte is
+2.864.480 bytes. De bestaande alpha36-hostcompatibiliteit slaagt opnieuw; HA-
 integratiebron is bytegelijk aan de gepubliceerde beta.3-bron. Lokaal bewijs:
-`out/beta4-release-preflight/`. Dit CI-pakket heeft nog versieveld beta.3 en
+`out/beta4-package-1947b9c/`. Beide geleverde oorspronkelijke-updaterproeven zijn
+op de gedownloade bestanden opnieuw uitgevoerd en geven exact hetzelfde rapport.
+Dit CI-pakket heeft nog versieveld beta.3 en
 andere bron dan de openbare beta.3; het is geen vervangende publieke download.
+Het eerdere pakketbewijs van `4c9a33d` blijft onder `out/beta4-release-preflight/`.
 
 De pakketbouw krijgt bovendien een verplichte proef met de **ongewijzigde
 updater uit de laatst geaccepteerde receipt**, nu beta.1. Lokaal zijn drie

@@ -1,3 +1,5 @@
+> **Ontwerp-/bewijsnotitie.** De enige actuele software-, installatie- en releasevoortgang staat in [WORKBOARD](WORKBOARD.nl.md). Gedateerde versies en toenmalige open punten hieronder blijven historisch; technische acceptatievoorwaarden blijven gelden.
+
 # HA-managed native GUI — source increment11785 / performance11778
 
 ## Exact retained versus duplicate routes

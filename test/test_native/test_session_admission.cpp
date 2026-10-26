@@ -61,11 +61,10 @@ TEST_F(SessionTest, FutureGenerationAndABANonceReuseCannotRefreshOldPackets) {
     EXPECT_EQ(gate.admit(1,ancient,3100).code,AdmissionCode::accepted);
 }
 
-TEST_F(SessionTest, DeliveryAtExpiryOrBeforeIssueCannotStartANewWindow) {
-    EXPECT_EQ(gate.admit(1,message(1,1),999).code,AdmissionCode::expired_grant);
-    EXPECT_EQ(gate.admit(1,message(1,1),11000).code,AdmissionCode::expired_grant);
+TEST_F(SessionTest, DeliveryAtExpiryCannotStartANewWindow) {
     EXPECT_EQ(gate.grantElapsed(10500),9500u);
     EXPECT_EQ(gate.grantDeadline(10500),11000u);
+    EXPECT_EQ(gate.admit(1,message(1,1),11000).code,AdmissionCode::expired_grant);
     EXPECT_EQ(gate.grantElapsed(11000),UINT64_MAX);
     EXPECT_EQ(gate.grantDeadline(11000),0u);
 }
@@ -91,8 +90,8 @@ TEST_F(SessionTest, ExpiredLeaseIsSeparateFromAStillCurrentGrant) {
     auto hb=message(0,1); hb.epoch=2;
     ASSERT_EQ(gate.admit(0,hb,1000).code,AdmissionCode::accepted);
     auto sample=message(1,1); sample.epoch=2;
-    EXPECT_EQ(gate.admit(1,sample,2000).code,AdmissionCode::lease_expired);
     EXPECT_EQ(gate.admit(0,hb,1900).code,AdmissionCode::duplicate);
+    EXPECT_EQ(gate.admit(1,sample,2000).code,AdmissionCode::lease_expired);
     EXPECT_FALSE(gate.alive(2000)); // duplicate did not extend lease
     hb.sequence=2;
     EXPECT_EQ(gate.admit(0,hb,2000).code,AdmissionCode::accepted);
@@ -130,8 +129,8 @@ TEST_F(SessionTest, HaReceiverAlsoRejectsDelayedFirmwareActuatorCommands) {
     ASSERT_EQ(ha.admit(0,hb,1000).code,AdmissionCode::accepted);
     auto action=message(1,1); action.kind=StreamKind::actuator_command;
     action.binding="trv-a"; action.direction=Direction::fw_to_ha; action.grant="ha-grant";
-    EXPECT_EQ(ha.admit(1,action,6000).code,AdmissionCode::expired_grant);
     EXPECT_EQ(ha.admit(1,action,5999,ha.grantDeadline(5999)).code,AdmissionCode::accepted);
+    EXPECT_EQ(ha.admit(1,action,6000).code,AdmissionCode::expired_grant);
 }
 
 TEST(SessionAdmission, OwnerPairingAndInitialRevisionAreFailClosed) {
@@ -159,5 +158,73 @@ TEST(SessionAdmission, InvalidIdsAndOverflowingClockWindowsAreRejected) {
     EXPECT_FALSE(g.issueGrant("g",1,UINT64_MAX-5,10));
     EXPECT_FALSE(g.issueGrant("g",1,1000,15001));
     EXPECT_FALSE(g.issueGrant("g",0,1000,1000));
+}
+TEST_F(SessionTest, ExpiredGrantCannotReviveAfterBackwardAdmissionOrRotation) {
+    EXPECT_EQ(gate.admit(1,message(1,1),11000).code,AdmissionCode::expired_grant);
+    EXPECT_EQ(gate.admit(1,message(1,1),10999).code,AdmissionCode::invalid_clock);
+    EXPECT_EQ(gate.admit(1,message(1,2),11001).code,AdmissionCode::invalid_clock);
+    EXPECT_FALSE(gate.issueGrant("new",2,12000,1000));
+    EXPECT_FALSE(gate.alive(11001)); EXPECT_EQ(gate.grantDeadline(11001),0u);
+}
+TEST_F(SessionTest, DiagnosticDeadlineReadCannotReviveExpiredProof) {
+    EXPECT_EQ(gate.grantDeadline(11000),0u);
+    EXPECT_EQ(gate.grantDeadline(10999),0u);
+    EXPECT_EQ(gate.admit(0,message(0,2),12000).code,AdmissionCode::invalid_clock);
+}
+TEST_F(SessionTest, LeaseReadCannotReviveExpiredHeartbeat) {
+    EXPECT_FALSE(gate.alive(16000)); EXPECT_FALSE(gate.alive(15999));
+    EXPECT_EQ(gate.admit(0,message(0,2),16001).code,AdmissionCode::invalid_clock);
+}
+TEST_F(SessionTest, NewGrantWithBackwardIssuanceCannotReviveTransport) {
+    EXPECT_TRUE(gate.alive(2000)); EXPECT_FALSE(gate.issueGrant("new",2,1999,1000));
+    EXPECT_FALSE(gate.issueGrant("new",2,2001,1000));
+    EXPECT_EQ(gate.admit(1,message(1,1),2001).code,AdmissionCode::invalid_clock);
+}
+TEST_F(SessionTest, SameTimeReadsAndValidNewHeartbeatRemainSupported) {
+    EXPECT_TRUE(gate.alive(1000)); EXPECT_EQ(gate.grantDeadline(1000),11000u);
+    EXPECT_EQ(gate.admit(1,message(1,1),1000).code,AdmissionCode::accepted);
+    EXPECT_EQ(gate.admit(1,message(1,1),1000).code,AdmissionCode::duplicate);
+    EXPECT_EQ(gate.admit(0,message(0,2),2000).code,AdmissionCode::accepted);
+    EXPECT_TRUE(gate.alive(2000));
+}
+TEST_F(SessionTest, FaultRecoveryRequiresActuallyNewSessionAndFreshGrant) {
+    EXPECT_FALSE(gate.alive(999));EXPECT_FALSE(gate.begin(identity));
+    auto next=identity;next.epoch=2;next.session="new-session";ASSERT_TRUE(gate.begin(next));
+    ASSERT_TRUE(gate.bind(0,"system",StreamKind::heartbeat));
+    auto hb=message(0,1);hb.epoch=2;hb.session="new-session";
+    EXPECT_EQ(gate.admit(0,hb,100).code,AdmissionCode::expired_grant);
+    ASSERT_TRUE(gate.issueGrant("new-grant",1,100,1000));
+    EXPECT_EQ(gate.admit(0,hb,100).code,AdmissionCode::expired_grant);
+    hb.grant="new-grant";EXPECT_EQ(gate.admit(0,hb,100).code,AdmissionCode::accepted);
+}
+TEST_F(SessionTest, HaActuatorReceiverClockFaultIsAlsoSticky) {
+    SessionAdmission ha("ha-one",Direction::fw_to_ha);ASSERT_TRUE(ha.begin(identity));
+    ASSERT_TRUE(ha.bind(0,"system",StreamKind::heartbeat));ASSERT_TRUE(ha.bind(1,"trv-a",StreamKind::actuator_command));
+    ASSERT_TRUE(ha.issueGrant("ha-grant",1,1000,5000));
+    auto hb=message(0,1);hb.direction=Direction::fw_to_ha;hb.grant="ha-grant";
+    ASSERT_EQ(ha.admit(0,hb,1000).code,AdmissionCode::accepted);
+    auto action=message(1,1);action.kind=StreamKind::actuator_command;action.binding="trv-a";action.direction=Direction::fw_to_ha;action.grant="ha-grant";
+    EXPECT_EQ(ha.admit(1,action,6000).code,AdmissionCode::expired_grant);
+    EXPECT_EQ(ha.admit(1,action,5999).code,AdmissionCode::invalid_clock);
+    EXPECT_EQ(ha.admit(1,action,6001).code,AdmissionCode::invalid_clock);
+}
+
+}
+namespace {
+TEST_F(SessionTest, LeaseDeadlineReadsCannotRenewAndRemainIndependentOfGrant) {
+    EXPECT_EQ(gate.leaseDeadline(1000),16000u);
+    EXPECT_EQ(gate.leaseDeadline(15000),16000u);
+    EXPECT_EQ(gate.grantDeadline(15000),0u);
+    EXPECT_EQ(gate.leaseDeadline(15999),16000u);
+    EXPECT_EQ(gate.leaseDeadline(16000),0u);
+}
+TEST_F(SessionTest, LeaseDeadlineCannotSurviveDisconnectOrClockReversal) {
+    EXPECT_EQ(gate.leaseDeadline(1100),16000u);
+    EXPECT_EQ(gate.leaseDeadline(1099),0u);
+    EXPECT_EQ(gate.leaseDeadline(1200),0u);
+    auto fresh=identity;fresh.epoch=2;fresh.session="session-b";
+    ASSERT_TRUE(gate.begin(fresh));
+    EXPECT_EQ(gate.leaseDeadline(1200),0u);
+    gate.invalidateTransport();EXPECT_EQ(gate.leaseDeadline(1200),0u);
 }
 }

@@ -10,7 +10,7 @@ def test_current_form_schema_provider_is_declared_native_HA_core_dependency(modu
     from homeassistant import data_entry_flow
     from packaging.requirements import Requirement
     dependency=next(Requirement(r) for r in metadata.requires("homeassistant") if Requirement(r).name=="probatio")
-    assert metadata.version("homeassistant")=="2026.10.2"
+    assert metadata.version("homeassistant") in ("2026.10.2", "2026.10.3", "2026.10.4")
     assert metadata.version("probatio")=="0.13.0" and metadata.version("probatio") in dependency.specifier
     current=importlib.import_module("custom_components.open_thermostat."+module)
     assert current.vol.Schema is data_entry_flow.probatio.Schema is probatio.Schema

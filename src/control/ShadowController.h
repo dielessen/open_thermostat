@@ -3,14 +3,18 @@
 #include "ControlStore.h"
 #include "EffectiveTarget.h"
 #include "MetricsTelemetry.h"
+#include "BoilerFieldTelemetry.h"
 #include <sstream>
 #include "Measurement.h"
 #include "ScheduleDocument.h"
 #include "SessionAdmission.h"
+#include "ActuatorScope.h"
 #include "ZoneRegulator.h"
 #include "SeasonalControllerSource.h"
 #include "NativeControlPlan.h"
+#include "RoomDisplayNames.h"
 #include "HydraulicSupervisor.h"
+#include "HydraulicControllerSource.h"
 #include <algorithm>
 #include <functional>
 #include <set>
@@ -56,11 +60,14 @@ inline bool canonicalConfig(const cJSON *o) {
 }
 
 
+// Single serialized controller owner, including feedback and local fault
+// acknowledgement. Providers observe existing facts; they issue no commands.
 class ShadowController {
 public:
     using Hash=std::function<std::string(std::string_view)>;
     using Nonce=std::function<std::string()>;
     using Publish=std::function<void(std::string_view,std::string_view)>;
+    using BoilerFields=std::function<void(std::ostream&,size_t)>;
     using Metrics=std::function<void(std::ostream&)>;
     // Existing NVS partition is20KiB, with GC + old/new atomic blob overhead.
     // Do not turn a JSON transport ceiling into a hidden persistence promise.
@@ -70,9 +77,10 @@ public:
                      ControlStore &store,Hash hash,Nonce nonce,Publish publish,Metrics metrics={},
                      const SeasonalControllerSource* seasonalSource=nullptr,
                      SeasonalControllerSource::Safety safety={},
-                     const NativePlanInstallationSource* nativePlanSource=nullptr)
+                     const NativePlanInstallationSource* nativePlanSource=nullptr,BoilerFields boilerFields={},
+                     const HydraulicControllerSource* hydraulicSource=nullptr,HydraulicFeedbackProvider hydraulicFeedback={})
         :controller_(std::move(controller)),boot_(std::move(boot)),owner_(std::move(owner)),
-         store_(store),hash_(std::move(hash)),nonce_(std::move(nonce)),publish_(std::move(publish)),metrics_(std::move(metrics)),admission_(owner_) {
+         store_(store),hash_(std::move(hash)),nonce_(std::move(nonce)),publish_(std::move(publish)),metrics_(std::move(metrics)),admission_(owner_),boilerFields_(std::move(boilerFields)) {
         if(!SessionAdmission::validId(controller_)||!SessionAdmission::validId(boot_)||!SessionAdmission::validId(owner_)) { fault_=true; return; }
         if(nativePlanSource) {
             if(seasonalSource||!nativePlanSource->valid()||nativePlanSource->controllerId!=controller_
@@ -85,6 +93,14 @@ public:
             }
             seasonalSource_=std::make_unique<SeasonalControllerSource>(*seasonalSource);
             seasonalSafety_=std::move(safety);
+        }
+        if(hydraulicSource) {
+            if(!hydraulicSource->valid()||hydraulicSource->controllerId!=controller_
+                ||hydraulicSource->adapterId!=owner_||!seasonalSource_||!hydraulicFeedback
+                ||hydraulicSource->profileDigest!=seasonalSource_->profileDigest) {fault_=true;return;}
+            hydraulicSource_=std::make_unique<HydraulicControllerSource>(*hydraulicSource);
+            hydraulicFeedback_=std::move(hydraulicFeedback);
+            supervisor_=HydraulicSupervisor(hydraulicSource_->profile);
         }
         loadSavedConfiguration();
     }
@@ -112,16 +128,56 @@ public:
     }
     void inhibitNativeSourceMutation() {fault_=true;disconnected();}
 
+    // Local reviewed SOURCE owner only; deliberately no HTTP/MQTT/reset flag.
+    // Acknowledging a fault cannot renew postrun or create a heat intent. The
+    // next cycle still needs a new opening command and subsequent feedback.
+    bool acknowledgeHydraulicFault(uint64_t now,const HydraulicFeedbackSnapshot& evidence) {
+        if(!hydraulicSource_||hydraulicSourceFault_||policySourceFault_||hydraulicReading_||safetyReading_
+            ||supervisor_.lastIntent().phase!=HydraulicPhase::fault||now<lastNow_)return false;
+        const HydraulicOwnerContext context{policyGeneration_,config_->revision,
+            supervisor_.lastIntent().openingCommand,sessionStart_,boot_};
+        const auto current=[&] {return session_&&mappingReady_&&!fault_&&admission_.alive(now)
+            &&context.generation==policyGeneration_&&context.revision==config_->revision&&context.startedAt==sessionStart_
+            &&seasonalSource_&&seasonalSource_->profileDigest==hydraulicSource_->profileDigest;};
+        if(!current())return false;
+        const auto checked=hydraulicGate_.evaluate(now,hydraulicSource_->maximumFactAgeMs,context,evidence);
+        const auto& in=checked.inputs;
+        if(!in.limitsKnownSafe||in.limitTripped||!in.faultStateKnown||in.boilerFault
+            ||!in.dhwStateKnown||in.dhwActive||in.stop||in.actuatorFailure)return false;
+        SeasonalSafetySnapshot safety;safetyReading_=true;
+        try {safety=seasonalSafety_();} catch(...) {policySourceFault_=true;}
+        safetyReading_=false;
+        if(policySourceFault_||hydraulicSourceFault_||!current()||now<lastNow_
+            ||!acceptSeasonalSafety(now,safety)
+            ||!safety.limitsKnownSafe||!safety.dhwStateKnown||safety.dhwActive||safety.allOff||safety.preempted)return false;
+        return supervisor_.clearFault(true);
+    }
     void connected(uint64_t now) {
         invalidate();
         if(epoch_==UINT32_MAX) { fault_=true; return; }
         ++epoch_; connected_=true; newChallenge(now); nextHello_=nextState_=now;
     }
     void disconnected() { connected_=false; invalidate(); }
+    // Local read-only context for a configured normalized actuator channel.
+    // Not a broker/API endpoint, source qualification or output-enable path.
+    std::optional<ActuatorSessionContext> actuatorSessionContext(std::string_view binding,uint64_t now) const {
+        if(!SessionAdmission::validId(binding)||!connected_||!session_||!mappingReady_||fault_
+                ||legacyQuarantine_||nativeReceiving_||!config_->revision||now<lastNow_)return std::nullopt;
+        bool bound=false;
+        for(size_t i=0;i<config_->count;++i)if(config_->zones[i].actuator==binding){bound=true;break;}
+        if(!bound)return std::nullopt;
+        const auto lease=admission_.leaseDeadline(now),grant=admission_.grantDeadline(now);
+        if(!lease||!grant)return std::nullopt;
+        ActuatorSessionContext context{{controller_,boot_,owner_,sessionId_,digest_,std::string(binding),
+            epoch_,config_->revision},lease,grant};
+        return context.scope.valid()?std::optional<ActuatorSessionContext>(std::move(context)):std::nullopt;
+    }
+    // Internal read-only intent, not physical feedback or actuation authority.
+    const HydraulicSupervisor::Result& hydraulicIntent() const {return supervisor_.lastIntent();}
     void tick(uint64_t now,int64_t utc,bool clockValid) {
-        if(!connected_) return;
         if(now<lastNow_) { fault_=true; invalidate(); }
-        lastNow_=now;
+        lastNow_=std::max(lastNow_,now);
+        if(!connected_) {supervisor_.advanceWithoutOwner(now);return;}
         if(session_ && !admission_.alive(now) && (leaseWasAlive_ || now>=sessionStart_+leaseMs)) { invalidate(); newChallenge(now); }
         if(now>=challengeUntil_) newChallenge(now);
         if(session_ && now>=nextGrant_) {
@@ -131,6 +187,7 @@ public:
         if(now>=nextHello_) { hello(); nextHello_=now+3000; }
         if(now>=nextState_) { state(now,utc,clockValid); nextState_=now+3000; }
         metricsSnapshot(now);
+        boilerFieldSnapshot(now);
     }
     void receive(std::string_view topic,std::string_view bytes,uint64_t now,int64_t utc,bool clockValid) {
         if(!nativePlanSource_) {receiveImpl(topic,bytes,now,utc,clockValid);return;}
@@ -192,12 +249,27 @@ private:
             if(trial->admit(stream,e,now).code!=AdmissionCode::duplicate) return;
         }
         const auto a=admission_.admit(stream,e,now);
+        if(kind==StreamKind::user_command) {
+            lastUserCommand_=UserCommandAdmission{};
+            std::copy_n(e.binding.begin(),std::min(e.binding.size(),size_t{32}),lastUserCommand_.binding.begin());
+            lastUserCommand_.sequence=e.sequence;lastUserCommand_.revision=e.revision;
+            lastUserCommand_.at=now;lastUserCommand_.code=a.code;
+        }
         if(a.code==AdmissionCode::duplicate) { result(resultTopic,e,"duplicate"); if(topic=="ha/snapshot_request") snapshot(e.sequence); return; }
-        if(a.code!=AdmissionCode::accepted) { result(resultTopic,e,"rejected"); return; }
+        if(a.code!=AdmissionCode::accepted) { result(resultTopic,e,"rejected",admissionCodeName(a.code)); return; }
         if(kind==StreamKind::heartbeat) {
             // Only a NEW accepted heartbeat can anchor a future grant. Exact
             // retries/changed duplicates never replace or re-arm this proof.
             pendingGrantNonce_=stringField(root.get(),"grant_request_nonce");
+            if(const auto names=field(root.get(),"room_names")) {
+                // Whole list validated before admission. Only a NEW accepted
+                // heartbeat may change labels; duplicates never replace them.
+                size_t i=0;
+                for(auto name=names->child;name;name=name->next,++i) {
+                    const auto label=stringField(name,"name_utf8_hex");
+                    roomNamesHex_[i].fill(0);std::copy(label.begin(),label.end(),roomNamesHex_[i].begin());
+                }
+            }
             leaseWasAlive_=true; result(resultTopic,e,"accepted"); return;
         }
         if(topic=="ha/config") {
@@ -266,6 +338,27 @@ private:
         const auto effective=legacyQuarantine_?nativePlanSource_->predecessor.get():nativePlanSource_.get();
         return effective&&next.valid()&&next.predecessor&&next.controllerId==controller_
             &&next.adapterId==owner_&&next.predecessor->profileDigest==effective->profileDigest;
+    }
+    // Shared by normal policy evaluation AND fault acknowledgement. Re-reading
+    // the producer never makes rejected/cached evidence fresh or immutable again.
+    bool acceptSeasonalSafety(uint64_t now,const SeasonalSafetySnapshot& safety) {
+        if(!seasonalSource_)return false;
+        const auto acquiredAt=safety.sampledAt;
+        const auto value=uint8_t(safety.limitsKnownSafe)|(uint8_t(safety.dhwStateKnown)<<1)
+            |(uint8_t(safety.dhwActive)<<2)|(uint8_t(safety.summer)<<3)
+            |(uint8_t(safety.allOff)<<4)|(uint8_t(safety.preempted)<<5);
+        // Uptime zero can be a real acquisition. Known-state flags distinguish
+        // usable safety evidence; zero must not double as an empty watermark.
+        if(acquiredAt>now||(haveSafetyFact_&&(acquiredAt<lastSafetyAt_
+                ||(acquiredAt==lastSafetyAt_&&value!=lastSafetyValue_)))
+            ||now-acquiredAt>=seasonalSource_->maximumSafetyAgeMs) {
+            retiredSafetyThrough_=std::max(retiredSafetyThrough_,std::max(acquiredAt,lastSafetyAt_));
+            haveRetiredSafety_=true;
+            return false;
+        }
+        if(haveRetiredSafety_&&acquiredAt<=retiredSafetyThrough_)return false;
+        haveSafetyFact_=true;lastSafetyAt_=acquiredAt;lastSafetyValue_=uint8_t(value);
+        return true;
     }
     void selectNativeSource(const NativePlanInstallationSource& source,SeasonalControllerSource::Safety safety) {
         const auto nativePlanSource=&source;
@@ -439,6 +532,18 @@ private:
             keys.insert("grant_request_nonce");
             if(!SessionAdmission::validId(stringField(o,"grant_request_nonce"))) return false;
         }
+        if(topic=="ha/heartbeat" && field(o,"room_names")) {
+            keys.insert("room_names");
+            const auto names=field(o,"room_names");
+            if(!nativePlanSource_||!mappingReady_||config_->count>roomNamesHex_.size()||
+               !cJSON_IsArray(names)||cJSON_GetArraySize(names)!=int(config_->count))return false;
+            size_t i=0;
+            for(auto name=names->child;name;name=name->next,++i) {
+                if(!exactFields(name,{"zone_id","name_utf8_hex"})||
+                   stringField(name,"zone_id")!=config_->zones[i].id||
+                   !validRoomDisplayNameHex(stringField(name,"name_utf8_hex")))return false;
+            }
+        }
         if(topic=="ha/config") {
             keys.insert({"expected_revision","config_digest","config"});
             if(!integerField(o,"expected_revision",0,UINT32_MAX)||!hexString(stringField(o,"config_digest"),64)||!decodeConfig(field(o,"config"),candidate)) return false;
@@ -495,10 +600,12 @@ private:
         e.grantSequence=uintField(o,"grant_sequence"); e.sequence=uintField(o,"sequence"); return true;
     }
     void invalidate() {
+        lastUserCommand_=UserCommandAdmission{};
+        for(auto &name:roomNamesHex_)name.fill(0);
         supervisor_.invalidate();
         admission_.invalidateTransport(); session_=mappingReady_=leaseWasAlive_=false;
         sessionId_.clear(); lastOpen_.clear(); pendingGrantNonce_.clear(); issuedGrantNonce_.clear();
-        nextMetrics_=0;metricsSequence_=0;
+        nextMetrics_=0;metricsSequence_=0;nextBoilerFields_=0;boilerSequence_=0;boilerGroup_=0;
         for(size_t i=0;i<config_->count;++i) {
             auto &z=config_->zones[i]; z.sample.unavailable(); z.comfort.invalidate();z.comfortInputs=ComfortInputs{}; z.overrideUntil=0; z.off=false; z.demand=false;
             // SOURCE-selected regulator keeps its owner/timing fences and minimum
@@ -606,13 +713,15 @@ private:
         auto comfortCaps=cJSON_AddArrayToObject(o.get(),"control_capabilities");
         if(comfortCaps)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString("comfort.target.v1"));
         if(comfortCaps&&nativePlanSource_)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(nativePlanSource_->planContract()));
+        if(comfortCaps&&nativePlanSource_)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(roomDisplayNamesCapability));
         if(comfortCaps&&nativePlanSource_&&nativePlanSource_->legacyReadbackReviewed)
             cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(NativePlanInstallationSource::legacyCapability));
         if(comfortCaps&&nativePlanSource_&&nativePlanSource_->predecessor)
             cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(NativePlanInstallationSource::evolutionCapability));
-        if(metrics_) {
+        if(metrics_||boilerFields_) {
             auto caps=cJSON_AddArrayToObject(o.get(),"read_only_capabilities");
-            if(caps)cJSON_AddItemToArray(caps,cJSON_CreateString(metricsCapability));
+            if(caps&&metrics_)cJSON_AddItemToArray(caps,cJSON_CreateString(metricsCapability));
+            if(caps&&boilerFields_)cJSON_AddItemToArray(caps,cJSON_CreateString(boilerFieldsCapability));
         }
         send("fw/hello",o.get());
     }
@@ -648,6 +757,33 @@ private:
         } catch(const std::exception&) { /* Read-only getter failure: next cadence, no control renewal. */ }
 #endif
     }
+    void boilerFieldSnapshot(uint64_t now) {
+        if(!boilerFields_||fault_||!session_||!mappingReady_||!admission_.alive(now)
+            ||!admission_.grantDeadline(now)||now<nextBoilerFields_||boilerSequence_==UINT32_MAX
+            ||now>maximumBoilerTimestamp-boilerGroupIntervalMs)return;
+        nextBoilerFields_=now+boilerGroupIntervalMs;
+        const auto group=boilerGroup_;boilerGroup_=(boilerGroup_+1)%boilerFieldGroupCount;
+        try {
+            std::ostringstream ss;boilerFields_(ss,group);const auto raw=ss.str();
+            if(raw.size()>maximumBoilerGroupBytes)return;
+            auto values=parseControlJson(raw);if(!values||!validBoilerGroup(values.get(),group))return;
+            auto o=base();
+            if(!exactFields(o.get(),{"api","controller_id","boot_id","epoch","config_revision","config_digest"}))return;
+            if(!cJSON_AddStringToObject(o.get(),"mode","shadow")
+                ||!cJSON_AddStringToObject(o.get(),"adapter_id",owner_.c_str())
+                ||!cJSON_AddStringToObject(o.get(),"adapter_session_id",sessionId_.c_str())
+                ||!cJSON_AddStringToObject(o.get(),"grant_id",grant_.c_str())
+                ||!cJSON_AddNumberToObject(o.get(),"grant_sequence",grantSequence_)
+                ||!cJSON_AddNumberToObject(o.get(),"sequence",boilerSequence_+1)
+                ||!cJSON_AddNumberToObject(o.get(),"group",group)
+                ||!cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",false)
+                ||!cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false)
+                ||!cJSON_AddItemToObject(o.get(),"values",values.get()))return;
+            values.release();const auto bytes=printJson(o.get());
+            if(bytes.empty()||bytes.size()>maximumBoilerEnvelopeBytes)return;
+            ++boilerSequence_;publish_("fw/telemetry/boiler_fields",bytes);
+        } catch(const std::exception&) { /* A getter failure never renews control or measurements. */ }
+    }
     void sessionStatus() {
         auto o=base(); cJSON_AddStringToObject(o.get(),"adapter_id",owner_.c_str());
         cJSON_AddStringToObject(o.get(),"adapter_session_id",sessionId_.c_str()); cJSON_AddStringToObject(o.get(),"client_nonce",clientNonce_.c_str());
@@ -656,10 +792,12 @@ private:
         if(!issuedGrantNonce_.empty()) cJSON_AddStringToObject(o.get(),"grant_request_nonce",issuedGrantNonce_.c_str());
         send("fw/session",o.get());
     }
-    void result(const char *topic,const Envelope &e,const char *status) {
+    void result(const char *topic,const Envelope &e,const char *status,const char *rejectionReason=nullptr) {
         auto o=base(); cJSON_AddStringToObject(o.get(),"adapter_session_id",std::string(e.session).c_str());
         cJSON_AddStringToObject(o.get(),"binding_id",std::string(e.binding).c_str());
-        cJSON_AddNumberToObject(o.get(),"sequence",e.sequence); cJSON_AddStringToObject(o.get(),"status",status); send(topic,o.get());
+        cJSON_AddNumberToObject(o.get(),"sequence",e.sequence); cJSON_AddStringToObject(o.get(),"status",status);
+        if(rejectionReason)cJSON_AddStringToObject(o.get(),"rejection_reason",rejectionReason);
+        send(topic,o.get());
     }
     void snapshot(uint32_t request=0) {
         auto o=base(); auto cfg=configBytes_.empty()?nullptr:cJSON_Parse(configBytes_.c_str());
@@ -678,6 +816,16 @@ private:
     void state(uint64_t now,int64_t utc,bool clockValid) {
         auto o=base(); sourcePolicy(o.get()); cJSON_AddStringToObject(o.get(),"mode","shadow");
         cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",false); cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false);
+        // Same owner's bounded last admission, not a command receipt/authority
+        // or measurement timestamp. No grant, nonce, session or settings hash.
+        if(lastUserCommand_.sequence) {
+            auto diagnostic=cJSON_AddObjectToObject(o.get(),"last_user_command_admission");
+            cJSON_AddStringToObject(diagnostic,"binding_id",lastUserCommand_.binding.data());
+            cJSON_AddNumberToObject(diagnostic,"sequence",lastUserCommand_.sequence);
+            cJSON_AddNumberToObject(diagnostic,"received_config_revision",lastUserCommand_.revision);
+            cJSON_AddNumberToObject(diagnostic,"received_at_ms",static_cast<double>(lastUserCommand_.at));
+            cJSON_AddStringToObject(diagnostic,"outcome",admissionCodeName(lastUserCommand_.code));
+        }
         SeasonalSafetySnapshot safety;
         bool safetyFresh=false;
         if(seasonalSource_&&seasonalSafety_&&!policySourceFault_) {
@@ -688,13 +836,30 @@ private:
                 try {
 #endif
                     safety=seasonalSafety_();
-                    safetyFresh=now>=safety.sampledAt&&now-safety.sampledAt<seasonalSource_->maximumSafetyAgeMs;
+                    safetyFresh=acceptSeasonalSafety(now,safety);
 #if defined(__cpp_exceptions)
                 } catch(...) {safety={};safetyFresh=false;}
 #endif
                 safetyReading_=false;
             }
             safetyFresh=safetyFresh&&!policySourceFault_;
+        }
+        HydraulicFeedbackGate::Result hydraulicFacts;
+        if(hydraulicSource_&&!hydraulicSourceFault_) {
+            const auto generation=policyGeneration_,revision=config_->revision;
+            const auto startedAt=sessionStart_;
+            if(hydraulicReading_)hydraulicSourceFault_=true;
+            else if(seasonalSource_&&seasonalSource_->profileDigest==hydraulicSource_->profileDigest) {
+                hydraulicReading_=true;
+                try {
+                    const HydraulicOwnerContext context{generation,revision,supervisor_.lastIntent().openingCommand,startedAt,boot_};
+                    const auto snapshot=hydraulicFeedback_(context);
+                    if(!hydraulicSourceFault_&&generation==policyGeneration_&&revision==config_->revision
+                        &&startedAt==sessionStart_&&now>=lastNow_&&session_&&mappingReady_&&!fault_&&admission_.alive(now))
+                        hydraulicFacts=hydraulicGate_.evaluate(now,hydraulicSource_->maximumFactAgeMs,context,snapshot);
+                } catch(...) {hydraulicSourceFault_=true;}
+                hydraulicReading_=false;
+            }
         }
         // A synchronous native observer may invalidate ownership. Recheck AFTER
         // it returns, never use a pre-callback alive/admission snapshot.
@@ -705,6 +870,8 @@ private:
         for(size_t i=0;i<config_->count;++i) {
             auto &z=config_->zones[i]; auto row=cJSON_CreateObject(); cJSON_AddItemToArray(list,row);
             cJSON_AddStringToObject(row,"zone_id",z.id.c_str());
+            if(alive&&i<roomNamesHex_.size()&&roomNamesHex_[i][0])
+                cJSON_AddStringToObject(row,"name_utf8_hex",roomNamesHex_[i].data());
             const auto temperature=alive?z.sample.value(now):std::nullopt;
             auto target=std::optional<int16_t>(z.base);
             const char *source="base",*reason="shadow_idle";
@@ -760,17 +927,38 @@ private:
             cJSON_AddNumberToObject(row,"sample_state",static_cast<int>(z.sample.state(now)));
             cJSON_AddStringToObject(row,"target_source",source); cJSON_AddBoolToObject(row,"demand",z.demand); cJSON_AddStringToObject(row,"reason",reason);
         }
-        // No installation has been qualified through this api1 contract.
-        // Actual shadow request is visible; it NEVER becomes hydraulic readiness.
-        HydraulicInputs inputs;
-        inputs.adapterAlive=alive; inputs.sourceValid=requestedHeat;
-        inputs.heatDemand=requestedHeat;
-        const auto hydraulic=supervisor_.step(now,inputs);
+        HydraulicInputs inputs=hydraulicSource_?hydraulicFacts.inputs:HydraulicInputs{};
+        inputs.adapterAlive=alive;inputs.sourceValid=requestedHeat;inputs.heatDemand=requestedHeat;
+        if(hydraulicSource_) {
+            // Compose restrictions from the CURRENT selected policy as well.
+            inputs.limitsKnownSafe=inputs.limitsKnownSafe&&safetyFresh&&safety.limitsKnownSafe;
+            inputs.dhwStateKnown=inputs.dhwStateKnown&&safetyFresh&&safety.dhwStateKnown;
+            inputs.dhwActive=inputs.dhwActive||safety.dhwActive;
+            inputs.stop=inputs.stop||safety.allOff||safety.preempted;
+        }
+        HydraulicSupervisor::Result hydraulic;
+        // Before the first admitted owner there is no active hydraulic lifetime
+        // to invalidate. Later ownership loss still reaches the SAME supervisor.
+        const bool hydraulicOwnerReady=alive&&config_->revision&&config_->count;
+        if(!hydraulicSource_||hydraulicOwnerReady||hydraulicStarted_) {
+            hydraulicStarted_=hydraulicStarted_||bool(hydraulicSource_&&hydraulicOwnerReady);
+            hydraulic=supervisor_.step(now,inputs);
+        } else hydraulic.reason="adapter_unavailable";
         auto status=cJSON_AddObjectToObject(o.get(),"supervisor");
         cJSON_AddStringToObject(status,"phase",hydraulicPhaseName(hydraulic.phase));
         cJSON_AddStringToObject(status,"reason",hydraulic.reason);
         cJSON_AddBoolToObject(status,"requested_heat",requestedHeat);
         cJSON_AddBoolToObject(status,"physical_outputs_enabled",false);
+        if(hydraulicSource_) {
+            cJSON_AddStringToObject(status,"feedback_status",hydraulicFacts.reason);
+            cJSON_AddBoolToObject(status,"heat_intent",hydraulic.heatIntent);
+            cJSON_AddBoolToObject(status,"pump_intent",hydraulic.pumpIntent);
+            cJSON_AddStringToObject(status,"path_intent",hydraulic.pathIntent==HydraulicPathIntent::requestQualifiedPath
+                ?"request_qualified_path":hydraulic.pathIntent==HydraulicPathIntent::retainExistingPath?"retain_existing_path":"none");
+            cJSON_AddNumberToObject(status,"opening_command",hydraulic.openingCommand);
+            if(hydraulic.waterTarget)cJSON_AddNumberToObject(status,"water_target_centi_c",*hydraulic.waterTarget);
+            else cJSON_AddNullToObject(status,"water_target_centi_c");
+        }
         send("fw/state/zones",o.get());
     }
     std::string controller_,boot_,owner_,digest_,configBytes_,challenge_,grant_,sessionId_,clientNonce_,lastOpen_;
@@ -778,15 +966,35 @@ private:
     ControlStore &store_; Hash hash_; Nonce nonce_; Publish publish_; Metrics metrics_;
     std::unique_ptr<Configuration> config_=std::make_unique<Configuration>();
     SessionAdmission admission_;
+    // Current native product supports two rooms. Labels never enter durable
+    // control configuration or increase its policy/channel limits.
+    std::array<std::array<char,maximumRoomDisplayNameBytes*2+1>,2> roomNamesHex_{};
     HydraulicSupervisor supervisor_;
+    std::unique_ptr<HydraulicControllerSource> hydraulicSource_;
+    HydraulicFeedbackProvider hydraulicFeedback_;
+    HydraulicFeedbackGate hydraulicGate_;
+    bool hydraulicReading_=false,hydraulicSourceFault_=false,hydraulicStarted_=false;
     std::unique_ptr<SeasonalControllerSource> seasonalSource_;
     std::unique_ptr<NativePlanInstallationSource> nativePlanSource_;
     bool nativeReceiving_=false,legacyQuarantine_=false;
     SeasonalControllerSource::Safety seasonalSafety_;
     uint32_t policyGeneration_=0;
     bool safetyReading_=false,policySourceFault_=false;
+    uint64_t lastSafetyAt_=0,retiredSafetyThrough_=0;
+    uint8_t lastSafetyValue_=0;
+    bool haveSafetyFact_=false,haveRetiredSafety_=false;
+    struct UserCommandAdmission {
+        std::array<char,33> binding{};
+        uint32_t sequence=0,revision=0;
+        uint64_t at=0;
+        AdmissionCode code=AdmissionCode::not_configured;
+    } lastUserCommand_;
     uint32_t epoch_=0,grantSequence_=0,metricsSequence_=0;
     uint64_t nextMetrics_=0;
+    BoilerFields boilerFields_;
+    uint64_t nextBoilerFields_=0;
+    uint32_t boilerSequence_=0;
+    size_t boilerGroup_=0;
     uint64_t challengeUntil_=0,nextHello_=0,nextState_=0,nextGrant_=0,lastNow_=0,sessionStart_=0;
     bool session_=false,mappingReady_=false,connected_=false,fault_=false,leaseWasAlive_=false;
 };

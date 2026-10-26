@@ -153,7 +153,7 @@ async def test_timezones_ranges_and_disabled_or_duplicate_entities_rejected_with
     e=entry(hass);item=entity(hass,e,"energy");reports.async_register_entry(hass,e)
     executor=AsyncMock();monkeypatch.setattr(reports,"get_instance",lambda _:SimpleNamespace(async_add_executor_job=executor))
     for data in ({"start":"2026-01-01T00:00:00","end":"2026-01-01T01:00:00Z"},
-                 {"start":"2026-01-01T00:00:00Z","end":"2026-01-03T01:00:00Z"},
+                 {"start":"2026-01-01T00:00:00Z","end":"2026-02-02T00:00:00Z"},
                  {"entity_ids":[item.entity_id,item.entity_id]}):
         with pytest.raises(HomeAssistantError):
             await reports.async_export(hass,{**arguments(e),**data})
@@ -208,6 +208,134 @@ async def test_actual_native_sqlite_recorder_roundtrip_preserves_zero_unknown_wi
     rows=list(csv.reader(io.StringIO(result["csv"])))
     assert [row[2] for row in rows[1:]]==["1","0","unknown"]
     assert not result["truncated"] and "NEVER_EXPORT" not in result["csv"]
+    # A full month uses the same real bounded SQLite/Recorder query. This
+    # verifies query coverage, not that a user's Recorder retains 31 days.
+    month=await reports.async_export(hass,{"entry_id":e.entry_id,
+        "start":(end-timedelta(days=31)).isoformat(),"end":end.isoformat(),
+        "entity_ids":[item.entity_id],"limit":10})
+    assert month["csv"] == result["csv"] and month["rows"] == 3
     again=await reports.async_export(hass,{"entry_id":e.entry_id,"start":start.isoformat(),"end":end.isoformat(),"entity_ids":[item.entity_id],"limit":1})
     assert again["rows"]==1 and again["truncated"]
     reports.async_unregister_entry(hass,e.entry_id)
+
+
+@pytest.mark.asyncio
+async def test_native_boiler_view_uses_owned_enabled_renamed_fields_and_quality_groups(hass):
+    e=entry(hass);reg=er.async_get(hass)
+    def field(name, **kwargs):
+        return reg.async_get_or_create("sensor","open_thermostat",
+            f"fixture_boiler_fields_v1_{name}",config_entry=e,**kwargs)
+    flow=field("measured_flow_temperature")
+    reg.async_update_entity(flow.entity_id,new_entity_id="sensor.renamed_native_flow")
+    returned=field("measured_return_temperature")
+    inferred=field("heating_active")
+    raw=field("raw_burner_bit",disabled_by=er.RegistryEntryDisabler.INTEGRATION)
+    disabled=field("reported_burner_modulation",disabled_by=er.RegistryEntryDisabler.USER)
+    legacy=entity(hass,e,"boiler_current_flow_temperature")
+    other=entry(hass);foreign=reg.async_get_or_create("sensor","open_thermostat",
+        "fixture_boiler_fields_v1_selected_dhw_temperature",config_entry=other)
+    dashboard=RoomDashboard(hass,"fixture",e.entry_id)
+    config=dashboard._dashboard_config();boiler=next(v for v in config["views"] if v["path"]=="boiler")
+    text=str(boiler)
+    assert "sensor.renamed_native_flow" in text and returned.entity_id in text
+    assert inferred.entity_id in text and "Inferred activity" in text
+    reported=next(c for c in boiler["cards"] if c.get("title")=="Reported boiler fields")
+    assert inferred.entity_id not in str(reported)
+    for missing in [raw.entity_id,disabled.entity_id,foreign.entity_id,legacy.entity_id]:
+        assert missing not in text
+    graphs=[c for c in boiler["cards"] if c["type"]=="history-graph"]
+    assert graphs and all(inferred.entity_id not in str(c) for c in graphs)
+    assert "statistics-graph" not in text and "call-service" not in text
+    reg.async_update_entity(raw.entity_id,disabled_by=None)
+    config=dashboard._dashboard_config()
+    diagnostics=next(v for v in config["views"] if v["path"]=="diagnostics")
+    assert raw.entity_id in str(diagnostics) and "Unreliable raw boiler diagnostics" in str(diagnostics)
+    assert raw.entity_id not in str(next(v for v in config["views"] if v["path"]=="boiler"))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('change', ['unload', 'disable', 'rename', 'replace', 'reassign'])
+async def test_export_rechecks_owner_after_recorder_await_before_returning_history(hass, monkeypatch, change):
+    e = entry(hass)
+    owned = entity(hass, e, 'energy')
+    reports.async_register_entry(hass, e)
+    registry = er.async_get(hass)
+    async def query(_):
+        if change == 'unload':
+            reports.async_unregister_entry(hass, e.entry_id)
+        elif change == 'disable':
+            registry.async_update_entity(owned.entity_id, disabled_by=er.RegistryEntryDisabler.USER)
+        elif change == 'rename':
+            registry.async_update_entity(owned.entity_id, new_entity_id='sensor.changed_during_export')
+        elif change == 'replace':
+            registry.async_remove(owned.entity_id)
+            replacement = registry.async_get_or_create('sensor', 'open_thermostat',
+                'replacement_hub_energy', config_entry=e)
+            registry.async_update_entity(replacement.entity_id, new_entity_id=owned.entity_id)
+        else:
+            other = entry(hass)
+            registry.async_update_entity(owned.entity_id, config_entry_id=other.entry_id)
+        return {owned.entity_id: [State(owned.entity_id, '17')]}
+    executor = AsyncMock(side_effect=query)
+    monkeypatch.setattr(reports, 'get_instance', lambda _: SimpleNamespace(async_add_executor_job=executor))
+    try:
+        with pytest.raises(HomeAssistantError, match='changed during export'):
+            await reports.async_export(hass, arguments(e, [owned.entity_id]))
+        assert executor.await_count == 1
+    finally:
+        reports.async_unregister_entry(hass, e.entry_id)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('days', [1, 7, 28, 30, 31])
+async def test_day_week_and_month_exports_keep_the_same_bounded_native_query(hass, monkeypatch, days):
+    e = entry(hass)
+    item = entity(hass, e, 'energy')
+    reports.async_register_entry(hass, e)
+    end = datetime.now(timezone.utc)-timedelta(seconds=1)
+    start = end-timedelta(days=days)
+    async def query(call):
+        assert call.args[1:] == (start, end)
+        assert call.keywords['limit'] == 3
+        assert call.keywords['no_attributes'] is True
+        assert call.keywords['include_start_time_state'] is False
+        return {item.entity_id:[State(item.entity_id, str(i)) for i in range(3)]}
+    executor = AsyncMock(side_effect=query)
+    monkeypatch.setattr(reports, 'get_instance', lambda _: SimpleNamespace(async_add_executor_job=executor))
+    try:
+        result = await reports.async_export(hass, {'entry_id':e.entry_id,
+            'start':start.isoformat(),'end':end.isoformat(),'entity_ids':[item.entity_id],'limit':2})
+        assert result['rows'] == 2 and result['truncated']
+        assert not result['database_writes']
+        assert executor.await_count == 1
+    finally:
+        reports.async_unregister_entry(hass, e.entry_id)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('language,expected', [('en','Export history as CSV'),('nl','Historie exporteren als CSV')])
+async def test_native_export_action_resources_have_bilingual_help_and_installation_selector(hass, monkeypatch, language, expected):
+    import json
+    from pathlib import Path
+    from homeassistant import loader
+    from homeassistant.helpers import translation, selector
+    from homeassistant.util import yaml as yaml_util
+    component = Path(__file__).resolve().parents[1]/'config/custom_components/open_thermostat'
+    loader.async_setup(hass)
+    integration = loader.Integration(hass, 'custom_components.open_thermostat', component,
+        json.loads((component/'manifest.json').read_text()),
+        top_level_files={p.name for p in component.iterdir()})
+    monkeypatch.setattr(translation, 'async_get_integrations', AsyncMock(return_value={'open_thermostat':integration}))
+    resources = await translation.async_get_translations(hass, language, 'services', {'open_thermostat'})
+    prefix = 'component.open_thermostat.services.export_metrics_csv.'
+    assert resources[prefix+'name'] == expected
+    assert '31' in resources[prefix+'description']
+    assert '31' in resources[prefix+'fields.end.description']
+    for field in ('entry_id','start','end','entity_ids','limit','include_units'):
+        assert resources[prefix+'fields.'+field+'.name']
+        assert resources[prefix+'fields.'+field+'.description']
+    data = yaml_util.load_yaml(str(component/'services.yaml'))
+    config = data['export_metrics_csv']['fields']['entry_id']['selector']
+    actual = selector.selector(config)
+    assert isinstance(actual, selector.ConfigEntrySelector)
+    assert actual.config['integration'] == 'open_thermostat'

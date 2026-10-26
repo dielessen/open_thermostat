@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from datetime import timedelta
 
 from homeassistant.components import mqtt
@@ -19,6 +20,9 @@ from homeassistant.util import dt as dt_util
 from .schedule_compiler import async_compile_schedule, compile_week
 from .v1_program import native_week
 from .v1_wire import ShadowClient, identifier
+
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_room_schedule(hass,room,start=None):
@@ -75,7 +79,7 @@ async def async_build_configuration(runtime):
 
 class NativeShadowConnection:
     """One bounded worker; native listeners/timers are all owned and removed."""
-    def __init__(self, runtime, graph_profile=None):
+    def __init__(self, runtime, graph_profile=None, *, tv02_sources=(), actuator_factory=None):
         self.runtime, self.hass, self.entry = runtime, runtime.hass, runtime.entry
         self.graph_profile = graph_profile
         self.prefix = self.entry.data["topic_prefix"] + ("/v2/" if graph_profile is not None else "/v1/")
@@ -86,9 +90,55 @@ class NativeShadowConnection:
         self.schedule_unsubs = []
         self.timer = None
         self.closed = False
+        self._starting = False
+        self._started = False
         self.bench = None
+        self.original_reports = None
+        from .original_tv02 import OriginalTv02Reports, binding_failure_reason
+        try:
+            self.tv02_reports = OriginalTv02Reports(runtime, tv02_sources, defer_missing_metadata=True)
+        except (ValueError, TypeError) as error:
+            # An optional diagnostic pin can become invalid across a native
+            # registry/config reload. Never disable the controller connection
+            # or infer a replacement; rebuild an empty diagnostic owner only.
+            _LOGGER.warning("Original TV02 diagnostics disabled: source binding unavailable (%s)",
+                binding_failure_reason(error))
+            self.tv02_reports = OriginalTv02Reports(runtime)
+        from .original_ingress import OriginalIngressDiagnostics
+        self.original_ingress = OriginalIngressDiagnostics()
+        self.original_pending = False
+        self.tv02_subscription_attempts = set()
+        self._original_received = None
+        from .actuator_wire import ActuatorWire
+        if graph_profile is not None and actuator_factory is not None:
+            raise ValueError('Actuator factory requires the API1 connection')
+        self.actuator_wire = ActuatorWire(self, actuator_factory)
+
+    def original_ingress_status(self):
+        result = self.original_ingress.snapshot()
+        result["closed"] = self.closed
+        result["receiver_initialized"] = self.original_reports is not None
+        for lane, owner in (("temperature", self.original_reports), ("tv02", self.tv02_reports)):
+            result["lanes"][lane]["configured_topics"] = len(owner.topics) if owner is not None else 0
+        return result
 
     async def async_start(self):
+        if self.closed:
+            return
+        if self._starting or self._started:
+            raise ConfigEntryError("shadow_connection_already_started")
+        self._starting = True
+        try:
+            await self._async_start()
+            self._started = not self.closed
+        except (Exception, asyncio.CancelledError):
+            # Covers initial configuration/journal awaits as well as listeners.
+            await self.async_close()
+            raise
+        finally:
+            self._starting = False
+
+    async def _async_start(self):
         if self.graph_profile is not None and getattr(self.runtime,"controller_policy_source_profile",None) is not None:
             raise ConfigEntryError("controller_policy_graph_conflict")
         if getattr(self.runtime,"graph_data_profile",None) is not None and self.runtime.graph_data_profile!=self.graph_profile:
@@ -116,29 +166,66 @@ class NativeShadowConnection:
                 plan,mapping=await self.runtime.native_plan_source.async_configuration(self.hass,self.entry)
                 zones=plan["zones"]
             else:zones,mapping=await async_build_configuration(self.runtime)
+            if self.closed:
+                return
             self.client = ShadowClient(
                 self.runtime, adapter, self.publish,
                 Store(self.hass, 1, f"open_thermostat.v1.{self.entry.entry_id}"),
                 zones, mapping, self.hass.loop.time,control_plan=plan)
         await self.client.async_start()
+        if self.closed:
+            return
         if self.runtime.graph_controller_source is not None:
             await self.client.async_stage_graph_source_readback()
+            if self.closed:
+                return
             # A native control Store await must not hide graph/config/registry
             # drift. Recheck known SOURCE DATA before any subscribe/publish.
             await self.runtime.graph_controller_source.async_configuration(self.hass,self.entry)
+            if self.closed:
+                return
         if self.runtime.native_plan_source is not None and not self.client.native_source_current():
             raise ConfigEntryError("native_plan_source_changed_during_start")
         self.runtime.attach_transport(self.client)
         self.client._close_io = self.async_close
+        from .original_temperature import OriginalTemperatureReports
+        self.original_reports = OriginalTemperatureReports(self.runtime)
+        self.runtime.original_temperature_reports = self.original_reports
+        self.runtime.original_tv02_reports = self.tv02_reports
         self.worker = self.hass.async_create_background_task(self.run(), "OpenThermostat shadow MQTT")
 
         @callback
         def received(message):
-            self.enqueue(("message", message))
+            from .actuator_wire import actuator_topic
+            if message.topic.startswith(self.prefix):
+                # Narrowing-only fence while the sole worker may await IO.
+                self.actuator_wire.observe(message.topic[len(self.prefix):],
+                    message.payload, retained=message.retain)
+            if actuator_topic(message.topic.removeprefix(self.prefix)):
+                if (not self.actuator_wire.accepting or message.retain
+                        or type(message.payload) is not str or len(message.payload) > 2048):
+                    return
+                # Optional traffic leaves half the existing queue for control.
+                # Pressure retires only this route, never the shadow session.
+                if self.queue.qsize() >= 32:
+                    self.actuator_wire.retire()
+                    return
+                try:
+                    # Original arrival includes time in the existing queue.
+                    self.queue.put_nowait(("actuator_message", (message, self.client.clock())))
+                except Exception:
+                    self.actuator_wire.retire()
+            elif message.topic == self.prefix + "fw/telemetry/boiler_fields":
+                self.enqueue(("boiler_message", (message,self.hass.loop.time())))
+            else:
+                self.enqueue(("message", message))
 
         @callback
         def connection_status(connected):
             if not connected:
+                self.actuator_wire.transport_lost()
+                self.original_reports.invalidate()
+                self.tv02_reports.invalidate()
                 if self.graph_profile is not None or self.runtime.native_plan_source is not None:
                     # Existing Store await can yield inside the same worker.
                     # Fence graph DATA immediately, not behind that in-flight IO.
@@ -149,23 +236,131 @@ class NativeShadowConnection:
         def refresh(_):
             self.enqueue(("refresh", None))
 
+        @callback
+        def original_received(message):
+            # Same one pending event and half-queue reservation as before.
+            topic = getattr(message, "topic", None)
+            if type(topic) is not str:
+                self.original_ingress.unrouted()
+                return
+            owner = (self.tv02_reports if topic in self.tv02_reports.topics
+                     else self.original_reports)
+            if topic not in owner.topics:
+                self.original_ingress.unrouted()
+                return
+            lane = "tv02" if owner is self.tv02_reports else "temperature"
+            self.original_ingress.record(lane, "callback")
+            if self.closed:
+                self.original_ingress.record(lane, "dropped_closed")
+                return
+            if self.original_pending or self.queue.qsize() >= 32:
+                self.original_ingress.record(lane, "dropped_busy")
+                return
+            from .original_temperature import MAX_BYTES as TEMPERATURE_BYTES
+            from .original_tv02 import MAX_BYTES as TV02_BYTES
+            maximum = TV02_BYTES if owner is self.tv02_reports else TEMPERATURE_BYTES
+            if message.retain:
+                self.original_ingress.record(lane, "dropped_retained")
+                return
+            if type(message.payload) not in (str, bytes) or len(message.payload) > maximum:
+                self.original_ingress.record(lane, "dropped_payload")
+                return
+            try:
+                received_at = self.runtime.clock()
+                received_unix_ms = int(dt_util.utcnow().timestamp() * 1000)
+            except Exception:
+                self.original_ingress.record(lane, "dropped_timestamp")
+                return
+            try:
+                self.queue.put_nowait(("original_tv02" if owner is self.tv02_reports
+                    else "original_temperature", (message, received_at, received_unix_ms, owner.epoch)))
+                self.original_pending = True
+                self.original_ingress.record(lane, "enqueued")
+            except asyncio.QueueFull:
+                self.original_ingress.record(lane, "dropped_queue_full")
+                return
+
+        self._original_received = original_received
         try:
-            self.unsubs.append(await mqtt.async_subscribe(
-                self.hass, self.prefix + "fw/#", received, qos=0, encoding="utf-8"))
+            unsubscribe = await mqtt.async_subscribe(
+                self.hass, self.prefix + "fw/#", received, qos=0, encoding="utf-8")
+            if self.closed:
+                unsubscribe()
+                return
+            self.unsubs.append(unsubscribe)
             self.unsubs.append(mqtt.async_subscribe_connection_status(self.hass, connection_status))
+            owner = self.original_reports
+            try:
+                # One total budget for all optional temperature topics. Match
+                # the existing TV02 wait bound; never block native startup on
+                # diagnostic subscription completion indefinitely.
+                async with asyncio.timeout(1):
+                    for topic in sorted(owner.topics):
+                        unsubscribe = await mqtt.async_subscribe(
+                            self.hass, topic, original_received, qos=0, encoding=None)
+                        if self.closed or self.runtime.original_temperature_reports is not owner:
+                            unsubscribe()
+                            break
+                        self.unsubs.append(unsubscribe)
+            except Exception:
+                if not self.closed and self.runtime.original_temperature_reports is owner:
+                    owner.invalidate("unavailable")
+            if self.closed:
+                return
+            if self.runtime.original_temperature_reports is not owner:
+                await self.async_close()
+                return
+            await self._async_attach_tv02_topics()
+            if self.closed:
+                return
             if self.graph_profile is None:
                 self.bind_schedules()
             if self.graph_profile is None and any(r.schedule or r.week_program is not None for r in self.runtime.rooms.values()):
                 self.unsubs.append(async_track_utc_time_change(
                     self.hass, refresh, hour=0, minute=0, second=0))
             self.arm()
-        except Exception:
+        except (Exception, asyncio.CancelledError):
             await self.async_close()
             raise
 
+    async def _async_attach_tv02_topics(self):
+        """Resolve startup-only metadata on the existing worker/poll, no new job."""
+        if self.closed or self.runtime.original_tv02_reports is not self.tv02_reports:
+            return
+        try:
+            changed = self.tv02_reports.recheck()
+        except Exception:
+            # Optional diagnostic metadata must never reset a control lease.
+            self.tv02_reports.invalidate("unavailable")
+            return
+        # At most one new topic per pass: total optional wait stays <=1s,
+        # including installations that use multiple distinct Z2M prefixes.
+        for topic in sorted(self.tv02_reports.topics - self.tv02_subscription_attempts)[:1]:
+            self.tv02_subscription_attempts.add(topic)
+            try:
+                # Late optional metadata must not hold the control worker
+                # indefinitely while HA waits for a broker subscription.
+                async with asyncio.timeout(1):
+                    unsubscribe = await mqtt.async_subscribe(
+                        self.hass, topic, self._original_received, qos=0, encoding=None)
+            except Exception:
+                self.tv02_reports.invalidate("unavailable")
+                break
+            if self.closed or self.runtime.original_tv02_reports is not self.tv02_reports:
+                unsubscribe()
+                return
+            self.unsubs.append(unsubscribe)
+        if changed:
+            try:
+                self.runtime._notify()
+            except Exception:
+                self.tv02_reports.invalidate("unavailable")
+
     async def async_graph_command(self, command, *args):
-        """Explicit stage/apply joins SAME bounded worker, never a parallel writer."""
-        if self.closed or self.worker is None or (self.graph_profile is None and self.runtime.native_plan_source is None) or command not in {"stage", "apply", "prepare"}:
+        """Explicit action joins SAME bounded worker; readback only requests DATA."""
+        if (self.closed or self.worker is None or (self.graph_profile is None and self.runtime.native_plan_source is None)
+                or command not in {"stage", "apply", "prepare", "readback"}
+                or command=="readback" and self.runtime.native_plan_source is None):
             raise ConfigEntryError("graph_profile_unavailable")
         future = self.hass.loop.create_future()
         try:
@@ -227,6 +422,7 @@ class NativeShadowConnection:
             self.queue.put_nowait(item)
         except asyncio.QueueFull:
             # Invalidate immediately; don't queue stop behind 64 stale messages.
+            self.actuator_wire.transport_lost()
             self.client.reset_session()
             self.client.error = "receive_queue_overflow"
             self.client.changed()
@@ -245,16 +441,45 @@ class NativeShadowConnection:
         while True:
             kind, data = await self.queue.get()
             try:
-                if kind == "message":
+                if kind in ("original_temperature", "original_tv02"):
+                    message, received_at, received_unix_ms, epoch = data
+                    self.original_pending = False
+                    owner = self.tv02_reports if kind == "original_tv02" else self.original_reports
+                    lane = "tv02" if kind == "original_tv02" else "temperature"
+                    try:
+                        accepted = owner.receive(message.topic, message.payload,
+                            retained=message.retain, received_at=received_at,
+                            received_unix_ms=received_unix_ms, epoch=epoch)
+                        self.original_ingress.record(lane, "worker_accepted" if accepted else "worker_rejected")
+                        if accepted:
+                            self.runtime._notify()
+                    except Exception:
+                        self.original_ingress.record(lane, "worker_error")
+                        # A diagnostic observer cannot reset a control session,
+                        # even if a native registry/listener unexpectedly fails.
+                        owner.invalidate("unavailable")
+                elif kind == "boiler_message":
+                    message,received_at=data
+                    await self.client.receive("fw/telemetry/boiler_fields",message.payload,
+                        retained=message.retain,received_at=received_at)
+                elif kind == "actuator_message":
+                    message, received_at = data
+                    if message.topic.startswith(self.prefix):
+                        await self.actuator_wire.receive(message.topic[len(self.prefix):],
+                            message.payload, retained=message.retain, received_at=received_at)
+                elif kind == "message":
                     if data.topic.startswith(self.prefix):
                         await self.client.receive(data.topic[len(self.prefix):], data.payload, retained=data.retain)
                         self.check_bench_admission()
+                        self.actuator_wire.check_current()
                 elif kind == "disconnect":
                     if self.bench:
                         self.bench.request_stop("firmware_transport_disconnected")
                     await self.client.async_disconnected()
                 elif kind == "poll":
+                    await self._async_attach_tv02_topics()
                     await self.client.poll()
+                    self.actuator_wire.check_current()
                     self.check_bench_admission()
                 elif kind == "graph_command":
                     future, command, args = data
@@ -263,8 +488,12 @@ class NativeShadowConnection:
                     try:
                         if self.runtime.native_plan_source is not None:
                             if command=="stage":raise ConfigEntryError("native_plan_raw_stage_unsupported")
-                            result=await (self.client.async_prepare_native_plan() if command=="prepare"
-                                          else self.client.async_apply(*args))
+                            if command=="readback":
+                                if args:raise ConfigEntryError("native_plan_readback_arguments")
+                                result=await self.client.async_request_native_plan_readback()
+                            else:
+                                result=await (self.client.async_prepare_native_plan() if command=="prepare"
+                                              else self.client.async_apply(*args))
                         elif command=="prepare":
                             from .graph_draft_compile import async_compile_saved_graph
                             if args or self.graph_profile.draft_source is None:
@@ -343,15 +572,30 @@ class NativeShadowConnection:
         if self.closed:
             return
         self.closed = True
+        self.actuator_wire.retire()
+        if self.original_reports is not None:
+            self.original_reports.invalidate("closed")
+            if self.runtime.original_temperature_reports is self.original_reports:
+                self.runtime.original_temperature_reports = None
+        self.tv02_reports.invalidate("closed")
+        if self.runtime.original_tv02_reports is self.tv02_reports:
+            self.runtime.original_tv02_reports = None
+        self.original_pending = False
         if self.client is not None:
             self.client.reset_session()
-        if self.timer:
-            self.timer()
-            self.timer = None
-        for unsub in (*self.unsubs, *self.schedule_unsubs):
-            unsub()
+        # Detach handles before invoking external cleanup code. One failing
+        # callback must not strand other listeners, the worker or queued jobs;
+        # a repeated close must not retry an uncertain removal automatically.
+        callbacks = ((self.timer,) if self.timer else ()) + tuple(self.unsubs) + tuple(self.schedule_unsubs)
+        self.timer = None
         self.unsubs.clear()
         self.schedule_unsubs.clear()
+        for remove in callbacks:
+            try:
+                remove()
+            except Exception:
+                # Callback details can contain private broker/entity metadata.
+                _LOGGER.warning("Native connection cleanup callback failed")
         if self.worker and self.worker is not asyncio.current_task():
             self.worker.cancel()
             await asyncio.gather(self.worker, return_exceptions=True)

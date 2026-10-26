@@ -1,47 +1,47 @@
 <div class="d-flex justify-content-center" id="physicalRoomLoading" role="status">
-  <div class="spinner-border"><span class="sr-only">Loading rooms</span></div>
+  <div class="spinner-border"><span class="sr-only"><span data-i18n="Loading rooms">Loading rooms</span></span></div>
 </div>
 <div class="text-center text-muted mt-2" id="physicalRoomLoadingMessage" aria-live="polite"></div>
-<button type="button" class="btn btn-outline-primary d-none" id="retryPhysicalRooms">Retry loading rooms</button>
+<button type="button" class="btn btn-outline-primary d-none" id="retryPhysicalRooms"><span data-i18n="Retry loading rooms">Retry loading rooms</span></button>
 
 <div class="card d-none" id="physicalRoomCard">
-  <div class="card-header">Room configuration</div>
+  <div class="card-header"><span data-i18n="Room configuration">Room configuration</span></div>
   <div class="card-body">
-    <p class="text-muted">Names, sensors and valves belong to rooms. Heating schedules are edited separately for each program.</p>
+    <p class="text-muted"><span data-i18n="Names, sensors and valves belong to rooms. Heating schedules are edited separately for each program.">Names, sensors and valves belong to rooms. Heating schedules are edited separately for each program.</span></p>
     <div class="form-row align-items-end mb-3">
       <div class="col mb-2">
-        <label for="physicalRoomSelect">Room</label>
+        <label for="physicalRoomSelect"><span data-i18n="Room">Room</span></label>
         <select class="form-control" id="physicalRoomSelect" data-no-validation></select>
       </div>
-      <div class="col-md-2 mb-2"><button type="button" class="btn btn-success form-control" id="addPhysicalRoom">Add room</button></div>
-      <div class="col-md-2 mb-2"><button type="button" class="btn btn-dark form-control" id="deletePhysicalRoom">Delete room</button></div>
+      <div class="col-md-2 mb-2"><button type="button" class="btn btn-success form-control" id="addPhysicalRoom"><span data-i18n="Add room">Add room</span></button></div>
+      <div class="col-md-2 mb-2"><button type="button" class="btn btn-dark form-control" id="deletePhysicalRoom"><span data-i18n="Delete room">Delete room</span></button></div>
     </div>
-    <p id="physicalRoomEmpty" class="text-muted" role="status">No rooms configured. Add a room to begin.</p>
+    <p id="physicalRoomEmpty" class="text-muted" role="status"><span data-i18n="No rooms configured. Add a room to begin.">No rooms configured. Add a room to begin.</span></p>
     <div id="physicalRoomDetails" style="display:none">
       <div class="form-row">
         <div class="col-md-4 mb-2">
-          <label for="physicalRoomName">Name</label>
+          <label for="physicalRoomName"><span data-i18n="Name">Name</span></label>
           <input class="form-control" id="physicalRoomName" required>
         </div>
         <div class="col-md-4 mb-2">
-          <label for="physicalRoomSensor">Temperature sensor</label>
+          <label for="physicalRoomSensor"><span data-i18n="Temperature sensor">Temperature sensor</span></label>
           <div class="input-group">
-            <input class="form-control" id="physicalRoomSensor" list="knownRoomSensors" placeholder="BLE address">
+            <input class="form-control" id="physicalRoomSensor" list="knownRoomSensors" placeholder="BLE address" data-i18n-placeholder="BLE address">
             <div class="input-group-append">
-              <button type="button" class="btn btn-outline-secondary" id="choosePhysicalRoomSensor">Choose</button>
+              <button type="button" class="btn btn-outline-secondary" id="choosePhysicalRoomSensor"><span data-i18n="Choose">Choose</span></button>
             </div>
           </div>
           <datalist id="knownRoomSensors"></datalist>
         </div>
         <div class="col-md-4 mb-2">
-          <label for="physicalRoomValves">Valves</label>
+          <label for="physicalRoomValves"><span data-i18n="Valves">Valves</span></label>
           <select id="physicalRoomValves" multiple="multiple"></select>
         </div>
       </div>
-      <small class="text-muted">Room ID: <span id="physicalRoomId"></span>. This ID remains unchanged when you rename the room.</small>
+      <small class="text-muted"><span data-i18n="Room ID:">Room ID:</span> <span id="physicalRoomId"></span><span data-i18n=". This ID remains unchanged when you rename the room.">. This ID remains unchanged when you rename the room.</span></small>
     </div>
   </div>
-  <div class="card-footer"><button type="button" class="btn btn-primary" id="savePhysicalRooms">Save rooms</button></div>
+  <div class="card-footer"><button type="button" class="btn btn-primary" id="savePhysicalRooms"><span data-i18n="Save rooms">Save rooms</span></button></div>
 </div>
 
 <script type="text/javascript">
@@ -108,15 +108,15 @@
     }
 
     async function saveRooms(nextRooms = rooms) {
-      if (nextRooms.some(room => !room.name.trim())) throw new Error('Every room needs a name');
+      if (nextRooms.some(room => !room.name.trim())) throw new Error(uiText("Every room needs a name"));
       const persisted = await readJson('/config/rooms');
-      if (!same(persisted, savedRooms)) throw new Error('Rooms changed on the device. Reload this page before saving.');
+      if (!same(persisted, savedRooms)) throw new Error(uiText("Rooms changed on the device. Reload this page before saving."));
       const response = await fetch(hostName + '/config/rooms', {
         method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(nextRooms)
       });
       if (!response.ok) throw new Error((await response.text()) || response.statusText);
       const readback = await readJson('/config/rooms');
-      if (!same(readback, nextRooms)) throw new Error('Saved rooms could not be verified. Reload this page before retrying.');
+      if (!same(readback, nextRooms)) throw new Error(uiText("Saved rooms could not be verified. Reload this page before retrying."));
       rooms = readback;
       savedRooms = structuredClone(readback);
       notifyPrograms();
@@ -136,9 +136,9 @@
         const response = await fetch(hostName + '/status/devices');
         if (!response.ok) throw new Error(response.statusText);
         scanned = await response.json();
-        if (!Array.isArray(scanned)) throw new Error('Invalid device list');
+        if (!Array.isArray(scanned)) throw new Error(uiText("Invalid device list"));
       } catch (error) {
-        alert('Cannot load scanned sensors: ' + error);
+        alert(uiText("Cannot load scanned sensors: ") + error);
         return;
       }
 
@@ -147,7 +147,7 @@
         addresses.unshift(room.sensor);
       }
       if (addresses.length === 0) {
-        alert('No temperature sensors scanned yet. You can enter the BLE address manually.');
+        alert(uiText("No temperature sensors scanned yet. You can enter the BLE address manually."));
         return;
       }
 
@@ -162,7 +162,7 @@
       });
       const showUsed = $('<input type="checkbox" class="form-check-input" id="showUsedRoomSensors">');
       const toggle = $('<div class="form-check mt-2"></div>').append(showUsed)
-        .append($('<label class="form-check-label" for="showUsedRoomSensors"></label>').text('Show sensors assigned to other rooms'));
+        .append($('<label class="form-check-label" for="showUsedRoomSensors"></label>').text(uiText("Show sensors assigned to other rooms")));
       showUsed.on('change', () => {
         sensorSelect.find('option').each(function () {
           const usedBy = usedSensors.get(this.value.toUpperCase());
@@ -176,7 +176,7 @@
       if (!sensorSelect.find('option:selected').length || sensorSelect.find('option:selected').prop('disabled')) {
         sensorSelect.find('option:not(:disabled):first').prop('selected', true);
       }
-      $('#editModalLabel').text('Choose temperature sensor');
+      $('#editModalLabel').text(uiText("Choose temperature sensor"));
       $('#editModalBody').empty().append(sensorSelect, toggle);
       $('#editModalSave').off('click').on('click', event => {
         event.preventDefault();
@@ -189,7 +189,7 @@
       $('#editModal').modal('show');
     });
     document.getElementById('addPhysicalRoom').addEventListener('click', () => {
-      const room = {id: newRoomId(), name: 'New room', sensor: '', valves: []};
+      const room = {id: newRoomId(), name: uiText("New room"), sensor: '', valves: []};
       rooms.push(room);
       refresh(room.id);
       name.focus();
@@ -200,45 +200,45 @@
       const room = currentRoom();
       if (!room) return;
       if (!savedRooms.some(saved => saved.id === room.id)) {
-        if (confirm("Discard unsaved room '" + room.name + "'?")) {
+        if (confirm(uiText("Discard unsaved room '") + room.name + "'?")) {
           rooms = rooms.filter(item => item.id !== room.id);
           refresh();
         }
         return;
       }
       // Never persist unrelated unsaved edits as a side effect of Delete.
-      if (!same(rooms, savedRooms)) { alert('Save room changes before deleting a room.'); return; }
+      if (!same(rooms, savedRooms)) { alert(uiText("Save room changes before deleting a room.")); return; }
       const updatedPrograms = [];
       setBusy(true);
       try {
         const names = await readJson('/status/programs');
-        if (!Array.isArray(names) || names.some(value => typeof value !== 'string')) throw new Error('Invalid program list');
+        if (!Array.isArray(names) || names.some(value => typeof value !== 'string')) throw new Error(uiText("Invalid program list"));
         const plans = [];
         for (const programName of [...new Set(names)]) {
           const url = '/config/programs/' + encodeURIComponent(programName);
           const original = await readJson(url);
-          if (!Array.isArray(original)) throw new Error('Invalid program: ' + programName);
+          if (!Array.isArray(original)) throw new Error(uiText("Invalid program: ") + programName);
           const next = original.filter(entry => entry.room_id !== room.id);
           if (next.length !== original.length) plans.push({programName, url, original, next});
         }
-        const impact = plans.length ? '\nAlso remove its settings from: ' + plans.map(plan => plan.programName).join(', ') + '.' : '';
-        if (!confirm("Delete room '" + room.name + "'?" + impact + '\nOther rooms are kept. Unsaved program edits in this page will be discarded.')) return;
+        const impact = plans.length ? uiText("\nAlso remove its settings from: ") + plans.map(plan => plan.programName).join(', ') + '.' : '';
+        if (!confirm(uiText("Delete room '") + room.name + "'?" + impact + uiText("\nOther rooms are kept. Unsaved program edits in this page will be discarded."))) return;
         // Program-first order is deliberate: an interrupted operation may leave
         // this room without settings, never a dangling program reference.
         for (const plan of plans) {
-          if (!same(await readJson(plan.url), plan.original)) throw new Error('Program changed: ' + plan.programName + '. Reload before retrying.');
+          if (!same(await readJson(plan.url), plan.original)) throw new Error(uiText("Program changed: ") + plan.programName + uiText(". Reload before retrying."));
           const response = await fetch(hostName + plan.url, {
             method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(plan.next)
           });
-          if (!response.ok) throw new Error('Program ' + plan.programName + ': ' + ((await response.text()) || response.statusText));
+          if (!response.ok) throw new Error(uiText("Program ") + plan.programName + ': ' + ((await response.text()) || response.statusText));
           updatedPrograms.push(plan.programName);
-          if (!same(await readJson(plan.url), plan.next)) throw new Error('Cannot verify program ' + plan.programName);
+          if (!same(await readJson(plan.url), plan.next)) throw new Error(uiText("Cannot verify program ") + plan.programName);
         }
         await saveRooms(rooms.filter(item => item.id !== room.id));
         refresh();
-        alert('Room deleted and saved.');
+        alert(uiText("Room deleted and saved."));
       } catch (error) {
-        alert('Deletion not confirmed: ' + error + (updatedPrograms.length ? '\nSettings already removed from: ' + updatedPrograms.join(', ') + '. The room catalog was not confirmed deleted. Reload before retrying.' : ''));
+        alert(uiText("Deletion not confirmed: ") + error + (updatedPrograms.length ? uiText("\nSettings already removed from: ") + updatedPrograms.join(', ') + uiText(". The room catalog was not confirmed deleted. Reload before retrying.") : ''));
       } finally {
         notifyPrograms(updatedPrograms.length > 0);
         setBusy(false);
@@ -247,8 +247,8 @@
     document.getElementById('savePhysicalRooms').addEventListener('click', async () => {
       if (busy) return;
       setBusy(true);
-      try { await saveRooms(); refresh(select.value); alert('Rooms saved'); }
-      catch (error) { alert('Cannot save rooms: ' + error); }
+      try { await saveRooms(); refresh(select.value); alert(uiText("Rooms saved")); }
+      catch (error) { alert(uiText("Cannot save rooms: ") + error); }
       finally { setBusy(false); }
     });
 
@@ -261,7 +261,7 @@
     async function loadRoomConfiguration() {
       if (!loading.isConnected) return;
       retry.classList.add('d-none');
-      loadingMessage.textContent = 'Loading room configuration...';
+      loadingMessage.textContent = uiText("Loading room configuration...");
       loading.classList.remove('d-none');
       loading.classList.add('d-flex');
       try {
@@ -269,21 +269,21 @@
           fetch(hostName + '/config/rooms', {signal: AbortSignal.timeout(10000), cache: 'no-store'}),
           fetch(hostName + '/config/hardware', {signal: AbortSignal.timeout(10000), cache: 'no-store'})
         ]);
-        if (!catalogResponse.ok || !hardwareResponse.ok) throw new Error('Room configuration unavailable');
+        if (!catalogResponse.ok || !hardwareResponse.ok) throw new Error(uiText("Room configuration unavailable"));
         const [catalog, hardware] = await Promise.all([catalogResponse.json(), hardwareResponse.json()]);
-        if (!Array.isArray(catalog) || !hardware || typeof hardware !== 'object' || (hardware.valve_pins !== undefined && !Array.isArray(hardware.valve_pins))) throw new Error('Invalid room configuration');
+        if (!Array.isArray(catalog) || !hardware || typeof hardware !== 'object' || (hardware.valve_pins !== undefined && !Array.isArray(hardware.valve_pins))) throw new Error(uiText("Invalid room configuration"));
         if (!loading.isConnected) return;
 
         rooms = catalog;
         savedRooms = structuredClone(catalog);
         (hardware.valve_pins || []).forEach((pin, index) => {
-          const label = pin && pin.label ? pin.label : 'Valve ' + (index + 1);
+          const label = pin && pin.label ? pin.label : uiText("Valve ") + (index + 1);
           valves.add(new Option(label, String(index)));
         });
         $(valves).multiselect({
           numberDisplayed: 0,
-          allSelectedText: 'All valves',
-          nonSelectedText: 'Select valves',
+          allSelectedText: uiText("All valves"),
+          nonSelectedText: uiText("Select valves"),
           onChange: function () {
             const room = currentRoom();
             if (room) room.valves = Array.from(valves.selectedOptions, option => Number(option.value));
@@ -305,7 +305,7 @@
         if (!loading.isConnected) return;
         loading.classList.remove('d-flex');
         loading.classList.add('d-none');
-        loadingMessage.textContent = 'Cannot load room configuration. Check the device connection, then retry. ' + error.message;
+        loadingMessage.textContent = uiText("Cannot load room configuration. Check the device connection, then retry. ") + error.message;
         retry.classList.remove('d-none');
       }
     }

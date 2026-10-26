@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "scope": "Actual retained ESP32 SDK/runtime reproduction recipes; original producer strings are preserved for exact macro inputs",
+  "files": {
+    "ARCHIVE-SOURCE-DECLARATIONS.json": "d4b57830b60b2972cc2fb149028810670ee191a0cf031abd7c96c7b8433f93d2",
+    "SDK-BUILDER-DESCRIPTOR.json": "605fcc61602e9ec82a513d829adf5f863e1c9c1f3282d95c37891080c7be8206",
+    "ASSEMBLY-QUEUE.json": "2ca77b49e8b8e0350a581318772cd204a2916baad45d5b4a0c94d00cdf7f7a98",
+    "SUBMODULE-TREE-RECEIPTS.json": "ebbe9c9d94fd60bb09e6137883f5cfa354ca1bce4028de023103ac41661fc4c1",
+    "TOOLCHAIN-RUNTIME-SOURCE-DECLARATIONS.json": "afc46b218be417fb228e6175ee7442d0fd09bab4e692b259712c81c0d9c1f627",
+    "COMPILE-INCLUDES.json": "8a7eee913dd8ee4fc2afa6b9f48dc45f196bd9f47668a1f7cac9cbff390940e8",
+    "recompile-runtime.py": "5dae7b43555551299cfadd5ca967c1c7f7e79dcab196b76e1cff7e22197646d7",
+    "recompile-assembly.py": "3a117be90224b481e4ee2e86a091e51e28730b6f4e4f6df7cb263376c08f552e",
+    "recompile-startup.py": "b2a5551e5903a36d4101f81c554814c606e930ca56a2db30f771bceac28d3f5b",
+    "recompile-samples.py": "43be87a6eb612c90edeeddc6ba89f798ff5658e6119e16f5fe582fcebe23399e",
+    "recompile-retained.py": "8e2263ddcea055dd666c467a939c3988ae43e76b5377ac3795b3fdb76af5d9bc",
+    "runtime-config/newlib.h": "3ef7b3e450249c3146c88050f2a30281dadd6ec6592c05d488b6017ae715cac5",
+    "runtime-config/libgcc/libgcc_tm.h": "a17020fe85909e7d4b4bbc236cec6181eaf7d9c9e9c294bbadf92e2701c1ad34",
+    "runtime-config/libgcc/md-unwind-support.h": "eb2bd5ea38d591bf4c31bd34951ecc15732333ed30d5aa66c9dbc09145e97b5e",
+    "runtime-config/libgcc/tconfig.h": "156e462ce8c02c07825e53bd5ba3dd2ff107f46cd45159e7ceb4dd492be1b56b",
+    "runtime-config/libgcc/cs-tconfig.h": "2cd8ec3de6a07e1fd39676100db57ba62372e820c19812fee55899f65746e192",
+    "runtime-config/libgcc/gthr-default.h": "cad4342da70971e21a75bd839d89d92c23e38fedc218a6a0c363ea3830ebe26d",
+    "README.md": "9ca3241d24c2cd41ad1848f57ce884a731a411fc32bde0a3ad38d94fe4202800"
+  }
+}

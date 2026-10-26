@@ -56,6 +56,7 @@ async def test_actual_selected_cpp_profile_reaches_native_ha_and_safe_observer_l
     entity=ShadowRoom("fixture",binding,runtime)
     assert entity.extra_state_attributes["simulated_demand"] is True
     if fault=="dhw":
+        bus.now+=1  # A changed producer fact has a new acquisition time.
         await bus.event("safety_snapshot",limits_known_safe=True,dhw_state_known=True,dhw_active=True)
         stopped=await fresh(*seasonal)
         assert stopped.reason=="seasonal_dhw_priority"

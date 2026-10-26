@@ -21,7 +21,7 @@ from custom_components.open_thermostat.v1_model import RoomBinding, Observation
 from custom_components.open_thermostat.v1_mqtt import async_build_configuration
 from custom_components.open_thermostat.v1_climate import ShadowRoom
 from custom_components.open_thermostat.v1_config_flow import reference
-from test_v1_native import room, entry
+from test_v1_native import room, entry, source_profile
 from test_v1_wire_interop import FirmwareBus, RUNNER
 
 @pytest_asyncio.fixture
@@ -61,6 +61,10 @@ async def command(bus,awaitable):
     return await asyncio.wait_for(task,0.1)
 
 async def observe(runtime,client,bus,binding):
+    # Synthetic temperature evidence isolates comfort/firmware policy here.
+    # A native report owner is still required when context events forward it.
+    if binding.room_id not in runtime._profiles:
+        runtime.set_report_profile(binding.room_id,source_profile)
     runtime.observations[binding.room_id]=Observation(19,"qualified",0,"report",runtime.hass.loop.time())
     await client.async_observation(binding.room_id,Observation(19,"qualified",0,"report",bus.clock()))
     await bus.pump()

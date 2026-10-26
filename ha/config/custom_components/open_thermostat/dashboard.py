@@ -13,6 +13,8 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.util import slugify
 
 from .const import DOMAIN
+from .product import is_product
+from .week_planner import ROOM_CARD_TYPE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,6 +73,10 @@ class RoomDashboard:
 
     async def async_start(self) -> None:
         """Register a Lovelace panel without changing the user's dashboards."""
+        entry = self.hass.config_entries.async_get_entry(self.entry_id)
+        if entry and is_product(entry):
+            from .week_planner import async_setup_planner
+            await async_setup_planner(self.hass)
         dashboards = self.hass.data[LOVELACE_DATA].dashboards
         if self.path in dashboards or frontend.async_panel_exists(self.hass, self.path):
             _LOGGER.warning("Cannot create OpenThermostat dashboard: %s is already used", self.path)
@@ -199,6 +205,16 @@ class RoomDashboard:
             for entry in er.async_entries_for_config_entry(registry, self.entry_id)
             if entry.unique_id.startswith(f"{self.prefix}_hub_") and entry.disabled_by is None
         }
+        # Registry identities follow user renames; model choice never filters fields.
+        native_fields = {
+            item.unique_id.removeprefix(f"{self.prefix}_boiler_fields_v1_"): item.entity_id
+            for item in er.async_entries_for_config_entry(registry, self.entry_id)
+            if item.platform == DOMAIN and item.domain == "sensor"
+            and item.unique_id.startswith(f"{self.prefix}_boiler_fields_v1_")
+            and item.disabled_by is None
+        }
+        from .boiler_fields import FIELDS, QUALITIES
+        field_quality = {field[0]: quality for field, quality in zip(FIELDS, QUALITIES)}
         diagnostic_entities = [
             hub_entities[metric]
             for metric in DEVICE_DIAGNOSTIC_METRICS
@@ -213,12 +229,14 @@ class RoomDashboard:
         ]
         ems_entities += [hub_entities[key] for key in hub_entities
                          if key.endswith("_v2") and key[:-3] in EMS_METRICS]
-        polish = self.hass.config.language.lower().startswith("pl")
-        rooms_title = "Pomieszczenia" if polish else "Rooms"
-        diagnostics_title = "Diagnostyka" if polish else "Diagnostics"
-        heating_title = "Ogrzewanie" if polish else "Heating"
-        device_title = "Urządzenie" if polish else "Device diagnostics"
-        ems_title = "Informacje EMS" if polish else "EMS information"
+        # Stored native Lovelace cards have no per-viewer translation context.
+        # Keep their fixed headings in English; entity labels and our custom
+        # room editor use Home Assistant's own translation/profile context.
+        rooms_title = "Rooms"
+        diagnostics_title = "Diagnostics"
+        heating_title = "Heating"
+        device_title = "Device diagnostics"
+        ems_title = "EMS information"
         diagnostics_cards = []
         if diagnostic_entities:
             diagnostics_cards.append({
@@ -252,9 +270,11 @@ class RoomDashboard:
         diagnostics_cards.append({"type":"markdown","content":dhw_note})
         # Native cards only. Reported selected flow is NOT a controller request,
         # and burner modulation percentage is NOT measured kW or power factor.
-        def graph(title, keys, hours=24):
-            entities = [{"entity": hub_entities[key], "name": name}
-                        for key, name in keys if key in hub_entities]
+        def graph(title, keys, hours=24, lookup=None):
+            if lookup is None:
+                lookup = hub_entities
+            entities = [{"entity": lookup[key], "name": name}
+                        for key, name in keys if key in lookup]
             return ({"type": "history-graph", "title": title,
                      "hours_to_show": hours, "entities": entities} if entities else None)
         boiler_cards = [{
@@ -265,20 +285,52 @@ class RoomDashboard:
                         "Classic flame/flow and physical operation require separate "
                         "qualification. No inferred flame or pump state is added."),
         }]
-        for card in (
-            graph("Reported flow selection and measured flow", (
-                ("boiler_selected_flow_temperature", "Reported selected flow"),
-                ("boiler_current_flow_temperature", "Reported current flow"))),
-            graph("Reported burner modulation (%) — not kW", (
-                ("boiler_burner_power", "Reported modulation (%)"),)),
-            graph("Reported CV / DHW / flame / pump", (
-                ("boiler_heating_active", "Reported CV"),
-                ("boiler_hot_water_active", "Reported DHW"),
-                ("boiler_burner_active", "Reported flame bit"),
-                ("boiler_pump_active", "Reported pump bit"))),
-        ):
-            if card:
-                boiler_cards.append(card)
+        if native_fields:
+            boiler_cards[0]["content"] = (
+                "Read-only boiler fields from the native transport. Availability follows "
+                "original report age and quality; unknown or stale is not zero. "
+                "Reported settings are not proof of an E32 command or physical operation. "
+                "Modulation is a reported percentage, not measured kW. Inferred activity "
+                "is shown separately and is not verified flame or pump operation.")
+            for quality, title, destination in (
+                (0, "Reported boiler fields", boiler_cards),
+                (2, "Inferred activity — not verified operation", boiler_cards),
+                (1, "Unreliable raw boiler diagnostics", diagnostics_cards),
+            ):
+                rows = [entity_id for name, entity_id in native_fields.items()
+                        if field_quality.get(name, 1) == quality]
+                if rows:
+                    destination.append({"type": "entities", "title": title,
+                                        "show_header_toggle": False, "entities": rows})
+            charts = (
+                graph("Reported flow selection, flow and return", (
+                    ("reported_selected_flow_temperature", "Reported selected flow"),
+                    ("measured_flow_temperature", "Measured flow"),
+                    ("measured_return_temperature", "Measured return")), lookup=native_fields),
+                graph("Reported burner modulation (%) — not kW", (
+                    ("reported_burner_modulation", "Reported modulation (%)"),), lookup=native_fields),
+                graph("Reported domestic hot water temperatures", (
+                    ("selected_dhw_temperature", "Reported selected DHW"),
+                    ("measured_dhw_temperature", "Measured DHW"),
+                    ("reported_dhw_target", "Reported DHW target")), lookup=native_fields),
+            )
+        else:
+            for card in (
+                graph("Reported flow selection and measured flow", (
+                    ("boiler_selected_flow_temperature", "Reported selected flow"),
+                    ("boiler_current_flow_temperature", "Reported current flow"))),
+                graph("Reported burner modulation (%) — not kW", (
+                    ("boiler_burner_power", "Reported modulation (%)"),)),
+                graph("Reported CV / DHW / flame / pump", (
+                    ("boiler_heating_active", "Reported CV"),
+                    ("boiler_hot_water_active", "Reported DHW"),
+                    ("boiler_burner_active", "Reported flame bit"),
+                    ("boiler_pump_active", "Reported pump bit"))),
+            ):
+                if card:
+                    boiler_cards.append(card)
+        if native_fields:
+            boiler_cards.extend(card for card in charts if card)
         analysis_cards = [{
             "type": "markdown",
             "content": ("Energy values below are boot-local nominal-modulation "
@@ -319,6 +371,11 @@ class RoomDashboard:
             if entities:
                 heating_cards.append({"type": "history-graph", "title": f"Room {key}: target / observed",
                                       "hours_to_show": 24, "entities": entities})
+        entry = self.hass.config_entries.async_get_entry(self.entry_id)
+        if entry is not None and is_product(entry):
+            room_cards.extend({"type": "button", "name": sub.title + " settings",
+                "icon": "mdi:cog", "tap_action": {"action": "navigate", "navigation_path": "/" + self.path + "/room-" + sub.data["room_id"]}}
+                for sub in entry.subentries.values() if sub.subentry_type == "zone")
         return {
             "views": [
                 {
@@ -327,6 +384,24 @@ class RoomDashboard:
                     "icon": "mdi:thermostat",
                     "cards": room_cards,
                 },
+                *([{
+                    "title": "Room settings",
+                    "panel": True,
+                    "path": "week", "icon": "mdi:calendar-week",
+                    "cards": [{"type": ROOM_CARD_TYPE,
+                               "entry_id": self.entry_id, "room_id": sub.data["room_id"]}
+                              for sub in [s for s in self.hass.config_entries.async_get_entry(self.entry_id).subentries.values()
+                                          if s.subentry_type == "zone"][:1]],
+                }] if (self.hass.config_entries.async_get_entry(self.entry_id) is not None
+                       and is_product(self.hass.config_entries.async_get_entry(self.entry_id))) else []),
+                *([{"title": sub.title, "path": "room-" + sub.data["room_id"],
+                    "subview": True, "panel": True, "icon": "mdi:cog",
+                    "cards": [{"type": ROOM_CARD_TYPE, "entry_id": self.entry_id,
+                               "room_id": sub.data["room_id"]}]}
+                    for sub in self.hass.config_entries.async_get_entry(self.entry_id).subentries.values()
+                    if sub.subentry_type == "zone"] if (
+                        self.hass.config_entries.async_get_entry(self.entry_id) is not None
+                        and is_product(self.hass.config_entries.async_get_entry(self.entry_id))) else []),
                 {
                     "title": heating_title,
                     "path": "heating",

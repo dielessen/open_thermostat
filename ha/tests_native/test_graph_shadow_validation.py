@@ -52,13 +52,41 @@ def test_validator_not_imported_by_any_active_runtime_or_api():
     # exercised by actual native HA tests in test_graph_native_connection.py.
     component=ROOT/"ha/config/custom_components/open_thermostat"
     for p in component.glob("*.py"):
-        if p.name in ("graph_shadow_validation.py", "graph_shadow_storage.py", "graph_wire_codec.py", "graph_wire.py", "v1_mqtt.py", "v1_config_flow.py", "graph_draft_compile.py"):
+        # Route B added explicit native SOURCE/layout/codec/presentation layers.
+        # Keep this list explicit: an arbitrary new GUI/runtime importer fails.
+        if p.name in ("graph_shadow_validation.py", "graph_shadow_storage.py",
+                      "graph_wire_codec.py", "graph_wire.py", "v1_mqtt.py",
+                      "v1_config_flow.py", "graph_draft_compile.py", "v1_wire.py",
+                      "topology_control_source.py", "native_provisioning.py",
+                      "graph_floor_bridge.py", "native_plan.py", "graph_control_source.py",
+                      "graph_topology_review.py", "compact_schedule.py", "plan_presentation.py",
+                      "controller_link.py"):
             continue
         assert "graph_shadow_validation" not in p.read_text(),p.name
     # Native options can REVIEW an already source-selected owner's tuple only.
     # Keep the boundary strict: no root-level graph imports, no profile/client/
     # connection construction or direct validation from arbitrary GUI input.
     import ast
+    # The explicit normal E32 connection uses the existing pure serializer for
+    # readback equality. It cannot validate/adopt an incoming graph or construct
+    # another MQTT client, worker, journal or physical actuator path.
+    for filename in ("controller_link.py", "controller_connection.py", "controller_setup_flow.py"):
+        connection_tree = ast.parse((component/filename).read_text())
+        for node in ast.walk(connection_tree):
+            if isinstance(node, ast.ImportFrom) and node.module == "graph_shadow_validation":
+                assert filename == "controller_link.py"
+                assert all(n.name == "canonical" and n.asname is None for n in node.names)
+            if isinstance(node, ast.Call):
+                called = node.func.id if isinstance(node.func, ast.Name) else getattr(node.func, "attr", None)
+                assert called not in {"GraphSourceProfile", "GraphShadowClient", "NativeShadowConnection",
+                    "ShadowClient", "GraphShadowJournal", "validate_graph_shadow", "native_graph_journal",
+                    "async_publish", "async_call", "NativePlanSource", "NativeInstallationPolicy"}, (filename, called)
+                if called == "async_graph_command":
+                    assert node.args and isinstance(node.args[0], ast.Constant)
+                    # Only the existing connection operation may request new
+                    # read-only DATA proof; other APIs keep their original set.
+                    assert node.args[0].value in {"prepare", "apply"} or (
+                        filename == "controller_connection.py" and node.args[0].value == "readback")
     tree=ast.parse((component/"v1_config_flow.py").read_text())
     for node in tree.body:
         if isinstance(node,ast.ImportFrom):
@@ -76,12 +104,27 @@ def test_validator_not_imported_by_any_active_runtime_or_api():
             if called=="async_graph_command":
                 assert node.args and isinstance(node.args[0],ast.Constant) and node.args[0].value in {"apply","prepare"}
         if isinstance(node,ast.ImportFrom) and node.module=="graph_shadow_validation":
-            assert [(n.name,n.asname) for n in node.names]==[("GraphValidationError",None)]
+            # SOURCE readback review also uses the existing pure serializer.
+            # No validator/client/profile construction is allowed from GUI data.
+            assert all(n.name in {"GraphValidationError", "canonical"} and n.asname is None
+                       for n in node.names)
     # Actual native OptionsFlow/Store/worker+Cpp tests assert no default/profile
     # activation, consent/identity guards, no options reload and all outputsfalse.
 
+    # Normal configuration must not acquire a second client, source constructor,
+    # command publisher or actuator service path while central storage is moved.
+    for filename in ("product.py", "product_flow.py", "product_telemetry.py"):
+        product_tree = ast.parse((component/filename).read_text())
+        for node in ast.walk(product_tree):
+            if isinstance(node, ast.Call):
+                called = node.func.id if isinstance(node.func, ast.Name) else getattr(node.func, "attr", None)
+                assert called not in forbidden | {"async_publish", "async_call"}, (filename, called)
+
     for p in (ROOT/"src").rglob("*"):
-        if p.is_file() and p.suffix in (".h",".cpp") and p.name not in ("GraphShadowValidation.h", "GraphShadowConfiguration.h", "GraphWireTuple.h", "GraphSessionOwner.h"):
+        if p.is_file() and p.suffix in (".h",".cpp") and p.name not in (
+                "GraphShadowValidation.h", "GraphShadowConfiguration.h", "GraphWireTuple.h",
+                "GraphSessionOwner.h", "GraphTopologyReview.h", "NativeControlPlan.h",
+                "GraphControlStoreView.h", "GraphFloorControlStoreView.h"):
             assert "GraphShadowValidation" not in p.read_text(),str(p)
             assert "GraphShadowConfiguration" not in p.read_text(),str(p)
 

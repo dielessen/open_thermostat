@@ -43,6 +43,11 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Subscribe to room state and availability messages."""
+    from .product import is_product
+    if is_product(entry):
+        from .product_telemetry import async_setup_binary_sensors
+        await async_setup_binary_sensors(hass, entry, async_add_entities)
+        return
     prefix = entry.data[CONF_TOPIC_PREFIX]
     hub = dr.async_get(hass).async_get_device_by_identifier((DOMAIN, prefix), entry.entry_id)
     hub_id = hub.id if hub else None

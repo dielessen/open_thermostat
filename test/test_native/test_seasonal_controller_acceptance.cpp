@@ -1,6 +1,5 @@
 // New acceptance only: existing REAL controller/protocol/fixture, no second model.
-// Registration includes previous tests, but verifier runs ONLY our3 new cases.
-#include "test_seasonal_controller_source.cpp"
+#include "SeasonalControllerFixture.h"
 namespace {
 using namespace heating::control;
 TEST(SeasonalControllerAcceptance, SummerAndAllOffStopCannotBeUndoneByNewManualBoost) {
@@ -10,7 +9,7 @@ TEST(SeasonalControllerAcceptance, SummerAndAllOffStopCannotBeUndoneByNewManualB
     auto next=contextObservation(f,2);f.send("ha/observations",next.get());
     auto boost=comfortCommand(f,"boost",1,2300,60000);f.send("ha/user_command",boost.get());
     auto active=f.state();ASSERT_TRUE(cJSON_IsTrue(field(Fixture::row(active),"demand")));outputsFalse(active);
-    safety.summer=true;
+    ++f.now;safety.summer=true; // New dated producer fact.
     auto fresh=contextObservation(f,3);f.send("ha/observations",fresh.get());
     auto summer=f.state();outputsFalse(summer);
     EXPECT_EQ(uintField(Fixture::row(summer),"target_centi_c"),2300u);
@@ -22,7 +21,7 @@ TEST(SeasonalControllerAcceptance, SummerAndAllOffStopCannotBeUndoneByNewManualB
     EXPECT_EQ(uintField(Fixture::row(still),"target_centi_c"),2400u);
     EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(still),"demand")));
     EXPECT_STREQ(stringField(Fixture::row(still),"reason").c_str(),"seasonal_summer");
-    safety.summer=false;safety.allOff=true;
+    ++f.now;safety.summer=false;safety.allOff=true;
     auto allOffBoost=comfortCommand(f,"boost",3,2500,60000);f.send("ha/user_command",allOffBoost.get());
     auto stopped=f.state();outputsFalse(stopped);
     EXPECT_FALSE(cJSON_IsTrue(field(Fixture::row(stopped),"demand")));

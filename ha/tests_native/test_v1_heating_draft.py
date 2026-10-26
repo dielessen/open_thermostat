@@ -299,7 +299,7 @@ def test_identifier_order_coalesces_but_ordered_mixer_ports_remain_semantic():
 
 
 @pytest.mark.asyncio
-async def test_new_native_translation_is_english_and_explicitly_draft(hass,monkeypatch):
+async def test_new_native_translation_is_bilingual_and_explicitly_draft(hass,monkeypatch):
     from pathlib import Path
     from homeassistant import loader
     from homeassistant.helpers import translation
@@ -315,7 +315,13 @@ async def test_new_native_translation_is_english_and_explicitly_draft(hass,monke
     assert "NOT applied to E32" in resources[prefix+"description"]
     assert "not sample qualification" in resources[prefix+"data_description.outdoor_source"]
     assert all(prefix+"data.curve_"+str(i) in resources for i in range(9))
-    assert not (component/"translations/nl.json").exists()
+    nl=json.loads((component/"translations/nl.json").read_text())
+    assert nl["config_subentries"]["room_setup"]["initiate_flow"]["user"]=="Radiatorkamer instellen"
+    resources_nl=await translation.async_get_translations(hass,"nl","config_subentries",{"open_thermostat"})
+    assert resources_nl[prefix+"title"]=="Centrale verwarmingsinstellingen — alleen concept"
+    assert "NIET op de E32 toegepast" in resources_nl[prefix+"description"]
+    assert "kwalificeert geen meting" in resources_nl[prefix+"data_description.outdoor_source"]
+    assert all(prefix+"data.curve_"+str(i) in resources_nl for i in range(9))
 
 
 @pytest.mark.asyncio

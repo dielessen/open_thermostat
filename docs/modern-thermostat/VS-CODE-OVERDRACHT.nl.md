@@ -1,71 +1,292 @@
-# Gecontroleerde VS Code-overdracht — 21 oktober 2026
+# OpenThermostat — actuele overdracht
 
-## Start en eigenaarschap
+Bijgewerkt 24 oktober 2026 na geleverde alpha24/dev32 en onafhankelijke installatiecontrole.
 
-Geschikt voor **bronreview en verdere ontwikkeling**, niet voor installatie of verwarmingsbedrijf. Onafhankelijk geaccepteerde firmware én HA-bron: **c7d9f8c3cfda63019a230562d564a5ef53bf2e2a**. Beide zitten in dezelfde Gitrepository; geen aparte HA-upstreamsync.
+1. Lees [WORKBOARD](WORKBOARD.nl.md): de enige actuele afvinklijst met alle 31
+   eisen, 11 fasen, 8 werkpakketten en B01–B14-releasechecklist.
+2. [PLAN](PLAN.nl.md) bewaart het ontwerp en alle oorspronkelijke acceptatie.
+3. [Release-inventaris](BETA1-RELEASE-INVENTARIS.json): 23 voorbereide onderdelen,
+   213 bronverwijzingen met hashes. Alles blijft in de eerste bètabasis, ook
+   begrensde code die nog niet als complete productfunctie is aangesloten.
 
-Open via bestaande VS Code Remote SSH de map **/home/dielessen/projects/open_thermostat-vscode-20261021**, of daarin `docs/modern-thermostat/OpenThermostat-reviewed.code-workspace`. De parent maakt deze aparte branch/worktree `review/mark-vscode-20261021` vanaf de acceptatie inclusief deze instructies. Geen automatische taken/autofetch. VS Code zelf is hier niet gestart (`code` ontbreekt); folder-/Git-/werkruimtecontrole is wel uitgevoerd.
+## Actuele bron en installatie
 
-- Firmware: `/home/dielessen/projects/open_thermostat-vscode-20261021/src`, webbron `data/html`.
-- HA: `/home/dielessen/projects/open_thermostat-vscode-20261021/ha/config/custom_components/open_thermostat`.
-- Tests: `ha/tests_native`, `test/interop/graph_session_runner.cpp`.
-- OpenClaw canonical: `/home/dielessen/projects/open_thermostat-wp01-20261019`, branch `work/wifi-onboarding-20261020`.
-- **Eigenaarschap:** Marks VS Code-branch blijft exclusief voor zijn wijzigingen; automation/specialist schrijft daar niet. Parent blijft sole canonical WORKBOARD-/integratieschrijver. Specialist mag uitsluitend een eigen begrensde kandidaat bewerken. Geen wederzijdse automatische merges of edits. Het hele-planmandaat blijft actief.
+**Geïnstalleerd en gecontroleerd:** E32 alpha24, bron `a1fe06be5e709ff4c6477b7b9be6c8dbd7573987`;
+HA dev32, bron `e63c06bca41d7e22895fd0100c3d6ca2a916ce4a`. De HA-bundel
+behoudt native TV02-graphselectie en corrigeert rapportpolicy/klok/afwijzingsdiagnose zonder extra E32-OTA. Eén bron geregistreerd,
+oude bindingsafwijzing weg; geen natuurlijk rapport in de 20s-observatie, dus
+ontvangst nog `WAITING`. Verse scoped back-up, één Core-herstart, alle instellingen
+en 105 registryrecords behouden. Bewijs:
+`out/transport-rejection-diagnostic-20261024/`. De gezamenlijke voorafgaande bundel en
+haar volledige installatiebewijs staan in `out/combined-alpha24-dev30-20261024/`.
 
-## Wat geaccepteerd is
+Na dev32: transport `shadow_ready`, nieuwe historische afwijzingsdiagnose bereikbaar
+en null (normaal), één TV02-bron nog `waiting`, meetprofiel `profile_missing`.
+Alle 82 uiteindelijke live hashes exact; geen fysieke vrijgave.
 
-Het bestaande 17-padenpakket ondersteunt expliciete lokale SOURCE-profiel-/sensorbindingswissel zonder apparaatboot: dezelfde controller/opslag/transport, oude sessies ongeldig, oud plan alleen readback, nieuwe expliciete planapply en exacte readback nodig. HA-journal en laatste-await-conflicten blijven begrensd; safety UNKNOWN en fysieke outputs false.
+De gezamenlijke batch behoudt logging/syslog en incrementeel dashboard en levert
+de deadline-/encoder-/logcorrecties, hydraulische controllerkoppeling, read-only
+HA-supervisordiagnose, begrensde kraandoellevensduur en privé TV02-pin-loader.
+Eén app-only HTTPS-update, verse scoped back-up en één HA Core-herstart. Alle
+82 HA-bestanden en running-ELF/web/source-hashes komen overeen met de openbare
+onveranderlijke tags. Frontendbytes en dev28/v28-kaartidentiteit blijven gelijk.
+Bronkwalificatie en fysieke uitvoer blijven open.
 
-Parentreview op canonicalbasis `8a00e96` plus exacte specialistdelta `c49acfd`:
+Systeemlog is echt uitgelezen: 32 RAM-regels, beschermde GET-routes HTTP 200, niveaus/
+filter/pauze/download en native Arduino/IDF-capture. Syslog staat uit zonder
+bestemming. Collector-/lange heap-/stackproeven blijven open: zie LOGGING.nl.md.
 
-- Alle 17 bronafterhashes en pakket-/archive-/bundle-/bewijshashes gecontroleerd; 519 overige canonicalbestanden bij bronmerge ongewijzigd, bestaande niet-gecommitteerde bord-/Copilotwijzigingen behouden.
-- 76 gerichte native HA-/werkelijke C++ketengevallen onafhankelijk PASS; geen fysieke of echte MQTTproef.
-- 20 geleverde JSactie-/loadergevallen PASS met nagebootste grenzen.
-- 10 Chromiumgevallen in desktop1440×1000 en mobiel390×844 PASS: werkelijke markup/loader/liveactie + lokale jQuery/Bootstrap, HTTP en weerseam gesimuleerd. Succes, annuleren, conflict, netwerkfout, dubbelklik; één POST en overige onopgeslagen formuliervelden niet verstuurd. **Geen volledige HAfrontend-, apparaatHTTP/auth/NVS- of E32performanceacceptatie.**
-- 33 notice-/shipped-/SDK-auditregressies PASS; geen licentieclosure of nieuw imagebewijs.
+De normale updater kon de 33.010-byte release-API niet in zijn buffer van 32.768 bytes
+opnemen. Alleen de dubbele samenvatting is verwijderd; alle volledige originele
+notities/tags/assets behouden. Bij die reparatie was het gecontroleerde antwoord 30.621 bytes. Nieuwe publicaties krijgen
+begrensde versienotities plus onveranderlijke bronlink en kop-/UTF-8-controle.
+Zes regressies plus volledige CI van de publicatiecorrectie groen. Een gewone
+releasecontrole op alpha23 zelf is ook PASS (alpha23/alpha21, checked, geen fout).
+De oorspronkelijke +6h/+24h-jobs zijn met behoud van IDs/tijden/overige velden via
+de bestaande native root-/admin-eigenaarsroute van de actuele basis voorzien;
+de HA-specialist had daarvoor onvoldoende sessiescope. Geen nieuwe planning.
 
-Primair onafhankelijk bewijs: `/home/dielessen/artifacts/open-thermostat-native-live-source-parent-20261021` (TASKFLOW, SOURCE-POSTCHECK, native/COMMANDS en HA.xml, JS.json, CHROMIUM.json, screenshots, COMMANDS.host.json). Specialistfinale receipts blijven in `/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-restart-graph-11774-20261020`; die zijn niet opgeteld bij parenttests en niet opnieuw volledig herhaald.
+SOURCE was bij nacontrole revisie4/digest `78012d7e…`, HA/E32 gelijk, vers/ready,
+zonder staged restant. Week/bindings/credentials/105 registryrecords en HRC22H-
+model behouden. Dit is geen permanente revisiefence: lees voor een volgende
+mutatie steeds de verse geaccepteerde staat en reconcilieer normale UTC-horizon.
 
-## Reproduceerbare opdrachten
+Laatste post-update meetmoment: 24 native ketelvelden beschikbaar met gelijke
+waarde/eenheid/kwaliteit, nul vergelijkingsverschillen; 23 onbekend/onbeschikbaar en 22
+onbetrouwbare velden uitgeschakeld. Beschikbaarheid blijft momentafhankelijk en
+modelkeuze begrenst de ontvangst nooit.
 
-Vanaf de nieuwe VS Code-checkout eerst `git status --short` en `git log -2 --oneline`. Pin bron via bovenstaande commit; de documentatiecommit staat erboven.
+**Eerstvolgende uitvoering:** B04/B05, echte bronpins/extension/ontvangst en
+fysieke kraanproef zonder ketel. De HA-ontvangers en frontend zijn nu geïnstalleerd;
+de Z2M-producent/pins en causale ACK/readiness zijn nog niet gekwalificeerd.
+Diagnostische motion-device-temperature wordt geen ambient meting. Daarna de
+complete hydraulische/zend-/start-stopketen. TX en alle fysieke uitgangen blijven
+false; actieve bèta-GO blijft NOT_READY. Oude checkpoints hieronder zijn historie.
 
-### E32-buildvoorbereiding — op deze bron nog OPEN
+## Historisch checkpoint: poll-executor
 
-Bestaand hostgereedschap: PlatformIO6.2.0, Arduino2.0.17, bestaande cache `/home/dielessen/.platformio`; geen nieuwe toolchain/provider nodig. Serieel, geen upload/flash/monitor/erase:
+Controller/status en beveiligde HTTP/webbediening blijven behouden. De echte
+E32-pollroute is nu aangesloten op een gedeelde executor met hercontrole vlak
+voor IO, uitsluiting van de legacyqueue tijdens proefbezit en intrekking bij
+reset/RX-overloop/decodefout. 66 native ASan/UBSan-gevallen slagen, waaronder
+9 pollgevallen. Eerdere HTTP/web-browserbewijzen blijven geldig voor ongewijzigde
+webassets; deze bronstap is geen nieuwe fysieke proef.
+De default E32 blijft TX-geblokkeerd, zonder beoordeeld proefprofiel/adressering. De later voorbereide Classic-encoder staat hieronder.
+De poll-executor is geen kwalificatie van elektrische timing of daadwerkelijke
+ketelstop. B04–B09 blijven open voor de beschreven eindacceptatie.
+Geen nieuwe release/installatie/fysieke opdracht. Bewijs in
+`out/beta-boiler-evidence-20261023/poll/REVIEW.json`.
 
-```sh
-PLATFORMIO_CORE_DIR=/home/dielessen/.platformio /home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-restart-graph-11774-20261020/official-build-tools/pio-venv/bin/python -m platformio run -e e32v2 -j 1
-PLATFORMIO_CORE_DIR=/home/dielessen/.platformio /home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-restart-graph-11774-20261020/official-build-tools/pio-venv/bin/python -m platformio run -e e32v2 -t buildfs -j 1
-```
+## Historisch checkpoint: nieuwe ha-runtimebron
 
-Niet gelijktijdig met een andere build in dezelfde checkout. Gewone finale compile/link/app/FS is nog niet aangetoond op deze bron; eerdere images/typechecks niet herlabelen. Gegevens/config/pin-/partition-/TXlocks niet wijzigen om te passen.
+`set_report_profile` trekt de vorige kwalificatie bij vervanging direct lokaal in
+en retourneert een scoped opruimcallback. Oude callbacks/timers/observerresultaten
+kunnen een nieuwe eigenaar of nieuw rapport niet raken. Replay-watermerken blijven
+staan; registratie/cleanup maakt nooit een vers sample. Oude bron reproduceert de
+fout, 31 gerichte HA-tests en de volledige suite (1.637 tests + 68 subtests) PASS,
+geen skips. Alle 8 C++-peers zijn opnieuw gebouwd en de tijdelijke MQTT-broker is
+na de proef opgeruimd. Geen firmwarecode/webassets veranderd sinds `0b3aabc`;
+het eerdere drie-boardbewijs hoort bij dat firmwarecheckpoint, niet bij een nieuwe
+gezamenlijke bevroren release. Geen installatie of fysieke opdracht.
+Bewijs: `out/beta-boiler-evidence-20261023/source-lifecycle/REVIEW.json`.
+B04 is nog open voor de modelspecifieke productiebron; geen profile_missing-omweg.
 
-### Gerichte HA/C++acceptatie
+## Historisch checkpoint: nieuwe classic-encoderbron
 
-Werkelijke hostcommando’s inclusief compilerflags en Pythonpad staan in `/home/dielessen/artifacts/open-thermostat-native-live-source-parent-20261021/COMMANDS.host.json` en `native/COMMANDS.json`; uitvoer in COMMAND-0/1/2.log. Vervang alleen de bronroot door de VS Code-checkout en kies een verse bewijsuitvoermap; maak eerst dezelfde C++peer met echte cJSON. Stel daarna:
+Vast UBASetPoints 0x1A/offset0/één flowbyte + checksum, nul als aparte expliciete
+intentie. `ClassicBoilerTestEncoder` is aan de echte pollcallback gekoppeld, maar
+onbeoordeelde/ontbrekende adres-/maskerkeuze weigert alle frames. Geen runtimevlag
+of HTTP-invoer vult de adresstructuur. De board-TX-lock, ontbrekende installatie-
+en hydraulische kwalificatie zijn behouden. 72 unieke native ASan/UBSan-gevallen
+PASS, waaronder 6 nieuwe encodergevallen met gouden bytes, corruptie en finale
+poll/deadlinecontrole. Beoordeeld ketenprofiel, bronadres/masker, fysieke UART-
+voltooiing/timing/arbitrage en onafhankelijke stop/flow blijven open. Er is geen
+live of fysieke opdracht uitgevoerd. HA-bron is sinds `6503299` ongewijzigd;
+het HA-regressiebewijs met 1705 checks blijft aan dat checkpoint gekoppeld.
+Bewijs: `out/beta-boiler-evidence-20261023/classic-encoder/REVIEW.json`.
 
-```sh
-export PYTHONPATH=/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-ha-candidate-20261020/.runtime/venv/lib/python3.14/site-packages
-export OPENTHERMOSTAT_GRAPH_SESSION_RUNNER=/absoluut/verse-bewijsmap/graph-session-runner
-export OPENTHERMOSTAT_GRAPH_BRIDGE_EVIDENCE=/absoluut/verse-bewijsmap/ROWS.jsonl
-/home/dielessen/.openclaw/workspaces/home-assistant/artifacts/open-thermostat-ha-candidate-20261020/.runtime/python/cpython-3.14.8-linux-x86_64-gnu/bin/python3.14 -B -m pytest -q ha/tests_native/test_native_live_source.py ha/tests_native/test_native_profile_evolution.py --tb=short
-```
+## Historisch checkpoint: nieuwe tv02-moduscontrole
 
-Gepind: echte HA2026.10.2/Python3.14.8, testdeps in `ha/requirements-test-native.txt`. Geen importalias/shim of productieHA nodig. Ongewijzigde bron niet automatisch opnieuw testen; bovenstaande is reproduceerinformatie.
+Native kraancontrole/room-editor melden TV02 auto/vakantie/uit/onbekend zonder
+configuratie- of serviceactie. De voorbereide profiel-C-adapter weigert conflicten
+vóór een doelactie, ook bij wachten op de eigenaar, veranderde modus in de laatste
+autorisatiecallback of gewijzigde modelclassificatie. Geen automatische preset- of
+modusreparatie. Een passende gemelde modus is geen verse kraanecho/fysieke readiness;
+default actuation blijft uit. Andere modellen erven deze regels niet uit een naam.
+64 gerichte HA-tests, volledige 1658 tests + 68 subtests, 6 nieuwe en 8 bestaande
+browserprofielen PASS. Acht C++-peers opnieuw gebouwd; tijdelijke broker verwijderd.
+Firmwarecode is sinds `d4eadea` ongewijzigd, dus geen nieuwe drie-board- of gezamenlijke
+freezeclaim. Bewijs: `out/beta-boiler-evidence-20261023/tv02-mode/REVIEW.json`.
+B04/B05 blijven open voor de echte modelspecifieke bron-/echo-/readinessroute.
+Geen installatie, fysieke bediening of wijziging van bestaande apparaatkoppelingen.
 
-## Host-/containerpadverschil
+## Historisch checkpoint: nieuwe actuatorbinding
 
-Specialistpaden `/workspace/...` gelden alleen binnen zijn bestaande sandbox. De bevroren kandidaat bevat een `.git`-worktreepointer naar die mount en kan op de host niet direct met Git worden geopend. Parent heeft de geleverde Gitbundle naar `/home/dielessen/artifacts/open-thermostat-native-live-source-parent-20261021/frozen-review` hersteld en daarna de volledige `--check-source` succesvol uitgevoerd. Dit is opgelost voor de nieuwe native VS Code-worktree; de frozen specialistcheckout niet repareren/herschrijven.
+De adapter bewaart de exacte native registry-/apparaatidentiteit en controleert
+na de laatste autorisatie opnieuw identiteit en doelcapaciteit. Een vervanger met
+dezelfde entity-ID, gewijzigde eenheid/grens of onbeschikbaarheid ontvangt geen
+opdracht met oude autorisatie. Een andere weergavenaam blijft toegestaan.
+Tien nieuwe regressies: negen fouten op de vorige bron, alle tien PASS na herstel;
+74 gerichte HA-tests en volledige 1.736 checks (1.668 tests + 68 subtests) PASS,
+nul fouten/overslagen. Zeven pakkettests PASS, tijdelijke broker onafhankelijk
+afwezig bevestigd. Cumulatieve releasenotes staan in BETA1-RELEASE-NOTES-DRAFT.nl.md.
+Standaardactuatie blijft uit; geen fysieke echo of
+readiness afgeleid. Bewijs in `out/beta-boiler-evidence-20261023/actuator-dispatch/REVIEW.json`.
 
-## Open gates en vervolg
+## Herbevestigde productiebronbeperking
 
-Huidig pakket: normale exacte samengestelde firmware/app+FS en bijbehorende releasechecks; volledige gepinde HAfrontend desktop/mobiel en werkelijke apparaatHTTP/settings/NVS blijven OPEN. Target-callgraph/gelijktijdige stack/peakheap/NVS-GC en volledige notice/licentie/source-buildclosure ontbreken. Geen snelheidsverbetering geclaimd.
+Nieuw read-only HA-onderzoek bevestigt de geselecteerde diagnostische RTCGQ11LM-
+bron en TV02 in auto; oorspronkelijk property-acquisitiebewijs en gecorreleerde
+kraanecho zijn niet aangetoond. Primaire Z2M-bron traceert de ontbrekende grens
+vóór cachemerge; een state-update zelf onderscheidt nog geen rapport/read/optimistic
+write. Werk de modelspecifieke producer op die grens uit, zonder HA-last_reported
+als acquisitietijd te gebruiken. Latere native bridge/info-controle
+meldt converters 26.115.1 / Z2M 2.14.2 / herdsman 10.10.0; dat is expliciete
+broker-metadata, geen directe packagebron-/hashcontrole. Bewijs in het actuator-dispatch-dossier:
+HA-SOURCE-READONLY.json en PRODUCER-SOURCE-TRACE.json. Geen live wijzigingen.
 
-Hele plan daarnaast: volledige week boven8totaleUTCtransities/veiligehorizonrefresh; >2kamers/eightzone; echte meet-/veiligheidsproducers; overige F0–F10gates uit WORKBOARD. Alle14F9modellen blijven afgewezen/defaultdisabled. Hardware/powerloss/72h/EMS/Tado/actuatoren/TX/verwarming afzonderlijk NIET vrijgegeven.
+## Nieuwe gedeelde UART-voltooiingscontrole
 
-Volgende specialistactie is uitsluitend de resterende product-/GUI-/releasebewijsclosure van dit pakket op de geaccepteerde bron; geen featureuitbreiding vóór overdrachtsregistratie. Automatische projectcontrole blijft15min zolang uitvoerbare software openstaat; een controle kan later eindigen.
+Hoofd-UART en forwarder controleren nu byteacceptatie, idle bij nul-tick SDK-probe,
+BREAK-invoer en normale polariteitsherstelling via dezelfde zendschakel. Null/lege/
+te grote invoer blijft zonder SDK-call; vectorlengte wordt niet naar uint8 afgekapt.
+80 native ASan/UBSan-gevallen PASS, waarvan acht nieuwe UART-gevallen. De bestaande
+HT3-pacing is behouden; dit kwalificeert geen Classic-golfvorm, arbitrage, totale
+looptijd of fysieke stop. SDK-write kan intern nog blokkeren. Default E32-TX blijft
+uit en er is niets geïnstalleerd. Bewijs in uart-completion/REVIEW.json onder het
+bètabewijsdossier. Geen nieuwe HA- of browserassets voor deze bronstap.
 
-## Rollback
+## Nieuwe versieprojectie in HA-apparaatcontrole
 
-Alleen broncommit `c7d9f8c3cfda63019a230562d564a5ef53bf2e2a` terugnemen vóór afhankelijken. Bestaande SOURCE/config/journal/identiteiten/modellen/Recorder/DHW/historie behouden. Geen runtimeerase, geforceerde downgrade, installatie of upstream/publicatie uit deze overdracht afleiden.
+Metadata behoudt nu expliciet gemelde converter-/herdsmanversies uit hetzelfde
+begrensde bridge/info-abonnement. De kamereditor toont Z2M en converterpakket
+in NL/EN; ontbrekende/lege/onjuiste versies blijven onbekend. Geen benchpin als
+fallback, geen extra client of instelling, geen fysieke kwalificatie.
+Twaalf nieuwe native gevallen, volledige 1.748 HA-checks (1.680 tests + 68
+subtests, nul fouten/overslagen) en twintig browserprofielen PASS. Een gerichte
+read-only HA-specialistproef heeft converters 26.115.1 uit bridge/info bevestigd;
+unsubscribe en sluiting eigen WS uitgevoerd. Zie bridge-versions/REVIEW.json in
+het bètabewijsdossier. Originele meetrapporten/echo blijven open.
+
+## Nieuwe native identiteit van meetrapportprofielen
+
+Native sensor-/apparaatbinding wordt bij registratie vastgelegd en vóór/na de
+observercallback en vóór pending transport opnieuw gecontroleerd. Native model- of
+apparaatwissel/uitschakelen trekt de oude kwalificatie en registratie in; lezen
+meldt onmiddellijk onbruikbaar. Dezelfde rij hernoemen en displaylabels behouden
+identiteit zonder nieuwe sampleleeftijd. De gedeelde private identityfunctie wordt
+ook door de actuator gebruikt. Tien nieuwe regressies (acht fouten op de vorige
+bron), 116 gerichte HA-tests inclusief comfort/context PASS. De bestaande
+synthetische comfort-fixture registreert ook een native rapportprofieleigenaar;
+de productiecontrole is niet versoepeld. Volledige 1.758 HA-checks PASS (1.690
+tests + 68 subtests), nul fouten/overslagen. Tijdelijke brokers verwijderd.
+B04-productieproducer/fysieke bron blijven open;
+geen nieuwe firmware-/webassets of fysieke actie. Zie report-binding/REVIEW.json.
+
+## Eerstvolgende uitvoering
+
+Volg B04–B09 uit het werkbord: modelspecifieke productie-meetrapportproducent,
+passende native kraanroute, bestaande supervisor aansluiten en eindige expliciete
+ketelproef met vaste deadline/stopprioriteit/verse terugmelding. Classic-commandopad
+en elektrische TX-/stopvoorwaarden apart beoordelen. De bestaande bronbench mag
+niet op SOURCE worden gestart. Een kamer-save/metadata/HA-last_reported kwalificeert
+geen fysieke meting. Huidige RTCGQ11LM-bron is diagnostische device_temperature;
+alternatieve WSDCGQ11LM was laatst unavailable. Geen defect of sensorwissel verzinnen.
+
+Geen nieuwe F9/F10/P2-stage vóór M2. Bestaande models/comfort-/vloer-/CSVcode
+blijft behouden; niet opnieuw als ongeprogrammeerd opvoeren. Geen algemene TX-vlag
+of Plus-commandoknop inzetten als Classic-proef. Pas na één bevroren complete
+kandidaat volledige checks, publicatie en één gecoördineerde installatie.
+
+## Werkafspraken en bewijs
+
+HA-updates altijd via bestaande bevoegde HA-agent, met back-up en nacontrole.
+Vragen voor later; onafhankelijk werk gaat door. Instellingen/programma/identiteit
+behouden. Geen claim van onbeheerde verwarming, acht zones of leerwinst zonder
+passende acceptatie. Geen eigen watcher/scheduler.
+
+- Actuele passieve release: `out/prepared-rollout-20261023/FINAL-REVIEW.json`.
+- Vorige alpha17/dev23: `out/combined-release-evidence-20261023/FINAL-REVIEW.json`.
+- Nieuwe ontvangstbasis: `out/beta-boiler-evidence-20261023/CHECKPOINT.json`.
+- Herijking: `out/plan-audit-20261023/AUDIT.json`.
+- Oude overdracht en alle historische receipts blijven ongewijzigd bewaard als
+  `out/plan-audit-20261023/VS-CODE-OVERDRACHT.nl.md.before`; niet als huidige
+  installatie-/opdrachtstatus lezen. Oude vragen niet opnieuw als vereiste stellen.
+
+## Adapteridentiteit ontvangen
+
+Bosch EasyControl Adapter **8737908035 V2.3**; volledig etiket en officiële
+protocolreferentie staan in WORKBOARD onder “Bevestigde ketencomponent”. De
+modelvraag is beantwoord. B09 blijft open voor werkelijke TX-interface,
+telegrammen/terugmelding, hydrauliek en onafhankelijk stopgedrag.
+
+## Uitrol alpha18/dev24 gecontroleerd
+
+Volledige CI/pakketcontrole PASS; normale E32-OTA met zeven behouden
+configuratieparen; HA-agentinstallatie met back-up, 76 exacte bronbestanden en
+24 nacontroles. Echte E32-Keteltest/rapportdownload op drie breedtes PASS.
+De keten met HA is na de E32-reboot vers/actief en SOURCE rev3 blijft behouden.
+Bij uitrol stond ontvangst uit; de latere README-opname bevestigt inmiddels
+passieve Classic-ontvangst, zonder volledige veldpariteit of actieve werking. Volg voor
+de eerstvolgende passieve praktijkstap het actuele werkbord; B04–B09 blijven
+open voor de actieve bèta, geen automatische verwarmingsvrijgave.
+
+24 oktober: tweetalige UI voorbereid in dezelfde bètabasis. E32 heeft centrale
+EN/NL-catalogus, Engelse standaard/terugval en browsercookie-keuze in menu,
+aanmelden en wifiherstel. HA volgt de profieltaal voor de kamereditor en native
+vertalingen; opgeslagen native dashboardteksten vallen terug op Engels. Geen
+apparaatinstallatie gedaan. Bewijs: `out/bilingual-ui-20261024/`.
+
+24 oktober: algemene EMS-eis bevestigd: altijd alle beschikbare ketelvelden,
+onafhankelijk van modelkeuze; 69 Classic-velden zijn geen maximum. Zie
+EMS-DISCOVERY-POLICY.md. Persoonlijke Ecomline HR 22H-waarneming via bestaande
+HA-specialist; native eenmalige controles na 1/6/24 uur geregistreerd en
+onafhankelijk teruggelezen, zonder levering naar chat of ketelwijzigingen.
+Bewijs en persoonlijk veldprofiel blijven lokaal in
+`out/ecomline-observation-20261024/`; de 24-uursbeoordeling is nog niet afgerond.
+
+CI op f9009eb: firmware/source-reproductie/native PASS, maar bestaande
+HA-test verwachtte nog afwezigheid Nederlandse geavanceerde formulieren en
+smalle ketelkaart liep op de runner buiten beeld. Test nu met echte EN/NL-
+resources en tekstomloop voor bredere fonts; afzonderlijke regressies getest.
+Nieuwe openbare eindrun nog controleren; oude rode run nooit groen noemen.
+
+### Herstel unavailable productmetingen (2026-10-24)
+
+Live oorzaak bevestigd door de HA-agent: shadow-firmware start de legacy publishers niet; de HA-producttak sloeg de gevalideerde native metrics-cache over. De productplatform-regressie faalde vóór de correctie en slaagt erna; 41 gerichte native HA-tests slagen. De producttak gebruikt nu één native eigenaar voor v2-metrics en behoudt installatiegroep/identiteiten. Alle voorbereide Classic-veld-, taal- en UI-wijzigingen blijven gebundeld in alpha20/dev26. De alpha19-tag heeft een native CI-headerfout en is niet live geïnstalleerd; tags blijven ongewijzigd. Installatie en verse HA-ketelmetingen zijn nog te bewijzen; geïnstalleerd blijft alpha18/dev24.
+
+### Actueel: HA-overzicht van native ketelvelden
+
+Alpha20/dev26 is live; 69 definities, 27 waarden (25 reported +2 inferred) en behoud van SOURCE/instellingen/identiteiten zijn geverifieerd. De automatische E32 HTTPS-catalogusroute werkt. Het bestaande beheerde boiler-overzicht had nul native veldreferenties; HA dev27 vult de eigen kaarten/grafieken aan. Nieuwe kaarttest faalde vóór de correctie en slaagt erna; 100 gerichte HA-tests PASS. Volgende stap: volledige HA-release-CI, exact pakket en HA-agentupdate zonder nieuwe firmware-upload. Oudere onderstaande/voorgaande “niet geïnstalleerd”-bronnotities zijn historische checkpoints; actieve fysieke kwalificatie blijft open.
+
+### Exacte gebruikersbevestiging ketelmodel (24 oktober 2026)
+
+Gebruiker bevestigt **Nefit Ecomline Classic HRC 22H**; eerdere HR22H/H22-alternatieven zijn hiermee historisch. Bronprofiel: `boiler-profiles/nefit-ecomline-classic-hrc-22h.json`. Exacte keuze op E32 Home/Settings voorbereid voor alpha21; oudere generieke keuze blijft geldig. Originele NVS-opslag/readback met foutinvoer en 4 browserprofielen PASS. Geen nominale specificaties of fysieke controlkwalificatie afgeleid uit de modelnaam; alle beschikbare velden blijven onafhankelijk van de modelkeuze gelezen. HA dev27-overzichtsrelease hoort hierbij en verandert niet door de E32-profieltoevoeging.
+
+### Actueel geleverd: alpha21/HA27 en HRC22H
+
+De uitrol is voltooid en onafhankelijk gecontroleerd: exact geselecteerd model
+`nefit-ecomline-classic-hrc-22h`, firmware-ELF/webhash,79 HA-bestanden, gezonde
+HA27-opstart,47 native veldreferenties en3 historiekaarten. Alle105 IDs en
+gebruikersinstellingen behouden; alleen het gevraagde displaymodel gewijzigd.
+SOURCE4 is de juiste huidige baseline na bewezen dagelijkse UTC-horizonverversing;
+geen reset naar3. Laatste26 actuele HA/REST-waarden komen overeen na de normale
+wire→HA-unitconversie. NOT_READY blijft gelden voor actieve fysieke aansturing.
+
+De eerste+1h-nativejob was FAILED/UNKNOWN door een onjuist gevormde beheeraanroep.
+`MONITOR-ROUTE-TEMPLATE.json` in de HA-agentworkspace bewijst de juiste URLencoded
+stringbody + form-header, geen poort. HA-registry/current/history eerst; optioneel
+E32-supplement mag geslaagde HA-data niet weggooien. Toekomstige+6h/+24h-payloads
+zijn hersteld met behouden tijden en overige jobs. Native geïsoleerde retry van
+de bestaande uitgeschakelde foutjob is PASS:26 actuele veldwaarden,629 begrensde
+Recorder-rijen over67 entiteiten; historie gedeeltelijk, oude1h-gap ongewijzigd.
+Retryjob na succes native verwijderd, geen nieuwe joblaag. Vervolgobservaties
+blijven op de bestaande+6h/+24h-tijden staan.
+
+
+Volledige HA-regressie van de TV02-lifecyclebatch: **1.840 tests + 68 subtests =
+1.908 checks PASS**, nul fouten/overslagen, met alle acht C++-peers opnieuw uit
+actuele bron gebouwd en een tijdelijke localhost-MQTT-broker. Brokerafwezigheid
+na afloop onafhankelijk gecontroleerd. De 222 gerichte checks zijn hierin
+inbegrepen. Geen fysieke kraan-/ketelproef of nieuwe productie-installatie.
+Bewijs: `out/tv02-lifecycle-20261024/HA-ACCEPTANCE.xml` en `BROKER-FINAL.json`.

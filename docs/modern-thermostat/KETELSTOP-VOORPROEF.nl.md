@@ -1,3 +1,5 @@
+> **Ontwerp-/bewijsnotitie.** De enige actuele software-, installatie- en releasevoortgang staat in [WORKBOARD](WORKBOARD.nl.md). Gedateerde versies en toenmalige open punten hieronder blijven historisch; technische acceptatievoorwaarden blijven gelden.
+
 # F6-voorproef — ketelstop en terugval, 22 oktober 2026
 
 Onderdeel van [PLAN §14](PLAN.nl.md#14-gefaseerde-uitvoering-en-acceptatiepoorten).

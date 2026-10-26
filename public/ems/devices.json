@@ -1,0 +1,692 @@
+[
+  {
+    "product_id": 8,
+    "type": "boiler",
+    "name": "CS5800i, CS6800i, WLW176i, WLW186i"
+  },
+  {
+    "product_id": 11,
+    "type": "boiler",
+    "name": "Greenstar 2000"
+  },
+  {
+    "product_id": 12,
+    "type": "boiler",
+    "name": "C1200W"
+  },
+  {
+    "product_id": 16,
+    "type": "boiler",
+    "name": "CS5800iG"
+  },
+  {
+    "product_id": 64,
+    "type": "boiler",
+    "name": "BK13/BK15, Smartline, GB1*2"
+  },
+  {
+    "product_id": 72,
+    "type": "boiler",
+    "name": "Logano GB1*5, Logamatic MC10"
+  },
+  {
+    "product_id": 81,
+    "type": "boiler",
+    "name": "Cascade CM10"
+  },
+  {
+    "product_id": 84,
+    "type": "boiler",
+    "name": "Logamax Plus GB022"
+  },
+  {
+    "product_id": 95,
+    "type": "boiler",
+    "name": "Condens, Logamax/Logomatic, Cerapur Top, Greenstar, Generic HT3"
+  },
+  {
+    "product_id": 115,
+    "type": "boiler",
+    "name": "Topline, GB162"
+  },
+  {
+    "product_id": 121,
+    "type": "boiler",
+    "name": "Cascade MCM10"
+  },
+  {
+    "product_id": 122,
+    "type": "boiler",
+    "name": "Proline"
+  },
+  {
+    "product_id": 123,
+    "type": "boiler",
+    "name": "GB*72, Trendline, Cerapur, Greenstar Si"
+  },
+  {
+    "product_id": 131,
+    "type": "boiler",
+    "name": "GB212"
+  },
+  {
+    "product_id": 132,
+    "type": "boiler",
+    "name": "GC7000F"
+  },
+  {
+    "product_id": 133,
+    "type": "boiler",
+    "name": "Logano GB125/KB195i, Logamatic MC110"
+  },
+  {
+    "product_id": 154,
+    "type": "boiler",
+    "name": "Greenstar 30Ri Compact"
+  },
+  {
+    "product_id": 155,
+    "type": "boiler",
+    "name": "Suprapur-o"
+  },
+  {
+    "product_id": 167,
+    "type": "boiler",
+    "name": "Cerapur Aero"
+  },
+  {
+    "product_id": 168,
+    "type": "boiler",
+    "name": "Hybrid Heatpump"
+  },
+  {
+    "product_id": 170,
+    "type": "boiler",
+    "name": "Logano GB212"
+  },
+  {
+    "product_id": 172,
+    "type": "boiler",
+    "name": "Enviline, Compress 6000AW, Hybrid 3000-7000iAW, SupraEco/Geo 5xx, WLW196i/WSW196i"
+  },
+  {
+    "product_id": 173,
+    "type": "boiler",
+    "name": "Geo 5xx"
+  },
+  {
+    "product_id": 195,
+    "type": "boiler",
+    "name": "Condens 5000i, Greenstar 8000/GC9800IW, GB192i*2"
+  },
+  {
+    "product_id": 203,
+    "type": "boiler",
+    "name": "Logamax U122, Cerapur"
+  },
+  {
+    "product_id": 206,
+    "type": "boiler",
+    "name": "Ecomline Excellent"
+  },
+  {
+    "product_id": 208,
+    "type": "boiler",
+    "name": "Logamax Plus, GB192, Condens GC9000, Greenstar ErP"
+  },
+  {
+    "product_id": 210,
+    "type": "boiler",
+    "name": "Cascade MC400"
+  },
+  {
+    "product_id": 211,
+    "type": "boiler",
+    "name": "EasyControl Adapter"
+  },
+  {
+    "product_id": 219,
+    "type": "boiler",
+    "name": "Greenstar HIU, Logamax kompakt WS170"
+  },
+  {
+    "product_id": 234,
+    "type": "boiler",
+    "name": "Logamax Plus GB122, Condense 2300, Junkers Cerapur GC2200W"
+  },
+  {
+    "product_id": 68,
+    "type": "controller",
+    "name": "BC10, RFM20"
+  },
+  {
+    "product_id": 81,
+    "type": "controller",
+    "name": "CM10"
+  },
+  {
+    "product_id": 84,
+    "type": "controller",
+    "name": "GB022"
+  },
+  {
+    "product_id": 89,
+    "type": "controller",
+    "name": "BC10, GB142"
+  },
+  {
+    "product_id": 95,
+    "type": "controller",
+    "name": "HT3"
+  },
+  {
+    "product_id": 114,
+    "type": "controller",
+    "name": "BC10"
+  },
+  {
+    "product_id": 121,
+    "type": "controller",
+    "name": "MCM10"
+  },
+  {
+    "product_id": 125,
+    "type": "controller",
+    "name": "BC25"
+  },
+  {
+    "product_id": 152,
+    "type": "controller",
+    "name": "Controller"
+  },
+  {
+    "product_id": 166,
+    "type": "controller",
+    "name": "Suprapur-o"
+  },
+  {
+    "product_id": 168,
+    "type": "controller",
+    "name": "Hybrid Heatpump"
+  },
+  {
+    "product_id": 169,
+    "type": "controller",
+    "name": "BC40"
+  },
+  {
+    "product_id": 190,
+    "type": "controller",
+    "name": "BC10"
+  },
+  {
+    "product_id": 194,
+    "type": "controller",
+    "name": "BC10"
+  },
+  {
+    "product_id": 206,
+    "type": "controller",
+    "name": "Ecomline"
+  },
+  {
+    "product_id": 207,
+    "type": "controller",
+    "name": "Sense II/CS200"
+  },
+  {
+    "product_id": 209,
+    "type": "controller",
+    "name": "ErP"
+  },
+  {
+    "product_id": 224,
+    "type": "controller",
+    "name": "9000i"
+  },
+  {
+    "product_id": 229,
+    "type": "controller",
+    "name": "8700i"
+  },
+  {
+    "product_id": 230,
+    "type": "controller",
+    "name": "BC Base"
+  },
+  {
+    "product_id": 240,
+    "type": "controller",
+    "name": "Rego 3000"
+  },
+  {
+    "product_id": 241,
+    "type": "controller",
+    "name": "Condens 5000i"
+  },
+  {
+    "product_id": 202,
+    "type": "thermostat",
+    "name": "Logamatic TC100, Moduline Easy"
+  },
+  {
+    "product_id": 203,
+    "type": "thermostat",
+    "name": "EasyControl, CT200"
+  },
+  {
+    "product_id": 4,
+    "type": "thermostat",
+    "name": "UI800, BC400"
+  },
+  {
+    "product_id": 10,
+    "type": "thermostat",
+    "name": "CR11"
+  },
+  {
+    "product_id": 65,
+    "type": "thermostat",
+    "name": "RC10"
+  },
+  {
+    "product_id": 67,
+    "type": "thermostat",
+    "name": "RC30"
+  },
+  {
+    "product_id": 77,
+    "type": "thermostat",
+    "name": "RC20, Moduline 300"
+  },
+  {
+    "product_id": 78,
+    "type": "thermostat",
+    "name": "Moduline 400"
+  },
+  {
+    "product_id": 79,
+    "type": "thermostat",
+    "name": "RC10, Moduline 100"
+  },
+  {
+    "product_id": 80,
+    "type": "thermostat",
+    "name": "Moduline 200"
+  },
+  {
+    "product_id": 86,
+    "type": "thermostat",
+    "name": "RC35"
+  },
+  {
+    "product_id": 90,
+    "type": "thermostat",
+    "name": "RC10, Moduline 100"
+  },
+  {
+    "product_id": 93,
+    "type": "thermostat",
+    "name": "RC20RF"
+  },
+  {
+    "product_id": 94,
+    "type": "thermostat",
+    "name": "RFM20 Remote"
+  },
+  {
+    "product_id": 151,
+    "type": "thermostat",
+    "name": "RC25"
+  },
+  {
+    "product_id": 157,
+    "type": "thermostat",
+    "name": "RC200, CW100, CR120, CR50"
+  },
+  {
+    "product_id": 158,
+    "type": "thermostat",
+    "name": "RC3*0, Moduline 3000/1010H, CW400, Sense II, HPC410"
+  },
+  {
+    "product_id": 165,
+    "type": "thermostat",
+    "name": "RC100, CR10, Moduline 1000/1010"
+  },
+  {
+    "product_id": 172,
+    "type": "thermostat",
+    "name": "Rego 2000/3000"
+  },
+  {
+    "product_id": 215,
+    "type": "thermostat",
+    "name": "Comfort RF"
+  },
+  {
+    "product_id": 216,
+    "type": "thermostat",
+    "name": "CRF200S"
+  },
+  {
+    "product_id": 246,
+    "type": "thermostat",
+    "name": "Comfort+2RF"
+  },
+  {
+    "product_id": 253,
+    "type": "thermostat",
+    "name": "Rego 3000, UI800, Logamatic BC400"
+  },
+  {
+    "product_id": 66,
+    "type": "thermostat",
+    "name": "ES72, RC20"
+  },
+  {
+    "product_id": 76,
+    "type": "thermostat",
+    "name": "ES73"
+  },
+  {
+    "product_id": 113,
+    "type": "thermostat",
+    "name": "ES72, RC20"
+  },
+  {
+    "product_id": 156,
+    "type": "thermostat",
+    "name": "ES79"
+  },
+  {
+    "product_id": 105,
+    "type": "thermostat",
+    "name": "FW100"
+  },
+  {
+    "product_id": 106,
+    "type": "thermostat",
+    "name": "FW200"
+  },
+  {
+    "product_id": 107,
+    "type": "thermostat",
+    "name": "FR100"
+  },
+  {
+    "product_id": 108,
+    "type": "thermostat",
+    "name": "FR110"
+  },
+  {
+    "product_id": 109,
+    "type": "thermostat",
+    "name": "FB10"
+  },
+  {
+    "product_id": 110,
+    "type": "thermostat",
+    "name": "FB100"
+  },
+  {
+    "product_id": 111,
+    "type": "thermostat",
+    "name": "FR10"
+  },
+  {
+    "product_id": 116,
+    "type": "thermostat",
+    "name": "FW500"
+  },
+  {
+    "product_id": 147,
+    "type": "thermostat",
+    "name": "FR50"
+  },
+  {
+    "product_id": 191,
+    "type": "thermostat",
+    "name": "FR120"
+  },
+  {
+    "product_id": 192,
+    "type": "thermostat",
+    "name": "FW120"
+  },
+  {
+    "product_id": 3,
+    "type": "thermostat",
+    "name": "RT800, RC220"
+  },
+  {
+    "product_id": 200,
+    "type": "thermostat",
+    "name": "RC100H, CR10H"
+  },
+  {
+    "product_id": 249,
+    "type": "thermostat",
+    "name": "RC120RF, TR120RF, CR20RF"
+  },
+  {
+    "product_id": 73,
+    "type": "solar",
+    "name": "SM10"
+  },
+  {
+    "product_id": 101,
+    "type": "solar",
+    "name": "ISM1"
+  },
+  {
+    "product_id": 103,
+    "type": "solar",
+    "name": "ISM2"
+  },
+  {
+    "product_id": 162,
+    "type": "solar",
+    "name": "SM50"
+  },
+  {
+    "product_id": 163,
+    "type": "solar",
+    "name": "SM100, MS100"
+  },
+  {
+    "product_id": 164,
+    "type": "solar",
+    "name": "SM200, MS200"
+  },
+  {
+    "product_id": 8,
+    "type": "mixer",
+    "name": "XCUMixer"
+  },
+  {
+    "product_id": 69,
+    "type": "mixer",
+    "name": "MM10"
+  },
+  {
+    "product_id": 100,
+    "type": "mixer",
+    "name": "IPM"
+  },
+  {
+    "product_id": 102,
+    "type": "mixer",
+    "name": "IPM2"
+  },
+  {
+    "product_id": 159,
+    "type": "mixer",
+    "name": "MM50"
+  },
+  {
+    "product_id": 160,
+    "type": "mixer",
+    "name": "MM100"
+  },
+  {
+    "product_id": 161,
+    "type": "mixer",
+    "name": "MM200"
+  },
+  {
+    "product_id": 193,
+    "type": "mixer",
+    "name": "MZ100"
+  },
+  {
+    "product_id": 204,
+    "type": "pool",
+    "name": "MP100"
+  },
+  {
+    "product_id": 252,
+    "type": "heatpump",
+    "name": "HP Module"
+  },
+  {
+    "product_id": 248,
+    "type": "heatpump",
+    "name": "Hybrid Manager HM200"
+  },
+  {
+    "product_id": 16,
+    "type": "heatpump",
+    "name": "CSH5800iG"
+  },
+  {
+    "product_id": 231,
+    "type": "ventilation",
+    "name": "HRV176, HRV156, 5000c, MV200"
+  },
+  {
+    "product_id": 228,
+    "type": "heatsource",
+    "name": "AM200"
+  },
+  {
+    "product_id": 171,
+    "type": "connect",
+    "name": "OpenTherm Converter"
+  },
+  {
+    "product_id": 205,
+    "type": "connect",
+    "name": "Moduline Easy Connect"
+  },
+  {
+    "product_id": 206,
+    "type": "connect",
+    "name": "Easy Connect"
+  },
+  {
+    "product_id": 218,
+    "type": "connect",
+    "name": "M200, RFM200"
+  },
+  {
+    "product_id": 236,
+    "type": "connect",
+    "name": "Wireless sensor base"
+  },
+  {
+    "product_id": 238,
+    "type": "connect",
+    "name": "Wireless sensor base"
+  },
+  {
+    "product_id": 71,
+    "type": "switch",
+    "name": "WM10"
+  },
+  {
+    "product_id": 243,
+    "type": "extension",
+    "name": "EM10, EM100"
+  },
+  {
+    "product_id": 220,
+    "type": "extension",
+    "name": "T1RF"
+  },
+  {
+    "product_id": 74,
+    "type": "alert",
+    "name": "EM10"
+  },
+  {
+    "product_id": 17,
+    "type": "gateway",
+    "name": "MX400"
+  },
+  {
+    "product_id": 189,
+    "type": "gateway",
+    "name": "KM200, MB LAN 2"
+  },
+  {
+    "product_id": 222,
+    "type": "gateway",
+    "name": "KM300"
+  },
+  {
+    "product_id": 252,
+    "type": "gateway",
+    "name": "K30RF, MX300"
+  },
+  {
+    "product_id": 0,
+    "type": "generic",
+    "name": "unknown"
+  },
+  {
+    "product_id": 100,
+    "type": "water",
+    "name": "IPM"
+  },
+  {
+    "product_id": 102,
+    "type": "water",
+    "name": "IPM2"
+  },
+  {
+    "product_id": 160,
+    "type": "water",
+    "name": "MM100"
+  },
+  {
+    "product_id": 161,
+    "type": "water",
+    "name": "MM200"
+  },
+  {
+    "product_id": 163,
+    "type": "water",
+    "name": "SM100, MS100"
+  },
+  {
+    "product_id": 164,
+    "type": "water",
+    "name": "SM200, MS200"
+  },
+  {
+    "product_id": 248,
+    "type": "mixer",
+    "name": "HM210"
+  },
+  {
+    "product_id": 17,
+    "type": "connect",
+    "name": "MX400"
+  },
+  {
+    "product_id": 157,
+    "type": "thermostat",
+    "name": "RC120"
+  }
+]

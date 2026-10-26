@@ -48,6 +48,16 @@ TEST(ThermalModel, DefaultsAndUnreviewedProfileCannotTrain) {
     EXPECT_FALSE(invalid.observe(r.in));EXPECT_FALSE(invalid.propose(r.in.monotonicMs,r.in.utc,r.schedule(),4500).plannedStartUtc);
     m.setMode(static_cast<LearningMode>(99));EXPECT_EQ(m.mode(),LearningMode::disabled);
 }
+TEST(ThermalModel, ExtremeMonotonicGapIsRejectedBeforeSignedClockArithmetic) {
+    for(const uint64_t gap:{(uint64_t{1}<<63)+1000,UINT64_MAX-60000}) {
+        Rig r;ASSERT_FALSE(r.sample());
+        r.in.monotonicMs+=gap;r.in.utc+=60;++r.in.reportSequence;
+        EXPECT_FALSE(r.m.observe(r.in));
+        EXPECT_STREQ(r.m.status(),"learning_discontinuity");
+        EXPECT_EQ(r.m.snapshot().count,0);
+        EXPECT_FALSE(r.advise().plannedStartUtc);
+    }
+}
 TEST(ThermalModel, SixMeasuredStartsAcrossFifteenDaysGiveIndependentTwentyMinuteLead) {
     Rig r;r.train();r.fresh();const auto a=r.advise();ASSERT_TRUE(a.plannedStartUtc);
     EXPECT_EQ(a.leadSec,1200u);EXPECT_EQ(*a.plannedStartUtc,r.in.utc+2400);EXPECT_EQ(a.eligibleStarts,6);

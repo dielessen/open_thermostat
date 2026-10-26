@@ -1,5 +1,9 @@
 #include "Logging.h"
 #include "EmsController.h"
+#ifdef OPENTHERMOSTAT_E32V2
+#include "diagnostics/LogRuntime.h"
+#include "diagnostics/EmsLogCapture.h"
+#endif
 
 #include "EMS/UBADeviceVersion.h"
 #include "EMS/UBAFactory.h"
@@ -181,6 +185,9 @@ void EmsController::requestPeriodicData() {
 }
 
 void EmsController::reset() {
+#ifdef OPENTHERMOSTAT_E32V2
+	boilerTestTransportFault_.store(true, std::memory_order_release);
+#endif
 	size_t dropped;
 	portENTER_CRITICAL(&txMux_);
 	dropped = txSize_;
@@ -210,6 +217,14 @@ void EmsController::enqueueTelegramToSend(EmsTelegram telegram, bool front) {
 	frame.length = static_cast<uint8_t>(encoded.size());
 	std::copy(encoded.begin(), encoded.end(), frame.data.begin());
 	bool full;
+	{
+#ifdef OPENTHERMOSTAT_E32V2
+	// Recheck AFTER encoding and hold through queue insertion, so a preparation
+	// racing an older producer cannot leave a command for after test completion.
+	std::lock_guard<std::mutex> testOwner(telemetryMutex_);
+	if (boilerTest_.active() || configurationRead_.active() || (telegram.getOperationType() == EmsTelegram::WRITE
+		&& !monitor_.capabilities().allowsLegacyPlusWrites())) return;
+#endif
 	portENTER_CRITICAL(&txMux_);
 	full = txSize_ == telegramsToSend_.size();
 	if (!full) {
@@ -221,6 +236,7 @@ void EmsController::enqueueTelegramToSend(EmsTelegram telegram, bool front) {
 		++txSize_;
 	}
 	portEXIT_CRITICAL(&txMux_);
+	}
 	if (full) {
 		resetRequested_.store(true, std::memory_order_relaxed);
 		DBGLOGFD(log_, fatalFeature(), "EMS TX queue full\n");
@@ -228,6 +244,46 @@ void EmsController::enqueueTelegramToSend(EmsTelegram telegram, bool front) {
 		telegram.logDebug(*log_, verboseFeature());
 	}
 }
+
+#ifdef OPENTHERMOSTAT_E32V2
+bool EmsController::processBoilerTestPoll() {
+	if constexpr (!board::emsManualTestTransmitAllowed) return false;
+	// UART must never wait for a web/status owner. A busy owner suppresses this
+	// poll, including legacy queue/pong, rather than dispatching an old command.
+	std::unique_lock<std::mutex> lock(telemetryMutex_, std::try_to_lock);
+	if (!lock.owns_lock()) return true;
+    if (boilerTestTransportFault_.exchange(false, std::memory_order_acq_rel)) {
+        boilerTest_.transportFault(static_cast<uint64_t>(esp_timer_get_time()/1000));
+        configurationRead_.fail("transport_fault");
+    }
+	if (boilerTest_.active() || configurationRead_.active()) {
+		// Discard legacy commands from BEFORE ownership as well as excluding new
+		// producers. They must not escape when reported completion releases us.
+		portENTER_CRITICAL(&txMux_);
+		txHead_ = 0;
+		txSize_ = 0;
+		portEXIT_CRITICAL(&txMux_);
+	}
+    if(configurationRead_.poll([]{return static_cast<uint64_t>(esp_timer_get_time()/1000);},
+        [this]{return configurationReadPermitted();},[this](const EmsRawFrame& frame){
+            return transmitManualFrame<true>(frame);
+        }))return true;
+
+	const auto result = BoilerTestPollDriver::poll(boilerTest_, monitor_,
+		[] { return static_cast<uint64_t>(esp_timer_get_time() / 1000); },
+		[this] {
+			auto gates = boilerTestGates();
+			if (boilerTestTransportFault_.load(std::memory_order_acquire)
+				|| resetRequested_.load(std::memory_order_relaxed)
+                || !uart_.manualTestTransportHealthy()) gates.transmitterReviewed = false;
+			return gates;
+		}, boilerTestEncoder_,
+		[this](const EmsRawFrame& frame) {
+            return transmitManualFrame<false>(frame);
+		});
+	return result != BoilerTestPollDriver::Result::unowned;
+}
+#endif
 
 bool EmsController::processPoll(uint8_t deviceId) {
 	if (deviceId != deviceId_) {
@@ -237,21 +293,32 @@ bool EmsController::processPoll(uint8_t deviceId) {
 	polls_.fetch_add(1, std::memory_order_relaxed);
 	if (txNotConfirmed_.load(std::memory_order_relaxed) > maxTxNotConfirmed) {
 		resetRequested_.store(true, std::memory_order_relaxed);
+#ifdef OPENTHERMOSTAT_E32V2
+		boilerTestTransportFault_.store(true, std::memory_order_release);
+#endif
 	}
-
-	EmsRawFrame frame;
-	portENTER_CRITICAL(&txMux_);
-	if (txSize_ != 0) {
-		frame = telegramsToSend_[txHead_];
-		txHead_ = (txHead_ + 1) % telegramsToSend_.size();
-		--txSize_;
-	}
-	portEXIT_CRITICAL(&txMux_);
-	if (frame.length == 0) {
-		pong();
-	} else if (uart_.writeToEms(frame.data.data(), frame.length)) {
-		txNotConfirmed_.fetch_add(1, std::memory_order_relaxed);
-		txFrames_.fetch_add(1, std::memory_order_relaxed);
+#ifdef OPENTHERMOSTAT_E32V2
+	const bool testHandled = processBoilerTestPoll();
+#else
+	constexpr bool testHandled = false;
+#endif
+	if (!testHandled) {
+		EmsRawFrame frame;
+		portENTER_CRITICAL(&txMux_);
+		if (txSize_ != 0) {
+			frame = telegramsToSend_[txHead_];
+			txHead_ = (txHead_ + 1) % telegramsToSend_.size();
+			--txSize_;
+		}
+		portEXIT_CRITICAL(&txMux_);
+		if (frame.length == 0) {
+			pong();
+		} else if (uart_.writeToEms(frame.data.data(), frame.length)) {
+#ifndef OPENTHERMOSTAT_E32V2
+            txNotConfirmed_.fetch_add(1, std::memory_order_relaxed);
+#endif
+			txFrames_.fetch_add(1, std::memory_order_relaxed);
+		}
 	}
 	// Includes the intentionally paced UART write, from poll recognition to return.
 	const auto elapsed = static_cast<uint32_t>(esp_timer_get_time() - started);
@@ -261,17 +328,51 @@ bool EmsController::processPoll(uint8_t deviceId) {
 }
 
 void EmsController::processTelegram(uint8_t *data, uint8_t length) {
+    // Preserve acquisition order BEFORE any synchronous protocol completion IO.
+    const auto receivedAtMs=static_cast<uint64_t>(esp_timer_get_time()/1000);
+#ifdef OPENTHERMOSTAT_E32V2
+	const auto errors = uart_.rxErrors.load(std::memory_order_relaxed);
+	if (boilerTestUartErrorsSeen_ != errors) {
+		boilerTestUartErrorsSeen_ = errors;
+		boilerTestTransportFault_.store(true, std::memory_order_release);
+	}
+#endif
 	// Only the UART task updates confirmation accounting, including recovery.
 	const auto resets = uart_.resets.load(std::memory_order_relaxed);
 	if (uartResetsSeen_ != resets) {
+#ifdef OPENTHERMOSTAT_E32V2
+		boilerTestTransportFault_.store(true, std::memory_order_release);
+#endif
 		uartResetsSeen_ = resets;
+#ifdef OPENTHERMOSTAT_E32V2
+        observedSourceMask_.store(EmsPoll::unknown, std::memory_order_release);
+#endif
 		txNotConfirmed_.store(0, std::memory_order_relaxed);
 	}
+#ifdef OPENTHERMOSTAT_E32V2
+    // Original UART receive owner closes only a matching private transaction.
+    // Never defer bus completion to web/loop telemetry decoding.
+    processManualReply(data,length?length-1:0);
+#endif
 	// UART context: answer polls immediately; copy ordinary frames without waiting.
+#ifdef OPENTHERMOSTAT_E32V2
+    if (length == 2 && EmsPoll::addressed(data[0], deviceId_,
+            observedSourceMask_.load(std::memory_order_acquire))) {
+        processPoll(deviceId_);
+        return;
+    }
+#else
 	if (length == 2 && !(data[0] & 0x80)) {
 		processPoll(data[0]);
 		return;
 	}
+#endif
+#ifdef OPENTHERMOSTAT_E32V2
+    if (length && ManualBusIdentity::conflictingSource(data, length - 1, deviceId_)) {
+        manualSourceConflict_.store(true, std::memory_order_release);
+        boilerTestTransportFault_.store(true, std::memory_order_release);
+    }
+#endif
 	if (length < 7) {
 		return;
 	}
@@ -282,24 +383,61 @@ void EmsController::processTelegram(uint8_t *data, uint8_t length) {
 		}
 		// Cache the diagnostic setting in loop(); never call the logger here.
 		const bool boilerData = (data[0] & 0x7F) == boilerId_ && !(data[1] & 0x80);
+#ifndef OPENTHERMOSTAT_E32V2
 		if (!boilerData && !captureForeignTelegrams_.load(std::memory_order_relaxed)) {
 			return;
 		}
+#else
+        // Passive E32 device inventory also observes reports between other members.
+        // This must not depend on verbose logging. Existing bounded deferred queue
+        // and the later callback destination admission remain unchanged; no TX.
+        (void)boilerData;
+#endif
 	}
-	if (!telegramsToProcess_.push(data, length)) {
+	if (!telegramsToProcess_.push(data, length, receivedAtMs)) {
 		rxDropped_.fetch_add(1, std::memory_order_relaxed);
+#ifdef OPENTHERMOSTAT_E32V2
+		boilerTestTransportFault_.store(true, std::memory_order_release);
+#endif
 	}
 }
 
-void EmsController::decodeTelegram(uint8_t *data, uint8_t length) {
+void EmsController::decodeTelegram(uint8_t *data, uint8_t length, uint64_t receivedAtMs) {
     try {
         if (length == 0) return;
-        const auto telegram = EmsTelegram::fromRawData(data, length - 1);
+        const auto telegram = [this, data, length]() {
+            try {
+                return EmsTelegram::fromRawData(data, length - 1);
+            } catch (const std::exception &) {
+                invalidTelegrams_.fetch_add(1, std::memory_order_relaxed);
+#ifdef OPENTHERMOSTAT_E32V2
+                boilerTestTransportFault_.store(true, std::memory_order_release);
+#endif
+                throw;
+            }
+        }();
+#ifdef OPENTHERMOSTAT_E32V2
+        if (telegram.getSenderId() == boilerId_ && data[1] == 0) {
+            observedSourceMask_.store(data[0] & 0x80, std::memory_order_release);
+        }
+#endif
         {
             std::lock_guard<std::mutex> lock(telemetryMutex_);
-            monitor_.receive(telegram, static_cast<uint64_t>(esp_timer_get_time() / 1000));
-            receiveOutdoorTemperature(outdoorSample_,telegram,static_cast<uint64_t>(esp_timer_get_time()/1000));
+            // A queued pre-command report must never become post-command stop
+            // evidence simply because loop() decodes it after the command.
+            deviceInventory_.observe(telegram, receivedAtMs);
+            monitor_.receive(telegram, receivedAtMs);
+#ifdef OPENTHERMOSTAT_E32V2
+            configurationRead_.observe(telegram,receivedAtMs,static_cast<uint64_t>(esp_timer_get_time()/1000),
+                configurationReadPermitted(),monitor_);
+#endif
+            receiveOutdoorTemperature(outdoorSample_, telegram, receivedAtMs);
         }
+#ifdef OPENTHERMOSTAT_E32V2
+        diagnostics::captureEmsRx(diagnostics::runtime.log,data,length,
+            telegram.getSenderId(),data[1],telegram.getTypeId(),
+            telegram.getOffset(),receivedAtMs);
+#endif
         // Passive monitor also sees boiler reports addressed to another master.
         // Legacy registered callbacks retain their original destination admission.
         if (data[1] != 0 && telegram.getDestinationId() != deviceId_) {
@@ -363,9 +501,10 @@ void EmsController::refreshClassicStatus() {
 
 void EmsController::processTelegrams() {
 	EmsRawFrame frame;
+	uint64_t receivedAtMs;
 	// Bound the work per loop even when the UART producer stays busy.
-	for (int i = 0; i < maxTelegramQueueSize && telegramsToProcess_.pop(frame); ++i) {
-		decodeTelegram(frame.data.data(), frame.length);
+	for (int i = 0; i < maxTelegramQueueSize && telegramsToProcess_.pop(frame, &receivedAtMs); ++i) {
+		decodeTelegram(frame.data.data(), frame.length, receivedAtMs);
 	}
 }
 

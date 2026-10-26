@@ -6,11 +6,21 @@
 #include "BuiltinGpioPort.h"
 #include "PcfGpioPort.h"
 #include "BeaconTemperatureReader.h"
+#include "control/BleDeviceDiscovery.h"
 #include "OpenWeather.h"
 #include "PeriodicCounter.h"
 #include "EmsController.h"
 #include "EmsMetrics.h"
 #include "MQTT.h"
+#ifdef OPENTHERMOSTAT_E32V2
+#include "control/ControlBuildCapabilities.h"
+#include "control/BleDeviceSettings.h"
+#include "control/ManagedBleObserver.h"
+#include "control/MbedTlsBleCcm.h"
+#include "DeviceBluetoothSettings.h"
+#include <esp_timer.h>
+#include "update/GitHubUpdate.h"
+#endif
 #include <esp_system.h>
 #include "Room.h"
 
@@ -103,9 +113,23 @@ public:
 	explicit HeatingController(std::shared_ptr<ib::logger::LoggerInterface> log) : log_(std::move(log)), logFeature_(log_ ? log_->addFeature("HeatCtrl") : 0), openWeather_(log_, config::getOpenWeatherConfig()), currentProgram_(config::getCurrentProgram()), rooms_(buildRoomsFromConfig()) {
 		DBGLOGFI(log_, logFeature_, "HeatingController constructed\n");
 		bluetoothScan_ = true;
+#ifdef OPENTHERMOSTAT_E32V2
+        const auto raw = readDeviceBluetoothSettings();
+        auto root = control::parseControlJson({raw.c_str(), raw.length()}, true);
+        std::unique_ptr<control::ManagedBleBindings> bindings(new(std::nothrow) control::ManagedBleBindings);
+        if (bindings && control::readManagedBleBindings(root.get(), *bindings) == control::BleSettingsError::none)
+            managedBle_.initialize(*bindings);
+        else managedBle_.disable(control::BleObserverStop::configuration_invalid);
+        tempReader_.setRawObserver([this](const BleAddress_t& address, int rssi, const uint8_t* data, size_t size) {
+            const auto now = bleReceiptClock();
+            managedBle_.capture(address, rssi, data, size, now);
+            std::lock_guard<std::mutex> lock(roomsAccessMutex_);
+            bleDiscovery_.remember(address, rssi, data, size);
+        });
+#endif
 	}
 
-	~HeatingController() {}
+	~HeatingController() { stopBluetoothAndDeinitBLE(); }
 
 	void operate() {
 		// Modern shadow runtime owns its targets. Never execute the old room
@@ -169,11 +193,26 @@ public:
 	}
 
 	void loop() {
+#ifdef OPENTHERMOSTAT_E32V2
+        managedBle_.processOne(update::busy());
+        if (mqtt_.modernMode() && bluetoothScan_ && managedBle_.wantsAutomaticScan() && !update::busy()) tempReader_.triggerScan();
+#endif
 		mqtt_.loop();
 		ems_.loop();
 	}
 	bool modernMode() const { return mqtt_.modernMode(); }
 #ifdef OPENTHERMOSTAT_E32V2
+    void stopManagedBle() { managedBle_.disable(control::BleObserverStop::configuration_changed); }
+    auto managedBleSnapshot(const control::ManagedBleAddress& address) { return managedBle_.snapshot(address); }
+    bool managedBlePending() const { return !managedBle_.enabled(); }
+    uint32_t managedBleQueueDrops() const { return managedBle_.queueDrops(); }
+    bool requestBleDiscovery() { return bluetoothScan_ && tempReader_.triggerScan(30000,[this] {
+        std::lock_guard<std::mutex> lock(roomsAccessMutex_); bleDiscovery_.clear();
+    }); }
+    bool bleScanPending() { return tempReader_.isScanPending(); }
+    void copyBleDiscovery(control::BleDeviceDiscovery& out) const {
+        std::lock_guard<std::mutex> lock(roomsAccessMutex_); out = bleDiscovery_;
+    }
     bool nativeSourceCurrent(std::string_view expected,std::string_view savedSettings) const {return mqtt_.nativeSourceCurrent(expected,savedSettings);}
     bool nativeSourceHotReady(std::string_view expected,std::string_view savedSettings) const {return mqtt_.nativeSourceHotReady(expected,savedSettings);}
     bool nativeSourceCanApply(std::string_view expected,std::string_view next,std::string_view saved) const {return mqtt_.nativeSourceCanApply(expected,next,saved);}
@@ -196,9 +235,16 @@ public:
 		emsMetrics_.getRoomObservation(ss);
 		ss << "}";
 	}
-	void getEMSTelemetryStatus(std::ostream &ss) const {
-		ems_.getTelemetryStatus(ss);
+	void getEMSDeviceStatus(std::ostream &ss) const { ems_.getDeviceStatus(ss); }
+	void getEMSTelemetryStatus(std::ostream &ss, std::string_view operatorSession = {}) const {
+		ems_.getTelemetryStatus(ss, operatorSession);
 	}
+#ifdef OPENTHERMOSTAT_E32V2
+	bool boilerTestActive() const { return ems_.boilerTestActive(); }
+	int boilerTestAction(std::string_view action, std::string_view body, std::string_view operatorSession, std::ostream &ss) {
+		return ems_.boilerTestAction(action, body, operatorSession, ss);
+	}
+#endif
 
 	std::string getEMSStatus() const {
 		std::ostringstream ss; getEMSStatus(ss); return ss.str();
@@ -219,12 +265,30 @@ public:
 		else getRoomsStatus(ss);
 		ss << ",\"controlMode\":\"" << (modernMode()?"shadow":"legacy") << "\"";
 		ss << ",";
-		{
-			std::lock_guard<std::mutex> lock(roomsAccessMutex_);
-			ss << "\"activeProgram\": \"" << currentProgram_ << "\",";
-		}
-		ss << "\"boiler\": "; boiler_.getStatus(ss); ss << ",";
+#ifdef OPENTHERMOSTAT_E32V2
+        ss << "\"firmware_update\":" << update::availability() << ",";
+        ss << "\"control_build\":";
+        control::writeControlBuildCapabilities(ss);
+        // Read-only SDK counters also remain available in modern mode, where
+        // the legacy MQTT device reporter is deliberately not started.
+        ss << ",\"resources\":{\"internal_heap\":{\"free_bytes\":" << ESP.getFreeHeap()
+           << ",\"minimum_free_bytes_sdk\":" << ESP.getMinFreeHeap()
+           << ",\"largest_free_block_bytes\":" << ESP.getMaxAllocHeap()
+           << "},\"psram\":{\"free_bytes\":" << ESP.getFreePsram()
+           << ",\"minimum_free_bytes_sdk\":" << ESP.getMinFreePsram()
+           << ",\"largest_free_block_bytes\":" << ESP.getMaxAllocPsram() << "}},";
+#endif
+        if(modernMode()) ss << "\"activeProgram\":null,\"boiler\":null,";
+        else {
+            {
+                std::lock_guard<std::mutex> lock(roomsAccessMutex_);
+                ss << "\"activeProgram\": \"" << currentProgram_ << "\",";
+            }
+            ss << "\"boiler\":";
+            boiler_.getStatus(ss);ss << ',';
+        }
 		ss << "\"ems\": "; ems_.getStatus(ss); ss << ",";
+        if(modernMode()) {ss << "\"control\":";mqtt_.getControlUiStatus(ss);ss << ',';}
 		ss << "\"openweather\": " << openWeather_.getStatus() << ",";
 
 		struct tm timeinfo{};
@@ -247,13 +311,13 @@ public:
 
 
 	std::string getFullStatus() const {
-		std::stringstream ss;
+		std::ostringstream ss;
 		getFullStatus(ss);
 		return ss.str();
 	}
 
 	std::string getRoomsStatus() const {
-		std::stringstream ss;
+		std::ostringstream ss;
 		getRoomsStatus(ss);
 		return ss.str();
 	}
@@ -343,10 +407,14 @@ public:
 		bluetoothScan_ = false;
 	}
 
-	void waitUntilBluetoothScanFinishAndDeinitBLE() {
-		while (tempReader_.isScanPending()) {
-			delay(1);
-		}
+	void stopBluetoothAndDeinitBLE() {
+		bluetoothScan_ = false;
+#ifdef OPENTHERMOSTAT_E32V2
+        stopManagedBle();
+#endif
+		// NimBLE deinit stops its host/scan through the SDK. Do not wait for
+		// onScanEnd first: a missing callback could prevent AP recovery forever.
+		// The reader closes report admission BEFORE asking the SDK to stop.
 		tempReader_.shutDownBLE();
 	}
 
@@ -364,7 +432,7 @@ private:
 	void pushTemperatureData(BleAddress_t address, std::optional<int16_t> temperature, std::optional<int16_t> humidity, std::optional<int8_t> battery) {
 		std::lock_guard<std::mutex> lock(roomsAccessMutex_);
 
-		devicesFound_.emplace(address);
+		devicesFound_.remember(address); // Discovery cap never skips configured-room updates.
 
 		auto room = std::find_if(std::begin(rooms_), std::end(rooms_), [&adr = address](auto const &room) { return (adr == room->getSensorAddress()); });
 		if (room == std::end(rooms_)) {
@@ -409,6 +477,13 @@ private:
 	}
 
 	std::atomic_bool bluetoothScan_;
+#ifdef OPENTHERMOSTAT_E32V2
+    static uint64_t bleReceiptClock() { return static_cast<uint64_t>(esp_timer_get_time()) / 1000; }
+    control::MbedTlsBleCcm bleCrypto_;
+    control::ManagedBleObserver<control::MbedTlsBleCcm> managedBle_{bleCrypto_, bleReceiptClock};
+    control::BleDeviceDiscovery bleDiscovery_;
+    static_assert(sizeof(decltype(managedBle_)) <= 4096, "BLE observer resident budget changed");
+#endif
 	BeaconTemperatureReader tempReader_{log_, [this](BleAddress_t address, std::optional<int16_t> temperature, std::optional<int16_t> humidity, std::optional<int8_t> battery) { pushTemperatureData(std::move(address), temperature, humidity, battery); }};
 	OpenWeather openWeather_;
 	ems::EmsController ems_{log_};
@@ -421,7 +496,7 @@ private:
 	std::string currentProgram_;
 	std::vector<std::shared_ptr<heating::Room>> rooms_;
 	std::unordered_map<std::string, uint8_t> valveLabelMap_{buildValveLabelMap()};
-	BeaconTemperatureReader::BleDevices_t devicesFound_;
+	control::BleDeviceDiscovery devicesFound_;
 	mutable std::mutex roomsAccessMutex_;
 
 	// Informational observation epoch only, never an authentication token / NVS value.
@@ -446,7 +521,12 @@ private:
 		[this](std::string const &name, int16_t temperature, uint32_t seconds) {
 			return setRoomTemporaryTemperature(name, temperature, seconds);
 		},
-		[this](std::ostream &ss) { emsMetrics_.getRoomContext(ss); }
+		[this](std::ostream &ss) { emsMetrics_.getRoomContext(ss); },
+#ifdef OPENTHERMOSTAT_E32V2
+        [this](std::ostream& ss,size_t group) { ems_.getBoilerFieldGroup(ss,group); }
+#else
+        {}
+#endif
 		};
 };
 

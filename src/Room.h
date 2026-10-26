@@ -1,13 +1,13 @@
 #pragma once
 
 #include "RoomConfig.h"
-#include "BeaconBleAddress.h"
 #include "CircularBuffer.h"
 #include "Logging.h"
 
 #include <atomic>
 #include <chrono>
 #include <memory>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <time.h>
@@ -20,7 +20,7 @@ class Room {
 public:
 	using clock_t = std::chrono::steady_clock;
 
-	enum class TemperatureStatus : uint8_t { MISSING_TEMPERATURE, TEMPERATURE_OK, START_HEATING, CONTINUE_HEATING };
+	enum class TemperatureStatus : uint8_t { MISSING_TEMPERATURE, TEMPERATURE_OK, START_HEATING, CONTINUE_HEATING, TIME_UNAVAILABLE };
 
 	Room(std::shared_ptr<ib::logger::LoggerInterface> log, RoomConfig config) : log_(std::move(log)), config_(std::move(config)) {
 		if (log_) {
@@ -82,7 +82,7 @@ private:
 	std::pair<int16_t, const RoomConfig::TemperatureSetting *> getTemperatureSet(uint16_t currentTime, uint8_t dayOfTheWeek) const; // HH:MM 	// returns temperature set for current time - maximum one from all, but always overrides base temp
 	int16_t getTemperatureMarginUp() const;
 	int16_t getTemperatureMarginDown() const;
-	std::pair<uint16_t, uint8_t> getTimeNow() const;
+	std::optional<std::pair<uint16_t, uint8_t>> getTimeNow() const;
 	std::optional<int16_t> getAverageTemperature() const;
 
 	auto getMaxSampleAgeMs() const { return std::chrono::minutes(3); }
@@ -94,9 +94,10 @@ private:
 
 	//	// statistical data
 	std::atomic<int8_t> batteryLevel_ = -1;
-	std::atomic<int16_t> currentHumidity_ = std::numeric_limits<decltype(currentHumidity_)>::min(); // humidity 6005 - 60.05%
+	std::atomic<int16_t> currentHumidity_ = std::numeric_limits<int16_t>::min(); // humidity 6005 - 60.05%
 
 	struct Statistics {
+		const char* controlStatus_ = "not_evaluated";
 		const RoomConfig::TemperatureSetting *currentProgram_ = nullptr;
 		bool shouldStartBoiler_ = false;
 		bool shouldHeat_ = false;

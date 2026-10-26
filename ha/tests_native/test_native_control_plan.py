@@ -25,6 +25,7 @@ from test_v1_native import physical_state,source_profile
 async def native_plan(native_two,hass,monkeypatch,request):
     options=request.param if hasattr(request,"param") and type(request.param) is dict else {}
     legacy=options.get("legacy",False)
+    controller_id=options.get("controller_id","e32_test")
     parent,rad,floor,heating,output=native_two
     floor=replace(floor,base_centi_c=1900)
     sub=next(s for s in parent.subentries.values() if s.subentry_type=="zone" and s.data["room_id"]==floor.room_id)
@@ -36,6 +37,10 @@ async def native_plan(native_two,hass,monkeypatch,request):
         draft["actuators"]=[a for a in draft["actuators"] if a["room_id"]==rad.room_id]
         hass.config_entries.async_update_subentry(parent,heating,data={"draft":draft})
     hass.config_entries.async_update_entry(parent,options={**parent.options,"shadow_enabled":True,"adapter_id":"test_owner"})
+    if options.get("product",False):
+        # Exercise the normal product Store layout through the real migration,
+        # before selecting any source or starting its native worker.
+        assert await integration.async_migrate_entry(hass,parent)
     rooms,draft,layout=_native_layout(hass,parent,allow_single=options.get("week",False))
     # Independent synthetic SOURCE fixture, selected once before ANY plan.
     # This helper is deliberately test-only: production has NO GUI qualification.
@@ -60,12 +65,12 @@ async def native_plan(native_two,hass,monkeypatch,request):
             maximum_sensor_age_ms=120000,report_evidence="physical_report",
             minimum_supply_centi_c=group["supply_limits"]["minimum_centi_c"],
             maximum_supply_centi_c=group["supply_limits"]["maximum_centi_c"]))
-    body=dict(schema=1,kind="native_profile.shadow.v1",controller_id="e32_test",adapter_id="test_owner",
+    body=dict(schema=1,kind="native_profile.shadow.v1",controller_id=controller_id,adapter_id="test_owner",
         layout_digest=digest(layout),mapping_revision=1,zones=rows)
     if legacy:body.update(schema=2,kind="native_profile.shadow.v2",legacy_readback="schema1_quarantine_only")
     week=options.get("week",False)
     if week:body.update(schema=3,kind="native_profile.week.v1")
-    policy=NativeInstallationPolicy(parent.unique_id,"e32_test","test_owner",digest(body),legacy_readback_reviewed=legacy,week_reviewed=week)
+    policy=NativeInstallationPolicy(parent.unique_id,controller_id,"test_owner",digest(body),legacy_readback_reviewed=legacy,week_reviewed=week)
     source=NativePlanSource(policy,canonical(body),canonical(bindings));source.validate()
     monkeypatch.setattr(integration,"_NATIVE_PLAN_SOURCE_PROFILES",(source,))
     monkeypatch.setattr(integration,"_GRAPH_DATA_SOURCE_PROFILE",None)
@@ -74,10 +79,16 @@ async def native_plan(native_two,hass,monkeypatch,request):
     monkeypatch.setattr(hass.config_entries,"async_forward_entry_setups",AsyncMock())
     monkeypatch.setattr(hass.config_entries,"async_unload_platforms",AsyncMock(return_value=True))
     reload=AsyncMock();monkeypatch.setattr(hass.config_entries,"async_reload",reload)
-    callbacks={};pending=deque();removed=[];physical_calls=[]
+    callbacks={};pending=deque();removed=[];subscriptions=[];physical_calls=[]
     hass.services.async_register("climate","set_temperature",lambda call:physical_calls.append(call))
-    async def subscribe(_h,topic,cb,**kw):callbacks["mqtt"]=cb;return lambda:removed.append("mqtt")
-    def status(_h,cb):callbacks["status"]=cb;return lambda:removed.append("status")
+    async def subscribe(_h,topic,cb,**kw):
+        kind="mqtt" if topic=="fixture/v1/fw/#" else "telemetry"
+        if kind=="mqtt":callbacks["mqtt"]=cb
+        subscriptions.append(kind)
+        return lambda:removed.append(kind)
+    def status(_h,cb):
+        callbacks["status"]=cb;subscriptions.append("status")
+        return lambda:removed.append("status")
     async def publish(_h,topic,payload,**kw):
         assert kw==dict(qos=0,retain=False) and topic.startswith("fixture/v1/")
         pending.append((topic[len("fixture/v1/"):],payload))
@@ -100,11 +111,11 @@ async def native_plan(native_two,hass,monkeypatch,request):
     async with pair(hass) as peer:
         if options.get("local_source",False):
             from custom_components.open_thermostat.native_provisioning import local_device_descriptor
-            initial=await peer.request("initialize_native_local_source",controller="e32_test",boot="native_boot",
+            initial=await peer.request("initialize_native_local_source",controller=controller_id,boot="native_boot",
                 owner="test_owner",stored=canonical(legacy_record["config"]) if legacy else "",
                 local_source=canonical(local_device_descriptor(source)))
         else:
-            initial=await peer.request("initialize_native_plan",controller="e32_test",boot="native_boot",
+            initial=await peer.request("initialize_native_plan",controller=controller_id,boot="native_boot",
                 owner="test_owner",stored=canonical(legacy_record["config"]) if legacy else "",
                 source=dict(profile_digest=policy.profile_digest,mapping_revision=1,zones=rows,legacy_readback_reviewed=legacy))
         assert not initial["fault"] and initial["writes"]==0 and initial["revision"]==(1 if legacy else 0)
@@ -115,6 +126,7 @@ async def native_plan(native_two,hass,monkeypatch,request):
             state=hass.data["open_thermostat"][parent.entry_id]
             runtime=state["v1_runtime"];connection=state["v1_connection"];client=connection.client
             client.clock=lambda:peer.clock[0]
+            runtime.clock=client.clock
             actual_receive=client._receive
             async def audited_receive(topic,payload):
                 try:return await actual_receive(topic,payload)
@@ -125,9 +137,25 @@ async def native_plan(native_two,hass,monkeypatch,request):
             for r in runtime.rooms.values():runtime.set_report_profile(r.room_id,source_profile)
             if n:=holder.get("n"):n.runtime,n.connection,n.client=runtime,connection,client
         async def stop():
-            assert await integration.async_unload_entry(hass,parent);await parent._async_process_on_unload(hass)
+            # This fixture owns delivery at the MQTT IO boundary. Real HA timers
+            # can publish a final packet while native unload awaits platform
+            # cleanup; continue delivering those packets until transport closes.
+            # Never clear the queue to hide packets or disable native scheduling.
+            unload=asyncio.create_task(integration.async_unload_entry(hass,parent))
+            try:
+                async with asyncio.timeout(10):
+                    while not unload.done():
+                        await drain()
+                        await asyncio.sleep(.001)
+                    assert await unload
+                    await parent._async_process_on_unload(hass)
+                    await drain()
+            finally:
+                if not unload.done():unload.cancel()
+                await asyncio.gather(unload,return_exceptions=True)
             assert connection.worker.done() and connection.timer is None
             assert not runtime._subscriptions and not runtime._expiries
+            assert not pending
         async def deliver(frames,drop=None,retained=False):
             for f in frames:
                 if f["topic"]==drop:continue
@@ -203,6 +231,7 @@ async def native_plan(native_two,hass,monkeypatch,request):
             if hass.data.get("open_thermostat",{}).get(parent.entry_id,{}).get("v1_runtime") is not None:await stop()
             assert not physical_calls and not pending
             assert removed.count("mqtt")==removed.count("status")
+            assert sorted(removed)==sorted(subscriptions)
 
 @pytest.mark.asyncio
 async def test_normal_HA_review_apply_commits_TWO_complete_rooms_and_same_controller_targets(native_plan):
@@ -537,3 +566,44 @@ async def test_native_observations_use_accepted_source_binding_not_hardcoded_leg
     messages=[json.loads(kw["raw"]) for op,kw,_ in n.peer.trace if op=="receive" and kw.get("topic")=="ha/observations"]
     expected={z["zone_id"]:z["sensor_id"] for z in record["config"]["zones"]}
     assert messages and all(m["binding_id"]==expected[m["zone_id"]] for m in messages)
+
+
+@pytest.mark.asyncio
+async def test_room_display_labels_roundtrip_without_config_or_measurement_changes(native_plan):
+    n=native_plan
+    await n.apply()
+    assert n.client.room_names_supported
+    before=await n.peer.request('durable_readback')
+    expected={room_id:room.name.encode('utf-8')[:80].decode('utf-8',errors='ignore').encode('utf-8').hex()
+              for room_id,room in n.runtime.rooms.items()}
+    for _ in range(7):
+        n.peer.clock[0]+=1
+        await n.client.poll();await n.drain();await n.event('tick');await n.drain()
+    frames=[json.loads(frame['raw']) for _,_,result in n.peer.trace for frame in result['frames']
+            if frame['topic']=='fw/state/zones']
+    assert {row['zone_id']:row.get('name_utf8_hex') for row in frames[-1]['zones']}==expected
+    assert all(row['temperature_centi_c'] is None and row['demand'] is False for row in frames[-1]['zones'])
+    after=await n.peer.request('durable_readback')
+    assert after['writes']==before['writes'] and after['stored']==before['stored']
+    # A bad metadata body must not consume the heartbeat sequence or alter labels.
+    packet=n.client.envelope('adapter')
+    packet['room_names']=[{'zone_id':key,'name_utf8_hex':'00'} for key in sorted(expected)]
+    await n.event('receive',topic='ha/heartbeat',raw=canonical(packet))
+    await n.client.message('ha/heartbeat','adapter',{});await n.drain()
+    n.peer.clock[0]+=1;await n.event('tick');await n.drain()
+    frames=[json.loads(frame['raw']) for _,_,result in n.peer.trace for frame in result['frames']
+            if frame['topic']=='fw/state/zones']
+    assert {row['zone_id']:row.get('name_utf8_hex') for row in frames[-1]['zones']}==expected
+    final=await n.peer.request('durable_readback')
+    assert final['stored']==before['stored'] and final['writes']==before['writes']
+
+
+@pytest.mark.asyncio
+async def test_native_unload_delivers_already_published_packets_until_transport_closes(native_plan):
+    n=native_plan
+    await n.apply()
+    await n.client.message('ha/heartbeat','adapter',{})
+    assert n.pending
+    await n.stop()
+    assert n.connection.closed and n.connection.worker.done()
+    assert not n.pending and n.connection.timer is None

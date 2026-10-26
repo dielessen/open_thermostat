@@ -26,6 +26,78 @@ EmsTelegram data(uint16_t type, std::vector<uint8_t> payload, uint8_t offset = 0
             source, destination, offset, type, std::move(payload)};
 }
 
+TEST(ClassicReception, ReportsFreshnessWithoutGrantingControlOrAcceptingOtherSenders) {
+    ClassicBoilerMonitor m;
+    const auto snapshot = [&](uint64_t now) {
+        std::ostringstream ss;
+        m.writeReceptionJSON(ss, now);
+        return std::unique_ptr<cJSON, decltype(&cJSON_Delete)>(cJSON_Parse(ss.str().c_str()), cJSON_Delete);
+    };
+    auto initial = snapshot(0);
+    ASSERT_NE(initial, nullptr);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(initial.get(), "state")), "no_boiler_reports");
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(initial.get(), "last_report_age_ms")));
+    m.receive(data(0x18, {40}, 0, 0x19), 100);
+    m.receive(data(0x77, {40}), 100);
+    m.receive({EmsTelegram::READ, 8, 0x19, 0, 0x18, {1}}, 100);
+    auto ignored = snapshot(100);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(ignored.get(), "report_count")), 0);
+    // Zero uptime is a legitimate timestamp, including a foreign destination.
+    ASSERT_TRUE(m.receive(data(0x18, {0, 1, 0x72, 80, 0, 0, 0, 0x25}, 0, 8, 0x17), 0));
+    auto fresh = snapshot(29999);
+    EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItem(fresh.get(), "fresh_report")));
+    EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItem(fresh.get(), "control_approved")));
+    auto fields = cJSON_GetObjectItem(fresh.get(), "fresh_classic_fields");
+    EXPECT_EQ(cJSON_GetArraySize(fields), 7); // target, flow, power limit, modulation, raw state, inferred CV/DHW
+    auto stale = snapshot(30000);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(stale.get(), "state")), "stale");
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(stale.get(), "fresh_classic_fields")), 0);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(stale.get(), "last_report_age_ms")), 30000);
+    m.receive(data(0x18, {40}), 40000);
+    auto backwards = snapshot(39999);
+    EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItem(backwards.get(), "fresh_report")));
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(backwards.get(), "last_report_age_ms")));
+    m.receive(data(0xE4, {1}), 41000);
+    auto conflict = snapshot(41000);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(conflict.get(), "state")), "conflicting_families");
+    EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItem(conflict.get(), "control_approved")));
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(conflict.get(), "fresh_classic_fields")), 0);
+}
+
+TEST(ClassicReception, ExtensibleTelemetryRemainsValidAndDoesNotWrapAt32Bits) {
+    ClassicBoilerMonitor m;
+    const uint64_t now = (uint64_t{1} << 32) + 123;
+    m.receive(data(0x18, {40}), now);
+    std::ostringstream ss;
+    m.writeJSON(ss, now + 1, false);
+    ss << ",\"transport\":{\"enabled\":true}}";
+    auto json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>(cJSON_Parse(ss.str().c_str()), cJSON_Delete);
+    ASSERT_NE(json, nullptr);
+    auto reception = cJSON_GetObjectItem(json.get(), "reception");
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(reception, "last_report_age_ms")), 1);
+    EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(json.get(), "fields")));
+    EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItem(cJSON_GetObjectItem(json.get(), "transport"), "enabled")));
+}
+
+TEST(ClassicReception, DistinguishesPlusAndInvalidOrIncompleteMeasurements) {
+    ClassicBoilerMonitor plus;
+    plus.receive(data(0xE4, {1}), 100);
+    std::ostringstream ss;
+    plus.writeJSON(ss, 100);
+    auto json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>(cJSON_Parse(ss.str().c_str()), cJSON_Delete);
+    ASSERT_NE(json, nullptr);
+    auto reception = cJSON_GetObjectItem(json.get(), "reception");
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(reception, "state")), "plus_reports_received");
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(reception, "fresh_classic_fields")), 0);
+    ClassicBoilerMonitor invalid;
+    invalid.receive(data(0x18, {0x80, 0}, 1), 100); // invalid temperature sentinel
+    invalid.receive(data(0x18, {0x01}, 1), 200); // incomplete word
+    std::ostringstream fields;
+    invalid.writeReceptionJSON(fields, 200);
+    EXPECT_NE(fields.str().find("\"report_count\":2"), std::string::npos);
+    EXPECT_NE(fields.str().find("\"fresh_classic_fields\":[]"), std::string::npos);
+}
+
 TEST(ClassicBoiler, ReplaysCaptured0PWithoutInventingFlameOrMissingPressure) {
     // Genuine CRC-valid EMS-ESP capture, 13 Oct2026 incident report. No timestamps
     // or household/device identities are needed by this fixture. Wire includes CRC03.
@@ -260,4 +332,190 @@ TEST(ClassicBoiler, ReplaysAllFiveHistoricalMonitorParameterFamiliesAndRejectsRe
     EXPECT_EQ(m.value(BoilerField::selectedFlow,160),0); // request36C is NOT reported target0C
     EXPECT_EQ(m.value(BoilerField::heatingLimit,160),5500);
 }
+
+TEST(ClassicExpanded, FastStorageCurrentAndRawFlagsPreserveFragmentsAndQuality) {
+    ClassicBoilerMonitor m;
+    m.receive(data(0x18,{0xFF},7),100);
+    m.receive(data(0x18,{0x01,0xF4,0x02,0x58,0x01,0x90,0x00,0x1B},9),110);
+    EXPECT_EQ(m.value(BoilerField::storageTemp1,110),5000);
+    EXPECT_EQ(m.value(BoilerField::storageTemp2,110),6000);
+    EXPECT_EQ(m.value(BoilerField::ionisationCurrent,110),27); // published 2.7 uA
+    for(auto f:{BoilerField::rawSecondBurner,BoilerField::rawIgnition,BoilerField::rawOilPreheat,
+                BoilerField::rawDhwValve,BoilerField::rawDhwCirculation}) {
+        EXPECT_FALSE(m.value(f,110)); EXPECT_EQ(m.value(f,110,true),1);
+    }
+    m.receive(data(0x18,{0x01},15),120); // no refresh from incomplete word
+    EXPECT_EQ(m.sample(BoilerField::ionisationCurrent).observedMs,110);
+    for(auto word:{0x7D00,0x7FFF,0x8000,0x8300,0xFFFF}) {
+        m.receive(data(0x18,{uint8_t(word>>8),uint8_t(word)},15),130);
+        EXPECT_FALSE(m.value(BoilerField::ionisationCurrent,130));
+    }
+    EXPECT_FALSE(m.value(BoilerField::storageTemp1,30110));
+}
+TEST(ClassicExpanded, SlowTemperaturesPumpAndCountersRemainDistinct) {
+    ClassicBoilerMonitor m;
+    m.receive(data(0x19,{0x02,0x58,0x07,0xA0},2),10);
+    m.receive(data(0x19,{100},9),10);
+    m.receive(data(0x19,{0,1,2},16),10);
+    m.receive(data(0x19,{0x01,0x90},25),10);
+    EXPECT_EQ(m.value(BoilerField::boilerTemp,10),6000);
+    EXPECT_EQ(m.value(BoilerField::exhaustTemp,10),19520);
+    EXPECT_EQ(m.value(BoilerField::switchTemp,10),4000);
+    EXPECT_EQ(m.value(BoilerField::pumpModulation,10),100);
+    EXPECT_FALSE(m.value(BoilerField::secondBurnerMinutes,10));
+    EXPECT_EQ(m.value(BoilerField::secondBurnerMinutes,10,true),258);
+    m.receive(data(0x19,{101},9),20);
+    EXPECT_FALSE(m.value(BoilerField::pumpModulation,20));
+}
+TEST(ClassicExpanded, SignedParametersAndDhwComfortAreWireValues) {
+    ClassicBoilerMonitor m;
+    m.receive(data(0x16,{0xFF,0xFA,15,0,3,100,20,2,8,0xF8},4),10);
+    m.receive(data(0x16,{40},23),10);
+    EXPECT_EQ(m.value(BoilerField::hysteresisOff,10),-1);
+    EXPECT_EQ(m.value(BoilerField::hysteresisOn,10),-6);
+    EXPECT_EQ(m.value(BoilerField::minimumBurnerPeriod,10),15);
+    EXPECT_EQ(m.value(BoilerField::secondaryHysteresisOn,10),-8);
+    EXPECT_EQ(m.value(BoilerField::pumpStartTemp,10),4000);
+    m.receive(data(0x16,{0x7F},4),20);
+    EXPECT_FALSE(m.value(BoilerField::hysteresisOff,20));
+    m.receive(data(0x33,{0xFB,0xFF,40,0xFF,2,70,0xD8,0xFF},3),30);
+    EXPECT_EQ(m.value(BoilerField::dhwHysteresisOn,30),-5);
+    EXPECT_EQ(m.value(BoilerField::dhwChargeOptimisation,30),1);
+    EXPECT_EQ(m.value(BoilerField::dhwCirculationEnabled,30),1);
+    EXPECT_EQ(m.value(BoilerField::dhwComfortMode,30),0xD8);
+    EXPECT_EQ(m.value(BoilerField::dhwChargeType,30),1); // FF is valid bit, not missing
+    m.receive(data(0x33,{0xEC},9),40);
+    EXPECT_EQ(m.value(BoilerField::dhwComfortMode,40),0xEC);
+    m.receive(data(0x33,{7},9),50);
+    EXPECT_FALSE(m.value(BoilerField::dhwComfortMode,50));
+}
+TEST(ClassicExpanded, DhwExtraSensorsAndRawStatusNeverBecomeControlEvidence) {
+    ClassicBoilerMonitor m;
+    m.receive(data(0x34,{0x01,0xF4,0x7E},3),10);
+    m.receive(data(0x34,{3},8),10);
+    m.receive(data(0x34,{0x02,0x58},17),10);
+    EXPECT_EQ(m.value(BoilerField::dhwTemp2,10),5000);
+    EXPECT_EQ(m.value(BoilerField::dhwSolarTemp,10),6000);
+    EXPECT_EQ(m.value(BoilerField::dhwType,10),3);
+    for(auto f:{BoilerField::rawDhwOneTime,BoilerField::rawDhwDisinfection,BoilerField::rawDhwCharging,
+                BoilerField::rawDhwRecharging,BoilerField::rawDhwTempOk,BoilerField::rawDhwActive}) {
+        EXPECT_FALSE(m.value(f,10)); EXPECT_EQ(m.value(f,10,true),1);
+    }
+}
+TEST(ClassicExpanded, All69FieldsSerializeAndCatalogDoesNotRefreshMeasurements) {
+    ClassicBoilerMonitor m;
+    for(auto type:{0x18,0x19,0x16,0x33,0x34}) m.receive(data(type,std::vector<uint8_t>(27,0)),100);
+    for(size_t i=0;i<boilerFieldSpecs.size();++i) EXPECT_TRUE(m.sample(static_cast<BoilerField>(i)).observed)<<i;
+    m.receive(data(0x777,{1,2},3),30100); // catalog only; old report remains stale
+    std::ostringstream ss; m.writeJSON(ss,30101);
+    auto j=std::unique_ptr<cJSON,decltype(&cJSON_Delete)>(cJSON_Parse(ss.str().c_str()),cJSON_Delete);
+    ASSERT_TRUE(j); auto fields=cJSON_GetObjectItem(j.get(),"fields");
+    EXPECT_EQ(cJSON_GetArraySize(fields),69);
+    auto inventory=cJSON_GetObjectItem(j.get(),"telegram_inventory");
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(inventory,"types")),6);
+    auto reception=cJSON_GetObjectItem(j.get(),"reception");
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(reception,"report_count")),5);
+    EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItem(reception,"fresh_report")));
+    EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItem(reception,"control_approved")));
+    EXPECT_LT(ss.str().size(),18000u);
+}
+TEST(ClassicExpanded, CatalogIsBoundedAndFiltersForeignAndReadTraffic) {
+    ClassicBoilerMonitor m;
+    for(uint16_t i=0;i<26;++i) m.receive(data(0x500+i,{1}),100);
+    m.receive(data(0x500,{1,2},4),200); // existing slot still updates after overflow
+    m.receive(data(0x500,{1},0,0x19),300);
+    m.receive(data(0x500,{}),300);
+    m.receive(EmsTelegram(EmsTelegram::READ,8,0x0B,0,0x500,{1}),300);
+    m.receive(EmsTelegram(EmsTelegram::READ_WITH_DATA,8,0x0B,0,0x500,{1}),300);
+    std::ostringstream ss; m.writeJSON(ss,201);
+    auto j=std::unique_ptr<cJSON,decltype(&cJSON_Delete)>(cJSON_Parse(ss.str().c_str()),cJSON_Delete);
+    ASSERT_TRUE(j);auto inv=cJSON_GetObjectItem(j.get(),"telegram_inventory");
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(inv,"untracked_frames")),2);
+    auto types=cJSON_GetObjectItem(inv,"types"); EXPECT_EQ(cJSON_GetArraySize(types),24);
+    auto first=cJSON_GetArrayItem(types,0);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(first,"frames")),2);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(first,"last_offset")),4);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(first,"decoder")),"unmapped");
+    EXPECT_STREQ(m.capabilities().name(),"unknown");
+}
+
+}
+
+TEST(EmsEncoding, VectorPayloadLengthNeverWrapsAtOneByteBoundary) {
+    EmsTelegram telegram(EmsTelegram::WRITE, 0x0B, 8, 0, 0x1A, std::vector<uint8_t>(256, 42));
+    EXPECT_EQ(telegram.dataSize(), 256u);
+    EXPECT_TRUE(telegram.encodeToRawDataWithCRC().empty());
+}
+TEST(EmsEncoding, RejectsFramesLargerThanTheReceiveProtocolLimit) {
+    for (const auto type : {0x1A, 0x2E0}) {
+        const size_t maximum = type == 0x1A ? 27 : 25;
+        EmsTelegram valid(EmsTelegram::WRITE, 0x0B, 8, 0, type, std::vector<uint8_t>(maximum, 42));
+        const auto bytes = valid.encodeToRawDataWithCRC();
+        ASSERT_EQ(bytes.size(), 32u);
+        EXPECT_NO_THROW(EmsTelegram::fromRawData(bytes.data(), bytes.size()));
+        EmsTelegram oversized(EmsTelegram::WRITE, 0x0B, 8, 0, type, std::vector<uint8_t>(maximum + 1, 42));
+        EXPECT_TRUE(oversized.encodeToRawDataWithCRC().empty());
+    }
+}
+TEST(EmsEncoding, ReadRequestCannotSilentlyDiscardAdditionalPayload) {
+    EmsTelegram telegram(EmsTelegram::READ, 0x0B, 8, 0, 0x18, {27, 42});
+    EXPECT_TRUE(telegram.encodeToRawDataWithCRC().empty());
+}
+
+
+TEST(ClassicBoiler, DelayedReportCannotOverwriteNewerValueOrItsOriginalAge) {
+    ClassicBoilerMonitor m;
+    m.receive(data(0x18,{45,1,0x72,80,30,9}),200);
+    m.receive(data(0x18,{20,1,0x00,40,0,0}),100);
+    EXPECT_EQ(m.value(BoilerField::selectedFlow,201),4500);
+    EXPECT_EQ(m.value(BoilerField::modulation,201),30);
+    EXPECT_EQ(m.value(BoilerField::heatingActive,201),1);
+    EXPECT_EQ(m.sample(BoilerField::modulation).observedMs,200u);
+}
+TEST(ClassicBoiler, DelayedPartialStillAddsMissingFieldsWithoutChangingNewerFields) {
+    ClassicBoilerMonitor m;
+    m.receive(data(0x18,{25},4),200);
+    m.receive(data(0x18,{40,1,0x72,80,0,0}),100);
+    EXPECT_EQ(m.value(BoilerField::modulation,201),25);
+    EXPECT_EQ(m.sample(BoilerField::modulation).observedMs,200u);
+    EXPECT_EQ(m.value(BoilerField::flow,201),3700);
+    EXPECT_EQ(m.sample(BoilerField::flow).observedMs,100u);
+    EXPECT_EQ(m.value(BoilerField::heatingActive,201),0);
+}
+TEST(ClassicBoiler, SameTimeConflictingFieldStaysInvalidUntilStrictlyNewReport) {
+    ClassicBoilerMonitor m;
+    m.receive(data(0x18,{30},4),200);
+    m.receive(data(0x18,{0},4),200);
+    EXPECT_FALSE(m.value(BoilerField::modulation,201));
+    m.receive(data(0x18,{30},4),200);
+    EXPECT_FALSE(m.value(BoilerField::modulation,201));
+    m.receive(data(0x18,{0},4),201);
+    EXPECT_EQ(m.value(BoilerField::modulation,201),0);
+}
+TEST(ClassicBoiler, SameTimeInvalidSentinelCannotBeRepairedFromConflictingCache) {
+    ClassicBoilerMonitor m;
+    m.receive(data(0x18,{255},4),200);
+    m.receive(data(0x18,{0},4),200);
+    EXPECT_FALSE(m.value(BoilerField::modulation,201));
+    m.receive(data(0x18,{0},4),201);
+    EXPECT_EQ(m.value(BoilerField::modulation,201),0);
+}
+TEST(ClassicReception, LateFrameCountsButCannotMoveLatestReceptionBackwards) {
+    ClassicBoilerMonitor m;
+    m.receive(data(0x18,{40}),200);
+    m.receive(data(0x18,{0},4),100);
+    std::ostringstream out;m.writeReceptionJSON(out,250);
+    auto json=std::unique_ptr<cJSON,decltype(&cJSON_Delete)>(cJSON_Parse(out.str().c_str()),cJSON_Delete);
+    ASSERT_TRUE(json);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(json.get(),"report_count")),2);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(json.get(),"last_report_age_ms")),50);
+    std::ostringstream full;m.writeJSON(full,250);
+    auto all=std::unique_ptr<cJSON,decltype(&cJSON_Delete)>(cJSON_Parse(full.str().c_str()),cJSON_Delete);
+    ASSERT_TRUE(all);
+    auto inventory=cJSON_GetObjectItem(all.get(),"telegram_inventory");
+    ASSERT_TRUE(inventory);
+    auto first=cJSON_GetArrayItem(cJSON_GetObjectItem(inventory,"types"),0);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(first,"frames")),2);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(first,"age_ms")),50);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(first,"last_offset")),0);
 }

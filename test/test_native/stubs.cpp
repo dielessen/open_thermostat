@@ -6,31 +6,8 @@ namespace heating {
 std::shared_ptr<ib::logger::LoggerInterface> logger;
 }
 
-// RoomConfig method implementations (avoiding Arduino-dependent src/RoomConfig.cpp)
-#include "RoomConfig.h"
-
-namespace heating {
-bool RoomConfig::TemperatureSetting::doesFit(uint16_t time, uint8_t dayOfTheWeek) const {
-	if (time >= 2400)
-		return false;
-	if (!days_[dayOfTheWeek])
-		return false;
-	if (timeFrom_ <= timeTo_) {
-		return time >= timeFrom_ && time <= timeTo_;
-	} else {
-		return (time >= timeFrom_) || (time <= timeTo_);
-	}
-}
-bool RoomConfig::TemperatureSetting::isEnabled() const {
-	return enabled_;
-}
-int16_t RoomConfig::TemperatureSetting::getTemperature() const {
-	return temperature_;
-}
-std::optional<uint8_t> RoomConfig::TemperatureSetting::getHeatingTemperatureOverride() const {
-	return heatingTemperatureOverride_;
-}
-} // namespace heating
+// Compile the actual production scheduling helpers; only SDK boundaries are stubbed.
+#include "../../src/RoomConfig.cpp"
 
 int main(int argc, char **argv) {
 	::testing::InitGoogleTest(&argc, argv);

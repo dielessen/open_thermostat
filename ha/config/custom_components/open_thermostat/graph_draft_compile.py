@@ -5,6 +5,8 @@ Only the existing source-selected worker calls this compiler before journal stag
 """
 from __future__ import annotations
 
+from .product import heating_entries
+
 from dataclasses import dataclass
 import json
 
@@ -68,7 +70,7 @@ def _saved(entry,source=None,hass=None):
            "schedule","minimum_target_centi_c","maximum_target_centi_c","week_program","binding_mode","actuator_profile"}
     require(all(not (set(data)-known) for data in room_data),"unsupported_room_feature")
     rooms=[RoomBinding.from_dict(data) for data in room_data]
-    heating=[dict(s.data)["draft"] for s in entry.subentries.values() if s.subentry_type=="heating"]
+    heating=[dict(s.data)["draft"] for s in heating_entries(entry)]
     require(len(rooms)==1 and len(heating)==1 and rooms[0].binding_mode==ROOM_GRAPH_DRAFT
             and rooms[0].comfort is None and rooms[0].setpoint is None,"unsupported_topology")
     return rooms[0],heating[0]

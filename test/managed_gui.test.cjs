@@ -13,14 +13,15 @@ function page(){
   createTextNode:x=>x,
   head:{appendChild:x=>scripts.push(x)}
  };
- const jq=selector=>({on(){},ready(){},css(){},load(name){loads.push(name);main.innerHTML='PAGE:'+name;},
+ const jq=selector=>({on(){},ready(){},css(){},html(value){main.innerHTML=value;loads.push(value.replace(/^PAGE:/,''));return this;},
   val(...args){if(args.length){values[selector]=args[0];return this;}return values[selector]??'';},
   prop(key,...args){if(args.length){checks[selector+key]=args[0];return this;}return checks[selector+key]??false;},
   attr(){return this;},each(){},addClass(){},removeClass(){}});
- const context={document,$:jq,console,clearInterval(){},setInterval(){},URL,Promise,
+ jq.ajax=({url})=>{const request=Promise.resolve('PAGE:'+url);request.abort=()=>{};return request;};
+ const context={document,$:jq,console,clearInterval(){},setInterval(){},setTimeout,clearTimeout,AbortController,URL,Promise,
   fetch:async(input,init={})=>{calls.push({input,init});return new Response('{}',{status:201});},
   alert:x=>alerts.push(x),confirm:()=>false,window:{addEventListener(){},location:{hash:''}}};
- vm.createContext(context);
+ Object.assign(context,require('./helpers/ui-language.cjs')('en'));vm.createContext(context);
  function run(name){
   const html=fs.readFileSync(path.join(__dirname,'../data/html',name),'utf8');
   for(const script of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))

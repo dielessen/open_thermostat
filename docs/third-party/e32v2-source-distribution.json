@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "environment": "e32v2",
+  "tag": "sources-e32v2-20261023.2",
+  "asset": "openthermostat-e32v2-source-inputs-20261023.1.zip",
+  "bytes": 204384360,
+  "sha256": "4ffa03e6704c440763ef09a27234cd6c2a4f809fb62bece3a2a3190c8b71166c",
+  "scope": "Vendor source inputs and original notices only; no firmware or physical acceptance",
+  "firmware_release_approved": false
+}

@@ -136,7 +136,7 @@ private:
 	std::string query_;
 	unsigned long lastFetch_;
 	Outdoor outdoor_;
-	control::TemperatureSample temperatureSample_;
+	control::WeatherObservation temperatureSample_;
 	String payload_;
 	mutable std::mutex mutex_;
 	bool getDataInProgress_ = false;

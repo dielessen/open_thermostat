@@ -6,9 +6,14 @@
 #include <string_view>
 namespace heating::update {
 inline constexpr char repository[]="https://github.com/dielessen/open_thermostat";
-inline constexpr char releaseApi[]="https://api.github.com/repos/dielessen/open_thermostat/releases?per_page=2";
+inline constexpr char releaseApi[]="https://api.github.com/repos/dielessen/open_thermostat/releases";
+inline constexpr unsigned maxReleasePages=12;
+inline std::string releasePageUrl(unsigned page) {
+    return page>=1&&page<=maxReleasePages?std::string(releaseApi)+"?per_page=1&page="+std::to_string(page):"";
+}
 inline constexpr uint32_t maxImageBytes=3670016;
 inline bool mutationBlocked(std::string_view path,bool working,bool staged,bool pending) {
+    if(path=="/boiler/test/read_configuration"||path=="/boiler/test/prepare_zero"||path=="/boiler/test/prepare"||path=="/boiler/test/start"||path=="/boiler/test/keepalive") return working||staged||pending;
     if(path=="/ota"||path=="/otafs")return working||staged||pending;
     if(path=="/config/reboot"||path=="/setup/reenter")return working;
     return false;

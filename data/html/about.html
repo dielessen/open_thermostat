@@ -1,32 +1,82 @@
+<style>
+	.ot-about { max-width: 900px; margin: 28px auto; color: #173b40; }
+	.ot-about h1 { font-size: 2rem; font-weight: 700; }
+	.ot-about h2 { font-size: 1.2rem; font-weight: 650; }
+	.ot-about h3 { font-size: 1rem; font-weight: 650; }
+	.ot-about-eyebrow { color: #526a70; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; }
+	.ot-about-lead { font-size: 1.1rem; }
+	.ot-about-badge { display: inline-block; padding: 6px 12px; border-radius: 18px; background: #eff7f5; color: #08665b; font-size: .85rem; }
+	.ot-about-panel { padding: 24px; margin-top: 24px; border: 1px solid #d2dfe1; border-radius: 14px; background: #fff; }
+	.ot-about-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+	.ot-about summary { cursor: pointer; font-weight: 600; }
+	.ot-about details[open] > summary { margin-bottom: 20px; }
+	.ot-about summary:focus-visible { outline: 3px solid #097c70; outline-offset: 4px; }
+	.ot-about-libraries { list-style: none; padding: 0; }
+	.ot-about-libraries li { padding: 12px 0; border-bottom: 1px solid #e9f0f0; }
+	.ot-about-libraries small { display: block; color: #526a70; }
+	@media (max-width: 560px) {
+		.ot-about { margin: 20px auto; }
+		.ot-about h1 { font-size: 1.65rem; }
+		.ot-about-panel { padding: 18px; }
+	}
+</style>
 
+<section class="ot-about" aria-labelledby="about-heading">
+	<header>
+		<p class="ot-about-eyebrow"><span data-i18n="About this project">About this project</span></p>
+		<h1 id="about-heading">OpenThermostat</h1>
+		<p class="ot-about-lead"><span data-i18n="Independent E32 V2 firmware &amp; Home Assistant integration.">Independent E32 V2 firmware &amp; Home Assistant integration.</span></p>
+		<span class="ot-about-badge"><span data-i18n="In development &amp; testing">In development &amp; testing</span></span>
+	</header>
 
-<div class="col-md-auto">
+	<article class="ot-about-panel" aria-labelledby="about-development">
+		<h2 id="about-development"><span data-i18n="Developed by Mark Dielessen">Developed by Mark Dielessen</span></h2>
+		<p>
+			<span data-i18n="OpenThermostat is being independently developed into a local heating system, with Home Assistant for room configuration and connected devices, and the E32 V2 as the control core.">OpenThermostat is being independently developed into a local heating system, with Home Assistant for room configuration and connected devices, and the E32 V2 as the control core.</span>
+		</p>
+		<p>
+			<span data-i18n="The control architecture, Home Assistant integration, room settings, weekly planner and user interface are being extensively developed and reworked for this project. Development, maintenance and releases are managed independently.">The control architecture, Home Assistant integration, room settings, weekly planner and user interface are being extensively developed and reworked for this project. Development, maintenance and releases are managed independently.</span>
+		</p>
+		<nav class="ot-about-links" aria-label="Project links" data-i18n-aria-label="Project links">
+			<a class="btn btn-outline-dark" href="https://github.com/dielessen/open_thermostat" target="_blank" rel="noopener noreferrer"><span data-i18n="Source code">Source code</span></a>
+			<a class="btn btn-outline-dark" href="https://github.com/dielessen/open_thermostat/releases" target="_blank" rel="noopener noreferrer"><span data-i18n="Releases">Releases</span></a>
+		</nav>
+	</article>
 
-<div class="row mb-3 mt-3">
-	<div class="card w-100">
-		<div class="card-header d-flex justify-content-between align-items-center">
-			<span class="align-middle">About IntuiBase Heating Controller</span>
-		</div>
-		<div class="card-body">
-			<span class="mt-2"></span>
-			<p>
-			IntuiBase Heating Controller<br>
-			Copyright 2023 Paweł Filipczak<br>
-			<a href="mailto:info@intuibase.pl">info@intuibase.pl</a>
-			</p>
-			<hr>
-
-			Components and libraries used:<br>
-			<a href="https://getbootstrap.com/">Bootstrap</a><br>
-			Copyright 2011-2020 The Bootstrap Authors (<a href="https://github.com/twbs/bootstrap/graphs/contributors">https://github.com/twbs/bootstrap/graphs/contributors</a>)<br>
-			<a href="https://jquery.com/">jQuery</a><br>Copyright JS Foundation and other contributors<br>
-			<a href="https://github.com/davidstutz/bootstrap-multiselect">Bootstrap Multiselect</a><br>
-			Copyright (c) 2012 - 2021 David Stutz All rights reserved.<br>
-			<a href="https://www.chartjs.org/">Chart.js</a><br>
-			Copyright (c) 2014-2022 Chart.js Contributors.<br>
-			</span>
-		</div>
-	</div>
-</div>
-
-</div>
+	<details class="ot-about-panel">
+		<summary><span data-i18n="Project origins &amp; acknowledgements">Project origins &amp; acknowledgements</span></summary>
+		<p>
+			<span data-i18n="This project started from">This project started from</span>
+			<a href="https://github.com/intuibase/open_thermostat" target="_blank" rel="noopener noreferrer">OpenThermostat / IntuiBase Heating Controller</a>
+			<span data-i18n="by Paweł Filipczak / intuibase. The current project is an independent continuation, with its own architecture and product direction.">by Paweł Filipczak / intuibase. The current project is an independent continuation, with its own architecture and product direction.</span>
+		</p>
+		<p>
+			Original project: Copyright 2023 Paweł Filipczak &middot;
+			<a href="mailto:info@intuibase.pl">info@intuibase.pl</a><br>
+			<span data-i18n="The original copyright and">The original copyright and</span>
+			<a href="https://github.com/dielessen/open_thermostat/blob/main/LICENSE" target="_blank" rel="noopener noreferrer"><span data-i18n="MIT license">MIT license</span></a>
+			<span data-i18n="are retained. Reused components keep their own licenses and notices.">are retained. Reused components keep their own licenses and notices.</span>
+		</p>
+		<h3><span data-i18n="Interface libraries">Interface libraries</span></h3>
+		<ul class="ot-about-libraries">
+			<li>
+				<a href="https://getbootstrap.com/" target="_blank" rel="noopener noreferrer">Bootstrap 4.5.2</a>
+				<small>Copyright 2011-2020 The Bootstrap Authors &middot;
+					<a href="https://github.com/twbs/bootstrap/graphs/contributors" target="_blank" rel="noopener noreferrer"><span data-i18n="Contributors">Contributors</span></a></small>
+			</li>
+			<li>
+				<a href="https://jquery.com/" target="_blank" rel="noopener noreferrer">jQuery 3.5.1</a>
+				<small>Copyright JS Foundation and other contributors</small>
+			</li>
+			<li>
+				<a href="https://github.com/davidstutz/bootstrap-multiselect" target="_blank" rel="noopener noreferrer">Bootstrap Multiselect 0.9.16</a>
+				<small>Copyright (c) 2012 - 2021 David Stutz All rights reserved.</small>
+			</li>
+			<li>
+				<a href="https://www.chartjs.org/" target="_blank" rel="noopener noreferrer">Chart.js 4.4.0</a>
+				<small>Copyright (c) 2014-2022 Chart.js Contributors.</small>
+			</li>
+		</ul>
+		<p class="mb-0"><span data-i18n="Additional firmware and SDK notices are included in the matching release package.">Additional firmware and SDK notices are included in the matching release package.</span></p>
+	</details>
+</section>

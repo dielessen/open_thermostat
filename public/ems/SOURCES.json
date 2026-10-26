@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "purpose": "Reference metadata; not decoder or write authorization",
+  "review_date": "2026-10-25",
+  "sources": {
+    "entities.csv": {
+      "url": "https://emsesp.org/assets/files/dump_entities-a471895329a155e1fc6bed22cba0f584.csv",
+      "sha256": "a47e67286fee1c73f93d35fa6103d69fe06c1ce9255a3ee47963f049d9ef1c74"
+    },
+    "telegrams.csv": {
+      "url": "https://emsesp.org/assets/files/dump_telegrams-d977167a8e04f4136e213351821a64cf.csv",
+      "sha256": "238144eaad72efddaebe1277dac8cdddd50f247dd3fcd13967dc8ecf0b7dcb2b"
+    },
+    "devices.json": {
+      "url": "https://github.com/emsesp/EMS-ESP32/blob/8f7049b47a1641cc22c91c63cfb27c1278b282ed/src/core/device_library.h",
+      "sha256": "46eec53da036bfce44213471988a77949d5b1f19518bd18f0f53e7671555af09"
+    },
+    "telegram-metadata.json": {
+      "url": "https://raw.githubusercontent.com/emsesp/docs/227c21a942211724f0c481d295fd7f22f976422b/static/data/telegram_metadata.json",
+      "sha256": "0fc24e03c261ee9c2306151ea47604960745bde28842e9608a3e5e1aef2cb0e1"
+    },
+    "library.csv": {
+      "url": "https://raw.githubusercontent.com/emsesp/docs/227c21a942211724f0c481d295fd7f22f976422b/static/data/telegrams.csv",
+      "sha256": "037813f4427f9b9a458264e5e8fc205fa41c1ce4ec5d9358c587322e67b0dcc8"
+    }
+  }
+}

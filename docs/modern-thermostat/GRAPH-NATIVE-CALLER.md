@@ -1,3 +1,5 @@
+> **Ontwerp-/bewijsnotitie.** De enige actuele software-, installatie- en releasevoortgang staat in [WORKBOARD](WORKBOARD.nl.md). Gedateerde versies en toenmalige open punten hieronder blijven historisch; technische acceptatievoorwaarden blijven gelden.
+
 # Native reviewed graph -> SOURCE controller caller
 
 This source-only increment completes the initial, explicitly SOURCE-selected

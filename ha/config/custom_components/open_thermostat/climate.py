@@ -19,6 +19,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .room_identity import room_device_name, room_key
+from .room_values import room_value
 from .const import CONF_TOPIC_PREFIX, DOMAIN
 from .program import room_program_name
 
@@ -182,6 +183,9 @@ class OpenThermostatRoom(ClimateEntity):
             return
         if not self.available or self._room_name is None:
             raise HomeAssistantError("Thermostat room is unavailable")
+        valid_target = room_value("tempSet", temperature * 100) if type(temperature) in (int, float) else None
+        if valid_target is None or not self.min_temp <= valid_target <= self.max_temp:
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="invalid_room_temperature")
         minutes = self._durations.get(self._key, 120)
         try:
             accepted = await self._send_temperature(
@@ -216,24 +220,15 @@ class OpenThermostatRoom(ClimateEntity):
                 model="OpenThermostat room",
                 via_device_id=self._hub_id,
             )
-        temperature = data.get("currentTemp")
-        self._attr_current_temperature = (
-            temperature / 100 if isinstance(temperature, (int, float)) else None
-        )
-        humidity = data.get("currentHumidity")
-        self._attr_current_humidity = (
-            humidity / 100 if isinstance(humidity, (int, float)) else None
-        )
-        battery = data.get("batteryLevel")
-        set_temperature = data.get("tempSet")
+        self._attr_current_temperature = room_value("currentTemp", data.get("currentTemp"))
+        self._attr_current_humidity = room_value("currentHumidity", data.get("currentHumidity"))
+        battery = room_value("batteryLevel", data.get("batteryLevel"))
+        reported_target = room_value("tempSet", data.get("tempSet"))
         attributes = {}
-        if isinstance(battery, (int, float)) and 0 <= battery <= 100:
+        if battery is not None:
             attributes["battery_level"] = battery
-        if isinstance(set_temperature, (int, float)):
-            attributes["temperature_set"] = set_temperature / 100
-        reported_target = (
-            set_temperature / 100 if isinstance(set_temperature, (int, float)) else None
-        )
+        if reported_target is not None:
+            attributes["temperature_set"] = reported_target
         if self._confirmed_target is not None and (
             reported_target == self._confirmed_target or time.monotonic() > self._confirmed_until
         ):

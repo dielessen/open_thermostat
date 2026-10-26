@@ -1,3 +1,5 @@
+> **Ontwerp-/bewijsnotitie.** De enige actuele software-, installatie- en releasevoortgang staat in [WORKBOARD](WORKBOARD.nl.md). Gedateerde versies en toenmalige open punten hieronder blijven historisch; technische acceptatievoorwaarden blijven gelden.
+
 # Wifi-herstelbuild — 20 oktober 2026
 
 Deze build vervangt het eerder verstuurde20oktoberpakket voor de wifi-proef.

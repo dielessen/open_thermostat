@@ -37,7 +37,18 @@ def reference(hass, selection: str) -> EntityReference:
         raise ValueError("loop_binding")
     return EntityReference(entity_id, registered.platform, registered.unique_id)
 
-def validate_room(hass, entry, user_input: dict, old_subentry=None) -> RoomBinding:
+def validate_room(hass, entry, user_input: dict, old_subentry=None, *, check_ownership=True) -> RoomBinding:
+    room = _room_candidate(hass, entry, user_input, old_subentry, check_ownership=check_ownership)
+    old_mode = old_subentry.data.get("binding_mode", ROOM_CLIMATE_TRV) if old_subentry else ROOM_CLIMATE_TRV
+    if room.binding_mode == ROOM_GRAPH_DRAFT or old_mode == ROOM_GRAPH_DRAFT:
+        from .v1_heating_graph import actual_runtime_active
+        if entry.options.get(CONF_ENABLED, False) or actual_runtime_active(hass, entry):
+            raise ValueError("graph_room_runtime_off_required")
+    return room
+
+
+def _room_candidate(hass, entry, user_input: dict, old_subentry=None, *, check_ownership=True) -> RoomBinding:
+    """Read-only prospective room validation; no save or runtime permission."""
     room_id = old_subentry.data["room_id"] if old_subentry else user_input["room_id"]
     sensor = reference(hass, user_input["temperature_entity"])
     actuators = tuple(reference(hass, x) for x in user_input.get("actuator_entities", []))
@@ -65,10 +76,6 @@ def validate_room(hass, entry, user_input: dict, old_subentry=None) -> RoomBindi
            and user_input.get("program_action", "save") != "remove_week" else {}),
     })
     old_mode = old_subentry.data.get("binding_mode", ROOM_CLIMATE_TRV) if old_subentry else ROOM_CLIMATE_TRV
-    if room.binding_mode == ROOM_GRAPH_DRAFT or old_mode == ROOM_GRAPH_DRAFT:
-        from .v1_heating_graph import actual_runtime_active
-        if entry.options.get(CONF_ENABLED, False) or actual_runtime_active(hass, entry):
-            raise ValueError("graph_room_runtime_off_required")
     if old_subentry and old_mode != room.binding_mode and user_input.get("confirm_binding_mode_change") is not True:
         raise ValueError("confirm_room_mode_change")
     sensor_state = hass.states.get(sensor.entity_id)
@@ -86,12 +93,45 @@ def validate_room(hass, entry, user_input: dict, old_subentry=None) -> RoomBindi
         if {x.identity() for x in room.actuators} & {x.identity() for x in other.actuators}:
             raise ValueError("duplicate_actuator")
     from .v1_heating_graph import validate_room_ownership
-    validate_room_ownership(hass, entry, room)
+    if check_ownership:
+        validate_room_ownership(hass, entry, room)
     return room
 
 class V1FlowMixin:
     async def async_step_user(self, user_input=None):
-        return self.async_show_menu(step_id="user", menu_options=["legacy", "shadow"])
+        return await self.async_step_installation(user_input)
+
+    async def async_step_installation(self, user_input=None):
+        from homeassistant.data_entry_flow import section
+        from .product import PRODUCT_CONFIG, PRODUCT_VERSION
+        if not hasattr(self, "_installation_adapter_id"):
+            self._installation_adapter_id = uuid.uuid4().hex
+        errors = {}
+        prefix = getattr(self, "_prefix", "ib-therm")
+        if user_input is not None:
+            name = user_input.get("name", "").strip()
+            prefix = user_input.get("advanced", {}).get(CONF_TOPIC_PREFIX, prefix)
+            if not name or len(name) > 80:
+                errors["name"] = "invalid_name"
+            elif not identifier(prefix):
+                errors["base"] = "invalid_topic"
+            else:
+                await self.async_set_unique_id(prefix)
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(title=name,
+                    data={CONF_TOPIC_PREFIX: prefix, CONF_MODE: MODE_SHADOW,
+                          "adapter_id": self._installation_adapter_id, PRODUCT_CONFIG: PRODUCT_VERSION},
+                    options={CONF_MODE: MODE_SHADOW, CONF_ENABLED: False,
+                             CONF_CREATE_DASHBOARD: user_input.get(CONF_CREATE_DASHBOARD, False)})
+        schema = vol.Schema({
+            vol.Required("name", default="OpenThermostat"): str,
+            vol.Optional(CONF_CREATE_DASHBOARD, default=False): bool,
+            vol.Optional("advanced"): section(vol.Schema({
+                vol.Required(CONF_TOPIC_PREFIX, default=prefix): str,
+            }), {"collapsed": True}),
+        })
+        return self.async_show_form(step_id="installation", data_schema=retained_input_schema(
+            self, schema, user_input), errors=errors)
 
     async def async_step_shadow(self, user_input=None):
         # Generated once per flow, not a shared owner identity or a redraw nonce.
@@ -124,7 +164,12 @@ class V1FlowMixin:
     @classmethod
     @callback
     def async_get_supported_subentry_types(cls, config_entry):
-        return {"zone": ZoneSubentryFlow, "heating": HeatingSubentryFlow} if integration_mode(config_entry) == MODE_SHADOW else {}
+        from .product import is_product
+        if is_product(config_entry) and integration_mode(config_entry) == MODE_SHADOW:
+            from .product_flow import ProductRoomFlow
+            return {"zone": ProductRoomFlow}
+        from .room_setup_flow import RadiatorRoomSetupFlow
+        return {"room_setup": RadiatorRoomSetupFlow, "zone": ZoneSubentryFlow, "heating": HeatingSubentryFlow} if integration_mode(config_entry) == MODE_SHADOW else {}
 
 class ShadowOptionsFlow(config_entries.OptionsFlow):
     # Native entry's existing update listener owns options/subentry reload.

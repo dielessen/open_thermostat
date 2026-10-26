@@ -50,5 +50,15 @@ public:
         // Never pretend old bytes are available before the new commit.
         return s.freeEntries>=2+blobEntries(configBytes)+entriesPerPage+modelEntries(future);
     }
+    static constexpr bool permitsBluetoothWrite(ControlPartitionStats s,size_t bytes,
+                                                 ControlModelReservation future={}) {
+        if(bytes<3||bytes>2048||!permitsGraphWrite(s,bytes,future))return false;
+        // Charge the NEW private blob and its namespace without reclaiming old
+        // bytes, then still leave the original control replacement + GC margin.
+        // Fresh statistics are necessary, not proof of contiguous free pages.
+        return s.freeEntries>=3+blobEntries(bytes)+blobEntries(configBytes)
+            +entriesPerPage+modelEntries(future);
+    }
+
 };
 }

@@ -14,6 +14,7 @@ let passed=0; const pass=name=>{passed++;console.log('PASS '+name);};
    await page.route('http://192.168.1.90/**',route=>route.fulfill({contentType:'text/html',body:'<h1>Simulated home-network device</h1>'}));
    await page.route('http://opth.test/**',async route=>{
     const req=route.request(),url=new URL(req.url()),body={contentType:'application/json'};
+    if(['/ui-language.js','/ui-messages.js'].includes(url.pathname))return route.fulfill({contentType:'text/javascript',body:fs.readFileSync(path.join(root,'data/html',url.pathname),'utf8')});
     if(url.pathname==='/setup.html')return route.fulfill({contentType:'text/html',body:fs.readFileSync(path.join(root,'data/html/setup.html'),'utf8')});
     if(url.pathname==='/setup.js')return route.fulfill({contentType:'text/javascript',body:fs.readFileSync(path.join(root,'data/html/setup.js'),'utf8')});
     if(url.pathname==='/setup/status'){
@@ -38,7 +39,8 @@ let passed=0; const pass=name=>{passed++;console.log('PASS '+name);};
     }
     return route.fulfill({status:404,body:'Not found'});
    });
-   await page.goto('http://opth.test/setup.html');
+   await page.context().addCookies([{name:'ot_ui_lang',value:'nl',url:'http://opth.test'}]);
+  await page.goto('http://opth.test/setup.html');
    await page.waitForFunction(()=>!document.getElementById('scan').disabled);
    return {page,sim,errors};
   }

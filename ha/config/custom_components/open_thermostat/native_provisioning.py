@@ -72,13 +72,26 @@ def source_selection(source):
 
 def propose_local_shadow_source(hass,entry,controller_id,*,legacy_readback=False,week_reviewed=False):
     """Explicit operator review proposal, NEVER physical/report qualification."""
-    from .native_plan import _native_layout,NativeInstallationPolicy
-    from .v1_model import EntityReference
-    from .graph_shadow_validation import digest,ident
+    from .native_plan import _native_layout
+    from .graph_shadow_validation import ident
     ident(controller_id)
     if type(legacy_readback) is not bool:raise ValueError("native_legacy_profile")
     if type(week_reviewed) is not bool or (week_reviewed and legacy_readback):raise ValueError("native_week_profile")
     rooms,draft,layout=_native_layout(hass,entry,allow_single=week_reviewed)
+    selected=source_from_selection(entry)
+    source=_source_for_layout(entry,controller_id,rooms,draft,layout,selected,
+        legacy_readback=legacy_readback,week_reviewed=week_reviewed)
+    source.validate_native(hass,entry)
+    if selected is not None and current_profile_only(selected)==source:source=selected
+    local_device_descriptor(source)
+    return source
+
+
+def _source_for_layout(entry,controller_id,rooms,draft,layout,selected,*,legacy_readback=False,week_reviewed=False):
+    """Immutable logical proposal only; caller must validate its actual layout."""
+    from .native_plan import NativeInstallationPolicy
+    from .v1_model import EntityReference
+    from .graph_shadow_validation import digest
     rows=[];bindings={}
     for room in rooms:
         actuator=next(a for a in layout["actuators"] if a["room_id"]==room.room_id)
@@ -102,7 +115,6 @@ def propose_local_shadow_source(hass,entry,controller_id,*,legacy_readback=False
             maximum_sensor_age_ms=min(room.maximum_age_ms,120000),report_evidence="physical_report",
             minimum_supply_centi_c=group["supply_limits"]["minimum_centi_c"],
             maximum_supply_centi_c=group["supply_limits"]["maximum_centi_c"]))
-    selected=source_from_selection(entry)
     revision=1
     if selected is not None:
         if selected.policy.controller_id!=controller_id:raise ValueError("native_source_device_changed")
@@ -114,9 +126,28 @@ def propose_local_shadow_source(hass,entry,controller_id,*,legacy_readback=False
     if week_reviewed:body.update(schema=3,kind="native_profile.week.v1")
     source=NativePlanSource(NativeInstallationPolicy(entry.unique_id,controller_id,body["adapter_id"],digest(body),
         legacy_readback_reviewed=legacy_readback,week_reviewed=week_reviewed),canonical(body),canonical(bindings))
-    source.validate_native(hass,entry)
-    if selected is not None and current_profile_only(selected)==source:source=selected
-    local_device_descriptor(source) # Bounds before this proposal reaches review.
+    source.validate()
+    return source
+
+
+def propose_room_source_change(hass,entry,previous,room,draft):
+    """Build one pending room/profile replacement without a forged HA entry."""
+    from .native_plan import _native_layout
+    from . import _selected_native_plan_source
+    if (type(previous) is not NativePlanSource or source_from_selection(entry)!=previous
+            or _selected_native_plan_source(entry)!=previous):
+        raise ValueError("native_source_owner_changed")
+    previous.validate_native(hass,entry)
+    if not previous.policy.week_reviewed:
+        raise ValueError("native_source_replacement_unsupported")
+    rooms,parsed,layout=_native_layout(hass,entry,allow_single=True,
+        room_replacement=room,draft_replacement=draft)
+    current=_source_for_layout(entry,previous.policy.controller_id,rooms,parsed,layout,previous,week_reviewed=True)
+    if current==current_profile_only(previous):
+        return previous
+    source=reviewed_profile_evolution(previous,current)
+    source.validate_prospective_native(hass,entry,room,draft)
+    local_device_descriptor(source)
     return source
 
 def reviewed_profile_evolution(previous,current):

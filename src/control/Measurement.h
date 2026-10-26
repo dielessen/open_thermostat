@@ -29,7 +29,7 @@ public:
     bool observe(double temperature, TemperatureUnit unit, SampleEvidence evidence,
                  uint64_t sourceAgeMs, uint64_t transportUpperBoundMs, uint64_t receivedMs,
                  const TemperatureProfile &profile, bool restored = false) {
-        raw_.reset(); receivedMs_ = receivedMs; ageAtReceiveMs_ = 0;
+        raw_.reset(); receivedMs_ = receivedMs; ageAtReceiveMs_ = 0; expired_ = false;
         ageKnown_ = sourceAgeMs <= UINT64_MAX - transportUpperBoundMs;
         if (ageKnown_) ageAtReceiveMs_ = sourceAgeMs + transportUpperBoundMs;
         maximumAgeMs_ = profile.maximumAgeMs; evidence_ = evidence;
@@ -56,14 +56,19 @@ public:
     void unavailable() { raw_.reset(); state_ = SampleState::unavailable; }
     SampleState state(uint64_t now) const {
         if (state_ != SampleState::valid) return state_;
-        if (now < receivedMs_ || now - receivedMs_ >= maximumAgeMs_ - ageAtReceiveMs_)
+        if (expired_ || now < receivedMs_ || now - receivedMs_ >= maximumAgeMs_ - ageAtReceiveMs_) {
+            // Expiry belongs to this observation, not to this particular read.
+            // An older diagnostic/control timestamp cannot revive old evidence.
+            expired_ = true;
             return SampleState::stale;
+        }
         return SampleState::valid;
     }
     std::optional<int16_t> value(uint64_t now) const {
         return state(now) == SampleState::valid ? raw_ : std::nullopt;
     }
     std::optional<uint64_t> age(uint64_t now) const {
+        (void)state(now); // Learning its expiry through diagnosis also retires it.
         if (!raw_ || !ageKnown_ || now < receivedMs_ || now - receivedMs_ > UINT64_MAX - ageAtReceiveMs_) return {};
         return ageAtReceiveMs_ + (now - receivedMs_);
     }
@@ -74,6 +79,7 @@ private:
     uint64_t receivedMs_ = 0, ageAtReceiveMs_ = 0;
     uint32_t maximumAgeMs_ = 0;
     bool ageKnown_ = false;
+    mutable bool expired_ = false; // Same serialized source owner as the sample.
     SampleEvidence evidence_ = SampleEvidence::unknown;
     SampleState state_ = SampleState::unknown;
 };

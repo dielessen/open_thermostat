@@ -18,10 +18,10 @@
             // Explicit compatibility with the unchanged generic (non-E32) webserver only.
             // E32 always registers this route and returns 401/503, never this 404.
             if (response.status === 404) return (state = {legacy: true});
-            if (response.status === 401) { signIn(); throw new Error('Sign in required'); }
-            if (!response.ok) throw new Error('Session check unavailable');
+            if (response.status === 401) { signIn(); throw new Error(uiText("Sign in required")); }
+            if (!response.ok) throw new Error(uiText("Session check unavailable"));
             const data = await response.json();
-            if (data.authenticated !== true || !/^[a-f0-9]{64}$/.test(data.csrf)) throw new Error('Invalid session response');
+            if (data.authenticated !== true || !/^[a-f0-9]{64}$/.test(data.csrf)) throw new Error(uiText("Invalid session response"));
             return (state = {legacy: false, csrf: data.csrf});
         })().finally(() => { pending = null; });
         return pending;
@@ -67,9 +67,9 @@
                 button.disabled = true;
                 try {
                     const response = await window.fetch('/auth/logout', {method: 'POST'});
-                    if (!response.ok) throw new Error('Sign out failed');
+                    if (!response.ok) throw new Error(uiText("Sign out failed"));
                     state = null; signIn();
-                } catch (error) { button.disabled = false; window.alert('Could not sign out. Check the connection and try again.'); }
+                } catch (error) { button.disabled = false; window.alert(uiText("Could not sign out. Check the connection and try again.")); }
             });
         } catch (error) { /* API calls surface the same bounded session error. */ }
     }

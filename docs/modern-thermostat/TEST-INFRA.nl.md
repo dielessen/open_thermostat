@@ -1,3 +1,5 @@
+> **Ontwerp-/bewijsnotitie.** De enige actuele software-, installatie- en releasevoortgang staat in [WORKBOARD](WORKBOARD.nl.md). Gedateerde versies en toenmalige open punten hieronder blijven historisch; technische acceptatievoorwaarden blijven gelden.
+
 # Afzonderlijke Home Assistant/MQTT-testomgeving
 
 Gebruik de officiële Home Assistant Container en Eclipse Mosquitto, met eigen

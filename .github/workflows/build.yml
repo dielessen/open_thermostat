@@ -1,15 +1,35 @@
 name: PlatformIO CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: ['**']
+    tags: ['v*', 'ha-v*']
+  pull_request:
 
 jobs:
   browser-regressions:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Validate mandatory E32 update acceptance policy
+        run: python3 scripts/verify_e32_update_gate.py
+      - name: Block successor E32 publication without accepted predecessor
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          E32_RELEASE_CANDIDATE: ${{ github.ref_name }}
+        run: python3 scripts/verify_e32_update_gate.py --candidate "$E32_RELEASE_CANDIDATE"
+      - name: Test E32 update acceptance gate
+        run: python3 -m unittest discover -s scripts -p test_verify_e32_update_gate.py -v
+      - name: Check prepared beta source and current plan coverage
+        run: python3 scripts/verify_beta_release_inventory.py
+      - name: Test release metadata and installed updater size compatibility
+        run: python3 -m unittest discover -s scripts -p test_organize_releases.py -v
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Test original Zigbee report producers (isolated APIs)
+        run: node --test test/zigbee2mqtt/*.test.cjs
       - name: Install pinned browser test dependency
         run: |
           npm install --no-save --package-lock=false playwright-core@1.63.0
@@ -20,9 +40,81 @@ jobs:
           node test/onboarding/network-browser.cjs
           node test/rooms/browser.cjs
           node test/updates/browser.cjs
-          node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs
+          node test/dashboard-browser.cjs
+          node test/boiler-display-browser.cjs
+          node test/ems-devices-browser.cjs
+          node test/bluetooth-browser.cjs
+          node test/navigation-browser.cjs
+          node test/system-log-browser.cjs
+          node test/ui-language-browser.cjs
+          node test/boiler-test-browser.cjs
+          node test/boiler-test-control-browser.cjs
+          node test/boiler-configuration-read-browser.cjs
+          node test/boiler-test-confirm-browser.cjs
+          node test/ha-device-metadata-browser.cjs
+          node test/ha-tv02-mode-browser.cjs
+          node test/ha-room-program-browser.cjs
+          node test/ha-planner-touch-browser.cjs
+          node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs test/ui-language.test.cjs
+
+  source-reproduction:
+    if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+            ~/.platformio/packages
+            ~/.platformio/platforms
+          key: ${{ runner.os }}-pio-e32v2-${{ hashFiles('platformio.ini', 'boards/**') }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install the pinned SDK and reproduction tools
+        run: |
+          pip install platformio==6.2.0 intelhex==2.3.0 cryptography==41.0.7
+          pio pkg install -e e32v2
+          python -B -m unittest discover -s scripts -p 'test_e32_source*.py' -v
+          python -B -m unittest discover -s scripts -p test_e32_symbols.py -v
+          python -B -m unittest discover -s scripts -p test_release_notices.py -v
+          python -B -m unittest discover -s scripts -p test_ca_snapshot.py -v
+      - name: Retrieve the pinned source-only distribution
+        run: |
+          python - <<'PYTHON'
+          import json,shutil,urllib.request
+          from pathlib import Path
+          spec=json.loads(Path('docs/third-party/e32v2-source-distribution.json').read_text())
+          assert Path(spec['asset']).name==spec['asset'] and spec['tag'].startswith('sources-e32v2-')
+          Path('out').mkdir(exist_ok=True)
+          url='https://github.com/dielessen/open_thermostat/releases/download/'+spec['tag']+'/'+spec['asset']
+          with urllib.request.urlopen(url,timeout=180) as response, Path('out/vendor-source-inputs.zip').open('wb') as target:
+              shutil.copyfileobj(response,target)
+          PYTHON
+          python scripts/e32_prepare_source_tree.py --archive out/vendor-source-inputs.zip --output out/e32-reproduction
+      - name: Reproduce every reviewed open SDK and runtime compilation unit
+        working-directory: out/e32-reproduction
+        run: |
+          python recompile-retained.py --all --report SDK-REPRODUCED.json
+          python recompile-assembly.py
+          python recompile-runtime.py --all --group runtime-reproduced --report RUNTIME-REPRODUCED.json
+          python recompile-startup.py
+      - name: Independently check actual original objects and corresponding source
+        run: python scripts/e32_verify_reproduction.py --prepared out/e32-reproduction --output out/source-reproduction.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: e32-source-reproduction
+          path: out/source-reproduction.json
+          if-no-files-found: error
 
   build:
+    # A HA-only tag carries no firmware assets. Its release is gated below by
+    # the native HA/packet suite and browser regressions; E32 tags keep all gates.
+    if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}
+    needs: source-reproduction
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -43,16 +135,58 @@ jobs:
           python-version: '3.11'
       - name: Install PlatformIO Core
         run: pip install platformio==6.2.0 intelhex==2.3.0
-      - name: Run native tests
+      - name: Install host-only BLE crypto test library
         if: matrix.environment == 'native'
         run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libmbedtls-dev
+      - name: Run native tests
+        if: matrix.environment == 'native'
+        env:
+          ASAN_OPTIONS: detect_leaks=1
+          UBSAN_OPTIONS: halt_on_error=1
+        run: |
           pio test -e native --verbose
+          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -Wvla -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/esp32_utilities/src -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_ems_readers.cpp test/test_native/test_ble_device_discovery.cpp src/EMS/EmsTelegram.cpp src/EMS/UBADeviceVersion.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-ems-readers-test
+          /tmp/open-thermostat-ems-readers-test
+          gcc -std=c11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -I.pio/libdeps/native/cJSON -c .pio/libdeps/native/cJSON/cJSON.c -o /tmp/open-thermostat-actuator-cjson.o
+          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -Itest/test_native/include -I.pio/libdeps/native/esp32_utilities/src -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_classic_boiler_test_encoder.cpp test/test_native/test_boiler_test_poll.cpp test/test_native/test_boiler_test_session.cpp test/test_native/test_boiler_test_service.cpp test/test_native/test_classic_echo_uart_write.cpp test/test_native/test_ems_poll.cpp test/test_native/test_ems_echo_rx_debt.cpp test/test_native/test_manual_classic_uart_write.cpp test/test_native/test_manual_bus_identity.cpp test/test_native/test_boiler_site_confirmation.cpp test/test_native/test_boiler_fault_closure.cpp test/test_native/test_classic_heat_trial_envelope.cpp test/test_native/test_classic_configuration_read.cpp test/test_native/test_manual_classic_transaction.cpp src/EMS/EmsTelegram.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-boiler-poll-test
+          /tmp/open-thermostat-boiler-poll-test
+          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Itest/echo_write/include -Isrc -I.pio/libdeps/native/googletest/googletest/include test/echo_write/adapter.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-echo-adapter-test
+          /tmp/open-thermostat-echo-adapter-test
+          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_actuator_intent.cpp test/test_native/test_actuator_dispatch.cpp test/test_native/test_actuator_channel.cpp test/test_native/test_actuator_channels.cpp test/test_native/test_deadline_write.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-actuator-test
+          /tmp/open-thermostat-actuator-test
+          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -DOPENTHERMOSTAT_E32V2 -Itest/deadline_write/include -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/deadline_write/adapter.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-deadline-socket-test
+          /tmp/open-thermostat-deadline-socket-test
+          g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_github_update.cpp test/test_native/test_update_checkpoint.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-update-checkpoint-test
+          /tmp/open-thermostat-update-checkpoint-test
+          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_shelly_ht_advertisement.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-shelly-ht-test
+          /tmp/open-thermostat-shelly-ht-test
+          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/googletest/googletest/include test/ble_crypto/mbedtls.cpp test/ble_crypto/mibeacon.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -Wl,--wrap=calloc -Wl,-Bstatic -lmbedcrypto -Wl,-Bdynamic -lpthread -o /tmp/open-thermostat-ble-crypto-test
+          /tmp/open-thermostat-ble-crypto-test
+          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_ble_device_settings.cpp test/test_native/test_managed_ble_observer.cpp test/test_native/test_mibeacon_monitor3.cpp test/test_native/test_shelly_trv.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-ble-owner-test
+          /tmp/open-thermostat-ble-owner-test
+          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -Itest/bluetooth_storage/include -Itest/onboarding/include test/bluetooth_storage/main.cpp test/bluetooth_storage/allocation.cpp -o /tmp/open-thermostat-ble-storage-test
+          /tmp/open-thermostat-ble-storage-test
+          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_web_auth.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-ble-auth-test
+          /tmp/open-thermostat-ble-auth-test
+          python test/manual_ota/run.py
           g++ -std=c++20 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Itest/onboarding/include -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/esp32_utilities/src test/onboarding/firmware.cpp .pio/libdeps/native/cJSON/cJSON.c -o /tmp/open-thermostat-onboarding-test
           /tmp/open-thermostat-onboarding-test
+          python3 scripts/generate_boiler_catalog.py --check
+          python3 scripts/generate_ems_reference.py --check
+          python3 -m unittest discover -s scripts -p test_generate_ems_reference.py -v
+          g++ -std=c++17 -Wall -Wextra -Werror -Isrc -Itest/boiler_display/include test/boiler_display/firmware.cpp -o /tmp/open-thermostat-boiler-display-test
+          /tmp/open-thermostat-boiler-display-test
+          g++ -std=c++17 -Wall -Wextra -include cstdint -I.pio/libdeps/native/esp32_utilities/src -c .pio/libdeps/native/esp32_utilities/src/logger/Logger.cpp -o /tmp/open-thermostat-vendor-logger.o
+          g++ -std=c++17 -Wall -Wextra -Werror -pthread -DOPENTHERMOSTAT_E32V2 -Isrc -Itest/logging_runtime/include -Itest/boiler_display/include -I.pio/libdeps/native/esp32_utilities/src -I.pio/libdeps/native/cJSON test/logging_runtime/main.cpp src/diagnostics/NativeLog.cpp /tmp/open-thermostat-vendor-logger.o .pio/libdeps/native/cJSON/cJSON.c -o /tmp/open-thermostat-logging-test
+          /tmp/open-thermostat-logging-test
           python -m unittest discover -s ha/tests -p 'test_*.py' -v
       - name: Build firmware
         if: matrix.environment != 'native'
         run: pio run -e ${{ matrix.environment }}
+      - name: Test actual OTA binary size guard
+        run: python scripts/test_esp32_size_link.py
       - name: Verify actual firmware image fits every OTA app slot
         if: matrix.environment != 'native'
         env:
@@ -81,11 +215,45 @@ jobs:
           pio run -e e32v2 -t buildfs
           python scripts/verify_e32v2.py
           python scripts/test_e32v2_verifier.py
+      - name: Preserve exact E32 panic symbols and embedded UI revision
+        if: matrix.environment == 'e32v2'
+        uses: actions/upload-artifact@v4
+        with:
+          name: e32v2-debug-symbols
+          path: |
+            .pio/build/e32v2/firmware.elf
+            .pio/build/e32v2/firmware.map
+            .pio/build/e32v2/embedded-web.json
+            .pio/build/e32v2/relink-command.json
+            .pio/build/e32v2/arduino-misc-compile-command.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Retrieve the independently verified current SDK reproduction receipt
+        if: matrix.environment == 'e32v2'
+        uses: actions/download-artifact@v4
+        with:
+          name: e32-source-reproduction
+          path: out/e32-source-proof
       - name: Package exact E32 release and independently verify payload
         if: matrix.environment == 'e32v2'
         run: |
           pio pkg install -e native
-          python scripts/package_e32v2_release.py --output out/e32v2 --release-output out/release
+          python - <<'PYTHON'
+          import json,shutil,urllib.request
+          from pathlib import Path
+          spec=json.loads(Path('docs/third-party/e32v2-source-distribution.json').read_text())
+          assert Path(spec['asset']).name==spec['asset'] and spec['tag'].startswith('sources-e32v2-')
+          Path('out').mkdir(exist_ok=True)
+          url='https://github.com/dielessen/open_thermostat/releases/download/'+spec['tag']+'/'+spec['asset']
+          with urllib.request.urlopen(url,timeout=180) as response, Path('out/vendor-source-inputs.zip').open('wb') as target:
+              shutil.copyfileobj(response,target)
+          PYTHON
+          git fetch --no-tags origin 7ddf3410666d814850275433d9dddd266e5d83ba
+          python -m unittest discover -s scripts -p test_alpha36_beta_path.py -v
+          python scripts/package_e32v2_release.py --output out/e32v2 --release-output out/release --source-inputs out/vendor-source-inputs.zip --sdk-reproduction out/e32-source-proof/source-reproduction.json
+          python scripts/e32_symbols.py --package out/e32v2
           g++ -std=c++20 -Isrc -I.pio/libdeps/native/cJSON test/updates/image_check.cpp .pio/libdeps/native/cJSON/cJSON.c -l:libcrypto.so.3 -o /tmp/ota-image-check
           /tmp/ota-image-check out/e32v2/e32v2-update.json out/e32v2/firmware.bin
       - name: Upload verified E32 V2 bench-test package
@@ -94,6 +262,7 @@ jobs:
         with:
           name: e32v2-bench-test
           path: out/e32v2/
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
       - name: Upload verified immutable E32 release assets
@@ -104,21 +273,70 @@ jobs:
           path: out/release/
           if-no-files-found: error
           retention-days: 30
-      - name: Preserve exact E32 panic symbols and embedded UI revision
-        if: matrix.environment == 'e32v2'
-        uses: actions/upload-artifact@v4
+
+  # Compile-only proof of code eliminated by the standard RX-only build.
+  # This isolated job never packages/uploads its non-release image.
+  manual-route-compile:
+    if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
-          name: e32v2-debug-symbols
           path: |
-            .pio/build/e32v2/firmware.elf
-            .pio/build/e32v2/firmware.map
-            .pio/build/e32v2/embedded-web.json
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 90
+            ~/.cache/pip
+            ~/.platformio/.cache
+            ~/.platformio/packages
+            ~/.platformio/platforms
+          key: ${{ runner.os }}-pio-e32v2-${{ hashFiles('platformio.ini', 'boards/**') }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned compiler tooling
+        run: pip install platformio==6.2.0 intelhex==2.3.0
+      - name: Enable only the isolated compile probe
+        run: |
+          python - <<'PYTHON'
+          from pathlib import Path
+          board = Path('src/Board.h')
+          original = board.read_text()
+          locked = 'constexpr bool emsManualTestTransmitAllowed = false;'
+          assert original.count(locked) == 2, 'Review changed board policy before adjusting probe'
+          assert 'constexpr bool emsTransmitAllowed = false;' in original
+          assert 'static constexpr bool manualHeatInstallationReviewed_ = false;' in Path('src/EmsController.h').read_text()
+          board.write_text(original.replace(locked, locked.replace('false', 'true'), 1))
+          PYTHON
+      - name: Compile actual ESP32 manual route and check UART owners
+        run: |
+          pio run -e e32v2
+          python - <<'PYTHON'
+          import os, subprocess
+          from pathlib import Path
+          build = Path('.pio/build/e32v2')
+          core = Path(os.environ.get('PLATFORMIO_CORE_DIR', Path.home() / '.platformio'))
+          nm = core / 'packages/toolchain-xtensa-esp32/bin/xtensa-esp32-elf-nm'
+          owners = []
+          objects = sorted((build / 'src').rglob('*.o'))
+          assert objects, 'No project objects to check'
+          for obj in objects:
+              symbols = {line.split()[-1] for line in subprocess.check_output([str(nm), '-u', str(obj)], text=True).splitlines() if line.split()}
+              assert not symbols.intersection({'uart_send_break', 'uart_tx_chars', 'uart_write_bytes_with_break'}), obj
+              if 'uart_write_bytes' in symbols:
+                  owners.append(obj.relative_to(build).as_posix())
+          assert owners == ['src/EmsController.cpp.o'], owners
+          print('PASS: actual ESP32 manual route compiles; UART write belongs only to controller; no release artifact')
+          PYTHON
+      - name: Discard compile-only firmware and restore locked source
+        if: always()
+        run: |
+          git restore -- src/Board.h
+          rm -f .pio/build/e32v2/firmware.bin .pio/build/e32v2/firmware.elf
+          git diff --exit-code -- src/Board.h
 
   home-assistant-native:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -134,6 +352,11 @@ jobs:
           g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_validation_runner.cpp out/graph-cjson.o -ldl -o out/graph-validation-runner
           g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_configuration_runner.cpp out/graph-cjson.o -ldl -o out/graph-configuration-runner
           g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_session_runner.cpp out/graph-cjson.o -ldl -o out/graph-session-runner
+          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -I.pio/libdeps/native/cJSON test/interop/actuator_intent_runner.cpp out/graph-cjson.o -o out/actuator-intent-runner
+          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -I.pio/libdeps/native/cJSON test/interop/actuator_dispatch_runner.cpp out/graph-cjson.o -o out/actuator-dispatch-runner
+          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -I.pio/libdeps/native/cJSON test/interop/actuator_channel_runner.cpp out/graph-cjson.o -o out/actuator-channel-runner
+          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/graph_control_projection_runner.cpp out/graph-cjson.o -ldl -o out/graph-control-projection-runner
+          g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/packed_schedule_runner.cpp out/graph-cjson.o -ldl -o out/packed-schedule-runner
           g++ -std=c++17 -O0 -g -Wall -Wextra -Werror -Isrc -Itest/test_native/include -I.pio/libdeps/native/cJSON test/interop/topology_review_runner.cpp out/graph-cjson.o -ldl -o out/topology-review-runner
           g++ -std=c++17 -O0 -Isrc -Itest/test_native/include -I.pio/libdeps/native/esp32_utilities/src -c src/EMS/EmsTelegram.cpp -o out/room-ems-parser.o
           g++ -std=c++17 -O0 -Wall -Wextra -Werror -Wno-dangling-else -pthread -Isrc -Itest/test_native/include -I.pio/libdeps/native/esp32_utilities/src test/interop/room_observation_runner.cpp out/room-ems-parser.o -o out/room-observation-peer
@@ -150,14 +373,44 @@ jobs:
           python -c 'import os,subprocess; port=subprocess.check_output(["docker","port","opth-mqtt-fixture","1883/tcp"],text=True).strip().rsplit(":",1)[1]; open(os.environ["GITHUB_ENV"],"a").write("OPENTHERMOSTAT_TEST_MQTT_PORT="+port+"\n")'
       - name: Test native HA lifecycle and actual firmware packet interop
         run: |
-          ROOM_METRICS_EVIDENCE_DIR=out python -m pytest ha/tests ha/tests_native -q --junitxml=out/ha-acceptance.xml
+          ROOM_METRICS_EVIDENCE_DIR=out python -m pytest ha/tests ha/tests_native -vv -o faulthandler_timeout=60 --junitxml=out/ha-acceptance.xml
+      - name: Verify retained Core 2026.10.2/2026.10.3 compatibility with actual native runtime
+        run: |
+          pip install --no-deps homeassistant==2026.10.2
+          python -m pytest ha/tests ha/tests_native -q -o faulthandler_timeout=60 --junitxml=out/ha-core-2026.10.2.xml
+          pip install --no-deps homeassistant==2026.10.3
+          python -m pytest ha/tests ha/tests_native -q -o faulthandler_timeout=60 --junitxml=out/ha-core-2026.10.3.xml
+          pip install --no-deps homeassistant==2026.10.4
+      - name: Verify and package exact HA-only candidate
+        run: |
+          python -B -m unittest discover -s scripts -p test_package_ha_release.py -v
+          python -B -m unittest discover -s scripts -p test_prepare_original_report_pins.py -v
+          python scripts/package_ha_release.py --output out/ha-release --native-results out/ha-acceptance.xml
+      - name: Preserve verified HA release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: home-assistant-release-assets
+          path: out/ha-release/
+          if-no-files-found: error
+      - name: Preserve actual native HA acceptance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: home-assistant-acceptance
+          path: |
+            out/ha-acceptance.xml
+            out/ha-core-2026.10.2.xml
+            out/ha-core-2026.10.3.xml
+            out/ha-core-2026.10.4.xml
+            out/climate-warmup-trace*.json
+          if-no-files-found: error
       - name: Remove temporary MQTT fixture
         if: always()
         run: docker stop opth-mqtt-fixture || true
 
   publish-test-release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: [build, browser-regressions, home-assistant-native]
+    needs: [build, source-reproduction, browser-regressions, home-assistant-native, manual-route-compile]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -190,4 +443,125 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$RELEASE_TAG" --verify-tag --prerelease --title "OpenThermostat E32 V2 $RELEASE_TAG" --notes-file docs/modern-thermostat/RELEASE-NOTES.md release-assets/*
+          python scripts/organize_releases.py --repository "$GITHUB_REPOSITORY" --publication-notes-for "$RELEASE_TAG" --output out/publication-notes.md
+          gh release create "$RELEASE_TAG" --verify-tag --prerelease --title "OpenThermostat E32 V2 $RELEASE_TAG" --notes-file out/publication-notes.md release-assets/*
+      - name: Refresh release channels, current downloads and archive labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/organize_releases.py --repository "$GITHUB_REPOSITORY" --output out/release-catalog-plan.json --apply
+
+  publish-home-assistant-test-release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/ha-v')
+    needs: [browser-regressions, home-assistant-native]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: home-assistant-release-assets
+          path: ha-release-assets
+      - name: Verify HA tag, clean source and all download checksums
+        env:
+          EXPECTED_TAG: ${{ github.ref_name }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          python - <<'PYTHON'
+          from pathlib import Path
+          import hashlib,json,os,zipfile
+          assets=Path('ha-release-assets')
+          manifest=json.loads((assets/'ha-release.json').read_text())
+          report=json.loads((assets/'ha-software-verification.json').read_text())
+          assert manifest['tag']==os.environ['EXPECTED_TAG']=='ha-v'+json.loads(Path('ha/config/custom_components/open_thermostat/manifest.json').read_text())['version']
+          assert manifest['source_commit']==report['source_commit']==os.environ['EXPECTED_COMMIT']
+          assert report['status']=='PASS_PACKAGE_INTEGRITY_ONLY'
+          assert not manifest['firmware_included'] and not report['live_HA_data_included']
+          assert manifest['native_test_summary']['failures']==manifest['native_test_summary']['errors']==0
+          assert manifest['asset']=='OpenThermostat-HA-'+manifest['version']+'.zip'
+          assert manifest['native_test_evidence']==report['native_test_evidence']
+          assert manifest['native_test_evidence']['source_commit']==os.environ['EXPECTED_COMMIT']
+          assert manifest['native_test_evidence']['clean_source'] is True and manifest['native_test_evidence']['unchanged_source'] is True
+          import sys
+          sys.path.insert(0,'scripts')
+          from zigbee_report_companion import SOURCES
+          from ha_test_evidence import snapshot
+          assert manifest['native_test_evidence']['source_sha256']==snapshot(Path.cwd())['source_sha256']
+          assert manifest['optional_companions']==report['optional_companions']
+          assert len(manifest['optional_companions'])==1
+          companion=manifest['optional_companions'][0]
+          assert companion['kind']=='optional_zigbee2mqtt_receive_only'
+          assert companion['source_commit']==os.environ['EXPECTED_COMMIT']
+          assert all(companion[key] is False for key in ('private_bindings_included','live_HA_data_included','installed','authorizes_control'))
+          assert companion['archive_sources']==SOURCES
+          assert set(companion['source_files'])==set(SOURCES.values())
+          assert companion['asset']=='OpenThermostat-Zigbee2MQTT-original-reports-'+manifest['version']+'.zip'
+          assert companion['size']==(assets/companion['asset']).stat().st_size
+          assert hashlib.sha256((assets/companion['asset']).read_bytes()).hexdigest()==companion['sha256']
+          with zipfile.ZipFile(assets/companion['asset']) as optional:
+              assert optional.testzip() is None
+              assert len(optional.namelist())==len(set(optional.namelist()))
+              assert set(optional.namelist())==set(SOURCES)|{'SOURCE.json','SHA256SUMS.txt'}
+              for member,source in SOURCES.items():
+                  expected=Path(source).read_bytes()
+                  assert optional.read(member)==expected
+                  assert hashlib.sha256(expected).hexdigest()==companion['source_files'][source]
+              source=json.loads(optional.read('SOURCE.json'))
+              assert set(source)=={'schema','kind','source_commit','source_files','archive_sources','private_bindings_included','live_HA_data_included','installed','authorizes_control'}
+              assert source['schema']==1
+              assert source=={key:companion[key] for key in source}
+              checked=set()
+              for line in optional.read('SHA256SUMS.txt').decode().splitlines():
+                  expected,name=line.split('  ',1)
+                  assert name not in checked
+                  checked.add(name)
+                  assert hashlib.sha256(optional.read(name)).hexdigest()==expected
+              assert checked==set(optional.namelist())-{'SHA256SUMS.txt'}
+          allowed={manifest['asset'],companion['asset'],'ha-release.json','ha-software-verification.json','HA-SHA256SUMS.txt'}
+          assert {p.name for p in assets.iterdir()}==allowed
+          checked=set()
+          for line in (assets/'HA-SHA256SUMS.txt').read_text().splitlines():
+              expected,name=line.split('  ',1)
+              assert Path(name).name==name and name not in checked
+              checked.add(name)
+              assert hashlib.sha256((assets/name).read_bytes()).hexdigest()==expected
+          assert checked==allowed-{'HA-SHA256SUMS.txt'}
+          assert hashlib.sha256((assets/manifest['asset']).read_bytes()).hexdigest()==manifest['sha256']
+          with zipfile.ZipFile(assets/manifest['asset']) as package:
+              assert package.testzip() is None
+              assert len(package.namelist())==len(set(package.namelist()))
+              assert set(package.namelist())==set(manifest['integration_source_files'])|{'LICENSE','LEESMIJ.nl.txt','SOURCE.json','notices/PLATFORM.txt','SHA256SUMS.txt'}
+              for name,expected in manifest['integration_source_files'].items():
+                  assert name.startswith('custom_components/open_thermostat/')
+                  tagged=Path('ha/config')/name
+                  assert package.read(name)==tagged.read_bytes()
+                  assert hashlib.sha256(package.read(name)).hexdigest()==expected
+              source=json.loads(package.read('SOURCE.json'))
+              assert source['source_commit']==os.environ['EXPECTED_COMMIT']
+              assert source['integration_version']==manifest['version']
+              assert source['source_files']==manifest['integration_source_files']
+              assert source['native_test_evidence']==manifest['native_test_evidence']
+              assert source['native_test_summary']==manifest['native_test_summary']==report['native_test_summary']
+              assert source['source_kind']=='clean_git_commit'
+              assert source['firmware_included'] is False and source['live_HA_data_included'] is False
+              assert package.read('LICENSE')==Path('LICENSE').read_bytes()
+              assert package.read('LEESMIJ.nl.txt')==Path('docs/modern-thermostat/HA-RELEASE-NOTES.md').read_bytes()
+              checked=set()
+              for line in package.read('SHA256SUMS.txt').decode().splitlines():
+                  expected,name=line.split('  ',1)
+                  assert name not in checked
+                  checked.add(name)
+                  assert hashlib.sha256(package.read(name)).hexdigest()==expected
+              assert checked==set(package.namelist())-{'SHA256SUMS.txt'}
+          PYTHON
+      - name: Publish HA prerelease without replacing previous releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python scripts/organize_releases.py --repository "$GITHUB_REPOSITORY" --publication-notes-for "$RELEASE_TAG" --output out/publication-notes.md
+          gh release create "$RELEASE_TAG" --verify-tag --prerelease --title "OpenThermostat Home Assistant $RELEASE_TAG" --notes-file out/publication-notes.md ha-release-assets/*
+      - name: Refresh release channels, current downloads and archive labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/organize_releases.py --repository "$GITHUB_REPOSITORY" --output out/release-catalog-plan.json --apply

@@ -12,7 +12,7 @@ TEST(CaptivePortal, OperatingSystemProbesAndArbitraryHttpHostsRedirectOnlyOnAPIn
     EXPECT_EQ(portalAccess(true,true,"example.com","10.10.10.1","/any/path","GET"),PortalAccess::Redirect);
 }
 TEST(CaptivePortal, OnlyExplicitSetupRoutesOnCanonicalAPAreLoginExceptions) {
-    for(auto path:{"/setup","/setup.html","/setup.js","/setup/status","/setup/scan"})
+    for(auto path:{"/setup","/setup.html","/setup.js","/setup/status","/setup/scan","/ui-language.js","/ui-messages.js"})
         EXPECT_EQ(portalAccess(true,true,"10.10.10.1","10.10.10.1",path,"GET"),PortalAccess::Setup);
     for(auto path:{"/setup/scan","/setup/network","/setup/finish"}) {
         EXPECT_EQ(portalAccess(true,true,"10.10.10.1","10.10.10.1",path,"POST"),PortalAccess::Setup);
@@ -58,4 +58,15 @@ TEST(NetworkBoot, FirstBootAndExplicitRecoveryNeverStartEthernetClockAlongsideWi
         if(recovery) EXPECT_TRUE(plan.wifi);
         if(configured&&!recovery) { EXPECT_TRUE(plan.ethernet); EXPECT_FALSE(plan.setupAp); }
     }
+}
+TEST(HttpAccess, BluetoothDiscoveryRequiresAnExplicitProtectedPost) {
+    EXPECT_FALSE(allowedHttpMethod("/config/bluetooth/scan","GET"));
+    EXPECT_TRUE(allowedHttpMethod("/config/bluetooth/scan","POST"));
+    EXPECT_FALSE(allowedHttpMethod("/config/bluetooth/scan","DELETE"));
+    EXPECT_TRUE(allowedHttpMethod("/config/bluetooth","GET"));
+    EXPECT_TRUE(allowedHttpMethod("/config/bluetooth","POST"));
+    EXPECT_FALSE(allowedHttpMethod("/bluetooth/status","POST"));
+    EXPECT_TRUE(boilerTestMutationBlocked("/config/bluetooth",true));
+    EXPECT_TRUE(boilerTestMutationBlocked("/config/bluetooth/scan",true));
+    EXPECT_EQ(portalAccess(true,true,"10.10.10.1","10.10.10.1","/config/bluetooth","POST"),PortalAccess::Authenticated);
 }

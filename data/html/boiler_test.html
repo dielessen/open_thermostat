@@ -1,0 +1,539 @@
+<section class="product-dashboard" id="boiler-test">
+  <h1><span data-i18n="Boiler test">Boiler test</span></h1>
+  <p><span data-i18n="Check boiler data reception and the availability of a bounded test.">Check boiler data reception and the availability of a bounded test.</span></p>
+  <p role="status" aria-live="polite" data-reception><span data-i18n="Checking reception…">Checking reception…</span></p>
+  <div class="pd-panel">
+    <h2><span data-i18n="Connection and reception">Connection and reception</span></h2>
+    <dl class="pd-detail-grid" data-transport></dl>
+    <button class="btn btn-outline-secondary" type="button" data-download disabled><span data-i18n="Download measurement report">Download measurement report</span></button>
+  </div>
+  <div class="pd-panel">
+    <h2><span data-i18n="Boiler data">Boiler data</span></h2>
+    <p><span data-i18n="Derived values are calculated from the boiler report. Unreliable fields do not count as independent confirmation.">Derived values are calculated from the boiler report. Unreliable fields do not count as independent confirmation.</span></p>
+    <div style="overflow-x:auto"><table class="table"><thead><tr><th><span data-i18n="Data item">Data item</span></th><th><span data-i18n="Value">Value</span></th><th><span data-i18n="Quality">Quality</span></th><th><span data-i18n="Age">Age</span></th></tr></thead><tbody data-fields></tbody></table></div>
+  </div>
+  <div class="pd-panel">
+    <h2><span data-i18n="Received message types">Received message types</span></h2>
+    <p><span data-i18n="This overview shows which boiler messages arrive, including those without a decoder. No received message does not mean the boiler does not support it.">This overview shows which boiler messages arrive, including those without a decoder. No received message does not mean the boiler does not support it.</span></p>
+    <p data-inventory-status><span data-i18n="Message overview not yet available.">Message overview not yet available.</span></p>
+    <div style="overflow-x:auto"><table class="table"><thead><tr><th><span data-i18n="Type">Type</span></th><th><span data-i18n="Messages">Messages</span></th><th>Decoder</th><th><span data-i18n="Age">Age</span></th></tr></thead><tbody data-telegrams></tbody></table></div>
+  </div>
+  <div class="pd-panel"><h2><span data-i18n="Test control">Test control</span></h2>
+    <h3><span data-i18n="Heat trial profile">Heat trial profile</span></h3>
+    <p data-heat-status role="status" aria-live="polite"></p>
+    <dl class="pd-detail-grid" data-heat-limits></dl>
+    <p data-test-state role="status" aria-live="polite"><span data-i18n="Checking test status…">Checking test status…</span></p>
+    <p><span data-i18n="An accepted request is not yet a transmitted command or confirmed boiler response.">An accepted request is not yet a transmitted command or confirmed boiler response.</span></p>
+    <p><span data-i18n="A zero-only test cannot start heating. A heat test requires separate preparation.">A zero-only test cannot start heating. A heat test requires separate preparation.</span></p>
+    <p class="pd-help" data-adapter-help><span data-i18n="Using an EasyControl Adapter? Confirm its boiler-side protocol before testing. A green LED or received EMS data alone does not prove the correct protocol. Opening this page does not restart or configure the adapter.">Using an EasyControl Adapter? Confirm its boiler-side protocol before testing. A green LED or received EMS data alone does not prove the correct protocol. Opening this page does not restart or configure the adapter.</span></p>
+    <fieldset data-test-site hidden>
+      <legend><span data-i18n="Confirm the setup for this test">Confirm the setup for this test</span></legend>
+      <p><span data-i18n="Confirm only what is true now. These declarations apply to one test and do not replace the reviewed test profile.">Confirm only what is true now. These declarations apply to one test and do not replace the reviewed test profile.</span></p>
+      <label class="d-block"><input type="checkbox" data-site-owner> <span data-i18n="Tado and other controllers are disconnected from the control path; the E32 is the only test controller.">Tado and other controllers are disconnected from the control path; the E32 is the only test controller.</span></label>
+      <label class="d-block"><input type="checkbox" data-site-stop> <span data-i18n="I am present and can switch off the boiler independently of the E32.">I am present and can switch off the boiler independently of the E32.</span></label>
+      <label class="d-block"><input type="checkbox" data-site-path> <span data-i18n="For a heat test: the reviewed heat dissipation path is open and available.">For a heat test: the reviewed heat dissipation path is open and available.</span></label>
+    </fieldset>
+    <p><span data-i18n="Read the boiler heating settings once before preparing a heat test. This sends a read request, not a heat demand or settings change. Confirm the setup above first.">Read the boiler heating settings once before preparing a heat test. This sends a read request, not a heat demand or settings change. Confirm the setup above first.</span></p>
+    <button class="btn btn-outline-secondary" type="button" data-read-configuration disabled><span data-i18n="Read heating settings once">Read heating settings once</span></button>
+    <p data-read-status role="status" aria-live="polite"></p>
+    <button class="btn btn-outline-secondary" type="button" data-test-zero disabled><span data-i18n="Run zero-only test">Run zero-only test</span></button>
+    <form data-test-form>
+      <label class="d-block"><span data-i18n="Desired flow temperature (°C)">Desired flow temperature (°C)</span><input class="form-control" data-test-flow type="number" step="1" required disabled></label>
+      <label class="d-block"><span data-i18n="Maximum heat demand (seconds)">Maximum heat demand (seconds)</span><input class="form-control" data-test-duration type="number" step="1" required disabled></label>
+      <div class="d-flex flex-wrap" style="gap:10px;margin:14px 0">
+        <button class="btn btn-outline-primary" type="button" data-test-prepare disabled><span data-i18n="Check stop baseline">Check stop baseline</span></button>
+        <button class="btn btn-primary" type="button" data-test-start disabled><span data-i18n="Start heat demand">Start heat demand</span></button>
+        <button class="btn btn-danger" type="button" data-test-stop disabled><span data-i18n="Stop test">Stop test</span></button>
+      </div>
+    </form>
+    <button class="btn btn-outline-secondary" type="button" data-test-close-fault hidden disabled><span data-i18n="Close faulted test after reported stop">Close faulted test after reported stop</span></button>
+    <p data-test-close-help hidden><span data-i18n="This action requires a transmitted zero demand and fresh boiler reports confirming zero requested flow temperature and stopped heating.">This action requires a transmitted zero demand and fresh boiler reports confirming zero requested flow temperature and stopped heating.</span> <span data-i18n="Closing does not erase the fault. A restart is required before another test; no heat demand resumes automatically.">Closing does not erase the fault. A restart is required before another test; no heat demand resumes automatically.</span></p>
+    <p class="pd-help"><span data-i18n="Keep this page visible during the test. Switching away ends supervision. Returning, refreshing or reopening does not automatically resume it.">Keep this page visible during the test. Switching away ends supervision. Returning, refreshing or reopening does not automatically resume it.</span></p>
+    <p data-test-action role="status" aria-live="polite"></p>
+    <dl class="pd-detail-grid" data-test-facts></dl>
+  </div>
+</section>
+<script>
+(() => {
+  'use strict';
+  const root = document.getElementById('boiler-test');
+  const message = root.querySelector('[data-reception]');
+  const transport = root.querySelector('[data-transport]');
+  const fields = root.querySelector('[data-fields]');
+  const download = root.querySelector('[data-download]');
+  const telegrams = root.querySelector('[data-telegrams]');
+  const inventoryStatus = root.querySelector('[data-inventory-status]');
+  const labels = {
+    no_boiler_reports: uiText("No boiler messages received yet."),
+    stale: uiText("Boiler messages are stale. Check the connection."),
+    conflicting_families: uiText("Conflicting protocol families received. Control remains blocked."),
+    classic_reports_received: uiText("Fresh EMS Classic boiler messages received."),
+    plus_reports_received: uiText("Fresh EMS Plus boiler messages received.")
+  };
+  let report = null;
+  const testState = root.querySelector('[data-test-state]');
+  const heatStatus = root.querySelector('[data-heat-status]');
+  const heatLimits = root.querySelector('[data-heat-limits]');
+  const heatReasons = {
+    classic_required:uiText("EMS Classic feedback is required for this heat trial."),
+    flow_unavailable:uiText("A fresh measured water temperature is required."),
+    flow_outside_trial_limits:uiText("Measured water temperature is outside the trial limits."),
+    pressure_unavailable:uiText("A fresh boiler pressure measurement is required."),
+    pressure_outside_trial_limits:uiText("Boiler pressure is outside the trial limits."),
+    heating_setting_unavailable:uiText("A recent boiler heating setting is required."),
+    heating_disabled:uiText("Heating is disabled on the boiler."),
+    heating_limit_unavailable:uiText("A recent boiler heating temperature limit is required."),
+    heating_limit_outside_trial_limits:uiText("The boiler heating limit does not fit this trial profile."),
+    telemetry_ready:uiText("Required measurements are within the software trial limits.")
+  };
+  function paintHeatTrial(value) {
+    heatLimits.replaceChildren();
+    const limits = value?.limits;
+    if (!value || value.profile_id !== 'ecomline-classic-manual-v1' || typeof value.installation_reviewed !== 'boolean'
+        || typeof value.telemetry_ready !== 'boolean' || typeof value.reason !== 'string' || !Object.hasOwn(heatReasons,value.reason)
+        || value.telemetry_ready !== (value.reason === 'telemetry_ready') || !limits
+        || !['minimum_flow_c','maximum_flow_c','maximum_duration_s','minimum_pressure_decibar',
+             'maximum_pressure_decibar','minimum_measured_flow_centi','maximum_measured_flow_centi'].every(key => Number.isInteger(limits[key]))
+        || limits.minimum_flow_c < 5 || limits.maximum_flow_c > 90 || limits.minimum_flow_c >= limits.maximum_flow_c
+        || limits.maximum_duration_s < 1 || limits.maximum_duration_s > 120
+        || limits.minimum_pressure_decibar < 1 || limits.maximum_pressure_decibar > 30
+        || limits.minimum_pressure_decibar >= limits.maximum_pressure_decibar
+        || limits.minimum_measured_flow_centi < 0 || limits.maximum_measured_flow_centi > 9000
+        || limits.minimum_measured_flow_centi >= limits.maximum_measured_flow_centi) {
+      heatStatus.textContent = uiText("Heat trial conditions unavailable. Check the test status."); return;
+    }
+    heatStatus.textContent = heatReasons[value.reason];
+    const format = number => new Intl.NumberFormat(document.documentElement.lang || 'en').format(number);
+    for (const [label,text] of [
+      [uiText("Requested flow temperature"),format(limits.minimum_flow_c)+'–'+format(limits.maximum_flow_c)+' °C'],
+      [uiText("Maximum heat demand"),format(limits.maximum_duration_s)+' s'],
+      [uiText("Measured water temperature window"),format(limits.minimum_measured_flow_centi/100)+'–<'+format(limits.maximum_measured_flow_centi/100)+' °C'],
+      [uiText("Boiler pressure window"),format(limits.minimum_pressure_decibar/10)+'–'+format(limits.maximum_pressure_decibar/10)+' bar'],
+      [uiText("Installation profile"),value.installation_reviewed ? uiText("Reviewed") : uiText("Not reviewed; heat trial remains blocked")]
+    ]) { cell(heatLimits,'dt',label);cell(heatLimits,'dd',text); }
+  }
+  const testMessage = root.querySelector('[data-test-action]');
+  const testFacts = root.querySelector('[data-test-facts]');
+  const flowInput = root.querySelector('[data-test-flow]');
+  const durationInput = root.querySelector('[data-test-duration]');
+  const prepareButton = root.querySelector('[data-test-prepare]');
+  const zeroButton = root.querySelector('[data-test-zero]');
+  const startButton = root.querySelector('[data-test-start]');
+  const stopButton = root.querySelector('[data-test-stop]');
+  const closeFaultButton = root.querySelector('[data-test-close-fault]');
+  const closeFaultHelp = root.querySelector('[data-test-close-help]');
+  const sitePanel = root.querySelector('[data-test-site]');
+  const siteOwner = root.querySelector('[data-site-owner]');
+  const siteStop = root.querySelector('[data-site-stop]');
+  const sitePath = root.querySelector('[data-site-path]');
+  function siteReady(heat) {
+    return !test?.site_confirmation_required || (siteOwner.checked && siteStop.checked && (!heat || sitePath.checked));
+  }
+  function siteDeclarations(heat) {
+    if (!test?.site_confirmation_required) return {};
+    return {exclusive_owner_confirmed:siteOwner.checked, independent_stop_confirmed:siteStop.checked,
+      ...(heat ? {heat_path_confirmed:sitePath.checked} : {})};
+  }
+  function clearSiteDeclarations() { siteOwner.checked = siteStop.checked = sitePath.checked = false; }
+  let test = null, held = null, lastScope = null, pending = false, stopping = false, renewal = null, supervisionEpoch = 0;
+  const lifecycle = new AbortController();
+  const readButton = root.querySelector('[data-read-configuration]');
+  const readStatus = root.querySelector('[data-read-status]');
+  let configurationRead = null;
+  const readLabels = {
+    idle:uiText("Heating settings have not been requested in this session."),
+    queued:uiText("Waiting for the bus to allow the read request."),
+    waiting:uiText("Read request sent. Waiting for the boiler response."),
+    completed:uiText("Heating settings received. Heat testing still requires separate preparation."),
+    failed:uiText("Heating settings could not be read. No automatic retry. Check the measurement report.")
+  };
+  function validRead(value) {
+    return value && value.schema === 1 && /^[0-9a-f]{16}$/.test(value.boot_id)
+      && Number.isInteger(value.revision) && value.revision >= 0 && value.revision <= 2147483647
+      && Number.isSafeInteger(value.observed_at_ms) && value.observed_at_ms >= 0
+      && typeof value.available === 'boolean' && typeof value.active === 'boolean'
+      && Object.hasOwn(readLabels,value.phase) && typeof value.reason === 'string'
+      && value.active === ['queued','waiting'].includes(value.phase)
+      && !(value.available && value.active) && value.physical_validation === false;
+  }
+  function paintRead(value) {
+    if (validRead(value) && configurationRead && value.boot_id === configurationRead.boot_id
+        && (value.revision < configurationRead.revision || (value.revision === configurationRead.revision
+        && value.observed_at_ms < configurationRead.observed_at_ms))) return;
+    configurationRead = validRead(value) && test && value.boot_id === test.boot_id ? value : null;
+    readStatus.textContent = configurationRead ? readLabels[configurationRead.phase]
+      : uiText("Heating settings read status unavailable.");
+    if (test) paintTest(test); else updateReadButton();
+  }
+  function updateReadButton() {
+    readButton.disabled = !configurationRead || !configurationRead.available || !test
+      || configurationRead.boot_id !== test.boot_id || pending || stopping
+      || !siteOwner.checked || !siteStop.checked || document.visibilityState !== 'visible';
+  }
+  readButton.addEventListener('click',async () => {
+    if (readButton.disabled || !configurationRead || !root.isConnected) return;
+    const scope = {boot_id:configurationRead.boot_id,revision:configurationRead.revision};
+    const epoch = supervisionEpoch, testScope = {boot_id:test.boot_id,revision:test.revision};
+    if (!confirm(uiText("Send one read request for the boiler heating settings? No heat demand will be sent."))) return;
+    if (!confirmationStillCurrent(epoch,testScope)
+        || !sameScope(configurationRead,scope) || readButton.disabled || !siteOwner.checked || !siteStop.checked) return;
+    pending = true;paintTest(test);
+    const abort = new AbortController(), timeout = setTimeout(() => abort.abort(),3000);
+    try {
+      const response = await fetch('/boiler/test/read_configuration',{method:'POST',cache:'no-store',credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},signal:abort.signal,
+        body:JSON.stringify({schema:1,boot_id:scope.boot_id,revision:scope.revision+1,
+          exclusive_owner_confirmed:true,independent_stop_confirmed:true})});
+      const result = await response.json();
+      if (!response.ok || result.accepted !== true || !validRead(result.configuration_read)
+          || result.configuration_read.boot_id !== scope.boot_id || result.configuration_read.revision !== scope.revision+1)
+        throw Error('unconfirmed');
+      if (root.isConnected) paintRead(result.configuration_read);
+    } catch (error) {
+      if (root.isConnected) {configurationRead = null;readStatus.textContent = uiText("Read request not confirmed. Check the status; it is not retried automatically.");}
+    } finally {
+      clearTimeout(timeout);pending = false;clearSiteDeclarations();if (root.isConnected) paintTest(test);
+    }
+  },{signal:lifecycle.signal});
+  const phases = {idle:uiText("No test prepared yet."), baseline:uiText("Waiting for a reported stop after the zero command."),
+    ready:uiText("Stop baseline reported. Heat demand can be started separately."), heating:uiText("Bounded heat demand requested."),
+    stopping:uiText("Stop requested. Waiting for fresh boiler feedback."), completed:uiText("Stop reported after the command; test completed."),
+    fault:uiText("Test stopped due to an error. Check the boiler and measurement report."),
+    closed:uiText("Faulted test closed after reported stop. Restart before another test.")};
+  const blocks = {boot_unavailable:uiText("Test identity unavailable."), transmit_blocked:uiText("Transmission is blocked in this firmware."),
+    profile_missing:uiText("The reviewed boiler test profile is missing."), test_transport_missing:uiText("The test transmitter is not connected yet."),
+    proving_conditions_missing:uiText("Not all test conditions have been confirmed."),
+    restart_required:uiText("Restart before preparing another boiler test.")};
+  function validTest(value) {
+    if (!value || value.schema !== 1 || !/^[0-9a-f]{16}$/.test(value.boot_id)
+        || !Number.isInteger(value.revision) || value.revision < 0 || value.revision > 2147483647
+        || !Number.isSafeInteger(value.state_sequence) || value.state_sequence < 0
+        || !Number.isSafeInteger(value.observed_at_ms) || value.observed_at_ms < 0
+        || !Object.hasOwn(phases, value.phase)) return false;
+    if (Object.hasOwn(value, 'site_confirmation_required') && typeof value.site_confirmation_required !== 'boolean') return false;
+    for (const key of ['can_close_fault','restart_required'])
+      if (Object.hasOwn(value, key) && typeof value[key] !== 'boolean') return false;
+    for (const key of ['available','owned','can_prepare','can_start','can_stop','reported_stop_confirmed'])
+      if (typeof value[key] !== 'boolean') return false;
+    if (value.can_start && (!value.owned || !value.revision || value.phase !== 'ready')) return false;
+    if (value.can_prepare && !['idle','completed'].includes(value.phase)) return false;
+    if (['ready','completed'].includes(value.phase) && !value.reported_stop_confirmed) return false;
+    if (value.can_stop && (!value.revision || ['idle','completed'].includes(value.phase))) return false;
+    if (value.can_close_fault === true && (value.phase !== 'fault' || !value.revision || !value.reported_stop_confirmed)) return false;
+    if (value.phase === 'closed' && (!value.restart_required || !value.reported_stop_confirmed
+        || value.can_start || value.can_prepare || value.can_prepare_zero === true || value.can_stop)) return false;
+    if (value.zero_only === true && value.can_start) return false;
+    if (value.can_prepare_zero === true || value.zero_only === true) {
+      if (!Number.isInteger(value.operator_lease_ms)
+          || value.operator_lease_ms < 1000 || value.operator_lease_ms > 10000) return false;
+    }
+    if (value.can_prepare_zero === true && value.zero_test_available !== true) return false;
+    if (value.can_prepare_zero === true && !['idle','completed'].includes(value.phase)) return false;
+    const limits = value.limits;
+    if (value.available || value.can_prepare || value.can_start) {
+      if (!value.available || !limits || !Number.isInteger(limits.minimum_flow_c) || !Number.isInteger(limits.maximum_flow_c)
+          || limits.minimum_flow_c < 5 || limits.maximum_flow_c > 90 || limits.minimum_flow_c >= limits.maximum_flow_c
+          || !Number.isInteger(limits.maximum_duration_s) || limits.maximum_duration_s < 1 || limits.maximum_duration_s > 120
+          || !Number.isInteger(limits.operator_lease_ms) || limits.operator_lease_ms < 1000 || limits.operator_lease_ms > 10000) return false;
+    }
+    return true;
+  }
+  function sameScope(a, b) { return a && b && a.boot_id === b.boot_id && a.revision === b.revision; }
+  function stopRenewing() { ++supervisionEpoch; held = null; clearTimeout(renewal); renewal = null; }
+  function interruptSupervision() {
+    stopRenewing(); clearSiteDeclarations();
+    if (!root.isConnected) { lifecycle.abort(); return; }
+    paintTest(test);
+    testMessage.textContent = uiText("Supervision not confirmed. Check the test status and use Stop.");
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') interruptSupervision();
+  }, {signal:lifecycle.signal});
+  window.addEventListener('pagehide', interruptSupervision, {signal:lifecycle.signal});
+  function confirmationStillCurrent(epoch, scope) {
+    return root.isConnected && document.visibilityState === 'visible' && !pending && !stopping
+      && epoch === supervisionEpoch && sameScope(test,scope);
+  }
+  function acceptPreparation(next, epoch) {
+    if (!root.isConnected) return false;
+    if (epoch !== supervisionEpoch || document.visibilityState !== 'visible') {
+      paintTest(next);
+      testMessage.textContent = uiText("Supervision not confirmed. Check the test status and use Stop.");
+      return false;
+    }
+    held = {boot_id:next.boot_id, revision:next.revision};
+    paintTest(next); scheduleRenewal(); return true;
+  }
+  function paintTest(value) {
+    if (validTest(value) && test && value.boot_id === test.boot_id
+        && (value.revision < test.revision || (value.revision === test.revision
+        && (value.state_sequence < test.state_sequence || (value.state_sequence === test.state_sequence && value.observed_at_ms < test.observed_at_ms))))) return;
+    if (!validTest(value) || (test && (value.boot_id !== test.boot_id || value.revision !== test.revision))) clearSiteDeclarations();
+    test = validTest(value) ? value : null;
+    sitePanel.hidden = !test?.site_confirmation_required;
+    for (const input of [siteOwner,siteStop,sitePath]) input.disabled = pending || !test || !['idle','completed'].includes(test.phase);
+    if (!test || (held && (!sameScope(held, test) || !test.owned || !['baseline','ready','heating'].includes(test.phase)))) stopRenewing();
+    if (test) {
+      if (test.can_stop) lastScope = {boot_id:test.boot_id, revision:test.revision};
+      else lastScope = null;
+      testState.textContent = test.phase === 'closed' ? phases.closed
+        : !test.available && test.zero_test_available === true && test.phase === 'idle'
+        ? uiText("Only a zero-demand test is available. Heating remains blocked.")
+        : (test.available || (test.zero_only === true && test.zero_test_available === true)) ? phases[test.phase]
+        : (test.phase !== 'idle' ? phases[test.phase] + ' ' : '') + (blocks[test.blocked_reason] || uiText("The active test is unavailable."));
+    } else testState.textContent = uiText("Test status unavailable. No heat demand will be started.");
+    flowInput.disabled = durationInput.disabled = !test || !test.can_prepare || pending || configurationRead?.active === true;
+    zeroButton.disabled = !test || test.can_prepare_zero !== true || pending || !siteReady(false) || configurationRead?.active === true;
+    prepareButton.disabled = !test || !test.can_prepare || pending || !siteReady(true) || configurationRead?.active === true;
+    startButton.disabled = !test || !test.can_start || !sameScope(held, test) || pending || configurationRead?.active === true;
+    // Stop stays available with the last known scoped session after read failure.
+    stopButton.disabled = !lastScope || stopping;
+    closeFaultButton.hidden = !test || test.phase !== 'fault';
+    closeFaultHelp.hidden = !test || !['fault','closed'].includes(test.phase);
+    closeFaultButton.disabled = !test || test.can_close_fault !== true || pending || stopping;
+    updateReadButton();
+    if (test && test.limits) {
+      flowInput.min = test.limits.minimum_flow_c; flowInput.max = test.limits.maximum_flow_c;
+      durationInput.min = 1; durationInput.max = test.limits.maximum_duration_s;
+    }
+    testFacts.replaceChildren();
+    if (test) {
+      for (const [label,value] of [[uiText("Positive commands transmitted"),number(test.positive_frames)],
+        [uiText("Zero commands transmitted"),number(test.zero_frames)],[uiText("Remaining heat demand time"),age(test.heat_remaining_ms)],
+        [uiText("Stop reported after command"),test.reported_stop_confirmed ? uiText("Yes") : uiText("Not confirmed yet")]]) {
+        cell(testFacts,'dt',label);cell(testFacts,'dd',value);
+      }
+    }
+  }
+  async function testRequest(action, body) {
+    const abort = new AbortController(), deadline = setTimeout(() => abort.abort(), 3000);
+    try {
+      const response = await fetch('/boiler/test/' + action, {method:'POST', cache:'no-store', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'}, signal:abort.signal, body:JSON.stringify({schema:1,...body})});
+      const result = await response.json();
+      if (!response.ok || result.accepted !== true || !validTest(result.test) || !sameScope(result.test,body))
+        throw Error(uiText("Test request not confirmed. Check the status; the request is not retried automatically."));
+      return result.test;
+    } catch (error) {
+      throw Error(uiText("Test request not confirmed. Check the status; the request is not retried automatically."));
+    } finally { clearTimeout(deadline); }
+  }
+  function scheduleRenewal() {
+    clearTimeout(renewal);
+    if (!held || !test || document.visibilityState !== 'visible') return;
+    renewal = setTimeout(async () => {
+      if (!root.isConnected || document.visibilityState !== 'visible' || !held) {
+        stopRenewing(); if (root.isConnected) paintTest(test); return;
+      }
+      const scope = {...held};
+      try {
+        const next = await testRequest('keepalive',scope);
+        if (!root.isConnected || !sameScope(held,scope)) return;
+        paintTest(next); scheduleRenewal();
+      } catch (error) {
+        stopRenewing(); if (root.isConnected) { testMessage.textContent = uiText("Supervision not confirmed. Check the test status and use Stop."); paintTest(test); }
+      }
+    }, Math.min(1000, Math.floor((test.operator_lease_ms || test.limits?.operator_lease_ms) / 3)));
+  }
+  root.querySelector('[data-test-form]').addEventListener('submit',event => event.preventDefault());
+  for (const input of [siteOwner,siteStop,sitePath]) input.addEventListener('change',() => paintTest(test));
+  zeroButton.addEventListener('click',async () => {
+    if (document.visibilityState !== 'visible' || zeroButton.disabled || !test) return;
+    const epoch = supervisionEpoch, scope = {boot_id:test.boot_id, revision:test.revision};
+    if (!window.confirm(uiText("Run the zero-only test now? This sends a zero demand and never starts heating."))) return;
+    // A modal dialog is not permission to survive interruption or scope changes.
+    if (!confirmationStillCurrent(epoch,scope) || zeroButton.disabled || !test.can_prepare_zero || !siteReady(false)) return;
+    const body = {boot_id:scope.boot_id, revision:scope.revision+1, ...siteDeclarations(false)};
+    clearSiteDeclarations();
+    pending = true; paintTest(test);
+    try {
+      const next = await testRequest('prepare_zero',body);
+      if (!acceptPreparation(next,epoch)) return;
+      testMessage.textContent = uiText("Zero-only test requested. Waiting for a later boiler report; heating cannot start in this test.");
+    } catch (error) { stopRenewing(); if (root.isConnected) testMessage.textContent = error.message; }
+    finally { pending = false; if (root.isConnected) paintTest(test); }
+  });
+  prepareButton.addEventListener('click',async () => {
+    if (document.visibilityState !== 'visible' || prepareButton.disabled || !test) return;
+    const flow = Number(flowInput.value), duration = Number(durationInput.value);
+    if (!flowInput.checkValidity() || !durationInput.checkValidity() || !Number.isInteger(flow) || !Number.isInteger(duration)) {
+      testMessage.textContent = uiText("Enter a whole flow temperature and duration within the displayed limits."); return;
+    }
+    const body = {boot_id:test.boot_id, revision:test.revision+1, flow_c:flow, duration_s:duration, ...siteDeclarations(true)};
+    clearSiteDeclarations();
+    pending = true; paintTest(test);
+    const epoch = supervisionEpoch;
+    try {
+      const next = await testRequest('prepare',body);
+      if (!acceptPreparation(next,epoch)) return;
+      testMessage.textContent = uiText("Stop check requested. Heat demand only starts after your separate start action.");
+    } catch (error) { stopRenewing(); if (root.isConnected) testMessage.textContent = error.message; }
+    finally { pending = false; if (root.isConnected) paintTest(test); }
+  });
+  startButton.addEventListener('click',async () => {
+    if (document.visibilityState !== 'visible' || startButton.disabled || !test || !sameScope(held,test)) return;
+    const epoch = supervisionEpoch, scope = {boot_id:test.boot_id, revision:test.revision};
+    if (!window.confirm(uiText("Start the bounded heat demand now?"))) return;
+    if (!confirmationStillCurrent(epoch,scope) || startButton.disabled || !test.can_start || !sameScope(held,scope)) return;
+    pending = true; paintTest(test);
+    try {
+      const next = await testRequest('start',scope);
+      if (root.isConnected && sameScope(held,scope)) { paintTest(next); testMessage.textContent = uiText("Start request accepted. Transmission and boiler feedback are shown separately below."); }
+    } catch (error) { stopRenewing(); if (root.isConnected) testMessage.textContent = error.message; }
+    finally { pending = false; if (root.isConnected) paintTest(test); }
+  });
+  stopButton.addEventListener('click',async () => {
+    if (stopButton.disabled || !lastScope) return;
+    const scope = {...lastScope}; stopRenewing(); stopping = true; paintTest(test);
+    try {
+      const next = await testRequest('stop',scope);
+      if (root.isConnected) { paintTest(next); testMessage.textContent = uiText("Stop request accepted. Wait for a reported stop after the command."); }
+    } catch (error) { if (root.isConnected) testMessage.textContent = error.message; }
+    finally { stopping = false; if (root.isConnected) paintTest(test); }
+  });
+  closeFaultButton.addEventListener('click',async () => {
+    if (document.visibilityState !== 'visible' || closeFaultButton.disabled || !test) return;
+    const epoch = supervisionEpoch, scope = {boot_id:test.boot_id, revision:test.revision, local_stop_confirmed:true};
+    if (!window.confirm(uiText("Confirm locally that heating has stopped and close this faulted test? A restart is required before another test."))) return;
+    if (!confirmationStillCurrent(epoch,scope) || closeFaultButton.disabled || !test.can_close_fault) return;
+    stopRenewing(); pending = true; paintTest(test);
+    try {
+      const next = await testRequest('close_fault',scope);
+      if (root.isConnected) { paintTest(next); testMessage.textContent = uiText("Faulted test closed. Restart before another test; no heat demand will resume automatically."); }
+    } catch (error) { if (root.isConnected) testMessage.textContent = error.message; }
+    finally { pending = false; if (root.isConnected) paintTest(test); }
+  });
+  const fieldLabels = {
+    reported_selected_flow_temperature:uiText("Reported desired flow temperature"), measured_flow_temperature:uiText("Flow temperature"),
+    measured_return_temperature:uiText("Return temperature"), outdoor_temperature:uiText("Outdoor temperature"),
+    reported_burner_modulation:uiText("Reported burner power"), reported_requested_power_limit:uiText("Requested power limit"),
+    pressure:uiText("Water pressure"), raw_burner_bit:uiText("Raw burner signal"), raw_pump_bit:uiText("Raw pump signal"), raw_fan_bit:uiText("Raw fan signal"),
+    raw_boiler_state:uiText("Raw boiler status"), heating_active:uiText("CH active"), dhw_active:uiText("Hot water active"),
+    selected_dhw_temperature:uiText("Desired hot water temperature"), measured_dhw_temperature:uiText("Hot water temperature"), dhw_flow:uiText("Hot water flow rate"),
+    heating_enabled:uiText("CH enabled"), dhw_enabled:uiText("Hot water enabled"), reported_burner_starts:uiText("Reported burner starts"),
+    reported_burner_runtime:uiText("Reported burner duration"), reported_heating_runtime:uiText("Reported CH duration"), reported_heating_starts:uiText("Reported CH starts"),
+    reported_dhw_runtime:uiText("Reported hot water duration"), reported_dhw_starts:uiText("Reported hot water starts"), display_code:uiText("Display code"),
+    service_number:uiText("Service code"), maximum_burner_power:uiText("Maximum burner power"), pump_run_on:uiText("Pump post-run"),
+    configured_heating_temperature:uiText("Configured CH temperature"), reported_dhw_target:uiText("Reported desired hot water temperature"),
+    storage_temperature_1:uiText("Storage temperature 1"),
+    storage_temperature_2:uiText("Storage temperature 2"),
+    ionisation_current:uiText("Ionization current"),
+    raw_second_burner_bit:uiText("Raw second burner signal"),
+    raw_ignition_bit:uiText("Raw ignition signal"),
+    raw_oil_preheat_bit:uiText("Raw oil preheating"),
+    raw_dhw_valve_bit:uiText("Raw hot water valve position"),
+    raw_dhw_circulation_bit:uiText("Raw circulation pump status"),
+    boiler_temperature:uiText("Boiler temperature"),
+    exhaust_temperature:uiText("Flue gas temperature"),
+    hydraulic_switch_temperature:uiText("Low-loss header temperature"),
+    reported_heating_pump_modulation:uiText("Reported CH pump modulation"),
+    reported_second_burner_runtime:uiText("Reported second burner duration"),
+    heating_hysteresis_off:uiText("CH hysteresis off"),
+    heating_hysteresis_on:uiText("CH hysteresis on"),
+    minimum_burner_period:uiText("Minimum burner period"),
+    pump_modulation_maximum:uiText("Maximum pump modulation"),
+    pump_modulation_minimum:uiText("Minimum pump modulation"),
+    configured_pump_mode:uiText("Configured pump mode"),
+    secondary_heating_hysteresis_off:uiText("Second CH hysteresis off"),
+    secondary_heating_hysteresis_on:uiText("Second CH hysteresis on"),
+    pump_start_temperature:uiText("Pump start temperature"),
+    dhw_hysteresis_on:uiText("Hot water hysteresis on"),
+    dhw_charge_optimisation_enabled:uiText("Hot water charging optimization"),
+    dhw_flow_temperature_offset:'Warmwateraanvoer-offset',
+    dhw_circulation_enabled:uiText("Hot water circulation enabled"),
+    configured_dhw_circulation_mode:uiText("Configured circulation mode"),
+    dhw_disinfection_temperature:uiText("Disinfection temperature"),
+    configured_dhw_charge_type:uiText("Configured hot water charging type"),
+    configured_dhw_comfort_mode:uiText("Configured hot water comfort code"),
+    secondary_dhw_temperature:uiText("Second hot water temperature"),
+    solar_dhw_temperature:uiText("Solar hot water temperature"),
+    reported_dhw_type:uiText("Reported hot water type"),
+    raw_dhw_one_time_bit:uiText("Raw one-time hot water signal"),
+    raw_dhw_disinfection_bit:uiText("Raw disinfection signal"),
+    raw_dhw_charging_bit:uiText("Raw hot water charging signal"),
+    raw_dhw_recharging_bit:uiText("Raw hot water recharging signal"),
+    raw_dhw_temperature_ok_bit:uiText("Raw hot water temperature OK signal"),
+    raw_dhw_active_bit:uiText("Raw hot water active signal")
+  };
+  function cell(parent, tag, value) {
+    const node = document.createElement(tag);
+    node.textContent = String(value);
+    parent.appendChild(node);
+  }
+  function fact(label, value) { cell(transport, 'dt', label); cell(transport, 'dd', value); }
+  function number(value) { return Number.isFinite(value) && value >= 0 ? String(value) : uiText("Unknown"); }
+  function age(value) { return Number.isFinite(value) && value >= 0 ? (value / 1000).toFixed(1) + ' s' : uiText("Unknown"); }
+  async function refresh() {
+    if (!root.isConnected) { stopRenewing(); lifecycle.abort(); return; }
+    const abort = new AbortController();
+    const timeout = setTimeout(() => abort.abort(), 4000);
+    try {
+      const response = await fetch('/status/ems/telemetry', {cache: 'no-store', signal: abort.signal});
+      if (!response.ok) throw Error(uiText("Status unavailable"));
+      const data = await response.json();
+      if (!root.isConnected) return;
+      if (!data || !data.reception || !data.transport || !data.fields || !labels[data.reception.state]) throw Error(uiText("Unknown status"));
+      const entries = Object.entries(data.fields);
+      if (entries.length > 96) throw Error(uiText("Too much data"));
+      paintTest(data.test);
+      paintHeatTrial(data.heat_trial);
+      paintRead(data.configuration_read);
+      message.textContent = data.transport.enabled === false ? uiText("EMS reception is off.") : labels[data.reception.state];
+      transport.replaceChildren();
+      fact(uiText("Boiler messages"), number(data.reception.report_count));
+      fact(uiText("Last boiler message"), age(data.reception.last_report_age_ms));
+      fact(uiText("Transmission in firmware"), data.transport.transmit_compiled === true ? uiText("Present; no evidence of enablement") : data.transport.transmit_compiled === false ? uiText("Blocked") : uiText("Unknown"));
+      fact(uiText("Data frames transmitted"), number(data.transport.transmitted_frames));
+      fact(uiText("Messages missed because the queue is full"), number(data.transport.receive_queue_dropped));
+      fact(uiText("Rejected telegrams"), number(data.transport.invalid_telegrams));
+      fact('UART-fouten', number(data.transport.uart_errors));
+      fact('UART-resets', number(data.transport.uart_resets));
+      fields.replaceChildren();
+      entries.forEach(([name, field]) => {
+        if (!field || typeof field !== 'object') return;
+        const row = document.createElement('tr');
+        cell(row, 'td', fieldLabels[name] || name);
+        const usable = field.state === 'valid' && ['reported', 'inferred'].includes(field.quality) && data.reception.state !== 'conflicting_families';
+        cell(row, 'td', usable && (typeof field.value === 'number' || typeof field.value === 'string') ? String(field.value) + ' ' + String(field.unit || '') : uiText("No usable value"));
+        cell(row, 'td', ({reported:uiText("Reported"), inferred:uiText("Derived"), unreliable:uiText("Unreliable")})[field.quality] || uiText("Unknown"));
+        cell(row, 'td', age(field.age_ms));
+        fields.appendChild(row);
+      });
+      telegrams.replaceChildren();
+      const inventory = data.telegram_inventory;
+      if (inventory && Number.isInteger(inventory.capacity) && inventory.capacity > 0 && inventory.capacity <= 24
+          && Array.isArray(inventory.types) && inventory.types.length <= inventory.capacity) {
+        inventoryStatus.textContent = inventory.types.length + uiText(" message types. Not tracked because the list is full: ") + number(inventory.untracked_frames) + '.';
+        for (const entry of inventory.types) {
+          if (!entry || !Number.isInteger(entry.type) || entry.type < 0 || entry.type > 65535) continue;
+          const row = document.createElement('tr');
+          cell(row,'td','0x' + entry.type.toString(16).toUpperCase());
+          cell(row,'td',number(entry.frames));
+          cell(row,'td',({classic_fields:'Classic-velden',plus_legacy_fields:uiText("Existing Plus decoder"),unmapped:uiText("No field decoder yet")})[entry.decoder] || uiText("Unknown"));
+          cell(row,'td',age(entry.age_ms)); telegrams.appendChild(row);
+        }
+      } else inventoryStatus.textContent = uiText("This firmware does not provide a message overview yet.");
+      report = {schema: 1, browser_captured_at: new Date().toISOString(), physical_validation: false, telemetry: data};
+      download.disabled = false;
+    } catch (error) {
+      if (!root.isConnected) return;
+      message.textContent = uiText("Reception status unavailable. Check the connection.");
+      transport.replaceChildren(); fields.replaceChildren(); telegrams.replaceChildren(); inventoryStatus.textContent = uiText("Message overview unavailable."); report = null; download.disabled = true;
+      paintTest(null);
+      paintHeatTrial(null);
+      paintRead(null);
+    } finally {
+      clearTimeout(timeout);
+      if (root.isConnected) setTimeout(refresh, 5000);
+      else { stopRenewing(); lifecycle.abort(); }
+    }
+  }
+  download.addEventListener('click', () => {
+    if (!report || download.disabled) return;
+    const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], {type: 'application/json'}));
+    const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'openthermostat-ketelontvangst.json';
+    anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+  refresh();
+})();
+</script>

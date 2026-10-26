@@ -3,6 +3,7 @@
 // Low-level backend for the existing modelstores/gate, NOT a checkpoint caller.
 #include "ControlStore.h"
 #include "ModelResourceGate.h"
+#include "ControlModelStorageReservation.h"
 #include <nvs.h>
 #include <esp_partition.h>
 #include <mbedtls/sha256.h>
@@ -26,13 +27,14 @@ public:
         if(plan.profile!=ModelResourceProfile::e32_nvs_shadow_v1||!gate_.healthy()
             ||gate_.required().nvsEntries>=ControlPartitionBudget::totalEntries) {fail();return;}
         if(owner_) {owner_->fail();fail();return;}
+        if(!controlModelStorageReservation.claim(this,models_)){fail();return;}
         owner_=this;selected_=true;
     }
-    ~NvsModelProvider(){fail();if(owner_==this)owner_=nullptr;}
+    ~NvsModelProvider(){fail();controlModelStorageReservation.release(this);if(owner_==this)owner_=nullptr;}
     NvsModelProvider(const NvsModelProvider&)=delete;
     NvsModelProvider& operator=(const NvsModelProvider&)=delete;
     ModelResourceGate& gate(){return gate_;}
-    bool healthy()const{return selected_&&owner_==this&&gate_.healthy();}
+    bool healthy()const{return selected_&&owner_==this&&controlModelStorageReservation.matches(this,models_)&&gate_.healthy();}
     bool fail(){gate_.fail();return false;}
 private:
     friend class NvsModelStore;

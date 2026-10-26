@@ -69,7 +69,7 @@ TEST(WebAuth, LoginCooldownDoesNotDestroyValidSessions) {
     s.loginFailed(30100); EXPECT_TRUE(s.loginAllowed(30101)); s.loginSucceeded(); EXPECT_TRUE(s.loginAllowed(30101));
 }
 TEST(WebAuth, PublicResourcesAreExactAndCannotExposeControlOrRecovery) {
-    for(auto p:{"/login","/login.js","/auth-client.js","/auth/login"}) EXPECT_TRUE(publicAuthResource(p));
+    for(auto p:{"/login","/login.js","/auth-client.js","/auth/login","/ui-language.js","/ui-messages.js"}) EXPECT_TRUE(publicAuthResource(p));
     for(auto p:{"/auth/session","/auth/logout","/login.html","/login/../config/device","/status","/config/device","/ota","/otafs","/recovery","/setup/network"}) EXPECT_FALSE(publicAuthResource(p));
     EXPECT_TRUE(allowedHttpMethod("/auth/login","POST")); EXPECT_FALSE(allowedHttpMethod("/auth/login","GET"));
     EXPECT_TRUE(allowedHttpMethod("/auth/logout","POST")); EXPECT_FALSE(allowedHttpMethod("/auth/logout","GET"));
@@ -98,4 +98,95 @@ TEST(WebAuth, ActualRouteGateRejectsAnonymousApiAndAllCookieOnlyMutations) {
     EXPECT_EQ(webAuthDecision(sessions,"/config/programs/test","DELETE",token('a'),"",101,false),WebAuthDecision::csrf_required);
     EXPECT_EQ(webAuthDecision(sessions,"/auth/session","GET",token('a'),"",101,false),WebAuthDecision::allow);
     EXPECT_EQ(webAuthDecision(sessions,"/setup/network","POST","","",101,true),WebAuthDecision::allow);
+}
+
+TEST(WebAuth, SettingsReadbackIsOpaqueStableAndDoesNotReplaceAuthenticationOrCsrf) {
+    WebAuthSession sessions;
+    ASSERT_NE(sessions.issue(token('a'),token('b'),100),nullptr);
+    const auto tag=sessions.settingsReadback(token('a'),token('c'),token('d'),101);
+    EXPECT_EQ(tag,token('d')); EXPECT_NE(tag,token('c'));
+    EXPECT_EQ(sessions.settingsReadback(token('a'),token('c'),token('e'),102),tag);
+    EXPECT_TRUE(sessions.settingsReadbackMatches(token('a'),"\""+token('d')+"\"",token('c'),103));
+    EXPECT_FALSE(sessions.csrf(token('a'),token('d'),103));
+    EXPECT_EQ(sessions.find(token('d'),103),nullptr);
+    EXPECT_FALSE(sessions.settingsReadbackMatches(token('d'),"\""+token('d')+"\"",token('c'),103));
+}
+
+TEST(WebAuth, SettingsReadbackRejectsEveryPersistedChangeAndRotatesOnlyThatSession) {
+    WebAuthSession sessions;
+    ASSERT_NE(sessions.issue(token('a'),token('b'),100),nullptr);
+    ASSERT_NE(sessions.issue(token('e'),token('f'),100),nullptr);
+    ASSERT_EQ(sessions.settingsReadback(token('a'),token('c'),token('d'),101),token('d'));
+    ASSERT_EQ(sessions.settingsReadback(token('e'),token('c'),token('1'),101),token('1'));
+    // The caller hashes complete raw settings: even a redacted secret rotation
+    // changes this hash. No old tag may approve it before a fresh read.
+    EXPECT_FALSE(sessions.settingsReadbackMatches(token('a'),"\""+token('d')+"\"",token('2'),102));
+    EXPECT_FALSE(sessions.settingsReadbackMatches(token('e'),"\""+token('1')+"\"",token('2'),102));
+    ASSERT_EQ(sessions.settingsReadback(token('a'),token('2'),token('3'),103),token('3'));
+    EXPECT_FALSE(sessions.settingsReadbackMatches(token('a'),"\""+token('d')+"\"",token('2'),104));
+    EXPECT_TRUE(sessions.settingsReadbackMatches(token('a'),"\""+token('3')+"\"",token('2'),104));
+    EXPECT_FALSE(sessions.settingsReadbackMatches(token('e'),"\""+token('3')+"\"",token('2'),104));
+    EXPECT_TRUE(sessions.settingsReadbackMatches(token('e'),"\""+token('1')+"\"",token('c'),104));
+}
+
+TEST(WebAuth, SettingsReadbackRejectsMissingMalformedWildcardAndWeakOrCombinedTags) {
+    WebAuthSession sessions; ASSERT_NE(sessions.issue(token('a'),token('b'),100),nullptr);
+    EXPECT_FALSE(sessions.settingsReadbackMatches(token('a'),"\""+token('d')+"\"",token('c'),101));
+    ASSERT_EQ(sessions.settingsReadback(token('a'),token('c'),token('d'),101),token('d'));
+    for(const auto &tag:{std::string(),std::string("*"),token('d'),"W/\""+token('d')+"\"",
+            "\""+token('d')+"\", \""+token('d')+"\"","\""+token('D')+"\""})
+        EXPECT_FALSE(sessions.settingsReadbackMatches(token('a'),tag,token('c'),102));
+    for(const auto &nonce:{std::string(),token('z'),token('a'),token('b')})
+        EXPECT_TRUE(sessions.settingsReadback(token('a'),token('c'),nonce,102).empty());
+    EXPECT_TRUE(sessions.settingsReadback(token('0'),token('c'),token('e'),102).empty());
+}
+
+TEST(WebAuth, SettingsReadbackCannotSurviveLogoutReloginExpiryOrReboot) {
+    WebAuthSession sessions; ASSERT_NE(sessions.issue(token('a'),token('b'),100),nullptr);
+    ASSERT_EQ(sessions.settingsReadback(token('a'),token('c'),token('d'),101),token('d'));
+    const auto quoted="\""+token('d')+"\"";
+    EXPECT_FALSE(sessions.settingsReadbackMatches(token('a'),quoted,token('c'),99));
+    EXPECT_FALSE(sessions.settingsReadbackMatches(token('a'),quoted,token('c'),100+WebAuthSession::lifetimeMs));
+    WebAuthSession boot; EXPECT_FALSE(boot.settingsReadbackMatches(token('a'),quoted,token('c'),102));
+    sessions.revoke(token('a')); EXPECT_FALSE(sessions.settingsReadbackMatches(token('a'),quoted,token('c'),102));
+    ASSERT_NE(sessions.issue(token('e'),token('f'),103),nullptr);
+    EXPECT_FALSE(sessions.settingsReadbackMatches(token('e'),quoted,token('c'),104));
+}
+
+TEST(WebAuth, SettingsReadbackTagCannotBecomeANewLoginCookieOrCsrfProof) {
+    WebAuthSession sessions; ASSERT_NE(sessions.issue(token('a'),token('b'),100),nullptr);
+    ASSERT_EQ(sessions.settingsReadback(token('a'),token('c'),token('d'),101),token('d'));
+    EXPECT_EQ(sessions.issue(token('d'),token('e'),102),nullptr);
+    EXPECT_EQ(sessions.issue(token('e'),token('d'),102),nullptr);
+    EXPECT_EQ(sessions.issue(token('d'),token('e'),102,token('a')),nullptr);
+    EXPECT_NE(sessions.find(token('a'),103),nullptr);
+    EXPECT_FALSE(sessions.csrf(token('a'),token('d'),103));
+}
+
+TEST(WebAuth, SeparateSettingsStoresKeepIndependentOpaqueReadbackFences) {
+    WebAuthSession sessions;using Scope=WebAuthSession::SettingsScope;
+    ASSERT_NE(sessions.issue(token('a'),token('b'),100),nullptr);
+    ASSERT_EQ(sessions.settingsReadback(token('a'),token('c'),token('d'),101),token('d'));
+    ASSERT_EQ(sessions.settingsReadback(token('a'),token('e'),token('f'),102,Scope::bluetooth),token('f'));
+    EXPECT_TRUE(sessions.settingsReadbackMatches(token('a'),'"'+token('d')+'"',token('c'),103));
+    EXPECT_TRUE(sessions.settingsReadbackMatches(token('a'),'"'+token('f')+'"',token('e'),103,Scope::bluetooth));
+    EXPECT_FALSE(sessions.settingsReadbackMatches(token('a'),'"'+token('f')+'"',token('e'),103));
+    EXPECT_FALSE(sessions.settingsReadbackMatches(token('a'),'"'+token('d')+'"',token('c'),103,Scope::bluetooth));
+    EXPECT_EQ(sessions.settingsReadback(token('a'),token('1'),token('2'),104),token('2'));
+    EXPECT_TRUE(sessions.settingsReadbackMatches(token('a'),'"'+token('f')+'"',token('e'),105,Scope::bluetooth));
+    EXPECT_FALSE(sessions.settingsReadbackMatches(token('a'),'"'+token('f')+'"',token('3'),105,Scope::bluetooth));
+}
+TEST(WebAuth, ReadbackScopesCannotAliasTokensProofsOrEachOther) {
+    WebAuthSession sessions;using Scope=WebAuthSession::SettingsScope;
+    ASSERT_NE(sessions.issue(token('a'),token('b'),100),nullptr);
+    ASSERT_EQ(sessions.settingsReadback(token('a'),token('c'),token('d'),101),token('d'));
+    EXPECT_TRUE(sessions.settingsReadback(token('a'),token('e'),token('d'),102,Scope::bluetooth).empty());
+    EXPECT_TRUE(sessions.settingsReadback(token('a'),token('e'),token('a'),102,Scope::bluetooth).empty());
+    EXPECT_TRUE(sessions.settingsReadback(token('a'),token('e'),token('b'),102,Scope::bluetooth).empty());
+    ASSERT_EQ(sessions.settingsReadback(token('a'),token('e'),token('f'),102,Scope::bluetooth),token('f'));
+    EXPECT_EQ(sessions.issue(token('f'),token('1'),103),nullptr);
+    EXPECT_EQ(sessions.issue(token('1'),token('f'),103),nullptr);
+    EXPECT_TRUE(sessions.settingsReadback(token('a'),token('1'),token('f'),104).empty());
+    EXPECT_TRUE(sessions.settingsReadback(token('a'),token('1'),token('2'),104,static_cast<Scope>(255)).empty());
+    EXPECT_FALSE(sessions.settingsReadbackMatches(token('a'),'"'+token('f')+'"',token('e'),104,static_cast<Scope>(255)));
 }

@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "tag": "v0.1.0-e32v2-alpha.36",
+  "method": "native_github",
+  "source_commit": "7ddf3410666d814850275433d9dddd266e5d83ba",
+  "elf_sha256": "ef313784cdc5e6a83c290225abbdac5a27138c7228890bd804ec9f39d82dc738",
+  "web_sha256": "2b858b3ed32c9748c4b00c0c4f25e0160d17fbcadbb4b040252c3f9ec47dc505",
+  "firmware_sha256": "e8a242d00288e70172fae90ee006d90d59287d024480505d38a887e99f6eb5d4",
+  "firmware_bytes": 2619952,
+  "catalog_check_commands": 1,
+  "install_commands": 1,
+  "install_http_status": 202,
+  "install_started_at_utc": "2026-10-25T10:29:47.618331+00:00",
+  "checks": {
+    "public_package_exact": true,
+    "fresh_preflight_passed": true,
+    "backup_verified": true,
+    "single_native_install_command": true,
+    "original_admission_recorded": true,
+    "download_checksum_image_readback_passed": true,
+    "new_boot_observed": true,
+    "installed_version_source_elf_web_exact": true,
+    "boot_confirmed": true,
+    "stable_uptime_observed": true,
+    "settings_programs_bindings_preserved": true,
+    "outputs_remained_disabled": true,
+    "independent_postcheck_passed": true
+  },
+  "installer_receipt_sha256": "88688562a12af36d01c9128c30f96bcee6998ba5ee24dad4dff0269e36effa4e",
+  "independent_receipt_sha256": "93beb45b877d90d4e1c8b3a29a914e9df048073592eb88bed0b76b46f61a2947",
+  "backup_manifest_sha256": "27971f9c646d9d0db90cf383492e4dddb4f3fa4c83ea694a356e2f59fe90dbc6",
+  "original_admission_receipt_sha256": "d7096809d2a8a1d2d7d7e6a657157e73b5eba746f33d1f486ae81a7232c91288",
+  "original_intent_receipt_sha256": "90f7216abda927c02d86a540b19f5f5f9ced70f8204d6932c4f3bdf3c1de0438",
+  "backup_payloads": 10,
+  "installer_checks": 36,
+  "independent_checks": 45,
+  "public_UI_files_exact": 31,
+  "HA_component_files_unchanged": 86,
+  "unchanged_project_hashes": 13,
+  "logging_shared_fields_unchanged": 6,
+  "expected_logging_API_additions": {
+    "syslog_esp": true,
+    "syslog_ems": true,
+    "settings_write": false
+  },
+  "before_boot_sha256": "7b120a5b24d0e280fa44fc6403c222ac529ab3d909bad960259e11ce549e58a9",
+  "after_boot_sha256": "13c372e4979f88dec4c264ec2cc5dad97e31673b0798673755ac3743ef3e83dd",
+  "observations": [
+    {
+      "at_utc": "2026-10-25T10:36:53.956868+00:00",
+      "uptime_seconds": 365,
+      "boot_pending": false,
+      "busy": false
+    },
+    {
+      "at_utc": "2026-10-25T10:37:02.457598+00:00",
+      "uptime_seconds": 375,
+      "boot_pending": false,
+      "busy": false
+    }
+  ],
+  "independent_actions": {
+    "HA_component_writes": 0,
+    "HA_restarts": 0,
+    "MQTT_service_device_commands": 0,
+    "backups_created": 0,
+    "install_requests": 0,
+    "new_helpers_readers_subscriptions_workers_schedulers": 0,
+    "production_writes": 0,
+    "reboots": 0,
+    "rollbacks": 0,
+    "settings_UI_SOURCE_pin_program_writes": 0,
+    "updatechecks": 0,
+    "uploads": 0
+  },
+  "evidence_scope": "artifacts/e32-remote-flash-recovery-20261025: NATIVE-BASELINE-BACKUP.json, NATIVE-ACCEPTANCE.json, INDEPENDENT-OBSERVATIONS.json, INDEPENDENT-POSTCHECK.json; private backend originals retained",
+  "limitations": [
+    "Historical multipart-upload watchdog cause remains UNKNOWN; this accepts the native GitHub route only.",
+    "No physical boiler/valve qualification or universal power-loss/rollback recovery guarantee.",
+    "Automatic 12-hour checks are prepared source after alpha36 and are not running in this installed release."
+  ],
+  "independent_observations_sha256": "4148f2a4e71bdcc8275dd372e94ea1ffd46799ae8c664efe53ab38903421fb64",
+  "independent_observation_checks": 44
+}

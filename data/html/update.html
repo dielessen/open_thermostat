@@ -1,37 +1,43 @@
 <section id="githubUpdate" class="card mt-3" aria-labelledby="updateHeading">
- <div class="card-header"><h2 id="updateHeading" class="h5 mb-0">Firmware bijwerken</h2></div>
+ <div class="card-header"><h2 id="updateHeading" class="h5 mb-0"><span data-i18n="Update firmware">Update firmware</span></h2></div>
  <div class="card-body">
-  <p>Releases van <a href="https://github.com/dielessen/open_thermostat/releases" target="_blank" rel="noopener">dielessen/open_thermostat</a>. Installatie begint alleen wanneer je zelf op de knop drukt. Je wifi, kamers en programma’s blijven behouden; de webinterface wordt met de firmware bijgewerkt.</p>
-  <p>Geïnstalleerd: <strong id="installedVersion">Laden…</strong></p>
+  <p><span data-i18n="Releases from">Releases from</span> <a href="https://github.com/dielessen/open_thermostat/releases" target="_blank" rel="noopener">dielessen/open_thermostat</a><span data-i18n=". Installation starts only when you press the button. Your WiFi, rooms and programs are retained; the web interface is updated with the firmware.">. Installation starts only when you press the button. Your WiFi, rooms and programs are retained; the web interface is updated with the firmware.</span></p>
+  <p><span data-i18n="Installed:">Installed:</span> <strong id="installedVersion"><span data-i18n="Loading…">Loading…</span></strong></p>
   <p id="releaseStatus" role="status" aria-live="polite"></p>
-  <button type="button" id="checkReleases" class="btn btn-secondary mb-3" disabled>Controleer op updates</button>
-  <label for="releaseChoice" class="d-block">Beschikbare passende releases</label>
-  <select id="releaseChoice" class="form-control mb-3" disabled><option value="">Controleer eerst op updates</option></select>
-  <button type="button" id="installRelease" class="btn btn-primary" disabled>Downloaden en installeren</button>
+  <details class="mb-3" id="updateDiagnostics">
+   <summary data-i18n="Update diagnostics">Update diagnostics</summary>
+   <p data-i18n="The last saved checkpoint helps investigate an interrupted update. It does not confirm installation or rollback. Manual uploads are not recorded here.">The last saved checkpoint helps investigate an interrupted update. It does not confirm installation or rollback. Manual uploads are not recorded here.</p>
+   <pre id="updateCheckpoint" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
+  </details>
+  <p data-i18n="Checks run automatically every 12 hours, starting five minutes after startup. Failed checks retry after 30 minutes. Successful results are reused for five minutes. Installation always requires your confirmation.">Checks run automatically every 12 hours, starting five minutes after startup. Failed checks retry after 30 minutes. Successful results are reused for five minutes. Installation always requires your confirmation.</p>
+  <button type="button" id="checkReleases" class="btn btn-secondary mb-3" disabled><span data-i18n="Check for updates">Check for updates</span></button>
+  <label for="releaseChoice" class="d-block"><span data-i18n="Available compatible releases">Available compatible releases</span></label>
+  <select id="releaseChoice" class="form-control mb-3" disabled><option value="" data-i18n="Check for updates first">Check for updates first</option></select>
+  <button type="button" id="installRelease" class="btn btn-primary" disabled><span data-i18n="Download and install">Download and install</span></button>
   <progress id="releaseProgress" class="w-100 mt-3" hidden></progress>
-  <p class="mt-3"><button type="button" id="restartRelease" class="btn btn-success" hidden>Herstarten en update toepassen</button></p>
-  <p><small>Gebruik je thuisnetwerk en houd het apparaat onder stroom. Bij een mislukte download of controle blijft de vorige firmware geselecteerd. Testreleases zijn experimenteel; deze firmware geeft verwarming nog niet vrij.</small></p>
-  <button type="button" id="rollbackRelease" class="btn btn-outline-secondary" hidden>Vorige firmware terugzetten</button>
+  <p class="mt-3"><button type="button" id="restartRelease" class="btn btn-success" hidden><span data-i18n="Restart and apply update">Restart and apply update</span></button></p>
+  <p><small><span data-i18n="Use your home network and keep the device powered. If downloading or verification fails, the previous firmware remains selected. Test releases are experimental; this firmware does not enable heating yet.">Use your home network and keep the device powered. If downloading or verification fails, the previous firmware remains selected. Test releases are experimental; this firmware does not enable heating yet.</span></small></p>
+  <button type="button" id="rollbackRelease" class="btn btn-outline-secondary" hidden><span data-i18n="Restore previous firmware">Restore previous firmware</span></button>
  </div>
 </section>
-<p class="mt-4"><strong>Handmatige upload / herstel</strong> — gebruik alleen een passende app-firmware, nooit het gecombineerde factorybestand. Een SPIFFS-upload kan kamers en programma’s vervangen; die is niet nodig voor gewone GitHub-updates.</p>
+<p class="mt-4"><strong><span data-i18n="Manual upload / recovery">Manual upload / recovery</span></strong> <span data-i18n="— use compatible app firmware only, never the combined factory file. A SPIFFS upload can replace rooms and programs; it is not needed for normal GitHub updates.">— use compatible app firmware only, never the combined factory file. A SPIFFS upload can replace rooms and programs; it is not needed for normal GitHub updates.</span></p>
 <form id = "updateform" class="invisible" novalidate>
 	<div class="col-md-auto mt-3">
 	<div class="row mb-3">
 		<div class="card w-100">
 			<div class="card-header d-flex justify-content-between align-items-center">
-				<span class="align-middle">Firmware update</span>
+				<span class="align-middle"><span data-i18n="Firmware update">Firmware update</span></span>
 			</div>
 			<div class="card-body">
 				<div class="form-group">
 					<div class="form-row mb-2">
-						<div class="col"><label for="FirmwareType">Select firmware file type</label></div>
+						<div class="col"><label for="FirmwareType"><span data-i18n="Select firmware file type">Select firmware file type</span></label></div>
 						<div class="col"><select class="custom-select" id="FirmwareType" aria-label="Firmware file type selection"><option value="firmware">Firmware</option><option value="fs">SPIFFS</option></select></div>
 					</div>
 					<div class="form-row">
 						<div class="col">
 							<input type="file" name="file" class="custom-file-input" id="FirmwarePath" required>
-							<label class="custom-file-label" for="FirmwarePath">Choose firmware file...</label>
+							<label class="custom-file-label" for="FirmwarePath"><span data-i18n="Choose firmware file...">Choose firmware file...</span></label>
 						</div>
 					</div>
 				</div>
@@ -39,7 +45,7 @@
 			<div class="card-footer text-muted">
 				<div class="row">
 					<div class="col-4 col-md-4">
-						<button class="btn btn-primary mb-2" type="submit" id="FirmwareSubmit">Perform firmware update</button>
+						<button class="btn btn-primary mb-2" type="submit" id="FirmwareSubmit"><span data-i18n="Perform firmware update">Perform firmware update</span></button>
 					</div>
 					<div class="col-8 col-md-8">
 						<div class="progress mb-2 align-middle" style="height: 100%;"><div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progressbar" style="height: 100%"></div></div>
@@ -56,24 +62,38 @@
 (() => {
  const root=document.getElementById('githubUpdate');
  const $id=id=>root.querySelector('#'+id);
- let state=null,action=false,timer,expectedVersion=null,manualVersion=null;
- const phases={idle:'Klik op Controleer op updates.',checking:'GitHub-releases worden gecontroleerd…',manifest:'Releasegegevens worden gecontroleerd…',downloading:'Firmware wordt veilig gedownload. Houd het apparaat aan.',verifying:'Download en flashgeheugen worden gecontroleerd…',ready_to_reboot:'Update gecontroleerd. Herstart om de nieuwe versie te gebruiken.',rolling_back:'Vorige firmware wordt geselecteerd. Het apparaat herstart…'};
+ let fresh=false,revision=0,state=null,action=false,timer,expectedVersion=null,manualVersion=null;
+ const phases={idle:uiText("Click Check for updates."),checking:uiText("Checking GitHub releases…"),manifest:uiText("Checking release data…"),downloading:uiText("Firmware is downloading securely. Keep the device powered."),verifying:uiText("Checking download and flash memory…"),ready_to_reboot:uiText("Update verified. Restart to use the new version."),rolling_back:uiText("Selecting previous firmware. The device is restarting…")};
  async function request(path,body) {
   const controller=new AbortController(), timeout=setTimeout(()=>controller.abort(),10000);
   try {
    const response=await fetch(path,{method:body===undefined?'GET':'POST',credentials:'same-origin',cache:'no-store',signal:controller.signal,...(body===undefined?{}:{headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})});
-   if(!response.ok){const e=Error(await response.text()||'Aanvraag niet geaccepteerd');e.status=response.status;throw e;}return response;
+   if(!response.ok){const e=Error(await response.text()||uiText("Request not accepted"));e.status=response.status;throw e;}
+   // Keep the deadline active until the streamed status body is consumed.
+   if(body===undefined)return await response.json();
+   return response;
   } finally {clearTimeout(timeout);}
  }
  function controls() {
-  const blocked=action||!state||state.busy||state.reboot_required;
+  const blocked=action||!fresh||!state||state.busy||state.reboot_required;
   $id('checkReleases').disabled=blocked||!state.can_check;
   $id('releaseChoice').disabled=blocked||!state.releases.length;
   $id('installRelease').disabled=blocked||state.boot_pending||!$id('releaseChoice').value||$id('releaseChoice').value===state.installed;
   $id('restartRelease').hidden=!state||!state.reboot_required||!!state.reboot_scheduled;
-  $id('restartRelease').disabled=action||!!state?.busy;
+  $id('restartRelease').disabled=action||!fresh||!!state?.busy;
   $id('rollbackRelease').hidden=!state||!state.rollback_available||state.reboot_required;
-  $id('rollbackRelease').disabled=action||!!state?.busy;
+  $id('rollbackRelease').disabled=action||!fresh||!!state?.busy;
+ }
+ function validStatus(s) {
+  return s&&['installed','phase','error'].every(key=>typeof s[key]==='string')
+   &&s.installed.length>0&&s.installed.length<=96&&s.phase.length<=32&&s.error.length<=2048
+   &&['busy','can_check','boot_pending','reboot_required','rollback_available'].every(key=>typeof s[key]==='boolean')
+   &&(s.reboot_scheduled===undefined||typeof s.reboot_scheduled==='boolean')
+   &&(s.selected===undefined||typeof s.selected==='string'&&s.selected.length<=96)
+   &&['received','total'].every(key=>Number.isSafeInteger(s[key])&&s[key]>=0&&s[key]<=4294967295)
+   &&Array.isArray(s.releases)&&s.releases.length<=32
+   &&s.releases.every(r=>r&&typeof r.tag==='string'&&r.tag.length>0&&r.tag.length<=96&&typeof r.prerelease==='boolean')
+   &&new Set(s.releases.map(r=>r.tag)).size===s.releases.length;
  }
  function render(s) {
   if(!s.reboot_required&&((expectedVersion&&s.installed===expectedVersion)||(manualVersion&&s.installed!==manualVersion))){location.reload();return;}
@@ -81,36 +101,59 @@
   const old=$id('releaseChoice').value;state=s;
   $id('installedVersion').textContent=s.installed;
   const choices=$id('releaseChoice');choices.replaceChildren();
-  if(!s.releases.length)choices.add(new Option(s.phase==='checked'?'Geen passende releases beschikbaar':'Controleer eerst op updates',''));
-  for(const r of s.releases)choices.add(new Option(r.tag+(r.prerelease?' (testrelease)':'')+(r.tag===s.installed?' — geïnstalleerd':''),r.tag));
+  if(!s.releases.length)choices.add(new Option(s.phase==='checked'?uiText("No compatible releases available"):uiText("Check for updates first"),''));
+  for(const r of s.releases)choices.add(new Option(r.tag+(r.prerelease?uiText(" (test release)"):'')+(r.tag===s.installed?uiText(" — installed"):''),r.tag));
   if(s.releases.some(r=>r.tag===old))choices.value=old;
-  let message=s.error||phases[s.phase]||(s.phase==='checked'?(s.releases.length&&s.releases[0].tag!==s.installed?'Passende release gevonden. Kies een versie om te installeren.':'Je hebt de beschikbare versie al.'):'Status ontvangen.');
-  if(s.reboot_required&&s.reboot_scheduled)message='Update gecontroleerd. Het apparaat herstart automatisch; wacht op opnieuw verbinden. Houd het onder stroom.';
-  if(!s.busy&&!s.can_check&&!s.reboot_required)message+=' Verbind met je thuisnetwerk en wacht op geldige netwerktijd (NTP).';
-  if(s.boot_pending)message+=' Deze opstart wordt nog gecontroleerd; installeren wordt daarna beschikbaar.';
+  let message=s.error||phases[s.phase]||(s.phase==='checked'?(s.releases.length&&s.releases[0].tag!==s.installed?uiText("Compatible release found. Choose a version to install."):uiText("You already have the available version.")):uiText("Status received."));
+  if(s.reboot_required&&s.reboot_scheduled)message=uiText("Update verified. The device restarts automatically; wait for reconnection. Keep it powered.");
+  if(!s.busy&&!s.can_check&&!s.reboot_required)message+=uiText(" Connect to your home network and wait for valid network time (NTP).");
+  if(s.boot_pending)message+=uiText(" This startup is still being checked; installation will become available afterwards.");
   $id('releaseStatus').textContent=message;
+  const saved=s.last_saved_checkpoint;
+  const stageNames={manifest:uiText("Checking release data…"),downloading:uiText("Downloading firmware"),verifying:uiText("Verifying firmware"),boot_slot_selected:uiText("Boot slot selected; installation not confirmed"),before_hash_verification:uiText("Before firmware checksum verification"),before_image_validation:uiText("Before native image validation"),before_flash_readback:uiText("Before independent flash readback"),before_boot_slot_selection:uiText("Before boot slot selection; not yet selected"),error:uiText("Update error")};
+  const lines=saved?[
+   uiText("Saved attempt: ")+saved.attempt,
+   uiText("From version: ")+saved.from_version,
+   uiText("Target version: ")+saved.target_version,
+   uiText("Last saved stage: ")+(stageNames[saved.stage]||uiText("Unknown")),
+   uiText("Bytes at checkpoint: ")+saved.received+' / '+saved.total,
+   uiText("HTTP result at checkpoint (0 = not recorded): ")+saved.http_status
+  ]:[uiText("No saved update checkpoint is available.")];
+  if(s.checkpoint_save_failed)lines.push(uiText("The latest checkpoint could not be saved. Older saved information may be shown."));
+  if(Number.isInteger(s.reset_reason))lines.push(uiText("Reset reason (ESP-IDF code): ")+s.reset_reason);
+  $id('updateCheckpoint').textContent=lines.join('\n');
   const p=$id('releaseProgress');p.hidden=!s.busy&&!s.reboot_required;
-  if(s.total>0){p.max=s.total;p.value=s.received;p.setAttribute('aria-label','Firmware ontvangen: '+s.received+' van '+s.total+' bytes');}else p.removeAttribute('value');
+  if(s.total>0){p.max=s.total;p.value=s.received;p.setAttribute('aria-label',uiText("Firmware received: ")+s.received+uiText(" of ")+s.total+' bytes');}else p.removeAttribute('value');
   controls();
  }
  async function poll() {
   if(!root.isConnected){clearTimeout(timer);return;}
-  try{render(await (await request('/updates/status')).json());}
-  catch(e){if(e.status===404){root.hidden=true;return;}$id('releaseStatus').textContent=expectedVersion?'Herstart bezig. Wacht op opnieuw verbinden; de geïnstalleerde versie wordt opnieuw gecontroleerd.':'Apparaat niet bereikbaar. Een update is niet bevestigd; we proberen opnieuw. Blijf op je thuisnetwerk.';}
-  timer=setTimeout(poll,1000);
+  if(action){timer=setTimeout(poll,1000);return;}
+  const observedRevision=revision;let stopped=false;
+  try {
+   const next=await request('/updates/status');
+   if(!root.isConnected||observedRevision!==revision)return;
+   if(!validStatus(next))throw Error('Invalid update status');
+   fresh=true;render(next);
+  } catch(e) {
+   if(!root.isConnected||observedRevision!==revision)return;
+   fresh=false;controls();
+   if(e.status===404){root.hidden=true;stopped=true;return;}
+   $id('releaseStatus').textContent=expectedVersion?uiText("Restart in progress. Wait for reconnection; the installed version will be checked again."):uiText("Device unreachable. An update has not been confirmed; we will retry. Stay on your home network.");
+  } finally {if(root.isConnected&&!stopped)timer=setTimeout(poll,1000);}
  }
  async function command(path,body={}) {
-  if(action)return;action=true;controls();
+  if(action||!fresh||!root.isConnected)return false;action=true;fresh=false;++revision;controls();
   try{await request(path,body);return true;}
-  catch(e){$id('releaseStatus').textContent='Aanvraag nog niet bevestigd: '+e.message+'. De status wordt opnieuw opgehaald.';return false;}
+  catch(e){$id('releaseStatus').textContent=uiText("Request not yet confirmed: ")+e.message+uiText(". The status will be fetched again.");return false;}
   finally{action=false;controls();}
  }
  $id('releaseChoice').onchange=controls;
  $id('checkReleases').onclick=()=>command('/updates/check');
  $id('installRelease').onclick=()=>{const tag=$id('releaseChoice').value;if(!state||state.busy||!tag||tag===state.installed)return;
-  if(confirm('Firmware '+tag+' downloaden en installeren? Na controle herstart het apparaat automatisch. Wifi, kamers en programma’s blijven behouden. Houd het apparaat onder stroom.'))command('/updates/install',{tag});};
- $id('restartRelease').onclick=async()=>{if(await command('/updates/reboot'))$id('releaseStatus').textContent='Herstart aangevraagd. Wacht op opnieuw verbinden; de geïnstalleerde versie wordt opnieuw gecontroleerd.';};
- $id('rollbackRelease').onclick=()=>{if(confirm('De vorige gevalideerde firmware terugzetten en herstarten? Instellingen worden niet gewist.'))command('/updates/rollback');};
+  if(confirm('Firmware '+tag+uiText(" download and install? The device restarts automatically after verification. WiFi, rooms and programs are retained. Keep the device powered.")))command('/updates/install',{tag});};
+ $id('restartRelease').onclick=async()=>{if(await command('/updates/reboot'))$id('releaseStatus').textContent=uiText("Restart requested. Wait for reconnection; the installed version will be checked again.");};
+ $id('rollbackRelease').onclick=()=>{if(confirm(uiText("Restore the previous validated firmware and restart? Settings will be retained.")))command('/updates/rollback');};
  poll();
 $(document).ready(function() {
 	$('#updateform').on("submit", async function(event) {
@@ -119,7 +162,7 @@ $(document).ready(function() {
 
 	let fileInput = document.getElementById("FirmwarePath");
 	if (!fileInput.files.length) {
-		alert("Please select firmware.bin file!");
+		alert(uiText("Please select firmware.bin file!"));
 		$("#FirmwareSubmit").prop('disabled', false);
 		return;
 	}
@@ -136,7 +179,7 @@ $(document).ready(function() {
 		const headers = window.OpenThermostatAuth ? await window.OpenThermostatAuth.headers() : {};
 		for (const [name,value] of Object.entries(headers)) xhr.setRequestHeader(name,value);
 	} catch (error) {
-		alert("Sign in again before uploading.");
+		alert(uiText("Sign in again before uploading."));
 		$("#FirmwareSubmit").prop("disabled",false);
 		return;
 	}
@@ -153,29 +196,29 @@ $(document).ready(function() {
 		if (xhr.status === 200) {
 			if(path==='/ota'&&state) {
 				manualVersion=state.installed;
-				$('#progressbar').text('Update gecontroleerd; automatisch herstarten…');
-			} else if (confirm("Update successful.\nMessage: " + xhr.responseText + "\nDo you want to reboot device to\nchanges take place?")) {
+				$('#progressbar').text(uiText("Update verified; restarting automatically…"));
+			} else if (confirm(uiText("Update successful. Message: ") + xhr.responseText + uiText("\nDo you want to reboot device to changes take place?"))) {
 				reboot();
 			}
 		} else {
-			alert("Firmware udpate error: " + xhr.responseText);
+			alert(uiText("Firmware udpate error: ") + xhr.responseText);
 		}
 		$("#FirmwareSubmit").prop('disabled', xhr.status===200&&path==='/ota'&&!!state);
 	};
 
 	xhr.onerror = function() {
-		alert("Update connection failed. The update was not confirmed. Do not reboot the device until it is reachable again.");
+		alert(uiText("Update connection failed. The update was not confirmed. Do not reboot the device until it is reachable again."));
 		$("#FirmwareSubmit").prop('disabled', false);
 	};
 
 	xhr.onabort = function() {
-		alert("Update upload was aborted.");
+		alert(uiText("Update upload was aborted."));
 		$("#FirmwareSubmit").prop('disabled', false);
 	};
 
 	xhr.timeout = 300000;
 	xhr.ontimeout = function() {
-		alert("Update upload timed out. The update was not confirmed.");
+		alert(uiText("Update upload timed out. The update was not confirmed."));
 		$("#FirmwareSubmit").prop('disabled', false);
 	};
 

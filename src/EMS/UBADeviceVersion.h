@@ -6,13 +6,14 @@ namespace heating::ems {
 
 class UBADeviceVersion : public EmsTelegram {
 public:
+    using EmsTelegram::EmsTelegram;
 	static constexpr uint16_t predefinedTypeId = 0x0002;
 
 	static EmsTelegram getRequest(uint8_t deviceId, uint8_t destination) {
 		return {EmsTelegram::operation_t::READ, deviceId, destination, 0, predefinedTypeId, {maxEmsDataLength}};
 	}
 
-	static EmsTelegram getResponse(uint8_t deviceId, uint8_t destination, uint8_t offset, uint8_t requestedSize) {
+	static EmsTelegram getResponse(uint8_t deviceId, uint8_t destination, uint8_t /*offset*/, uint8_t /*requestedSize*/) {
 		constexpr uint8_t vMajor = 1;
 		constexpr uint8_t vMinor = 1;
 		constexpr uint8_t vVendorId = 99;

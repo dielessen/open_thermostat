@@ -123,7 +123,9 @@ class Notices(unittest.TestCase):
 
     def test_real_packager_denies_before_creating_any_release_outputs(self):
         scripts=self.root/"scripts";scripts.mkdir()
-        for name in ("package_e32v2_release.py","release_notices.py","verify_e32v2_release.py"):
+        for name in ("package_e32v2_release.py","release_notices.py","verify_e32v2_release.py",
+                     "e32_distribution.py","e32_relink.py","e32_source_closure.py",
+                     "e32_source_inputs.py","release_shipped.py"):
             shutil.copy2(REPO/"scripts"/name,scripts/name)
         pkg=Path(self.tmp.name)/"package";release=Path(self.tmp.name)/"release"
         env={**os.environ,"PLATFORMIO_CORE_DIR":str(self.core),"PYTHONDONTWRITEBYTECODE":"1"}

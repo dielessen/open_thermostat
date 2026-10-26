@@ -18,6 +18,19 @@ Regenerate with Python 3 + cryptography:
 Generated binary SHA256:
 49e7e1ca53f48330b1b507872f1447eb5f333632b6802282ec51aaab5640787c.
 
+The dated PEM is byte-identical to curl's published historical
+`https://curl.se/ca/cacert-2026-09-25.pem` and its published SHA256. Exact Mozilla
+source, original MPL text and converter notices are bound in
+`docs/third-party/ca-provenance.json`. The original curl 1.33 converter reproduces
+the complete PEM; the original Espressif generator reproduces the binary above.
+Run the offline correspondence check with:
+
+    python3 scripts/verify_ca_snapshot.py
+
+This checks source/server-auth membership, notices and exact regenerated binary.
+It does not assert Firefox's additional trust constraints or firmware release
+approval. No trusted certificates were changed by adding this evidence.
+
 Uses the pinned Arduino WiFiClientSecure certificate-bundle implementation,
 with hostname and certificate validation enabled. The device needs a valid clock.
 Refresh this public root snapshot as part of reviewed firmware releases; never

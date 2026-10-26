@@ -8,7 +8,10 @@ are explicit fakes: selection is forbidden before every gate. Run via the normal
 `browser.cjs` executes the shipped update page in Chromium with simulated HTTP.
 No automatic check/install occurs; explicit selection, cancellation, byte
 progress, checksum failure, interrupted response, restart rejection, reconnect
-version and previous-image confirmation are covered.
+version and previous-image confirmation are covered. A streamed response that
+sends headers but stalls before the JSON body completes must hit the same
+10-second request deadline. NL/EN regressions shorten only that deadline in the
+fixture; no command is retried and controls require a fresh valid status again.
 
 `image_check.cpp` drives the same production gate with the actual packaged app
 and independently computed OpenSSL SHA256. Success, modified data, truncation,

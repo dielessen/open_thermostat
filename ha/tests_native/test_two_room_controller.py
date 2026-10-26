@@ -50,6 +50,15 @@ async def two_controller(native_two,hass,monkeypatch,request):
     if out:=os.environ.get("OPENTHERMOSTAT_TWO_CONTROLLER_EVIDENCE"):
         (Path(out).parent/"SOURCE-FIXTURE.json").write_text(canonical(dict(stored=raw,source=ctor))+chr(10))
     mode=getattr(request,"param","ok")
+    if isinstance(mode, tuple) and mode[0] == "runtime_clock_origin":
+        # Preserve the actual runtime, but give its default clock a deliberately
+        # different epoch. The fixture must align it with the finite peer clock.
+        from custom_components.open_thermostat.v1_runtime import ShadowRuntime
+        original_init = ShadowRuntime.__init__
+        def initialize_runtime(self, *args, **kwargs):
+            kwargs.setdefault("clock", lambda: mode[1])
+            original_init(self, *args, **kwargs)
+        monkeypatch.setattr(ShadowRuntime, "__init__", initialize_runtime)
     if mode=="wrong_profile":ctor["profile_digest"]="0"*64
     elif mode=="wrong_config":ctor["control_digest"]="0"*64
     elif mode=="future_version":ctor["profile_version"]="two-room-targets.v999"
@@ -80,6 +89,9 @@ async def two_controller(native_two,hass,monkeypatch,request):
             assert await integration.async_setup_entry(hass,parent)
             state=hass.data["open_thermostat"][parent.entry_id];runtime=state["v1_runtime"];connection=state["v1_connection"];client=connection.client
             client.clock=lambda:peer.clock[0]
+            # Observation stamps and wire-age subtraction must use the same
+            # monotonic domain. Host uptime must not age finite fixture samples.
+            runtime.clock=lambda:peer.clock[0]
             for r in (rad,floor):runtime.set_report_profile(r.room_id,source_profile)
             if n:=holder.get("n"):n.runtime,n.connection,n.client=runtime,connection,client
         async def stop():
@@ -109,9 +121,20 @@ async def two_controller(native_two,hass,monkeypatch,request):
                     physical_state(hass,r,key=f"two_{r.room_id}_{serial}",value=str(value))
                 await hass.async_block_till_done();await drain()
         async def settle(a,b):
-            # The existing regulator anchors minimum-off at its last denied/
-            # reset step, NOT boot0. Keep120s policy unchanged; feed121seconds
-            # of continuous fresh reports/heartbeats/safety after qualification.
+            # Anchor warmup AFTER both actual firmware measurements exist.
+            # Startup callback/transport delays must not consume minimum-off.
+            for _ in range(5):
+                await event("safety_snapshot",limits_known_safe=True,dhw_state_known=True)
+                await samples(a,b);await event("tick");await drain()
+                if all(runtime.decisions.get(r.room_id) is not None
+                       and runtime.decisions[r.room_id].current_centi_c==round(v*100)
+                       for r,v in ((rad,a),(floor,b))):
+                    break
+                peer.clock[0]+=1
+                await client.poll();await drain()
+            else:
+                raise AssertionError("bounded initial firmware measurement qualification")
+            # Keep the original 120s policy and 121s continuous fresh warmup.
             for _ in range(121):
                 peer.clock[0]+=1
                 await client.poll();await drain()
@@ -278,3 +301,22 @@ async def test_existing_owned_wire_off_stops_each_room_independently(two_control
     assert all(not d.demand for d in n.runtime.decisions.values())
     assert all(d.target_centi_c is None for d in n.runtime.decisions.values())
     record(dict(scenario="owned_wire_off_both",target_a=None,target_b=None,demand_a=False,demand_b=False,writes=0,physical_outputs_enabled=False))
+
+
+@pytest.mark.asyncio
+async def test_settle_waits_for_actual_initial_reports_before_minimum_off_budget(two_controller):
+    """Lost startup wire samples cannot consume a room's minimum-off warmup."""
+    n=two_controller;original=n.peer.request;dropped=[]
+    async def delay_first_floor_reports(op,**kw):
+        if op=="receive" and kw.get("topic")=="ha/observations" and n.peer.clock[0]<102:
+            payload=json.loads(kw["raw"])
+            if payload.get("zone_id")==n.floor.room_id:
+                dropped.append(payload["sequence"])
+                # Finite transport-loss injection: run the real firmware tick,
+                # without delivering this outbound observation. Never fake state.
+                return await original("tick")
+        return await original(op,**kw)
+    n.peer.request=delay_first_floor_reports
+    await n.settle(16,16)
+    assert dropped
+    assert all(d.current_centi_c==1600 and d.demand for d in n.runtime.decisions.values())

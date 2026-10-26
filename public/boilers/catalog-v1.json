@@ -1,0 +1,1678 @@
+{
+  "schema": 1,
+  "catalog_version": "2026-10-25.3",
+  "purpose": "presentation_catalog_only",
+  "control_profiles": false,
+  "sources": {
+    "emsesp-library": {
+      "url": "https://github.com/emsesp/EMS-ESP32/blob/8f7049b47a1641cc22c91c63cfb27c1278b282ed/src/core/device_library.h",
+      "commit": "8f7049b47a1641cc22c91c63cfb27c1278b282ed",
+      "sha256": "d18a57e535816286b22f93147293f086809f62191d6862a0782eaf11793a4bef",
+      "product_groups": 31
+    },
+    "emsesp-docs": {
+      "url": "https://github.com/emsesp/docs/blob/227c21a942211724f0c481d295fd7f22f976422b/docs/Boilers.md",
+      "commit": "227c21a942211724f0c481d295fd7f22f976422b",
+      "sha256": "c58268b5449592ad87d5bf12512498fc37d45463c744f2fc070b345b6cad5674",
+      "documented_groups": 28
+    }
+  },
+  "models": [
+    {
+      "id": "none",
+      "name": "No boiler selected yet",
+      "kind": "none",
+      "image": null,
+      "source": "local"
+    },
+    {
+      "id": "nefit-ecomline-classic",
+      "name": "Nefit Ecomline Classic",
+      "kind": "local",
+      "image": null,
+      "source": "local",
+      "image_status": "original_model_image_not_verified",
+      "image_research": [
+        "Official manufacturer archive URL no longer resolves in this environment",
+        "Supplier HRC22H listing found, image not retrievable/verified",
+        "Private resale/forum photos not substituted"
+      ],
+      "brand": "Nefit",
+      "selectable": true
+    },
+    {
+      "id": "nefit-ecomline-classic-hrc-22h",
+      "name": "Nefit Ecomline Classic HRC 22H",
+      "kind": "local",
+      "image": null,
+      "source": "local",
+      "image_status": "original_model_image_not_verified",
+      "image_research": [
+        "Official manufacturer archive URL no longer resolves in this environment",
+        "Supplier HRC22H listing found, image not retrievable/verified",
+        "Private resale/forum photos not substituted"
+      ],
+      "brand": "Nefit",
+      "selectable": true
+    },
+    {
+      "id": "emsesp-product-8",
+      "name": "Bosch Compress CS5800i / Bosch Compress CS6800i / Buderus Logatherm WLW176i / Buderus Logatherm WLW186i",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 8,
+      "upstream_flag": "EMS_DEVICE_FLAG_CS6800",
+      "validation": "listed_upstream_only",
+      "brand": "Bosch",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-11",
+      "name": "Worcester Bosch Greenstar 2000",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 11,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Worcester Bosch",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-12",
+      "name": "Bosch C1200W",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 12,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Bosch",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-16",
+      "name": "Bosch Compress CS5800iG",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 16,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Bosch",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-64",
+      "name": "Sieger BK13 / Sieger BK15 / Nefit SmartLine / Buderus GB1*2",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 64,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Sieger",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-72",
+      "name": "Buderus Logano GB1*5 / Buderus Logamatic MC10",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 72,
+      "upstream_flag": "EMS_DEVICE_FLAG_EMS",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-81",
+      "name": "Buderus Cascade CM10",
+      "kind": "module",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 81,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-84",
+      "name": "Buderus Logamax Plus GB022",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 84,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-95",
+      "name": "Bosch Condens / Buderus Logamax / Buderus Logamatic / Junkers Cerapur Top / Worcester Bosch Greenstar",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 95,
+      "upstream_flag": "EMS_DEVICE_FLAG_HT3",
+      "validation": "listed_upstream_only",
+      "brand": "Bosch",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-115",
+      "name": "Nefit TopLine / Buderus Logamax plus GB162",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 115,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Nefit",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-121",
+      "name": "Bosch Cascade MCM10",
+      "kind": "module",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 121,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Bosch",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-122",
+      "name": "Nefit ProLine",
+      "kind": "family",
+      "image": "https://bbqkees-electronics.nl/wp-content/uploads/ems-devices/nefit/boilers/Nefit-proline-hrc-ems.jpg",
+      "source": "emsesp-library",
+      "product_id": 122,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "image_provenance": {
+        "url": "https://bbqkees-electronics.nl/wp-content/uploads/ems-devices/nefit/boilers/Nefit-proline-hrc-ems.jpg",
+        "source_page": "https://bbqkees-electronics.nl/ketels-nefit/?lang=nl",
+        "publisher": "BBQKees",
+        "kind": "specialist_product_rendering",
+        "sha256_at_review": "0740a0ea732b7b06aa4962b828a7b12e9f775f4b72c1ed24f82237a6bcfea340",
+        "reviewed_at": "2026-10-25",
+        "bytes_at_review": 13933,
+        "content_type": "image/jpeg",
+        "hosting": "external_original_reference",
+        "redistribution_license": "not_claimed; no copied media published",
+        "depicted_model": "Nefit ProLine HRC (EMS)",
+        "scope": "model_family; no exact output/year variant claim"
+      },
+      "brand": "Nefit",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-123",
+      "name": "Buderus GB*72 / Nefit TrendLine / Junkers Cerapur / Worcester Bosch Greenstar Si",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 123,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-131",
+      "name": "Buderus GB212",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 131,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-132",
+      "name": "Bosch GC7000F",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 132,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Bosch",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-133",
+      "name": "Buderus Logano GB125 / Buderus Logano KB195i / Buderus Logamatic MC110",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 133,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-154",
+      "name": "Worcester Bosch Greenstar 30Ri Compact",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 154,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Worcester Bosch",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-155",
+      "name": "Junkers Suprapur-o",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 155,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Junkers",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-167",
+      "name": "Junkers Cerapur Aero",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 167,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Junkers",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-168",
+      "name": "Bosch Hybrid Heatpump",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 168,
+      "upstream_flag": "EMS_DEVICE_FLAG_HYBRID",
+      "validation": "listed_upstream_only",
+      "brand": "Bosch",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-170",
+      "name": "Buderus Logano GB212",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 170,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-172",
+      "name": "Nefit EnviLine / Bosch Compress 6000AW / Bosch Hybrid 3000-7000iAW / Junkers SupraEco / IVT Geo 5xx / Buderus Logatherm WLW196i / Buderus Logatherm WSW196i",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 172,
+      "upstream_flag": "EMS_DEVICE_FLAG_HEATPUMP",
+      "validation": "listed_upstream_only",
+      "brand": "Nefit",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-173",
+      "name": "IVT Geo 5xx",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 173,
+      "upstream_flag": "EMS_DEVICE_FLAG_HEATPUMP",
+      "validation": "listed_upstream_only",
+      "brand": "IVT",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-195",
+      "name": "Bosch Condens 5000i / Worcester Bosch Greenstar 8000 / Bosch GC9800iW / Buderus GB192i*2",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 195,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Bosch",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-203",
+      "name": "Buderus Logamax U122 / Junkers Cerapur",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 203,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-206",
+      "name": "Nefit Ecomline Excellent",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 206,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Nefit",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-208",
+      "name": "Buderus Logamax Plus / Buderus GB192 / Bosch Condens GC9000 / Worcester Bosch Greenstar ErP",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 208,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-210",
+      "name": "Buderus Cascade MC400",
+      "kind": "module",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 210,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-211",
+      "name": "Bosch EasyControl Adapter",
+      "kind": "module",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 211,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Bosch",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-219",
+      "name": "Worcester Bosch Greenstar HIU / Buderus Logamax kompakt WS170",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 219,
+      "upstream_flag": "EMS_DEVICE_FLAG_HIU",
+      "validation": "listed_upstream_only",
+      "brand": "Worcester Bosch",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-product-234",
+      "name": "Buderus Logamax Plus GB122 / Bosch Condens 2300 / Junkers Cerapur GC2200W",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "product_id": 234,
+      "upstream_flag": "EMS_DEVICE_FLAG_NONE",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-bk13-bk15",
+      "name": "Sieger BK13 / Sieger BK15",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Sieger",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-gb125-gb135-gb1x2i-gb162-gbx72-gb212-gb162-gb192",
+      "name": "Buderus GB125 / Buderus GB135 / Buderus GB1x2i / Buderus Logamax plus GB162 / Buderus GBx72 / Buderus GB212 / Buderus GB192 / Buderus GB122 / Buderus GB192i.2",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-mc10",
+      "name": "Buderus Logamatic MC10",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-cascade-cm10-mc400",
+      "name": "Buderus Cascade CM10 / Buderus Cascade MC400",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-logano",
+      "name": "Buderus Logano",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-logamax-plus-gb022-u122",
+      "name": "Buderus Logamax Plus GB022 / Buderus Logamax U122",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-logamatic-mc10-mc110",
+      "name": "Buderus Logamatic MC10 / Buderus Logamatic MC110",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-condens-2500-gc9000",
+      "name": "Bosch Condens 2500 / Bosch Condens GC9000",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Bosch",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-bosch-junkers-cerapur-gc2200w",
+      "name": "Junkers Cerapur GC2200W",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Junkers",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-logomatic",
+      "name": "Buderus Logamatic",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-bosch-junkers-cerapur-top-aero",
+      "name": "Junkers Cerapur Top / Junkers Cerapur Aero",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Junkers",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-bosch-junkers-cerapur-zsb-14-3-a",
+      "name": "Junkers Cerapur ZSB 14-3 A",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Junkers",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-greenstar-si-30ri-compact-erp-hiu-8000",
+      "name": "Worcester Bosch Greenstar Si / Worcester Bosch Greenstar 30Ri Compact / Worcester Bosch Greenstar ErP / Worcester Bosch Greenstar HIU / Worcester Bosch Greenstar 8000",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Worcester Bosch",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-nefit-topline-trendline",
+      "name": "Nefit TopLine / Nefit TrendLine",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Nefit",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-nefit-proline",
+      "name": "Nefit ProLine",
+      "kind": "family",
+      "image": "https://bbqkees-electronics.nl/wp-content/uploads/ems-devices/nefit/boilers/Nefit-proline-hrc-ems.jpg",
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "image_provenance": {
+        "url": "https://bbqkees-electronics.nl/wp-content/uploads/ems-devices/nefit/boilers/Nefit-proline-hrc-ems.jpg",
+        "source_page": "https://bbqkees-electronics.nl/ketels-nefit/?lang=nl",
+        "publisher": "BBQKees",
+        "kind": "specialist_product_rendering",
+        "sha256_at_review": "0740a0ea732b7b06aa4962b828a7b12e9f775f4b72c1ed24f82237a6bcfea340",
+        "reviewed_at": "2026-10-25",
+        "bytes_at_review": 13933,
+        "content_type": "image/jpeg",
+        "hosting": "external_original_reference",
+        "redistribution_license": "not_claimed; no copied media published",
+        "depicted_model": "Nefit ProLine HRC (EMS)",
+        "scope": "model_family; no exact output/year variant claim"
+      },
+      "brand": "Nefit",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-nefit-smartline",
+      "name": "Nefit SmartLine",
+      "kind": "family",
+      "image": "https://bbqkees-electronics.nl/wp-content/uploads/ems-devices/nefit/boilers/Nefit-smartline-ems.jpg",
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "image_provenance": {
+        "url": "https://bbqkees-electronics.nl/wp-content/uploads/ems-devices/nefit/boilers/Nefit-smartline-ems.jpg",
+        "source_page": "https://bbqkees-electronics.nl/ketels-nefit/?lang=nl",
+        "publisher": "BBQKees",
+        "kind": "specialist_product_rendering",
+        "sha256_at_review": "e55b3505c21c59ef95dbec89a73658b05218d545b9f99f9240114ffda24d8dcc",
+        "reviewed_at": "2026-10-25",
+        "bytes_at_review": 9004,
+        "content_type": "image/jpeg",
+        "hosting": "external_original_reference",
+        "redistribution_license": "not_claimed; no copied media published",
+        "depicted_model": "Nefit SmartLine",
+        "scope": "model_family; no exact output/year variant claim"
+      },
+      "brand": "Nefit",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-gc7000f-gc700iw-gc9800iw",
+      "name": "Bosch GC7000F / Bosch GC700iW / Bosch GC9800iW",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Bosch",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-kb195i",
+      "name": "Buderus Logano KB195i",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-enviline",
+      "name": "Nefit EnviLine",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Nefit",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-compress-6000aw",
+      "name": "Bosch Compress 6000AW",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Bosch",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-hybrid-3000-7000iaw",
+      "name": "Bosch Hybrid 3000-7000iAW",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Bosch",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-supraeco",
+      "name": "Junkers SupraEco",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Junkers",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-wlw196i-wsw196i",
+      "name": "Buderus Logatherm WLW196i / Buderus Logatherm WSW196i",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Buderus",
+      "selectable": false
+    },
+    {
+      "id": "emsesp-doc-condens-2300-5000i",
+      "name": "Bosch Condens 2300 / Bosch Condens 5000i",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "validation": "listed_upstream_only",
+      "brand": "Bosch",
+      "selectable": false
+    },
+    {
+      "id": "nefit-trendline-ii",
+      "name": "Nefit TrendLine II",
+      "kind": "family",
+      "image": "https://www.nefit-bosch.nl/media/country_pool/professioneel/productafbeeldingen/cv-ketels/nefit_trendlineii.jpg",
+      "source": "manufacturer-media",
+      "validation": "presentation_only_not_control_qualified",
+      "image_provenance": {
+        "url": "https://www.nefit-bosch.nl/media/country_pool/professioneel/productafbeeldingen/cv-ketels/nefit_trendlineii.jpg",
+        "source_page": "https://www.nefit-bosch.nl/professioneel/installateurs/promotiemateriaal-installateurs/",
+        "publisher": "Nefit Bosch",
+        "kind": "manufacturer_product_photo",
+        "sha256_at_review": "c3265f0d6ca9dfe66ef1e9ce700e36a4c47ad4adb66d985463f3bcaea2f1c4c4",
+        "reviewed_at": "2026-10-25",
+        "bytes_at_review": 2022852,
+        "content_type": "image/jpeg",
+        "hosting": "external_original_reference",
+        "redistribution_license": "not_claimed; no copied media published",
+        "depicted_model": "Nefit TrendLine II",
+        "scope": "model_family; regional/output/year variants may differ"
+      },
+      "brand": "Nefit",
+      "selectable": true
+    },
+    {
+      "id": "buderus-gb162",
+      "name": "Buderus Logamax plus GB162",
+      "kind": "family",
+      "image": "https://www.bosch-homecomfort.com/us/media/country_pool/service_support/discontinued-products/gb162_550x310.webp",
+      "source": "manufacturer-media",
+      "validation": "presentation_only_not_control_qualified",
+      "image_provenance": {
+        "url": "https://www.bosch-homecomfort.com/us/media/country_pool/service_support/discontinued-products/gb162_550x310.webp",
+        "source_page": "https://www.bosch-homecomfort.com/us/en/residential/service-support/discontinued-products/discontinued-boilers/buderus-gb162/",
+        "publisher": "Bosch Home Comfort",
+        "kind": "manufacturer_product_photo",
+        "sha256_at_review": "04df4f81a5e2c38b0ebcadc5e32b464eca8f65e4e669abadab32acb5661aca21",
+        "reviewed_at": "2026-10-25",
+        "bytes_at_review": 2228,
+        "content_type": "image/webp",
+        "hosting": "external_original_reference",
+        "redistribution_license": "not_claimed; no copied media published",
+        "depicted_model": "Buderus Logamax plus GB162",
+        "scope": "model_family; regional/output/year variants may differ"
+      },
+      "brand": "Buderus",
+      "selectable": true,
+      "source_entries": [
+        "emsesp-product-115",
+        "emsesp-doc-gb125-gb135-gb1x2i-gb162-gbx72-gb212-gb162-gb192"
+      ]
+    },
+    {
+      "id": "bosch-compress-cs5800i",
+      "name": "Bosch Compress CS5800i",
+      "brand": "Bosch",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-8"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "bosch-compress-cs6800i",
+      "name": "Bosch Compress CS6800i",
+      "brand": "Bosch",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-8"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logatherm-wlw176i",
+      "name": "Buderus Logatherm WLW176i",
+      "brand": "Buderus",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-8"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logatherm-wlw186i",
+      "name": "Buderus Logatherm WLW186i",
+      "brand": "Buderus",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-8"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "worcester-bosch-greenstar-2000",
+      "name": "Worcester Bosch Greenstar 2000",
+      "brand": "Worcester Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-11"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "bosch-c1200w",
+      "name": "Bosch C1200W",
+      "brand": "Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-12"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "bosch-compress-cs5800ig",
+      "name": "Bosch Compress CS5800iG",
+      "brand": "Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-16"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "sieger-bk13",
+      "name": "Sieger BK13",
+      "brand": "Sieger",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-64",
+        "emsesp-doc-bk13-bk15"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "sieger-bk15",
+      "name": "Sieger BK15",
+      "brand": "Sieger",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-64",
+        "emsesp-doc-bk13-bk15"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "nefit-smartline",
+      "name": "Nefit SmartLine",
+      "brand": "Nefit",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-64",
+        "emsesp-doc-nefit-smartline"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-gb1-2",
+      "name": "Buderus GB1*2",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-64"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logano-gb1-5",
+      "name": "Buderus Logano GB1*5",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-72"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logamatic-mc10",
+      "name": "Buderus Logamatic MC10",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-72",
+        "emsesp-doc-mc10",
+        "emsesp-doc-logamatic-mc10-mc110"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-cascade-cm10",
+      "name": "Buderus Cascade CM10",
+      "brand": "Buderus",
+      "kind": "module",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-81",
+        "emsesp-doc-cascade-cm10-mc400"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logamax-plus-gb022",
+      "name": "Buderus Logamax Plus GB022",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-84",
+        "emsesp-doc-logamax-plus-gb022-u122"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "bosch-condens",
+      "name": "Bosch Condens",
+      "brand": "Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-95"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logamax",
+      "name": "Buderus Logamax",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-95"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logamatic",
+      "name": "Buderus Logamatic",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-95",
+        "emsesp-doc-logomatic"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "junkers-cerapur-top",
+      "name": "Junkers Cerapur Top",
+      "brand": "Junkers",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-95",
+        "emsesp-doc-bosch-junkers-cerapur-top-aero"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "worcester-bosch-greenstar",
+      "name": "Worcester Bosch Greenstar",
+      "brand": "Worcester Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-95"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "nefit-topline",
+      "name": "Nefit TopLine",
+      "brand": "Nefit",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-115",
+        "emsesp-doc-nefit-topline-trendline"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "bosch-cascade-mcm10",
+      "name": "Bosch Cascade MCM10",
+      "brand": "Bosch",
+      "kind": "module",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-121"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "nefit-proline",
+      "name": "Nefit ProLine",
+      "brand": "Nefit",
+      "kind": "family",
+      "image": "https://bbqkees-electronics.nl/wp-content/uploads/ems-devices/nefit/boilers/Nefit-proline-hrc-ems.jpg",
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-122",
+        "emsesp-doc-nefit-proline"
+      ],
+      "selectable": true,
+      "image_provenance": {
+        "url": "https://bbqkees-electronics.nl/wp-content/uploads/ems-devices/nefit/boilers/Nefit-proline-hrc-ems.jpg",
+        "source_page": "https://bbqkees-electronics.nl/ketels-nefit/?lang=nl",
+        "publisher": "BBQKees",
+        "kind": "specialist_product_rendering",
+        "sha256_at_review": "0740a0ea732b7b06aa4962b828a7b12e9f775f4b72c1ed24f82237a6bcfea340",
+        "reviewed_at": "2026-10-25",
+        "bytes_at_review": 13933,
+        "content_type": "image/jpeg",
+        "hosting": "external_original_reference",
+        "redistribution_license": "not_claimed; no copied media published",
+        "depicted_model": "Nefit ProLine HRC (EMS)",
+        "scope": "model_family; no exact output/year variant claim"
+      }
+    },
+    {
+      "id": "buderus-gb-72",
+      "name": "Buderus GB*72",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-123"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "nefit-trendline",
+      "name": "Nefit TrendLine",
+      "brand": "Nefit",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-123",
+        "emsesp-doc-nefit-topline-trendline"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "junkers-cerapur",
+      "name": "Junkers Cerapur",
+      "brand": "Junkers",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-123",
+        "emsesp-product-203"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "worcester-bosch-greenstar-si",
+      "name": "Worcester Bosch Greenstar Si",
+      "brand": "Worcester Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-123",
+        "emsesp-doc-greenstar-si-30ri-compact-erp-hiu-8000"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-gb212",
+      "name": "Buderus Logano GB212",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-131",
+        "emsesp-doc-gb125-gb135-gb1x2i-gb162-gbx72-gb212-gb162-gb192"
+      ],
+      "selectable": false
+    },
+    {
+      "id": "bosch-gc7000f",
+      "name": "Bosch GC7000F",
+      "brand": "Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-132",
+        "emsesp-doc-gc7000f-gc700iw-gc9800iw"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logano-gb125",
+      "name": "Buderus Logano GB125",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-133",
+        "emsesp-doc-gb125-gb135-gb1x2i-gb162-gbx72-gb212-gb162-gb192"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logano-kb195i",
+      "name": "Buderus Logano KB195i",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-133",
+        "emsesp-doc-kb195i"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logamatic-mc110",
+      "name": "Buderus Logamatic MC110",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-133",
+        "emsesp-doc-logamatic-mc10-mc110"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "worcester-bosch-greenstar-30ri-compact",
+      "name": "Worcester Bosch Greenstar 30Ri Compact",
+      "brand": "Worcester Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-154",
+        "emsesp-doc-greenstar-si-30ri-compact-erp-hiu-8000"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "junkers-suprapur-o",
+      "name": "Junkers Suprapur-o",
+      "brand": "Junkers",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-155"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "junkers-cerapur-aero",
+      "name": "Junkers Cerapur Aero",
+      "brand": "Junkers",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-167",
+        "emsesp-doc-bosch-junkers-cerapur-top-aero"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "bosch-hybrid-heatpump",
+      "name": "Bosch Hybrid Heatpump",
+      "brand": "Bosch",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-168"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logano-gb212",
+      "name": "Buderus Logano GB212",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-170",
+        "emsesp-product-131",
+        "emsesp-doc-gb125-gb135-gb1x2i-gb162-gbx72-gb212-gb162-gb192"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "nefit-enviline",
+      "name": "Nefit EnviLine",
+      "brand": "Nefit",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-172",
+        "emsesp-doc-enviline"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "bosch-compress-6000aw",
+      "name": "Bosch Compress 6000AW",
+      "brand": "Bosch",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-172",
+        "emsesp-doc-compress-6000aw"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "bosch-hybrid-3000-7000iaw",
+      "name": "Bosch Hybrid 3000-7000iAW",
+      "brand": "Bosch",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-172",
+        "emsesp-doc-hybrid-3000-7000iaw"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "junkers-supraeco",
+      "name": "Junkers SupraEco",
+      "brand": "Junkers",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-172",
+        "emsesp-doc-supraeco"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "ivt-geo-5xx",
+      "name": "IVT Geo 5xx",
+      "brand": "IVT",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-172",
+        "emsesp-product-173"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logatherm-wlw196i",
+      "name": "Buderus Logatherm WLW196i",
+      "brand": "Buderus",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-172",
+        "emsesp-doc-wlw196i-wsw196i"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logatherm-wsw196i",
+      "name": "Buderus Logatherm WSW196i",
+      "brand": "Buderus",
+      "kind": "heatpump",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-172",
+        "emsesp-doc-wlw196i-wsw196i"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "bosch-condens-5000i",
+      "name": "Bosch Condens 5000i",
+      "brand": "Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-195",
+        "emsesp-doc-condens-2300-5000i"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "worcester-bosch-greenstar-8000",
+      "name": "Worcester Bosch Greenstar 8000",
+      "brand": "Worcester Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-195",
+        "emsesp-doc-greenstar-si-30ri-compact-erp-hiu-8000"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "bosch-gc9800iw",
+      "name": "Bosch GC9800iW",
+      "brand": "Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-195",
+        "emsesp-doc-gc7000f-gc700iw-gc9800iw"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-gb192i-2",
+      "name": "Buderus GB192i*2",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-195"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logamax-u122",
+      "name": "Buderus Logamax U122",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-203",
+        "emsesp-doc-logamax-plus-gb022-u122"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "nefit-ecomline-excellent",
+      "name": "Nefit Ecomline Excellent",
+      "brand": "Nefit",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-206"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logamax-plus",
+      "name": "Buderus Logamax Plus",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-208"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-gb192",
+      "name": "Buderus GB192",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-208",
+        "emsesp-doc-gb125-gb135-gb1x2i-gb162-gbx72-gb212-gb162-gb192"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "bosch-condens-gc9000",
+      "name": "Bosch Condens GC9000",
+      "brand": "Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-208",
+        "emsesp-doc-condens-2500-gc9000"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "worcester-bosch-greenstar-erp",
+      "name": "Worcester Bosch Greenstar ErP",
+      "brand": "Worcester Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-208",
+        "emsesp-doc-greenstar-si-30ri-compact-erp-hiu-8000"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-cascade-mc400",
+      "name": "Buderus Cascade MC400",
+      "brand": "Buderus",
+      "kind": "module",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-210",
+        "emsesp-doc-cascade-cm10-mc400"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "bosch-easycontrol-adapter",
+      "name": "Bosch EasyControl Adapter",
+      "brand": "Bosch",
+      "kind": "module",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-211"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "worcester-bosch-greenstar-hiu",
+      "name": "Worcester Bosch Greenstar HIU",
+      "brand": "Worcester Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-219",
+        "emsesp-doc-greenstar-si-30ri-compact-erp-hiu-8000"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logamax-kompakt-ws170",
+      "name": "Buderus Logamax kompakt WS170",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-219"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logamax-plus-gb122",
+      "name": "Buderus Logamax Plus GB122",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-234",
+        "emsesp-doc-gb125-gb135-gb1x2i-gb162-gbx72-gb212-gb162-gb192"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "bosch-condens-2300",
+      "name": "Bosch Condens 2300",
+      "brand": "Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-234",
+        "emsesp-doc-condens-2300-5000i"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "junkers-cerapur-gc2200w",
+      "name": "Junkers Cerapur GC2200W",
+      "brand": "Junkers",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-library",
+      "source_entries": [
+        "emsesp-product-234",
+        "emsesp-doc-bosch-junkers-cerapur-gc2200w"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-gb125",
+      "name": "Buderus Logano GB125",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "source_entries": [
+        "emsesp-doc-gb125-gb135-gb1x2i-gb162-gbx72-gb212-gb162-gb192"
+      ],
+      "selectable": false
+    },
+    {
+      "id": "buderus-gb135",
+      "name": "Buderus GB135",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "source_entries": [
+        "emsesp-doc-gb125-gb135-gb1x2i-gb162-gbx72-gb212-gb162-gb192"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-gb1x2i",
+      "name": "Buderus GB1x2i",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "source_entries": [
+        "emsesp-doc-gb125-gb135-gb1x2i-gb162-gbx72-gb212-gb162-gb192"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-gbx72",
+      "name": "Buderus GBx72",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "source_entries": [
+        "emsesp-doc-gb125-gb135-gb1x2i-gb162-gbx72-gb212-gb162-gb192"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-gb122",
+      "name": "Buderus Logamax Plus GB122",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "source_entries": [
+        "emsesp-doc-gb125-gb135-gb1x2i-gb162-gbx72-gb212-gb162-gb192"
+      ],
+      "selectable": false
+    },
+    {
+      "id": "buderus-gb192i-2-series",
+      "name": "Buderus GB192i.2",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "source_entries": [
+        "emsesp-doc-gb125-gb135-gb1x2i-gb162-gbx72-gb212-gb162-gb192"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "buderus-logano",
+      "name": "Buderus Logano",
+      "brand": "Buderus",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "source_entries": [
+        "emsesp-doc-logano"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "bosch-condens-2500",
+      "name": "Bosch Condens 2500",
+      "brand": "Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "source_entries": [
+        "emsesp-doc-condens-2500-gc9000"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "junkers-cerapur-zsb-14-3-a",
+      "name": "Junkers Cerapur ZSB 14-3 A",
+      "brand": "Junkers",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "source_entries": [
+        "emsesp-doc-bosch-junkers-cerapur-zsb-14-3-a"
+      ],
+      "selectable": true
+    },
+    {
+      "id": "bosch-gc700iw",
+      "name": "Bosch GC700iW",
+      "brand": "Bosch",
+      "kind": "family",
+      "image": null,
+      "source": "emsesp-docs",
+      "source_entries": [
+        "emsesp-doc-gc7000f-gc700iw-gc9800iw"
+      ],
+      "selectable": true
+    }
+  ],
+  "naming": {
+    "format": "brand model",
+    "legacy_entries": "Hidden from new selections; retained for saved IDs. No automatic settings migration.",
+    "wildcards": "Upstream family notation; not an exact model or control qualification."
+  }
+}

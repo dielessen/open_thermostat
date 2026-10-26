@@ -1,0 +1,726 @@
+{
+  "0x0001": {
+    "name": "Electronics-Module Production Information Block",
+    "usedIn": "Various controllers, thermostats and boilers",
+    "description": "This block contains production information of the *electronics module* hardware (e.g. ACU-LO, ACU-MH, HRV_CU, ...).",
+    "class": "Const",
+    "emsCategory": "EMS1.0 and EMS2.0: detail in bus variable description",
+    "distribution": "UNICAST-ON-REQUEST",
+    "notes": "",
+    "type": "info"
+  },
+  "0x0002": {
+    "name": "Module Identification Block",
+    "usedIn": "Various controllers, thermostats and boilers",
+    "description": "This block is used to universally identify the module on the bus when a bus data logger is connected.  **Note: Distribution**: ``BROADCAST-ON-POWER-UP``: Only valid for bus members, which could change the content of the constants during the runtime of the EMS system and do not require a reset of the system (e.g. iCom).",
+    "class": "Const",
+    "emsCategory": "EMS1.0 and EMS2.0: detail in bus variable description.",
+    "distribution": "UNICAST-ON-REQUEST, BROADCAST-ON-POWER-UP",
+    "notes": "",
+    "type": "info"
+  },
+  "0x0003": {
+    "name": "Appliance Production Information Block",
+    "usedIn": "Various controllers, thermostats and boilers",
+    "description": "Holds ASCII coded device information. This block contains production information data of the *appliance* (e.g. gas/oil boiler, heat pump, pump station, etc.).",
+    "class": "Const",
+    "emsCategory": "EMS1.0 and EMS2.0: detail in bus variable description",
+    "distribution": "UNICAST-ON-REQUEST",
+    "notes": "",
+    "type": "info"
+  },
+  "0x0005": {
+    "name": "Special Commands",
+    "usedIn": "Various controllers, thermostats and boilers",
+    "description": "Collection of different special functions/commands. In this block special commands are given. The commands are coded with a special value. Wrong codes will be neglected.  **Note**: Only one command at a time may be sent, therefore there is always an offset of 2 between the variables!",
+    "class": "Command",
+    "emsCategory": "EMS1.0 and EMS2.0: detail in bus variable description",
+    "distribution": "UNICAST-WRITE-REQUEST",
+    "notes": "",
+    "type": "warning",
+    "extraWarning": "These commands can affect device operation and should be used carefully."
+  },
+  "0x0010": {
+    "name": "Locking Error History",
+    "usedIn": "Older systems hold this error list while newer systems use 0x00C2 and/or 0x00C6 and 0x00C7",
+    "description": "Holds the history of locking errors",
+    "class": "Monitor",
+    "emsCategory": "EMS1.0 and EMS2.0: detail in bus variable description",
+    "distribution": "UNICAST-ON-REQUEST",
+    "notes": "",
+    "type": "info"
+  },
+  "0x0011": {
+    "name": "Blocking Error History",
+    "usedIn": "Older systems hold this error list while newer systems use 0x00C2 and/or 0x00C6 and 0x00C7",
+    "description": "Holds the history of blocking errors",
+    "class": "Monitor",
+    "emsCategory": "EMS1.0",
+    "distribution": "UNICAST-ON-REQUEST",
+    "notes": "",
+    "type": "info"
+  },
+  "0x0012": {
+    "name": "Blocking actual system error history",
+    "usedIn": "Older systems hold this error list while newer systems use 0x00C0 and 0x00C1",
+    "description": "Holds the history of blocking errors of the system",
+    "class": "Monitor",
+    "emsCategory": "EMS1.0",
+    "distribution": "UNICAST-ON-REQUEST",  
+    "notes": "",
+    "type": "info"
+  },
+  "0x0013": {
+    "name": "System error history",
+    "usedIn": "Older systems hold this error list while newer systems use 0x00C0 and 0x00C1",
+    "description": "Holds the history of system errors",
+    "class": "Monitor",
+    "emsCategory": "EMS1.0",
+    "distribution": "UNICAST-ON-REQUEST",
+    "notes": "",
+    "type": "info"
+  },
+  "0x0026": {
+    "name": "EMS service tool heating parameters",
+    "usedIn": "HT3 Junkers systems",
+    "description": "This telegrams contains HT3 configuration parameters for Netcom service tools",
+    "class": "Parameter",
+    "emsCategory": "EMS1.0",
+    "distribution": "BROADCAST-ON-CHANGE, BROADCAST-ON-POWER-UP, UNICAST-ON-REQUEST, UNICAST-WRITE-REQUEST",
+    "notes": "",
+    "type": "info"
+  },
+  "0x0027": {
+    "name": "EMS service tool dhw parameters",
+    "usedIn": "HT3 Junkers systems",
+    "description": "This telegrams contains HT3 configuration parameters for Netcom service tools",
+    "class": "Parameter",
+    "emsCategory": "EMS1.0",
+    "distribution": "BROADCAST-ON-CHANGE, BROADCAST-ON-POWER-UP, UNICAST-ON-REQUEST, UNICAST-WRITE-REQUEST",
+    "notes": "",
+    "type": "info"
+  },
+  "0x00BF": {
+    "name": "Local error list",
+    "usedIn": "Used in systems that use the 0x00C2/0x00C6/0x00C7 error history lists",
+    "description": "The lists holds up to three active errors, sorted by critically. The introduction of telegram 0x00BF allows great flexibility in terms of HMI display, error logging and reaction of the system components for specific errors. This EMS service is to be used to communicate LEL (Local Error List) which has a capacity of 3 active errors. The source address and the module ID are valid for the following three errors, with the advantage that up to three errors can be send with one message.  The active errors need to be sorted such, that the error with highest priority is always reported in the first error item, see also chapter *Sorting rules* in the *NSC-CU-InterfaceSpecification*.  *Note 1*: Each token on the EMS bus is considered a system component. Multiple integrated EMS bus tokens in a single device/product are therefore considered to be *multiple* system components. For each token a separate LEL must be maintained! *Note 2*: The support of an LEL is not required if the component doesn’t have own errors specified/defined. *Note 3*: see *CombinedErrorCodeDB* for the list of error codes  **Important**: telegram 0x00BF must be sent always with the complete payload.  **Note: Distribution Methods** The broadcast is scheduled every 10 minutes and after a change in the content of the LEL.",
+    "class": "Monitor",
+    "emsCategory": "EMS2.0",
+    "distribution": "BROADCAST-PERIODICALLY; distribution duration = 600s; timeout = 1320s, BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST",
+    "notes": "",
+    "type": "info"
+  },
+  "0x00C0": {
+    "name": "System error history",
+    "usedIn": "Various controllers, thermostats and boilers",
+    "description": "Hold the history of errors. 0x00C0 holds the first 10 error messages and 0x00C1 the next 10. Error #1 is the most recent one. Going down the list the errors get older. Older systems use telegrams 0x0012 and 0x0013",
+    "class": "Monitor",
+    "emsCategory": "EMS2.0",
+    "distribution": "UNICAST-ON-REQUEST",
+    "notes": "",
+    "type": "info"
+  },
+  "0x00C2": {
+    "name": "Local device error history",
+    "usedIn": "Various controllers, thermostats and boilers",
+    "description": "Hold the history of errors. Each device has it's own list of own errors. Error 1 is the most recent one. Going down the list the errors get older. Older systems use telegrams 0x0010 and 0x0011.",
+    "class": "Monitor",
+    "emsCategory": "EMS2.0",
+    "distribution": "UNICAST-ON-REQUEST",
+    "notes": "",
+    "type": "info"
+  },
+  "0x00C6": {
+    "name": "Local heat pump error history",
+    "usedIn": "heat pump (boiler)",
+    "description": "Hold the history of errors. Error 1 is the most recent one. Going down the list the errors get older. This list is the same as 0x00C2, but has a unique identified at the beginning of each error. This list has 10 entries and is continued in 0x00C7. Older systems use telegrams 0x0010 and 0x0011. Heat pumps support the telegram 0x04B4, where a change of the error history is annouced (e.g. new error occurred)",
+    "class": "Monitor",
+    "emsCategory": "EMS2.0",
+    "distribution": "UNICAST-ON-REQUEST",
+    "notes": "",
+    "type": "info"
+  },
+  "0x00C7": {
+    "name": "Local heat pump error history",
+    "usedIn": "heat pump (boiler)",
+    "description": "This list is the continuation of 0x00C6. Here are the errors 11 ... 20 stored. Older systems use telegrams 0x0010 and 0x0011.",
+    "class": "Monitor",
+    "emsCategory": "EMS2.0",
+    "distribution": "UNICAST-ON-REQUEST",
+    "notes": "",
+    "type": "info"
+  },
+  "0x0165-0x016C": {
+    "name": "HMI800 holiday mode parameters / Older Junkers heating circuit control",
+    "usedIn": "Buderus/Bosch RC300, HMC310 and similar, newer Junkers controllers \"Cxyz\" (MY>2019) / older Junkers controllers \"Fxyz\" (MY<2019)",
+    "description": "Up to 8 holiday periods can be defined with the above telegrams / Up to 10 heating circuits can be controller with these telegrams. 0x0165=HC1, 0x0166=HC2, ...",
+    "class": "Parameter",
+    "emsCategory": "EMS2.0 / EMS1.0",
+    "distribution": "BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST, UNICAST-WRITE-REQUEST",
+    "notes": "",
+    "type": "info"
+  },
+  "0x016F-0x0178": {
+    "name": "FX100 Monitor heating circuit values",
+    "usedIn": "Junkers FB100/FW120 controllers",
+    "description": "Junkers monitor values of heating circuit. 10 heating circuits can be monitored",
+    "class": "Monitor",
+    "emsCategory": "EMS1.0",
+    "distribution": "BROADCAST-ON-CHANGE; distribution duration = 60s, UNICAST-ON-REQUEST, BROADCAST-PERIODICALLY",
+    "notes": "",
+    "type": "info"
+  },
+  "0x02A5-0x02AC": {
+    "name": "NSC controller CH monitor for HCx",
+    "usedIn": "CR50",
+    "description": "Monitor values for HC1, HC2, ... HC8",
+    "class": "monitor",
+    "emsCategory": "EMS2.0",
+    "distribution": "BROADCAST-ON-CHANGE; distribution duration = 60s; timeout = 240s, UNICAST-ON-REQUEST, BROADCAST-PERIODICALLY",
+    "notes": "",
+    "type": "info"
+  },
+  "0x02B9": {
+    "name": "Thermostat settings",
+    "usedIn": "ems+ thermostats",
+    "description": "hc settings",
+    "class": "parameter",
+    "emsCategory": "EMS2.0",
+    "distribution": "broadcast-on-change, unicast-on-request, writable",
+    "notes": "",
+    "type": "info"
+  },
+  "0x02C3": {
+    "name": "NSC Clock Program 1 for HCx",
+    "usedIn": "CR50, RC310",
+    "description": "Sets heating level switch points for HC1, HC2, ... HC8",
+    "class": "parameter",
+    "emsCategory": "EMS2.0",
+    "distribution": "broadcast-on-change, unicast-on-request, unicast-write-request",
+    "notes": "",
+    "type": "info"
+  },
+    "0x02FF": {
+    "name": "NSC Clock Program for dhw",
+    "usedIn": "RC310",
+    "description": "Sets dhw switch points for DHW1 and DHW2",
+    "class": "parameter",
+    "emsCategory": "EMS2.0",
+    "distribution": "broadcast-on-change, unicast-on-request, unicast-write-request",
+    "notes": "",
+    "type": "info"
+  },
+  "0x0309": {
+    "name": "NSC Clock Program for circulation pump for dhwx",
+    "usedIn": "RC310",
+    "description": "Sets dhw circulation pump switch points for DHW1 and DHW2",
+    "class": "parameter",
+    "emsCategory": "EMS2.0",
+    "distribution": "broadcast-on-change, unicast-on-request, unicast-write-request",
+    "notes": "",
+    "type": "info"
+  },
+  "0x0449": {
+    "name": "NSC Clock Program 2 for HCx",
+    "usedIn": "RC310",
+    "description": "Sets heating level switch points for HC1, HC2, ... HC8",
+    "class": "parameter",
+    "emsCategory": "EMS2.0",
+    "distribution": "broadcast-on-change, unicast-on-request, unicast-write-request",
+    "notes": "",
+    "type": "info"
+  },
+  "0x0683": {
+    "name": "NSC Clock Program 3 for HCx",
+    "usedIn": "RC310",
+    "description": "Sets heating level switch points for HC1, HC2, ... HC8",
+    "class": "parameter",
+    "emsCategory": "EMS2.0",
+    "distribution": "broadcast-on-change, unicast-on-request, unicast-write-request",
+    "notes": "",
+    "type": "info"
+  },
+  "0x068D": {
+    "name": "NSC Clock Program 4 for HCx",
+    "usedIn": "RC310",
+    "description": "Sets heating level switch points for HC1, HC2, ... HC8",
+    "class": "parameter",
+    "emsCategory": "EMS2.0",
+    "distribution": "broadcast-on-change, unicast-on-request, unicast-write-request",
+    "notes": "",
+    "type": "info"
+  },
+  "0x02CC": {
+    "name": "DHW priority for unmixed heating circuit",
+    "usedIn": "HMC310",
+    "description": "Enables/disables dhw priority in unmixed circuits where HC1 is directly connected to the heat source",
+    "class": "parameter",
+    "emsCategory": "EMS2.0",
+    "distribution": "broadcast-on-change, unicast-on-request, unicast-write-request",
+    "notes": "",
+    "type": "info"
+  },
+  "0x02CD": {
+    "name": "DHW priority for mixed heating circuit HC1, ..., HC8",
+    "usedIn": "RC310",
+    "description": "Enables/disables dhw priority in unmixed circuits where HC1 is directly connected to the heat source",
+    "class": "parameter",
+    "emsCategory": "EMS2.0",
+    "distribution": "broadcast-on-change, unicast-on-request, unicast-write-request",
+    "notes": "",
+    "type": "info"
+  },
+  "0x02F5": {
+    "name": "Configuration of DHWx",
+    "usedIn": "CR50",
+    "description": "Configuration of DHW1, DHW2",
+    "class": "parameter",
+    "emsCategory": "EMS2.0",
+    "distribution": "broadcast-on-change, unicast-on-request, unicast-write-request",
+    "notes": "",
+    "type": "info"
+  },
+  "0x031D": {
+    "name": "Monitoring DHWx",
+    "usedIn": "CR50",
+    "description": "Monitors the values of DHW1, DHW2",
+    "class": "monitor",
+    "emsCategory": "EMS2.0",
+    "distribution": "broadcast-on-change, unicast-on-request, broadcast-periodically",
+    "notes": "",
+    "type": "info"
+  },
+  "0x043F": {
+    "name": "NSC HolidayMode for HCx",
+    "usedIn": "CR50",
+    "description": "Sets start and end date for holiday mode for HC1, HC2, ... HC8",
+    "class": "parameter",
+    "emsCategory": "EMS2.0",
+    "distribution": "broadcast-on-change, unicast-on-request, unicast-write-request",
+    "notes": "Default values, meaning OFF are: 0B 01 01 0B 01 01 in HEX which is 11 01 01 11 01 01 in decimal, meaning 01.01.2011 - 01.01.2011. In fact, any pair of dates in the past will switch holiday mode to OFF.",
+    "type": "info"
+  },
+  "0x048D": {
+    "name": "Heat pump monitor values",
+    "usedIn": "HMI800.2/Rego 3000, UI800, Logamatic BC400",
+    "description": "Shows various values of the heat pump",
+    "class": "Monitor",
+    "emsCategory": "EMS2.0",
+    "distribution": "BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST",
+    "notes": "",
+    "type": "info"
+  },
+  "0x04A2": {
+    "name": "Information from the heat pump to the HMI",
+    "usedIn": "HMC310",
+    "description": "Sends the status of several information from the heat source to the HMI",
+    "class": "monitor",
+    "emsCategory": "EMS2.0",
+    "distribution": "broadcast-on-change, unicast-on-request, broadcast-periodically",
+    "notes": "",
+    "type": "info"
+  },
+  "0x099A": {
+    "name": "Hybrid module monitor",
+    "usedIn": "CT210b",
+    "description": "Monitor data of the hybrid module",
+    "class": "monitor",
+    "emsCategory": "EMS2.0",
+    "distribution": "broadcast-on-change, unicast-on-request, broadcast periodically",
+    "notes": "",
+    "type": "info"
+  },
+  "0x00FB": {
+    "name": "Write data than be read with telegrams 0x0001 or 0x0003",
+    "usedIn": "Various controllers, thermostats and boilers?",
+    "description": "Found by accident. I would be careful with this, no idea what it can cause",
+    "class": "Command",
+    "emsCategory": "EMS2.0",
+    "distribution": "",
+    "notes": "",
+    "type": "warning"
+  },
+  "0x099C" : {
+    "name" : "Hybrid-Module Monitor signals for CAN bus",
+    "usedIn" : "tbd",
+    "description" : "",
+    "class" : "Monitor",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-ON-CHANGE; distribution duration = 60s; timeout = 240s, UNICAST-ON-REQUEST, BROADCAST-PERIODICALLY",
+    "type" : "info"
+  },
+  "0x04AA" : {
+    "name" : "HP Energy Manager Compressor Status Monitors",
+    "usedIn" : "tbd",
+    "description" : "Monitors for Energy Manager (EM) related to compressor. Dynamic information.",
+    "class" : "Monitor",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-ON-CHANGE; distribution duration = 60s, BROADCAST-PERIODICALLY, UNICAST-ON-REQUEST",
+    "type" : "info"
+  },
+  "0x0115" : {
+    "name" : "DHW Immediately Control Values Between FX Controllers",
+    "usedIn" : "tbd",
+    "description" : "",
+    "class" : "Control",
+    "emsCategory" : "EMS1.0",
+    "distribution" : "UNICAST-WRITE-REQUEST; distribution duration = 120s; timeout = 240s, UNICAST-PERIODICALLY",
+    "type" : "info"
+  },
+    "0x01D3" : {
+    "name" : "FX Monitor Values For Domestic Hot Water",
+    "usedIn" : "tbd",
+    "description" : "",
+    "class" : "Monitor",
+    "emsCategory" : "EMS1.0",
+    "distribution" : "BROADCAST-ON-CHANGE; distribution duration = 600s, BROADCAST-PERIODICALLY, UNICAST-ON-REQUEST",
+    "type" : "info"
+  },
+  "0x001A" : {
+    "name" : "EMS CH Control Values",
+    "usedIn" : "tbd",
+    "description" : "This block is used to send a CH-request to the EMS. Heat requests can be given as a power or supply setpoint.  This block must be repeated at least every 4 minutes. When the transmission of this block stops, the values will fall back to default.",
+    "class" : "Control",
+    "emsCategory" : "EMS1.0 and EMS2.0: detail in bus variable description",
+    "distribution" : "UNICAST-PERIODICALLY; distribution duration = 120s,60s; timeout = 240s, UNICAST-WRITE-REQUEST, UNICAST-ON-CHANGE, UNICAST-ON-REQUEST",
+    "type" : "info"
+  },
+  "0x0004" : {
+    "name" : "Boiler Identification Block",
+    "usedIn" : "tbd",
+    "description" : "In this block a definition of the boiler is given. The information is used for external devices which need information about the possibilities of the boiler.  **Important**: Values in this block cannot be changed via the bus!  **Note: EMSType** - ``EMS1.0-AND-EMS2.0``: offset 0-1, offset 2, offset 3.0-3.2, offset 3.5, offset 3.6, offset 3.7, offset 4, offset 5, offset 7, offset 8, offset 9, offset 10, offset 12, offset 18-19, offset 22, offset 23, offset 24, offset 25-26, offset 27, offset 28, offset 29, offset 30, offset 31, offset 32 - ``EMS1.0``: all other indexes",
+    "class" : "Const",
+    "emsCategory" : "EMS1.0 and EMS2.0: detail in bus variable description",
+    "distribution" : "BROADCAST-ON-POWER-UP, UNICAST-ON-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x0018" : {
+    "name" : "EMS Fast Monitor Values",
+    "usedIn" : "tbd",
+    "description" : "This block will be transmitted each 10 seconds (no changes) and each second if some variables have been changed. These variables are, the operating status flags, relay status flags, supply temperature and the system pressure.",
+    "class" : "Monitor",
+    "emsCategory" : "EMS1.0 and EMS2.0: detail in bus variable description",
+    "distribution" : "BROADCAST-ON-POWER-UP; distribution duration = 10s; timeout = 240s, UNICAST-ON-CHANGE, BROADCAST-PERIODICALLY, UNICAST-ON-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x0016" : {
+    "name" : "EMS Central Heating Parameters",
+    "usedIn" : "tbd",
+    "description" : "This block contains variables to configure the central heating system of the boiler.",
+    "class" : "Parameter",
+    "emsCategory" : "EMS1.0",
+    "distribution" : "BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST, UNICAST-WRITE-REQUEST",
+    "type" : "info"
+  },
+  "0x0014" : {
+    "name" : "EMS Simulated System Time",
+    "usedIn" : "tbd",
+    "description" : "This block contains the simulated system time of the EMS. The simulated system time is a relative time, which starts counting after the first power up and is incremented each minute as long as the power is available. This timer is stored in EEPROM once an hour.  This timer is to be used as a reference for the relative time, if this is stored in the locking and blocking error register and in the maintenance request register, i.e. if no absolute time from telegram 0x0006 is available.  **Note: Distribution** Legacy products (EMS1.0) only implemented ``UNICAST-ON-REQUEST``. For backwards compatibility, in this case an HMI needs to request telegram 0x0014 to reflect the runtime of the system. New products shall support distribution ``BROADCAST-PERIODICALLY`` with a periodicity of *one hour*.",
+    "class" : "Monitor",
+    "emsCategory" : "EMS1.0 and EMS2.0: detail in bus variable description",
+    "distribution" : "BROADCAST-ON-CHANGE; distribution duration = 3600s, UNICAST-ON-REQUEST, BROADCAST-PERIODICALLY",
+    "type" : "info"
+  },
+  "0x0033" : {
+    "name" : "DHW 1 Parameters backward heating appliance + IHM(@8)",
+    "usedIn" : "tbd",
+    "description" : "This block contains variables to configure the first hot water system of the DHW-controller",
+    "class" : "Parameter",
+    "emsCategory" : "EMS1.0",
+    "distribution" : "BROADCAST-ON-CHANGE, BROADCAST-ON-POWER-UP, UNICAST-ON-REQUEST, UNICAST-WRITE-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x0034" : {
+    "name" : "DHW 1 Monitor Values",
+    "usedIn" : "tbd",
+    "description" : "This block contains the monitor values of the DHW1 controller",
+    "class" : "Monitor",
+    "emsCategory" : "EMS1.0",
+    "distribution" : "BROADCAST-ON-POWER-UP; distribution duration = 10s; timeout = 240s, BROADCAST-PERIODICALLY, UNICAST-ON-REQUEST, UNICAST-PERIODICALLY",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x00E4" : {
+    "name" : "Source->Sink Interface HMI FAST",
+    "usedIn" : "tbd",
+    "description" : "The source to HMI interface informs the HMI about the operating status of the heat source. It contains:      - Status from the appliance     - Temperature values     - Outputs     - ...  **Note: Distribution** This data type is sent with broadcast periodically every 10 seconds and if some of the variables have been changed. These variables are the *operating status flags*, *virtual relay status flags*, *supply flow temperature*, the *system pressure* and the *chimney sweeper power setpoint*.",
+    "class" : "Monitor",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-PERIODICALLY; distribution duration = 10s; timeout = 240s, BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x0019" : {
+    "name" : "EMS Slow Monitor Values",
+    "usedIn" : "tbd",
+    "description" : "This block contains EMS data",
+    "class" : "Monitor",
+    "emsCategory" : "EMS1.0",
+    "distribution" : "BROADCAST-ON-POWER-UP; distribution duration = 60s; timeout = 240s, BROADCAST-PERIODICALLY, UNICAST-ON-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x00E3" : {
+    "name" : "Source->Sink Interface OPMode",
+    "usedIn" : "tbd",
+    "description" : "The source to sink interface informs the sinks about the operating status of the source and enables the source to influence the behaviour of the sinks. It contains:      - requests served by the source     - source requests to the sinks It is not expected for the source to know the details about the sinks in the system. The sinks must react to this message according to chapter *Operating status (heat source)* of the NSC-CU-InterfaceSpecification (IFS), where the *heat source view* and the *heat sink view* behaviour of the sinks is specified. The source in turn has to set the monitor values in compliance with chapter *Rules for source operating state* of the IFS (see table *Critical Use Cases telegram 0x00E3*).",
+    "class" : "Monitor",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-PERIODICALLY; distribution duration = 10s; timeout = 240s, UNICAST-ON-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x00E5" : {
+    "name" : "Source Sink Interface HMI SLOW",
+    "usedIn" : "tbd",
+    "description" : "The source to HMI interface informs the HMI about the status of the source that can be displayed on an HMI.  **Note: Distribution** This data type is sent with broadcast periodically every 1 minute and if some of the bus variables have been changed. These variables are offset 0-3 and offset 8-9 and offset 26.",
+    "class" : "Monitor",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-PERIODICALLY; distribution duration = 60s; timeout = 240s, BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x00E6" : {
+    "name" : "NSC CU Interface CU Parameters",
+    "usedIn" : "tbd",
+    "description" : "This block contains parameters to configure the source. The default values of the single bus variables are appliance specific.",
+    "class" : "Parameter",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST, UNICAST-WRITE-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x04B4" : {
+    "name" : "CUHP LocalErrorHistory Change Notification",
+    "usedIn" : "tbd",
+    "description" : "When the local error history 0x00C6/C7 changes, the update will be annouced through this telegram. 0x00C6/C7 are only unicast-read-request, while this telegram is broadcasted",
+    "class" : "Monitor",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-ON-CHANGE",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x02AF-0x02B6" : {
+    "name" : "NSC Controller Variables to configure Weather Depended Control function for HCn",
+    "usedIn" : "tbd",
+    "description" : "NSC Controller Variables to configure WDC function for HC1, HC2, ... HC8",
+    "class" : "Parameter",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST, UNICAST-WRITE-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x0485" : {
+    "name" : "HP Cooling Configuration Parameters",
+    "usedIn" : "tbd",
+    "description" : "HP_Cooling_Configuration_Parameters",
+    "class" : "Parameter",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "UNICAST-WRITE-REQUEST, BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x00EA" : {
+    "name" : "Parameters internal DHW controller",
+    "usedIn" : "tbd",
+    "description" : "This telegram contains the parameters related to the internal DHW controller.",
+    "class" : "Parameter",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST, UNICAST-WRITE-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x00E9" : {
+    "name" : "Internal DHW Monitor Values",
+    "usedIn" : "tbd",
+    "description" : "Status of the internal DHW controller.",
+    "class" : "Monitor",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-PERIODICALLY; distribution duration = 10s; timeout = 240s, UNICAST-ON-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x00EB" : {
+    "name" : "Additional CU Parameters",
+    "usedIn" : "tbd",
+    "description" : "This block contains parameters to configure the source. This service is implemented only if required, e.g. in a heat pump.",
+    "class" : "Parameter",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST, UNICAST-WRITE-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x0495" : {
+    "name" : "HP Statistics Monitor",
+    "usedIn" : "tbd",
+    "description" : "Heat Pump Statistics Monitor",
+    "class" : "Monitor",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x0494" : {
+    "name" : "HP Statistics Monitor",
+    "usedIn" : "tbd",
+    "description" : "Heat Pump Statistics Monitor",
+    "class" : "Monitor",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x0471-0x0478" : {
+    "name" : "NSC Local Season Optimization Parameters HCn",
+    "usedIn" : "tbd",
+    "description" : "NSC Local Season Optimization Parameters HCn",
+    "class" : "Parameter",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST, UNICAST-WRITE-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x0470" : {
+    "name" : "NSC Local Season Optimization Parameters HC (special variant of 0x0471...0x0478)",
+    "usedIn" : "Buderus WSW 196i with BC400 thermostat",
+    "description" : "NSC Local Season Optimization Parameters. Special telegram for Buderus WSW196i with thermostat BC400 and passive cooling function, which has only one heating circuit",
+    "class" : "Parameter",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST, UNICAST-WRITE-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x048F" : {
+    "name" : "Heat Pump E21 Sensor Monitor values",
+    "usedIn" : "tbd",
+    "description" : "Heat Pump E21 Sensor Monitor values",
+    "class" : "Monitor",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-PERIODICALLY; distribution duration = 60s; timeout = 240s, BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x048A" : {
+    "name" : "Pool Configuration Parameters",
+    "usedIn" : "tbd",
+    "description" : "Pool Configuration Parameters",
+    "class" : "Parameter",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST, UNICAST-WRITE-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x0486" : {
+    "name" : "HP E21 Parameters External Inputs",
+    "usedIn" : "tbd",
+    "description" : "HP 21 Parameters External Inputs",
+    "class" : "Parameter",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "UNICAST-WRITE-REQUEST, BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x0492" : {
+    "name" : "Additional Electrical Heater Configuration Parameters",
+    "usedIn" : "tbd",
+    "description" : "Additional Electrical Heater Configuration Parameters",
+    "class" : "Parameter",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST, UNICAST-WRITE-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x002A" : {
+    "name" : "EMS HTIII Service Tool Monitor Service Functions",
+    "usedIn" : "tbd",
+    "description" : "This block contains monitor values of Heatronic III service function to be used by a service tool like Netcom",
+    "class" : "Monitor",
+    "emsCategory" : "EMS1.0 and EMS2.0: detail in bus variable description",
+    "distribution" : "BROADCAST-ON-CHANGE, BROADCAST-ON-POWER-UP, UNICAST-ON-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x00D1" : {
+    "name" : "NSC CU Interface Outdoor Temperature",
+    "usedIn" : "tbd",
+    "description" : "The outdoor sensor (measured) value is broadcasted with this datatype to the system.  If no valid outdoor temperature value is measured, it is not allowed to send this datatype! Exception: If outdoor temperature sensor was once present and is now missing (e.g. due to broken wire or sensor), signal may be sent with value for [NA_OPEN] or [NA_SHORT] once. The receiver (=user) of the signal may then raise an error. If the CU has multiple outdoor temperature values to choose from and the one with the highest priority goes missing, the value with the next highest priority shall be chosen and be distributed.  **Notes**: - The CU will broadcast the outdoor temperature with the highest priority in telegram 0x00D1 offset 0-1 and also indicate the source of that value in telegram 0x00D1 offset 2. This value shall always be used for control functions. - There is only one RF OT sensor and one internet OT and one external (at module) wired OT sensor allowed. - Bus members who have outdoor temperature information have to send it via broadcast using the \"External Outdoor Temperature Measurement\" datatype (telegram 0x01D1):      - telegram 0x01D1 offset 0-1: External Wired Sensor      - telegram 0x01D1 offset 2-3: RF Sensor      - telegram 0x01D1 offset 4-5: Internet  **Important**: All currently produced CUs (as of 01/2019) do not implement telegram 0x01D1 and the priority algorithm that comes with it. They also do not support telegram 0x01D1 offset 2.  **Note: Distribution** - Broadcasted every 1 minute, *if sensor is available*. - Broadcasted on power-up, *if sensor is available*. - If telegram 0x01D1 offset 2 is supported, it should be broadcasted together with telegram 0x01D1 offset 0-1.  *Note on EMS1 (backward compatibility)*: The outdoor temperature is measured and broadcasted to the system by the appliance (telegram 0x0019 offset 0-offset 1). However, outdoor temperature measurement is not a function of the appliance, and the interface must allow that the deployment could be changed in the future (e.g. using an RF based outdoor sensor). Therefore, new interfaces for outdoor temperature measurement were defined in EMS2.",
+    "class" : "Monitor",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-PERIODICALLY; distribution duration = 60s; timeout = 240s, UNICAST-ON-REQUEST, BROADCAST-ON-POWER-UP",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x01D1" : {
+    "name" : "External Outdoor Temperature Measurement",
+    "usedIn" : "tbd",
+    "description" : "The externally measured outdoor sensor value is broadcasted with this datatype.  If no valid outdoor temperature value is measured, it is not allowed to send this datatype! Exception: If outdoor temperature sensor was once present and is now missing (e.g. due to broken wire or sensor), signal may be sent with value for [NA_OPEN] or [NA_SHORT] once. The receiver (=user) of the signal may then raise an error. If the CU has multiple outdoor temperature values to choose from and the one with the highest priority goes missing, the value with the next highest priority shall be chosen and be distributed. See more details about this in telegram 0x00D1.  **Important**: All currently produced CUs (as of 01/2019) do not implement telegram 0x01D1 and the priority algorithm that comes with it.  **Note: Distribution** - Each module shall broadcast only the bus variable corresponding to the connected sensor. E.g. a RF coordinator may broadcast telegram 0x01D1 offset 2-3 only, in case it detected an RF OT sensor. - Broadcasted every 1 minute, *if sensor is available*. - Broadcasted on power-up, *if sensor is available*.",
+    "class" : "Monitor",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-PERIODICALLY; distribution duration = 60s; timeout = 240s, UNICAST-ON-REQUEST, BROADCAST-ON-POWER-UP",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x02E0" : {
+    "name" : "Heat request HC1 via appliance (system output)",
+    "usedIn" : "tbd",
+    "description" : "Heat request HC1 via appliance (system output). If HC1 is controlled by the appliance this data type is used to request for heating on the system output of the appliance. This request affects the global season optimizer.  **Important**: - The complete payload must be transmitted together. - See also rules for priority handling and transmission/reception of telegram 0x00D2 and telegram 0x00D6. - If the HC1 is controlled via a module, a controller must use telegram 0x00D2 instead of telegram 0x02E0.  **Notes**: - This data type is sent from the controller to the appliance. - Layout as telegram 0x00D2 but **no** ``MAX function`` needed, because there is only *one* requester (typically the system controller)!",
+    "class" : "Control",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "UNICAST-PERIODICALLY; distribution duration = 60s; timeout = 240s, UNICAST-WRITE-REQUEST, UNICAST-ON-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x00D2" : {
+    "name" : "Sink Source Interface Heat System Output",
+    "usedIn" : "tbd",
+    "description" : "Heat request (system output). This is the EMS data type used to request for heating on the system output. This request affects the global season optimizer.  **Important**: - The complete payload must be transmitted together. - See also rules for priority handling and transmission/reception of telegram 0x00D2 and telegram 0x00D6. - If the HC1 is controlled via the appliance, a controller must use telegram 0x00D2 instead of telegram 0x02E0.  **Notes: Distribution** - This data type is sent with unicast to the owner typically every minute.  - The heat request becomes invalid if the request is not repeated within 4 min.",
+    "class" : "Control",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "UNICAST-PERIODICALLY; distribution duration = 60s; timeout = 240s, UNICAST-WRITE-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x00D6" : {
+    "name" : "Sink Source Interface Cool System Output",
+    "usedIn" : "tbd",
+    "description" : "Cool request (system output). This is the EMS data type used to request for cooling on the system output.  This request affects the global season optimizer.   **Important**: - The complete payload must be transmitted together. - See also rules for priority handling and transmission/reception of telegram 0x00D2 and telegram 0x00D6. - If the HC1 is controlled via the appliance, a controller must use telegram 0x04F2 instead of telegram 0x00D6.  **Notes: Distribution** - This data type is sent with unicast to the owner typically every minute.  - The cool request becomes invalid if the request is not repeated within 4 min.",
+    "class" : "Control",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "UNICAST-PERIODICALLY; distribution duration = 60s; timeout = 240s, UNICAST-WRITE-REQUEST, UNICAST-ON-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x04F2" : {
+    "name" : "Cool request HC1 via appliance (system output)",
+    "usedIn" : "tbd",
+    "description" : "Cool request HC1 via appliance (system output). If HC1 is controlled via the appliance this data type is used to request for cooling on the system output of the appliance. This request affects the global season optimizer.  **Important**: - The complete payload must be transmitted together. - See also rules for priority handling and transmission/reception of telegram 0x00D2 and telegram 0x00D6.- If the HC1 is controlled via a module, a controller must use telegram 0x00D6 instead of telegram 0x04F2.  **Notes**: - This data type is sent from the controller to the appliance. - Layout as telegram 0x00D6 but **no** ``MAX function``/``MIN function`` needed, because there is only *one* requester (typically the system controller)!",
+    "class" : "Control",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "UNICAST-PERIODICALLY; distribution duration = 60s; timeout = 240s, UNICAST-WRITE-REQUEST, UNICAST-ON-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x0467-0x046E" : {
+    "name" : "NSC RoomTemp Cooling Control Parameters HCn",
+    "usedIn" : "tbd",
+    "description" : "NSC RoomTemp Cooling Control Parameters HC1, HC2, ... HC8",
+    "class" : "Parameter",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "BROADCAST-ON-CHANGE, UNICAST-ON-REQUEST, UNICAST-WRITE-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  },
+  "0x047B-0x0482" : {
+    "name" : "NSC Measured Remote Dewpoint Temp and Relative Humidity for HCn",
+    "usedIn" : "tbd",
+    "description" : "NSC Measured Remote Dewpoint Temp and Relative Humidity for HC1, HC2, ... HC8",
+    "class" : "Control",
+    "emsCategory" : "EMS2.0",
+    "distribution" : "UNICAST-PERIODICALLY; distribution duration = 60s; timeout = 240s, UNICAST-ON-REQUEST, UNICAST-WRITE-REQUEST",
+    "notes" : "",
+    "type" : "info"
+  }
+}

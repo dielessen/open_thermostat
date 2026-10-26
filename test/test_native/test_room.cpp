@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "CircularBuffer.h"
+#include "Room.h"
 #include <chrono>
 #include <tuple>
 #include <optional>
@@ -116,27 +117,8 @@ TEST(AverageTemperatureTest, BufferWraparound) {
 // TemporaryOverride Tests
 // ============================================================================
 
-// Minimal reimplementation for native test (avoids Arduino deps from Room.h)
-class TemporaryOverride {
-public:
-	TemporaryOverride(int16_t temperature, uint32_t lifeTimeSecs)
-	    : temperature_(temperature), lifeTime_(std::chrono::seconds(lifeTimeSecs)), activation_(steady_clock::now()) {}
-
-	bool isValid() const { return steady_clock::now() < activation_ + lifeTime_; }
-
-	uint32_t getSecondsLeft() const {
-		auto now = steady_clock::now();
-		auto remaining = std::chrono::duration_cast<std::chrono::seconds>((activation_ + lifeTime_) - now);
-		return remaining.count() > 0 ? static_cast<uint32_t>(remaining.count()) : 0;
-	}
-
-	int16_t getTemperature() const { return temperature_; }
-
-private:
-	int16_t temperature_;
-	std::chrono::seconds lifeTime_;
-	steady_clock::time_point activation_;
-};
+// Use the production monotonic override, rather than a second implementation.
+using TemporaryOverride = heating::Room::TemporaryOverride;
 
 TEST(TemporaryOverrideTest, IsValidImmediately) {
 	TemporaryOverride ov(2500, 60);

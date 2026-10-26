@@ -1,3 +1,5 @@
+> **Ontwerp-/bewijsnotitie.** De enige actuele software-, installatie- en releasevoortgang staat in [WORKBOARD](WORKBOARD.nl.md). Gedateerde versies en toenmalige open punten hieronder blijven historisch; technische acceptatievoorwaarden blijven gelden.
+
 # HA ↔ OpenThermostat — contractontwerp v1
 
 Companion bij [masterplan](PLAN.nl.md), ontwerp19oktober2026. **Nog geen vrijgegeven volledige v1-product-API.** Op20oktober is naast de pure bron-/UTC-/sessiekern een echte E32/HA-shadowkoppeling gebouwd: bounded wire/admission, NVSconfigcommit/readback, native HAflow/lifecycle/Store en gedeelde ketentests. Het exacte geïmplementeerde deelprofiel staat in [TEST-WIRE.md](TEST-WIRE.md), met [testgrens/open checks](INTEGRATED-TEST.nl.md). Dat profiel voert geen actuator-/ketelcommands uit en vervangt niet alle onderstaande producttopics. Bestaande legacymeldingen behouden hun eigen betekenis. De onderstaande algemene berichten blijven ontwerpschema's; niet stil als geïmplementeerde productie-API gebruiken.

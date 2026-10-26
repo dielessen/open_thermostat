@@ -59,12 +59,13 @@ source_bench_status:
 
 export_metrics_csv:
   name: Export recorded metrics as CSV
-  description: Admin-only response; at most 24 hours,64 owned entities,5000 rows. Uses native read-only Recorder, no files or DB changes. UTC rows include unit and unit_basis. Opt-in include_units reads recorded units only, never guesses from current/native display units. No conversion. Historical counter definitions/retention may be incomplete.
+  description: Admin-only response; day, week or month up to 31 days,64 owned entities,5000 rows. Uses native read-only Recorder, no files or DB changes. UTC rows include unit and unit_basis. Opt-in include_units reads recorded units only, never guesses from current/native display units. No conversion. Historical counter definitions/retention may be incomplete.
   fields:
     entry_id:
       required: true
       selector:
-        text:
+        config_entry:
+          integration: open_thermostat
     start:
       required: true
       description: ISO timestamp with explicit timezone.

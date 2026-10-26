@@ -1,3 +1,5 @@
+> **Ontwerp-/bewijsnotitie.** De enige actuele software-, installatie- en releasevoortgang staat in [WORKBOARD](WORKBOARD.nl.md). Gedateerde versies en toenmalige open punten hieronder blijven historisch; technische acceptatievoorwaarden blijven gelden.
+
 # Architectuuradvies — functioneel volledig en onderhoudbaar
 
 **Aanleiding:** Mark11950, 21 oktober 2026. Mark staat zo nodig ook een andere

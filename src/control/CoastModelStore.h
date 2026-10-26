@@ -21,7 +21,7 @@ public:
     CoastModelStore(const CoastModelStore&)=delete;
     CoastModelStore& operator=(const CoastModelStore&)=delete;
     static_assert(maximumBytes==ModelResourceGate::coastCodecBytes,"codec budget drift");
-    bool load(ThermalCoastModel& model) {
+    bool load(ThermalCoastModel& model) try {
         if (loaded_ || fault_) return false;
         ModelResourceTransaction transaction(gate_,zone_,ModelKind::coast);
         if (!transaction || !gate_.attach(zone_,ModelKind::coast,&model,[](void* p){static_cast<ThermalCoastModel*>(p)->storageFault();})) return fail(model);
@@ -41,10 +41,14 @@ public:
         } else model.invalidateAdmission();
         if (!gate_.healthy()) return fail(model);
         loaded_=true;return true;
+    } catch (...) {
+        // Allocation/backend/hash exceptions are failures of this storage owner,
+        // including exceptions AFTER a durable write. Never automatically retry.
+        return fail(model);
     }
     // Called after complete runs or explicit user reset, NEVER on every sample.
     // A false write is durability-ambiguous: latch fault even if readback matches.
-    bool checkpoint(ThermalCoastModel& model,uint64_t now) {
+    bool checkpoint(ThermalCoastModel& model,uint64_t now) try {
         if (!loaded_ || fault_) return false;
         if (model_!=&model || !gate_.healthy()) return fail(model);
         ModelResourceTransaction transaction(gate_,zone_,ModelKind::coast);
@@ -64,6 +68,8 @@ public:
         if (!store_.saveBounded(bytes,maximumBytes) || !gate_.healthy()) return fail(model);
         if (!store_.loadBounded(current,maximumBytes) || !bounded(current) || current!=bytes || !gate_.healthy()) return fail(model);
         durable_=bytes;return true;
+    } catch (...) {
+        return fail(model);
     }
     bool healthy() const {return loaded_ && !fault_ && gate_.healthy();}
 private:

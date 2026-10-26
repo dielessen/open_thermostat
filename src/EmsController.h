@@ -5,8 +5,20 @@
 #include "EmsBusUart.h"
 #include "EMS/EmsTelegram.h"
 #include "EMS/EmsFrameQueue.h"
+#include "EMS/EmsPoll.h"
 #include "EMS/ClassicBoilerMonitor.h"
+#include "EMS/EmsDeviceInventory.h"
 #include "EMS/OutdoorTemperatureSample.h"
+#ifdef OPENTHERMOSTAT_E32V2
+#include "EMS/BoilerTestService.h"
+#include "EMS/BoilerTestPollDriver.h"
+#include "EMS/ClassicBoilerTestEncoder.h"
+#include "EMS/ManualBusIdentity.h"
+#include "EMS/ClassicHeatTrialEnvelope.h"
+#include "EMS/ClassicConfigurationRead.h"
+#include "EMS/ManualClassicTransaction.h"
+#include <esp_system.h>
+#endif
 #include <esp_timer.h>
 
 #include <atomic>
@@ -16,6 +28,7 @@
 #include <optional>
 #include <ostream>
 #include <sstream>
+#include <string_view>
 #include <unordered_map>
 
 namespace heating::ems {
@@ -54,7 +67,7 @@ struct EmsBoilerState {
 	std::optional<uint8_t> protocolVersion;
 
 	std::string getStatus() const {
-		std::stringstream ss;
+		std::ostringstream ss;
 		getStatus(ss);
 		return ss.str();
 	}
@@ -109,7 +122,7 @@ struct EmsBoilerParams {
 	}
 
 	std::string getJSON() const {
-		std::stringstream ss;
+		std::ostringstream ss;
 		getJSON(ss);
 		return ss.str();
 	}
@@ -167,6 +180,17 @@ public:
 		captureForeignTelegrams_.store(log_ && log_->isFeatureEnabled(verboseFeature()), std::memory_order_relaxed);
 		processTelegrams();
 		refreshClassicStatus();
+#ifdef OPENTHERMOSTAT_E32V2
+		{
+			std::lock_guard<std::mutex> lock(telemetryMutex_);
+            if (boilerTestTransportFault_.exchange(false, std::memory_order_acq_rel)) {
+                boilerTest_.transportFault(static_cast<uint64_t>(esp_timer_get_time() / 1000));
+                configurationRead_.fail("transport_fault");
+            }
+            configurationRead_.tick(static_cast<uint64_t>(esp_timer_get_time()/1000),configurationReadPermitted());
+			boilerTest_.tick(static_cast<uint64_t>(esp_timer_get_time() / 1000), boilerTestGates(), monitor_);
+		}
+#endif
 		requestPeriodicData();
 
 		reportStats();
@@ -192,14 +216,87 @@ public:
 	}
 
 	std::string getStatus() const {
-		std::stringstream ss;
+		std::ostringstream ss;
 		getStatus(ss);
 		return ss.str();
 	}
-	void getTelemetryStatus(std::ostream &ss) const {
+    void getBoilerFieldGroup(std::ostream& out,size_t group) const {
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        if(!emsConfig_.emsEnabled)return;
+        monitor_.writeFieldGroup(out,static_cast<uint64_t>(esp_timer_get_time()/1000),group);
+    }
+    void getDeviceStatus(std::ostream &ss) const {
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
+        ss<<"{\"enabled\":"<<(emsConfig_.emsEnabled?"true":"false")<<",\"inventory\":";
+        deviceInventory_.writeJSON(ss,now);ss<<",\"boiler\":";monitor_.writeJSON(ss,now);ss<<'}';
+    }
+	void getTelemetryStatus(std::ostream &ss, [[maybe_unused]] std::string_view operatorSession = {}) const {
 		std::lock_guard<std::mutex> lock(telemetryMutex_);
-		monitor_.writeJSON(ss, static_cast<uint64_t>(esp_timer_get_time() / 1000));
+        const auto snapshotMs = static_cast<uint64_t>(esp_timer_get_time() / 1000);
+		// Keep the existing field-level telemetry contract and add transport
+		// diagnostics to it. These are lifetime counters, not a TX permission.
+		monitor_.writeJSON(ss, snapshotMs, false);
+		ss << ",\"transport\":{\"enabled\":"
+		   << (emsConfig_.emsEnabled ? "true" : "false")
+		   << ",\"transmit_compiled\":" << ((board::emsTransmitAllowed || board::emsManualTestTransmitAllowed) ? "true" : "false")
+		   << ",\"poll_count\":" << polls_.load(std::memory_order_relaxed)
+		   << ",\"transmitted_frames\":" << txFrames_.load(std::memory_order_relaxed)
+		   << ",\"receive_queue_dropped\":" << rxDropped_.load(std::memory_order_relaxed)
+		   << ",\"invalid_telegrams\":" << invalidTelegrams_.load(std::memory_order_relaxed)
+		   << ",\"uart_errors\":" << uart_.rxErrors.load(std::memory_order_relaxed)
+		   << ",\"uart_timeouts\":" << uart_.rxTimeouts.load(std::memory_order_relaxed)
+		   << ",\"uart_resets\":" << uart_.resets.load(std::memory_order_relaxed) << '}';
+#ifdef OPENTHERMOSTAT_E32V2
+        ss<<",\"manual_transaction\":{\"completed_exchanges\":"<<manualCompletions_.load(std::memory_order_relaxed)
+            <<",\"rejected_writes\":"<<manualRejections_.load(std::memory_order_relaxed)
+            <<",\"reply_errors\":"<<manualReplyErrors_.load(std::memory_order_relaxed)<<'}';
+		ss << ",\"manual_bus_identity\":{\"source_address\":" << static_cast<unsigned>(deviceId_)
+           << ",\"source_conflict\":" << (manualSourceConflict_.load(std::memory_order_acquire) ? "true" : "false")
+           << ",\"matches_reviewed_address\":" << (manualBusIdentityMatches() ? "true" : "false") << '}';
+		ss << ",\"test\":";
+		boilerTest_.writeJSON(ss, snapshotMs, operatorSession, boilerTestGates(), monitor_);
+        ss<<",\"configuration_read\":";configurationRead_.writeJSON(ss,snapshotMs,configurationReadPermitted(),boilerTest_.active());
+        const auto heat = ClassicHeatTrialEnvelope::inspect(monitor_, snapshotMs);
+        ss << ",\"heat_trial\":{\"profile_id\":\"" << ClassicHeatTrialEnvelope::id
+           << "\",\"installation_reviewed\":" << (manualHeatInstallationReviewed_ ? "true" : "false")
+           << ",\"telemetry_ready\":" << (heat.ready ? "true" : "false")
+           << ",\"reason\":\"" << heat.reason << "\",\"physical_validation\":false,\"limits\":{"
+           << "\"minimum_flow_c\":" << static_cast<unsigned>(ClassicHeatTrialEnvelope::profile().minimumFlowC)
+           << ",\"maximum_flow_c\":" << static_cast<unsigned>(ClassicHeatTrialEnvelope::profile().maximumFlowC)
+           << ",\"maximum_duration_s\":" << ClassicHeatTrialEnvelope::profile().maximumHeatMs / 1000
+           << ",\"minimum_pressure_decibar\":" << ClassicHeatTrialEnvelope::minimumPressureDecibar
+           << ",\"maximum_pressure_decibar\":" << ClassicHeatTrialEnvelope::maximumPressureDecibar
+           << ",\"minimum_measured_flow_centi\":" << ClassicHeatTrialEnvelope::minimumMeasuredFlowCenti
+           << ",\"maximum_measured_flow_centi\":" << ClassicHeatTrialEnvelope::maximumMeasuredFlowCenti << "}}";
+#endif
+		ss << '}';
 	}
+#ifdef OPENTHERMOSTAT_E32V2
+	bool boilerTestActive() const {
+		std::lock_guard<std::mutex> lock(telemetryMutex_);
+		return boilerTest_.active() || configurationRead_.active();
+	}
+	int boilerTestAction(std::string_view action, std::string_view body, std::string_view operatorSession, std::ostream &ss) {
+		std::lock_guard<std::mutex> lock(telemetryMutex_);
+		const auto now = static_cast<uint64_t>(esp_timer_get_time() / 1000);
+        if(action=="read_configuration") {
+            const auto result=configurationRead_.request(body,operatorSession,now,configurationReadPermitted(),boilerTest_.active());
+            ss<<"{\"accepted\":"<<(result.http<300?"true":"false")<<",\"duplicate\":"<<(result.duplicate?"true":"false")
+                <<",\"error\":\""<<result.error<<"\",\"configuration_read\":";
+            configurationRead_.writeJSON(ss,now,configurationReadPermitted(),boilerTest_.active());ss<<'}';return result.http;
+        }
+        if(configurationRead_.active() && (action=="prepare"||action=="prepare_zero"||action=="start")) {
+            ss<<"{\"accepted\":false,\"error\":\"configuration_read_active\"}";return 409;
+        }
+		const auto result = boilerTest_.action(action, body, operatorSession, now, boilerTestGates(), monitor_);
+		ss << "{\"accepted\":" << (result.http < 300 ? "true" : "false")
+		   << ",\"duplicate\":" << (result.duplicate ? "true" : "false") << ",\"error\":\"" << result.error << "\",\"test\":";
+		boilerTest_.writeJSON(ss, now, operatorSession, boilerTestGates(), monitor_);
+		ss << '}';
+		return result.http;
+	}
+#endif
 
 	void getBoilerParams(std::ostream &ss) const {
 		boilerParams_.getJSON(ss);
@@ -217,7 +314,7 @@ private:
 	void reset();
 	void enqueueTelegramToSend(EmsTelegram telegram, bool front = false);
 	void reportStats();
-	void decodeTelegram(uint8_t *data, uint8_t length);
+	void decodeTelegram(uint8_t *data, uint8_t length, uint64_t receivedAtMs);
 	void refreshClassicStatus();
 
 	void processTelegrams();
@@ -239,9 +336,16 @@ private:
 	config::EmsConfig emsConfig_{config::getEmsConfig()};
 
 	uint8_t boilerId_{0x08};
-	// uint8_t deviceId_{0x0B};
+#ifdef OPENTHERMOSTAT_E32V2
+    uint8_t deviceId_{ClassicBoilerTestEncoder::Addressing::classicService().source};
+#else
 	uint8_t deviceId_{0x19}; // TODO get from config/ UI
+#endif
 	std::optional<uint8_t> emsMask_ = {0x80};
+#ifdef OPENTHERMOSTAT_E32V2
+    // Set only by a decoded, CRC-valid boiler broadcast; never from a poll.
+    std::atomic<uint8_t> observedSourceMask_{EmsPoll::unknown};
+#endif
 
 	// Only fixed-size copies and index updates are allowed under this lock.
 	portMUX_TYPE txMux_ = portMUX_INITIALIZER_UNLOCKED;
@@ -252,6 +356,7 @@ private:
 	std::atomic<bool> resetRequested_{false};
 	std::atomic<bool> captureForeignTelegrams_{false};
 	std::atomic<uint32_t> rxDropped_{0};
+	std::atomic<uint32_t> invalidTelegrams_{0};
 	std::atomic<uint32_t> polls_{0};
 	std::atomic<uint32_t> txFrames_{0};
 	std::atomic<uint32_t> maxPollServiceUs_{0};
@@ -264,6 +369,79 @@ private:
 	EmsBoilerParams boilerParams_;
 	mutable std::mutex telemetryMutex_;
 	ClassicBoilerMonitor monitor_;
+    EmsDeviceInventory deviceInventory_;
+#ifdef OPENTHERMOSTAT_E32V2
+	// Concrete supervised software envelope. Physical installation qualification
+    // and TX permission remain separate source decisions, never HTTP settings.
+	BoilerTestService boilerTest_{(static_cast<uint64_t>(esp_random()) << 32) | esp_random(), board::emsManualTestTransmitAllowed,
+        ClassicHeatTrialEnvelope::profile(), true, true};
+    ManualClassicTransaction manualTransaction_; // UART task only, never HTTP/loop.
+    std::atomic<uint32_t> manualCompletions_{0},manualRejections_{0},manualReplyErrors_{0};
+    template<bool Read>
+    bool transmitManualFrame(const EmsRawFrame& frame){
+        if(!manualTransaction_.begin(frame.data.data(),frame.length,static_cast<uint64_t>(esp_timer_get_time())))return false;
+        bool sent=false;
+        try{sent=uart_.writeManualTestToEms<Read>(frame.data.data(),frame.length);}catch(...){sent=false;}
+        manualTransaction_.finish(sent,static_cast<uint64_t>(esp_timer_get_time()));
+        if(sent)txFrames_.fetch_add(1,std::memory_order_relaxed);
+        return sent;
+    }
+    void processManualReply(const uint8_t* data,size_t length){
+        if constexpr(!board::emsManualTestTransmitAllowed)return;
+        else {
+            const auto result=manualTransaction_.receive(data,length,
+                []{return static_cast<uint64_t>(esp_timer_get_time());},
+                [this]{return manualTransportReviewed();},[this]{
+                    const uint8_t completion=0x0b;
+                    return uart_.writeManualTestToEms<false,true>(&completion,1);
+                });
+            if(result==ManualClassicTransaction::Result::closed||result==ManualClassicTransaction::Result::rejected)
+                manualCompletions_.fetch_add(1,std::memory_order_relaxed);
+            if(result==ManualClassicTransaction::Result::rejected)manualRejections_.fetch_add(1,std::memory_order_relaxed);
+            if(result==ManualClassicTransaction::Result::failed)manualReplyErrors_.fetch_add(1,std::memory_order_relaxed);
+            if(result==ManualClassicTransaction::Result::failed||result==ManualClassicTransaction::Result::rejected)
+                boilerTestTransportFault_.store(true,std::memory_order_release);
+        }
+    }
+    ClassicConfigurationRead configurationRead_{boilerTest_.bootId(),board::emsManualTestTransmitAllowed};
+    bool configurationReadPermitted() const {
+        return manualTransportReviewed() && !boilerTest_.active()
+            && monitor_.capabilities().profile()==BoilerProtocol::classic;
+    }
+    static constexpr bool manualHeatInstallationReviewed_ = false;
+    std::atomic<bool> manualSourceConflict_{false}; // Never cleared by UART reset.
+    bool manualBusIdentityMatches() const {
+        return ManualBusIdentity::matches(boilerTestAddressing_, deviceId_,
+            observedSourceMask_.load(std::memory_order_acquire),
+            manualSourceConflict_.load(std::memory_order_acquire));
+    }
+    bool manualTransportReviewed() const {
+        return manualBusIdentityMatches() && uart_.manualTestTransportHealthy()
+            && !boilerTestTransportFault_.load(std::memory_order_acquire)
+            && !resetRequested_.load(std::memory_order_relaxed);
+    }
+    BoilerTestSession::Gates boilerTestGates() const {
+        BoilerTestSession::Gates gates{}; // Physical heat-path review remains separate.
+        gates.transmitterReviewed = manualTransportReviewed() && !configurationRead_.active();
+        gates.pathReady = manualHeatInstallationReviewed_;
+        gates.limitsSafe = ClassicHeatTrialEnvelope::inspect(monitor_,
+            static_cast<uint64_t>(esp_timer_get_time() / 1000)).ready;
+        return gates;
+    }
+    // Fixed Classic service identity; observed mask and conflicts must still
+    // match at final admission. No HTTP/config address selection or TX unlock.
+	static constexpr auto boilerTestAddressing_ = ClassicBoilerTestEncoder::Addressing::classicService();
+    static_assert(boilerTestAddressing_.source==0x0b && boilerTestAddressing_.boiler==8
+        && boilerTestAddressing_.sourceMask==0,"Configuration read requires the same reviewed Classic identity");
+	static bool encodeBoilerTest(const BoilerTestSession::Intent& intent, EmsRawFrame& frame) {
+		return ClassicBoilerTestEncoder::encode(boilerTestAddressing_, intent, frame)
+            && ClassicBoilerTestEncoder::matches(boilerTestAddressing_, intent, frame);
+	}
+	static constexpr BoilerTestPollDriver::Encoder boilerTestEncoder_ = &encodeBoilerTest;
+	bool processBoilerTestPoll();
+	std::atomic<bool> boilerTestTransportFault_{false};
+	uint32_t boilerTestUartErrorsSeen_ = 0; // UART task only
+#endif
 	control::TemperatureSample outdoorSample_;
 
 	std::atomic<std::optional<int16_t>> emsOutdoorTemperature_;

@@ -72,7 +72,8 @@ async def test_native_entities_offer_owned_heat_off_without_claiming_real_heatin
         assert state.attributes["actuator_output_enabled"] is False
 
 @pytest.mark.asyncio
-async def test_real_native_climate_services_stop_A_then_B_and_resume_only_A(native_climates,hass):
+@pytest.mark.parametrize("trace_attempt", range(8))
+async def test_real_native_climate_services_stop_A_then_B_and_resume_only_A(native_climates,hass,trace_attempt):
     n=native_climates;await n.settle(16,16)
     a,b=n.entities[n.rad.room_id],n.entities[n.floor.room_id]
     async def service(entity,mode):
@@ -80,8 +81,19 @@ async def test_real_native_climate_services_stop_A_then_B_and_resume_only_A(nati
             {"entity_id":entity.entity_id,"hvac_mode":mode},blocking=True))
         await hass.async_block_till_done()
     await service(a,"off")
+    # Synthetic finite fixture inputs only: keep an exact C++ replay even if
+    # the timing assertion fails in a faster/different CI environment.
+    trace_path=Path(f"out/climate-warmup-trace-{trace_attempt}.json")
+    trace_path.parent.mkdir(parents=True,exist_ok=True)
+    trace_path.write_text(json.dumps(dict(clock=n.peer.clock,
+        clock_domains=dict(runtime=n.runtime.clock(), transport=n.client.clock(), host_loop=hass.loop.time()),
+        observations={key:dict(source_age_ms=value.source_age_ms,
+            observed_monotonic=value.observed_monotonic, quality=value.quality)
+            for key,value in n.runtime.observations.items()},
+        events=[dict(op=op,**args) for op,args,_ in n.peer.trace],
+        decisions={k:vars(v) for k,v in n.runtime.decisions.items()}),default=str))
     assert a.hvac_mode==HVACMode.OFF and a.target_temperature is None
-    assert not n.runtime.decisions[n.rad.room_id].demand and n.runtime.decisions[n.floor.room_id].demand
+    assert not n.runtime.decisions[n.rad.room_id].demand and n.runtime.decisions[n.floor.room_id].demand, n.runtime.decisions
     assert b.hvac_mode==HVACMode.HEAT and b.target_temperature==19
     await service(b,"off")
     assert all(not s.demand for s in n.runtime.decisions.values())
@@ -107,6 +119,16 @@ async def test_native_turn_off_on_helpers_reuse_same_command_and_auto_target(nat
     await command(n,a.async_turn_on())
     assert a.hvac_mode==HVACMode.HEAT and a.target_temperature==21
     assert n.entities[n.floor.room_id].target_temperature==19
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("two_controller", [("runtime_clock_origin", origin) for origin in (50.0, 100.0, 150.0, 500.0)],
+    indirect=True, ids=["epoch50", "epoch100", "epoch150", "epoch500"])
+async def test_native_room_stop_is_independent_of_host_monotonic_epoch(native_climates, hass, request):
+    # Exercise the entire unchanged service/ACK path and its original demand
+    # assertions, not an alternate controller or a relaxed warmup deadline.
+    await test_real_native_climate_services_stop_A_then_B_and_resume_only_A(
+        native_climates, hass, "epoch-" + str(request.node.callspec.params["two_controller"][1]))
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mode",["cool","heat_cool","auto","",None])

@@ -42,6 +42,47 @@ source closure. Do not mark framework.closure VERIFIED merely because these
 tests pass. Independent verification of the exact component source/build/notice
 mapping is required. Nothing is published.
 
+## Exact original upstream binary comparison — 22 October 2026
+
+The [binary comparison](sdk-upstream-binary-match.json) binds all **104 archive
+rows (52 per target)** in the existing linked SDK inventory to their exact
+original Git blobs in immutable Arduino commit
+`5e19e086c43d0fa5e5a596497ff8f11a0a43f6c2`. Every local SHA256 still matches that
+inventory. Native `git hash-object` independently confirms each blob hash; the
+original commit API binds the downloaded recursive tree to the pinned commit.
+Reproduce from `out/sdk-upstream-comparison-20261022`: original commit/tree metadata,
+comparison rows and independent `ROOT-REVIEW.json` are retained.
+
+This closes the original-binary identity question for those inventory rows.
+It does **not** establish the dirty component's exact corresponding source/build
+recipe, original notices for every linked component, toolchain runtime relink
+closure, or acceptance of a new firmware image. Both release closure fields
+remain BLOCKED. Header-version identity and binary identity are kept separate.
+
+## Further source correspondence evidence — 23 October 2026
+
+The [bounded E32 source proof](../modern-thermostat/SDK-BRONBEWIJS-20261023.nl.md)
+now reproduces 346 C/C++ SDK objects, 11 SDK assembly objects, all 269 retained
+runtime compilation units and three startup objects. Independent checks compare
+actual archive members and immutable source bytes, removing only debug data and
+`.comment`. This advances corresponding-source evidence; a complete source/build/
+relink offer and release review remain separate conditions.
+
+An isolated clean candidate at `56e7d94c15adca50aba88482a7e6fa4c88378c31` now
+passes ordinary app/FS builds and board checks. Supplied application objects
+reproduce its entire ELF, and also link with a deliberately modified Arduino
+library. Local source/relink review materials have been assembled and all 512
+package checksums checked again after ZIP creation. Seven existing Arduino source
+differences are explicitly retained as a patch; they are not called upstream-
+identical. This is review material, not firmware release approval. Other targets
+and full notice/distribution qualification remain separate.
+
+The dated public CA snapshot now has an exact original Mozilla source binding,
+original notices and offline binary reproduction in [ca-provenance.json](ca-provenance.json).
+Original bytes are retained under `ca-originals/`. The existing PEM and generated
+binary have not changed. Verify with `python3 scripts/verify_ca_snapshot.py`.
+No release closure field or publication guard was changed by this evidence.
+
 ## Offline reproduction
 
 From the checkout, with its actual cached E32 environment:
@@ -78,3 +119,14 @@ Revert only the bounded provenance/notice commit before dependent release work.
 Do not delete cache/model/config/history data. Recorder, DHW, model-resource,
 F9 and runtime paths remain unchanged. Image/heap/NVS/eight-zone/physical and
 publication acceptance remain separate, OPEN unless independently proven.
+
+## EMS reference data
+
+`public/ems/SOURCES.json` records exact upstream URLs and content hashes for the
+EMS-ESP entity/telegram exports and library metadata, plus factual device names
+extracted from the pinned EMS-ESP32 device library. Attribution remains with the
+EMS-ESP community. `scripts/generate_ems_reference.py` preserves the complete
+entity access flags and byte-offset references in the browser asset and emits
+telegram names for bounded native logs. No upstream executable driver code was
+imported; this does not claim functional parity or relicense upstream material.
+The generated reference is separate from decoder and active-control acceptance.

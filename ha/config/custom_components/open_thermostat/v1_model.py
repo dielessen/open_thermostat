@@ -207,7 +207,11 @@ def temperature_c(state: Any) -> float | None:
     return value if -20 <= value <= 60 else None
 
 def target_centi(value: Any) -> int:
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+    try:
+        finite = type(value) in (int, float) and math.isfinite(value)
+    except OverflowError:
+        finite = False
+    if not finite:
         raise ValueError("target must be finite numeric Celsius")
     from decimal import Decimal
     scaled = Decimal(str(value)) * 100

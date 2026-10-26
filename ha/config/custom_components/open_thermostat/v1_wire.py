@@ -15,16 +15,26 @@ import secrets
 
 from homeassistant.exceptions import HomeAssistantError
 
+from .supervisor_status import supervisor_status, MAX_AGE_SECONDS as SUPERVISOR_MAX_AGE
 from .v1_model import Observation, RoomDecision
 from .session_grant import register_grant_proof, consume_grant_proof, MAX_GRANT_PROOFS
+from .boiler_fields import CAPABILITY as BOILER_CAPABILITY, BoilerFieldCache, MAX_BYTES as MAX_BOILER_BYTES
 from .metric_snapshot import CAPABILITY,MAX_BYTES as MAX_METRIC_BYTES,EXPIRY_SECONDS,valid_snapshot
 
 _ID = re.compile(r"[A-Za-z0-9_-]{1,32}")
 _HEX = re.compile(r"[0-9a-f]{64}")
 MAX_BYTES = 8192
 GRANT_NONCE_CAPABILITY = "session.grant_nonce.v1"
+ROOM_NAMES_CAPABILITY = "display.room_names.v1"
 COMFORT_CAPABILITY = "comfort.target.v1"
 COMFORT_MODES = {"auto","off","temporary","boost","away","vacation","frost"}
+# Fixed firmware admission labels only; arbitrary peer text stays private.
+_REJECTION_REASONS = frozenset(("not_configured", "wrong_version", "wrong_identity",
+    "wrong_revision", "unknown_binding", "expired_grant", "lease_expired",
+    "old_sequence", "changed_duplicate", "invalid_sequence", "invalid_clock"))
+_RESULT_STREAMS = {"fw/heartbeat_result": "heartbeat", "fw/config_result": "configuration",
+    "fw/observation_result": "observation", "fw/user_command_result": "user_command",
+    "fw/snapshot_result": "snapshot"}
 
 
 def canonical(value):
@@ -93,6 +103,8 @@ class ShadowClient:
         self.source_policy_matched=False
         self.graph_source_review_required=False
         self.send, self.store, self.clock = send, store, clock
+        self._clock_watermark = None
+        self._clock_fault = False
         self.desired, self.mapping = json.loads(canonical(desired)), json.loads(canonical(mapping))
         self.native_plan_source=getattr(runtime,"native_plan_source",None)
         self.native_plan_template=json.loads(canonical(control_plan)) if control_plan is not None else None
@@ -107,6 +119,7 @@ class ShadowClient:
         self._native_review=None
         self._native_apply_sent=False
         self._native_apply_scope=None
+        self._native_state_receipt=None
         self._native_device_result=None
         self._native_legacy_supported=False
         self._native_legacy_verified=False
@@ -135,15 +148,68 @@ class ShadowClient:
         self.verified = False
         self.closed = False
         self.error = "not_connected"
+        self._last_rejection = None
         self._nonce = lambda: secrets.token_hex(12)
         self._close_io = None
+        self.room_names_supported=False
         self.grant_nonce_supported=False
         self._grant_proofs={}
+        self.boiler_fields_supported=False
+        self.boiler_fields=BoilerFieldCache()
         self.metrics_supported=False
         self.comfort_supported=False
         self._metrics=None
         self._metrics_received=0.0
         self._metrics_highwater=0
+        self._supervisor=None
+        self._supervisor_received=0.0
+
+    @property
+    def last_rejection_payload(self):
+        """One historical reply, never current admission or readiness evidence."""
+        if self._last_rejection is None:
+            return None
+        record, received, watermark = self._last_rejection
+        now = self.clock()
+        if (type(now) not in (int, float) or not math.isfinite(now)
+                or not math.isfinite(now - received) or now < watermark):
+            self._last_rejection = None
+            return None
+        age_ms = (now - received) * 1000
+        if not math.isfinite(age_ms):
+            self._last_rejection = None
+            return None
+        self._last_rejection = (record, received, now)
+        return dict(record, received_age_ms=math.ceil(age_ms))
+
+    def _record_rejection(self, topic, payload, pending):
+        now = self.clock()
+        stream = _RESULT_STREAMS.get(topic)
+        if (stream is None or type(now) not in (int, float) or not math.isfinite(now)
+                or not 0 <= now - pending["sent"] < 8 or not now < pending["deadline"]):
+            return
+        reason = payload.get("rejection_reason")
+        if type(reason) is not str or reason not in _REJECTION_REASONS:
+            reason = "unknown_reason"
+        self._last_rejection = (dict(stream=stream, status=payload["status"], reason=reason,
+            scope="historical_matching_reply_only", control_qualified=False), now, now)
+
+    @property
+    def supervisor_payload(self):
+        # Receipt age describes this diagnostic snapshot, never acquisition or
+        # physical feedback freshness. No new timer, Store or command path.
+        if not self.clock_current():
+            return None
+        now=self.clock()
+        age=now-self._supervisor_received
+        if self._supervisor is None:
+            return None
+        # Compare the deadline directly: subtracting across a binary exponent
+        # boundary can round an expired 15-second interval down below 15.
+        if not self.ready or not self._supervisor_received<=now<self._supervisor_received+SUPERVISOR_MAX_AGE:
+            self._supervisor=None # Observed expiry/loss cannot revive after clock recovery.
+            return None
+        return dict(self._supervisor, receipt_age_ms=int(age*1000))
 
     @property
     def metrics_payload(self):
@@ -159,6 +225,8 @@ class ShadowClient:
 
     @property
     def ready(self):
+        if not self.clock_current():
+            return False
         now = self.clock()
         return (not self.closed and not self.graph_source_review_required
                 and not self._native_horizon_inhibit
@@ -166,6 +234,42 @@ class ShadowClient:
                 and self.session.get("mapping_ready") is True
                 and now < self.grant_until and now < self.lease_until
                 and now - self.last_rx < 15)
+
+    def actuator_scope(self, binding):
+        """Current local transport context only; never physical qualification."""
+        from .actuator_receiver import ActuatorScope
+        if not identifier(binding) or not self.ready or self.identity is None:
+            return None
+        record = self.known(self.session['config_revision'], self.session['config_digest'])
+        if (record is None or not any(z.get('actuator_id') == binding
+                                     for z in record['config']['zones'])):
+            return None
+        scope = ActuatorScope(*self.identity, self.adapter_id,
+            self.session['adapter_session_id'], self.session['config_revision'],
+            self.session['config_digest'], binding)
+        return scope if scope.valid() else None
+
+    def clock_current(self):
+        """Retire all proofs on clock failure; reconnect cannot revive this owner.
+
+        A new transport owner (normal integration reload) is required after an
+        invalid monotonic clock. Never translate or rebase old deadlines.
+        """
+        if self._clock_fault:
+            return False
+        now = self.clock()
+        try:
+            finite = type(now) in (int, float) and math.isfinite(now)
+        except OverflowError:
+            finite = False
+        if (not finite or now < 0
+                or (self._clock_watermark is not None and now < self._clock_watermark)):
+            self._clock_fault = True
+            self.reset_session()
+            self.error = "local_monotonic_clock_invalid"
+            return False
+        self._clock_watermark = now
+        return True
 
     def changed(self):
         self.runtime.diagnostics["transport"] = self.error
@@ -227,7 +331,7 @@ class ShadowClient:
 
     def native_context(self):
         from .graph_shadow_validation import GraphValidationError
-        if (not self.native_source_current() or not self.identity or not self.session
+        if (not self.clock_current() or not self.native_source_current() or not self.identity or not self.session
                 or not self.source_policy_matched or self.clock()>=self.grant_until
                 or self.clock()>=self.lease_until or self.clock()-self.last_rx>=15):
             raise GraphValidationError("native_plan_live_readback_required")
@@ -259,6 +363,45 @@ class ShadowClient:
                 or not 0<=self.clock()-self._native_review[2]<300):
             raise GraphValidationError("native_plan_review_changed")
         return (scope,staged["config_digest"],self._native_review[2])
+
+    @property
+    def native_plan_readback_ready(self):
+        """Read-only presentation of the existing prepare prerequisites.
+
+        No grant, journal change, stage or implicit review is created here.
+        The worker independently rechecks these prerequisites when preparing.
+        """
+        from .graph_shadow_validation import GraphValidationError
+        if self.native_plan_source is None:
+            return False
+        try:
+            scope=self.native_context()
+        except GraphValidationError:
+            return False
+        return (self._native_remote_known and self._native_snapshot_scope==scope
+            and 0<=self.clock()-self._native_snapshot_at<15 and not self._native_apply_sent)
+
+    @property
+    def current_native_room_state_verified(self):
+        """A current validated wire-state receipt, not temperature qualification."""
+        if not self.ready or self.native_plan_source is None or self._native_state_receipt is None:
+            return False
+        from .graph_shadow_validation import GraphValidationError
+        try:
+            scope=self.native_context()
+        except GraphValidationError:
+            return False
+        received_scope,received_at=self._native_state_receipt
+        return received_scope==scope and 0<=self.clock()-received_at<15
+
+    async def async_request_native_plan_readback(self):
+        """Explicit read-only refresh on the owning worker; never stage or apply."""
+        from .graph_shadow_validation import GraphValidationError
+        self.native_context()
+        if self.journal['staged'] is not None or self._native_apply_sent:
+            raise GraphValidationError('controller_plan_pending')
+        if not any(key[0]=='fw/snapshot_result' for key in self.pending):
+            await self.message('ha/snapshot_request','snapshot',{})
 
     async def async_prepare_native_plan(self):
         from .graph_shadow_validation import GraphValidationError
@@ -363,7 +506,9 @@ class ShadowClient:
         """
         expected={"api","controller_id","boot_id","epoch","config_revision","config_digest",
                   "adapter_session_id","binding_id","sequence","status"}
-        if (set(p)!=expected or not integer(p["sequence"],1) or p["binding_id"]!="config"
+        if (set(p)-{"rejection_reason"}!=expected
+                or ("rejection_reason" in p and p["status"]!="rejected")
+                or not integer(p["sequence"],1) or p["binding_id"]!="config"
                 or not integer(p["config_revision"]) or not self.native_source_current()
                 or self.session is None or p["adapter_session_id"]!=self.session["adapter_session_id"]):
             return True
@@ -549,6 +694,8 @@ class ShadowClient:
         self.journal = snapshot
 
     def reset_session(self):
+        self._last_rejection = None
+        self._native_state_receipt=None
         self._native_refresh_pending=False
         self._native_legacy_supported=False
         self._native_legacy_verified=False
@@ -565,6 +712,7 @@ class ShadowClient:
         self.sequence.clear()
         self.pending.clear()
         self.open_request = None
+        self.room_names_supported = False
         self.grant_nonce_supported = False
         self.comfort_supported = False
         self._grant_proofs.clear()
@@ -575,6 +723,9 @@ class ShadowClient:
         self._metrics=None
         self._metrics_received=0.0
         self._metrics_highwater=0
+        self._supervisor=None
+        self._supervisor_received=0.0
+        self.boiler_fields.reset()
 
     def require_graph_source_review(self):
         if getattr(self.runtime,"graph_controller_source",None) is None:
@@ -590,9 +741,15 @@ class ShadowClient:
         self.error = "disconnected"
         self.changed()
 
-    async def receive(self, topic, raw, *, retained=False):
+    async def receive(self, topic, raw, *, retained=False, received_at=None):
         if self.closed or retained or self.graph_source_review_required or self.native_plan_fenced:
             return
+        if not self.clock_current():
+            self.changed()
+            return
+        if topic == "fw/telemetry/boiler_fields":
+            self.receive_boiler_fields(raw,received_at)
+            return # Read-only: never renew a control lease or a room measurement.
         if topic == "fw/telemetry/ems_metrics":
             self.receive_metrics(raw)
             return # No last_rx/lease/sample/control update, even for valid telemetry.
@@ -610,6 +767,39 @@ class ShadowClient:
             self.reset_session()
             self.error = "invalid_firmware_message"
             self.changed()
+
+    def receive_boiler_fields(self, raw, received_at=None):
+        if not self.ready or not self.boiler_fields_supported:
+            return
+        try:
+            if not isinstance(raw,str) or len(raw)>MAX_BOILER_BYTES:
+                raise ValueError("boiler bytes")
+            p=parse(raw)
+            if (not self.same_identity(p) or not self.same_config(p)
+                    or p.get("adapter_id")!=self.adapter_id
+                    or p.get("adapter_session_id")!=self.session["adapter_session_id"]
+                    or p.get("grant_id")!=self.session["grant_id"]
+                    or p.get("grant_sequence")!=self.session["grant_sequence"]):
+                return
+            expected={"api","controller_id","boot_id","epoch","config_revision","config_digest","mode",
+                      "adapter_id","adapter_session_id","grant_id","grant_sequence","sequence","group",
+                      "boiler_output_enabled","actuator_output_enabled","values"}
+            if (set(p)!=expected or p["mode"]!="shadow" or p["boiler_output_enabled"] is not False
+                    or p["actuator_output_enabled"] is not False or not integer(p["sequence"],1)
+                    or type(p["grant_sequence"]) is not int):
+                raise ValueError("boiler envelope")
+            now=self.clock()
+            if received_at is None:
+                received_at=now
+            if (type(received_at) not in (int,float) or not math.isfinite(received_at)
+                    or not 0<=now-received_at<15):
+                raise ValueError("boiler local queue age")
+            self.boiler_fields.accept(p["values"],p["group"],p["sequence"],received_at)
+            self.runtime.diagnostics["boiler_fields"]="read_only_not_control_qualified"
+        except (ValueError,TypeError,KeyError,OverflowError):
+            self.boiler_fields.invalidate()
+            self.runtime.diagnostics["boiler_fields"]="invalid_read_only_fields"
+        self.runtime._notify()
 
     def receive_metrics(self,raw):
         if not self.ready or not self.metrics_supported:
@@ -693,6 +883,10 @@ class ShadowClient:
             if not self.grant_nonce_supported:
                 self._grant_proofs.clear()
             comfort_caps=p.get("control_capabilities",[])
+            self.room_names_supported = (self.native_plan_source is not None
+                and type(comfort_caps) is list and len(comfort_caps)<=8
+                and all(type(cap) is str and len(cap)<=64 for cap in comfort_caps)
+                and ROOM_NAMES_CAPABILITY in comfort_caps)
             if self.native_plan_source is not None:
                 if (type(comfort_caps) is not list or len(comfort_caps)>8 or self.native_plan_source.profile_version not in comfort_caps):
                     self.reset_session();self.error="native_plan_capability_unavailable";self.changed();return
@@ -708,6 +902,10 @@ class ShadowClient:
             if any("comfort" in z for z in self.desired) and not self.comfort_supported:
                 self.reset_session();self.error="comfort_capability_unavailable";self.changed();return
             caps=p.get("read_only_capabilities",[])
+            self.boiler_fields_supported=(type(caps) is list and len(caps)<=8
+                and all(isinstance(cap,str) and len(cap)<=64 for cap in caps) and BOILER_CAPABILITY in caps)
+            if not self.boiler_fields_supported:
+                self.boiler_fields.reset()
             self.metrics_supported=(type(caps) is list and len(caps)<=8
                 and all(isinstance(cap,str) and len(cap)<=64 for cap in caps) and CAPABILITY in caps)
             if not self.metrics_supported:
@@ -803,6 +1001,7 @@ class ShadowClient:
             self.pending.pop(key)
             status = p["status"]
             if status in {"rejected", "conflict", "storage_fault", "mapping_conflict"}:
+                self._record_rejection(topic, p, pending)
                 self.error = status
                 if topic == "fw/user_command_result" and not pending["future"].done():
                     pending["future"].set_exception(HomeAssistantError("Firmware rejected shadow command"))
@@ -828,6 +1027,8 @@ class ShadowClient:
                 or type(p.get("adapter_alive")) is not bool or not isinstance(p.get("zones"), list)):
                 raise ValueError("not shadow state")
             if not self.ready or not p["adapter_alive"]:
+                self._native_state_receipt=None
+                self._supervisor=None
                 self.runtime.decisions.clear()
                 self.changed()
                 return
@@ -856,6 +1057,17 @@ class ShadowClient:
                 decisions[row["zone_id"]] = RoomDecision(
                     row["target_centi_c"], row["temperature_centi_c"], row["demand"], row["reason"],
                     row["target_source"],row.get("comfort_mode"),row.get("override_remaining_ms",0),row.get("vacation_until_utc",0))
+            if self.native_plan_source is not None:
+                self._native_state_receipt=(self.native_context(),self.clock())
+            # Optional diagnostics cannot reject otherwise valid room decisions.
+            # Missing/malformed data replaces, rather than preserves, old intent.
+            self._supervisor=None
+            if "supervisor" in p:
+                try:
+                    self._supervisor=supervisor_status(p["supervisor"])
+                except (ValueError, TypeError):
+                    pass
+            self._supervisor_received=self.clock()
             self.runtime.decisions = decisions
             self.error = "shadow_ready"
             self.changed()
@@ -917,6 +1129,8 @@ class ShadowClient:
         self.changed()
 
     def envelope(self, binding):
+        if not self.clock_current():
+            raise HomeAssistantError("Local monotonic clock invalid; reload required")
         if self.native_plan_source is not None and not self.native_source_current():
             self.require_native_plan_review()
             raise HomeAssistantError("Native installation/entry/registry changed")
@@ -932,6 +1146,17 @@ class ShadowClient:
     async def message(self, topic, binding, body, future=None):
         p = self.envelope(binding)
         p.update(body)
+        if topic=="ha/heartbeat" and self.room_names_supported and self.ready:
+            names=[]
+            for room_id in sorted(self.runtime.rooms):
+                name=self.runtime.rooms[room_id].name
+                # A display-only UTF-8 prefix; the actual saved name is retained.
+                label=''.join(c for c in name.strip() if ord(c)>=32 and ord(c)!=127)
+                label=label.encode('utf-8',errors='ignore')[:80].decode('utf-8',errors='ignore')
+                if not label:
+                    names=[];break
+                names.append({'zone_id':room_id,'name_utf8_hex':label.encode('utf-8').hex()})
+            if 1<=len(names)<=2:p['room_names']=names
         if topic=="ha/heartbeat" and self.grant_nonce_supported:
             # Session-local HB sequence prevents reuse even if a test RNG repeats.
             p["grant_request_nonce"]=f"g{p['sequence']:08x}{self._nonce()[:20]}"
@@ -1038,13 +1263,32 @@ class ShadowClient:
         await future # Only admitted fw/state confirms a target. Never store/replay commands.
 
     async def poll(self):
-        if self.closed:
+        async def current_time():
+            # A publish awaits the existing MQTT transport. Its completion may
+            # consume the budget, close this owner or change native SOURCE.
+            if self.closed:
+                return None
+            if not self.clock_current():
+                self.changed()
+                return None
+            if self.native_plan_source is not None and not self.native_source_current():
+                self.require_native_plan_review()
+                return None
+            now = self.clock()
+            if self.session and (now - self.last_rx >= 15
+                    or (self.lease_until and now >= self.lease_until)):
+                await self.async_disconnected()
+                return None
+            return now
+
+        if await current_time() is None:
             return
-        if self.native_plan_source is not None and not self.native_source_current():
-            self.require_native_plan_review()
-            return # No old exact-byte retry after SOURCE/registry/owner drift.
-        now = self.clock()
         for key, item in list(self.pending.items()):
+            now = await current_time()
+            if now is None:
+                return
+            if self.pending.get(key) is not item:
+                continue # An earlier await retired/replaced this snapshot row.
             if now >= item["deadline"] or now - item["sent"] >= 8 or item["tries"] >= 3:
                 self.pending.pop(key, None)
                 if item["future"] is not None and not item["future"].done():
@@ -1055,11 +1299,15 @@ class ShadowClient:
                 item["tries"] += 1
                 item["last"] = now
                 await self.send(item["topic"], item["raw"])
+        now = await current_time()
+        if now is None:
+            return
         if self.session and now < self.grant_until:
             if not any(k[0] == "fw/heartbeat_result" for k in self.pending):
                 await self.message("ha/heartbeat", "adapter", {})
-        if self.session and (now - self.last_rx >= 15 or (self.lease_until and now >= self.lease_until)):
-            await self.async_disconnected()
+        now = await current_time()
+        if now is None:
+            return
         self.changed()
 
     async def async_close(self):

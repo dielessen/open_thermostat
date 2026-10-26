@@ -14,15 +14,15 @@
 		<div class="modal-dialog" role="document">
 			<div class="modal-content">
 				<div class="modal-header">
-					<h5 class="modal-title" id="selectWiFiSSIDLabel">Choose WiFi Network</h5>
-					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<h5 class="modal-title" id="selectWiFiSSIDLabel"><span data-i18n="Choose WiFi Network">Choose WiFi Network</span></h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close" data-i18n-aria-label="Close">
 						<span aria-hidden="true">&times;</span>
 					</button>
 				</div>
 				<div class="modal-body">
 					<div class="d-flex justify-content-center">
 						<div class="spinner-border text-danger" id="scanningWiFi" role="status"><span
-								class="sr-only">Scanning for WiFi networks</span></div>
+								class="sr-only"><span data-i18n="Scanning for WiFi networks">Scanning for WiFi networks</span></span></div>
 					</div>
 					<form>
 						<select class="form-control" id="selectWiFiSSIDSelect">
@@ -30,7 +30,7 @@
 					</form>
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-primary" id="selectWiFiSSIDSave">Select network</button>
+					<button type="button" class="btn btn-primary" id="selectWiFiSSIDSave"><span data-i18n="Select network">Select network</span></button>
 				</div>
 			</div>
 		</div>
@@ -41,7 +41,7 @@
 		<div class="row mb-3">
 			<div class="card w-100" id="WiFiSettings">
 				<div class="card-header d-flex justify-content-between align-items-center">
-					<span class="align-middle">WiFi settings</span><button type="button"
+					<span class="align-middle"><span data-i18n="WiFi settings">WiFi settings</span></span><button type="button"
 						class="btn px-1 py-0 m-0 btn-outline-info" onclick="loadWiFiSettings();">&#x2b6f;</button>
 				</div>
 				<div class="card-body">
@@ -61,7 +61,7 @@
 								</div>
 							</div>
 							<div class="col-md mb-2">
-								<label for="WiFiPassword">Password</label>
+								<label for="WiFiPassword"><span data-i18n="Password">Password</span></label>
 								<div class="input-group">
 									<input type="password" class="form-control" id="WiFiPassword" required>
 									<div class="input-group-append">
@@ -76,7 +76,7 @@
 				</div>
 				<div class="card-footer text-muted">
 					<button type="button" class="btn btn-primary mb-2" onclick="saveWiFiSettings();"
-						id="SaveWiFiSettings">Save WiFi settings</button>
+						id="SaveWiFiSettings"><span data-i18n="Save WiFi settings">Save WiFi settings</span></button>
 				</div>
 			</div>
 		</div>
@@ -84,7 +84,7 @@
 		<div class="row mb-3">
 			<div class="card w-100" id="NetworkSettings">
 				<div class="card-header d-flex justify-content-between align-items-center">
-					<span class="align-middle">Device settings</span><button type="button"
+					<span class="align-middle"><span data-i18n="Device settings">Device settings</span></span><button type="button"
 						class="btn px-1 py-0 m-0 btn-outline-info" onclick="loadDeviceSettings();">&#x2b6f;</button>
 				</div>
 				<div class="card-body">
@@ -92,13 +92,13 @@
 
 
 						<div class="card mb-2">
-							<div class="card-header">Web Interface</div>
+							<div class="card-header"><span data-i18n="Web Interface">Web Interface</span></div>
 							<div class="card-body" id="WebInterfaceCard">
 								<div class="form-row">
-									<div class="col-md mb-2"><label for="DeviceHostname">Hostname</label><input
+									<div class="col-md mb-2"><label for="DeviceHostname"><span data-i18n="Hostname">Hostname</span></label><input
 											type="text" class="form-control" id="DeviceHostname" placeholder="heating"
 											required></div>
-									<div class="col-md mb-2"><label for="DeviceListenPort">Listen port</label><input
+									<div class="col-md mb-2"><label for="DeviceListenPort"><span data-i18n="Listen port">Listen port</span></label><input
 											type="number" class="form-control" id="DeviceListenPort" min="1" max="65535"
 											step="1" placeholder="80" required>
 									<div class="invalid-feedback">1 - 65535</div></div>
@@ -107,13 +107,13 @@
 						</div>
 
 						<div class="card mb-2">
-							<div class="card-header">Hardware services</div>
+							<div class="card-header"><span data-i18n="Hardware services">Hardware services</span></div>
 							<div class="card-body" id="RTCCard">
 								<div class="form-row">
 									<div class="col-md mb-2">
 										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
 												id="DeviceRTCEnabled"><label class="form-check-label"
-												for="DeviceRTCEnabled">Real Time Battery powered clock enabled</label>
+												for="DeviceRTCEnabled"><span data-i18n="Real Time Battery powered clock enabled">Real Time Battery powered clock enabled</span></label>
 										</div>
 									</div>
 								</div>
@@ -121,87 +121,79 @@
 									<div class="col-md mb-2">
 										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
 												id="DeviceEMSEnabled"><label class="form-check-label"
-												for="DeviceEMSEnabled">EMS bus enabled</label></div>
+												for="DeviceEMSEnabled"><span data-i18n="EMS bus enabled">EMS bus enabled</span></label></div><small class="form-text text-muted"><span data-i18n="EMS receives boiler data. In shadow mode, enabling EMS does not enable boiler commands. On E32 test firmware, transmission and forwarding remain blocked.">EMS receives boiler data. In shadow mode, enabling EMS does not enable boiler commands. On E32 test firmware, transmission and forwarding remain blocked.</span></small>
 									</div>
 								</div>
 								<div class="form-row">
 									<div class="col-md mb-2">
 										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
 												id="DeviceEMSForwarderEnabled"><label class="form-check-label"
-												for="DeviceEMSForwarderEnabled">EMS bus forwarder enabled</label></div>
+												for="DeviceEMSForwarderEnabled"><span data-i18n="EMS bus forwarder enabled">EMS bus forwarder enabled</span></label></div>
 									</div>
 								</div>
 							</div>
 						</div>
 
 						<div class="card mb-2">
-							<div class="card-header">Network Time Protocol (NTP) Server configuration</div>
+							<div class="card-header"><span data-i18n="Network Time Protocol (NTP) Server configuration">Network Time Protocol (NTP) Server configuration</span></div>
 							<div class="card-body" id="NTPCard">
 								<div class="form-row">
 									<div class="col-md mb-2">
 										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
 												id="DeviceNTPEnabled"><label class="form-check-label"
-												for="DeviceNTPEnabled">Enabled</label></div>
+												for="DeviceNTPEnabled"><span data-i18n="Enabled">Enabled</span></label></div>
 									</div>
 								</div>
 								<div class="form-row">
-									<div class="col-md mb-2"><label for="DeviceNTPServer">Network Time Protocol (NTP)
-											Server</label><input type="text" class="form-control" id="DeviceNTPServer"
+									<div class="col-md mb-2"><label for="DeviceNTPServer"><span data-i18n="Network Time Protocol (NTP) Server">Network Time Protocol (NTP) Server</span></label><input type="text" class="form-control" id="DeviceNTPServer"
 											placeholder="pool.ntp.org" required></div>
-									<div class="col-md mb-2"><label for="DeviceNTPUTCOffset">NTP to UTC offset
-											(s)</label><input type="number" class="form-control" id="DeviceNTPUTCOffset"
+									<div class="col-md mb-2"><label for="DeviceNTPUTCOffset"><span data-i18n="NTP to UTC offset (s)">NTP to UTC offset (s)</span></label><input type="number" class="form-control" id="DeviceNTPUTCOffset"
 											step="1" placeholder="0" required></div>
-									<div class="col-md mb-2"><label for="DeviceNTPUTCDLOffset">NTP to UTC Daylight
-											offset (s)</label><input type="number" class="form-control"
+									<div class="col-md mb-2"><label for="DeviceNTPUTCDLOffset"><span data-i18n="NTP to UTC Daylight offset (s)">NTP to UTC Daylight offset (s)</span></label><input type="number" class="form-control"
 											id="DeviceNTPUTCDLOffset" step="1" placeholder="0" required></div>
 								</div>
 								<div class="form-row">
-									<div class="col-md mb-2"><label for="DeviceNTPTimezone">NTP Time zone
-											string</label><input type="text" class="form-control" id="DeviceNTPTimezone"
+									<div class="col-md mb-2"><label for="DeviceNTPTimezone"><span data-i18n="NTP Time zone string">NTP Time zone string</span></label><input type="text" class="form-control" id="DeviceNTPTimezone"
 											aria-describedby="DeviceNTPTimezoneHelp" required>
-										<div id="DeviceNTPTimezoneHelp" class="form-text">If specified, UTC offsets
-											won't be used to set up local time</div>
+										<div id="DeviceNTPTimezoneHelp" class="form-text"><span data-i18n="If specified, UTC offsets won&#x27;t be used to set up local time">If specified, UTC offsets won&#x27;t be used to set up local time</span></div>
 									</div>
 								</div>
 							</div>
 						</div>
 
 						<div class="card mb-2">
-							<div class="card-header">Bluetooth configuration</div>
+							<div class="card-header"><span data-i18n="Bluetooth configuration">Bluetooth configuration</span></div>
 							<div class="card-body" id="BTCard">
 								<div class="form-row">
-									<div class="col-md mb-2"><label for="BTScanTime">Bluetooth scan time
-											(s)</label><input type="number" class="form-control" id="BTScanTime" min="1"
+									<div class="col-md mb-2"><label for="BTScanTime"><span data-i18n="Bluetooth scan time (s)">Bluetooth scan time (s)</span></label><input type="number" class="form-control" id="BTScanTime" min="1"
 											step="1" placeholder=30 required></div>
-									<div class="col-md mb-2"><label for="BTScanInterval">Interval between bluetooth
-											scans (s)</label><input type="number" class="form-control"
+									<div class="col-md mb-2"><label for="BTScanInterval"><span data-i18n="Interval between bluetooth scans (s)">Interval between bluetooth scans (s)</span></label><input type="number" class="form-control"
 											id="BTScanInterval" min="0" step="1" placeholder=120 required></div>
 								</div>
 							</div>
 						</div>
 
-						<p id="LegacyWeatherNotice" class="text-muted">Legacy internet weather is shown only after legacy mode is confirmed. In Home Assistant-managed mode, choose the outdoor source in Home Assistant.</p>
+						<p id="LegacyWeatherNotice" class="text-muted"><span data-i18n="Legacy internet weather is shown only after legacy mode is confirmed. In Home Assistant-managed mode, choose the outdoor source in Home Assistant.">Legacy internet weather is shown only after legacy mode is confirmed. In Home Assistant-managed mode, choose the outdoor source in Home Assistant.</span></p>
                         <div class="card mb-2" id="LegacyWeatherSettings" hidden style="display:none">
-							<div class="card-header">OpenWeatherMap outdoor temperature API</div>
+							<div class="card-header"><span data-i18n="OpenWeatherMap outdoor temperature API">OpenWeatherMap outdoor temperature API</span></div>
 							<div class="card-body" id="OpenWeatherMapCard">
 								<div class="form-row">
 									<div class="col-md mb-2">
 										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
 												id="DeviceOWMEnabled"><label class="form-check-label"
-												for="DeviceOWMEnabled">Enabled</label></div>
+												for="DeviceOWMEnabled"><span data-i18n="Enabled">Enabled</span></label></div>
 									</div>
 								</div>
 								<div class="form-row">
-									<div class="col-md mb-2"><label for="DeviceOWMAPIKey">OpenWeatherMap API Key
-											(appid)</label><input type="text" class="form-control" id="DeviceOWMAPIKey">
+									<div class="col-md mb-2"><label for="DeviceOWMAPIKey"><span data-i18n="OpenWeatherMap API Key (appid)">OpenWeatherMap API Key (appid)</span></label><input type="text" class="form-control" id="DeviceOWMAPIKey">
 									</div>
-									<div class="col-md mb-2"><label for="DeviceOWMLat">Latitude</label><input
+									<div class="col-md mb-2"><label for="DeviceOWMLat"><span data-i18n="Latitude">Latitude</span></label><input
 											type="number" class="form-control" id="DeviceOWMLat" placeholder="54.3673">
 									</div>
-									<div class="col-md mb-2"><label for="DeviceOWMLon">Longitude</label><input
+									<div class="col-md mb-2"><label for="DeviceOWMLon"><span data-i18n="Longitude">Longitude</span></label><input
 											type="number" class="form-control" id="DeviceOWMLon" placeholder="18.6282">
 									</div>
-									<div class="col-md mb-2"><label for="DeviceOWMInterval">Interval (s)</label><input
+									<div class="col-md mb-2"><label for="DeviceOWMInterval"><span data-i18n="Interval (s)">Interval (s)</span></label><input
 											type="number" class="form-control" id="DeviceOWMInterval" placeholder="120"
 											value="120" min="60" max="600"></div>
 								</div>
@@ -211,79 +203,72 @@
 						<div class="card mb-2">
 							<div class="card-header">MQTT</div>
 							<div class="card-body" id="MQTTCard">
-<label for="InterfaceMode">E32-netwerk (actief na herstart)</label><select class="form-control" id="InterfaceMode"><option value="wifi">Alleen wifi</option><option value="ethernet">Alleen Ethernet</option></select><small>USB-opdracht setup opent na herstart tijdelijk wifiherstel, zonder Ethernetklok.</small>
-<div class="alert alert-info">E32-teststand: geen ketel- of kraanuitvoer. Selecteer deze stand alleen samen met de v1 HA-integratie.</div>
-<div class="form-check"><input class="form-check-input" type="checkbox" id="ModernShadow"><label class="form-check-label" for="ModernShadow">Moderne HA-teststand (E32, shadow)</label></div>
-<label for="ModernAdapter">HA-adapter-ID (uit de integratie)</label><input class="form-control" id="ModernAdapter" maxlength="32" pattern="[A-Za-z0-9_-]{1,32}" placeholder="Kopieer uit Home Assistant">
-<details id="NativeShadowSourceSection" hidden><summary>Independent logical shadow SOURCE profile (E32)</summary>
-<p>Device controller ID: <code id="NativeSourceDeviceID">Load settings</code></p>
-<label for="NativeShadowSource">Reviewed local profile descriptor (optional)</label>
+<label for="InterfaceMode"><span data-i18n="E32 network (active after restart)">E32 network (active after restart)</span></label><select class="form-control" id="InterfaceMode"><option value="wifi" data-i18n="WiFi only">WiFi only</option><option value="ethernet" data-i18n="Ethernet only">Ethernet only</option></select><small><span data-i18n="The USB setup command opens temporary WiFi recovery after restart, without an Ethernet clock.">The USB setup command opens temporary WiFi recovery after restart, without an Ethernet clock.</span></small>
+<div class="alert alert-info" id="ShadowModeHelp"><span data-i18n="This mode receives data and calculates heat demand. It sends no valve or boiler commands. Keep your current thermostat in control until measurement, command and safe-stop tests are completed.">This mode receives data and calculates heat demand. It sends no valve or boiler commands. Keep your current thermostat in control until measurement, command and safe-stop tests are completed.</span></div>
+<div class="form-check"><input class="form-check-input" type="checkbox" id="ModernShadow" aria-describedby="ShadowModeHelp"><label class="form-check-label" for="ModernShadow"><span data-i18n="Home Assistant: read and calculate only (shadow mode)">Home Assistant: read and calculate only (shadow mode)</span></label></div>
+<label for="ModernAdapter"><span data-i18n="HA adapter ID (from the integration)">HA adapter ID (from the integration)</span></label><input class="form-control" id="ModernAdapter" maxlength="32" pattern="[A-Za-z0-9_-]{1,32}" placeholder="Copy from Home Assistant" data-i18n-placeholder="Copy from Home Assistant">
+<details id="NativeShadowSourceSection" hidden><summary><span data-i18n="Installation identity and limits (advanced)">Installation identity and limits (advanced)</span></summary>
+<p><span data-i18n="Device controller ID:">Device controller ID:</span> <code id="NativeSourceDeviceID"><span data-i18n="Load settings">Load settings</span></code></p>
+<label for="NativeShadowSource"><span data-i18n="Installation profile supplied by Home Assistant">Installation profile supplied by Home Assistant</span></label>
 <textarea class="form-control" id="NativeShadowSource" rows="4" maxlength="2048" aria-describedby="NativeShadowSourceHelp"></textarea>
-<small id="NativeShadowSourceHelp">Separate installation review, not a room target or heating permission. Leave empty for NONE. Initial selection/other network changes require a restart. An existing native profile can be replaced with the explicit live action below, without device restart. Total network settings stay limited to 2048 bytes. Measurement and safety producers are not qualified by this profile; physical outputs remain disabled.</small>
-<button type="button" class="btn btn-outline-primary mt-2" id="ApplyNativeSourceNow" onclick="applyNativeSourceNow();" disabled>Apply reviewed SOURCE now (no device restart)</button>
-<small class="form-text text-muted">Only this descriptor changes; other unsaved form edits are not sent. A fresh session and explicit HA plan apply/readback are still required for control. Pending source edits retain the last known durable predecessor; uncertain configuration outcomes must be resolved first. Uncertain storage/runtime errors block control.</small>
+<small id="NativeShadowSourceHelp"><span data-i18n="This technical profile links this E32 to the rooms, devices and limits checked in Home Assistant. Copy the exact profile from HA; do not edit individual values. An empty profile selects no installation. Initial setup and network changes require a restart. Saving a profile does not enable heating control.">This technical profile links this E32 to the rooms, devices and limits checked in Home Assistant. Copy the exact profile from HA; do not edit individual values. An empty profile selects no installation. Initial setup and network changes require a restart. Saving a profile does not enable heating control.</span></small>
+<button type="button" class="btn btn-outline-primary mt-2" id="ApplyNativeSourceNow" onclick="applyNativeSourceNow();" disabled><span data-i18n="Save installation profile without restarting">Save installation profile without restarting</span></button>
+<small class="form-text text-muted"><span data-i18n="This button saves only the installation profile. Other unsaved changes stay in this form. Afterwards, apply the room plan in Home Assistant and check its confirmation. If saving or confirmation fails, control stays blocked; the last saved configuration remains available.">This button saves only the installation profile. Other unsaved changes stay in this form. Afterwards, apply the room plan in Home Assistant and check its confirmation. If saving or confirmation fails, control stays blocked; the last saved configuration remains available.</span></small>
 </details>
 
 								<div class="form-row">
 									<div class="col-md mb-2">
 										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
 												id="DeviceMQTTEnabled"><label class="form-check-label"
-												for="DeviceMQTTEnabled">Enabled</label></div>
+												for="DeviceMQTTEnabled"><span data-i18n="Enabled">Enabled</span></label></div>
 										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
 												id="DeviceMQTTPublishHomeAssistantDiscovery"><label class="form-check-label"
-												for="DeviceMQTTPublishHomeAssistantDiscovery">Publish Home Assistant MQTT Discovery</label></div>
+												for="DeviceMQTTPublishHomeAssistantDiscovery"><span data-i18n="Publish Home Assistant MQTT Discovery">Publish Home Assistant MQTT Discovery</span></label></div>
 									</div>
 								</div>
 								<div class="form-row">
-									<div class="col-md mb-2"><label for="DeviceMQTTBrokerAddress">Broker
-											address</label><input type="text" class="form-control"
+									<div class="col-md mb-2"><label for="DeviceMQTTBrokerAddress"><span data-i18n="Broker address">Broker address</span></label><input type="text" class="form-control"
 											id="DeviceMQTTBrokerAddress"></div>
-									<div class="col-md-2 mb-2"><label for="DeviceMQTTBrokerPort">Broker
-											port</label><input type="number" class="form-control"
+									<div class="col-md-2 mb-2"><label for="DeviceMQTTBrokerPort"><span data-i18n="Broker port">Broker port</span></label><input type="number" class="form-control"
 											id="DeviceMQTTBrokerPort" value="1883" step="1" min="1" max="65535"></div>
-									<div class="col-md mb-2"><label for="DeviceMQTTBrokerUser">User name</label><input
+									<div class="col-md mb-2"><label for="DeviceMQTTBrokerUser"><span data-i18n="User name">User name</span></label><input
 											type="text" class="form-control" id="DeviceMQTTBrokerUser"
 											placeholder="optional"></div>
 									<div class="col-md mb-2"><label
-											for="DeviceMQTTBrokerPassword">Password</label><input type="password"
+											for="DeviceMQTTBrokerPassword"><span data-i18n="Password">Password</span></label><input type="password"
 											class="form-control" id="DeviceMQTTBrokerPassword" placeholder="Leeg laten behoudt opgeslagen wachtwoord">
 									</div>
 								</div>
 								<div class="form-row">
-									<div class="col-md mb-2"><label for="DeviceMQTTClientID">Client ID</label><input
+									<div class="col-md mb-2"><label for="DeviceMQTTClientID"><span data-i18n="Client ID">Client ID</span></label><input
 											type="text" class="form-control" id="DeviceMQTTClientID" value="ib-therm">
 									</div>
-									<div class="col-md mb-2"><label for="DeviceMQTTBase">Base</label><input type="text"
+									<div class="col-md mb-2"><label for="DeviceMQTTBase"><span data-i18n="Base">Base</span></label><input type="text"
 											class="form-control" id="DeviceMQTTBase" value="ib-therm"></div>
-									<div class="col-md-2 mb-2"><label for="DeviceMQTTKeepAlive">Keep alive time
-											(s)</label><input type="number" class="form-control"
+									<div class="col-md-2 mb-2"><label for="DeviceMQTTKeepAlive"><span data-i18n="Keep alive time (s)">Keep alive time (s)</span></label><input type="number" class="form-control"
 											id="DeviceMQTTKeepAlive" step="1" min="1" max="360" value="60"></div>
-									<div class="col-md-2 mb-2"><label for="DeviceMQTTInterval">Publish interval
-											(s)</label><input type="number" class="form-control" id="DeviceMQTTInterval"
+									<div class="col-md-2 mb-2"><label for="DeviceMQTTInterval"><span data-i18n="Publish interval (s)">Publish interval (s)</span></label><input type="number" class="form-control" id="DeviceMQTTInterval"
 											step="1" min="1" max="360" value="10"></div>
 								</div>
 							</div>
 						</div>
 
 						<div class="card mb-2">
-							<div class="card-header">Debugging over socket</div>
+							<div class="card-header"><span data-i18n="Debugging over socket">Debugging over socket</span></div>
 							<div class="card-body" id="DebugCard">
 								<div class="form-row">
 									<div class="col-md mb-2">
 										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
 												id="DeviceDebugEnabled"><label class="form-check-label"
-												for="DeviceDebugEnabled">Enabled</label></div>
+												for="DeviceDebugEnabled"><span data-i18n="Enabled">Enabled</span></label></div>
 									</div>
 								</div>
 								<div class="form-row">
-									<div class="col-md mb-2"><label for="DeviceDebugHost">Debug log stream
-											host</label><input type="text" class="form-control" id="DeviceDebugHost">
+									<div class="col-md mb-2"><label for="DeviceDebugHost"><span data-i18n="Debug log stream host">Debug log stream host</span></label><input type="text" class="form-control" id="DeviceDebugHost">
 									</div>
-									<div class="col-md mb-2"><label for="DeviceDebugPort">Debug log stream
-											port</label><input type="number" class="form-control" id="DeviceDebugPort"
+									<div class="col-md mb-2"><label for="DeviceDebugPort"><span data-i18n="Debug log stream port">Debug log stream port</span></label><input type="number" class="form-control" id="DeviceDebugPort"
 											step="1" min="1" max="65535"></div>
-									<div class="col-md mb-2"><label for="DeviceDebugTimeout">Debug log stream connection
-											timeout (ms)</label><input type="number" class="form-control"
+									<div class="col-md mb-2"><label for="DeviceDebugTimeout"><span data-i18n="Debug log stream connection timeout (ms)">Debug log stream connection timeout (ms)</span></label><input type="number" class="form-control"
 											id="DeviceDebugTimeout" step="1" placeholder="10000"></div>
 								</div>
 							</div>
@@ -293,7 +278,7 @@
 				</div>
 				<div class="card-footer text-muted">
 					<button type="button" class="btn btn-primary mb-2" onclick="saveDeviceSettings();"
-						id="SaveDeviceSettings">Save settings</button>
+						id="SaveDeviceSettings"><span data-i18n="Save settings">Save settings</span></button>
 				</div>
 			</div>
 		</div>
@@ -302,13 +287,13 @@
 	<div class="row-mt-3">
 		<div class="card w-100" id="DebugSettings">
 			<div class="card-header d-flex justify-content-between align-items-center">
-				<span class="align-middle">Debug settings</span><button type="button"
+				<span class="align-middle"><span data-i18n="Debug settings">Debug settings</span></span><button type="button"
 					class="btn px-1 py-0 m-0 btn-outline-info" onclick="loadDebugSettings();">&#x2b6f;</button>
 			</div>
 			<div class="card-body">
 				<div class="form-group">
 					<div class="card mb-2">
-						<div class="card-header">Debug log options</div>
+						<div class="card-header"><span data-i18n="Debug log options">Debug log options</span></div>
 						<div class="card-body" id="DebugOptionsCard">
 						</div>
 					</div>
@@ -318,7 +303,7 @@
 			</div>
 			<div class="card-footer text-muted">
 				<button type="button" class="btn btn-primary mb-2" onclick="saveDebugSettings();"
-					id="SaveDebugSettings">Save debug settings</button>
+					id="SaveDebugSettings"><span data-i18n="Save debug settings">Save debug settings</span></button>
 			</div>
 		</div>
 	</div>
@@ -359,7 +344,7 @@
 					$("#scanningWiFi").hide();
 					$('#selectWiFiSSIDSelect').show();
 				}).catch(function (error) {
-					alert("Cannot fetch wifi networks.\n" + error);
+					alert(uiText("Cannot fetch wifi networks.\n") + error);
 				}
 				);
 
@@ -489,11 +474,11 @@
 				// $('#WiFiSSID').val(settings.ssid);
 			}).catch(function (error) {
 				if (error instanceof HttpResponseException && error.status === 404) {
-					alert("Cannot load debug settings\n" + error);
+					alert(uiText("Cannot load debug settings\n") + error);
 					$("#DebugSettings *").attr('disabled', false)
 					return;
 				}
-				if (confirm("Cannot load debug settings\n" + error + "\nTry again?")) {
+				if (confirm(uiText("Cannot load debug settings\n") + error + uiText("\nTry again?"))) {
 					loadDebugSettings();
 				}
 			});
@@ -519,12 +504,12 @@
 		})
 			.then(res => {
 				if (res.status === 200 || res.status === 201 || res.type === "opaque") {
-					if (confirm("Debug settings saved.\nDo you want to reboot device to\nchanges take place?")) {
+					if (confirm(uiText("Debug settings saved. Do you want to reboot device to changes take place?"))) {
 						reboot();
 						return;
 					}
 				} else {
-					alert("Not sure if config saved\nStatus: " + res.status + "\nBody:\n" + res.statusText);
+					alert(uiText("Not sure if config saved Status: ") + res.status + uiText("\nBody:\n") + res.statusText);
 				}
 			})
 			.catch(function (error) {
@@ -543,30 +528,30 @@
 		try {
 			const response=await fetch(hostName+'/setup/status',{cache:'no-store'});
 			if(response.status===404) { loadLegacyWiFiSettings(); return; }
-			if(!response.ok) throw Error('Wifi-status niet bereikbaar');
+			if(!response.ok) throw Error(uiText("WiFi status unreachable"));
 			const state=await response.json();
 			card.replaceChildren();
 			const body=document.createElement('div'); body.className='card-body';
-			const title=document.createElement('h5'); title.textContent='Wifi instellen'; body.append(title);
+			const title=document.createElement('h5'); title.textContent=uiText("Set up WiFi"); body.append(title);
 			const note=document.createElement('p');
-			note.textContent='Gebruik de wifi-installatie voor netwerkscan, verbinding testen en opnieuw proberen. Alleen 2,4 GHz.'; body.append(note);
+			note.textContent=uiText("Use WiFi setup to scan networks, test the connection and retry. 2.4 GHz only."); body.append(note);
 			const button=document.createElement('button'); button.type='button'; button.className='btn btn-primary';
-			button.textContent=state.setup_active?'Open wifi-installatie':'Start wifi-installatie (herstart)';
+			button.textContent=state.setup_active?uiText("Open WiFi setup"):uiText("Start WiFi setup (restart)");
 			button.onclick=async()=>{
 				if(state.setup_active) { window.location.href=hostName+'/setup'; return; }
 				button.disabled=true;
 				try {
 					const started=await fetch(hostName+'/setup/reenter',{method:'POST'});
-					if(!started.ok) throw Error('Starten niet bevestigd');
-					note.textContent='Verbind nu met het wifi-netwerk OpenThermostat-xxxxxx en open http://10.10.10.1/. Opgeslagen thuisnetwerkinstellingen blijven bewaard totdat een nieuwe verbinding is bevestigd.';
-					button.textContent='Setupnetwerk wordt gestart';
-				} catch(e) { note.textContent='Starten niet bevestigd. Controleer de verbinding en probeer opnieuw.'; button.disabled=false; }
+					if(!started.ok) throw Error(uiText("Start not confirmed"));
+					note.textContent=uiText("Connect to the OpenThermostat-xxxxxx WiFi network now and open http://10.10.10.1/. Saved home network settings are retained until a new connection is confirmed.");
+					button.textContent=uiText("Starting setup network");
+				} catch(e) { note.textContent=uiText("Start not confirmed. Check the connection and retry."); button.disabled=false; }
 			};
 			body.append(button); card.append(body);
 		} catch(e) {
 			card.replaceChildren();
 			const retry=document.createElement('button'); retry.type='button'; retry.className='btn btn-primary';
-			retry.textContent='Wifi-status opnieuw laden'; retry.onclick=loadWiFiSettings; card.append(retry);
+			retry.textContent=uiText("Reload WiFi status"); retry.onclick=loadWiFiSettings; card.append(retry);
 		}
 	}
 
@@ -579,11 +564,11 @@
 				$('#WiFiSSID').val(settings.ssid);
 			}).catch(function (error) {
 				if (error instanceof HttpResponseException && error.status === 404) {
-					alert("Cannot load WiFi settings\n" + error);
+					alert(uiText("Cannot load WiFi settings\n") + error);
 					$("#WiFiSettings *").attr('disabled', false)
 					return;
 				}
-				if (confirm("Cannot load WiFi settings\n" + error + "\nTry again?")) {
+				if (confirm(uiText("Cannot load WiFi settings\n") + error + uiText("\nTry again?"))) {
 					loadWiFiSettings();
 				}
 			});
@@ -608,12 +593,12 @@
 		})
 			.then(res => {
 				if (res.status === 200 || res.status === 201 || res.type === "opaque") {
-					if (confirm("WiFi settings saved.\nDo you want to reboot device to\nchanges take place?")) {
+					if (confirm(uiText("WiFi settings saved. Do you want to reboot device to changes take place?"))) {
 						reboot();
 						return;
 					}
 				} else {
-					alert("Not sure if config saved\nStatus: " + res.status + "\nBody:\n" + res.statusText);
+					alert(uiText("Not sure if config saved Status: ") + res.status + uiText("\nBody:\n") + res.statusText);
 				}
 			})
 			.catch(function (error) {
@@ -651,7 +636,7 @@
                 $('#NativeShadowSource').val('');
                 $('#NativeShadowSourceSection').prop('hidden', true);
                 $('#ApplyNativeSourceNow').prop('disabled', true);
-                $('#NativeSourceDeviceID').text('Unavailable: SOURCE selection is unsupported by this firmware');
+                $('#NativeSourceDeviceID').text(uiText("Unavailable: SOURCE selection is unsupported by this firmware"));
                 updateWeatherEditorVisibility();
 				$('#DeviceHostname').val(settings.hostname);
 				$('#InterfaceMode').val(settings.interface_mode || 'wifi');
@@ -676,7 +661,7 @@
 				if (settings.mqtt != undefined) {
 					$('#ModernShadow').prop('checked', settings.mqtt.modern_shadow === true);
 					$('#ModernAdapter').val(settings.mqtt.adapter_id || '');
-                    $('#NativeSourceDeviceID').text(settings.mqtt.native_source_device_id || 'Unavailable: SOURCE selection is unsupported by this firmware');
+                    $('#NativeSourceDeviceID').text(settings.mqtt.native_source_device_id || uiText("Unavailable: SOURCE selection is unsupported by this firmware"));
                     $('#NativeShadowSourceSection').prop('hidden', !settings.mqtt.native_source_device_id);
                     $('#NativeShadowSource').val(settings.mqtt.native_shadow_source == null ? '' : JSON.stringify(settings.mqtt.native_shadow_source));
                     $('#ApplyNativeSourceNow').prop('disabled', settings.mqtt.native_source_live_apply !== true);
@@ -701,12 +686,12 @@
 
 			}).catch(function (error) {
 				if (error instanceof HttpResponseException && error.status === 404) {
-					alert("Cannot load device settings\n" + error);
+					alert(uiText("Cannot load device settings\n") + error);
 					$("#NetworkSettings *").attr('disabled', false)
                     $('#ApplyNativeSourceNow').prop('disabled', true);
 					return;
 				}
-				if (confirm("Cannot load device settings\n" + error + "\nTry again?")) {
+				if (confirm(uiText("Cannot load device settings\n") + error + uiText("\nTry again?"))) {
 					loadDeviceSettings();
 				}
 			});
@@ -718,13 +703,13 @@
         if (nativeSourceApplyPending) return;
         const mqtt = loadedNetworkSettings && loadedNetworkSettings.mqtt;
         if (!mqtt || mqtt.native_source_live_apply !== true) {
-            alert('Live SOURCE replacement is unavailable. Initial selection, NONE and network changes require the normal reviewed settings/restart route.'); return;
+            alert(uiText("Live SOURCE replacement is unavailable. Initial selection, NONE and network changes require the normal reviewed settings/restart route.")); return;
         }
         let descriptor;
         try { descriptor = JSON.parse($('#NativeShadowSource').val().trim()); }
-        catch (_) { alert('Enter a valid explicitly reviewed SOURCE descriptor.'); return; }
-        if (!Array.isArray(descriptor)) { alert('Live SOURCE replacement needs a nonempty reviewed descriptor array; it cannot select NONE.'); return; }
-        if (!confirm('Apply ONLY the independently reviewed local SOURCE now, without restarting the device? Old control is invalidated. The old plan remains readback-only until a fresh HA session and explicit new plan apply/readback. Other unsaved network edits are not sent.')) return;
+        catch (_) { alert(uiText("Enter a valid explicitly reviewed SOURCE descriptor.")); return; }
+        if (!Array.isArray(descriptor)) { alert(uiText("Live SOURCE replacement needs a nonempty reviewed descriptor array; it cannot select NONE.")); return; }
+        if (!confirm(uiText("Apply ONLY the independently reviewed local SOURCE now, without restarting the device? Old control is invalidated. The old plan remains readback-only until a fresh HA session and explicit new plan apply/readback. Other unsaved network edits are not sent."))) return;
         $('#ApplyNativeSourceNow').prop('disabled', true);
         nativeSourceApplyPending = true;
         try {
@@ -736,30 +721,30 @@
                 headers:{"Content-Type":"application/json"},body:JSON.stringify(settings)
             });
             if (res.status === 200 || res.status === 201) {
-                alert('Local SOURCE selection verified. No device restart was requested. Review the current HA plan and require fresh exact device readback; physical outputs remain disabled.');
+                alert(uiText("Local SOURCE selection verified. No device restart was requested. Review the current HA plan and require fresh exact device readback; physical outputs remain disabled."));
                 loadDeviceSettings();
             } else {
-                alert('SOURCE selection is not confirmed (HTTP '+res.status+'). Control may be blocked after uncertain storage. Read back and review before recovery; do not blindly retry.');
+                alert(uiText("SOURCE selection is not confirmed (HTTP ")+res.status+uiText("). Control may be blocked after uncertain storage. Read back and review before recovery; do not blindly retry."));
             }
         } catch (_) {
-            alert('SOURCE update outcome unknown. Read back current settings and HA status before recovery; no automatic retry or restart.');
+            alert(uiText("SOURCE update outcome unknown. Read back current settings and HA status before recovery; no automatic retry or restart."));
         }
         // Do NOT re-enable on unknown/error: only fresh settings readback may do so.
     }
 
 	function saveDeviceSettings() {
-        if (!loadedNetworkSettings) { alert('Load device settings before saving.'); return; }
+        if (!loadedNetworkSettings) { alert(uiText("Load device settings before saving.")); return; }
 		if (!validateForm('#networkeditform')) return;
 		$("#SaveDeviceSettings").prop('disabled', true);
         const sourceSupported = !!(loadedNetworkSettings.mqtt && loadedNetworkSettings.mqtt.native_source_device_id);
         let nativeSource = null;
         const nativeSourceText = sourceSupported ? $('#NativeShadowSource').val().trim() : '';
         try { if (nativeSourceText) nativeSource = JSON.parse(nativeSourceText); }
-        catch (_) { alert('Enter a valid reviewed SOURCE descriptor JSON array, or leave it empty for NONE.'); $("#SaveDeviceSettings").prop('disabled', false); return; }
+        catch (_) { alert(uiText("Enter a valid reviewed SOURCE descriptor JSON array, or leave it empty for NONE.")); $("#SaveDeviceSettings").prop('disabled', false); return; }
 
 
         if (sourceSupported && loadedNetworkSettings.mqtt.native_shadow_source != null && nativeSource === null &&
-            !confirm('Remove the local logical SOURCE selection for the next restart? Configuration data will not be erased. The previous source may be needed to read it.')) {
+            !confirm(uiText("Remove the local logical SOURCE selection for the next restart? Configuration data will not be erased. The previous source may be needed to read it."))) {
             $("#SaveDeviceSettings").prop('disabled', false); return;
         }
 		let settings = {
@@ -822,12 +807,12 @@
 		})
 			.then(res => {
 				if (res.status === 200 || res.status === 201 || res.type === "opaque") {
-					if (confirm("Device settings saved.\nDo you want to reboot device to\nchanges take place?")) {
+					if (confirm(uiText("Device settings saved. Do you want to reboot device to changes take place?"))) {
 						reboot();
 						return;
 					}
 				} else {
-					alert("Not sure if config saved\nStatus: " + res.status + "\nBody:\n" + res.statusText);
+					alert(uiText("Not sure if config saved Status: ") + res.status + uiText("\nBody:\n") + res.statusText);
 				}
 			})
 			.catch(function (error) {

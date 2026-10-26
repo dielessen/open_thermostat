@@ -2,15 +2,19 @@
 #include "Board.h"
 #include "DeviceAccess.h"
 #include "DeviceNetworkSettings.h"
+#include "BoilerDisplay.h"
 #include "SetupNetwork.h"
 #include "control/HttpAccessPolicy.h"
 #include "control/ManagedDeviceSettings.h"
+#include "update/ManualAppUpload.h"
 #include "control/CaptivePortalPolicy.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "EmbeddedWebAssets.h"
+#include "control/StaticAssetRoute.h"
 #include "update/GitHubUpdate.h"
 #include "control/WebAuthSession.h"
 #include "control/NativeSourceProvisioning.h"
+#include "control/BleObservationJson.h"
 #include <esp_system.h>
 // Pinned Arduino WebServer verbose logging prints HTTP headers and form bodies.
 // Never build the credential endpoint with that unredacted library trace enabled.
@@ -19,6 +23,9 @@
 #endif
 #endif
 #include "Logging.h"
+#ifdef OPENTHERMOSTAT_E32V2
+#include "diagnostics/LogRuntime.h"
+#endif
 
 #include <esp_ota_ops.h>
 #include <esp_spi_flash.h>
@@ -48,6 +55,18 @@ namespace heating {
 
 using namespace std::string_view_literals;
 using namespace std::string_literals;
+
+#ifdef OPENTHERMOSTAT_E32V2
+class EmbeddedAssetUri final : public Uri {
+public:
+    EmbeddedAssetUri() : Uri("") {}
+    Uri *clone() const override { return new EmbeddedAssetUri(); }
+    bool canHandle(const String &requestUri, std::vector<String> &) override {
+        return control::embeddedAssetPath(
+            std::string_view(requestUri.c_str(),requestUri.length()),embedded::assets);
+    }
+};
+#endif
 
 class WebServerStringView : public WebServer {
 public:
@@ -82,8 +101,8 @@ public:
 
 		server_.enableCORS(false);
 		server_.enableCrossOrigin(false);
-		const char *headers[]{"Origin","Sec-Fetch-Site","Cookie","X-OpenThermostat-CSRF","Content-Type"};
-		server_.collectHeaders(headers,5);
+		const char *headers[]{"Origin","Sec-Fetch-Site","Cookie","X-OpenThermostat-CSRF","Content-Type","If-Match"};
+		server_.collectHeaders(headers,6);
 #ifdef OPENTHERMOSTAT_E32V2
 		route("/login",HTTP_GET,[this] { serveFile("/login.html"); });
 		route("/auth/login",HTTP_POST,[this] { login(); });
@@ -104,12 +123,30 @@ public:
 		route("/status", [this]() { status(); });
 		route("/status/boiler", [this]() { boilerStatus(); });
 		route("/status/ems", [this]() { emsStatus(); });
+        route("/status/ems/devices", HTTP_GET, [this]() {
+            ib::viewable_stringbuf buf;std::ostream ss(&buf);
+            controller_.getEMSDeviceStatus(ss);server_.sendView(200,"application/json"sv,buf.view());
+        });
 		route("/status/ems/telemetry", HTTP_GET, [this]() {
 			ib::viewable_stringbuf buf;
 			std::ostream ss(&buf);
+#ifdef OPENTHERMOSTAT_E32V2
+			const auto operatorSession = requestToken();
+			controller_.getEMSTelemetryStatus(ss, operatorSession.c_str());
+#else
 			controller_.getEMSTelemetryStatus(ss);
+#endif
 			server_.sendView(200, "application/json"sv, buf.view());
 		});
+#ifdef OPENTHERMOSTAT_E32V2
+        route("/boiler/test/read_configuration", HTTP_POST, [this] { boilerTestAction("read_configuration"); });
+		route("/boiler/test/prepare_zero", HTTP_POST, [this] { boilerTestAction("prepare_zero"); });
+		route("/boiler/test/prepare", HTTP_POST, [this] { boilerTestAction("prepare"); });
+		route("/boiler/test/start", HTTP_POST, [this] { boilerTestAction("start"); });
+		route("/boiler/test/keepalive", HTTP_POST, [this] { boilerTestAction("keepalive"); });
+		route("/boiler/test/stop", HTTP_POST, [this] { boilerTestAction("stop"); });
+        route("/boiler/test/close_fault", HTTP_POST, [this] { boilerTestAction("close_fault"); });
+#endif
 		route("/status/rooms", [this]() { roomsStatus(); });
 		route("/status/devices", [this]() { devicesFound(); });
 		route("/status/programs", HTTP_GET, [this]() { showPrograms(); }); // show available programs
@@ -124,11 +161,23 @@ public:
 		route("/config/wifi", [this]() { configWiFi(); });
 		route("/config/device", [this]() { configDevice(); });
 		route("/config/boiler", [this]() { configBoiler(); });
+		route("/config/boiler-display", [this]() { boilerDisplay(); });
 		route("/config/hardware", [this]() { configHardware(); });
 		route("/hardware/i2c/scan", HTTP_GET, [this]() { i2cScan(); });
 		route("/hardware/test/gpio", HTTP_POST, [this]() { gpioTestStart(); });
 		route("/hardware/test/gpio", HTTP_DELETE, [this]() { gpioTestStop(); });
 		route("/config/debug", [this]() { configDebug(); });
+#ifdef OPENTHERMOSTAT_E32V2
+        route("/config/bluetooth",[this] { bluetoothSettings(); });
+        route("/bluetooth/status",HTTP_GET,[this] { bluetoothSettings(true); });
+        route("/config/bluetooth/scan",HTTP_POST,[this] {
+            const bool accepted=controller_.requestBleDiscovery();
+            server_.send(accepted?202:409,"application/json",accepted?"{\"scan_started\":true}":"{\"error\":\"bluetooth_scan_not_started\"}");
+        });
+        route("/config/logging",[this] { loggingSettings(); });
+        route("/status/logs",HTTP_GET,[this] { systemLogs(); });
+        route("/logs/clear",HTTP_POST,[this] { diagnostics::runtime.log.clear();server_.send(200,"application/json","{}"); });
+#endif
 
 		route("/config/program/current", [this]() { configProgramCurrent(); }); // get selected program
 		route("/config/reboot", HTTP_POST, [this]() { configReboot(); });
@@ -178,6 +227,12 @@ public:
 #endif
 		route("/", HTTP_GET, [this]() { index(); });
 
+		#ifdef OPENTHERMOSTAT_E32V2
+        // The pinned WebServer logs an error BEFORE onNotFound(), even when
+        // that fallback successfully serves a static file. Give real embedded
+        // assets one explicit GET handler while retaining the same auth gate.
+        route(EmbeddedAssetUri{},HTTP_GET,[this] { serveFile(server_.uri().c_str()); });
+        #endif
 		server_.onNotFound([this]() {
 			if(!authorize()) return;
 			serveFile(server_.uri().c_str());
@@ -190,7 +245,13 @@ public:
 	}
 
 	void handle() {
+		// Pinned WebServer parses the complete multipart body synchronously in
+		// one handleClient() call. Each request owns at most one app transaction.
+		appUpload_.reset(appBackend_);
+		appBackend_.error=ESP_OK;
 		server_.handleClient();
+		// Includes disconnect/parse failure and a failed final authorization.
+		appUpload_.cancel(appBackend_);
 	}
 
 private:
@@ -209,11 +270,15 @@ private:
 		server_.on(uri,method,handler,upload);
 #endif
 	}
-	bool authorize() {
+	bool authorize(bool responseHeaders=true) {
 #ifdef OPENTHERMOSTAT_E32V2
-		server_.sendHeader("Cache-Control","no-store");
-		server_.sendHeader("X-Content-Type-Options","nosniff");
-		server_.sendHeader("X-Frame-Options","DENY");
+		// Upload callbacks run for every chunk. WebServer appends sendHeader()
+		// calls until the response, so headers belong to the final route gate.
+		if(responseHeaders) {
+			server_.sendHeader("Cache-Control","no-store");
+			server_.sendHeader("X-Content-Type-Options","nosniff");
+			server_.sendHeader("X-Frame-Options","DENY");
+		}
 		const auto method=server_.method()==HTTP_GET?"GET":server_.method()==HTTP_POST?"POST":server_.method()==HTTP_DELETE?"DELETE":"OTHER";
 		String canonical=WiFi.softAPIP().toString();
 		if(listenPort_!=80) canonical+=":"+String(listenPort_);
@@ -241,6 +306,9 @@ private:
 		if(decision==control::WebAuthDecision::csrf_required){server_.send(403,"application/json","{\"error\":\"csrf_required\"}");return false;}
 		if(server_.method()!=HTTP_GET&&update::mutationBlocked(server_.uri().c_str())) {
 			server_.send(409,"text/plain","Wacht tot de GitHub-update is afgerond en herstart eerst");return false;
+		}
+		if(server_.method()!=HTTP_GET&&control::boilerTestMutationBlocked(server_.uri().c_str(),controller_.boilerTestActive())) {
+			server_.send(409,"text/plain","Stop de ketelproef en controleer de terugmelding voor deze wijziging"); return false;
 		}
 		if(controller_.modernMode()&&control::legacyControlWrite(server_.uri().c_str(),method)) {
 			server_.send(409,"text/plain","HA-managed shadow mode: legacy control writer disabled"); return false;
@@ -438,6 +506,20 @@ private:
 
 		server_.sendView(200, "application/json"sv, payloadBuf.view());
 	}
+#ifdef OPENTHERMOSTAT_E32V2
+	void boilerTestAction(std::string_view action) {
+		const auto type = server_.header("Content-Type");
+		const auto body = server_.arg("plain");
+		if ((type != "application/json" && !type.startsWith("application/json;")) || body.length() > 256) {
+			server_.send(400,"application/json","{\"accepted\":false,\"error\":\"invalid_request\"}"); return;
+		}
+		const auto operatorSession = requestToken();
+		ib::viewable_stringbuf buf; std::ostream ss(&buf);
+		const auto code = controller_.boilerTestAction(action,
+			std::string_view(body.c_str(),body.length()), operatorSession.c_str(), ss);
+		server_.sendView(code,"application/json"sv,buf.view());
+	}
+#endif
 
 	void emsParams() {
 		DBGLOGFD(log_, logFeature_, "emsParams\n");
@@ -564,12 +646,97 @@ private:
 
 	}
 
+
+#ifdef OPENTHERMOSTAT_E32V2
+    void bluetoothSettings(bool statusOnly=false) try {
+        if(update::busy()) {server_.send(503,"application/json","{\"error\":\"bluetooth_resources_unavailable\"}");return;}
+        const auto saved=readDeviceBluetoothSettings();
+        auto previous=control::parseControlJson({saved.c_str(),saved.length()},true);
+        if(!previous || !cJSON_IsObject(previous.get())) { server_.send(503,"application/json","{\"error\":\"bluetooth_settings_unavailable\"}");return; }
+        std::unique_ptr<control::ManagedBleBindings> bindings(new(std::nothrow) control::ManagedBleBindings);
+        if(!bindings) { server_.send(503,"application/json","{\"error\":\"bluetooth_resources_unavailable\"}");return; }
+        const auto storedError=control::readManagedBleBindings(previous.get(),*bindings);
+        if(server_.method()==HTTP_GET) {
+            auto devices=control::publicManagedBleBindings(*bindings);
+            control::ControlJson result(cJSON_CreateObject(),cJSON_Delete);
+            if(!devices || !result || !cJSON_AddNumberToObject(result.get(),"schema",1)
+                    || !cJSON_AddBoolToObject(result.get(),"pending_restart",controller_.managedBlePending())
+                    || !cJSON_AddStringToObject(result.get(),"config_error",control::bleSettingsErrorName(storedError))
+                    || !cJSON_AddNumberToObject(result.get(),"queue_drops",controller_.managedBleQueueDrops())
+                    || !cJSON_AddBoolToObject(result.get(),"scan_pending",controller_.bleScanPending())) { server_.send(503);return; }
+            for(size_t i=0;i<bindings->count;++i) if(!control::addBleObservation(cJSON_GetArrayItem(devices.get(),i),controller_.managedBleSnapshot(bindings->devices[i].address))) {server_.send(503);return;}
+            if(!cJSON_AddItemToObject(result.get(),"devices",devices.get())) {server_.send(503);return;} devices.release();
+            std::unique_ptr<control::BleDeviceDiscovery> discovered(new(std::nothrow) control::BleDeviceDiscovery);
+            if(!discovered) {server_.send(503);return;} controller_.copyBleDiscovery(*discovered);
+            auto nearby=cJSON_AddArrayToObject(result.get(),"nearby");
+            if(!nearby || !cJSON_AddBoolToObject(result.get(),"discovery_full",discovered->overflowed())) {server_.send(503);return;}
+            auto hints=cJSON_AddArrayToObject(result.get(),"nearby_devices");
+            if(!hints) {server_.send(503);return;}
+            size_t hintIndex=0;
+            for(const auto& address:*discovered) {
+                const auto hex=control::printBleHex(address);
+                const auto& hint=discovered->hint(hintIndex++);
+                auto item=cJSON_CreateObject();
+                if(!item) {server_.send(503);return;}
+                if(!cJSON_AddItemToArray(hints,item)) {cJSON_Delete(item);server_.send(503);return;}
+                if(!control::appendBleJson(nearby,cJSON_CreateString(hex.data()))
+                        ||!cJSON_AddStringToObject(item,"address",hex.data())
+                        ||!cJSON_AddStringToObject(item,"name",hint.name.data())
+                        ||!cJSON_AddNumberToObject(item,"rssi",hint.rssi)) {server_.send(503);return;}
+            }
+            if(!statusOnly) {
+                std::array<char,65> nonce{};
+                if(!randomToken(nonce)) {server_.send(503);return;}
+                const auto tag=sessions_.settingsReadback(requestToken().c_str(),control::sha256Hex({saved.c_str(),saved.length()}),nonce.data(),networkNow(),control::WebAuthSession::SettingsScope::bluetooth);
+                if(tag.empty()) {server_.send(503);return;}
+                server_.sendHeader("ETag",String("\"")+tag.data()+"\"");
+            }
+            server_.sendHeader("Cache-Control","no-store");
+            server_.send(200,"application/json",control::printJson(result.get()).c_str());return;
+        }
+        if(!server_.hasHeader("If-Match") || !sessions_.settingsReadbackMatches(requestToken().c_str(),server_.header("If-Match").c_str(),control::sha256Hex({saved.c_str(),saved.length()}),networkNow(),control::WebAuthSession::SettingsScope::bluetooth)) {
+            server_.send(412,"application/json","{\"error\":\"device_settings_changed\"}");return;
+        }
+        const auto body=server_.arg("plain");
+        auto request=control::parseControlJson({body.c_str(),body.length()},true);
+        control::ControlJson candidate(nullptr,cJSON_Delete); bool changed=false;
+        const auto error=control::prepareManagedBleSettings(previous.get(),request.get(),*bindings,candidate,changed);
+        if(error!=control::BleSettingsError::none) {
+            const auto code=error==control::BleSettingsError::allocation_failed?503:error==control::BleSettingsError::settings_too_large?413:400;
+            server_.send(code,"application/json",(std::string("{\"error\":\"")+control::bleSettingsErrorName(error)+"\"}").c_str());return;
+        }
+        if(!changed) {server_.send(200,"application/json","{\"changed\":false}");return;}
+        const auto encoded=control::printJson(candidate.get());
+        if(encoded.empty()) {server_.send(503,"application/json","{\"error\":\"bluetooth_resources_unavailable\"}");return;}
+        if(!bluetoothStorageHasRoom(encoded.size()+1)) {
+            server_.send(507,"application/json","{\"error\":\"bluetooth_storage_full\"}");return;
+        }
+        controller_.stopManagedBle();
+        if(!saveDeviceBluetoothSettings(encoded)) {
+            server_.send(503,"application/json","{\"error\":\"bluetooth_save_unconfirmed\"}");return;
+        }
+        server_.send(201,"application/json","{\"changed\":true,\"pending_restart\":true}");
+    } catch(...) {
+        // The writer closes observation admission before any durable mutation.
+        // A JSON/heap exception cannot claim saved settings or retry a write.
+        server_.send(503,"application/json","{\"error\":\"bluetooth_resources_unavailable\"}");
+    }
+
+#endif
+
 	void configDevice() {
 #ifdef OPENTHERMOSTAT_E32V2
 		auto saved=readDeviceNetworkSettings();
 		auto previous=control::parseControlJson(std::string_view(saved.c_str(),saved.length()),true);
 		if(server_.method()==HTTP_GET) {
 			if(!previous||!cJSON_IsObject(previous.get())) { server_.send(500,"text/plain","Invalid saved network settings"); return; }
+            std::array<char,65> nonce{};
+            if(!randomToken(nonce)) { server_.send(503,"text/plain","Readback token unavailable"); return; }
+            const auto tag=sessions_.settingsReadback(requestToken().c_str(),
+                control::sha256Hex(std::string_view(saved.c_str(),saved.length())),nonce.data(),networkNow());
+            if(tag.empty()) { server_.send(503,"text/plain","Readback token unavailable"); return; }
+            server_.sendHeader("ETag",String("\"")+tag.data()+"\"");
+			control::redactManagedBleSettings(previous.get());
 			for(auto pair:{std::make_pair("mqtt","password"),std::make_pair("openweather","appid")}) {
 				auto section=cJSON_GetObjectItemCaseSensitive(previous.get(),pair.first);
 				if(cJSON_IsObject(section)) { cJSON_DeleteItemFromObjectCaseSensitive(section,pair.second); cJSON_AddStringToObject(section,pair.second,""); }
@@ -585,9 +752,25 @@ private:
             }
 			server_.send(200,"application/json",control::printJson(previous.get()).c_str()); return;
 		}
+        // Existing local forms remain compatible. The HA link client sends the
+        // exact GET ETag, fencing all persisted settings (including secrets)
+        // before any merge/save; a stale read must never overwrite another edit.
+        if(server_.hasHeader("If-Match")&&!sessions_.settingsReadbackMatches(requestToken().c_str(),
+                server_.header("If-Match").c_str(),
+                control::sha256Hex(std::string_view(saved.c_str(),saved.length())),networkNow())) {
+            server_.send(412,"application/json","{\"error\":\"device_settings_changed\"}");return;
+        }
 		auto body=server_.arg("plain");
 		auto candidate=control::parseControlJson(std::string_view(body.c_str(),body.length()),true);
 		if(!candidate||!cJSON_IsObject(candidate.get())) { server_.send(400,"text/plain","Invalid bounded network settings"); return; }
+        if(control::networkSettingsContainManagedBleBindings(candidate.get())) {
+            server_.send(400,"application/json","{\"error\":\"bluetooth_settings_use_dedicated_api\"}");return;
+        }
+        // Keep unknown legacy fields opaque, but never import new bindkeys
+        // through a document that older rollback firmware exposes publicly.
+        if(!previous||!control::retainManagedBleSettings(previous.get(),candidate.get())) {
+            server_.send(400,"application/json","{\"error\":\"stored_bluetooth_config_invalid\"}");return;
+        }
         const auto sourceApply=control::field(candidate.get(),"native_source_apply");
         if(sourceApply&&!cJSON_IsBool(sourceApply)) {server_.send(400,"text/plain","Invalid source-only apply request");return;}
         const bool sourceOnly=cJSON_IsTrue(sourceApply);
@@ -851,6 +1034,43 @@ private:
 		server_.send(200, "text/plain", "OK");
 	}
 
+#ifdef OPENTHERMOSTAT_E32V2
+    void loggingSettings() {
+        if(server_.method()==HTTP_POST){
+            const auto body=server_.arg("plain");
+            const auto settings=diagnostics::parseSettings(std::string_view(body.c_str(),body.length()),diagnostics::runtime.log.settings());
+            if(!settings){server_.send(400,"text/plain","Invalid logging settings");return;}
+            if(!diagnostics::runtime.save(*settings)){server_.send(503,"text/plain","Logging settings save could not be confirmed");return;}
+        }
+        if(!diagnostics::runtime.storageReady){server_.send(503,"text/plain","Logging settings unavailable");return;}
+        server_.send(200,"application/json",diagnostics::settingsJson(diagnostics::runtime.log.settings()).c_str());
+    }
+    void systemLogs() {
+        const auto afterText=server_.arg("after");uint64_t after=0;
+        if(afterText.length()>16){server_.send(400,"text/plain","Invalid log cursor");return;}
+        for(char c:afterText){if(c<'0'||c>'9'){server_.send(400,"text/plain","Invalid log cursor");return;}after=after*10+uint64_t(c-'0');}
+        if(after>9007199254740991ULL){server_.send(400,"text/plain","Invalid log cursor");return;}
+        auto& log=diagnostics::runtime.log;const auto stats=log.stats();
+        auto root=std::unique_ptr<cJSON,decltype(&cJSON_Delete)>(cJSON_CreateObject(),cJSON_Delete);
+        if(!root){server_.send(503);return;}
+        cJSON_AddNumberToObject(root.get(),"boot",diagnostics::runtime.boot);
+        cJSON_AddNumberToObject(root.get(),"latest",stats.latest);cJSON_AddNumberToObject(root.get(),"oldest",stats.oldest);
+        cJSON_AddNumberToObject(root.get(),"retained",stats.retained);cJSON_AddNumberToObject(root.get(),"overwritten",stats.overwritten);
+        cJSON_AddNumberToObject(root.get(),"truncated",stats.truncated);cJSON_AddNumberToObject(root.get(),"redacted",stats.redacted);
+        cJSON_AddNumberToObject(root.get(),"syslog_dropped",stats.syslogDropped);cJSON_AddNumberToObject(root.get(),"syslog_sent",stats.sent);
+        cJSON_AddNumberToObject(root.get(),"contention_dropped",stats.contention);
+        auto rows=cJSON_AddArrayToObject(root.get(),"records");diagnostics::Record record;
+        for(size_t i=0;i<diagnostics::SystemLog::PageSize&&log.next(after,record);++i){
+            auto row=cJSON_CreateObject();cJSON_AddItemToArray(rows,row);
+            cJSON_AddNumberToObject(row,"sequence",record.sequence);cJSON_AddNumberToObject(row,"uptime_ms",record.uptimeMs);
+            cJSON_AddNumberToObject(row,"level",record.level);cJSON_AddStringToObject(row,"source",diagnostics::sourceName(record.source));cJSON_AddStringToObject(row,"feature",record.feature.data());cJSON_AddStringToObject(row,"message",record.text.data());after=record.sequence;
+        }
+        auto text=std::unique_ptr<char,decltype(&cJSON_free)>(cJSON_PrintUnformatted(root.get()),cJSON_free);
+        if(!text){server_.send(503);return;}
+        server_.send(200,"application/json",text.get());
+    }
+#endif
+
 	void configDebug() {
 		DBGLOGFD(log_, logFeature_, "configDebug METHOD %d\n", server_.method());
 
@@ -898,6 +1118,26 @@ private:
 		}
 	}
 
+
+	void boilerDisplay() {
+		if (server_.method() != HTTP_GET && server_.method() != HTTP_POST) { server_.send(405,"text/plain","Method not allowed"); return; }
+		if (server_.method() == HTTP_POST) {
+			const auto body = server_.arg("plain");
+			if (body.length() > 128) { server_.send(400,"text/plain","Invalid boiler model"); return; }
+			auto root = std::unique_ptr<cJSON,decltype(&cJSON_Delete)>(
+				cJSON_ParseWithLengthOpts(body.c_str(),body.length()+1,nullptr,true),cJSON_Delete);
+			const auto model = root ? cJSON_GetObjectItemCaseSensitive(root.get(),"model") : nullptr;
+			if (!root || !cJSON_IsObject(root.get()) || cJSON_GetArraySize(root.get()) != 1
+					|| !cJSON_IsString(model) || !model->valuestring || !validBoilerDisplayModel(model->valuestring)) {
+				server_.send(400,"text/plain","Invalid boiler model"); return;
+			}
+			if (!saveBoilerDisplayModel(model->valuestring)) { server_.send(503,"text/plain","Model save could not be confirmed"); return; }
+		}
+		const auto model = readBoilerDisplayModel();
+		if (!model) { server_.send(503,"text/plain","Boiler presentation unavailable"); return; }
+		server_.sendHeader("Cache-Control","no-store");
+		server_.send(200,"application/json",String("{\"model\":\"")+model->c_str()+"\"}");
+	}
 
 	void configBoiler() {
 		DBGLOGFD(log_, logFeature_, "configBoiler METHOD %d\n", server_.method());
@@ -979,7 +1219,7 @@ private:
 		DBGLOGFD(log_, logFeature_, "temporaryOverride '%s' temp: %d secs: %d\n", roomName, temperature, validSeconds);
 
 		if (!controller_.setRoomTemporaryTemperature(roomName, temperature, validSeconds)) {
-			std::stringstream error;
+			std::ostringstream error;
 			error << "Room " << roomName << " not found";
 			std::string errorStr = error.str();
 			server_.send(404, "text/plain", errorStr.c_str());
@@ -1207,12 +1447,12 @@ private:
 	void recovery() {
 		static constexpr auto page = R"html(<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>OpenThermostat recovery</title><script src="/auth-client.js"></script><style>body{font-family:sans-serif;max-width:42rem;margin:3rem auto;padding:0 1rem}button,input{font-size:1rem;margin:.5rem 0;padding:.6rem}progress{width:100%}</style></head>
-<body><h1>OpenThermostat recovery</h1><p>Select the SPIFFS image built for this device. Keep the device powered until verification finishes.</p>
-<input id="file" type="file" accept=".bin"><button id="upload">Upload filesystem</button><progress id="progress" max="100" value="0"></progress><pre id="status"></pre>
+<title data-i18n="OpenThermostat recovery">OpenThermostat recovery</title><script src="/ui-messages.js"></script><script src="/ui-language.js"></script><script src="/auth-client.js"></script><style>body{font-family:sans-serif;max-width:42rem;margin:3rem auto;padding:0 1rem}button,input{font-size:1rem;margin:.5rem 0;padding:.6rem}progress{width:100%}</style></head>
+<body><h1 data-i18n="OpenThermostat recovery">OpenThermostat recovery</h1><p data-i18n="Select the SPIFFS image built for this device. Keep the device powered until verification finishes.">Select the SPIFFS image built for this device. Keep the device powered until verification finishes.</p>
+<input id="file" type="file" accept=".bin"><button id="upload" data-i18n="Upload filesystem">Upload filesystem</button><progress id="progress" max="100" value="0"></progress><pre id="status"></pre>
 <script>
 const button=document.getElementById('upload'),file=document.getElementById('file'),progress=document.getElementById('progress'),status=document.getElementById('status');
-button.onclick=async()=>{if(!file.files.length){status.textContent='Select spiffs.bin first.';return}button.disabled=true;status.textContent='Uploading and verifying...';const data=new FormData();data.append('size',file.files[0].size);data.append('file',file.files[0]);const xhr=new XMLHttpRequest();xhr.open('POST','/otafs');try{const headers=window.OpenThermostatAuth?await window.OpenThermostatAuth.headers():{};for(const [name,value] of Object.entries(headers))xhr.setRequestHeader(name,value)}catch(error){button.disabled=false;status.textContent='Sign in again before uploading.';return}xhr.upload.onprogress=e=>{if(e.lengthComputable)progress.value=Math.round(e.loaded/e.total*100)};xhr.onload=()=>{button.disabled=false;status.textContent=xhr.status===200?'Update verified. Reboot the device.':'Update failed: '+xhr.responseText};xhr.onerror=()=>{button.disabled=false;status.textContent='Network error. The update was not confirmed.'};xhr.onabort=()=>{button.disabled=false;status.textContent='Upload aborted.'};xhr.timeout=300000;xhr.ontimeout=()=>{button.disabled=false;status.textContent='Upload timed out.'};xhr.send(data)};
+button.onclick=async()=>{if(!file.files.length){status.textContent=uiText("Select spiffs.bin first.");return}button.disabled=true;status.textContent=uiText("Uploading and verifying...");const data=new FormData();data.append('size',file.files[0].size);data.append('file',file.files[0]);const xhr=new XMLHttpRequest();xhr.open('POST','/otafs');try{const headers=window.OpenThermostatAuth?await window.OpenThermostatAuth.headers():{};for(const [name,value] of Object.entries(headers))xhr.setRequestHeader(name,value)}catch(error){button.disabled=false;status.textContent=uiText("Sign in again before uploading.");return}xhr.upload.onprogress=e=>{if(e.lengthComputable)progress.value=Math.round(e.loaded/e.total*100)};xhr.onload=()=>{button.disabled=false;status.textContent=xhr.status===200?uiText("Update verified. Reboot the device."):uiText("Update failed: ")+xhr.responseText};xhr.onerror=()=>{button.disabled=false;status.textContent=uiText("Network error. The update was not confirmed.")};xhr.onabort=()=>{button.disabled=false;status.textContent=uiText("Upload aborted.")};xhr.timeout=300000;xhr.ontimeout=()=>{button.disabled=false;status.textContent=uiText("Upload timed out.")};xhr.send(data)};
 </script></body></html>)html"sv;
 		server_.sendView(200, "text/html"sv, page);
 	}
@@ -1268,6 +1508,8 @@ button.onclick=async()=>{if(!file.files.length){status.textContent='Select spiff
 			return {false, "text/javascript"};
 		} else if (path.endsWith("png")) {
 			return {true, "image/png"};
+		} else if (path.endsWith("svg")) {
+			return {false, "image/svg+xml"};
 		} else if (path.endsWith("jpg")) {
 			return {true, "image/jpeg"};
 		} else if (path.endsWith("html.gz")) {
@@ -1281,121 +1523,59 @@ button.onclick=async()=>{if(!file.files.length){status.textContent='Select spiff
 
 	void handleOTAUpdate() {
 		HTTPUpload &upload = server_.upload();
-		if(upload.status==UPLOAD_FILE_START) ota_=OTAUpload{};
-		if(!authorize()) {ota_.success=false;ota_.error=ESP_ERR_INVALID_STATE;ota_.errorMessage="Upload not authorized or updater busy";return;}
-
-		if (upload.status == UPLOAD_FILE_START) {
-			auto size = server_.arg("size");
-			long fileSize = atol(size.c_str());
-
-			DBGLOGFD(log_, logFeature_, "handleOTA START '%s', totalSize: '%zu'\n", upload.filename.c_str(), fileSize);
-
-			ota_ = OTAUpload{};
-
-			ota_.partition = esp_ota_get_next_update_partition(NULL);
-			if (!ota_.partition) {
-				DBGLOGFD(log_, logFeature_, "OTA partition not found\n");
-				ota_.errorMessage = "OTA partition not found"sv;
-				ota_.error = -1;
-				return;
-			}
-
-			if (fileSize > 0 && fileSize > ota_.partition->size) {
-				DBGLOGFD(log_, logFeature_, "handleOTAFFSUpdate Partition size %zu smaller than binary file %zu!\n", ota_.partition->size, fileSize);
-				ota_.errorMessage = "Partition smaller than file"sv;
-				ota_.error = -1;
-				return;
-			}
-
-
-			DBGLOGFD(log_, logFeature_, "handleOTA Found partition '%s', size: %d, encrypted: %d\n", ota_.partition->label, ota_.partition->size, ota_.partition->encrypted);
-
-			DBGLOGFD(log_, logFeature_, "Beginning OTA\n");
-
-			if (esp_ota_mark_app_valid_cancel_rollback() != ESP_OK) {
-				DBGLOGFD(log_, logFeature_, "Beginning OTA: esp_ota_mark_app_valid_cancel_rollback failed\n");
-			}
-
-			ota_.error = esp_ota_begin(ota_.partition, OTA_SIZE_UNKNOWN, &ota_.handle);
-			if (ota_.error != ESP_OK) {
-				DBGLOGFD(log_, logFeature_, "Beginning OTA failed!\n");
-				return;
-			}
-			ota_.started = true;
-
-			DBGLOGFD(log_, logFeature_, "Beginning OTA handle: %d\n", ota_.handle);
-		} else if (upload.status == UPLOAD_FILE_WRITE) {
-			if (!ota_.started || ota_.error != ESP_OK) {
-				if (!ota_.writeErrorReported) {
-					DBGLOGFD(log_, logFeature_, "handleOTA writing skipped, OTA error: %d\n", ota_.error);
-					ota_.writeErrorReported = true;
-				}
-				return;
-			}
-
-			DBGLOGFD(log_, logFeature_, "handleOTA writing to OTA handle %d, size: %zu\n", ota_.handle, upload.currentSize);
-
-			ota_.error = esp_ota_write(ota_.handle, upload.buf, upload.currentSize);
-			if (ota_.error != ESP_OK) {
-				DBGLOGFD(log_, logFeature_, "handleOTA writing to OTA handle %d, size: %zu FAILED, error: %d\n", ota_.handle, upload.currentSize, ota_.error);
-				esp_ota_abort(ota_.handle);
-				return;
-			}
-		} else if (upload.status == UPLOAD_FILE_END) {
-			if (!ota_.started || ota_.error != ESP_OK) {
-				DBGLOGFD(log_, logFeature_, "handleOTA upload end, error: %d\n", ota_.error);
-				return;
-			}
-
-			DBGLOGFD(log_, logFeature_, "handleOTA ending OTA\n");
-
-			ota_.error = esp_ota_end(ota_.handle);
-			if (ota_.error != ESP_OK) {
-				DBGLOGFD(log_, logFeature_, "handleOTA finalizing OTA handle %d, FAILED, error: %d\n", ota_.handle, ota_.error);
-				return;
-			}
-
-			DBGLOGFD(log_, logFeature_, "handleOTA setting boot partition\n");
-
-			ota_.error = esp_ota_set_boot_partition(ota_.partition);
-			if (ota_.error != ESP_OK) {
-				DBGLOGFD(log_, logFeature_, "handleOTA setting boot partition FAILED, error: %d\n", ota_.error);
-				return;
-			}
-			ota_.success = true;
-
-		} else if (upload.status == UPLOAD_FILE_ABORTED) {
-			if (!ota_.started) {
-				DBGLOGFD(log_, logFeature_, "handleOTA upload aborted, OTA not started. Error: %d\n", ota_.error);
-				return;
-			}
-			DBGLOGFD(log_, logFeature_, "handleOTA ABORTED\n");
-			esp_ota_abort(ota_.handle);
+		if(!authorize(false)) {
+			appUpload_.cancel(appBackend_);
+			return;
+		}
+		bool ok=false;
+		if(upload.status==UPLOAD_FILE_START) {
+			appBackend_.partition=esp_ota_get_next_update_partition(nullptr);
+			const auto size=server_.arg("size");
+			ok=appUpload_.begin(appBackend_,std::string_view(size.c_str(),size.length()),
+				appBackend_.partition?appBackend_.partition->size:0);
+			DBGLOGFI(log_,logFeature_,"App upload begin: expected %zu, native error %d, result %s\n",
+				appUpload_.expected(),appBackend_.error,appUpload_.reason());
+		} else if(upload.status==UPLOAD_FILE_WRITE) {
+			ok=appUpload_.append(appBackend_,upload.buf,upload.currentSize);
+		} else if(upload.status==UPLOAD_FILE_END) {
+			ok=appUpload_.finish(appBackend_);
+			DBGLOGFI(log_,logFeature_,"App upload validation: received %zu/%zu, native error %d, result %s\n",
+				appUpload_.received(),appUpload_.expected(),appBackend_.error,appUpload_.reason());
+		} else if(upload.status==UPLOAD_FILE_ABORTED) {
+			appUpload_.cancel(appBackend_);
+		}
+		if(!ok && upload.status!=UPLOAD_FILE_WRITE) {
+			DBGLOGFI(log_,logFeature_,"App upload stopped: %s (native %d)\n",appUpload_.reason(),appBackend_.error);
 		}
 	}
 
 	void handleOTAResponse() {
-		auto ctype = "text/plain"sv;
-		if (ota_.success) {
-			server_.sendView(200, ctype, "success"sv);
+		const auto ctype="text/plain"sv;
+		if(server_.uri()=="/ota") {
+			// Final route authorization has already run. No image is selected
+			// until the entire request (including all multipart files) is valid.
+			if(!appUpload_.select(appBackend_)) {
+				const auto message="Failure: "s+appUpload_.reason()+" ("+std::to_string(appBackend_.error)+")";
+				server_.sendView(500,ctype,message);
+				return;
+			}
+			DBGLOGFI(log_,logFeature_,"App upload boot slot selected: %zu bytes\n",appUpload_.received());
+			server_.sendView(200,ctype,"success"sv);
 #ifdef OPENTHERMOSTAT_E32V2
-			// This response is shared with SPIFFS; only a selected app schedules
-			// automatic restart, after the HTTP response has been sent.
-			if(server_.uri()=="/ota") update::firmwareInstalled();
+			update::firmwareInstalled();
 #endif
+		} else if(ota_.success) {
+			server_.sendView(200,ctype,"success"sv);
 		} else {
-			ib::viewable_stringbuf payloadBuf;
-			std::ostream ss(&payloadBuf);
-			ss << "Failure: ";
-			ss << ota_.errorMessage << " (" << ota_.error << ')';
-			server_.sendView(500, ctype, payloadBuf.view());
+			const auto message="Failure: "s+ota_.errorMessage+" ("+std::to_string(ota_.error)+")";
+			server_.sendView(500,ctype,message);
 		}
 	}
 
 	void handleOTAFFSUpdate() {
 		HTTPUpload &upload = server_.upload();
 		if(upload.status==UPLOAD_FILE_START) ota_=OTAUpload{};
-		if(!authorize()) {ota_.success=false;ota_.error=ESP_ERR_INVALID_STATE;ota_.errorMessage="Upload not authorized or updater busy";return;}
+		if(!authorize(false)) {ota_.success=false;ota_.error=ESP_ERR_INVALID_STATE;ota_.errorMessage="Upload not authorized or updater busy";return;}
 
 		if (upload.status == UPLOAD_FILE_START) {
 			auto size = server_.arg("size");
@@ -1554,6 +1734,23 @@ button.onclick=async()=>{if(!file.files.length){status.textContent='Select spiff
 		mbedtls_sha256_free(&checksum);
 		return result == 0 && std::memcmp(actual.data(), expected.data(), actual.size()) == 0;
 	}
+
+	struct AppOtaBackend {
+		const esp_partition_t *partition=nullptr;
+		esp_ota_handle_t handle=0;
+		esp_err_t error=ESP_OK;
+		bool begin(size_t size) {
+			// Erase only the validated declared length. Never acknowledge the
+			// running app's pending boot merely because an upload was requested.
+			error=esp_ota_begin(partition,size,&handle);
+			return error==ESP_OK;
+		}
+		bool write(const void *bytes,size_t size) {error=esp_ota_write(handle,bytes,size);return error==ESP_OK;}
+		bool end() {error=esp_ota_end(handle);handle=0;return error==ESP_OK;}
+		bool select() {error=esp_ota_set_boot_partition(partition);return error==ESP_OK;}
+		void abort() {esp_ota_abort(handle);handle=0;}
+	} appBackend_;
+	update::ManualAppUpload appUpload_;
 
 	struct OTAUpload {
 		bool started = false;

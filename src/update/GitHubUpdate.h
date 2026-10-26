@@ -12,6 +12,7 @@ void firmwareInstalled(); // Only after native validation and boot-slot selectio
 bool requestReboot();
 bool requestRollback();
 std::string status();
-void loop();
+std::string availability(); // Cached local summary; never starts network work.
+void loop(bool automaticAllowed);
 }
 #endif

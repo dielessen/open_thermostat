@@ -320,3 +320,16 @@ TEST_F(NvsModelBackend, PostCommitFreshStatsFailureStopsReadbackWithoutRetryOrEr
     const auto bytes=f::data;unchangedAfterFailure(subject);EXPECT_EQ(f::data,bytes);
 }
 } // namespace
+TEST_F(NvsModelBackend, SharedStorageReservationSurvivesFaultAndEndsOnlyWithItsProvider) {
+    EXPECT_EQ(ControlPartitionBudget::modelEntries(controlModelStorageReservation.current()),0u);
+    {
+        NvsModelProvider provider(nvsPlan());ASSERT_TRUE(provider.healthy());
+        EXPECT_TRUE(controlModelStorageReservation.matches(&provider,nvsPlan().models));
+        const auto entries=ControlPartitionBudget::modelEntries(controlModelStorageReservation.current());
+        ASSERT_GT(entries,0u);provider.fail();
+        EXPECT_EQ(ControlPartitionBudget::modelEntries(controlModelStorageReservation.current()),entries);
+        int other=0;EXPECT_FALSE(controlModelStorageReservation.claim(&other,{1,0,0}));
+        EXPECT_EQ(f::opens+f::sets+f::statsCalls,0u);
+    }
+    EXPECT_EQ(ControlPartitionBudget::modelEntries(controlModelStorageReservation.current()),0u);
+}

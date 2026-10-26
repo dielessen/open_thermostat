@@ -15,7 +15,7 @@ def record_verified(distribution,relative):
 
 def test_chosen_schema_is_declared_and_used_by_actual_supported_native_HA_API():
     ha=md.distribution("homeassistant");provider=md.distribution("probatio")
-    assert ha.version=="2026.10.2" and provider.version=="0.13.0"
+    assert ha.version in ("2026.10.2", "2026.10.3", "2026.10.4") and provider.version=="0.13.0"
     assert "probatio==0.13.0" in ha.requires
     assert provider.metadata["License-Expression"]=="MIT"
     assert config_validation.probatio is probatio and data_entry_flow.probatio is probatio

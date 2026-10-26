@@ -1,8 +1,75 @@
+# Firmware en Home Assistant bijwerken
+
+## Actuele geïnstalleerde basis — 25 oktober 2026, 20:39 UTC
+
+E32 **v0.1.0-e32v2-beta.1** en HA **0.4.0b1** op Core **2026.10.4** zijn
+gezamenlijk geïnstalleerd vanaf bron `5e3ed30653d93b09dd65b5305accd65d079c0c06`.
+De HA-opstartfout is live hersteld. Installatie24/24 en onafhankelijke
+nacontrole45/45 geslaagd; normale GitHub-updatepoort geaccepteerd.
+Fysieke uitgangen blijven uit. De actieve ketelbèta blijft **NOT_READY**.
+[Installatie, bewijs en grenzen](INSTALLATIE-BETA1-20261025.nl.md).
+
+De hierna gedateerde oudere alpha36/dev48-waarnemingen zijn historische
+bron-/installatiebewijzen. Ze beschrijven niet de huidige geïnstalleerde basis.
+Nieuwe profiel-/EMS-wijzigingen na bron5e3ed30 zijn nog niet geïnstalleerd.
+
+De normale route is de ingebouwde **GitHub-updatefunctie**, via de bestaande
+HA-specialist met verse back-up en onafhankelijke nacontrole. Voor beta.1 is
+één updateopdracht, de download en een bevestigde nieuwe boot bewezen.
+De historische multipart-watchdog is daarmee niet causaal verklaard; geen
+blinde herhaalde upload of factory-/SPIFFS-/wisactie bij onzekere uitkomst.
+
+## Historische uitvoeringsbewijzen
+
+De onderstaande gedateerde versies beschrijven eerdere updates. Hun oude
+installatiestatus en aansluitinstructies zijn geen actuele apparaatstatus.
+De algemene app-only updaterroute en controlevoorwaarden blijven van toepassing.
+
+## E32 alpha15 uitgevoerd — 2026-10-23
+
+De E32 draait nu `v0.1.0-e32v2-alpha.15`, bron `043862c154eb314ad70f96c88062a716962c2a5e`. Het apparaat heeft de release zelf via HTTPS ontdekt, gedownload en app-only geïnstalleerd; de nieuwe boot is bevestigd. Alle zeven instellingen-/programmasnapshots zijn gelijk gebleven; SOURCE-policy/configrevision/digest en uitgeschakelde uitgangen zijn behouden. HA blijft de reeds geïnstalleerde dev20.
+
+About, Sign out rechtsboven en Restart onder Settings staan nu live. Rechtstreekse Chromium-controle op het apparaat op 1280/390/320px PASS: exacte HTML-bron, About/credits, geen horizontale overflow, herstartbevestiging annuleren zonder opdracht. De bestaande 42 Node-tests en samengestelde browserproeven PASS. Volledige CI `39959955216` PASS, openbare downloads onafhankelijk geverifieerd: 1030 pakketcontroles/552 Gitbronbestanden plus echte ELF/embeddedweb/TLS-allocatoridentiteit PASS.
+
+De publicatieworkflows op deze kandidaat bevatten nu `scripts/organize_releases.py`. De echte alpha15-publicatie heeft automatisch alpha15 als Actueel en alpha14 als Archief gelabeld, en de actuele downloadtabellen bijgewerkt. Catalogus idempotent; alle 22 publieke records passen in de firmwareparser. Voor toekomstige publicaties verdergaan vanaf deze schone kandidaat; de oudere GitHub-main bevat deze workflowwijzigingen nog niet. Tags en bestaande downloads niet vervangen.
+
+Bewijs: `out/e32-alpha15-evidence-20261023/FINAL-REVIEW.json`, inclusief onafhankelijke deelcontroles en live screenshots. Dit sluit de voorbereide About/navigatie/releasebeheerwerkzaamheden af. Afzonderlijke langdurige/hardware-/verwarmingskwalificatie wordt hiermee niet geclaimd.
+
 # Firmware bijwerken via jouw GitHub Releases
+
+**Release-indeling:** kies in het overzicht bovenaan een release tussen
+**E32-firmware** en **Home Assistant**. De nieuwste versies dragen `Actueel`;
+oudere software heeft het voorvoegsel `Archief`. Bronpakketten zijn afzonderlijk
+gelabeld. Historische toelichtingen blijven uitklapbaar beschikbaar. Tags en
+publieke downloadlinks blijven behouden.
+
+**Actueel 23 oktober:** alpha.14 is werkelijk via de ingebouwde GitHub-updater
+vanuit alpha.13 geïnstalleerd, met behouden configuratie en bevestigde opstart.
+De HTTPS-geheugenfout is gericht verholpen met taakgebonden externe TLS-allocatie;
+certificaatcontrole blijft ingeschakeld. Oude firmware kan voor deze correctie
+nog één normale app-only upload nodig hebben; Marks E32 is al bijgewerkt.
+
+**Gepubliceerd23okt:** [HA0.4.0.dev13](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0.dev13).
+Afzonderlijke integratie-ZIP; bron en werkelijk gedownloade checksums gecontroleerd.
+De HA/MQTT- en browser-CI zijn geslaagd. Dit is geen E32-firmware-update.
+De live HA-dev11-installatie hoeft voor de bestaande bediening niet opnieuw te
+worden geïnstalleerd. Dev11/dev12-tags hebben na hun CI-fout geen releaseassets.
+
+
+Mark heeft op 23 oktober expliciet opdracht gegeven geteste wijzigingen als
+GitHub-releases uit te brengen en de E32 waar nodig te upgraden. Normale passende
+testupdates hebben daarmee voorafgaande toestemming. De controle van bron,
+pakket, herstelmogelijkheid en configuratiebehoud blijft onderdeel van uitvoering.
+
+Home Assistant krijgt afzonderlijke `ha-v<integratieversie>`-testreleases met een
+integratie-ZIP, broncommit, native testresultaat en `HA-SHA256SUMS.txt`. Die bevatten
+geen E32-firmware en vereisen geen nieuwe installatie als dezelfde HA-versie al
+gezond is geïnstalleerd. De onderstaande E32-route en voorwaarden blijven apart.
 
 Bron: https://github.com/dielessen/open_thermostat/releases.
 Deze releases zijn nog **experimentele testreleases**. EMS-/TRV-/GPIO-uitvoer
-blijft geblokkeerd; dit is geen vrijgave voor verwarming. Houd EMS los.
+blijft geblokkeerd; dit is geen vrijgave voor verwarming. De actuele
+aansluitstatus staat bovenaan; deze historische tekst vraagt geen loskoppeling.
 
 ## Eenmalige overstap vanuit de vorige testbuild
 
@@ -29,9 +96,13 @@ De aparte ZIP bevat ook een factorybeeld voor nieuwe, schone USB-installaties:
 ## Voortaan vanuit het apparaat
 
 1. Ga naar **Firmware bijwerken** en kies **Controleer op updates**.
-2. Het apparaat haalt de laatste twee GitHub-releases op en controleert hun
-   updategegevens. Alleen passende E32 V2 app-only releases verschijnen.
-   Een testrelease is zichtbaar als zodanig gemarkeerd.
+2. Vanaf alpha.7 doorzoekt het apparaat maximaal twaalf releaseberichten, één
+   begrensd antwoord per keer. Het toont maximaal twee passende E32 V2 app-only
+   releases na controle van hun updategegevens. HA-releases en releases zonder
+   passend firmwarepakket tellen niet mee. Een testrelease is als zodanig gemarkeerd.
+   Als geen passende release binnen deze zoekgrens is gevonden, meldt de interface
+   dat oudere berichten niet zijn gecontroleerd. Alpha.6 en ouder bekijken alleen
+   de twee nieuwste berichten; gebruik daar zo nodig de handmatige app-upload.
 3. Selecteer de gewenste versie en kies **Downloaden en installeren**.
    Bevestig de keuze. Er worden nooit automatisch releases geïnstalleerd.
 4. Houd het apparaat onder stroom. De pagina toont de ontvangen bytes en
@@ -108,3 +179,7 @@ Eerste niet-wissende bootstrap -> releasecontrole -> echte download/update ->
 herstart/versie/UI -> wifi/kamers/programmaconfiguratie behouden. Daarnaast:
 verbroken download, afgewezen/corrupte upload, vorige-slotterugkeer en
 USB-herstel. Browserfixtures en host-foutinjecties zijn geen fysieke OTA-proef.
+
+## Optionele oorspronkelijke Zigbee-rapporten in dezelfde bèta
+
+De HA-release krijgt naast de gewone integratie-ZIP ook `OpenThermostat-Zigbee2MQTT-original-reports-<versie>.zip`. Dit is een afzonderlijk ontvangstbronpakket voor bestaande Z2M-installaties die de oorspronkelijke sensormeldingen gebruiken, geen extra release en geen automatisch geïnstalleerde HA-component. Broncommit en checksums horen bij dezelfde bundel. Publieke templates zijn ongeconfigureerd; gebruik gecontroleerd behoud van privé pins vóór een eventuele installatie via de HA-specialist. [Volledige instructies in NL/EN](Z2M-RELEASE-COMPANION.nl-en.md).

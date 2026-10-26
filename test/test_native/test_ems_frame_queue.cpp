@@ -19,6 +19,19 @@ TEST(EmsFrameQueue, OwnsCopyOfUartBuffer) {
 	EXPECT_FALSE(queue.pop(frame));
 }
 
+TEST(EmsFrameQueue, CarriesOriginalArrivalTimeIncludingZeroAnd64BitUptime) {
+    EmsFrameQueue<2> queue;
+    const uint8_t bytes[]{8, 0, 0x18};
+    ASSERT_TRUE(queue.push(bytes, sizeof(bytes), 0));
+    ASSERT_TRUE(queue.push(bytes, sizeof(bytes), (uint64_t{1} << 32) + 123));
+    EmsRawFrame frame;
+    uint64_t receivedAt;
+    ASSERT_TRUE(queue.pop(frame, &receivedAt));
+    EXPECT_EQ(receivedAt, 0u);
+    ASSERT_TRUE(queue.pop(frame, &receivedAt));
+    EXPECT_EQ(receivedAt, (uint64_t{1} << 32) + 123);
+}
+
 TEST(EmsFrameQueue, FullQueuePreservesPendingFramesAndRecoversAfterWrap) {
 	EmsFrameQueue<3> queue;
 	EmsRawFrame frame;
@@ -56,7 +69,7 @@ TEST(EmsFrameQueue, ConcurrentProducerAndConsumerPreserveOrderAndPayload) {
 			for (size_t j = 0; j < bytes.size(); ++j) {
 				bytes[j] = static_cast<uint8_t>((i >> ((j % 4) * 8)) ^ j);
 			}
-			while (!queue.push(bytes.data(), bytes.size())) {
+			while (!queue.push(bytes.data(), bytes.size(), (uint64_t{1} << 32) + i)) {
 				std::this_thread::yield();
 			}
 		}
@@ -64,10 +77,12 @@ TEST(EmsFrameQueue, ConcurrentProducerAndConsumerPreserveOrderAndPayload) {
 	bool valid = true;
 	for (uint32_t i = 0; i < count; ++i) {
 		EmsRawFrame frame;
-		while (!queue.pop(frame)) {
+		uint64_t receivedAt;
+		while (!queue.pop(frame, &receivedAt)) {
 			std::this_thread::yield();
 		}
 		valid &= frame.length == EmsRawFrame::capacity;
+		valid &= receivedAt == (uint64_t{1} << 32) + i;
 		for (size_t j = 0; j < frame.data.size(); ++j) {
 			valid &= frame.data[j] == static_cast<uint8_t>((i >> ((j % 4) * 8)) ^ j);
 		}

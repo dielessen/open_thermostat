@@ -5,7 +5,7 @@
 namespace heating {
 
 bool RoomConfig::TemperatureSetting::doesFit(uint16_t time, uint8_t dayOfTheWeek) const {
-	if (time >= 2400) {
+	if (time >= 2400 || time % 100 >= 60 || dayOfTheWeek >= days_.size()) {
 		DBGLOGFD(log_, logFeature_, "doesFit wrong time argument '%d'\n", time);
 		return false;
 	}

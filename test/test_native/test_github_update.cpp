@@ -1,9 +1,11 @@
 #include "update/VerifiedOta.h"
+#include "update/ReleaseCatalog.h"
 #include "update/RestartTimer.h"
 #include "control/HttpAccessPolicy.h"
 #include "control/CaptivePortalPolicy.h"
 #include <gtest/gtest.h>
 #include <vector>
+#include <map>
 using namespace heating::update;
 TEST(GitHubOtaRestart, UnarmedNeverRestartsAndGraceDoesNotDependOnBrowser) {
     RestartTimer timer;
@@ -107,4 +109,195 @@ TEST(GitHubOta, ConcurrentOrUnconfirmedUpdatesCannotBypassGateViaManualUpload) {
       for(auto path:{"/config/reboot","/setup/reenter"})EXPECT_EQ(mutationBlocked(path,working,staged,pending),working);
       EXPECT_FALSE(mutationBlocked("/config/rooms",working,staged,pending));
     }
+}
+
+namespace {
+std::string catalogEntry(const std::string &tag,bool prerelease=true,bool draft=false,bool assets=true) {
+    return "[{\"tag_name\":\""+tag+"\",\"prerelease\":"+(prerelease?"true":"false")+
+      ",\"draft\":"+(draft?"true":"false")+",\"assets\":"+
+      (assets?"[{\"name\":\"e32v2-update.json\"},{\"name\":\"firmware.bin\"}]":"[]")+"}]";
+}
+std::string catalogManifest(const std::string &tag) {
+    auto raw=document();raw.replace(raw.find(manifest().tag),manifest().tag.size(),tag);return raw;
+}
+struct CatalogFetch {
+    std::map<std::string,std::string> responses;
+    std::vector<std::pair<std::string,size_t>> calls;
+    bool operator()(const std::string &url,size_t limit,std::string &raw,std::string &error) {
+        calls.push_back({url,limit});const auto found=responses.find(url);
+        if(found==responses.end()){error="fixture transport failure";return false;}
+        raw=found->second;return raw.size()<=limit;
+    }
+    void page(unsigned n,const std::string &raw){responses[releasePageUrl(n)]=raw;}
+    void release(unsigned n,const std::string &tag,bool prerelease=true) {
+        page(n,catalogEntry(tag,prerelease));responses[assetUrl(tag,"e32v2-update.json")]=catalogManifest(tag);
+    }
+};
+}
+TEST(GitHubCatalog, FindsTwoCompatibleFirmwareReleasesPastMultipleHaReleases) {
+    CatalogFetch fetch;fetch.page(1,catalogEntry("ha-v0.4.0.dev12"));
+    fetch.page(2,catalogEntry("ha-v0.4.0.dev11"));
+    fetch.release(3,"v0.1.0-e32v2-alpha.7");fetch.release(4,"v0.1.0-e32v2-alpha.6",false);fetch.page(5,"[]");
+    std::vector<Release> out;std::string error;
+    ASSERT_TRUE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),2u);
+    EXPECT_EQ(out[0].tag,"v0.1.0-e32v2-alpha.7");EXPECT_TRUE(out[0].prerelease);
+    EXPECT_EQ(out[1].tag,"v0.1.0-e32v2-alpha.6");EXPECT_FALSE(out[1].prerelease);
+    ASSERT_EQ(fetch.calls.size(),7u);
+    for(const auto &call:fetch.calls)EXPECT_EQ(call.second,call.first.find("api.github.com")!=std::string::npos?32768u:4096u);
+}
+TEST(GitHubCatalog, SkipsDraftMissingImageDuplicateAndIncompatibleManifest) {
+    CatalogFetch fetch;fetch.page(1,catalogEntry("v1",true,true));
+    fetch.page(2,"[{\"tag_name\":\"v2\",\"assets\":[{\"name\":\"e32v2-update.json\"}]}]");
+    fetch.release(3,"v3");fetch.responses[assetUrl("v3","e32v2-update.json")]=document();
+    fetch.release(4,"v4");fetch.page(5,catalogEntry("v4"));fetch.release(6,"v5");fetch.page(7,"[]");
+    std::vector<Release> out;std::string error;
+    ASSERT_TRUE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),2u);
+    EXPECT_EQ(out[0].tag,"v4");EXPECT_EQ(out[1].tag,"v5");
+    EXPECT_EQ(fetch.calls.size(),10u);
+    EXPECT_EQ(std::count_if(fetch.calls.begin(),fetch.calls.end(),[](const auto &call){return call.first==assetUrl("v4","e32v2-update.json");}),1);
+}
+TEST(GitHubCatalog, EmptyApiPageCompletesKnownCatalogWithoutAnotherRequest) {
+    CatalogFetch fetch;fetch.release(1,"v1");fetch.page(2,"[]");
+    std::vector<Release> out;std::string error;ASSERT_TRUE(discoverReleases(fetch,out,error));
+    ASSERT_EQ(out.size(),1u);EXPECT_EQ(out[0].tag,"v1");EXPECT_EQ(fetch.calls.size(),3u);
+    CatalogFetch empty;empty.page(1,"[]");ASSERT_TRUE(discoverReleases(empty,out,error));EXPECT_TRUE(out.empty());
+}
+TEST(GitHubCatalog, TransportFailureAfterFirstMatchDoesNotPublishPartialCatalog) {
+    for(bool manifestFailure:{false,true}) {
+        CatalogFetch fetch;fetch.release(1,"v1");
+        if(manifestFailure)fetch.page(2,catalogEntry("v2"));
+        std::vector<Release> out{{"v99",false}};std::string error;
+        EXPECT_FALSE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),1u);
+        EXPECT_EQ(out[0].tag,"v99");EXPECT_EQ(error,"fixture transport failure");
+    }
+}
+TEST(GitHubCatalog, InvalidPublicResponseIsRejectedWithoutChangingChoices) {
+    for(const auto &raw:{std::string("{}"),std::string("[{},{}]"),std::string("[1]garbage"),std::string(32769,' ')}) {
+        CatalogFetch fetch;fetch.page(1,raw);std::vector<Release> out{{"v99",false}};std::string error;
+        EXPECT_FALSE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),1u);EXPECT_EQ(out[0].tag,"v99");
+        EXPECT_EQ(fetch.calls.size(),1u);
+    }
+}
+TEST(GitHubCatalog, MixedCatalogScanIsBoundedAndDoesNotClaimOlderReleasesChecked) {
+    CatalogFetch fetch;for(unsigned page=1;page<=maxReleasePages;++page)fetch.page(page,catalogEntry("ha-v0.4.0.dev12"));
+    std::vector<Release> out{{"v99",false}};std::string error;
+    EXPECT_FALSE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),1u);EXPECT_EQ(out[0].tag,"v99");
+    EXPECT_EQ(fetch.calls.size(),maxReleasePages);EXPECT_NE(error.find("oudere releases zijn niet gecontroleerd"),std::string::npos);
+    EXPECT_EQ(releasePageUrl(1),"https://api.github.com/repos/dielessen/open_thermostat/releases?per_page=1&page=1");
+    EXPECT_TRUE(releasePageUrl(0).empty());EXPECT_TRUE(releasePageUrl(maxReleasePages+1).empty());
+}
+TEST(GitHubCatalog, LastAllowedPageCanSupplyTheOnlyVerifiedChoice) {
+    CatalogFetch fetch;for(unsigned page=1;page<maxReleasePages;++page)fetch.page(page,catalogEntry("ha-v0.4.0.dev12"));
+    fetch.release(maxReleasePages,"v1");std::vector<Release> out;std::string error;
+    ASSERT_TRUE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),1u);EXPECT_EQ(out[0].tag,"v1");
+    EXPECT_EQ(fetch.calls.size(),maxReleasePages+1);
+}
+
+TEST(GitHubCatalog, LatestPublishedCompatibleReleaseCanFollowTwoOlderMatches) {
+    // Actual public API ordering observed23Oct:9,8,7,10. The first two
+    // compatible entries are not proof that the newest release was checked.
+    CatalogFetch fetch;
+    auto dated=[&](unsigned page,const std::string &tag,const std::string &published) {
+        fetch.release(page,tag);
+        auto raw=catalogEntry(tag);raw.insert(2,"\"published_at\":\""+published+"\",");
+        fetch.page(page,raw);
+    };
+    dated(1,"v0.1.0-e32v2-alpha.9","2026-10-23T04:04:28Z");
+    dated(2,"v0.1.0-e32v2-alpha.8","2026-10-23T03:17:27Z");
+    dated(3,"v0.1.0-e32v2-alpha.7","2026-10-23T01:57:48Z");
+    dated(4,"v0.1.0-e32v2-alpha.10","2026-10-23T06:45:18Z");
+    fetch.page(5,"[]");
+    std::vector<Release> out;std::string error;
+    ASSERT_TRUE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),2u);
+    EXPECT_EQ(out[0].tag,"v0.1.0-e32v2-alpha.10");
+    EXPECT_EQ(out[1].tag,"v0.1.0-e32v2-alpha.9");
+    EXPECT_EQ(fetch.calls.size(),9u);
+}
+
+TEST(GitHubCatalog, PublicationRankingRejectsMalformedCalendarAndOffsetDates) {
+    for(const auto *date:{"2026-10-23T06:45:18Z","2024-02-29T23:59:59Z","2000-02-29T00:00:00Z"})
+        EXPECT_TRUE(validReleasePublication(date))<<date;
+    for(const auto *date:{"2026-02-29T00:00:00Z","2100-02-29T00:00:00Z","2026-00-01T00:00:00Z", "2026-04-31T00:00:00Z", "2026-10-23T24:00:00Z", "2026-10-23T00:60:00Z", "2026-10-23T00:00:60Z", "2026-10-23T00:00:00+01:00", "2026-10-23T00:00:00Zgarbage", ""})
+        EXPECT_FALSE(validReleasePublication(date))<<date;
+}
+TEST(GitHubCatalog, FailureBeyondTwoMatchesCannotReplacePreviousChoices) {
+    CatalogFetch fetch;fetch.release(1,"v1");fetch.release(2,"v2");
+    std::vector<Release> out{{"v99",false}};std::string error;
+    EXPECT_FALSE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),1u);
+    EXPECT_EQ(out[0].tag,"v99");EXPECT_EQ(error,"fixture transport failure");
+}
+
+TEST(GitHubOta, VerificationObserverRunsBeforeEachBackendGateInOrder) {
+    Backend b;VerifiedOta<Backend> transfer(b,manifest());
+    ASSERT_TRUE(transfer.begin());const auto bytes=image();
+    ASSERT_TRUE(transfer.append(bytes.data(),bytes.size()));
+    std::vector<OtaVerificationStep> observed;
+    ASSERT_TRUE(transfer.finish([&](OtaVerificationStep step) {
+        observed.push_back(step);
+        switch(step) {
+        case OtaVerificationStep::Hash:EXPECT_EQ(b.hashes,0u);break;
+        case OtaVerificationStep::Image:EXPECT_EQ(b.hashes,1u);EXPECT_EQ(b.ends,0u);break;
+        case OtaVerificationStep::Readback:EXPECT_EQ(b.ends,1u);EXPECT_EQ(b.reads,0u);break;
+        case OtaVerificationStep::Select:EXPECT_EQ(b.reads,1u);EXPECT_EQ(b.selects,0u);break;
+        }
+    }));
+    EXPECT_EQ(observed,(std::vector<OtaVerificationStep>{OtaVerificationStep::Hash,
+        OtaVerificationStep::Image,OtaVerificationStep::Readback,OtaVerificationStep::Select}));
+    EXPECT_FALSE(transfer.finish([&](OtaVerificationStep){ADD_FAILURE()<<"Repeated completion observed";}));
+}
+TEST(GitHubOta, FailedGateCannotEmitLaterVerificationCheckpoints) {
+    const std::vector<OtaVerificationStep> order{OtaVerificationStep::Hash,
+        OtaVerificationStep::Image,OtaVerificationStep::Readback,OtaVerificationStep::Select};
+    for(size_t fault=0;fault<order.size();++fault) {
+        Backend b;
+        if(fault==0)b.hashOk=false;if(fault==1)b.endOk=false;
+        if(fault==2)b.readOk=false;if(fault==3)b.selectOk=false;
+        VerifiedOta<Backend> transfer(b,manifest());ASSERT_TRUE(transfer.begin());
+        const auto bytes=image();ASSERT_TRUE(transfer.append(bytes.data(),bytes.size()));
+        std::vector<OtaVerificationStep> observed;
+        EXPECT_FALSE(transfer.finish([&](OtaVerificationStep step){observed.push_back(step);}));
+        EXPECT_EQ(observed,std::vector<OtaVerificationStep>(order.begin(),order.begin()+fault+1));
+        EXPECT_FALSE(transfer.finish([&](OtaVerificationStep){ADD_FAILURE()<<"Failed transfer retried";}));
+        EXPECT_EQ(b.selects,fault==3?1u:0u);
+    }
+}
+TEST(GitHubOta, ObserverFailureRetiresTransferBeforeItsBackendOperation) {
+    for(unsigned fault=0;fault<4;++fault) {
+        Backend b;VerifiedOta<Backend> transfer(b,manifest());ASSERT_TRUE(transfer.begin());
+        const auto bytes=image();ASSERT_TRUE(transfer.append(bytes.data(),bytes.size()));
+        unsigned observed=0;
+        EXPECT_FALSE(transfer.finish([&](OtaVerificationStep){if(observed++==fault)throw 1;}));
+        EXPECT_EQ(observed,fault+1);
+        EXPECT_EQ(b.hashes,fault>0?1u:0u);EXPECT_EQ(b.ends,fault>1?1u:0u);
+        EXPECT_EQ(b.reads,fault>2?1u:0u);EXPECT_EQ(b.selects,0u);
+        EXPECT_FALSE(transfer.finish());
+    }
+}
+TEST(GitHubOta, IncompleteImageEmitsNoVerificationCheckpoint) {
+    Backend b;VerifiedOta<Backend> transfer(b,manifest());ASSERT_TRUE(transfer.begin());
+    const auto bytes=image();ASSERT_TRUE(transfer.append(bytes.data(),bytes.size()-1));
+    EXPECT_FALSE(transfer.finish([](OtaVerificationStep){ADD_FAILURE()<<"Incomplete image observed";}));
+    EXPECT_EQ(b.hashes,0u);EXPECT_EQ(b.selects,0u);
+}
+
+TEST(GitHubOta, ObserverReentryCannotRepeatOrAdvanceVerification) {
+    for(unsigned fault=0;fault<4;++fault) {
+        Backend b;VerifiedOta<Backend> transfer(b,manifest());ASSERT_TRUE(transfer.begin());
+        const auto bytes=image();ASSERT_TRUE(transfer.append(bytes.data(),bytes.size()));
+        unsigned observed=0;
+        EXPECT_FALSE(transfer.finish([&](OtaVerificationStep){
+            if(observed++==fault)EXPECT_FALSE(transfer.finish());
+        }));
+        EXPECT_EQ(observed,fault+1);EXPECT_EQ(b.hashes,fault>0?1u:0u);
+        EXPECT_EQ(b.ends,fault>1?1u:0u);EXPECT_EQ(b.reads,fault>2?1u:0u);
+        EXPECT_EQ(b.selects,0u);EXPECT_FALSE(transfer.finish());
+    }
+}
+TEST(GitHubOta, ObserverInvalidAppendCannotBeIgnoredByOuterCompletion) {
+    Backend b;VerifiedOta<Backend> transfer(b,manifest());ASSERT_TRUE(transfer.begin());
+    const auto bytes=image();ASSERT_TRUE(transfer.append(bytes.data(),bytes.size()));
+    EXPECT_FALSE(transfer.finish([&](OtaVerificationStep){
+        EXPECT_FALSE(transfer.append(bytes.data(),1));
+    }));
+    EXPECT_EQ(b.hashes,0u);EXPECT_EQ(b.selects,0u);EXPECT_FALSE(transfer.finish());
 }

@@ -1,0 +1,14 @@
+<section class="mx-auto p-3" style="max-width:760px">
+  <h1><span data-i18n="My boiler">My boiler</span></h1>
+  <p><span data-i18n="Choose your boiler to show its name and an illustration on the home page.">Choose your boiler to show its name and an illustration on the home page.</span></p>
+  <form id="boiler-display-form">
+    <label for="boiler-model"><span data-i18n="Boiler model">Boiler model</span></label>
+    <select id="boiler-model" class="form-control mb-3" disabled></select>
+    <figure class="text-center"></figure>
+    <p class="text-muted"><span data-i18n="Model families are listed from EMS-ESP. A listing does not confirm support in OpenThermostat. Images load from public hosting; the saved selection works offline.">Model families are listed from EMS-ESP. A listing does not confirm support in OpenThermostat. Images load from public hosting; the saved selection works offline.</span></p>
+    <p class="text-muted"><span data-i18n="This selection changes the display. Connection, monitoring and control are configured and tested separately.">This selection changes the display. Connection, monitoring and control are configured and tested separately.</span></p>
+    <button class="btn btn-primary" type="submit" disabled><span data-i18n="Save boiler selection">Save boiler selection</span></button>
+    <p class="mt-3" role="status" aria-live="polite"><span data-i18n="Loading boiler selection…">Loading boiler selection…</span></p>
+  </form>
+</section>
+<script>BoilerDisplay.settings(document.getElementById('boiler-display-form'));</script>

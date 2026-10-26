@@ -11,19 +11,19 @@
 <div class="row mb-3">
 <div class="card w-100" id="BoilerSettings">
 	<div class="card-header d-flex justify-content-between align-items-center">
-		<span class="align-middle">Boiler and heating curve settings</span><button type="button" class="btn px-1 py-0 m-0 btn-outline-info" onclick="loadBoilerSettings();">&#x2b6f;</button>
+		<span class="align-middle"><span data-i18n="Boiler and heating curve settings">Boiler and heating curve settings</span></span><button type="button" class="btn px-1 py-0 m-0 btn-outline-info" onclick="loadBoilerSettings();">&#x2b6f;</button>
 	</div>
 	<div class="card-body">
 		<ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
-			<li class="nav-item"><a class="nav-link active" id="pills-boiler-tab" data-toggle="pill" href="#pills-boiler" role="tab" aria-controls="pills-boiler" aria-selected="true">Boiler</a></li>
-			<li class="nav-item"><a class="nav-link" id="pills-curve-tab" data-toggle="pill" href="#pills-curve" role="tab" aria-controls="pills-curve" aria-selected="false">Heating curve</a></li>
+			<li class="nav-item"><a class="nav-link active" id="pills-boiler-tab" data-toggle="pill" href="#pills-boiler" role="tab" aria-controls="pills-boiler" aria-selected="true"><span data-i18n="Boiler">Boiler</span></a></li>
+			<li class="nav-item"><a class="nav-link" id="pills-curve-tab" data-toggle="pill" href="#pills-curve" role="tab" aria-controls="pills-curve" aria-selected="false"><span data-i18n="Heating curve">Heating curve</span></a></li>
 		</ul>
 		<div class="tab-content" id="pills-tabContent">
 			<div class="tab-pane fade show active" id="pills-boiler" role="tabpanel" aria-labelledby="pills-boiler-tab">
 				<div class="form-group">
 					<div class="form-row">
 						<div class="col-md mb-2">
-							<label for="valvePreheatingDelay">Valve preheating delay</label>
+							<label for="valvePreheatingDelay"><span data-i18n="Valve preheating delay">Valve preheating delay</span></label>
 							<div class="input-group">
 								<input type="number" class="form-control" id="valvePreheatingDelay" placeholder="0" value="0" step="1" min=0 max="65535" required>
 								<div class="input-group-append"><div class="input-group-text">sec</div></div>
@@ -33,7 +33,7 @@
 					</div>
 					<div class="form-row">
 						<div class="col-md mb-2">
-							<label for="minHeatingTemp">Minimum heating temperature</label>
+							<label for="minHeatingTemp"><span data-i18n="Minimum heating temperature">Minimum heating temperature</span></label>
 							<div class="input-group">
 								<input type="number" class="form-control" id="minHeatingTemp" placeholder="20" value="20" step="1" min=20 max=90 required>
 								<div class="input-group-append"><div class="input-group-text">&deg;C</div></div>
@@ -41,7 +41,7 @@
 							</div>
 						</div>
 						<div class="col-md mb-2">
-							<label for="maxHeatingTemp">Maximum heating temperature</label>
+							<label for="maxHeatingTemp"><span data-i18n="Maximum heating temperature">Maximum heating temperature</span></label>
 							<div class="input-group">
 								<input type="number" class="form-control" id="maxHeatingTemp" placeholder="90" value="90" step="1" min=20 max=90 required>
 								<div class="input-group-append"><div class="input-group-text">&deg;C</div></div>
@@ -52,18 +52,18 @@
 
 					<div class="form-row">
 						<div class="col-md mb-2">
-							<label for="BoilerControlMode">Select boiler control mode</label>
+							<label for="BoilerControlMode"><span data-i18n="Select boiler control mode">Select boiler control mode</span></label>
 							<select class="form-control" id="BoilerControlMode">
-								<option value="onoff">ON/OFF (don't use heating curve)</option>
-								<option value="onoff_outdoor">ON/OFF + flow temperature based on outdoor temperature</option>
-								<option value="ems">EMS + flow temperature based on outdoor temperature</option>
+								<option value="onoff" data-i18n="ON/OFF (don&#x27;t use heating curve)">ON/OFF (don&#x27;t use heating curve)</option>
+								<option value="onoff_outdoor" data-i18n="ON/OFF + flow temperature based on outdoor temperature">ON/OFF + flow temperature based on outdoor temperature</option>
+								<option value="ems" data-i18n="EMS + flow temperature based on outdoor temperature">EMS + flow temperature based on outdoor temperature</option>
 							</select>
 						</div>
 						<div class="col-md mb-2">
-							<label for="OutdoorTemperatureSource">Outdoor temperature source</label>
+							<label for="OutdoorTemperatureSource"><span data-i18n="Outdoor temperature source">Outdoor temperature source</span></label>
 							<select class="form-control" id="OutdoorTemperatureSource">
-								<option value="owm">Internet - OpenWeatherMap</option>
-								<option value="ems">Boiler outdoor temperature sensor (EMS)</option>
+								<option value="owm" data-i18n="Internet - OpenWeatherMap">Internet - OpenWeatherMap</option>
+								<option value="ems" data-i18n="Boiler outdoor temperature sensor (EMS)">Boiler outdoor temperature sensor (EMS)</option>
 							</select>
 						</div>
 					</div>
@@ -73,7 +73,7 @@
 				<div class="form-group">
 					<div class="form-row">
 						<div class="col-md mb-2">
-							<label for="minHCTemp">Starting heating curve temperature</label>
+							<label for="minHCTemp"><span data-i18n="Starting heating curve temperature">Starting heating curve temperature</span></label>
 							<div class="input-group">
 								<input type="number" class="form-control" id="minHCTemp" placeholder="20" value="20" step="1" min=0 max=90 required>
 								<div class="input-group-append"><div class="input-group-text">&deg;C</div></div>
@@ -81,7 +81,7 @@
 							</div>
 						</div>
 						<div class="col-md mb-2">
-							<label for="maxHCTemp">Ending heating curve temperature</label>
+							<label for="maxHCTemp"><span data-i18n="Ending heating curve temperature">Ending heating curve temperature</span></label>
 							<div class="input-group">
 								<input type="number" class="form-control" id="maxHCTemp" placeholder="90" value="90" step="1" min=0 max=90 required>
 								<div class="input-group-append"><div class="input-group-text">&deg;C</div></div>
@@ -92,7 +92,7 @@
 
 					<div class="form-row">
 						<div class="col mb-2">
-							<label for="selectPredefinedHc">Select predefined curve formula</label>
+							<label for="selectPredefinedHc"><span data-i18n="Select predefined curve formula">Select predefined curve formula</span></label>
 							<select class="form-control" id="selectPredefinedHc" name="hcselected" aria-describedby="selectPredefinedHc" onchange="predefinedFormula()">
 								<option>x</option>
 								<option>1.2 * x</option>
@@ -108,14 +108,14 @@
 							</select>
 						</div>
 						<div class="col mb-2">
-							<label for="hcformula">Edit formula</label>
+							<label for="hcformula"><span data-i18n="Edit formula">Edit formula</span></label>
 							<input type="text" class="form-control" id="hcformula" value="x" pattern="[0-9x +\-*/().,%]+" required>
-							<div class="invalid-feedback">Only numbers, x, + - * / ( ) . , allowed</div>
+							<div class="invalid-feedback"><span data-i18n="Only numbers, x, + - * / ( ) . , allowed">Only numbers, x, + - * / ( ) . , allowed</span></div>
 						</div>
 						<div class="col mb-2">
 							<label for="generatehc">&nbsp;</label>
 
-							<button type="button" class="btn btn-success form-control" id="generatehc">Generate</button>
+							<button type="button" class="btn btn-success form-control" id="generatehc"><span data-i18n="Generate">Generate</span></button>
 						</div>
 					</div>
 
@@ -145,7 +145,7 @@
 
 
 		<div class="card-footer text-muted">
-			<button type="button" class="btn btn-primary mb-2" onclick="saveBoilerSettings();" id="SaveBoilerSettings">Save settings</button>
+			<button type="button" class="btn btn-primary mb-2" onclick="saveBoilerSettings();" id="SaveBoilerSettings"><span data-i18n="Save settings">Save settings</span></button>
 		</div>
 
 	</div>
@@ -325,7 +325,7 @@ $(document).ready(function() {
 		data: {
 			labels: ['20', '15', '10', '5', '0', '-5', '-10', '-15', '-20'],
 			datasets: [{
-					label: 'heating temperature',
+					label: uiText("heating temperature"),
 					// data: heatingCurvePoints,
 					borderWidth: 3,
 					// cubicInterpolationMode: 'monotone',
@@ -343,7 +343,7 @@ $(document).ready(function() {
 					max: 20,
 					title: {
 						display: true,
-						text: 'outdoor temperature °C'
+						text: uiText("outdoor temperature °C")
 					}
 				},
 				y: {
@@ -351,7 +351,7 @@ $(document).ready(function() {
 					max: 90,
 					title: {
 						display: true,
-						text: 'heating temperature °C'
+						text: uiText("heating temperature °C")
 					}
 				},
 				hcTemp: {
@@ -364,14 +364,14 @@ $(document).ready(function() {
 					position: 'top',
 					title: {
 						display: true,
-						text: 'heating curve temperature (x) °C'
+						text: uiText("heating curve temperature (x) °C")
 					}
 				}
 			},
 			plugins: {
 				title: {
 					display: true,
-					text: 'Heating curve'
+					text: uiText("Heating curve")
 				},
 				legend: {
 					display: false
@@ -402,7 +402,7 @@ $(document).ready(function() {
 		var maxTemp = parseInt($('#maxHCTemp').val());
 
 		if (!/^[0-9x\s+\-*/().,%]+$/.test(formula)) {
-			alert("Formula contains invalid characters.\nAllowed: numbers, x, + - * / ( ) . ,");
+			alert(uiText("Formula contains invalid characters. Allowed: numbers, x, + - * / ( ) . ,"));
 			return;
 		}
 
@@ -457,9 +457,9 @@ function loadBoilerParams() {
 		updateMaxHeatingTemp();
 	}).catch(function(error) {
 		if (error instanceof HttpResponseException && error.status === 404) {
-			alert("Cannot load boiler params\n" + error);
+			alert(uiText("Cannot load boiler params\n") + error);
 		}
-		if (confirm("Cannot load boiler params\n" + error + "\nTry again?")) {
+		if (confirm(uiText("Cannot load boiler params\n") + error + uiText("\nTry again?"))) {
 			loadBoilerParams();
 		}
 	});
@@ -490,9 +490,9 @@ function loadBoilerSettings() {
 		$('#boilereditform').removeClass('invisible');
 	}).catch(function(error) {
 		if (error instanceof HttpResponseException && error.status === 404) {
-			alert("Cannot load boiler settings\n" + error);
+			alert(uiText("Cannot load boiler settings\n") + error);
 		}
-		if (confirm("Cannot load boiler settings\n" + error + "\nTry again?")) {
+		if (confirm(uiText("Cannot load boiler settings\n") + error + uiText("\nTry again?"))) {
 			loadBoilerSettings();
 		} else {
 			loadDefaultBoilerSettings();
@@ -527,12 +527,12 @@ function saveBoilerSettings() {
 	})
 	.then(res => {
 		if (res.status === 200 || res.status === 201 || res.type === "opaque") {
-			if (confirm("Heating settings saved.\nDo you want to reboot device to\nchanges take place?")) {
+			if (confirm(uiText("Heating settings saved. Do you want to reboot device to changes take place?"))) {
 				reboot();
 				return;
 			}
 		} else {
-			alert("Not sure if config saved\nStatus: " + res.status + "\nBody:\n" + res.statusText);
+			alert(uiText("Not sure if config saved Status: ") + res.status + uiText("\nBody:\n") + res.statusText);
 		}
 	})
 	.catch(function(error) {

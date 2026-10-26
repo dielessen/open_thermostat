@@ -17,6 +17,7 @@ from .const import DOMAIN
 KEY = DOMAIN + "_metrics_reports"
 SERVICE = "export_metrics_csv"
 MAX_ENTITIES, MAX_ROWS, MAX_BYTES = 64, 5000, 1048576
+MAX_INTERVAL_DAYS = 31
 
 
 def _rows(value):
@@ -146,13 +147,14 @@ def _recorded_unit(state, enabled):
 
 
 async def async_export(hass, data):
-    if data["entry_id"] not in hass.data.get(KEY, set()):
+    entry_id = data["entry_id"]
+    if entry_id not in hass.data.get(KEY, set()):
         raise HomeAssistantError("Entry is not loaded for metrics reporting")
     start, end = _utc(data["start"]), _utc(data["end"])
-    if end <= start or end-start > timedelta(days=1) or end > datetime.now(timezone.utc)+timedelta(seconds=5):
-        raise HomeAssistantError("Use a past nonempty interval of at most 24 hours")
-    owned = owned_entities(hass, data["entry_id"])
-    selected = data.get("entity_ids", sorted(owned))
+    if end <= start or end-start > timedelta(days=MAX_INTERVAL_DAYS) or end > datetime.now(timezone.utc)+timedelta(seconds=5):
+        raise HomeAssistantError("Use a past nonempty interval of at most 31 days")
+    owned = owned_entities(hass, entry_id)
+    selected = tuple(data.get("entity_ids", sorted(owned)))
     if not selected or len(selected)>MAX_ENTITIES or len(set(selected))!=len(selected) or not set(selected)<=owned.keys():
         raise HomeAssistantError("Select up to 64 distinct enabled entities owned by this entry")
     try:
@@ -160,6 +162,15 @@ async def async_export(hass, data):
     except (KeyError, RuntimeError) as err:
         raise HomeAssistantError("Native Recorder is not loaded") from err
     limit = _rows(data.get("limit", 1000))
+    # Immutable identities, not mutable request lists or a cached enabled flag.
+    identities = {entity: (owned[entity].id, owned[entity].unique_id) for entity in selected}
+    def recheck_owner():
+        current = owned_entities(hass, entry_id)
+        if (entry_id not in hass.data.get(KEY, set())
+                or any(entity not in current or
+                       (current[entity].id, current[entity].unique_id) != identity
+                       for entity, identity in identities.items())):
+            raise HomeAssistantError("Entity ownership or availability changed during export")
     rows, queried, truncated = [], [], False
     include_units = data.get("include_units", False)
     if type(include_units) is not bool:
@@ -179,6 +190,9 @@ async def async_export(hass, data):
         except Exception:
             # No partial export or private database/SQL exception text in response.
             raise HomeAssistantError("Native Recorder history query failed") from None
+        # Executor work yields to registry updates and integration unload.
+        # Never return a partial export under replaced/disabled/unloaded owners.
+        recheck_owner()
         states = history.get(entity_id, [])
         queried.append(entity_id)
         if len(states)>remaining:

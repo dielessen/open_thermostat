@@ -1,0 +1,103 @@
+// Real Settings page and DOM, isolated HTTP snapshots; no broker/device traffic.
+const {chromium}=require('playwright-core');
+const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
+const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(__dirname,'../out/ems-devices-browser');
+const ids=[...fs.readFileSync(path.resolve(__dirname,'../src/EMS/ClassicBoilerMonitor.h'),'utf8').matchAll(/\{"([a-z][a-z0-9_]+)", "/g)].map(m=>m[1]);assert.equal(ids.length,69);
+function snapshot(){
+ const fields=Object.fromEntries(ids.map(id=>[id,{value:null,unit:'degC',state:'unknown',quality:'reported',source_type:0,source_address:8,age_ms:null}]));
+ fields.measured_flow_temperature={value:47.2,unit:'degC',state:'valid',quality:'reported',source_type:24,source_address:8,age_ms:500};
+ fields.pressure={value:1.8,unit:'bar',state:'valid',quality:'unreliable',source_type:24,source_address:8,age_ms:500};
+ fields.measured_return_temperature={value:null,unit:'degC',state:'stale',quality:'reported',source_type:24,source_address:8,age_ms:45000};
+ return {enabled:true,inventory:{schema:1,capacity:16,untracked_frames:0,devices:[{address:8,frames:20,age_ms:500,product_id:123,version:'1.2',brand_id:null,untracked_types:0,telegram_types:[2,24]},{address:23,frames:3,age_ms:60000,product_id:null,version:null,brand_id:null,untracked_types:0,telegram_types:[32]}]},boiler:{fields}};
+}
+(async()=>{
+ fs.mkdirSync(output,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});const results=[];
+ try{for(const lang of ['en','nl'])for(const width of [1280,390,320]){
+  const page=await browser.newPage({viewport:{width,height:900}}),errors=[],requests=[];let data=snapshot(),fail=false,hold=false,pending=null,missingReference=false;
+  page.on('pageerror',e=>errors.push(e.message));
+  await page.context().addCookies([{name:'ot_ui_lang',value:lang,url:'http://opth.test'}]);
+  await page.route('http://opth.test/**',async route=>{
+   const req=route.request(),p=new URL(req.url()).pathname;requests.push({path:p,method:req.method()});
+   if(p==='/ems-reference.js.gz'&&missingReference)return route.fulfill({status:503,body:''});
+   if(p==='/auth/session')return route.fulfill({contentType:'application/json',body:JSON.stringify({authenticated:true,csrf:'a'.repeat(64)})});
+   if(p==='/status')return route.fulfill({contentType:'application/json',body:JSON.stringify({controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}})});
+   if(p==='/config/boiler-display')return route.fulfill({contentType:'application/json',body:'{"model":"none"}'});
+   if(p==='/status/ems/devices'){
+    if(hold){pending=route;return;}
+    if(fail)return route.fulfill({status:503,body:'unavailable'});
+    return route.fulfill({contentType:'application/json',body:JSON.stringify(data)});
+   }
+   const file=path.join(assets,p==='/'?'index.html':p);if(!file.startsWith(assets+'/')||!fs.existsSync(file))return route.fulfill({status:404,body:''});
+   let body=fs.readFileSync(file);if(p.endsWith('.gz'))body=zlib.gunzipSync(body);
+   return route.fulfill({contentType:/\.js(?:\.gz)?$/.test(p)?'application/javascript':p.endsWith('.css.gz')?'text/css':'text/html',body});
+  });
+  await page.goto('http://opth.test/');await page.locator('#auth-sign-out').waitFor();if(await page.locator('.navbar-toggler').isVisible())await page.locator('.navbar-toggler').click();await page.locator('#navbarDropdownMenuLink').click();await page.locator('a[data-page="ems_devices"]').click();
+  const status=page.locator('#ems-devices-status');await status.filter({hasText:lang==='nl'?'Momentopname bijgewerkt':'Snapshot updated'}).waitFor();
+  assert.equal(await page.locator('#ems-device-list > details').count(),2);
+  assert.match(await page.locator('#ems-device-list > details').first().locator(':scope > summary').innerText(),/GB\*72.*Trendline/i);
+  await page.locator('[data-address="8"] > summary').click();
+  assert.match(await page.locator('[data-address="23"] > summary').innerText(),/Thermostaat|Thermostat/);
+  const ref=page.locator('[data-address="8"] .ems-reference');
+  await ref.locator(':scope > summary').click();
+  await ref.getByRole('combobox').selectOption('write');
+  assert.match(await ref.innerText(),/selflowtemp/);
+  assert(!(await ref.innerText()).includes('(burnstarts)'));
+  await ref.locator('input').fill('selflowtemp');
+  assert.match(await ref.innerText(),/selected flow temperature/);
+  await ref.locator(':scope > summary').click();
+  const library=page.locator('[data-address="8"] .ems-library');
+  await library.locator(':scope > summary').click();
+  await library.locator('details > summary').filter({hasText:'UBAMonitorFast'}).click();
+  await library.getByText(/Offset 0 ·/).first().waitFor();
+  assert.match(await library.innerText(),/Offset 0/);
+  await library.locator(':scope > summary').click();
+  await page.locator('[data-address="8"] > summary').click();
+  const boiler=page.locator('details[data-address="8"]'),other=page.locator('details[data-address="23"]');await boiler.locator(':scope > summary').click();
+  assert.equal(await boiler.locator('tbody tr').count(),3);assert.match(await boiler.innerText(),(lang==='nl'?/47,2 °C/:/47.2 °C/));assert.match(await boiler.innerText(),lang==='nl'?/Onbetrouwbaar/:/Unreliable/);assert.match(await boiler.innerText(),lang==='nl'?/Verlopen/:/Expired/);
+  assert(!((await boiler.innerText()).includes('Nefit')),'No selected model presented as received identification');
+  await other.locator(':scope > summary').click();assert.match(await other.innerText(),lang==='nl'?/nog niet worden gedecodeerd/:/not available yet/);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await page.screenshot({path:path.join(output,`${lang}-${width}.png`),fullPage:true});
+  // A normal boiler has more than eight handlers; retain the complete bounded list.
+  data.inventory.devices[0].telegram_types=Array.from({length:64},(_,i)=>i+1);
+  await page.locator('#ems-refresh').click();await status.filter({hasText:lang==='nl'?'Momentopname bijgewerkt':'Snapshot updated'}).waitFor();
+  assert.match(await boiler.locator('.ems-device-meta').last().innerText(),/0x40/);
+  data.inventory.devices[0].telegram_types.push(65);
+  await page.locator('#ems-refresh').click();await status.filter({hasText:lang==='nl'?'Vernieuwen mislukt':'Refresh failed'}).waitFor();
+  data.inventory.devices[0].telegram_types=[2,24];
+  data.inventory.devices[0].brand_id=4;
+  await page.locator('#ems-refresh').click();await status.filter({hasText:lang==='nl'?'Momentopname bijgewerkt':'Snapshot updated'}).waitFor();
+  assert.match(await boiler.locator(':scope > summary').innerText(),/Nefit TrendLine/);
+  await page.locator('#ems-search').fill('measured_flow');assert.equal(await boiler.locator('tbody tr').count(),1);
+  await page.evaluate(()=>{window.keptFlowRow=[...document.querySelectorAll('tbody tr')].find(r=>r.textContent.includes('measured_flow_temperature'));});
+  data.boiler.fields.measured_flow_temperature.value=48.1;await page.locator('#ems-refresh').click();await status.filter({hasText:lang==='nl'?'Momentopname bijgewerkt':'Snapshot updated'}).waitFor();
+  assert.equal(await page.evaluate(()=>keptFlowRow===[...document.querySelectorAll('tbody tr')].find(r=>r.textContent.includes('measured_flow_temperature'))),true,'Existing entity row must be updated in place');
+  assert.equal(await boiler.getAttribute('open'),'');assert.equal(await other.getAttribute('open'),'');assert.equal(await page.locator('#ems-search').inputValue(),'measured_flow');assert.match(await boiler.innerText(),(lang==='nl'?/48,1 °C/:/48.1 °C/));
+  await page.locator('#ems-search').fill('');await page.locator('#ems-show-unknown').check();assert.equal(await boiler.locator('tbody tr').count(),69);
+  data.boiler.fields.pressure.unit='bool';data.boiler.fields.pressure.value='off';
+  await page.locator('#ems-refresh').click();await status.filter({hasText:lang==='nl'?'Vernieuwen mislukt':'Refresh failed'}).waitFor({timeout:6000});
+  assert.equal(await page.locator('#ems-devices').getAttribute('data-failed'),'true');
+  data=snapshot();data.boiler.fields.measured_flow_temperature.value=48.1;
+  fail=true;await page.locator('#ems-refresh').click();await status.filter({hasText:lang==='nl'?'Vernieuwen mislukt':'Refresh failed'}).waitFor();assert.equal(await boiler.getAttribute('open'),'');assert.equal(await page.locator('#ems-devices').getAttribute('data-failed'),'true');assert.match(await boiler.innerText(),(lang==='nl'?/48,1 °C/:/48.1 °C/));
+  fail=false;data.boiler.fields.bad={value:'<img src=x onerror=alert(1)>',unit:'text',state:'valid',quality:'reported',source_type:24,source_address:8,age_ms:0};data.inventory.devices[0].address=23; // Duplicate identity invalidates entire snapshot.
+  await page.locator('#ems-refresh').click();await status.filter({hasText:lang==='nl'?'Vernieuwen mislukt':'Refresh failed'}).waitFor();assert.equal(await page.locator('#ems-device-list img').count(),0);assert.equal(await page.locator('#ems-device-list > details').count(),2);
+  data=snapshot();data.inventory.devices=[data.inventory.devices[1]];
+  await page.locator('#ems-refresh').click();await status.filter({hasText:lang==='nl'?'Momentopname bijgewerkt':'Snapshot updated'}).waitFor();
+  data=snapshot();await page.locator('#ems-refresh').click();await status.filter({hasText:lang==='nl'?'Momentopname bijgewerkt':'Snapshot updated'}).waitFor();
+  assert.deepEqual(await page.locator('#ems-device-list > details').evaluateAll(nodes=>nodes.map(n=>n.dataset.address)),['8','23']);
+  data=snapshot();data.inventory.devices=[];await page.locator('#ems-refresh').click();await status.filter({hasText:lang==='nl'?'Momentopname bijgewerkt':'Snapshot updated'}).waitFor();assert.equal(await page.locator('#ems-device-list > details').count(),0);assert.match(await page.locator('#ems-device-list').innerText(),lang==='nl'?/Nog geen/:/No EMS/);
+  // Navigating away cancels a bounded in-flight read; no late repaint/new polling.
+  hold=true;await page.locator('#ems-refresh').click();await page.waitForFunction(()=>document.querySelector('#ems-refresh').disabled);await page.evaluate(()=>loadNativePage('about'));await page.locator('#ems-devices').waitFor({state:'detached'});if(pending)await pending.fulfill({contentType:'application/json',body:JSON.stringify(snapshot())}).catch(()=>{});
+  // Reference asset failure must not suppress already decoded local measurements.
+  hold=false;missingReference=true;data=snapshot();await page.reload();
+  await page.evaluate(()=>loadNativePage('ems_devices'));
+  await page.locator('#ems-devices-status').filter({hasText:lang==='nl'?'EMS-referentie niet beschikbaar':'EMS reference unavailable'}).waitFor();
+  const fallback=page.locator('[data-address="8"]');await fallback.locator(':scope > summary').click();
+  assert.match(await fallback.locator(':scope > summary').innerText(),/Ketel|Boiler/);
+  assert.equal(await fallback.locator('tbody tr').count(),3);
+  assert.match(await fallback.innerText(),lang==='nl'?/47,2 °C/:/47.2 °C/);
+  assert(!requests.some(r=>r.method!=='GET'));assert(!requests.some(r=>/scan|test\/start|updates\/install/.test(r.path)));assert.deepEqual(errors,[]);
+  results.push({lang,width,result:'PASS',snapshot_only:true,no_device_commands:true});await page.close();
+ }}finally{await browser.close();}
+ fs.writeFileSync(path.join(output,'RESULT.json'),JSON.stringify(results,null,2));console.log(JSON.stringify(results));
+})().catch(e=>{console.error(e);process.exitCode=1;});

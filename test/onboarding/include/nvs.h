@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <cstring>
@@ -10,9 +11,11 @@ using Values=std::map<std::string,std::vector<unsigned char>>;
 inline std::map<std::string,Values> committed;
 struct Handle {std::string name;Values staged;};
 inline std::map<int,Handle> handles;
-inline std::string failCommit,corruptRead; inline int next=1;
+inline std::string failCommit,corruptRead,failOpen; inline int next=1; inline unsigned openCalls=0;
 }
 inline int nvs_open(const char* name,int mode,nvs_handle_t* h){
+ ++testNvs::openCalls;
+ if(name==testNvs::failOpen)return 2;
  if(mode==NVS_READONLY&&!testNvs::committed.count(name))return ESP_ERR_NVS_NOT_FOUND;
  *h=testNvs::next++;testNvs::handles[*h]={name,{}};return ESP_OK;
 }
@@ -26,7 +29,8 @@ inline int nvs_get_blob(int h,const char* key,void* data,size_t* size){
  if(!data){*size=found->second.size();return ESP_OK;}
  if(*size<found->second.size())return 2;
  std::memcpy(data,found->second.data(),found->second.size());*size=found->second.size();
- if(name==testNvs::corruptRead&&*size>2)((char*)data)[1]='!';return ESP_OK;
+ if(name==testNvs::corruptRead&&*size>2){((char*)data)[1]='!';}
+ return ESP_OK;
 }
 inline int nvs_set_u8(int h,const char* key,uint8_t value){return nvs_set_blob(h,key,&value,1);}
 inline int nvs_get_u8(int h,const char* key,uint8_t* value){size_t n=1;return nvs_get_blob(h,key,value,&n);}

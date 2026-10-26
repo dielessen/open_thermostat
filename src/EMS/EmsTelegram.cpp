@@ -1,5 +1,6 @@
 #include "EmsTelegram.h"
 #include <stdexcept>
+#include <algorithm>
 
 namespace heating::ems {
 
@@ -37,12 +38,13 @@ void EmsTelegram::logDebug(ib::logger::LoggerInterface &log, ib::logger::LoggerI
 			opType = 'W';
 		}
 
-		char dataStr[data_.size() * 2 + 1] = {0};
-		for (size_t i = 0; i < data_.size(); ++i) {
+		char dataStr[maxEmsDataLength * 2 + 1] = {0};
+        const size_t visible=std::min(data_.size(),size_t(maxEmsDataLength));
+		for (size_t i = 0; i < visible; ++i) {
 			snprintf(dataStr + i * 2, sizeof(dataStr) - i * 2, "%2.2X", data_[i]);
 		}
 
-		DBGLOGFD((&log), feature, "(0x%X) -%c-> (0x%X), type: 0x%4.4X, offset: %d, dataLen: %d data: %s\n", source_, opType, destination_, typeId_, offset_, data_.size(), dataStr);
+		DBGLOGFD((&log), feature, "(0x%X) -%c-> (0x%X), type: 0x%4.4X, offset: %d, dataLen: %zu data: %s%s\n", source_, opType, destination_, typeId_, offset_, data_.size(), dataStr, visible<data_.size()?"...":"");
 	}
 }
 
@@ -61,7 +63,7 @@ EmsTelegram EmsTelegram::fromRawData(const uint8_t *data, size_t length) {
     if (!data || length < 5 || length > 32) throw std::runtime_error("Invalid EMS frame length");
     const bool extended = data[2] == 0xFF;
     const bool read = data[1] != 0 && (data[1] & 0x80);
-    if ((extended && length < (read ? 8u : 7u)) || (!extended && read && length != 6))
+    if ((extended && (read ? length != 8u : length < 7u)) || (!extended && read && length != 6))
         throw std::runtime_error("Invalid EMS header length");
     if (data[length - 1] != calculateCRC(data, static_cast<uint8_t>(length - 1)))
         throw std::runtime_error("Bad CRC");
@@ -84,10 +86,17 @@ EmsTelegram EmsTelegram::getFromRawData(ib::logger::LoggerInterface &log,
 
 std::vector<uint8_t> EmsTelegram::encodeToRawDataWithCRC() const {
 	std::vector<uint8_t> rawData;
-	static constexpr uint8_t maxRawTelegramLength = 32;
-	rawData.reserve(maxRawTelegramLength); // TODO calculate how much buffer we need
-
-	// TODO check buffer overflow if there is too much data
+    // Refuse representations that cannot roundtrip through the receive codec.
+    // READ_WITH_DATA has no supported wire encoder; never guess a write layout.
+    if ((operation_ != READ && operation_ != WRITE && operation_ != BROADCAST)
+        || typeId_ == 0xFF || ((destination_ & 0x80) && operation_ != READ)
+        || (operation_ == BROADCAST ? destination_ != 0 : (destination_ & 0x7F) == 0)) return {};
+    static constexpr size_t maxRawTelegramLength = 32;
+    const size_t headerLength = typeId_ > 0xFF ? 6 : 4;
+    const bool read = operation_ == operation_t::READ;
+    if ((read && data_.size() > 1)
+        || (!read && data_.size() > maxRawTelegramLength - headerLength - 1)) return {};
+    rawData.reserve(headerLength + (read ? 1 : data_.size()) + 1);
 
 	rawData.push_back(source_ | 0x80); // 0
 	rawData.push_back(destination_);   // 1
@@ -98,7 +107,6 @@ std::vector<uint8_t> EmsTelegram::encodeToRawDataWithCRC() const {
 	rawData.push_back(typeId_ > 0xFF ? 0xFF : typeId_); // 2 - typeId for EMS1 -  0xFF marker for EMS2
 	rawData.push_back(offset_);							// 4
 
-	uint8_t crcPos = 0;
 	if (typeId_ > 0xFF) {									 // EMS2
 		if (operation_ == operation_t::READ) {				 // READ REQUEST
 			rawData.push_back(data_.empty() ? 0 : data_[0]); // 4 message data - requested length
@@ -122,10 +130,10 @@ std::vector<uint8_t> EmsTelegram::encodeToRawDataWithCRC() const {
 }
 
 int8_t EmsTelegram::getDataOffset(uint8_t dataStart, uint8_t dataLen) const {
-	if (offset_ > dataStart || dataStart - offset_ + dataLen > data_.size()) {
-		return -1;
-	}
-	return dataStart - offset_;
+    if(offset_>dataStart)return -1;
+    const size_t position=size_t(dataStart-offset_);
+    if(position>INT8_MAX || position>data_.size() || dataLen>data_.size()-position)return -1;
+    return static_cast<int8_t>(position);
 }
 
 uint8_t EmsTelegram::calculateCRC(const uint8_t *data, const uint8_t length) { // from EMS-ESP32

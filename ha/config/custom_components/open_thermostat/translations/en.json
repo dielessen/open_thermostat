@@ -5,7 +5,7 @@
         "title": "OpenThermostat mode",
         "menu_options": {
           "legacy": "Existing legacy integration",
-          "shadow": "v1 shadow test mode (disabled by default)"
+          "shadow": "Read and calculate only (shadow mode)"
         }
       },
       "confirm": {
@@ -24,12 +24,36 @@
         }
       },
       "shadow": {
-        "title": "Isolated shadow mode",
-        "description": "Shadow only: no boiler or actuator actions. Copy this generated adapter owner ID into the E32 provisioning screen. Enable separately in options.",
+        "title": "Read and calculate without device control",
+        "description": "The E32 receives data and calculates heat demand, but sends no valve or boiler commands. Heating stays with your existing thermostat. Active control awaits verified measurements, command confirmation and a successful stop test. Copy this connection ID to the E32 and enable calculations separately in options.",
         "data": {
           "topic_prefix": "Controller MQTT prefix (1–32 ASCII letters/digits, - or _)",
           "adapter_id": "Provisioned firmware adapter owner ID"
         }
+      },
+      "installation": {
+        "title": "Set up your heating installation",
+        "description": "One installation for your controller and rooms. You can configure everything while the controller or boiler is disconnected. Saving does not start heating.",
+        "data": {
+          "name": "Installation name",
+          "create_dashboard": "Show the OpenThermostat dashboard"
+        },
+        "data_description": {
+          "name": "A recognisable name in Home Assistant. Renaming does not change device identities.",
+          "create_dashboard": "Adds an optional dashboard. Your own dashboards are preserved."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Advanced",
+            "data": {
+              "topic_prefix": "Controller MQTT prefix"
+            },
+            "data_description": {
+              "topic_prefix": "Must match your E32. Changing the connection can interrupt communication; it does not move an existing controller."
+            }
+          }
+        },
+        "submit": "Add installation"
       }
     },
     "abort": {
@@ -39,20 +63,21 @@
     },
     "error": {
       "invalid_topic": "Unsupported prefix for this mode. Shadow requires 1–32 ASCII letters/digits, - or _; existing legacy IDs are not renamed.",
-      "invalid_adapter_id": "Use the same explicit owner ID as provisioned on the E32 (1–32 letters, digits, _ or -)."
+      "invalid_adapter_id": "Use the same explicit owner ID as provisioned on the E32 (1–32 letters, digits, _ or -).",
+      "invalid_name": "Enter a name of 1 to 80 characters."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Integration mode and shadow observation",
-        "data": {
-          "integration_mode": "Integration mode",
-          "shadow_enabled": "Enable shadow observation listeners (no actuation)",
-          "create_dashboard": "Create legacy dashboard (legacy mode only)",
-          "adapter_id": "Provisioned firmware adapter owner ID",
-          "graph_action": "Saved heating configuration",
-          "information": "Read-only device information"
+        "title": "OpenThermostat",
+        "description": "One installation with central settings and rooms.",
+        "menu_options": {
+          "installation": "Installation settings",
+          "room_settings": "Manage rooms",
+          "configuration_status": "Installation status",
+          "advanced_settings": "Advanced and diagnostics",
+          "controller_connection": "Connect E32"
         }
       },
       "graph_review": {
@@ -82,8 +107,8 @@
         }
       },
       "installation_source": {
-        "title": "Review an independent logical installation profile",
-        "description": "Keep shadow runtime OFF. This profile describes the reviewed room bindings and regulator limits, not physical source or safety qualification. Device-local settings must independently match it before the existing session/config readback can succeed.",
+        "title": "Advanced: check installation profile",
+        "description": "Keep calculations off during this check. This technical profile identifies the rooms, devices and control limits belonging to this E32. It does not turn heating control on. HA and E32 settings must match; HA then checks the room plan returned by the E32. Measurements, valve operation and safe stopping are tested separately.",
         "data": {
           "controller_id": "Exact E32 controller ID (from device settings)",
           "legacy_readback": "Allow known old schema1 records in read-only quarantine",
@@ -100,6 +125,257 @@
           "confirm_source": "Save this HA logical profile selection (no control/config send)",
           "confirm_replacement": "I reviewed the exact previous profile and its readback-only migration"
         }
+      },
+      "installation": {
+        "title": "Set up your heating installation",
+        "description": "One installation for your controller and rooms. You can configure everything while the controller or boiler is disconnected. Saving does not start heating.",
+        "data": {
+          "name": "Installation name",
+          "create_dashboard": "Show the OpenThermostat dashboard",
+          "weather_enabled": "Weather compensation",
+          "outdoor_source": "Outdoor temperature source"
+        },
+        "data_description": {
+          "name": "A recognisable name in Home Assistant. Renaming does not change device identities.",
+          "create_dashboard": "Adds an optional dashboard. Your own dashboards are preserved.",
+          "weather_enabled": "Adjusts the water target to outdoor conditions. Applies centrally and needs a suitable source and profile.",
+          "outdoor_source": "Choose a real outdoor temperature sensor or weather entity. Missing data follows the advanced fallback policy."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Advanced",
+            "data": {
+              "stale_policy": "When outdoor data expires",
+              "minimum_supply_temperature": "Minimum central supply temperature",
+              "maximum_supply_temperature": "Maximum central supply temperature",
+              "fixed_fallback_temperature": "Fixed fallback supply temperature (only for fixed fallback policy)",
+              "curve_0": "Supply target at 20 °C outdoors",
+              "curve_1": "Supply target at 15 °C outdoors",
+              "curve_2": "Supply target at 10 °C outdoors",
+              "curve_3": "Supply target at 5 °C outdoors",
+              "curve_4": "Supply target at 0 °C outdoors",
+              "curve_5": "Supply target at -5 °C outdoors",
+              "curve_6": "Supply target at -10 °C outdoors",
+              "curve_7": "Supply target at -15 °C outdoors",
+              "curve_8": "Supply target at -20 °C outdoors",
+              "outdoor_maximum_age_seconds": "Maximum outdoor measurement age"
+            },
+            "data_description": {
+              "minimum_supply_temperature": "Lowest requested water temperature for this circuit, not the room temperature.",
+              "maximum_supply_temperature": "Highest requested water temperature. Applies to linked radiators; choose limits appropriate for your installation.",
+              "outdoor_maximum_age_seconds": "After this time without a valid outdoor report, the fallback policy applies. This is not a polling interval.",
+              "stale_policy": "Block demand requiring outdoor data, or use an explicit bounded fixed fallback temperature.",
+              "fixed_fallback_temperature": "Only for fixed fallback. Must be within supply limits; leave empty for the blocking policy.",
+              "curve_0": "Water target at curve point 1. Must stay within limits and not decrease towards colder weather.",
+              "curve_1": "Water target at curve point 2. Must stay within limits and not decrease towards colder weather.",
+              "curve_2": "Water target at curve point 3. Must stay within limits and not decrease towards colder weather.",
+              "curve_3": "Water target at curve point 4. Must stay within limits and not decrease towards colder weather.",
+              "curve_4": "Water target at curve point 5. Must stay within limits and not decrease towards colder weather.",
+              "curve_5": "Water target at curve point 6. Must stay within limits and not decrease towards colder weather.",
+              "curve_6": "Water target at curve point 7. Must stay within limits and not decrease towards colder weather.",
+              "curve_7": "Water target at curve point 8. Must stay within limits and not decrease towards colder weather.",
+              "curve_8": "Water target at curve point 9. Must stay within limits and not decrease towards colder weather."
+            }
+          }
+        },
+        "submit": "Save installation"
+      },
+      "room": {
+        "title": "Your room · 1 of 3",
+        "description": "Choose a name and heating type. Radiators are supported by this setup route. Floor and combined profiles are not yet available here; choosing them never silently creates a radiator configuration.",
+        "data": {
+          "name": "Room name",
+          "emitter": "Heating in this room"
+        },
+        "data_description": {
+          "name": "Shown on the room controls. Renaming keeps its identity and saved programme.",
+          "emitter": "Determines which valves and temperature limits apply. Floor heating needs its own compatible profile."
+        },
+        "submit": "Next"
+      },
+      "devices": {
+        "title": "Sensor and radiator valves · 2 of 3",
+        "description": "Choose the devices already added to Home Assistant. The same room target applies to every selected radiator valve.",
+        "data": {
+          "temperature_entity": "Room temperature sensor",
+          "radiator_entities": "Radiator valves"
+        },
+        "data_description": {
+          "temperature_entity": "The room is controlled from this measurement. Use a representative room sensor; a device temperature may be inaccurate.",
+          "radiator_entities": "Choose all radiator valves belonging to this room. A valve cannot belong to two rooms. Saving does not operate them."
+        },
+        "submit": "Next"
+      },
+      "room_temperature": {
+        "title": "Temperature and programme · 3 of 3",
+        "description": "Set the temperature outside programme blocks. You can edit the week before the final save. Advanced settings are optional.",
+        "data": {
+          "base_temperature": "Temperature outside programme blocks",
+          "program_action": "Week programme"
+        },
+        "data_description": {
+          "base_temperature": "Applies when no week block is active. A higher target can increase heat demand.",
+          "program_action": "Keep the programme, edit its time blocks or explicitly remove it. Each block has its own temperature."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Advanced",
+            "data": {
+              "minimum_target_temperature": "Lowest room target",
+              "maximum_target_temperature": "Highest room target",
+              "maximum_age_seconds": "Maximum measurement age",
+              "schedule_entity": "Alternative HA Schedule helper"
+            },
+            "data_description": {
+              "minimum_target_temperature": "Prevents lower targets. Existing week blocks must remain within the limits.",
+              "maximum_target_temperature": "Prevents higher targets; changing this can invalidate existing programme blocks.",
+              "maximum_age_seconds": "After this many seconds without a valid report, the sensor is stale. Too short causes interruptions; too long permits old information.",
+              "schedule_entity": "Replaces the local week programme as its source. Choose one programme source per room."
+            }
+          }
+        },
+        "submit": "Review"
+      },
+      "copy_day": {
+        "title": "Copy a programme day",
+        "description": "Copies all blocks, including temperatures. Existing blocks on destination days are replaced in this draft. Nothing is saved until you confirm the room.",
+        "data": {
+          "source_day": "Copy from",
+          "target_days": "Copy to"
+        },
+        "data_description": {
+          "source_day": "The day whose blocks and temperatures are copied.",
+          "target_days": "These days receive the copied blocks. Their previous blocks are replaced."
+        }
+      },
+      "room_settings": {
+        "title": "Manage your rooms",
+        "data": {
+          "room": "Room",
+          "action": "What would you like to do?"
+        },
+        "data_description": {
+          "room": "Choose an existing room. Its identity and programme are preserved when editing.",
+          "action": "Edit its configuration or remove only this room and its bindings."
+        }
+      },
+      "remove_room": {
+        "title": "Remove {name}?",
+        "description": "Removes this room, its programme and its own radiator-group bindings. Shared groups, physical devices and Recorder history are preserved. Active control must be stopped first. Cancelling changes nothing.",
+        "data": {
+          "confirm_remove": "Remove this room and its own bindings"
+        },
+        "data_description": {
+          "confirm_remove": "Only confirms the configuration removal. No device service or boiler command is sent."
+        },
+        "submit": "Remove room"
+      },
+      "configuration_status": {
+        "title": "Installation status",
+        "description": "Configured rooms: **{rooms}**\n\nController: **{connection}**\n\nControl: **{runtime}**\n\nA saved configuration is not confirmation that the controller has accepted it. You can configure rooms while disconnected.\n\n**Saved valve-target check**\n\n{actuator_checks}\n\nThis compares reported capabilities; it does not confirm valve position or authorize physical control.\n\n**What do these checks mean?**\nConfiguration confirmed: the E32 returned the saved room plan. Calculations enabled: heat demand is calculated only. Valve-target check: compares saved temperatures with reported valve limits and flags mismatches. These checks do not prove that a valve opens or the boiler stops. Those physical tests remain separate; shadow mode keeps valve and boiler commands disabled.",
+        "submit": "Close"
+      },
+      "program": {
+        "title": "Room week program",
+        "description": "Draft: {blocks} blocks; gaps use the base target {base} °C. Nothing is stored until Save. Select a single program source: local blocks OR a Schedule helper.",
+        "menu_options": {
+          "add_block": "Add time block",
+          "edit_block": "Edit time block",
+          "delete_block": "Delete time block",
+          "save_program": "Save program and room bindings",
+          "cancel_program": "Cancel without saving",
+          "copy_day": "Copy day"
+        }
+      },
+      "block": {
+        "title": "Time block",
+        "description": "Local wall-clock interval [start, end). Split overnight blocks at midnight. Repeated autumn hours apply twice; nonexistent spring times are skipped.",
+        "data": {
+          "days": "Days",
+          "start_time": "Start time",
+          "end_time": "End time",
+          "end_at_midnight": "End at midnight (ignore End time)",
+          "temperature": "Target temperature"
+        },
+        "data_description": {
+          "days": "The same block is created on all selected days.",
+          "start_time": "The target temperature applies from this time. Preheating can start earlier when available.",
+          "end_time": "After this time the next block or base target applies.",
+          "end_at_midnight": "Extend the block to exactly midnight; the regular end time is then ignored.",
+          "temperature": "Desired temperature for this time block, within the room limits."
+        }
+      },
+      "edit_block": {
+        "title": "Choose a time block to edit",
+        "data": {
+          "block": "Time block"
+        }
+      },
+      "delete_block": {
+        "title": "Choose a time block to delete from draft",
+        "data": {
+          "block": "Time block"
+        }
+      },
+      "program_empty": {
+        "title": "No time blocks",
+        "description": "Continue to add a block or save an empty program using the base target."
+      },
+      "room_review": {
+        "title": "Save this room?",
+        "description": "**{name}**\n\nTemperature sensor: {sensor}\n\nRadiator valves: {radiators}\n\nDesired temperature outside program blocks: **{target} °C**\n\nThe room and its radiator group will be saved together. Existing central heating settings are kept. Heating remains disabled; enabling and testing the controller is a separate step.",
+        "submit": "Save room"
+      },
+      "program_save_error": {
+        "title": "Program cannot be exported",
+        "description": "No changes were saved. Return to the draft and correct it, or cancel."
+      },
+      "advanced_settings": {
+        "title": "Advanced and diagnostics",
+        "description": "Inspect the connection and applied configuration. Use Manage rooms for ordinary configuration.",
+        "menu_options": {
+          "configuration_status": "Installation status",
+          "installation_source": "Review controller connection",
+          "graph_status": "Inspect applied configuration",
+          "hot_water": "View hot water status"
+        }
+      },
+      "edit_room": {
+        "title": "Edit room",
+        "description": "Edit room settings directly. Open [the complete room screen]({editor_url}) to edit devices, temperatures and the graphical week planner together. Only new rooms use the wizard.",
+        "data": {
+          "name": "Room name",
+          "emitter": "Heating in this room",
+          "temperature_entity": "Room temperature sensor",
+          "radiator_entities": "Radiator valves",
+          "base_temperature": "Temperature outside programme blocks",
+          "confirm_source_change": "Confirm program source change"
+        },
+        "data_description": {
+          "name": "Shown on the room controls. Renaming keeps its identity and saved programme.",
+          "emitter": "Determines which valves and temperature limits apply. Floor heating needs its own compatible profile.",
+          "temperature_entity": "The room is controlled from this measurement. Use a representative room sensor; a device temperature may be inaccurate.",
+          "radiator_entities": "Choose all radiator valves belonging to this room. A valve cannot belong to two rooms. Saving does not operate them.",
+          "base_temperature": "Applies when no week block is active. A higher target can increase heat demand.",
+          "program_action": "Keep the programme, edit its time blocks or explicitly remove it. Each block has its own temperature.",
+          "confirm_source_change": "Required only when changing between a local week program and a Schedule helper; choosing a helper removes local blocks."
+        }
+      },
+      "controller_connection": {
+        "title": "Connect E32",
+        "description": "Connect this installation to your E32. Saved rooms and week programs are checked and sent to the E32. Existing network settings are preserved. The first connection may restart the E32 once.\n\nThe administrator password is stored with this HA integration for device management. Leave it blank to reuse the saved password for the same address. This does not enable physical heating control.",
+        "data": {
+          "address": "E32 web address",
+          "password": "Administrator password"
+        }
+      },
+      "controller_connecting": {
+        "title": "Check E32 and room plan",
+        "description": "Checking the connection. Waiting for the E32 to confirm its room plan."
+      },
+      "controller_connected": {
+        "title": "E32 connected",
+        "description": "The E32 has confirmed the plan for {rooms} room(s). Physical heating control remains disabled; sensor and valve suitability are tested separately."
       }
     },
     "error": {
@@ -108,7 +384,81 @@
       "graph_control_source_review_required": "The selected SOURCE contract does not match the current owner or reviewed graph, or changed during verification. Nothing was enabled. Review the saved DATA and SOURCE contract; reconnect alone cannot approve changes.",
       "native_plan_schedule_limit": "The saved programs exceed the current limit of eight UTC transitions across both rooms over the 15-day planning window. A weekly block can produce several transitions. Reduce the programs and try again. Saved room settings and existing plans were retained; nothing was sent. Full-week support remains pending.",
       "native_plan_config_limit": "The complete saved room plan exceeds the current 4096-byte device configuration limit. Reduce the program complexity and try again. Saved room settings and existing plans were retained; nothing was sent.",
-      "native_source_unsupported": "This source layout, binding or controller ID is unsupported. No profile was saved."
+      "native_source_unsupported": "This source layout, binding or controller ID is unsupported. No profile was saved.",
+      "binding_missing": "Select an existing enabled entity.",
+      "loop_binding": "Do not select an OpenThermostat output as an input.",
+      "not_temperature": "Select a temperature sensor using °C or °F.",
+      "unsupported_unit": "unsupported unit",
+      "duplicate_room": "duplicate room",
+      "duplicate_actuator": "duplicate actuator",
+      "invalid_binding": "invalid binding",
+      "invalid_target_range": "Choose a minimum below the maximum and a base temperature within these limits.",
+      "program_source_conflict": "Choose one source. Clear the Schedule helper before editing local blocks; remove the local program before selecting a helper.",
+      "program_overlap": "Time blocks overlap on a selected day.",
+      "program_limit": "At most 28 day-blocks per week; selecting multiple days counts once per day.",
+      "invalid_program_time": "Use whole-second times with start before end; split overnight blocks at midnight.",
+      "invalid_program": "Choose valid days, times and a temperature within the room limits.",
+      "program_empty": "There are no blocks to edit or delete.",
+      "program_export_failed": "Cannot compile a bounded 15-day program: check timezone, room limits and maximum 128 transitions.",
+      "room_mode_actuator_conflict": "Climate-TRV rooms require TRVs; graph-only rooms must have no climate TRV selection.",
+      "unsupported_room_binding_mode": "Unsupported room output configuration.",
+      "graph_room_runtime_off_required": "Stop the shadow runtime before editing a graph-only room or changing its mode.",
+      "confirm_room_mode_change": "Explicit confirmation is required to change the room output configuration.",
+      "invalid_name": "Enter a room name between 1 and 80 characters.",
+      "select_radiators": "Choose between one and eight radiator valves.",
+      "output_has_multiple_owners": "This output already belongs to another room, controller, pump, mixer or actuator declaration.",
+      "input_output_loop": "An output cannot also be a configured input or an OpenThermostat-derived entity.",
+      "setup_invalid": "The room could not be prepared. Check the selected devices and their existing assignments; nothing has been saved.",
+      "emitter_not_available": "This heating type is not yet available in this version. Nothing was saved. Choose radiators or wait for its compatible profile.",
+      "weather_requires_outdoor_source": "Choose an outdoor source when weather compensation is selected.",
+      "curve_must_not_fall_towards_cold_outdoors": "Supply targets must not decrease towards colder weather.",
+      "unused_fallback_must_be_null": "Clear the fixed target when using the block-demand policy.",
+      "minimum_must_be_below_maximum": "The minimum supply temperature must be below the maximum.",
+      "invalid_integer_or_bounds": "Choose finite numbers inside the permitted bounds.",
+      "invalid_heating_draft": "The desired configuration is invalid. No changes were saved.",
+      "wrong_entity_domain": "Select an entity from the required domain.",
+      "floor_requires_mixing_or_shared_safe_limit": "An unmixed floor requires the shared central upper bound to remain within the floor group limit.",
+      "invalid_tpi_travel_or_minimum_times": "TPI on-time must cover travel and minimum on+off times must fit the cycle.",
+      "pump_times_without_pump": "Clear both pump times when no group pump is selected.",
+      "invalid_position_range": "Minimum position must be below maximum position.",
+      "group_count": "At most 8 desired groups. This is not proof of firmware capacity.",
+      "actuator_count": "At most 64 desired actuators in total. Firmware resource capacity is not yet proven.",
+      "room_actuator_limit": "At most 8 desired actuator declarations per room.",
+      "duplicate_actuator_or_missing_reference": "Use unique actuator identifiers and existing room/group references.",
+      "confirm_group_cascade": "Confirm removal of this group’s actuator declarations, or cancel.",
+      "confirm_delete": "Confirm removal from the draft.",
+      "invalid_heating_graph": "The desired graph is invalid or a binding has disappeared. Nothing was saved.",
+      "room_required": "Configure a room before adding actuator declarations.",
+      "runtime_active": "Runtime active",
+      "advanced_room_required": "Advanced room required",
+      "confirm_program_source_change": "Confirm program source change",
+      "controller_address_invalid": "Enter the local E32 web address, for example http://e32.local. Paths and login details do not belong in the address.",
+      "controller_password_required": "Enter the E32 administrator password. A saved password can only be reused for the same address.",
+      "controller_auth_failed": "The E32 did not accept this login. Check its administrator password.",
+      "controller_unreachable": "The E32 could not be reached. Check its address and network connection.",
+      "controller_update_required": "Update the E32 to alpha.9 or newer compatible firmware before connecting.",
+      "controller_busy_or_conflict": "The E32 is updating, restarting or has a conflicting configuration. Check its status before trying again.",
+      "controller_legacy_rooms_present": "The E32 still has local rooms. Review their transfer before connecting this installation.",
+      "controller_broker_setup_required": "The E32 needs a working MQTT connection first. Check its existing network settings.",
+      "controller_source_conflict": "This E32 or installation is already assigned to a different configuration. Check the installation status.",
+      "controller_settings_too_large": "The configuration exceeds the E32 storage limit. No automatic retry is performed.",
+      "controller_response_invalid": "The E32 returned an unexpected response. Check its firmware and connection.",
+      "controller_response_too_large": "The E32 response exceeds the supported limit. Check its firmware.",
+      "controller_request_invalid": "The connection request could not be validated. Reopen the form.",
+      "controller_readback_invalid": "The E32 configuration could not be verified. Check its status before trying again.",
+      "controller_settings_changed": "The E32 settings changed during connection. Check the saved configuration before connecting again.",
+      "controller_changed": "The E32 identity or firmware changed during connection. Check its status.",
+      "controller_room_configuration_invalid": "The saved rooms or programs do not fit the current E32 connection profile. Review the room configuration and installation status.",
+      "controller_runtime_off_required": "The previous connection is still stopping. Check the installation status.",
+      "controller_add_room_first": "Add a room with its temperature sensor and radiator valves first.",
+      "controller_boot_unconfirmed": "The E32 restart could not be confirmed. Check its status before retrying.",
+      "controller_connection_failed": "The connection could not be confirmed. Check the installation status before retrying.",
+      "controller_connection_unconfirmed": "Home Assistant did not confirm the E32 connection in time. Check the installation status.",
+      "controller_connection_changed": "The connection changed while applying the room plan. Check the installation status.",
+      "controller_plan_pending": "An earlier room-plan change is still unresolved. Check its actual E32 readback before applying another change.",
+      "controller_plan_unconfirmed": "The E32 has not confirmed the room plan. A received command alone is not confirmation. Check the installation status.",
+      "controller_partial_connection": "Some connection settings may already be saved on the E32. The complete connection and room plan are not confirmed. Check the installation status before connecting again.",
+      "setup_changed": "The installation changed while connecting. Check its current settings before connecting again."
     },
     "abort": {
       "graph_review_unavailable": "No existing source-selected graph connection is available. No profile was enabled.",
@@ -126,7 +476,30 @@
       "native_source_review_cancelled": "Profile review cancelled; existing configuration is unchanged.",
       "native_source_owner_conflict": "Another independent source owner is already selected. No profile was saved.",
       "native_source_replacement_unsupported": "Changing an existing source profile needs a supported durable-plan migration. Existing profile and data were retained.",
-      "native_source_plan_apply_required": "Pending, mixed, incompatible or unreadable configuration history cannot authorize this source revision. Resolve the exact current plan readback first. Existing data was retained."
+      "native_source_plan_apply_required": "Pending, mixed, incompatible or unreadable configuration history cannot authorize this source revision. Resolve the exact current plan readback first. Existing data was retained.",
+      "room_limit": "At most 8 rooms",
+      "shadow_mode_required": "Select explicit v1 shadow mode first",
+      "program_cancelled": "Program editing cancelled; nothing saved.",
+      "program_changed": "The room was changed or removed while editing; reopen it.",
+      "program_not_started": "Open the week editor from room bindings first.",
+      "room_changed": "The room changed during editing. Reopen it before saving.",
+      "setup_runtime_off": "Turn off shadow observation in the integration settings before changing rooms. No settings have been changed.",
+      "setup_changed": "The installation changed while you were editing. Open room setup again; nothing has been saved by this form.",
+      "advanced_room_required": "This room has floor, mixing, multiple-group or external comfort controls. Use Advanced room settings to preserve that configuration. Nothing has been changed.",
+      "room_saved": "Room and radiator group saved. Heating remains disabled.",
+      "setup_save_uncertain": "Saving could not be confirmed. Reopen room setup and check the saved room and group before trying again.",
+      "setup_platform_unsupported": "This configuration change has not been verified with your Home Assistant version. Nothing has been changed. Check for an integration update.",
+      "installation_saved": "Installation saved. Heating was not activated.",
+      "room_removed": "Room and its bindings removed. Devices and history are preserved.",
+      "no_rooms": "No rooms yet. Use Add room on the integration page.",
+      "cancelled": "Cancelled; nothing changed.",
+      "configuration_status_closed": "Status closed.",
+      "product_upgrade_required": "This old setup must first be transferred to the normal product configuration.",
+      "controller_connection_complete": "The E32 connection and room plan have been confirmed.",
+      "controller_connection_cancelled": "Connection cancelled. Check the installation status; some settings may already be saved on the E32."
+    },
+    "progress": {
+      "controller_connect": "Connecting, applying and reading back the room plan…"
     }
   },
   "entity": {
@@ -153,11 +526,143 @@
     }
   },
   "config_subentries": {
+    "room_setup": {
+      "entry_type": "Radiator room setup",
+      "initiate_flow": {
+        "user": "Set up a radiator room"
+      },
+      "step": {
+        "user": {
+          "title": "Set up a radiator room",
+          "description": "Add a room or choose an existing room. Your settings remain unchanged until you confirm Save room.",
+          "data": {
+            "room": "Room"
+          }
+        },
+        "radiator": {
+          "title": "Room and radiator valves",
+          "description": "Set the desired temperature and choose the temperature sensor and radiator valves for this room. Review your choices before saving.",
+          "data": {
+            "name": "Room name",
+            "temperature_entity": "Room temperature sensor",
+            "radiator_entities": "Radiator valves",
+            "base_temperature": "Desired temperature",
+            "program_action": "Week program"
+          },
+          "data_description": {
+            "temperature_entity": "Choose the sensor that measures this room’s temperature.",
+            "program_action": "Keep the existing program, edit local time blocks, or explicitly remove it.",
+            "base_temperature": "Used outside program blocks. Saving does not send a temperature command."
+          },
+          "sections": {
+            "advanced": {
+              "name": "Advanced",
+              "data": {
+                "minimum_target_temperature": "Minimum room target",
+                "maximum_target_temperature": "Maximum room target",
+                "maximum_age_ms": "Maximum qualified measurement age (ms)",
+                "schedule_entity": "Home Assistant Schedule helper (optional)"
+              },
+              "data_description": {
+                "maximum_age_ms": "A freshness limit, not a polling interval. A cached value alone does not qualify a physical measurement.",
+                "schedule_entity": "An alternative to the local week program. Keep one program source per room."
+              }
+            }
+          }
+        },
+        "room_review": {
+          "title": "Save this room?",
+          "description": "**{name}**\n\nTemperature sensor: {sensor}\n\nRadiator valves: {radiators}\n\nDesired temperature outside program blocks: **{target} °C**\n\nThe room and its radiator group will be saved together. Existing central heating settings are kept. Heating remains disabled; enabling and testing the controller is a separate step.",
+          "submit": "Save room"
+        },
+        "program": {
+          "title": "Room week program",
+          "description": "Draft: {blocks} blocks; gaps use the base target {base} °C. Nothing is stored until Save. Select a single program source: local blocks OR a Schedule helper.",
+          "menu_options": {
+            "add_block": "Add time block",
+            "edit_block": "Edit time block",
+            "delete_block": "Delete time block",
+            "save_program": "Save program and room bindings",
+            "cancel_program": "Cancel without saving"
+          }
+        },
+        "block": {
+          "title": "Time block",
+          "description": "Local wall-clock interval [start, end). Split overnight blocks at midnight. Repeated autumn hours apply twice; nonexistent spring times are skipped.",
+          "data": {
+            "days": "Days",
+            "start_time": "Start time",
+            "end_time": "End time",
+            "end_at_midnight": "End at midnight (ignore End time)",
+            "temperature": "Target temperature"
+          }
+        },
+        "edit_block": {
+          "title": "Choose a time block to edit",
+          "data": {
+            "block": "Time block"
+          }
+        },
+        "delete_block": {
+          "title": "Choose a time block to delete from draft",
+          "data": {
+            "block": "Time block"
+          }
+        },
+        "program_empty": {
+          "title": "No time blocks",
+          "description": "Continue to add a block or save an empty program using the base target."
+        },
+        "program_save_error": {
+          "title": "Program cannot be exported",
+          "description": "No changes were saved. Return to the draft and correct it, or cancel."
+        }
+      },
+      "error": {
+        "binding_missing": "binding missing",
+        "loop_binding": "loop binding",
+        "not_temperature": "not temperature",
+        "unsupported_unit": "unsupported unit",
+        "duplicate_room": "duplicate room",
+        "duplicate_actuator": "duplicate actuator",
+        "invalid_binding": "invalid binding",
+        "invalid_target_range": "Choose a minimum below the maximum and a base temperature within these limits.",
+        "program_source_conflict": "Choose one source. Clear the Schedule helper before editing local blocks; remove the local program before selecting a helper.",
+        "program_overlap": "Time blocks overlap on a selected day.",
+        "program_limit": "At most 28 day-blocks per week; selecting multiple days counts once per day.",
+        "invalid_program_time": "Use whole-second times with start before end; split overnight blocks at midnight.",
+        "invalid_program": "Choose valid days, times and a temperature within the room limits.",
+        "program_empty": "There are no blocks to edit or delete.",
+        "program_export_failed": "Cannot compile a bounded 15-day program: check timezone, room limits and maximum 128 transitions.",
+        "room_mode_actuator_conflict": "Climate-TRV rooms require TRVs; graph-only rooms must have no climate TRV selection.",
+        "unsupported_room_binding_mode": "Unsupported room output configuration.",
+        "graph_room_runtime_off_required": "Stop the shadow runtime before editing a graph-only room or changing its mode.",
+        "confirm_room_mode_change": "Explicit confirmation is required to change the room output configuration.",
+        "invalid_name": "Enter a room name between 1 and 80 characters.",
+        "select_radiators": "Choose between one and eight radiator valves.",
+        "output_has_multiple_owners": "A selected valve already belongs to another room or controller. Choose another valve or correct its existing assignment in Advanced settings.",
+        "input_output_loop": "A valve cannot also be a temperature-setting input. Check the selected devices.",
+        "setup_invalid": "The room could not be prepared. Check the selected devices and their existing assignments; nothing has been saved."
+      },
+      "abort": {
+        "room_limit": "At most 8 rooms",
+        "shadow_mode_required": "Select explicit v1 shadow mode first",
+        "program_cancelled": "Program editing cancelled; nothing saved.",
+        "program_changed": "The room was changed or removed while editing; reopen it.",
+        "program_not_started": "Open the week editor from room bindings first.",
+        "room_changed": "The room changed during editing. Reopen it before saving.",
+        "setup_runtime_off": "Turn off shadow observation in the integration settings before changing rooms. No settings have been changed.",
+        "setup_changed": "The installation changed while you were editing. Open room setup again; nothing has been saved by this form.",
+        "advanced_room_required": "This room has floor, mixing, multiple-group or external comfort controls. Use Advanced room settings to preserve that configuration. Nothing has been changed.",
+        "room_saved": "Room and radiator group saved. Heating remains disabled.",
+        "setup_save_uncertain": "Saving could not be confirmed. Reopen room setup and check the saved room and group before trying again.",
+        "setup_platform_unsupported": "This configuration change has not been verified with your Home Assistant version. Nothing has been changed. Check for an integration update."
+      }
+    },
     "zone": {
       "entry_type": "Room",
       "initiate_flow": {
-        "user": "Add configurable room",
-        "reconfigure": "Edit room bindings"
+        "user": "Add room"
       },
       "step": {
         "user": {
@@ -182,7 +687,8 @@
             "frost_temperature": "Explicit frost target (not physical protection)",
             "override_minutes": "Temporary override duration (minutes)",
             "window_entity": "Zone window contact (optional; unknown pauses)",
-            "presence_entity": "Person (optional; unknown is not away)"
+            "presence_entity": "Person (optional; unknown is not away)",
+            "room": "Room"
           },
           "data_description": {
             "temperature_entity": "Select a separate room-temperature sensor (sensor entity), not the radiator valve, valve position or a target temperature. A TRV can measure differently near the radiator.",
@@ -247,7 +753,8 @@
             "edit_block": "Edit time block",
             "delete_block": "Delete time block",
             "save_program": "Save program and room bindings",
-            "cancel_program": "Cancel without saving"
+            "cancel_program": "Cancel without saving",
+            "copy_day": "Copy day"
           }
         },
         "block": {
@@ -259,6 +766,13 @@
             "end_time": "End time",
             "end_at_midnight": "End at midnight (ignore End time)",
             "temperature": "Target temperature"
+          },
+          "data_description": {
+            "days": "The same block is created on all selected days.",
+            "start_time": "The target temperature applies from this time. Preheating can start earlier when available.",
+            "end_time": "After this time the next block or base target applies.",
+            "end_at_midnight": "Extend the block to exactly midnight; the regular end time is then ignored.",
+            "temperature": "Desired temperature for this time block, within the room limits."
           }
         },
         "edit_block": {
@@ -280,6 +794,127 @@
         "program_save_error": {
           "title": "Program cannot be exported",
           "description": "No changes were saved. Return to the draft and correct it, or cancel."
+        },
+        "radiator": {
+          "title": "Room and radiator valves",
+          "description": "Set the desired temperature and choose the temperature sensor and radiator valves for this room. Review your choices before saving.",
+          "data": {
+            "name": "Room name",
+            "temperature_entity": "Room temperature sensor",
+            "radiator_entities": "Radiator valves",
+            "base_temperature": "Desired temperature",
+            "program_action": "Week program"
+          },
+          "data_description": {
+            "temperature_entity": "Choose the sensor that measures this room’s temperature.",
+            "program_action": "Keep the existing program, edit local time blocks, or explicitly remove it.",
+            "base_temperature": "Used outside program blocks. Saving does not send a temperature command."
+          },
+          "sections": {
+            "advanced": {
+              "name": "Advanced",
+              "data": {
+                "minimum_target_temperature": "Minimum room target",
+                "maximum_target_temperature": "Maximum room target",
+                "maximum_age_ms": "Maximum qualified measurement age (ms)",
+                "schedule_entity": "Home Assistant Schedule helper (optional)"
+              },
+              "data_description": {
+                "maximum_age_ms": "A freshness limit, not a polling interval. A cached value alone does not qualify a physical measurement.",
+                "schedule_entity": "An alternative to the local week program. Keep one program source per room."
+              }
+            }
+          }
+        },
+        "room_review": {
+          "title": "Save this room?",
+          "description": "**{name}**\n\nTemperature sensor: {sensor}\n\nRadiator valves: {radiators}\n\nDesired temperature outside program blocks: **{target} °C**\n\nThe room and its radiator group will be saved together. Existing central heating settings are kept. Heating remains disabled; enabling and testing the controller is a separate step.",
+          "submit": "Save room"
+        },
+        "room": {
+          "title": "Your room · 1 of 3",
+          "description": "Choose a name and heating type. Radiators are supported by this setup route. Floor and combined profiles are not yet available here; choosing them never silently creates a radiator configuration.",
+          "data": {
+            "name": "Room name",
+            "emitter": "Heating in this room"
+          },
+          "data_description": {
+            "name": "Shown on the room controls. Renaming keeps its identity and saved programme.",
+            "emitter": "Determines which valves and temperature limits apply. Floor heating needs its own compatible profile."
+          },
+          "submit": "Next"
+        },
+        "devices": {
+          "title": "Sensor and radiator valves · 2 of 3",
+          "description": "Choose the devices already added to Home Assistant. The same room target applies to every selected radiator valve.",
+          "data": {
+            "temperature_entity": "Room temperature sensor",
+            "radiator_entities": "Radiator valves"
+          },
+          "data_description": {
+            "temperature_entity": "The room is controlled from this measurement. Use a representative room sensor; a device temperature may be inaccurate.",
+            "radiator_entities": "Choose all radiator valves belonging to this room. A valve cannot belong to two rooms. Saving does not operate them."
+          },
+          "submit": "Next"
+        },
+        "room_temperature": {
+          "title": "Temperature and programme · 3 of 3",
+          "description": "Set the temperature outside programme blocks. You can edit the week before the final save. Advanced settings are optional.",
+          "data": {
+            "base_temperature": "Temperature outside programme blocks",
+            "program_action": "Week programme"
+          },
+          "data_description": {
+            "base_temperature": "Applies when no week block is active. A higher target can increase heat demand.",
+            "program_action": "Keep the programme, edit its time blocks or explicitly remove it. Each block has its own temperature."
+          },
+          "sections": {
+            "advanced": {
+              "name": "Advanced",
+              "data": {
+                "minimum_target_temperature": "Lowest room target",
+                "maximum_target_temperature": "Highest room target",
+                "maximum_age_seconds": "Maximum measurement age"
+              },
+              "data_description": {
+                "minimum_target_temperature": "Prevents lower targets. Existing week blocks must remain within the limits.",
+                "maximum_target_temperature": "Prevents higher targets; changing this can invalidate existing programme blocks.",
+                "maximum_age_seconds": "After this many seconds without a valid report, the sensor is stale. Too short causes interruptions; too long permits old information."
+              }
+            }
+          },
+          "submit": "Review"
+        },
+        "copy_day": {
+          "title": "Copy a programme day",
+          "description": "Copies all blocks, including temperatures. Existing blocks on destination days are replaced in this draft. Nothing is saved until you confirm the room.",
+          "data": {
+            "source_day": "Copy from",
+            "target_days": "Copy to"
+          },
+          "data_description": {
+            "source_day": "The day whose blocks and temperatures are copied.",
+            "target_days": "These days receive the copied blocks. Their previous blocks are replaced."
+          }
+        },
+        "edit_room": {
+          "title": "Edit room",
+          "description": "Edit room settings directly. Open [the complete room screen]({editor_url}) to edit devices, temperatures and the graphical week planner together. Only new rooms use the wizard.",
+          "data": {
+            "name": "Room name",
+            "emitter": "Heating in this room",
+            "temperature_entity": "Room temperature sensor",
+            "radiator_entities": "Radiator valves",
+            "base_temperature": "Temperature outside programme blocks"
+          },
+          "data_description": {
+            "name": "Shown on the room controls. Renaming keeps its identity and saved programme.",
+            "emitter": "Determines which valves and temperature limits apply. Floor heating needs its own compatible profile.",
+            "temperature_entity": "The room is controlled from this measurement. Use a representative room sensor; a device temperature may be inaccurate.",
+            "radiator_entities": "Choose all radiator valves belonging to this room. A valve cannot belong to two rooms. Saving does not operate them.",
+            "base_temperature": "Applies when no week block is active. A higher target can increase heat demand.",
+            "program_action": "Keep the programme, edit its time blocks or explicitly remove it. Each block has its own temperature."
+          }
         }
       },
       "error": {
@@ -301,7 +936,16 @@
         "room_mode_actuator_conflict": "Climate-TRV rooms require TRVs; graph-only rooms must have no climate TRV selection.",
         "unsupported_room_binding_mode": "Unsupported room output configuration.",
         "graph_room_runtime_off_required": "Stop the shadow runtime before editing a graph-only room or changing its mode.",
-        "confirm_room_mode_change": "Explicit confirmation is required to change the room output configuration."
+        "confirm_room_mode_change": "Explicit confirmation is required to change the room output configuration.",
+        "invalid_name": "Enter a room name between 1 and 80 characters.",
+        "select_radiators": "Choose between one and eight radiator valves.",
+        "output_has_multiple_owners": "A selected valve already belongs to another room or controller. Choose another valve or correct its existing assignment in Advanced settings.",
+        "input_output_loop": "A valve cannot also be a temperature-setting input. Check the selected devices.",
+        "setup_invalid": "The room could not be prepared. Check the selected devices and their existing assignments; nothing has been saved.",
+        "emitter_not_available": "This heating type is not yet available in this version. Nothing was saved. Choose radiators or wait for its compatible profile.",
+        "runtime_active": "Runtime active",
+        "advanced_room_required": "Advanced room required",
+        "confirm_program_source_change": "Confirm program source change"
       },
       "abort": {
         "room_limit": "At most 8 rooms",
@@ -309,14 +953,20 @@
         "program_cancelled": "Program editing cancelled; nothing saved.",
         "program_changed": "The room was changed or removed while editing; reopen it.",
         "program_not_started": "Open the week editor from room bindings first.",
-        "room_changed": "The room changed during editing. Reopen it before saving."
+        "room_changed": "The room changed during editing. Reopen it before saving.",
+        "setup_runtime_off": "Turn off shadow observation in the integration settings before changing rooms. No settings have been changed.",
+        "setup_changed": "The installation changed while you were editing. Open room setup again; nothing has been saved by this form.",
+        "advanced_room_required": "This room has floor, mixing, multiple-group or external comfort controls. Use Advanced room settings to preserve that configuration. Nothing has been changed.",
+        "room_saved": "Room and radiator group saved. Heating remains disabled.",
+        "setup_save_uncertain": "Saving could not be confirmed. Reopen room setup and check the saved room and group before trying again.",
+        "setup_platform_unsupported": "This configuration change has not been verified with your Home Assistant version. Nothing has been changed. Check for an integration update."
       }
     },
     "heating": {
-      "entry_type": "Heating settings (draft)",
+      "entry_type": "Central settings",
       "initiate_flow": {
-        "user": "Configure central heating draft",
-        "reconfigure": "Edit central heating draft"
+        "user": "Advanced heating settings",
+        "reconfigure": "Advanced heating settings"
       },
       "step": {
         "user": {
@@ -569,6 +1219,9 @@
         "graph_changed": "The central draft or room catalog changed during editing. Reopen the draft; no changes were saved.",
         "graph_cancelled": "All staged graph changes cancelled; nothing saved."
       }
+    },
+    "installation": {
+      "entry_type": "Installation overview"
     }
   },
   "selector": {
@@ -653,6 +1306,31 @@
         "refresh": "Refresh status",
         "close": "Close status"
       }
+    },
+    "setup_room_choice": {
+      "options": {
+        "new": "New room"
+      }
+    },
+    "room_setup_program_action": {
+      "options": {
+        "save": "Keep current program",
+        "edit_week": "Edit week program",
+        "remove_week": "Remove local week program"
+      }
+    },
+    "product_emitter": {
+      "options": {
+        "radiator": "Radiators",
+        "floor": "Floor heating — not yet available",
+        "combined": "Radiators and floor — not yet available"
+      }
+    },
+    "product_room_action": {
+      "options": {
+        "edit": "Edit",
+        "remove": "Remove"
+      }
     }
   },
   "issues": {
@@ -667,6 +1345,47 @@
     "room_model_v2": {
       "title": "Select bounded room-model definition v2",
       "description": "Existing unqualified room energy/time history is retained unchanged. New room models use separate v2 entities and do not restore or backfill old totals. Unknown/stale inputs produce gaps. Room request plus reported CH is not proof of actual room heat or flow; radiator output is modeled using a 10 °C return-temperature drop and exponent 1.3, not metered. Existing firmware without observation metadata cannot qualify these models. Review user-managed cards; no Recorder data was rewritten."
+    },
+    "measurement_clock": {
+      "title": "Room measurements stopped: invalid local clock",
+      "description": "OpenThermostat detected an invalid or backward-running local timing clock. Previously qualified room measurements have been withdrawn and will not be reused by this runtime. Heating control cannot rely on those measurements. Check Home Assistant host health, then reload this OpenThermostat integration. Only a healthy replacement runtime clears this warning; new measurements still need their normal source checks. Reloading does not authorize boiler or valve commands. Window and presence signals also become unknown until a healthy new owner receives usable information."
+    }
+  },
+  "services": {
+    "export_metrics_csv": {
+      "name": "Export history as CSV",
+      "description": "Export a day, week or month of recorded history (up to 31 days). Only administrators can export. The export uses existing Recorder history and does not change it. Missing or already purged history stays missing. Large exports stop at the row or size limit.",
+      "fields": {
+        "entry_id": {
+          "name": "Installation",
+          "description": "Choose the OpenThermostat installation whose history you want to export."
+        },
+        "start": {
+          "name": "From",
+          "description": "Start date and time with timezone, for example 2026-10-01T00:00:00+02:00."
+        },
+        "end": {
+          "name": "Until",
+          "description": "Past end date and time with timezone. Choose an interval of up to 31 days."
+        },
+        "entity_ids": {
+          "name": "Sensors and entities",
+          "description": "Optional: choose specific enabled entities from this installation. Leave empty to include its available entities, up to 64."
+        },
+        "limit": {
+          "name": "Maximum rows",
+          "description": "Up to 5000 rows. If the export is truncated, select fewer entities or a shorter period."
+        },
+        "include_units": {
+          "name": "Include recorded units",
+          "description": "Include each value’s recorded unit when available. A missing unit stays empty; current units are not substituted."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_room_temperature": {
+      "message": "Enter a valid temperature within the room limits."
     }
   }
 }

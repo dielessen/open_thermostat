@@ -1,6 +1,8 @@
 """Versioned one-floor DATA + independently SOURCE-reviewed native TRV target.
 No new protocol/worker/owner; no claim of two-room API2 DATA support.
 """
+
+from .product import heating_entries
 from copy import deepcopy
 from dataclasses import dataclass
 from .graph_draft_compile import GraphDraftSource
@@ -41,7 +43,7 @@ class GraphFloorTopologyDraftSource(GraphDraftSource):
         floor=next(r for r in review["plan"]["rooms"] if r["emitter"]=="floor")
         rooms=[RoomBinding.from_dict(dict(s.data)) for s in entry.subentries.values() if s.subentry_type=="zone"]
         room=next(r for r in rooms if r.room_id==floor["zone_id"])
-        heating=next(s for s in entry.subentries.values() if s.subentry_type=="heating")
+        heating=next(iter(heating_entries(entry)))
         whole=validated_graph(hass,entry,dict(heating.data)["draft"]).storage_document()
         # Full plan/digest above remains pinned. These are only the supported
         # floor DATA fields, not silent removal of the native radiator owner.

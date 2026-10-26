@@ -1,6 +1,118 @@
 # OpenThermostat + Home Assistant — masterplan
 
-**Versie:** ontwerp 1.0 met reconciliaties 20 oktober (Mark11694) en 22 oktober 2026 (Mark).
+**Geactualiseerd op 25 oktober 2026.** Alle 31 eisen R01–R31 en de oorspronkelijke
+acceptatiepoorten F0–F10 hieronder blijven gelden. De actuele stand, voltooid
+softwarewerk, open uitvoering en releasechecklist staan uitsluitend in
+[WORKBOARD](WORKBOARD.nl.md). De eerdere statusinleiding is ongewijzigd bewaard
+in `out/plan-audit-20261023/PLAN.nl.md.before`; oude versies/open punten uit die
+inleiding zijn geen actuele planning meer.
+
+## Actuele opdracht en releasegrens
+
+Mark vraagt één complete samenhangende eerste bèta waarmee de ketel gekoppeld,
+uitgelezen en onder concrete voorwaarden begrensd aangestuurd kan worden. Alles
+wat eerder is voorbereid moet in de releasebasis behouden blijven. Daarom is
+ieder voorbereid onderdeel opgenomen in de [release-inventaris](BETA1-RELEASE-INVENTARIS.json)
+en in [WORKBOARD §3](WORKBOARD.nl.md#3-alles-wat-voorbereid-is-meenemen-in-de-bèta).
+
+- **Geïnstalleerd:** HA dev48 (bron `70135db3`) en E32 alpha36 (bron `7ddf341`).
+  Native GitHub-update met één commando, verse back-up van 10 payloads, 36 installatiecontroles
+  en 45 afzonderlijke nacontroles PASS. Exacte bron/ELF/web, 31 geserveerde UI-bestanden,
+  86 HA-bestanden, SOURCE5, programma's/bindings/instellingen behouden.
+  [Installatie en bewijs](INSTALLATIE-E32-ALPHA36-20261025.nl.md).
+- **Gepubliceerd:** E32 alpha36 en HA dev48. Normale updatepoort accepteert alpha36;
+  iedere opvolgende reguliere release vereist eigen update-/nacontrolebewijs via
+  [verplicht proces](E32-UPDATE-PROCES.nl.md). Oude multipart-watchdogoorzaak blijft
+  onbekend; actieve ketel-/kraan-/installatiekwalificatie blijft apart NOT_READY.
+- **Geleverde softwarebasis:** EMS-apparatenpagina, sessie-/klokbewaking,
+  opstartherstel, web-/editorcorrecties en HA-kraanberichtbedrading met standaard
+  gesloten productfabriek, oorspronkelijke aanvraagcorrelatie, beschermd kanaalbeheer
+  en deadlinegebonden nonblocking writes. HA46 voegt begrensde ontvangstdiagnostiek toe;
+  alpha33-bron bewaakt ook herintrede bij de laatste socketcontrole en kanaaltoelating.
+  HA47 bewaakt nu ook de opstart over async-configuratie/Store/MQTT-grenzen;
+  alpha34-bron bevat gerichte updatercheckpoints met EN/NL-uitleg.
+  Dit kwalificeert geen meetbron of fysieke kraanroute.
+- **Voorbereide productbasis behouden:** regelaars/supervisor, water-/vloer-/
+  mengerpolicies, metrics/grafieken/CSV, comfort/context en leermodellen. De
+  ontbrekende aansluiting en praktijkkwalificatie staan per eis op het werkbord.
+- **Nog nodig voor actieve bèta:** actuele meetbron en native kraantransactie,
+  werkelijke veiligheidsfeiten, beoordeeld installatie-/TX-/stopprofiel en
+  gecontroleerde fysieke proeven. Policy, Classic-encoder en laatste
+  verzendcontrole zijn al gebouwd; ontbrekende kwalificatie blijft zichtbaar open.
+- **Nu vóór fysieke proeven:** het gemelde pendelen onderzoeken. De passieve
+  controle toont geen OpenThermostat-verzending; warmwatergerelateerde periodes
+  zijn waargenomen, maar de oorzaak is nog onbekend. Zie het actuele werkbord.
+
+Software aanwezig, software geleverd en fysieke werking bewezen zijn aparte
+statussen. Bestaande onvolledige features gaan als begrensde bron mee, zonder
+ze automatisch te activeren. Het productdoel blijft maximaal acht gevalideerde
+zones; het huidige native plan ondersteunt één of twee kamers binnen zijn
+bestaande byte-/transitiebudgetten. Leren, vloer- en onbeheerd verwarmingsbedrijf
+krijgen geen vrijgave door deze planherijking. Geen nieuwe F9/F10/P2-stage vóór M2.
+
+[De actuele 31-eisenmatrix](WORKBOARD.nl.md#4-alle-31-producteisen--actuele-softwarestand-en-resterend-werk)
+benoemt per eis bestaande code én ontbrekend werk. De B01–B14-releasechecklist
+in WORKBOARD §6 is de uitvoervolgorde; na ieder pakket status en bewijs bijwerken.
+De overige paragrafen hieronder beschrijven het blijvende ontwerp en de
+acceptatiecriteria, geen tweede concurrerende afvinklijst.
+
+## Aanvulling Mark 24 oktober: directe Bluetooth-kranen en zelfstandig bedrijf
+
+Naast alle bestaande functionaliteit komt een optionele rechtstreekse
+Shelly BLU TRV-koppeling en een expliciete lokale E32-regelmodus zonder
+Home Assistant in de regelketen. Ontwerp en fasering:
+[uitbreiding X01](SHELLY-BLU-TRV-STANDALONE.nl.md). De 31 oorspronkelijke eisen,
+voorbereide code en bestaande HA-route blijven behouden. Zelfstandig bedrijf
+vereist lokale bronnen, planning/tijd, opslag, één eigenaar en dezelfde fysieke
+veiligheidsacceptatie. Het verruimen van de HA-lease verleent die functie niet.
+
+## Aanvulling Mark 23 oktober: GitHub-releases en E32-upgrades
+
+Mark geeft opdracht om de geteste wijzigingen netjes als GitHub-releases uit te
+brengen en machtigt E32-upgrades wanneer die nodig zijn voor de uitvoering.
+Die toestemming hoeft niet per normale testrelease of passende app-update opnieuw
+te worden gevraagd. HA en E32 krijgen afzonderlijk herkenbare versies, vaste tags,
+broncommit, releasenotities, integriteitsbewijs en downloadchecksums.
+
+De bestaande GitHub Actions blijven de publicatieroute. HA-only tags gebruiken
+`ha-v<integratieversie>` en bevatten geen firmware; E32-tags blijven gelijk aan
+`release.json` en behouden hun firmwarevoorwaarden. Bestaande releases/tags worden
+niet overschreven. Privébeheerbestanden en live HA-opslag worden niet gepubliceerd.
+Een gewone E32-upgrade gebruikt app-only OTA met configuratiebehoud, voor-/nacontrole
+en beschikbare terugval. De bestaande bron-, herstel- en fysieke acceptatie blijft
+gelden; de toestemming is geen aftekening van die proeven.
+
+## Aanvulling Mark: complete kamerbediening en doorlopende uitvoering
+
+De optionele **externe kamerdoelbron** (bijvoorbeeld een wandthermostaat of
+temperatuurknop, R02) en **raamcontact** (R21) blijven onderdeel van het product.
+Ze mogen bij het vernieuwen van de kamereditor niet stilzwijgend verdwijnen.
+Koppelen, wijzigen en verwijderen horen samen met sensor, kranen en weekplanner
+in hetzelfde kamerscherm, met uitleg over override/hervatting respectievelijk
+raampauze/vorst/uitval. Een externe doelbron is iets anders dan de losse
+temperatuurmeting, de buitensensor of een extra weekprogramma.
+
+Ondersteuning vraagt de hele keten: apparaatprofiel, bewaarde identiteit,
+echo-/conflictbehandeling, gevalideerd contract en E32-uitvoering. Alleen een
+selector tonen of een bestaand modelveld bewaren is geen geleverde functie.
+Verschillende TRV-modellen mogen samen in één installatie, met per model getoetste
+aansturing van externe meting, klepstand of doeltemperatuur (§6.1).
+
+De concrete actuele werkvolgorde staat uitsluitend in [WORKBOARD §6](WORKBOARD.nl.md#6-werkpakketten-en-eerstvolgende-uitvoering).
+De [nachtvolgorde](UITVOERING-NACHT-20261022.nl.md) verwijst voortaan daarnaar.
+De bestaande M2- en fysieke/releasevoorwaarden en F9/F10/P2-volgorde blijven gelden.
+
+## Keuze 22 oktober: één kamerprogramma
+
+Mark laat de alternatieve HA Schedule-helper weg. Het normale toevoegen,
+aanpassen en het grafische kamerscherm bieden uitsluitend het ingebouwde
+weekprogramma, met temperatuur per blok en de basistemperatuur erbuiten.
+Geen programmabronselectie of Schedule-entity onder Geavanceerd. Bestaande
+opgeslagen externe koppelingen worden behouden en expliciet als bestaand
+extern programma getoond; deze UI-keuze verwijdert geen HA-helper of historie.
+
+
+**Versie:** ontwerp 1.0, herijkt op 23 oktober 2026 met volledige software-/release-inventaris; alle oorspronkelijke eisen en acceptatie behouden.
 **Producteigenaar:** Mark Dielessen.
 **Actuele status en enige afvinklijst:** [WORKBOARD.nl.md](WORKBOARD.nl.md). Dit plan
 bevat ontwerp, eisen en acceptatievoorwaarden, geen voortgang.
@@ -11,6 +123,38 @@ via de afgebakende migratie/bronchecks in het werkbord, niet door dit planonderh
 **Historische ontwerpbronbasis:** fork `a5fc6b84ab62603bca7cc3786f405d497edd17f7`;
 upstream `67b76391f2f81d5d5acd5a8d4675067fddc74448`. Actuele bron-/installatieversies
 staan per bewijs in het werkbord. De geleverde PDF1.0 blijft historisch.
+
+### Configuratieroute — keuze Mark, 22 oktober; aansluitstatus bijgewerkt 24 oktober
+
+Op 22 oktober meldde Mark dat de E32 los van de ketel stond. Inmiddels is de
+keten aangesloten voor passieve ontvangst; die is in de latere installatie- en
+veldcontroles vastgelegd. Tado blijft de actieve regelaar; E32-zenden en fysieke
+uitgangen blijven geblokkeerd. Een actieve aansluit-/stopproef is niet afgetekend.
+We bouwen en richten
+meteen de **normale productconfiguratie** in: één OpenThermostat-installatie met
+centrale ketel-/circuitinstellingen en ruimtes via de gewone wizard.
+
+Er komt geen aparte schaduwinstallatie die Mark eerst moet configureren en later
+opnieuw naar een productieconfiguratie moet omzetten. Keuzes als legacy/shadow,
+adapter-ID, shadow-profiel, graphmodus en prepare/apply-proefstappen horen niet in
+het gewone gebruikerspad. Een nog niet aangesloten ketel krijgt eenvoudig een
+zichtbare verbindings-/toepassingsstatus in dezelfde installatie. Configureren mag
+doorgaan; een opgeslagen instelling is nog geen bevestigde uitvoering.
+
+De bestaande OpenThermostat-testentries en hun testgegevens mogen na een gerichte
+back-up worden heringericht, samengevoegd of door één schone normale inrichting
+worden vervangen. Behoud bruikbare kamer-/apparaatkoppelingen waar zinvol; een
+zware productiemigratie voor wegwerpbare testgegevens is geen voorwaarde.
+Dit betreft OpenThermostat-projectconfiguratie, niet de overige HA-installatie,
+apparaatintegraties, credentials of Recorderhistorie.
+
+Deze keuze vervangt het eerdere **gebruikerspad** met afzonderlijke shadowconfig.
+De bestaande shadowcontracten, uitvoerblokkades en tests worden technisch
+beoordeeld en gericht vervangen/hergebruikt; alleen labels omdopen of een
+enable-vlag aanzetten is geen werkende normale productroute. Interne replay- en
+benchtests mogen blijven bestaan. Het latere aansluiten op de ketel en fysieke
+ketelregeling blijven afzonderlijke commissioning; hun voorwaarden blokkeren
+geen bouw of inrichting van de normale GUI op de ontkoppelde E32.
 
 ### Gebruikersaanvullingen na de ontwerp-PDF, 19 oktober 23:24–23:31
 
@@ -30,6 +174,38 @@ Acceptatie van deze aanvullingen blijft open: GUI-selectie/herconfiguratie en HA
 We bouwen een **lokale, open-source zonethermostaat**, niet alleen een dashboard of een verzameling losse HA-automatiseringen. De bestaande OpenThermostat-fork wordt het centrale regelbrein op de E32 V2. De bestaande custom HA-integratie wordt de normale configuratie-, bedienings- en apparaatlaag. Bestaande Zigbee/WiFi/BLE-apparaten blijven via hun onderhouden HA-integratie werken.
 
 Het productdoel is: per kamer de gewenste temperatuur kiezen, de juiste radiatoren/vloerverwarming bedienen, alleen de benodigde ketelwarmte aanvragen, op tijd comfortabel zijn en kunnen terugzien **wat gevraagd is, wat werkelijk gemeten is en waarom de regeling dat deed**. Geen verplicht cloudabonnement; internetweer is een verwisselbare bron, geen noodzakelijke regelaar.
+
+### Productkwaliteit voor eindgebruikers — aanvulling Mark, 22 oktober
+
+Het eindproduct moet een **zeer gebruiksvriendelijke moderne slimme thermostaat**
+worden. Eenvoudige inrichting, duidelijke bediening, een aantrekkelijke grafische
+weergave en goede snelheid zijn acceptatievoorwaarden. De reeds besproken slimme
+functies blijven vastgelegd in R01–R31: onder meer meerdere kamers, weekprogramma's,
+tijdelijke doelen, comfort/eco/afwezigheid/vakantie/boost, aanwezigheid, raam-open,
+zelfleren, op tijd warm, uitlopen, weersafhankelijk regelen en verklaarbare historie.
+Hun bestaande prioriteiten en bewijsvoorwaarden blijven gelden; deze aanvulling
+maakt geen nog onbewezen functie tot een geleverde functie.
+
+De normale gebruiker richt kamers en programma's in **Home Assistant** in.
+Technische groepsconstructies, interne modi, contractnamen en entity-ID's zijn
+geen verplichte stappen in de gewone gebruikersroute. Geavanceerde instellingen
+blijven bereikbaar met uitleg. De E32 krijgt een vernieuwde, snelle web-GUI met
+een grafisch startdashboard voor ketelgegevens, ketelaansturing en de warmtevraag
+per kamer; dit gebruikt dezelfde regeling en maakt geen tweede configuratie-eigenaar.
+De weekplanner, het dashboard en de opschoning van de E32 zijn uitgewerkt in
+[§9](#9-buitenwaarde-schema-en-tijd), [§11](#11-dashboard-grafieken-en-gegevensintegriteit)
+en [§13](#13-softwarestructuur-en-contract).
+
+**Aanscherping Mark, 22 oktober — één kamerscherm:** alleen het toevoegen van
+een nieuwe ruimte gebruikt de wizard. Een bestaande ruimte aanpassen opent
+direct de instellingen, zonder opnieuw de wizard of een controlescherm te
+doorlopen. Naam, verwarmingstype, sensor, kranen, basistemperatuur en grafische
+weekplanner horen in één UI met één gezamenlijke opslagactie. Geavanceerd blijft
+standaard gesloten en instellingen krijgen uitleg over hun werking en impact.
+Tijdblokken kunnen rechtstreeks in het raster worden getekend of aangeklikt;
+tijden en temperatuur zijn inline te wijzigen. Knoppen en invoervelden bieden
+dezelfde bediening voor toetsenbord en mobiel. Geen verplichte losse blokdialogen
+of een andere configuratieroute om alleen een temperatuur te veranderen.
 
 ### De gekozen scheiding
 
@@ -148,13 +324,13 @@ Repositorymetadata op 19 oktober: bovenstaande repositories zijn niet gearchivee
 | R09 | Weersafhankelijke aanvoer, P1 | Waterstooklijn + begrensde kamercorrectie per afgiftegroep | F4/F9 B/L: koude buitenwaarde geeft passend ander waterdoel; gemeten werking volgt grenzen |
 | R10 | Buitenwaarde van eigen entiteit/device, P1 | Zelfgekozen primaire HA-sensor, optionele EMS-bron | F2/F3 B: °C/°F, bronwisseling, afwijking en uitval zichtbaar |
 | R11 | Buitenwaarde via internet, P1 | Bestaande gratis HA-weerbron; zelfde ingang als lokale meting | F3/F9 B: internet uit zonder vastlopen; bronleeftijd en terugval zichtbaar |
-| R12 | Zelflerende kamerregeling, P1 | Conservatief model/regelparameters per zone, bounded adaptation | F9 B/L: leren aan/uit, reset, voldoende datadekking, geen verslechtering van vastgelegde comfortgrens |
+| R12 | Zelflerende kamerregeling, P1 | Conservatief model/regelparameters per zone, begrensd leren en blijvend opslaan/herstellen na herstart; tijdelijke I-correctie veilig resetbaar | F9 B/L: leren aan/uit, reset, versie-/integriteitscontrole en rollback van bewaarde parameters per ruimte, voldoende datadekking, geen verslechtering van vastgelegde comfortgrens |
 | R13 | Geleerd op tijd opwarmen, P1 | Optimum-start apart van PI; opwarmtijdmodel en zichtbaar startadvies | F9 B/L: op een ingesteld tijdstip warm, fout en overshoot gemeten over meerdere ochtenden |
 | R14 | Geleerd uitlopen/stooklijn verbeteren, P1 | Na bewezen startmodel: coast/optimum-stop en langzame curveaanpassing | F9 B/L: geen vroegtijdig comfortverlies; afzonderlijk uitschakelbaar |
 | R15 | Alle relevante keteldata zoals nu EMS-ESP, P0 | Eigen actuele paritymanifest voor Marks ketel; elk veld mapped/unsupported/unreliable | F1/F5/F6: 100% geïnventariseerde huidige velden geclassificeerd; geen onverklaard verlies van vereiste betrouwbare velden |
 | R16 | Branderbedrijf en modulatiegrafiek, P0 voor betrouwbare toesteldata | Gevalideerde gemelde modulatie/CV/DHW/code; raw vlamstatus alleen indien betrouwbaar, afgeleide branderindicatie expliciet `inferred`; vraag apart | F5/F7 H: echte CV-/tapwaterbeurt, datagaten en herkomst zichtbaar. Onafhankelijke echte vlamdetectie alleen claimen met aparte betrouwbare meetbron; afgeleide starts/tijden eveneens gelabeld |
 | R17 | Lange termijn en rapportage, P1 | Recorder, correcte statistics/counters, CSV en standaardschermen | F5/F10: dag/week/maand, herstart/reset/gaten zonder dubbeltelling; bewaartermijn duidelijk |
-| R18 | Weekprogramma's en tijdelijke override, P0 | Native HA Schedule als editor waar passend, firmware geaccepteerd schema | F2/F3 B: aangrenzende blokken, middernacht, handmatig einde en hervatten; geen dubbele scheduler |
+| R18 | Weekprogramma's en tijdelijke override, P0 | Grafische weekweergave met zichtbare temperatuur per blok; lokale HA-weekeditor standaard, Schedule-helper alternatief; firmware geaccepteerd schema | F2/F3 B: bloktemperatuur vinden/wijzigen, aangrenzende blokken, middernacht, handmatig einde en hervatten; geen dubbele scheduler; §9 |
 | R19 | Comfort/eco/away/vakantie/boost, P1 | Expliciete prioriteiten, afloop en zone-/huisbeleid | F10 B: handmatige keuze blijft volgens gekozen beleid; einde herstelt juiste schema |
 | R20 | Aanwezigheid/geofencing, P2 | Bestaande HA-person/device-tracker, opt-in, geen GPS in firmware | F10 B/H: afwezigheid en terugkeer, trackingverlies is onbekend en geen willekeurige leeg-huisbeslissing |
 | R21 | Raam-open, P1 | Contactsensor primair; optionele trenddetectie met timeout | F10 B/H: alleen betrokken zone pauzeert, sluiting hervat gecontroleerd; geen fout bij sensoruitval |
@@ -165,7 +341,7 @@ Repositorymetadata op 19 oktober: bovenstaande repositories zijn niet gearchivee
 | R26 | Verbruik, kosten en klimaatcomfort, P2 | Echte gas-/warmtemeter waar beschikbaar; expliciete schattingen; vocht optioneel | F5/F10: gemeten/schatting onderscheiden, eenheden/reset/kalibratie getest, geen besparingsclaim zonder vergelijking |
 | R27 | Meldingen/onderhoud/batterij, P1 | HA Repairs/diagnostiek, bestaande notify/blueprint, geen auto-ketelreset | F3/F10 B: defect/laag batterijniveau/geen respons leidt tot herkenbare, begrensde melding |
 | R28 | Open, lokaal, veilig en herstelbaar, P0 | Bestaande repo + integratie, authenticatie/ACL, versiebeheer, backups/rollback | F0/F2/F6: geen internet nodig voor lokale kern; reboot/restore en ongeautoriseerde commands getoetst |
-| R29 | Modern eenvoudig scherm, P1 | HA-zonekaarten, keteltrend, leer-/storingspagina en basiswebfallback | F3/F5/F10: mobiel bruikbaar, geen verplichte YAML per zone, eigen dashboards blijven intact |
+| R29 | Modern eenvoudig scherm, P1 | Eenvoudige HA-inrichting/bediening, grafische weekplanner en vernieuwd E32-startdashboard met keteldata, opdrachten en kamervraag | F3/F5/F10: begrijpelijke taken op mobiel/desktop, temperatuur per blok, meetbare snelheid en correcte databetekenis; eigen dashboards intact; §11/§13 |
 | R30 | Schaalbare en onderhoudbare software, P0 | Eerste release maximaal 8 gevalideerde zones, capabilitylimits, begrensd geheugen | F0/F2/F7: maximumconfig + piekbelasting + 72u soak; extra zones pas na nieuwe resourceproef |
 | R31 | Optionele tapwaterbediening, P2 | Alleen ondersteunde setpoint-/tijd-/comfortfuncties van werkelijk ketel-/boilertype; eigen profiel en HA-bediening | F10: afzonderlijke read/write-/DHWprioriteitsproef; geen generieke combi-/voorraadboilergelijkstelling of gewijzigde legionellabeveiliging |
 
@@ -174,11 +350,37 @@ Tado-/Honeywell-achtige functies worden dus **expliciet** als kern of optie opge
 ## 5. Domeinmodel en configuratie-eigenaarschap
 
 De concrete gebruikersroute, algemene/circuit-/kamerinstellingen en afbouw van
-HA-managed E32-editors staan in [WORKBOARD§2–4](WORKBOARD.nl.md#2-waar-configureren-en-bedienen-we-straks).
+HA-managed E32-editors staan in [WORKBOARD§2–4](WORKBOARD.nl.md#2-af-geleverd-en-dus-ook-in-de-volgende-release-behouden).
 Weersinstellingen horen voor Marks gedeelde circuit centraal, niet per kamer.
 Een aparte mengkring kan eigen grenzen/curve vragen. Vloer-/binaire klep- en
 proportionele klepprofielen worden niet met een TRV of mengklep vereenzelvigd.
 Deze opties zijn productwerk, geen reeds geleverde kamereditorfunctie.
+
+### Eén centrale installatie en één ruimtewizard — aanvulling 22 oktober
+
+Mark beoordeelt de huidige integratie als rommelig: oude E32-configuratie en
+meerdere technische toevoeg-/configuratieroutes zijn voor de eindgebruiker niet
+duidelijk. De gewenste inrichting is daarom één **Installatie instellen** voor
+ketel en gedeelde instellingen, met daaronder **Ruimte toevoegen** en per ruimte
+aanpassen, programma en verwijderen. De gewone gebruiker voegt geen losse
+verwarmingsconfiguratie of technische groep toe.
+
+De ruimtewizard begeleidt naam/HA-ruimte → radiator, vloer of combinatie → passende
+temperatuursensoren en kranen/kleppen → temperatuur/programma → controleren en
+één keer opslaan. Alleen relevante beschikbare profielen worden aangeboden;
+vloer-/mengcircuitgrenzen worden niet aan een radiatorprofiel gelijkgesteld.
+Geavanceerde instellingen staan standaard dicht en buiten het gewone toevoegmenu.
+**Bij iedere instelling staat wat zij doet en wat veranderen betekent**, ook onder
+Geavanceerd. Ongeldige of conflicterende keuzes krijgen begrijpelijke uitleg;
+annuleren bewaart niets en opslaan activeert niet ongemerkt de regeling.
+
+Oude E32-kamers krijgen een herkenbare bron en een begeleide overname-/opruimroute.
+Een HA-entiteit wissen mag niet als bronverwijdering worden gepresenteerd;
+rediscovery, actuator-eigenaarschap, veilige beëindiging van actieve bijdragen en
+behoud van historie horen bij de migratie-/verwijderacceptatie. Geen tweede
+configuratie-eigenaar. Uitwerking, uitleg per instelling en toetsgevallen:
+[HA-inrichting](HA-INRICHTING-UX.nl.md). Het bijbehorende klikbare prototype is
+uitsluitend ontwerpbewijs, geen nieuwe product- of fysieke acceptatie.
 
 
 ### 5.1 Zone, apparaat en afgiftegroep zijn verschillende dingen
@@ -330,9 +532,39 @@ Huidige `HeatingController::getOutdoorTemperature()` retourneert bij ontbreken v
 
 Gekozen: per kamer **precies één** programmabron.
 
-- **Standaard:** de native lokale weekeditor in de kameropties van de integratie ([weekeditor](HA-WEEK-EDITOR.nl.md)), zonder helper of YAML.
+- **Standaard:** de grafische weekplanner in hetzelfde kamerscherm als de overige instellingen, met zichtbare tijden/temperatuur, direct tekenen/aanklikken en inline bewerken. Eén concept en één gezamenlijke opslagactie. De bestaande native blokeditor blijft interne compatibiliteits-/regressieroute over dezelfde gegevens ([weekeditor](HA-WEEK-EDITOR.nl.md)); geen verplichte stap bij gewone kamerwijzigingen, helper of YAML.
 - **Alternatief:** een bestaande HA Schedule-helper met `temperature`-data per blok, gelezen via de publieke `get_schedule` (zelfde [weekeditor-document](HA-WEEK-EDITOR.nl.md#expliciet-één-bron)). Aangrenzende blokken kunnen `on` blijven maar andere data krijgen; ook attribuutveranderingen tellen.
 - Onbedekte tijd gebruikt het expliciete basisdoel. Overnacht is twee blokken; middernacht is de daggrens.
+
+**Gebruikservaring en acceptatie van de weekplanner (R18/R29):**
+
+- Elk zichtbaar blok toont begin/einde én de ingestelde temperatuur in °C.
+  De gebruiker kan een blok direct openen en de temperatuur aanpassen in een
+  duidelijk gelabeld veld. Temperatuur mag niet alleen uit een kleur blijken.
+- Dagen en blokken toevoegen, aanpassen, verwijderen en naar andere dagen kopiëren
+  zijn herkenbare acties. Een eventuele sleepbediening heeft ook een gewone
+  knop-/formulierroute voor mobiel en toetsenbord. Buiten de blokken staat het
+  basisdoel zichtbaar; de betekenis van gaten en middernacht wordt uitgelegd.
+- Wijzigingen zijn eerst een concept met een duidelijk weekoverzicht en expliciet
+  opslaan/annuleren. Overlap, ongeldige tijd of een temperatuur buiten de kamergrens
+  krijgt leesbare uitleg bij het betreffende blok, zonder geldige invoer te verliezen.
+- De planner maakt onderscheid tussen gewenst **op tijd warm**, het berekende
+  voorverwarmmoment en een tijdelijke override met eindtijd/hervatten. Een nog niet
+  beschikbaar leermodel krijgt een eerlijke status; geen suggestie van bewezen
+  voorverwarmen wanneer alleen het schema is ingesteld.
+- Acceptatie: een gebruiker kan zonder technische documentatie een week maken,
+  de temperatuur van één bestaand blok wijzigen, een dag kopiëren en na heropenen
+  exact zijn opgeslagen instellingen herkennen, op desktop én mobiel. Tijdzone,
+  zomertijd, gaten en aangrenzende blokken houden de bestaande contractproeven.
+
+De huidige native blokeditor heeft al een veld `temperature` met °C bij toevoegen
+en bewerken ([bron](../../ha/config/custom_components/open_thermostat/v1_config_flow.py)).
+De grafische uitbreiding gebruikt de standaard HA-customcard- en geauthenticeerde
+WebSocket-route binnen dezelfde integratie. Opslag en validatie gebruiken dezelfde
+kamersubentry en native configuratietransactie. Geen aparte scheduler of
+configuratieopslag. De werkelijke bron-/installatie- en gebruikersacceptatie staat
+in de testkandidaat; een geteste editor sluit schema-uitvoering en fysieke
+acceptatie niet automatisch af.
 
 Voor geleerd voorverwarmen heeft de firmware **toekomstige** overgangen nodig. De integratie compileert het weekschema daarom naar een begrensde UTC-horizon in het versiecontract (nu 15 dagen, maximaal 128 overgangen per schema). **Geen private `.storage`-bestanden lezen, geen tweede schedulerdaemon.** Een volledige week met meer overgangen en een veilige horizonrefresh blijven open gates in het werkbord.
 
@@ -382,6 +614,50 @@ Als een betrouwbaar echt vlamveld op deze adapter ontbreekt, kan een aparte gekw
 5. **Diagnostiek:** bronleeftijden, bindingsproblemen, actieve redencodes, configuratie-/protocolversies, laatste geldige EMS-data, modelvertrouwen en export.
 
 Native HA-kaarten/History/Statistics zijn de basis. Hoogstens later een onderhouden optionele grafiekkaart als native weergave aantoonbaar onvoldoende is; geen nieuwe frontend of database als startvoorwaarde. Het bestaande beheerde OpenThermostat-dashboard blijft opt-in. Bewerkingen aan andere dashboards worden niet overschreven; eigen layout via kopie/user-managed dashboard.
+
+### Vernieuwd grafisch E32-startdashboard (R15/R16/R25/R29)
+
+De beginpagina van de E32-web-GUI wordt een samenhangend grafisch overzicht.
+De belangrijkste informatie is direct zichtbaar; alle overige betrouwbare en
+relevante ketelvelden uit het paritymanifest zijn gegroepeerd bereikbaar in details.
+Dezelfde betekenissen en herkenbare namen gelden in het HA-dashboard.
+
+| Onderdeel | Zichtbaar resultaat |
+| --- | --- |
+| Installatieoverzicht | Actuele toestand in gewone taal: regeling uit, geen vraag, verwarmen, tapwater, naloop, storing of geblokkeerd, met reden en actualiteit. Een interne vraag is geen gemeten ketelbedrijf. |
+| Ketelgegevens | Gevraagde en gemeten aanvoer, gemeten retour, gemelde modulatie, CV/DHW/pompstatus en overige beschikbare betrouwbare velden, met eenheden. Onbekend, oud en niet ondersteund zijn herkenbaar. |
+| Aansturing naar de ketel | Tijdlijn van relevante opdrachten met tijd, gewenst resultaat en reden. Berekening, verzending, protocolbevestiging waar beschikbaar en werkelijk teruggelezen effect blijven afzonderlijk herkenbaar. Een verzonden opdracht bewijst geen uitvoering. |
+| Kamers en hun bijdrage | Per kamer gemeten/doeltemperatuur, programma/override, warmtevraag, actuatorbeschikbaarheid en reden van vraag of blokkade; doorklikken naar details. |
+| Samenhang | Grafisch de route kamers → gezamenlijke vraag → ketel, plus korte trends van kamerdoelen en gevraagde/gemeten watertemperatuur. De bepalende kamer of beperking is herkenbaar. |
+
+Kamervraag toont de werkelijk beschikbare regelaarsgrootheid met eenheid en
+uitleg. Een berekend vraagpercentage is geen gemeten klepopening, vermogen of
+verbruik. De gezamenlijke ketelvraag is niet vanzelf de optelsom van percentages;
+toon de werkelijke supervisorbeslissing, begrenzing en eventuele remming.
+
+HA blijft de plek voor gewone wijzigingen aan kamers, doelen en programma's.
+De E32 toont in HA-managed bedrijf hun actuele geaccepteerde toestand en verwijst
+voor normale bediening naar HA. Lokale netwerk-/toegangsinstellingen, diagnose,
+update en recovery blijven passend bereikbaar. Het opdrachtsoverzicht vraagt
+geen extra bediening om losse ruwe EMS-commando's naar de ketel te sturen.
+
+Langere historie blijft bij HA Recorder. Korte E32-trends en opdrachtlijsten zijn
+begrensd in geheugen en looptijd; geen eigen historische database op de E32.
+
+### Begrijpelijkheid en visuele acceptatie
+
+- Een nieuwe gebruiker kan een kamer kiezen, sensor/TRV koppelen, doel aanpassen,
+  een weekblok bewerken en zien waarom er wel of niet wordt verwarmd, zonder YAML
+  of uitleg over interne groepen. Technische details zijn apart uitklapbaar.
+- Duidelijke Nederlandse teksten, consistente eenheden, leesbaar contrast,
+  bruikbare aanraakdoelen en toetsenbordbediening. Kleur ondersteunt tekst/status;
+  een kleur alleen verklaart geen temperatuur, fout of actieve regeling.
+- Concept, opgeslagen configuratie en effectief toegepaste toestand verschillen
+  zichtbaar. Laden, lege installatie, bronuitval, oude data en verbindingsherstel
+  krijgen een bruikbare weergave. Een foutmelding noemt een begrijpelijke vervolgstap.
+- Toets met echte browserbediening op desktop en mobiel, inclusief opslaan,
+  annuleren, heropenen en uitval. Beoordeel de getoonde gegevens ook tegen de
+  onderliggende toestand; een mooie screenshot alleen is geen productacceptatie.
 
 ### Detail en lange termijn zijn niet hetzelfde
 
@@ -440,6 +716,39 @@ Geen big-bang-herbouw. Volgens route B ([architectuurbesluit](ARCHITECTURE-DECIS
 | HA | Bestaande custom component | Centrale runtime/coördinatie, bindingsflow, native listeners/actions, registrymigratie, diagnostics/Repairs |
 | Historie | `EmsMetrics`, HA `heating.py`/sensor/dashboard | Correcte counters/quality, vraag versus observatie, native Recorder en zichtbare schattingen |
 
+### E32-functies opschonen en de GUI versnellen — aanvulling 22 oktober
+
+Het herschrijfmandaat omvat ook de huidige E32-functionaliteit, webpagina's en
+onderliggende routes. **Ongebruikte en achterhaalde functies verdwijnen uit het
+beoogde E32-product**; alleen menu's verbergen is niet het einddoel. Inventariseer
+per functie of zij nodig is voor de afgesproken R01–R31, wordt vervangen of vervalt.
+Verwijder na gecontroleerde migratie ook de bijbehorende ongebruikte handlers,
+assets, polling en afhankelijkheden uit de betreffende build. Dubbele HA-managed
+kamer-/programma-/stooklijneditors krijgen geen tweede leven als configuratiepad.
+Code voor een ander daadwerkelijk ondersteund profiel is expliciet afgebakend;
+toevallig historisch aanwezige code is geen reden voor behoud.
+
+De afgesproken gebruikersfuncties, regel-/veiligheidskern, benodigde EMS Classic/
+EMS+- en metingsondersteuning, netwerk/toegang, OTA/recovery en licentienotices
+blijven behouden of krijgen een getoetste vervanging. Bewaarde configuratie en
+identiteiten krijgen een migratie en rollback. De huidige bron verbergt al
+verschillende dubbele editors, maar bevat de oude assets/paden nog; dat is een
+tussenstand ([bronstatus GUI](HA-MANAGED-GUI.md)), geen afgeronde opschoning.
+
+Snelheid en vormgeving worden samen verbeterd. Eerst een reproduceerbare
+voor-/nameting op dezelfde E32/buildconfiguratie en hetzelfde netwerk: eerste
+bruikbare pagina, navigatie/interactie, ouderdom van zichtbare status, requests en
+overgedragen bytes. Leg ook piekgeheugen, queuebelasting, controller-/UART-timing
+en resets vast. Kies concrete prestatiebudgetten op basis van die fysieke
+baseline; hostbrowsermetingen zijn geen E32-snelheidsbewijs.
+
+Het startscherm laadt alleen noodzakelijke onderdelen; zwaardere grafieken en
+details volgen op verzoek. Live-updates en lijsten blijven begrensd en herstelbaar
+bij verbindingsverlies. Een tragere telefoon of druk dashboard mag de regeling,
+UART, stopprioriteit of veiligheidsverwerking niet vertragen. Acceptatie vereist
+zichtbare verbetering én behoud van regel-/uitvalgedrag onder de bestaande
+maximale configuratie en piekbelasting; een kortere laadtijd alleen volstaat niet.
+
 De topic-/berichtregels, freshness en bevestigingsniveaus zijn uitgewerkt in [CONTRACT.nl.md](CONTRACT.nl.md). Dat contract wordt vóór implementatie als testspecificatie bevroren, niet pas na los schrijven van beide kanten.
 
 HA-side gebruikt een push-runtime, eigen HA-unloadcallbacks/listeners en ondersteunde actions. Geen sidecar, nieuwe webservice, permanent script, extra scheduler of eigen database. Een `DataUpdateCoordinator` alleen waar zijn publieke API echt helpt, niet als extra poller boven native MQTT-push.
@@ -454,7 +763,7 @@ Nieuwe integratie-/firmwareversies onderhandelen capabilities. Ondersteunde comb
 
 **Dit zijn de volledige acceptatiespecificaties, niet een tweede statuslijst.**
 Actuele status, bewezen deelresultaten, eigenaren en volgende bewijsacties voor
-alle 11 fasen F0–F10 staan in [WORKBOARD§5](WORKBOARD.nl.md#5-de-11-productfasen--bijgewerkt-en-afgevinkt-waar-bewezen).
+alle 11 fasen F0–F10 staan in [WORKBOARD§5](WORKBOARD.nl.md#5-de-11-productfasen).
 Onderstaande punten blijven als vereisten behouden; daarom geen losse afvinkvakjes
 hier die na uitvoering opnieuw achterlopen. Softwarevoorbereiding mag onafhankelijk
 van fysieke commissioning doorgaan; een planupdate is geen ketel-/flashvrijgave.
@@ -464,6 +773,33 @@ van fysieke commissioning doorgaan; een planupdate is geen ketel-/flashvrijgave.
 - **Haalbaarheidsvoorproef ketelstop (F6-voorproef, zonder TX of ketelwrites):** stel uit documentatie en, waar veilig, passief vast wat de HRC22H met de huidige adapterketen doet als de warmtevraag of de communicatie wegvalt (timeout of doorstoken), en welke fysieke terugval bestaat (de Tado terug, een relais of anders). Is de uitkomst negatief of blijft ze onbekend, dan wordt het architectuur-/hardwarebesluit uit §12 nu teruggelegd, niet pas na F9.
 - **WIP-limiet:** geen nieuwe F9-, F10- of P2-bronstages tot M2 (§1) bewezen is; lopend werk mag worden afgerond. Bronwerk voor M1/M2, de F4-supervisor en de F6-security gaat door.
 - Deze volgorde sluit aan op de uitvoeringsvolgorde in [WORKBOARD §6](WORKBOARD.nl.md#6-werkpakketten-en-eerstvolgende-uitvoering). Er verandert geen acceptatiecriterium.
+
+De product-/GUI-aanvulling van 22 oktober scherpt R18/R29 en de bestaande
+dashboard-/migratieacceptatie aan. Zij heft de WIP-limiet niet op. Ontwerp en
+afgebakende F3/F5-verbeteringen worden in de bestaande volgorde ingepast;
+nieuwe F9/F10/P2-implementatie en fysieke vrijgave blijven aan hun poorten gebonden.
+Na een afgeronde fase volgen resultaat, open punten en de volgende concrete
+stap. Volgens Marks nieuwste opdracht voeren we bekende geautoriseerde stappen
+door zonder op een antwoord te wachten; alleen echt ontbrekende informatie
+wordt uitgevraagd en verhindert geen onafhankelijk uitvoerbaar werk.
+
+**Blijvend bouwbereik van de normale HA-productroute (ontwerp 22 oktober):**
+de samenhangende centrale installatie-/ruimte-inrichting in de
+bestaande HA-integratie realiseren, volgens [de gebruikersroute](HA-INRICHTING-UX.nl.md).
+Dit is direct de normale productroute op de volgens Mark ontkoppelde E32; geen
+tweede shadowinrichting of later opnieuw in te vullen productieconfiguratie.
+Eén centrale route, één ruimtewizard, uitleg/impact bij alle velden en Geavanceerd
+apart; behoud van bestaande kamer-/centrale gegevens en gecontroleerd beheer van
+oude bronnen, of na gerichte back-up een schone projectconfiguratie waar oude
+testgegevens niet behouden hoeven te blijven. Eerst de bestaande radiatorroute
+volledig afronden; vloer/combinatie
+alleen als uitvoerbare keuze aanbieden wanneer het passende profiel beschikbaar is.
+Acceptatie omvat echte native HA-desktop-/mobielbediening, migratie, annuleren,
+foutafhandeling en voorkomen van dubbele/terugkerende configuratie. Daarna de
+nieuwe HA-kandidaat gecontroleerd installeren en Badkamer configureren; M2 zonder
+ketel en F6-/releasevoorwaarden blijven afzonderlijke volgende poorten. De grotere
+E32-dashboard-/opschoonopdracht blijft onderdeel van §11/§13 en wordt als eigen
+afgebakende fase ingepast. Deze volgorde wijzigt geen fysieke vrijgave of WIP-limiet.
 
 ### F0 — eigen forkbasis en installatieprofiel
 
@@ -659,6 +995,8 @@ WP02 en contractanalyse kunnen conceptueel parallel, maar hun afhankelijkheden w
 
 ## 17. Nog vast te stellen — geen reden om het planwerk te stoppen
 
+De te bundelen gebruikersvragen staan centraal in [Vragen voor later](VS-CODE-OVERDRACHT.nl.md#vragen-voor-later). Reeds beantwoorde feiten niet opnieuw uitvragen; actuele HA-gegevens eerst controleren.
+
 | Open feit | Eigenaar / nodig vóór | Invloed op ontwerp |
 | --- | --- | --- |
 | Echte kamers, radiatoren/vermogen, aanwezige slimme kranen/sensoren/bedieningen | Mark + HA-specialist, F0/F3 | Eerste profielen en fasering; geen afwezigheid uit incomplete HA-lijst afleiden |
@@ -705,3 +1043,18 @@ Startadvies: M2 uit §1 met **één eenvoudig bereikbare radiatorzone met losse 
 - Projectregister en dagnotitie behouden eerdere fysieke open punten; dit plan is de leidende bron voor **nieuwe productontwikkeling**, niet een overschrijving van historische testresultaten.
 
 **Definitie van klaar:** niet dat de firmware compileert, een kaart verschijnt of een commando geaccepteerd is. Klaar voor een fase betekent dat haar expliciete software-, fysieke en/of langere-termijnproeven met reproduceerbaar bewijs geslaagd zijn. Anders blijft die fase `in_progress` of `blocked`.
+
+
+## Aanvulling Mark 24 oktober — systeemlogging en externe bewaring
+
+De grotere bètabatch bevat een web-logweergave en instelbare syslogserver voor
+langere bewaring, met aparte logniveaus, filters/export en begrensde RAM-/UDP-
+buffers. De bestaande netwerk-, MQTT-, NTP-/tijdzone- en update-instellingen
+blijven behouden. Specificatie en bewaarbeperkingen: [LOGGING.nl.md](LOGGING.nl.md).
+Deze diagnosefunctie kwalificeert geen fysieke meet-/kraan-/ketelketen.
+
+
+Dashboardaanvulling 2026-10-24: incrementele E32-dashboardupdates, behoud van open
+onderdelen/focus/scroll en foutbestendige, niet-overlappende statuspolls zijn in de
+bron voorbereid en met de echte webassets in Chromium getest. Opgenomen onder I05;
+installatie gaat mee met de grotere bètabatch. Actuele checks: WORKBOARD.nl.md.

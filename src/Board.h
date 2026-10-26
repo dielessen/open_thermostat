@@ -12,9 +12,12 @@ constexpr int phyMdio = 18;
 // No runtime or build-flag opt-in: enabling TX requires a reviewed source change
 // after the electrical/timing validation in docs/BBQKEES_E32V2.md.
 constexpr bool emsTransmitAllowed = false;
+// Separate source-reviewed manual route; never grants legacy TX permission.
+constexpr bool emsManualTestTransmitAllowed = false;
 constexpr bool auxiliaryGpioAllowed = false;
 #else
 constexpr bool emsTransmitAllowed = true;
+constexpr bool emsManualTestTransmitAllowed = false;
 constexpr bool auxiliaryGpioAllowed = true;
 #endif
 }

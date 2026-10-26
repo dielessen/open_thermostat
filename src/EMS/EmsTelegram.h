@@ -1,11 +1,12 @@
 #pragma once
+#include <stdint.h>
 #include <logger/LoggerInterface.h>
 
 #include <array>
 #include <optional>
 #include <type_traits>
 #include <vector>
-#include <stdint.h>
+#include <utility>
 
 // quite good ems reference
 // https://raw.githubusercontent.com/norberts1/hometop_HT3/master/HT3/docu/HT_EMS_Bus_messages.pdf
@@ -24,8 +25,9 @@ public:
 	static constexpr uint8_t maxEmsDataLength = 27; // EMS1.0
 
 	EmsTelegram(operation_t operation, uint8_t source, uint8_t destination, uint8_t offset, uint16_t typeId, std::vector<uint8_t> data) :
-		EmsTelegram(operation, source, destination, offset, typeId, data.data(), data.size()) {
-	}
+        operation_(operation), source_(source), destination_(destination), offset_(offset),
+        typeId_(typeId), data_(std::move(data)) {
+    }
 
 	EmsTelegram(operation_t operation, uint8_t source, uint8_t destination, uint8_t offset, uint16_t typeId, uint8_t *data, uint8_t dataLength) :
 		operation_(operation),
@@ -58,6 +60,8 @@ public:
 	static uint16_t getTelegramTypeFromRaw(uint8_t *data, uint8_t length);
 	static EmsTelegram getFromRawData(ib::logger::LoggerInterface &log, ib::logger::LoggerInterface::LogFeatureType verboseFeature, uint8_t *data, uint8_t length); // decodes full raw telegram, data without tailing BRK \0 THROWS
 	static EmsTelegram fromRawData(const uint8_t *data, size_t length); // includes CRC, excludes BREAK
+	// Shared wire checksum for bounded encoders; conveys no transmit authority.
+	static uint8_t calculateCRC(const uint8_t *data, uint8_t length);
 
 	std::vector<uint8_t> encodeToRawDataWithCRC() const;
 
@@ -89,20 +93,36 @@ protected:
 		return getValueAbs<T, bitPos>(dataStart - offset);
 	}
 
-	template<typename T, uint8_t bitPos = 0>
-	inline std::optional<T> getValueAbs(uint8_t dataStart) const {
-    	if constexpr (std::is_same_v<T, int16_t> || std::is_same_v<T, uint16_t>) {
-			return static_cast<T>((static_cast<uint16_t>(data_[dataStart]) << 8) | data_[dataStart + 1]);
-		} else if constexpr (std::is_same_v<T, uint8_t> || std::is_same_v<T, int8_t>) {
-			return static_cast<T>(data_[dataStart]);
-		} else if constexpr (std::is_same_v<T, bool>) {
-			return static_cast<T>(data_[dataStart] & (1 << bitPos));
-		} else if constexpr (std::is_same_v<T, int32_t>) {
-			return static_cast<int32_t>(data_[dataStart] << 16) | static_cast<int32_t>(data_[dataStart + 1] << 8) | data_[dataStart + 2]  | static_cast<int32_t>(static_cast<uint8_t>(data_[dataStart] & 0x80 ? 0xff:00) << 24);
-		} else if constexpr (std::is_same_v<T, uint32_t>) {
-			return static_cast<int32_t>(data_[dataStart] << 16) | static_cast<int32_t>(data_[dataStart + 1] << 8) | data_[dataStart + 2];
-		}
-	}
+    template<typename T, uint8_t bitPos = 0>
+    inline std::optional<T> getValueAbs(uint8_t dataStart) const {
+        static_assert(std::is_same_v<T,bool> || std::is_same_v<T,uint8_t> || std::is_same_v<T,int8_t>
+            || std::is_same_v<T,uint16_t> || std::is_same_v<T,int16_t>
+            || std::is_same_v<T,uint32_t> || std::is_same_v<T,int32_t>, "Unsupported EMS wire value");
+        static_assert(!std::is_same_v<T,bool> || bitPos<8, "EMS bit index outside byte");
+        constexpr size_t width=(std::is_same_v<T,int32_t>||std::is_same_v<T,uint32_t>)?3:sizeof(T);
+        // Absolute payload access is used by derived processors too. Never rely
+        // solely on a caller's protocol-offset check before touching the vector.
+        if(size_t(dataStart)>data_.size() || width>data_.size()-size_t(dataStart))return {};
+        if constexpr (std::is_same_v<T,int16_t> || std::is_same_v<T,uint16_t>) {
+            const uint16_t value=(uint16_t(data_[dataStart])<<8)|data_[dataStart+1];
+            if constexpr(std::is_same_v<T,int16_t>)
+                return static_cast<int16_t>(value<0x8000?int32_t(value):int32_t(value)-0x10000);
+            else return value;
+        } else if constexpr(std::is_same_v<T,uint8_t>) {
+            return data_[dataStart];
+        } else if constexpr(std::is_same_v<T,int8_t>) {
+            const unsigned value=data_[dataStart];
+            return static_cast<int8_t>(value<128?int(value):int(value)-256);
+        } else if constexpr(std::is_same_v<T,bool>) {
+            return (data_[dataStart]&(uint8_t{1}<<bitPos))!=0;
+        } else {
+            const uint32_t value=(uint32_t(data_[dataStart])<<16)
+                |(uint32_t(data_[dataStart+1])<<8)|uint32_t(data_[dataStart+2]);
+            if constexpr(std::is_same_v<T,int32_t>)
+                return value<0x800000?int32_t(value):int32_t(value)-0x1000000;
+            else return value;
+        }
+    }
 
 private:
 	// CRC lookup table with poly 12 for faster checking - from EMS-ESP32
@@ -119,8 +139,6 @@ private:
 								0x89, 0x8B, 0x8D, 0x8F, 0x81, 0x83, 0x85, 0x87, 0xB9, 0xBB, 0xBD, 0xBF, 0xB1, 0xB3, 0xB5, 0xB7, 0xA9, 0xAB, 0xAD, 0xAF,
 								0xA1, 0xA3, 0xA5, 0xA7, 0xD9, 0xDB, 0xDD, 0xDF, 0xD1, 0xD3, 0xD5, 0xD7, 0xC9, 0xCB, 0xCD, 0xCF, 0xC1, 0xC3, 0xC5, 0xC7,
 								0xF9, 0xFB, 0xFD, 0xFF, 0xF1, 0xF3, 0xF5, 0xF7, 0xE9, 0xEB, 0xED, 0xEF, 0xE1, 0xE3, 0xE5, 0xE7};
-
-	static uint8_t calculateCRC(const uint8_t * data, const uint8_t length); // from EMS-ESP32
 
 protected:
 	operation_t operation_;

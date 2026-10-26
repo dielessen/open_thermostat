@@ -10,6 +10,10 @@ async def async_setup_shadow_metrics(hass,entry,async_add_entities):
     connection=state.get("v1_connection")
     if connection is None or connection.client is None:
         return
+    from .product import is_product
+    from .installation_group import ensure_installation_group
+    add_options = ({"config_subentry_id": ensure_installation_group(hass, entry)}
+                   if is_product(entry) else {})
     client=connection.client;entities=[];last_key=None
     def refresh():
         nonlocal last_key
@@ -23,7 +27,7 @@ async def async_setup_shadow_metrics(hass,entry,async_add_entities):
                     if old is not None and old.config_entry_id==entry.entry_id:
                         entities.append(HubMetric(entry.data[CONF_TOPIC_PREFIX],"ems_metrics",metric,
                                                   entry.entry_id,definition_version=1))
-            async_add_entities(entities)
+            async_add_entities(entities, **add_options)
             last_key=None
         key=client.metrics_key
         if key==last_key:

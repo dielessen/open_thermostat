@@ -14,6 +14,26 @@ enum class AdmissionCode {
     wrong_revision, unknown_binding, expired_grant, lease_expired,
     old_sequence, changed_duplicate, invalid_sequence, invalid_clock
 };
+// Diagnostic labels only. Never accept a packet, rotate a grant or change a
+// sequence watermark based on this representation.
+inline const char* admissionCodeName(AdmissionCode code) {
+    switch(code) {
+        case AdmissionCode::accepted:return "accepted";
+        case AdmissionCode::duplicate:return "duplicate";
+        case AdmissionCode::not_configured:return "not_configured";
+        case AdmissionCode::wrong_version:return "wrong_version";
+        case AdmissionCode::wrong_identity:return "wrong_identity";
+        case AdmissionCode::wrong_revision:return "wrong_revision";
+        case AdmissionCode::unknown_binding:return "unknown_binding";
+        case AdmissionCode::expired_grant:return "expired_grant";
+        case AdmissionCode::lease_expired:return "lease_expired";
+        case AdmissionCode::old_sequence:return "old_sequence";
+        case AdmissionCode::changed_duplicate:return "changed_duplicate";
+        case AdmissionCode::invalid_sequence:return "invalid_sequence";
+        case AdmissionCode::invalid_clock:return "invalid_clock";
+    }
+    return "unknown";
+}
 struct Admission { AdmissionCode code; uint64_t originalResult = 0; };
 struct SessionIdentity {
     std::string controller, boot, adapter, session;
@@ -51,6 +71,7 @@ public:
         identity_ = identity; leaseMs_ = leaseMs; configured_ = true; transportValid_ = true; grantSequence_ = 0;
         for(auto& stream:streams_) {stream=Stream{};}
         grant_.clear(); grantValid_ = false; leaseUntil_ = 0; leaseFrom_ = 0;
+        clockSeen_ = false; clockInvalid_ = false; clockHighWater_ = 0;
         return true;
     }
     bool bind(std::size_t index, std::string_view binding, StreamKind kind) {
@@ -63,17 +84,18 @@ public:
     bool issueGrant(std::string_view token, uint32_t grantSequence, uint64_t now, uint32_t durationMs) {
         if (!configured_ || !transportValid_ || !validId(token) || !grantSequence ||
             grantSequence <= grantSequence_ || durationMs == 0 ||
-            durationMs > maximumGrantMs || now > UINT64_MAX - durationMs) return false;
+            durationMs > maximumGrantMs || now > UINT64_MAX - durationMs || !observeClock(now)) return false;
         grant_ = token; grantSequence_ = grantSequence; grantFrom_ = now; grantUntil_ = now + durationMs; grantValid_ = true;
         // Rotation deliberately preserves every stream's high-water sequence.
         return true;
     }
     void invalidateTransport() { transportValid_ = false; grantValid_ = false; leaseUntil_ = 0; }
     bool alive(uint64_t now) const {
-        return configured_ && transportValid_ && now >= leaseFrom_ && now < leaseUntil_;
+        return configured_ && transportValid_ && observeClock(now) && now >= leaseFrom_ && now < leaseUntil_;
     }
     Admission admit(std::size_t streamIndex, const Envelope &e, uint64_t now, uint64_t immutableResult = 0) {
         if (!configured_ || !transportValid_) return {AdmissionCode::not_configured};
+        if (!observeClock(now)) return {AdmissionCode::invalid_clock};
         if (e.major != expectedMajor_) return {AdmissionCode::wrong_version};
         if (e.direction != direction_ || e.controller != identity_.controller || e.boot != identity_.boot ||
             e.adapter != identity_.adapter || e.session != identity_.session || e.epoch != identity_.epoch)
@@ -99,9 +121,11 @@ public:
         if (s.kind == StreamKind::heartbeat) { leaseFrom_ = now; leaseUntil_ = now + leaseMs_; }
         return {AdmissionCode::accepted, immutableResult};
     }
+    // Current original local lease only. Reading never extends or renews it.
+    uint64_t leaseDeadline(uint64_t now) const {return alive(now)?leaseUntil_:0;}
     // Source-age normalization can add this conservative delay bound after admission.
     uint64_t grantElapsed(uint64_t now) const {
-        return transportValid_ && grantValid_ && now >= grantFrom_ && now < grantUntil_ ? now - grantFrom_ : UINT64_MAX;
+        return transportValid_ && observeClock(now) && grantValid_ && now >= grantFrom_ && now < grantUntil_ ? now - grantFrom_ : UINT64_MAX;
     }
     uint64_t grantDeadline(uint64_t now) const {
         return grantElapsed(now) != UINT64_MAX ? grantUntil_ : 0;
@@ -114,6 +138,17 @@ public:
         return true;
     }
 private:
+    // Local receiver time is trusted input, never a timestamp taken from a peer.
+    // Every temporal read participates: observing expiry then reading an earlier
+    // time must not revive lease/grant evidence. Only a NEW authenticated session
+    // accepted by begin() clears the fault; rotation/retry cannot do so.
+    bool observeClock(uint64_t now) const {
+        if (clockInvalid_) return false;
+        if (clockSeen_ && now < clockHighWater_) { clockInvalid_ = true; return false; }
+        clockSeen_ = true; clockHighWater_ = now; return true;
+    }
+    mutable bool clockSeen_ = false, clockInvalid_ = false;
+    mutable uint64_t clockHighWater_ = 0;
     struct Stream {
         std::string binding;
         StreamKind kind = StreamKind::observation;

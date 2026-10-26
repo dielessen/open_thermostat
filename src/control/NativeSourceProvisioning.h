@@ -5,6 +5,10 @@
 #include <new>
 
 namespace heating::control {
+inline constexpr const char* nativeLocalSourceFormat="native.source.local.v1";
+inline constexpr const char* nativeWeekSourceFormat="native.source.local.week.v1";
+inline constexpr const char* nativeEvolutionSourceFormat="native.source.evolution.v1";
+inline constexpr size_t nativeNetworkSettingsMaximumBytes=2048; // exclusive, unchanged
 // Local authenticated SETTINGS only. This descriptor selects logical SHADOW
 // policy, never a physical protection/report/readiness/actuator qualification.
 // Config, MQTT packets and DATA advertisements MUST NOT call this factory.
@@ -16,8 +20,8 @@ inline std::unique_ptr<NativePlanInstallationSource> nativeSourceFromLocalSettin
         need(bool(hash)&&cJSON_IsArray(compact)&&cJSON_GetArraySize(compact)==7,"local_source_shape");
         auto at=[](const cJSON* a,int i){return cJSON_GetArrayItem(a,i);};
         const auto tag=str(at(compact,0));
-        const bool week=tag=="native.source.local.week.v1";
-        need(week||tag=="native.source.local.v1","local_source_version");
+        const bool week=tag==nativeWeekSourceFormat;
+        need(week||tag==nativeLocalSourceFormat,"local_source_version");
         need(str(at(compact,1))==controller&&str(at(compact,2))==adapter,"local_source_owner");
         const auto layout=str(at(compact,3));need(hex(layout),"local_source_layout");
         const auto revision=integer(at(compact,4),1,UINT32_MAX);
@@ -99,7 +103,7 @@ inline std::unique_ptr<NativePlanInstallationSource> nativeSourceFromLocalSettin
     try {
         if(cJSON_IsArray(compact)&&cJSON_GetArraySize(compact)==3) {
             const auto tag=cJSON_GetArrayItem(compact,0);
-            if(!cJSON_IsString(tag)||std::string_view(tag->valuestring)!="native.source.evolution.v1")return nullptr;
+            if(!cJSON_IsString(tag)||std::string_view(tag->valuestring)!=nativeEvolutionSourceFormat)return nullptr;
             auto old=nativeSourceFromLocalSettingsBase(cJSON_GetArrayItem(compact,1),controller,adapter,hash);
             auto next=nativeSourceFromLocalSettingsBase(cJSON_GetArrayItem(compact,2),controller,adapter,hash);
             if(!old||!next)return nullptr;
@@ -114,7 +118,7 @@ inline std::unique_ptr<NativePlanInstallationSource> nativeSourceFromLocalSettin
 inline std::unique_ptr<NativePlanInstallationSource> nativeSourceFromSavedDescriptor(
         std::string_view bytes,std::string_view controller,std::string_view adapter,
         const heating::graph_test::Hash& hash) {
-    if(bytes.empty()||bytes.size()>=2048)return nullptr;
+    if(bytes.empty()||bytes.size()>=nativeNetworkSettingsMaximumBytes)return nullptr;
     try {
         const auto parsed=parseControlJson(bytes);
         return parsed?nativeSourceFromLocalSettings(parsed.get(),controller,adapter,hash):nullptr;
@@ -148,11 +152,11 @@ inline bool nativeSourceReplacementAllowed(const cJSON* previous,const cJSON* ca
     if(!old||cJSON_IsNull(old)||(next&&cJSON_IsNull(next))||(next&&cJSON_Compare(old,next,true)))return true;
     const auto oldCurrent=(cJSON_IsArray(old)&&cJSON_GetArraySize(old)==3
         &&cJSON_IsString(cJSON_GetArrayItem(old,0))
-        &&std::string_view(cJSON_GetArrayItem(old,0)->valuestring)=="native.source.evolution.v1")
+        &&std::string_view(cJSON_GetArrayItem(old,0)->valuestring)==nativeEvolutionSourceFormat)
         ?cJSON_GetArrayItem(old,2):old;
     return cJSON_IsArray(next)&&cJSON_GetArraySize(next)==3
         &&cJSON_IsString(cJSON_GetArrayItem(next,0))
-        &&std::string_view(cJSON_GetArrayItem(next,0)->valuestring)=="native.source.evolution.v1"
+        &&std::string_view(cJSON_GetArrayItem(next,0)->valuestring)==nativeEvolutionSourceFormat
         &&(cJSON_Compare(oldCurrent,cJSON_GetArrayItem(next,1),true)
             ||(oldCurrent!=old&&cJSON_Compare(cJSON_GetArrayItem(old,1),cJSON_GetArrayItem(next,1),true)));
 }
@@ -191,7 +195,7 @@ inline heating::graph_test::Json nativeSourceNetworkBase(const cJSON* settings) 
     return copy;
 }
 inline bool nativeSourceNetworkStillCurrent(std::string_view base,std::string_view saved) {
-    if(base.empty()||base.size()>=2048||saved.empty()||saved.size()>=2048)return false;
+    if(base.empty()||base.size()>=nativeNetworkSettingsMaximumBytes||saved.empty()||saved.size()>=nativeNetworkSettingsMaximumBytes)return false;
     try {
         const auto before=parseControlJson(base,true),current=parseControlJson(saved,true);
         const auto filtered=current?nativeSourceNetworkBase(current.get()):heating::graph_test::Json(nullptr,cJSON_Delete);
@@ -199,5 +203,5 @@ inline bool nativeSourceNetworkStillCurrent(std::string_view base,std::string_vi
     } catch(const std::bad_alloc&) {return false;} // read-only eligibility must fail before settings mutation.
 }
 
-inline bool nativeNetworkSettingsBytesFit(std::string_view encoded) {return !encoded.empty()&&encoded.size()<2048;}
+inline bool nativeNetworkSettingsBytesFit(std::string_view encoded) {return !encoded.empty()&&encoded.size()<nativeNetworkSettingsMaximumBytes;}
 }

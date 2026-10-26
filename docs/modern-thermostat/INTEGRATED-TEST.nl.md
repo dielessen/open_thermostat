@@ -1,3 +1,5 @@
+> **Ontwerp-/bewijsnotitie.** De enige actuele software-, installatie- en releasevoortgang staat in [WORKBOARD](WORKBOARD.nl.md). Gedateerde versies en toenmalige open punten hieronder blijven historisch; technische acceptatievoorwaarden blijven gelden.
+
 # Geïntegreerde testkandidaat: E32 + Home Assistant
 
 > **Statusupdate 20 oktober, na onderhoud11686:** de Engelse kamer-/grenzen-/

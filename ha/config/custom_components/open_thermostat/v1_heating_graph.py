@@ -1,6 +1,8 @@
 """Native desired-graph integrity only. No services, listeners or transport."""
 from __future__ import annotations
 
+from .product import configuration_parts, heating_entries, is_product, INSTALLATION
+
 from copy import deepcopy
 
 from homeassistant.core import callback
@@ -113,7 +115,7 @@ def _graph_outputs(document):
                 yield output, ("mixer", g["group_id"], i)
 
 
-def validate_ownership(hass, entry, document):
+def validate_ownership(hass, entry, document, *, room_replacement=None):
     """One output owner across configured entries; exact same-room C is adoption.
 
     Existing zone actuator and graph TRV declaration may identify the same
@@ -133,9 +135,12 @@ def validate_ownership(hass, entry, document):
     if not claimed:
         return
     for other in hass.config_entries.async_entries(DOMAIN):
-        for sub in other.subentries.values():
+        for sub in configuration_parts(other):
             if sub.subentry_type == "zone":
                 room = RoomBinding.from_dict(dict(sub.data))
+                if (room_replacement is not None and other.entry_id == entry.entry_id
+                        and room.room_id == room_replacement.room_id):
+                    room = room_replacement
                 for ref in (room.temperature, room.setpoint, room.schedule):
                     if ref and _key(hass, ref.as_dict()) in claimed:
                         raise HeatingConfigError("input_output_loop")
@@ -156,18 +161,18 @@ def validate_ownership(hass, entry, document):
                         raise HeatingConfigError("output_has_multiple_owners")
 
 
-def validated_graph(hass, entry, document):
+def validated_graph(hass, entry, document, *, room_replacement=None):
     value = normalize_bindings(hass, document)
     rooms = {s.data["room_id"] for s in entry.subentries.values() if s.subentry_type == "zone"}
     parsed = parse_heating_draft(value, known_room_ids=rooms)
-    validate_ownership(hass, entry, value)
+    validate_ownership(hass, entry, value, room_replacement=room_replacement)
     return parsed
 
 
 def validate_room_ownership(hass, entry, room):
     """Prospective room binding must not steal another graph output."""
     for other in hass.config_entries.async_entries(DOMAIN):
-        for sub in other.subentries.values():
+        for sub in configuration_parts(other):
             if sub.subentry_type != "heating":
                 continue
             document = dict(sub.data)["draft"]
@@ -196,7 +201,7 @@ def reconcile_removed_rooms(hass, entry) -> bool:
     """
     rooms = {s.data["room_id"] for s in entry.subentries.values() if s.subentry_type == "zone"}
     changed = False
-    for sub in tuple(entry.subentries.values()):
+    for sub in tuple(heating_entries(entry)):
         if sub.subentry_type != "heating":
             continue
         data = deepcopy(dict(sub.data))
@@ -209,5 +214,8 @@ def reconcile_removed_rooms(hass, entry) -> bool:
         data.update(draft=parsed.storage_document(), draft_digest=parsed.digest,
                     status=parsed.readiness, last_room_cascade=removed,
                     incomplete_group_ids=list(parsed.incomplete_group_ids))
-        changed |= hass.config_entries.async_update_subentry(entry, sub, data=data)
+        if is_product(entry):
+            changed |= hass.config_entries.async_update_entry(entry, data={**entry.data, INSTALLATION: data})
+        else:
+            changed |= hass.config_entries.async_update_subentry(entry, sub, data=data)
     return changed

@@ -86,19 +86,20 @@ def physical_state(hass, binding, key="new-1", value="20", age=0):
 
 
 @pytest.mark.asyncio
-async def test_real_gui_selects_explicit_mode_and_defaults_disabled(hass):
+async def test_real_gui_ordinary_installation_defaults_disabled(hass):
     flow = OpenThermostatConfigFlow()
     flow.hass = hass
     flow.context = {"source": "user"}
     flow.handler = "open_thermostat"
     menu = await flow.async_step_user()
-    assert menu["menu_options"] == ["legacy", "shadow"]
+    assert menu["step_id"] == "installation"
+    assert {str(k) for k in menu["data_schema"].schema} == {"name", "create_dashboard", "advanced"}
     form = await flow.async_step_shadow()
     assert "topic_prefix" in {str(x) for x in form["data_schema"].schema}
     result = await flow.async_step_shadow({"topic_prefix": "fixture"})
     assert result["data"][CONF_MODE] == MODE_SHADOW
     assert result["options"][CONF_ENABLED] is False
-    assert OpenThermostatConfigFlow.VERSION == 2
+    assert OpenThermostatConfigFlow.VERSION == 3
 
 
 @pytest.mark.asyncio
@@ -177,7 +178,7 @@ async def test_mode_migration_preserves_legacy_identity_without_setup(hass):
     before = parent.unique_id
     assert await integration.async_migrate_entry(hass, parent)
     assert parent.unique_id == before == "fixture"
-    assert parent.version == 2
+    assert parent.version == 3
     assert integration_mode(parent) == MODE_LEGACY
     assert not OpenThermostatConfigFlow.async_get_supported_subentry_types(parent)
 
@@ -352,14 +353,50 @@ async def test_release_candidate_migration_preserves_unknown_data_options_and_re
             "future_extension": {"revision": 71, "values": [None, False, "keep"]}}
     options = {**item.options, "unknown_option": {"token": "synthetic-private", "list": [1, 2]}}
     hass.config_entries.async_update_entry(item, data=deepcopy(data), options=deepcopy(options))
-    identity = (item.entry_id, item.unique_id, item.title, item.minor_version)
+    identity = (item.entry_id, item.unique_id, item.title)
+    before_minor = item.minor_version
     before_data, before_options = deepcopy(dict(item.data)), deepcopy(dict(item.options))
     expected = stored_version <= OpenThermostatConfigFlow.VERSION
     assert await integration.async_migrate_entry(hass, item) is expected
     assert await integration.async_migrate_entry(hass, item) is expected
-    assert (item.entry_id, item.unique_id, item.title, item.minor_version) == identity
+    assert (item.entry_id, item.unique_id, item.title) == identity
+    assert item.minor_version == before_minor
     assert dict(item.data) == before_data
     assert dict(item.options) == before_options
-    assert item.version == (2 if expected else stored_version)
+    assert item.version == (3 if expected else stored_version)
     assert hass.config_entries.async_get_entry(item.entry_id) is item
     assert not hasattr(item, "runtime_data")
+
+
+@pytest.mark.asyncio
+async def test_measurement_status_never_promotes_cache_or_renews_original_age(hass):
+    binding = room(hass)
+    now = [100.0]
+    runtime = ShadowRuntime(hass, entry(hass, enabled=True), [binding], clock=lambda: now[0])
+    assert runtime.measurement_status(binding.room_id)['status'] == 'inactive'
+    await runtime.async_start()
+    try:
+        assert runtime.measurement_status(binding.room_id) == {
+            'status': 'profile_missing', 'report_profile_configured': False,
+            'sample_age_ms': None, 'usable': False}
+        physical_state(hass, binding)
+        await hass.async_block_till_done()
+        assert runtime.measurement_status(binding.room_id)['status'] == 'profile_missing'
+        runtime.set_report_profile(binding.room_id, source_profile)
+        assert runtime.measurement_status(binding.room_id)['status'] == 'unverified'
+        from custom_components.open_thermostat.v1_model import Observation
+        # Trusted synthetic source evidence, not live physical qualification.
+        runtime.observations[binding.room_id] = Observation(20, 'qualified', 500, 'private-report-key', 100.0)
+        before = runtime.observations[binding.room_id]
+        now[0] = 101.0
+        view = runtime.measurement_status(binding.room_id)
+        assert view == {'status': 'qualified', 'report_profile_configured': True,
+                        'sample_age_ms': 1500, 'usable': True}
+        assert 'private-report-key' not in str(view)
+        now[0] = 100.0 + (binding.maximum_age_ms - 500) / 1000
+        assert runtime.measurement_status(binding.room_id)['status'] == 'stale'
+        assert not runtime.measurement_status(binding.room_id)['usable']
+        assert runtime.observations[binding.room_id] is before
+    finally:
+        await runtime.async_stop()
+    assert runtime.measurement_status(binding.room_id)['status'] == 'inactive'

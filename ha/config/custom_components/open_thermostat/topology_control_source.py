@@ -1,4 +1,6 @@
 """Explicit two-room-targets.v1 SOURCE prerequisite, not graph DATA apply."""
+
+from .product import heating_entries
 from dataclasses import dataclass
 from copy import deepcopy
 from .comfort_sources import ControllerPolicySourceProfile
@@ -82,6 +84,6 @@ class TopologyControllerEntrySource:
         from .v1_heating_graph import validated_graph
         refs=[RoomBinding.from_dict(dict(s.data)).temperature.as_dict()
               for s in entry.subentries.values() if s.subentry_type=="zone"]
-        central=next(s for s in entry.subentries.values() if s.subentry_type=="heating")
+        central=next(iter(heating_entries(entry)))
         refs.extend(validated_graph(hass,entry,dict(central.data)["draft"]).bindings_document().values())
         return tuple(refs)

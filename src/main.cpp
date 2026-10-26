@@ -15,6 +15,11 @@
 #include <logger/Logger.h>
 #include <logger/LoggerSerialSink.h>
 #include <logger/LoggerSocketSink.h>
+#ifdef OPENTHERMOSTAT_E32V2
+#include "diagnostics/LogRuntime.h"
+#include "diagnostics/BufferedLogger.h"
+#include "diagnostics/NativeLogCapture.h"
+#endif
 
 #include "config.h"
 #include "Filesystem.h"
@@ -120,8 +125,7 @@ void WifiSetUp(config::WiFiConfig const &wifiConfig, config::NetworkConfig const
 		DBGLOGFI(heating::logger, appLogFeature(), "Starting Access Point\n");
 #ifndef OPENTHERMOSTAT_E32V2
 		if (heating::controller) {
-			heating::controller->stopBluetoothScan();
-			heating::controller->waitUntilBluetoothScanFinishAndDeinitBLE();
+			heating::controller->stopBluetoothAndDeinitBLE();
 			DBGLOGFI(heating::logger, appLogFeature(), "Starting Access Point. Stopped bluetooth scan\n");
 		}
 #endif
@@ -219,10 +223,24 @@ void setup() {
 		Serial.printf("Local setup WiFi password: %s\nHTTP admin password: %s\nType setup + Enter over USB to reboot into WiFi-only setup for 15 minutes.\n",heating::deviceAccess.setupPassword().c_str(),heating::deviceAccess.password().c_str());
 	}
 #endif
+#ifdef OPENTHERMOSTAT_E32V2
+    heating::diagnostics::runtime.begin();
+    heating::logger = std::make_shared<heating::diagnostics::BufferedLogger>(
+        std::vector<std::shared_ptr<ib::logger::LoggerSinkInterface>>{
+            std::make_shared<ib::logger::LoggerSerialSink>(ib::logger::LoggerInterface::LogLevel::TRACE)},
+        heating::diagnostics::runtime.log,heating::diagnostics::uptimeMs);
+#else
 	heating::logger = std::make_shared<ib::logger::Logger>(
 		std::vector<std::shared_ptr<ib::logger::LoggerSinkInterface>>{
 			std::make_shared<ib::logger::LoggerSerialSink>(ib::logger::LoggerInterface::LogLevel::TRACE)});
+#endif
+#ifdef OPENTHERMOSTAT_E32V2
+    heating::diagnostics::installNativeLogCapture();
+#endif
 	DBGLOGFI(heating::logger, appLogFeature(), "Free memory %d/%d (minimum was: %d) MaxAlloc: %d STARTUP\n", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap());
+#ifdef OPENTHERMOSTAT_E32V2
+    DBGLOGFI(heating::logger,appLogFeature(),"Reset reason: %d; recent logs are RAM-only\n",int(esp_reset_reason()));
+#endif
 
 #ifndef OPENTHERMOSTAT_E32V2
 	pinMode(ONBOARD_LED, OUTPUT);
@@ -238,7 +256,9 @@ void setup() {
 	DBGLOGFI(heating::logger, appLogFeature(), "Project: %s, version: %s\n", app->project_name, app->version);
 	DBGLOGFI(heating::logger, appLogFeature(), "Build: %s %s\n", app->date, app->time);
 	DBGLOGFI(heating::logger, appLogFeature(), "IDF: %s\n", app->idf_ver);
-	DBGLOGFI(heating::logger, appLogFeature(), "Firmware sha256: %s\n", app->app_elf_sha256);
+	char elfSha256[65]{};
+	esp_ota_get_app_elf_sha256(elfSha256, sizeof(elfSha256));
+	DBGLOGFI(heating::logger, appLogFeature(), "Firmware sha256: %s\n", elfSha256);
 	DBGLOGFI(heating::logger, appLogFeature(), "Partition: %s, size: %d, encrypted: %d\n", partition->label, partition->size, partition->encrypted);
 	DBGLOGFI(heating::logger, appLogFeature(), "-----------------------");
 	DBGLOGFI(heating::logger, appLogFeature(), "Starting up");
@@ -305,7 +325,7 @@ void setup() {
 
 void loop() {
 #ifdef OPENTHERMOSTAT_E32V2
-	heating::update::loop();
+	heating::update::loop(heating::controller && !heating::controller->boilerTestActive());
 	heating::pollSetupWifi();
 	if (heating::pollBoardNetwork()) {
 		// Common REST/NTP/mDNS startup, once per route/IP change, not in event task.
@@ -339,6 +359,11 @@ void loop() {
 	}
 
 	heating::controller->loop();
+#ifdef OPENTHERMOSTAT_E32V2
+    // At most one nonblocking UDP datagram per 100 ms, after controller work.
+    static const auto logHostname=config::getNetworkConfig().hostname;
+    heating::diagnostics::runtime.poll(heating::networkConnected()&&!heating::wifiAPMode,logHostname.c_str());
+#endif
 
 #ifdef OPENTHERMOSTAT_E32V2
 	if (heating::wifiAPMode || heating::networkConnected()) {

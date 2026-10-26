@@ -1,5 +1,12 @@
 # E32 V2 experimental test-release guide
 
+**Current release route (23 October 2026):** alpha17 / HA dev23 is the verified
+installed baseline. Use the normal in-device HTTPS updater for future verified
+app updates; preserve settings. The first boiler-test beta is being prepared.
+The USB and alpha.1 instructions below are historical/recovery guidance, not a
+request to flash another image now. See the current modern-thermostat WORKBOARD.
+
+
 **Modern development candidate:** the integrated shadow-test branch changes
 setup/security/network defaults. Use [its dedicated guide](modern-thermostat/INTEGRATED-TEST.nl.md).
 The shared example AP password and simultaneous-network description below refer

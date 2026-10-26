@@ -17,7 +17,7 @@ struct EmsRawFrame {
 template<size_t Capacity>
 class EmsFrameQueue {
 public:
-	bool push(const uint8_t *data, size_t length) {
+	bool push(const uint8_t *data, size_t length, uint64_t receivedAtMs = 0) {
 		if (length == 0 || length > EmsRawFrame::capacity) {
 			return false;
 		}
@@ -29,16 +29,18 @@ public:
 		auto &frame = slots_[write];
 		std::copy_n(data, length, frame.data.begin());
 		frame.length = static_cast<uint8_t>(length);
+		receivedAtMs_[write] = receivedAtMs; // UART callback time, not loop/decode time
 		write_.store(next, std::memory_order_release);
 		return true;
 	}
 
-	bool pop(EmsRawFrame &frame) {
+	bool pop(EmsRawFrame &frame, uint64_t *receivedAtMs = nullptr) {
 		const auto read = read_.load(std::memory_order_relaxed);
 		if (read == write_.load(std::memory_order_acquire)) {
 			return false;
 		}
 		frame = slots_[read];
+		if (receivedAtMs) *receivedAtMs = receivedAtMs_[read];
 		read_.store((read + 1) % slots_.size(), std::memory_order_release);
 		return true;
 	}
@@ -46,6 +48,8 @@ public:
 private:
 	static_assert(Capacity > 0);
 	std::array<EmsRawFrame, Capacity + 1> slots_{};
+	// RX metadata only: do not inflate EmsRawFrame or the separate TX ring.
+	std::array<uint64_t, Capacity + 1> receivedAtMs_{};
 	std::atomic<size_t> read_{0};
 	std::atomic<size_t> write_{0};
 };

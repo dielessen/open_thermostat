@@ -82,6 +82,16 @@ public:
         } else { phase_=HydraulicPhase::inhibited; lastResult_={}; }
     }
     const Result& lastIntent() const { return lastResult_; }
+    // Existing local loop only: no broker, observers or fresh remote facts.
+    // Retire heat immediately and age ONLY an already reviewed retained path.
+    // Repeated disconnected ticks never renew its original withdrawal deadline.
+    Result advanceWithoutOwner(uint64_t now) {
+        invalidate();
+        if(!haveTime_||!profile_.valid())return lastResult_;
+        if(now<last_)latch(last_,WithdrawalCause::timingFault,"clock_reversed");
+        else last_=now;
+        return finish(withdrawalResult(last_,faultReason_));
+    }
     bool clearFault(bool causeVerifiedCleared) {
         if (!causeVerifiedCleared) return false;
         latched_=false;
@@ -115,12 +125,21 @@ public:
     Result step(uint64_t now,const HydraulicInputs& in) {
         const bool reversed=haveTime_ && now<last_;
         if (!haveTime_) {stoppedAt_=now;haveTime_=true;}
-        last_=now;
+        // Preserve a high-water clock. An expired retained path must not become
+        // live again when a later callback carries an earlier timestamp.
+        last_=std::max(last_,now);
         if (!profile_.valid()) return finish({});
-        if (reversed) latch(now,WithdrawalCause::timingFault,"clock_reversed");
+        if (reversed) {
+            now=last_;
+            latch(now,WithdrawalCause::timingFault,"clock_reversed");
+            // Still apply every CURRENT restrictive fact below. A bad clock
+            // must not hide a simultaneous limit trip or actuator failure.
+        }
         if (in.limitTripped) latch(now,WithdrawalCause::limitTrip,"limit_trip");
         if (in.actuatorFailure) latch(now,WithdrawalCause::readinessLost,"actuator_failure");
-        if (in.faultStateKnown && in.boilerFault) latch(now,WithdrawalCause::boilerFault,"boiler_fault");
+        // An asserted fault can only restrict; freshness of the no-fault proof
+        // remains independently required before heat is permitted.
+        if (in.boilerFault) latch(now,WithdrawalCause::boilerFault,"boiler_fault");
         if (!in.adapterAlive && (lastResult_.openPathIntent || lastResult_.pumpIntent || latched_))
             latch(now,WithdrawalCause::adapterLost,"adapter_unavailable");
         if (latched_) {

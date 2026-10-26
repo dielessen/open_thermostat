@@ -2,6 +2,7 @@
 
 #include "Logging.h"
 #include "Board.h"
+#include "EmsUartWriter.h"
 
 #include <driver/uart.h>
 #include <hal/uart_types.h>
@@ -19,6 +20,8 @@ namespace heating {
 namespace uart_detail {
 static void uart_event_task(void *pvParameters);
 }
+
+namespace ems {class EmsController;}
 
 class EmsBusUart {
 public:
@@ -78,29 +81,21 @@ public:
 		forwarder_.start(rxPin, txPin);
 	}
 
-#define EMSUART_TX_BIT_TIME 104 // bit time @9600 baud
-#define EMSUART_TX_WAIT_HT3 (EMSUART_TX_BIT_TIME * 17) // 1768
-#define EMSUART_TX_BRK_HT3 (EMSUART_TX_BIT_TIME * 11)
+	bool writeToEms(const std::vector<uint8_t>& data) {
+        return writeToEms(data.data(), data.size());
+    }
 
-	bool writeToEms(std::vector<uint8_t> const &data) { return writeToEms(data.data(), static_cast<uint8_t>(data.size())); }
+    bool writeToEms([[maybe_unused]] const uint8_t* data, [[maybe_unused]] size_t length) {
+#ifdef OPENTHERMOSTAT_E32V2
+        return false; // E32 legacy/pong/forwarder routes never borrow manual permission.
+#else
+        return uart_detail::writePaced<UartSlot, board::emsTransmitAllowed>(data, length);
+#endif
+    }
 
-	bool writeToEms(uint8_t const *data, uint8_t length) {
-		if constexpr (!board::emsTransmitAllowed) return false;
-		if (length == 0 || length > EmsMaxTelegramSize) {
-			return false;
-		}
-
-        for (uint8_t i = 0; i < length; i++) {
-            uart_write_bytes(UartSlot, &data[i], 1);
-            delayMicroseconds(EMSUART_TX_WAIT_HT3);
-        }
-        uart_set_line_inverse(UartSlot, UART_SIGNAL_TXD_INV);
-        delayMicroseconds(EMSUART_TX_BRK_HT3);
-        uart_set_line_inverse(UartSlot, 0);
-
-		return true;
-	}
-
+#ifdef OPENTHERMOSTAT_E32V2
+    bool manualTestTransportHealthy()const{return !manualTxFault_.load(std::memory_order_acquire);}
+#endif
 	void requestReset() { resetRequested_.store(true, std::memory_order_relaxed); }
 
 	uint32_t forwarderErrors() const { return forwarder_.rxErrors.load(std::memory_order_relaxed); }
@@ -110,6 +105,20 @@ public:
 	std::atomic<uint32_t> resets{0};
 
 private:
+#ifdef OPENTHERMOSTAT_E32V2
+    friend class ems::EmsController;
+    // Only called after the commissioning owner's final admission, in UART task.
+    template<bool ConfigurationRead=false,bool Completion=false>
+    bool writeManualTestToEms(const uint8_t* data,size_t length){
+        if constexpr(!board::emsManualTestTransmitAllowed)return false;
+        else {
+            if(!manualTestTransportHealthy())return false;
+            const auto result=uart_detail::writeManualClassic<UartSlot,board::emsTx,true,ConfigurationRead,Completion>(data,length,echoRxDebt_);
+            if(!result.detached)manualTxFault_.store(true,std::memory_order_release);
+            return result.succeeded();
+        }
+    }
+#endif
 	std::shared_ptr<ib::logger::LoggerInterface> log_;
 	ib::logger::LoggerInterface::LogFeatureType logFeature_{};
 	QueueHandle_t getQueueHandle() {
@@ -156,10 +165,20 @@ private:
 	void performReset() {
 		uart_flush_input(UartSlot);
 		xQueueReset(uartQueue_);
+#ifdef OPENTHERMOSTAT_E32V2
+        echoRxDebt_.reset();
+        if constexpr(board::emsManualTestTransmitAllowed){
+            if(!uart_detail::releaseManualTx<board::emsTx>())manualTxFault_.store(true,std::memory_order_release);
+        }
+#endif
 		if constexpr (board::emsTransmitAllowed) uart_send_break(UartSlot);
 		resets.fetch_add(1, std::memory_order_relaxed);
 	}
 
+#ifdef OPENTHERMOSTAT_E32V2
+    std::atomic<bool> manualTxFault_{false}; // failed release requires a new boot/review
+    ems::EmsEchoRxDebt echoRxDebt_; // accessed only by the UART task
+#endif
 	std::atomic<bool> resetRequested_{false};
 	QueueHandle_t uartQueue_;
 	std::array<uint8_t, EmsMaxTelegramSize> buffer_;
@@ -192,9 +211,21 @@ static void uart_event_task(void *pvParameters) {
 		}
 		switch (event.type) {
 		case UART_DATA:
+#ifdef OPENTHERMOSTAT_E32V2
+            length += bus->echoRxDebt_.dataEvent(event.size);
+#else
 			length += event.size;
+#endif
 			break;
 		case UART_BREAK: {
+#ifdef OPENTHERMOSTAT_E32V2
+            // Missing echo DATA events must not eat counts from a later frame.
+            if(!bus->echoRxDebt_.atBreak()) {
+                bus->rxErrors.fetch_add(1,std::memory_order_relaxed);
+                bus->performReset();length=0;break;
+            }
+            bus->echoRxDebt_.reset();
+#endif
 			// Events describe bytes already buffered by the driver. Never wait for
 			// missing bytes: discard a partial/oversized frame and resync at BREAK.
 			const bool validSize = length > 0 && length <= bus->getDataBufferSize();
@@ -224,6 +255,9 @@ static void uart_event_task(void *pvParameters) {
 			bus->rxErrors.fetch_add(1, std::memory_order_relaxed);
 			uart_flush_input(bus->getUartSlot());
 			xQueueReset(bus->getQueueHandle());
+#ifdef OPENTHERMOSTAT_E32V2
+            bus->echoRxDebt_.reset();
+#endif
 			length = 0;
 			break;
 		case UART_PARITY_ERR:

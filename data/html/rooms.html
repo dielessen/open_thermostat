@@ -6,38 +6,37 @@
 
 <div class="alert alert-warning d-none" id="programLoadingError" role="alert">
 	<span id="programLoadingErrorMessage"></span>
-	<button type="button" class="btn btn-outline-dark btn-sm" onclick="loadProgramConfiguration()">Retry loading programs</button>
+	<button type="button" class="btn btn-outline-dark btn-sm" onclick="loadProgramConfiguration()"><span data-i18n="Retry loading programs">Retry loading programs</span></button>
 </div>
 <form id="programeditform" class="invisible" novalidate>
 	<div class="form-group">
 		<div class="form-row align-items-end">
 			<div class="col mb-2">
-				<label for="selectprogram">Select program to edit</label>
+				<label for="selectprogram"><span data-i18n="Select program to edit">Select program to edit</span></label>
 				<select class="form-control" id="selectprogram" name="program" data-no-validation onchange="loadProgram()"></select>
 			</div>
 			<div class="col-md-2 mb-2">
 				<button type="button" class="btn btn-success form-control"
-					onclick='openCreateProgramNameModal(event);'>Create new program</button>
+					onclick='openCreateProgramNameModal(event);'><span data-i18n="Create new program">Create new program</span></button>
 			</div>
 			<div class="col-md-2 mb-2">
-				<button type="button" class="btn btn-dark form-control" onclick="deleteProgram();">Delete
-					program</button>
+				<button type="button" class="btn btn-dark form-control" onclick="deleteProgram();"><span data-i18n="Delete program">Delete program</span></button>
 			</div>
 		</div>
 	</div>
 
 	<div class="card collapse" id="roomTemperatureSettings">
-		<div class="card-header">Program settings by room</div>
+		<div class="card-header"><span data-i18n="Program settings by room">Program settings by room</span></div>
 		<div class="card-body">
 			<div class="alert alert-warning" id="missingProgramRooms" hidden>
 				<span id="missingProgramRoomsMessage"></span>
-				<button type="button" class="btn btn-outline-dark btn-sm" onclick="removeMissingProgramRooms();">Remove missing rooms</button>
-				<span>Then save this program.</span>
+				<button type="button" class="btn btn-outline-dark btn-sm" onclick="removeMissingProgramRooms();"><span data-i18n="Remove missing rooms">Remove missing rooms</span></button>
+				<span><span data-i18n="Then save this program.">Then save this program.</span></span>
 			</div>
 			<div class="form-group" id="roomSelector">
 				<div class="form-row align-items-end">
 					<div class="col mb-2">
-						<label for="roomSelectorSelect">Select room in program</label>
+						<label for="roomSelectorSelect"><span data-i18n="Select room in program">Select room in program</span></label>
 						<div class="input-group">
 							<select class="form-control" id="roomSelectorSelect" name="roomselected" data-no-validation
 								onchange="changeRoom()">
@@ -46,10 +45,10 @@
 					</div>
 					<div class="col-md-2 mb-2">
 						<button type="button" class="btn btn-success form-control"
-							onclick='openAddNewRoomModal(event);'>Add room to program</button>
+							onclick='openAddNewRoomModal(event);'><span data-i18n="Add room to program">Add room to program</span></button>
 					</div>
 					<div class="col-md-2 mb-2">
-						<button type="button" class="btn btn-dark form-control" onclick="deleteRoom();">Remove from program</button>
+						<button type="button" class="btn btn-dark form-control" onclick="deleteRoom();"><span data-i18n="Remove from program">Remove from program</span></button>
 					</div>
 				</div>
 			</div>
@@ -60,8 +59,7 @@
 
 		</div>
 		<div class="card-footer text-muted">
-			<button type="button" class="btn btn-primary mb-2" onclick="saveProgram();" id="saveprogram">Save
-				program</button>
+			<button type="button" class="btn btn-primary mb-2" onclick="saveProgram();" id="saveprogram"><span data-i18n="Save program">Save program</span></button>
 		</div>
 
 	</div>
@@ -85,7 +83,7 @@
 		$sel.find('option').remove();
 		var valves = allowedValves || Array.from({length: valveCount}, (_, i) => i);
 		valves.forEach(function(v) {
-			var label = typeof v === 'number' ? (valveLabels[v] || ('Valve ' + (v + 1))) : v;
+			var label = typeof v === 'number' ? (valveLabels[v] || (uiText("Valve ") + (v + 1))) : v;
 			var value = typeof v === 'number' ? String(v) : v;
 			$sel.append($('<option>').val(value).text(label));
 		});
@@ -127,7 +125,7 @@
 						if (pin && typeof pin === 'object' && pin.label) {
 							valveLabels.push(pin.label);
 						} else {
-							valveLabels.push('Valve ' + (idx + 1));
+							valveLabels.push(uiText("Valve ") + (idx + 1));
 						}
 					});
 				}
@@ -159,9 +157,9 @@
 		});
 		if (!response.ok) throw new Error((await response.text()) || response.statusText);
 		const readback = await fetch(url, {cache: 'no-store'});
-		if (!readback.ok || JSON.stringify(await readback.json()) !== JSON.stringify(JSON.parse(program))) throw new Error('Saved program could not be verified. Reload before retrying.');
-		alert('Program saved and verified.');
-		} catch (error) { alert('Cannot save program: ' + error); }
+		if (!readback.ok || JSON.stringify(await readback.json()) !== JSON.stringify(JSON.parse(program))) throw new Error(uiText("Saved program could not be verified. Reload before retrying."));
+		alert(uiText("Program saved and verified."));
+		} catch (error) { alert(uiText("Cannot save program: ") + error); }
 		finally { $("#saveprogram").prop('disabled', false); }
 	}
 
@@ -173,7 +171,7 @@
 
 	function showProgramLoadingError(error) {
 		$('#loadingprogress').removeClass('d-flex').addClass('d-none');
-		$('#programLoadingErrorMessage').text('Cannot load programs. Check the device connection, then retry. ' + error.message);
+		$('#programLoadingErrorMessage').text(uiText("Cannot load programs. Check the device connection, then retry. ") + error.message);
 		$('#programLoadingError').removeClass('d-none');
 	}
 
@@ -183,7 +181,7 @@
 		$('#loadingprogress').removeClass('d-none invisible').addClass('d-flex');
 		try {
 			const rooms = await readProgramConfiguration('/config/rooms');
-			if (!Array.isArray(rooms)) throw new Error('Invalid room catalog');
+			if (!Array.isArray(rooms)) throw new Error(uiText("Invalid room catalog"));
 			loadedRooms = rooms;
 			await getAvailablePrograms();
 		} catch (error) { showProgramLoadingError(error); }
@@ -192,7 +190,7 @@
 	async function getAvailablePrograms() {
 		const programs = await readProgramConfiguration('/status/programs');
 		const prog = await readProgramConfiguration('/config/program/current');
-		if (!Array.isArray(programs) || !programs.length || !programs.every(name => typeof name === 'string' && name.length) || !prog || typeof prog.program !== 'string') throw new Error('Invalid program inventory');
+		if (!Array.isArray(programs) || !programs.length || !programs.every(name => typeof name === 'string' && name.length) || !prog || typeof prog.program !== 'string') throw new Error(uiText("Invalid program inventory"));
 		$('#selectprogram').empty();
 		programs.forEach(name => $('#selectprogram').append($('<option>').text(name).prop('selected', name === prog.program)));
 		if (await loadProgram()) {
@@ -203,22 +201,15 @@
 
 	function openCreateProgramNameModal(event) {
 		event.preventDefault();
-		$('#editModalLabel').text("Enter new program name");
-		$('#editModalBody').html(`
-		<form>
-		<input type='text' class='form-control' id='modalEditorInput'>
-		<div class="form-group form-check">
-			<input type="checkbox" class="form-check-input" id="cloneSelected">
-			<label class="form-check-label" for="cloneSelected">Clone selected program</label>
-		</div>
-		</form>`);
+		$('#editModalLabel').text(uiText("Enter new program name"));
+		$('#editModalBody').html(uiHtml("\n\t\t<form>\n\t\t<input type='text' class='form-control' id='modalEditorInput'>\n\t\t<div class=\"form-group form-check\">\n\t\t\t<input type=\"checkbox\" class=\"form-check-input\" id=\"cloneSelected\">\n\t\t\t<label class=\"form-check-label\" for=\"cloneSelected\">Clone selected program</label>\n\t\t</div>\n\t\t</form>"));
 
 		$("#editModalSave").off('click');
 		$("#editModalSave").on('click', function (event) {
 			event.preventDefault();
 			let name = $('#modalEditorInput').val();
 			if (name === undefined || name.length === 0) {
-				alert("Name must be specified");
+				alert(uiText("Name must be specified"));
 				return;
 			}
 			createProgram(name, $('#cloneSelected').prop('checked'));
@@ -241,11 +232,11 @@
 	function deleteProgram() {
 		var selector = document.getElementById('selectprogram');
 		if (selector.value === "default") {
-			alert("Program 'default' can't be deleted");
+			alert(uiText("Program 'default' can't be deleted"));
 			return;
 		}
 
-		if (!confirm("Are you sure to delete program '" + selector.value + "'?")) {
+		if (!confirm(uiText("Are you sure to delete program '") + selector.value + "'?")) {
 			return;
 		}
 
@@ -260,7 +251,7 @@
 					$('#selectprogram option:selected').remove()
 					$('#selectprogram').trigger('change');
 				} else {
-					alert("Not sure if program deleted\nStatus: " + res.status + "\nBody:\n" + res.statusText);
+					alert(uiText("Not sure if program deleted Status: ") + res.status + uiText("\nBody:\n") + res.statusText);
 				}
 			})
 			.catch(function (error) {
@@ -277,7 +268,7 @@
 
 		try {
 			const value = await readProgramConfiguration('/config/programs/' + encodeURIComponent(selector.value));
-			if (!Array.isArray(value)) throw new Error('Invalid program');
+			if (!Array.isArray(value)) throw new Error(uiText("Invalid program"));
 			$('#roomTemperatureSettings').collapse("show");
 			loadedProgram = value;
 			refreshLoadedProgram();
@@ -294,11 +285,11 @@
 		$('#roomSelectorSelect').find('option').remove();
 
 		loadedProgram.forEach(element => {
-			$('#roomSelectorSelect').append($('<option>').val(element.room_id).text((loadedRooms.find(room => room.id === element.room_id) || {}).name || ('Missing room (' + element.room_id + ')')));
+			$('#roomSelectorSelect').append($('<option>').val(element.room_id).text((loadedRooms.find(room => room.id === element.room_id) || {}).name || (uiText("Missing room (") + element.room_id + ')')));
 		});
 		const missing = loadedProgram.filter(entry => !loadedRooms.some(room => room.id === entry.room_id));
 		document.getElementById('missingProgramRooms').hidden = missing.length === 0;
-		document.getElementById('missingProgramRoomsMessage').textContent = missing.length + ' settings refer to rooms that no longer exist. ';
+		document.getElementById('missingProgramRoomsMessage').textContent = missing.length + uiText(" settings refer to rooms that no longer exist. ");
 
 		$('#roomTemperatureSettings *').attr('disabled', false);
 		if (loadedProgram.length === 0) {
@@ -310,7 +301,7 @@
 	}
 
 	function removeMissingProgramRooms() {
-		if (!confirm('Remove settings for all missing rooms from this program? Existing rooms are kept.')) return;
+		if (!confirm(uiText("Remove settings for all missing rooms from this program? Existing rooms are kept."))) return;
 		loadedProgram = loadedProgram.filter(entry => loadedRooms.some(room => room.id === entry.room_id));
 		refreshLoadedProgram();
 	}
@@ -319,10 +310,10 @@
 		event.preventDefault();
 		var available = loadedRooms.filter(room => !loadedProgram.some(entry => entry.room_id === room.id));
 		if (available.length === 0) {
-			alert('All rooms already have settings in this program. Add a room in Room configuration first.');
+			alert(uiText("All rooms already have settings in this program. Add a room in Room configuration first."));
 			return;
 		}
-		$('#editModalLabel').text('Add room to program');
+		$('#editModalLabel').text(uiText("Add room to program"));
 		var select = $('<select class="form-control" id="addProgramRoom"></select>');
 		available.forEach(room => select.append($('<option>').val(room.id).text(room.name)));
 		$('#editModalBody').empty().append(select);
@@ -346,136 +337,14 @@
 		var selected = $('#roomSelectorSelect').prop('selectedIndex');
 		if (selected < 0) return;
 		var room = loadedRooms.find(r => r.id === loadedProgram[selected].room_id);
-		if (!confirm("Remove '" + (room ? room.name : 'unknown room') + "' from this program?")) return;
+		if (!confirm(uiText("Remove '") + (room ? room.name : uiText("unknown room")) + uiText("' from this program?"))) return;
 		loadedProgram.splice(selected, 1);
 		refreshLoadedProgram();
 	}
 
 
 	function changeRoom() {
-		var roomSelectorHtml = `
-	<div class="form-check">
-			<input class="form-check-input" type="checkbox" value="" id="roomEnabledCheck">
-			<label class="form-check-label" for="roomEnabledCheck">Enabled</label>
-	</div>
-
-	<div class="form-row mb-3">
-		<div class="col-md-4 mb-2">
-			<label for="roomBaseTemp">Base room temperature</label>
-			<div class="input-group">
-				<input type="number" class="form-control" id="roomBaseTemp" placeholder="20.00" value="" step="0.05" min=10 max=30 required>
-				<div class="input-group-append"><div class="input-group-text">&deg;C</div></div>
-				<div class="invalid-feedback">10 - 30 &deg;C</div>
-			</div>
-		</div>
-		<div class="col-md-4 mb-2">
-			<label for="roomUpperMaging">Turn off the heating if the temperature rises by</label>
-			<div class="input-group">
-				<input type="number" class="form-control" id="roomUpperMaging" placeholder="0.10" value="" step="0.01" min=0.01 max=5  required>
-				<div class="input-group-append"><div class="input-group-text">&deg;C</div></div>
-				<div class="invalid-feedback">0.01 - 5 &deg;C</div>
-			</div>
-		</div>
-		<div class="col-md-4 mb-2">
-			<label for="roomLowerMargin">Turn on the heating if the temperature drops by</label>
-			<div class="input-group">
-				<input type="number" class="form-control" id="roomLowerMargin" placeholder="0.10" value="" step="0.01" min=0.01 max=5 required>
-				<div class="input-group-append"><div class="input-group-text">&deg;C</div></div>
-				<div class="invalid-feedback">0.01 - 5 &deg;C</div>
-			</div>
-		</div>
-	</div>
-
-	<div class="card">
-		<div class="card-header">Temperature overrides</div>
-		<div class="card-body" id="tempOverridesSelectGroupBody">
-			<div class="form-group" id="tempOverridesSelectGroup">
-				<div class="form-row">
-					<div class="col mb-2">
-						<div class="input-group">
-							<div class="input-group-prepend">
-								<button class="btn btn-outline-secondary" type="button" id="tempOverridesSelectEdit" onclick="openEditTempOverrideNameModal(event);"><svg width="16px" height="16px"><use href="#img-edit" /></svg></button>
-							</div>
-							<select class="form-control" id="tempOverridesSelect" name="tempselected" data-no-validation aria-describedby="tempOverridesSelectEdit" onchange="selectTempOverride()">
-							</select>
-						</div>
-					</div>
-					<div class="col-md-2 mb-2">
-						<button type="button" class="btn btn-success form-control" onclick='openAddNewOverrideModal(event);'>Add new override</button>
-						</div>
-					<div class="col-md-2 mb-2">
-						<button type="button" class="btn btn-dark form-control" onclick="deleteTempOverride();">Delete override</button>
-					</div>
-				</div>
-			</div>
-
-			<div class="form-group" id="tempOverridesDetailsGroup">
-				<div class="form-row">
-					<div class="col-md-3 mb-2">
-						<div class="form-check">
-							<input class="form-check-input" type="checkbox" value="" id="tempOverridesEnabled">
-							<label class="form-check-label" for="tempOverridesEnabled">Enabled</label>
-						</div>
-					</div>
-				</div>
-
-				<div class="form-row">
-					<div class="col-md-3 mb-2">
-						<label for="tempOverridesTemp">Room temperature</label>
-						<div class="input-group">
-							<input type="number" class="form-control" id="tempOverridesTemp" placeholder="20.0" value="" step="0.05" min=0 max=30 required>
-							<div class="input-group-append"><div class="input-group-text">&deg;C</div></div>
-						</div>
-					</div>
-					<div class="col-md-3 mb-2">
-						<label for="tempOverridesTimeFrom">Time from</label>
-						<div class="input-group">
-							<input type="time" class="form-control" id="tempOverridesTimeFrom" placeholder="22:00" value="22:00" required>
-							<div class="input-group-append"><div class="input-group-text">HH:MM</div></div>
-						</div>
-					</div>
-					<div class="col-md-3 mb-2">
-						<label for="tempOverridesTimeTo">Time to</label>
-						<div class="input-group">
-							<input type="time" class="form-control" id="tempOverridesTimeTo" placeholder="22:10" value="" required>
-							<div class="input-group-append"><div class="input-group-text">HH:MM</div></div>
-						</div>
-					</div>
-				</div>
-
-				<div class="form-row mb-3">
-					<div class="col-md-6 mb-2">
-						<label for="roomBaseTemp">Boiler heating temperature override (EMS only). Leave blank if you don't want to override.</label>
-						<div class="input-group">
-							<input type="number" class="form-control" id="tempOverridesBoiler" placeholder="" value="" step="1" min=30 max=75>
-							<div class="input-group-append"><div class="input-group-text">&deg;C</div></div>
-						</div>
-					</div>
-				</div>
-
-				<div class="form-row">
-					<div class="col-md-auto mb-2">
-						<label for="tempOverridesWeekdays">Applies to the days of the week</label><br/>
-						<select id="tempOverridesWeekdays" multiple="multiple">
-							<option value=0>Sunday</option>
-							<option value=1>Monday</option>
-							<option value=2>Tuesday</option>
-							<option value=3>Wednesday</option>
-							<option value=4>Thursday</option>
-							<option value=5>Friday</option>
-							<option value=6>Saturday</option>
-						</select>
-					</div>
-					<div class="col mb-2">
-						<label for="tempOverridesValvesSelect">Override valves</label><br/>
-						<select id="tempOverridesValvesSelect" multiple="multiple">
-						</select>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-`;
+		var roomSelectorHtml = uiHtml("\n\t<div class=\"form-check\">\n\t\t\t<input class=\"form-check-input\" type=\"checkbox\" value=\"\" id=\"roomEnabledCheck\">\n\t\t\t<label class=\"form-check-label\" for=\"roomEnabledCheck\">Enabled</label>\n\t</div>\n\n\t<div class=\"form-row mb-3\">\n\t\t<div class=\"col-md-4 mb-2\">\n\t\t\t<label for=\"roomBaseTemp\">Base room temperature</label>\n\t\t\t<div class=\"input-group\">\n\t\t\t\t<input type=\"number\" class=\"form-control\" id=\"roomBaseTemp\" placeholder=\"20.00\" value=\"\" step=\"0.05\" min=10 max=30 required>\n\t\t\t\t<div class=\"input-group-append\"><div class=\"input-group-text\">&deg;C</div></div>\n\t\t\t\t<div class=\"invalid-feedback\">10 - 30 &deg;C</div>\n\t\t\t</div>\n\t\t</div>\n\t\t<div class=\"col-md-4 mb-2\">\n\t\t\t<label for=\"roomUpperMaging\">Turn off the heating if the temperature rises by</label>\n\t\t\t<div class=\"input-group\">\n\t\t\t\t<input type=\"number\" class=\"form-control\" id=\"roomUpperMaging\" placeholder=\"0.10\" value=\"\" step=\"0.01\" min=0.01 max=5  required>\n\t\t\t\t<div class=\"input-group-append\"><div class=\"input-group-text\">&deg;C</div></div>\n\t\t\t\t<div class=\"invalid-feedback\">0.01 - 5 &deg;C</div>\n\t\t\t</div>\n\t\t</div>\n\t\t<div class=\"col-md-4 mb-2\">\n\t\t\t<label for=\"roomLowerMargin\">Turn on the heating if the temperature drops by</label>\n\t\t\t<div class=\"input-group\">\n\t\t\t\t<input type=\"number\" class=\"form-control\" id=\"roomLowerMargin\" placeholder=\"0.10\" value=\"\" step=\"0.01\" min=0.01 max=5 required>\n\t\t\t\t<div class=\"input-group-append\"><div class=\"input-group-text\">&deg;C</div></div>\n\t\t\t\t<div class=\"invalid-feedback\">0.01 - 5 &deg;C</div>\n\t\t\t</div>\n\t\t</div>\n\t</div>\n\n\t<div class=\"card\">\n\t\t<div class=\"card-header\">Temperature overrides</div>\n\t\t<div class=\"card-body\" id=\"tempOverridesSelectGroupBody\">\n\t\t\t<div class=\"form-group\" id=\"tempOverridesSelectGroup\">\n\t\t\t\t<div class=\"form-row\">\n\t\t\t\t\t<div class=\"col mb-2\">\n\t\t\t\t\t\t<div class=\"input-group\">\n\t\t\t\t\t\t\t<div class=\"input-group-prepend\">\n\t\t\t\t\t\t\t\t<button class=\"btn btn-outline-secondary\" type=\"button\" id=\"tempOverridesSelectEdit\" onclick=\"openEditTempOverrideNameModal(event);\"><svg width=\"16px\" height=\"16px\"><use href=\"#img-edit\" /></svg></button>\n\t\t\t\t\t\t\t</div>\n\t\t\t\t\t\t\t<select class=\"form-control\" id=\"tempOverridesSelect\" name=\"tempselected\" data-no-validation aria-describedby=\"tempOverridesSelectEdit\" onchange=\"selectTempOverride()\">\n\t\t\t\t\t\t\t</select>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t\t\t\t<div class=\"col-md-2 mb-2\">\n\t\t\t\t\t\t<button type=\"button\" class=\"btn btn-success form-control\" onclick='openAddNewOverrideModal(event);'>Add new override</button>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t<div class=\"col-md-2 mb-2\">\n\t\t\t\t\t\t<button type=\"button\" class=\"btn btn-dark form-control\" onclick=\"deleteTempOverride();\">Delete override</button>\n\t\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t</div>\n\n\t\t\t<div class=\"form-group\" id=\"tempOverridesDetailsGroup\">\n\t\t\t\t<div class=\"form-row\">\n\t\t\t\t\t<div class=\"col-md-3 mb-2\">\n\t\t\t\t\t\t<div class=\"form-check\">\n\t\t\t\t\t\t\t<input class=\"form-check-input\" type=\"checkbox\" value=\"\" id=\"tempOverridesEnabled\">\n\t\t\t\t\t\t\t<label class=\"form-check-label\" for=\"tempOverridesEnabled\">Enabled</label>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t\t\t</div>\n\n\t\t\t\t<div class=\"form-row\">\n\t\t\t\t\t<div class=\"col-md-3 mb-2\">\n\t\t\t\t\t\t<label for=\"tempOverridesTemp\">Room temperature</label>\n\t\t\t\t\t\t<div class=\"input-group\">\n\t\t\t\t\t\t\t<input type=\"number\" class=\"form-control\" id=\"tempOverridesTemp\" placeholder=\"20.0\" value=\"\" step=\"0.05\" min=0 max=30 required>\n\t\t\t\t\t\t\t<div class=\"input-group-append\"><div class=\"input-group-text\">&deg;C</div></div>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t\t\t\t<div class=\"col-md-3 mb-2\">\n\t\t\t\t\t\t<label for=\"tempOverridesTimeFrom\">Time from</label>\n\t\t\t\t\t\t<div class=\"input-group\">\n\t\t\t\t\t\t\t<input type=\"time\" class=\"form-control\" id=\"tempOverridesTimeFrom\" placeholder=\"22:00\" value=\"22:00\" required>\n\t\t\t\t\t\t\t<div class=\"input-group-append\"><div class=\"input-group-text\">HH:MM</div></div>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t\t\t\t<div class=\"col-md-3 mb-2\">\n\t\t\t\t\t\t<label for=\"tempOverridesTimeTo\">Time to</label>\n\t\t\t\t\t\t<div class=\"input-group\">\n\t\t\t\t\t\t\t<input type=\"time\" class=\"form-control\" id=\"tempOverridesTimeTo\" placeholder=\"22:10\" value=\"\" required>\n\t\t\t\t\t\t\t<div class=\"input-group-append\"><div class=\"input-group-text\">HH:MM</div></div>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t\t\t</div>\n\n\t\t\t\t<div class=\"form-row mb-3\">\n\t\t\t\t\t<div class=\"col-md-6 mb-2\">\n\t\t\t\t\t\t<label for=\"roomBaseTemp\">Boiler heating temperature override (EMS only). Leave blank if you don't want to override.</label>\n\t\t\t\t\t\t<div class=\"input-group\">\n\t\t\t\t\t\t\t<input type=\"number\" class=\"form-control\" id=\"tempOverridesBoiler\" placeholder=\"\" value=\"\" step=\"1\" min=30 max=75>\n\t\t\t\t\t\t\t<div class=\"input-group-append\"><div class=\"input-group-text\">&deg;C</div></div>\n\t\t\t\t\t\t</div>\n\t\t\t\t\t</div>\n\t\t\t\t</div>\n\n\t\t\t\t<div class=\"form-row\">\n\t\t\t\t\t<div class=\"col-md-auto mb-2\">\n\t\t\t\t\t\t<label for=\"tempOverridesWeekdays\">Applies to the days of the week</label><br/>\n\t\t\t\t\t\t<select id=\"tempOverridesWeekdays\" multiple=\"multiple\">\n\t\t\t\t\t\t\t<option value=0>Sunday</option>\n\t\t\t\t\t\t\t<option value=1>Monday</option>\n\t\t\t\t\t\t\t<option value=2>Tuesday</option>\n\t\t\t\t\t\t\t<option value=3>Wednesday</option>\n\t\t\t\t\t\t\t<option value=4>Thursday</option>\n\t\t\t\t\t\t\t<option value=5>Friday</option>\n\t\t\t\t\t\t\t<option value=6>Saturday</option>\n\t\t\t\t\t\t</select>\n\t\t\t\t\t</div>\n\t\t\t\t\t<div class=\"col mb-2\">\n\t\t\t\t\t\t<label for=\"tempOverridesValvesSelect\">Override valves</label><br/>\n\t\t\t\t\t\t<select id=\"tempOverridesValvesSelect\" multiple=\"multiple\">\n\t\t\t\t\t\t</select>\n\t\t\t\t\t</div>\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t</div>\n\t</div>\n");
 
 
 
@@ -516,8 +385,8 @@
 
 		$('#tempOverridesWeekdays').multiselect({
 			includeSelectAllOption: false,
-			allSelectedText: 'A whole week',
-			nonSelectedText: 'Choose weekdays',
+			allSelectedText: uiText("A whole week"),
+			nonSelectedText: uiText("Choose weekdays"),
 			numberDisplayed: 0,
 			selectAllNumber: false,
 			onChange: function () {
@@ -525,7 +394,7 @@
 				var selectedOptions = toNumbers($('#tempOverridesWeekdays').val());
 
 				if (selectedOptions.length == 0) {
-					alert("You must select at least one day");
+					alert(uiText("You must select at least one day"));
 					$('#tempOverridesWeekdays').multiselect('select', getSelectedTemp().days);
 					return false;
 				}
@@ -537,8 +406,8 @@
 		populateValveSelect('#tempOverridesValvesSelect', roomDefinition.valves);
 		$('#tempOverridesValvesSelect').multiselect({
 			includeSelectAllOption: false,
-			allSelectedText: 'Heat on all valves',
-			nonSelectedText: 'Do not override',
+			allSelectedText: uiText("Heat on all valves"),
+			nonSelectedText: uiText("Do not override"),
 			numberDisplayed: 0,
 			selectAllNumber: false,
 			onChange: function () {
@@ -573,8 +442,8 @@
 
 	function openAddNewOverrideModal(event) {
 		event.preventDefault();
-		$('#editModalLabel').text("Enter name for temperature override");
-		$('#editModalBody').html('<form novalidate><input type="text" class="form-control" id="addNewOverrideName" pattern="[A-Za-z0-9_\\-]+" required><div class="invalid-feedback">Only letters, digits, _ and - allowed</div></form>');
+		$('#editModalLabel').text(uiText("Enter name for temperature override"));
+		$('#editModalBody').html(uiHtml("<form novalidate><input type=\"text\" class=\"form-control\" id=\"addNewOverrideName\" pattern=\"[A-Za-z0-9_\\-]+\" required><div class=\"invalid-feedback\">Only letters, digits, _ and - allowed</div></form>"));
 		$("#editModalSave").off('click');
 		$("#editModalSave").on('click', function (event) {
 			event.preventDefault();
@@ -611,8 +480,8 @@
 
 	function openEditTempOverrideNameModal(event) {
 		event.preventDefault();
-		$('#editModalLabel').text("Enter temperature override name");
-		$('#editModalBody').html('<form novalidate><input type="text" class="form-control" id="editOverrideName" pattern="[A-Za-z0-9_\\-]+" required><div class="invalid-feedback">Only letters, digits, _ and - allowed</div></form>');
+		$('#editModalLabel').text(uiText("Enter temperature override name"));
+		$('#editModalBody').html(uiHtml("<form novalidate><input type=\"text\" class=\"form-control\" id=\"editOverrideName\" pattern=\"[A-Za-z0-9_\\-]+\" required><div class=\"invalid-feedback\">Only letters, digits, _ and - allowed</div></form>"));
 		$('#editOverrideName').val(getSelectedTemp().name);
 		$("#editModalSave").off('click');
 		$("#editModalSave").on('click', function (event) {
@@ -630,7 +499,7 @@
 
 	function deleteTempOverride() {
 		var selected = $("#tempOverridesSelect").prop('selectedIndex');
-		if (!confirm("Do you want to delete temperature override\n'" + roomFound.temperatures[selected].name + "'?")) {
+		if (!confirm(uiText("Do you want to delete temperature override '") + roomFound.temperatures[selected].name + "'?")) {
 			return;
 		}
 

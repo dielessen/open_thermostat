@@ -8,6 +8,8 @@ The SOURCE caller must pin the exact plan digest and native lifecycle revisions.
 """
 from __future__ import annotations
 
+from .product import heating_entries
+
 from dataclasses import dataclass, asdict
 import re
 
@@ -106,7 +108,7 @@ def native_topology_plan(hass, entry):
     if integration_mode(entry) != MODE_SHADOW:
         fail("unsupported_owner")
     subs = [s for s in entry.subentries.values() if s.subentry_type == "zone"]
-    heating = [s for s in entry.subentries.values() if s.subentry_type == "heating"]
+    heating = heating_entries(entry)
     if len(subs) != 2 or len(heating) != 1:
         fail("review_layout_limit")
     # Do not silently drop future/unsupported room features.

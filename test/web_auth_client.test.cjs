@@ -14,7 +14,7 @@ function client(handler) {
   context.window={location:{href:'http://device/',origin:'http://device',replace:x=>redirects.push(x)},alert:()=>{},fetch:async(input,init)=>{
     calls.push({input,init});return handler(input,init,calls.length);
   }};
-  vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(root,'auth-client.js'),'utf8'),context);
+  Object.assign(context,require('./helpers/ui-language.cjs')('en'));vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(root,'auth-client.js'),'utf8'),context);
   return {...context,calls,redirects,events,button};
 }
 test('concurrent API reads use one session read, never one challenge per asset',async()=>{
@@ -86,7 +86,7 @@ function login(handler) {
   let submit;const redirects=[],calls=[];const button={disabled:false},message={textContent:''};
   const form={reportValidity:()=>true,elements:{username:{value:'admin'},password:{value:'test & symbol'}},addEventListener:(n,f)=>submit=f};
   const context={URLSearchParams,AbortController,setTimeout,clearTimeout,fetch:async(u,i)=>{calls.push([u,i]);return handler(u,i);},document:{getElementById:id=>({login:form,submit:button,message}[id])},window:{location:{replace:u=>redirects.push(u)}}};
-  vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(root,'login.js'),'utf8'),context);
+  Object.assign(context,require('./helpers/ui-language.cjs')('en'));vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(root,'login.js'),'utf8'),context);
   return {submit:()=>submit({preventDefault(){}}),redirects,calls,form,button,message};
 }
 test('login sends URL-encoded credentials in POST body only and clears field',async()=>{

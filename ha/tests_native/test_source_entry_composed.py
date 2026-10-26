@@ -194,12 +194,15 @@ async def test_explicit_alloff_and_dhw_preempt_local_boost_without_physical_outp
     await n.observe();await n.observe()
     await n.command(n.runtime.async_comfort("a1b2c3d4","boost",temperature=23,duration_ms=60000))
     assert n.runtime.decisions["a1b2c3d4"].target_centi_c==2300
+    n.bus.now+=1  # Separate dated source event.
     await n.bus.event("safety_snapshot",limits_known_safe=True,dhw_state_known=True,summer=True)
     await n.observe()
     assert not any(x.demand for x in n.runtime.decisions.values())
+    n.bus.now+=1  # Separate dated source event.
     await n.bus.event("safety_snapshot",limits_known_safe=True,dhw_state_known=True,all_off=True)
     await n.observe()
     assert not any(x.demand for x in n.runtime.decisions.values())
+    n.bus.now+=1  # Separate dated source event.
     await n.bus.event("safety_snapshot",limits_known_safe=True,dhw_state_known=True,dhw_active=True)
     await n.observe()
     assert not any(x.demand for x in n.runtime.decisions.values())

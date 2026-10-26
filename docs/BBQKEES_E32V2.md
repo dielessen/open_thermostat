@@ -1,9 +1,14 @@
 # BBQKees Gateway E32 V2 — experimental native port
 
-**Not hardware validated. Not a replacement for the installed EMS-ESP yet.**
-Nothing was flashed or connected to a boiler during development. This target is
-compile-tested preparation, not a claim that Ethernet, PSRAM or EMS works on a
-physical gateway. There is deliberately **no runtime setting or build flag to
+**Physical transmission and autonomous heating remain unqualified.**
+The initial port investigation below describes the disconnected development
+scope of 17 October 2026. Since then, the passive alpha23/dev29 baseline has
+been installed and Classic reception observed on the user's E32. Current
+installation/release evidence is recorded in
+[WORKBOARD](modern-thermostat/WORKBOARD.nl.md); that passive evidence does not
+qualify transmission, Ethernet coexistence, physical hydraulics or fail-safe stop.
+The model-specific remaining acceptance is in the
+[pre-TX installation card](modern-thermostat/ECOMLINE-PRE-TX-ACCEPTATIE.nl.md). There is deliberately **no runtime setting or build flag to
 enable EMS transmission**. Enabling `emsEnabled` permits reception only.
 
 ## Scope and sources (checked 2026-10-17)
@@ -62,11 +67,23 @@ PSRAM manufacturer/part number or the installed device’s physical board revisi
 PSRAM initialization is selected by the official-style `BOARD_HAS_PSRAM` flag;
 Arduino initializes it before `setup()`. Startup logs `ESP.getPsramSize()`; do not
 expect all 8 MB to be heap addressable or enable bank switching/HIMEM blindly.
-No public E32 V2 schematic/BOM was established in this investigation. The exact
+The current [manufacturer feature matrix](https://bbqkees-electronics.nl/wiki/gateway/hardware-details.html)
+assigns both E32 V2 (PCB2.0/2.1) and V2.2 to EMS circuit generation **Gen3a**.
+This identifies the documented circuit family, not this unit's inspected revision
+or its inactive TX bias. No public E32 V2 schematic/BOM was established in this investigation. The exact
 transceiver topology, inactive TX bias, polarity at its electrical bus side,
 PHY reset/power circuitry and boot-time waveforms require inspection or scope
 measurements. GPIO15 is the official firmware parameter, not proof of a separate
 switched power rail. These unknowns do not prevent a **TX-locked** software build.
+
+The isolated `manual-route-compile` CI job also builds the otherwise eliminated
+manual route with the actual ESP32 toolchain. It changes only the manual
+permission in its disposable checkout, retains the general TX and installation
+locks, and checks that only `EmsController.cpp.o` references `uart_write_bytes`.
+Other UART transmit primitives are rejected. This job never uploads firmware;
+its image is discarded, and E32 publication depends on its success. The standard
+RX-only image still passes the unchanged no-project-TX verifier. This compile
+probe does not qualify hardware or authorize a manual trial.
 
 ## EMS compatibility and lock
 
@@ -77,19 +94,41 @@ the older EMS-ESP UART design. Normal RX/TX polarity is selected in official
 E32V2 builds (no board-specific inversion flags); do not add a second inversion
 merely because the analog transceiver inverts internally.
 
-Upstream TX always uses HT3 timing: 104 us bit time, 17 bit-times between writes,
-11 bit-times break via TX inversion. Current EMS-ESP additionally selects
-EMS/EMS+/HT3 modes and can wait for byte echoes. OpenThermostat has polling,
-CRC/framing and coarse unconfirmed-TX tracking, **not equivalent proven
-collision/echo handling**. Its 33-byte framing/break-byte assumptions and
-poll/ack latency need measured comparison. Hardware flow control is disabled;
+The legacy OpenThermostat TX route uses HT3 timing: 104 us bit time, 17 bit-times
+between writes and 11 bit-times BREAK. The source candidate now has a separate
+E32 Classic route: bounded 13us echo-buffer polls (at most160 per byte), checked
+UART results and 10-bit BREAK, following the pinned EMS-ESP UART EMS1 mode.
+The pinned driver uses10bits in EMS1 mode, whereas its HT3 mode and the
+general bus description use11; mode-specific timing still requires the physical
+trial. It remains disabled by the board lock. The candidate now consumes and
+compares each echo byte before sending the suffix. Its UART owner retires the
+corresponding queued DATA counts exactly once; unexpected trailing data or
+unretired counts at BREAK force resynchronization. A matching local echo is not
+a bus ACK or proof of boiler action. The current EMS-ESP driver additionally selects
+EMS/EMS+/HT3 modes. Legacy builds retain coarse unconfirmed-TX tracking.
+The E32 checked writer consumes its own echoes, so it does not enqueue those
+bytes again for that legacy counter. Neither mechanism establishes physical
+collision qualification or a boiler acknowledgement. Its 33-byte framing/break-byte assumptions and
+poll/ack latency need measured comparison. E32 poll recognition now derives the
+opposite MSB from a CRC-valid boiler broadcast; unknown convention and poll
+acknowledgements do not open a send opportunity. This follows the
+[EMS-bus protocol description](https://emsesp.org/EMS-bus) and does not enable TX. Hardware flow control is disabled;
 half-duplex is bus-arbitrated, not an RS485 direction pin. UART buffering and
 task scheduling under simultaneous BLE/Ethernet load are unvalidated.
 
 For E32 V2 only:
 
-* `writeToEms` refuses every send, including polls, acknowledgements and forwarding.
-* UART TX is never mapped to GPIO5; GPIO5 is explicitly reset to input.
+* Ordinary `writeToEms` refuses every send, including pongs and forwarding.
+* A private commissioning path has its own source-reviewed permission, currently
+  false; the general permission also remains false. Enabling the manual path
+  cannot enable legacy startup/queue/forwarder/reset-BREAK routes.
+* Startup leaves TX unmapped and GPIO5 input. The prepared, disabled manual path
+  maps it only for one admitted six-byte Classic setpoint/configuration-read
+  frame or its separately admitted one-byte transaction completion, then disconnects
+  it with `gpio_reset_pin`, input direction and floating pull. IDF4.4's installed
+  `driver/gpio.h` documents that reset disconnects peripheral GPIO-matrix output.
+* A failed pin release latches a manual transport fault; normal UART recovery
+  attempts release but never clears that fault. Reset is not physical acceptance.
 * UART reset/5-second idle timeout cannot generate a break.
 * Forwarder UART cannot start, even if old settings request it.
 * Command queue insertion is dropped, avoiding a buildup/repeated queue resets.

@@ -3,7 +3,13 @@
 Actuele uitvoeringsvolgorde en bundeloverzicht: [volgende gezamenlijke bèta](NEXT-RELEASE.nl.md).
 Alle oudere voortgangsnotities blijven bewaard in de [planhistorie](NEXT-RELEASE-HISTORY-20261026.nl.md).
 
-Actuele aanvullende integratiecontrole op schone bron `b0abca7`: HA Core
+Actuele releasevoorbereiding op `c058dd2`: alle negen CI-validatiejobs en 2.236
+onafhankelijke pakketcontroles geslaagd, inclusief beide herintredefixes. Beta.4
+blijft niet-bevroren; de gebruiker bevestigt beta.3 via de native GitHub-updater,
+de onafhankelijke nacontrole en oorspronkelijke bewijsstukken staan nog open.
+De concrete alleen-lezen opdracht staat in het [updateproces](E32-UPDATE-PROCES.nl.md#actuele-opdracht-alleen-beta3-nacontrole).
+
+Eerdere aanvullende integratiecontrole op schone bron `b0abca7`: HA Core
 2026.10.2/.3/.4 ieder 2373 tests en 68 deeltests geslaagd; 11 C++-peers opnieuw
 gebouwd. E32-firmware/bestandssysteem en standaard geen-TX/layoutcontrole slagen;
 34 webbestanden byte-exact in de image van 2.828.096 bytes. Afzonderlijk HA-pakket
@@ -1054,7 +1060,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-245 bronverwijzingen met hashes, status en resterende acceptatie.
+460 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -1231,7 +1237,7 @@ Alleen programma-ACK of beschikbaarheid van een entiteit sluit M2 niet.
 | --- | --- |
 | [Volgende release](NEXT-RELEASE.nl.md) | Kort overzicht: geïnstalleerd, klaar voor bundel, open vervolg |
 | [Masterplan](PLAN.nl.md) | Alle 31 oorspronkelijke eisen en acceptatievoorwaarden |
-| [Release-inventaris](BETA1-RELEASE-INVENTARIS.json) | Alle 23 onderdelen en245gecontroleerde bronverwijzingen |
+| [Release-inventaris](BETA1-RELEASE-INVENTARIS.json) | Alle 23 onderdelen en 460 gecontroleerde bronverwijzingen |
 | [Keteltestplan](BETA1-KETELPROEF.nl.md) | Volgorde van toekomstige stop-/zend-/uitvalproeven |
 | [Pre-TX-kaart](ECOMLINE-PRE-TX-ACCEPTATIE.nl.md) | Nog benodigde installatiegegevens en fysieke voorwaarden |
 | [Installatieverslag](INSTALLATIE-HA37-ALPHA28-20261024.nl.md) | Werkelijk geleverde alpha28/dev37, behoudsbewijs en TV02-diagnosebeperking |

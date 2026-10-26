@@ -24,7 +24,7 @@ ze zijn geen afgevinkte functie doordat er voorbereidende code aanwezig is.
 
 | Onderdeel | Laatst vastgelegde stand |
 | --- | --- |
-| Geïnstalleerde E32 | Gebruiker bevestigt op 26 oktober: `v0.1.0-e32v2-beta.3` geïnstalleerd. Bron/ELF/web, native installreceipts en onafhankelijke nacontrole nog niet teruggelezen; laatste formele acceptatie blijft beta.1 |
+| Geïnstalleerde E32 | Gebruiker bevestigt op 26 oktober: `v0.1.0-e32v2-beta.3` geïnstalleerd via Controleren op updates → installeren op de E32. Bron/ELF/web, native installreceipts en onafhankelijke nacontrole nog niet teruggelezen; laatste formele acceptatie blijft beta.1 |
 | Geïnstalleerde HA-integratie | `0.4.0b1`, gezamenlijke basis `5e3ed30` |
 | Voorbereide bron | Huidige branch, inclusief eenmalige configuratie-uitlezing, afzonderlijke busafsluiting en alle eerdere voorbereide wijzigingen |
 | Nieuwe gezamenlijke kandidaat | E32 beta.3 / HA 0.4.0b3 gepubliceerd uit `996587d`; exacte tag-CI en openbare pakketten gecontroleerd. E32-installatie door gebruiker bevestigd; native bewijs en onafhankelijke nacontrole nog open. De bestaande HA-MCP-beheertools zijn hier niet beschikbaar. Passieve release, geen warmteproefvrijgave |
@@ -46,6 +46,13 @@ De volledige firmware-/ELF-/web-/manifesthashes staan onder
 Dit is de vergelijkingsbasis voor de latere apparaatlezing, geen live nacontrole.
 Een ontwikkelimage met hetzelfde beta.3-versielabel telt niet als dit publieke pakket.
 
+De [concrete alleen-lezen nacontroleopdracht](E32-UPDATE-PROCES.nl.md#actuele-opdracht-alleen-beta3-nacontrole)
+staat klaar voor de bestaande HA-agent: twee verse waarnemingen van versie,
+bron/ELF/web, bevestigde boot en updaterrust, plus vergelijking met de originele
+voorcontrole, installreceipts en back-up. De door de gebruiker bevestigde native
+route is vastgelegd. Ontbrekend bewijs blijft onbekend; dit vraagt geen nieuwe
+installatie, updatecheck of herstart. De native beheertools ontbreken hier nog.
+
 ## Eerstvolgende werk, in volgorde
 
 | Prioriteit | Werk | Vereist resultaat |
@@ -53,7 +60,7 @@ Een ontwikkelimage met hetzelfde beta.3-versielabel telt niet als dit publieke p
 | P0 — modelprofiel zonder digitale drukmeting | Apart brongebonden Ecomline-profiel geïmplementeerd: afzonderlijke drukcontrolemethode vereist, met een nieuwe verklaring per warmteproef. De methodepoort blijft uit | Passende fysieke drukcontrolemethode voor deze installatie beoordelen en vastleggen; geen digitale drukwaarde eisen of verzinnen. Overige meet-, installatie- en stopvoorwaarden blijven behouden |
 | P0 — configuratieontvangst | Eenmalige uitleesroute is aangesloten in HTTP, UART-poll en NL/EN-bediening; afronden met kandidaat- en fysieke controle | Echte latere boilerrespons levert CV-aan/uit en temperatuur met originele ontvangsttijd; standaard TX blijft uit tot afzonderlijke vrijgave |
 | P0 — handmatige proefvariant | Bronbeoordeling en installatiekaart B07–B09 afronden voor de echte E32/EasyControl/Classic-keten | Expliciete adres-/interface-/timing-/arbitragebeoordeling en passende afgifte-, stop- en overdrachtsvoorwaarden; geen willekeurig openzetten van algemene TX |
-| P0 — gezamenlijke freeze | Volledige CI en 2.236 onafhankelijke pakketcontroles geslaagd op `1947b9c`; latere bescherming van instellingstransactie en busafsluiting lokaal gecontroleerd met 109 sanitizertests en E32-build, eigen CI volgt. Beta.4-versie en bron nog niet bevroren | Exacte kandidaat met volledige native-/HA-/browser-/board-/bron-/licentie-/pakketcontroles; ontwikkelbewijs apart houden |
+| P0 — gezamenlijke freeze | Volledige CI en 2.236 onafhankelijke pakketcontroles geslaagd op `c058dd2`, inclusief bescherming van instellingstransactie en busafsluiting. Beta.4-versie en bron nog niet bevroren | Exacte kandidaat met volledige native-/HA-/browser-/board-/bron-/licentie-/pakketcontroles; ontwikkelbewijs apart houden |
 | P0 — release en installatie | Eén gezamenlijke publicatie en installatie na kandidaatacceptatie | Begrijpelijke Engelse GitHub-notities, actuele README en juiste assets/manifest/checksums; HA via de bestaande native HA-specialist met back-up; E32 via native GitHub-OTA |
 | P0 — onafhankelijke nacontrole | Nieuwe boot, versie/bron/ELF/web en instellingenbehoud vastleggen | Verse readback en acceptatierapport; HTTP202 of alleen een build telt niet als geslaagde installatie |
 | P0 — afzonderlijke ketelproef | B14 uitvoeren zodra de fysieke voorwaarden en proefopdracht gelden | Nulmeting → nulvraag/latere stopmelding → eindige warmtevraag → stop/naloop → afzonderlijke uitval/herstel → terug naar Tado |
@@ -127,32 +134,33 @@ inclusief 36 herintredescenario's bij positieve status, weigering en teruglezen,
 plus twaalf exceptions op de klok-/toelatings-/afsluitposities. De twee nieuwe
 regressies falen op de oude kern en slagen na de wijziging. Standaard E32-build,
 filesystem en standaardblokkadecontrole slagen. Bewijs staat onder
-`out/beta4-bus-reentry/`; de afzonderlijke compilevarianten en volledige CI
-volgen op de nieuwe bron. Het eerdere bewijs met 41 gevallen en handmatige
+`out/beta4-bus-reentry/`; de afzonderlijke compilevarianten en volledige CI zijn
+inmiddels geslaagd op `c058dd2`. Het eerdere bewijs met 41 gevallen en handmatige
 compilevariant blijft bewaard onder `out/beta4-manual-reply/`.
 
 ## Actuele software- en pakketpreflight — 26 oktober
 
-De volledige [CI op `1947b9c`](https://github.com/dielessen/open_thermostat/actions/runs/40360870809)
+De volledige [CI op `c058dd2`](https://github.com/dielessen/open_thermostat/actions/runs/40366412128)
 is geslaagd: negen validatiejobs, waaronder alle bordbuilds, native-/browser-/
 HA-controles, beide zendroute-compileproeven en de receipt-gebonden updaterproef.
-Dit omvat de sessiegebonden uitlezing, de laatste UI-aanvulling hieronder en het
-opslagonderhoud. De eerdere bron `171d3be` heeft eveneens een volledig geslaagde
-eigen CI. Publicatiejobs zijn uitsluitend
-voor tags bedoeld en zijn in deze ontwikkelruns overgeslagen.
-De latere transactie- en busafsluitfixes zijn apart lokaal gecontroleerd en
-vereisen een eigen CI; dit eerdere groene checkpoint geldt daarvoor niet als eindbewijs.
+Dit omvat de sessiegebonden uitlezing, de UI-aanvulling, het opslagonderhoud en
+beide transactie-/busafsluitfixes. De eerdere bron `86c42d8` heeft eveneens een
+volledig geslaagde eigen CI. Publicatiejobs zijn uitsluitend voor tags bedoeld
+en zijn in deze ontwikkelruns overgeslagen.
 
-Het werkelijk gedownloade E32-pakket van `1947b9c` is onafhankelijk tegen de exacte Git-bron,
+Het werkelijk gedownloade E32-pakket van `c058dd2` is onafhankelijk tegen de exacte Git-bron,
 firmware, webbestanden, ELF, factory-slices, checksums, bron-/licentiemateriaal
 en relinkbewijs gecontroleerd: 2.236 controles geslaagd. Imagegrootte is
 2.864.480 bytes. De bestaande alpha36-hostcompatibiliteit slaagt opnieuw; HA-
 integratiebron is bytegelijk aan de gepubliceerde beta.3-bron. Lokaal bewijs:
-`out/beta4-package-1947b9c/`. Beide geleverde oorspronkelijke-updaterproeven zijn
+`out/beta4-package-c058dd2/`. Beide geleverde oorspronkelijke-updaterproeven zijn
 op de gedownloade bestanden opnieuw uitgevoerd en geven exact hetzelfde rapport.
 Dit CI-pakket heeft nog versieveld beta.3 en
 andere bron dan de openbare beta.3; het is geen vervangende publieke download.
-Het eerdere pakketbewijs van `4c9a33d` blijft onder `out/beta4-release-preflight/`.
+De nieuwe CI-download en uitgepakte tijdelijke controlemappen zijn na verificatie
+opgeruimd; rapporten, hashes en de oorspronkelijke CI-artifactidentiteit blijven
+bewaard. Bestaande bron, werkbomen en geleverde relinkinputs zijn behouden.
+Het eerdere pakketbewijs van `1947b9c` blijft onder `out/beta4-package-1947b9c/`.
 
 De pakketbouw krijgt bovendien een verplichte proef met de **ongewijzigde
 updater uit de laatst geaccepteerde receipt**, nu beta.1. Lokaal zijn drie
@@ -237,7 +245,8 @@ De nieuwe regressie faalt aantoonbaar op de oude kern. Na de wijziging slagen
 herintredeposities bij schrijven/teruglezen en zes klok-/toelatingsexceptions.
 Normale E32-firmware, filesystem en de standaard TX-/partitiecontrole slagen.
 Bewijs: `out/beta4-settings-reentry/`. De aparte instellingencompile en volledige
-CI volgen op de nieuwe bron; geen fysieke schrijfproef of installatieacceptatie.
+CI zijn inmiddels geslaagd op `86c42d8` en `c058dd2`; geen fysieke schrijfproef
+of installatieacceptatie.
 
 ## Opslagonderhoud na iedere release
 

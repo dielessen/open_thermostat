@@ -13,6 +13,54 @@ is vastgelegd, niet dat eerdere updates nooit gelukt zijn. De actuele geacceptee
 versie is beta.1, met vastgelegd oorspronkelijk installatie- en nacontrolebewijs.
 Een volgende pending-versie mag pas na haar eigen echte nacontrole worden geaccepteerd.
 
+## Actuele opdracht: alleen beta.3-nacontrole
+
+Gebruiker bevestigt op 26 oktober zowel de beta.3-installatie als de route:
+**Controleren op updates → installeren op de E32**. Dit is een gebruikersmelding
+over de native GitHub-updater. De oorspronkelijke receipts en onafhankelijke
+apparaatlezing zijn hiermee nog niet gecontroleerd. De bestaande HA-agent kan
+de volgende begrensde alleen-lezen opdracht uitvoeren zodra zijn beheertools
+beschikbaar zijn; in de huidige ontwikkelsessie ontbreken die tools.
+
+1. Hergebruik de bestaande geauthenticeerde beheercontext en bewaar de originele
+   antwoorden op de beveiligde bewijsplek. Lees op twee afzonderlijke momenten:
+
+   | E32-route | Vergelijking |
+   | --- | --- |
+   | `GET /status/version` | `version`, `source`, `web_sha256` en `sha256`; die laatste is de **ELF-hash**, niet de firmwarebestandhash |
+   | `GET /updates/status` | Dezelfde versie/bron/web, `boot_pending=false`, geen busy/workerfout of geplande/verplichte herstart; draaiende en gekozen bootpartitie |
+   | `GET /status` | Stijgende uptime en de werkelijk aangeboden control-/projectstatus |
+   | `GET /status/ems/telemetry` | Dezelfde `test.boot_id`, project-/proefstatus en E32-TX-/poll-/testtellers |
+
+   Vergelijk ook de werkelijk geladen HA-versie en projectresources via de
+   bestaande native HA-tools. Een terminale `checked`-status kan quiescent zijn.
+   Normale ketelactiviteit onder Tado is op zichzelf geen E32-aansturing; toets de
+   projectuitgangen en de eigen E32-tellers tegen de oorspronkelijke baseline.
+2. Gebruik uitsluitend de **openbare** beta.3-identiteit als doel: bron
+   `996587da4a05c8a9de4a25a5b8ab3d9ed4c6f99a`, firmware 2.828.000 bytes.
+   De volledige firmware-/ELF-/web-/manifesthashes staan in
+   [BETA4-KANDIDAAT.json](BETA4-KANDIDAAT.json) onder `predecessor_installation.expected_published_identity`.
+   Controleer het openbare manifest opnieuw. Ontwikkelimages met hetzelfde
+   beta.3-versielabel hebben een andere bron en vervangen dit doel niet.
+3. Koppel deze verse lezingen aan de **oorspronkelijke beta.3-installatie**:
+   voorcontrole en bootidentiteit, back-up met hashmanifest, werkelijk aantal
+   check-/installcommando's, oorspronkelijke install-HTTP202 met ruwe body en
+   het download-/image-/flash-readback-/selectieverloop. Controleer behoud van
+   instellingen, programma's, bindings en SOURCE tegen die voorcontrole.
+   Een opgeslagen `boot_slot_selected` alleen bewijst deze hele keten niet.
+4. Lever een geanonimiseerd verslag met `PASS`, `FAIL` of `INCOMPLETE` per
+   gecontroleerd onderdeel, tijdstippen, originele bronpaden en SHA256-verwijzingen.
+   Ontbrekend of niet meer herstelbaar bewijs blijft expliciet onbekend. Houd
+   een geslaagde actuele nacontrole apart van de volledige installatieacceptatie.
+   Pas wanneer alle checks uit `scripts/verify_e32_update_gate.py::REQUIRED`
+   rechtstreeks zijn onderbouwd volgt het acceptatierapport uit stap 5 hieronder.
+
+Deze nacontrole bevat geen nieuwe installatie, updatecheck, herstart, rollback,
+instellingenwijziging, MQTT-publicatie of ketel-/kraancommando. Geen nieuwe login
+per lezing of sessieherstel. Bewaar geen cookies, wachtwoorden of ruwe
+instellingen in Git. Bij ontbrekende toegang wordt de nacontrole als onvolledig
+vastgelegd; een tweede installatie wordt niet gebruikt om oud bewijs te vervangen.
+
 ## 1. Kandidaat en vorige acceptatie
 
 Bewaar de laatste geaccepteerde tag met het SHA256-gebonden, geanonimiseerde

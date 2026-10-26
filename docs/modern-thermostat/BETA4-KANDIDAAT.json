@@ -20,7 +20,8 @@
     "8455910d1df07409234828ac892e49d4558cff97",
     "171d3be603ab81f295a6bd7ed141b2df45b35b7e",
     "1947b9ce49ddc11f5d36dbcde2f69f62b678b1a7",
-    "86c42d8fc5e320eae319ca9cbeabb9d13ebc55fb"
+    "86c42d8fc5e320eae319ca9cbeabb9d13ebc55fb",
+    "c058dd2deb0301cd7703f6df3ed9340198fc0932"
   ],
   "release_notes": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.en.md",
   "changes": [
@@ -42,10 +43,10 @@
   "publication_state": "BLOCKED_PENDING_PREDECESSOR_ACCEPTANCE",
   "runtime_actions_performed": false,
   "source_ci": {
-    "commit": "1947b9ce49ddc11f5d36dbcde2f69f62b678b1a7",
-    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40360870809",
+    "commit": "c058dd2deb0301cd7703f6df3ed9340198fc0932",
+    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40366412128",
     "conclusion": "success",
-    "scope": "pre-freeze source including cancellation UI, receipt-bound updater proof, session-bound acquisition and release housekeeping; all nine validation jobs passed; later settings transaction and bus completion reentry fixes require their own CI; not installation acceptance"
+    "scope": "pre-freeze source including settings dispatch and bus completion reentry fixes; all nine validation jobs passed; publication jobs skipped; not installation acceptance"
   },
   "writable_boiler_inventory": "docs/modern-thermostat/BOILER-WRITE-INVENTORY.json",
   "prepared_settings_backend": {
@@ -71,7 +72,7 @@
     "web_editor_enabled_in_standard_release": false,
     "browser_gate": "test/boiler-settings-browser.cjs",
     "transaction_dispatch": {
-      "state": "LOCAL_VERIFIED_PENDING_CI",
+      "state": "CI_VERIFIED_PRE_FREEZE",
       "clock_gate_and_send_reentry_guarded": true,
       "regression_failed_on_previous_core": true,
       "local_sanitizer_tests": 67,
@@ -87,20 +88,23 @@
     "physical_acceptance_performed": false
   },
   "source_package_preflight": {
-    "commit": "1947b9ce49ddc11f5d36dbcde2f69f62b678b1a7",
+    "commit": "c058dd2deb0301cd7703f6df3ed9340198fc0932",
     "ci_version_field": "v0.1.0-e32v2-beta.3",
     "planned_tag_frozen": false,
     "independent_package_checks": 2236,
     "firmware_bytes": 2864480,
-    "firmware_sha256": "0a7cac22c0cf6c46aaa23a997a3dc7cbc8e311fdc9f8a2a25988c02e7fc54af6",
+    "firmware_sha256": "5935e3d7301c5ac3da28d63dbdee1dbb6241b508684a5ad99a93d5aeee70ab9f",
     "alpha36_compatibility": "PASS_HOST_ONLY",
     "accepted_beta1_compatibility": "PASS_HOST_ONLY",
     "ha_runtime_source_unchanged_from_beta3": true,
     "publication_approved": false,
     "web_sha256": "af6b170668d90eeecfc28cb740b2e8c240fa8fd06ca2afa251091809032e4f78",
-    "manifest_sha256": "c0c792e19715f6875f43121cf55c8989bd72e59d581e677b7de71f0751cfff35",
-    "independent_report": "out/beta4-package-1947b9c/package-verification.json",
-    "delivered_compatibility_reports_reproduced": true
+    "manifest_sha256": "4acef8947dcfcdf7da2bf107c860d39a4126cb34cd3e382eb238667553950d9e",
+    "independent_report": "out/beta4-package-c058dd2/package-verification.json",
+    "delivered_compatibility_reports_reproduced": true,
+    "ci_archive_retained_locally": false,
+    "verification_reports_retained": true,
+    "ci_artifact_id": 12669574897
   },
   "accepted_updater_packaging_gate": {
     "state": "CI_VERIFIED_PRE_FREEZE",
@@ -126,7 +130,11 @@
       "web_sha256": "d5a4c2ed8d617936bbb38d9dbe3635148aba674eb4d5503f9604cae1478a2682",
       "manifest_sha256": "b8d075f5cb778a0fae0fe81f5985fb01467cb4e8e3961c2f0f73413363fd55dc",
       "evidence_scope": "Published GitHub assets and commit only; no live device observation"
-    }
+    },
+    "user_reported_method": "native_github",
+    "method_reported_on": "2026-10-26",
+    "method_independently_verified": false,
+    "readonly_postcheck_instructions": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md#actuele-opdracht-alleen-beta3-nacontrole"
   },
   "configuration_read_ui": {
     "withdrawal_labelled": true,
@@ -143,7 +151,7 @@
     "state": "CI_VERIFIED_PRE_FREEZE"
   },
   "bus_completion_callbacks": {
-    "state": "LOCAL_VERIFIED_PENDING_CI",
+    "state": "CI_VERIFIED_PRE_FREEZE",
     "manual_and_settings_receive_guarded": true,
     "regressions_failed_on_previous_core": 2,
     "local_sanitizer_tests": 109,

@@ -6,7 +6,7 @@ Developed independently by **Mark Dielessen**.
 
 Set up rooms, select your Home Assistant devices, edit weekly schedules and
 inspect what your boiler reports. The control and learning software is being
-extended towards coordinated heating. **E32 beta.4 includes an attended
+extended towards coordinated heating. **E32 beta.5 includes an attended
 Ecomline Classic boiler trial. Automatic boiler and valve control remain
 disabled.** Each trial requires local setup checks, a fresh boiler-gauge reading
 and a separate start action. Physical installation acceptance remains open.
@@ -42,11 +42,14 @@ The installed HA integration remains 0.4.0b1; HA 0.4.0b3 is the latest published
 HA package. The attended physical boiler trial is a separate next step.
 [Installation acceptance](https://github.com/dielessen/open_thermostat/blob/review/mark-vscode-20261021/docs/modern-thermostat/update-acceptance/e32-beta4-20261026.json).
 
-**E32 beta.4:** adds an attended Ecomline Classic trial, a scrollable Bluetooth
-discovery list for up to 128 received addresses, explicit session recovery,
-30-minute idle expiry, a local boiler illustration fallback and a heating-settings
-overview. These changes require no new HA package. Persistent boiler-setting
-writes remain disabled. [Current release work](https://github.com/dielessen/open_thermostat/blob/review/mark-vscode-20261021/docs/modern-thermostat/NEXT-RELEASE.nl.md).
+**E32 beta.5:** supports an attended 50 °C demand for ten minutes, with repeated
+setpoints, a fixed deadline and a separate stop. Boiler test now contains all
+received entities, settings and protocol references, with explicit read-only,
+configurable and command labels. Update diagnostics distinguish failed checks,
+installation failures and transport errors. Bluetooth discovery retains its
+scrollable 128-address list; eight saved sensor bindings remain separate.
+No new HA package is required. Persistent boiler-setting writes and automatic
+boiler/valve control remain disabled. [Current release work](https://github.com/dielessen/open_thermostat/blob/review/mark-vscode-20261021/docs/modern-thermostat/NEXT-RELEASE.nl.md).
 
 ## Features
 
@@ -77,11 +80,11 @@ are visible, but physical valve commands and fresh causal feedback remain open.
 | --- | --- |
 | Boiler brand/model selection | **Available:** catalogue with 60 choices, EMS-ESP product groups and official model references. Listing a model does not qualify a new driver. Product images are hosted outside the ESP. |
 | Passive EMS reception | **Available:** Classic boiler messages, temperatures, targets, modulation and other supported fields. Coverage depends on the boiler and messages actually received. |
-| EMS devices page | **Available:** devices, entities, source quality, age, search and retained open details; English and Dutch. No active scan. |
+| Boiler entities and settings | **Available on Boiler test:** received devices/values and protocol references, access labels and filters, plus all 258 pinned EMS-ESP boiler definitions. E32 support and write permission are shown separately. Existing EMS devices links redirect here. |
 | Classic and EMS Plus | Decoder foundations **available**; field coverage is model dependent. This is not full EMS-ESP parity. |
 | Boiler values in HA | **Available:** 69 Classic field definitions, quality and source age, with an overview and three history charts. Reported and derived values stay separate. |
 | Data quality | **Available:** measured, derived, stale, unreliable and unavailable values remain distinguishable. |
-| Boiler diagnostics | Passive reception, protocol information, counters and report download **available**. Beta.4 adds an attended trial for the fixed Ecomline Classic profile: zero baseline, separate start, bounded heat demand and Stop. Physical qualification remains open. |
+| Boiler diagnostics | Passive reception, protocol information, counters and report download **available**. Beta.5 supports an attended Ecomline Classic trial at 40–50 °C for up to ten minutes: zero baseline, separate start, supervision and Stop. Physical qualification remains open. |
 | Heating demand, modulation and weather compensation | Calculations and policies **prepared**. Automatic EMS regulation, full outside-source setup, flow conditions and installation tests remain open. The attended trial uses its own guarded route. |
 | Boiler settings | Writable-entity metadata is inventoried. Four Classic settings have a guarded source implementation: heating enabled, heating temperature, minimum burner period and pump delay. **Persistent setting writes remain disabled.** This does not provide all writable EMS-ESP entities. |
 | Domestic hot water | **Readout where supported.** Model-specific control is planned. |

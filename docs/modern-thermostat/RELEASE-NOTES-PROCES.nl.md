@@ -73,3 +73,28 @@ daarom blijft de expliciete stap in beide publicatiejobs noodzakelijk.
 Nieuwe versielinks worden automatisch bijgewerkt; inhoudelijke functieclaims
 blijven een bewuste controle bij iedere release. De tests controleren selectie
 van publieke versies, behoud van de rest van de pagina en gelijktijdig bewerken.
+
+## Lokale opslag na iedere release opruimen
+
+Dit is een vaste gebruikersafspraak vanaf 26 oktober 2026, ook vastgelegd in
+`AGENTS.md`. Gebruik na een release of grote lokale preflight:
+
+```sh
+python3 scripts/cleanup_release_artifacts.py --fetch-published --report out/cleanup-latest.json
+python3 scripts/cleanup_release_artifacts.py --fetch-published --apply --report out/cleanup-latest.json
+```
+
+De eerste opdracht toont alleen de planning. De tweede ruimt uitsluitend onder
+`out/` op en bewaart haar resultaat. Behoud de laatste drie openbare E32-releases,
+plus de geaccepteerde en pending versies uit de updatepoort. Een oude openbare
+ZIP wordt alleen verwijderd als naam, grootte en SHA256 exact overeenkomen met
+het GitHub-asset; de herstel-URL en hash blijven in het lokale rapport staan.
+Identieke bewaarde ZIPs delen alleen-lezen opslag, ook bij volgende releases.
+Maak voor een nieuw archiveerresultaat een nieuwe bestandsnaam.
+
+Verwijder nooit heel `out/`: daarin staan ook bronwerkbomen, installatiebewijs en
+back-ups. De tool beschermt Git-bron en werkbomen, checksum-/backup-/relinkbomen,
+logs en niet-herkende data. Oude build- en dependencycaches zijn hermaakbaar;
+geleverde `.pio/build`-relinkobjecten zijn dat onderhoudsdoel uitdrukkelijk niet.
+De gewone `.pio` van de actieve checkout blijft beschikbaar. De negen fixtures
+controleren bronbescherming, symlinks, hashes, versiebehoud en herhaalde deduplicatie.

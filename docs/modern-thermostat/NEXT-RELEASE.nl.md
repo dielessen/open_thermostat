@@ -4,7 +4,7 @@ Bijgewerkt op 26 oktober 2026. Status: **NOT_READY voor actieve ketelproeven**.
 Dit document beschrijft het volgende werk; het [werkbord](WORKBOARD.nl.md)
 bewaakt alle 31 producteisen en 14 eindcontroles. De
 [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bewaakt alle 23 voorbereide
-onderdelen en hun 457 bronverwijzingen. De
+onderdelen en hun 460 bronverwijzingen. De
 [volledige voortgangshistorie](NEXT-RELEASE-HISTORY-20261026.nl.md) blijft bewaard;
 oude versies en aantallen daarin zijn historische checkpoints.
 
@@ -24,17 +24,18 @@ ze zijn geen afgevinkte functie doordat er voorbereidende code aanwezig is.
 
 | Onderdeel | Laatst vastgelegde stand |
 | --- | --- |
-| Geïnstalleerde E32 | `v0.1.0-e32v2-beta.1`, bron `5e3ed30`; passieve basis |
+| Geïnstalleerde E32 | Gebruiker bevestigt op 26 oktober: `v0.1.0-e32v2-beta.3` geïnstalleerd. Bron/ELF/web, native installreceipts en onafhankelijke nacontrole nog niet teruggelezen; laatste formele acceptatie blijft beta.1 |
 | Geïnstalleerde HA-integratie | `0.4.0b1`, gezamenlijke basis `5e3ed30` |
 | Voorbereide bron | Huidige branch, inclusief eenmalige configuratie-uitlezing, afzonderlijke busafsluiting en alle eerdere voorbereide wijzigingen |
-| Nieuwe gezamenlijke kandidaat | E32 beta.3 / HA 0.4.0b3 gepubliceerd uit `996587d`; exacte tag-CI en openbare pakketten gecontroleerd. Installatie en live nacontrole nog open wegens ontbrekende bestaande HA-beheertool in deze sessie. Passieve release, geen warmteproefvrijgave |
+| Nieuwe gezamenlijke kandidaat | E32 beta.3 / HA 0.4.0b3 gepubliceerd uit `996587d`; exacte tag-CI en openbare pakketten gecontroleerd. E32-installatie door gebruiker bevestigd; native bewijs en onafhankelijke nacontrole nog open. De bestaande HA-MCP-beheertools zijn hier niet beschikbaar. Passieve release, geen warmteproefvrijgave |
 | Volgende E32-release | Beta.4 in voorbereiding: sessieherstel, 30-minuten-inactiviteitsverval, algemene ketelillustratie en voorbereid CV-instellingenoverzicht/-bedieningspad. Geen nieuwe HA-versie voor deze wijzigingen. Nog niet bevroren of gepubliceerd; beta.3-installatieacceptatie staat open |
 | Algemene en handmatige fysieke TX | Beide uit; geen runtime- of buildflag-ontgrendeling |
 | Warmte-installatievrijgave | `manualHeatInstallationReviewed_ = false` |
 
 De native HA-specialist bevestigde op 26 oktober 02:59–03:02 UTC Core2026.10.4
 en integratie0.4.0b1 als geladen. De actuele E32-versie/bron en UART-tellers
-werden daar niet aangeboden; de E32-identiteit hierboven blijft eerder vastgelegd.
+werden daar niet aangeboden. De latere beta.3-installatiemelding hierboven komt
+van de gebruiker; een nieuwe onafhankelijke identiteitsteruglezing blijft nodig.
 Een lokale commit of ontwikkelbuild is geen beschikbare GitHub-update.
 
 ## Eerstvolgende werk, in volgorde
@@ -141,10 +142,49 @@ bestaande alpha36-fixtures, zes updatepoortcontroles en twintig publicatiecontro
 slagen lokaal. Deze nieuwe pakketroute krijgt nog een eigen CI; een eerdere
 groene run geldt daarvoor niet als bewijs.
 
-`accepted` blijft beta.1, `pending_tag` blijft beta.3. De werkelijke beta.3-
-installatie en onafhankelijke nacontrole staan nog open; geen opvolgerfreeze,
+`accepted` blijft beta.1, `pending_tag` blijft beta.3. De gebruiker bevestigt nu
+de beta.3-installatie; native bewijs en onafhankelijke nacontrole staan nog open; geen opvolgerfreeze,
 publicatie, installatie of fysieke ketelactie uitgevoerd. De model-/installatie-
 en stopacceptatie blijven daarnaast afzonderlijk open.
+
+## Configuratie-uitlezing en geldige bedienersessie
+
+De voorbereide eenmalige uitlezing gebruikt nu bij toelating de echte geldige
+websessie. Op de HTTP-eigenaartaak wordt uitsluitend de bestaande eindtijd onder
+de controllerlock geprojecteerd; de UART-taak leest geen sessietabel en vernieuwt
+geen sessie. Uitloggen, sessievervanging, herstel of verlopen toegang trekt een
+klaargezet verzoek in vóór uitzending. De laatste gate gebruikt een nieuwe
+kloklezing ná de gatecontrole.
+
+Een al uitgezonden leesframe kan niet worden teruggedraaid. Het blijft daarom
+exclusief gereserveerd tot het passende antwoord of de bestaande eindige
+antwoorddeadline. De status noemt dit `withdrawn: true`; zo ontstaat geen
+concurrerende instellingen-/proefopdracht. Het latere antwoord bevestigt geen
+geannuleerde uitlezing. Geen automatische herhaling, sessieherleving of nieuwe
+opdracht tijdens IO. Standaard TX blijft geblokkeerd.
+
+Lokale controle: 56 native gevallen met ASAN/UBSAN, 11 echte login-/logout-
+scenario's en 11 REST-OTA-boundarygevallen geslaagd. Standaard E32-build en
+afzonderlijke handmatige compilevariant slagen; alleen de controller bezit de
+verwachte UART-write. Bewijs: `out/beta4-read-session/`. Dit is bronwerk vóór
+freeze, geen opdracht aan het geïnstalleerde apparaat.
+
+## Opslagonderhoud na iedere release
+
+Gebruiker vraagt dit op 26 oktober expliciet voortaan bij iedere release.
+`AGENTS.md` en het releaseproces leggen de vaste lokale opruimstap vast met
+`scripts/cleanup_release_artifacts.py`: drie nieuwste openbare E32-releases plus
+geaccepteerde en pending versies behouden; oude downloads alleen na exacte
+vergelijking met de publieke GitHub-SHA256 verwijderen; identieke ZIPs delen
+alleen-lezen opslag. Bron, werkbomen, back-ups, logs en geleverde relinkinputs
+blijven behouden. Zonder `--apply` wordt alleen de planning getoond.
+
+De eerste opruiming verminderde dit project van 39,6 naar 22,8GiB: 16,8GiB
+teruggewonnen. 69 oude cachemappen en 32 opnieuw downloadbare oude release-ZIPs
+verwijderd; 37 identieke ZIP-paden delen opslag. Hashes, herstel-URLs en resultaat
+staan lokaal onder `out/cleanup-20261026/`. Het bewaarde E32-pakket is daarna
+opnieuw onafhankelijk gecontroleerd; negen opruimfixtures slagen. Dit verandert
+geen release- of hardwareacceptatie.
 
 ## GitHub en releaseonderhoud — 26 oktober
 

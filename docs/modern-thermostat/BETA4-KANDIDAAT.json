@@ -24,7 +24,8 @@
     "Local generic boiler illustration for missing or unavailable profile images",
     "Separate browser-test timeout from dependency installation time",
     "Fixed source-bound sensorless Ecomline pressure policy; separate method review and per-trial declaration required; all physical write gates remain disabled",
-    "Manual bus completion retains original RX time and rechecks deadline/transport after closure IO; no reentrant completion or retries"
+    "Manual bus completion retains original RX time and rechecks deadline/transport after closure IO; no reentrant completion or retries",
+    "Configuration acquisition bound to the current live operator session; withdrawn emitted requests retain finite bus ownership without successful confirmation"
   ],
   "acceptance_before_freeze": [
     "Actual beta.3 native installation and independent postcheck recorded per E32-UPDATE-PROCES.nl.md",
@@ -34,10 +35,10 @@
   "publication_state": "BLOCKED_PENDING_PREDECESSOR_ACCEPTANCE",
   "runtime_actions_performed": false,
   "source_ci": {
-    "commit": "4c9a33db644103c011e2b7b683c89b4d3f711805",
-    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40342130211",
+    "commit": "b6fe339a9dea06207ae94588948e620a119341e7",
+    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40346196097",
     "conclusion": "success",
-    "scope": "pre-freeze source including sensorless pressure and final manual bus completion checks; nine validation jobs passed; later accepted-updater packaging gate still needs its own CI; not installation acceptance"
+    "scope": "pre-freeze source including receipt-bound accepted updater packaging gate; nine validation jobs passed; later session-bound acquisition and cleanup changes need their own CI; not installation acceptance"
   },
   "writable_boiler_inventory": "docs/modern-thermostat/BOILER-WRITE-INVENTORY.json",
   "prepared_settings_backend": {
@@ -83,11 +84,19 @@
     "publication_approved": false
   },
   "accepted_updater_packaging_gate": {
-    "state": "LOCAL_VERIFIED_PENDING_OWN_CI",
+    "state": "CI_VERIFIED_PRE_FREEZE",
     "script": "scripts/verify_accepted_update_path.py",
     "report": "accepted-predecessor-compatibility.json",
     "bound_to_accepted_receipt": true,
     "retained_sources_unmodified": true,
     "physical_update_tested": false
+  },
+  "predecessor_installation": {
+    "user_reported_tag": "v0.1.0-e32v2-beta.3",
+    "reported_on": "2026-10-26",
+    "state": "USER_REPORTED_INSTALLED_INDEPENDENT_ACCEPTANCE_OPEN",
+    "independent_postcheck_verified": false,
+    "native_update_receipts_collected_in_this_session": false,
+    "acceptance_gate_advanced": false
   }
 }

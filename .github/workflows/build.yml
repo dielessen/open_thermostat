@@ -27,6 +27,8 @@ jobs:
         run: python3 scripts/verify_beta_release_inventory.py
       - name: Check reproducible writable boiler inventory
         run: python3 scripts/inventory_boiler_writes.py --check
+      - name: Test local release artifact cleanup and evidence preservation
+        run: python3 -m unittest discover -s scripts -p test_cleanup_release_artifacts.py -v
       - name: Test automatic project-page release refresh
         run: python3 -m unittest discover -s scripts -p test_sync_readme_releases.py -v
       - name: Test release metadata and installed updater size compatibility

@@ -51,11 +51,11 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "919e59576af73ec246e24e15035d4f79c551cfc8c173215eaaa21a461b77e763"
+          "sha256": "82eb0a065d758d06ac2b2b2ae0fd1ba6e0403b915554fb7416e88b584da6b023"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
-          "sha256": "46295ee581706c5719b399b87250f80c7cbbb7aa3e58128d3137dd379d641a43"
+          "sha256": "1dc3b3d5deb8dfc974cff68b82792ad97b7cae696cebb3e0cd9fbe602dc666b5"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "a320cd43034232c72dfe368b3ab5641f356f0f2ac143074132c5026a58bdc91e"
+          "sha256": "2c5c9a02281aaff8c4c71feade49c2fa23719f22993cc1014c25a558dd030945"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -143,7 +143,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA4-KANDIDAAT.json",
-          "sha256": "743bcb80f6717a65da0a9222bba3b11386dda16f7b84254b48a7f72b9db90fe1"
+          "sha256": "6c0b51143ce315c762b4968cef30b2f353a8dfcacf2ef21fa4a7ea16d092f7f6"
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.nl-en.md",
@@ -176,6 +176,18 @@
         {
           "path": "scripts/verify_e32v2_release.py",
           "sha256": "ffe5d2f0864090411ef42f440161c949f231361c71245fcc162556cb0a6927cd"
+        },
+        {
+          "path": "AGENTS.md",
+          "sha256": "cbf195ae6ff572a5bd880a726513e8c51941fa7e7ebf7470c645963324e9dfe7"
+        },
+        {
+          "path": "scripts/cleanup_release_artifacts.py",
+          "sha256": "00113b4dadd5e94a13be4717eacceb9d47e8a69a67f9d79abb9c3ed9e4a35271"
+        },
+        {
+          "path": "scripts/test_cleanup_release_artifacts.py",
+          "sha256": "9660b3ebab7a46c69277f128f076dbaf76965795c75656fc4aa43f45741d6729"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -341,7 +353,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "919e59576af73ec246e24e15035d4f79c551cfc8c173215eaaa21a461b77e763"
+          "sha256": "82eb0a065d758d06ac2b2b2ae0fd1ba6e0403b915554fb7416e88b584da6b023"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -811,7 +823,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "919e59576af73ec246e24e15035d4f79c551cfc8c173215eaaa21a461b77e763"
+          "sha256": "82eb0a065d758d06ac2b2b2ae0fd1ba6e0403b915554fb7416e88b584da6b023"
         },
         {
           "path": "platformio.ini",

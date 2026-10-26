@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "5ba7c9e7e5242b6ddfc1e6376d6415115245eeecf03cc3d12ec1cacc6de393ba"
+          "sha256": "690b428059e539f4b56725365302e6819d8cf199bff4f3e7246557716ddb5d94"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -245,7 +245,7 @@
         },
         {
           "path": "test/manual_ota/run.py",
-          "sha256": "31b934c7ef309036f6af0e05057aff08ef5cb3d74b689bdaad5ae401f168d8ad"
+          "sha256": "0a1c8247b393be91dfb6b6db4b870cbd69201eec2a1b6ed07c91e29d2abce9ba"
         },
         {
           "path": "src/update/VerifiedOta.h",

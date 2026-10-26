@@ -872,3 +872,27 @@ publicatie en installatie vereisen nog de vastgelegde beta.3-installatieacceptat
 De uitkomst van deze gezamenlijke preflight wordt lokaal bewaard onder
 `out/beta4-current-preflight/`, met exacte commit en CI-identiteit. Oudere lokale
 bronbewijzen blijven hun eigen bronhashes en beperkingen houden.
+
+## Volledige ontwikkel-CI — OTA-fixture hersteld na eerste run
+
+De eerste volledige run op `5edab0c` slaagt voor bronreproductie, beide aparte
+compileproeven, ESP32/ESP32-S3 en het E32-distributiepakket. De native job heeft
+**1.130 volledige native gevallen**, de afzonderlijke sanitizersuites en 24
+authgevallen doorlopen, maar stopt bij de geëxtraheerde echte REST-OTA-handler:
+de fixture miste de nieuwe controller-/sessie-/updateprojectie uit `handle()`.
+Dit is geen geslaagde volledige CI-run; de fout blijft bij die bron vastgelegd.
+
+De fixture gebruikt nu de echte begrensde sessieklasse en nagebootste controller-
+en updaterranden. De oorspronkelijke productiehandler blijft ongewijzigd in de
+proef. Bestaande assertions voor upload-/flash-/bootafhandeling blijven behouden;
+nieuwe assertions controleren dat de settingsprojectie vóór HTTP toestaat en na
+geslaagde app-installatie blokkeert. Geen test of releasepoort overgeslagen.
+
+Lokale vervolgcontrole: 11 echte OTA-boundaryscenario's onder ASAN/UBSAN,
+11 login-/logoutscenario's, 36 onboardinggevallen, catalogus-/referentiecontrole,
+werkelijke logger-/NVS-/UDP-fixture en 38 HA-unittests slagen. De bestaande
+vendorlogger-waarschuwing is niet onderdrukt. De gewijzigde fixture krijgt een
+nieuwe broncommit en eigen volledige CI-run. De eerste run blijft historisch
+vindbaar; beide runs worden lokaal gevolgd onder `out/beta4-current-preflight/`.
+Geen firmware-/HA-productcode, releaseversie, tag of apparaat gewijzigd door
+het herstel van deze fixture.

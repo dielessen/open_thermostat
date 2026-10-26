@@ -25,6 +25,7 @@ methods = '\n'.join([
 head = r'''
 #define OPENTHERMOSTAT_E32V2
 #include "update/ManualAppUpload.h"
+#include "control/WebAuthSession.h"
 #include <cassert>
 #include <functional>
 #include <iostream>
@@ -42,7 +43,7 @@ struct Native {
     esp_partition_t partition;
     bool partitionAvailable=true,beginOk=true,writeOk=true,endOk=true,selectOk=true;
     int begins=0,writes=0,ends=0,selects=0,aborts=0,reboots=0;
-    bool open=false;
+    bool open=false,settingsBlocked=false;
     size_t eraseSize=0;
 } native;
 const esp_partition_t *esp_ota_get_next_update_partition(void*) {return native.partitionAvailable?&native.partition:nullptr;}
@@ -55,7 +56,10 @@ int esp_ota_write(unsigned h,const void*,size_t) {assert(h==1&&native.open);++na
 int esp_ota_end(unsigned h) {assert(h==1&&native.open);native.open=false;++native.ends;return native.endOk?0:-3;}
 int esp_ota_set_boot_partition(const esp_partition_t *p) {assert(p&&!native.open);++native.selects;return native.selectOk?0:-4;}
 int esp_ota_abort(unsigned h) {assert(h==1&&native.open);native.open=false;++native.aborts;return 0;}
-namespace heating::update {void firmwareInstalled(){++native.reboots;}}
+namespace heating::update {
+void firmwareInstalled(){++native.reboots;native.settingsBlocked=true;}
+bool mutationBlocked(std::string_view path){assert(path=="/boiler/settings/write");return native.settingsBlocked;}
+}
 using namespace heating;
 struct String:std::string {using std::string::string;};
 enum {UPLOAD_FILE_START,UPLOAD_FILE_WRITE,UPLOAD_FILE_END,UPLOAD_FILE_ABORTED};
@@ -72,8 +76,15 @@ struct Server {
     void handleClient(){if(callback)callback();}
     void sendView(int status,std::string_view,std::string_view body){statuses.push_back(status);bodies.emplace_back(body);}
 };
+struct Controller {
+    std::vector<bool> settingsPermission;
+    void boilerSettingsSynchronize(const control::WebAuthSession&,uint64_t now,bool allowed){
+        assert(now==1000);settingsPermission.push_back(allowed);
+    }
+};
 struct REST {
-    Server server_;
+    Server server_;Controller controller_;control::WebAuthSession sessions_;
+    uint64_t networkNow(){return 1000;}
     bool authorized=true;
     bool authorize(bool=true){return authorized;}
     struct {bool success=false;int error=0;std::string errorMessage;} ota_;
@@ -90,9 +101,11 @@ int main(){
         native={};REST r;r.server_.callback=[&]{data(r);assert(native.selects==0);finalHandler(r);};r.handle();
         assert(native.eraseSize==8&&native.ends==1&&native.selects==1&&native.reboots==1);
         assert(r.server_.statuses==std::vector<int>{200}&&!native.open&&native.aborts==0);
+        assert(r.controller_.settingsPermission==std::vector<bool>({true,false}));
         pass("exact production callbacks select only at final handler and schedule restart only after success");
         r.server_.callback=[&]{finalHandler(r);};r.handle();
         assert(r.server_.statuses.back()==500&&native.selects==1&&native.reboots==1);
+        assert(r.controller_.settingsPermission==std::vector<bool>({true,false,false,false}));
         pass("next empty request cannot select a stale successful upload");
     }
     for(const char *size:{"","0","-1","8x","9","99999999999999999999999999"}) {

@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "PUBLISHED_INSTALLATION_BLOCKED_CATALOG_CONNECTION",
+  "target_tag": "v0.1.0-e32v2-beta.5",
+  "source_commit": "a4237cd92bd3f124bb2fa80c84553a078faea95b",
+  "installed_version": "v0.1.0-e32v2-beta.4",
+  "installed_source_commit": "9ecb4da0f052b82efb99cdda75679ba67d3299ac",
+  "error": "GitHub/HTTPS antwoord -1; controleer internet, tijd en API-limiet.",
+  "error_scope": "Native catalog check before any install request; no HTTP response received. Underlying cause not established.",
+  "catalog_check_commands": 1,
+  "install_commands": 0,
+  "explicit_reboot_commands": 0,
+  "verified_pre_recovery_backup_payloads": 12,
+  "busy": false,
+  "boot_pending": false,
+  "recovery_approval": "REQUESTED_NOT_RECEIVED",
+  "proposed_recovery": "One controlled E32 restart then one fresh native check and installation only if all conditions pass. No upload fallback, factory/SPIFFS flash or boiler test.",
+  "evidence": [
+    {
+      "path": "out/beta5-native-install/requests-before-recovery.jsonl",
+      "sha256": "94602a78265bf6347bf6aa262c10bb7990864761f4bfa43dd816be7fb8fe359d"
+    },
+    {
+      "path": "out/beta5-native-install/check-intent.json",
+      "sha256": "ce53a8cd3be001b0dc3dacce5dbb1a9de3b289eabb533efecebe5b646e3719b6"
+    },
+    {
+      "path": "out/beta5-native-install/admission/check-response.txt",
+      "sha256": "807a295e8bb219e855b99503a645f50a8249a52c87bf92f718cac3d9de388305"
+    },
+    {
+      "path": "out/beta5-native-install/catalog/015.json",
+      "sha256": "31c803ef23cf25ef39bc9ec0b2b0807b5a4147b9b04f50f7864cdedf6d0326e8"
+    },
+    {
+      "path": "out/beta5-native-install/pre-recovery/version.json",
+      "sha256": "6e6436b82b0652b67433452e3ce4a4abfb4d8eb7d44e277073dfc58dffdd0dd0"
+    },
+    {
+      "path": "out/beta5-native-install/pre-recovery/updates.json",
+      "sha256": "31c803ef23cf25ef39bc9ec0b2b0807b5a4147b9b04f50f7864cdedf6d0326e8"
+    },
+    {
+      "path": "out/beta5-native-install/pre-recovery-backup/BACKUP-MANIFEST.json",
+      "sha256": "2bde1844acc7207870f418c3ae3ed61ababbe5f7d32075549a6b63a16e762c6d"
+    },
+    {
+      "path": "out/beta5-native-install/RECOVERY-PLAN.json",
+      "sha256": "e92a4d632ff376d690bd6017e24d2e298adbd28fe19b4869a033cd550e6ad696"
+    }
+  ]
+}

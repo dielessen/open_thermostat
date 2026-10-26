@@ -59,7 +59,7 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
-          "sha256": "e632d1f2f2ecdce8757eff8579ca2f30a95c4be70d2c24b21d08bcf423f94b05"
+          "sha256": "b4306922b3be8a3b6a20e9cc02ad8b1a083e386dac717547d4b0478f68e884fc"
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
@@ -75,7 +75,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "98d1227e795b0aa31f5bca4c13bcfe00131c383af3375292448a331f71184531"
+          "sha256": "d5dcd7d81d80c46bc0961d02522f551dc383309d95c46d978ab8bd8c588eaf66"
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "0d3659d1db321eccd861ca393e6318173410eacf09499e3a385e813c14ed9e61"
+          "sha256": "1b571b8e8ed3d1c95c42911cb0b5b7fe30aa2a898d02dcdd4e32d1c1023cc495"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -200,6 +200,14 @@
         {
           "path": "docs/modern-thermostat/E32-PUBLICATION-EXCEPTION-PROPOSAL.en.md",
           "sha256": "8d65fc592e9e8c5976cd36a645464bdc02414df27be841d967e6c7dcf69ece97"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA5-VERSIONED-PREVIEW.json",
+          "sha256": "b498596e5d969338bb9ff5ae1527573956235d65d6fa728fab5ae06c92b0521c"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA5-INSTALL-BLOCKER-20261027.json",
+          "sha256": "cbb71cc7e59c8b9ab1d43ce499d7df717bae01e91ce0d1769652be6eee1a1462"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -329,7 +337,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md",
-          "sha256": "b1577312a48c33e16c8ac9b1426211b7add93250dab5bf26d123a1d05caa080c"
+          "sha256": "0092ef4828fa491a644a2b791140c4fc246fa564b9588b4090512e176e5be576"
         },
         {
           "path": "docs/modern-thermostat/INSTALLATIE-E32-ALPHA36-20261025.nl.md",

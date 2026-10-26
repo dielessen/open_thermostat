@@ -1,9 +1,14 @@
 # Volgende E32-release — actueel uitvoeringsplan
 
-Bijgewerkt op 27 oktober 2026. **Beta.4 is gepubliceerd, native geïnstalleerd en
-onafhankelijk geaccepteerd.** De volgende onderhoudsbron gebruikt beta.5;
-deze is op expliciete installatieopdracht bevroren voor exacte-tag-CI.
-Publicatie en native installatie volgen pas na de verplichte controles.
+Bijgewerkt op 27 oktober 2026. **Beta.5 is gepubliceerd uit `a4237cd`, maar
+nog niet geïnstalleerd.** Alle negen exacte-tag-CI-controles en2.272 onafhankelijke
+pakketcontroles slagen. De E32 blijft op de geaccepteerde beta.4: één native
+cataloguscontrole eindigt op GitHub/HTTPS-code-1 vóór een HTTP-antwoord; er is
+geen installatieopdracht verstuurd. Een gecontroleerde back-up van twaalf
+onderdelen is bewaard. De afzonderlijke toestemming voor één herstelherstart
+is gevraagd en nog niet ontvangen. [Installatieblokkade](BETA5-INSTALL-BLOCKER-20261027.json)
+en [openbaar pakketbewijs](BETA5-VERSIONED-PREVIEW.json).
+
 De oudere voorbereidingsnotities staan ongewijzigd in de
 [beta.4-planhistorie](NEXT-RELEASE-HISTORY-BETA4-20261026.nl.md) en de
 [eerdere planhistorie](NEXT-RELEASE-HISTORY-20261026.nl.md).
@@ -17,7 +22,7 @@ De oudere voorbereidingsnotities staan ongewijzigd in de
 | HA | Core2026.10.4, geladen integratie0.4.0b1, SOURCE 6. Nieuwste openbare HA-download blijft0.4.0b3; voor deze E32-onderhoudsbron is geen HA-update nodig |
 | Handmatige proef | Configuratie opnieuw uitgelezen en nulvraag met latere gemelde stop uitgevoerd; positieve warmtevraag nog niet uitgevoerd |
 | Automatische uitvoer | Automatische ketel-/kraanregeling en blijvende ketelinstellingenwrites blijven uit |
-| Ontwikkelbron | Beta.5: uitleg bij geblokkeerde proefknoppen en onderscheid tussen mislukte updatecontrole, installatie, verbinding, TLS en HTTP |
+| Gepubliceerde bron, installatie open | Beta.5: uitleg bij geblokkeerde proefknoppen en onderscheid tussen mislukte updatecontrole, installatie, verbinding, TLS en HTTP |
 
 Het [beta.4-installatiebewijs](update-acceptance/e32-beta4-20261026.json),
 [openbare pakketrapport](BETA4-VERSIONED-PREVIEW.json) en de
@@ -80,7 +85,8 @@ apart zichtbaar. Vier Classic-instellingen zijn voorbereid, blijvend schrijven
 blijft in de standaardfirmware uit; overige writers zijn zichtbaar als nog niet
 geïmplementeerd. Er worden geen schrijfrechten uit de catalogus afgeleid.
 [Onderzoek naar de officiële EMS-ESP-implementatie](EMS-ENTITY-ACCESS-REVIEW.en.md).
-Dit is beta.5-bronwerk, nog geen publicatie/installatie of ketelbediening.
+Dit zit in de gepubliceerde beta.5; installatie is nog geblokkeerd en er is geen
+positieve ketelproef uitgevoerd.
 
 ## Eerstvolgende softwarewerk, in volgorde
 

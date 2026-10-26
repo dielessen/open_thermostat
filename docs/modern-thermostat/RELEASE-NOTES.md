@@ -6,9 +6,9 @@ Firmware installation and physical boiler commissioning are verified separately.
 
 ## New
 
-- **Ten-minute attended demand.** Prepare50°C for600 seconds to allow time for
-  boiler startup. The Classic trial supports40–50°C, repeated setpoints and a
-  separate5–<60°C measured-water cutoff. Fresh setup/gauge checks precede start;
+- **Ten-minute attended demand.** Prepare 50 °C for 600 seconds to allow time for
+  boiler startup. The Classic trial supports 40–50 °C, repeated setpoints and a
+  separate 5–<60 °C measured-water cutoff. Fresh setup/gauge checks precede start;
   their declarations remain valid for that finite run. A five-second supervision
   lease, separate Start/Stop actions and later stop feedback remain required.
 - **One boiler page.** Boiler test now also contains the settings, received

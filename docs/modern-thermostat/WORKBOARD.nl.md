@@ -1,6 +1,8 @@
 # OpenThermostat — actueel werkbord en releasechecklist
 
-Beta.4 is gepubliceerd, native geïnstalleerd en onafhankelijk geaccepteerd:
+Beta.5 is gepubliceerd en volledig softwarematig gecontroleerd; installatie
+blokkeert op de native GitHub-catalogusverbinding. [Actuele blokkade](BETA5-INSTALL-BLOCKER-20261027.json).
+Beta.4 blijft native geïnstalleerd en onafhankelijk geaccepteerd:
 [dertien installatiechecks](update-acceptance/e32-beta4-20261026.json).
 De actuele uitvoeringsvolgorde staat in [NEXT-RELEASE](NEXT-RELEASE.nl.md).
 De oudere voortgangsnotities blijven ongewijzigd in de

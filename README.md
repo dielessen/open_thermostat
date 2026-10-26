@@ -6,9 +6,10 @@ Developed independently by **Mark Dielessen**.
 
 Set up rooms, select your Home Assistant devices, edit weekly schedules and
 inspect what your boiler reports. The control and learning software is being
-extended towards coordinated heating. **Automatic boiler and valve outputs remain disabled.** Beta.4 provides a
-separate attended boiler trial with setup confirmations and an independent local
-stop. Installation acceptance does not qualify automatic heating.
+extended towards coordinated heating. **E32 beta.5 includes an attended
+Ecomline Classic boiler trial. Automatic boiler and valve control remain
+disabled.** Each trial requires local setup checks, a fresh boiler-gauge reading
+and a separate start action. Physical installation acceptance remains open.
 
 [Downloads](https://github.com/dielessen/open_thermostat/releases) ·
 [Features](#features) · [Roadmap](#roadmap) · [Screenshots](#screenshots) ·
@@ -20,7 +21,7 @@ stop. Installation acceptance does not qualify automatic heating.
 
 | Component | Version | Channel |
 | --- | --- | --- |
-| E32 V2 firmware | [v0.1.0-e32v2-beta.4](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-beta.4) | Pre-release |
+| E32 V2 firmware | [v0.1.0-e32v2-beta.5](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-beta.5) | Pre-release |
 | Home Assistant integration | [0.4.0b3](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0b3) | Pre-release |
 
 Firmware and the HA integration are separate downloads. Read each release’s
@@ -29,22 +30,26 @@ changes, compatibility notes and installation instructions before updating.
 To build the published E32 firmware, start from its exact tag:
 
 ```sh
-git clone --branch v0.1.0-e32v2-beta.4 https://github.com/dielessen/open_thermostat.git
+git clone --branch v0.1.0-e32v2-beta.5 https://github.com/dielessen/open_thermostat.git
 ```
 
 <!-- openthermostat-readme-releases:end -->
 
-Published packages and installation acceptance are tracked separately. E32 beta.4
-has been installed and independently checked with HA0.4.0b1. A subsequent
-attended zero-demand trial received later stop feedback; positive heating and
-physical commissioning remain open.
+Published packages and installation acceptance are tracked separately. E32
+beta.4 has been installed through the native updater and independently checked,
+including its new boot, exact firmware identity and retained configuration.
+The installed HA integration remains 0.4.0b1; HA 0.4.0b3 is the latest published
+HA package. The attended physical boiler trial is a separate next step.
+[Installation acceptance](https://github.com/dielessen/open_thermostat/blob/review/mark-vscode-20261021/docs/modern-thermostat/update-acceptance/e32-beta4-20261026.json).
 
-**Next release:** E32 beta.5 is in preparation. It consolidates boiler entities
-and settings on Boiler test, distinguishes entity access and improves update
-error diagnostics. The owner-requested trial extension to50°C for ten minutes
-is being verified; it requires new firmware and is not installed. Automatic
-control and persistent settings writes remain disabled. No new HA package is
-required. [Current release work](docs/modern-thermostat/NEXT-RELEASE.nl.md).
+**E32 beta.5:** supports an attended 50 °C demand for ten minutes, with repeated
+setpoints, a fixed deadline and a separate stop. Boiler test now contains all
+received entities, settings and protocol references, with explicit read-only,
+configurable and command labels. Update diagnostics distinguish failed checks,
+installation failures and transport errors. Bluetooth discovery retains its
+scrollable 128-address list; eight saved sensor bindings remain separate.
+No new HA package is required. Persistent boiler-setting writes and automatic
+boiler/valve control remain disabled. [Current release work](https://github.com/dielessen/open_thermostat/blob/review/mark-vscode-20261021/docs/modern-thermostat/NEXT-RELEASE.nl.md).
 
 ## Features
 
@@ -75,13 +80,13 @@ are visible, but physical valve commands and fresh causal feedback remain open.
 | --- | --- |
 | Boiler brand/model selection | **Available:** catalogue with 60 choices, EMS-ESP product groups and official model references. Listing a model does not qualify a new driver. Product images are hosted outside the ESP. |
 | Passive EMS reception | **Available:** Classic boiler messages, temperatures, targets, modulation and other supported fields. Coverage depends on the boiler and messages actually received. |
-| EMS devices page | **Available:** devices, entities, source quality, age, search and retained open details; English and Dutch. No active scan. |
+| Boiler entities and settings | **Available on Boiler test:** received devices/values and protocol references, access labels and filters, plus all 258 pinned EMS-ESP boiler definitions. E32 support and write permission are shown separately. Existing EMS devices links redirect here. |
 | Classic and EMS Plus | Decoder foundations **available**; field coverage is model dependent. This is not full EMS-ESP parity. |
 | Boiler values in HA | **Available:** 69 Classic field definitions, quality and source age, with an overview and three history charts. Reported and derived values stay separate. |
 | Data quality | **Available:** measured, derived, stale, unreliable and unavailable values remain distinguishable. |
-| Boiler diagnostics | Passive reception, protocol information, counters and report download **available**. A separate attended Classic trial is available in beta.4 (40–45°C, at most60seconds). |
-| Heating demand, modulation and weather compensation | Calculations and policies **prepared**. Physical EMS control, full outside-source setup, flow conditions and installation tests remain open. |
-| Boiler settings | Writable-entity metadata is inventoried. Four Classic settings have a guarded source implementation: heating enabled, heating temperature, minimum burner period and pump delay. **Physical writes remain disabled.** This does not provide all writable EMS-ESP entities. |
+| Boiler diagnostics | Passive reception, protocol information, counters and report download **available**. Beta.5 supports an attended Ecomline Classic trial at 40–50 °C for up to ten minutes: zero baseline, separate start, supervision and Stop. Physical qualification remains open. |
+| Heating demand, modulation and weather compensation | Calculations and policies **prepared**. Automatic EMS regulation, full outside-source setup, flow conditions and installation tests remain open. The attended trial uses its own guarded route. |
+| Boiler settings | Writable-entity metadata is inventoried. Four Classic settings have a guarded source implementation: heating enabled, heating temperature, minimum burner period and pump delay. **Persistent setting writes remain disabled.** This does not provide all writable EMS-ESP entities. |
 | Domestic hot water | **Readout where supported.** Model-specific control is planned. |
 | Underfloor heating and mixed emitters | Group limits and control foundations **prepared**; active valve, pump and mixer routes require separate hardware acceptance. |
 
@@ -90,11 +95,6 @@ the controller's intention. Neither proves that a command was sent or accepted.
 The current Ecomline Classic installation has no digital pressure sensor; no
 synthetic pressure reading is substituted.
 
-**Available in E32 beta.4:** an attended Ecomline Classic commissioning
-trial with a zero-demand baseline, fresh boiler-gauge input and bounded heat
-demand, plus a scrollable Bluetooth discovery list for up to 128 addresses.
-See the [published beta.4 release](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-beta.4).
-
 ### Home Assistant and daily use
 
 | Feature | Current status |
@@ -102,7 +102,7 @@ See the [published beta.4 release](https://github.com/dielessen/open_thermostat/
 | Native HA integration | **Available:** room pages, configuration, climate controls and weekly planner. Uses a local MQTT broker. |
 | E32 web interface | **Available:** setup, room overview, calculated demand, boiler values, diagnostics and device management. |
 | English and Dutch | **Available:** English default and fallback; E32 language selection and native HA translations. Stored dashboard text falls back to English. |
-| Local Bluetooth diagnostics | **Delivered:** Shelly BLU H&T Display ZB, Xiaomi Monitor 3 / MJWSD05MMC with bindkey, and Shelly BLU TRV diagnostic profiles. Private keys are stored separately and are not read back. Device acceptance, GATT valve control and use as a heating source remain open. |
+| Local Bluetooth diagnostics | **Delivered:** Shelly BLU H&T Display ZB, Xiaomi Monitor 3 / MJWSD05MMC with bindkey, and Shelly BLU TRV diagnostic profiles. The scrollable discovery list includes up to 128 received addresses, including unnamed devices; eight saved sensor bindings remain separate. Private keys are stored separately and are not read back. Device acceptance, GATT valve control and use as a heating source remain open. |
 | History and CSV | **Available:** read-only recorder views and exports for day/week/month periods up to 31 days. |
 | ESP/EMS logs and syslog | **Available:** view, filter and download local logs; independently forward ESP/EMS sources to an RFC5424 UDP collector. External syslog is off by default. |
 | Updates and recovery | **Available:** web login/logout, About, restart under Settings, HTTPS updates and recovery routes. Normal application updates preserve settings. |
@@ -116,8 +116,8 @@ complete physical failure tests for HA, MQTT, sensors and the E32 remain open.
 ## Roadmap
 
 1. Qualify original room measurements and physical valve commands with fresh feedback.
-2. Qualify the E32/converter/boiler chain and complete a separately authorized,
-   bounded start/stop trial before enabling active heating.
+2. Qualify the E32/converter/boiler chain through a separately authorized,
+   attended start/stop trial, then complete the evidence required for automatic heating.
 3. Finish normal user flows for central settings, comfort modes, outside sources,
    and window **and door** contacts with per-room status and recovery.
 4. Add qualified devices, multiple valves per room, eight tested zones and

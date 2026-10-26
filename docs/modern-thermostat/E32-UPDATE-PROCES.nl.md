@@ -1,5 +1,12 @@
 # Verplicht update- en acceptatieproces per E32-release
 
+**Actueel27 oktober:** beta.5 is gepubliceerd en exact gecontroleerd, maar nog
+niet geïnstalleerd. De native cataloguscontrole faalt met GitHub/HTTPS-code-1;
+er is geen installatieopdracht verstuurd. Beta.4 blijft de geaccepteerde versie.
+Twaalf beperkte back-upexports zijn gecontroleerd. Eén herstelherstart is
+voorgesteld; toestemming staat nog open. De onderstaande oudere checkpoints
+vervangen deze actuele stand niet. [Blokkadebewijs](BETA5-INSTALL-BLOCKER-20261027.json).
+
 **Latere proefwaarneming:** na de installatieacceptatie toont een nieuwe directe
 lezing een afgeronde configuratie-uitlezing en nulvraagproef met gemelde stop:
 3 voltooide buswisselingen, 0 antwoordfouten, 2 nulframes en 0 positieve frames.

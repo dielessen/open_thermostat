@@ -1,18 +1,22 @@
 # Volgende gezamenlijke bèta — actueel uitvoeringsplan
 
-**Actuele opdracht 26 oktober, na bewijsherstel:** de eigenaar vraagt expliciet
-beta.4 uit te brengen en te installeren ondanks ontbrekende historische beta.3-
-receipts. Twee directe lezingen bevestigen de exacte openbare beta.3, dezelfde
-boot met oplopende uptime (36.112 → 36.117 s), bevestigd boot-slot en nul E32-TX.
-De gebruiker heeft geen vooraf bewaarde back-up of installatieverslag.
-[Herstelde toestand](BETA3-RECOVERED-STATE-20261026.json) blijft voor volledige
-historische acceptatie INCOMPLETE. De [eigenaarsopdracht](BETA4-OWNER-INSTRUCTION-20261026.json)
-activeert één publicatie-uitzondering voor beta.4; beta.1-acceptatie blijft bewaard.
-De definitieve tag wordt volledig gecontroleerd. Vóór de gevraagde installatie
-worden een verse back-up en de oorspronkelijke beta.4-responsen vastgelegd;
-daarna volgt de onafhankelijke nacontrole. Er is geen ketelproef uitgevoerd of
-met deze installatieopdracht toegestaan. Oudere blokkades hieronder zijn
-historische checkpoints en worden door deze expliciete opdracht opgevolgd.
+**Actuele stand 26 oktober:** beta.4 uit `9ecb4da` is gepubliceerd en via één
+native GitHub-update geïnstalleerd. Alle negen exacte-tag-CI-validatiejobs en
+2.250 onafhankelijke pakketcontroles slagen. De [installatieacceptatie](update-acceptance/e32-beta4-20261026.json)
+legt alle 13 checks vast: oorspronkelijke HTTP202, twaalf nagelezen beperkte
+API-back-ups, nieuwe bevestigde boot, juiste versie/bron/ELF/web, instellingen-
+/programma-/SOURCE-/bindingbehoud en afzonderlijke onafhankelijke HA-nacontrole.
+HA blijft 0.4.0b1 op Core2026.10.4; SOURCE6 en fysieke projectuitgangen blijven
+behouden respectievelijk uit. De normale acceptatiepoort staat nu op beta.4,
+zonder pending-tag of actieve publicatie-uitzondering. Het ontbrekende historische
+beta.3-bewijs blijft INCOMPLETE; de expliciete eigenaarsopdracht is bewaard.
+De handmatige proefbediening en Bluetoothcapaciteit128 zijn op de E32 teruggelezen;
+er is nog geen ketelproef uitgevoerd. Een latere automatische cataloguscontrole
+meldde GitHub/HTTPS-verbindingsfout -1; dezelfde bevestigde beta.4 bleef draaien
+met nul zendframes. Deze afzonderlijke verbindingsmelding is nog niet opgelost.
+Opschoning verwijderde vier caches en twee hash-gecontroleerde oude downloadpaden
+(ongeveer248MB vrij); broncode, back-ups en receipts zijn behouden. Oudere
+voorbereidings- en blokkeringsnotities hieronder zijn historische checkpoints.
 
 
 Bijgewerkt op 26 oktober 2026. Status: **softwarecontrole geslaagd; publicatie

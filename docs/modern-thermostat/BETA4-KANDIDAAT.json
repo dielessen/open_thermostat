@@ -2,7 +2,7 @@
   "schema": 1,
   "date": "2026-10-26",
   "planned_tag": "v0.1.0-e32v2-beta.4",
-  "state": "FROZEN_PENDING_EXACT_TAG_CI",
+  "state": "PUBLISHED_INSTALLED_ACCEPTED",
   "component": "e32_firmware_only",
   "previous_published_tag": "v0.1.0-e32v2-beta.3",
   "unchanged_ha_tag": "ha-v0.4.0b3",
@@ -43,13 +43,13 @@
     "Previous update acceptance receipt validated before changing pending_tag",
     "Exact final source/version freeze and full CI/public package verification"
   ],
-  "publication_state": "OWNER_AUTHORIZED_PENDING_EXACT_TAG_CI",
-  "runtime_actions_performed": false,
+  "publication_state": "PUBLISHED_INSTALLED_ACCEPTED",
+  "runtime_actions_performed": true,
   "source_ci": {
-    "commit": "27bb535c78cc227be9ba1bd2a3fcd1d3775be2ca",
-    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40379881348",
+    "commit": "9ecb4da0f052b82efb99cdda75679ba67d3299ac",
+    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40401590713",
     "conclusion": "success",
-    "scope": "Pre-freeze source including attended Ecomline Classic commissioning, 128-device Bluetooth discovery and corrected package instructions; all nine validation jobs passed; publication jobs skipped; not installation or physical trial acceptance"
+    "scope": "All9 exact-tag validation jobs and publication passed; actual native installation separately accepted with13 checks"
   },
   "writable_boiler_inventory": "docs/modern-thermostat/BOILER-WRITE-INVENTORY.json",
   "prepared_settings_backend": {
@@ -244,5 +244,7 @@
     "active_exception": null,
     "operator_decision_required": true
   },
-  "owner_instruction": "docs/modern-thermostat/BETA4-OWNER-INSTRUCTION-20261026.json"
+  "owner_instruction": "docs/modern-thermostat/BETA4-OWNER-INSTRUCTION-20261026.json",
+  "acceptance_receipt": "docs/modern-thermostat/update-acceptance/e32-beta4-20261026.json",
+  "actual_installed_firmware": "v0.1.0-e32v2-beta.4"
 }

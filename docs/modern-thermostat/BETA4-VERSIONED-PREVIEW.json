@@ -1,41 +1,31 @@
 {
   "schema": 1,
-  "state": "VERIFIED_DRAFT",
+  "state": "PUBLISHED_INSTALLED_ACCEPTED",
   "branch": "release/e32v2-beta4-candidate",
-  "source_commit": "daf01fcd1a7aa45b1931812ca38996618ed493ff",
+  "source_commit": "9ecb4da0f052b82efb99cdda75679ba67d3299ac",
   "version": "v0.1.0-e32v2-beta.4",
   "draft_pr": "https://github.com/dielessen/open_thermostat/pull/2",
   "development_branch": "review/mark-vscode-20261021",
-  "development_version": "v0.1.0-e32v2-beta.3",
-  "formal_freeze": false,
-  "merged_into_development": false,
+  "development_version": "v0.1.0-e32v2-beta.4",
+  "formal_freeze": true,
+  "merged_into_development": true,
   "ci": {
-    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40386250477",
+    "run": "https://github.com/dielessen/open_thermostat/actions/runs/40401590713",
     "conclusion": "success",
     "validation_jobs_passed": 9,
-    "validation_jobs": [
-      "browser-regressions",
-      "source-reproduction",
-      "home-assistant-native",
-      "manual-route-compile",
-      "settings-route-compile",
-      "build (e32v2)",
-      "build (esp32dev)",
-      "build (esp32s3)",
-      "build (native)"
-    ]
+    "publication_job": "success"
   },
   "package": {
-    "independent_checks": 2240,
+    "independent_checks": 2250,
     "artifact_id": 12680687819,
     "firmware_bytes": 2877856,
-    "firmware_sha256": "757ca4f7efa289b705f2bd489ecfbfc6b315e1664129f1a0a1fecb5a0056de47",
+    "firmware_sha256": "1f9d49c93922acdd0bb23b5e74643761fdd0dc76af516e068bb4f17535528a01",
     "web_sha256": "ae8db6e10a85c3e309323ff5f8a27fb4b422ce0acb5ca9e3fe5f8446b4ac32ef",
-    "manifest_sha256": "a28b5fdafdece73f85ed8ac0afa294422c33acc97745b273ecea5dee4d8de584",
-    "archive_sha256": "e9eb175658d7b877369ccb4c9fa6ca468645494d378ea4007595c327f8de77f5",
+    "manifest_sha256": "de3abaa1334ec585695031d7e5d7870a5bdcf466854f6e80922d933f352897f3",
+    "archive_sha256": "a1c062b912ef9336b7d66479519acc8767f3f6099d9b9c0519e637b16690588e",
     "original_alpha36_updater": "PASS_HOST_ONLY",
     "accepted_beta1_updater": "PASS_HOST_ONLY",
-    "physical_update_tested": false
+    "physical_update_tested": true
   },
   "scroll_test": {
     "fixed": "Wait for the complete keyboard scroll animation and an actual refreshed RSSI; verify the last device is inside the viewport",
@@ -44,53 +34,16 @@
     "previous_ci_failure": "One-pixel animation race in the test at eaa85ec; no production UI change"
   },
   "publication": {
-    "allowed": false,
-    "accepted_predecessor": "v0.1.0-e32v2-beta.1",
-    "pending_tag": "v0.1.0-e32v2-beta.4",
-    "blocker": "Exact final tag CI and public package verification pending; owner authorized release and installation despite historical beta.3 evidence gap",
-    "tag_created": false,
-    "release_published": false,
-    "device_installation_performed": false,
+    "allowed": true,
+    "tag_created": true,
+    "release_published": true,
+    "device_installation_performed": true,
     "boiler_trial_performed": false,
-    "recovery_plan": {
-      "state": "CURRENT_STATE_RECOVERED_OWNER_DIRECTED_BETA4_INSTALL",
-      "check_groups": {
-        "public_software_reference": [
-          "public_package_exact"
-        ],
-        "original_installation_records_required": [
-          "fresh_preflight_passed",
-          "backup_verified",
-          "single_native_install_command",
-          "original_admission_recorded"
-        ],
-        "current_reads_plus_original_comparison_required": [
-          "download_checksum_image_readback_passed",
-          "new_boot_observed",
-          "settings_programs_bindings_preserved",
-          "outputs_remained_disabled"
-        ],
-        "authenticated_current_reads_and_independent_review": [
-          "installed_version_source_elf_web_exact",
-          "boot_confirmed",
-          "stable_uptime_observed",
-          "independent_postcheck_passed"
-        ]
-      },
-      "current_status_exports_scope": "Version/source/ELF/web and present boot state; original preflight, backup and command/admission records cannot be reconstructed from these exports.",
-      "two_status_exports_complete_installation_acceptance": false,
-      "original_evidence_status": "Not found in the available evidence; this does not establish that external original records do not exist.",
-      "available_routes": [
-        "Recover original beta.3 records and complete the authenticated read-only postcheck",
-        "Prepare a separately reviewable one-time exception proposal; no publication or gate change is authorized by choosing proposal preparation"
-      ],
-      "existing_gate_unchanged": false,
-      "beta3_marked_accepted": false,
-      "exception_approved": true,
-      "policy_source": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md",
-      "owner_instruction": "docs/modern-thermostat/BETA4-OWNER-INSTRUCTION-20261026.json",
-      "current_recovery_report": "docs/modern-thermostat/BETA3-RECOVERED-STATE-20261026.json"
-    }
+    "accepted_predecessor": "v0.1.0-e32v2-beta.4",
+    "pending_tag": null,
+    "acceptance_receipt": "docs/modern-thermostat/update-acceptance/e32-beta4-20261026.json",
+    "original_beta3_acceptance_status": "INCOMPLETE",
+    "owner_instruction": "docs/modern-thermostat/BETA4-OWNER-INSTRUCTION-20261026.json"
   },
   "storage": {
     "temporary_package_download_removed": true,
@@ -108,5 +61,31 @@
     "http_status": 401,
     "result": "STORED_SESSION_NOT_AUTHORIZED",
     "scope": "Historical expired-session result; superseded by the authenticated direct observations in BETA3-RECOVERED-STATE-20261026.json"
+  },
+  "previous_review_candidate": {
+    "source_commit": "daf01fcd1a7aa45b1931812ca38996618ed493ff",
+    "draft_pr": "https://github.com/dielessen/open_thermostat/pull/2",
+    "ci": {
+      "run": "https://github.com/dielessen/open_thermostat/actions/runs/40386250477",
+      "conclusion": "success",
+      "validation_jobs_passed": 9,
+      "validation_jobs": [
+        "browser-regressions",
+        "source-reproduction",
+        "home-assistant-native",
+        "manual-route-compile",
+        "settings-route-compile",
+        "build (e32v2)",
+        "build (esp32dev)",
+        "build (esp32s3)",
+        "build (native)"
+      ]
+    }
+  },
+  "later_catalog_observation": {
+    "status": "OPEN_OBSERVATION",
+    "uptime_seconds": 406,
+    "error": "GitHub/HTTPS antwoord -1; controleer internet, tijd en API-limiet.",
+    "response_sha256": "5b583c44ebe773e06a1a66bea0b65d054120b5098f1f978c16c5ca73393236df"
   }
 }

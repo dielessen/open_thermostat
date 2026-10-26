@@ -2,8 +2,8 @@
   "schema": 1,
   "as_of": "2026-10-26",
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
-  "release_state": "NOT_READY",
-  "installed_firmware": "v0.1.0-e32v2-beta.3",
+  "release_state": "SOFTWARE_INSTALLED_PHYSICAL_TRIAL_PENDING",
+  "installed_firmware": "v0.1.0-e32v2-beta.4",
   "installed_ha": "0.4.0b1",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
   "items": [
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "d0743a7e574a6ccf8789084a1da14cd8a759e53b30d8cf2ff24d06894cfea4ff"
+          "sha256": "4d7e19addf3751d7b1c54ec4ab2febaf40ea74a3da6fa21d4e9a54a09022b39c"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -143,7 +143,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA4-KANDIDAAT.json",
-          "sha256": "83835ee1f1dd8f09c49037025017112d71a236502daef3b535ba486b10e814a2"
+          "sha256": "c40b421f3f6d7e0da06a924937a370de1660c50a42cc8ffbf4774b330cb8f6fe"
         },
         {
           "path": "docs/modern-thermostat/BETA4-RELEASE-NOTES-DRAFT.nl-en.md",
@@ -191,7 +191,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-GATE.json",
-          "sha256": "3b8da557fe3570f5ef8bc8085976f4ff9f8d2200bbb1e4a6d5b16a336658c4a1"
+          "sha256": "03b789da55dca4cac9eba430a4fb484262311e88080fde785b48294d82141b18"
         },
         {
           "path": "docs/modern-thermostat/BETA3-PUBLICATION-EXCEPTION-PROPOSAL.json",
@@ -329,7 +329,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md",
-          "sha256": "8ff3b16465036745566864092f1e667d863eb75a5a73592e63ca79ba365fd110"
+          "sha256": "30b242fb856a5aa7d2cc1076fbd21ba69bc43651cf84646a1a7d2bc230b785f0"
         },
         {
           "path": "docs/modern-thermostat/INSTALLATIE-E32-ALPHA36-20261025.nl.md",
@@ -2049,7 +2049,7 @@
         },
         {
           "path": "docs/modern-thermostat/ECOMLINE-PRE-TX-ACCEPTATIE.nl.md",
-          "sha256": "bd8b89f664524112dc33ec0f1308e950491bb901b37f6324e02ae4abcae58302"
+          "sha256": "54efac19bd20aa73ad7aead7faa6d74db509100734eb331e52448a7edd536b09"
         },
         {
           "path": "src/EMS/ClassicEchoUartWrite.h",

@@ -1,5 +1,12 @@
 # Ecomline Classic HRC 22H — acceptatie vóór fysieke TX
 
+**Actuele softwarestand26oktober:** beta.4 is native geïnstalleerd en onafhankelijk
+geaccepteerd; de handmatige commissioningroute is beschikbaar. Algemene regeling
+en blijvende instellingenwrites blijven uit. De fysieke proef is nog niet
+uitgevoerd. De hieronder beschreven RX-only-/nog-niet-gepubliceerd-checkpoints
+zijn historisch. Gebruik de [actuele proefvolgorde](BETA1-KETELPROEF.nl.md#actuele-beta4-voorbereiding-bediende-commissioningproef).
+
+
 Actuele ontwikkelroute: beta.4 krijgt een expliciete, bediende Classic-
 commissioningproef met een nieuwe manometerwaarde en opstellingsverklaringen
 per warmtevoorbereiding. De bron kwalificeert hiermee geen fysieke installatie.

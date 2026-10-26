@@ -2,12 +2,15 @@
 
 ## Actuele beta.4-voorbereiding: bediende commissioningproef
 
-De huidige ontwikkelbron bevat de echte afzonderlijke proefroute. Beta.4 is nog
-niet bevroren, gepubliceerd of geïnstalleerd. De onderstaande oudere checkpoints
-beschrijven de passieve voorbereiding; de actuele proefvoorwaarden zijn:
+Beta.4 is gepubliceerd, native geïnstalleerd en onafhankelijk geaccepteerd op
+26 oktober. [Installatiebewijs](update-acceptance/e32-beta4-20261026.json).
+De afzonderlijke handmatige proefroute is aanwezig; er is nog geen fysieke proef
+uitgevoerd. De onderstaande oudere checkpoints beschrijven de passieve
+voorbereiding; de actuele proefvoorwaarden zijn:
 
 1. Controleer na de toegelaten installatie de exacte versie/bron en bevestigde
-   boot. De eerdere beta.3-installatieacceptatie blijft afzonderlijk open.
+   boot; dit is voor beta.4 afgerond. De eerdere beta.3-installatieacceptatie
+   blijft als historische lacune afzonderlijk open.
 2. Bedien de proef lokaal en houd een onafhankelijke fysieke stop beschikbaar.
    Koppel Tado als schrijver los en houd de vereiste radiatoren/afgifte open.
    Bevestig uitsluitend voorwaarden die op dat moment werkelijk gelden.
@@ -16,7 +19,9 @@ beschrijven de passieve voorbereiding; de actuele proefvoorwaarden zijn:
    ontbreken of ouder dan tien minuten zijn. Er volgt één begrensde leesopdracht.
 4. Voer eerst de **nulvraagproef** uit. Kijk naar de echte latere stopmelding;
    een verzonden frame, HTTP-antwoord of oude nulwaarde is geen stopbewijs.
-5. Voor warmte: verklaar het open afgiftepad, lees de ketelmanometer en voer de
+5. Voor warmte moet de gemeten aanvoer onder50°C liggen (profielvenster5–<50°C).
+   Wacht bij een hete ketel op afkoeling; niet door de blokkade heen bedienen.
+   Verklaar het open afgiftepad, lees de ketelmanometer en voer de
    waarde in bar in (1,1–2,5). Bereid bijvoorbeeld **40 °C, 10 seconden** voor.
    Deze voorbereiding doet opnieuw een nulvraag en wacht op een latere stopmelding.
    De manometerverklaring geldt maximaal twee minuten en moet per proef opnieuw.

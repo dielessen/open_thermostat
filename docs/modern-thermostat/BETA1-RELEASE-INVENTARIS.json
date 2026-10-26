@@ -59,11 +59,11 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
-          "sha256": "174205aaeffba98653d4086a18ec85a55d19d5eac0b62564f704adc4847860fe"
+          "sha256": "714c70dee8cf344ce2bb55452a873ff8ea63b106bc8b4696c2d5603d74e3b4e2"
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
-          "sha256": "4b0ba28985f49fd33fcef90c9b31226782dc00865115ab03c75e15480ed220b9"
+          "sha256": "5f83f5906d04e7deb3412345df5e67389e4cf372e9cc8e42e421cddc38e1ba95"
         },
         {
           "path": "docs/modern-thermostat/USER-RELEASE-NOTES.json",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "0547acc4962964cc0d5324111e9ddcf75b99e2f058fb861f7db98ef485b475c3"
+          "sha256": "4477bde0aeb73449745cd2f90e846afa88607509a7977d7bfd374e3082595f06"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -851,7 +851,7 @@
         },
         {
           "path": "test/logging_runtime/main.cpp",
-          "sha256": "3e84728495f6d99acda43fdfcfe1c290c1682d1d176293e429e04838bc7df246"
+          "sha256": "9909ce91d033f91b65bf4fb8af068c9571dcf1fb9a5621985cb837f3b20fc876"
         },
         {
           "path": "src/control/DeviceDiagnostics.h",

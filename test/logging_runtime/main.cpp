@@ -37,7 +37,8 @@ int main(){
     socklen_t size=sizeof(local);assert(getsockname(receiver,reinterpret_cast<sockaddr*>(&local),&size)==0);
     timeval timeout{0,200000};assert(setsockopt(receiver,SOL_SOCKET,SO_RCVTIMEO,&timeout,sizeof(timeout))==0);
     LogRuntime runtime;runtime.begin();assert(runtime.storageReady&&!runtime.log.settings().enabled);
-    Settings s;s.enabled=true;s.port=ntohs(local.sin_port);std::strcpy(s.server.data(),"127.0.0.1");
+    // This transport scenario exercises EMS explicitly; the product default is ESP-only.
+    Settings s;s.enabled=true;s.syslogEms=true;s.port=ntohs(local.sin_port);std::strcpy(s.server.data(),"127.0.0.1");
     assert(runtime.save(s));assert(loadSettings()&&settingsJson(*loadSettings())==settingsJson(s));
     runtime.poll(true,"heatingtest"); // Explicit current network availability, no packet yet.
     auto sink=std::make_shared<MemorySink>();BufferedLogger logger({sink},runtime.log,uptimeMs);

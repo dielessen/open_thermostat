@@ -1,4 +1,4 @@
-# E32 V2 beta2 — bediening, diagnose en updateherstel
+# E32 V2 beta3 — bediening, diagnose en updateherstel
 <!-- user-release-notes:v1 -->
 
 ## Nieuw
@@ -17,7 +17,7 @@
 
 ## Bijwerken en gebruik
 
-Gezamenlijke kandidaat met HA 0.4.0b2. Werk bij via de bestaande GitHub-updater; controleer na de nieuwe boot versie, bron en instellingenbehoud. Publicatie alleen bewijst geen installatie.
+Gezamenlijke kandidaat met HA 0.4.0b3. Werk bij via de bestaande GitHub-updater; controleer na de nieuwe boot versie, bron en instellingenbehoud. Publicatie alleen bewijst geen installatie.
 
 Dit is een passieve bèta: fysieke ketel-/kraansturing en automatische verwarming blijven geblokkeerd. De gebruiker bevestigt dat zijn Ecomline Classic HRC 22H geen digitale druksensor heeft. De huidige warmteproefguard vereist digitale druk nog wel; de modelgebonden aanpassing en passende afzonderlijke drukcontrole zijn nog open. Er wordt geen fictieve drukmeting toegevoegd. Ook zender-, installatie- en stopkwalificatie blijven open.
 
@@ -25,7 +25,7 @@ Dit is een passieve bèta: fysieke ketel-/kraansturing en automatische verwarmin
 
 Adds alphabetical boiler selection, searchable EMS devices/reference, Bluetooth discovery and clearer logs. Fixes verified Bluetooth storage, update retry/status handling and EMS decoding. Prepares bounded configuration reading and manual bus-transaction closure; physical transmission stays disabled.
 
-Pair with HA 0.4.0b2 and verify the new boot and preserved settings. This release does not enable boiler/valve control or automatic heating. The user's boiler has no digital pressure sensor; adapting the existing heat-trial guard and recording an appropriate separate pressure check remain open work.
+Pair with HA 0.4.0b3 and verify the new boot and preserved settings. This release does not enable boiler/valve control or automatic heating. The user's boiler has no digital pressure sensor; adapting the existing heat-trial guard and recording an appropriate separate pressure check remain open work.
 
 # E32 V2 beta1 — grote bundel voor ontvangst, bediening en herstel
 <!-- user-release-notes:v1 -->

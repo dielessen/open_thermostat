@@ -27,7 +27,7 @@ ze zijn geen afgevinkte functie doordat er voorbereidende code aanwezig is.
 | Geïnstalleerde E32 | `v0.1.0-e32v2-beta.1`, bron `5e3ed30`; passieve basis |
 | Geïnstalleerde HA-integratie | `0.4.0b1`, gezamenlijke basis `5e3ed30` |
 | Voorbereide bron | Huidige branch, inclusief eenmalige configuratie-uitlezing, afzonderlijke busafsluiting en alle eerdere voorbereide wijzigingen |
-| Nieuwe gezamenlijke kandidaat | E32 beta.2 / HA 0.4.0b2 in voorbereiding op gebruikersopdracht; exacte nieuwe CI-/pakketcontrole, publicatie en installatie nog te bewijzen. Passieve release, geen vrijgave van warmteproeven |
+| Nieuwe gezamenlijke kandidaat | E32 beta.3 / HA 0.4.0b3 in voorbereiding op gebruikersopdracht; exacte nieuwe CI-/pakketcontrole, publicatie en installatie nog te bewijzen. Passieve release, geen vrijgave van warmteproeven |
 | Algemene en handmatige fysieke TX | Beide uit; geen runtime- of buildflag-ontgrendeling |
 | Warmte-installatievrijgave | `manualHeatInstallationReviewed_ = false` |
 
@@ -312,3 +312,14 @@ EMS-ESP-dekking. Het ketelprofiel mag ontvangen ondersteunde velden niet beperke
   [notitieproces](RELEASE-NOTES-PROCES.nl.md).
 - Alle details en oudere checkpoints blijven vindbaar in de
   [historie](NEXT-RELEASE-HISTORY-20261026.nl.md); die is geen actuele afvinklijst.
+
+## Kandidaatcontrole 26 oktober — b2 afgekeurd
+
+Commit `07a9937` doorstaat boards/pakket, browser, bronreproductie en alle
+2.450 HA-checks op elk van Core2026.10.2/.3/.4. De uitgebreide native CI
+faalt in de logging-runtimefixture: die verwacht EMS-syslog terwijl de fixture
+de standaard uitgeschakelde EMS-bron niet inschakelt. De productstandaard
+ESP-aan/EMS-uit blijft behouden; de fixture kiest EMS nu expliciet en slaagt
+lokaal met de echte loopback-UDP-/NVS-/SDK-hooktest. Beide b2-publicatieruns
+zijn geannuleerd; tags blijven ongewijzigd. De herstelde gezamenlijke kandidaat
+is beta.3 / HA0.4.0b3 en vereist eigen volledige tag-CI en pakketcontrole.

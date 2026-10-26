@@ -1,4 +1,4 @@
-# HA 0.4.0b2 — oorspronkelijke meetdiagnose en veldexport
+# HA 0.4.0b3 — oorspronkelijke meetdiagnose en veldexport
 <!-- user-release-notes:v1 -->
 
 ## Nieuw
@@ -13,7 +13,7 @@
 
 ## Bijwerken en gebruik
 
-Installeer `OpenThermostat-HA-0.4.0b2.zip` via de bestaande HA-beheerroute met back-up en nacontrole. Deze kandidaat hoort bij E32 beta2; kamers, programma's en entiteitidentiteiten blijven behouden. Het optionele oorspronkelijke Zigbee-ontvangstpakket blijft een afzonderlijke installatie.
+Installeer `OpenThermostat-HA-0.4.0b3.zip` via de bestaande HA-beheerroute met back-up en nacontrole. Deze kandidaat hoort bij E32 beta3; kamers, programma's en entiteitidentiteiten blijven behouden. Het optionele oorspronkelijke Zigbee-ontvangstpakket blijft een afzonderlijke installatie.
 
 Geen fysieke ketel-/kraanvrijgave of automatische verwarming. De bevestigde Ecomline-opstelling heeft geen digitale druksensor; onbekende druk wordt niet door een verzonnen waarde vervangen. Aanpassing van het warmteproefprofiel blijft open.
 
@@ -21,7 +21,7 @@ Geen fysieke ketel-/kraanvrijgave of automatische verwarming. De bevestigde Ecom
 
 Adds original native boiler-field diagnostics/export including raw values, quality, source telegrams, original timestamps and expiry. Separates missing/invalid/stale data from connection loss and filters invalid measurements without discarding supported real zeroes.
 
-Install the HA ZIP through the existing administration route with backup and verification; pair with E32 beta2. Rooms, schedules and entity identities are preserved. The optional Zigbee companion remains separate. No physical boiler/valve control is enabled, and no digital pressure reading is invented for the user's boiler without that sensor.
+Install the HA ZIP through the existing administration route with backup and verification; pair with E32 beta3. Rooms, schedules and entity identities are preserved. The optional Zigbee companion remains separate. No physical boiler/valve control is enabled, and no digital pressure reading is invented for the user's boiler without that sensor.
 
 # HA 0.4.0b1 — opstartherstel, maandexport en betrouwbare meetverwerking
 <!-- user-release-notes:v1 -->

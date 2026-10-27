@@ -53,16 +53,21 @@ boiler/valve control remain disabled. [Current release work](https://github.com/
 
 ## Features
 
-**In development for beta.6:** smaller compressed web downloads, conditional
-browser caching, page modules loaded when needed, and one shared boiler-data
-request. Stalled session replies time out through their response body so page data can recover. Dashboard and boiler telemetry reuse the same bounded PSRAM response buffer. Hidden dashboard, Bluetooth, updater and log pages stop polling and cancel their pending status reads. Native MQTT broker DNS
-resolution and TCP opening return control to the main loop; ordinary socket
-writes have a bounded wait. Disabled syslog also skips repeated loop work; local and serial logging keep their independent filters. System log exposes
-loop interval counters for checking delays after installation. The revised
-boiler page presents one received-entity table per device and a shorter
-read/prepare/start/stop workflow. These changes are tested in software and have
-not been installed or timed on the E32 yet.
-[Performance measurements and review](docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md).
+**In development for beta.6:**
+
+- Compressed, revalidated web assets and page modules loaded when needed. Boiler
+  panels share one data request; dashboard and telemetry reuse one PSRAM buffer.
+- Hidden dashboard, Bluetooth, updater and log pages pause status reads. Session
+  and WiFi-setup checks keep their deadlines through response bodies, allowing
+  page data and setup recovery to continue after a stalled reply.
+- Native MQTT broker DNS and TCP opening return control to the main loop.
+  Ordinary writes have a bounded wait; disabled logging avoids unnecessary work.
+  System log provides loop interval counters for checking delays after installation.
+- One received-entity table per boiler device and a shorter
+  **Read → Prepare → Start → Stop** workflow.
+
+These changes are tested in software and have not been installed or timed on the
+E32 yet. [Performance measurements and review](docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md).
 
 **Available** means delivered for the stated use. **Prepared** means code exists
 but the complete user flow, device connection or physical acceptance is still

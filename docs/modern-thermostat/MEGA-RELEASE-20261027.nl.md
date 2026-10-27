@@ -107,3 +107,9 @@ bewijs blijft afzonderlijk open. Geen nieuwe externe dienst of langlopende watch
   bewijsvalidatie. Trage/late bodies mogen geen wachtende writes vrijgeven;
   een volgende aanvraag herstelt zonder herhaling. Echte gestreamde HTTP-body
   en vervangende late-body/headersfixtures dekken deze grens in EN/NL.
+
+- WiFi-setup: dezelfde vijfseconden-deadline dekt nu status-, scan- en
+  afrondings-JSON. Een stilgevallen body blokkeert de bestaande uitleeslus niet
+  meer; bevestigde afronding wordt uit actuele status hervat. Tekstbevestigingen
+  voor verbinden/scannen en de bestaande navigatiedeadline blijven behouden.
+  Alle WiFi-/AP-gedragingen in deze proeven zijn gesimuleerd.

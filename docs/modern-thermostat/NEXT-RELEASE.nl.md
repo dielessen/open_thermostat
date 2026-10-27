@@ -58,6 +58,10 @@ De gedeelde browsersessiecontrole houdt haar bestaande tiensecondenlimiet nu
 ook tijdens het lezen/valideren van de antwoordbody. Een stilgevallen body blokkeert
 paginadata niet onbeperkt; een laat antwoord geeft wachtende acties niet alsnog
 vrij. Een volgende aanvraag kan normaal herstellen, zonder oude writes te herhalen.
+Ook de WiFi-setup leest status-, scan- en afrondings-JSON binnen de bestaande
+vijfsecondenlimiet. Een geaccepteerde afronding met verloren body wordt via de
+volgende actuele status herkend, zonder opnieuw af te ronden. De bestaande
+tekstbevestigingen voor scannen/verbinden blijven behouden. Geen WiFi-actie uitgevoerd.
 De daadwerkelijke paginasnelheid moet na installatie worden gemeten.
 
 **Nieuwe kamerfunctie in dezelfde bundel:** maximaal acht raam-/deurcontacten

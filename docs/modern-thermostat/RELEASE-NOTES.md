@@ -26,6 +26,10 @@ acceptance is separate; beta.5 installation recovery remains deferred.
 
 ## Fixed
 
+- Keep WiFi setup’s five-second request deadlines active through status, scan
+  and completion JSON bodies. A lost accepted completion is recovered from
+  current status without repeating it; text acknowledgements for connection and
+  scan requests retain their existing handling.
 - Keep the shared session check’s original ten-second timeout active through
   the response body. A stalled or late reply cannot block page data indefinitely
   or release queued actions after timeout; a new request can recover normally.

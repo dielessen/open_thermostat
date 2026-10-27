@@ -51,6 +51,7 @@ jobs:
         run: |
           node test/auth-body-browser.cjs
           node test/onboarding/browser.cjs
+          node test/onboarding/body-browser.cjs
           node test/onboarding/network-browser.cjs
           node test/rooms/browser.cjs
           node test/updates/browser.cjs

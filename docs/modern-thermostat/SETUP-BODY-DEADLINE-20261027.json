@@ -1,0 +1,120 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target": "E32 beta.6",
+  "parent_commit": "065f3f52ec5ed03a6e1cc066a3acb0ecfe4fbdf5",
+  "device_actions_performed": false,
+  "contract": {
+    "original_request_deadline_ms": 5000,
+    "json_inside_deadline": [
+      "GET /setup/status",
+      "GET /setup/scan",
+      "POST /setup/finish"
+    ],
+    "network_and_scan_post_text_acknowledgements_changed": false,
+    "accepted_finish_after_body_timeout": "Following current closing status arms existing handoff; no duplicate accepted finish POST",
+    "tick_retry_interval_ms": 1000,
+    "wifi_ap_storage_or_navigation_policy_changed": false
+  },
+  "validation": {
+    "new_actual_streamed_status_assertion_fails_on_parent_source": "PASS expected no-abort assertion failure",
+    "actual_loopback_streamed_body_browser_cases_passed": 6,
+    "body_routes_tested": [
+      "status",
+      "scan",
+      "finish"
+    ],
+    "languages": [
+      "en",
+      "nl"
+    ],
+    "existing_onboarding_browser_scenarios_passed": 19,
+    "root_auth_language_managed_node_cases_passed": 52,
+    "one_initial_scan_post_per_case": "PASS",
+    "accepted_finish_posts_per_finish_case": 1,
+    "no_automatic_network_posts": "PASS; status cases add one explicitly requested text-acknowledged network POST",
+    "destination": "Documentation IP intercepted in browser; never contacted",
+    "e32_app_build": "PASS",
+    "e32_filesystem_build": "PASS",
+    "source_image_partition_asset_uart_owner": "PASS",
+    "firmware_bytes": 3108160,
+    "ota_slot_bytes": 3670016,
+    "assets": 36,
+    "gzip_representations": 29,
+    "raw_bytes": 562161,
+    "gzip_bytes": 152783
+  },
+  "remaining": [
+    "Exact-commit CI",
+    "On-device WiFi/radio/channel/latency acceptance remains separate"
+  ],
+  "reviewed_files": [
+    {
+      "path": ".github/workflows/build.yml",
+      "sha256": "d736a0c713a58031815b31fa7caefaaea3a013da4e4fdb69a2a274c538a672a5"
+    },
+    {
+      "path": "README.md",
+      "sha256": "405bd970f634c59075a9fe5ab2dd6fefa0bfed46666b840ec4a2fd6415ab915f"
+    },
+    {
+      "path": "data/html/setup.js",
+      "sha256": "89c6b7502640ad34b5ccfb9ac47c780fc7fa6b3f449760452e78ecb1e8515014"
+    },
+    {
+      "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
+      "sha256": "ffdc32e6238f46356ef9bce7dae968a93d23af3bcaa105bd52554089c84e441f"
+    },
+    {
+      "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
+      "sha256": "beebc1504a9b4db107c3d5a60a86af2803035ba19d8c1e7e44bbeed6ff04dea5"
+    },
+    {
+      "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
+      "sha256": "96acdf58c88cbcb2433118329ac0fba103dca1dd1a4add7cb2f9e75046e20e5b"
+    },
+    {
+      "path": "docs/modern-thermostat/RELEASE-NOTES.md",
+      "sha256": "ed8b3f8c307ff32fbc4d0737f931850c3601debd0b4860c3baf90ea4eaa99c65"
+    },
+    {
+      "path": "docs/modern-thermostat/WORKBOARD.nl.md",
+      "sha256": "b336febb106606658ff1350f7c55729629b0a172ab3bbbd621d070c4cd00792b"
+    },
+    {
+      "path": "test/onboarding/body-browser.cjs",
+      "sha256": "652da16f9218e88b9a0dc83bea5d178834a9fa80b16f70eb0d4a8bbae833e667"
+    }
+  ],
+  "local_evidence": [
+    {
+      "path": "out/setup-body-deadline-20261027/baseline.log",
+      "sha256": "a83bf9fa122a2334d2fb17303041cfe2c4d187c07992f7ad2ad3906a6f5792a2"
+    },
+    {
+      "path": "out/setup-body-deadline-20261027/browser.log",
+      "sha256": "72914cd4bbff7747eb95b177142dd71c65962301af4a046e4016f6be19a637bf"
+    },
+    {
+      "path": "out/setup-body-deadline-20261027/e32-build.log",
+      "sha256": "bd15b4356aa4b7e18e8b84f55f47b889602321afdaf634d3afb25612ee1b38d0"
+    },
+    {
+      "path": "out/setup-body-deadline-20261027/e32-buildfs.log",
+      "sha256": "89fdc83aca8ec490a5af00b5fa7492a69a21feb322248fb3d2cc138ba59894eb"
+    },
+    {
+      "path": "out/setup-body-deadline-20261027/e32-verify.log",
+      "sha256": "0309c2cfb815d4e60274bd78f1f6985106efe066a7616da4e51fe3038d2b66e8"
+    },
+    {
+      "path": "out/setup-body-deadline-20261027/node-tests.log",
+      "sha256": "4a29754c9fb3344cba9e5b8d2776567c051f0bd5b19024a585df7409528c820c"
+    },
+    {
+      "path": "out/setup-body-deadline-20261027/onboarding-regression.log",
+      "sha256": "ff1bb89b235308813bdd189a98927a47d4dafa153889f1254a158c318f1e384f"
+    }
+  ]
+}

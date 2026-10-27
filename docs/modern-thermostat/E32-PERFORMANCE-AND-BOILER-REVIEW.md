@@ -485,3 +485,28 @@ reject two reads and one queued mutation, avoid logout, recover on a new read
 and send only a separately requested new mutation. VM cases separately exercise
 late bodies/headers that ignore cancellation and malformed proof types. No
 E32 request, authentication state change or physical command was performed.
+
+## Bound WiFi setup response bodies
+
+Setup had the same headers-only deadline gap for status, scan-result and finish
+JSON: the request helper returned a Response and cleared its five-second timer,
+then callers awaited its body outside that limit. An incomplete status or scan
+body stopped the self-scheduling tick. An incomplete finish body also held the
+finishing state, preventing current status from recovering the device's already
+accepted AP-close deadline.
+
+These three callers now consume JSON inside the original request deadline,
+with an abort check before accepting it. Ordinary connection and scan POSTs keep
+their existing text/header acknowledgements. A timed-out accepted finish remains
+unconfirmed until the following status read reports closing; the existing
+handoff is then armed from that current status without another finish POST. The
+existing one-second retry, scan deadline, POST uncertainty and redirect validation
+remain unchanged. No WiFi, AP, credentials or hardware settings were changed.
+
+The new streamed-status browser assertion fails on the prior source. Six real
+loopback HTTP cases cover status, scan and finish body stalls in both languages,
+including a current closing readback, preserved text acknowledgements and no
+automatic duplicate network/scan/accepted-finish POST. Navigation to the test's
+documentation-only IP is intercepted inside the browser. Existing setup browser
+scenarios continue to cover channel loss, saving errors, invalid destinations,
+non-default ports, AP disappearance and handoff deadline preservation.

@@ -12,14 +12,19 @@
     $('connect').disabled=scanning||joining||finished||transferring;
     ssid.disabled=password.disabled=networks.disabled=joining||finished||transferring;
   }
-  async function request(url, options={}) {
+  async function request(url, options={},consumeJson=false) {
     const controller=new AbortController(), timeout=setTimeout(()=>controller.abort(),5000);
     try {
       const r=await fetch(url,{...options,signal:controller.signal,cache:'no-store',credentials:'same-origin'});
+      if(controller.signal.aborted)throw Error(uiText("Request failed"));
       if(!r.ok) {
         const error=Error(await r.text()||uiText("Request failed")); error.httpStatus=r.status; throw error;
       }
-      return r;
+      // Keep the original deadline through bodies that drive status or handoff.
+      // Network/scan POSTs retain their existing header-only text acknowledgement.
+      const result=consumeJson?await r.json():r;
+      if(controller.signal.aborted)throw Error(uiText("Request failed"));
+      return result;
     } finally { clearTimeout(timeout); }
   }
   async function scan() {
@@ -78,7 +83,7 @@
     finishing=true; controls();
     $('transition').textContent=uiText("The new address is ready. Confirming automatic completion…");
     try {
-      const result=await (await request('/setup/finish',{method:'POST'})).json();
+      const result=await request('/setup/finish',{method:'POST'},true);
       if(!armHandoff(result.close_after_ms,url)) throw Error(uiText("Invalid completion confirmation"));
     } catch(e) {
       $('transition').textContent=uiText("Completion not yet confirmed. This page retries automatically; the new address remains below.");
@@ -94,7 +99,7 @@
   async function tick() {
     if(finished) return;
     try {
-      const r=await request('/setup/status'), s=await r.json();
+      const s=await request('/setup/status',{},true);
       $('remaining').textContent=s.setup_active?uiText("Setup network available for about ")+Math.ceil(s.remaining_seconds/60)+uiText(" minutes available."):uiText("Setup network closed.");
       const url=target(s);
       if(s.status==='connected_saved'&&s.connected&&url) {
@@ -114,7 +119,7 @@
       } else if(s.status==='connecting') { cancelHandoff(); joining=true; saved=false; $('handoff').hidden=true; }
       else if(joining&&!posting&&s.status==='ready') { joining=false; status.textContent=uiText("No connection attempt received. You can click Connect again."); }
       if(scanning) {
-        const scanResponse=await request('/setup/scan'), result=await scanResponse.json();
+        const result=await request('/setup/scan',{},true);
         if(result.status==='done') { scanning=false; showNetworks(result.networks||[]); }
         else if(result.status==='failed'||Date.now()>scanDeadline) { scanning=false; $('scan-status').textContent=uiText("Scan failed. Retry or enter the 2.4 GHz network manually."); }
       }

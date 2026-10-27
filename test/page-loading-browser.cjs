@@ -2,7 +2,7 @@
 const {chromium}=require('playwright-core');
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
 const zlib=require('node:zlib'),crypto=require('node:crypto'),assert=require('node:assert/strict');
-const assets=path.resolve(__dirname,'../data/html'),out=path.resolve(__dirname,'../out/page-loading-browser');
+const assets=path.resolve(__dirname,'../data/html'),out=path.resolve(process.env.OPENTHERMOSTAT_PAGE_LOADING_EVIDENCE||path.join(__dirname,'../out/page-loading-browser'));
 const hash=body=>'"'+crypto.createHash('sha256').update(body).digest('hex')+'"';
 const fixture={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}};
 const telemetry={reception:{state:'classic_reports_received'},transport:{enabled:true},

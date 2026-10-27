@@ -203,3 +203,33 @@ test('optional context accepts only known labels and never turns malformed metad
  assert.match(p.dashboardRoomContext({comfort_mode:'frost',target_source:'frost'}),/Frost/);
  assert.doesNotMatch(p.dashboardRoomContext({comfort_mode:'frost',target_source:'frost'}),/protection|confirmed|enabled/i);
 });
+
+test('retired dashboard response bodies cannot replace a resumed owner or release its pending read',async()=>{
+ const p=rootPage('en'),bodies=[];
+ p.document.getElementById=id=>id==='maincontainer'?p.main:null;
+ Object.assign(p,{AbortController,setTimeout,clearTimeout,hostName:'',validateResponse:x=>x,
+  fetch:async()=>({json:()=>new Promise((resolve,reject)=>bodies.push({resolve,reject}))})});
+ p.document.visibilityState='visible';
+ const settle=()=>new Promise(setImmediate);
+ p.showRooms();await settle();const retired=p.statusPoll;
+ p.document.visibilityState='hidden';p.stopDashboardRead();assert.equal(retired.signal.aborted,true);
+ p.document.visibilityState='visible';p.showRooms();await settle();const resumed=p.statusPoll;
+ assert.notEqual(resumed,retired);
+ bodies[0].resolve(managed());await settle();
+ assert.equal(p.statusPoll,resumed);assert.equal(p.lastLoadedStatus,undefined);
+ const newest=managed();newest.control.state.zones[0].name='Current owner';bodies[1].resolve(newest);await settle();
+ assert.equal(p.statusPoll,null);assert.equal(p.lastLoadedStatus,newest);assert.match(p.main.innerHTML,/Current owner/);
+ // A late rejection after retirement must not render an error over the new page.
+ p.showRooms();await settle();p.stopDashboardRead();bodies[2].reject(Error('retired read'));await settle();
+ assert.match(p.main.innerHTML,/Current owner/);assert.doesNotMatch(p.main.innerHTML,/dashboard-poll-error/);
+});
+
+test('a response body that ignores the dashboard deadline cannot commit after abort',async()=>{
+ const p=rootPage('en');let deadline,body;
+ Object.assign(p,{AbortController,hostName:'',validateResponse:x=>x,
+  setTimeout:fn=>{deadline=fn;return 1;},clearTimeout(){},fetch:async()=>({json:()=>new Promise(resolve=>body=resolve)})});
+ p.document.visibilityState='visible';p.showRooms();await new Promise(setImmediate);
+ const request=p.statusPoll;deadline();assert.equal(request.signal.aborted,true);
+ body(managed());await new Promise(setImmediate);
+ assert.equal(p.lastLoadedStatus,undefined);assert.equal(p.statusPoll,null);assert.equal(p.main.innerHTML,'');
+});

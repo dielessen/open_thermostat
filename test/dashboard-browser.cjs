@@ -8,7 +8,17 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});const results=[];
  try{for(const [label,viewport] of [['desktop',{width:1440,height:1000}],['mobile',{width:390,height:844}]]){
   const page=await browser.newPage({viewport});let status=fixture(),requests=[],errors=[],failStatus=false,holdStatus=false,pendingStatus;
+  const failed=[];page.on('requestfailed',request=>failed.push(new URL(request.url()).pathname));
   page.on('pageerror',e=>errors.push(e.message));
+  await page.addInitScript(()=>{
+   window.__dashboardVisibility='visible';
+   Object.defineProperty(document,'visibilityState',{configurable:true,get:()=>window.__dashboardVisibility});
+  });
+  const awaitPendingStatus=async()=>{
+   for(let attempt=0;attempt<200&&!pendingStatus;attempt++)await page.waitForTimeout(10);
+   assert.equal(typeof pendingStatus,'function','fixture status request did not arrive');
+  };
+  const visibility=value=>page.evaluate(v=>{window.__dashboardVisibility=v;document.dispatchEvent(new Event('visibilitychange'));},value);
   await page.route('http://opth.test/**',async route=>{
    const req=route.request(),p=new URL(req.url()).pathname;requests.push({path:p,method:req.method()});
    if(p==='/auth/session')return route.fulfill({contentType:'application/json',body:JSON.stringify({authenticated:true,csrf:'a'.repeat(64)})});
@@ -19,8 +29,9 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
     releases:[{tag:'v0.1.0-e32v2-alpha.99',prerelease:true}],
    }});
    if(p==='/status'){
+    const answer=structuredClone(status);
     if(holdStatus)await new Promise(resolve=>pendingStatus=resolve);
-    return route.fulfill({status:failStatus?503:200,contentType:'application/json',body:JSON.stringify(status)});
+    return route.fulfill({status:failStatus?503:200,contentType:'application/json',body:JSON.stringify(answer)});
    }
    let file=path.join(assets,p==='/'?'index.html':p);if(!file.startsWith(assets+'/')||!fs.existsSync(file))return route.fulfill({status:404,body:''});
    let body=fs.readFileSync(file);if(p.endsWith('.gz'))body=zlib.gunzipSync(body);
@@ -143,12 +154,47 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
    return tile.textContent;
   });
   assert.match(legacyClockText,/Wachten op de apparaattijd; verwarming is gepauzeerd/);
+  // A hidden dashboard retires its pending GET. Resume does not wait on that
+  // request's 15-second deadline or allow its response to overwrite current data.
+  holdStatus=true;pendingStatus=undefined;await page.evaluate(()=>showRooms());
+  await page.waitForFunction(()=>statusPoll!==null);await awaitPendingStatus();
+  const releaseHidden=pendingStatus,failedBefore=failed.length;
+  await visibility('hidden');await page.waitForFunction(()=>statusPoll===null);
+  await page.waitForTimeout(50);assert(failed.slice(failedBefore).includes('/status'));
+  const hiddenCount=requests.filter(r=>r.path==='/status').length;
+  await page.clock.runFor(30000);assert.equal(requests.filter(r=>r.path==='/status').length,hiddenCount);
+  holdStatus=false;status.control.state.zones[0].name='Resumed owner';
+  await visibility('visible');await visibility('visible');
+  await page.waitForFunction(()=>document.querySelector('.pd-room h3')?.textContent==='Resumed owner');
+  assert.equal(requests.filter(r=>r.path==='/status').length,hiddenCount+1);
+  releaseHidden();await page.waitForTimeout(50);
+  assert.equal(await page.locator('#dashboard-poll-error').count(),0);
+  assert.equal(await page.locator('.pd-room h3').first().innerText(),'Resumed owner');
+  // Real fetch deadline still displays failure. A late body is not a recovery.
+  holdStatus=true;pendingStatus=undefined;await page.evaluate(()=>showRooms());
+  await awaitPendingStatus();
+  await page.clock.runFor(15000);await page.locator('#dashboard-poll-error').waitFor();
+  const deadlineCount=requests.filter(r=>r.path==='/status').length;
+  holdStatus=false;pendingStatus();await page.waitForTimeout(50);
+  assert.equal(requests.filter(r=>r.path==='/status').length,deadlineCount);
+  assert.equal(await page.locator('#dashboard-poll-error').count(),1);
+  await page.clock.runFor(5000);await page.waitForFunction(()=>!document.getElementById('dashboard-poll-error'));
+  // Navigation retires root polling; visibility events cannot start it on About.
+  holdStatus=true;pendingStatus=undefined;await page.evaluate(()=>showRooms());
+  await awaitPendingStatus();
+  await page.evaluate(()=>loadNativePage('about'));await page.locator('#about-heading').waitFor();
+  const navigationCount=requests.filter(r=>r.path==='/status').length;
+  holdStatus=false;pendingStatus();await visibility('hidden');await visibility('visible');
+  await page.clock.runFor(30000);
+  assert.equal(requests.filter(r=>r.path==='/status').length,navigationCount);
+  assert.equal(await page.locator('.pd-room').count(),0);
+  await page.evaluate(()=>mainScreen());await page.locator('.pd-room').first().waitFor();
   await page.locator('[data-dashboard-key="firmware-update"] button').click();
   await page.locator('#updateHeading').waitFor();
   await page.waitForFunction(()=>document.getElementById('installedVersion')?.textContent==='v0.1.0-e32v2-alpha.31');
   assert.equal(await page.locator('#githubUpdate').isVisible(),true);
   assert.equal(requests.some(r=>r.method!=='GET'),false);
-  assert.deepEqual(errors,[]);results.push({viewport:label,result:'PASS',rooms:8,initialRequests,compiledSupportReadback:!!buildCapabilities,automaticPollPreservesNodesOpenFocusScroll:true,keyedRoomReorder:true,replacedRoomStartsClosed:true,transientFailureRecovery:true,singleInflightPoll:true,staleSuppressed:true,safeText:true,legacyRoomNamesAreData:true,horizontalOverflow:false,deviceProof:false});await page.close();
+  assert.deepEqual(errors,[]);results.push({viewport:label,result:'PASS',rooms:8,initialRequests,compiledSupportReadback:!!buildCapabilities,automaticPollPreservesNodesOpenFocusScroll:true,keyedRoomReorder:true,replacedRoomStartsClosed:true,transientFailureRecovery:true,singleInflightPoll:true,hiddenAbortsRead:true,resumeOneFreshRead:true,trueDeadlineVisible:true,navigationRetiresRootRead:true,staleSuppressed:true,safeText:true,legacyRoomNamesAreData:true,horizontalOverflow:false,deviceProof:false});await page.close();
  }}finally{await browser.close();}
  fs.writeFileSync(path.join(out,'BROWSER.json'),JSON.stringify({result:'PASS',source:'shipped index.html and local assets, fixture HTTP',cases:results},null,2)+'\n');console.log(JSON.stringify({result:'PASS',viewports:results.length}));
 })().catch(e=>{console.error(e);process.exitCode=1;});

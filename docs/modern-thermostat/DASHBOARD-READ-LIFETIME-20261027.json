@@ -1,0 +1,118 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target": "E32 beta.6",
+  "parent_commit": "ed1ff90514340f0f9fde613eb7e552396f77f1c6",
+  "device_actions_performed": false,
+  "contract": {
+    "poll_interval_ms": 10000,
+    "original_read_deadline_ms": 15000,
+    "maximum_current_dashboard_reads": 1,
+    "hidden_navigation": "Retire request identity before abort; next visible home reads immediately",
+    "late_body_guard": "Original navigation, request identity, abort state and visibility required",
+    "mutations_auth_and_other_page_owners_changed": false
+  },
+  "validation": {
+    "root_and_language_node_cases_passed": 25,
+    "dashboard_browser_cases_passed": 2,
+    "room_context_browser_regressions_passed": 6,
+    "page_loading_cache_browser_profiles_passed": 2,
+    "optional_reference_retry_case": "PASS",
+    "real_fetch_hidden_abort_resume": "PASS",
+    "true_deadline_banner_and_normal_backoff": "PASS",
+    "navigation_then_visibility_does_not_resume_home_reads": "PASS",
+    "late_json_body_and_retired_failure_vm_cases": "PASS",
+    "cold_home_fixture_body_bytes_maximum": 143486,
+    "cold_payload_is_not_on_device_latency": true,
+    "e32_app_build": "PASS",
+    "e32_filesystem_build": "PASS",
+    "source_image_partition_asset_uart_owner_verification": "PASS",
+    "firmware_bytes": 3104672,
+    "ota_slot_bytes": 3670016,
+    "assets": 36,
+    "gzip_representations": 29,
+    "raw_bytes": 559556,
+    "gzip_bytes": 152092
+  },
+  "remaining": [
+    "Exact-commit CI",
+    "On-device performance and user acceptance after separately authorized installation"
+  ],
+  "reviewed_files": [
+    {
+      "path": "README.md",
+      "sha256": "24ffebcf166235795e2cd02ed73670b4db70772000d589f619140f14d8fe2c80"
+    },
+    {
+      "path": "data/html/index.html",
+      "sha256": "d11c73f035a0944e5928d6b5e7dc3be27cbaa76161adb4982847b316e821b665"
+    },
+    {
+      "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
+      "sha256": "667705704872f78dd7a42ef6b21785e5cb8bb605ef6e68c08ef16e407302d286"
+    },
+    {
+      "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
+      "sha256": "0d8308eca834369491276d97b7347133a67dd3044ce9bea0ab4ce75064030c33"
+    },
+    {
+      "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
+      "sha256": "f0a53405be64bb3c98eff51e787311cb889c5b9f240d0899533aef269c15cd5d"
+    },
+    {
+      "path": "docs/modern-thermostat/RELEASE-NOTES.md",
+      "sha256": "11283d3d88be22b15d575e755ec359d5ae57d06a7816cb5f807ca440174a5758"
+    },
+    {
+      "path": "docs/modern-thermostat/WORKBOARD.nl.md",
+      "sha256": "d87e5fbc72000f675158ff0c1aa24131042c05f85df40837ae5bc610ece5a38d"
+    },
+    {
+      "path": "test/dashboard-browser.cjs",
+      "sha256": "2fa97ba00643f9f96ba291a34240c091f03c06807467306f886075e4b9773c6e"
+    },
+    {
+      "path": "test/page-loading-browser.cjs",
+      "sha256": "1697f864bf3c7725af67cae5d584303d361118fdc17a5c75db6965e733c3186f"
+    },
+    {
+      "path": "test/root_status_render.test.cjs",
+      "sha256": "cd8fe7b2821657cf6371ddb9c4a9cf738ec1539c3bcd63c0f6c401cc928aa3ab"
+    }
+  ],
+  "local_evidence": [
+    {
+      "path": "out/dashboard-read-lifetime-20261027/browser-final.log",
+      "sha256": "e4aa5a9c360e04ee7b2977748733e416b4d907d4cec5a27976a8ef52772ff62b"
+    },
+    {
+      "path": "out/dashboard-read-lifetime-20261027/browser.log",
+      "sha256": "e4aa5a9c360e04ee7b2977748733e416b4d907d4cec5a27976a8ef52772ff62b"
+    },
+    {
+      "path": "out/dashboard-read-lifetime-20261027/e32-build.log",
+      "sha256": "17f8b424f385f33d718d13c439c6bf9abbb8f147a7b8d0c20a4b5ecc4c430cf4"
+    },
+    {
+      "path": "out/dashboard-read-lifetime-20261027/e32-buildfs.log",
+      "sha256": "430ade1210967bea7055c8704023e962ead417cb99bb58f8dca8ce92b25cae6e"
+    },
+    {
+      "path": "out/dashboard-read-lifetime-20261027/e32-verify.log",
+      "sha256": "198b0858f981bf4c9cb84dd0710c9c27efcf113cdcf6c9ec43000037e3ad1348"
+    },
+    {
+      "path": "out/dashboard-read-lifetime-20261027/node-tests.log",
+      "sha256": "ddff688faffb2c0700bfab5324ad210c2dd51284aa8650b40fe485a48ef8bc3f"
+    },
+    {
+      "path": "out/dashboard-read-lifetime-20261027/page-loading.log",
+      "sha256": "24705a02d2ca0c7fc54c55b7de0fb71185af40022ffc03cbbc2cd5745615bce9"
+    },
+    {
+      "path": "out/dashboard-read-lifetime-20261027/room-context.log",
+      "sha256": "b1285830eff86ab07017a25e7d0b70e33875136eaf4ce6c229b964d61162c388"
+    }
+  ]
+}

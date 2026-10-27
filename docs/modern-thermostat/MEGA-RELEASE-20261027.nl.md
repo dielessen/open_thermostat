@@ -80,3 +80,8 @@ bewijs blijft afzonderlijk open. Geen nieuwe externe dienst of langlopende watch
   gemelde tijdelijke duur/vakantie-eindtijd onder de bestaande kamerdetails.
   Raam-/deurpauzes en aanwezigheid krijgen eigen leesbare redenen. Dezelfde
   actuele momentopname wordt hergebruikt; geen nieuwe collector of aftelklok.
+
+- Dashboardlevensduur: verborgen pagina annuleert de actieve GET; terugkeren
+  leest één verse status. Gepensioneerde/verlopen antwoordbodies mogen geen
+  nieuwe status of pagina vervangen. Echte time-outs houden hun foutmelding
+  en de gewone tiensecondenherhaling. Geen apparaatopdrachten.

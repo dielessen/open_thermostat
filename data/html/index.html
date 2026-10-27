@@ -549,7 +549,8 @@
 
 			window.addEventListener('hashchange', showLinkedPage);
 			document.addEventListener('visibilitychange', () => {
-				if (document.visibilityState === 'visible' && intervalID) showRooms();
+				if (document.visibilityState === 'hidden') stopDashboardRead();
+				else if (intervalID) showRooms();
 			});
 			if (!showLinkedPage()) {
 				mainScreen();
@@ -577,6 +578,11 @@
 			}, 10000);
 		}
 
+        function stopDashboardRead() {
+            const request = statusPoll;
+            statusPoll = null; // Retire ownership before abort callbacks can run.
+            if (request) request.abort();
+        }
 		function clearMainContainer() {
             window.UpdatesPage?.unmount();
             window.SystemLogPage?.unmount();
@@ -584,7 +590,7 @@
             window.BluetoothPage?.unmount();
             navigationGeneration++;
             if (pageLoadRequest) { pageLoadRequest.abort(); pageLoadRequest = null; }
-            if (statusPoll) { statusPoll.abort(); statusPoll = null; }
+            stopDashboardRead();
 			if (intervalID) {
 				clearInterval(intervalID);
 				intervalID = null;
@@ -604,14 +610,16 @@
                 .then(validateResponse)
 				.then(res => res.json())
 				.then((out) => {
-                    if (navigation !== navigationGeneration) return;
+					if (navigation !== navigationGeneration || statusPoll !== request ||
+                        request.signal.aborted || document.visibilityState === 'hidden') return;
                     document.getElementById('dashboard-poll-error')?.remove();
                     applyControlMode(out);
 					lastLoadedStatus = out;
                     updateRooms(lastLoadedStatus);
 					// A late poll must never replace a newly navigated form.
                 }).catch(() => {
-                    if (navigation !== navigationGeneration) return;
+                    if (navigation !== navigationGeneration || statusPoll !== request ||
+                        document.visibilityState === 'hidden') return;
                     var main = document.getElementById('maincontainer');
                     var notice = document.getElementById('dashboard-poll-error');
                     if (!notice) {

@@ -37,6 +37,9 @@ wacht niet op een volle netwerkmailbox.
 Systeemlog bevat nu lichte looptijdtellers in dezelfde statusaanvraag, met een
 uitklapbare uitleg. Verborgen logpagina’s stoppen hun uitlezing; reeds verstuurde
 instellingenwijzigingen worden door navigatie niet afgebroken of herhaald.
+Ook het dashboard breekt een lopende uitlezing af zodra de pagina verborgen
+wordt. Terugkeren start direct één nieuwe aanvraag; late/verlopen antwoorden
+vervangen die niet en navigatie hervat geen oude dashboarduitlezing.
 De daadwerkelijke paginasnelheid moet na installatie worden gemeten.
 
 **Nieuwe kamerfunctie in dezelfde bundel:** maximaal acht raam-/deurcontacten

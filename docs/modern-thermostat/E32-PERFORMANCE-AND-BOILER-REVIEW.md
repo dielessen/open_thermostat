@@ -361,3 +361,20 @@ Reason/source/mode label maps are allocated once; each render translates only th
 chosen values. Browser checks exercise both languages at 1280, 390 and 320 pixels,
 the ordinary ten-second poll, stable open Details/focus/scroll, old/malformed
 optional metadata and stale state. There is no new on-device latency claim.
+
+## Retire hidden dashboard reads
+
+The root dashboard already skipped ten-second poll ticks while hidden, but a
+pending GET could occupy its request slot until the original 15-second deadline.
+Returning before completion therefore waited on the old request. Visibility now
+retires ownership before aborting that GET. Returning immediately starts one new
+read; the existing request slot still merges repeated refresh attempts.
+
+Both successful bodies and failures must retain their original navigation and
+request identity. An aborted body cannot commit even if a response implementation
+ignores cancellation, and an old finally callback cannot clear a newer request.
+Intentional hidden/navigation cancellation produces no failure banner; genuine
+read deadlines retain the error and normal polling backoff. Visibility on About
+or another retired dashboard does not start Home polling. Commands, authentication
+and other page owners are unchanged. Real browser fetch/abort/navigation cases
+and delayed-body VM fixtures cover these boundaries; no board request is involved.

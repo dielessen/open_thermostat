@@ -62,6 +62,11 @@ Ook de WiFi-setup leest status-, scan- en afrondings-JSON binnen de bestaande
 vijfsecondenlimiet. Een geaccepteerde afronding met verloren body wordt via de
 volgende actuele status herkend, zonder opnieuw af te ronden. De bestaande
 tekstbevestigingen voor scannen/verbinden blijven behouden. Geen WiFi-actie uitgevoerd.
+Debuginstellingen worden pas bij uitklappen opgehaald. Dicht laten scheelt één
+API-aanvraag per bezoek aan Instellingen; in-/uitklappen bewaart conceptkeuzes.
+Sluiten/navigeren trekt lopende reads in. Opslaan gebruikt de bestaande direct
+toegepaste filters, zonder herstartvraag; onbekende save wordt niet herhaald.
+Een reeds verlaten instellingenformulier begint geen uitgestelde initialisatie.
 De daadwerkelijke paginasnelheid moet na installatie worden gemeten.
 
 **Nieuwe kamerfunctie in dezelfde bundel:** maximaal acht raam-/deurcontacten

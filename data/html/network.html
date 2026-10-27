@@ -285,28 +285,18 @@
 	</div>
 
 	<div class="row-mt-3">
-		<div class="card w-100" id="DebugSettings">
-			<div class="card-header d-flex justify-content-between align-items-center">
-				<span class="align-middle"><span data-i18n="Debug settings">Debug settings</span></span><button type="button"
-					class="btn px-1 py-0 m-0 btn-outline-info" onclick="loadDebugSettings();">&#x2b6f;</button>
-			</div>
-			<div class="card-body">
-				<div class="form-group">
-					<div class="card mb-2">
-						<div class="card-header"><span data-i18n="Debug log options">Debug log options</span></div>
-						<div class="card-body" id="DebugOptionsCard">
-						</div>
-					</div>
-
-
-				</div>
-			</div>
-			<div class="card-footer text-muted">
-				<button type="button" class="btn btn-primary mb-2" onclick="saveDebugSettings();"
-					id="SaveDebugSettings"><span data-i18n="Save debug settings">Save debug settings</span></button>
-			</div>
-		</div>
-	</div>
+        <details class="card w-100" id="DebugSettings">
+            <summary class="card-header" style="min-height:44px;cursor:pointer"><span data-i18n="Debug settings">Debug settings</span></summary>
+            <div class="card-body">
+                <button type="button" class="btn btn-outline-secondary mb-2" id="ReloadDebugSettings" onclick="loadDebugSettings();" data-i18n="Reload debug settings">Reload debug settings</button>
+                <p id="DebugSettingsStatus" role="status" aria-live="polite"></p>
+                <div id="DebugOptionsCard"></div>
+            </div>
+            <div class="card-footer text-muted">
+                <button type="button" class="btn btn-primary mb-2" id="SaveDebugSettings" onclick="saveDebugSettings();" disabled data-i18n="Save debug settings">Save debug settings</button>
+            </div>
+        </details>
+    </div>
 
 
 </form>
@@ -318,7 +308,9 @@
 	var loadedProgram = undefined;
 	var roomFound = undefined;
 
+    (function(networkRoot){
 	$(document).ready(function () {
+        if(!networkRoot || !networkRoot.isConnected)return;
 		$("#selectWiFiSSID").on('show.bs.modal', function (event) {
 			$('#selectWiFiSSIDSelect').empty();
 
@@ -391,12 +383,13 @@
 
 		loadWiFiSettings();
 		loadDeviceSettings();
-		loadDebugSettings();
+		mountDebugSettings();
 
 		$("#loadingprogress").addClass('invisible');
 		$('#networkeditform').removeClass('invisible');
 
 	});
+    })(document.getElementById('networkeditform'));
 
 	function showWiFiPassword(event, show) {
 		event.preventDefault();
@@ -436,89 +429,77 @@
 
 
 
-	function updateDebugCard(debugOptions) {
-		$('#DebugOptionsCard').empty();
-		$.each(debugOptions, function (key, value) {
-			const checkboxId = key;
-
-			const $row = $('<div class="form-row">').append(
-				$('<div class="col-md mb-2">').append(
-					$('<div class="form-check">').append(
-						$('<input>', {
-							type: 'checkbox',
-							class: 'form-check-input',
-							id: checkboxId,
-							checked: value
-						}),
-						$('<label>', {
-							class: 'form-check-label',
-							for: checkboxId,
-							text: key
-						})
-					)
-				)
-			);
-
-			$('#DebugOptionsCard').append($row);
-		});
-	}
-
-	function loadDebugSettings() {
-		$("#DebugSettings *").attr('disabled', true)
-		fetch(hostName + '/config/debug')
-			.then(validateResponse)
-			.then(res => res.json())
-			.then((settings) => {
-				console.log(settings);
-				updateDebugCard(settings);
-				// $('#WiFiSSID').val(settings.ssid);
-			}).catch(function (error) {
-				if (error instanceof HttpResponseException && error.status === 404) {
-					alert(uiText("Cannot load debug settings\n") + error);
-					$("#DebugSettings *").attr('disabled', false)
-					return;
-				}
-				if (confirm(uiText("Cannot load debug settings\n") + error + uiText("\nTry again?"))) {
-					loadDebugSettings();
-				}
-			});
-		$("#DebugSettings *").attr('disabled', false)
-	}
-
-	function saveDebugSettings() {
-		$("#DebugSettings").prop('disabled', true);
-
-		let settings = {};
-		$('#DebugOptionsCard input[type="checkbox"]').each(function () {
-			const id = $(this).attr('id');
-			const checked = $(this).is(':checked');
-			settings[id] = checked;
-		});
-
-		fetch(hostName + '/config/debug', {
-			method: 'post',
-			cache: 'no-cache',
-			credentials: 'same-origin',
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(settings, undefined, '\t')
-		})
-			.then(res => {
-				if (res.status === 200 || res.status === 201 || res.type === "opaque") {
-					if (confirm(uiText("Debug settings saved. Do you want to reboot device to changes take place?"))) {
-						reboot();
-						return;
-					}
-				} else {
-					alert(uiText("Not sure if config saved Status: ") + res.status + uiText("\nBody:\n") + res.statusText);
-				}
-			})
-			.catch(function (error) {
-				alert(error);
-			})
-			.finally(function () {
-				$("#DebugSettings").prop('disabled', false);
-			});
-	}
+    function mountDebugSettings() {
+        window.DebugSettingsPage?.unmount();
+        const root=document.getElementById('DebugSettings');
+        if(!root)return;
+        const fields=root.querySelector('#DebugOptionsCard'),message=root.querySelector('#DebugSettingsStatus');
+        const reload=root.querySelector('#ReloadDebugSettings'),save=root.querySelector('#SaveDebugSettings');
+        let disposed=false,read=null,loaded=false,saving=false;
+        const alive=()=>!disposed&&root.isConnected;
+        const controls=()=>{
+            if(!alive())return;
+            fields.querySelectorAll('input').forEach(input=>input.disabled=!loaded||!!read||saving);
+            save.disabled=!loaded||!!read||saving||!fields.children.length;reload.disabled=saving||!!read;
+        };
+        const say=text=>{if(alive())message.textContent=text;};
+        function stopRead(){const current=read;read=null;if(current)current.abort();controls();}
+        async function request(method,body,controller=new AbortController()) {
+            const deadline=setTimeout(()=>controller.abort(),5000);
+            try {
+                const response=await fetch(hostName+'/config/debug',{method,cache:'no-store',credentials:'same-origin',signal:controller.signal,
+                    ...(body===undefined?{}:{headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})});
+                if(!response.ok)throw Error('request');
+                const value=method==='GET'?await response.json():response;
+                if(controller.signal.aborted)throw Error('deadline');
+                return value;
+            }finally{clearTimeout(deadline);}
+        }
+        async function load() {
+            if(!alive()||saving)return;
+            stopRead();loaded=false;const current=new AbortController();read=current;controls();
+            say(uiText("Loading debug settings…"));
+            try {
+                const settings=await request('GET',undefined,current);
+                if(!alive()||read!==current)return;
+                if(!settings||typeof settings!=='object'||Array.isArray(settings)||Object.values(settings).some(value=>typeof value!=='boolean'))throw Error('shape');
+                const fragment=document.createDocumentFragment();
+                Object.entries(settings).forEach(([feature,enabled],index)=>{
+                    const row=document.createElement('div');row.className='form-check mb-2';
+                    const input=document.createElement('input');input.type='checkbox';input.className='form-check-input';
+                    input.id='ot-debug-option-'+index;input.dataset.feature=feature;input.checked=enabled;
+                    const label=document.createElement('label');label.className='form-check-label';label.htmlFor=input.id;label.textContent=feature;
+                    row.append(input,label);fragment.append(row);
+                });
+                fields.replaceChildren(fragment);loaded=true;
+                say(fields.children.length?uiText("Debug settings loaded."):uiText("No debug features reported."));
+            }catch(error){if(alive()&&read===current)say(uiText("Debug settings unavailable. Reload to try again."));}
+            finally{if(read===current){read=null;controls();}}
+        }
+        async function saveSettings() {
+            if(!alive()||!loaded||read||saving||!fields.children.length)return;
+            const settings=Object.create(null);
+            fields.querySelectorAll('input[type=checkbox]').forEach(input=>settings[input.dataset.feature]=input.checked);
+            saving=true;controls();say(uiText("Saving debug settings…"));
+            try {
+                const response=await request('POST',settings);
+                if(response.status!==200&&response.status!==201)throw Error('unconfirmed');
+                say(uiText("Debug settings updated."));
+            }catch(error){loaded=false;say(uiText("Debug settings update was not confirmed. Reload current settings before retrying."));}
+            finally{saving=false;controls();}
+        }
+        function toggle(){if(!root.open)stopRead();else if(!loaded&&!saving&&!read)load();}
+        function unmount(){
+            if(disposed)return;disposed=true;stopRead();observer.disconnect();root.removeEventListener('toggle',toggle);
+            if(window.DebugSettingsPage===page)window.DebugSettingsPage=null;
+        }
+        const page=window.DebugSettingsPage={load,save:saveSettings,unmount};
+        const observer=new MutationObserver(()=>{if(!root.isConnected)unmount();});
+        observer.observe(root.parentNode,{childList:true});root.addEventListener('toggle',toggle);controls();
+        if(root.open)load();
+    }
+    function loadDebugSettings(){return window.DebugSettingsPage?.load();}
+    function saveDebugSettings(){return window.DebugSettingsPage?.save();}
 
 	async function loadWiFiSettings() {
 		// E32 uses the same tested onboarding for both first boot and later

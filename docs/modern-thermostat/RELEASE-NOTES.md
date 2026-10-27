@@ -26,6 +26,11 @@ acceptance is separate; beta.5 installation recovery remains deferred.
 
 ## Fixed
 
+- Load debug feature filters only when **Settings → Debug settings** is opened.
+  Folding preserves edits; closing/navigation cancels pending reads. Saving
+  applies the existing live filters without an unnecessary restart prompt, and
+  an unconfirmed save requires a fresh read before retrying.
+
 - Keep WiFi setup’s five-second request deadlines active through status, scan
   and completion JSON bodies. A lost accepted completion is recovered from
   current status without repeating it; text acknowledgements for connection and

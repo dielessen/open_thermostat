@@ -1,5 +1,14 @@
 /* Fixed English UI messages mapped to Nederlands. User data and wire identifiers are excluded. */
 window.OT_UI_MESSAGES = {
+  "Reload debug settings": "Debuginstellingen opnieuw laden",
+  "Loading debug settings…": "Debuginstellingen laden…",
+  "Debug settings loaded.": "Debuginstellingen geladen.",
+  "No debug features reported.": "Geen debugfuncties gemeld.",
+  "Debug settings unavailable. Reload to try again.": "Debuginstellingen niet beschikbaar. Laad opnieuw om het nogmaals te proberen.",
+  "Saving debug settings…": "Debuginstellingen bewaren…",
+  "Debug settings updated.": "Debuginstellingen bijgewerkt.",
+  "Debug settings update was not confirmed. Reload current settings before retrying.": "Bijwerken van debuginstellingen is niet bevestigd. Laad de actuele instellingen voordat je het opnieuw probeert.",
+
   "Bluetooth status updated.": "Bluetoothstatus bijgewerkt.",
   "Heating paused by window/door status": "Verwarming gepauzeerd door raam-/deurstatus",
   "Room comfort profile not yet confirmed": "Comfortprofiel van de ruimte nog niet bevestigd",

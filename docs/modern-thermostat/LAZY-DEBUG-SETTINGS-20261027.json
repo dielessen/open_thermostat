@@ -1,0 +1,147 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target": "E32 beta.6",
+  "parent_commit": "b71516501e2231ec17b7f22aae57e1aafb7eef41",
+  "device_actions_performed": false,
+  "contract": {
+    "closed_debug_section_requests": 0,
+    "first_open": "One config/debug GET; subsequent folding retains choices",
+    "request_deadline_ms": 5000,
+    "read_owner": "Section identity; retire before close/navigation/detach abort",
+    "save_admission": "Only complete explicit boolean map; exact feature names with scoped safe checkbox IDs",
+    "submitted_save": "Own finite deadline through navigation; no replay or retired follow-up read",
+    "restart_after_debug_save": false,
+    "durable_storage_qualification_added": false,
+    "source_selection_device_settings_and_backend_write_behavior_changed": false
+  },
+  "validation": {
+    "previous_network_html_fails_closed_section_get_assertion": "PASS expected initial GET mismatch",
+    "new_browser_language_width_cases_passed": 4,
+    "languages": [
+      "en",
+      "nl"
+    ],
+    "widths": [
+      1280,
+      320
+    ],
+    "node_auth_root_language_managed_cases_passed": 53,
+    "deferred_network_ready_after_removal": "PASS",
+    "read_cancel_timeout_http_error_malformed_map": "PASS",
+    "prototype_html_like_and_colliding_feature_names": "PASS",
+    "post_survives_navigation_no_restart": "PASS",
+    "late_unknown_write_not_replayed": "PASS",
+    "observer_detach_cancels_get": "PASS",
+    "existing_network_entry_browser_scenarios_passed": 4,
+    "existing_page_loading_cache_profiles_passed": 2,
+    "optional_reference_retry": "PASS",
+    "cold_home_fixture_body_bytes_maximum": 143803,
+    "e32_app_build": "PASS",
+    "e32_filesystem_build": "PASS",
+    "source_image_partition_asset_uart_owner": "PASS",
+    "firmware_bytes": 3112800,
+    "ota_slot_bytes": 3670016,
+    "assets": 36,
+    "gzip_representations": 29,
+    "raw_bytes": 565576,
+    "gzip_bytes": 154020
+  },
+  "remaining": [
+    "Exact-commit CI",
+    "On-device latency and physical/storage acceptance remain separate"
+  ],
+  "reviewed_files": [
+    {
+      "path": ".github/workflows/build.yml",
+      "sha256": "d7967d45cb2f46150449904f0e9703329aaa44f8c29ae61727ca2342f77dfda7"
+    },
+    {
+      "path": "README.md",
+      "sha256": "9dcc76790fb8d40e4a01b5e3193a48d2f0a6b60bee09f1b342215e83ec11753c"
+    },
+    {
+      "path": "data/html/index.html",
+      "sha256": "91fae359d3f56614bf912ce1a95e5f187b13452838d75302b6e7fd9a331012c7"
+    },
+    {
+      "path": "data/html/network.html",
+      "sha256": "f15bde140bfbf2076a5558251f386889a7aa13552716de9805ea1eaaaa8def28"
+    },
+    {
+      "path": "data/html/ui-messages.js",
+      "sha256": "cc820198dbbeae039c99b94dbc94e2a46886174feb788fc8749d7ee8a7eb4f34"
+    },
+    {
+      "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
+      "sha256": "2a01c07465be0b870098a08cad7ae94c8b6a386477a4eb96f1d1bd4a2153e7ec"
+    },
+    {
+      "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
+      "sha256": "94ef7269c54391e742dd304f755941cf38ec37a213901772cb1624765ae155bf"
+    },
+    {
+      "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
+      "sha256": "26a994fcbcdbb6b0f155cfdfcc9d9a2fdfbb43079fab3ee5dff3c9b1a660228e"
+    },
+    {
+      "path": "docs/modern-thermostat/RELEASE-NOTES.md",
+      "sha256": "84b1eb6873377930cd1c8e720b63f2f92aec58b7a0c0a2b5f301cae7bb769f63"
+    },
+    {
+      "path": "docs/modern-thermostat/WORKBOARD.nl.md",
+      "sha256": "bbd834abeb480676113873d752e86efb332bd364bd5009a9555a3ac35874d611"
+    },
+    {
+      "path": "test/debug-settings-browser.cjs",
+      "sha256": "38693e03fd8251aa6fee7aafda7c47e10e47de41e2d2f987b76bf68f473c0d7f"
+    },
+    {
+      "path": "test/managed_gui.test.cjs",
+      "sha256": "260975dbd645ff2afe2aa224f9f0f5113eb3829f0875605272472430e89d5158"
+    }
+  ],
+  "local_evidence": [
+    {
+      "path": "out/debug-settings-lazy-20261027/baseline.log",
+      "sha256": "e429a3ef410acd7912634d4112bc41683eec0511b7d030c18427c6a5d55e959a"
+    },
+    {
+      "path": "out/debug-settings-lazy-20261027/browser-final.log",
+      "sha256": "3013292b7a02ae9e5a58da38914beb61fe3e17f77f98aaa825e3b7e959e4b1e5"
+    },
+    {
+      "path": "out/debug-settings-lazy-20261027/browser.log",
+      "sha256": "3013292b7a02ae9e5a58da38914beb61fe3e17f77f98aaa825e3b7e959e4b1e5"
+    },
+    {
+      "path": "out/debug-settings-lazy-20261027/e32-build.log",
+      "sha256": "f6fd667837cb863dd4dd93db16566dd43547d8f6adb4b9d38ca8a960d7d8a101"
+    },
+    {
+      "path": "out/debug-settings-lazy-20261027/e32-buildfs.log",
+      "sha256": "fdef8abe93ecde39fc8238fb0a9742a04e71fac982f7775a76262e4cbd434371"
+    },
+    {
+      "path": "out/debug-settings-lazy-20261027/e32-verify.log",
+      "sha256": "7f232058305679abde44cff18115189319812e20e7e4b95ca8d77fd1d99aa87b"
+    },
+    {
+      "path": "out/debug-settings-lazy-20261027/network-entry-regression.log",
+      "sha256": "0c99c0830566a69448ee31191444f59aa6f9f88fddf264eae0e5dbc24c199ed1"
+    },
+    {
+      "path": "out/debug-settings-lazy-20261027/node-tests-final.log",
+      "sha256": "8ec3dbc7b23aa2f4f36ed44d03e3784b1e51cec75f0fd05c317f0b3ea3c1e6f6"
+    },
+    {
+      "path": "out/debug-settings-lazy-20261027/node-tests.log",
+      "sha256": "a4cc9ef101fe5843ab7a4e26b9fdc62d1b0e52d6574fde1716e17e2e85dae2b2"
+    },
+    {
+      "path": "out/debug-settings-lazy-20261027/page-loading-regression.log",
+      "sha256": "1b3980db123df5649d784c8568bfca4bc30cc56948469bce88d0d5ea1280355a"
+    }
+  ]
+}

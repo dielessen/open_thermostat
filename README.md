@@ -57,7 +57,8 @@ boiler/valve control remain disabled. [Current release work](https://github.com/
 
 - Compressed, revalidated web assets and page modules loaded when needed. Boiler
   panels share one data request; dashboard and telemetry reuse one PSRAM buffer.
-- Hidden dashboard, Bluetooth, updater and log pages pause status reads. Session
+- Debug feature filters load only when their settings section is opened.
+  Hidden dashboard, Bluetooth, updater and log pages pause status reads. Session
   and WiFi-setup checks keep their deadlines through response bodies, allowing
   page data and setup recovery to continue after a stalled reply.
 - Native MQTT broker DNS and TCP opening return control to the main loop.

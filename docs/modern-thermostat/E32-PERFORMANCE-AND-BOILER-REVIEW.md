@@ -510,3 +510,34 @@ automatic duplicate network/scan/accepted-finish POST. Navigation to the test's
 documentation-only IP is intercepted inside the browser. Existing setup browser
 scenarios continue to cover channel loss, saving errors, invalid destinations,
 non-default ports, AP disappearance and handoff deadline preservation.
+
+## Defer optional debug feature settings
+
+The network/settings page previously requested and rendered `/config/debug` on
+every visit. Its optional debug feature list is now a closed Details section,
+loaded on first opening. A normal visit avoids one API request and checkbox
+construction. Folding a successfully loaded section preserves unsaved choices
+without refetching. Reload remains explicit. Deferred initialization captures
+the original network form and cannot start after that form has been removed.
+
+The section owns one bounded five-second GET. Closing or navigating retires its
+identity before aborting; late bodies/finalizers cannot replace newer choices or
+enable a newer owner. Only a complete boolean map enables Save; malformed or
+failed reads do not become unchecked defaults. Labels use text and namespaced
+checkbox IDs, retaining exact wire names, including prototype-like names, without
+colliding with unrelated settings controls. No continuous polling is introduced.
+
+A submitted POST keeps its own five-second deadline through closing/navigation,
+without automatic replay or retired verification reads. Unknown outcomes disable
+saving until a fresh explicit read. The existing backend already applies feature
+filters during its request, so the unnecessary restart prompt is removed. This
+is an HTTP/live-feature acknowledgement, not new independent durable-storage
+qualification. Device settings, SOURCE selection, debug file format and backend
+write behavior are unchanged; no actual settings save or restart was performed.
+
+The previous network HTML fails the new closed-section request-count assertion.
+Four browser profiles cover English/Dutch at 1280/320 pixels, lazy loading,
+retained edits, abort/deadline recovery, malformed flags, escaped/namespaced
+labels, submitted writes through navigation and late unconfirmed writes. A
+separate shipped-inline-script case covers retired deferred initialization.
+These are request/work reductions and lifetime checks, not measured E32 latency.

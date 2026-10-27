@@ -66,6 +66,7 @@ jobs:
           node test/page-loading-browser.cjs
           node test/system-log-browser.cjs
           node test/system-log-lifecycle-browser.cjs
+          node test/debug-settings-browser.cjs
           node test/ui-language-browser.cjs
           node test/boiler-test-browser.cjs
           node test/boiler-test-control-browser.cjs

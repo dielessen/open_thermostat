@@ -113,3 +113,9 @@ bewijs blijft afzonderlijk open. Geen nieuwe externe dienst of langlopende watch
   meer; bevestigde afronding wordt uit actuele status hervat. Tekstbevestigingen
   voor verbinden/scannen en de bestaande navigatiedeadline blijven behouden.
   Alle WiFi-/AP-gedragingen in deze proeven zijn gesimuleerd.
+
+- Debuginstellingen: uitklapbare luie lijst, één aanvraag minder bij gewoon
+  instellingenbezoek, complete expliciet gelezen booleanflags en veilige eigen
+  checkbox-ID's. Geen herstartvraag voor reeds direct werkende filters. Reads
+  hebben vijfseconden-deadline en eigen paneellevensduur; ingediende save blijft
+  begrensd geldig na navigatie, zonder herhaling of late paginawijziging.

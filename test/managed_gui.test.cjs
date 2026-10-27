@@ -2,7 +2,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 function page(){
- const loads=[],scripts=[],calls=[],alerts=[],values={},checks={};
+ const loads=[],scripts=[],calls=[],alerts=[],values={},checks={},readyCallbacks=[];
  const weatherInputs=[{disabled:false},{disabled:false}];
  const main={innerHTML:'',textContent:''},weather={hidden:true,style:{},querySelectorAll:()=>weatherInputs},note={hidden:false};
  const menus=Array.from({length:4},()=>({hidden:true}));
@@ -13,7 +13,7 @@ function page(){
   createTextNode:x=>x,
   head:{appendChild:x=>scripts.push(x)}
  };
- const jq=selector=>({on(){},ready(){},css(){},html(value){main.innerHTML=value;loads.push(value.replace(/^PAGE:/,''));return this;},
+ const jq=selector=>({on(){},ready(fn){readyCallbacks.push(fn);},css(){},html(value){main.innerHTML=value;loads.push(value.replace(/^PAGE:/,''));return this;},
   val(...args){if(args.length){values[selector]=args[0];return this;}return values[selector]??'';},
   prop(key,...args){if(args.length){checks[selector+key]=args[0];return this;}return checks[selector+key]??false;},
   attr(){return this;},each(){},addClass(){},removeClass(){}});
@@ -29,9 +29,14 @@ function page(){
   return html;
  }
  const html=run('index.html');
- return {context,main,menus,loads,scripts,calls,alerts,values,checks,weather,weatherInputs,note,html,run};
+ return {context,main,menus,loads,scripts,calls,alerts,values,checks,weather,weatherInputs,note,html,run,readyCallbacks};
 }
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
+test('deferred network initialization cannot start reads after its original form was removed',()=>{
+ const p=page();p.main.isConnected=true;p.run('network.html');
+ const ready=p.readyCallbacks.at(-1);assert.equal(typeof ready,'function');p.main.isConnected=false;
+ assert.doesNotThrow(()=>ready());assert.equal(p.calls.length,0);assert.equal(p.alerts.length,0);
+});
 test('mode is read-only until explicit legacy; HA-managed never loads duplicate editor',async()=>{
  const p=page();assert.equal(p.context.controlUiMode,'unknown');
  p.context.applyControlMode({controlMode:'legacy'});assert(p.menus.every(x=>!x.hidden));

@@ -1,5 +1,6 @@
 /* Fixed English UI messages mapped to Nederlands. User data and wire identifiers are excluded. */
 window.OT_UI_MESSAGES = {
+  "Bluetooth status updated.": "Bluetoothstatus bijgewerkt.",
   "Heating paused by window/door status": "Verwarming gepauzeerd door raam-/deurstatus",
   "Room comfort profile not yet confirmed": "Comfortprofiel van de ruimte nog niet bevestigd",
   "Room control clock changed; waiting for a new session": "Klok van de ruimteregeling gewijzigd; wachten op een nieuwe sessie",

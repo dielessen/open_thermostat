@@ -85,3 +85,9 @@ bewijs blijft afzonderlijk open. Geen nieuwe externe dienst of langlopende watch
   leest één verse status. Gepensioneerde/verlopen antwoordbodies mogen geen
   nieuwe status of pagina vervangen. Echte time-outs houden hun foutmelding
   en de gewone tiensecondenherhaling. Geen apparaatopdrachten.
+
+- Bluetoothlevensduur: één zichtbare statuspoll, geen polling tijdens
+  configuratie laden/bewaren, direct hervatten zonder concepten/sleutel/focus
+  te vervangen. Verlaten wist de invoersleutel. Ingediende save/scan behoudt
+  de oorspronkelijke deadline; geen herhaling of late readback door de oude
+  pagina. Leesfoutherstel en onbevestigde schrijfacties houden eigen status.

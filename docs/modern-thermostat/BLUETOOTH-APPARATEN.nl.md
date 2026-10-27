@@ -83,6 +83,26 @@ fysieke acquisitietijd. Daarom blijven `measurement_qualified` en
 `control_qualified` expliciet onwaar. De gegevens zijn diagnoseontvangst en
 worden niet aan de verwarmingsregelaar, kraanroute of HA-meetkwalificatie gevoerd.
 
+### Statusuitlezing en navigatie in de volgende bèta
+
+De pagina heeft één automatische statusaanvraag per vijf seconden. Een
+verborgen tab stopt de timer en trekt de lopende statusaanvraag in. Terugkeren
+haalt één nieuwe momentopname op, zodra geen configuratielaad-/schrijfactie
+bezig is. Een laat antwoord kan geen nieuwere uitlezing vervangen. Conceptnaam,
+sleutelactie/getypte sleutel, focus en open details blijven bij tabwisselen
+behouden; verlaten van de pagina wist de getypte sleutel.
+
+Een expliciete configuratielaadactie of vereiste save-readback behoudt zijn
+bestaande begrensde uitlezing, ook bij tabwisselen. Navigatie trekt deze reads
+in. Reeds ingediende saves en scans houden hun eigen tienseconden-deadline,
+worden nooit automatisch herhaald en doen na verlaten geen verificatie-readback.
+Bij terugkeren leest de nieuwe pagina de opgeslagen configuratie opnieuw. Een
+onbevestigde save blijft onbevestigd, ook als latere statusreads slagen. Alleen
+een eerdere statusleesfout wordt bij herstel opgeruimd.
+
+Dit verandert de radio, rapportkwalificatie, opslag of scanbediening niet.
+Softwaretests gebruiken uitsluitend geïsoleerde HTTP-antwoorden.
+
 ### Opslaan en publieke API
 
 De versiegebonden compacte lijst en de sleutels staan **samen in één privéblob**

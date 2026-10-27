@@ -1,0 +1,145 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target": "E32 beta.6",
+  "parent_commit": "f07b6ae7f478311c81b88e6b10b078437c827eed",
+  "device_actions_performed": false,
+  "contract": {
+    "status_poll_interval_ms": 5000,
+    "original_request_deadline_ms": 10000,
+    "maximum_current_status_reads": 1,
+    "hidden_status_polling": false,
+    "status_polling_during_config_load_or_save": false,
+    "typed_keys": "Retained through visibility changes; cleared on unmount or save completion",
+    "submitted_mutations": "Retain original finite deadline through navigation; never replay; no retired verification readback",
+    "explicit_config_load": "Page-owned bounded read; can complete while hidden; abort on navigation",
+    "scan_radio_storage_and_report_qualification_changed": false,
+    "status_recovery": "Clear only prior poll warning; preserve unconfirmed save"
+  },
+  "validation": {
+    "root_language_managed_and_auth_node_cases_passed": 50,
+    "existing_bluetooth_profile_language_width_cases_passed": 12,
+    "new_bluetooth_lifecycle_cases_passed": 2,
+    "languages": [
+      "en",
+      "nl"
+    ],
+    "existing_profiles": [
+      "shelly_ht_display",
+      "xiaomi_monitor_3",
+      "shelly_blu_trv"
+    ],
+    "hidden_pending_abort_and_single_resume": "PASS",
+    "draft_key_focus_details_preserved": "PASS",
+    "config_load_and_save_serialized_against_status_poll": "PASS",
+    "original_read_and_write_deadlines": "PASS",
+    "save_scan_survive_navigation_and_clear_retired_passwords": "PASS",
+    "late_server_commit_remains_unconfirmed_no_replay": "PASS",
+    "e32_app_build": "PASS",
+    "e32_filesystem_build": "PASS",
+    "source_image_partition_assets_uart_owner": "PASS",
+    "firmware_bytes": 3106768,
+    "ota_slot_bytes": 3670016,
+    "assets": 36,
+    "gzip_representations": 29,
+    "raw_bytes": 561206,
+    "gzip_bytes": 152534
+  },
+  "remaining": [
+    "Exact-commit CI",
+    "On-device latency and source/installation acceptance remain separate"
+  ],
+  "reviewed_files": [
+    {
+      "path": ".github/workflows/build.yml",
+      "sha256": "7ca075593f5593d1344d8938564c1a1091491fc9c22c4ac6d39a7fe8f8dedaa2"
+    },
+    {
+      "path": "README.md",
+      "sha256": "53b6c779892cb024f5ac7588987dc252b45e01ee8f174fd5e307b08ad0a43aac"
+    },
+    {
+      "path": "data/html/bluetooth.js",
+      "sha256": "f68acc71b8ad2ae3996329c89b8b26d8c130c65662be4caf60853af75c660f0e"
+    },
+    {
+      "path": "data/html/ui-messages.js",
+      "sha256": "f78fabb647549b4513d5e9d266e26d7f043edd634097b9b273733c3db5c0f485"
+    },
+    {
+      "path": "docs/modern-thermostat/BLUETOOTH-APPARATEN.nl.md",
+      "sha256": "38b254838fc2bb7f414aaca223b835b8a717a54aab38372b83522aa7fc058c42"
+    },
+    {
+      "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
+      "sha256": "1a10927fe9490e166fc8dee209d6a142f143222a1293bc0339cc3212f50cf1c0"
+    },
+    {
+      "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
+      "sha256": "13b0ec29b8d758b17c6285b557fa7253b2decd9bd9567af88d537c8011f592a7"
+    },
+    {
+      "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
+      "sha256": "834b5f28bbfb090a8a723aa6e06dd2ce73f3b55d1a24e67f08cde9ac710d5c50"
+    },
+    {
+      "path": "docs/modern-thermostat/RELEASE-NOTES.md",
+      "sha256": "2c07584e88e72a7935613c977212c8a0865e7945408744fdfea66419c24f69d9"
+    },
+    {
+      "path": "docs/modern-thermostat/WORKBOARD.nl.md",
+      "sha256": "e46a38830129ee331154ae136f3f4778f6fc9f156369cfdea92e6fedd0bc45d5"
+    },
+    {
+      "path": "test/bluetooth-browser.cjs",
+      "sha256": "52af7a85ac2e4a1ba1a4673f2fafbb8061a7b192b09f92bc525c8300315b7000"
+    },
+    {
+      "path": "test/bluetooth-lifecycle-browser.cjs",
+      "sha256": "08611fb2e4949f5485f14fc5df02456baa50993a0b02370ee1b7cf400088b935"
+    }
+  ],
+  "local_evidence": [
+    {
+      "path": "out/bluetooth-lifetime-20261027/e32-build.log",
+      "sha256": "c70e5728140e167fe883b3288afa4646ca7203690114b8b292f9f5298bb7750f"
+    },
+    {
+      "path": "out/bluetooth-lifetime-20261027/e32-buildfs.log",
+      "sha256": "0dda7d8c173afc4cf6be748c86317052f8378c48d5ecf55a1e4fa0f5e8927336"
+    },
+    {
+      "path": "out/bluetooth-lifetime-20261027/e32-verify.log",
+      "sha256": "f8c388111bf435e9126daeb9dd1e202478fe38c13593a8f827cb75df64a7c10d"
+    },
+    {
+      "path": "out/bluetooth-lifetime-20261027/lifecycle-complete.log",
+      "sha256": "0400cd8a84aecb243c3b658106d4a7ad2d3ea802a2fc542b65459b8468452e53"
+    },
+    {
+      "path": "out/bluetooth-lifetime-20261027/lifecycle-final.log",
+      "sha256": "0400cd8a84aecb243c3b658106d4a7ad2d3ea802a2fc542b65459b8468452e53"
+    },
+    {
+      "path": "out/bluetooth-lifetime-20261027/lifecycle-verified.log",
+      "sha256": "0400cd8a84aecb243c3b658106d4a7ad2d3ea802a2fc542b65459b8468452e53"
+    },
+    {
+      "path": "out/bluetooth-lifetime-20261027/node-tests-final.log",
+      "sha256": "fd55165653667e1dce7006925e3226b6e98b2386780a6dc7f6b587892b9b0418"
+    },
+    {
+      "path": "out/bluetooth-lifetime-20261027/node-tests.log",
+      "sha256": "cbbd76055af868a45245ad85eb1aab97d3b7de652f9b7f88a11bca0a589fa56a"
+    },
+    {
+      "path": "out/bluetooth-lifetime-20261027/regression-final.log",
+      "sha256": "01b5cde088865b7ace3deaf0e0f4c6b694acdcce01e64aca77f9a40ab204373a"
+    },
+    {
+      "path": "out/bluetooth-lifetime-20261027/regression.log",
+      "sha256": "01b5cde088865b7ace3deaf0e0f4c6b694acdcce01e64aca77f9a40ab204373a"
+    }
+  ]
+}

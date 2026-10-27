@@ -40,6 +40,12 @@ instellingenwijzigingen worden door navigatie niet afgebroken of herhaald.
 Ook het dashboard breekt een lopende uitlezing af zodra de pagina verborgen
 wordt. Terugkeren start direct één nieuwe aanvraag; late/verlopen antwoorden
 vervangen die niet en navigatie hervat geen oude dashboarduitlezing.
+Bluetooth pauzeert eveneens zijn automatische statusuitlezing in verborgen tabs.
+Laden/bewaren en automatische statusreads lopen niet door elkaar. Conceptinvoer,
+getypte sleutel en open panelen blijven bij tabwisselen bewaard; verlaten wist
+de sleutel. Een ingediende save/scan houdt zijn eigen deadline, zonder herhaling
+of readback door een verlaten pagina. Leesherstel wist alleen de oude leesfout;
+een onbevestigde save blijft zichtbaar.
 De daadwerkelijke paginasnelheid moet na installatie worden gemeten.
 
 **Nieuwe kamerfunctie in dezelfde bundel:** maximaal acht raam-/deurcontacten

@@ -56,6 +56,10 @@ acceptance is separate; beta.5 installation recovery remains deferred.
   remain independent of serial output; enabled messages retain redaction and
   bounded storage. The periodic route refresh also fails fast if its native
   network mailbox is full.
+- Pause Bluetooth status polling while hidden, and resume with one read without
+  replacing drafts, keys, focus or expanded panels. Settings loads/saves do not
+  overlap automatic status reads. Submitted saves and scans keep their own
+  deadline across navigation, without replay or retired-page verification reads.
 - Retire dashboard reads while hidden or after navigation. Returning starts one
   fresh read; late or timed-out bodies cannot replace its state or the next page.
 - Suspend updater status reads while the page is hidden and release them on

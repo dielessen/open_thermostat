@@ -25,13 +25,17 @@ window.BluetoothPage = (() => {
   function mount(root) {
     unmount();const owner=new AbortController();active=owner;
     const get=id=>root.querySelector('#'+id), status=get('ble-status'), rows=get('ble-rows');
-    let writeUnconfirmed=false, etag=null, storedInvalid=false, dirty=false, saving=false, loading=false, polling=false, timer=null, savedRows=new Map(), nearbyHints=[], nearbyCards=new Map();
+    let writeUnconfirmed=false, pollWarning=false, etag=null, storedInvalid=false, dirty=false, saving=false, loading=false, pollRequest=null, timer=null, savedRows=new Map(), nearbyHints=[], nearbyCards=new Map();
     const alive=()=>!owner.signal.aborted&&root.isConnected;
-    owner.signal.addEventListener('abort',()=>{clearTimeout(timer);for(const input of rows.querySelectorAll('input[type=password]'))input.value='';},{once:true});
+    const visible=()=>document.visibilityState!=='hidden';
+    function stopPoll(){clearTimeout(timer);timer=null;const pending=pollRequest;pollRequest=null;if(pending)pending.abort();}
+    function schedulePoll(){clearTimeout(timer);timer=null;if(alive()&&visible()&&!pollRequest)timer=setTimeout(poll,5000);}
+    owner.signal.addEventListener('abort',()=>{stopPoll();for(const input of rows.querySelectorAll('input[type=password]'))input.value='';},{once:true});
+    document.addEventListener('visibilitychange',()=>{if(!visible())stopPoll();else if(alive())poll();},{signal:owner.signal});
     const unconfirmedMessage='Saving could not be confirmed. Your draft is kept. Reload saved settings before retrying.';
-    const say=text=>{if(alive())status.textContent=t(text);};
+    const say=(text,fromPoll=false)=>{if(alive()){status.textContent=t(text);pollWarning=fromPoll;}};
     const saveFailed=error=>{if(!error.httpStatus||(error.httpStatus>=500&&error.httpStatus!==507)){writeUnconfirmed=true;etag=null;say(unconfirmedMessage);}else say(error.message);};
-    const enable=()=>{get('ble-add').disabled=!etag||storedInvalid||saving||loading||rows.children.length>=8;get('ble-save').disabled=!etag||storedInvalid||saving||loading;get('ble-reset').disabled=!etag||saving||loading;get('ble-reload').disabled=saving||loading;renderNearby();};
+    const enable=()=>{if(!alive())return;get('ble-add').disabled=!etag||storedInvalid||saving||loading||rows.children.length>=8;get('ble-save').disabled=!etag||storedInvalid||saving||loading;get('ble-reset').disabled=!etag||saving||loading;get('ble-reload').disabled=saving||loading;renderNearby();};
     const draft=()=>{dirty=true;enable();};
     function field(label,node,parent) {const wrap=el('label');wrap.className='d-block mb-2';wrap.append(el('span',t(label)),node);parent.append(wrap);node.className='form-control';return node;}
     function option(select,value,label){const o=el('option',t(label));o.value=value;select.append(o);}
@@ -120,15 +124,23 @@ window.BluetoothPage = (() => {
     }
     async function request(path, options={}) {
       if(!alive())throw new DOMException('Aborted','AbortError');
-      const abort=new AbortController(), cancel=()=>abort.abort();owner.signal.addEventListener('abort',cancel,{once:true});const timeout=setTimeout(cancel,10000);
+      // Reads belong to the page; an already submitted write keeps its own
+      // deadline through navigation. Neither kind is automatically replayed.
+      const mutation=!['GET','HEAD'].includes((options.method||'GET').toUpperCase());
+      const abort=new AbortController(), cancel=()=>abort.abort();
+      if(!mutation)owner.signal.addEventListener('abort',cancel,{once:true});
+      options.signal?.addEventListener('abort',cancel,{once:true});
+      if(options.signal?.aborted)cancel();
+      const timeout=setTimeout(()=>abort.abort(new DOMException('Deadline','TimeoutError')),10000);
       try {
         const response=await fetch(path,{cache:'no-store',credentials:'same-origin',...options,signal:abort.signal});
         if(!response.ok) {let code='';try{code=(await response.json()).error;}catch{}const error=new Error(t(errors[code]??'Bluetooth request failed. Check the device before retrying.'));error.httpStatus=response.status;throw error;}
-        const data=await response.json();return {data,etag:response.headers.get('ETag')};
-      } finally {clearTimeout(timeout);owner.signal.removeEventListener('abort',cancel);}
+        const data=await response.json();if(abort.signal.aborted)throw abort.signal.reason;return {data,etag:response.headers.get('ETag')};
+      } catch(error){if(abort.signal.reason?.name==='TimeoutError')throw new Error(t('Bluetooth request failed. Check the device before retrying.'));throw error;}
+      finally {clearTimeout(timeout);if(!mutation)owner.signal.removeEventListener('abort',cancel);options.signal?.removeEventListener('abort',cancel);}
     }
     async function load(expected=null) {
-      if(loading)return;loading=true;etag=null;for(const box of rows.children)box.disabled=true;enable();
+      if(loading)return;stopPoll();loading=true;etag=null;for(const box of rows.children)box.disabled=true;enable();
       try {
         const response=await request('/config/bluetooth'), s=response.data, tag=response.etag;
         if(!alive())return;if(!valid(s)||!tag||!/^"[0-9a-f]{64}"$/.test(tag))throw new Error(t('Invalid Bluetooth status received.'));
@@ -136,13 +148,16 @@ window.BluetoothPage = (() => {
         for(const input of rows.querySelectorAll('input[type=password]'))input.value='';rows.replaceChildren();
         writeUnconfirmed=false;etag=tag;storedInvalid=s.config_error!=='none';get('ble-reset').hidden=!storedInvalid;for(const d of s.devices)addRow(d);dirty=false;say('Bluetooth settings loaded.');render(s);enable();return true;
       } catch(error){if(expected!==null){writeUnconfirmed=true;say(unconfirmedMessage);}else say(error.message);return false;}
-      finally {loading=false;for(const box of rows.children)box.disabled=saving;enable();}
+      finally {loading=false;for(const box of rows.children)box.disabled=saving;enable();schedulePoll();}
     }
     async function poll() {
-      if(!alive()||polling)return;polling=true;
-      try {const response=await request('/bluetooth/status'),s=response.data;if(!valid(s))throw new Error(t('Invalid Bluetooth status received.'));if(alive())render(s);}
-      catch(error){if(alive()){for(const node of rows.querySelectorAll('[data-readings],[data-extra]'))node.textContent=t('Bluetooth readings unavailable.');say(error.message);}}
-      finally {polling=false;if(alive())timer=setTimeout(poll,5000);}
+      if(!alive()||!visible()||pollRequest)return;
+      if(loading||saving){schedulePoll();return;}
+      clearTimeout(timer);timer=null;const current=new AbortController();pollRequest=current;
+      const owns=()=>alive()&&visible()&&pollRequest===current;
+      try {const response=await request('/bluetooth/status',{signal:current.signal}),s=response.data;if(!valid(s))throw new Error(t('Invalid Bluetooth status received.'));if(owns()){if(pollWarning)say('Bluetooth status updated.');render(s);}}
+      catch(error){if(owns()){for(const node of rows.querySelectorAll('[data-readings],[data-extra]'))node.textContent=t('Bluetooth readings unavailable.');if(writeUnconfirmed)say(unconfirmedMessage);else say(error.message,true);}}
+      finally {if(pollRequest===current){pollRequest=null;schedulePoll();}}
     }
     get('ble-add').addEventListener('click',()=>{addRow();draft();},{signal:owner.signal});
     get('ble-reload').addEventListener('click',()=>{if(!saving&&(!dirty||confirm(t('Discard your unsaved Bluetooth changes?'))))load();},{signal:owner.signal});
@@ -153,9 +168,9 @@ window.BluetoothPage = (() => {
     },{signal:owner.signal});
     get('ble-reset').addEventListener('click',async()=>{
       if(!etag||saving||!storedInvalid||!confirm(t('Clear only the invalid Bluetooth device list? Other settings will be kept.')))return;
-      saving=true;enable();
+      saving=true;stopPoll();enable();
       try{const headers={...await OpenThermostatAuth.headers(),'Content-Type':'application/json','If-Match':etag};await request('/config/bluetooth',{method:'POST',headers,body:JSON.stringify({devices:[],reset_invalid:true})});if(alive())await load([]);}
-      catch(error){saveFailed(error);}finally{saving=false;enable();}
+      catch(error){saveFailed(error);}finally{saving=false;enable();schedulePoll();}
     },{signal:owner.signal});
     get('ble-form').addEventListener('submit',async event=>{
       event.preventDefault();if(!etag||storedInvalid||saving)return;
@@ -165,12 +180,12 @@ window.BluetoothPage = (() => {
         return {address,name:d.name,profile:d.profile,encryption:d.encryption,key_stored:d.key_action==='set'||d.key_action==='keep'&&Boolean(prior?.key_stored&&prior.profile===d.profile&&prior.encryption===d.encryption)};
       });
       if(devices.some(d=>new TextEncoder().encode(d.name).length>40||d.key_action==='set'&&!/^[0-9a-fA-F]{32}$/.test(d.bindkey))) {say('Use names of at most 40 UTF-8 bytes and keys of exactly 32 hexadecimal characters.');return;}
-      saving=true;for(const box of rows.children)box.disabled=true;enable();
+      saving=true;stopPoll();for(const box of rows.children)box.disabled=true;enable();
       try {const headers={...await OpenThermostatAuth.headers(),'Content-Type':'application/json','If-Match':etag};await request('/config/bluetooth',{method:'POST',headers,body:JSON.stringify({devices})});if(alive()&&await load(expected))say('Bluetooth settings saved. Restart the device in Settings to apply changes.');}
       catch(error){saveFailed(error);}
-      finally {for(const input of rows.querySelectorAll('input[type=password]'))input.value='';for(const box of rows.children)box.disabled=false;saving=false;enable();}
+      finally {for(const input of rows.querySelectorAll('input[type=password]'))input.value='';for(const box of rows.children)box.disabled=false;saving=false;enable();schedulePoll();}
     },{signal:owner.signal});
-    load().then(()=>{if(alive())timer=setTimeout(poll,5000);});
+    load();
   }
   return {mount,unmount};
 })();

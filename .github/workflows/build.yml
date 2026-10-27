@@ -59,6 +59,7 @@ jobs:
           node test/ems-devices-browser.cjs
           node test/boiler-settings-browser.cjs
           node test/bluetooth-browser.cjs
+          node test/bluetooth-lifecycle-browser.cjs
           node test/navigation-browser.cjs
           node test/page-loading-browser.cjs
           node test/system-log-browser.cjs

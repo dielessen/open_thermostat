@@ -378,3 +378,24 @@ read deadlines retain the error and normal polling backoff. Visibility on About
 or another retired dashboard does not start Home polling. Commands, authentication
 and other page owners are unchanged. Real browser fetch/abort/navigation cases
 and delayed-body VM fixtures cover these boundaries; no board request is involved.
+
+## Bluetooth status ownership and submitted writes
+
+Bluetooth's automatic five-second status loop now pauses while hidden and
+retires its pending read before cancellation. Returning creates one new read;
+late results/finalizers cannot affect that owner. Configuration loading and
+saving stop polling, preserving drafts, typed keys, focus and open panels.
+Hidden initial mounting can finish its one configuration load without starting
+a status timer. Explicit configuration/readback reads retain their existing
+page-owned deadline; leaving aborts them.
+
+Submitted save/reset/scan POSTs retain their own original ten-second deadline
+through visibility or navigation. They are not retried; a retired page cannot
+start verification readback. Unmount still clears password inputs, and finalizers
+cannot enable controls on a retired root. True read deadlines report failure and
+retain the five-second retry. Successful status recovery clears only an earlier
+poll warning, preserving explicit save/conflict/unconfirmed messages. A late
+server-side commit after a write timeout cannot turn the UI into confirmed save.
+The existing authenticated ETag/conditional-save and independent readback checks
+remain unchanged. No scan, configuration write or radio change was performed
+on a device during these software checks.

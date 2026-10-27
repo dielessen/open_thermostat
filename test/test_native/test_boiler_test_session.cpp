@@ -524,3 +524,77 @@ TEST_F(BoilerTest, CompletedZeroOnlyNeedsNewPreparationBeforeAnyHeat) {
 }
 
 } // namespace
+
+namespace {
+TEST_F(BoilerTest, TrialProgressRequiresPositiveCompletionAndLaterCanonicalHeatingReport) {
+    heating();
+    const auto heatingReport = [&](uint64_t now, uint8_t selected=40, uint8_t state=9) {
+        monitor.receive({EmsTelegram::BROADCAST,8,0,0,0x18,{selected,1,0x72,80,10,state}},now);
+    };
+    heatingReport(103);session.step(103,gates,monitor);
+    EXPECT_FALSE(session.requestedTemperatureReported());EXPECT_FALSE(session.heatingOperationReported());
+    const auto positive=session.next(104,gates,monitor);
+    ASSERT_TRUE(testing_detail::instantTransmission(session,positive,104,true,gates,monitor));
+    session.step(104,gates,monitor); // cached pre-command feedback is not evidence
+    EXPECT_FALSE(session.requestedTemperatureReported());EXPECT_FALSE(session.heatingOperationReported());
+    heatingReport(104);session.step(104,gates,monitor); // same timestamp is not strictly later
+    EXPECT_FALSE(session.requestedTemperatureReported());EXPECT_FALSE(session.heatingOperationReported());
+    heatingReport(105);session.step(105,gates,monitor);
+    EXPECT_TRUE(session.requestedTemperatureReported());EXPECT_TRUE(session.heatingOperationReported());
+    EXPECT_FALSE(session.durationCompleted());EXPECT_EQ(session.requestedDurationSeconds(),1u);
+    report(1102);session.step(1102,gates,monitor);
+    EXPECT_TRUE(session.durationCompleted());EXPECT_STREQ(session.endReason(),"heat_deadline");
+    const auto zero=session.next(1102,gates,monitor);
+    ASSERT_TRUE(testing_detail::instantTransmission(session,zero,1102,true,gates,monitor));
+    report(1103);session.step(1103,gates,monitor);
+    ASSERT_EQ(session.phase(),Phase::completed);
+    EXPECT_TRUE(session.requestedTemperatureReported());EXPECT_TRUE(session.heatingOperationReported());
+    EXPECT_TRUE(session.durationCompleted());EXPECT_STREQ(session.endReason(),"heat_deadline");
+    ASSERT_EQ(session.prepare(11,2,40,1000,1104,gates,monitor),Reply::accepted);
+    EXPECT_FALSE(session.requestedTemperatureReported());EXPECT_FALSE(session.heatingOperationReported());
+    EXPECT_FALSE(session.durationCompleted());EXPECT_STREQ(session.endReason(),"");
+}
+TEST_F(BoilerTest, EarlyStopAndLeaseExpiryDoNotCompleteTrialDuration) {
+    heating();session.stop(200);
+    EXPECT_FALSE(session.durationCompleted());EXPECT_STREQ(session.endReason(),"explicit_stop");
+    BoilerTestSession other{11,profile};report(300);
+    ASSERT_EQ(other.prepare(11,1,40,10000,301,gates,monitor),Reply::accepted);
+    const auto zero=other.next(301,gates,monitor);
+    ASSERT_TRUE(testing_detail::instantTransmission(other,zero,301,true,gates,monitor));
+    report(302);other.step(302,gates,monitor);
+    ASSERT_EQ(other.start(11,1,303,gates,monitor),Reply::accepted);
+    report(5301);other.step(5301,gates,monitor);
+    EXPECT_FALSE(other.durationCompleted());EXPECT_STREQ(other.endReason(),"operator_lease_expired");
+}
+TEST_F(BoilerTest, WrongSelectionAndStaleOrFutureReportsCannotCompleteHeatingEvidence) {
+    heating();const auto positive=session.next(102,gates,monitor);
+    ASSERT_TRUE(testing_detail::instantTransmission(session,positive,102,true,gates,monitor));
+    monitor.receive({EmsTelegram::BROADCAST,8,0,0,0x18,{39,1,0x72,80,10,9}},103);
+    session.step(103,gates,monitor);
+    EXPECT_FALSE(session.requestedTemperatureReported());EXPECT_TRUE(session.heatingOperationReported());
+    // Future timestamp cannot become proof even if the requested value matches.
+    monitor.receive({EmsTelegram::BROADCAST,8,0,0,0x18,{40,1,0x72,80,10,9}},200);
+    session.step(104,gates,monitor);EXPECT_FALSE(session.requestedTemperatureReported());
+}
+TEST_F(BoilerTest, DeadlineWithoutACompletedHeatCommandIsNotHeatingEvidence) {
+    heating();report(1102);session.step(1102,gates,monitor);
+    EXPECT_TRUE(session.durationCompleted());
+    EXPECT_FALSE(session.requestedTemperatureReported());EXPECT_FALSE(session.heatingOperationReported());
+}
+TEST_F(BoilerTest, LatePositiveCompletionAfterStopCannotCreateHeatingEvidence) {
+    heating();const auto positive=session.next(102,gates,monitor);
+    ASSERT_TRUE(session.beginTransmit(positive,102,gates,monitor));session.stop(103);
+    ASSERT_TRUE(session.finishTransmit(positive,104,true,gates,monitor));
+    monitor.receive({EmsTelegram::BROADCAST,8,0,0,0x18,{40,1,0x72,80,10,9}},105);
+    session.step(105,gates,monitor);
+    EXPECT_FALSE(session.requestedTemperatureReported());EXPECT_FALSE(session.heatingOperationReported());
+    EXPECT_FALSE(session.durationCompleted());
+}
+TEST_F(BoilerTest, TapWaterFeedbackDoesNotCountAsCentralHeatingResponse) {
+    heating();const auto positive=session.next(102,gates,monitor);
+    ASSERT_TRUE(testing_detail::instantTransmission(session,positive,102,true,gates,monitor));
+    monitor.receive({EmsTelegram::BROADCAST,8,0,0,0x18,{40,1,0x72,80,10,10}},103);
+    session.step(103,gates,monitor);
+    EXPECT_FALSE(session.heatingOperationReported());EXPECT_FALSE(session.requestedTemperatureReported());
+}
+}

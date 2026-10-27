@@ -213,6 +213,11 @@ public:
             << ",\"clock\":\"boot_monotonic_ms\",\"stop_reference_emitted_at_ms\":";
         if (const auto reference = session_.stopReferenceMs()) out << *reference; else out << "null";
         out << ",\"reported_stop_confirmed\":" << (session_.reportedStopConfirmed() ? "true" : "false")
+            << ",\"progress\":{\"schema\":1,\"requested_temperature_reported\":" << (session_.requestedTemperatureReported() ? "true" : "false")
+            << ",\"heating_operation_reported\":" << (session_.heatingOperationReported() ? "true" : "false")
+            << ",\"duration_completed\":" << (session_.durationCompleted() ? "true" : "false")
+            << ",\"requested_duration_s\":" << session_.requestedDurationSeconds()
+            << ",\"end_reason\":\"" << session_.endReason() << "\"}"
             << ",\"positive_frames\":" << positiveFrames_ << ",\"zero_frames\":" << zeroFrames_
             << ",\"operator_remaining_ms\":" << remaining(session_.operatorDeadline(), now)
             << ",\"heat_remaining_ms\":" << (session_.phase() == BoilerTestSession::Phase::heating ? remaining(session_.heatDeadline(), now) : 0)
@@ -244,7 +249,11 @@ private:
         // it or extend the independent heat deadline.
         return manualPressureLifetimeMs + (heating() ? durationMs_ : 0);
     }
-    unsigned marker() const { return static_cast<unsigned>(session_.phase()) * 2 + session_.reportedStopConfirmed(); }
+    unsigned marker() const {
+        return static_cast<unsigned>(session_.phase()) * 16 + session_.reportedStopConfirmed()
+            + session_.requestedTemperatureReported() * 2 + session_.heatingOperationReported() * 4
+            + session_.durationCompleted() * 8;
+    }
     static uint64_t remaining(uint64_t until, uint64_t now) { return until > now ? until - now : 0; }
     std::string bootText() const {
         std::string result(16, '0'); auto value = boot_;

@@ -6,16 +6,17 @@ acceptance is separate; beta.5 installation recovery remains deferred.
 
 ## New
 
-- One boiler page with an explicit **Read settings → Prepare → Start → Stop**
-  workflow. The setup uses one two-minute confirmation covering the read and
-  preparation; starting heating remains a separate explicit action.
+- Guided boiler trial: **Setup → Prepare → Heat → Result**, default 50 °C / ten
+  minutes. One setup confirmation, explicit next actions, remaining time and Stop.
+  Results distinguish a full reported pass, partial duration, missing evidence,
+  zero-only checks and faults. E32 session observations survive page reopening
+  until a new preparation or restart, without resuming supervision.
 - One entity table per observed device, identified from its received product
   report. Read-only values and configurable settings are distinguished in the
   same table. The unrelated all-model catalogue and duplicate settings/value
   lists have been removed from the page.
-- An explicit **Read device identity** action requests one bounded version
-  report when the boiler model is unknown. Opening or refreshing the page never
-  sends this bus request. Identity reading is optional for the heating workflow.
+- Optional **Read device identity** requests one bounded version report for an
+  unknown boiler. Opening or refreshing the page never sends this bus request.
 - A closed trial shows its restart requirement directly and offers the existing
   confirmed, update-aware restart action. No heating resumes automatically.
 

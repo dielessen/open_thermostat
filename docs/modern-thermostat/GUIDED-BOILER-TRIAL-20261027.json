@@ -1,0 +1,268 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target": "E32 beta.6",
+  "parent_commit": "bdb5d335999234e945d17c3fca974fa9f1a6b835",
+  "device_actions_performed": false,
+  "contract": {
+    "steps": [
+      "setup",
+      "prepare",
+      "heat",
+      "result"
+    ],
+    "default_flow_c": 50,
+    "default_duration_s": 600,
+    "setup_checkboxes": 1,
+    "start_confirmation_required": true,
+    "stop_confirmation_required": false,
+    "extra_polling_added": false,
+    "evidence_owner": "Existing serialized E32 boiler test session, canonical Classic monitor samples after first successful positive transmission",
+    "passed_requires": [
+      "completed phase",
+      "positive transmission",
+      "later reported requested temperature",
+      "later adapter-derived CV operation with DHW off",
+      "full heat deadline",
+      "zero transmission and later reported stop"
+    ],
+    "other_outcomes": [
+      "partial duration",
+      "unconfirmed evidence",
+      "no heat transmitted",
+      "separate zero-only pass",
+      "fault"
+    ],
+    "result_lifetime": "Current boot/session; survives browser reopen; resets only on accepted new preparation or reboot",
+    "supervision_restored_on_reopen": false,
+    "control_admission_lease_cadence_and_safe_stop_changed": false,
+    "physical_qualification_added": false
+  },
+  "validation": {
+    "native_cases_passed": 1221,
+    "new_native_progress_cases_passed": 6,
+    "node_cases_passed": 70,
+    "new_outcome_policy_cases_passed": 5,
+    "guidance_browser_profiles_passed": 4,
+    "guidance_languages": [
+      "en",
+      "nl"
+    ],
+    "guidance_widths": [
+      1280,
+      320
+    ],
+    "existing_control_browser_widths_passed": [
+      1280,
+      390,
+      320
+    ],
+    "confirmation_interruption_cases_passed": 72,
+    "configuration_identity_read_prepare_start_stop_profiles_passed": 4,
+    "visual_review": "English/Dutch desktop and narrow mobile; result before repeat form, compact steps, blank consumed gauge has no green validation mark, final stop replaces pending acknowledgement",
+    "e32_app_build": "PASS",
+    "e32_filesystem_build": "PASS",
+    "source_image_partition_asset_uart_owner": "PASS",
+    "firmware_bytes": 3138672,
+    "ota_slot_bytes": 3670016,
+    "assets": 36,
+    "gzip_representations": 29,
+    "raw_bytes": 585241,
+    "gzip_bytes": 159426
+  },
+  "remaining": [
+    "Candidate not published or installed",
+    "Reported CV/temperature is not independent flame, radiator or physical B14 qualification",
+    "Beta.4 remains installed; beta.5 installation gate remains pending"
+  ],
+  "housekeeping": {
+    "standard_release_cleanup": "PASS",
+    "native_build_bytes_reclaimed": 200416021,
+    "e32_build_retained": true
+  },
+  "reviewed_files": [
+    {
+      "path": ".github/workflows/build.yml",
+      "sha256": "8ccb85dbb437944d217e8c98c9c2ccbc9f74b1f6554f6c856b66063b308d0071"
+    },
+    {
+      "path": "README.md",
+      "sha256": "97899d6653679662101595e8ea268dc2cf6d45a9f0c06cd54b89cf6027762b35"
+    },
+    {
+      "path": "data/html/boiler_test.html",
+      "sha256": "62917ff66b9496841e42a6c859d3163a1209c423d2f0214e485094b7dcb5ecad"
+    },
+    {
+      "path": "data/html/ui-messages.js",
+      "sha256": "95ea3efdb9b28bfbe9b5bae6b2e3b9133e85e854333e4554e637971737edb4ff"
+    },
+    {
+      "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
+      "sha256": "4975f575ba8e510be4de84f5196ad917c3f5f2181430b81d2a635f1bfd997369"
+    },
+    {
+      "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
+      "sha256": "6fc9b58753bb2e7aecfb549fde7582309cb5c239e4af6caa48d0fc03f574ace2"
+    },
+    {
+      "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
+      "sha256": "8f5cd5709593d1575b0c9f4e9e92533e3b75402b225c0d1b13ccb4f9756a6c5e"
+    },
+    {
+      "path": "docs/modern-thermostat/RELEASE-NOTES.md",
+      "sha256": "5f221d4c31e98d89207ca83409bd57bdf16df8678a043d2af8927fb19d66fa6b"
+    },
+    {
+      "path": "docs/modern-thermostat/WORKBOARD.nl.md",
+      "sha256": "1d1d8fb5751be631000db2100827f362f428a6eeb77613896292fd247521967b"
+    },
+    {
+      "path": "src/EMS/BoilerTestService.h",
+      "sha256": "21209c23a3c403054eb0ffdc52a6af489815f5103a4e544cee12cca8cb2e6111"
+    },
+    {
+      "path": "src/EMS/BoilerTestSession.h",
+      "sha256": "d47142a73053dd9baf15b50420240ee0d7e93a2c56a1704c22bc2723d64bdb15"
+    },
+    {
+      "path": "test/boiler-test-control-browser.cjs",
+      "sha256": "9dddb4c35434fd362eb1bc567c81ef2b585540853f0986ab2648c90241c2da07"
+    },
+    {
+      "path": "test/boiler-trial-guidance-browser.cjs",
+      "sha256": "b714493714d7b94f5a7411dd367d0495cefa582d1227473663fd22f10143c5b8"
+    },
+    {
+      "path": "test/boiler-trial-result.test.cjs",
+      "sha256": "a8f0d9e6909e40b521eb697dcc7be7c58e4c8867ff2e0c503ac5872c096e2c72"
+    },
+    {
+      "path": "test/test_native/test_boiler_test_session.cpp",
+      "sha256": "186cf63dd4526bb5c9f634aaa16a2edf199977ea28de30956b8d594cd8d2ae92"
+    }
+  ],
+  "local_evidence": [
+    {
+      "path": "out/boiler-guided-trial-20261027/browser/BROWSER.json",
+      "sha256": "0255cc01219488aa77d5b5ec4c9c0328e704ee88c41f3346a7f974978b3990fe"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/browser/HEATING-en-1280.png",
+      "sha256": "38ae9d05963b9faf036220207d6a6da4c19da702f28215e7059fe11ec6b0adee"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/browser/HEATING-en-320.png",
+      "sha256": "31e242678b5723a7ff93f3df87d149de5ac06ac9ff54daf153b498b11708c439"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/browser/HEATING-nl-1280.png",
+      "sha256": "a69d494363e00fa16bf08682becd8a13af63a76905b2f9773243d9d1c13410c0"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/browser/HEATING-nl-320.png",
+      "sha256": "ec53032b5f368c038c5f658897e0d7acca7710febef476bdf4c2ea7d8ce6a5d9"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/browser/PASSED-en-1280.png",
+      "sha256": "9b59a52c5c5f7e753f9b45d60e5fd7952ef7b71af02125873e6d5d54bafbc3df"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/browser/PASSED-en-320.png",
+      "sha256": "7778108a75eee6dfcb2329b1639210400785ba5ca545f1f68ab6d6d87254bb55"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/browser/PASSED-nl-1280.png",
+      "sha256": "ffbd00b8325c753c42fe6aff848bea5f80bad9377995ed15b5a6fa37e0ec432f"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/browser/PASSED-nl-320.png",
+      "sha256": "9fb08b24de974e43a395f890203c811f803f882e1d44e3e4b8e8a070937b3169"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/browser/SETUP-en-1280.png",
+      "sha256": "279b0e538b52157f9506368863433f35817a0761d12717442a3202a5980f6717"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/browser/SETUP-en-320.png",
+      "sha256": "5da0f089d30b80bc0df690b3b2a7764fc72b639909f19491f74459f4c9af121b"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/browser/SETUP-nl-1280.png",
+      "sha256": "6af212e93e3cbc67e417180bca03ed444af899facc525f464481cacac8378807"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/browser/SETUP-nl-320.png",
+      "sha256": "5d885876320e01271e421316a7019fa024eca98015665f7b64fb709cc04ee3f6"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/cleanup.log",
+      "sha256": "ba76501dde475daff0b3dc2f3f30085fff556f354a5cc5b2c74ac01db10c4197"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/configuration-browser.log",
+      "sha256": "a5c1b57152c6b6e1cb815cc536817340ff256e90de0a85e9f75a56543161e631"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/confirmation/BROWSER.json",
+      "sha256": "ed6428b92acbf54b6c7ce3dee90a9bfe4ca0aafa5a739f2489d3fa6a3e5f3c8f"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/confirmation-browser.log",
+      "sha256": "e96c239edcfaea192d63a5c6bb73b5bef7fdad097423bd4741533abd3ef0cfdb"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/control/BROWSER.json",
+      "sha256": "64f07dbdcb934d3cac04de03fdb81a2791f6c3a9461f4294fb54593b5a8d04a1"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/control/CONTROL-1280.png",
+      "sha256": "868cea9470c02160d1da344eeb872f1985dd17e434068576c455eb56db5e73c1"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/control/CONTROL-320.png",
+      "sha256": "e9136df90898d75a9fe1da19891c48f3bc57be934667631a8ae5583837c72e88"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/control/CONTROL-390.png",
+      "sha256": "28dca89c3da96e738a16ec8e5f7519cea46982344f27afca0df17982f3bb3459"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/control-browser.log",
+      "sha256": "6075e7dea43e1870071225b57c71a19bb8c7d0256924d5b5b8996b2a99c65e01"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/e32-app.log",
+      "sha256": "6667eba6e235ef9e3114753c23c71249b596a3bada8e61b4d1129f127dca3ade"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/e32-fs.log",
+      "sha256": "d91719b5574b8a0818fbeffd22508133053f9ff2ff6d5f988c3bd1c715ebe9b7"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/e32-verify.log",
+      "sha256": "b67921b5c0c37f9becf7f2a9ea2363ba90af50892996264352e80264d6d38cac"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/guidance-browser.log",
+      "sha256": "4b01e54a7183576394e315432b6334cb3d7e506a28735f4374d3120835aa9a21"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/native-build-cleanup.json",
+      "sha256": "62d156e8728013c09a5a3e4852fda0acbc4755b0b28a88e63c155d06776720cd"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/native.log",
+      "sha256": "fe177fd3fa60f5ba4df7568f12f3f841eb8b0f0c158a7f07fc672e6a59faf18d"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/node-tests.log",
+      "sha256": "fdb1cf37c23271361b326c55d32257de1e7a5fc3c6e88ed54098f4757f58066a"
+    },
+    {
+      "path": "out/boiler-guided-trial-20261027/release-cleanup.json",
+      "sha256": "67780cde95fa8f2301984ab32d01353dfafa5900490f642a424a50890dec1dfa"
+    }
+  ]
+}

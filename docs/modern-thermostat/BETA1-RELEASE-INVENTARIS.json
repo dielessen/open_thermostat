@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "d7967d45cb2f46150449904f0e9703329aaa44f8c29ae61727ca2342f77dfda7"
+          "sha256": "8ccb85dbb437944d217e8c98c9c2ccbc9f74b1f6554f6c856b66063b308d0071"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -59,7 +59,7 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
-          "sha256": "84b1eb6873377930cd1c8e720b63f2f92aec58b7a0c0a2b5f301cae7bb769f63"
+          "sha256": "5f221d4c31e98d89207ca83409bd57bdf16df8678a043d2af8927fb19d66fa6b"
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
@@ -75,7 +75,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "9dcc76790fb8d40e4a01b5e3193a48d2f0a6b60bee09f1b342215e83ec11753c"
+          "sha256": "97899d6653679662101595e8ea268dc2cf6d45a9f0c06cd54b89cf6027762b35"
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "26a994fcbcdbb6b0f155cfdfcc9d9a2fdfbb43079fab3ee5dff3c9b1a660228e"
+          "sha256": "8f5cd5709593d1575b0c9f4e9e92533e3b75402b225c0d1b13ccb4f9756a6c5e"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -215,7 +215,7 @@
         },
         {
           "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
-          "sha256": "94ef7269c54391e742dd304f755941cf38ec37a213901772cb1624765ae155bf"
+          "sha256": "6fc9b58753bb2e7aecfb549fde7582309cb5c239e4af6caa48d0fc03f574ace2"
         },
         {
           "path": "release.json",
@@ -397,7 +397,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "d7967d45cb2f46150449904f0e9703329aaa44f8c29ae61727ca2342f77dfda7"
+          "sha256": "8ccb85dbb437944d217e8c98c9c2ccbc9f74b1f6554f6c856b66063b308d0071"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -565,7 +565,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "cc820198dbbeae039c99b94dbc94e2a46886174feb788fc8749d7ee8a7eb4f34"
+          "sha256": "95ea3efdb9b28bfbe9b5bae6b2e3b9133e85e854333e4554e637971737edb4ff"
         },
         {
           "path": "data/html/ui-language.js",
@@ -645,7 +645,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
-          "sha256": "2a01c07465be0b870098a08cad7ae94c8b6a386477a4eb96f1d1bd4a2153e7ec"
+          "sha256": "4975f575ba8e510be4de84f5196ad917c3f5f2181430b81d2a635f1bfd997369"
         },
         {
           "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-20261027.json",
@@ -907,7 +907,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "d7967d45cb2f46150449904f0e9703329aaa44f8c29ae61727ca2342f77dfda7"
+          "sha256": "8ccb85dbb437944d217e8c98c9c2ccbc9f74b1f6554f6c856b66063b308d0071"
         },
         {
           "path": "platformio.ini",
@@ -931,7 +931,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "cc820198dbbeae039c99b94dbc94e2a46886174feb788fc8749d7ee8a7eb4f34"
+          "sha256": "95ea3efdb9b28bfbe9b5bae6b2e3b9133e85e854333e4554e637971737edb4ff"
         },
         {
           "path": "data/html/system-log.js",
@@ -2301,7 +2301,7 @@
         },
         {
           "path": "docs/modern-thermostat/WORKBOARD.nl.md",
-          "sha256": "bbd834abeb480676113873d752e86efb332bd364bd5009a9555a3ac35874d611"
+          "sha256": "1d1d8fb5751be631000db2100827f362f428a6eeb77613896292fd247521967b"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/device_power.py",
@@ -2341,7 +2341,7 @@
       "files": [
         {
           "path": "data/html/boiler_test.html",
-          "sha256": "e39dba83ae10fe8dc5cb2181617505d75ae29d1f0e9ee6a5cc5aa96eb76d89d2"
+          "sha256": "62917ff66b9496841e42a6c859d3163a1209c423d2f0214e485094b7dcb5ecad"
         },
         {
           "path": "src/EmsController.h",
@@ -2354,6 +2354,18 @@
         {
           "path": "test/boiler-test-browser.cjs",
           "sha256": "4b99a98635fd3b777a580c1b2d0cf538b9c2426af596a94523859937ebb223a7"
+        },
+        {
+          "path": "test/boiler-trial-guidance-browser.cjs",
+          "sha256": "b714493714d7b94f5a7411dd367d0495cefa582d1227473663fd22f10143c5b8"
+        },
+        {
+          "path": "test/boiler-trial-result.test.cjs",
+          "sha256": "a8f0d9e6909e40b521eb697dcc7be7c58e4c8867ff2e0c503ac5872c096e2c72"
+        },
+        {
+          "path": "docs/modern-thermostat/GUIDED-BOILER-TRIAL-20261027.json",
+          "sha256": "f4e446dfe31a3ca2f10cb1c7809428d33ecc70e10a0ecfa8db202fa7757e0ca6"
         }
       ],
       "remaining_acceptance": "Alle 69 velden/rapport en maximaal 24 ontvangen typen getest op 1280/390/320 px; bestaande actieve-proefguards eveneens. Drie boardbuilds en E32-layout/defaults/no-TX-objectcontrole PASS. E32-bron opgenomen in alpha31; actuele module op alpha31 waargenomen om01:50UTC, uitvoerder/methode onbekend. Native HA-projectie voor alle 69 velden voorbereid/getest in broncheckpoint 60c548f en opgenomen in de geverifieerde HA43-bestanden; dat bewijst geen nieuwe of bruikbare waarde voor ieder ketelveld. Fysieke veldvalidatie blijft open. Beta6-ontwikkeling: ophalen → voorbereiden → apart starten → stoppen bovenaan; één twee minuten geldige opstellingsverklaring, geen dubbele waardenlijsten, bekende stopbediening na onzekere read behouden. Volledige HTTP-fixtureworkflow, 72 bevestigingsonderbrekingen, bestaande drie controlviewports en één gegevensbron getest. Echte installatie-/ketelproef blijft open."
@@ -2372,7 +2384,7 @@
       "files": [
         {
           "path": "src/EMS/BoilerTestSession.h",
-          "sha256": "f5b87ee05e16a988c5aff5b1ea0d5a4e828c1f99ba183d8bfc88f06b27467b11"
+          "sha256": "d47142a73053dd9baf15b50420240ee0d7e93a2c56a1704c22bc2723d64bdb15"
         },
         {
           "path": "src/EMS/EmsFrameQueue.h",
@@ -2380,7 +2392,7 @@
         },
         {
           "path": "test/test_native/test_boiler_test_session.cpp",
-          "sha256": "a3fe3281c1b259024a0b12994660c57a952c1132c1019d688b4a0b28591ca299"
+          "sha256": "186cf63dd4526bb5c9f634aaa16a2edf199977ea28de30956b8d594cd8d2ae92"
         },
         {
           "path": "test/test_native/test_ems_frame_queue.cpp",
@@ -2433,7 +2445,7 @@
       "files": [
         {
           "path": "src/EMS/BoilerTestService.h",
-          "sha256": "5d7d6c6fc78eab5b21a34f073e366cdbf57f30416ecdec3eafbeb309a80db12f"
+          "sha256": "21209c23a3c403054eb0ffdc52a6af489815f5103a4e544cee12cca8cb2e6111"
         },
         {
           "path": "src/HeatingController.h",
@@ -2457,7 +2469,7 @@
         },
         {
           "path": "test/boiler-test-control-browser.cjs",
-          "sha256": "ac31e81b6c993ebde15d54b4857b55024068c4ce18f35e702d796ba77121a93d"
+          "sha256": "9dddb4c35434fd362eb1bc567c81ef2b585540853f0986ab2648c90241c2da07"
         },
         {
           "path": "src/EMS/BoilerTestPollDriver.h",

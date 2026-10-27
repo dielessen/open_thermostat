@@ -61,6 +61,12 @@ public:
     uint64_t sessionId() const { return session_; }
     bool transmissionInFlight() const { return inFlight_; }
     bool zeroOnly() const { return zeroOnly_; }
+    // Historical observations for this one session. They never admit a command.
+    bool requestedTemperatureReported() const { return selectedReported_; }
+    bool heatingOperationReported() const { return heatingReported_; }
+    bool durationCompleted() const { return durationCompleted_; }
+    uint32_t requestedDurationSeconds() const { return heatMs_ / 1000; }
+    const char* endReason() const { return endReason_; }
     // First matching completed zero for CURRENT stop proof, not a bus ACK.
     std::optional<uint64_t> stopReferenceMs() const {
         return zeroSent_ ? std::optional<uint64_t>(zeroSentAt_) : std::nullopt;
@@ -108,6 +114,8 @@ public:
                 || heatMs < 1000 || heatMs > profile_.maximumHeatMs)
             || !canAdd(now, profile_.stopTimeoutMs) || !canAdd(now, profile_.operatorLeaseMs))
             return Reply::refused;
+        firstPositiveAt_.reset(); selectedReported_ = heatingReported_ = durationCompleted_ = false;
+        endReason_ = "";
         session_ = session; flowC_ = flowC; heatMs_ = heatMs; zeroOnly_ = zeroOnly;
         operatorUntil_ = now + profile_.operatorLeaseMs;
         enter(Phase::baseline, "checking_reported_stop", now);
@@ -143,6 +151,8 @@ public:
         const char* reason = cause == StopCause::explicitStop ? "explicit_stop"
             : cause == StopCause::heatDeadline ? "heat_deadline"
             : cause == StopCause::operatorLeaseExpired ? "operator_lease_expired" : "proving_conditions_lost";
+        durationCompleted_ = cause == StopCause::heatDeadline;
+        endReason_ = reason;
         // Expiry is an event at its fixed deadline, not at the later owner tick.
         const uint64_t at = cause == StopCause::heatDeadline && heatUntil_ <= now ? heatUntil_
             : cause == StopCause::operatorLeaseExpired && operatorUntil_ <= now ? operatorUntil_ : now;
@@ -168,6 +178,7 @@ public:
             && now - phaseAt_ >= profile_.stopTimeoutMs) {
             fail("reported_stop_timeout"); return;
         }
+        if (phase_ == Phase::heating) observeHeating(monitor, now);
         if (phase_ == Phase::heating && (now >= heatUntil_ || now >= operatorUntil_
             || !gates.allowsHeat() || !feedbackValid(monitor, now))) {
             stop(now, now >= operatorUntil_ && (operatorUntil_ <= heatUntil_ || now < heatUntil_)
@@ -231,6 +242,7 @@ public:
         if (!success) { fail("transmission_failed"); return false; }
         if (!validTime || intent.epoch != epoch_) return true;
         sent_ = true; sentAt_ = now;
+        if (intent.command == Command::positive && !firstPositiveAt_) firstPositiveAt_ = now;
         if (intent.command == Command::zero && !zeroSent_) { zeroSent_ = true; zeroSentAt_ = now; }
         return true;
     }
@@ -262,6 +274,23 @@ private:
         return monitor.capabilities().profile() == BoilerProtocol::classic
             && fresh(cv, now) && fresh(power, now) && fresh(dhw, now) && *dhw.raw == 0;
     }
+    void observeHeating(const ClassicBoilerMonitor& monitor, uint64_t now) {
+        if ((selectedReported_ && heatingReported_) || !firstPositiveAt_ || now > heatUntil_
+            || !feedbackValid(monitor, now)) return;
+        const auto& selected = monitor.sample(BoilerField::selectedFlow);
+        const auto& cv = monitor.sample(BoilerField::heatingActive);
+        const auto& dhw = monitor.sample(BoilerField::dhwActive);
+        const auto afterCommand = [&](const BoilerSample& sample, BoilerQuality quality) {
+            return fresh(sample, now) && sample.quality == quality && sample.sourceType == 0x18
+                && sample.observedMs > *firstPositiveAt_ && sample.observedMs <= now
+                && sample.observedMs <= heatUntil_;
+        };
+        if (afterCommand(selected, BoilerQuality::reported) && *selected.raw == flowC_ * 100)
+            selectedReported_ = true;
+        // Adapter-derived CV status; not independent flame or radiator proof.
+        if (afterCommand(cv, BoilerQuality::inferred) && afterCommand(dhw, BoilerQuality::inferred)
+            && cv.observedMs == dhw.observedMs && *cv.raw == 1 && *dhw.raw == 0) heatingReported_ = true;
+    }
     bool reportedOff(const ClassicBoilerMonitor& monitor, uint64_t now, uint64_t after) const {
         const auto& cv = monitor.sample(BoilerField::heatingActive);
         const auto& power = monitor.sample(BoilerField::modulation);
@@ -280,7 +309,7 @@ private:
     }
     void fail(const char* reason) {
         if (phase_ != Phase::fault) {
-            phase_ = Phase::fault; reason_ = reason; ++epoch_;
+            phase_ = Phase::fault; reason_ = reason; endReason_ = reason; ++epoch_;
             zeroSent_ = false; stopConfirmed_ = false; sent_ = false;
         }
     }
@@ -293,6 +322,9 @@ private:
     uint32_t heatMs_ = 0;
     bool zeroOnly_ = false;
     bool haveTime_ = false, started_ = false, sent_ = false, zeroSent_ = false, stopConfirmed_ = false;
+    std::optional<uint64_t> firstPositiveAt_;
+    bool selectedReported_ = false, heatingReported_ = false, durationCompleted_ = false;
+    const char* endReason_ = "";
     bool inFlight_ = false;
     Intent pending_;
     uint64_t beganAt_ = 0;

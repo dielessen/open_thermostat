@@ -118,6 +118,8 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   await page.locator('[data-site-confirm]').check();
   assert.equal(requests.some(r=>r.path.endsWith('/prepare')),false);
   if(gaugeTrial){
+   assert.equal(await page.locator('[data-site-pressure-value]').evaluate(e=>e.required&&e.validity.valueMissing),true,
+    'An empty required gauge reading must not appear valid');
    assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
    for(const invalid of ['1','2.6','1.55']){
     await page.locator('[data-site-pressure-value]').fill(invalid);
@@ -171,6 +173,8 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   }
   update({phase:'completed',can_prepare:true,can_stop:false,reported_stop_confirmed:true,zero_frames:2});
   await page.locator('[data-test-state]').filter({hasText:'afgerond'}).waitFor({state:'attached'});
+  assert.match(await page.locator('[data-test-action]').innerText(),/Stop na de opdracht gemeld; proef afgerond/,
+   'Confirmed stop must replace the earlier waiting-for-stop notice');
   assert.equal(await page.locator('[data-test-stop]').isDisabled(),true);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.screenshot({path:path.join(out,`CONTROL-${width}.png`),fullPage:true});

@@ -64,8 +64,9 @@ boiler/valve control remain disabled. [Current release work](https://github.com/
 - Native MQTT broker DNS and TCP opening return control to the main loop.
   Ordinary writes have a bounded wait; disabled logging avoids unnecessary work.
   System log provides loop interval counters for checking delays after installation.
-- One received-entity table per boiler device and a shorter
-  **Read → Prepare → Start → Stop** workflow.
+- One received-entity table per boiler device and a guided
+  **Setup → Prepare → Heat → Result** trial. Each stage names the next button;
+  the result separates reported success, early stop, missing evidence and faults.
 
 These changes are tested in software and have not been installed or timed on the
 E32 yet. [Performance measurements and review](docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md).

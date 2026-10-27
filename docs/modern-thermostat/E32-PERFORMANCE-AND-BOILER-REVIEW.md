@@ -541,3 +541,41 @@ retained edits, abort/deadline recovery, malformed flags, escaped/namespaced
 labels, submitted writes through navigation and late unconfirmed writes. A
 separate shipped-inline-script case covers retired deferred initialization.
 These are request/work reductions and lifetime checks, not measured E32 latency.
+
+
+## Guided trial and reported outcome
+
+The test page now walks through **Setup → Prepare → Heat → Result**. It states
+what is tested and the exact next action. The normal route is:
+
+1. Enter the current gauge pressure when requested and confirm the setup once.
+   Read heating settings if the page requests them; this does not start heating.
+2. Press **2. Prepare test**. Wait for a later stopped baseline report.
+3. Press **3. Start heating**, confirm once and keep the page visible. Defaults
+   remain 50 °C / 600 seconds. The E32-reported remaining time is displayed;
+   **Stop test** ends demand earlier, without another dialog.
+4. Wait for reported stop, then read the result before the repeat form.
+
+| Result | Meaning and next action |
+| --- | --- |
+| Passed | Positive transmission, later requested-temperature/CV feedback, full deadline and later stop reported. Review the physical boiler/radiator behavior separately. |
+| Partial | Heating response and stop reported, but the full duration was not confirmed. Prepare again for a full run if appropriate. |
+| Not fully confirmed | At least one required observation is absent. Retain the report and check the boiler response. |
+| Heating not tested | No positive transmission, or only the separately labelled zero-demand test. Prepare/start a heating trial. |
+| Fault | Check the boiler; establish the stopped state, close the fault and restart before a new preparation. Never shown as passed. |
+
+The existing serialized boiler session keeps bounded observation flags, one first
+successful positive-transmission timestamp and the termination reason. Canonical
+Classic monitor samples must be fresh, strictly later than that transmission and
+within the heat window. Requested temperature requires reported 0x18 selection;
+CV feedback requires matching inferred CV/DHW state, with DHW off. Cached
+baseline data, failed/late writes and raw unreliable burner bits cannot establish
+heating success. The result is historical within the current boot/session and
+survives a browser reload; it resets on a newly accepted preparation or reboot.
+Older firmware without the progress schema remains unconfirmed.
+
+These observations do not admit commands, refresh leases, add polling, copy the
+monitor or assert independent flame/radiator/installation qualification. They use
+fixed session memory and stop checking completed observation flags. Accessible
+status text and the result only change when their content changes; the displayed
+remaining time uses server snapshots without another countdown timer.

@@ -18,6 +18,19 @@ is later ontvangen en die ene herstart is uitgevoerd. Er volgt geen tweede
 herstart of alternatieve installatie tijdens dit ontwikkelwerk. [Installatieblokkade](BETA5-INSTALL-BLOCKER-20261027.json)
 en [openbaar pakketbewijs](BETA5-VERSIONED-PREVIEW.json).
 
+**Begeleide ketelproef:** de kandidaat toont vier stappen: opstelling →
+voorbereiden → verwarmen → uitslag. Per stap staat welke knop aan de beurt is,
+wat er gebeurt en wat de vervolgstap is. Eén opstellingsbevestiging en een nieuwe
+manometerwaarde blijven vereist; de warmtestart heeft één afzonderlijke
+bevestiging. Standaard50°C/600s, resterende tijd uit de E32 en direct Stop.
+De E32 bewaart per proefsessie of de gewenste temperatuur en CV-bedrijf ná een
+verzonden warmteopdracht zijn teruggemeld en of de volledige duur is verstreken.
+De uitslag onderscheidt geslaagde terugmelding, vroegtijdig/onvolledig,
+onbevestigd, alleen nulvraag en fout. Heropenen bewaart de uitslag in dezelfde
+boot/proefsessie, zonder de bediening te hervatten. Dit is geen fysieke B14-
+afhandeling. Deze kandidaat is nog niet geïnstalleerd.
+[Softwarecontrole en bewijsgrens](GUIDED-BOILER-TRIAL-20261027.json).
+
 **Actuele codeprioriteit:** een snellere webinterface en een opgeruimde Keteltest.
 De kandidaat gebruikt build-time gzip, herbruikbare browsercache, kleine luie
 paginamodules en één gedeelde telemetrieaanvraag. De ketelpagina toont ontvangen

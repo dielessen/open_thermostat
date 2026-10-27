@@ -119,3 +119,18 @@ bewijs blijft afzonderlijk open. Geen nieuwe externe dienst of langlopende watch
   checkbox-ID's. Geen herstartvraag voor reeds direct werkende filters. Reads
   hebben vijfseconden-deadline en eigen paneellevensduur; ingediende save blijft
   begrensd geldig na navigatie, zonder herhaling of late paginawijziging.
+
+## Begeleide ketelproef en eerlijke uitslag
+
+Opstelling → voorbereiden → verwarmen → uitslag, met de actuele stap, concrete
+knop/volgactie en resterende tijd uit de bestaande E32-momentopname. De normale
+route houdt één opstellingsbevestiging; geen extra vinkjes voor losse controles.
+Een terugkerende pagina neemt een eerdere proef niet over en biedt Stop aan.
+De E32-proefsessie bewaart historische terugmelding ná de eerste geslaagde
+positieve verzending: gevraagde temperatuur en afgeleid CV-bedrijf zonder DHW.
+De vaste warmtedeadline en latere stop tellen apart. Een volledige gerapporteerde
+proef kan slagen; voortijdige stop, onvolledig bewijs, nulvraag en fout krijgen
+elk een afzonderlijke uitslag en vervolgactie. Nieuwe voorbereiding wist alleen
+het resultaat van de vorige proefsessie; herstart wist de vluchtige sessie.
+De toegang, opdrachtcadans, lease, stopbeleid en fysieke acceptatie veranderen
+niet. Geen live apparaatopdrachten tijdens dit werk.

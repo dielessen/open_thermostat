@@ -162,6 +162,7 @@ def read_room(hass, entry_id, room_id):
         if actuator['entity_id'] in originals:
             actuator['original_report'] = originals[actuator['entity_id']]
     return {'entry_id': entry_id, 'room_id': room_id, 'token': digest(configuration_snapshot(entry)),
+        'status_identity':{'entry_id':entry_id,'room_id':room_id},
         'measurement': measurement,
         'manual_target_status': (runtime.manual_target_status(room_id)
             if callable(getattr(runtime,'manual_target_status',None)) else None),

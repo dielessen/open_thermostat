@@ -108,6 +108,8 @@ async def test_native_desired_profile_durable_readback_and_visible_local_default
     state=runtime.decisions[binding.room_id]
     assert (state.target_centi_c,state.comfort_mode,state.target_source,state.override_remaining_ms)==(2300,"temporary","temporary",60000)
     entity=ShadowRoom("fixture",binding,runtime)
+    assert entity.extra_state_attributes['entry_id']==runtime.entry.entry_id
+    assert entity.extra_state_attributes['room_id']==binding.room_id
     assert entity.extra_state_attributes["default_override_minutes"]==1
     assert entity.extra_state_attributes["local_override_ends_on_presence_change"] is False
     # Every original retry keeps bytes; crossing local expiry never replays it.

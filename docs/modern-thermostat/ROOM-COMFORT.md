@@ -55,6 +55,10 @@ inhibition still applies to ordinary and temporary demand. A temporary manual
 target is not cancelled by a presence change. Unknown/expired presence does not
 invent Away. The controller reports the effective target and reason, which the
 editor projects from the existing climate entity without additional polling.
+The backend supplies the expected installation/room identity. The editor checks
+that identity against the climate state for contacts, manual targets and comfort
+together. A missing or reused entity ID cannot substitute another room's status;
+an explicit reload follows a legitimate renamed canonical entity.
 
 Software evidence is retained under `out/room-comfort-20261027/`: real HA
 editor/wizard storage and identity races, original native person/source-age

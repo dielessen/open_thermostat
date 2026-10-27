@@ -234,6 +234,13 @@ class OpenThermostatRoomEditor extends HTMLElement{
  const actions=el('footer');this._save=this.button(this.t.save,()=>this.save());this._save.className='primary';this._cancel=this.button(this.t.cancel,()=>{this.reset();this._message='';this.render();});this._reload=this.button(this.t.reload,()=>{if(!this.dirty||confirm(this._uncertain?this.t.reloadUnconfirmed:this.t.discard))this.load();});this._status=el('p','',{class:'status',role:'status','aria-live':'polite'});actions.append(this._status,this._save,this._cancel,this._reload);card.append(actions,el('small',`${this.t.learning} · ${m.time_zone}`,{class:'fine'}));this.refreshStatus();
  }
  refreshStatus(){this.renderContactStatus();this.renderManualTargetStatus();this.renderComfortStatus();this.renderTemperatureSourceReview();this.renderMeasurementStatus();this.renderBindingStatus();this.renderTargetReview();this.renderMetadata();if(!this._status)return;this._status.textContent=this._message||(this.dirty?this.t.draft:this.needsApply?this.t.programPending:this.t.saved);this._save.textContent=this.canRetryProfile?this.t.profileReapply:this.needsApply&&!this.dirty?this.t.programReapply:this.t.save;this._save.disabled=(this.locked&&!this.canRetryProfile)||(!this.dirty&&!this.needsApply)||this._blockInvalid;this._cancel.disabled=this._loading||this._saving||(!this.dirty&&!this._blockInvalid);this._reload.disabled=this._saving||this._loading;}
+ roomStatusState(){
+  const m=this._model,state=m?.contact_status_entity?this._hass?.states?.[m.contact_status_entity]:null;
+  if(!state)return null;
+  const owner=m.status_identity;
+  if(owner!==undefined&&(!owner||typeof owner!=='object'||Array.isArray(owner)||owner.entry_id!==m.entry_id||owner.room_id!==m.room_id||state.attributes?.entry_id!==owner.entry_id||state.attributes?.room_id!==owner.room_id))return null;
+  return state;
+ }
  renderComfort(parent){
   this._comfortStatus=null;const s=this._settings,m=this._model;
   if(!Object.hasOwn(s,'comfort')||!Array.isArray(m.choices.person))return;
@@ -256,7 +263,7 @@ class OpenThermostatRoomEditor extends HTMLElement{
   const box=this._comfortStatus,s=this._settings,m=this._model;if(!box)return;
   if(JSON.stringify(s.comfort)!==JSON.stringify(m.settings.comfort)||s.presence_entity!==m.settings.presence_entity){box.textContent=this.t.comfortDraft;return;}
   if(s.comfort===null){box.textContent=this.t.comfortDisabled;return;}
-  const state=m.contact_status_entity?this._hass?.states?.[m.contact_status_entity]:null;
+  const state=this.roomStatusState();
   if(m.contact_status_entity&&(!state||['unknown','unavailable'].includes(state.state))){box.textContent=this.t.comfortUnavailable;return;}
   const mode=state?.attributes?.comfort_mode,reason=state?.attributes?.firmware_reason;box.textContent=Object.hasOwn(this.t.comfortReasons,reason)?this.t.comfortReasons[reason]:Object.hasOwn(this.t.comfortModes,mode)?this.t.comfortModes[mode]:this.t.comfortConfigured;
  }
@@ -275,7 +282,7 @@ class OpenThermostatRoomEditor extends HTMLElement{
   const box=this._manualTargetStatus,s=this._settings,m=this._model;if(!box||!s||!m)return;
   if(s.setpoint_entity!==m.settings.setpoint_entity||s.setpoint_duration_ms!==m.settings.setpoint_duration_ms){box.textContent=this.t.manualTargetDraft;return;}
   if(!s.setpoint_entity){box.textContent=this.t.manualTargetStates.not_configured;return;}
-  const state=m.contact_status_entity?this._hass?.states?.[m.contact_status_entity]:null;
+  const state=this.roomStatusState();
   const status=m.contact_status_entity?(state&&!['unknown','unavailable'].includes(state.state)?state.attributes?.manual_target_source:null):m.manual_target_status;
   box.textContent=typeof status?.status==='string'&&Object.hasOwn(this.t.manualTargetStates,status.status)
    ?this.t.manualTargetStates[status.status]:this.t.manualTargetStates.binding_unavailable;
@@ -311,7 +318,7 @@ class OpenThermostatRoomEditor extends HTMLElement{
   const box=this._contactStatus,m=this._model,s=this._settings;if(!box||!m||!s)return;
   if(JSON.stringify(s.contact_entities)!==JSON.stringify(m.settings.contact_entities)||JSON.stringify(s.contact_policy)!==JSON.stringify(m.settings.contact_policy)){box.textContent=this.t.contactDraft;return;}
   if(!s.contact_entities?.length){box.textContent=this.t.contactsNone;return;}
-  const state=m.contact_status_entity?this._hass?.states?.[m.contact_status_entity]:null;
+  const state=this.roomStatusState();
   const status=m.contact_status_entity?(state&&!['unknown','unavailable'].includes(state.state)?state.attributes?.comfort_context_sources?.contacts:null):m.contact_status;
   const valid=status&&Number.isInteger(status.count)&&status.count===s.contact_entities.length&&Object.hasOwn(this.t.contactReasons,status.reason)&&Number.isSafeInteger(status.pending_ms)&&status.pending_ms>=0&&status.pending_ms<=600000;
   box.textContent=valid?this.t.contactReasons[status.reason]:this.t.contactWaiting;

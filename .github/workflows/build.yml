@@ -72,6 +72,7 @@ jobs:
           node test/ha-room-contacts-browser.cjs
           node test/ha-manual-target-browser.cjs
           node test/ha-room-comfort-browser.cjs
+          node test/ha-room-status-ownership-browser.cjs
           node test/ha-planner-touch-browser.cjs
           node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs test/ui-language.test.cjs test/boiler-data.test.cjs
 

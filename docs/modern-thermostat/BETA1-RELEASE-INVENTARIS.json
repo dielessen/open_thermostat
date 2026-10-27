@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "a875c81ca961c273c0d250db0b9cf46f7515b36b66d32f2631b57009d9b1eabe"
+          "sha256": "cf9f669746e158ce4e8fb8b9a7b28d91b917c9c782dea8e5d179a8e5a1c62363"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -63,7 +63,7 @@
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
-          "sha256": "41e452e90f24b25024a0b2297c53b654b8a6b3d67c4388b00f9ba1db6fd15f9b"
+          "sha256": "436230b791669c8d42e28998acc512650ebeb6499e6d819927408c387726e1e8"
         },
         {
           "path": "docs/modern-thermostat/USER-RELEASE-NOTES.json",
@@ -397,7 +397,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "a875c81ca961c273c0d250db0b9cf46f7515b36b66d32f2631b57009d9b1eabe"
+          "sha256": "cf9f669746e158ce4e8fb8b9a7b28d91b917c9c782dea8e5d179a8e5a1c62363"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -668,7 +668,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/room_editor.py",
-          "sha256": "00f802294af4868506c6a4cce3883ed2696b8cdc49660af4da4d1c03dc704bdd"
+          "sha256": "780c00c9d92f58d5148c5a3379484417b0a35df761b9023547cfc7f710a96269"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/device_metadata.py",
@@ -760,7 +760,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "ab4b2522237a260da40f887bda5180ac8bdacbd1f323da07f5244fd783eef60e"
+          "sha256": "a5303ef5eeed5670a753460f84b78f1a7e951304bb7f490bcd25d0c6ec54e889"
         },
         {
           "path": "test/ha-planner-touch-browser.cjs",
@@ -879,7 +879,7 @@
         },
         {
           "path": "ha/tests_native/test_comfort_interop.py",
-          "sha256": "e79b5654ea9398886868e82ac1696663b4b4263c9935019b9fbf1a2bddd49d37"
+          "sha256": "d293680ba063faf56aa97eedbc1ab030b07de49a4be241b7bc1788420585b5e9"
         },
         {
           "path": "integrations/zigbee2mqtt/original-temperature.cjs",
@@ -907,7 +907,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "a875c81ca961c273c0d250db0b9cf46f7515b36b66d32f2631b57009d9b1eabe"
+          "sha256": "cf9f669746e158ce4e8fb8b9a7b28d91b917c9c782dea8e5d179a8e5a1c62363"
         },
         {
           "path": "platformio.ini",
@@ -1538,7 +1538,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_editor.py",
-          "sha256": "00f802294af4868506c6a4cce3883ed2696b8cdc49660af4da4d1c03dc704bdd"
+          "sha256": "780c00c9d92f58d5148c5a3379484417b0a35df761b9023547cfc7f710a96269"
         },
         {
           "path": "ha/tests_native/test_room_editor.py",
@@ -1546,7 +1546,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "ab4b2522237a260da40f887bda5180ac8bdacbd1f323da07f5244fd783eef60e"
+          "sha256": "a5303ef5eeed5670a753460f84b78f1a7e951304bb7f490bcd25d0c6ec54e889"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/__init__.py",
@@ -1934,7 +1934,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_climate.py",
-          "sha256": "3352ecb89e1f912e18e3b04fef72faf34dbf929fff99615c8eff1f7853865bca"
+          "sha256": "276314bcc230f4edb8f8c56843e3657163b668bc42bf615a9cad3b8d34c7a695"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_contacts.py",
@@ -2050,11 +2050,19 @@
         },
         {
           "path": "docs/modern-thermostat/ROOM-COMFORT.md",
-          "sha256": "6bb5265169cd05c016aeaee2874aec13ffde427fdbc2e190b8ff40d68208ea55"
+          "sha256": "8701c65eb6ca99791d1af9737e84ed7e18d1ecf66946a9d74b7c21fd3aaaabbc"
         },
         {
           "path": "docs/modern-thermostat/ROOM-COMFORT-20261027.json",
           "sha256": "3273bb8307b36100a54e4ef306146ac6c79efaece88f0b2b926a038e2f0eaee1"
+        },
+        {
+          "path": "test/ha-room-status-ownership-browser.cjs",
+          "sha256": "1f97138d2ac53865cad07b484865bec3fdb0348d68616f8d1ce3eb6691ba3562"
+        },
+        {
+          "path": "docs/modern-thermostat/ROOM-STATUS-OWNERSHIP-20261027.json",
+          "sha256": "ad670e068981e802cfecb1958459f816266816ac1ff7e6c7be077327b4fc7d08"
         }
       ],
       "remaining_acceptance": "Beta.6/HA0.4.0b4: contacten, extra handmatige doelhelper, comfort/aanwezigheid via normale editor/wizard en actieve native save/readback softwarematig getoetst. Native HA-persoonsmeldingen behouden oorspronkelijke trackerouderdom; twee minuten TTL, cache/replay/restore/identiteitsguards en bestaande bronvorstpolicy5°C. Normale vakantie-einddatumflow en oorspronkelijke fysieke sensor-/wandbediening-/aanwezigheids-/kraan-/ketelkwalificatie blijven open. Geen fysieke uitvoervrijgave."

@@ -25,6 +25,9 @@ Development bundle; not published or installed.
 
 ## Fixed
 
+- Contact, extra-target and comfort status share one canonical room identity
+  check. Reusing an old entity ID for another room cannot display that room's
+  state or a stale override countdown in the editor.
 - The initial controller link recognises E32 beta release tags alongside alpha
   tags. Firmware identity, compiled contract, update state and authenticated
   settings checks still apply.

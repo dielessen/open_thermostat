@@ -103,6 +103,7 @@ class ShadowRoom(ClimateEntity):
         observation = self.runtime.observations[self.room.room_id]
         state = self.runtime.decisions.get(self.room.room_id)
         return {"integration_mode": "v1_shadow", "actuation_enabled": False,
+                'entry_id':self.runtime.entry.entry_id,'room_id':self.room.room_id,
                 "control_scope":getattr(self.runtime.native_plan_source or self.runtime.graph_controller_source,"profile_version",
                     "data_only" if self.runtime.graph_data_profile is not None else "native_api1_shadow"),
                 "source_config_readback_verified":(self.runtime.native_plan_source is not None or self.runtime.graph_controller_source is not None) and self.runtime.transport_ready,

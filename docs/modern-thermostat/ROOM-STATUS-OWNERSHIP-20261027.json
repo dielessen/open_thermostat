@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target": "HA 0.4.0b4 / E32 beta.6",
+  "parent_commit": "4469b0c192b5d97e2f342693d088f931a00073b4",
+  "device_actions_performed": false,
+  "status_owner_fields": [
+    "entry_id",
+    "room_id"
+  ],
+  "new_backend_requires_owner_match": true,
+  "status_projections": [
+    "contacts",
+    "manual_target",
+    "comfort"
+  ],
+  "automatic_reads_or_writes_added": 0,
+  "validation": {
+    "browser_language_width_cases_passed": 6,
+    "ha_native_regressions_passed": 70,
+    "actual_cpp_owner_projection_interop_cases_passed": 13
+  },
+  "scope": "Current backend emits owner metadata; frontend keeps legacy projection compatibility if an older backend has no identity contract. No device or installation actions.",
+  "remaining": [
+    "Exact-commit CI"
+  ],
+  "reviewed_files": [
+    {
+      "path": ".github/workflows/build.yml",
+      "sha256": "cf9f669746e158ce4e8fb8b9a7b28d91b917c9c782dea8e5d179a8e5a1c62363"
+    },
+    {
+      "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
+      "sha256": "436230b791669c8d42e28998acc512650ebeb6499e6d819927408c387726e1e8"
+    },
+    {
+      "path": "docs/modern-thermostat/ROOM-COMFORT.md",
+      "sha256": "8701c65eb6ca99791d1af9737e84ed7e18d1ecf66946a9d74b7c21fd3aaaabbc"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
+      "sha256": "a5303ef5eeed5670a753460f84b78f1a7e951304bb7f490bcd25d0c6ec54e889"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/room_editor.py",
+      "sha256": "780c00c9d92f58d5148c5a3379484417b0a35df761b9023547cfc7f710a96269"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/v1_climate.py",
+      "sha256": "276314bcc230f4edb8f8c56843e3657163b668bc42bf615a9cad3b8d34c7a695"
+    },
+    {
+      "path": "ha/tests_native/test_comfort_interop.py",
+      "sha256": "d293680ba063faf56aa97eedbc1ab030b07de49a4be241b7bc1788420585b5e9"
+    },
+    {
+      "path": "test/ha-room-status-ownership-browser.cjs",
+      "sha256": "1f97138d2ac53865cad07b484865bec3fdb0348d68616f8d1ce3eb6691ba3562"
+    }
+  ]
+}

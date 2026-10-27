@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "9a93d472e45801a1153e35554a5fd56e207bbf1c009fa8777d9c8058454ccb0b"
+          "sha256": "87356a799099317647c97d501dc3af8c46cda3eccec94d83bcb6f26f76c04a00"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -63,7 +63,7 @@
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
-          "sha256": "97f92dc8cd4ebd2684333bfd36fab5053af579e58d92a94feacfe833f24cae32"
+          "sha256": "a24156fe813a7abfabfbeb61a2619e158bd7cba14e3b3eec3f2bc998dcd1a34b"
         },
         {
           "path": "docs/modern-thermostat/USER-RELEASE-NOTES.json",
@@ -75,7 +75,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "32807ad8096e209a1779679170655a8e6d0edd7672815a46895beec4747d5559"
+          "sha256": "67ccd8b10905982009536c26829644db627e390acbee4d0ad70ce37f94afb66e"
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "b0e1510e9335141f66eddb891f9ccf6e53a76334a9208788df87eb3afd63d4fa"
+          "sha256": "a850f7a93d6f62ef7153b6d9f3f52110560354718f280ec8be21df3afa317d40"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -215,7 +215,7 @@
         },
         {
           "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
-          "sha256": "f1fe04cf66a81f35686cc86c24da569ef9070684832a80b479637e281cec5147"
+          "sha256": "bf0c05234780c8e1bd7c8ac38a96f987533044e5d34dfdb9bd2b45ec3956d1d1"
         },
         {
           "path": "release.json",
@@ -397,7 +397,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "9a93d472e45801a1153e35554a5fd56e207bbf1c009fa8777d9c8058454ccb0b"
+          "sha256": "87356a799099317647c97d501dc3af8c46cda3eccec94d83bcb6f26f76c04a00"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -668,7 +668,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/room_editor.py",
-          "sha256": "ff80dd28760902e9a3a872d241a84798068e483525b1f6eec434ed1135c0155e"
+          "sha256": "734a417790cb13fe728c72e477e4034ab3928da244d689aeb7ce7a604ff33a68"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/device_metadata.py",
@@ -760,7 +760,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "a26d3a653df0a82e80d832fe0fb8aff833a884164dba2b546797e21628175ceb"
+          "sha256": "8f6baca383c00a3566f203faff867f5beebd5a717bfeb1a6ee4c35854ae807bc"
         },
         {
           "path": "test/ha-planner-touch-browser.cjs",
@@ -907,7 +907,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "9a93d472e45801a1153e35554a5fd56e207bbf1c009fa8777d9c8058454ccb0b"
+          "sha256": "87356a799099317647c97d501dc3af8c46cda3eccec94d83bcb6f26f76c04a00"
         },
         {
           "path": "platformio.ini",
@@ -1586,7 +1586,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_editor.py",
-          "sha256": "ff80dd28760902e9a3a872d241a84798068e483525b1f6eec434ed1135c0155e"
+          "sha256": "734a417790cb13fe728c72e477e4034ab3928da244d689aeb7ce7a604ff33a68"
         },
         {
           "path": "ha/tests_native/test_room_editor.py",
@@ -1594,7 +1594,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "a26d3a653df0a82e80d832fe0fb8aff833a884164dba2b546797e21628175ceb"
+          "sha256": "8f6baca383c00a3566f203faff867f5beebd5a717bfeb1a6ee4c35854ae807bc"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/__init__.py",
@@ -2210,6 +2210,30 @@
         {
           "path": "ha/config/custom_components/open_thermostat/diagnostics.py",
           "sha256": "f1e8d0be0ca8318070afb5dd29ea8c22170627982ff0aac74fb5c962687080fc"
+        },
+        {
+          "path": "docs/modern-thermostat/WORKBOARD.nl.md",
+          "sha256": "b9e1be59a1a1a07c6273b662f5031d5437c9ca423ff0cd63690c16af13c64c31"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/device_power.py",
+          "sha256": "654e23cc8f04ee2fce61323d272650097b52f7489f3c60a78cb17ab36691f84c"
+        },
+        {
+          "path": "ha/tests_native/test_device_power.py",
+          "sha256": "850cff4d8d732d29aad11adb4b352bdf226743436560ed79cbf710498041c509"
+        },
+        {
+          "path": "docs/modern-thermostat/DEVICE-BATTERY-SNAPSHOT.md",
+          "sha256": "5fd194aee1886d220ab5143a6163d5da5b3a1e3d4c721ce17d633e5ca5322f1e"
+        },
+        {
+          "path": "test/ha-device-power-browser.cjs",
+          "sha256": "c255e27c7d1955e8fc2ea935b4eecc0d266ec87a3b4651956681c1994059548a"
+        },
+        {
+          "path": "docs/modern-thermostat/DEVICE-BATTERY-SNAPSHOT-20261027.json",
+          "sha256": "20a31c841ef7bba6c074e8d0558a1dd59e4c3f5901db78a5661e82245ff3b696"
         }
       ],
       "remaining_acceptance": "Niet generiek als werkende onderhouds-/tapwaterregeling presenteren; modelgerichte acceptatie open."

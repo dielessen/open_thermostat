@@ -56,7 +56,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-552 bronverwijzingen met hashes, status en resterende acceptatie.
+558 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -82,7 +82,7 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | I17 | Metrics, grafieken, historiegrens en CSV-export | Native velden/grafieken en begrensde Recorder-CSV; maandexport in bètabron | echte Classic-tijdlijn, Recorder-retentie/migratie en grafiekacceptatie open. |
 | I18 | Comfortprioriteiten, raam/aanwezigheidscontext en HEAT/OFF | Beta.6: contacten, extra doelhelper, comfort/aanwezigheid en eindige vakantiebediening in normale HA-route voorbereid | Actieve save/readback, oorspronkelijke HA-/trackerouderdom, zomertijd en kamerscope softwarematig getoetst; fysieke bronkwalificatie en hardwareproef blijven open. |
 | I19 | Thermisch model, optimum-start, uitlopen en curveaanpassing | Voorbereide code, functie nog onvolledig | Code/replay/opslag aanwezig en behouden; geen bewezen leerwinst of actieve vrijgave. Geen nieuwe F9-stage vóór M2. |
-| I20 | Meldingen, batterij en modelspecifieke tapwaterpresentatie | Voorbereide code, functie nog onvolledig | Niet generiek als werkende onderhouds-/tapwaterregeling presenteren; modelgerichte acceptatie open. |
+| I20 | Meldingen, batterij en modelspecifieke tapwaterpresentatie | Beta.6: native batterijmomentopname in normale kamereditor voorbereid; meldingen/tapwater onvolledig | Niet generiek als werkende onderhouds-/tapwaterregeling presenteren; modelgerichte acceptatie open. |
 | I21 | Keteltest-pagina, ontvangstdiagnose en meetrapport | Geleverd en op E32 gecontroleerd | Volledige release-CI PASS; echte E32-pagina en rapportdownload op 1280/390/320 px gecontroleerd. Tijdens de latere README-opname is verse Classic-ontvangst waargenomen; veldvalidatie blijft open. |
 | I22 | Begrensde ketelproefpolicy en originele UART-ontvangsttijd | Policy en RX-integratie geleverd; actieve proef nog onvolledig | 80 unieke native gevallen onder ASan/UBSan PASS; beoordeeld profiel/adressering en fysieke TX-/stopkwalificatie open. |
 | I23 | Beveiligde controller-/HTTP-/webbediening van de ketelproef | Geleverd met actieve proef geblokkeerd | Poll-executor aangesloten; default start geblokkeerd. Classic-formaat gekoppeld; beoordeeld profiel/adressering en fysieke UART-kwalificatie open. 80 native en eerder 3 control-browserprofielen PASS. |

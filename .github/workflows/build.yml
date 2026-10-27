@@ -68,6 +68,7 @@ jobs:
           node test/boiler-configuration-read-browser.cjs
           node test/boiler-test-confirm-browser.cjs
           node test/ha-device-metadata-browser.cjs
+          node test/ha-device-power-browser.cjs
           node test/ha-tv02-mode-browser.cjs
           node test/ha-room-program-browser.cjs
           node test/ha-room-contacts-browser.cjs

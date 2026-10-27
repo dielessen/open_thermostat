@@ -69,3 +69,8 @@ bewijs blijft afzonderlijk open. Geen nieuwe externe dienst of langlopende watch
   wordt asynchroon afgehandeld in de bestaande netwerktaak, met vaste opslag,
   oorspronkelijke deadline en isolatie van late callbacks na transportvervanging.
   TCP/CONNACK blijven afzonderlijk reviewwerk; geen meting of installatie op E32.
+
+- Batterijdiagnose: normale kamereditor groepeert opgeslagen sensor/kranen per
+  native HA-apparaat en toont gecachete procent-/lage-batterijmeldingen met
+  oorspronkelijke HA-tijd en ouderdom. Laden of bevestigde kamerbewaring geeft een nieuwe momentopname;
+  geen extra entiteiten, subscriptions of fysieke meetkwalificatie.

@@ -5,6 +5,12 @@ Development bundle; not published or installed.
 
 ## New
 
+- Show native cached battery percentages and device low-battery flags for the
+  saved room sensor and valves under Advanced settings. Reports retain their HA
+  timestamp/age, shared devices appear once, and missing or ambiguous sources
+  stay unknown. Reload explicitly refreshes the snapshot; no extra subscriptions
+  or duplicate entities are created. [Scope](DEVICE-BATTERY-SNAPSHOT.md).
+
 - Select up to eight window and door contacts in the normal room editor or room
   setup wizard. Configure opening/resume delays and maximum report age.
 - Contact status distinguishes open, closed, waiting and unavailable/expired

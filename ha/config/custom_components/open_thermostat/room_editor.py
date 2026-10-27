@@ -19,7 +19,7 @@ from .room_setup_flow import prepare_radiator_graph
 from .schedule_compiler import compile_week
 from .v1_config_flow import _room_candidate
 from .v1_heating_graph import actual_runtime_active, selected_reference
-from .v1_model import CONF_ENABLED, ROOM_GRAPH_DRAFT
+from .v1_model import CONF_ENABLED, ROOM_GRAPH_DRAFT, EntityReference
 from .v1_program import native_week, normalize_program
 from .v1_wire import digest
 from .week_planner import _target
@@ -161,7 +161,10 @@ def read_room(hass, entry_id, room_id):
     for actuator in actuator_review['actuators']:
         if actuator['entity_id'] in originals:
             actuator['original_report'] = originals[actuator['entity_id']]
+    from .device_power import read_selected_power
+    power=read_selected_power(hass,[room.temperature,*([EntityReference.from_dict(a['output']) for a in own] if own else room.actuators)])
     return {'entry_id': entry_id, 'room_id': room_id, 'token': digest(configuration_snapshot(entry)),
+        'device_power':power,
         'status_identity':{'entry_id':entry_id,'room_id':room_id},
         'comfort_actions':{'contract':'room.comfort.command.v1','supports_vacation_dates':True},
         'measurement': measurement,

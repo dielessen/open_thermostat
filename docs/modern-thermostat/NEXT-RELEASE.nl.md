@@ -64,6 +64,14 @@ twee minuten en ontbrekende/verlopen aanwezigheid blijft onbekend. De native
 bron behoudt zijn vorstdoel5°C; een nieuw onverenigbaar profiel wordt vóór
 bewaren geweigerd. [Werking en afbakening](ROOM-COMFORT.md).
 
+**Batterijstatus bij gekoppelde apparaten:** de normale kamereditor toont onder
+Geavanceerde instellingen de HA-batterijpercentages en eigen lage-batterijflags
+van de opgeslagen sensor/kranen, eenmaal per apparaat. De oorspronkelijke HA-
+meldtijd en ouderdom blijven zichtbaar; onbekend, dubbelzinnig en verlopen
+blijven herkenbaar. Dit is gecachete HA-informatie bij laden, geen gekwalificeerd
+hardwarebericht of automatische batterijmelding. Geen extra uitleeslus of
+nieuwe HA-entiteiten. [Werking](DEVICE-BATTERY-SNAPSHOT.md).
+
 **Vakantie-einddatum aangesloten:** datum/tijd in de HA-tijdzone, expliciete keuze
 bij dubbele zomertijdkloktijden en weigeren van niet-bestaande tijden. Starten of
 terugkeren naar programma gebruikt de bestaande eindige comfortservice, met

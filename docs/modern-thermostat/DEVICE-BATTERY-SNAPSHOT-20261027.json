@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target": "HA 0.4.0b4 / E32 beta.6",
+  "parent_commit": "16fce43641c5c4b93eb9458a54103723b15d6097",
+  "device_actions_performed": false,
+  "scope": {
+    "read_only_native_ha_cached_state": true,
+    "maximum_selected_devices": 9,
+    "new_entities_subscriptions_tasks_store_entries_or_hardware_requests": 0,
+    "shared_devices_projected_once": true,
+    "automatic_warning_or_control_authority": false,
+    "original_hardware_report_qualification": false,
+    "refresh": "Room-model load or confirmed save; explicit Reload refreshes without configuration changes"
+  },
+  "validation": {
+    "new_feature_and_room_editor_focused_cases_passed": 54,
+    "full_native_ha_cases_passed": 2550,
+    "native_ha_skipped": [
+      {
+        "test": "test_real_existing_ha_mqtt_client_reads_exact_retained_fixture_metadata",
+        "reason": "opt-in isolated localhost MQTT fixture not supplied"
+      },
+      {
+        "test": "test_actual_cpp_parser_producer_to_native_ha_expiry_and_reboot",
+        "reason": "Compile finite native room observation peer first"
+      },
+      {
+        "test": "test_real_localhost_packet_loop_and_firmware_lwt",
+        "reason": "opt-in ephemeral localhost fixture broker not supplied"
+      }
+    ],
+    "legacy_ha_cases_passed": 38,
+    "legacy_subtests_passed": 68,
+    "native_source_unchanged": true,
+    "native_source_sha256": "de9f558ba89fd01ee0db6bca4f348797b6dc9678c99894a8bffab6c241c60664",
+    "new_battery_browser_cases_passed": 6,
+    "browser_regressions": {
+      "comfort": 6,
+      "vacation": 6,
+      "manual_target": 6,
+      "contacts": 6,
+      "programme": 8,
+      "touch": 6
+    }
+  },
+  "remaining": [
+    "Exact-commit CI",
+    "Physical device battery reporting acceptance",
+    "Model-specific original acquisition qualification and low-battery notifications remain separate work"
+  ],
+  "reviewed_files": [
+    {
+      "path": ".github/workflows/build.yml",
+      "sha256": "87356a799099317647c97d501dc3af8c46cda3eccec94d83bcb6f26f76c04a00"
+    },
+    {
+      "path": "README.md",
+      "sha256": "67ccd8b10905982009536c26829644db627e390acbee4d0ad70ce37f94afb66e"
+    },
+    {
+      "path": "docs/modern-thermostat/DEVICE-BATTERY-SNAPSHOT.md",
+      "sha256": "5fd194aee1886d220ab5143a6163d5da5b3a1e3d4c721ce17d633e5ca5322f1e"
+    },
+    {
+      "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
+      "sha256": "a24156fe813a7abfabfbeb61a2619e158bd7cba14e3b3eec3f2bc998dcd1a34b"
+    },
+    {
+      "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
+      "sha256": "bf0c05234780c8e1bd7c8ac38a96f987533044e5d34dfdb9bd2b45ec3956d1d1"
+    },
+    {
+      "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
+      "sha256": "a850f7a93d6f62ef7153b6d9f3f52110560354718f280ec8be21df3afa317d40"
+    },
+    {
+      "path": "docs/modern-thermostat/WORKBOARD.nl.md",
+      "sha256": "b9e1be59a1a1a07c6273b662f5031d5437c9ca423ff0cd63690c16af13c64c31"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/device_power.py",
+      "sha256": "654e23cc8f04ee2fce61323d272650097b52f7489f3c60a78cb17ab36691f84c"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
+      "sha256": "8f6baca383c00a3566f203faff867f5beebd5a717bfeb1a6ee4c35854ae807bc"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/room_editor.py",
+      "sha256": "734a417790cb13fe728c72e477e4034ab3928da244d689aeb7ce7a604ff33a68"
+    },
+    {
+      "path": "ha/tests_native/test_device_power.py",
+      "sha256": "850cff4d8d732d29aad11adb4b352bdf226743436560ed79cbf710498041c509"
+    },
+    {
+      "path": "test/ha-device-power-browser.cjs",
+      "sha256": "c255e27c7d1955e8fc2ea935b4eecc0d266ec87a3b4651956681c1994059548a"
+    }
+  ]
+}

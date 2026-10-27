@@ -22,6 +22,10 @@ Development bundle; not published or installed.
   person in the normal editor or setup wizard. Native person reports retain the
   selected tracker's original age. Unknown/expired presence remains unknown;
   status reads and cached person re-emissions cannot renew it.
+- Start/change vacation with an end date in the displayed HA time zone, or
+  explicitly return to the programme. Repeated daylight-saving times require
+  an offset choice; nonexistent times are rejected. The existing finite comfort
+  service checks the expected room scope. Unconfirmed requests are not replayed.
 
 ## Fixed
 
@@ -51,6 +55,7 @@ entity identities, settings and programme data are preserved during development.
 Software verification does not qualify physical sensors, valves or boiler control.
 No Home Assistant installation or live device action occurs in this work.
 Physical wall controls still require their own original-action/echo profile.
+Vacation is session-local: restart, reconnect and room reload clear the selection.
 
 # HA 0.4.0b3 — oorspronkelijke meetdiagnose en veldexport
 <!-- user-release-notes:v1 -->

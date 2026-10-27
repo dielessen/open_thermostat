@@ -65,5 +65,6 @@ editor/wizard storage and identity races, original native person/source-age
 events, actual built-in person lifecycle, the real C++ native plan/readback and
 Home/Away/unknown targets, and English/Dutch desktop/mobile browser cases.
 Physical opening/closing, presence reporting, valves, boiler behavior and
-independent frost protection remain acceptance work. Vacation policy already
-exists in the core; a normal end-date editing flow remains separate work.
+independent frost protection remain acceptance work. The same development bundle
+adds the [normal vacation end-date flow](ROOM-VACATION.md) over the existing
+finite core policy and entity service.

@@ -168,6 +168,35 @@ Object.assign(TEXT.nl,{
  comfortDraft:'Sla op om deze comfortinstellingen toe te passen.',comfortDisabled:'Comfortstanden zijn niet ingeschakeld.',comfortConfigured:'Comfortstanden ingesteld; de kamerthermostaat toont de huidige werking.',
  comfortUnavailable:'De huidige comfortstatus is niet beschikbaar.',comfortReasons:{presence_away:'Afwezigheidsdoel gekozen door de aanwezigheidsbron.',presence_state_unknown:'Aanwezigheid is onbekend of verlopen; er is geen automatisch doel beschikbaar.',window_open:'De kamervraag is gepauzeerd door een raam of deur.',window_state_unknown:'Raam- of deurstatus is onbekend; de kamervraag blijft gepauzeerd.'},comfortModes:{auto:'Automatisch programma',temporary:'Tijdelijk doel',boost:'Boost',away:'Afwezig',vacation:'Vakantie',frost:'Vorststand',off:'Uit'}
 });
+Object.assign(TEXT.en,{
+ vacationTitle:'Vacation',vacationEnd:'End date and time',vacationStart:'Start or change vacation',vacationCancel:'Return to programme',vacationChoose:'Choose the first or second clock time',
+ vacationHelp:'Uses the saved away target until this time in the Home Assistant time zone. This is a separate explicit action; saving room settings does not start vacation. Restart, reconnect or room reload clears this temporary selection.',
+ vacationIdle:'Choose an end date and start vacation explicitly.',vacationSave:'Save room changes and wait for their confirmation before using vacation.',vacationUnavailable:'Current room control is unavailable. Reload when the controller is connected.',
+ vacationChecking:'Checking the local end time…',vacationSending:'Requesting the comfort change…',vacationRequested:'Request accepted. Check the current room status.',
+ vacationUncertain:'Request not confirmed. Inspect the current room status and reload before trying again. Nothing is retried automatically.',vacationStopped:'Action cancelled before dispatch; reload the current room.',
+ vacationChanged:'The chosen occurrence is no longer valid. Choose a remaining time explicitly, or select another date.',vacationAmbiguous:'This clock time occurs twice. Choose the intended UTC offset, then press Start again.',vacationGap:'This clock time does not exist when daylight saving time begins. Choose another time.',
+ vacationTimeout:'Date check timed out. No comfort command was sent.',vacationRange:'Choose a future end within 366 days.',vacationInvalid:'Choose a valid local date and time.',vacationZone:'The time zone changed or is unavailable. Reload the room.',vacationUntil:'Vacation end reported by the controller'
+});
+Object.assign(TEXT.nl,{
+ vacationTitle:'Vakantie',vacationEnd:'Einddatum en tijd',vacationStart:'Vakantie starten of wijzigen',vacationCancel:'Terug naar programma',vacationChoose:'Kies de eerste of tweede kloktijd',
+ vacationHelp:'Gebruikt het opgeslagen afwezigheidsdoel tot dit tijdstip in de Home Assistant-tijdzone. Dit is een afzonderlijke bewuste actie; kamerinstellingen bewaren start geen vakantie. Herstart, herverbinding of kamerreload wist deze tijdelijke keuze.',
+ vacationIdle:'Kies een einddatum en start vakantie afzonderlijk.',vacationSave:'Bewaar kamerwijzigingen en wacht op bevestiging voordat je vakantie gebruikt.',vacationUnavailable:'De huidige kamerbediening is niet beschikbaar. Herlaad zodra de regelaar verbonden is.',
+ vacationChecking:'Lokale eindtijd controleren…',vacationSending:'Comfortwijziging aanvragen…',vacationRequested:'Aanvraag geaccepteerd. Controleer de huidige kamerstatus.',
+ vacationUncertain:'Aanvraag niet bevestigd. Controleer de huidige kamerstatus en herlaad voordat je opnieuw probeert. Er wordt niets automatisch herhaald.',vacationStopped:'Actie vóór verzending geannuleerd; herlaad de huidige kamer.',
+ vacationChanged:'De gekozen kloktijd is niet meer geldig. Kies een overgebleven tijdstip afzonderlijk, of selecteer een andere datum.',vacationAmbiguous:'Deze kloktijd komt tweemaal voor. Kies de bedoelde UTC-offset en druk opnieuw op Start.',vacationGap:'Deze kloktijd bestaat niet bij het begin van de zomertijd. Kies een ander tijdstip.',
+ vacationTimeout:'De datumcontrole duurde te lang. Er is geen comfortopdracht verstuurd.',vacationRange:'Kies een toekomstige eindtijd binnen 366 dagen.',vacationInvalid:'Kies een geldige lokale datum en tijd.',vacationZone:'De tijdzone is gewijzigd of niet beschikbaar. Herlaad de kamer.',vacationUntil:'Door de regelaar gemelde vakantie-eindtijd'
+});
+function validVacationPreview(preview,model,token,localEnd,timeZone,entityId){
+ if(!preview||preview.entry_id!==model.entry_id||preview.room_id!==model.room_id||preview.entity_id!==entityId||preview.token!==token||preview.time_zone!==timeZone||preview.local_end!==localEnd)return false;
+ const rows=preview.candidates,normalized=localEnd.length===16?localEnd+':00':localEnd;
+ if(!Array.isArray(rows)||rows.length<1||rows.length>2)return false;
+ for(const row of rows){
+  if(!row||typeof row.iso!=='string'||row.iso.length>40||!row.iso.startsWith(normalized)||!/^[-+]\d{2}:\d{2}$/.test(row.iso.slice(normalized.length)))return false;
+  if(!Number.isSafeInteger(row.until_utc)||row.until_utc<=0||row.until_utc>=4102444800||Date.parse(row.iso)/1000!==row.until_utc)return false;
+  if(typeof row.utc_offset!=='string'||!/^[-+]\d{4}$/.test(row.utc_offset)||row.iso.slice(normalized.length).replace(':','')!==row.utc_offset)return false;
+ }
+ return rows.length===1||rows[0].until_utc<rows[1].until_utc;
+}
 const seconds=s=>{if(s==='24:00'||s==='24:00:00')return 86400;const m=/^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(s);if(!m||+m[1]>23||+m[2]>59||+(m[3]||0)>59)throw Error('invalid');return +m[1]*3600 + +m[2]*60 + +(m[3]||0);};
 function validate(s){
  if([s.temperature_entity,...s.radiator_entities,s.schedule_entity,...(s.contact_entities||[])].some(x=>x?.startsWith('unresolved:')))throw Error('missing');
@@ -193,13 +222,13 @@ class OpenThermostatRoomEditor extends HTMLElement{
  get dirty(){return !!this._model&&JSON.stringify(this._settings)!==JSON.stringify(this._model.settings);}
  get needsApply(){return !!this._model?.apply_pending;}
  get canRetryProfile(){return !!this._model?.profile_apply_pending&&!this._loading&&!this._saving&&!this._uncertain;}
- get locked(){return !this._model?.editable||this._loading||this._saving||this._uncertain;}
+ get locked(){return !this._model?.editable||this._loading||this._saving||this._uncertain||this._vacationBusy;}
  getCardSize(){return 18;}
- setConfig(config){if(!config.entry_id||!config.room_id)throw Error('entry_id and room_id required');if(this._config?.entry_id===config.entry_id&&this._config.room_id===config.room_id)return;this._config={entry_id:config.entry_id,room_id:config.room_id};this._generation++;this._model=null;this._loading=false;this._saving=false;this._uncertain=false;this._metadata=null;this._metadataPending=false;this._metadataError=false;this.render();this.load();}
- set hass(hass){this._hass=hass;if(!this._model&&!this._loading)this.load();else{this.renderContactStatus();this.renderManualTargetStatus();this.renderComfortStatus();}}
+ setConfig(config){if(!config.entry_id||!config.room_id)throw Error('entry_id and room_id required');if(this._config?.entry_id===config.entry_id&&this._config.room_id===config.room_id)return;this._config={entry_id:config.entry_id,room_id:config.room_id};this._generation++;this._model=null;this._loading=false;this._saving=false;this._uncertain=false;this._vacationBusy=false;this._vacationUncertain=false;this._vacationLocal='';this._vacationCandidates=[];this._vacationChoice='';this._vacationNeedsChoice=false;this._vacationMessage='';this._metadata=null;this._metadataPending=false;this._metadataError=false;this.render();this.load();}
+ set hass(hass){this._hass=hass;if(!this._model&&!this._loading)this.load();else{this.renderContactStatus();this.renderManualTargetStatus();this.renderComfortStatus();this.renderVacationStatus();}}
  button(text,fn,disabled=false){const b=el('button',text,{type:'button'});b.disabled=disabled;b.onclick=fn;return b;}
- async load(){if(!this._hass||!this._config||this._loading)return;if(!this._hass.user?.is_admin){this._message=this.t.admin;this.render();return;}const generation=this._generation;this._loading=true;this._message=this.t.load;this.render();try{const m=await this._hass.callWS({type:'open_thermostat/room/get',...this._config});if(generation!==this._generation)return;this._model=m;this.reset();this._message='';}catch{if(generation===this._generation)this._message=this.t.failed;}finally{if(generation===this._generation){this._loading=false;this.render();}}}
- reset(){this._settings=clone(this._model.settings);this._selected=null;this._blockInvalid=false;this._uncertain=false;this._copyDay=null;this._metadata=null;this._metadataError=false;}
+ async load(){if(!this._hass||!this._config||this._loading||this._vacationBusy)return;if(!this._hass.user?.is_admin){this._message=this.t.admin;this.render();return;}const generation=this._generation;this._loading=true;this._message=this.t.load;this.render();try{const m=await this._hass.callWS({type:'open_thermostat/room/get',...this._config});if(generation!==this._generation)return;this._model=m;this.reset();this._message='';}catch{if(generation===this._generation)this._message=this.t.failed;}finally{if(generation===this._generation){this._loading=false;this.render();}}}
+ reset(){this._settings=clone(this._model.settings);this._selected=null;this._blockInvalid=false;this._uncertain=false;this._vacationUncertain=false;this._vacationCandidates=[];this._vacationChoice='';this._vacationNeedsChoice=false;this._vacationMessage='';this._copyDay=null;this._metadata=null;this._metadataError=false;}
  async readMetadata(){if(this.dirty||this._metadataPending||this._saving||!this._hass.user?.is_admin)return;const generation=this._generation,token=this._model.token;this._metadataPending=true;this._metadataError=false;this.renderMetadata();try{const result=await this._hass.callWS({type:'open_thermostat/room/device_metadata',...this._config,token});if(generation!==this._generation||token!==this._model.token||this.dirty)return;if(result.metadata_only!==true||result.physical_control_qualified!==false||!Array.isArray(result.devices))throw Error('invalid metadata');this._metadata=result;}catch{if(generation===this._generation)this._metadataError=true;}finally{if(generation===this._generation){this._metadataPending=false;this.renderMetadata();}}}
  renderMetadata(){const box=this._metadataBox;if(!box)return;box.replaceChildren();box.append(el('h3',this.t.metadataTitle),el('small',this.t.metadataHelp));const disabled=this.dirty||this._metadataPending||this._loading||this._saving;box.append(this.button(this._metadataPending?this.t.metadataWait:this.t.metadataRead,()=>this.readMetadata(),disabled));if(this.dirty){box.append(el('p',this.t.metadataDraft));return;}if(this._metadataError){box.append(el('p',this.t.metadataUnknown,{role:'status'}));return;}if(!this._metadata)return;const bridge=this._metadata.bridge;const version=value=>typeof value==='string'&&value.length>0&&value.length<=160?value:this.t.metadataVersionMissing;box.append(el('p',`${this.t.metadataVersions}: Zigbee2MQTT ${version(bridge?.version)} · ${this.t.metadataConverters} ${version(bridge?.zigbee_herdsman_converters_version)}`,{class:'metadata-versions'}));for(const device of this._metadata.devices){const article=el('article');const choice=Object.values(this._model.choices).flat().find(x=>x.value===device.entity_id);article.append(el('strong',choice?.label||device.entity_id));if(device.sensor_property==='device_temperature')article.append(el('p',this.t.metadataDiagnostic,{class:'attention'}));if(!device.definition_observed){article.append(el('p',this.t.metadataMissing));box.append(article);continue;}article.append(el('p',[device.vendor,device.model].filter(Boolean).join(' · ')));for(const [key,title]of [['declared_features',null],['declared_options',this.t.metadataOptions]]){const features=device[key]||[];if(title&&features.length)article.append(el('h4',title));const list=el('ul');for(const feature of features){const label=this.t.metadataRoles[feature.role];if(!label)continue;const bounds=Number.isFinite(feature.value_min)&&Number.isFinite(feature.value_max)?` · ${feature.value_min}–${feature.value_max}${feature.unit?' '+feature.unit:''}`:'';list.append(el('li',`${label}: ${feature.settable_declared?this.t.metadataDeclared:this.t.metadataReadOnly}${bounds}`));}if(key==='declared_features'&&device.entity_id.startsWith('climate.'))for(const role of ['external_temperature','valve_position'])if(!features.some(x=>x.role===role))list.append(el('li',`${this.t.metadataRoles[role]}: ${this.t.metadataAbsent}`));article.append(list);}box.append(article);}}
  errorKey(error){return({setup_changed:'changed',room_changed:'changed',installation_unavailable:'missing',binding_missing:'missing',invalid_contacts:'contactInvalid',not_contact_sensor:'contactInvalid',invalid_contact_policy:'contactInvalid',contact_binding_conflict:'contactInvalid',contact_capability_unavailable:'contactsUnsupported',unsupported_manual_target:'manualTargetInvalid',invalid_manual_target:'manualTargetInvalid',invalid_manual_target_duration:'manualTargetInvalid',manual_target_has_multiple_rooms:'manualTargetOwner',manual_target_capability_unavailable:'manualTargetUpdate',invalid_comfort_profile:'comfortInvalid',invalid_comfort_selection:'comfortInvalid',comfort_window_requires_contacts:'contactInvalid',comfort_capability_unavailable:'comfortUpdate',native_comfort_frost_profile:'comfortFrostProfile',not_temperature:'missing',unsupported_unit:'missing',loop_binding:'ownership',output_has_multiple_owners:'ownership',input_output_loop:'ownership',duplicate_actuator:'ownership',program_overlap:'overlap',program_limit:'limit',invalid_target_range:'range',invalid_integer_or_bounds:'range',invalid_program:'invalid',invalid_program_time:'invalid',invalid_name:'invalid',select_radiators:'invalid',runtime_active:'active',advanced_room_required:'unsupported',emitter_not_available:'unsupportedEmitter',confirm_program_source_change:'invalid',program_source_conflict:'invalid',save_uncertain:'applyUnconfirmed',controller_plan_pending:'controllerPending',controller_readback_unconfirmed:'readbackUnconfirmed',room_profile_change_required:'profileChange',native_group_limit:'profileCapacity',native_target_limits:'range',native_sensor_binding:'missing',native_resource_binding:'missing',native_config_budget:'programCapacity',native_schedule_limit:'programCapacity'})[error?.code]||'uncertain';}
@@ -209,10 +238,10 @@ class OpenThermostatRoomEditor extends HTMLElement{
  selectionIdentities(){const ids=[this._settings.temperature_entity,...this._settings.radiator_entities,...(this._settings.schedule_entity?[this._settings.schedule_entity]:[]),...(this._settings.contact_entities||[]),...(this._settings.setpoint_entity?[this._settings.setpoint_entity]:[]),...(this._settings.presence_entity?[this._settings.presence_entity]:[])];const choices=Object.values(this._model.choices).flat();const selected=ids.map(id=>choices.find(x=>x.value===id));return selected.every(x=>x?.identity)?Object.fromEntries(selected.map(x=>[x.value,clone(x.identity)])):null;}
  select(choices,value,placeholder=this.t.choose){const select=el('select');select.append(el('option',placeholder,{value:''}));for(const x of choices)select.append(el('option',this.choiceLabel(x),{value:x.value}));if(value&&!choices.some(x=>x.value===value))select.append(el('option',value,{value}));select.value=value;return select;}
  number(parent,key,label,value,scale=100,help){const input=el('input',null,{type:'number',step:scale===100?'.1':'.001',required:''});input.value=String(value/scale);input.oninput=()=>{this._settings[key]=scaled(input.value,scale);this._message='';this.refreshStatus();};return this.field(parent,key,label,input,help);}
- render(){const root=this.shadowRoot;root.replaceChildren();root.append(el('style',STYLE));const card=el('ha-card');root.append(card);const top=el('header');top.append(el('span','OpenThermostat',{class:'eyebrow'}),el('h1',this.t.title));card.append(top);
+ render(){this._vacationStatus=null;const root=this.shadowRoot;root.replaceChildren();root.append(el('style',STYLE));const card=el('ha-card');root.append(card);const top=el('header');top.append(el('span','OpenThermostat',{class:'eyebrow'}),el('h1',this.t.title));card.append(top);
  if(!this._model){card.append(el('p',this._message||this.t.load,{role:'status'}),this.button(this.t.reload,()=>this.load(),this._loading));return;}
  const m=this._model,s=this._settings;
- if(m.rooms.length>1){const picker=this.select(m.rooms.map(x=>({value:x.room_id,label:x.name})),this._config.room_id);this.field(card,'room-picker',this.t.room,picker);picker.querySelector('option[value=""]').disabled=true;picker.disabled=this._saving;picker.onchange=()=>{if(this.dirty&&!confirm(this.t.discard)){picker.value=this._config.room_id;return;}this.setConfig({...this._config,room_id:picker.value});};}
+ if(m.rooms.length>1){const picker=this.select(m.rooms.map(x=>({value:x.room_id,label:x.name})),this._config.room_id);this.field(card,'room-picker',this.t.room,picker);picker.querySelector('option[value=""]').disabled=true;picker.disabled=this._saving||this._vacationBusy;picker.onchange=()=>{if(this.dirty&&!confirm(this.t.discard)){picker.value=this._config.room_id;return;}this.setConfig({...this._config,room_id:picker.value});};}
  if(m.program_only||m.profile_apply_pending)card.append(el('p',m.profile_apply_pending?this.t.profilePending:m.profile_editable?this.t.profileConnected:this.t.programConnected,{class:'notice'}));
  if(!m.editable)card.append(el('p',m.supported?this.t.active:this.t.unsupported,{class:'notice'}));
  const layout=el('div',null,{class:'layout'}),settings=el('section',null,{class:'settings','aria-label':this.t.title}),planner=el('section',null,{class:'planner','aria-label':this.t.week});layout.append(settings,planner);card.append(layout);
@@ -233,7 +262,7 @@ class OpenThermostatRoomEditor extends HTMLElement{
  planner.append(el('h2',this.t.week),el('p',s.program_source==='helper'?this.t.external:this.t.hint,{class:'help'}));this._timeline=el('div',null,{class:'timeline'});planner.append(this._timeline);this._inline=el('div',null,{class:'inline'});planner.append(this._inline);this.renderTimeline();this.renderInline();
  const actions=el('footer');this._save=this.button(this.t.save,()=>this.save());this._save.className='primary';this._cancel=this.button(this.t.cancel,()=>{this.reset();this._message='';this.render();});this._reload=this.button(this.t.reload,()=>{if(!this.dirty||confirm(this._uncertain?this.t.reloadUnconfirmed:this.t.discard))this.load();});this._status=el('p','',{class:'status',role:'status','aria-live':'polite'});actions.append(this._status,this._save,this._cancel,this._reload);card.append(actions,el('small',`${this.t.learning} · ${m.time_zone}`,{class:'fine'}));this.refreshStatus();
  }
- refreshStatus(){this.renderContactStatus();this.renderManualTargetStatus();this.renderComfortStatus();this.renderTemperatureSourceReview();this.renderMeasurementStatus();this.renderBindingStatus();this.renderTargetReview();this.renderMetadata();if(!this._status)return;this._status.textContent=this._message||(this.dirty?this.t.draft:this.needsApply?this.t.programPending:this.t.saved);this._save.textContent=this.canRetryProfile?this.t.profileReapply:this.needsApply&&!this.dirty?this.t.programReapply:this.t.save;this._save.disabled=(this.locked&&!this.canRetryProfile)||(!this.dirty&&!this.needsApply)||this._blockInvalid;this._cancel.disabled=this._loading||this._saving||(!this.dirty&&!this._blockInvalid);this._reload.disabled=this._saving||this._loading;}
+ refreshStatus(){this.renderContactStatus();this.renderManualTargetStatus();this.renderComfortStatus();this.renderVacationStatus();this.renderTemperatureSourceReview();this.renderMeasurementStatus();this.renderBindingStatus();this.renderTargetReview();this.renderMetadata();if(!this._status)return;this._status.textContent=this._message||(this.dirty?this.t.draft:this.needsApply?this.t.programPending:this.t.saved);this._save.textContent=this.canRetryProfile?this.t.profileReapply:this.needsApply&&!this.dirty?this.t.programReapply:this.t.save;this._save.disabled=(this.locked&&!this.canRetryProfile)||(!this.dirty&&!this.needsApply)||this._blockInvalid;this._cancel.disabled=this._loading||this._saving||this._vacationBusy||(!this.dirty&&!this._blockInvalid);this._reload.disabled=this._saving||this._loading||this._vacationBusy;}
  roomStatusState(){
   const m=this._model,state=m?.contact_status_entity?this._hass?.states?.[m.contact_status_entity]:null;
   if(!state)return null;
@@ -258,6 +287,7 @@ class OpenThermostatRoomEditor extends HTMLElement{
   presence.onchange=()=>{s.presence_entity=presence.value;this._message='';this.refreshStatus();};
   enabled.onchange=()=>{if(enabled.checked)s.comfort=clone(draft);else{draft=clone(s.comfort);s.comfort=null;s.presence_entity='';presence.value='';}fields.hidden=s.comfort===null;this._message='';this.refreshStatus();};
   this._comfortStatus=el('p',null,{class:'comfort-status',role:'status','aria-live':'polite'});box.append(this._comfortStatus);parent.append(box);this.renderComfortStatus();
+  this.renderVacation(box);
  }
  renderComfortStatus(){
   const box=this._comfortStatus,s=this._settings,m=this._model;if(!box)return;
@@ -266,6 +296,64 @@ class OpenThermostatRoomEditor extends HTMLElement{
   const state=this.roomStatusState();
   if(m.contact_status_entity&&(!state||['unknown','unavailable'].includes(state.state))){box.textContent=this.t.comfortUnavailable;return;}
   const mode=state?.attributes?.comfort_mode,reason=state?.attributes?.firmware_reason;box.textContent=Object.hasOwn(this.t.comfortReasons,reason)?this.t.comfortReasons[reason]:Object.hasOwn(this.t.comfortModes,mode)?this.t.comfortModes[mode]:this.t.comfortConfigured;
+ }
+ vacationReady(){
+  const m=this._model,state=this.roomStatusState();
+  return !!(m?.comfort_actions?.contract==='room.comfort.command.v1'&&m.comfort_actions.supports_vacation_dates===true&&m.status_identity&&this._hass?.user?.is_admin&&typeof this._hass.callService==='function'&&m.settings.comfort&&state&&!['unknown','unavailable'].includes(state.state)&&!this.dirty&&!this.needsApply&&!this.locked);
+ }
+ renderVacation(parent){
+  this._vacationStatus=null;const m=this._model;if(m.comfort_actions?.contract!=='room.comfort.command.v1')return;
+  const box=el('section',null,{class:'room-vacation'});box.append(el('h4',this.t.vacationTitle),el('p',this.t.vacationHelp,{class:'help'}));
+  const end=el('input',null,{type:'datetime-local',step:'60'});end.value=this._vacationLocal||'';
+  this.field(box,'vacation_local_end',this.t.vacationEnd+' · '+m.time_zone,end);
+  end.oninput=()=>{this._vacationLocal=end.value;this._vacationCandidates=[];this._vacationChoice='';this._vacationNeedsChoice=false;this._vacationMessage='';this.renderVacationStatus();};
+  const choices=(this._vacationCandidates||[]).map(c=>({value:c.iso,label:c.iso.replace('T',' ')+' · UTC'+c.utc_offset.replace(/^([+-]\d{2})(\d{2})$/,'$1:$2')}));
+  const choose=this.field(box,'vacation_occurrence',this.t.vacationChoose,this.select(choices,this._vacationChoice||''));
+  choose.parentNode.hidden=!(this._vacationNeedsChoice||choices.length===2);choose.onchange=()=>{this._vacationChoice=choose.value;this.renderVacationStatus();};
+  this._vacationEnd=end;this._vacationOccurrence=choose;
+  this._vacationStart=this.button(this.t.vacationStart,()=>this.requestVacation('vacation'));this._vacationCancel=this.button(this.t.vacationCancel,()=>this.requestVacation('auto'));
+  box.append(this._vacationStart,this._vacationCancel);
+  this._vacationStatus=el('p',null,{class:'vacation-status',role:'status','aria-live':'polite'});box.append(this._vacationStatus);parent.append(box);this.renderVacationStatus();
+ }
+ renderVacationStatus(){
+  if(!this._vacationStatus)return;const ready=this.vacationReady(),state=this.roomStatusState(),until=state?.attributes?.vacation_until_utc;
+  this._vacationEnd.disabled=!ready||this._vacationUncertain;
+  this._vacationOccurrence.parentNode.hidden=!(this._vacationNeedsChoice||(this._vacationCandidates||[]).length===2);
+  this._vacationOccurrence.disabled=!ready||this._vacationUncertain;
+  this._vacationStart.disabled=!ready||this._vacationUncertain||!this._vacationLocal||((this._vacationNeedsChoice||(this._vacationCandidates||[]).length===2)&&!this._vacationChoice);
+  this._vacationCancel.disabled=!ready||!Number.isSafeInteger(until)||until<=0;
+  const base=this._vacationMessage||(this.dirty||this.needsApply?this.t.vacationSave:!ready?this.t.vacationUnavailable:this.t.vacationIdle);
+  const reported=state?.attributes?.vacation_ends_at;
+  this._vacationStatus.textContent=base+(ready&&Number.isSafeInteger(until)&&until>0&&typeof reported==='string'&&reported.length<=40?' '+this.t.vacationUntil+': '+reported.replace('T',' ')+' · '+this._model.time_zone+'.':'');
+ }
+ async vacationResult(promise,timeout){
+  let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject({code:'vacation_timeout'}),timeout);})]);}finally{clearTimeout(timer);}
+ }
+ async requestVacation(mode){
+  if(!this.vacationReady()||(mode==='vacation'&&(this._vacationUncertain||!this._vacationLocal||((this._vacationNeedsChoice||(this._vacationCandidates||[]).length===2)&&!this._vacationChoice))))return;
+  const m=this._model,generation=this._generation,token=m.token,local=this._vacationLocal,zone=m.time_zone,entity=m.contact_status_entity,choice=this._vacationChoice;
+  const current=()=>generation===this._generation&&this._model===m&&this._model.token===token&&!this.dirty&&this.isConnected&&document.visibilityState!=='hidden'&&this.roomStatusState()&&!['unknown','unavailable'].includes(this.roomStatusState().state);
+  let dispatched=false;this._vacationBusy=true;this._vacationMessage=this.t.vacationChecking;this.render();
+  try{
+   let iso;
+   if(mode==='vacation'){
+    const p=await this.vacationResult(this._hass.callWS({type:'open_thermostat/room/vacation_preview',...this._config,token,local_end:local,time_zone:zone}),10000);
+    if(!current()){if(generation===this._generation)this._vacationMessage=this.t.vacationStopped;return;}
+    if(!validVacationPreview(p,m,token,local,zone,entity))throw {code:'vacation_date_invalid'};
+    this._vacationCandidates=p.candidates;
+    if(choice&&!p.candidates.some(c=>c.iso===choice)){this._vacationChoice='';this._vacationNeedsChoice=true;this._vacationMessage=this.t.vacationChanged;return;}
+    iso=choice||(p.candidates.length===1?p.candidates[0].iso:null);
+    if(!iso){this._vacationMessage=this.t.vacationAmbiguous;return;}
+   }
+   if(!current()){this._vacationMessage=this.t.vacationStopped;return;}
+   this._vacationMessage=this.t.vacationSending;this.renderVacationStatus();dispatched=true;
+   await this.vacationResult(this._hass.callService('open_thermostat','set_comfort',{entity_id:entity,mode,...(iso?{vacation_until:iso}:{}),expected_entry_id:m.entry_id,expected_room_id:m.room_id,expected_token:token,expected_time_zone:zone}),15000);
+   if(current()){this._vacationMessage=this.t.vacationRequested;this._vacationUncertain=false;}else if(generation===this._generation){this._vacationMessage=this.t.vacationUncertain;this._vacationUncertain=true;}
+  }catch(error){
+   if(generation!==this._generation)return;
+   if(dispatched){this._vacationMessage=this.t.vacationUncertain;this._vacationUncertain=true;}
+   else {const messages={vacation_timeout:this.t.vacationTimeout,vacation_nonexistent_time:this.t.vacationGap,vacation_date_range:this.t.vacationRange,vacation_date_invalid:this.t.vacationInvalid,vacation_timezone_changed:this.t.vacationZone,vacation_timezone_unavailable:this.t.vacationZone,comfort_controller_unavailable:this.t.vacationUnavailable,setup_changed:this.t.changed,controller_plan_pending:this.t.controllerPending};this._vacationMessage=Object.hasOwn(messages,error?.code)?messages[error.code]:this.t.vacationUnavailable;}
+  }finally{if(generation===this._generation){this._vacationBusy=false;this.render();}}
  }
  renderManualTarget(parent){
   this._manualTargetStatus=null;

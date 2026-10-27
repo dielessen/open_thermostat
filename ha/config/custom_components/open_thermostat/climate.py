@@ -42,6 +42,8 @@ async def async_setup_entry(
             vol.Optional("temperature"):vol.All(vol.Coerce(float),vol.Range(min=5,max=35)),
             vol.Optional("duration_minutes"):vol.All(int,vol.Range(min=1,max=720)),
             vol.Optional("vacation_until"):str,
+            vol.Optional('expected_entry_id'):str,vol.Optional('expected_room_id'):str,
+            vol.Optional('expected_token'):str,vol.Optional('expected_time_zone'):str,
         },"async_set_comfort")
         from .v1_climate import async_setup_entry as setup_shadow
         return await setup_shadow(hass, entry, async_add_entities)

@@ -83,8 +83,24 @@ class ShadowRoom(ClimateEntity):
         await self.runtime.async_comfort(self.room.room_id,"auto" if preset_mode=="none" else preset_mode)
 
     async def async_set_comfort(self,mode,temperature=None,duration_ms=None,vacation_until_utc=0,
-                               duration_minutes=None,vacation_until=None):
+                               duration_minutes=None,vacation_until=None,expected_entry_id=None,
+                               expected_room_id=None,expected_token=None,expected_time_zone=None):
         from homeassistant.exceptions import HomeAssistantError
+        expected=(expected_entry_id,expected_room_id,expected_token,expected_time_zone)
+        def guard():
+            if all(value is None for value in expected):return
+            if any(type(value) is not str or not value for value in expected):
+                raise HomeAssistantError('Incomplete expected room scope')
+            if expected_entry_id!=self.runtime.entry.entry_id or expected_room_id!=self.room.room_id:
+                raise HomeAssistantError('Room scope changed; reload before retrying')
+            from .room_vacation import room_command_scope
+            try:
+                _,room,runtime,entity_id=room_command_scope(self.runtime.hass,*expected)
+            except (KeyError,ValueError):
+                raise HomeAssistantError('Room status or settings changed; inspect current status before retrying') from None
+            if runtime is not self.runtime or room!=self.room or entity_id!=self.entity_id:
+                raise HomeAssistantError('Room scope changed; reload before retrying')
+        guard()
         if duration_minutes is not None:
             if duration_ms is not None or type(duration_minutes) is not int or not 1<=duration_minutes<=720:
                 raise HomeAssistantError("Invalid/conflicting override duration")
@@ -97,6 +113,16 @@ class ShadowRoom(ClimateEntity):
             vacation_until_utc=int(parsed.timestamp())
         await self.runtime.async_comfort(self.room.room_id,mode,temperature=temperature,
             duration_ms=duration_ms,vacation_until_utc=vacation_until_utc)
+        guard() # ACK is not current-room confirmation after a concurrent rebind.
+
+    def _vacation_ends_at(self,state):
+        if state is None or type(state.vacation_until_utc) is not int or not 0<state.vacation_until_utc<4102444800:return None
+        from datetime import datetime,timezone
+        from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
+        try:
+            return datetime.fromtimestamp(state.vacation_until_utc,timezone.utc).astimezone(
+                ZoneInfo(self.runtime.hass.config.time_zone)).isoformat(timespec='seconds')
+        except (TypeError,ValueError,OverflowError,ZoneInfoNotFoundError):return None
 
     @property
     def extra_state_attributes(self):
@@ -120,6 +146,8 @@ class ShadowRoom(ClimateEntity):
                 "override_remaining_ms": state.override_remaining_ms if state else None,
                 "override_remaining_minutes": (state.override_remaining_ms+59999)//60000 if state else None,
                 "vacation_until_utc": state.vacation_until_utc if state else None,
+                'vacation_ends_at':self._vacation_ends_at(state),
+                'vacation_time_zone':self.runtime.hass.config.time_zone,
                 "comfort_context_sources": self.runtime.context_source_status(self.room.room_id),
                 'manual_target_source': self.runtime.manual_target_status(self.room.room_id),
                 "local_override_ends_on_presence_change": False,

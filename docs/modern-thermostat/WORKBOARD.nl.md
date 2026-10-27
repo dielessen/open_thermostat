@@ -56,7 +56,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-534 bronverwijzingen met hashes, status en resterende acceptatie.
+540 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -80,7 +80,7 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | I15 | Kamerregelaar, seizoensbeleid en hydraulische supervisor | Voorbereide code, functie nog onvolledig | Controller-/supervisorkoppeling en HA-diagnose gebouwd; werkelijke producenten, installatieprofiel en fysieke uitvoerketen niet gekwalificeerd. |
 | I16 | Groepswaterdoelen, vloer, menger en centrale graph-config | Voorbereide code, functie nog onvolledig | Pure policies/declaraties en begrensde DATA-paden aanwezig; niet gelijk aan actieve groepen/pomp/menger. |
 | I17 | Metrics, grafieken, historiegrens en CSV-export | Native velden/grafieken en begrensde Recorder-CSV; maandexport in bètabron | echte Classic-tijdlijn, Recorder-retentie/migratie en grafiekacceptatie open. |
-| I18 | Comfortprioriteiten, raam/aanwezigheidscontext en HEAT/OFF | Beta.6: contacten, extra doelhelper en comfort/aanwezigheid in normale editor/wizard en native HA/C++ voorbereid | Actieve save/readback, oorspronkelijke HA-/trackerouderdom en conflicten softwarematig getoetst; fysieke bronkwalificatie, vakantie-einddatumflow en hardwareproef blijven open. |
+| I18 | Comfortprioriteiten, raam/aanwezigheidscontext en HEAT/OFF | Beta.6: contacten, extra doelhelper, comfort/aanwezigheid en eindige vakantiebediening in normale HA-route voorbereid | Actieve save/readback, oorspronkelijke HA-/trackerouderdom, zomertijd en kamerscope softwarematig getoetst; fysieke bronkwalificatie en hardwareproef blijven open. |
 | I19 | Thermisch model, optimum-start, uitlopen en curveaanpassing | Voorbereide code, functie nog onvolledig | Code/replay/opslag aanwezig en behouden; geen bewezen leerwinst of actieve vrijgave. Geen nieuwe F9-stage vóór M2. |
 | I20 | Meldingen, batterij en modelspecifieke tapwaterpresentatie | Voorbereide code, functie nog onvolledig | Niet generiek als werkende onderhouds-/tapwaterregeling presenteren; modelgerichte acceptatie open. |
 | I21 | Keteltest-pagina, ontvangstdiagnose en meetrapport | Geleverd en op E32 gecontroleerd | Volledige release-CI PASS; echte E32-pagina en rapportdownload op 1280/390/320 px gecontroleerd. Tijdens de latere README-opname is verse Classic-ontvangst waargenomen; veldvalidatie blijft open. |
@@ -119,7 +119,7 @@ de code afgetekend. De oorspronkelijke acceptatie in PLAN §4/§14 blijft gelden
 | R16 | Brander/modulatiegrafieken | Native ketelkaarten en drie historiekaarten geleverd; gerapporteerd/afgeleid gescheiden | I17,I21 | Echte CV/DHW-tijdlijn, gaten en herkomst; vlam/pompbit niet onafhankelijk betrouwbaar. |
 | R17 | Historie/statistics/CSV | Read-only Recorder-CSV tot 31 dagen met native installatiekeuze/NL/EN in bètabron; eigenaarscontrole na wachttijd | I17 | Werkelijke retentie/omvang, oude deltahistorie/migratie, reset/gaten en mobiele grafiekacceptatie. |
 | R18 | Weekprogramma/override | Native weekeditor/UTC-plan/apply geleverd; echte save/ACK bewezen | I07,I13 | Volledige fysieke stale/reconnect/tijd-/overrideketen; huidige 1–2 kamer-/bytebudgetten behouden. |
-| R19 | Comfort/eco/away/vakantie/boost | Beta.6: normale comforteditor/wizard, HA-kamerpresets en native save/readback voorbereid; bronvorstpolicy blijft5°C | I18 | Normale vakantie-einddatumflow, oorspronkelijke fysieke bronkwalificatie en praktijkacceptatie. |
+| R19 | Comfort/eco/away/vakantie/boost | Beta.6: normale comforteditor/wizard, kamerpresets, eindige vakantie-einddatumflow en native save/readback voorbereid; bronvorstpolicy blijft5°C | I18 | Oorspronkelijke fysieke bronkwalificatie, tijd-/uitval-/herverbindingsproef en praktijkacceptatie. |
 | R20 | Aanwezigheid/geofencing | Beta.6: optionele persoon via normale inrichting; native HA-meldingen behouden oorspronkelijke trackerouderdom en verlopen na twee minuten | I18 | Werkelijke modelrapportage/uitval en fysieke bronkwalificatie; uitgebreid geofencing/P2 blijft later. |
 | R21 | Raam- en deurcontacten | Beta.6: maximaal acht expliciet gekozen contacten, normale editor/wizard, instelbare reactie/ouderdom, status en gecontroleerde native save/readback voorbereid | I18 | Oorspronkelijke modelspecifieke rapportkwalificatie, fysieke openen/sluiten-/uitvalproef en eindacceptatie blijven apart; deuren worden niet automatisch gekoppeld. |
 | R22 | Vorst/zomer | Seizoens-/prioriteitspolicy en bounded frost-target aanwezig | I15,I18 | Installatiegebonden fysieke bescherming bij uitval; softwaretarget is geen bewezen vorstbeveiliging. |

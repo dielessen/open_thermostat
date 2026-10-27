@@ -134,7 +134,9 @@ async def async_setup_planner(hass):
             StaticPathConfig(url, str(Path(__file__).parent / "frontend/week-planner.js"), False)
             for url in (URL, LEGACY_URL)])
         from .room_editor import ws_room_get, ws_room_save, ws_room_device_metadata
+        from .room_vacation import ws_vacation_preview
         websocket_api.async_register_command(hass, ws_room_get)
+        websocket_api.async_register_command(hass, ws_vacation_preview)
         websocket_api.async_register_command(hass, ws_room_save)
         websocket_api.async_register_command(hass, ws_room_device_metadata)
         websocket_api.async_register_command(hass, ws_get)

@@ -52,8 +52,15 @@ Oorspronkelijke HA-persoonsmeldingen houden de ouderdom van hun trackerbron;
 opnieuw melden van een gecachete bron vernieuwt niets. De bestaande grens is
 twee minuten en ontbrekende/verlopen aanwezigheid blijft onbekend. De native
 bron behoudt zijn vorstdoel5°C; een nieuw onverenigbaar profiel wordt vóór
-bewaren geweigerd. Vakantie-einddatumflow en fysieke bron-/gedragsproef blijven
-open. [Werking en afbakening](ROOM-COMFORT.md).
+bewaren geweigerd. [Werking en afbakening](ROOM-COMFORT.md).
+
+**Vakantie-einddatum aangesloten:** datum/tijd in de HA-tijdzone, expliciete keuze
+bij dubbele zomertijdkloktijden en weigeren van niet-bestaande tijden. Starten of
+terugkeren naar programma gebruikt de bestaande eindige comfortservice, met
+gecontroleerde kamer-/configuratiescope en uitsluitend gemelde actuele status.
+Geen automatisch herhalen bij een time-out. De keuze blijft sessielokaal en
+vervalt bij herstart/herverbinding/kamerreload; fysieke bron-/gedragsproeven
+blijven open. [Gebruikersroute en grenzen](ROOM-VACATION.md).
 
 **Laatste passieve nacontrole:** de huidige proef is `closed` met
 `restart_required`, nul positieve warmteframes en gemelde stop. Daarom kan de

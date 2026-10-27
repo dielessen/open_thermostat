@@ -805,32 +805,86 @@
             }
             return row && typeof row.name === 'string' && row.name.trim() ? row.name.slice(0,80) : uiText("Room ")+(index+1);
         }
+        var dashboardReasonLabels = {
+            shadow_idle:"No calculated heat demand", shadow_demand:"Room requesting heat",
+            sensor_stale:"Temperature measurement is stale", sensor_unavailable:"No valid temperature measurement",
+            sample_stale:"Temperature measurement is stale", no_sample:"Waiting for a temperature measurement",
+            adapter_offline:"Home Assistant connection missing", lease_expired:"Connection expired",
+            time_not_valid:"Time not reliable yet", time_invalid:"Time not reliable yet",
+            stopped:"Control stopped", off:"Room disabled", summer:"Summer mode",
+            window_open:"Heating paused by window/door status", dhw_active:"Hot water has priority",
+            limits_unknown:"Installation limits not yet confirmed", no_fresh_local_safety:"Installation conditions not yet confirmed",
+            unqualified:"Installation conditions not yet confirmed", idle:"No heat demand",
+            awaiting_readiness:"Waiting for an available heat delivery path",
+            hydraulic_profile_unqualified:"Installation profile not yet confirmed",
+            adapter_unavailable:"Home Assistant connection missing",
+            source_unavailable:"No valid measurement or program source",
+            fault_state_unknown:"Boiler fault status still unknown",
+            dhw_state_unknown:"Hot water status still unknown", dhw_priority:"Hot water has priority",
+            no_demand:"No calculated heat demand", stop:"Control stopped",
+            water_target_invalid:"Calculated water target is outside the installation limits",
+            postrun:"Post-run after heat demand", logical_demand:"Calculated heat demand",
+            shadow_seasonal_demand:"Calculated heat demand",
+            shadow_low_load_or_satisfied:"Temperature reached or heat demand too low",
+            seasonal_target_or_sensor_invalid:"Temperature measurement or target invalid",
+            shadow_frost_advice:"Frost protection advice; no confirmed control",
+            profile_unqualified:"Room comfort profile not yet confirmed",
+            owner_unavailable:"Home Assistant connection missing",
+            monotonic_fault:"Room control clock changed; waiting for a new session",
+            limit_stop:"Heating paused by the installation limits",
+            explicit_off:"Room disabled",
+            vacation_time_invalid:"Vacation needs a reliable clock",
+            vacation_time_reversed:"Vacation clock moved backwards",
+            explicit_frost:"Frost target selected",
+            window_state_unknown:"Waiting for valid window/door reports",
+            bounded_override:"Temporary room target selected",
+            explicit_away:"Away or vacation target selected",
+            presence_state_unknown:"Waiting for valid presence reports",
+            presence_away:"Away target selected by presence",
+            automatic_target_unavailable:"No valid automatic room target",
+            automatic:"Automatic room target selected",
+            source_unverified_or_stale:"Temperature source is unverified or stale",
+            schedule_time_invalid_or_expired:"Weekly program needs current time and a valid target"
+        };
         function dashboardReason(value) {
-            var reasons = {
-                shadow_idle:uiText("No calculated heat demand"), shadow_demand:uiText("Room requesting heat"),
-                sensor_stale:uiText("Temperature measurement is stale"), sensor_unavailable:uiText("No valid temperature measurement"),
-                sample_stale:uiText("Temperature measurement is stale"), no_sample:uiText("Waiting for a temperature measurement"),
-                adapter_offline:uiText("Home Assistant connection missing"), lease_expired:uiText("Connection expired"),
-                time_not_valid:uiText("Time not reliable yet"), time_invalid:uiText("Time not reliable yet"),
-                stopped:uiText("Control stopped"), off:uiText("Room disabled"), summer:uiText("Summer mode"),
-                window_open:uiText("Window is open"), dhw_active:uiText("Hot water has priority"),
-                limits_unknown:uiText("Installation limits not yet confirmed"), no_fresh_local_safety:uiText("Installation conditions not yet confirmed"),
-                unqualified:uiText("Installation conditions not yet confirmed"), idle:uiText("No heat demand"),
-                awaiting_readiness:uiText("Waiting for an available heat delivery path"),
-                hydraulic_profile_unqualified:uiText("Installation profile not yet confirmed"),
-                adapter_unavailable:uiText("Home Assistant connection missing"),
-                source_unavailable:uiText("No valid measurement or program source"),
-                fault_state_unknown:uiText("Boiler fault status still unknown"),
-                dhw_state_unknown:uiText("Hot water status still unknown"), dhw_priority:uiText("Hot water has priority"),
-                no_demand:uiText("No calculated heat demand"), stop:uiText("Control stopped"),
-                water_target_invalid:uiText("Calculated water target is outside the installation limits"),
-                postrun:uiText("Post-run after heat demand"), logical_demand:uiText("Calculated heat demand"),
-                shadow_seasonal_demand:uiText("Calculated heat demand"),
-                shadow_low_load_or_satisfied:uiText("Temperature reached or heat demand too low"),
-                seasonal_target_or_sensor_invalid:uiText("Temperature measurement or target invalid"),
-                shadow_frost_advice:uiText("Frost protection advice; no confirmed control")
-            };
-            return Object.prototype.hasOwnProperty.call(reasons,value) ? reasons[value] : uiText("View the explanation in Home Assistant");
+            return typeof value === 'string' && Object.prototype.hasOwnProperty.call(dashboardReasonLabels,value) ?
+                uiText(dashboardReasonLabels[value]) : uiText("View the explanation in Home Assistant");
+        }
+        // Labels are allocated once; each poll translates only the selected values.
+        var dashboardTargetLabels = {
+            base:"Room setting", schedule:"Weekly program", temporary:"Temporary target", off:"No effective target",
+            boost:"Boost target", away:"Away target", vacation:"Vacation target", frost:"Frost target",
+            window:"Window/door contact pause", presence:"Presence setting", limit:"Installation limit"
+        };
+        var dashboardComfortLabels = {
+            auto:"Automatic", off:"Off", temporary:"Temporary", boost:"Boost", away:"Away", vacation:"Vacation", frost:"Frost"
+        };
+        function dashboardKnownLabel(labels,key) {
+            return typeof key === 'string' && Object.prototype.hasOwnProperty.call(labels,key) ? uiText(labels[key]) : null;
+        }
+        function dashboardRoomContext(row) {
+            var source = dashboardKnownLabel(dashboardTargetLabels,row.target_source);
+            var mode = dashboardKnownLabel(dashboardComfortLabels,row.comfort_mode);
+            var fields = '';
+            function field(label,value) {
+                fields += '<dt>'+dashboardText(label)+'</dt><dd>'+dashboardText(value)+'</dd>';
+            }
+            if (source !== null) field(uiText("Target comes from"),source);
+            if (mode !== null) field(uiText("Selected mode"),mode);
+            // This is the owner's reported duration, never a second browser clock.
+            var temporary = row.comfort_mode === 'temporary' || row.comfort_mode === 'boost' || row.target_source === 'temporary' || row.target_source === 'boost';
+            var remaining = row.override_remaining_ms;
+            var ceiling = row.comfort_mode === 'boost' || row.target_source === 'boost' ? 14400000 : 86400000;
+            if (temporary && Number.isSafeInteger(remaining) && remaining > 0 && remaining <= ceiling) {
+                var seconds = Math.ceil(remaining/1000), minutes = Math.ceil(seconds/60);
+                var duration = seconds < 60 ? seconds+' s' : minutes < 60 ? minutes+' min' :
+                    Math.floor(minutes/60)+' h'+(minutes%60 ? ' '+minutes%60+' min' : '');
+                field(uiText("Time left when reported"),duration);
+            }
+            var until = row.vacation_until_utc;
+            if (row.comfort_mode === 'vacation' && Number.isSafeInteger(until) && until >= 946684800 && until < 4102444800)
+                field(uiText("Reported vacation end (UTC)"),new Date(until*1000).toISOString().replace('T',' ').replace('.000Z',' UTC'));
+            return fields ? '<dl class="pd-detail-grid pd-room-context">'+fields+'</dl>' : '';
         }
         function recordDashboardRooms(control, rows) {
             var state = control.state, at = control.captured_at_ms;
@@ -954,7 +1008,7 @@
                 var name = dashboardRoomName(row,index);
                 var actual = dashboardNumber(row.temperature_centi_c,100,-50,80), target = dashboardNumber(row.target_centi_c,100,5,35);
                 html += '<article class="pd-room" data-dashboard-key="'+dashboardText(String(state.boot_id || '')+':'+(typeof row.zone_id === 'string' && /^[a-f0-9]{8}$/.test(row.zone_id) ? row.zone_id : 'index_'+index))+'"><div class="pd-room-title"><h3>'+dashboardText(name)+'</h3><span class="pd-badge'+(row.demand===true?' pd-request':'')+'">'+dashboardBool(row.demand,uiText("Requesting heat"),uiText("No request"))+uiHtml("</span></div><div class=\"pd-room-temperatures\"><div><span class=\"pd-flow-label\">Reported</span>")+dashboardValue(actual,'°C')+uiHtml("</div><div><span class=\"pd-flow-label\">Target</span>")+dashboardValue(target,'°C')+'</div></div><p class="pd-help">'+dashboardText(dashboardReason(row.reason))+'</p>'+dashboardTrend(row,index)+
-                    uiHtml("<details class=\"pd-room-detail\"><summary>Details</summary><p>Room ID: ")+dashboardText(row.zone_id || uiText("not reported"))+uiHtml("<br>Reason code: ")+dashboardText(row.reason || uiText("not reported"))+uiHtml("<br>Valve control: ")+dashboardBool(actuatorEnabled,uiText('enabled'),uiText('blocked'))+uiHtml("</p><p class=\"pd-help\">A request does not prove valve position or delivered heat. Change settings and programs in Home Assistant.</p></details></article>");
+                    uiHtml("<details class=\"pd-room-detail\"><summary>Details</summary><p>Room ID: ")+dashboardText(row.zone_id || uiText("not reported"))+uiHtml("<br>Reason code: ")+dashboardText(row.reason || uiText("not reported"))+uiHtml("<br>Valve control: ")+dashboardBool(actuatorEnabled,uiText('enabled'),uiText('blocked'))+uiHtml("</p>")+dashboardRoomContext(row)+uiHtml("<p class=\"pd-help\">A request does not prove valve position or delivered heat. Change settings and programs in Home Assistant.</p></details></article>");
             });
             html += uiHtml("</div><div class=\"pd-lower\"><section class=\"pd-panel\"><h2>Commands to the boiler</h2><p>")+dashboardBool(boilerEnabled,uiText("Control is enabled according to the controller."),uiText("The controller reports blocked outputs."))+uiHtml("</p><p class=\"pd-help\">No confirmed command timeline is available yet. Calculated room demand is not presented as a transmitted or executed boiler command.</p></section>")+
                 uiHtml("<details class=\"pd-panel\"><summary>All available boiler data</summary><dl class=\"pd-detail-grid\">");

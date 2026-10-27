@@ -75,3 +75,8 @@ bewijs blijft afzonderlijk open. Geen nieuwe externe dienst of langlopende watch
   native HA-apparaat en toont gecachete procent-/lage-batterijmeldingen met
   oorspronkelijke HA-tijd en ouderdom. Laden of bevestigde kamerbewaring geeft een nieuwe momentopname;
   geen extra entiteiten, subscriptions of fysieke meetkwalificatie.
+
+- Kameruitleg op E32: doelbron, gekozen comfortstand en de door de regelaar
+  gemelde tijdelijke duur/vakantie-eindtijd onder de bestaande kamerdetails.
+  Raam-/deurpauzes en aanwezigheid krijgen eigen leesbare redenen. Dezelfde
+  actuele momentopname wordt hergebruikt; geen nieuwe collector of aftelklok.

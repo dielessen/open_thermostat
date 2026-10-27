@@ -54,6 +54,7 @@ jobs:
           node test/rooms/browser.cjs
           node test/updates/browser.cjs
           node test/dashboard-browser.cjs
+          node test/dashboard-room-context-browser.cjs
           node test/boiler-display-browser.cjs
           node test/ems-devices-browser.cjs
           node test/boiler-settings-browser.cjs

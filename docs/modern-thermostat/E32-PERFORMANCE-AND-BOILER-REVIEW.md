@@ -337,3 +337,27 @@ and a silent peer's retained CONNACK timeout. The same tests run with an explici
 lwIP select-offset profile, and the previous ordinary/deadline write cases
 remain covered. The E32 cross-build verifies the actual pinned SDK API. These
 are software scheduling/lifetime checks, not on-device latency measurements.
+
+## Explain room targets from the existing snapshot
+
+The dashboard's existing room Details now projects the controller's effective
+`target_source`, selected `comfort_mode`, finite `override_remaining_ms` and
+`vacation_until_utc`. Known labels are translated into English and Dutch; unknown
+optional fields remain absent. The reason labels distinguish window/door pauses,
+unknown reports, presence, source age, schedules and selected comfort modes. A
+window pause can include a closing delay, so the explanation does not claim that
+a contact must currently be physically open.
+
+The remaining duration is explicitly the value when reported, rounded up for
+display, with the existing 24-hour temporary/4-hour boost ceilings. It is never
+advanced by a browser clock. Vacation ends use an explicit UTC label in the same
+2000–2100 domain as the controller, only while vacation is selected. No additional
+request, collector, timer, command, persistence or wire field is introduced.
+Missing/stale controller state continues to remove the room cards. The selected
+mode and effective source stay separate, including a boost currently paused by
+contacts. These fields do not grant outputs or prove delivered heat.
+
+Reason/source/mode label maps are allocated once; each render translates only the
+chosen values. Browser checks exercise both languages at 1280, 390 and 320 pixels,
+the ordinary ten-second poll, stable open Details/focus/scroll, old/malformed
+optional metadata and stale state. There is no new on-device latency claim.

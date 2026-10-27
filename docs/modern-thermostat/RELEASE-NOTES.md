@@ -19,6 +19,11 @@ acceptance is separate; beta.5 installation recovery remains deferred.
 - A closed trial shows its restart requirement directly and offers the existing
   confirmed, update-aware restart action. No heating resumes automatically.
 
+- Room **Details** on the E32 dashboard explains the effective target source,
+  selected comfort mode, reported temporary duration and explicit UTC vacation end.
+  Window/door and presence pauses have clear reasons. It uses the existing
+  control snapshot and does not add polling or a second countdown clock.
+
 ## Fixed
 
 - Compress larger UI files at build time and serve them directly from flash.

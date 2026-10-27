@@ -1,0 +1,130 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target": "E32 beta.6",
+  "parent_commit": "6f96a2ca3aeb8a957e32af2fb2b378d2c9b607c2",
+  "device_actions_performed": false,
+  "contract": {
+    "canonical_source": "Existing fresh control.state.zones in /status",
+    "extra_reads_commands_collectors_or_timers": 0,
+    "remaining_time": "Owner-reported value, rounded up; no browser countdown",
+    "maximum_temporary_ms": 86400000,
+    "maximum_boost_ms": 14400000,
+    "vacation_end": "Explicit UTC; only selected vacation; existing 2000-2100 domain",
+    "physical_control_authorization_added": false,
+    "label_maps": "Allocated once; translate selected known label only"
+  },
+  "validation": {
+    "root_and_language_node_cases_passed": 23,
+    "new_browser_language_width_cases_passed": 6,
+    "existing_dashboard_browser_cases_passed": 2,
+    "widths": [
+      1280,
+      390,
+      320
+    ],
+    "languages": [
+      "en",
+      "nl"
+    ],
+    "existing_poll_interval_ms": 10000,
+    "status_gets_per_new_browser_case": 2,
+    "stable_open_details_focus_scroll": "PASS",
+    "unknown_malformed_stale_state": "PASS",
+    "e32_app_build": "PASS",
+    "e32_filesystem_build": "PASS",
+    "source_image_partitions_assets_uart_owner": "PASS",
+    "firmware_bytes": 3104176,
+    "ota_slot_bytes": 3670016,
+    "assets": 36,
+    "gzip_representations": 29,
+    "raw_web_bytes": 559156,
+    "gzip_web_bytes": 151998,
+    "parent_exact_commit_ci": "All 9 validation jobs passed; run 40464549028"
+  },
+  "remaining": [
+    "Exact-commit CI",
+    "On-device latency and user acceptance; no installation performed"
+  ],
+  "reviewed_files": [
+    {
+      "path": ".github/workflows/build.yml",
+      "sha256": "66112c0cfa2554c2ce56f2e8fb9963d90982cc13d5115e2d831d78529a9fdf90"
+    },
+    {
+      "path": "README.md",
+      "sha256": "81d5850dd000501f3710f674e86b4b22193663f570bb1c27a1a64e7704a056ee"
+    },
+    {
+      "path": "data/html/index.html",
+      "sha256": "95d2f3022146a9443f61ba8e88e4e908baadbef12a8c9ee331ceb6f085c9bbf4"
+    },
+    {
+      "path": "data/html/ui-messages.js",
+      "sha256": "b1ba57efe7d164c895bbe5df35cfc8c121291f38086791c257d4a56918bfbc65"
+    },
+    {
+      "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
+      "sha256": "8404f71c20ff844c5939da1b4fea2de496339af375fa86019c8082aeb83ab41e"
+    },
+    {
+      "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
+      "sha256": "a91572f86fdb16f6625599c1d87ccc5cc0cbcabf954b772f74e24ac5d8975347"
+    },
+    {
+      "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
+      "sha256": "d5337e95793b75a440f9b1b23ca118c097eb76ca24d24e49b657d1672fce08d5"
+    },
+    {
+      "path": "docs/modern-thermostat/RELEASE-NOTES.md",
+      "sha256": "6cf44ccecd3d0891e6fdf5cc1d6d3a73cddab51e2edefdef4dfe770390a4d591"
+    },
+    {
+      "path": "docs/modern-thermostat/WORKBOARD.nl.md",
+      "sha256": "0f149815d3516bbdc7ca5fb102e69f6e276092e7fa2997da44295d5ff27dd226"
+    },
+    {
+      "path": "test/dashboard-room-context-browser.cjs",
+      "sha256": "5d3672e785ed3d552b241c2e3f7e87321637b188b3f0883ea11702971f472c49"
+    },
+    {
+      "path": "test/root_status_render.test.cjs",
+      "sha256": "e810ba7a5e471ebb5378810c417b531ecb199ea158022ec0a8cb22daa3f6c0ec"
+    }
+  ],
+  "local_evidence": [
+    {
+      "path": "out/dashboard-room-context-20261027/browser-tests.log",
+      "sha256": "b1285830eff86ab07017a25e7d0b70e33875136eaf4ce6c229b964d61162c388"
+    },
+    {
+      "path": "out/dashboard-room-context-20261027/dashboard-regression.log",
+      "sha256": "e4aa5a9c360e04ee7b2977748733e416b4d907d4cec5a27976a8ef52772ff62b"
+    },
+    {
+      "path": "out/dashboard-room-context-20261027/e32-build.log",
+      "sha256": "2479f778868aad4eb511d7830c0504680d2c384dd46719436011a74ff5099df1"
+    },
+    {
+      "path": "out/dashboard-room-context-20261027/e32-buildfs.log",
+      "sha256": "97b8600c32da5224f73d16709933de5e7b5d2b580d731c71fd15c3272015b3d1"
+    },
+    {
+      "path": "out/dashboard-room-context-20261027/e32-final-build.log",
+      "sha256": "d7ea4dd3a99825da4347e9de64c78ec2ce82611eb28db0ad3a450e58140ffe4f"
+    },
+    {
+      "path": "out/dashboard-room-context-20261027/e32-verify.log",
+      "sha256": "f32bfbacb0b5f1417fce84a781a3bfa18682462758f27a3146cef11bf22e106f"
+    },
+    {
+      "path": "out/dashboard-room-context-20261027/node-tests-final.log",
+      "sha256": "9714f2163356f40f2d14dbd82297579dbe8c56477cb19868006400f478d0a0c0"
+    },
+    {
+      "path": "out/dashboard-room-context-20261027/node-tests.log",
+      "sha256": "9f67d8c8b61a2fd6e815208e3ad07fe845ca4cceaf4a237bd2fc7b429f394392"
+    }
+  ]
+}

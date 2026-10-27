@@ -82,6 +82,12 @@ Geen automatisch herhalen bij een time-out. De keuze blijft sessielokaal en
 vervalt bij herstart/herverbinding/kamerreload; fysieke bron-/gedragsproeven
 blijven open. [Gebruikersroute en grenzen](ROOM-VACATION.md).
 
+**Uitleg op het E32-dashboard:** Details per kamer toont de effectieve doelbron,
+geselecteerde comfortstand en gemelde resterende tijd of vakantie-einde (UTC).
+Raam-/deur- en aanwezigheidsmeldingen krijgen herkenbare redenen. De bestaande
+regelaarmomentopname blijft de enige bron; geen extra aanvragen of eigen
+aftelklok in de browser. Ontbrekende/verouderde regelstatus toont deze waarden niet.
+
 **Laatste passieve nacontrole:** de huidige proef is `closed` met
 `restart_required`, nul positieve warmteframes en gemelde stop. Daarom kan de
 geïnstalleerde firmware geen nieuwe proef voorbereiden. Herstarten blijft

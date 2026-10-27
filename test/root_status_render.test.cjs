@@ -2,7 +2,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const fixture=require('./fixtures/root-status-ems-metadata-only.json');
-function rootPage(){
+function rootPage(language='nl'){
  const html=fs.readFileSync(path.join(__dirname,'../data/html/index.html'),'utf8');
  class Element{
   querySelector(){return null;}
@@ -13,7 +13,7 @@ function rootPage(){
  const main=new Element();
  const document={createElement:()=>new Element(),createTextNode:x=>x,getElementById:()=>main,querySelectorAll:()=>[]};
  const jq=()=>({on(){},ready(){},css(){}});
- const context={document,$:jq};Object.assign(context,require('./helpers/ui-language.cjs')('nl'));vm.createContext(context);
+ const context={document,$:jq};Object.assign(context,require('./helpers/ui-language.cjs')(language));vm.createContext(context);
  for(const script of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))
   vm.runInContext(script[1],context,{filename:'data/html/index.html',lineOffset:html.slice(0,script.index).split('\n').length-1});
  context.main=main;return context;
@@ -140,4 +140,66 @@ test('cached update notice hides unknown/current data and escapes or rejects ext
  const html=p.dashboardUpdateNotice({known:true,available:true,version:'v0.1.0-e32v2-alpha.99'});
  assert.match(html,/Firmware-update beschikbaar:/);assert.match(html,/Update bekijken/);
  assert.match(html,/loadNativePage/);assert.doesNotMatch(html,/fetch|installRelease|updates\/check/);
+});
+
+test('all canonical dashboard reason, source and mode labels have English and Dutch coverage',()=>{
+ const en=rootPage('en'),nl=rootPage('nl');
+ for(const map of ['dashboardReasonLabels','dashboardTargetLabels','dashboardComfortLabels']){
+  for(const [key,label] of Object.entries(en[map])){
+   assert.equal(en.uiText(label),label,key);
+   if(label!=='Boost')assert.notEqual(nl.uiText(label),label,key);
+   assert.equal(typeof nl.uiText(label),'string');
+  }
+ }
+ assert.equal(en.dashboardReason('window_open'),'Heating paused by window/door status');
+ assert.equal(en.dashboardReason('window_state_unknown'),'Waiting for valid window/door reports');
+ for(const key of ['__proto__','constructor','toString',null,[],{},'<img>'])
+  assert.equal(en.dashboardReason(key),'View the explanation in Home Assistant');
+});
+
+test('room context describes owner-reported targets and chosen mode without granting outputs',()=>{
+ const p=rootPage('en'),status=managed(),row=status.control.state.zones[0];
+ Object.assign(row,{demand:false,target_centi_c:null,target_source:'window',comfort_mode:'boost',override_remaining_ms:599999,reason:'window_open'});
+ p.updateRooms(status);
+ for(const text of ['Window/door contact pause','Selected mode','Boost','Time left when reported','10 min','Heating paused by window/door status'])
+  assert.ok(p.main.innerHTML.includes(text),text);
+ assert.match(p.main.innerHTML,/No request/);assert.match(p.main.innerHTML,/Blocked/);
+ assert.equal(row.demand,false);assert.equal(row.target_centi_c,null);
+ assert.equal(status.control.state.boiler_output_enabled,false);assert.equal(status.control.state.actuator_output_enabled,false);
+ const old=managed();p.updateRooms(old);assert.doesNotMatch(p.main.innerHTML,/pd-room-context/);
+ for(const fresh of [false,undefined,'true']){
+  status.control.fresh=fresh;p.updateRooms(status);assert.doesNotMatch(p.main.innerHTML,/pd-room-context|Badkamer|10 min/);
+ }
+});
+
+test('reported durations remain finite, rounded up and bounded by their existing mode contracts',()=>{
+ const p=rootPage('en');
+ for(const [ms,text] of [[1,'1 s'],[59000,'59 s'],[59999,'1 min'],[60000,'1 min'],[3599999,'1 h'],[3660000,'1 h 1 min'],[86400000,'24 h']]){
+  const html=p.dashboardRoomContext({target_source:'temporary',override_remaining_ms:ms});assert.match(html,new RegExp('<dd>'+text+'</dd>'));
+ }
+ for(const remaining of [0,-1,1.5,86400001,NaN,Infinity,'60000',true,null,undefined])
+  assert.doesNotMatch(p.dashboardRoomContext({target_source:'temporary',override_remaining_ms:remaining}),/Time left/);
+ assert.match(p.dashboardRoomContext({comfort_mode:'boost',override_remaining_ms:14400000}),/4 h/);
+ assert.doesNotMatch(p.dashboardRoomContext({comfort_mode:'boost',override_remaining_ms:14400001}),/Time left/);
+ assert.doesNotMatch(p.dashboardRoomContext({target_source:'base',override_remaining_ms:60000}),/Time left/);
+ // Selected boost can keep its original finite timer while contacts inhibit its effective target.
+ assert.match(p.dashboardRoomContext({target_source:'window',comfort_mode:'boost',override_remaining_ms:60000}),/1 min/);
+});
+
+test('vacation end is explicit UTC within the firmware domain and never inferred from browser time',()=>{
+ const p=rootPage('en'),until=Date.parse('2026-10-28T17:30:00Z')/1000;
+ assert.match(p.dashboardRoomContext({comfort_mode:'vacation',vacation_until_utc:until}),/2026-10-28 17:30:00 UTC/);
+ for(const value of [0,946684799,4102444800,until+0.5,String(until),true,null,Infinity,NaN])
+  assert.doesNotMatch(p.dashboardRoomContext({comfort_mode:'vacation',vacation_until_utc:value}),/Reported vacation end/);
+ for(const mode of ['auto','boost','away',undefined])
+  assert.doesNotMatch(p.dashboardRoomContext({comfort_mode:mode,vacation_until_utc:until}),/Reported vacation end/);
+});
+
+test('optional context accepts only known labels and never turns malformed metadata into HTML',()=>{
+ const p=rootPage('en');
+ for(const value of ['__proto__','constructor','toString','<img src=x onerror=alert(1)>',true,{},[],null,undefined])
+  assert.equal(p.dashboardRoomContext({target_source:value,comfort_mode:value,override_remaining_ms:value,vacation_until_utc:value}),'');
+ assert.match(p.dashboardRoomContext({target_source:'off'}),/No effective target/);
+ assert.match(p.dashboardRoomContext({comfort_mode:'frost',target_source:'frost'}),/Frost/);
+ assert.doesNotMatch(p.dashboardRoomContext({comfort_mode:'frost',target_source:'frost'}),/protection|confirmed|enabled/i);
 });

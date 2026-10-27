@@ -18,14 +18,17 @@ async def async_setup_sensors(hass, entry, async_add_entities, *, native_metrics
     online = False
     entities = {}
     command_entity = None
-    dhw = DhwStatus(prefix, tracker)
-    async_add_entities([dhw], config_subentry_id=group_id)
+    # The DHW presentation reads legacy ems_status, which modern firmware never sends.
+    dhw = None if native_metrics else DhwStatus(prefix, tracker)
+    if dhw is not None:
+        async_add_entities([dhw], config_subentry_id=group_id)
 
     @callback
     def refresh():
         if command_entity is not None:
             command_entity.refresh()
-        dhw.update_from_tracker()
+        if dhw is not None:
+            dhw.update_from_tracker()
         for entity in entities.values():
             if entity._observation_field:
                 entity.update_from_tracker()
@@ -35,7 +38,7 @@ async def async_setup_sensors(hass, entry, async_add_entities, *, native_metrics
     @callback
     def availability(message):
         nonlocal online
-        online = message.payload == "on"
+        online = message.payload == ("online" if native_metrics else "on")
         if command_entity is not None:
             command_entity.set_online(online)
         for entity in entities.values():
@@ -44,7 +47,7 @@ async def async_setup_sensors(hass, entry, async_add_entities, *, native_metrics
     def handler(topic):
         @callback
         def receive(message):
-            nonlocal command_entity
+            nonlocal command_entity, online
             if len(message.payload) > 8192:
                 return
             try:
@@ -54,12 +57,18 @@ async def async_setup_sensors(hass, entry, async_add_entities, *, native_metrics
             if not isinstance(payload, dict):
                 return
             if topic == 'ems_status':
+                if native_metrics and not getattr(message, 'retain', False):
+                    # Native availability is emitted on firmware connect only.
+                    # A live packet also proves liveness after an HA-only restart.
+                    online = True
                 from .controller_request import ControllerRequestSensor, supported
                 if command_entity is None and supported(payload):
                     command_entity=ControllerRequestSensor(prefix)
                     async_add_entities([command_entity],config_subentry_id=group_id)
                 if command_entity is not None:
                     command_entity.update_payload(payload,online,retained=getattr(message,'retain',False))
+                if native_metrics:
+                    return  # Native command topic cannot populate legacy boiler measurements.
             added = []
             for metric in HUB_METRICS[topic]:
                 key = topic, metric
@@ -81,14 +90,18 @@ async def async_setup_sensors(hass, entry, async_add_entities, *, native_metrics
         return receive
 
     await mqtt.async_wait_for_mqtt_client(hass)
-    entry.async_on_unload(await mqtt.async_subscribe(hass, f"{prefix}/status", availability))
+    status_topic=f"{prefix}/v1/fw/availability" if native_metrics else f"{prefix}/status"
+    entry.async_on_unload(await mqtt.async_subscribe(hass, status_topic, availability))
     for topic in HUB_METRICS:
         if native_metrics and topic in {"ems_metrics", "device_status"}:
             continue  # Single owner: validated native cache preserves v2 identities.
-        entry.async_on_unload(await mqtt.async_subscribe(hass, f"{prefix}/{topic}", handler(topic)))
+        route=f"{prefix}/v1/fw/telemetry/controller_request" if native_metrics and topic=='ems_status' else f"{prefix}/{topic}"
+        entry.async_on_unload(await mqtt.async_subscribe(hass, route, handler(topic)))
 
 
 async def async_setup_binary_sensors(hass, entry, async_add_entities):
+    if "v1_runtime" in hass.data.get(DOMAIN, {}).get(entry.entry_id, {}):
+        return  # Native mode: these legacy status topics are never published.
     from .binary_sensor import BOILER_STATES, BoilerState, HubConnection
     group_id = ensure_installation_group(hass, entry)
     prefix = entry.data[CONF_TOPIC_PREFIX]

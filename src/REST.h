@@ -36,6 +36,9 @@
 #include <mbedtls/sha256.h>
 #include <SPIFFS.h>
 #include <WebServer.h>
+#ifdef OPENTHERMOSTAT_E32V2
+#include "control/ResponsiveHttpServer.h"
+#endif
 #include <Wire.h>
 #include <uri/UriBraces.h>
 #include <cJSON.h>
@@ -72,9 +75,14 @@ public:
 };
 #endif
 
-class WebServerStringView : public WebServer {
+#ifdef OPENTHERMOSTAT_E32V2
+using ProductWebServer = control::ResponsiveHttpServer<WebServer>;
+#else
+using ProductWebServer = WebServer;
+#endif
+class WebServerStringView : public ProductWebServer {
 public:
-	WebServerStringView(uint16_t listenPort) : WebServer(listenPort) {
+	WebServerStringView(uint16_t listenPort) : ProductWebServer(listenPort) {
 
 	}
 

@@ -356,3 +356,26 @@ async def test_real_entity_platform_unavailable_state_keeps_evidence_in_diagnost
         for entity in entities:
             await actual.async_remove_entity(entity.entity_id)
         await r.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_unobserved_fields_are_disabled_after_a_qualified_stream_and_return_when_observed(hass):
+    from homeassistant.helpers import entity_registry as er
+    from custom_components.open_thermostat.v1_boiler_fields import field_unique_id, UNOBSERVED_RETIRE_SECONDS
+    e,r,c,now=await system(hass);c.boiler_fields_supported=True;reg=er.async_get(hass)
+    missing,user=[i for i in range(10,69) if QUALITIES[i]!=1][:2]
+    unreliable=next(i for i in range(10,69) if QUALITIES[i]==1)
+    def record(i,**kw):return reg.async_get_or_create('sensor','open_thermostat',field_unique_id('fixture',i),config_entry=e,**kw).entity_id
+    seen,gone,odd=record(1),record(missing),record(unreliable)
+    mine=record(user,disabled_by=er.RegistryEntryDisabler.USER)
+    await async_setup_boiler_fields(hass,e,lambda entities:None)
+    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c)));r._notify()
+    assert reg.async_get(gone).disabled_by is None  # Too early: slow fields may still arrive.
+    c.grant_until=c.lease_until=10**9;now[0]+=UNOBSERVED_RETIRE_SECONDS;c.last_rx=now[0];r._notify()
+    assert c.ready and reg.async_get(gone).disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    assert reg.async_get(seen).disabled_by is None and reg.async_get(odd).disabled_by is None
+    assert reg.async_get(mine).disabled_by is er.RegistryEntryDisabler.USER
+    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c,2,group=missing//10,sampled=int(now[0]*1000),observed=int(now[0]*1000)-1)))
+    r._notify();assert not c.boiler_fields.invalid,r.diagnostics;assert reg.async_get(gone).disabled_by is None
+    assert reg.async_get(mine).disabled_by is er.RegistryEntryDisabler.USER
+    await r.async_stop()

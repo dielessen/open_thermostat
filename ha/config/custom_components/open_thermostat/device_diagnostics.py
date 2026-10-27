@@ -49,8 +49,9 @@ async def async_setup_device_diagnostics(hass, entry, async_add_entities, **add_
         return
     prefix = entry.data[CONF_TOPIC_PREFIX]
     topic_base = connection.prefix
+    # E32 has no RTC temperature sensor; firmware always sends null for it.
     entities = [HubMetric(prefix, "device_status", metric, entry.entry_id)
-                for metric in HUB_METRICS["device_status"]]
+                for metric in HUB_METRICS["device_status"] if metric != "rtc_temperature"]
     async_add_entities(entities, **add_options)
     online = False
     received = None

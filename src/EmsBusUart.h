@@ -4,6 +4,7 @@
 #include "Board.h"
 #include "EmsUartWriter.h"
 #include "EMS/EmsFrameQueue.h"
+#include "EMS/UartEventTrace.h"
 
 #include <driver/uart.h>
 #include <esp_timer.h>
@@ -120,6 +121,14 @@ public:
         }
         return {reason,at};
     }
+#ifdef OPENTHERMOSTAT_E32V2
+    ems::UartEventTrace::Snapshot lastEchoFault() const {
+        portENTER_CRITICAL(&rxErrorMux_);
+        const auto copy=lastEchoFault_;
+        portEXIT_CRITICAL(&rxErrorMux_);
+        return copy;
+    }
+#endif
     void recordRxError(RxError kind) {
         rxErrors.fetch_add(1,std::memory_order_relaxed);
         const auto at=static_cast<uint64_t>(esp_timer_get_time()/1000);
@@ -145,8 +154,10 @@ private:
         if constexpr(!board::emsSettingsTransmitAllowed)return {};
         else{
             if(!manualTestTransportHealthy())return {};
+            traceEvent(ems::UartEventTrace::Kind::writeStart,frame.length);
             const auto result=uart_detail::writeClassicSetting<UartSlot,board::emsTx,true,Read>(
                 frame.data.data(),frame.length,setting,value,echoRxDebt_);
+            traceEvent(ems::UartEventTrace::Kind::writeEnd,result.succeeded());
             if(!result.detached)manualTxFault_.store(true,std::memory_order_release);
             return result;
         }
@@ -156,7 +167,9 @@ private:
         else{
             if(!manualTestTransportHealthy())return {};
             const uint8_t completion=0x0b;
+            traceEvent(ems::UartEventTrace::Kind::writeStart,1);
             const auto result=uart_detail::writeManualClassic<UartSlot,board::emsTx,true,false,true>(&completion,1,echoRxDebt_);
+            traceEvent(ems::UartEventTrace::Kind::writeEnd,result.succeeded());
             if(!result.detached)manualTxFault_.store(true,std::memory_order_release);
             return result;
         }
@@ -167,7 +180,9 @@ private:
         if constexpr(!board::emsManualTestTransmitAllowed)return false;
         else {
             if(!manualTestTransportHealthy())return false;
+            traceEvent(ems::UartEventTrace::Kind::writeStart,length);
             const auto result=uart_detail::writeManualClassic<UartSlot,board::emsTx,true,ConfigurationRead,Completion>(data,length,echoRxDebt_);
+            traceEvent(ems::UartEventTrace::Kind::writeEnd,result.succeeded());
             if(!result.detached)manualTxFault_.store(true,std::memory_order_release);
             return result.succeeded();
         }
@@ -232,6 +247,19 @@ private:
 #ifdef OPENTHERMOSTAT_E32V2
     std::atomic<bool> manualTxFault_{false}; // failed release requires a new boot/review
     ems::EmsEchoRxDebt echoRxDebt_; // accessed only by the UART task
+    ems::UartEventTrace trace_; // UART task only; diagnostic, never an admission input
+    ems::UartEventTrace::Snapshot lastEchoFault_; // guarded by rxErrorMux_
+    void traceEvent(ems::UartEventTrace::Kind kind,size_t size) {
+        trace_.record(kind,size,static_cast<uint32_t>(esp_timer_get_time()));
+    }
+    // Before performReset() clears the debt that explains the fault.
+    void freezeEchoFault(uint32_t pendingLength) {
+        const auto snapshot=trace_.freeze({echoRxDebt_.consumed(),echoRxDebt_.trailing(),
+            echoRxDebt_.echoFrame(),echoRxDebt_.broken(),pendingLength},static_cast<uint32_t>(esp_timer_get_time()));
+        portENTER_CRITICAL(&rxErrorMux_);
+        lastEchoFault_=snapshot;
+        portEXIT_CRITICAL(&rxErrorMux_);
+    }
 #endif
 	std::atomic<bool> resetRequested_{false};
 	QueueHandle_t uartQueue_;
@@ -260,9 +288,20 @@ static void uart_event_task(void *pvParameters) {
 		}
 		if (!xQueueReceive(bus->getQueueHandle(), &event, pdMS_TO_TICKS(rxTimeoutMs))) {
 			bus->rxTimeouts.fetch_add(1, std::memory_order_relaxed);
+#ifdef OPENTHERMOSTAT_E32V2
+			bus->traceEvent(ems::UartEventTrace::Kind::timeout,0);
+#endif
 			bus->requestReset();
 			continue;
 		}
+#ifdef OPENTHERMOSTAT_E32V2
+		bus->traceEvent(event.type==UART_DATA?ems::UartEventTrace::Kind::data
+			:event.type==UART_BREAK?ems::UartEventTrace::Kind::brk
+			:(event.type==UART_FIFO_OVF||event.type==UART_BUFFER_FULL)?ems::UartEventTrace::Kind::overflow
+			:event.type==UART_PARITY_ERR?ems::UartEventTrace::Kind::parity
+			:event.type==UART_FRAME_ERR?ems::UartEventTrace::Kind::framing
+			:ems::UartEventTrace::Kind::other,event.size);
+#endif
 		switch (event.type) {
 		case UART_DATA:
 #ifdef OPENTHERMOSTAT_E32V2
@@ -275,6 +314,7 @@ static void uart_event_task(void *pvParameters) {
 #ifdef OPENTHERMOSTAT_E32V2
             // Missing echo DATA events must not eat counts from a later frame.
             if(!bus->echoRxDebt_.atBreak()) {
+                bus->freezeEchoFault(length);
                 bus->recordRxError(EmsBusUart::RxError::echoAccounting);
                 bus->performReset();length=0;break;
             }

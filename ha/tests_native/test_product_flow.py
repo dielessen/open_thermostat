@@ -240,3 +240,27 @@ async def test_normal_room_edit_preserves_existing_external_program_without_expo
     assert result['reason']=='room_saved',result
     assert dict(p.subentries[z.subentry_id].data)['schedule']==saved
     assert read_room(hass,p.entry_id,z.data['room_id'])['settings']['program_source']=='helper'
+
+
+@pytest.mark.asyncio
+async def test_native_product_retires_dead_legacy_identities_without_deleting_or_overriding_users(hass,monkeypatch):
+    from homeassistant.helpers import entity_registry as er
+    from homeassistant.components import mqtt
+    from custom_components.open_thermostat.native_entity_cleanup import retire_legacy_entities
+    from custom_components.open_thermostat.product_telemetry import async_setup_binary_sensors
+    p=product(hass);reg=er.async_get(hass)
+    def record(domain,uid,**kw):return reg.async_get_or_create(domain,'open_thermostat',uid,config_entry=p,**kw).entity_id
+    legacy=[record('binary_sensor','fixture_hub_connected'),record('binary_sensor','fixture_hub_boiler_burner_active'),
+            record('sensor','fixture_hub_boiler_pressure'),record('sensor','fixture_hub_dhw_capabilities'),
+            record('sensor','fixture_hub_rtc_temperature')]
+    kept=[record('sensor','fixture_hub_cpu_temperature'),record('sensor','fixture_hub_energy_v2'),
+          record('sensor','fixture_boiler_fields_v1_measured_flow_temperature')]
+    user=record('sensor','fixture_hub_boiler_service_code',disabled_by=er.RegistryEntryDisabler.USER)
+    retire_legacy_entities(hass,p,'fixture')
+    assert all(reg.async_get(x).disabled_by is er.RegistryEntryDisabler.INTEGRATION for x in legacy)
+    assert all(reg.async_get(x).disabled_by is None for x in kept)
+    assert reg.async_get(user).disabled_by is er.RegistryEntryDisabler.USER and len(reg.entities)==9
+    subscribe=AsyncMock();monkeypatch.setattr(mqtt,'async_subscribe',subscribe)
+    hass.data['open_thermostat'][p.entry_id]={'v1_runtime':object()};added=[]
+    await async_setup_binary_sensors(hass,p,lambda entities,**kw:added.extend(entities))
+    assert not added and not subscribe.called

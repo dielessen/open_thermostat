@@ -20,6 +20,11 @@ public:
     bool atBreak() const {return consumed_==0&&!broken_;}
     bool idle() const {return !echoFrame_&&atBreak();}
     void reset(){consumed_=trailing_=0;echoFrame_=broken_=false;}
+    // Diagnostic reads only.
+    size_t consumed() const {return consumed_;}
+    size_t trailing() const {return trailing_;}
+    bool echoFrame() const {return echoFrame_;}
+    bool broken() const {return broken_;}
 private:
     size_t consumed_=0,trailing_=0;
     bool echoFrame_=false,broken_=false;

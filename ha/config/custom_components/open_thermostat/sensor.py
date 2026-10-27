@@ -87,6 +87,8 @@ async def async_setup_entry(
         from .v1_boiler_fields import async_setup_boiler_fields
         await async_setup_boiler_fields(hass,entry,async_add_entities)
         if is_product(entry):
+            from .native_entity_cleanup import retire_legacy_entities
+            retire_legacy_entities(hass, entry, entry.data[CONF_TOPIC_PREFIX])
             from .product_telemetry import async_setup_sensors
             await async_setup_sensors(hass, entry, async_add_entities, native_metrics=True)
             from .v1_metrics import async_setup_shadow_metrics

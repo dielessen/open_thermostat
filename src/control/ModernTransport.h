@@ -17,6 +17,7 @@
 #include "DeadlineWiFiClient.h"
 #include "AsyncBrokerDns.h"
 #include "PendingTcpConnect.h"
+#include "ControllerRequestTelemetry.h"
 #include <PubSubClient.h>
 #include <esp_timer.h>
 #include <esp_system.h>
@@ -59,6 +60,7 @@ public:
     // No current product call supplies this factory. A session alone provides
     // no authority: its authorizesActuation() remains false.
     using ActuatorFactory=ActuatorChannels::Factory;
+    using StatusSnapshot=std::function<void(std::ostream&)>;
     explicit ModernTransport(config::MqttConfig cfg,ShadowController::Metrics metrics={},
                              const GraphSourceProfile* graphProfile=nullptr,
                              const SeasonalControllerSource* seasonalSource=nullptr,
@@ -68,10 +70,10 @@ public:
                              const GraphFloorControlHandoffSource* floorBridge=nullptr,
                              const NativePlanInstallationSource* nativePlanSource=nullptr,
                              ShadowController::BoilerFields boilerFields={},
-                             ActuatorFactory actuatorFactory={})
+                             ActuatorFactory actuatorFactory={},StatusSnapshot controllerStatus={})
         :cfg_(std::move(cfg)),client_(network_),
          store_((graphProfile||graphHandoff||topologyHandoff||floorBridge||nativePlanSource||cfg_.nativeSourceRequested)?ControlStorageProfile::graph_shadow_v2:ControlStorageProfile::legacy_api1),
-         graph_(graphProfile!=nullptr) {
+         controllerStatus_(std::move(controllerStatus)),graph_(graphProfile!=nullptr) {
         if(graph_&&actuatorFactory){valid_=false;return;}
         char mac[17]; snprintf(mac,sizeof(mac),"e32_%012llx",static_cast<unsigned long long>(ESP.getEfuseMac()));
         std::unique_ptr<NativePlanInstallationSource> locallyProvisioned;
@@ -300,6 +302,11 @@ public:
             const auto bytes=deviceDiagnosticsJson(ESP.getFreeHeap(), ESP.getMinFreeHeap(),
                 ESP.getMaxAllocHeap(), temperatureRead(), now/1000);
             client_.publish((base_+"fw/telemetry/device_status").c_str(),bytes.c_str(),false);
+            if(controllerStatus_)try {
+                std::ostringstream status;controllerStatus_(status);
+                const auto command=controllerRequestTelemetry(status.str());
+                if(!command.empty())client_.publish((base_+"fw/telemetry/controller_request").c_str(),command.c_str(),false);
+            } catch(const std::exception&) { /* Missing status never supplies a command value. */ }
         }
     }
     // Internal callers use the SAME serialized task as loop(), never a REST,
@@ -321,6 +328,7 @@ private:
     static bool clockValid();
     config::MqttConfig cfg_; std::string base_,sourceNetworkBase_; // ephemeral bounded<2048, never logged/persisted.
     DeadlineWiFiClient network_; PubSubClient client_; NvsControlStore store_;
+    StatusSnapshot controllerStatus_;
     AsyncBrokerDns brokerDns_;
     PendingTcpConnect brokerTcp_;
     std::unique_ptr<GraphControlStoreView> graphControlView_;

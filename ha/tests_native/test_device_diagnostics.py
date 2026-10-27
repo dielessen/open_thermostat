@@ -44,7 +44,7 @@ async def test_native_values_identity_expiry_and_disconnect(hass, monkeypatch):
         'v1_runtime': SimpleNamespace(enabled=True, add_listener=listener),
         'v1_connection': SimpleNamespace(client=object(), prefix='fixture/v1/')}
     await async_setup_device_diagnostics(hass, entry, lambda values, **kwargs: added.extend(values))
-    assert len(added) == 6
+    assert len(added) == 5  # No RTC temperature entity on E32.
     assert all(not e.available for e in added)
     online = callbacks['fixture/v1/fw/availability']
     receive = callbacks['fixture/v1/fw/telemetry/device_status']
@@ -55,7 +55,7 @@ async def test_native_values_identity_expiry_and_disconnect(hass, monkeypatch):
     by_id = {e.unique_id: e for e in added}
     assert by_id['fixture_hub_memory_free'].native_value == 95000
     assert by_id['fixture_hub_cpu_temperature'].native_value == 48.5
-    assert by_id['fixture_hub_rtc_temperature'].native_value is None
+    assert 'fixture_hub_rtc_temperature' not in by_id  # E32 has no RTC temperature sensor.
     assert all(e.available for e in added)
     clock[0] += 45
     listeners[0]()

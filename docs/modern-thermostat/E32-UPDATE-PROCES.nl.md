@@ -1,5 +1,19 @@
 # Verplicht update- en acceptatieproces per E32-release
 
+**Actuele overdracht, 27 oktober — werk gepauzeerd op verzoek van de eigenaar.**
+De E32 draait de private proefversie `v0.1.0-e32v2-beta.9-httpfix.1`
+(`5e1dce5`), geïnstalleerd via één beveiligde app-upload met HTTP200.
+Bron/ELF/web en de nieuwe boot zijn gecontroleerd. Twaalf opgeslagen
+instellingenexports zijn behouden: elf bytegelijk, Bluetooth alleen gewijzigd
+in tijdelijke ontdekkingsgegevens. Dit is geen nieuwe openbare release of
+native GitHub-acceptatie. Die laatste volledige basis blijft beta.4; het
+afzonderlijke native TLS-probleem is niet opgelost. HA blijft `0.4.0b6`.
+De laatste verwarmingsproef stopte na circa304s op een UART-fout; de brander
+is uit, ook door de eigenaar bevestigd. Geen proef meer actief.
+Lees [de overdracht aan Claude](HANDOFF-CLAUDE-20261027.md) vóór vervolgwerk.
+
+**Historische beta.9-voorbereiding hieronder:**
+
 **Actueel — beta.9: vaste proefmethode50°C/600s, herhaling elke60s.**
 De eigenaar vraagt expliciet dezelfde proefmethode met60secondeninterval.
 De bestaande proef zond ongeveer elke1–1,5s; de nieuwe firmware herhaalt de

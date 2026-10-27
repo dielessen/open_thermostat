@@ -1,6 +1,54 @@
+# Beta.10 + HA0.4.0b7 — HTTP-fix, MQTT-commandoroute en UART-foutspoor
+
+**Actueel (27 oktober, avond):** werk hervat op de lokale Windows-laptop van de
+eigenaar; bron opnieuw gekoppeld aan een verse GitHub-clone op `322999b`,
+builds/tests in WSL Ubuntu. De eigenaar keurt publicatie van beta.10 en HA
+0.4.0b7 en daarna installatie goed ("yes please approve").
+Inhoud: de op het apparaat gemeten HTTP-fix uit privébuild beta9-httpfix.1,
+de native MQTT-route voor `controller_request` met bijbehorende HA-correctie,
+en een diagnostisch UART-spoor dat bij `echo_event_accounting` de laatste16
+gebeurtenissen en de echo-boekhouding vastlegt vóór de reset. Dit verhelpt de
+UART-fout niet. 1243 native tests en 2645 HA-tests slagen (2 skips).
+Installatie en een nieuwe bijgewoonde proef blijven aparte stappen; voor de
+proef zijn een verse aanwezigheids-, manometer- en uitschakelbevestiging nodig.
+[Freezeplan](BETA10-KANDIDAAT.json), [publicatie-uitzondering](BETA10-PUBLICATION-EXCEPTION-20261027.json),
+[overdracht](HANDOFF-CLAUDE-20261027.md).
+
 # Beta.9 + HA0.4.0b6 — ketelproef met60secondeninterval
 
-**Actueel — beta.9: vaste proefmethode50°C/600s, herhaling elke60s.**
+**Gepauzeerd op verzoek van de eigenaar — overdracht aan Claude.**
+Lees eerst [de actuele overdracht](HANDOFF-CLAUDE-20261027.md). De E32 draait
+de afzonderlijk gecommitteerde, niet gepubliceerde proefversie
+`v0.1.0-e32v2-beta.9-httpfix.1` uit `5e1dce5`. HA draait `0.4.0b6`.
+De HTTP-blokkade door lege verbindingen is op het apparaat verholpen en gemeten.
+Daarna heeft de proef ongeveer 304 seconden verwarmingsvraag aangehouden:
+zes 50°C-opdrachten, met intervallen van 60,166–60,635 seconden. CV-bedrijf en
+modulatie zijn teruggemeld. De zesde verzending werd 6 ms later gevolgd door
+`echo_event_accounting`; deze UART-fout veroorzaakte de stop. Het toezicht
+bleef intact. Nulvraag en latere stop zijn teruggelezen; de eigenaar bevestigt
+dat de brander uit is. De volledige tien minuten zijn niet gehaald.
+Geen nieuwe proef, herstart, installatie of programmering na de stopopdracht.
+[HTTP-fix en installatie](HTTP-SUPERVISION-FIX-20261027.json),
+[laatste proef en fysieke stopbevestiging](HTTP-FIXED-ATTENDED-HEAT-20261027.json).
+
+**Voorgaande diagnose — publieke beta.9, vóór de HTTP-fix:**
+De eigenaar bevestigt pomp- en branderbedrijf tijdens de korte proef en dat de
+brander daarna uit is. De E32 bevestigt de latere nulvraag en stop. Er is één
+positieve 50°C-verzending vastgelegd; tien minuten en herhaling na 60 seconden
+zijn nog niet fysiek bewezen. De ontvangen CV-status bleef tijdens deze proef 0;
+de waarneming van de eigenaar en de telegrammen blijven afzonderlijk bewaard.
+
+De eerste stopaanleiding is `operator_lease_expired`: mijn testscript wachtte
+5,176 seconden op een optionele statusuitlezing voordat het opnieuw toezicht
+stuurde. Dat overschreed de ongewijzigde toezichttermijn van vijf seconden.
+Deze fout in de testaansturing is lokaal met HTTP-vertraging gereproduceerd.
+Afzonderlijk toezicht doorstaat dezelfde vertraagde uitlezing; zes lokale
+controles slagen. Dit is nog geen nieuwe proef op de ketel. De 29 ms na de
+toezichtdeadline geregistreerde UART-fout `echo_event_accounting` blijft
+onverklaard. Geen nieuwe warmtevraag of installatie tijdens deze diagnose.
+[Proefbewijs en bevestiging eigenaar](BETA9-ATTENDED-HEAT-20261027.json).
+
+**Methode en voorbereiding van beta.9 (historisch):**
 De eigenaar vraagt expliciet dezelfde proefmethode met60secondeninterval.
 De bestaande proef zond ongeveer elke1–1,5s; de nieuwe firmware herhaalt de
 positieve aanvraag pas60s na de vorige voltooide UART-verzending, op de volgende

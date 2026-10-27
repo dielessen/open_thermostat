@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-10-27T19:38:34Z",
+  "workspace": "Owner moved the working tree to a local Windows laptop; source re-attached to a fresh GitHub clone at 322999b, builds/tests run in WSL Ubuntu",
+  "continuing_instruction": "ga verder dadelijk als je klaar bent met de release zodat we verder kunnen met de keteltest",
+  "question": "Do you approve publishing E32 v0.1.0-e32v2-beta.10 and HA 0.4.0b7 and then installing them on the E32 and in HA?",
+  "approval_reply": "yes please approve",
+  "implementation": "One release bundle: E32 HTTP no-data preconnection fix (measured as private beta9-httpfix.1), native MQTT controller-request telemetry, diagnostic UART echo-fault trace frozen before reset; HA native controller-request route, same-value refresh, legacy/unobserved entity tidy-up. Publication, installation and any attended trial are separate steps.",
+  "boiler_trial_scope": "A later attended trial needs a fresh attendance, gauge-pressure and independent-shutdown confirmation; earlier declarations are not reused."
+}

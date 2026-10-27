@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "PRIVATE_DIAGNOSTIC_INSTALLED_HTTP_REGRESSION_PASSED",
+  "version": "v0.1.0-e32v2-beta.9-httpfix.1",
+  "source_commit": "5e1dce5d7f9ebfa88f592abaf6f823e2bf3a5b9e",
+  "published_release": false,
+  "parent_public_version": "v0.1.0-e32v2-beta.9",
+  "change": "Only E32 initial no-data HTTP preconnections are closed after250ms. SDK parsing, request bodies, uploads and the5000ms trial supervision lease remain unchanged.",
+  "reproduced_before": {
+    "baseline_seconds": 0.1845,
+    "with_one_idle_connection_seconds": 4.7552
+  },
+  "verified_after": [
+    {
+      "idle_tcp_connections": 0,
+      "pause_before_read_seconds": 0,
+      "elapsed_seconds": 0.2043,
+      "http_status": 200
+    },
+    {
+      "idle_tcp_connections": 1,
+      "pause_before_read_seconds": 0.3,
+      "elapsed_seconds": 0.0997,
+      "http_status": 200
+    },
+    {
+      "idle_tcp_connections": 1,
+      "pause_before_read_seconds": 0.05,
+      "elapsed_seconds": 0.3463,
+      "http_status": 200
+    },
+    {
+      "idle_tcp_connections": 4,
+      "pause_before_read_seconds": 0.05,
+      "elapsed_seconds": 0.9084,
+      "http_status": 200
+    }
+  ],
+  "root_cause_limit": "Proves the pinned single-client HTTP server can block queued supervision behind an empty TCP connection. The identity of a client responsible for earlier gaps was not captured.",
+  "native_tests_passed": 1236,
+  "new_http_tests": 4,
+  "sdk_build": "PASS",
+  "image_checksum_and_sha256_validation": "PASS",
+  "installation": {
+    "manual_app_uploads": 1,
+    "original_http_status": 200,
+    "explicit_restarts": 0,
+    "source_elf_web_identity": "VERIFIED",
+    "transmitted_frames_at_postcheck": 0,
+    "automatic_outputs_enabled": false,
+    "persisted_settings_exports_preserved": 12,
+    "byte_identical_exports": 11,
+    "other_export_change": "Bluetooth discovery cache only"
+  },
+  "native_github_tls_fixed": false,
+  "boiler_trial_status": "SIX_POSITIVE_REQUESTS_AT_60_SECOND_INTERVALS_THEN_UART_FAULT_STOP_CONFIRMED",
+  "evidence": [
+    {
+      "path": "out/beta9-native-install/http-readonly-diagnosis/idle-connection-proof.json",
+      "sha256": "d6c218b9e767bbc39fef6434e4d8670940ab20d5613ae72d5ef53de3146833b9"
+    },
+    {
+      "path": "out/beta9-native-install/http-fix-install/BUILD.json",
+      "sha256": "5912e9859a5843e3aecf137be6dbb5cdb3b1e008defa2f443039f87d7e60aedf"
+    },
+    {
+      "path": "out/beta9-native-install/http-fix-install/RESULT.json",
+      "sha256": "ee4ff7d8c8c61d388e2bc04ce09716ecd45c3f4e2ae8f278221fcac5dbd03d1e"
+    },
+    {
+      "path": "out/beta9-native-install/http-fix-install/HTTP-IDLE-REGRESSION.json",
+      "sha256": "ccd34add5e6f4b1cb43e8e5575fce445b88041a6b7db0ee4f00a677a303e8d64"
+    },
+    {
+      "path": "out/beta9-native-install/http-fix-install/SETTINGS-COMPARISON.json",
+      "sha256": "87a045f3932be0356992cfd05757fea56c1c229436e8fcb5848b544c5cab8ebc"
+    },
+    {
+      "path": "out/beta9-native-install/http-fix-sdk-build.log",
+      "sha256": "2f97ce2f9891e1aee8fa2b90b590500dd3659506d31ec02f79c8a2c3056ded54"
+    },
+    {
+      "path": "out/beta9-native-install/http-initial-wait-native.log",
+      "sha256": "7f6a483fa326eb1086e134fafe64eb97d51b84ff1ac44e3fc140cf43fa937003"
+    }
+  ],
+  "boiler_trial_receipt": "HTTP-FIXED-ATTENDED-HEAT-20261027.json"
+}

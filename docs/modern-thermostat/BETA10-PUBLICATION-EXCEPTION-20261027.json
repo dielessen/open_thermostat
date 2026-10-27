@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "status": "APPROVED",
+  "scope": "one_prerelease_publication",
+  "candidate_tag": "v0.1.0-e32v2-beta.10",
+  "unaccepted_predecessor": "v0.1.0-e32v2-beta.9",
+  "accepted_basis_tag": "v0.1.0-e32v2-beta.4",
+  "accepted_basis_receipt_sha256": "5ec65a6256889878702a6a501842669f903825041f1e96be9448d5336bba55a8",
+  "predecessor_acceptance_status": "INCOMPLETE",
+  "gap_report": "docs/modern-thermostat/BETA9-NATIVE-GAP-20261027.json",
+  "gap_report_sha256": "fd645e37b39588c1ac083313cd9c6bb35a378349d2fd55ea61cca819e4afaa62",
+  "reason": "Continue toward the owner-requested attended boiler trial. Beta9 was installed by manual upload, then replaced by the measured private HTTP fix; native acceptance stays incomplete. One narrow beta10 successor publishes that HTTP fix, the native MQTT controller-request route HA0.4.0b6 could not receive, and a diagnostic UART echo-fault trace for the unresolved accounting fault. Preserve all failed install/native evidence and accepted beta4; no native acceptance, UART fix or TLS repair inferred.",
+  "device_installation_authorized": false,
+  "boiler_trial_authorized": false,
+  "approval": {
+    "actor": "repository_owner",
+    "method": "explicit_user_instruction",
+    "decision": "approve_one_prerelease_publication",
+    "statement": "yes please approve",
+    "at_utc": "2026-10-27T19:38:34Z"
+  },
+  "separate_installation_instruction": "docs/modern-thermostat/BETA10-OWNER-INSTRUCTION-20261027.json"
+}

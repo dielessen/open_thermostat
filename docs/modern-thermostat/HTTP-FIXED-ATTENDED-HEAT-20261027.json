@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "HEAT_AND_60_SECOND_REPEATS_CONFIRMED_UART_FAULT_FULL_DURATION_NOT_COMPLETED",
+  "installed_version": "v0.1.0-e32v2-beta.9-httpfix.1",
+  "source_commit": "5e1dce5d7f9ebfa88f592abaf6f823e2bf3a5b9e",
+  "published_release": false,
+  "boot_id": "f89d3f5d2874f7e7",
+  "requested_flow_c": 50,
+  "requested_duration_s": 600,
+  "start_accepted_at_utc": "2026-10-27T14:52:52+00:00",
+  "start_boot_ms": 130439,
+  "uart_fault_boot_ms": 434498,
+  "heat_stage_seconds_until_fault": 304.059,
+  "total_observation_wall_seconds": 322.5,
+  "successful_positive_frames": 6,
+  "zero_frames": 13,
+  "positive_completion_intervals_ms": [
+    60635,
+    60608,
+    60166,
+    60568,
+    60561
+  ],
+  "all_observed_positive_intervals_at_least60000": true,
+  "reported_flow_range_c": [
+    47,
+    66
+  ],
+  "reported_heating_seen": true,
+  "reported_selected_flow_values_c": [
+    0
+  ],
+  "controller_request_after_stop_c": 0,
+  "reported_stop_confirmed": true,
+  "operator_stop_confirmation": {
+    "schema": 1,
+    "recorded_at_utc": "2026-10-27T15:02:48.599579+00:00",
+    "source": "owner_reply",
+    "reply": "Ja, de brander is uit",
+    "burner_off_physically_confirmed": true,
+    "scope": "Stop after the HTTP-fixed attended trial; not a full-duration success."
+  },
+  "supervision_failed": false,
+  "maximum_observed_accepted_keepalive_server_gap_ms": 1729,
+  "fault_reason": "echo_event_accounting",
+  "timing_note": "Sixth positive UART completion at434492ms; UART error at434498ms (6ms later); first completed withdrawal at435116ms. UART fault caused this stop; do not confuse with earlier lease-expiry trials.",
+  "uart_fault_root_cause": "UNKNOWN: consumed/trailing echo debt and exact SDK event sequence were not captured. No instrumentation or UART logic fix has been implemented.",
+  "transport": {
+    "enabled": true,
+    "transmit_compiled": true,
+    "poll_count": 523,
+    "transmitted_frames": 20,
+    "receive_queue_dropped": 0,
+    "invalid_telegrams": 0,
+    "uart_errors": 1,
+    "uart_timeouts": 0,
+    "uart_resets": 1,
+    "last_uart_error": {
+      "reason": "echo_event_accounting",
+      "observed_at_ms": 434498
+    }
+  },
+  "capture_unique_log_records": 238,
+  "capture_internal_sequence_gaps": [],
+  "capture_http_errors": false,
+  "full_ten_minute_success": false,
+  "physical_acceptance_complete": false,
+  "work_paused_by_owner_for_claude_handoff": true,
+  "evidence": [
+    {
+      "path": "out/beta9-native-install/attended-http-fixed-20261027/RESULT.json",
+      "sha256": "a77d1d79d05072d3b4b40042b9dc38a463d7fb63417302acd0c4640512b49b74"
+    },
+    {
+      "path": "out/beta9-native-install/attended-http-fixed-20261027/ANALYSIS.json",
+      "sha256": "5ccad054e2b1be98d8d5d4b859b5704176a977ef663ffe719f1711c04f80349c"
+    },
+    {
+      "path": "out/beta9-native-install/attended-http-fixed-20261027/TIMELINE.csv",
+      "sha256": "a78a1b2f55dba5717df44cdeb107815c5297939c6b15bad9d0d7805dbe122e54"
+    },
+    {
+      "path": "out/beta9-native-install/attended-http-fixed-20261027/OPERATOR-STOP-CONFIRMATION.json",
+      "sha256": "261b61589d21d12b48f95a6ba221442fa95f9d1ecd450b76e5ebb866aaf90c9c"
+    },
+    {
+      "path": "out/beta9-native-install/attended_trial_http_fix.py",
+      "sha256": "1865d75a7d2eb321c5745f08ea52c93b639765805098d1327fcb4a5a86a04b33"
+    },
+    {
+      "path": "out/beta9-native-install/summarize_current_trial.py",
+      "sha256": "d269b6c8413145123ba4552908adbab350917d73eca2f6c1119a3812c811f651"
+    }
+  ]
+}

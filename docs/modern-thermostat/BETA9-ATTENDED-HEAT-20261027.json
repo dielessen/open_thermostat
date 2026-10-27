@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "PHYSICAL_HEAT_AND_LATER_OFF_OBSERVED_TRIAL_INCOMPLETE",
+  "installed_version": "v0.1.0-e32v2-beta.9",
+  "source_commit": "322999bb570ec70d7654ee857514ba447193b120",
+  "boot_id": "c5633bedd36a2cf3",
+  "requested_flow_c": 50,
+  "requested_duration_s": 600,
+  "observation_elapsed_wall_seconds": 33.5,
+  "positive_uart_frames": 1,
+  "zero_uart_frames": 10,
+  "positive_repeat_interval_physically_verified": false,
+  "full_ten_minute_success": false,
+  "operator_observation": {
+    "schema": 1,
+    "recorded_at_utc": "2026-10-27T14:36:14.802561+00:00",
+    "source": "owner_reply",
+    "reply": "Pomp en brander; brander is nu uit",
+    "pump_observed_during_demand": true,
+    "burner_observed_during_demand": true,
+    "burner_now_off_confirmed_by_owner": true,
+    "scope": "Short beta.9 trial only. Does not confirm full duration, sixty-second repeats, selected-temperature readback or UART fault resolution."
+  },
+  "reported_cv_operation_seen": false,
+  "reported_stop_confirmed": true,
+  "final_controller_request_c": 0,
+  "cause_of_initial_stop": "operator_lease_expired",
+  "driver_defect": "Serial optional telemetry read blocked the next keepalive beyond the unchanged five-second firmware lease.",
+  "timing": {
+    "last_keepalive_server_ms": 1572836,
+    "lease_deadline_ms": 1577836,
+    "zero_completed_ms": 1577858,
+    "echo_accounting_error_ms": 1577865,
+    "blocking_http_read_seconds": 5.176
+  },
+  "secondary_uart_fault": {
+    "reason": "echo_event_accounting",
+    "root_cause": "UNKNOWN",
+    "recorded_after_lease_deadline_ms": 29
+  },
+  "offline_reproduction": {
+    "tests_passed": 6,
+    "hardware_commands": 0,
+    "scope": "Local HTTP fault injection: serial reads reproduce expiry; independent keepalives survive the same delayed read. Does not establish network or UART root cause."
+  },
+  "physical_acceptance_complete": false,
+  "evidence": [
+    {
+      "path": "out/beta9-native-install/attended-trial-20261027/RESULT.json",
+      "sha256": "fb2a1a388e2bfe5814ce3e4855e05637662234b37492e52767ae67fbbebf505e"
+    },
+    {
+      "path": "out/beta9-native-install/attended-trial-20261027/ANALYSIS.json",
+      "sha256": "7a7edc82746d1cb8e8b36a6ecb696311c9a2620a9ae304d0cf53b09bca9c3bd3"
+    },
+    {
+      "path": "out/beta9-native-install/attended-trial-20261027/OPERATOR-OBSERVATION.json",
+      "sha256": "becb93b56ff42892d9b244d27be74d41b4a34312b84c089993c37762217ce7f4"
+    },
+    {
+      "path": "out/beta9-native-install/attended-trial-20261027/TIMELINE.csv",
+      "sha256": "5fabc45c880e6628baabe890a6ac8bed0ff49d789beaac4cbe0f6a6948464347"
+    },
+    {
+      "path": "out/beta9-native-install/attended_trial.py",
+      "sha256": "f804bc25f7ba68db81d6303b766d45980ef284f39e3076bfb4e854c905b253ee"
+    },
+    {
+      "path": "out/beta9-native-install/supervision-http-fault-injection-final.log",
+      "sha256": "ac6b5e521ec9c2132e17a359342c7b76766a7998e522c741ba5ad81b9c0f0166"
+    }
+  ]
+}

@@ -1,3 +1,44 @@
+# E32 V2 beta10 — responsive web server and UART fault trace
+<!-- user-release-notes:v2:en -->
+
+Diagnostic follow-up to the beta9 attended trial. Use it with HA0.4.0b7.
+The60second request interval and all trial limits are unchanged.
+
+## New
+
+- Keep the UART events from just before an `echo_event_accounting` fault:
+  the last16 receive/break/overflow/timeout events, our own write starts and
+  ends, and the echo bookkeeping (consumed, trailing, frame, broken, pending
+  length). Telemetry shows them under `last_uart_error.echo_fault`. Diagnostic
+  only, never used to admit or block a request.
+- Publish the completed controller request on the existing native MQTT
+  connection (`v1/fw/telemetry/controller_request`, not retained) in the same
+  15-second status window. No extra network client and no new command route.
+
+## Fixed
+
+- An open connection that never sends a request no longer holds up the web
+  server for five seconds. It is closed after250ms, so the five-second trial
+  supervision is not starved by an idle client. Request parsing is unchanged.
+  The fix was measured on the device as private build beta9-httpfix.1.
+- HA0.4.0b6 listened for the controller request on a legacy topic that modern
+  firmware never sends, so its command entity never appeared.
+
+## Updating
+
+Preserve settings and install the exact public firmware using the existing
+application update route, then install HA0.4.0b7. The board currently runs the
+private diagnostic build beta9-httpfix.1. Installation and any attended trial
+are checked separately.
+
+## Limitations
+
+This release records the UART accounting fault; it does not fix it. The beta9
+trial stopped after about five minutes on that fault, so a full ten-minute
+trial remains unproven. Native GitHub HTTPS updates still fail on this device;
+the root cause is unknown and no TLS repair is claimed. Automatic boiler/valve
+control and persistent boiler-setting writes remain disabled.
+
 # E32 V2 beta9 — one-minute boiler request interval
 <!-- user-release-notes:v2:en -->
 

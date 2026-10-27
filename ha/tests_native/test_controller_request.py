@@ -87,3 +87,82 @@ def test_invalid_packet_does_not_forget_sequence_or_revive_a_retired_boot():
     sensor.update_payload(packet(None,at=100,boot='000000000000002b'),True)
     sensor.update_payload(packet(at=12000),True)
     assert not sensor.available and sensor.extra_state_attributes['availability_reason']=='retired_command_boot'
+
+
+@pytest.mark.asyncio
+async def test_real_entity_platform_publishes_same_value_command_sequence_and_original_age(hass):
+    from test_product_flow import product
+    from test_room_sensor_restore import platform
+    entry=product(hass);actual=await platform(hass,entry);clock=[100.]
+    sensor=ControllerRequestSensor('fixture',lambda:clock[0])
+    await actual.async_add_entities([sensor])
+    try:
+        sensor.update_payload(packet(),True);await hass.async_block_till_done()
+        first=hass.states.get(sensor.entity_id)
+        assert first.state=='50' and first.attributes['sequence']==2
+        clock[0]+=60;sensor.update_payload(packet(sequence=3,at=70000,emitted=69000),True)
+        await hass.async_block_till_done();second=hass.states.get(sensor.entity_id)
+        assert second.state=='50' and second.attributes['sequence']==3
+        assert second.attributes['emitted_at_ms']==69000
+        assert second.attributes['last_command_age_ms']==1000
+        clock[0]+=15;sensor.update_payload(packet(sequence=3,at=85000,emitted=69000),True)
+        await hass.async_block_till_done()
+        assert hass.states.get(sensor.entity_id).attributes['last_command_age_ms']==16000
+    finally:
+        await actual.async_reset()
+
+
+@pytest.mark.asyncio
+async def test_native_product_uses_actual_native_request_and_availability_topics_without_legacy_boiler_entities(hass,monkeypatch):
+    from homeassistant.components import mqtt
+    from custom_components.open_thermostat.product_telemetry import async_setup_sensors
+    from custom_components.open_thermostat.heating import HeatingTracker
+    from custom_components.open_thermostat import device_diagnostics
+    from test_product_flow import product
+    entry=product(hass);tracker=HeatingTracker(hass,entry)
+    hass.data['open_thermostat'][entry.entry_id]={'heating_tracker':tracker}
+    callbacks={};added=[]
+    async def subscribe(_h,topic,callback,*args,**kwargs):callbacks[topic]=callback;return lambda:None
+    monkeypatch.setattr(mqtt,'async_wait_for_mqtt_client',AsyncMock())
+    monkeypatch.setattr(mqtt,'async_subscribe',subscribe)
+    monkeypatch.setattr(device_diagnostics,'async_setup_device_diagnostics',AsyncMock())
+    publish=AsyncMock();monkeypatch.setattr(mqtt,'async_publish',publish)
+    await async_setup_sensors(hass,entry,lambda entities,**kw:added.extend(entities),native_metrics=True)
+    assert set(callbacks)=={'fixture/v1/fw/availability','fixture/v1/fw/telemetry/controller_request'}
+    callbacks['fixture/v1/fw/availability'](SimpleNamespace(payload='online'))
+    receive=callbacks['fixture/v1/fw/telemetry/controller_request']
+    for value,seq,at in [(None,0,100),(50,1,101),(50,2,60101),(0,3,600101)]:
+        receive(SimpleNamespace(payload=json.dumps(packet(value,seq,at,at)),retain=False))
+        sensor=next(e for e in added if isinstance(e,ControllerRequestSensor))
+        assert sensor.native_value==value and sensor.extra_state_attributes['sequence']==seq
+    from custom_components.open_thermostat.sensor import HubMetric
+    assert not any(isinstance(e,HubMetric)for e in added)
+    assert len([e for e in added if isinstance(e,ControllerRequestSensor)])==1
+    callbacks['fixture/v1/fw/availability'](SimpleNamespace(payload='offline'))
+    assert not sensor.available;publish.assert_not_called();await tracker.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_native_live_packet_proves_liveness_after_ha_only_restart_but_retained_does_not(hass,monkeypatch):
+    # Firmware publishes non-retained "online" on connect only; HA may restart later.
+    from homeassistant.components import mqtt
+    from custom_components.open_thermostat.product_telemetry import async_setup_sensors
+    from custom_components.open_thermostat.heating import HeatingTracker
+    from custom_components.open_thermostat import device_diagnostics
+    from test_product_flow import product
+    entry=product(hass);tracker=HeatingTracker(hass,entry)
+    hass.data['open_thermostat'][entry.entry_id]={'heating_tracker':tracker}
+    callbacks={};added=[]
+    async def subscribe(_h,topic,callback,*args,**kwargs):callbacks[topic]=callback;return lambda:None
+    monkeypatch.setattr(mqtt,'async_wait_for_mqtt_client',AsyncMock())
+    monkeypatch.setattr(mqtt,'async_subscribe',subscribe)
+    monkeypatch.setattr(device_diagnostics,'async_setup_device_diagnostics',AsyncMock())
+    await async_setup_sensors(hass,entry,lambda entities,**kw:added.extend(entities),native_metrics=True)
+    receive=callbacks['fixture/v1/fw/telemetry/controller_request']
+    receive(SimpleNamespace(payload=json.dumps(packet(50,1,100,100)),retain=True))
+    sensor=next(e for e in added if isinstance(e,ControllerRequestSensor))
+    assert not sensor.available
+    receive(SimpleNamespace(payload=json.dumps(packet(50,2,200,200)),retain=False))
+    assert sensor.available and sensor.native_value==50
+    callbacks['fixture/v1/fw/availability'](SimpleNamespace(payload='offline'))
+    assert not sensor.available;await tracker.async_stop()

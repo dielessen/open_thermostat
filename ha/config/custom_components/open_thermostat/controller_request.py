@@ -87,7 +87,10 @@ class ControllerRequestSensor(SensorEntity):
         await super().async_will_remove_from_hass()
 
     def refresh(self):
-        state=(self.available,self.native_value,self.reason)
+        row=self.row
+        identity=None if row is None else tuple(row[k] for k in
+            ('boot_id','known','sequence','emitted_at_ms','observed_at_ms'))
+        state=(self.available,self.native_value,self.reason,identity)
         if self.entity_id is not None and state!=self._last_published:
             self._last_published=state;self.async_write_ha_state()
 

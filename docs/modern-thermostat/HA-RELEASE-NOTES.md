@@ -1,3 +1,41 @@
+# HA 0.4.0b7 — requested boiler temperature over native MQTT, tidier entities
+<!-- user-release-notes:v2:en -->
+
+Companion release for E32 beta10.
+
+## New
+
+- Read **E32 requested flow temperature** from the native firmware topic
+  `v1/fw/telemetry/controller_request`, using native availability. A live
+  packet also proves the board is online after an HA-only restart.
+- Hide boiler fields this boiler never reports: after15 minutes of a valid
+  observed-field stream, unreported fields are disabled by the integration.
+  Fields that are unreliable by default, or that you disabled yourself, are
+  left alone. A field that appears later is enabled again; HA then reloads the
+  integration.
+
+## Fixed
+
+- The requested-temperature entity now appears with modern-mode firmware.
+  HA0.4.0b6 subscribed to a legacy topic that such firmware never sends.
+- A repeated request with the same value (for example50°C every minute) now
+  updates the entity's age and sequence instead of looking frozen.
+- Legacy hub entities that a modern-mode E32 never feeds (DHW status, boiler
+  states, hub connection, RTC temperature) are disabled instead of staying
+  unavailable forever. Records are disabled, not deleted, so history is kept.
+
+## Updating
+
+Install the matching integration package, keep existing entries, storage and
+resources, validate the configuration and restart HA. Use it with E32 beta10;
+older firmware does not publish the native controller-request topic.
+
+## Limitations
+
+The requested temperature is our transmitted command, not boiler readback.
+Room temperature source qualification is unchanged, and physical room control
+is not accepted. No boiler, valve or setting writes are added.
+
 # HA 0.4.0b6 — requested boiler temperature and plan recovery
 <!-- user-release-notes:v2:en -->
 

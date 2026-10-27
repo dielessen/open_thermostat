@@ -275,7 +275,12 @@ public:
 		   << ",\"uart_resets\":" << uart_.resets.load(std::memory_order_relaxed);
         const auto uartError=uart_.lastRxError();
         ss << ",\"last_uart_error\":{\"reason\":\"" << uartError.reason
-           << "\",\"observed_at_ms\":" << uartError.observedAtMs << "}}";
+           << "\",\"observed_at_ms\":" << uartError.observedAtMs;
+#ifdef OPENTHERMOSTAT_E32V2
+        ss << ",\"echo_fault\":";
+        uart_.lastEchoFault().writeJSON(ss);
+#endif
+        ss << "}}";
 #ifdef OPENTHERMOSTAT_E32V2
         ss<<",\"settings_policy\":{\"transmit_compiled\":"<<(board::emsSettingsTransmitAllowed?"true":"false")
           <<",\"installation_reviewed\":"<<(settingsInstallationReviewed_?"true":"false")<<'}';

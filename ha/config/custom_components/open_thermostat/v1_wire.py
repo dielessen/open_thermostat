@@ -28,6 +28,7 @@ GRANT_NONCE_CAPABILITY = "session.grant_nonce.v1"
 ROOM_NAMES_CAPABILITY = "display.room_names.v1"
 COMFORT_CAPABILITY = "comfort.target.v1"
 CONTACTS_CAPABILITY = "comfort.contacts.v1"
+MANUAL_TARGET_CAPABILITY = 'control.manual_target.v1'
 COMFORT_MODES = {"auto","off","temporary","boost","away","vacation","frost"}
 # Fixed firmware admission labels only; arbitrary peer text stays private.
 _REJECTION_REASONS = frozenset(("not_configured", "wrong_version", "wrong_identity",
@@ -160,6 +161,7 @@ class ShadowClient:
         self.metrics_supported=False
         self.comfort_supported=False
         self.contacts_supported=False
+        self.manual_target_supported=False
         self._metrics=None
         self._metrics_received=0.0
         self._metrics_highwater=0
@@ -718,6 +720,7 @@ class ShadowClient:
         self.grant_nonce_supported = False
         self.comfort_supported = False
         self.contacts_supported = False
+        self.manual_target_supported = False
         self._grant_proofs.clear()
         self.verified = False
         self.grant_until = self.lease_until = 0
@@ -910,6 +913,12 @@ class ShadowClient:
                 self.reset_session();self.error="contact_capability_unavailable";self.changed();return
             if any("comfort" in z for z in self.desired) and not self.comfort_supported:
                 self.reset_session();self.error="comfort_capability_unavailable";self.changed();return
+            self.manual_target_supported = (type(comfort_caps) is list and len(comfort_caps)<=8
+                and all(type(cap) is str and len(cap)<=64 for cap in comfort_caps)
+                and MANUAL_TARGET_CAPABILITY in comfort_caps)
+            from .manual_target import is_manual_helper
+            if any(is_manual_helper(room.setpoint) for room in self.runtime.rooms.values()) and not self.manual_target_supported:
+                self.reset_session();self.error='manual_target_capability_unavailable';self.changed();return
             caps=p.get("read_only_capabilities",[])
             self.boiler_fields_supported=(type(caps) is list and len(caps)<=8
                 and all(isinstance(cap,str) and len(cap)<=64 for cap in caps) and BOILER_CAPABILITY in caps)
@@ -1055,6 +1064,8 @@ class ShadowClient:
                          or row["sample_age_ms"] >= self.runtime.rooms[row["zone_id"]].maximum_age_ms))
                     or (row.get("demand") is True and (row.get("temperature_centi_c") is None or row.get("target_centi_c") is None))):
                     raise ValueError("state quality/duplicate")
+                if 'override_remaining_ms' in row and not integer(row['override_remaining_ms'],0,43200000):
+                    raise ValueError('override expiry')
                 room=self.runtime.rooms[row["zone_id"]]
                 if room.comfort is not None and (not self.comfort_supported or row.get("comfort_mode") not in COMFORT_MODES
                     or not integer(row.get("override_remaining_ms"),0,43200000)
@@ -1213,15 +1224,18 @@ class ShadowClient:
             "evidence": "physical_report" if usable else "unverified",
             **(self.runtime.comfort_context(room) if room.comfort is not None or room.contacts else {})})
 
-    async def async_setpoint(self, room_id, centi_c):
+    async def async_setpoint(self, room_id, centi_c, *, duration_ms=None):
         if not self.ready or room_id not in self.runtime.rooms or not integer(centi_c, 500, 3500):
             raise HomeAssistantError("Shadow mapping not ready")
         if self.runtime.rooms[room_id].comfort is not None:
-            await self.async_comfort(room_id,"temporary",temperature=centi_c/100)
+            await self.async_comfort(room_id,"temporary",temperature=centi_c/100,duration_ms=duration_ms)
             return
+        if duration_ms is None:duration_ms=3600000
+        if not integer(duration_ms,60000,43200000):
+            raise HomeAssistantError('Invalid override duration')
         future = self.runtime.hass.loop.create_future()
         await self.message("ha/user_command", room_id, {
-            "mode": "temporary", "temperature_centi_c": centi_c, "duration_ms": 3600000}, future)
+            "mode": "temporary", "temperature_centi_c": centi_c, "duration_ms": duration_ms}, future)
         await future  # Bounded by poll(); teardown cancels unresolved futures.
 
     async def async_hvac_mode(self, room_id, mode):

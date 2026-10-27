@@ -142,7 +142,9 @@ def validate_ownership(hass, entry, document, *, room_replacement=None):
                         and room.room_id == room_replacement.room_id):
                     room = room_replacement
                 for ref in (room.temperature, room.setpoint, room.schedule):
-                    if ref and _key(hass, ref.as_dict()) in claimed:
+                    # A manual helper is never an output resource. Its loss
+                    # disables new manual requests without fencing base control.
+                    if ref and not ref.entity_id.startswith('input_number.') and _key(hass, ref.as_dict()) in claimed:
                         raise HeatingConfigError("input_output_loop")
                 for ref in room.actuators:
                     role = claimed.get(_key(hass, ref.as_dict()))
@@ -181,7 +183,7 @@ def validate_room_ownership(hass, entry, room):
             if not outputs:
                 continue
             for ref in (room.temperature, room.setpoint, room.schedule):
-                if ref and _key(hass, ref.as_dict()) in outputs:
+                if ref and not ref.entity_id.startswith('input_number.') and _key(hass, ref.as_dict()) in outputs:
                     raise ValueError("loop_binding")
             for ref in room.actuators:
                 role = outputs.get(_key(hass, ref.as_dict()))

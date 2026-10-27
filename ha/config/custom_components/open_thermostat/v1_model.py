@@ -63,6 +63,7 @@ class RoomBinding:
     presence: EntityReference | None = None
     contacts: tuple = ()
     contact_policy: ContactPolicy | None = None
+    setpoint_duration_ms: int = 3600000
 
     @property
     def shadow_wire_supported(self) -> bool:
@@ -93,8 +94,15 @@ class RoomBinding:
             raise ValueError("temperature source must be a sensor")
         if any(not x.entity_id.startswith("climate.") for x in actuators):
             raise ValueError("initial profile C requires climate actuators")
-        if setpoint and not setpoint.entity_id.startswith(("climate.", "number.")):
+        if setpoint and not setpoint.entity_id.startswith(("climate.", "number.", "input_number.")):
             raise ValueError("unsupported physical setpoint source")
+        from .manual_target import is_manual_helper
+        if setpoint and setpoint.entity_id.startswith('input_number.') and not is_manual_helper(setpoint):
+            raise ValueError('unsupported_manual_target')
+        duration=value.get('setpoint_duration_ms',3600000)
+        if (type(duration) is not int or not 60000 <= duration <= 43200000
+                or ('setpoint_duration_ms' in value and not is_manual_helper(setpoint))):
+            raise ValueError('invalid_manual_target_duration')
         base = value.get("base_centi_c", 2100)
         if type(base) is not int or not 500 <= base <= 3500:
             raise ValueError("invalid base target")
@@ -135,7 +143,7 @@ class RoomBinding:
             raise ValueError("invalid_presence_source")
         if any(ref and ref.entity_id in ids for ref in (window,presence)):
             raise ValueError("duplicate_comfort_binding")
-        return cls(room_id, str(value["name"]), temperature, actuators, setpoint, age, base, schedule, minimum, maximum, week, mode, dict(comfort) if comfort is not None else None, window, presence, contacts, contact_policy)
+        return cls(room_id, str(value["name"]), temperature, actuators, setpoint, age, base, schedule, minimum, maximum, week, mode, dict(comfort) if comfort is not None else None, window, presence, contacts, contact_policy, duration)
 
     def as_dict(self) -> dict:
         return {
@@ -143,6 +151,7 @@ class RoomBinding:
             "temperature": self.temperature.as_dict(),
             "actuators": [x.as_dict() for x in self.actuators],
             "setpoint": self.setpoint.as_dict() if self.setpoint else None,
+            **({'setpoint_duration_ms': self.setpoint_duration_ms} if self.setpoint and self.setpoint.entity_id.startswith('input_number.') else {}),
             "maximum_age_ms": self.maximum_age_ms,
             **({"contacts": [c.as_dict() for c in self.contacts],
                 "contact_policy": self.contact_policy.as_dict()} if self.contacts else {}),

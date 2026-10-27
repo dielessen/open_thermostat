@@ -25,6 +25,7 @@ from .v1_heating_draft import parse_heating_draft
 from .v1_model import CONF_ENABLED, MODE_SHADOW, ROOM_GRAPH_DRAFT, ROOM_LIMIT, RoomBinding, integration_mode
 from .native_form import retained_input_schema
 from .room_contacts import ContactPolicy, CONTACT_DEVICE_CLASSES, select_contacts
+from .manual_target import is_manual_helper, select_manual_helper, validate_manual_owner
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -118,7 +119,8 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
             self._heating = central_entry(entry)
             data = dict(self._old.data) if self._old else {}
             # Never silently remove advanced controls or convert a floor room.
-            if any(data.get(key) is not None for key in ('setpoint', 'window', 'presence')):
+            if (any(data.get(key) is not None for key in ('window', 'presence'))
+                    or (data.get('setpoint') and not is_manual_helper(RoomBinding.from_dict(data).setpoint))):
                 return self.async_abort(reason="advanced_room_required")
             if self._heating:
                 draft = self._heating.data["draft"]
@@ -158,6 +160,12 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
         helper = data.get("schedule")
         marker = vol.Optional("schedule_entity", description={"suggested_value": self._display(helper, ("schedule",))}) if helper else vol.Optional("schedule_entity")
         advanced[marker] = selector.EntitySelector({"filter": {"domain": "schedule"}})
+        manual = data.get('setpoint')
+        target_marker = (vol.Optional('setpoint_entity', description={'suggested_value':self._display(manual,('input_number',))})
+                         if manual else vol.Optional('setpoint_entity'))
+        advanced[target_marker] = selector.EntitySelector({'filter':{'domain':'input_number'}})
+        advanced[vol.Required('setpoint_minutes',default=data.get('setpoint_duration_ms',3600000)/60000)] = selector.NumberSelector({
+            'min':1,'max':720,'step':1,'unit_of_measurement':'min','mode':'box'})
         policy = ContactPolicy.from_dict(data['contact_policy']) if data.get('contact_policy') else ContactPolicy()
         for key, attr, maximum in [('contact_open_delay_s', 'open_delay_ms', 600),
                                   ('contact_close_delay_s', 'close_delay_ms', 600),
@@ -214,7 +222,7 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
                 if len(identities) != len(set(identities)):
                     raise ValueError("output_has_multiple_owners")
                 room = validate_room(self.hass, self._get_entry(), self._submitted(user_input), self._old)
-                room = self._with_contacts(room, user_input)
+                room = self._with_context(room, user_input)
                 self._prepare_graph(room)  # Catch conflicts before opening the week editor.
                 if user_input.get("program_action") == "edit_week":
                     if room.schedule:
@@ -230,7 +238,8 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
                 known = {"binding_missing", "loop_binding", "not_temperature", "unsupported_unit",
                          "invalid_target_range", "program_source_conflict", "duplicate_room",
                          "output_has_multiple_owners", "input_output_loop", "select_radiators", "invalid_name",
-                         "invalid_contacts", "not_contact_sensor", "invalid_contact_policy"}
+                         "invalid_contacts", "not_contact_sensor", "invalid_contact_policy",
+                         'unsupported_manual_target','invalid_manual_target_duration','manual_target_has_multiple_rooms'}
                 errors["base"] = str(err) if str(err) in known else "setup_invalid"
         return self.async_show_form(step_id="radiator", data_schema=retained_input_schema(
             self, self._radiator_schema(), user_input), errors=errors)
@@ -239,7 +248,7 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
         return prepare_radiator_graph(self.hass, self._get_entry(), room,
             self._heating, self._radiators, self._group_id, self._actuator_ids)
 
-    def _with_contacts(self, room, values):
+    def _with_context(self, room, values):
         old = RoomBinding.from_dict(dict(self._old.data)) if self._old else None
         selections = values.get('contact_entities', [self._display(c.entity.as_dict(), ('binary_sensor',))
                                                    for c in old.contacts] if old else [])
@@ -261,6 +270,19 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
         comfort = old.comfort if old else None
         candidate = replace(room, contacts=contacts, contact_policy=policy if contacts else None,
                             comfort=comfort, window=old.window if old else None, presence=old.presence if old else None)
+        manual = old.setpoint if old else None
+        duration = old.setpoint_duration_ms if old else 3600000
+        if 'advanced' in values:
+            manual = select_manual_helper(self.hass,advanced['setpoint_entity']) if advanced.get('setpoint_entity') else None
+            minutes = advanced.get('setpoint_minutes',duration/60000)
+            if type(minutes) not in (int,float) or not math.isfinite(minutes) or int(minutes)!=minutes or not 1<=minutes<=720:
+                raise ValueError('invalid_manual_target_duration')
+            duration = int(minutes)*60000
+        if (old and manual and old.setpoint and manual.entity_id==old.setpoint.entity_id
+                and manual.identity()!=old.setpoint.identity()):
+            raise ValueError('binding_missing')
+        candidate = replace(candidate,setpoint=manual,setpoint_duration_ms=duration)
+        validate_manual_owner(self.hass,self._get_entry(),candidate)
         return RoomBinding.from_dict(candidate.as_dict())
 
     def _commit_room(self, room, old):
@@ -280,6 +302,7 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
             description_placeholders={"name": room.name, "sensor": self._label(room.temperature.entity_id),
                 "radiators": ", ".join(self._label(r["entity_id"]) for r in self._radiators),
                 "contacts": ", ".join(self._label(c.entity.entity_id) for c in room.contacts) or "—",
+                'manual_target':self._label(room.setpoint.entity_id) if room.setpoint else '—',
                 "target": f"{room.base_centi_c/100:g}"}, errors=errors or {})
 
     async def async_step_room_review(self, user_input=None):
@@ -303,6 +326,12 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
                 if [(c.entity.identity(), c.kind) for c in contacts] != [(c.entity.identity(), c.kind) for c in room.contacts]:
                     raise ValueError('binding_missing')
                 room = replace(room, contacts=contacts)
+            if room.setpoint:
+                resolved = resolved_reference(self.hass,room.setpoint.as_dict(),('input_number',))['entity_id']
+                manual = select_manual_helper(self.hass,resolved)
+                if manual.identity()!=room.setpoint.identity():raise ValueError('binding_missing')
+                room = replace(room,setpoint=manual)
+                validate_manual_owner(self.hass,self._get_entry(),room)
             parsed = self._prepare_graph(room)
             data = {**(dict(self._heating.data) if self._heating else {}),
                     "draft": parsed.storage_document(), "status": parsed.readiness,
@@ -312,6 +341,7 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
         manager = self.hass.config_entries
         entry = self._get_entry()
         room_data = {**(dict(self._old.data) if self._old else {}), **room.as_dict()}
+        if not is_manual_helper(room.setpoint):room_data.pop('setpoint_duration_ms',None)
         if not room.contacts:
             room_data.pop('contacts', None)
             room_data.pop('contact_policy', None)

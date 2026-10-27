@@ -120,6 +120,7 @@ class ShadowRoom(ClimateEntity):
                 "override_remaining_minutes": (state.override_remaining_ms+59999)//60000 if state else None,
                 "vacation_until_utc": state.vacation_until_utc if state else None,
                 "comfort_context_sources": self.runtime.context_source_status(self.room.room_id),
+                'manual_target_source': self.runtime.manual_target_status(self.room.room_id),
                 "local_override_ends_on_presence_change": False,
                 "default_override_minutes": self.room.comfort["temporary_ms"]//60000 if self.room.comfort is not None else 60,
                 "actuator_profile": "C_unverified" if self.room.shadow_wire_supported else

@@ -13,9 +13,17 @@ Development bundle; not published or installed.
 - Add or remove contacts on an active native plan through the existing save,
   reload and verified controller readback. Older firmware without the contact
   contract is rejected before saving the new active-room intent.
+- Bind a built-in Home Assistant temperature Number helper as an extra manual
+  room control. A new authenticated user change requests one temporary target
+  for one minute to twelve hours; startup values and automations do not apply it.
+  The normal programme resumes when the controller's override expires. The
+  helper is not written back, and status updates add no polling.
 
 ## Fixed
 
+- The initial controller link recognises E32 beta release tags alongside alpha
+  tags. Firmware identity, compiled contract, update state and authenticated
+  settings checks still apply.
 - Contacts can pause an ordinary room without enabling comfort modes or changing
   its temperature bounds, source profile or independent frost policy.
 - The editor and wizard share identity validation; deletion/replacement during
@@ -33,6 +41,7 @@ entity identities, settings and programme data are preserved during development.
 
 Software verification does not qualify physical sensors, valves or boiler control.
 No Home Assistant installation or live device action occurs in this work.
+Physical wall controls still require their own original-action/echo profile.
 
 # HA 0.4.0b3 — oorspronkelijke meetdiagnose en veldexport
 <!-- user-release-notes:v1 -->

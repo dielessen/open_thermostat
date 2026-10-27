@@ -43,6 +43,10 @@ async def comfort(hass,request,monkeypatch):
             contacts=select_contacts(hass,[window.entity_id,door.entity_id]),
             contact_policy=ContactPolicy(options.get('maximum_age_ms',3600000),0,options.get('close_delay_ms',0)))
         if options.get('contact_only'):binding=replace(binding,comfort=None)
+    if options.get('manual_helper'):
+        helper=registry.async_get_or_create('input_number','input_number','interop_manual_target')
+        hass.states.async_set(helper.entity_id,'21',{'unit_of_measurement':'°C'})
+        binding=replace(binding,setpoint=reference(hass,helper.entity_id),setpoint_duration_ms=60000)
     second=replace(room(hass,"11223344","second"),comfort=dict(binding.comfort) if binding.comfort else None)
     parent=entry(hass,enabled=True,room=binding)
     runtime=ShadowRuntime(hass,parent,[binding,second])
@@ -50,7 +54,7 @@ async def comfort(hass,request,monkeypatch):
     process=await asyncio.create_subprocess_exec(str(RUNNER),stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.PIPE)
     bus=FirmwareBus(process,hass.loop.time)
-    if options.get('contacts'):runtime.clock=bus.clock
+    if options.get('contacts') or options.get('manual_helper'):runtime.clock=bus.clock
     if options.get('contact_timers'):
         import custom_components.open_thermostat.v1_runtime as native_runtime
         native_later=native_runtime.async_call_later

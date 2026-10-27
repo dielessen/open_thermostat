@@ -22,6 +22,7 @@ from .native_binding import native_binding_identity
 
 from .comfort_sources import ContextReport, ContextSourceProfile, CONTEXT_MAX_AGE_MS
 from .room_contacts import ContactAggregator, ContactSample, MAX_CONTACTS
+from .manual_target import ManualTargetOwner, is_manual_helper
 
 from .v1_model import (
     CONF_ENABLED, EntityReference, Observation, QualifiedReport,
@@ -33,7 +34,7 @@ class ShadowTransport(Protocol):
     @property
     def ready(self) -> bool: ...
     async def async_observation(self, room_id: str, observation: Observation) -> None: ...
-    async def async_setpoint(self, room_id: str, centi_c: int) -> None: ...
+    async def async_setpoint(self, room_id: str, centi_c: int, *, duration_ms: int | None = None) -> None: ...
     async def async_hvac_mode(self, room_id: str, mode: str) -> None: ...
     async def async_close(self) -> None: ...
 
@@ -71,6 +72,8 @@ class ShadowRuntime:
                 raise ValueError("graph_control_source_binding")
             if any(room.contacts for room in rooms):
                 raise ValueError('graph_contact_contract_unavailable')
+            if any(is_manual_helper(room.setpoint) for room in rooms):
+                raise ValueError('graph_manual_target_contract_unavailable')
         from .native_plan import NativePlanSource
         if native_plan_source is not None:
             if (type(native_plan_source) is not NativePlanSource or graph_data_profile is not None
@@ -89,7 +92,12 @@ class ShadowRuntime:
         if len(self.rooms) != len(rooms) or len(rooms) > 8:
             raise ValueError("duplicate/excess rooms")
         seen: set[tuple] = set()
+        manual_helpers = set()
         for room in rooms:
+            if is_manual_helper(room.setpoint):
+                if room.setpoint.identity() in manual_helpers:
+                    raise ValueError('manual_target_has_multiple_rooms')
+                manual_helpers.add(room.setpoint.identity())
             for actuator in room.actuators:
                 if actuator.identity() in seen:
                     raise ValueError("actuator assigned to multiple rooms")
@@ -100,6 +108,7 @@ class ShadowRuntime:
         self._contact_aggregators = {r.room_id: ContactAggregator(r.contact_policy)
                                      for r in rooms if r.contacts}
         self._contact_timers = {}
+        self.manual_target_owner = ManualTargetOwner(self)
         # Bounded logical SOURCE pins; never loaded from entry/options/Store.
         if type(context_source_profiles) is not tuple or len(context_source_profiles)>8*(MAX_CONTACTS+2):
             raise ValueError("context_profile_invalid")
@@ -153,6 +162,19 @@ class ShadowRuntime:
     def add_listener(self, listener: Callable) -> Callable:
         self._listeners.add(listener)
         return lambda: self._listeners.discard(listener)
+
+    def manual_target_status(self, room_id):
+        room = self.rooms.get(room_id)
+        if room is None or room.setpoint is None:
+            return {'status': 'not_configured', 'kind': 'none'}
+        if not is_manual_helper(room.setpoint):
+            return {'status': 'device_action_profile_required', 'kind': 'physical_device'}
+        entity_id = self._resolve(room.setpoint)
+        item = er.async_get(self.hass).async_get(entity_id) if entity_id else None
+        state = self.hass.states.get(entity_id) if item and item.disabled_by is None else None
+        status = (self.manual_target_owner.status.get(room_id, 'awaiting_manual_change')
+                  if state is not None and state.state not in ('unknown','unavailable') else 'binding_unavailable')
+        return {'status': status, 'kind': 'ha_manual_helper', 'physical_device_qualified': False}
 
     def _measurement_now(self):
         """One clock read per boundary; failure retires this runtime's evidence.
@@ -349,8 +371,11 @@ class ShadowRuntime:
             unsub()
         self._subscriptions.clear()
         ids: set[str] = set()
+        manual_ids: set[str] = set()
         device_ids: set[str] = set()
         for room in self.rooms.values():
+            if is_manual_helper(room.setpoint) and (manual_id := self._resolve(room.setpoint)):
+                manual_ids.add(manual_id)
             for ref in (room.temperature, *room.actuators, room.setpoint, room.window, room.presence,
                         *(c.entity for c in room.contacts)):
                 if ref and (entity_id := self._resolve(ref)):
@@ -367,16 +392,21 @@ class ShadowRuntime:
         @callback
         def changed(event):
             if self._active and self._generation == generation:
-                self._source_event(event.data["entity_id"], "changed")
+                self._source_event(event.data["entity_id"], "changed", event)
 
         @callback
         def reported(event):
             if self._active and self._generation == generation:
-                self._source_event(event.data["entity_id"], "reported")
+                self._source_event(event.data["entity_id"], "reported", event)
 
         @callback
         def registry_changed(event):
             if not self._active or self._generation != generation:
+                return
+            if manual_ids.intersection((event.data.get('entity_id'),event.data.get('old_entity_id'))):
+                self.manual_target_owner.withdraw()
+                self._bind_listeners()
+                self._notify()
                 return
             self._recheck_original_reports()
             if self._bench_fault:
@@ -409,7 +439,7 @@ class ShadowRuntime:
         ])
 
     @callback
-    def _source_event(self, entity_id: str, event_kind: str) -> None:
+    def _source_event(self, entity_id: str, event_kind: str, event=None) -> None:
         for room in self.rooms.values():
             if self._bench_owner == room.room_id:
                 continue
@@ -428,8 +458,9 @@ class ShadowRuntime:
                         self._observe_context_source(room,"contact",event_kind,contact.entity)
                 self._record(room.room_id,self.observations[room.room_id])
             elif room.setpoint and self._resolve(room.setpoint) == entity_id:
-                # Knob origin/echo qualification awaits a concrete profile.
-                self.diagnostics[room.room_id] = "physical_setpoint_unqualified"
+                self.manual_target_owner.observe(room,event_kind,event)
+                self.diagnostics[room.room_id] = (self.manual_target_owner.status.get(room.room_id,'manual_action_required')
+                    if is_manual_helper(room.setpoint) else 'physical_setpoint_unqualified')
                 self._notify()
             elif any(self._resolve(ref) == entity_id for ref in room.actuators):
                 self.diagnostics[room.room_id] = "profile_C_unverified"
@@ -614,6 +645,7 @@ class ShadowRuntime:
 
     def invalidate_context_sources(self):
         """Owner/rebind/stop drops usable proofs; bounded replay watermarks survive."""
+        self.manual_target_owner.withdraw()
         for cancel, _, _ in self._contact_timers.values():
             cancel()
         self._contact_timers.clear()
@@ -843,6 +875,7 @@ class ShadowRuntime:
         self.invalidate_context_sources()
         self._active = False
         self._generation += 1
+        await self.manual_target_owner.async_stop()
         for unsub in self._subscriptions:
             unsub()
         self._subscriptions.clear()

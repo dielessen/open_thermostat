@@ -217,8 +217,10 @@ def authenticated_readbacks():
 
 
 @pytest.mark.asyncio
-async def test_initial_link_reuses_actual_room_source_preserves_other_settings_and_never_writes(hass,configured):
+@pytest.mark.parametrize('version_tag',['v0.1.0-e32v2-alpha.9','v0.1.0-e32v2-beta.4','v0.1.0-e32v2-beta.6'])
+async def test_initial_link_reuses_actual_room_source_preserves_other_settings_and_never_writes(hass,configured,version_tag):
     parent,sub,_=configured;before=configuration_snapshot(parent);reads=authenticated_readbacks();old=deepcopy(reads)
+    reads['version']['version']=version_tag;old['version']['version']=version_tag
     plan=link.initial_controller_link(hass,parent,**reads)
     assert reads==old and configuration_snapshot(parent)==before and plan.before==before
     assert plan.source.policy.week_reviewed and plan.source.room_count==1

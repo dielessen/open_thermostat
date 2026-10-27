@@ -18,9 +18,10 @@ TEST(SeasonalControllerSource, DefaultApi1KeepsOriginalPolicyAndNoNewProfileAdve
     EXPECT_EQ(field(Fixture::row(s),"seasonal_policy"),nullptr);
     EXPECT_STREQ(stringField(Fixture::row(s),"reason").c_str(),"shadow_demand");
     const auto h=f.get("fw/hello");
-    EXPECT_EQ(cJSON_GetArraySize(field(h.get(),"control_capabilities")),2);
+    EXPECT_EQ(cJSON_GetArraySize(field(h.get(),"control_capabilities")),3);
     EXPECT_STREQ(field(h.get(),"control_capabilities")->child->valuestring,"comfort.target.v1");
     EXPECT_STREQ(field(h.get(),"control_capabilities")->child->next->valuestring,"comfort.contacts.v1");
+    EXPECT_STREQ(field(h.get(),"control_capabilities")->child->next->next->valuestring,"control.manual_target.v1");
 }
 TEST(SeasonalControllerSource, InvalidSourcePinsOrMissingProviderFailBeforeWritingWithoutFallback) {
     for(unsigned bad=0;bad<7;++bad) {

@@ -48,7 +48,11 @@ bewijs blijft afzonderlijk open. Geen nieuwe externe dienst of langlopende watch
   De contactfunctie kan gewone kamervraag alleen beperken en activeert geen
   extra comfort- of vorststand. C++-beleid, UI en oorspronkelijke leeftijden worden
   met gesimuleerde transporten en echte native HA-/C++-code getoetst.
-- Nog softwarematig uit te bouwen: externe kamerdoelbron met echoherkenning,
+- Extra kamerdoelbron: ingebouwde HA-temperatuurhelper met uitsluitend nieuwe
+  rechtstreekse gebruikersacties, eindige override, begrensde wachtrij, eigen
+  firmwarecapability en native save/readback. Bestaande waarden/automatiseringen
+  worden niet afgespeeld; fysieke wandbediening blijft ongekwalificeerd.
+- Nog softwarematig uit te bouwen: fysieke externe kamerdoelbron met echoherkenning,
   gewone comfort-/aanwezigheidsbediening, centrale instellingen en schaalbare
   zones/kranen, verdere modelwriters en de overige bron-/leer-/standaloneketens.
   Oorspronkelijke fysieke bronkwalificatie en hardwareproeven blijven apart.

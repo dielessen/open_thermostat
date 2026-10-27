@@ -731,6 +731,7 @@ private:
         auto comfortCaps=cJSON_AddArrayToObject(o.get(),"control_capabilities");
         if(comfortCaps)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString("comfort.target.v1"));
         if(comfortCaps)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString("comfort.contacts.v1"));
+        if(comfortCaps)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString("control.manual_target.v1"));
         if(comfortCaps&&nativePlanSource_)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(nativePlanSource_->planContract()));
         if(comfortCaps&&nativePlanSource_)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(roomDisplayNamesCapability));
         if(comfortCaps&&nativePlanSource_&&nativePlanSource_->legacyReadbackReviewed)
@@ -905,6 +906,7 @@ private:
                 cJSON_AddNumberToObject(row,"override_remaining_ms",z.comfort.remainingMs(now));
                 cJSON_AddNumberToObject(row,"vacation_until_utc",z.comfort.vacationUntil());
             }
+            else cJSON_AddNumberToObject(row,"override_remaining_ms",!z.off&&now<z.overrideUntil?z.overrideUntil-now:0);
             target=effective.target;source=effective.source;
             // Contacts alone inhibit the ordinary room target. They neither
             // select comfort/frost modes nor change the installation's policy.

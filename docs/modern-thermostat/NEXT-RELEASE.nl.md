@@ -36,6 +36,15 @@ reload en gecontroleerde C++-readback. Een contact activeert geen extra comfort-
 of vorststand en verandert geen temperatuurgrens. De feitelijke sensor-/uitvalproef
 en modelspecifieke oorspronkelijke rapportkwalificatie blijven afzonderlijk open.
 
+**Extra kamerbediening in ontwikkeling:** een expliciet gekozen HA-temperatuurhelper
+kan door een nieuwe rechtstreekse gebruikerswijziging één tijdelijke override
+aanvragen. Bewaren neemt de huidige helperwaarde niet over; automatische wijzigingen,
+opstartwaarden en echo's worden geweigerd. Duur één minuut tot twaalf uur, met
+afloop uit de regelaar en behoud van raamblokkering/programma/temperatuurbron.
+De echte HA-helperdienst en C++-afloop worden softwarematig gecontroleerd.
+Fysieke wandbediening heeft nog een eigen oorspronkelijk actieprofiel nodig.
+[Werking en grenzen](MANUAL-ROOM-TARGET.md).
+
 **Laatste passieve nacontrole:** de huidige proef is `closed` met
 `restart_required`, nul positieve warmteframes en gemelde stop. Daarom kan de
 geïnstalleerde firmware geen nieuwe proef voorbereiden. Herstarten blijft

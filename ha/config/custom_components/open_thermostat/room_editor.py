@@ -26,6 +26,7 @@ from .week_planner import _target
 from .v1_profile_c import review_room_targets
 from .device_metadata import selected_device, MetadataUnavailable
 from .room_contacts import ContactPolicy, select_contacts
+from .manual_target import is_manual_helper, select_manual_helper, validate_manual_owner
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -79,7 +80,7 @@ def _guard(hass, entry, sub, token):
         raise ValueError('setup_changed')
     if entry.options.get(CONF_ENABLED, False) or actual_runtime_active(hass, entry):
         raise ValueError('runtime_active')
-    if room.binding_mode != ROOM_GRAPH_DRAFT or room.setpoint is not None:
+    if room.binding_mode != ROOM_GRAPH_DRAFT or (room.setpoint is not None and not is_manual_helper(room.setpoint)):
         raise ValueError('advanced_room_required')
     return room
 
@@ -90,11 +91,11 @@ def read_room(hass, entry_id, room_id):
     graph = central.data['draft'] if central else {'actuators': [], 'groups': []}
     own = [a for a in graph['actuators'] if a['room_id'] == room_id]
     groups = {g['group_id']: g for g in graph['groups']}
-    supported = (room.binding_mode == ROOM_GRAPH_DRAFT and room.setpoint is None
+    supported = (room.binding_mode == ROOM_GRAPH_DRAFT and (room.setpoint is None or is_manual_helper(room.setpoint))
         and bool(own) and len({a['group_id'] for a in own}) == 1
         and all(a['profile'] == 'trv_room_setpoint' and groups[a['group_id']]['emitter'] == 'radiator' for a in own))
     registry = er.async_get(hass)
-    choices = {d: [] for d in ('sensor', 'climate', 'schedule', 'binary_sensor')}
+    choices = {d: [] for d in ('sensor', 'climate', 'schedule', 'binary_sensor', 'input_number')}
     def entity(ref):
         domain = ref['entity_id'].split('.')[0]
         resolved = registry.async_get_entity_id(domain, ref['platform'], ref['unique_id'])
@@ -121,10 +122,14 @@ def read_room(hass, entry_id, room_id):
             continue
         if domain == 'binary_sensor' and device_class not in ('window','door','opening','garage_door'):
             continue
+        if domain == 'input_number' and (item.platform != 'input_number' or state is None
+                or state.attributes.get('unit_of_measurement') not in ('°C','°F')):
+            continue
         choices[domain].append(_choice(hass, item))
     temperature = entity(room.temperature.as_dict())
     radiators = [entity(a['output']) for a in own]
     schedule = entity(room.schedule.as_dict()) if room.schedule else ''
+    manual_target = entity(room.setpoint.as_dict()) if room.setpoint else ''
     contact_entities = [entity(c.entity.as_dict()) for c in room.contacts]
     if room.window is not None:
         contact_entities.append(entity(room.window.as_dict()))
@@ -156,6 +161,8 @@ def read_room(hass, entry_id, room_id):
             actuator['original_report'] = originals[actuator['entity_id']]
     return {'entry_id': entry_id, 'room_id': room_id, 'token': digest(configuration_snapshot(entry)),
         'measurement': measurement,
+        'manual_target_status': (runtime.manual_target_status(room_id)
+            if callable(getattr(runtime,'manual_target_status',None)) else None),
         'contact_status_entity': registry.async_get_entity_id('climate',DOMAIN,
             f"{entry.data.get(CONF_TOPIC_PREFIX,'')}_room_{room_id}_climate"),
         'contact_status': (runtime.context_source_status(room_id).get('contacts')
@@ -171,6 +178,7 @@ def read_room(hass, entry_id, room_id):
             'temperature_entity': temperature, 'radiator_entities': radiators,
             'contact_entities': contact_entities,
             'contact_policy': (room.contact_policy or ContactPolicy()).as_dict(),
+            'setpoint_entity': manual_target, 'setpoint_duration_ms': room.setpoint_duration_ms,
             'base_centi_c': room.base_centi_c, 'minimum_centi_c': room.minimum_target_centi_c,
             'maximum_centi_c': room.maximum_target_centi_c, 'maximum_age_ms': room.maximum_age_ms,
             'program_source': 'helper' if room.schedule else 'local',
@@ -189,8 +197,15 @@ def prepare_room_edit(hass, entry, sub, old, settings, *, confirm_source_change=
     required = {'name', 'emitter', 'temperature_entity', 'radiator_entities', 'base_centi_c',
         'minimum_centi_c', 'maximum_centi_c', 'maximum_age_ms', 'program_source', 'schedule_entity', 'week'}
     contact_keys={'contact_entities','contact_policy'}
-    if (type(settings) is not dict or set(settings) not in (required,required|contact_keys)):
+    target_keys={'setpoint_entity','setpoint_duration_ms'}
+    allowed=(required,required|contact_keys,required|target_keys,required|contact_keys|target_keys)
+    if (type(settings) is not dict or set(settings) not in allowed):
         raise ValueError('setup_invalid')
+    edit_target=target_keys<=settings.keys()
+    if edit_target and (type(settings['setpoint_entity']) is not str
+            or settings['setpoint_entity'].startswith('unresolved:')
+            or type(settings['setpoint_duration_ms']) is not int or not 60000<=settings['setpoint_duration_ms']<=43200000):
+        raise ValueError('invalid_manual_target')
     contacts=settings.get('contact_entities')
     edit_contacts=contact_keys<=settings.keys()
     policy=ContactPolicy.from_dict(settings['contact_policy']) if edit_contacts else old.contact_policy
@@ -223,6 +238,8 @@ def prepare_room_edit(hass, entry, sub, old, settings, *, confirm_source_change=
     old_refs.extend(c.entity.as_dict() for c in old.contacts)
     if old.window:
         old_refs.append(old.window.as_dict())
+    if old.setpoint:
+        old_refs.append(old.setpoint.as_dict())
     if not read_room(hass, entry_id, room_id)['supported']:
         raise ValueError('advanced_room_required')
     group_id, actuator_ids = own[0]['group_id'], {}
@@ -249,12 +266,16 @@ def prepare_room_edit(hass, entry, sub, old, settings, *, confirm_source_change=
         comfort=old.comfort
         room=replace(room,contacts=selected_contacts,contact_policy=policy if selected_contacts else None,
                      comfort=comfort,window=legacy_window,presence=old.presence)
+        selected_target = (select_manual_helper(hass,settings['setpoint_entity']) if settings['setpoint_entity'] else None) if edit_target else old.setpoint
+        duration = settings['setpoint_duration_ms'] if edit_target else old.setpoint_duration_ms
+        room=replace(room,setpoint=selected_target,setpoint_duration_ms=duration)
+        validate_manual_owner(hass,entry,room)
         room=type(room).from_dict(room.as_dict())
         # Validate ownership against this complete prospective room/graph, so
         # replacing this room's deleted old device does not require resolving it.
         # No configured entry is mutated; every other room/output is still checked.
         parsed = prepare_radiator_graph(hass, entry, room, central, radiators, group_id, actuator_ids, replace_room=True)
-        refs = [room.temperature, room.schedule, room.window, room.presence,*(c.entity for c in room.contacts)]
+        refs = [room.temperature, room.schedule, room.setpoint, room.window, room.presence,*(c.entity for c in room.contacts)]
         identities = [r.as_dict() for r in refs if r] + radiators
         if binding_identities is not None:
             expected = {r['entity_id']: {'platform': r['platform'], 'unique_id': r['unique_id']} for r in identities}
@@ -296,6 +317,7 @@ async def save_room(hass, entry_id, room_id, token, settings, *, confirm_source_
     if identities != current_identities or room != again or parsed.storage_document() != checked.storage_document():
         raise ValueError('binding_missing')
     raw = {**deepcopy(dict(sub.data)), **room.as_dict()}
+    if not is_manual_helper(room.setpoint):raw.pop('setpoint_duration_ms',None)
     if not room.contacts:
         raw.pop('contacts',None);raw.pop('contact_policy',None)
     if room.week_program is None:

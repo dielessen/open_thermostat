@@ -1,7 +1,7 @@
-"""Explicit room program/contact edit over the native owner and reload lifecycle.
+"""Explicit room programme/context edit over the native owner and reload lifecycle.
 
 Hardware/profile migration is a separate operation. This module can change only
-name, base, local week and logical contacts, inside the source's unchanged bounds.
+name, base, local week and logical context, inside the source's unchanged bounds.
 """
 from copy import deepcopy
 from dataclasses import replace
@@ -64,14 +64,16 @@ async def save_active_program(hass, entry, sub, old, token, settings, *, binding
         raise ValueError('advanced_room_required')
     if type(settings) is not dict or set(settings) != set(saved):
         raise ValueError('setup_invalid')
-    for field in set(saved) - {'name', 'base_centi_c', 'week', 'contact_entities', 'contact_policy'}:
+    for field in set(saved) - {'name', 'base_centi_c', 'week', 'contact_entities', 'contact_policy', 'setpoint_entity', 'setpoint_duration_ms'}:
         if settings[field] != saved[field]:
             from .room_profile_apply import save_active_profile
             return await save_active_profile(hass, entry, sub, old, token, settings,
                 binding_identities=binding_identities)
     contact_changed = any(settings.get(key) != saved.get(key) for key in ('contact_entities', 'contact_policy'))
-    if binding_identities is not None and not contact_changed:
+    logical_changed = contact_changed or any(settings.get(key)!=saved.get(key) for key in ('setpoint_entity','setpoint_duration_ms'))
+    if binding_identities is not None and not logical_changed:
         ids = [saved['temperature_entity'], *saved['radiator_entities'],*saved.get('contact_entities',[])]
+        if saved.get('setpoint_entity'):ids.append(saved['setpoint_entity'])
         choices = {row['value']: row.get('identity') for rows in model['choices'].values() for row in rows}
         if binding_identities != {entity_id: choices.get(entity_id) for entity_id in ids}:
             raise ValueError('binding_missing')
@@ -83,12 +85,15 @@ async def save_active_program(hass, entry, sub, old, token, settings, *, binding
     week = normalize_program(settings['week'], old.minimum_target_centi_c, old.maximum_target_centi_c)
     candidate = replace(old, name=name.strip(), base_centi_c=base, week_program=week)
     prepare = None
-    if contact_changed:
+    if logical_changed:
         from .room_editor import prepare_room_edit
         prepare = prepare_room_edit(hass, entry, sub, old, settings, binding_identities=binding_identities)
         candidate, graph, identities = prepare()
         if candidate.contacts and not connection.client.contacts_supported:
             raise ValueError('contact_capability_unavailable')
+        from .manual_target import is_manual_helper
+        if is_manual_helper(candidate.setpoint) and not connection.client.manual_target_supported:
+            raise ValueError('manual_target_capability_unavailable')
     def recheck():
         _guard(hass, entry, sub, source, before, private_before)
         if prepare is not None:
@@ -121,6 +126,8 @@ async def save_active_program(hass, entry, sub, old, token, settings, *, binding
                                            private_expected=private_before)
     recheck()
     raw = {**deepcopy(dict(sub.data)), **candidate.as_dict()}
+    from .manual_target import is_manual_helper
+    if not is_manual_helper(candidate.setpoint):raw.pop('setpoint_duration_ms',None)
     if not candidate.contacts:
         raw.pop('contacts', None)
         raw.pop('contact_policy', None)

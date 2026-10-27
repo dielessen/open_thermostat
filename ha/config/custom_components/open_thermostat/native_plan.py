@@ -73,7 +73,9 @@ def _native_layout(hass,entry,*,allow_single=False,room_replacement=None,draft_r
     groups=heating_entries(entry)
     require((1<=len(rooms)<=2 if allow_single else len(rooms)==2) and len(groups)==1
         and len({r.room_id for r in rooms})==len(rooms),"native_two_room_limit")
-    require(all(r.binding_mode==ROOM_GRAPH_DRAFT and not r.actuators and r.setpoint is None for r in rooms),"native_room_mode")
+    from .manual_target import is_manual_helper
+    require(all(r.binding_mode==ROOM_GRAPH_DRAFT and not r.actuators
+        and (r.setpoint is None or is_manual_helper(r.setpoint)) for r in rooms),"native_room_mode")
     document=dict(groups[0].data)["draft"] if draft_replacement is None else draft_replacement
     draft=validated_graph(hass,entry,document,room_replacement=room_replacement)
     proposal=deepcopy(draft.control_proposal())

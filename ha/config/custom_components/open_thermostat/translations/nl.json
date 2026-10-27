@@ -40,19 +40,22 @@
                 "schedule_entity": "Home Assistant Schedule-helper (optioneel)",
                 "contact_open_delay_s": "Vertraging na openen (seconden)",
                 "contact_close_delay_s": "Wachttijd na sluiten (seconden)",
-                "contact_maximum_age_s": "Maximale contactberichtouderdom (seconden)"
+                "contact_maximum_age_s": "Maximale contactberichtouderdom (seconden)",
+                "setpoint_entity": "Extra doelhelper (optioneel)",
+                "setpoint_minutes": "Duur tijdelijk doel (minuten)"
               },
               "data_description": {
                 "maximum_age_ms": "Versheidsgrens, geen meetinterval. Een gecachte waarde bewijst geen nieuwe fysieke meting.",
                 "schedule_entity": "Een alternatief voor het lokale weekprogramma. Gebruik één programmabron per kamer.",
-                "contact_maximum_age_s": "Oudere berichten worden onbekend. Dit verandert niet hoe vaak de sensor rapporteert."
+                "contact_maximum_age_s": "Oudere berichten worden onbekend. Dit verandert niet hoe vaak de sensor rapporteert.",
+                "setpoint_entity": "Kies een Home Assistant-getalhelper met °C of °F. Alleen een nieuwe directe gebruikerswijziging vraagt een tijdelijk kamerdoel aan; de helper wordt nooit door de regelaar beschreven."
               }
             }
           }
         },
         "room_review": {
           "title": "Deze kamer opslaan?",
-          "description": "**{name}**\n\nTemperatuursensor: {sensor}\n\nRadiatorkranen: {radiators}\n\nRaam- en deursensoren: {contacts}\n\nGewenste temperatuur buiten programmablokken: **{target} °C**\n\nDe kamer en radiatorgroep worden samen opgeslagen. Bestaande centrale verwarmingsinstellingen blijven behouden. De regeling blijft uit; inschakelen en testen van de controller is een afzonderlijke stap.",
+          "description": "**{name}**\n\nTemperatuursensor: {sensor}\n\nRadiatorkranen: {radiators}\n\nRaam- en deursensoren: {contacts}\n\nExtra doelhelper: {manual_target}\n\nGewenste temperatuur buiten programmablokken: **{target} °C**\n\nDe kamer en radiatorgroep worden samen opgeslagen. Bestaande centrale verwarmingsinstellingen blijven behouden. De regeling blijft uit; inschakelen en testen van de controller is een afzonderlijke stap.",
           "submit": "Kamer opslaan"
         },
         "program": {
@@ -125,7 +128,10 @@
         "setup_invalid": "De kamer kon niet worden voorbereid. Controleer de apparaten en bestaande koppelingen; er is niets opgeslagen.",
         "invalid_contacts": "Kies maximaal acht verschillende raam- of deursensoren.",
         "not_contact_sensor": "Kies een binaire raam- of deursensor.",
-        "invalid_contact_policy": "Gebruik hele seconden: vertragingen 0–600, berichtouderdom 1–86400 en langer dan beide vertragingen."
+        "invalid_contact_policy": "Gebruik hele seconden: vertragingen 0–600, berichtouderdom 1–86400 en langer dan beide vertragingen.",
+        "unsupported_manual_target": "Kies een Home Assistant-temperatuurhelper met °C of °F.",
+        "invalid_manual_target_duration": "Kies een duur van 1 tot 720 hele minuten.",
+        "manual_target_has_multiple_rooms": "Deze doelhelper hoort al bij een andere ruimte."
       },
       "abort": {
         "room_limit": "Er kunnen maximaal acht kamers worden ingesteld.",

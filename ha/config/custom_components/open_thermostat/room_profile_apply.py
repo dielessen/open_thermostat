@@ -42,6 +42,11 @@ async def save_active_profile(hass, entry, sub, old, token, settings, *, binding
         raise ValueError('program_source_conflict')
     candidate = prepare_room_edit(hass, entry, sub, old, settings, binding_identities=binding_identities)
     room, graph, identities = candidate()
+    from .manual_target import is_manual_helper
+    if room.contacts and not connection.client.contacts_supported:
+        raise ValueError('contact_capability_unavailable')
+    if is_manual_helper(room.setpoint) and not connection.client.manual_target_supported:
+        raise ValueError('manual_target_capability_unavailable')
     document = graph.storage_document()
     proposed = propose_room_source_change(hass, entry, source, room, document)
     if proposed == source:
@@ -79,6 +84,7 @@ async def save_active_profile(hass, entry, sub, old, token, settings, *, binding
     proposed.validate_prospective_native(hass, entry, room, document)
     central = central_entry(entry)
     raw = {**deepcopy(dict(sub.data)), **room.as_dict()}
+    if not is_manual_helper(room.setpoint):raw.pop('setpoint_duration_ms',None)
     if not room.contacts:
         raw.pop('contacts',None);raw.pop('contact_policy',None)
     replacement = replace(sub, data=MappingProxyType(raw), title=room.name)

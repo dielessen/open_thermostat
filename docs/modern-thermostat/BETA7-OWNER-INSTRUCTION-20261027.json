@@ -13,5 +13,6 @@
   "trial_maximum_seconds": 600,
   "physical_conditions": "Use current per-trial attendance/gauge declaration; never restore an old trial after reboot. Tado disconnection and known installation are already recorded, not asked again.",
   "automatic_or_unattended_heat_authorized": false,
-  "persistent_boiler_setting_writes_authorized": false
+  "persistent_boiler_setting_writes_authorized": false,
+  "necessary_packaging_revision": "beta.7 was not published because a diagnostic64bitatomic retained an unreviewed SDK object. Deliver the same requested functionality as beta.8 using the existing approved critical-section primitive. Original owner quotes are unchanged; no new version-specific quote is claimed."
 }

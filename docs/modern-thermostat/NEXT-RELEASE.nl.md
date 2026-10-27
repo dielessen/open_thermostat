@@ -1,10 +1,16 @@
-# Beta.7 + HA0.4.0b6 — volledige ketelproef met eigen aanvraagwaarde
+# Beta.8 + HA0.4.0b6 — volledige ketelproef met eigen aanvraagwaarde
+
+Beta.7 is niet gepubliceerd: de pakketcontrole vond een extra SDK-atomicobject
+door de nieuwe UART-diagnose. Beta.8 gebruikt hiervoor het bestaande korte
+ESP-lockmechanisme. Volledige lokale broncorrespondentie slaagt, zonder nieuwe
+SDK-objecten toe te laten. HA0.4.0b6 blijft onveranderd op zijn eigen bevroren bron.
+
 
 **Actuele opdracht:** de aparte door de E32 verzonden aanvoeraanvraag leveren en
 daarna één volledige bijgewoonde50°C/600s-proef uitvoeren. De bestaande opdracht
 voor release, commit en installatie blijft van kracht. Beta.6 + HA0.4.0b4 staan
-geïnstalleerd; beta.7/HA0.4.0b6 is softwarematig voorbereid en wacht op exacte CI.
-[Opdracht](BETA7-OWNER-INSTRUCTION-20261027.json), [freezeplan](BETA7-KANDIDAAT.json).
+geïnstalleerd; beta.8/HA0.4.0b6 is softwarematig voorbereid en wacht op exacte CI.
+[Opdracht](BETA7-OWNER-INSTRUCTION-20261027.json), [freezeplan](BETA8-KANDIDAAT.json).
 
 De eerste proef liet daadwerkelijk pomp/branderbedrijf zien. De eigenaar
 stopte zelf na ongeveer375s; daarnaast werd een transportfout vastgelegd.

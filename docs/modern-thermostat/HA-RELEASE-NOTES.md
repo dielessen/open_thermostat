@@ -1,7 +1,9 @@
 # HA 0.4.0b6 — requested boiler temperature and plan recovery
 <!-- user-release-notes:v2:en -->
 
-Companion correction for E32 beta.7. Native plan recovery also supports beta.6.
+Companion correction for E32 beta.8. Native plan recovery also supports beta.6.
+The command record was introduced in unpublished candidate beta.7 and is delivered
+in beta.8; the HA0.4.0b6 integration source remains frozen at6dbe42f.
 
 ## New
 
@@ -34,7 +36,7 @@ Companion correction for E32 beta.7. Native plan recovery also supports beta.6.
 Install the matching integration package, preserve existing entry/storage and
 resources, validate configuration and restart HA. A normal explicit plan review
 resolves the pre-existing accepted6/staged7 horizon recovery; no storage rewrite.
-E32 beta.7 supplies the command record. Existing beta.4/6 firmware keeps its other
+E32 beta.8 supplies the command record. Existing beta.4/6 firmware keeps its other
 entities and can use the recovered plan menu.
 
 ## Limitations

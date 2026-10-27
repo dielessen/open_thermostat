@@ -43,7 +43,7 @@ GitHub-update acceptance remains at beta.4. HA installation and the separate
 bathroom plan recovery are in progress. The physical boiler trial remains open.
 [Current installation record](https://github.com/dielessen/open_thermostat/blob/review/mark-vscode-20261021/docs/modern-thermostat/BETA6-INSTALLATION-20261027.json).
 
-**Prepared correction bundle — E32 beta.7 + HA0.4.0b6:** a separate read-only
+**Prepared correction bundle — E32 beta.8 + HA0.4.0b6:** a separate read-only
 controller-request entity preserves the boiler's own reported temperatures;
 already-warm water can receive a lower50C trial request. Native product plan
 recovery is exposed in the existing menu. The first attended beta.6 trial

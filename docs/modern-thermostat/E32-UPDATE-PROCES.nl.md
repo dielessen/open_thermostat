@@ -1,13 +1,13 @@
 # Verplicht update- en acceptatieproces per E32-release
 
-**Actuele vervolgbundel:** beta.7 + HA0.4.0b6 levert de expliciet gevraagde
+**Actuele vervolgbundel:** beta.8 + HA0.4.0b6 levert de expliciet gevraagde
 verzonden-aanvraagentiteit en de correcties voor de volgende volledige proef.
 Beta.6 is via beveiligde LAN-appupload geïnstalleerd; dit is geen native GitHub-
 acceptatie. De laatste volledige native basis blijft beta.4. De bestaande
 release-/installatieopdracht plus het expliciete verzoek om de nieuwe proef
 zijn transparant gekoppeld aan deze noodzakelijke vervolgbundel; er wordt geen
 nieuwe versie-specifieke eigenaarsquote verzonnen.
-[Opdracht](BETA7-OWNER-INSTRUCTION-20261027.json), [freezeplan](BETA7-KANDIDAAT.json),
+[Opdracht](BETA7-OWNER-INSTRUCTION-20261027.json), [freezeplan](BETA8-KANDIDAAT.json),
 [native bewijsgrens](BETA6-NATIVE-GAP-20261027.json).
 
 

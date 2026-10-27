@@ -2,7 +2,7 @@
   "schema": 1,
   "as_of": "2026-10-27",
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
-  "release_state": "BETA7_FROZEN_COMMAND_ENTITY_AND_ATTENDED_FOLLOWUP_PENDING",
+  "release_state": "BETA8_FROZEN_COMMAND_ENTITY_AND_ATTENDED_FOLLOWUP_PENDING",
   "installed_firmware": "v0.1.0-e32v2-beta.5",
   "installed_ha": "0.4.0b1",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
@@ -59,11 +59,11 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
-          "sha256": "a9ab4ead222489207781f254b080dc078e3fed8ffbf8c85ccac2ff6f0a41a04a"
+          "sha256": "988371ff0d78b88fb8f36d7009e9fbac4dffeed2f7a8d4aab94a427cfc938ba2"
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
-          "sha256": "4fd280b7ea7508c35ce2b08a40cae507f8ee6597ade48be7e0029023b8d86687"
+          "sha256": "1d9909f0e77a34e2ee76e9b00c9a66f1038ad72b1202977623553bfcc8c97fc2"
         },
         {
           "path": "docs/modern-thermostat/USER-RELEASE-NOTES.json",
@@ -75,7 +75,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "9cb1a31a94b439235db6d6ff3424c53671ee265cedfd016c7f9c489aca52f2c0"
+          "sha256": "b3b5ad183affb580303fae7f66e3be534ccce90c847f2f93a45a4d00a505c22e"
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "b6eabe9881682a9931f7fd497cba208548ec5c7fbc48f93e19e80603f1bd655b"
+          "sha256": "4bff048722d1f0a26cff2238c8472f764201924de3e832852350ec72876ee6a5"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -191,7 +191,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-GATE.json",
-          "sha256": "a71fd4771adb1c44f0268c92fd5550f5152cceb7c092b55e67e5dbf25b4a6ced"
+          "sha256": "e247480ca49062b1f472791a28559d09b85083026fdd51cde1c21bddbc48ce59"
         },
         {
           "path": "docs/modern-thermostat/BETA3-PUBLICATION-EXCEPTION-PROPOSAL.json",
@@ -219,7 +219,7 @@
         },
         {
           "path": "release.json",
-          "sha256": "0a00cc797ebcda386808b17948bf6c4eba9d899535086a83b976d016be689313"
+          "sha256": "bb74e0f074260c72878f11f7c1bcb7ea029bde0cb495be7de9a0844aecdc7649"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -349,7 +349,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md",
-          "sha256": "05fcb81166588618dcff24d48b21c82fbf0df8928d351f9bb6d31ecfe504ffcf"
+          "sha256": "7cf3d373a1719aaf45d06476927a57a15c703bd3f4b26626a6d32ff5f716e12c"
         },
         {
           "path": "docs/modern-thermostat/INSTALLATIE-E32-ALPHA36-20261025.nl.md",
@@ -405,7 +405,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA7-OWNER-INSTRUCTION-20261027.json",
-          "sha256": "8c7350c006aedcf57fd185ed699c5d3a394d472ce4323260794ca8638782a1e0"
+          "sha256": "4fe0c65fc1fafbdda05d8b90b623152426ff830ed4101a3ec7caa5e3e9b11d12"
         },
         {
           "path": "docs/modern-thermostat/BETA6-NATIVE-GAP-20261027.json",
@@ -417,7 +417,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA7-KANDIDAAT.json",
-          "sha256": "0e335fcda3b31fea46556fb6891279cac3c9b0d5a9db978b52579ec19bc0b03d"
+          "sha256": "6e4c14a6876e636903e320d5db540f3abcc4b176de39d529f5255c0029c283a7"
         },
         {
           "path": "docs/modern-thermostat/BETA6-ATTENDED-HEAT-20261027.json",
@@ -426,6 +426,14 @@
         {
           "path": "docs/modern-thermostat/E32-CONTROLLER-REQUEST.md",
           "sha256": "6b5a2f6e09b188ac312629ff3740733be905cc32a20e8591ef3dc93ab572b0e0"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA8-KANDIDAAT.json",
+          "sha256": "cff5de4470e41bcf405d759ebd456ed0e2033508010ebb38dc1c7bf93dffda71"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA8-PUBLICATION-EXCEPTION-20261027.json",
+          "sha256": "916da33519169626f594870f107dddd62e583c4b1744a1099fd766e61bea8a87"
         }
       ],
       "remaining_acceptance": "Native GitHub-update alpha31→36 met verse back-up en één installatiecommando geslaagd:36 installatiecontroles,45 afzonderlijke nacontroles, exacte bron/ELF/web/31UI en behoud van86 HA-bestanden/13 projecthashes/zes loggingvelden. Iedere opvolgende reguliere release vereist nieuw update-/nacontrolebewijs volgens E32-UPDATE-PROCES en CI-gate. Oude multipart-watchdog en nativealpha26-afwijking blijven oorzakelijk onbekend; geen blinde fallback/retry. Fysieke powerloss/rollback/herstelkwalificatie en actieve ketel-/kraanpoorten blijven apart open. Automatische12ucontrole/dashboardmelding voorbereid naalpha36, niet geïnstalleerd."
@@ -2377,7 +2385,7 @@
         },
         {
           "path": "docs/modern-thermostat/WORKBOARD.nl.md",
-          "sha256": "1b50a712e5fee4ec32c59e8bcdd5f47650c2614845903463753929ef2e97a20a"
+          "sha256": "e548fe349e43160cdd6f0d1b876b1770290478e69e2f6b879d8671de07029271"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/device_power.py",
@@ -2565,7 +2573,7 @@
         },
         {
           "path": "src/EmsBusUart.h",
-          "sha256": "bf3c0f6a4160a5f06941927e32f7bfe89f9f837c62bc077b562813ba442ea4b1"
+          "sha256": "a44b3086a58865ee186bcb8586216d8d5a5441210f38983df01a7468d623fe77"
         },
         {
           "path": "src/EmsBusUartForwarder.h",

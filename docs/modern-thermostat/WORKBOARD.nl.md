@@ -1,6 +1,6 @@
 # OpenThermostat — actueel werkbord en releasechecklist
 
-Beta.7 + HA0.4.0b6 is de actuele correctiebundel: aparte verzonden E32-aanvraag,
+Beta.8 + HA0.4.0b6 is de actuele correctiebundel: aparte verzonden E32-aanvraag,
 behoud van ketelterugmeldingen, warm beginnen bij66°C, bereikbaar planherstel en
 meer stop-/UART-diagnose. Softwarecontrole is afgerond; exacte CI/publicatie,
 installatie en de nieuwe volledige proef volgen. De eerste fysieke proef met
@@ -69,7 +69,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-602 bronverwijzingen met hashes, status en resterende acceptatie.
+604 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.

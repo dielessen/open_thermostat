@@ -105,9 +105,12 @@ public:
     enum class RxError : uint8_t { none, echoAccounting, shortFrame, overflow, parity, framing };
     struct RxErrorInfo { const char* reason; uint64_t observedAtMs; };
     RxErrorInfo lastRxError() const {
-        const auto word=lastRxError_.load(std::memory_order_acquire);
+        portENTER_CRITICAL(&rxErrorMux_);
+        const auto kind=lastRxErrorKind_;
+        const auto at=lastRxErrorAtMs_;
+        portEXIT_CRITICAL(&rxErrorMux_);
         const char* reason="none";
-        switch(static_cast<RxError>(word&255)) {
+        switch(kind) {
             case RxError::echoAccounting:reason="echo_event_accounting";break;
             case RxError::shortFrame:reason="incomplete_rx_frame";break;
             case RxError::overflow:reason="rx_buffer_overflow";break;
@@ -115,19 +118,25 @@ public:
             case RxError::framing:reason="rx_framing_error";break;
             default:break;
         }
-        return {reason,word>>8};
+        return {reason,at};
     }
     void recordRxError(RxError kind) {
         rxErrors.fetch_add(1,std::memory_order_relaxed);
         const auto at=static_cast<uint64_t>(esp_timer_get_time()/1000);
-        lastRxError_.store((at<<8)|static_cast<uint8_t>(kind),std::memory_order_release);
+        portENTER_CRITICAL(&rxErrorMux_);
+        lastRxErrorAtMs_=at;lastRxErrorKind_=kind;
+        portEXIT_CRITICAL(&rxErrorMux_);
     }
 	std::atomic<uint32_t> rxErrors{0};
 	std::atomic<uint32_t> rxTimeouts{0};
 	std::atomic<uint32_t> resets{0};
 
 private:
-    std::atomic<uint64_t> lastRxError_{0}; // retained diagnostic, not an admission input
+    // UART task and status reader share a short existing ESP critical-section
+    // primitive. Avoid non-lock-free64-bit atomics and an extra SDK archive.
+    mutable portMUX_TYPE rxErrorMux_=portMUX_INITIALIZER_UNLOCKED;
+    RxError lastRxErrorKind_=RxError::none;
+    uint64_t lastRxErrorAtMs_=0; // diagnostic only, never an admission input
 #ifdef OPENTHERMOSTAT_E32V2
     friend class ems::EmsController;
     template<bool Read>

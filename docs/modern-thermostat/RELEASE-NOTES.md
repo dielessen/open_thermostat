@@ -1,7 +1,10 @@
-# E32 V2 beta7 — separate requested and reported boiler temperatures
+# E32 V2 beta8 — separate requested and reported boiler temperatures
 <!-- user-release-notes:v2:en -->
 
 Correction bundle with HA0.4.0b6 for the attended Ecomline Classic trial.
+Beta.7 was not published: packaging caught an extra SDK atomic dependency in
+UART diagnostics. Beta.8 uses the existing ESP critical section and retains
+only the reviewed SDK inputs. The requested test/command behavior is unchanged.
 
 ## New
 
@@ -45,7 +48,7 @@ kind/time for the next diagnosis and share task time during app uploads.
 
 ## Updating
 
-Use the exact beta.7 firmware and matching public checksums after preserving
+Use the exact beta.8 firmware and matching public checksums after preserving
 settings. HA0.4.0b6 provides the separate entity; older firmware leaves it absent.
 Installation uses the existing update/app-upload routes and a separate postcheck.
 

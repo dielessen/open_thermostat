@@ -1,13 +1,28 @@
-# Beta.6 + HA0.4.0b4 — bevroren gezamenlijke release
+# Beta.6 + HA0.4.0b5 — installatie en badkamerherstel
 
-**Actuele opdracht27 oktober:** de eigenaar vraagt de huidige bundel te
+**Installatie27 oktober:** beta.6 is gepubliceerd en via de bestaande beveiligde
+LAN-appupload geïnstalleerd. Nieuwe boot en bron/ELF/web kloppen; twaalf
+instellingenexports zijn bytegelijk gebleven. De eerste upload brak af met een
+watchdogreset naar beta.5; één na diagnose begrensde upload gaf HTTP200 success.
+Dit is geen native GitHub-acceptatie: de laatste volledige native basis blijft
+beta.4. HA0.4.0b4 is gepubliceerd en wordt normaal geïnstalleerd. De badkamerthermostaat
+is sinds01:00 unavailable doordat het bestaande planherstel een beoordeling
+vraagt, terwijl die bestaande functie uit alle productmenu’s ontbrak.
+Een kleine HA0.4.0b5-vervolgfix maakt de normale planreview/status zichtbaar
+bij een bestaande native verbinding. Dezelfde controles, afzonderlijke bevestiging
+en echte readback blijven vereist. Geen geforceerde opslagwijziging of nieuwe
+fysieke toestemming.22 gerichte echte HA/C++-proeven slagen; exacte-tag-CI volgt.
+[Herstelfix](HA-RECOVERY-MENU-20261027.json).
+[Installatiebewijs en grenzen](BETA6-INSTALLATION-20261027.json).
+
+**Oorspronkelijke opdracht27 oktober:** de eigenaar vraagt de huidige bundel te
 committeren, publiceren en op E32 en HA te installeren. Verdere functie-uitbreiding
 is voor deze freeze gestopt. Eerst exacte CI/pakketcontrole, verse back-ups,
 daarna normale installatie en afzonderlijke nacontrole. Geen echte ketelproef
 of kraanopdracht als onderdeel van de installatie.
 [Opdracht](BETA6-OWNER-INSTRUCTION-20261027.json) en [freezeplan](BETA6-KANDIDAAT.json).
 
-Verse uitlezing toont inmiddels beta.5 uit `a4237cd` op de E32, met juiste
+De uitlezing vóór deze installatie toonde beta.5 uit `a4237cd` op de E32, met juiste
 openbare ELF/web-identiteit, bevestigde boot, stijgende uptime en nul TX.
 Het oorspronkelijke beta.5-installatiebewijs ontbreekt; de oude native checkpoint
 noemt nog beta.4. De laatste volledige native acceptatie blijft daarom beta.4.
@@ -25,7 +40,7 @@ verzonden warmteopdracht zijn teruggemeld en of de volledige duur is verstreken.
 De uitslag onderscheidt geslaagde terugmelding, vroegtijdig/onvolledig,
 onbevestigd, alleen nulvraag en fout. Heropenen bewaart de uitslag in dezelfde
 boot/proefsessie, zonder de bediening te hervatten. Dit is geen fysieke B14-
-afhandeling. Deze kandidaat is nog niet geïnstalleerd.
+afhandeling. De E32-code is inmiddels geïnstalleerd; de echte ketelproef blijft open.
 [Softwarecontrole en bewijsgrens](GUIDED-BOILER-TRIAL-20261027.json).
 
 **Actuele codeprioriteit:** een snellere webinterface en een opgeruimde Keteltest.
@@ -34,7 +49,8 @@ paginamodules en één gedeelde telemetrieaanvraag. De ketelpagina toont ontvang
 entiteiten eenmaal per herkend apparaat. De proef staat bovenaan met één korte
 opstellingsbevestiging en de stappen ophalen → voorbereiden → apart starten →
 stoppen. Softwareproeven gebruiken gesimuleerde HTTP-/ketelantwoorden; er is
-hiermee geen nieuwe firmware geïnstalleerd of echte warmtevraag verstuurd.
+deze softwareproeven geen echte warmtevraag verstuurd. De latere installatie
+staat apart hierboven.
 [Review en meetgrens](E32-PERFORMANCE-AND-BOILER-REVIEW.md).
 De native MQTT-route gebruikt daarnaast begrensde socketwrites en asynchrone
 DNS via de bestaande lwIP-netwerktaak. Een DNS-storing houdt de hoofdloop niet

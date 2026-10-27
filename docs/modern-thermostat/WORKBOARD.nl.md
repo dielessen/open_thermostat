@@ -1,7 +1,13 @@
 # OpenThermostat — actueel werkbord en releasechecklist
 
+Beta.6 is gepubliceerd en via beveiligde LAN-appupload geïnstalleerd met
+nieuwe bevestigde boot, exacte bron/ELF/web en twaalf bytegelijke exports.
+HA0.4.0b4 is gepubliceerd; installatie loopt. Een kleine HA0.4.0b5-fix
+maakt de bestaande planreview bereikbaar voor badkamerherstel. [Installatiestand](BETA6-INSTALLATION-20261027.json).
+De laatste volledig geaccepteerde native GitHub-update blijft beta.4.
+
 Beta.6 + HA0.4.0b4 is op expliciete opdracht bevroren voor publicatie en installatie.
-Verse uitlezing bevestigt beta.5 op de E32, maar oorspronkelijke beta.5-
+De uitlezing vóór deze installatie bevestigde beta.5 op de E32; oorspronkelijke beta.5-
 installatiebewijzen blijven onvolledig. Beta.4 blijft de volledig geaccepteerde
 native basis. Het freezeplan bewaart deze grens en de eenmalige publicatieopdracht.
 [Actuele uitvoering](NEXT-RELEASE.nl.md) en [freezeplan](BETA6-KANDIDAAT.json).
@@ -54,7 +60,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-591 bronverwijzingen met hashes, status en resterende acceptatie.
+594 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.

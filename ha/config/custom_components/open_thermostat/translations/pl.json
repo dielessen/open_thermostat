@@ -77,7 +77,8 @@
           "room_settings": "Manage rooms",
           "configuration_status": "Installation status",
           "advanced_settings": "Advanced and diagnostics",
-          "controller_connection": "Connect E32"
+          "controller_connection": "Connect E32",
+          "graph_prepare": "Review or recover room plan"
         }
       },
       "installation": {
@@ -283,7 +284,7 @@
         "menu_options": {
           "configuration_status": "Installation status",
           "installation_source": "Review controller connection",
-          "graph_status": "Inspect applied configuration",
+          "graph_status": "Inspect applied room plan",
           "hot_water": "View hot water status"
         }
       },

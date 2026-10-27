@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "target_tag": "ha-v0.4.0b5",
+  "status": "SOFTWARE_PREPARED_AWAITING_EXACT_TAG_CI",
+  "cause": "ProductOptionsFlow overrode the native options entrypoint and omitted inherited graph_prepare and graph_status handlers from every advertised menu. Real Core menu schemas reject unadvertised step selection. A retained staged weekly plan therefore had no product recovery action.",
+  "observed_runtime_before_update": {
+    "integration": "0.4.0b1",
+    "error": "native_plan_recovery_review_required",
+    "accepted_revision": 6,
+    "staged_revision": 7,
+    "plan_difference": "revision and schedule valid_from_utc/valid_until_utc only",
+    "bathroom_unavailable_since_local": "2026-10-27T01:00:00+01:00"
+  },
+  "existing_diagnosis_sha256": "e74302dcad285fe3d8a8ea7b34052dd34b01090941d56b682ce3f4756d95e936",
+  "change": "Advertise existing prepare/review and status handlers only for a running native plan connection; preserve exact candidate, same worker, Store/session fences, separate confirm and readback.",
+  "native_tests": {
+    "selected_tests": 22,
+    "passed": 22,
+    "real_supported_ha_core": "2026.10.4",
+    "real_core_menu_schema": true,
+    "actual_cpp_readback": true,
+    "fresh_and_interrupted_staged_plan": true,
+    "cancel_writes": 0,
+    "confirmed_apply_writes": 1,
+    "entry_and_bindings_preserved": true,
+    "inactive_menu_hidden": true,
+    "status_only_writes": 0
+  },
+  "test_source": "ha/tests_native/test_product_plan_recovery.py",
+  "boiler_or_valve_commands": 0,
+  "physical_outputs_enabled": false,
+  "new_worker_or_storage_owner": false,
+  "e32_firmware_changed": false,
+  "e32_compatibility": "v0.1.0-e32v2-beta.6",
+  "ha_b4_remains_immutable": true
+}

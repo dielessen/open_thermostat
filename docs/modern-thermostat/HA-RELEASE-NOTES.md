@@ -1,7 +1,26 @@
-# HA 0.4.0b4 — integrated room and installation controls
+# HA 0.4.0b5 — restore room plan recovery
 <!-- user-release-notes:v2:en -->
 
-Experimental coordinated release for E32 beta.6. Installation is verified separately.
+Recovery fix for HA 0.4.0b4, compatible with the published E32 beta.6.
+The E32 firmware download is unchanged. Installation is verified separately.
+
+## Recovery fix
+
+- The product menu now exposes **Review or recover room plan** when the existing
+  native plan connection is running. A retained staged plan could previously
+  leave the bathroom climate unavailable while the inherited recovery handler
+  was absent from every product menu.
+- The action opens the existing prepare/review flow. Nothing is sent until the
+  exact staged plan is confirmed. Only fresh E32 readback verifies application;
+  cancel, session changes and uncertain writes retain the existing safeguards.
+- Advanced diagnostics also exposes the applied-plan status. Reading or
+  refreshing status sends no configuration. Disconnected/inactive installations
+  do not display these plan actions.
+- Saved temperatures, device bindings, logical limits and physical output
+  permissions are not changed by opening the menu. This fix enables recovery of
+  existing intent; it does not enable automatic boiler or valve control.
+
+The following features from HA 0.4.0b4 are retained.
 
 ## New
 

@@ -1,6 +1,16 @@
 # Verplicht update- en acceptatieproces per E32-release
 
-**Actueel27 oktober — nieuwe releaseopdracht:** de huidige beta.6/HA0.4.0b4-
+**Actueel27 oktober — beta.6 op E32:** de beveiligde LAN-appupload is na
+één afgebroken upload en een op verse diagnose gebaseerde begrensde poging
+geslaagd. Het oorspronkelijke HTTP200-antwoord, nieuwe boot, exacte openbare
+bron/ELF/web en twaalf bytegelijke exports zijn bewaard. Geen native
+installatieopdracht of losse herstart verstuurd; geen ketelproef gestart.
+De laatste volledige native GitHub-acceptatie blijft beta.4; deze LAN-route
+vult die dertien checks niet fictief in. HA-publicatie/installatie en
+onafhankelijke nacontrole zijn nog bezig.
+[Actueel installatiebewijs](BETA6-INSTALLATION-20261027.json).
+
+**Eerdere opdracht27 oktober — nieuwe releaseopdracht:** de huidige beta.6/HA0.4.0b4-
 bundel wordt op expliciete opdracht gecommitteerd, gepubliceerd en geïnstalleerd.
 Een verse directe uitlezing toont inmiddels beta.5 met juiste openbare bron/ELF/web,
 bevestigde boot en nul TX. De oorspronkelijke installatiebewijzen zijn niet

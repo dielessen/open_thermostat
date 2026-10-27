@@ -6,7 +6,7 @@ Developed independently by **Mark Dielessen**.
 
 Set up rooms, select your Home Assistant devices, edit weekly schedules and
 inspect what your boiler reports. The control and learning software is being
-extended towards coordinated heating. **E32 beta.5 includes an attended
+extended towards coordinated heating. **E32 beta.6 includes a guided, attended
 Ecomline Classic boiler trial. Automatic boiler and valve control remain
 disabled.** Each trial requires local setup checks, a fresh boiler-gauge reading
 and a separate start action. Physical installation acceptance remains open.
@@ -21,8 +21,8 @@ and a separate start action. Physical installation acceptance remains open.
 
 | Component | Version | Channel |
 | --- | --- | --- |
-| E32 V2 firmware | [v0.1.0-e32v2-beta.5](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-beta.5) | Pre-release |
-| Home Assistant integration | [0.4.0b3](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0b3) | Pre-release |
+| E32 V2 firmware | [v0.1.0-e32v2-beta.6](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-beta.6) | Pre-release |
+| Home Assistant integration | [0.4.0b4](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0b4) | Pre-release |
 
 Firmware and the HA integration are separate downloads. Read each release’s
 changes, compatibility notes and installation instructions before updating.
@@ -30,26 +30,26 @@ changes, compatibility notes and installation instructions before updating.
 To build the published E32 firmware, start from its exact tag:
 
 ```sh
-git clone --branch v0.1.0-e32v2-beta.5 https://github.com/dielessen/open_thermostat.git
+git clone --branch v0.1.0-e32v2-beta.6 https://github.com/dielessen/open_thermostat.git
 ```
 
 <!-- openthermostat-readme-releases:end -->
 
-Published packages and installation acceptance are tracked separately. E32
-beta.4 has been installed through the native updater and independently checked,
-including its new boot, exact firmware identity and retained configuration.
-The installed HA integration remains 0.4.0b1; HA 0.4.0b3 is the latest published
-HA package. The attended physical boiler trial is a separate next step.
-[Installation acceptance](https://github.com/dielessen/open_thermostat/blob/review/mark-vscode-20261021/docs/modern-thermostat/update-acceptance/e32-beta4-20261026.json).
+E32 beta.6 and HA 0.4.0b4 are published from the same frozen source. Beta.6 is
+installed with a confirmed new boot, exact firmware/web identity and all twelve
+settings exports retained byte for byte. Installation used the authenticated
+LAN app upload because the device could not establish GitHub HTTPS. Native
+GitHub-update acceptance remains at beta.4. HA installation and the separate
+bathroom plan recovery are in progress. The physical boiler trial remains open.
+[Current installation record](https://github.com/dielessen/open_thermostat/blob/review/mark-vscode-20261021/docs/modern-thermostat/BETA6-INSTALLATION-20261027.json).
 
-**E32 beta.5:** supports an attended 50 °C demand for ten minutes, with repeated
-setpoints, a fixed deadline and a separate stop. Boiler test now contains all
-received entities, settings and protocol references, with explicit read-only,
-configurable and command labels. Update diagnostics distinguish failed checks,
-installation failures and transport errors. Bluetooth discovery retains its
-scrollable 128-address list; eight saved sensor bindings remain separate.
-No new HA package is required. Persistent boiler-setting writes and automatic
-boiler/valve control remain disabled. [Current release work](https://github.com/dielessen/open_thermostat/blob/review/mark-vscode-20261021/docs/modern-thermostat/NEXT-RELEASE.nl.md).
+**Beta.6 + HA 0.4.0b4:** faster web delivery and bounded background work, a guided
+**Setup → Prepare → Heat → Result** boiler trial, room window/door contacts,
+manual temperature helpers, comfort/presence/vacation settings, device battery
+snapshots and connected central installation settings. Software delivery and
+physical acceptance are tracked separately. Persistent boiler-setting writes
+and automatic boiler/valve control remain disabled.
+[Release changes](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-beta.6).
 
 ## Features
 

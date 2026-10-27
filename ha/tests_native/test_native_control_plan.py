@@ -27,6 +27,9 @@ async def native_plan(native_two,hass,monkeypatch,request):
     legacy=options.get("legacy",False)
     controller_id=options.get("controller_id","e32_test")
     parent,rad,floor,heating,output=native_two
+    if options.get("product", False):
+        from custom_components.open_thermostat.product import PRODUCT_CONFIG
+        hass.config_entries.async_update_entry(parent, data={**parent.data, PRODUCT_CONFIG:1})
     if 'minimum_target_centi_c' in options:
         rad=replace(rad,minimum_target_centi_c=options['minimum_target_centi_c'])
         sub=next(s for s in parent.subentries.values() if s.subentry_type=='zone' and s.data['room_id']==rad.room_id)

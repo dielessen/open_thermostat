@@ -250,9 +250,16 @@ class ProductOptionsFlow(ControllerSetupFlow, ShadowOptionsFlow, ProductRoomFlow
     def _get_reconfigure_subentry(self):
         return self.config_entry.subentries[self._managed_room]
 
+    def _native_plan_review_available(self):
+        connection = self._graph_connection()
+        return connection is not None and connection.runtime.native_plan_source is not None
+
     async def async_step_init(self, user_input=None):
-        return self.async_show_menu(step_id="init", menu_options=[
-            "installation", "controller_connection", "room_settings", "configuration_status", "advanced_settings"])
+        options = ["installation", "controller_connection", "room_settings", "configuration_status"]
+        if self._native_plan_review_available():
+            options.append("graph_prepare")
+        options.append("advanced_settings")
+        return self.async_show_menu(step_id="init", menu_options=options)
 
     async def async_step_installation(self, user_input=None):
         entry = self.config_entry
@@ -459,5 +466,7 @@ class ProductOptionsFlow(ControllerSetupFlow, ShadowOptionsFlow, ProductRoomFlow
                 "connection": connection_text, "runtime": runtime_text, "actuator_checks": actuator_text})
 
     async def async_step_advanced_settings(self, user_input=None):
-        return self.async_show_menu(step_id="advanced_settings", menu_options=[
-            "configuration_status", "hot_water"])
+        options = ["configuration_status", "hot_water"]
+        if self._native_plan_review_available():
+            options.append("graph_status")
+        return self.async_show_menu(step_id="advanced_settings", menu_options=options)

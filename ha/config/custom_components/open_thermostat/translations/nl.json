@@ -908,7 +908,8 @@
           "room_settings": "Ruimtes beheren",
           "configuration_status": "Status installatie",
           "advanced_settings": "Geavanceerd en diagnose",
-          "controller_connection": "E32 verbinden"
+          "controller_connection": "E32 verbinden",
+          "graph_prepare": "Kamerplan controleren en herstellen"
         }
       },
       "graph_review": {
@@ -1167,7 +1168,7 @@
         "menu_options": {
           "configuration_status": "Status installatie",
           "installation_source": "Verbinding met regelaar controleren",
-          "graph_status": "Toegepaste configuratie bekijken",
+          "graph_status": "Toegepast kamerplan bekijken",
           "hot_water": "Tapwaterstatus bekijken"
         }
       },

@@ -228,7 +228,7 @@ firmware or boiler action was performed.
 
 The vendor logging macros evaluate message arguments before the logger filters
 them. A disabled project feature could therefore still build JSON, query heap
-statistics or traverse SPIFFS. The E32 now checks destination acceptance before
+statistics or call filesystem statistics. The E32 now checks destination acceptance before
 evaluating those arguments, using the public logger interface. Logger, level and
 feature/format expressions are evaluated once. Generic-board macros are unchanged.
 
@@ -244,8 +244,15 @@ also skips formatting when neither web nor syslog wants the record. Reception,
 monitor updates, device inventory and transmit admission are unchanged.
 
 The ten-second heap summary remains at INFO. The separate SPIFFS usage line is
-now DEBUG, so the flash scan runs only when a selected destination requests App
-debug output. The existing E32 serial sink remains TRACE: enabling App keeps
+now DEBUG, so those statistics calls run only when a selected destination requests
+App debug output. Source review corrected an earlier description here: this is
+not a flash scan. The pinned Arduino calls use
+[`esp_spiffs_info`](https://github.com/espressif/esp-idf/blob/v4.4.7/components/spiffs/esp_spiffs.c#L286),
+whose pinned
+[`SPIFFS_info`](https://github.com/pellepl/spiffs/blob/0dbb3f71c5f6fae3747a9d935372773762baf852/src/spiffs_hydrogen.c#L1090)
+computes usage from existing counters under its filesystem lock. Lazy rejection
+avoids these calls, but no eliminated flash traversal or measured flash-latency
+gain is claimed. The existing E32 serial sink remains TRACE: enabling App keeps
 that debug line available there. No installed logging setting was changed.
 
 The periodic Ethernet route refresh also uses `tcpip_try_callback`. A full

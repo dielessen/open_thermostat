@@ -8,6 +8,7 @@ from dataclasses import dataclass
 MAX_CONTACTS = 8
 MAX_AGE_MS = 86400000
 MAX_DELAY_MS = 600000
+CONTACT_DEVICE_CLASSES = ('window', 'door', 'opening', 'garage_door')
 
 
 def _integer(value, minimum, maximum):
@@ -74,6 +75,27 @@ def contacts_from_dict(value):
     if len(set(identities)) != len(identities) or len(set(entity_ids)) != len(entity_ids):
         raise ValueError('duplicate_contact_binding')
     return contacts
+
+
+def select_contacts(hass, selections):
+    """Resolve the same bounded native selections for the editor and wizard."""
+    from homeassistant.helpers import entity_registry as er
+    from .v1_heating_graph import selected_reference
+    if (type(selections) is not list or len(selections) > MAX_CONTACTS
+            or any(type(value) is not str or value.startswith('unresolved:') for value in selections)
+            or len(set(selections)) != len(selections)):
+        raise ValueError('invalid_contacts')
+    result = []
+    for selection in selections:
+        raw = selected_reference(hass, selection, ('binary_sensor',))
+        row = er.async_get(hass).async_get(raw['entity_id'])
+        state = hass.states.get(raw['entity_id'])
+        kind = ((state.attributes.get('device_class') if state else None)
+                or row.device_class or row.original_device_class)
+        if kind not in CONTACT_DEVICE_CLASSES:
+            raise ValueError('not_contact_sensor')
+        result.append({'entity': raw, 'kind': 'door' if kind in ('door', 'garage_door') else 'window'})
+    return contacts_from_dict(result)
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,3 +193,11 @@ def comfort_record(room):
     if room.contacts:
         result['window_max_age_ms'] = room.contact_policy.maximum_age_ms
     return result
+
+
+def context_record(room):
+    if room.comfort is not None:
+        return {'comfort': comfort_record(room)}
+    if room.contacts:
+        return {'contacts': {'maximum_age_ms': room.contact_policy.maximum_age_ms}}
+    return {}

@@ -5,12 +5,24 @@ Development bundle; not published or installed.
 
 ## New
 
-Complete room-context and installation controls are being integrated into the
-existing room screen, configuration storage and E32 contract.
+- Select up to eight window and door contacts in the normal room editor or room
+  setup wizard. Configure opening/resume delays and maximum report age.
+- Contact status distinguishes open, closed, waiting and unavailable/expired
+  reports. Re-reading a page does not renew a report. Only explicitly selected
+  contacts affect a room.
+- Add or remove contacts on an active native plan through the existing save,
+  reload and verified controller readback. Older firmware without the contact
+  contract is rejected before saving the new active-room intent.
 
 ## Fixed
 
-Regressions and evidence will be recorded with the completed feature paths.
+- Contacts can pause an ordinary room without enabling comfort modes or changing
+  its temperature bounds, source profile or independent frost policy.
+- The editor and wizard share identity validation; deletion/replacement during
+  review or compilation cannot silently adopt another device. Removing contacts
+  clears their persisted bindings and listeners.
+- A new managed editor tag and versioned resource URL load the current editor
+  after an update. Saved older card types remain supported.
 
 ## Updating
 

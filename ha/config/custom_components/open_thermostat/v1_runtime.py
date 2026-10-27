@@ -69,6 +69,8 @@ class ShadowRuntime:
                     or graph_controller_source.controller.entry_unique_id!=entry.unique_id
                     or len(rooms)!=graph_controller_source.room_count or not all(graph_controller_source.supports_room(room) for room in rooms)):
                 raise ValueError("graph_control_source_binding")
+            if any(room.contacts for room in rooms):
+                raise ValueError('graph_contact_contract_unavailable')
         from .native_plan import NativePlanSource
         if native_plan_source is not None:
             if (type(native_plan_source) is not NativePlanSource or graph_data_profile is not None
@@ -97,6 +99,7 @@ class ShadowRuntime:
         self._comfort_context_cache = {}
         self._contact_aggregators = {r.room_id: ContactAggregator(r.contact_policy)
                                      for r in rooms if r.contacts}
+        self._contact_timers = {}
         # Bounded logical SOURCE pins; never loaded from entry/options/Store.
         if type(context_source_profiles) is not tuple or len(context_source_profiles)>8*(MAX_CONTACTS+2):
             raise ValueError("context_profile_invalid")
@@ -112,7 +115,7 @@ class ShadowRuntime:
                  if room is not None and profile.kind=="contact" else getattr(room,profile.kind,None))
             key=(profile.room_id,profile.kind,ref.identity()) if profile.kind=="contact" and ref else (profile.room_id,profile.kind)
             if (graph_data_profile is not None or profile.entry_unique_id!=entry.unique_id
-                    or room is None or room.comfort is None or ref is None
+                    or room is None or (room.comfort is None and not room.contacts) or ref is None
                     or ref.identity()!=profile.identity or key in self._context_source_profiles):
                 raise ValueError("context_profile_binding")
             self._context_source_profiles[key]=profile
@@ -515,6 +518,7 @@ class ShadowRuntime:
         generation = self._generation
         profile_owner = self._profile_owners.get(room_id)
         self.observations[room_id] = observation
+        self._schedule_contact_transition(room_id)
         self._notify()
         # A listener may replace the source or stop the runtime synchronously.
         # Never queue the superseded report over the resulting withdrawal.
@@ -610,6 +614,9 @@ class ShadowRuntime:
 
     def invalidate_context_sources(self):
         """Owner/rebind/stop drops usable proofs; bounded replay watermarks survive."""
+        for cancel, _, _ in self._contact_timers.values():
+            cancel()
+        self._contact_timers.clear()
         self._context_source_values.clear()
         for aggregate in self._contact_aggregators.values():
             aggregate.reset()
@@ -745,6 +752,36 @@ class ShadowRuntime:
             value=prior[3] if 0<=elapsed and 0<=age<room.contact_policy.maximum_age_ms else None
             samples.append(ContactSample(value,age,prior[0]))
         return self._contact_aggregators[room.room_id].assess(math.floor(now*1000),tuple(samples))
+
+    def _schedule_contact_transition(self, room_id):
+        room = self.rooms.get(room_id)
+        if not self._active or room is None or not room.contacts:
+            return
+        assessment = self._contacts_context(room)
+        old = self._contact_timers.get(room_id)
+        now = self._measurement_now()
+        deadline = math.floor(now*1000) + assessment.pending_ms if now is not None and assessment.pending_ms else None
+        if old and old[1] == deadline:
+            return
+        if old:
+            old[0]()
+            self._contact_timers.pop(room_id, None)
+        if deadline is None:
+            return
+        generation, token = self._generation, object()
+        @callback
+        def contact_due(_):
+            owner = self._contact_timers.get(room_id)
+            if owner is None or owner[2] is not token:
+                return
+            self._contact_timers.pop(room_id, None)
+            if not self._active or generation != self._generation or self.rooms.get(room_id) is not room:
+                return
+            # Forward the original temperature proof and its original age. The
+            # existing flush checks source ownership/expiry before any packet.
+            self._record(room_id, self.observations[room_id])
+        cancel = async_call_later(self.hass, assessment.pending_ms/1000, contact_due)
+        self._contact_timers[room_id] = (cancel, deadline, token)
 
     def comfort_context(self,room):
         """Native HA logical observations, NOT physical readiness or source evidence.

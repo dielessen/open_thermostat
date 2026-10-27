@@ -289,14 +289,15 @@ private:
         if(topic=="ha/snapshot_request") { result(resultTopic,e,"accepted"); snapshot(e.sequence); state(now,utc,clockValid); return; }
         auto &z=config_->zones[index];
         if(kind==StreamKind::observation) {
-            if(z.comfortEnabled) {
+            if(z.comfortEnabled||z.contactsEnabled) {
                 auto &in=z.comfortInputs;
                 const auto context=[&](const char *key,const char *ageKey,bool supported,uint32_t maximumAge,bool &known,bool &value,uint64_t &at,uint32_t &receivedAge) {
                     const uint64_t age=uintField(root.get(),ageKey)+admission_.grantElapsed(now);
                     known=supported&&!cJSON_IsNull(field(root.get(),key))&&age<maximumAge;
                     value=cJSON_IsTrue(field(root.get(),key));at=now;receivedAge=known?age:maximumAge;
                 };
-                context("window_open","window_age_ms",z.comfortProfile.windowSupported,z.comfortProfile.maximumWindowAgeMs,in.windowKnown,in.windowOpen,in.windowAt,in.windowAgeAtReceipt);
+                context("window_open","window_age_ms",z.contactsEnabled||z.comfortProfile.windowSupported,
+                    z.contactsEnabled?z.maximumContactAgeMs:z.comfortProfile.maximumWindowAgeMs,in.windowKnown,in.windowOpen,in.windowAt,in.windowAgeAtReceipt);
                 context("presence_away","presence_age_ms",z.comfortProfile.presenceSupported,z.comfortProfile.maximumPresenceAgeMs,in.presenceKnown,in.away,in.presenceAt,in.presenceAgeAtReceipt);
             }
             if(cJSON_IsFalse(field(root.get(),"source_available"))) z.sample.unavailable();
@@ -394,7 +395,7 @@ private:
                 const auto& z=old->zones[i];const auto pin=nativePlanSource_->zone(z.id);
                 const auto rawZone=cJSON_GetArrayItem(field(root.get(),"zones"),static_cast<int>(i));
                 const auto schedule=field(rawZone,"schedule");
-                if(!pin||z.comfortEnabled||z.base<pin->policy.minimumTargetCentiC
+                if(!pin||z.comfortEnabled||z.contactsEnabled||z.base<pin->policy.minimumTargetCentiC
                     ||z.base>pin->policy.maximumTargetCentiC||z.profile.maximumAgeMs>pin->maximumSensorAgeMs
                     ||z.reportEvidence!=pin->reportEvidence||!sourceScheduleBounds(schedule,pin->policy)) {fault_=true;return;}
                 if(!cJSON_IsNull(schedule))transitions+=static_cast<size_t>(cJSON_GetArraySize(field(schedule,"transitions")));
@@ -414,7 +415,8 @@ private:
         TemperatureProfile profile;
         TemperatureSample sample;
         UtcSchedule schedule;
-        bool scheduled=false,off=false,demand=false,comfortEnabled=false;
+        bool scheduled=false,off=false,demand=false,comfortEnabled=false,contactsEnabled=false;
+        uint32_t maximumContactAgeMs=0;
         ComfortProfile comfortProfile;
         EffectiveTarget comfort;
         ComfortInputs comfortInputs;
@@ -453,11 +455,14 @@ private:
         std::set<std::string> identities{"adapter","config","snapshot"};
         for(auto zone=zones->child;zone;zone=zone->next) {
             const bool comfort=field(zone,"comfort");
-            const bool shape=(nativePlanSource_&&!legacyReadback)?
-                (comfort?exactFields(zone,{"actuator_id","actuator_profile","base_centi_c","comfort","group_id","max_age_ms","report_evidence","schedule","sensor_id","zone_id"}):
-                    exactFields(zone,{"actuator_id","actuator_profile","base_centi_c","group_id","max_age_ms","report_evidence","schedule","sensor_id","zone_id"})):
-                (comfort?exactFields(zone,{"actuator_id","base_centi_c","comfort","max_age_ms","report_evidence","schedule","sensor_id","zone_id"}):
-                    exactFields(zone,{"actuator_id","base_centi_c","max_age_ms","report_evidence","schedule","sensor_id","zone_id"}));
+            const bool contacts=field(zone,"contacts");
+            if(comfort&&contacts)return false;
+            std::set<std::string> keys{"actuator_id","base_centi_c","max_age_ms","report_evidence","schedule","sensor_id","zone_id"};
+            if(nativePlanSource_&&!legacyReadback){keys.insert("actuator_profile");keys.insert("group_id");}
+            if(comfort)keys.insert("comfort");
+            if(contacts)keys.insert("contacts");
+            bool shape=cJSON_IsObject(zone)&&cJSON_GetArraySize(zone)==int(keys.size());
+            for(const auto& key:keys)shape=shape&&field(zone,key.c_str());
             if(!shape||
                 !integerField(zone,"base_centi_c",500,3500)||!integerField(zone,"max_age_ms",1000,86400000)) return false;
             auto &z=out.zones[out.count];
@@ -468,6 +473,11 @@ private:
                 !identities.insert(z.id).second||!identities.insert(z.sensor).second||
                 (!z.actuator.empty()&&!identities.insert(z.actuator).second)||
                 (z.reportEvidence!="physical_report"&&z.reportEvidence!="validated_integration_report")) return false;
+            if(contacts) {
+                const auto c=field(zone,"contacts");
+                if(!exactFields(c,{"maximum_age_ms"})||!integerField(c,"maximum_age_ms",1000,86400000))return false;
+                z.contactsEnabled=true;z.maximumContactAgeMs=uintField(c,"maximum_age_ms");
+            }
             if(comfort) {
                 const auto c=field(zone,"comfort");
                 const bool contacts=cJSON_HasObjectItem(c,"window_max_age_ms");
@@ -561,7 +571,7 @@ private:
                 ||(nativePlanSource_&&fault_)) return false;
         } else if(topic=="ha/observations") {
             keys.insert({"zone_id","source_available","temperature_c","source_sample_age_ms","evidence"});
-            if(index>=0&&config_->zones[index].comfortEnabled) {
+            if(index>=0&&(config_->zones[index].comfortEnabled||config_->zones[index].contactsEnabled)) {
                 keys.insert({"window_open","window_age_ms","presence_away","presence_age_ms"});
                 for(auto key:{"window_open","presence_away"})
                     if(!cJSON_IsBool(field(o,key))&&!cJSON_IsNull(field(o,key))) return false;
@@ -896,9 +906,22 @@ private:
                 cJSON_AddNumberToObject(row,"vacation_until_utc",z.comfort.vacationUntil());
             }
             target=effective.target;source=effective.source;
+            // Contacts alone inhibit the ordinary room target. They neither
+            // select comfort/frost modes nor change the installation's policy.
+            bool contactBlocked=false;
+            if(z.contactsEnabled&&!z.off) {
+                const auto& input=z.comfortInputs;
+                const bool known=input.windowKnown&&now>=input.windowAt
+                    &&input.windowAgeAtReceipt<z.maximumContactAgeMs
+                    &&now-input.windowAt<z.maximumContactAgeMs-input.windowAgeAtReceipt;
+                if(!known||input.windowOpen) {
+                    target.reset();source="window";reason=known?"window_open":"window_state_unknown";
+                    contactBlocked=true;
+                }
+            }
             if(!alive) reason="adapter_unavailable";
             else if(!temperature) reason="source_unverified_or_stale";
-            else if(!target&&!z.comfortEnabled) reason=z.off?"off":"schedule_time_invalid_or_expired";
+            else if(!target&&!z.comfortEnabled&&!contactBlocked) reason=z.off?"off":"schedule_time_invalid_or_expired";
             const bool usable=alive&&temperature&&target;
             ZoneRegulator::Result regulation;
             if(seasonalSource_) {

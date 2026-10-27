@@ -4,7 +4,7 @@ Only an independently selected logical installation profile may select this path
 Local review is never physical readiness, a new worker/store or per-config pin.
 """
 
-from .room_contacts import comfort_record
+from .room_contacts import context_record
 from .product import heating_entries
 from copy import deepcopy
 from dataclasses import dataclass
@@ -250,8 +250,7 @@ class NativePlanSource:
             zone=dict(zone_id=room.room_id,sensor_id=z["sensor_id"],actuator_id=z["actuator_id"],
                 actuator_profile=z["actuator_profile"],group_id=z["group_id"],base_centi_c=room.base_centi_c,
                 max_age_ms=room.maximum_age_ms,report_evidence=z["report_evidence"],schedule=schedule)
-            if room.comfort is not None:
-                zone["comfort"]=comfort_record(room)
+            zone.update(context_record(room))
             zones.append(zone)
             for cid,direction,owner,res in ((z["sensor_id"],"input",room.room_id,z["sensor_resource"]),
                 (z["actuator_id"],"output",z["actuator_id"],z["output_resource"])):
@@ -289,7 +288,11 @@ class NativePlanSource:
         previous="";transitions=0
         for zone in value["zones"]:
             keys="actuator_id actuator_profile base_centi_c group_id max_age_ms report_evidence schedule sensor_id zone_id"
-            obj(zone,keys+(" comfort" if "comfort" in zone else ""))
+            obj(zone,keys+(" comfort" if "comfort" in zone else "")+(" contacts" if "contacts" in zone else ""))
+            if 'contacts' in zone:
+                require('comfort' not in zone, 'native_contact_policy')
+                c = obj(zone['contacts'], 'maximum_age_ms')
+                integer(c['maximum_age_ms'], 1000, 86400000)
             rid=zone["zone_id"];require(type(rid) is str and rid>previous,"native_zone_order");previous=rid
             z=next((x for x in profile["zones"] if x["zone_id"]==rid),None);require(z is not None,"native_zone_binding")
             for k in ("actuator_id","actuator_profile","group_id","report_evidence","sensor_id"):exact(zone[k],z[k],"native_zone_binding")

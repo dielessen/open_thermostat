@@ -35,3 +35,20 @@ De modelcatalogus blijft als bronreferentie bewaard, niet als tweede waardenlijs
 De 31 producteisen en 14 fysieke/productchecks uit WORKBOARD blijven behouden.
 Elke bundel krijgt concrete implementatie- en testbewijzen; ontbrekend fysiek
 bewijs blijft afzonderlijk open. Geen nieuwe externe dienst of langlopende watcher.
+
+## Ontwikkelvoortgang
+
+- Performance en Keteltest: gecomprimeerde/cachebare webbestanden, luie modules,
+  één gedeelde telemetrieaanvraag, herbruikbaar PSRAM en een proefvolgorde met één
+  korte opstellingsverklaring. Checkpoint `e1376f5` slaagt voor alle negen
+  GitHub-validatiejobs. Niet geïnstalleerd; snelheidswinst op het apparaat nog meten.
+- Raam/deur: maximaal acht expliciet gekozen contacten per kamer, bewaren en
+  verwijderen in normale editor/wizard, instelbare reactietijden, ouderdom en
+  status. Ook actieve native plannen gebruiken dezelfde save/reload/readbackroute.
+  De contactfunctie kan gewone kamervraag alleen beperken en activeert geen
+  extra comfort- of vorststand. C++-beleid, UI en oorspronkelijke leeftijden worden
+  met gesimuleerde transporten en echte native HA-/C++-code getoetst.
+- Nog softwarematig uit te bouwen: externe kamerdoelbron met echoherkenning,
+  gewone comfort-/aanwezigheidsbediening, centrale instellingen en schaalbare
+  zones/kranen, verdere modelwriters en de overige bron-/leer-/standaloneketens.
+  Oorspronkelijke fysieke bronkwalificatie en hardwareproeven blijven apart.

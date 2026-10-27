@@ -127,7 +127,7 @@ class RoomBinding:
                     or type(comfort["temporary_ms"]) is not int or not 60000<=comfort["temporary_ms"]<=43200000
                     or mode not in (ROOM_CLIMATE_TRV, ROOM_GRAPH_DRAFT)):
                 raise ValueError("invalid_comfort_profile")
-        elif window or presence or contacts:
+        elif window or presence:
             raise ValueError("comfort_required")
         if window and not window.entity_id.startswith("binary_sensor."):
             raise ValueError("invalid_window_source")

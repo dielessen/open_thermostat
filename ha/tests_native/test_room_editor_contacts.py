@@ -27,7 +27,7 @@ async def test_complete_room_save_pins_multiple_contacts_and_reaction_policy(has
     assert [(c.kind,c.entity.platform,c.entity.unique_id) for c in room.contacts]==[
         ('window','mqtt',window.unique_id),('door','mqtt',door.unique_id)]
     assert room.contact_policy.as_dict()==settings['contact_policy']
-    assert room.comfort and room.window is None
+    assert room.comfort is None and room.window is None
     assert RoomBinding.from_dict(room.as_dict())==room
     assert entry.subentries[sub.subentry_id].data['room_id']==model['room_id']
 
@@ -43,7 +43,7 @@ async def test_explicit_contact_removal_preserves_temperature_week_valves_and_co
     after=dict(entry.subentries[sub.subentry_id].data)
     assert result['settings']['contact_entities']==[] and 'contacts' not in after and 'contact_policy' not in after
     for key in ('temperature','week_program','comfort','base_centi_c','room_id'):
-        assert after[key]==before[key]
+        assert after.get(key)==before.get(key)
 
 
 @pytest.mark.asyncio
@@ -78,7 +78,7 @@ async def test_contact_registry_rename_follows_unique_identity_and_removed_id_is
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('fault',['duplicate','unknown','wrong_class','not_binary','policy_boolean','policy_huge','extra_policy'])
+@pytest.mark.parametrize('fault',['duplicate','unknown','wrong_class','not_binary','policy_boolean','policy_huge','extra_policy','null_list','string_list'])
 async def test_invalid_contacts_never_partially_save_room_or_graph(hass,configured,fault):
     entry,sub,model=configured;window=source(hass,'bad')
     settings=changed(model);settings['contact_entities']=[window.entity_id]
@@ -89,6 +89,8 @@ async def test_invalid_contacts_never_partially_save_room_or_graph(hass,configur
     if fault=='policy_boolean':settings['contact_policy']['open_delay_ms']=True
     if fault=='policy_huge':settings['contact_policy']['maximum_age_ms']=86400001
     if fault=='extra_policy':settings['contact_policy']['trust']=True
+    if fault=='null_list':settings['contact_entities']=None
+    if fault=='string_list':settings['contact_entities']=window.entity_id
     before=configuration_snapshot(entry)
     with pytest.raises((ValueError,KeyError)):
         await ui.save_room(hass,entry.entry_id,model['room_id'],model['token'],settings)

@@ -15,7 +15,7 @@ struct Store:ControlStore {
     bool save(std::string_view value) override { ++writes; if(!failSave||commitOnError) bytes=value; return !failSave; }
 };
 const std::string mapping(64,'a');
-std::string config(unsigned revision=1,const std::string &zones="") {
+inline std::string config(unsigned revision=1,const std::string &zones="") {
     return "{\"mapping_digest\":\""+mapping+"\",\"mode\":\"shadow\",\"revision\":"+std::to_string(revision)+
         ",\"schema\":1,\"zones\":["+(zones.empty()?R"({"actuator_id":"trv1","base_centi_c":2100,"max_age_ms":120000,"report_evidence":"physical_report","schedule":null,"sensor_id":"room1","zone_id":"1234abcd"})":zones)+"]}";
 }
@@ -93,7 +93,7 @@ struct Fixture {
     static const cJSON *row(const ControlJson &s) { return field(s.get(),"zones")->child; }
 };
 
-std::string metricFixture() {
+inline std::string metricFixture() {
     auto o=objectJson();cJSON_AddNumberToObject(o.get(),"metricsSchema",2);
     cJSON_AddStringToObject(o.get(),"counterDefinition","observation-total-v2");
     cJSON_AddStringToObject(o.get(),"counterScope","boot");
@@ -105,12 +105,12 @@ std::string metricFixture() {
     cJSON_AddBoolToObject(o.get(),"powerFresh",false);cJSON_AddNumberToObject(o.get(),"outdoorTemperature",-5.7);
     return printJson(o.get());
 }
-ControlJson nonceHeartbeat(Fixture &f,unsigned sequence,const char *nonce) {
+inline ControlJson nonceHeartbeat(Fixture &f,unsigned sequence,const char *nonce) {
     auto o=f.envelope("adapter",sequence);
     if(nonce)cJSON_AddStringToObject(o.get(),"grant_request_nonce",nonce);
     return o;
 }
-std::string comfortConfig(bool context=true) {
+inline std::string comfortConfig(bool context=true) {
     auto root=parseControlJson(config());
     auto z=field(root.get(),"zones")->child;
     auto c=cJSON_AddObjectToObject(z,"comfort");
@@ -120,17 +120,17 @@ std::string comfortConfig(bool context=true) {
     // Configs are canonical sorted-key documents, as on the actual HA path.
     return "{\"mapping_digest\":\""+mapping+"\",\"mode\":\"shadow\",\"revision\":1,\"schema\":1,\"zones\":[{\"actuator_id\":\"trv1\",\"base_centi_c\":2100,\"comfort\":"+printJson(c)+",\"max_age_ms\":120000,\"report_evidence\":\"physical_report\",\"schedule\":null,\"sensor_id\":\"room1\",\"zone_id\":\"1234abcd\"}]}";
 }
-void comfortReady(Fixture &f,bool context=true) {
+inline void comfortReady(Fixture &f,bool context=true) {
     f.start();f.connect();f.heartbeat();
     auto cfg=f.configuration(comfortConfig(context));f.send("ha/config",cfg.get());f.connect();f.heartbeat();
     ASSERT_EQ(f.core->revision(),1u);
 }
-ControlJson comfortCommand(Fixture &f,const char *mode,unsigned seq=1,int target=0,unsigned duration=0) {
+inline ControlJson comfortCommand(Fixture &f,const char *mode,unsigned seq=1,int target=0,unsigned duration=0) {
     auto o=f.envelope("1234abcd",seq);cJSON_AddStringToObject(o.get(),"mode",mode);
     if(target)cJSON_AddNumberToObject(o.get(),"temperature_centi_c",target);else cJSON_AddNullToObject(o.get(),"temperature_centi_c");
     cJSON_AddNumberToObject(o.get(),"duration_ms",duration);cJSON_AddNumberToObject(o.get(),"vacation_until_utc",0);return o;
 }
-ControlJson contextObservation(Fixture &f,unsigned seq=1,bool open=false,bool away=false,bool known=true) {
+inline ControlJson contextObservation(Fixture &f,unsigned seq=1,bool open=false,bool away=false,bool known=true) {
     auto o=f.observation(seq);
     cJSON_AddBoolToObject(o.get(),"window_open",open);cJSON_AddNumberToObject(o.get(),"window_age_ms",0);
     if(known)cJSON_AddBoolToObject(o.get(),"presence_away",away);else cJSON_AddNullToObject(o.get(),"presence_away");

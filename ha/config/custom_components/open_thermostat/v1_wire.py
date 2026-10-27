@@ -159,6 +159,7 @@ class ShadowClient:
         self.boiler_fields=BoilerFieldCache()
         self.metrics_supported=False
         self.comfort_supported=False
+        self.contacts_supported=False
         self._metrics=None
         self._metrics_received=0.0
         self._metrics_highwater=0
@@ -716,6 +717,7 @@ class ShadowClient:
         self.room_names_supported = False
         self.grant_nonce_supported = False
         self.comfort_supported = False
+        self.contacts_supported = False
         self._grant_proofs.clear()
         self.verified = False
         self.grant_until = self.lease_until = 0
@@ -900,8 +902,11 @@ class ShadowClient:
             self.comfort_supported=(type(comfort_caps) is list and len(comfort_caps)<=8
                 and all(isinstance(cap,str) and len(cap)<=64 for cap in comfort_caps)
                 and COMFORT_CAPABILITY in comfort_caps)
-            if (any("window_max_age_ms" in z.get("comfort", {}) for z in self.desired)
-                    and (not self.comfort_supported or CONTACTS_CAPABILITY not in comfort_caps)):
+            self.contacts_supported = (type(comfort_caps) is list and len(comfort_caps)<=8
+                and all(type(cap) is str and len(cap)<=64 for cap in comfort_caps)
+                and CONTACTS_CAPABILITY in comfort_caps)
+            if (any("contacts" in z or "window_max_age_ms" in z.get("comfort", {}) for z in self.desired)
+                    and not self.contacts_supported):
                 self.reset_session();self.error="contact_capability_unavailable";self.changed();return
             if any("comfort" in z for z in self.desired) and not self.comfort_supported:
                 self.reset_session();self.error="comfort_capability_unavailable";self.changed();return
@@ -1043,7 +1048,7 @@ class ShadowClient:
             for row in rows:
                 if (row["zone_id"] in decisions or not isinstance(row.get("reason"), str)
                     or len(row["reason"]) > 64 or not integer(row.get("sample_state"), 0, 6)
-                    or row.get("target_source") not in ({"base","schedule","temporary","off","boost","away","vacation","frost","window","presence","limit"} if self.comfort_supported else {"base","schedule","temporary","off"})
+                    or row.get("target_source") not in ({"base","schedule","temporary","off","boost","away","vacation","frost","window","presence","limit"} if self.comfort_supported else {"base","schedule","temporary","off"}|({"window"} if self.contacts_supported else set()))
                     or (row.get("sample_age_ms") is not None and not integer(row["sample_age_ms"], 0, 9007199254740991))
                     or (row.get("temperature_centi_c") is not None and
                         (row.get("sample_state") != 1 or row.get("sample_age_ms") is None
@@ -1206,7 +1211,7 @@ class ShadowClient:
             "temperature_c": observation.temperature_c if usable else 0,
             "source_sample_age_ms": age if usable else 0,
             "evidence": "physical_report" if usable else "unverified",
-            **(self.runtime.comfort_context(room) if room.comfort is not None else {})})
+            **(self.runtime.comfort_context(room) if room.comfort is not None or room.contacts else {})})
 
     async def async_setpoint(self, room_id, centi_c):
         if not self.ready or room_id not in self.runtime.rooms or not integer(centi_c, 500, 3500):

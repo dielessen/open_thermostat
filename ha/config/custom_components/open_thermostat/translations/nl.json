@@ -21,12 +21,14 @@
             "temperature_entity": "Temperatuursensor",
             "radiator_entities": "Radiatorkranen",
             "base_temperature": "Gewenste temperatuur",
-            "program_action": "Weekprogramma"
+            "program_action": "Weekprogramma",
+            "contact_entities": "Raam- en deursensoren (optioneel)"
           },
           "data_description": {
             "temperature_entity": "Kies de sensor die de temperatuur in deze kamer meet.",
             "program_action": "Behoud het bestaande programma, bewerk lokale tijdblokken of verwijder het programma expliciet.",
-            "base_temperature": "Gebruikt buiten programmablokken. Opslaan verstuurt geen temperatuurcommando."
+            "base_temperature": "Gebruikt buiten programmablokken. Opslaan verstuurt geen temperatuurcommando.",
+            "contact_entities": "Kies maximaal acht contacten. Een open contact pauzeert de kamervraag; hervatten kan nadat alle contacten gesloten melden. Ontbrekende of verlopen berichten houden de vraag gepauzeerd."
           },
           "sections": {
             "advanced": {
@@ -35,18 +37,22 @@
                 "minimum_target_temperature": "Minimale kamertemperatuur",
                 "maximum_target_temperature": "Maximale kamertemperatuur",
                 "maximum_age_ms": "Maximale leeftijd van een gekwalificeerde meting (ms)",
-                "schedule_entity": "Home Assistant Schedule-helper (optioneel)"
+                "schedule_entity": "Home Assistant Schedule-helper (optioneel)",
+                "contact_open_delay_s": "Vertraging na openen (seconden)",
+                "contact_close_delay_s": "Wachttijd na sluiten (seconden)",
+                "contact_maximum_age_s": "Maximale contactberichtouderdom (seconden)"
               },
               "data_description": {
                 "maximum_age_ms": "Versheidsgrens, geen meetinterval. Een gecachte waarde bewijst geen nieuwe fysieke meting.",
-                "schedule_entity": "Een alternatief voor het lokale weekprogramma. Gebruik één programmabron per kamer."
+                "schedule_entity": "Een alternatief voor het lokale weekprogramma. Gebruik één programmabron per kamer.",
+                "contact_maximum_age_s": "Oudere berichten worden onbekend. Dit verandert niet hoe vaak de sensor rapporteert."
               }
             }
           }
         },
         "room_review": {
           "title": "Deze kamer opslaan?",
-          "description": "**{name}**\n\nTemperatuursensor: {sensor}\n\nRadiatorkranen: {radiators}\n\nGewenste temperatuur buiten programmablokken: **{target} °C**\n\nDe kamer en radiatorgroep worden samen opgeslagen. Bestaande centrale verwarmingsinstellingen blijven behouden. De regeling blijft uit; inschakelen en testen van de controller is een afzonderlijke stap.",
+          "description": "**{name}**\n\nTemperatuursensor: {sensor}\n\nRadiatorkranen: {radiators}\n\nRaam- en deursensoren: {contacts}\n\nGewenste temperatuur buiten programmablokken: **{target} °C**\n\nDe kamer en radiatorgroep worden samen opgeslagen. Bestaande centrale verwarmingsinstellingen blijven behouden. De regeling blijft uit; inschakelen en testen van de controller is een afzonderlijke stap.",
           "submit": "Kamer opslaan"
         },
         "program": {
@@ -116,7 +122,10 @@
         "select_radiators": "Kies één tot en met acht radiatorkranen.",
         "output_has_multiple_owners": "Een geselecteerde kraan hoort al bij een andere kamer of controller. Controleer de bestaande koppeling onder Geavanceerd.",
         "input_output_loop": "Een radiatorkraan kan niet tegelijk de bron voor de gewenste temperatuur zijn.",
-        "setup_invalid": "De kamer kon niet worden voorbereid. Controleer de apparaten en bestaande koppelingen; er is niets opgeslagen."
+        "setup_invalid": "De kamer kon niet worden voorbereid. Controleer de apparaten en bestaande koppelingen; er is niets opgeslagen.",
+        "invalid_contacts": "Kies maximaal acht verschillende raam- of deursensoren.",
+        "not_contact_sensor": "Kies een binaire raam- of deursensor.",
+        "invalid_contact_policy": "Gebruik hele seconden: vertragingen 0–600, berichtouderdom 1–86400 en langer dan beide vertragingen."
       },
       "abort": {
         "room_limit": "Er kunnen maximaal acht kamers worden ingesteld.",

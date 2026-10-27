@@ -25,7 +25,7 @@ from .v1_wire import digest
 from .week_planner import _target
 from .v1_profile_c import review_room_targets
 from .device_metadata import selected_device, MetadataUnavailable
-from .room_contacts import ContactBinding, ContactPolicy
+from .room_contacts import ContactPolicy, select_contacts
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -192,11 +192,8 @@ def prepare_room_edit(hass, entry, sub, old, settings, *, confirm_source_change=
     if (type(settings) is not dict or set(settings) not in (required,required|contact_keys)):
         raise ValueError('setup_invalid')
     contacts=settings.get('contact_entities')
-    policy=ContactPolicy.from_dict(settings['contact_policy']) if contact_keys<=settings.keys() else old.contact_policy
-    if contacts is not None and (type(contacts) is not list or len(contacts)>8
-            or any(type(x) is not str or x.startswith('unresolved:') for x in contacts)
-            or len(set(contacts))!=len(contacts)):
-        raise ValueError('invalid_contacts')
+    edit_contacts=contact_keys<=settings.keys()
+    policy=ContactPolicy.from_dict(settings['contact_policy']) if edit_contacts else old.contact_policy
     if settings['emitter'] != 'radiator':
         raise ValueError('emitter_not_available')
     if settings['program_source'] not in ('local', 'helper'):
@@ -247,21 +244,9 @@ def prepare_room_edit(hass, entry, sub, old, settings, *, confirm_source_change=
         # Existing clients cannot silently erase context they cannot edit.
         selected_contacts=old.contacts
         legacy_window=old.window
-        if contacts is not None:
-            selected_contacts=[];legacy_window=None
-            for selection in contacts:
-                raw=selected_reference(hass,selection,('binary_sensor',))
-                row=er.async_get(hass).async_get(raw['entity_id'])
-                state=hass.states.get(raw['entity_id'])
-                dc=(state.attributes.get('device_class') if state else None) or row.device_class or row.original_device_class
-                if dc not in ('window','door','opening','garage_door'):
-                    raise ValueError('not_contact_sensor')
-                selected_contacts.append(ContactBinding.from_dict({'entity':raw,'kind':'door' if dc in ('door','garage_door') else 'window'}))
-            selected_contacts=tuple(selected_contacts)
+        if edit_contacts:
+            selected_contacts=select_contacts(hass,contacts);legacy_window=None
         comfort=old.comfort
-        if selected_contacts and comfort is None:
-            comfort={'away_centi_c':max(room.minimum_target_centi_c,min(1700,room.maximum_target_centi_c)),
-                     'frost_centi_c':room.minimum_target_centi_c,'temporary_ms':3600000}
         room=replace(room,contacts=selected_contacts,contact_policy=policy if selected_contacts else None,
                      comfort=comfort,window=legacy_window,presence=old.presence)
         room=type(room).from_dict(room.as_dict())

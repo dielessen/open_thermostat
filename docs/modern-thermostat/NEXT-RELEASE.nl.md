@@ -27,6 +27,15 @@ stoppen. Softwareproeven gebruiken gesimuleerde HTTP-/ketelantwoorden; er is
 hiermee geen nieuwe firmware geïnstalleerd of echte warmtevraag verstuurd.
 [Review en meetgrens](E32-PERFORMANCE-AND-BOILER-REVIEW.md).
 
+**Nieuwe kamerfunctie in dezelfde bundel:** maximaal acht raam-/deurcontacten
+kiezen, wijzigen en verwijderen via de normale kamereditor én kamerwizard.
+Opent één gekozen contact, dan pauzeert de kamervraag; hervatten vereist geldige
+gesloten meldingen en de ingestelde wachttijd. Ontbrekende/verlopen berichten
+houden de vraag gepauzeerd. Bij actieve native plannen loopt bewaren via dezelfde
+reload en gecontroleerde C++-readback. Een contact activeert geen extra comfort-
+of vorststand en verandert geen temperatuurgrens. De feitelijke sensor-/uitvalproef
+en modelspecifieke oorspronkelijke rapportkwalificatie blijven afzonderlijk open.
+
 **Laatste passieve nacontrole:** de huidige proef is `closed` met
 `restart_required`, nul positieve warmteframes en gemelde stop. Daarom kan de
 geïnstalleerde firmware geen nieuwe proef voorbereiden. Herstarten blijft

@@ -161,7 +161,7 @@ async def test_basic_form_hides_technical_fields_and_preserves_program_helper(ha
     b=replace(b,schedule=replace(b.temperature,entity_id=helper.entity_id,unique_id=helper.unique_id))
     p=entry(hass,room=b);z=next(iter(p.subentries.values()))
     f=await start(manager,p,z.subentry_id)
-    assert {str(k) for k in f['data_schema'].schema}=={'name','temperature_entity','radiator_entities','base_temperature','program_action','advanced'}
+    assert {str(k) for k in f['data_schema'].schema}=={'name','temperature_entity','radiator_entities','base_temperature','contact_entities','program_action','advanced'}
     advanced=next(v for k,v in f['data_schema'].schema.items() if str(k)=='advanced')
     assert advanced.options['collapsed'] is True
     f=await manager.async_configure(f['flow_id'],values(b))
@@ -169,12 +169,14 @@ async def test_basic_form_hides_technical_fields_and_preserves_program_helper(ha
     assert p.subentries[z.subentry_id].data['schedule']==b.schedule.as_dict()
 
 @pytest.mark.asyncio
-async def test_unsupported_comfort_not_silently_removed(hass,manager):
+async def test_existing_local_comfort_is_preserved_when_editing_ordinary_room(hass,manager):
     b=replace(room(hass),comfort=dict(away_centi_c=1700,frost_centi_c=500,temporary_ms=60000))
     p=entry(hass,room=b);before={k:s.as_dict() for k,s in p.subentries.items()}
-    r=await start(manager,p,next(iter(p.subentries)))
-    assert r['reason']=='advanced_room_required'
+    sub=next(iter(p.subentries));f=await review(manager,p,b,sub)
     assert {k:s.as_dict() for k,s in p.subentries.items()}==before
+    result=await manager.async_configure(f['flow_id'],{})
+    assert result['reason']=='room_saved'
+    assert p.subentries[sub].data['comfort']==b.comfort
 
 @pytest.mark.asyncio
 async def test_late_cross_entry_valve_claim_blocks_final_commit(hass,manager):

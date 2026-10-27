@@ -25,7 +25,7 @@ from test_v1_native import room, entry, source_profile
 from test_v1_wire_interop import FirmwareBus, RUNNER
 
 @pytest_asyncio.fixture
-async def comfort(hass):
+async def comfort(hass,request,monkeypatch):
     registry=er.async_get(hass)
     window=registry.async_get_or_create("binary_sensor","comfort_fixture","window")
     person=registry.async_get_or_create("person","comfort_fixture","presence")
@@ -33,13 +33,33 @@ async def comfort(hass):
     hass.states.async_set(person.entity_id,"home")
     binding=replace(room(hass,age=120000),maximum_target_centi_c=2500,comfort={"away_centi_c":1600,"frost_centi_c":500,"temporary_ms":60000},
                     window=reference(hass,window.entity_id),presence=reference(hass,person.entity_id))
-    second=replace(room(hass,"11223344","second"),comfort=dict(binding.comfort))
+    options=request.param if hasattr(request,'param') else {}
+    if options.get('contacts'):
+        from custom_components.open_thermostat.room_contacts import select_contacts,ContactPolicy
+        door=registry.async_get_or_create('binary_sensor','comfort_fixture','door')
+        hass.states.async_set(window.entity_id,'off',{'device_class':'window'})
+        hass.states.async_set(door.entity_id,'off',{'device_class':'door'})
+        binding=replace(binding,window=None,presence=None,
+            contacts=select_contacts(hass,[window.entity_id,door.entity_id]),
+            contact_policy=ContactPolicy(options.get('maximum_age_ms',3600000),0,options.get('close_delay_ms',0)))
+        if options.get('contact_only'):binding=replace(binding,comfort=None)
+    second=replace(room(hass,"11223344","second"),comfort=dict(binding.comfort) if binding.comfort else None)
     parent=entry(hass,enabled=True,room=binding)
     runtime=ShadowRuntime(hass,parent,[binding,second])
     zones,mapping=await async_build_configuration(runtime)
     process=await asyncio.create_subprocess_exec(str(RUNNER),stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.PIPE)
     bus=FirmwareBus(process,hass.loop.time)
+    if options.get('contacts'):runtime.clock=bus.clock
+    if options.get('contact_timers'):
+        import custom_components.open_thermostat.v1_runtime as native_runtime
+        native_later=native_runtime.async_call_later
+        bus.contact_timers={}
+        def schedule(hass,delay,action):
+            if action.__name__!='contact_due':return native_later(hass,delay,action)
+            bus.contact_timers[action]=bus.clock()+delay
+            return lambda:bus.contact_timers.pop(action,None)
+        monkeypatch.setattr(native_runtime,'async_call_later',schedule)
     bus.utc=int(dt_util.utcnow().timestamp())
     client=ShadowClient(runtime,"ha1",bus.send,Store(hass,1,"test.comfort."+parent.entry_id),zones,mapping,bus.clock)
     bus.client=client;runtime.attach_transport(client)

@@ -30,6 +30,18 @@ def emit(row):
     if path:=os.environ.get("OPENTHERMOSTAT_GRAPH_BRIDGE_EVIDENCE"):
         with Path(path).open("a") as f:f.write(json.dumps(row,sort_keys=True)+"\n")
 
+@pytest.mark.asyncio
+async def test_old_graph_projection_cannot_silently_ignore_room_contacts(bridge,hass):
+    from custom_components.open_thermostat.v1_runtime import ShadowRuntime
+    from custom_components.open_thermostat.room_contacts import select_contacts,ContactPolicy
+    n=bridge;record=await n.apply();profile=n.source(record)
+    row=er.async_get(hass).async_get_or_create('binary_sensor','legacy_graph_contact','window')
+    hass.states.async_set(row.entity_id,'off',{'device_class':'window'})
+    room=replace(n.rad,contacts=select_contacts(hass,[row.entity_id]),contact_policy=ContactPolicy())
+    with pytest.raises(ValueError,match='^graph_contact_contract_unavailable$'):
+        ShadowRuntime(hass,n.parent,[room,n.floor],graph_controller_source=profile,
+            controller_policy_source_profile=profile.controller)
+
 @pytest_asyncio.fixture
 async def bridge(native_two,hass,monkeypatch):
     parent,rad,floor,heating,output=native_two

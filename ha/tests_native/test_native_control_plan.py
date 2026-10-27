@@ -120,6 +120,14 @@ async def native_plan(native_two,hass,monkeypatch,request):
                 source=dict(profile_digest=policy.profile_digest,mapping_revision=1,zones=rows,legacy_readback_reviewed=legacy))
         assert not initial["fault"] and initial["writes"]==0 and initial["revision"]==(1 if legacy else 0)
         runtime=connection=client=None;holder={};serial=0;epoch=int(dt.utcnow().timestamp());receive_errors=[]
+        from custom_components.open_thermostat.v1_runtime import ShadowRuntime
+        native_runtime_init=ShadowRuntime.__init__
+        def timed_runtime(instance,*args,**kwargs):
+            # Inject the finite peer clock BEFORE startup can assess a contact
+            # or arm a timer. Replacing a clock after first use is a real fault.
+            kwargs.setdefault('clock',lambda:peer.clock[0])
+            native_runtime_init(instance,*args,**kwargs)
+        monkeypatch.setattr(ShadowRuntime,'__init__',timed_runtime)
         async def start():
             nonlocal runtime,connection,client
             assert await integration.async_setup_entry(hass,parent)

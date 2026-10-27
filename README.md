@@ -74,7 +74,7 @@ open. **Planned** means further implementation or qualification is required.
 | Original sensor and valve reports | **HA reception and diagnostics delivered.** Original Zigbee report producers, source qualification and physical valve feedback still need acceptance. Cached values are distinguished from original measurements. |
 | Hysteresis, PI and slow time-proportional control | **Prepared** in the control core, including minimum cycle times. PI has no derivative term; locally regulating TRVs keep their own control loop. |
 | Comfort, eco, away, holiday and boost | Priority and expiry logic **prepared**; complete everyday controls remain to be connected. |
-| Window and door contacts | **Planned user flow:** select contacts per room, pause demand while open and resume with valid readings. Context logic exists; source selection, multiple contacts, status and stale-data handling still need completion. |
+| Window and door contacts | **Prepared for beta.6 / HA 0.4.0b4:** select up to eight contacts per room in the editor or wizard, set delays/report age, and inspect pause/resume status. Active native plans use the normal save/reload/readback path. Model-specific original report qualification and physical acceptance remain open. |
 | Learning and optimum start | Models and storage **prepared**. Active learning, earlier starts, residual-heat use and heating-curve adaptation need real measurements and comfort validation. |
 | Eight zones and multiple valves per room | **Planned.** The current room editor does not provide these capacities. |
 

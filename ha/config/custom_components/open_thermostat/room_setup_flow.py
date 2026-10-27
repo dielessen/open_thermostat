@@ -8,6 +8,7 @@ from dataclasses import replace
 from types import MappingProxyType
 import uuid
 import logging
+import math
 
 import probatio as vol
 from homeassistant import config_entries
@@ -21,8 +22,9 @@ from .v1_heating_graph import (
     selected_reference, validate_ownership,
 )
 from .v1_heating_draft import parse_heating_draft
-from .v1_model import CONF_ENABLED, MODE_SHADOW, ROOM_GRAPH_DRAFT, ROOM_LIMIT, integration_mode
+from .v1_model import CONF_ENABLED, MODE_SHADOW, ROOM_GRAPH_DRAFT, ROOM_LIMIT, RoomBinding, integration_mode
 from .native_form import retained_input_schema
+from .room_contacts import ContactPolicy, CONTACT_DEVICE_CLASSES, select_contacts
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -116,7 +118,7 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
             self._heating = central_entry(entry)
             data = dict(self._old.data) if self._old else {}
             # Never silently remove advanced controls or convert a floor room.
-            if data.get("comfort") is not None or data.get("setpoint") is not None:
+            if any(data.get(key) is not None for key in ('setpoint', 'window', 'presence')):
                 return self.async_abort(reason="advanced_room_required")
             if self._heating:
                 draft = self._heating.data["draft"]
@@ -156,6 +158,13 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
         helper = data.get("schedule")
         marker = vol.Optional("schedule_entity", description={"suggested_value": self._display(helper, ("schedule",))}) if helper else vol.Optional("schedule_entity")
         advanced[marker] = selector.EntitySelector({"filter": {"domain": "schedule"}})
+        policy = ContactPolicy.from_dict(data['contact_policy']) if data.get('contact_policy') else ContactPolicy()
+        for key, attr, maximum in [('contact_open_delay_s', 'open_delay_ms', 600),
+                                  ('contact_close_delay_s', 'close_delay_ms', 600),
+                                  ('contact_maximum_age_s', 'maximum_age_ms', 86400)]:
+            advanced[vol.Required(key, default=getattr(policy, attr)/1000)] = selector.NumberSelector({
+                'min': 1 if key == 'contact_maximum_age_s' else 0, 'max': maximum,
+                'step': 1, 'unit_of_measurement': 's', 'mode': 'box'})
         return vol.Schema({
             vol.Required("name", default=data.get("name", "")): str,
             vol.Required("temperature_entity", default=self._display(data.get("temperature", {}), ("sensor",))):
@@ -163,6 +172,8 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
             vol.Required("radiator_entities", default=outputs):
                 selector.EntitySelector({"filter": {"domain": "climate"}, "multiple": True}),
             vol.Required("base_temperature", default=data.get("base_centi_c", 2100)/100): number,
+            vol.Optional('contact_entities', default=[self._display(c['entity'], ('binary_sensor',)) for c in data.get('contacts', [])]):
+                selector.EntitySelector({'filter': {'domain': 'binary_sensor', 'device_class': list(CONTACT_DEVICE_CLASSES)}, 'multiple': True}),
             vol.Required("program_action", default="save"):
                 selector.SelectSelector({"options": ["save", "edit_week", "remove_week"], "translation_key": "room_setup_program_action"}),
             vol.Optional("advanced"): section(vol.Schema(advanced), {"collapsed": True}),
@@ -203,6 +214,7 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
                 if len(identities) != len(set(identities)):
                     raise ValueError("output_has_multiple_owners")
                 room = validate_room(self.hass, self._get_entry(), self._submitted(user_input), self._old)
+                room = self._with_contacts(room, user_input)
                 self._prepare_graph(room)  # Catch conflicts before opening the week editor.
                 if user_input.get("program_action") == "edit_week":
                     if room.schedule:
@@ -217,7 +229,8 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
             except (KeyError, ValueError, vol.Invalid) as err:
                 known = {"binding_missing", "loop_binding", "not_temperature", "unsupported_unit",
                          "invalid_target_range", "program_source_conflict", "duplicate_room",
-                         "output_has_multiple_owners", "input_output_loop", "select_radiators", "invalid_name"}
+                         "output_has_multiple_owners", "input_output_loop", "select_radiators", "invalid_name",
+                         "invalid_contacts", "not_contact_sensor", "invalid_contact_policy"}
                 errors["base"] = str(err) if str(err) in known else "setup_invalid"
         return self.async_show_form(step_id="radiator", data_schema=retained_input_schema(
             self, self._radiator_schema(), user_input), errors=errors)
@@ -225,6 +238,30 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
     def _prepare_graph(self, room):
         return prepare_radiator_graph(self.hass, self._get_entry(), room,
             self._heating, self._radiators, self._group_id, self._actuator_ids)
+
+    def _with_contacts(self, room, values):
+        old = RoomBinding.from_dict(dict(self._old.data)) if self._old else None
+        selections = values.get('contact_entities', [self._display(c.entity.as_dict(), ('binary_sensor',))
+                                                   for c in old.contacts] if old else [])
+        contacts = select_contacts(self.hass, selections)
+        if old and any(current.entity.entity_id == previous.entity.entity_id
+                       and current.entity.identity() != previous.entity.identity()
+                       for current in contacts for previous in old.contacts):
+            raise ValueError('binding_missing')
+        policy = old.contact_policy if old and old.contact_policy else ContactPolicy()
+        advanced = values.get('advanced', {})
+        changes = {}
+        for key, attr in [('contact_open_delay_s', 'open_delay_ms'), ('contact_close_delay_s', 'close_delay_ms'),
+                          ('contact_maximum_age_s', 'maximum_age_ms')]:
+            value = advanced.get(key, getattr(policy, attr)/1000)
+            if type(value) not in (int, float) or not math.isfinite(value) or int(value) != value:
+                raise ValueError('invalid_contact_policy')
+            changes[attr] = int(value) * 1000
+        policy = ContactPolicy.from_dict(changes)
+        comfort = old.comfort if old else None
+        candidate = replace(room, contacts=contacts, contact_policy=policy if contacts else None,
+                            comfort=comfort, window=old.window if old else None, presence=old.presence if old else None)
+        return RoomBinding.from_dict(candidate.as_dict())
 
     def _commit_room(self, room, old):
         if guard := self._guard():
@@ -242,6 +279,7 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
         return self.async_show_form(step_id="room_review", data_schema=vol.Schema({}),
             description_placeholders={"name": room.name, "sensor": self._label(room.temperature.entity_id),
                 "radiators": ", ".join(self._label(r["entity_id"]) for r in self._radiators),
+                "contacts": ", ".join(self._label(c.entity.entity_id) for c in room.contacts) or "—",
                 "target": f"{room.base_centi_c/100:g}"}, errors=errors or {})
 
     async def async_step_room_review(self, user_input=None):
@@ -258,6 +296,13 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
             if room.schedule:
                 room = replace(room, schedule=EntityReference.from_dict(resolved_reference(
                     self.hass, room.schedule.as_dict(), ("schedule",))))
+            if room.contacts:
+                resolved = [resolved_reference(self.hass, c.entity.as_dict(), ('binary_sensor',))['entity_id']
+                            for c in room.contacts]
+                contacts = select_contacts(self.hass, resolved)
+                if [(c.entity.identity(), c.kind) for c in contacts] != [(c.entity.identity(), c.kind) for c in room.contacts]:
+                    raise ValueError('binding_missing')
+                room = replace(room, contacts=contacts)
             parsed = self._prepare_graph(room)
             data = {**(dict(self._heating.data) if self._heating else {}),
                     "draft": parsed.storage_document(), "status": parsed.readiness,
@@ -267,6 +312,9 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
         manager = self.hass.config_entries
         entry = self._get_entry()
         room_data = {**(dict(self._old.data) if self._old else {}), **room.as_dict()}
+        if not room.contacts:
+            room_data.pop('contacts', None)
+            room_data.pop('contact_policy', None)
         if room.week_program is None:
             room_data.pop("week_program", None)
         room_sub = (replace(self._old, data=MappingProxyType(room_data), title=room.name)

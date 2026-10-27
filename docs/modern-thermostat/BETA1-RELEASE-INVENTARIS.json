@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "a7945c8d9fcb831862f7ac8d3699a7ddb7aa6a5851f23da438206a4011d9e001"
+          "sha256": "1967191e2637f26e119feffbf4e58932f2e08da3b405d3c6b23b7328d158b0d9"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -63,7 +63,7 @@
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
-          "sha256": "7dbbd4d88fed6faa78791e9d2d4eb72b54d0cd9e889bacc68402e10c95d2f477"
+          "sha256": "24dd6992c24b378a3ccea8d833ab91b0b5d4761c9d9aed85d71b6c314886457f"
         },
         {
           "path": "docs/modern-thermostat/USER-RELEASE-NOTES.json",
@@ -75,7 +75,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "9e7c663e9334b8baca38d8d2c0e78494eae888000dc20648ca18781b3fbf14bc"
+          "sha256": "e05b15117f613c87411b858bc60e6c8c61daf62511fb82a4de33acd767940a26"
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "34474dd26dc4f05c0e543843c06c7b55f5ffc66a736a9e01c3fe540476c8a288"
+          "sha256": "6fc3504c68051f973889dcbec63cd235248eadd534489bd44f381ea3ce14b998"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -215,7 +215,7 @@
         },
         {
           "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
-          "sha256": "ce1a689c50692370809434d5d06a648a74c2ee39124218aa1d2c03e965c4ada4"
+          "sha256": "91e1ff8b0389f5b755b48df9dde66cea2548cdc3449297054a14ba2c492faa0f"
         },
         {
           "path": "release.json",
@@ -393,7 +393,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "a7945c8d9fcb831862f7ac8d3699a7ddb7aa6a5851f23da438206a4011d9e001"
+          "sha256": "1967191e2637f26e119feffbf4e58932f2e08da3b405d3c6b23b7328d158b0d9"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -501,15 +501,15 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/strings.json",
-          "sha256": "c5586e6706507165572dc7085bf0498276863ae44a6ce4d20d2ce8df0916a243"
+          "sha256": "4cf9a838a8a8dbefc4c79494f8882568f13655d9954a6d63fefa30aafebfd3a9"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/en.json",
-          "sha256": "c5586e6706507165572dc7085bf0498276863ae44a6ce4d20d2ce8df0916a243"
+          "sha256": "4cf9a838a8a8dbefc4c79494f8882568f13655d9954a6d63fefa30aafebfd3a9"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/nl.json",
-          "sha256": "88bf3ab45d7debe6337145b018f707d5f217f13359d915dbf5ad8a87f4916ee2"
+          "sha256": "ae491bade470ef436b9166bec142323c87e91dc079056656a679ecd320e7aa93"
         },
         {
           "path": "src/control/CaptivePortalPolicy.h",
@@ -664,7 +664,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/room_editor.py",
-          "sha256": "ec6a8f035b7ccefc35bedd9deb723a14098d3570eca73d07d36b1c077793804e"
+          "sha256": "638e2a051f65dd4428a3cfce94ec0218b7b52613758bfd70bd21434a75ae1cbe"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/device_metadata.py",
@@ -705,11 +705,11 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/week_planner.py",
-          "sha256": "85578a64986f259c62ae75cd372029eff0883bf903cce92c5630def31ece1e8e"
+          "sha256": "27ffec597d6926820d103f839fe3d618a8ed930a91a1d1a845edd66d8d55ecb9"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_program_apply.py",
-          "sha256": "312d5f44b8b796d2ad9df1cac758977189ba1ce3c3203fa9b412ca6e02a8c294"
+          "sha256": "136f871f0c45db88001b7e0ee8fe24745bc70e57ac16f38907723e4f7ad84791"
         },
         {
           "path": "src/control/NativeControlPlan.h",
@@ -756,7 +756,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "878be8d9eeb0287cd16eae995a966a891fac18e0d58dd0e4e353bc3f0de93c54"
+          "sha256": "09177bbb3d3df5bdd69a2550a98850e32f03b983405e39888869242b391ac785"
         },
         {
           "path": "test/ha-planner-touch-browser.cjs",
@@ -764,7 +764,7 @@
         },
         {
           "path": "test/ha-room-program-browser.cjs",
-          "sha256": "a8883683a0df41d47705f2f89bacc4cf308eada2fe079cbcbed47021c85b8dfc"
+          "sha256": "870b4e3b6955594f5c0217a8b79796dcbc396a16cbfb5ccd9d0fd6926458ec2b"
         },
         {
           "path": "ha/tests_native/test_setup_failure_cleanup.py",
@@ -851,7 +851,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/v1_runtime.py",
-          "sha256": "ebc25d34516f3603f148e00e26a79bd39296ac276519720d579ff53d0b9e96a1"
+          "sha256": "1673af12ee2c8bd62ad2dad6a22c2fbe5885c08e3f75b0837b92125ba31d6250"
         },
         {
           "path": "src/control/ControlBuildCapabilities.h",
@@ -875,7 +875,7 @@
         },
         {
           "path": "ha/tests_native/test_comfort_interop.py",
-          "sha256": "fde3995f284a40b016fa4b551ae602a98d56013ef91a5f3f159d9113c40cb3e8"
+          "sha256": "fc20b6d960e46a04900772aebf05fc748af2b236ae34dc2fea0e91839edda893"
         },
         {
           "path": "integrations/zigbee2mqtt/original-temperature.cjs",
@@ -895,7 +895,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_mqtt.py",
-          "sha256": "1115e4b9c983827d8976c53c55dc14cdc867d006412eba66010c2f2bf9de2014"
+          "sha256": "97e61ff10727d42e599fcf49ca21d587043e5eade952a09519722ad6afb3a3ef"
         },
         {
           "path": "ha/tests_native/test_original_temperature.py",
@@ -903,7 +903,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "a7945c8d9fcb831862f7ac8d3699a7ddb7aa6a5851f23da438206a4011d9e001"
+          "sha256": "1967191e2637f26e119feffbf4e58932f2e08da3b405d3c6b23b7328d158b0d9"
         },
         {
           "path": "platformio.ini",
@@ -1436,11 +1436,11 @@
         },
         {
           "path": "src/control/ShadowController.h",
-          "sha256": "8ae665c20b898d49b00123842f43e5192c61fc26a816a1524be2460971d8809d"
+          "sha256": "10d2d169291dba8215a3661386a6cfacc0488773bc4a4f1ae272034e1e9574c3"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/native_plan.py",
-          "sha256": "bc5a4a4f581cf4efc67ad98e0e1f33fbf55c88ff64a6f215cb66de3b9cfb2118"
+          "sha256": "7d744f1b5b442be91365757e9f422988fe63409e2d445df0869eea784d0f01a1"
         },
         {
           "path": "src/control/SessionAdmission.h",
@@ -1518,7 +1518,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_editor.py",
-          "sha256": "ec6a8f035b7ccefc35bedd9deb723a14098d3570eca73d07d36b1c077793804e"
+          "sha256": "638e2a051f65dd4428a3cfce94ec0218b7b52613758bfd70bd21434a75ae1cbe"
         },
         {
           "path": "ha/tests_native/test_room_editor.py",
@@ -1526,7 +1526,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "878be8d9eeb0287cd16eae995a966a891fac18e0d58dd0e4e353bc3f0de93c54"
+          "sha256": "09177bbb3d3df5bdd69a2550a98850e32f03b983405e39888869242b391ac785"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/__init__.py",
@@ -1610,7 +1610,7 @@
         },
         {
           "path": "src/control/ShadowController.h",
-          "sha256": "8ae665c20b898d49b00123842f43e5192c61fc26a816a1524be2460971d8809d"
+          "sha256": "10d2d169291dba8215a3661386a6cfacc0488773bc4a4f1ae272034e1e9574c3"
         },
         {
           "path": "test/test_native/test_session_admission.cpp",
@@ -1714,7 +1714,7 @@
         },
         {
           "path": "test/test_native/include/ShadowControllerFixture.h",
-          "sha256": "d4bd7a1838dd50217e712abab5f66c0d0912852e5cc624c5370f2f6fbe9f9d3a"
+          "sha256": "2066a07ac5b9b8a2037703701562f72caa5f2946bd0be67793e304a15e0db01a"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/supervisor_status.py",
@@ -1722,7 +1722,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_wire.py",
-          "sha256": "0813c688aa32a5d5cb0d633ad9822136fce028dcfde82f4357d1019e9d41e078"
+          "sha256": "cb597399e275e84866d1842a020eaf0b3c44ef377bbf9d6c80bca9ebc8baa39a"
         },
         {
           "path": "ha/tests_native/test_supervisor_status.py",
@@ -1850,7 +1850,7 @@
         },
         {
           "path": "test/test_native/include/ShadowControllerFixture.h",
-          "sha256": "d4bd7a1838dd50217e712abab5f66c0d0912852e5cc624c5370f2f6fbe9f9d3a"
+          "sha256": "2066a07ac5b9b8a2037703701562f72caa5f2946bd0be67793e304a15e0db01a"
         },
         {
           "path": "src/MQTT.h",
@@ -1918,11 +1918,11 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_contacts.py",
-          "sha256": "2368bc12122fd9b1f6652a1c86015d47db203a41229ee4e7fb4b3b70d47129bc"
+          "sha256": "89467374270ea86aac0678cd7d146f0230a09025c767ae8a2038153e9d9fc7c5"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_model.py",
-          "sha256": "4561a4c849452ab17b7b65d4a26c63282f27b0cdef3cf291918ce7f77bf15987"
+          "sha256": "e51a129ff3a08dd0a951685d70a90d6390a31d7d187d4e9e041c7e822238ac7b"
         },
         {
           "path": "ha/tests_native/test_room_contacts.py",
@@ -1934,10 +1934,38 @@
         },
         {
           "path": "ha/tests_native/test_room_editor_contacts.py",
-          "sha256": "c817c046aa2229d43e12b27c46ac7b9ea31be9491d916c76bce167e48b891396"
+          "sha256": "c7cb3510d87a4e8c3202729660257b96ab48567e4026677bf40a04ec153dbef9"
+        },
+        {
+          "path": "docs/modern-thermostat/ROOM-CONTACTS.md",
+          "sha256": "939408ae928ec40716d5aff8aee9af4f78d4b4df160a6ec792da476eb9b3a4a6"
+        },
+        {
+          "path": "ha/tests_native/test_room_contact_interop.py",
+          "sha256": "b72079e6484fa0586ace20f3dde6f39c27f76fd2625c9bc2aa43dc312d2c72cd"
+        },
+        {
+          "path": "ha/tests_native/test_room_contacts_active_plan.py",
+          "sha256": "7be89d5b1a9bcc6219b9c76495bbf6925afa92e76787cef81a64bd966603f614"
+        },
+        {
+          "path": "ha/tests_native/test_room_setup_contacts.py",
+          "sha256": "89ac87f7f54098fc63521b204605da8624a79a59447bdd35cc34f5ca4f2c6308"
+        },
+        {
+          "path": "test/ha-room-contacts-browser.cjs",
+          "sha256": "f078bf536a3e62bdd4070542912a2ba9044d9abee90cf6b11e024cef50d8d72c"
+        },
+        {
+          "path": "test/test_native/test_shadow_contacts.cpp",
+          "sha256": "29909c5e8582b90c3e87a5cd7f45cf6068c215530415a0e9c9657d8732662694"
+        },
+        {
+          "path": "docs/modern-thermostat/ROOM-CONTACTS-20261027.json",
+          "sha256": "11b4c1f0a310a91709b72e476dc4938634965ed9528cade50336402f7e8b8e57"
         }
       ],
-      "remaining_acceptance": "Logische/oudere opt-in paden bestaan; native eenvoudige kamereditor/bronkwalificatie niet compleet. Beta6-ontwikkeling: maximaal acht raam-/deurcontacten per kamer, conservatieve originele leeftijden, vertragingen, opslag/editor/runtime en nieuw begrensd wire-profiel voorbereid. Native/model/editor/runtime-fixtures slagen; aparte nieuwe contact-C++-interop/GUI-proeven en oorspronkelijke modelbronkwalificatie blijven open. Geen fysieke uitvoervrijgave."
+      "remaining_acceptance": "Beta.6-ontwikkeling: maximaal acht raam-/deurcontacten via normale editor/wizard, oorspronkelijke leeftijden, vertragingen, owned hervattingstimer, actieve native save/reload en echte C++-readback softwarematig getoetst. Modelspecifieke oorspronkelijke rapportkwalificatie, echte openen/sluiten-/uitvalproef en overige gewone comfort-/aanwezigheidsbediening blijven open. Geen fysieke uitvoervrijgave."
     },
     {
       "id": "I19",
@@ -2511,9 +2539,9 @@
     {
       "id": "R21",
       "title": "Raam- en deurcontacten",
-      "software_status": "Zone-inhibit/prioriteits-/contextcode aanwezig",
+      "software_status": "Beta.6: meervoudige expliciete contactkeuze, normale editor/wizard, instelbare reactie/ouderdom, status, onafhankelijke pauze en actieve native save/readback softwarematig getoetst",
       "inventory_ids": "I18",
-      "remaining_acceptance": "Eén of meer contacten per kamer, raam/deur-type en instelbare reactie; native kamereditor/actueel SOURCE-contract, oorspronkelijke actualiteit, contactdender, meerdere open contacten, uitval en gecontroleerd hervatten; later F10.",
+      "remaining_acceptance": "Oorspronkelijke modelspecifieke rapportkwalificatie en fysieke openen/sluiten-/uitval-/hervattingsproef blijven apart. Deuren worden niet automatisch gekoppeld.",
       "product_accepted": false
     },
     {

@@ -547,12 +547,14 @@
             "temperature_entity": "Room temperature sensor",
             "radiator_entities": "Radiator valves",
             "base_temperature": "Desired temperature",
-            "program_action": "Week program"
+            "program_action": "Week program",
+            "contact_entities": "Window and door contacts (optional)"
           },
           "data_description": {
             "temperature_entity": "Choose the sensor that measures this room’s temperature.",
             "program_action": "Keep the existing program, edit local time blocks, or explicitly remove it.",
-            "base_temperature": "Used outside program blocks. Saving does not send a temperature command."
+            "base_temperature": "Used outside program blocks. Saving does not send a temperature command.",
+            "contact_entities": "Choose up to eight contacts. An open contact pauses room demand; all must report closed before it resumes. Missing or expired reports keep demand paused."
           },
           "sections": {
             "advanced": {
@@ -561,18 +563,22 @@
                 "minimum_target_temperature": "Minimum room target",
                 "maximum_target_temperature": "Maximum room target",
                 "maximum_age_ms": "Maximum qualified measurement age (ms)",
-                "schedule_entity": "Home Assistant Schedule helper (optional)"
+                "schedule_entity": "Home Assistant Schedule helper (optional)",
+                "contact_open_delay_s": "Delay after opening (seconds)",
+                "contact_close_delay_s": "Resume delay after closing (seconds)",
+                "contact_maximum_age_s": "Maximum contact report age (seconds)"
               },
               "data_description": {
                 "maximum_age_ms": "A freshness limit, not a polling interval. A cached value alone does not qualify a physical measurement.",
-                "schedule_entity": "An alternative to the local week program. Keep one program source per room."
+                "schedule_entity": "An alternative to the local week program. Keep one program source per room.",
+                "contact_maximum_age_s": "Older reports become unknown. This does not change how often the sensor reports."
               }
             }
           }
         },
         "room_review": {
           "title": "Save this room?",
-          "description": "**{name}**\n\nTemperature sensor: {sensor}\n\nRadiator valves: {radiators}\n\nDesired temperature outside program blocks: **{target} °C**\n\nThe room and its radiator group will be saved together. Existing central heating settings are kept. Heating remains disabled; enabling and testing the controller is a separate step.",
+          "description": "**{name}**\n\nTemperature sensor: {sensor}\n\nRadiator valves: {radiators}\n\nWindow and door contacts: {contacts}\n\nDesired temperature outside program blocks: **{target} °C**\n\nThe room and its radiator group will be saved together. Existing central heating settings are kept. Heating remains disabled; enabling and testing the controller is a separate step.",
           "submit": "Save room"
         },
         "program": {
@@ -642,7 +648,10 @@
         "select_radiators": "Choose between one and eight radiator valves.",
         "output_has_multiple_owners": "A selected valve already belongs to another room or controller. Choose another valve or correct its existing assignment in Advanced settings.",
         "input_output_loop": "A valve cannot also be a temperature-setting input. Check the selected devices.",
-        "setup_invalid": "The room could not be prepared. Check the selected devices and their existing assignments; nothing has been saved."
+        "setup_invalid": "The room could not be prepared. Check the selected devices and their existing assignments; nothing has been saved.",
+        "invalid_contacts": "Choose up to eight distinct window or door contacts.",
+        "not_contact_sensor": "Choose a binary window or door contact.",
+        "invalid_contact_policy": "Use whole seconds: delays 0–600, maximum report age 1–86400 and greater than both delays."
       },
       "abort": {
         "room_limit": "At most 8 rooms",

@@ -87,10 +87,11 @@ window.EMSDevicesPage=(()=>{
     const removal=new MutationObserver(()=>{if(!root.isConnected)owner.abort();});
     removal.observe(document.body,{childList:true,subtree:true});
     owner.signal.addEventListener('abort',()=>{removal.disconnect();if(active===owner){active=null;refreshActiveActions=null;}},{once:true});
-    const records=new Map(),labels=new Map();
+    const records=new Map(),labels=new Map(),identifyButtons=new Map();
     refreshActiveActions=()=>{
       if(!alive())return;
       for(const r of records.values())if(r.identify)r.identify.disabled=!actions.canIdentify?.();
+      for(const button of identifyButtons.values())button.disabled=!actions.canIdentify?.();
     };
     const format=new Intl.NumberFormat(OpenThermostatLanguage.locale,{maximumFractionDigits:2,useGrouping:false});
     const description=id=>{if(!labels.has(id))labels.set(id,label(id));return labels.get(id);};
@@ -229,7 +230,18 @@ window.EMSDevicesPage=(()=>{
       const unknown=snapshot.inventory.devices.filter(d=>d.address!==ownAddress&&d.address!==8&&d.product_id===null);
       const diagnostic=get('ems-unidentified');
       if(diagnostic){diagnostic.hidden=!unknown.length;diagnostic.querySelector('[data-unidentified-traffic]').textContent=
-        unknown.map(d=>hex(d.address)+' · '+text('Observed telegrams')+': '+d.telegram_types.map(t=>hex(t)).join(', ')).join(' / ');}
+        unknown.map(d=>hex(d.address)+' · '+text('Observed telegrams')+': '+d.telegram_types.map(t=>hex(t)).join(', ')).join(' / ');
+        // One explicit version read per observed device; never a scan of unseen addresses.
+        const wanted=new Set(unknown.map(d=>d.address));
+        for(const [address,button] of identifyButtons)if(!wanted.has(address)){button.remove();identifyButtons.delete(address);}
+        for(const d of unknown){
+          if(identifyButtons.has(d.address))continue;
+          const button=el('button',text('Read device identity')+' '+hex(d.address),'btn btn-outline-secondary');button.type='button';
+          button.dataset.identifyAddress=d.address;
+          button.addEventListener('click',()=>{if(alive()&&actions.canIdentify?.())actions.onIdentify?.(d.address);},{signal:owner.signal});
+          identifyButtons.set(d.address,button);diagnostic.append(button);
+        }
+        for(const button of identifyButtons.values())button.disabled=!actions.canIdentify?.();}
       const ids=new Set(devices.map(d=>d.address));
       for(const [id,r] of records)if(!ids.has(id)){r.box.remove();records.delete(id);}
       if(!ids.size){list.replaceChildren(el('p',text(snapshot.enabled?'No EMS device reports received yet.':'EMS reception is disabled.')));return;}
@@ -245,7 +257,7 @@ window.EMSDevicesPage=(()=>{
           r={box,title,badge,meta,rows,empty,wrap,telegrams};records.set(d.address,r);
           if(d.address===8){
             const identify=el('button',text('Read device identity'),'btn btn-outline-secondary');identify.type='button';
-            identify.addEventListener('click',()=>{if(alive()&&actions.canIdentify?.())actions.onIdentify?.();},{signal:owner.signal});
+            identify.addEventListener('click',()=>{if(alive()&&actions.canIdentify?.())actions.onIdentify?.(8);},{signal:owner.signal});
             r.identify=identify;meta.after(identify);
           }
 

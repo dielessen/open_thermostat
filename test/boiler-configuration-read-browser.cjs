@@ -33,9 +33,11 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
    if(req.method()==='POST'){
     assert.equal(req.headers()['x-openthermostat-csrf'],'a'.repeat(64));const body=req.postDataJSON();posts.push({p,body});
     if(p.endsWith('/read_configuration')||p.endsWith('/read_identity')){
-     assert.deepEqual(body,{schema:1,boot_id:state.boot_id,revision:read.revision+1,exclusive_owner_confirmed:true,independent_stop_confirmed:true});
+     const {target_address,...fixed}=body;
+     assert.deepEqual(fixed,{schema:1,boot_id:state.boot_id,revision:read.revision+1,exclusive_owner_confirmed:true,independent_stop_confirmed:true});
+     if(target_address!==undefined)assert.equal(p.endsWith('/read_identity')&&target_address,23,'Only an observed non-boiler device is targeted');
      if(uncertain)return reply(route,{accepted:false},503);
-     read={...read,kind:p.endsWith('/read_identity')?'identity':'configuration',revision:body.revision,observed_at_ms:read.observed_at_ms+1,active:true,available:false,identity_available:false,phase:'queued',reason:'awaiting_poll'};
+     read={...read,kind:p.endsWith('/read_identity')?'identity':'configuration',target_address:target_address??8,revision:body.revision,observed_at_ms:read.observed_at_ms+1,active:true,available:false,identity_available:false,phase:'queued',reason:'awaiting_poll'};
      return reply(route,{accepted:true,configuration_read:read},202);
     }
     if(p.endsWith('/prepare')){
@@ -66,6 +68,14 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   await page.evaluate(()=>BoilerData.refresh());await page.waitForFunction(()=>document.querySelector('[data-read-configuration]').disabled===false);
   assert.equal(await identify.isHidden(),true);assert.match(await page.locator('#ems-device-list summary').textContent(),/EasyControl/);
   assert.equal(await confirm.isChecked(),true,'Identity read retains the same bounded setup declaration');
+  // Another observed device gets its own explicit identity read, addressed to it.
+  read={...read,identity_available:true,observed_at_ms:read.observed_at_ms+1};await page.evaluate(()=>BoilerData.refresh());
+  await page.waitForFunction(()=>{const b=document.querySelector('[data-identify-address="23"]');return b&&!b.disabled;});
+  await page.locator('#ems-unidentified > summary').click();
+  const before0x17=posts.length;await page.locator('[data-identify-address="23"]').click();
+  assert.equal(posts.length,before0x17+1);assert.equal(posts.at(-1).p,'/boiler/test/read_identity');assert.equal(posts.at(-1).body.target_address,23);
+  read={...read,active:false,available:true,identity_available:false,phase:'completed',reason:'identity_received',observed_at_ms:read.observed_at_ms+1};
+  await page.evaluate(()=>BoilerData.refresh());await page.waitForFunction(()=>document.querySelector('[data-read-configuration]').disabled===false);
   posts.length=0;
   await button.click();assert.equal(posts.length,1);assert.equal(await confirm.isChecked(),true,'Read must not consume the preparation confirmation');
   read={...read,active:false,available:true,phase:'completed',reason:'settings_report_received',observed_at_ms:read.observed_at_ms+1};

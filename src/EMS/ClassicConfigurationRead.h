@@ -5,6 +5,7 @@
 #include "control/WebAuthSession.h"
 #include <algorithm>
 #include <array>
+#include <functional>
 #include <ostream>
 
 namespace heating::ems {
@@ -31,8 +32,12 @@ public:
             &&(!revision_||now>=lastNow_)
             &&(!started_[index]||(now>=startedAt_[index]&&now-startedAt_[index]>=cooldownMs));
     }
+    // An identity read targets the boiler unless the body names another device
+    // that already sent a report this boot. Never our own or an unseen address.
+    using ObservedDevice=std::function<bool(uint8_t)>;
     Result request(std::string_view body,std::string_view owner,uint64_t now,bool permitted,bool otherActive,
-                   const control::WebAuthSession& sessions,Kind kind=Kind::configuration){
+                   const control::WebAuthSession& sessions,Kind kind=Kind::configuration,
+                   const ObservedDevice& observed={}){
         if(kind!=Kind::configuration&&kind!=Kind::identity)return {400,"invalid_read_kind"};
         if(!control::WebAuthSession::hexToken(owner))return {401,"authentication_required"};
         const auto remaining=sessions.remainingMs(owner,now);
@@ -40,21 +45,29 @@ public:
         if(inIo_)return {409,"configuration_read_busy"};
         if(body.size()>256)return {400,"invalid_request"};
         const auto doc=control::parseControlJson(body);const auto* j=doc.get();
-        if(!exactFields(j,{"schema","boot_id","revision","exclusive_owner_confirmed","independent_stop_confirmed"})
+        const bool targeted=kind==Kind::identity&&cJSON_IsObject(j)&&field(j,"target_address");
+        if(!(targeted?exactFields(j,{"schema","boot_id","revision","exclusive_owner_confirmed","independent_stop_confirmed","target_address"})
+                     :exactFields(j,{"schema","boot_id","revision","exclusive_owner_confirmed","independent_stop_confirmed"}))
             ||!integerField(j,"schema",1,1)||!integerField(j,"revision",1,maximumRevision))return {400,"invalid_request"};
+        uint8_t target=boilerAddress;
+        if(targeted){
+            if(!integerField(j,"target_address",1,0x7F))return {400,"invalid_target_address"};
+            target=static_cast<uint8_t>(field(j,"target_address")->valuedouble);
+            if(target==serviceAddress||(target!=boilerAddress&&!(observed&&observed(target))))return {409,"target_not_observed"};
+        }
         if(!cJSON_IsTrue(field(j,"exclusive_owner_confirmed"))
             ||!cJSON_IsTrue(field(j,"independent_stop_confirmed")))return {400,"site_confirmation_required"};
         if(stringField(j,"boot_id")!=bootText())return {409,"boot_changed"};
         const auto requested=static_cast<uint32_t>(field(j,"revision")->valuedouble);
         if(requested==revision_&&revision_){
             if(std::string_view(owner_.data())!=owner)return {403,"different_operator"};
-            if(kind!=kind_)return {409,"read_kind_changed"};
+            if(kind!=kind_||(kind==Kind::identity&&target!=target_))return {409,"read_kind_changed"};
             return {200,"",true}; // No lease, deadline or read is renewed.
         }
         if(revision_==maximumRevision||requested!=revision_+1)return {409,"revision_changed"};
         if(!available(now,permitted,otherActive,kind))return {409,"configuration_read_unavailable"};
         revision_=requested;armedAt_=lastNow_=now;emittedAt_=responseAt_=0;emitted_=false;
-        kind_=kind;const auto index=kind==Kind::identity?1u:0u;
+        kind_=kind;target_=kind==Kind::identity?target:boilerAddress;const auto index=kind==Kind::identity?1u:0u;
         started_[index]=true;startedAt_[index]=now;
         std::copy(owner.begin(),owner.end(),owner_.begin());owner_[64]=0;
         sessionObservedAt_=now;sessionUntil_=now+remaining;operatorWithdrawn_=false;
@@ -91,7 +104,7 @@ public:
             const bool permitted=gate();auto now=clock();tick(now,permitted);
             if(phase_!=Phase::queued)return true;
             EmsRawFrame frame{};
-            if(kind_==Kind::identity)encodeIdentity(frame);else encode(frame);
+            if(kind_==Kind::identity)encodeIdentity(frame,target_);else encode(frame);
             const bool finalPermission=gate();now=clock();tick(now,finalPermission); // Fresh time AFTER the final gate.
             if(phase_!=Phase::queued)return true;
             if(!write(frame)){fail("transmit_failed");return true;}
@@ -112,8 +125,8 @@ public:
                  bool permitted,const ClassicBoilerMonitor& monitor){
         tick(now,permitted);
         if(phase_!=Phase::waiting||acquiredAt<=emittedAt_||acquiredAt>now
-            ||telegram.getOperationType()!=EmsTelegram::WRITE||telegram.getSenderId()!=8
-            ||telegram.getDestinationId()!=0x0b||telegram.getOffset()!=0)return;
+            ||telegram.getOperationType()!=EmsTelegram::WRITE||telegram.getSenderId()!=target_
+            ||telegram.getDestinationId()!=serviceAddress||telegram.getOffset()!=0)return;
         if(kind_==Kind::identity){
             if(telegram.getTypeId()!=0x02||telegram.dataSize()<3||telegram.dataSize()>10)return;
             if(operatorWithdrawn_){fail("operator_session_expired");return;}
@@ -134,6 +147,7 @@ public:
             <<",\"identity_supported\":"<<(compiled_?"true":"false")
             <<",\"identity_available\":"<<(available(now,permitted,otherActive,Kind::identity)?"true":"false")
             <<",\"kind\":\""<<(kind_==Kind::identity?"identity":"configuration")<<'"'
+            <<",\"target_address\":"<<unsigned(target_)
             <<",\"active\":"<<(active()?"true":"false")<<",\"phase\":\""<<phaseName()
             <<"\",\"withdrawn\":"<<(operatorWithdrawn_?"true":"false")
             <<",\"reason\":\""<<reason_<<"\",\"clock\":\"boot_monotonic_ms\",\"observed_at_ms\":"<<now
@@ -147,12 +161,13 @@ public:
         frame.data[2]=0x16;frame.data[3]=0;frame.data[4]=2;
         frame.data[5]=EmsTelegram::calculateCRC(frame.data.data(),5);
     }
-    static void encodeIdentity(EmsRawFrame& frame){
-        frame={};frame.length=6;frame.data[0]=0x0b;frame.data[1]=0x88;
+    static void encodeIdentity(EmsRawFrame& frame,uint8_t target=boilerAddress){
+        frame={};frame.length=6;frame.data[0]=serviceAddress;frame.data[1]=0x80|target;
         frame.data[2]=0x02;frame.data[3]=0;frame.data[4]=10;
         frame.data[5]=EmsTelegram::calculateCRC(frame.data.data(),5);
     }
 private:
+    static constexpr uint8_t boilerAddress=0x08,serviceAddress=0x0b;
     void withdrawOperator(){
         operatorWithdrawn_=true;sessionUntil_=0;
         if(phase_==Phase::queued)fail("operator_session_expired");
@@ -184,6 +199,7 @@ private:
     bool compiled_,emitted_=false,inIo_=false,operatorWithdrawn_=false;uint32_t revision_=0;Phase phase_=Phase::idle;const char* reason_="not_requested";
     std::array<char,65> owner_{};
     Kind kind_=Kind::configuration;
+    uint8_t target_=boilerAddress;
     std::array<uint64_t,2> startedAt_{};
     std::array<bool,2> started_{};
 };

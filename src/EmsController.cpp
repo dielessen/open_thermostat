@@ -462,6 +462,7 @@ void EmsController::decodeTelegram(uint8_t *data, uint8_t length, uint64_t recei
             // evidence simply because loop() decodes it after the command.
             deviceInventory_.observe(telegram, receivedAtMs);
             monitor_.receive(telegram, receivedAtMs);
+            busObservations_.observe(telegram, receivedAtMs);
 #ifdef OPENTHERMOSTAT_E32V2
             configurationRead_.observe(telegram,receivedAtMs,static_cast<uint64_t>(esp_timer_get_time()/1000),
                 configurationReadPermitted(),monitor_);

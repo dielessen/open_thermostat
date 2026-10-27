@@ -8,6 +8,7 @@
 #include "EMS/EmsPoll.h"
 #include "EMS/ClassicBoilerMonitor.h"
 #include "EMS/EmsDeviceInventory.h"
+#include "EMS/ClassicBusObservations.h"
 #include "EMS/OutdoorTemperatureSample.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "EMS/BoilerTestService.h"
@@ -263,6 +264,8 @@ public:
 		// metadata share the same lock/time. Consumers never re-read the bus.
 		ss << ",\"inventory\":";
 		deviceInventory_.writeJSON(ss,snapshotMs);
+		ss << ",\"bus_observations\":";
+		busObservations_.writeJSON(ss,snapshotMs);
 		ss << ",\"transport\":{\"enabled\":"
 		   << (emsConfig_.emsEnabled ? "true" : "false")
 		   << ",\"transmit_compiled\":" << ((board::emsTransmitAllowed || board::emsManualTestTransmitAllowed) ? "true" : "false")
@@ -353,7 +356,9 @@ public:
         }
         if(action=="read_configuration"||action=="read_identity") {
             const auto kind=action=="read_identity"?ClassicConfigurationRead::Kind::identity:ClassicConfigurationRead::Kind::configuration;
-            const auto result=configurationRead_.request(body,operatorSession,now,configurationReadPermitted(),boilerTest_.active(),sessions,kind);
+            // Inventory is read under the telemetry lock held above.
+            const auto result=configurationRead_.request(body,operatorSession,now,configurationReadPermitted(),boilerTest_.active(),sessions,kind,
+                [this](uint8_t address){return deviceInventory_.contains(address);});
             ss<<"{\"accepted\":"<<(result.http<300?"true":"false")<<",\"duplicate\":"<<(result.duplicate?"true":"false")
                 <<",\"error\":\""<<result.error<<"\",\"configuration_read\":";
             configurationRead_.writeJSON(ss,now,configurationReadPermitted(),boilerTest_.active());ss<<'}';return result.http;
@@ -453,6 +458,7 @@ private:
 	mutable std::mutex telemetryMutex_;
 	ClassicBoilerMonitor monitor_;
     EmsDeviceInventory deviceInventory_;
+    ClassicBusObservations busObservations_; // passive, telemetry mutex
 #ifdef OPENTHERMOSTAT_E32V2
 	// A real, restricted attended commissioning route. Its pressure reading and
     // site declarations are scoped to each accepted preparation, not persisted.

@@ -30,6 +30,11 @@ public:
             e->brand=version->brand?int16_t(*version->brand):-1;
         }
     }
+    // A device that sent at least one validated report during this boot.
+    bool contains(uint8_t address) const {
+        for(size_t i=0;i<used_;++i)if(entries_[i].address==address)return entries_[i].frames>0;
+        return false;
+    }
     void writeJSON(std::ostream &out,uint64_t now) const {
         out<<"{\"schema\":1,\"capacity\":"<<capacity<<",\"types_per_device\":"<<typesPerDevice<<",\"untracked_frames\":"<<untracked_<<",\"devices\":[";
         for(size_t i=0;i<used_;++i){

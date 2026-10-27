@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <string>
 #include <string_view>
 
@@ -9,6 +10,10 @@ namespace heating::update {
 struct DownloadFailure {
     const char *kind="none", *host="";
     int httpStatus=0, clientCode=0, tlsCode=0;
+    // Connection-to-failure time and the largest internal heap block at that
+    // moment. Arduino frees the TLS context on failure, so the handshake step
+    // itself is gone; the timing separates a rejected hello from a slow handshake.
+    uint32_t elapsedMs=0, largestInternalBlock=0;
 };
 inline const char *downloadHost(std::string_view url) {
     if(url.substr(0,8)!="https://")return "";

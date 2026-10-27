@@ -117,6 +117,7 @@ bool download(std::string url,Sink &sink,std::string &error,uint32_t exactSize=0
         const char *headers[]={"Location"};http.collectHeaders(headers,1);
         if(!http.begin(client,url.c_str())){error="HTTPS kon niet worden gestart.";return false;}
         http.addHeader("Accept",exactSize?"application/octet-stream":"application/json");
+        const uint32_t started=millis();
         const int code=http.GET();
         if(responseStatus)*responseStatus=code;
         if(code==301||code==302||code==303||code==307||code==308) {url=http.header("Location").c_str();http.end();continue;}
@@ -124,7 +125,10 @@ bool download(std::string url,Sink &sink,std::string &error,uint32_t exactSize=0
             // HTTPClient maps connection failures to negative integers. Capture
             // the native TLS result BEFORE end() destroys the secure client.
             char ignored[64]{};const int tlsCode=code<0?client.lastError(ignored,sizeof(ignored)):0;
-            failedDownload(downloadFailure(code,tlsCode,url),error);http.end();return false;
+            auto failure=downloadFailure(code,tlsCode,url);
+            failure.elapsedMs=millis()-started;
+            failure.largestInternalBlock=heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT);
+            failedDownload(failure,error);http.end();return false;
         }
         if(exactSize&&http.getSize()>=0&&uint32_t(http.getSize())!=exactSize){error="Downloadgrootte wijkt af van de release.";http.end();return false;}
         const int count=http.writeToStream(&sink);http.end();
@@ -156,7 +160,9 @@ struct NativeOta {
         partition=esp_ota_get_next_update_partition(nullptr);
         if(!partition||partition->size!=maxImageBytes||size>partition->size||
            (partition->address!=0x10000&&partition->address!=0x390000)||pendingBoot())return false;
-        if(mbedtls_sha256_starts_ret(&hash,0)!=0||esp_ota_begin(partition,size,&handle)!=ESP_OK)return false;
+        // Sector-by-sector erase while writing, like the local upload route; the
+        // size is still bounded above and the complete image is hash-verified.
+        if(mbedtls_sha256_starts_ret(&hash,0)!=0||esp_ota_begin(partition,OTA_WITH_SEQUENTIAL_WRITES,&handle)!=ESP_OK)return false;
         open=true;return true;
     }
     bool write(const uint8_t *data,size_t size){return open&&mbedtls_sha256_update_ret(&hash,data,size)==0&&esp_ota_write(handle,data,size)==ESP_OK;}
@@ -294,6 +300,8 @@ std::string status() {
         cJSON_AddNumberToObject(failure,"http_status",snapshot.downloadError.httpStatus);
         cJSON_AddNumberToObject(failure,"client_code",snapshot.downloadError.clientCode);
         cJSON_AddNumberToObject(failure,"secure_client_code",snapshot.downloadError.tlsCode);
+        cJSON_AddNumberToObject(failure,"elapsed_ms",snapshot.downloadError.elapsedMs);
+        cJSON_AddNumberToObject(failure,"largest_internal_block_bytes",snapshot.downloadError.largestInternalBlock);
     }
     cJSON_AddStringToObject(root.get(),"selected",snapshot.selected.c_str());cJSON_AddBoolToObject(root.get(),"busy",busy());
     cJSON_AddBoolToObject(root.get(),"can_check",ready()&&!busy()&&!snapshot.reboot&&!pendingBoot());cJSON_AddBoolToObject(root.get(),"boot_pending",pendingBoot());

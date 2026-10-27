@@ -1858,9 +1858,13 @@ button.onclick=async()=>{if(!file.files.length){status.textContent=uiText("Selec
 		esp_ota_handle_t handle=0;
 		esp_err_t error=ESP_OK;
 		bool begin(size_t size) {
-			// Erase only the validated declared length. Never acknowledge the
-			// running app's pending boot merely because an upload was requested.
-			error=esp_ota_begin(partition,size,&handle);
+			// The declared length is validated before this call. Erase each sector
+			// as it is written: one multi-megabyte erase starves the core-0 idle
+			// task past the 5 s task watchdog (beta8/beta10 upload resets).
+			// Never acknowledge the running app's pending boot merely because an
+			// upload was requested.
+			(void)size;
+			error=esp_ota_begin(partition,OTA_WITH_SEQUENTIAL_WRITES,&handle);
 			return error==ESP_OK;
 		}
 		bool write(const void *bytes,size_t size) {

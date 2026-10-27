@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-10-27T20:42:20Z",
+  "requests": [
+    "we moeten wel die automatische update repareren",
+    "Kun je de code van de e32 eens goed tegen het licht houden wat we nu gemaakt hebben en dn even kijken op https://emsesp.org of we verbeteringen kunnen toepassen. [...] Op het dashboard moeten alleen dingen staan die goed uitgelezen kunnen worden. en die ook echt van belang zijn. Daarna wil ik echt graag de keteltest gaan afronden",
+    "maar idt kun je er wel inbouwen toch"
+  ],
+  "proposal": "Beta11: passive 0x1A/0x1C/0x10/0x11 reads, identity read for other observed devices, dashboard shows only reliable reported values, controller_request profile fix, sequential OTA erase, TLS failure timing diagnostics; then the attended boiler trial. The owner flashes beta11 manually if the upload of the old firmware resets.",
+  "approval_reply": "ok doe maar",
+  "boiler_trial_scope": "The attended trial needs a fresh attendance, gauge-pressure and independent-shutdown confirmation; earlier declarations are not reused.",
+  "publication_question": "Mag ik beta.11 (lokaal commit 522c35f, alle tests groen) nu publiceren op GitHub?",
+  "publication_approval_reply": "Ja, publiceer beta.11",
+  "publication_approval_at_utc": "2026-10-27T21:08:16Z",
+  "order_reply": "Eerst keteltest (Aanbevolen)"
+}

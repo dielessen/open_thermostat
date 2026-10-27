@@ -248,6 +248,43 @@ TEST_F(ConfigurationRead, IdentityNeedsOneCompleteValidTupleFromExactPeer){
         EXPECT_STREQ(read.reason(),"invalid_identity_response");EXPECT_FALSE(read.active());
     }
 }
+TEST_F(ConfigurationRead, TargetedIdentityAsksOnlyAnObservedDeviceAndAcceptsOnlyItsReply){
+    using Kind=ClassicConfigurationRead::Kind;
+    const auto targeted=[&](unsigned revision,unsigned target){
+        auto value=body(revision);value.insert(value.size()-1,",\"target_address\":"+std::to_string(target));return value;};
+    const auto seenThermostat=[](uint8_t address){return address==0x17;};
+    ASSERT_EQ(read.request(targeted(1,0x17),owner,now,true,false,sessions,Kind::identity,seenThermostat).http,202);
+    EmsRawFrame sent{};
+    ASSERT_TRUE(read.poll([&]{return now;},[]{return true;},[&](const EmsRawFrame& f){sent=f;return true;}));
+    ASSERT_EQ(sent.length,6);EXPECT_EQ(sent.data[0],0x0b);EXPECT_EQ(sent.data[1],0x97);EXPECT_EQ(sent.data[2],2);
+    EXPECT_EQ(sent.data[5],EmsTelegram::calculateCRC(sent.data.data(),5));
+    const auto telegram=EmsTelegram::fromRawData(sent.data.data(),sent.length);
+    EXPECT_EQ(telegram.getOperationType(),EmsTelegram::READ);EXPECT_EQ(telegram.getDestinationId(),0x17);
+    ++now;
+    read.observe(EmsTelegram{EmsTelegram::WRITE,8,0x0b,0,2,{211,2,3}},now,now,true,monitor);
+    EXPECT_TRUE(read.active()); // The boiler's version is not the thermostat's identity.
+    read.observe(EmsTelegram{EmsTelegram::WRITE,0x17,0x0b,0,2,{165,4,2}},now,now,true,monitor);
+    EXPECT_STREQ(read.reason(),"identity_received");
+    std::ostringstream out;read.writeJSON(out,now,true,false);
+    auto* json=cJSON_Parse(out.str().c_str());ASSERT_NE(json,nullptr);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(json,"target_address")),0x17);cJSON_Delete(json);
+}
+TEST_F(ConfigurationRead, TargetAddressMustBeAnObservedPeerAndOnlyForIdentity){
+    using Kind=ClassicConfigurationRead::Kind;
+    const auto targeted=[&](unsigned target){
+        auto value=body();value.insert(value.size()-1,",\"target_address\":"+std::to_string(target));return value;};
+    const auto seen=[](uint8_t address){return address==0x17||address==0x0b;};
+    EXPECT_EQ(read.request(targeted(0x10),owner,now,true,false,sessions,Kind::identity,seen).error,std::string("target_not_observed"));
+    EXPECT_EQ(read.request(targeted(0x0b),owner,now,true,false,sessions,Kind::identity,seen).http,409);
+    EXPECT_EQ(read.request(targeted(0x17),owner,now,true,false,sessions,Kind::identity).http,409); // no observation source
+    for(unsigned target:{0u,128u,255u})
+        EXPECT_EQ(read.request(targeted(target),owner,now,true,false,sessions,Kind::identity,seen).http,400);
+    EXPECT_EQ(read.request(targeted(0x17),owner,now,true,false,sessions,Kind::configuration,seen).http,400);
+    EXPECT_FALSE(read.active());EXPECT_EQ(read.revision(),0u);
+    ASSERT_EQ(read.request(targeted(8),owner,now,true,false,sessions,Kind::identity).http,202);
+    EXPECT_STREQ(read.request(targeted(0x17),owner,now,true,false,sessions,Kind::identity,seen).error,"read_kind_changed");
+    EXPECT_TRUE(read.request(body(),owner,now,true,false,sessions,Kind::identity).duplicate);
+}
 TEST_F(ConfigurationRead, ReadKindsShareOwnershipWithoutBlockingNextExplicitConfiguration){
     using Kind=ClassicConfigurationRead::Kind;
     EXPECT_EQ(read.request(body(),owner,now,true,false,sessions,static_cast<Kind>(99)).http,400);

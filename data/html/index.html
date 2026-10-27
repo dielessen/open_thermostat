@@ -995,7 +995,10 @@
             var age = typeof control.age_ms === 'number' && Number.isFinite(control.age_ms) ? Math.max(0,Math.round(control.age_ms/1000)) : null;
             var freshText = state ? uiText("Control status received")+(age === null?'':uiText(" · when fetched ")+age+uiText(" s old")) :
                 control.reason === 'stale' ? uiText("Control status stale") : uiText("Waiting for control status");
+            // Only values the boiler actually reports are shown; a missing value
+            // is not a tile. Unreliable/unsupported fields stay on the boiler page.
             function fact(label,value,unit,hint) {
+                if (value === null || value === undefined || value === '') return '';
                 return '<article class="pd-fact"><h3>'+label+'</h3><div class="pd-value">'+dashboardValue(value,unit)+'</div><p class="pd-help">'+hint+'</p></article>';
             }
             var html = '<section class="product-dashboard" aria-label="OpenThermostat">'+
@@ -1005,7 +1008,7 @@
                 '<details class="pd-help" data-dashboard-key="connection-fallback-help"><summary>'+uiText("Connection loss and fallback")+'</summary><p>'+uiText("An unreachable HA web page alone does not mean the heating connection has failed.")+'</p><p>'+uiText("Without HA heartbeats, control permission expires locally on the E32 after 15 seconds. Reconnecting does not restore old commands or qualified measurements. This software deadline is not proof that the boiler has physically stopped.")+'</p><p>'+uiText("An unpowered E32 cannot send a stop command. Boiler timeout, local valve behaviour and minimum flow during pump overrun require installation-specific tests. This version keeps physical outputs disabled.")+'</p></details>'+
                 '<div class="pd-facts">'+
                 fact(uiText("Flow · reported"),dashboardNumber(ems.currentFlowTemperature,10,-20,150),'°C',uiText("Feedback from the boiler."))+
-                fact(uiText("Boiler target · read back"),dashboardNumber(ems.selectedFlowTemperature,1,0,150),'°C',uiText("Reported setpoint; no evidence of a new command."))+
+                fact(uiText("Return · reported"),dashboardNumber(ems.currentReturnTemperature,10,-20,150),'°C',uiText("Return water temperature from the boiler."))+
                 fact(uiText("Modulation · reported"),dashboardNumber(ems.currentBurnerPower,1,0,100),'%',uiText("Burner percentage from telemetry; not measured consumption."))+
                 fact(uiText("System pressure"),dashboardNumber(ems.pressure,10,0,10),'bar',uiText("Only visible when reported by the device."))+
                 uiHtml("</div><section class=\"pd-panel\"><div class=\"pd-section-title\"><div><h2>From rooms to boiler</h2><p class=\"pd-help\">Calculated demand and actual control remain separate.</p></div></div>")+
@@ -1020,13 +1023,17 @@
                     uiHtml("<details class=\"pd-room-detail\"><summary>Details</summary><p>Room ID: ")+dashboardText(row.zone_id || uiText("not reported"))+uiHtml("<br>Reason code: ")+dashboardText(row.reason || uiText("not reported"))+uiHtml("<br>Valve control: ")+dashboardBool(actuatorEnabled,uiText('enabled'),uiText('blocked'))+uiHtml("</p>")+dashboardRoomContext(row)+uiHtml("<p class=\"pd-help\">A request does not prove valve position or delivered heat. Change settings and programs in Home Assistant.</p></details></article>");
             });
             html += uiHtml("</div><div class=\"pd-lower\"><section class=\"pd-panel\"><h2>Commands to the boiler</h2><p>")+dashboardBool(boilerEnabled,uiText("Control is enabled according to the controller."),uiText("The controller reports blocked outputs."))+uiHtml("</p><p class=\"pd-help\">No confirmed command timeline is available yet. Calculated room demand is not presented as a transmitted or executed boiler command.</p></section>")+
-                uiHtml("<details class=\"pd-panel\"><summary>All available boiler data</summary><dl class=\"pd-detail-grid\">");
-            var labels = {protocolProfile:uiText("Protocol profile"),protocolVersion:uiText("Protocol version"),displayCode:uiText("Display code"),serviceCode:uiText("Service code")};
-            Object.keys(labels).forEach(function(key) {var value=ems[key];html+='<dt>'+labels[key]+'</dt><dd>'+dashboardText(value==null?uiText("Unavailable"):String(value).slice(0,80))+'</dd>';});
-            var booleans = {heatingEnabled:uiText("CH enabled"),heatingActive:uiText("CH active"),warmWaterEnabled:uiText("Hot water enabled"),warmWaterActive:uiText("Hot water active"),burningGas:uiText("Flame status"),pumpEnabled:uiText("Pump"),fanEnabled:uiText("Fan"),pumpVenting:uiText("Pump venting"),fillingSiphon:uiText("Filling siphon")};
-            Object.keys(booleans).forEach(function(key){html+='<dt>'+booleans[key]+'</dt><dd>'+dashboardBool(ems[key],uiText("On"),uiText("Off"))+'</dd>';});
-            [['currentWarmWaterTemperature',uiText("Hot water · reported"),10,-20,150,'°C'],['selectedWarmWaterTemperature',uiText("Hot water target · read back"),1,0,150,'°C'],['warmWaterFlow',uiText("Hot water flow rate"),10,0,100,'L/min'],['outdoorTemperature',uiText("Outdoor temperature · boiler source"),100,-60,60,'°C']].forEach(function(item){html+='<dt>'+item[1]+'</dt><dd>'+dashboardValue(dashboardNumber(ems[item[0]],item[2],item[3],item[4]),item[5])+'</dd>';});
-            html += uiHtml("</dl><p class=\"pd-help\">Unavailable means unsupported, missing or expired; a measured zero remains zero. Telemetry is not an independent physical flame or heat measurement.</p></details>")+dashboardBuildSupport(status.control_build)+'</div></section>';
+                uiHtml("<details class=\"pd-panel\"><summary>More boiler data</summary><dl class=\"pd-detail-grid\">");
+            // Reliable reported fields only, and only when a value was received.
+            // Flame/pump/fan bits, flow rate and the read-back setpoint are not
+            // reliable on Classic boilers; the boiler page lists them with quality.
+            var shown = 0;
+            function detail(label,value) {if (value === null || value === undefined) return;shown++;html+='<dt>'+label+'</dt><dd>'+value+'</dd>';}
+            [['displayCode',uiText("Display code")],['serviceCode',uiText("Service code")]].forEach(function(item){var value=ems[item[0]];detail(item[1],value==null?null:dashboardText(String(value).slice(0,80)));});
+            [['heatingEnabled',uiText("CH enabled")],['warmWaterEnabled',uiText("Hot water enabled")]].forEach(function(item){detail(item[1],typeof ems[item[0]]==='boolean'?dashboardBool(ems[item[0]],uiText("On"),uiText("Off")):null);});
+            [['currentWarmWaterTemperature',uiText("Hot water · reported"),10,-20,150],['selectedWarmWaterTemperature',uiText("Hot water target · read back"),1,0,150],['outdoorTemperature',uiText("Outdoor temperature · boiler source"),100,-60,60]].forEach(function(item){var value=dashboardNumber(ems[item[0]],item[2],item[3],item[4]);detail(item[1],value===null||value===undefined||value===''?null:dashboardValue(value,'°C'));});
+            if (!shown) html += '<dt>'+uiText("Boiler data")+'</dt><dd>'+uiText("No reliable values received yet")+'</dd>';
+            html += uiHtml("</dl><p class=\"pd-help\">Only values the boiler reported recently are shown. All entities, with their quality, are on the Boiler test page. Telemetry is not an independent physical flame or heat measurement.</p></details>")+dashboardBuildSupport(status.control_build)+'</div></section>';
             var main = document.getElementById('maincontainer');
             var current = main.querySelector('.product-dashboard');
             if (current) {

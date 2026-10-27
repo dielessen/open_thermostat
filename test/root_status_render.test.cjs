@@ -88,7 +88,9 @@ test('old firmware and invalid compiled capability claims remain unknown and saf
 });
 test('managed view separates actual boiler units, computed demand and inhibited output',()=>{
  const p=rootPage();p.updateRooms(managed());const html=p.main.innerHTML;
- for(const text of ['43.2','55.0','1.4','0.0','-5.5','19.3','21.0','Badkamer','1 vragen warmte','Geblokkeerd','geen bevestigde opdrachtentijdlijn'])assert.ok(html.includes(text),text);
+ for(const text of ['43.2','1.4','0.0','-5.5','19.3','21.0','Badkamer','1 vragen warmte','Geblokkeerd','geen bevestigde opdrachtentijdlijn'])assert.ok(html.includes(text),text);
+ // The read-back setpoint is unreliable on Classic boilers and stays off the dashboard.
+ assert.ok(!html.includes('55.0'),'read-back setpoint is not a dashboard value');
  assert.doesNotMatch(html,/NaN|undefined|Infinity/);
 });
 test('stale or missing controller readback cannot display old demand or local ghost rooms',()=>{
@@ -101,7 +103,11 @@ test('stale or missing controller readback cannot display old demand or local gh
 test('unknown telemetry never becomes zero while valid zero remains visible',()=>{
  const p=rootPage();p.updateRooms(managed({ems:{currentFlowTemperature:NaN,selectedFlowTemperature:'55',pressure:Infinity,currentBurnerPower:null}}));
  const facts=p.main.innerHTML.split('<section class="pd-panel">')[0];
- assert.equal((facts.match(/Niet beschikbaar/g)||[]).length,4);assert.doesNotMatch(facts,/NaN|Infinity|55.0|0.0/);
+ // Unreported values get no tile at all (only reliable reported values are shown).
+ assert.equal((facts.match(/class="pd-fact"/g)||[]).length,0);assert.doesNotMatch(facts,/NaN|Infinity|55.0|0.0/);
+ const zero=rootPage();zero.updateRooms(managed({ems:{currentBurnerPower:0}}));
+ const zeroFacts=zero.main.innerHTML.split('<section class="pd-panel">')[0];
+ assert.equal((zeroFacts.match(/class="pd-fact"/g)||[]).length,1,'A measured zero remains a visible tile');
  assert.equal(p.dashboardNumber(0,10,0,10),0);
  assert.equal(p.dashboardNumber(-10,10,-20,10),-1);
 });

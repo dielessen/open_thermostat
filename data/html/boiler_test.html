@@ -242,7 +242,7 @@
       OpenThermostatLanguage.apply(host);
       if(!window.EMSDevicesPage)throw Error('panel controller');
       EMSDevicesPage.mount(host.querySelector('#ems-devices'),{
-        canIdentify:()=>canRead('identity'),onIdentify:()=>requestRead('identity')
+        canIdentify:()=>canRead('identity'),onIdentify:address=>requestRead('identity',address)
       });
     } catch(_) {
       if(root.isConnected&&!lifecycle.signal.aborted)
@@ -322,7 +322,7 @@
         ? uiText("Confirm the setup once to enable reading and preparation.")
       : uiText("The read button is ready. Reading the settings does not request heat.");
   }
-  async function requestRead(kind) {
+  async function requestRead(kind,target) {
     if(!canRead(kind))return;
     const scope = {boot_id:configurationRead.boot_id,revision:configurationRead.revision};
     const epoch = supervisionEpoch, testScope = {boot_id:test.boot_id,revision:test.revision};
@@ -334,12 +334,15 @@
     try {
       const response = await fetch('/boiler/test/'+(kind==='identity'?'read_identity':'read_configuration'),{method:'POST',cache:'no-store',credentials:'same-origin',
         headers:{'Content-Type':'application/json'},signal:abort.signal,
-        body:JSON.stringify({schema:1,boot_id:scope.boot_id,revision:scope.revision+1,
-          exclusive_owner_confirmed:true,independent_stop_confirmed:true})});
+        body:JSON.stringify(Object.assign({schema:1,boot_id:scope.boot_id,revision:scope.revision+1,
+          exclusive_owner_confirmed:true,independent_stop_confirmed:true},
+          kind==='identity'&&Number.isInteger(target)&&target!==8?{target_address:target}:{}))});
       const result = await response.json();
       if (!response.ok || result.accepted !== true || !validRead(result.configuration_read)
           || result.configuration_read.boot_id !== scope.boot_id || result.configuration_read.revision !== scope.revision+1
-          || (result.configuration_read.kind||'configuration')!==kind)
+          || (result.configuration_read.kind||'configuration')!==kind
+          || (kind==='identity'&&Number.isInteger(target)&&result.configuration_read.target_address!==undefined
+              &&result.configuration_read.target_address!==target))
         throw Error('unconfirmed');
       if (root.isConnected) paintRead(result.configuration_read);
     } catch (error) {

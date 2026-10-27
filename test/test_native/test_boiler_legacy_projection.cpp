@@ -19,9 +19,11 @@ TEST(BoilerLegacyProjection, HomeUsesTheSameDecodedValuesAndExplicitUnitConversi
     ClassicBoilerMonitor monitor;
     monitor.receive(fast(0,{50,1,172,80,37,9,0,0x25}),100);
     monitor.receive(fast(17,{20}),100);
+    monitor.receive(fast(13,{1,200}),100);
     monitor.receive({EmsTelegram::BROADCAST,8,0,0,0x19,{0xff,0xc9}},100);
     const auto json=projection(monitor,200);ASSERT_TRUE(json);
     EXPECT_DOUBLE_EQ(cJSON_GetNumberValue(field(json,"currentFlowTemperature")),428);
+    EXPECT_DOUBLE_EQ(cJSON_GetNumberValue(field(json,"currentReturnTemperature")),456);
     EXPECT_DOUBLE_EQ(cJSON_GetNumberValue(field(json,"selectedFlowTemperature")),50);
     EXPECT_DOUBLE_EQ(cJSON_GetNumberValue(field(json,"currentBurnerPower")),37);
     EXPECT_DOUBLE_EQ(cJSON_GetNumberValue(field(json,"pressure")),20);

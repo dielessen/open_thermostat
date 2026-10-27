@@ -1,3 +1,19 @@
+# Beta.11 — EMS-ESP-review, thermostaatvraag, identiteit en rustiger dashboard
+
+**Actueel (27 oktober, avond):** beta.10 en HA0.4.0b7 zijn gepubliceerd.
+De lokale upload van beta.10 liep 5–7 s na de start in de taakwatchdog (één
+grote wis-actie van het OTA-slot); de eigenaar heeft beta.10 daarna handmatig
+geflasht. Bron, web en instellingen zijn gecontroleerd. HA0.4.0b7 is via Samba
+geïnstalleerd en door de eigenaar herstart. De commando-entiteit verscheen niet:
+de projectie verwachtte `classic`, het apparaat meldt `classic_observed`.
+Beta.11 (opdracht "ok doe maar"): passieve uitlezing van de thermostaatvraag
+(0x1A), onderhoudsmelding (0x1C) en laatste storing (0x10/0x11); identiteit
+ophalen voor elk waargenomen apparaat; dashboard toont alleen gemelde waarden;
+profielfix; OTA-wissen per sector; tijdmeting bij TLS-fouten. De decodering
+van 0x18/0x19/0x16/0x33/0x34 komt overeen met de EMS-ESP-offsets.
+Daarna de bijgewoonde ketelproef met verse bevestigingen.
+[Freezeplan](BETA11-KANDIDAAT.json), [installatie beta.10](BETA10-INSTALLATION-20261027.json).
+
 # Beta.10 + HA0.4.0b7 — HTTP-fix, MQTT-commandoroute en UART-foutspoor
 
 **Actueel (27 oktober, avond):** werk hervat op de lokale Windows-laptop van de

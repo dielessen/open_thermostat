@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "INCOMPLETE",
+  "scope": "Native update and beta10 installation evidence gap; do not replace the accepted beta4 basis",
+  "candidate_tag": "v0.1.0-e32v2-beta.10",
+  "published": true,
+  "installed_tag": "v0.1.0-e32v2-beta.10",
+  "native_install_commands": 0,
+  "manual_upload_commands": 1,
+  "manual_result": "Agent upload hit the task watchdog during the initial erase; the owner then flashed beta10 manually. Identity and settings verified; not the native GitHub route",
+  "installation_record": "docs/modern-thermostat/BETA10-INSTALLATION-20261027.json",
+  "last_full_native_accepted": "v0.1.0-e32v2-beta.4",
+  "native_https_root_cause_fixed": false
+}

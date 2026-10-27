@@ -17,6 +17,11 @@ TEST(EmsDevices, OnlyReportSendersAppearAndAddressesRemainIndependent){
  i.observe(report(8),100);i.observe(report(0x10,0x02,{123,1,2,0,0,0,0,0,0,5}),110);
  auto j=snapshot(i,120);ASSERT_TRUE(j);auto devices=cJSON_GetObjectItem(j.get(),"devices");ASSERT_EQ(cJSON_GetArraySize(devices),2);EXPECT_EQ(number(first(j),"address"),8);auto second=cJSON_GetArrayItem(devices,1);EXPECT_EQ(number(second,"address"),16);EXPECT_EQ(number(second,"product_id"),123);EXPECT_STREQ(cJSON_GetObjectItem(second,"version")->valuestring,"1.2");EXPECT_EQ(number(second,"brand_id"),5);EXPECT_EQ(number(second,"age_ms"),10);
 }
+TEST(EmsDevices, ContainsOnlyAddressesThatSentAValidatedReport){
+ EmsDeviceInventory i;i.observe({EmsTelegram::READ,0x17,8,0,0x18,{1}},100);i.observe(report(0x10,0x18,{}),100);
+ EXPECT_FALSE(i.contains(0x17));EXPECT_FALSE(i.contains(0x10));
+ i.observe(report(0x17,0x1A,{0,0,0}),110);EXPECT_TRUE(i.contains(0x17));EXPECT_FALSE(i.contains(8));
+}
 TEST(EmsDevices, FragmentedVersionCannotAssembleAnInventedIdentity){
  EmsDeviceInventory i;i.observe(report(8,2,{123}),100);i.observe(report(8,2,{1,2},1),110);auto j=snapshot(i,120);EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(first(j),"product_id")));
  i.observe(report(8,2,{123,1,2}),130);j=snapshot(i,140);EXPECT_EQ(number(first(j),"product_id"),123);EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(first(j),"brand_id")));

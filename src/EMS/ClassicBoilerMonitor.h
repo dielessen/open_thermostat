@@ -292,6 +292,7 @@ public:
                 else out<<static_cast<double>(*sample)/divisor;
             };
             emit("currentFlowTemperature",BoilerField::flow,10);
+            emit("currentReturnTemperature",BoilerField::returnTemp,10);
             emit("selectedFlowTemperature",BoilerField::selectedFlow,100);
             emit("currentWarmWaterTemperature",BoilerField::dhwTemp,10);
             emit("selectedWarmWaterTemperature",BoilerField::selectedDhw,100);

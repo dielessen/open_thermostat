@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "INSTALLED_BY_OWNER_MANUAL_FLASH_IDENTITY_AND_SETTINGS_VERIFIED",
+  "installed_tag": "v0.1.0-e32v2-beta.10",
+  "source_commit": "0d5d4fb1b053b55a11001d8169a5f43b880f7978",
+  "previous": "v0.1.0-e32v2-beta.9-httpfix.1",
+  "agent_upload": {
+    "commands": 1,
+    "result": "Connection reset about 5-7 s after start, during the single esp_ota_begin erase of the inactive slot; task watchdog reset (reset_reason 6); previous app kept, inactive slot only touched"
+  },
+  "owner_flash": {
+    "method": "manual flash by the owner; method not recorded by the agent",
+    "verified": {
+      "version_source_web_match_release": true,
+      "running_partition_address": 3735552,
+      "boot_pending": false,
+      "shadow_mode_outputs_disabled": true,
+      "transmitted_frames": 0,
+      "echo_fault_field_present": true
+    },
+    "settings_exports": 12,
+    "byte_identical_exports": 11,
+    "other_export_change": "Bluetooth discovery cache only (nearby, nearby_devices)"
+  },
+  "home_assistant": {
+    "installed": "0.4.0b7",
+    "method": "Samba file swap with byte-exact b6 backup; owner restarted HA",
+    "files_byte_exact": 97,
+    "legacy_entities_retired": true,
+    "controller_request_entity_present": false,
+    "controller_request_cause": "Firmware projection accepted only protocolProfile 'classic'; the device reports 'classic_observed'. Fixed in beta11."
+  },
+  "native_acceptance": "INCOMPLETE_NOT_NATIVE_ROUTE",
+  "native_https_root_cause_fixed": false
+}

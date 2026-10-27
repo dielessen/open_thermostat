@@ -1,3 +1,51 @@
+# E32 V2 beta11 — thermostat requests, device identity and a tidier dashboard
+<!-- user-release-notes:v2:en -->
+
+Follow-up to beta10 after a review against the EMS-ESP telegram reference.
+Use it with HA0.4.0b7. The attended trial limits are unchanged.
+
+## New
+
+- Read what another controller, such as the room thermostat, asks of the
+  boiler: the requested flow temperature, burner power and pump setting from
+  its UBASetPoints (0x1A) telegrams. Our own trial requests are kept apart.
+- Read the boiler's maintenance message (0x1C, for example H03) and its most
+  recent fault record (0x10/0x11: code, number, start time and duration).
+  These are passive reads under `bus_observations` in the EMS telemetry.
+- Read device identity now also works for other devices seen on the bus, such
+  as the room thermostat. It is one explicit version request per button press,
+  only to an address that sent a report during this boot.
+
+## Fixed
+
+- The completed controller request now really reaches Home Assistant. Beta10
+  expected the profile name `classic`, but the device reports
+  `classic_observed`, so the MQTT message was never sent.
+- Firmware uploads no longer reset the board halfway through. The update slot
+  is now erased sector by sector while writing, instead of in one multi-second
+  erase that tripped the task watchdog. This applies to the local upload and to
+  the native GitHub update.
+- The dashboard shows only boiler values that were actually reported:
+  flow, return, modulation and pressure tiles appear only with a value. The
+  read-back setpoint, flame/pump/fan bits and the flow rate are no longer on the
+  dashboard because they are not reliable on Classic boilers; the Boiler test
+  page still lists every entity with its quality.
+
+## Updating
+
+Preserve settings and install the exact public firmware. The board runs beta10,
+which still has the old one-step erase; if the local upload resets the board,
+flash this release manually once. Later updates use the new erase. HA0.4.0b7
+needs no update.
+
+## Limitations
+
+The UART accounting fault is still recorded, not fixed. Native GitHub HTTPS
+still fails on this device; a failed connection now records its duration and
+the largest free memory block, to narrow down the cause. No TLS repair is
+claimed. Automatic boiler/valve control and persistent boiler-setting writes
+remain disabled.
+
 # E32 V2 beta10 — responsive web server and UART fault trace
 <!-- user-release-notes:v2:en -->
 

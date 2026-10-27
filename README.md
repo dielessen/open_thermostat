@@ -43,13 +43,13 @@ GitHub-update acceptance remains at beta.4. HA installation and the separate
 bathroom plan recovery are in progress. The physical boiler trial remains open.
 [Current installation record](https://github.com/dielessen/open_thermostat/blob/review/mark-vscode-20261021/docs/modern-thermostat/BETA6-INSTALLATION-20261027.json).
 
-**Beta.6 + HA 0.4.0b4:** faster web delivery and bounded background work, a guided
-**Setup → Prepare → Heat → Result** boiler trial, room window/door contacts,
-manual temperature helpers, comfort/presence/vacation settings, device battery
-snapshots and connected central installation settings. Software delivery and
-physical acceptance are tracked separately. Persistent boiler-setting writes
-and automatic boiler/valve control remain disabled.
-[Release changes](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-beta.6).
+**Prepared correction bundle — E32 beta.7 + HA0.4.0b6:** a separate read-only
+controller-request entity preserves the boiler's own reported temperatures;
+already-warm water can receive a lower50C trial request. Native product plan
+recovery is exposed in the existing menu. The first attended beta.6 trial
+showed pump/burner operation and a confirmed later stop, but the owner stopped
+it at about375seconds. The full600second follow-up remains open.
+[Command/readback distinction](docs/modern-thermostat/E32-CONTROLLER-REQUEST.md).
 
 ## Features
 

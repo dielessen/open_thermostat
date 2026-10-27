@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "ATTENDED_HEAT_AND_STOP_OBSERVED_FULL_DURATION_NOT_COMPLETED",
+  "installed_version": "v0.1.0-e32v2-beta.6",
+  "source_commit": "4f101027f947df9c2abbcd3e187db37e68e876ca",
+  "protocol_path": "Nefit Ecomline Classic HRC22H via Bosch EasyControl iRT/EMS adapter",
+  "requested_flow_c": 50,
+  "requested_duration_s": 600,
+  "observed_run_seconds": 375.4,
+  "operator_gauge_bar": 2,
+  "operator_start_confirmation": "Pomp en brander zijn in bedrijf",
+  "operator_stop_confirmation": "Ja, de brander is uit",
+  "operator_stop_statement": "ik stopte de test zelf via de webinterface toch ?",
+  "stop_classification": "operator_reported_manual_web_stop; transport_fault_also_recorded; order_not_proven",
+  "earlier_assistant_attribution_corrected": true,
+  "sample_count": 440,
+  "water_reported_c": {
+    "start": 59,
+    "minimum": 46,
+    "later_during_demand": 50
+  },
+  "maximum_reported_modulation_percent": 54,
+  "later_heating_active": 1,
+  "successful_positive_uart_frames": 253,
+  "zero_uart_frames": 17,
+  "reported_stop_confirmed": true,
+  "post_stop_heating_active": 0,
+  "post_stop_modulation_percent": 0,
+  "selected_flow_readback_c": 0,
+  "selected_flow_readback_interpretation": "0x18 byte0 remains00 on this adapter despite observed heating. Preserve it as boiler-reported data; do not overwrite with our50C command. This does not generalize to all boilers.",
+  "curflow_observation": "Reported flow fell59->46 and rose gradually towards50 during demand; owner later observed64 after the trial. Keep command and measured/report fields separate; not independent temperature qualification.",
+  "transport_deltas": {
+    "uart_errors": 1,
+    "uart_resets": 1,
+    "manual_reply_errors": 1,
+    "receive_queue_dropped": 0
+  },
+  "transport_fault_root_cause": "UNKNOWN; retained endpoint reason alone cannot prove causal order with the owner stop.",
+  "full_ten_minute_success": false,
+  "physical_acceptance_complete": false,
+  "owner_next_request": "je mag nog een test maken met de nieuwe selflowtemp entiteit en dan heel de test doorlopen zodat je alle info hebt",
+  "original_evidence_directory": "/home/dielessen/projects/open_thermostat-vscode-20261021/out/beta6-native-install/attended-trial-20261027",
+  "evidence": [
+    {
+      "path": "/home/dielessen/projects/open_thermostat-vscode-20261021/out/beta6-native-install/attended-trial-20261027/before.json",
+      "sha256": "73114b50c549181afe138b8619fee31723b11e2382555303f3fe4c99f0b2f010"
+    },
+    {
+      "path": "/home/dielessen/projects/open_thermostat-vscode-20261021/out/beta6-native-install/attended-trial-20261027/0387-keepalive-response.json",
+      "sha256": "ade8a70d0512ba8851dfe1b7f29f259e00fa78d4e31011fddc8927cc2b80ba90"
+    },
+    {
+      "path": "/home/dielessen/projects/open_thermostat-vscode-20261021/out/beta6-native-install/attended-trial-20261027/0388-stop-response.json",
+      "sha256": "b38ca8f58521153e629fb8f116a23ef9117cee77ca36542feeb8b5fdbba3a9c9"
+    },
+    {
+      "path": "/home/dielessen/projects/open_thermostat-vscode-20261021/out/beta6-native-install/attended-trial-20261027/after-stop.json",
+      "sha256": "1c8978ffa4a21707a1c19a2617e218edaf8b02f3522d309c1cffa1bc2fbc6aa6"
+    },
+    {
+      "path": "/home/dielessen/projects/open_thermostat-vscode-20261021/out/beta6-native-install/attended-trial-20261027/OPERATOR-STOP-CORRECTION.json",
+      "sha256": "8dec910c01585817bb6c96dd218c9c07c8f9128d80d708e23b962d7203c3707c"
+    }
+  ]
+}

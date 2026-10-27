@@ -14,9 +14,12 @@ struct ClassicHeatTrialEnvelope {
     }
     static constexpr uint32_t configurationTtlMs = 600000;
     static constexpr int32_t minimumPressureDecibar = 10, maximumPressureDecibar = 25;
-    // A 50 C target needs room for actual water temperature and hysteresis.
-    // This remains a supervised-trial cutoff, not a normal thermostat rule.
-    static constexpr int32_t minimumMeasuredFlowCenti = 500, maximumMeasuredFlowCenti = 6000;
+    // Water already warmed by CV/DHW is not a prerequisite to cool down before
+    // asking for a lower target. The boiler owns its burner regulation. Keep
+    // live report validation and the separate upper observation bound at the
+    // documented Classic CV range ceiling; requests remain capped at50 C.
+    // This software trial bound is not independent physical protection.
+    static constexpr int32_t minimumMeasuredFlowCenti = 500, maximumMeasuredFlowCenti = 9000;
     struct Check { bool ready; const char* reason; };
     static BoilerTestSession::Profile profile() {
         auto result = BoilerTestSession::Profile::supervisedZeroOnly();

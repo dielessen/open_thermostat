@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "scope": "Deliver the corrected E32 and HA command-entity bundle, then perform one new complete attended50C/600s test",
+  "original_release_install_instruction": "maak maar een nieuwe release en commit hem . installeer hem op de e32 en ha",
+  "subsequent_entity_request": "dat geld trouwens alleen voor mijn type ketel denk ik . andere ketels rapporteren dat wel terug volgens mij. misschien een losse entiteit voor die van mij maken waarin we die waarde wegschrijven ?",
+  "subsequent_complete_test_instruction": "je mag nog een test maken met de nieuwe selflowtemp entiteit en dan heel de test doorlopen zodat je alle info hebt",
+  "installer_scope_interpretation": "The existing explicit release/install instruction continues. Delivering the requested separate transmitted-command entity and corrected test requires beta.7 firmware and HA0.4.0b6. No separate version-specific owner quote is claimed.",
+  "e32_installation_authorized": true,
+  "ha_installation_authorized": true,
+  "one_further_attended_trial_authorized": true,
+  "trial_target_c": 50,
+  "trial_maximum_seconds": 600,
+  "physical_conditions": "Use current per-trial attendance/gauge declaration; never restore an old trial after reboot. Tado disconnection and known installation are already recorded, not asked again.",
+  "automatic_or_unattended_heat_authorized": false,
+  "persistent_boiler_setting_writes_authorized": false
+}

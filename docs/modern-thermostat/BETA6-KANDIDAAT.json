@@ -3,13 +3,13 @@
   "date": "2026-10-27",
   "planned_tag": "v0.1.0-e32v2-beta.6",
   "previous_published_tag": "v0.1.0-e32v2-beta.5",
-  "state": "E32_INSTALLED_HA_B4_PUBLISHED_RECOVERY_PATCH_B5_PREPARED",
+  "state": "PUBLISHED_AND_INSTALLED_MANUAL_E32_ROUTE_HA_B4",
   "component": "coordinated_e32_and_home_assistant",
   "ha_tag": "ha-v0.4.0b4",
   "formal_freeze": true,
   "published": true,
   "installed": true,
-  "ha_installed": false,
+  "ha_installed": true,
   "owner_instruction": "docs/modern-thermostat/BETA6-OWNER-INSTRUCTION-20261027.json",
   "observed_installed_e32": "v0.1.0-e32v2-beta.6",
   "last_accepted_native_e32": "v0.1.0-e32v2-beta.4",
@@ -33,5 +33,5 @@
   "ha_release_notes": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
   "installation_receipt": "docs/modern-thermostat/BETA6-INSTALLATION-20261027.json",
   "frozen_source_commit": "4f101027f947df9c2abbcd3e187db37e68e876ca",
-  "ha_recovery_tag": "ha-v0.4.0b5"
+  "ha_recovery_tag": "ha-v0.4.0b6"
 }

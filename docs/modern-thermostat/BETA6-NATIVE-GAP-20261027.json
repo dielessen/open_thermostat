@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "INCOMPLETE",
+  "scope": "Native GitHub update acceptance only; observed manual installation and physical trial remain separate",
+  "installed_tag": "v0.1.0-e32v2-beta.6",
+  "source_commit": "4f101027f947df9c2abbcd3e187db37e68e876ca",
+  "actual_method": "authenticated_web_app_upload",
+  "manual_installation_receipt": "docs/modern-thermostat/BETA6-INSTALLATION-20261027.json",
+  "native_install_commands": 0,
+  "native_https_root_cause_fixed": false,
+  "last_full_native_accepted": "v0.1.0-e32v2-beta.4",
+  "retained_manual_evidence": [
+    "Original paced HTTP200 success, exact public firmware/ELF/web, new confirmed boot,12byteidenticalexports",
+    "Independent HA0.4.0b4 installation/source/resource preservation proof",
+    "Attended first50C trial with owner-reported manual stop; not full-duration success"
+  ],
+  "physical_trial_receipt": "docs/modern-thermostat/BETA6-ATTENDED-HEAT-20261027.json"
+}

@@ -27,7 +27,8 @@ def product(hass, binding=None):
 
 async def option(manager,parent,step):
     f=await manager.async_init(parent.entry_id)
-    assert f['menu_options']==['installation','controller_connection','room_settings','configuration_status','advanced_settings']
+    base=['installation','controller_connection','room_settings','configuration_status','advanced_settings']
+    assert f['menu_options'] in [base,base[:4]+['graph_prepare']+base[4:]]
     return await manager.async_configure(f['flow_id'],{'next_step_id':step})
 
 async def new_room(manager,parent,binding):

@@ -13,6 +13,7 @@
     </ol>
     <p data-trial-remaining hidden></p>
     <p data-test-state role="status" aria-live="polite"><span data-i18n="Checking test status…">Checking test status…</span></p>
+    <p data-controller-request hidden><strong data-i18n="Last E32 flow request">Last E32 flow request</strong>: <span data-controller-request-value></span><br><small data-i18n="Sent by E32; separate from the boiler-reported target.">Sent by E32; separate from the boiler-reported target.</small></p>
     <form data-test-form>
       <label class="d-block"><span data-i18n="Desired flow temperature (°C)">Desired flow temperature (°C)</span><input class="form-control" data-test-flow type="number" step="1" required disabled></label>
       <label class="d-block"><span data-i18n="Maximum heat demand (seconds)">Maximum heat demand (seconds)</span><input class="form-control" data-test-duration type="number" step="1" required disabled></label>
@@ -102,6 +103,22 @@
     heating_limit_outside_trial_limits:uiText("The boiler heating limit does not fit this trial profile."),
     telemetry_ready:uiText("Required measurements are within the software trial limits.")
   };
+  function paintControllerRequest(value) {
+    const panel=root.querySelector('[data-controller-request]');
+    const output=root.querySelector('[data-controller-request-value]');
+    panel.hidden=!value || value.profile_id!=='ecomline-classic-separate-pressure-v1';
+    if(panel.hidden)return;
+    const clock=x=>Number.isSafeInteger(x)&&x>=0;
+    const valid=value.schema===1 && value.source==='controller_uart_transmit' && value.boiler_readback===false
+      && /^[0-9a-f]{16}$/.test(value.boot_id) && clock(value.observed_at_ms) && typeof value.known==='boolean'
+      && Number.isInteger(value.sequence)&&value.sequence>=0&&value.sequence<=4294967295
+      && (value.known ? Number.isInteger(value.value_c)&&(value.value_c===0||(value.value_c>=40&&value.value_c<=50))
+        &&clock(value.emitted_at_ms)&&value.emitted_at_ms<=value.observed_at_ms&&value.sequence>0
+        :value.value_c===null&&value.emitted_at_ms===null&&value.sequence===0);
+    const text=valid&&value.known ? new Intl.NumberFormat(document.documentElement.lang||'en').format(value.value_c)+' °C'
+      :uiText("No confirmed E32 transmission yet.");
+    if(output.textContent!==text)output.textContent=text;
+  }
   function paintHeatTrial(value) {
     heatTrialSnapshot=null;
     heatLimits.replaceChildren();
@@ -128,6 +145,9 @@
     heatTrialSnapshot=value;
     heatStatus.textContent = heatReasons[value.reason];
     const measured=currentFields.measured_flow_temperature;
+    if(value.reason==='telemetry_ready' && measured?.state==='valid' && measured.quality==='reported'
+        && Number.isFinite(measured.value) && Number.isFinite(Number(flowInput.value)) && measured.value>=Number(flowInput.value))
+      heatStatus.textContent += ' '+uiText("The water is already at or above the requested temperature. Heat demand can continue while the boiler waits or cycles its burner.");
     if(value.reason==='flow_outside_trial_limits' && measured?.state==='valid' && measured.quality==='reported'
         && measured.unit==='degC' && Number.isFinite(measured.value))
       heatStatus.textContent += ' '+uiText("Measured flow temperature: ")
@@ -137,7 +157,7 @@
     for (const [label,text] of [
       [uiText("Requested flow temperature"),format(limits.minimum_flow_c)+'–'+format(limits.maximum_flow_c)+' °C'],
       [uiText("Maximum heat demand"),format(limits.maximum_duration_s)+' s'],
-      [uiText("Measured water temperature window"),format(limits.minimum_measured_flow_centi/100)+'–<'+format(limits.maximum_measured_flow_centi/100)+' °C'],
+      [uiText("Water temperature monitoring range"),format(limits.minimum_measured_flow_centi/100)+'–<'+format(limits.maximum_measured_flow_centi/100)+' °C'],
       [separatePressure ? uiText("Separate pressure check window") : uiText("Boiler pressure window"),format(limits.minimum_pressure_decibar/10)+'–'+format(limits.maximum_pressure_decibar/10)+' bar'],
       ...(separatePressure ? [[uiText("Pressure check method"),commissioning ? uiText("Read the boiler gauge before every heat trial.") : value.separate_pressure_method_reviewed ? uiText("Reviewed") : uiText("Not reviewed; heat trial remains blocked")]] : []),
       [uiText("Installation profile"),commissioning ? uiText("Supervised Ecomline Classic trial; physical acceptance remains open.") : value.installation_reviewed ? uiText("Reviewed") : uiText("Not reviewed; heat trial remains blocked")]
@@ -574,9 +594,16 @@
       not_heated:uiText('No positive heat command was reported for this test. Prepare a heating test and press Start heating to test the heating response.'),
       zero_passed:uiText('A zero command and later stopped feedback were reported. To test heating, prepare a separate heating test and press Start heating.'),
       failed:uiText('Check the boiler and the next-step instruction above. A fault or closed fault is never counted as a passed heating test.')};
-    root.querySelector('[data-trial-result-title]').textContent=titles[outcome]||uiText('Test not fully confirmed');
-    root.querySelector('[data-trial-result-description]').textContent=descriptions[outcome]||descriptions.unconfirmed;
     const evidence=trialProgress(test);
+    const manuallyStopped=outcome==='failed'&&evidence?.end_reason==='explicit_stop';
+    const missingTargetOnly=outcome==='unconfirmed'&&test.positive_frames>0&&test.reported_stop_confirmed
+      &&evidence?.heating_operation_reported&&evidence?.duration_completed&&!evidence.requested_temperature_reported;
+    root.querySelector('[data-trial-result-title]').textContent=manuallyStopped
+      ?uiText('Stopped manually; a fault was also recorded'):titles[outcome]||uiText('Test not fully confirmed');
+    root.querySelector('[data-trial-result-description]').textContent=manuallyStopped
+      ?uiText('Your Stop action ended the demand. A fault was also recorded; inspect both the stop feedback and the diagnostic report.')
+      :missingTargetOnly?uiText('Heating operation, the full duration and a later stop were reported. The boiler did not confirm the requested temperature; the separate E32 command value is not a boiler readback.')
+      :descriptions[outcome]||descriptions.unconfirmed;
     const checks=[[uiText('Heat command transmitted'),Number.isSafeInteger(test.positive_frames)&&test.positive_frames>0],
       [uiText('Requested temperature reported by boiler'),evidence?.requested_temperature_reported===true],
       [uiText('Central heating operation reported'),evidence?.heating_operation_reported===true],
@@ -719,6 +746,7 @@
       currentFields=data.fields;
       paintTest(data.test);
       paintHeatTrial(data.heat_trial);
+      paintControllerRequest(data.controller_request);
       paintRead(data.configuration_read);
       paintWorkflow();
       message.textContent = data.transport.enabled === false ? uiText("EMS reception is off.") : labels[data.reception.state];
@@ -754,6 +782,7 @@
       transport.replaceChildren(); telegrams.replaceChildren(); inventoryStatus.textContent = uiText("Message overview unavailable."); report = null; download.disabled = true;
       paintTest(null);
       paintHeatTrial(null);
+      paintControllerRequest(null);
       paintRead(null);
     }
   }

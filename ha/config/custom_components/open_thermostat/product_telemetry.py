@@ -17,11 +17,14 @@ async def async_setup_sensors(hass, entry, async_add_entities, *, native_metrics
     tracker = hass.data[DOMAIN][entry.entry_id]["heating_tracker"]
     online = False
     entities = {}
+    command_entity = None
     dhw = DhwStatus(prefix, tracker)
     async_add_entities([dhw], config_subentry_id=group_id)
 
     @callback
     def refresh():
+        if command_entity is not None:
+            command_entity.refresh()
         dhw.update_from_tracker()
         for entity in entities.values():
             if entity._observation_field:
@@ -33,12 +36,15 @@ async def async_setup_sensors(hass, entry, async_add_entities, *, native_metrics
     def availability(message):
         nonlocal online
         online = message.payload == "on"
+        if command_entity is not None:
+            command_entity.set_online(online)
         for entity in entities.values():
             entity.set_online(online)
 
     def handler(topic):
         @callback
         def receive(message):
+            nonlocal command_entity
             if len(message.payload) > 8192:
                 return
             try:
@@ -47,6 +53,13 @@ async def async_setup_sensors(hass, entry, async_add_entities, *, native_metrics
                 return
             if not isinstance(payload, dict):
                 return
+            if topic == 'ems_status':
+                from .controller_request import ControllerRequestSensor, supported
+                if command_entity is None and supported(payload):
+                    command_entity=ControllerRequestSensor(prefix)
+                    async_add_entities([command_entity],config_subentry_id=group_id)
+                if command_entity is not None:
+                    command_entity.update_payload(payload,online,retained=getattr(message,'retain',False))
             added = []
             for metric in HUB_METRICS[topic]:
                 key = topic, metric

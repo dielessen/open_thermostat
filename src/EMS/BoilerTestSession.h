@@ -16,6 +16,9 @@ public:
     enum class Phase { idle, baseline, ready, heating, stopping, completed, fault, closed };
     enum class Command { none, zero, positive };
     enum class Reply { accepted, duplicate, refused };
+    struct TransmittedRequest { uint8_t flowC; uint64_t completedAtMs; uint32_t sequence; };
+    const std::optional<TransmittedRequest>& lastTransmittedRequest() const { return lastTransmittedRequest_; }
+
     enum class StopCause { explicitStop, heatDeadline, provingConditionsLost, operatorLeaseExpired };
     struct Profile {
         bool reviewed = false;
@@ -240,6 +243,10 @@ public:
         const bool validTime = observeTime(now) && now >= beganAt_;
         step(now, gates, monitor);
         if (!success) { fail("transmission_failed"); return false; }
+        // Historical completed UART IO, never a proposal or boiler readback.
+        if (validTime && transmittedSequence_ != UINT32_MAX) {
+            lastTransmittedRequest_ = TransmittedRequest{intent.flowC, now, ++transmittedSequence_};
+        } else lastTransmittedRequest_.reset();
         if (!validTime || intent.epoch != epoch_) return true;
         sent_ = true; sentAt_ = now;
         if (intent.command == Command::positive && !firstPositiveAt_) firstPositiveAt_ = now;
@@ -248,6 +255,8 @@ public:
     }
 
 private:
+    std::optional<TransmittedRequest> lastTransmittedRequest_;
+    uint32_t transmittedSequence_ = 0;
     static bool canAdd(uint64_t now, uint64_t duration) {
         return now <= std::numeric_limits<uint64_t>::max() - duration;
     }
@@ -309,7 +318,8 @@ private:
     }
     void fail(const char* reason) {
         if (phase_ != Phase::fault) {
-            phase_ = Phase::fault; reason_ = reason; endReason_ = reason; ++epoch_;
+            if (!*endReason_) endReason_ = reason; // retain an earlier operator/deadline stop
+            phase_ = Phase::fault; reason_ = reason; ++epoch_;
             zeroSent_ = false; stopConfirmed_ = false; sent_ = false;
         }
     }

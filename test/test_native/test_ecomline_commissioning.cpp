@@ -79,30 +79,32 @@ TEST_F(EcomlineCommissioning, GaugeExpiresDespiteKeepalivesAndDuplicateRequestsN
     EXPECT_EQ(service.next(now,gates(),monitor).command,BoilerTestSession::Command::zero);
 }
 
-TEST_F(EcomlineCommissioning, FiftyDegreesIsRepeatedForTenMinutesThenZeroAndLaterStopAreRequired) {
+struct EcomlineWaterTemperature:EcomlineCommissioning,testing::WithParamInterface<uint16_t> {};
+TEST_P(EcomlineWaterTemperature, FiftyDegreesIsRepeatedForTenMinutesThenZeroAndLaterStopAreRequired) {
     // Settings almost ten minutes old are admitted once, then retained only
     // for this finite run. Live feedback and supervision stay fresh throughout.
-    now=599000;fast(now);
+    now=599000;fast(now,GetParam());
     ASSERT_EQ(action("prepare",heat("20",50,600)).http,202);
-    transmit(BoilerTestSession::Command::zero);++now;fast(now);service.tick(now,gates(),monitor);
+    transmit(BoilerTestSession::Command::zero);++now;fast(now,GetParam());service.tick(now,gates(),monitor);
     ASSERT_EQ(action("start",scope()+"}").http,202);
     const auto started=now;
     for(uint64_t elapsed=1;elapsed<600000;elapsed+=1001) {
-        now=started+elapsed;fast(now,500);
+        now=started+elapsed;fast(now,GetParam());
         ASSERT_EQ(action("keepalive",scope()+"}").http,202);
         ASSERT_TRUE(service.heating())<<elapsed;
         const auto intent=transmit(BoilerTestSession::Command::positive);
         EXPECT_EQ(intent.flowC,50);
     }
-    now=started+600000;fast(now);service.tick(now,gates(),monitor);
+    now=started+600000;fast(now,GetParam());service.tick(now,gates(),monitor);
     EXPECT_FALSE(service.heating());
     transmit(BoilerTestSession::Command::zero);
     EXPECT_TRUE(service.active()); // Transmission is not later stop feedback.
-    ++now;fast(now);service.tick(now,gates(),monitor);
+    ++now;fast(now,GetParam());service.tick(now,gates(),monitor);
     EXPECT_FALSE(service.active());
     EXPECT_EQ(service.next(now,gates(),monitor).command,BoilerTestSession::Command::none);
     EXPECT_NE(action("start",scope()+"}").http,202); // No restart/extension.
 }
+INSTANTIATE_TEST_SUITE_P(ColdAndAlreadyWarmWater,EcomlineWaterTemperature,testing::Values(uint16_t(200),uint16_t(660),uint16_t(850)));
 TEST_F(EcomlineCommissioning, TenMinuteRequestStillStopsOnLostSupervision) {
     ASSERT_EQ(action("prepare",heat("20",50,600)).http,202);
     transmit(BoilerTestSession::Command::zero);++now;fast(now);service.tick(now,gates(),monitor);
@@ -131,12 +133,12 @@ TEST_F(EcomlineCommissioning, ExplicitStopWithdrawsLongDemandBeforeDeadline) {
     EXPECT_FALSE(service.active());
 }
 TEST_F(EcomlineCommissioning, WarmWaterWithinTrialWindowCanReceiveLowerTargetButCutoffStillWithdraws) {
-    ++now;fast(now,540);ASSERT_TRUE(EcomlineCommissioningProfile::inspect(monitor,now).ready);
+    ++now;fast(now,660);ASSERT_TRUE(EcomlineCommissioningProfile::inspect(monitor,now).ready);
     ASSERT_EQ(action("prepare",heat("20",50,600)).http,202);
-    transmit(BoilerTestSession::Command::zero);++now;fast(now,540);service.tick(now,gates(),monitor);
+    transmit(BoilerTestSession::Command::zero);++now;fast(now,660);service.tick(now,gates(),monitor);
     ASSERT_EQ(action("start",scope()+"}").http,202);
     transmit(BoilerTestSession::Command::positive);
-    ++now;fast(now,600);service.tick(now,gates(),monitor);
+    ++now;fast(now,900);service.tick(now,gates(),monitor);
     EXPECT_FALSE(service.heating());
     transmit(BoilerTestSession::Command::zero);
 }
@@ -156,4 +158,46 @@ TEST_F(EcomlineCommissioning, CompiledOffTransportLossAndWrongFamilyRemainClosed
     EXPECT_FALSE(EcomlineCommissioningProfile::gates(unknown,now,true).allowsZero());
     EXPECT_FALSE(EcomlineCommissioningProfile::inspect(unknown,now).ready);
 }
+TEST_F(EcomlineCommissioning, SentRequestIsSeparateFromReceivedTargetAndUpdatesOnlyAfterUartCompletion) {
+    const auto command=[&]{std::ostringstream out;service.writeCommandJSON(out,now);return heating::control::parseControlJson(out.str());};
+    auto initial=command();ASSERT_TRUE(initial);
+    EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(initial.get(),"known")));
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItemCaseSensitive(initial.get(),"value_c")));
+    fast(++now,660);ASSERT_EQ(action("prepare",heat("20",50,600)).http,202);
+    auto queued=command();EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItemCaseSensitive(queued.get(),"value_c")));
+    transmit(BoilerTestSession::Command::zero);
+    fast(++now,660);service.tick(now,gates(),monitor);
+    ASSERT_EQ(action("start",scope()+"}").http,202);
+    auto before=command();EXPECT_EQ(cJSON_GetObjectItemCaseSensitive(before.get(),"value_c")->valuedouble,0);
+    transmit(BoilerTestSession::Command::positive);
+    auto sent=command();EXPECT_EQ(cJSON_GetObjectItemCaseSensitive(sent.get(),"value_c")->valuedouble,50);
+    EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItemCaseSensitive(sent.get(),"boiler_readback")));
+    EXPECT_EQ(monitor.sample(BoilerField::selectedFlow).raw,0); // actual received fields stay separate
+    EXPECT_EQ(monitor.sample(BoilerField::flow).raw,6600);
+    ASSERT_EQ(action("stop",scope()+"}").http,202);
+    auto stopping=command();EXPECT_EQ(cJSON_GetObjectItemCaseSensitive(stopping.get(),"value_c")->valuedouble,50);
+    transmit(BoilerTestSession::Command::zero);
+    auto stopped=command();EXPECT_EQ(cJSON_GetObjectItemCaseSensitive(stopped.get(),"value_c")->valuedouble,0);
+    EXPECT_EQ(cJSON_GetObjectItemCaseSensitive(stopped.get(),"sequence")->valuedouble,3);
+}
+TEST_F(EcomlineCommissioning, FailedTransmissionDoesNotInventACommandValue) {
+    ASSERT_EQ(action("prepare",heat("20",50,600)).http,202);
+    const auto intent=service.next(now,gates(),monitor);ASSERT_TRUE(service.beginTransmit(intent,now,gates(),monitor));
+    EXPECT_FALSE(service.finishTransmit(intent,++now,false,gates(),monitor));
+    std::ostringstream out;service.writeCommandJSON(out,now);const auto value=heating::control::parseControlJson(out.str());
+    ASSERT_TRUE(value);EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItemCaseSensitive(value.get(),"value_c")));
+}
+
+TEST_F(EcomlineCommissioning, ATransportFaultDuringWithdrawalRetainsTheInitiatingOperatorStop) {
+    ready();ASSERT_EQ(action("start",scope()+"}").http,202);transmit(BoilerTestSession::Command::positive);
+    ASSERT_EQ(action("stop",scope()+"}").http,202);
+    service.transportFault(++now);
+    std::ostringstream out;service.writeJSON(out,now,owner,gates(),monitor);
+    const auto value=heating::control::parseControlJson(out.str());ASSERT_TRUE(value);
+    EXPECT_STREQ(cJSON_GetObjectItemCaseSensitive(value.get(),"reason")->valuestring,"test_transport_unavailable");
+    const auto* progress=cJSON_GetObjectItemCaseSensitive(value.get(),"progress");
+    EXPECT_STREQ(cJSON_GetObjectItemCaseSensitive(progress,"end_reason")->valuestring,"explicit_stop");
+    transmit(BoilerTestSession::Command::zero);
+}
+
 }

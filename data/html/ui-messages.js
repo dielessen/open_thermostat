@@ -1,5 +1,13 @@
 /* Fixed English UI messages mapped to Nederlands. User data and wire identifiers are excluded. */
 window.OT_UI_MESSAGES = {
+  "Stopped manually; a fault was also recorded": "Handmatig gestopt; ook een fout geregistreerd",
+  "Your Stop action ended the demand. A fault was also recorded; inspect both the stop feedback and the diagnostic report.": "Jouw stopactie beëindigde de vraag. Er is ook een fout vastgelegd; controleer de stopterugmelding en het diagnoserapport.",
+  "Heating operation, the full duration and a later stop were reported. The boiler did not confirm the requested temperature; the separate E32 command value is not a boiler readback.": "CV-bedrijf, de volledige duur en een latere stop zijn teruggemeld. De ketel bevestigde de gevraagde temperatuur niet; de aparte E32-aanvraagwaarde is geen ketelterugmelding.",
+  "Last E32 flow request": "Laatste E32-aanvoeraanvraag",
+  "Sent by E32; separate from the boiler-reported target.": "Verzonden door de E32; afzonderlijk van het door de ketel gemelde doel.",
+  "No confirmed E32 transmission yet.": "Nog geen bevestigde E32-verzending.",
+  "The water is already at or above the requested temperature. Heat demand can continue while the boiler waits or cycles its burner.": "Het water is al op of boven de gevraagde temperatuur. De warmtevraag kan doorgaan terwijl de ketel wacht of de brander laat schakelen.",
+  "Water temperature monitoring range": "Bewakingsbereik watertemperatuur",
   "Reload debug settings": "Debuginstellingen opnieuw laden",
   "Loading debug settings…": "Debuginstellingen laden…",
   "Debug settings loaded.": "Debuginstellingen geladen.",

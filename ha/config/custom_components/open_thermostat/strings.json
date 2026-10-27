@@ -553,6 +553,9 @@
       },
       "estimated_radiator_power": {
         "name": "Estimated radiator power"
+      },
+      "controller_requested_flow_temperature": {
+        "name": "E32 requested flow temperature"
       }
     }
   },

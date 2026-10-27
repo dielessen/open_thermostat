@@ -1,4 +1,29 @@
-# Beta.6 + HA0.4.0b5 — installatie en badkamerherstel
+# Beta.7 + HA0.4.0b6 — volledige ketelproef met eigen aanvraagwaarde
+
+**Actuele opdracht:** de aparte door de E32 verzonden aanvoeraanvraag leveren en
+daarna één volledige bijgewoonde50°C/600s-proef uitvoeren. De bestaande opdracht
+voor release, commit en installatie blijft van kracht. Beta.6 + HA0.4.0b4 staan
+geïnstalleerd; beta.7/HA0.4.0b6 is softwarematig voorbereid en wacht op exacte CI.
+[Opdracht](BETA7-OWNER-INSTRUCTION-20261027.json), [freezeplan](BETA7-KANDIDAAT.json).
+
+De eerste proef liet daadwerkelijk pomp/branderbedrijf zien. De eigenaar
+stopte zelf na ongeveer375s; daarnaast werd een transportfout vastgelegd.
+Mijn eerdere conclusie dat de transportfout de automatische stop veroorzaakte
+was te stellig. De stop is daarna teruggelezen en fysiek bevestigd.
+Een volledige tienminutenproef is daarmee niet afgetekend.
+[Oorspronkelijk bewijs en correctie](BETA6-ATTENDED-HEAT-20261027.json).
+
+Beta.7 houdt de gevraagde50°C en de ketelterugmelding apart. Het E32-veld en de
+nieuwe HA-uitleesentiteit volgen een werkelijk voltooide UART-verzending;
+voor verzending/herstart blijft de waarde onbekend, een verzonden stop wordt0.
+Ontvangen curflowtemp/selflowtemp worden niet overschreven. De oude60°C-poort
+is vervangen door afzonderlijke5–<90°C-bewaking; een50°C-aanvraag mag bij66°C
+water beginnen. Druk, toezicht, nulbaseline, looptijd en stop blijven vereist.
+Een eerdere handmatige stop blijft als aanleiding behouden bij een latere fout.
+De laatste UART-foutsoort/tijd blijft beschikbaar voor de vervolgdiagnose.
+[Betekenis van de aparte waarde](E32-CONTROLLER-REQUEST.md).
+
+**Historische beta.6-uitvoering hieronder:**
 
 **Installatie27 oktober:** beta.6 is gepubliceerd en via de bestaande beveiligde
 LAN-appupload geïnstalleerd. Nieuwe boot en bron/ELF/web kloppen; twaalf

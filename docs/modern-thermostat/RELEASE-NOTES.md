@@ -1,3 +1,60 @@
+# E32 V2 beta7 — separate requested and reported boiler temperatures
+<!-- user-release-notes:v2:en -->
+
+Correction bundle with HA0.4.0b6 for the attended Ecomline Classic trial.
+
+## New
+
+- Show **Last E32 flow request** separately from the boiler-reported selected
+  temperature. The value is recorded after completed UART transmission, including
+  a transmitted zero on Stop. Opening a form or queuing a target does not change
+  it. A reboot starts unknown. The boiler's own temperature fields are preserved.
+- The existing non-retained EMS status packet carries this command record for
+  the separate read-only HA entity. It states controller origin and original
+  completion time; it is not a boiler acknowledgement or measured temperature.
+- An already-warm boiler can receive a lower50C request. Remove the former60C
+  water cutoff; retain live-report checks and a separate5–<90C observation bound.
+  The requested target remains40–50C and the trial at most600seconds. Existing
+  boiler temperature settings are not increased. The full66C/50C/600s case is
+  software-tested; the next attended physical test is separate.
+- Preserve the initiating manual Stop or deadline when a later transport fault
+  occurs. Also retain the last UART error reason/time for investigation.
+- Yield between manual app-upload chunks so a continuous sender shares time
+  with other tasks. Native GitHub HTTPS repair is not claimed by this change.
+
+The first physical beta.6 trial showed pump/burner operation and a later stop,
+but the owner stopped it after about375seconds. A transport fault was also
+recorded; its causal order with the manual stop is unknown. The adapter kept
+reporting selected temperature0 while reported water moved59→46→50C.
+A complete new600second trial is still required. Automatic boiler/valve control
+and persistent boiler-setting writes remain disabled.
+
+## Retained from beta.6
+
+Room contacts, manual helpers, comfort/presence/vacation, battery snapshots,
+connected installation settings, compressed web assets, shared telemetry and
+bounded background work remain included. Trial setup still uses one declaration,
+a fresh gauge reading, an explicit Start action and an always-available Stop.
+
+[Full beta.6 changes](https://github.com/dielessen/open_thermostat/blob/v0.1.0-e32v2-beta.6/docs/modern-thermostat/RELEASE-NOTES.md).
+
+## Fixed
+
+Keep a manual stop visible when another fault follows. Retain the UART fault
+kind/time for the next diagnosis and share task time during app uploads.
+
+## Updating
+
+Use the exact beta.7 firmware and matching public checksums after preserving
+settings. HA0.4.0b6 provides the separate entity; older firmware leaves it absent.
+Installation uses the existing update/app-upload routes and a separate postcheck.
+
+## Limitations
+
+Experimental, attended trial only. Boiler readback and original controller
+commands remain distinct. A complete ten-minute physical test is still open;
+source qualification and automatic boiler/valve control remain disabled.
+
 # E32 V2 beta6 — integrated room and installation controls
 <!-- user-release-notes:v2:en -->
 

@@ -42,10 +42,11 @@ struct esp_partition_t {size_t size=8;};
 struct Native {
     esp_partition_t partition;
     bool partitionAvailable=true,beginOk=true,writeOk=true,endOk=true,selectOk=true;
-    int begins=0,writes=0,ends=0,selects=0,aborts=0,reboots=0;
+    int begins=0,writes=0,ends=0,selects=0,aborts=0,reboots=0,yields=0;
     bool open=false,settingsBlocked=false;
     size_t eraseSize=0;
 } native;
+void delay(unsigned ms){assert(ms==1);++native.yields;}
 const esp_partition_t *esp_ota_get_next_update_partition(void*) {return native.partitionAvailable?&native.partition:nullptr;}
 int esp_ota_begin(const esp_partition_t *p,size_t n,unsigned *h) {
     assert(p);++native.begins;native.eraseSize=n;
@@ -99,7 +100,7 @@ void data(REST &r){event(r,UPLOAD_FILE_START);event(r,UPLOAD_FILE_WRITE,8);event
 int main(){
     {
         native={};REST r;r.server_.callback=[&]{data(r);assert(native.selects==0);finalHandler(r);};r.handle();
-        assert(native.eraseSize==8&&native.ends==1&&native.selects==1&&native.reboots==1);
+        assert(native.eraseSize==8&&native.ends==1&&native.selects==1&&native.reboots==1&&native.yields==native.writes&&native.writes==1);
         assert(r.server_.statuses==std::vector<int>{200}&&!native.open&&native.aborts==0);
         assert(r.controller_.settingsPermission==std::vector<bool>({true,false}));
         pass("exact production callbacks select only at final handler and schedule restart only after success");

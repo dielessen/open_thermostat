@@ -281,7 +281,7 @@ public:
 
     // Compatibility projection for Home/About/legacy JSON consumers. Values
     // come from this same aged monitor, never a second Classic decoder/cache.
-    void writeLegacyStatus(std::ostream& out,uint64_t now) const {
+    void writeLegacyStatus(std::ostream& out,uint64_t now,bool closeObject=true) const {
         out<<"{\"protocolProfile\":\""<<capabilities_.name()<<"\",\"physicalValidation\":false";
         if(capabilities_.profile()==BoilerProtocol::classic) {
             const auto emit=[&](const char *name,BoilerField field,int divisor=1,bool boolean=false) {
@@ -318,7 +318,7 @@ public:
                 out<<'"';
             }
         }
-        out<<'}';
+        if(closeObject)out<<'}';
     }
     void writeFieldGroup(std::ostream& ss,uint64_t now,size_t group) const {
         constexpr size_t perGroup=10;

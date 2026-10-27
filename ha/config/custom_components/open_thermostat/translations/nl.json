@@ -1384,6 +1384,9 @@
       },
       "estimated_radiator_power": {
         "name": "Geschat radiatorvermogen"
+      },
+      "controller_requested_flow_temperature": {
+        "name": "Door E32 gevraagde aanvoertemperatuur"
       }
     }
   },

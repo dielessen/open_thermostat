@@ -6,6 +6,7 @@
 #include "EMS/EmsFrameQueue.h"
 
 #include <driver/uart.h>
+#include <esp_timer.h>
 #include <hal/uart_types.h>
 #include <soc/uart_reg.h>
 #include <array>
@@ -101,11 +102,32 @@ public:
 
 	uint32_t forwarderErrors() const { return forwarder_.rxErrors.load(std::memory_order_relaxed); }
 	uint32_t forwarderDropped() const { return forwarder_.dropped.load(std::memory_order_relaxed); }
+    enum class RxError : uint8_t { none, echoAccounting, shortFrame, overflow, parity, framing };
+    struct RxErrorInfo { const char* reason; uint64_t observedAtMs; };
+    RxErrorInfo lastRxError() const {
+        const auto word=lastRxError_.load(std::memory_order_acquire);
+        const char* reason="none";
+        switch(static_cast<RxError>(word&255)) {
+            case RxError::echoAccounting:reason="echo_event_accounting";break;
+            case RxError::shortFrame:reason="incomplete_rx_frame";break;
+            case RxError::overflow:reason="rx_buffer_overflow";break;
+            case RxError::parity:reason="rx_parity_error";break;
+            case RxError::framing:reason="rx_framing_error";break;
+            default:break;
+        }
+        return {reason,word>>8};
+    }
+    void recordRxError(RxError kind) {
+        rxErrors.fetch_add(1,std::memory_order_relaxed);
+        const auto at=static_cast<uint64_t>(esp_timer_get_time()/1000);
+        lastRxError_.store((at<<8)|static_cast<uint8_t>(kind),std::memory_order_release);
+    }
 	std::atomic<uint32_t> rxErrors{0};
 	std::atomic<uint32_t> rxTimeouts{0};
 	std::atomic<uint32_t> resets{0};
 
 private:
+    std::atomic<uint64_t> lastRxError_{0}; // retained diagnostic, not an admission input
 #ifdef OPENTHERMOSTAT_E32V2
     friend class ems::EmsController;
     template<bool Read>
@@ -244,7 +266,7 @@ static void uart_event_task(void *pvParameters) {
 #ifdef OPENTHERMOSTAT_E32V2
             // Missing echo DATA events must not eat counts from a later frame.
             if(!bus->echoRxDebt_.atBreak()) {
-                bus->rxErrors.fetch_add(1,std::memory_order_relaxed);
+                bus->recordRxError(EmsBusUart::RxError::echoAccounting);
                 bus->performReset();length=0;break;
             }
             bus->echoRxDebt_.reset();
@@ -268,14 +290,14 @@ static void uart_event_task(void *pvParameters) {
 				}
 			}
 			if (!complete) {
-				bus->rxErrors.fetch_add(1, std::memory_order_relaxed);
+				bus->recordRxError(EmsBusUart::RxError::shortFrame);
 			}
 			length = 0;
 			break;
 		}
 		case UART_FIFO_OVF:
 		case UART_BUFFER_FULL:
-			bus->rxErrors.fetch_add(1, std::memory_order_relaxed);
+			bus->recordRxError(EmsBusUart::RxError::overflow);
 			uart_flush_input(bus->getUartSlot());
 			xQueueReset(bus->getQueueHandle());
 #ifdef OPENTHERMOSTAT_E32V2
@@ -284,8 +306,10 @@ static void uart_event_task(void *pvParameters) {
 			length = 0;
 			break;
 		case UART_PARITY_ERR:
+            bus->recordRxError(EmsBusUart::RxError::parity);
+            break;
 		case UART_FRAME_ERR:
-			bus->rxErrors.fetch_add(1, std::memory_order_relaxed);
+			bus->recordRxError(EmsBusUart::RxError::framing);
 			break;
 		default:
 			break;

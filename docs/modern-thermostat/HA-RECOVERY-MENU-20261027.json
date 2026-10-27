@@ -1,8 +1,8 @@
 {
   "schema": 1,
   "date": "2026-10-27",
-  "target_tag": "ha-v0.4.0b5",
-  "status": "SOFTWARE_PREPARED_AWAITING_EXACT_TAG_CI",
+  "target_tag": "ha-v0.4.0b6",
+  "status": "SOFTWARE_PREPARED_B6_WITH_CONTROLLER_REQUEST_SENSOR",
   "cause": "ProductOptionsFlow overrode the native options entrypoint and omitted inherited graph_prepare and graph_status handlers from every advertised menu. Real Core menu schemas reject unadvertised step selection. A retained staged weekly plan therefore had no product recovery action.",
   "observed_runtime_before_update": {
     "integration": "0.4.0b1",
@@ -33,5 +33,7 @@
   "new_worker_or_storage_owner": false,
   "e32_firmware_changed": false,
   "e32_compatibility": "v0.1.0-e32v2-beta.6",
-  "ha_b4_remains_immutable": true
+  "ha_b4_remains_immutable": true,
+  "b5_ci_result": "FAILED_UNPUBLISHED_OLD_CONNECTED_MENU_HELPER_EXPECTATION",
+  "final_selected_native_tests": 66
 }

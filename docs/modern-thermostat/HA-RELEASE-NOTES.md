@@ -1,26 +1,58 @@
-# HA 0.4.0b5 — restore room plan recovery
+# HA 0.4.0b6 — requested boiler temperature and plan recovery
 <!-- user-release-notes:v2:en -->
 
-Recovery fix for HA 0.4.0b4, compatible with the published E32 beta.6.
-The E32 firmware download is unchanged. Installation is verified separately.
+Companion correction for E32 beta.7. Native plan recovery also supports beta.6.
 
-## Recovery fix
+## New
 
-- The product menu now exposes **Review or recover room plan** when the existing
-  native plan connection is running. A retained staged plan could previously
-  leave the bathroom climate unavailable while the inherited recovery handler
-  was absent from every product menu.
-- The action opens the existing prepare/review flow. Nothing is sent until the
-  exact staged plan is confirmed. Only fresh E32 readback verifies application;
-  cancel, session changes and uncertain writes retain the existing safeguards.
-- Advanced diagnostics also exposes the applied-plan status. Reading or
-  refreshing status sends no configuration. Disconnected/inactive installations
-  do not display these plan actions.
-- Saved temperatures, device bindings, logical limits and physical output
-  permissions are not changed by opening the menu. This fix enables recovery of
-  existing intent; it does not enable automatic boiler or valve control.
+- Add read-only **E32 requested flow temperature** for the advertised Ecomline
+  trial command record. Preserve every boiler-reported temperature entity.
+- Unknown before the first transmission and after a new firmware boot;50C after
+  an emitted50C request,0C after an emitted Stop. Attributes identify controller
+  origin, original completion time and command age. No measurement statistics
+  or restored command value is supplied.
+- Reuse the existing EMS status subscription, without extra HTTP polling or
+  command publication. Duplicate snapshots keep their original age; retained,
+  malformed and reordered packets do not supply a temperature. Offline/expired
+  status becomes unavailable.
 
-The following features from HA 0.4.0b4 are retained.
+## Fixed
+
+- Expose **Review or recover room plan** for a running native plan connection.
+  A retained staged plan could previously leave the bathroom climate unavailable
+  while the recovery handler was missing from every product menu.
+- Reuse the existing prepare/review/apply worker, current candidate/session/Store
+  checks, separate confirmation and exact E32 readback. Merely reading the menu
+  or status does not apply a plan or grant physical control.
+- Advanced diagnostics now exposes applied-plan status. Inactive/disconnected
+  installations do not show the native plan actions.
+- Correct the old connected-menu test helper. CI rejected unpublished0.4.0b5
+  because its helper still expected the old menu; that candidate was not installed.
+
+## Updating
+
+Install the matching integration package, preserve existing entry/storage and
+resources, validate configuration and restart HA. A normal explicit plan review
+resolves the pre-existing accepted6/staged7 horizon recovery; no storage rewrite.
+E32 beta.7 supplies the command record. Existing beta.4/6 firmware keeps its other
+entities and can use the recovered plan menu.
+
+## Limitations
+
+This is a controller-command history value, not boiler acknowledgement or an
+independent water-temperature measurement. It does not replace a boiler's own
+selected-flow report. Physical installation acceptance and the complete new
+attended50C/600s trial remain open. Automatic boiler/valve outputs stay disabled.
+
+# HA 0.4.0b5 — unpublished recovery candidate
+
+Tagged24fd54b; exact-tag CI rejected an old connected-menu test expectation.
+No public package or active installation was made from that candidate.
+
+# HA 0.4.0b4 — integrated room and installation controls
+<!-- user-release-notes:v2:en -->
+
+Experimental coordinated release for E32 beta.6. Installation is verified separately.
 
 ## New
 

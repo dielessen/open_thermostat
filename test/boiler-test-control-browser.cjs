@@ -16,10 +16,10 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   function update(patch){Object.assign(state,patch);state.state_sequence++;state.observed_at_ms+=100;}
   const gaugeTrial=width===390;
   const limits={minimum_flow_c:40,maximum_flow_c:50,maximum_duration_s:600,operator_lease_ms:5000};
-  let feedback={};
+  let feedback={},controllerRequest=null;
   let heatTrial={profile_id:'ecomline-classic-manual-v1',installation_reviewed:false,telemetry_ready:false,
    reason:'pressure_unavailable',physical_validation:false,limits:{minimum_flow_c:40,maximum_flow_c:50,maximum_duration_s:600,
-    minimum_pressure_decibar:10,maximum_pressure_decibar:25,minimum_measured_flow_centi:500,maximum_measured_flow_centi:6000}};
+    minimum_pressure_decibar:10,maximum_pressure_decibar:25,minimum_measured_flow_centi:500,maximum_measured_flow_centi:9000}};
   const response=(route,body,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)});
   await page.route('http://boiler.test/**',async route=>{
    const req=route.request(),pathname=new URL(req.url()).pathname;
@@ -27,7 +27,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
    if(pathname==='/auth/session')return response(route,{authenticated:true,csrf:'a'.repeat(64)});
    if(pathname==='/status')return response(route,{controlMode:'shadow',ems:{},control:{fresh:false,reason:'missing'}});
    if(pathname==='/status/ems/telemetry')return response(route,{reception:{state:'classic_reports_received',report_count:3,last_report_age_ms:100},
-    transport:{enabled:true,transmit_compiled:false,transmitted_frames:0,receive_queue_dropped:0,invalid_telegrams:0,uart_errors:0,uart_resets:0},fields:feedback,heat_trial:heatTrial,test:forcedOld||state});
+    transport:{enabled:true,transmit_compiled:false,transmitted_frames:0,receive_queue_dropped:0,invalid_telegrams:0,uart_errors:0,uart_resets:0},fields:feedback,heat_trial:heatTrial,controller_request:controllerRequest,test:forcedOld||state});
    if(pathname.startsWith('/boiler/test/')){
     assert.equal(req.method(),'POST');assert.equal(req.headers()['x-openthermostat-csrf'],'a'.repeat(64));
     const body=req.postDataJSON();assert.equal(body.schema,1);assert.equal(body.boot_id,state.boot_id);
@@ -85,16 +85,25 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   assert.match(await page.locator('[data-heat-limits]').innerText(),/Niet beoordeeld/);
   // A live hot-water cycle must explain the blocked zero and heat buttons,
   // without a hidden read/heat request or any change to backend permission.
-  feedback={measured_flow_temperature:{value:75,unit:'degC',state:'valid',quality:'reported'},
+  feedback={measured_flow_temperature:{value:95,unit:'degC',state:'valid',quality:'reported'},
     dhw_active:{value:1,unit:'bool',state:'valid',quality:'inferred'}};
   heatTrial={...heatTrial,reason:'flow_outside_trial_limits'};
-  await page.locator('[data-heat-status]').filter({hasText:'75 °C'}).waitFor({state:'attached'});
-  assert.match(await page.locator('[data-heat-status]').innerText(),/5–<60 °C/);
+  await page.locator('[data-heat-status]').filter({hasText:'95 °C'}).waitFor({state:'attached'});
+  assert.match(await page.locator('[data-heat-status]').innerText(),/5–<90 °C/);
   assert.match(await page.locator('[data-zero-help]').innerText(),/tapwaterbedrijf/);
   assert.equal(await page.locator('[data-test-zero]').isDisabled(),true);
   assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
   assert.equal(requests.some(r=>r.method!=='GET'),false);
   feedback={};
+
+  controllerRequest={schema:1,profile_id:'ecomline-classic-separate-pressure-v1',source:'controller_uart_transmit',
+    boot_id:'000000000000002a',observed_at_ms:1000,known:false,boiler_readback:false,value_c:null,emitted_at_ms:null,sequence:0};
+  await page.locator('[data-controller-request-value]').filter({hasText:'Nog geen bevestigde'}).waitFor();
+  controllerRequest={...controllerRequest,observed_at_ms:1100,known:true,value_c:50,emitted_at_ms:1050,sequence:1};
+  await page.locator('[data-controller-request-value]').filter({hasText:'50 °C'}).waitFor();
+  assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
+  controllerRequest={...controllerRequest,observed_at_ms:1200,value_c:0,emitted_at_ms:1150,sequence:2};
+  await page.locator('[data-controller-request-value]').filter({hasText:'0 °C'}).waitFor();
   // Healthy numbers cannot change the separately blocked test controls.
   heatTrial={...heatTrial,telemetry_ready:true,reason:'telemetry_ready'};
   await page.locator('[data-heat-status]').filter({hasText:'metingen vallen binnen'}).waitFor({state:'attached'});
@@ -128,6 +137,8 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
    await page.locator('[data-site-pressure-value]').fill('1.5');
    assert.match(await page.locator('[data-heat-limits]').innerText(),/fysieke acceptatie staat nog open/);
   }
+  feedback={measured_flow_temperature:{value:66,unit:'degC',state:'valid',quality:'reported'}};
+  await page.locator('[data-heat-status]').filter({hasText:'Het water is al op of boven'}).waitFor({state:'attached'});
   await page.waitForFunction(()=>!document.querySelector('[data-test-prepare]').disabled);
   await page.locator('[data-test-flow]').fill('61');await page.locator('[data-test-duration]').fill('600');
   await page.locator('[data-test-prepare]').click();assert.equal(requests.some(r=>r.path.endsWith('/prepare')),false);

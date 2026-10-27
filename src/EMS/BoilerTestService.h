@@ -185,6 +185,19 @@ public:
         if (intent.command == BoilerTestSession::Command::positive) ++positiveFrames_; else ++zeroFrames_;
         return true;
     }
+    void writeCommandJSON(std::ostream& out, uint64_t now) const {
+        const auto& value = session_.lastTransmittedRequest();
+        const bool known = value && value->completedAtMs <= now;
+        out << "{\"schema\":1,\"profile_id\":\"ecomline-classic-separate-pressure-v1\",\"source\":\"controller_uart_transmit\",\"boot_id\":\"";
+        static constexpr char hex[]="0123456789abcdef";
+        for (int shift=60;shift>=0;shift-=4) out << hex[(boot_>>shift)&15];
+        out << "\",\"observed_at_ms\":" << now << ",\"known\":" << (known?"true":"false")
+            << ",\"boiler_readback\":false,\"value_c\":";
+        if (known) out << static_cast<unsigned>(value->flowC); else out << "null";
+        out << ",\"emitted_at_ms\":";
+        if (known) out << value->completedAtMs; else out << "null";
+        out << ",\"sequence\":" << (known?value->sequence:0) << '}';
+    }
     void writeJSON(std::ostream& out, uint64_t now, std::string_view owner,
                    const BoilerTestSession::Gates& gates, const ClassicBoilerMonitor& monitor) const {
         const auto* blocked = blockedReason(gates, now, false, true); const auto admitted = effective(gates, now);

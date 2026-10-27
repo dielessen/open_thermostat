@@ -1855,7 +1855,13 @@ button.onclick=async()=>{if(!file.files.length){status.textContent=uiText("Selec
 			error=esp_ota_begin(partition,size,&handle);
 			return error==ESP_OK;
 		}
-		bool write(const void *bytes,size_t size) {error=esp_ota_write(handle,bytes,size);return error==ESP_OK;}
+		bool write(const void *bytes,size_t size) {
+			error=esp_ota_write(handle,bytes,size);
+			// Pinned multipart parser yields only when input drains. A fast LAN
+			// sender can otherwise keep this loop busy until the task watchdog.
+			delay(1);
+			return error==ESP_OK;
+		}
 		bool end() {error=esp_ota_end(handle);handle=0;return error==ESP_OK;}
 		bool select() {error=esp_ota_set_boot_partition(partition);return error==ESP_OK;}
 		void abort() {esp_ota_abort(handle);handle=0;}

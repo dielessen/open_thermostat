@@ -32,8 +32,8 @@ TEST_F(HeatEnvelope, UnknownPlusAndConflictingFamiliesNeverUseClassicLimits){
     monitor.receive({EmsTelegram::BROADCAST,8,0,0,0xe4,{0}},101);EXPECT_FALSE(check(101).ready);
 }
 TEST_F(HeatEnvelope, TemperatureLimitsAreAppliedToMeasuredWaterNotRequestedSetpoint){
-    for(uint16_t value:{uint16_t(49),uint16_t(600),uint16_t(700)}){fast(101+value,value);EXPECT_FALSE(check(101+value).ready);}
-    for(uint16_t value:{uint16_t(50),uint16_t(599)}){ClassicBoilerMonitor fresh;monitor=std::move(fresh);settings(100);fast(101,value);EXPECT_TRUE(check(101).ready);}
+    for(uint16_t value:{uint16_t(49),uint16_t(900),uint16_t(1000)}){fast(101+value,value);EXPECT_FALSE(check(101+value).ready);}
+    for(uint16_t value:{uint16_t(50),uint16_t(599),uint16_t(600),uint16_t(660),uint16_t(850),uint16_t(899)}){ClassicBoilerMonitor fresh;monitor=std::move(fresh);settings(100);fast(101,value);EXPECT_TRUE(check(101).ready);}
 }
 TEST_F(HeatEnvelope, PressureBoundsRejectZeroLowHighAndMissingSentinel){
     for(uint8_t pressure:{0,9,26,254,255}){fast(101+pressure,200,pressure);EXPECT_FALSE(check(101+pressure).ready);}
@@ -64,7 +64,7 @@ TEST_F(HeatEnvelope, SeparatePressureMethodDoesNotRelaxOtherMeasurementLimitsOrF
     auto separate = [&](uint64_t now){return ClassicHeatTrialEnvelope::inspect(monitor,now,Source::separateCheck,true);};
     EXPECT_TRUE(separate(101).ready);
     EXPECT_FALSE(separate(15100).ready);
-    fast(15101,600);EXPECT_STREQ(separate(15101).reason,"flow_outside_trial_limits");
+    fast(15101,900);EXPECT_STREQ(separate(15101).reason,"flow_outside_trial_limits");
     fast(15102);settings(15102,0);EXPECT_STREQ(separate(15102).reason,"heating_disabled");
     settings(15103,255,44);EXPECT_STREQ(separate(15103).reason,"heating_limit_outside_trial_limits");
     fast(615103);EXPECT_STREQ(separate(615103).reason,"heating_setting_unavailable");
@@ -154,7 +154,7 @@ TEST_F(HeatEnvelopeIo, PressureLossAtFinalAdmissionBlocksPositiveButAllowsZero){
 }
 TEST_F(HeatEnvelopeIo, OvertemperatureDuringPositiveWriteCannotDelayImmediateWithdrawal){
     heat();int writes=0;
-    auto result=BoilerTestPollDriver::poll(service,monitor,[&]{return now;},[&]{return gates();},encode,[&](const EmsRawFrame& frame){++writes;EXPECT_EQ(frame.data[4],40);++now;fast(now,600);return true;});
+    auto result=BoilerTestPollDriver::poll(service,monitor,[&]{return now;},[&]{return gates();},encode,[&](const EmsRawFrame& frame){++writes;EXPECT_EQ(frame.data[4],40);++now;fast(now,900);return true;});
     EXPECT_EQ(result,BoilerTestPollDriver::Result::sent);
     result=BoilerTestPollDriver::poll(service,monitor,[&]{return now;},[&]{return gates();},encode,[&](const EmsRawFrame& frame){++writes;EXPECT_EQ(frame.data[4],0);return true;});
     EXPECT_EQ(result,BoilerTestPollDriver::Result::sent);EXPECT_EQ(writes,2);

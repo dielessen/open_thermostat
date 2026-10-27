@@ -223,7 +223,15 @@ public:
 		std::lock_guard<std::mutex> lock(telemetryMutex_);
 #ifdef OPENTHERMOSTAT_E32V2
         if(monitor_.capabilities().profile()!=BoilerProtocol::plus) {
-            monitor_.writeLegacyStatus(ss,static_cast<uint64_t>(esp_timer_get_time()/1000));return;
+            const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
+            const bool classic=monitor_.capabilities().profile()==BoilerProtocol::classic;
+            monitor_.writeLegacyStatus(ss,now,!classic);
+            if(classic) {
+                ss << ",\"controller_request\":";
+                boilerTest_.writeCommandJSON(ss,now);
+                ss << '}';
+            }
+            return;
         }
 #endif
 		boilerState_.getStatus(ss, monitor_.capabilities().name());
@@ -264,7 +272,10 @@ public:
 		   << ",\"invalid_telegrams\":" << invalidTelegrams_.load(std::memory_order_relaxed)
 		   << ",\"uart_errors\":" << uart_.rxErrors.load(std::memory_order_relaxed)
 		   << ",\"uart_timeouts\":" << uart_.rxTimeouts.load(std::memory_order_relaxed)
-		   << ",\"uart_resets\":" << uart_.resets.load(std::memory_order_relaxed) << '}';
+		   << ",\"uart_resets\":" << uart_.resets.load(std::memory_order_relaxed);
+        const auto uartError=uart_.lastRxError();
+        ss << ",\"last_uart_error\":{\"reason\":\"" << uartError.reason
+           << "\",\"observed_at_ms\":" << uartError.observedAtMs << "}}";
 #ifdef OPENTHERMOSTAT_E32V2
         ss<<",\"settings_policy\":{\"transmit_compiled\":"<<(board::emsSettingsTransmitAllowed?"true":"false")
           <<",\"installation_reviewed\":"<<(settingsInstallationReviewed_?"true":"false")<<'}';
@@ -296,7 +307,8 @@ public:
            << ",\"minimum_pressure_decibar\":" << BoilerTestService::minimumManualPressureDecibar
            << ",\"maximum_pressure_decibar\":" << ClassicHeatTrialEnvelope::maximumPressureDecibar
            << ",\"minimum_measured_flow_centi\":" << ClassicHeatTrialEnvelope::minimumMeasuredFlowCenti
-           << ",\"maximum_measured_flow_centi\":" << ClassicHeatTrialEnvelope::maximumMeasuredFlowCenti << "}}";
+           << ",\"maximum_measured_flow_centi\":" << ClassicHeatTrialEnvelope::maximumMeasuredFlowCenti << "}},\"controller_request\":";
+        boilerTest_.writeCommandJSON(ss,snapshotMs);
 #endif
 		ss << '}';
 	}

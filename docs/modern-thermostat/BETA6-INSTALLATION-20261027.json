@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "date": "2026-10-27",
-  "status": "E32_INSTALLED_HA_B4_PUBLISHED_RECOVERY_PATCH_B5_PREPARED",
+  "status": "E32_BETA6_AND_HA_B4_INSTALLED_WITH_MANUAL_ROUTE_NATIVE_GAP_RETAINED",
   "owner_instruction": "docs/modern-thermostat/BETA6-OWNER-INSTRUCTION-20261027.json",
   "source_commit": "4f101027f947df9c2abbcd3e187db37e68e876ca",
   "e32": {
@@ -36,24 +36,29 @@
     "backup_manifest_sha256": "57591869291cdcbe73302a0520edd37761a0e2ffab5cf6dc5c71af84a5e54588",
     "monitor_receipt": "out/beta6-native-install/MANUAL-MONITOR-RESULT.json",
     "monitor_sha256": "bcb8ac5057e78e0d24b1e60633a03d3440ca5c8f65c408d5a3e116bae8976146",
-    "independent_ha_postcheck": "PENDING"
+    "independent_ha_postcheck": "HA4b4 source/resource/entry preservation independently checked; direct E32 identity checked by root. Native GitHub acceptance not claimed."
   },
   "ha": {
-    "target_version": "0.4.0b5",
+    "target_version": "0.4.0b4",
     "published": true,
-    "installed": false,
+    "installed": true,
     "backup_source_files": 87,
     "backup_storage_files": 8,
     "preserved_resources": 15,
     "full_backup_archive_sha256": "85584f88d1ab91ddea6cb8454bedc1d8834a547d226173c1d24c991df8657f05",
     "staged_source_files": 95,
     "active_source_writes": 0,
-    "restart_commands": 0,
+    "restart_commands": 1,
     "preexisting_bathroom_unavailable": true,
     "preexisting_native_plan": "accepted6/staged7; only weekly horizon timestamps differ",
     "exact_tag_ci_run": 40487724661,
     "published_prior_version": "0.4.0b4",
-    "recovery_patch": "docs/modern-thermostat/HA-RECOVERY-MENU-20261027.json"
+    "recovery_patch": "docs/modern-thermostat/HA-RECOVERY-MENU-20261027.json",
+    "actual_loaded_version": "0.4.0b4",
+    "independent_source95_verified": true,
+    "installation_report_sha256": "57e5911aebf562d5c5a09f9ea8190f3ed38042819fd39d07888b3f32f6151b0c",
+    "bathroom_recovery": "BLOCKED_BY_MISSING_PRODUCT_MENU_FIXED_IN_NEXT_B6",
+    "unpublished_b5_ci": "Old connected menu helper expected the previous menu; production menu change retained and helper fixed in b6"
   },
   "last_accepted_native_e32": "v0.1.0-e32v2-beta.4",
   "native_gate_advanced": false,

@@ -77,7 +77,8 @@ const initial=()=>({schema:1,boot_id:'000000000000002a',revision:0,state_sequenc
   delete state.progress;update({});await refresh();await outcome('unconfirmed');
   update({positive_frames:0});await refresh();await outcome('not_heated');
   update({zero_only:true});await refresh();await outcome('zero_passed');
-  update({phase:'fault',can_prepare:false,can_stop:true,reported_stop_confirmed:false,zero_only:false});await refresh();await outcome('failed');
+  update({phase:'fault',can_prepare:false,can_stop:true,reported_stop_confirmed:false,zero_only:false,progress:{...progress(),end_reason:'explicit_stop'}});await refresh();await outcome('failed');
+  assert.match(await page.locator('[data-trial-result-title]').innerText(),language==='nl'?/Handmatig gestopt/:/Stopped manually/);
   assert.match(await page.locator('[data-workflow-help]').innerText(),language==='nl'?/Controleer nu de ketel/:/Check the boiler now/);
   update({phase:'ready',can_start:true,owned:true,reported_stop_confirmed:true});await open();
   assert.equal(await page.locator('[data-test-start]').isVisible(),false);

@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target": "v0.1.0-e32v2-beta.6",
+  "parent_commit": "478832fb42723c522ba6a22da7380d8ee238b269",
+  "device_actions_performed": false,
+  "installed_firmware_unchanged": "v0.1.0-e32v2-beta.4",
+  "read_lifecycle": {
+    "maximum_in_flight": 1,
+    "hidden_tabs_poll": false,
+    "hidden_or_removed_status_read_aborted": true,
+    "visible_requires_fresh_status": true,
+    "navigation_cleans_timer_observer_and_listener": true,
+    "submitted_commands_aborted_or_replayed": false
+  },
+  "validation": {
+    "updater_browser_scenarios_passed": 37,
+    "cold_navigation_widths_passed": [
+      1280,
+      390
+    ],
+    "cold_payload_bytes": [
+      141314,
+      141307
+    ],
+    "static_authorization_response_cases_passed": 21,
+    "asset_generator_tests_passed": 4,
+    "e32_image_bytes": 3082320,
+    "ota_slot_bytes": 3670016,
+    "image_verifier": "PASS"
+  },
+  "scope": "Simulated HTTP and source/image integrity. No installation or measured on-device speedup.",
+  "reviewed_files": [
+    {
+      "path": "data/html/index.html",
+      "sha256": "d4d81be64578957927c29fee801fe871b69ea09d8025f94c6358df698450afc1"
+    },
+    {
+      "path": "data/html/update.html",
+      "sha256": "75e1180399cd7afaaaab5d55319ca3fe82899ed323b45a40f32bc1b46586588a"
+    },
+    {
+      "path": "test/updates/browser.cjs",
+      "sha256": "1104875f92f11ba55cc4b723715408a56b7bccc21e57bc1271f193285aef63fb"
+    },
+    {
+      "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
+      "sha256": "68cfb252f8bcefd081e62b1128805b948d3fae1afce4aa6a46fda6079f02a1e5"
+    }
+  ]
+}

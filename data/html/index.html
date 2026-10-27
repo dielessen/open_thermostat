@@ -578,6 +578,7 @@
 		}
 
 		function clearMainContainer() {
+            window.UpdatesPage?.unmount();
             window.EMSDevicesPage?.unmount();
             window.BluetoothPage?.unmount();
             navigationGeneration++;

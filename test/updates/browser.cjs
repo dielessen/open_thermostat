@@ -12,10 +12,13 @@ const assets=path.resolve(__dirname,'../../data/html');
   await page.route('http://opth.test/**',async route=>{
    const req=route.request(),p=new URL(req.url()).pathname;
    if(p==='/updates/status'){
+    sim.statusReads=(sim.statusReads||0)+1;
     if(sim.malformed)return route.fulfill({contentType:'application/json',json:{installed:'incomplete'}});
     if(sim.holdStatus){sim.holdStatus=false;const snapshot=JSON.parse(JSON.stringify(sim));sim.releaseStatus=()=>route.fulfill({contentType:'application/json',json:snapshot});return;}
     if(sim.drop)return route.abort();return route.fulfill({contentType:'application/json',json:sim});}
-   if(p.startsWith('/updates/')){sim.posts.push({path:p,body:req.postDataJSON()});return route.fulfill({status:sim.accept?202:409,body:sim.accept?'Queued':'Injected rejection'});}
+   if(p.startsWith('/updates/')){sim.posts.push({path:p,body:req.postDataJSON()});
+    if(sim.holdCommand){sim.holdCommand=false;sim.releaseCommand=()=>route.fulfill({status:202,body:'Queued'});return;}
+    return route.fulfill({status:sim.accept?202:409,body:sim.accept?'Queued':'Injected rejection'});}
    if(p==='/ota'||p==='/otafs'){sim.posts.push({path:p});return route.fulfill({status:sim.uploadStatus,body:sim.uploadStatus===200?'success':'Injected upload failure'});}
    if(p==='/'){++sim.navigations;return route.fulfill({contentType:'text/html',body:'<meta charset="utf-8"><script src="/ui-messages.js"></script><script src="/ui-language.js"></script><script src="/deps/jquery.min.js.gz"></script><script>const hostName="";function mainScreen(){}</script>'+fs.readFileSync(path.join(assets,'update.html'),'utf8')});}
    if(['/ui-language.js','/ui-messages.js'].includes(p))return route.fulfill({contentType:'text/javascript',body:fs.readFileSync(path.join(assets,p))});
@@ -137,8 +140,10 @@ const assets=path.resolve(__dirname,'../../data/html');
    assert.equal(sim.posts.length,0);pass(language+' incomplete status blocks commands until a valid fresh status arrives');
   }
   await scene('en');sim.holdStatus=true;await page.waitForTimeout(1200);assert.equal(typeof sim.releaseStatus,'function');
+  const releaseOldStatus=sim.releaseStatus;sim.holdStatus=true;
   await page.click('#checkReleases');assert.equal(await page.isDisabled('#checkReleases'),true);
-  await sim.releaseStatus();await page.waitForTimeout(180);assert.equal(await page.isDisabled('#checkReleases'),true);
+  await releaseOldStatus();await page.waitForTimeout(1200);assert.equal(await page.isDisabled('#checkReleases'),true);
+  assert.notEqual(sim.releaseStatus,releaseOldStatus);await sim.releaseStatus();
   await page.waitForFunction(()=>!document.getElementById('checkReleases').disabled);
   assert.equal(sim.posts.length,1);pass('pre-command delayed status cannot unlock commands or cause a replay');
   await scene('en');sim.reboot_required=true;sim.reboot_scheduled=true;sim.selected='v0.1.0-e32v2-alpha.3';sim.busy=true;sim.phase='ready_to_reboot';
@@ -170,6 +175,53 @@ const assets=path.resolve(__dirname,'../../data/html');
    assert.equal(sim.posts.length,0);assert.deepEqual(errors,[]);
    pass(language+' stalled status body times out, fences commands and recovers without replay');
   }
-  assert.deepEqual(errors,[]);console.log(count+' updater browser scenarios passed (simulated HTTP; no hardware OTA proof)');
+  async function visibility(value){await page.evaluate(value=>{Object.defineProperty(document,'visibilityState',{configurable:true,value});document.dispatchEvent(new Event('visibilitychange'));},value);}
+  for(const language of ['nl','en']) {
+   await scene(language);await visibility('hidden');const reads=sim.statusReads;
+   await page.waitForTimeout(1250);assert.equal(sim.statusReads,reads);assert.equal(await page.isDisabled('#checkReleases'),true);
+   await page.evaluate(()=>document.getElementById('checkReleases').onclick());assert.equal(sim.posts.length,0);
+   sim.holdStatus=true;await visibility('visible');await page.waitForTimeout(150);
+   assert.equal(sim.statusReads,reads+1);assert.equal(await page.isDisabled('#checkReleases'),true);
+   await sim.releaseStatus();await page.waitForFunction(()=>!document.getElementById('checkReleases').disabled);
+   pass(language+' hidden updater pauses polling and requires a fresh status before resumed commands');
+  }
+  await scene('en');
+  await page.evaluate(()=>{
+   const original=window.fetch;window.stallNext=true;
+   window.fetch=(input,options)=>{
+    if(input==='/updates/status'&&window.stallNext){
+     window.stallNext=false;window.bodyStarted=true;
+     return Promise.resolve(new Response(new ReadableStream({start(controller){
+      options.signal.addEventListener('abort',()=>{window.bodyAborted=true;controller.error(new DOMException('Aborted','AbortError'));},{once:true});
+     }}),{headers:{'Content-Type':'application/json'}}));
+    }
+    return original(input,options);
+   };
+  });
+  await page.waitForFunction(()=>window.bodyStarted===true);await visibility('hidden');
+  await page.waitForFunction(()=>window.bodyAborted===true);const pausedReads=sim.statusReads;
+  await page.waitForTimeout(1250);assert.equal(sim.statusReads,pausedReads);
+  await visibility('visible');await page.waitForFunction(()=>!document.getElementById('checkReleases').disabled);
+  pass('hiding an updater aborts a stalled status body and resumes one read without a command');
+  await page.evaluate(()=>{window.stallNext=true;window.bodyStarted=false;window.bodyAborted=false;});
+  await page.waitForFunction(()=>window.bodyStarted===true);
+  await page.evaluate(()=>document.getElementById('githubUpdate').remove());
+  await page.waitForFunction(()=>window.bodyAborted===true&&window.UpdatesPage===null);
+  const removedReads=sim.statusReads;await page.waitForTimeout(1250);
+  assert.equal(sim.statusReads,removedReads);assert.equal(sim.posts.length,0);
+  pass('leaving an updater releases its timer, visibility listener and in-flight status read');
+  await scene('en');sim.holdCommand=true;
+  await page.evaluate(()=>{const original=window.fetch;window.fetch=(input,options)=>{
+   if(options?.method==='POST')options.signal.addEventListener('abort',()=>{window.commandAborted=true;},{once:true});
+   return original(input,options);
+  };});
+  await page.click('#checkReleases');await visibility('hidden');await page.waitForTimeout(150);
+  assert.equal(sim.posts.length,1);assert.equal(await page.evaluate(()=>!!window.commandAborted),false);
+  await sim.releaseCommand();await page.waitForTimeout(150);
+  const hiddenReads=sim.statusReads;await page.waitForTimeout(1100);assert.equal(sim.statusReads,hiddenReads);
+  await visibility('visible');await page.waitForFunction(()=>!document.getElementById('checkReleases').disabled);
+  assert.equal(sim.posts.length,1);assert.deepEqual(errors,[]);
+  pass('visibility changes never abort or replay an explicitly submitted update command');
+  console.log(count+' updater browser scenarios passed (simulated HTTP; no hardware OTA proof)');
  } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -120,6 +120,17 @@ latency, internal free/largest heap blocks and disconnect behavior. Current loca
 evidence is in `out/boiler-workflow-20261027/` and `out/page-loading-browser/`.
 No physical heating or installation acceptance is inferred from these tests.
 
+## Update page lifecycle
+
+The update page also owns its status-read lifecycle. Hidden tabs stop polling
+and abort pending status bodies. Returning requires a new valid status before
+commands can be used. Leaving the updater releases its timer, read, observer and
+visibility listener. There is at most one outstanding status read; stale results
+cannot unlock a newer command. An explicitly submitted update command is not
+aborted or replayed by visibility/navigation changes. All 37 updater browser
+scenarios pass against simulated HTTP, including these lifecycle cases. This
+reduces idle background work without changing firmware installation authority.
+
 ## Follow-up: identity and closed trial state
 
 A subsequent passive read of the installed device found a closed trial with a

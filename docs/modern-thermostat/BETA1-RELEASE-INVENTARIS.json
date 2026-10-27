@@ -301,11 +301,11 @@
         },
         {
           "path": "test/updates/browser.cjs",
-          "sha256": "9b20d4a2700b6191fa21537d4e468b087a4972fb47077b5fa6521ccd011b4320"
+          "sha256": "1104875f92f11ba55cc4b723715408a56b7bccc21e57bc1271f193285aef63fb"
         },
         {
           "path": "data/html/update.html",
-          "sha256": "33231272a06838fd5dc9fc5c8b48a09c324696556627db3ccbb2292119884ed1"
+          "sha256": "75e1180399cd7afaaaab5d55319ca3fe82899ed323b45a40f32bc1b46586588a"
         },
         {
           "path": "src/update/ManualAppUpload.h",
@@ -374,6 +374,10 @@
         {
           "path": "test/test_native/test_download_failure.cpp",
           "sha256": "f6adb11c16e7395e6714e8672c145410ae3d7052ce37fc63f6bca043df385cce"
+        },
+        {
+          "path": "docs/modern-thermostat/UPDATE-PAGE-LIFECYCLE-20261027.json",
+          "sha256": "9354b2f61af01283f4b41371a1ea39a9e1d630740949c2d5b70cf09191bc7780"
         }
       ],
       "remaining_acceptance": "Native GitHub-update alpha31→36 met verse back-up en één installatiecommando geslaagd:36 installatiecontroles,45 afzonderlijke nacontroles, exacte bron/ELF/web/31UI en behoud van86 HA-bestanden/13 projecthashes/zes loggingvelden. Iedere opvolgende reguliere release vereist nieuw update-/nacontrolebewijs volgens E32-UPDATE-PROCES en CI-gate. Oude multipart-watchdog en nativealpha26-afwijking blijven oorzakelijk onbekend; geen blinde fallback/retry. Fysieke powerloss/rollback/herstelkwalificatie en actieve ketel-/kraanpoorten blijven apart open. Automatische12ucontrole/dashboardmelding voorbereid naalpha36, niet geïnstalleerd."
@@ -413,7 +417,7 @@
         },
         {
           "path": "data/html/index.html",
-          "sha256": "4b71e2f5313b8a7109e6723bbbdc8131d9811f879110b1988c9a9b2a6cd592f6"
+          "sha256": "d4d81be64578957927c29fee801fe871b69ea09d8025f94c6358df698450afc1"
         },
         {
           "path": "data/html/device-restart.js",
@@ -497,7 +501,7 @@
         },
         {
           "path": "data/html/update.html",
-          "sha256": "33231272a06838fd5dc9fc5c8b48a09c324696556627db3ccbb2292119884ed1"
+          "sha256": "75e1180399cd7afaaaab5d55319ca3fe82899ed323b45a40f32bc1b46586588a"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/strings.json",
@@ -553,7 +557,7 @@
         },
         {
           "path": "test/updates/browser.cjs",
-          "sha256": "9b20d4a2700b6191fa21537d4e468b087a4972fb47077b5fa6521ccd011b4320"
+          "sha256": "1104875f92f11ba55cc4b723715408a56b7bccc21e57bc1271f193285aef63fb"
         },
         {
           "path": "test/web_auth_client.test.cjs",
@@ -641,7 +645,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
-          "sha256": "4f11bdd26176f8fba9ae83f3de62fa7cfb6ffa443cb3ddc77f565cbcf1902b2f"
+          "sha256": "68cfb252f8bcefd081e62b1128805b948d3fae1afce4aa6a46fda6079f02a1e5"
         },
         {
           "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-20261027.json",
@@ -923,7 +927,7 @@
         },
         {
           "path": "data/html/index.html",
-          "sha256": "4b71e2f5313b8a7109e6723bbbdc8131d9811f879110b1988c9a9b2a6cd592f6"
+          "sha256": "d4d81be64578957927c29fee801fe871b69ea09d8025f94c6358df698450afc1"
         },
         {
           "path": "data/html/ui-messages.js",

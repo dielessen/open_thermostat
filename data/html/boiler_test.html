@@ -23,6 +23,7 @@
         <button class="btn btn-danger" type="button" data-test-stop disabled><span data-i18n="Stop test">Stop test</span></button>
       </div>
     </form>
+    <button class="btn btn-primary" type="button" data-test-restart hidden><span data-i18n="Restart device">Restart device</span></button>
     <button class="btn btn-outline-secondary" type="button" data-test-close-fault hidden disabled><span data-i18n="Close faulted test after reported stop">Close faulted test after reported stop</span></button>
     <p data-test-close-help hidden><span data-i18n="This action requires a transmitted zero demand and fresh boiler reports confirming zero requested flow temperature and stopped heating.">This action requires a transmitted zero demand and fresh boiler reports confirming zero requested flow temperature and stopped heating.</span> <span data-i18n="Closing does not erase the fault. A restart is required before another test; no heat demand resumes automatically.">Closing does not erase the fault. A restart is required before another test; no heat demand resumes automatically.</span></p>
     <p class="pd-help"><span data-i18n="Keep this page visible during the test. Switching away ends supervision. Returning, refreshing or reopening does not automatically resume it.">Keep this page visible during the test. Switching away ends supervision. Returning, refreshing or reopening does not automatically resume it.</span></p>
@@ -187,7 +188,9 @@
       host.replaceChildren(template.content);
       OpenThermostatLanguage.apply(host);
       if(!window.EMSDevicesPage)throw Error('panel controller');
-      EMSDevicesPage.mount(host.querySelector('#ems-devices'));
+      EMSDevicesPage.mount(host.querySelector('#ems-devices'),{
+        canIdentify:()=>canRead('identity'),onIdentify:()=>requestRead('identity')
+      });
     } catch(_) {
       if(root.isConnected&&!lifecycle.signal.aborted)
         host.textContent=uiText("Boiler entities could not be loaded. Test controls and reception remain separate.");
@@ -205,11 +208,20 @@
     completed:uiText("Heating settings received. Heat testing still requires separate preparation."),
     failed:uiText("Heating settings could not be read. No automatic retry. Check the measurement report.")
   };
+  const identityLabels={idle:uiText('Device identity has not been requested.'),
+    queued:uiText('Waiting to request the device identity.'),waiting:uiText('Waiting for the device identity reply.'),
+    completed:uiText('Device identity received. The entity list uses the received model.'),
+    failed:uiText('Device identification failed. Check the device status.')};
   function validRead(value) {
     return value && value.schema === 1 && /^[0-9a-f]{16}$/.test(value.boot_id)
       && Number.isInteger(value.revision) && value.revision >= 0 && value.revision <= 2147483647
       && Number.isSafeInteger(value.observed_at_ms) && value.observed_at_ms >= 0
       && typeof value.available === 'boolean' && typeof value.active === 'boolean'
+      && (value.kind===undefined||['configuration','identity'].includes(value.kind))
+      && (value.identity_supported===undefined||typeof value.identity_supported==='boolean')
+      && (value.identity_available===undefined||typeof value.identity_available==='boolean')
+      && (value.identity_available!==true||(value.identity_supported===true&&!value.active))
+      && (value.kind!=='identity'||value.identity_supported===true)
       && (!Object.hasOwn(value,'withdrawn') || typeof value.withdrawn === 'boolean')
       && (value.withdrawn !== true || (value.revision > 0 && ['waiting','failed'].includes(value.phase)))
       && Object.hasOwn(readLabels,value.phase) && typeof value.reason === 'string'
@@ -217,12 +229,14 @@
       && !(value.available && value.active) && value.physical_validation === false;
   }
   function paintRead(value) {
+    if(validRead(value)&&lastConfigurationRead&&sameScope(value,lastConfigurationRead)
+      &&(value.kind||'configuration')!==(lastConfigurationRead.kind||'configuration'))return;
     if (validRead(value) && lastConfigurationRead && value.boot_id === lastConfigurationRead.boot_id
         && (value.revision < lastConfigurationRead.revision || (value.revision === lastConfigurationRead.revision
         && (value.observed_at_ms < lastConfigurationRead.observed_at_ms
             || (lastConfigurationRead.withdrawn === true && value.withdrawn !== true))))) return;
     const next = validRead(value) && test && value.boot_id === test.boot_id ? value : null;
-    const ownRead=next&&sameScope(next,readIntent)&&readIntent.epoch===supervisionEpoch
+    const ownRead=next&&sameScope(next,readIntent)&&(next.kind||'configuration')===readIntent.kind&&readIntent.epoch===supervisionEpoch
       &&document.visibilityState==='visible';
     if (next && ((!sameScope(next,configurationRead)&&!ownRead)
         || (next.withdrawn === true && configurationRead?.withdrawn !== true)))
@@ -235,13 +249,18 @@
         ? configurationRead.active
           ? uiText("Reading cancelled. Waiting for the current request to finish.")
           : uiText("Reading cancelled because the operator session ended. Confirm the setup again before a new request.")
-        : readLabels[configurationRead.phase];
+        : (configurationRead.kind==='identity'?identityLabels:readLabels)[configurationRead.phase];
     if (test) paintTest(test); else updateReadButton();
   }
+  function canRead(kind) {
+    return !!configurationRead&&!!test&&root.isConnected
+      &&(kind==='identity'?configurationRead.identity_available===true:configurationRead.available)
+      &&configurationRead.boot_id===test.boot_id&&!pending&&!stopping
+      &&declarationReady()&&document.visibilityState==='visible';
+  }
   function updateReadButton() {
-    readButton.disabled = !configurationRead || !configurationRead.available || !test
-      || configurationRead.boot_id !== test.boot_id || pending || stopping
-      || !declarationReady() || document.visibilityState !== 'visible';
+    readButton.disabled=!canRead('configuration');
+    window.EMSDevicesPage?.refreshActions?.();
     readHelp.textContent = !configurationRead || !test ? uiText("Wait for a valid test and heating-settings read status.")
       : configurationRead.boot_id!==test.boot_id ? uiText("Test identity unavailable.")
       : pending || stopping || configurationRead.active ? uiText("Wait for the current request to finish.")
@@ -250,23 +269,24 @@
         ? uiText("Confirm the setup once to enable reading and preparation.")
       : uiText("The read button is ready. Reading the settings does not request heat.");
   }
-  readButton.addEventListener('click',async () => {
-    if (readButton.disabled || !configurationRead || !root.isConnected) return;
+  async function requestRead(kind) {
+    if(!canRead(kind))return;
     const scope = {boot_id:configurationRead.boot_id,revision:configurationRead.revision};
     const epoch = supervisionEpoch, testScope = {boot_id:test.boot_id,revision:test.revision};
     if (!confirmationStillCurrent(epoch,testScope)
-        || !sameScope(configurationRead,scope) || readButton.disabled || !declarationReady()) return;
+        || !sameScope(configurationRead,scope) || !canRead(kind)) return;
     pending = true;readUncertain=false;paintTest(test);
-    readIntent={boot_id:scope.boot_id,revision:scope.revision+1,epoch};
+    readIntent={boot_id:scope.boot_id,revision:scope.revision+1,epoch,kind};
     const abort = new AbortController(), timeout = setTimeout(() => abort.abort(),3000);
     try {
-      const response = await fetch('/boiler/test/read_configuration',{method:'POST',cache:'no-store',credentials:'same-origin',
+      const response = await fetch('/boiler/test/'+(kind==='identity'?'read_identity':'read_configuration'),{method:'POST',cache:'no-store',credentials:'same-origin',
         headers:{'Content-Type':'application/json'},signal:abort.signal,
         body:JSON.stringify({schema:1,boot_id:scope.boot_id,revision:scope.revision+1,
           exclusive_owner_confirmed:true,independent_stop_confirmed:true})});
       const result = await response.json();
       if (!response.ok || result.accepted !== true || !validRead(result.configuration_read)
-          || result.configuration_read.boot_id !== scope.boot_id || result.configuration_read.revision !== scope.revision+1)
+          || result.configuration_read.boot_id !== scope.boot_id || result.configuration_read.revision !== scope.revision+1
+          || (result.configuration_read.kind||'configuration')!==kind)
         throw Error('unconfirmed');
       if (root.isConnected) paintRead(result.configuration_read);
     } catch (error) {
@@ -274,7 +294,8 @@
     } finally {
       clearTimeout(timeout);pending = false;if (root.isConnected) paintTest(test);
     }
-  },{signal:lifecycle.signal});
+  }
+  readButton.addEventListener('click',()=>requestRead('configuration'),{signal:lifecycle.signal});
   const phases = {idle:uiText("No test prepared yet."), baseline:uiText("Waiting for a reported stop after the zero command."),
     ready:uiText("Stop baseline reported. Heat demand can be started separately."), heating:uiText("Bounded heat demand requested."),
     stopping:uiText("Stop requested. Waiting for fresh boiler feedback."), completed:uiText("Stop reported after the command; test completed."),
@@ -428,12 +449,15 @@
     startButton.hidden=test?.phase!=='ready';
     stopButton.hidden=!lastScope;
     const title=root.querySelector('[data-workflow-title]'),help=root.querySelector('[data-workflow-help]');
+    const restart=root.querySelector('[data-test-restart]'),commonRestart=document.getElementById('device-restart');
+    restart.hidden=test?.phase!=='closed'||test.restart_required!==true||!commonRestart||commonRestart.hidden;
+    restart.disabled=pending||!commonRestart||commonRestart.disabled;
     testState.hidden=!test||idle;
     help.hidden=!!test&&!idle;
     root.querySelector('[data-test-form]').hidden=!test&&!lastScope;
     flowInput.closest('label').hidden=durationInput.closest('label').hidden=!idle;
     testFacts.hidden=!test||idle;
-    title.textContent=uiText(test?.phase==='heating'?'Heating test in progress':test?.phase==='ready'?'Ready to start heating':'Prepare a heating test');
+    title.textContent=uiText(test?.phase==='closed'?'Restart required before another test':test?.phase==='heating'?'Heating test in progress':test?.phase==='ready'?'Ready to start heating':'Prepare a heating test');
     help.textContent=!test?uiText('Test status unavailable. No heat demand will be started.')
       :pending||configurationRead?.active?uiText('Wait for the current request to finish.')
       :!idle?testState.textContent
@@ -444,6 +468,13 @@
       :!test.can_prepare?(heatTrialSnapshot?heatReasons[heatTrialSnapshot.reason]:testState.textContent)
       :uiText('Prepare the test to check the stopped boiler. Heating starts only after you press Start.');
   }
+  root.querySelector('[data-test-restart]').addEventListener('click',()=>{
+    const common=document.getElementById('device-restart');
+    if(!root.isConnected||test?.phase!=='closed'||test.restart_required!==true||pending
+      ||document.visibilityState!=='visible'||!common||common.hidden||common.disabled)return;
+    // Reuse the existing confirmed/authenticated update-aware restart action.
+    common.click();root.querySelector('[data-test-restart]').disabled=common.disabled;
+  },{signal:lifecycle.signal});
   async function testRequest(action, body) {
     const abort = new AbortController(), deadline = setTimeout(() => abort.abort(), 3000);
     try {

@@ -32,7 +32,7 @@ window.EMSDevicesPage=(()=>{
     return Object.hasOwn(settingFields,r?.entity)&&Number.isInteger(r.value)&&r.value>=spec[3]&&r.value<=spec[4]
       &&(s.phase==='completed'?number(s.response_at_ms):s.response_at_ms===null);
   }
-  let active=null;
+  let active=null,refreshActiveActions=null;
   const text=s=>uiText(s), hex=n=>'0x'+n.toString(16).toUpperCase().padStart(2,'0');
   const number=n=>Number.isSafeInteger(n)&&n>=0;
   const nullable=n=>n===null||number(n);
@@ -75,8 +75,8 @@ window.EMSDevicesPage=(()=>{
   const age=ms=>ms===null?text('Unknown'):(ms/1000).toLocaleString(OpenThermostatLanguage.locale,{maximumFractionDigits:1})+' s';
   const update=(node,value)=>{if(node.textContent!==value)node.textContent=value;};
   const el=(tag,value,className)=>{const e=document.createElement(tag);if(value!==undefined)e.textContent=value;if(className)e.className=className;return e;};
-  function unmount(){if(active){active.abort();active=null;}}
-  function mount(root){
+  function unmount(){if(active){active.abort();active=null;}refreshActiveActions=null;}
+  function mount(root,actions={}){
     unmount();const owner=new AbortController();active=owner;
     reference=window.OT_EMS_METADATA||emptyReference;
     let snapshot=null,settingsSnapshot=null,settingsPolicy=null,ownAddress=null,measurementFresh=false,busy=false;
@@ -86,8 +86,12 @@ window.EMSDevicesPage=(()=>{
     const alive=()=>!owner.signal.aborted&&root.isConnected;
     const removal=new MutationObserver(()=>{if(!root.isConnected)owner.abort();});
     removal.observe(document.body,{childList:true,subtree:true});
-    owner.signal.addEventListener('abort',()=>removal.disconnect(),{once:true});
+    owner.signal.addEventListener('abort',()=>{removal.disconnect();if(active===owner){active=null;refreshActiveActions=null;}},{once:true});
     const records=new Map(),labels=new Map();
+    refreshActiveActions=()=>{
+      if(!alive())return;
+      for(const r of records.values())if(r.identify)r.identify.disabled=!actions.canIdentify?.();
+    };
     const format=new Intl.NumberFormat(OpenThermostatLanguage.locale,{maximumFractionDigits:2,useGrouping:false});
     const description=id=>{if(!labels.has(id))labels.set(id,label(id));return labels.get(id);};
     const visible=()=>document.visibilityState==='visible';
@@ -219,7 +223,13 @@ window.EMSDevicesPage=(()=>{
     function render(){
       if(!snapshot||!alive())return;
       const search=get('ems-search').value.trim().toLocaleLowerCase(),access=get('ems-access').value;
-      const devices=snapshot.inventory.devices.filter(d=>d.address!==ownAddress);
+      // Raw sender addresses are not identified devices. Keep undecoded,
+      // unidentified traffic in diagnostics rather than an empty second card.
+      const devices=snapshot.inventory.devices.filter(d=>d.address!==ownAddress&&(d.address===8||d.product_id!==null));
+      const unknown=snapshot.inventory.devices.filter(d=>d.address!==ownAddress&&d.address!==8&&d.product_id===null);
+      const diagnostic=get('ems-unidentified');
+      if(diagnostic){diagnostic.hidden=!unknown.length;diagnostic.querySelector('[data-unidentified-traffic]').textContent=
+        unknown.map(d=>hex(d.address)+' · '+text('Observed telegrams')+': '+d.telegram_types.map(t=>hex(t)).join(', ')).join(' / ');}
       const ids=new Set(devices.map(d=>d.address));
       for(const [id,r] of records)if(!ids.has(id)){r.box.remove();records.delete(id);}
       if(!ids.size){list.replaceChildren(el('p',text(snapshot.enabled?'No EMS device reports received yet.':'EMS reception is disabled.')));return;}
@@ -233,6 +243,11 @@ window.EMSDevicesPage=(()=>{
           summary.append(title,badge);box.append(summary,body);box.dataset.address=d.address;
           box.open=d.address===8;list.append(box);
           r={box,title,badge,meta,rows,empty,wrap,telegrams};records.set(d.address,r);
+          if(d.address===8){
+            const identify=el('button',text('Read device identity'),'btn btn-outline-secondary');identify.type='button';
+            identify.addEventListener('click',()=>{if(alive()&&actions.canIdentify?.())actions.onIdentify?.();},{signal:owner.signal});
+            r.identify=identify;meta.after(identify);
+          }
 
         }
         const entries=fields(d),received=entries.filter(([,v])=>v.state!=='unknown').length;
@@ -241,6 +256,7 @@ window.EMSDevicesPage=(()=>{
         for(const [id,row] of r.rowCache)if(!known.has(id)){row.remove();r.rowCache.delete(id);}
         for(const id of labels.keys())if(!Object.hasOwn(snapshot.boiler.fields,id))labels.delete(id);
         r.device=d;
+        if(r.identify){r.identify.hidden=d.product_id!==null;r.identify.disabled=!actions.canIdentify?.();}
         r.title.textContent=deviceTitle(d);
         r.badge.textContent=received+' '+text('received entities')+' · '+(d.age_ms===null?text('Unknown'):d.age_ms>=30000?text('No recent report'):text('Report received'));
         r.meta.textContent=text('Product ID')+': '+(d.product_id===null?text('Unknown'):d.product_id)+' · '+text('Version')+': '+(d.version??text('Unknown'))+' · '+text('Brand ID')+': '+(d.brand_id===null?text('Unknown'):d.brand_id)+' · '+text('Last report')+': '+age(d.age_ms)+' · '+text('Frames')+': '+d.frames;
@@ -332,5 +348,5 @@ window.EMSDevicesPage=(()=>{
     get('ems-refresh').addEventListener('click',refresh,{signal:owner.signal});
     BoilerData.subscribe(receive,{signal:owner.signal});
   }
-  return Object.freeze({mount,unmount});
+  return Object.freeze({mount,unmount,refreshActions:()=>refreshActiveActions?.()});
 })();

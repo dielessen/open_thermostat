@@ -96,7 +96,7 @@ test service and its existing hardware limits.
 
 ## Validation and remaining measurement
 
-The native suite passes 1,186 cases. Twenty-one compiled scenarios exercise the actual
+The initial performance checkpoint passed 1,186 native cases. Twenty-one compiled scenarios exercise the actual
 E32 authorization/static response branches, including authentication before 304,
 wrong representation tags, uncached live APIs, exclusions, PSRAM allocation
 failure and overflow. Six dedicated buffer cases also pass ASAN/UBSAN and leak
@@ -115,3 +115,34 @@ browser/LAN measurements and compare navigation time, transferred bytes, API
 latency, internal free/largest heap blocks and disconnect behavior. Current local
 evidence is in `out/boiler-workflow-20261027/` and `out/page-loading-browser/`.
 No physical heating or installation acceptance is inferred from these tests.
+
+## Follow-up: identity and closed trial state
+
+A subsequent passive read of the installed device found a closed trial with a
+restart requirement, reported stop and zero positive-demand frames. Its reviewed
+local bus identity is 0x0B. Received traffic from 0x08 and 0x17 contained no
+complete version report. An unknown product label therefore reflects missing
+identity evidence; it must not be filled from the decorative boiler selection.
+
+The candidate adds an explicit optional identity read next to the unknown boiler.
+It shares the existing boot/revision/session owner and finite poll/response
+deadlines with configuration reading. The only additional permitted wire frame
+is a fixed 0x02 read of ten bytes from boiler address 0x08. There is no arbitrary
+frame input, scan, automatic request or heating command. Separate per-kind
+cooldowns allow the next explicit configuration read without making identification
+a heating prerequisite. Received model metadata updates the existing entity card.
+Other unidentified senders remain in collapsed traffic diagnostics.
+
+A closed trial now names its restart requirement and offers the existing
+confirmed, authenticated, update-aware restart control. No restart was performed
+during this work. The same four desktop/mobile and EN/NL workflow fixtures cover
+identity reading, received model naming, the subsequent configuration/preparation
+path and restart cancellation. The native suite now passes 1,194 cases; 63 scoped
+read/transaction/UART cases also pass ASAN/UBSAN with leak detection.
+
+GitHub's first performance checkpoint exposed a missing dependency in the
+isolated post-build verifier fixture. The fixture now copies both web verifier
+modules, source assets and generated metadata; eleven cases check valid output,
+corrupted data and the existing firmware/layout constraints. The actual E32
+firmware build passed in that run. No failed CI run is represented as release
+acceptance.

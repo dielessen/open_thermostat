@@ -13,6 +13,11 @@ acceptance is separate; beta.5 installation recovery remains deferred.
   report. Read-only values and configurable settings are distinguished in the
   same table. The unrelated all-model catalogue and duplicate settings/value
   lists have been removed from the page.
+- An explicit **Read device identity** action requests one bounded version
+  report when the boiler model is unknown. Opening or refreshing the page never
+  sends this bus request. Identity reading is optional for the heating workflow.
+- A closed trial shows its restart requirement directly and offers the existing
+  confirmed, update-aware restart action. No heating resumes automatically.
 
 ## Fixed
 

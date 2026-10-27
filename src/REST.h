@@ -164,6 +164,7 @@ public:
             server_.sendView(code,"application/json"sv,buf.view());
         });
         route("/boiler/test/read_configuration", HTTP_POST, [this] { boilerTestAction("read_configuration"); });
+        route("/boiler/test/read_identity", HTTP_POST, [this] { boilerTestAction("read_identity"); });
 		route("/boiler/test/prepare_zero", HTTP_POST, [this] { boilerTestAction("prepare_zero"); });
 		route("/boiler/test/prepare", HTTP_POST, [this] { boilerTestAction("prepare"); });
 		route("/boiler/test/start", HTTP_POST, [this] { boilerTestAction("start"); });

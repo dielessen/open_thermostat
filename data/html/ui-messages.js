@@ -1,5 +1,13 @@
 /* Fixed English UI messages mapped to Nederlands. User data and wire identifiers are excluded. */
 window.OT_UI_MESSAGES = {
+  "Read device identity": "Apparaatidentiteit ophalen",
+  "Unidentified EMS traffic": "Niet-geïdentificeerd EMS-verkeer",
+  "Device identity has not been requested.": "De apparaatidentiteit is nog niet opgevraagd.",
+  "Waiting to request the device identity.": "Wachten om de apparaatidentiteit op te vragen.",
+  "Waiting for the device identity reply.": "Wachten op het antwoord met de apparaatidentiteit.",
+  "Device identity received. The entity list uses the received model.": "Apparaatidentiteit ontvangen. De entiteitenlijst gebruikt het ontvangen model.",
+  "Device identification failed. Check the device status.": "Apparaatidentificatie mislukt. Controleer de apparaatstatus.",
+  "Restart required before another test": "Herstart nodig vóór een nieuwe proef",
   "The limits below apply to this commissioning trial. The requested temperature is a target; it does not mean the boiler must start its burner.": "De grenzen hieronder gelden voor deze commissioningproef. De gevraagde temperatuur is een doelwaarde; dit betekent niet dat de ketel zijn brander moet starten.",
   "Models": "Modellen",
   "model references": "modelreferenties",

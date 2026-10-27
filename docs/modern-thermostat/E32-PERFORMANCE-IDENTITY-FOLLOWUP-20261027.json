@@ -1,0 +1,197 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target": "v0.1.0-e32v2-beta.6",
+  "parent_commit": "5125f08d26cf511830554923682e495b0ea2e906",
+  "source_frozen": false,
+  "physical_actions_performed": false,
+  "passive_installed_state": {
+    "version": "v0.1.0-e32v2-beta.4",
+    "test_phase": "closed",
+    "restart_required": true,
+    "positive_frames": 0,
+    "reported_stop_confirmed": true,
+    "local_bus_address": 11,
+    "observed_addresses": [
+      8,
+      23
+    ],
+    "version_telegram_received": false
+  },
+  "change_scope": [
+    "Optional fixed ten-byte identity read; no automatic scan or heating prerequisite",
+    "One canonical entity card and collapsed unidentified traffic",
+    "Reuse confirmed authenticated restart UI for closed test; no restart performed",
+    "Repair isolated verifier dependency fixture and add source/gzip corruption checks"
+  ],
+  "validation": {
+    "native_passed": 1194,
+    "asan_ubsan_leak_checks_passed": 63,
+    "workflow_lang_width_cases_passed": 4,
+    "entity_cases_passed": 6,
+    "settings_cases_passed": 6,
+    "confirmation_cases_passed": 72,
+    "http_scenarios_passed": 21,
+    "web_unit_passed": 54,
+    "firmware_verifier_passed": 11,
+    "firmware_bytes": 3078832,
+    "ota_slot_bytes": 3670016,
+    "gzip_source_bytes": 548203,
+    "gzip_representation_bytes": 148577,
+    "cold_fixture_body_bytes": [
+      141143,
+      141136
+    ],
+    "actual_candidate_on_device_speedup_measured": false
+  },
+  "ci_note": "Checkpoint 5125f08 passed actual E32 build but failed isolated verifier fixture on missing copied module; fixed and eleven local cases pass. Follow-up CI must be assessed on its exact commit.",
+  "reviewed_files": [
+    {
+      "path": "README.md",
+      "sha256": "9e7c663e9334b8baca38d8d2c0e78494eae888000dc20648ca18781b3fbf14bc"
+    },
+    {
+      "path": "data/html/boiler_test.html",
+      "sha256": "e39dba83ae10fe8dc5cb2181617505d75ae29d1f0e9ee6a5cc5aa96eb76d89d2"
+    },
+    {
+      "path": "data/html/ems-devices.js",
+      "sha256": "ded067fc00745768f7a0ca17da76ce95dafc0962cbf438c351542d6d390878ac"
+    },
+    {
+      "path": "data/html/ems_devices.html",
+      "sha256": "9d736c902a1f96b3d583974b8becb123e68fb62051f11a0e43292ffabb536b6f"
+    },
+    {
+      "path": "data/html/ui-messages.js",
+      "sha256": "38dab02d5bcd6035919fe1cfe09af50df1a1b07723eedf35403510825dee14c4"
+    },
+    {
+      "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
+      "sha256": "00687bd8bea7c2d1832b0cc6b344b9749aa5d5692467556ed3964a55c02ded7f"
+    },
+    {
+      "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
+      "sha256": "34474dd26dc4f05c0e543843c06c7b55f5ffc66a736a9e01c3fe540476c8a288"
+    },
+    {
+      "path": "docs/modern-thermostat/RELEASE-NOTES.md",
+      "sha256": "8038e535a7b0e6b49b24918c7a6ad5b942bbea8e8de14cc05576ba0ebe914c6a"
+    },
+    {
+      "path": "scripts/test_e32v2_verifier.py",
+      "sha256": "619c0b568ab9a035f40616e6774300af32697bae0dae77b1ca079350c641e37c"
+    },
+    {
+      "path": "src/EMS/ClassicConfigurationRead.h",
+      "sha256": "34e95ab7c926dd9fe01050fef3b9f68d695e1e9be35817aa3f39515eac9c3f9c"
+    },
+    {
+      "path": "src/EMS/ManualClassicTransaction.h",
+      "sha256": "bad059687a7a7679dbd467a6da9f1e045908b214ad9cd7a9a0093cf6b99a9350"
+    },
+    {
+      "path": "src/EMS/ManualClassicUartWrite.h",
+      "sha256": "fbeb47d97aed22859876862a94f2c0022b8330287d16e964795435bcb9695f54"
+    },
+    {
+      "path": "src/EmsController.h",
+      "sha256": "412caebb9a4dce8fbaccc70159007736c3d0cca6215d9ffc266d3c1c5a010a31"
+    },
+    {
+      "path": "src/REST.h",
+      "sha256": "67790fa56f81d06e6cfb14a3d613f8974464f3e047d7abef277f367bd9bbf979"
+    },
+    {
+      "path": "src/control/HttpAccessPolicy.h",
+      "sha256": "9bc84fc8db7ce87b4883a3a3cf5397cf29a62f878df91c6642da39ac257ce517"
+    },
+    {
+      "path": "src/update/ReleasePolicy.h",
+      "sha256": "7afdaa4c47e5ca048f70cf73007403f3c69e8cba19c4529ea8bf615690c366d1"
+    },
+    {
+      "path": "test/boiler-configuration-read-browser.cjs",
+      "sha256": "26d04a91aef3d6a03dd2499d24283da8922c6a395e245db59a17e75dd6d828f6"
+    },
+    {
+      "path": "test/test_native/test_classic_configuration_read.cpp",
+      "sha256": "ac1e8037fb54fe10aa8abf921bb93ca0e31f68e67e6fb543fa1399d6231787be"
+    },
+    {
+      "path": "test/test_native/test_manual_classic_transaction.cpp",
+      "sha256": "3229208e32ee3f1064c42b5ea6857ac0ecd4ee8bc91ef62248a351343c1aa8d6"
+    },
+    {
+      "path": "test/test_native/test_manual_classic_uart_write.cpp",
+      "sha256": "a7f8d34367a0e373f8b850b8a69806ddc601c446b98797dcdb0aea2df36eda80"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "out/boiler-workflow-20261027/identity-accepted-evidence/identity-native-final.log",
+      "sha256": "94dab2e90bee1f3e3debda95567fa8ff27cd0ee5f3ef5ab9bd0680c4ae0437fd"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/identity-accepted-evidence/identity-sanitized-final.log",
+      "sha256": "1c618ac1a285b632e9553523200499988fd208abe429039ff95a7c57dd031123"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/identity-accepted-evidence/identity-sanitized-receipt.json",
+      "sha256": "00216264bf63a4cb9713ea07d3d685165c96eac0ab0d347e210bbc5a1e5a98aa"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/identity-accepted-evidence/identity-workflow-browser.log",
+      "sha256": "a5c1b57152c6b6e1cb815cc536817340ff256e90de0a85e9f75a56543161e631"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/identity-accepted-evidence/identity-entities-browser.log",
+      "sha256": "71341756e37301362785d85e884db2f9e3d9cd6e111a3d010602aaf2f24687e4"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/identity-accepted-evidence/identity-page-loading.log",
+      "sha256": "f63812ad676fdaa49e5d59a0d32bcc7c5ef0e84671cdd30dcadba554bbbca359"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/identity-accepted-evidence/identity-confirmation-browser.log",
+      "sha256": "e96c239edcfaea192d63a5c6bb73b5bef7fdad097423bd4741533abd3ef0cfdb"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/identity-accepted-evidence/identity-settings-browser.log",
+      "sha256": "f5baf4238ce49a9d42930450d4ec5d8b164dffef3df92a7d87296bf0bd38ba06"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/identity-accepted-evidence/identity-http-handlers.log",
+      "sha256": "036c3bd88c065412f660511dcba4ee23a432c7f58743f88c0e92b10266e2dcc6"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/identity-accepted-evidence/identity-web-unit.log",
+      "sha256": "34bc091ea89a81fcc08c2ba2738a11c80955f8b781bbcb12eae40b213901f713"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/identity-accepted-evidence/identity-final-build.log",
+      "sha256": "5ab07535f801f44bb95f35984b66a28e3fa361b273139ea5b019c8d64cd927bb"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/identity-accepted-evidence/identity-final-filesystem.log",
+      "sha256": "e21e8e1da98f7f1cc74e761e747c1c0ff8773bb0c7088e556e4c3a8b3d40a6ab"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/identity-accepted-evidence/identity-final-image.log",
+      "sha256": "73f49a02b5ed2230e2b5c14422b006083943e2ce9138b757dddcf70651f79e4c"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/identity-accepted-evidence/identity-final-verifier.log",
+      "sha256": "23bcb4be978773ea89a0b7ea7336345adfe5c04ce08ccefe5b2cc848dd819669"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/identity-accepted-evidence/identity-update-gate.log",
+      "sha256": "22084cda556838928761af4ac2df3af29dd03b498397e9f51bc226c7c9a31a9a"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/identity-accepted-evidence/identity-prepared-inventory.log",
+      "sha256": "7334ab5ee6b8c9c05b124e613ef68853e5d4ad267865694c2f7d5cbdfdf6fdaf"
+    }
+  ]
+}

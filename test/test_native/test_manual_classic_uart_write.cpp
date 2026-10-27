@@ -84,6 +84,20 @@ TEST(ManualClassicUart, ConfigurationReadRetainsPreflightAndCleanupFailureRules)
     IO cleanup;cleanup.detachOk=false;auto result=ManualClassicUartWrite::readConfiguration<true>(data,6,cleanup);
     EXPECT_TRUE(result.writeCompleted);EXPECT_FALSE(result.succeeded());EXPECT_FALSE(result.detached);
 }
+TEST(ManualClassicUart, IdentityReadIsFixedBoundedAndNeverEnablesHeatWriter){
+    uint8_t data[]={0x0b,0x88,2,0,10,0};data[5]=heating::ems::EmsTelegram::calculateCRC(data,5);
+    IO io;EXPECT_TRUE(ManualClassicUartWrite::readConfiguration<true>(data,6,io).succeeded());
+    IO positive;EXPECT_FALSE(ManualClassicUartWrite::write<true>(data,6,positive).touched);
+    EXPECT_EQ(positive.preflights,0u);
+    for(int field=0;field<5;++field)for(unsigned bit=0;bit<8;++bit){
+        const auto original=data[field];data[field]^=uint8_t(1u<<bit);
+        data[5]=heating::ems::EmsTelegram::calculateCRC(data,5);IO rejected;
+        EXPECT_FALSE(ManualClassicUartWrite::readConfiguration<true>(data,6,rejected).touched);
+        EXPECT_EQ(rejected.preflights,0u);data[field]=original;
+    }
+    data[5]=heating::ems::EmsTelegram::calculateCRC(data,5);data[5]^=1;IO invalid;
+    EXPECT_FALSE(ManualClassicUartWrite::readConfiguration<true>(data,6,invalid).touched);
+}
 
 TEST(ManualClassicUart, CompletionIsOneFixedByteOnlyAndNotGeneralPong){
     const uint8_t completion=0x0b;IO io;io.expectedLength=1;

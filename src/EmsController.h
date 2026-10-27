@@ -334,8 +334,9 @@ public:
         if(boilerSettings_.active()&&action!="stop"&&action!="close_fault"){
             ss<<"{\"accepted\":false,\"error\":\"settings_write_active\"}";return 409;
         }
-        if(action=="read_configuration") {
-            const auto result=configurationRead_.request(body,operatorSession,now,configurationReadPermitted(),boilerTest_.active(),sessions);
+        if(action=="read_configuration"||action=="read_identity") {
+            const auto kind=action=="read_identity"?ClassicConfigurationRead::Kind::identity:ClassicConfigurationRead::Kind::configuration;
+            const auto result=configurationRead_.request(body,operatorSession,now,configurationReadPermitted(),boilerTest_.active(),sessions,kind);
             ss<<"{\"accepted\":"<<(result.http<300?"true":"false")<<",\"duplicate\":"<<(result.duplicate?"true":"false")
                 <<",\"error\":\""<<result.error<<"\",\"configuration_read\":";
             configurationRead_.writeJSON(ss,now,configurationReadPermitted(),boilerTest_.active());ss<<'}';return result.http;

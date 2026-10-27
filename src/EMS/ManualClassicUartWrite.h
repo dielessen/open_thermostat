@@ -26,8 +26,8 @@ struct ManualClassicUartWrite {
     static Result readConfiguration(const uint8_t* data,size_t length,IO& io){
         if constexpr(!Enabled)return {};
         else {
-            if(!data||length!=6||data[0]!=0x0b||data[1]!=0x88||data[2]!=0x16
-                ||data[3]!=0||data[4]!=2||!validChecksum(data))return {};
+            if(!data||length!=6||data[0]!=0x0b||data[1]!=0x88||data[3]!=0||!validChecksum(data))return {};
+            if(!((data[2]==0x16&&data[4]==2)||(data[2]==0x02&&data[4]==10)))return {};
             return execute(data,length,io);
         }
     }

@@ -15,17 +15,20 @@ class VerifierFaults(unittest.TestCase):
         cls.sandbox = tempfile.TemporaryDirectory(prefix="e32v2-verifier-")
         cls.root = Path(cls.sandbox.name)
         project = Path(__file__).resolve().parents[1]
-        for name in ("scripts/verify_e32v2.py", "boards/bbqkees_e32v2.json", "partitions_e32v2.csv", "src/Board.h"):
+        for name in ("scripts/verify_e32v2.py", "scripts/verify_e32v2_web_assets.py",
+                     "boards/bbqkees_e32v2.json", "partitions_e32v2.csv", "src/Board.h"):
             destination = cls.root / name
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(project / name, destination)
         cls.build = cls.root / ".pio/build/e32v2"
         original = project / ".pio/build/e32v2"
         cls.build.mkdir(parents=True)
-        for name in ("firmware.bin", "partitions.bin", "spiffs.bin", "e32v2_mqtt.cpp"):
+        for name in ("firmware.bin", "partitions.bin", "spiffs.bin", "e32v2_mqtt.cpp",
+                     "embedded-web.json", "EmbeddedWebAssets.h"):
             shutil.copy2(original / name, cls.build / name)
         for name in ("src", "data_e32v2"):
             shutil.copytree(original / name, cls.build / name)
+        shutil.copytree(project / "data/html", cls.root / "data/html")
 
     @classmethod
     def tearDownClass(cls):
@@ -40,6 +43,27 @@ class VerifierFaults(unittest.TestCase):
 
     def test_valid_build(self):
         self.verify(True)
+
+    def test_stale_web_source(self):
+        path = self.root / "data/html/index.html"
+        saved = path.read_bytes()
+        try:
+            path.write_bytes(saved + b"<!-- stale -->")
+            self.verify(False)
+        finally:
+            path.write_bytes(saved)
+
+    def test_corrupt_gzip_digest(self):
+        path = self.build / "embedded-web.json"
+        saved = path.read_bytes()
+        try:
+            metadata = json.loads(saved)
+            first = next(iter(metadata["gzip"].values()))
+            first["sha256"] = "0" * 64
+            path.write_text(json.dumps(metadata))
+            self.verify(False)
+        finally:
+            path.write_bytes(saved)
 
     def corrupt_byte(self, name, index, value):
         path = self.build / name

@@ -162,4 +162,36 @@ TEST_F(ManualTransaction, OverlappingOrInvalidFrameCannotCreateNewReplyAuthority
         EXPECT_FALSE(transaction.begin(bad.data.data(),bad.length,now));}
     EXPECT_EQ(closures,0);
 }
+TEST_F(ManualTransaction, IdentityReplyMustMatchTheExplicitReadAndClosesOnlyOnce){
+    EmsRawFrame frame;ClassicConfigurationRead::encodeIdentity(frame);
+    ASSERT_TRUE(transaction.begin(frame.data.data(),frame.length,now));transaction.finish(true,now);++now;
+    uint8_t configuration[]={8,0x0b,0x16,0,255,55,0};configuration[6]=EmsTelegram::calculateCRC(configuration,6);
+    EXPECT_EQ(receive(configuration,7),ManualClassicTransaction::Result::none);
+    const uint8_t ack=1;EXPECT_EQ(receive(&ack,1),ManualClassicTransaction::Result::none);
+    uint8_t identity[]={8,0x0b,2,0,211,2,3,0};identity[7]=EmsTelegram::calculateCRC(identity,7);
+    for(int field:{0,1,2,3}){auto old=identity[field];identity[field]^=1;identity[7]=EmsTelegram::calculateCRC(identity,7);
+        EXPECT_EQ(receive(identity,8),ManualClassicTransaction::Result::none);identity[field]=old;}
+    identity[7]=EmsTelegram::calculateCRC(identity,7);identity[7]^=1;
+    EXPECT_EQ(receive(identity,8),ManualClassicTransaction::Result::none);EXPECT_EQ(closures,0);
+    identity[7]^=1;EXPECT_EQ(receive(identity,8),ManualClassicTransaction::Result::closed);
+    EXPECT_EQ(receive(identity,8),ManualClassicTransaction::Result::none);EXPECT_EQ(closures,1);
+}
+TEST_F(ManualTransaction, IdentityRetainsExactFreshAcquisitionAndFiniteClosureWindow){
+    for(int failure=0;failure<4;++failure){
+        transaction={};now=100;closures=0;gate=true;
+        EmsRawFrame frame;ClassicConfigurationRead::encodeIdentity(frame);
+        ASSERT_TRUE(transaction.begin(frame.data.data(),frame.length,now));transaction.finish(true,now);
+        uint8_t identity[]={8,0x0b,2,0,0,0,0,211,2,3,0,0,0,1,0};identity[14]=EmsTelegram::calculateCRC(identity,14);
+        EXPECT_EQ(receive(identity,15),ManualClassicTransaction::Result::none);++now;
+        if(failure==0)now=100+ManualClassicTransaction::replyWindowUs;
+        if(failure==1)gate=false;
+        const auto result=transaction.receive(identity,15,now,[&]{return now;},[&]{return gate;},[&]{
+            ++closures;if(failure==2)now=100+ManualClassicTransaction::replyWindowUs;
+            if(failure==3)--now;
+            return true;
+        });
+        EXPECT_EQ(result,ManualClassicTransaction::Result::failed);EXPECT_EQ(closures,failure<2?0:1);
+        EXPECT_EQ(receive(identity,15),ManualClassicTransaction::Result::none);
+    }
+}
 }

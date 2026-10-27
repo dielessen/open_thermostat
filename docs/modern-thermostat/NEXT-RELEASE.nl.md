@@ -27,6 +27,17 @@ stoppen. Softwareproeven gebruiken gesimuleerde HTTP-/ketelantwoorden; er is
 hiermee geen nieuwe firmware geïnstalleerd of echte warmtevraag verstuurd.
 [Review en meetgrens](E32-PERFORMANCE-AND-BOILER-REVIEW.md).
 
+**Laatste passieve nacontrole:** de huidige proef is `closed` met
+`restart_required`, nul positieve warmteframes en gemelde stop. Daarom kan de
+geïnstalleerde firmware geen nieuwe proef voorbereiden. Herstarten blijft
+uitgesteld. De kandidaat benoemt dit direct bovenaan de pagina en hergebruikt
+de bestaande bevestigde herstartknop. De ketel heeft nog geen volledig
+product-identificatietelegram gemeld. Een afzonderlijke, expliciete knop kan in
+de kandidaat één begrensde identiteitsleesopdracht aanvragen; openen/verversen
+van de pagina stuurt niets. Dezelfde korte opstellingsverklaring geldt, zonder
+extra vinkje of extra voorwaarde voor verwarmen. Niet-geïdentificeerde andere
+busafzenders blijven in ingeklapte diagnostiek zichtbaar.
+
 De oudere voorbereidingsnotities staan ongewijzigd in de
 [beta.4-planhistorie](NEXT-RELEASE-HISTORY-BETA4-20261026.nl.md) en de
 [eerdere planhistorie](NEXT-RELEASE-HISTORY-20261026.nl.md).
@@ -45,7 +56,7 @@ De oudere voorbereidingsnotities staan ongewijzigd in de
 Het [beta.4-installatiebewijs](update-acceptance/e32-beta4-20261026.json),
 [openbare pakketrapport](BETA4-VERSIONED-PREVIEW.json) en de
 [waargenomen nulvraag](BETA4-FIRST-ZERO-OBSERVATION-20261026.json) zijn de bronnen.
-De acceptatiepoort staat op beta.4 zonder pending-tag of actieve uitzondering.
+De acceptatiepoort staat op geaccepteerde beta.4 en pending beta.5, zonder actieve uitzondering.
 De historische beta.3-installatieacceptatie blijft INCOMPLETE; de expliciete
 uitzondering voor de afgeronde beta.4-publicatie is bewaard. Zij blokkeert de
 geaccepteerde beta.4 niet opnieuw.
@@ -96,7 +107,7 @@ Op verzoek van de gebruiker zijn de apparaat-/entiteitentabel, vier Classic-
 instellingen en alle protocolreferenties opgenomen op Keteltest. De aparte
 EMS-apparatenmenuoptie vervalt; bestaande paginalinks komen op Keteltest uit.
 Leeswaarden, instelbare waarden en commando’s hebben eigen labels/filters.
-De volledige vastgelegde EMS-ESP-ketelcatalogus blijft bereikbaar, ook zonder
+In de gepubliceerde beta.5 blijft de volledige vastgelegde EMS-ESP-ketelcatalogus bereikbaar, ook zonder
 herkend product-ID: 258 definitievarianten, 252 entiteitsnamen en 31 modelgroepen.
 Per item zijn EMS-ESP-mogelijkheid en de werkelijke E32-implementatie/toelating
 apart zichtbaar. Vier Classic-instellingen zijn voorbereid, blijvend schrijven
@@ -105,6 +116,11 @@ geïmplementeerd. Er worden geen schrijfrechten uit de catalogus afgeleid.
 [Onderzoek naar de officiële EMS-ESP-implementatie](EMS-ENTITY-ACCESS-REVIEW.en.md).
 Dit zit in de gepubliceerde beta.5; installatie is nog geblokkeerd en er is geen
 positieve ketelproef uitgevoerd.
+
+De beta.6-kandidaat vervangt deze dubbele referentieweergave door één tabel met
+ontvangen waarden per apparaat, inclusief toegang en E32-ondersteuning. De
+volledige protocolreferentie blijft als bron bewaard; de pagina downloadt alleen
+de kleine metadata die nodig is om deze waarden te benoemen.
 
 ## Eerstvolgende softwarewerk, in volgorde
 

@@ -53,6 +53,13 @@ boiler/valve control remain disabled. [Current release work](https://github.com/
 
 ## Features
 
+**In development for beta.6:** smaller compressed web downloads, conditional
+browser caching, page modules loaded when needed, and one shared boiler-data
+request. The revised boiler page presents one received-entity table per device
+and a shorter read/prepare/start/stop workflow. These changes are tested in
+software and have not been installed or timed on the E32 yet.
+[Performance measurements and review](docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md).
+
 **Available** means delivered for the stated use. **Prepared** means code exists
 but the complete user flow, device connection or physical acceptance is still
 open. **Planned** means further implementation or qualification is required.

@@ -4,6 +4,7 @@
 namespace heating::control {
 // Method/origin decisions separate from Arduino networking for direct tests.
 inline bool allowedHttpMethod(std::string_view path,std::string_view method) {
+    if(path=="/boiler/test/read_identity")return method=="POST";
     if(path=="/boiler/test/read_configuration"||path=="/boiler/test/prepare_zero"||path=="/boiler/test/prepare"||path=="/boiler/test/start"||path=="/boiler/test/keepalive"||path=="/boiler/test/stop"||path=="/boiler/test/close_fault") return method=="POST";
     if(path=="/boiler/settings/write") return method=="POST";
     if(path=="/config/bluetooth/scan") return method=="POST";
@@ -18,7 +19,7 @@ inline bool allowedHttpMethod(std::string_view path,std::string_view method) {
     return method=="GET";
 }
 inline bool boilerTestMutationBlocked(std::string_view path, bool active) {
-    return active && path!="/boiler/test/read_configuration" && path!="/auth/logout" && path!="/boiler/test/prepare_zero" && path!="/boiler/test/prepare" && path!="/boiler/test/start"
+    return active && path!="/boiler/test/read_configuration" && path!="/boiler/test/read_identity" && path!="/auth/logout" && path!="/boiler/test/prepare_zero" && path!="/boiler/test/prepare" && path!="/boiler/test/start"
         && path!="/boiler/test/keepalive" && path!="/boiler/test/stop" && path!="/boiler/test/close_fault";
 }
 inline bool boilerSettingsMutationBlocked(std::string_view path,bool active){

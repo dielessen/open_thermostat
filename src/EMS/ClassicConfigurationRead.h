@@ -1,5 +1,6 @@
 #pragma once
 #include "ClassicBoilerTestEncoder.h"
+#include "DeviceVersion.h"
 #include "control/BoundedJson.h"
 #include "control/WebAuthSession.h"
 #include <algorithm>
@@ -13,6 +14,7 @@ namespace heating::ems {
 class ClassicConfigurationRead {
 public:
     enum class Phase { idle, queued, waiting, completed, failed };
+    enum class Kind { configuration, identity };
     struct Result { int http; const char* error; bool duplicate=false; };
     static constexpr uint32_t pollTimeoutMs=5000, responseTimeoutMs=15000, cooldownMs=30000;
     static constexpr uint32_t maximumRevision=2147483647;
@@ -21,12 +23,17 @@ public:
     uint32_t revision()const{return revision_;}
     Phase phase()const{return phase_;}
     const char* reason()const{return reason_;}
-    bool available(uint64_t now,bool permitted,bool otherActive)const{
+    Kind kind()const{return kind_;}
+    bool available(uint64_t now,bool permitted,bool otherActive,Kind kind=Kind::configuration)const{
+        if(kind!=Kind::configuration&&kind!=Kind::identity)return false;
+        const auto index=kind==Kind::identity?1u:0u;
         return compiled_&&boot_&&permitted&&!otherActive&&!active()&&!inIo_&&revision_<maximumRevision
-            &&(!revision_||(now>=armedAt_&&now-armedAt_>=cooldownMs));
+            &&(!revision_||now>=lastNow_)
+            &&(!started_[index]||(now>=startedAt_[index]&&now-startedAt_[index]>=cooldownMs));
     }
     Result request(std::string_view body,std::string_view owner,uint64_t now,bool permitted,bool otherActive,
-                   const control::WebAuthSession& sessions){
+                   const control::WebAuthSession& sessions,Kind kind=Kind::configuration){
+        if(kind!=Kind::configuration&&kind!=Kind::identity)return {400,"invalid_read_kind"};
         if(!control::WebAuthSession::hexToken(owner))return {401,"authentication_required"};
         const auto remaining=sessions.remainingMs(owner,now);
         if(!remaining||remaining>UINT64_MAX-now)return {401,"authentication_required"};
@@ -41,11 +48,14 @@ public:
         const auto requested=static_cast<uint32_t>(field(j,"revision")->valuedouble);
         if(requested==revision_&&revision_){
             if(std::string_view(owner_.data())!=owner)return {403,"different_operator"};
+            if(kind!=kind_)return {409,"read_kind_changed"};
             return {200,"",true}; // No lease, deadline or read is renewed.
         }
         if(revision_==maximumRevision||requested!=revision_+1)return {409,"revision_changed"};
-        if(!available(now,permitted,otherActive))return {409,"configuration_read_unavailable"};
+        if(!available(now,permitted,otherActive,kind))return {409,"configuration_read_unavailable"};
         revision_=requested;armedAt_=lastNow_=now;emittedAt_=responseAt_=0;emitted_=false;
+        kind_=kind;const auto index=kind==Kind::identity?1u:0u;
+        started_[index]=true;startedAt_[index]=now;
         std::copy(owner.begin(),owner.end(),owner_.begin());owner_[64]=0;
         sessionObservedAt_=now;sessionUntil_=now+remaining;operatorWithdrawn_=false;
         phase_=Phase::queued;reason_="awaiting_poll";return {202,""};
@@ -80,7 +90,8 @@ public:
         try{
             const bool permitted=gate();auto now=clock();tick(now,permitted);
             if(phase_!=Phase::queued)return true;
-            EmsRawFrame frame{};encode(frame);
+            EmsRawFrame frame{};
+            if(kind_==Kind::identity)encodeIdentity(frame);else encode(frame);
             const bool finalPermission=gate();now=clock();tick(now,finalPermission); // Fresh time AFTER the final gate.
             if(phase_!=Phase::queued)return true;
             if(!write(frame)){fail("transmit_failed");return true;}
@@ -102,8 +113,14 @@ public:
         tick(now,permitted);
         if(phase_!=Phase::waiting||acquiredAt<=emittedAt_||acquiredAt>now
             ||telegram.getOperationType()!=EmsTelegram::WRITE||telegram.getSenderId()!=8
-            ||telegram.getDestinationId()!=0x0b||telegram.getTypeId()!=0x16
-            ||telegram.getOffset()!=0||telegram.dataSize()!=2)return;
+            ||telegram.getDestinationId()!=0x0b||telegram.getOffset()!=0)return;
+        if(kind_==Kind::identity){
+            if(telegram.getTypeId()!=0x02||telegram.dataSize()<3||telegram.dataSize()>10)return;
+            if(operatorWithdrawn_){fail("operator_session_expired");return;}
+            if(!readDeviceVersion(telegram)){fail("invalid_identity_response");return;}
+            responseAt_=acquiredAt;phase_=Phase::completed;reason_="identity_received";return;
+        }
+        if(telegram.getTypeId()!=0x16||telegram.dataSize()!=2)return;
         if(operatorWithdrawn_){fail("operator_session_expired");return;}
         const auto& enabled=monitor.sample(BoilerField::heatingEnabled);
         const auto& limit=monitor.sample(BoilerField::heatingLimit);
@@ -114,6 +131,9 @@ public:
     void writeJSON(std::ostream& out,uint64_t now,bool permitted,bool otherActive)const{
         out<<"{\"schema\":1,\"boot_id\":\""<<bootText()<<"\",\"revision\":"<<revision_
             <<",\"available\":"<<(available(now,permitted,otherActive)?"true":"false")
+            <<",\"identity_supported\":"<<(compiled_?"true":"false")
+            <<",\"identity_available\":"<<(available(now,permitted,otherActive,Kind::identity)?"true":"false")
+            <<",\"kind\":\""<<(kind_==Kind::identity?"identity":"configuration")<<'"'
             <<",\"active\":"<<(active()?"true":"false")<<",\"phase\":\""<<phaseName()
             <<"\",\"withdrawn\":"<<(operatorWithdrawn_?"true":"false")
             <<",\"reason\":\""<<reason_<<"\",\"clock\":\"boot_monotonic_ms\",\"observed_at_ms\":"<<now
@@ -125,6 +145,11 @@ public:
     static void encode(EmsRawFrame& frame){
         frame={};frame.length=6;frame.data[0]=0x0b;frame.data[1]=0x88;
         frame.data[2]=0x16;frame.data[3]=0;frame.data[4]=2;
+        frame.data[5]=EmsTelegram::calculateCRC(frame.data.data(),5);
+    }
+    static void encodeIdentity(EmsRawFrame& frame){
+        frame={};frame.length=6;frame.data[0]=0x0b;frame.data[1]=0x88;
+        frame.data[2]=0x02;frame.data[3]=0;frame.data[4]=10;
         frame.data[5]=EmsTelegram::calculateCRC(frame.data.data(),5);
     }
 private:
@@ -158,5 +183,8 @@ private:
     uint64_t sessionObservedAt_=0,sessionUntil_=0;
     bool compiled_,emitted_=false,inIo_=false,operatorWithdrawn_=false;uint32_t revision_=0;Phase phase_=Phase::idle;const char* reason_="not_requested";
     std::array<char,65> owner_{};
+    Kind kind_=Kind::configuration;
+    std::array<uint64_t,2> startedAt_{};
+    std::array<bool,2> started_{};
 };
 }

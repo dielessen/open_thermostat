@@ -210,4 +210,80 @@ TEST_F(ConfigurationRead, WithdrawnSentReadKeepsFiniteOwnershipAndCannotBecomeSu
     ++now;read.tick(now,true);EXPECT_FALSE(read.active());EXPECT_EQ(writes,1);
     EXPECT_STREQ(read.reason(),"operator_session_expired");
 }
+TEST_F(ConfigurationRead, IdentityRequestIsFixedReadAndCannotCompleteFromCachedConfiguration){
+    using Kind=ClassicConfigurationRead::Kind;
+    ASSERT_EQ(read.request(body(),owner,now,true,false,sessions,Kind::identity).http,202);
+    EmsRawFrame sent{};
+    ASSERT_TRUE(read.poll([&]{return now;},[]{return true;},[&](const EmsRawFrame& f){sent=f;return true;}));
+    ASSERT_EQ(sent.length,6);EXPECT_EQ(sent.data[0],0x0b);EXPECT_EQ(sent.data[1],0x88);
+    EXPECT_EQ(sent.data[2],2);EXPECT_EQ(sent.data[3],0);EXPECT_EQ(sent.data[4],10);
+    EXPECT_EQ(sent.data[5],EmsTelegram::calculateCRC(sent.data.data(),5));
+    EXPECT_EQ(EmsTelegram::fromRawData(sent.data.data(),sent.length).getOperationType(),EmsTelegram::READ);
+    EmsTelegram version{EmsTelegram::WRITE,8,0x0b,0,2,{211,2,3}};
+    read.observe(version,now,now,true,monitor);EXPECT_TRUE(read.active());
+    ++now;report(now);EXPECT_TRUE(read.active());
+    read.observe(version,now+1,now,true,monitor);EXPECT_TRUE(read.active());
+    read.observe(version,now,now,true,monitor);
+    EXPECT_EQ(read.phase(),ClassicConfigurationRead::Phase::completed);EXPECT_STREQ(read.reason(),"identity_received");
+    EXPECT_FALSE(monitor.sample(BoilerField::flow).raw.has_value());
+}
+TEST_F(ConfigurationRead, IdentityNeedsOneCompleteValidTupleFromExactPeer){
+    using Kind=ClassicConfigurationRead::Kind;
+    for(const auto& bytes:std::vector<std::vector<uint8_t>>{{211,2,3},{0,0,0,211,2,3,0,0,0,1}}){
+        read=ClassicConfigurationRead{42,true};
+        ASSERT_EQ(read.request(body(),owner,now,true,false,sessions,Kind::identity).http,202);poll();++now;
+        for(const auto& telegram:std::vector<EmsTelegram>{
+            {EmsTelegram::WRITE,8,0,0,2,bytes},{EmsTelegram::WRITE,0x17,0x0b,0,2,bytes},
+            {EmsTelegram::WRITE,8,0x0b,1,2,bytes},{EmsTelegram::READ,8,0x0b,0,2,bytes},
+            {EmsTelegram::WRITE,8,0x0b,0,2,{211,2}}}){
+            read.observe(telegram,now,now,true,monitor);EXPECT_TRUE(read.active());
+        }
+        read.observe(EmsTelegram{EmsTelegram::WRITE,8,0x0b,0,2,bytes},now,now,true,monitor);
+        EXPECT_EQ(read.phase(),ClassicConfigurationRead::Phase::completed);
+    }
+    for(const auto& bytes:std::vector<std::vector<uint8_t>>{{255,2,3},{211,255,3},{0,0,0},{0,0,0,211,2,255}}){
+        read=ClassicConfigurationRead{42,true};
+        ASSERT_EQ(read.request(body(),owner,now,true,false,sessions,Kind::identity).http,202);poll();++now;
+        read.observe(EmsTelegram{EmsTelegram::WRITE,8,0x0b,0,2,bytes},now,now,true,monitor);
+        EXPECT_STREQ(read.reason(),"invalid_identity_response");EXPECT_FALSE(read.active());
+    }
+}
+TEST_F(ConfigurationRead, ReadKindsShareOwnershipWithoutBlockingNextExplicitConfiguration){
+    using Kind=ClassicConfigurationRead::Kind;
+    EXPECT_EQ(read.request(body(),owner,now,true,false,sessions,static_cast<Kind>(99)).http,400);
+    ASSERT_EQ(read.request(body(),owner,now,true,false,sessions,Kind::identity).http,202);
+    EXPECT_TRUE(read.request(body(),owner,now,true,false,sessions,Kind::identity).duplicate);
+    EXPECT_STREQ(read.request(body(),owner,now,true,false,sessions).error,"read_kind_changed");
+    EXPECT_EQ(read.request(body(2),owner,now,true,false,sessions).http,409);
+    poll(false);++now;
+    ASSERT_EQ(read.request(body(2),owner,now,true,false,sessions).http,202);
+    poll(false);++now;
+    EXPECT_EQ(read.request(body(3),owner,now,true,false,sessions,Kind::identity).http,409);
+    EXPECT_FALSE(read.available(now-3,true,false,Kind::identity));
+    now+=ClassicConfigurationRead::cooldownMs;
+    ASSERT_EQ(read.request(body(3),owner,now,true,false,sessions,Kind::identity).http,202);
+}
+TEST_F(ConfigurationRead, IdentityCannotSurviveTimeoutRevocationOrFinalGateFailure){
+    using Kind=ClassicConfigurationRead::Kind;
+    for(int failure=0;failure<4;++failure){
+        sessions={};ASSERT_NE(sessions.issue(owner,std::string(64,'c'),now),nullptr);
+        read=ClassicConfigurationRead{42,true};writes=0;
+        ASSERT_EQ(read.request(body(),owner,now,true,false,sessions,Kind::identity).http,202);
+        if(failure==0){now+=ClassicConfigurationRead::pollTimeoutMs;poll();EXPECT_EQ(writes,0);}
+        if(failure==1){sessions.revoke(owner);read.synchronizeSessions(sessions,now);poll();EXPECT_EQ(writes,0);}
+        if(failure==2){int gates=0;read.poll([&]{return now;},[&]{return ++gates==1;},[&](const EmsRawFrame&){++writes;return true;});EXPECT_EQ(writes,0);}
+        if(failure==3){poll();now+=ClassicConfigurationRead::responseTimeoutMs;read.tick(now,true);EXPECT_EQ(writes,1);}
+        EXPECT_FALSE(read.active());
+        ++now;read.observe(EmsTelegram{EmsTelegram::WRITE,8,0x0b,0,2,{211,2,3}},now,now,true,monitor);
+        EXPECT_EQ(read.phase(),ClassicConfigurationRead::Phase::failed);EXPECT_FALSE(poll());
+    }
+}
+TEST_F(ConfigurationRead, IdentityRouteIsExplicitPostWithAllUpdateInterlocks){
+    using namespace heating;
+    EXPECT_TRUE(control::allowedHttpMethod("/boiler/test/read_identity","POST"));
+    for(const char* method:{"GET","PUT","DELETE"})EXPECT_FALSE(control::allowedHttpMethod("/boiler/test/read_identity",method));
+    EXPECT_TRUE(update::mutationBlocked("/boiler/test/read_identity",true,false,false));
+    EXPECT_TRUE(update::mutationBlocked("/boiler/test/read_identity",false,true,false));
+    EXPECT_TRUE(update::mutationBlocked("/boiler/test/read_identity",false,false,true));
+}
 }

@@ -2,7 +2,7 @@
   "schema": 1,
   "as_of": "2026-10-27",
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
-  "release_state": "BETA11_FROZEN_EMS_REVIEW_IDENTITY_DASHBOARD_ATTENDED_FOLLOWUP_PENDING",
+  "release_state": "BETA12_FROZEN_EMS_REVIEW_IDENTITY_DASHBOARD_ATTENDED_FOLLOWUP_PENDING",
   "installed_firmware": "v0.1.0-e32v2-beta.5",
   "installed_ha": "0.4.0b1",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
@@ -59,7 +59,7 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
-          "sha256": "b9f15ec562decc8f11788bd19c9cb263f7b13bbb76253a248aea30f96a3b3c77"
+          "sha256": "5ace4e3622a80835bbf62df87faeead01b89db766fe5c779404979c660c1d3fb"
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "27a73e4b8d78805f5ce8057236a540e2ccfd9a8ccedcdf8fe76c4b92d4277bea"
+          "sha256": "affe50eeed2cead50569409f88c6db58ee23570981294cd0adb37ddf065c5d20"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -191,7 +191,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-GATE.json",
-          "sha256": "7abee4aba31a26445179152cf4a11bff1d24c8f4bc60102b6dfd5b79da8020de"
+          "sha256": "d14ae3b26039e4a70006d20607ae673482fa3354d90ced5744d65e61302ae07d"
         },
         {
           "path": "docs/modern-thermostat/BETA3-PUBLICATION-EXCEPTION-PROPOSAL.json",
@@ -219,7 +219,7 @@
         },
         {
           "path": "release.json",
-          "sha256": "d2550fd1dd11393ea768bc473cd099d504f5988ad50bcde4afb85829df3ff385"
+          "sha256": "44294a572952281ad1b13b8a3e3a236230557996970f084ddee6fcd22b20afec"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -317,7 +317,7 @@
         },
         {
           "path": "test/manual_ota/run.py",
-          "sha256": "5be2a217cea8d6b7d1d86a937cf2d7e1e36fdd21614bcbff4e8951f835bf87a8"
+          "sha256": "31b5e062cb4fff646ee98620f86ff8091c5fdce3ee15df5871c30f690b5517b2"
         },
         {
           "path": "src/update/VerifiedOta.h",
@@ -501,7 +501,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA11-OWNER-INSTRUCTION-20261027.json",
-          "sha256": "45bd8552e443214ad504783d4b9071ab8f084307e64d0c5ee8949fed334d6841"
+          "sha256": "2d85e603a09f05170c5289a09a894f8d220c6e9977e3728032f2a23e3d40ccc7"
         },
         {
           "path": "docs/modern-thermostat/BETA11-KANDIDAAT.json",
@@ -510,6 +510,14 @@
         {
           "path": "docs/modern-thermostat/BETA11-PUBLICATION-EXCEPTION-20261027.json",
           "sha256": "236939b025c3e9618659ba11d73a16c3929d908feec802a5eaef80a4c6214bc0"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA12-KANDIDAAT.json",
+          "sha256": "3a2ca57b1a364e2cab8a20e61710ca02c60730d20696f8e690ca515cacf4196c"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA12-PUBLICATION-EXCEPTION-20261027.json",
+          "sha256": "18128386f1f272768c6639c59aa7eaa5083b4129ee448867fc5520cb040e047d"
         }
       ],
       "remaining_acceptance": "Native GitHub-update alpha31→36 met verse back-up en één installatiecommando geslaagd:36 installatiecontroles,45 afzonderlijke nacontroles, exacte bron/ELF/web/31UI en behoud van86 HA-bestanden/13 projecthashes/zes loggingvelden. Iedere opvolgende reguliere release vereist nieuw update-/nacontrolebewijs volgens E32-UPDATE-PROCES en CI-gate. Oude multipart-watchdog en nativealpha26-afwijking blijven oorzakelijk onbekend; geen blinde fallback/retry. Fysieke powerloss/rollback/herstelkwalificatie en actieve ketel-/kraanpoorten blijven apart open. Automatische12ucontrole/dashboardmelding voorbereid naalpha36, niet geïnstalleerd."
@@ -1059,7 +1067,7 @@
         },
         {
           "path": "src/main.cpp",
-          "sha256": "2071cac53391df8616d57336801b8beeae00caf29f12ef60b743ca1ecffba19e"
+          "sha256": "0083313dfa37ed410b00d1475fdb5111014e49f7fe25cdff25e5e65fad744900"
         },
         {
           "path": "src/REST.h",

@@ -265,7 +265,9 @@ void setup() {
 	DBGLOGFI(heating::logger, appLogFeature(), "Starting up");
 
 #ifdef CONFIG_BT_CLASSIC_ENABLED
-	DBGLOGFI(heating::logger, appLogFeature(), "CLASSIC BT ENABLED\n");
+	// SDK compile option only: the BLE reader releases the Classic BT controller
+	// memory before NimBLE starts, so no Classic BT stack runs.
+	DBGLOGFI(heating::logger, appLogFeature(), "BLE only; Classic BT memory released at BLE start\n");
 #else
 	DBGLOGFI(heating::logger, appLogFeature(), "BLE BT ENABLED\n");
 #endif

@@ -38,6 +38,7 @@ using namespace std::string_view_literals;
 using esp_err_t=int;
 using esp_ota_handle_t=unsigned;
 constexpr int ESP_OK=0;
+constexpr size_t OTA_WITH_SEQUENTIAL_WRITES=0xfffffffe; // esp_ota_ops.h v4.4.7
 struct esp_partition_t {size_t size=8;};
 struct Native {
     esp_partition_t partition;
@@ -100,7 +101,7 @@ void data(REST &r){event(r,UPLOAD_FILE_START);event(r,UPLOAD_FILE_WRITE,8);event
 int main(){
     {
         native={};REST r;r.server_.callback=[&]{data(r);assert(native.selects==0);finalHandler(r);};r.handle();
-        assert(native.eraseSize==8&&native.ends==1&&native.selects==1&&native.reboots==1&&native.yields==native.writes&&native.writes==1);
+        assert(native.eraseSize==OTA_WITH_SEQUENTIAL_WRITES&&native.ends==1&&native.selects==1&&native.reboots==1&&native.yields==native.writes&&native.writes==1);
         assert(r.server_.statuses==std::vector<int>{200}&&!native.open&&native.aborts==0);
         assert(r.controller_.settingsPermission==std::vector<bool>({true,false}));
         pass("exact production callbacks select only at final handler and schedule restart only after success");

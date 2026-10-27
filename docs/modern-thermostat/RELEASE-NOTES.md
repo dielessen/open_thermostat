@@ -1,8 +1,10 @@
-# E32 V2 beta11 — thermostat requests, device identity and a tidier dashboard
+# E32 V2 beta12 — thermostat requests, device identity and a tidier dashboard
 <!-- user-release-notes:v2:en -->
 
 Follow-up to beta10 after a review against the EMS-ESP telegram reference.
-Use it with HA0.4.0b7. The attended trial limits are unchanged.
+Use it with HA0.4.0b7. The attended trial limits are unchanged. The beta11 tag
+was not published: its CI stopped on a host test stub that did not yet know the
+new sequential OTA erase. Beta12 is the same firmware change with that test fixed.
 
 ## New
 

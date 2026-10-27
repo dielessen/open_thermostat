@@ -1,4 +1,12 @@
-# Beta.11 — EMS-ESP-review, thermostaatvraag, identiteit en rustiger dashboard
+# Beta.12 — EMS-ESP-review, thermostaatvraag, identiteit en rustiger dashboard
+
+**Beta.11 niet gepubliceerd:** de tag `v0.1.0-e32v2-beta.11` (`d2ccc82`) stopte in
+de CI op `test/manual_ota/run.py`: die hoststub kende `OTA_WITH_SEQUENTIAL_WRITES`
+nog niet en eiste het oude wissen van de volledige lengte. Net als bij beta.7
+blijft die tag ongewijzigd en ongepubliceerd; beta.12 is dezelfde inhoud plus de
+aangepaste stub. De E32 viel intussen enkele keren van het wifi-netwerk (geen
+ARP-antwoord, herstart nodig); een alleen-lezen monitor legt het verloop vast.
+
 
 **Actueel (27 oktober, avond):** beta.10 en HA0.4.0b7 zijn gepubliceerd.
 De lokale upload van beta.10 liep 5–7 s na de start in de taakwatchdog (één

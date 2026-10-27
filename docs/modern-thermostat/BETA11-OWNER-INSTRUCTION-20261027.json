@@ -12,5 +12,8 @@
   "publication_question": "Mag ik beta.11 (lokaal commit 522c35f, alle tests groen) nu publiceren op GitHub?",
   "publication_approval_reply": "Ja, publiceer beta.11",
   "publication_approval_at_utc": "2026-10-27T21:08:16Z",
-  "order_reply": "Eerst keteltest (Aanbevolen)"
+  "order_reply": "Eerst keteltest (Aanbevolen)",
+  "beta12_publication_question": "May I publish beta.12? (beta.11 tag stopped in CI on the manual_ota host stub; same bundle plus stub fix)",
+  "beta12_publication_approval_reply": "ja publisch beta 12",
+  "beta12_publication_approval_at_utc": "2026-10-27T21:55:55Z"
 }

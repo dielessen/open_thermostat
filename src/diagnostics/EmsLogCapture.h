@@ -8,6 +8,7 @@ namespace heating::diagnostics {
 inline void captureEmsRx(SystemLog& log,const uint8_t* bytes,size_t length,
         uint8_t sender,uint8_t destination,uint16_t type,uint8_t offset,uint64_t receivedAtMs) {
     if(!bytes||length<5||length>33)return;
+    if(!log.wants(3,"EMS"))return;
     char message[193]{};
     const int prefix=std::snprintf(message,sizeof(message),
         "RX %s(%02X) %c %s(%02X) %.24s(%04X) off=%u len=%u frame=",

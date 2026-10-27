@@ -3,6 +3,8 @@
 #include "diagnostics/LogRuntime.h"
 #include "diagnostics/BufferedLogger.h"
 #include "diagnostics/NativeLogCapture.h"
+#include "Logging.h"
+#include "EMS/EmsTelegram.h"
 #include <esp_log.h>
 #include <cassert>
 #include <optional>
@@ -17,8 +19,10 @@ int nvs_set_str(nvs_handle_t,const char* key,const char* value){assert(std::stri
 int nvs_commit(nvs_handle_t){if(commit_error)return 2;committed=pending;return ESP_OK;}
 void nvs_close(nvs_handle_t){++closes;}
 struct MemorySink:ib::logger::LoggerSinkInterface{
-    std::string output;ib::logger::LoggerInterface::LogLevel getLevel()const override{return ib::logger::LoggerInterface::LogLevel::TRACE;}
-    void setLevel(ib::logger::LoggerInterface::LogLevel)override{}
+    using Level=ib::logger::LoggerInterface::LogLevel;
+    std::string output;Level level=Level::TRACE;
+    Level getLevel()const override{return level;}
+    void setLevel(Level value)override{level=value;}
     void writeLog(const char* bytes,size_t count)override{output.append(bytes,count);}
 };
 std::string nativeOutput;
@@ -110,5 +114,38 @@ int main(){
         fake_microseconds+=100000;runtime.poll(true,"heatingtest");sourceLength=recv(receiver,bytes,sizeof(bytes),0);assert(sourceLength>0);
         assert(std::string(bytes,sourceLength).find(source)!=std::string::npos);
     }
-    close(receiver);std::cout<<"PASS actual logger, NVS failure/readback, native SDK hooks and real RFC5424 UDP transport\n";
+    // Project macros skip expensive arguments only when no destination wants
+    // the record. Web/syslog are independent of the serial sink's level.
+    using Level=ib::logger::LoggerInterface::LogLevel;
+    SystemLog filtered;auto silent=std::make_shared<MemorySink>();silent->level=Level::OFF;
+    auto lazy=std::make_shared<BufferedLogger>(std::vector<std::shared_ptr<ib::logger::LoggerSinkInterface>>{silent},filtered,uptimeMs);
+    auto app=lazy->addFeature("App"),ems=lazy->addFeature("EMS");
+    Settings filters;filters.webLevel=0;filtered.configure(filters);
+    unsigned expensive=0,loggerCalls=0,featureCalls=0;
+    auto chooseLogger=[&]{++loggerCalls;return lazy;};auto chooseFeature=[&]{++featureCalls;return app;};
+    DBGLOGFD(chooseLogger(),chooseFeature(),"cost %u",++expensive);
+    assert(loggerCalls==1&&featureCalls==1&&expensive==0&&filtered.stats().latest==0);
+    filters.webLevel=4;filtered.configure(filters);
+    DBGLOGFD(chooseLogger(),chooseFeature(),"cost %u",++expensive);
+    assert(loggerCalls==2&&featureCalls==2&&expensive==1&&silent->output.empty());
+    assert(filtered.next(0,record)&&record.level==4&&std::string(record.text.data())=="cost 1");
+    lazy->enableFeature(app,false);DBGLOGFD(lazy,app,"disabled %u",++expensive);assert(expensive==1);
+    lazy->enableFeature(app,true);filters.webLevel=0;filters.enabled=true;
+    filters.syslogLevel=4;filters.syslogEsp=false;filters.syslogEms=true;filtered.configure(filters);
+    DBGLOGFD(lazy,app,"ESP ignored %u",++expensive);assert(expensive==1);
+    DBGLOGFD(lazy,ems,"EMS requested %u",++expensive);assert(expensive==2&&filtered.stats().pending==1);
+    filters.enabled=false;filtered.configure(filters);silent->level=Level::DEBUG;
+    DBGLOGFD(lazy,app,"serial %u",++expensive);assert(expensive==3);
+    assert(silent->output.find("serial 3")!=std::string::npos);
+    DBGLOGFI(lazy,app,"message only");DBGLOGI(lazy,"unfeatured message only");
+    assert(silent->output.find("message only")!=std::string::npos);
+    std::shared_ptr<ib::logger::LoggerInterface> missing;
+    DBGLOGFD(missing,chooseFeature(),"never %u",++expensive);assert(expensive==3&&featureCalls==2);
+    // The real telegram debug path honors BufferedLogger's combined acceptance.
+    uint8_t raw[]={8,0,0x18,0,1,0};raw[5]=heating::ems::EmsTelegram::calculateCRC(raw,5);auto telegram=heating::ems::EmsTelegram::fromRawData(raw,sizeof(raw));
+    silent->output.clear();silent->level=Level::OFF;telegram.logDebug(*lazy,ems);assert(silent->output.empty());
+    filters.webLevel=4;filtered.configure(filters);const auto cursor=filtered.stats().latest;
+    telegram.logDebug(*lazy,ems);assert(filtered.next(cursor,record)&&record.level==4);
+    assert(std::string(record.text.data()).find("data: 01")!=std::string::npos);
+    close(receiver);std::cout<<"PASS actual logger, NVS failure/readback, native SDK hooks, real RFC5424 UDP, lazy arguments and independent log destinations\n";
 }

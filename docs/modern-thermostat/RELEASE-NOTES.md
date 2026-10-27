@@ -41,6 +41,10 @@ acceptance is separate; beta.5 installation recovery remains deferred.
   thread. DNS waits no longer hold the HTTP/main loop; retired lookups retain
   bounded callback storage until completion. TCP and CONNACK retain separate
   timing bounds; firmware-update HTTPS uses a different path.
+- Avoid building disabled log messages. Web/syslog levels and source selections
+  remain independent of serial output; enabled messages retain redaction and
+  bounded storage. The periodic route refresh also fails fast if its native
+  network mailbox is full.
 - Suspend updater status reads while the page is hidden and release them on
   navigation. Submitted install/check commands are not aborted or replayed.
 

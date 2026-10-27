@@ -9,6 +9,30 @@ using namespace heating::diagnostics;
 namespace {
 Settings remote(){Settings s;s.enabled=true;s.syslogEms=true;std::strcpy(s.server.data(),"127.0.0.1");return s;}
 TEST(SystemLog, DefaultsAreLocalInfoAndNoExternalDestination){SystemLog log;auto s=log.settings();EXPECT_FALSE(s.enabled);EXPECT_TRUE(s.syslogEsp);EXPECT_FALSE(s.syslogEms);EXPECT_EQ(s.webLevel,3);EXPECT_EQ(s.port,514);EXPECT_EQ(s.server[0],0);EXPECT_LT(sizeof(log),11000u);}
+TEST(SystemLog, LazyAcceptanceMatchesActualAppendAcrossIndependentDestinations) {
+    for(uint8_t web=0;web<=5;++web)for(uint8_t remoteLevel=0;remoteLevel<=5;++remoteLevel)
+    for(bool enabled:{false,true})for(bool esp:{false,true})for(bool ems:{false,true}) {
+        SystemLog log;auto settings=remote();settings.webLevel=web;settings.syslogLevel=remoteLevel;
+        settings.enabled=enabled;settings.syslogEsp=esp;settings.syslogEms=ems;log.configure(settings);
+        for(uint8_t level=0;level<=6;++level) {
+            bool any=false;
+            for(const char* feature:{"App","EMS","EmsVerbose"}) {
+                const auto before=log.stats().latest;
+                const bool wanted=log.wants(level,feature);any=any||wanted;
+                log.append(level,feature,"ready",1);
+                EXPECT_EQ(wanted,log.stats().latest!=before);
+            }
+            EXPECT_EQ(log.wantsLevel(level),any);
+        }
+    }
+}
+TEST(SystemLog, LazyAcceptanceTracksSettingsChangesWithoutMutatingHistory) {
+    SystemLog log;EXPECT_TRUE(log.wants(3,"App"));EXPECT_FALSE(log.wants(4,"EMS"));
+    auto settings=remote();settings.webLevel=0;settings.syslogEsp=false;settings.syslogLevel=5;
+    log.configure(settings);EXPECT_FALSE(log.wants(3,"App"));EXPECT_TRUE(log.wants(5,"EMS"));
+    EXPECT_EQ(log.stats().latest,0u);settings.enabled=false;log.configure(settings);
+    EXPECT_FALSE(log.wantsLevel(1));EXPECT_EQ(log.stats().latest,0u);
+}
 TEST(SystemLog, FixedRingRetainsNewestAndCountsOverwrites){SystemLog log;for(int i=0;i<100;++i)log.append(3,"App","ready",i);auto s=log.stats();EXPECT_EQ(s.retained,32u);EXPECT_EQ(s.overwritten,68u);Record r;ASSERT_TRUE(log.next(0,r));EXPECT_EQ(r.sequence,69u);ASSERT_TRUE(log.next(99,r));EXPECT_EQ(r.sequence,100u);EXPECT_FALSE(log.next(100,r));}
 TEST(SystemLog, LevelsAreIndependentAndOffNeverProducesAnEvent){SystemLog log;auto s=remote();s.webLevel=1;s.syslogLevel=4;log.configure(s);log.append(0,"App","off",0);log.append(4,"App","debug",1);EXPECT_EQ(log.stats().retained,0u);Record r;Settings target;ASSERT_TRUE(log.pop(r,target));EXPECT_EQ(r.level,4);log.append(1,"App","error",2);EXPECT_EQ(log.stats().retained,1u);log.append(5,"App","trace",3);EXPECT_EQ(log.stats().latest,2u);}
 TEST(SystemLog, BacklogIsBoundedAndOfflineDoesNotReplay){SystemLog log;log.configure(remote());for(int i=0;i<50;++i)log.append(3,"App","message",i);EXPECT_EQ(log.stats().pending,8u);EXPECT_EQ(log.stats().syslogDropped,42u);log.offline();EXPECT_EQ(log.stats().pending,0u);EXPECT_EQ(log.stats().syslogDropped,50u);log.append(3,"App","still offline",0);EXPECT_EQ(log.stats().syslogDropped,51u);Record r;Settings s;EXPECT_FALSE(log.pop(r,s));}

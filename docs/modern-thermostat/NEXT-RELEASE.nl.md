@@ -29,6 +29,9 @@ hiermee geen nieuwe firmware geïnstalleerd of echte warmtevraag verstuurd.
 De native MQTT-route gebruikt daarnaast begrensde socketwrites en asynchrone
 DNS via de bestaande lwIP-netwerktaak. Een DNS-storing houdt de hoofdloop niet
 meer vijftien seconden vast; TCP- en MQTT-handshake hebben nog eigen wachttijden.
+Uitgeschakelde projectlogregels voeren hun dure argumenten niet meer uit;
+web/syslog en seriële uitvoer houden hun eigen filters. De netwerkroute-refresh
+wacht niet op een volle netwerkmailbox.
 De daadwerkelijke paginasnelheid moet na installatie worden gemeten.
 
 **Nieuwe kamerfunctie in dezelfde bundel:** maximaal acht raam-/deurcontacten

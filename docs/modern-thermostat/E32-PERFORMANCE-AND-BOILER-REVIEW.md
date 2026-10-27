@@ -222,3 +222,38 @@ mailbox exhaustion, destruction, replacement, pool exhaustion/reuse, original
 deadlines and cross-thread completion. These are software lifetime and scheduling
 checks. On-device page latency, TCP connect and MQTT CONNACK/read delays remain
 separate acceptance and review work. No firmware or boiler action was performed.
+
+## Avoid work for disabled log messages
+
+The vendor logging macros evaluate message arguments before the logger filters
+them. A disabled project feature could therefore still build JSON, query heap
+statistics or traverse SPIFFS. The E32 now checks destination acceptance before
+evaluating those arguments, using the public logger interface. Logger, level and
+feature/format expressions are evaluated once. Generic-board macros are unchanged.
+
+BufferedLogger's feature acceptance combines the existing serial/TCP sinks with
+the independent web and syslog settings, including the ESP/EMS source choices.
+A published atomic mask allows that read without taking the SystemLog queue
+mutex. The existing append method still owns filtering, redaction, contention
+accounting and storage. Messages accepted only by web/syslog no longer undergo
+a second serial formatter and sink-vector allocation; messages accepted only
+by serial avoid the diagnostic-copy formatter. Disabled EMS debug output no
+longer formats each payload byte as hexadecimal. Deferred EMS receipt logging
+also skips formatting when neither web nor syslog wants the record. Reception,
+monitor updates, device inventory and transmit admission are unchanged.
+
+The ten-second heap summary remains at INFO. The separate SPIFFS usage line is
+now DEBUG, so the flash scan runs only when a selected destination requests App
+debug output. The existing E32 serial sink remains TRACE: enabling App keeps
+that debug line available there. No installed logging setting was changed.
+
+The periodic Ethernet route refresh also uses `tcpip_try_callback`. A full
+network mailbox returns immediately; the existing one-second refresh supplies
+the next attempt. No authoritative network check is replaced with cached data.
+
+The real logger/NVS/native-hook/UDP fixture checks side-effect-free rejection,
+single evaluation and independent destination acceptance, alongside the existing
+credential redaction and full serial output. Native tests compare the lazy
+acceptance mask with actual append outcomes across every level/source setting.
+These checks establish avoided work and preserved output semantics, not a
+measured on-device page-load improvement.

@@ -106,7 +106,9 @@ bool pollBoardNetwork() {
     if (netif) {
         // IDF 4.4 has no esp_netif_set_default_netif. Use the lwIP TCP/IP
         // thread, never change its default netif from the Arduino loop task.
-        tcpip_callback([](void *value) { netif_set_default(static_cast<struct netif *>(value)); },
+        // Mailbox pressure must not block the HTTP/controller loop. A failed
+        // try-post is retried by the existing periodic route refresh.
+        tcpip_try_callback([](void *value) { netif_set_default(static_cast<struct netif *>(value)); },
                        esp_netif_get_netif_impl(netif));
     }
     return changed;

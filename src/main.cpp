@@ -344,7 +344,8 @@ void loop() {
 		lastMillis = now;
 
 		heating::controller->operate();
-		DBGLOGFI(heating::logger, appLogFeature(), "Free memory %d/%d (minimum was: %d) MaxAlloc: %d MinPeekStack: %d boxTemp: %f, UpTime: %lds SPIFFS: %zu/%zu\n", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap(), uxTaskGetStackHighWaterMark(nullptr), heating::rtcGetTemp(), esp_timer_get_time()/1000000, SPIFFS.usedBytes(), SPIFFS.totalBytes());
+		DBGLOGFI(heating::logger, appLogFeature(), "Free memory %d/%d (minimum was: %d) MaxAlloc: %d MinPeekStack: %d boxTemp: %f, UpTime: %lds\n", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap(), uxTaskGetStackHighWaterMark(nullptr), heating::rtcGetTemp(), esp_timer_get_time()/1000000);
+		DBGLOGFD(heating::logger, appLogFeature(), "SPIFFS: %zu/%zu\n", SPIFFS.usedBytes(), SPIFFS.totalBytes());
 
 		if (!WiFi.isConnected()
 #ifdef OPENTHERMOSTAT_E32V2

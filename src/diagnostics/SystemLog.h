@@ -92,6 +92,25 @@ public:
         settings_=settings;
         stats_.syslogDropped+=queued_;
         queued_=0; head_=0;
+        // Read-only preflight for lazy message formatting. append() still owns
+        // admission, redaction, contention accounting and the actual queues.
+        uint32_t mask=0;
+        for(unsigned level=1;level<=5;++level) {
+            if(level<=settings.webLevel)mask|=(1u<<level)|(1u<<(level+8));
+            if(settings.enabled&&level<=settings.syslogLevel) {
+                if(settings.syslogEsp)mask|=1u<<level;
+                if(settings.syslogEms)mask|=1u<<(level+8);
+            }
+        }
+        captureMask_.store(mask,std::memory_order_release);
+    }
+    bool wantsLevel(uint8_t level) const {
+        return level>=1&&level<=5&&
+            (captureMask_.load(std::memory_order_acquire)&((1u<<level)|(1u<<(level+8))));
+    }
+    bool wants(uint8_t level,std::string_view feature) const {
+        return level>=1&&level<=5&&
+            (captureMask_.load(std::memory_order_acquire)&(1u<<(level+(sourceForFeature(feature)==Source::ems?8:0))));
     }
     Settings settings() const { std::lock_guard<std::mutex> lock(mutex_); return settings_; }
     void append(uint8_t level,std::string_view feature,std::string_view text,uint64_t uptime,bool truncated=false) {
@@ -147,6 +166,8 @@ public:
         s.oldest=count_?records_[start_].sequence:0;s.contention=contention_.load();return s;
     }
 private:
+    // Defaults match Settings{} even before configure().
+    std::atomic<uint32_t> captureMask_{0x0e0e};
     mutable std::mutex mutex_;
     Settings settings_;
     bool connected_=true; // Standalone core tests inject availability; firmware begins offline.

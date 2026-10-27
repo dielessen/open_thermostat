@@ -28,7 +28,7 @@ uint8_t EmsTelegram::getRequestedDataSize() const {
 }
 
 void EmsTelegram::logDebug(ib::logger::LoggerInterface &log, ib::logger::LoggerInterface::LogFeatureType feature) const {
-	if (log.isFeatureEnabled(feature)) {
+	if (log.doesFeatureMeetsLevelCondition(ib::logger::LoggerInterface::LogLevel::DEBUG,feature)) {
 		char opType = 'B';
 		if (operation_ == operation_t::READ) {
 			opType = 'R';
@@ -44,7 +44,7 @@ void EmsTelegram::logDebug(ib::logger::LoggerInterface &log, ib::logger::LoggerI
 			snprintf(dataStr + i * 2, sizeof(dataStr) - i * 2, "%2.2X", data_[i]);
 		}
 
-		DBGLOGFD((&log), feature, "(0x%X) -%c-> (0x%X), type: 0x%4.4X, offset: %d, dataLen: %zu data: %s%s\n", source_, opType, destination_, typeId_, offset_, data_.size(), dataStr, visible<data_.size()?"...":"");
+		log.printf(ib::logger::LoggerInterface::LogLevel::DEBUG,feature,"(0x%X) -%c-> (0x%X), type: 0x%4.4X, offset: %d, dataLen: %zu data: %s%s\n", source_, opType, destination_, typeId_, offset_, data_.size(), dataStr, visible<data_.size()?"...":"");
 	}
 }
 
@@ -80,7 +80,8 @@ EmsTelegram EmsTelegram::fromRawData(const uint8_t *data, size_t length) {
 EmsTelegram EmsTelegram::getFromRawData(ib::logger::LoggerInterface &log,
     ib::logger::LoggerInterface::LogFeatureType verboseFeature, uint8_t *data, uint8_t length) {
     auto telegram = fromRawData(data, length);
-    DBGLOGFD((&log), verboseFeature, "Got validated EMS raw len: %u from: %u\n", length, data[0]);
+    if(log.doesFeatureMeetsLevelCondition(ib::logger::LoggerInterface::LogLevel::DEBUG,verboseFeature))
+        log.printf(ib::logger::LoggerInterface::LogLevel::DEBUG,verboseFeature,"Got validated EMS raw len: %u from: %u\n",length,data[0]);
     return telegram;
 }
 

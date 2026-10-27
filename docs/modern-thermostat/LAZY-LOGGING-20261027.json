@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "parent_commit": "7f5071f8b5bae223bf1886d1cb9fb635ccdda322",
+  "target": "E32 beta.6",
+  "device_actions_performed": false,
+  "behavior": [
+    "Project logging arguments are evaluated only if a selected destination accepts the message",
+    "Serial/TCP, web and ESP/EMS syslog filters remain independent",
+    "Accepted serial output remains full length; diagnostic records retain redaction and bounded storage",
+    "Disabled EMS debug avoids payload hex formatting; receive/monitor/inventory/transmit admission unchanged",
+    "SPIFFS usage remains available at DEBUG; heap summary remains INFO",
+    "Periodic route refresh uses a nonblocking native mailbox try-post"
+  ],
+  "validation": {
+    "native_tests_passed": 1208,
+    "native_log": "out/lazy-logging-20261027/native-final.log",
+    "actual_logger_nvs_hooks_udp_lazy_arguments": "PASS",
+    "actual_logger_asan_ubsan_leak_detection": "PASS",
+    "destination_setting_combinations": 288,
+    "append_outcomes_compared_to_lazy_acceptance": 6048,
+    "e32_app_build": "PASS",
+    "e32_filesystem_build": "PASS",
+    "image_partition_asset_and_uart_owner_verification": "PASS",
+    "firmware_bytes": 3089824,
+    "ota_slot_bytes": 3670016
+  },
+  "remaining": [
+    "Exact-commit CI",
+    "On-device page latency and loop measurements",
+    "Serial/TCP sinks retain their existing blocking output behavior when explicitly enabled; no universal latency guarantee"
+  ],
+  "reviewed_files": [
+    {
+      "path": ".github/workflows/build.yml",
+      "sha256": "99b5de1842a8e5dd6feed1bf462b18670ff2b5ddb5a8bf449d9f1d0e6f7b995d"
+    },
+    {
+      "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
+      "sha256": "4c961f6ea3629baae19ccb696041b053e097a066b6f95686a10f7d6eb774e568"
+    },
+    {
+      "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
+      "sha256": "2edce055e01b05f4ce3466909be60919d90d4390012ef0f56076c724909e984f"
+    },
+    {
+      "path": "docs/modern-thermostat/RELEASE-NOTES.md",
+      "sha256": "4146c5c9bbd5edc6e628695f4a19210f0ace2a1767772c6a097b4d105806160b"
+    },
+    {
+      "path": "docs/modern-thermostat/WORKBOARD.nl.md",
+      "sha256": "49d5a1cdaaefb7929092ce00838b441335f66d79f6ce012cb834f0f91ee6aa23"
+    },
+    {
+      "path": "src/EMS/EmsTelegram.cpp",
+      "sha256": "96b13099a35804c79e95802dddfddd94599ff165f248b0cf025654f0d2d2c930"
+    },
+    {
+      "path": "src/Logging.h",
+      "sha256": "b36031785b3175147c9ea856153233daffde5bbcb7dfdceb190d0c693d4178f0"
+    },
+    {
+      "path": "src/Network.cpp",
+      "sha256": "48c295f7026800050b5548add6d25061b62045e9502359e0a0266913a36432ab"
+    },
+    {
+      "path": "src/diagnostics/BufferedLogger.h",
+      "sha256": "ffc7032eecbc31090585682fe16e5aa56035e23969131ceb35dd8729b7e34ec8"
+    },
+    {
+      "path": "src/diagnostics/EmsLogCapture.h",
+      "sha256": "5b476d3d654227190d04b5b2f759d029f0db9b8c6593611812ff33be2da87f53"
+    },
+    {
+      "path": "src/diagnostics/SystemLog.h",
+      "sha256": "2dc336b31676e64454d99bf51b6991d2cd8fac285794f30007e18a4011b8da75"
+    },
+    {
+      "path": "src/main.cpp",
+      "sha256": "4cceb0c52a55d92a415f7d886738407a92346db3af4544b8ea26f5582fcdf984"
+    },
+    {
+      "path": "test/logging_runtime/main.cpp",
+      "sha256": "a390e7870da87b7a2e62653b149c49c014cedbfea6ea9c1e6be6ef18cfa3509e"
+    },
+    {
+      "path": "test/test_native/test_system_log.cpp",
+      "sha256": "2352c5d06b5229f8de2f5167da9968d9ee8969d1629aa7f2f09d69ba77772938"
+    }
+  ]
+}

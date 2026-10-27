@@ -16,6 +16,7 @@
 #include "DeviceNetworkSettings.h"
 #include "DeadlineWiFiClient.h"
 #include "AsyncBrokerDns.h"
+#include "PendingTcpConnect.h"
 #include <PubSubClient.h>
 #include <esp_timer.h>
 #include <esp_system.h>
@@ -197,6 +198,7 @@ public:
     }
     void inhibitNativeSourceMutation() {
         brokerDns_.cancel();
+        brokerTcp_.cancel();
         retireActuators();
         ui_.clear();
         if(controller_)controller_->inhibitNativeSourceMutation();
@@ -206,6 +208,7 @@ public:
             client_.publish((base_+"fw/availability").c_str(),"offline",false);
             client_.disconnect();
         }
+        network_.stop();
         wasConnected_=false;
     }
     bool applyNativeSource(std::string_view expected,std::string_view descriptor,std::string_view previousSettings) {
@@ -229,6 +232,8 @@ public:
         auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
         if(!valid_) {
             brokerDns_.cancel();
+            brokerTcp_.cancel();
+            network_.stop();
             // SOURCE lockout also disconnects its owner. It must not freeze an
             // already running local withdrawal deadline or attempt reconnect.
             if(controller_)controller_->tick(now,0,false);
@@ -239,21 +244,36 @@ public:
             // Advance local withdrawal deadlines even if network/reconnect fails.
             // Offline owner ticks never publish or consult remote observers.
             withOwner([&](auto& owner){owner.tick(now,0,false);});
-            if(!heating::networkConnected()) {brokerDns_.cancel();return;}
+            if(!heating::networkConnected()) {brokerDns_.cancel();brokerTcp_.cancel();network_.stop();return;}
             if(now<nextConnect_)return;
-            IPAddress address;
-            if(!address.fromString(cfg_.brokerAddress.c_str())) {
-                if(!brokerDns_.started())brokerDns_.start(cfg_.brokerAddress,now);
-                const auto resolved=brokerDns_.poll(now);
-                if(resolved.state==AsyncBrokerDns::State::pending)return;
-                brokerDns_.cancel(); // No private address cache; next retry uses native DNS TTL.
-                if(resolved.state!=AsyncBrokerDns::State::ready) {nextConnect_=now+5000;return;}
-                address=resolved.ipv4;
+            if(!brokerTcp_.started()) {
+                network_.stop(); // Release the retired handle even while DNS waits.
+                IPAddress address;
+                if(!address.fromString(cfg_.brokerAddress.c_str())) {
+                    if(!brokerDns_.started())brokerDns_.start(cfg_.brokerAddress,now);
+                    const auto resolved=brokerDns_.poll(now);
+                    if(resolved.state==AsyncBrokerDns::State::pending)return;
+                    brokerDns_.cancel(); // Native DNS remains the only address cache.
+                    if(resolved.state!=AsyncBrokerDns::State::ready) {nextConnect_=now+5000;return;}
+                    address=resolved.ipv4;
+                }
+                client_.setServer(address,cfg_.brokerPort);
+                brokerTcp_.start(static_cast<uint32_t>(address),cfg_.brokerPort,monotonicMs());
             }
-            // Numeric server selection bypasses WiFiClient's synchronous
-            // hostByName wait. TCP connect and CONNACK retain their own bounds.
-            client_.setServer(address,cfg_.brokerPort);
-            nextConnect_=now+5000;
+            const auto state=brokerTcp_.poll(monotonicMs());
+            if(state==PendingTcpConnect::State::pending)return;
+            const auto connectDeadline=brokerTcp_.deadlineMs();
+            const auto handoffAt=monotonicMs();
+            const int socket=state==PendingTcpConnect::State::ready?brokerTcp_.take(handoffAt):-1;
+            brokerTcp_.cancel();nextConnect_=monotonicMs()+5000;
+            if(socket<0)return;
+            if(!network_.adoptConnectedSocket(socket))return;
+            // Allocation/scheduler delay during adoption cannot revive an
+            // expired connect attempt or dispatch an MQTT CONNECT afterwards.
+            const auto adoptedAt=monotonicMs();
+            if(adoptedAt<handoffAt||adoptedAt>=connectDeadline){network_.stop();return;}
+            // Public PubSubClient handshake on the ready SAME socket. Its
+            // existing one-second CONNACK/read timeout remains separate.
             const auto id=cfg_.clientId.empty()?cfg_.base:cfg_.clientId;
             const auto willTopic=base_+"fw/availability";
             if(!client_.connect(id.c_str(),cfg_.username.c_str(),cfg_.password.c_str(),willTopic.c_str(),0,false,"offline",true)) return;
@@ -266,6 +286,7 @@ public:
             if(actuatorChannels_&&!actuatorChannels_->retired())
                 subscriptions=client_.subscribe((base_+"ha/actuator_grant/+").c_str(),0)&&subscriptions;
             if(!subscriptions) { client_.disconnect(); return; }
+            now=monotonicMs();
             withOwner([&](auto& owner){owner.connected(now);}); wasConnected_=true; nextDeviceDiagnostics_=0;
             client_.publish(willTopic.c_str(),"online",false);
         }
@@ -301,6 +322,7 @@ private:
     config::MqttConfig cfg_; std::string base_,sourceNetworkBase_; // ephemeral bounded<2048, never logged/persisted.
     DeadlineWiFiClient network_; PubSubClient client_; NvsControlStore store_;
     AsyncBrokerDns brokerDns_;
+    PendingTcpConnect brokerTcp_;
     std::unique_ptr<GraphControlStoreView> graphControlView_;
     std::unique_ptr<TopologyControlStoreView> topologyControlView_;
     std::unique_ptr<GraphFloorControlStoreView> floorControlView_;

@@ -168,6 +168,8 @@ jobs:
           ASAN_OPTIONS: detect_leaks=1
           UBSAN_OPTIONS: halt_on_error=1
         run: |
+          mkdir -p /tmp/open-thermostat-mqtt-source
+          pio pkg install --global --library knolleary/PubSubClient@2.8.0 --storage-dir /tmp/open-thermostat-mqtt-source --skip-dependencies
           pio test -e native --verbose
           g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -Wvla -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/esp32_utilities/src -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_ems_readers.cpp test/test_native/test_ble_device_discovery.cpp src/EMS/EmsTelegram.cpp src/EMS/UBADeviceVersion.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-ems-readers-test
           /tmp/open-thermostat-ems-readers-test
@@ -182,6 +184,11 @@ jobs:
           /tmp/open-thermostat-actuator-test
           g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -DOPENTHERMOSTAT_E32V2 -Itest/deadline_write/include -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/deadline_write/adapter.cpp test/test_native/test_socket_write_budget.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-deadline-socket-test
           /tmp/open-thermostat-deadline-socket-test
+          g++ -std=c++17 -O1 -g -Wall -Wextra -fsanitize=address,undefined -fno-omit-frame-pointer -Itest/deadline_write/include -I/tmp/open-thermostat-mqtt-source/PubSubClient/src -c /tmp/open-thermostat-mqtt-source/PubSubClient/src/PubSubClient.cpp -o /tmp/open-thermostat-pinned-mqtt.o
+          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -DOPENTHERMOSTAT_E32V2 -Itest/pending_tcp/include -Itest/deadline_write/include -Isrc -I/tmp/open-thermostat-mqtt-source/PubSubClient/src -I.pio/libdeps/native/googletest/googletest/include test/pending_tcp/adapter.cpp /tmp/open-thermostat-pinned-mqtt.o .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-pending-tcp-test
+          /tmp/open-thermostat-pending-tcp-test
+          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -DOPENTHERMOSTAT_E32V2 -DLWIP_SOCKET_OFFSET=2 -DLWIP_SELECT_MAXNFDS=FD_SETSIZE -Itest/pending_tcp/include -Itest/deadline_write/include -Isrc -I/tmp/open-thermostat-mqtt-source/PubSubClient/src -I.pio/libdeps/native/googletest/googletest/include test/pending_tcp/adapter.cpp /tmp/open-thermostat-pinned-mqtt.o .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-pending-tcp-offset-test
+          /tmp/open-thermostat-pending-tcp-offset-test
           g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -DOPENTHERMOSTAT_E32V2 -Itest/async_broker_dns/include -Isrc -I.pio/libdeps/native/googletest/googletest/include test/async_broker_dns/adapter.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-async-dns-test
           /tmp/open-thermostat-async-dns-test
           g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_github_update.cpp test/test_native/test_update_checkpoint.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-update-checkpoint-test

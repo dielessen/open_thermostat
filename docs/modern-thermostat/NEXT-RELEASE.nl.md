@@ -28,7 +28,9 @@ hiermee geen nieuwe firmware geïnstalleerd of echte warmtevraag verstuurd.
 [Review en meetgrens](E32-PERFORMANCE-AND-BOILER-REVIEW.md).
 De native MQTT-route gebruikt daarnaast begrensde socketwrites en asynchrone
 DNS via de bestaande lwIP-netwerktaak. Een DNS-storing houdt de hoofdloop niet
-meer vijftien seconden vast; TCP- en MQTT-handshake hebben nog eigen wachttijden.
+meer vijftien seconden vast. Ook TCP verbinden verloopt in stappen tussen de
+normale looptaken, binnen dezelfde oorspronkelijke drie seconden. De MQTT-
+CONNACK-/leeswacht blijft afzonderlijk reviewwerk.
 Uitgeschakelde projectlogregels voeren hun dure argumenten niet meer uit;
 web/syslog en seriële uitvoer houden hun eigen filters. De netwerkroute-refresh
 wacht niet op een volle netwerkmailbox.

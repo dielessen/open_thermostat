@@ -14,6 +14,22 @@ namespace heating::control {
 class DeadlineWiFiClient final:public WiFiClient {
 public:
     using WiFiClient::write;
+    // PubSubClient may otherwise fall back to synchronous connect if the peer
+    // closes between our ready check and its handshake. Product TCP admission
+    // is exclusively the cooperative preconnect path on this same connection.
+    int connect(IPAddress,uint16_t)override{return 0;}
+    int connect(IPAddress,uint16_t,int32_t)override{return 0;}
+    int connect(const char*,uint16_t)override{return 0;}
+    int connect(const char*,uint16_t,int32_t)override{return 0;}
+    bool adoptConnectedSocket(int socket) {
+        if(socket<0)return false;
+        if(deadline_.active()){lwip_close(socket);return false;}
+        // Public SDK accepted-socket constructor + shared-handle assignment.
+        // Consumes the unique raw socket; no duplicate descriptor or new SYN.
+        WiFiClient ready(socket);WiFiClient::operator=(ready);
+        if(!connected()){stop();return false;}
+        return true;
+    }
     bool beginDeadlineWrite(DeadlineWrite::Check check){return deadline_.begin(std::move(check));}
     bool finishDeadlineWrite(){return deadline_.finish();}
     size_t write(uint8_t value)override{return write(&value,1);}

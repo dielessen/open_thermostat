@@ -1,0 +1,123 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target": "E32 beta.6",
+  "parent_commit": "c74f1f7a6067450c129c68c9a93852f30d28a3b4",
+  "device_actions_performed": false,
+  "contract": {
+    "original_tcp_timeout_ms": 3000,
+    "probe_select_wait_ms": 0,
+    "maximum_prospective_mqtt_sockets": 1,
+    "additional_tasks_or_mqtt_protocol_owners": 0,
+    "socket_transfer": "Public pinned WiFiClient(fd) and shared-handle assignment",
+    "synchronous_sdk_connect_fallback_enabled": false,
+    "actuator_write_guard_changed": false,
+    "pubsubclient_protocol_modified": false
+  },
+  "validation": {
+    "tcp_asan_ubsan_leak_tests_passed": 18,
+    "tcp_select_offset_profile_tests_passed": 18,
+    "existing_socket_write_asan_ubsan_leak_regressions_passed": 14,
+    "total_host_cases_passed": 50,
+    "actual_pinned_mqtt_loopback_handshake_publish_guarded_publish_disconnect": "PASS",
+    "native_packet_payload_bytes_tested": 8192,
+    "native_mqtt_buffer_bytes": 8448,
+    "e32_app_build": "PASS",
+    "e32_filesystem_build": "PASS",
+    "image_partition_assets_uart_owner_verification": "PASS",
+    "firmware_bytes": 3096560,
+    "ota_slot_bytes": 3670016
+  },
+  "pinned_mqtt_source": {
+    "version": "2.8.0",
+    "cpp_sha256": "c5ab036263d514791b1955fe44aacca103b2eea4ca07cd539bff25dd88cc4ede",
+    "header_sha256": "376ddb9ecda5816dfeff344f8742253d487adc16272455ebe2dfa4c071cdd348",
+    "fresh_registry_copy_matches_project": true
+  },
+  "remaining": [
+    "Exact-commit CI",
+    "On-device latency acceptance",
+    "Existing CONNACK and byte-read waits retain separate contracts; whole-packet reading remains latency-review work",
+    "Stock accepted-socket SDK allocation behavior retained",
+    "HTTPS updater and generic legacy MQTT use separate transport paths"
+  ],
+  "reviewed_files": [
+    {
+      "path": ".github/workflows/build.yml",
+      "sha256": "21c089d398d10caeb4764f337aef773c2186323a58fcf277d825822c6205911e"
+    },
+    {
+      "path": "README.md",
+      "sha256": "67cfe35f5f869ed67ed67183be5046c386cc7437338d59723202bf8a888edadf"
+    },
+    {
+      "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
+      "sha256": "932eb5bdfb2e15b75eb181a0f388953611791058b4e028f37138ab56d8e88574"
+    },
+    {
+      "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
+      "sha256": "63500559cf3c9733ecd25fcca76bf0f4fbddb56cf6ae364de4658774184c4b47"
+    },
+    {
+      "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
+      "sha256": "f057e83a81e2be60eb0a1b2482addf1f4ea9f0c0e58db7026bdd0a345e3472fe"
+    },
+    {
+      "path": "docs/modern-thermostat/RELEASE-NOTES.md",
+      "sha256": "28565e5c89f7b8688074b60bcd3e42ef782048aa93f42f562194a8a174aba14d"
+    },
+    {
+      "path": "docs/modern-thermostat/WORKBOARD.nl.md",
+      "sha256": "31325f2f0c23cd385d4fa73dbf35c972779bf4a5ab17d514f52efae870a049d9"
+    },
+    {
+      "path": "src/control/DeadlineWiFiClient.h",
+      "sha256": "ccf1f666e8b6bbaae2d823f6858b551e025a863197072720a446eead09681834"
+    },
+    {
+      "path": "src/control/ModernTransport.h",
+      "sha256": "7888e0429131dc712960ac89bd26ad2fef12752975c469f5260570c3f17cbd91"
+    },
+    {
+      "path": "src/control/PendingTcpConnect.h",
+      "sha256": "0471825c698ef6d84af3dce21159ac8d41b9d9bd86c126fa328cd42781640408"
+    },
+    {
+      "path": "test/deadline_write/include/Arduino.h",
+      "sha256": "d55c8fedf38d37e4f2eb0b8fae2c21b4cbdee4b9e542e10416c1a4bfb86e2be9"
+    },
+    {
+      "path": "test/deadline_write/include/Client.h",
+      "sha256": "a45d3f06327e23296e4602880d31ab98479cfd6f42bcbaff804ab118fcd2ecb9"
+    },
+    {
+      "path": "test/deadline_write/include/IPAddress.h",
+      "sha256": "966ef56febbbc439176d52fc4ca487a74dd1a0439d600ac0c635cdcf68bfefd2"
+    },
+    {
+      "path": "test/deadline_write/include/Print.h",
+      "sha256": "fb6953732e7e1754c611f05abc524d9085f01991e63e623604154bfae04a71d9"
+    },
+    {
+      "path": "test/deadline_write/include/Stream.h",
+      "sha256": "8757979242d240fb320bbea22d7d5a4645e38c42d9a94b5c25b8a1b6d081f9a1"
+    },
+    {
+      "path": "test/deadline_write/include/WiFiClient.h",
+      "sha256": "151b04c989032c3e7ce2fca9a31fb8d7fbf23b2ff591ceb575c6f42f1f66774c"
+    },
+    {
+      "path": "test/deadline_write/include/lwip/sockets.h",
+      "sha256": "938eedbbd89c20fe22481142a24ebedcad12da2b50f5acb4b008b081ef8fe6c6"
+    },
+    {
+      "path": "test/pending_tcp/adapter.cpp",
+      "sha256": "44e22e6fb89b690bd2a747f36515529da2dae0ba7134723e5dce1b4340cf34d2"
+    },
+    {
+      "path": "test/pending_tcp/include/lwip/sockets.h",
+      "sha256": "d24490966bfef533ff2bb79f0f00477d5b5383a8ae9885f03e2c9a83d2c1e0c1"
+    }
+  ]
+}

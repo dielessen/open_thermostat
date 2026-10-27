@@ -150,9 +150,9 @@ The separate actuator path retains its existing original owner/freshness guard
 and single nonblocking handoff. It does not inherit ordinary-write retries or
 the new latency budget. Deterministic tests and actual host socket pairs cover
 backpressure, byte order, partial progress, late/faulted clocks and the existing
-actuator guards. These tests do not establish on-device timing. TCP connection
-and MQTT reads retain their separate contracts. Native MQTT DNS resolution is
-now handled by the additional change below.
+actuator guards. These tests do not establish on-device timing. DNS and TCP
+opening have separate changes below. MQTT CONNACK/byte reading remains a
+separate latency-review item.
 
 ## Follow-up: identity and closed trial state
 
@@ -220,8 +220,9 @@ does not create a task, socket, unbounded queue or private DNS cache.
 Host fixtures exercise queued/cache/error results, an immediate error callback,
 mailbox exhaustion, destruction, replacement, pool exhaustion/reuse, original
 deadlines and cross-thread completion. These are software lifetime and scheduling
-checks. On-device page latency, TCP connect and MQTT CONNACK/read delays remain
-separate acceptance and review work. No firmware or boiler action was performed.
+checks. On-device page latency remains separate acceptance. TCP opening is
+covered below; MQTT CONNACK/byte reading remains additional review work. No
+firmware or boiler action was performed.
 
 ## Avoid work for disabled log messages
 
@@ -296,3 +297,43 @@ browser fixtures cover both languages, 320-pixel expanded detail, malformed or
 older timing data, hidden/pending reads, deadline backoff, navigation during an
 accepted settings write and remount without replay. All network responses are
 isolated fixtures. No live measurement, installation or boiler action is implied.
+
+## Cooperative native MQTT TCP opening
+
+The pinned WiFiClient uses a blocking `select` while opening TCP, with a default
+three-second timeout. Native MQTT now opens the one prospective socket in
+nonblocking mode and checks its readiness with a zero-timeout `select` on each
+normal product-loop pass. The controller's existing offline tick and HTTP
+handling continue between probes. Partial progress and interrupted probes do
+not renew the original three-second deadline. Socket setup, readiness,
+`SO_ERROR`, timeout or backwards-clock failures close that owned socket once.
+The descriptor range check uses lwIP's published socket offset and select limit.
+
+A ready socket receives the same timeout/flag settings as the pinned client,
+then transfers through the public `WiFiClient(fd)` constructor and its shared
+handle assignment. The retired client handle is released before starting DNS/TCP.
+No second connection, socket duplicate, worker task or MQTT protocol implementation
+is introduced. Allocation and scheduling delays at adoption are checked against
+the original connect deadline before the MQTT handshake can begin. The SDK's
+existing accepted-socket allocation behavior is retained.
+
+PubSubClient still owns CONNECT, authentication, subscriptions, keepalive and
+packets. Its public connect fallback is disabled on this product socket client:
+if a peer disappears after readiness, the attempt fails instead of entering
+WiFiClient's synchronous DNS/TCP path. The existing CONNACK wait and one-second byte-read
+timeouts remain separate; packet reading still needs its own latency review.
+This change does not make the whole MQTT library asynchronous. The owner is marked connected only after the normal handshake
+and subscriptions succeed, using the then-current monotonic time. Network loss,
+SOURCE lockout, replacement/destruction and errors retire pending raw sockets.
+An ordinary failed attempt still waits before a fresh retry and fresh native
+DNS lookup. Persistent actuator and boiler output qualification is unchanged.
+
+Host tests link the unmodified pinned PubSubClient 2.8.0 with an explicit public
+WiFiClient fixture and real finite loopback TCP. They exercise CONNECT, ordinary
+publish, guarded publish and DISCONNECT on one socket; failure at every native
+setup/probe stage; readiness/transfer deadlines; closure and adoption failures;
+socket replacement rejection during an active actuator write; descriptor limits;
+and a silent peer's retained CONNACK timeout. The same tests run with an explicit
+lwIP select-offset profile, and the previous ordinary/deadline write cases
+remain covered. The E32 cross-build verifies the actual pinned SDK API. These
+are software scheduling/lifetime checks, not on-device latency measurements.

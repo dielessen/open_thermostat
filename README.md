@@ -56,8 +56,8 @@ boiler/valve control remain disabled. [Current release work](https://github.com/
 **In development for beta.6:** smaller compressed web downloads, conditional
 browser caching, page modules loaded when needed, and one shared boiler-data
 request. Hidden updater and log pages stop polling. Native MQTT broker DNS
-resolution returns control to the main loop; ordinary socket writes have a
-bounded wait. Disabled logging avoids unnecessary work, and System log exposes
+resolution and TCP opening return control to the main loop; ordinary socket
+writes have a bounded wait. Disabled logging avoids unnecessary work, and System log exposes
 loop interval counters for checking delays after installation. The revised
 boiler page presents one received-entity table per device and a shorter
 read/prepare/start/stop workflow. These changes are tested in software and have

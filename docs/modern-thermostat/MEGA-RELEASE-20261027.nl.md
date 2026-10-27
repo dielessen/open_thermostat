@@ -68,7 +68,8 @@ bewijs blijft afzonderlijk open. Geen nieuwe externe dienst of langlopende watch
 - Netwerkperformance: gewone MQTT-writes hebben één totale100ms-grens; DNS
   wordt asynchroon afgehandeld in de bestaande netwerktaak, met vaste opslag,
   oorspronkelijke deadline en isolatie van late callbacks na transportvervanging.
-  TCP/CONNACK blijven afzonderlijk reviewwerk; geen meting of installatie op E32.
+  Ook TCP verbinden verloopt nu in stappen binnen dezelfde drie seconden;
+  MQTT-CONNACK-/bytelezen blijft apart reviewwerk. Geen meting/installatie op E32.
 
 - Batterijdiagnose: normale kamereditor groepeert opgeslagen sensor/kranen per
   native HA-apparaat en toont gecachete procent-/lage-batterijmeldingen met

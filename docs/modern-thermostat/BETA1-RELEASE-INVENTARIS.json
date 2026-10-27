@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "87356a799099317647c97d501dc3af8c46cda3eccec94d83bcb6f26f76c04a00"
+          "sha256": "21c089d398d10caeb4764f337aef773c2186323a58fcf277d825822c6205911e"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -59,7 +59,7 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
-          "sha256": "6ba9f58c00f3e90d0f023960cd95fe4df89a7d30c5017d5f9ffa88a9193632d0"
+          "sha256": "28565e5c89f7b8688074b60bcd3e42ef782048aa93f42f562194a8a174aba14d"
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
@@ -75,7 +75,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "67ccd8b10905982009536c26829644db627e390acbee4d0ad70ce37f94afb66e"
+          "sha256": "67cfe35f5f869ed67ed67183be5046c386cc7437338d59723202bf8a888edadf"
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "a850f7a93d6f62ef7153b6d9f3f52110560354718f280ec8be21df3afa317d40"
+          "sha256": "f057e83a81e2be60eb0a1b2482addf1f4ea9f0c0e58db7026bdd0a345e3472fe"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -215,7 +215,7 @@
         },
         {
           "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
-          "sha256": "bf0c05234780c8e1bd7c8ac38a96f987533044e5d34dfdb9bd2b45ec3956d1d1"
+          "sha256": "63500559cf3c9733ecd25fcca76bf0f4fbddb56cf6ae364de4658774184c4b47"
         },
         {
           "path": "release.json",
@@ -397,7 +397,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "87356a799099317647c97d501dc3af8c46cda3eccec94d83bcb6f26f76c04a00"
+          "sha256": "21c089d398d10caeb4764f337aef773c2186323a58fcf277d825822c6205911e"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -645,7 +645,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
-          "sha256": "ff6f55026d3e860f62422bf07c1f78711db507cbf0398c46e96f0cbf4510da48"
+          "sha256": "932eb5bdfb2e15b75eb181a0f388953611791058b4e028f37138ab56d8e88574"
         },
         {
           "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-20261027.json",
@@ -907,7 +907,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "87356a799099317647c97d501dc3af8c46cda3eccec94d83bcb6f26f76c04a00"
+          "sha256": "21c089d398d10caeb4764f337aef773c2186323a58fcf277d825822c6205911e"
         },
         {
           "path": "platformio.ini",
@@ -1011,7 +1011,7 @@
         },
         {
           "path": "src/control/ModernTransport.h",
-          "sha256": "e196392f9d85eaab6c9241efa9a4e3d6b2bb0927691b4b955e9a7c642bf4c40f"
+          "sha256": "7888e0429131dc712960ac89bd26ad2fef12752975c469f5260570c3f17cbd91"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/device_diagnostics.py",
@@ -1517,6 +1517,42 @@
         {
           "path": "docs/modern-thermostat/ASYNC-BROKER-DNS-20261027.json",
           "sha256": "3cf10b436e28696c0ed864de56e98c8c779447abd3cb0f81f04e12226105f006"
+        },
+        {
+          "path": "src/control/PendingTcpConnect.h",
+          "sha256": "0471825c698ef6d84af3dce21159ac8d41b9d9bd86c126fa328cd42781640408"
+        },
+        {
+          "path": "test/deadline_write/include/Arduino.h",
+          "sha256": "d55c8fedf38d37e4f2eb0b8fae2c21b4cbdee4b9e542e10416c1a4bfb86e2be9"
+        },
+        {
+          "path": "test/deadline_write/include/Client.h",
+          "sha256": "a45d3f06327e23296e4602880d31ab98479cfd6f42bcbaff804ab118fcd2ecb9"
+        },
+        {
+          "path": "test/deadline_write/include/IPAddress.h",
+          "sha256": "966ef56febbbc439176d52fc4ca487a74dd1a0439d600ac0c635cdcf68bfefd2"
+        },
+        {
+          "path": "test/deadline_write/include/Print.h",
+          "sha256": "fb6953732e7e1754c611f05abc524d9085f01991e63e623604154bfae04a71d9"
+        },
+        {
+          "path": "test/deadline_write/include/Stream.h",
+          "sha256": "8757979242d240fb320bbea22d7d5a4645e38c42d9a94b5c25b8a1b6d081f9a1"
+        },
+        {
+          "path": "test/pending_tcp/adapter.cpp",
+          "sha256": "44e22e6fb89b690bd2a747f36515529da2dae0ba7134723e5dce1b4340cf34d2"
+        },
+        {
+          "path": "test/pending_tcp/include/lwip/sockets.h",
+          "sha256": "d24490966bfef533ff2bb79f0f00477d5b5383a8ae9885f03e2c9a83d2c1e0c1"
+        },
+        {
+          "path": "docs/modern-thermostat/COOPERATIVE-MQTT-TCP-20261027.json",
+          "sha256": "d847942e8f84c205762d50f3f7ad45c4de47f492f24114787822be17cdc25b31"
         }
       ],
       "remaining_acceptance": "Logische provisioning/programma-ACK werkt; verse fysieke meet- en actuatorbewijzen ontbreken."
@@ -1726,7 +1762,7 @@
         },
         {
           "path": "src/control/DeadlineWiFiClient.h",
-          "sha256": "8aec74803ca10646039265d2280aaf09b85d657c3ddfe1ea2e86aa9b9477662f"
+          "sha256": "ccf1f666e8b6bbaae2d823f6858b551e025a863197072720a446eead09681834"
         },
         {
           "path": "test/test_native/test_deadline_write.cpp",
@@ -1738,11 +1774,11 @@
         },
         {
           "path": "test/deadline_write/include/WiFiClient.h",
-          "sha256": "ff7a3e68aa713ac49baf7b4a693f493a1cb9b99d91eed768069f5edf9b28aa1e"
+          "sha256": "151b04c989032c3e7ce2fca9a31fb8d7fbf23b2ff591ceb575c6f42f1f66774c"
         },
         {
           "path": "test/deadline_write/include/lwip/sockets.h",
-          "sha256": "0e1a5f7ab31a7cda1c0279ce39f15bf3aed0e6e587efb65fe0a232d76fae3921"
+          "sha256": "938eedbbd89c20fe22481142a24ebedcad12da2b50f5acb4b008b081ef8fe6c6"
         }
       ],
       "remaining_acceptance": "HA45 met native workerbedrading geïnstalleerd. Nieuwe oorspronkelijke aanvraag/grant-correlatie, firmwarekanaal, bewaakte inventaris en deadlinegebonden nonblocking socketoverdracht gepubliceerd in de grotere HA45/alpha32-release; HA45 geïnstalleerd; normale productfabriek blijft gesloten. Gekwalificeerde lokale SOURCE, oorspronkelijke sensoracquisitie, unieke native zendtransactie/causale kraanecho, schema-eigenaarschap en fysieke stop-/uitvalkwalificatie ontbreken nog. Geïnstalleerde converterbron blijft onbekend via bestaande toegang. Transport-/serviceacceptatie bewijst geen klepstand of fysieke failsafe. E32 is vers waargenomen op alpha31; deze opdracht heeft geen firmware geüpload. Alpha32-bronwerk is niet door deze opdracht geflasht. Aanvullende broncorrectie na HA45/alpha32: herintrede bij de laatste handoff en kanaaltoelating vanuit beschikbaarheid worden gesloten; gepubliceerd op alpha33-bron; E32 blijft alpha31, deze correctie is niet op de module geïnstalleerd. HA46 is geïnstalleerd met behoud van de gesloten productfabriek."
@@ -2213,7 +2249,7 @@
         },
         {
           "path": "docs/modern-thermostat/WORKBOARD.nl.md",
-          "sha256": "b9e1be59a1a1a07c6273b662f5031d5437c9ca423ff0cd63690c16af13c64c31"
+          "sha256": "31325f2f0c23cd385d4fa73dbf35c972779bf4a5ab17d514f52efae870a049d9"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/device_power.py",

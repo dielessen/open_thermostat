@@ -399,3 +399,30 @@ server-side commit after a write timeout cannot turn the UI into confirmed save.
 The existing authenticated ETag/conditional-save and independent readback checks
 remain unchanged. No scan, configuration write or radio change was performed
 on a device during these software checks.
+
+## Share the response buffer with Home status
+
+`/status` previously created a growing top-level string buffer on each dashboard
+read, even though the telemetry route already owned fixed PSRAM response storage.
+Both E32 routes now reuse that same 64 KiB buffer. WebServer completes headers
+and body synchronously on the single HTTP owner before another handler can reset
+it. Values are serialized fresh on every request; this is storage reuse rather
+than a reading cache. Generic boards retain their existing implementation.
+
+The first dashboard or telemetry request now lazily reserves the 64 KiB PSRAM
+allocation and retains it for the REST owner's lifetime. Home-only usage therefore
+uses that persistent PSRAM budget earlier, in exchange for avoiding its growing
+top-level internal-heap response allocation. There is no second response buffer,
+extra worker, stream-to-client partial JSON, new endpoint or JSON schema change.
+Nested controller serializers retain their existing contracts and allocations.
+Allocation failure, buffer overflow or a failed serialization stream returns a
+complete uncached 503 before sending response bytes. The fixed capacity is not
+increased by a large response, and there is no internal-heap fallback.
+
+The actual REST status/telemetry/authorization branches are extracted into the
+existing finite host HTTP fixture. Twenty-five scenarios cover pass-through status bytes,
+alternating route reuse with one allocation, authorization before output,
+uncached live responses, allocation failure, overflow and an independently failed
+stream. Address/undefined/leak sanitizers exercise the same branch fixture. These
+checks establish bounded storage and preserved responses, not device latency or
+a claim that every nested status allocation has been removed.

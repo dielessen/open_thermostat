@@ -91,3 +91,8 @@ bewijs blijft afzonderlijk open. Geen nieuwe externe dienst of langlopende watch
   te vervangen. Verlaten wist de invoersleutel. Ingediende save/scan behoudt
   de oorspronkelijke deadline; geen herhaling of late readback door de oude
   pagina. Leesfoutherstel en onbevestigde schrijfacties houden eigen status.
+
+- Statusantwoordbuffer: dashboard en keteltelemetrie delen dezelfde vaste64KiB
+  PSRAM-opslag op de synchrone HTTP-eigenaar. De hoofdbody groeit niet meer op
+  de interne heap; geen tweede buffer, waardencache of schemawijziging. Eerste
+  dashboardgebruik reserveert de PSRAM. Onbeschikbaar/te groot geeft volledige503.

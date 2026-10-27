@@ -46,6 +46,10 @@ getypte sleutel en open panelen blijven bij tabwisselen bewaard; verlaten wist
 de sleutel. Een ingediende save/scan houdt zijn eigen deadline, zonder herhaling
 of readback door een verlaten pagina. Leesherstel wist alleen de oude leesfout;
 een onbevestigde save blijft zichtbaar.
+Het dashboard bouwt zijn statusantwoord nu in dezelfde vaste64KiB-PSRAM-buffer
+als de keteltelemetrie. Geen tweede buffer of groeiende hoofdbody op de interne
+heap. De eerste dashboardaanvraag reserveert die buffer; allocatiefout of een te
+grote/onvolledige body geeft één volledige503 in plaats van een afgekapt antwoord.
 De daadwerkelijke paginasnelheid moet na installatie worden gemeten.
 
 **Nieuwe kamerfunctie in dezelfde bundel:** maximaal acht raam-/deurcontacten

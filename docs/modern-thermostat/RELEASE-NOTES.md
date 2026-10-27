@@ -31,7 +31,7 @@ acceptance is separate; beta.5 installation recovery remains deferred.
   credentials, operation outcomes and errors remain uncached.
 - Load page-specific scripts only when needed. The device panel uses a compact
   model/field metadata file instead of downloading the complete telegram library.
-- Reuse a bounded PSRAM buffer for large telemetry JSON responses; allocation
+- Reuse one bounded PSRAM buffer for dashboard and large telemetry JSON responses; allocation
   failure or overflow returns a complete error without partial JSON.
 - Share one bounded telemetry GET/poll between boiler controls and device values.
   Leaving the page cancels its subscriptions and pending reads.

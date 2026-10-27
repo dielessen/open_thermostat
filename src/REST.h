@@ -133,7 +133,7 @@ public:
         });
 		route("/status/ems/telemetry", HTTP_GET, [this]() {
 #ifdef OPENTHERMOSTAT_E32V2
-            auto &buf=telemetryResponse_;
+            auto &buf=jsonResponse_;
             if(!buf.reset()){server_.send(503,"application/json","{\"error\":\"telemetry_buffer_unavailable\"}");return;}
 #else
 			ib::viewable_stringbuf buf;
@@ -368,7 +368,9 @@ private:
 	}
 #ifdef OPENTHERMOSTAT_E32V2
 	control::WebAuthSession sessions_;
-    diagnostics::ResponseBuffer telemetryResponse_{65536,[](size_t size)->void* {
+    // WebServer completes each response synchronously on one HTTP owner. Reuse
+    // the same PSRAM storage for dashboard and telemetry; never cache its values.
+    diagnostics::ResponseBuffer jsonResponse_{65536,[](size_t size)->void* {
         return heap_caps_malloc(size,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
     },heap_caps_free};
 	String requestToken() {
@@ -593,10 +595,19 @@ private:
 	void status() {
 		DBGLOGFD(log_, logFeature_, "status\n");
 		server_.enableCORS(false);
+#ifdef OPENTHERMOSTAT_E32V2
+        auto &payloadBuf=jsonResponse_;
+        if(!payloadBuf.reset()){server_.send(503,"application/json","{\"error\":\"status_buffer_unavailable\"}");return;}
+#else
 		ib::viewable_stringbuf payloadBuf;
+#endif
 		std::ostream payload(&payloadBuf);
 		controller_.getFullStatus(payload);
-
+#ifdef OPENTHERMOSTAT_E32V2
+        if(!payload.good()||payloadBuf.failed()) {
+            server_.send(503,"application/json","{\"error\":\"status_response_too_large\"}");return;
+        }
+#endif
 		server_.sendView(200, "application/json"sv, payloadBuf.view());
 	}
 

@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target": "E32 beta.6",
+  "parent_commit": "e4c7175e65559926063ff9acfe2f25c3f0a533f2",
+  "device_actions_performed": false,
+  "contract": {
+    "routes_sharing_one_buffer": [
+      "/status",
+      "/status/ems/telemetry"
+    ],
+    "buffer_bytes": 65536,
+    "allocation": "Lazy PSRAM; retained for REST lifetime; no growth or internal-heap fallback",
+    "first_dashboard_read": "Can allocate existing PSRAM buffer earlier than telemetry-only usage",
+    "owner": "Existing synchronous single WebServer handler; sendView finishes before reuse",
+    "reading_cache": false,
+    "generic_board_path_changed": false,
+    "failure_response": "Complete uncached 503 before emitting body; no partial prefix",
+    "nested_status_serializers_changed": false
+  },
+  "validation": {
+    "actual_rest_handler_authorization_response_scenarios_passed": 25,
+    "same_branch_scenarios_asan_ubsan_leak_passed": 25,
+    "web_representation_unit_cases_passed": 4,
+    "allocation_failure_before_status_collection": "PASS",
+    "overflow_and_independent_stream_failure": "PASS",
+    "alternating_status_telemetry_one_allocation": "PASS",
+    "live_no_store_and_auth_ordering": "PASS",
+    "e32_app_build": "PASS",
+    "e32_filesystem_build": "PASS",
+    "source_image_partition_asset_uart_owner": "PASS",
+    "firmware_bytes": 3107232,
+    "ota_slot_bytes": 3670016,
+    "assets": 36,
+    "gzip_representations": 29,
+    "raw_bytes": 561206,
+    "gzip_bytes": 152534
+  },
+  "remaining": [
+    "Exact-commit CI",
+    "On-device latency/heap soak and user acceptance after separately authorized installation"
+  ],
+  "reviewed_files": [
+    {
+      "path": "README.md",
+      "sha256": "57d2851e37285d90e4aaf2c64d3e78b864e54e3b68c21805eadbb0c980acefab"
+    },
+    {
+      "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
+      "sha256": "573c8f9c416d9778304277f78f2a04ad47a08b8ba5bd9d35f9aa907c76c9c0e5"
+    },
+    {
+      "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
+      "sha256": "784aba3b456404cc46594d10a84e0cb3e03b667ccba188f3fd1830b20a4a7a0e"
+    },
+    {
+      "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
+      "sha256": "95a2873a4a24d610f06a6e47ab6bd9b89108d8008b280c08a4fe4825e95a555a"
+    },
+    {
+      "path": "docs/modern-thermostat/RELEASE-NOTES.md",
+      "sha256": "0ddb01feff897bcb1bf818332038eb2db678b993adcb0f3a04fdd784ff4701b0"
+    },
+    {
+      "path": "docs/modern-thermostat/WORKBOARD.nl.md",
+      "sha256": "e213824bc974203fb55370f42c7a23dfc7270604ae16567b5d9602b2a9ec7519"
+    },
+    {
+      "path": "src/REST.h",
+      "sha256": "95c5a095cb032cd1cad4e13b52c6683361a9b48a83cc9cec7200ed99e703e5d9"
+    },
+    {
+      "path": "test/static_assets/run.py",
+      "sha256": "887aa550fbbe30e18a62dc1972271e0189327c76077a47c48089f3f96854830b"
+    }
+  ],
+  "local_evidence": [
+    {
+      "path": "out/dashboard-response-buffer-20261027/actual-rest.log",
+      "sha256": "7d11c5b3bebfeb0a45a7c1864499301c6bfcf2ba066cb0d3fdcd7d5ebc61a900"
+    },
+    {
+      "path": "out/dashboard-response-buffer-20261027/asan-rest.log",
+      "sha256": "7d11c5b3bebfeb0a45a7c1864499301c6bfcf2ba066cb0d3fdcd7d5ebc61a900"
+    },
+    {
+      "path": "out/dashboard-response-buffer-20261027/e32-build.log",
+      "sha256": "ec3943f5ed48b632a07f575bf90f9fa56c1f77b73bf34c14683e4a63ae989618"
+    },
+    {
+      "path": "out/dashboard-response-buffer-20261027/e32-buildfs.log",
+      "sha256": "b3509e9c1905355fc607b516755bf6e453b9c9106ade4c795af92b2a4eff464c"
+    },
+    {
+      "path": "out/dashboard-response-buffer-20261027/e32-verify.log",
+      "sha256": "dd3346db68241ba488849a9461135aa61af0a700940903c06b5f02ea662180a8"
+    },
+    {
+      "path": "out/dashboard-response-buffer-20261027/web-representation-tests.log",
+      "sha256": "0565220664814eba3977525b364ff72358810b0a66b7706943b51650804220e3"
+    }
+  ]
+}

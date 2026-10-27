@@ -3,6 +3,7 @@
 Exercises policy ordering and response headers/body, not TCP timing or hardware.
 """
 from pathlib import Path
+import os
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -17,10 +18,13 @@ mime = source[start:source.index("\n\tvoid handleOTA", start)]
 start=source.index('route("/status/ems/telemetry"')
 start=source.index('[this]() {',start)+len('[this]() {')
 telemetry='void telemetry() {'+source[start:source.index('\n\t\t});',start)]+'\n}\n'
-start=source.index('    diagnostics::ResponseBuffer telemetryResponse_')
+start=source.index('    diagnostics::ResponseBuffer jsonResponse_')
 buffer_member=source[start:source.index('},heap_caps_free};',start)+len('},heap_caps_free};')]+'\n'
+start=source.index('\tvoid status() {')
+dashboard=source[start:source.index('\n\tvoid version()',start)]
 pre = r'''
 #define OPENTHERMOSTAT_E32V2
+#define DBGLOGFD(...)
 #include "control/StaticAssetRoute.h"
 #include "control/StaticAssetPolicy.h"
 #include "control/WebAuthSession.h"
@@ -69,14 +73,16 @@ struct Server {
  struct Socket {IP localIP(){return {};}};Socket client(){return {};}
  void sendHeader(String name,String value){outgoing.push_back({name,value});}
  void setContentLength(size_t size){contentLength=size;}
+ bool cors=true;void enableCORS(bool value){cors=value;}
  void send(int code,const char *mime,const char *data){status=code;type=mime;body=data;}
  void sendView(int code,std::string_view mime,std::string_view data){status=code;type=mime;body=data;}
  std::string response(const char *name){std::string value;for(auto& h:outgoing)if(h.first==name){assert(value.empty());value=h.second;}return value;}
 };
 struct Controller {
- bool oversized=false;unsigned snapshots=0;
+ bool oversized=false,failStream=false;unsigned snapshots=0,statusSnapshots=0;
  bool boilerTestActive(){return false;}bool boilerSettingsActive(){return false;}bool modernMode(){return true;}
  void getEMSTelemetryStatus(std::ostream& out,const char*){++snapshots;if(oversized)out<<"{\"fields\":\""<<std::string(65537,'x')<<"\"}";else out<<"{\"fields\":{}}";}
+ void getFullStatus(std::ostream& out){++statusSnapshots;if(oversized)out<<"{\"rooms\":\""<<std::string(65537,'x')<<"\"}";else out<<"{\"rooms\":[],\"controlMode\":\"shadow\",\"ems\":{\"selectedFlowTemperature\":50,\"currentFlowTemperature\":432}}";if(failStream)out.setstate(std::ios::badbit);}
 };
 struct Fixture {
  Server server_;Controller controller_;control::WebAuthSession sessions_;unsigned listenPort_=80;
@@ -107,15 +113,19 @@ int main(){
  {Fixture f;f.server_.incoming["Accept-Encoding"]="identity;q=0,gzip;q=0";f.get();assert(f.server_.status==406);assert(f.server_.response("Cache-Control")=="no-store");}
  {Fixture f;f.server_.incoming["Accept-Encoding"]="identity;q=0,gzip";f.get();assert(f.server_.status==200);assert(f.server_.response("Content-Encoding")=="gzip");}
  {Fixture f;f.server_.path="/status/ems/telemetry";refuseBuffer=true;assert(f.authorize());f.telemetry();refuseBuffer=false;assert(f.server_.status==503);assert(f.controller_.snapshots==0);assert(f.server_.body=="{\"error\":\"telemetry_buffer_unavailable\"}");assert(f.server_.response("Cache-Control")=="no-store");}
- {Fixture f;f.server_.path="/status/ems/telemetry";f.controller_.oversized=true;assert(f.authorize());f.telemetry();assert(f.server_.status==503);assert(f.controller_.snapshots==1);assert(f.server_.body=="{\"error\":\"telemetry_response_too_large\"}");assert(f.telemetryResponse_.view().empty());}
+ {Fixture f;f.server_.path="/status/ems/telemetry";f.controller_.oversized=true;assert(f.authorize());f.telemetry();assert(f.server_.status==503);assert(f.controller_.snapshots==1);assert(f.server_.body=="{\"error\":\"telemetry_response_too_large\"}");assert(f.jsonResponse_.view().empty());}
  {Fixture f;f.server_.path="/status/ems/telemetry";const auto before=bufferAllocations;for(int i=0;i<2;++i){f.server_.outgoing.clear();assert(f.authorize());f.telemetry();assert(f.server_.status==200);assert(f.server_.body=="{\"fields\":{}}");assert(f.server_.response("Cache-Control")=="no-store");}assert(bufferAllocations==before+1);assert(f.controller_.snapshots==2);}
- std::cout<<"PASS 21 actual E32 response/authorization scenarios\n";
+ {Fixture f;f.server_.path="/status";refuseBuffer=true;assert(f.authorize());f.status();refuseBuffer=false;assert(f.server_.status==503);assert(f.controller_.statusSnapshots==0);assert(f.server_.body=="{\"error\":\"status_buffer_unavailable\"}");assert(f.server_.response("Cache-Control")=="no-store");assert(!f.server_.cors);}
+ {Fixture f;f.server_.path="/status";f.controller_.oversized=true;assert(f.authorize());f.status();assert(f.server_.status==503);assert(f.controller_.statusSnapshots==1);assert(f.server_.body=="{\"error\":\"status_response_too_large\"}");assert(f.jsonResponse_.view().empty());}
+ {Fixture f;f.server_.path="/status";f.controller_.failStream=true;assert(f.authorize());f.status();assert(f.server_.status==503);assert(f.server_.body=="{\"error\":\"status_response_too_large\"}");}
+ {Fixture f;const auto before=bufferAllocations;for(int i=0;i<3;++i){f.server_.path="/status";f.server_.outgoing.clear();assert(f.authorize());f.status();assert(f.server_.status==200);assert(f.server_.body=="{\"rooms\":[],\"controlMode\":\"shadow\",\"ems\":{\"selectedFlowTemperature\":50,\"currentFlowTemperature\":432}}");assert(f.server_.response("Cache-Control")=="no-store");assert(!f.server_.cors);f.server_.path="/status/ems/telemetry";f.server_.outgoing.clear();assert(f.authorize());f.telemetry();assert(f.server_.status==200);assert(f.server_.body=="{\"fields\":{}}");}assert(bufferAllocations==before+1);assert(f.controller_.snapshots==3);assert(f.controller_.statusSnapshots==3);}
+ std::cout<<"PASS 25 actual E32 response/authorization scenarios\n";
 }
 '''
-out = ROOT / "out/static-assets"
+out = Path(os.environ.get("OPENTHERMOSTAT_HTTP_RESPONSE_EVIDENCE",ROOT / "out/static-assets"))
 out.mkdir(parents=True, exist_ok=True)
 cpp = out / "handler.cpp"
-cpp.write_text(pre + buffer_member + authorize + serve + mime + telemetry + post)
+cpp.write_text(pre + buffer_member + authorize + serve + mime + telemetry + dashboard + post)
 subprocess.run(["g++", "-std=c++17", "-Wall", "-Wextra", "-Werror", "-include", "cstring",
                 "-I" + str(ROOT / "src"), str(cpp), "-o", str(out / "handler")], check=True)
 subprocess.run([str(out / "handler")], check=True)

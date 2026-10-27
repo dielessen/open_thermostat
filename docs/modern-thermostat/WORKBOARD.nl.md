@@ -1,12 +1,10 @@
 # OpenThermostat — actueel werkbord en releasechecklist
 
-Beta.5 is gepubliceerd en volledig softwarematig gecontroleerd; installatie
-blokkeert op de native GitHub-catalogusverbinding. [Actuele blokkade](BETA5-INSTALL-BLOCKER-20261027.json).
-Beta.4 blijft native geïnstalleerd en onafhankelijk geaccepteerd:
-[dertien installatiechecks](update-acceptance/e32-beta4-20261026.json).
-De actuele uitvoeringsvolgorde staat in [NEXT-RELEASE](NEXT-RELEASE.nl.md).
-De oudere voortgangsnotities blijven ongewijzigd in de
-[beta.4-werkbordhistorie](WORKBOARD-HISTORY-BETA4-20261026.nl.md).
+Beta.6 + HA0.4.0b4 is op expliciete opdracht bevroren voor publicatie en installatie.
+Verse uitlezing bevestigt beta.5 op de E32, maar oorspronkelijke beta.5-
+installatiebewijzen blijven onvolledig. Beta.4 blijft de volledig geaccepteerde
+native basis. Het freezeplan bewaart deze grens en de eenmalige publicatieopdracht.
+[Actuele uitvoering](NEXT-RELEASE.nl.md) en [freezeplan](BETA6-KANDIDAAT.json).
 
 ## Actieve handmatige proefbèta heeft nu voorrang
 
@@ -56,7 +54,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-587 bronverwijzingen met hashes, status en resterende acceptatie.
+591 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.

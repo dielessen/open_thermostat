@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "status": "INCOMPLETE",
+  "at_utc": "2026-10-27T10:16:01Z",
+  "tag": "v0.1.0-e32v2-beta.5",
+  "current_identity": {
+    "project": "arduino-lib-builder",
+    "version": "v0.1.0-e32v2-beta.5",
+    "source": "a4237cd92bd3f124bb2fa80c84553a078faea95b",
+    "web_sha256": "c7818b9eb904f66c57e826f7715695a0a9911e14c9ab6be871b22953c65446d6",
+    "date": "Mar  5 2024",
+    "time": "12:36:24",
+    "idf": "v4.4.7-dirty",
+    "sha256": "ef48c6dbb56873616273dc4d8e51fc9bcde459d201c0313f3081a2a5e3557736"
+  },
+  "current_state_checks": {
+    "published_version_source_elf_web_exact": true,
+    "confirmed_boot": true,
+    "running_and_boot_partition_equal": true,
+    "same_boot_two_observations": true,
+    "rising_uptime": true,
+    "project_boiler_and_valve_outputs_disabled": true,
+    "transmitted_frames": 0
+  },
+  "original_installation_route": "UNKNOWN",
+  "original_installation_admission": "UNKNOWN",
+  "original_preinstall_backup": "UNKNOWN",
+  "saved_native_checkpoint_target": "v0.1.0-e32v2-beta.4",
+  "reason": "Fresh reads now prove beta.5 is installed, but its original install route/admission and preservation baseline are not recovered. The saved native checkpoint still identifies beta.4. Do not reinterpret the earlier blocked beta.5 attempt as a successful native install.",
+  "evidence": [
+    {
+      "path": "out/beta6-native-install/initial-read/status.json",
+      "sha256": "e4ac9d95949a0649194cbbc689785c846b47a541af16369ed771b80f907c026c"
+    },
+    {
+      "path": "out/beta6-native-install/initial-read/telemetry.json",
+      "sha256": "717ec286c0c0025f0cad7ff62e914b3d1e94f93b61308ec8269bc0f7223f6399"
+    },
+    {
+      "path": "out/beta6-native-install/initial-read/updates.json",
+      "sha256": "167ffd860cf771fe388638bc2f8126919400560cf36aacb45b691c2cf8e13d32"
+    },
+    {
+      "path": "out/beta6-native-install/initial-read/version.json",
+      "sha256": "fe2d33f8e1db1794a5457a9b5c0830850e0acd811465ee8403bfa6e93283be35"
+    },
+    {
+      "path": "out/beta6-native-install/second-read/status.json",
+      "sha256": "f9ec8d05c75b1f0c6d2eb97d71ef168dad1a26af3f79b24a1739c4ea0623c5a0"
+    },
+    {
+      "path": "out/beta6-native-install/second-read/telemetry.json",
+      "sha256": "996f8db0966becf001aac5510ff7a35c734a8fef3d911fff2111a9ea48f42695"
+    },
+    {
+      "path": "out/beta6-native-install/second-read/updates.json",
+      "sha256": "167ffd860cf771fe388638bc2f8126919400560cf36aacb45b691c2cf8e13d32"
+    },
+    {
+      "path": "out/beta6-native-install/second-read/version.json",
+      "sha256": "fe2d33f8e1db1794a5457a9b5c0830850e0acd811465ee8403bfa6e93283be35"
+    }
+  ]
+}

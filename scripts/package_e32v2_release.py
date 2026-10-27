@@ -89,8 +89,8 @@ Automatic boiler and valve control and persistent boiler-setting writes remain
 disabled. The separate Ecomline Classic commissioning route permits a one-shot
 configuration read and an explicitly attended zero-demand/heat/stop trial.
 Every heat preparation needs current setup confirmations and a boiler-gauge
-reading of 1.1–2.5 bar. The software limits demand to 40–45 °C and at most
-60 seconds, with a five-second operator lease and a separate Stop action.
+reading of 1.1–2.5 bar. The software limits demand to 40–50 °C and at most
+600 seconds, with a five-second operator lease and a separate Stop action.
 Software verification does not complete physical installation, stop or recovery
 acceptance. Record the actual trial results separately.
 

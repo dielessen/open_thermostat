@@ -1,11 +1,14 @@
 # Verplicht update- en acceptatieproces per E32-release
 
-**Actueel27 oktober:** beta.5 is gepubliceerd en exact gecontroleerd, maar nog
-niet geïnstalleerd. De native cataloguscontrole faalt met GitHub/HTTPS-code-1;
-er is geen installatieopdracht verstuurd. Beta.4 blijft de geaccepteerde versie.
-Twaalf beperkte back-upexports zijn gecontroleerd. Eén herstelherstart is
-voorgesteld; toestemming staat nog open. De onderstaande oudere checkpoints
-vervangen deze actuele stand niet. [Blokkadebewijs](BETA5-INSTALL-BLOCKER-20261027.json).
+**Actueel27 oktober — nieuwe releaseopdracht:** de huidige beta.6/HA0.4.0b4-
+bundel wordt op expliciete opdracht gecommitteerd, gepubliceerd en geïnstalleerd.
+Een verse directe uitlezing toont inmiddels beta.5 met juiste openbare bron/ELF/web,
+bevestigde boot en nul TX. De oorspronkelijke installatiebewijzen zijn niet
+teruggevonden; beta.4 blijft de laatste volledig geaccepteerde native update.
+De [eenmalige publicatie-uitzondering](BETA6-PUBLICATION-EXCEPTION-20261027.json)
+legt de expliciete nieuwe releaseopdracht en de blijvende bewijsgrens vast.
+[Freezeplan](BETA6-KANDIDAAT.json). De onderstaande eerdere checkpoints blijven
+historisch; de actuele basismeting vervangt hun toenmalige runtimebeschrijving.
 
 **Latere proefwaarneming:** na de installatieacceptatie toont een nieuwe directe
 lezing een afgeronde configuratie-uitlezing en nulvraagproef met gemelde stop:

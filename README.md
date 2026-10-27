@@ -53,7 +53,7 @@ boiler/valve control remain disabled. [Current release work](https://github.com/
 
 ## Features
 
-**In development for beta.6:**
+**Beta.6 coordinated release bundle:**
 
 - Compressed, revalidated web assets and page modules loaded when needed. Boiler
   panels share one data request; dashboard and telemetry reuse one PSRAM buffer.
@@ -68,8 +68,7 @@ boiler/valve control remain disabled. [Current release work](https://github.com/
   **Setup → Prepare → Heat → Result** trial. Each stage names the next button;
   the result separates reported success, early stop, missing evidence and faults.
 
-These changes are tested in software and have not been installed or timed on the
-E32 yet. [Performance measurements and review](docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md).
+The bundle is software-tested; installation and device latency are checked separately. [Performance measurements and review](docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md).
 
 **Available** means delivered for the stated use. **Prepared** means code exists
 but the complete user flow, device connection or physical acceptance is still

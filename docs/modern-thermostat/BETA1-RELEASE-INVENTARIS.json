@@ -2,8 +2,8 @@
   "schema": 1,
   "as_of": "2026-10-27",
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
-  "release_state": "BETA6_DEVELOPMENT_BETA4_INSTALLED_BETA5_PENDING",
-  "installed_firmware": "v0.1.0-e32v2-beta.4",
+  "release_state": "BETA6_FROZEN_BETA5_OBSERVED_ACCEPTANCE_INCOMPLETE",
+  "installed_firmware": "v0.1.0-e32v2-beta.5",
   "installed_ha": "0.4.0b1",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
   "items": [
@@ -27,7 +27,7 @@
         },
         {
           "path": "scripts/package_e32v2_release.py",
-          "sha256": "96bef5e6bbc35960c6587d980773aa048f9ab6d67f53e945dc12215992d9a745"
+          "sha256": "f4de5da5935403e4e161688afcf6dab796793be69297f1ba47af77eafe1df2a8"
         },
         {
           "path": "docs/third-party/shipped-policy.json",
@@ -59,11 +59,11 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
-          "sha256": "5f221d4c31e98d89207ca83409bd57bdf16df8678a043d2af8927fb19d66fa6b"
+          "sha256": "9ee44237a810396e4ebc7723609a8d9f3151010682b68757dcc421e08c482a28"
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
-          "sha256": "82aa5b599923edcf697728ee23a4b521556d4492e3f6f299e9312059db8b7271"
+          "sha256": "c58e87e4dc56c2ede2996729665760e5ade20dfa6a6741b5383997de3d820a25"
         },
         {
           "path": "docs/modern-thermostat/USER-RELEASE-NOTES.json",
@@ -75,7 +75,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "2116f23dfa3efda9bbaf03ed59029b920361c42dd6a6465ad5d305058886ee22"
+          "sha256": "62347f30bc6095ade4f093264547b12c2ece0aa0f5827503ae8c19c66945a536"
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "32262048a84ed61d75e6c1207bbc5beca4e00355f8a611ea8fe69631b6820dd5"
+          "sha256": "3eda2bbcda308fddb1123a8143421f8cbce68829b38510a835ca38c261c2b693"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -191,7 +191,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-GATE.json",
-          "sha256": "4d9a959760ba1219fc6783d0bd31a821ab5e7c4c4cf7bac350f7f548fcf0bb14"
+          "sha256": "1cf2bdf242360e81b599b50485a5081b9d36748b3e81841ac8f2ea16b13db0c5"
         },
         {
           "path": "docs/modern-thermostat/BETA3-PUBLICATION-EXCEPTION-PROPOSAL.json",
@@ -215,7 +215,7 @@
         },
         {
           "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
-          "sha256": "964d3a43740436049452c850c50a3ce8b4770c0c4b81b5bbdb87f0e9fa1c57f3"
+          "sha256": "61abfdd67c70d080176bb8ec404222e0e84b0a6ffce6d7a8d26f781dc0a1f47b"
         },
         {
           "path": "release.json",
@@ -349,7 +349,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-PROCES.nl.md",
-          "sha256": "0092ef4828fa491a644a2b791140c4fc246fa564b9588b4090512e176e5be576"
+          "sha256": "076223616a3cab301111fa35cdb62f8dd81f4d5894e84ed8188c30ab9be96f6c"
         },
         {
           "path": "docs/modern-thermostat/INSTALLATIE-E32-ALPHA36-20261025.nl.md",
@@ -378,6 +378,22 @@
         {
           "path": "docs/modern-thermostat/UPDATE-PAGE-LIFECYCLE-20261027.json",
           "sha256": "9354b2f61af01283f4b41371a1ea39a9e1d630740949c2d5b70cf09191bc7780"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA6-OWNER-INSTRUCTION-20261027.json",
+          "sha256": "d74422282edde6c235fe6e69f8822998695587a50db109122ce83c2a157e3173"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA5-RECOVERED-STATE-20261027.json",
+          "sha256": "d73e225d48e33acf4423d570c175f2dda74bc5ba6d3115bf4584520da8d6f482"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA6-PUBLICATION-EXCEPTION-20261027.json",
+          "sha256": "77a0b64463185d6b0a510cffdec70f9831dd648a5800886cab1f6128fd8616b1"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA6-KANDIDAAT.json",
+          "sha256": "ad738170dbdfbafd8623d9bd4b5b504584a46a8dee920714233a0a71f767b10e"
         }
       ],
       "remaining_acceptance": "Native GitHub-update alpha31→36 met verse back-up en één installatiecommando geslaagd:36 installatiecontroles,45 afzonderlijke nacontroles, exacte bron/ELF/web/31UI en behoud van86 HA-bestanden/13 projecthashes/zes loggingvelden. Iedere opvolgende reguliere release vereist nieuw update-/nacontrolebewijs volgens E32-UPDATE-PROCES en CI-gate. Oude multipart-watchdog en nativealpha26-afwijking blijven oorzakelijk onbekend; geen blinde fallback/retry. Fysieke powerloss/rollback/herstelkwalificatie en actieve ketel-/kraanpoorten blijven apart open. Automatische12ucontrole/dashboardmelding voorbereid naalpha36, niet geïnstalleerd."
@@ -2317,7 +2333,7 @@
         },
         {
           "path": "docs/modern-thermostat/WORKBOARD.nl.md",
-          "sha256": "cad2bf168da6f66c7a9d99fb7e79fc513058ad34b3637d1cfcf8d0fe82591199"
+          "sha256": "98c4096faa282a5a5d26ee1a2948d3032bbcfebce826ffeaceb3040340500107"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/device_power.py",

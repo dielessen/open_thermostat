@@ -1,22 +1,19 @@
-# Volgende release — grote ontwikkelbundel
+# Beta.6 + HA0.4.0b4 — bevroren gezamenlijke release
 
-**Nieuwe opdracht27 oktober:** doorlopend bouwen aan één grote samenhangende
-release, E32 beta.6 + HA0.4.0b4. Geen routinevragen, geen apparaatupdate/herstart
-of fysieke ketel-/kraanproef tijdens dit ontwikkelwerk. De later afzonderlijk
-toegestane eenmalige beta.5-herstelherstart is uitgevoerd; de cataloguscontrole
-bleef mislukken. Verdere herstelacties zijn uitgesteld.
-[Uitvoeringsbundels en bewijsgrens](MEGA-RELEASE-20261027.nl.md).
+**Actuele opdracht27 oktober:** de eigenaar vraagt de huidige bundel te
+committeren, publiceren en op E32 en HA te installeren. Verdere functie-uitbreiding
+is voor deze freeze gestopt. Eerst exacte CI/pakketcontrole, verse back-ups,
+daarna normale installatie en afzonderlijke nacontrole. Geen echte ketelproef
+of kraanopdracht als onderdeel van de installatie.
+[Opdracht](BETA6-OWNER-INSTRUCTION-20261027.json) en [freezeplan](BETA6-KANDIDAAT.json).
 
-Bijgewerkt op 27 oktober 2026. **Beta.5 is gepubliceerd uit `a4237cd`, maar
-nog niet geïnstalleerd.** Alle negen exacte-tag-CI-controles en2.272 onafhankelijke
-pakketcontroles slagen. De E32 blijft op de geaccepteerde beta.4: de eerste native
-cataloguscontrole en één nieuwe controle na de toegestane herstelherstart
-eindigen beide op GitHub/HTTPS-code-1 vóór een HTTP-antwoord; er is
-geen installatieopdracht verstuurd. Een gecontroleerde back-up van twaalf
-onderdelen is bewaard. De afzonderlijke toestemming voor één herstelherstart
-is later ontvangen en die ene herstart is uitgevoerd. Er volgt geen tweede
-herstart of alternatieve installatie tijdens dit ontwikkelwerk. [Installatieblokkade](BETA5-INSTALL-BLOCKER-20261027.json)
-en [openbaar pakketbewijs](BETA5-VERSIONED-PREVIEW.json).
+Verse uitlezing toont inmiddels beta.5 uit `a4237cd` op de E32, met juiste
+openbare ELF/web-identiteit, bevestigde boot, stijgende uptime en nul TX.
+Het oorspronkelijke beta.5-installatiebewijs ontbreekt; de oude native checkpoint
+noemt nog beta.4. De laatste volledige native acceptatie blijft daarom beta.4.
+De expliciete nieuwe releaseopdracht is vastgelegd als een eenmalige publicatie-
+uitzondering voor beta.6. Dit vult geen oud bewijs fictief aan.
+[Actuele beta.5-waarneming en bewijsgrens](BETA5-RECOVERED-STATE-20261027.json).
 
 **Begeleide ketelproef:** de kandidaat toont vier stappen: opstelling →
 voorbereiden → verwarmen → uitslag. Per stap staat welke knop aan de beurt is,

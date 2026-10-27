@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "at_utc_recorded": "2026-10-27T10:16:01Z",
+  "actor": "repository_owner",
+  "method": "explicit_user_instruction",
+  "statement": "maak maar een nieuwe release en commit hem . installeer hem op de e32 en ha",
+  "candidate_tag": "v0.1.0-e32v2-beta.6",
+  "ha_tag": "ha-v0.4.0b4",
+  "release_publication_authorized": true,
+  "device_installation_authorized": true,
+  "ha_installation_authorized": true,
+  "boiler_trial_authorized": false,
+  "interpretation": "Freeze, commit and publish the current coherent bundle, then install E32 and HA using backups and independent postchecks. This supersedes the development-only deferral. Preserve incomplete predecessor evidence and use the existing one-prerelease publication exception; do not manufacture prior acceptance."
+}

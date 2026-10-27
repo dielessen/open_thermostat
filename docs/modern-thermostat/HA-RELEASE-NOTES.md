@@ -1,7 +1,7 @@
 # HA 0.4.0b4 — integrated room and installation controls
 <!-- user-release-notes:v2:en -->
 
-Development bundle; not published or installed.
+Experimental coordinated release for E32 beta.6. Installation is verified separately.
 
 ## New
 
@@ -63,13 +63,13 @@ Development bundle; not published or installed.
 
 ## Updating
 
-This HA version belongs to the beta.6 development bundle. Existing installations,
-entity identities, settings and programme data are preserved during development.
+Install with the coordinated E32 beta.6 release using the normal HA update route,
+a scoped backup and postcheck. Preserve installation, entity and programme identities.
 
 ## Limitations
 
 Software verification does not qualify physical sensors, valves or boiler control.
-No Home Assistant installation or live device action occurs in this work.
+Installing this package does not authorize physical device commands.
 Physical wall controls still require their own original-action/echo profile.
 Vacation is session-local: restart, reconnect and room reload clear the selection.
 

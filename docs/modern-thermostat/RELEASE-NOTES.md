@@ -1,8 +1,8 @@
 # E32 V2 beta6 — integrated room and installation controls
 <!-- user-release-notes:v2:en -->
 
-Development bundle. Not frozen, published or installed. Physical boiler and valve
-acceptance is separate; beta.5 installation recovery remains deferred.
+Experimental coordinated release with HA 0.4.0b4. Installation and physical boiler/valve
+acceptance are verified separately.
 
 ## New
 
@@ -84,8 +84,8 @@ acceptance is separate; beta.5 installation recovery remains deferred.
 
 ## Updating
 
-A coordinated E32 and HA candidate will be prepared. Publication requires the
-existing update acceptance gate; no device update is performed during this work.
+Use the E32 GitHub updater and the separate HA 0.4.0b4 package, with backups and
+postchecks. An update does not start a boiler trial.
 
 ## Limitations
 

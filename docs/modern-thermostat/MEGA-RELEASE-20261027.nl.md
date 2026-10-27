@@ -154,3 +154,14 @@ van de bestaande eigenaar. Nieuwe watergrenzen kunnen een E32-herstart vragen;
 naam/dashboard schrijft geen apparaatinstellingen en evolueert SOURCE niet.
 Geannuleerd/onbevestigd herstelt of herhaalt geen oude opdracht. De tests gebruiken
 uitsluitend lokale HA/C++-fixtures; fysieke bron-/ketel-/kraankwalificatie blijft open.
+
+## Freeze en installatieopdracht
+
+De eigenaar vraagt nu expliciet publicatie en installatie van de huidige bundel
+op E32 en HA. De ontwikkelbeperking op installatie is hiermee voor deze concrete
+uitrol vervangen. Geen verdere functies in deze freeze; de fysieke ketelproef
+blijft afzonderlijk. Verse E32-metingen tonen beta.5; oorspronkelijke beta.5-
+installatiebewijzen blijven onbekend. De eenmalige publicatie-uitzondering bewaart
+beta.4 als laatste geaccepteerde basis. Nieuwe back-ups, exacte pakketten en
+onafhankelijke nacontroles blijven vereist. De volledige productroadmap blijft
+zichtbaar open waar de huidige bundel haar niet afmaakt.

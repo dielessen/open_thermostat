@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "status": "APPROVED",
+  "scope": "one_prerelease_publication",
+  "candidate_tag": "v0.1.0-e32v2-beta.6",
+  "unaccepted_predecessor": "v0.1.0-e32v2-beta.5",
+  "accepted_basis_tag": "v0.1.0-e32v2-beta.4",
+  "accepted_basis_receipt_sha256": "5ec65a6256889878702a6a501842669f903825041f1e96be9448d5336bba55a8",
+  "predecessor_acceptance_status": "INCOMPLETE",
+  "gap_report": "docs/modern-thermostat/BETA5-RECOVERED-STATE-20261027.json",
+  "gap_report_sha256": "d73e225d48e33acf4423d570c175f2dda74bc5ba6d3115bf4584520da8d6f482",
+  "reason": "The owner explicitly requests a new release, commit and installation on E32 and HA. Publish this one checked beta.6 bundle while retaining the incomplete beta.5 original-install evidence and beta.4 as the last accepted native basis. Device and HA installation have their separate current owner instruction.",
+  "device_installation_authorized": false,
+  "boiler_trial_authorized": false,
+  "approval": {
+    "actor": "repository_owner",
+    "method": "explicit_user_instruction",
+    "decision": "approve_one_prerelease_publication",
+    "statement": "maak maar een nieuwe release en commit hem . installeer hem op de e32 en ha",
+    "at_utc": "2026-10-27T10:16:01Z"
+  },
+  "separate_installation_instruction": "docs/modern-thermostat/BETA6-OWNER-INSTRUCTION-20261027.json"
+}

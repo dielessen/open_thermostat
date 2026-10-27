@@ -22,7 +22,7 @@ and a separate start action. Physical installation acceptance remains open.
 | Component | Version | Channel |
 | --- | --- | --- |
 | E32 V2 firmware | [v0.1.0-e32v2-beta.6](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-beta.6) | Pre-release |
-| Home Assistant integration | [0.4.0b3](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0b3) | Pre-release |
+| Home Assistant integration | [0.4.0b4](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0b4) | Pre-release |
 
 Firmware and the HA integration are separate downloads. Read each release’s
 changes, compatibility notes and installation instructions before updating.

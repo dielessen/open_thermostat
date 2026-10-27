@@ -1,128 +1,86 @@
-// Actual shipped root/auth/fragment with fixture telemetry, never real EMS.
+// The shipped three-step workflow, simulated HTTP only. Never contacts hardware.
 const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
-const assets=path.resolve(__dirname,'../data/html');
-const out=path.resolve(process.env.OPENTHERMOSTAT_CONFIGURATION_EVIDENCE||'out/boiler-configuration-browser');
+const assets=path.resolve(__dirname,'../data/html'),out=path.resolve(__dirname,'../out/boiler-configuration-browser');
+const limits={minimum_flow_c:40,maximum_flow_c:50,maximum_duration_s:600,operator_lease_ms:5000};
+const sample=value=>({value,unit:'degC',state:'valid',quality:'reported',age_ms:100,source_type:24,source_address:8});
+function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_sequence:1,observed_at_ms:100,
+ available:false,blocked_reason:'proving_conditions_missing',phase:'idle',reason:'not_prepared',owned:false,
+ can_prepare:false,can_start:false,can_stop:false,reported_stop_confirmed:false,positive_frames:0,zero_frames:0,
+ operator_remaining_ms:0,heat_remaining_ms:0,requested_flow_c:null,limits,site_confirmation_required:true,
+ pressure_check_required:true,pressure_reading_required:true,pressure_reading_limits:{minimum_decibar:11,maximum_decibar:25},physical_validation:false};}
 (async()=>{
- fs.mkdirSync(out,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH});const results=[];
+ const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH}),results=[];fs.mkdirSync(out,{recursive:true});
  try{for(const lang of ['en','nl'])for(const width of [1280,390]){
-  const page=await browser.newPage({viewport:{width,height:950}});const errors=[],posts=[];let uncertain=false,statusReads=0;
-  page.on('pageerror',e=>errors.push(e.message));
-  const test={schema:1,boot_id:'000000000000002a',revision:0,state_sequence:0,observed_at_ms:100,
-   available:false,blocked_reason:'transmit_blocked',phase:'idle',reason:'not_prepared',owned:false,can_prepare:false,
-   can_start:false,can_stop:false,site_confirmation_required:true,reported_stop_confirmed:false,positive_frames:0,zero_frames:0,
-   operator_remaining_ms:0,heat_remaining_ms:0,requested_flow_c:null,limits:null,physical_validation:false};
-  let read={schema:1,boot_id:test.boot_id,revision:0,observed_at_ms:100,available:false,active:false,phase:'idle',reason:'not_requested',physical_validation:false};
-  const reply=(route,body,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)});
-  await page.route('http://configuration.test/**',async route=>{
-   const req=route.request(),name=new URL(req.url()).pathname;
-   if(name==='/auth/session')return reply(route,{authenticated:true,csrf:'a'.repeat(64)});
-   if(name==='/status')return reply(route,{controlMode:'shadow',ems:{},control:{fresh:false,reason:'missing'}});
-   if(name==='/status/ems/telemetry'){
-    ++statusReads;return reply(route,{reception:{state:'classic_reports_received',report_count:3,last_report_age_ms:100},
-     transport:{enabled:true,transmit_compiled:false,transmitted_frames:0},fields:{},test,configuration_read:read});
-   }
+  const page=await browser.newPage({viewport:{width,height:950}}),posts=[],requests=[],errors=[];page.setDefaultTimeout(10000);
+  await page.clock.install();let state=initial(),uncertain=false;
+  let read={schema:1,boot_id:state.boot_id,revision:0,observed_at_ms:100,available:true,active:false,phase:'idle',reason:'not_requested',physical_validation:false};
+  let heatReason='heating_setting_unavailable';
+  const heat=()=>({profile_id:'ecomline-classic-separate-pressure-v1',mode:'supervised_commissioning',
+   installation_reviewed:false,digital_pressure_required:false,separate_pressure_method_reviewed:true,operator_gauge_reading_required:true,
+   telemetry_ready:heatReason==='telemetry_ready',reason:heatReason,physical_validation:false,
+   limits:{minimum_flow_c:40,maximum_flow_c:50,maximum_duration_s:600,minimum_pressure_decibar:11,maximum_pressure_decibar:25,minimum_measured_flow_centi:500,maximum_measured_flow_centi:6000}});
+  const reply=(route,data,status=200)=>route.fulfill({status,json:data});
+  const snapshot=()=>({reception:{state:'classic_reports_received'},transport:{enabled:true},fields:{measured_flow_temperature:sample(25)},
+   inventory:{schema:1,capacity:16,untracked_frames:0,devices:[{address:8,frames:3,age_ms:100,product_id:211,version:'2.3',brand_id:1,untracked_types:0,telegram_types:[2,24]}]},settings_policy:{transmit_compiled:false,installation_reviewed:false},test:state,configuration_read:read,heat_trial:heat()});
+  page.on('pageerror',e=>errors.push(e.message));await page.context().addCookies([{name:'ot_ui_lang',value:lang,url:'http://trial.test'}]);
+  await page.route('http://trial.test/**',route=>{
+   const req=route.request(),p=new URL(req.url()).pathname;requests.push(p);
+   if(p==='/auth/session')return reply(route,{authenticated:true,csrf:'a'.repeat(64)});
+   if(p==='/status')return reply(route,{controlMode:'shadow',ems:{},control:{fresh:false,reason:'missing'}});
+   if(p==='/status/ems/telemetry')return reply(route,snapshot());
    if(req.method()==='POST'){
-    assert.equal(name,'/boiler/test/read_configuration');assert.equal(req.headers()['x-openthermostat-csrf'],'a'.repeat(64));
-    const body=req.postDataJSON();posts.push(body);
-    assert.deepEqual(body,{schema:1,boot_id:test.boot_id,revision:read.revision+1,exclusive_owner_confirmed:true,independent_stop_confirmed:true});
-    if(uncertain)return reply(route,{accepted:false},503);
-    read={...read,revision:body.revision,observed_at_ms:read.observed_at_ms+1,available:false,active:true,
-     phase:'queued',reason:'awaiting_poll',withdrawn:false};
-    return reply(route,{accepted:true,configuration_read:read},202);
+    assert.equal(req.headers()['x-openthermostat-csrf'],'a'.repeat(64));const body=req.postDataJSON();posts.push({p,body});
+    if(p.endsWith('/read_configuration')){
+     assert.deepEqual(body,{schema:1,boot_id:state.boot_id,revision:read.revision+1,exclusive_owner_confirmed:true,independent_stop_confirmed:true});
+     if(uncertain)return reply(route,{accepted:false},503);
+     read={...read,revision:body.revision,observed_at_ms:read.observed_at_ms+1,active:true,available:false,phase:'queued',reason:'awaiting_poll'};
+     return reply(route,{accepted:true,configuration_read:read},202);
+    }
+    if(p.endsWith('/prepare')){
+     assert.equal(body.flow_c,50);assert.equal(body.duration_s,600);assert.equal(body.pressure_decibar,20);
+     for(const key of ['exclusive_owner_confirmed','independent_stop_confirmed','heat_path_confirmed','pressure_check_confirmed'])assert.equal(body[key],true);
+     state={...state,revision:body.revision,state_sequence:state.state_sequence+1,observed_at_ms:state.observed_at_ms+1,available:true,phase:'ready',owned:true,can_prepare:false,can_start:true,can_stop:true,reported_stop_confirmed:true};
+    }else if(p.endsWith('/start'))state={...state,state_sequence:state.state_sequence+1,observed_at_ms:state.observed_at_ms+1,phase:'heating',can_start:false,reported_stop_confirmed:false,heat_remaining_ms:600000};
+    else if(p.endsWith('/stop'))state={...state,state_sequence:state.state_sequence+1,observed_at_ms:state.observed_at_ms+1,phase:'stopping',can_start:false,reported_stop_confirmed:false};
+    return reply(route,{accepted:true,test:state});
    }
-   const file=path.join(assets,name==='/'?'index.html':name);
-   if(!file.startsWith(assets+'/')||!fs.existsSync(file))return route.fulfill({status:404,body:''});
-   let body=fs.readFileSync(file);if(name.endsWith('.gz'))body=zlib.gunzipSync(body);
-   return route.fulfill({contentType:name.endsWith('.js')||name.endsWith('.js.gz')?'application/javascript':name.endsWith('.css.gz')?'text/css':'text/html',body});
+   const f=path.join(assets,p==='/'?'index.html':p);if(!f.startsWith(assets+'/')||!fs.existsSync(f))return route.fulfill({status:404,body:''});
+   let body=fs.readFileSync(f);if(p.endsWith('.gz'))body=zlib.gunzipSync(body);
+   return route.fulfill({contentType:/\.js(?:\.gz)?$/.test(p)?'text/javascript':p.endsWith('.css.gz')?'text/css':'text/html',body});
   });
-  await page.context().addCookies([{name:'ot_ui_lang',value:lang,url:'http://configuration.test'}]);
-  await page.goto('http://configuration.test/');await page.waitForFunction(()=>typeof loadNativePage==='function');
-  await page.evaluate(()=>loadNativePage('boiler_test'));const button=page.locator('[data-read-configuration]');
-  await button.waitFor();await page.locator('[data-read-status]').filter({hasText:lang==='nl'?'nog niet opgevraagd':'not been requested'}).waitFor();
-  assert.equal(await button.isDisabled(),true);assert.equal(posts.length,0);
-  assert.equal(await page.locator('[data-site-pressure-label]').isHidden(),true);
-  assert.match(await button.innerText(),lang==='nl'?/CV-instellingen/:/Read heating/);
-  read={...read,available:true,observed_at_ms:102};
-  await page.locator('[data-read-help]').filter({hasText:lang==='nl'?'Bevestig dat Tado los is':'Confirm that Tado is disconnected'}).waitFor();
-  await page.locator('[data-site-owner]').check();
-  assert.equal(await button.isDisabled(),true);await page.locator('[data-site-stop]').check();await button.waitFor({state:'visible'});
-  await page.waitForFunction(()=>!document.querySelector('[data-read-configuration]').disabled);
-  assert.match(await page.locator('[data-read-help]').innerText(),lang==='nl'?/De uitleesknop is beschikbaar/:/The read button is ready/);
-  // Cancel and visibility lost DURING confirmation cannot send.
-  page.once('dialog',dialog=>dialog.dismiss());await button.click();assert.equal(posts.length,0);
-  await page.evaluate(()=>{
-   const original=window.confirm;window.confirm=()=>{
-    Object.defineProperty(document,'visibilityState',{configurable:true,value:'hidden'});
-    document.dispatchEvent(new Event('visibilitychange'));return true;
-   };
-   document.querySelector('[data-read-configuration]').click();window.confirm=original;
-  });assert.equal(posts.length,0);
-  await page.evaluate(()=>Object.defineProperty(document,'visibilityState',{configurable:true,value:'visible'}));
-  await page.locator('[data-site-owner]').check();await page.locator('[data-site-stop]').check();
-  uncertain=width===390;page.once('dialog',dialog=>dialog.accept());await button.click();
-  await page.locator('[data-read-status]').filter({hasText:uncertain?(lang==='nl'?'niet bevestigd':'not confirmed'):(lang==='nl'?'toestemming':'allow the read')}).waitFor();
-  assert.equal(posts.length,1);assert.equal(await page.locator('[data-site-owner]').isChecked(),false);
-  assert.equal(await page.locator('[data-site-stop]').isChecked(),false);assert.equal(await button.isDisabled(),true);
-  await page.waitForTimeout(5500);assert.equal(posts.length,1); // No retry/heat/lease renewal.
-  if(!uncertain){
-   read={...read,active:false,phase:'completed',observed_at_ms:103,reason:'configuration_received'};
-   await page.locator('[data-read-status]').filter({hasText:lang==='nl'?'CV-instellingen ontvangen':'Heating settings received'}).waitFor();
-   assert.equal(await page.locator('[data-test-start]').isDisabled(),true);
-  }
-  // Confirmations prepared before a different read scope must not survive its
-  // withdrawal. No extra read is emitted while the original reply is pending.
-  read={...read,available:true,observed_at_ms:read.observed_at_ms+1};
-  await page.locator('[data-site-owner]').check();await page.locator('[data-site-stop]').check();
-  await page.waitForFunction(()=>!document.querySelector('[data-read-configuration]').disabled);
-  read={...read,revision:read.revision+1,observed_at_ms:read.observed_at_ms+1,available:false,
-   active:true,phase:'waiting',withdrawn:true,reason:'operator_session_expired'};
-  await page.locator('[data-read-status]').filter({hasText:lang==='nl'?'Wachten tot het huidige':'Waiting for the current'}).waitFor();
-  assert.equal(await button.isDisabled(),true);
-  for(const field of ['owner','stop']){
-   assert.equal(await page.locator('[data-site-'+field+']').isDisabled(),true);
-   assert.equal(await page.locator('[data-site-'+field+']').isChecked(),false);
-  }
-  const withdrawn={...read};
-  // Even a later snapshot cannot retract a known withdrawal for this revision.
-  const before=statusReads;
-  read={...read,withdrawn:false,active:false,phase:'completed',available:true,
-   observed_at_ms:read.observed_at_ms+1,reason:'configuration_received'};
-  const deadline=Date.now()+8000;
-  while(statusReads===before&&Date.now()<deadline)await page.waitForTimeout(100);
-  assert(statusReads>before);await page.waitForTimeout(150);
-  assert.match(await page.locator('[data-read-status]').innerText(),lang==='nl'?/Wachten tot het huidige/:/Waiting for the current/);
-  assert.equal(await button.isDisabled(),true);assert.equal(posts.length,1);
-  read={...withdrawn,active:false,phase:'failed',available:true,observed_at_ms:read.observed_at_ms+1};
-  await page.locator('[data-read-status]').filter({hasText:lang==='nl'?'bedienersessie is beëindigd':'operator session ended'}).waitFor();
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-  await page.screenshot({path:path.join(out,`WITHDRAWN-${lang}-${width}.png`),fullPage:true});
-  for(const malformed of [{withdrawn:'true',phase:'waiting',active:true,available:false},
-                          {withdrawn:true,phase:'completed',active:false,available:true}]){
-   const saved={...read};read={...read,...malformed,observed_at_ms:read.observed_at_ms+1};
-   await page.locator('[data-read-status]').filter({hasText:lang==='nl'?'niet beschikbaar':'unavailable'}).waitFor();
-   assert.equal(await button.isDisabled(),true);assert.equal(posts.length,1);
-   const seen=statusReads;
-   read={...saved,withdrawn:false,phase:'completed',active:false,available:true,observed_at_ms:read.observed_at_ms+1};
-   const until=Date.now()+8000;
-   while(statusReads===seen&&Date.now()<until)await page.waitForTimeout(100);
-   assert(statusReads>seen);await page.waitForTimeout(150);
-   assert.match(await page.locator('[data-read-status]').innerText(),lang==='nl'?/niet beschikbaar/:/unavailable/);
-   assert.equal(await button.isDisabled(),true);
-   read={...saved,observed_at_ms:read.observed_at_ms+1};
-   await page.locator('[data-read-status]').filter({hasText:lang==='nl'?'bedienersessie is beëindigd':'operator session ended'}).waitFor();
-  }
-  await page.evaluate(()=>loadNativePage('boiler_test'));
-  await page.locator('[data-read-status]').filter({hasText:lang==='nl'?'bedienersessie is beëindigd':'operator session ended'}).waitFor();
-  assert.equal(await button.isDisabled(),true);assert.equal(posts.length,1);
-  await page.locator('[data-site-owner]').check();await page.locator('[data-site-stop]').check();
-  await page.waitForFunction(()=>!document.querySelector('[data-read-configuration]').disabled);
-  uncertain=false;page.once('dialog',dialog=>dialog.accept());await button.click();
-  await page.locator('[data-read-status]').filter({hasText:lang==='nl'?'toestemming':'allow the read'}).waitFor();
-  assert.equal(posts.length,2);assert.equal(await button.isDisabled(),true);
-  assert.deepEqual(errors,[]);await page.screenshot({path:path.join(out,`${lang}-${width}.png`),fullPage:true});
-  results.push({lang,width,posts:posts.length,withdrawalVisible:true,lateCompletionIgnored:true,
-   malformedWithdrawalRejected:true,freshConfirmationRequired:true,passed:true});await page.close();
+  await page.goto('http://trial.test/');await page.evaluate(()=>loadNativePage('boiler_test'));
+  const confirm=page.locator('[data-site-confirm]'),button=page.locator('[data-read-configuration]');
+  await button.waitFor();assert.equal(await page.locator('#boiler-test-controls input[type=checkbox]').count(),1);
+  assert.equal(await button.isDisabled(),true);assert.equal(await page.locator('[data-test-prepare]').isHidden(),true);
+  assert.equal(await page.locator('[data-test-flow]').inputValue(),'50');assert.equal(await page.locator('[data-test-duration]').inputValue(),'600');
+  await page.locator('[data-site-pressure-value]').fill('2');await confirm.check();assert.equal(await button.isEnabled(),true);
+  await button.click();assert.equal(posts.length,1);assert.equal(await confirm.isChecked(),true,'Read must not consume the preparation confirmation');
+  read={...read,active:false,available:true,phase:'completed',reason:'settings_report_received',observed_at_ms:read.observed_at_ms+1};
+  state={...state,available:true,can_prepare:true,state_sequence:state.state_sequence+1,observed_at_ms:state.observed_at_ms+1};heatReason='telemetry_ready';
+  await page.evaluate(()=>BoilerData.refresh());
+  const prepare=page.locator('[data-test-prepare]'),start=page.locator('[data-test-start]'),stop=page.locator('[data-test-stop]');
+  await prepare.waitFor();assert.equal(await prepare.isEnabled(),true);assert.equal(await button.isHidden(),true);assert.equal(await confirm.isChecked(),true);
+  await page.screenshot({path:path.join(out,`READY-TO-PREPARE-${lang}-${width}.png`),fullPage:true});
+  await prepare.click();await start.waitFor();assert.equal(await confirm.isChecked(),false);assert.equal(await prepare.isHidden(),true);
+  assert.equal(posts.filter(r=>r.p.endsWith('/start')).length,0,'Preparation never starts heating');
+  page.once('dialog',d=>d.dismiss());await start.click();assert.equal(posts.length,2);
+  page.once('dialog',d=>d.accept());await start.click();assert.equal(posts.filter(r=>r.p.endsWith('/start')).length,1);
+  await page.waitForFunction(()=>document.querySelector('[data-test-start]').hidden);
+  await stop.waitFor();assert.equal(await stop.isEnabled(),true);assert.equal(await start.isHidden(),true);
+  await page.screenshot({path:path.join(out,`HEATING-${lang}-${width}.png`),fullPage:true});
+  await stop.click();assert.equal(posts.filter(r=>r.p.endsWith('/stop')).length,1);
+  // A new page never inherits the old operator declaration or starts heating.
+  state=initial();heatReason='heating_setting_unavailable';read={...read,active:false,available:true,phase:'idle'};
+  await page.evaluate(()=>loadNativePage('boiler_test'));await button.waitFor();assert.equal(await confirm.isChecked(),false);
+  await page.locator('[data-site-pressure-value]').fill('2');await confirm.check();await page.clock.fastForward(120001);
+  assert.equal(await confirm.isChecked(),false);assert.equal(await button.isDisabled(),true,'Polling never renews the declaration');
+  await page.locator('[data-site-pressure-value]').fill('2');await confirm.check();uncertain=true;const before=posts.length;
+  await button.click();await page.locator('[data-read-status]').filter({hasText:lang==='nl'?'niet bevestigd':'not confirmed'}).waitFor();
+  await page.clock.fastForward(5001);assert.equal(posts.length,before+1,'A failed read is not replayed by polling');
+  assert(!requests.some(p=>['/status/ems/devices','/status/boiler/settings'].includes(p)));
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
+  results.push({lang,width,result:'PASS',readPrepareStartStop:true,oneBoundedDeclaration:true,noAutoHeat:true});await page.close();
  }}finally{await browser.close();}
- fs.writeFileSync(path.join(out,'result.json'),JSON.stringify({passed:true,cases:results},null,2));console.log(JSON.stringify({passed:true,cases:results.length}));
+ fs.writeFileSync(path.join(out,'RESULT.json'),JSON.stringify(results,null,2));console.log(JSON.stringify(results));
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -1,3 +1,44 @@
+# E32 V2 beta6 — integrated room and installation controls
+<!-- user-release-notes:v2:en -->
+
+Development bundle. Not frozen, published or installed. Physical boiler and valve
+acceptance is separate; beta.5 installation recovery remains deferred.
+
+## New
+
+- One boiler page with an explicit **Read settings → Prepare → Start → Stop**
+  workflow. The setup uses one two-minute confirmation covering the read and
+  preparation; starting heating remains a separate explicit action.
+- One entity table per observed device, identified from its received product
+  report. Read-only values and configurable settings are distinguished in the
+  same table. The unrelated all-model catalogue and duplicate settings/value
+  lists have been removed from the page.
+
+## Fixed
+
+- Compress larger UI files at build time and serve them directly from flash.
+  Private ETags revalidate cached UI bytes after authentication; live readings,
+  credentials, operation outcomes and errors remain uncached.
+- Load page-specific scripts only when needed. The device panel uses a compact
+  model/field metadata file instead of downloading the complete telegram library.
+- Reuse a bounded PSRAM buffer for large telemetry JSON responses; allocation
+  failure or overflow returns a complete error without partial JSON.
+- Share one bounded telemetry GET/poll between boiler controls and device values.
+  Leaving the page cancels its subscriptions and pending reads.
+- Derive Classic Home/About values directly from the same aged monitor used by
+  telemetry and control, retaining the existing JSON units and suppressing stale
+  or unreliable values. Generic-board and existing Plus paths remain separate.
+
+## Updating
+
+A coordinated E32 and HA candidate will be prepared. Publication requires the
+existing update acceptance gate; no device update is performed during this work.
+
+## Limitations
+
+No live boiler or valve test, device restart or physical qualification is implied.
+Prepared capabilities retain their explicit installation and source requirements.
+
 # E32 V2 beta5 — longer attended boiler trial and clearer diagnostics
 <!-- user-release-notes:v2:en -->
 

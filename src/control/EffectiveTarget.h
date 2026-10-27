@@ -15,7 +15,7 @@ struct ComfortProfile {
             && maximumTemporaryMs>=1000 && maximumTemporaryMs<=86400000
             && maximumBoostMs>=1000 && maximumBoostMs<=14400000
             && (!presenceSupported || (maximumPresenceAgeMs>=1000 && maximumPresenceAgeMs<=3600000))
-            && (!windowSupported || (maximumWindowAgeMs>=1000 && maximumWindowAgeMs<=3600000));
+            && (!windowSupported || (maximumWindowAgeMs>=1000 && maximumWindowAgeMs<=86400000));
     }
 };
 struct ComfortInputs {

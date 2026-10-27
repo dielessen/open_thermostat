@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "as_of": "2026-10-26",
+  "as_of": "2026-10-27",
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
-  "release_state": "SOFTWARE_INSTALLED_PHYSICAL_TRIAL_PENDING",
+  "release_state": "BETA6_DEVELOPMENT_BETA4_INSTALLED_BETA5_PENDING",
   "installed_firmware": "v0.1.0-e32v2-beta.4",
   "installed_ha": "0.4.0b1",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "a0aa1cf27f4ef2925727242474e1e35d11e4ce4800a4c240679d3e56b0909360"
+          "sha256": "a7945c8d9fcb831862f7ac8d3699a7ddb7aa6a5851f23da438206a4011d9e001"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -59,11 +59,11 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
-          "sha256": "b4306922b3be8a3b6a20e9cc02ad8b1a083e386dac717547d4b0478f68e884fc"
+          "sha256": "c4d2154ae51af92f3035fe1e9e1dd842f838e32cd1737b0748394fdbf43bea13"
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
-          "sha256": "5f83f5906d04e7deb3412345df5e67389e4cf372e9cc8e42e421cddc38e1ba95"
+          "sha256": "7dbbd4d88fed6faa78791e9d2d4eb72b54d0cd9e889bacc68402e10c95d2f477"
         },
         {
           "path": "docs/modern-thermostat/USER-RELEASE-NOTES.json",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "1b571b8e8ed3d1c95c42911cb0b5b7fe30aa2a898d02dcdd4e32d1c1023cc495"
+          "sha256": "dfdaf02d5429e4c482775f09a691a73e8fdf4af30273176ab78fb495ec9d8da9"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -207,7 +207,19 @@
         },
         {
           "path": "docs/modern-thermostat/BETA5-INSTALL-BLOCKER-20261027.json",
-          "sha256": "cbb71cc7e59c8b9ab1d43ce499d7df717bae01e91ce0d1769652be6eee1a1462"
+          "sha256": "44864fe362a3d974d7f2764bf00b99b24e28df34d649d3f895477073bfca8586"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA5-RECOVERY-AUTHORIZATION-20261027.json",
+          "sha256": "4bd6ff185fe759a25e6d73534b0b400fef482e8435bf82437adf7bc9b3fd9ccb"
+        },
+        {
+          "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
+          "sha256": "ce1a689c50692370809434d5d06a648a74c2ee39124218aa1d2c03e965c4ada4"
+        },
+        {
+          "path": "release.json",
+          "sha256": "2b3da0faad7684ef700352fb1eb2e288094a626ca3265429c325d33be652a040"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -231,7 +243,7 @@
         },
         {
           "path": "data/html/auth-client.js",
-          "sha256": "c8cb84979ed1672833a15f637f14673f018684aaeb80a4daff8e2f583358a363"
+          "sha256": "fac47d12f2d3f504f16a7a2acd066de178747d70bfa6141c7f3c2d5f861b320f"
         },
         {
           "path": "data/html/login.html",
@@ -247,7 +259,7 @@
         },
         {
           "path": "test/web_auth_client.test.cjs",
-          "sha256": "dc909ab498fff90dc7e3cd04c88d53fba81dfcc566dd829af7af1407179f774b"
+          "sha256": "15ae9bf4450ea47e043474c72bdb57310b757b4559ea34a673f3255458337cd9"
         },
         {
           "path": "test/web_auth/run.py",
@@ -381,7 +393,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "a0aa1cf27f4ef2925727242474e1e35d11e4ce4800a4c240679d3e56b0909360"
+          "sha256": "a7945c8d9fcb831862f7ac8d3699a7ddb7aa6a5851f23da438206a4011d9e001"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -401,7 +413,7 @@
         },
         {
           "path": "data/html/index.html",
-          "sha256": "1ab8b36f4839c1409826f746b1a880532a3c2f14efc35fc0b1aaa452118f05a2"
+          "sha256": "4b71e2f5313b8a7109e6723bbbdc8131d9811f879110b1988c9a9b2a6cd592f6"
         },
         {
           "path": "data/html/device-restart.js",
@@ -437,7 +449,7 @@
         },
         {
           "path": "platformio.ini",
-          "sha256": "cafca2909aef9ad3ba052ced3f1c6640fb83b482320c593560b0532ff6189dbc"
+          "sha256": "977c4eec9c160fb8cdb24b9e639518c810d064a797d9a566384390a77fc39c18"
         },
         {
           "path": "data/html/curve.html",
@@ -545,11 +557,11 @@
         },
         {
           "path": "test/web_auth_client.test.cjs",
-          "sha256": "dc909ab498fff90dc7e3cd04c88d53fba81dfcc566dd829af7af1407179f774b"
+          "sha256": "15ae9bf4450ea47e043474c72bdb57310b757b4559ea34a673f3255458337cd9"
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "008a61a95c2e29da032a311e901485fb753df1791739c51dc85a8e1a5c54bb84"
+          "sha256": "1ddff0866ed3a69da4478388ced2b9dcecfb3e2dee6d1649e560bd5ec591f651"
         },
         {
           "path": "data/html/ui-language.js",
@@ -594,9 +606,49 @@
         {
           "path": "docs/modern-thermostat/KETELCATALOGUS.nl.md",
           "sha256": "bbcec61cb5781daa029efb837311a5a909c7778b2867b16b1b1dff99cd6dc6f8"
+        },
+        {
+          "path": "scripts/e32v2_web_assets.py",
+          "sha256": "3190776e2b6a6e7eccffa2ac1b4be1102b71874e1b7f810ac1a75390ab024839"
+        },
+        {
+          "path": "scripts/verify_e32v2_web_assets.py",
+          "sha256": "4726c652015368d536d4a58506ef95df225895493f98b5c48a4c810c6074cdc6"
+        },
+        {
+          "path": "scripts/verify_e32v2.py",
+          "sha256": "01651270ffff2562f1e8fd258c933e0ef4eb0d8f3ceaaf4bf4abbaddb174c4a5"
+        },
+        {
+          "path": "scripts/test_e32v2_web_assets.py",
+          "sha256": "efd3a32095c69d2749dc436d6b7f2566036945681821841187c35fa1e5cc2f02"
+        },
+        {
+          "path": "src/control/StaticAssetPolicy.h",
+          "sha256": "c3cbc3151965e3caa9cb063cfac3cd5b7adbfb41538eea62a2d35e583840054c"
+        },
+        {
+          "path": "test/test_native/test_static_asset_policy.cpp",
+          "sha256": "8a34a91b6683abc1b73d50addf34e251e9e32b0df42d41bb5a11730b15001427"
+        },
+        {
+          "path": "test/static_assets/run.py",
+          "sha256": "8877fc401792b99e84b2784aaaade1c31f8b877cc7c90863711bc6e3c1156a88"
+        },
+        {
+          "path": "test/page-loading-browser.cjs",
+          "sha256": "c97204a194de63bafbc9c7e0a727ba0250b4841da031e14a91a3ccb4ee631652"
+        },
+        {
+          "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
+          "sha256": "331563617eacc3848fc366907423aff898d1cc3a3982b16ae1aadd403a23609a"
+        },
+        {
+          "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-20261027.json",
+          "sha256": "ecf45875fe28cbe352e59fbedc331700069cfeb426af65fbdd00bcf63f636b25"
         }
       ],
-      "remaining_acceptance": "HRC22H/modelkeuze, EN/NL, About/navigatie en incrementeel dashboard geleverd in alpha23/HA29. Normale HTTPS-update, exacte running-ELF/web/source en modelreadback geverifieerd. Shipped-browserproeven bewijzen behoud van openstatus/focus/scroll; op de module zijn exacte geserveerde webbytes bewezen, geen live browserpixels. Modelkeuze verandert geen decoder/adressen/ontvangst/aansturing en verleent geen technische ketelvrijgave. Lange beheer-/herstel- en fysieke kwalificatie blijven afzonderlijk open. Voor volgende release:60 presentatiekeuzes uit31 EMS-ESP-productgroepen plus officiële keteldocumentatie; bronverwijzingen behouden, afbeelding buiten ESP. Nieuwe modellen niet als ondersteunde driver gekwalificeerd; modelafbeeldingen en functionele profielimport/opslag nog open. Vier oorspronkelijke modelafbeeldingen voor vijf keuzes met bronvermelding; modellen met onzekere afbeelding en Ecomline Classic HRC22H blijven zonder foto. Geen generieke vervanging of firmware-installatie."
+      "remaining_acceptance": "HRC22H/modelkeuze, EN/NL, About/navigatie en incrementeel dashboard geleverd in alpha23/HA29. Normale HTTPS-update, exacte running-ELF/web/source en modelreadback geverifieerd. Shipped-browserproeven bewijzen behoud van openstatus/focus/scroll; op de module zijn exacte geserveerde webbytes bewezen, geen live browserpixels. Modelkeuze verandert geen decoder/adressen/ontvangst/aansturing en verleent geen technische ketelvrijgave. Lange beheer-/herstel- en fysieke kwalificatie blijven afzonderlijk open. Voor volgende release:60 presentatiekeuzes uit31 EMS-ESP-productgroepen plus officiële keteldocumentatie; bronverwijzingen behouden, afbeelding buiten ESP. Nieuwe modellen niet als ondersteunde driver gekwalificeerd; modelafbeeldingen en functionele profielimport/opslag nog open. Vier oorspronkelijke modelafbeeldingen voor vijf keuzes met bronvermelding; modellen met onzekere afbeelding en Ecomline Classic HRC22H blijven zonder foto. Geen generieke vervanging of firmware-installatie. Beta6-ontwikkeling: build-time gzip/ETag, beperkte luie paginamodules en verborgen-tab-pollpauze gebouwd; HTTP-/browserfixtures en echte E32-build getoetst. Snellere werking op de echte E32 moet na afzonderlijke installatie nog opnieuw worden gemeten; niets geïnstalleerd."
     },
     {
       "id": "I06",
@@ -612,7 +664,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/room_editor.py",
-          "sha256": "70961ced6465280ce5f7b7c198a3ed050616b3a9fb955bd3155116fd81faba43"
+          "sha256": "ec6a8f035b7ccefc35bedd9deb723a14098d3570eca73d07d36b1c077793804e"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/device_metadata.py",
@@ -657,7 +709,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_program_apply.py",
-          "sha256": "03486d865edb8bcccade93a8df862bb476b7376aee18ca0d3ed54184af6fd438"
+          "sha256": "312d5f44b8b796d2ad9df1cac758977189ba1ce3c3203fa9b412ca6e02a8c294"
         },
         {
           "path": "src/control/NativeControlPlan.h",
@@ -680,7 +732,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/room_profile_apply.py",
-          "sha256": "2cf5940f6284f344392ea416db3ae14c3529d3564d44abbc18f20cb75e703697"
+          "sha256": "b8b51e777aff15d373134546a947ed35eae3e34c5b10182d3f794677a9e33e32"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/native_provisioning.py",
@@ -704,7 +756,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "5a8ac05a1636a6598d20c63d50c52e8cab92bdff44df8a4e98d9ad85b006b30a"
+          "sha256": "878be8d9eeb0287cd16eae995a966a891fac18e0d58dd0e4e353bc3f0de93c54"
         },
         {
           "path": "test/ha-planner-touch-browser.cjs",
@@ -745,7 +797,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "ffca37eda2d4c87811133ede084e9f78aa700074e3242071497eb3bc54cebac4"
+          "sha256": "c89282a5bc3adbf362a659198448afecbc8bf4337b8a608fce5ee97f7f2b733d"
         },
         {
           "path": "src/Room.cpp",
@@ -799,7 +851,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/v1_runtime.py",
-          "sha256": "125c9371babf3bdbaf0b2c0e9894ef76e5fc691c8187c7bd2be51d7114878d80"
+          "sha256": "ebc25d34516f3603f148e00e26a79bd39296ac276519720d579ff53d0b9e96a1"
         },
         {
           "path": "src/control/ControlBuildCapabilities.h",
@@ -843,7 +895,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_mqtt.py",
-          "sha256": "4d9db29efda380262f04db63a5a736fd690968270a302200ca965793e7c352d3"
+          "sha256": "1115e4b9c983827d8976c53c55dc14cdc867d006412eba66010c2f2bf9de2014"
         },
         {
           "path": "ha/tests_native/test_original_temperature.py",
@@ -851,11 +903,11 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "a0aa1cf27f4ef2925727242474e1e35d11e4ce4800a4c240679d3e56b0909360"
+          "sha256": "a7945c8d9fcb831862f7ac8d3699a7ddb7aa6a5851f23da438206a4011d9e001"
         },
         {
           "path": "platformio.ini",
-          "sha256": "cafca2909aef9ad3ba052ced3f1c6640fb83b482320c593560b0532ff6189dbc"
+          "sha256": "977c4eec9c160fb8cdb24b9e639518c810d064a797d9a566384390a77fc39c18"
         },
         {
           "path": "src/main.cpp",
@@ -863,7 +915,7 @@
         },
         {
           "path": "src/REST.h",
-          "sha256": "ffca37eda2d4c87811133ede084e9f78aa700074e3242071497eb3bc54cebac4"
+          "sha256": "c89282a5bc3adbf362a659198448afecbc8bf4337b8a608fce5ee97f7f2b733d"
         },
         {
           "path": "src/control/HttpAccessPolicy.h",
@@ -871,11 +923,11 @@
         },
         {
           "path": "data/html/index.html",
-          "sha256": "1ab8b36f4839c1409826f746b1a880532a3c2f14efc35fc0b1aaa452118f05a2"
+          "sha256": "4b71e2f5313b8a7109e6723bbbdc8131d9811f879110b1988c9a9b2a6cd592f6"
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "008a61a95c2e29da032a311e901485fb753df1791739c51dc85a8e1a5c54bb84"
+          "sha256": "1ddff0866ed3a69da4478388ced2b9dcecfb3e2dee6d1649e560bd5ec591f651"
         },
         {
           "path": "data/html/system-log.js",
@@ -979,15 +1031,15 @@
         },
         {
           "path": "data/html/ems-devices.js",
-          "sha256": "7c4bd90ca2ee38f9fb32eb71a456886e6c42009ff12bf1bc0eb23f29b53ed036"
+          "sha256": "4961689a7f8512238be5ffd685b4c180dabd04ab2fe9103b3ef5b38d6bc4bc1d"
         },
         {
           "path": "data/html/ems_devices.html",
-          "sha256": "8f012d1a2881a87e344c0312facc4dd332ad03ba7acccbc2e2463dd07c567047"
+          "sha256": "98413ca0c779653dc3840d83935c927679abc2a869b8845a172b2bf751554be5"
         },
         {
           "path": "test/ems-devices-browser.cjs",
-          "sha256": "ceaecc083518f4571088e66de965b43ead193958a9ed07437554f2ba254f719c"
+          "sha256": "c0d9416ba8ee0616ac26103dfc7cf64ca735134f40916384c0602fc7fb64de73"
         },
         {
           "path": "docs/modern-thermostat/EMS-APPARATEN.nl.md",
@@ -1087,7 +1139,7 @@
         },
         {
           "path": "data/html/bluetooth.js",
-          "sha256": "95a2c0da684b9122f56b6f1af20eea584d5d2e076cf690a939eebd0752bc4789"
+          "sha256": "cd3029ffd9d0acdb2f33aa21e27e2f164a6bc6c47e39e004ac79dfcbe1f22c36"
         },
         {
           "path": "test/ble_crypto/mbedtls.cpp",
@@ -1207,11 +1259,11 @@
         },
         {
           "path": "scripts/generate_ems_reference.py",
-          "sha256": "c772331e2303c8bdd8f773fbe1019661dd57fc8135d94043fe11f232efeb6a22"
+          "sha256": "b449bdfcc55cb7974914196ed875cc0ddb7184867c235f5b6a4ccfbe13673a53"
         },
         {
           "path": "scripts/test_generate_ems_reference.py",
-          "sha256": "94bb2f5496c1ef42fbf947dfc6349cac6a0abc769a3118d1ab952d31b4ecd2db"
+          "sha256": "a70218e25e6156ac97683fd03cc3b7e2c6005304a803a2283d056ce9dbbb1699"
         },
         {
           "path": "src/EMS/EmsReference.h",
@@ -1252,9 +1304,33 @@
         {
           "path": "docs/modern-thermostat/EMS-ENTITY-ACCESS-REVIEW.en.md",
           "sha256": "1f6891d6d54048926ae7f1267b4e91d3ea5332cf181ad968af5710cb924e8350"
+        },
+        {
+          "path": "data/html/boiler-data.js",
+          "sha256": "07dc6ae9cad0e3674e13f5881df445cb5746877aa69f4fff2187cfc77cd1a0f0"
+        },
+        {
+          "path": "data/html/ems-metadata.js",
+          "sha256": "03581dc9821289499617fe86efc5f3af5175f12eca3661006ccf6d792b031daa"
+        },
+        {
+          "path": "public/ems/e32-field-aliases.json",
+          "sha256": "812434fae62b6598333840935fca588c6c6086e075fed668a8648e3d52b9bdec"
+        },
+        {
+          "path": "test/boiler-data.test.cjs",
+          "sha256": "18405d97aa6cbd6d5b4b9b89c3acf4af20374a81b2ae48658ab4bd5a2deea2e0"
+        },
+        {
+          "path": "src/diagnostics/ResponseBuffer.h",
+          "sha256": "f66430eefb1f41bfe281fd8d517de0ca408ab195f7cf3fde9227e3aadac7e423"
+        },
+        {
+          "path": "test/test_native/test_response_buffer.cpp",
+          "sha256": "c23f54936e21c45d1b5bcc1f256f659d6ae59ea55d0adeecf8608d7cf75860db"
         }
       ],
-      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding geleverd/getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele acquisitie-/ouderdomsvalidatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten als ambient bron. WSDCGQ11LM-eventproducer voorbereid/getest, niet op Z2M geïnstalleerd. Native HA-ontvanger en room-status geleverd zonder QualifiedReport-vrijgave. Web-/native systeemlog en RFC5424 UDP-syslog geleverd in alpha23; beschermde routes/RAM-buffer en standaard uit zonder bestemming gecontroleerd. Externe collector en lange heap-/stack-/belastingproef blijven open. Geen fysieke regelautorisatie. ESP-eigen diagnose op alpha26/dev33 geïnstalleerd en twee gewone live pakketten exact met HA vergeleken. Softwaretests dekken verval; langdurige fysieke logging-/resourceproeven blijven afzonderlijk open. Geleverd en live teruggelezen in HA46: begrensde, niet-blijvende oorspronkelijke ontvangsttellers via bestaande HA-diagnostiek. Geen producent- of fysieke kwalificatie. Geleverd in HA47: één native opstart over async-programma/Store/MQTT-grenzen, cleanup bij cancel/close en begrensde optionele temperatuurdiagnose. Tien baselinegevallen falen vóór correctie, 139 gerichte/2349volledigeHA-gevallen perCore slagen. HA47 uitgerold met verse HA46-back-up96 en44 afzonderlijke nacontroles. Beperkte HA46-controle05:46UTC ziet1TV02-callback/enqueue/workeracceptatie; stale en ongekwalificeerd, geen upstreamoorzaak of fysieke ACK. Na Coreherstart nieuweRAMowner: bij06:47UTC nul counters/TV02waiting, geen oudbericht alsnieuwekwalificatie. Actieve/fysiekevrijgave blijftopen. X01: pure SBHT-103C-BTHome-decoder voorbereid,798native/16sanitizer/ESP32syntaxPASS; NIETgeselecteerd door BLE-runtime. Geen nieuwe reader, Settings/onboarding, AES/sleutels, replay-/acquisitiekwalificatie of fysieke apparaatondersteuning. Xiaomi/BLUTRV blijven open. HA48 geïnstalleerd: cleanup na gewone callbackexception; aparte nacontrole08:43UTC46PASS,86 live/96back-up exact. Nieuwe RAM-owner blijft ongekwalificeerd. Pure Shelly-decoderbron gepubliceerd in alpha35, niet op E32 geïnstalleerd en niet runtimegeselecteerd. Voor volgende firmware: ESP/EMS/beide-weergave, begrensde deferred RX-framelogging en onafhankelijke syslogbronkeuze met oude6/nieuwe8veldinstellingen. Native25/UDPloopback/NVS/vierbrowserprofielen PASS; echte EMS-/collector-/belastingproeven nog open. Geen installatie. Grote-beta-uitvoering: normale E32 SBHT-103C-diagnoseontvangst/EN-NL-settings nu aangesloten met acht bindings, echte SDK AES-CCM/MIC, verborgen sleutels, conditionele duurzame save, oorspronkelijke callbackleeftijden, vaste wachtrij en boot-lokale tellerafwijzing. Geen extra task/client of actuatorwrite; geen QualifiedReport of kamerregelbron. 871 native gevallen PASS; volledige actuele board/browser/sanitizerresultaten bij bundelbewijs. Historische pure-decoderstatus hierboven beschrijft oudere bron. Echte sensor-/radio-/sleutelverkrijgings-/reboot-/resourceproeven, blijvende replay-/acquisitiekwalificatie, Xiaomi/TRV en zelfstandig regelen blijven open. Niets geïnstalleerd. Core4-P0 in dezelfde bètabron hersteld: publieke installatiegroep erft private transactiepin niet meer; echte Core2026.10.4 toegevoegd na RECORD/sourcevergelijking met .3. 2428 volledige gevallen perCore.2/.3/.4 PASS, resources daarna afzonderlijk30/3/3 PASS. Native HA-readback bevestigt liveCore4/dev48/setup_error; geïnstalleerde Python-bronhashes UNKNOWN, niets geïnstalleerd. Globale finale freeze/liveherstel blijven open. Voor eerste uitrol private BLE-opslag afgezonderd in één begrensde ot_bluetooth/settings-blob: sleutels komen niet in het netwerkdocument dat rollbackfirmware terugstuurt. Netwerkrestore importeert geen nieuwe bindings. Onafhankelijke boot-/sessielokale readbackfences voor netwerk/Bluetooth; huidige harde RAM-grens2048bytes. 875 native,18auth/26owner-sanitizer,15opslag-/36bestaandeonboardinggevallen en4browserprofielen PASS; drie boardbuilds en ongewijzigde layout/default/noTX-check PASS. Eerdere onuitgerolde netwerkblobopslag hierboven is door deze private route vervangen. Geen fysieke kwalificatie/installatie. Monitor3-software aangesloten in dezelfde beta: apart MiBeacon4/5-profiel, upstreamproductdeclaraties0x2832/0x4c47, eigen omgekeerde MAC/nonce12/AAD11/MIC4; geen CGG1/legacy/Shellyfallback. Strikte TLV/floatgrenzen en boot-lokale tellerbewaking via bestaande ontvanger. 888native/39eigenaar-parser-sanitizer/24echtecrypto-sanitizer,8browserprofielen/47node/2navigatie/2dashboard/4taal,3boards/layoutPASS. Geen oude metingen onder gewijzigde conceptbron/-sleutel. Echte modelopname, sleutelverkrijging, acquisitie-/blijvende replaykwalificatie en zelfstandige kamer-/TRV-regeling blijven open. Historische oude ontwerptekst is geen actuele claim van afwezige software. Geen installatie. EMS-referentie uitgebreid met6042entiteiten/105groepen,274benoemde telegram-ID’s/1853offsetdefinities, productherkenning en ESP-default. Dit is volledige referentiedekking van de vastgelegde exports, geen volledige functionele decoder-/schrijfdekking. Productfamiliedecoders, HA-entiteiten, schrijfencoders en fysieke kwalificatie blijven open; zie EMS-DEKKING.nl.md. Nog niet geïnstalleerd."
+      "remaining_acceptance": "Observer-lifecycle en native bron-/apparaatbinding geleverd/getest, inclusief pending transport. Oude callbacks/caches krijgen geen nieuwe eigenaar of leeftijd. Modelspecificiek productieprofiel en originele acquisitie-/ouderdomsvalidatie blijven open; diagnostische RTCGQ11LM blijft uitgesloten als ambient bron. WSDCGQ11LM-eventproducer voorbereid/getest, niet op Z2M geïnstalleerd. Native HA-ontvanger en room-status geleverd zonder QualifiedReport-vrijgave. Web-/native systeemlog en RFC5424 UDP-syslog geleverd in alpha23; beschermde routes/RAM-buffer en standaard uit zonder bestemming gecontroleerd. Externe collector en lange heap-/stack-/belastingproef blijven open. Geen fysieke regelautorisatie. ESP-eigen diagnose op alpha26/dev33 geïnstalleerd en twee gewone live pakketten exact met HA vergeleken. Softwaretests dekken verval; langdurige fysieke logging-/resourceproeven blijven afzonderlijk open. Geleverd en live teruggelezen in HA46: begrensde, niet-blijvende oorspronkelijke ontvangsttellers via bestaande HA-diagnostiek. Geen producent- of fysieke kwalificatie. Geleverd in HA47: één native opstart over async-programma/Store/MQTT-grenzen, cleanup bij cancel/close en begrensde optionele temperatuurdiagnose. Tien baselinegevallen falen vóór correctie, 139 gerichte/2349volledigeHA-gevallen perCore slagen. HA47 uitgerold met verse HA46-back-up96 en44 afzonderlijke nacontroles. Beperkte HA46-controle05:46UTC ziet1TV02-callback/enqueue/workeracceptatie; stale en ongekwalificeerd, geen upstreamoorzaak of fysieke ACK. Na Coreherstart nieuweRAMowner: bij06:47UTC nul counters/TV02waiting, geen oudbericht alsnieuwekwalificatie. Actieve/fysiekevrijgave blijftopen. X01: pure SBHT-103C-BTHome-decoder voorbereid,798native/16sanitizer/ESP32syntaxPASS; NIETgeselecteerd door BLE-runtime. Geen nieuwe reader, Settings/onboarding, AES/sleutels, replay-/acquisitiekwalificatie of fysieke apparaatondersteuning. Xiaomi/BLUTRV blijven open. HA48 geïnstalleerd: cleanup na gewone callbackexception; aparte nacontrole08:43UTC46PASS,86 live/96back-up exact. Nieuwe RAM-owner blijft ongekwalificeerd. Pure Shelly-decoderbron gepubliceerd in alpha35, niet op E32 geïnstalleerd en niet runtimegeselecteerd. Voor volgende firmware: ESP/EMS/beide-weergave, begrensde deferred RX-framelogging en onafhankelijke syslogbronkeuze met oude6/nieuwe8veldinstellingen. Native25/UDPloopback/NVS/vierbrowserprofielen PASS; echte EMS-/collector-/belastingproeven nog open. Geen installatie. Grote-beta-uitvoering: normale E32 SBHT-103C-diagnoseontvangst/EN-NL-settings nu aangesloten met acht bindings, echte SDK AES-CCM/MIC, verborgen sleutels, conditionele duurzame save, oorspronkelijke callbackleeftijden, vaste wachtrij en boot-lokale tellerafwijzing. Geen extra task/client of actuatorwrite; geen QualifiedReport of kamerregelbron. 871 native gevallen PASS; volledige actuele board/browser/sanitizerresultaten bij bundelbewijs. Historische pure-decoderstatus hierboven beschrijft oudere bron. Echte sensor-/radio-/sleutelverkrijgings-/reboot-/resourceproeven, blijvende replay-/acquisitiekwalificatie, Xiaomi/TRV en zelfstandig regelen blijven open. Niets geïnstalleerd. Core4-P0 in dezelfde bètabron hersteld: publieke installatiegroep erft private transactiepin niet meer; echte Core2026.10.4 toegevoegd na RECORD/sourcevergelijking met .3. 2428 volledige gevallen perCore.2/.3/.4 PASS, resources daarna afzonderlijk30/3/3 PASS. Native HA-readback bevestigt liveCore4/dev48/setup_error; geïnstalleerde Python-bronhashes UNKNOWN, niets geïnstalleerd. Globale finale freeze/liveherstel blijven open. Voor eerste uitrol private BLE-opslag afgezonderd in één begrensde ot_bluetooth/settings-blob: sleutels komen niet in het netwerkdocument dat rollbackfirmware terugstuurt. Netwerkrestore importeert geen nieuwe bindings. Onafhankelijke boot-/sessielokale readbackfences voor netwerk/Bluetooth; huidige harde RAM-grens2048bytes. 875 native,18auth/26owner-sanitizer,15opslag-/36bestaandeonboardinggevallen en4browserprofielen PASS; drie boardbuilds en ongewijzigde layout/default/noTX-check PASS. Eerdere onuitgerolde netwerkblobopslag hierboven is door deze private route vervangen. Geen fysieke kwalificatie/installatie. Monitor3-software aangesloten in dezelfde beta: apart MiBeacon4/5-profiel, upstreamproductdeclaraties0x2832/0x4c47, eigen omgekeerde MAC/nonce12/AAD11/MIC4; geen CGG1/legacy/Shellyfallback. Strikte TLV/floatgrenzen en boot-lokale tellerbewaking via bestaande ontvanger. 888native/39eigenaar-parser-sanitizer/24echtecrypto-sanitizer,8browserprofielen/47node/2navigatie/2dashboard/4taal,3boards/layoutPASS. Geen oude metingen onder gewijzigde conceptbron/-sleutel. Echte modelopname, sleutelverkrijging, acquisitie-/blijvende replaykwalificatie en zelfstandige kamer-/TRV-regeling blijven open. Historische oude ontwerptekst is geen actuele claim van afwezige software. Geen installatie. EMS-referentie uitgebreid met6042entiteiten/105groepen,274benoemde telegram-ID’s/1853offsetdefinities, productherkenning en ESP-default. Dit is volledige referentiedekking van de vastgelegde exports, geen volledige functionele decoder-/schrijfdekking. Productfamiliedecoders, HA-entiteiten, schrijfencoders en fysieke kwalificatie blijven open; zie EMS-DEKKING.nl.md. Nog niet geïnstalleerd. Eigenaar heeft de dubbele catalogusweergave vervangen door één apparaat-/entiteitentabel. Alle vastgelegde EMS-referentiegegevens blijven als bron behouden; de UI gebruikt kleine apparaatmetadata en één gedeelde momentopname. Herkenning uitsluitend uit ontvangen identiteit; eigen E32-bron niet als externe thermostaat. Geen nieuwe decoder-/schrijfkwalificatie."
     },
     {
       "id": "I12",
@@ -1269,7 +1345,7 @@
       "files": [
         {
           "path": "src/EMS/ClassicBoilerMonitor.h",
-          "sha256": "8a47b6b46574c0ff1608d5561fd6dc3c16d6597fb855710e3a78a06a96d3e03a"
+          "sha256": "d21dfc8d5d471fbe859b95ccd7cd70abfe055bf0d3320867330c9e33323957c1"
         },
         {
           "path": "src/EMS/BoilerCapabilities.h",
@@ -1305,7 +1381,7 @@
         },
         {
           "path": "src/EMS/EmsDeviceInventory.h",
-          "sha256": "6b4277cab6eacfcfecc2e04155018b92a9b8637d7094751c289dde7a99c2937a"
+          "sha256": "eac24ab0b243ffdaec0bd58e7e64bd60cade0e2887151267a75c19cf094b38b3"
         },
         {
           "path": "test/test_native/test_ems_device_inventory.cpp",
@@ -1330,6 +1406,14 @@
         {
           "path": "public/ems/entities.csv",
           "sha256": "a47e67286fee1c73f93d35fa6103d69fe06c1ce9255a3ee47963f049d9ef1c74"
+        },
+        {
+          "path": "src/EmsController.h",
+          "sha256": "b19420a43f32634410b2b5906fdc949614ca4d0fd0b749efeb6db1c155a72f65"
+        },
+        {
+          "path": "test/test_native/test_boiler_legacy_projection.cpp",
+          "sha256": "4b6566bdaca8eadede3634fce3b125819086b95e5ad1477ddd37ceab12cc1d8d"
         }
       ],
       "remaining_acceptance": "Alpha23/HA29 live: actuele afzonderlijke snapshot met69definities,27HA/REST waarde-/eenheid-/kwaliteitsmatches (25reported/2inferred),20unknown/unavailable en22onbetrouwbare diagnostiekentiteiten uitgeschakeld. Originele bronwaarnemingsmarkeringen/kwaliteit apart bewaard; geen exacte ouderdomspariteit, acquisitie-, continue-dekkings- of fysieke bruikbaarheidsclaim. Read-all onafhankelijk van model; TX/uitgangen blijven geblokkeerd. Langere observatie en fysieke validatie blijven open. Gepland +6h-moment:4u32Recorder-venster,165entiteitsantwoorden/532regels,geen open paginering; drie variërende native temperatuurvelden. Geen continue acquisitie-/fysieke werkingsclaim; oorspronkelijke +1h blijftFAILED/UNKNOWN. Bronmatig: per-veld rapportvolgorde en blijvende HA-intrekking gecorrigeerd, 10 native/6 HA-regressies toegevoegd; 689 native tests inclusief nul-uptimecompatibiliteit. HA-cachecorrectie opgenomen in de geverifieerde HA43-bronbestanden. E32-correctie opgenomen in de gepubliceerde alpha31-bron; de module is nu op alpha31 waargenomen (uitvoerder/methode onbekend). Geen firmwareactie door deze opdracht en geen fysieke bron-/zend-/stopkwalificatieclaim."
@@ -1352,11 +1436,11 @@
         },
         {
           "path": "src/control/ShadowController.h",
-          "sha256": "e079192de01316d51b4fc914a81b79c118ae2832286223ba2201a55d7e4b5fc4"
+          "sha256": "8ae665c20b898d49b00123842f43e5192c61fc26a816a1524be2460971d8809d"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/native_plan.py",
-          "sha256": "1362911e3f90527f6e4dee315c0b1baeb41ae6279b04991e24d3ae0d96253b84"
+          "sha256": "bc5a4a4f581cf4efc67ad98e0e1f33fbf55c88ff64a6f215cb66de3b9cfb2118"
         },
         {
           "path": "src/control/SessionAdmission.h",
@@ -1434,7 +1518,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/room_editor.py",
-          "sha256": "70961ced6465280ce5f7b7c198a3ed050616b3a9fb955bd3155116fd81faba43"
+          "sha256": "ec6a8f035b7ccefc35bedd9deb723a14098d3570eca73d07d36b1c077793804e"
         },
         {
           "path": "ha/tests_native/test_room_editor.py",
@@ -1442,7 +1526,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
-          "sha256": "5a8ac05a1636a6598d20c63d50c52e8cab92bdff44df8a4e98d9ad85b006b30a"
+          "sha256": "878be8d9eeb0287cd16eae995a966a891fac18e0d58dd0e4e353bc3f0de93c54"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/__init__.py",
@@ -1526,7 +1610,7 @@
         },
         {
           "path": "src/control/ShadowController.h",
-          "sha256": "e079192de01316d51b4fc914a81b79c118ae2832286223ba2201a55d7e4b5fc4"
+          "sha256": "8ae665c20b898d49b00123842f43e5192c61fc26a816a1524be2460971d8809d"
         },
         {
           "path": "test/test_native/test_session_admission.cpp",
@@ -1638,7 +1722,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_wire.py",
-          "sha256": "32f9f79c960d1d081ff9dc25a6fff19748144bbb799f751b2e1d6d003508aa30"
+          "sha256": "0813c688aa32a5d5cb0d633ad9822136fce028dcfde82f4357d1019e9d41e078"
         },
         {
           "path": "ha/tests_native/test_supervisor_status.py",
@@ -1822,18 +1906,38 @@
       "files": [
         {
           "path": "src/control/EffectiveTarget.h",
-          "sha256": "0a1e228d45c0d1b448819da055f26864cd29ada14459d1bf9b740e77535baf10"
+          "sha256": "ba707ab5935d707b3e61a87fa6ed7e51de507e0c2d20de573160b9102eaeec40"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/comfort_sources.py",
-          "sha256": "8a293ca9ae870b7f95969a35228a46b3c38d0ad87e9220b8210c58680fd91016"
+          "sha256": "772ecb91cd4150e1069cc18f83e0ed5c94f808c80d2e6864d80325abf3c3ada1"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/v1_climate.py",
           "sha256": "f9c283ad4985724c36220776933e61f2b766b2224e05ec140610a47f9f95efc1"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/room_contacts.py",
+          "sha256": "2368bc12122fd9b1f6652a1c86015d47db203a41229ee4e7fb4b3b70d47129bc"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/v1_model.py",
+          "sha256": "4561a4c849452ab17b7b65d4a26c63282f27b0cdef3cf291918ce7f77bf15987"
+        },
+        {
+          "path": "ha/tests_native/test_room_contacts.py",
+          "sha256": "8f87989ffb2a59efd847fc8a122ce6e7553f7c9eb577dfc6641d3a0ce0202e82"
+        },
+        {
+          "path": "ha/tests_native/test_room_contact_runtime.py",
+          "sha256": "682b417eb69399341acf28e3ecd3c6c8abfa11db3d5c4f651e580c0f029786d2"
+        },
+        {
+          "path": "ha/tests_native/test_room_editor_contacts.py",
+          "sha256": "c817c046aa2229d43e12b27c46ac7b9ea31be9491d916c76bce167e48b891396"
         }
       ],
-      "remaining_acceptance": "Logische/oudere opt-in paden bestaan; native eenvoudige kamereditor/bronkwalificatie niet compleet."
+      "remaining_acceptance": "Logische/oudere opt-in paden bestaan; native eenvoudige kamereditor/bronkwalificatie niet compleet. Beta6-ontwikkeling: maximaal acht raam-/deurcontacten per kamer, conservatieve originele leeftijden, vertragingen, opslag/editor/runtime en nieuw begrensd wire-profiel voorbereid. Native/model/editor/runtime-fixtures slagen; aparte nieuwe contact-C++-interop/GUI-proeven en oorspronkelijke modelbronkwalificatie blijven open. Geen fysieke uitvoervrijgave."
     },
     {
       "id": "I19",
@@ -1925,11 +2029,11 @@
       "files": [
         {
           "path": "data/html/boiler_test.html",
-          "sha256": "1214d5af337d4b1ad38b1899fdbf38033827df587b9b170a87f9fa0ed3f385e5"
+          "sha256": "d85e9a13d11b697f5b9068df90fb8b9d120bff643c5b2350fa2ee88194aad232"
         },
         {
           "path": "src/EmsController.h",
-          "sha256": "d9db68749a6e3f0ac26e77e5fd9c7fa80d11b761e8c182746a967f2ae9e62e5f"
+          "sha256": "b19420a43f32634410b2b5906fdc949614ca4d0fd0b749efeb6db1c155a72f65"
         },
         {
           "path": "src/EmsController.cpp",
@@ -1937,10 +2041,10 @@
         },
         {
           "path": "test/boiler-test-browser.cjs",
-          "sha256": "cee5aa774cbf8aa8da70d147253c1b016aade17b1cff79913c1ab2c1cec3b383"
+          "sha256": "4b99a98635fd3b777a580c1b2d0cf538b9c2426af596a94523859937ebb223a7"
         }
       ],
-      "remaining_acceptance": "Alle 69 velden/rapport en maximaal 24 ontvangen typen getest op 1280/390/320 px; bestaande actieve-proefguards eveneens. Drie boardbuilds en E32-layout/defaults/no-TX-objectcontrole PASS. E32-bron opgenomen in alpha31; actuele module op alpha31 waargenomen om01:50UTC, uitvoerder/methode onbekend. Native HA-projectie voor alle 69 velden voorbereid/getest in broncheckpoint 60c548f en opgenomen in de geverifieerde HA43-bestanden; dat bewijst geen nieuwe of bruikbare waarde voor ieder ketelveld. Fysieke veldvalidatie blijft open."
+      "remaining_acceptance": "Alle 69 velden/rapport en maximaal 24 ontvangen typen getest op 1280/390/320 px; bestaande actieve-proefguards eveneens. Drie boardbuilds en E32-layout/defaults/no-TX-objectcontrole PASS. E32-bron opgenomen in alpha31; actuele module op alpha31 waargenomen om01:50UTC, uitvoerder/methode onbekend. Native HA-projectie voor alle 69 velden voorbereid/getest in broncheckpoint 60c548f en opgenomen in de geverifieerde HA43-bestanden; dat bewijst geen nieuwe of bruikbare waarde voor ieder ketelveld. Fysieke veldvalidatie blijft open. Beta6-ontwikkeling: ophalen → voorbereiden → apart starten → stoppen bovenaan; één twee minuten geldige opstellingsverklaring, geen dubbele waardenlijsten, bekende stopbediening na onzekere read behouden. Volledige HTTP-fixtureworkflow, 72 bevestigingsonderbrekingen, bestaande drie controlviewports en één gegevensbron getest. Echte installatie-/ketelproef blijft open."
     },
     {
       "id": "I22",
@@ -2041,7 +2145,7 @@
         },
         {
           "path": "test/boiler-test-control-browser.cjs",
-          "sha256": "96c4cbeccc076f8fe34b67f7278baf06056d40b4e72bc8caded38ec186d0e407"
+          "sha256": "ac31e81b6c993ebde15d54b4857b55024068c4ce18f35e702d796ba77121a93d"
         },
         {
           "path": "src/EMS/BoilerTestPollDriver.h",
@@ -2145,11 +2249,11 @@
         },
         {
           "path": "test/boiler-test-confirm-browser.cjs",
-          "sha256": "f5297811b7da7deb075a93409b2dd3535e59e8a7f34d054d8054fc60ab040ba2"
+          "sha256": "b74caaeb58429aa3f81cc8328962b75ce7758c9263e6e4f00ec733522f55e13c"
         },
         {
           "path": "test/boiler-configuration-read-browser.cjs",
-          "sha256": "2cbb6ebc040c6c55543f2421b0d5416dc9aa763cb26b2d1a1690de084a0f68c8"
+          "sha256": "45812aee2e807a5f88a625206c919cb747c2b3365be38a88292028be37be930d"
         },
         {
           "path": "src/EMS/ClassicBoilerSettingsEncoder.h",
@@ -2209,7 +2313,7 @@
         },
         {
           "path": "test/boiler-settings-browser.cjs",
-          "sha256": "faf857c25ba09e9709b45a470ad35e1d6032f2c59eeaaee79fe98ec462753b33"
+          "sha256": "0b2b91ec537e9137b4eef2e2a56c86eb49ff85e0402120f4718e4a5a69e63cd1"
         },
         {
           "path": "src/EMS/EcomlineCommissioningProfile.h",
@@ -2225,7 +2329,7 @@
         },
         {
           "path": "scripts/verify_e32v2.py",
-          "sha256": "2fd0edcd513a722857cd3dab1c9fbc1c3e3e045686394e3a376c9db2447f09ad"
+          "sha256": "01651270ffff2562f1e8fd258c933e0ef4eb0d8f3ceaaf4bf4abbaddb174c4a5"
         },
         {
           "path": "scripts/test_e32v2_verifier.py",
@@ -2593,5 +2697,6 @@
   "published_firmware_source_commit": "5e3ed30653d93b09dd65b5305accd65d079c0c06",
   "runtime_verified_at_utc": "2026-10-25T20:39:44.405939+00:00",
   "ha_installation_observed_at_utc": "2026-10-25T20:39:44.583831+00:00",
-  "firmware_installation_observed_at_utc": "2026-10-25T20:39:44.405939+00:00"
+  "firmware_installation_observed_at_utc": "2026-10-25T20:39:44.405939+00:00",
+  "development_target": "v0.1.0-e32v2-beta.6"
 }

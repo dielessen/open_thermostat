@@ -291,13 +291,13 @@ private:
         if(kind==StreamKind::observation) {
             if(z.comfortEnabled) {
                 auto &in=z.comfortInputs;
-                const auto context=[&](const char *key,const char *ageKey,bool supported,bool &known,bool &value,uint64_t &at,uint32_t &receivedAge) {
+                const auto context=[&](const char *key,const char *ageKey,bool supported,uint32_t maximumAge,bool &known,bool &value,uint64_t &at,uint32_t &receivedAge) {
                     const uint64_t age=uintField(root.get(),ageKey)+admission_.grantElapsed(now);
-                    known=supported&&!cJSON_IsNull(field(root.get(),key))&&age<120000;
-                    value=cJSON_IsTrue(field(root.get(),key));at=now;receivedAge=known?age:120000;
+                    known=supported&&!cJSON_IsNull(field(root.get(),key))&&age<maximumAge;
+                    value=cJSON_IsTrue(field(root.get(),key));at=now;receivedAge=known?age:maximumAge;
                 };
-                context("window_open","window_age_ms",z.comfortProfile.windowSupported,in.windowKnown,in.windowOpen,in.windowAt,in.windowAgeAtReceipt);
-                context("presence_away","presence_age_ms",z.comfortProfile.presenceSupported,in.presenceKnown,in.away,in.presenceAt,in.presenceAgeAtReceipt);
+                context("window_open","window_age_ms",z.comfortProfile.windowSupported,z.comfortProfile.maximumWindowAgeMs,in.windowKnown,in.windowOpen,in.windowAt,in.windowAgeAtReceipt);
+                context("presence_away","presence_age_ms",z.comfortProfile.presenceSupported,z.comfortProfile.maximumPresenceAgeMs,in.presenceKnown,in.away,in.presenceAt,in.presenceAgeAtReceipt);
             }
             if(cJSON_IsFalse(field(root.get(),"source_available"))) z.sample.unavailable();
             else {
@@ -470,7 +470,11 @@ private:
                 (z.reportEvidence!="physical_report"&&z.reportEvidence!="validated_integration_report")) return false;
             if(comfort) {
                 const auto c=field(zone,"comfort");
-                if(!exactFields(c,{"away_centi_c","frost_centi_c","maximum_centi_c","minimum_centi_c","presence","temporary_ms","window"})||
+                const bool contacts=cJSON_HasObjectItem(c,"window_max_age_ms");
+                const bool validKeys=contacts
+                    ? exactFields(c,{"away_centi_c","frost_centi_c","maximum_centi_c","minimum_centi_c","presence","temporary_ms","window","window_max_age_ms"})
+                    : exactFields(c,{"away_centi_c","frost_centi_c","maximum_centi_c","minimum_centi_c","presence","temporary_ms","window"});
+                if(!validKeys||
                     !integerField(c,"minimum_centi_c",500,3500)||!integerField(c,"maximum_centi_c",500,3500)||
                     !integerField(c,"away_centi_c",500,3500)||!integerField(c,"frost_centi_c",500,3500)||
                     !integerField(c,"temporary_ms",60000,43200000)||
@@ -481,6 +485,10 @@ private:
                 p.frostCentiC=uintField(c,"frost_centi_c");p.maximumTemporaryMs=43200000;p.maximumBoostMs=14400000;
                 p.windowSupported=cJSON_IsTrue(field(c,"window"));p.presenceSupported=cJSON_IsTrue(field(c,"presence"));
                 p.maximumWindowAgeMs=p.maximumPresenceAgeMs=120000;
+                if(contacts) {
+                    if(!p.windowSupported||!integerField(c,"window_max_age_ms",1000,86400000))return false;
+                    p.maximumWindowAgeMs=uintField(c,"window_max_age_ms");
+                }
                 if(!p.valid()||p.frostCentiC<p.minimumCentiC||p.frostCentiC>p.maximumCentiC||uintField(zone,"base_centi_c")<static_cast<unsigned>(p.minimumCentiC)||
                     uintField(zone,"base_centi_c")>static_cast<unsigned>(p.maximumCentiC)) return false;
                 z.comfortEnabled=true;z.comfort=EffectiveTarget(p);
@@ -712,6 +720,7 @@ private:
         if(controlCaps)cJSON_AddItemToArray(controlCaps,cJSON_CreateString("session.grant_nonce.v1"));
         auto comfortCaps=cJSON_AddArrayToObject(o.get(),"control_capabilities");
         if(comfortCaps)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString("comfort.target.v1"));
+        if(comfortCaps)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString("comfort.contacts.v1"));
         if(comfortCaps&&nativePlanSource_)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(nativePlanSource_->planContract()));
         if(comfortCaps&&nativePlanSource_)cJSON_AddItemToArray(comfortCaps,cJSON_CreateString(roomDisplayNamesCapability));
         if(comfortCaps&&nativePlanSource_&&nativePlanSource_->legacyReadbackReviewed)

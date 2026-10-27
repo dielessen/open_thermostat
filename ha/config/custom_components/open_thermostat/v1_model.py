@@ -8,6 +8,7 @@ import re
 from typing import Any
 
 from .v1_program import normalize_program
+from .room_contacts import ContactPolicy, contacts_from_dict
 
 MODE_LEGACY = "legacy"
 MODE_SHADOW = "v1_shadow"
@@ -60,6 +61,8 @@ class RoomBinding:
     comfort: dict | None = None
     window: EntityReference | None = None
     presence: EntityReference | None = None
+    contacts: tuple = ()
+    contact_policy: ContactPolicy | None = None
 
     @property
     def shadow_wire_supported(self) -> bool:
@@ -112,14 +115,19 @@ class RoomBinding:
         comfort = value.get("comfort")
         window = EntityReference.from_dict(value["window"]) if value.get("window") else None
         presence = EntityReference.from_dict(value["presence"]) if value.get("presence") else None
+        contacts = contacts_from_dict(value.get("contacts", []))
+        contact_policy = (ContactPolicy.from_dict(value["contact_policy"])
+                          if "contact_policy" in value else ContactPolicy() if contacts else None)
+        if bool(contacts) != (contact_policy is not None) or (contacts and window):
+            raise ValueError("contact_binding_conflict")
         if comfort is not None:
             if (type(comfort) is not dict or set(comfort)!={"away_centi_c","frost_centi_c","temporary_ms"}
                     or type(comfort["away_centi_c"]) is not int or not minimum<=comfort["away_centi_c"]<=maximum
                     or type(comfort["frost_centi_c"]) is not int or not minimum<=comfort["frost_centi_c"]<=maximum
                     or type(comfort["temporary_ms"]) is not int or not 60000<=comfort["temporary_ms"]<=43200000
-                    or mode!=ROOM_CLIMATE_TRV):
+                    or mode not in (ROOM_CLIMATE_TRV, ROOM_GRAPH_DRAFT)):
                 raise ValueError("invalid_comfort_profile")
-        elif window or presence:
+        elif window or presence or contacts:
             raise ValueError("comfort_required")
         if window and not window.entity_id.startswith("binary_sensor."):
             raise ValueError("invalid_window_source")
@@ -127,7 +135,7 @@ class RoomBinding:
             raise ValueError("invalid_presence_source")
         if any(ref and ref.entity_id in ids for ref in (window,presence)):
             raise ValueError("duplicate_comfort_binding")
-        return cls(room_id, str(value["name"]), temperature, actuators, setpoint, age, base, schedule, minimum, maximum, week, mode, dict(comfort) if comfort is not None else None, window, presence)
+        return cls(room_id, str(value["name"]), temperature, actuators, setpoint, age, base, schedule, minimum, maximum, week, mode, dict(comfort) if comfort is not None else None, window, presence, contacts, contact_policy)
 
     def as_dict(self) -> dict:
         return {
@@ -136,6 +144,8 @@ class RoomBinding:
             "actuators": [x.as_dict() for x in self.actuators],
             "setpoint": self.setpoint.as_dict() if self.setpoint else None,
             "maximum_age_ms": self.maximum_age_ms,
+            **({"contacts": [c.as_dict() for c in self.contacts],
+                "contact_policy": self.contact_policy.as_dict()} if self.contacts else {}),
             "actuator_profile": "C_unverified" if self.shadow_wire_supported else "graph_draft_not_applied",
             **({"binding_mode": self.binding_mode} if not self.shadow_wire_supported else {}),
             **({"comfort": dict(self.comfort),

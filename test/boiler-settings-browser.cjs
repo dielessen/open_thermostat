@@ -6,7 +6,9 @@ function metadata(){return {schema:1,boot_id:'000000000000002a',revision:0,avail
  owned_by_requester:false,request:null,phase:'idle',response_at_ms:null,write_attempted:false,physical_validation:false,reason:'not_requested',settings:[
  ['heatingactivated','bool',1,0],['heatingtemp','degC',90,1],['burnminperiod','min',120,6],['pumpdelay','min',60,8]
  ].map(([entity,unit,maximum,offset])=>({entity,unit,minimum:0,maximum,offset,telegram_type:22}))};}
-const devices={enabled:true,inventory:{schema:1,capacity:16,untracked_frames:0,devices:[]},boiler:{fields:{}}};
+const devices={enabled:true,inventory:{schema:1,capacity:16,untracked_frames:0,devices:[{address:8,frames:3,age_ms:100,product_id:211,version:'2.3',brand_id:1,untracked_types:0,telegram_types:[2,22]}]},boiler:{fields:Object.fromEntries([
+ ['heating_enabled',1,'bool'],['configured_heating_temperature',50,'degC'],['minimum_burner_period',5,'min'],['pump_run_on',3,'min']
+].map(([id,value,unit])=>[id,{value,unit,state:'valid',quality:'reported',source_type:22,source_address:8,age_ms:100}]))}};
 (async()=>{
  fs.mkdirSync(output,{recursive:true});const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH}),results=[];
  try{for(const lang of ['en','nl'])for(const width of [1280,390,320]){
@@ -31,8 +33,7 @@ const devices={enabled:true,inventory:{schema:1,capacity:16,untracked_frames:0,d
    if(p==='/auth/session')return route.fulfill({contentType:'application/json',body:JSON.stringify({authenticated:true,csrf:'a'.repeat(64)})});
    if(p==='/status')return route.fulfill({contentType:'application/json',body:'{"controlMode":"shadow","ems":{},"control":{"fresh":false,"reason":"waiting"}}'});
    if(p==='/config/boiler-display')return route.fulfill({contentType:'application/json',body:'{"model":"none"}'});
-   if(p==='/status/ems/devices')return route.fulfill({contentType:'application/json',body:JSON.stringify(devices)});
-   if(p==='/status/boiler/settings')return route.fulfill({contentType:'application/json',body:JSON.stringify(state)});
+   if(p==='/status/ems/telemetry')return route.fulfill({json:{reception:{state:'classic_reports_received'},transport:{enabled:true},inventory:devices.inventory,fields:devices.boiler.fields,settings:state}});
    const file=path.join(assets,p==='/'?'index.html':p);if(!file.startsWith(assets+'/')||!fs.existsSync(file))return route.fulfill({status:404,body:''});
    let body=fs.readFileSync(file);if(p.endsWith('.gz'))body=zlib.gunzipSync(body);
    return route.fulfill({contentType:/\.js(?:\.gz)?$/.test(p)?'application/javascript':p.endsWith('.css.gz')?'text/css':'text/html',body});
@@ -43,6 +44,7 @@ const devices={enabled:true,inventory:{schema:1,capacity:16,untracked_frames:0,d
    state=metadata();mode=next;held=null;
    await page.evaluate(()=>{if(window.originalSettingsConfirm)window.confirm=window.originalSettingsConfirm;});
    await page.evaluate(()=>loadNativePage('ems_devices'));
+   await page.locator('[data-field="configured_heating_temperature"] button').click();
    await page.locator('#ems-settings-editor').waitFor({state:'visible'});
    await page.waitForFunction(()=>!document.querySelector('#ems-refresh').disabled);
    await page.evaluate(()=>{window.originalSettingsConfirm??=window.confirm;window.confirm=()=>true;});
@@ -69,6 +71,7 @@ const devices={enabled:true,inventory:{schema:1,capacity:16,untracked_frames:0,d
   await refresh();assert(!(await note.innerText()).includes(lang==='nl'?'is van de ketel teruggelezen':'was read back'));
   state={...state,active:false,phase:'completed',write_attempted:true,response_at_ms:123,reason:'setting_read_back',available:true};await refresh();
   assert.match(await note.innerText(),lang==='nl'?/van de ketel teruggelezen/:/read back from the boiler/);assert(await button.isDisabled());
+  await page.locator('[data-field="configured_heating_temperature"] button').click();
   await page.locator('#ems-setting-entity').selectOption('heatingtemp');
   assert.equal(await note.innerText(),'');assert.equal(await page.getByRole('spinbutton',{name:lang==='nl'?'Nieuwe waarde':'New value',exact:true}).count(),1);
   // Boolean zero is an explicit typed value, with its own accessible label.

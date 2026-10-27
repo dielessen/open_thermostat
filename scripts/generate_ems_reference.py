@@ -69,6 +69,28 @@ def generate(check=False):
         assert raw[:3]==b'\x1f\x8b\x08' and raw[4:8]==b'\0'*4
         assert gzip.decompress(raw)==payload, 'Regenerate EMS reference asset'
     else:asset.write_bytes(compressed.getvalue())
+    # The device UI needs identification and metadata for decoded fields only.
+    # Preserve the full factual reference above for offline use, not a second UI
+    # catalogue of unrelated equipment or a second source of measured values.
+    aliases=json.loads((base/'e32-field-aliases.json').read_text())
+    wanted=set(aliases.values());compact_specs=[];compact_index={};compact_groups={}
+    for key,group in groups.items():
+        if not key.startswith('boiler:'):continue
+        selected=[]
+        for index in group['fields']:
+            spec=specs[index]
+            if spec[0] not in wanted:continue
+            signature=json.dumps(spec,separators=(',',':'))
+            if signature not in compact_index:
+                compact_index[signature]=len(compact_specs);compact_specs.append(spec)
+            selected.append(compact_index[signature])
+        compact_groups[key]={'name':group['name'],'fields':selected}
+    compact={'aliases':aliases,'devices':devices,'boilerNames':boiler_names,
+             'entities':compact_specs,'groups':compact_groups}
+    compact_asset=ROOT/'data/html/ems-metadata.js'
+    compact_payload='window.OT_EMS_METADATA = '+json.dumps(compact,separators=(',',':'))+';\n'
+    if check:assert compact_asset.read_text()==compact_payload,'Regenerate EMS device metadata'
+    else:compact_asset.write_text(compact_payload)
     h=['#pragma once','#include <cstdint>','namespace heating::ems {','inline const char* telegramName(uint16_t type) {','    switch(type) {']
     for key,names in sorted(telegrams.items()):
         h.append(f'    case {key}: return '+json.dumps(' / '.join(names))+';')

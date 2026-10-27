@@ -5,11 +5,8 @@
     <script src="/ui-messages.js"></script>
     <script src="/ui-language.js"></script>
 	<script src="/auth-client.js"></script>
+	<script src="/boiler-data.js"></script>
 	<script src="/boiler-display.js"></script>
-    <script src="/system-log.js"></script>
-    <script src="/ems-reference.js.gz"></script>
-    <script src="/ems-devices.js"></script>
-    <script src="/bluetooth.js"></script>
 	<script src="/device-restart.js" defer></script>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -399,6 +396,7 @@
         var navigationGeneration = 0;
         var statusPoll = null;
         var pageLoadRequest = null;
+        const pageScripts = new Map();
         const legacyEditorPages = ['program','room_management','room_setup','curve','hardware','rooms'];
 
         function applyControlMode(status) {
@@ -435,6 +433,39 @@
             }).catch(error => { chartPromise = null; throw error; });
             return chartPromise;
         }
+        function ensurePageScript(src, ready) {
+            if (ready()) return Promise.resolve();
+            if (pageScripts.has(src)) return pageScripts.get(src);
+            const pending = new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                const finish = error => {
+                    clearTimeout(timer);
+                    script.onload = script.onerror = null;
+                    if (error) { script.remove(); reject(error); }
+                    else resolve();
+                };
+                const timer = setTimeout(() => finish(Error('Page script timeout')), 10000);
+                script.src = src;
+                script.onload = () => finish(ready() ? null : Error('Page script unavailable'));
+                script.onerror = () => finish(Error('Page script could not be loaded'));
+                document.head.appendChild(script);
+            }).catch(error => { pageScripts.delete(src); throw error; });
+            pageScripts.set(src, pending);
+            return pending;
+        }
+        async function ensurePageScripts(page) {
+            if (page === 'boiler_test') {
+                // Reference metadata is optional; received values remain usable
+                // if its download fails. Retry it on a subsequent visit.
+                await ensurePageScript('/ems-metadata.js', () => !!window.OT_EMS_METADATA)
+                    .catch(() => {});
+                await ensurePageScript('/ems-devices.js', () => !!window.EMSDevicesPage);
+            } else if (page === 'bluetooth') {
+                await ensurePageScript('/bluetooth.js', () => !!window.BluetoothPage);
+            } else if (page === 'system_log') {
+                await ensurePageScript('/system-log.js', () => !!window.SystemLogPage);
+            } else if (page === 'curve') await ensureChart();
+        }
         async function loadNativePage(page) {
             // Preserve existing saved links while keeping one boiler page.
             if (page === 'ems_devices') page = 'boiler_test';
@@ -448,7 +479,9 @@
                 if (legacyEditorPages.includes(page) && mode !== 'legacy') {
                     managedControlNotice(); return false;
                 }
-                if (page === 'curve') await ensureChart();
+                // Boiler controls mount immediately; the optional entity panel
+                // owns its larger dependencies in parallel after mounting.
+                if (page !== 'boiler_test') await ensurePageScripts(page);
                 if (navigation !== navigationGeneration) return false;
                 // Fetch without injecting: an obsolete response must never run
                 // its inline scripts or replace the newly selected page.
@@ -515,6 +548,9 @@
 
 
 			window.addEventListener('hashchange', showLinkedPage);
+			document.addEventListener('visibilitychange', () => {
+				if (document.visibilityState === 'visible' && intervalID) showRooms();
+			});
 			if (!showLinkedPage()) {
 				mainScreen();
 			}
@@ -549,12 +585,14 @@
             if (statusPoll) { statusPoll.abort(); statusPoll = null; }
 			if (intervalID) {
 				clearInterval(intervalID);
+				intervalID = null;
 			}
 			var maincontainer = document.getElementById('maincontainer');
 			maincontainer.innerHTML = "";
 		}
 
 		function showRooms() {
+            if (document.visibilityState === 'hidden') return;
             if (statusPoll) return; // Slow requests never overlap the next timer tick.
             const navigation = navigationGeneration;
             const request = new AbortController();

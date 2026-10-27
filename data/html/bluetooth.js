@@ -1,7 +1,5 @@
 'use strict';
 window.BluetoothPage = (() => {
-  const reveal=async()=>{try{const session=await OpenThermostatAuth.ready();document.querySelectorAll('[data-bluetooth-settings]').forEach(node=>{node.hidden=session.legacy;});}catch{}};
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',reveal,{once:true});else reveal();
   let active;
   const t = s => uiText(s), el = (tag, text) => {const node=document.createElement(tag);if(text!==undefined)node.textContent=text;return node;};
   const states={waiting:'Waiting for a Bluetooth report',key_required:'Bindkey required',received:'Bluetooth report received',stale:'Bluetooth readings expired',malformed:'Unsupported or invalid Bluetooth report',authentication_failed:'Bluetooth key verification failed',encryption_required:'Encrypted Bluetooth report required',crypto_unavailable:'Bluetooth decryption unavailable',pending_restart:'Restart required to apply Bluetooth settings',configuration_invalid:'Stored Bluetooth settings are invalid',clock_invalid:'Bluetooth clock check failed; restart required'};

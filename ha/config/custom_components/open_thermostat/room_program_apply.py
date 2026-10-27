@@ -70,7 +70,7 @@ async def save_active_program(hass, entry, sub, old, token, settings, *, binding
             return await save_active_profile(hass, entry, sub, old, token, settings,
                 binding_identities=binding_identities)
     if binding_identities is not None:
-        ids = [saved['temperature_entity'], *saved['radiator_entities']]
+        ids = [saved['temperature_entity'], *saved['radiator_entities'],*saved.get('contact_entities',[])]
         choices = {row['value']: row.get('identity') for rows in model['choices'].values() for row in rows}
         if binding_identities != {entity_id: choices.get(entity_id) for entity_id in ids}:
             raise ValueError('binding_missing')

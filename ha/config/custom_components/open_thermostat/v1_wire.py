@@ -27,6 +27,7 @@ MAX_BYTES = 8192
 GRANT_NONCE_CAPABILITY = "session.grant_nonce.v1"
 ROOM_NAMES_CAPABILITY = "display.room_names.v1"
 COMFORT_CAPABILITY = "comfort.target.v1"
+CONTACTS_CAPABILITY = "comfort.contacts.v1"
 COMFORT_MODES = {"auto","off","temporary","boost","away","vacation","frost"}
 # Fixed firmware admission labels only; arbitrary peer text stays private.
 _REJECTION_REASONS = frozenset(("not_configured", "wrong_version", "wrong_identity",
@@ -899,6 +900,9 @@ class ShadowClient:
             self.comfort_supported=(type(comfort_caps) is list and len(comfort_caps)<=8
                 and all(isinstance(cap,str) and len(cap)<=64 for cap in comfort_caps)
                 and COMFORT_CAPABILITY in comfort_caps)
+            if (any("window_max_age_ms" in z.get("comfort", {}) for z in self.desired)
+                    and (not self.comfort_supported or CONTACTS_CAPABILITY not in comfort_caps)):
+                self.reset_session();self.error="contact_capability_unavailable";self.changed();return
             if any("comfort" in z for z in self.desired) and not self.comfort_supported:
                 self.reset_session();self.error="comfort_capability_unavailable";self.changed();return
             caps=p.get("read_only_capabilities",[])

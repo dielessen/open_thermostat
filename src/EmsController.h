@@ -182,7 +182,9 @@ public:
 		}
 		captureForeignTelegrams_.store(log_ && log_->isFeatureEnabled(verboseFeature()), std::memory_order_relaxed);
 		processTelegrams();
+#ifndef OPENTHERMOSTAT_E32V2
 		refreshClassicStatus();
+#endif
 #ifdef OPENTHERMOSTAT_E32V2
 		{
 			std::lock_guard<std::mutex> lock(telemetryMutex_);
@@ -219,6 +221,11 @@ public:
 
 	void getStatus(std::ostream &ss) const {
 		std::lock_guard<std::mutex> lock(telemetryMutex_);
+#ifdef OPENTHERMOSTAT_E32V2
+        if(monitor_.capabilities().profile()!=BoilerProtocol::plus) {
+            monitor_.writeLegacyStatus(ss,static_cast<uint64_t>(esp_timer_get_time()/1000));return;
+        }
+#endif
 		boilerState_.getStatus(ss, monitor_.capabilities().name());
 	}
 
@@ -244,6 +251,10 @@ public:
 		// Keep the existing field-level telemetry contract and add transport
 		// diagnostics to it. These are lifetime counters, not a TX permission.
 		monitor_.writeJSON(ss, snapshotMs, false);
+		// One coherent UI snapshot: devices, received fields and scoped operation
+		// metadata share the same lock/time. Consumers never re-read the bus.
+		ss << ",\"inventory\":";
+		deviceInventory_.writeJSON(ss,snapshotMs);
 		ss << ",\"transport\":{\"enabled\":"
 		   << (emsConfig_.emsEnabled ? "true" : "false")
 		   << ",\"transmit_compiled\":" << ((board::emsTransmitAllowed || board::emsManualTestTransmitAllowed) ? "true" : "false")
@@ -255,6 +266,10 @@ public:
 		   << ",\"uart_timeouts\":" << uart_.rxTimeouts.load(std::memory_order_relaxed)
 		   << ",\"uart_resets\":" << uart_.resets.load(std::memory_order_relaxed) << '}';
 #ifdef OPENTHERMOSTAT_E32V2
+        ss<<",\"settings_policy\":{\"transmit_compiled\":"<<(board::emsSettingsTransmitAllowed?"true":"false")
+          <<",\"installation_reviewed\":"<<(settingsInstallationReviewed_?"true":"false")<<'}';
+        ss<<",\"settings\":";
+        boilerSettings_.writeJSON(ss,snapshotMs,boilerSettingsPermitted(),operatorSession);
         ss<<",\"manual_transaction\":{\"completed_exchanges\":"<<manualCompletions_.load(std::memory_order_relaxed)
             <<",\"rejected_writes\":"<<manualRejections_.load(std::memory_order_relaxed)
             <<",\"reply_errors\":"<<manualReplyErrors_.load(std::memory_order_relaxed)<<'}';
@@ -338,11 +353,22 @@ public:
 #endif
 
 	void getBoilerParams(std::ostream &ss) const {
+#ifdef OPENTHERMOSTAT_E32V2
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        if(monitor_.capabilities().profile()!=BoilerProtocol::plus) {
+            ss<<'{';
+            if(monitor_.capabilities().profile()==BoilerProtocol::classic) {
+                if(const auto limit=monitor_.value(BoilerField::heatingLimit,static_cast<uint64_t>(esp_timer_get_time()/1000)))
+                    ss<<"\"heatingTemperature\":"<<*limit/100;
+            }
+            ss<<'}';return;
+        }
+#endif
 		boilerParams_.getJSON(ss);
 	}
 
 	std::string getBoilerParams() const {
-		return boilerParams_.getJSON();
+		std::ostringstream ss;getBoilerParams(ss);return ss.str();
 	}
 
 private:

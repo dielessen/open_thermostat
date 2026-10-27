@@ -10,7 +10,7 @@ const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:
 function client(handler) {
   const calls=[],redirects=[],events={},button={hidden:true,disabled:false,addEventListener:(n,f)=>events['button:'+n]=f};
   const context={Request,Response,Headers,URL,Promise,Error,console,Object,AbortController,setTimeout,clearTimeout};
-  context.document={readyState:'loading',addEventListener:(n,f)=>events[n]=f,getElementById:()=>button};
+  context.document={readyState:'loading',addEventListener:(n,f)=>events[n]=f,getElementById:()=>button,querySelectorAll:()=>[]};
   context.window={location:{href:'http://device/',origin:'http://device',replace:x=>redirects.push(x)},alert:()=>{},fetch:async(input,init)=>{
     calls.push({input,init});return handler(input,init,calls.length);
   }};

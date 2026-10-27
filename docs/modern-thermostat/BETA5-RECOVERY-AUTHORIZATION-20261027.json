@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "approved": true,
+  "instruction": "Ja, herstart en installeer beta.5",
+  "target_tag": "v0.1.0-e32v2-beta.5",
+  "scope": "One controlled preparatory E32 restart following the recorded failed catalog check, then one fresh native catalog check and one native installation if all remaining preflight checks pass.",
+  "maximum_total_explicit_catalog_checks": 2,
+  "maximum_preinstall_reboots": 1,
+  "maximum_install_commands": 1,
+  "boiler_or_valve_test_authorized": false,
+  "ha_update_authorized": false,
+  "continuing_task": "Resume mega-release implementation after this bounded installation recovery."
+}

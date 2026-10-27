@@ -1,0 +1,168 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target_version": "v0.1.0-e32v2-beta.6",
+  "source_frozen": false,
+  "installed_version": "v0.1.0-e32v2-beta.4",
+  "physical_trial_performed": false,
+  "baseline": {
+    "scope": "Small-sample read-only installed beta.4 LAN timing; separate browser cold navigation",
+    "routes": [
+      {
+        "path": "/",
+        "bytes": 71273,
+        "median_total_ms": 381.11
+      },
+      {
+        "path": "/about.html",
+        "bytes": 5931,
+        "median_total_ms": 120.42
+      },
+      {
+        "path": "/boiler_test.html",
+        "bytes": 48069,
+        "median_total_ms": 240.63
+      },
+      {
+        "path": "/ems_devices.html",
+        "bytes": 3955,
+        "median_total_ms": 125.56
+      },
+      {
+        "path": "/ui-messages.js",
+        "bytes": 101906,
+        "median_total_ms": 537.48
+      },
+      {
+        "path": "/ems-reference.js.gz",
+        "bytes": 69922,
+        "median_total_ms": 389.8
+      },
+      {
+        "path": "/ems-devices.js",
+        "bytes": 28874,
+        "median_total_ms": 219.81
+      },
+      {
+        "path": "/deps/jquery.min.js.gz",
+        "bytes": 30842,
+        "median_total_ms": 163.11
+      },
+      {
+        "path": "/status",
+        "bytes": 2691,
+        "median_total_ms": 121.55
+      },
+      {
+        "path": "/status/ems/telemetry",
+        "bytes": 15016,
+        "median_total_ms": 129.95
+      },
+      {
+        "path": "/status/ems/devices",
+        "bytes": 13195,
+        "median_total_ms": 133.04
+      },
+      {
+        "path": "/status/boiler/settings",
+        "bytes": 676,
+        "median_total_ms": 62.24
+      }
+    ],
+    "browser_ready_ms": 2494,
+    "browser_total_transfer_bytes": 436285
+  },
+  "candidate_browser_fixture": {
+    "scope": "Simulated HTTP/cache desktop/mobile, not an on-device speedup measurement",
+    "cold_payload_body_bytes": [
+      140953,
+      140946
+    ],
+    "budget_bytes": 160000,
+    "snapshot_readers": "One shared request/poll for controls and entity table",
+    "background_tabs": "Polling paused; return only reads state, never rearms supervision"
+  },
+  "build": {
+    "firmware_bytes": 3071776,
+    "firmware_sha256": "b2bfeb3099684c94ab133a6ea3489d1ab54a7f4c33bc0abb869734e5d03c97d0",
+    "slot_bytes": 3670016,
+    "web_sha256": "028629e45233a96dc2a340b07cdc571167cd99d612127794b6b6abc63622a715",
+    "gzip_representations": 29,
+    "gzip_bytes": 147394,
+    "raw_counterpart_bytes": 543366,
+    "telemetry_buffer_bytes": 65536,
+    "telemetry_buffer_memory": "Lazy, reusable PSRAM-only allocation, no internal fallback"
+  },
+  "validation": {
+    "native_cases": 1186,
+    "actual_http_handler_cases": 21,
+    "response_buffer_asan_ubsan_cases": 6,
+    "confirmation_interruption_browser_cases": 72,
+    "ha_first_pass": 2361,
+    "ha_initial_missing_or_old_runner_failures": 26,
+    "ha_rebuilt_runner_recheck_pass": 25,
+    "ha_native_control_plan_recheck_pass": 67,
+    "ha_skips": 3,
+    "ha_scope": "Initial full suite plus failure-focused exact-source runner rebuild checks; the remaining room-name capability failure passed with the rebuilt graph-session runner."
+  },
+  "source_fingerprints": {
+    "src/REST.h": "c89282a5bc3adbf362a659198448afecbc8bf4337b8a608fce5ee97f7f2b733d",
+    "src/diagnostics/ResponseBuffer.h": "f66430eefb1f41bfe281fd8d517de0ca408ab195f7cf3fde9227e3aadac7e423",
+    "src/control/StaticAssetPolicy.h": "c3cbc3151965e3caa9cb063cfac3cd5b7adbfb41538eea62a2d35e583840054c",
+    "src/EmsController.h": "b19420a43f32634410b2b5906fdc949614ca4d0fd0b749efeb6db1c155a72f65",
+    "src/EMS/ClassicBoilerMonitor.h": "d21dfc8d5d471fbe859b95ccd7cd70abfe055bf0d3320867330c9e33323957c1",
+    "data/html/index.html": "4b71e2f5313b8a7109e6723bbbdc8131d9811f879110b1988c9a9b2a6cd592f6",
+    "data/html/boiler_test.html": "d85e9a13d11b697f5b9068df90fb8b9d120bff643c5b2350fa2ee88194aad232",
+    "data/html/ems-devices.js": "4961689a7f8512238be5ffd685b4c180dabd04ab2fe9103b3ef5b38d6bc4bc1d",
+    "data/html/boiler-data.js": "07dc6ae9cad0e3674e13f5881df445cb5746877aa69f4fff2187cfc77cd1a0f0",
+    "scripts/e32v2_web_assets.py": "3190776e2b6a6e7eccffa2ac1b4be1102b71874e1b7f810ac1a75390ab024839"
+  },
+  "evidence": [
+    {
+      "path": "out/boiler-workflow-20261027/accepted-evidence/response-buffer-native.log",
+      "sha256": "e81a98c5b6efb10a83ece32db6b2c6571766a8d56cc11c9303d9a1a9dee2323a"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/accepted-evidence/response-buffer-sanitized.log",
+      "sha256": "3fca4f358c0cec50485222cf1641d1771a4c477b93c8f82cdf0f13484c513ffa"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/accepted-evidence/http-handler-with-memory.log",
+      "sha256": "036c3bd88c065412f660511dcba4ee23a432c7f58743f88c0e92b10266e2dcc6"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/accepted-evidence/verified-memory-image.log",
+      "sha256": "ac0abeb6ed500040d755490511acc18403867eda002e0186e240c47d96568150"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/accepted-evidence/final-web-unit.log",
+      "sha256": "b0e478538a45c2cd1f7798ba2a30419519c6b338fefd0061b8ef77d210d15e6f"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/accepted-evidence/final-control-browser.log",
+      "sha256": "6075e7dea43e1870071225b57c71a19bb8c7d0256924d5b5b8996b2a99c65e01"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/accepted-evidence/final-confirm-browser.log",
+      "sha256": "e96c239edcfaea192d63a5c6bb73b5bef7fdad097423bd4741533abd3ef0cfdb"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/accepted-evidence/boiler-configuration-read-verified.log",
+      "sha256": "2dd145c5be31666366a167abaa76b2778d7c2ac6980add33d910f4202f4da280"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/accepted-evidence/ems-devices-verified.log",
+      "sha256": "71341756e37301362785d85e884db2f9e3d9cd6e111a3d010602aaf2f24687e4"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/accepted-evidence/boiler-settings-verified.log",
+      "sha256": "f5baf4238ce49a9d42930450d4ec5d8b164dffef3df92a7d87296bf0bd38ba06"
+    },
+    {
+      "path": "out/boiler-workflow-20261027/accepted-evidence/final-page-loading.log",
+      "sha256": "3a72252e1dac63ab47380e2cc16cab9480a1de694def91f8ce2a2c5a54ac1eaa"
+    }
+  ],
+  "remaining": "Install separately when authorized, then repeat actual device timings/heap metrics and physical boiler acceptance. Broader release implementation continues."
+}

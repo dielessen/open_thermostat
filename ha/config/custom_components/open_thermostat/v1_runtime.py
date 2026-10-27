@@ -21,6 +21,7 @@ from .const import DOMAIN
 from .native_binding import native_binding_identity
 
 from .comfort_sources import ContextReport, ContextSourceProfile, CONTEXT_MAX_AGE_MS
+from .room_contacts import ContactAggregator, ContactSample, MAX_CONTACTS
 
 from .v1_model import (
     CONF_ENABLED, EntityReference, Observation, QualifiedReport,
@@ -94,8 +95,10 @@ class ShadowRuntime:
         self.observations = {room.room_id: Observation(None, "disabled") for room in rooms}
         self.decisions: dict[str, RoomDecision] = {}
         self._comfort_context_cache = {}
-        # At most two SOURCE pins per room. Never loaded from entry/options/Store.
-        if type(context_source_profiles) is not tuple or len(context_source_profiles)>16:
+        self._contact_aggregators = {r.room_id: ContactAggregator(r.contact_policy)
+                                     for r in rooms if r.contacts}
+        # Bounded logical SOURCE pins; never loaded from entry/options/Store.
+        if type(context_source_profiles) is not tuple or len(context_source_profiles)>8*(MAX_CONTACTS+2):
             raise ValueError("context_profile_invalid")
         self._context_source_profiles = {}
         self._context_source_values = {}
@@ -105,8 +108,9 @@ class ShadowRuntime:
                 raise ValueError("context_profile_invalid")
             profile.validate()
             room=self.rooms.get(profile.room_id)
-            ref=getattr(room,profile.kind,None)
-            key=(profile.room_id,profile.kind)
+            ref=(next((c.entity for c in room.contacts if c.entity.identity()==profile.identity),None)
+                 if room is not None and profile.kind=="contact" else getattr(room,profile.kind,None))
+            key=(profile.room_id,profile.kind,ref.identity()) if profile.kind=="contact" and ref else (profile.room_id,profile.kind)
             if (graph_data_profile is not None or profile.entry_unique_id!=entry.unique_id
                     or room is None or room.comfort is None or ref is None
                     or ref.identity()!=profile.identity or key in self._context_source_profiles):
@@ -344,7 +348,8 @@ class ShadowRuntime:
         ids: set[str] = set()
         device_ids: set[str] = set()
         for room in self.rooms.values():
-            for ref in (room.temperature, *room.actuators, room.setpoint, room.window, room.presence):
+            for ref in (room.temperature, *room.actuators, room.setpoint, room.window, room.presence,
+                        *(c.entity for c in room.contacts)):
                 if ref and (entity_id := self._resolve(ref)):
                     ids.add(entity_id)
             for ref in (room.temperature, *room.actuators):
@@ -407,13 +412,17 @@ class ShadowRuntime:
                 continue
             if self._resolve(room.temperature) == entity_id:
                 self._observe(room, event_kind)
-            elif any(ref and self._resolve(ref)==entity_id for ref in (room.window,room.presence)):
+            elif any(ref and self._resolve(ref)==entity_id
+                     for ref in (room.window,room.presence,*(c.entity for c in room.contacts))):
                 # NEW logical proof only on the existing native event path.
                 # Reuse ORIGINAL temperature observation/deadline, never renew it.
                 for kind in ("window","presence"):
                     ref=getattr(room,kind)
                     if ref and self._resolve(ref)==entity_id:
                         self._observe_context_source(room,kind,event_kind)
+                for contact in room.contacts:
+                    if self._resolve(contact.entity)==entity_id:
+                        self._observe_context_source(room,"contact",event_kind,contact.entity)
                 self._record(room.room_id,self.observations[room.room_id])
             elif room.setpoint and self._resolve(room.setpoint) == entity_id:
                 # Knob origin/echo qualification awaits a concrete profile.
@@ -602,24 +611,27 @@ class ShadowRuntime:
     def invalidate_context_sources(self):
         """Owner/rebind/stop drops usable proofs; bounded replay watermarks survive."""
         self._context_source_values.clear()
+        for aggregate in self._contact_aggregators.values():
+            aggregate.reset()
         for key,prior in self._context_source_watermarks.items():
             self._context_source_watermarks[key]=(*prior[:3],None)
 
-    def _observe_context_source(self,room,kind,event_kind):
-        key=(room.room_id,kind)
+    def _observe_context_source(self,room,kind,event_kind,reference=None):
+        reference=reference if kind=="contact" else getattr(room,kind)
+        key=(room.room_id,kind,reference.identity()) if kind=="contact" else (room.room_id,kind)
         profile=self._context_source_profiles.get(key)
         if profile is None:
             return
         generation = self._generation
         if self._measurement_now() is None:
             return
-        state_id=self._resolve(getattr(room,kind))
+        state_id=self._resolve(reference)
         state=self.hass.states.get(state_id) if state_id else None
         old=self._context_source_values.pop(key,None)
         prior=self._context_source_watermarks.get(key)
         if prior:
             self._context_source_watermarks[key]=(*prior[:3],None)
-        allowed=("on","off") if kind=="window" else ("not_home","home")
+        allowed=("on","off") if kind in ("window","contact") else ("not_home","home")
         if (not self._active or state is None or state.attributes.get("restored")
                 or state.state not in allowed or event_kind not in ("changed","reported")):
             return
@@ -688,7 +700,51 @@ class ShadowRuntime:
                 result[kind]="qualified_logical_report" if value is not None else "source_report_unknown"
             else:
                 result[kind]="conservative_state_age" if getattr(room,kind) else "not_configured"
+        if room.contacts:
+            context=self._contacts_context(room)
+            result["window"]=context.reason
+            result["contacts"]={"count":len(room.contacts),"reason":context.reason,
+                                "pending_ms":context.pending_ms,"age_ms":context.age_ms,
+                                "state": "unknown" if context.open is None else "open" if context.open else "closed"}
         return result
+
+    def _contacts_context(self,room):
+        now=self._measurement_now()
+        if now is None:
+            from .room_contacts import ContactAssessment,MAX_AGE_MS
+            return ContactAssessment(None,MAX_AGE_MS,"contact_clock_invalid")
+        samples=[]
+        for contact in room.contacts:
+            ref=contact.entity
+            source_key=(room.room_id,"contact",ref.identity())
+            if source_key in self._context_source_profiles:
+                value,age=self._context_source_value(source_key)
+                samples.append(ContactSample(value,age))
+                continue
+            eid=self._resolve(ref)
+            row=er.async_get(self.hass).async_get(eid) if eid else None
+            state=self.hass.states.get(eid) if row is not None and row.disabled_by is None else None
+            token=(eid,state.last_changed,state.state,bool(state.attributes.get("restored"))) if state else None
+            key=(room.room_id,"contact_state",ref.identity())
+            prior=self._comfort_context_cache.get(key)
+            if prior is None or prior[0]!=token:
+                age=86400000;value=None
+                try:
+                    if state is not None:
+                        age=math.ceil((dt_util.utcnow()-state.last_changed).total_seconds()*1000)
+                    if state and not state.attributes.get("restored") and 0<=age<room.contact_policy.maximum_age_ms:
+                        value=True if state.state=="on" else False if state.state=="off" else None
+                    if prior and token and prior[0] and token[1]<=prior[0][1]:
+                        value=None;age=86400000
+                except (TypeError,ValueError,OverflowError,AttributeError):
+                    value=None;age=86400000
+                prior=(token,age,now,value)
+                self._comfort_context_cache[key]=prior
+            elapsed=now-prior[2]
+            age=prior[1]+math.ceil(elapsed*1000)
+            value=prior[3] if 0<=elapsed and 0<=age<room.contact_policy.maximum_age_ms else None
+            samples.append(ContactSample(value,age,prior[0]))
+        return self._contact_aggregators[room.room_id].assess(math.floor(now*1000),tuple(samples))
 
     def comfort_context(self,room):
         """Native HA logical observations, NOT physical readiness or source evidence.
@@ -732,6 +788,9 @@ class ShadowRuntime:
             value=prior[3] if 0<=elapsed and 0<=age<120000 else None
             result["window_open" if key=="window" else "presence_away"]=value
             result[key+"_age_ms"]=age if 0<=age<=86400000 else 86400000
+        if room.contacts:
+            contacts=self._contacts_context(room)
+            result["window_open"],result["window_age_ms"]=contacts.open,contacts.age_ms
         return result
 
     @callback

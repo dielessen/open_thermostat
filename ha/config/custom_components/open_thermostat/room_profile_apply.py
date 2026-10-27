@@ -79,6 +79,8 @@ async def save_active_profile(hass, entry, sub, old, token, settings, *, binding
     proposed.validate_prospective_native(hass, entry, room, document)
     central = central_entry(entry)
     raw = {**deepcopy(dict(sub.data)), **room.as_dict()}
+    if not room.contacts:
+        raw.pop('contacts',None);raw.pop('contact_policy',None)
     replacement = replace(sub, data=MappingProxyType(raw), title=room.name)
     heat = {**deepcopy(dict(central.data)), 'draft': document, 'status': graph.readiness,
             'draft_digest': graph.digest, 'incomplete_group_ids': list(graph.incomplete_group_ids)}

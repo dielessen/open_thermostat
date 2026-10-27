@@ -1,77 +1,21 @@
 <section id="ems-devices" class="ems-devices">
-  <h2 data-i18n="Boiler entities and settings">Boiler entities and settings</h2>
-  <p data-i18n="Devices and entities observed on the EMS bus. Refresh reads the local snapshot; it does not scan or query devices.">Devices and entities observed on the EMS bus. Refresh reads the local snapshot; it does not scan or query devices.</p>
-  <details id="ems-boiler-settings" open>
-    <summary data-i18n="Boiler heating settings">Boiler heating settings</summary>
-    <div class="ems-device-body">
-      <p data-i18n="Reported values come from the local EMS snapshot. Refresh does not query the boiler.">Reported values come from the local EMS snapshot. Refresh does not query the boiler.</p>
-      <p id="ems-settings-operation" role="status" aria-live="polite"></p>
-      <div id="ems-settings-editor" hidden></div>
-      <p id="ems-settings-status" role="status" aria-live="polite"></p>
-      <div id="ems-settings-table" class="ems-table-wrap" hidden>
-        <table><thead><tr>
-          <th data-i18n="Setting">Setting</th><th data-i18n="Reported value">Reported value</th>
-          <th data-i18n="Status">Status</th><th data-i18n="Age">Age</th>
-          <th data-i18n="Protocol range">Protocol range</th>
-          <th data-i18n="E32 access">E32 access</th>
-        </tr></thead><tbody id="ems-settings-rows"></tbody></table>
-      </div>
-    </div>
-  </details>
-  <details id="ems-all-entities" open>
-    <summary data-i18n="Complete EMS-ESP boiler entity catalogue">Complete EMS-ESP boiler entity catalogue</summary>
-    <div class="ems-device-body">
-      <p data-i18n="Read-only values, configurable settings and commands are listed separately. Model capabilities and current E32 support are shown independently. A catalogue entry does not activate a control.">Read-only values, configurable settings and commands are listed separately. Model capabilities and current E32 support are shown independently. A catalogue entry does not activate a control.</p>
-      <div class="ems-toolbar">
-        <label><span data-i18n="Search catalogue">Search catalogue</span><input type="search" id="ems-catalog-search" class="form-control" maxlength="80"></label>
-        <label><span data-i18n="EMS-ESP access">EMS-ESP access</span><select id="ems-catalog-access" class="form-control">
-          <option value="all" data-i18n="All entities">All entities</option>
-          <option value="read" data-i18n="Read only">Read only</option>
-          <option value="write" data-i18n="Configurable settings">Configurable settings</option>
-          <option value="command" data-i18n="Commands">Commands</option>
-        </select></label>
-        <label><span data-i18n="Boiler model reference">Boiler model reference</span><select id="ems-catalog-model" class="form-control"></select></label>
-      </div>
-      <p id="ems-catalog-status" role="status" aria-live="polite"></p>
-      <div class="ems-table-wrap"><table id="ems-catalog-table"><thead><tr>
-        <th data-i18n="Entity">Entity</th><th data-i18n="EMS-ESP access">EMS-ESP access</th>
-        <th data-i18n="Type, options and limits">Type, options and limits</th><th data-i18n="E32 support">E32 support</th>
-        <th data-i18n="Boiler model reference">Boiler model reference</th>
-      </tr></thead><tbody id="ems-catalog-rows"></tbody></table></div>
-      <button type="button" class="btn btn-outline-secondary" id="ems-catalog-more" data-i18n="Show more entities" hidden>Show more entities</button>
-    </div>
-  </details>
-  <h3 data-i18n="Received devices and values">Received devices and values</h3>
+  <h2 data-i18n="Connected EMS devices">Connected EMS devices</h2>
   <div class="ems-toolbar">
     <label><span data-i18n="Search entities">Search entities</span><input type="search" id="ems-search" class="form-control" maxlength="80"></label>
-    <label><span data-i18n="E32 access">E32 access</span><select id="ems-access" class="form-control">
+    <label><span data-i18n="Access">Access</span><select id="ems-access" class="form-control">
       <option value="all" data-i18n="All entities">All entities</option>
-      <option value="read" data-i18n="Read only on E32">Read only on E32</option>
+      <option value="read" data-i18n="Read only">Read only</option>
       <option value="write" data-i18n="Configurable settings">Configurable settings</option>
       <option value="command" data-i18n="Manual trial only">Manual trial only</option>
     </select></label>
-    <label><input type="checkbox" id="ems-show-unknown"> <span data-i18n="Include fields not received yet">Include fields not received yet</span></label>
     <button type="button" id="ems-refresh" class="btn btn-outline-primary" data-i18n="Refresh">Refresh</button>
   </div>
   <p id="ems-devices-status" role="status" aria-live="polite"></p>
   <div id="ems-device-list"></div>
+  <p id="ems-settings-status" role="status" aria-live="polite"></p>
+  <p id="ems-settings-operation" role="status" aria-live="polite"></p>
+  <div id="ems-settings-editor" class="ems-editor" hidden></div>
 </section>
 <style>
-.ems-devices{max-width:1100px;margin:auto;padding:20px;overflow-wrap:anywhere}.ems-toolbar{display:flex;flex-wrap:wrap;gap:16px;align-items:end;margin:20px 0}.ems-toolbar label{margin:0;max-width:100%}.ems-toolbar select{max-width:100%}.ems-devices details{border:1px solid #ccd9d8;border-radius:10px;margin:12px 0;background:#fff}.ems-devices summary{padding:16px;cursor:pointer;font-weight:600}.ems-device-body{padding:0 16px 16px;min-width:0}.ems-device-meta{color:#52646a}.ems-table-wrap{overflow-x:auto;max-width:100%}.ems-devices table{width:100%;border-collapse:collapse;font-size:14px}.ems-devices th,.ems-devices td{padding:9px;border-bottom:1px solid #e2e9e8;text-align:left;vertical-align:top}.ems-devices th{white-space:nowrap}.ems-devices td:first-child{min-width:180px}.ems-devices td:not(:first-child){white-space:nowrap}.ems-devices td code{color:#52646a;display:block;font-size:11px;overflow-wrap:anywhere;max-width:280px}.ems-devices .ems-value{white-space:nowrap;font-weight:600}.ems-device-status{font-weight:400;margin-left:10px;color:#52646a}.ems-devices[data-failed=true] .ems-value{color:#6b7280}.ems-warning{color:#8a5200}.ems-access{display:inline-block;border:1px solid #637681;border-radius:5px;padding:2px 6px;font-size:12px;white-space:normal}.ems-access[data-access=write]{background:#e8f2fc;border-color:#3b6d9a}.ems-access[data-access=command]{background:#fff2dd;border-color:#966100}#ems-catalog-rows td{white-space:normal;max-width:340px}#ems-catalog-rows td:first-child{min-width:150px}@media(max-width:480px){.ems-devices{padding:12px}.ems-device-body{padding:0 10px 10px}.ems-devices summary{padding:12px}}
-@media(max-width:600px){
-#ems-settings-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
-#ems-settings-table tbody{display:block}
-#ems-settings-table tr{display:block;border-bottom:1px solid #e2e9e8;padding:8px 0}
-#ems-settings-table td{display:flex;justify-content:space-between;gap:12px;white-space:normal;min-width:0;border:0;padding:5px 0}
-#ems-settings-table td:first-child{display:block;font-weight:600}
-#ems-settings-table td[data-label]::before{content:attr(data-label);font-weight:400;color:#52646a}
-#ems-catalog-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
-#ems-catalog-rows,#ems-catalog-rows tr{display:block}
-#ems-catalog-rows tr{border-bottom:1px solid #ccd9d8;padding:8px 0}
-#ems-catalog-rows td{display:flex;justify-content:space-between;gap:12px;max-width:none;min-width:0;border:0;white-space:normal;padding:5px 0}
-#ems-catalog-rows td:first-child{display:block;min-width:0;font-weight:600}
-#ems-catalog-rows td[data-label]::before{content:attr(data-label);font-weight:400;color:#52646a;flex:0 0 35%}
-}
-#ems-settings-editor label{display:block;margin:12px 0}#ems-settings-editor input[type=number],#ems-settings-editor select{max-width:320px}#ems-settings-editor input[type=checkbox]{margin-right:8px}
-.ems-devices .ems-models{border:0;margin:0;padding:0;background:transparent}.ems-devices .ems-models>summary{padding:0;font-weight:400}.ems-models p{margin-top:8px}
+.ems-devices{max-width:1100px;margin:auto;overflow-wrap:anywhere}.ems-toolbar{display:flex;flex-wrap:wrap;gap:16px;align-items:end;margin:20px 0}.ems-toolbar label{margin:0;max-width:100%}.ems-toolbar select{max-width:100%}.ems-devices details{border:1px solid #ccd9d8;border-radius:10px;margin:12px 0;background:#fff}.ems-devices summary{padding:16px;cursor:pointer;font-weight:600}.ems-device-body{padding:0 16px 16px;min-width:0}.ems-device-meta{color:#52646a;font-size:.85rem}.ems-table-wrap{overflow-x:auto;max-width:100%}.ems-devices table{width:100%;border-collapse:collapse;font-size:14px}.ems-devices th,.ems-devices td{padding:10px;border-bottom:1px solid #e2e9e8;text-align:left;vertical-align:top}.ems-devices td:first-child{min-width:150px}.ems-devices td code{display:block;font-size:11px;color:#52646a;overflow-wrap:anywhere}.ems-value{font-weight:600;white-space:nowrap}.ems-device-status{font-weight:400;margin-left:10px;color:#52646a}.ems-access{display:inline-block;border:1px solid #637681;border-radius:5px;padding:2px 6px;font-size:12px;margin-right:6px}.ems-access[data-access=write]{background:#e8f2fc;border-color:#3b6d9a}.ems-access[data-access=command]{background:#fff2dd;border-color:#966100}.ems-editor{padding:16px;border:1px solid #ccd9d8;border-radius:10px}.ems-editor label{display:block;margin:12px 0}.ems-editor select,.ems-editor input[type=number]{max-width:320px}.ems-editor input[type=checkbox]{margin-right:8px}@media(max-width:600px){.ems-device-body{padding:0 10px 10px}.ems-devices summary{padding:12px}.ems-devices thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.ems-devices tbody,.ems-devices tr{display:block}.ems-devices tr{padding:10px 0;border-bottom:1px solid #e2e9e8}.ems-devices td{display:block;min-width:0!important;border:0;padding:3px 0}.ems-device-status{display:block;margin:6px 0 0}}
 </style>

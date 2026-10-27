@@ -279,6 +279,47 @@ public:
         return true;
     }
 
+    // Compatibility projection for Home/About/legacy JSON consumers. Values
+    // come from this same aged monitor, never a second Classic decoder/cache.
+    void writeLegacyStatus(std::ostream& out,uint64_t now) const {
+        out<<"{\"protocolProfile\":\""<<capabilities_.name()<<"\",\"physicalValidation\":false";
+        if(capabilities_.profile()==BoilerProtocol::classic) {
+            const auto emit=[&](const char *name,BoilerField field,int divisor=1,bool boolean=false) {
+                const auto sample=value(field,now);
+                out<<",\""<<name<<"\":";
+                if(!sample)out<<"null";
+                else if(boolean)out<<(*sample?"true":"false");
+                else out<<static_cast<double>(*sample)/divisor;
+            };
+            emit("currentFlowTemperature",BoilerField::flow,10);
+            emit("selectedFlowTemperature",BoilerField::selectedFlow,100);
+            emit("currentWarmWaterTemperature",BoilerField::dhwTemp,10);
+            emit("selectedWarmWaterTemperature",BoilerField::selectedDhw,100);
+            emit("currentBurnerPower",BoilerField::modulation);
+            emit("pressure",BoilerField::pressure);
+            emit("outdoorTemperature",BoilerField::outdoor);
+            emit("warmWaterFlow",BoilerField::dhwFlow);
+            emit("heatingActive",BoilerField::heatingActive,1,true);
+            emit("warmWaterActive",BoilerField::dhwActive,1,true);
+            emit("heatingEnabled",BoilerField::heatingEnabled,1,true);
+            emit("warmWaterEnabled",BoilerField::dhwEnabled,1,true);
+            emit("burningGas",BoilerField::rawBurner,1,true);
+            emit("pumpEnabled",BoilerField::rawPump,1,true);
+            emit("fanEnabled",BoilerField::rawFan,1,true);
+            emit("serviceCode",BoilerField::serviceNumber);
+            const auto& display=sample(BoilerField::displayCode);
+            if(value(BoilerField::displayCode,now)&&display.raw) {
+                // The decoder validates both ASCII code characters.
+                out<<",\"displayCode\":\"";
+                for(char c:{char((*display.raw>>8)&255),char(*display.raw&255)}) {
+                    if(c=='"'||c=='\\')out<<'\\';
+                    out<<c;
+                }
+                out<<'"';
+            }
+        }
+        out<<'}';
+    }
     void writeFieldGroup(std::ostream& ss,uint64_t now,size_t group) const {
         constexpr size_t perGroup=10;
         if(group>=7)return;

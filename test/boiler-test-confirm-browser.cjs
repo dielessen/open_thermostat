@@ -45,13 +45,14 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
    if(action==='close_fault')await page.waitForFunction(()=>!document.querySelector('[data-test-close-fault]').disabled);
    else {
     await page.waitForFunction(()=>!document.querySelector('[data-test-flow]').disabled);
-    for(const field of ['owner','stop','path'])await page.locator('[data-site-'+field+']').check();
+    await page.locator('[data-site-confirm]').check();
    }
    if(action==='start'){
     await page.locator('[data-test-flow]').fill('40');await page.locator('[data-test-duration]').fill('1');
     await page.locator('[data-test-prepare]').click();
     await page.waitForFunction(()=>!document.querySelector('[data-test-start]').disabled);
    }
+   if(action==='prepare_zero')await page.locator('#boiler-test-reception > summary').click();
    const before=posts.length;
    await page.evaluate(({action,interruption})=>{
     const original=window.confirm;

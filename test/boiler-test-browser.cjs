@@ -36,12 +36,9 @@ const fixture = () => ({reception: {state:'classic_reports_received', report_cou
     await page.waitForFunction(() => typeof loadNativePage === 'function');
     await page.evaluate(() => loadNativePage('boiler_test'));
     await page.locator('[data-reception]').filter({hasText:'Verse EMS Classic'}).waitFor();
-    assert.match(await page.locator('[data-fields] tr').nth(0).innerText(),/37.2/);
-    assert.match(await page.locator('[data-fields] tr').nth(1).innerText(),/Geen bruikbare waarde/);
-    assert.match(await page.locator('[data-fields] tr').nth(2).innerText(),/0 bool/);
-    assert.match(await page.locator('[data-fields] tr').nth(3).innerText(),/Geen bruikbare waarde/);
-    assert.match(await page.locator('[data-fields] tr').nth(4).innerText(),/Geen bruikbare waarde/);
     assert.equal(await page.locator('#boiler-test img').count(),0);
+    assert.equal(await page.locator('[data-fields]').count(),0,'No duplicate entity table');
+    await page.locator('#boiler-test-reception > summary').click();
     const waiting = page.waitForEvent('download'); await page.locator('[data-download]').click();
     const download = await waiting; const saved = JSON.parse(fs.readFileSync(await download.path(),'utf8'));
     assert.equal(saved.physical_validation,false); assert.equal(saved.telemetry.transport.transmitted_frames,0);
@@ -57,9 +54,7 @@ const fixture = () => ({reception: {state:'classic_reports_received', report_cou
     data.telegram_inventory = {capacity:24,untracked_frames:2,types:[
       {type:24,frames:9,decoder:'classic_fields',age_ms:120},
       {type:1911,frames:1,decoder:'unmapped',age_ms:300}]};
-    await page.waitForFunction(() => document.querySelectorAll('[data-fields] tr').length === 69);
-    assert.match(await page.locator('[data-fields] tr').nth(32).innerText(),/Ionisatiestroom.*2.7 uA/s);
-    assert.match(await page.locator('[data-fields] tr').last().innerText(),/warmwateractiefsignaal/);
+    await page.locator('[data-telegrams]').filter({hasText:'0x777'}).waitFor();
     assert.match(await page.locator('[data-telegrams]').innerText(),/0x777.*Nog geen velddecoder/s);
     assert.match(await page.locator('[data-inventory-status]').innerText(),/volle lijst: 2/);
     const expandedWait = page.waitForEvent('download'); await page.locator('[data-download]').click();
@@ -71,17 +66,14 @@ const fixture = () => ({reception: {state:'classic_reports_received', report_cou
     await page.screenshot({path:path.join(out,`EXPANDED-${width}.png`),fullPage:true});
     data.reception.state = 'conflicting_families';
     await page.locator('[data-reception]').filter({hasText:'Tegenstrijdige'}).waitFor();
-    assert.match(await page.locator('[data-fields] tr').first().innerText(),/Geen bruikbare waarde/);
     data.reception.state = 'classic_reports_received';
     data.fields.overflow = {}; // 70 fits; explicitly reject over-budget responses
     for(let i=0;i<27;i++) data.fields['extra_'+i] = {};
     await page.locator('[data-reception]').filter({hasText:'niet beschikbaar'}).waitFor();
-    assert.equal(await page.locator('[data-fields] tr').count(),0);
     data.fields = fixture().fields;
     await page.locator('[data-reception]').filter({hasText:'Verse EMS Classic'}).waitFor();
     fail = true;
     await page.locator('[data-reception]').filter({hasText:'niet beschikbaar'}).waitFor();
-    assert.equal(await page.locator('[data-fields] tr').count(),0);
     assert.equal(await page.locator('[data-download]').isDisabled(),true);
     await page.evaluate(() => document.getElementById('boiler-test').remove());
     const before = requests.length; await page.waitForTimeout(5200); assert.equal(requests.length,before);

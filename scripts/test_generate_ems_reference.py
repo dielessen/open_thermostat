@@ -27,5 +27,15 @@ class ReferenceTests(unittest.TestCase):
             self.assertEqual(ref['library'][str(type_id)],ref['library'][str(0x165)])
         self.assertEqual(ref['telegrams']['24'],'UBAMonitorFast')
         self.assertIn('2',ref['telegrams'])
+        compact=json.loads((ROOT/'data/html/ems-metadata.js').read_text().removeprefix('window.OT_EMS_METADATA = ').rstrip(';\n'))
+        self.assertEqual(compact['devices'],ref['devices'])
+        aliases=compact['aliases']
+        self.assertEqual(len(aliases),68)
+        self.assertEqual(len(set(aliases.values())),68)
+        for key,group in compact['groups'].items():
+            self.assertTrue(key.startswith('boiler:'))
+            expected=[ref['entities'][i] for i in ref['groups'][key]['fields'] if ref['entities'][i][0] in aliases.values()]
+            self.assertEqual([compact['entities'][i] for i in group['fields']],expected)
+        self.assertLess((ROOT/'data/html/ems-metadata.js').stat().st_size,30000)
 
 if __name__=='__main__':unittest.main()

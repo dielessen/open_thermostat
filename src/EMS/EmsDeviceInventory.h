@@ -33,7 +33,8 @@ public:
     void writeJSON(std::ostream &out,uint64_t now) const {
         out<<"{\"schema\":1,\"capacity\":"<<capacity<<",\"types_per_device\":"<<typesPerDevice<<",\"untracked_frames\":"<<untracked_<<",\"devices\":[";
         for(size_t i=0;i<used_;++i){
-            if(i)out<<',';const auto &e=entries_[i];
+            if(i)out<<',';
+            const auto &e=entries_[i];
             out<<"{\"address\":"<<unsigned(e.address)<<",\"frames\":"<<e.frames<<",\"age_ms\":";
             if(now>=e.seen)out<<now-e.seen;else out<<"null";
             out<<",\"product_id\":";if(e.version)out<<unsigned(e.product);else out<<"null";

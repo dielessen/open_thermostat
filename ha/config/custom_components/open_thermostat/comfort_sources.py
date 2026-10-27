@@ -36,7 +36,7 @@ class ContextSourceProfile:
             if not isinstance(value, str) or not value or len(value)>256:
                 raise ValueError("context_profile_invalid")
         if (not isinstance(self.room_id,str) or re.fullmatch(r"[0-9a-f]{8}",self.room_id) is None
-                or self.kind not in ("window","presence")
+                or self.kind not in ("window","presence","contact")
                 or type(self.schema) is not int or self.schema!=1
                 or type(self.maximum_age_ms) is not int or self.maximum_age_ms!=CONTEXT_MAX_AGE_MS
                 or not callable(self.report) or inspect.iscoroutinefunction(self.report)
@@ -45,7 +45,7 @@ class ContextSourceProfile:
 
     @property
     def identity(self):
-        return ("binary_sensor" if self.kind=="window" else "person", self.platform, self.unique_id)
+        return ("binary_sensor" if self.kind in ("window","contact") else "person", self.platform, self.unique_id)
 
 
 @dataclass(frozen=True, slots=True)

@@ -74,12 +74,12 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   });
   await page.context().addCookies([{name:'ot_ui_lang',value:'nl',url:'http://boiler.test'}]);
   await page.goto('http://boiler.test/');await page.waitForFunction(()=>typeof loadNativePage==='function');
-  await page.evaluate(()=>loadNativePage('boiler_test'));
-  await page.locator('[data-test-state]').filter({hasText:'geblokkeerd'}).waitFor();
+  await page.evaluate(()=>loadNativePage('boiler_test'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
+  await page.locator('[data-test-state]').filter({hasText:'geblokkeerd'}).waitFor({state:'attached'});
   assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
   assert.equal(await page.locator('[data-test-start]').isDisabled(),true);
   assert.equal(requests.some(r=>r.method!=='GET'),false);
-  await page.locator('[data-heat-status]').filter({hasText:'verse meting van de keteldruk'}).waitFor();
+  await page.locator('[data-heat-status]').filter({hasText:'verse meting van de keteldruk'}).waitFor({state:'attached'});
   assert.match(await page.locator('[data-heat-limits]').innerText(),/40–50 °C/);
   assert.match(await page.locator('[data-heat-limits]').innerText(),/1–2,5 bar/);
   assert.match(await page.locator('[data-heat-limits]').innerText(),/Niet beoordeeld/);
@@ -88,7 +88,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   feedback={measured_flow_temperature:{value:75,unit:'degC',state:'valid',quality:'reported'},
     dhw_active:{value:1,unit:'bool',state:'valid',quality:'inferred'}};
   heatTrial={...heatTrial,reason:'flow_outside_trial_limits'};
-  await page.locator('[data-heat-status]').filter({hasText:'75 °C'}).waitFor();
+  await page.locator('[data-heat-status]').filter({hasText:'75 °C'}).waitFor({state:'attached'});
   assert.match(await page.locator('[data-heat-status]').innerText(),/5–<60 °C/);
   assert.match(await page.locator('[data-zero-help]').innerText(),/tapwaterbedrijf/);
   assert.equal(await page.locator('[data-test-zero]').isDisabled(),true);
@@ -97,13 +97,13 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   feedback={};
   // Healthy numbers cannot change the separately blocked test controls.
   heatTrial={...heatTrial,telemetry_ready:true,reason:'telemetry_ready'};
-  await page.locator('[data-heat-status]').filter({hasText:'metingen vallen binnen'}).waitFor();
+  await page.locator('[data-heat-status]').filter({hasText:'metingen vallen binnen'}).waitFor({state:'attached'});
   assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
   assert.equal(await page.locator('[data-test-start]').isDisabled(),true);
 
   heatTrial={...heatTrial,profile_id:'ecomline-classic-separate-pressure-v1',digital_pressure_required:false,
     separate_pressure_method_reviewed:false,telemetry_ready:false,reason:'pressure_check_method_unreviewed'};
-  await page.locator('[data-heat-status]').filter({hasText:'geen digitale druksensor'}).waitFor();
+  await page.locator('[data-heat-status]').filter({hasText:'geen digitale druksensor'}).waitFor({state:'attached'});
   assert.match(await page.locator('[data-heat-limits]').innerText(),/Grenzen afzonderlijke drukcontrole/);
   assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
 
@@ -114,13 +114,9 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   update({available:true,blocked_reason:'',can_prepare:true,limits,site_confirmation_required:true,pressure_check_required:true,...gaugeFields});
   await page.locator('[data-test-site]').waitFor({state:'visible'});
   assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
-  assert.equal(await page.locator('[data-site-owner]').isChecked(),false);
-  await page.locator('[data-site-owner]').check();await page.locator('[data-site-stop]').check();
-  assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
-  await page.locator('[data-site-path]').check();
-  assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
+  assert.equal(await page.locator('[data-site-confirm]').isChecked(),false);
+  await page.locator('[data-site-confirm]').check();
   assert.equal(requests.some(r=>r.path.endsWith('/prepare')),false);
-  await page.locator('[data-site-pressure]').check();
   if(gaugeTrial){
    assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
    for(const invalid of ['1','2.6','1.55']){
@@ -135,10 +131,10 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   await page.locator('[data-test-prepare]').click();assert.equal(requests.some(r=>r.path.endsWith('/prepare')),false);
   await page.locator('[data-test-flow]').fill('50');await page.locator('[data-test-prepare]').click();
   await page.waitForFunction(()=>!document.querySelector('[data-test-start]').disabled);
-  assert.equal(await page.locator('[data-site-owner]').isChecked(),false);
-  assert.equal(await page.locator('[data-site-stop]').isChecked(),false);
-  assert.equal(await page.locator('[data-site-path]').isChecked(),false);
-  assert.equal(await page.locator('[data-site-pressure]').isChecked(),false);
+  assert.equal(await page.locator('[data-site-confirm]').isChecked(),false);
+  assert.equal(await page.locator('[data-site-confirm]').isChecked(),false);
+  assert.equal(await page.locator('[data-site-confirm]').isChecked(),false);
+  assert.equal(await page.locator('[data-site-confirm]').isChecked(),false);
   if(gaugeTrial)assert.equal(await page.locator('[data-site-pressure-value]').inputValue(),'');
   const readySnapshot=structuredClone(state);
   assert.equal(requests.filter(r=>r.path.endsWith('/start')).length,0); // ready never auto-starts
@@ -174,14 +170,14 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
    forcedOld=null;
   }
   update({phase:'completed',can_prepare:true,can_stop:false,reported_stop_confirmed:true,zero_frames:2});
-  await page.locator('[data-test-state]').filter({hasText:'afgerond'}).waitFor();
+  await page.locator('[data-test-state]').filter({hasText:'afgerond'}).waitFor({state:'attached'});
   assert.equal(await page.locator('[data-test-stop]').isDisabled(),true);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.screenshot({path:path.join(out,`CONTROL-${width}.png`),fullPage:true});
   // Reopening a ready owned session does not renew or start it automatically.
   update({phase:'ready',can_prepare:false,can_stop:true,can_start:true,owned:true,reported_stop_confirmed:true});
-  await page.evaluate(()=>loadNativePage('boiler_test'));
-  await page.locator('[data-test-state]').filter({hasText:'Stopbasis gemeld'}).waitFor();
+  await page.evaluate(()=>loadNativePage('boiler_test'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
+  await page.locator('[data-test-state]').filter({hasText:'Stopbasis gemeld'}).waitFor({state:'attached'});
   const before=requests.filter(r=>r.method==='POST').length;await page.waitForTimeout(1300);
   assert.equal(requests.filter(r=>r.method==='POST').length,before);
   assert.equal(await page.locator('[data-test-start]').isDisabled(),true);
@@ -191,7 +187,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   // The same reported stop is translated after reopening in English.
   await page.context().addCookies([{name:'ot_ui_lang',value:'en',url:'http://boiler.test'}]);
   await page.reload();await page.waitForFunction(()=>typeof loadNativePage==='function');
-  await page.evaluate(()=>loadNativePage('boiler_test'));
+  await page.evaluate(()=>loadNativePage('boiler_test'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
   await page.locator('[data-test-facts] dd').filter({hasText:/^Yes$/}).waitFor();
   assert.equal(await page.locator('[data-test-facts] dd').filter({hasText:/^Ja$/}).count(),0);
   assert.match(await page.locator('[data-heat-limits]').innerText(),gaugeTrial?/1.1–2.5 bar/:/1–2.5 bar/);
@@ -207,20 +203,19 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
     zero_only:false,operator_lease_ms:5000,reported_stop_confirmed:false});
    await page.context().addCookies([{name:'ot_ui_lang',value:language,url:'http://boiler.test'}]);
    await page.reload();await page.waitForFunction(()=>typeof loadNativePage==='function');
-   await page.evaluate(()=>loadNativePage('boiler_test'));
+   await page.evaluate(()=>loadNativePage('boiler_test'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
    await page.locator('[data-test-site]').waitFor({state:'visible'});
    assert.equal(await page.locator('[data-test-zero]').isDisabled(),true);
-   await page.locator('[data-site-owner]').check();
-   assert.equal(await page.locator('[data-test-zero]').isDisabled(),true);
-   await page.locator('[data-site-stop]').check();
-   assert.equal(await page.locator('[data-site-path]').isChecked(),false);
+   await page.locator('[data-site-confirm]').check();
    await page.waitForFunction(()=>!document.querySelector('[data-test-zero]').disabled);
    assert.match(await page.locator('[data-test-state]').innerText(),language==='nl'?/Alleen een nulvraagproef/:/Only a zero-demand test/);
    assert.equal(await page.locator('[data-test-start]').isDisabled(),true);
    assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
    const zeroBefore=requests.filter(r=>r.method==='POST').length;
+   await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
    page.once('dialog',dialog=>dialog.dismiss());await page.locator('[data-test-zero]').click();
    assert.equal(requests.filter(r=>r.method==='POST').length,zeroBefore);
+   await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
    page.once('dialog',dialog=>dialog.accept());await page.locator('[data-test-zero]').click();
    await page.waitForFunction(()=>document.querySelector('[data-test-state]').textContent.includes(document.cookie.includes('ot_ui_lang=nl')?'afgerond':'completed'));
    assert.equal(await page.locator('[data-test-start]').isDisabled(),true);
@@ -228,8 +223,8 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
    const zeroRequests=requests.filter(r=>r.method==='POST').slice(zeroBefore);
    assert.equal(zeroRequests.filter(r=>r.path.endsWith('/prepare_zero')).length,1);
    assert.equal(zeroRequests.some(r=>r.path.endsWith('/start')||r.path.endsWith('/prepare')),false);
-   assert.equal(await page.locator('[data-site-owner]').isChecked(),false);
-   assert.equal(await page.locator('[data-site-stop]').isChecked(),false);
+   assert.equal(await page.locator('[data-site-confirm]').isChecked(),false);
+   assert.equal(await page.locator('[data-site-confirm]').isChecked(),false);
    assert.equal(await page.locator('[data-test-zero]').isDisabled(),true);
    const finished=requests.filter(r=>r.method==='POST').length;await page.waitForTimeout(1200);
    assert.equal(requests.filter(r=>r.method==='POST').length,finished);
@@ -244,12 +239,12 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
     restart_required:false,reported_stop_confirmed:false});
    await page.context().addCookies([{name:'ot_ui_lang',value:language,url:'http://boiler.test'}]);
    await page.reload();await page.waitForFunction(()=>typeof loadNativePage==='function');
-   await page.evaluate(()=>loadNativePage('boiler_test'));
+   await page.evaluate(()=>loadNativePage('boiler_test'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
    await page.locator('[data-test-close-fault]').waitFor({state:'visible'});
    assert.equal(await page.locator('[data-test-close-fault]').isDisabled(),true);
    if(width===1280) {
     update({can_close_fault:true}); // malformed permission without reported stop
-    await page.locator('[data-test-state]').filter({hasText:language==='nl'?'Proefstatus niet beschikbaar':'Test status unavailable'}).waitFor();
+    await page.locator('[data-test-state]').filter({hasText:language==='nl'?'Proefstatus niet beschikbaar':'Test status unavailable'}).waitFor({state:'attached'});
     assert.equal(await page.locator('[data-test-close-fault]').isVisible(),false);
    }
    update({can_close_fault:true,reported_stop_confirmed:true});
@@ -258,15 +253,15 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
    page.once('dialog',dialog=>dialog.dismiss());await page.locator('[data-test-close-fault]').click();
    assert.equal(requests.filter(r=>r.method==='POST').length,beforeClose);
    page.once('dialog',dialog=>dialog.accept());await page.locator('[data-test-close-fault]').click();
-   await page.locator('[data-test-state]').filter({hasText:language==='nl'?'afgesloten na gemelde stop':'closed after reported stop'}).waitFor();
+   await page.locator('[data-test-state]').filter({hasText:language==='nl'?'afgesloten na gemelde stop':'closed after reported stop'}).waitFor({state:'attached'});
    assert.equal(await page.locator('[data-test-close-fault]').isVisible(),false);
    for(const selector of ['[data-test-zero]','[data-test-prepare]','[data-test-start]','[data-test-stop]'])
     assert.equal(await page.locator(selector).isDisabled(),true);
    await page.waitForTimeout(1200);
    const closeRequests=requests.filter(r=>r.method==='POST').slice(beforeClose);
    assert.equal(closeRequests.length,1);assert(closeRequests[0].path.endsWith('/close_fault'));
-   await page.evaluate(()=>loadNativePage('boiler_test'));
-   await page.locator('[data-test-state]').filter({hasText:language==='nl'?'afgesloten na gemelde stop':'closed after reported stop'}).waitFor();
+   await page.evaluate(()=>loadNativePage('boiler_test'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
+   await page.locator('[data-test-state]').filter({hasText:language==='nl'?'afgesloten na gemelde stop':'closed after reported stop'}).waitFor({state:'attached'});
    await page.waitForTimeout(1200);assert.equal(requests.filter(r=>r.method==='POST').length,beforeClose+1);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
    assert.deepEqual(errors,[]);
@@ -277,14 +272,15 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
    state={...initial(),revision:state.revision,state_sequence:state.state_sequence+1,observed_at_ms:state.observed_at_ms+100,
     available:true,blocked_reason:'',can_prepare:true,can_prepare_zero:true,zero_test_available:true,
     site_confirmation_required:true,pressure_check_required:true,operator_lease_ms:5000,limits,...gaugeFields};
-   await page.evaluate(()=>loadNativePage('boiler_test'));
-   await page.waitForFunction(()=>!document.querySelector('[data-site-owner]').disabled);
-   await page.locator('[data-site-owner]').check();await page.locator('[data-site-stop]').check();
-   await page.locator('[data-site-path]').check();await page.locator('[data-site-pressure]').check();
+   await page.evaluate(()=>loadNativePage('boiler_test'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
+   await page.waitForFunction(()=>!document.querySelector('[data-site-confirm]').disabled);
+   await page.locator('[data-site-confirm]').check();await page.locator('[data-site-confirm]').check();
+   await page.locator('[data-site-confirm]').check();await page.locator('[data-site-confirm]').check();
    if(gaugeTrial)await page.locator('[data-site-pressure-value]').fill('1.5');
    await page.locator('[data-test-flow]').fill('50');await page.locator('[data-test-duration]').fill('600');
    delayPreparation=true;delayedPreparation=null;
    if(mode==='prepare_zero')page.once('dialog',dialog=>dialog.accept());
+   await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
    await page.locator(mode==='prepare_zero'?'[data-test-zero]':'[data-test-prepare]').click();
    await page.waitForTimeout(100);assert(delayedPreparation);
    if(['ready','pagehide'].includes(mode)) {

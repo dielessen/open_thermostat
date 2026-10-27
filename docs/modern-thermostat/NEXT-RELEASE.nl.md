@@ -1,13 +1,31 @@
-# Volgende E32-release — actueel uitvoeringsplan
+# Volgende release — grote ontwikkelbundel
+
+**Nieuwe opdracht27 oktober:** doorlopend bouwen aan één grote samenhangende
+release, E32 beta.6 + HA0.4.0b4. Geen routinevragen, geen apparaatupdate/herstart
+of fysieke ketel-/kraanproef tijdens dit ontwikkelwerk. De later afzonderlijk
+toegestane eenmalige beta.5-herstelherstart is uitgevoerd; de cataloguscontrole
+bleef mislukken. Verdere herstelacties zijn uitgesteld.
+[Uitvoeringsbundels en bewijsgrens](MEGA-RELEASE-20261027.nl.md).
 
 Bijgewerkt op 27 oktober 2026. **Beta.5 is gepubliceerd uit `a4237cd`, maar
 nog niet geïnstalleerd.** Alle negen exacte-tag-CI-controles en2.272 onafhankelijke
-pakketcontroles slagen. De E32 blijft op de geaccepteerde beta.4: één native
-cataloguscontrole eindigt op GitHub/HTTPS-code-1 vóór een HTTP-antwoord; er is
+pakketcontroles slagen. De E32 blijft op de geaccepteerde beta.4: de eerste native
+cataloguscontrole en één nieuwe controle na de toegestane herstelherstart
+eindigen beide op GitHub/HTTPS-code-1 vóór een HTTP-antwoord; er is
 geen installatieopdracht verstuurd. Een gecontroleerde back-up van twaalf
 onderdelen is bewaard. De afzonderlijke toestemming voor één herstelherstart
-is gevraagd en nog niet ontvangen. [Installatieblokkade](BETA5-INSTALL-BLOCKER-20261027.json)
+is later ontvangen en die ene herstart is uitgevoerd. Er volgt geen tweede
+herstart of alternatieve installatie tijdens dit ontwikkelwerk. [Installatieblokkade](BETA5-INSTALL-BLOCKER-20261027.json)
 en [openbaar pakketbewijs](BETA5-VERSIONED-PREVIEW.json).
+
+**Actuele codeprioriteit:** een snellere webinterface en een opgeruimde Keteltest.
+De kandidaat gebruikt build-time gzip, herbruikbare browsercache, kleine luie
+paginamodules en één gedeelde telemetrieaanvraag. De ketelpagina toont ontvangen
+entiteiten eenmaal per herkend apparaat. De proef staat bovenaan met één korte
+opstellingsbevestiging en de stappen ophalen → voorbereiden → apart starten →
+stoppen. Softwareproeven gebruiken gesimuleerde HTTP-/ketelantwoorden; er is
+hiermee geen nieuwe firmware geïnstalleerd of echte warmtevraag verstuurd.
+[Review en meetgrens](E32-PERFORMANCE-AND-BOILER-REVIEW.md).
 
 De oudere voorbereidingsnotities staan ongewijzigd in de
 [beta.4-planhistorie](NEXT-RELEASE-HISTORY-BETA4-20261026.nl.md) en de

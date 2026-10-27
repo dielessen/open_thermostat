@@ -58,6 +58,9 @@
         });
         try {
             const current = await session();
+            document.querySelectorAll('[data-bluetooth-settings]').forEach(node => {
+                node.hidden = current.legacy;
+            });
             const button = document.getElementById('auth-sign-out');
             if (!button || current.legacy) return;
             button.hidden = false;

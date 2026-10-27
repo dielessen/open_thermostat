@@ -11,6 +11,7 @@
 #ifdef OPENTHERMOSTAT_E32V2
 #include "EmbeddedWebAssets.h"
 #include "control/StaticAssetRoute.h"
+#include "control/StaticAssetPolicy.h"
 #include "update/GitHubUpdate.h"
 #include "control/WebAuthSession.h"
 #include "control/NativeSourceProvisioning.h"
@@ -25,6 +26,8 @@
 #include "Logging.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "diagnostics/LogRuntime.h"
+#include "diagnostics/ResponseBuffer.h"
+#include <esp_heap_caps.h>
 #endif
 
 #include <esp_ota_ops.h>
@@ -76,7 +79,7 @@ public:
 
 	void sendView(int code, std::string_view content_type, std::string_view content) {
 		String header;
-		if (content.length() == 0) {
+		if (content.length() == 0 && code != 304) {
 			log_w("content length is zero");
 		}
 
@@ -101,8 +104,8 @@ public:
 
 		server_.enableCORS(false);
 		server_.enableCrossOrigin(false);
-		const char *headers[]{"Origin","Sec-Fetch-Site","Cookie","X-OpenThermostat-CSRF","Content-Type","If-Match"};
-		server_.collectHeaders(headers,6);
+		const char *headers[]{"Origin","Sec-Fetch-Site","Cookie","X-OpenThermostat-CSRF","Content-Type","If-Match","If-None-Match","Accept-Encoding"};
+		server_.collectHeaders(headers,8);
 #ifdef OPENTHERMOSTAT_E32V2
 		route("/login",HTTP_GET,[this] { serveFile("/login.html"); });
 		route("/auth/login",HTTP_POST,[this] { login(); });
@@ -128,11 +131,19 @@ public:
             controller_.getEMSDeviceStatus(ss);server_.sendView(200,"application/json"sv,buf.view());
         });
 		route("/status/ems/telemetry", HTTP_GET, [this]() {
+#ifdef OPENTHERMOSTAT_E32V2
+            auto &buf=telemetryResponse_;
+            if(!buf.reset()){server_.send(503,"application/json","{\"error\":\"telemetry_buffer_unavailable\"}");return;}
+#else
 			ib::viewable_stringbuf buf;
+#endif
 			std::ostream ss(&buf);
 #ifdef OPENTHERMOSTAT_E32V2
 			const auto operatorSession = requestToken();
 			controller_.getEMSTelemetryStatus(ss, operatorSession.c_str());
+            if(!ss.good()||buf.failed()) {
+                server_.send(503,"application/json","{\"error\":\"telemetry_response_too_large\"}");return;
+            }
 #else
 			controller_.getEMSTelemetryStatus(ss);
 #endif
@@ -289,12 +300,25 @@ private:
 		server_.on(uri,method,handler,upload);
 #endif
 	}
+#ifdef OPENTHERMOSTAT_E32V2
+	bool staticAssetRequest() {
+		const auto uri=server_.uri();
+		return server_.method()==HTTP_GET &&
+			(uri=="/"||uri=="/login"||uri=="/setup"||
+			 control::embeddedAssetPath(std::string_view(uri.c_str(),uri.length()),embedded::assets));
+	}
+#endif
 	bool authorize(bool responseHeaders=true) {
 #ifdef OPENTHERMOSTAT_E32V2
+		const bool staticRequest=staticAssetRequest();
+		const auto reject=[&](int code,const char *type,const char *body) {
+			if(responseHeaders&&staticRequest)server_.sendHeader("Cache-Control","no-store");
+			server_.send(code,type,body);return false;
+		};
 		// Upload callbacks run for every chunk. WebServer appends sendHeader()
 		// calls until the response, so headers belong to the final route gate.
 		if(responseHeaders) {
-			server_.sendHeader("Cache-Control","no-store");
+			if(!staticRequest)server_.sendHeader("Cache-Control","no-store");
 			server_.sendHeader("X-Content-Type-Options","nosniff");
 			server_.sendHeader("X-Frame-Options","DENY");
 		}
@@ -305,13 +329,13 @@ private:
 		if(listenPort_==80&&host==canonical+":80") host=canonical;
 		const auto portal=control::portalAccess(wifiAPMode,server_.client().localIP()==WiFi.softAPIP(),host.c_str(),canonical.c_str(),server_.uri().c_str(),method);
 		if(portal==control::PortalAccess::Redirect) {
-			server_.sendHeader("Location","http://"+canonical+"/setup"); server_.send(302,"text/plain","OpenThermostat WiFi setup"); return false;
+			server_.sendHeader("Location","http://"+canonical+"/setup"); return reject(302,"text/plain","OpenThermostat WiFi setup");
 		}
-		if(!control::allowedHttpMethod(server_.uri().c_str(),method)) { server_.send(405,"text/plain","Method not allowed"); return false; }
+		if(!control::allowedHttpMethod(server_.uri().c_str(),method)) return reject(405,"text/plain","Method not allowed");
 		if(!control::sameOrigin(server_.header("Origin").c_str(),server_.hostHeader().c_str(),server_.header("Sec-Fetch-Site").c_str())) {
-			server_.send(403,"text/plain","Origin rejected"); return false;
+			return reject(403,"text/plain","Origin rejected");
 		}
-		if(!deviceAccess.ready()) { server_.send(503,"text/plain","Local access initialization failed"); return false; }
+		if(!deviceAccess.ready()) return reject(503,"text/plain","Local access initialization failed");
 		// The only public LAN paths are the login form/bootstrap and explicit credential exchange.
 		// Never issue WWW-Authenticate: browsers must not maintain a competing HTTP-auth cache.
 		if(control::publicAuthResource(server_.uri().c_str())) return true;
@@ -320,10 +344,10 @@ private:
 		const auto decision=control::webAuthDecision(sessions_,server_.uri().c_str(),method,token.c_str(),
 			server_.header("X-OpenThermostat-CSRF").c_str(),accessNow,portal==control::PortalAccess::Setup);
 		if(decision==control::WebAuthDecision::redirect_login){
-			server_.sendHeader("Location","/login");server_.send(303,"text/plain","Sign in to OpenThermostat");return false;
+			server_.sendHeader("Location","/login");return reject(303,"text/plain","Sign in to OpenThermostat");
 		}
-		if(decision==control::WebAuthDecision::authentication_required){server_.send(401,"application/json","{\"error\":\"authentication_required\"}");return false;}
-		if(decision==control::WebAuthDecision::csrf_required){server_.send(403,"application/json","{\"error\":\"csrf_required\"}");return false;}
+		if(decision==control::WebAuthDecision::authentication_required)return reject(401,"application/json","{\"error\":\"authentication_required\"}");
+		if(decision==control::WebAuthDecision::csrf_required)return reject(403,"application/json","{\"error\":\"csrf_required\"}");
 		if(server_.method()!=HTTP_GET&&update::mutationBlocked(server_.uri().c_str())) {
 			server_.send(409,"text/plain","Wacht tot de GitHub-update is afgerond en herstart eerst");return false;
 		}
@@ -342,6 +366,9 @@ private:
 	}
 #ifdef OPENTHERMOSTAT_E32V2
 	control::WebAuthSession sessions_;
+    diagnostics::ResponseBuffer telemetryResponse_{65536,[](size_t size)->void* {
+        return heap_caps_malloc(size,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
+    },heap_caps_free};
 	String requestToken() {
 		const auto cookie=server_.header("Cookie");
 		const auto token=control::WebAuthSession::cookieToken(std::string_view(cookie.c_str(),cookie.length()));
@@ -1467,7 +1494,7 @@ private:
 
 	void index() {
 #ifdef OPENTHERMOSTAT_E32V2
-		if(wifiAPMode) { server_.sendHeader("Location","/setup"); server_.send(302); return; }
+		if(wifiAPMode) { server_.sendHeader("Cache-Control","no-store");server_.sendHeader("Location","/setup"); server_.send(302); return; }
 #endif
 		if (!filesystem.isMounted()) {
 			recovery();
@@ -1477,6 +1504,9 @@ private:
 	}
 
 	void recovery() {
+#ifdef OPENTHERMOSTAT_E32V2
+		if(server_.uri()=="/")server_.sendHeader("Cache-Control","no-store");
+#endif
 		static constexpr auto page = R"html(<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title data-i18n="OpenThermostat recovery">OpenThermostat recovery</title><script src="/ui-messages.js"></script><script src="/ui-language.js"></script><script src="/auth-client.js"></script><style>body{font-family:sans-serif;max-width:42rem;margin:3rem auto;padding:0 1rem}button,input{font-size:1rem;margin:.5rem 0;padding:.6rem}progress{width:100%}</style></head>
@@ -1491,13 +1521,45 @@ button.onclick=async()=>{if(!file.files.length){status.textContent=uiText("Selec
 
 	void serveFile(const char *serverPath) {
 #ifdef OPENTHERMOSTAT_E32V2
-		if(!control::safeStaticPath(serverPath)) { server_.send(400,"text/plain","Invalid path"); return; }
+		if(!control::safeStaticPath(serverPath)) { if(staticAssetRequest())server_.sendHeader("Cache-Control","no-store");server_.send(400,"text/plain","Invalid path"); return; }
 		const auto *asset=embedded::find(serverPath);String assetPath=serverPath;
 		if(!asset){assetPath+=".gz";asset=embedded::find(assetPath.c_str());}
 		if(asset){
-			if(assetPath.endsWith(".gz"))server_.sendHeader("Content-Encoding","gzip");
-			server_.sendView(200,getContentType(assetPath).second,std::string_view(reinterpret_cast<const char*>(asset->bytes),asset->size));return;
+			const auto accept=server_.header("Accept-Encoding");
+			const auto preference=std::string_view(accept.c_str(),accept.length());
+			const bool storedGzip=assetPath.endsWith(".gz");
+			if(storedGzip&&!control::acceptsAssetGzip(preference,true)) {
+				server_.sendHeader("Cache-Control","no-store");
+				server_.sendHeader("Vary","Accept-Encoding");
+				server_.send(406,"text/plain","Gzip representation required");return;
+			}
+			const bool compressed=asset->gzip&&control::acceptsAssetGzip(preference);
+			if(!storedGzip&&!compressed&&!control::acceptsAssetIdentity(preference)) {
+				server_.sendHeader("Cache-Control","no-store");
+				server_.sendHeader("Vary","Accept-Encoding");
+				server_.send(406,"text/plain","No acceptable representation");return;
+			}
+			const auto *bytes=compressed?asset->gzip:asset->bytes;
+			const auto size=compressed?asset->gzipSize:asset->size;
+			const char *etag=compressed?asset->gzipEtag:asset->etag;
+			// Revalidate on each navigation/reload, including after a firmware change.
+			// This caches public UI bytes only; authorization still ran above.
+			server_.sendHeader("Cache-Control","private, no-cache");
+			server_.sendHeader("ETag",etag);
+			if(asset->gzip||storedGzip)server_.sendHeader("Vary","Accept-Encoding");
+			if(compressed||storedGzip)server_.sendHeader("Content-Encoding","gzip");
+			const auto condition=server_.header("If-None-Match");
+			if(control::assetNotModified(std::string_view(condition.c_str(),condition.length()),etag)) {
+				// Pinned WebServer otherwise writes Content-Length: 0. A 304 may
+				// advertise only the selected 200 representation's length.
+				server_.setContentLength(size);
+				server_.sendView(304,getContentType(assetPath).second,{});return;
+			}
+			server_.sendView(200,getContentType(assetPath).second,std::string_view(reinterpret_cast<const char*>(bytes),size));return;
 		}
+		// E32 UI is app-owned. Never cache or serve a stale filesystem shadow.
+		if(staticAssetRequest())server_.sendHeader("Cache-Control","no-store");
+		server_.send(404,"text/plain","FileNotFound");return;
 #endif
 		DBGLOGFD(log_, logFeature_, "Request for: '%s'\n", serverPath);
 

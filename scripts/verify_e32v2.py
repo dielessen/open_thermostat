@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import subprocess
 import struct
+from verify_e32v2_web_assets import verify as verify_web_assets
 
 root = Path(__file__).resolve().parents[1]
 build = root / ".pio/build/e32v2"
@@ -24,6 +25,7 @@ for offset in range(0, len(partition_binary), 32):
     compiled_rows.append((label.rstrip(b"\0").decode(), start, size))
 assert compiled_rows == [(r[0], r[3], r[4]) for r in rows], "compiled partition table differs"
 image = (build / "firmware.bin").read_bytes()
+print(json.dumps(verify_web_assets(root, build)))
 assert image[0] == 0xE9 and image[2] == 2, "not an ESP DIO image"
 assert image[3] >> 4 == 4, "image flash header is not 16MB"
 end = 0x9000

@@ -19,6 +19,7 @@ from homeassistant.util import dt as dt_util
 
 from .schedule_compiler import async_compile_schedule, compile_week
 from .v1_program import native_week
+from .room_contacts import comfort_record
 from .v1_wire import ShadowClient, identifier
 
 
@@ -69,11 +70,7 @@ async def async_build_configuration(runtime):
                       "actuator_id": f"a_{room.room_id}", "base_centi_c": room.base_centi_c,
                       "max_age_ms": room.maximum_age_ms, "report_evidence": "physical_report",
                       "schedule": schedule,
-                      **({"comfort": {**room.comfort,
-                          "minimum_centi_c": room.minimum_target_centi_c,
-                          "maximum_centi_c": room.maximum_target_centi_c,
-                          "window": room.window is not None,
-                          "presence": room.presence is not None}} if room.comfort is not None else {})})
+                      **({"comfort": comfort_record(room)} if room.comfort is not None else {})})
     return zones, mapping
 
 

@@ -1,3 +1,27 @@
+# HA 0.4.0b4 — integrated room and installation controls
+<!-- user-release-notes:v2:en -->
+
+Development bundle; not published or installed.
+
+## New
+
+Complete room-context and installation controls are being integrated into the
+existing room screen, configuration storage and E32 contract.
+
+## Fixed
+
+Regressions and evidence will be recorded with the completed feature paths.
+
+## Updating
+
+This HA version belongs to the beta.6 development bundle. Existing installations,
+entity identities, settings and programme data are preserved during development.
+
+## Limitations
+
+Software verification does not qualify physical sensors, valves or boiler control.
+No Home Assistant installation or live device action occurs in this work.
+
 # HA 0.4.0b3 — oorspronkelijke meetdiagnose en veldexport
 <!-- user-release-notes:v1 -->
 

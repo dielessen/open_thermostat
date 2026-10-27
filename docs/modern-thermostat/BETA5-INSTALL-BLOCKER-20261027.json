@@ -8,14 +8,14 @@
   "installed_source_commit": "9ecb4da0f052b82efb99cdda75679ba67d3299ac",
   "error": "GitHub/HTTPS antwoord -1; controleer internet, tijd en API-limiet.",
   "error_scope": "Native catalog check before any install request; no HTTP response received. Underlying cause not established.",
-  "catalog_check_commands": 1,
+  "catalog_check_commands": 2,
   "install_commands": 0,
-  "explicit_reboot_commands": 0,
+  "explicit_reboot_commands": 1,
   "verified_pre_recovery_backup_payloads": 12,
   "busy": false,
   "boot_pending": false,
-  "recovery_approval": "REQUESTED_NOT_RECEIVED",
-  "proposed_recovery": "One controlled E32 restart then one fresh native check and installation only if all conditions pass. No upload fallback, factory/SPIFFS flash or boiler test.",
+  "recovery_approval": "APPROVED_AND_EXECUTED_ONCE_CATALOG_STILL_FAILED",
+  "proposed_recovery": "The owner-approved single controlled restart and fresh native catalog check were executed. GitHub HTTPS still returned -1 before HTTP. No install command or upload fallback was sent; further recovery is deferred.",
   "evidence": [
     {
       "path": "out/beta5-native-install/requests-before-recovery.jsonl",
@@ -48,6 +48,22 @@
     {
       "path": "out/beta5-native-install/RECOVERY-PLAN.json",
       "sha256": "e92a4d632ff376d690bd6017e24d2e298adbd28fe19b4869a033cd550e6ad696"
+    },
+    {
+      "path": "docs/modern-thermostat/BETA5-RECOVERY-AUTHORIZATION-20261027.json",
+      "sha256": "4bd6ff185fe759a25e6d73534b0b400fef482e8435bf82437adf7bc9b3fd9ccb"
+    },
+    {
+      "path": "out/beta5-native-install/recovery-newboot/version.json",
+      "sha256": "6e6436b82b0652b67433452e3ce4a4abfb4d8eb7d44e277073dfc58dffdd0dd0"
+    },
+    {
+      "path": "out/beta5-native-install/recovered-attempt/catalog/013.json",
+      "sha256": "8ed42343740b5028c342284b2d2fd9648f9c7b9d07a2f7fb707047b33261200d"
+    },
+    {
+      "path": "out/beta5-native-install/recovery-completed-20261027/requests.jsonl",
+      "sha256": "34d564c5747e7e847e5630b7148b8408b1f46521bb2a3fc127af935b6c0652a3"
     }
   ]
 }

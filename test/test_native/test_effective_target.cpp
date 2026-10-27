@@ -127,3 +127,21 @@ TEST(ComfortPriority, ManualCommandCannotLowerVacationUtcHighwater) {
     EXPECT_FALSE(t.evaluate(1102,in).target); // highwater wasn't lowered by the command
     EXPECT_STREQ(t.evaluate(1103,in).reason,"vacation_time_reversed");
 }
+
+namespace {
+TEST(EffectiveTargetContacts, ConfiguredContactAgeExpiresAtItsOriginalBoundary) {
+    auto p=profile();p.maximumWindowAgeMs=3600000;p.presenceSupported=false;
+    ASSERT_TRUE(p.valid());EffectiveTarget t(p);auto in=input();
+    in.windowAgeAtReceipt=180000;
+    EXPECT_EQ(t.evaluate(100,in).target,2000);
+    EXPECT_EQ(t.evaluate(3420099,in).target,2000);
+    EXPECT_FALSE(t.evaluate(3420100,in).target);
+}
+TEST(EffectiveTargetContacts, SourceAgeLimitIsBoundedAndNeverWeakensPresenceOrOwnerChecks) {
+    auto p=profile();p.maximumWindowAgeMs=86400000;ASSERT_TRUE(p.valid());
+    p.maximumWindowAgeMs=86400001;EXPECT_FALSE(p.valid());
+    p.maximumWindowAgeMs=86400000;p.maximumPresenceAgeMs=3600001;EXPECT_FALSE(p.valid());
+    p.maximumPresenceAgeMs=120000;EffectiveTarget t(p);auto in=input();in.ownerAdmitted=false;
+    EXPECT_FALSE(t.evaluate(100,in).target);
+}
+}

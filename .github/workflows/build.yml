@@ -31,6 +31,10 @@ jobs:
         run: python3 -m unittest discover -s scripts -p test_cleanup_release_artifacts.py -v
       - name: Test automatic project-page release refresh
         run: python3 -m unittest discover -s scripts -p test_sync_readme_releases.py -v
+      - name: Test generated web representations and actual HTTP response policies
+        run: |
+          python3 -m unittest discover -s scripts -p test_e32v2_web_assets.py -v
+          python3 test/static_assets/run.py
       - name: Test release metadata and installed updater size compatibility
         run: python3 -m unittest discover -s scripts -p test_organize_releases.py -v
       - uses: actions/setup-node@v4
@@ -55,6 +59,7 @@ jobs:
           node test/boiler-settings-browser.cjs
           node test/bluetooth-browser.cjs
           node test/navigation-browser.cjs
+          node test/page-loading-browser.cjs
           node test/system-log-browser.cjs
           node test/ui-language-browser.cjs
           node test/boiler-test-browser.cjs
@@ -65,7 +70,7 @@ jobs:
           node test/ha-tv02-mode-browser.cjs
           node test/ha-room-program-browser.cjs
           node test/ha-planner-touch-browser.cjs
-          node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs test/ui-language.test.cjs
+          node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs test/ui-language.test.cjs test/boiler-data.test.cjs
 
   source-reproduction:
     if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}
@@ -160,7 +165,7 @@ jobs:
           g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -Wvla -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -I.pio/libdeps/native/esp32_utilities/src -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_ems_readers.cpp test/test_native/test_ble_device_discovery.cpp src/EMS/EmsTelegram.cpp src/EMS/UBADeviceVersion.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-ems-readers-test
           /tmp/open-thermostat-ems-readers-test
           gcc -std=c11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -I.pio/libdeps/native/cJSON -c .pio/libdeps/native/cJSON/cJSON.c -o /tmp/open-thermostat-actuator-cjson.o
-          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -Itest/test_native/include -I.pio/libdeps/native/esp32_utilities/src -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_classic_boiler_test_encoder.cpp test/test_native/test_classic_boiler_settings_encoder.cpp test/test_native/test_classic_boiler_setting_transaction.cpp test/test_native/test_classic_setting_bus_exchange.cpp test/test_native/test_classic_boiler_settings_service.cpp test/test_native/test_classic_setting_uart_write.cpp test/test_native/test_classic_settings_pipeline.cpp test/test_native/test_classic_settings_runtime_gate.cpp test/test_native/test_boiler_test_poll.cpp test/test_native/test_boiler_test_session.cpp test/test_native/test_boiler_test_service.cpp test/test_native/test_classic_echo_uart_write.cpp test/test_native/test_ems_poll.cpp test/test_native/test_ems_echo_rx_debt.cpp test/test_native/test_manual_classic_uart_write.cpp test/test_native/test_manual_bus_identity.cpp test/test_native/test_boiler_site_confirmation.cpp test/test_native/test_boiler_fault_closure.cpp test/test_native/test_classic_heat_trial_envelope.cpp test/test_native/test_ecomline_commissioning.cpp test/test_native/test_classic_configuration_read.cpp test/test_native/test_manual_classic_transaction.cpp src/EMS/EmsTelegram.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-boiler-poll-test
+          g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -Itest/test_native/include -I.pio/libdeps/native/esp32_utilities/src -I.pio/libdeps/native/cJSON -I.pio/libdeps/native/googletest/googletest/include test/test_native/test_response_buffer.cpp test/test_native/test_classic_boiler_test_encoder.cpp test/test_native/test_classic_boiler_settings_encoder.cpp test/test_native/test_classic_boiler_setting_transaction.cpp test/test_native/test_classic_setting_bus_exchange.cpp test/test_native/test_classic_boiler_settings_service.cpp test/test_native/test_classic_setting_uart_write.cpp test/test_native/test_classic_settings_pipeline.cpp test/test_native/test_classic_settings_runtime_gate.cpp test/test_native/test_boiler_test_poll.cpp test/test_native/test_boiler_test_session.cpp test/test_native/test_boiler_test_service.cpp test/test_native/test_classic_echo_uart_write.cpp test/test_native/test_ems_poll.cpp test/test_native/test_ems_echo_rx_debt.cpp test/test_native/test_manual_classic_uart_write.cpp test/test_native/test_manual_bus_identity.cpp test/test_native/test_boiler_site_confirmation.cpp test/test_native/test_boiler_fault_closure.cpp test/test_native/test_classic_heat_trial_envelope.cpp test/test_native/test_ecomline_commissioning.cpp test/test_native/test_classic_configuration_read.cpp test/test_native/test_manual_classic_transaction.cpp src/EMS/EmsTelegram.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc /tmp/open-thermostat-actuator-cjson.o .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-boiler-poll-test
           /tmp/open-thermostat-boiler-poll-test
           g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Itest/echo_write/include -Isrc -I.pio/libdeps/native/googletest/googletest/include test/echo_write/adapter.cpp .pio/libdeps/native/googletest/googletest/src/gtest_main.cc .pio/build/native/lib*/libgoogletest.a -lpthread -o /tmp/open-thermostat-echo-adapter-test
           /tmp/open-thermostat-echo-adapter-test

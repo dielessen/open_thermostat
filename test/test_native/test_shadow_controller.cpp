@@ -358,3 +358,42 @@ TEST(ComfortRuntime, ExpiredVacationExactRetryAcknowledgedButCannotRestartOrCons
     EXPECT_EQ(uintField(Fixture::row(state),"override_remaining_ms"),0u);
 }
 }
+
+namespace {
+TEST(ComfortContactsRuntime, NegotiatesContactSupportAndHonoursExplicitOriginalReportAge) {
+    Fixture f;f.start();auto hello=f.get("fw/hello");bool advertised=false;
+    const auto caps=field(hello.get(),"control_capabilities");
+    for(auto c=caps->child;c;c=c->next)if(cJSON_IsString(c)&&std::string(c->valuestring)=="comfort.contacts.v1")advertised=true;
+    EXPECT_TRUE(advertised);f.connect();f.heartbeat();
+    auto record=parseControlJson(comfortConfig());
+    auto z=cJSON_GetArrayItem(cJSON_GetObjectItemCaseSensitive(record.get(),"zones"),0);
+    auto p=cJSON_GetObjectItemCaseSensitive(z,"comfort");cJSON_AddNumberToObject(p,"window_max_age_ms",3600000);
+    auto request=f.configuration(printJson(record.get()));f.send("ha/config",request.get());f.connect();f.heartbeat();
+    ASSERT_EQ(f.core->revision(),1u);
+    auto observation=contextObservation(f);cJSON_ReplaceItemInObject(observation.get(),"window_age_ms",cJSON_CreateNumber(180000));
+    f.send("ha/observations",observation.get());auto state=f.state();
+    EXPECT_EQ(uintField(Fixture::row(state),"target_centi_c"),2100u);
+    ++f.now;auto expired=contextObservation(f,2);cJSON_ReplaceItemInObject(expired.get(),"window_age_ms",cJSON_CreateNumber(3600000));
+    f.send("ha/observations",expired.get());state=f.state();
+    EXPECT_TRUE(cJSON_IsNull(field(Fixture::row(state),"target_centi_c")));
+    EXPECT_STREQ(stringField(Fixture::row(state),"reason").c_str(),"window_state_unknown");
+    EXPECT_FALSE(cJSON_IsTrue(field(state.get(),"actuator_output_enabled")));
+    EXPECT_FALSE(cJSON_IsTrue(field(state.get(),"boiler_output_enabled")));
+}
+TEST(ComfortContactsRuntime, InvalidOrPresenceOnlyContactAgeCannotBeCommitted) {
+    for(const auto value:{"true","999","86400001","1000.5","\"3600000\""}) {
+        Fixture f;f.start();f.connect();f.heartbeat();
+        auto record=parseControlJson(comfortConfig());
+        auto z=cJSON_GetArrayItem(cJSON_GetObjectItemCaseSensitive(record.get(),"zones"),0);
+        cJSON_AddItemToObject(cJSON_GetObjectItemCaseSensitive(z,"comfort"),"window_max_age_ms",cJSON_Parse(value));
+        auto request=f.configuration(printJson(record.get()));f.send("ha/config",request.get());
+        EXPECT_EQ(f.core->revision(),0u)<<value;
+        EXPECT_EQ(f.store.writes,0u);
+    }
+    Fixture f;f.start();f.connect();f.heartbeat();auto record=parseControlJson(comfortConfig(false));
+    auto z=cJSON_GetArrayItem(cJSON_GetObjectItemCaseSensitive(record.get(),"zones"),0);
+    cJSON_AddNumberToObject(cJSON_GetObjectItemCaseSensitive(z,"comfort"),"window_max_age_ms",3600000);
+    auto request=f.configuration(printJson(record.get()));f.send("ha/config",request.get());
+    EXPECT_EQ(f.core->revision(),0u);
+}
+}

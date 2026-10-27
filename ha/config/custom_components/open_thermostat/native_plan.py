@@ -4,6 +4,7 @@ Only an independently selected logical installation profile may select this path
 Local review is never physical readiness, a new worker/store or per-config pin.
 """
 
+from .room_contacts import comfort_record
 from .product import heating_entries
 from copy import deepcopy
 from dataclasses import dataclass
@@ -250,8 +251,7 @@ class NativePlanSource:
                 actuator_profile=z["actuator_profile"],group_id=z["group_id"],base_centi_c=room.base_centi_c,
                 max_age_ms=room.maximum_age_ms,report_evidence=z["report_evidence"],schedule=schedule)
             if room.comfort is not None:
-                zone["comfort"]={**room.comfort,"minimum_centi_c":room.minimum_target_centi_c,
-                    "maximum_centi_c":room.maximum_target_centi_c,"window":room.window is not None,"presence":room.presence is not None}
+                zone["comfort"]=comfort_record(room)
             zones.append(zone)
             for cid,direction,owner,res in ((z["sensor_id"],"input",room.room_id,z["sensor_resource"]),
                 (z["actuator_id"],"output",z["actuator_id"],z["output_resource"])):
@@ -296,7 +296,11 @@ class NativePlanSource:
             integer(zone["base_centi_c"],z["minimum_target_centi_c"],z["maximum_target_centi_c"])
             integer(zone["max_age_ms"],1000,z["maximum_sensor_age_ms"])
             if "comfort" in zone:
-                c=obj(zone["comfort"],"away_centi_c frost_centi_c maximum_centi_c minimum_centi_c presence temporary_ms window")
+                c=obj(zone["comfort"],"away_centi_c frost_centi_c maximum_centi_c minimum_centi_c presence temporary_ms window"
+                    +(" window_max_age_ms" if "window_max_age_ms" in zone["comfort"] else ""))
+                if "window_max_age_ms" in c:
+                    require(c["window"] is True,"native_contact_policy")
+                    integer(c["window_max_age_ms"],1000,86400000)
                 lo=integer(c["minimum_centi_c"],z["minimum_target_centi_c"],z["maximum_target_centi_c"])
                 hi=integer(c["maximum_centi_c"],lo,z["maximum_target_centi_c"])
                 for k in ("away_centi_c","frost_centi_c"):integer(c[k],lo,hi)

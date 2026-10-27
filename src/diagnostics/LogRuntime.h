@@ -15,16 +15,18 @@ public:
     bool storageReady=false;
     void begin() {
         boot=esp_random();const auto saved=loadSettings();storageReady=bool(saved);
-        log.configure(saved?*saved:Settings{});log.offline();
+        log.configure(saved?*saved:Settings{});setConnected(false);
     }
     bool save(const Settings& s) {
         if(!saveSettings(s))return false;
         log.configure(s);storageReady=true;lastMark_=uptimeMs();closeSocket();return true;
     }
     void poll(bool connected,const char* hostname) {
-        const auto now=uptimeMs();const auto settings=log.settings();
-        if(!connected||!settings.enabled){log.offline();closeSocket();return;}
-        log.online();
+        if(!connected||!log.syslogEnabled()){setConnected(false);closeSocket();return;}
+        const auto settings=log.settings();
+        if(!settings.enabled){setConnected(false);closeSocket();return;}
+        setConnected(true);
+        const auto now=uptimeMs();
         if(settings.markSeconds&&now-lastMark_>=uint64_t(settings.markSeconds)*1000){
             lastMark_=now;log.append(3,"Syslog","MARK",now);
         }
@@ -42,8 +44,18 @@ public:
         if(bytes<0)closeSocket();
     }
 private:
+    // This serialized runtime is the only firmware owner of log reachability.
+    // Do not repeatedly lock/flush the queue for an unchanged network state.
+    enum class LinkState {unknown,offline,online};
+    LinkState linkState_=LinkState::unknown;
     int socket_=-1;
     uint64_t lastSend_=0,lastMark_=0;
+    void setConnected(bool connected){
+        const auto next=connected?LinkState::online:LinkState::offline;
+        if(linkState_==next)return;
+        if(connected)log.online();else log.offline();
+        linkState_=next;
+    }
     void closeSocket(){if(socket_>=0){lwip_close(socket_);socket_=-1;}}
 };
 inline LogRuntime runtime;

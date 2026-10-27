@@ -433,3 +433,30 @@ uncached live responses, allocation failure, overflow and an independently faile
 stream. Address/undefined/leak sanitizers exercise the same branch fixture. These
 checks establish bounded storage and preserved responses, not device latency or
 a claim that every nested status allocation has been removed.
+
+## Avoid idle syslog work in the main loop
+
+The UDP runtime previously read the clock, copied its settings under a mutex and
+called the locked online/offline method on every main-loop pass, including the
+default disabled state. The existing atomic acceptance word now also publishes
+the syslog-enabled flag. Disabled/offline polling returns before a clock or
+settings read; the serialized runtime changes queue reachability only on a link
+transition. The main-loop caller also skips the diagnostic network query when
+syslog is disabled. Control/HTTP network checks retain their own original paths.
+
+The first disconnected transition still drops queued remote records and closes
+the socket. Configuration changes still discard old destination work under the
+original lock. Re-enabling/reconnecting admits new records without replay. Local
+web records and serial output retain independent filters. Enabled polling still
+uses locked authoritative settings, original MARK timing and at most one
+nonblocking UDP datagram per 100 ms; no new settings cache, timer, task or socket
+is introduced. The runtime is the sole firmware owner of log reachability.
+
+A newly added idle-clock assertion fails on the prior runtime. The corrected
+actual NVS/logger/SDK-hook/UDP fixture passes 100,000 default-disabled polls,
+100,000 disconnected polls and 100,000 polls after disabling an online destination
+without clock or transport work. It also exercises drop-once, local logging and
+re-enable delivery. Thirty SystemLog/settings cases pass under address, undefined
+and leak sanitizers, including 288 settings combinations and 6,048 append
+outcomes compared against the same acceptance mask. These are avoided-work and
+semantic checks, not measured on-device speedup.

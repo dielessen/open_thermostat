@@ -57,7 +57,7 @@ boiler/valve control remain disabled. [Current release work](https://github.com/
 browser caching, page modules loaded when needed, and one shared boiler-data
 request. Dashboard and boiler telemetry reuse the same bounded PSRAM response buffer. Hidden dashboard, Bluetooth, updater and log pages stop polling and cancel their pending status reads. Native MQTT broker DNS
 resolution and TCP opening return control to the main loop; ordinary socket
-writes have a bounded wait. Disabled logging avoids unnecessary work, and System log exposes
+writes have a bounded wait. Disabled syslog also skips repeated loop work; local and serial logging keep their independent filters. System log exposes
 loop interval counters for checking delays after installation. The revised
 boiler page presents one received-entity table per device and a shorter
 read/prepare/start/stop workflow. These changes are tested in software and have

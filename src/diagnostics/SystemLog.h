@@ -94,7 +94,7 @@ public:
         queued_=0; head_=0;
         // Read-only preflight for lazy message formatting. append() still owns
         // admission, redaction, contention accounting and the actual queues.
-        uint32_t mask=0;
+        uint32_t mask=settings.enabled?syslogEnabledMask:0;
         for(unsigned level=1;level<=5;++level) {
             if(level<=settings.webLevel)mask|=(1u<<level)|(1u<<(level+8));
             if(settings.enabled&&level<=settings.syslogLevel) {
@@ -104,6 +104,9 @@ public:
         }
         captureMask_.store(mask,std::memory_order_release);
     }
+    // Diagnostic preflight only. Queue admission/destination still use the
+    // original locked settings; this flag never grants a physical command.
+    bool syslogEnabled() const {return captureMask_.load(std::memory_order_acquire)&syslogEnabledMask;}
     bool wantsLevel(uint8_t level) const {
         return level>=1&&level<=5&&
             (captureMask_.load(std::memory_order_acquire)&((1u<<level)|(1u<<(level+8))));
@@ -166,6 +169,7 @@ public:
         s.oldest=count_?records_[start_].sequence:0;s.contention=contention_.load();return s;
     }
 private:
+    static constexpr uint32_t syslogEnabledMask=1u<<16;
     // Defaults match Settings{} even before configure().
     std::atomic<uint32_t> captureMask_{0x0e0e};
     mutable std::mutex mutex_;

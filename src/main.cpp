@@ -367,7 +367,7 @@ void loop() {
 #ifdef OPENTHERMOSTAT_E32V2
     // At most one nonblocking UDP datagram per 100 ms, after controller work.
     static const auto logHostname=config::getNetworkConfig().hostname;
-    heating::diagnostics::runtime.poll(heating::networkConnected()&&!heating::wifiAPMode,logHostname.c_str());
+    heating::diagnostics::runtime.poll(heating::diagnostics::runtime.log.syslogEnabled()&&heating::networkConnected()&&!heating::wifiAPMode,logHostname.c_str());
 #endif
 
 #ifdef OPENTHERMOSTAT_E32V2

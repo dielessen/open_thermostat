@@ -50,6 +50,10 @@ Het dashboard bouwt zijn statusantwoord nu in dezelfde vaste64KiB-PSRAM-buffer
 als de keteltelemetrie. Geen tweede buffer of groeiende hoofdbody op de interne
 heap. De eerste dashboardaanvraag reserveert die buffer; allocatiefout of een te
 grote/onvolledige body geeft één volledige503 in plaats van een afgekapt antwoord.
+Ook de syslogzender heeft een lichte uitgeschakelde route: geen klok-/
+instellingenwerk per hoofdlus en alleen bij verbindingswisseling de wachtrijlock.
+Lokale/seriële logging houdt eigen filters; de bestaande honderd-millisecondengrens,
+MARK, verliesregistratie en geen-herhaling bij herverbinden blijven behouden.
 De daadwerkelijke paginasnelheid moet na installatie worden gemeten.
 
 **Nieuwe kamerfunctie in dezelfde bundel:** maximaal acht raam-/deurcontacten

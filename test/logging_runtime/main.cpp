@@ -41,6 +41,10 @@ int main(){
     socklen_t size=sizeof(local);assert(getsockname(receiver,reinterpret_cast<sockaddr*>(&local),&size)==0);
     timeval timeout{0,200000};assert(setsockopt(receiver,SOL_SOCKET,SO_RCVTIMEO,&timeout,sizeof(timeout))==0);
     LogRuntime runtime;runtime.begin();assert(runtime.storageReady&&!runtime.log.settings().enabled);
+    const auto idleClocks=clock_reads;const auto idleSends=send_calls;
+    for(unsigned i=0;i<100000;++i)runtime.poll(i%2,"heatingtest");
+    assert(clock_reads==idleClocks&&"Disabled syslog must not query the clock on each main-loop pass");
+    assert(send_calls==idleSends);
     // This transport scenario exercises EMS explicitly; the product default is ESP-only.
     Settings s;s.enabled=true;s.syslogEms=true;s.port=ntohs(local.sin_port);std::strcpy(s.server.data(),"127.0.0.1");
     assert(runtime.save(s));assert(loadSettings()&&settingsJson(*loadSettings())==settingsJson(s));
@@ -60,6 +64,9 @@ int main(){
     fake_microseconds+=100000;runtime.poll(true,"heatingtest");assert(recv(receiver,bytes,sizeof(bytes),0)>0);
     runtime.log.append(3,"App","offline",uptimeMs());runtime.poll(false,"heatingtest");
     assert(runtime.log.stats().pending==0);const auto sent=send_calls;
+    const auto offlineClocks=clock_reads,offlineDrops=runtime.log.stats().syslogDropped;
+    for(unsigned i=0;i<100000;++i)runtime.poll(false,"heatingtest");
+    assert(clock_reads==offlineClocks&&runtime.log.stats().syslogDropped==offlineDrops);
     fake_microseconds+=100000;runtime.poll(true,"heatingtest");assert(send_calls==sent);
     runtime.log.append(3,"App","once",uptimeMs());fail_send=true;fake_microseconds+=100000;runtime.poll(true,"heatingtest");
     assert(runtime.log.stats().syslogDropped==2);fail_send=false;fake_microseconds+=100000;runtime.poll(true,"heatingtest");assert(send_calls==sent+1);
@@ -114,6 +121,23 @@ int main(){
         fake_microseconds+=100000;runtime.poll(true,"heatingtest");sourceLength=recv(receiver,bytes,sizeof(bytes),0);assert(sourceLength>0);
         assert(std::string(bytes,sourceLength).find(source)!=std::string::npos);
     }
+    // Disabling an online destination drops its pending queue once. Idle polls
+    // do no clock/transport work; local web records still work independently.
+    runtime.log.append(3,"EMS","queued before disable",uptimeMs());
+    const auto beforeDisable=runtime.log.stats();assert(beforeDisable.pending==1);
+    auto disabled=s;disabled.enabled=false;assert(runtime.save(disabled));
+    assert(!runtime.log.syslogEnabled()&&runtime.log.stats().pending==0);
+    assert(runtime.log.stats().syslogDropped==beforeDisable.syslogDropped+1);
+    const auto disabledClocks=clock_reads;const auto disabledSends=send_calls;
+    for(unsigned i=0;i<100000;++i)runtime.poll(true,"heatingtest");
+    assert(clock_reads==disabledClocks&&send_calls==disabledSends);
+    const auto localSequence=runtime.log.stats().latest;runtime.log.append(3,"EMS","web only",0);
+    assert(runtime.log.next(localSequence,record)&&std::string(record.text.data())=="web only"&&runtime.log.stats().pending==0);
+    assert(runtime.save(s));assert(runtime.log.syslogEnabled());runtime.poll(true,"heatingtest");
+    runtime.log.append(3,"EMS","after reenable",uptimeMs());fake_microseconds+=100000;runtime.poll(true,"heatingtest");
+    const auto reenabledLength=recv(receiver,bytes,sizeof(bytes),0);assert(reenabledLength>0);
+    assert(std::string(bytes,reenabledLength).find("[EMS] after reenable")!=std::string::npos);
+    runtime.poll(false,"heatingtest");
     // Project macros skip expensive arguments only when no destination wants
     // the record. Web/syslog are independent of the serial sink's level.
     using Level=ib::logger::LoggerInterface::LogLevel;

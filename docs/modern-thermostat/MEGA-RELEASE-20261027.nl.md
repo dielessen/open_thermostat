@@ -96,3 +96,9 @@ bewijs blijft afzonderlijk open. Geen nieuwe externe dienst of langlopende watch
   PSRAM-opslag op de synchrone HTTP-eigenaar. De hoofdbody groeit niet meer op
   de interne heap; geen tweede buffer, waardencache of schemawijziging. Eerste
   dashboardgebruik reserveert de PSRAM. Onbeschikbaar/te groot geeft volledige503.
+
+- Syslog-hoofdlus: uitgeschakeld/offline vraagt de zender geen klok of volledige
+  instellingen meer op. De bereikbaarheid wordt alleen bij overgang onder de
+  wachtrijlock verwerkt. Lokale/seriële filters, MARK, verliesregistratie en de
+  bestaande begrensde UDP-uitvoer blijven intact.300.000 inactieve polls en echte
+  loopback/NVS/loggerproeven slagen; geen meting op de E32.

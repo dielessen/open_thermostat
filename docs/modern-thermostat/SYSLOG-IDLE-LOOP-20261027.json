@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target": "E32 beta.6",
+  "parent_commit": "e7c2d51228e283a913e365981a53b6b10040c425",
+  "device_actions_performed": false,
+  "contract": {
+    "diagnostic_enabled_flag": "One bit in existing atomic capture mask; existing queue/settings remain authoritative",
+    "steady_disabled_or_disconnected_syslog_poll": "No clock, settings copy, queue mutex or transport call",
+    "queue_reachability": "Only serialized runtime changes link state; first transition still drops old pending records",
+    "local_web_and_serial_logging_changed": false,
+    "mark_timing_and_100ms_udp_send_budget_changed": false,
+    "new_cache_task_timer_socket_or_command_authority": false
+  },
+  "validation": {
+    "new_assertion_fails_on_parent_runtime": "PASS expected SIGABRT at idle clock invariant; core dumps disabled",
+    "default_disabled_polls_without_clock_or_sends": 100000,
+    "enabled_disconnected_polls_without_clock_or_duplicate_drop": 100000,
+    "polls_after_online_destination_disable_without_clock_or_sends": 100000,
+    "actual_nvs_logger_sdk_hooks_udp_asan_ubsan_leak_fixture": "PASS",
+    "drop_once_local_web_reenable_delivery": "PASS",
+    "system_log_settings_sanitized_gtest_cases_passed": 30,
+    "settings_combinations": 288,
+    "append_outcomes_checked": 6048,
+    "earlier_dashboard_lifetime_exact_commit_ci": "All 9 validation jobs passed on f07b6ae; run 40466758069",
+    "e32_app_build": "PASS",
+    "e32_filesystem_build": "PASS",
+    "source_image_partition_asset_uart_owner": "PASS",
+    "firmware_bytes": 3106960,
+    "ota_slot_bytes": 3670016,
+    "assets": 36,
+    "gzip_representations": 29,
+    "raw_bytes": 561206,
+    "gzip_bytes": 152534
+  },
+  "remaining": [
+    "Exact-commit CI",
+    "On-device latency/resource acceptance after separately authorized installation"
+  ],
+  "reviewed_files": [
+    {
+      "path": "README.md",
+      "sha256": "6db59bd660ea9f91c704e1237fa32f12adc42899955fae520ed08a927ba54373"
+    },
+    {
+      "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
+      "sha256": "c32c649b7259114585fda6d213a1d5753d0b88a31ccbe1a1573fd93c4c87d8ca"
+    },
+    {
+      "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
+      "sha256": "9989367a10e4a02573f711f3e875e6f0189717951b08a96f8a75e3146ff6f07f"
+    },
+    {
+      "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
+      "sha256": "e803048da22fae0ce4ccc5829be88d745d3c1785b1c7d1cfbe1cb2a5fc32a61e"
+    },
+    {
+      "path": "docs/modern-thermostat/RELEASE-NOTES.md",
+      "sha256": "f402f964b733d7def8bc2b379820e2ea474d84c9fc06cbce2e6f8e56d1d36c63"
+    },
+    {
+      "path": "docs/modern-thermostat/WORKBOARD.nl.md",
+      "sha256": "3c4f818a71142d365e16fc3351f9115f232bda36fefb9eace22f38d80475e56f"
+    },
+    {
+      "path": "src/diagnostics/LogRuntime.h",
+      "sha256": "5f43b9c3bb0320f5b92268fa86d6b192934484c91d44074a8d71edb3d8207953"
+    },
+    {
+      "path": "src/diagnostics/SystemLog.h",
+      "sha256": "7027a434c2b740a96941c8fe34537a9cad138eb29472d3481103b9e15ed4d50f"
+    },
+    {
+      "path": "src/main.cpp",
+      "sha256": "2071cac53391df8616d57336801b8beeae00caf29f12ef60b743ca1ecffba19e"
+    },
+    {
+      "path": "test/logging_runtime/include/esp_timer.h",
+      "sha256": "bafa2d340a26d8a292e26728a8d6f4a813738ba5ec8065326b322e56af4ccd0c"
+    },
+    {
+      "path": "test/logging_runtime/main.cpp",
+      "sha256": "566d7a6c140e9c5c79137576e22874f7e2f807dbbc15ee653316da91d1291a89"
+    },
+    {
+      "path": "test/test_native/test_system_log.cpp",
+      "sha256": "a68e7ded3d147513ebd2211c9a10091dcd248d02bcff092e99666d20fcf8f186"
+    }
+  ],
+  "local_evidence": [
+    {
+      "path": "out/syslog-idle-loop-20261027/baseline.log",
+      "sha256": "7e19bf8ee36f4b88a166e0d527f5fca242e9e3a52d06055831c8ca2ec84dbcc0"
+    },
+    {
+      "path": "out/syslog-idle-loop-20261027/e32-build.log",
+      "sha256": "9bc5712c5baf5a9d5e97f75664b311fe986541492116ad96fdefa63c63f67143"
+    },
+    {
+      "path": "out/syslog-idle-loop-20261027/e32-buildfs.log",
+      "sha256": "7cf8a1ef49793e4d24ce754cb246ac7963e95671471662a1c6d1e7582b066a9e"
+    },
+    {
+      "path": "out/syslog-idle-loop-20261027/e32-verify.log",
+      "sha256": "af79f31d85e36cfbb6130038a347da580e859590dbf0821a58dd761823f39626"
+    },
+    {
+      "path": "out/syslog-idle-loop-20261027/gtest-build.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "out/syslog-idle-loop-20261027/runtime-asan.log",
+      "sha256": "3ffb86d1b79deac77f5b9f4f140bd8107a65edc4524e73b1f33ce88b1c239bbb"
+    },
+    {
+      "path": "out/syslog-idle-loop-20261027/runtime-final-asan.log",
+      "sha256": "3ffb86d1b79deac77f5b9f4f140bd8107a65edc4524e73b1f33ce88b1c239bbb"
+    },
+    {
+      "path": "out/syslog-idle-loop-20261027/system-log-asan.log",
+      "sha256": "35ebc8f66b54cc9ec51245420a62985fd38f5fa125f27a6d6f9e4284203109ad"
+    },
+    {
+      "path": "out/syslog-idle-loop-20261027/system-log.xml",
+      "sha256": "a9db25afe249457969756531b7f4f8ece43b17ce6b9a92d0196f5859aaef35a2"
+    }
+  ]
+}

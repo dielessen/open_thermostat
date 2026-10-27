@@ -14,6 +14,7 @@ TEST(SystemLog, LazyAcceptanceMatchesActualAppendAcrossIndependentDestinations) 
     for(bool enabled:{false,true})for(bool esp:{false,true})for(bool ems:{false,true}) {
         SystemLog log;auto settings=remote();settings.webLevel=web;settings.syslogLevel=remoteLevel;
         settings.enabled=enabled;settings.syslogEsp=esp;settings.syslogEms=ems;log.configure(settings);
+        EXPECT_EQ(log.syslogEnabled(),enabled);
         for(uint8_t level=0;level<=6;++level) {
             bool any=false;
             for(const char* feature:{"App","EMS","EmsVerbose"}) {

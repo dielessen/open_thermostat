@@ -1,7 +1,7 @@
 # HA 0.4.0b6 — requested boiler temperature and plan recovery
 <!-- user-release-notes:v2:en -->
 
-Companion correction for E32 beta.8. Native plan recovery also supports beta.6.
+Companion correction for E32 beta.8 and beta.9. Native plan recovery also supports beta.6.
 The command record was introduced in unpublished candidate beta.7 and is delivered
 in beta.8; the HA0.4.0b6 integration source remains frozen at6dbe42f.
 

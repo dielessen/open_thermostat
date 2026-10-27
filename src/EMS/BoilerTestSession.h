@@ -25,6 +25,10 @@ public:
         uint8_t minimumFlowC = 0, maximumFlowC = 0;
         uint32_t maximumHeatMs = 0, stopTimeoutMs = 0, reportTtlMs = 0;
         uint32_t operatorLeaseMs = 0, writeIntervalMs = 0;
+        // Positive refresh is independent of baseline/withdrawal pacing.
+        // Zero retains its short retry cadence and never waits for this period.
+        uint32_t heatWriteIntervalMs = 0;
+        uint32_t heatRequestIntervalMs() const { return heatWriteIntervalMs ? heatWriteIntervalMs : writeIntervalMs; }
         // Reviewed SOFTWARE policy for the first supervised zero-only trial.
         // These are observation/lease/cadence limits, not a physical stop-time
         // guarantee or permission to transmit. Positive demand stays invalid.
@@ -40,7 +44,8 @@ public:
         }
         bool valid() const {
             return validForZero() && minimumFlowC >= 5 && maximumFlowC > minimumFlowC && maximumFlowC <= 90
-                && maximumHeatMs >= 1000 && maximumHeatMs <= maximumTrialMs;
+                && maximumHeatMs >= 1000 && maximumHeatMs <= maximumTrialMs
+                && heatRequestIntervalMs() >= 100 && heatRequestIntervalMs() <= 60000;
         }
     };
     struct Gates {
@@ -213,7 +218,8 @@ public:
             || (phase_ == Phase::fault && stopConfirmed_)) return {};
         const Command command = phase_ == Phase::heating ? Command::positive
             : phase_ == Phase::baseline || phase_ == Phase::stopping || phase_ == Phase::fault ? Command::zero : Command::none;
-        if (command == Command::none || (sent_ && now >= sentAt_ && now - sentAt_ < profile_.writeIntervalMs)) return {};
+        const auto interval = command == Command::positive ? profile_.heatRequestIntervalMs() : profile_.writeIntervalMs;
+        if (command == Command::none || (sent_ && now >= sentAt_ && now - sentAt_ < interval)) return {};
         return {command, static_cast<uint8_t>(command == Command::positive ? flowC_ : 0),
                 boot_, session_, epoch_, command == Command::positive ? heatUntil_ : 0};
     }

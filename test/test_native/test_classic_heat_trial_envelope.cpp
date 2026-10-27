@@ -23,6 +23,9 @@ TEST_F(HeatEnvelope, ConcreteProfileKeepsExistingZeroPolicyAndBoundsHeatRequests
     EXPECT_TRUE(p.valid());EXPECT_EQ(p.minimumFlowC,40);EXPECT_EQ(p.maximumFlowC,50);EXPECT_EQ(p.maximumHeatMs,600000u);
     EXPECT_EQ(p.stopTimeoutMs,z.stopTimeoutMs);EXPECT_EQ(p.reportTtlMs,z.reportTtlMs);
     EXPECT_EQ(p.operatorLeaseMs,z.operatorLeaseMs);EXPECT_EQ(p.writeIntervalMs,z.writeIntervalMs);
+    EXPECT_EQ(p.heatRequestIntervalMs(),60000u);EXPECT_EQ(z.heatRequestIntervalMs(),1000u);
+    auto invalid=p;invalid.heatWriteIntervalMs=60001;
+    EXPECT_FALSE(invalid.valid());EXPECT_TRUE(invalid.validForZero());
     EXPECT_TRUE(check(101).ready);
     for(int target:{39,51}){BoilerTestSession s{42,p};EXPECT_EQ(s.prepare(42,1,target,1000,101,{true,true,true,true,true},monitor),BoilerTestSession::Reply::refused);}
     BoilerTestSession s{42,p};EXPECT_EQ(s.prepare(42,1,40,600001,101,{true,true,true,true,true},monitor),BoilerTestSession::Reply::refused);

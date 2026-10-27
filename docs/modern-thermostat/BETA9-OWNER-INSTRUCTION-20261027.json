@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-10-27T13:18:24.486555+00:00",
+  "continuing_release_install_instruction": "maak maar een nieuwe release en commit hem . installeer hem op de e32 en ha",
+  "continuing_trial_instruction": "je mag nog een test maken met de nieuwe selflowtemp entiteit en dan heel de test doorlopen zodat je alle info hebt",
+  "latest_cadence_instruction": "kunnen we nu even wat vaart maken met testen ? ik weet niet hoe je nu test , maar we moeten dat wel op dezelfde methode doen natuurlijk met interval van 60 sec",
+  "execution_question": "ga jij nu zo de testen doen of moet ik het handmatig doen ?",
+  "implementation": "One firmware correction to repeat actual completed50C requests every60000ms, full600s fixed trial, continuous short operator lease, immediate withdrawal. Installer runs the attended trial after actual installation. No persistent boiler setting/automatic physical outputs.",
+  "version_scope": "Beta9 is the installer selecting the necessary successor for the explicit cadence change after beta8 publication; no version-specific owner quote is fabricated."
+}

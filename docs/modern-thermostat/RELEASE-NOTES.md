@@ -1,3 +1,41 @@
+# E32 V2 beta9 — one-minute boiler request interval
+<!-- user-release-notes:v2:en -->
+
+Narrow correction for the owner-requested50°C, ten-minute attended trial.
+HA0.4.0b6 remains compatible and unchanged.
+
+## New
+
+- Send the first heat request on Start, then repeat the same target every60
+  seconds at the next eligible EMS poll. Measure the interval from the previous
+  completed transmission. Identical values are really transmitted again.
+- Show the actual firmware interval on Boiler test in English and Dutch.
+  HTTP supervision remains frequent; it does not transmit a new boiler target.
+
+## Fixed
+
+- Separate positive refresh from zero pacing. Manual Stop, supervision loss
+  and the fixed600second deadline immediately request withdrawal; they never
+  wait for the60second refresh period. Existing short zero retries and later
+  stop-report checks remain unchanged.
+- Retain beta8's separate completed-controller-request record, warm-water
+  preparation and last UART fault diagnostics. Boiler temperatures stay intact.
+
+## Updating
+
+Preserve settings and install the exact public firmware using the existing
+application update route. HA0.4.0b6 needs no further update. Beta8 is published,
+but its local upload did not complete: the observed board still runs beta6.
+Installation and the full attended trial are checked separately.
+
+## Limitations
+
+The one-minute interval is the requested test method, not a proven timeout
+for every boiler. The two earlier trials were incomplete. Native GitHub HTTPS
+and a local upload have failed on the current device; their root causes remain
+under investigation. This release does not claim to repair TLS. Automatic
+boiler/valve control and persistent boiler-setting writes remain disabled.
+
 # E32 V2 beta8 — separate requested and reported boiler temperatures
 <!-- user-release-notes:v2:en -->
 

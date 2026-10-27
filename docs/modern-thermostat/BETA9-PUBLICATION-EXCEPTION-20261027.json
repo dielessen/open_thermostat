@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "status": "APPROVED",
+  "scope": "one_prerelease_publication",
+  "candidate_tag": "v0.1.0-e32v2-beta.9",
+  "unaccepted_predecessor": "v0.1.0-e32v2-beta.8",
+  "accepted_basis_tag": "v0.1.0-e32v2-beta.4",
+  "accepted_basis_receipt_sha256": "5ec65a6256889878702a6a501842669f903825041f1e96be9448d5336bba55a8",
+  "predecessor_acceptance_status": "INCOMPLETE",
+  "gap_report": "docs/modern-thermostat/BETA8-NATIVE-GAP-20261027.json",
+  "gap_report_sha256": "b540836304384cf1a1760602871330c31e3f743c04c09f0e24f32b4c2bbf1c02",
+  "reason": "Continue the explicit release/install and full attended trial instructions with the latest explicit requirement for a60second repeat interval. Beta8 is published but its manual upload failed and beta6 remains installed. One narrow beta9 successor is needed to deliver the actual requested bus cadence. Preserve all failed install/native evidence and accepted beta4; no native acceptance or TLS repair inferred.",
+  "device_installation_authorized": false,
+  "boiler_trial_authorized": false,
+  "approval": {
+    "actor": "repository_owner",
+    "method": "explicit_user_instruction",
+    "decision": "approve_one_prerelease_publication",
+    "statement": "maak maar een nieuwe release en commit hem . installeer hem op de e32 en ha",
+    "at_utc": "2026-10-27T10:16:01Z"
+  },
+  "separate_installation_instruction": "docs/modern-thermostat/BETA9-OWNER-INSTRUCTION-20261027.json"
+}

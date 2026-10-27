@@ -241,6 +241,7 @@ public:
         else out << "{\"minimum_flow_c\":" << static_cast<unsigned>(profile_.minimumFlowC)
                  << ",\"maximum_flow_c\":" << static_cast<unsigned>(profile_.maximumFlowC)
                  << ",\"maximum_duration_s\":" << profile_.maximumHeatMs / 1000
+                 << ",\"heat_request_interval_ms\":" << profile_.heatRequestIntervalMs()
                  << ",\"operator_lease_ms\":" << profile_.operatorLeaseMs << '}';
         out << ",\"pressure_reading_required\":" << (requirePressureReading_ ? "true" : "false")
             << ",\"pressure_reading_limits\":";

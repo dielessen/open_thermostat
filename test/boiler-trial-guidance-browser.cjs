@@ -2,7 +2,7 @@
 const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html'),out=path.resolve(process.env.OPENTHERMOSTAT_TRIAL_GUIDANCE_EVIDENCE||'out/boiler-trial-guidance-browser');
-const limits={minimum_flow_c:40,maximum_flow_c:50,maximum_duration_s:600,operator_lease_ms:5000};
+const limits={minimum_flow_c:40,maximum_flow_c:50,maximum_duration_s:600,operator_lease_ms:5000,heat_request_interval_ms:60000};
 const progress=()=>({schema:1,requested_temperature_reported:false,heating_operation_reported:false,duration_completed:false,requested_duration_s:600,end_reason:''});
 const initial=()=>({schema:1,boot_id:'000000000000002a',revision:0,state_sequence:1,observed_at_ms:100,clock:'boot_monotonic_ms',
  available:true,blocked_reason:'',phase:'idle',reason:'not_prepared',owned:false,can_prepare:true,can_prepare_zero:true,
@@ -50,6 +50,7 @@ const initial=()=>({schema:1,boot_id:'000000000000002a',revision:0,state_sequenc
   assert.equal(await page.locator('[data-test-site] input[type=checkbox]').count(),1);
   assert.equal(await page.locator('[data-test-flow]').inputValue(),'50');assert.equal(await page.locator('[data-test-duration]').inputValue(),'600');
   assert.match(await page.locator('[data-trial-selection]').innerText(),/50 °C.*10/);
+  assert.match(await page.locator('[data-trial-cadence]').innerText(),language==='nl'?/60 seconden.*Stop wordt direct/:/60 seconds.*Stop is sent immediately/);
   assert.equal(await page.locator('[data-site-pressure-value]').evaluate(e=>e.required&&e.validity.valueMissing),true);
   await page.screenshot({path:path.join(out,`SETUP-${language}-${width}.png`),fullPage:true});
   await page.locator('[data-site-pressure-value]').fill('2');await page.locator('[data-site-confirm]').check();await step(2);

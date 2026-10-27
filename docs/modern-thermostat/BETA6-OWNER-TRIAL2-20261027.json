@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "OWNER_TEST_REPORTED_UNSUCCESSFUL_LATER_STOP_CONFIRMED",
+  "installed_version": "v0.1.0-e32v2-beta.6",
+  "boot_id": "b5eb5fd5f0f0b341",
+  "revision": 2,
+  "owner_reply": "Ja, ik heb getest en ben nu gestopt",
+  "owner_report": "de test liep niet goed trouwens . geen idee waarom",
+  "requested_flow_c": 50,
+  "requested_duration_s": 600,
+  "test_reason": "test_transport_unavailable",
+  "reported_stop_confirmed": true,
+  "heating_active": 0,
+  "modulation_percent": 0,
+  "boot_cumulative_counts": {
+    "positive_frames": 16,
+    "zero_frames_at_snapshot": 10,
+    "transmitted_frames": 38,
+    "uart_errors": 1,
+    "uart_resets": 1,
+    "reply_errors": 1
+  },
+  "count_scope": "Cumulative since this boot; not an independently captured per-session frame count or event order",
+  "uart_fault_kind": "Not available in installed beta6; beta8 successor includes exact last fault reason/time",
+  "logs": "Only32records retained;282older records already overwritten. No exact root cause inferred from counters alone.",
+  "full_duration_completed": false,
+  "physical_acceptance_complete": false,
+  "snapshot_sha256": "d2aec207c64532264b8e19ae176823fc0ec536961dd48d4462508c7cdba9952a",
+  "log_capture_summary_sha256": "3146dd5722fbca585c90bede6d9d7d641b5aa7e3add053f636ad332e142de9ae"
+}

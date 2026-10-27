@@ -1,5 +1,30 @@
 # OpenThermostat — actueel werkbord en releasechecklist
 
+**Actueel — beta.9: vaste proefmethode50°C/600s, herhaling elke60s.**
+De eigenaar vraagt expliciet dezelfde proefmethode met60secondeninterval.
+De bestaande proef zond ongeveer elke1–1,5s; de nieuwe firmware herhaalt de
+positieve aanvraag pas60s na de vorige voltooide UART-verzending, op de volgende
+geschikte buspoll. Eerste start en nulvraag bij Stop/toezichtverlies/deadline
+blijven direct. Het HTTP-toezicht blijft kort; dat is geen extra ketelopdracht.
+1230 native proeven en vier browsergevallen slagen. Exacte release-CI,
+installatie en de volledige bijgewoonde proef blijven apart.
+
+HA0.4.0b6 is geïnstalleerd,96bronbestanden gecontroleerd, één HA-herstart.
+Badkamer meldt weer heat/shadow_ready met accepted7 en geen staging; profiel,
+targets, bindings,105entiteiten, twee apparaten en15resources zijn behouden.
+De wrapper bereikte zijn12stappenlimiet; volledige handmatige reviewflow is
+niet bewezen. Bronkwaliteit blijft ongekwalificeerd/current_temperature null.
+Beta.8 is gepubliceerd maar de app-upload brak af met een watchdogboot naar
+beta.6. De E32 draait dus nog beta.6. Een door de eigenaar gestarte tweede
+proef registreerde één UART-fout/reset/replyerror; latere stop is bevestigd.
+De eigenaar meldt dat hij is gestopt. Geen volledige tienminutenacceptatie.
+[Huidige installatie](BETA8-INSTALLATION-20261027.json),
+[tweede proef](BETA6-OWNER-TRIAL2-20261027.json),
+[opdracht en vaste methode](BETA9-OWNER-INSTRUCTION-20261027.json).
+
+**Eerdere beta.8-voorbereiding:**
+
+
 Beta.8 + HA0.4.0b6 is de actuele correctiebundel: aparte verzonden E32-aanvraag,
 behoud van ketelterugmeldingen, warm beginnen bij66°C, bereikbaar planherstel en
 meer stop-/UART-diagnose. Softwarecontrole is afgerond; exacte CI/publicatie,

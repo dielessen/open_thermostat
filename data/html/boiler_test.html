@@ -18,6 +18,7 @@
       <label class="d-block"><span data-i18n="Desired flow temperature (°C)">Desired flow temperature (°C)</span><input class="form-control" data-test-flow type="number" step="1" required disabled></label>
       <label class="d-block"><span data-i18n="Maximum heat demand (seconds)">Maximum heat demand (seconds)</span><input class="form-control" data-test-duration type="number" step="1" required disabled></label>
       <p class="pd-help" data-trial-selection></p>
+      <p class="pd-help" data-trial-cadence hidden></p>
     <fieldset data-test-site hidden>
       <legend data-i18n="Prepare this test">Prepare this test</legend>
       <label data-site-pressure-value-label hidden><span data-i18n="Installation pressure read from the boiler gauge (bar)">Installation pressure read from the boiler gauge (bar)</span><input class="form-control" data-site-pressure-value type="number" step="0.1" inputmode="decimal" autocomplete="off"></label>
@@ -563,6 +564,9 @@
       flow=idle?Number(flowInput.value):test?.requested_flow_c;
     selection.textContent=Number.isInteger(duration)&&duration>0&&Number.isInteger(flow)&&flow>0
       ?flow+' °C · '+new Intl.NumberFormat(document.documentElement.lang||'en',{maximumFractionDigits:1}).format(duration/60)+' '+uiText('minutes maximum. The boiler may take several minutes to respond.') : '';
+    const cadence=root.querySelector('[data-trial-cadence]'), interval=test?.limits?.heat_request_interval_ms;
+    cadence.hidden=!Number.isInteger(interval)||interval<100||interval>60000;
+    cadence.textContent=cadence.hidden?'':uiText('Heat request interval:')+' '+new Intl.NumberFormat(document.documentElement.lang||'en').format(interval/1000)+' '+uiText('seconds. Stop is sent immediately.');
     const remaining=root.querySelector('[data-trial-remaining]');
     remaining.hidden=test?.phase!=='heating'||!Number.isSafeInteger(test.heat_remaining_ms)||test.heat_remaining_ms<0;
     if(!remaining.hidden) {

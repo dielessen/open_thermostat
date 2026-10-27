@@ -80,21 +80,24 @@ TEST_F(EcomlineCommissioning, GaugeExpiresDespiteKeepalivesAndDuplicateRequestsN
 }
 
 struct EcomlineWaterTemperature:EcomlineCommissioning,testing::WithParamInterface<uint16_t> {};
-TEST_P(EcomlineWaterTemperature, FiftyDegreesIsRepeatedForTenMinutesThenZeroAndLaterStopAreRequired) {
+TEST_P(EcomlineWaterTemperature, FiftyDegreesIsRepeatedEveryMinuteForTenMinutesWithImmediateDeadlineZero) {
     // Settings almost ten minutes old are admitted once, then retained only
     // for this finite run. Live feedback and supervision stay fresh throughout.
     now=599000;fast(now,GetParam());
     ASSERT_EQ(action("prepare",heat("20",50,600)).http,202);
     transmit(BoilerTestSession::Command::zero);++now;fast(now,GetParam());service.tick(now,gates(),monitor);
     ASSERT_EQ(action("start",scope()+"}").http,202);
-    const auto started=now;
-    for(uint64_t elapsed=1;elapsed<600000;elapsed+=1001) {
+    const auto started=now;uint64_t lastCompletion=0;unsigned positives=0;
+    for(uint64_t elapsed=1;elapsed<600000;elapsed+=1000) {
         now=started+elapsed;fast(now,GetParam());
         ASSERT_EQ(action("keepalive",scope()+"}").http,202);
         ASSERT_TRUE(service.heating())<<elapsed;
-        const auto intent=transmit(BoilerTestSession::Command::positive);
-        EXPECT_EQ(intent.flowC,50);
+        if(!positives || now-lastCompletion>=60000) {
+            const auto intent=transmit(BoilerTestSession::Command::positive);
+            EXPECT_EQ(intent.flowC,50);lastCompletion=now;++positives;
+        } else EXPECT_EQ(service.next(now,gates(),monitor).command,BoilerTestSession::Command::none)<<elapsed;
     }
+    EXPECT_EQ(positives,10u);
     now=started+600000;fast(now,GetParam());service.tick(now,gates(),monitor);
     EXPECT_FALSE(service.heating());
     transmit(BoilerTestSession::Command::zero);
@@ -103,6 +106,46 @@ TEST_P(EcomlineWaterTemperature, FiftyDegreesIsRepeatedForTenMinutesThenZeroAndL
     EXPECT_FALSE(service.active());
     EXPECT_EQ(service.next(now,gates(),monitor).command,BoilerTestSession::Command::none);
     EXPECT_NE(action("start",scope()+"}").http,202); // No restart/extension.
+}
+TEST_F(EcomlineCommissioning, MinuteRefreshDoesNotDelayManualStop) {
+    ready();ASSERT_EQ(action("start",scope()+"}").http,202);
+    transmit(BoilerTestSession::Command::positive);
+    now+=1000;fast(now);ASSERT_EQ(action("keepalive",scope()+"}").http,202);
+    EXPECT_EQ(service.next(now,gates(),monitor).command,BoilerTestSession::Command::none);
+    ASSERT_EQ(action("stop",scope()+"}").http,202);
+    transmit(BoilerTestSession::Command::zero);
+    ++now;fast(now);service.tick(now,gates(),monitor);
+    EXPECT_FALSE(service.active());
+}
+TEST_F(EcomlineCommissioning, MinuteRefreshDoesNotDelayWithdrawalOnLostSupervision) {
+    ready();ASSERT_EQ(action("start",scope()+"}").http,202);
+    transmit(BoilerTestSession::Command::positive);
+    now+=5000;fast(now);service.tick(now,gates(),monitor);
+    EXPECT_FALSE(service.heating());transmit(BoilerTestSession::Command::zero);
+    ++now;fast(now);service.tick(now,gates(),monitor);EXPECT_FALSE(service.active());
+}
+TEST_F(EcomlineCommissioning, SameFiftyDegreeValueIsActuallyTransmittedAgainAfterOneMinute) {
+    ASSERT_EQ(action("prepare",heat("20",50,600)).http,202);
+    transmit(BoilerTestSession::Command::zero);++now;fast(now);service.tick(now,gates(),monitor);
+    ASSERT_EQ(action("start",scope()+"}").http,202);
+    transmit(BoilerTestSession::Command::positive);const auto completion=now;
+    for(unsigned elapsed=1000;elapsed<60000;elapsed+=1000) {
+        now=completion+elapsed;fast(now);
+        ASSERT_EQ(action("keepalive",scope()+"}").http,202);
+        EXPECT_EQ(service.next(now,gates(),monitor).command,BoilerTestSession::Command::none);
+    }
+    now=completion+59999;fast(now);ASSERT_EQ(action("keepalive",scope()+"}").http,202);
+    EXPECT_EQ(service.next(now,gates(),monitor).command,BoilerTestSession::Command::none);
+    now=completion+60000;fast(now);
+    EXPECT_EQ(transmit(BoilerTestSession::Command::positive).flowC,50);
+    const auto latest=service.next(now,gates(),monitor);EXPECT_EQ(latest.command,BoilerTestSession::Command::none);
+}
+TEST_F(EcomlineCommissioning, StatusAdvertisesTheActualMinuteRefreshIndependentlyOfOperatorLease) {
+    std::ostringstream out;service.writeJSON(out,now,owner,gates(),monitor);
+    const auto json=heating::control::parseControlJson(out.str());ASSERT_TRUE(json);
+    const auto* limits=cJSON_GetObjectItemCaseSensitive(json.get(),"limits");ASSERT_TRUE(cJSON_IsObject(limits));
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItemCaseSensitive(limits,"heat_request_interval_ms")),60000);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItemCaseSensitive(limits,"operator_lease_ms")),5000);
 }
 INSTANTIATE_TEST_SUITE_P(ColdAndAlreadyWarmWater,EcomlineWaterTemperature,testing::Values(uint16_t(200),uint16_t(660),uint16_t(850)));
 TEST_F(EcomlineCommissioning, TenMinuteRequestStillStopsOnLostSupervision) {

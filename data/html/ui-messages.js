@@ -1,5 +1,7 @@
 /* Fixed English UI messages mapped to Nederlands. User data and wire identifiers are excluded. */
 window.OT_UI_MESSAGES = {
+  "Heat request interval:": "Interval warmtevraag:",
+  "seconds. Stop is sent immediately.": "seconden. Stop wordt direct verstuurd.",
   "Stopped manually; a fault was also recorded": "Handmatig gestopt; ook een fout geregistreerd",
   "Your Stop action ended the demand. A fault was also recorded; inspect both the stop feedback and the diagnostic report.": "Jouw stopactie beëindigde de vraag. Er is ook een fout vastgelegd; controleer de stopterugmelding en het diagnoserapport.",
   "Heating operation, the full duration and a later stop were reported. The boiler did not confirm the requested temperature; the separate E32 command value is not a boiler readback.": "CV-bedrijf, de volledige duur en een latere stop zijn teruggemeld. De ketel bevestigde de gevraagde temperatuur niet; de aparte E32-aanvraagwaarde is geen ketelterugmelding.",

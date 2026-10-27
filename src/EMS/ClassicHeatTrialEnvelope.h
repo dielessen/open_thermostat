@@ -25,6 +25,7 @@ struct ClassicHeatTrialEnvelope {
         auto result = BoilerTestSession::Profile::supervisedZeroOnly();
         result.minimumFlowC = 40; result.maximumFlowC = 50;
         result.maximumHeatMs = BoilerTestSession::maximumTrialMs;
+        result.heatWriteIntervalMs = 60000;
         return result;
     }
     static Check inspect(const ClassicBoilerMonitor& monitor, uint64_t now,

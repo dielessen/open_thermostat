@@ -1,5 +1,12 @@
 /* Fixed English UI messages mapped to Nederlands. User data and wire identifiers are excluded. */
 window.OT_UI_MESSAGES = {
+  "Loop timing": "Looptijden",
+  "Loop timing unavailable.": "Looptijden niet beschikbaar.",
+  "Longest interval since boot": "Langste interval sinds opstarten",
+  "Current observation window": "Huidig meetvenster",
+  "Intervals at least 100 ms": "Intervallen van minstens 100 ms",
+  "Intervals at least 1 second": "Intervallen van minstens 1 seconde",
+  "Intervals include network, HTTP and scheduler delays. They are not page-load times. Counters reset after restart; the observation window renews every minute.": "Intervallen omvatten netwerk-, HTTP- en planningsvertraging. Het zijn geen paginalaadtijden. Tellers beginnen opnieuw na een herstart; het meetvenster vernieuwt elke minuut.",
   "Read device identity": "Apparaatidentiteit ophalen",
   "Unidentified EMS traffic": "Niet-geïdentificeerd EMS-verkeer",
   "Device identity has not been requested.": "De apparaatidentiteit is nog niet opgevraagd.",

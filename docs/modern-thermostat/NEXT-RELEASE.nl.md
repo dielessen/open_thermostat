@@ -32,6 +32,9 @@ meer vijftien seconden vast; TCP- en MQTT-handshake hebben nog eigen wachttijden
 Uitgeschakelde projectlogregels voeren hun dure argumenten niet meer uit;
 web/syslog en seriële uitvoer houden hun eigen filters. De netwerkroute-refresh
 wacht niet op een volle netwerkmailbox.
+Systeemlog bevat nu lichte looptijdtellers in dezelfde statusaanvraag, met een
+uitklapbare uitleg. Verborgen logpagina’s stoppen hun uitlezing; reeds verstuurde
+instellingenwijzigingen worden door navigatie niet afgebroken of herhaald.
 De daadwerkelijke paginasnelheid moet na installatie worden gemeten.
 
 **Nieuwe kamerfunctie in dezelfde bundel:** maximaal acht raam-/deurcontacten

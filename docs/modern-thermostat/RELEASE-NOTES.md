@@ -41,6 +41,10 @@ acceptance is separate; beta.5 installation recovery remains deferred.
   thread. DNS waits no longer hold the HTTP/main loop; retired lookups retain
   bounded callback storage until completion. TCP and CONNACK retain separate
   timing bounds; firmware-update HTTPS uses a different path.
+- Show main-loop interval counters under **System log → Loop timing**, using
+  the existing log-status response. These distinguish observed loop delays from
+  page-load time. Hidden log pages stop polling; submitted settings writes are
+  retained through navigation without automatic replay.
 - Avoid building disabled log messages. Web/syslog levels and source selections
   remain independent of serial output; enabled messages retain redaction and
   bounded storage. The periodic route refresh also fails fast if its native

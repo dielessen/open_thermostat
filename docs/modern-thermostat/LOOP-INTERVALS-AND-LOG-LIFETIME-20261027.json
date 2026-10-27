@@ -1,0 +1,113 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target": "E32 beta.6",
+  "parent_commit": "1ed9710de0db551f0384f2ff92c67c748ae3b770",
+  "device_actions_performed": false,
+  "observer": {
+    "maximum_storage_bytes": 64,
+    "clock": "Existing uint32 millis observation",
+    "additional_clock_reads_tasks_locks_or_io": 0,
+    "page_load_measurement": false,
+    "status_route": "Existing authenticated /status/logs",
+    "read_resets_or_renews_observation": false,
+    "control_authority": false
+  },
+  "browser_lifetime": {
+    "hidden_or_paused_log_gets_aborted": true,
+    "single_owned_log_get": true,
+    "deadline_retry_interval_ms": 2000,
+    "submitted_mutation_survives_navigation": true,
+    "retired_settings_page_launches_readback": false,
+    "automatic_mutation_replay": false
+  },
+  "validation": {
+    "native_tests_passed": 1215,
+    "native_log": "out/loop-intervals-20261027/native.log",
+    "asan_ubsan_and_leak_detection_cases_passed": 7,
+    "json_allocation_fail_after_limits_tested": 40,
+    "ordinary_log_browser_language_width_profiles_passed": 4,
+    "lifecycle_browser_language_profiles_passed": 2,
+    "root_and_language_unit_regressions_passed": 26,
+    "e32_app_and_filesystem_builds": "PASS",
+    "e32_image_partition_assets_and_uart_owner_verification": "PASS",
+    "firmware_bytes": 3095376,
+    "ota_slot_bytes": 3670016,
+    "web_assets": 36,
+    "gzip_representations": 29,
+    "raw_web_bytes": 553331,
+    "gzip_web_bytes": 150200
+  },
+  "remaining": [
+    "Exact-commit CI",
+    "Installation and on-device latency acceptance",
+    "Intervals include scheduler/network/HTTP delays and do not identify individual blocking components"
+  ],
+  "reviewed_files": [
+    {
+      "path": ".github/workflows/build.yml",
+      "sha256": "9a93d472e45801a1153e35554a5fd56e207bbf1c009fa8777d9c8058454ccb0b"
+    },
+    {
+      "path": "README.md",
+      "sha256": "32807ad8096e209a1779679170655a8e6d0edd7672815a46895beec4747d5559"
+    },
+    {
+      "path": "data/html/index.html",
+      "sha256": "3237e77739ba7375e560d353ddf5f42f343d685328ed770614a81b2614fedb25"
+    },
+    {
+      "path": "data/html/system-log.js",
+      "sha256": "5519e586f3cc411f048af9fb833b930a7874a8103ffa18071753595ae3dcf3e9"
+    },
+    {
+      "path": "data/html/system_log.html",
+      "sha256": "e83f9bc0b6f4f64bd9e6b467c60c4cd21ebf74561b45a0144d370058f2936a95"
+    },
+    {
+      "path": "data/html/ui-messages.js",
+      "sha256": "f23424873e8cb908643d844bd47cf04cedcb0ed15b3a862329736f7bdddb4db8"
+    },
+    {
+      "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
+      "sha256": "ff6f55026d3e860f62422bf07c1f78711db507cbf0398c46e96f0cbf4510da48"
+    },
+    {
+      "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
+      "sha256": "b0e1510e9335141f66eddb891f9ccf6e53a76334a9208788df87eb3afd63d4fa"
+    },
+    {
+      "path": "docs/modern-thermostat/RELEASE-NOTES.md",
+      "sha256": "6ba9f58c00f3e90d0f023960cd95fe4df89a7d30c5017d5f9ffa88a9193632d0"
+    },
+    {
+      "path": "docs/modern-thermostat/WORKBOARD.nl.md",
+      "sha256": "ee600cdf0610a684cc1a0317ba417acfa48a33f3078d38b70d40dba6a17bae9b"
+    },
+    {
+      "path": "src/REST.h",
+      "sha256": "0cf6e6462076ee2ad1cc1955df87cf2c6f8a2e7d7eace6853ff153358b95750e"
+    },
+    {
+      "path": "src/diagnostics/LoopIntervals.h",
+      "sha256": "147d029c02cb9626b016ccc85bfeb61b2c83181d21018cc1f890a178286cc596"
+    },
+    {
+      "path": "src/main.cpp",
+      "sha256": "52ba26ca9f59b22d83c7db0b7f2397e5fc5080544093e63828dba9c32946d10d"
+    },
+    {
+      "path": "test/system-log-browser.cjs",
+      "sha256": "d031f503a5d2f183cccd3cb0abfe3f2bdbba49894caf261e58e7952c2ede2d11"
+    },
+    {
+      "path": "test/system-log-lifecycle-browser.cjs",
+      "sha256": "6dcbe3ab0fe7447c671be6d64bd60252c5afb7823d37a4203d67144aa1bf445c"
+    },
+    {
+      "path": "test/test_native/test_loop_intervals.cpp",
+      "sha256": "30556374db4f0402eb8ec4f6b8dc0f3b1a83f225874b1bcc05d8873ea2b33f81"
+    }
+  ]
+}

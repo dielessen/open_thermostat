@@ -26,6 +26,7 @@
 #include "Logging.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "diagnostics/LogRuntime.h"
+#include "diagnostics/LoopIntervals.h"
 #include "diagnostics/ResponseBuffer.h"
 #include <esp_heap_caps.h>
 #endif
@@ -1113,6 +1114,9 @@ private:
         auto& log=diagnostics::runtime.log;const auto stats=log.stats();
         auto root=std::unique_ptr<cJSON,decltype(&cJSON_Delete)>(cJSON_CreateObject(),cJSON_Delete);
         if(!root){server_.send(503);return;}
+        auto timing=diagnostics::loopIntervals.json();
+        if(!timing||!cJSON_AddItemToObject(root.get(),"loop_intervals",timing.get())) {server_.send(503);return;}
+        timing.release();
         cJSON_AddNumberToObject(root.get(),"boot",diagnostics::runtime.boot);
         cJSON_AddNumberToObject(root.get(),"latest",stats.latest);cJSON_AddNumberToObject(root.get(),"oldest",stats.oldest);
         cJSON_AddNumberToObject(root.get(),"retained",stats.retained);cJSON_AddNumberToObject(root.get(),"overwritten",stats.overwritten);

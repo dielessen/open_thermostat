@@ -257,3 +257,42 @@ credential redaction and full serial output. Native tests compare the lazy
 acceptance mask with actual append outcomes across every level/source setting.
 These checks establish avoided work and preserved output semantics, not a
 measured on-device page-load improvement.
+
+## Main-loop interval evidence and log page lifetime
+
+The main loop now records the unsigned interval between consecutive observations
+of its existing `millis()` value. The fixed observer uses at most 64 bytes and
+does not allocate, lock, read another clock or perform IO. It records the most
+recent interval, maximum since startup, counts at 100/500/1000 ms, and a current
+observation window that starts again after 60 seconds. Counters saturate instead
+of wrapping. The first observation is unknown, whereas a genuine zero-millisecond
+interval is valid. Unsigned timer rollover retains the normal elapsed interval.
+
+The existing authenticated `/status/logs` response carries the same observer's
+`loop_intervals` object. There is no new endpoint, polling loop or control input.
+Its small JSON projection is allocated only for an explicit status read; failure
+returns an error instead of partial timing fields. Opening or reading diagnostics
+does not reset the counters or renew an observation. In **System log → Loop
+timing**, the folded detail distinguishes main-loop intervals from page-load
+times. Network, HTTP, scheduler and ordinary idle delays are all included. An
+older backend or invalid/missing timing data shows unavailable without hiding
+otherwise valid logs. These counters cannot identify a particular blocking
+component or measure CPU execution time. Installation acceptance must still
+measure page latency separately.
+
+The log viewer stops its polling timer and aborts its pending log GET while
+hidden or paused. Returning requests one fresh batch with the existing cursor.
+One owned GET remains in flight at most; obsolete batches cannot change history.
+A real five-second request deadline still reports failure and uses the existing
+two-second retry interval. Navigation explicitly unmounts the viewer and removes
+listeners/observers. Submitted settings/clear POSTs retain their own finite
+request deadline and survive hide/navigation without replay. A retired settings
+page does not launch a follow-up readback; opening the page again reads the
+current saved settings normally.
+
+Native fixtures cover threshold boundaries, empty/zero readings, minute renewal,
+rollover, read purity and every JSON allocation failure. Real shipped-asset
+browser fixtures cover both languages, 320-pixel expanded detail, malformed or
+older timing data, hidden/pending reads, deadline backoff, navigation during an
+accepted settings write and remount without replay. All network responses are
+isolated fixtures. No live measurement, installation or boiler action is implied.

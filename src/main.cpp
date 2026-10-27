@@ -19,6 +19,7 @@
 #include "diagnostics/LogRuntime.h"
 #include "diagnostics/BufferedLogger.h"
 #include "diagnostics/NativeLogCapture.h"
+#include "diagnostics/LoopIntervals.h"
 #endif
 
 #include "config.h"
@@ -340,6 +341,9 @@ void loop() {
 	}
 
 	auto now = millis();
+#ifdef OPENTHERMOSTAT_E32V2
+    heating::diagnostics::loopIntervals.observe(now);
+#endif
 	if (ib::millisDurationPassed(now, lastMillis, 10000)) {
 		lastMillis = now;
 

@@ -15,6 +15,11 @@
   </div>
   <p class="small text-muted" data-i18n="The source filter only changes this view. EMS logs include received frames processed by the controller, not a complete bus recording. Clearing removes both ESP and EMS local logs.">The source filter only changes this view. EMS logs include received frames processed by the controller, not a complete bus recording. Clearing removes both ESP and EMS local logs.</p>
   <p id="log-counters" class="small text-muted"></p>
+  <details class="mb-2">
+    <summary data-i18n="Loop timing">Loop timing</summary>
+    <p id="log-loop-timing" class="small mb-1" role="status" aria-live="polite"></p>
+    <p class="small text-muted" data-i18n="Intervals include network, HTTP and scheduler delays. They are not page-load times. Counters reset after restart; the observation window renews every minute.">Intervals include network, HTTP and scheduler delays. They are not page-load times. Counters reset after restart; the observation window renews every minute.</p>
+  </details>
   <p id="log-status" role="status" aria-live="polite"></p>
   <pre id="log-lines" style="max-height:420px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#111;color:#eee;padding:1rem" tabindex="0" aria-label="System log"></pre>
   <h2 data-i18n="Logging settings">Logging settings</h2>

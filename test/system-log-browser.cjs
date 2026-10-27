@@ -7,6 +7,7 @@ const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.
  try{for(const [lang,width]of [['en',1440],['nl',1440],['en',320],['nl',320]]){
   const page=await browser.newPage({viewport:{width,height:1000},acceptDownloads:true}),errors=[],requests=[];
   let settings={syslog_enabled:false,server:'',port:514,syslog_level:3,web_level:3,mark_interval_s:0,syslog_esp:true,syslog_ems:true},failSave=false,logReads=0,boot=123,latest=2;const cursors=[];
+  let loopIntervals={schema:1,samples:42,sampled_at_ms:70000,last_ms:12,maximum_ms:1750,intervals_ge_100_ms:3,intervals_ge_500_ms:2,intervals_ge_1000_ms:1,window_ms:10000,window_samples:30,window_maximum_ms:750};
   let rows=[{sequence:1,uptime_ms:1000,level:3,source:'esp',feature:'App',message:'ready'},
     {sequence:2,uptime_ms:2000,level:2,source:'ems',feature:'EMS',message:'<img src="https://foreign.test/x"> fault'}];
   page.on('pageerror',e=>errors.push(e.message));
@@ -21,7 +22,7 @@ const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.
    if(p==='/status/logs'){
     ++logReads;const after=Number(url.searchParams.get('after')||0);cursors.push(after);
     latest=Math.max(latest,...rows.map(r=>r.sequence));
-    return json({boot,latest,oldest:rows[0]?.sequence||0,retained:rows.length,overwritten:4,truncated:1,redacted:2,syslog_dropped:3,syslog_sent:5,contention_dropped:0,records:rows.filter(r=>r.sequence>after).slice(0,8)});
+    return json({boot,latest,loop_intervals:loopIntervals,oldest:rows[0]?.sequence||0,retained:rows.length,overwritten:4,truncated:1,redacted:2,syslog_dropped:3,syslog_sent:5,contention_dropped:0,records:rows.filter(r=>r.sequence>after).slice(0,8)});
    }
    if(p==='/logs/clear'){assert.equal(req.method(),'POST');rows=[];return json({});}
    if(p==='/config/logging'){
@@ -46,6 +47,10 @@ const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.
   await page.waitForFunction(()=>document.querySelector('#log-lines')?.textContent.includes('fault'));
   assert.equal(await page.locator('#log-lines img').count(),0);
   assert.match(await page.locator('#log-counters').innerText(),lang==='nl'?/Overschreven: 4/:/Overwritten: 4/);
+  await page.locator('#system-log details').evaluate(element=>element.open=true);
+  assert.match(await page.locator('#log-loop-timing').textContent(),lang==='nl'?/Langste interval sinds opstarten: 1750 ms/:/Longest interval since boot: 1750 ms/);
+  assert.match(await page.locator('#log-loop-timing').textContent(),/750 ms/);
+  assert.equal(requests.filter(r=>r.path.includes('performance')).length,0);
   // The view filter never saves settings or changes collection/cursors.
   const writesBeforeFilter=requests.filter(r=>r.method==='POST').length;
   await page.locator('#log-source').selectOption('ems');
@@ -60,11 +65,13 @@ const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.
   rows.push({sequence:3,uptime_ms:3000,level:3,feature:'App',message:'valid prefix'},
     {sequence:4,uptime_ms:4000,level:9,feature:'App',message:'corrected suffix'});
   await page.waitForFunction(()=>/unavailable|niet beschikbaar/.test(document.querySelector('#log-status')?.textContent));
+  assert.match(await page.locator('#log-loop-timing').textContent(),lang==='nl'?/niet beschikbaar/:/unavailable/);
   assert(!(await page.locator('#log-lines').innerText()).includes('valid prefix'));
-  const invalidReadCount=logReads;rows[3].level=3;
+  const invalidReadCount=logReads;rows[3].level=3;loopIntervals=undefined; // Older firmware remains usable.
   await page.waitForFunction(()=>document.querySelector('#log-lines')?.textContent.includes('corrected suffix'));
   assert.equal(cursors[invalidReadCount],2,'malformed batch advanced the incremental cursor');
   assert.equal((await page.locator('#log-lines').innerText()).split('valid prefix').length-1,1);
+  assert.match(await page.locator('#log-loop-timing').textContent(),lang==='nl'?/niet beschikbaar/:/unavailable/);
   await page.locator('#log-pause').click();const paused=logReads;
   await page.waitForTimeout(2300);assert.equal(logReads,paused);
   await page.locator('#log-search').fill('EMS');assert(!((await page.locator('#log-lines').innerText()).includes('ready')));

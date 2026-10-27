@@ -1,13 +1,16 @@
 #pragma once
 #ifdef OPENTHERMOSTAT_E32V2
 #include "DeadlineWrite.h"
+#include "SocketWriteBudget.h"
 #include <WiFiClient.h>
 #include <lwip/sockets.h>
+#include <esp_timer.h>
+#include <cerrno>
 
 namespace heating::control {
 // The existing PubSubClient still frames MQTT and owns this ONE connection.
-// Only an explicit actuator publish changes write behavior, synchronously.
-// Ordinary shadow traffic keeps the pinned WiFiClient implementation.
+// Actuator publishes retain their original one-handoff deadline contract.
+// Ordinary MQTT writes have a separate total latency bound on this same socket.
 class DeadlineWiFiClient final:public WiFiClient {
 public:
     using WiFiClient::write;
@@ -15,7 +18,23 @@ public:
     bool finishDeadlineWrite(){return deadline_.finish();}
     size_t write(uint8_t value)override{return write(&value,1);}
     size_t write(const uint8_t* bytes,size_t size)override {
-        if(!deadline_.active())return WiFiClient::write(bytes,size);
+        if(!deadline_.active()) {
+            if(!size)return 0;
+            const auto result=SocketWriteBudget::write(bytes,size,
+                []{return static_cast<uint64_t>(esp_timer_get_time()/1000);},
+                [this](const uint8_t* data,size_t length)->std::ptrdiff_t {
+                    const int socket=fd();if(socket<0)return -1;
+                    const auto count=::send(socket,data,length,MSG_DONTWAIT);
+                    if(count<0&&(errno==EAGAIN||errno==EWOULDBLOCK||errno==EINTR))return 0;
+                    return count>0?count:-1;
+                },[]{delay(1);});
+            if(!result.complete) {
+                // A partial or late MQTT frame cannot precede another packet.
+                // Failed return is an uncertain outcome, never proof of no IO.
+                stop();return 0;
+            }
+            return result.written;
+        }
         return deadline_.write(bytes,size,[this](const uint8_t* data,size_t length)->size_t {
             const int socket=fd();
             if(socket<0)return 0;

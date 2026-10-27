@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target": "v0.1.0-e32v2-beta.6",
+  "parent_commit": "49755235b6d0e65c0e032d29860b835ef159ae83",
+  "device_actions_performed": false,
+  "installed_firmware_unchanged": "v0.1.0-e32v2-beta.4",
+  "ordinary_mqtt_write": {
+    "maximum_monotonic_ms": 100,
+    "maximum_send_calls": 256,
+    "allocations_added": 0,
+    "partial_progress_renews_deadline": false,
+    "failed_partial_or_late_closes_same_socket": true,
+    "failure_means_uncertain_handoff": true
+  },
+  "actuator_write_contract_changed": false,
+  "validation": {
+    "native_cpp_passed": 1206,
+    "asan_ubsan_leak_cases_passed": 14,
+    "actual_host_socket_cases": 8,
+    "deterministic_policy_cases": 6,
+    "e32_image_bytes": 3082736,
+    "ota_slot_bytes": 3670016,
+    "image_verifier": "PASS"
+  },
+  "limitations": [
+    "No on-device latency measurement or installation",
+    "DNS, connection and reads retain separate existing contracts"
+  ],
+  "reviewed_files": [
+    {
+      "path": ".github/workflows/build.yml",
+      "sha256": "5e0e8ce262b77f3787eb22b76fc54bc69670f052290279471a5e07bc6aa57618"
+    },
+    {
+      "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
+      "sha256": "4fca5f80da90a377350a1db4a2b7fff7d300ead4cb76bed7f3a478ae4f4a891e"
+    },
+    {
+      "path": "src/control/DeadlineWiFiClient.h",
+      "sha256": "8aec74803ca10646039265d2280aaf09b85d657c3ddfe1ea2e86aa9b9477662f"
+    },
+    {
+      "path": "src/control/SocketWriteBudget.h",
+      "sha256": "441cd44c1e3c6cff748634c4038f391fdf6672ec4245cbb4a4e04bde9c2747e6"
+    },
+    {
+      "path": "test/deadline_write/adapter.cpp",
+      "sha256": "b052ba5a9ace15c4160fe1d078d87d0dad0ae14ac4891e9d0a7c3d484d453899"
+    },
+    {
+      "path": "test/deadline_write/include/WiFiClient.h",
+      "sha256": "ff7a3e68aa713ac49baf7b4a693f493a1cb9b99d91eed768069f5edf9b28aa1e"
+    },
+    {
+      "path": "test/deadline_write/include/esp_timer.h",
+      "sha256": "384563a93b9b0f5d8454f558b544c403a02629e28c74ceb4178cf7ceb8322c02"
+    },
+    {
+      "path": "test/test_native/test_socket_write_budget.cpp",
+      "sha256": "0a34c753694b40f8c9c0665c4b3fa45195c6027d6a0ed121728082ca33adccb0"
+    }
+  ]
+}

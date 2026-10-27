@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "293ab3e61c09cd22cb15917ff4be453453af16b25cc028600ffe4704f0bf523a"
+          "sha256": "5e0e8ce262b77f3787eb22b76fc54bc69670f052290279471a5e07bc6aa57618"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -397,7 +397,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "293ab3e61c09cd22cb15917ff4be453453af16b25cc028600ffe4704f0bf523a"
+          "sha256": "5e0e8ce262b77f3787eb22b76fc54bc69670f052290279471a5e07bc6aa57618"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -645,7 +645,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
-          "sha256": "68cfb252f8bcefd081e62b1128805b948d3fae1afce4aa6a46fda6079f02a1e5"
+          "sha256": "4fca5f80da90a377350a1db4a2b7fff7d300ead4cb76bed7f3a478ae4f4a891e"
         },
         {
           "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-20261027.json",
@@ -907,7 +907,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "293ab3e61c09cd22cb15917ff4be453453af16b25cc028600ffe4704f0bf523a"
+          "sha256": "5e0e8ce262b77f3787eb22b76fc54bc69670f052290279471a5e07bc6aa57618"
         },
         {
           "path": "platformio.ini",
@@ -1453,6 +1453,22 @@
         {
           "path": "test/test_native/test_session_admission.cpp",
           "sha256": "ede66bfd76f7e929116b1b0aead60a5b973e28bac0dc7a74513d13c242ac6303"
+        },
+        {
+          "path": "src/control/SocketWriteBudget.h",
+          "sha256": "441cd44c1e3c6cff748634c4038f391fdf6672ec4245cbb4a4e04bde9c2747e6"
+        },
+        {
+          "path": "test/test_native/test_socket_write_budget.cpp",
+          "sha256": "0a34c753694b40f8c9c0665c4b3fa45195c6027d6a0ed121728082ca33adccb0"
+        },
+        {
+          "path": "test/deadline_write/include/esp_timer.h",
+          "sha256": "384563a93b9b0f5d8454f558b544c403a02629e28c74ceb4178cf7ceb8322c02"
+        },
+        {
+          "path": "docs/modern-thermostat/MQTT-WRITE-BUDGET-20261027.json",
+          "sha256": "8274b794bb18c6eae9ff0d97d137b86c1bd05f8fc7c8ba93ff8b521acdedb0a7"
         }
       ],
       "remaining_acceptance": "Logische provisioning/programma-ACK werkt; verse fysieke meet- en actuatorbewijzen ontbreken."
@@ -1662,7 +1678,7 @@
         },
         {
           "path": "src/control/DeadlineWiFiClient.h",
-          "sha256": "8efb46f6b1e8d9c9318d69a1b1712b359aaddb64d73cace90e7cdf94a6173e5f"
+          "sha256": "8aec74803ca10646039265d2280aaf09b85d657c3ddfe1ea2e86aa9b9477662f"
         },
         {
           "path": "test/test_native/test_deadline_write.cpp",
@@ -1670,11 +1686,11 @@
         },
         {
           "path": "test/deadline_write/adapter.cpp",
-          "sha256": "6a0252e0c5f11bd1292d18337da0443944a0d479a11c46d81ecc0762fa4eba7e"
+          "sha256": "b052ba5a9ace15c4160fe1d078d87d0dad0ae14ac4891e9d0a7c3d484d453899"
         },
         {
           "path": "test/deadline_write/include/WiFiClient.h",
-          "sha256": "28e5109a311162dc6ed1be57bb533777f7d27ccee3f9bf4fe9602378ce6105f1"
+          "sha256": "ff7a3e68aa713ac49baf7b4a693f493a1cb9b99d91eed768069f5edf9b28aa1e"
         },
         {
           "path": "test/deadline_write/include/lwip/sockets.h",

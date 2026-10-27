@@ -131,6 +131,29 @@ aborted or replayed by visibility/navigation changes. All 37 updater browser
 scenarios pass against simulated HTTP, including these lifecycle cases. This
 reduces idle background work without changing firmware installation authority.
 
+## MQTT socket backpressure
+
+The pinned Arduino WiFiClient implementation waits up to one second per socket
+write readiness check and retries ten times; partial progress resets that retry
+counter. A stalled MQTT peer can therefore hold the same main loop that serves
+HTTP for seconds. This is a source-code finding, not a reproduced live outage.
+
+The native MQTT socket now uses nonblocking sends with one total 100 ms budget
+for an ordinary write. Partial progress advances the buffer without restarting
+the deadline; backpressure yields to the scheduler. A backwards or stuck clock
+cannot create an unbounded retry loop. A partial, failed or late write closes the
+same socket before another MQTT frame can follow. A failed result remains an
+uncertain outcome; already handed-off bytes cannot be retracted or replayed as a
+new command. No extra socket, task, queue or response-body allocation is added.
+
+The separate actuator path retains its existing original owner/freshness guard
+and single nonblocking handoff. It does not inherit ordinary-write retries or
+the new latency budget. Deterministic tests and actual host socket pairs cover
+backpressure, byte order, partial progress, late/faulted clocks and the existing
+actuator guards. These tests do not establish on-device timing. DNS resolution,
+TCP connection and MQTT reads use their existing separate contracts and remain
+additional latency-review work.
+
 ## Follow-up: identity and closed trial state
 
 A subsequent passive read of the installed device found a closed trial with a

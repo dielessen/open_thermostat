@@ -42,20 +42,27 @@
                 "contact_close_delay_s": "Wachttijd na sluiten (seconden)",
                 "contact_maximum_age_s": "Maximale contactberichtouderdom (seconden)",
                 "setpoint_entity": "Extra doelhelper (optioneel)",
-                "setpoint_minutes": "Duur tijdelijk doel (minuten)"
+                "setpoint_minutes": "Duur tijdelijk doel (minuten)",
+                "comfort_enabled": "Comfortstanden gebruiken",
+                "away_temperature": "Afwezigheidsdoel",
+                "frost_temperature": "Vorstdoel",
+                "override_minutes": "Standaard tijdelijke duur (minuten)",
+                "presence_entity": "Aanwezigheidsbron (optioneel)"
               },
               "data_description": {
                 "maximum_age_ms": "Versheidsgrens, geen meetinterval. Een gecachte waarde bewijst geen nieuwe fysieke meting.",
                 "schedule_entity": "Een alternatief voor het lokale weekprogramma. Gebruik één programmabron per kamer.",
                 "contact_maximum_age_s": "Oudere berichten worden onbekend. Dit verandert niet hoe vaak de sensor rapporteert.",
-                "setpoint_entity": "Kies een Home Assistant-getalhelper met °C of °F. Alleen een nieuwe directe gebruikerswijziging vraagt een tijdelijk kamerdoel aan; de helper wordt nooit door de regelaar beschreven."
+                "setpoint_entity": "Kies een Home Assistant-getalhelper met °C of °F. Alleen een nieuwe directe gebruikerswijziging vraagt een tijdelijk kamerdoel aan; de helper wordt nooit door de regelaar beschreven.",
+                "comfort_enabled": "Voegt comfortstanden toe aan de kamerthermostaat. Doelen moeten binnen de kamergrenzen blijven; de native regelaar behoudt zijn bestaande vorstdoel van 5 °C.",
+                "presence_entity": "Kies een persoon. Alleen Thuis en Afwezig worden gebruikt; onbekende, verlopen en benoemde locaties blijven onbekend. Een tijdelijk handmatig doel eindigt niet door een aanwezigheidswijziging. Minstens elke twee minuten is een nieuw oorspronkelijk HA-bericht nodig; een gecachete waarde uitlezen vernieuwt dit niet."
               }
             }
           }
         },
         "room_review": {
           "title": "Deze kamer opslaan?",
-          "description": "**{name}**\n\nTemperatuursensor: {sensor}\n\nRadiatorkranen: {radiators}\n\nRaam- en deursensoren: {contacts}\n\nExtra doelhelper: {manual_target}\n\nGewenste temperatuur buiten programmablokken: **{target} °C**\n\nDe kamer en radiatorgroep worden samen opgeslagen. Bestaande centrale verwarmingsinstellingen blijven behouden. De regeling blijft uit; inschakelen en testen van de controller is een afzonderlijke stap.",
+          "description": "**{name}**\n\nTemperatuursensor: {sensor}\n\nRadiatorkranen: {radiators}\n\nRaam- en deursensoren: {contacts}\n\nExtra doelhelper: {manual_target}\n\nAanwezigheidsbron: {presence}\n\nGewenste temperatuur buiten programmablokken: **{target} °C**\n\nDe kamer en radiatorgroep worden samen opgeslagen. Bestaande centrale verwarmingsinstellingen blijven behouden. De regeling blijft uit; inschakelen en testen van de controller is een afzonderlijke stap.",
           "submit": "Kamer opslaan"
         },
         "program": {
@@ -131,7 +138,10 @@
         "invalid_contact_policy": "Gebruik hele seconden: vertragingen 0–600, berichtouderdom 1–86400 en langer dan beide vertragingen.",
         "unsupported_manual_target": "Kies een Home Assistant-temperatuurhelper met °C of °F.",
         "invalid_manual_target_duration": "Kies een duur van 1 tot 720 hele minuten.",
-        "manual_target_has_multiple_rooms": "Deze doelhelper hoort al bij een andere ruimte."
+        "manual_target_has_multiple_rooms": "Deze doelhelper hoort al bij een andere ruimte.",
+        "invalid_comfort_profile": "Controleer de afwezigheids-/vorstdoelen en tijdelijke duur; doelen moeten binnen de kamergrenzen vallen.",
+        "invalid_comfort_selection": "Kies een geldige aanwezigheidsbron, of schakel comfortstanden uit zonder aanwezigheidskoppeling.",
+        "native_comfort_frost_profile": "De native regelaar behoudt een vorstdoel van 5 °C. Gebruik 5 °C en laat dit toe in de kamergrenzen."
       },
       "abort": {
         "room_limit": "Er kunnen maximaal acht kamers worden ingesteld.",

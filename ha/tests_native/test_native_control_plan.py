@@ -27,6 +27,10 @@ async def native_plan(native_two,hass,monkeypatch,request):
     legacy=options.get("legacy",False)
     controller_id=options.get("controller_id","e32_test")
     parent,rad,floor,heating,output=native_two
+    if 'minimum_target_centi_c' in options:
+        rad=replace(rad,minimum_target_centi_c=options['minimum_target_centi_c'])
+        sub=next(s for s in parent.subentries.values() if s.subentry_type=='zone' and s.data['room_id']==rad.room_id)
+        hass.config_entries.async_update_subentry(parent,sub,data=rad.as_dict())
     floor=replace(floor,base_centi_c=1900)
     sub=next(s for s in parent.subentries.values() if s.subentry_type=="zone" and s.data["room_id"]==floor.room_id)
     hass.config_entries.async_update_subentry(parent,sub,data=floor.as_dict())

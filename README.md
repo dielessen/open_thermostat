@@ -55,7 +55,8 @@ boiler/valve control remain disabled. [Current release work](https://github.com/
 
 **In development for beta.6:** smaller compressed web downloads, conditional
 browser caching, page modules loaded when needed, and one shared boiler-data
-request. The revised boiler page presents one received-entity table per device
+request. Hidden updater pages stop polling; ordinary native MQTT socket writes
+have a bounded wait. The revised boiler page presents one received-entity table per device
 and a shorter read/prepare/start/stop workflow. These changes are tested in
 software and have not been installed or timed on the E32 yet.
 [Performance measurements and review](docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md).
@@ -76,6 +77,7 @@ open. **Planned** means further implementation or qualification is required.
 | Comfort, eco, away, holiday and boost | Priority and expiry logic **prepared**; complete everyday controls remain to be connected. |
 | Window and door contacts | **Prepared for beta.6 / HA 0.4.0b4:** select up to eight contacts per room in the editor or wizard, set delays/report age, and inspect pause/resume status. Active native plans use the normal save/reload/readback path. Model-specific original report qualification and physical acceptance remain open. |
 | Extra manual room control | **Prepared for beta.6 / HA 0.4.0b4:** bind a built-in HA temperature Number helper. A new direct user change requests a timed override; cached values, automations and echoes do not renew it. Physical wall-device profiles remain open. [Details](docs/modern-thermostat/MANUAL-ROOM-TARGET.md). |
+| Comfort and presence | **Prepared for beta.6 / HA 0.4.0b4:** configure comfort/away targets and an optional person through the normal editor or wizard. Native person reports preserve tracker age; stale/unknown stays unknown. Physical reporting and protection remain unqualified. [Details](docs/modern-thermostat/ROOM-COMFORT.md). |
 | Learning and optimum start | Models and storage **prepared**. Active learning, earlier starts, residual-heat use and heating-curve adaptation need real measurements and comfort validation. |
 | Eight zones and multiple valves per room | **Planned.** The current room editor does not provide these capacities. |
 

@@ -21,6 +21,9 @@ LEGACY_CAPABILITY="control.plan.legacy_readback.v1"
 EVOLUTION_CAPABILITY="control.plan.profile_evolution.v1"
 LIMITS=dict(zones=2,groups=2,channels=4,config_bytes=4096,wire_bytes=8192,total_transitions=8)
 WEEK_LIMITS={**LIMITS,"total_transitions":256}
+# Existing native SOURCE contracts use the independent default 5 C frost target.
+# A wire/GUI comfort profile cannot replace that source policy.
+NATIVE_FROST_TARGET_CENTI_C=500
 HEX=re.compile(r"[0-9a-f]{64}")
 
 def require(ok,code):
@@ -309,6 +312,7 @@ class NativePlanSource:
                 lo=integer(c["minimum_centi_c"],z["minimum_target_centi_c"],z["maximum_target_centi_c"])
                 hi=integer(c["maximum_centi_c"],lo,z["maximum_target_centi_c"])
                 for k in ("away_centi_c","frost_centi_c"):integer(c[k],lo,hi)
+                require(c['frost_centi_c']==NATIVE_FROST_TARGET_CENTI_C,'native_comfort_frost_profile')
                 integer(c["temporary_ms"],60000,43200000)
                 require(type(c["window"]) is type(c["presence"]) is bool,"native_comfort")
                 integer(zone["base_centi_c"],lo,hi)

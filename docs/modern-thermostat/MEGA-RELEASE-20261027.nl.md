@@ -53,6 +53,10 @@ bewijs blijft afzonderlijk open. Geen nieuwe externe dienst of langlopende watch
   firmwarecapability en native save/readback. Bestaande waarden/automatiseringen
   worden niet afgespeeld; fysieke wandbediening blijft ongekwalificeerd.
 - Nog softwarematig uit te bouwen: fysieke externe kamerdoelbron met echoherkenning,
-  gewone comfort-/aanwezigheidsbediening, centrale instellingen en schaalbare
+  vakantie-einddatumbediening, centrale instellingen en schaalbare
   zones/kranen, verdere modelwriters en de overige bron-/leer-/standaloneketens.
   Oorspronkelijke fysieke bronkwalificatie en hardwareproeven blijven apart.
+- Comfort/aanwezigheid: normale editor en wizard, actieve native save/readback,
+  oorspronkelijke HA-persoonsmeldingen met behoud van trackerouderdom en
+  zichtbare onbekende/verlopen status. De native vorstpolicy blijft5°C; geen
+  nieuwe fysieke kwalificatie of automatische bronpolling.

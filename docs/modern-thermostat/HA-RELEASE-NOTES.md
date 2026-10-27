@@ -18,6 +18,10 @@ Development bundle; not published or installed.
   for one minute to twelve hours; startup values and automations do not apply it.
   The normal programme resumes when the controller's override expires. The
   helper is not written back, and status updates add no polling.
+- Configure room comfort modes, away target, temporary duration and an optional
+  person in the normal editor or setup wizard. Native person reports retain the
+  selected tracker's original age. Unknown/expired presence remains unknown;
+  status reads and cached person re-emissions cannot renew it.
 
 ## Fixed
 
@@ -26,6 +30,8 @@ Development bundle; not published or installed.
   settings checks still apply.
 - Contacts can pause an ordinary room without enabling comfort modes or changing
   its temperature bounds, source profile or independent frost policy.
+- A new incompatible comfort frost target is rejected before saving. Native
+  installations retain their existing 5 °C source target and room-bound checks.
 - The editor and wizard share identity validation; deletion/replacement during
   review or compilation cannot silently adopt another device. Removing contacts
   clears their persisted bindings and listeners.

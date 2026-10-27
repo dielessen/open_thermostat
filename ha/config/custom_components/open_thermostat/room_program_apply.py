@@ -64,16 +64,17 @@ async def save_active_program(hass, entry, sub, old, token, settings, *, binding
         raise ValueError('advanced_room_required')
     if type(settings) is not dict or set(settings) != set(saved):
         raise ValueError('setup_invalid')
-    for field in set(saved) - {'name', 'base_centi_c', 'week', 'contact_entities', 'contact_policy', 'setpoint_entity', 'setpoint_duration_ms'}:
+    for field in set(saved) - {'name', 'base_centi_c', 'week', 'contact_entities', 'contact_policy', 'setpoint_entity', 'setpoint_duration_ms', 'comfort', 'presence_entity'}:
         if settings[field] != saved[field]:
             from .room_profile_apply import save_active_profile
             return await save_active_profile(hass, entry, sub, old, token, settings,
                 binding_identities=binding_identities)
     contact_changed = any(settings.get(key) != saved.get(key) for key in ('contact_entities', 'contact_policy'))
-    logical_changed = contact_changed or any(settings.get(key)!=saved.get(key) for key in ('setpoint_entity','setpoint_duration_ms'))
+    logical_changed = contact_changed or any(settings.get(key)!=saved.get(key) for key in ('setpoint_entity','setpoint_duration_ms','comfort','presence_entity'))
     if binding_identities is not None and not logical_changed:
         ids = [saved['temperature_entity'], *saved['radiator_entities'],*saved.get('contact_entities',[])]
         if saved.get('setpoint_entity'):ids.append(saved['setpoint_entity'])
+        if saved.get('presence_entity'):ids.append(saved['presence_entity'])
         choices = {row['value']: row.get('identity') for rows in model['choices'].values() for row in rows}
         if binding_identities != {entity_id: choices.get(entity_id) for entity_id in ids}:
             raise ValueError('binding_missing')
@@ -89,6 +90,8 @@ async def save_active_program(hass, entry, sub, old, token, settings, *, binding
         from .room_editor import prepare_room_edit
         prepare = prepare_room_edit(hass, entry, sub, old, settings, binding_identities=binding_identities)
         candidate, graph, identities = prepare()
+        if candidate.comfort is not None and not connection.client.comfort_supported:
+            raise ValueError('comfort_capability_unavailable')
         if candidate.contacts and not connection.client.contacts_supported:
             raise ValueError('contact_capability_unavailable')
         from .manual_target import is_manual_helper
@@ -126,6 +129,8 @@ async def save_active_program(hass, entry, sub, old, token, settings, *, binding
                                            private_expected=private_before)
     recheck()
     raw = {**deepcopy(dict(sub.data)), **candidate.as_dict()}
+    from .room_comfort import clear_removed_comfort
+    clear_removed_comfort(raw,candidate)
     from .manual_target import is_manual_helper
     if not is_manual_helper(candidate.setpoint):raw.pop('setpoint_duration_ms',None)
     if not candidate.contacts:

@@ -45,6 +45,16 @@ De echte HA-helperdienst en C++-afloop worden softwarematig gecontroleerd.
 Fysieke wandbediening heeft nog een eigen oorspronkelijk actieprofiel nodig.
 [Werking en grenzen](MANUAL-ROOM-TARGET.md).
 
+**Comfort en aanwezigheid in dezelfde bundel:** normale editor/wizard voor
+comfortstanden, afwezigheidsdoel, standaard tijdelijke duur en een optionele
+persoon. Actieve plannen bewaren via dezelfde SOURCE en C++-readback.
+Oorspronkelijke HA-persoonsmeldingen houden de ouderdom van hun trackerbron;
+opnieuw melden van een gecachete bron vernieuwt niets. De bestaande grens is
+twee minuten en ontbrekende/verlopen aanwezigheid blijft onbekend. De native
+bron behoudt zijn vorstdoel5°C; een nieuw onverenigbaar profiel wordt vóór
+bewaren geweigerd. Vakantie-einddatumflow en fysieke bron-/gedragsproef blijven
+open. [Werking en afbakening](ROOM-COMFORT.md).
+
 **Laatste passieve nacontrole:** de huidige proef is `closed` met
 `restart_required`, nul positieve warmteframes en gemelde stop. Daarom kan de
 geïnstalleerde firmware geen nieuwe proef voorbereiden. Herstarten blijft

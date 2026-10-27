@@ -22,10 +22,11 @@ from .v1_heating_graph import (
     selected_reference, validate_ownership,
 )
 from .v1_heating_draft import parse_heating_draft
-from .v1_model import CONF_ENABLED, MODE_SHADOW, ROOM_GRAPH_DRAFT, ROOM_LIMIT, RoomBinding, integration_mode
+from .v1_model import CONF_ENABLED, MODE_SHADOW, ROOM_GRAPH_DRAFT, ROOM_LIMIT, RoomBinding, integration_mode, target_centi
 from .native_form import retained_input_schema
 from .room_contacts import ContactPolicy, CONTACT_DEVICE_CLASSES, select_contacts
 from .manual_target import is_manual_helper, select_manual_helper, validate_manual_owner
+from .room_comfort import select_comfort, clear_removed_comfort
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -119,7 +120,7 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
             self._heating = central_entry(entry)
             data = dict(self._old.data) if self._old else {}
             # Never silently remove advanced controls or convert a floor room.
-            if (any(data.get(key) is not None for key in ('window', 'presence'))
+            if (data.get('window') is not None
                     or (data.get('setpoint') and not is_manual_helper(RoomBinding.from_dict(data).setpoint))):
                 return self.async_abort(reason="advanced_room_required")
             if self._heating:
@@ -166,6 +167,16 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
         advanced[target_marker] = selector.EntitySelector({'filter':{'domain':'input_number'}})
         advanced[vol.Required('setpoint_minutes',default=data.get('setpoint_duration_ms',3600000)/60000)] = selector.NumberSelector({
             'min':1,'max':720,'step':1,'unit_of_measurement':'min','mode':'box'})
+        profile=data.get('comfort') or {}
+        advanced[vol.Required('comfort_enabled',default=data.get('comfort') is not None)]=bool
+        advanced[vol.Required('away_temperature',default=profile.get('away_centi_c',1700)/100)]=number
+        advanced[vol.Required('frost_temperature',default=profile.get('frost_centi_c',500)/100)]=number
+        advanced[vol.Required('override_minutes',default=profile.get('temporary_ms',3600000)/60000)]=selector.NumberSelector({
+            'min':1,'max':720,'step':1,'unit_of_measurement':'min','mode':'box'})
+        presence=data.get('presence')
+        presence_marker=(vol.Optional('presence_entity',description={'suggested_value':self._display(presence,('person',))})
+                         if presence else vol.Optional('presence_entity'))
+        advanced[presence_marker]=selector.EntitySelector({'filter':{'domain':'person'}})
         policy = ContactPolicy.from_dict(data['contact_policy']) if data.get('contact_policy') else ContactPolicy()
         for key, attr, maximum in [('contact_open_delay_s', 'open_delay_ms', 600),
                                   ('contact_close_delay_s', 'close_delay_ms', 600),
@@ -239,7 +250,8 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
                          "invalid_target_range", "program_source_conflict", "duplicate_room",
                          "output_has_multiple_owners", "input_output_loop", "select_radiators", "invalid_name",
                          "invalid_contacts", "not_contact_sensor", "invalid_contact_policy",
-                         'unsupported_manual_target','invalid_manual_target_duration','manual_target_has_multiple_rooms'}
+                         'unsupported_manual_target','invalid_manual_target_duration','manual_target_has_multiple_rooms',
+                         'invalid_comfort_profile','invalid_comfort_selection','native_comfort_frost_profile'}
                 errors["base"] = str(err) if str(err) in known else "setup_invalid"
         return self.async_show_form(step_id="radiator", data_schema=retained_input_schema(
             self, self._radiator_schema(), user_input), errors=errors)
@@ -282,6 +294,19 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
                 and manual.identity()!=old.setpoint.identity()):
             raise ValueError('binding_missing')
         candidate = replace(candidate,setpoint=manual,setpoint_duration_ms=duration)
+        if 'advanced' in values:
+            profile=None
+            if advanced.get('comfort_enabled'):
+                minutes=advanced.get('override_minutes',60)
+                if type(minutes) not in (int,float) or not math.isfinite(minutes) or int(minutes)!=minutes or not 1<=minutes<=720:
+                    raise ValueError('invalid_comfort_profile')
+                profile={'away_centi_c':target_centi(advanced.get('away_temperature',17)),
+                         'frost_centi_c':target_centi(advanced.get('frost_temperature',5)),
+                         'temporary_ms':int(minutes)*60000}
+            candidate=select_comfort(self.hass,candidate,profile,advanced.get('presence_entity','') if profile is not None else '')
+            if (old and old.presence and candidate.presence and old.presence.entity_id==candidate.presence.entity_id
+                    and old.presence.identity()!=candidate.presence.identity()):
+                raise ValueError('binding_missing')
         validate_manual_owner(self.hass,self._get_entry(),candidate)
         return RoomBinding.from_dict(candidate.as_dict())
 
@@ -303,6 +328,7 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
                 "radiators": ", ".join(self._label(r["entity_id"]) for r in self._radiators),
                 "contacts": ", ".join(self._label(c.entity.entity_id) for c in room.contacts) or "—",
                 'manual_target':self._label(room.setpoint.entity_id) if room.setpoint else '—',
+                'presence':self._label(room.presence.entity_id) if room.presence else '—',
                 "target": f"{room.base_centi_c/100:g}"}, errors=errors or {})
 
     async def async_step_room_review(self, user_input=None):
@@ -332,6 +358,10 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
                 if manual.identity()!=room.setpoint.identity():raise ValueError('binding_missing')
                 room = replace(room,setpoint=manual)
                 validate_manual_owner(self.hass,self._get_entry(),room)
+            if room.presence:
+                presence=EntityReference.from_dict(resolved_reference(self.hass,room.presence.as_dict(),('person',)))
+                if presence.identity()!=room.presence.identity():raise ValueError('binding_missing')
+                room=replace(room,presence=presence)
             parsed = self._prepare_graph(room)
             data = {**(dict(self._heating.data) if self._heating else {}),
                     "draft": parsed.storage_document(), "status": parsed.readiness,
@@ -341,6 +371,7 @@ class RadiatorRoomSetupFlow(ZoneSubentryFlow):
         manager = self.hass.config_entries
         entry = self._get_entry()
         room_data = {**(dict(self._old.data) if self._old else {}), **room.as_dict()}
+        clear_removed_comfort(room_data,room)
         if not is_manual_helper(room.setpoint):room_data.pop('setpoint_duration_ms',None)
         if not room.contacts:
             room_data.pop('contacts', None)

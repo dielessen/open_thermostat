@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target": {
+    "firmware": "v0.1.0-e32v2-beta.6",
+    "ha": "0.4.0b4"
+  },
+  "parent_commit": "22b6d5d0f4d9a03995a7af1c4b55b1183911e41f",
+  "device_actions_performed": false,
+  "installed_firmware_unchanged": "v0.1.0-e32v2-beta.4",
+  "native_frost_target_preserved_centi_c": 500,
+  "presence_maximum_age_ms": 120000,
+  "person_adapter_scope": "Original native HA logical reports, preserving selected tracker identity and original age; no physical GPS/router qualification.",
+  "validation": {
+    "complete_ha_suite": {
+      "passed": 2527,
+      "skipped": 3,
+      "subtests_passed": 68,
+      "unchanged_source": true,
+      "core": "2026.10.4",
+      "source_sha256": "daa536d498145b2243385e110099396c2fd6b4e380e814ac6e09580d71ee3ff2"
+    },
+    "comfort_browser_cases_passed": 6,
+    "manual_helper_browser_regression_cases_passed": 6,
+    "contact_browser_regression_cases_passed": 6,
+    "programme_browser_regression_cases_passed": 8,
+    "touch_browser_regression_cases_passed": 6,
+    "e32_cpp_unchanged_by_this_ha_feature": true
+  },
+  "preceding_performance_checkpoint": {
+    "source": "22b6d5d0f4d9a03995a7af1c4b55b1183911e41f",
+    "github_run": 40446869866,
+    "conclusion": "success",
+    "validation_jobs": 9,
+    "scope": "E32 image/source/native/sanitizers/browser and prior HA paths; current comfort changes require their own exact-commit CI."
+  },
+  "remaining": [
+    "Exact-commit GitHub validation for this comfort feature",
+    "Normal vacation end-date editing flow",
+    "Model-specific physical reporting/availability and hardware acceptance"
+  ],
+  "reviewed_files": [
+    {
+      "path": ".github/workflows/build.yml",
+      "sha256": "a875c81ca961c273c0d250db0b9cf46f7515b36b66d32f2631b57009d9b1eabe"
+    },
+    {
+      "path": "README.md",
+      "sha256": "11214ecb30051250cf47a60b929560f51aaac844f02af6811b63b359c873db88"
+    },
+    {
+      "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
+      "sha256": "41e452e90f24b25024a0b2297c53b654b8a6b3d67c4388b00f9ba1db6fd15f9b"
+    },
+    {
+      "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
+      "sha256": "c16d312b336f56027f8d0e1c693fcba03993f0b9ea6797f05f80836666684fc3"
+    },
+    {
+      "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
+      "sha256": "48d0318c7bef502443f33ce3e82611f5b2b51a2315ad53af93e3893c56838a5e"
+    },
+    {
+      "path": "docs/modern-thermostat/ROOM-COMFORT.md",
+      "sha256": "6bb5265169cd05c016aeaee2874aec13ffde427fdbc2e190b8ff40d68208ea55"
+    },
+    {
+      "path": "docs/modern-thermostat/WORKBOARD.nl.md",
+      "sha256": "6902298f3de341390d4e91a92a306684034ed7b9ff6cd6814d3625b8beca8001"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/frontend/week-planner.js",
+      "sha256": "ab4b2522237a260da40f887bda5180ac8bdacbd1f323da07f5244fd783eef60e"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/native_plan.py",
+      "sha256": "de6585f9771f098e52b1857f16db723815924ad3b428c0a3894ece4a9b077aff"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/person_reports.py",
+      "sha256": "ca179f54d98426e2c8db4bf9c93cb0bfbae123deb477478631aa5180ec433051"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/room_comfort.py",
+      "sha256": "25111324793a0b9c54bb1a50d7efdbc3d5bda3f716a0d8399e71f8fb3aa04cc8"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/room_editor.py",
+      "sha256": "00f802294af4868506c6a4cce3883ed2696b8cdc49660af4da4d1c03dc704bdd"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/room_profile_apply.py",
+      "sha256": "3e8ce001c195977829dc81c8fabd7738321a55ec435c99b8420380004665c764"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/room_program_apply.py",
+      "sha256": "273efdc6ccb17881434baa77f07241e5561ebde4c387f6e868dec29a3fe85807"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/room_setup_flow.py",
+      "sha256": "2a60c9f4974d583e332286df15b85eb9c18c9d5c7bcbdc5754d01cf217418334"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/strings.json",
+      "sha256": "7563344991043d2c5ddd1d25d2be494eed251840715b3776040026f979b952e0"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/translations/en.json",
+      "sha256": "7563344991043d2c5ddd1d25d2be494eed251840715b3776040026f979b952e0"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/translations/nl.json",
+      "sha256": "4f8c882d28644170ed9c8b6894eaa95f3f0da80284053fb56bdfb189c4e98d68"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/v1_runtime.py",
+      "sha256": "487e3fd39e222e2bcc94b6b328e1fb8118b6eb5c2e9e922342553477ca98f15a"
+    },
+    {
+      "path": "ha/tests_native/test_native_control_plan.py",
+      "sha256": "f2725d22fad31520b865b3f5fa980baa8335df557bb6be63ae827681f66bbe29"
+    },
+    {
+      "path": "ha/tests_native/test_native_person_reports.py",
+      "sha256": "1aea91ea60cf5328321058c999e5f698a701c93567bb89d1329200d44fe545fc"
+    },
+    {
+      "path": "ha/tests_native/test_room_comfort_active_plan.py",
+      "sha256": "bf5c9e35c409e2c3a9a669f6ec566eb2239fbc6d600b621ae61693e518693b5e"
+    },
+    {
+      "path": "ha/tests_native/test_room_comfort_setup.py",
+      "sha256": "8b8fb3f88ea3b29ee165910cba8df3bb8cde885f879d9065cdeb12470dc80b5a"
+    },
+    {
+      "path": "test/ha-room-comfort-browser.cjs",
+      "sha256": "a6681e6111273e5041a375d25f0037285b991f30a4e10c5e07d12965bad5940d"
+    }
+  ]
+}

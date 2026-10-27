@@ -42,6 +42,8 @@ async def save_active_profile(hass, entry, sub, old, token, settings, *, binding
         raise ValueError('program_source_conflict')
     candidate = prepare_room_edit(hass, entry, sub, old, settings, binding_identities=binding_identities)
     room, graph, identities = candidate()
+    if room.comfort is not None and not connection.client.comfort_supported:
+        raise ValueError('comfort_capability_unavailable')
     from .manual_target import is_manual_helper
     if room.contacts and not connection.client.contacts_supported:
         raise ValueError('contact_capability_unavailable')
@@ -84,6 +86,8 @@ async def save_active_profile(hass, entry, sub, old, token, settings, *, binding
     proposed.validate_prospective_native(hass, entry, room, document)
     central = central_entry(entry)
     raw = {**deepcopy(dict(sub.data)), **room.as_dict()}
+    from .room_comfort import clear_removed_comfort
+    clear_removed_comfort(raw,room)
     if not is_manual_helper(room.setpoint):raw.pop('setpoint_duration_ms',None)
     if not room.contacts:
         raw.pop('contacts',None);raw.pop('contact_policy',None)

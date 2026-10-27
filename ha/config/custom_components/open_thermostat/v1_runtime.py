@@ -23,6 +23,7 @@ from .native_binding import native_binding_identity
 from .comfort_sources import ContextReport, ContextSourceProfile, CONTEXT_MAX_AGE_MS
 from .room_contacts import ContactAggregator, ContactSample, MAX_CONTACTS
 from .manual_target import ManualTargetOwner, is_manual_helper
+from .person_reports import NativePersonReports, is_native_person
 
 from .v1_model import (
     CONF_ENABLED, EntityReference, Observation, QualifiedReport,
@@ -109,6 +110,7 @@ class ShadowRuntime:
                                      for r in rooms if r.contacts}
         self._contact_timers = {}
         self.manual_target_owner = ManualTargetOwner(self)
+        self.native_person_reports = NativePersonReports(self)
         # Bounded logical SOURCE pins; never loaded from entry/options/Store.
         if type(context_source_profiles) is not tuple or len(context_source_profiles)>8*(MAX_CONTACTS+2):
             raise ValueError("context_profile_invalid")
@@ -374,6 +376,7 @@ class ShadowRuntime:
         manual_ids: set[str] = set()
         device_ids: set[str] = set()
         for room in self.rooms.values():
+            self.native_person_reports.prime(room)
             if is_manual_helper(room.setpoint) and (manual_id := self._resolve(room.setpoint)):
                 manual_ids.add(manual_id)
             for ref in (room.temperature, *room.actuators, room.setpoint, room.window, room.presence,
@@ -452,7 +455,7 @@ class ShadowRuntime:
                 for kind in ("window","presence"):
                     ref=getattr(room,kind)
                     if ref and self._resolve(ref)==entity_id:
-                        self._observe_context_source(room,kind,event_kind)
+                        self._observe_context_source(room,kind,event_kind,event=event)
                 for contact in room.contacts:
                     if self._resolve(contact.entity)==entity_id:
                         self._observe_context_source(room,"contact",event_kind,contact.entity)
@@ -646,6 +649,7 @@ class ShadowRuntime:
     def invalidate_context_sources(self):
         """Owner/rebind/stop drops usable proofs; bounded replay watermarks survive."""
         self.manual_target_owner.withdraw()
+        self.native_person_reports.withdraw()
         for cancel, _, _ in self._contact_timers.values():
             cancel()
         self._contact_timers.clear()
@@ -655,11 +659,13 @@ class ShadowRuntime:
         for key,prior in self._context_source_watermarks.items():
             self._context_source_watermarks[key]=(*prior[:3],None)
 
-    def _observe_context_source(self,room,kind,event_kind,reference=None):
+    def _observe_context_source(self,room,kind,event_kind,reference=None,event=None):
         reference=reference if kind=="contact" else getattr(room,kind)
         key=(room.room_id,kind,reference.identity()) if kind=="contact" else (room.room_id,kind)
         profile=self._context_source_profiles.get(key)
         if profile is None:
+            if kind=='presence' and is_native_person(reference):
+                self.native_person_reports.observe(room,event_kind,event)
             return
         generation = self._generation
         if self._measurement_now() is None:
@@ -737,6 +743,9 @@ class ShadowRuntime:
             if key in self._context_source_profiles:
                 value,_=self._context_source_value(key)
                 result[kind]="qualified_logical_report" if value is not None else "source_report_unknown"
+            elif kind=='presence' and is_native_person(room.presence):
+                value,_=self.native_person_reports.snapshot(room)
+                result[kind]='native_person_report' if value is not None else 'native_person_report_unknown'
             else:
                 result[kind]="conservative_state_age" if getattr(room,kind) else "not_configured"
         if room.contacts:
@@ -834,6 +843,10 @@ class ShadowRuntime:
                 value,age=self._context_source_value(cache_key)
                 result["window_open" if key=="window" else "presence_away"]=value
                 result[key+"_age_ms"]=age
+                continue
+            if key=='presence' and is_native_person(room.presence):
+                value,age=self.native_person_reports.snapshot(room)
+                result['presence_away'],result['presence_age_ms']=value,age
                 continue
             entity_id=self._resolve(ref) if ref else None
             state=self.hass.states.get(entity_id) if entity_id else None

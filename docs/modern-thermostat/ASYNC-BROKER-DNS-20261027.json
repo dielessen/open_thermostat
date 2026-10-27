@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "parent_commit": "e875ae7daf909dbbfdad5b11d8e8d283387c9bb1",
+  "target": "E32 beta.6",
+  "device_actions_performed": false,
+  "contract": {
+    "native_mqtt_only": true,
+    "additional_tasks": 0,
+    "additional_sockets": 0,
+    "lookup_slots": 4,
+    "slot_pool_linked_bytes": 1072,
+    "original_owner_timeout_ms": 16000,
+    "nonblocking_post": "tcpip_try_callback",
+    "cache_owner": "native lwIP",
+    "callback_target": "stable pool slot, never a transport object",
+    "actuator_handoff_contract_changed": false
+  },
+  "validation": {
+    "asan_ubsan_leak_detection": {
+      "tests_passed": 14,
+      "cross_thread_completion_retirement_and_replacement_iterations": 2000,
+      "log": "out/async-broker-dns-20261027/adapter-reviewed-sanitized.log"
+    },
+    "thread_sanitizer": {
+      "result": "ENVIRONMENT_UNAVAILABLE",
+      "reason": "Runtime fails before tests: unexpected memory mapping",
+      "log": "out/async-broker-dns-20261027/adapter-thread-sanitized.log"
+    },
+    "e32_app_build": "PASS",
+    "e32_filesystem_build": "PASS",
+    "e32_image_partition_and_asset_verification": "PASS",
+    "firmware_bytes": 3083776,
+    "ota_slot_bytes": 3670016
+  },
+  "primary_source": {
+    "esp_idf": "v4.4.7",
+    "esp_lwip_commit": "a45be9e438f6cf9c54ec150581819c3b95d5af6b",
+    "source_files": [
+      "src/core/dns.c",
+      "src/api/tcpip.c"
+    ]
+  },
+  "remaining": [
+    "Exact-commit CI",
+    "On-device latency acceptance",
+    "TCP connect and MQTT CONNACK/read delays retain separate contracts",
+    "Firmware-update HTTPS is a separate transport path"
+  ],
+  "reviewed_files": [
+    {
+      "path": ".github/workflows/build.yml",
+      "sha256": "7cb9549091fcb52afc4d63f14ea3e867adc6d6b0ffe66ff69396f5178d48c7d2"
+    },
+    {
+      "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
+      "sha256": "1065a810503578fe5290c786205e947aa2b9770271b9b34e436fc8758170f5a3"
+    },
+    {
+      "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
+      "sha256": "f1fe04cf66a81f35686cc86c24da569ef9070684832a80b479637e281cec5147"
+    },
+    {
+      "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
+      "sha256": "8c9d369f19a5adc634dbb6571ccf8cc74d0572fee0b41f104f612cb0cecb9ea5"
+    },
+    {
+      "path": "docs/modern-thermostat/RELEASE-NOTES.md",
+      "sha256": "7357c9558ce23b6de8f6fea97b516f29c712586a27f7d9c0daef0cba82e51971"
+    },
+    {
+      "path": "docs/modern-thermostat/WORKBOARD.nl.md",
+      "sha256": "9fa4a7f18c611338f0a373b6d3b2ea41b733002a8cc2dc6bf173e0659242c0e3"
+    },
+    {
+      "path": "src/control/AsyncBrokerDns.h",
+      "sha256": "1ac000fe87fe94ff2141da3b2eb2ba2076987fbc0f16a86dedee5809da44fa20"
+    },
+    {
+      "path": "src/control/ModernTransport.h",
+      "sha256": "e196392f9d85eaab6c9241efa9a4e3d6b2bb0927691b4b955e9a7c642bf4c40f"
+    },
+    {
+      "path": "test/async_broker_dns/adapter.cpp",
+      "sha256": "bfdae788c14f39ee308639b5d70bbfca8b5803f4d49060bf4d293cf91a8729dc"
+    },
+    {
+      "path": "test/async_broker_dns/include/lwip/dns.h",
+      "sha256": "6f93b71000a266ab48bab6ff21846f648ebb64754f034d065ef06d7969595ad4"
+    },
+    {
+      "path": "test/async_broker_dns/include/lwip/tcpip.h",
+      "sha256": "e0b1d803188a9fe105da2ee234d4f6d44b549c1f00ffb0d07ad34646f93a7983"
+    }
+  ]
+}

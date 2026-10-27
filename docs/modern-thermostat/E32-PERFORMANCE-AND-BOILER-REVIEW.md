@@ -150,9 +150,9 @@ The separate actuator path retains its existing original owner/freshness guard
 and single nonblocking handoff. It does not inherit ordinary-write retries or
 the new latency budget. Deterministic tests and actual host socket pairs cover
 backpressure, byte order, partial progress, late/faulted clocks and the existing
-actuator guards. These tests do not establish on-device timing. DNS resolution,
-TCP connection and MQTT reads use their existing separate contracts and remain
-additional latency-review work.
+actuator guards. These tests do not establish on-device timing. TCP connection
+and MQTT reads retain their separate contracts. Native MQTT DNS resolution is
+now handled by the additional change below.
 
 ## Follow-up: identity and closed trial state
 
@@ -184,3 +184,41 @@ modules, source assets and generated metadata; eleven cases check valid output,
 corrupted data and the existing firmware/layout constraints. The actual E32
 firmware build passed in that run. No failed CI run is represented as release
 acceptance.
+
+## Native MQTT DNS without a main-loop wait
+
+The pinned Arduino 2.0.17 `WiFiGeneric::hostByName` can wait for DNS readiness
+for 16 seconds and then for the answer for another 15 seconds. PubSubClient
+selects that synchronous path when configured with a hostname. This was a
+source-code finding; no new failure was triggered on the installed E32.
+
+The native transport now schedules DNS on lwIP's existing TCP/IP thread with
+`tcpip_try_callback`, then returns to its normal owner tick and HTTP loop. The
+try-post fails immediately when the native mailbox is full. The query requests
+IPv4, matching the current WiFiClient transport. Numeric IPv4 broker addresses
+skip DNS. PubSubClient receives only the resulting numeric address through its
+public API, so it does not enter `hostByName`. The MQTT client and socket remain
+the existing single connection. HTTPS firmware updates use a separate path.
+
+A fixed pool of four hostname slots outlives transport instances. Retiring an
+owner removes its authority immediately, but keeps callback storage reserved
+until lwIP's one final callback completes. Native completion publishes its
+result through release/acquire atomics. Callbacks never dereference a transport
+object. Exhausting the pool fails without waiting or allocating more slots.
+Queries have an original 16-second owner deadline; polling or late completion
+does not renew it. No result is carried into another connect attempt: native
+lwIP remains the DNS cache owner and applies its own TTL. Network loss and SOURCE
+lockout retire the pending lease.
+
+The callback and nonblocking-post contracts were reviewed against the pinned
+[ESP-IDF v4.4.7 lwIP submodule](https://github.com/espressif/esp-lwip/tree/a45be9e438f6cf9c54ec150581819c3b95d5af6b):
+[`dns.c`](https://github.com/espressif/esp-lwip/blob/a45be9e438f6cf9c54ec150581819c3b95d5af6b/src/core/dns.c)
+and [`tcpip.c`](https://github.com/espressif/esp-lwip/blob/a45be9e438f6cf9c54ec150581819c3b95d5af6b/src/api/tcpip.c).
+The SDK may allocate its own bounded queue message and DNS packet; the new owner
+does not create a task, socket, unbounded queue or private DNS cache.
+
+Host fixtures exercise queued/cache/error results, an immediate error callback,
+mailbox exhaustion, destruction, replacement, pool exhaustion/reuse, original
+deadlines and cross-thread completion. These are software lifetime and scheduling
+checks. On-device page latency, TCP connect and MQTT CONNACK/read delays remain
+separate acceptance and review work. No firmware or boiler action was performed.

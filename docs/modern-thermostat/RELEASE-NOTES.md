@@ -34,6 +34,16 @@ acceptance is separate; beta.5 installation recovery remains deferred.
   telemetry and control, retaining the existing JSON units and suppressing stale
   or unreliable values. Generic-board and existing Plus paths remain separate.
 
+- Bound ordinary native MQTT socket writes to one 100 ms total budget, closing
+  partial or late frames on the same connection. Existing actuator handoff
+  guards remain separate.
+- Resolve native MQTT broker hostnames asynchronously on the existing lwIP
+  thread. DNS waits no longer hold the HTTP/main loop; retired lookups retain
+  bounded callback storage until completion. TCP and CONNACK retain separate
+  timing bounds; firmware-update HTTPS uses a different path.
+- Suspend updater status reads while the page is hidden and release them on
+  navigation. Submitted install/check commands are not aborted or replayed.
+
 ## Updating
 
 A coordinated E32 and HA candidate will be prepared. Publication requires the

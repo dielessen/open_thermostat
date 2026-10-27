@@ -26,6 +26,10 @@ opstellingsbevestiging en de stappen ophalen → voorbereiden → apart starten 
 stoppen. Softwareproeven gebruiken gesimuleerde HTTP-/ketelantwoorden; er is
 hiermee geen nieuwe firmware geïnstalleerd of echte warmtevraag verstuurd.
 [Review en meetgrens](E32-PERFORMANCE-AND-BOILER-REVIEW.md).
+De native MQTT-route gebruikt daarnaast begrensde socketwrites en asynchrone
+DNS via de bestaande lwIP-netwerktaak. Een DNS-storing houdt de hoofdloop niet
+meer vijftien seconden vast; TCP- en MQTT-handshake hebben nog eigen wachttijden.
+De daadwerkelijke paginasnelheid moet na installatie worden gemeten.
 
 **Nieuwe kamerfunctie in dezelfde bundel:** maximaal acht raam-/deurcontacten
 kiezen, wijzigen en verwijderen via de normale kamereditor én kamerwizard.

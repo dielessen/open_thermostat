@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "594e9cdffb3c8e5614c8aab4227c891ed0c3a083586528a7eb931bd2f68f229d"
+          "sha256": "7cb9549091fcb52afc4d63f14ea3e867adc6d6b0ffe66ff69396f5178d48c7d2"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -59,7 +59,7 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
-          "sha256": "8038e535a7b0e6b49b24918c7a6ad5b942bbea8e8de14cc05576ba0ebe914c6a"
+          "sha256": "7357c9558ce23b6de8f6fea97b516f29c712586a27f7d9c0daef0cba82e51971"
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "d8d9cc5e01c3e79d640a93a62a474edda70af766334913d8d5b6d9e1f1f2f058"
+          "sha256": "8c9d369f19a5adc634dbb6571ccf8cc74d0572fee0b41f104f612cb0cecb9ea5"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -215,7 +215,7 @@
         },
         {
           "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
-          "sha256": "9a0c73c5a3f2d98bb8ae0dfba1d69829ed41e7505e32483f2d218e126762e01c"
+          "sha256": "f1fe04cf66a81f35686cc86c24da569ef9070684832a80b479637e281cec5147"
         },
         {
           "path": "release.json",
@@ -397,7 +397,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "594e9cdffb3c8e5614c8aab4227c891ed0c3a083586528a7eb931bd2f68f229d"
+          "sha256": "7cb9549091fcb52afc4d63f14ea3e867adc6d6b0ffe66ff69396f5178d48c7d2"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -645,7 +645,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
-          "sha256": "4fca5f80da90a377350a1db4a2b7fff7d300ead4cb76bed7f3a478ae4f4a891e"
+          "sha256": "1065a810503578fe5290c786205e947aa2b9770271b9b34e436fc8758170f5a3"
         },
         {
           "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-20261027.json",
@@ -907,7 +907,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "594e9cdffb3c8e5614c8aab4227c891ed0c3a083586528a7eb931bd2f68f229d"
+          "sha256": "7cb9549091fcb52afc4d63f14ea3e867adc6d6b0ffe66ff69396f5178d48c7d2"
         },
         {
           "path": "platformio.ini",
@@ -1011,7 +1011,7 @@
         },
         {
           "path": "src/control/ModernTransport.h",
-          "sha256": "f579096c79e59ad44a29e467000358d503a2ee28b81d4be3341d4f1ffb71e31a"
+          "sha256": "e196392f9d85eaab6c9241efa9a4e3d6b2bb0927691b4b955e9a7c642bf4c40f"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/device_diagnostics.py",
@@ -1469,6 +1469,26 @@
         {
           "path": "docs/modern-thermostat/MQTT-WRITE-BUDGET-20261027.json",
           "sha256": "8274b794bb18c6eae9ff0d97d137b86c1bd05f8fc7c8ba93ff8b521acdedb0a7"
+        },
+        {
+          "path": "src/control/AsyncBrokerDns.h",
+          "sha256": "1ac000fe87fe94ff2141da3b2eb2ba2076987fbc0f16a86dedee5809da44fa20"
+        },
+        {
+          "path": "test/async_broker_dns/adapter.cpp",
+          "sha256": "bfdae788c14f39ee308639b5d70bbfca8b5803f4d49060bf4d293cf91a8729dc"
+        },
+        {
+          "path": "test/async_broker_dns/include/lwip/dns.h",
+          "sha256": "6f93b71000a266ab48bab6ff21846f648ebb64754f034d065ef06d7969595ad4"
+        },
+        {
+          "path": "test/async_broker_dns/include/lwip/tcpip.h",
+          "sha256": "e0b1d803188a9fe105da2ee234d4f6d44b549c1f00ffb0d07ad34646f93a7983"
+        },
+        {
+          "path": "docs/modern-thermostat/ASYNC-BROKER-DNS-20261027.json",
+          "sha256": "3cf10b436e28696c0ed864de56e98c8c779447abd3cb0f81f04e12226105f006"
         }
       ],
       "remaining_acceptance": "Logische provisioning/programma-ACK werkt; verse fysieke meet- en actuatorbewijzen ontbreken."

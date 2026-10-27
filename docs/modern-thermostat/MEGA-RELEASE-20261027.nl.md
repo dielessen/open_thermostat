@@ -64,3 +64,8 @@ bewijs blijft afzonderlijk open. Geen nieuwe externe dienst of langlopende watch
   HA-tijdzone en zomertijdkeuze, pre/post-dispatch kamerscope en zichtbare
   onbevestigde uitkomst zonder automatische herhaling. Geen blijvende
   programmawijziging of herstel van oude sessiekeuzes na herstart/herverbinding.
+
+- Netwerkperformance: gewone MQTT-writes hebben één totale100ms-grens; DNS
+  wordt asynchroon afgehandeld in de bestaande netwerktaak, met vaste opslag,
+  oorspronkelijke deadline en isolatie van late callbacks na transportvervanging.
+  TCP/CONNACK blijven afzonderlijk reviewwerk; geen meting of installatie op E32.

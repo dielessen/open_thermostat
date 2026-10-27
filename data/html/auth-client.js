@@ -12,17 +12,25 @@
         if (!pending) pending = (async () => {
             const controller = new AbortController();
             const deadline = setTimeout(() => controller.abort(), 10000);
-            let response;
-            try { response = await nativeFetch('/auth/session', {cache: 'no-store', credentials: 'same-origin', signal: controller.signal}); }
-            finally { clearTimeout(deadline); }
-            // Explicit compatibility with the unchanged generic (non-E32) webserver only.
-            // E32 always registers this route and returns 401/503, never this 404.
-            if (response.status === 404) return (state = {legacy: true});
-            if (response.status === 401) { signIn(); throw new Error(uiText("Sign in required")); }
-            if (!response.ok) throw new Error(uiText("Session check unavailable"));
-            const data = await response.json();
-            if (data.authenticated !== true || !/^[a-f0-9]{64}$/.test(data.csrf)) throw new Error(uiText("Invalid session response"));
-            return (state = {legacy: false, csrf: data.csrf});
+            try {
+                const response = await nativeFetch('/auth/session', {cache: 'no-store', credentials: 'same-origin', signal: controller.signal});
+                if (controller.signal.aborted) throw controller.signal.reason;
+                // Explicit compatibility with the unchanged generic (non-E32) webserver only.
+                // E32 always registers this route and returns 401/503, never this 404.
+                if (response.status === 404) return (state = {legacy: true});
+                if (response.status === 401) { signIn(); throw new Error(uiText("Sign in required")); }
+                if (!response.ok) throw new Error(uiText("Session check unavailable"));
+                // Headers alone do not complete this shared request. Keep its
+                // original deadline through body consumption and proof validation.
+                const data = await response.json();
+                if (controller.signal.aborted) throw controller.signal.reason;
+                if (!data || typeof data !== 'object' || Array.isArray(data) || data.authenticated !== true ||
+                    typeof data.csrf !== 'string' || !/^[a-f0-9]{64}$/.test(data.csrf)) throw new Error(uiText("Invalid session response"));
+                return (state = {legacy: false, csrf: data.csrf});
+            } catch (error) {
+                if (controller.signal.aborted) throw new Error(uiText("Session check unavailable"));
+                throw error;
+            } finally { clearTimeout(deadline); }
         })().finally(() => { pending = null; });
         return pending;
     }

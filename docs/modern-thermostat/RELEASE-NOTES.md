@@ -26,6 +26,10 @@ acceptance is separate; beta.5 installation recovery remains deferred.
 
 ## Fixed
 
+- Keep the shared session check’s original ten-second timeout active through
+  the response body. A stalled or late reply cannot block page data indefinitely
+  or release queued actions after timeout; a new request can recover normally.
+
 - Compress larger UI files at build time and serve them directly from flash.
   Private ETags revalidate cached UI bytes after authentication; live readings,
   credentials, operation outcomes and errors remain uncached.

@@ -49,6 +49,7 @@ jobs:
       - name: Exercise shipped setup and room pages (simulated HTTP)
         timeout-minutes: 15
         run: |
+          node test/auth-body-browser.cjs
           node test/onboarding/browser.cjs
           node test/onboarding/network-browser.cjs
           node test/rooms/browser.cjs

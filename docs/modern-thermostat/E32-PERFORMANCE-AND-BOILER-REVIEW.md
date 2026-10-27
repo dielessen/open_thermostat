@@ -460,3 +460,28 @@ re-enable delivery. Thirty SystemLog/settings cases pass under address, undefine
 and leak sanitizers, including 288 settings combinations and 6,048 append
 outcomes compared against the same acceptance mask. These are avoided-work and
 semantic checks, not measured on-device speedup.
+
+## Bound the shared session body, not only its headers
+
+The browser's shared `/auth/session` check previously cleared its ten-second
+timeout when fetch returned headers. A stalled JSON body could keep the shared
+promise pending indefinitely, blocking page data and queued API calls. The
+original deadline now remains active through body consumption and proof
+validation. An aborted check cannot cache late headers/body, activate the legacy
+404 fallback, redirect from a stale 401 or release queued mutations. Authentication
+and the generic-server compatibility rules otherwise remain unchanged.
+
+Only a non-array object with the literal authenticated flag and an actual
+64-character lowercase hexadecimal CSRF string is accepted; malformed bodies
+produce the existing translated error. All callers still share one check. A
+failed shared check is discarded so a subsequent request can retry checking the
+existing session; earlier queued commands are rejected rather than replayed.
+There is no automatic sign-in, mutation retry or new authentication endpoint.
+
+The new deadline-body assertion fails on the previous source. Actual Chromium
+checks use a loopback HTTP server that sends valid headers and the beginning of
+a JSON body, then withholds its remainder. Both languages abort that real stream,
+reject two reads and one queued mutation, avoid logout, recover on a new read
+and send only a separately requested new mutation. VM cases separately exercise
+late bodies/headers that ignore cancellation and malformed proof types. No
+E32 request, authentication state change or physical command was performed.

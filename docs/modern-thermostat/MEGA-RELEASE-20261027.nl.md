@@ -102,3 +102,8 @@ bewijs blijft afzonderlijk open. Geen nieuwe externe dienst of langlopende watch
   wachtrijlock verwerkt. Lokale/seriële filters, MARK, verliesregistratie en de
   bestaande begrensde UDP-uitvoer blijven intact.300.000 inactieve polls en echte
   loopback/NVS/loggerproeven slagen; geen meting op de E32.
+
+- Browsersessie: oorspronkelijke tiensecondenlimiet dekt ook antwoordbody en
+  bewijsvalidatie. Trage/late bodies mogen geen wachtende writes vrijgeven;
+  een volgende aanvraag herstelt zonder herhaling. Echte gestreamde HTTP-body
+  en vervangende late-body/headersfixtures dekken deze grens in EN/NL.

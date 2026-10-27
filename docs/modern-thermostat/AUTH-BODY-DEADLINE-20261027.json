@@ -1,0 +1,123 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target": "E32 beta.6",
+  "parent_commit": "308887d2f2882c0f3cef92b3f5894892264747fd",
+  "device_actions_performed": false,
+  "contract": {
+    "original_shared_session_deadline_ms": 10000,
+    "deadline_scope": "Headers, complete JSON body and proof validation",
+    "late_headers_body": "Cannot cache state, activate legacy fallback, redirect from stale status or release queued commands",
+    "accepted_proof": "Object with literal authenticated=true and actual lowercase hex CSRF string length64",
+    "maximum_shared_session_reads": 1,
+    "automatic_mutation_retry": false,
+    "authentication_policy_or_endpoints_changed": false
+  },
+  "validation": {
+    "new_assertion_fails_on_parent_source": "PASS expected deadline-cleared-before-body assertion failure",
+    "root_auth_language_managed_node_cases_passed": 52,
+    "actual_loopback_streamed_body_browser_cases_passed": 2,
+    "languages": [
+      "en",
+      "nl"
+    ],
+    "queued_requests_rejected_per_browser_case": 3,
+    "queued_mutations_dispatched": 0,
+    "late_headers_vm_statuses_rejected": [
+      200,
+      404,
+      401
+    ],
+    "malformed_proof_examples_rejected": 8,
+    "next_request_recovers_without_old_mutation_replay": "PASS",
+    "existing_page_loading_cache_profiles_passed": 2,
+    "optional_reference_retry_regression": "PASS",
+    "cold_home_fixture_body_bytes_maximum": 143654,
+    "e32_app_build": "PASS",
+    "e32_filesystem_build": "PASS",
+    "source_image_partition_asset_uart_owner": "PASS",
+    "firmware_bytes": 3107712,
+    "ota_slot_bytes": 3670016,
+    "assets": 36,
+    "gzip_representations": 29,
+    "raw_bytes": 561828,
+    "gzip_bytes": 152680
+  },
+  "remaining": [
+    "Exact-commit CI",
+    "On-device network/latency acceptance after separately authorized installation"
+  ],
+  "reviewed_files": [
+    {
+      "path": ".github/workflows/build.yml",
+      "sha256": "49d7b6c301f4c653b21357d5a4f4ba9aa53173d99cc97be68e4dc8b1a902a075"
+    },
+    {
+      "path": "README.md",
+      "sha256": "8e6f03ec6b9bef3d19c5b5ee7ec520368170cd9d30596d4764189b17c3eaeb80"
+    },
+    {
+      "path": "data/html/auth-client.js",
+      "sha256": "4a47ca0c7618c91c02a562761d6657b0e8ca65b1bc6057f4e8391f1b88e27673"
+    },
+    {
+      "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
+      "sha256": "3ebd1dda96b8ea66137c23fa7f3ef19e1f026ed3878a31bd5364f25d306954bd"
+    },
+    {
+      "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
+      "sha256": "8b4fc10bdb5d38d5bb308c4cef08c9c2ae7c44ef1dc56731fba48968ec67c7f7"
+    },
+    {
+      "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
+      "sha256": "9eeddf38becf4f78500061f65b6eb88a30316c2607aa434016b0328b545821af"
+    },
+    {
+      "path": "docs/modern-thermostat/RELEASE-NOTES.md",
+      "sha256": "6667b1caedf5b91c10ca10c4e7de52cafc8ce957df041833d1f9354d447cef62"
+    },
+    {
+      "path": "docs/modern-thermostat/WORKBOARD.nl.md",
+      "sha256": "dd84bb2f1fd1c786352e27f67e28269cdb477f03c20750e3d5d501675a661959"
+    },
+    {
+      "path": "test/auth-body-browser.cjs",
+      "sha256": "3bbd05a3fd9ba0034cd021c5a0d875f33a99238189030261c503b8e7cbee582c"
+    },
+    {
+      "path": "test/web_auth_client.test.cjs",
+      "sha256": "3597e6087b8ed0796154cff7929a765d31dfc93cb54d660f9990b44f4adae192"
+    }
+  ],
+  "local_evidence": [
+    {
+      "path": "out/auth-body-deadline-20261027/baseline.log",
+      "sha256": "c51e0c2c59e7af08a61f41156ba1fd1872c3ff2d107707fd52e5aaced80008b9"
+    },
+    {
+      "path": "out/auth-body-deadline-20261027/browser.log",
+      "sha256": "57614f9dde472dcaa05c46f907eea9faa9995aec6ca2f66ff5752922fa3f9f68"
+    },
+    {
+      "path": "out/auth-body-deadline-20261027/e32-build.log",
+      "sha256": "d0e8fa96e21fb07a9c305bb1a94d89a38eb124dcbcbb71c2727267c2e7365c1f"
+    },
+    {
+      "path": "out/auth-body-deadline-20261027/e32-buildfs.log",
+      "sha256": "7cf8a1ef49793e4d24ce754cb246ac7963e95671471662a1c6d1e7582b066a9e"
+    },
+    {
+      "path": "out/auth-body-deadline-20261027/e32-verify.log",
+      "sha256": "7f53b5cbcf9956b82e04712240f4181ed8f1355ce69ca84c31c286ad7b3362ce"
+    },
+    {
+      "path": "out/auth-body-deadline-20261027/node-tests.log",
+      "sha256": "24eccfcf95e291cc44b1cd949f6e3e25f327615bdcf7200d479d79980ec64624"
+    },
+    {
+      "path": "out/auth-body-deadline-20261027/page-loading.log",
+      "sha256": "a9f500a077402767a591d68a52aca5e08a733e787c615b7e333e869350f9963c"
+    }
+  ]
+}

@@ -54,6 +54,10 @@ Ook de syslogzender heeft een lichte uitgeschakelde route: geen klok-/
 instellingenwerk per hoofdlus en alleen bij verbindingswisseling de wachtrijlock.
 Lokale/seriële logging houdt eigen filters; de bestaande honderd-millisecondengrens,
 MARK, verliesregistratie en geen-herhaling bij herverbinden blijven behouden.
+De gedeelde browsersessiecontrole houdt haar bestaande tiensecondenlimiet nu
+ook tijdens het lezen/valideren van de antwoordbody. Een stilgevallen body blokkeert
+paginadata niet onbeperkt; een laat antwoord geeft wachtende acties niet alsnog
+vrij. Een volgende aanvraag kan normaal herstellen, zonder oude writes te herhalen.
 De daadwerkelijke paginasnelheid moet na installatie worden gemeten.
 
 **Nieuwe kamerfunctie in dezelfde bundel:** maximaal acht raam-/deurcontacten

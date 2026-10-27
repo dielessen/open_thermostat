@@ -7,9 +7,9 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname,'../data/html');
 const csrf='a'.repeat(64);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
-function client(handler) {
+function client(handler,timers={}) {
   const calls=[],redirects=[],events={},button={hidden:true,disabled:false,addEventListener:(n,f)=>events['button:'+n]=f};
-  const context={Request,Response,Headers,URL,Promise,Error,console,Object,AbortController,setTimeout,clearTimeout};
+  const context={Request,Response,Headers,URL,Promise,Error,console,Object,AbortController,setTimeout,clearTimeout,...timers};
   context.document={readyState:'loading',addEventListener:(n,f)=>events[n]=f,getElementById:()=>button,querySelectorAll:()=>[]};
   context.window={location:{href:'http://device/',origin:'http://device',replace:x=>redirects.push(x)},alert:()=>{},fetch:async(input,init)=>{
     calls.push({input,init});return handler(input,init,calls.length);
@@ -21,6 +21,29 @@ test('concurrent API reads use one session read, never one challenge per asset',
   const c=client((u)=>u==='/auth/session'?json({authenticated:true,csrf}):json({ok:true}));
   await Promise.all(['/status','/status/rooms','/config/device','/rooms.html'].map(u=>c.window.fetch(u)));
   assert.equal(c.calls.filter(x=>x.input==='/auth/session').length,1);assert.equal(c.calls.length,5);assert.equal(c.redirects.length,0);
+});
+test('session deadline remains active through a delayed body and a late proof cannot authorize queued work',async()=>{
+  let resolveBody,held=true,id=0;const deadlines=new Map();
+  const c=client(u=>u==='/auth/session'?(held?{status:200,ok:true,json:()=>new Promise(resolve=>resolveBody=resolve)}:json({authenticated:true,csrf})):json({ok:true}),{
+    setTimeout:(fn,ms)=>{assert.equal(ms,10000);deadlines.set(++id,fn);return id;},clearTimeout:key=>deadlines.delete(key),
+  });
+  const queued=Promise.allSettled([c.window.fetch('/status'),c.window.fetch('/fixture/change',{method:'POST'})]);
+  await new Promise(setImmediate);assert.equal(typeof resolveBody,'function');assert.equal(deadlines.size,1,'session deadline must cover the body');
+  deadlines.values().next().value();assert.equal(c.calls[0].init.signal.aborted,true);
+  resolveBody({authenticated:true,csrf});const outcomes=await queued;
+  assert(outcomes.every(x=>x.status==='rejected'&&/Session check unavailable/.test(x.reason.message)));
+  assert.equal(c.calls.length,1);assert.equal(deadlines.size,0);assert.deepEqual(c.redirects,[]);
+  held=false;await c.window.fetch('/status');assert.equal(c.calls.filter(x=>x.input==='/auth/session').length,2);
+  assert.equal(c.calls.filter(x=>x.input==='/fixture/change').length,0);assert.equal(deadlines.size,0);
+});
+test('session headers arriving after deadline cannot authorize, fall back to legacy or trigger logout',async()=>{
+  for(const status of [200,404,401]){
+    let resolveHeaders,deadline;
+    const c=client(()=>new Promise(resolve=>resolveHeaders=resolve),{setTimeout:fn=>{deadline=fn;return 1;},clearTimeout(){}});
+    const queued=c.window.fetch('/fixture/change',{method:'POST'});await new Promise(setImmediate);deadline();
+    resolveHeaders(json({authenticated:true,csrf},status));
+    await assert.rejects(queued,/Session check unavailable/);assert.equal(c.calls.length,1);assert.deepEqual(c.redirects,[]);
+  }
 });
 test('same-origin POST and DELETE receive CSRF; reads do not',async()=>{
   const c=client((u)=>u==='/auth/session'?json({authenticated:true,csrf}):json({ok:true}));
@@ -56,8 +79,8 @@ test('transient network/503 failure is not logout and not unsafe automatic retry
   const d=client(()=>json({},503));await assert.rejects(d.window.fetch('/config/device',{method:'POST'}));assert.equal(d.calls.length,1);assert.equal(d.redirects.length,0);
 });
 test('invalid session proof cannot authorize a mutation',async()=>{
-  for(const data of [{authenticated:false,csrf},{authenticated:true,csrf:'short'},{authenticated:true}]){
-    const c=client(()=>json(data));await assert.rejects(c.window.fetch('/config/device',{method:'POST'}));assert.equal(c.calls.length,1);
+  for(const data of [null,[],true,'wrong',{authenticated:false,csrf},{authenticated:true,csrf:'short'},{authenticated:true},{authenticated:true,csrf:[csrf]}]){
+    const c=client(()=>json(data));await assert.rejects(c.window.fetch('/config/device',{method:'POST'}),/Invalid session response/);assert.equal(c.calls.length,1);
   }
 });
 test('explicit generic-server 404 keeps old UI compatible; E32 401 never falls back',async()=>{

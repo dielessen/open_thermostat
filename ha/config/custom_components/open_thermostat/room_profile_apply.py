@@ -11,25 +11,13 @@ from .v1_model import CONF_ENABLED
 from .v1_wire import digest
 
 
-def profile_edit_available(entry, source):
-    """Saved logical owner and existing private controller connection only."""
-    from .controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_PASSWORD, CONTROLLER_ID
-    from .controller_link import controller_address
-    try:
-        return (source_from_selection(entry) == source
-            and entry.data.get(CONTROLLER_ID) == source.policy.controller_id
-            and controller_address(entry.data.get(CONTROLLER_ADDRESS)) == entry.data.get(CONTROLLER_ADDRESS)
-            and type(entry.data.get(CONTROLLER_PASSWORD)) is str
-            and 1 <= len(entry.data[CONTROLLER_PASSWORD]) <= 128)
-    except (ValueError, TypeError):
-        return False
+# Re-export for existing callers; one transaction implementation owns both flows.
+from .native_profile_apply import profile_edit_available, apply_profile_edit
 
 
 async def save_active_profile(hass, entry, sub, old, token, settings, *, binding_identities=None):
-    from .room_program_apply import active_program_context, _guard
+    from .room_program_apply import active_program_context
     from .room_editor import prepare_room_edit, read_room
-    from .controller_connection import async_refresh_controller_readback
-    from .controller_setup_flow import async_connect_installation, CONTROLLER_ADDRESS, CONTROLLER_PASSWORD
     context = active_program_context(hass, entry)
     if context is None or not profile_edit_available(entry, context[0]):
         raise ValueError('room_profile_change_required')
@@ -53,62 +41,31 @@ async def save_active_profile(hass, entry, sub, old, token, settings, *, binding
     proposed = propose_room_source_change(hass, entry, source, room, document)
     if proposed == source:
         raise ValueError('room_profile_change_required')
-    if connection.client.journal['staged'] is not None:
-        raise ValueError('controller_plan_pending')
-    # Validate the complete future wire budget and every room's schedule before
-    # stopping the old owner or persisting any part of the user's desired edit.
-    await proposed.async_prospective_configuration(hass, entry, room, document)
-    _guard(hass, entry, sub, source, before, private_before)
-    await async_refresh_controller_readback(hass, entry, source, before, connection,
-                                           private_expected=private_before)
-    _guard(hass, entry, sub, source, before, private_before)
-    client = connection.client
-    if (client.journal['staged'] is not None or client.journal['accepted'] is None
-            or not client.native_desired_matches(client.journal['accepted']['config'])):
-        raise ValueError('controller_plan_pending')
-    again, checked, checked_identities = candidate()
-    if (room != again or identities != checked_identities or document != checked.storage_document()
-            or proposed != propose_room_source_change(hass, entry, source, again, document)):
-        raise ValueError('setup_changed')
-    # Stop through the current owner. Do not create a parallel worker or publish
-    # direct MQTT. Failure after this await must never revive the previous owner.
-    await connection.runtime.async_stop()
-    if (hass.config_entries.async_get_entry(entry.entry_id) is not entry
-            or configuration_snapshot(entry) != before or native_entry_state(entry) != private_before):
-        raise ValueError('setup_changed')
-    state = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
-    if (state.get('v1_runtime') is not connection.runtime
-            or state.get('v1_connection') is not connection or connection.runtime.enabled):
-        raise ValueError('setup_changed')
-    again, checked, checked_identities = candidate()
-    if room != again or identities != checked_identities or document != checked.storage_document():
-        raise ValueError('binding_missing')
-    proposed.validate_prospective_native(hass, entry, room, document)
-    central = central_entry(entry)
-    raw = {**deepcopy(dict(sub.data)), **room.as_dict()}
-    from .room_comfort import clear_removed_comfort
-    clear_removed_comfort(raw,room)
-    if not is_manual_helper(room.setpoint):raw.pop('setpoint_duration_ms',None)
-    if not room.contacts:
-        raw.pop('contacts',None);raw.pop('contact_policy',None)
-    replacement = replace(sub, data=MappingProxyType(raw), title=room.name)
-    heat = {**deepcopy(dict(central.data)), 'draft': document, 'status': graph.readiness,
-            'draft_digest': graph.digest, 'incomplete_group_ids': list(graph.incomplete_group_ids)}
-    address, password = entry.data[CONTROLLER_ADDRESS], entry.data[CONTROLLER_PASSWORD]
-    commit_configuration(hass, entry, before, data={**entry.data, INSTALLATION: heat},
-        options={**entry.options, SOURCE_OPTION: source_selection(proposed), CONF_ENABLED: False},
-        subentries={**entry.subentries, sub.subentry_id: replacement})
-    saved_private = native_entry_state(entry)
-    try:
-        # Reuse normal authenticated HTTP/ETag provisioning, exact source checks,
-        # entry-update reload, existing MQTT worker and verified applied readback.
-        if native_entry_state(entry) != saved_private:
+
+    def validate_candidate():
+        if entry.subentries.get(sub.subentry_id) is not sub:
             raise ValueError('setup_changed')
-        await async_connect_installation(hass, entry, address, password)
-    except Exception:
-        # Intent is saved; remote outcome may be uncertain. Never roll back the
-        # room/profile/journal or retry a write/reboot automatically.
-        raise ValueError('save_uncertain') from None
+        again, checked, checked_identities = candidate()
+        if (room != again or identities != checked_identities or document != checked.storage_document()
+                or proposed != propose_room_source_change(hass, entry, source, again, document)):
+            raise ValueError('setup_changed')
+
+    def commit_candidate():
+        central = central_entry(entry)
+        raw = {**deepcopy(dict(sub.data)), **room.as_dict()}
+        from .room_comfort import clear_removed_comfort
+        clear_removed_comfort(raw,room)
+        if not is_manual_helper(room.setpoint):raw.pop('setpoint_duration_ms',None)
+        if not room.contacts:
+            raw.pop('contacts',None);raw.pop('contact_policy',None)
+        replacement = replace(sub, data=MappingProxyType(raw), title=room.name)
+        heat = {**deepcopy(dict(central.data)), 'draft': document, 'status': graph.readiness,
+                'draft_digest': graph.digest, 'incomplete_group_ids': list(graph.incomplete_group_ids)}
+        commit_configuration(hass, entry, before, data={**entry.data, INSTALLATION: heat},
+            options={**entry.options, SOURCE_OPTION: source_selection(proposed), CONF_ENABLED: False},
+            subentries={**entry.subentries, sub.subentry_id: replacement})
+    await apply_profile_edit(hass, entry, source, connection, before, private_before,
+        proposed, room, document, validate_candidate, commit_candidate)
     return read_room(hass, entry.entry_id, old.room_id)
 
 

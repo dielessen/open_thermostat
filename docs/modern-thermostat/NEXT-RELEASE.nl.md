@@ -82,6 +82,20 @@ toegepaste filters, zonder herstartvraag; onbekende save wordt niet herhaald.
 Een reeds verlaten instellingenformulier begint geen uitgestelde initialisatie.
 De daadwerkelijke paginasnelheid moet na installatie worden gemeten.
 
+**Centrale instellingen bij actieve E32-verbinding:** via Installatie instellen
+kun je nu de installatienaam, dashboardkeuze en gedeelde watergrenzen wijzigen.
+Gekoppelde radiatorcircuits volgen de grenzen; eigen circuitgrenzen blijven
+behouden. Opgeslagen stooklijnpunten worden binnen de nieuwe grenzen gehouden.
+Een botsende vloer-/maatwerkgrens wordt vóór bewaren geweigerd. De normale
+SOURCE-/verbindingsroute past het volledige plan toe met echte C++-readback;
+een grenswijziging kan een gecontroleerde E32-herstart vragen. Alleen hernoemen
+of het dashboard wijzigen schrijft geen apparaatinstellingen. Weerregeling is
+in dit verbonden profiel nog niet ondersteund en wordt niet als bedienbare
+optie aangeboden. Bij onbevestigde toepassing blijft de opgeslagen wijziging
+herkenbaar wachten op de gewone E32-verbindingsroute. Geen nieuwe eigenaar,
+opslag, automatische retry of fysieke uitvoervrijgave.
+[Softwarecontrole en bewijsgrens](ACTIVE-INSTALLATION-20261027.json).
+
 **Nieuwe kamerfunctie in dezelfde bundel:** maximaal acht raam-/deurcontacten
 kiezen, wijzigen en verwijderen via de normale kamereditor én kamerwizard.
 Opent één gekozen contact, dan pauzeert de kamervraag; hervatten vereist geldige

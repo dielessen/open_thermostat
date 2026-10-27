@@ -258,8 +258,16 @@ class ProductOptionsFlow(ControllerSetupFlow, ShadowOptionsFlow, ProductRoomFlow
         entry = self.config_entry
         if integration_mode(entry) != MODE_SHADOW:
             return self.async_abort(reason="product_upgrade_required")
+        from .installation_edit import installation_context, active_installation_step
+        if hasattr(self, '_central_active_before') or installation_context(self.hass, entry) is not None:
+            if hasattr(self, '_central_before'):
+                return self.async_abort(reason='setup_changed')
+            return await active_installation_step(self, user_input)
         if entry.options.get(CONF_ENABLED, False) or actual_runtime_active(self.hass, entry):
             return self.async_abort(reason="setup_runtime_off")
+        from .room_profile_apply import pending_profile_source
+        if pending_profile_source(self.hass, entry) is not None:
+            return self.async_abort(reason='installation_apply_pending')
         errors = {}
         try:
             current = central_entry(entry)
@@ -332,6 +340,10 @@ class ProductOptionsFlow(ControllerSetupFlow, ShadowOptionsFlow, ProductRoomFlow
         })
         return self.async_show_form(step_id="installation", data_schema=retained_input_schema(
             self, schema, user_input), errors=errors)
+
+    async def async_step_installation_connected(self, user_input=None):
+        from .installation_edit import active_installation_step
+        return await active_installation_step(self, user_input)
 
     async def async_step_room_settings(self, user_input=None):
         rooms = [s for s in self.config_entry.subentries.values() if s.subentry_type == "zone"]

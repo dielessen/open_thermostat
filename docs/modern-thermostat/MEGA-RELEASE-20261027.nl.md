@@ -53,7 +53,7 @@ bewijs blijft afzonderlijk open. Geen nieuwe externe dienst of langlopende watch
   firmwarecapability en native save/readback. Bestaande waarden/automatiseringen
   worden niet afgespeeld; fysieke wandbediening blijft ongekwalificeerd.
 - Nog softwarematig uit te bouwen: fysieke externe kamerdoelbron met echoherkenning,
-  centrale instellingen en schaalbare
+  verdere centrale weer-/groepsfuncties en schaalbare
   zones/kranen, verdere modelwriters en de overige bron-/leer-/standaloneketens.
   Oorspronkelijke fysieke bronkwalificatie en hardwareproeven blijven apart.
 - Comfort/aanwezigheid: normale editor en wizard, actieve native save/readback,
@@ -134,3 +134,23 @@ elk een afzonderlijke uitslag en vervolgactie. Nieuwe voorbereiding wist alleen
 het resultaat van de vorige proefsessie; herstart wist de vluchtige sessie.
 De toegang, opdrachtcadans, lease, stopbeleid en fysieke acceptatie veranderen
 niet. Geen live apparaatopdrachten tijdens dit werk.
+
+
+## Centrale instellingen tijdens native verbinding
+
+De normale Installatie instellen-route laat een actieve weekprofielverbinding
+nu haar naam/dashboard en gedeelde watergrenzen wijzigen. Alle bestaande
+kamer-/actuatorkoppelingen blijven behouden. Alleen radiatorgroepen die de oude
+centrale grenzen volgden, volgen de nieuwe grenzen; maatwerk/vloer blijft exact
+behouden en conflicten worden geweigerd. Stooklijnpunten blijven binnen de nieuwe
+grenzen. Niet-uitgevoerde weer-/bronopties staan niet in het verbonden formulier.
+
+Kamer- en centrale profielwijzigingen gebruiken één gedeelde transactie:
+volledige toekomstige SOURCE-opslag en wire/configuratie controleren, verse
+readback van de bestaande eigenaar, die eigenaar stoppen, één atomair HA-intent
+bewaren en de normale geauthenticeerde verbinding/provisionering/herlaad/readback
+hergebruiken. Een complete SOURCE-opslag die te groot is, faalt vóór het stoppen
+van de bestaande eigenaar. Nieuwe watergrenzen kunnen een E32-herstart vragen;
+naam/dashboard schrijft geen apparaatinstellingen en evolueert SOURCE niet.
+Geannuleerd/onbevestigd herstelt of herhaalt geen oude opdracht. De tests gebruiken
+uitsluitend lokale HA/C++-fixtures; fysieke bron-/ketel-/kraankwalificatie blijft open.

@@ -56,7 +56,7 @@ opgenomen; correcte live HTTP-/assetroutering wel.
 Elke rij hieronder blijft in de nieuwe bronbasis. “Meenemen” is geen opdracht
 om onafgemaakte of ongekwalificeerde mogelijkheden automatisch te activeren.
 De machineleesbare [release-inventaris](BETA1-RELEASE-INVENTARIS.json) bevat
-583 bronverwijzingen met hashes, status en resterende acceptatie.
+587 bronverwijzingen met hashes, status en resterende acceptatie.
 De CI controleert deze bronhashes en de dekking van alle eisen en releasechecks
 met `scripts/verify_beta_release_inventory.py`. Bij een bewuste bronwijziging
 hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de controle.
@@ -78,7 +78,7 @@ hoort een gereviewde inventarisupdate; een ontbrekend onderdeel faalt de control
 | I13 | Ketencontract, SOURCE, journal, configuratie en readback | Geleverde softwarebasis | Logische provisioning/programma-ACK werkt; verse fysieke meet- en actuatorbewijzen ontbreken. |
 | I14 | Kraanadapter profiel C, TV02-moduscontrole en bronbench | Modus/identiteit en oorspronkelijke HA-ontvangst/diagnose geleverd; fysieke route onvolledig | Native identiteit en doelcapaciteit vlak vóór dispatch opnieuw gecontroleerd; TV02 auto/vakantie/uit/onbekend zichtbaar en vóór doelactie geweigerd. Verse kraanecho, exclusief eigenaarschap en fysieke werking blijven open; oude bench op SOURCE geblokkeerd. |
 | I15 | Kamerregelaar, seizoensbeleid en hydraulische supervisor | Voorbereide code, functie nog onvolledig | Controller-/supervisorkoppeling en HA-diagnose gebouwd; werkelijke producenten, installatieprofiel en fysieke uitvoerketen niet gekwalificeerd. |
-| I16 | Groepswaterdoelen, vloer, menger en centrale graph-config | Voorbereide code, functie nog onvolledig | Pure policies/declaraties en begrensde DATA-paden aanwezig; niet gelijk aan actieve groepen/pomp/menger. |
+| I16 | Groepswaterdoelen, vloer, menger en centrale graph-config | Beta.6/HA0.4.0b4: normale centrale grenzen/save/readback tijdens native verbinding; overige functies onvolledig | Eén gedeelde profieltransactie en echte C++-readback softwarematig getoetst. Weerbron, meerdere/gemengde groepen, pomp/menger en fysieke uitvoering blijven open. |
 | I17 | Metrics, grafieken, historiegrens en CSV-export | Native velden/grafieken en begrensde Recorder-CSV; maandexport in bètabron | echte Classic-tijdlijn, Recorder-retentie/migratie en grafiekacceptatie open. |
 | I18 | Comfortprioriteiten, raam/aanwezigheidscontext en HEAT/OFF | Beta.6: contacten, extra doelhelper, comfort/aanwezigheid en eindige vakantiebediening in normale HA-route voorbereid | Actieve save/readback, oorspronkelijke HA-/trackerouderdom, zomertijd en kamerscope softwarematig getoetst; fysieke bronkwalificatie en hardwareproef blijven open. |
 | I19 | Thermisch model, optimum-start, uitlopen en curveaanpassing | Voorbereide code, functie nog onvolledig | Code/replay/opslag aanwezig en behouden; geen bewezen leerwinst of actieve vrijgave. Geen nieuwe F9-stage vóór M2. |

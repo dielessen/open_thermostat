@@ -63,7 +63,7 @@
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
-          "sha256": "a24156fe813a7abfabfbeb61a2619e158bd7cba14e3b3eec3f2bc998dcd1a34b"
+          "sha256": "82aa5b599923edcf697728ee23a4b521556d4492e3f6f299e9312059db8b7271"
         },
         {
           "path": "docs/modern-thermostat/USER-RELEASE-NOTES.json",
@@ -75,7 +75,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "97899d6653679662101595e8ea268dc2cf6d45a9f0c06cd54b89cf6027762b35"
+          "sha256": "2116f23dfa3efda9bbaf03ed59029b920361c42dd6a6465ad5d305058886ee22"
         },
         {
           "path": "docs/modern-thermostat/BETA1-RELEASE-NOTES.nl-en.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "8f5cd5709593d1575b0c9f4e9e92533e3b75402b225c0d1b13ccb4f9756a6c5e"
+          "sha256": "32262048a84ed61d75e6c1207bbc5beca4e00355f8a611ea8fe69631b6820dd5"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -215,7 +215,7 @@
         },
         {
           "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
-          "sha256": "6fc9b58753bb2e7aecfb549fde7582309cb5c239e4af6caa48d0fc03f574ace2"
+          "sha256": "964d3a43740436049452c850c50a3ce8b4770c0c4b81b5bbdb87f0e9fa1c57f3"
         },
         {
           "path": "release.json",
@@ -505,15 +505,15 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/strings.json",
-          "sha256": "7563344991043d2c5ddd1d25d2be494eed251840715b3776040026f979b952e0"
+          "sha256": "7d56c1d157c470efccfe62cedd4921967311b2447ba72b223ed16023cae430c1"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/en.json",
-          "sha256": "7563344991043d2c5ddd1d25d2be494eed251840715b3776040026f979b952e0"
+          "sha256": "7d56c1d157c470efccfe62cedd4921967311b2447ba72b223ed16023cae430c1"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/translations/nl.json",
-          "sha256": "4f8c882d28644170ed9c8b6894eaa95f3f0da80284053fb56bdfb189c4e98d68"
+          "sha256": "fc00fa2d4cd8051d1b2d9b0a0297de73834773ca5658291db95d63d903955b0d"
         },
         {
           "path": "src/control/CaptivePortalPolicy.h",
@@ -736,7 +736,7 @@
       "files": [
         {
           "path": "ha/config/custom_components/open_thermostat/room_profile_apply.py",
-          "sha256": "3e8ce001c195977829dc81c8fabd7738321a55ec435c99b8420380004665c764"
+          "sha256": "414f66e427da39e566657b1363c9e68fb5d918c087581e872b89a1f744357402"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/native_provisioning.py",
@@ -1634,7 +1634,7 @@
         },
         {
           "path": "ha/config/custom_components/open_thermostat/product_flow.py",
-          "sha256": "3fa108143bdc9ee30156d309787328bb39daf37aaef3267b57c679cf4f750f37"
+          "sha256": "b97cc9f8ca52ee22ce2227fea6d3de0ea5ee54a6ae1eac07390b7615b123495b"
         },
         {
           "path": "ha/tests_native/test_tv02_operating_mode.py",
@@ -1943,9 +1943,25 @@
         {
           "path": "test/test_native/test_outdoor_sources.cpp",
           "sha256": "5af2af6b7303e839bfac96336892278b6ad47f099792e00bdb89889e6458cce3"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/installation_edit.py",
+          "sha256": "a00392a8d56e70b2ccd414fccd0ff9b51631138aa0b6b26f785cb876f6bf1412"
+        },
+        {
+          "path": "ha/config/custom_components/open_thermostat/native_profile_apply.py",
+          "sha256": "28dc487d7db60e8f170f36db11c93dd234eb8f49300ddc2ef8ae23a3ccecfef1"
+        },
+        {
+          "path": "ha/tests_native/test_installation_edit.py",
+          "sha256": "a2eff1c078b0153ac307b0525572b2ae21ecf6ac7c93d8170de405a4c09b9e75"
+        },
+        {
+          "path": "docs/modern-thermostat/ACTIVE-INSTALLATION-20261027.json",
+          "sha256": "6e0054d3c48c3914cc3b7cff6f737dfcd5f0d66995ff23a97948f0097dc231c0"
         }
       ],
-      "remaining_acceptance": "Pure policies/declaraties en begrensde DATA-paden aanwezig; niet gelijk aan actieve groepen/pomp/menger."
+      "remaining_acceptance": "Beta.6/HA0.4.0b4 central limits during an active native connection use shared profile apply and verified C++ readback. Weather, larger/mixed groups, pumps/mixers and physical qualification remain open."
     },
     {
       "id": "I17",
@@ -2301,7 +2317,7 @@
         },
         {
           "path": "docs/modern-thermostat/WORKBOARD.nl.md",
-          "sha256": "1d1d8fb5751be631000db2100827f362f428a6eeb77613896292fd247521967b"
+          "sha256": "cad2bf168da6f66c7a9d99fb7e79fc513058ad34b3637d1cfcf8d0fe82591199"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/device_power.py",

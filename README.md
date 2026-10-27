@@ -80,6 +80,7 @@ open. **Planned** means further implementation or qualification is required.
 | Feature | Current status |
 | --- | --- |
 | Room setup | **Available:** name rooms and select HA sensors, radiator valves, emitter types and temperature limits. Current setup supports 1–2 rooms, with one valve per room. |
+| Central installation settings | **Prepared for HA 0.4.0b4:** rename the installation and change shared water limits while connected. Linked radiators follow the limits; custom circuits are preserved. Changes use the existing E32 apply/readback path. Weather compensation still needs a supported profile. |
 | Weekly schedules | **Available:** edit temperature blocks, including touch controls, save and apply with confirmation. |
 | Temperature targets and HEAT/OFF | **Available as control intent** through the native HA climate entity. Physical execution remains gated. |
 | Original sensor and valve reports | **HA reception and diagnostics delivered.** Original Zigbee report producers, source qualification and physical valve feedback still need acceptance. Cached values are distinguished from original measurements. |

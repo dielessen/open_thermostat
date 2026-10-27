@@ -1,0 +1,199 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "DEVELOPMENT_PREFLIGHT_PASS_NOT_INSTALLED",
+  "target": {
+    "e32": "beta.6",
+    "ha": "0.4.0b4"
+  },
+  "parent_commit": "5ae798b6a1c8bd1ef9a2faec70bf2f4cefbacb64",
+  "device_actions_performed": false,
+  "contract": {
+    "entrypoint": "Existing HA options: installation settings",
+    "connected_step": "installation_connected",
+    "supported_fields": [
+      "installation name",
+      "dashboard selection",
+      "central minimum/maximum requested water temperature"
+    ],
+    "linked_radiator_limits": "Follow central only when previously equal to old central limits",
+    "custom_circuits_and_room_bindings": "Preserved; incompatible circuit/fallback limits refused",
+    "curve_points": "Stored values clipped monotonically to new central bounds; no weather execution added",
+    "profile_change": "Complete prospective configuration, full HA SOURCE serialization budget, current owner readback, stop, one atomic HA intent, normal authenticated provisioning/reload and C++ applied readback",
+    "metadata_only": "No SOURCE evolution or device-settings write; normal HA reload and readback",
+    "possible_e32_restart": "Disclosed before water-limit save; standard link owns any future restart",
+    "unknown_or_cancelled_apply": "Saved intent retained; no rollback, replay or old-owner restoration",
+    "workers_added": 0,
+    "stores_added": 0,
+    "polling_added": 0,
+    "physical_qualification_added": false,
+    "weather_and_multi_zone_contract_extended": false
+  },
+  "validation": {
+    "new_installation_cases_passed": 22,
+    "focused_native_installation_existing_room_product_cases_passed": 46,
+    "complete_ha_junit": {
+      "tests": 2681,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3
+    },
+    "pytest_cases_passed": 2610,
+    "pytest_subtests_passed": 68,
+    "local_skips": [
+      {
+        "case": "test_real_existing_ha_mqtt_client_reads_exact_retained_fixture_metadata",
+        "reason": "opt-in isolated localhost MQTT fixture not supplied"
+      },
+      {
+        "case": "test_actual_cpp_parser_producer_to_native_ha_expiry_and_reboot",
+        "reason": "Compile finite native room observation peer first"
+      },
+      {
+        "case": "test_real_localhost_packet_loop_and_firmware_lwt",
+        "reason": "opt-in ephemeral localhost fixture broker not supplied"
+      }
+    ],
+    "node_auth_root_language_boiler_cases_passed": 70,
+    "normal_options_http_reload_cpp_roundtrip": "PASS",
+    "roundtrip_requested_supply_centi_c": [
+      2500,
+      3200
+    ],
+    "fresh_cpp_applied_readback_and_durable_store": "PASS",
+    "name_only_no_source_or_device_write": "PASS",
+    "no_change_no_io": "PASS",
+    "whole_source_budget_before_owner_stop": "PASS for installation and room",
+    "private_credentials_registry_and_entry_scope_rechecked": "PASS",
+    "concurrent_stop_edit_not_overwritten": "PASS",
+    "cancellation_and_uncertain_intent_no_replay": "PASS",
+    "new_native_form_languages": [
+      "en",
+      "nl"
+    ],
+    "e32_firmware_changed": false,
+    "tested_ha_source_sha256": "8285ab8b169d85ad2d92226317b3aa495025e7eb0065dc2bb1ad4f8c0a0a37df",
+    "preflight_clean_release_commit": false
+  },
+  "remaining": [
+    "Development bundle not frozen, published or installed",
+    "Connected weather compensation, larger native capacity and physical output qualification remain separate",
+    "Three local fixture-dependent cases are skipped; GitHub native job supplies those fixtures"
+  ],
+  "reviewed_files": [
+    {
+      "path": "README.md",
+      "sha256": "2116f23dfa3efda9bbaf03ed59029b920361c42dd6a6465ad5d305058886ee22"
+    },
+    {
+      "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
+      "sha256": "82aa5b599923edcf697728ee23a4b521556d4492e3f6f299e9312059db8b7271"
+    },
+    {
+      "path": "docs/modern-thermostat/MEGA-RELEASE-20261027.nl.md",
+      "sha256": "964d3a43740436049452c850c50a3ce8b4770c0c4b81b5bbdb87f0e9fa1c57f3"
+    },
+    {
+      "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
+      "sha256": "32262048a84ed61d75e6c1207bbc5beca4e00355f8a611ea8fe69631b6820dd5"
+    },
+    {
+      "path": "docs/modern-thermostat/WORKBOARD.nl.md",
+      "sha256": "cad2bf168da6f66c7a9d99fb7e79fc513058ad34b3637d1cfcf8d0fe82591199"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/installation_edit.py",
+      "sha256": "a00392a8d56e70b2ccd414fccd0ff9b51631138aa0b6b26f785cb876f6bf1412"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/native_profile_apply.py",
+      "sha256": "28dc487d7db60e8f170f36db11c93dd234eb8f49300ddc2ef8ae23a3ccecfef1"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/product_flow.py",
+      "sha256": "b97cc9f8ca52ee22ce2227fea6d3de0ea5ee54a6ae1eac07390b7615b123495b"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/room_profile_apply.py",
+      "sha256": "414f66e427da39e566657b1363c9e68fb5d918c087581e872b89a1f744357402"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/strings.json",
+      "sha256": "7d56c1d157c470efccfe62cedd4921967311b2447ba72b223ed16023cae430c1"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/translations/en.json",
+      "sha256": "7d56c1d157c470efccfe62cedd4921967311b2447ba72b223ed16023cae430c1"
+    },
+    {
+      "path": "ha/config/custom_components/open_thermostat/translations/nl.json",
+      "sha256": "fc00fa2d4cd8051d1b2d9b0a0297de73834773ca5658291db95d63d903955b0d"
+    },
+    {
+      "path": "ha/tests_native/test_installation_edit.py",
+      "sha256": "a2eff1c078b0153ac307b0525572b2ae21ecf6ac7c93d8170de405a4c09b9e75"
+    }
+  ],
+  "local_evidence": [
+    {
+      "path": "out/active-installation-20261027/baseline-regression.log",
+      "sha256": "0486e850dd8c3f8bedc7ee9b53ac85b97a2fa59f948705223bc591057494f945"
+    },
+    {
+      "path": "out/active-installation-20261027/cleanup.log",
+      "sha256": "ba76501dde475daff0b3dc2f3f30085fff556f354a5cc5b2c74ac01db10c4197"
+    },
+    {
+      "path": "out/active-installation-20261027/focused-final.log",
+      "sha256": "1cee95d3f0c83346150f526681218fa24616e629b757a35105baeb149d86e010"
+    },
+    {
+      "path": "out/active-installation-20261027/focused.log",
+      "sha256": "36ff91384c6ffbc18a208cbcf4f567b3e28c79d1253d685a4652d22bcbab2a37"
+    },
+    {
+      "path": "out/active-installation-20261027/ha-full-before-storage-preflight.log",
+      "sha256": "a25ad4bc048b75863eb2601dad28a8ececca7ef4df504f5d904ce6d94152238e"
+    },
+    {
+      "path": "out/active-installation-20261027/ha-full-before-storage-preflight.xml",
+      "sha256": "fdd9bc30e232d6aa62830e6fc341a164d71faeeb085947186cf7d384090032db"
+    },
+    {
+      "path": "out/active-installation-20261027/ha-full.log",
+      "sha256": "278707833492c705ce096f7f61008ce5c0053130e16159fa38fbc0d635cc99e6"
+    },
+    {
+      "path": "out/active-installation-20261027/ha-full.xml",
+      "sha256": "311fa9a2050b59d31f848de54c36f17e69e2338699d6733eccd5848e81196d81"
+    },
+    {
+      "path": "out/active-installation-20261027/installation.log",
+      "sha256": "7c63b7ab923cef461ec3085e637c58c221a31f15973501d790df33d10ea2f483"
+    },
+    {
+      "path": "out/active-installation-20261027/metrics/ROOM-MODEL-DASHBOARD.json",
+      "sha256": "4651ed51f9429b041a4a7e14501e3a9c21c997680d989dff38be91144068a0e1"
+    },
+    {
+      "path": "out/active-installation-20261027/metrics/ROOM-RECORDER-SAMPLE.json",
+      "sha256": "315c1d92dada623e7fdb89d32a8a5ed608d56a161d7b69f6cf0c9aaf3a753ce7"
+    },
+    {
+      "path": "out/active-installation-20261027/metrics-before-storage-preflight/ROOM-MODEL-DASHBOARD.json",
+      "sha256": "4651ed51f9429b041a4a7e14501e3a9c21c997680d989dff38be91144068a0e1"
+    },
+    {
+      "path": "out/active-installation-20261027/metrics-before-storage-preflight/ROOM-RECORDER-SAMPLE.json",
+      "sha256": "43839fe0749905742281db79f190e1b315beed09285bd1f780464eeeb9e8ee05"
+    },
+    {
+      "path": "out/active-installation-20261027/node-regression.log",
+      "sha256": "3a89bb5e8074db7d4e1fb3885ca31639711c5a4d06c70b8aa5002a521fd17bed"
+    },
+    {
+      "path": "out/active-installation-20261027/release-cleanup.json",
+      "sha256": "67780cde95fa8f2301984ab32d01353dfafa5900490f642a424a50890dec1dfa"
+    }
+  ]
+}

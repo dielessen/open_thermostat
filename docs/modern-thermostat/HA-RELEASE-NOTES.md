@@ -5,6 +5,12 @@ Development bundle; not published or installed.
 
 ## New
 
+- Edit the installation name and shared water limits while connected to the E32.
+  Linked radiators follow the limits; custom circuit limits are preserved and
+  stored curve points stay bounded. Water-limit changes use the normal verified
+  apply route and may restart the E32. Name/dashboard changes do not write device
+  settings. Unsupported weather controls are omitted from this connected form.
+
 - Show native cached battery percentages and device low-battery flags for the
   saved room sensor and valves under Advanced settings. Reports retain their HA
   timestamp/age, shared devices appear once, and missing or ambiguous sources
@@ -34,6 +40,10 @@ Development bundle; not published or installed.
   service checks the expected room scope. Unconfirmed requests are not replayed.
 
 ## Fixed
+
+- Validate complete profile storage before interrupting the existing connection.
+  Room and installation changes share one apply path. Interrupted or unconfirmed
+  changes retain saved intent without rolling back or automatically retrying.
 
 - Contact, extra-target and comfort status share one canonical room identity
   check. Reusing an old entity ID for another room cannot display that room's

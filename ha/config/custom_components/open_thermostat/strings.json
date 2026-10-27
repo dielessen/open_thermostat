@@ -376,6 +376,32 @@
       "controller_connected": {
         "title": "E32 connected",
         "description": "The E32 has confirmed the plan for {rooms} room(s). Physical heating control remains disabled; sensor and valve suitability are tested separately."
+      },
+      "installation_connected": {
+        "title": "Installation settings — connected E32",
+        "description": "Change the installation name and shared water-temperature limits. Saving verifies the complete plan through the existing E32 connection. Linked radiator circuits follow these limits; custom circuit limits stay unchanged. Stored curve points are kept within the new bounds. Weather compensation is not supported by the current connected profile. Saving does not enable boiler or valve commands. Changing water limits may briefly reconnect or restart the E32; name and dashboard changes do not write device settings.",
+        "data": {
+          "name": "Installation name",
+          "create_dashboard": "Show the OpenThermostat dashboard"
+        },
+        "data_description": {
+          "name": "A recognisable name in Home Assistant. Renaming does not change device identities.",
+          "create_dashboard": "Adds an optional dashboard. Your own dashboards are preserved."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Advanced",
+            "data": {
+              "minimum_supply_temperature": "Minimum central supply temperature",
+              "maximum_supply_temperature": "Maximum central supply temperature"
+            },
+            "data_description": {
+              "minimum_supply_temperature": "Lowest requested water temperature for this circuit, not the room temperature.",
+              "maximum_supply_temperature": "Highest requested water temperature. Applies to linked radiators; choose limits appropriate for your installation."
+            }
+          }
+        },
+        "submit": "Save installation"
       }
     },
     "error": {
@@ -458,7 +484,9 @@
       "controller_plan_pending": "An earlier room-plan change is still unresolved. Check its actual E32 readback before applying another change.",
       "controller_plan_unconfirmed": "The E32 has not confirmed the room plan. A received command alone is not confirmation. Check the installation status.",
       "controller_partial_connection": "Some connection settings may already be saved on the E32. The complete connection and room plan are not confirmed. Check the installation status before connecting again.",
-      "setup_changed": "The installation changed while connecting. Check its current settings before connecting again."
+      "setup_changed": "The installation changed while connecting. Check its current settings before connecting again.",
+      "installation_native_settings_only": "This connected profile supports the installation name, dashboard and shared water limits. Weather and other settings require a different profile.",
+      "installation_limits_conflict": "These limits conflict with an existing circuit or fallback temperature. Choose compatible limits; the current installation has not been changed."
     },
     "abort": {
       "graph_review_unavailable": "No existing source-selected graph connection is available. No profile was enabled.",
@@ -496,7 +524,9 @@
       "configuration_status_closed": "Status closed.",
       "product_upgrade_required": "This old setup must first be transferred to the normal product configuration.",
       "controller_connection_complete": "The E32 connection and room plan have been confirmed.",
-      "controller_connection_cancelled": "Connection cancelled. Check the installation status; some settings may already be saved on the E32."
+      "controller_connection_cancelled": "Connection cancelled. Check the installation status; some settings may already be saved on the E32.",
+      "installation_applied": "Installation saved and verified against the E32 plan. Physical boiler and valve outputs remain disabled.",
+      "installation_apply_pending": "An earlier profile change is not confirmed. Open E32 connection and apply the saved settings before editing the installation again."
     },
     "progress": {
       "controller_connect": "Connecting, applying and reading back the room plan…"

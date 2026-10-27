@@ -1207,6 +1207,32 @@
       "controller_connected": {
         "title": "E32 verbonden",
         "description": "De E32 heeft het programma voor {rooms} kamer(s) terugbevestigd. Fysieke verwarmingsaansturing blijft uitgeschakeld; geschiktheid van sensoren en kranen wordt afzonderlijk getest."
+      },
+      "installation_connected": {
+        "title": "Installatie-instellingen — verbonden E32",
+        "description": "Wijzig de installatienaam en gedeelde watertemperatuurgrenzen. Opslaan controleert het volledige plan via de bestaande E32-verbinding. Gekoppelde radiatorcircuits volgen deze grenzen; eigen circuitgrenzen blijven behouden. Opgeslagen stooklijnpunten blijven binnen de nieuwe grenzen. Weersafhankelijke regeling wordt door het huidige verbonden profiel nog niet ondersteund. Opslaan schakelt geen ketel- of kraanopdrachten in. Nieuwe watergrenzen kunnen de E32 kort opnieuw verbinden of herstarten; naam- en dashboardwijzigingen schrijven geen apparaatinstellingen.",
+        "data": {
+          "name": "Naam installatie",
+          "create_dashboard": "OpenThermostat-dashboard tonen"
+        },
+        "data_description": {
+          "name": "Een herkenbare naam in Home Assistant. Hernoemen verandert geen apparaatidentiteiten.",
+          "create_dashboard": "Voegt een eigen dashboard toe. Je bestaande dashboards blijven behouden."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Geavanceerd",
+            "data": {
+              "minimum_supply_temperature": "Minimale aanvoertemperatuur",
+              "maximum_supply_temperature": "Maximale aanvoertemperatuur"
+            },
+            "data_description": {
+              "minimum_supply_temperature": "Laagste gevraagde watertemperatuur van dit circuit. Dit is geen kamertemperatuur.",
+              "maximum_supply_temperature": "Hoogste gevraagde watertemperatuur. Geldt voor alle gekoppelde radiatoren; kies grenzen die bij je installatie passen."
+            }
+          }
+        },
+        "submit": "Installatie opslaan"
       }
     },
     "error": {
@@ -1289,7 +1315,9 @@
       "controller_plan_pending": "Een eerdere wijziging van het kamerprogramma is nog niet opgehelderd. Controleer eerst wat de E32 werkelijk heeft opgeslagen.",
       "controller_plan_unconfirmed": "De E32 heeft het kamerprogramma nog niet bevestigd. Alleen ontvangst van een opdracht is geen bevestiging. Controleer de installatiestatus.",
       "controller_partial_connection": "Een deel van de verbindingsinstellingen kan al op de E32 staan. De volledige verbinding en het kamerprogramma zijn nog niet bevestigd. Controleer de installatiestatus voordat je opnieuw verbindt.",
-      "setup_changed": "De installatie is tijdens het verbinden gewijzigd. Controleer de huidige instellingen voordat je opnieuw verbindt."
+      "setup_changed": "De installatie is tijdens het verbinden gewijzigd. Controleer de huidige instellingen voordat je opnieuw verbindt.",
+      "installation_native_settings_only": "Dit verbonden profiel ondersteunt de installatienaam, het dashboard en gedeelde watergrenzen. Weerregeling en andere instellingen vragen een ander profiel.",
+      "installation_limits_conflict": "Deze grenzen botsen met een bestaand circuit of een terugvaltemperatuur. Kies passende grenzen; de huidige installatie is niet gewijzigd."
     },
     "abort": {
       "graph_review_unavailable": "Geen bestaande schema-aansluiting met gekozen bron beschikbaar. Geen profiel ingeschakeld.",
@@ -1327,7 +1355,9 @@
       "configuration_status_closed": "Status gesloten.",
       "product_upgrade_required": "Deze oude inrichting moet eerst worden overgenomen naar de normale productconfiguratie.",
       "controller_connection_complete": "De E32-verbinding en het kamerprogramma zijn bevestigd.",
-      "controller_connection_cancelled": "Verbinden geannuleerd. Controleer de installatiestatus; instellingen kunnen al op de E32 staan."
+      "controller_connection_cancelled": "Verbinden geannuleerd. Controleer de installatiestatus; instellingen kunnen al op de E32 staan.",
+      "installation_applied": "Installatie opgeslagen en gecontroleerd tegen het E32-plan. Fysieke ketel- en kraanuitvoer blijven uitgeschakeld.",
+      "installation_apply_pending": "Een eerdere profielwijziging is nog niet bevestigd. Open E32-verbinding en pas de opgeslagen instellingen toe voordat je de installatie opnieuw wijzigt."
     },
     "progress": {
       "controller_connect": "Verbinden, kamerprogramma toepassen en teruglezen…"

@@ -7,9 +7,18 @@ window.BoilerData = (() => {
   const valid=data=>data&&typeof data==='object'&&!Array.isArray(data)
     &&data.fields&&typeof data.fields==='object'&&!Array.isArray(data.fields)
     &&Object.keys(data.fields).length<=96&&data.reception&&data.transport;
+  function notify(listener,data,error) {
+    try { listener(data,error); }
+    catch(failure) {
+      // A failed optional panel must not turn a successful HTTP response into
+      // a connection failure for every consumer. Keep the render error visible
+      // through the browser's normal error reporting.
+      if(typeof window.reportError==='function')window.reportError(failure);
+    }
+  }
   function publish(data,error) {
     current=data;
-    for(const listener of listeners)listener(data,error);
+    for(const listener of listeners)notify(listener,data,error);
   }
   function refresh() {
     if(pending)return pending;
@@ -50,7 +59,7 @@ window.BoilerData = (() => {
       }
     };
     signal?.addEventListener('abort',unsubscribe,{once:true});
-    if(current)listener(current,null);
+    if(current)notify(listener,current,null);
     else refresh();
     return unsubscribe;
   }

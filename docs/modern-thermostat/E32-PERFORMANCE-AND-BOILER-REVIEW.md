@@ -58,6 +58,10 @@ reusable 64 kB PSRAM buffer. An allocation failure or oversized response produce
 a complete 503 error before any body is sent, without falling back to a growing
 internal-heap allocation. Hidden tabs
 pause polling; returning reads current state without restoring test supervision.
+Subscriber rendering errors are reported through the browser's normal error
+handler and cannot poison a successful read for the other panels. Six shared-store
+unit cases cover request sharing, teardown, failures, bounds, visibility and this
+failure isolation.
 
 Classic Home/About and parameter status use compatibility projections of the
 same aged monitor. This removes the E32 Classic loop's repeated copying into the

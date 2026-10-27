@@ -2,9 +2,9 @@ const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm');
 const code=fs.readFileSync(require('node:path').join(__dirname,'../data/html/boiler-data.js'),'utf8');
 function fixture(){
- const calls=[],timers=new Map(),events={};let timerId=0;
+ const calls=[],timers=new Map(),events={},errors=[];let timerId=0;
  const document={visibilityState:'visible',addEventListener:(name,fn)=>events[name]=fn};
- const context={window:{},document,AbortController,JSON,Set,Promise,Error,
+ const context={window:{reportError:error=>errors.push(error)},document,AbortController,JSON,Set,Promise,Error,
   setTimeout:(fn,delay)=>{timers.set(++timerId,{fn,delay});return timerId;},clearTimeout:id=>timers.delete(id),
   fetch:(path,options)=>new Promise((resolve,reject)=>calls.push({path,options,resolve,reject}))};
  vm.runInNewContext(code,context);
@@ -13,7 +13,7 @@ function fixture(){
   calls[index].resolve({ok:true,text:async()=>JSON.stringify(value)});
   await context.window.BoilerData.refresh();
  };
- return {api:context.window.BoilerData,calls,timers,data,reply,document,events};
+ return {api:context.window.BoilerData,calls,timers,data,reply,document,events,errors};
 }
 test('Two consumers and overlapping refreshes share one read and one poll timer',async()=>{
  const f=fixture(),one=[],two=[],a=new AbortController(),b=new AbortController();
@@ -50,4 +50,16 @@ test('Hidden tabs pause polling and returning only reads a fresh snapshot',async
  await f.api.refresh();assert.equal(f.calls.length,1);
  f.document.visibilityState='visible';f.events.visibilitychange();assert.equal(f.calls.length,2);
  assert.equal(f.calls[1].options.method,undefined);await f.reply(1);stop();
+});
+test('A failed panel does not poison the shared read or interrupt another consumer',async()=>{
+ const f=fixture(),seen=[];
+ const broken=f.api.subscribe(()=>{throw Error('render failure');});
+ const healthy=f.api.subscribe((data,error)=>seen.push({data,error}));
+ await f.reply(0);assert.equal(f.errors.length,1);assert.equal(seen.length,1);
+ assert.equal(seen[0].data.fields.temperature.value,40);assert.equal(seen[0].error,null);
+ const late=f.api.subscribe(()=>{throw Error('late render failure');});
+ assert.equal(f.errors.length,2);assert.equal(f.calls.length,1);
+ const job=f.api.refresh();f.calls[1].reject(Error('offline'));await job;
+ assert.equal(seen.length,2);assert.equal(seen[1].data,null);assert.match(seen[1].error.message,/offline/);
+ assert.equal(f.timers.size,1);broken();late();healthy();assert.equal(f.timers.size,0);
 });

@@ -641,7 +641,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md",
-          "sha256": "00687bd8bea7c2d1832b0cc6b344b9749aa5d5692467556ed3964a55c02ded7f"
+          "sha256": "4f11bdd26176f8fba9ae83f3de62fa7cfb6ffa443cb3ddc77f565cbcf1902b2f"
         },
         {
           "path": "docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-20261027.json",
@@ -1307,7 +1307,7 @@
         },
         {
           "path": "data/html/boiler-data.js",
-          "sha256": "07dc6ae9cad0e3674e13f5881df445cb5746877aa69f4fff2187cfc77cd1a0f0"
+          "sha256": "35ca227c3339ed3e43fefaed60cd9cd1139f2b154f9a2ce55cf8d4528ba5be08"
         },
         {
           "path": "data/html/ems-metadata.js",
@@ -1319,7 +1319,7 @@
         },
         {
           "path": "test/boiler-data.test.cjs",
-          "sha256": "18405d97aa6cbd6d5b4b9b89c3acf4af20374a81b2ae48658ab4bd5a2deea2e0"
+          "sha256": "27da26ed3f0b4ba0617ad747704da4db71c8907fcb91ee4fdca7bf3065b7dfdf"
         },
         {
           "path": "src/diagnostics/ResponseBuffer.h",

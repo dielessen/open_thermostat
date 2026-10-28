@@ -10,6 +10,7 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   const page=await browser.newPage({viewport});let status=fixture(),requests=[],errors=[],failStatus=false,holdStatus=false,pendingStatus;
   const failed=[];page.on('requestfailed',request=>failed.push(new URL(request.url()).pathname));
   page.on('pageerror',e=>errors.push(e.message));
+  const until=async condition=>{for(let i=0;i<200&&!condition();++i)await page.waitForTimeout(25);assert(condition(),'fixture condition did not arrive');};
   await page.addInitScript(()=>{
    window.__dashboardVisibility='visible';
    Object.defineProperty(document,'visibilityState',{configurable:true,get:()=>window.__dashboardVisibility});
@@ -169,7 +170,7 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   await page.waitForFunction(()=>statusPoll!==null);await awaitPendingStatus();
   const releaseHidden=pendingStatus,failedBefore=failed.length;
   await visibility('hidden');await page.waitForFunction(()=>statusPoll===null);
-  await page.waitForTimeout(50);assert(failed.slice(failedBefore).includes('/status'));
+  await until(()=>failed.slice(failedBefore).includes('/status'));
   const hiddenCount=requests.filter(r=>r.path==='/status').length;
   await page.clock.runFor(30000);assert.equal(requests.filter(r=>r.path==='/status').length,hiddenCount);
   holdStatus=false;status.control.state.zones[0].name='Resumed owner';

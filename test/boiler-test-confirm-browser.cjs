@@ -15,6 +15,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
  try{for(const width of [1280,390])for(const language of ['en','nl']){
   const page=await browser.newPage({viewport:{width,height:950}});let state=initial(),posts=[];const errors=[];
   page.on('pageerror',error=>errors.push(error.message));
+  const until=async condition=>{for(let i=0;i<200&&!condition();++i)await page.waitForTimeout(25);assert(condition(),'fixture condition did not arrive');};
   const reply=(route,data)=>route.fulfill({contentType:'application/json',body:JSON.stringify(data)});
   await page.route('http://confirmation.test/**',async route=>{
    const request=route.request(),name=new URL(request.url()).pathname;
@@ -72,6 +73,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
     document.querySelector(action==='start'?'[data-test-start]':action==='close_fault'?'[data-test-close-fault]':'[data-test-zero]').click();
     window.confirm=original;
    },{action,interruption});
+   if(interruption==='confirm')await until(()=>posts.length>before);
    await page.waitForTimeout(200);
    const submitted=posts.slice(before);
    assert.deepEqual(submitted,interruption==='confirm'?['/boiler/test/'+action]:[],`${language}/${width}/${action}/${interruption}: revalidate after confirmation`);

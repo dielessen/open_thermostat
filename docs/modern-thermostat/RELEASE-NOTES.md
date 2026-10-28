@@ -1,8 +1,11 @@
-# E32 V2 beta13 — reliable boiler trial, browser-checked updates and more EMS devices
+# E32 V2 beta14 — reliable boiler trial, browser-checked updates and more EMS devices
 <!-- user-release-notes:v2:en -->
 
 Follow-up to the beta12 attended trial, which the owner accepted: about 6½
 minutes of 50 °C heat, ended early by a hot-water tap. Use it with HA0.4.0b7.
+The beta13 tag was not published: its CI stopped twice on browser tests that
+waited a fixed 50–200 ms for a request. Beta14 is the same firmware change with
+those tests waiting for the request itself.
 
 ## New
 

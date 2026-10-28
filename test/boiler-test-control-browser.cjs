@@ -21,6 +21,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
    reason:'pressure_unavailable',physical_validation:false,limits:{minimum_flow_c:40,maximum_flow_c:50,maximum_duration_s:600,
     minimum_pressure_decibar:10,maximum_pressure_decibar:25,minimum_measured_flow_centi:500,maximum_measured_flow_centi:9000}};
   const response=(route,body,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)});
+  const until=async condition=>{for(let i=0;i<200&&!condition();++i)await page.waitForTimeout(25);assert(condition(),'fixture condition did not arrive');};
   await page.route('http://boiler.test/**',async route=>{
    const req=route.request(),pathname=new URL(req.url()).pathname;
    requests.push({path:pathname,method:req.method(),body:req.postData()});
@@ -155,7 +156,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   assert.equal(requests.filter(r=>r.path.endsWith('/start')).length,0);
   page.once('dialog',dialog=>dialog.accept());await page.locator('[data-test-start]').click();
   if(width===390){
-   await page.waitForTimeout(150);assert(delayedStart);
+   await until(()=>delayedStart);
    assert.equal(await page.locator('[data-test-stop]').isDisabled(),false); // stop works while start response is pending
   }else await page.locator('[data-test-action]').filter({hasText:'Startverzoek aangenomen'}).waitFor();
   await page.locator('[data-test-stop]').click();
@@ -297,7 +298,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
    if(mode==='prepare_zero')page.once('dialog',dialog=>dialog.accept());
    await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
    await page.locator(mode==='prepare_zero'?'[data-test-zero]':'[data-test-prepare]').click();
-   await page.waitForTimeout(100);assert(delayedPreparation);
+   await until(()=>delayedPreparation);
    if(['ready','pagehide'].includes(mode)) {
     await response(delayedPreparation.route,delayedPreparation.body,202);delayPreparation=false;
     await page.waitForFunction(()=>!document.querySelector('[data-test-start]').disabled);

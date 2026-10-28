@@ -9,5 +9,13 @@
   "scope": "Beta13: UART coalesced-BREAK recovery, DHW pause and CH-based stop proof, CH-based trial result, thermostat identity transmit fix, release-check backoff, 8 KiB loop stack, browser-side GitHub release verification on the update page, table-driven EMS+ boiler and thermostat entities. Install from beta12 by the local authenticated upload (sector-by-sector erase since beta12).",
   "boiler_trial_scope": "Any further attended trial needs a fresh attendance, gauge-pressure and independent-shutdown confirmation.",
   "publication_approval_reply": "approve",
-  "publication_approval_at_utc": "2026-10-27T23:53:19Z"
+  "publication_approval_at_utc": "2026-10-27T23:53:19Z",
+  "beta14_requests": [
+    "github faalt weer hoor . beter fix je beta 13 even en pak dat zelf even op als er handelingen gedaan moeten worden",
+    "als je klaar ven met beta 13 , maak beta 14"
+  ],
+  "beta14_publication_question": "Beta.13 kan niet groen worden zonder nieuwe code (de testfix). Hoe wil je dat ik hem publiceer?",
+  "beta14_publication_approval_reply": "Als beta.14 (Aanbevolen)",
+  "beta14_publication_approval_at_utc": "2026-10-28T09:05:00Z",
+  "beta14_scope": "Same bundle as the unpublished beta13 tag e166d29 plus bounded browser-test waits and a CI annotation naming a failing browser test; install automatically from beta12 by the local authenticated upload. The larger owner plan moves to beta15."
 }

@@ -49,40 +49,42 @@ jobs:
       - name: Exercise shipped setup and room pages (simulated HTTP)
         timeout-minutes: 15
         run: |
-          node test/auth-body-browser.cjs
-          node test/onboarding/browser.cjs
-          node test/onboarding/body-browser.cjs
-          node test/onboarding/network-browser.cjs
-          node test/rooms/browser.cjs
-          node test/updates/browser.cjs
-          node test/dashboard-browser.cjs
-          node test/dashboard-room-context-browser.cjs
-          node test/boiler-display-browser.cjs
-          node test/ems-devices-browser.cjs
-          node test/boiler-settings-browser.cjs
-          node test/bluetooth-browser.cjs
-          node test/bluetooth-lifecycle-browser.cjs
-          node test/navigation-browser.cjs
-          node test/page-loading-browser.cjs
-          node test/system-log-browser.cjs
-          node test/system-log-lifecycle-browser.cjs
-          node test/debug-settings-browser.cjs
-          node test/ui-language-browser.cjs
-          node test/boiler-test-browser.cjs
-          node test/boiler-test-control-browser.cjs
-          node test/boiler-trial-guidance-browser.cjs
-          node test/boiler-configuration-read-browser.cjs
-          node test/boiler-test-confirm-browser.cjs
-          node test/ha-device-metadata-browser.cjs
-          node test/ha-device-power-browser.cjs
-          node test/ha-tv02-mode-browser.cjs
-          node test/ha-room-program-browser.cjs
-          node test/ha-room-contacts-browser.cjs
-          node test/ha-manual-target-browser.cjs
-          node test/ha-room-comfort-browser.cjs
-          node test/ha-room-status-ownership-browser.cjs
-          node test/ha-room-vacation-browser.cjs
-          node test/ha-planner-touch-browser.cjs
+          # A failing page test is named in a public annotation; the job log needs a login.
+          browser(){ node "$1" || { echo "::error title=Browser regression failed::$1"; exit 1; }; }
+          browser test/auth-body-browser.cjs
+          browser test/onboarding/browser.cjs
+          browser test/onboarding/body-browser.cjs
+          browser test/onboarding/network-browser.cjs
+          browser test/rooms/browser.cjs
+          browser test/updates/browser.cjs
+          browser test/dashboard-browser.cjs
+          browser test/dashboard-room-context-browser.cjs
+          browser test/boiler-display-browser.cjs
+          browser test/ems-devices-browser.cjs
+          browser test/boiler-settings-browser.cjs
+          browser test/bluetooth-browser.cjs
+          browser test/bluetooth-lifecycle-browser.cjs
+          browser test/navigation-browser.cjs
+          browser test/page-loading-browser.cjs
+          browser test/system-log-browser.cjs
+          browser test/system-log-lifecycle-browser.cjs
+          browser test/debug-settings-browser.cjs
+          browser test/ui-language-browser.cjs
+          browser test/boiler-test-browser.cjs
+          browser test/boiler-test-control-browser.cjs
+          browser test/boiler-trial-guidance-browser.cjs
+          browser test/boiler-configuration-read-browser.cjs
+          browser test/boiler-test-confirm-browser.cjs
+          browser test/ha-device-metadata-browser.cjs
+          browser test/ha-device-power-browser.cjs
+          browser test/ha-tv02-mode-browser.cjs
+          browser test/ha-room-program-browser.cjs
+          browser test/ha-room-contacts-browser.cjs
+          browser test/ha-manual-target-browser.cjs
+          browser test/ha-room-comfort-browser.cjs
+          browser test/ha-room-status-ownership-browser.cjs
+          browser test/ha-room-vacation-browser.cjs
+          browser test/ha-planner-touch-browser.cjs
           node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs test/ui-language.test.cjs test/boiler-data.test.cjs test/boiler-trial-result.test.cjs
 
   source-reproduction:

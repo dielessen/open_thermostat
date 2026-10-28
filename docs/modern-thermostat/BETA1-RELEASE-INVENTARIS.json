@@ -51,7 +51,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "8ccb85dbb437944d217e8c98c9c2ccbc9f74b1f6554f6c856b66063b308d0071"
+          "sha256": "4ada6d92547ccaf5ea7fbea609c306b5156d4a9de1925f1a25cb8c29eff24641"
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES-PROCES.nl.md",
@@ -59,7 +59,7 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
-          "sha256": "a41f7b10a0d64913e59c4e41e67df226d07d06906694531aeee1df2ff3f5facd"
+          "sha256": "df72bd97a1d28b5b58c2a5290a0044234bb768972b576442cf3e70fb551dc3db"
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "38b8797d86572ef8a56a56dc0c1d851a084c728b06ba7dd3aa2d3dfa3af11457"
+          "sha256": "226e1e346bf666bba23660a19ad5020aab13acf3a2cec00b0c987eefd85a8074"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -191,7 +191,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-GATE.json",
-          "sha256": "44d9c77ca303bc367560f8e68f761de29d688712779f2b70a167d1e80169db5b"
+          "sha256": "704f21fe71fe58bcb67097191b15c10b86fd354c2412c9e4709019f879c5769a"
         },
         {
           "path": "docs/modern-thermostat/BETA3-PUBLICATION-EXCEPTION-PROPOSAL.json",
@@ -219,7 +219,7 @@
         },
         {
           "path": "release.json",
-          "sha256": "55457796910cdd3efbf7477e77e8eef1c92f7499e6f95e360e67cf27a6416203"
+          "sha256": "55a145f1c1ca45d3f1bce609d3e21acb6d1d05464d72f90d3ec97b8a7d9f46e6"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -533,7 +533,7 @@
         },
         {
           "path": "docs/modern-thermostat/BETA13-OWNER-INSTRUCTION-20261028.json",
-          "sha256": "660fef8c3ef8a6d214546948642404c7df31ad40b79849d7a9ff59c4c1e8adbb"
+          "sha256": "7346e125621b63467b66cb191e642dbf975408e5497bbba721008b9d1a5311c6"
         },
         {
           "path": "docs/modern-thermostat/BETA13-KANDIDAAT.json",
@@ -542,6 +542,14 @@
         {
           "path": "docs/modern-thermostat/BETA13-PUBLICATION-EXCEPTION-20261028.json",
           "sha256": "8f9347fede0e1c8f6e3e098c94f3ba1a98bb043a183692b5c66ff402414e7af9"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA14-KANDIDAAT.json",
+          "sha256": "ec204f5b91f9683fe727b433572af82e447b72fef7a02147b3542c75a3dc7423"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA14-PUBLICATION-EXCEPTION-20261028.json",
+          "sha256": "20177023b4d934e39a0acf43a9694cfb6e177696f22ed676bd56f9d575be371e"
         }
       ],
       "remaining_acceptance": "Native GitHub-update alpha31→36 met verse back-up en één installatiecommando geslaagd:36 installatiecontroles,45 afzonderlijke nacontroles, exacte bron/ELF/web/31UI en behoud van86 HA-bestanden/13 projecthashes/zes loggingvelden. Iedere opvolgende reguliere release vereist nieuw update-/nacontrolebewijs volgens E32-UPDATE-PROCES en CI-gate. Oude multipart-watchdog en nativealpha26-afwijking blijven oorzakelijk onbekend; geen blinde fallback/retry. Fysieke powerloss/rollback/herstelkwalificatie en actieve ketel-/kraanpoorten blijven apart open. Automatische12ucontrole/dashboardmelding voorbereid naalpha36, niet geïnstalleerd."
@@ -561,7 +569,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "8ccb85dbb437944d217e8c98c9c2ccbc9f74b1f6554f6c856b66063b308d0071"
+          "sha256": "4ada6d92547ccaf5ea7fbea609c306b5156d4a9de1925f1a25cb8c29eff24641"
         }
       ],
       "remaining_acceptance": "Nieuwe publicatie moet bestaande tags/assets behouden."
@@ -685,7 +693,7 @@
         },
         {
           "path": "test/dashboard-browser.cjs",
-          "sha256": "a61bd8f9b330adc10ae62714f9916b1764b2946a48b6a97a1a3e53a27ce9ddb7"
+          "sha256": "dea9a10ed22bc4a016ad4e338bf962461142575564ba790d40a718699fceea99"
         },
         {
           "path": "test/device_restart.test.cjs",
@@ -1083,7 +1091,7 @@
         },
         {
           "path": ".github/workflows/build.yml",
-          "sha256": "8ccb85dbb437944d217e8c98c9c2ccbc9f74b1f6554f6c856b66063b308d0071"
+          "sha256": "4ada6d92547ccaf5ea7fbea609c306b5156d4a9de1925f1a25cb8c29eff24641"
         },
         {
           "path": "platformio.ini",
@@ -1327,7 +1335,7 @@
         },
         {
           "path": "test/bluetooth-browser.cjs",
-          "sha256": "52af7a85ac2e4a1ba1a4673f2fafbb8061a7b192b09f92bc525c8300315b7000"
+          "sha256": "529fca8fb17a1956a29dd0967cdbfaaeb940bee4d9afc4903dd9278ca919e94e"
         },
         {
           "path": "test/test_native/test_ble_device_settings.cpp",
@@ -2681,7 +2689,7 @@
         },
         {
           "path": "test/boiler-test-control-browser.cjs",
-          "sha256": "19db07f3fff99553ddb9da3778141879ec17406200d135727b8a46d90af8f641"
+          "sha256": "b9ae1a48e193058c2a645a5b1fe16105d6933d064b1d945b59ae125f7e766fe6"
         },
         {
           "path": "src/EMS/BoilerTestPollDriver.h",
@@ -2785,7 +2793,7 @@
         },
         {
           "path": "test/boiler-test-confirm-browser.cjs",
-          "sha256": "b74caaeb58429aa3f81cc8328962b75ce7758c9263e6e4f00ec733522f55e13c"
+          "sha256": "338b3524046bf30d851f0a4218d346e214aa6140a0a083543422093ac67d7e20"
         },
         {
           "path": "test/boiler-configuration-read-browser.cjs",

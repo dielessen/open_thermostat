@@ -9,6 +9,7 @@ function snapshot(profile='shelly_ht_display'){const result={schema:1,pending_re
  try{for(const lang of ['en','nl'])for(const width of [1280,320])for(const profile of ['shelly_ht_display','xiaomi_monitor_3','shelly_blu_trv']){
   const page=await browser.newPage({viewport:{width,height:900}}),errors=[],requests=[];let data=snapshot(profile),fail=false,conflict=false,storageFull=false,readbackFailure=false,readbackMismatch=false,postTransportFailure=false;
   page.on('pageerror',e=>errors.push(e.message));await page.context().addCookies([{name:'ot_ui_lang',value:lang,url:'http://opth.test'}]);
+  const until=async condition=>{for(let i=0;i<200&&!condition();++i)await page.waitForTimeout(25);assert(condition(),'fixture condition did not arrive');};
   await page.addInitScript(()=>{const original=window.setTimeout;window.setTimeout=(fn,ms,...args)=>original(fn,ms===5000?80:ms,...args);});
   await page.route('http://opth.test/**',async route=>{
    const req=route.request(),p=new URL(req.url()).pathname;requests.push({path:p,method:req.method(),body:req.postData()});
@@ -114,7 +115,7 @@ function snapshot(profile='shelly_ht_display'){const result={schema:1,pending_re
   assert.equal(await name.inputValue(),'Draft – Zoë');fail=false;
   await box.locator('[data-ble-field=key_action]').selectOption('set');const key=box.locator('input[type=password]');await key.fill(publicFixtureKey);
   // Polling never changes the key action, typed key, name, focus or panel state.
-  await key.focus();const before=requests.filter(r=>r.path==='/bluetooth/status').length;await page.waitForTimeout(200);assert(requests.filter(r=>r.path==='/bluetooth/status').length>before);
+  await key.focus();const before=requests.filter(r=>r.path==='/bluetooth/status').length;await until(()=>requests.filter(r=>r.path==='/bluetooth/status').length>before);
   assert.equal(await key.inputValue(),publicFixtureKey);assert.equal(await key.evaluate(e=>e===document.activeElement),true);
   storageFull=true;await page.locator('#ble-save').click();await status.filter({hasText:lang==='nl'?'Onvoldoende apparaatopslag':'Not enough device storage'}).waitFor();assert.equal(data.pending_restart,false);assert.equal(await name.inputValue(),'Draft – Zoë');await page.waitForFunction(()=>document.querySelector('#ble-rows input[type=password]')?.value==='');storageFull=false;await key.fill(publicFixtureKey);
   conflict=true;await page.locator('#ble-save').click();await status.filter({hasText:lang==='nl'?'elders gewijzigd':'changed elsewhere'}).waitFor();assert.equal(await name.inputValue(),'Draft – Zoë');assert.equal(await key.inputValue(),'');

@@ -1,4 +1,33 @@
-# Beta.13 — betrouwbare ketelproef, browsercontrole bij updates en meer EMS-apparaten
+# Beta.15 + HA0.4.0b8 — plan (eigenaar, 28 oktober)
+
+Grotere release; E32 en HA worden samen geïnstalleerd (HA b7 weigert extra
+veldgroepen). Volgorde: 7 en CI-fix eerst, dan 1 → 6.
+
+| # | Onderdeel | Inhoud | Klaar als |
+| --- | --- | --- | --- |
+| 1 | Eén route, één set entiteiten | Eén entiteitentabel genereert C++ en HA (`--check` in CI); thermostaat-, 0x1A- en EMS+-waarden via de bestaande `boiler_fields`-route met bronadres; HA maakt alleen geziene entiteiten | Geen tweede lijst of route; bestaande entity-ID's en historie behouden |
+| 2 | Tapwater | Episodestatistiek (tappen vs warmhouden), 0x33-instellingen lezen, temperatuur/comfort-eco/circulatie schrijven met bevestiging en readback | Legionellabeveiliging onaangetast; elke write teruggelezen |
+| 3 | Keteldata en energie | Branderstarts, branduren, CV-/tapwateruren als HA-tellers; korte branderpendels per uur; onderhoudsmelding/laatste storing als tekst | Waarden alleen uit gemelde telegrammen |
+| 4 | Stabiliteit en updates | Wifi-uitval analyseren en zelf herstellen, herstartoorzaak in HA; native HTTPS-update met TLS-buffers in PSRAM opnieuw proberen; updatepagina meldt zelf nieuwe versie | Monitorbewijs vóór/na; browserknop blijft als terugval |
+| 5 | EMS universeel op hardware | Thermostaatrijen tegen EasyControl (0x17) controleren en als geverifieerd markeren; onbekende apparaten één keer identificeren | Alleen echt waargenomen rijen geverifieerd |
+| 6 | Proefbediening | Uitleg waarom een knop geblokkeerd is; werkelijke temperatuur naast proefgrens | EN/NL, smal/breed |
+| 7 | Codereview, performance, opruimen, structuur | Hele E32- en HA-bron nalopen op fouten (concurrency/ISR, buffergrenzen, foutpaden, heap/stack); hot paths meten (EMS-ontvangst, REST/JSON, MQTT-publicatie) en onnodige kopieën/allocaties weghalen; ongebruikte code en verouderde documenten verwijderen; grote bestanden (`REST.h` 1904 regels, `ShadowController.h`, `config.cpp`) opdelen per verantwoordelijkheid | Gedrag ongewijzigd (alle tests groen), gemeten winst in heap/CPU/latentie, kleinere firmware |
+
+Opruimgrens: voorbereide roadmapcode (o.a. `ThermalModelStore`, `CoastModelStore`,
+`CurveModelStore`, `MixerPolicy`, `ThermalReplay`, alleen door tests gebruikt)
+blijft volgens de releaseafspraken behouden tenzij de eigenaar die functie laat
+vallen. CI-browserstap: vijfmaal vastgelopen op ~650 s/720 s; oorzaak vinden en
+de test robuust maken, niet herhalen.
+
+# Beta.14 — betrouwbare ketelproef, browsercontrole bij updates en meer EMS-apparaten
+
+**Beta.13 niet gepubliceerd:** de tag `v0.1.0-e32v2-beta.13` (`e166d29`) stopte
+tweemaal in de CI-browserstap. Vijf mislukte runs sinds 27 oktober stopten op
+dezelfde plek: tests die na een klik vast 50–200 ms wachtten en dan eisten dat
+het verzoek al binnen was. Zij wachten nu begrensd op het verzoek zelf; de
+CI-stap noemt een falende test voortaan in een openbare annotatie. Op keuze van
+de eigenaar ("Als beta.14") is beta.14 dezelfde inhoud met die testfix; de
+beta.13-tag blijft ongewijzigd. Het grotere plan hierboven schuift naar beta.15.
 
 **Actueel (28 oktober):** de bijgewoonde proef op beta.12 is door de eigenaar
 geslaagd verklaard: ~398 s 50 °C, 7 aanvragen per 60 s, CV actief en modulatie

@@ -3,6 +3,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <ostream>
+#include "control/JsonString.h"
 
 namespace heating::control {
 // Discovery hints only. A full list never prevents processing a configured sensor.
@@ -31,6 +33,31 @@ public:
     void clear() { addresses_={}; hints_={}; size_=0; overflowed_=false; }
     std::size_t size() const { return size_; }
     bool overflowed() const { return overflowed_; }
+    // A status response shows at most this many hints, strongest signal first:
+    // the 5 s Bluetooth poll stays a few KB and never builds a 128-entry tree.
+    static constexpr std::size_t shown = 32;
+    void writeJson(std::ostream& out) const {
+        std::array<uint8_t,capacity> order{};
+        for (std::size_t i = 0; i < size_; ++i) order[i] = static_cast<uint8_t>(i);
+        const auto count = std::min(shown,size_);
+        std::partial_sort(order.begin(),order.begin()+count,order.begin()+size_,
+            [this](uint8_t a, uint8_t b) { return hints_[a].rssi > hints_[b].rssi || (hints_[a].rssi == hints_[b].rssi && a < b); });
+        const auto hex = [&](std::size_t i) {
+            constexpr char digits[] = "0123456789abcdef";
+            out.put('"'); for (auto byte : addresses_[i]) { out.put(digits[byte >> 4]); out.put(digits[byte & 15]); } out.put('"');
+        };
+        out << "\"discovery_full\":" << (overflowed_ || size_ > shown ? "true" : "false")
+            << ",\"discovery_capacity\":" << shown << ",\"nearby\":[";
+        for (std::size_t i = 0; i < count; ++i) { if (i) out.put(','); hex(order[i]); }
+        out << "],\"nearby_devices\":[";
+        for (std::size_t i = 0; i < count; ++i) {
+            const auto& hint = hints_[order[i]];
+            out << (i ? ",{\"address\":" : "{\"address\":"); hex(order[i]);
+            out << ",\"name\":"; writeJsonString(out, hint.name.data());
+            out << ",\"rssi\":" << hint.rssi << '}';
+        }
+        out.put(']');
+    }
     std::array<Address,capacity>::const_iterator begin() const { return addresses_.begin(); }
     std::array<Address,capacity>::const_iterator end() const { return addresses_.begin()+size_; }
     std::array<Address,capacity>::iterator begin() { return addresses_.begin(); }

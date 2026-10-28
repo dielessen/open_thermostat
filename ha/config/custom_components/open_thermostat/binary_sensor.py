@@ -45,6 +45,9 @@ async def async_setup_entry(
     """Subscribe to room state and availability messages."""
     from .product import is_product
     if is_product(entry):
+        if "v1_runtime" in hass.data.get(DOMAIN, {}).get(entry.entry_id, {}):
+            from .heating_link import async_setup_demand
+            await async_setup_demand(hass, entry, async_add_entities)  # E32 room heat demand
         from .product_telemetry import async_setup_binary_sensors
         await async_setup_binary_sensors(hass, entry, async_add_entities)
         return

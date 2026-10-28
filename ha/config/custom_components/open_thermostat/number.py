@@ -26,6 +26,10 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Create one duration control for each discovered room."""
+    if "v1_runtime" in hass.data.get(DOMAIN, {}).get(entry.entry_id, {}):
+        from .room_plan import async_setup_numbers
+        await async_setup_numbers(hass, entry, async_add_entities)  # E32 room fallback setpoints
+        return
     prefix = entry.data[CONF_TOPIC_PREFIX]
     durations = hass.data[DOMAIN][entry.entry_id]["duration_minutes"]
     hub = dr.async_get(hass).async_get_device_by_identifier((DOMAIN, prefix), entry.entry_id)

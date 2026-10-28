@@ -1,3 +1,29 @@
+# Beta.17 + HA0.4.0b9 — vervangt de ongepubliceerde beta.16 (eigenaar, 28 oktober)
+
+**Stand 28 oktober, avond:** de tags van beta.16/HA0.4.0b8 (3d928d2) faalden in
+CI en blijven ongepubliceerd: (1) de HA-interoptest verwachtte 69 ketelveld-
+entiteiten, de echte firmware onderhandelt boiler.fields.v2 (99); (2) de
+bronafsluiting van het pakket vond `stdatomic.c.obj` (software-64-bit-atomics
+van de supervisortijden). Beta.17 bevat alles van beta.16 plus:
+
+- Bluetooth-pagina liep de E32 vol (eigenaar reproduceerde: pagina open → E32
+  onbereikbaar): antwoord nu begrensd in PSRAM, max. 32 apparaten, lijst alleen
+  tijdens Zoeken; cJSON-allocaties in PSRAM; RTC-watchdog via de beoordeelde HAL
+  (120 s, zwarte doos blijft); fijnere loopfases.
+- pvvx-profiel overleefde geen herstart (opgeslagen lezer accepteerde 1..3).
+- Ruimteplan met revisienummer (HA en E32-pagina, 409 bij verouderd plan),
+  weekprogramma per ruimte (terugval zonder HA, editor op de E32-pagina),
+  dagelijkse schaduwvergelijking E32 ↔ tado, E32-Bluetoothsensoren en ruimtes
+  in HA met bediening (actief/inactief/tot, terugvalsetpoint).
+- Voorbereid, niet aangesloten: `ActiveHeatGuard` (actieve modus, fase 3).
+  Open vragen voor de eigenaar: is 10 min zonder 0x1A van de tado genoeg, of
+  ook een expliciete bevestiging "tado losgekoppeld"? Na meetverlies automatisch
+  hervatten of handmatig opnieuw starten? Ketelterugmelding: waarschuwing na
+  15 min zonder brander of 3 °C stijging? Vorst: aan onder 5 °C, uit bij 6 °C?
+  Mag de beoordeelde zendroute tot 60 °C (de proef was 50 °C)?
+
+Volgende stap: schaduwperiode (zie hieronder), daarna actieve modus bouwen.
+
 # Beta.16 + HA0.4.0b8 — plan (eigenaar, 28 oktober)
 
 **Stand 28 oktober, middag:** beta.15 is gepubliceerd en via de lokale upload

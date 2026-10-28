@@ -1,40 +1,47 @@
-# HA 0.4.0b8 — heat request, one EMS table and the room editor fix
+# HA 0.4.0b9 — E32 rooms and Bluetooth sensors, firmware updates and the heat request
 <!-- user-release-notes:v2:en -->
 
-Companion release for E32 beta16. Install both together.
+Companion release for E32 beta17. Install both together. HA0.4.0b8 was not
+published; its changes are part of this release.
 
 ## New
 
+- **Rooms from the E32 in Home Assistant**: per room the measured temperature,
+  the active setpoint, the control status with its leading source, and the
+  heat demand.
+- **Operate rooms from Home Assistant**: room state (active or inactive),
+  "inactive until" and the fallback setpoint. HA writes the E32 room plan with
+  its revision; when the E32 page changed it in between, HA reads it again and
+  applies just your change.
+- **Bluetooth sensors of the E32** appear as temperature, humidity and battery
+  sensors. They stay paired on the E32, so heating keeps working without HA.
 - **E32 firmware updates in Home Assistant**, like ESPHome: an update entity
-  checks GitHub every six hours. Install downloads firmware.bin, verifies its
-  SHA-256, size and version marker, and uploads it to the E32 over the local
-  network; it then confirms that the E32 runs the new version. It uses the
-  address and password of the controller connection step.
-- **Heat request** sensor: the flow temperature the E32 calculates from its
-  rooms (0 when it does not ask for heat), with the reason, mode and rooms as
-  attributes. In beta16 the E32 only reports it (shadow mode).
-- The E32 tells HA which entities its rooms read (for example the tado). HA
-  forwards just those temperatures and targets to the E32, on every change and
-  every five minutes, over the same native MQTT connection.
+  checks GitHub every six hours, verifies the download and uploads it to the
+  E32 over the local network, then confirms the new version.
+- **Heat request** sensor: the flow temperature the E32 calculates (0 when it
+  does not ask for heat). In beta17 the E32 only reports it (shadow mode).
+- HA forwards the entities the E32 rooms read (for example the tado) to the
+  E32, on every change and every five minutes.
 - One table for all EMS entities: the thermostat, maintenance and EMS+ values
-  of the firmware's entity table arrive over the existing boiler-fields route
-  and appear as entities. Values this installation never reports are disabled
-  automatically; history is kept.
+  arrive over the boiler-fields route and appear as entities.
 
 ## Fixed
 
 - The room editor keeps its open advanced and comfort sections when it redraws.
+- Unloading a product entry now also unloads its update entity.
 
 ## Updating
 
 Install the matching integration package, keep existing entries, storage and
-resources, validate the configuration and restart HA. Use it with E32 beta16;
-with an older E32 the new boiler-field groups simply stay absent.
+resources, validate the configuration and restart HA. Use it with E32 beta17.
+Room operation needs the controller address and password of the connection
+step.
 
 ## Limitations
 
-The heat request is shadow-only. Rooms for the heating control are set up on
-the E32 page "Rooms and heating", not in the HA room editor.
+The heat request is shadow-only. New rooms and their sources are added on the
+E32 page "Rooms and heating"; the HA room editor for TRV rooms is not used by
+the E32 heating control yet.
 
 # HA 0.4.0b7 — requested boiler temperature over native MQTT, tidier entities
 <!-- user-release-notes:v2:en -->

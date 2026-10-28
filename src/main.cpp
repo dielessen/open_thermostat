@@ -1,3 +1,5 @@
+#include <esp_heap_caps.h>
+#include <cJSON.h>
 #include "Logging.h"
 #include "Board.h"
 #include "Network.h"
@@ -22,6 +24,8 @@
 #include "diagnostics/LoopIntervals.h"
 #include "diagnostics/BlackBox.h"
 #include <esp_attr.h>
+#include <hal/wdt_hal.h>
+#include <soc/rtc.h>
 #endif
 
 #include "config.h"
@@ -60,21 +64,38 @@ namespace {
 // Supervisor inputs, written by the loop and read by the supervisor task.
 RTC_NOINIT_ATTR heating::diagnostics::BlackBoxRecord blackBoxRecord;
 RTC_NOINIT_ATTR heating::diagnostics::LoopPhaseRecord loopPhaseRecord;
-std::atomic<uint64_t> loopAtMs{0}, wifiDownSinceMs{0}, brokerDownSinceMs{0};
+// Seconds since boot + 1 (0 = not set): 32-bit atomics, so the ESP32 needs no
+// software 64-bit atomics (a vendor object outside the reviewed link inputs).
+std::atomic<uint32_t> loopAtS{0}, wifiDownSinceS{0}, brokerDownSinceS{0};
 std::atomic<bool> wifiExpected{false}, brokerExpected{false};
 
 uint64_t monotonicMs() { return static_cast<uint64_t>(esp_timer_get_time() / 1000); }
+uint32_t monotonicS() { return static_cast<uint32_t>(esp_timer_get_time() / 1000000) + 1; }
+uint64_t secondsMs(uint32_t s) { return static_cast<uint64_t>(s) * 1000; }
 
 // Restarts a device that stopped serving (2026-10-28: "WiFi connected", no
 // ping/HTTP, no automatic recovery). Never during a firmware update.
 void supervisorTask(void*) {
 	using heating::diagnostics::SupervisorPolicy;
+	// Last resort if this task itself stops running: the RTC watchdog resets the
+	// system after 120 s but keeps RTC memory, so the black box survives (reset 7).
+	// OTA erases sector by sector while writing; this task keeps running then.
+	// The HAL layer (not rtc_wdt) keeps the link within the reviewed SDK objects.
+	static wdt_hal_context_t rtcWdt;
+	wdt_hal_init(&rtcWdt, WDT_RWDT, 0, false);
+	wdt_hal_write_protect_disable(&rtcWdt);
+	wdt_hal_config_stage(&rtcWdt, WDT_STAGE0, rtc_clk_slow_freq_get_hz() * 120, WDT_STAGE_ACTION_RESET_SYSTEM);
+	wdt_hal_enable(&rtcWdt);
+	wdt_hal_write_protect_enable(&rtcWdt);
 	for (;;) {
 		vTaskDelay(pdMS_TO_TICKS(5000));
+		wdt_hal_write_protect_disable(&rtcWdt);
+		wdt_hal_feed(&rtcWdt);
+		wdt_hal_write_protect_enable(&rtcWdt);
 		SupervisorPolicy::Inputs in;
-		in.now = monotonicMs(); in.loopAt = loopAtMs.load(); in.updateRunning = heating::update::busy();
-		in.wifiExpected = wifiExpected.load(); in.wifiDownSince = wifiDownSinceMs.load();
-		in.brokerExpected = brokerExpected.load(); in.brokerDownSince = brokerDownSinceMs.load();
+		in.now = secondsMs(monotonicS()); in.loopAt = secondsMs(loopAtS.load()); in.updateRunning = heating::update::busy();
+		in.wifiExpected = wifiExpected.load(); in.wifiDownSince = secondsMs(wifiDownSinceS.load());
+		in.brokerExpected = brokerExpected.load(); in.brokerDownSince = secondsMs(brokerDownSinceS.load());
 		const auto reason = SupervisorPolicy::decide(in);
 		if (reason == SupervisorPolicy::Reason::none) continue;
 		heating::diagnostics::blackBox.restartReason(reason);
@@ -88,12 +109,12 @@ void supervisorTask(void*) {
 void observeHealth(uint64_t now) {
 	const bool wifi = !heating::wifiAPMode && !heating::setupAttemptUntil && WiFi.getMode() != WIFI_OFF;
 	wifiExpected.store(wifi);
-	if (!wifi || WiFi.isConnected()) wifiDownSinceMs.store(0);
-	else if (!wifiDownSinceMs.load()) wifiDownSinceMs.store(now);
+	if (!wifi || WiFi.isConnected()) wifiDownSinceS.store(0);
+	else if (!wifiDownSinceS.load()) wifiDownSinceS.store(monotonicS());
 	const bool broker = heating::controller && heating::controller->brokerConnected();
 	if (broker) brokerExpected.store(true);
-	if (broker || !brokerExpected.load()) brokerDownSinceMs.store(0);
-	else if (!brokerDownSinceMs.load()) brokerDownSinceMs.store(now);
+	if (broker || !brokerExpected.load()) brokerDownSinceS.store(0);
+	else if (!brokerDownSinceS.load()) brokerDownSinceS.store(monotonicS());
 	heating::diagnostics::blackBox.note(static_cast<uint32_t>(now / 1000), ESP.getMinFreeHeap(), uxTaskGetStackHighWaterMark(nullptr),
 		heating::diagnostics::loopIntervals.snapshot().windowMaximumMs, static_cast<int8_t>(WiFi.RSSI()), WiFi.isConnected(), broker);
 }
@@ -265,6 +286,10 @@ void setup() {
 	delay(2500); // wait for monitor
 	Serial.begin(115200);
 #ifdef OPENTHERMOSTAT_E32V2
+	// JSON trees (status pages, settings, MQTT) live in PSRAM: thousands of small
+	// nodes would otherwise come from the internal heap that Wi-Fi needs.
+	static cJSON_Hooks psramJson{[](size_t size) { return heap_caps_malloc_prefer(size, 2, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT, MALLOC_CAP_DEFAULT); }, free};
+	cJSON_InitHooks(&psramJson);
 	WiFi.persistent(false);
 	if(heating::deviceAccess.begin()) {
 		// Physical USB console only. Never use network logger sinks for secrets.
@@ -374,8 +399,9 @@ void setup() {
 	WifiSetUp(wifiConfig, networkConfig, apConfig, startAP);
 #ifdef OPENTHERMOSTAT_E32V2
 	if(networkPlan.ethernet) heating::startBoardEthernet();
-	loopAtMs.store(monotonicMs());
-	xTaskCreate(supervisorTask, "supervisor", 3072, nullptr, 1, nullptr);
+	loopAtS.store(monotonicS());
+	// Above loop (1): a busy loop or HTTP handler cannot starve the supervisor.
+	xTaskCreate(supervisorTask, "supervisor", 3072, nullptr, 5, nullptr);
 	DBGLOGFI(heating::logger, appLogFeature(), "E32V2 EXPERIMENTAL: EMS TX/forwarder/GPIO outputs blocked. PSRAM: %u bytes\n", ESP.getPsramSize());
 #endif
 	DBGLOGFI(heating::logger, appLogFeature(), "Free memory %d/%d (minimum was: %d) MaxAlloc: %d WIFI\n", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap());
@@ -403,18 +429,25 @@ void loop() {
 	auto now = millis();
 #ifdef OPENTHERMOSTAT_E32V2
     heating::diagnostics::loopIntervals.observe(now);
-    loopAtMs.store(monotonicMs());
+    loopAtS.store(monotonicS());
 #endif
 	if (ib::millisDurationPassed(now, lastMillis, 10000)) {
 		lastMillis = now;
 
+#ifdef OPENTHERMOSTAT_E32V2
+		heating::diagnostics::blackBox.loopPhase(heating::diagnostics::LoopPhase::operate);
+#endif
 		heating::controller->operate();
 #ifdef OPENTHERMOSTAT_E32V2
+		heating::diagnostics::blackBox.loopPhase(heating::diagnostics::LoopPhase::health);
 		observeHealth(monotonicMs());
 #endif
 		DBGLOGFI(heating::logger, appLogFeature(), "Free memory %d/%d (minimum was: %d) MaxAlloc: %d MinPeekStack: %d boxTemp: %f, UpTime: %lds\n", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap(), uxTaskGetStackHighWaterMark(nullptr), heating::rtcGetTemp(), esp_timer_get_time()/1000000);
 		DBGLOGFD(heating::logger, appLogFeature(), "SPIFFS: %zu/%zu\n", SPIFFS.usedBytes(), SPIFFS.totalBytes());
 
+#ifdef OPENTHERMOSTAT_E32V2
+		heating::diagnostics::blackBox.loopPhase(heating::diagnostics::LoopPhase::wifi_reconnect);
+#endif
 		if (!WiFi.isConnected()
 #ifdef OPENTHERMOSTAT_E32V2
 			&& !heating::wifiAPMode && !heating::setupAttemptUntil && WiFi.getMode()!=WIFI_OFF

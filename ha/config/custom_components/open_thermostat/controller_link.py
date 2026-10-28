@@ -22,6 +22,19 @@ class ControllerLinkError(ValueError):
     """A bounded public error code, never a response/URL/credential exception."""
 
 
+class HeatingPlanRejected(ControllerLinkError):
+    """The E32 refused a /config/heating write with a named reason (409 = plan_changed)."""
+
+    def __init__(self, status, error):
+        super().__init__(error)
+        self.status = status
+        self.error = error
+
+
+HEATING_PLAN = "/config/heating"
+HEATING_PLAN_BYTES = 4096  # The E32 refuses larger plans (413 plan_too_large).
+
+
 class ControllerProvisioningError(ControllerLinkError):
     """A remote outcome must be read back before a new attempt, never guessed."""
 
@@ -71,6 +84,24 @@ def _object_pairs(pairs):
 
 def _nonfinite(_):
     raise ValueError
+
+
+def _decode(raw):
+    try:
+        return json.loads(raw, object_pairs_hook=_object_pairs, parse_constant=_nonfinite)
+    except (ValueError, UnicodeError, RecursionError):
+        raise ControllerLinkError("controller_response_invalid") from None
+
+
+async def _error_name(response):
+    """The E32's {"error":"<name>"}, or a fixed name; never response text verbatim."""
+    fallback = {409: "plan_changed", 413: "plan_too_large", 503: "save_unconfirmed"}.get(response.status, "invalid_plan")
+    try:
+        value = json.loads(await response.content.read(512))
+    except (ValueError, UnicodeError, RecursionError, aiohttp.ClientError):
+        return fallback
+    error = value.get("error") if type(value) is dict else None
+    return error if type(error) is str and re.fullmatch(r"[a-z0-9_]{1,48}", error) else fallback
 
 
 @dataclass(frozen=True, slots=True)
@@ -361,8 +392,8 @@ class ControllerClient:
     """One scoped operation using the existing firmware cookie/CSRF contract."""
 
     _reads = frozenset(("/auth/session", "/status/version", "/status", "/updates/status",
-                        "/config/device", "/config/rooms"))
-    _writes = frozenset(("/auth/login", "/auth/logout", "/config/device", "/updates/reboot"))
+                        "/config/device", "/config/rooms", HEATING_PLAN, "/status/heating"))
+    _writes = frozenset(("/auth/login", "/auth/logout", "/config/device", "/updates/reboot", HEATING_PLAN))
 
     def __init__(self, address):
         self.address = controller_address(address)
@@ -412,13 +443,18 @@ class ControllerClient:
                 data = json.dumps(document, ensure_ascii=True, allow_nan=False, separators=(",", ":"))
             except (TypeError, ValueError, RecursionError):
                 raise ControllerLinkError("controller_request_invalid") from None
-            if len(data.encode()) >= 2048:
+            if path == HEATING_PLAN:
+                if len(data.encode()) > HEATING_PLAN_BYTES:
+                    raise HeatingPlanRejected(413, "plan_too_large")
+            elif len(data.encode()) >= 2048:
                 raise ControllerLinkError("controller_settings_too_large")
         try:
             async with self._session.request(method, self.address + path, data=data,
                     headers=headers, allow_redirects=False) as response:
                 if response.status in (401, 403):
                     raise ControllerLinkError("controller_auth_failed")
+                if path == HEATING_PLAN and response.status in (400, 409, 413, 503):
+                    raise HeatingPlanRejected(response.status, await _error_name(response))
                 if response.status == 412:
                     raise ControllerLinkError("controller_settings_changed")
                 if response.status == 409:
@@ -439,10 +475,7 @@ class ControllerClient:
 
     async def async_read(self, path):
         raw, tag, _ = await self._request("GET", path)
-        try:
-            value = json.loads(raw, object_pairs_hook=_object_pairs, parse_constant=_nonfinite)
-        except (ValueError, UnicodeError, RecursionError):
-            raise ControllerLinkError("controller_response_invalid") from None
+        value = _decode(raw)
         if path == "/config/device":
             if type(value) is not dict or type(tag) is not str or re.fullmatch(r'"[0-9a-f]{64}"', tag) is None:
                 raise ControllerLinkError("controller_update_required")
@@ -460,6 +493,21 @@ class ControllerClient:
                 or re.fullmatch(r"[0-9a-f]{64}", session["csrf"]) is None):
             raise ControllerLinkError("controller_auth_failed")
         self._csrf = session["csrf"]
+
+    async def async_read_heating_plan(self):
+        """The E32 room plan (GET /config/heating), parsed but not yet validated."""
+        return await self.async_read(HEATING_PLAN)
+
+    async def async_save_heating_plan(self, plan):
+        """POST the whole plan with the revision it was read at; returns the stored plan.
+
+        A stale revision raises HeatingPlanRejected(409, "plan_changed"); other
+        refusals carry the E32's error name (400) or save_unconfirmed (503).
+        """
+        if type(plan) is not dict:
+            raise ControllerLinkError("controller_request_invalid")
+        raw, _, _ = await self._request("POST", HEATING_PLAN, document=plan)
+        return _decode(raw)
 
     async def async_save_settings(self, document, etag):
         if type(document) is not dict:

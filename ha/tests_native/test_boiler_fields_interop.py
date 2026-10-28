@@ -11,6 +11,7 @@ from custom_components.open_thermostat.v1_boiler_fields import async_setup_boile
 from test_v1_native import room,entry
 from test_v1_wire_interop import FirmwareBus,RUNNER
 from test_boiler_fields import values
+from custom_components.open_thermostat.boiler_fields import CATALOG_FIELDS
 
 @asynccontextmanager
 async def system(hass):
@@ -37,7 +38,8 @@ async def system(hass):
 @pytest.mark.asyncio
 async def test_real_cpp_publishes_bounded_groups_to_native_entities_without_commands(hass):
     async with system(hass) as (e,r,c,bus,entities):
-        assert len(entities)==69 and entities[1].native_value==45
+        # The real firmware announces boiler.fields.v2: the 69 classic fields plus the EMS table.
+        assert c.boiler_fields_v2 and len(entities)==69+len(CATALOG_FIELDS) and entities[1].native_value==45
         deadline=c.boiler_fields.records[1][1]
         for second in range(1,15):
             bus.now+=1000;bus.utc+=1

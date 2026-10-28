@@ -2,8 +2,18 @@
   <h1 data-i18n="Rooms and heating">Rooms and heating</h1>
   <p class="pd-help" data-i18n="Shadow mode: the E32 calculates the boiler request from these rooms but does not send it. The tado keeps controlling the boiler until the attended switch-over.">Shadow mode: the E32 calculates the boiler request from these rooms but does not send it. The tado keeps controlling the boiler until the attended switch-over.</p>
   <div class="pd-panel" data-heating-request role="status" aria-live="polite"><span data-i18n="Loading…">Loading…</span></div>
+  <section class="pd-panel" data-heating-shadow>
+    <h2 data-i18n="Comparison with the current thermostat (today)">Comparison with the current thermostat (today)</h2>
+    <p class="pd-help" data-i18n="Shadow mode: the E32 computes its boiler request but does not send it; here it is compared with what the tado asked of the boiler.">Shadow mode: the E32 computes its boiler request but does not send it; here it is compared with what the tado asked of the boiler.</p>
+    <div data-heating-shadow-body><span data-i18n="Loading…">Loading…</span></div>
+  </section>
   <div data-heating-rooms></div>
   <p><button type="button" class="btn btn-outline-primary" data-heating-add><span data-i18n="Add room">Add room</span></button></p>
+  <section class="pd-panel" data-heating-ble>
+    <h2 data-i18n="Bluetooth sensors on this E32">Bluetooth sensors on this E32</h2>
+    <p class="pd-help" data-i18n="Read-only. To use a sensor as a room temperature source, choose Bluetooth sensor in the room and enter its ID.">Read-only. To use a sensor as a room temperature source, choose Bluetooth sensor in the room and enter its ID.</p>
+    <div data-heating-ble-list><span data-i18n="Loading…">Loading…</span></div>
+  </section>
   <details class="pd-panel">
     <summary data-i18n="Boiler flow temperature">Boiler flow temperature</summary>
     <label for="heating-min-flow" data-i18n="Minimum flow (°C)">Minimum flow (°C)</label>
@@ -15,27 +25,45 @@
   <p><button type="button" class="btn btn-primary" data-heating-save><span data-i18n="Save rooms">Save rooms</span></button></p>
   <p role="status" aria-live="polite" data-heating-message></p>
 </section>
+<style>#heating-plan table{font-size:.85rem}#heating-plan th,#heating-plan td{padding:4px}#heating-plan [data-heating-point]{gap:8px}#heating-plan [data-heating-point] input{min-width:0;padding:6px}#heating-plan [data-heating-point] [type=time]{flex:0 0 auto;width:auto}</style>
 <script>
 (() => {
   const root = document.getElementById('heating-plan');
   const roomsBox = root.querySelector('[data-heating-rooms]'), requestBox = root.querySelector('[data-heating-request]');
+  const shadowBox = root.querySelector('[data-heating-shadow-body]'), bleBox = root.querySelector('[data-heating-ble-list]');
   const message = root.querySelector('[data-heating-message]'), minFlow = root.querySelector('#heating-min-flow'), maxFlow = root.querySelector('#heating-max-flow');
   const statusText = {ok:"Measured", fallback:"Fallback source", stale:"Last value (source lost)", lost:"No measurement: no heat request", inactive:"Inactive"};
   const reasonText = {heating:"Heating", minimum_on:"Minimum burner time", minimum_off:"Minimum pause", satisfied:"Warm enough", no_demand:"No room can ask for heat", idle:"No heat needed", invalid_parameters:"Invalid limits"};
+  const sourceText = {ha:"from Home Assistant", schedule:"week program", fallback:"fixed fallback"};
   let plan = null, timer = null;
   const el = (tag, text, attrs={}) => { const e = document.createElement(tag); if (text !== undefined && text !== null) e.textContent = text; for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
   const field = (parent, label, input) => { const id = 'h' + Math.random().toString(36).slice(2); input.id = id; parent.append(el('label', label, {for:id}), input); return input; };
+  const check = (parent, label, checked) => {
+    const box = el('div', null, {class:'form-check mb-2'}), c = el('input', null, {type:'checkbox', class:'form-check-input', id:'h' + Math.random().toString(36).slice(2)});
+    c.checked = checked; box.append(c, el('label', label, {for:c.id, class:'form-check-label'})); parent.append(box); return c;
+  };
+  const weekdays = [...Array(7)].map((_, d) => new Date(Date.UTC(2024, 0, 1 + d)).toLocaleDateString(OpenThermostatLanguage.locale, {weekday:'short', timeZone:'UTC'})); // 2024-01-01 was a Monday
+  const saveError = {invalid_schedule:"The E32 refused the week program: at most 6 switch points per day, each at a different time.",
+    invalid_schedule_limits:"The E32 refused the week program: every temperature must lie within the room minimum and maximum.",
+    plan_too_large:"The plan is too large for the E32: use fewer switch points or rooms.", 413:"The plan is too large for the E32: use fewer switch points or rooms."};
   const input = (type, value, attrs={}) => { const i = el('input', null, {type, class:'form-control', ...attrs}); i.value = value; return i; };
   const select = (options, value) => { const s = el('select', null, {class:'form-control'}); for (const [v, t] of options) { const o = el('option', uiText(t), {value:v}); s.append(o); } s.value = value; return s; };
   const slug = name => name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 32) || 'room';
-  const degrees = v => typeof v === 'number' ? v.toFixed(1).replace('.', document.documentElement.lang === 'nl' ? ',' : '.') + ' °C' : '–';
+  const num = (v, unit) => typeof v === 'number' ? v.toFixed(1).replace('.', document.documentElement.lang === 'nl' ? ',' : '.') + unit : '—';
+  const degrees = v => num(v, ' °C');
+  const minutes = s => typeof s === 'number' ? Math.round(s / 60) + ' min' : '—';
+  const age = s => typeof s !== 'number' ? '—' : s < 120 ? s + ' s' : s < 7200 ? Math.round(s / 60) + ' min' : Math.round(s / 3600) + ' h';
+  const range = side => typeof side?.flow_min_c === 'number' ? side.flow_min_c + '–' + side.flow_max_c + ' °C (' + uiText("mean") + ' ' + degrees(side.flow_mean_c) + ')' : '—';
+  const agreement = d => d.s - d.tado_unknown_s > 0 ? Math.round(100 * d.agree_s / (d.s - d.tado_unknown_s)) + ' %' : '—';
+  const dayName = day => day ? new Date(day + 'T12:00:00Z').toLocaleDateString(OpenThermostatLanguage.locale, {weekday:'short', day:'numeric', month:'numeric', timeZone:'UTC'}) : '—';
 
   function roomCard(room, index, status) {
     const card = el('details', null, {class:'pd-panel', 'data-heating-room':room.id});
     const summary = el('summary');
-    summary.append(el('strong', room.name), document.createTextNode(' · ' + uiText(statusText[status?.status] || statusText.inactive)
-      + ' · ' + degrees(status?.temperature) + ' / ' + degrees(status?.setpoint) + (status?.demand ? ' · ' + uiText("asks for heat") : '')));
-    card.append(summary);
+    card.status = s => summary.replaceChildren(el('strong', room.name), document.createTextNode(' · ' + uiText(statusText[s?.status] || statusText.inactive)
+      + ' · ' + degrees(s?.temperature) + ' / ' + degrees(s?.setpoint) + (s?.demand ? ' · ' + uiText("asks for heat") : '')
+      + (sourceText[s?.setpoint_source] ? ' · ' + uiText("setpoint") + ': ' + uiText(sourceText[s.setpoint_source]) : '')));
+    card.status(status); card.append(summary);
     if (status?.source) card.append(el('p', uiText("Leading source") + ': ' + status.source, {class:'pd-help'}));
     const name = field(card, uiText("Name"), input('text', room.name, {maxlength:'40'}));
     const state = field(card, uiText("State"), select([['active', "Active"], ['inactive', "Inactive"], ['until', "Inactive until"]],
@@ -60,6 +88,53 @@
     const fallback = field(card, uiText("Setpoint without Home Assistant (°C)"), input('number', room.fallback_centi_c / 100, {min:'5', max:'30', step:'0.5'}));
     const lo = field(card, uiText("Minimum (°C)"), input('number', room.minimum_centi_c / 100, {min:'5', max:'30', step:'0.5'}));
     const hi = field(card, uiText("Maximum (°C)"), input('number', room.maximum_centi_c / 100, {min:'5', max:'30', step:'0.5'}));
+    // Week program: 7 days Mon..Sun of [minute, centi_c]; an empty day continues the last earlier switch point.
+    const week = el('fieldset', null, {class:'mt-3', 'data-heating-week':''}), editor = el('div'), rows = el('div');
+    week.append(el('legend', uiText("Week program (used when Home Assistant gives no setpoint)"), {class:'h6'}));
+    const given = Array.isArray(room.schedule) && room.schedule.length === 7 ? room.schedule : null;
+    const useWeek = check(week, uiText("Use a week program"), !!given?.some(d => d.length));
+    const same = check(editor, uiText("Same every day"), !given || given.every(d => JSON.stringify(d) === JSON.stringify(given[0])));
+    editor.append(el('p', uiText("A day without switch points continues the last one of an earlier day."), {class:'pd-help'}));
+    const label = d => same.checked ? uiText("Every day") : weekdays[d];
+    const addPoint = (list, [m, c]) => {
+      const row = el('div', null, {class:'d-flex mb-2', 'data-heating-point':''});
+      const remove = el('button', '×', {type:'button', class:'btn btn-sm btn-outline-secondary', 'aria-label':uiText("Remove"), title:uiText("Remove")});
+      remove.addEventListener('click', () => row.remove());
+      row.append(input('time', Number.isFinite(m) ? String(m / 60 | 0).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0') : '', {'aria-label':uiText("Time")}),
+        input('number', Number.isFinite(c) ? c / 100 : '', {min:'5', max:'30', step:'0.5', 'aria-label':uiText("Temperature (°C)")}), remove);
+      list.append(row);
+    };
+    const draw = days => rows.replaceChildren(...days.slice(0, same.checked ? 1 : 7).map((points, d) => {
+      const day = el('div', null, {'data-heating-day':''}), head = el('div', null, {class:'d-flex justify-content-between align-items-center mb-2'}), list = el('div');
+      const add = el('button', uiText("Add switch point"), {type:'button', class:'btn btn-sm btn-outline-primary'});
+      add.addEventListener('click', () => list.children.length < 6 && addPoint(list, [NaN, NaN]));
+      head.append(el('strong', label(d)), add); points.forEach(p => addPoint(list, p)); day.append(head, list);
+      return day;
+    }));
+    const raw = () => [...rows.querySelectorAll('[data-heating-day]')].map(day => [...day.querySelectorAll('[data-heating-point]')].map(r => {
+      const [t, c] = r.querySelectorAll('input');
+      return [t.value ? t.value.slice(0, 2) * 60 + +t.value.slice(3, 5) : NaN, c.value === '' ? NaN : Math.round(c.value * 100)];
+    }));
+    same.addEventListener('change', () => { const days = raw(); draw(same.checked ? [days.find(d => d.length) || []] : Array(7).fill(days[0])); });
+    useWeek.addEventListener('change', () => {
+      editor.hidden = !useWeek.checked;
+      if (useWeek.checked && !rows.querySelector('[data-heating-point]')) draw([[[420, Math.round(fallback.value * 100)]]]);
+    });
+    draw(given || [[]]); editor.hidden = !useWeek.checked; editor.append(rows); week.append(editor); card.append(week);
+    const schedule = () => {
+      if (!useWeek.checked) return {};
+      const days = raw(), min = Math.round(lo.value * 100), max = Math.round(hi.value * 100);
+      days.forEach((points, d) => {
+        const fail = text => { throw Object.assign(Error('schedule'), {text: name.value.trim() + ' · ' + label(d) + ': ' + text}); };
+        if (points.length > 6) fail(uiText("at most 6 switch points per day."));
+        if (points.some(([m, c]) => !Number.isFinite(m) || !Number.isFinite(c))) fail(uiText("fill in a time and a temperature for every switch point."));
+        if (points.some(([, c]) => c < min || c > max)) fail(uiText("temperatures must lie between the room minimum {min} and maximum {max}.").replace('{min}', degrees(min / 100)).replace('{max}', degrees(max / 100)));
+        points.sort((a, b) => a[0] - b[0]);
+        if (points.some((p, i) => i && p[0] === points[i - 1][0])) fail(uiText("two switch points have the same time."));
+      });
+      if (!days.some(d => d.length)) throw Object.assign(Error('schedule'), {text: name.value.trim() + ': ' + uiText("add a switch point or turn the week program off.")});
+      return {schedule: same.checked ? Array(7).fill(days[0]) : days};
+    };
     const removeRoom = el('button', uiText("Remove room"), {type:'button', class:'btn btn-sm btn-outline-danger mt-2'});
     removeRoom.addEventListener('click', () => { if (confirm(uiText("Remove this room?"))) card.remove(); });
     card.append(removeRoom);
@@ -69,7 +144,7 @@
         inactive_until: untilValue, emitter: emitter.value,
         sources: [...sources.querySelectorAll('[data-heating-source]')].map(r => ({type: r.querySelector('select').value, id: r.querySelector('input').value.trim().toLowerCase().replaceAll(':', '')})),
         setpoint_entity: setpoint.value.trim(), fallback_centi_c: Math.round(fallback.value * 100),
-        minimum_centi_c: Math.round(lo.value * 100), maximum_centi_c: Math.round(hi.value * 100)};
+        minimum_centi_c: Math.round(lo.value * 100), maximum_centi_c: Math.round(hi.value * 100), ...schedule()};
     };
     OpenThermostatLanguage.apply(card);
     return card;
@@ -80,10 +155,55 @@
     if (!plan.rooms.length) roomsBox.append(el('p', uiText("No rooms yet. Add the living room to start."), {class:'pd-help'}));
     minFlow.value = plan.minimum_flow_c; maxFlow.value = plan.maximum_flow_c;
   }
+  function renderBle(list) {
+    bleBox.replaceChildren(...list.map(s => {
+      const item = el('div', null, {class:'mb-2', 'data-heating-ble-sensor':s.id});
+      const values = [["Temperature", degrees(s.temperature)], ["Humidity", num(s.humidity, ' %')],
+        ["Battery", typeof s.battery === 'number' ? s.battery + ' %' : '—'], ["Age", age(s.age_s)]];
+      item.append(el('strong', s.name || s.id), document.createTextNode(' · ID '), el('code', s.id),
+        el('div', values.map(([k, v]) => uiText(k) + ' ' + v).join(' · '), {class:'pd-help'}));
+      return item;
+    }));
+    if (!list.length) bleBox.append(el('p', uiText("No Bluetooth sensors are set up on this E32."), {class:'pd-help'}));
+  }
+  function renderShadow(shadow) {
+    const d = shadow?.today, days = shadow?.days || [], parts = [];
+    if (d?.s) {
+      const rows = [["Compared time", minutes(d.s)], ["Heating time E32 / tado", minutes(d.e32.heat_s) + ' / ' + minutes(d.tado.heat_s)],
+        ["Burner starts E32 / tado", d.e32.starts + ' / ' + d.tado.starts], ["Agreement (both on or both off)", agreement(d)],
+        ["E32 flow range", range(d.e32)], ["tado flow range", range(d.tado)],
+        ["E32 starts within 5 min of a tado start", d.starts_within_5min + ' / ' + d.tado.starts]];
+      if (d.tado_unknown_s) rows.push(["Without tado data", minutes(d.tado_unknown_s)]);
+      const dl = el('dl', null, {class:'pd-detail-grid', 'data-heating-shadow-today':''});
+      for (const [k, v] of rows) dl.append(el('dt', uiText(k)), el('dd', v));
+      parts.push(dl);
+    } else parts.push(el('p', uiText("No comparison data yet."), {class:'pd-help'}));
+    if (days.length) {
+      const table = el('table', null, {class:'table table-sm mb-0', 'data-heating-shadow-days':''}), thead = el('thead'), head = el('tr'), body = el('tbody');
+      for (const h of ["Day", "E32", "tado", "Agreement", "Starts E32 / tado"]) head.append(el('th', uiText(h), {scope:'col'}));
+      for (const day of days) {
+        const tr = el('tr');
+        for (const v of [dayName(day.day), minutes(day.e32.heat_s), minutes(day.tado.heat_s), agreement(day), day.e32.starts + ' / ' + day.tado.starts]) tr.append(el('td', v));
+        body.append(tr);
+      }
+      thead.append(head); table.append(thead, body);
+      const wrap = el('div', null, {style:'overflow-x:auto'}); wrap.append(table);
+      parts.push(el('h3', uiText("Previous days"), {class:'mt-3 mb-2'}), wrap);
+    }
+    shadowBox.replaceChildren(...parts);
+  }
   function renderRequest(status) {
     const r = status?.request;
     requestBox.textContent = !r ? uiText("Status unavailable")
       : uiText("Calculated boiler request") + ': ' + (r.heat ? r.flow_c + ' °C' : uiText("off")) + ' · ' + uiText(reasonText[r.reason] || r.reason);
+    if (!status) { // keep the last good values; only a never-loaded section says so
+      for (const box of [shadowBox, bleBox]) if (!box.dataset.ready) box.textContent = uiText("Status unavailable");
+      return;
+    }
+    renderShadow(status.shadow); renderBle(status.ble_sensors || []);
+    shadowBox.dataset.ready = bleBox.dataset.ready = '1';
+    const byId = new Map((status.rooms || []).map(r => [r.id, r]));
+    for (const card of roomsBox.querySelectorAll('[data-heating-room]')) if (card.dataset.heatingRoom) card.status(byId.get(card.dataset.heatingRoom));
   }
   async function json(url, options={}) {
     const controller = new AbortController(), deadline = setTimeout(() => controller.abort(), 8000);
@@ -112,14 +232,19 @@
     const card = roomCard(room, plan.rooms.length, null); card.open = true; roomsBox.append(card);
   });
   root.querySelector('[data-heating-save]').addEventListener('click', async () => {
-    const rooms = [...roomsBox.querySelectorAll('[data-heating-room]')].map(card => card.read());
-    const next = {schema:1, mode:'shadow', minimum_flow_c:Number(minFlow.value), maximum_flow_c:Number(maxFlow.value), rooms};
+    let rooms;
+    try { rooms = [...roomsBox.querySelectorAll('[data-heating-room]')].map(card => card.read()); } catch (error) { message.textContent = error.text; return; }
+    const next = {schema:1, revision:plan.revision, mode:'shadow', minimum_flow_c:Number(minFlow.value), maximum_flow_c:Number(maxFlow.value), rooms};
     message.textContent = uiText("Saving…");
     try {
       plan = await json('/config/heating', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(next)});
       message.textContent = uiText("Rooms saved.");
       await load();
-    } catch (error) { message.textContent = uiText("Not saved") + ': ' + error.code; }
+    } catch (error) {
+      if (error.code !== 'plan_changed') { message.textContent = saveError[error.code] ? uiText(saveError[error.code]) : uiText("Not saved") + ': ' + error.code; return; }
+      await load();
+      message.textContent = uiText("The plan was changed elsewhere (Home Assistant). It has been reloaded; make your change again.");
+    }
   });
   load();
   timer = setInterval(refreshStatus, 10000);

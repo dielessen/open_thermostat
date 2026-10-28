@@ -5,11 +5,11 @@ EMS boiler diagnostics**, with Home Assistant and a BBQKees E32 V2 gateway.
 Developed independently by **Mark Dielessen**.
 
 Set up rooms, select your Home Assistant devices, edit weekly schedules and
-inspect what your boiler reports. The control and learning software is being
-extended towards coordinated heating. **E32 beta.6 includes a guided, attended
-Ecomline Classic boiler trial. Automatic boiler and valve control remain
-disabled.** Each trial requires local setup checks, a fresh boiler-gauge reading
-and a separate start action. Physical installation acceptance remains open.
+inspect what your boiler reports. **E32 beta.17 runs room heating control in
+shadow mode:** the E32 keeps its own room plan, calculates the boiler request
+and compares it with the thermostat that still controls the boiler, but it does
+not send that request yet. Automatic boiler and valve control remain disabled
+until an attended switch-over with failure tests.
 
 [Downloads](https://github.com/dielessen/open_thermostat/releases) ·
 [Features](#features) · [Roadmap](#roadmap) · [Screenshots](#screenshots) ·
@@ -21,8 +21,8 @@ and a separate start action. Physical installation acceptance remains open.
 
 | Component | Version | Channel |
 | --- | --- | --- |
-| E32 V2 firmware | [v0.1.0-e32v2-beta.6](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-beta.6) | Pre-release |
-| Home Assistant integration | [0.4.0b4](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0b4) | Pre-release |
+| E32 V2 firmware | [v0.1.0-e32v2-beta.15](https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-beta.15) | Pre-release |
+| Home Assistant integration | [0.4.0b7](https://github.com/dielessen/open_thermostat/releases/tag/ha-v0.4.0b7) | Pre-release |
 
 Firmware and the HA integration are separate downloads. Read each release’s
 changes, compatibility notes and installation instructions before updating.
@@ -30,45 +30,34 @@ changes, compatibility notes and installation instructions before updating.
 To build the published E32 firmware, start from its exact tag:
 
 ```sh
-git clone --branch v0.1.0-e32v2-beta.6 https://github.com/dielessen/open_thermostat.git
+git clone --branch v0.1.0-e32v2-beta.15 https://github.com/dielessen/open_thermostat.git
 ```
 
 <!-- openthermostat-readme-releases:end -->
 
-E32 beta.6 and HA 0.4.0b4 are published from the same frozen source. Beta.6 is
-installed with a confirmed new boot, exact firmware/web identity and all twelve
-settings exports retained byte for byte. Installation used the authenticated
-LAN app upload because the device could not establish GitHub HTTPS. Native
-GitHub-update acceptance remains at beta.4. HA installation and the separate
-bathroom plan recovery are in progress. The physical boiler trial remains open.
-[Current installation record](https://github.com/dielessen/open_thermostat/blob/review/mark-vscode-20261021/docs/modern-thermostat/BETA6-INSTALLATION-20261027.json).
+**E32 beta.17 + HA 0.4.0b9** (the unpublished beta.16 is included):
 
-**Prepared correction bundle — E32 beta.8 + HA0.4.0b6:** a separate read-only
-controller-request entity preserves the boiler's own reported temperatures;
-already-warm water can receive a lower50C trial request. Native product plan
-recovery is exposed in the existing menu. The first attended beta.6 trial
-showed pump/burner operation and a confirmed later stop, but the owner stopped
-it at about375seconds. The full600second follow-up remains open.
-[Command/readback distinction](docs/modern-thermostat/E32-CONTROLLER-REQUEST.md).
+- **Rooms and heating on the E32**, so heating keeps working without Home
+  Assistant: room state (active, inactive, inactive until), emitter, up to four
+  temperature sources in order (an HA entity such as a thermostat, or a
+  Bluetooth sensor), a week program per room and a calculated flow request
+  between 30 and 60 °C. One room plan is edited from HA and from the E32 page,
+  with a revision number so neither side silently overwrites the other.
+- **Shadow comparison:** heating time, burner starts and flow range of the E32
+  decision next to the current thermostat, per day.
+- **Home Assistant:** rooms, the E32's Bluetooth sensors and the heat request
+  as entities; room state and fallback setpoint can be changed from HA; firmware
+  updates are installed from HA over the local network.
+- **Reliability:** the Bluetooth page no longer exhausts the E32's memory, a
+  supervisor and hardware watchdog restart a hung device and keep a record of
+  what it was doing, and boiler reception recovers by itself after a bus error.
+- **One EMS entity table** feeds the firmware and the HA entities.
+
+[Current release work](docs/modern-thermostat/NEXT-RELEASE.nl.md) ·
+[Firmware release notes](docs/modern-thermostat/RELEASE-NOTES.md) ·
+[HA release notes](docs/modern-thermostat/HA-RELEASE-NOTES.md)
 
 ## Features
-
-**Beta.6 coordinated release bundle:**
-
-- Compressed, revalidated web assets and page modules loaded when needed. Boiler
-  panels share one data request; dashboard and telemetry reuse one PSRAM buffer.
-- Debug feature filters load only when their settings section is opened.
-  Hidden dashboard, Bluetooth, updater and log pages pause status reads. Session
-  and WiFi-setup checks keep their deadlines through response bodies, allowing
-  page data and setup recovery to continue after a stalled reply.
-- Native MQTT broker DNS and TCP opening return control to the main loop.
-  Ordinary writes have a bounded wait; disabled logging avoids unnecessary work.
-  System log provides loop interval counters for checking delays after installation.
-- One received-entity table per boiler device and a guided
-  **Setup → Prepare → Heat → Result** trial. Each stage names the next button;
-  the result separates reported success, early stop, missing evidence and faults.
-
-The bundle is software-tested; installation and device latency are checked separately. [Performance measurements and review](docs/modern-thermostat/E32-PERFORMANCE-AND-BOILER-REVIEW.md).
 
 **Available** means delivered for the stated use. **Prepared** means code exists
 but the complete user flow, device connection or physical acceptance is still
@@ -79,17 +68,12 @@ open. **Planned** means further implementation or qualification is required.
 | Feature | Current status |
 | --- | --- |
 | Room setup | **Available:** name rooms and select HA sensors, radiator valves, emitter types and temperature limits. Current setup supports 1–2 rooms, with one valve per room. |
-| Central installation settings | **Prepared for HA 0.4.0b4:** rename the installation and change shared water limits while connected. Linked radiators follow the limits; custom circuits are preserved. Changes use the existing E32 apply/readback path. Weather compensation still needs a supported profile. |
 | Weekly schedules | **Available:** edit temperature blocks, including touch controls, save and apply with confirmation. |
 | Temperature targets and HEAT/OFF | **Available as control intent** through the native HA climate entity. Physical execution remains gated. |
 | Original sensor and valve reports | **HA reception and diagnostics delivered.** Original Zigbee report producers, source qualification and physical valve feedback still need acceptance. Cached values are distinguished from original measurements. |
 | Hysteresis, PI and slow time-proportional control | **Prepared** in the control core, including minimum cycle times. PI has no derivative term; locally regulating TRVs keep their own control loop. |
 | Comfort, eco, away, holiday and boost | Priority and expiry logic **prepared**; complete everyday controls remain to be connected. |
-| Window and door contacts | **Prepared for beta.6 / HA 0.4.0b4:** select up to eight contacts per room in the editor or wizard, set delays/report age, and inspect pause/resume status. Active native plans use the normal save/reload/readback path. Model-specific original report qualification and physical acceptance remain open. |
-| Extra manual room control | **Prepared for beta.6 / HA 0.4.0b4:** bind a built-in HA temperature Number helper. A new direct user change requests a timed override; cached values, automations and echoes do not renew it. Physical wall-device profiles remain open. [Details](docs/modern-thermostat/MANUAL-ROOM-TARGET.md). |
-| Comfort and presence | **Prepared for beta.6 / HA 0.4.0b4:** configure comfort/away targets and an optional person through the normal editor or wizard. Native person reports preserve tracker age; stale/unknown stays unknown. The room editor also provides explicit vacation dates in the HA time zone, including daylight-saving choices. Physical reporting and protection remain unqualified. [Details](docs/modern-thermostat/ROOM-COMFORT.md). |
-| E32 room explanations | **Prepared for beta.6:** target source, selected comfort mode and owner-reported temporary time/vacation end under each room’s Details. Uses the existing control snapshot. |
-| Selected device batteries | **Prepared for HA 0.4.0b4:** native HA battery percentages and device flags with report age, once per saved sensor/valve device. Explicit reload refreshes the snapshot. [Details](docs/modern-thermostat/DEVICE-BATTERY-SNAPSHOT.md). |
+| Window and door contacts | **Planned user flow:** select contacts per room, pause demand while open and resume with valid readings. Context logic exists; source selection, multiple contacts, status and stale-data handling still need completion. |
 | Learning and optimum start | Models and storage **prepared**. Active learning, earlier starts, residual-heat use and heating-curve adaptation need real measurements and comfort validation. |
 | Eight zones and multiple valves per room | **Planned.** The current room editor does not provide these capacities. |
 
@@ -124,12 +108,13 @@ synthetic pressure reading is substituted.
 | Native HA integration | **Available:** room pages, configuration, climate controls and weekly planner. Uses a local MQTT broker. |
 | E32 web interface | **Available:** setup, room overview, calculated demand, boiler values, diagnostics and device management. |
 | English and Dutch | **Available:** English default and fallback; E32 language selection and native HA translations. Stored dashboard text falls back to English. |
-| Local Bluetooth diagnostics | **Delivered:** Shelly BLU H&T Display ZB, Xiaomi Monitor 3 / MJWSD05MMC with bindkey, and Shelly BLU TRV diagnostic profiles. The scrollable discovery list includes up to 128 received addresses, including unnamed devices; eight saved sensor bindings remain separate. Private keys are stored separately and are not read back. Device acceptance, GATT valve control and use as a heating source remain open. |
+| Local Bluetooth sensors | **Available:** Shelly BLU H&T Display ZB, Xiaomi Monitor 3 / MJWSD05MMC with bindkey, thermometers with pvvx firmware (BTHome v2) and a Shelly BLU TRV diagnostic profile. Up to eight sensors are paired on the E32, can be room sources and appear in HA. Search lists the 32 strongest nearby devices. Private keys are stored separately and are not read back. GATT valve control remains open. |
 | History and CSV | **Available:** read-only recorder views and exports for day/week/month periods up to 31 days. |
 | ESP/EMS logs and syslog | **Available:** view, filter and download local logs; independently forward ESP/EMS sources to an RFC5424 UDP collector. External syslog is off by default. |
-| Updates and recovery | **Available:** web login/logout, About, restart under Settings, HTTPS updates and recovery routes. Normal application updates preserve settings. |
+| Updates and recovery | **Available:** web login/logout, About, restart under Settings, updates from Home Assistant or the local upload on the update page, recovery routes, a supervisor and watchdog. Normal application updates preserve settings. |
 | Energy, cost and comfort analysis | **Partly prepared**; actual sources, calibration and presentation remain open. |
-| Standalone E32 heating, external wall controls and further notifications | **Planned**, with additional device, ownership and failure acceptance. |
+| Standalone E32 heating | **Shadow mode:** rooms, sources, week programs and the flow request run on the E32 without HA; sending the request to the boiler needs the attended switch-over first. |
+| External wall controls and further notifications | **Planned**, with additional device, ownership and failure acceptance. |
 
 Core operation has no mandatory thermostat cloud. Devices connected through HA
 still depend on HA and MQTT. Software checks reject stale or unconfirmed input;
@@ -147,7 +132,7 @@ complete physical failure tests for HA, MQTT, sensors and the E32 remain open.
 5. Validate learning, optimum start and heating-curve adaptation against real results.
 
 No release dates are promised for these steps. The
-[workboard](https://github.com/dielessen/open_thermostat/blob/review/mark-vscode-20261021/docs/modern-thermostat/WORKBOARD.nl.md)
+[workboard](docs/modern-thermostat/WORKBOARD.nl.md)
 and [design plan](docs/modern-thermostat/PLAN.nl.md) track the detailed requirements
 and remaining acceptance. Much of the engineering documentation is in Dutch;
 GitHub-facing project and future release descriptions are maintained in English.
@@ -189,8 +174,9 @@ Download the E32 firmware and the HA integration separately from the release
 links above. For the native HA connection, configure Home Assistant's MQTT
 integration and a local MQTT broker. Follow the release's compatibility notes.
 
-- **E32 application update:** use the normal GitHub updater with `firmware.bin`.
-  A new partition layout or factory installation uses a different procedure.
+- **E32 application update:** install it from Home Assistant (the firmware
+  update entity) or upload `firmware.bin` on the E32 update page. A new
+  partition layout or factory installation uses a different procedure.
 - **Home Assistant:** install the separate integration package; the E32 updater
   does not install it.
 - **Optional Zigbee report companion:** source-only material for original
@@ -228,7 +214,7 @@ within a checkout. Other source targets use `pio run -e esp32dev` or
 
 ## Documentation
 
-- [Current release work](https://github.com/dielessen/open_thermostat/blob/review/mark-vscode-20261021/docs/modern-thermostat/NEXT-RELEASE.nl.md)
+- [Current release work](docs/modern-thermostat/NEXT-RELEASE.nl.md)
 - [Firmware release history](docs/modern-thermostat/RELEASE-NOTES.md)
 - [Home Assistant release history](docs/modern-thermostat/HA-RELEASE-NOTES.md)
 - [E32 V2 hardware and pins](docs/BBQKEES_E32V2.md)

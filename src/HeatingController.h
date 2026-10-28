@@ -19,7 +19,9 @@
 #include "control/MbedTlsBleCcm.h"
 #include "DeviceBluetoothSettings.h"
 #include "HeatingPlanStore.h"
+#include "control/ShadowComparison.h"
 #include "control/RoomEngine.h"
+#include "diagnostics/BlackBox.h"
 #include <cmath>
 #include <cstring>
 #include <ctime>
@@ -131,12 +133,16 @@ public:
         tempReader_.setRawObserver([this](const BleAddress_t& address, int rssi, const uint8_t* data, size_t size) {
             const auto now = bleReceiptClock();
             managedBle_.capture(address, rssi, data, size, now);
+            // Nearby hints only while the user's Search runs: automatic scans never fill the list.
+            if (!tempReader_.discovering()) return;
             std::lock_guard<std::mutex> lock(roomsAccessMutex_);
             bleDiscovery_.remember(address, rssi, data, size);
         });
         loadHeatingPlan();
         mqtt_.setHeatingRoute([this](std::string_view payload) { heatingInput(payload); }, [this] {
-            std::unique_ptr<cJSON, decltype(&cJSON_Delete)> status(roomEngine_.json(), cJSON_Delete);
+            // Telemetry carries today's comparison only; the page reads the past days.
+            std::unique_ptr<cJSON, decltype(&cJSON_Delete)> status(heatingStatusJson(), cJSON_Delete);
+            if (status) cJSON_DeleteItemFromObjectCaseSensitive(cJSON_GetObjectItemCaseSensitive(status.get(), "shadow"), "days");
             return status ? control::printJson(status.get()) : std::string();
         });
 #endif
@@ -201,7 +207,7 @@ public:
 
 		DBGLOGFD(log_, logFeature_, "%s\n", boiler_.getStatus().c_str());
 
-		if (bluetoothScan_) {
+		if (bluetoothScan_ && !bleDiscoveryRequested_) {
 			tempReader_.triggerScan();
 		}
 
@@ -210,10 +216,21 @@ public:
 
 	void loop() {
 #ifdef OPENTHERMOSTAT_E32V2
+        diagnostics::blackBox.loopPhase(diagnostics::LoopPhase::bluetooth);
         managedBle_.processOne(update::busy());
-        if (mqtt_.modernMode() && bluetoothScan_ && managedBle_.wantsAutomaticScan() && !update::busy()) tempReader_.triggerScan();
+        // A requested Search goes first at the next scan boundary; automatic scans wait.
+        if (bleDiscoveryRequested_) {
+            if (!bluetoothScan_ || uint32_t(millis() - bleDiscoveryRequestedAt_) > 120000u) bleDiscoveryRequested_ = false;
+            else if (!update::busy() && tempReader_.triggerScan(30000, [this] {
+                std::lock_guard<std::mutex> lock(roomsAccessMutex_); bleDiscovery_.clear();
+            })) bleDiscoveryRequested_ = false;
+        } else if (mqtt_.modernMode() && bluetoothScan_ && managedBle_.wantsAutomaticScan() && !update::busy()) tempReader_.triggerScan();
+        diagnostics::blackBox.loopPhase(diagnostics::LoopPhase::mqtt);
 #endif
 		mqtt_.loop();
+#ifdef OPENTHERMOSTAT_E32V2
+        diagnostics::blackBox.loopPhase(diagnostics::LoopPhase::ems);
+#endif
 		ems_.loop();
 	}
 	bool modernMode() const { return mqtt_.modernMode(); }
@@ -226,12 +243,42 @@ public:
         control::RoomPlan plan;
         if (const char* error = control::RoomPlan::parse(root, plan)) return error;
         if (plan.mode == control::RoomPlan::Mode::active) return "active_mode_not_released";
+        // Edited from HA and from the web page: a write based on an older plan is refused.
+        if (!cJSON_IsNumber(cJSON_GetObjectItemCaseSensitive(root, "revision"))
+            || plan.revision != roomEngine_.plan().revision) return "plan_changed";
+        plan.revision = roomEngine_.plan().revision + 1;
         const auto raw = plan.json();
+        if (raw.size() + 1 > control::ControlPartitionBudget::configBytes) return "plan_too_large";
         if (raw.empty() || !saveHeatingPlan(raw)) return "save_unconfirmed";
         roomEngine_.setPlan(plan);
         return nullptr;
     }
-    cJSON* heatingStatusJson() const { return roomEngine_.json(); }
+    // The room engine status plus the E32's own Bluetooth sensors, so HA can
+    // show them and offer them as room sources (they stay paired here).
+    cJSON* heatingStatusJson() {
+        cJSON* root = roomEngine_.json();
+        cJSON* sensors = root ? cJSON_AddArrayToObject(root, "ble_sensors") : nullptr;
+        cJSON* shadow = sensors ? shadowComparison_.json() : nullptr;
+        if (!shadow || !cJSON_AddItemToObject(root, "shadow", shadow)) { cJSON_Delete(shadow); cJSON_Delete(root); return nullptr; }
+        const auto& bindings = managedBle_.bindings();
+        for (size_t i = 0; i < bindings.count; ++i) {
+            const auto& binding = bindings.devices[i];
+            const auto value = managedBle_.snapshot(binding.address);
+            cJSON* s = cJSON_CreateObject();
+            if (!s || !cJSON_AddItemToArray(sensors, s)) { cJSON_Delete(s); cJSON_Delete(root); return nullptr; }
+            const auto scaled = [&](const char* key, auto v, double divisor) {
+                if (v) cJSON_AddNumberToObject(s, key, *v / divisor); else cJSON_AddNullToObject(s, key);
+            };
+            cJSON_AddStringToObject(s, "id", control::printBleHex(binding.address).data());
+            cJSON_AddStringToObject(s, "name", binding.name.data());
+            cJSON_AddStringToObject(s, "profile", control::managedBleProfileName(binding.profile));
+            scaled("temperature", value.temperature, 100.0);
+            scaled("humidity", value.humidity, 100.0);
+            scaled("battery", value.battery, 1.0);
+            scaled("age_s", value.temperatureAgeMs ? std::optional<uint32_t>(*value.temperatureAgeMs / 1000) : std::nullopt, 1.0);
+        }
+        return root;
+    }
     // A Home Assistant state (temperature and/or target) for a plan source.
     void heatingHaState(const std::string& entity, std::optional<int16_t> temperature, std::optional<int16_t> target) {
         roomEngine_.haState(entity, temperature, target, bleReceiptClock());
@@ -239,12 +286,16 @@ public:
     auto managedBleSnapshot(const control::ManagedBleAddress& address) { return managedBle_.snapshot(address); }
     bool managedBlePending() const { return !managedBle_.enabled(); }
     uint32_t managedBleQueueDrops() const { return managedBle_.queueDrops(); }
-    bool requestBleDiscovery() { return bluetoothScan_ && tempReader_.triggerScan(30000,[this] {
-        std::lock_guard<std::mutex> lock(roomsAccessMutex_); bleDiscovery_.clear();
-    }); }
-    bool bleScanPending() { return tempReader_.isScanPending(); }
-    void copyBleDiscovery(control::BleDeviceDiscovery& out) const {
-        std::lock_guard<std::mutex> lock(roomsAccessMutex_); out = bleDiscovery_;
+    // Queued, not refused: a running automatic scan ends first (loop() starts the Search).
+    bool requestBleDiscovery() {
+        if (!bluetoothScan_ || !tempReader_.scanEnabled() || tempReader_.discovering()) return false;
+        if (!bleDiscoveryRequested_) bleDiscoveryRequestedAt_ = static_cast<uint32_t>(millis());
+        return bleDiscoveryRequested_ = true;
+    }
+    bool bleScanPending() { return bleDiscoveryRequested_ || tempReader_.isScanPending(); }
+    // Bounded hints written straight into the (PSRAM) response; no copy, no cJSON tree.
+    void writeBleDiscovery(std::ostream& out) const {
+        std::lock_guard<std::mutex> lock(roomsAccessMutex_); bleDiscovery_.writeJson(out);
     }
     bool brokerConnected() const {return mqtt_.brokerConnected();}
     bool nativeSourceCurrent(std::string_view expected,std::string_view savedSettings) const {return mqtt_.nativeSourceCurrent(expected,savedSettings);}
@@ -518,6 +569,8 @@ private:
 	}
 
 	std::atomic_bool bluetoothScan_;
+	bool bleDiscoveryRequested_ = false; // loop task only: REST and loop() share it
+	uint32_t bleDiscoveryRequestedAt_ = 0;
 #ifdef OPENTHERMOSTAT_E32V2
     static uint64_t bleReceiptClock() { return static_cast<uint64_t>(esp_timer_get_time()) / 1000; }
     control::MbedTlsBleCcm bleCrypto_;
@@ -525,6 +578,7 @@ private:
     control::BleDeviceDiscovery bleDiscovery_;
     static_assert(sizeof(decltype(managedBle_)) <= 4096, "BLE observer resident budget changed");
     control::RoomEngine roomEngine_;
+    control::ShadowComparison shadowComparison_; // E32 decision vs the tado's 0x1A, per day
     void loadHeatingPlan() {
         const auto raw = readHeatingPlan();
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(raw.c_str()), cJSON_Delete);
@@ -559,7 +613,8 @@ private:
             }
         std::optional<uint32_t> unixNow;
         if (networkTimeTrusted) unixNow = static_cast<uint32_t>(std::time(nullptr));
-        roomEngine_.step(now, unixNow);
+        const auto request = roomEngine_.step(now, unixNow);
+        shadowComparison_.sample(now, unixNow, request, ems_.thermostatRequestedFlowC());
     }
 #endif
 	BeaconTemperatureReader tempReader_{log_, [this](BleAddress_t address, std::optional<int16_t> temperature, std::optional<int16_t> humidity, std::optional<int8_t> battery) { pushTemperatureData(std::move(address), temperature, humidity, battery); }};

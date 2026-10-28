@@ -90,4 +90,13 @@ TEST(BlackBox, LongRequestPathIsTruncatedSafely) {
     box.request(std::string(100, 'x').c_str());
     EXPECT_EQ(std::strlen(rtc.lastRequest), sizeof(rtc.lastRequest) - 1);
 }
+TEST(BlackBox, LoopPhasesAppendedLaterKeepStoredValuesAndHaveNames) {
+    EXPECT_EQ(static_cast<int>(LoopPhase::telemetry), 6);
+    EXPECT_STREQ(BlackBox::phaseName(LoopPhase::ems), "ems");
+    EXPECT_STREQ(BlackBox::phaseName(LoopPhase::operate), "operate");
+    EXPECT_STREQ(BlackBox::phaseName(LoopPhase::health), "health_and_log");
+    EXPECT_STREQ(BlackBox::phaseName(LoopPhase::wifi_reconnect), "wifi_reconnect");
+    EXPECT_STREQ(BlackBox::phaseName(LoopPhase::bluetooth), "bluetooth");
+    EXPECT_STREQ(BlackBox::phaseName(LoopPhase::mqtt), "mqtt");
+}
 }

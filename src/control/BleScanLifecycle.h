@@ -7,13 +7,16 @@ namespace heating::control {
 // One existing scanner, with callback-to-loop publication. No task or retry loop.
 class BleScanLifecycle {
 public:
-    bool begin(uint32_t now, uint32_t intervalMs) {
+    bool begin(uint32_t now, uint32_t intervalMs, bool discovery = false) {
         if (state_.load(std::memory_order_acquire) != State::idle) return false;
         // uint32 elapsed supports millis wrap; configured intervals fit below 2^31.
-        if (finished_ && uint32_t(now - finishedAt_) < cooldownMs_) return false;
+        // A user-requested discovery skips the automatic cooldown; 1 s still prevents a spin.
+        const auto cooldown = discovery ? std::min<uint32_t>(cooldownMs_, 1000) : cooldownMs_;
+        if (finished_ && uint32_t(now - finishedAt_) < cooldown) return false;
         // Single loop caller prepares metadata before publishing pending to
         // the asynchronous SDK callback.
         intervalMs_ = intervalMs;
+        discovery_.store(discovery, std::memory_order_relaxed);
         State expected = State::idle;
         if (!state_.compare_exchange_strong(expected, State::pending,
                 std::memory_order_acq_rel)) return false;
@@ -38,6 +41,10 @@ public:
     bool acceptsReports() const {
         return state_.load(std::memory_order_acquire) == State::pending;
     }
+    // Only a user-requested discovery fills the nearby list; automatic scans do not.
+    bool discovering() const {
+        return acceptsReports() && discovery_.load(std::memory_order_relaxed);
+    }
     bool pending() const {
         const auto state = state_.load(std::memory_order_acquire);
         return state == State::pending || state == State::cleaning;
@@ -46,6 +53,7 @@ public:
 private:
     enum class State : uint8_t { idle, pending, cleaning, closed };
     std::atomic<State> state_{State::idle};
+    std::atomic<bool> discovery_{false};
     // Only loop writes interval; only one admitted completion writes the rest.
     // Idle release/acquire publishes the completion to the next loop invocation.
     uint32_t intervalMs_ = 0, finishedAt_ = 0, cooldownMs_ = 0;

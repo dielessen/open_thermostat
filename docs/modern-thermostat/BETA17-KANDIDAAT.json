@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "planned_tag": "v0.1.0-e32v2-beta.17",
+  "previous_published_tag": "v0.1.0-e32v2-beta.15",
+  "state": "FROZEN_SHADOW_ROOM_CONTROL_AWAITING_EXACT_TAG_CI",
+  "formal_freeze": true,
+  "published": false,
+  "installed": false,
+  "ha_tag": "ha-v0.4.0b9",
+  "ha_installed": false,
+  "observed_installed_e32": "v0.1.0-e32v2-beta.15",
+  "observed_installed_ha": "0.4.0b7",
+  "owner_instruction": "docs/modern-thermostat/BETA17-OWNER-INSTRUCTION-20261028.json",
+  "publication_exception": "docs/modern-thermostat/BETA17-PUBLICATION-EXCEPTION-20261028.json",
+  "last_accepted_native_e32": "v0.1.0-e32v2-beta.4",
+  "unpublished_superseded_tags": [
+    "v0.1.0-e32v2-beta.16",
+    "ha-v0.4.0b8"
+  ],
+  "changes": [
+    "All beta16 content (UART self-healing, bounded trial fault, supervisor and black box, pvvx profile, rooms and heating in shadow mode, one EMS table, merged My boiler page, updates through HA)",
+    "Bluetooth GET streamed into the PSRAM response buffer; at most 32 nearby hints, strongest first; discovery list fills only during a user Search; Search queued ahead of the automatic scan",
+    "cJSON allocations prefer PSRAM; supervisor at priority 5 feeds the RTC watchdog (HAL, 120 s system reset keeps the black box); finer loop phases",
+    "Supervisor timestamps as 32-bit seconds (no stdatomic.c.obj)",
+    "Stored Bluetooth settings accept profile 4 (pvvx) after a restart",
+    "Room plan revision with 409 plan_changed; plan edits keep readings, burner timers and the leading source index; plan_too_large 413",
+    "Room week program (RoomSchedule, Europe/Amsterdam), setpoint source ha/schedule/fallback, editor on the rooms page",
+    "Daily shadow comparison E32 vs thermostat 0x1A (ShadowComparison), on the page and today's in MQTT telemetry",
+    "Heating status: effective room state, limits, E32 Bluetooth sensors; HA rooms, Bluetooth sensors, room state/inactive-until/fallback writes",
+    "ActiveHeatGuard policy prepared and host-tested only; not wired, active mode still refused"
+  ],
+  "software_validation": {
+    "physical_test_performed": false
+  },
+  "physical_outputs_automatically_enabled": false,
+  "persistent_boiler_setting_writes_enabled": false,
+  "full_ten_minute_physical_success_claimed": false,
+  "native_https_root_cause_fixed": false
+}

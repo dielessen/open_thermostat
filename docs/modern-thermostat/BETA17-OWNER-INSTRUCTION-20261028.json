@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-10-28T17:53:00Z",
+  "requests": [
+    "in de tijd dat je wacht kun je vast aan de nieuwe beta 17 werken ?",
+    "start zoveel agents als je denkt nodig te hebben.",
+    "zodra ik op de bluetooth pagina kom en ik wacht to hij verbinding probeerd te maken . daarna is de e32 niet meer benaderbaar en niet te bereiken",
+    "ok ga door met de nieuwe release. Gberuik zoveel agents als je nodig hebt",
+    "Ja, publiceer en installeer (Aanbevolen)"
+  ],
+  "scope": "Beta17 + HA0.4.0b9 supersede the unpublished beta16/HA0.4.0b8 tags (CI: stale HA interop entity count; one unreviewed SDK object stdatomic.c.obj from a 64-bit atomic). Adds: Bluetooth page memory fix (bounded PSRAM response, 32 hints, list only during Search), RTC watchdog via the reviewed HAL, cJSON in PSRAM, pvvx stored-profile fix, room plan revision (two-way editing), week program, daily shadow comparison with the thermostat, E32 Bluetooth sensors and rooms in HA with room operation. Shadow mode only; no boiler output. Install from beta15 by the local authenticated upload; HA by the Samba share, owner restarts HA.",
+  "publication_approval_reply": "Ja, publiceer en installeer (Aanbevolen)",
+  "publication_approval_at_utc": "2026-10-28T17:52:00Z",
+  "installation_approval_reply": "Ja, publiceer en installeer (Aanbevolen)"
+}

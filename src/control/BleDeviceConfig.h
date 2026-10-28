@@ -7,7 +7,8 @@
 
 namespace heating::control {
 using ManagedBleAddress = std::array<uint8_t, 6>;
-enum class ManagedBleProfile : uint8_t { none = 0, shellyHtDisplay = 1, xiaomiMonitor3 = 2, shellyTrv = 3, pvvxThermometer = 4 };
+enum class ManagedBleProfile : uint8_t { none = 0, shellyHtDisplay = 1, xiaomiMonitor3 = 2, shellyTrv = 3, pvvxThermometer = 4,
+    last = pvvxThermometer }; // the stored-settings reader accepts 1..last
 enum class ManagedBleEncryption : uint8_t { plain = 0, bthomeV2 = 1, miBeaconV4V5 = 2 };
 inline void wipeBleKey(BleBindKey& key) noexcept {
     volatile uint8_t* out = key.data();

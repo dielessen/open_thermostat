@@ -15,7 +15,9 @@ struct BlackBoxRecord {
 };
 // Which part of the main loop runs, written several times per iteration, so it
 // is kept outside the checksummed record: one byte behind its own magic.
-enum class LoopPhase : uint8_t { idle, update, network, controller, ems, http, telemetry };
+// Append only: a stored value from the previous boot keeps its meaning.
+enum class LoopPhase : uint8_t { idle, update, network, controller, ems, http, telemetry,
+    operate, health, wifi_reconnect, bluetooth, mqtt };
 struct LoopPhaseRecord { uint32_t magic; volatile uint8_t phase; };
 
 class BlackBox {
@@ -84,9 +86,14 @@ public:
             case LoopPhase::update: return "update";
             case LoopPhase::network: return "network";
             case LoopPhase::controller: return "controller";
-            case LoopPhase::ems: return "ems_and_bluetooth";
+            case LoopPhase::ems: return "ems";
             case LoopPhase::http: return "http";
             case LoopPhase::telemetry: return "telemetry";
+            case LoopPhase::operate: return "operate";
+            case LoopPhase::health: return "health_and_log";
+            case LoopPhase::wifi_reconnect: return "wifi_reconnect";
+            case LoopPhase::bluetooth: return "bluetooth";
+            case LoopPhase::mqtt: return "mqtt";
             default: return "idle";
         }
     }

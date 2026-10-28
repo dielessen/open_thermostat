@@ -2,13 +2,25 @@
 const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html');
-const status={schema:1,mode:'shadow',request:{heat:true,flow_c:36,reason:'heating'},
-  rooms:[{id:'woonkamer',status:'ok',source:'climate.woonkamer',temperature:20.4,setpoint:21,demand:true}]};
+const side=(heat_s,starts,min,max,mean)=>({heat_s,starts,flow_min_c:min,flow_max_c:max,flow_mean_c:mean});
+const status={schema:1,revision:4,mode:'shadow',request:{heat:true,flow_c:36,reason:'heating'},
+  rooms:[{id:'woonkamer',name:'Woonkamer',state:'active',inactive_until:0,status:'ok',source:'climate.woonkamer',setpoint_source:'ha',temperature:20.4,setpoint:21,demand:true}],
+  ble_sensors:[{id:'a4c138a3e8db',name:'Thermometer woonkamer',profile:'pvvx_thermometer',temperature:20.4,humidity:55.2,battery:87,age_s:12},
+   {id:'a4c1389f0011',name:'Slaapkamer',profile:'pvvx_thermometer',temperature:null,humidity:null,battery:null,age_s:null}],
+  // ShadowComparison::json(): today so far, then completed days (yesterday first); nulls where nothing heated or paired.
+  shadow:{today:{day:'2026-10-28',s:36000,tado_unknown_s:600,e32:side(7200,4,31,42,36.4),tado:side(7800,5,35,45,39.2),both_s:6600,agree_s:33600,
+    e32_only_s:600,tado_only_s:1200,flow_diff_mean_c:2.8,starts_paired:4,starts_within_5min:3,start_offset_mean_s:75,start_offset_max_s:420},
+   days:[{day:'2026-10-27',s:86400,tado_unknown_s:0,e32:side(14400,6,30,44,37.1),tado:side(15000,7,34,46,40),both_s:13800,agree_s:84000,
+     e32_only_s:600,tado_only_s:1800,flow_diff_mean_c:3.1,starts_paired:6,starts_within_5min:5,start_offset_mean_s:-40,start_offset_max_s:600},
+    {day:'2026-10-26',s:3600,tado_unknown_s:3600,e32:side(0,0,null,null,null),tado:side(0,0,null,null,null),both_s:0,agree_s:0,
+     e32_only_s:0,tado_only_s:0,flow_diff_mean_c:null,starts_paired:0,starts_within_5min:0,start_offset_mean_s:null,start_offset_max_s:null}]}};
+const week=[...Array(5)].map(()=>[[390,2050],[1320,1800]]).concat([[[480,2050],[720,2000],[1380,1800]],[[480,2050],[720,2000],[1380,1800]]]);
+const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textContent,dt.nextElementSibling.textContent]));
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH}),results=[];
  try{for(const width of [1280,320]){
   const page=await browser.newPage({viewport:{width,height:900}}),errors=[],posts=[];
-  let plan={schema:1,mode:'shadow',minimum_flow_c:30,maximum_flow_c:60,rooms:[]};
+  let plan={schema:1,revision:4,mode:'shadow',minimum_flow_c:30,maximum_flow_c:60,rooms:[]},reject=null;
   page.on('pageerror',e=>errors.push(e.message));
   page.on('dialog',d=>d.accept());
   await page.route('http://opth.test/**',async route=>{
@@ -20,7 +32,10 @@ const status={schema:1,mode:'shadow',request:{heat:true,flow_c:36,reason:'heatin
    if(p==='/config/heating'){
     if(request.method()==='POST'){
      assert.equal(request.headers()['x-openthermostat-csrf'],'a'.repeat(64));
-     const body=request.postDataJSON();posts.push(body);plan=body;
+     const body=request.postDataJSON();posts.push(body);
+     if(reject){const r=reject;reject=null;return json({error:r.error},r.code);}
+     if(body.revision!==plan.revision)return json({error:'plan_changed'},409);
+     plan={...body,revision:plan.revision+1};
     }
     return json(plan);
    }
@@ -35,6 +50,26 @@ const status={schema:1,mode:'shadow',request:{heat:true,flow_c:36,reason:'heatin
   const root=page.locator('#heating-plan');
   await root.getByText('Nog geen ruimtes. Voeg eerst de woonkamer toe.').waitFor();
   await root.locator('[data-heating-request]').getByText(/Berekende ketelvraag: uit/).waitFor();
+  // Read-only Bluetooth sensors: values, a dash for each missing value and the ID to enter as a source.
+  const ble=root.locator('[data-heating-ble]');
+  await ble.getByText('Bluetooth-sensoren op deze E32').waitFor();
+  assert.equal(await ble.locator('[data-heating-ble-sensor]').count(),2);
+  assert.equal(await ble.locator('[data-heating-ble-sensor="a4c138a3e8db"]').innerText(),
+   'Thermometer woonkamer · ID a4c138a3e8db\nTemperatuur 20,4 °C · Luchtvochtigheid 55,2 % · Batterij 87 % · Leeftijd 12 s');
+  assert.equal(await ble.locator('[data-heating-ble-sensor="a4c1389f0011"] .pd-help').innerText(),
+   'Temperatuur — · Luchtvochtigheid — · Batterij — · Leeftijd —');
+  assert.match(await ble.innerText(),/Alleen-lezen\. Kies in de ruimte Bluetooth-sensor en vul de ID in/);
+  // Shadow comparison of today and the completed days.
+  const shadow=root.locator('[data-heating-shadow]');
+  assert.match(await shadow.innerText(),/Vergelijking met de huidige thermostaat \(vandaag\)[\s\S]*Schaduwmodus: de E32 berekent zijn ketelvraag maar verstuurt die niet/);
+  assert.deepEqual(await pairs(shadow.locator('[data-heating-shadow-today]')),[['Vergeleken tijd','600 min'],
+   ['Stooktijd E32 / tado','120 min / 130 min'],['Branderstarts E32 / tado','4 / 5'],['Overeenstemming (beide aan of beide uit)','95 %'],
+   ['Aanvoerbereik E32','31–42 °C (gemiddeld 36,4 °C)'],['Aanvoerbereik tado','35–45 °C (gemiddeld 39,2 °C)'],
+   ['E32-starts binnen 5 min van een tado-start','3 / 5'],['Zonder tado-gegevens','10 min']]);
+  const days=await shadow.locator('[data-heating-shadow-days] tr').evaluateAll(rows=>rows.map(r=>[...r.children].map(c=>c.textContent)));
+  assert.deepEqual(days.map(r=>r.slice(1)),[['E32','tado','Overeenstemming','Starts E32 / tado'],
+   ['240 min','250 min','97 %','6 / 7'],['0 min','0 min','—','0 / 0']]);
+  assert.match(days[1][0],/27-10/);assert.match(days[2][0],/26-10/);assert.equal(days[0][0],'Dag');
   await root.locator('[data-heating-add]').click();
   const card=root.locator('[data-heating-room]').last();
   await card.getByLabel('Naam').fill('Woonkamer');
@@ -48,11 +83,84 @@ const status={schema:1,mode:'shadow',request:{heat:true,flow_c:36,reason:'heatin
   await root.locator('[data-heating-save]').click();
   await root.getByText('Ruimtes opgeslagen.').waitFor();
   assert.equal(posts.length,1);
-  assert.deepEqual(posts[0],{schema:1,mode:'shadow',minimum_flow_c:30,maximum_flow_c:60,rooms:[{id:'woonkamer',name:'Woonkamer',
+  assert.deepEqual(posts[0],{schema:1,revision:4,mode:'shadow',minimum_flow_c:30,maximum_flow_c:60,rooms:[{id:'woonkamer',name:'Woonkamer',
    state:'active',inactive_until:0,emitter:'floor',sources:[{type:'ha',id:'climate.woonkamer'},{type:'ble',id:'a4c138a3e8db'}],
    setpoint_entity:'climate.woonkamer',fallback_centi_c:2000,minimum_centi_c:500,maximum_centi_c:2500}]});
   await root.locator('[data-heating-room="woonkamer"] summary').getByText(/Gemeten · 20,4 °C \/ 21,0 °C · vraagt warmte/).waitFor();
+  assert.equal(await root.locator('[data-heating-room="woonkamer"] summary').innerText(),'Woonkamer · Gemeten · 20,4 °C / 21,0 °C · vraagt warmte · setpoint: uit Home Assistant');
+  assert.equal(await root.locator('[data-heating-room="woonkamer"]').getByLabel('Weekprogramma gebruiken').isChecked(),false,'no week program');
   await root.locator('[data-heating-request]').getByText('Berekende ketelvraag: 36 °C · Verwarmen').waitFor();
+  // Home Assistant saved in between: the stale write is refused and the page reloads the plan.
+  plan={...plan,revision:plan.revision+1,rooms:plan.rooms.map(r=>({...r,name:'Living',schedule:week}))};
+  status.rooms[0].setpoint_source='schedule';
+  await root.locator('[data-heating-save]').click();
+  await root.getByText(/Het plan is elders gewijzigd/).waitFor();
+  assert.equal(posts.at(-1).revision,5);
+  const room=root.locator('[data-heating-room="woonkamer"]');
+  assert.equal(await room.locator('summary').innerText(),'Living · Gemeten · 20,4 °C / 21,0 °C · vraagt warmte · setpoint: weekprogramma');
+  // Prefill of the Home Assistant week: weekdays differ from the weekend, so one row per day.
+  await room.evaluate(e=>e.open=true);
+  const program=room.locator('[data-heating-week]'),points=()=>program.locator('[data-heating-day]').evaluateAll(days=>days.map(d=>[d.querySelector('strong').textContent,
+   ...[...d.querySelectorAll('[data-heating-point]')].map(p=>[...p.querySelectorAll('input')].map(i=>i.value).join(' '))]));
+  assert.match(await program.locator('legend').innerText(),/^Weekprogramma \(gebruikt als Home Assistant geen setpoint geeft\)$/);
+  assert.equal(await program.getByLabel('Weekprogramma gebruiken').isChecked(),true);
+  assert.equal(await program.getByLabel('Elke dag hetzelfde').isChecked(),false);
+  assert.deepEqual(await points(),[...['ma','di','wo','do','vr'].map(d=>[d,'06:30 20.5','22:00 18']),...['za','zo'].map(d=>[d,'08:00 20.5','12:00 20','23:00 18'])]);
+  status.rooms[0].setpoint_source='fallback';
+  await root.locator('[data-heating-save]').click();
+  await root.getByText('Ruimtes opgeslagen.').waitFor();
+  assert.equal(posts.at(-1).revision,6);assert.equal(posts.at(-1).rooms[0].name,'Living');
+  assert.deepEqual(posts.at(-1).rooms[0].schedule,week,'the week program survives a web save');
+  await room.locator('summary').getByText(/· setpoint: vaste terugval$/).waitFor();
+  status.rooms[0].setpoint_source='ha';
+  // Week program editor: saves re-render the cards, so wait for the new card and open it.
+  const save=async text=>{await room.evaluate(e=>e.dataset.old='1');await root.locator('[data-heating-save]').click();await root.getByText(text).waitFor();
+   await root.locator('[data-heating-room="woonkamer"]:not([data-old])').waitFor({state:'attached'});await room.evaluate(e=>e.open=true);};
+  const refused=async text=>{const n=posts.length;await root.locator('[data-heating-save]').click();await root.getByText(text,{exact:true}).waitFor();return posts.length-n;};
+  const fillPoint=async(i,time,temp)=>{const p=program.locator('[data-heating-point]').nth(i);await p.locator('input[type=time]').fill(time);await p.locator('input[type=number]').fill(temp);};
+  await room.evaluate(e=>e.open=true);
+  await program.getByLabel('Weekprogramma gebruiken').uncheck();
+  assert.equal(await program.locator('[data-heating-point]').first().isVisible(),false,'editor hidden when off');
+  await save('Ruimtes opgeslagen.');
+  assert.equal('schedule' in posts.at(-1).rooms[0],false,'toggling off removes the schedule');
+  assert.equal(await program.getByLabel('Weekprogramma gebruiken').isChecked(),false);
+  // Create a same-every-day program; the points are entered out of order.
+  await program.getByLabel('Weekprogramma gebruiken').check();
+  assert.equal(await program.getByLabel('Elke dag hetzelfde').isChecked(),true);
+  assert.deepEqual(await points(),[['Elke dag','07:00 20']],'seeded with the fallback setpoint');
+  await fillPoint(0,'22:30','18.0');
+  await program.getByRole('button',{name:'Schakelpunt toevoegen'}).click();await fillPoint(1,'06:30','20.5');
+  // Client-side checks: duplicate time, outside the room limits, missing value; nothing is posted.
+  await program.getByRole('button',{name:'Schakelpunt toevoegen'}).click();await fillPoint(2,'06:30','19');
+  assert.equal(await refused('Living · Elke dag: twee schakelpunten hebben dezelfde tijd.'),0);
+  await fillPoint(2,'12:00','26');
+  assert.equal(await refused('Living · Elke dag: temperaturen moeten tussen het minimum 5,0 °C en maximum 25,0 °C van de ruimte liggen.'),0);
+  await program.locator('[data-heating-point]').nth(2).locator('input[type=number]').fill('');
+  assert.equal(await refused('Living · Elke dag: vul bij elk schakelpunt een tijd en een temperatuur in.'),0);
+  await program.locator('[data-heating-point]').nth(2).getByRole('button',{name:'Verwijderen'}).click();
+  for(let i=0;i<5;i++)await program.getByRole('button',{name:'Schakelpunt toevoegen'}).click();
+  assert.equal(await program.locator('[data-heating-point]').count(),6,'at most 6 switch points per day');
+  for(let i=0;i<4;i++)await program.locator('[data-heating-point]').last().getByRole('button',{name:'Verwijderen'}).click();
+  // The E32 refuses: firmware errors become clear messages and the page keeps the edit.
+  reject={code:413,error:'plan_too_large'};
+  assert.equal(await refused('Het plan is te groot voor de E32: gebruik minder schakelpunten of ruimtes.'),1);
+  reject={code:400,error:'invalid_schedule_limits'};
+  assert.equal(await refused('De E32 weigerde het weekprogramma: elke temperatuur moet binnen het minimum en maximum van de ruimte liggen.'),1);
+  reject={code:400,error:'invalid_schedule'};
+  assert.equal(await refused('De E32 weigerde het weekprogramma: maximaal 6 schakelpunten per dag, elk op een andere tijd.'),1);
+  await save('Ruimtes opgeslagen.');
+  const daily=[[390,2050],[1350,1800]];
+  assert.deepEqual(posts.at(-1).rooms[0].schedule,Array(7).fill(daily));
+  assert.equal(await program.getByLabel('Elke dag hetzelfde').isChecked(),true,'seven equal days prefill as same every day');
+  assert.deepEqual(await points(),[['Elke dag','06:30 20.5','22:30 18']]);
+  // Switch to one row per day and change Saturday only.
+  await program.getByLabel('Elke dag hetzelfde').uncheck();
+  assert.deepEqual(await points(),['ma','di','wo','do','vr','za','zo'].map(d=>[d,'06:30 20.5','22:30 18']));
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll with the week open');
+  await fillPoint(10,'08:00','20.5');
+  await save('Ruimtes opgeslagen.');
+  assert.deepEqual(posts.at(-1).rooms[0].schedule,[daily,daily,daily,daily,daily,[[480,2050],[1350,1800]],daily]);
+  assert.equal(await program.getByLabel('Elke dag hetzelfde').isChecked(),false);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll');
   assert.deepEqual(errors,[]);
   results.push({width,result:'PASS'});await page.close();

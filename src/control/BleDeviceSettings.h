@@ -78,7 +78,7 @@ inline BleSettingsError readManagedBleBindings(const cJSON* settings, ManagedBle
         const auto at = [&](int index) { return cJSON_GetArrayItem(row, index); };
         if (!parseManagedBleAddress(bleSettingText(at(0)), value.address)) return fail(BleSettingsError::invalid_address);
         if (out.find(value.address)) return fail(BleSettingsError::duplicate_address);
-        if (!bleSettingInteger(at(1), 1, 3)) return fail(BleSettingsError::unsupported_profile);
+        if (!bleSettingInteger(at(1), 1, int(ManagedBleProfile::last))) return fail(BleSettingsError::unsupported_profile);
         value.profile = static_cast<ManagedBleProfile>(at(1)->valueint);
         if (!bleSettingInteger(at(2), 0, 2)) return fail(BleSettingsError::invalid_encryption);
         value.encryption = static_cast<ManagedBleEncryption>(at(2)->valueint);

@@ -1,6 +1,10 @@
 #include "control/BleDeviceDiscovery.h"
 #include <gtest/gtest.h>
 #include <algorithm>
+#include <cJSON.h>
+#include <memory>
+#include <sstream>
+#include <string>
 using heating::control::BleDeviceDiscovery;
 
 TEST(BleDeviceDiscovery, StableSortedUniqueAddressesWithoutDynamicStorage) {
@@ -75,4 +79,42 @@ TEST(BleDeviceDiscovery, NewDiscoveryReclaimsFullListAndClearsOldNames) {
     devices.clear();EXPECT_EQ(devices.size(),0u);EXPECT_FALSE(devices.overflowed());
     ASSERT_TRUE(devices.remember({255,255,255,255,255,255},-60));EXPECT_STREQ(devices.hint(0).name.data(),"");
     EXPECT_FALSE(devices.hint(0).completeName);EXPECT_EQ(devices.hint(0).rssi,-60);
+}
+TEST(BleDeviceDiscovery, StatusJsonShowsBoundedStrongestHintsFromAFullList) {
+    BleDeviceDiscovery devices;
+    uint8_t name[42]{};name[0]=41;name[1]=9;std::fill(name+2,name+42,'"'); // worst case: every byte escaped
+    for(unsigned i=0;i<BleDeviceDiscovery::capacity;++i)ASSERT_TRUE(devices.remember({uint8_t(i)},-127+int(i%100),name,sizeof name));
+    EXPECT_FALSE(devices.remember({255,255,255,255,255,255}));
+    std::ostringstream out;out<<'{';devices.writeJson(out);out<<'}';
+    const auto body=out.str();
+    EXPECT_LT(body.size(),5000u); // was ~13.5 KB plus a 256-node cJSON tree every 5 s
+    std::unique_ptr<cJSON,decltype(&cJSON_Delete)> json(cJSON_Parse(body.c_str()),cJSON_Delete);
+    ASSERT_TRUE(json);
+    const auto nearby=cJSON_GetObjectItem(json.get(),"nearby"),hints=cJSON_GetObjectItem(json.get(),"nearby_devices");
+    ASSERT_EQ(cJSON_GetArraySize(nearby),int(BleDeviceDiscovery::shown));
+    ASSERT_EQ(cJSON_GetArraySize(hints),int(BleDeviceDiscovery::shown));
+    EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItem(json.get(),"discovery_full")));
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(json.get(),"discovery_capacity")),double(BleDeviceDiscovery::shown));
+    double previous=21;
+    for(int i=0;i<cJSON_GetArraySize(hints);++i) {
+        const auto hint=cJSON_GetArrayItem(hints,i);const auto rssi=cJSON_GetNumberValue(cJSON_GetObjectItem(hint,"rssi"));
+        EXPECT_LE(rssi,previous);previous=rssi;
+        EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(hint,"address")),cJSON_GetStringValue(cJSON_GetArrayItem(nearby,i)));
+        EXPECT_EQ(std::string(cJSON_GetStringValue(cJSON_GetObjectItem(hint,"name"))),std::string(40,'"'));
+    }
+    EXPECT_EQ(previous,-127+99-31); // the 32 strongest of -127..-28
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetArrayItem(nearby,0)),"630000000000");
+}
+TEST(BleDeviceDiscovery, StatusJsonOfEmptyAndSmallListsIsNotFull) {
+    BleDeviceDiscovery devices;std::ostringstream empty;empty<<'{';devices.writeJson(empty);empty<<'}';
+    EXPECT_EQ(empty.str(),"{\"discovery_full\":false,\"discovery_capacity\":32,\"nearby\":[],\"nearby_devices\":[]}");
+    for(uint8_t i=0;i<BleDeviceDiscovery::shown;++i)devices.remember({i},-60);
+    std::ostringstream out;out<<'{';devices.writeJson(out);out<<'}';
+    std::unique_ptr<cJSON,decltype(&cJSON_Delete)> json(cJSON_Parse(out.str().c_str()),cJSON_Delete);
+    ASSERT_TRUE(json);EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItem(json.get(),"discovery_full")));
+    // Equal signal keeps address order.
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetArrayItem(cJSON_GetObjectItem(json.get(),"nearby"),0)),"000000000000");
+    devices.remember({BleDeviceDiscovery::shown},-60);
+    std::ostringstream more;devices.writeJson(more);
+    EXPECT_NE(more.str().find("\"discovery_full\":true"),std::string::npos);
 }

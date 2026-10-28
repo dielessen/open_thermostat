@@ -16,13 +16,39 @@ class RoomEngine {
 public:
     static constexpr uint32_t setpointMaxAgeMs = 900000; // older HA target: use the fallback
 
+    // An edit keeps what is known per room (readings, demand) and the burner
+    // timers; only changed flow limits restart the flow demand.
     void setPlan(const RoomPlan& plan) {
+        std::vector<Runtime> next(plan.rooms.size());
+        for (size_t i = 0; i < plan.rooms.size(); ++i) {
+            const auto& room = plan.rooms[i];
+            const auto* old = plan_.find(room.id);
+            next[i].active = room.state == RoomDemand::State::active; // until the next step
+            if (!old) continue;
+            const auto& oldRt = rooms_[old - plan_.rooms.data()];
+            next[i] = oldRt;
+            next[i].active = room.state == RoomDemand::State::active;
+            next[i].readings = {};
+            int8_t lead = -1;  // the leading source's index in the edited list
+            for (size_t s = 0; s < room.sources.size(); ++s)
+                for (size_t o = 0; o < old->sources.size(); ++o)
+                    if (old->sources[o].type == room.sources[s].type && old->sources[o].id == room.sources[s].id) {
+                        next[i].readings[s] = oldRt.readings[o];
+                        if (int(o) == oldRt.result.source) lead = int8_t(s);
+                    }
+            next[i].result.source = lead;
+            if (oldRt.result.source >= 0 && lead < 0) { next[i].result = {}; next[i].lastUsable = {}; } // its sensor was removed
+            if (old->setpointEntity != room.setpointEntity) next[i].target.reset();
+        }
+        if (!configured_ || plan.minimumFlowC != plan_.minimumFlowC || plan.maximumFlowC != plan_.maximumFlowC) {
+            FlowDemand::Params params;
+            params.minimumFlowC = plan.minimumFlowC; params.maximumFlowC = plan.maximumFlowC;
+            flow_ = FlowDemand(params);
+            request_ = {};
+        }
+        configured_ = true;
         plan_ = plan;
-        FlowDemand::Params params;
-        params.minimumFlowC = plan.minimumFlowC; params.maximumFlowC = plan.maximumFlowC;
-        flow_ = FlowDemand(params);
-        rooms_.assign(plan.rooms.size(), {});
-        request_ = {};
+        rooms_ = std::move(next);
     }
     const RoomPlan& plan() const { return plan_; }
 
@@ -58,9 +84,11 @@ public:
             RoomDemand::Spec spec;
             const bool pauseEnded = room.inactiveUntil && unixNow && *unixNow >= room.inactiveUntil;
             spec.state = room.state == RoomDemand::State::active || pauseEnded ? RoomDemand::State::active : RoomDemand::State::inactive;
+            rt.active = spec.state == RoomDemand::State::active;
             spec.sources = static_cast<uint8_t>(room.sources.size());
             spec.minimumCentiC = room.minimumCentiC; spec.maximumCentiC = room.maximumCentiC;
-            rt.result = RoomDemand::evaluate(spec, rt.readings, setpoint(room, rt, now), now, rt.lastUsable);
+            rt.setpointSource = setpointSource(room, rt, now, unixNow);
+            rt.result = RoomDemand::evaluate(spec, rt.readings, setpoint(room, rt, rt.setpointSource, unixNow), now, rt.lastUsable);
             if (rt.result.source >= 0) rt.lastUsable = rt.readings[rt.result.source];
             const auto zone = rt.regulator.step(now, rt.result.temperature, rt.result.setpoint, rt.result.usable);
             rt.demand = zone.demand;
@@ -77,6 +105,7 @@ public:
         cJSON* root = cJSON_CreateObject();
         if (!root) return nullptr;
         cJSON_AddNumberToObject(root, "schema", 1);
+        cJSON_AddNumberToObject(root, "revision", plan_.revision);
         cJSON_AddStringToObject(root, "mode", plan_.mode == RoomPlan::Mode::active ? "active" : "shadow");
         cJSON* request = cJSON_AddObjectToObject(root, "request");
         cJSON_AddBoolToObject(request, "heat", request_.heat);
@@ -99,17 +128,27 @@ public:
             cJSON* r = cJSON_CreateObject();
             if (!r || !cJSON_AddItemToArray(rooms, r)) { cJSON_Delete(r); cJSON_Delete(root); return nullptr; }
             cJSON_AddStringToObject(r, "id", room.id.c_str());
+            cJSON_AddStringToObject(r, "name", room.name.c_str());
+            // The effective state: active again once a temporary pause has ended.
+            cJSON_AddStringToObject(r, "state", rt.active ? "active" : "inactive");
+            cJSON_AddNumberToObject(r, "inactive_until", room.inactiveUntil);
+            cJSON_AddNumberToObject(r, "fallback_centi_c", room.fallbackCentiC);
+            cJSON_AddNumberToObject(r, "minimum_centi_c", room.minimumCentiC);
+            cJSON_AddNumberToObject(r, "maximum_centi_c", room.maximumCentiC);
             cJSON_AddStringToObject(r, "status", RoomDemand::name(rt.result.status));
             if (rt.result.source >= 0) cJSON_AddStringToObject(r, "source", room.sources[rt.result.source].id.c_str());
             else cJSON_AddNullToObject(r, "source");
             centi(r, "temperature", rt.result.temperature);
             centi(r, "setpoint", rt.result.setpoint);
+            cJSON_AddStringToObject(r, "setpoint_source", rt.setpointSource == SetpointSource::ha ? "ha"
+                : rt.setpointSource == SetpointSource::schedule ? "schedule" : "fallback");
             cJSON_AddBoolToObject(r, "demand", rt.demand);
         }
         return root;
     }
 
 private:
+    enum class SetpointSource : uint8_t { ha, schedule, fallback };
     struct Runtime {
         std::array<RoomDemand::Reading, RoomDemand::maxSources> readings{};
         RoomDemand::Reading lastUsable{};
@@ -118,10 +157,19 @@ private:
         ZoneRegulator regulator{};
         RoomDemand::Result result{};
         bool demand = false;
+        bool active = false;  // effective state of the last step
+        SetpointSource setpointSource = SetpointSource::fallback;
     };
-    static std::optional<int16_t> setpoint(const RoomPlan::Room& room, const Runtime& rt, uint64_t now) {
-        if (rt.target && rt.targetAt <= now && now - rt.targetAt < setpointMaxAgeMs) return rt.target;
-        return room.fallbackCentiC; // without HA: the room's own fallback setpoint
+    // A fresh HA target, else the E32 week program (needs the clock), else the fixed fallback.
+    static SetpointSource setpointSource(const RoomPlan::Room& room, const Runtime& rt, uint64_t now, std::optional<uint32_t> unixNow) {
+        if (rt.target && rt.targetAt <= now && now - rt.targetAt < setpointMaxAgeMs) return SetpointSource::ha;
+        if (unixNow && !room.schedule.empty()) return SetpointSource::schedule;
+        return SetpointSource::fallback;
+    }
+    static std::optional<int16_t> setpoint(const RoomPlan::Room& room, const Runtime& rt, SetpointSource source, std::optional<uint32_t> unixNow) {
+        if (source == SetpointSource::ha) return rt.target;
+        if (source == SetpointSource::schedule) return room.schedule.at(RoomSchedule::amsterdam(*unixNow));
+        return room.fallbackCentiC;
     }
     static void centi(cJSON* o, const char* key, std::optional<int16_t> v) {
         if (v) cJSON_AddNumberToObject(o, key, *v / 100.0); else cJSON_AddNullToObject(o, key);
@@ -130,5 +178,6 @@ private:
     std::vector<Runtime> rooms_;
     FlowDemand flow_;
     FlowDemand::Request request_{};
+    bool configured_ = false;
 };
 }

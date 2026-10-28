@@ -537,11 +537,17 @@
     "binary_sensor": {
       "radiators_heating": {
         "name": "Radiators heating"
+      },
+      "room_demand": {
+        "name": "{room} heat demand"
       }
     },
     "number": {
       "radiator_rated_power": {
         "name": "Radiator rated power"
+      },
+      "room_fallback_setpoint": {
+        "name": "{room} fallback setpoint"
       }
     },
     "sensor": {
@@ -556,6 +562,45 @@
       },
       "controller_requested_flow_temperature": {
         "name": "E32 requested flow temperature"
+      },
+      "room_temperature": {
+        "name": "{room} temperature"
+      },
+      "room_setpoint": {
+        "name": "{room} setpoint"
+      },
+      "room_status": {
+        "name": "{room} control status",
+        "state": {
+          "ok": "OK",
+          "fallback": "Fallback setpoint",
+          "stale": "Stale reading",
+          "lost": "Sensor lost",
+          "inactive": "Inactive"
+        }
+      },
+      "ble_temperature": {
+        "name": "{sensor} temperature"
+      },
+      "ble_humidity": {
+        "name": "{sensor} humidity"
+      },
+      "ble_battery": {
+        "name": "{sensor} battery"
+      }
+    },
+    "select": {
+      "room_state": {
+        "name": "{room} room state",
+        "state": {
+          "active": "Active",
+          "inactive": "Inactive"
+        }
+      }
+    },
+    "datetime": {
+      "room_inactive_until": {
+        "name": "{room} inactive until"
       }
     }
   },
@@ -1445,6 +1490,33 @@
   "exceptions": {
     "invalid_room_temperature": {
       "message": "Enter a valid temperature within the room limits."
+    },
+    "room_plan_changed": {
+      "message": "The room plan was changed on the E32 twice while saving. Nothing was saved; try again."
+    },
+    "room_plan_rejected": {
+      "message": "The E32 refused the room plan change ({error}). Nothing was saved."
+    },
+    "room_plan_unconfirmed": {
+      "message": "The E32 could not confirm that the room plan was saved. Check the room before trying again."
+    },
+    "room_plan_unreachable": {
+      "message": "The E32 could not be reached to change the room plan ({error}). Nothing was saved."
+    },
+    "room_plan_invalid": {
+      "message": "The E32 returned a room plan this version cannot read. Update the E32 firmware and the integration together."
+    },
+    "room_plan_room_missing": {
+      "message": "Room {room} is no longer in the E32 room plan."
+    },
+    "room_setpoint_outside_limits": {
+      "message": "Choose a setpoint between {minimum} °C and {maximum} °C."
+    },
+    "room_inactive_until_past": {
+      "message": "Choose a moment in the future for \"inactive until\"."
+    },
+    "room_state_invalid": {
+      "message": "Choose active or inactive."
     }
   }
 }

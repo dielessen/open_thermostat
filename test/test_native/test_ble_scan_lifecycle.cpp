@@ -66,3 +66,17 @@ TEST(BleScanLifecycle, ReportsAcceptedOnlyInsideOwnedScanNotCleanupOrShutdown) {
     scan.close();
     EXPECT_FALSE(scan.acceptsReports());
 }
+TEST(BleScanLifecycle, OnlyARequestedDiscoveryFillsTheListAndItSkipsTheAutomaticCooldown) {
+    BleScanLifecycle scan;
+    ASSERT_TRUE(scan.begin(0,60000));
+    EXPECT_TRUE(scan.acceptsReports());EXPECT_FALSE(scan.discovering()); // automatic scan
+    ASSERT_TRUE(scan.complete(60000,[] {}));
+    EXPECT_FALSE(scan.begin(60500,60000,true)); // no spin: 1 s minimum
+    ASSERT_TRUE(scan.begin(61000,60000,true));   // user Search does not wait 60 s
+    EXPECT_TRUE(scan.discovering());
+    EXPECT_TRUE(scan.complete(91000,[&] {EXPECT_FALSE(scan.discovering());}));
+    EXPECT_FALSE(scan.discovering());
+    EXPECT_FALSE(scan.begin(150999,60000));      // automatic scans keep their cooldown
+    ASSERT_TRUE(scan.begin(151000,60000));
+    EXPECT_FALSE(scan.discovering());
+}

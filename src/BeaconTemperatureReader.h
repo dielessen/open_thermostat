@@ -48,7 +48,8 @@ public:
 		// The radio is shared: when Wi-Fi and Bluetooth compete, Wi-Fi wins. A
 		// sensor repeats its report every few seconds; lost HTTP or MQTT traffic
 		// can leave the device unreachable.
-		esp_coex_preference_set(ESP_COEX_PREFER_WIFI);
+		const auto coex = esp_coex_preference_set(ESP_COEX_PREFER_WIFI);
+		DBGLOGFI(log_, logFeature_, "Bluetooth coexistence prefers Wi-Fi: %s\n", esp_err_to_name(coex));
 		NimBLEScan *pBLEScan = NimBLEDevice::getScan();
 		if (!pBLEScan) { scanLifecycle_.close(); return; }
 
@@ -65,12 +66,14 @@ public:
 	}
 
 	bool isScanPending() { return scanLifecycle_.pending(); }
+	bool discovering() const { return scanLifecycle_.discovering(); }
+	bool scanEnabled() const { return config_.scanTime != 0; }
 
 	bool triggerScan(uint32_t durationMs = 0, const std::function<void()>& onAdmitted = {}) {
 		// Zero means unlimited scanning in NimBLE, not a disabled scan.
 		if (!config_.scanTime) return false;
 		const auto now = static_cast<uint32_t>(millis());
-		if (!scanLifecycle_.begin(now, uint32_t(config_.scanInterval) * 1000u)) return false;
+		if (!scanLifecycle_.begin(now, uint32_t(config_.scanInterval) * 1000u, durationMs != 0)) return false;
         // Before SDK start: the first new report must enter the new discovery list.
         try { if (onAdmitted) onAdmitted(); }
         catch (...) {

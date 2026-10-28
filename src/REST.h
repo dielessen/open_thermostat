@@ -740,34 +740,28 @@ private:
         if(!bindings) { server_.send(503,"application/json","{\"error\":\"bluetooth_resources_unavailable\"}");return; }
         const auto storedError=control::readManagedBleBindings(previous.get(),*bindings);
         if(server_.method()==HTTP_GET) {
+            // Polled every 5 s: stream into the PSRAM response buffer, one device's
+            // cJSON row at a time, so internal heap use stays a few KB (beta.16 hang).
+            previous.reset();
             auto devices=control::publicManagedBleBindings(*bindings);
-            control::ControlJson result(cJSON_CreateObject(),cJSON_Delete);
-            if(!devices || !result || !cJSON_AddNumberToObject(result.get(),"schema",1)
-                    || !cJSON_AddBoolToObject(result.get(),"pending_restart",controller_.managedBlePending())
-                    || !cJSON_AddStringToObject(result.get(),"config_error",control::bleSettingsErrorName(storedError))
-                    || !cJSON_AddNumberToObject(result.get(),"queue_drops",controller_.managedBleQueueDrops())
-                    || !cJSON_AddBoolToObject(result.get(),"scan_pending",controller_.bleScanPending())) { server_.send(503);return; }
-            for(size_t i=0;i<bindings->count;++i) if(!control::addBleObservation(cJSON_GetArrayItem(devices.get(),i),controller_.managedBleSnapshot(bindings->devices[i].address))) {server_.send(503);return;}
-            if(!cJSON_AddItemToObject(result.get(),"devices",devices.get())) {server_.send(503);return;} devices.release();
-            std::unique_ptr<control::BleDeviceDiscovery> discovered(new(std::nothrow) control::BleDeviceDiscovery);
-            if(!discovered) {server_.send(503);return;} controller_.copyBleDiscovery(*discovered);
-            auto nearby=cJSON_AddArrayToObject(result.get(),"nearby");
-            if(!nearby || !cJSON_AddBoolToObject(result.get(),"discovery_full",discovered->overflowed())
-                    || !cJSON_AddNumberToObject(result.get(),"discovery_capacity",control::BleDeviceDiscovery::capacity)) {server_.send(503);return;}
-            auto hints=cJSON_AddArrayToObject(result.get(),"nearby_devices");
-            if(!hints) {server_.send(503);return;}
-            size_t hintIndex=0;
-            for(const auto& address:*discovered) {
-                const auto hex=control::printBleHex(address);
-                const auto& hint=discovered->hint(hintIndex++);
-                auto item=cJSON_CreateObject();
-                if(!item) {server_.send(503);return;}
-                if(!cJSON_AddItemToArray(hints,item)) {cJSON_Delete(item);server_.send(503);return;}
-                if(!control::appendBleJson(nearby,cJSON_CreateString(hex.data()))
-                        ||!cJSON_AddStringToObject(item,"address",hex.data())
-                        ||!cJSON_AddStringToObject(item,"name",hint.name.data())
-                        ||!cJSON_AddNumberToObject(item,"rssi",hint.rssi)) {server_.send(503);return;}
+            auto &buf=jsonResponse_;
+            if(!devices || !buf.reset()) { server_.send(503,"application/json","{\"error\":\"bluetooth_resources_unavailable\"}");return; }
+            std::ostream out(&buf);
+            out<<"{\"schema\":1,\"pending_restart\":"<<(controller_.managedBlePending()?"true":"false")
+               <<",\"config_error\":\""<<control::bleSettingsErrorName(storedError)<<"\",\"queue_drops\":"<<controller_.managedBleQueueDrops()
+               <<",\"scan_pending\":"<<(controller_.bleScanPending()?"true":"false")<<",\"devices\":[";
+            for(size_t i=0;i<bindings->count;++i) {
+                control::ControlJson row(cJSON_DetachItemFromArray(devices.get(),0),cJSON_Delete);
+                if(!row || !control::addBleObservation(row.get(),controller_.managedBleSnapshot(bindings->devices[i].address))) {server_.send(503);return;}
+                std::unique_ptr<char,decltype(&cJSON_free)> text(cJSON_PrintUnformatted(row.get()),cJSON_free);
+                if(!text) {server_.send(503);return;}
+                if(i) out.put(',');
+                out<<text.get();
             }
+            out<<"],";
+            controller_.writeBleDiscovery(out);
+            out.put('}');
+            if(!out.good()||buf.failed()) {server_.send(503,"application/json","{\"error\":\"bluetooth_resources_unavailable\"}");return;}
             if(!statusOnly) {
                 std::array<char,65> nonce{};
                 if(!randomToken(nonce)) {server_.send(503);return;}
@@ -776,7 +770,7 @@ private:
                 server_.sendHeader("ETag",String("\"")+tag.data()+"\"");
             }
             server_.sendHeader("Cache-Control","no-store");
-            server_.send(200,"application/json",control::printJson(result.get()).c_str());return;
+            server_.sendView(200,"application/json"sv,buf.view());return;
         }
         if(!server_.hasHeader("If-Match") || !sessions_.settingsReadbackMatches(requestToken().c_str(),server_.header("If-Match").c_str(),control::sha256Hex({saved.c_str(),saved.length()}),networkNow(),control::WebAuthSession::SettingsScope::bluetooth)) {
             server_.send(412,"application/json","{\"error\":\"device_settings_changed\"}");return;
@@ -1217,7 +1211,8 @@ private:
 			std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(cJSON_ParseWithLengthOpts(body.c_str(),body.length()+1,nullptr,true),cJSON_Delete);
 			const char* error = root ? controller_.setHeatingPlan(root.get()) : "invalid_json";
 			if (error) {
-				const int code = std::strcmp(error,"save_unconfirmed") ? 400 : 503;
+				const int code = !std::strcmp(error,"save_unconfirmed") ? 503 : !std::strcmp(error,"plan_changed") ? 409
+					: !std::strcmp(error,"plan_too_large") ? 413 : 400;
 				server_.send(code,"application/json",(std::string("{\"error\":\"")+error+"\"}").c_str()); return;
 			}
 		}

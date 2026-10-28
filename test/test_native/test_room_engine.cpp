@@ -88,11 +88,94 @@ TEST(RoomEngine, TemporarilyInactiveRoomReturnsWhenItsPauseEnds) {
     EXPECT_FALSE(e.step(0, 1761649999).heat);
     EXPECT_FALSE(e.step(minute, std::nullopt).heat); // clock unknown: the pause holds
     EXPECT_TRUE(e.step(2 * minute, 1761650000).heat);
+    // HA shows the effective state: active again, the plan keeps its pause date.
+    Json j(e.json(), cJSON_Delete);
+    const auto* room = cJSON_GetArrayItem(cJSON_GetObjectItem(j.get(), "rooms"), 0);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(room, "state")), "active");
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(room, "inactive_until")), 1761650000);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(room, "fallback_centi_c")), 2000);
 }
 TEST(RoomEngine, RoomWithinHysteresisDoesNotStartTheBoiler) {
     RoomEngine e; e.setPlan(parsed(ownerPlan));
     e.haState("climate.woonkamer", 2090, 2100, 0); // 0.1 degC short, hysteresis 0.2
     const auto r = e.step(0, std::nullopt);
     EXPECT_FALSE(r.heat); EXPECT_EQ(r.reason, heating::control::FlowDemand::Reason::idle);
+}
+}
+
+namespace {
+TEST(RoomPlan, RevisionRoundTripsAndOldPlansStartAtZero) {
+    EXPECT_EQ(parsed(ownerPlan).revision, 0u);
+    std::string text = ownerPlan;
+    auto plan = parsed(text.replace(1, 0, "\"revision\":41,").c_str());
+    EXPECT_EQ(plan.revision, 41u);
+    EXPECT_EQ(parsed(plan.json().c_str()).revision, 41u);
+    text = ownerPlan;
+    EXPECT_STREQ(parseError(text.replace(1, 0, "\"revision\":-1,")), "invalid_revision");
+}
+// Renaming a room or reordering its sources from HA must not reset what the
+// engine knows: readings follow their source and the burner keeps running.
+TEST(RoomEngine, EditingThePlanKeepsReadingsAndTheRunningRequest) {
+    RoomEngine e; e.setPlan(parsed(ownerPlan));
+    e.haState("climate.woonkamer", 2040, 2100, 10 * minute);
+    e.bleReading("a4c138a3e8db", 1990, 10 * minute);
+    ASSERT_TRUE(e.step(10 * minute, 1761650000).heat);
+    std::string text = ownerPlan;
+    text.replace(text.find("\"Woonkamer\""), 11, "\"Living\"");
+    const auto first = text.find("{\"type\":\"ha\",\"id\":\"climate.woonkamer\"}");
+    text.erase(first, 39);  // drop the tado source and its comma: Bluetooth only
+    auto edited = parsed(text.c_str());
+    ASSERT_EQ(edited.rooms[0].sources.size(), 1u);
+    e.setPlan(edited);
+    const auto r = e.step(11 * minute, 1761650060);
+    EXPECT_TRUE(r.heat);  // min on time continues; not restarted from off
+    Json j(e.json(), cJSON_Delete);
+    const auto* room = cJSON_GetArrayItem(cJSON_GetObjectItem(j.get(), "rooms"), 0);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(room, "source")), "a4c138a3e8db");
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(room, "name")), "Living");
+    EXPECT_DOUBLE_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(room, "temperature")), 19.9);
+}
+}
+
+namespace {
+// Without HA the E32 follows its own week program; without a clock the fallback.
+TEST(RoomEngine, StaleHomeAssistantTargetFallsBackToTheWeekProgram) {
+    std::string text = ownerPlan;
+    // Every day: 18.0 from 22:30, 20.5 from 06:30 local time.
+    const std::string week = R"(,"schedule":[[[390,2050],[1350,1800]],[],[],[],[],[],[]])";
+    text.insert(text.find("\"maximum_centi_c\":2500}") + 22, week);
+    RoomEngine e; e.setPlan(parsed(text.c_str()));
+    ASSERT_FALSE(e.plan().rooms[0].schedule.empty());
+    EXPECT_NE(e.plan().json().find("\"schedule\""), std::string::npos);
+    e.haState("climate.woonkamer", 1950, 2100, 0);
+    const auto room = [&](uint64_t now, std::optional<uint32_t> utc) {
+        e.step(now, utc);
+        Json j(e.json(), cJSON_Delete);
+        const auto* r = cJSON_GetArrayItem(cJSON_GetObjectItem(j.get(), "rooms"), 0);
+        return std::make_pair(cJSON_GetNumberValue(cJSON_GetObjectItem(r, "setpoint")),
+                              std::string(cJSON_GetStringValue(cJSON_GetObjectItem(r, "setpoint_source"))));
+    };
+    EXPECT_EQ(room(minute, 1761650000), std::make_pair(21.0, std::string("ha")));
+    // Mon 26 Oct 2026 03:00 local (CET) = 02:00 UTC: before 06:30, so the 22:30 night value.
+    e.bleReading("a4c138a3e8db", 1950, 20 * minute);
+    EXPECT_EQ(room(20 * minute, 1792980000), std::make_pair(18.0, std::string("schedule")));
+    EXPECT_EQ(room(21 * minute, std::nullopt), std::make_pair(20.0, std::string("fallback")));
+}
+}
+
+namespace {
+// Removing the leading source must not leave the status pointing past the
+// edited source list (read before the next step: web reload, MQTT publish).
+TEST(RoomEngine, RemovingTheLeadingSourceForgetsItBeforeTheNextStep) {
+    RoomEngine e; e.setPlan(parsed(ownerPlan));
+    e.bleReading("a4c138a3e8db", 1990, 10 * minute); // HA silent: Bluetooth (index 1) leads
+    e.step(10 * minute, 1761650000);
+    std::string text = ownerPlan;
+    const std::string ble = R"(,{"type":"ble","id":"a4c138a3e8db"})";
+    text.erase(text.find(ble), ble.size());
+    e.setPlan(parsed(text.c_str()));
+    Json j(e.json(), cJSON_Delete);
+    const auto* room = cJSON_GetArrayItem(cJSON_GetObjectItem(j.get(), "rooms"), 0);
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(room, "source")));
 }
 }

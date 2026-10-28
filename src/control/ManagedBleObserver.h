@@ -83,6 +83,8 @@ public:
     bool wantsAutomaticScan() const noexcept { return enabled() && bindings_.count; }
     BleObserverStop stopReason() const noexcept { return stop_; }
     bool matches(const ManagedBleBindings& bindings) const noexcept { return bindings_.same(bindings); }
+    // Set once at boot; the heating status lists these sensors for Home Assistant.
+    const ManagedBleBindings& bindings() const noexcept { return bindings_; }
 
     void capture(const ManagedBleAddress& address, int rssi, const uint8_t* bytes,
             std::size_t size, uint64_t receivedAt) {

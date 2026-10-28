@@ -263,6 +263,15 @@ public:
         }
         out<<"]}";
     }
+    // The other controller's (tado) requested flow from 0x1A, for the shadow
+    // comparison; nullopt when unknown or older than the table's lifetime.
+    std::optional<uint8_t> thermostatRequestedFlowC() const {
+        static_assert(std::string_view(ems::entityCatalog[ems::entityFieldRows[0]].id)=="thermostat_requested_flow_temperature");
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        const auto f=entities_.field(0,static_cast<uint64_t>(esp_timer_get_time()/1000));
+        if(!f||!f->valid||f->raw<0||f->raw>100)return std::nullopt;
+        return static_cast<uint8_t>(f->raw);
+    }
     void getDeviceStatus(std::ostream &ss) const {
         std::lock_guard<std::mutex> lock(telemetryMutex_);
         const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);

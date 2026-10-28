@@ -278,6 +278,14 @@ def _selected_context_source_profiles(entry):
     except (ValueError,TypeError):
         raise ConfigEntryError("context_profile_invalid") from None
 
+def _shadow_platforms(product):
+    """Setup and unload use the same list; product entries add the E32 room operation."""
+    from homeassistant.const import Platform
+    platforms = [Platform.CLIMATE, Platform.SENSOR]
+    if product:
+        platforms += [Platform.BINARY_SENSOR, Platform.UPDATE, Platform.SELECT, Platform.NUMBER, Platform.DATETIME]
+    return platforms
+
 async def async_setup_entry(hass, entry):
     from .v1_model import integration_mode, MODE_LEGACY, MODE_SHADOW, RoomBinding
     mode = integration_mode(entry)
@@ -311,7 +319,6 @@ async def async_setup_entry(hass, entry):
         return False
     from .v1_heating_graph import reconcile_removed_rooms
     reconcile_removed_rooms(hass, entry)
-    from homeassistant.const import Platform
     from .v1_runtime import ShadowRuntime
     from .product import is_product
     product = is_product(entry)
@@ -381,9 +388,7 @@ async def async_setup_entry(hass, entry):
         async_register_entry(hass, entry)
         cleanup.push_async_callback(_cleanup_setup_bench, hass, entry.entry_id,
                                     hass.data.get(BENCH_KEY, {}).get(entry.entry_id))
-        platforms = [Platform.CLIMATE, Platform.SENSOR]
-        if product:
-            platforms += [Platform.BINARY_SENSOR, Platform.UPDATE]
+        platforms = _shadow_platforms(product)
         cleanup.push_async_callback(hass.config_entries.async_unload_platforms, entry, platforms)
         await hass.config_entries.async_forward_entry_setups(entry, platforms)
         if entry.options.get(CONF_CREATE_DASHBOARD,False):
@@ -408,16 +413,12 @@ async def async_unload_entry(hass, entry):
     state = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
     if "v1_runtime" not in state:
         return await _legacy_unload_entry(hass, entry)
-    from homeassistant.const import Platform
     from .v1_bench_actions import async_unregister_entry
     await async_unregister_entry(hass, entry.entry_id)
     # Withdraw listener/task/transport ownership before any mode transfer.
     await state["v1_runtime"].async_stop()
     from .product import is_product
-    platforms = [Platform.CLIMATE, Platform.SENSOR]
-    if is_product(entry):
-        platforms.append(Platform.BINARY_SENSOR)
-    unloaded = await hass.config_entries.async_unload_platforms(entry, platforms)
+    unloaded = await hass.config_entries.async_unload_platforms(entry, _shadow_platforms(is_product(entry)))
     if unloaded:
         if tracker := state.get("heating_tracker"):
             await tracker.async_stop()

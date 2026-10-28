@@ -1,5 +1,6 @@
 #pragma once
 #include "control/RoomDemand.h"
+#include "control/RoomSchedule.h"
 #include <cJSON.h>
 #include <cmath>
 #include <cstring>
@@ -25,7 +26,9 @@ struct RoomPlan {
         std::string setpointEntity;  // HA entity with the target (e.g. the tado climate); empty = fixed only
         int16_t fallbackCentiC = 2000;  // setpoint without a fresh HA target
         int16_t minimumCentiC = 500, maximumCentiC = 2500;
+        RoomSchedule schedule;  // the E32 week program without HA; empty = fallback only
     };
+    uint32_t revision = 0;  // +1 on every save; a write must name the revision it was based on
     Mode mode = Mode::shadow;
     uint8_t minimumFlowC = 30, maximumFlowC = 60;
     std::vector<Room> rooms;
@@ -37,6 +40,10 @@ struct RoomPlan {
         const auto* mode = string(root, "mode");
         if (!mode || (std::strcmp(mode, "shadow") && std::strcmp(mode, "active"))) return "invalid_mode";
         plan.mode = std::strcmp(mode, "active") ? Mode::shadow : Mode::active;
+        if (const auto* rev = cJSON_GetObjectItemCaseSensitive(root, "revision")) { // absent in beta.16 plans
+            if (!cJSON_IsNumber(rev) || !whole(rev->valuedouble, 0, 4294967295.0)) return "invalid_revision";
+            plan.revision = static_cast<uint32_t>(rev->valuedouble);
+        }
         const double minFlow = number(root, "minimum_flow_c"), maxFlow = number(root, "maximum_flow_c");
         if (!whole(minFlow, 20, 59) || !whole(maxFlow, 21, 60) || minFlow >= maxFlow) return "invalid_flow_limits";
         plan.minimumFlowC = static_cast<uint8_t>(minFlow); plan.maximumFlowC = static_cast<uint8_t>(maxFlow);
@@ -55,6 +62,7 @@ struct RoomPlan {
         std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_CreateObject(), cJSON_Delete);
         if (!root) return {};
         cJSON_AddNumberToObject(root.get(), "schema", 1);
+        cJSON_AddNumberToObject(root.get(), "revision", revision);
         cJSON_AddStringToObject(root.get(), "mode", mode == Mode::active ? "active" : "shadow");
         cJSON_AddNumberToObject(root.get(), "minimum_flow_c", minimumFlowC);
         cJSON_AddNumberToObject(root.get(), "maximum_flow_c", maximumFlowC);
@@ -78,6 +86,10 @@ struct RoomPlan {
             cJSON_AddNumberToObject(r, "fallback_centi_c", room.fallbackCentiC);
             cJSON_AddNumberToObject(r, "minimum_centi_c", room.minimumCentiC);
             cJSON_AddNumberToObject(r, "maximum_centi_c", room.maximumCentiC);
+            if (!room.schedule.empty()) {
+                cJSON* schedule = room.schedule.json();
+                if (!schedule || !cJSON_AddItemToObject(r, "schedule", schedule)) { cJSON_Delete(schedule); return {}; }
+            }
         }
         std::unique_ptr<char, decltype(&cJSON_free)> text(cJSON_PrintUnformatted(root.get()), cJSON_free);
         return text ? text.get() : "";
@@ -124,6 +136,8 @@ private:
         const double fallback = number(r, "fallback_centi_c"), lo = number(r, "minimum_centi_c"), hi = number(r, "maximum_centi_c");
         if (!whole(lo, 500, 3000) || !whole(hi, 500, 3000) || lo > hi || !whole(fallback, lo, hi)) return "invalid_room_limits";
         room.fallbackCentiC = int16_t(fallback); room.minimumCentiC = int16_t(lo); room.maximumCentiC = int16_t(hi);
+        if (const auto* schedule = cJSON_GetObjectItemCaseSensitive(r, "schedule")) // optional; absent in beta.16 plans
+            return RoomSchedule::parse(schedule, room.minimumCentiC, room.maximumCentiC, room.schedule);
         return nullptr;
     }
     static const char* string(const cJSON* o, const char* key) {

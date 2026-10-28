@@ -167,6 +167,22 @@ TEST(BleDeviceSettings, EightMaximumLengthEncryptedBindingsFitThePrivateStore) {
     ASSERT_EQ(readManagedBleBindings(candidate.get(),restored),BleSettingsError::none);EXPECT_TRUE(next.same(restored));
     for(unsigned i=0;i<8;++i){EXPECT_TRUE(restored.devices[i].hasKey);EXPECT_EQ(std::string(restored.devices[i].name.data()).size(),40u);}
 }
+// Beta.16 saved profile 4 but its stored-settings reader accepted 1..3 only, so
+// after the restart every Bluetooth sensor stopped (configuration_invalid).
+TEST(BleDeviceSettings, PvvxThermometerSurvivesTheStoredReadAndASecondSave) {
+    auto old=json("{\"bt\":{}}");auto patch=request();auto row=cJSON_GetArrayItem(cJSON_GetObjectItemCaseSensitive(patch.get(),"devices"),0);
+    cJSON_ReplaceItemInObjectCaseSensitive(row,"profile",cJSON_CreateString("pvvx_thermometer"));
+    cJSON_ReplaceItemInObjectCaseSensitive(row,"encryption",cJSON_CreateString("none"));
+    cJSON_ReplaceItemInObjectCaseSensitive(row,"key_action",cJSON_CreateString("clear"));
+    cJSON_DeleteItemFromObjectCaseSensitive(row,"bindkey");
+    ManagedBleBindings next,restored;ControlJson candidate(nullptr,cJSON_Delete);bool changed=false;
+    ASSERT_EQ(prepareManagedBleSettings(old.get(),patch.get(),next,candidate,changed),BleSettingsError::none);
+    ASSERT_EQ(readManagedBleBindings(candidate.get(),restored),BleSettingsError::none);EXPECT_TRUE(next.same(restored));
+    EXPECT_EQ(restored.devices[0].profile,ManagedBleProfile::pvvxThermometer);
+    cJSON_ReplaceItemInObjectCaseSensitive(row,"name",cJSON_CreateString("Woonkamer"));
+    ControlJson second(nullptr,cJSON_Delete);
+    EXPECT_EQ(prepareManagedBleSettings(candidate.get(),patch.get(),next,second,changed),BleSettingsError::none);EXPECT_TRUE(changed);
+}
 TEST(BleDeviceSettings, Monitor3HasItsOwnExplicitProfileAndEncryptionAndRoundtripsPrivately) {
     auto old=json("{\"bt\":{}}");auto patch=request();auto row=cJSON_GetArrayItem(cJSON_GetObjectItemCaseSensitive(patch.get(),"devices"),0);
     cJSON_ReplaceItemInObjectCaseSensitive(row,"profile",cJSON_CreateString("xiaomi_monitor_3"));

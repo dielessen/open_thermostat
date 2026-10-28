@@ -1368,11 +1368,17 @@
     "binary_sensor": {
       "radiators_heating": {
         "name": "Radiatoren verwarmen"
+      },
+      "room_demand": {
+        "name": "Warmtevraag {room}"
       }
     },
     "number": {
       "radiator_rated_power": {
         "name": "Nominaal radiatorvermogen"
+      },
+      "room_fallback_setpoint": {
+        "name": "Terugvaltemperatuur {room}"
       }
     },
     "sensor": {
@@ -1387,6 +1393,45 @@
       },
       "controller_requested_flow_temperature": {
         "name": "Door E32 gevraagde aanvoertemperatuur"
+      },
+      "room_temperature": {
+        "name": "Temperatuur {room}"
+      },
+      "room_setpoint": {
+        "name": "Streefwaarde {room}"
+      },
+      "room_status": {
+        "name": "Regelstatus {room}",
+        "state": {
+          "ok": "In orde",
+          "fallback": "Terugvalstand",
+          "stale": "Verouderde meting",
+          "lost": "Sensor kwijt",
+          "inactive": "Inactief"
+        }
+      },
+      "ble_temperature": {
+        "name": "Temperatuur {sensor}"
+      },
+      "ble_humidity": {
+        "name": "Luchtvochtigheid {sensor}"
+      },
+      "ble_battery": {
+        "name": "Batterij {sensor}"
+      }
+    },
+    "select": {
+      "room_state": {
+        "name": "Ruimtestand {room}",
+        "state": {
+          "active": "Actief",
+          "inactive": "Inactief"
+        }
+      }
+    },
+    "datetime": {
+      "room_inactive_until": {
+        "name": "{room} inactief tot"
       }
     }
   },
@@ -1443,6 +1488,33 @@
   "exceptions": {
     "invalid_room_temperature": {
       "message": "Voer een geldige temperatuur binnen de kamergrenzen in."
+    },
+    "room_plan_changed": {
+      "message": "Het ruimteplan is tijdens het opslaan twee keer op de E32 gewijzigd. Er is niets opgeslagen; probeer het opnieuw."
+    },
+    "room_plan_rejected": {
+      "message": "De E32 weigerde de wijziging van het ruimteplan ({error}). Er is niets opgeslagen."
+    },
+    "room_plan_unconfirmed": {
+      "message": "De E32 kon niet bevestigen dat het ruimteplan is opgeslagen. Controleer de ruimte voordat je het opnieuw probeert."
+    },
+    "room_plan_unreachable": {
+      "message": "De E32 was niet bereikbaar om het ruimteplan te wijzigen ({error}). Er is niets opgeslagen."
+    },
+    "room_plan_invalid": {
+      "message": "De E32 gaf een ruimteplan dat deze versie niet kan lezen. Werk de E32-firmware en de integratie samen bij."
+    },
+    "room_plan_room_missing": {
+      "message": "Ruimte {room} staat niet meer in het ruimteplan van de E32."
+    },
+    "room_setpoint_outside_limits": {
+      "message": "Kies een streefwaarde tussen {minimum} °C en {maximum} °C."
+    },
+    "room_inactive_until_past": {
+      "message": "Kies een moment in de toekomst voor \"inactief tot\"."
+    },
+    "room_state_invalid": {
+      "message": "Kies actief of inactief."
     }
   }
 }

@@ -169,13 +169,50 @@ TEST_F(BoilerTest, TimeoutWithoutPostCommandFeedbackLatchesUncertainStop) {
     EXPECT_FALSE(session.reportedStopConfirmed());
 }
 
-TEST_F(BoilerTest, DhwStaleAndConflictingFamiliesWithdrawPositiveDemand) {
+// Attended trial 2026-10-27: a tap opened during heating. The combi boiler
+// pauses CH for hot water; the request and fixed deadline continue.
+TEST_F(BoilerTest, TapWaterDuringHeatingPausesCentralHeatingWithoutWithdrawingDemand) {
     heating();
     auto pending = session.next(102, gates, monitor);
-    report(103, false, 10, true);
+    report(103, false, 100, true);
+    EXPECT_TRUE(session.mayTransmit(pending, 103, gates, monitor));
+    EXPECT_EQ(session.phase(), Phase::heating);
+    EXPECT_EQ(session.dhwInterruptions(), 1u);
+    report(104, true, 40); session.step(104, gates, monitor);
+    EXPECT_EQ(session.phase(), Phase::heating);
+    report(105, false, 100, true); session.step(105, gates, monitor);
+    report(106, false, 100, true); session.step(106, gates, monitor);
+    EXPECT_EQ(session.dhwInterruptions(), 2u); // one per episode, not per report
+}
+
+TEST_F(BoilerTest, TapWaterBeforeStartStillBlocksHeat) {
+    prepare();
+    auto zero = session.next(100, gates, monitor);
+    ASSERT_TRUE(testing_detail::instantTransmission(session, zero, 100, true, gates, monitor));
+    report(101, false, 100, true); session.step(101, gates, monitor);
+    EXPECT_NE(session.phase(), Phase::ready);
+    EXPECT_EQ(session.start(11, 1, 102, gates, monitor), Reply::refused);
+}
+
+TEST_F(BoilerTest, StopIsConfirmedWhileTheBurnerRunsOnlyForTapWater) {
+    heating();
+    session.stop(103);
+    auto zero = session.next(103, gates, monitor);
+    ASSERT_TRUE(testing_detail::instantTransmission(session, zero, 103, true, gates, monitor));
+    report(104, true, 40); session.step(104, gates, monitor);      // CH still on: not stopped
+    EXPECT_FALSE(session.reportedStopConfirmed());
+    report(105, false, 100, true); session.step(105, gates, monitor); // CH off, burner for DHW only
+    EXPECT_TRUE(session.reportedStopConfirmed());
+    EXPECT_EQ(session.phase(), Phase::completed);
+}
+
+TEST_F(BoilerTest, StaleAndConflictingFamiliesWithdrawPositiveDemand) {
+    heating();
+    auto pending = session.next(102, gates, monitor);
+    monitor.receive({EmsTelegram::BROADCAST, 8, 0, 0, 0xE4, {1}}, 103);
+    report(103);
     EXPECT_FALSE(session.mayTransmit(pending, 103, gates, monitor));
     EXPECT_EQ(session.phase(), Phase::stopping);
-    monitor.receive({EmsTelegram::BROADCAST, 8, 0, 0, 0xE4, {1}}, 104);
     report(105);
     auto zero = session.next(105, gates, monitor);
     ASSERT_TRUE(testing_detail::instantTransmission(session, zero, 105, true, gates, monitor));

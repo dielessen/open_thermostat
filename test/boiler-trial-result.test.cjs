@@ -6,7 +6,9 @@ const progress=()=>({schema:1,requested_temperature_reported:true,heating_operat
 const completed=()=>({phase:'completed',reported_stop_confirmed:true,zero_frames:2,positive_frames:601,zero_only:false,progress:progress()});
 test('passed requires a completed full heat trial and every server observation',()=>{
  assert.equal(context.trialOutcome(completed()),'passed');
- for(const key of ['requested_temperature_reported','heating_operation_reported']){
+ // Classic boilers keep the read-back setpoint at 0: CH operation decides.
+ {const status=completed();status.progress.requested_temperature_reported=false;assert.equal(context.trialOutcome(status),'passed');}
+ for(const key of ['heating_operation_reported']){
   const status=completed();status.progress[key]=false;assert.equal(context.trialOutcome(status),'unconfirmed',key);
  }
  for(const phase of ['idle','baseline','ready','heating','stopping'])assert.equal(context.trialOutcome({...completed(),phase}),'running');

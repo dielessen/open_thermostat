@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "OWNER_PASSED_FIRMWARE_PARTIAL_DHW_INTERRUPTION",
+  "firmware": "v0.1.0-e32v2-beta.12",
+  "operator": "present, 2 bar, independent stop (reply: ja 2bar en ja)",
+  "heat_started_utc": "2026-10-27T22:42:39Z",
+  "withdrawn_utc": "2026-10-27T22:49:17Z",
+  "heat_seconds_approx": 398,
+  "positive_requests": 7,
+  "interval_s": 60,
+  "response": "CH active, modulation 37-41 %, flow 48-51 C, return 44-46 C",
+  "end_reason": "proving_conditions_lost: DHW became active (tap water), CH 1->0, modulation 100 %",
+  "stop_report": "reported_stop_timeout: burner kept running for DHW (DHW 1, CH 0, flow 75 C); our request 0, 51 zero frames",
+  "thermostat_setpoint_observed": null,
+  "uart_fault": {
+    "reason": "echo_event_accounting",
+    "observed_at_ms": 735610,
+    "echo_fault": {
+      "frozen_at_us": 735610516,
+      "echo_consumed": 0,
+      "echo_trailing": 0,
+      "echo_frame": true,
+      "echo_broken": true,
+      "pending_length": 3,
+      "events": [
+        [
+          "break",
+          2,
+          735538787
+        ],
+        [
+          "data",
+          2,
+          735561537
+        ],
+        [
+          "break",
+          2,
+          735561567
+        ],
+        [
+          "data",
+          1,
+          735583699
+        ],
+        [
+          "data",
+          1,
+          735589681
+        ],
+        [
+          "break",
+          1,
+          735589711
+        ],
+        [
+          "write_start",
+          6,
+          735590426
+        ],
+        [
+          "write_end",
+          1,
+          735604318
+        ],
+        [
+          "data",
+          1,
+          735604429
+        ],
+        [
+          "data",
+          1,
+          735604434
+        ],
+        [
+          "data",
+          1,
+          735604438
+        ],
+        [
+          "data",
+          1,
+          735604440
+        ],
+        [
+          "data",
+          1,
+          735604443
+        ],
+        [
+          "data",
+          1,
+          735604446
+        ],
+        [
+          "data",
+          3,
+          735610482
+        ],
+        [
+          "break",
+          3,
+          735610513
+        ]
+      ]
+    }
+  },
+  "uart_interpretation": "After our 6-byte zero frame and its 6 echo bytes, one 3-byte DATA event arrived before any BREAK: our delimiter plus 2 reply bytes coalesced; the BREAK ending our own frame was not detected. 1 fault in 59 transmitted frames, after withdrawal.",
+  "owner_verdict": "PASSED (\"test is wat mij betreft geslaagd\")",
+  "owner_burner_off_after_tap_closed": true,
+  "full_ten_minutes": false,
+  "followup_beta13": [
+    "DHW during heating is a pause; normal stop confirmed with CH off while the burner serves tap water",
+    "Recover a coalesced own-BREAK (00 delimiter verified) instead of an echo accounting fault"
+  ],
+  "evidence": "out/beta11-trial/attended-20261027T224224Z"
+}

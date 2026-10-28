@@ -8,7 +8,7 @@
 #include "EMS/EmsPoll.h"
 #include "EMS/ClassicBoilerMonitor.h"
 #include "EMS/EmsDeviceInventory.h"
-#include "EMS/ClassicBusObservations.h"
+#include "EMS/EmsEntityCatalog.h"
 #include "EMS/OutdoorTemperatureSample.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "EMS/BoilerTestService.h"
@@ -264,8 +264,8 @@ public:
 		// metadata share the same lock/time. Consumers never re-read the bus.
 		ss << ",\"inventory\":";
 		deviceInventory_.writeJSON(ss,snapshotMs);
-		ss << ",\"bus_observations\":";
-		busObservations_.writeJSON(ss,snapshotMs);
+		ss << ",\"ems_entities\":";
+		entities_.writeJSON(ss,snapshotMs);
 		ss << ",\"transport\":{\"enabled\":"
 		   << (emsConfig_.emsEnabled ? "true" : "false")
 		   << ",\"transmit_compiled\":" << ((board::emsTransmitAllowed || board::emsManualTestTransmitAllowed) ? "true" : "false")
@@ -275,7 +275,8 @@ public:
 		   << ",\"invalid_telegrams\":" << invalidTelegrams_.load(std::memory_order_relaxed)
 		   << ",\"uart_errors\":" << uart_.rxErrors.load(std::memory_order_relaxed)
 		   << ",\"uart_timeouts\":" << uart_.rxTimeouts.load(std::memory_order_relaxed)
-		   << ",\"uart_resets\":" << uart_.resets.load(std::memory_order_relaxed);
+		   << ",\"uart_resets\":" << uart_.resets.load(std::memory_order_relaxed)
+		   << ",\"echo_break_recoveries\":" << uart_.echoBreakRecoveries.load(std::memory_order_relaxed);
         const auto uartError=uart_.lastRxError();
         ss << ",\"last_uart_error\":{\"reason\":\"" << uartError.reason
            << "\",\"observed_at_ms\":" << uartError.observedAtMs;
@@ -458,7 +459,7 @@ private:
 	mutable std::mutex telemetryMutex_;
 	ClassicBoilerMonitor monitor_;
     EmsDeviceInventory deviceInventory_;
-    ClassicBusObservations busObservations_; // passive, telemetry mutex
+    EmsEntityObserver entities_; // passive EMS+/thermostat table, telemetry mutex
 #ifdef OPENTHERMOSTAT_E32V2
 	// A real, restricted attended commissioning route. Its pressure reading and
     // site declarations are scoped to each accepted preparation, not persisted.

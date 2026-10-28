@@ -72,6 +72,9 @@ public:
     // Historical observations for this one session. They never admit a command.
     bool requestedTemperatureReported() const { return selectedReported_; }
     bool heatingOperationReported() const { return heatingReported_; }
+    // Hot-water (DHW) episodes the boiler reported during heating. The combi
+    // boiler pauses CH for tap water; the request and fixed deadline continue.
+    uint32_t dhwInterruptions() const { return dhwInterruptions_; }
     bool durationCompleted() const { return durationCompleted_; }
     uint32_t requestedDurationSeconds() const { return heatMs_ / 1000; }
     const char* endReason() const { return endReason_; }
@@ -123,6 +126,7 @@ public:
             || !canAdd(now, profile_.stopTimeoutMs) || !canAdd(now, profile_.operatorLeaseMs))
             return Reply::refused;
         firstPositiveAt_.reset(); selectedReported_ = heatingReported_ = durationCompleted_ = false;
+        dhwInterruptions_ = 0; dhwActive_ = false;
         endReason_ = "";
         session_ = session; flowC_ = flowC; heatMs_ = heatMs; zeroOnly_ = zeroOnly;
         operatorUntil_ = now + profile_.operatorLeaseMs;
@@ -188,7 +192,7 @@ public:
         }
         if (phase_ == Phase::heating) observeHeating(monitor, now);
         if (phase_ == Phase::heating && (now >= heatUntil_ || now >= operatorUntil_
-            || !gates.allowsHeat() || !feedbackValid(monitor, now))) {
+            || !gates.allowsHeat() || !feedbackValid(monitor, now, true))) {
             stop(now, now >= operatorUntil_ && (operatorUntil_ <= heatUntil_ || now < heatUntil_)
                 ? StopCause::operatorLeaseExpired
                 : now >= heatUntil_ ? StopCause::heatDeadline : StopCause::provingConditionsLost);
@@ -204,7 +208,7 @@ public:
             fail("reported_stop_timeout"); return;
         }
         if ((phase_ == Phase::baseline || phase_ == Phase::stopping) && zeroSent_
-            && reportedOff(monitor, now, zeroSentAt_)) {
+            && reportedOff(monitor, now, zeroSentAt_, phase_ == Phase::stopping)) {
             stopConfirmed_ = true;
             if (phase_ == Phase::baseline && !zeroOnly_) {
                 phase_ = Phase::ready; reason_ = "reported_stop_baseline_confirmed"; ++epoch_;
@@ -282,16 +286,23 @@ private:
     bool fresh(const BoilerSample& sample, uint64_t now) const {
         return sample.raw && sample.fresh(now, profile_.reportTtlMs);
     }
-    bool feedbackValid(const ClassicBoilerMonitor& monitor, uint64_t now) const {
+    // Fresh Classic CH/modulation/DHW reports. Before heat starts DHW must be
+    // off; while heating, a DHW episode is the boiler's tap-water priority, not
+    // lost proof (attended trial 2026-10-27 ended early on a tap).
+    bool feedbackValid(const ClassicBoilerMonitor& monitor, uint64_t now, bool allowDhw = false) const {
         const auto& cv = monitor.sample(BoilerField::heatingActive);
         const auto& power = monitor.sample(BoilerField::modulation);
         const auto& dhw = monitor.sample(BoilerField::dhwActive);
         return monitor.capabilities().profile() == BoilerProtocol::classic
-            && fresh(cv, now) && fresh(power, now) && fresh(dhw, now) && *dhw.raw == 0;
+            && fresh(cv, now) && fresh(power, now) && fresh(dhw, now) && (allowDhw || *dhw.raw == 0);
     }
     void observeHeating(const ClassicBoilerMonitor& monitor, uint64_t now) {
-        if ((selectedReported_ && heatingReported_) || !firstPositiveAt_ || now > heatUntil_
-            || !feedbackValid(monitor, now)) return;
+        if (now > heatUntil_ || !feedbackValid(monitor, now, true)) return;
+        const bool dhwNow = *monitor.sample(BoilerField::dhwActive).raw != 0;
+        if (dhwNow && !dhwActive_ && dhwInterruptions_ != UINT32_MAX) ++dhwInterruptions_;
+        dhwActive_ = dhwNow;
+        // Tap-water reports carry the DHW setpoint and burner, never our CH response.
+        if (dhwNow || !firstPositiveAt_ || (selectedReported_ && heatingReported_)) return;
         const auto& selected = monitor.sample(BoilerField::selectedFlow);
         const auto& cv = monitor.sample(BoilerField::heatingActive);
         const auto& dhw = monitor.sample(BoilerField::dhwActive);
@@ -306,14 +317,19 @@ private:
         if (afterCommand(cv, BoilerQuality::inferred) && afterCommand(dhw, BoilerQuality::inferred)
             && cv.observedMs == dhw.observedMs && *cv.raw == 1 && *dhw.raw == 0) heatingReported_ = true;
     }
-    bool reportedOff(const ClassicBoilerMonitor& monitor, uint64_t now, uint64_t after) const {
+    // allowDhw only for the normal stop after heating: CH off while the burner
+    // serves tap water. Baseline and fault closure still need an idle boiler.
+    bool reportedOff(const ClassicBoilerMonitor& monitor, uint64_t now, uint64_t after, bool allowDhw = false) const {
         const auto& cv = monitor.sample(BoilerField::heatingActive);
         const auto& power = monitor.sample(BoilerField::modulation);
         const auto& selected = monitor.sample(BoilerField::selectedFlow);
+        const auto& dhw = monitor.sample(BoilerField::dhwActive);
         // A burner pause can coexist with a pending positive demand. Baseline,
         // completion and fault recovery require explicit zero selection too.
-        return feedbackValid(monitor, now) && cv.observedMs > after && power.observedMs > after
-            && *cv.raw == 0 && *power.raw == 0 && fresh(selected, now)
+        // CH must be off; the burner may still run only for reported tap water.
+        const bool burnerOffOrDhw = *power.raw == 0 || (allowDhw && dhw.observedMs > after && *dhw.raw != 0);
+        return feedbackValid(monitor, now, allowDhw) && cv.observedMs > after && power.observedMs > after
+            && *cv.raw == 0 && burnerOffOrDhw && fresh(selected, now)
             && selected.quality == BoilerQuality::reported && selected.sourceType == 0x18
             && selected.observedMs > after && *selected.raw == 0;
     }
@@ -340,6 +356,7 @@ private:
     bool haveTime_ = false, started_ = false, sent_ = false, zeroSent_ = false, stopConfirmed_ = false;
     std::optional<uint64_t> firstPositiveAt_;
     bool selectedReported_ = false, heatingReported_ = false, durationCompleted_ = false;
+    uint32_t dhwInterruptions_ = 0; bool dhwActive_ = false;
     const char* endReason_ = "";
     bool inFlight_ = false;
     Intent pending_;

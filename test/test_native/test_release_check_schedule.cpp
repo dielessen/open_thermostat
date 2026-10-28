@@ -65,9 +65,21 @@ TEST(ReleaseCheckSchedule, FailedRetryCooldownSurvivesRolloverAndEveryRepeatedFa
     for(unsigned i=0;i<32;++i) {
         s.attempted(at);s.completed(at+1,false);
         EXPECT_FALSE(s.cached(at+2));EXPECT_FALSE(s.known());
-        EXPECT_FALSE(s.due(at+s.failureRetryMs-1,true));
-        EXPECT_FALSE(s.due(at+s.failureRetryMs,false));
-        EXPECT_TRUE(s.due(at+s.failureRetryMs,true));
-        at+=s.failureRetryMs;
+        const auto retry=s.retryMs(); // backs off, capped at the normal interval
+        EXPECT_GE(retry,s.failureRetryMs);EXPECT_LE(retry,s.intervalMs);
+        EXPECT_FALSE(s.due(at+retry-1,true));
+        EXPECT_FALSE(s.due(at+retry,false));
+        EXPECT_TRUE(s.due(at+retry,true));
+        at+=retry;
     }
+}
+
+TEST(ReleaseCheckSchedule, ConsecutiveFailuresBackOffToTheNormalIntervalAndSuccessResets){
+    heating::update::ReleaseCheckSchedule s;
+    uint32_t now=s.initialDelayMs;
+    for(uint32_t expected:{s.failureRetryMs,2*s.failureRetryMs,4*s.failureRetryMs,8*s.failureRetryMs,16*s.failureRetryMs,s.intervalMs,s.intervalMs}){
+        ASSERT_TRUE(s.due(now,true));s.attempted(now);s.completed(now,false);
+        EXPECT_EQ(s.retryMs(),expected);EXPECT_FALSE(s.due(now+expected-1,true));now+=expected;
+    }
+    ASSERT_TRUE(s.due(now,true));s.attempted(now);s.completed(now,true);EXPECT_EQ(s.retryMs(),s.failureRetryMs);
 }

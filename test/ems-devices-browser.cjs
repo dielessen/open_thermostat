@@ -54,6 +54,18 @@ function snapshot(){return {reception:{state:'classic_reports_received'},transpo
   data=snapshot();data.fields.safe_text=sample('<img src=x onerror=alert(1)>','text');await page.locator('#ems-search').fill('');await refresh();
   assert.equal(await page.locator('#ems-device-list img').count(),0);assert.match(await boiler.innerText(),/<img/);
   data.inventory.devices[0].product_id=null;await refresh();assert(!/EasyControl/.test(await boiler.locator('summary').first().innerText()));
+  // A room thermostat with table-driven entities gets its own read-only card.
+  data=snapshot();data.inventory.devices.push({address:16,frames:3,age_ms:300,product_id:null,version:null,brand_id:null,untracked_types:0,telegram_types:[177]});
+  data.ems_entities={schema:1,reference:'emsesp_offsets',verified_on_hardware:false,devices:[{address:16,entities:[
+   {id:'thermostat_room_temperature',value:20.5,unit:'degC',source_type:177,age_ms:300},{id:'thermostat_setpoint',value:null,unit:'degC',source_type:177,age_ms:300}]}],dropped:0};
+  await refresh();
+  const thermostat=page.locator('#ems-device-list > details[data-address="16"]');await thermostat.waitFor();
+  await thermostat.locator('summary').click();
+  assert.match(await thermostat.innerText(),lang==='nl'?/20,5 °C/:/20.5 °C/);
+  assert.equal(await thermostat.locator('button').count(),0,'table entities are read only');
+  data.ems_entities.devices[0].entities[0].value='bad';await refresh();
+  assert.equal(await page.locator('#ems-device-list > details[data-address="16"]').count(),0,'invalid entity data is ignored, the boiler card remains');
+  assert.equal(await page.locator('#ems-device-list > details[data-address="8"]').count(),1);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   fs.mkdirSync(output,{recursive:true});await page.screenshot({path:path.join(output,`${lang}-${width}.png`),fullPage:true});
   missingMetadata=true;data=snapshot();await page.reload();await page.evaluate(()=>loadNativePage('boiler_test'));

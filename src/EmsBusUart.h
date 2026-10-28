@@ -139,6 +139,7 @@ public:
 	std::atomic<uint32_t> rxErrors{0};
 	std::atomic<uint32_t> rxTimeouts{0};
 	std::atomic<uint32_t> resets{0};
+	std::atomic<uint32_t> echoBreakRecoveries{0}; // own BREAK unreported, delimiter dropped, reply kept
 
 private:
     // UART task and status reader share a short existing ESP critical-section
@@ -317,6 +318,20 @@ static void uart_event_task(void *pvParameters) {
                 bus->freezeEchoFault(length);
                 bus->recordRxError(EmsBusUart::RxError::echoAccounting);
                 bus->performReset();length=0;break;
+            }
+            // Our own BREAK went unreported and the reply followed in the same
+            // buffer: drop exactly our 0x00 delimiter, keep the reply frame.
+            if(bus->echoRxDebt_.coalesced()) {
+                uint8_t first=0xFF;
+                const int read=length?uart_read_bytes(bus->getUartSlot(),&first,1,0):0;
+                if(read!=1||!bus->echoRxDebt_.acceptDelimiter(first)) {
+                    bus->freezeEchoFault(length);
+                    bus->recordRxError(EmsBusUart::RxError::echoAccounting);
+                    bus->performReset();length=0;break;
+                }
+                --length;
+                bus->echoBreakRecoveries.fetch_add(1,std::memory_order_relaxed);
+                bus->traceEvent(ems::UartEventTrace::Kind::breakRecovered,length);
             }
             bus->echoRxDebt_.reset();
 #endif

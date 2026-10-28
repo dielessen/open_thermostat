@@ -6,10 +6,10 @@
     "receipt": "docs/modern-thermostat/update-acceptance/e32-beta4-20261026.json",
     "sha256": "5ec65a6256889878702a6a501842669f903825041f1e96be9448d5336bba55a8"
   },
-  "pending_tag": "v0.1.0-e32v2-beta.12",
-  "candidate_plan": "docs/modern-thermostat/BETA12-KANDIDAAT.json",
+  "pending_tag": "v0.1.0-e32v2-beta.13",
+  "candidate_plan": "docs/modern-thermostat/BETA13-KANDIDAAT.json",
   "publication_exception": {
-    "receipt": "docs/modern-thermostat/BETA12-PUBLICATION-EXCEPTION-20261027.json",
-    "sha256": "18128386f1f272768c6639c59aa7eaa5083b4129ee448867fc5520cb040e047d"
+    "receipt": "docs/modern-thermostat/BETA13-PUBLICATION-EXCEPTION-20261028.json",
+    "sha256": "8f9347fede0e1c8f6e3e098c94f3ba1a98bb043a183692b5c66ff402414e7af9"
   }
 }

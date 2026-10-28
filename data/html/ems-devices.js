@@ -71,6 +71,24 @@ window.EMSDevicesPage=(()=>{
     }
     return true;
   }
+  // Table-driven passive entities (EMS-ESP offsets, not hardware-verified).
+  // Invalid data is ignored instead of hiding the verified boiler fields.
+  function entityDevices(s){
+    const e=s?.ems_entities,result=new Map();
+    if(e?.schema!==1||!Array.isArray(e.devices)||e.devices.length>16)return result;
+    for(const d of e.devices){
+      if(!d||!number(d.address)||d.address<1||d.address>127||!Array.isArray(d.entities)||d.entities.length>48)return new Map();
+      const rows=[];
+      for(const r of d.entities){
+        if(!r||!/^[a-z][a-z0-9_]{0,79}$/.test(r.id)||typeof r.unit!=='string'||r.unit.length>16||!number(r.source_type)||r.source_type>65535||!number(r.age_ms)
+          ||!(r.value===null||typeof r.value==='boolean'||typeof r.value==='number'&&Number.isFinite(r.value)))return new Map();
+        rows.push([r.id,{value:typeof r.value==='boolean'?(r.value?1:0):r.value,unit:r.unit,state:r.value===null?'invalid':'valid',
+          quality:'reported',source_type:r.source_type,source_address:d.address,age_ms:r.age_ms,reference:true}]);
+      }
+      result.set(d.address,rows);
+    }
+    return result;
+  }
   const label=id=>text(id.replaceAll('_',' ').replace(/^./,c=>c.toUpperCase()));
   const age=ms=>ms===null?text('Unknown'):(ms/1000).toLocaleString(OpenThermostatLanguage.locale,{maximumFractionDigits:1})+' s';
   const update=(node,value)=>{if(node.textContent!==value)node.textContent=value;};
@@ -220,14 +238,19 @@ window.EMSDevicesPage=(()=>{
         :!settingsSnapshot?text('Settings control is unavailable.')
         :settingsSnapshot.available?'':text('Changing settings is unavailable. Protocol ranges do not confirm support by your boiler.');
     }
-    function fields(d){return d.address===8?Object.entries(snapshot.boiler.fields):[];}
+    function fields(d){
+      const table=entityDevices(snapshot).get(d.address)||[];
+      return d.address===8?[...Object.entries(snapshot.boiler.fields),...table]:table;
+    }
     function render(){
       if(!snapshot||!alive())return;
       const search=get('ems-search').value.trim().toLocaleLowerCase(),access=get('ems-access').value;
       // Raw sender addresses are not identified devices. Keep undecoded,
       // unidentified traffic in diagnostics rather than an empty second card.
-      const devices=snapshot.inventory.devices.filter(d=>d.address!==ownAddress&&(d.address===8||d.product_id!==null));
-      const unknown=snapshot.inventory.devices.filter(d=>d.address!==ownAddress&&d.address!==8&&d.product_id===null);
+      const withEntities=entityDevices(snapshot);
+      const shown=d=>d.address===8||d.product_id!==null||(withEntities.get(d.address)||[]).length>0;
+      const devices=snapshot.inventory.devices.filter(d=>d.address!==ownAddress&&shown(d));
+      const unknown=snapshot.inventory.devices.filter(d=>d.address!==ownAddress&&!shown(d));
       const diagnostic=get('ems-unidentified');
       if(diagnostic){diagnostic.hidden=!unknown.length;diagnostic.querySelector('[data-unidentified-traffic]').textContent=
         unknown.map(d=>hex(d.address)+' · '+text('Observed telegrams')+': '+d.telegram_types.map(t=>hex(t)).join(', ')).join(' / ');
@@ -266,7 +289,7 @@ window.EMSDevicesPage=(()=>{
         r.rowCache??=new Map();
         const known=new Set(entries.map(([id])=>id));
         for(const [id,row] of r.rowCache)if(!known.has(id)){row.remove();r.rowCache.delete(id);}
-        for(const id of labels.keys())if(!Object.hasOwn(snapshot.boiler.fields,id))labels.delete(id);
+        for(const id of labels.keys())if(!Object.hasOwn(snapshot.boiler.fields,id)&&![...withEntities.values()].some(rows=>rows.some(([e])=>e===id)))labels.delete(id);
         r.device=d;
         if(r.identify){r.identify.hidden=d.product_id!==null;r.identify.disabled=!actions.canIdentify?.();}
         r.title.textContent=deviceTitle(d);
@@ -289,7 +312,7 @@ window.EMSDevicesPage=(()=>{
           update(cells[1],measurementFresh?value:'—');
           update(cells[3],text(measurementFresh?states[v.state]:'Snapshot unavailable')+' · '+age(v.age_ms)
             +(v.quality==='reported'?'':' · '+text(quality[v.quality])));
-          cells[3].title=(v.source_type?hex(v.source_type):'')+' · '+id;
+          cells[3].title=(v.source_type?hex(v.source_type):'')+' · '+id+(v.reference?' · '+text('EMS-ESP reference offsets; not verified on this installation'):'');
           const local=fieldAccess(id,d),editable=Object.hasOwn(nativeFields,id)&&readyToPrepare();
           const accessKey=JSON.stringify([local.kind,local.label,editable]);
           if(row.dataset.accessKey!==accessKey){
@@ -329,7 +352,7 @@ window.EMSDevicesPage=(()=>{
         root.dataset.failed='true';status.textContent=text('Refresh failed. Previously displayed values are an older snapshot.');
         render();renderSettings();return;
       }
-      const next={enabled:data.transport.enabled,inventory:data.inventory,boiler:{fields:data.fields}};
+      const next={enabled:data.transport.enabled,inventory:data.inventory,boiler:{fields:data.fields},ems_entities:data.ems_entities};
       if(!valid(next)){
         measurementFresh=false;metadataAt=-Infinity;clearConfirmations();root.dataset.failed='true';
         status.textContent=text('EMS device snapshot unavailable.');render();renderSettings();return;

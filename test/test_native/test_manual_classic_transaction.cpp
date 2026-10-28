@@ -195,3 +195,30 @@ TEST_F(ManualTransaction, IdentityRetainsExactFreshAcquisitionAndFiniteClosureWi
     }
 }
 }
+namespace {
+using namespace heating::ems;
+// The thermostat identity read (beta12 button) must transmit and only the
+// addressed device may answer it; other reads and the write stay boiler-only.
+TEST(ManualTransactionTarget, IdentityReadToObservedThermostatClosesOnlyOnItsReply){
+    ManualClassicTransaction transaction;uint64_t now=100;int closures=0;
+    EmsRawFrame frame;ClassicConfigurationRead::encodeIdentity(frame,0x17);
+    ASSERT_TRUE(transaction.begin(frame.data.data(),frame.length,now));transaction.finish(true,now);++now;
+    const auto reply=[&](uint8_t sender){
+        std::array<uint8_t,9> bytes{sender,0x0b,0x02,0x00,165,4,2,0,0};
+        bytes[8]=EmsTelegram::calculateCRC(bytes.data(),8);
+        return transaction.receive(bytes.data(),bytes.size(),now,[&]{return now;},[]{return true;},[&]{++closures;return true;});
+    };
+    EXPECT_EQ(reply(0x08),ManualClassicTransaction::Result::none);EXPECT_EQ(closures,0);
+    EXPECT_EQ(reply(0x17),ManualClassicTransaction::Result::closed);EXPECT_EQ(closures,1);
+}
+TEST(ManualTransactionTarget, OnlyIdentityMayLeaveTheBoilerAddress){
+    ManualClassicTransaction transaction;
+    EmsRawFrame frame;ClassicConfigurationRead::encode(frame);
+    frame.data[1]=0x97;frame.data[5]=EmsTelegram::calculateCRC(frame.data.data(),5);   // 0x16 read to thermostat
+    EXPECT_FALSE(transaction.begin(frame.data.data(),frame.length,100));
+    ClassicConfigurationRead::encodeIdentity(frame,0x0b);                               // own address
+    EXPECT_FALSE(transaction.begin(frame.data.data(),frame.length,100));
+    std::array<uint8_t,6> write{0x0b,0x17,0x1a,0,40,0};write[5]=EmsTelegram::calculateCRC(write.data(),5); // setpoint to thermostat
+    EXPECT_FALSE(transaction.begin(write.data(),write.size(),100));
+}
+}

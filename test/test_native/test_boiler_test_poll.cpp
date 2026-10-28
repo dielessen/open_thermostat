@@ -171,14 +171,17 @@ TEST_F(BoilerPoll, ExpiredFaultStopRequiresFreshZeroAndLaterReportWithoutLegacyF
     EXPECT_NE(status().find("\"phase\":\"fault\""),std::string::npos);
 }
 
-TEST_F(BoilerPoll, LateIdleFrameCannotHideCurrentDhwAndPermitPositiveDispatch) {
+// Tap water during heating is the boiler's DHW priority, not lost proof: the
+// request continues. A late idle frame still cannot hide the current DHW state.
+TEST_F(BoilerPoll, LateIdleFrameCannotHideCurrentDhwWhileHeatingContinues) {
     heating();
     monitor.receive({EmsTelegram::BROADCAST,8,0,0,0x18,{40,1,0x72,80,20,10}},110);
     report(105);now=111;
     ASSERT_EQ(poll(),Result::sent);
-    EXPECT_NE(status().find("\"positive_frames\":0"),std::string::npos);
-    EXPECT_NE(status().find("\"phase\":\"stopping\""),std::string::npos);
-    EXPECT_NE(status().find("\"zero_frames\":2"),std::string::npos);
+    EXPECT_NE(status().find("\"phase\":\"heating\""),std::string::npos);
+    EXPECT_NE(status().find("\"positive_frames\":1"),std::string::npos);
+    EXPECT_NE(status().find("\"dhw_interruptions\":1"),std::string::npos);
+    EXPECT_EQ(*monitor.sample(heating::ems::BoilerField::dhwActive).raw,1);
 }
 TEST_F(BoilerPoll, SameTimeConflictingDhwCannotPermitPositiveDispatch) {
     heating();

@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "status": "INSTALLED_BY_OWNER_MANUAL_FLASH_IDENTITY_AND_SETTINGS_VERIFIED",
+  "installed_tag": "v0.1.0-e32v2-beta.12",
+  "source_commit": "729b7df7987e130cb8fb5dc14b8051d1b84fa1ee",
+  "web_sha256": "73eace281576919b481a857c1e31601d1c62f68ccb6e201461490352b388bdbc",
+  "boot_id": "b81e9cada0977fbf",
+  "running_partition_address": 65536,
+  "transmitted_frames_at_postcheck": 0,
+  "settings_baseline": "out/beta10-install/backup (pre-upload, beta9-httpfix.1)",
+  "settings_exports": 12,
+  "byte_identical_exports": 11,
+  "other_export_change": "Bluetooth discovery cache only (nearby, nearby_devices, scan_pending)",
+  "evidence_note": "The first postcheck script wrote into out/beta10-install by sys.path order; evidence was moved to out/beta11-trial/beta12-postcheck and beta10 package files restored from GitHub (see EVIDENCE-OVERWRITE-NOTE.json).",
+  "native_acceptance": "INCOMPLETE_NOT_NATIVE_ROUTE",
+  "native_https_root_cause_fixed": false
+}

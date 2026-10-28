@@ -10,7 +10,7 @@ namespace heating::ems {
 // reset clears the echo debt, so the event order that caused it stays readable.
 class UartEventTrace {
 public:
-    enum class Kind : uint8_t { data, brk, overflow, parity, framing, other, writeStart, writeEnd, timeout };
+    enum class Kind : uint8_t { data, brk, overflow, parity, framing, other, writeStart, writeEnd, timeout, breakRecovered };
     struct Event { Kind kind; uint16_t size; uint32_t atUs; };
     struct EchoState { size_t consumed, trailing; bool echoFrame, broken; uint32_t length; };
     static constexpr size_t capacity=16;
@@ -53,6 +53,7 @@ public:
             case Kind::overflow:return "overflow"; case Kind::parity:return "parity";
             case Kind::framing:return "framing"; case Kind::writeStart:return "write_start";
             case Kind::writeEnd:return "write_end"; case Kind::timeout:return "timeout";
+            case Kind::breakRecovered:return "break_recovered";
             default:return "other";
         }
     }

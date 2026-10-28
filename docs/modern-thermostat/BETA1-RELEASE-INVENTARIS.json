@@ -2,7 +2,7 @@
   "schema": 1,
   "as_of": "2026-10-27",
   "target": "eerste beta voor ketelkoppeling, ontvangst en begrensde aansturing",
-  "release_state": "BETA12_FROZEN_EMS_REVIEW_IDENTITY_DASHBOARD_ATTENDED_FOLLOWUP_PENDING",
+  "release_state": "BETA13_FROZEN_TRIAL_FOLLOWUP_UNIVERSAL_EMS_ATTENDED_FOLLOWUP_PENDING",
   "installed_firmware": "v0.1.0-e32v2-beta.5",
   "installed_ha": "0.4.0b1",
   "preservation_rule": "All inventoried prepared source is carried forward; inclusion does not enable incomplete or physically unqualified functions.",
@@ -59,7 +59,7 @@
         },
         {
           "path": "docs/modern-thermostat/RELEASE-NOTES.md",
-          "sha256": "5ace4e3622a80835bbf62df87faeead01b89db766fe5c779404979c660c1d3fb"
+          "sha256": "a41f7b10a0d64913e59c4e41e67df226d07d06906694531aeee1df2ff3f5facd"
         },
         {
           "path": "docs/modern-thermostat/HA-RELEASE-NOTES.md",
@@ -131,7 +131,7 @@
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE.nl.md",
-          "sha256": "affe50eeed2cead50569409f88c6db58ee23570981294cd0adb37ddf065c5d20"
+          "sha256": "38b8797d86572ef8a56a56dc0c1d851a084c728b06ba7dd3aa2d3dfa3af11457"
         },
         {
           "path": "docs/modern-thermostat/NEXT-RELEASE-HISTORY-20261026.nl.md",
@@ -191,7 +191,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-GATE.json",
-          "sha256": "d14ae3b26039e4a70006d20607ae673482fa3354d90ced5744d65e61302ae07d"
+          "sha256": "44d9c77ca303bc367560f8e68f761de29d688712779f2b70a167d1e80169db5b"
         },
         {
           "path": "docs/modern-thermostat/BETA3-PUBLICATION-EXCEPTION-PROPOSAL.json",
@@ -219,7 +219,7 @@
         },
         {
           "path": "release.json",
-          "sha256": "44294a572952281ad1b13b8a3e3a236230557996970f084ddee6fcd22b20afec"
+          "sha256": "55457796910cdd3efbf7477e77e8eef1c92f7499e6f95e360e67cf27a6416203"
         }
       ],
       "remaining_acceptance": "Volgende exacte release opnieuw bouwen/verifiëren; geen nieuwe upstream-sync. Brede lokale HA-preflight op schone bron66140f9:2372tests+68deeltests per Core2026.10.2/.3/.4,0fouten/errors/skips, identieke HA-bronhash; echte C++-peers opnieuw gebouwd en geïsoleerde lokale MQTT-fixtures gebruikt. Dit vervangt geen freeze, exacte pakket-/publicatie-/OTA-/installatieacceptatie of fysieke proef. Actueel plan geconsolideerd; volledige eerdere tekst exact bewaard in afzonderlijke historie.23onderdelen/31eisen/14poorten en geïnstalleerd-versus-bron-versus-geblokkeerd behouden. Deze documentatie rondt geen fysieke/releasepoort af."
@@ -301,11 +301,11 @@
         },
         {
           "path": "test/updates/browser.cjs",
-          "sha256": "1104875f92f11ba55cc4b723715408a56b7bccc21e57bc1271f193285aef63fb"
+          "sha256": "4d079e1bc3fc9bc27fe676a7e8639ba6e89e8ddec202082c59388d17206e3d2a"
         },
         {
           "path": "data/html/update.html",
-          "sha256": "75e1180399cd7afaaaab5d55319ca3fe82899ed323b45a40f32bc1b46586588a"
+          "sha256": "a92582c5f857b0839093514ddf193e53167afbcd07e140767788f849edc7f589"
         },
         {
           "path": "src/update/ManualAppUpload.h",
@@ -333,11 +333,11 @@
         },
         {
           "path": "src/update/ReleaseCheckSchedule.h",
-          "sha256": "04be98dbf8fc68eabe8c6423ad73288791b0f4ce9d26d4ba8d29a0d5ca6523ef"
+          "sha256": "4d07230f1fe5eacd50088c840fc4575de8d5295601ce0520cef8a63a3497f5bc"
         },
         {
           "path": "test/test_native/test_release_check_schedule.cpp",
-          "sha256": "4b8043b4d9480caa764a30adf61f253272969ce179039bd55dd394883409b4f9"
+          "sha256": "943247551a4b69bd31bad3fbc5c4b5b1493ee8c05d733a98c8d0863b2c2d7900"
         },
         {
           "path": "scripts/verify_e32_update_gate.py",
@@ -518,6 +518,30 @@
         {
           "path": "docs/modern-thermostat/BETA12-PUBLICATION-EXCEPTION-20261027.json",
           "sha256": "18128386f1f272768c6639c59aa7eaa5083b4129ee448867fc5520cb040e047d"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA12-INSTALLATION-20261027.json",
+          "sha256": "5522fd1f8e637b662381291ed19a29f72d988480d258b86e6b632770137c166e"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA12-NATIVE-GAP-20261027.json",
+          "sha256": "73bd5dd98392f6c7ae65095c58f52bd381b87e9995a870ffe554682f60a5c0f1"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA12-ATTENDED-HEAT-20261027.json",
+          "sha256": "ecfe57bc37800587440c92416453947e0930c14a9215e5eeba7a57873f769cbb"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA13-OWNER-INSTRUCTION-20261028.json",
+          "sha256": "660fef8c3ef8a6d214546948642404c7df31ad40b79849d7a9ff59c4c1e8adbb"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA13-KANDIDAAT.json",
+          "sha256": "1558fa240a1e44dd0012961f2778c5ecd0b203ab079511c586213b509a55f4b7"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA13-PUBLICATION-EXCEPTION-20261028.json",
+          "sha256": "8f9347fede0e1c8f6e3e098c94f3ba1a98bb043a183692b5c66ff402414e7af9"
         }
       ],
       "remaining_acceptance": "Native GitHub-update alpha31→36 met verse back-up en één installatiecommando geslaagd:36 installatiecontroles,45 afzonderlijke nacontroles, exacte bron/ELF/web/31UI en behoud van86 HA-bestanden/13 projecthashes/zes loggingvelden. Iedere opvolgende reguliere release vereist nieuw update-/nacontrolebewijs volgens E32-UPDATE-PROCES en CI-gate. Oude multipart-watchdog en nativealpha26-afwijking blijven oorzakelijk onbekend; geen blinde fallback/retry. Fysieke powerloss/rollback/herstelkwalificatie en actieve ketel-/kraanpoorten blijven apart open. Automatische12ucontrole/dashboardmelding voorbereid naalpha36, niet geïnstalleerd."
@@ -593,7 +617,7 @@
         },
         {
           "path": "platformio.ini",
-          "sha256": "977c4eec9c160fb8cdb24b9e639518c810d064a797d9a566384390a77fc39c18"
+          "sha256": "2e4792d5fd54c0bf647e011979f4cf49066d799389eaafa86b84b103aa3a6bbb"
         },
         {
           "path": "data/html/curve.html",
@@ -641,7 +665,7 @@
         },
         {
           "path": "data/html/update.html",
-          "sha256": "75e1180399cd7afaaaab5d55319ca3fe82899ed323b45a40f32bc1b46586588a"
+          "sha256": "a92582c5f857b0839093514ddf193e53167afbcd07e140767788f849edc7f589"
         },
         {
           "path": "ha/config/custom_components/open_thermostat/strings.json",
@@ -697,7 +721,7 @@
         },
         {
           "path": "test/updates/browser.cjs",
-          "sha256": "1104875f92f11ba55cc4b723715408a56b7bccc21e57bc1271f193285aef63fb"
+          "sha256": "4d079e1bc3fc9bc27fe676a7e8639ba6e89e8ddec202082c59388d17206e3d2a"
         },
         {
           "path": "test/web_auth_client.test.cjs",
@@ -705,7 +729,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "57ff398ba6398f1d4b060515b46c4ec22ae098fc0235ca59f067002ab76bc550"
+          "sha256": "321148b9c1d5e1532b7af4518dce55b31ce1ae76240b2bebdee3f9af2e172b0e"
         },
         {
           "path": "data/html/ui-language.js",
@@ -1063,7 +1087,7 @@
         },
         {
           "path": "platformio.ini",
-          "sha256": "977c4eec9c160fb8cdb24b9e639518c810d064a797d9a566384390a77fc39c18"
+          "sha256": "2e4792d5fd54c0bf647e011979f4cf49066d799389eaafa86b84b103aa3a6bbb"
         },
         {
           "path": "src/main.cpp",
@@ -1083,7 +1107,7 @@
         },
         {
           "path": "data/html/ui-messages.js",
-          "sha256": "57ff398ba6398f1d4b060515b46c4ec22ae098fc0235ca59f067002ab76bc550"
+          "sha256": "321148b9c1d5e1532b7af4518dce55b31ce1ae76240b2bebdee3f9af2e172b0e"
         },
         {
           "path": "data/html/system-log.js",
@@ -1187,7 +1211,7 @@
         },
         {
           "path": "data/html/ems-devices.js",
-          "sha256": "293a6394ac83d11cfa6f30271834235777e4cc26a2f8230789ee2ca6c128a076"
+          "sha256": "9ff82e6d0766ceaa0dcb708a34043c4a9de76035df5fb3222f054dbc8184be82"
         },
         {
           "path": "data/html/ems_devices.html",
@@ -1195,7 +1219,7 @@
         },
         {
           "path": "test/ems-devices-browser.cjs",
-          "sha256": "c0d9416ba8ee0616ac26103dfc7cf64ca735134f40916384c0602fc7fb64de73"
+          "sha256": "bac9565bccfcda9c2ff63e1bae6e1ac38b50ebbe1036d4ec44cd3266ce0f9958"
         },
         {
           "path": "docs/modern-thermostat/EMS-APPARATEN.nl.md",
@@ -1653,19 +1677,19 @@
         },
         {
           "path": "src/EmsController.h",
-          "sha256": "3cc8fd69ecc9348cd99e1485161b194f3d31d65c2a1f2d9474db9b4ee4c02b9a"
+          "sha256": "3560180d02a4b6f341a0945e72dedc098a6e493d19843ead8227867e8e6e4d13"
         },
         {
           "path": "test/test_native/test_boiler_legacy_projection.cpp",
           "sha256": "76de416d46465c4371f37484e363c2d01e04815a5f905d3f94472922c334677e"
         },
         {
-          "path": "src/EMS/ClassicBusObservations.h",
-          "sha256": "8697eb5d428baf811464b3f5f3ae30f368193afeed9769460f59061f5ae1a167"
+          "path": "src/EMS/EmsEntityCatalog.h",
+          "sha256": "5f039ee8f776f351f268e2e9c218c21e3721686ddc7a5f2a1ea88efe7274ad5b"
         },
         {
-          "path": "test/test_native/test_classic_bus_observations.cpp",
-          "sha256": "af7c0d3d400d9d7fcdfe4f2be1f486a554cb5e7c21e40c5a3a563b1034671bab"
+          "path": "test/test_native/test_ems_entity_catalog.cpp",
+          "sha256": "fc969f4ba6fc01a4e3f639efa977b3d6a26e6bff71f61677d005926fa0b14d9b"
         }
       ],
       "remaining_acceptance": "Alpha23/HA29 live: actuele afzonderlijke snapshot met69definities,27HA/REST waarde-/eenheid-/kwaliteitsmatches (25reported/2inferred),20unknown/unavailable en22onbetrouwbare diagnostiekentiteiten uitgeschakeld. Originele bronwaarnemingsmarkeringen/kwaliteit apart bewaard; geen exacte ouderdomspariteit, acquisitie-, continue-dekkings- of fysieke bruikbaarheidsclaim. Read-all onafhankelijk van model; TX/uitgangen blijven geblokkeerd. Langere observatie en fysieke validatie blijven open. Gepland +6h-moment:4u32Recorder-venster,165entiteitsantwoorden/532regels,geen open paginering; drie variërende native temperatuurvelden. Geen continue acquisitie-/fysieke werkingsclaim; oorspronkelijke +1h blijftFAILED/UNKNOWN. Bronmatig: per-veld rapportvolgorde en blijvende HA-intrekking gecorrigeerd, 10 native/6 HA-regressies toegevoegd; 689 native tests inclusief nul-uptimecompatibiliteit. HA-cachecorrectie opgenomen in de geverifieerde HA43-bronbestanden. E32-correctie opgenomen in de gepubliceerde alpha31-bron; de module is nu op alpha31 waargenomen (uitvoerder/methode onbekend). Geen firmwareactie door deze opdracht en geen fysieke bron-/zend-/stopkwalificatieclaim."
@@ -2529,15 +2553,15 @@
       "files": [
         {
           "path": "data/html/boiler_test.html",
-          "sha256": "6d89ae687c93cd95b12c9fdedb0be5eaf695a266e45a0bb3de9c598ed3694e83"
+          "sha256": "2e851bcc2a1865c3b8cd1e796414dbe068f9ef5b7ad310530cb4628bc64c6b5b"
         },
         {
           "path": "src/EmsController.h",
-          "sha256": "3cc8fd69ecc9348cd99e1485161b194f3d31d65c2a1f2d9474db9b4ee4c02b9a"
+          "sha256": "3560180d02a4b6f341a0945e72dedc098a6e493d19843ead8227867e8e6e4d13"
         },
         {
           "path": "src/EmsController.cpp",
-          "sha256": "68806ca38962556fe46502ca6426b90b4a254911aa87b357d7299f5422440571"
+          "sha256": "10e9927ef19dc88c2cd31042418fe59f58125084cd738ac68dce95de913c9912"
         },
         {
           "path": "test/boiler-test-browser.cjs",
@@ -2549,7 +2573,7 @@
         },
         {
           "path": "test/boiler-trial-result.test.cjs",
-          "sha256": "a8f0d9e6909e40b521eb697dcc7be7c58e4c8867ff2e0c503ac5872c096e2c72"
+          "sha256": "dbaa196f32939c36694de6a7d94df829b79c83c411672d645a1f610bdc3a7b31"
         },
         {
           "path": "docs/modern-thermostat/GUIDED-BOILER-TRIAL-20261027.json",
@@ -2572,7 +2596,7 @@
       "files": [
         {
           "path": "src/EMS/BoilerTestSession.h",
-          "sha256": "f7f524bf09b8e7b6f5212f88455dc37dbc8b69b6aad40a8997a12156d927182b"
+          "sha256": "6f9e667cc82c3a973bb80b41cd59aefcfde26ef93c8bbdda9d67b97eb2aa0aa9"
         },
         {
           "path": "src/EMS/EmsFrameQueue.h",
@@ -2580,7 +2604,7 @@
         },
         {
           "path": "test/test_native/test_boiler_test_session.cpp",
-          "sha256": "186cf63dd4526bb5c9f634aaa16a2edf199977ea28de30956b8d594cd8d2ae92"
+          "sha256": "c6bcb73cc5a2d1be06c25f021765776c6831aff0e0114471dbadfc9a8a4bc9ed"
         },
         {
           "path": "test/test_native/test_ems_frame_queue.cpp",
@@ -2604,11 +2628,11 @@
         },
         {
           "path": "src/EMS/ManualClassicTransaction.h",
-          "sha256": "bad059687a7a7679dbd467a6da9f1e045908b214ad9cd7a9a0093cf6b99a9350"
+          "sha256": "5f3c661ca59897f5fe09a01e820a47927b62f91cbffe8ae462e4457d904b7b79"
         },
         {
           "path": "test/test_native/test_manual_classic_transaction.cpp",
-          "sha256": "3229208e32ee3f1064c42b5ea6857ac0ecd4ee8bc91ef62248a351343c1aa8d6"
+          "sha256": "2f5e135f3a4424371eda2bf45b81d443a87cc20fdb64cc3a2c21e1d5e7b8a228"
         },
         {
           "path": "docs/modern-thermostat/THERMOSTAT-SETPOINT-REVIEW.en.md",
@@ -2633,7 +2657,7 @@
       "files": [
         {
           "path": "src/EMS/BoilerTestService.h",
-          "sha256": "eb970968ee9889f1743f5719f7ebb3fe3c61116a401bbe24d2b5947d7dd3de93"
+          "sha256": "6675f68b0c9d106007be98c13667a1d8635a8ea569eec5fd9d3ccc3c2b197716"
         },
         {
           "path": "src/HeatingController.h",
@@ -2665,7 +2689,7 @@
         },
         {
           "path": "test/test_native/test_boiler_test_poll.cpp",
-          "sha256": "e71a1ff610d9232ebcff57743ed1cae207b279d86433a71c546fdab1a7d4e13c"
+          "sha256": "8db0a92104aa3079e4ae7fdd730fc2c77ec18d32826d5217ee257610482b2481"
         },
         {
           "path": "src/EMS/PacedUartWrite.h",
@@ -2677,7 +2701,7 @@
         },
         {
           "path": "src/EmsBusUart.h",
-          "sha256": "9581c9a3d3651b0dcb663641888924f81444632847f527daaba72a8a33f9d25c"
+          "sha256": "32cdca3d2f2aacb079987f12c7c6a9510d811ff39b64ec6edfecda6cddec1f06"
         },
         {
           "path": "src/EmsBusUartForwarder.h",
@@ -2713,11 +2737,11 @@
         },
         {
           "path": "src/EMS/EmsEchoRxDebt.h",
-          "sha256": "9abcd9cf4a20f0b441c3e3c1843aae10b9e939b2e847ef53243573fc56a38fc2"
+          "sha256": "6ed8bc40516aea08268be7e61b54e58abeb4f1a3d386ffb0a3c896f5520fb7ec"
         },
         {
           "path": "test/test_native/test_ems_echo_rx_debt.cpp",
-          "sha256": "f9394c852d0b7bc5ef37512ba5cbf49b041827e4381324ff5e9962ce9033affd"
+          "sha256": "befdced619fbc4e1428bda5c1ff73c8615516249b914ddaef092442969ec023a"
         },
         {
           "path": "test/echo_write/adapter.cpp",
@@ -2865,11 +2889,11 @@
         },
         {
           "path": "src/EMS/UartEventTrace.h",
-          "sha256": "8061aeca9f6e03661d4ec51d38c3fa70713f5d821c35b250531d21bc5aeecc85"
+          "sha256": "12893b540e9503ee5940e9552b67a9314d7779db2837bfc1f1ae934c141505d8"
         },
         {
           "path": "test/test_native/test_uart_event_trace.cpp",
-          "sha256": "6a385c5c40b4a50ff7a361df2d0efb9655c33739c350a4fa4f393864fd1d5483"
+          "sha256": "146dfe9d6cf9d505eb17b8c06944f59c0c26d2a224a18e8525c3eea3ddd7d0a5"
         },
         {
           "path": "scripts/boiler_trial_supervision.py",

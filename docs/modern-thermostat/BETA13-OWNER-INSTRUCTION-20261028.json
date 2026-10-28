@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-10-27T23:47:53Z",
+  "requests": [
+    "test is wat mij betreft geslaagd . wat ga je allemaal maken in beta 13 ?",
+    "ems universal kan ook in deze beta 13 anders word het een hele kleine release",
+    "werk door aan beta 13 en zorg ervoor dat deze wel automatisch geinstalleerd kan worden. Als je daarmee klaar bent dan mag je verder aan openstaande punten werken in het plan."
+  ],
+  "scope": "Beta13: UART coalesced-BREAK recovery, DHW pause and CH-based stop proof, CH-based trial result, thermostat identity transmit fix, release-check backoff, 8 KiB loop stack, browser-side GitHub release verification on the update page, table-driven EMS+ boiler and thermostat entities. Install from beta12 by the local authenticated upload (sector-by-sector erase since beta12).",
+  "boiler_trial_scope": "Any further attended trial needs a fresh attendance, gauge-pressure and independent-shutdown confirmation.",
+  "publication_approval_reply": "approve",
+  "publication_approval_at_utc": "2026-10-27T23:53:19Z"
+}

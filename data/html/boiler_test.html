@@ -422,7 +422,9 @@
     if (!Number.isSafeInteger(status.positive_frames) || status.positive_frames<0) return 'unconfirmed';
     if (status.positive_frames===0) return 'not_heated';
     const progress=trialProgress(status);
-    if (!progress || !progress.requested_temperature_reported || !progress.heating_operation_reported) return 'unconfirmed';
+    // Reported CH operation is the boiler response. The read-back setpoint is
+    // optional: Classic boilers such as the Ecomline keep it at 0 while heating.
+    if (!progress || !progress.heating_operation_reported) return 'unconfirmed';
     return progress.duration_completed && progress.end_reason==='heat_deadline' && progress.requested_duration_s>0 ? 'passed' : 'partial';
   }
   // END trial result policy
@@ -612,11 +614,13 @@
       :missingTargetOnly?uiText('Heating operation, the full duration and a later stop were reported. The boiler did not confirm the requested temperature; the separate E32 command value is not a boiler readback.')
       :descriptions[outcome]||descriptions.unconfirmed;
     const checks=[[uiText('Heat command transmitted'),Number.isSafeInteger(test.positive_frames)&&test.positive_frames>0],
-      [uiText('Requested temperature reported by boiler'),evidence?.requested_temperature_reported===true],
+      [uiText('Requested temperature read back by boiler (optional)'),evidence?.requested_temperature_reported===true],
       [uiText('Central heating operation reported'),evidence?.heating_operation_reported===true],
       [uiText('Requested test duration completed'),evidence?.duration_completed===true],
       [uiText('Stop reported after zero command'),test.reported_stop_confirmed===true&&Number.isSafeInteger(test.zero_frames)&&test.zero_frames>0]];
     const list=root.querySelector('[data-trial-checks]');list.replaceChildren();
+    if(Number.isSafeInteger(evidence?.dhw_interruptions)&&evidence.dhw_interruptions>0)
+      checks.push([uiText('Hot-water interruptions during heating')+': '+evidence.dhw_interruptions,true]);
     for(const [label,confirmed] of checks) {
       if(test.zero_only===true&&label!==checks[4][0])continue;
       cell(list,'li',(confirmed?'✓ ':'○ ')+label+' — '+(confirmed?uiText('Confirmed'):uiText('Not confirmed yet')));

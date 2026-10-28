@@ -27,27 +27,30 @@ TEST(UartEventTrace, OversizedEventSizeSaturates){
     UartEventTrace t;t.record(Kind::data,70000,1);EXPECT_EQ(t.freeze({},2).events[0].size,65535u);
 }
 
-// Candidate causes of the attended-trial fault 6 ms after a completed write.
-// They show which event orders reach echo_event_accounting; they do not prove
-// which one happened on the bus. The frozen device trace has to decide that.
-TEST(EmsEchoRxDebtHypothesis, MissedOwnBreakThenBoilerReplyBreaksAccountingAtBoilerBreak){
+// The two event orders that previously reached echo_event_accounting after a
+// complete echo now recover when the first extra byte is our 0x00 delimiter.
+TEST(EmsEchoRxDebtRecovery, MissedOwnBreakThenBoilerReplyRecoversAtBoilerBreak){
     EmsEchoRxDebt d;for(int i=0;i<6;++i)ASSERT_TRUE(d.consumedByte());
     for(int i=0;i<6;++i)EXPECT_EQ(d.dataEvent(1),0u);
     EXPECT_EQ(d.dataEvent(1),1u); // Our delimiter byte; our BREAK event never arrives.
     EXPECT_EQ(d.dataEvent(1),1u); // Reply byte from the boiler.
-    EXPECT_TRUE(d.broken());EXPECT_FALSE(d.atBreak()); // Boiler BREAK => accounting fault.
+    EXPECT_TRUE(d.coalesced());EXPECT_TRUE(d.atBreak());EXPECT_TRUE(d.acceptDelimiter(0));
 }
 
-TEST(EmsEchoRxDebtHypothesis, DelimiterAndReplyCoalescedIntoOneEventBreaksAccounting){
+TEST(EmsEchoRxDebtRecovery, DelimiterAndReplyCoalescedIntoOneEventRecovers){
     EmsEchoRxDebt d;for(int i=0;i<6;++i)ASSERT_TRUE(d.consumedByte());
     for(int i=0;i<6;++i)EXPECT_EQ(d.dataEvent(1),0u);
     EXPECT_EQ(d.dataEvent(2),2u); // Late ISR: delimiter + reply in one UART_DATA event.
-    EXPECT_TRUE(d.broken());EXPECT_FALSE(d.atBreak());
+    EXPECT_TRUE(d.coalesced());EXPECT_TRUE(d.acceptDelimiter(0));EXPECT_TRUE(d.atBreak());
 }
 
-TEST(EmsEchoRxDebtHypothesis, OrderlyDelimiterBreakThenReplyStaysHealthy){
+TEST(EmsEchoRxDebtRecovery, OrderlyDelimiterBreakThenReplyStaysHealthy){
     EmsEchoRxDebt d;for(int i=0;i<6;++i)ASSERT_TRUE(d.consumedByte());
     for(int i=0;i<6;++i)EXPECT_EQ(d.dataEvent(1),0u);
-    EXPECT_EQ(d.dataEvent(1),1u);EXPECT_TRUE(d.atBreak());d.reset(); // Our BREAK.
+    EXPECT_EQ(d.dataEvent(1),1u);EXPECT_TRUE(d.atBreak());EXPECT_FALSE(d.coalesced());d.reset(); // Our BREAK.
     EXPECT_EQ(d.dataEvent(1),1u);EXPECT_TRUE(d.atBreak());          // Reply, then its BREAK.
+}
+
+TEST(UartEventTrace, BreakRecoveryHasAStableName){
+    EXPECT_STREQ(UartEventTrace::name(Kind::breakRecovered),"break_recovered");
 }

@@ -1,3 +1,49 @@
+# E32 V2 beta13 — reliable boiler trial, browser-checked updates and more EMS devices
+<!-- user-release-notes:v2:en -->
+
+Follow-up to the beta12 attended trial, which the owner accepted: about 6½
+minutes of 50 °C heat, ended early by a hot-water tap. Use it with HA0.4.0b7.
+
+## New
+
+- Read EMS+ boilers (0xE4-0xEA: flow, return, modulation, pressure, counters,
+  hot water) and room thermostats (RC10, RC20, RC25, RC30, RC35 and the EMS+
+  heating-circuit monitor: room temperature, setpoint, target flow) from one
+  table based on the EMS-ESP reference. They appear as read-only cards on the
+  Boiler test page and under `ems_entities`; not yet verified on hardware.
+  The thermostat's own boiler request (0x1A) and the maintenance message are
+  rows in that same table; beta11's separate `bus_observations` is removed.
+- The update page can look up the latest release on GitHub in your browser and
+  check a downloaded firmware.bin (SHA-256, size and version) before uploading.
+
+## Fixed
+
+- A missed end-of-frame BREAK after our own transmission no longer stops a
+  trial: the 0x00 delimiter is verified and dropped, and the boiler's reply is
+  kept (`echo_break_recoveries`). Missing echo data is still a fault.
+- Tap water during a trial pauses central heating instead of ending the trial,
+  and Stop is confirmed once CH is off even while the burner serves tap water.
+  Starting a trial still needs hot water off. The result counts interruptions.
+- The trial result relies on reported CH operation; the boiler's read-back
+  setpoint, which Classic boilers keep at 0, is optional.
+- Read device identity for the thermostat now really transmits; beta12
+  refused that request before sending it.
+- Failed automatic GitHub checks back off from 30 minutes up to 12 hours, and
+  the main loop has more stack (8 KiB instead of 6 KiB).
+
+## Updating
+
+Install the exact public firmware with the local upload; since beta12 the
+update slot is erased sector by sector, so the upload no longer resets the
+board. HA0.4.0b7 needs no update.
+
+## Limitations
+
+Native GitHub HTTPS still fails on this device. GitHub's download server does
+not let a web page fetch the file itself, so the browser check needs you to
+download firmware.bin first. Automatic boiler/valve control and persistent
+boiler-setting writes remain disabled.
+
 # E32 V2 beta12 — thermostat requests, device identity and a tidier dashboard
 <!-- user-release-notes:v2:en -->
 

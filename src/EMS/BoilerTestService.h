@@ -229,6 +229,7 @@ public:
             << ",\"progress\":{\"schema\":1,\"requested_temperature_reported\":" << (session_.requestedTemperatureReported() ? "true" : "false")
             << ",\"heating_operation_reported\":" << (session_.heatingOperationReported() ? "true" : "false")
             << ",\"duration_completed\":" << (session_.durationCompleted() ? "true" : "false")
+            << ",\"dhw_interruptions\":" << session_.dhwInterruptions()
             << ",\"requested_duration_s\":" << session_.requestedDurationSeconds()
             << ",\"end_reason\":\"" << session_.endReason() << "\"}"
             << ",\"positive_frames\":" << positiveFrames_ << ",\"zero_frames\":" << zeroFrames_

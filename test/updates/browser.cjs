@@ -222,6 +222,27 @@ const assets=path.resolve(__dirname,'../../data/html');
   await visibility('visible');await page.waitForFunction(()=>!document.getElementById('checkReleases').disabled);
   assert.equal(sim.posts.length,1);assert.deepEqual(errors,[]);
   pass('visibility changes never abort or replay an explicitly submitted update command');
+  // Browser release lookup: GitHub API (simulated) gives the digest; only the
+  // exact downloaded firmware.bin of that release may be uploaded.
+  await scene('nl');
+  const crypto=require('node:crypto'),tag='v0.1.0-e32v2-beta.13';
+  const firmware=Buffer.alloc(1200000,0x5a);Buffer.from('OT_E32V2_OTA_V1:'+tag+':'+'0'.repeat(40)+':'+'1'.repeat(64)+':END').copy(firmware,4096);
+  const digest='sha256:'+crypto.createHash('sha256').update(firmware).digest('hex');
+  let apiCalls=0;
+  await page.route('https://api.github.com/**',route=>{++apiCalls;return route.fulfill({contentType:'application/json',headers:{'access-control-allow-origin':'*'},
+   json:[{tag_name:'ha-v0.4.0b7',draft:false,assets:[]},{tag_name:tag,draft:false,assets:[{name:'firmware.bin',size:firmware.length,digest,browser_download_url:'https://github.com/x/y/releases/download/'+tag+'/firmware.bin'}]}]});});
+  assert.equal(apiCalls,0,'opening the page never contacts GitHub');
+  await page.click('#githubReleaseCheck');await page.waitForFunction(t=>document.getElementById('githubReleaseInfo').textContent.includes(t),tag);
+  const wrong=Buffer.from(firmware);wrong[100]^=1;
+  await page.setInputFiles('#FirmwarePath',{name:'firmware.bin',mimeType:'application/octet-stream',buffer:wrong});
+  await page.waitForFunction(()=>/geblokkeerd/.test(document.getElementById('githubReleaseFile').textContent));
+  const postsBefore=sim.posts.length,dialogs=sim.dialogs;await page.click("#FirmwareSubmit");
+  await page.waitForFunction(d=>document.getElementById('FirmwareSubmit').disabled===false,dialogs);
+  assert.equal(sim.posts.length,postsBefore,"a mismatching file is never uploaded");assert.equal(sim.dialogs,dialogs+1);
+  await page.setInputFiles('#FirmwarePath',{name:'firmware.bin',mimeType:'application/octet-stream',buffer:firmware});
+  await page.waitForFunction(()=>/Gecontroleerd/.test(document.getElementById('githubReleaseFile').textContent));
+  assert.equal(apiCalls,1);assert.deepEqual(errors,[]);
+  pass('GitHub release lookup verifies SHA-256, size and version marker before allowing an upload');
   console.log(count+' updater browser scenarios passed (simulated HTTP; no hardware OTA proof)');
  } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

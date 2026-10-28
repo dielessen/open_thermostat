@@ -1,4 +1,18 @@
-# Beta.12 — EMS-ESP-review, thermostaatvraag, identiteit en rustiger dashboard
+# Beta.13 — betrouwbare ketelproef, browsercontrole bij updates en meer EMS-apparaten
+
+**Actueel (28 oktober):** de bijgewoonde proef op beta.12 is door de eigenaar
+geslaagd verklaard: ~398 s 50 °C, 7 aanvragen per 60 s, CV actief en modulatie
+37–41 %. Tapwater beëindigde de proef; de brander ging daarna uit (eigenaar).
+De thermostaat (0x17) stuurde geen eigen 0x1A. Eén UART-fout ná de stop is nu
+verklaard: na onze 6-byte echo kwam `00 01 00` zonder eigen BREAK-event.
+Beta.13 herstelt dat (0x00-scheidingsbyte gecontroleerd), maakt tapwater een
+pauze met CV-gebaseerde stopbevestiging, herstelt de identiteitsuitlezing naar
+de thermostaat, laat mislukte updatecontroles terugschalen, geeft de hoofdlus
+8 KiB stack, laat de browser releases controleren vóór upload en voegt een
+tabel met EMS+-ketel- en thermostaatentiteiten toe (EMS-ESP-referentie,
+nog niet op hardware geverifieerd). Installatie vanaf beta.12 via de lokale
+upload. [Proefverslag](BETA12-ATTENDED-HEAT-20261027.json).
+
 
 **Beta.11 niet gepubliceerd:** de tag `v0.1.0-e32v2-beta.11` (`d2ccc82`) stopte in
 de CI op `test/manual_ota/run.py`: die hoststub kende `OTA_WITH_SEQUENTIAL_WRITES`

@@ -51,10 +51,11 @@ jobs:
         run: |
           # A failing page test and its last output lines go into a public
           # annotation, because the job log itself needs a login.
+          log="${RUNNER_TEMP:-/tmp}/browser-test.log"
           browser(){
-            if node "$1" >browser-test.log 2>&1; then return; fi
-            cat browser-test.log
-            echo "::error title=Browser regression failed: $1 on ${ImageOS:-unknown} ${ImageVersion:-}::$(tail -c 3000 browser-test.log | awk '{gsub(/%/,"%25");gsub(/\r/,"");printf "%s%%0A",$0}')"
+            if node "$1" >"$log" 2>&1; then return; fi
+            cat "$log"
+            echo "::error title=Browser regression failed: $1 on ${ImageOS:-unknown} ${ImageVersion:-}::$(tail -c 3000 "$log" | awk '{gsub(/%/,"%25");gsub(/\r/,"");printf "%s%%0A",$0}')"
             exit 1
           }
           browser test/auth-body-browser.cjs

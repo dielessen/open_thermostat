@@ -283,7 +283,8 @@ class OpenThermostatRoomEditor extends HTMLElement{
  selectionIdentities(){const ids=[this._settings.temperature_entity,...this._settings.radiator_entities,...(this._settings.schedule_entity?[this._settings.schedule_entity]:[]),...(this._settings.contact_entities||[]),...(this._settings.setpoint_entity?[this._settings.setpoint_entity]:[]),...(this._settings.presence_entity?[this._settings.presence_entity]:[])];const choices=Object.values(this._model.choices).flat();const selected=ids.map(id=>choices.find(x=>x.value===id));return selected.every(x=>x?.identity)?Object.fromEntries(selected.map(x=>[x.value,clone(x.identity)])):null;}
  select(choices,value,placeholder=this.t.choose){const select=el('select');select.append(el('option',placeholder,{value:''}));for(const x of choices)select.append(el('option',this.choiceLabel(x),{value:x.value}));if(value&&!choices.some(x=>x.value===value))select.append(el('option',value,{value}));select.value=value;return select;}
  number(parent,key,label,value,scale=100,help){const input=el('input',null,{type:'number',step:scale===100?'.1':'.001',required:''});input.value=String(value/scale);input.oninput=()=>{this._settings[key]=scaled(input.value,scale);this._message='';this.refreshStatus();};return this.field(parent,key,label,input,help);}
- render(){this._vacationStatus=null;this._powerBox=null;const root=this.shadowRoot;root.replaceChildren();root.append(el('style',STYLE));const card=el('ha-card');root.append(card);const top=el('header');top.append(el('span','OpenThermostat',{class:'eyebrow'}),el('h1',this.t.title));card.append(top);
+ // Re-rendering keeps open sections from the shown DOM; a toggle event may still be queued.
+ render(){this._vacationStatus=null;this._powerBox=null;const root=this.shadowRoot;const advancedShown=root.querySelector('details.advanced'),comfortShown=root.querySelector('details.room-comfort');if(advancedShown)this._advancedOpen=advancedShown.open;if(comfortShown)this._comfortOpen=comfortShown.open;root.replaceChildren();root.append(el('style',STYLE));const card=el('ha-card');root.append(card);const top=el('header');top.append(el('span','OpenThermostat',{class:'eyebrow'}),el('h1',this.t.title));card.append(top);
  if(!this._model){card.append(el('p',this._message||this.t.load,{role:'status'}),this.button(this.t.reload,()=>this.load(),this._loading));return;}
  const m=this._model,s=this._settings;
  if(m.rooms.length>1){const picker=this.select(m.rooms.map(x=>({value:x.room_id,label:x.name})),this._config.room_id);this.field(card,'room-picker',this.t.room,picker);picker.querySelector('option[value=""]').disabled=true;picker.disabled=this._saving||this._vacationBusy;picker.onchange=()=>{if(this.dirty&&!confirm(this.t.discard)){picker.value=this._config.room_id;return;}this.setConfig({...this._config,room_id:picker.value});};}
@@ -301,7 +302,7 @@ class OpenThermostatRoomEditor extends HTMLElement{
  this.renderManualTarget(settings);
  this.renderComfort(settings);
  this.number(settings,'base_centi_c',this.t.base,s.base_centi_c,100,this.t.baseHelp);
- const advanced=el('details',null,{class:'advanced'});advanced.open=!!this._advancedOpen;advanced.ontoggle=()=>this._advancedOpen=advanced.open;advanced.append(el('summary',this.t.advanced));settings.append(advanced);
+ const advanced=el('details',null,{class:'advanced'});advanced.open=!!this._advancedOpen;advanced.append(el('summary',this.t.advanced));settings.append(advanced);
  this.number(advanced,'minimum_centi_c',this.t.min,s.minimum_centi_c,100,this.t.limitsHelp);this.number(advanced,'maximum_centi_c',this.t.max,s.maximum_centi_c,100,this.t.limitsHelp);this.number(advanced,'maximum_age_ms',this.t.age,s.maximum_age_ms,1000,this.t.ageHelp);
  this._powerBox=el('aside',null,{class:'device-power target-review',style:'overflow-wrap:anywhere'});advanced.append(this._powerBox);
  this._metadataBox=el('aside',null,{class:'device-metadata target-review',style:'overflow-wrap:anywhere'});advanced.append(this._metadataBox);
@@ -319,7 +320,7 @@ class OpenThermostatRoomEditor extends HTMLElement{
  renderComfort(parent){
   this._comfortStatus=null;const s=this._settings,m=this._model;
   if(!Object.hasOwn(s,'comfort')||!Array.isArray(m.choices.person))return;
-  const box=el('details',null,{class:'room-comfort'});box.open=!!this._comfortOpen;box.ontoggle=()=>this._comfortOpen=box.open;
+  const box=el('details',null,{class:'room-comfort'});box.open=!!this._comfortOpen;
   box.append(el('summary',this.t.comfortTitle),el('p',this.t.comfortHelp,{class:'help'}));
   const enabled=el('input',null,{type:'checkbox',id:'comfort_enabled'});enabled.checked=s.comfort!==null;enabled.disabled=this.locked;
   const label=el('label',null,{class:'check'});label.append(enabled,document.createTextNode(this.t.comfortEnabled));box.append(label);

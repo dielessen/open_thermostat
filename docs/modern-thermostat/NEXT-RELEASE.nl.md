@@ -1,4 +1,4 @@
-# Beta.15 + HA0.4.0b8 — plan (eigenaar, 28 oktober)
+# Beta.16 + HA0.4.0b8 — plan (eigenaar, 28 oktober)
 
 Grotere release; E32 en HA worden samen geïnstalleerd (HA b7 weigert extra
 veldgroepen). Volgorde: 7 en CI-fix eerst, dan 1 → 6.
@@ -19,7 +19,7 @@ blijft volgens de releaseafspraken behouden tenzij de eigenaar die functie laat
 vallen. CI-browserstap: vijfmaal vastgelopen op ~650 s/720 s; oorzaak vinden en
 de test robuust maken, niet herhalen.
 
-# Beta.14 — betrouwbare ketelproef, browsercontrole bij updates en meer EMS-apparaten
+# Beta.15 — betrouwbare ketelproef, browsercontrole bij updates en meer EMS-apparaten
 
 **Beta.13 niet gepubliceerd:** de tag `v0.1.0-e32v2-beta.13` (`e166d29`) stopte
 tweemaal in de CI-browserstap. Vijf mislukte runs sinds 27 oktober stopten op
@@ -27,7 +27,16 @@ dezelfde plek: tests die na een klik vast 50–200 ms wachtten en dan eisten dat
 het verzoek al binnen was. Zij wachten nu begrensd op het verzoek zelf; de
 CI-stap noemt een falende test voortaan in een openbare annotatie. Op keuze van
 de eigenaar ("Als beta.14") is beta.14 dezelfde inhoud met die testfix; de
-beta.13-tag blijft ongewijzigd. Het grotere plan hierboven schuift naar beta.15.
+beta.13-tag blijft ongewijzigd.
+
+**Beta.14 niet gepubliceerd:** ook `v0.1.0-e32v2-beta.14` (`0aa9c66`) stopte in de
+browserstap. De nieuwe annotatie noemde `test/ha-device-power-browser.cjs` op de
+ubuntu26-runner: de HA-kamereditor onthield een open sectie via het asynchrone
+`toggle`-event; tekende hij opnieuw vóór dat event, dan klapte "Geavanceerde
+instellingen" dicht. Lokaal bewezen door het event tegen te houden. De editor
+neemt open secties nu direct uit de getoonde DOM over (ook comfort). Op akkoord
+van de eigenaar ("Ja, publiceer beta.15") is beta.15 dezelfde inhoud met die fix;
+het grotere plan hierboven schuift naar beta.16.
 
 **Actueel (28 oktober):** de bijgewoonde proef op beta.12 is door de eigenaar
 geslaagd verklaard: ~398 s 50 °C, 7 aanvragen per 60 s, CV actief en modulatie

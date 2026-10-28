@@ -28,6 +28,9 @@ const model={entry_id:'fixture',room_id:'a1b2c3d4',supported:true,editable:true,
     calls.push(structuredClone(request));if(request.type!=='open_thermostat/room/get')throw Error('Unexpected write or device request');return structuredClone(window.model);
    }};card.hass=hass;
   },{model,lang});
+  // The open advanced section must survive a re-render without relying on an
+  // asynchronous toggle event; a slow runner delivered it after Cancel.
+  await page.evaluate(()=>card.shadowRoot.addEventListener('toggle',e=>e.stopImmediatePropagation(),true));
   const card=page.locator('openthermostat-room-editor-v42');await card.locator('.device-power').waitFor({state:'attached'});
   await card.locator('details.advanced > summary').click();
   const text=()=>card.locator('.device-power').innerText();

@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "planned_tag": "v0.1.0-e32v2-beta.15",
+  "previous_published_tag": "v0.1.0-e32v2-beta.12",
+  "state": "FROZEN_TRIAL_FOLLOWUP_UNIVERSAL_EMS_AWAITING_EXACT_TAG_CI",
+  "formal_freeze": true,
+  "published": false,
+  "installed": false,
+  "ha_tag": "ha-v0.4.0b7",
+  "ha_installed": true,
+  "observed_installed_e32": "v0.1.0-e32v2-beta.12",
+  "observed_installed_ha": "0.4.0b7",
+  "owner_instruction": "docs/modern-thermostat/BETA13-OWNER-INSTRUCTION-20261028.json",
+  "publication_exception": "docs/modern-thermostat/BETA15-PUBLICATION-EXCEPTION-20261028.json",
+  "last_accepted_native_e32": "v0.1.0-e32v2-beta.4",
+  "changes": [
+    "UART: recover a coalesced own BREAK (first extra byte verified 0x00, dropped) and keep the boiler status reply; count echo_break_recoveries",
+    "Trial: tap water during heating pauses CH (counted as dhw_interruptions); normal stop confirmed with CH off while the burner serves DHW; baseline and fault closure stay strict",
+    "Trial result relies on reported CH operation; read-back setpoint optional",
+    "ManualClassicTransaction accepts the identity read to an admitted device and only that device's reply",
+    "Release-check failures back off 30 min to 12 h; E32 loop stack 8192 bytes",
+    "Update page: browser-side GitHub release lookup and SHA-256/size/marker verification before /ota upload",
+    "Browser tests wait for requests with a bounded condition instead of a fixed delay; the CI step puts a failing test, its output and the runner image in a public annotation",
+    "HA room editor keeps open advanced and comfort sections across a re-render even when the toggle event is still queued (beta13/beta14 tags stopped on this in CI)",
+    "Table-driven EMS+ boiler (0xE4-0xEA) and thermostat (RC10/20/25/30/35, EMS+ HC1) entities under ems_entities and on the EMS device panel"
+  ],
+  "software_validation": {
+    "physical_test_performed": false
+  },
+  "physical_outputs_automatically_enabled": false,
+  "persistent_boiler_setting_writes_enabled": false,
+  "full_ten_minute_physical_success_claimed": false,
+  "uart_accounting_root_cause_fixed": false,
+  "native_https_root_cause_fixed": false
+}

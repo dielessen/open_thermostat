@@ -17,5 +17,9 @@
   "beta14_publication_question": "Beta.13 kan niet groen worden zonder nieuwe code (de testfix). Hoe wil je dat ik hem publiceer?",
   "beta14_publication_approval_reply": "Als beta.14 (Aanbevolen)",
   "beta14_publication_approval_at_utc": "2026-10-28T09:05:00Z",
-  "beta14_scope": "Same bundle as the unpublished beta13 tag e166d29 plus bounded browser-test waits and a CI annotation naming a failing browser test; install automatically from beta12 by the local authenticated upload. The larger owner plan moves to beta15."
+  "beta14_scope": "Same bundle as the unpublished beta13 tag e166d29 plus bounded browser-test waits and a CI annotation naming a failing browser test; install automatically from beta12 by the local authenticated upload. The larger owner plan moves to beta15.",
+  "beta15_publication_question": "De oorzaak is gevonden en bewezen: een bug in de HA-kamereditor (sectie 'Geavanceerde instellingen' klapte dicht bij opnieuw tekenen op een trage machine). Beta.14 is net als beta.13 niet gepubliceerd. Mag ik dezelfde inhoud + deze fix publiceren als beta.15 en daarna automatisch op je E32 installeren?",
+  "beta15_publication_approval_reply": "Ja, publiceer beta.15 (Aanbevolen)",
+  "beta15_publication_approval_at_utc": "2026-10-28T10:11:00Z",
+  "beta15_scope": "Same bundle as the unpublished beta13/beta14 tags plus the HA room editor open-section fix; install automatically from beta12 by the local authenticated upload. The larger owner plan moves to beta16."
 }

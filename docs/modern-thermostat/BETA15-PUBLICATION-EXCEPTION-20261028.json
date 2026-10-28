@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "status": "APPROVED",
+  "scope": "one_prerelease_publication",
+  "candidate_tag": "v0.1.0-e32v2-beta.15",
+  "unaccepted_predecessor": "v0.1.0-e32v2-beta.12",
+  "accepted_basis_tag": "v0.1.0-e32v2-beta.4",
+  "accepted_basis_receipt_sha256": "5ec65a6256889878702a6a501842669f903825041f1e96be9448d5336bba55a8",
+  "predecessor_acceptance_status": "INCOMPLETE",
+  "gap_report": "docs/modern-thermostat/BETA12-NATIVE-GAP-20261027.json",
+  "gap_report_sha256": "73bd5dd98392f6c7ae65095c58f52bd381b87e9995a870ffe554682f60a5c0f1",
+  "reason": "Owner approved beta13 ('approve') and, after its tag e166d29 failed CI twice in the browser step, chose beta14 ('Als beta.14 (Aanbevolen)'). The beta14 tag 0aa9c66 failed CI in the same step; its new public annotation named test/ha-device-power-browser.cjs on the ubuntu26 runner: the HA room editor closed its open advanced section on a re-render when the asynchronous toggle event was still queued. The owner approved beta15 (statement below). The beta13 and beta14 tags stay unpublished and unchanged, as with beta7 and beta11. Beta15 adds bounded browser-test waits, the HA room editor fix (open sections carried over from the shown DOM) and a public annotation with the failing test output and runner image. Owner accepted the beta12 attended trial and asked to continue with beta13, include universal EMS support and make it install automatically. Beta12 was flashed manually; native acceptance stays incomplete. Beta13 recovers the coalesced own-BREAK seen in that trial, treats tap water as a pause, fixes the thermostat identity transmit, backs off failed checks, adds browser-side release verification and table-driven EMS+ boiler and thermostat entities. Preserve all failed install/native evidence and accepted beta4; no native acceptance or TLS repair inferred.",
+  "device_installation_authorized": false,
+  "boiler_trial_authorized": false,
+  "approval": {
+    "actor": "repository_owner",
+    "method": "explicit_user_instruction",
+    "decision": "approve_one_prerelease_publication",
+    "statement": "Ja, publiceer beta.15 (Aanbevolen)",
+    "at_utc": "2026-10-28T10:11:00Z"
+  },
+  "separate_installation_instruction": "docs/modern-thermostat/BETA13-OWNER-INSTRUCTION-20261028.json"
+}

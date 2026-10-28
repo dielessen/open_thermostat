@@ -86,6 +86,8 @@ async def async_setup_entry(
         from .product import is_product
         from .v1_boiler_fields import async_setup_boiler_fields
         await async_setup_boiler_fields(hass,entry,async_add_entities)
+        from .heating_link import async_setup_heating_link
+        await async_setup_heating_link(hass,entry,async_add_entities)
         if is_product(entry):
             from .native_entity_cleanup import retire_legacy_entities
             retire_legacy_entities(hass, entry, entry.data[CONF_TOPIC_PREFIX])

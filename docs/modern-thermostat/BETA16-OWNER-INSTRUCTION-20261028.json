@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-10-28T15:24:00Z",
+  "requests": [
+    "maak van beta 16 een grote release met alle gixes en nieuwe features",
+    "probeer dit allemaal in de volgende release mee te nemen . dan maken we een geote release",
+    "ga verder tot je klaar bent met de volgende release beta 16 de grote release",
+    "ja je moet alles in deze laatste beta 16 stoppen one table for ems entities ook en de de My boiler page zoals afgesproken",
+    "Via Home Assistant (Aanbevolen)"
+  ],
+  "scope": "Beta16 + HA0.4.0b8: UART self-healing, bounded trial fault, supervisor and black box, Bluetooth robustness (passive 30% scans, Wi-Fi coexistence priority, cached settings), pvvx/BTHome thermometer profile, rooms and heating in shadow mode (E32 room plan, ordered sources, heat request 30-60 degC, one HA route), one EMS entity table over boiler.fields.v2, merged My boiler page, updates through Home Assistant (no automatic native HTTPS). Install from beta15 by the local authenticated upload.",
+  "publication_approval_reply": "approve!",
+  "publication_approval_at_utc": "2026-10-28T15:23:40Z"
+}

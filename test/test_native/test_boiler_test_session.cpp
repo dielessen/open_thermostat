@@ -169,6 +169,24 @@ TEST_F(BoilerTest, TimeoutWithoutPostCommandFeedbackLatchesUncertainStop) {
     EXPECT_FALSE(session.reportedStopConfirmed());
 }
 
+// 2026-10-28: the tado kept the burner on all night and the fault repeated its
+// zero request 1270 times. It now asserts for one stop window, then stops.
+TEST_F(BoilerTest, FaultZeroStopsAfterOneStopWindowWhileAnotherControllerHeats) {
+    prepare();
+    auto zero = session.next(100, gates, monitor);
+    ASSERT_TRUE(testing_detail::instantTransmission(session, zero, 100, true, gates, monitor));
+    report(3099, true, 20);
+    session.step(3100, gates, monitor);
+    ASSERT_EQ(session.phase(), Phase::fault);
+    EXPECT_EQ(session.next(3101, gates, monitor).command, Command::zero);
+    EXPECT_FALSE(session.faultZeroWindowEnded());
+    report(6099, true, 20);
+    EXPECT_EQ(session.next(6100, gates, monitor).command, Command::none);
+    EXPECT_TRUE(session.faultZeroWindowEnded());
+    EXPECT_EQ(session.phase(), Phase::fault);
+    EXPECT_FALSE(session.reportedStopConfirmed());
+}
+
 // Attended trial 2026-10-27: a tap opened during heating. The combi boiler
 // pauses CH for hot water; the request and fixed deadline continue.
 TEST_F(BoilerTest, TapWaterDuringHeatingPausesCentralHeatingWithoutWithdrawingDemand) {

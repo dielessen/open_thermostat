@@ -1,3 +1,41 @@
+# HA 0.4.0b8 — heat request, one EMS table and the room editor fix
+<!-- user-release-notes:v2:en -->
+
+Companion release for E32 beta16. Install both together.
+
+## New
+
+- **E32 firmware updates in Home Assistant**, like ESPHome: an update entity
+  checks GitHub every six hours. Install downloads firmware.bin, verifies its
+  SHA-256, size and version marker, and uploads it to the E32 over the local
+  network; it then confirms that the E32 runs the new version. It uses the
+  address and password of the controller connection step.
+- **Heat request** sensor: the flow temperature the E32 calculates from its
+  rooms (0 when it does not ask for heat), with the reason, mode and rooms as
+  attributes. In beta16 the E32 only reports it (shadow mode).
+- The E32 tells HA which entities its rooms read (for example the tado). HA
+  forwards just those temperatures and targets to the E32, on every change and
+  every five minutes, over the same native MQTT connection.
+- One table for all EMS entities: the thermostat, maintenance and EMS+ values
+  of the firmware's entity table arrive over the existing boiler-fields route
+  and appear as entities. Values this installation never reports are disabled
+  automatically; history is kept.
+
+## Fixed
+
+- The room editor keeps its open advanced and comfort sections when it redraws.
+
+## Updating
+
+Install the matching integration package, keep existing entries, storage and
+resources, validate the configuration and restart HA. Use it with E32 beta16;
+with an older E32 the new boiler-field groups simply stay absent.
+
+## Limitations
+
+The heat request is shadow-only. Rooms for the heating control are set up on
+the E32 page "Rooms and heating", not in the HA room editor.
+
 # HA 0.4.0b7 — requested boiler temperature over native MQTT, tidier entities
 <!-- user-release-notes:v2:en -->
 

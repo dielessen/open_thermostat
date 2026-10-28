@@ -3,6 +3,7 @@
 #include "Logging.h"
 #include "Board.h"
 #include "EmsUartWriter.h"
+#include "EMS/BreakFrameReader.h"
 #include "EMS/EmsFrameQueue.h"
 #include "EMS/UartEventTrace.h"
 
@@ -140,6 +141,7 @@ public:
 	std::atomic<uint32_t> rxTimeouts{0};
 	std::atomic<uint32_t> resets{0};
 	std::atomic<uint32_t> echoBreakRecoveries{0}; // own BREAK unreported, delimiter dropped, reply kept
+	std::atomic<uint32_t> breakRealignments{0}; // stale 0x00 before a frame dropped, stream realigned
 
 private:
     // UART task and status reader share a short existing ESP critical-section
@@ -232,9 +234,11 @@ private:
 	}
 
 	// Recovery runs only in the UART task, between complete event handlers.
+	// Queue first: a byte arriving in between then has a count but no data,
+	// which costs one short frame instead of shifting every later frame.
 	void performReset() {
-		uart_flush_input(UartSlot);
 		xQueueReset(uartQueue_);
+		uart_flush_input(UartSlot);
 #ifdef OPENTHERMOSTAT_E32V2
         echoRxDebt_.reset();
         if constexpr(board::emsManualTestTransmitAllowed){
@@ -336,24 +340,21 @@ static void uart_event_task(void *pvParameters) {
             bus->echoRxDebt_.reset();
 #endif
 			// Events describe bytes already buffered by the driver. Never wait for
-			// missing bytes: discard a partial/oversized frame and resync at BREAK.
-			const bool validSize = length > 0 && length <= bus->getDataBufferSize();
-			bool complete = validSize;
-			while (length > 0) {
-				const auto chunk = std::min(length, bus->getDataBufferSize());
-				const int read = uart_read_bytes(bus->getUartSlot(), bus->getDataBuffer(), chunk, 0);
-				if (read != static_cast<int>(chunk)) {
-					complete = false;
-					uart_flush_input(bus->getUartSlot());
-					xQueueReset(bus->getQueueHandle());
-					break;
+			// missing bytes and never flush here: a bad frame is dropped and the
+			// counts stay matched to the buffer for the next BREAK.
+			struct Io {
+				size_t read(uint8_t* dst, size_t n) {
+					const int got = uart_read_bytes(EmsBusUart::UartSlot, dst, n, 0);
+					return got > 0 ? static_cast<size_t>(got) : 0;
 				}
-				length -= chunk;
-				if (complete) {
-					bus->processTelegram(chunk);
-				}
-			}
-			if (!complete) {
+			} io;
+			size_t size = 0;
+			const auto result = ems::BreakFrameReader::read(io, bus->getDataBuffer(), bus->getDataBufferSize(), length, size);
+			if (ems::BreakFrameReader::deliverable(result)) {
+				if (result == ems::BreakFrameReader::Result::realigned)
+					bus->breakRealignments.fetch_add(1, std::memory_order_relaxed);
+				bus->processTelegram(size);
+			} else if (result != ems::BreakFrameReader::Result::empty) {
 				bus->recordRxError(EmsBusUart::RxError::shortFrame);
 			}
 			length = 0;
@@ -362,8 +363,8 @@ static void uart_event_task(void *pvParameters) {
 		case UART_FIFO_OVF:
 		case UART_BUFFER_FULL:
 			bus->recordRxError(EmsBusUart::RxError::overflow);
-			uart_flush_input(bus->getUartSlot());
 			xQueueReset(bus->getQueueHandle());
+			uart_flush_input(bus->getUartSlot());
 #ifdef OPENTHERMOSTAT_E32V2
             bus->echoRxDebt_.reset();
 #endif

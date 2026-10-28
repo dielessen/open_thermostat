@@ -339,9 +339,13 @@ void loop(bool automaticAllowed) {
     const auto now=millis();if(rebootTimer.due(now,working.load())){ESP.restart();return;}
     static bool pending=pendingBoot();static uint32_t start=now,stable=0;
     if(!pending){
+        // No automatic HTTPS from the device (beta16, owner's choice): Home
+        // Assistant checks GitHub and uploads over the local network, like
+        // ESPHome. Native TLS to GitHub kept failing and cost ~17 KB of heap.
+        constexpr bool automaticNativeCheck=false;
         bool due;
         {std::lock_guard<std::mutex> lock(stateMutex);
-         due=checkSchedule.due(now,automaticAllowed&&!working.load()&&!rebootTimer.pending()&&!state.reboot);}
+         due=checkSchedule.due(now,automaticNativeCheck&&automaticAllowed&&!working.load()&&!rebootTimer.pending()&&!state.reboot);}
         if(due&&ready()&&!pendingBoot())checkReleases();
         return;
     }

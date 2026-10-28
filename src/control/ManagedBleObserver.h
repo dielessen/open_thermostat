@@ -3,6 +3,7 @@
 #include "ShellyHtDisplayAdvertisement.h"
 #include "MiBeaconMonitor3Advertisement.h"
 #include "ShellyTrvAdvertisement.h"
+#include "PvvxAdvertisement.h"
 #include <atomic>
 #include <mutex>
 
@@ -23,6 +24,9 @@ struct BleObservationSnapshot {
     std::optional<uint32_t> declaredDeviceAgeMs;
     std::optional<int8_t> rssi;
     uint32_t oldCounterDrops = 0;
+    // Diagnosis of a sensor that stays "waiting": nothing heard, or heard but
+    // not in the expected format (e.g. another product id or advertisement).
+    uint32_t framesReceived = 0, framesIgnored = 0;
     bool authenticated = false; // integrity of accepted messages, NOT acquisition qualification
     static constexpr bool measurementQualified = false;
     static constexpr bool authorizesActuation = false;
@@ -113,6 +117,7 @@ public:
         if (frame.at > *now || frame.at > maximumClockMs) { disable(BleObserverStop::clock_invalid); return; }
         if (*now - frame.at >= valueLifetimeMs || frame.device >= bindings_.count) return;
         auto& value = values_[frame.device];
+        if (value.framesReceived != UINT32_MAX) ++value.framesReceived;
         if (value.haveAccepted && frame.at < value.acceptedAt) return;
         const auto& binding = bindings_.devices[frame.device];
         // Rejection-only prefilter: unverified old counters never refresh values,
@@ -137,13 +142,16 @@ public:
         const auto decoded=binding.profile==ManagedBleProfile::xiaomiMonitor3
             ? decodeBoundMiBeaconMonitor3Advertisement(binding.address,frame.bytes.data(),frame.size,
                 binding.hasKey?&binding.key:nullptr,decryptor_,workspace_)
+            : binding.profile==ManagedBleProfile::pvvxThermometer
+            ? decodeBoundPvvxAdvertisement(binding.address,frame.bytes.data(),frame.size,
+                binding.hasKey?&binding.key:nullptr,binding.encryption==ManagedBleEncryption::bthomeV2,decryptor_,workspace_)
             : binding.profile==ManagedBleProfile::shellyTrv
             ? decodeBoundShellyTrvAdvertisement(binding.address,frame.bytes.data(),frame.size,
                 binding.hasKey?&binding.key:nullptr,binding.encryption==ManagedBleEncryption::bthomeV2,decryptor_,workspace_)
             : decodeBoundShellyHtDisplayAdvertisement(binding.address,frame.bytes.data(),frame.size,
                 binding.hasKey?&binding.key:nullptr,binding.encryption==ManagedBleEncryption::bthomeV2,decryptor_,workspace_);
         if (!readClock() || !enabled() || frame.generation != generation_.load(std::memory_order_acquire)) return;
-        if (decoded.status == ShellyHtFrameStatus::not_present) return;
+        if (decoded.status == ShellyHtFrameStatus::not_present) { if (value.framesIgnored != UINT32_MAX) ++value.framesIgnored; return; }
         if (decoded.status != ShellyHtFrameStatus::decoded) {
             withdraw(value);
             switch (decoded.status) {
@@ -195,6 +203,7 @@ public:
         const auto& value = values_[index];
         const auto& binding = bindings_.devices[index];
         out.status = value.status;
+        out.framesReceived = value.framesReceived; out.framesIgnored = value.framesIgnored;
         if (!value.haveAccepted && value.status == BleObservationStatus::waiting
                 && binding.encryption != ManagedBleEncryption::plain && !binding.hasKey) out.status = BleObservationStatus::key_required;
         if (value.haveAccepted) {
@@ -240,7 +249,7 @@ private:
         ShellyHtDisplayFrame frame;
         std::array<uint64_t, 12> at{};
         uint64_t identityAt = 0, acceptedAt = 0;
-        uint32_t highestCounter = 0, oldCounterDrops = 0;
+        uint32_t highestCounter = 0, oldCounterDrops = 0, framesReceived = 0, framesIgnored = 0;
         std::optional<int8_t> rssi;
         BleObservationStatus status = BleObservationStatus::waiting;
         bool haveCounter = false, haveAccepted = false, authenticated = false;

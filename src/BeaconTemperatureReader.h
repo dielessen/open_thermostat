@@ -9,6 +9,7 @@
 #include <NimBLEDevice.h>
 #include <NimBLEAdvertisedDevice.h>
 #include <esp_gap_ble_api.h>
+#include <esp_coexist.h>
 
 #include <atomic>
 #include <functional>
@@ -44,14 +45,16 @@ public:
 			return;
 		}
 		DBGLOGFD(log_, logFeature_, "NimBLEDevice initialized successfully.\n");
+		// The radio is shared: when Wi-Fi and Bluetooth compete, Wi-Fi wins. A
+		// sensor repeats its report every few seconds; lost HTTP or MQTT traffic
+		// can leave the device unreachable.
+		esp_coex_preference_set(ESP_COEX_PREFER_WIFI);
 		NimBLEScan *pBLEScan = NimBLEDevice::getScan();
 		if (!pBLEScan) { scanLifecycle_.close(); return; }
 
 		pBLEScan->setMaxResults(0); // Callback-only: do not retain every nearby advertiser.
 		pBLEScan->setScanCallbacks(this, true);
-		pBLEScan->setActiveScan(true);
-		pBLEScan->setInterval(100); // 100ms
-		pBLEScan->setWindow(80);    // 80ms
+		pBLEScan->setInterval(100); // ms; duty cycle is set per scan in triggerScan()
 
 		DBGLOGFD(log_, logFeature_, "BLE initialized successfully.\n");
 	}
@@ -76,6 +79,14 @@ public:
         }
 		DBGLOGFD(log_, logFeature_, "Scan start %ds\n", config_.scanTime);
 		auto scan = NimBLEDevice::getScan();
+		// Wi-Fi shares the radio. Sensor readings are in plain advertisements, so
+		// automatic scans listen passively for 30% of the time; only a requested
+		// discovery asks for scan responses (names). The former 80% active scan
+		// is the suspected cause of "WiFi connected" but unreachable (2026-10-28).
+		if (scan) {
+			scan->setActiveScan(durationMs != 0);
+			scan->setWindow(durationMs ? 50 : 30);
+		}
 		const bool started = scan && scan->start(durationMs ? std::min<uint32_t>(durationMs, 30000) : uint32_t(config_.scanTime) * 1000u, false, false);
 		if (!started) {
 			// Failed start has no guaranteed onScanEnd callback. Release ownership

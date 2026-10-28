@@ -1,3 +1,65 @@
+# E32 V2 beta16 — rooms and heating in shadow mode, a self-healing bus and pvvx sensors
+<!-- user-release-notes:v2:en -->
+
+The first step towards the E32 heating the house itself. Rooms now live on the
+E32, and the E32 calculates the boiler request from them, but in this beta it
+only reports that request (shadow mode); the tado keeps controlling the
+boiler. Use it together with HA0.4.0b8.
+
+## New
+
+- Rooms and heating page: rooms with a state (active, inactive or inactive
+  until a date), the heat emitter, and up to four temperature sources in order
+  (a Home Assistant entity such as the tado, or a Bluetooth sensor). The first
+  fresh source leads; the others are fallback. Without any source the room uses
+  its last value for 30 minutes, then stops asking for heat.
+- Calculated boiler request: the flow temperature follows the largest room
+  shortfall between 30 and at most 60 °C, with five-minute minimum burner on and
+  off times. Shown on the page and in HA as "Heat request".
+- One route to Home Assistant: the E32 publishes its heating status and the
+  entities it reads; HA forwards just those (for example the tado) to the E32.
+- Bluetooth thermometers with the pvvx firmware (BTHome v2, plain or with a
+  bindkey; also the older PVVX Custom format). The Bluetooth page now counts
+  received and unrecognised reports and explains why a sensor waits.
+- One table for all EMS entities: the thermostat, maintenance and EMS+ values
+  of that table now reach Home Assistant over the same boiler-fields route as the
+  Classic fields (groups 7 and up, once HA0.4.0b8 asks for them). HA's list is
+  generated from the firmware table and checked in CI.
+- My boiler and Boiler test are one page: boiler choice, the attended test and
+  the EMS devices together. Old links still work.
+- The system log shows what the device was doing before its last restart.
+
+## Fixed
+
+- Boiler reception no longer stays broken after a bus error. A reset could
+  leave one byte without its count, so every later message started with a
+  stray 00 and was rejected until a reboot. Bad frames are now dropped without
+  clearing the buffer (as EMS-ESP does), and a stray 00 is repaired.
+- A failed boiler trial sends its safety zero request for one stop window only,
+  instead of all night while another controller kept the burner on.
+- The E32 restarts itself when its main loop hangs for 5 minutes, or when
+  Wi-Fi or the MQTT broker stays unreachable for 15 minutes, never during an
+  update. Three hangs happened while the Bluetooth status was read. Automatic
+  scans are now passive and take 30 % instead of 80 % of the shared radio, Wi-Fi
+  wins when both need it, and the Bluetooth page no longer reads flash on every
+  request. If it still hangs, the system log names the request and loop part.
+
+## Updating
+
+The E32 no longer checks GitHub over HTTPS by itself. From now on Home
+Assistant checks for new firmware and installs it over the local network
+(HA0.4.0b8); the upload on the update page stays available.
+Install this firmware and HA0.4.0b8 together. A sensor with pvvx firmware
+needs the profile "Thermometer with pvvx firmware (BTHome)" on the Bluetooth
+page, then a restart.
+
+## Limitations
+
+Shadow mode only: the E32 does not send its heat request yet. That needs an
+attended switch-over with failure tests first. Rooms for the heating control are
+set up on the E32 page; the Home Assistant room editor for TRV rooms is not
+used by it yet. Native GitHub HTTPS still is no longer used.
+
 # E32 V2 beta15 — reliable boiler trial, browser-checked updates and more EMS devices
 <!-- user-release-notes:v2:en -->
 

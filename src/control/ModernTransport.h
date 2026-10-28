@@ -167,6 +167,10 @@ public:
             const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
             const auto utc=std::time(nullptr);
             const auto suffix=full.substr(base_.size());
+            if(suffix=="ha/heating_input") {
+                if(heatingInput_)heatingInput_(std::string_view(reinterpret_cast<char *>(payload),length));
+                return;
+            }
             if(suffix.substr(0,18)=="ha/actuator_grant/") {
                 // PubSubClient's public callback has no retain metadata. The
                 // channel instead requires its outstanding local request,
@@ -182,6 +186,14 @@ public:
     }
     void getUiStatus(std::ostream& out) const {
         ui_.write(out,static_cast<uint64_t>(esp_timer_get_time()/1000),valid_&&wasConnected_);
+    }
+    bool brokerConnected() const { return wasConnected_; }
+    // The one route between the E32 room control and Home Assistant: HA sends
+    // source states on ha/heating_input, the E32 reports fw/telemetry/heating.
+    using HeatingInput=std::function<void(std::string_view)>;
+    using HeatingStatus=std::function<std::string()>;
+    void setHeatingRoute(HeatingInput input,HeatingStatus status) {
+        heatingInput_=std::move(input);heatingStatus_=std::move(status);
     }
     bool nativeSourceCurrent(std::string_view expected,std::string_view savedSettings) const {
         return valid_&&!graph_&&cfg_.nativeSourceRequested&&controller_&&controller_->nativeSourceSelected()
@@ -280,11 +292,12 @@ public:
             const auto willTopic=base_+"fw/availability";
             if(!client_.connect(id.c_str(),cfg_.username.c_str(),cfg_.password.c_str(),willTopic.c_str(),0,false,"offline",true)) return;
             bool subscriptions=true;
-            for(auto suffix:{"ha/open_session","ha/heartbeat","ha/config","ha/observations","ha/user_command","ha/snapshot_request"}) {
+            for(auto suffix:{"ha/open_session","ha/heartbeat","ha/config","ha/observations","ha/user_command","ha/snapshot_request","ha/capabilities"}) {
                 if(graph_&&(std::string_view(suffix)=="ha/observations"||std::string_view(suffix)=="ha/user_command"))continue;
                 const auto topic=base_+suffix;
                 subscriptions=client_.subscribe(topic.c_str(),0)&&subscriptions;
             }
+            if(heatingInput_)subscriptions=client_.subscribe((base_+"ha/heating_input").c_str(),0)&&subscriptions;
             if(actuatorChannels_&&!actuatorChannels_->retired())
                 subscriptions=client_.subscribe((base_+"ha/actuator_grant/+").c_str(),0)&&subscriptions;
             if(!subscriptions) { client_.disconnect(); return; }
@@ -302,6 +315,10 @@ public:
             const auto bytes=deviceDiagnosticsJson(ESP.getFreeHeap(), ESP.getMinFreeHeap(),
                 ESP.getMaxAllocHeap(), temperatureRead(), now/1000);
             client_.publish((base_+"fw/telemetry/device_status").c_str(),bytes.c_str(),false);
+            if(heatingStatus_)try {
+                const auto heating=heatingStatus_();
+                if(!heating.empty())client_.publish((base_+"fw/telemetry/heating").c_str(),heating.c_str(),false);
+            } catch(const std::exception&) { /* status is observation only */ }
             if(controllerStatus_)try {
                 std::ostringstream status;controllerStatus_(status);
                 const auto command=controllerRequestTelemetry(status.str());
@@ -329,6 +346,8 @@ private:
     config::MqttConfig cfg_; std::string base_,sourceNetworkBase_; // ephemeral bounded<2048, never logged/persisted.
     DeadlineWiFiClient network_; PubSubClient client_; NvsControlStore store_;
     StatusSnapshot controllerStatus_;
+    HeatingInput heatingInput_;
+    HeatingStatus heatingStatus_;
     AsyncBrokerDns brokerDns_;
     PendingTcpConnect brokerTcp_;
     std::unique_ptr<GraphControlStoreView> graphControlView_;

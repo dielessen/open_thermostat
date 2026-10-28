@@ -67,6 +67,7 @@ jobs:
           browser test/dashboard-browser.cjs
           browser test/dashboard-room-context-browser.cjs
           browser test/boiler-display-browser.cjs
+          browser test/heating-browser.cjs
           browser test/ems-devices-browser.cjs
           browser test/boiler-settings-browser.cjs
           browser test/bluetooth-browser.cjs
@@ -224,6 +225,7 @@ jobs:
           /tmp/open-thermostat-onboarding-test
           python3 scripts/generate_boiler_catalog.py --check
           python3 scripts/generate_ems_reference.py --check
+          python3 scripts/generate_ems_fields.py --check
           python3 -m unittest discover -s scripts -p test_generate_ems_reference.py -v
           g++ -std=c++17 -Wall -Wextra -Werror -Isrc -Itest/boiler_display/include test/boiler_display/firmware.cpp -o /tmp/open-thermostat-boiler-display-test
           /tmp/open-thermostat-boiler-display-test

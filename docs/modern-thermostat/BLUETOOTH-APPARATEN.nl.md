@@ -1,5 +1,12 @@
 # Bluetooth-apparaten onder Settings
 
+**Beta.16 (28 oktober):** sensoren met pvvx-firmware (github.com/pvvx/ATC_MiThermometer)
+krijgen het profiel "Thermometer met pvvx-firmware (BTHome)": BTHome v2, onversleuteld
+of met bindkey, en het oudere PVVX Custom-formaat (0x181A). De MJWSD05MMC van de
+eigenaar (pvvx 5.9, naam `BTE_A3E8DB`) stuurt BTHome zonder versleuteling elke 5 s;
+als "Xiaomi Monitor 3" (MiBeacon) gekoppeld bleef hij daarom op "wachten". Per sensor
+tonen tellers hoeveel berichten zijn ontvangen en niet herkend.
+
 Uitbreiding X01, bijgewerkt 25 oktober 2026. **Software voor lokale
 SBHT-103C-/MJWSD05MMC-diagnoseontvangst aangesloten in de ongepubliceerde grote bèta.**
 Nog geen fysieke apparaatacceptatie of vrijgave als regelbron. De geïnstalleerde

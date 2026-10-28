@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "status": "INSTALLED_BY_LOCAL_UPLOAD_IDENTITY_AND_SETTINGS_VERIFIED",
+  "installed_tag": "v0.1.0-e32v2-beta.15",
+  "source_commit": "a152f2e6b67d45aa965ba80078c005bd0cb2fee1",
+  "web_sha256": "96e1e51fc3c4d9a456bc3c14e1cb0d36539fd8ff3800438af9cbc97b5ca30083",
+  "elf_sha256": "f8e82af9b54de39d3b999feccd1711c1b1d01642bc7872d954c1e738c4d7c4be",
+  "previous_tag": "v0.1.0-e32v2-beta.12",
+  "boot_id": "711433e04be72add",
+  "transmitted_frames_at_postcheck": 0,
+  "settings_exports": 12,
+  "byte_identical_exports": 11,
+  "other_export_change": "Bluetooth discovery cache only (nearby, nearby_devices, scan_pending)",
+  "preflight_note": "First attempt stopped before upload: the beta.12 trial was still in fault/reported_stop_timeout because UART reception had stalled since 04:45 UTC; the owner approved a narrow installer exception (phase fault, nothing transmitted over 65 s). Second attempt stopped before upload when the E32 dropped off the network during the settings backup (10:57 UTC). After the owner's power cycle (reset reason 1) the installer ran with its normal checks.",
+  "owner_approvals": [
+    "Ja, publiceer beta.15 (Aanbevolen)",
+    "Ja, installeer nu (Aanbevolen)"
+  ],
+  "native_acceptance": "INCOMPLETE_NOT_NATIVE_ROUTE",
+  "native_https_root_cause_fixed": false
+}

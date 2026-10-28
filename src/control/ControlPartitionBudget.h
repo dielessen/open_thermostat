@@ -52,7 +52,16 @@ public:
     }
     static constexpr bool permitsBluetoothWrite(ControlPartitionStats s,size_t bytes,
                                                  ControlModelReservation future={}) {
-        if(bytes<3||bytes>2048||!permitsGraphWrite(s,bytes,future))return false;
+        return permitsPrivateBlobWrite(s,bytes,2048,future);
+    }
+    static constexpr bool permitsHeatingPlanWrite(ControlPartitionStats s,size_t bytes,
+                                                   ControlModelReservation future={}) {
+        return permitsPrivateBlobWrite(s,bytes,configBytes,future);
+    }
+private:
+    static constexpr bool permitsPrivateBlobWrite(ControlPartitionStats s,size_t bytes,size_t maximum,
+                                                   ControlModelReservation future) {
+        if(bytes<3||bytes>maximum||!permitsGraphWrite(s,bytes,future))return false;
         // Charge the NEW private blob and its namespace without reclaiming old
         // bytes, then still leave the original control replacement + GC margin.
         // Fresh statistics are necessary, not proof of contiguous free pages.

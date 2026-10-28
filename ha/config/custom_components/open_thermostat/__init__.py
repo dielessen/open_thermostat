@@ -383,7 +383,7 @@ async def async_setup_entry(hass, entry):
                                     hass.data.get(BENCH_KEY, {}).get(entry.entry_id))
         platforms = [Platform.CLIMATE, Platform.SENSOR]
         if product:
-            platforms.append(Platform.BINARY_SENSOR)
+            platforms += [Platform.BINARY_SENSOR, Platform.UPDATE]
         cleanup.push_async_callback(hass.config_entries.async_unload_platforms, entry, platforms)
         await hass.config_entries.async_forward_entry_setups(entry, platforms)
         if entry.options.get(CONF_CREATE_DASHBOARD,False):

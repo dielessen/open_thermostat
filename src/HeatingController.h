@@ -18,6 +18,11 @@
 #include "control/ManagedBleObserver.h"
 #include "control/MbedTlsBleCcm.h"
 #include "DeviceBluetoothSettings.h"
+#include "HeatingPlanStore.h"
+#include "control/RoomEngine.h"
+#include <cmath>
+#include <cstring>
+#include <ctime>
 #include <esp_timer.h>
 #include "update/GitHubUpdate.h"
 #endif
@@ -38,6 +43,9 @@
 #include <vector>
 
 namespace heating {
+#ifdef OPENTHERMOSTAT_E32V2
+extern bool networkTimeTrusted; // main.cpp: NTP synchronized this boot
+#endif
 
 // Build label -> PcfDevice map from config so all pins on the same extender share one shadow register.
 using PcfDeviceMap = std::unordered_map<std::string, std::shared_ptr<gpio::PcfDevice>>;
@@ -126,12 +134,20 @@ public:
             std::lock_guard<std::mutex> lock(roomsAccessMutex_);
             bleDiscovery_.remember(address, rssi, data, size);
         });
+        loadHeatingPlan();
+        mqtt_.setHeatingRoute([this](std::string_view payload) { heatingInput(payload); }, [this] {
+            std::unique_ptr<cJSON, decltype(&cJSON_Delete)> status(roomEngine_.json(), cJSON_Delete);
+            return status ? control::printJson(status.get()) : std::string();
+        });
 #endif
 	}
 
 	~HeatingController() { stopBluetoothAndDeinitBLE(); }
 
 	void operate() {
+#ifdef OPENTHERMOSTAT_E32V2
+		stepHeating();
+#endif
 		// Modern shadow runtime owns its targets. Never execute the old room
 		// scheduler/boiler writer alongside it, even if provisioning is invalid.
 		if(mqtt_.modernMode()) return;
@@ -203,6 +219,23 @@ public:
 	bool modernMode() const { return mqtt_.modernMode(); }
 #ifdef OPENTHERMOSTAT_E32V2
     void stopManagedBle() { managedBle_.disable(control::BleObserverStop::configuration_changed); }
+    // The room plan is the single room list of the heating control. In beta.16
+    // it runs in shadow mode: the request is computed and reported, not sent.
+    std::string heatingPlanJson() const { return roomEngine_.plan().json(); }
+    const char* setHeatingPlan(const cJSON* root) {
+        control::RoomPlan plan;
+        if (const char* error = control::RoomPlan::parse(root, plan)) return error;
+        if (plan.mode == control::RoomPlan::Mode::active) return "active_mode_not_released";
+        const auto raw = plan.json();
+        if (raw.empty() || !saveHeatingPlan(raw)) return "save_unconfirmed";
+        roomEngine_.setPlan(plan);
+        return nullptr;
+    }
+    cJSON* heatingStatusJson() const { return roomEngine_.json(); }
+    // A Home Assistant state (temperature and/or target) for a plan source.
+    void heatingHaState(const std::string& entity, std::optional<int16_t> temperature, std::optional<int16_t> target) {
+        roomEngine_.haState(entity, temperature, target, bleReceiptClock());
+    }
     auto managedBleSnapshot(const control::ManagedBleAddress& address) { return managedBle_.snapshot(address); }
     bool managedBlePending() const { return !managedBle_.enabled(); }
     uint32_t managedBleQueueDrops() const { return managedBle_.queueDrops(); }
@@ -213,6 +246,7 @@ public:
     void copyBleDiscovery(control::BleDeviceDiscovery& out) const {
         std::lock_guard<std::mutex> lock(roomsAccessMutex_); out = bleDiscovery_;
     }
+    bool brokerConnected() const {return mqtt_.brokerConnected();}
     bool nativeSourceCurrent(std::string_view expected,std::string_view savedSettings) const {return mqtt_.nativeSourceCurrent(expected,savedSettings);}
     bool nativeSourceHotReady(std::string_view expected,std::string_view savedSettings) const {return mqtt_.nativeSourceHotReady(expected,savedSettings);}
     bool nativeSourceCanApply(std::string_view expected,std::string_view next,std::string_view saved) const {return mqtt_.nativeSourceCanApply(expected,next,saved);}
@@ -490,6 +524,43 @@ private:
     control::ManagedBleObserver<control::MbedTlsBleCcm> managedBle_{bleCrypto_, bleReceiptClock};
     control::BleDeviceDiscovery bleDiscovery_;
     static_assert(sizeof(decltype(managedBle_)) <= 4096, "BLE observer resident budget changed");
+    control::RoomEngine roomEngine_;
+    void loadHeatingPlan() {
+        const auto raw = readHeatingPlan();
+        std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(raw.c_str()), cJSON_Delete);
+        control::RoomPlan plan;
+        if (root && !control::RoomPlan::parse(root.get(), plan)) roomEngine_.setPlan(plan);
+        else DBGLOGFI(log_, logFeature_, "Room plan unreadable; heating control has no rooms\n");
+    }
+    // ha/heating_input: {"entity":"climate.woonkamer","temperature":20.4,"target":21.0}
+    // (either value may be null). Anything else is ignored.
+    void heatingInput(std::string_view payload) {
+        if (payload.size() > 256) return;
+        std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_ParseWithLength(payload.data(), payload.size()), cJSON_Delete);
+        const auto* entity = root ? cJSON_GetObjectItemCaseSensitive(root.get(), "entity") : nullptr;
+        if (!cJSON_IsString(entity) || !entity->valuestring || std::strlen(entity->valuestring) > 80) return;
+        const auto centi = [&](const char* key, double lo, double hi) -> std::optional<int16_t> {
+            const auto* v = cJSON_GetObjectItemCaseSensitive(root.get(), key);
+            if (!cJSON_IsNumber(v) || !(v->valuedouble >= lo && v->valuedouble <= hi)) return std::nullopt;
+            return static_cast<int16_t>(std::lround(v->valuedouble * 100));
+        };
+        heatingHaState(entity->valuestring, centi("temperature", -40, 85), centi("target", 5, 30));
+    }
+    // Every 10 s: feed the Bluetooth sources, then compute the (shadow) request.
+    void stepHeating() {
+        const auto now = bleReceiptClock();
+        for (const auto& room : roomEngine_.plan().rooms)
+            for (const auto& source : room.sources) {
+                control::ManagedBleAddress address{};
+                if (source.type != control::RoomPlan::SourceType::ble || !control::parseBleHex(source.id, address)) continue;
+                const auto snapshot = managedBle_.snapshot(address);
+                if (snapshot.temperature && snapshot.temperatureAgeMs && *snapshot.temperatureAgeMs <= now)
+                    roomEngine_.bleReading(source.id, snapshot.temperature, now - *snapshot.temperatureAgeMs);
+            }
+        std::optional<uint32_t> unixNow;
+        if (networkTimeTrusted) unixNow = static_cast<uint32_t>(std::time(nullptr));
+        roomEngine_.step(now, unixNow);
+    }
 #endif
 	BeaconTemperatureReader tempReader_{log_, [this](BleAddress_t address, std::optional<int16_t> temperature, std::optional<int16_t> humidity, std::optional<int8_t> battery) { pushTemperatureData(std::move(address), temperature, humidity, battery); }};
 	OpenWeather openWeather_;

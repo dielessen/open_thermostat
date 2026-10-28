@@ -171,6 +171,7 @@ inline BleSettingsError prepareManagedBleSettings(const cJSON* previous, const c
         if(profile=="shelly_ht_display")value.profile=ManagedBleProfile::shellyHtDisplay;
         else if(profile=="xiaomi_monitor_3")value.profile=ManagedBleProfile::xiaomiMonitor3;
         else if(profile=="shelly_blu_trv")value.profile=ManagedBleProfile::shellyTrv;
+        else if(profile=="pvvx_thermometer")value.profile=ManagedBleProfile::pvvxThermometer;
         else return fail(BleSettingsError::unsupported_profile);
         const auto encryption = bleSettingText(bleSetting(row,"encryption"));
         if(encryption=="bthome_v2")value.encryption=ManagedBleEncryption::bthomeV2;

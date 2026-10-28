@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "status": "APPROVED",
+  "scope": "one_prerelease_publication",
+  "candidate_tag": "v0.1.0-e32v2-beta.16",
+  "unaccepted_predecessor": "v0.1.0-e32v2-beta.15",
+  "accepted_basis_tag": "v0.1.0-e32v2-beta.4",
+  "accepted_basis_receipt_sha256": "5ec65a6256889878702a6a501842669f903825041f1e96be9448d5336bba55a8",
+  "predecessor_acceptance_status": "INCOMPLETE",
+  "gap_report": "docs/modern-thermostat/BETA15-NATIVE-GAP-20261028.json",
+  "gap_report_sha256": "a6200e587104216f9f6ea309027cde6d475d7d0509c73575c0f0581c00ec55bc",
+  "reason": "Owner asked for one large beta16 with all fixes and new features and approved its publication (statement below). Beta15 was installed by the local upload; native acceptance stays incomplete. Beta16 adds UART self-healing after a reset race, a bounded trial fault, a supervisor with black box, Bluetooth robustness after three hangs while its status was read, a pvvx/BTHome thermometer profile, rooms and heating in shadow mode (no boiler output), one EMS entity table over boiler.fields.v2 and updates through Home Assistant. Preserve all evidence and accepted beta4; no native acceptance, physical control or TLS repair inferred.",
+  "device_installation_authorized": false,
+  "boiler_trial_authorized": false,
+  "approval": {
+    "actor": "repository_owner",
+    "method": "explicit_user_instruction",
+    "decision": "approve_one_prerelease_publication",
+    "statement": "approve!",
+    "at_utc": "2026-10-28T15:23:40Z"
+  },
+  "separate_installation_instruction": "docs/modern-thermostat/BETA16-OWNER-INSTRUCTION-20261028.json"
+}

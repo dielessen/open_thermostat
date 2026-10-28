@@ -75,6 +75,10 @@ public:
     // Hot-water (DHW) episodes the boiler reported during heating. The combi
     // boiler pauses CH for tap water; the request and fixed deadline continue.
     uint32_t dhwInterruptions() const { return dhwInterruptions_; }
+    // A fault repeats its zero request only within one stop window. Another
+    // controller may keep the burner on (tado all night, 2026-10-28): the E32
+    // then stops asserting instead of contending; a restart clears the fault.
+    bool faultZeroWindowEnded() const { return phase_ == Phase::fault && !stopConfirmed_ && faultZeroWindowEnded(lastNow_); }
     bool durationCompleted() const { return durationCompleted_; }
     uint32_t requestedDurationSeconds() const { return heatMs_ / 1000; }
     const char* endReason() const { return endReason_; }
@@ -219,7 +223,7 @@ public:
     Intent next(uint64_t now, const Gates& gates, const ClassicBoilerMonitor& monitor) {
         step(now, gates, monitor);
         if (inFlight_ || !gates.allowsZero() || !session_
-            || (phase_ == Phase::fault && stopConfirmed_)) return {};
+            || (phase_ == Phase::fault && (stopConfirmed_ || faultZeroWindowEnded(now)))) return {};
         const Command command = phase_ == Phase::heating ? Command::positive
             : phase_ == Phase::baseline || phase_ == Phase::stopping || phase_ == Phase::fault ? Command::zero : Command::none;
         const auto interval = command == Command::positive ? profile_.heatRequestIntervalMs() : profile_.writeIntervalMs;
@@ -341,11 +345,12 @@ private:
     void fail(const char* reason) {
         if (phase_ != Phase::fault) {
             if (!*endReason_) endReason_ = reason; // retain an earlier operator/deadline stop
-            phase_ = Phase::fault; reason_ = reason; ++epoch_;
+            phase_ = Phase::fault; reason_ = reason; faultAt_ = lastNow_; ++epoch_;
             zeroSent_ = false; stopConfirmed_ = false; sent_ = false;
         }
     }
-    uint64_t boot_ = 0, session_ = 0, epoch_ = 0, phaseAt_ = 0, lastNow_ = 0;
+    bool faultZeroWindowEnded(uint64_t now) const { return now >= faultAt_ && now - faultAt_ >= profile_.stopTimeoutMs; }
+    uint64_t boot_ = 0, session_ = 0, epoch_ = 0, phaseAt_ = 0, lastNow_ = 0, faultAt_ = 0;
     uint64_t heatUntil_ = 0, operatorUntil_ = 0, sentAt_ = 0, zeroSentAt_ = 0;
     Profile profile_;
     Phase phase_ = Phase::idle;

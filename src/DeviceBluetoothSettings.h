@@ -25,6 +25,15 @@ inline std::string readDeviceBluetoothSettings() {
     if(error!=ESP_OK||raw.back()!='\0'||raw.find('\0')!=raw.size()-1)return {};
     raw.pop_back();return raw;
 }
+// The status page polls every 5 s while the radio scans: its GET reads flash
+// once and keeps the blob in RAM. Writes and their readback still use the exact
+// reader above; saveDeviceBluetoothSettings() drops the copy. Loop task only.
+inline std::string& bluetoothSettingsCache() { static std::string cache; return cache; }
+inline std::string cachedDeviceBluetoothSettings() {
+    auto& cache = bluetoothSettingsCache();
+    if (cache.empty()) cache = readDeviceBluetoothSettings(); // an error stays empty: read again next time
+    return cache;
+}
 inline bool bluetoothStorageHasRoom(size_t bytes) {
     nvs_stats_t stats{};
     const auto partition=esp_partition_find_first(ESP_PARTITION_TYPE_DATA,ESP_PARTITION_SUBTYPE_DATA_NVS,"nvs");
@@ -37,7 +46,9 @@ inline bool saveDeviceBluetoothSettings(const std::string& raw) {
             ||!bluetoothStorageHasRoom(raw.size()+1))return false;
     nvs_handle_t handle;if(nvs_open("ot_bluetooth",NVS_READWRITE,&handle)!=ESP_OK)return false;
     const bool committed=nvs_set_blob(handle,"settings",raw.c_str(),raw.size()+1)==ESP_OK&&nvs_commit(handle)==ESP_OK;
-    nvs_close(handle);return committed&&readDeviceBluetoothSettings()==raw;
+    nvs_close(handle);
+    bluetoothSettingsCache().clear();
+    return committed&&readDeviceBluetoothSettings()==raw;
 }
 }
 #endif

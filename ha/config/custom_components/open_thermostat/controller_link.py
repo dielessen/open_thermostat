@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 import ipaddress
 import json
 import re
+import secrets
 from urllib.parse import urlsplit
 
 import aiohttp
@@ -464,6 +465,45 @@ class ControllerClient:
         if type(document) is not dict:
             raise ControllerLinkError("controller_request_invalid")
         await self._request("POST", "/config/device", document=document, etag=etag)
+
+    async def async_upload_firmware(self, image):
+        """One already verified firmware image over the local /ota route.
+
+        Same multipart form as the device's update page, with a fixed length
+        (the device web server does not accept chunked bodies) and paced 2 KiB
+        blocks: the device erases flash sector by sector while it writes.
+        """
+        if (self._session is None or self._session.closed or not self._csrf
+                or type(image) is not bytes or not 1000000 <= len(image) <= 0x3C0000):
+            raise ControllerLinkError("controller_request_invalid")
+        boundary = "OTFirmware" + secrets.token_hex(12)
+        prefix = (f'--{boundary}\r\nContent-Disposition: form-data; name="type"\r\n\r\nfirmware\r\n'
+                  f'--{boundary}\r\nContent-Disposition: form-data; name="size"\r\n\r\n{len(image)}\r\n'
+                  f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="firmware.bin"\r\n'
+                  'Content-Type: application/octet-stream\r\n\r\n').encode()
+        suffix = f"\r\n--{boundary}--\r\n".encode()
+
+        async def body():
+            yield prefix
+            for start in range(0, len(image), 2048):
+                yield image[start:start + 2048]
+                await asyncio.sleep(0.01)
+            yield suffix
+
+        headers = {"Origin": self.address, "X-OpenThermostat-CSRF": self._csrf,
+                   "Content-Type": f"multipart/form-data; boundary={boundary}",
+                   "Content-Length": str(len(prefix) + len(image) + len(suffix))}
+        try:
+            async with self._session.post(self.address + "/ota", data=body(), headers=headers,
+                    allow_redirects=False, timeout=aiohttp.ClientTimeout(total=600)) as response:
+                if response.status in (401, 403):
+                    raise ControllerLinkError("controller_auth_failed")
+                if response.status == 409:
+                    raise ControllerLinkError("controller_busy_or_conflict")
+                if response.status != 200:
+                    raise ControllerLinkError("controller_response_invalid")
+        except (aiohttp.ClientError, TimeoutError):
+            raise ControllerLinkError("controller_unreachable") from None
 
     async def async_reboot(self):
         _, _, status = await self._request("POST", "/updates/reboot")

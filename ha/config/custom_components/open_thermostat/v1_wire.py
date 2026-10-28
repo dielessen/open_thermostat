@@ -18,7 +18,7 @@ from homeassistant.exceptions import HomeAssistantError
 from .supervisor_status import supervisor_status, MAX_AGE_SECONDS as SUPERVISOR_MAX_AGE
 from .v1_model import Observation, RoomDecision
 from .session_grant import register_grant_proof, consume_grant_proof, MAX_GRANT_PROOFS
-from .boiler_fields import CAPABILITY as BOILER_CAPABILITY, BoilerFieldCache, MAX_BYTES as MAX_BOILER_BYTES
+from .boiler_fields import CAPABILITY as BOILER_CAPABILITY, CAPABILITY_V2 as BOILER_CAPABILITY_V2, BoilerFieldCache, MAX_BYTES as MAX_BOILER_BYTES
 from .metric_snapshot import CAPABILITY,MAX_BYTES as MAX_METRIC_BYTES,EXPIRY_SECONDS,valid_snapshot
 
 _ID = re.compile(r"[A-Za-z0-9_-]{1,32}")
@@ -157,6 +157,8 @@ class ShadowClient:
         self.grant_nonce_supported=False
         self._grant_proofs={}
         self.boiler_fields_supported=False
+        self.boiler_fields_v2=False
+        self._capabilities_sent=None
         self.boiler_fields=BoilerFieldCache()
         self.metrics_supported=False
         self.comfort_supported=False
@@ -922,6 +924,8 @@ class ShadowClient:
             caps=p.get("read_only_capabilities",[])
             self.boiler_fields_supported=(type(caps) is list and len(caps)<=8
                 and all(isinstance(cap,str) and len(cap)<=64 for cap in caps) and BOILER_CAPABILITY in caps)
+            # The firmware sends the catalog groups only after ha/capabilities.
+            self.boiler_fields_v2=self.boiler_fields_supported and BOILER_CAPABILITY_V2 in caps
             if not self.boiler_fields_supported:
                 self.boiler_fields.reset()
             self.metrics_supported=(type(caps) is list and len(caps)<=8
@@ -1166,6 +1170,10 @@ class ShadowClient:
     async def message(self, topic, binding, body, future=None):
         p = self.envelope(binding)
         p.update(body)
+        if (topic=="ha/heartbeat" and self.ready and self.boiler_fields_v2
+                and self._capabilities_sent!=self.session["adapter_session_id"]):
+            self._capabilities_sent=self.session["adapter_session_id"]
+            await self.send("ha/capabilities", canonical({"read_only":[BOILER_CAPABILITY_V2]}))
         if topic=="ha/heartbeat" and self.room_names_supported and self.ready:
             names=[]
             for room_id in sorted(self.runtime.rooms):

@@ -1,5 +1,7 @@
 <section class="product-dashboard" id="boiler-test">
-  <h1 data-i18n="Boiler test">Boiler test</h1>
+  <h1 data-i18n="My boiler">My boiler</h1>
+  <div class="pd-panel" data-boiler-display-host></div>
+  <h2 class="mt-4" data-i18n="Boiler test">Boiler test</h2>
   <p role="status" aria-live="polite" data-reception><span data-i18n="Checking reception…">Checking reception…</span></p>
   <div class="pd-panel bt-control" id="boiler-test-controls">
     <h2 data-workflow-title data-i18n="Prepare a heating test">Prepare a heating test</h2>
@@ -248,6 +250,24 @@
       if(root.isConnected&&!lifecycle.signal.aborted)
         host.textContent=uiText("Boiler entities could not be loaded. Test controls and reception remain separate.");
     } finally {clearTimeout(timeout);lifecycle.signal.removeEventListener('abort',abort);}
+  })();
+  // The boiler choice (model and illustration) from the former My boiler page.
+  // Display only: saving it never touches the boiler or the test.
+  (async () => {
+    const host=root.querySelector('[data-boiler-display-host]');
+    try {
+      const response=await fetch('/boiler_display.html',{signal:lifecycle.signal});
+      if(!response.ok)throw Error('display');
+      const html=await response.text();if(html.length>8192)throw Error('display size');
+      if(!root.isConnected||lifecycle.signal.aborted)return;
+      const template=document.createElement('template');template.innerHTML=html;
+      template.content.querySelectorAll('script,h1').forEach(node=>node.remove());
+      host.replaceChildren(template.content);
+      OpenThermostatLanguage.apply(host);
+      BoilerDisplay.settings(host.querySelector('#boiler-display-form'));
+    } catch(_) {
+      if(root.isConnected&&!lifecycle.signal.aborted)host.textContent=uiText("The boiler selection could not be loaded.");
+    }
   })();
   const readButton = root.querySelector('[data-read-configuration]');
   const readStatus = root.querySelector('[data-read-status]');
@@ -531,7 +551,7 @@
     stopButton.hidden=!lastScope;
     const title=root.querySelector('[data-workflow-title]'),help=root.querySelector('[data-workflow-help]');
     const restart=root.querySelector('[data-test-restart]'),commonRestart=document.getElementById('device-restart');
-    restart.hidden=test?.phase!=='closed'||test.restart_required!==true||!commonRestart||commonRestart.hidden;
+    restart.hidden=!restartOffered(test)||!commonRestart||commonRestart.hidden;
     restart.disabled=pending||!commonRestart||commonRestart.disabled;
     testState.hidden=!test||idle;
     help.hidden=false;
@@ -626,9 +646,11 @@
       cell(list,'li',(confirmed?'✓ ':'○ ')+label+' — '+(confirmed?uiText('Confirmed'):uiText('Not confirmed yet')));
     }
   }
+  // A closed test, or a fault whose zero window ended without a reported stop.
+  function restartOffered(t){return t?.restart_required===true&&(t.phase==='closed'||t.phase==='fault');}
   root.querySelector('[data-test-restart]').addEventListener('click',()=>{
     const common=document.getElementById('device-restart');
-    if(!root.isConnected||test?.phase!=='closed'||test.restart_required!==true||pending
+    if(!root.isConnected||!restartOffered(test)||pending
       ||document.visibilityState!=='visible'||!common||common.hidden||common.disabled)return;
     // Reuse the existing confirmed/authenticated update-aware restart action.
     common.click();root.querySelector('[data-test-restart]').disabled=common.disabled;

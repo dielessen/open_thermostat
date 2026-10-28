@@ -28,6 +28,8 @@ inline bool addBleObservation(cJSON* row,const BleObservationSnapshot& value) {
     return cJSON_AddStringToObject(row,"status",bleObservationStatusName(value.status))
         && cJSON_AddBoolToObject(row,"message_integrity",value.authenticated)
         && cJSON_AddBoolToObject(row,"measurement_qualified",false)
+        && cJSON_AddNumberToObject(row,"frames_received",value.framesReceived)
+        && cJSON_AddNumberToObject(row,"frames_ignored",value.framesIgnored)
         && addBleOptional(row,"temperature",value.temperature)
         && addBleOptional(row,"target_temperature",value.targetTemperature)
         && addBleOptional(row,"external_temperature",value.externalTemperature)

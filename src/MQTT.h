@@ -327,6 +327,10 @@ public:
         return modernMode_&&modern_&&modern_->applyNativeSource(expected,next,previousSettings);
     }
     void inhibitNativeSourceMutation() {if(modern_)modern_->inhibitNativeSourceMutation();}
+    bool brokerConnected() const { return modernMode_&&modern_&&modern_->brokerConnected(); }
+    void setHeatingRoute(control::ModernTransport::HeatingInput input,control::ModernTransport::HeatingStatus status) {
+        if(modern_)modern_->setHeatingRoute(std::move(input),std::move(status));
+    }
 #endif
 private:
 	void handleTemporaryCommand(uint8_t const *payload, unsigned int length) {

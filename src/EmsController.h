@@ -9,6 +9,7 @@
 #include "EMS/ClassicBoilerMonitor.h"
 #include "EMS/EmsDeviceInventory.h"
 #include "EMS/EmsEntityCatalog.h"
+#include "control/BoilerFieldTelemetry.h"
 #include "EMS/OutdoorTemperatureSample.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "EMS/BoilerTestService.h"
@@ -246,7 +247,21 @@ public:
     void getBoilerFieldGroup(std::ostream& out,size_t group) const {
         std::lock_guard<std::mutex> lock(telemetryMutex_);
         if(!emsConfig_.emsEnabled)return;
-        monitor_.writeFieldGroup(out,static_cast<uint64_t>(esp_timer_get_time()/1000),group);
+        const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
+        if(group<control::boilerFieldGroupCount){monitor_.writeFieldGroup(out,now,group);return;}
+        // Groups 7..: the entity catalog (boiler.fields.v2), same field shape.
+        if(group>=control::boilerFieldGroupCountV2)return;
+        out<<"{\"schema\":1,\"sampled_at_ms\":"<<now<<",\"profile\":\""<<monitor_.capabilities().name()<<"\",\"fields\":[";
+        const size_t begin=group*control::boilerFieldsPerGroup;
+        const size_t end=std::min(begin+control::boilerFieldsPerGroup,control::catalogFieldBase+ems::entityFieldCount);
+        for(size_t i=begin;i<end;++i) {
+            const auto f=entities_.field(i-control::catalogFieldBase,now);
+            out<<(i==begin?"":",")<<'['<<i<<',';
+            if(f&&f->valid)out<<f->raw;else out<<"null";
+            out<<',';if(f)out<<f->observedMs;else out<<"null";
+            out<<','<<(f?unsigned(control::catalogFieldQuality):0u)<<','<<(f?f->type:0)<<']';
+        }
+        out<<"]}";
     }
     void getDeviceStatus(std::ostream &ss) const {
         std::lock_guard<std::mutex> lock(telemetryMutex_);
@@ -276,7 +291,8 @@ public:
 		   << ",\"uart_errors\":" << uart_.rxErrors.load(std::memory_order_relaxed)
 		   << ",\"uart_timeouts\":" << uart_.rxTimeouts.load(std::memory_order_relaxed)
 		   << ",\"uart_resets\":" << uart_.resets.load(std::memory_order_relaxed)
-		   << ",\"echo_break_recoveries\":" << uart_.echoBreakRecoveries.load(std::memory_order_relaxed);
+		   << ",\"echo_break_recoveries\":" << uart_.echoBreakRecoveries.load(std::memory_order_relaxed)
+		   << ",\"break_realignments\":" << uart_.breakRealignments.load(std::memory_order_relaxed);
         const auto uartError=uart_.lastRxError();
         ss << ",\"last_uart_error\":{\"reason\":\"" << uartError.reason
            << "\",\"observed_at_ms\":" << uartError.observedAtMs;

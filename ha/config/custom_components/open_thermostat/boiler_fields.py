@@ -81,6 +81,61 @@ FIELDS = (
 QUALITIES = (0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 2, 2, 0, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1)
 LIMITS = ((-6000, 13000), (-6000, 13000), (-6000, 13000), (-6000, 13000), (0, 100), (0, 100), (0, 254), (0, 1), (0, 1), (0, 1), (0, 255), (0, 1), (0, 1), (-6000, 13000), (-6000, 13000), (0, 254), (0, 1), (0, 1), (0, 16777214), (0, 16777214), (0, 16777214), (0, 16777214), (0, 16777214), (0, 16777214), (0, 65535), (0, 65534), (0, 100), (0, 16777214), (-6000, 13000), (-6000, 13000), (-6000, 13000), (-6000, 13000), (0, 65534), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (-6000, 13000), (-6000, 50000), (-6000, 13000), (0, 100), (0, 16777214), (-128, 254), (-128, 254), (0, 16777214), (0, 100), (0, 100), (0, 65534), (-128, 254), (-128, 254), (-6000, 13000), (-128, 254), (0, 1), (-128, 254), (0, 1), (0, 65534), (-6000, 13000), (0, 65534), (0, 65534), (-6000, 13000), (-6000, 13000), (0, 65534), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1))
 
+# BEGIN GENERATED CATALOG FIELDS (scripts/generate_ems_fields.py)
+# name, unit, raw divisor, source TTL ms, telegram types, raw minimum, raw maximum
+CATALOG_FIELDS = (
+    ('thermostat_requested_flow_temperature', 'degC', 1, 180000, (26,), 0, 100),
+    ('thermostat_requested_burner_power', '%', 1, 180000, (26,), 0, 100),
+    ('thermostat_requested_pump_modulation', '%', 1, 180000, (26,), 0, 100),
+    ('maintenance_message', 'code', 1, 600000, (28,), 0, 254),
+    ('thermostat_setpoint', 'degC', 2, 180000, (177, 145, 174, 65, 62), 0, 70),
+    ('thermostat_room_temperature', 'degC', 10, 180000, (177, 145, 174, 65, 62, 677), -300, 600),
+    ('thermostat_target_flow_temperature', 'degC', 1, 180000, (62, 677), 0, 100),
+    ('plus_selected_flow_temperature', 'degC', 1, 180000, (228,), 0, 100),
+    ('plus_flow_temperature', 'degC', 10, 180000, (228,), 0, 1300),
+    ('plus_requested_burner_power', '%', 1, 180000, (228,), 0, 100),
+    ('plus_burner_modulation', '%', 1, 180000, (228,), 0, 100),
+    ('plus_burner_on', 'bool', 1, 180000, (228,), 0, 1),
+    ('plus_dhw_valve', 'bool', 1, 180000, (228,), 0, 1),
+    ('plus_return_temperature', 'degC', 10, 180000, (228,), 1, 1300),
+    ('plus_flame_current', 'uA', 10, 180000, (228,), 0, 1000),
+    ('plus_pressure', 'bar', 10, 180000, (228,), 1, 40),
+    ('plus_exhaust_temperature', 'degC', 10, 180000, (228,), 0, 5000),
+    ('plus_heating_pump', 'bool', 1, 180000, (229,), 0, 1),
+    ('plus_burner_starts', 'starts', 1, 180000, (229,), 0, 16777214),
+    ('plus_burner_runtime', 'min', 1, 180000, (229,), 0, 16777214),
+    ('plus_heating_runtime', 'min', 1, 180000, (229,), 0, 16777214),
+    ('plus_heating_pump_modulation', '%', 1, 180000, (229,), 0, 100),
+    ('plus_dhw_target', 'degC', 1, 180000, (233,), 0, 100),
+    ('plus_dhw_temperature', 'degC', 10, 180000, (233,), 0, 1000),
+    ('plus_dhw_flow', 'L/min', 10, 180000, (233,), 0, 250),
+    ('plus_dhw_runtime', 'min', 1, 180000, (233,), 0, 16777214),
+    ('plus_dhw_starts', 'starts', 1, 180000, (233,), 0, 16777214),
+    ('plus_dhw_selected_temperature', 'degC', 1, 600000, (234,), 0, 100),
+    ('plus_heating_temperature', 'degC', 1, 600000, (230,), 0, 100),
+    ('plus_maximum_burner_power', '%', 1, 600000, (230,), 0, 100),
+)
+# END GENERATED CATALOG FIELDS
+
+# boiler.fields.v2: the same route with whole groups 7.. holding the EMS entity
+# catalog from index 70 (src/EMS/EmsEntityTable.h is the single source).
+CAPABILITY_V2 = "boiler.fields.v2"
+CATALOG_BASE = 70
+GROUPS_V2 = GROUPS + (len(CATALOG_FIELDS) + PER_GROUP - 1) // PER_GROUP
+INDEXES = tuple(range(len(FIELDS))) + tuple(range(CATALOG_BASE, CATALOG_BASE + len(CATALOG_FIELDS)))
+
+
+def spec(index):
+    """(name, unit, raw divisor, source TTL ms) of a v1 or catalog field."""
+    if index < len(FIELDS):
+        return FIELDS[index][:4]
+    return CATALOG_FIELDS[index - CATALOG_BASE][:4]
+
+
+def quality(index):
+    return QUALITIES[index] if index < len(FIELDS) else 0
+
+
 def validate_group(value, group):
     def integer(v, lo=0, hi=9007199254740991):
         return type(v) is int and lo <= v <= hi
@@ -88,11 +143,12 @@ def validate_group(value, group):
             or type(value["schema"]) is not int or value["schema"] != 1
             or not integer(value["sampled_at_ms"])
             or value["profile"] not in ("classic_observed", "plus_observed", "unknown", "conflicting_families")
-            or not integer(group, 0, GROUPS-1)):
+            or not integer(group, 0, GROUPS_V2-1)):
         raise ValueError("boiler group schema")
     fields = value["fields"]
     begin = group * PER_GROUP
-    if type(fields) is not list or len(fields) != min(PER_GROUP, len(FIELDS)-begin):
+    end = len(FIELDS) if group < GROUPS else CATALOG_BASE + len(CATALOG_FIELDS)
+    if type(fields) is not list or len(fields) != min(PER_GROUP, end-begin):
         raise ValueError("boiler group size")
     for index, field in enumerate(fields, begin):
         if (type(field) is not list or len(field) != 5 or not integer(field[0], index, index)
@@ -102,6 +158,12 @@ def validate_group(value, group):
         if observed is None:
             if raw is not None or type(source) is not int or source != 0 or quality != 0:
                 raise ValueError("unobserved boiler field")
+        elif index >= CATALOG_BASE:
+            _, _, _, _, types, low, high = CATALOG_FIELDS[index - CATALOG_BASE]
+            if (not integer(observed, 0, value["sampled_at_ms"]) or quality != 0
+                    or type(source) is not int or source not in types
+                    or (raw is not None and not integer(raw, low, high))):
+                raise ValueError("boiler catalog field value")
         elif (not integer(observed, 0, value["sampled_at_ms"])
               or quality != QUALITIES[index]
               or not integer(source, FIELDS[index][4], FIELDS[index][4])
@@ -162,7 +224,7 @@ class BoilerFieldCache:
                     # Even a different publication sequence cannot extend the deadline.
                     continue
             deadline = (None if observed is None else
-                now + (FIELDS[index][3] - (value["sampled_at_ms"] - observed)) / 1000)
+                now + (spec(index)[3] - (value["sampled_at_ms"] - observed)) / 1000)
             pending[index] = (tuple(field), deadline)
         if self.profile == "conflicting_families" and value["profile"] != self.profile:
             raise ValueError("boiler family conflict reverted")
@@ -178,7 +240,9 @@ class BoilerFieldCache:
         if record is None:
             return None
         field, deadline = record
-        usable = (not self.invalid and self.profile == "classic_observed"
+        # The 69 v1 fields are Classic telegrams; catalog fields name their own family.
+        family = self.profile == "classic_observed" or index >= CATALOG_BASE
+        usable = (not self.invalid and family
                   and self.received is not None and 0 <= now-self.received < 20
                   and deadline is not None and now < deadline
                   and field[1] is not None and field[3] != 1
@@ -187,7 +251,7 @@ class BoilerFieldCache:
         state = ("unknown" if field[2] is None else "invalid" if field[1] is None
                  else "stale" if deadline is None or now >= deadline else "valid")
         reason = ("invalid_packet" if self.invalid else
-                  "protocol_unqualified" if self.profile != "classic_observed" else
+                  "protocol_unqualified" if not family else
                   "stream_unavailable" if self.received is None or not 0 <= now-self.received < 20 else
                   "not_observed" if field[2] is None else
                   "invalid_value" if field[1] is None else
@@ -204,7 +268,10 @@ class BoilerFieldCache:
         clock_valid = (type(now) in (int, float) and math.isfinite(now) and now >= 0
                        and (self.received is None or now >= self.received))
         fields = {}
-        for index, (name, unit, divisor, ttl, _) in enumerate(FIELDS):
+        for index in INDEXES:
+            if index >= CATALOG_BASE and index not in self.records:
+                continue  # catalog fields appear once a v2 session sent them
+            name, unit, divisor, ttl = spec(index)
             value = self.reading(index, now) if clock_valid else None
             record = self.records.get(index)
             age = None

@@ -26,6 +26,7 @@
 #include "Logging.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "diagnostics/LogRuntime.h"
+#include "diagnostics/BlackBox.h"
 #include "diagnostics/LoopIntervals.h"
 #include "diagnostics/ResponseBuffer.h"
 #include <esp_heap_caps.h>
@@ -202,6 +203,8 @@ public:
 		route("/hardware/test/gpio", HTTP_DELETE, [this]() { gpioTestStop(); });
 		route("/config/debug", [this]() { configDebug(); });
 #ifdef OPENTHERMOSTAT_E32V2
+        route("/config/heating",[this] { heatingPlan(); });
+        route("/status/heating",HTTP_GET,[this] { heatingStatus(); });
         route("/config/bluetooth",[this] { bluetoothSettings(); });
         route("/bluetooth/status",HTTP_GET,[this] { bluetoothSettings(true); });
         route("/config/bluetooth/scan",HTTP_POST,[this] {
@@ -297,7 +300,7 @@ public:
 private:
 	void route(const Uri &uri, HTTPMethod method, WebServer::THandlerFunction handler) {
 		#ifdef OPENTHERMOSTAT_E32V2
-		server_.on(uri,method,[this,handler] { if(authorize()) handler(); });
+		server_.on(uri,method,[this,handler] { diagnostics::blackBox.request(server_.uri().c_str()); if(authorize()) handler(); });
 #else
 		server_.on(uri,method,handler);
 #endif
@@ -305,7 +308,7 @@ private:
 	void route(const Uri &uri, WebServer::THandlerFunction handler) { route(uri,HTTP_ANY,handler); }
 	void route(const Uri &uri, HTTPMethod method, WebServer::THandlerFunction handler, WebServer::THandlerFunction upload) {
 		#ifdef OPENTHERMOSTAT_E32V2
-		server_.on(uri,method,[this,handler] { if(authorize()) handler(); },upload);
+		server_.on(uri,method,[this,handler] { diagnostics::blackBox.request(server_.uri().c_str()); if(authorize()) handler(); },upload);
 #else
 		server_.on(uri,method,handler,upload);
 #endif
@@ -729,7 +732,8 @@ private:
 #ifdef OPENTHERMOSTAT_E32V2
     void bluetoothSettings(bool statusOnly=false) try {
         if(update::busy()) {server_.send(503,"application/json","{\"error\":\"bluetooth_resources_unavailable\"}");return;}
-        const auto saved=readDeviceBluetoothSettings();
+        // GET (polled every 5 s): the RAM copy; POST: the exact flash reader.
+        const auto saved=server_.method()==HTTP_GET?cachedDeviceBluetoothSettings():readDeviceBluetoothSettings();
         auto previous=control::parseControlJson({saved.c_str(),saved.length()},true);
         if(!previous || !cJSON_IsObject(previous.get())) { server_.send(503,"application/json","{\"error\":\"bluetooth_settings_unavailable\"}");return; }
         std::unique_ptr<control::ManagedBleBindings> bindings(new(std::nothrow) control::ManagedBleBindings);
@@ -1136,6 +1140,8 @@ private:
         auto timing=diagnostics::loopIntervals.json();
         if(!timing||!cJSON_AddItemToObject(root.get(),"loop_intervals",timing.get())) {server_.send(503);return;}
         timing.release();
+        cJSON* boot=diagnostics::blackBox.json();
+        if(!boot||!cJSON_AddItemToObject(root.get(),"previous_boot",boot)) {cJSON_Delete(boot);server_.send(503);return;}
         cJSON_AddNumberToObject(root.get(),"boot",diagnostics::runtime.boot);
         cJSON_AddNumberToObject(root.get(),"latest",stats.latest);cJSON_AddNumberToObject(root.get(),"oldest",stats.oldest);
         cJSON_AddNumberToObject(root.get(),"retained",stats.retained);cJSON_AddNumberToObject(root.get(),"overwritten",stats.overwritten);
@@ -1202,6 +1208,30 @@ private:
 	}
 
 
+#ifdef OPENTHERMOSTAT_E32V2
+	// The room plan (control/RoomPlan.h): GET returns it, POST replaces it whole.
+	void heatingPlan() {
+		if (server_.method() == HTTP_POST) {
+			const auto body = server_.arg("plain");
+			if (body.length() > control::ControlPartitionBudget::configBytes) { server_.send(413,"application/json","{\"error\":\"plan_too_large\"}"); return; }
+			std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(cJSON_ParseWithLengthOpts(body.c_str(),body.length()+1,nullptr,true),cJSON_Delete);
+			const char* error = root ? controller_.setHeatingPlan(root.get()) : "invalid_json";
+			if (error) {
+				const int code = std::strcmp(error,"save_unconfirmed") ? 400 : 503;
+				server_.send(code,"application/json",(std::string("{\"error\":\"")+error+"\"}").c_str()); return;
+			}
+		}
+		const auto plan = controller_.heatingPlanJson();
+		if (plan.empty()) { server_.send(503,"application/json","{\"error\":\"plan_unavailable\"}"); return; }
+		server_.send(200,"application/json",plan.c_str());
+	}
+	void heatingStatus() {
+		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> status(controller_.heatingStatusJson(),cJSON_Delete);
+		const auto text = status ? control::printJson(status.get()) : std::string();
+		if (text.empty()) { server_.send(503,"application/json","{\"error\":\"status_unavailable\"}"); return; }
+		server_.send(200,"application/json",text.c_str());
+	}
+#endif
 	void boilerDisplay() {
 		if (server_.method() != HTTP_GET && server_.method() != HTTP_POST) { server_.send(405,"text/plain","Method not allowed"); return; }
 		if (server_.method() == HTTP_POST) {

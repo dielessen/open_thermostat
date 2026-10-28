@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "status": "INCOMPLETE",
+  "scope": "Native update and beta15 installation evidence gap; do not replace the accepted beta4 basis",
+  "candidate_tag": "v0.1.0-e32v2-beta.15",
+  "published": true,
+  "installed_tag": "v0.1.0-e32v2-beta.15",
+  "native_install_commands": 0,
+  "manual_upload_commands": 1,
+  "manual_result": "Installed by the local authenticated upload; identity and settings verified; not the native GitHub route",
+  "installation_record": "docs/modern-thermostat/BETA15-INSTALLATION-20261028.json",
+  "last_full_native_accepted": "v0.1.0-e32v2-beta.4",
+  "native_https_root_cause_fixed": false
+}

@@ -1,17 +1,114 @@
 # Beta.16 + HA0.4.0b8 — plan (eigenaar, 28 oktober)
 
-Grotere release; E32 en HA worden samen geïnstalleerd (HA b7 weigert extra
-veldgroepen). Volgorde: 7 en CI-fix eerst, dan 1 → 6.
+**Stand 28 oktober, middag:** beta.15 is gepubliceerd en via de lokale upload
+geïnstalleerd ([installatie](BETA15-INSTALLATION-20261028.json)). Beta.16 is in
+uitvoering: onderdeel 0 (UART-zelfherstel, begrensde proef-foutstatus,
+supervisor en zwarte doos, rustiger Bluetooth-scan) en de kamerregeling in
+schaduwmodus (ruimteplan op de E32, bronnen op volgorde, één HA-route,
+pagina "Ruimtes en verwarming") zijn gebouwd en lokaal getest; "Mijn ketel" en
+"Keteltest" zijn samengevoegd. De Xiaomi-sensor van de eigenaar draait pvvx-
+firmware 5.9 (BTHome, onversleuteld); beta.16 krijgt daarvoor een eigen profiel.
+
+Grote release met alle fixes en nieuwe functies (eigenaar: "maak van beta 16 een grote release met alle fixes en nieuwe features"); E32 en HA worden samen geïnstalleerd (HA b7 weigert extra
+veldgroepen). Volgorde: 0, dan 7, dan 1 → 6.
 
 | # | Onderdeel | Inhoud | Klaar als |
 | --- | --- | --- | --- |
+| 0 | UART-ontvangst en proef-foutstatus (hoogste prioriteit) | Waargenomen 28 okt 04:45 UTC op beta.12: na een echo-fout zette `performReset()` eerst `uart_flush_input` en daarna `xQueueReset`; een byte daartussen bleef in de buffer zonder DATA-event. Sindsdien kreeg elk bericht de `00` van de vorige BREAK vooraan (`00 08 00 34 …`) en werd het ongeldig, tot herstart. Herstel: nooit buffer wissen bij een framefout (EMS-ESP-model: lezen tot elke BREAK), zelfherstel als een bericht met die losse `00` begint, en de echo-boekhouding vereenvoudigen naar EMS-ESP-niveau. Een proef in foutstatus mag niet uren nulvragen blijven sturen (1270 in de nacht) en moet na herstart of bij vastgelopen ontvangst netjes sluiten. Daarnaast wifi-uitval die herstart vereist (28 okt 10:57 UTC) | Hosttest die de race naspeelt; 24 uur zonder ongeldige reeks; ketel blijft door thermostaat bediend |
 | 1 | Eén route, één set entiteiten | Eén entiteitentabel genereert C++ en HA (`--check` in CI); thermostaat-, 0x1A- en EMS+-waarden via de bestaande `boiler_fields`-route met bronadres; HA maakt alleen geziene entiteiten | Geen tweede lijst of route; bestaande entity-ID's en historie behouden |
 | 2 | Tapwater | Episodestatistiek (tappen vs warmhouden), 0x33-instellingen lezen, temperatuur/comfort-eco/circulatie schrijven met bevestiging en readback | Legionellabeveiliging onaangetast; elke write teruggelezen |
 | 3 | Keteldata en energie | Branderstarts, branduren, CV-/tapwateruren als HA-tellers; korte branderpendels per uur; onderhoudsmelding/laatste storing als tekst | Waarden alleen uit gemelde telegrammen |
 | 4 | Stabiliteit en updates | Wifi-uitval analyseren en zelf herstellen, herstartoorzaak in HA; native HTTPS-update met TLS-buffers in PSRAM opnieuw proberen; updatepagina meldt zelf nieuwe versie | Monitorbewijs vóór/na; browserknop blijft als terugval |
-| 5 | EMS universeel op hardware | Thermostaatrijen tegen EasyControl (0x17) controleren en als geverifieerd markeren; onbekende apparaten één keer identificeren | Alleen echt waargenomen rijen geverifieerd |
+| 5 | EMS universeel op hardware | Thermostaatrijen tegen de tado (0x17, RC10-type) controleren en als geverifieerd markeren; onbekende apparaten één keer identificeren | Alleen echt waargenomen rijen geverifieerd |
 | 6 | Proefbediening | Uitleg waarom een knop geblokkeerd is; werkelijke temperatuur naast proefgrens | EN/NL, smal/breed |
+| 8 | tado als meet- en instelpunt, Bosch herkennen | Opstelling (eigenaar 28 okt): de Bosch EasyControl Adapter zit op de ketel en staat op de EMS-bus als ketel 0x08 (EMS-ESP: product 211 "EasyControl Adapter", type BOILER); tado en E32 zitten op de adapter; de tado is de RC10-thermostaat op 0x17 (stuurt 0xB1 en 0x1A). Identiteit van 0x08 en 0x17 eenmalig uitlezen ter bevestiging. Woonkamer vloerverwarming, boven 3 radiatoren (badkamer, 2 slaapkamers). Doel van de eigenaar: tado later ontkoppelen van de regeling en alleen gebruiken om temperatuur te meten en in te stellen. Beta.16: tado-klimaatentiteit uit HA (actuele temperatuur en doeltemperatuur) kiesbaar als ruimtebron en setpointbron in de kamereditor; de E32 stuurt nog geen warmtevraag | Kamer toont tado-meting en -setpoint met ouderdom; geen ketelopdracht; overname van de regeling is een aparte, bijgewoonde stap |
+| 9 | Pagina's samenvoegen | Eigenaar 28 okt: "Mijn ketel" en "Keteltest" worden één pagina "Mijn ketel" (uitlezing, instellingen en de bijgewoonde proef als sectie) | Eén navigatie-item; bestaande proefbeveiliging en browsertests behouden |
 | 7 | Codereview, performance, opruimen, structuur | Hele E32- en HA-bron nalopen op fouten (concurrency/ISR, buffergrenzen, foutpaden, heap/stack); hot paths meten (EMS-ontvangst, REST/JSON, MQTT-publicatie) en onnodige kopieën/allocaties weghalen; ongebruikte code en verouderde documenten verwijderen; grote bestanden (`REST.h` 1904 regels, `ShadowController.h`, `config.cpp`) opdelen per verantwoordelijkheid | Gedrag ongewijzigd (alle tests groen), gemeten winst in heap/CPU/latentie, kleinere firmware |
+
+## Plan naar volledige aansturing (eigenaar vroeg 28 oktober)
+
+| Fase | Inhoud | Duur |
+| --- | --- | --- |
+| 1 | Beta.16 installeren (schaduwmodus), woonkamer inrichten | vandaag/morgen |
+| 2 | Schaduwweek: E32-berekening naast de werkelijke tado-vraag (0x1A van 0x17); parameters afstemmen | ~7 dagen |
+| 3 | Beta.17 bouwen (parallel): actieve warmtevraag (0x1A elke 60 s via de beoordeelde zendroute, nulvraag bij stop), blokkade zolang een andere regelaar 0x1A stuurt, bewaking tijdens actief (uitval meting, herstart, ketelterugmelding, vorstminimum 5 °C), schakelscherm Actief/Schaduw met terug-naar-tado-procedure, dagoverzicht en schaduwvergelijking | parallel |
+| 4 | Bijgewoonde overstap: tado los, E32 actief; start/stop/modulatie, tapwater tijdens verwarmen, E32-herstart, wifi/HA/meting weg, gedrag van de EasyControl Adapter als de E32 stopt met zenden, terugzetten naar tado | één middag |
+| 5 | Live met dagelijkse controle en bijsturen | 1–2 weken |
+| 6 | Eerste echte release | na ~3–4 weken |
+
+**Ruimtes: één plan, twee kanten bewerkbaar (eigenaar, 28 oktober):** het
+ruimteplan staat op de E32 en de E32 voert het uit, dus het werkt ook zonder HA.
+Home Assistant wordt de hoofdroute om het te bewerken (nieuwe ruimte-editor die
+het E32-plan leest en terugschrijft); de E32-pagina blijft een tweede ingang op
+hetzelfde plan. Het plan krijgt een revisienummer, zodat een wijziging aan de
+ene kant nooit stil een wijziging aan de andere kant overschrijft. Bluetooth-
+sensoren blijven aan de E32 gekoppeld (adres, profiel, sleutel); de E32 deelt
+zijn sensorlijst met HA, zodat ze in de HA-editor als bron kiesbaar zijn en als
+gewone HA-sensoren verschijnen. In het plan staat per bron of de E32 hem zelf
+leest (Bluetooth) of dat HA hem doorgeeft. Beta.17 bouwt dit, samen met de
+HA-bediening per ruimte, en haalt de oude HA-ruimte-editor uit de
+verwarmingsroute.
+
+**Wat schaduwmodus doet:** de E32 voert de hele regelketen uit behalve het zenden:
+elke 10 s meten (tado via HA, Xiaomi via Bluetooth als terugval), beslissen
+(verwarmen ja/nee, aanvoer 30–60 °C, hysterese, brandertijden) en melden
+(pagina "Ruimtes en verwarming" en HA-sensor "Heat request"). De tado blijft de
+ketel regelen; de E32 leest diens werkelijke vraag (0x1A van 0x17), die via de
+ene tabel ook in HA staat als "Thermostat requested flow temperature". Zo liggen
+beide lijnen naast elkaar in de HA-geschiedenis. Schaduwmodus bewijst niet hoe
+ketel en EasyControl Adapter op onze vraag reageren; dat test fase 4.
+
+**Schaduwfase klaar (minimaal 3 dagen, liefst ~5) zodra:**
+1. minstens 72 uur geen hang of herstart (zwarte doos leeg, geen wifi- of
+   Bluetooth-uitval);
+2. minstens 10 verwarmingsperiodes van de tado vergeleken, inclusief
+   nachtverlaging en ochtendopwarming en een periode zonder warmtevraag;
+3. de beslissingen ongeveer gelijk zijn: warmtevraag op ongeveer dezelfde
+   momenten (enkele minuten verschil), aanvoer in hetzelfde gebied (±31–43 °C)
+   en niet vaker aan/uit dan de tado;
+4. de bronnen werken: de tado-waarde komt via HA binnen en de Xiaomi heeft
+   minstens één keer overgenomen (HA of de tado-integratie even uitgezet).
+
+Gaat er iets mis, dan eerst bijstellen (startpunt, aanvoer per graad, trage
+correctie) en opnieuw tellen. Daarna de bijgewoonde overstap (fase 4), waarbij
+de eigenaar aanwezig is.
+
+## Eerste echte release — afgesproken scope (eigenaar, 28 oktober)
+
+Doel: de E32 neemt de ketelvraag over van de tado. Eerst alleen de woonkamer.
+
+- **Installatie:** de vloerverwarming (woonkamer) heeft een eigen verdeler met
+  pomp en een thermostatische kraan met maximaal 60 °C ingang. De 3 radiatoren
+  boven (badkamer, 2 slaapkamers) zitten op hetzelfde circuit, zonder TRV's:
+  zij worden warm zodra de woonkamer warmte vraagt, ook de inactieve badkamer.
+- **Ketelzijde:** de EasyControl Adapter (0x08) krijgt na ontkoppeling van de
+  tado alleen nog vraag van de E32. Harde grens aanvoer 60 °C.
+- **Regeling:** de E32 moduleert de aanvoertemperatuur (zoals de tado nu doet:
+  waargenomen 31–43 °C) op basis van ruimtetemperatuur en setpoint, met
+  minimale brander-aan/uit-tijden.
+- **Ruimtes:** woonkamer actief, alleen een thermostaat/temperatuurbron, geen
+  kranen. Badkamer inactief. Een ruimte kan tijdelijk worden gedeactiveerd.
+- **Bron:** eerst de tado via Home Assistant (klimaatentiteit: gemeten en
+  ingestelde temperatuur); de tado zit dan niet meer op de adapter. Doel: ook
+  zonder HA draaien met Bluetooth-sensoren (al ondersteund: Shelly BLU H&T,
+  Xiaomi Monitor 3, Shelly BLU TRV) en het lokale E32-programma als setpoint.
+- **Route:** beta.16 met deze functies eerst in schaduwmodus naast de tado
+  (beslissingen vergelijken), daarna een bijgewoonde overdracht met uitvaltests
+  (start, stop, E32-herstart, wifi/HA weg, meting te oud), dan 1–2 weken
+  monitoren. Pas daarna de eerste echte release.
+- **Bij uitval (keuze eigenaar):** eerst terugval op een Bluetooth-sensor; zonder
+  bruikbare meting na 30 min de warmtevraag stoppen en waarschuwen (E32 en HA).
+  Zonder HA valt het setpoint terug op het lokale E32-programma.
+- **Bluetooth-sensor als terugval** in de woonkamer (keuze eigenaar); welk model
+  de eigenaar koopt is nog open (Shelly BLU H&T of Xiaomi Monitor 3).
+- **Meerdere temperatuurbronnen per ruimte** (eigenaar): een geordende lijst van
+  bronnen (HA-klimaat/-sensor of Bluetooth-sensor). De eerste bruikbare bron is
+  leidend, de rest is terugval. Is alleen een Bluetooth-sensor gekoppeld, dan is
+  die primair en leidend. Woonkamer: tado via HA, dan Bluetooth. Andere kamers
+  kunnen alleen een Bluetooth-sensor krijgen. Welke bron leidt is altijd zichtbaar.
+- **Alles in beta.16** (eigenaar: "probeer dit allemaal in de volgende release
+  mee te nemen . dan maken we een grote release"): onderdelen 0–8 hierboven plus
+  deze scope; de ketelvraag eerst in schaduwmodus.
 
 Opruimgrens: voorbereide roadmapcode (o.a. `ThermalModelStore`, `CoastModelStore`,
 `CurveModelStore`, `MixerPolicy`, `ThermalReplay`, alleen door tests gebruikt)

@@ -1,0 +1,127 @@
+<section class="product-dashboard" id="heating-plan">
+  <h1 data-i18n="Rooms and heating">Rooms and heating</h1>
+  <p class="pd-help" data-i18n="Shadow mode: the E32 calculates the boiler request from these rooms but does not send it. The tado keeps controlling the boiler until the attended switch-over.">Shadow mode: the E32 calculates the boiler request from these rooms but does not send it. The tado keeps controlling the boiler until the attended switch-over.</p>
+  <div class="pd-panel" data-heating-request role="status" aria-live="polite"><span data-i18n="Loading…">Loading…</span></div>
+  <div data-heating-rooms></div>
+  <p><button type="button" class="btn btn-outline-primary" data-heating-add><span data-i18n="Add room">Add room</span></button></p>
+  <details class="pd-panel">
+    <summary data-i18n="Boiler flow temperature">Boiler flow temperature</summary>
+    <label for="heating-min-flow" data-i18n="Minimum flow (°C)">Minimum flow (°C)</label>
+    <input id="heating-min-flow" class="form-control" type="number" min="20" max="59" step="1">
+    <label for="heating-max-flow" data-i18n="Maximum flow (°C)">Maximum flow (°C)</label>
+    <input id="heating-max-flow" class="form-control" type="number" min="21" max="60" step="1">
+    <p class="pd-help" data-i18n="At most 60 °C: the floor heating group accepts no hotter water.">At most 60 °C: the floor heating group accepts no hotter water.</p>
+  </details>
+  <p><button type="button" class="btn btn-primary" data-heating-save><span data-i18n="Save rooms">Save rooms</span></button></p>
+  <p role="status" aria-live="polite" data-heating-message></p>
+</section>
+<script>
+(() => {
+  const root = document.getElementById('heating-plan');
+  const roomsBox = root.querySelector('[data-heating-rooms]'), requestBox = root.querySelector('[data-heating-request]');
+  const message = root.querySelector('[data-heating-message]'), minFlow = root.querySelector('#heating-min-flow'), maxFlow = root.querySelector('#heating-max-flow');
+  const statusText = {ok:"Measured", fallback:"Fallback source", stale:"Last value (source lost)", lost:"No measurement: no heat request", inactive:"Inactive"};
+  const reasonText = {heating:"Heating", minimum_on:"Minimum burner time", minimum_off:"Minimum pause", satisfied:"Warm enough", no_demand:"No room can ask for heat", idle:"No heat needed", invalid_parameters:"Invalid limits"};
+  let plan = null, timer = null;
+  const el = (tag, text, attrs={}) => { const e = document.createElement(tag); if (text !== undefined && text !== null) e.textContent = text; for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
+  const field = (parent, label, input) => { const id = 'h' + Math.random().toString(36).slice(2); input.id = id; parent.append(el('label', label, {for:id}), input); return input; };
+  const input = (type, value, attrs={}) => { const i = el('input', null, {type, class:'form-control', ...attrs}); i.value = value; return i; };
+  const select = (options, value) => { const s = el('select', null, {class:'form-control'}); for (const [v, t] of options) { const o = el('option', uiText(t), {value:v}); s.append(o); } s.value = value; return s; };
+  const slug = name => name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 32) || 'room';
+  const degrees = v => typeof v === 'number' ? v.toFixed(1).replace('.', document.documentElement.lang === 'nl' ? ',' : '.') + ' °C' : '–';
+
+  function roomCard(room, index, status) {
+    const card = el('details', null, {class:'pd-panel', 'data-heating-room':room.id});
+    const summary = el('summary');
+    summary.append(el('strong', room.name), document.createTextNode(' · ' + uiText(statusText[status?.status] || statusText.inactive)
+      + ' · ' + degrees(status?.temperature) + ' / ' + degrees(status?.setpoint) + (status?.demand ? ' · ' + uiText("asks for heat") : '')));
+    card.append(summary);
+    if (status?.source) card.append(el('p', uiText("Leading source") + ': ' + status.source, {class:'pd-help'}));
+    const name = field(card, uiText("Name"), input('text', room.name, {maxlength:'40'}));
+    const state = field(card, uiText("State"), select([['active', "Active"], ['inactive', "Inactive"], ['until', "Inactive until"]],
+      room.state === 'active' ? 'active' : room.inactive_until ? 'until' : 'inactive'));
+    const until = field(card, uiText("Inactive until"), input('datetime-local', room.inactive_until ? new Date(room.inactive_until * 1000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''));
+    const emitter = field(card, uiText("Heat emitter"), select([['floor', "Floor heating"], ['radiator', "Radiators"]], room.emitter));
+    card.append(el('p', uiText("Temperature sources, in order: the first fresh one leads, the rest are fallback."), {class:'pd-help'}));
+    const sources = el('div'); card.append(sources);
+    const addSource = (s) => {
+      const row = el('div', null, {class:'d-flex gap-2 mb-2', 'data-heating-source':''});
+      const type = select([['ha', "Home Assistant entity"], ['ble', "Bluetooth sensor"]], s.type);
+      const id = input('text', s.id, {placeholder:'climate.woonkamer / a4c138a3e8db', 'aria-label':uiText("Source")});
+      const remove = el('button', uiText("Remove"), {type:'button', class:'btn btn-sm btn-outline-secondary'});
+      remove.addEventListener('click', () => row.remove());
+      row.append(type, id, remove); sources.append(row);
+    };
+    room.sources.forEach(addSource);
+    const more = el('button', uiText("Add source"), {type:'button', class:'btn btn-sm btn-outline-primary mb-2'});
+    more.addEventListener('click', () => sources.querySelectorAll('[data-heating-source]').length < 4 && addSource({type:'ble', id:''}));
+    card.append(more);
+    const setpoint = field(card, uiText("Setpoint from Home Assistant entity (optional)"), input('text', room.setpoint_entity, {placeholder:'climate.woonkamer'}));
+    const fallback = field(card, uiText("Setpoint without Home Assistant (°C)"), input('number', room.fallback_centi_c / 100, {min:'5', max:'30', step:'0.5'}));
+    const lo = field(card, uiText("Minimum (°C)"), input('number', room.minimum_centi_c / 100, {min:'5', max:'30', step:'0.5'}));
+    const hi = field(card, uiText("Maximum (°C)"), input('number', room.maximum_centi_c / 100, {min:'5', max:'30', step:'0.5'}));
+    const removeRoom = el('button', uiText("Remove room"), {type:'button', class:'btn btn-sm btn-outline-danger mt-2'});
+    removeRoom.addEventListener('click', () => { if (confirm(uiText("Remove this room?"))) card.remove(); });
+    card.append(removeRoom);
+    card.read = () => {
+      const untilValue = state.value === 'until' && until.value ? Math.floor(new Date(until.value).getTime() / 1000) : 0;
+      return {id: room.id || slug(name.value), name: name.value.trim(), state: state.value === 'active' ? 'active' : 'inactive',
+        inactive_until: untilValue, emitter: emitter.value,
+        sources: [...sources.querySelectorAll('[data-heating-source]')].map(r => ({type: r.querySelector('select').value, id: r.querySelector('input').value.trim().toLowerCase().replaceAll(':', '')})),
+        setpoint_entity: setpoint.value.trim(), fallback_centi_c: Math.round(fallback.value * 100),
+        minimum_centi_c: Math.round(lo.value * 100), maximum_centi_c: Math.round(hi.value * 100)};
+    };
+    OpenThermostatLanguage.apply(card);
+    return card;
+  }
+  function render(status) {
+    const byId = new Map((status?.rooms || []).map(r => [r.id, r]));
+    roomsBox.replaceChildren(...plan.rooms.map((room, i) => roomCard(room, i, byId.get(room.id))));
+    if (!plan.rooms.length) roomsBox.append(el('p', uiText("No rooms yet. Add the living room to start."), {class:'pd-help'}));
+    minFlow.value = plan.minimum_flow_c; maxFlow.value = plan.maximum_flow_c;
+  }
+  function renderRequest(status) {
+    const r = status?.request;
+    requestBox.textContent = !r ? uiText("Status unavailable")
+      : uiText("Calculated boiler request") + ': ' + (r.heat ? r.flow_c + ' °C' : uiText("off")) + ' · ' + uiText(reasonText[r.reason] || r.reason);
+  }
+  async function json(url, options={}) {
+    const controller = new AbortController(), deadline = setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await fetch(url, {cache:'no-store', ...options, signal:controller.signal});
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw Object.assign(Error('request'), {code: body.error || response.status});
+      return body;
+    } finally { clearTimeout(deadline); }
+  }
+  async function refreshStatus() {
+    if (!root.isConnected) { clearInterval(timer); return; }
+    try { renderRequest(await json('/status/heating')); } catch (_) { renderRequest(null); }
+  }
+  async function load() {
+    try {
+      plan = await json('/config/heating');
+      let status = null; try { status = await json('/status/heating'); } catch (_) {}
+      render(status); renderRequest(status);
+    } catch (_) { requestBox.textContent = uiText("The room plan could not be loaded."); }
+  }
+  root.querySelector('[data-heating-add]').addEventListener('click', () => {
+    if (!plan || plan.rooms.length >= 8) return;
+    const room = {id:'', name:uiText("New room"), state:'inactive', inactive_until:0, emitter:'radiator', sources:[{type:'ble', id:''}],
+      setpoint_entity:'', fallback_centi_c:2000, minimum_centi_c:500, maximum_centi_c:2500};
+    const card = roomCard(room, plan.rooms.length, null); card.open = true; roomsBox.append(card);
+  });
+  root.querySelector('[data-heating-save]').addEventListener('click', async () => {
+    const rooms = [...roomsBox.querySelectorAll('[data-heating-room]')].map(card => card.read());
+    const next = {schema:1, mode:'shadow', minimum_flow_c:Number(minFlow.value), maximum_flow_c:Number(maxFlow.value), rooms};
+    message.textContent = uiText("Saving…");
+    try {
+      plan = await json('/config/heating', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(next)});
+      message.textContent = uiText("Rooms saved.");
+      await load();
+    } catch (error) { message.textContent = uiText("Not saved") + ': ' + error.code; }
+  });
+  load();
+  timer = setInterval(refreshStatus, 10000);
+})();
+</script>

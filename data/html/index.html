@@ -293,13 +293,13 @@
 						<ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="program"><span data-i18n="Change active program">Change active program</span></a></li>
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="room_management"><span data-i18n="Rooms and programs">Rooms and programs</span></a></li>
+							<li><a class="dropdown-item" href="#" data-page="heating"><span data-i18n="Rooms and heating">Rooms and heating</span></a></li>
 							<li><a class="dropdown-item" href="#" data-page="network"><span data-i18n="Network and services">Network and services</span></a></li>
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="curve"><span data-i18n="Boiler and heating curve">Boiler and heating curve</span></a></li>
 							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="hardware"><span data-i18n="Hardware configuration">Hardware configuration</span></a></li>
 							<li><a class="dropdown-item" href="#" data-page="update"><span data-i18n="Firmware update">Firmware update</span></a></li>
 							<li data-bluetooth-settings hidden><a class="dropdown-item" href="#" data-page="bluetooth"><span data-i18n="Bluetooth devices">Bluetooth devices</span></a></li>
-							<li><a class="dropdown-item" href="#" data-page="boiler_test"><span data-i18n="Boiler test">Boiler test</span></a></li>
-							<li><a class="dropdown-item" href="#" data-page="boiler_display"><span data-i18n="My boiler">My boiler</span></a></li>
+							<li><a class="dropdown-item" href="#" data-page="boiler_test"><span data-i18n="My boiler">My boiler</span></a></li>
 							<li><a class="dropdown-item" href="#" data-page="system_log"><span data-i18n="System log">System log</span></a></li>
 							<li role="separator" class="dropdown-divider"></li>
 							<li><button type="button" class="dropdown-item text-danger" id="device-restart" hidden><span data-i18n="Restart device">Restart device</span></button></li>
@@ -467,8 +467,9 @@
             } else if (page === 'curve') await ensureChart();
         }
         async function loadNativePage(page) {
-            // Preserve existing saved links while keeping one boiler page.
-            if (page === 'ems_devices') page = 'boiler_test';
+            // Preserve existing saved links while keeping one boiler page:
+            // boiler choice, data, EMS devices and the attended test together.
+            if (page === 'ems_devices' || page === 'boiler_display') page = 'boiler_test';
             clearMainContainer();
             const navigation = navigationGeneration;
             try {

@@ -1,4 +1,5 @@
 #include "EMS/EmsEntityCatalog.h"
+#include "control/BoilerFieldTelemetry.h"
 #include <gtest/gtest.h>
 #include <cJSON.h>
 #include <memory>
@@ -93,5 +94,38 @@ TEST(EmsEntityCatalog, CapacityIsBoundedAndCountsDroppedRows){
         o.observe({EmsTelegram::BROADCAST,address,0x00,0,0xB1,{4,40,0x00,0xC8}},100+address);
     const auto j=snapshot(o,200);
     EXPECT_GT(cJSON_GetNumberValue(cJSON_GetObjectItem(j.get(),"dropped")),0);
+}
+
+// One table: the boiler fields route carries one field per entity id.
+TEST(EmsEntityCatalog, FieldsAreOnePerEntityIdInTableOrder){
+    EXPECT_EQ(entityFieldCount,30u);
+    EXPECT_STREQ(entityCatalog[entityFieldRows[0]].id,"thermostat_requested_flow_temperature");
+    size_t setpoint=entityFieldCount;
+    for(size_t f=0;f<entityFieldCount;++f)if(std::string(entityCatalog[entityFieldRows[f]].id)=="thermostat_setpoint")setpoint=f;
+    ASSERT_LT(setpoint,entityFieldCount);
+    EXPECT_TRUE(entityFieldType(setpoint,0xB1));EXPECT_TRUE(entityFieldType(setpoint,0x3E));EXPECT_FALSE(entityFieldType(setpoint,0xE4));
+    EXPECT_EQ(heating::control::boilerFieldGroupCountV2,10u);
+}
+TEST(EmsEntityCatalog, FieldSampleIsTheFreshestReportOfAnyDevice){
+    EmsEntityObserver o;
+    size_t room=entityFieldCount;
+    for(size_t f=0;f<entityFieldCount;++f)if(std::string(entityCatalog[entityFieldRows[f]].id)=="thermostat_room_temperature")room=f;
+    o.observe({EmsTelegram::BROADCAST,0x17,0x00,0,0xB1,{4,40,0x00,0xD1}},100);   // tado: 20.9 C
+    o.observe({EmsTelegram::BROADCAST,0x18,0x00,0,0x91,{0,40,0x00,0xD4}},200);   // a second thermostat
+    const auto f=o.field(room,250);
+    ASSERT_TRUE(f.has_value());EXPECT_EQ(f->raw,0xD4);EXPECT_EQ(f->type,0x91);EXPECT_TRUE(f->valid);
+    EXPECT_FALSE(o.field(room,200+monitorTtl).has_value());
+    EXPECT_FALSE(o.field(entityFieldCount,250).has_value());
+}
+TEST(EmsEntityCatalog, CatalogGroupValidatesOnlyWhenTheRouteIsExtended){
+    // Group 7 holds fields 70..79; field 74 (thermostat setpoint) seen in 0xB1.
+    std::string fields;
+    for(size_t i=70;i<80;++i)fields+=(i==70?"":",")+std::string(i==74?"[74,41,90,0,177]":"["+std::to_string(i)+",null,null,0,0]");
+    const auto text="{\"schema\":1,\"sampled_at_ms\":100,\"profile\":\"classic_observed\",\"fields\":["+fields+"]}";
+    Json root(cJSON_Parse(text.c_str()),cJSON_Delete);
+    EXPECT_TRUE(heating::control::validBoilerGroup(root.get(),7,true));
+    EXPECT_FALSE(heating::control::validBoilerGroup(root.get(),7,false)); // v1 session: no group 7
+    Json wrongType(cJSON_Parse(std::string(text).replace(text.find(",177]"),5,",228]").c_str()),cJSON_Delete);
+    EXPECT_FALSE(heating::control::validBoilerGroup(wrongType.get(),7,true)); // 0xE4 is not a setpoint telegram
 }
 }

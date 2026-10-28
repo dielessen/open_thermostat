@@ -32,6 +32,17 @@ window.SystemLogPage = (() => {
           ||value.intervals_ge_1000_ms>value.intervals_ge_500_ms){element.textContent=text('Loop timing unavailable.');return;}
       element.textContent=`${text('Longest interval since boot')}: ${value.maximum_ms} ms · ${text('Current observation window')}: ${value.window_maximum_ms} ms · ${text('Intervals at least 100 ms')}: ${value.intervals_ge_100_ms} · ${text('Intervals at least 1 second')}: ${value.intervals_ge_1000_ms}`;
     }
+    // The black box of the previous boot: shown only after a restart that left one.
+    function previousBoot(value){
+      const element=get('log-previous-boot');if(!element)return;
+      const p=value?.previous;
+      if(!p||typeof p!=='object'||!Number.isSafeInteger(p.uptime_s)){element.textContent='';return;}
+      const restart={loop_stall:'the main loop stopped',wifi_lost:'Wi-Fi stayed disconnected',broker_lost:'Home Assistant (MQTT) stayed unreachable'}[p.supervisor_restart];
+      element.textContent=`${text('Previous run')}: ${Math.floor(p.uptime_s/60)} min · ${text('lowest free memory')} ${p.minimum_free_heap_bytes} B · `
+        +`${text('loop stack reserve')} ${p.loop_stack_minimum_bytes} B · ${text('last request')} ${p.last_request||'—'}`
+        +(typeof p.loop_phase==='string'&&p.loop_phase!=='idle'?` · ${text('last loop part')} ${p.loop_phase}`:'')
+        +(restart?` · ${text('Restarted automatically because')} ${text(restart)}`:'');
+    }
     function render(){
       const source=get('log-source').value,level=Number(get('log-filter').value),search=get('log-search').value.toLocaleLowerCase();
       const lines=state.rows.filter(r=>(source==='all'||sourceOf(r)===source)&&r.level<=level&&`${r.feature} ${r.message}`.toLocaleLowerCase().includes(search))
@@ -75,6 +86,7 @@ window.SystemLogPage = (() => {
         const count=k=>Number.isSafeInteger(data[k])&&data[k]>=0?data[k]:'?';
         get('log-counters').textContent=`${text('Overwritten')}: ${count('overwritten')} · ${text('Redacted')}: ${count('redacted')} · ${text('Truncated')}: ${count('truncated')} · ${text('Syslog sent (unconfirmed)')}: ${count('syslog_sent')} · ${text('Syslog dropped')}: ${count('syslog_dropped')} · ${text('Busy drops')}: ${count('contention_dropped')}`;
         loopTiming(data.loop_intervals);
+        previousBoot(data.previous_boot);
         get('log-status').textContent='';render();
       }catch(error){if(alive()&&(!read.signal.aborted||read.signal.reason==='deadline')&&epoch===state.epoch){get('log-status').textContent=text('Log unavailable. Retrying.');loopTiming(null);}}
       finally{if(pollRequest===read)pollRequest=null;state.busy=false;if(alive()&&visible()&&!state.paused)timer=setTimeout(poll,read.signal.aborted&&read.signal.reason!=='deadline'?0:2000);}

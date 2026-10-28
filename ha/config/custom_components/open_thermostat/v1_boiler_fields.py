@@ -3,7 +3,7 @@ from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.const import EntityCategory
 from homeassistant.helpers import entity_registry as er
-from .boiler_fields import FIELDS, QUALITIES
+from .boiler_fields import CATALOG_BASE, FIELDS, INDEXES, quality, spec
 from .const import DOMAIN, CONF_TOPIC_PREFIX
 
 # Longer than the slowest 600 s field TTL, so every polled field had its chance.
@@ -11,7 +11,7 @@ UNOBSERVED_RETIRE_SECONDS = 900
 
 
 def field_unique_id(prefix, index):
-    return f"{prefix}_boiler_fields_v1_{FIELDS[index][0]}"
+    return f"{prefix}_boiler_fields_v1_{spec(index)[0]}"
 
 
 def reconcile_unobserved(hass, prefix, observed, qualified):
@@ -21,8 +21,8 @@ def reconcile_unobserved(hass, prefix, observed, qualified):
     observes later is enabled again; Home Assistant then reloads the entry.
     """
     registry = er.async_get(hass)
-    for index in range(len(FIELDS)):
-        if QUALITIES[index] == 1:
+    for index in INDEXES:
+        if quality(index) == 1:
             continue  # Unreliable fields stay disabled by default.
         entity_id = registry.async_get_entity_id("sensor", DOMAIN, field_unique_id(prefix, index))
         record = registry.async_get(entity_id) if entity_id else None
@@ -59,15 +59,18 @@ async def async_setup_boiler_fields(hass, entry, async_add_entities):
                 reconcile_unobserved(hass, entry.data[CONF_TOPIC_PREFIX], *presence)
         else:
             stream_since = None
-        if client.boiler_fields_supported and not entities:
-            entities.extend(BoilerFieldEntity(entry.data[CONF_TOPIC_PREFIX], client, index)
-                            for index in range(len(FIELDS)))
+        # The catalog fields (boiler.fields.v2) exist only when the firmware sends them.
+        wanted = [i for i in INDEXES if i < len(FIELDS) or client.boiler_fields_v2]
+        if client.boiler_fields_supported and len(entities) < len(wanted):
+            known = {entity.index for entity in entities}
+            new = [BoilerFieldEntity(entry.data[CONF_TOPIC_PREFIX], client, index) for index in wanted if index not in known]
+            entities.extend(new)
             from .product import is_product
             if is_product(entry):
                 from .installation_group import ensure_installation_group
-                async_add_entities(entities, config_subentry_id=ensure_installation_group(hass,entry))
+                async_add_entities(new, config_subentry_id=ensure_installation_group(hass,entry))
             else:
-                async_add_entities(entities)
+                async_add_entities(new)
         key = (client.boiler_fields.sequence, client.boiler_fields.invalid, client.ready,
                tuple(entity.available for entity in entities))
         if key == last_key:
@@ -86,10 +89,12 @@ class BoilerFieldEntity(SensorEntity):
 
     def __init__(self, prefix, client, index):
         self.client, self.index = client, index
-        name, unit, _, _, _ = FIELDS[index]
+        name, unit, _, _ = spec(index)
         self._attr_unique_id = field_unique_id(prefix, index)
-        self._attr_name = "Boiler " + name.replace("_", " ")
-        if QUALITIES[index] == 1:
+        # v1 fields are boiler fields; catalog names already say what they are.
+        self._attr_name = ("Boiler " + name.replace("_", " ") if index < CATALOG_BASE
+                           else name.replace("_", " ").capitalize())
+        if quality(index) == 1:
             self._attr_entity_registry_enabled_default = False
             self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_device_info = DeviceInfo(identifiers={(DOMAIN,prefix)})
@@ -115,7 +120,7 @@ class BoilerFieldEntity(SensorEntity):
         if not self.available:
             return None
         raw = self.reading["raw"]
-        name, unit, divisor, _, _ = FIELDS[self.index]
+        name, unit, divisor, _ = spec(self.index)
         if unit == "text":
             return chr(raw >> 8) + chr(raw & 255)
         return raw / divisor
@@ -123,7 +128,7 @@ class BoilerFieldEntity(SensorEntity):
     @property
     def extra_state_attributes(self):
         value = self.reading
-        name, _, divisor, ttl, _ = FIELDS[self.index]
+        name, _, divisor, ttl = spec(self.index)
         reason = ("session_unavailable" if not self.client.ready else
                   "capability_unavailable" if not self.client.boiler_fields_supported else
                   value["availability_reason"] if value else "not_received")

@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "planned_tag": "v0.1.0-e32v2-beta.16",
+  "previous_published_tag": "v0.1.0-e32v2-beta.15",
+  "state": "FROZEN_SHADOW_ROOM_CONTROL_AWAITING_EXACT_TAG_CI",
+  "formal_freeze": true,
+  "published": false,
+  "installed": false,
+  "ha_tag": "ha-v0.4.0b8",
+  "ha_installed": false,
+  "observed_installed_e32": "v0.1.0-e32v2-beta.15",
+  "observed_installed_ha": "0.4.0b7",
+  "owner_instruction": "docs/modern-thermostat/BETA16-OWNER-INSTRUCTION-20261028.json",
+  "publication_exception": "docs/modern-thermostat/BETA16-PUBLICATION-EXCEPTION-20261028.json",
+  "last_accepted_native_e32": "v0.1.0-e32v2-beta.4",
+  "changes": [
+    "UART: no flush on bad frames, stray 0x00 realigned (BreakFrameReader), reset order queue-then-buffer",
+    "Trial fault repeats its zero request for one stop window only; restart offered",
+    "Supervisor restarts on loop stall (5 min), Wi-Fi or broker loss (15 min), never during update; RTC black box with last request and loop phase",
+    "Bluetooth: passive 30% automatic scans, Wi-Fi coexistence priority, settings cached in RAM, frame counters and pvvx/BTHome profile",
+    "Rooms and heating in shadow mode: E32 room plan (NVS), ordered HA/BLE sources, RoomDemand -> ZoneRegulator -> FlowDemand 30-60 degC, ha/heating_input and fw/telemetry/heating",
+    "One EMS entity table (EmsEntityTable.h) over boiler.fields.v2 groups 7-9, negotiated by ha/capabilities; HA list generated and checked",
+    "My boiler and Boiler test merged; system log shows the previous boot",
+    "No automatic native HTTPS check; HA0.4.0b8 update entity uploads verified firmware over the local network"
+  ],
+  "software_validation": {
+    "physical_test_performed": false
+  },
+  "physical_outputs_automatically_enabled": false,
+  "persistent_boiler_setting_writes_enabled": false,
+  "shadow_heat_request_transmitted": false,
+  "native_https_root_cause_fixed": false
+}

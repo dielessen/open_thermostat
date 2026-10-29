@@ -96,12 +96,12 @@ TEST(FlowDemand, TheBoilersOwnLimitCapsTheRequestAndSaysSo) {
     f.setBoilerLimit(25); // below the plan minimum: the boiler's limit wins
     r = f.update(603 * minute, true, 100);
     EXPECT_EQ(r.flowC, 25); EXPECT_TRUE(r.capped);
-    // No wind-up while capped: a limit of 35 for an hour at 0.5 degC short, then lifted.
-    FlowDemand g; g.setBoilerLimit(35);
+    // No wind-up while capped: a limit of 34 for an hour at 0.5 degC short (35 wanted), then lifted.
+    FlowDemand g; g.setBoilerLimit(34);
     for (uint64_t t = 0; t <= 60 * minute; t += minute) r = g.update(t, true, 50);
-    EXPECT_EQ(r.flowC, 35); EXPECT_TRUE(r.capped);
+    EXPECT_EQ(r.flowC, 34); EXPECT_TRUE(r.capped);
     g.setBoilerLimit(std::nullopt);
-    EXPECT_EQ(g.update(61 * minute, true, 50).flowC, 35); // the integral stayed at the cap
+    EXPECT_EQ(g.update(61 * minute, true, 50).flowC, 35); // no integral built up behind the cap (uncapped: 40 after 1 h)
     EXPECT_FALSE(g.update(62 * minute, false, -50).capped); // satisfied: off, nothing capped
 }
 TEST(FlowDemand, PersistentSmallShortfallSlowlyRaisesTheFlow) {

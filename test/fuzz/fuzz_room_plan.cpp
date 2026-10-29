@@ -30,10 +30,6 @@ struct Engine {
     uint64_t now = 0;
     void heatingInput(std::string_view payload) { input.accept(payload, now, rooms, learner); }
 };
-        rooms.haState(entity->valuestring, centi("temperature", -40, 85), centi("target", 5, 30), now);
-    }
-    // --- end copy ---
-};
 
 void checkSchedule(const RoomSchedule& s, int16_t lo, int16_t hi) {
     for (uint8_t d = 0; d < 9; ++d)
@@ -114,9 +110,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, std::size_t size) {
     context.utc = int64_t(unixTime);
     context.temperatures = temperatures.data(); context.now = e.now;
     context.outdoorCentiC = e.input.outdoor(std::nullopt, e.now).centiC;
-    if (Json learned{learnedJson(e.learner, e.rooms.plan(), context), cJSON_Delete}) {
-        compactHeatingTelemetry(learned.get());
+    if (Json learned{learnedJson(e.learner, e.rooms.plan(), context), cJSON_Delete})
         if (!cJSON_IsObject(cJSON_GetObjectItemCaseSensitive(learned.get(), "inputs"))) otfuzz::invariant("learned without inputs");
+    // The MQTT forms: summary and every room's payload stay within their budgets.
+    if (heatingSummaryTelemetry(e.learner, context, cJSON_CreateObject()).size() > 600) otfuzz::invariant("heating summary over 600 B");
+    for (std::size_t i = 0; i < e.rooms.plan().rooms.size(); ++i) {
+        if (!topicSafeRoomId(e.rooms.plan().rooms[i].id)) otfuzz::invariant("room id not topic safe");
+        if (learnedRoomTelemetry(e.learner, e.rooms.plan(), i, context).size() > 900) otfuzz::invariant("learned room over 900 B");
     }
     // Time helpers used for the week program.
     const auto t = RoomSchedule::localAt(int64_t(unixTime) + int64_t(mode) * 86400 * 97);

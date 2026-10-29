@@ -9,8 +9,8 @@
 #include <optional>
 #include <string>
 namespace heating::control {
-// Parts of /status/heating and its MQTT form fw/telemetry/heating (ModernTransport
-// drops a payload over heatingTelemetryMaxBytes = 4096). Pure: no IO or clock.
+// Parts of /status/heating and its MQTT forms fw/telemetry/heating, .../heating_summary
+// and .../heating_learned/<room id> (ModernTransport: heatingTelemetryMaxBytes). Pure.
 
 // What HeatingController knows around the learner for "learned".
 struct LearnedContext {
@@ -24,23 +24,27 @@ struct LearnedContext {
 // (DSMR 4 meters report gas once an hour).
 inline constexpr uint64_t gasMeterFreshMs = 2 * 3600000ull;
 
-// "learned": FlowLearner::json() plus "inputs" {"gas_meter","gas_price","outdoor",
-// "boiler_kw","boiler_kw_source","gas_kwh_per_m3","gas_kwh_per_m3_source"} (what HA could still add) and, with a trusted
-// clock, "plans" from WarmupPlanner. nullptr: no memory.
+// "inputs": what HA delivered to the learner, so HA and the page can show what
+// is missing: {"gas_meter","gas_price","outdoor":"boiler"|"ha"|null,"boiler_kw",
+// "boiler_kw_source":"default"|"ha","gas_kwh_per_m3","gas_kwh_per_m3_source"}.
+inline bool addLearnedInputs(cJSON* parent, const FlowLearner& learner, const LearnedContext& c) {
+    cJSON* inputs = cJSON_AddObjectToObject(parent, "inputs");
+    const auto gasAt = learner.gasMeterAt();
+    return inputs && cJSON_AddBoolToObject(inputs, "gas_meter", gasAt && *gasAt <= c.now && c.now - *gasAt <= gasMeterFreshMs)
+        && cJSON_AddBoolToObject(inputs, "gas_price", learner.price().has_value())
+        && (c.outdoorSource ? cJSON_AddStringToObject(inputs, "outdoor", c.outdoorSource) : cJSON_AddNullToObject(inputs, "outdoor"))
+        && cJSON_AddNumberToObject(inputs, "boiler_kw", learnmath::round(double(learner.nominalKw()) * 10) / 10)
+        && cJSON_AddStringToObject(inputs, "boiler_kw_source", learner.nominalFromHa() ? "ha" : "default")
+        && cJSON_AddNumberToObject(inputs, "gas_kwh_per_m3", learnmath::round(double(learner.params().kwhPerM3) * 1000) / 1000)
+        && cJSON_AddStringToObject(inputs, "gas_kwh_per_m3_source", learner.kwhPerM3FromHa() ? "ha" : "default");
+}
+
+// "learned" (/status/heating): FlowLearner::json() plus "inputs" and, with a
+// trusted clock, "plans" from WarmupPlanner. nullptr: no memory.
 inline cJSON* learnedJson(const FlowLearner& learner, const RoomPlan& plan, const LearnedContext& c) {
     cJSON* root = learner.json();
     if (!root) return nullptr;
-    cJSON* inputs = cJSON_AddObjectToObject(root, "inputs");
-    const auto gasAt = learner.gasMeterAt();
-    if (!inputs || !cJSON_AddBoolToObject(inputs, "gas_meter", gasAt && *gasAt <= c.now && c.now - *gasAt <= gasMeterFreshMs)
-        || !cJSON_AddBoolToObject(inputs, "gas_price", learner.price().has_value())
-        || !(c.outdoorSource ? cJSON_AddStringToObject(inputs, "outdoor", c.outdoorSource) : cJSON_AddNullToObject(inputs, "outdoor"))
-        || !cJSON_AddNumberToObject(inputs, "boiler_kw", learnmath::round(double(learner.nominalKw()) * 10) / 10)
-        || !cJSON_AddStringToObject(inputs, "boiler_kw_source", learner.nominalFromHa() ? "ha" : "default")
-        || !cJSON_AddNumberToObject(inputs, "gas_kwh_per_m3", learnmath::round(double(learner.params().kwhPerM3) * 1000) / 1000)
-        || !cJSON_AddStringToObject(inputs, "gas_kwh_per_m3_source", learner.kwhPerM3FromHa() ? "ha" : "default")) {
-        cJSON_Delete(root); return nullptr;
-    }
+    if (!addLearnedInputs(root, learner, c)) { cJSON_Delete(root); return nullptr; }
     if (!c.utc || !c.temperatures) return root;
     cJSON* plans = WarmupPlanner::json(learner, plan, *c.utc, c.temperatures, c.outdoorCentiC);
     if (!plans || !cJSON_AddItemToObject(root, "plans", plans)) { cJSON_Delete(plans); cJSON_Delete(root); return nullptr; }
@@ -101,9 +105,8 @@ inline void compactPlanRoom(cJSON* p) {
 //  - rooms[]: no static plan fields fallback/minimum/maximum_centi_c (HA reads them
 //    from the plan; inactive_until stays: HA 0.4.0b9 reads it here);
 //  - shadow: no past days;
-//  - learned: only the header schema, applied, status, heating_periods, inputs
-//    (rooms and plans go per room to fw/telemetry/heating_learned/<id>);
-//  - dhw: method, clock_known and today (no last_7_days).
+//  - no learned and no dhw: fw/telemetry/heating_summary (header, hot water) and
+//    fw/telemetry/heating_learned/<id> (per room) carry them.
 inline void compactHeatingTelemetry(cJSON* status) {
     using telemetry_detail::keepOnly;
     if (!cJSON_IsObject(status)) return;
@@ -112,8 +115,26 @@ inline void compactHeatingTelemetry(cJSON* status) {
         for (const char* key : {"fallback_centi_c", "minimum_centi_c", "maximum_centi_c"})
             cJSON_DeleteItemFromObjectCaseSensitive(r, key);
     cJSON_DeleteItemFromObjectCaseSensitive(cJSON_GetObjectItemCaseSensitive(status, "shadow"), "days");
-    keepOnly(cJSON_GetObjectItemCaseSensitive(status, "learned"), {"schema", "applied", "status", "heating_periods", "inputs"});
-    keepOnly(cJSON_GetObjectItemCaseSensitive(status, "dhw"), {"method", "clock_known", "today"});
+    cJSON_DeleteItemFromObjectCaseSensitive(status, "learned");
+    cJSON_DeleteItemFromObjectCaseSensitive(status, "dhw");
+}
+
+// fw/telemetry/heating_summary: {"schema":1,"learned":{"schema":1,"applied":false,
+// "status":..,"heating_periods":..,"inputs":{..}},"dhw":{"method","clock_known",
+// "today":{..}}}. dhw: DhwEpisodes::summaryJson() (taken over). Empty: no memory.
+inline std::string heatingSummaryTelemetry(const FlowLearner& learner, const LearnedContext& c, cJSON* dhw) {
+    std::unique_ptr<cJSON, decltype(&cJSON_Delete)> owned(dhw, cJSON_Delete);
+    std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_CreateObject(), cJSON_Delete);
+    cJSON* learned = root && dhw && cJSON_AddNumberToObject(root.get(), "schema", 1) ? cJSON_AddObjectToObject(root.get(), "learned") : nullptr;
+    if (!learned || !cJSON_AddNumberToObject(learned, "schema", 1)
+        || !cJSON_AddBoolToObject(learned, "applied", false) || !cJSON_AddStringToObject(learned, "status", learner.status())
+        || !cJSON_AddNumberToObject(learned, "heating_periods", learner.heatingPeriods()) || !addLearnedInputs(learned, learner, c)) return {};
+    telemetry_detail::keepOnly(dhw, {"method", "clock_known", "today"});
+    if (!cJSON_AddItemToObject(root.get(), "dhw", owned.release())) { cJSON_Delete(dhw); return {}; }
+    char* text = cJSON_PrintUnformatted(root.get());
+    std::string out = text ? text : "";
+    cJSON_free(text);
+    return out;
 }
 
 // fw/telemetry/heating_learned/<room id>: {"schema":1,"id":..,"learned":{compact

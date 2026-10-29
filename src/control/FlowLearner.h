@@ -196,6 +196,8 @@ public:
         p_.kwhPerM3 = kwh; kwhFromHa_ = true; return true;
     }
     bool kwhPerM3FromHa() const { return kwhFromHa_; }
+    const char* status() const { return status_; }
+    uint16_t heatingPeriods() const { return period_; }
     // Real / estimated gas; 1 until three intervals were compared.
     float calibration() const { return gasIntervals_ >= 3 ? static_cast<float>(std::clamp(calMeasured_ / calPredicted_, 0.5, 2.0)) : 1.0f; }
     uint16_t gasIntervals() const { return gasIntervals_; }

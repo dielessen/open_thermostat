@@ -145,8 +145,9 @@ public:
         });
         loadHeatingPlan();
         mqtt_.setHeatingRoute([this](std::string_view payload) { heatingInput(payload); }, [this] {
-            // The compact form (always the same shape): no past days, curves or night strategies.
-            std::unique_ptr<cJSON, decltype(&cJSON_Delete)> status(heatingStatusJson(), cJSON_Delete);
+            // The compact form (always the same shape): no past days, static plan fields,
+            // learned or hot water (those go to heating_summary / heating_learned/<id>).
+            std::unique_ptr<cJSON, decltype(&cJSON_Delete)> status(heatingStatusJson(true), cJSON_Delete);
             if (status) control::compactHeatingTelemetry(status.get());
             return status ? control::printJson(status.get()) : std::string();
         }, [this] { return roomEngine_.plan().rooms.size(); }, [this](size_t room, std::string& id) {
@@ -156,6 +157,9 @@ public:
             std::array<std::optional<int16_t>, control::RoomPlan::maxRooms> temperatures{};
             const auto context = learnedContext(bleReceiptClock(), temperatures);
             return control::learnedRoomTelemetry(flowLearner_, plan, room, context);
+        }, [this] {
+            std::array<std::optional<int16_t>, control::RoomPlan::maxRooms> temperatures{};
+            return control::heatingSummaryTelemetry(flowLearner_, learnedContext(bleReceiptClock(), temperatures), ems_.dhwSummaryJson());
         });
 #endif
 	}
@@ -288,7 +292,8 @@ public:
     }
     // The room engine status plus the E32's own Bluetooth sensors, so HA can
     // show them and offer them as room sources (they stay paired here).
-    cJSON* heatingStatusJson() {
+    // mqtt: for fw/telemetry/heating, without learned and dhw (not computed).
+    cJSON* heatingStatusJson(bool mqtt = false) {
         cJSON* root = roomEngine_.json();
         cJSON* sensors = root ? cJSON_AddArrayToObject(root, "ble_sensors") : nullptr;
         // Burner starts in the last hour from the flame bit (the adapter's own counters read 0).
@@ -321,15 +326,16 @@ public:
             scaled("battery", value.battery, 1.0);
             scaled("age_s", value.temperatureAgeMs ? std::optional<uint32_t>(*value.temperatureAgeMs / 1000) : std::nullopt, 1.0);
         }
-        // What the learner found (report only) and, with a trusted clock, its plans.
         const auto now = bleReceiptClock();
+        // The HA route's freshness for the rooms page banner.
+        if (!control::addHaLink(root, haInput_.lastAcceptedMs(), now, brokerConnected())) { cJSON_Delete(root); return nullptr; }
+        if (mqtt) return root;
+        // What the learner found (report only) and, with a trusted clock, its plans.
         std::array<std::optional<int16_t>, control::RoomPlan::maxRooms> temperatures{};
         cJSON* learned = control::learnedJson(flowLearner_, roomEngine_.plan(), learnedContext(now, temperatures));
         if (!learned || !cJSON_AddItemToObject(root, "learned", learned)) { cJSON_Delete(learned); cJSON_Delete(root); return nullptr; }
         cJSON* dhw = ems_.dhwSummaryJson();
         if (!dhw || !cJSON_AddItemToObject(root, "dhw", dhw)) { cJSON_Delete(dhw); cJSON_Delete(root); return nullptr; }
-        // The HA route's freshness for the rooms page banner.
-        if (!control::addHaLink(root, haInput_.lastAcceptedMs(), now, brokerConnected())) { cJSON_Delete(root); return nullptr; }
         return root;
     }
     // A Home Assistant state (temperature and/or target) for a plan source.

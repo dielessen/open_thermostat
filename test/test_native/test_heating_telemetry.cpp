@@ -147,15 +147,19 @@ struct Bench {
         ActiveHeatGuard guard;
         cJSON_AddItemToObject(root.get(), "active", guard.json(statusNow));
         cJSON_AddBoolToObject(cJSON_GetObjectItem(root.get(), "active"), "enabled", false);
-        cJSON_AddItemToObject(root.get(), "learned", learnedJson(learner, plan, context));
-        DhwEpisodes dhw;
-        heating::ems::ClassicBoilerMonitor monitor;
-        dhw.observe(monitor, 0, uint32_t(wednesday23));  // the clock is known
-        dhw.flow(25); dhw.flow(60);                      // live flow: peak reported
-        for (uint64_t ms = 0; ms < 20 * 60000; ms += 60000) { dhw.state(0x0A, ms * 100); dhw.flow(85); dhw.state(0x00, ms * 100 + 30000); }
-        cJSON_AddItemToObject(root.get(), "dhw", dhw.summaryJson());
         addHaLink(root.get(), statusNow - 12 * second, statusNow, true);
+        cJSON_AddItemToObject(root.get(), "learned", learnedJson(learner, plan, context));
+        cJSON_AddItemToObject(root.get(), "dhw", dhw().summaryJson());
         return root;
+    }
+    // 20 taps today with a live flow (peak 8.5 L/min).
+    static DhwEpisodes dhw() {
+        DhwEpisodes e;
+        heating::ems::ClassicBoilerMonitor monitor;
+        e.observe(monitor, 0, uint32_t(wednesday23));     // the clock is known
+        e.flow(25); e.flow(60);
+        for (uint64_t ms = 0; ms < 20 * 60000; ms += 60000) { e.state(0x0A, ms * 100); e.flow(85); e.state(0x00, ms * 100 + 30000); }
+        return e;
     }
     std::string mqtt() const {
         auto s = status(40);
@@ -194,20 +198,46 @@ TEST(HeatingTelemetry, MainPayloadKeepsTheShapeWithoutPageOnlyFields) {
     compactHeatingTelemetry(status.get());
     const auto mqtt = print(status.get());
     breakdown("realistic full", full); breakdown("realistic mqtt", mqtt);
-    // 8 rooms with a tado and a Bluetooth sensor each, 8 sensors: measured 3974 B
-    // (target 3800 not met; no further fields dropped by decision). Must stay
-    // under ModernTransport's heatingTelemetryMaxBytes (4096) or HA loses it all.
-    EXPECT_LE(mqtt.size(), 4000u);
+    // 8 active rooms with a tado and a Bluetooth sensor each, 8 sensors with
+    // 24-char names: measured 3761 B (40-char names: ~3890 B, still one window).
+    EXPECT_LE(mqtt.size(), 3800u);
     const cJSON* room = cJSON_GetArrayItem(cJSON_GetObjectItem(status.get(), "rooms"), 0);
     for (const char* gone : {"fallback_centi_c", "minimum_centi_c", "maximum_centi_c"}) EXPECT_FALSE(cJSON_GetObjectItem(room, gone)) << gone;
     for (const char* kept : {"id", "name", "state", "inactive_until", "status", "source", "temperature", "setpoint", "setpoint_source", "demand"}) EXPECT_TRUE(cJSON_GetObjectItem(room, kept)) << kept;
-    const cJSON* learned = cJSON_GetObjectItem(status.get(), "learned");
+    EXPECT_FALSE(cJSON_GetObjectItem(status.get(), "learned"));  // heating_summary and heating_learned/<id>
+    EXPECT_FALSE(cJSON_GetObjectItem(status.get(), "dhw"));
+    EXPECT_FALSE(cJSON_GetObjectItem(cJSON_GetObjectItem(status.get(), "shadow"), "days"));
+    EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(cJSON_GetObjectItem(status.get(), "shadow"), "today")));
+    for (const char* kept : {"schema", "revision", "mode", "request", "ha_entities", "rooms", "ble_sensors", "burner", "shadow", "active", "ha"})
+        EXPECT_TRUE(cJSON_GetObjectItem(status.get(), kept)) << kept;
+    EXPECT_EQ(cJSON_GetObjectItem(cJSON_GetObjectItem(status.get(), "ha"), "input_age_s")->valuedouble, 12);
+    // The full form keeps everything for the page.
+    Json again(cJSON_Parse(full.c_str()), cJSON_Delete);
+    const cJSON* fullLearned = cJSON_GetObjectItem(again.get(), "learned");
+    const cJSON* fullRoom = cJSON_GetArrayItem(cJSON_GetObjectItem(fullLearned, "rooms"), 0);
+    EXPECT_GT(cJSON_GetArraySize(cJSON_GetObjectItem(fullRoom, "curve")), 0);
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(fullRoom, "advice")), 4);
+    EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(fullLearned, "inputs")));
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(cJSON_GetObjectItem(fullLearned, "plans"), "rooms")), 8);
+    EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(cJSON_GetObjectItem(again.get(), "dhw"), "last_7_days")));
+    EXPECT_TRUE(cJSON_IsNumber(cJSON_GetObjectItem(cJSON_GetArrayItem(cJSON_GetObjectItem(again.get(), "rooms"), 0), "fallback_centi_c")));
+    EXPECT_GT(cJSON_GetArraySize(cJSON_GetObjectItem(cJSON_GetObjectItem(again.get(), "shadow"), "days")), 0);
+}
+
+TEST(HeatingTelemetry, SummaryCarriesTheLearnedHeaderAndTodaysHotWater) {
+    const Bench b(true, true, true);
+    const auto summary = heatingSummaryTelemetry(b.learner, b.context, Bench::dhw().summaryJson());
+    std::printf("[ heating telemetry ] summary %zu B: %s\n", summary.size(), summary.c_str());
+    EXPECT_LE(summary.size(), 600u);
+    Json j(cJSON_Parse(summary.c_str()), cJSON_Delete);
+    ASSERT_TRUE(j);
+    EXPECT_EQ(cJSON_GetObjectItem(j.get(), "schema")->valuedouble, 1);
+    const cJSON* learned = cJSON_GetObjectItem(j.get(), "learned");
     EXPECT_EQ(cJSON_GetObjectItem(learned, "schema")->valuedouble, 1);
     EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItem(learned, "applied")));
     EXPECT_TRUE(cJSON_IsString(cJSON_GetObjectItem(learned, "status")));
     EXPECT_TRUE(cJSON_IsNumber(cJSON_GetObjectItem(learned, "heating_periods")));
     EXPECT_FALSE(cJSON_GetObjectItem(learned, "rooms"));
-    EXPECT_FALSE(cJSON_GetObjectItem(learned, "plans"));
     const cJSON* inputs = cJSON_GetObjectItem(learned, "inputs");
     EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItem(inputs, "gas_meter")));
     EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItem(inputs, "gas_price")));
@@ -216,38 +246,24 @@ TEST(HeatingTelemetry, MainPayloadKeepsTheShapeWithoutPageOnlyFields) {
     EXPECT_STREQ(cJSON_GetObjectItem(inputs, "boiler_kw_source")->valuestring, "default");
     EXPECT_EQ(cJSON_GetObjectItem(inputs, "gas_kwh_per_m3")->valuedouble, 9.77);
     EXPECT_STREQ(cJSON_GetObjectItem(inputs, "gas_kwh_per_m3_source")->valuestring, "default");
-    EXPECT_FALSE(cJSON_GetObjectItem(cJSON_GetObjectItem(status.get(), "shadow"), "days"));
-    EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(cJSON_GetObjectItem(status.get(), "shadow"), "today")));
-    const cJSON* dhw = cJSON_GetObjectItem(status.get(), "dhw");
+    const cJSON* dhw = cJSON_GetObjectItem(j.get(), "dhw");
     EXPECT_STREQ(cJSON_GetObjectItem(dhw, "method")->valuestring, "flow");
     EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItem(dhw, "clock_known")));
     EXPECT_EQ(cJSON_GetObjectItem(cJSON_GetObjectItem(cJSON_GetObjectItem(dhw, "today"), "tapping"), "count")->valuedouble, 20);
+    EXPECT_DOUBLE_EQ(cJSON_GetObjectItem(cJSON_GetObjectItem(dhw, "today"), "peak_flow_l_min")->valuedouble, 8.5);
     EXPECT_FALSE(cJSON_GetObjectItem(dhw, "last_7_days"));
-    EXPECT_EQ(cJSON_GetObjectItem(cJSON_GetObjectItem(status.get(), "ha"), "input_age_s")->valuedouble, 12);
-    // The full form keeps everything for the page.
-    Json again(cJSON_Parse(full.c_str()), cJSON_Delete);
-    const cJSON* fullLearned = cJSON_GetObjectItem(again.get(), "learned");
-    const cJSON* fullRoom = cJSON_GetArrayItem(cJSON_GetObjectItem(fullLearned, "rooms"), 0);
-    EXPECT_GT(cJSON_GetArraySize(cJSON_GetObjectItem(fullRoom, "curve")), 0);
-    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(fullRoom, "advice")), 4);
-    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(cJSON_GetObjectItem(fullLearned, "plans"), "rooms")), 8);
-    EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(cJSON_GetObjectItem(again.get(), "dhw"), "last_7_days")));
-    EXPECT_TRUE(cJSON_IsNumber(cJSON_GetObjectItem(cJSON_GetArrayItem(cJSON_GetObjectItem(again.get(), "rooms"), 0), "fallback_centi_c")));
-    EXPECT_GT(cJSON_GetArraySize(cJSON_GetObjectItem(cJSON_GetObjectItem(again.get(), "shadow"), "days")), 0);
+    EXPECT_TRUE(heatingSummaryTelemetry(b.learner, b.context, nullptr).empty()); // no memory: nothing sent
 }
 
 TEST(HeatingTelemetry, WorstCasePlanMainPayloadSize) {
     // 8 rooms x 4 sources with 80-char entity ids, 32-char room ids, 40-char
-    // names, 8 Bluetooth sensors with 40-char names. Reported, not trimmed further.
+    // names, 8 Bluetooth sensors with 40-char names: mostly ha_entities.
     const Bench b(true, false, true);
     const auto mqtt = b.mqtt();
     breakdown("worst-case mqtt", mqtt);
     Json j(cJSON_Parse(mqtt.c_str()), cJSON_Delete);
     EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(j.get(), "ha_entities")), 32);
-    // Measured 7473 B, mostly ha_entities (32 x 80 chars, 2657 B): such a plan
-    // is dropped (heating_telemetry_dropped counts it). Known limit, reported.
-    EXPECT_GT(mqtt.size(), 4096u) << "the worst case fits now: tighten the bound below";
-    EXPECT_LE(mqtt.size(), 7500u);
+    EXPECT_LE(mqtt.size(), 7900u);                    // ModernTransport's heatingTelemetryMaxBytes
 }
 
 TEST(HeatingTelemetry, PerRoomLearnedPayloadsStayUnder900Bytes) {
@@ -299,7 +315,7 @@ TEST(HeatingTelemetry, WithoutClockPlansAreNullAndTheShapeStays) {
     EXPECT_FALSE(cJSON_GetObjectItem(cJSON_GetObjectItem(status.get(), "learned"), "plans"));
     compactHeatingTelemetry(status.get());
     const auto once = print(status.get());
-    EXPECT_LE(once.size(), 4000u);
+    EXPECT_LE(once.size(), 3800u);
     // Compacting is idempotent and harmless on older documents.
     compactHeatingTelemetry(status.get());
     EXPECT_EQ(print(status.get()), once);

@@ -1164,6 +1164,7 @@ private:
         cJSON_AddNumberToObject(runtime,"mqtt_budget_disconnects",control::socketBudgetDisconnects.load());
         cJSON_AddNumberToObject(runtime,"heating_telemetry_dropped",control::heatingTelemetryDropped.load());
         cJSON_AddNumberToObject(runtime,"heating_telemetry_failed",control::heatingTelemetryFailed.load());
+        cJSON_AddNumberToObject(runtime,"heating_telemetry_large",control::heatingTelemetryLarge.load()); // > 4096 B, still sent
         cJSON_AddNumberToObject(root.get(),"boot",diagnostics::runtime.boot);
         cJSON_AddNumberToObject(root.get(),"latest",stats.latest);cJSON_AddNumberToObject(root.get(),"oldest",stats.oldest);
         cJSON_AddNumberToObject(root.get(),"retained",stats.retained);cJSON_AddNumberToObject(root.get(),"overwritten",stats.overwritten);

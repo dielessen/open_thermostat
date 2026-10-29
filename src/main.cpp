@@ -368,10 +368,10 @@ void WifiSetUp(config::WiFiConfig const &wifiConfig, config::NetworkConfig const
 void setup() {
 #ifdef OPENTHERMOSTAT_E32V2
 	armRtcWatchdog(); // a hang in setup() resets (and rolls back an unconfirmed OTA image)
-	// No lower PSRAM threshold for plain malloc/new (Arduino keeps 4096 B):
-	// objects with std::atomic or mutex members must not land in PSRAM, where
-	// the S32C1I atomic read-modify-write is not reliable on the ESP32. Only
-	// known atomic-free data (cJSON nodes, response buffers) is put there.
+	// Arduino's PSRAM threshold for plain malloc/new stays (4096 B): a lower
+	// one moved many small objects with std::atomic or mutex members into
+	// PSRAM, where the ESP32's S32C1I atomic read-modify-write is not reliable.
+	// Known atomic-free data (cJSON nodes, response buffers) goes there explicitly.
 	// Log lines leave through a 1 KiB driver buffer instead of blocking the
 	// caller on the 128-byte UART FIFO at 115200 Bd.
 	Serial.setTxBufferSize(1024);

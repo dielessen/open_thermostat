@@ -29,9 +29,12 @@
 #include <atomic>
 
 namespace heating::control {
-// fw/telemetry/heating: skipped above this size, or counted when publishing failed.
-inline constexpr std::size_t heatingTelemetryMaxBytes=4096;
-inline std::atomic<uint32_t> heatingTelemetryDropped{0},heatingTelemetryFailed{0};
+// fw/telemetry/heating*: skipped above this size, or counted when publishing failed.
+// 7900 B: below HA 0.4.0b9's 8192-byte limit and the 8448-byte PubSubClient buffer
+// (PSRAM: CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=4096; publish copies into it, no
+// second buffer). Payloads above 4096 B (two TCP windows) are counted as large.
+inline constexpr std::size_t heatingTelemetryMaxBytes=7900, heatingTelemetryLargeBytes=4096;
+inline std::atomic<uint32_t> heatingTelemetryDropped{0},heatingTelemetryFailed{0},heatingTelemetryLarge{0};
 static_assert(ShadowController::maximumConfigBytes==ControlPartitionBudget::configBytes);
 inline std::string sha256Hex(std::string_view bytes) {
     unsigned char hash[32];
@@ -200,9 +203,12 @@ public:
     // room's payload (empty: skip) with its id.
     using HeatingRoomCount=std::function<std::size_t()>;
     using HeatingRoomTelemetry=std::function<std::string(std::size_t,std::string&)>;
-    void setHeatingRoute(HeatingInput input,HeatingStatus status,HeatingRoomCount roomCount={},HeatingRoomTelemetry room={}) {
+    // fw/telemetry/heating_summary: learned header and today's hot water.
+    using HeatingSummary=std::function<std::string()>;
+    void setHeatingRoute(HeatingInput input,HeatingStatus status,HeatingRoomCount roomCount={},HeatingRoomTelemetry room={},
+                         HeatingSummary summary={}) {
         heatingInput_=std::move(input);heatingStatus_=std::move(status);
-        heatingRoomCount_=std::move(roomCount);heatingRoom_=std::move(room);
+        heatingRoomCount_=std::move(roomCount);heatingRoom_=std::move(room);heatingSummary_=std::move(summary);
     }
     bool nativeSourceCurrent(std::string_view expected,std::string_view savedSettings) const {
         return valid_&&!graph_&&cfg_.nativeSourceRequested&&controller_&&controller_->nativeSourceSelected()
@@ -324,23 +330,24 @@ public:
             const auto bytes=deviceDiagnosticsJson(ESP.getFreeHeap(), ESP.getMinFreeHeap(),
                 ESP.getMaxAllocHeap(), temperatureRead(), now/1000);
             client_.publish((base_+"fw/telemetry/device_status").c_str(),bytes.c_str(),false);
-            if(heatingStatus_)try {
-                const auto heating=heatingStatus_();
-                // Bounded: PubSubClient silently drops anything above its buffer,
-                // and a large frame overruns the socket budget (disconnect).
-                if(heating.size()>heatingTelemetryMaxBytes) heatingTelemetryDropped.fetch_add(1,std::memory_order_relaxed);
-                else if(!heating.empty()&&!client_.publish((base_+"fw/telemetry/heating").c_str(),heating.c_str(),false))
-                    heatingTelemetryFailed.fetch_add(1,std::memory_order_relaxed);
-            } catch(const std::exception&) { /* status is observation only */ }
+            // Bounded: PubSubClient silently drops anything above its buffer,
+            // and a large frame can overrun the socket budget (disconnect).
+            const auto publishHeating=[this](const std::string& suffix,const std::string& payload) {
+                if(payload.empty())return;
+                if(payload.size()>heatingTelemetryMaxBytes){heatingTelemetryDropped.fetch_add(1,std::memory_order_relaxed);return;}
+                if(payload.size()>heatingTelemetryLargeBytes)heatingTelemetryLarge.fetch_add(1,std::memory_order_relaxed);
+                if(!client_.publish((base_+suffix).c_str(),payload.c_str(),false))heatingTelemetryFailed.fetch_add(1,std::memory_order_relaxed);
+            };
+            if(heatingStatus_)try { publishHeating("fw/telemetry/heating",heatingStatus_()); }
+            catch(const std::exception&) { /* status is observation only */ }
+            if(heatingSummary_)try { publishHeating("fw/telemetry/heating_summary",heatingSummary_()); }
+            catch(const std::exception&) { /* observation only */ }
             // What was learned per room, two rooms per tick (each <= ~900 B).
             if(heatingRoomCount_&&heatingRoom_)try {
                 heatingRoomRotation_.tick(heatingRoomCount_(),2,[&](std::size_t room){
                     std::string id;
                     const auto payload=heatingRoom_(room,id);
-                    if(payload.empty()||!topicSafeRoomId(id))return;
-                    if(payload.size()>heatingTelemetryMaxBytes) heatingTelemetryDropped.fetch_add(1,std::memory_order_relaxed);
-                    else if(!client_.publish((base_+"fw/telemetry/heating_learned/"+id).c_str(),payload.c_str(),false))
-                        heatingTelemetryFailed.fetch_add(1,std::memory_order_relaxed);
+                    if(topicSafeRoomId(id))publishHeating("fw/telemetry/heating_learned/"+id,payload);
                 });
             } catch(const std::exception&) { /* observation only */ }
             if(controllerStatus_)try {
@@ -374,6 +381,7 @@ private:
     HeatingStatus heatingStatus_;
     HeatingRoomCount heatingRoomCount_;
     HeatingRoomTelemetry heatingRoom_;
+    HeatingSummary heatingSummary_;
     RoomRotation heatingRoomRotation_;
     AsyncBrokerDns brokerDns_;
     PendingTcpConnect brokerTcp_;

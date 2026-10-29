@@ -43,7 +43,8 @@ firmware until an attended switch-over with failure tests.
 - The E32's address and web password, entered once in the integration. Room
   editing and firmware updates use them over HTTP.
 - Internet access for Home Assistant, to download firmware updates from
-  GitHub.
+  GitHub. Updates appear under Settings → Updates and install with one click,
+  as with ESPHome devices; the ESPHome integration itself is not needed.
 
 **Optional**
 

@@ -1,0 +1,80 @@
+blueprint:
+  name: OpenThermostat - notify me when the heating has a problem
+  description: >-
+    Sends a notification when the OpenThermostat "Heating problem" sensor turns
+    on, with the reasons in plain words (in your Home Assistant language), and
+    optionally when everything is OK again. The sensor only turns on for real
+    problems: a room without a temperature measurement for more than 30
+    minutes, an E32 that has not reported for more than 10 minutes, a low or
+    high water pressure, a boiler that short cycles for hours, or a warning of
+    the E32's own boiler control.
+  domain: automation
+  input:
+    problem:
+      name: Heating problem sensor
+      description: The "Heating problem" sensor of your OpenThermostat.
+      selector:
+        entity:
+          filter:
+            integration: open_thermostat
+            domain: binary_sensor
+            device_class: problem
+    delay:
+      name: Wait before notifying
+      description: Only notify when the problem lasts at least this long.
+      default:
+        minutes: 0
+      selector:
+        duration: {}
+    notify_when_solved:
+      name: Also notify when it is solved
+      default: true
+      selector:
+        boolean: {}
+    notification:
+      name: Notification action
+      description: >-
+        The default creates a persistent notification in Home Assistant. You
+        can replace it with a mobile notification action. Templates may use
+        title, message and solved (true when the problem is over).
+      default:
+        - action: persistent_notification.create
+          data:
+            title: "{{ title }}"
+            message: "{{ message }}"
+      selector:
+        action: {}
+
+variables:
+  problem: !input problem
+  notify_when_solved: !input notify_when_solved
+
+triggers:
+  - trigger: state
+    entity_id: !input problem
+    to: "on"
+    for: !input delay
+    id: problem
+  - trigger: state
+    entity_id: !input problem
+    from: "on"
+    to: "off"
+    id: solved
+
+conditions:
+  - condition: template
+    value_template: "{{ trigger.id == 'problem' or notify_when_solved }}"
+
+actions:
+  - variables:
+      solved: "{{ trigger.id == 'solved' }}"
+      title: >-
+        {{ 'OpenThermostat: heating OK again' if solved else 'OpenThermostat: heating problem' }}
+      message: >-
+        {% if solved %}The heating problem is solved.{% else %}{{
+        (state_attr(problem, 'reasons') or ['The heating has a problem.']) | join('\n') }}{% endif %}
+  - choose: []
+    default: !input notification
+
+mode: queued
+max: 10

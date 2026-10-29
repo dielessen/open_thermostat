@@ -157,3 +157,17 @@ async def test_the_sensor_is_a_problem_entity_with_reasons_for_an_automation(has
     sensor.evaluate()
     assert sensor.is_on is False and sensor.extra_state_attributes == {"problems": [], "reasons": [], "rooms": []}
     assert "reasons" in sensor._unrecorded_attributes
+
+
+def test_the_notification_blueprint_is_a_valid_automation_blueprint():
+    from pathlib import Path
+    from homeassistant.components.automation.config import AUTOMATION_BLUEPRINT_SCHEMA
+    from homeassistant.components.blueprint.models import Blueprint
+    from homeassistant.util import yaml as yaml_util
+    path = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat/blueprints/heating_problem.yaml"
+    blueprint = Blueprint(yaml_util.load_yaml(path), expected_domain="automation", schema=AUTOMATION_BLUEPRINT_SCHEMA)
+    assert set(blueprint.inputs) == {"problem", "delay", "notify_when_solved", "notification"}
+    raw = yaml_util.load_yaml(path)["blueprint"]["input"]["problem"]["selector"]["entity"]["filter"]
+    assert raw == {"integration": "open_thermostat", "domain": "binary_sensor", "device_class": "problem"}
+    text = path.read_text(encoding="utf-8")
+    assert "state_attr(problem, 'reasons')" in text  # the plain-language reasons of the sensor

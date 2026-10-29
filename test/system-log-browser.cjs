@@ -22,7 +22,7 @@ const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.
    if(p==='/status/logs'){
     ++logReads;const after=Number(url.searchParams.get('after')||0);cursors.push(after);
     latest=Math.max(latest,...rows.map(r=>r.sequence));
-    return json({boot,latest,loop_intervals:loopIntervals,oldest:rows[0]?.sequence||0,retained:rows.length,overwritten:4,truncated:1,redacted:2,syslog_dropped:3,syslog_sent:5,contention_dropped:0,records:rows.filter(r=>r.sequence>after).slice(0,8)});
+    return json({boot,latest,loop_intervals:loopIntervals,oldest:rows[0]?.sequence||0,retained:rows.length,overwritten:4,truncated:1,redacted:2,syslog_dropped:3,syslog_sent:5,contention_dropped:0,previous_boot:{reset_reason:4,wifi_lost_restarts:0,bluetooth_silent_restarts:0,network_dead_restarts:3,previous:{uptime_s:600,minimum_free_heap_bytes:40000,loop_stack_minimum_bytes:2000,last_request:'/status',loop_phase:'idle',supervisor_restart:'network_dead'}},runtime:{free_internal_bytes:90000,minimum_free_internal_bytes:60000,largest_internal_block_bytes:40000,atomics_in_psram:2,stack_minimum_bytes:{loop:1200},nvs:null},records:rows.filter(r=>r.sequence>after).slice(0,8)});
    }
    if(p==='/logs/clear'){assert.equal(req.method(),'POST');rows=[];return json({});}
    if(p==='/config/logging'){
@@ -50,6 +50,9 @@ const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.
   await page.locator('#system-log details').evaluate(element=>element.open=true);
   assert.match(await page.locator('#log-loop-timing').textContent(),lang==='nl'?/Langste interval sinds opstarten: 1750 ms/:/Longest interval since boot: 1750 ms/);
   assert.match(await page.locator('#log-loop-timing').textContent(),/750 ms/);
+  // network_dead restarts back off too: the series number is shown, and an atomic in PSRAM is a reportable fault.
+  assert.match(await page.locator('#log-previous-boot').textContent(),lang==='nl'?/herstart 3 op rij/:/restart 3 in a row/);
+  assert.match(await page.locator('[data-log-atomics-warning]').textContent(),lang==='nl'?/^Interne controle: 2 variabelen in extern RAM/:/^Internal check: 2 variables in external RAM/);
   assert.equal(requests.filter(r=>r.path.includes('performance')).length,0);
   // The view filter never saves settings or changes collection/cursors.
   const writesBeforeFilter=requests.filter(r=>r.method==='POST').length;

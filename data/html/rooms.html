@@ -155,7 +155,7 @@
 			headers: { "Content-Type": "application/json" },
 			body: program
 		});
-		if (!response.ok) throw new Error((await response.text()) || response.statusText);
+		if (!response.ok) throw new Error(uiText(await response.text()) || response.statusText);
 		const readback = await fetch(url, {cache: 'no-store'});
 		if (!readback.ok || JSON.stringify(await readback.json()) !== JSON.stringify(JSON.parse(program))) throw new Error(uiText("Saved program could not be verified. Reload before retrying."));
 		alert(uiText("Program saved and verified."));

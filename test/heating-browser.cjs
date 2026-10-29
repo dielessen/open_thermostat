@@ -117,6 +117,8 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await root.locator('[data-heating-room="woonkamer"] summary').getByText('Vraagt warmte').waitFor();
   // Floor heating with a 60 °C maximum: a warning, not a block.
   assert.equal(await root.locator('[data-heating-flow-warn]').isVisible(),true);
+  // Same ranges as the firmware (RoomPlan): minimum 20–79, maximum 21–80 °C.
+  assert.deepEqual(await root.locator('#heating-min-flow,#heating-max-flow').evaluateAll(f=>f.map(i=>[i.min,i.max])),[['20','79'],['21','80']]);
   assert.match(await root.locator('[data-heating-room="woonkamer"] summary').innerText(),/^Woonkamer\s+Vraagt warmte\s+20,4 °C\s+Gewenst 21,0 °C\s+Gewenste temperatuur uit Home Assistant$/);
   assert.equal(await root.locator('[data-heating-room="woonkamer"]').getByLabel('Weekprogramma gebruiken').isChecked(),false,'no week program');
   await root.locator('[data-heating-request]').getByText('Berekende ketelvraag: 36 °C · Verwarmen').waitFor();

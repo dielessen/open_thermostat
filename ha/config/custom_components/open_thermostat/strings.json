@@ -32,7 +32,7 @@
         }
       },
       "shadow": {
-        "title": "OpenThermostat E32",
+        "title": "Connect an OpenThermostat E32",
         "description": "The E32 calculates along; your current thermostat keeps controlling the boiler. Nothing is sent to valves or the boiler. Normally you connect the E32 later with Configure → Connect E32, which fills in the connection ID for you.",
         "data": {
           "topic_prefix": "MQTT prefix of the E32",

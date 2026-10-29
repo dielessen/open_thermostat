@@ -38,7 +38,7 @@
   <details class="ot-advanced">
     <summary data-i18n="Boiler flow limits">Boiler flow limits</summary>
     <div class="hp-grid">
-    <label><span data-i18n="Minimum flow (°C)">Minimum flow (°C)</span><input id="heating-min-flow" class="form-control" type="number" min="20" max="59" step="1" data-hint="The lowest water temperature the E32 asks of the boiler when heat is needed."></label>
+    <label><span data-i18n="Minimum flow (°C)">Minimum flow (°C)</span><input id="heating-min-flow" class="form-control" type="number" min="20" max="79" step="1" data-hint="The lowest water temperature the E32 asks of the boiler when heat is needed."></label>
     <label><span data-i18n="Maximum flow (°C)">Maximum flow (°C)</span><input id="heating-max-flow" class="form-control" type="number" min="21" max="80" step="1" data-hint="The highest water temperature the E32 ever asks of the boiler."></label>
     </div>
     <p class="pd-help" data-heating-boiler-max hidden></p>
@@ -104,7 +104,7 @@
     duplicate_room:"Two rooms have the same name.", duplicate_source:"A sensor is listed twice in one room.",
     invalid_setpoint_entity:"The Home Assistant entity for the target temperature is not valid.",
     invalid_room_limits:"Keep the temperature without Home Assistant between the minimum and maximum.",
-    invalid_flow_limits:"The E32 refused the flow limits. Keep the minimum below the maximum; older firmware allows at most 60 °C.",
+    invalid_flow_limits:"The E32 refused the flow limits. Use a minimum of 20–79 °C and a maximum of 21–80 °C, with the minimum below the maximum.",
     storage_full:"The E32 storage is full. Remove switch points or a room, then save again.",
     save_unconfirmed:"The E32 could not confirm the save. Reload the page and check the rooms.",
     active_mode_not_released:"Active control is not enabled in this firmware.", plan_not_active:"Save the rooms first, then confirm the switch-over again."};

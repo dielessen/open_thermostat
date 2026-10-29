@@ -949,7 +949,7 @@
         }
       },
       "shadow": {
-        "title": "OpenThermostat E32",
+        "title": "Een OpenThermostat E32 koppelen",
         "description": "De E32 rekent mee; je huidige thermostaat blijft de ketel regelen. Er gaat niets naar radiatorkranen of de ketel. Normaal koppel je de E32 later via Configureren → E32 verbinden; dat vult het verbindings-ID voor je in.",
         "data": {
           "topic_prefix": "MQTT-prefix van de E32",

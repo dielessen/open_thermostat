@@ -76,9 +76,10 @@ Check the time zone under System → Network if you live outside Central Europe.
 
 Shadow mode only: active control stays switched off until the attended
 switch-over. EMS Classic (EMS 1.0) boilers only; EMS+ is planned. The learned
-advice is shown, not applied. The plan's maximum flow is at most 60 °C in this
-firmware. Night-setback gas estimates need an outdoor temperature and become
-more accurate with a gas meter in Home Assistant.
+advice is shown, not applied. The plan's maximum flow can be set up to 80 °C,
+never above the boiler's own maximum heating temperature. Night-setback gas
+estimates need an outdoor temperature and become more accurate with a gas
+meter in Home Assistant.
 
 # E32 V2 beta17 — rooms and heating in shadow mode, a stable Bluetooth page and pvvx sensors
 <!-- user-release-notes:v2:en -->

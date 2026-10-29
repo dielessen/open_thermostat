@@ -39,8 +39,9 @@ window.SystemLogPage = (() => {
       if(!p||typeof p!=='object'||!Number.isSafeInteger(p.uptime_s)){element.textContent='';return;}
       const restart={loop_stall:'the main loop stopped',wifi_lost:'Wi-Fi stayed disconnected',broker_lost:'Home Assistant (MQTT) stayed unreachable',network_dead:'the network stopped answering while Wi-Fi stayed connected',
         update_stuck:'a firmware update stopped making progress',bluetooth_settings:'new Bluetooth settings had to be applied',bluetooth_silent:'no Bluetooth sensor was heard for a long time'}[p.supervisor_restart];
-      // Repeated Wi-Fi or Bluetooth restarts wait twice as long each time.
-      const series=p.supervisor_restart==='wifi_lost'?value.wifi_lost_restarts:p.supervisor_restart==='bluetooth_silent'?value.bluetooth_silent_restarts:0;
+      // Repeated Wi-Fi, network or Bluetooth restarts wait twice as long each time.
+      const series=p.supervisor_restart==='wifi_lost'?value.wifi_lost_restarts:p.supervisor_restart==='network_dead'?value.network_dead_restarts
+        :p.supervisor_restart==='bluetooth_silent'?value.bluetooth_silent_restarts:0;
       element.textContent=`${text('Previous run')}: ${Math.floor(p.uptime_s/60)} min · ${text('lowest free memory')} ${p.minimum_free_heap_bytes} B · `
         +`${text('loop stack reserve')} ${p.loop_stack_minimum_bytes} B · ${text('last request')} ${p.last_request||'—'}`
         +(typeof p.loop_phase==='string'&&p.loop_phase!=='idle'?` · ${text('last loop part')} ${p.loop_phase}`:'')
@@ -55,7 +56,13 @@ window.SystemLogPage = (() => {
       const stacks=value.stack_minimum_bytes||{},nvs=value.nvs;
       element.textContent=`${text('Free internal memory')}: ${kb(value.free_internal_bytes)} (${text('lowest')} ${kb(value.minimum_free_internal_bytes)}, ${text('largest block')} ${kb(value.largest_internal_block_bytes)})`
         +` · ${text('Settings storage')}: ${nvs&&Number.isSafeInteger(nvs.used_entries)&&Number.isSafeInteger(nvs.total_entries)?nvs.used_entries+' / '+nvs.total_entries+' '+text('entries used'):'—'}`
-        +` · ${text('Lowest free stack')}: ${[['main loop','loop'],['supervisor','supervisor'],['boiler bus','ems_uart'],['Bluetooth','bluetooth_host']].map(([label,key])=>text(label)+' '+b(stacks[key])).join(', ')}`;
+        +` · ${text('Lowest free stack')}: ${[['main loop','loop'],['supervisor','supervisor'],['boiler bus','ems_uart'],['Bluetooth','bluetooth_host']].map(([label,key])=>text(label)+' '+b(stacks[key])).join(', ')}`
+        // Shared atomics must live in internal RAM (0 expected; older firmware omits the field).
+        +(Number.isSafeInteger(value.atomics_in_psram)?` · ${text('Variables in external RAM')}: ${value.atomics_in_psram}`:'');
+      if(Number.isSafeInteger(value.atomics_in_psram)&&value.atomics_in_psram>0){
+        const warning=document.createElement('strong');warning.className='d-block';warning.style.color='var(--ot-warn)';warning.setAttribute('data-log-atomics-warning','');
+        warning.textContent=text('Internal check: {n} variables in external RAM — please report').replace('{n}',value.atomics_in_psram);element.append(warning);
+      }
     }
     function render(){
       const source=get('log-source').value,level=Number(get('log-filter').value),search=get('log-search').value.toLocaleLowerCase();

@@ -67,9 +67,10 @@ EMS-ESP or MQTT devices) are never removed automatically.
 ## Limitations
 
 The heat request is shadow-only; the advice is advice only. EMS Classic boilers
-only; EMS+ is planned. E32 beta18 accepts a maximum flow of at most 60 °C. The
-old HA room records still exist for existing installations; the E32 heating
-control uses the E32 room plan.
+only; EMS+ is planned. E32 beta18 accepts a maximum flow up to 80 °C, never
+above the boiler's own maximum heating temperature. The old HA room records
+still exist for existing installations; the E32 heating control uses the E32
+room plan.
 
 # HA 0.4.0b9 — E32 rooms and Bluetooth sensors, firmware updates and the heat request
 <!-- user-release-notes:v2:en -->

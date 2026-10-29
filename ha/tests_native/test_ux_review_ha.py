@@ -517,3 +517,69 @@ def test_dutch_has_every_english_text_with_the_same_placeholders():
 def test_no_formal_or_english_leftovers_in_dutch():
     text = (COMPONENT / "translations/nl.json").read_text(encoding="utf-8")
     assert "voordat u " not in text and "(alleen shadow)" not in text
+
+
+@pytest.mark.asyncio
+async def test_the_update_entity_asks_for_the_new_password_and_stops_trying_the_old_one(hass, monkeypatch):
+    from custom_components.open_thermostat import e32_access, firmware_update
+    from custom_components.open_thermostat.firmware_update import E32FirmwareUpdate
+    parent, _ = product(hass, FakeE32())
+    logins, started, reported = [], [], []
+
+    class Client:
+        default_password = True
+
+        def __init__(self, address):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            return None
+
+        async def async_login(self, password):
+            logins.append(password)
+            if password != "new":
+                raise ControllerLoginRejected()
+
+        async def async_read(self, path):
+            return {"version": "v0.1.0-e32v2-beta.18"}
+
+    monkeypatch.setattr(firmware_update, "ControllerClient", Client)
+    monkeypatch.setattr(firmware_update, "async_get_clientsession", lambda hass: SimpleNamespace(
+        get=lambda url, **_: (_ for _ in ()).throw(TimeoutError())))
+    monkeypatch.setattr(e32_access, "login_rejected", lambda hass, entry: started.append(entry))
+    monkeypatch.setattr(e32_access, "report_password", lambda hass, entry, value: reported.append(value))
+    entity = E32FirmwareUpdate(hass, parent)
+    entity.async_write_ha_state = lambda: None
+    await entity.async_refresh()
+    await entity.async_refresh()
+    assert logins == ["secret"] and started == [parent]  # once; the old password is not tried again
+    hass.config_entries.async_update_entry(parent, data={**parent.data, CONTROLLER_PASSWORD: "new"})
+    await entity.async_refresh()
+    assert logins == ["secret", "new"] and reported == [True]
+    assert entity.installed_version == "v0.1.0-e32v2-beta.18"
+
+
+# -- Advice wording: the boiler maximum is a knob on some boilers and a menu or app on others ----
+
+
+def test_advice_never_assumes_a_knob_or_a_menu_and_has_one_place_for_the_flow_limits():
+    rules = {lang: heating_advice.TEXT[lang]["rules"] for lang in ("en", "nl")}
+    for rule in ("max_ch_high",):
+        en, nl = rules["en"][rule], rules["nl"][rule]
+        assert "knob" in en["action"] and "boiler menu or its app" in en["action"]
+        assert "draaiknop" in nl["action"] and "ketelmenu of de app" in nl["action"]
+        assert "never asks for more" in en["action"] and "nooit meer" in nl["action"]
+    assert "knob" in rules["en"]["short_cycling"]["where"] and "draaiknop" in rules["nl"]["short_cycling"]["where"]
+    for rule in ("return_too_warm", "flow_higher_wasteful", "flow_lower_too_slow"):
+        assert "Configure → Rooms → Flow temperature limits" in rules["en"][rule]["where"], rule
+        assert "Configureren → Ruimtes → Grenzen aanvoertemperatuur" in rules["nl"][rule]["where"], rule
+    for lang, words in (("en", ("active mode", "CH temperature", "E32 web page")),
+                        ("nl", ("actieve modus", "CV-temperatuur", "E32-webpagina"))):
+        text = json.dumps(heating_advice.TEXT[lang], ensure_ascii=False)
+        for word in words:
+            assert word not in text, (lang, word)
+    assert rules["en"]["flow_higher_wasteful"]["action"].startswith("No action needed now.")
+    assert rules["nl"]["flow_higher_wasteful"]["action"].startswith("Nu niets doen.")

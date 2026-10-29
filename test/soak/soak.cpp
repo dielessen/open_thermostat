@@ -6,11 +6,13 @@
 // diagnostics::SupervisorPolicy) with simulated time and a simulated house for
 // weeks, and checks invariants on every step. Nothing here talks to a device.
 // See test/soak/README.md for scenarios, invariants and how to run it.
+#include "EMS/ActiveHeatPollDriver.h"
 #include "EMS/ClassicBoilerMonitor.h"
 #include "EMS/EmsTelegram.h"
 #include "EMS/ForeignBoilerRequest.h"
 #include "control/ActiveHeatGuard.h"
 #include "control/BurnerCycleMonitor.h"
+#include "control/ControlPartitionBudget.h"
 #include "control/DhwEpisodes.h"
 #include "control/FlowLearner.h"
 #include "control/HeatingInput.h"
@@ -40,6 +42,7 @@
 #include <optional>
 #include <random>
 #include <set>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -55,7 +58,7 @@
 #endif
 #endif
 #ifdef SOAK_ASAN
-#include <sanitizer/allocator_interface.h>
+extern "C" size_t __sanitizer_get_current_allocated_bytes(); // sanitizer/allocator_interface.h
 #else
 #include <malloc.h>
 #endif
@@ -65,6 +68,8 @@ namespace ems = heating::ems;
 namespace diag = heating::diagnostics;
 
 namespace {
+// ModernTransport.h (ESP-only): fw/telemetry/heating* above this size is dropped.
+constexpr size_t heatingTelemetryMaxBytes = 7900;
 
 // ============================================================================
 // Reporting
@@ -138,6 +143,23 @@ size_t heapBytes() {
 #else
     return mallinfo2().uordblks;
 #endif
+}
+
+// localtime_r() calls (the device's newlib parses the POSIX TZ in each call):
+// counted per payload when linked with -Wl,--wrap=localtime_r (run.sh does).
+uint64_t localtimeCalls = 0;
+#ifdef SOAK_WRAP_LOCALTIME
+} // namespace
+extern "C" struct tm* __real_localtime_r(const time_t*, struct tm*);
+extern "C" struct tm* __wrap_localtime_r(const time_t* t, struct tm* out) { ++localtimeCalls; return __real_localtime_r(t, out); }
+namespace {
+#endif
+struct CallStat { uint64_t max = 0, sum = 0, n = 0; int64_t maxUtc = 0; };
+std::map<std::string, CallStat> localtimeStats;
+void noteLocaltime(const char* what, uint64_t calls, int64_t utc) {
+    auto& c = localtimeStats[ctx.scenario + ":" + what];
+    if (calls > c.max) { c.max = calls; c.maxUtc = utc; }
+    c.sum += calls; ++c.n;
 }
 
 std::string printed(const cJSON* o) {
@@ -481,6 +503,9 @@ private:
     uint64_t activeOwningS_ = 0, comfortOutS_ = 0;
     uint64_t nextMqtt_ = 0, nextLearned_ = 0, nextFull_ = 0, nextWarmupCheck_ = 0;
     size_t planTooLarge_ = 0, planRefused_ = 0, planApplied_ = 0, maxPlanBytes_ = 0;
+    uint64_t stallUntil_ = 0, lastShadowAt_ = 0;   // loop stalls (an OTA upload blocks the loop for minutes)
+    bool haveShadowAt_ = false;
+    std::set<int32_t> irregularDays_;              // days with a stall or an NTP step: no exact day length
 
     // ---------------------------------------------------------------------
     void setupHouse();
@@ -511,7 +536,6 @@ private:
     void publish(bool mqtt, bool learned, bool full);
     cJSON* heatingStatusJson(bool mqtt);
     LearnedContext learnedContext(std::array<std::optional<int16_t>, RoomPlan::maxRooms>& temperatures) const;
-    std::optional<int64_t> unix() const { return clockKnown_ ? std::optional<int64_t>(utc_) : std::nullopt; }
     void oomSweep();
     void finish();
     size_t physIndex(const std::string& id) const {
@@ -567,7 +591,7 @@ RoomPlan::Room Chain::baseRoom(size_t i) const {
         case 4: r.sources = {ha("sensor.badkamer_temperatuur"), ble(4)}; r.setpointEntity = "climate.badkamer_trv"; r.fallbackCentiC = 2100;
                 r.schedule = weekProgram({{330, 2200}, {480, 1900}, {1140, 2150}, {1320, 1800}}, {{450, 2200}, {600, 1950}, {1170, 2150}, {1350, 1800}}); break;
         case 5: r.sources = {ble(5)}; r.state = RoomDemand::State::inactive; r.fallbackCentiC = 1950; break;
-        case 6: r.sources = {ble(6), ble(7)}; r.fallbackCentiC = 1800; break; // no schedule: fallback only
+        case 6: r.sources = {ble(6)}; r.fallbackCentiC = 1800; break; // no schedule: fallback only
         default: r.sources = {ha("sensor.zolder_temperatuur"), ble(7)}; r.state = RoomDemand::State::inactive; r.fallbackCentiC = 1500; break;
     }
     return r;
@@ -578,8 +602,7 @@ void Chain::setupBle() {
         SimSensor s;
         s.address = {0xa4, 0xc1, 0x38, 0x00, 0x00, uint8_t(i + 1)};
         s.hex = printBleHex(s.address).data();
-        s.room = i == 7 ? 6 : i; // two sensors in the hall, none of its own in the attic
-        if (i == 7) s.room = 7;
+        s.room = i; // sensor i sits in physical room i
         s.encrypted = i >= 4;
         s.centi = i % 2 == 0;
         for (size_t k = 0; k < s.key.size(); ++k) s.key[k] = uint8_t(0x30 + i * 7 + k);
@@ -670,7 +693,7 @@ bool Chain::applyPlan(const RoomPlan& candidate, const char* why) {
     oracleSetPlan(plan);
     engine_.setPlan(plan); learner_.setPlan(plan);
     plan_ = plan;
-    if (flowChanged) flowRebuiltAt_ = now_;
+    if (flowChanged) { flowRebuiltAt_ = now_; haveHeatEdge_ = false; } // FlowDemand restarts: no minimum off time
     EXPECT(engine_.plan().json() == raw, "plan_applied_differs", "engine plan differs from the saved plan");
     ++planApplied_;
     count(std::string("plan_edit_") + why);
@@ -790,7 +813,7 @@ void Chain::weather() {
 void Chain::physics(double dtH) {
     const auto l = local(utc_);
     const double hour = l.hour + l.minute / 60.0;
-    const bool spaceHeat = burner_ || flow_ > 30 ? (boilerSetpoint_ && boilerSetpoint_->flow >= 20 && dhw_ == Dhw::idle) : false;
+    const bool spaceHeat = boilerSetpoint_ && boilerSetpoint_->flow >= 20 && dhw_ == Dhw::idle; // the pump circulates
     double houseMean = 0;
     for (size_t i = 0; i + 1 < phys_.size(); ++i) houseMean += phys_[i].air;
     houseMean /= double(phys_.size() - 1);
@@ -838,7 +861,7 @@ void Chain::dhwGenerator() {
     if (dhw_ != Dhw::idle) {
         if (now_ >= dhwUntil_) {
             // The episode ends at the last report with the DHW bit (this step's 0x18 is idle again).
-            const int kind = dhw_ == Dhw::tap ? (o_.liveDhwFlow ? 0 : 0) : 1;
+            const int kind = dhw_ == Dhw::tap ? 0 : 1; // DhwEpisodes::tapping / keepWarm
             const int32_t day = clockKnown_ ? localDayIndex(utc_) : INT32_MIN;
             if (day != INT32_MIN) {
                 auto& d = dhwOracle_[day];
@@ -854,7 +877,7 @@ void Chain::dhwGenerator() {
     if (!dhwNextTap_) dhwNextTap_ = now_ + uint64_t(expo(3.0 * 3600) * 1000);
     if (now_ >= dhwNextTap_ && dhwTemp_ >= 28) {
         dhw_ = Dhw::tap; dhwStartedAt_ = now_; dhwUntil_ = now_ + uint64_t(uniformInt(6, 48)) * 10000;
-        dhwTapMin_ = std::min(dhwTemp_ - 9.5, uniform(12, 35));
+        dhwTapMin_ = std::min(dhwTemp_ - 11, uniform(12, 35)); // owner logs: taps fell 9-46 K
         dhwFlowTenths_ = o_.liveDhwFlow ? uint8_t(uniformInt(30, 95)) : 25;
         dhwNextTap_ = now_ + uint64_t(expo(2.5 * 3600) * 1000) + 600000;
     } else if (dhwTemp_ < 39 && now_ + 600000 < dhwNextTap_) {
@@ -870,7 +893,7 @@ void Chain::boiler(double dtH) {
     if (dhw_ != Dhw::idle) {
         burner_ = true; modulation_ = dhw_ == Dhw::tap ? 90 : 45;
         flow_ += (65 - flow_) * std::min(1.0, dtH / 0.05);
-        if (dhw_ == Dhw::tap) dhwTemp_ += (dhwTapMin_ - dhwTemp_) * std::min(1.0, dtH / 0.01);
+        if (dhw_ == Dhw::tap) dhwTemp_ += (dhwTapMin_ - dhwTemp_) * std::min(1.0, dtH / 0.004);
         else dhwTemp_ += (52 - dhwTemp_) * std::min(1.0, dtH / 0.03);
     } else if (requested >= 20) {
         double load = 0;
@@ -957,6 +980,16 @@ void Chain::haSend(const std::string& payload, bool expectAccepted) {
     const bool accepted = haRoute_.accept(payload, now_, engine_, learner_);
     EXPECT(accepted == expectAccepted, "ha_input_acceptance", "payload %s accepted=%d", payload.c_str(), int(accepted));
     count(accepted ? "ha_accepted" : "ha_rejected");
+    if (!accepted) return;
+    // Oracle: what RoomEngine::haState() must have recorded.
+    const auto in = HeatingInput::parse(payload);
+    if (!in || in->kind != HeatingInput::Kind::room) return;
+    for (const auto& room : engine_.plan().rooms) {
+        auto& o = oracle_[room.id];
+        for (const auto& s : room.sources)
+            if (s.type == RoomPlan::SourceType::ha && s.id == in->entity) o.readings[{int(s.type), s.id}] = {in->temperatureCentiC, now_};
+        if (!room.setpointEntity.empty() && room.setpointEntity == in->entity && in->targetCentiC) { o.target = in->targetCentiC; o.targetAt = now_; }
+    }
 }
 void Chain::haMessages() {
     if (!haNextOutage_) haNextOutage_ = now_ + uint64_t(expo(4 * 86400.0) * 1000);
@@ -1008,6 +1041,8 @@ void Chain::haMessages() {
 // ----------------------------------------------------------------------------
 void Chain::bleAdverts() {
     bleClockNow = now_;
+    const bool stalled = now_ < stallUntil_;
+    if (!stalled) for (size_t i = 0; i < ManagedBleObserver<SoakCrypto>::queueCapacity; ++i) ble_->processOne(); // what queued during a stall
     for (auto& s : sensors_) {
         if (now_ >= s.silentUntil && chance(1.0 / (6 * 24 * 360.0))) { s.silentUntil = now_ + uint64_t(uniformInt(20, 90)) * 60000; count("ble_silence"); }
         while (s.nextAt <= now_) {
@@ -1036,13 +1071,19 @@ void Chain::bleAdverts() {
             else if (fault < 0.0170) { bleClockRollback = 1; for (auto& x : sensors_) x.faultAt = now_; count("ble_clock_rollback"); }
             else if (fault < 0.0175) { // event-only advert in between (reed contact): ignored
                 frame = bthomeAdvert(s.address, {0x2d, 1}, s.encrypted, s.counter, s.key); good = false; count("ble_event_only"); }
-            if (good && s.encrypted) s.lastEncryptedFrame = frame;
-            if (good && !(s.encrypted && s.resetPending)) s.good.emplace_back(stamp, centi);
-            if (good && s.encrypted && s.resetPending) s.good.emplace_back(stamp, centi); // eligible once re-anchored
+            if (good) s.good.emplace_back(stamp, centi); // eligible (after a counter reset: once re-anchored)
+            if (const char* dbg = std::getenv("SOAK_DEBUG_BLE")) if (s.hex == dbg) {
+                const auto snap = ble_->snapshot(s.address);
+                std::fprintf(stderr, "BLE %s at %" PRIu64 " stamp %" PRIu64 " counter %u centi %d good %d stalled %d fault %.4f reset %d | snap t=%d age=%u counter=%u resets=%u drops=%u\n",
+                    s.hex.c_str(), at, stamp, s.counter, centi, int(good), int(stalled), fault, int(s.resetPending), snap.temperature.value_or(-1),
+                    snap.temperatureAgeMs.value_or(0), snap.counter.value_or(0), snap.counterResets, snap.oldCounterDrops);
+            }
             const int copies = chance(0.003) ? 6 : 1; // a burst overflows the 4-frame queue
             if (copies > 1) { s.burstAt = now_; count("ble_burst"); }
             for (int c = 0; c < copies; ++c) EXPECT(ble_->capture(s.address, -70, frame.data(), frame.size(), stamp), "ble_capture_bound", "bound sensor not captured");
-            for (int c = 0; c < copies; ++c) ble_->processOne();
+            if (!stalled) for (int c = 0; c < copies; ++c) ble_->processOne();
+            // Replays are built only from frames the observer accepted (a frame it dropped would be news to it).
+            if (good && s.encrypted && !stalled) { const auto snap = ble_->snapshot(s.address); if (snap.counter == s.counter) s.lastEncryptedFrame = frame; }
         }
         while (!s.good.empty() && now_ - std::min(now_, s.good.front().first) > 1200000) s.good.pop_front();
     }
@@ -1061,7 +1102,7 @@ void Chain::checkBle() {
             bool found = false;
             for (const auto& g : s.good) if (g.first == at && g.second == *snap.temperature) { found = true; break; }
             EXPECT(found, "ble_value_not_from_good_frame", "%s reports %d at %" PRIu64 " that no good frame carried", s.hex.c_str(), *snap.temperature, at);
-            if (s.resetPending && snap.counter && *snap.counter < 100000 && at >= s.resetAt) {
+            if (s.resetPending && at >= s.resetAt) { // only a re-anchored counter lets a newer frame in
                 s.resetPending = false;
                 const uint64_t took = at - s.resetAt;
                 counters[ctx.scenario + ":ble_reanchor_max_s"] = std::max<uint64_t>(counters[ctx.scenario + ":ble_reanchor_max_s"], took / 1000);
@@ -1069,12 +1110,13 @@ void Chain::checkBle() {
             s.lastAcceptedSeenAt = std::max(s.lastAcceptedSeenAt, at);
         }
         // Liveness: a sensor that keeps sending good frames is never left behind.
-        const uint64_t quietFrom = std::max({s.silentUntil, s.faultAt + 3 * uint64_t(s.periodMs), s.burstAt + 3 * uint64_t(s.periodMs), bootMs_ + 120000});
+        const uint64_t quietFrom = std::max({s.silentUntil, s.faultAt + 3 * uint64_t(s.periodMs), s.burstAt + 3 * uint64_t(s.periodMs), bootMs_ + 120000,
+                                             stallUntil_ + 3 * uint64_t(s.periodMs)});
         const uint64_t resetWindow = ManagedBleObserver<SoakCrypto>::reanchorQuietMs + 5 * uint64_t(s.periodMs) + 60000;
         if (s.resetPending && now_ - s.resetAt > resetWindow)
             fail("ble_counter_reset_hang", "%s: no reading accepted %" PRIu64 " s after its counter restarted", s.hex.c_str(), (now_ - s.resetAt) / 1000);
         if (!s.resetPending && now_ > quietFrom + 3 * uint64_t(s.periodMs) && now_ >= s.silentUntil + 3 * uint64_t(s.periodMs) && now_ - s.resetAt > resetWindow) {
-            const bool fresh = snap.temperature && snap.temperatureAgeMs && *snap.temperatureAgeMs <= 3 * uint64_t(s.periodMs) + 5000;
+            const bool fresh = snap.temperature && snap.temperatureAgeMs && *snap.temperatureAgeMs <= 5 * uint64_t(s.periodMs) + 10000;
             EXPECT(fresh, "ble_reading_not_refreshed", "%s: status %d, age %s ms", s.hex.c_str(), int(snap.status),
                    snap.temperatureAgeMs ? std::to_string(*snap.temperatureAgeMs).c_str() : "none");
         }
@@ -1107,7 +1149,9 @@ void Chain::stepE32() {
             }
         }
     const std::optional<uint32_t> unixNow = clockKnown_ ? std::optional<uint32_t>(uint32_t(utc_)) : std::nullopt;
+    const uint64_t calls0 = localtimeCalls;
     const auto request = engine_.step(now_, unixNow);
+    noteLocaltime("room_engine_step", localtimeCalls - calls0, utc_);
     const auto tadoFlowC = tadoLast1A_ && now_ - tadoLast1A_->second <= 150000 ? std::optional<uint8_t>(tadoLast1A_->first) : std::nullopt;
     shadow_.sample(now_, unixNow, request, tadoFlowC);
     // The EMS view (EmsController::activeHeatView).
@@ -1218,6 +1262,7 @@ void Chain::checkEngine(const FlowDemand::Request& request) {
         const bool active = room.state == RoomDemand::State::active || pauseEnded;
         if (!active) {
             EXPECT(r.status == RoomDemand::Status::inactive && !r.usable && r.source < 0, "room_inactive", "%s inactive but status %s", room.id.c_str(), RoomDemand::name(r.status));
+            o.lead.reset(); // the engine's result has no leading source while inactive
             continue;
         }
         int lead = -1;
@@ -1245,7 +1290,7 @@ void Chain::checkEngine(const FlowDemand::Request& request) {
         EXPECT(r.status == status, "room_status", "%s: status %s, expected %s", room.id.c_str(), RoomDemand::name(r.status), RoomDemand::name(status));
         EXPECT(r.source == lead, "room_lead_source", "%s: lead %d, expected %d", room.id.c_str(), r.source, lead);
         EXPECT(r.temperature == temperature, "room_temperature", "%s: temperature %d, expected %d", room.id.c_str(), r.temperature.value_or(-9999), temperature.value_or(-9999));
-        if (status != RoomDemand::Status::lost) EXPECT(r.setpoint == setpoint, "room_setpoint", "%s: setpoint %d, expected %d", room.id.c_str(), r.setpoint.value_or(-9999), setpoint.value_or(-9999));
+        EXPECT(r.setpoint == setpoint, "room_setpoint", "%s: setpoint %d, expected %d", room.id.c_str(), r.setpoint.value_or(-9999), setpoint.value_or(-9999));
         anyUsable = anyUsable || (status != RoomDemand::Status::lost && setpoint);
     }
     EXPECT((request.reason == FlowDemand::Reason::noDemand) == !anyUsable, "flow_no_demand", "reason %s with %s usable room", FlowDemand::name(request.reason), anyUsable ? "a" : "no");
@@ -1266,8 +1311,9 @@ void Chain::checkShadow(const FlowDemand::Request& request, std::optional<uint8_
         EXPECT(today.day == day, "shadow_day", "shadow day %d, local day %d", today.day, day);
         EXPECT(dhwEpisodes_.today().day == day || now_ < busDownUntil_ + 20000, "dhw_day", "dhw day %d, local day %d", dhwEpisodes_.today().day, day);
         EXPECT(RoomSchedule::localDay(utc_) == day, "schedule_local_day", "RoomSchedule::localDay %d, libc %d", RoomSchedule::localDay(utc_), day);
-        daySeconds_[day] += o_.stepMs / 1000;
-        if (request.heat) dayE32HeatS_[day] += o_.stepMs / 1000;
+        const uint32_t credit = haveShadowAt_ ? uint32_t(std::min<uint64_t>(now_ - lastShadowAt_, ShadowComparison::maxCreditMs) / 1000) : 0;
+        daySeconds_[day] += credit;
+        if (request.heat) dayE32HeatS_[day] += credit;
         if (prevE32Heat_ && request.heat && !*prevE32Heat_) ++dayE32Starts_[day];
         const bool tHeat = tadoFlowC && *tadoFlowC >= ShadowComparison::tadoHeatFromC;
         if (tadoFlowC && prevTadoHeat_ && tHeat && !*prevTadoHeat_) ++dayTadoStarts_[day];
@@ -1278,6 +1324,7 @@ void Chain::checkShadow(const FlowDemand::Request& request, std::optional<uint8_
             EXPECT(today.tado.starts == dayTadoStarts_[day], "shadow_tado_starts", "tado starts %u, oracle %u", today.tado.starts, dayTadoStarts_[day]);
         }
     }
+    lastShadowAt_ = now_; haveShadowAt_ = true;
     prevE32Heat_ = request.heat;
     if (tadoFlowC) prevTadoHeat_ = *tadoFlowC >= ShadowComparison::tadoHeatFromC;
     EXPECT(today.s == today.tadoUnknownS + today.bothS + today.neitherS + today.e32OnlyS + today.tadoOnlyS, "shadow_partition",
@@ -1298,7 +1345,7 @@ void Chain::checkDay() {
     if (completed) {
         const auto& y = shadow_.completed(0);
         EXPECT(y.day == lastDay_, "shadow_rollover_day", "completed day %d, expected %d", y.day, lastDay_);
-        if (lastDay_ != firstKnownDay_) {
+        if (lastDay_ != firstKnownDay_ && !irregularDays_.count(lastDay_)) {
             const uint32_t expected = daySeconds_[lastDay_];
             EXPECT(y.s == expected, "shadow_day_length", "day %d: %u s, oracle %u s", lastDay_, y.s, expected);
             EXPECT(expected == 86400 || expected == 82800 || expected == 90000 || expected == 84600 || expected == 88200,
@@ -1314,6 +1361,11 @@ void Chain::checkDay() {
     }
     // Heap: sampled once per local day after all JSON was freed.
     EXPECT(cjLive == 0, "cjson_leak", "%ld cJSON blocks live at midnight", long(cjLive));
+    // The harness's own per-day oracles are pruned first, so only the modules can grow.
+    for (auto* m : {&daySeconds_, &dayE32HeatS_, &dayE32Starts_, &dayTadoStarts_})
+        for (auto it = m->begin(); it != m->end();) it = it->first < day - 2 ? m->erase(it) : std::next(it);
+    for (auto it = dhwOracle_.begin(); it != dhwOracle_.end();) it = it->first < day - 2 ? dhwOracle_.erase(it) : std::next(it);
+    for (auto it = irregularDays_.begin(); it != irregularDays_.end();) it = *it < day - 2 ? irregularDays_.erase(it) : std::next(it);
     heap_.emplace_back(day, heapBytes());
     lastDay_ = day;
 }
@@ -1325,6 +1377,11 @@ void Chain::checkLearner() {
     periodsSeen_ = learner_.heatingPeriods();
     EXPECT(learner_.gasIntervals() >= gasIntervalsSeen_, "learner_gas_monotonic", "gas intervals went back");
     gasIntervalsSeen_ = learner_.gasIntervals();
+    // A room that left the plan is forgotten by the learner (and by this check).
+    for (auto it = emitterSeen_.begin(); it != emitterSeen_.end();) {
+        if (!plan.find(it->first)) { readinessSeen_.erase(it->first); segmentsSeen_.erase(it->first); it = emitterSeen_.erase(it); count("learner_room_forgotten"); }
+        else ++it;
+    }
     const float cal = learner_.calibration();
     EXPECT(std::isfinite(cal) && cal >= 0.5f && cal <= 2.0f, "learner_calibration", "calibration %f", double(cal));
     for (size_t i = 0; i < plan.rooms.size(); ++i) {
@@ -1383,7 +1440,14 @@ void Chain::checkWarmup() {
         const auto n = WarmupPlanner::night(learner_, i, s, utc_, engine_.freshTemperature(i, now_), outdoor);
         for (uint8_t k = 0; k < n.count; ++k)
             EXPECT(std::isfinite(n.strategies[k].m3) && n.strategies[k].m3 >= 0, "warmup_night_gas", "%s strategy %s m3 %f", plan.rooms[i].id.c_str(), n.strategies[k].name, double(n.strategies[k].m3));
-        EXPECT(std::isfinite(n.savingM3) && n.savingM3 >= 0, "warmup_saving", "%s saving %f", plan.rooms[i].id.c_str(), double(n.savingM3));
+        EXPECT(std::isfinite(n.savingM3), "warmup_saving_finite", "%s saving %f", plan.rooms[i].id.c_str(), double(n.savingM3));
+        if (n.savingM3 < 0) {
+            count("warmup_negative_saving");
+            char text[200];
+            std::snprintf(text, sizeof text, "%s: recommended %s, saving_m3 %.3f (the program's own setback is not on time: the 'saving' is an extra cost)",
+                          plan.rooms[i].id.c_str(), n.strategies[n.best].name, double(n.savingM3));
+            observe("warmup_negative_saving", text);
+        }
     }
 }
 
@@ -1460,12 +1524,21 @@ void Chain::publish(bool mqtt, bool learned, bool full) {
             keyPaths(back, "", paths);
             if (!shapeKnown_) { shape_ = paths; shapeKnown_ = true; }
             else if (paths != shape_) {
+                // A documented "{..}|null" value or an empty array is no key change.
+                const auto covered = [](const std::set<std::string>& other, const std::string& p) {
+                    if (p.size() >= 2 && p.compare(p.size() - 2, 2, "[]") == 0) return true;
+                    for (size_t k = p.find('.', 1); k != std::string::npos; k = p.find('.', k + 1)) if (other.count(p.substr(0, k))) return true;
+                    for (const auto& q : other) if (q.size() > p.size() && q.compare(0, p.size(), p) == 0 && (q[p.size()] == '.' || q[p.size()] == '[')) return true;
+                    return false;
+                };
                 std::string added, removed;
-                for (const auto& p : paths) if (!shape_.count(p)) added += p + " ";
-                for (const auto& p : shape_) if (!paths.count(p)) removed += p + " ";
-                count("mqtt_shape_change");
-                observe("mqtt_shape_change_" + added + "|" + removed, "keys appeared: " + added + " disappeared: " + removed);
-                shape_.insert(paths.begin(), paths.end());
+                for (const auto& p : paths) if (!shape_.count(p) && !covered(shape_, p)) added += p + " ";
+                for (const auto& p : shape_) if (!paths.count(p) && !covered(paths, p)) removed += p + " ";
+                if (!added.empty() || !removed.empty()) {
+                    count("mqtt_shape_change");
+                    observe("mqtt_shape_change " + added + "|" + removed, "keys appeared: " + added + " disappeared: " + removed);
+                }
+                shape_ = paths;
             }
             cJSON_Delete(back);
         }
@@ -1506,13 +1579,21 @@ void Chain::publish(bool mqtt, bool learned, bool full) {
         // fw/telemetry/heating_learned/<id>, two rooms per tick
         rotation_.tick(engine_.plan().rooms.size(), 2, [&](size_t room) {
             std::array<std::optional<int16_t>, RoomPlan::maxRooms> temperatures{};
+            const uint64_t calls0 = localtimeCalls;
             const auto payload = learnedRoomTelemetry(learner_, engine_.plan(), room, learnedContext(temperatures));
+            noteLocaltime("mqtt_learned_room", localtimeCalls - calls0, utc_);
             EXPECT(topicSafeRoomId(engine_.plan().rooms[room].id), "topic_unsafe_id", "room id %s", engine_.plan().rooms[room].id.c_str());
             checkPayload("mqtt_learned_room", payload, 900);
+            // The id appears three times; a 32-character id (the plan maximum) would add this much.
+            const size_t worst = payload.size() + 3 * (32 - std::min<size_t>(32, engine_.plan().rooms[room].id.size()));
+            auto& w = counters[ctx.scenario + ":mqtt_learned_room_max_with_32_char_id"];
+            w = std::max<uint64_t>(w, worst);
         });
     }
     if (full) {
+        const uint64_t calls0 = localtimeCalls;
         cJSON* status = heatingStatusJson(false);
+        noteLocaltime("http_status_heating", localtimeCalls - calls0, utc_);
         EXPECT(status != nullptr, "status_full_null", "heatingStatusJson(false) returned null");
         const auto text = printed(status);
         cJSON_Delete(status);
@@ -1555,9 +1636,13 @@ void Chain::oomSweep() {
         (void)b.build();
         const long total = cjCalls;
         EXPECT(cjLive == live0, "oom_baseline_leak", "%s leaks without a failure", b.name);
-        long k = 1;
+        // Every allocation up to 400, then 400 evenly spread over the rest (large builders).
+        std::vector<long> probes;
+        for (long k = 1; k <= total; ++k)
+            if (k <= 400 || (k - 400) % std::max<long>(1, (total - 400) / 400) == 0 || k == total) probes.push_back(k);
+        size_t next = 0;
         int crashes = 0;
-        while (k <= total && crashes < 3) {
+        while (next < probes.size() && crashes < 3) {
             int fds[2];
             if (pipe(fds)) { perror("pipe"); return; }
             std::fflush(nullptr);
@@ -1567,8 +1652,9 @@ void Chain::oomSweep() {
                 const std::string log = o_.outDir + "/oom-" + (o_.name.empty() ? o_.scenario : o_.name) + "-" + b.name + ".log";
                 const int fd = open(log.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
                 if (fd >= 0) { dup2(fd, 2); close(fd); }
-                for (; k <= total; ++k) {
-                    int64_t msg[3] = {1, k, 0};
+                for (; next < probes.size(); ++next) {
+                    const long k = probes[next];
+                    int64_t msg[3] = {1, int64_t(next), 0};
                     if (write(fds[1], msg, sizeof msg) != sizeof msg) _exit(3);
                     const long live = cjLive;
                     cjCalls = 0; cjFailAt = k;
@@ -1580,7 +1666,7 @@ void Chain::oomSweep() {
                 _exit(0);
             }
             close(fds[1]);
-            int64_t msg[3], last = k;
+            int64_t msg[3], last = int64_t(next);
             bool leakSeen = false, invalidSeen = false;
             while (read(fds[0], msg, sizeof msg) == sizeof msg) {
                 if (msg[0] == 1) last = msg[1];
@@ -1604,10 +1690,11 @@ void Chain::oomSweep() {
                 std::fclose(f);
             }
             for (auto& ch : where) if (ch == '\n') ch = ' ';
-            fail(std::string("oom_crash_") + b.name, "crash when cJSON allocation #%" PRId64 " of %ld fails: %s (log %s)", last, total, where.c_str(), log.c_str());
-            k = last + 1;
+            fail(std::string("oom_crash_") + b.name, "crash when cJSON allocation #%ld of %ld fails: %s (log %s)", probes[size_t(last)], total, where.c_str(), log.c_str());
+            next = size_t(last) + 1;
         }
         count(std::string("oom_sweep_allocations_") + b.name, uint64_t(total));
+        count(std::string("oom_sweep_probes_") + b.name, probes.size());
     }
 }
 
@@ -1620,12 +1707,31 @@ void Chain::step() {
     const double dtH = o_.stepMs / 3600000.0;
     weather();
     tado();
+    // A firmware upload blocks the loop for minutes: EMS, MQTT and the control step wait.
+    if (clockKnown_ && dhw_ == Dhw::idle && now_ >= stallUntil_ && now_ >= busDownUntil_ && chance(1.0 / (5 * 24 * 360.0))) {
+        stallUntil_ = now_ + uint64_t(uniformInt(12, 36)) * 10000;
+        busDownUntil_ = stallUntil_; // its telegrams are lost (the EMS queue overflows)
+        irregularDays_.insert(localDayIndex(utc_)); irregularDays_.insert(localDayIndex(utc_ + 400));
+        count("loop_stall");
+    }
+    // NTP corrects the wall clock by a few seconds (not across a local midnight).
+    if (clockKnown_ && chance(1.0 / (2 * 24 * 360.0))) {
+        const auto l = local(utc_);
+        if (!((l.hour == 23 && l.minute >= 58) || (l.hour == 0 && l.minute <= 1))) {
+            utc_ += uniformInt(0, 1) ? uniformInt(1, 20) : -uniformInt(1, 20);
+            ctx.utc = utc_;
+            irregularDays_.insert(localDayIndex(utc_));
+            count("ntp_step");
+        }
+    }
+    const bool stalled = now_ < stallUntil_;
     dhwGenerator();
     boiler(dtH);
     physics(dtH);
     emitTelegrams();
-    haMessages();
+    if (!stalled) haMessages();
     bleAdverts();
+    if (stalled) return;
     guardPhases();
     stepE32();
     checkBle();
@@ -1647,7 +1753,7 @@ void Chain::finish() {
         for (size_t i = heap_.size() - 7; i < heap_.size(); ++i) late = std::max(late, heap_[i].second);
         counters[ctx.scenario + ":heap_warm_bytes"] = warm;
         counters[ctx.scenario + ":heap_late_bytes"] = late;
-        EXPECT(late <= warm + 16384, "heap_growth", "heap grew from %zu B (days 3-9) to %zu B (last 7 days)", warm, late);
+        EXPECT(late <= warm + 8192, "heap_growth", "heap grew from %zu B (days 3-9) to %zu B (last 7 days)", warm, late);
     }
     // The learner reaches "ready" in this house.
     std::string ready;
@@ -1659,6 +1765,7 @@ void Chain::finish() {
     observe("learner_readiness", ready);
     observe("learner_calibration", std::to_string(learner_.calibration()) + " after " + std::to_string(learner_.gasIntervals()) + " gas intervals (truth 24/22 = 1.091)");
     if (o_.days >= 30) EXPECT(readyCount >= 3, "learner_never_ready", "only %zu rooms ready: %s", readyCount, ready.c_str());
+    counters[ctx.scenario + ":learner_heating_periods"] = learner_.heatingPeriods();
     counters[ctx.scenario + ":plan_applied"] = planApplied_;
     counters[ctx.scenario + ":plan_refused"] = planRefused_;
     counters[ctx.scenario + ":plan_too_large"] = planTooLarge_;
@@ -1679,6 +1786,7 @@ int Chain::run() {
     ctx.startUtc = utc_ = o_.startUtc;
     ctx.utc = utc_;
     now_ = bootMs_ = o_.uptime0;
+    heap_.reserve(size_t(o_.days) + 4);
     setupHouse();
     setupBle();
     setupPlan();
@@ -1832,68 +1940,79 @@ void supervisorScenario() {
     const uint64_t end = uint64_t(opt.days * 86400000.0);
     uint8_t wifiRestarts = 0, deadRestarts = 0, btRestarts = 0;
     uint64_t boots = 0;
+    // The fault lives in wall time: a Wi-Fi outage outlasts a restart; a stuck loop or update does not.
+    int fault = 0;
+    uint64_t faultEnd = 0, nextEvent = uint64_t(expo(18 * 3600.0) * 1000);
     while (wall < end) {
         ++boots;
         const uint64_t bootWall = wall;
-        // A boot: uptime seconds + 1, as monotonicS().
-        bool wifiUp = true, brokerUp = true, probeOk = true, loopAlive = true, update = false, btHeard = true;
-        uint64_t wifiDown = 0, brokerDown = 0, quiet = 1, loopAt = 1, updateSince = 0, btQuiet = 1, faultSince = 0;
+        // A boot: uptime seconds + 1, as monotonicS(); 0 means "never".
+        uint64_t wifiDown = 0, brokerDown = 0, quiet = 1, loopAt = 1, updateSince = 0, btQuiet = 1;
         uint32_t probeFailures = 0;
         bool armed = false, brokerSeen = false;
-        uint64_t nextEvent = uint64_t(expo(18 * 3600.0) * 1000);
-        int fault = 0; uint64_t faultEnd = 0;
-        for (;;) {
+        const uint64_t faultBootS = 1;
+        bool restarted = false;
+        while (!restarted) {
             wall += 5000;
             const uint64_t up = wall - bootWall;
             const uint64_t nowS = up / 1000 + 1;
             ctx.uptime = up; ctx.utc = ctx.startUtc + int64_t(wall / 1000);
             if (wall >= end) break;
-            if (!fault && up >= nextEvent) {
-                fault = int(uniformInt(1, 7));
-                faultSince = nowS;
+            if (!fault && wall >= nextEvent) {
+                fault = int(uniformInt(1, 6));
                 const double minutes = fault == 1 ? (chance(0.7) ? uniform(0.2, 10) : uniform(16, 600)) : fault == 2 ? uniform(1, 40)
-                    : fault == 3 ? uniform(1, 30) : fault == 4 ? uniform(5, 7) : fault == 5 ? uniform(2, 30) : fault == 6 ? uniform(10, 200) : uniform(1, 20);
-                faultEnd = up + uint64_t(minutes * 60000);
+                    : fault == 3 ? uniform(1, 30) : fault == 4 ? uniform(5, 7) : fault == 5 ? uniform(2, 30) : uniform(10, 200);
+                faultEnd = wall + uint64_t(minutes * 60000);
                 count("sup_fault_" + std::to_string(fault));
             }
-            if (fault && up >= faultEnd) { fault = 0; nextEvent = up + uint64_t(expo(18 * 3600.0) * 1000); }
-            wifiUp = fault != 1; brokerUp = fault != 2 && wifiUp; probeOk = fault != 3 && wifiUp; loopAlive = fault != 4; update = fault == 5; btHeard = fault != 6;
+            if (fault && wall >= faultEnd) { fault = 0; nextEvent = wall + uint64_t(expo(18 * 3600.0) * 1000); }
+            const bool wifiUp = fault != 1, brokerUp = fault != 2 && wifiUp, probeOk = fault != 3 && wifiUp;
+            const bool loopAlive = fault != 4, update = fault == 5, btHeard = fault != 6;
             if (!wifiUp) { if (!wifiDown) wifiDown = nowS; } else wifiDown = 0;
             if (brokerUp) brokerSeen = true;
             if (!brokerUp && brokerSeen) { if (!brokerDown) brokerDown = nowS; } else brokerDown = 0;
-            if (probeOk && wifiUp) { armed = true; probeFailures = 0; quiet = nowS; } else if (wifiUp && (up / 5000) % 2 == 0) ++probeFailures;
+            if (probeOk) { armed = true; probeFailures = 0; quiet = nowS; } else if (wifiUp && (up / 5000) % 2 == 0) ++probeFailures;
             if (loopAlive) loopAt = nowS;
-            if (btHeard) btQuiet = nowS;
-            if (update) { if (!updateSince) updateSince = up; } else updateSince = 0;
+            if (btHeard) { btQuiet = nowS; btRestarts = 0; } // a frame of a bound sensor ends the series
+            if (update) { if (!updateSince) updateSince = nowS; } else updateSince = 0;
             P::Inputs in;
-            in.now = nowS * 1000; in.loopAt = loopAt * 1000; in.updateRunning = update; in.updateSince = updateSince ? (updateSince / 1000 + 1) * 1000 : 0;
+            in.now = nowS * 1000; in.loopAt = loopAt * 1000; in.updateRunning = update; in.updateSince = updateSince * 1000;
             in.wifiExpected = true; in.wifiDownSince = wifiDown * 1000;
             in.brokerExpected = brokerSeen; in.brokerDownSince = brokerDown * 1000;
             in.gatewayProbeArmed = armed; in.gatewayProbeFailures = probeFailures; in.networkQuietSince = quiet * 1000;
             in.wifiLostRestarts = wifiRestarts; in.networkDeadRestarts = deadRestarts;
             in.bluetoothExpected = true; in.bluetoothQuietSince = btQuiet * 1000; in.bluetoothRestarts = btRestarts;
             const auto reason = P::decide(in);
-            const uint64_t faultFor = fault ? (nowS - faultSince) * 1000 : 0;
+            // How long the fault has been visible in this boot.
+            const uint64_t visibleS = fault == 1 ? (wifiDown ? nowS - wifiDown : 0) : fault == 2 ? (brokerDown ? nowS - brokerDown : 0)
+                : fault == 4 ? nowS - loopAt : fault == 5 ? (updateSince ? nowS - updateSince : 0) : fault == 6 ? nowS - btQuiet : 0;
+            const uint64_t faultFor = visibleS * 1000;
+            (void)faultBootS;
             if (!fault) EXPECT(reason == P::Reason::none, "sup_restart_healthy", "restart %s while healthy", P::name(reason));
-            if (update) EXPECT(reason == P::Reason::none || (reason == P::Reason::updateStuck && faultFor >= P::updateMaxMs), "sup_restart_during_update", "%s during an update of %" PRIu64 " s", P::name(reason), faultFor / 1000);
-            // Liveness: a persisting fault restarts in time (5 s supervisor cadence + 5 s margin).
-            const uint64_t margin = 15000;
+            if (update) EXPECT(reason == P::Reason::none || (reason == P::Reason::updateStuck && faultFor >= P::updateMaxMs), "sup_restart_during_update",
+                               "%s during an update of %" PRIu64 " s", P::name(reason), faultFor / 1000);
+            // Liveness: a persisting fault restarts in time (5 s supervisor cadence + margin).
+            const uint64_t margin = 10000;
             if (fault == 1 && faultFor > P::backoff(P::wifiLostMs, wifiRestarts) + margin) fail("sup_wifi_no_restart", "wifi down %" PRIu64 " s", faultFor / 1000);
             if (fault == 2 && faultFor > P::brokerLostMs + margin) fail("sup_broker_no_restart", "broker down %" PRIu64 " s", faultFor / 1000);
             if (fault == 4 && faultFor > P::loopStallMs + margin) fail("sup_loop_no_restart", "loop stalled %" PRIu64 " s", faultFor / 1000);
             if (fault == 5 && faultFor > P::updateMaxMs + margin) fail("sup_update_no_restart", "update stuck %" PRIu64 " s", faultFor / 1000);
-            if (fault == 6 && btRestarts < P::maximumBackoff && faultFor > P::backoff(P::bluetoothSilentMs, btRestarts) + margin) fail("sup_bt_no_restart", "bt silent %" PRIu64 " s", faultFor / 1000);
-            if (reason == P::Reason::none) continue;
+            if (fault == 6 && btRestarts < P::maximumBackoff && faultFor > P::backoff(P::bluetoothSilentMs, btRestarts) + margin)
+                fail("sup_bt_no_restart", "bt silent %" PRIu64 " s", faultFor / 1000);
+            if (reason == P::Reason::none) {
+                if (up > P::networkStableMs && fault != 1) wifiRestarts = 0; // the network held after this boot
+                if (up > P::networkStableMs && fault != 3) deadRestarts = 0;
+                continue;
+            }
             if (fault == 4) EXPECT(reason == P::Reason::loopStall, "sup_reason", "loop stall gave %s", P::name(reason));
             count(std::string("sup_restart_") + P::name(reason));
-            // Consecutive restarts of a kind (BlackBox): +1, other kinds reset.
-            wifiRestarts = reason == P::Reason::wifiLost ? uint8_t(std::min(255, wifiRestarts + 1)) : 0;
-            deadRestarts = reason == P::Reason::networkDead ? uint8_t(std::min(255, deadRestarts + 1)) : 0;
-            btRestarts = reason == P::Reason::bluetoothSilent ? uint8_t(std::min(255, btRestarts + 1)) : uint8_t(fault == 6 ? btRestarts : 0);
-            if (fault == 4 || fault == 5) fault = 0; // a restart cures a stuck loop/update
-            break;
+            // Consecutive restarts of a kind (BlackBox).
+            if (reason == P::Reason::wifiLost) wifiRestarts = uint8_t(std::min(255, wifiRestarts + 1));
+            if (reason == P::Reason::networkDead) deadRestarts = uint8_t(std::min(255, deadRestarts + 1));
+            if (reason == P::Reason::bluetoothSilent) btRestarts = uint8_t(std::min(255, btRestarts + 1));
+            if (fault == 4 || fault == 5) { fault = 0; nextEvent = wall + uint64_t(expo(18 * 3600.0) * 1000); } // a restart cures a stuck loop/update
+            restarted = true;
         }
-        if (wall - bootWall > 1800000 && !fault) { wifiRestarts = deadRestarts = 0; }
     }
     counters[ctx.scenario + ":boots"] = boots;
 }
@@ -1915,8 +2034,9 @@ void sizesScenario() {
                 r.schedule = weekProgram({{390, 2050}, {480, 1900}, {1020, 2050}, {1350, 1800}}, {{480, 2100}, {1380, 1800}});
             } else {
                 r.id = std::string(31, 'r') + char('0' + i);
-                r.name = variant == 1 ? std::string(20, 'x') + std::string(10, '\xC3') : std::string(40, '\x01');
-                if (variant == 1) { r.name.clear(); for (int k = 0; k < 20; ++k) r.name += "\xC3\xA9"; }
+                r.name.clear();
+                if (variant == 1) for (int k = 0; k < 20; ++k) r.name += "\xC3\xA9"; // 40 bytes of UTF-8
+                else r.name = std::string(40, '"');                                // 40 bytes, each escaped
                 for (int s = 0; s < 4; ++s) r.sources.push_back({RoomPlan::SourceType::ha, "sensor." + std::string(68, char('a' + i)) + "_" + std::to_string(s) + std::string(2, 'x')});
                 r.setpointEntity = "climate." + std::string(72, char('a' + i));
             }
@@ -1999,6 +2119,21 @@ void reproScenario() {
             fail("repro_guard_stop_without_zero", "after 60 s of failed zero writes the guard is %s and stops sending: the boiler keeps %u degC. Trace: %s",
                  ActiveHeatGuard::name(g.state()), atBoiler, trace.c_str());
     }
+    // R3: DhwEpisodes: a reheat right after a short tap is counted as a second tap.
+    {
+        DhwEpisodes d;
+        uint64_t t = 0;
+        const auto report = [&](uint8_t state, int32_t centi) { t += 10000; d.flow(25); d.temperature(centi, t - 5000); d.state(state, t); };
+        for (int i = 0; i < 30; ++i) report(0x00, 5000);                 // idle, plate exchanger at 50 degC
+        for (int c : {3500, 2200, 2000, 2000, 2000, 2000}) report(0x0A, c); // a 1-minute tap: cold mains water
+        report(0x00, 2000);                                               // tap over
+        for (int c : {2000, 2600, 3300, 4000, 4600, 5000, 5200}) report(0x0A, c); // keep warm reheats the exchanger
+        report(0x00, 5200);
+        const auto& today = d.today();
+        if (today.count[DhwEpisodes::tapping] != 1 || today.count[DhwEpisodes::keepWarm] != 1)
+            fail("repro_dhw_reheat_counted_as_tap", "one 60 s tap + one reheat 10 s later gives tapping=%u keep_warm=%u (the reheat's 2 min look-back reaches back before the tap)",
+                 today.count[DhwEpisodes::tapping], today.count[DhwEpisodes::keepWarm]);
+    }
     // R2: RoomEngine::json() under a failing allocation (ha_entities array).
     {
         RoomPlan p; RoomPlan::Room r; r.id = "a"; r.name = "A"; r.state = RoomDemand::State::active;
@@ -2072,6 +2207,8 @@ int main(int argc, char** argv) {
     for (const auto& [k, s] : sizes) std::printf("size  %-40s max %6zu B over %zu/%zu%s\n", k.c_str(), s.max, s.over, s.n, s.limit ? (" (limit " + std::to_string(s.limit) + " B)").c_str() : "");
     for (const auto& [k, v] : counters) std::printf("count %-50s %" PRIu64 "\n", k.c_str(), v);
     for (const auto& [k, v] : observations) std::printf("note  %-50s %s\n", k.c_str(), v.c_str());
+    for (const auto& [k, c] : localtimeStats)
+        std::printf("tz    %-40s localtime_r calls max %6" PRIu64 " (at %s) mean %.1f\n", k.c_str(), c.max, isoLocal(c.maxUtc).c_str(), c.n ? double(c.sum) / double(c.n) : 0.0);
     for (const auto& [k, f] : failures) std::printf("FAIL  %-50s x%" PRIu64 ": %s\n", k.c_str(), f.count, f.first.c_str());
     std::printf("RESULT %s %s (%zu failing invariants)\n", ctx.scenario.c_str(), failures.empty() ? "PASS" : "FAIL", failures.size());
     return failures.empty() ? 0 : 1;

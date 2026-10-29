@@ -32,6 +32,8 @@ async def option(manager,parent,step):
     rooms='e32_rooms' if has_room_plan(parent) else 'room_settings'
     # Everyday settings first; status and plan recovery are under Advanced.
     assert f['menu_options']==[rooms,'controller_connection','energy','installation','advanced_settings']
+    if step in ('configuration_status','hot_water','graph_prepare','graph_status'):
+        f=await manager.async_configure(f['flow_id'],{'next_step_id':'advanced_settings'})
     return await manager.async_configure(f['flow_id'],{'next_step_id':step})
 
 async def new_room(manager,parent,binding):

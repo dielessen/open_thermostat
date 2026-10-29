@@ -19,6 +19,7 @@ def section(start, end):
 
 methods = '\n'.join([
     section('\tvoid handle() {', '\nprivate:'),
+    section('\tstatic void noteUpload(', '\n\tvoid handleOTAUpdate() {'),
     section('\tvoid handleOTAUpdate() {', '\n\tvoid handleOTAFFSUpdate()'),
     section('\tstruct AppOtaBackend {', '\n\tstruct OTAUpload {'),
 ])
@@ -26,6 +27,7 @@ head = r'''
 #define OPENTHERMOSTAT_E32V2
 #include "update/ManualAppUpload.h"
 #include "control/WebAuthSession.h"
+#include <atomic>
 #include <cassert>
 #include <functional>
 #include <iostream>
@@ -61,11 +63,12 @@ int esp_ota_abort(unsigned h) {assert(h==1&&native.open);native.open=false;++nat
 namespace heating::update {
 void firmwareInstalled(){++native.reboots;native.settingsBlocked=true;}
 bool mutationBlocked(std::string_view path){assert(path=="/boiler/settings/write");return native.settingsBlocked;}
+std::atomic<bool> httpUploadActive{false};
 }
 using namespace heating;
 struct String:std::string {using std::string::string;};
-enum {UPLOAD_FILE_START,UPLOAD_FILE_WRITE,UPLOAD_FILE_END,UPLOAD_FILE_ABORTED};
-struct HTTPUpload {int status=UPLOAD_FILE_START;size_t currentSize=0;char buf[8]={};};
+enum HTTPUploadStatus {UPLOAD_FILE_START,UPLOAD_FILE_WRITE,UPLOAD_FILE_END,UPLOAD_FILE_ABORTED};
+struct HTTPUpload {HTTPUploadStatus status=UPLOAD_FILE_START;size_t currentSize=0;char buf[8]={};};
 struct Server {
     HTTPUpload current;
     String declared="8",path="/ota";
@@ -95,7 +98,7 @@ tail = r'''
 };
 int cases=0;
 void pass(const char *name){++cases;std::cout<<"PASS "<<name<<'\n';}
-void event(REST &r,int type,size_t size=0){r.server_.current.status=type;r.server_.current.currentSize=size;r.handleOTAUpdate();}
+void event(REST &r,HTTPUploadStatus type,size_t size=0){r.server_.current.status=type;r.server_.current.currentSize=size;r.handleOTAUpdate();}
 void finalHandler(REST &r){if(r.authorize())r.handleOTAResponse();}
 void data(REST &r){event(r,UPLOAD_FILE_START);event(r,UPLOAD_FILE_WRITE,8);event(r,UPLOAD_FILE_END);}
 int main(){
@@ -167,6 +170,18 @@ int main(){
         r.server_.callback=[&]{r.handleOTAResponse();};r.handle();
         assert(r.server_.statuses.back()==200&&native.begins==0&&native.selects==0&&native.reboots==0);
         pass("filesystem response retains success without application restart");
+    }
+    {
+        native={};update::httpUploadActive=false;REST r;r.server_.callback=[&]{
+            event(r,UPLOAD_FILE_START);assert(update::httpUploadActive);
+            event(r,UPLOAD_FILE_WRITE,8);assert(update::httpUploadActive);
+            event(r,UPLOAD_FILE_END);assert(!update::httpUploadActive);
+            event(r,UPLOAD_FILE_START);assert(update::httpUploadActive);
+            r.authorized=false;event(r,UPLOAD_FILE_WRITE,8);assert(!update::httpUploadActive);
+            r.authorized=true;event(r,UPLOAD_FILE_START);assert(update::httpUploadActive);
+            finalHandler(r);assert(!update::httpUploadActive);
+        };r.handle();assert(!native.open);
+        pass("upload counts as running update from start until end, abort, lost authorization or final reply");
     }
     std::cout<<cases<<" production REST boundary scenarios passed\n";
 }

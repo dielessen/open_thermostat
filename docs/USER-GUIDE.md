@@ -114,8 +114,9 @@ Assistant — you edit rooms here." on the **Rooms** page.
 5. Turn on **Use a week program** and add switch points per day (time and
    temperature, up to six per day). Each temperature holds until the next
    switch point.
-6. Check **Boiler flow limits** (default 30–60 °C). Floor heating fed
-   directly without a mixing valve usually needs at most 45–50 °C. The page
+6. Check **Boiler flow limits** (default 30–60 °C; the maximum can be set up
+   to 80 °C). Floor heating fed directly without a mixing valve usually needs
+   at most 45–50 °C. The page
    shows your boiler's own maximum heating temperature; the E32 never asks for
    more than that.
 7. Choose **Save rooms**.
@@ -291,8 +292,9 @@ boiler. See [the switch-over procedure](SWITCHOVER.md). It will involve:
 Safeguards in active mode: the E32 stops and warns when another controller
 still sends boiler requests; without room measurements it asks for no heat
 until a reading returns; frost protection switches on below 8 °C; the flow
-request never exceeds the plan limit, 60 °C or the boiler's own maximum. While
-the E32 controls the boiler, the attended boiler test is refused.
+request never exceeds the plan maximum (at most 80 °C) or the boiler's own
+maximum heating temperature setting. While the E32 controls the boiler, the
+attended boiler test is refused.
 
 After the switch-over follow one to two weeks of active mode with daily
 checks before a first non-beta release.

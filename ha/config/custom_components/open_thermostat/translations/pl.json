@@ -96,10 +96,49 @@
   },
   "options": {
     "step": {
+      "comfort": {
+        "title": "Komfort",
+        "description": "Czujniki okien i drzwi wstrzymują ogrzewanie pomieszczenia, dopóki są otwarte; ustawienia wstępne, nieobecność i obecność określają temperatury dla termostatów pomieszczeń E32. Wszystko tutaj jest opcjonalne.",
+        "menu_options": {
+          "comfort_settings": "Ustawienia wstępne, obecność i czasy",
+          "comfort_contacts": "Czujniki okien i drzwi w pomieszczeniach"
+        }
+      },
+      "comfort_settings": {
+        "title": "Ustawienia wstępne, obecność i czasy",
+        "description": "Termostat każdego pomieszczenia E32 oferuje ustawienia wstępne Komfort, Eko, Nieobecność i Szybkie grzanie. Nieobecność obniża każde pomieszczenie do temperatury nieobecności E32 (ustaw ją akcją \"Nieobecność\" lub na stronie E32).",
+        "data": {
+          "presence_entity": "Kto jest w domu",
+          "comfort_temperature": "Temperatura komfortowa",
+          "eco_temperature": "Temperatura eko",
+          "contact_delay": "Przerwa po otwarciu okna",
+          "override_minutes": "Czas trwania ręcznej zmiany"
+        },
+        "data_description": {
+          "presence_entity": "Opcjonalnie. Osoba, grupa, strefa (na przykład zone.home) lub przełącznik włączony, gdy ktoś jest w domu. Gdy wszyscy wyjdą, każde pomieszczenie używa temperatury nieobecności, aż ktoś wróci.",
+          "comfort_temperature": "Cel ustawienia Komfort, do następnego punktu przełączenia programu tygodniowego.",
+          "eco_temperature": "Cel ustawienia Eko, do następnego punktu przełączenia programu tygodniowego.",
+          "contact_delay": "Liczba sekund, przez które okno lub drzwi muszą pozostać otwarte, zanim pomieszczenie wstrzyma ogrzewanie, aby krótkie wietrzenie lub przejście przez drzwi nie zatrzymywało ogrzewania. Wstrzymane pomieszczenie nadal jest chronione przed mrozem.",
+          "override_minutes": "Nowa temperatura na termostacie obowiązuje do następnego punktu przełączenia programu tygodniowego pomieszczenia. Pomieszczenie bez programu tygodniowego utrzymuje ją przez tyle minut, a potem znowu stosuje swój plan."
+        }
+      },
+      "comfort_contacts": {
+        "title": "Czujniki okien i drzwi",
+        "description": "Wybierz pomieszczenie i jego czujniki okien i drzwi. Dopóki którykolwiek jest otwarty, pomieszczenie wstrzymuje ogrzewanie (ochrona przed mrozem pozostaje); gdy wszystkie są zamknięte, znowu grzeje. Obecne czujniki: {rooms}. Nie wybieraj żadnego czujnika, aby usunąć je z pomieszczenia.",
+        "data": {
+          "room": "Pomieszczenie",
+          "contacts": "Czujniki okien i drzwi"
+        },
+        "data_description": {
+          "room": "Jedno z pomieszczeń na Twoim E32.",
+          "contacts": "Czujniki binarne typu okno, drzwi lub otwarcie, na przykład z Zigbee lub Bluetooth. Ich stan jest wysyłany do E32 przy każdej zmianie."
+        }
+      },
       "init": {
         "title": "OpenThermostat",
         "description": "Twoje pomieszczenia, połączenie z E32 i opcjonalne dane o energii.",
         "menu_options": {
+          "comfort": "Komfort: czujniki okien, nieobecność i obecność",
           "installation": "Ustawienia instalacji",
           "room_settings": "Zarządzaj pomieszczeniami",
           "configuration_status": "Stan instalacji",
@@ -598,6 +637,12 @@
       }
     },
     "error": {
+      "presence_entity_invalid": "Wybierz istniejącą osobę, grupę, strefę lub przełącznik.",
+      "temperature_invalid": "Podaj temperaturę od 5 do 30 °C.",
+      "whole_number_invalid": "Podaj liczbę całkowitą w dozwolonym zakresie.",
+      "contacts_invalid": "Wybierz najwyżej osiem różnych czujników.",
+      "not_contact_sensor": "Wybierz tylko czujniki okien, drzwi lub otwarcia.",
+      "room_invalid": "Wybierz jedno z pomieszczeń E32.",
       "invalid_adapter_id": "Użyj tego samego jawnego identyfikatora właściciela, który ustawiono na E32 (1–32 litery, cyfry, _ lub -).",
       "graph_room_contract_unavailable": "Dla tych pomieszczeń nie jest dostępny pasujący graf DATA ani jawnie wybrany przez SOURCE kontrakt cienia. Zapisanie grafu lub zaznaczenie tego pola nigdy nie kwalifikuje źródła ani nie włącza wyjść fizycznych.",
       "graph_control_source_review_required": "Wybrany kontrakt SOURCE nie pasuje do bieżącego właściciela lub przejrzanego grafu albo zmienił się podczas weryfikacji. Nic nie zostało włączone. Przejrzyj zapisany kontrakt DATA i SOURCE; samo ponowne połączenie nie może zatwierdzić zmian.",
@@ -719,6 +764,8 @@
       "controller_mqtt_unconfirmed": "E32 zrestartował się z ustawieniami Home Assistant, ale Home Assistant nie otrzymał od niego nic przez MQTT w ciągu 90 sekund. Na E32 sprawdź System → Sieć → MQTT: ten sam broker co integracja MQTT w Home Assistant oraz nazwa użytkownika i hasło akceptowane przez broker."
     },
     "abort": {
+      "comfort_saved": "Ustawienia komfortu zostały zapisane i obowiązują od razu.",
+      "comfort_no_rooms": "E32 nie zgłosił jeszcze żadnych pomieszczeń. Dodaj pomieszczenia w Konfiguruj → Pomieszczenia, odczekaj chwilę i spróbuj ponownie.",
       "graph_review_unavailable": "Brak istniejącego połączenia grafu wybranego przez źródło. Nie włączono żadnego profilu.",
       "graph_review_cancelled": "Nic nie zastosowano.",
       "graph_review_changed": "Przegląd, sesja lub kandydat zmieniły się albo wygasła możliwość. Nic nowego nie zatwierdzono; otwórz przegląd ponownie.",
@@ -778,6 +825,23 @@
     }
   },
   "entity": {
+    "climate": {
+      "room_thermostat": {
+        "name": "Termostat",
+        "state_attributes": {
+          "preset_mode": {
+            "name": "Ustawienie wstępne",
+            "state": {
+              "none": "Brak",
+              "comfort": "Komfortowe",
+              "eco": "Ekonomiczne",
+              "away": "Nieobecność",
+              "boost": "Szybkie grzanie"
+            }
+          }
+        }
+      }
+    },
     "binary_sensor": {
       "radiators_heating": {
         "name": "Grzejniki grzeją"
@@ -798,6 +862,9 @@
       },
       "room_fallback_setpoint": {
         "name": "Temperatura bez Home Assistant"
+      },
+      "flow_curve_design_flow_c": {
+        "name": "Zasilanie przy −10 °C"
       }
     },
     "sensor": {
@@ -1205,6 +1272,42 @@
       },
       "hot_water_gas": {
         "name": "Gaz na ciepłą wodę"
+      },
+      "flow_source": {
+        "name": "Źródło temperatury zasilania",
+        "state": {
+          "rule": "Regulacja pokojowa",
+          "curve": "Krzywa grzewcza",
+          "learned": "Wyuczone zasilanie",
+          "optimum_start": "Optymalny start"
+        }
+      },
+      "flow_curve": {
+        "name": "Zasilanie wg krzywej grzewczej"
+      },
+      "flow_learned": {
+        "name": "Wyuczone zasilanie"
+      },
+      "flow_rule": {
+        "name": "Zasilanie wg regulacji pokojowej"
+      },
+      "flow_curve_slope": {
+        "name": "Nachylenie krzywej grzewczej"
+      },
+      "gas_calibration": {
+        "name": "Kalibracja gazu",
+        "state": {
+          "no_meter": "Brak gazomierza (zgrubne oszacowanie)",
+          "collecting": "Kalibracja gazomierzem w toku",
+          "calibrated": "Skalibrowano gazomierzem",
+          "meter_stale": "Gazomierz nie przesyła danych"
+        }
+      },
+      "boiler_full_power": {
+        "name": "Moc kotła przy pełnym palniku"
+      },
+      "night_heating_gas": {
+        "name": "Gaz na ogrzewanie ostatniej nocy"
       }
     },
     "select": {
@@ -1219,6 +1322,14 @@
     "datetime": {
       "room_inactive_until": {
         "name": "Wyłączone do"
+      }
+    },
+    "switch": {
+      "flow_weather_curve": {
+        "name": "Krzywa grzewcza zależna od pogody"
+      },
+      "flow_apply_learned": {
+        "name": "Wyuczone zasilanie i optymalny start"
       }
     }
   },
@@ -2013,6 +2124,13 @@
     }
   },
   "selector": {
+    "room_override_mode": {
+      "options": {
+        "boost": "Szybkie grzanie (maksimum pomieszczenia)",
+        "timed": "Na określony czas",
+        "until_next": "Do następnego punktu przełączenia"
+      }
+    },
     "program_action": {
       "options": {
         "save": "Zapisz powiązania (zachowaj lokalny program, jeśli istnieje)",
@@ -2236,6 +2354,46 @@
     }
   },
   "services": {
+    "set_room_override": {
+      "name": "Ustaw tymczasową zmianę w pomieszczeniu",
+      "description": "Tymczasowy cel dla pomieszczenia E32. Szybkie grzanie podgrzewa do maksimum pomieszczenia (przez godzinę, chyba że wybierzesz czas trwania). E32 sam kończy zmianę, także po ponownym uruchomieniu, a pomieszczenie wraca do programu tygodniowego. Zmienia się tylko cel pomieszczenia; limity zasilania i ochrona przed mrozem pozostają.",
+      "fields": {
+        "mode": {
+          "name": "Rodzaj",
+          "description": "Szybkie grzanie podgrzewa do maksimum pomieszczenia; Na określony czas utrzymuje temperaturę przez wybrany czas; Do następnego punktu przełączenia utrzymuje ją do zmiany w programie tygodniowym."
+        },
+        "temperature": {
+          "name": "Temperatura",
+          "description": "Cel pomieszczenia w tym czasie. Puste: obecny cel."
+        },
+        "duration_minutes": {
+          "name": "Czas trwania",
+          "description": "Minuty, do 24 godzin. Puste: godzina dla szybkiego grzania, w innym przypadku czas z ustawień komfortu."
+        }
+      }
+    },
+    "clear_room_override": {
+      "name": "Zakończ zmianę w pomieszczeniu",
+      "description": "Pomieszczenie znowu stosuje swój program tygodniowy."
+    },
+    "set_away": {
+      "name": "Nieobecność",
+      "description": "Niższa temperatura dla całego domu, opcjonalnie do określonej daty i godziny. E32 zaczyna nagrzewać na tyle wcześnie, by po Twoim powrocie była temperatura z programu.",
+      "fields": {
+        "temperature": {
+          "name": "Temperatura nieobecności",
+          "description": "Każde pomieszczenie najwyżej tak ciepłe. Puste: ostatnia temperatura nieobecności (na początku 15 °C)."
+        },
+        "until": {
+          "name": "Powrót",
+          "description": "Opcjonalnie. E32 nagrzewa pomieszczenia przed tą chwilą. Puste: nieobecność do jej zakończenia."
+        }
+      }
+    },
+    "clear_away": {
+      "name": "Zakończ nieobecność",
+      "description": "Każde pomieszczenie znowu stosuje swój program tygodniowy."
+    },
     "export_metrics_csv": {
       "name": "Eksportuj historię do CSV",
       "description": "Eksportuj dzień, tydzień lub miesiąc zapisanej historii (do 31 dni). Eksportować mogą tylko administratorzy. Eksport korzysta z istniejącej historii Recordera i jej nie zmienia. Brakująca lub już usunięta historia pozostaje brakująca. Duże eksporty zatrzymują się na limicie wierszy lub rozmiaru.",
@@ -2268,6 +2426,24 @@
     }
   },
   "exceptions": {
+    "comfort_no_clock": {
+      "message": "E32 nie zna jeszcze czasu (nie osiągnięto serwera czasu). Spróbuj ponownie za minutę albo wybierz czas trwania zamiast daty lub punktu przełączenia."
+    },
+    "comfort_room_off": {
+      "message": "To pomieszczenie jest wyłączone. Najpierw je włącz."
+    },
+    "comfort_no_schedule": {
+      "message": "To pomieszczenie nie ma programu tygodniowego na E32; wybierz czas trwania."
+    },
+    "comfort_rejected": {
+      "message": "E32 odrzucił zmianę ({error})."
+    },
+    "comfort_away_temperature": {
+      "message": "Wybierz temperaturę nieobecności od 5 do 25 °C."
+    },
+    "comfort_away_until": {
+      "message": "Wybierz chwilę w przyszłości, najwyżej rok naprzód."
+    },
     "invalid_room_temperature": {
       "message": "Podaj prawidłową temperaturę w granicach limitów pomieszczenia."
     },
@@ -2306,6 +2482,18 @@
     },
     "room_plan_password": {
       "message": "E32 nie akceptuje już zapisanego hasła. Uwierzytelnij ponownie OpenThermostat w Ustawienia → Urządzenia i usługi. Nic nie zapisano."
+    },
+    "flow_settings_rejected": {
+      "message": "E32 odrzucił ustawienie zasilania ({error}). Niczego nie zmieniono."
+    },
+    "flow_settings_unconfirmed": {
+      "message": "E32 nie potwierdził zapisania ustawienia zasilania. Spróbuj ponownie."
+    },
+    "flow_settings_unreachable": {
+      "message": "Nie udało się połączyć z E32, aby zmienić ustawienie zasilania ({error}). Niczego nie zmieniono."
+    },
+    "flow_design_invalid": {
+      "message": "Użyj 0 dla trybu automatycznego albo {minimum}–{maximum} °C."
     }
   }
 }

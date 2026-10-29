@@ -467,3 +467,11 @@ TEST(ConfigBackup, MalformedBackupsNeverYieldInvalidCandidates) {
     }
     EXPECT_GT(accepted, 0);
 }
+
+TEST(ConfigBackup, CreatedTimeIsUtcText) {
+    EXPECT_EQ(b::utcText(1704067200), "2024-01-01T00:00:00Z");
+    EXPECT_EQ(b::utcText(1761768000), "2025-10-29T20:00:00Z");
+    EXPECT_EQ(b::utcText(1709251199), "2024-02-29T23:59:59Z"); // leap day
+    EXPECT_EQ(b::utcText(0), "");          // no NTP yet
+    EXPECT_EQ(b::utcText(1704067199), "");
+}

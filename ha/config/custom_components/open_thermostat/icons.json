@@ -37,6 +37,9 @@
       },
       "radiator_rated_power": {
         "default": "mdi:radiator"
+      },
+      "flow_curve_design_flow_c": {
+        "default": "mdi:chart-line"
       }
     },
     "select": {
@@ -122,6 +125,26 @@
         "state": {
           "0": "mdi:lightbulb-outline"
         }
+      },
+      "flow_source": {
+        "default": "mdi:thermometer-water"
+      },
+      "flow_curve_slope": {
+        "default": "mdi:chart-line"
+      },
+      "gas_calibration": {
+        "default": "mdi:meter-gas"
+      },
+      "night_heating_gas": {
+        "default": "mdi:weather-night"
+      }
+    },
+    "switch": {
+      "flow_weather_curve": {
+        "default": "mdi:sun-thermometer"
+      },
+      "flow_apply_learned": {
+        "default": "mdi:school"
       }
     }
   },

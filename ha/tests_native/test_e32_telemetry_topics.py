@@ -69,7 +69,7 @@ async def test_every_topic_is_subscribed(hass, monkeypatch):
     assert sorted(t.removeprefix("fixture/v1/") for t in callbacks) == sorted([
         "fw/availability", "fw/heartbeat", "fw/state/heating", "fw/state/room/+", "fw/state/ble/+", "fw/config/plan",
         "fw/config/entities", "fw/config/entities/+", "fw/telemetry/learned/+", "fw/telemetry/summary",
-        "fw/telemetry/shadow"])
+        "fw/telemetry/flow", "fw/telemetry/shadow"])
 
 
 def test_topic_documents_are_strict():
@@ -199,8 +199,20 @@ async def test_each_topic_updates_its_own_part(hass, monkeypatch):
     e32.message("fw/config/plan", json.dumps({**plan, "revision": 8, "entity_parts": 2, "rooms": ["woonkamer"]}))
     assert "keuken" not in hub.rooms and "keuken" not in hub.learned
     # The summary and the shadow comparison.
-    e32.summary({"schema": 1, "dhw": {"method": "flow", "clock_known": True, "today": {"burner_s": 60}}})
-    assert hub.dhw["today"]["burner_s"] == 60
+    e32.summary({"schema": 1, "dhw": {"method": "flow", "clock_known": True, "today": {"burner_s": 60}},
+                 "learned": {"schema": 1, "gas": {"status": "calibrated"}}})
+    assert hub.dhw["today"]["burner_s"] == 60 and hub.learned_header["gas"] == {"status": "calibrated"}
+    # The flow policy's part (weather curve, learned flow, night gas) on its own topic, merged into the summary.
+    flow = {"source": "curve", "rule_flow_c": 40, "applied_flow_c": 38, "curve": {"state": "active", "flow_c": 38}}
+    e32.message("fw/telemetry/flow", json.dumps({"schema": 1, "flow": flow, "night_gas": {"m3": 0.4}, "junk": 1}))
+    assert hub.summary["flow"] == flow and hub.summary["night_gas"] == {"m3": 0.4} and "junk" not in hub.summary
+    e32.summary({"schema": 1, "dhw": {"method": "flow", "clock_known": True, "today": {"burner_s": 90}}})
+    assert hub.summary["flow"] == flow and hub.dhw["today"]["burner_s"] == 90
+    e32.message("fw/telemetry/flow", json.dumps({"schema": 2, "flow": flow}))
+    assert "flow" not in hub.summary
+    heating = dict(split_status(STATUS))["fw/state/heating"]
+    e32.message("fw/state/heating", json.dumps({**heating, "request": {"heat": True, "flow_c": 38, "reason": "optimum_start"}}))
+    assert hub.status["request"]["reason"] == "optimum_start" and request.native_value == 38
     e32.message("fw/telemetry/shadow", json.dumps({"schema": 1, "today": {"day": "2026-10-30", "s": 5}}))
     assert hub.status["shadow"] == {"today": {"day": "2026-10-30", "s": 5}}
     # Unknown topics and malformed heartbeats change nothing.

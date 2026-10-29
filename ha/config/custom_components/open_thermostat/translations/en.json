@@ -96,10 +96,49 @@
   },
   "options": {
     "step": {
+      "comfort": {
+        "title": "Comfort",
+        "description": "Window and door sensors pause a room while they are open; presets, away and presence set temperatures for the thermostats of your E32 rooms. Everything here is optional.",
+        "menu_options": {
+          "comfort_settings": "Presets, presence and timing",
+          "comfort_contacts": "Window and door sensors per room"
+        }
+      },
+      "comfort_settings": {
+        "title": "Presets, presence and timing",
+        "description": "The thermostat of each E32 room offers the presets Comfort, Eco, Away and Boost. Away lowers every room to the E32's away temperature (set it with the action \"Away\" or on the E32 page).",
+        "data": {
+          "presence_entity": "Who is home",
+          "comfort_temperature": "Comfort temperature",
+          "eco_temperature": "Eco temperature",
+          "contact_delay": "Pause after a window opens",
+          "override_minutes": "Length of a manual change"
+        },
+        "data_description": {
+          "presence_entity": "Optional. A person, group, zone (for example zone.home) or a switch that is on while someone is home. When everyone is away, every room uses the away temperature until someone is back.",
+          "comfort_temperature": "The target of the Comfort preset, until the next switch point of the week program.",
+          "eco_temperature": "The target of the Eco preset, until the next switch point of the week program.",
+          "contact_delay": "Seconds a window or door must stay open before the room pauses, so airing briefly or walking through a door does not stop the heating. A paused room still protects against frost.",
+          "override_minutes": "A new temperature on the thermostat lasts until the next switch point of the room's week program. A room without a week program keeps it this many minutes, then follows its plan again."
+        }
+      },
+      "comfort_contacts": {
+        "title": "Window and door sensors",
+        "description": "Choose a room and its window and door sensors. While any of them is open the room pauses (its frost protection stays); when all are closed it heats again. Sensors now: {rooms}. Choose no sensor to remove them from the room.",
+        "data": {
+          "room": "Room",
+          "contacts": "Window and door sensors"
+        },
+        "data_description": {
+          "room": "One of the rooms on your E32.",
+          "contacts": "Binary sensors of the type window, door or opening, for example from Zigbee or Bluetooth. Their state is sent to the E32 on every change."
+        }
+      },
       "init": {
         "title": "OpenThermostat",
         "description": "Your rooms, the E32 connection and the optional energy inputs.",
         "menu_options": {
+          "comfort": "Comfort: window sensors, away and presence",
           "installation": "Installation settings",
           "room_settings": "Manage rooms",
           "configuration_status": "Installation status",
@@ -598,6 +637,12 @@
       }
     },
     "error": {
+      "presence_entity_invalid": "Choose a person, group, zone or switch that exists.",
+      "temperature_invalid": "Enter a temperature between 5 and 30 °C.",
+      "whole_number_invalid": "Enter a whole number within the limits.",
+      "contacts_invalid": "Choose at most eight different sensors.",
+      "not_contact_sensor": "Choose window, door or opening sensors only.",
+      "room_invalid": "Choose one of the E32 rooms.",
       "invalid_adapter_id": "Use the same explicit owner ID as provisioned on the E32 (1–32 letters, digits, _ or -).",
       "graph_room_contract_unavailable": "No matching graph DATA or explicitly SOURCE-selected shadow contract is available for these rooms. Saving a graph or enabling this checkbox never qualifies a source or enables physical outputs.",
       "graph_control_source_review_required": "The selected SOURCE contract does not match the current owner or reviewed graph, or changed during verification. Nothing was enabled. Review the saved DATA and SOURCE contract; reconnect alone cannot approve changes.",
@@ -719,6 +764,8 @@
       "controller_mqtt_unconfirmed": "The E32 restarted with the Home Assistant settings, but Home Assistant received nothing from it over MQTT within 90 seconds. On the E32, check System → Network → MQTT: the same broker as the MQTT integration in Home Assistant, and a user name and password that the broker accepts."
     },
     "abort": {
+      "comfort_saved": "The comfort settings are saved and apply at once.",
+      "comfort_no_rooms": "The E32 has not reported any rooms yet. Add rooms under Configure → Rooms, wait a moment and try again.",
       "graph_review_unavailable": "No existing source-selected graph connection is available. No profile was enabled.",
       "graph_review_cancelled": "Nothing applied.",
       "graph_review_changed": "Review/session/candidate changed or capability expired. Nothing new was approved; reopen review.",
@@ -778,6 +825,23 @@
     }
   },
   "entity": {
+    "climate": {
+      "room_thermostat": {
+        "name": "Thermostat",
+        "state_attributes": {
+          "preset_mode": {
+            "name": "Preset",
+            "state": {
+              "none": "No preset",
+              "comfort": "Comfort",
+              "eco": "Eco",
+              "away": "Away",
+              "boost": "Boost"
+            }
+          }
+        }
+      }
+    },
     "binary_sensor": {
       "radiators_heating": {
         "name": "Radiators heating"
@@ -798,6 +862,9 @@
       },
       "room_fallback_setpoint": {
         "name": "Temperature without Home Assistant"
+      },
+      "flow_curve_design_flow_c": {
+        "name": "Flow at −10 °C"
       }
     },
     "sensor": {
@@ -1205,6 +1272,42 @@
       },
       "hot_water_gas": {
         "name": "Gas for hot water"
+      },
+      "flow_source": {
+        "name": "Flow source",
+        "state": {
+          "rule": "Room control",
+          "curve": "Heating curve",
+          "learned": "Learned flow",
+          "optimum_start": "Optimum start"
+        }
+      },
+      "flow_curve": {
+        "name": "Heating curve flow"
+      },
+      "flow_learned": {
+        "name": "Learned flow"
+      },
+      "flow_rule": {
+        "name": "Room control flow"
+      },
+      "flow_curve_slope": {
+        "name": "Heating curve slope"
+      },
+      "gas_calibration": {
+        "name": "Gas calibration",
+        "state": {
+          "no_meter": "No gas meter (rough estimate)",
+          "collecting": "Calibrating with the gas meter",
+          "calibrated": "Calibrated with the gas meter",
+          "meter_stale": "Gas meter not reporting"
+        }
+      },
+      "boiler_full_power": {
+        "name": "Boiler power at full burner"
+      },
+      "night_heating_gas": {
+        "name": "Last night's heating gas"
       }
     },
     "select": {
@@ -1219,6 +1322,14 @@
     "datetime": {
       "room_inactive_until": {
         "name": "Off until"
+      }
+    },
+    "switch": {
+      "flow_weather_curve": {
+        "name": "Weather-compensated heating curve"
+      },
+      "flow_apply_learned": {
+        "name": "Use learned flow and optimum start"
       }
     }
   },
@@ -2013,6 +2124,13 @@
     }
   },
   "selector": {
+    "room_override_mode": {
+      "options": {
+        "boost": "Boost (room maximum)",
+        "timed": "For a set time",
+        "until_next": "Until the next switch point"
+      }
+    },
     "program_action": {
       "options": {
         "save": "Save bindings (keep local program if present)",
@@ -2236,6 +2354,46 @@
     }
   },
   "services": {
+    "set_room_override": {
+      "name": "Set a temporary room override",
+      "description": "A temporary target for an E32 room. Boost heats to the room's maximum (one hour unless you choose a duration). The E32 ends the override itself, also after a restart, and the room returns to its week program. Only the room's target changes; the flow limits and frost protection stay.",
+      "fields": {
+        "mode": {
+          "name": "Kind",
+          "description": "Boost heats to the room's maximum; For a set time keeps the temperature for the duration; Until the next switch point keeps it until the week program changes."
+        },
+        "temperature": {
+          "name": "Temperature",
+          "description": "The room's target meanwhile. Empty: the current target."
+        },
+        "duration_minutes": {
+          "name": "Duration",
+          "description": "Minutes, up to 24 hours. Empty: one hour for boost, otherwise the duration from the comfort settings."
+        }
+      }
+    },
+    "clear_room_override": {
+      "name": "End the room override",
+      "description": "The room follows its week program again."
+    },
+    "set_away": {
+      "name": "Away",
+      "description": "A lower temperature for the whole house, optionally until a date and time. The E32 starts warming up early enough to be at the program's temperature when you are back.",
+      "fields": {
+        "temperature": {
+          "name": "Away temperature",
+          "description": "Every room at most this warm. Empty: the last away temperature (15 °C at first)."
+        },
+        "until": {
+          "name": "Back on",
+          "description": "Optional. The E32 warms the rooms up before this moment. Empty: away until you end it."
+        }
+      }
+    },
+    "clear_away": {
+      "name": "End away",
+      "description": "Every room follows its week program again."
+    },
     "export_metrics_csv": {
       "name": "Export history as CSV",
       "description": "Export a day, week or month of recorded history (up to 31 days). Only administrators can export. The export uses existing Recorder history and does not change it. Missing or already purged history stays missing. Large exports stop at the row or size limit.",
@@ -2268,6 +2426,24 @@
     }
   },
   "exceptions": {
+    "comfort_no_clock": {
+      "message": "The E32 does not know the time yet (no time server reached). Try again in a minute, or choose a duration instead of a date or switch point."
+    },
+    "comfort_room_off": {
+      "message": "This room is off. Switch it on first."
+    },
+    "comfort_no_schedule": {
+      "message": "This room has no week program on the E32; choose a duration instead."
+    },
+    "comfort_rejected": {
+      "message": "The E32 refused the change ({error})."
+    },
+    "comfort_away_temperature": {
+      "message": "Choose an away temperature between 5 and 25 °C."
+    },
+    "comfort_away_until": {
+      "message": "Choose a moment in the future, at most a year ahead."
+    },
     "invalid_room_temperature": {
       "message": "Enter a valid temperature within the room limits."
     },
@@ -2306,6 +2482,18 @@
     },
     "room_plan_password": {
       "message": "The E32 no longer accepts the saved password. Re-authenticate OpenThermostat under Settings → Devices & services. Nothing was saved."
+    },
+    "flow_settings_rejected": {
+      "message": "The E32 refused the flow setting ({error}). Nothing was changed."
+    },
+    "flow_settings_unconfirmed": {
+      "message": "The E32 did not confirm the saved flow setting. Try again."
+    },
+    "flow_settings_unreachable": {
+      "message": "The E32 could not be reached to change the flow setting ({error}). Nothing was changed."
+    },
+    "flow_design_invalid": {
+      "message": "Use 0 for automatic, or {minimum}–{maximum} °C."
     }
   }
 }

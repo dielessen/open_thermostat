@@ -451,7 +451,8 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unreachable",
                                      translation_placeholders={"error": "no_controller_connection"})
         answer = await async_comfort_command(self.link, command)
-        self.async_write_ha_state()
+        if self.hass is not None and self.entity_id:
+            self.async_write_ha_state()
         return answer
 
     async def _change_plan(self, change):

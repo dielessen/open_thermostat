@@ -38,7 +38,7 @@ struct Bench {
                 id = rooms.at(i);
                 return R"({"schema":1,"id":")" + id + R"(","learned":{"readiness":")" + learnedResult + R"(","now":{"flow_c":)" + std::to_string(now / 1000 % 50) + "}},\"plan\":null}";
             },
-            [] { return std::string(R"({"schema":1,"learned":{"schema":1}})"); },
+            [] { return std::string(R"({"schema":1,"learned":{"schema":1},"flow":{"source":"rule"},"night_gas":{"m3":0.1}})"); },
             [this](std::string& out, size_t group) {
                 if (group != 0) { out.clear(); return; }
                 std::string rows;
@@ -79,7 +79,7 @@ TEST(TelemetryPublisher, AConnectSendsEverythingOnceSpreadOverSeconds) {
     b.run(30000);
     for (const char* topic : {"fw/state/heating", "fw/state/room/woonkamer", "fw/state/room/keuken", "fw/state/room/badkamer",
                               "fw/state/ble/a4c138a3e8db", "fw/config/plan", "fw/config/entities", "fw/telemetry/shadow",
-                              "fw/telemetry/summary", "fw/state/boiler", "fw/state/boiler_fields/0", "fw/telemetry/learned/woonkamer",
+                              "fw/telemetry/summary", "fw/telemetry/flow", "fw/state/boiler", "fw/state/boiler_fields/0", "fw/telemetry/learned/woonkamer",
                               "fw/telemetry/learned/keuken", "fw/telemetry/learned/badkamer"})
         EXPECT_GE(b.count(topic), 1u) << topic;
     EXPECT_EQ(b.count("fw/heartbeat"), 1u);

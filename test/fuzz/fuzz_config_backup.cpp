@@ -24,7 +24,7 @@ struct Target {
     b::DeviceState& s; bool failNetwork;
     bool save(b::Part part, const std::string& text) {
         if (text.empty()) otfuzz::invariant("empty section written");
-        if (part == b::Part::network && failNetwork) return false;
+        if (part == b::Part::network && failNetwork) { failNetwork = false; return false; } // the rollback write succeeds
         switch (part) {
             case b::Part::display: s.display = text; break;
             case b::Part::flow: s.flow = text; break;
@@ -60,7 +60,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, std::size_t size) {
     b::Secrets secrets;
     if (!sealed.empty()) {
         std::string plain;
-        if (cipher::open("fuzz passphrase", sealed, b::kdfIterations, plain)) (void)b::readSecrets(plain, secrets);
+        if (b::cipher::open("fuzz passphrase", sealed, b::kdfIterations, plain)) (void)b::readSecrets(plain, secrets);
     }
     b::Prepared prepared;
     if (b::prepare(request.backup, state, secrets, prepared, report)) {
@@ -86,10 +86,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, std::size_t size) {
     }
     if (!prepared.flow.empty()) { FlowSettings f; if (FlowSettings::parse(parsed(prepared.flow).get(), f)) otfuzz::invariant("flow candidate invalid"); }
     const auto before = state;
-    Target target{state, (selector & 4) != 0};
+    const bool failing = (selector & 4) != 0;
+    Target target{state, failing};
     std::string failed;
     const auto result = b::apply(before, prepared, target, failed);
-    if (target.failNetwork && !prepared.network.empty()) {
+    if (failing && !prepared.network.empty()) {
         if (result != b::Applied::restored || state.plan != before.plan || state.bluetooth != before.bluetooth
                 || state.flow != before.flow || state.display != before.display || state.network != before.network)
             otfuzz::invariant("failed apply not restored");

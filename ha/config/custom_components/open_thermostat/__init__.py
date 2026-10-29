@@ -303,6 +303,7 @@ def _shadow_platforms(product):
     platforms = [Platform.CLIMATE, Platform.SENSOR]
     if product:
         platforms += [Platform.BINARY_SENSOR, Platform.UPDATE, Platform.SELECT, Platform.NUMBER, Platform.DATETIME]
+        platforms.append(Platform.SWITCH)  # the E32 flow options (e32_flow)
     return platforms
 
 async def async_setup_entry(hass, entry):

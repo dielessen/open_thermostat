@@ -482,7 +482,7 @@ async def test_e32_refusals_are_plain_messages(hass, manager, error, key):
 async def test_the_main_menu_starts_with_the_rooms_and_keeps_status_under_advanced(hass, manager):
     parent, _ = product(hass, FakeE32())
     flow = await manager.async_init(parent.entry_id)
-    assert flow["menu_options"] == ["e32_rooms", "controller_connection", "energy", "installation",
+    assert flow["menu_options"] == ["e32_rooms", "comfort", "controller_connection", "energy", "installation",
                                     "advanced_settings"]
     advanced = await manager.async_configure(flow["flow_id"], {"next_step_id": "advanced_settings"})
     assert advanced["menu_options"][0] == "configuration_status"

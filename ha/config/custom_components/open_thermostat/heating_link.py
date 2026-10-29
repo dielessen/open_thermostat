@@ -74,6 +74,9 @@ ENTITIES_TOPIC = "fw/config/entities"
 LEARNED_TOPIC = "fw/telemetry/learned/"
 SUMMARY_TOPIC = "fw/telemetry/summary"
 SHADOW_TOPIC = "fw/telemetry/shadow"
+# The flow policy's part of the summary ("flow", "night_gas"), sent apart to keep both within 1 KB.
+FLOW_TOPIC = "fw/telemetry/flow"
+FLOW_KEYS = ("flow", "night_gas")
 HEARTBEAT_TOPIC = "fw/heartbeat"
 AVAILABILITY_TOPIC = "fw/availability"
 
@@ -320,6 +323,9 @@ class HeatingHub:
         # The latest summary (decode_summary) and when it arrived (monotonic).
         self.summary = None
         self.summary_received = None
+        # fw/telemetry/summary and fw/telemetry/flow as received; summary is the two merged.
+        self.summary_doc = None
+        self.flow_doc = None
         self.received = None
         # The last live sign of the E32 (monotonic), kept while it is silent.
         self.last_seen = None
@@ -505,8 +511,16 @@ class HeatingHub:
                 if value is None:
                     return
                 self.learned_messages[room_id] = (self.clock(), *value)
-        elif suffix == SUMMARY_TOPIC:
-            summary = None if empty else decode_summary(payload)
+        elif suffix in (SUMMARY_TOPIC, FLOW_TOPIC):
+            if suffix == SUMMARY_TOPIC:
+                self.summary_doc = None if empty else decode_summary(payload)
+            else:
+                flow = None if empty else decode_document(payload)
+                self.flow_doc = ({k: flow[k] for k in FLOW_KEYS if type(flow.get(k)) is dict}
+                                 if flow is not None else None)
+            summary = self.summary_doc
+            if summary is not None and self.flow_doc:
+                summary = {**summary, **self.flow_doc}
             self.summary = summary
             self.summary_received = self.clock() if summary is not None else None
         elif suffix == SHADOW_TOPIC:
@@ -1416,7 +1430,7 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     await mqtt.async_wait_for_mqtt_client(hass)
     entry.async_on_unload(hub.add_listener(follow))
     for topic in (AVAILABILITY_TOPIC, HEARTBEAT_TOPIC, HEATING_TOPIC, ROOM_TOPIC + "+", BLE_TOPIC + "+", PLAN_TOPIC,
-                  ENTITIES_TOPIC, ENTITIES_TOPIC + "/+", LEARNED_TOPIC + "+", SUMMARY_TOPIC, SHADOW_TOPIC):
+                  ENTITIES_TOPIC, ENTITIES_TOPIC + "/+", LEARNED_TOPIC + "+", SUMMARY_TOPIC, FLOW_TOPIC, SHADOW_TOPIC):
         entry.async_on_unload(await mqtt.async_subscribe(hass, topic_base + topic, receive))
     entry.async_on_unload(async_track_time_interval(hass, refresh, timedelta(seconds=REFRESH_SECONDS)))
     entry.async_on_unload(async_track_time_interval(hass, hub.check_stale, STALE_CHECK))

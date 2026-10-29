@@ -21,6 +21,7 @@
 #include <cJSON.h>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <memory>
 #include <new>
@@ -93,6 +94,19 @@ struct Report {
     }
 };
 
+// UTC "YYYY-MM-DDTHH:MM:SSZ" without new libc time functions; empty before 2024.
+inline std::string utcText(int64_t now) {
+    if (now < 1704067200 || now > 4102444800) return {};
+    int64_t days = now / 86400; const int64_t secs = now % 86400;
+    days += 719468; const int64_t era = days / 146097, doe = days - era * 146097;
+    const int64_t yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365, doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    const int64_t mp = (5 * doy + 2) / 153, day = doy - (153 * mp + 2) / 5 + 1, month = mp < 10 ? mp + 3 : mp - 9;
+    const int64_t year = yoe + era * 400 + (month <= 2);
+    char text[40];
+    std::snprintf(text, sizeof text, "%04d-%02d-%02dT%02d:%02d:%02dZ", int(year), int(month), int(day),
+                  int(secs / 3600), int(secs / 60 % 60), int(secs % 60));
+    return text;
+}
 inline std::string print(const cJSON* o) {
     std::unique_ptr<char, decltype(&cJSON_free)> s(o ? cJSON_PrintUnformatted(o) : nullptr, cJSON_free);
     return s ? s.get() : "";
@@ -263,14 +277,15 @@ inline ControlJson exportDocument(const DeviceState& s, const Meta& m, const std
     }
     notIncluded(s, !sealedHex.empty(), cJSON_AddArrayToObject(r, "not_included"));
 
-    auto network = parseStored(s.network);
-    auto net = cJSON_AddObjectToObject(r, "network");
-    if (!network || !net) return fail();
-    for (const auto& f : networkFields) {
-        const auto v = item(f.section ? item(network.get(), f.section) : network.get(), f.name);
-        if (!v || !validField(f, v)) continue; // out-of-range stored values stay on the device
-        auto target = section(net, f.section);
-        if (!target || !put(target, f.name, cJSON_Duplicate(v, true))) return fail();
+    if (auto network = parseStored(s.network)) {
+        auto net = cJSON_AddObjectToObject(r, "network");
+        if (!net) return fail();
+        for (const auto& f : networkFields) {
+            const auto v = item(f.section ? item(network.get(), f.section) : network.get(), f.name);
+            if (!v || !validField(f, v)) continue; // out-of-range stored values stay on the device
+            auto target = section(net, f.section);
+            if (!target || !put(target, f.name, cJSON_Duplicate(v, true))) return fail();
+        }
     }
     if (!s.wifiSsid.empty()) if (auto w = cJSON_AddObjectToObject(r, "wifi")) cJSON_AddStringToObject(w, "ssid", s.wifiSsid.c_str());
 
@@ -311,7 +326,8 @@ struct Request {
 };
 inline const char* readRequest(const char* body, std::size_t size, Request& out) {
     if (!body || !size || size > maxRequestBytes) return "backup_too_large";
-    out.root = parseNestedJson(body, size, true, maxDepth);
+    const std::string owned(body, size); // the parser reads the terminating NUL (PSRAM: above 4 KB)
+    out.root = parseNestedJson(owned.c_str(), owned.size(), true, maxDepth);
     if (!cJSON_IsObject(out.root.get())) return "invalid_json";
     for (auto c = out.root->child; c; c = c->next) {
         if (!c->string) return "invalid_request";

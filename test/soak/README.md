@@ -42,6 +42,7 @@ status 0 means every scenario passed, with no sanitizer report and no crash.
 | `chain-lordhowe` | 30 days, `<+1030>` with a 30-minute DST shift (a 24.5 h day) |
 | `chain-santiago` | 21 days, DST change at 24:00 (the local midnight is repeated) |
 | `chain-sydney-churn` | 20 days, southern hemisphere, a plan edit every 15 min |
+| `chain-ams-options` | 60 days like `chain-ams`, with both flow options on (weather curve and learned flow/optimum start, `--flow-options`) and the boiler's outdoor sensor |
 | `chain-kathmandu-30s` | 60 days, +05:45, 30 s steps (the larger step that ShadowComparison and FlowLearner allow) |
 | `guard` | ActiveHeatGuard alone for 60 days: mode switches, confirmations, the tado reconnecting, route flaps, failing writes, boiler limit 60/55/25/unknown, measurement loss, frost |
 | `active` | The switch-over failure cases, scripted, 200 runs each with random timing (see below) |
@@ -141,7 +142,7 @@ Injected events:
   telemetry, DhwEpisodes, RoomPlan json/parse, RoomSchedule, HeatingInput, and
   the compact and full status.
 - **JSON**: every payload parses back with cJSON. Size bounds: fw/telemetry/heating
-  ≤ 7900 B, heating_learned/<id> ≤ 900 B, heating_summary ≤ 600 B, and the
+  ≤ 7900 B, heating_learned/<id> ≤ 900 B, heating_summary ≤ 1100 B, and the
   stored plan ≤ 4095 B. Shape changes of the MQTT payload are reported (a
   documented `{..}|null` value does not count).
 - **RoomEngine/RoomDemand against an oracle**: the leading source, status
@@ -149,6 +150,15 @@ Injected events:
   (HA < 15 min, else the week program, else the fallback, clamped). The oracle
   carries readings across plan edits as `setPlan` does. Pauses end at
   `inactive_until`. `no_demand` holds exactly when no room is usable.
+- **FlowPolicy** (`HeatingController::applyFlowPolicy`, between RoomEngine and
+  the shadow comparison/guard): with both options off the applied request is
+  exactly the rule's; with the options on a heat request stays within
+  [plan min, min(plan max, 80, the boiler's 0x16 limit)] (off: the plan's limits,
+  the guard applies the 0x16 limit); off means 0. heating_summary (with the
+  `flow` and `night_gas` blocks) stays ≤ 1100 B.
+- **Plans** are stored as `RoomPlan::storedJson()` (week programs packed when
+  the API form does not fit), at most `storeBytes` - 1, and load back to the
+  same plan; a request body above `requestBytes` (8192) is refused.
 - **FlowDemand**: a heat request lies within [plan min, plan max] and ≤ 60 °C,
   and off means 0. Minimum on and off times hold (except after a flow-limit
   edit rebuilds it). Sustained demand always heats (no stuck-off state).

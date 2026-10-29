@@ -1,6 +1,7 @@
 #include "control/RoomOverrides.h"
 #include "ScopedTz.h"
 #include <gtest/gtest.h>
+#include <cstring>
 #include <memory>
 #include <string>
 
@@ -382,4 +383,43 @@ TEST(RoomOverrides, ReturnLeadUsesTheWarmupPlannersDefaultWhileNotLearned) {
     EXPECT_EQ(RoomOverrides::returnLeadS(l, 1, monNoon + 86400, 1500, 1600, 1500, monNoon, std::nullopt), 7200u);
     EXPECT_EQ(RoomOverrides::returnLeadS(l, 1, monNoon + 86400, 1500, 1500, 1500, monNoon, std::nullopt), 0u);
     EXPECT_EQ(RoomOverrides::returnLeadS(l, 7, monNoon + 86400, 1500, 2000, 1500, monNoon, std::nullopt), 0u);
+}
+
+// The telemetry budget (TELEMETRIEBUDGET.nl.md): fw/state/room/<id> is at most 319 B for a
+// worst-case plan and fw/state/heating 754 B; comfort adds at most 160 B and away 100 B.
+TEST(RoomOverrides, StatusAdditionsStayWithinTheTelemetryBudget) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    const auto p = plan();
+    RoomEngine e; e.setPlan(p);
+    RoomOverrides o;
+    ASSERT_EQ(command(o, p, R"({"room":"living","override":"timed","temperature":21.25,"minutes":1440})", 0, monNoon), nullptr);
+    ASSERT_EQ(command(o, p, R"({"away":true,"temperature":15.5,"until":1817000000})", 0, monNoon), nullptr);
+    EXPECT_TRUE(o.input(R"({"kind":"contact","room":"living","open":true,"delay_s":0})", p, 0));
+    EXPECT_TRUE(o.input(R"({"kind":"presence","home":false})", p, 0));
+    o.step(p, 0, monNoon, noLead);
+    Json status(e.json(), cJSON_Delete);
+    ASSERT_TRUE(o.addStatus(status.get(), p, 0));
+    const auto size = [](const cJSON* item) {
+        char* text = cJSON_PrintUnformatted(item);
+        const size_t n = std::strlen(text);
+        cJSON_free(text);
+        return n;
+    };
+    const cJSON* living = cJSON_GetObjectItem(cJSON_GetArrayItem(cJSON_GetObjectItem(status.get(), "rooms"), 0), "comfort");
+    ASSERT_TRUE(living);
+    EXPECT_LE(size(living) + std::strlen(R"(,"comfort":)"), 160u);
+    EXPECT_LE(size(cJSON_GetObjectItem(status.get(), "away")) + std::strlen(R"(,"away":)"), 100u);
+    EXPECT_LE(o.stored().size(), RoomOverrides::storeBytes);
+}
+
+// Eight rooms, each with a stored override: the NVS record stays within its bound.
+TEST(RoomOverrides, EightStoredOverridesFitTheRecord) {
+    std::string text = R"({"v":1,"away_c":1500,"away_until":4102444000,"o":[)";
+    for (int i = 0; i < 8; ++i)
+        text += std::string(i ? "," : "") + R"({"id":")" + std::string(31, 'a') + char('0' + i) + R"(","k":"timed","c":2500,"u":4102444000})";
+    text += "]}";
+    RoomOverrides o;
+    ASSERT_LE(text.size(), RoomOverrides::storeBytes);
+    ASSERT_TRUE(o.restore(text));
+    EXPECT_EQ(o.stored().size(), text.size());
 }

@@ -19,7 +19,7 @@
 #include "control/NativeSourceProvisioning.h"
 #include "control/BleObservationJson.h"
 #include "control/HandoverRequest.h"
-#include "ConfigBackupRoute.h"
+#include "ConfigBackupRest.h"
 #include <esp_system.h>
 // Pinned Arduino WebServer verbose logging prints HTTP headers and form bodies.
 // Never build the credential endpoint with that unredacted library trace enabled.
@@ -214,6 +214,13 @@ public:
         route("/config/heating/comfort",[this] { heatingComfort(); });
         route("/config/heating",[this] { heatingPlan(); });
         route("/status/heating",HTTP_GET,[this] { heatingStatus(); });
+        route("/status/history",HTTP_GET,[this] { // 24 h charts, RAM only (control/HeatingHistory.h)
+            auto &buf=jsonResponse_;
+            if(!buf.reset()) {server_.send(503,"application/json","{\"error\":\"history_unavailable\"}");return;}
+            std::ostream out(&buf);controller_.historyJson(out);
+            if(!out.good()||buf.failed()) {server_.send(503,"application/json","{\"error\":\"history_unavailable\"}");return;}
+            server_.sendView(200,"application/json"sv,buf.view());
+        });
         route("/config/bluetooth",[this] { bluetoothSettings(); });
         route("/bluetooth/status",HTTP_GET,[this] { bluetoothSettings(true); });
         route("/config/bluetooth/scan",HTTP_POST,[this] {
@@ -221,7 +228,7 @@ public:
             server_.send(accepted?202:409,"application/json",accepted?"{\"scan_started\":true}":"{\"error\":\"bluetooth_scan_not_started\"}");
         });
         route("/config/logging",[this] { loggingSettings(); });
-        route("/config/backup",HTTP_POST,[this] { configBackupRoute(server_,controller_); }); // ConfigBackupRoute.h
+        route("/config/backup",HTTP_POST,[this] { configBackupRoute(server_,controller_); }); // ConfigBackupRest.h
         route("/status/logs",HTTP_GET,[this] { systemLogs(); });
         route("/logs/clear",HTTP_POST,[this] { diagnostics::runtime.log.clear();server_.send(200,"application/json","{}"); });
 #endif

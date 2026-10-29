@@ -32,6 +32,7 @@ energy inputs.
 | Boiler model | E32: Boiler | E32: Boiler |
 | Network, MQTT broker, time and time zone | E32: System → Network | E32: System → Network |
 | Firmware updates | E32: System → Firmware update | The firmware update entity, or the E32 page |
+| Backup and restore of the settings | E32: System → Network → Backup and restore | E32: System → Network → Backup and restore |
 | Restart | E32: System → Restart device | E32: System → Restart device |
 
 The room plan is stored on the E32, and the E32 runs it. With Home Assistant,
@@ -243,6 +244,44 @@ Nothing is overwritten silently.
 - If no source of a room delivers a usable reading, the room keeps its last
   value for 30 minutes and then stops asking for heat.
 
+### Temporary changes, open windows and away
+
+These work on top of the room plan and never change it. They only change a
+room's **target**: the flow limits, the boiler's own limit and frost
+protection stay as they are. In shadow mode they are computed and shown, like
+everything else.
+
+- **Change temporarily** (E32 overview page, on each active room card, or the
+  room's thermostat in Home Assistant): **Boost** heats to the room's maximum
+  for an hour; a temperature can hold for 1, 2 or 4 hours or **until the next
+  switch point** of the room's week program. The E32 ends it itself and the
+  room returns to its week program, also after a restart. After a restart the
+  E32 waits for a valid clock before it applies a stored change; until then
+  the room follows its plan. A change made while the E32 has no valid clock
+  lasts its duration and is not kept across a restart.
+- **Window and door sensors** (Home Assistant: Configure → **Comfort** →
+  Window and door sensors per room): while any sensor of a room is open for
+  longer than the delay (120 s by default), the room pauses and only heats
+  below 8 °C. When all are closed it resumes at once. The room card and the
+  thermostat show the pause and its reason.
+- **Away** (E32 overview page, or the action *Away* / the thermostat's *Away*
+  preset in Home Assistant): every room is at most the away temperature,
+  optionally until a date and time. With a date, the E32 starts warming up
+  early enough to be at the week program's temperature when you are back
+  (from what it learned, else 45 minutes per °C for radiators and 2 hours per
+  °C for floor heating). Optionally, *Who is home* (a person, group, zone or
+  switch) makes the house away while everyone is out.
+
+In Home Assistant each E32 room has a thermostat: current temperature,
+target, mode *Auto* (week program), *Heat* (a temporary change) or *Off* (the
+room is inactive in the plan), and the presets Comfort, Eco, Away and Boost.
+A new target on the thermostat lasts until the next switch point; a room
+without a week program keeps it for the time set under Configure → Comfort,
+and a room with only a fixed target changes that fixed target in the plan.
+
+Bluetooth window sensors (for example Shelly BLU Door/Window) paired on the
+E32 itself are not supported yet; connect them through Home Assistant.
+
 ### Energy inputs and heating advice
 
 Under Configure → **Energy and outdoor temperature** you can choose a gas
@@ -313,6 +352,33 @@ The predictions need a valid clock; the night-setback estimate also needs an
 outdoor temperature (from the boiler or from Home Assistant). The product
 device also shows hot water today (taps, keeping warm, burner time) and a
 burner short-cycling warning.
+
+## Backup and restore
+
+System → Network → **Backup and restore** saves the settings of the E32 in
+one file: network and time (host name, time zone, time server), MQTT and the
+Home Assistant link, the room plan with its week programs, the Bluetooth
+sensors, the flow options, the boiler model and the page language.
+
+- **Passwords and keys.** By default the file holds no secret. The page lists
+  what you need to enter again after a restore: the MQTT password, the
+  OpenWeather key and the Bluetooth sensor keys. Tick *Include passwords and
+  Bluetooth keys* and choose a passphrase (8 to 64 characters) to keep them in
+  the file, encrypted (AES-128-CCM, key from the passphrase with
+  PBKDF2-SHA256). The Wi-Fi password and the web page password are never in
+  the file.
+- **Restore** on a new or reset E32: first connect it to your network (Wi-Fi
+  setup or Ethernet) and sign in, then choose the file and **Check backup**.
+  The E32 checks the whole file and shows what will change, what it skips and
+  what you need to enter again. Nothing is saved until you choose **Restore
+  these settings**. If saving one part fails, the E32 puts the earlier
+  settings back. When network or Bluetooth settings change, the E32 restarts
+  about 10 seconds later; sign in again afterwards.
+- **What a restore never does.** It does not change the Wi-Fi network or the
+  port of the web page, it does not switch to Ethernet unless an Ethernet
+  cable is connected now, and it restores the rooms in shadow mode, so it
+  never starts active boiler control. A restore is refused while the E32
+  controls the boiler or a boiler test is running.
 
 ## The attended switch-over (not in this beta)
 

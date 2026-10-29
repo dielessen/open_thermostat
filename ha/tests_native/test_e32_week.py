@@ -9,9 +9,9 @@ from homeassistant.exceptions import Unauthorized
 
 from custom_components.open_thermostat import e32_week
 from custom_components.open_thermostat.dashboard import RoomDashboard, view_cards
-from custom_components.open_thermostat.e32_room_flow import format_program, parse_program
+from custom_components.open_thermostat.e32_room_flow import E32RoomFlow, format_program, parse_program
 from custom_components.open_thermostat.e32_week import WeekError, read_week, save_week, valid_schedule
-from test_e32_room_flow import manager, product, room_form, shown  # noqa: F401 (fixture)
+from test_e32_room_flow import product
 from test_room_plan import FakeE32, other_side
 from test_v1_native import room
 
@@ -31,7 +31,7 @@ def woonkamer(e32):
 
 
 @pytest.mark.asyncio
-async def test_a_planner_week_is_stored_in_the_room_plan_and_reads_back_as_the_same_program_text(hass, manager):
+async def test_a_planner_week_is_stored_in_the_room_plan_and_reads_back_as_the_same_program_text(hass):
     e32 = FakeE32()
     parent, _ = product(hass, e32)
     loaded = await read_week(hass, parent.entry_id)
@@ -50,8 +50,9 @@ async def test_a_planner_week_is_stored_in_the_room_plan_and_reads_back_as_the_s
     assert format_program(WEEK) == TEXT_EN
     assert format_program(WEEK, "nl") == TEXT_EN.replace("mon-fri", "ma-vr").replace("sat-sun", "za-zo").replace(".5", ",5")
     assert parse_program(TEXT_EN, 1000, 2400) == WEEK
-    form = await room_form(manager, parent, "woonkamer")
-    assert shown(form)["program"] == TEXT_EN
+    flow = E32RoomFlow()
+    flow.hass = hass
+    assert flow._e32_defaults(woonkamer(e32))["program"] == TEXT_EN  # the e32_room form's program field
     # And a program typed in the text view comes back to the planner unchanged.
     assert (await read_week(hass, parent.entry_id))["rooms"][0]["schedule"] == WEEK
 

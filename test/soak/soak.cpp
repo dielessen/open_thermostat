@@ -18,6 +18,7 @@
 #include "control/ControlPartitionBudget.h"
 #include "control/DhwEpisodes.h"
 #include "control/FlowLearner.h"
+#include "control/FlowPolicy.h"
 #include "control/HandoverConfirmation.h"
 #include "control/HeatingInput.h"
 #include "control/HeatingTelemetry.h"
@@ -271,7 +272,7 @@ struct Options {
     uint32_t stepMs = 10000;
     uint32_t mqttEveryS = 300, learnedEveryS = 900, fullEveryS = 3600;
     double editEveryH = 4;
-    bool liveDhwFlow = false, boilerOutdoor = false, oom = true, activePhases = true;
+    bool liveDhwFlow = false, boilerOutdoor = false, oom = true, activePhases = true, flowOptions = false;
     std::string outDir = "/tmp";
 };
 Options opt;
@@ -405,7 +406,9 @@ struct OracleRoom {
 // ============================================================================
 class Chain {
 public:
-    explicit Chain(const Options& o) : o_(o) {}
+    explicit Chain(const Options& o) : o_(o) {
+        if (o_.flowOptions) { FlowSettings f; f.weatherCurve = f.applyLearned = true; policy_.setSettings(f); learner_.setApplied(true); }
+    }
     int run();
 
 private:
@@ -462,6 +465,7 @@ private:
     // --- the E32
     RoomEngine engine_;
     ShadowComparison shadow_;
+    FlowPolicy policy_; // the beta.19 flow options (HeatingController::applyFlowPolicy), on with --flow-options
     FlowLearner learner_;
     HeatingInputRoute haRoute_;
     ems::ClassicBoilerMonitor monitor_;
@@ -530,6 +534,8 @@ private:
     void bleAdverts();
     void stepE32();
     void checkEngine(const FlowDemand::Request& request);
+    FlowDemand::Request applyFlowPolicy(const FlowDemand::Request& rule, std::optional<int16_t> outdoorCentiC, std::optional<int16_t> flowCentiC,
+                                        std::optional<bool> burnerOn, std::optional<bool> hotWater);
     void checkShadow(const FlowDemand::Request& request, std::optional<uint8_t> tadoFlowC);
     void checkDay();
     void checkBle();
@@ -686,21 +692,24 @@ bool Chain::applyPlan(const RoomPlan& candidate, const char* why) {
     cJSON_Delete(root);
     if (error) { ++planRefused_; count(std::string("plan_refused_") + error); return false; }
     if (plan.json() == engine_.plan().json()) { count("plan_unchanged"); return true; }
+    if (body.size() > RoomPlan::requestBytes) { ++planRefused_; count("plan_refused_request_too_large"); return false; }
     plan.revision = engine_.plan().revision + 1;
-    const auto raw = plan.json();
+    // The stored form (setHeatingPlan): week programs packed only when the API form does not fit.
+    const auto raw = plan.storedJson();
     maxPlanBytes_ = std::max(maxPlanBytes_, raw.size());
-    if (raw.size() + 1 > ControlPartitionBudget::configBytes) { ++planTooLarge_; count("plan_refused_plan_too_large"); return false; }
+    if (raw.size() + 1 > RoomPlan::storeBytes) { ++planTooLarge_; count("plan_refused_plan_too_large"); return false; }
+    if (raw.size() != plan.json().size()) count("plan_stored_packed");
     // Stored and loaded back as the next boot would.
     RoomPlan reloaded;
     cJSON* again = parseBack(raw);
-    EXPECT(again && !RoomPlan::parse(again, reloaded) && reloaded.json() == raw, "plan_roundtrip", "%s: stored plan does not load back identically", why);
+    EXPECT(again && !RoomPlan::parse(again, reloaded) && reloaded.json() == plan.json(), "plan_roundtrip", "%s: stored plan does not load back identically", why);
     cJSON_Delete(again);
     const bool flowChanged = plan.minimumFlowC != engine_.plan().minimumFlowC || plan.maximumFlowC != engine_.plan().maximumFlowC;
     oracleSetPlan(plan);
     engine_.setPlan(plan); learner_.setPlan(plan);
     plan_ = plan;
     if (flowChanged) { flowRebuiltAt_ = now_; haveHeatEdge_ = false; } // FlowDemand restarts: no minimum off time
-    EXPECT(engine_.plan().json() == raw, "plan_applied_differs", "engine plan differs from the saved plan");
+    EXPECT(engine_.plan().storedJson() == raw, "plan_applied_differs", "engine plan differs from the saved plan");
     ++planApplied_;
     count(std::string("plan_edit_") + why);
     return true;
@@ -1154,10 +1163,9 @@ void Chain::stepE32() {
         }
     const std::optional<uint32_t> unixNow = clockKnown_ ? std::optional<uint32_t>(uint32_t(utc_)) : std::nullopt;
     const uint64_t calls0 = localtimeCalls;
-    const auto request = engine_.step(now_, unixNow);
+    const auto rule = engine_.step(now_, unixNow);
     noteLocaltime("room_engine_step", localtimeCalls - calls0, utc_);
     const auto tadoFlowC = tadoLast1A_ && now_ - tadoLast1A_->second <= 150000 ? std::optional<uint8_t>(tadoLast1A_->first) : std::nullopt;
-    shadow_.sample(now_, unixNow, request, tadoFlowC);
     // The EMS view (EmsController::activeHeatView).
     const auto modulation = monitor_.value(ems::BoilerField::modulation, now_);
     const auto flow = monitor_.value(ems::BoilerField::flow, now_);
@@ -1166,6 +1174,8 @@ void Chain::stepE32() {
     const std::optional<bool> burnerOn = modulation ? std::optional<bool>(*modulation > 0) : std::nullopt;
     const std::optional<int16_t> flowCentiC = flow ? std::optional<int16_t>(int16_t(*flow)) : std::nullopt;
     const auto outdoorView = haRoute_.outdoor(monitor_.value(ems::BoilerField::outdoor, now_) ? std::optional<int16_t>(int16_t(*monitor_.value(ems::BoilerField::outdoor, now_))) : std::nullopt, now_);
+    const auto request = applyFlowPolicy(rule, outdoorView.centiC, flowCentiC, burnerOn, state ? std::optional<bool>((*state & 0x02) != 0) : std::nullopt);
+    shadow_.sample(now_, unixNow, request, tadoFlowC);
     FlowLearner::Boiler boiler{flowCentiC, burnerOn, state ? std::optional<bool>((*state & 0x02) != 0) : std::nullopt, tadoFlowC,
         outdoorView.centiC, modulation && *modulation >= 0 && *modulation <= 100 ? std::optional<uint8_t>(uint8_t(*modulation)) : std::nullopt,
         ret ? std::optional<int16_t>(int16_t(*ret)) : std::nullopt};
@@ -1176,7 +1186,7 @@ void Chain::stepE32() {
         rooms[i] = {fresh.temperature, engine_.result(i).setpoint, fresh.source};
     }
     learner_.sample(now_, boiler, rooms.data(), plan.rooms.size());
-    checkEngine(request);
+    checkEngine(rule);
     checkShadow(request, tadoFlowC);
 
     // ActiveHeatGuard (HeatingController::stepActiveHeat): last step's post is reported first.
@@ -1237,6 +1247,40 @@ void Chain::stepE32() {
         phase_ = Phase::blockedWait; nextPhase_ = now_ + uint64_t(uniformInt(30, 120)) * 60000;
     }
     if (phase_ == Phase::active && phaseUntil_ && now_ >= phaseUntil_) { tadoConnected_ = true; phaseUntil_ = 0; count("tado_reconnected"); }
+}
+
+// HeatingController::applyFlowPolicy: the options between the rule and the
+// shadow comparison/guard. Off: exactly the rule, which knows only the plan's
+// limits (the guard applies the boiler's 0x16 limit). An option's flow stays
+// within [plan min, min(plan max, 80, the boiler's 0x16 limit)].
+FlowDemand::Request Chain::applyFlowPolicy(const FlowDemand::Request& rule, std::optional<int16_t> outdoorCentiC, std::optional<int16_t> flowCentiC,
+                                           std::optional<bool> burnerOn, std::optional<bool> hotWater) {
+    const auto& plan = engine_.plan();
+    std::array<RoomDemand::Result, RoomPlan::maxRooms> rooms{};
+    for (size_t i = 0; i < plan.rooms.size() && i < rooms.size(); ++i) rooms[i] = engine_.result(i);
+    FlowPolicy::Inputs in;
+    in.now = now_; in.rule = rule; in.plan = &plan; in.rooms = rooms.data();
+    if (clockKnown_) in.utc = utc_;
+    in.outdoorCentiC = outdoorCentiC; in.boilerLimitC = ems::ActiveHeatEnvelope::limitC(monitor_);
+    in.flowCentiC = flowCentiC; in.burnerOn = burnerOn; in.hotWater = hotWater;
+    const auto applied = policy_.apply(in, learner_);
+    if (!o_.flowOptions)
+        EXPECT(applied.heat == rule.heat && applied.flowC == rule.flowC && applied.reason == rule.reason, "flow_policy_off_differs",
+               "options off but applied %u/%u (%s) vs rule %u/%u (%s)", applied.heat, applied.flowC, FlowDemand::name(applied.reason), rule.heat, rule.flowC, FlowDemand::name(rule.reason));
+    // FlowPolicy leaves the rule's own flow untouched when neither option has a
+    // flow (source rule): then only the plan's limits hold, as with the options off.
+    const bool optionFlow = o_.flowOptions && policy_.source() != FlowPolicy::Source::rule;
+    if (o_.flowOptions && !optionFlow && applied.heat && in.boilerLimitC && applied.flowC > *in.boilerLimitC)
+        observe("flow_policy_rule_above_boiler_limit", "options on, no curve or learned flow: the rule's " + std::to_string(applied.flowC)
+                + " degC passes above the boiler's " + std::to_string(*in.boilerLimitC) + " degC (the guard caps it)");
+    const uint8_t cap = std::min<uint8_t>({plan.maximumFlowC, FlowDemand::ceilingC, optionFlow ? in.boilerLimitC.value_or(FlowDemand::ceilingC) : FlowDemand::ceilingC});
+    if (applied.heat) {
+        EXPECT(applied.flowC <= cap && applied.flowC >= std::min(plan.minimumFlowC, cap), "flow_policy_range",
+               "applied %u outside [%u, %u] (plan %u..%u, limit %s)", applied.flowC, std::min(plan.minimumFlowC, cap), cap, plan.minimumFlowC, plan.maximumFlowC,
+               in.boilerLimitC ? std::to_string(*in.boilerLimitC).c_str() : "unknown");
+        if (applied.flowC != rule.flowC || !rule.heat) count("flow_policy_changed_steps");
+    } else EXPECT(applied.flowC == 0, "flow_policy_off_nonzero", "no heat but %u", applied.flowC);
+    return applied;
 }
 
 void Chain::checkEngine(const FlowDemand::Request& request) {
@@ -1485,6 +1529,7 @@ cJSON* Chain::heatingStatusJson(bool mqtt) {
         cJSON_AddNumberToObject(limit, "reads", 0);
     }
     if (!active || !cJSON_AddItemToObject(root, "active", active)) { cJSON_Delete(active); cJSON_Delete(root); return nullptr; }
+    if (!policy_.addStatus(root, mqtt)) { cJSON_Delete(root); return nullptr; }
     for (size_t i = 0; i < bindings_.count; ++i) {
         const auto& binding = bindings_.devices[i];
         const auto value = ble_->snapshot(binding.address);
@@ -1546,10 +1591,10 @@ void Chain::publish(bool mqtt, bool learned, bool full) {
         }
         // fw/telemetry/heating_summary
         std::array<std::optional<int16_t>, RoomPlan::maxRooms> temperatures{};
-        const auto summary = heatingSummaryTelemetry(learner_, learnedContext(temperatures), dhwEpisodes_.summaryJson());
-        checkPayload("mqtt_summary", summary, 600);
+        const auto summary = heatingSummaryTelemetry(learner_, learnedContext(temperatures), dhwEpisodes_.summaryJson(), &policy_);
+        checkPayload("mqtt_summary", summary, 1100);
         // The plan and the per-module status objects.
-        checkPayload("plan", engine_.plan().json(), ControlPartitionBudget::configBytes - 1);
+        checkPayload("plan", engine_.plan().storedJson(), RoomPlan::storeBytes - 1);
         std::ostringstream b; cycles_.writeJSON(b, now_); checkPayload("burner_cycles", b.str(), 0);
         std::ostringstream d; dhwEpisodes_.writeJSON(d, now_); checkPayload("dhw_status", d.str(), 0);
         EXPECT(cycles_.observedStarts() >= burnerStartsSeen_, "burner_starts_monotonic", "observed starts went back");
@@ -1624,7 +1669,7 @@ void Chain::oomSweep() {
         {"learner_json", [&] { cJSON* o = learner_.json(); auto t = printed(o); cJSON_Delete(o); return t; }},
         {"learned_json_plans", [&] { cJSON* o = learnedJson(learner_, engine_.plan(), context); auto t = printed(o); cJSON_Delete(o); return t; }},
         {"learned_room_telemetry", [&] { return learnedRoomTelemetry(learner_, engine_.plan(), 0, context); }},
-        {"summary_telemetry", [&] { return heatingSummaryTelemetry(learner_, context, dhwEpisodes_.summaryJson()); }},
+        {"summary_telemetry", [&] { return heatingSummaryTelemetry(learner_, context, dhwEpisodes_.summaryJson(), &policy_); }},
         {"dhw_summary_json", [&] { cJSON* o = dhwEpisodes_.summaryJson(); auto t = printed(o); cJSON_Delete(o); return t; }},
         {"plan_json", [&] { return engine_.plan().json(); }},
         {"schedule_json", [&] { cJSON* o = catalog_[0].schedule.json(); auto t = printed(o); cJSON_Delete(o); return t; }},
@@ -2557,19 +2602,19 @@ void sizesScenario() {
         // worst cases to the largest plan the device can hold, names first, then
         // the entity ids after their domain (their distinct ends stay).
         const auto shorten = [](std::string& id) { if (id.size() > 16) id.erase(id.find('.') + 1, 1); };
-        for (size_t turn = 0; variant && plan.json().size() + 1 > ControlPartitionBudget::configBytes; ++turn) {
+        for (size_t turn = 0; variant && plan.storedJson().size() + 1 > RoomPlan::storeBytes; ++turn) {
             auto& r = plan.rooms[turn % plan.rooms.size()];
             if (r.name.size() > 2) { r.name.resize(r.name.size() - 2); continue; } // whole UTF-8 characters
             for (auto& src : r.sources) shorten(src.id);
             shorten(r.setpointEntity);
         }
-        const auto raw = plan.json();
+        const auto raw = plan.storedJson(); // as setHeatingPlan stores it
         RoomPlan parsed;
         cJSON* back = parseBack(raw);
         const char* error = back ? RoomPlan::parse(back, parsed) : "invalid_json";
         cJSON_Delete(back);
-        observe(std::string("plan_bytes_") + label, std::to_string(raw.size()) + " B (store limit " + std::to_string(ControlPartitionBudget::configBytes - 1) + " B)" + (error ? std::string(", parse error ") + error : std::string()));
-        if (raw.size() + 1 > ControlPartitionBudget::configBytes)
+        observe(std::string("plan_bytes_") + label, std::to_string(raw.size()) + " B (store limit " + std::to_string(RoomPlan::storeBytes - 1) + " B)" + (error ? std::string(", parse error ") + error : std::string()));
+        if (raw.size() + 1 > RoomPlan::storeBytes)
             observe(std::string("plan_too_large_") + label, "a valid plan of " + std::to_string(raw.size()) + " B is refused with plan_too_large");
         if (error) { fail(std::string("sizes_plan_invalid_") + label, "the %s plan does not parse: %s", label, error); continue; }
         RoomEngine engine; engine.setPlan(parsed);
@@ -2683,7 +2728,7 @@ void reproScenario() {
 void usage() {
     std::fprintf(stderr, "soak --scenario=chain|guard|active|flow|supervisor|sizes|repro|slowwifi [--name=] [--tz=POSIX] [--start=YYYY-MM-DDTHH:MM:SSZ] [--days=60]\n"
                          "     [--uptime0=ms] [--seed=n] [--step-ms=10000] [--mqtt-s=300] [--learned-s=900] [--full-s=3600] [--edit-h=4]\n"
-                         "     [--live-dhw-flow] [--boiler-outdoor] [--no-oom] [--no-active] [--out=/tmp/soak]\n");
+                         "     [--live-dhw-flow] [--boiler-outdoor] [--no-oom] [--no-active] [--flow-options] [--out=/tmp/soak]\n");
 }
 
 } // namespace
@@ -2709,6 +2754,7 @@ int main(int argc, char** argv) {
         else if (a == "--boiler-outdoor") opt.boilerOutdoor = true;
         else if (a == "--no-oom") opt.oom = false;
         else if (a == "--no-active") opt.activePhases = false;
+        else if (a == "--flow-options") opt.flowOptions = true;
         else { usage(); return 2; }
     }
     if (opt.stepMs < 1000 || opt.stepMs % 1000 || opt.stepMs > 30000) { std::fprintf(stderr, "--step-ms must be whole seconds in 1..30 s\n"); return 2; }

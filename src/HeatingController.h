@@ -27,6 +27,8 @@
 #include "control/HandoverConfirmation.h"
 #include "control/HeatingInput.h"
 #include "control/HeatingTelemetry.h"
+#include "control/HeatingHistory.h"
+#include <esp_heap_caps.h>
 #include "diagnostics/BlackBox.h"
 #include <cmath>
 #include <cstring>
@@ -148,6 +150,8 @@ public:
             bleDiscovery_.remember(address, rssi, data, size);
         });
         loadHeatingPlan();
+        // 24 h charts (GET /status/history): once, PSRAM only; without it the chart is unavailable.
+        history_.begin([](size_t size) { return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT); }, heap_caps_free);
         loadFlowSettings();
         overrides_.restore(RoomOverridesNvs::read()); // waits for a trusted clock before it applies
         // A stored "thermostat disconnected" (same firmware) resumes active heat
@@ -260,6 +264,7 @@ public:
 	}
 	bool modernMode() const { return mqtt_.modernMode(); }
 #ifdef OPENTHERMOSTAT_E32V2
+    void historyJson(std::ostream& out) const { history_.json(out, bleReceiptClock()); } // GET /status/history
     void stopManagedBle() { managedBle_.disable(control::BleObserverStop::configuration_changed); }
     // The room plan is the single room list of the heating control. Shadow
     // mode computes and reports the request; active mode (only with the
@@ -475,7 +480,8 @@ public:
            << ",\"largest_free_block_bytes\":" << ESP.getMaxAllocHeap()
            << "},\"psram\":{\"free_bytes\":" << ESP.getFreePsram()
            << ",\"minimum_free_bytes_sdk\":" << ESP.getMinFreePsram()
-           << ",\"largest_free_block_bytes\":" << ESP.getMaxAllocPsram() << "}},";
+           << ",\"largest_free_block_bytes\":" << ESP.getMaxAllocPsram() << "},\"history\":{\"bytes\":"
+           << (history_.available() ? control::HeatingHistory::bytes() : 0) << ",\"available\":" << (history_.available() ? "true" : "false") << "}},";
 #endif
         if(modernMode()) ss << "\"activeProgram\":null,\"boiler\":null,";
         else {
@@ -698,6 +704,7 @@ private:
     // Per room how fast it warms per flow (report only; ~1.15 KB heap per room, PSRAM extmem).
     control::FlowLearner flowLearner_;
     control::FlowPolicy flowPolicy_; // beta.19 options: weather curve, learned flow, optimum start (default: advice)
+    control::HeatingHistory history_; // 24 h of 5-minute averages, ~12.5 KB PSRAM, RAM only
     control::HeatingInputRoute haInput_;  // ha/heating_input: rooms, gas, price, outdoor, boiler power
     uint32_t activePosted_ = 0; uint64_t activePostedAt_ = 0; // the last command handed to the EMS route
     std::optional<uint8_t> limitC_; std::optional<uint64_t> limitAtMs_; uint32_t limitReads_ = 0; // last step's 0x16 view
@@ -764,6 +771,19 @@ private:
         shadowComparison_.sample(now, unixNow, request, tadoFlowC);
         stepFlowLearner(now, ems, tadoFlowC);
         stepActiveHeat(now, request, ems);
+        sampleHistory(now, request, ems, tadoFlowC);
+    }
+    // Charts only: fresh readings, effective targets, the boiler and both requests.
+    void sampleHistory(uint64_t now, const control::FlowDemand::Request& request, const ems::EmsController::ActiveHeatView& ems, std::optional<uint8_t> tadoFlowC) {
+        if (!history_.available()) return;
+        const auto& plan = roomEngine_.plan();
+        const size_t count = std::min(plan.rooms.size(), control::HeatingHistory::rooms);
+        history_.syncRooms(count, [&](size_t i) { return plan.rooms[i].id.c_str(); });
+        control::HeatingHistory::Sample s;
+        for (size_t i = 0; i < count; ++i) { s.temperatureCentiC[i] = roomEngine_.freshTemperature(i, now); s.targetCentiC[i] = roomEngine_.result(i).setpoint; }
+        s.flowCentiC = ems.flowCentiC; s.returnCentiC = ems.returnCentiC; s.burnerOn = ems.burnerOn;
+        s.requestFlowC = request.heat ? request.flowC : uint8_t(0); s.thermostatFlowC = tadoFlowC;
+        history_.sample(now, s);
     }
     // Report only: the boiler view and per room the fresh leading reading.
     void stepFlowLearner(uint64_t now, const ems::EmsController::ActiveHeatView& ems, std::optional<uint8_t> tadoFlowC) {

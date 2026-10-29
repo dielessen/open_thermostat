@@ -42,7 +42,7 @@ public:
     static constexpr uint32_t maxContactDelayS = 1800, defaultContactDelayS = 120;
     static constexpr uint32_t maxAwayS = 366u * 86400u;
     static constexpr uint32_t latestUtc = 4102444800u;   // as RoomPlan's inactive_until
-    static constexpr size_t storeBytes = 640, inputBytes = 192, commandBytes = 192;
+    static constexpr size_t storeBytes = 768, inputBytes = 192, commandBytes = 192; // store: 8 rooms with 32-character ids
     enum class Kind : uint8_t { none, boost, timed, next };
 
     // Per plan room after refresh(): what it does now (for the status and HA).

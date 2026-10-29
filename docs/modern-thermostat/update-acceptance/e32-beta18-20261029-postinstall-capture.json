@@ -1,0 +1,438 @@
+{
+ "schema": 1,
+ "kind": "post_install_readonly_capture",
+ "tag": "v0.1.0-e32v2-beta.18",
+ "captured_by": "agent O (read-only GET requests; one POST /auth/login per session)",
+ "note": "Captured hours after the owner's Home Assistant install; this is neither the installer's capture nor an independent check.",
+ "github_release": {
+  "catalog_sha256": "0a2bbe98e78d495c5feee670d78eae53feb721af9e672eb88f41bb946faba245",
+  "tag_name": "v0.1.0-e32v2-beta.18",
+  "draft": false,
+  "prerelease": true,
+  "published_at": "2026-10-29T16:01:41Z",
+  "asset": {
+   "name": "firmware.bin",
+   "size": 3425184,
+   "digest": "sha256:533ab9c08d1c8cbe043fdbd5c38c9730d953bd1ac00fd7e7b8490ad06fc8a157"
+  }
+ },
+ "public_update_manifest": {
+  "sha256": "533ab9c08d1c8cbe043fdbd5c38c9730d953bd1ac00fd7e7b8490ad06fc8a157",
+  "version": "v0.1.0-e32v2-beta.18",
+  "board": "bbqkees_e32v2",
+  "layout": "e32v2-dual-app-spiffs-v1",
+  "settings_schema": 1,
+  "update_schema": 1,
+  "ui": "embedded",
+  "asset": "firmware.bin",
+  "source_commit": "14d25d914b304eb65971834cb5c353e3e4b878a5",
+  "web_sha256": "764165f9726b60eb204e3f4a48cff7e694de582f895faf37ed8b9fca62de3616",
+  "size": 3425184
+ },
+ "public_firmware_bin": {
+  "bytes": 3425184,
+  "sha256": "533ab9c08d1c8cbe043fdbd5c38c9730d953bd1ac00fd7e7b8490ad06fc8a157",
+  "magic": "0xabcd5432",
+  "version": "esp-idf: v4.4.7 38eeba213a",
+  "project": "arduino-lib-builder",
+  "time": "12:36:24",
+  "date": "Mar  5 2024",
+  "idf": "v4.4.7-dirty",
+  "elf_sha256": "3f64921f70e6b992ded7b7a6c233d36485c1b1e1681e41c563b1f29833146c09",
+  "marker_present": true
+ },
+ "ha_update_entity": {
+  "source": ".storage/core.restore_state, read over the HA config share",
+  "restore_state_sha256": "eecb3b0ba36042e848eae39e741c891b3ee4f88af356c925ceeeff0289263609",
+  "state": {
+   "entity_id": "update.woonkamer_e32_regelaar_ketel_en_diagnose_firmware",
+   "state": "off",
+   "attributes": {
+    "auto_update": false,
+    "display_precision": 0,
+    "installed_version": "v0.1.0-e32v2-beta.18",
+    "in_progress": false,
+    "latest_version": "v0.1.0-e32v2-beta.18",
+    "release_summary": null,
+    "release_url": "https://github.com/dielessen/open_thermostat/releases/tag/v0.1.0-e32v2-beta.18",
+    "skipped_version": null,
+    "title": null,
+    "update_percentage": null,
+    "entity_picture": "/api/brands/integration/open_thermostat/icon.png",
+    "friendly_name": "E32-regelaar — ketel en diagnose Firmware",
+    "supported_features": 17
+   },
+   "last_changed": "2026-10-29T16:15:48.801041+00:00",
+   "last_reported": "2026-10-29T16:15:48.801886+00:00",
+   "last_updated": "2026-10-29T16:15:48.801619+00:00",
+   "context": {
+    "id": "01M6474DJ1B15WHGVRNZ2Y6C72",
+    "parent_id": null,
+    "user_id": null
+   }
+  },
+  "last_seen": "2026-10-29T19:57:58.643485+00:00"
+ },
+ "ha_integration_manifest_version": "0.4.0b10",
+ "ha_core_version": "2026.10.4",
+ "e32": [
+  {
+   "capture": "obs1",
+   "requests": {
+    "version": {
+     "path": "/status/version",
+     "at_utc": "2026-10-29T20:08:08Z",
+     "http": 200,
+     "bytes": 342,
+     "sha256": "dfb9fd1b970a374507400e9f5a63a27f3dbccd0e459a5081531b364d332e5cc7"
+    },
+    "updates": {
+     "path": "/updates/status",
+     "at_utc": "2026-10-29T20:08:08Z",
+     "http": 200,
+     "bytes": 1150,
+     "sha256": "e91e8968b1ad5fb9ccdd06261d117e91fafcf04a8611f1300f03504a615366c8"
+    },
+    "status": {
+     "path": "/status",
+     "at_utc": "2026-10-29T20:08:08Z",
+     "http": 200,
+     "bytes": 3116,
+     "sha256": "7569b8695bb5ab3b7f2133779985bfa476f80c9ca02ec5d5818257198234104f"
+    },
+    "wifi": {
+     "path": "/status/wifi",
+     "at_utc": "2026-10-29T20:08:08Z",
+     "http": 200,
+     "bytes": 2,
+     "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "ems": {
+     "path": "/status/ems",
+     "at_utc": "2026-10-29T20:08:11Z",
+     "http": 200,
+     "bytes": 1074,
+     "sha256": "f892771e74987bafeb14fa2e045b0c9a2a9a707ee1a2f4fbb626acfd4ec614db"
+    },
+    "ems_devices": {
+     "path": "/status/ems/devices",
+     "at_utc": "2026-10-29T20:08:11Z",
+     "http": 200,
+     "bytes": 13490,
+     "sha256": "943b8b869c22a24b55f54a3d1aa086982ccbb390b5f1ac22ca6a03369800a179"
+    },
+    "ems_telemetry": {
+     "path": "/status/ems/telemetry",
+     "at_utc": "2026-10-29T20:08:12Z",
+     "http": 200,
+     "bytes": 18706,
+     "sha256": "0c963ae4b1d4d59de8875c2e29695f707eac0af468edcefaee0689b71bde7ca6"
+    },
+    "rooms": {
+     "path": "/status/rooms",
+     "at_utc": "2026-10-29T20:08:12Z",
+     "http": 200,
+     "bytes": 2,
+     "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "programs": {
+     "path": "/status/programs",
+     "at_utc": "2026-10-29T20:08:12Z",
+     "http": 200,
+     "bytes": 11,
+     "sha256": "ed954e41fa3f395cec1efad3a62700fe6cef1c2e7f39e9ac3f32207ee2542fb2"
+    },
+    "logs": {
+     "path": "/status/logs",
+     "at_utc": "2026-10-29T20:08:13Z",
+     "http": 200,
+     "bytes": 2610,
+     "sha256": "3880af3ecd5ea6b3323a0ef14864d13dbeb9d4b545eb56540508fb51182ede26"
+    },
+    "version2": {
+     "path": "/status/version",
+     "at_utc": "2026-10-29T20:08:13Z",
+     "http": 200,
+     "bytes": 342,
+     "sha256": "dfb9fd1b970a374507400e9f5a63a27f3dbccd0e459a5081531b364d332e5cc7"
+    }
+   },
+   "version": {
+    "version": "v0.1.0-e32v2-beta.18",
+    "source": "14d25d914b304eb65971834cb5c353e3e4b878a5",
+    "web_sha256": "764165f9726b60eb204e3f4a48cff7e694de582f895faf37ed8b9fca62de3616",
+    "sha256": "3f64921f70e6b992ded7b7a6c233d36485c1b1e1681e41c563b1f29833146c09",
+    "idf": "v4.4.7-dirty"
+   },
+   "updates": {
+    "installed": "v0.1.0-e32v2-beta.18",
+    "source_commit": "14d25d914b304eb65971834cb5c353e3e4b878a5",
+    "web_sha256": "764165f9726b60eb204e3f4a48cff7e694de582f895faf37ed8b9fca62de3616",
+    "build_marker": "OT_E32V2_OTA_V1:v0.1.0-e32v2-beta.18:14d25d914b304eb65971834cb5c353e3e4b878a5:764165f9726b60eb204e3f4a48cff7e694de582f895faf37ed8b9fca62de3616:END",
+    "phase": "idle",
+    "error": "",
+    "busy": false,
+    "boot_pending": false,
+    "reboot_required": false,
+    "rollback_available": true,
+    "reset_reason": 3,
+    "running_partition_address": 3735552,
+    "boot_partition_address": 3735552,
+    "last_saved_checkpoint": {
+     "scope": "native_https_install_only",
+     "attempt": 6,
+     "stage": "boot_slot_selected",
+     "from_version": "v0.1.0-e32v2-beta.3",
+     "from_source": "996587da4a05c8a9de4a25a5b8ab3d9ed4c6f99a",
+     "target_version": "v0.1.0-e32v2-beta.4",
+     "received": 2877856,
+     "total": 2877856,
+     "http_status": 200
+    }
+   },
+   "uptime_seconds": 13948,
+   "device_local_time": "2026-10-29 21:08:08",
+   "previous_boot": {
+    "reset_reason": 3,
+    "wifi_lost_restarts": 0,
+    "bluetooth_silent_restarts": 0,
+    "network_dead_restarts": 0,
+    "previous": null
+   },
+   "runtime": {
+    "free_internal_bytes": 48332,
+    "minimum_free_internal_bytes": 13280,
+    "largest_internal_block_bytes": 38900,
+    "mqtt_budget_disconnects": 12,
+    "heating_telemetry_dropped": 0,
+    "heating_telemetry_failed": 7,
+    "heating_telemetry_large": 0
+   },
+   "loop_intervals": {
+    "schema": 1,
+    "samples": 962350,
+    "sampled_at_ms": 13953531,
+    "last_ms": 15,
+    "maximum_ms": 1302,
+    "intervals_ge_100_ms": 62,
+    "intervals_ge_500_ms": 7,
+    "intervals_ge_1000_ms": 3,
+    "window_ms": 25840,
+    "window_samples": 1704,
+    "window_maximum_ms": 504
+   },
+   "control": {
+    "mode": "shadow",
+    "boiler_output_enabled": false,
+    "actuator_output_enabled": false,
+    "physical_outputs_enabled": false,
+    "config_revision": 9,
+    "config_digest": "f696df4b9c8d495ee32cf78258f6cc65e4397acd01d9812b6e058e09d427144d",
+    "supervisor": {
+     "phase": "inhibited",
+     "reason": "hydraulic_profile_unqualified",
+     "requested_heat": false,
+     "physical_outputs_enabled": false
+    }
+   },
+   "ems_transport": {
+    "enabled": true,
+    "transmit_compiled": true,
+    "poll_count": 13392,
+    "transmitted_frames": 0,
+    "receive_queue_dropped": 0,
+    "invalid_telegrams": 624,
+    "uart_errors": 295,
+    "uart_timeouts": 0,
+    "uart_resets": 0,
+    "echo_break_recoveries": 0,
+    "break_realignments": 0,
+    "last_uart_error": {
+     "reason": "incomplete_rx_frame",
+     "observed_at_ms": 13917352,
+     "echo_fault": null
+    }
+   },
+   "ems_reception_state": "classic_reports_received"
+  },
+  {
+   "capture": "obs2",
+   "requests": {
+    "version": {
+     "path": "/status/version",
+     "at_utc": "2026-10-29T20:45:51Z",
+     "http": 200,
+     "bytes": 342,
+     "sha256": "dfb9fd1b970a374507400e9f5a63a27f3dbccd0e459a5081531b364d332e5cc7"
+    },
+    "updates": {
+     "path": "/updates/status",
+     "at_utc": "2026-10-29T20:45:51Z",
+     "http": 200,
+     "bytes": 1150,
+     "sha256": "e91e8968b1ad5fb9ccdd06261d117e91fafcf04a8611f1300f03504a615366c8"
+    },
+    "status": {
+     "path": "/status",
+     "at_utc": "2026-10-29T20:45:51Z",
+     "http": 200,
+     "bytes": 3116,
+     "sha256": "d1e221e4d288343f1c2175f7025b9d61ce9e6daa70661a13083c0d1739678824"
+    },
+    "wifi": {
+     "path": "/status/wifi",
+     "at_utc": "2026-10-29T20:45:52Z",
+     "http": 200,
+     "bytes": 2,
+     "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "ems": {
+     "path": "/status/ems",
+     "at_utc": "2026-10-29T20:45:54Z",
+     "http": 200,
+     "bytes": 1074,
+     "sha256": "519d802dc188eee8cf7d2e41da216258a7d4b7df97ddd7cffc694f85ebead140"
+    },
+    "ems_devices": {
+     "path": "/status/ems/devices",
+     "at_utc": "2026-10-29T20:45:55Z",
+     "http": 200,
+     "bytes": 13516,
+     "sha256": "3928fc12901e070328874cb4ee45d78ec4e27a1e8916b4509f64a04d413b0712"
+    },
+    "ems_telemetry": {
+     "path": "/status/ems/telemetry",
+     "at_utc": "2026-10-29T20:45:55Z",
+     "http": 200,
+     "bytes": 18714,
+     "sha256": "e52fc065043ced293bc9fbe5165609f63621de1990364b263de47cbe5368f679"
+    },
+    "rooms": {
+     "path": "/status/rooms",
+     "at_utc": "2026-10-29T20:45:55Z",
+     "http": 200,
+     "bytes": 2,
+     "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "programs": {
+     "path": "/status/programs",
+     "at_utc": "2026-10-29T20:45:56Z",
+     "http": 200,
+     "bytes": 11,
+     "sha256": "ed954e41fa3f395cec1efad3a62700fe6cef1c2e7f39e9ac3f32207ee2542fb2"
+    },
+    "logs": {
+     "path": "/status/logs",
+     "at_utc": "2026-10-29T20:45:56Z",
+     "http": 200,
+     "bytes": 2512,
+     "sha256": "f74f5a0dc31dd03c3161c7019bd0e1c1ca111c4f5084f434bb25a76ec3075929"
+    },
+    "version2": {
+     "path": "/status/version",
+     "at_utc": "2026-10-29T20:45:57Z",
+     "http": 200,
+     "bytes": 342,
+     "sha256": "dfb9fd1b970a374507400e9f5a63a27f3dbccd0e459a5081531b364d332e5cc7"
+    }
+   },
+   "version": {
+    "version": "v0.1.0-e32v2-beta.18",
+    "source": "14d25d914b304eb65971834cb5c353e3e4b878a5",
+    "web_sha256": "764165f9726b60eb204e3f4a48cff7e694de582f895faf37ed8b9fca62de3616",
+    "sha256": "3f64921f70e6b992ded7b7a6c233d36485c1b1e1681e41c563b1f29833146c09",
+    "idf": "v4.4.7-dirty"
+   },
+   "updates": {
+    "installed": "v0.1.0-e32v2-beta.18",
+    "source_commit": "14d25d914b304eb65971834cb5c353e3e4b878a5",
+    "web_sha256": "764165f9726b60eb204e3f4a48cff7e694de582f895faf37ed8b9fca62de3616",
+    "build_marker": "OT_E32V2_OTA_V1:v0.1.0-e32v2-beta.18:14d25d914b304eb65971834cb5c353e3e4b878a5:764165f9726b60eb204e3f4a48cff7e694de582f895faf37ed8b9fca62de3616:END",
+    "phase": "idle",
+    "error": "",
+    "busy": false,
+    "boot_pending": false,
+    "reboot_required": false,
+    "rollback_available": true,
+    "reset_reason": 3,
+    "running_partition_address": 3735552,
+    "boot_partition_address": 3735552,
+    "last_saved_checkpoint": {
+     "scope": "native_https_install_only",
+     "attempt": 6,
+     "stage": "boot_slot_selected",
+     "from_version": "v0.1.0-e32v2-beta.3",
+     "from_source": "996587da4a05c8a9de4a25a5b8ab3d9ed4c6f99a",
+     "target_version": "v0.1.0-e32v2-beta.4",
+     "received": 2877856,
+     "total": 2877856,
+     "http_status": 200
+    }
+   },
+   "uptime_seconds": 16212,
+   "device_local_time": "2026-10-29 21:45:52",
+   "previous_boot": {
+    "reset_reason": 3,
+    "wifi_lost_restarts": 0,
+    "bluetooth_silent_restarts": 0,
+    "network_dead_restarts": 0,
+    "previous": null
+   },
+   "runtime": {
+    "free_internal_bytes": 51424,
+    "minimum_free_internal_bytes": 13280,
+    "largest_internal_block_bytes": 32756,
+    "mqtt_budget_disconnects": 12,
+    "heating_telemetry_dropped": 0,
+    "heating_telemetry_failed": 7,
+    "heating_telemetry_large": 0
+   },
+   "loop_intervals": {
+    "schema": 1,
+    "samples": 1117569,
+    "sampled_at_ms": 16216967,
+    "last_ms": 15,
+    "maximum_ms": 1302,
+    "intervals_ge_100_ms": 99,
+    "intervals_ge_500_ms": 8,
+    "intervals_ge_1000_ms": 3,
+    "window_ms": 8912,
+    "window_samples": 547,
+    "window_maximum_ms": 501
+   },
+   "control": {
+    "mode": "shadow",
+    "boiler_output_enabled": false,
+    "actuator_output_enabled": false,
+    "physical_outputs_enabled": false,
+    "config_revision": 9,
+    "config_digest": "f696df4b9c8d495ee32cf78258f6cc65e4397acd01d9812b6e058e09d427144d",
+    "supervisor": {
+     "phase": "inhibited",
+     "reason": "hydraulic_profile_unqualified",
+     "requested_heat": false,
+     "physical_outputs_enabled": false
+    }
+   },
+   "ems_transport": {
+    "enabled": true,
+    "transmit_compiled": true,
+    "poll_count": 15569,
+    "transmitted_frames": 0,
+    "receive_queue_dropped": 0,
+    "invalid_telegrams": 715,
+    "uart_errors": 341,
+    "uart_timeouts": 0,
+    "uart_resets": 0,
+    "echo_break_recoveries": 0,
+    "break_realignments": 0,
+    "last_uart_error": {
+     "reason": "incomplete_rx_frame",
+     "observed_at_ms": 16198845,
+     "echo_fault": null
+    }
+   },
+   "ems_reception_state": "classic_reports_received"
+  }
+ ]
+}

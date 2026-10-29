@@ -135,6 +135,9 @@ TEST(FlowPolicy, OptionsOffLeaveTheRuleAndAdvise) {
     ASSERT_TRUE(s.policy.addStatus(status.get(), false));
     const cJSON* flow = at(status.get(), "flow");
     EXPECT_STREQ(at(flow, "source")->valuestring, "rule");
+    // The page's "last night" line: the ledger in its full form, no night closed yet.
+    EXPECT_STREQ(at(at(status.get(), "night_gas"), "state")->valuestring, "waiting");
+    EXPECT_TRUE(cJSON_IsNull(at(at(status.get(), "night_gas"), "last")));
     // Advice: floor curve at -10 degC for 21 degC (21 + 0.667 x 31 = 41.7 -> 42) + (40 - 30) / 2.
     EXPECT_STREQ(at(at(flow, "curve"), "state")->valuestring, "advice");
     EXPECT_EQ(at(at(flow, "curve"), "flow_c")->valuedouble, 47);
@@ -261,6 +264,7 @@ TEST(FlowPolicy, LearnedOptimumStartHeatsAheadOfTheProgram) {
     EXPECT_TRUE(cJSON_IsTrue(at(request, "heat")));
     EXPECT_STREQ(at(request, "reason")->valuestring, "optimum_start");
     EXPECT_FALSE(at(status.get(), "flow"));           // the main topic keeps its size: details are in heating_summary
+    EXPECT_FALSE(at(status.get(), "night_gas"));
     // Warmer now, so a fresh plan would start later: the begun start holds until its rise.
     s.rooms[0] = room(2000, 1850); s.in.now += 20 * minute; s.in.utc = *s.in.utc + 1200;
     EXPECT_GT(WarmupPlanner::optimumStart(h.learner, 0, s.p.rooms[0].schedule, *s.in.utc, int16_t(2000), int16_t(500)).startUtc, *s.in.utc);

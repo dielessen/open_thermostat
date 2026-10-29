@@ -215,8 +215,21 @@ TEST(HeatingStateTopics, WorstCasePlanMakesOnlySmallMessages) {
     FlowPolicy policy;
     const auto summary = heatingSummaryTelemetry(learner, context, dhw().summaryJson(), &policy);
     ASSERT_FALSE(summary.empty());
-    report("worst", "fw/telemetry/summary", summary.size());
-    EXPECT_LE(summary.size(), telemetrySoftBytes);
+    // TelemetryPublisher sends "flow" and "night_gas" apart on fw/telemetry/flow.
+    Json whole(cJSON_Parse(summary.c_str()), cJSON_Delete);
+    Json flow(cJSON_CreateObject(), cJSON_Delete);
+    cJSON_AddNumberToObject(flow.get(), "schema", 1);
+    for (const char* key : {"flow", "night_gas"}) {
+        cJSON* part = cJSON_DetachItemFromObjectCaseSensitive(whole.get(), key);
+        ASSERT_TRUE(part) << key;
+        cJSON_AddItemToObject(flow.get(), key, part);
+    }
+    report("worst", "fw/telemetry/summary (whole)", summary.size());
+    report("worst", "fw/telemetry/summary", print(whole.get()).size());
+    report("worst", "fw/telemetry/flow", print(flow.get()).size());
+    EXPECT_LE(summary.size(), telemetryHardBytes);
+    EXPECT_LE(print(whole.get()).size(), telemetrySoftBytes);
+    EXPECT_LE(print(flow.get()).size(), telemetrySoftBytes);
     size_t learnedLargest = 0;
     for (size_t i = 0; i < plan.rooms.size(); ++i) {
         const auto payload = learnedRoomTelemetry(learner, plan, i, context);

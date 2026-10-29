@@ -97,6 +97,8 @@ async def async_setup_entry(
             await async_setup_sensors(hass, entry, async_add_entities, native_metrics=True)
             from .v1_metrics import async_setup_shadow_metrics
             await async_setup_shadow_metrics(hass, entry, async_add_entities)
+            from .e32_flow import async_setup_sensors as async_setup_flow_sensors
+            await async_setup_flow_sensors(hass, entry, async_add_entities)  # flow source, gas calibration, last night
             return
         from .device_diagnostics import async_setup_device_diagnostics
         await async_setup_device_diagnostics(hass,entry,async_add_entities)

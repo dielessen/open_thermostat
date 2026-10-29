@@ -790,6 +790,13 @@
     }
   },
   "selector": {
+    "room_override_mode": {
+      "options": {
+        "boost": "Snel opwarmen (maximum van de ruimte)",
+        "timed": "Voor een vaste tijd",
+        "until_next": "Tot het volgende schakelpunt"
+      }
+    },
     "program_action": {
       "options": {
         "save": "Bestaand programma behouden",
@@ -1013,10 +1020,49 @@
   },
   "options": {
     "step": {
+      "comfort": {
+        "title": "Comfortinstellingen",
+        "description": "Raam- en deursensoren pauzeren een ruimte zolang ze open staan; voorinstellingen, afwezig en aanwezigheid bepalen temperaturen voor de thermostaten van je E32-ruimtes. Alles hier is optioneel.",
+        "menu_options": {
+          "comfort_settings": "Voorinstellingen, aanwezigheid en tijden",
+          "comfort_contacts": "Raam- en deursensoren per ruimte"
+        }
+      },
+      "comfort_settings": {
+        "title": "Voorinstellingen, aanwezigheid en tijden",
+        "description": "De thermostaat van elke E32-ruimte heeft de voorinstellingen Comfortstand, Ecostand, Afwezig en Snel opwarmen. Afwezig verlaagt elke ruimte naar de afwezigheidstemperatuur van de E32 (in te stellen met de actie \"Afwezig\" of op de E32-pagina).",
+        "data": {
+          "presence_entity": "Wie is thuis",
+          "comfort_temperature": "Comforttemperatuur",
+          "eco_temperature": "Eco-temperatuur",
+          "contact_delay": "Pauze nadat een raam opengaat",
+          "override_minutes": "Duur van een handmatige wijziging"
+        },
+        "data_description": {
+          "presence_entity": "Optioneel. Een persoon, groep, zone (bijvoorbeeld zone.home) of schakelaar die aan staat zolang er iemand thuis is. Is iedereen weg, dan gebruikt elke ruimte de afwezigheidstemperatuur tot er weer iemand thuis is.",
+          "comfort_temperature": "Het doel van de voorinstelling Comfortstand, tot het volgende schakelpunt van het weekprogramma.",
+          "eco_temperature": "Het doel van de voorinstelling Ecostand, tot het volgende schakelpunt van het weekprogramma.",
+          "contact_delay": "Seconden dat een raam of deur open moet blijven voordat de ruimte pauzeert, zodat kort luchten of door een deur lopen de verwarming niet stopt. Een gepauzeerde ruimte blijft beschermd tegen vorst.",
+          "override_minutes": "Een nieuwe temperatuur op de thermostaat geldt tot het volgende schakelpunt van het weekprogramma van de ruimte. Een ruimte zonder weekprogramma houdt hem zoveel minuten vast en volgt daarna weer haar plan."
+        }
+      },
+      "comfort_contacts": {
+        "title": "Raam- en deursensoren",
+        "description": "Kies een ruimte en haar raam- en deursensoren. Zolang er één open staat pauzeert de ruimte (de vorstbeveiliging blijft); zijn ze allemaal dicht, dan verwarmt ze weer. Sensoren nu: {rooms}. Kies geen sensor om ze uit de ruimte te halen.",
+        "data": {
+          "room": "Ruimte",
+          "contacts": "Raam- en deursensoren"
+        },
+        "data_description": {
+          "room": "Een van de ruimtes op je E32.",
+          "contacts": "Binaire sensoren van het type raam, deur of opening, bijvoorbeeld via Zigbee of Bluetooth. Hun toestand gaat bij elke wijziging naar de E32."
+        }
+      },
       "init": {
         "title": "OpenThermostat",
         "description": "Je ruimtes, de E32-verbinding en de optionele energiegegevens.",
         "menu_options": {
+          "comfort": "Comfort: raamsensoren, afwezig en aanwezigheid",
           "installation": "Installatie instellen",
           "room_settings": "Ruimtes beheren",
           "configuration_status": "Status installatie",
@@ -1515,6 +1561,12 @@
       }
     },
     "error": {
+      "presence_entity_invalid": "Kies een bestaande persoon, groep, zone of schakelaar.",
+      "temperature_invalid": "Vul een temperatuur tussen 5 en 30 °C in.",
+      "whole_number_invalid": "Vul een heel getal binnen de grenzen in.",
+      "contacts_invalid": "Kies hoogstens acht verschillende sensoren.",
+      "not_contact_sensor": "Kies alleen raam-, deur- of openingssensoren.",
+      "room_invalid": "Kies een van de E32-ruimtes.",
       "invalid_adapter_id": "Gebruik hetzelfde expliciete eigenaar-ID als op de E32 (1–32 letters, cijfers, _ of -).",
       "graph_room_contract_unavailable": "Er is geen passende verwarmings-DATA of expliciet SOURCE-geselecteerd schaduwcontract beschikbaar voor deze ruimtes. Een schema opslaan of dit vakje inschakelen kwalificeert nooit een bron en schakelt geen fysieke uitgangen in.",
       "graph_control_source_review_required": "Het gekozen SOURCE-contract past niet bij de huidige eigenaar of het beoordeelde schema, of wijzigde tijdens controle. Niets ingeschakeld. Beoordeel opgeslagen DATA en het SOURCE-contract; opnieuw verbinden alleen keurt geen wijzigingen goed.",
@@ -1636,6 +1688,8 @@
       "controller_mqtt_unconfirmed": "De E32 is herstart met de Home Assistant-instellingen, maar Home Assistant heeft binnen 90 seconden niets van de E32 via MQTT ontvangen. Controleer op de E32 Systeem → Netwerk → MQTT: dezelfde broker als de MQTT-integratie in Home Assistant, en een gebruikersnaam en wachtwoord die de broker accepteert."
     },
     "abort": {
+      "comfort_saved": "De comfortinstellingen zijn opgeslagen en gelden meteen.",
+      "comfort_no_rooms": "De E32 heeft nog geen ruimtes gemeld. Voeg ruimtes toe onder Configureren → Ruimtes, wacht even en probeer het opnieuw.",
       "graph_review_unavailable": "Geen bestaande schema-aansluiting met gekozen bron beschikbaar. Geen profiel ingeschakeld.",
       "graph_review_cancelled": "Niets toegepast.",
       "graph_review_changed": "Beoordeling, sessie of kandidaat gewijzigd of mogelijkheid verlopen. Niets nieuws goedgekeurd; open de beoordeling opnieuw.",
@@ -1695,6 +1749,23 @@
     }
   },
   "entity": {
+    "climate": {
+      "room_thermostat": {
+        "name": "Thermostaat",
+        "state_attributes": {
+          "preset_mode": {
+            "name": "Voorinstelling",
+            "state": {
+              "none": "Geen",
+              "comfort": "Comfortstand",
+              "eco": "Ecostand",
+              "away": "Afwezig",
+              "boost": "Snel opwarmen"
+            }
+          }
+        }
+      }
+    },
     "binary_sensor": {
       "radiators_heating": {
         "name": "Radiatoren verwarmen"
@@ -1715,6 +1786,9 @@
       },
       "room_fallback_setpoint": {
         "name": "Temperatuur zonder Home Assistant"
+      },
+      "flow_curve_design_flow_c": {
+        "name": "Aanvoer bij −10 °C"
       }
     },
     "sensor": {
@@ -2122,6 +2196,42 @@
       },
       "hot_water_gas": {
         "name": "Gas voor warm water"
+      },
+      "flow_source": {
+        "name": "Bron aanvoertemperatuur",
+        "state": {
+          "rule": "Ruimteregeling",
+          "curve": "Stooklijn",
+          "learned": "Geleerde aanvoer",
+          "optimum_start": "Optimale start"
+        }
+      },
+      "flow_curve": {
+        "name": "Aanvoer volgens stooklijn"
+      },
+      "flow_learned": {
+        "name": "Geleerde aanvoer"
+      },
+      "flow_rule": {
+        "name": "Aanvoer volgens ruimteregeling"
+      },
+      "flow_curve_slope": {
+        "name": "Helling stooklijn"
+      },
+      "gas_calibration": {
+        "name": "Gasijking",
+        "state": {
+          "no_meter": "Geen gasmeter (ruwe schatting)",
+          "collecting": "Aan het ijken met de gasmeter",
+          "calibrated": "Geijkt met de gasmeter",
+          "meter_stale": "Gasmeter meldt niets"
+        }
+      },
+      "boiler_full_power": {
+        "name": "Ketelvermogen bij volle brander"
+      },
+      "night_heating_gas": {
+        "name": "Gas voor verwarmen afgelopen nacht"
       }
     },
     "select": {
@@ -2136,6 +2246,14 @@
     "datetime": {
       "room_inactive_until": {
         "name": "Uit tot"
+      }
+    },
+    "switch": {
+      "flow_weather_curve": {
+        "name": "Weersafhankelijke stooklijn"
+      },
+      "flow_apply_learned": {
+        "name": "Geleerde aanvoer en optimale start gebruiken"
       }
     }
   },
@@ -2236,6 +2354,46 @@
     }
   },
   "services": {
+    "set_room_override": {
+      "name": "Tijdelijk overrulen",
+      "description": "Een tijdelijk doel voor een E32-ruimte. Snel opwarmen verwarmt tot het maximum van de ruimte (een uur, tenzij je een duur kiest). De E32 beëindigt het overrulen zelf, ook na een herstart, en de ruimte volgt daarna weer haar weekprogramma. Alleen het doel van de ruimte verandert; de aanvoergrenzen en de vorstbeveiliging blijven.",
+      "fields": {
+        "mode": {
+          "name": "Soort",
+          "description": "Snel opwarmen verwarmt tot het maximum van de ruimte; Voor een vaste tijd houdt de temperatuur zo lang vast; Tot het volgende schakelpunt houdt hem vast tot het weekprogramma wisselt."
+        },
+        "temperature": {
+          "name": "Temperatuur",
+          "description": "Het doel van de ruimte in de tussentijd. Leeg: het huidige doel."
+        },
+        "duration_minutes": {
+          "name": "Duur",
+          "description": "Minuten, tot 24 uur. Leeg: een uur voor snel opwarmen, anders de duur uit de comfortinstellingen."
+        }
+      }
+    },
+    "clear_room_override": {
+      "name": "Overrulen beëindigen",
+      "description": "De ruimte volgt weer haar weekprogramma."
+    },
+    "set_away": {
+      "name": "Afwezig",
+      "description": "Een lagere temperatuur voor het hele huis, eventueel tot een datum en tijd. De E32 begint op tijd met opwarmen, zodat het bij je terugkomst op de temperatuur van het programma is.",
+      "fields": {
+        "temperature": {
+          "name": "Afwezigheidstemperatuur",
+          "description": "Elke ruimte hoogstens zo warm. Leeg: de laatste afwezigheidstemperatuur (eerst 15 °C)."
+        },
+        "until": {
+          "name": "Terug op",
+          "description": "Optioneel. De E32 warmt de ruimtes vóór dit moment op. Leeg: afwezig tot je het beëindigt."
+        }
+      }
+    },
+    "clear_away": {
+      "name": "Afwezig beëindigen",
+      "description": "Elke ruimte volgt weer haar weekprogramma."
+    },
     "export_metrics_csv": {
       "name": "Historie exporteren als CSV",
       "description": "Exporteer een dag, week of maand met opgeslagen historie (maximaal 31 dagen). Alleen beheerders kunnen exporteren. De export gebruikt bestaande Recorder-historie en wijzigt die niet. Ontbrekende of al gewiste historie blijft ontbreken. Grote exports stoppen bij de rij- of groottelimiet.",
@@ -2268,6 +2426,24 @@
     }
   },
   "exceptions": {
+    "comfort_no_clock": {
+      "message": "De E32 weet de tijd nog niet (geen tijdserver bereikt). Probeer het over een minuut opnieuw, of kies een duur in plaats van een datum of schakelpunt."
+    },
+    "comfort_room_off": {
+      "message": "Deze ruimte staat uit. Zet haar eerst aan."
+    },
+    "comfort_no_schedule": {
+      "message": "Deze ruimte heeft geen weekprogramma op de E32; kies een duur."
+    },
+    "comfort_rejected": {
+      "message": "De E32 weigerde de wijziging ({error})."
+    },
+    "comfort_away_temperature": {
+      "message": "Kies een afwezigheidstemperatuur tussen 5 en 25 °C."
+    },
+    "comfort_away_until": {
+      "message": "Kies een moment in de toekomst, hoogstens een jaar vooruit."
+    },
     "invalid_room_temperature": {
       "message": "Voer een geldige temperatuur binnen de ruimtegrenzen in."
     },
@@ -2306,6 +2482,18 @@
     },
     "room_plan_password": {
       "message": "De E32 accepteert het bewaarde wachtwoord niet meer. Verifieer OpenThermostat opnieuw onder Instellingen → Apparaten en diensten. Er is niets opgeslagen."
+    },
+    "flow_settings_rejected": {
+      "message": "De E32 weigerde de aanvoerinstelling ({error}). Er is niets gewijzigd."
+    },
+    "flow_settings_unconfirmed": {
+      "message": "De E32 heeft het opslaan van de aanvoerinstelling niet bevestigd. Probeer het opnieuw."
+    },
+    "flow_settings_unreachable": {
+      "message": "De E32 was niet bereikbaar om de aanvoerinstelling te wijzigen ({error}). Er is niets gewijzigd."
+    },
+    "flow_design_invalid": {
+      "message": "Gebruik 0 voor automatisch, of {minimum}–{maximum} °C."
     }
   }
 }

@@ -286,18 +286,24 @@ public:
 
     // Sets "request" to the applied request and, unless compact (the main MQTT
     // topic keeps its size: source and advice are in heating_summary), adds
-    // "flow" with every detail for the page.
+    // "flow" with every detail for the page, and "night_gas" (NightLedger::json, full form:
+    // the page's "last night" line).
     bool addStatus(cJSON* root, bool compact) const {
         cJSON* request = cJSON_GetObjectItemCaseSensitive(root, "request");
         if (cJSON_IsObject(request)) {
-            cJSON_ReplaceItemInObjectCaseSensitive(request, "heat", cJSON_CreateBool(applied_.heat));
-            cJSON_ReplaceItemInObjectCaseSensitive(request, "flow_c", cJSON_CreateNumber(applied_.flowC));
-            cJSON_ReplaceItemInObjectCaseSensitive(request, "reason", cJSON_CreateString(reason()));
+            // A failed replace (out of memory for the key copy) leaves the new item unowned.
+            const auto replace = [&](const char* key, cJSON* item) {
+                if (!cJSON_ReplaceItemInObjectCaseSensitive(request, key, item)) cJSON_Delete(item);
+            };
+            replace("heat", cJSON_CreateBool(applied_.heat));
+            replace("flow_c", cJSON_CreateNumber(applied_.flowC));
+            replace("reason", cJSON_CreateString(reason()));
         }
         if (compact) return true;
         cJSON* flow = cJSON_AddObjectToObject(root, "flow");
-        return flow && cJSON_AddStringToObject(flow, "source", name(source_)) && cJSON_AddNumberToObject(flow, "rule_flow_c", rule_.flowC)
-            && detail(flow);
+        cJSON* night = flow ? cJSON_AddObjectToObject(root, "night_gas") : nullptr;
+        return night && cJSON_AddStringToObject(flow, "source", name(source_)) && cJSON_AddNumberToObject(flow, "rule_flow_c", rule_.flowC)
+            && detail(flow) && nights_.json(night);
     }
     // heating_summary, compact (about 1 KB with the rest of the summary):
     // "flow":{"source","rule_flow_c","applied_flow_c","curve":{"state","flow_c","slope",

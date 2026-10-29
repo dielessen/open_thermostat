@@ -59,6 +59,10 @@ class ProductRoomFlow(RadiatorRoomSetupFlow):
     """One guided native flow for adding and editing ordinary radiator rooms."""
 
     async def async_step_user(self, user_input=None):
+        from .room_plan import has_room_plan
+        if has_room_plan(self._get_entry()):
+            # Home Assistant may still show its cached button until a restart.
+            return self.async_abort(reason="e32_rooms_elsewhere")
         return await RadiatorRoomSetupFlow.async_step_user(self, {"room": "new"})
 
     async def async_step_reconfigure(self, user_input=None):

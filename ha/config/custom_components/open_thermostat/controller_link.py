@@ -24,6 +24,17 @@ class ControllerLinkError(ValueError):
     """A bounded public error code, never a response/URL/credential exception."""
 
 
+class ControllerLoginRejected(ControllerLinkError):
+    """The E32 refused the stored password (401 on /auth/login): it was changed on the E32.
+
+    Same public code as before (controller_auth_failed); callers that know the
+    entry start Home Assistant's re-authentication with it.
+    """
+
+    def __init__(self):
+        super().__init__("controller_auth_failed")
+
+
 class HeatingPlanRejected(ControllerLinkError):
     """The E32 refused a /config/heating write with a named reason (409 = plan_changed)."""
 
@@ -443,6 +454,9 @@ class ControllerClient:
         self._session = None
         self._csrf = None
         self.logout_confirmed = False
+        # From /auth/session after a login: True while the E32 still has its
+        # factory password, False once changed, None on firmware that does not say.
+        self.default_password = None
 
     async def __aenter__(self):
         if self._session is not None and not self._session.closed:
@@ -495,6 +509,8 @@ class ControllerClient:
         try:
             async with self._session.request(method, self.address + path, data=data,
                     headers=headers, allow_redirects=False) as response:
+                if response.status == 401 and method == "POST" and path == "/auth/login":
+                    raise ControllerLoginRejected()
                 if response.status in (401, 403):
                     raise ControllerLinkError("controller_auth_failed")
                 if path == HEATING_PLAN and response.status in (400, 409, 413, 503):
@@ -537,6 +553,8 @@ class ControllerClient:
                 or re.fullmatch(r"[0-9a-f]{64}", session["csrf"]) is None):
             raise ControllerLinkError("controller_auth_failed")
         self._csrf = session["csrf"]
+        flag = session.get("default_password")
+        self.default_password = flag if type(flag) is bool else None
 
     async def async_read_heating_plan(self):
         """The E32 room plan (GET /config/heating), parsed but not yet validated."""

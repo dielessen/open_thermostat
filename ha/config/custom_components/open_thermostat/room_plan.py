@@ -30,7 +30,7 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
-from .controller_link import ControllerClient, ControllerLinkError, HeatingPlanRejected
+from .controller_link import ControllerClient, ControllerLinkError, ControllerLoginRejected, HeatingPlanRejected
 from .heating_link import ROOM_ID, RoomEntity, add_options, heating_hub, track_entities
 
 _LOGGER = logging.getLogger(__name__)
@@ -112,6 +112,8 @@ def has_room_plan(entry):
 
 def plan_error(err):
     """A clear Home Assistant error for a refused or failed plan read or write."""
+    if isinstance(err, ControllerLoginRejected):
+        return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_password")
     if isinstance(err, HeatingPlanRejected):
         if err.error == "plan_changed":
             return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_changed")
@@ -128,8 +130,12 @@ def plan_error(err):
 class RoomPlanLink:
     """The last plan read from the E32 and the only path that writes it."""
 
-    def __init__(self, hass, address, password, hub, clock=time.monotonic):
+    def __init__(self, hass, address, password, hub, clock=time.monotonic, entry=None):
         self.hass, self._address, self._password, self.hub, self.clock = hass, address, password, hub, clock
+        self.entry = entry
+        # The E32 refused this password once: never try it again (its login limit
+        # would lock the owner out of the web page); the re-authentication brings a new one.
+        self.login_rejected = False
         self.plan = None
         self._lock = asyncio.Lock()
         self._task = None
@@ -144,7 +150,7 @@ class RoomPlanLink:
         address, password = entry.data.get(CONTROLLER_ADDRESS), entry.data.get(CONTROLLER_PASSWORD)
         if not address or not password:
             return None
-        return cls(hass, address, password, hub)
+        return cls(hass, address, password, hub, entry=entry)
 
     @property
     def revision(self):
@@ -178,7 +184,7 @@ class RoomPlanLink:
         revision = self.hub.revision
         if self.plan is not None and (revision is None or revision in (self.revision, self._seen_revision)):
             return
-        if self._failed_at is not None and self.clock() - self._failed_at < RETRY_SECONDS:
+        if self.login_rejected or (self._failed_at is not None and self.clock() - self._failed_at < RETRY_SECONDS):
             return
         self._seen_revision = revision
         self._task = self.hass.async_create_task(self.async_refresh(), "OpenThermostat E32 room plan read")
@@ -186,10 +192,22 @@ class RoomPlanLink:
     def _client(self):
         return ControllerClient(self._address)
 
+    async def _login(self, client):
+        from .e32_access import login_rejected, report_password
+        if self.login_rejected:
+            raise ControllerLoginRejected()
+        try:
+            await client.async_login(self._password)
+        except ControllerLoginRejected:
+            self.login_rejected = True
+            login_rejected(self.hass, self.entry)
+            raise
+        report_password(self.hass, self.entry, getattr(client, "default_password", None))
+
     async def _async_fetch(self):
         async with self._lock:
             async with self._client() as client:
-                await client.async_login(self._password)
+                await self._login(client)
                 plan = decode_plan(await client.async_read_heating_plan())
         if plan is None:
             raise ControllerLinkError("controller_response_invalid")
@@ -238,7 +256,7 @@ class RoomPlanLink:
         async with self._lock:
             try:
                 async with self._client() as client:
-                    await client.async_login(self._password)
+                    await self._login(client)
                     for attempt in (1, 2):
                         plan = decode_plan(await client.async_read_heating_plan())
                         if plan is None:

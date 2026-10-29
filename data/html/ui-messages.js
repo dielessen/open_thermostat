@@ -334,7 +334,7 @@ window.OT_UI_MESSAGES = {
   "MiBeacon v4/v5 encrypted": "MiBeacon v4/v5 versleuteld",
   "Save and restart to receive data for this device.": "Sla op en herstart om gegevens voor dit apparaat te ontvangen.",
   "Bluetooth settings could not be read. Existing data was kept.": "Bluetoothinstellingen konden niet worden gelezen. De bestaande gegevens zijn behouden.",
-  "At most 8 devices, stored separately from network settings. Saving never truncates other settings. Readings expire after three minutes; battery-only messages do not renew temperature.": "Maximaal 8 apparaten, afzonderlijk van de netwerkinstellingen opgeslagen. Opslaan kapt andere instellingen nooit af. Metingen verlopen na drie minuten; berichten met alleen de batterij verversen de temperatuur niet.",
+  "At most 8 devices, stored separately from network settings. Saving never truncates other settings. Readings expire after 15 minutes; battery-only messages do not renew temperature.": "Maximaal 8 apparaten, afzonderlijk van de netwerkinstellingen opgeslagen. Opslaan kapt andere instellingen nooit af. Metingen verlopen na 15 minuten; berichten met alleen de batterij verversen de temperatuur niet.",
   "Bluetooth settings are too large. Remove a device or shorten names.": "De Bluetoothinstellingen zijn te groot. Verwijder een apparaat of verkort namen.",
   "Bluetooth reception details": "Bluetoothontvangstdetails",
   "Message integrity (last accepted report)": "Berichtintegriteit (laatst geaccepteerde bericht)",
@@ -1365,7 +1365,7 @@ window.OT_UI_MESSAGES = {
   "Browse": "Bladeren",
   // Plain-language help for every option (beta.18).
   "You pair sensors here because the E32 receives them itself over Bluetooth (radio and key). Then choose them as a room temperature source in Home Assistant or on the Rooms page.": "Sensoren koppel je hier, omdat de E32 ze zelf via Bluetooth ontvangt (radio en sleutel). Kies ze daarna als temperatuurbron van een ruimte in Home Assistant of op de pagina Ruimtes.",
-  "Waiting: nothing received yet; check distance, battery and address, or wake the sensor. Expired: no new reading for three minutes. Restart required: saved changes start after a restart.": "Wachten: nog niets ontvangen; controleer afstand, batterij en adres, of maak de sensor wakker. Verlopen: drie minuten geen nieuwe meting. Herstart nodig: opgeslagen wijzigingen werken na een herstart.",
+  "Waiting: nothing received yet; check distance, battery and address, or wake the sensor. Expired: no new reading for 15 minutes. Restart required: saved changes start after a restart.": "Wachten: nog niets ontvangen; controleer afstand, batterij en adres, of maak de sensor wakker. Verlopen: 15 minuten geen nieuwe meting. Herstart nodig: opgeslagen wijzigingen werken na een herstart.",
   "The sensor type, so the E32 can read its messages.": "Het type sensor, zodat de E32 de berichten kan lezen.",
   "Six pairs, for example 0a:1b:2c:3d:4e:5f. Choose a device above to fill it in.": "Zes paren, bijvoorbeeld 0a:1b:2c:3d:4e:5f. Kies hierboven een apparaat om het in te vullen.",
   "Your own name, for example Living room thermometer.": "Je eigen naam, bijvoorbeeld Thermometer woonkamer.",
@@ -1468,5 +1468,9 @@ window.OT_UI_MESSAGES = {
   "How long the pump keeps running after heating stops, to use the remaining heat.": "Hoe lang de pomp doordraait nadat het verwarmen stopt, om de restwarmte te benutten.",
   "Only these four boiler settings can be changed from the E32.": "Alleen deze vier ketelinstellingen kun je via de E32 wijzigen.",
   "Two controllers changing the boiler at the same time can conflict.": "Twee regelaars die tegelijk de ketel aanpassen, kunnen elkaar in de weg zitten.",
-  "Stay at the boiler until the new value has been read back.": "Blijf bij de ketel tot de nieuwe waarde is teruggelezen."
+  "Stay at the boiler until the new value has been read back.": "Blijf bij de ketel tot de nieuwe waarde is teruggelezen.",
+  "Bluetooth discovery": "Bluetooth-ontdekking",
+  "Original project:": "Oorspronkelijk project:",
+  "HH:MM": "UU:MM",
+  "Pick your network to fill in its name.": "Kies je netwerk om de naam in te vullen."
 };

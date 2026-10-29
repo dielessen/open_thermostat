@@ -711,6 +711,8 @@ class RoomFlowAdviceSensor(LearnedRoomEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_suggested_display_precision = 0
+    # These follow the room minute by minute: shown, not kept in the history.
+    _unrecorded_attributes = frozenset({"now", "other_shortfalls"})
 
     def __init__(self, hub, room):
         self._attach_room(hub, room, "flow_advice")
@@ -743,6 +745,7 @@ class RoomHeatingStartSensor(RoomEntity, SensorEntity):
     """When the E32 would start heating to reach the next higher setpoint on time, and tonight's options."""
 
     _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _unrecorded_attributes = frozenset({"night_strategies"})
 
     def __init__(self, hub, room):
         self._attach_room(hub, room, "heating_start")

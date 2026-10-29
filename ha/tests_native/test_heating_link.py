@@ -1,5 +1,6 @@
 """The one heating route: E32 status in, plan entities forwarded out."""
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -374,7 +375,7 @@ async def test_existing_room_entities_keep_their_entity_ids_and_move_to_a_room_d
                                        suggested_object_id=old_id.split(".")[1])
     assert old.entity_id == old_id
     _, hub, _, send = await _setup(hass, monkeypatch)
-    send(FULL)
+    send({**FULL, "learned": {**LEARNED, "plans": PLANS}})
     platform = EntityPlatform(hass=hass, logger=logging.getLogger(__name__), domain="sensor",
                               platform_name="open_thermostat", platform=None,
                               scan_interval=timedelta(seconds=30), entity_namespace=None)
@@ -384,13 +385,25 @@ async def test_existing_room_entities_keep_their_entity_ids_and_move_to_a_room_d
     sensor = hub.ble["a4c138a3e8db"]
     moved, new, ble = (module.RoomTemperatureSensor(hub, room), module.RoomStatusSensor(hub, room),
                        module.BleSensor(hub, sensor, "temperature"))
+    learned = [module.RoomLearningSensor(hub, room), module.RoomFlowAdviceSensor(hub, room),
+               module.RoomHeatingStartSensor(hub, room)]
     try:
-        await platform.async_add_entities([moved, new, ble])
+        await platform.async_add_entities([moved, new, ble, *learned])
         await hass.async_block_till_done()
         room_device = devices.async_get_device_by_identifier(
             ("open_thermostat", "fixture_e32_room_woonkamer"), config_entry.entry_id)
         assert moved.entity_id == old_id and entities.async_get(old_id).device_id == room_device.id
         assert new.entity_id == "sensor.woonkamer_control_status"
+        # The learned values read like the room's other entities, on the same room device.
+        assert [e.entity_id for e in learned] == ["sensor.woonkamer_learning_status",
+                                                  "sensor.woonkamer_recommended_flow_1_degc",
+                                                  "sensor.woonkamer_predicted_heating_start"]
+        assert hass.states.get("sensor.woonkamer_learning_status").state == "ready"
+        assert hass.states.get("sensor.woonkamer_predicted_heating_start").state == "2026-10-30T03:35:00+00:00"
+        assert hass.states.get("sensor.woonkamer_recommended_flow_1_degc").state == "34"
+        assert {entities.async_get(e.entity_id).device_id for e in learned} == {
+            devices.async_get_device_by_identifier(("open_thermostat", "fixture_e32_room_woonkamer"),
+                                                   config_entry.entry_id).id}
         assert hass.states.get(old_id).attributes["friendly_name"] == "Woonkamer Temperature"
         assert room_device.via_device_id == product.id and room_device.name == "Woonkamer"
         ble_device = devices.async_get_device_by_identifier(
@@ -418,3 +431,191 @@ async def test_existing_room_entities_keep_their_entity_ids_and_move_to_a_room_d
         assert not module.removable_device(hass, config_entry, devices.async_get(room_device.id))
     finally:
         await platform.async_reset()
+
+
+SWITCH_UTC = int(datetime(2026, 10, 30, 5, 30, tzinfo=timezone.utc).timestamp())
+
+
+def _advice(shortfall, required, flow, warmup, rule_flow, rule_warmup, rule, reason="learned"):
+    return {"shortfall_c": shortfall, "required_c_per_h": required, "flow_c": flow, "warmup_h": warmup,
+            "reason": reason, "rule_flow_c": rule_flow, "rule_warmup_h": rule_warmup, "rule": rule}
+
+
+# FlowLearner::json() as the E32 publishes it over MQTT (rooms[].curve trimmed).
+LEARNED = {
+    "schema": 1, "applied": False, "status": "learning", "heating_periods": 5, "outdoor_c": 8.5,
+    "gas_calibration": 1, "gas_intervals": 0,
+    "rooms": [
+        {"id": "woonkamer", "emitter": "floor", "readiness": "ready", "segments": 9, "periods": 4, "rejected": 2,
+         "last": "segment_learned", "segment_open": False, "accept_base_min": 60, "accept_per_degree_min": 60,
+         "outdoor_slope_c_per_h_per_k": None, "loss_per_h": 0.0312, "capacity_kwh_per_k": 1.85,
+         "cool_segments": 3, "power_segments": 4,
+         "advice": [_advice(0, 0, 30, 0, 30, 0, "similar", "lowest_learned"),
+                    _advice(0.5, 0.33, 32, 1.4, 35, 1.1, "higher_wasteful"),
+                    _advice(1, 0.5, 34, 1.9, 40, 1.2, "higher_wasteful"),
+                    _advice(2, 0.67, 38, 2.9, 50, 1.8, "higher_wasteful")],
+         "now": _advice(0.4, 0.3, 32, 1.2, 34, 1.0, "similar")},
+        # A room the E32 learns but does not report in its rooms: no entities.
+        {"id": "zolder", "emitter": "radiator", "readiness": "collecting", "segments": 0, "periods": 0,
+         "advice": [], "now": None}],
+}
+NIGHT = {"reason": "estimated", "confidence": "low",
+         "strategies": [{"name": "program", "night_c": 17, "kwh": 6.1, "m3": 0.66, "eur": None, "end_c": 20.5,
+                         "on_time": True},
+                        {"name": "hold_0_5", "night_c": 17.5, "kwh": 5.0, "m3": 0.54, "eur": None, "end_c": 20.5,
+                         "on_time": True},
+                        {"name": "hold_1_0", "night_c": 18, "kwh": 5.4, "m3": 0.58, "eur": None, "end_c": 20.5,
+                         "on_time": True},
+                        {"name": "tado_like", "night_c": 17, "kwh": 5.2, "m3": 0.56, "eur": None, "end_c": 19.6,
+                         "on_time": False}],
+         "recommended": "hold_0_5", "recommended_night_c": 17.5, "saving_m3": 0.12, "saving_eur": None}
+START = {"reason": "planned",
+         "next_switch": {"time": "fri 06:30", "utc": SWITCH_UTC, "from_c": 17, "target_c": 20.5},
+         "predicted_start": "fri 04:35", "predicted_start_utc": SWITCH_UTC - 115 * 60, "lead_minutes": 115,
+         "start_temperature_c": 17.6, "flow_c": 36, "confidence": "learned", "reachable": True, "start_now": False}
+PLANS = {"rooms": [{"id": "woonkamer", "optimum_start": START, "night": NIGHT}]}
+
+
+def _learned_ids(added):
+    return sorted(e.unique_id for e in added if e.unique_id.rsplit("_", 1)[-1] in ("learning", "advice", "start"))
+
+
+@pytest.mark.asyncio
+async def test_learned_advice_becomes_room_entities_once_the_e32_reports_it(hass, monkeypatch):
+    from homeassistant.components.sensor import SensorStateClass
+    from custom_components.open_thermostat import heating_link as module
+    entry, hub, added, send = await _setup(hass, monkeypatch)
+    send(FULL)
+    assert _learned_ids(added) == []  # older firmware: none
+    send({**FULL, "learned": LEARNED})  # no trusted clock yet: no plans
+    assert _learned_ids(added) == ["fixture_e32_room_woonkamer_flow_advice", "fixture_e32_room_woonkamer_learning"]
+    by_id = {e.unique_id: e for e in added}
+    learning, advice = by_id["fixture_e32_room_woonkamer_learning"], by_id["fixture_e32_room_woonkamer_flow_advice"]
+    assert learning.native_value == "ready" and learning.options == ["collecting", "learning", "ready"]
+    assert learning.device_class == "enum" and learning.translation_key == "room_learning"
+    assert learning.extra_state_attributes == {
+        "room_id": "woonkamer", "emitter": "floor", "segments": 9, "periods": 4, "heating_periods": 5,
+        "learner": "learning", "loss_per_h": 0.0312, "capacity_kwh_per_k": 1.85, "applied": False}
+    assert learning.device_info["identifiers"] == {("open_thermostat", "fixture_e32_room_woonkamer")}
+    assert advice.native_value == 34 and advice.native_unit_of_measurement == "°C"
+    assert advice.device_class == "temperature" and advice.state_class == SensorStateClass.MEASUREMENT
+    attributes = advice.extra_state_attributes
+    assert {k: attributes[k] for k in ("warmup_h", "reason", "rule_flow_c", "rule_warmup_h", "rule", "applied")} == {
+        "warmup_h": 1.9, "reason": "learned", "rule_flow_c": 40, "rule_warmup_h": 1.2, "rule": "higher_wasteful",
+        "applied": False}
+    assert [a["shortfall_c"] for a in attributes["other_shortfalls"]] == [0, 0.5, 2]
+    assert attributes["other_shortfalls"][2] == _advice(2, 0.67, 38, 2.9, 50, 1.8, "higher_wasteful")
+    assert attributes["now"]["shortfall_c"] == 0.4
+
+    # With a trusted clock: the predicted heating start, and tonight's options.
+    send({**FULL, "learned": {**LEARNED, "plans": PLANS}})
+    start = next(e for e in added if e.unique_id == "fixture_e32_room_woonkamer_heating_start")
+    assert start.device_class == "timestamp" and start.translation_key == "room_heating_start"
+    assert start.native_value == datetime(2026, 10, 30, 3, 35, tzinfo=timezone.utc)
+    attributes = start.extra_state_attributes
+    assert attributes["switch_at"] == "2026-10-30T05:30:00+00:00" and attributes["target_c"] == 20.5
+    assert (attributes["lead_minutes"], attributes["flow_c"], attributes["confidence"]) == (115, 36, "learned")
+    assert (attributes["night_recommended"], attributes["night_recommended_c"]) == ("hold_0_5", 17.5)
+    assert attributes["night_saving_m3"] == 0.12 and attributes["night_saving_eur"] is None
+    assert [s["name"] for s in attributes["night_strategies"]] == ["program", "hold_0_5", "hold_1_0", "tado_like"]
+    assert attributes["night_strategies"][3] == NIGHT["strategies"][3]
+    # Without the exact time: the switch time minus the lead.
+    rounded = {**START, "predicted_start_utc": None, "lead_minutes": 120}
+    send({**FULL, "learned": {**LEARNED, "plans": {"rooms": [{"id": "woonkamer", "optimum_start": rounded,
+                                                                "night": {"reason": "not_learned"}}]}}})
+    assert start.native_value == datetime(2026, 10, 30, 3, 30, tzinfo=timezone.utc)
+    assert start.extra_state_attributes["night_strategies"] == []
+    # Nothing to plan: known to be unknown, not unavailable.
+    send({**FULL, "learned": {**LEARNED, "plans": {"rooms": [{"id": "woonkamer", "optimum_start": {
+        "reason": "no_rise_within_24h"}, "night": {"reason": "no_rise_within_24h"}}]}}})
+    assert start.available and start.native_value is None
+    assert start.extra_state_attributes["reason"] == "no_rise_within_24h"
+    # Plans dropped from a message (size): only the start is unavailable.
+    send({**FULL, "learned": LEARNED})
+    assert not start.available and learning.available and advice.available
+
+    # Still learning: the advice is unknown, not a number; nonsense is unknown too.
+    collecting = json.loads(json.dumps(LEARNED))
+    collecting["rooms"][0].update(readiness="collecting", segments=0,
+                                  advice=[_advice(1, 0.5, None, None, 40, None, "unknown", "not_ready")])
+    send({**FULL, "learned": collecting})
+    assert learning.native_value == "collecting" and advice.native_value is None and advice.available
+    assert advice.extra_state_attributes["rule_flow_c"] == 40
+    collecting["rooms"][0].update(readiness="bogus", advice=[_advice(1, 0.5, 500, -3, 40, None, 7)])
+    send({**FULL, "learned": collecting})
+    assert learning.native_value is None and advice.native_value is None
+    assert advice.extra_state_attributes["warmup_h"] is None and advice.extra_state_attributes["rule"] is None
+
+    # Another schema, a status without it, or stale telemetry: unavailable.
+    send({**FULL, "learned": {**LEARNED, "schema": 2}})
+    assert not learning.available and not advice.available
+    send({**FULL, "learned": {**LEARNED, "plans": PLANS}})
+    assert learning.available and advice.available and start.available
+    now = [hub.received + module.STALE_SECONDS + 1]
+    hub.clock = lambda: now[0]
+    hub.check_stale()
+    assert not any(e.available for e in (learning, advice, start))
+    assert len(_learned_ids(added)) == 3  # created once
+
+
+DHW = {"method": "flow", "clock_known": True, "active_s": None,
+       "today": {"tapping": {"count": 6, "s": 540}, "keep_warm": {"count": 2, "s": 300},
+                 "unknown": {"count": 1, "s": 20}, "burner_s": 750, "peak_flow_l_min": 7.5},
+       "last_7_days": {"tapping": {"count": 40, "s": 3600}, "keep_warm": {"count": 15, "s": 2000},
+                       "unknown": {"count": 1, "s": 20}, "burner_s": 5100, "peak_flow_l_min": 8.1}}
+
+
+@pytest.mark.asyncio
+async def test_todays_hot_water_becomes_product_sensors_once_reported(hass, monkeypatch):
+    from homeassistant.components.sensor import SensorStateClass
+    from custom_components.open_thermostat import heating_link as module
+    entry, hub, added, send = await _setup(hass, monkeypatch)
+    send(FULL)
+    assert not any("_hub_dhw_" in e.unique_id for e in added)  # older firmware: none
+    send({**FULL, "dhw": DHW})
+    by_key = {e.unique_id.removeprefix("fixture_hub_"): e for e in added if "_hub_dhw_" in e.unique_id}
+    assert sorted(by_key) == sorted(module.DHW_SENSORS)
+    taps, warm, burner = (by_key[k] for k in module.DHW_SENSORS)
+    assert (taps.native_value, warm.native_value, burner.native_value) == (6, 2, 12.5)
+    assert all(e.state_class == SensorStateClass.TOTAL_INCREASING for e in by_key.values())  # daily counters
+    assert burner.device_class == "duration" and burner.native_unit_of_measurement == "min"
+    assert taps.native_unit_of_measurement is None and taps.translation_key == "dhw_taps_today"
+    assert all(e.device_info["identifiers"] == {("open_thermostat", "fixture")} for e in by_key.values())
+    assert taps.extra_state_attributes == {"method": "flow", "clock_known": True, "minutes": 9.0, "last_7_days": 40,
+                                           "peak_flow_l_min": 7.5, "unknown_count": 1}
+    assert warm.extra_state_attributes == {"method": "flow", "clock_known": True, "minutes": 5.0, "last_7_days": 15}
+    assert burner.extra_state_attributes == {"method": "flow", "clock_known": True, "tapping_minutes": 9.0,
+                                             "keep_warm_minutes": 5.0, "last_7_days_minutes": 85.0}
+    # A new day starts at zero; no flow meter: no peak flow; nonsense is unknown.
+    fallen = {"method": "dhw_temperature_fall", "clock_known": True,
+              "today": {"tapping": {"count": 0, "s": 0}, "keep_warm": {"count": -1, "s": 0},
+                        "unknown": {"count": 0, "s": 0}, "burner_s": 0, "peak_flow_l_min": None}}
+    send({**FULL, "dhw": fallen})
+    assert (taps.native_value, warm.native_value, burner.native_value) == (0, None, 0)
+    assert taps.extra_state_attributes["peak_flow_l_min"] is None and taps.extra_state_attributes["last_7_days"] is None
+    # Without the summary, or stale: unavailable.
+    send({**FULL, "dhw": {"method": "flow"}})
+    assert not any(e.available for e in by_key.values())
+    send({**FULL, "dhw": DHW})
+    assert all(e.available for e in by_key.values())
+    now = [hub.received + module.STALE_SECONDS + 1]
+    hub.clock = lambda: now[0]
+    hub.check_stale()
+    assert not any(e.available for e in by_key.values())
+    assert len([e for e in added if "_hub_dhw_" in e.unique_id]) == 3  # created once
+
+
+def test_learning_states_and_icons_in_both_languages():
+    icons = json.loads((COMPONENT / "icons.json").read_text(encoding="utf-8"))["entity"]["sensor"]
+    states = {}
+    for name in ("strings.json", "translations/en.json", "translations/nl.json"):
+        sensor = json.loads((COMPONENT / name).read_text(encoding="utf-8"))["entity"]["sensor"]
+        states[name] = sensor["room_learning"]["state"]
+        assert list(states[name]) == ["collecting", "learning", "ready"], name
+    assert states["strings.json"] == states["translations/en.json"] == {
+        "collecting": "Collecting data", "learning": "Learning", "ready": "Ready"}
+    assert states["translations/nl.json"] == {"collecting": "Gegevens verzamelen", "learning": "Aan het leren",
+                                              "ready": "Klaar"}
+    assert set(icons["room_learning"]["state"]) == set(states["strings.json"])
+    from custom_components.open_thermostat.heating_link import LEARNING_STATES
+    assert LEARNING_STATES == list(states["strings.json"])

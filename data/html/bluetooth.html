@@ -7,7 +7,7 @@
     <p class="small" data-i18n="Encrypted devices need their 32-character bindkey. Keys are stored on this E32 and never returned by this page. Message integrity confirms a key match; it does not confirm when the sensor measured the room. Replay protection currently lasts until restart.">Encrypted devices need their 32-character bindkey. Keys are stored on this E32 and never returned by this page. Message integrity confirms a key match; it does not confirm when the sensor measured the room. Replay protection currently lasts until restart.</p>
     <p class="small" data-i18n="Changes take effect after a manual device restart (System → Restart device). Shelly TRV control is not available in this device list yet.">Changes take effect after a manual device restart (System → Restart device). Shelly TRV control is not available in this device list yet.</p>
     <p class="small" data-i18n="TRV readings show a reported target and calculated temperature, not valve position or confirmed command feedback.">TRV readings show a reported target and calculated temperature, not valve position or confirmed command feedback.</p>
-    <p class="small" data-i18n="At most 8 devices, stored separately from network settings. Saving never truncates other settings. Readings expire after three minutes; battery-only messages do not renew temperature.">At most 8 devices, stored separately from network settings. Saving never truncates other settings. Readings expire after three minutes; battery-only messages do not renew temperature.</p>
+    <p class="small" data-i18n="At most 8 devices, stored separately from network settings. Saving never truncates other settings. Readings expire after 15 minutes; battery-only messages do not renew temperature.">At most 8 devices, stored separately from network settings. Saving never truncates other settings. Readings expire after 15 minutes; battery-only messages do not renew temperature.</p>
   </details>
   <div class="ot-actions mb-2">
     <button id="ble-scan" type="button" class="btn btn-primary" data-i18n="Search nearby">Search nearby</button>
@@ -15,7 +15,7 @@
     <button id="ble-reset" type="button" class="btn btn-outline-danger" hidden data-i18n="Clear invalid Bluetooth settings">Clear invalid Bluetooth settings</button>
   </div>
   <p id="ble-status" role="status" aria-live="polite"></p>
-  <section class="pd-panel" aria-label="Bluetooth discovery"><h2 id="ble-nearby-heading" data-i18n="Nearby Bluetooth devices">Nearby Bluetooth devices</h2>
+  <section class="pd-panel" aria-label="Bluetooth discovery" data-i18n-aria-label="Bluetooth discovery"><h2 id="ble-nearby-heading" data-i18n="Nearby Bluetooth devices">Nearby Bluetooth devices</h2>
     <p class="pd-help" data-i18n="Click a device to fill in its name and address. Check the profile and save. Names are broadcast by the device and do not prove its model. Encrypted sensors still need a bindkey.">Click a device to fill in its name and address. Check the profile and save. Names are broadcast by the device and do not prove its model. Encrypted sensors still need a bindkey.</p>
     <p id="ble-found-count" class="pd-help" role="status" aria-live="polite"></p>
     <div id="ble-nearby" class="ble-list" role="region" aria-labelledby="ble-nearby-heading" tabindex="0"></div>
@@ -23,7 +23,7 @@
   </section>
   <form id="ble-form" autocomplete="off">
     <h2 data-i18n="Your sensors">Your sensors</h2>
-    <p class="pd-help" data-i18n="Waiting: nothing received yet; check distance, battery and address, or wake the sensor. Expired: no new reading for three minutes. Restart required: saved changes start after a restart.">Waiting: nothing received yet; check distance, battery and address, or wake the sensor. Expired: no new reading for three minutes. Restart required: saved changes start after a restart.</p>
+    <p class="pd-help" data-i18n="Waiting: nothing received yet; check distance, battery and address, or wake the sensor. Expired: no new reading for 15 minutes. Restart required: saved changes start after a restart.">Waiting: nothing received yet; check distance, battery and address, or wake the sensor. Expired: no new reading for 15 minutes. Restart required: saved changes start after a restart.</p>
     <div id="ble-rows" class="ble-rows"></div>
     <div class="ot-sticky ot-actions">
       <button id="ble-save" type="submit" class="btn btn-primary" disabled data-i18n="Save Bluetooth settings">Save Bluetooth settings</button>

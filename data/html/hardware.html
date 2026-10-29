@@ -616,7 +616,7 @@ function setIoTestActive(remainingSeconds) {
 	iotestRunning = true;
 	$('#iotestStartBtn').prop('disabled', true);
 	$('#iotestStopBtn').prop('disabled', false);
-	$('#iotestStatus').removeClass('badge-secondary').addClass('badge-danger').text('ACTIVE');
+	$('#iotestStatus').removeClass('badge-secondary').addClass('badge-danger').text(uiText("Active"));
 
 	iotestEndTime = Date.now() + remainingSeconds * 1000;
 	updateIoTestCountdown();

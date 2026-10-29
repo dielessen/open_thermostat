@@ -233,6 +233,42 @@ def test_boiler_power_advice_only_while_the_e32_estimates_without_it():
         "boiler_power_missing"]
     assert ids(advice.rule_boiler_power([], {**CTX, "learning": True})) == []
     assert ids(advice.rule_boiler_power([], {**CTX, "boiler_kw": None})) == []
+    # Newer firmware says which power it estimates with: that wins over the energy option.
+    learning = {**CTX, "learning": True}
+    assert ids(advice.rule_boiler_power([], {**learning, "boiler_kw_source": "default"})) == ["boiler_power_missing"]
+    assert ids(advice.rule_boiler_power([], {**learning, "boiler_kw": None, "boiler_kw_source": "ha"})) == []
+    assert ids(advice.rule_boiler_power([], {**learning, "boiler_kw_source": None})) == []
+    # The night estimate is rough while the E32 uses its default power.
+    night = {"c": 17.5, "m3": 0.2, "conf": None}
+    assert advice.night_saving(night, {**learning, "gas_meter": True, "boiler_kw_source": "default"})[2] == "low"
+    assert advice.night_saving(night, {**learning, "gas_meter": True, "boiler_kw": None,
+                                       "boiler_kw_source": "ha"})[2] == "medium"
+
+
+@pytest.mark.asyncio
+async def test_boiler_power_advice_follows_the_heating_summary(hass):
+    from custom_components.open_thermostat.heating_link import decode_summary
+    clock = [1_800_000_000.0]
+    sensor, hub, client = sensor_with(hass, clock)
+    sensor.entry.options = {CONF_BOILER_KW: 24}
+    hub.update({"schema": 1, "mode": "shadow", "request": {"heat": False, "flow_c": 0, "reason": "idle"},
+                "ha_entities": [], "rooms": []})
+    context = sensor.context(clock[0])
+    assert context["boiler_kw_source"] is None and context["learning"] is False  # older firmware: the option
+    header = {"schema": 1, "applied": True, "status": "learning", "heating_periods": 37,
+              "inputs": {"gas_meter": False, "gas_price": False, "outdoor": "boiler", "boiler_kw": 22,
+                         "boiler_kw_source": "default", "gas_kwh_per_m3": 9.77, "gas_kwh_per_m3_source": "default"}}
+    hub.update_summary(decode_summary(json.dumps({"schema": 1, "learned": header})))
+    context = sensor.context(clock[0])
+    assert context["boiler_kw_source"] == "default" and context["learning"] is True
+    assert advice.rule_boiler_power([], context)[0]["id"] == "boiler_power_missing"  # set, not yet on the E32
+    assert advice.take_sample(hub, client, clock[0])["ap"] is True
+    hub.update_summary(decode_summary(json.dumps(
+        {"schema": 1, "learned": {**header, "inputs": {**header["inputs"], "boiler_kw_source": "ha"}}})))
+    assert advice.rule_boiler_power([], sensor.context(clock[0])) == []
+    hub.update_summary(decode_summary(json.dumps(
+        {"schema": 1, "learned": {**header, "inputs": {**header["inputs"], "boiler_kw_source": "bogus"}}})))
+    assert sensor.context(clock[0])["boiler_kw_source"] is None
 
 
 def test_no_data_means_no_advice_and_says_what_is_missing():

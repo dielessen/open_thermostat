@@ -745,7 +745,7 @@ void Chain::editPlan() {
                     if (chance(0.15)) s = {}; // remove the program
                     r->schedule = s; why = "schedule"; } break;
         case 9: if (chance(0.25)) { // flow limits (restarts FlowDemand)
-                    p.minimumFlowC = uint8_t(uniformInt(25, 35)); p.maximumFlowC = uint8_t(uniformInt(45, 60)); why = "flow_limits"; } break;
+                    p.minimumFlowC = uint8_t(uniformInt(25, 35)); p.maximumFlowC = uint8_t(uniformInt(45, FlowDemand::ceilingC)); why = "flow_limits"; } break;
         case 10: if (chance(0.3) && p.rooms.size() > 4) { p.rooms.erase(p.rooms.begin() + uniformInt(0, int64_t(p.rooms.size()) - 1)); why = "remove_room"; }
                  else { for (const auto& c : catalog_) if (!p.find(c.id) && p.rooms.size() < RoomPlan::maxRooms) { p.rooms.push_back(c); why = "add_room"; break; } } break;
         case 11: if (r) { r->name = chance(0.5) ? r->name + "!" : std::string("Kamer \xC3\xA9\xC3\xA9n"); if (r->name.size() > 40) r->name = "Kamer"; why = "rename"; } break;
@@ -941,15 +941,13 @@ void Chain::emitTelegrams() {
     dhwEpisodes_.observe(monitor_, at18, unixAt(at18));
     // Burner cycle oracle: edges between consecutive reports.
     const bool on = burner_;
-    const bool gap = lastReportedOn_ && at18 - lastReportAt_ > BurnerCycleMonitor::gapMs;
     if (lastReportedOn_ && on && !*lastReportedOn_) burnerRuns_.push_back({at18, dhw_ != Dhw::idle});
     else if (lastReportedOn_ && on && *lastReportedOn_ && !burnerRuns_.empty() && dhw_ != Dhw::idle) burnerRuns_.back().dhw = true;
-    (void)gap;
     lastReportedOn_ = on; lastReportAt_ = at18;
     while (!burnerRuns_.empty() && at18 - burnerRuns_.front().start >= 2 * BurnerCycleMonitor::windowMs) burnerRuns_.pop_front();
     // 0x16 UBAParameters every 5 min: the heating limit (sometimes 25 or unknown).
     if ((now_ / 10000) % 30 == 0) {
-        if (chance(0.02)) boilerLimit_ = chance(0.5) ? std::optional<uint8_t>() : std::optional<uint8_t>(uint8_t(chance(0.3) ? 25 : 55));
+        if (chance(0.02)) boilerLimit_ = chance(0.5) ? std::optional<uint8_t>() : std::optional<uint8_t>(uint8_t(chance(0.3) ? 25 : chance(0.5) ? 55 : 75));
         else if (chance(0.1)) boilerLimit_ = uint8_t(60);
         if (boilerLimit_) {
             std::vector<uint8_t> par(12, 0);
@@ -1330,7 +1328,7 @@ void Chain::checkShadow(const FlowDemand::Request& request, std::optional<uint8_
     EXPECT(today.s == today.tadoUnknownS + today.bothS + today.neitherS + today.e32OnlyS + today.tadoOnlyS, "shadow_partition",
            "s %u != unknown+both+neither+e32+tado", today.s);
     EXPECT(today.e32.heatS <= today.s && today.tado.heatS <= today.s, "shadow_heat_le_s", "heat seconds above the day");
-    if (today.e32.heatS) EXPECT(today.e32.flowMin >= plan_.minimumFlowC - 10 && today.e32.flowMax <= 60, "shadow_flow_range", "e32 flow %u..%u", today.e32.flowMin, today.e32.flowMax);
+    if (today.e32.heatS) EXPECT(today.e32.flowMin >= plan_.minimumFlowC - 10 && today.e32.flowMax <= FlowDemand::ceilingC, "shadow_flow_range", "e32 flow %u..%u", today.e32.flowMin, today.e32.flowMax);
 }
 
 void Chain::checkDay() {
@@ -1354,11 +1352,6 @@ void Chain::checkDay() {
         }
     }
     prevCompleted_ = completed;
-    // Hot water episodes of the day that just ended (counted on the day they end).
-    if (dhwOracleValid_ && lastDay_ != firstKnownDay_) {
-        const auto week = dhwEpisodes_.lastSevenDays();
-        (void)week;
-    }
     // Heap: sampled once per local day after all JSON was freed.
     EXPECT(cjLive == 0, "cjson_leak", "%ld cJSON blocks live at midnight", long(cjLive));
     // The harness's own per-day oracles are pruned first, so only the modules can grow.
@@ -1842,10 +1835,11 @@ void guardScenario() {
         if (chance(0.00002)) foreign = ActiveHeatGuard::Foreign{chance(0.5) ? uint8_t(0x0b) : uint8_t(0x08), now - 10}; // own/boiler: ignored
         if (now >= nextLimit) {
             const double r = uniform(0, 1);
-            limit = r < 0.7 ? std::optional<uint8_t>(60) : r < 0.8 ? std::optional<uint8_t>(55) : r < 0.85 ? std::optional<uint8_t>(25) : std::nullopt;
+            limit = r < 0.6 ? std::optional<uint8_t>(60) : r < 0.7 ? std::optional<uint8_t>(55) : r < 0.75 ? std::optional<uint8_t>(80)
+                : r < 0.8 ? std::optional<uint8_t>(75) : r < 0.85 ? std::optional<uint8_t>(25) : std::nullopt;
             nextLimit = now + uint64_t(expo(12 * 3600.0) * 1000);
         }
-        if (chance(0.0001)) { planMin = uint8_t(uniformInt(20, 40)); planMax = uint8_t(uniformInt(planMin + 1, 60)); }
+        if (chance(0.0001)) { planMin = uint8_t(uniformInt(20, 40)); planMax = uint8_t(uniformInt(planMin + 1, ActiveHeatGuard::hardMaximumFlowC)); }
         if (chance(0.0005)) { routeReady = !routeReady; routeOkSince = now; }
         if (!routeReady && chance(0.01)) { routeReady = true; routeOkSince = now; }
         if (chance(0.00005)) failRate = chance(0.5) ? 0.07 : 1.0; // sometimes every write fails for a while
@@ -1996,7 +1990,6 @@ void supervisorScenario() {
         uint64_t wifiDown = 0, brokerDown = 0, quiet = 1, loopAt = 1, updateSince = 0, btQuiet = 1;
         uint32_t probeFailures = 0;
         bool armed = false, brokerSeen = false;
-        const uint64_t faultBootS = 1;
         bool restarted = false;
         while (!restarted) {
             wall += 5000;
@@ -2033,7 +2026,6 @@ void supervisorScenario() {
             const uint64_t visibleS = fault == 1 ? (wifiDown ? nowS - wifiDown : 0) : fault == 2 ? (brokerDown ? nowS - brokerDown : 0)
                 : fault == 4 ? nowS - loopAt : fault == 5 ? (updateSince ? nowS - updateSince : 0) : fault == 6 ? nowS - btQuiet : 0;
             const uint64_t faultFor = visibleS * 1000;
-            (void)faultBootS;
             if (!fault) EXPECT(reason == P::Reason::none, "sup_restart_healthy", "restart %s while healthy", P::name(reason));
             if (update) EXPECT(reason == P::Reason::none || (reason == P::Reason::updateStuck && faultFor >= P::updateMaxMs), "sup_restart_during_update",
                                "%s during an update of %" PRIu64 " s", P::name(reason), faultFor / 1000);

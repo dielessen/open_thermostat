@@ -12,8 +12,12 @@ hot water (``dhw``); those entities appear only once the fields do. The
 learned rooms come either inside the status (``learned.rooms`` and
 ``learned.plans``, beta.18 test builds) or, to stay within the MQTT size
 limit, one message per room on ``fw/telemetry/heating_learned/<room id>``
-(at least every 60 s; stale after ``LEARNED_STALE_SECONDS``); the status
-then keeps only the learned header (schema, applied, status, ...).
+(at least every 60 s; stale after ``LEARNED_STALE_SECONDS``). The learned
+header (schema, applied, status, heating periods, the energy inputs it uses)
+and today's hot water come inside the status on older firmware, and on
+``fw/telemetry/heating_summary`` (every 15 s, stale after
+``SUMMARY_STALE_SECONDS``) on newer firmware, whose status no longer carries
+them; the summary wins when both are there.
 
 One ``HeatingHub`` per entry holds the latest status. Every platform (sensor,
 binary_sensor, select, number, datetime) creates its entities from it for the
@@ -51,6 +55,10 @@ MAX_STATUS_BYTES = 8192
 # A room's learned message (every room at least every 60 s) expires after three missed ones.
 LEARNED_STALE_SECONDS = 180
 LEARNED_TOPIC = "fw/telemetry/heating_learned/"
+# The learned header and today's hot water, every 15 s like the status (about 430 bytes).
+SUMMARY_TOPIC = "fw/telemetry/heating_summary"
+SUMMARY_STALE_SECONDS = 60
+MAX_SUMMARY_BYTES = 2048
 
 
 def decode_status(payload):
@@ -133,7 +141,33 @@ def decode_learned(topic_room, payload):
     learned, plan = value.get("learned"), value.get("plan")
     if type(learned) is not dict or (plan is not None and type(plan) is not dict):
         return None
+    if plan is not None and plan.get("id", topic_room) != topic_room:  # the plan may carry its room id
+        return None
     return {**learned, "id": topic_room}, ({**plan, "id": topic_room} if plan is not None else None)
+
+
+def decode_summary(payload):
+    """The ``heating_summary`` document (schema 1: ``learned`` header, ``dhw``), or None.
+
+    Either part may be missing; a part that is there must be an object.
+    """
+    if not isinstance(payload, (str, bytes)) or len(payload) > MAX_SUMMARY_BYTES:
+        return None
+    try:
+        value = json.loads(payload)
+    except (ValueError, TypeError, UnicodeError):
+        return None
+    if type(value) is not dict or value.get("schema") != 1:
+        return None
+    if any(value.get(key) is not None and type(value.get(key)) is not dict for key in ("learned", "dhw")):
+        return None
+    return value
+
+
+def learned_inputs(header):
+    """The energy inputs the learner uses (``learned.inputs``), or {} on firmware without them."""
+    inputs = header.get("inputs") if type(header) is dict else None
+    return inputs if type(inputs) is dict else {}
 
 
 def status_ble(status):
@@ -201,6 +235,9 @@ class HeatingHub:
         self.warmup = {}
         # {room id: (received, learned room, plan or None)} from heating_learned/<room id>
         self.learned_messages = {}
+        # The latest heating_summary (decode_summary) and when it arrived (monotonic).
+        self.summary = None
+        self.summary_received = None
         self.received = None
         # The last status received (monotonic), kept while the telemetry is stale.
         self.last_seen = None
@@ -215,6 +252,18 @@ class HeatingHub:
     def revision(self):
         revision = self.status.get("revision") if self.status else None
         return revision if type(revision) is int else None
+
+    @property
+    def learned_header(self):
+        """The learner's header (applied, status, heating periods, inputs): the summary, else the status."""
+        header = learned_status(self.summary)
+        return header if header is not None else learned_status(self.status)
+
+    @property
+    def dhw(self):
+        """Today's hot water: the summary, else inside the status (older firmware)."""
+        dhw = dhw_status(self.summary)
+        return dhw if dhw is not None else dhw_status(self.status)
 
     @callback
     def add_listener(self, listener):
@@ -263,15 +312,27 @@ class HeatingHub:
         self.notify()
 
     @callback
+    def update_summary(self, summary):
+        """The latest heating_summary (decode_summary); None (invalid) drops the previous one."""
+        if summary is None and self.summary is None:
+            return
+        self.summary = summary
+        self.summary_received = self.clock() if summary is not None else None
+        self.notify()
+
+    @callback
     def check_stale(self, _now=None):
         now = self.clock()
         expired = [room_id for room_id, (at, _, _) in self.learned_messages.items()
                    if now - at > LEARNED_STALE_SECONDS]
         for room_id in expired:
             del self.learned_messages[room_id]
+        summary_expired = self.summary is not None and now - self.summary_received > SUMMARY_STALE_SECONDS
+        if summary_expired:
+            self.summary, self.summary_received = None, None
         if self.status is not None and now - self.received > STALE_SECONDS:
             self.update(None)
-        elif expired:
+        elif expired or summary_expired:
             self._merge_learned()
             self.notify()
 
@@ -773,7 +834,7 @@ class LearnedRoomEntity(RoomEntity):
 
     def _applied(self):
         """False while the E32 only reports its advice and keeps its own flow rule."""
-        return (learned_status(self.hub.status) or {}).get("applied") is True
+        return (self.hub.learned_header or {}).get("applied") is True
 
 
 class RoomLearningSensor(LearnedRoomEntity, SensorEntity):
@@ -795,7 +856,7 @@ class RoomLearningSensor(LearnedRoomEntity, SensorEntity):
         learned = self.learned
         if learned is None:
             return None
-        whole = learned_status(self.hub.status) or {}
+        whole = self.hub.learned_header or {}
         return {"room_id": self.room_id, "emitter": _text(learned, "emitter"),
                 "segments": _count(learned.get("segments")), "periods": _count(learned.get("periods")),
                 "heating_periods": _count(whole.get("heating_periods")), "learner": _text(whole, "status"),
@@ -875,7 +936,8 @@ class RoomHeatingStartSensor(RoomEntity, SensorEntity):
             return None
         start, night = _dict(self.warmup, "optimum_start"), _dict(self.warmup, "night")
         # MQTT carries the compact form (no next_switch, no strategies); /status/heating the full one.
-        recommended_c = night.get("recommended_c", night.get("recommended_night_c"))
+        # The E32 names the night setpoint recommended_night_c (recommended_c in early beta.18 builds).
+        recommended_c = night.get("recommended_night_c", night.get("recommended_c"))
         result = {"room_id": self.room_id, "reason": _text(start, "reason"),
                   "lead_minutes": _whole(start.get("lead_minutes"), 0, 1440),
                   "flow_c": _whole(start.get("flow_c"), 0, 90), "confidence": _text(start, "confidence"),
@@ -902,7 +964,7 @@ class RoomHeatingStartSensor(RoomEntity, SensorEntity):
 
 
 def dhw_status(status):
-    """Today's hot-water summary (``dhw`` with ``today``), or None on firmware without it."""
+    """Today's hot water (``dhw`` with ``today``) of a status or summary, or None without it."""
     dhw = status.get("dhw") if status else None
     return dhw if type(dhw) is dict and type(dhw.get("today")) is dict else None
 
@@ -934,7 +996,7 @@ class DhwTodaySensor(HubEntity, SensorEntity):
 
     @property
     def dhw(self):
-        return dhw_status(self.hub.status) if self.hub.fresh else None
+        return self.hub.dhw if self.hub.fresh else None
 
     @property
     def available(self):
@@ -976,7 +1038,7 @@ def wanted_sensors(hub):
             yield ("shadow", key), lambda key=key: ShadowSensor(hub, key)
     if burner_status(hub.status) is not None:  # firmware that counts burner starts
         yield ("burner",), lambda: BurnerStartsSensor(hub)
-    if dhw_status(hub.status) is not None:  # firmware that sorts the hot-water episodes
+    if hub.dhw is not None:  # firmware that sorts the hot-water episodes
         for key in DHW_SENSORS:
             yield ("dhw", key), lambda key=key: DhwTodaySensor(hub, key)
     for room_id, room in hub.rooms.items():
@@ -1099,6 +1161,12 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
         hub.update_learned(room_id, decode_learned(room_id, message.payload))
 
     @callback
+    def receive_summary(message):
+        if getattr(message, "retain", False):
+            return
+        hub.update_summary(decode_summary(message.payload))
+
+    @callback
     def unload():
         if unsubscribe_states is not None:
             unsubscribe_states()
@@ -1106,6 +1174,7 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
     await mqtt.async_wait_for_mqtt_client(hass)
     entry.async_on_unload(await mqtt.async_subscribe(hass, topic_base + "fw/telemetry/heating", receive))
     entry.async_on_unload(await mqtt.async_subscribe(hass, topic_base + LEARNED_TOPIC + "+", receive_learned))
+    entry.async_on_unload(await mqtt.async_subscribe(hass, topic_base + SUMMARY_TOPIC, receive_summary))
     entry.async_on_unload(async_track_time_interval(hass, refresh, timedelta(seconds=REFRESH_SECONDS)))
     entry.async_on_unload(async_track_time_interval(hass, hub.check_stale, STALE_CHECK))
     entry.async_on_unload(unload)

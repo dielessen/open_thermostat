@@ -285,13 +285,13 @@ def night_saving(night, ctx):
     calibrated = night.get("conf") == "calibrated"
     if calibrated:
         confidence = "high" if m3 >= NIGHT_HIGH_SAVING_M3 else "medium"
-    elif gas and night.get("conf") is None and ctx.get("boiler_kw"):
+    elif gas and night.get("conf") is None and boiler_kw_known(ctx):
         confidence = "medium"
     else:
         confidence = "low"
         if gas and night.get("conf") is not None:
             parts.append("calibrating")
-    if not ctx.get("boiler_kw") and not calibrated:
+    if not boiler_kw_known(ctx) and not calibrated:
         confidence = "low"
         parts.append("rough")
     return values, parts, confidence
@@ -362,9 +362,21 @@ def rule_pump_run_on(samples, ctx):
     return []
 
 
+def boiler_kw_known(ctx):
+    """Whether the E32 estimates with a real boiler power.
+
+    Newer firmware says which power it uses (``inputs.boiler_kw_source``:
+    ``default`` or ``ha``); older firmware only has the energy option to go by.
+    """
+    source = ctx.get("boiler_kw_source")
+    if source in ("default", "ha"):
+        return source == "ha"
+    return bool(ctx.get("boiler_kw"))
+
+
 def rule_boiler_power(samples, ctx):
-    """The E32 estimates with a default boiler power until one is set in the energy options."""
-    if ctx.get("boiler_kw") or not ctx.get("learning"):
+    """The E32 estimates with a default boiler power until one reaches it from the energy options."""
+    if boiler_kw_known(ctx) or not ctx.get("learning"):
         return []
     return [advice("boiler_power_missing", "boiler_power_missing", "info", "high")]
 
@@ -824,7 +836,7 @@ def boiler_maximum(client):
 
 def take_sample(hub, client, now):
     """One five-minute sample: the boiler fields and the E32 telemetry that the rules read."""
-    from .heating_link import _count, burner_status, flow_advice, learned_status, number
+    from .heating_link import _count, burner_status, flow_advice, number
     sample = {"t": now,
               "fl": _either(client, ("measured_flow_temperature", "plus_flow_temperature"), 5, 95),
               "rn": _either(client, ("measured_return_temperature", "plus_return_temperature"), 5, 95),
@@ -846,7 +858,7 @@ def take_sample(hub, client, now):
         burner = burner_status(status) or {}
         sample["sc"] = burner.get("short_cycling") if type(burner.get("short_cycling")) is bool else None
         sample["hs"] = _count(burner.get("heating_starts_last_hour"))
-        sample["ap"] = (learned_status(status) or {}).get("applied") is True
+        sample["ap"] = (hub.learned_header or {}).get("applied") is True
         rooms = {}
         for room_id, learned in hub.learned.items():
             items = learned.get("advice")
@@ -860,7 +872,7 @@ def take_sample(hub, client, now):
             night = plan.get("night") if type(plan.get("night")) is dict else {}
             if night.get("reason") != "estimated":
                 continue
-            nights[room_id] = {"c": number(night.get("recommended_c", night.get("recommended_night_c")), 5, 30),
+            nights[room_id] = {"c": number(night.get("recommended_night_c", night.get("recommended_c")), 5, 30),
                                "m3": number(night.get("saving_m3"), 0, 100),
                                "eur": number(night.get("saving_eur"), 0, 1000),
                                "name": night.get("recommended") if type(night.get("recommended")) is str else None,
@@ -962,17 +974,20 @@ class HeatingAdviceSensor(RestoreEntity, SensorEntity):
     def context(self, now):
         options = energy_options(self.entry)
         names = {}
-        from .heating_link import label
+        from .heating_link import label, learned_inputs
         for room_id, room in self.hub.rooms.items():
             names[room_id] = label(room)
         hass = getattr(self, "hass", None)
+        header = self.hub.learned_header if self.hub.fresh else None
+        source = learned_inputs(header).get("boiler_kw_source")
         return {"today": self._today(now), "days": self.history.days, "floor": floor_present(self.hub),
                 "max_flow": plan_max_flow(self.hub), "names": names,
                 "gas_meter": CONF_GAS_METER in options, "kwh_per_m3": kwh_per_m3(options),
                 "price": gas_price(hass, options) if hass is not None else None,
                 "currency": currency(hass) if hass is not None else "EUR",
                 "boiler_kw": options.get(CONF_BOILER_KW),
-                "learning": bool(self.hub.learned) or bool(self.hub.warmup)}
+                "boiler_kw_source": source if source in ("default", "ha") else None,
+                "learning": header is not None or bool(self.hub.learned) or bool(self.hub.warmup)}
 
     @callback
     def sample(self):

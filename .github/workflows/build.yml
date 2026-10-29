@@ -504,6 +504,11 @@ jobs:
           python -m pytest ha/tests ha/tests_native -q -o faulthandler_timeout=60 --junitxml=out/ha-core-2026.10.2.xml
           pip install --no-deps homeassistant==2026.10.3
           python -m pytest ha/tests ha/tests_native -q -o faulthandler_timeout=60 --junitxml=out/ha-core-2026.10.3.xml
+          # Minimum accepted Core. The two provenance tests deliberately pin the
+          # tested 2026.10.2-.4 sources, so they are left out for this run only.
+          pip install --no-deps homeassistant==2026.10.0
+          python -m pytest ha/tests ha/tests_native -q -o faulthandler_timeout=60 --junitxml=out/ha-core-2026.10.0.xml \
+            --ignore=ha/tests_native/test_native_provider.py --ignore=ha/tests_native/test_native_schema_contract.py
           pip install --no-deps homeassistant==2026.10.4
       - name: Verify and package exact HA-only candidate
         run: |
@@ -523,6 +528,7 @@ jobs:
           name: home-assistant-acceptance
           path: |
             out/ha-acceptance.xml
+            out/ha-core-2026.10.0.xml
             out/ha-core-2026.10.2.xml
             out/ha-core-2026.10.3.xml
             out/ha-core-2026.10.4.xml

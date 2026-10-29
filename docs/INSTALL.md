@@ -42,10 +42,9 @@ The full list is in the [requirements](../README.md#requirements). In short:
   computer, for the first installation.
 - At least one **temperature source per room**: a supported Bluetooth
   thermometer, or a temperature sensor in Home Assistant.
-- For Home Assistant: **Home Assistant 2026.10.2, 2026.10.3 or 2026.10.4**
-  (the integration checks the exact version before it changes its
-  configuration), an **MQTT broker** such as the Mosquitto broker add-on, and
-  Home Assistant's **MQTT integration**.
+- For Home Assistant: **Home Assistant 2026.10.0 or newer** (tested with
+  2026.10.2 to 2026.10.4), an **MQTT broker** such as the Mosquitto broker
+  add-on, and Home Assistant's **MQTT integration**.
 
 ## 2. Install the firmware on a new E32 (USB)
 
@@ -264,7 +263,8 @@ The E32 and Home Assistant exchange all live values over MQTT.
    simplest way is a separate Home Assistant user, for example `e32`, under
    **Settings → People → Users** (this tab appears when advanced mode is on in
    your Home Assistant profile). The E32 needs a user name and password for
-   the broker; Home Assistant refuses to connect an E32 without one.
+   the broker: it does not connect to Home Assistant through a broker without
+   a login.
 
 ### 8.2 Let the E32 use the broker
 
@@ -309,30 +309,10 @@ release is not needed for OpenThermostat.
    E32's MQTT Base. (Only a second E32 needs another prefix.) Choose **Add
    installation**.
 
-### 8.5 Add one starter room (current integration versions)
+You do not need to add a room in Home Assistant; you set up rooms after
+connecting ([section 8.6](#86-set-up-your-rooms)).
 
-Before Home Assistant can connect to the E32, the current integration needs
-one room in Home Assistant itself.
-
-1. On the OpenThermostat integration page, choose **Add room**.
-2. Give it a name and keep the heating type **Radiators** (the other types are
-   not available in this step).
-3. Choose a **room temperature sensor** from Home Assistant and at least one
-   **radiator valve** (a climate entity). If you have no radiator valves in
-   Home Assistant, you can choose an existing thermostat's climate entity.
-   Saving this room does not switch on heating control and sends nothing to
-   the chosen devices.
-4. Set a temperature and save the room.
-
-If Home Assistant has no climate entity at all, this step cannot be completed
-with the current integration; keep using the E32 on its own (sections 6 and
-7) until a later integration version.
-
-After the connection, the rooms the E32 actually uses are managed under
-**Configure → Rooms** (section 8.7). The starter room stays listed as an older
-Home Assistant room record and is not used by the E32's heating calculation.
-
-### 8.6 Connect the E32
+### 8.5 Connect the E32
 
 1. On the OpenThermostat integration page, choose **Configure → Connect E32**.
 2. **E32 web address:** the address you use in the browser, including
@@ -341,14 +321,15 @@ Home Assistant room record and is not used by the E32's heating calculation.
    in `.local`, `.lan`, `.home`, `.internal`, `.localdomain`, `.fritz.box` or
    `.home.arpa` works.
 3. **E32 password:** your E32 web password from section 3.
-4. Submit. Home Assistant checks the E32, sends the room plan and waits until
-   the E32 confirms it. The E32 may restart once. When it says **E32
-   connected**, close the window.
+4. Submit. Home Assistant checks the E32, switches its MQTT connection to
+   Home Assistant and waits for the E32's first report over MQTT (up to two
+   minutes). The E32 may restart once. When it says **E32 connected**, close
+   the window.
 
 Home Assistant stores the password. If you change it on the E32 later, Home
 Assistant asks for the new one (Re-authenticate on the integration page).
 
-### 8.7 Set up your rooms
+### 8.6 Set up your rooms
 
 Go to **Configure → Rooms**. Rooms you already created on the E32 appear here
 unchanged. Choose **Add a room** and fill in:
@@ -375,13 +356,33 @@ Assistant"), with **Edit here anyway** for when Home Assistant is not
 reachable. The [user guide](USER-GUIDE.md#adding-home-assistant) explains the
 fields and what happens when Home Assistant is offline.
 
-### 8.8 Energy and outdoor temperature (optional)
+### 8.7 Energy and outdoor temperature (optional)
 
 Under **Configure → Energy and outdoor temperature** you can choose a gas
 meter (m³ or kWh), a gas price sensor or a fixed price, the calorific value of
 your gas, an outdoor temperature sensor or weather entity, and your boiler's
 heating power. Every field is optional. With them, the gas and cost estimates
 and the heating advice become more accurate.
+
+### 8.8 Notifications (optional)
+
+The integration includes automation blueprints in
+`custom_components/open_thermostat/blueprints/`. Home Assistant does not load
+blueprints from there, so copy the ones you want into
+`<config>/blueprints/automation/` (for example
+`<config>/blueprints/automation/open_thermostat/`), where `<config>` is the
+folder that contains `configuration.yaml`. Then reload or restart Home
+Assistant and create an automation from it under **Settings → Automations &
+scenes → Blueprints**.
+
+- `heating_problem.yaml` ("OpenThermostat - notify me when the heating has a
+  problem"): a notification with the reasons when the **Heating problem**
+  sensor turns on, and optionally when everything is OK again.
+- `weekly_summary.yaml` ("OpenThermostat - weekly heating summary"): once a
+  week, a short summary of the last seven days (gas for heating and hot water,
+  the change from the week before and the top advice items), on the day you
+  choose. Choose your **Heating advice** sensor in the automation. It is advice
+  only; turn the automation off to stop the messages.
 
 ### 8.9 Check it
 
@@ -397,7 +398,7 @@ Updates keep your network settings, rooms, programs and paired sensors. Never
 use the factory image for an update.
 
 **E32 firmware from Home Assistant (recommended).** Once the E32 is connected
-(section 8.6), the OpenThermostat device has a **Firmware** update entity.
+(section 8.5), the OpenThermostat device has a **Firmware** update entity.
 Home Assistant checks GitHub every 6 hours. A new version appears under
 **Settings → Updates**, like an ESPHome device; choose **Install**. Home
 Assistant downloads `firmware.bin` from the release, checks its SHA-256, size
@@ -425,7 +426,19 @@ replace the `custom_components/open_thermostat` folder with the new one and
 restart Home Assistant. Keep your existing OpenThermostat entry; there is no
 need to remove and add it again. The E32 firmware update does not update the
 integration. Install firmware and integration versions that their release
-notes pair together.
+notes pair together. If you copied the blueprints (section 8.8), copy them
+again after an update.
+
+**Installations that still have a starter room.** Earlier integration
+versions needed one room in Home Assistant before Connect E32 worked. That
+room is no longer used: your rooms live in the E32 room plan (Configure →
+Rooms). Home Assistant shows a repair, **Settings → System → Repairs → "Old
+Home Assistant room no longer used"**, to remove it. You can also use
+**Configure → Advanced and diagnostics → Remove old Home Assistant rooms**.
+Removing it deletes only that old room's devices and entities in this
+integration. Your sensors, thermostats and radiator valves, and the rooms on
+the E32, stay as they are. The E32 stays connected; it may restart once
+(about 30 seconds).
 
 ## 10. Forgotten password and Wi-Fi recovery over USB
 
@@ -478,16 +491,20 @@ The live values come over MQTT.
 The form says what is wrong. The most common messages:
 
 - *Enter the local E32 web address*: include `http://` and use an IP address
-  or a local name (section 8.6).
+  or a local name (section 8.5).
 - *The E32 did not accept this password*: use the E32 web password (user
   `admin`).
-- *The E32 needs a working MQTT connection first*: complete section 8.2,
-  including a broker user name.
-- *Add a room with its temperature sensor and radiator valves first*: see
-  section 8.5.
-- *The saved rooms or programs do not fit the current E32 connection
-  profile*: also check that your Home Assistant version is 2026.10.2,
-  2026.10.3 or 2026.10.4.
+- *The E32 needs its own MQTT login first*: MQTT on the E32 needs its own
+  login, a user name and a password that the broker accepts. Complete
+  section 8.2 and let the E32 restart.
+- *Home Assistant received nothing from it over MQTT within 90 seconds*: the
+  E32 restarted with the Home Assistant settings but sent nothing that Home
+  Assistant received. Check that the E32 uses the same broker as Home
+  Assistant's MQTT integration (System → Network → MQTT) and that the broker
+  accepts its user name and password, then try again.
+- *This integration needs Home Assistant 2026.10.0 or newer*: update Home
+  Assistant; if yours is newer than the tested 2026.10.2 to 2026.10.4, check
+  for an integration update.
 - *The E32 is updating, restarting or has a conflicting configuration*: wait
   until the E32 has finished and try again.
 

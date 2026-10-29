@@ -149,20 +149,30 @@ and the calculated boiler request. The status reads "Measured". The
 The [installation guide](INSTALL.md#8-home-assistant-optional) describes
 each step in detail. In short:
 
+You need Home Assistant 2026.10.0 or newer (tested with 2026.10.2 to
+2026.10.4).
+
 1. Set up Home Assistant's MQTT integration with a local MQTT broker, and
-   enter the same broker under E32 **System → Network → MQTT** (tick
-   **Enabled**, with a broker user name and password).
+   enter the same broker under E32 **System → Network → MQTT**: tick
+   **Enabled** and enter a broker user name and password. The E32 does not
+   connect to Home Assistant through a broker without a login.
 2. Install the OpenThermostat integration package, restart Home Assistant and
-   add OpenThermostat under Settings → Devices & services.
-3. The current integration needs one starter room (**Add room** on the
-   integration page) before it can connect; see
-   [the installation guide](INSTALL.md#85-add-one-starter-room-current-integration-versions).
-4. Choose **Configure → Connect E32** and enter the E32 address and password.
+   add OpenThermostat under Settings → Devices & services. You do not need to
+   add a room in Home Assistant first.
+3. Choose **Configure → Connect E32** and enter the E32 address and password.
    The address may be an IP address or a local name such as
    `http://openthermostat-a1b2c3.local`, `http://e32.fritz.box` or
-   `http://e32.home.arpa`.
-5. From then on, rooms are managed in Home Assistant under **Configure →
+   `http://e32.home.arpa`. Home Assistant switches the E32's MQTT connection
+   to Home Assistant and waits for its first report (up to two minutes); the
+   E32 may restart once.
+4. From then on, rooms are managed in Home Assistant under **Configure →
    Rooms**. Your existing E32 rooms appear there unchanged.
+
+Installed with an earlier integration version that needed a starter room in
+Home Assistant? That room is no longer used. Remove it with **Settings →
+System → Repairs → "Old Home Assistant room no longer used"** (or Configure →
+Advanced and diagnostics → Remove old Home Assistant rooms); see
+[the installation guide](INSTALL.md#9-updates).
 
 ### A room with a Home Assistant thermostat and a Bluetooth fallback
 

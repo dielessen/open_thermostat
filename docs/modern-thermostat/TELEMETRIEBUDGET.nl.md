@@ -1,6 +1,6 @@
 # Telemetriebudget E32 ↔ Home Assistant — ontwerp (beta.19)
 
-Status: **ontwerp, ter beoordeling door de eigenaar** (29 oktober 2026).
+Status: **goedgekeurd door de eigenaar** (29 oktober 2026): "Bij verandering, rustig", "Ja, samen installeren", "Na ~3 minuten stilte".
 Aanleiding (eigenaar): "we zullen echt moeten nadenken hoe we dat realistisch
 gaan inrichten zodat het werkbaar blijft en dat de performance goed blijft. We
 werken uiteindelijk met dat E32 ESP-board." en "we hoeven niet iedere seconde
@@ -125,11 +125,12 @@ met reden, laagste vrije geheugen.
 - **Op de E32 van de eigenaar**: 24 uur met het bewakingsscript; eis 0
   onterechte verbrekingen, ≥ 20 KB vrij geheugen, verkeer binnen het budget.
 
-## 9. Te beslissen door de eigenaar
+## 9. Besluiten eigenaar (29 oktober 2026)
 
-1. Zijn de snelheden goed: belangrijke waarden binnen ~5–10 s na een echte
-   verandering, verder rustig (5–15 min)? Of wil je bijvoorbeeld de
-   ruimtetemperatuur vaker zien?
-2. Akkoord dat beta.19 en HA 0.4.0b11 samen geïnstalleerd moeten worden (de
-   oude grote berichten verdwijnen)?
-3. Akkoord met "niet beschikbaar pas na ~3 minuten stilte" in HA?
+1. **Snelheid:** bij verandering, rustig — ruimtetemperatuur, ketelvraag en
+   brander binnen ~5–10 s na een echte verandering (≥ 0,1 °C / ≥ 1 °C aanvoer),
+   anders elke 5 min; geleerde waarden en statistiek elke 5–15 min.
+2. **Samen installeren:** beta.19 en HA 0.4.0b11 horen samen; de oude grote
+   berichten verdwijnen.
+3. **Niet beschikbaar** in HA pas na ~3 minuten stilte (3 gemiste heartbeats)
+   of als de E32 zelf offline meldt.

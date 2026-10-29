@@ -228,13 +228,14 @@ async def test_room_demand_is_a_binary_sensor_on_the_same_hub(hass, monkeypatch)
     entry, hub, added, send = await _setup(hass, monkeypatch)
     demand = []
     await module.async_setup_demand(hass, entry, demand.extend)
-    assert demand == []
+    # The "Heating problem" sensor is there from the start, on the product device.
+    assert [e.unique_id for e in demand] == ["fixture_hub_heating_problem"]
     send(FULL)
-    assert [e.unique_id for e in demand] == ["fixture_e32_room_woonkamer_demand"]
-    assert demand[0].is_on is True and demand[0].device_class == "heat"
+    assert [e.unique_id for e in demand][1:] == ["fixture_e32_room_woonkamer_demand"]
+    assert demand[1].is_on is True and demand[1].device_class == "heat"
     off = json.loads(json.dumps(FULL)); off["rooms"][0]["demand"] = False
     send(off)
-    assert demand[0].is_on is False
+    assert demand[1].is_on is False
 
 
 COMPONENT = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
@@ -254,8 +255,9 @@ NAMES = {
                "dhw_keep_warm_today": ("Keeping warm today", "Warmhouden vandaag"),
                "dhw_burner_time_today": ("Hot water burner time today", "Brandertijd warm water vandaag")},
     "binary_sensor": {"room_demand": ("Heat demand", "Warmtevraag"),
-                      "burner_short_cycling": ("Burner short cycling", "Brander pendelt")},
-    "select": {"room_state": ("Mode", "Stand")},
+                      "burner_short_cycling": ("Burner short cycling", "Brander pendelt"),
+                      "heating_problem": ("Heating problem", "Verwarmingsprobleem")},
+    "select": {"room_state": ("Heating", "Verwarmen")},
     "datetime": {"room_inactive_until": ("Off until", "Uit tot")},
     "number": {"room_fallback_setpoint": ("Temperature without Home Assistant", "Temperatuur zonder Home Assistant")},
 }
@@ -274,7 +276,7 @@ def test_entity_names_are_plain_glossary_names_in_both_languages():
     assert nl["sensor"]["room_status"]["state"] == {"ok": "In orde", "fallback": "Terugvalstand",
                                                     "stale": "Meting verouderd", "lost": "Sensor kwijt",
                                                     "inactive": "Uit"}
-    assert nl["select"]["room_state"]["state"] == {"active": "Actief", "inactive": "Uit"}
+    assert nl["select"]["room_state"]["state"] == {"active": "Aan", "inactive": "Uit"}
 
 
 def test_icons_cover_the_entities_and_services():

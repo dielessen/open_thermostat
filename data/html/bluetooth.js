@@ -7,6 +7,9 @@ window.BluetoothPage = (() => {
   const profiles={shelly_ht_display:'Shelly BLU H&T Display',xiaomi_monitor_3:'Xiaomi Monitor 3 (MJWSD05MMC)',shelly_blu_trv:'Shelly BLU TRV (SBTR-001AEU)',pvvx_thermometer:'Thermometer with pvvx firmware (BTHome)'};
   const allowedEncryption=(profile,value)=>profile==='xiaomi_monitor_3'?value==='mibeacon_v4_v5':['shelly_ht_display','shelly_blu_trv','pvvx_thermometer'].includes(profile)&&['none','bthome_v2'].includes(value);
   const hexAddress=s=>typeof s==='string'&&/^[0-9a-f]{12}$/.test(s);
+  // A guess from the broadcast name only; the owner confirms it before saving.
+  const guess=name=>/^(ATC_|BTE_|BTH|pvvx)/i.test(name)?['pvvx_thermometer','none']:/^(SBHT|SBBT|Shelly)/i.test(name)?['shelly_ht_display','bthome_v2']:/^(LYWSD|MJWSD|MiBeacon)/i.test(name)?['xiaomi_monitor_3','mibeacon_v4_v5']:null;
+  const age=ms=>{const s=Math.floor(ms/1000);return s<120?s+' s':s<7200?Math.round(s/60)+' min':Math.round(s/3600)+' h';};
   function valid(s) {
     const capacity=s?.discovery_capacity??32;
     if(s?.schema!==1||!Number.isInteger(capacity)||capacity<1||capacity>128||typeof s.pending_restart!=='boolean'||typeof s.scan_pending!=='boolean'||typeof s.discovery_full!=='boolean'||typeof s.config_error!=='string'||!Number.isSafeInteger(s.queue_drops)||s.queue_drops<0||!Array.isArray(s.devices)||s.devices.length>8||!Array.isArray(s.nearby)||s.nearby.length>capacity||!s.nearby.every(hexAddress)||new Set(s.nearby).size!==s.nearby.length)return false;
@@ -57,7 +60,7 @@ window.BluetoothPage = (() => {
       const resetKeyAction=()=>{action.value=device.key_stored&&!device.draftOnly&&normalizedAddress()===device.address&&profile.value===device.profile&&encryption.value===device.encryption?'keep':'set';key.value='';};
       box.isSavedBinding=()=>!device.draftOnly&&Boolean(device.address)&&normalizedAddress()===device.address&&profile.value===device.profile&&encryption.value===device.encryption&&(encryption.value==='none'||action.value==='keep');
       const adjust=()=>{
-        action.disabled=encryption.value==='none';if(action.disabled)action.value='clear';
+        action.disabled=encryption.value==='none';if(action.disabled)action.value='clear';action.closest('label').hidden=action.disabled;
         key.hidden=action.value!=='set'||encryption.value==='none';key.closest('label').hidden=key.hidden;key.required=!key.hidden;if(key.hidden)key.value='';
         const same=normalizedAddress()===device.address&&profile.value===device.profile&&encryption.value===device.encryption;
         action.querySelector('option[value="keep"]').textContent=t(same&&device.key_stored?'Keep stored key':'No stored key');
@@ -85,8 +88,9 @@ window.BluetoothPage = (() => {
           button.addEventListener('click',()=>{
             if(button.disabled)return;
             const current=nearbyHints.find(h=>h.address===d.address);
-            const box=addRow({address:d.address,draftOnly:true,name:current?.name??'',profile:'shelly_ht_display',encryption:'bthome_v2',key_stored:false});
-            if(!box)return;draft();say('Address and name filled in. Check the device profile, enter a bindkey if needed, then save.');
+            const guessed=guess(current?.name??''),[profile,encryption]=guessed??['shelly_ht_display','bthome_v2'];
+            const box=addRow({address:d.address,draftOnly:true,name:current?.name??'',profile,encryption,key_stored:false});
+            if(!box)return;draft();say(guessed?'Profile guessed from the device name — check it, enter a bindkey if needed, then save.':'Address and name filled in. Check the device profile, enter a bindkey if needed, then save.');
             box.querySelector('[data-ble-field=profile]').focus();box.scrollIntoView({block:'nearest',behavior:'smooth'});
           },{signal:owner.signal});
         }
@@ -105,11 +109,16 @@ window.BluetoothPage = (() => {
         const d=savedRows.get(box.dataset.savedAddress), node=box.querySelector('[data-readings]');
         const n=(v,digits)=>v.toLocaleString(OpenThermostatLanguage.locale,{minimumFractionDigits:digits,maximumFractionDigits:digits});
         if(!box.isSavedBinding()||!d){node.textContent=!box.isSavedBinding()?t('Save and restart to receive data for this device.'):'—';continue;}
-        const chip=el('span',t(states[d.status]));chip.className='ot-chip'+(d.status==='received'?' ot-chip--ok':['waiting','stale','pending_restart'].includes(d.status)?'':' ot-chip--err');
+        const chip=el('span',t(d.status==='pending_restart'&&s.restart_scheduled===true?'Restarts by itself shortly':states[d.status]));chip.className='ot-chip'+(d.status==='received'?' ot-chip--ok':['waiting','stale','pending_restart'].includes(d.status)?'':' ot-chip--err');
         const big=el('span',d.temperature===null?'—':n(d.temperature/100,1)+' °C');big.className='ot-big';big.title=t(d.profile==='shelly_blu_trv'?'Calculated TRV temperature':'Temperature');
         const lab=el('span',t(d.profile==='shelly_blu_trv'?'Calculated TRV temperature':'Temperature'));lab.className='pd-help';
-        const rest=el('span',(d.profile==='shelly_blu_trv'?'':t('Humidity')+': '+(d.humidity===null?'—':n(d.humidity/100,1)+' %'))+(d.profile==='shelly_blu_trv'?'':' · ')+t('Battery')+': '+(d.battery===null?'—':d.battery+' %')+' · '+t('Last update')+': '+(d.temperature_age_ms===null?'—':t('{age} ago').replace('{age}',Math.floor(d.temperature_age_ms/1000)+' s')));rest.className='pd-help';
-        node.replaceChildren(lab,big,chip,rest);
+        const rest=el('span',(d.profile==='shelly_blu_trv'?'':t('Humidity')+': '+(d.humidity===null?'—':n(d.humidity/100,1)+' %'))+(d.profile==='shelly_blu_trv'?'':' · ')+t('Battery')+': '+(d.battery===null?'—':d.battery+' %')+' · '+t('Last update')+': '+(d.temperature_age_ms===null?'—':t('{age} ago').replace('{age}',age(d.temperature_age_ms))));rest.className='pd-help';
+        // Why a sensor stays waiting: nothing heard, or heard in another format.
+        const why=d.status==='waiting'&&Number.isInteger(d.frames_received)?el('span',t(d.frames_received===0
+          ?'Nothing received from this address yet: check distance, battery and the address.'
+          :d.frames_ignored===d.frames_received?'Reports arrive but are not in the expected format for this sensor type. Choose another device profile.':'Waiting for a complete report.')):null;
+        if(why){why.className='ot-hint';why.dataset.waitingReason='';}
+        node.replaceChildren(lab,big,chip,rest,...(why?[why]:[]));
       }
       for(const box of rows.children) {
         const d=savedRows.get(box.dataset.savedAddress), extra=box.querySelector('[data-extra]');
@@ -120,10 +129,6 @@ window.BluetoothPage = (() => {
         labels.push(['Reports received','frames_received'],['Reports not recognised','frames_ignored'],['Reports rejected','frames_rejected'],['Counter restarts by the sensor','counter_resets']);
         extra.textContent=labels.map(([label,key])=>t(label)+': '+show(['target_temperature','external_temperature'].includes(key)&&d[key]!==null?d[key]/100:d[key])).join(' · ')
           +(typeof d.last_rejection==='string'&&Object.hasOwn(states,d.last_rejection)?' · '+t('Last rejected report')+': '+t(states[d.last_rejection]):'');
-        // Why a sensor stays waiting: nothing heard, or heard in another format.
-        if(d.status==='waiting'&&Number.isInteger(d.frames_received))extra.textContent+=' · '+t(d.frames_received===0
-          ?'Nothing received from this address yet: check distance, battery and the address.'
-          :d.frames_ignored===d.frames_received?'Reports arrive but are not in the expected format for this sensor type.':'Waiting for a complete report.');
       }
       nearbyHints=s.nearby_devices??s.nearby.map(address=>({address,name:'',rssi:null}));
       const count=t('Found:')+' '+nearbyHints.length;
@@ -135,6 +140,7 @@ window.BluetoothPage = (() => {
       else if(s.config_error!=='none')say('Stored Bluetooth settings are invalid. Existing settings were kept.');
       else if(s.restart_scheduled===true)say('The E32 restarts by itself shortly to apply the Bluetooth settings.');
       else if(s.pending_restart)say('Restart required to apply Bluetooth settings');
+      get('ble-restart').hidden=!(s.pending_restart&&s.restart_scheduled!==true&&window.OpenThermostatRestart);
     }
     async function request(path, options={}) {
       if(!alive())throw new DOMException('Aborted','AbortError');
@@ -174,6 +180,7 @@ window.BluetoothPage = (() => {
       finally {if(pollRequest===current){pollRequest=null;schedulePoll();}}
     }
     get('ble-add').addEventListener('click',()=>{addRow();draft();},{signal:owner.signal});
+    get('ble-restart').addEventListener('click',()=>window.OpenThermostatRestart(get('ble-restart'),status),{signal:owner.signal});
     get('ble-reload').addEventListener('click',()=>{if(!saving&&(!dirty||confirm(t('Discard your unsaved Bluetooth changes?'))))load();},{signal:owner.signal});
     get('ble-scan').addEventListener('click',async()=>{
       get('ble-scan').disabled=true;

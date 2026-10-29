@@ -18,6 +18,12 @@
         "state": {
           "on": "mdi:radiator"
         }
+      },
+      "heating_problem": {
+        "default": "mdi:radiator",
+        "state": {
+          "on": "mdi:radiator-disabled"
+        }
       }
     },
     "datetime": {

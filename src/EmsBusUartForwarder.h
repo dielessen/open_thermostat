@@ -75,8 +75,12 @@ public:
 		return result;
 	}
 
-	std::atomic<uint32_t> rxErrors{0};
-	std::atomic<uint32_t> dropped{0};
+	// fetch_add targets: static, internal RAM (owner lives in PSRAM; see EmsBusUart).
+	static inline std::atomic<uint32_t> rxErrors{0};
+	static inline std::atomic<uint32_t> dropped{0};
+	template<class Visit> static void visitRmwAtomics(Visit&& visit) {
+		visit("forwarder.rx_errors", &rxErrors); visit("forwarder.dropped", &dropped);
+	}
 
 private:
 	std::shared_ptr<ib::logger::LoggerInterface> log_;

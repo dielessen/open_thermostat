@@ -202,6 +202,8 @@ class HeatingHub:
         # {room id: (received, learned room, plan or None)} from heating_learned/<room id>
         self.learned_messages = {}
         self.received = None
+        # The last status received (monotonic), kept while the telemetry is stale.
+        self.last_seen = None
         self.plan = None  # room_plan.RoomPlanLink when the E32 credentials are stored
         self._listeners = []
 
@@ -246,6 +248,8 @@ class HeatingHub:
         self.rooms = status_rooms(status)
         self.ble = status_ble(status)
         self.received = self.clock() if status is not None else None
+        if status is not None:
+            self.last_seen = self.received
         self._merge_learned()
         self.notify()
 
@@ -287,6 +291,8 @@ def heating_hub(hass, entry):
         from .room_plan import RoomPlanLink
         hub.plan = RoomPlanLink.for_entry(hass, entry, hub)
         entry.async_on_unload(hub.stop)
+        from .e32_access import clear
+        entry.async_on_unload(lambda: clear(hass, entry))
     return hub
 
 
@@ -1016,7 +1022,10 @@ def removable_device(hass, entry, device):
 async def async_setup_demand(hass, entry, async_add_entities):
     """Binary sensor platform (product entries): heat demand per E32 room, and burner short cycling."""
     hub = heating_hub(hass, entry)
-    entry.async_on_unload(track_entities(hub, async_add_entities, add_options(hass, entry), wanted_demand))
+    options = add_options(hass, entry)
+    from .heating_problem import HeatingProblemSensor
+    async_add_entities([HeatingProblemSensor(entry, hub)], **options)  # "is my heating OK?"
+    entry.async_on_unload(track_entities(hub, async_add_entities, options, wanted_demand))
 
 
 async def async_setup_heating_link(hass, entry, async_add_entities, **options):

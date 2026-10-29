@@ -8,28 +8,45 @@ Companion release for E32 beta18. Install both together.
 - **Rooms are set up in Home Assistant**: Settings → Devices & services →
   OpenThermostat → Configure → Rooms. Add, change or remove rooms, choose their
   temperature sources from your Home Assistant entities and the E32's
-  Bluetooth sensors (only °C sources are accepted), the target, limits and a
-  simple week program such as `mon-fri: 06:30 20.5, 22:30 19`. The plan is
-  stored on the E32, so heating keeps running without Home Assistant.
+  Bluetooth sensors, the target, limits and a simple week program such as
+  `mon-fri: 06:30 20.5, 22:30 19`. The plan is stored on the E32, so heating
+  keeps running without Home Assistant.
+- **°F and °C**: with Home Assistant in °F the room editor shows and accepts
+  °F; sources in °F or K are converted to °C for the E32.
+- **Flow temperature limits** (Configure → Rooms): the lowest and highest flow
+  the E32 may ask for, with a warning for floor heating above 50 °C and above
+  the boiler's own maximum heating temperature, which always stays the
+  ceiling.
 - **Heating dashboard**: per room the temperature, target, mode and "off
   until"; the E32 boiler request next to your thermostat's; boiler essentials;
-  Bluetooth sensors; and a short "How it works" card. English or Dutch.
+  Bluetooth sensors; heating advice; and a short "How it works" card. English
+  or Dutch.
 - **Each E32 room and Bluetooth sensor is its own device**, with plain names
   ("Temperature", "Heat demand"). Existing entity IDs and history stay.
 - **Shadow comparison sensors**: heating time and burner starts today for the
-  E32 and the thermostat, and their agreement.
+  E32 and the thermostat, and their agreement. They appear only once a
+  thermostat to compare with is seen on the boiler bus.
 - **Burner short cycling** warning and burner starts in the last hour.
-- **Heating advice** (advice only, never changes a setting): short cycling, a
-  maximum heating temperature far above what the house needs, a return too warm
-  for condensing, the flow your rooms really need, night setback, hot-water
-  temperature, water pressure. Each item says what was seen, why it matters,
-  what to change and where, with its confidence.
-- **Energy and outdoor temperature** (Configure → Energy): optionally choose a
-  gas meter (m³ or kWh), a gas price or fixed price, the calorific value, an
-  outdoor temperature sensor or weather entity, and your boiler power. Without
-  them the advice still works, with rougher estimates.
+- **Heating problem**: one yes/no sensor for "is my heating OK?", on only for
+  real problems held long enough (a room without measurement for 30 minutes,
+  no E32 report for 10 minutes, low or high water pressure, short cycling for
+  2 hours). Its attributes list the reasons for your own notifications.
+- **Heating advice** sensor (advice only, never changes a setting): short
+  cycling, a maximum heating temperature far above what the house needs, a
+  return too warm for condensing, the flow your rooms really need, night
+  setback, hot-water temperature, water pressure. Each item says what was
+  seen, why it matters, what to change and where, with its confidence.
+- **Energy and outdoor temperature** (Configure → Energy and outdoor
+  temperature): optionally a gas meter (m³ or kWh), a gas price sensor or fixed
+  price, the calorific value, an outdoor temperature sensor or weather entity,
+  and your boiler power. Without them the advice still works, with rougher
+  estimates.
 - **Learning per room**: learning status, recommended flow and predicted
   heating start from the E32, plus hot water today.
+- Week programs compiled by Home Assistant accept any IANA time zone.
+- The E32 address may be a local host name such as `e32.fritz.box`,
+  `e32.home.arpa`, `e32.local` or `e32.lan`, as long as it resolves to a local
+  address.
 - Every setup step and field explains in plain language what it does; all
   boiler values have English and Dutch names; icons for all entities.
 
@@ -49,8 +66,10 @@ EMS-ESP or MQTT devices) are never removed automatically.
 
 ## Limitations
 
-The heat request is shadow-only. The old HA room records still exist for
-existing installations; the E32 heating control uses the E32 room plan.
+The heat request is shadow-only; the advice is advice only. EMS Classic boilers
+only; EMS+ is planned. E32 beta18 accepts a maximum flow of at most 60 °C. The
+old HA room records still exist for existing installations; the E32 heating
+control uses the E32 room plan.
 
 # HA 0.4.0b9 — E32 rooms and Bluetooth sensors, firmware updates and the heat request
 <!-- user-release-notes:v2:en -->

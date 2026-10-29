@@ -5,6 +5,7 @@
     <p class="pd-help" data-i18n="What your boiler reports right now.">What your boiler reports right now.</p>
     <p class="pd-help" role="status" aria-live="polite" data-reception><span data-i18n="Checking reception…">Checking reception…</span></p>
     <dl class="ot-kv" data-essentials></dl>
+    <p class="ot-hint" data-maxch-help hidden data-i18n="Maximum heating temperature: set on the boiler — on many models a knob, on others the boiler menu or app.">Maximum heating temperature: set on the boiler — on many models a knob, on others the boiler menu or app.</p>
     <p class="ot-hint" data-cycles-help hidden data-i18n="Counts how often the burner switched on in the last hour. Starting very often wears the boiler.">Counts how often the burner switched on in the last hour. Starting very often wears the boiler.</p>
     <div data-dhw hidden>
       <h3 class="mt-3" data-i18n="Hot water today">Hot water today</h3>
@@ -40,7 +41,7 @@
     <fieldset data-test-site hidden>
       <legend data-i18n="Prepare this test">Prepare this test</legend>
       <label data-site-pressure-value-label hidden><span data-i18n="Installation pressure read from the boiler gauge (bar)">Installation pressure read from the boiler gauge (bar)</span><input class="form-control" data-site-pressure-value type="number" step="0.1" inputmode="decimal" autocomplete="off"></label>
-      <label class="bt-confirm"><input type="checkbox" data-site-confirm> <span data-i18n="The E32 is the only controller. I am at the boiler, can switch it off independently, and the radiators are open.">The E32 is the only controller. I am at the boiler, can switch it off independently, and the radiators are open.</span></label>
+      <label class="bt-confirm"><input type="checkbox" data-site-confirm> <span data-i18n="The E32 is the only controller. I am at the boiler, can switch it off independently, and the heating circuit can take heat (radiator valves or the floor manifold open).">The E32 is the only controller. I am at the boiler, can switch it off independently, and the heating circuit can take heat (radiator valves or the floor manifold open).</span></label>
       <p class="pd-help" data-i18n="This confirmation applies to the preparation below and expires after two minutes. Heating starts only after your separate Start action.">This confirmation applies to the preparation below and expires after two minutes. Heating starts only after your separate Start action.</p>
     </fieldset>
     <button class="btn btn-outline-secondary" type="button" data-read-configuration disabled aria-describedby="bt-read-help"><span data-i18n="1. Read heating settings">1. Read heating settings</span></button>
@@ -127,6 +128,7 @@
       [uiText("Flow temperature"), show('measured_flow_temperature', 1, ' °C')], [uiText("Return temperature"), show('measured_return_temperature', 1, ' °C')],
       [uiText("Water pressure"), show('pressure', 1, ' bar')], [uiText("Hot water temperature"), show('measured_dhw_temperature', 1, ' °C')],
       [uiText("Burner modulation"), show('reported_burner_modulation', 0, ' %')],
+      [uiText("Maximum heating temperature (boiler setting)"), show('configured_heating_temperature', 0, ' °C')],
       [uiText("Display code"), code ? String(code.value).slice(0, 16) + (service && Number.isFinite(service.value) ? ' (' + service.value + ')' : '') : null],
       [uiText("Burner starts"), show('reported_burner_starts', 0, '')],
       [uiText("Burner starts (last hour)"), burnerCycles?.known === true && Number.isInteger(burnerCycles.starts_last_hour) ? String(burnerCycles.starts_last_hour) : null],
@@ -135,6 +137,7 @@
     if (!rows.length) rows.push([uiText("Boiler data"), uiText("No reliable values received yet")]);
     const shortCycling = burnerCycles?.known === true && burnerCycles.short_cycling === true;
     root.querySelector('[data-cycles-help]').hidden = !rows.some(row => row[0] === uiText("Burner starts (last hour)"));
+    root.querySelector('[data-maxch-help]').hidden = !rows.some(row => row[0] === uiText("Maximum heating temperature (boiler setting)"));
     paintDhw();
     const signature = JSON.stringify(rows) + shortCycling;
     if (essentials.dataset.rendered === signature) return;

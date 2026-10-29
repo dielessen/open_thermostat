@@ -266,10 +266,8 @@ class ProductOptionsFlow(E32RoomFlow, ControllerSetupFlow, ShadowOptionsFlow, Pr
     async def async_step_init(self, user_input=None):
         from .room_plan import has_room_plan
         rooms = "e32_rooms" if has_room_plan(self.config_entry) else "room_settings"
-        options = ["installation", "controller_connection", rooms, "configuration_status"]
-        if self._native_plan_review_available():
-            options.append("graph_prepare")
-        options += ["energy", "advanced_settings"]
+        # Everyday settings first; status and plan recovery live under Advanced.
+        options = [rooms, "controller_connection", "energy", "installation", "advanced_settings"]
         return self.async_show_menu(step_id="init", menu_options=options)
 
     async def async_step_energy(self, user_input=None):
@@ -495,5 +493,5 @@ class ProductOptionsFlow(E32RoomFlow, ControllerSetupFlow, ShadowOptionsFlow, Pr
     async def async_step_advanced_settings(self, user_input=None):
         options = ["configuration_status", "hot_water"]
         if self._native_plan_review_available():
-            options.append("graph_status")
+            options += ["graph_prepare", "graph_status"]
         return self.async_show_menu(step_id="advanced_settings", menu_options=options)

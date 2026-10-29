@@ -63,10 +63,12 @@
         const model = selected === null ? null : models[selected];
         appendPicture(box, model, 92, 140);
         const text = document.createElement('div'), title = document.createElement('h2');
-        title.textContent = model ? model.name : uiText("Boiler selection unavailable");
+        // Live values sit below this card, so "no model chosen" is a note, not the heading.
+        const none = model?.kind === 'none';
+        title.textContent = none ? uiText("Boiler") : model ? model.name : uiText("Boiler selection unavailable");
         text.append(title);
         const note = document.createElement('p');
-        note.textContent = model?.note || uiText("Choose your boiler on the Boiler page.");
+        note.textContent = (none ? model.name + '. ' : '') + (model?.note || uiText("Choose your boiler on the Boiler page."));
         text.append(note);
         appendImageSource(text, model);
         const link = document.createElement('a'); link.className = 'boiler-setup-link'; link.href = '#boiler-model';

@@ -9,7 +9,7 @@ inline bool allowedHttpMethod(std::string_view path,std::string_view method) {
     if(path=="/boiler/settings/write") return method=="POST";
     if(path=="/config/bluetooth/scan"||path=="/config/heating/handover") return method=="POST";
     if(path=="/logs/clear") return method=="POST";
-    if(path=="/auth/login"||path=="/auth/logout") return method=="POST";
+    if(path=="/auth/login"||path=="/auth/logout"||path=="/auth/password") return method=="POST";
     if(path=="/updates/check"||path=="/updates/install"||path=="/updates/reboot"||path=="/updates/rollback")return method=="POST";
     if(path=="/setup/scan") return method=="GET"||method=="POST";
     if(path=="/config/reboot"||path=="/setup/reenter"||path=="/setup/network"||path=="/setup/finish"||path=="/ota"||path=="/otafs") return method=="POST";

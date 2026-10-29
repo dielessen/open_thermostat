@@ -101,7 +101,7 @@
 		<section class="pd-panel"><h2>Home Assistant</h2><p class="pd-help" data-i18n="How the E32 works together with Home Assistant.">How the E32 works together with Home Assistant.</p>
 <div class="alert alert-info" id="ShadowModeHelp"><span data-i18n="This mode receives data and calculates heat demand. It sends no valve or boiler commands. Keep your current thermostat in control until measurement, command and safe-stop tests are completed.">This mode receives data and calculates heat demand. It sends no valve or boiler commands. Keep your current thermostat in control until measurement, command and safe-stop tests are completed.</span></div>
 <div class="form-check"><input class="form-check-input" type="checkbox" id="ModernShadow" aria-describedby="ShadowModeHelp"><label class="form-check-label" for="ModernShadow"><span data-i18n="Home Assistant: read and calculate only (shadow mode)">Home Assistant: read and calculate only (shadow mode)</span></label></div>
-<label for="ModernAdapter"><span data-i18n="HA adapter ID (from the integration)">HA adapter ID (from the integration)</span></label><input class="form-control" id="ModernAdapter" maxlength="32" pattern="[A-Za-z0-9_-]{1,32}" placeholder="Copy from Home Assistant" data-i18n-placeholder="Copy from Home Assistant"><small class="ot-hint" data-i18n="Shown in the Home Assistant integration; both must be the same.">Shown in the Home Assistant integration; both must be the same.</small>
+<label for="ModernAdapter"><span data-i18n="HA adapter ID (from the integration)">HA adapter ID (from the integration)</span></label><input class="form-control" id="ModernAdapter" maxlength="32" pattern="[A-Za-z0-9_-]{1,32}" placeholder="Copy from Home Assistant" data-i18n-placeholder="Copy from Home Assistant"><small class="ot-hint" data-i18n="Filled in automatically when you use Connect E32 in Home Assistant. Otherwise copy it from the integration; both must be the same.">Filled in automatically when you use Connect E32 in Home Assistant. Otherwise copy it from the integration; both must be the same.</small>
 <details id="NativeShadowSourceSection" hidden><summary><span data-i18n="Installation identity and limits (advanced)">Installation identity and limits (advanced)</span></summary>
 <p><span data-i18n="Device controller ID:">Device controller ID:</span> <code id="NativeSourceDeviceID"><span data-i18n="Load settings">Load settings</span></code></p>
 <label for="NativeShadowSource"><span data-i18n="Installation profile supplied by Home Assistant">Installation profile supplied by Home Assistant</span></label>
@@ -157,12 +157,13 @@
 												for="DeviceNTPEnabled"><span data-i18n="Enabled">Enabled</span></label></div>
 									</div>
 								</div>
-<div class="form-row"><div class="col-md mb-2"><label for="DeviceNTPServer"><span data-i18n="Network Time Protocol (NTP) Server">Network Time Protocol (NTP) Server</span></label><input type="text" class="form-control" id="DeviceNTPServer" data-hint="The time server, for example pool.ntp.org."
-											placeholder="pool.ntp.org" required></div><div class="col-md mb-2"><label for="DeviceNTPTimezone"><span data-i18n="NTP Time zone string">NTP Time zone string</span></label><input type="text" class="form-control" id="DeviceNTPTimezone"
-											aria-describedby="DeviceNTPTimezoneHelp" required>
-										<div id="DeviceNTPTimezoneHelp" class="form-text"><span data-i18n="If specified, UTC offsets won&#x27;t be used to set up local time">If specified, UTC offsets won&#x27;t be used to set up local time</span></div>
-									</div></div>
+<div class="form-row"><div class="col-md mb-2"><label for="DeviceTimeZoneChoice"><span data-i18n="Time zone">Time zone</span></label><select class="form-control" id="DeviceTimeZoneChoice" data-hint="Week programs and days follow this time zone, including summer time."></select>
+										<p class="ot-hint" id="DeviceTimeZoneSuggest" hidden><span></span> <button type="button" class="btn btn-outline-primary btn-sm"><span data-i18n="Use this time zone">Use this time zone</span></button></p></div>
+<div class="col-md mb-2"><label for="DeviceNTPServer"><span data-i18n="Network Time Protocol (NTP) Server">Network Time Protocol (NTP) Server</span></label><input type="text" class="form-control" id="DeviceNTPServer" data-hint="The time server, for example pool.ntp.org."
+											placeholder="pool.ntp.org" required></div></div>
 <details class="ot-advanced"><summary data-i18n="Advanced">Advanced</summary>
+<div class="form-row"><div class="col-md mb-2"><label for="DeviceNTPTimezone"><span data-i18n="Time zone as POSIX text">Time zone as POSIX text</span></label><input type="text" class="form-control" id="DeviceNTPTimezone" required
+											data-hint="Filled in from the time zone above. Change it only for a zone that is not in the list, for example GMT0BST,M3.5.0/1,M10.5.0."></div></div>
 <div class="form-row"><div class="col-md mb-2"><label for="DeviceNTPUTCOffset"><span data-i18n="NTP to UTC offset (s)">NTP to UTC offset (s)</span></label><input type="number" class="form-control" id="DeviceNTPUTCOffset" data-hint="Difference from UTC in seconds; ignored when a time zone is set."
 											step="1" placeholder="0" required></div><div class="col-md mb-2"><label for="DeviceNTPUTCDLOffset"><span data-i18n="NTP to UTC Daylight offset (s)">NTP to UTC Daylight offset (s)</span></label><input type="number" class="form-control"
 											id="DeviceNTPUTCDLOffset" data-hint="Extra difference during summer time, in seconds." step="1" placeholder="0" required></div></div>
@@ -275,6 +276,36 @@
 
 
 <script type='text/javascript'>
+	var timeZones = [['CET-1CEST,M3.5.0,M10.5.0/3','Europe/Amsterdam Europe/Berlin Europe/Brussels Europe/Copenhagen Europe/Luxembourg Europe/Madrid Europe/Oslo Europe/Paris Europe/Prague Europe/Rome Europe/Stockholm Europe/Vienna Europe/Warsaw Europe/Zurich Europe/Budapest'],
+		['GMT0BST,M3.5.0/1,M10.5.0','Europe/London'],['IST-1GMT0,M10.5.0,M3.5.0/1','Europe/Dublin'],['WET0WEST,M3.5.0/1,M10.5.0','Europe/Lisbon Atlantic/Canary'],
+		['EET-2EEST,M3.5.0/3,M10.5.0/4','Europe/Helsinki Europe/Athens Europe/Bucharest Europe/Kyiv Europe/Riga Europe/Tallinn Europe/Vilnius Europe/Sofia'],
+		['<+03>-3','Europe/Istanbul'],['MSK-3','Europe/Moscow'],['UTC0','UTC'],
+		['EST5EDT,M3.2.0,M11.1.0','America/New_York America/Toronto'],['CST6CDT,M3.2.0,M11.1.0','America/Chicago'],['MST7MDT,M3.2.0,M11.1.0','America/Denver'],
+		['MST7','America/Phoenix'],['PST8PDT,M3.2.0,M11.1.0','America/Los_Angeles America/Vancouver'],['AKST9AKDT,M3.2.0,M11.1.0','America/Anchorage'],
+		['AEST-10AEDT,M10.1.0,M4.1.0/3','Australia/Sydney Australia/Melbourne'],['AEST-10','Australia/Brisbane'],['AWST-8','Australia/Perth'],
+		['NZST-12NZDT,M9.5.0,M4.1.0/3','Pacific/Auckland'],['JST-9','Asia/Tokyo'],['CST-8','Asia/Shanghai'],['<+08>-8','Asia/Singapore'],['IST-5:30','Asia/Kolkata'],
+		['<+04>-4','Asia/Dubai'],['SAST-2','Africa/Johannesburg']].flatMap(([posix, names]) => names.split(' ').map(zone => [zone, posix]));
+	var browserZone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (_) { return ''; } })();
+	var zonePosix = zone => (timeZones.find(z => z[0] === zone) || [])[1];
+	function showTimeZone(posix) {
+		const choice = document.getElementById('DeviceTimeZoneChoice'), suggest = document.getElementById('DeviceTimeZoneSuggest');
+		if (!choice) return;
+		if (!choice.options.length) {
+			for (const [zone] of [...timeZones].sort((a, b) => a[0].localeCompare(b[0]))) choice.add(new Option(zone.replace(/_/g, ' '), zone));
+			choice.add(new Option(uiText("Other (enter POSIX text under Advanced)"), 'custom'));
+			choice.addEventListener('change', () => { if (choice.value !== 'custom') $('#DeviceNTPTimezone').val(zonePosix(choice.value)).trigger('change'); suggestion(); });
+			suggest.querySelector('button').addEventListener('click', () => { choice.value = browserZone; choice.dispatchEvent(new Event('change')); });
+		}
+		// An empty setting starts from this browser's zone; a known string shows its zone, the browser's own first.
+		if (!posix && zonePosix(browserZone)) { posix = zonePosix(browserZone); $('#DeviceNTPTimezone').val(posix); }
+		choice.value = zonePosix(browserZone) === posix ? browserZone : (timeZones.find(z => z[1] === posix) || ['custom'])[0];
+		suggestion();
+		function suggestion() {
+			suggest.hidden = !zonePosix(browserZone) || zonePosix(browserZone) === $('#DeviceNTPTimezone').val();
+			suggest.querySelector('span').textContent = uiText("This browser is in {zone}.").replace('{zone}', browserZone.replace(/_/g, ' '));
+		}
+	}
+
 	var loadedProgram = undefined;
 	var roomFound = undefined;
 
@@ -601,6 +632,7 @@
 				$('#DeviceNTPUTCOffset').val(settings.ntpUtcOffset);
 				$('#DeviceNTPUTCDLOffset').val(settings.ntpDaylightUtcOffset);
 				$('#DeviceNTPTimezone').val(settings.timeZone);
+				showTimeZone(settings.timeZone);
 				$('#DeviceDebugEnabled').prop('checked', settings.loggerEnabled),
 					$('#DeviceDebugHost').val(settings.loggerHost);
 				$('#DeviceDebugPort').val(settings.loggerPort);

@@ -15,6 +15,7 @@
 #include "control/StaticAssetPolicy.h"
 #include "update/GitHubUpdate.h"
 #include "control/WebAuthSession.h"
+#include "control/WebPassword.h"
 #include "control/NativeSourceProvisioning.h"
 #include "control/BleObservationJson.h"
 #include "control/HandoverRequest.h"
@@ -124,6 +125,7 @@ public:
 		route("/auth/login",HTTP_POST,[this] { login(); });
 		route("/auth/session",HTTP_GET,[this] { sessionStatus(); });
 		route("/auth/logout",HTTP_POST,[this] { logout(); });
+		route("/auth/password",HTTP_POST,[this] { changePassword(); });
 #endif
 
 		route("/status/wifi", [this]() {
@@ -232,10 +234,13 @@ public:
 		route("/updates/check",HTTP_POST,[this] { server_.send(update::checkReleases()?202:409,"text/plain","A release check needs the home network, valid time and an idle update system"); });
 		route("/updates/install",HTTP_POST,[this] {
 			auto body=server_.arg("plain");auto root=control::parseControlJson(std::string_view(body.c_str(),body.length()),true);
-			if(!root||!cJSON_IsObject(root.get())||cJSON_GetArraySize(root.get())!=1||!cJSON_IsString(cJSON_GetObjectItemCaseSensitive(root.get(),"tag"))) {server_.send(400,"text/plain","Eén gecontroleerde release-tag vereist");return;}
+			if(!root||!cJSON_IsObject(root.get())||cJSON_GetArraySize(root.get())!=1||!cJSON_IsString(cJSON_GetObjectItemCaseSensitive(root.get(),"tag"))) {server_.send(400,"text/plain","Exactly one checked release tag required");return;}
 			server_.send(update::installRelease(cJSON_GetObjectItemCaseSensitive(root.get(),"tag")->valuestring)?202:409,"text/plain","Installation needs a checked release and an idle update system");
 		});
-		route("/updates/reboot",HTTP_POST,[this] { server_.send(update::requestReboot()?202:409,"text/plain","Herstart aangevraagd"); });
+		route("/updates/reboot",HTTP_POST,[this] {
+			const bool requested=update::requestReboot();
+			server_.send(requested?202:409,"text/plain",requested?"Restart requested":"Restart not possible now: an update or the check of new firmware is running");
+		});
 		route("/updates/rollback",HTTP_POST,[this] { server_.send(update::requestRollback()?202:409,"text/plain","Restore needs a previous firmware that native OTA validated"); });
 		route("/setup",HTTP_GET,[this] { serveFile("/setup.html"); });
 		route("/setup/scan",HTTP_POST,[this] {
@@ -366,10 +371,10 @@ private:
 		if(decision==control::WebAuthDecision::authentication_required)return reject(401,"application/json","{\"error\":\"authentication_required\"}");
 		if(decision==control::WebAuthDecision::csrf_required)return reject(403,"application/json","{\"error\":\"csrf_required\"}");
 		if(server_.method()!=HTTP_GET&&update::mutationBlocked(server_.uri().c_str())) {
-			server_.send(409,"text/plain","Wacht tot de GitHub-update is afgerond en herstart eerst");return false;
+			server_.send(409,"text/plain","Wait until the update has finished and the device has restarted");return false;
 		}
 		if(server_.method()!=HTTP_GET&&control::boilerTestMutationBlocked(server_.uri().c_str(),controller_.boilerTestActive())) {
-			server_.send(409,"text/plain","Stop de ketelproef en controleer de terugmelding voor deze wijziging"); return false;
+			server_.send(409,"text/plain","Stop the boiler test and check the boiler's response before this change"); return false;
 		}
         if(server_.method()!=HTTP_GET&&control::boilerSettingsMutationBlocked(server_.uri().c_str(),controller_.boilerSettingsActive())){
             server_.send(409,"application/json","{\"error\":\"settings_write_active\"}");return false;
@@ -413,11 +418,13 @@ private:
 			else shape=false;
 		}
 		const auto username=server_.arg("username"),password=server_.arg("password");
-		if(!shape||!usernameSeen||!passwordSeen||(recoverySeen&&server_.arg("recover_sessions")!="1")||username.length()>64||password.length()>128||
+		if(!shape||!usernameSeen||!passwordSeen||(recoverySeen&&server_.arg("recover_sessions")!="1")||username.length()>64||password.length()>control::WebPassword::maximumBytes||
 		   server_.header("Content-Type")!="application/x-www-form-urlencoded"){
 			server_.send(400,"application/json","{\"error\":\"invalid_login_request\"}");return;
 		}
-		if(username!="admin"||!control::WebAuthSession::equal(std::string_view(password.c_str(),password.length()),deviceAccess.password())){
+		// Verify the password even for a wrong username: no faster refusal path.
+		const bool verified=deviceAccess.verifyPassword(std::string_view(password.c_str(),password.length()));
+		if(username!="admin"||!verified){
 			sessions_.loginFailed(now);server_.send(401,"application/json","{\"error\":\"invalid_credentials\"}");return;
 		}
 		// Recovery must not remove an operator's stop/keepalive access or interrupt OTA.
@@ -438,8 +445,26 @@ private:
 		const auto token=requestToken();const auto now=networkNow();
 		const auto *session=sessions_.find(token.c_str(),now);
 		if(!session){server_.send(401,"application/json","{\"error\":\"authentication_required\"}");return;}
-		const auto response=std::string("{\"authenticated\":true,\"csrf\":\"")+session->csrf.data()+"\",\"expires_in\":"+std::to_string(sessions_.remainingMs(token.c_str(),now)/1000)+"}";
+		const auto response=std::string("{\"authenticated\":true,\"csrf\":\"")+session->csrf.data()+"\",\"expires_in\":"+std::to_string(sessions_.remainingMs(token.c_str(),now)/1000)
+			+",\"default_password\":"+(deviceAccess.defaultPassword()?"true":"false")+"}";
 		server_.send(200,"application/json",response.c_str());
+	}
+	// POST /auth/password {"current":"…","new":"…"}: route gate already checked
+	// the session, origin and CSRF. Shares the sign-in failure limit.
+	void changePassword() {
+		const auto now=networkNow();
+		if(!sessions_.loginAllowed(now)){server_.sendHeader("Retry-After","30");server_.send(429,"application/json","{\"error\":\"try_again_later\"}");return;}
+		const auto body=server_.arg("plain");
+		const auto change=control::WebPassword::parseChange(body.c_str(),body.length());
+		if(change.error!=control::WebPassword::RequestError::none){server_.send(400,"application/json",control::WebPassword::errorBody(change.error));return;}
+		if(!deviceAccess.verifyPassword(change.current)){sessions_.loginFailed(now);server_.send(403,"application/json","{\"error\":\"password_wrong\"}");return;}
+		// Signing other sessions out must not cut off an update upload.
+		if(update::mutationBlocked("/ota")){server_.send(409,"application/json","{\"error\":\"password_change_busy\"}");return;}
+		if(!deviceAccess.storePassword(change.next)){server_.send(503,"application/json","{\"error\":\"password_storage_failed\"}");return;}
+		sessions_.loginSucceeded();
+		const auto token=requestToken();sessions_.revokeOthers(token.c_str());
+		controller_.boilerSettingsSynchronize(sessions_,networkNow(),!update::mutationBlocked("/boiler/settings/write"));
+		server_.send(204);
 	}
 	void logout() {
 		const auto token=requestToken();sessions_.revoke(token.c_str());

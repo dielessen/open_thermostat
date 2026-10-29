@@ -41,8 +41,25 @@ SOURCE_DOMAINS = ("climate", "sensor")
 SETPOINT_DOMAINS = ("climate", "input_number", "number")
 CELSIUS = UnitOfTemperature.CELSIUS
 # The plan's flow limits as the E32 accepts them (RoomPlan.h): whole °C, minimum below maximum.
+# Up to 80 °C for radiator homes; firmware before that refuses more than 60 °C
+# (invalid_flow_limits, shown as e32_rejected_flow_limits).
 FLOW_MINIMUM_C = (20, 59)
-FLOW_MAXIMUM_C = (21, 60)
+FLOW_MAXIMUM_C = (21, 80)
+# Floor heating without a mixing valve: a higher maximum earns a warning first.
+FLOOR_FLOW_WARNING_C = 50
+FAHRENHEIT = UnitOfTemperature.FAHRENHEIT
+# Plan error names of the E32 (RoomPlan.h) -> a clear message instead of the code.
+REJECTIONS = {"invalid_sources": "e32_rejected_sources", "invalid_room_name": "e32_name_invalid",
+              "duplicate_room": "e32_rejected_duplicate_room", "duplicate_source": "e32_rejected_duplicate_source",
+              "invalid_setpoint_entity": "e32_rejected_setpoint", "invalid_room_limits": "e32_limits_invalid",
+              "invalid_flow_limits": "e32_rejected_flow_limits", "invalid_schedule": "e32_rejected_schedule",
+              "invalid_schedule_limits": "e32_rejected_schedule"}
+# The one sentence about the boiler's own maximum in the flow-limits form.
+BOILER_MAXIMUM_TEXT = {
+    "en": "Your boiler allows at most {maximum}; the E32 never asks for more. A lower limit here is useful "
+          "for floor heating.",
+    "nl": "Je ketel staat hoogstens {maximum} toe; de E32 vraagt nooit meer. Een lagere grens hier is nuttig "
+          "bij vloerverwarming."}
 FLOW_LIMIT_FIELDS = {"minimum_flow_temperature": "minimum_flow_c", "maximum_flow_temperature": "maximum_flow_c"}
 
 DAYS = {"en": ("mon", "tue", "wed", "thu", "fri", "sat", "sun"),
@@ -59,8 +76,8 @@ DAY_PREFIX = re.compile(r"([a-z][a-z ,\-]*?)\s*:\s*(.*)")
 FAILURES = {"room_plan_changed": "e32_plan_changed", "room_plan_too_large": "e32_plan_too_large",
             "room_plan_rejected": "e32_rejected", "room_plan_unconfirmed": "e32_unconfirmed",
             "room_plan_unreachable": "e32_unreachable", "room_plan_invalid": "e32_plan_invalid",
-            "room_plan_room_missing": "e32_room_missing"}
-ABORTS = {"e32_unconfirmed", "e32_plan_invalid", "e32_room_missing"}
+            "room_plan_room_missing": "e32_room_missing", "room_plan_password": "e32_password_changed"}
+ABORTS = {"e32_unconfirmed", "e32_plan_invalid", "e32_room_missing", "e32_password_changed"}
 
 
 class FlowError(Exception):
@@ -91,11 +108,36 @@ def valid_name(value):
     return name
 
 
-def centi(value):
+def centi(value, unit=CELSIUS):
+    """A temperature in the user's unit (°C or °F) as the plan's centi-°C (°F: to 0.1 °C)."""
     try:
-        return int((Decimal(str(value).replace(",", ".")) * 100).to_integral_value(ROUND_HALF_UP))
+        number = Decimal(str(value).replace(",", "."))
+        if not number.is_finite():
+            raise InvalidOperation
+        if unit == FAHRENHEIT:
+            return int(((number - 32) * 50 / 9).to_integral_value(ROUND_HALF_UP)) * 10
+        return int((number * 100).to_integral_value(ROUND_HALF_UP))
     except (InvalidOperation, ValueError):
         raise FlowError("e32_program_invalid", "program") from None
+
+
+def shown(centi_c, unit=CELSIUS):
+    """The plan's centi-°C in the user's unit (°F with one decimal)."""
+    if unit == FAHRENHEIT:
+        return float((Decimal(centi_c) * 9 / 500 + 32).quantize(Decimal("0.1"), ROUND_HALF_UP))
+    return centi_c / 100
+
+
+def flow_shown(celsius_value, unit=CELSIUS):
+    """A whole-°C flow temperature in the user's unit (whole °F)."""
+    return round(celsius_value * 9 / 5 + 32) if unit == FAHRENHEIT else celsius_value
+
+
+def flow_celsius(value, unit=CELSIUS):
+    """A whole flow temperature in the user's unit as whole °C (None when not whole)."""
+    if not float(value).is_integer():
+        return None
+    return round((value - 32) * 5 / 9) if unit == FAHRENHEIT else int(value)
 
 
 def _days(text):
@@ -109,43 +151,55 @@ def _days(text):
     return days
 
 
-def parse_program(text, minimum, maximum):
+def parse_program(text, minimum, maximum, unit=CELSIUS):
     """The 7-day schedule from the program text, or None for no program.
 
-    One line per group of days: "mon-fri: 06:30 20.5, 22:30 18"; a line
+    One line per group of days: "mon-fri: 06:30 20.5; 22:30 18" (Dutch
+    "ma-vr: 06:30 20,5; 22:30 18"; a comma between points works too); a line
     without days applies to every day. Days not named have no switch point
-    (the previous point holds, as on the E32).
+    (the previous point holds, as on the E32). Temperatures are in the user's
+    unit (°C or °F). An error names the line it could not read.
     """
     week = [None] * 7
-    for line in (text or "").lower().replace("–", "-").splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        prefix = DAY_PREFIX.fullmatch(line)
-        days, body = (_days(prefix[1]), prefix[2]) if prefix else (range(7), line)
-        points, position = {}, 0
-        for match in POINT.finditer(body):
-            if body[position:match.start()].strip(" ,;\t"):
-                raise FlowError("e32_program_invalid", "program")
-            position = match.end()
-            hour, minute = int(match[1]), int(match[2])
-            if hour > 23 or minute > 59 or hour * 60 + minute in points:
-                raise FlowError("e32_program_invalid", "program")
-            value = centi(match[3])
-            if not minimum <= value <= maximum:
-                raise FlowError("e32_program_outside_limits", "program")
-            points[hour * 60 + minute] = value
-        if not points or body[position:].strip(" ,;\t"):
-            raise FlowError("e32_program_invalid", "program")
-        if len(points) > MAX_POINTS:
-            raise FlowError("e32_program_too_many", "program")
-        for day in days:
-            if week[day] is not None:
-                raise FlowError("e32_program_invalid", "program")
-            week[day] = [[minute, points[minute]] for minute in sorted(points)]
+    for number, original in enumerate((text or "").splitlines(), 1):
+        try:
+            _parse_line(original, week, minimum, maximum, unit)
+        except FlowError as err:
+            err.placeholders.setdefault("line", str(number))
+            err.placeholders.setdefault("text", original.strip()[:60])
+            raise
     if all(day is None for day in week):
         return None
     return [day or [] for day in week]
+
+
+def _parse_line(original, week, minimum, maximum, unit):
+    """One program line into week (days -> points); raises FlowError."""
+    line = original.lower().replace("–", "-").strip()
+    if not line:
+        return
+    prefix = DAY_PREFIX.fullmatch(line)
+    days, body = (_days(prefix[1]), prefix[2]) if prefix else (range(7), line)
+    points, position = {}, 0
+    for match in POINT.finditer(body):
+        if body[position:match.start()].strip(" ,;\t"):
+            raise FlowError("e32_program_invalid", "program")
+        position = match.end()
+        hour, minute = int(match[1]), int(match[2])
+        if hour > 23 or minute > 59 or hour * 60 + minute in points:
+            raise FlowError("e32_program_invalid", "program")
+        value = centi(match[3], unit)
+        if not minimum <= value <= maximum:
+            raise FlowError("e32_program_outside_limits", "program")
+        points[hour * 60 + minute] = value
+    if not points or body[position:].strip(" ,;\t"):
+        raise FlowError("e32_program_invalid", "program")
+    if len(points) > MAX_POINTS:
+        raise FlowError("e32_program_too_many", "program")
+    for day in days:
+        if week[day] is not None:
+            raise FlowError("e32_program_invalid", "program")
+        week[day] = [[minute, points[minute]] for minute in sorted(points)]
 
 
 def _day_ranges(days, names):
@@ -158,15 +212,20 @@ def _day_ranges(days, names):
     return ",".join(names[a] if a == b else f"{names[a]}-{names[b]}" for a, b in runs)
 
 
-def format_program(schedule, language="en"):
-    """The program text for a stored schedule (identical days grouped)."""
+def format_program(schedule, language="en", unit=CELSIUS):
+    """The program text for a stored schedule (identical days grouped; Dutch with decimal commas)."""
     if type(schedule) is not list or len(schedule) != 7 or not any(schedule):
         return ""
-    names = DAYS["nl" if language == "nl" else "en"]
+    dutch = language == "nl"
+    names = DAYS["nl" if dutch else "en"]
     groups = {}
+
+    def degrees(c):
+        text = f"{shown(c, unit):g}"
+        return text.replace(".", ",") if dutch else text
     for day, points in enumerate(schedule):
         if points:
-            key = ", ".join(f"{m // 60:02d}:{m % 60:02d} {c / 100:g}" for m, c in points)
+            key = "; ".join(f"{m // 60:02d}:{m % 60:02d} {degrees(c)}" for m, c in points)
             groups.setdefault(key, []).append(day)
     return "\n".join(key if len(days) == 7 else f"{_day_ranges(days, names)}: {key}"
                      for key, days in groups.items())
@@ -209,7 +268,14 @@ class E32RoomFlow:
         key = FAILURES.get(getattr(err, "translation_key", None), "e32_rejected")
         placeholders = dict(getattr(err, "translation_placeholders", None) or {})
         placeholders.setdefault("error", getattr(err, "translation_key", None) or "unknown")
+        if key == "e32_rejected":
+            key = REJECTIONS.get(placeholders["error"], key)
         return key, placeholders
+
+    def _unit(self):
+        """The Home Assistant temperature unit (°C or °F); the E32 plan itself is always °C."""
+        unit = getattr(getattr(getattr(self.hass, "config", None), "units", None), "temperature_unit", CELSIUS)
+        return FAHRENHEIT if unit == FAHRENHEIT else CELSIUS
 
     def _e32_abort_failure(self, err):
         key, placeholders = self._e32_failure(err)
@@ -217,19 +283,26 @@ class E32RoomFlow:
             key = "e32_unreachable"
         return self.async_abort(reason=key, description_placeholders=placeholders)
 
-    async def async_step_e32_rooms(self, user_input=None):
+    async def async_step_e32_rooms(self, user_input=None, done=None, name=None):
+        """The room list and what to do next; done ("saved"/"removed") says what just happened."""
         link = self._e32_link()
         if link is None:
             return self.async_abort(reason="e32_rooms_unavailable")
-        try:
-            plan = await link.async_read()
-        except HomeAssistantError as err:
-            return self._e32_abort_failure(err)
+        if done is not None and link.plan is not None:
+            plan = link.plan  # just stored and confirmed by the E32
+        else:
+            try:
+                plan = await link.async_read()
+            except HomeAssistantError as err:
+                return self._e32_abort_failure(err)
         self._e32_plan = plan
         options = (["e32_room_add"] if len(plan["rooms"]) < MAX_ROOMS else []) + (
             ["e32_room_pick"] if plan["rooms"] else []) + ["e32_flow_limits"]
-        return self.async_show_menu(step_id="e32_rooms", menu_options=options, description_placeholders={
-            "rooms": self._e32_room_list(plan), "revision": str(plan["revision"])})
+        placeholders = {"rooms": self._e32_room_list(plan), "revision": str(plan["revision"])}
+        if done is not None:
+            placeholders["name"] = name or ""
+        return self.async_show_menu(step_id="e32_rooms" if done is None else f"e32_rooms_{done}",
+                                    menu_options=options, description_placeholders=placeholders)
 
     def _e32_source_label(self, source):
         if source.get("type") == "ble":
@@ -268,45 +341,93 @@ class E32RoomFlow:
                 "options": ["edit", "remove"], "translation_key": "e32_room_action"}),
         }))
 
+    def _boiler_maximum(self):
+        """The boiler's own maximum heating temperature (°C) when it reports one, else None.
+
+        On some boilers a knob (read-only, the boiler reports its position), on
+        others a menu setting; it is the real ceiling either way.
+        """
+        state = self.hass.data.get(DOMAIN, {}).get(self.config_entry.entry_id, {})
+        client = getattr(state.get("v1_connection"), "client", None)
+        if client is None:
+            return None
+        from .heating_advice import boiler_maximum
+        return boiler_maximum(client)
+
     async def async_step_e32_flow_limits(self, user_input=None):
-        """The plan's minimum/maximum flow temperature (whole °C, 20–59 / 21–60, minimum below maximum)."""
+        """The plan's minimum/maximum flow temperature (whole °C, 20–59 / 21–80, minimum below maximum).
+
+        Shown and entered in the Home Assistant unit. A maximum above 50 °C with
+        floor heating, or above the boiler's own maximum, is saved only after a
+        second confirming save (a warning, not a block: the boiler caps anyway).
+        """
         plan = self._e32_plan
+        unit = self._unit()
         current = {key: plan.get(key) for key in FLOW_LIMIT_FIELDS.values()}
-        errors, placeholders = {}, {"error": ""}
+        boiler = self._boiler_maximum()
+        errors, placeholders = {}, {"error": "", "boiler": "", **self._flow_ranges(unit)}
+        if boiler is not None:
+            from .heating_advice import language
+            placeholders["boiler"] = BOILER_MAXIMUM_TEXT[language(self.hass)].format(
+                maximum=f"{flow_shown(boiler, unit):g} {unit}")
         if user_input is not None:
             try:
                 values = [float(user_input[field]) for field in FLOW_LIMIT_FIELDS]
+                low, high = (flow_celsius(v, unit) for v in values)
             except (KeyError, TypeError, ValueError):
-                values = []
-            low, high = (int(v) for v in values) if len(values) == 2 and all(
-                v.is_integer() for v in values) else (None, None)
-            if low is None or not (FLOW_MINIMUM_C[0] <= low <= FLOW_MINIMUM_C[1]
-                                   and FLOW_MAXIMUM_C[0] <= high <= FLOW_MAXIMUM_C[1]):
+                low = high = None
+            if low is None or high is None or not (FLOW_MINIMUM_C[0] <= low <= FLOW_MINIMUM_C[1]
+                                                   and FLOW_MAXIMUM_C[0] <= high <= FLOW_MAXIMUM_C[1]):
                 errors["base"] = "e32_flow_limits_invalid"
             elif low >= high:
                 errors["base"] = "e32_flow_limits_order"
             elif current == {"minimum_flow_c": low, "maximum_flow_c": high}:
                 return self.async_abort(reason="e32_room_unchanged")
             else:
-                def change(stored):
-                    candidate = deepcopy(stored)
-                    candidate["minimum_flow_c"], candidate["maximum_flow_c"] = low, high
-                    return candidate
-                link = self._e32_link()
-                if link is None:
-                    return self.async_abort(reason="e32_rooms_unavailable")
-                try:
-                    await link.async_change_plan(change, lambda stored: (
-                        stored.get("minimum_flow_c"), stored.get("maximum_flow_c")) == (low, high))
-                except HomeAssistantError as err:
-                    key, extra = self._e32_failure(err)
-                    if key in ABORTS:
-                        return self.async_abort(reason=key, description_placeholders={"room": "", **extra})
-                    errors["base"] = key
-                    placeholders.update(extra)
+                warnings = {}
+                if high > FLOOR_FLOW_WARNING_C and any(
+                        room.get("emitter") == "floor" for room in plan.get("rooms", [])):
+                    warnings["maximum_flow_temperature"] = "e32_flow_limits_floor_warning"
+                if boiler is not None and high > boiler:
+                    warnings["base"] = "e32_flow_limits_above_boiler"
+                if warnings and getattr(self, "_e32_flow_warned", None) != (low, high):
+                    self._e32_flow_warned = (low, high)  # the same values once more: save
+                    errors.update(warnings)
                 else:
-                    return self.async_abort(reason="e32_flow_limits_saved", description_placeholders={
-                        "minimum": str(low), "maximum": str(high)})
+                    return await self._e32_save_flow_limits(low, high, errors, placeholders)
+        return self._e32_flow_form(current, unit, user_input, errors, placeholders)
+
+    @staticmethod
+    def _flow_ranges(unit):
+        def span(bounds):
+            return f"{flow_shown(bounds[0], unit)}–{flow_shown(bounds[1], unit)} {unit}"
+        return {"minimum_range": span(FLOW_MINIMUM_C), "maximum_range": span(FLOW_MAXIMUM_C),
+                "floor_maximum": f"{flow_shown(FLOOR_FLOW_WARNING_C, unit)} {unit}"}
+
+    async def _e32_save_flow_limits(self, low, high, errors, placeholders):
+        def change(stored):
+            candidate = deepcopy(stored)
+            candidate["minimum_flow_c"], candidate["maximum_flow_c"] = low, high
+            return candidate
+        link = self._e32_link()
+        if link is None:
+            return self.async_abort(reason="e32_rooms_unavailable")
+        try:
+            await link.async_change_plan(change, lambda stored: (
+                stored.get("minimum_flow_c"), stored.get("maximum_flow_c")) == (low, high))
+        except HomeAssistantError as err:
+            key, extra = self._e32_failure(err)
+            if key in ABORTS:
+                return self.async_abort(reason=key, description_placeholders={"room": "", **extra})
+            errors["base"] = key
+            placeholders.update(extra)
+            return self._e32_flow_form({"minimum_flow_c": low, "maximum_flow_c": high}, self._unit(),
+                                       None, errors, placeholders)
+        unit = self._unit()
+        return self.async_abort(reason="e32_flow_limits_saved", description_placeholders={
+            "minimum": f"{flow_shown(low, unit)}", "maximum": f"{flow_shown(high, unit)}", "unit": unit})
+
+    def _e32_flow_form(self, current, unit, user_input, errors, placeholders):
         default = {"minimum_flow_temperature": current["minimum_flow_c"], "maximum_flow_temperature":
                    current["maximum_flow_c"]}
         for field, fallback in (("minimum_flow_temperature", 30), ("maximum_flow_temperature", 60)):
@@ -315,8 +436,9 @@ class E32RoomFlow:
         fields = {}
         for field, (low, high) in (("minimum_flow_temperature", FLOW_MINIMUM_C),
                                    ("maximum_flow_temperature", FLOW_MAXIMUM_C)):
-            fields[vol.Required(field, default=default[field])] = selector.NumberSelector({
-                "min": low, "max": high, "step": 1, "mode": "box", "unit_of_measurement": CELSIUS})
+            fields[vol.Required(field, default=flow_shown(default[field], unit))] = selector.NumberSelector({
+                "min": flow_shown(low, unit), "max": flow_shown(high, unit), "step": 1, "mode": "box",
+                "unit_of_measurement": unit})
         return self.async_show_form(step_id="e32_flow_limits", data_schema=retained_input_schema(
             self, vol.Schema(fields), user_input), errors=errors, description_placeholders=placeholders)
 
@@ -342,7 +464,7 @@ class E32RoomFlow:
             try:
                 await link.async_change_plan(change, lambda stored: plan_room(stored, room_id) is None)
             except FlowError:
-                return self.async_abort(reason="e32_room_removed", description_placeholders=placeholders)
+                return await self.async_step_e32_rooms(done="removed", name=placeholders["name"])
             except HomeAssistantError as err:
                 key, extra = self._e32_failure(err)
                 if key in ABORTS:
@@ -350,7 +472,7 @@ class E32RoomFlow:
                 errors["base"] = key
                 placeholders.update(extra)
             else:
-                return self.async_abort(reason="e32_room_removed", description_placeholders=placeholders)
+                return await self.async_step_e32_rooms(done="removed", name=placeholders["name"])
         return self.async_show_form(step_id="e32_room_remove", data_schema=vol.Schema({
             vol.Required("confirm_remove", default=False): bool}),
             errors=errors, description_placeholders=placeholders)
@@ -380,6 +502,7 @@ class E32RoomFlow:
     def _e32_defaults(self, room):
         room = room or {}
         sources = room.get("sources", [])
+        unit = self._unit()
         return {
             "name": room.get("name", ""), "state": room.get("state", "active"),
             "emitter": room.get("emitter", "radiator"),
@@ -387,11 +510,21 @@ class E32RoomFlow:
             "ble_sources": [s["id"] for s in sources if s.get("type") == "ble"],
             "bluetooth_first": bool(sources) and sources[0].get("type") == "ble",
             "setpoint_entity": room.get("setpoint_entity") or None,
-            "fallback_temperature": room.get("fallback_centi_c", 2000) / 100,
-            "minimum_temperature": room.get("minimum_centi_c", 500) / 100,
-            "maximum_temperature": room.get("maximum_centi_c", 2500) / 100,
-            "program": format_program(room.get("schedule"), self.hass.config.language),
+            "fallback_temperature": shown(room.get("fallback_centi_c", 2000), unit),
+            "minimum_temperature": shown(room.get("minimum_centi_c", 500), unit),
+            "maximum_temperature": shown(room.get("maximum_centi_c", 2500), unit),
+            "program": format_program(room.get("schedule"), self.hass.config.language, unit),
         }
+
+    def _e32_centi(self, value, field, defaults, room):
+        """A submitted temperature as centi-°C; the value as shown keeps the stored one exactly."""
+        stored = room.get({"fallback_temperature": "fallback_centi_c", "minimum_temperature": "minimum_centi_c",
+                           "maximum_temperature": "maximum_centi_c"}[field])
+        try:
+            same = type(stored) is int and float(value) == float(defaults[field])
+        except (TypeError, ValueError):
+            same = False
+        return stored if same else centi(value, self._unit())
 
     def _e32_room_values(self, user_input, room, ble_options):
         """The submitted room as plan fields; raises FlowError for the first problem."""
@@ -428,15 +561,32 @@ class E32RoomFlow:
                 problem := source_problem(self.hass, setpoint, setpoint=True)):
             raise FlowError(problem, "setpoint_entity", source=setpoint)
         limits = user_input.get("limits") or {}
-        low = centi(limits.get("minimum_temperature", defaults["minimum_temperature"]))
-        high = centi(limits.get("maximum_temperature", defaults["maximum_temperature"]))
-        fallback = centi(user_input.get("fallback_temperature", defaults["fallback_temperature"]))
+        try:
+            low = self._e32_centi(limits.get("minimum_temperature", defaults["minimum_temperature"]),
+                                  "minimum_temperature", defaults, room)
+            high = self._e32_centi(limits.get("maximum_temperature", defaults["maximum_temperature"]),
+                                   "maximum_temperature", defaults, room)
+            fallback = self._e32_centi(user_input.get("fallback_temperature", defaults["fallback_temperature"]),
+                                       "fallback_temperature", defaults, room)
+        except FlowError:
+            raise FlowError("e32_limits_invalid", "fallback_temperature", **self._limit_range()) from None
         if not LIMITS_CENTI_C[0] <= low <= high <= LIMITS_CENTI_C[1] or not low <= fallback <= high:
-            raise FlowError("e32_limits_invalid", "fallback_temperature")
-        schedule = parse_program(user_input.get("program") or "", low, high)
+            raise FlowError("e32_limits_invalid", "fallback_temperature", **self._limit_range())
+        text = user_input.get("program") or ""
+        stored = room.get("schedule")
+        if stored and text.strip() == defaults["program"].strip() and all(
+                low <= point[1] <= high for day in stored for point in day):
+            schedule = deepcopy(stored)  # the program as shown: kept exactly (no °F rounding)
+        else:
+            schedule = parse_program(text, low, high, self._unit())
         return {"name": name, "state": state, "emitter": emitter, "sources": sources,
                 "setpoint_entity": setpoint, "fallback_centi_c": fallback,
                 "minimum_centi_c": low, "maximum_centi_c": high, "schedule": schedule}
+
+    def _limit_range(self):
+        unit = self._unit()
+        low, high = LIMITS_CENTI_C
+        return {"range": f"{shown(low, unit):g}–{shown(high, unit):g} {unit}"}
 
     async def async_step_e32_room(self, user_input=None):
         room_id = getattr(self, "_e32_room_id", None)
@@ -444,7 +594,8 @@ class E32RoomFlow:
         if room_id and room is None:
             return self.async_abort(reason="e32_room_missing", description_placeholders={"room": room_id})
         ble_options = self._e32_ble_options(room)
-        errors, placeholders = {}, {"source": "", "error": ""}
+        errors = {}
+        placeholders = {"source": "", "error": "", "line": "", "text": "", **self._limit_range()}
         link = self._e32_link()
         if link is None:
             return self.async_abort(reason="e32_rooms_unavailable")
@@ -471,7 +622,7 @@ class E32RoomFlow:
                 errors["base"] = key
                 placeholders.update(extra)
             else:
-                return self.async_abort(reason="e32_room_saved", description_placeholders={"name": values["name"]})
+                return await self.async_step_e32_rooms(done="saved", name=values["name"])
         return self.async_show_form(step_id="e32_room", data_schema=retained_input_schema(
             self, self._e32_room_schema(room, ble_options), user_input),
             errors=errors, description_placeholders=placeholders)
@@ -479,8 +630,10 @@ class E32RoomFlow:
     def _e32_room_schema(self, room, ble_options):
         d = self._e32_defaults(room)
         own = self._e32_own_entities()
-        temperature = selector.NumberSelector({"min": 5, "max": 30, "step": 0.5, "mode": "box",
-                                               "unit_of_measurement": CELSIUS})
+        unit = self._unit()
+        low, high = (shown(limit, unit) for limit in LIMITS_CENTI_C)
+        temperature = selector.NumberSelector({"min": low, "max": high, "step": 0.5 if unit == CELSIUS else 0.1,
+                                               "mode": "box", "unit_of_measurement": unit})
         sources = {"filter": [{"domain": "climate"}, {"domain": "sensor", "device_class": "temperature"}],
                    "multiple": True, "reorder": True}
         if own:

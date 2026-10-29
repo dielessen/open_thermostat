@@ -239,3 +239,21 @@ test('a response body that ignores the dashboard deadline cannot commit after ab
  body(managed());await new Promise(setImmediate);
  assert.equal(p.lastLoadedStatus,undefined);assert.equal(p.statusPoll,null);assert.equal(p.main.innerHTML,'');
 });
+test('without Home Assistant the overview shows the E32 room engine, calmly and with its own words',()=>{
+ const heating={schema:1,mode:'shadow',request:{heat:true,flow_c:38,reason:'heating'},ha:{input_age_s:null,broker_connected:false},
+  active:{state:'shadow',warnings:[],enabled:false},ble_sensors:[{id:'0a1b2c3d4e5f',name:'Thermometer keuken',temperature:19.9}],
+  rooms:[{id:'keuken',name:'Keuken',state:'active',status:'ok',source:'0a1b2c3d4e5f',setpoint_source:'schedule',temperature:19.9,setpoint:20,demand:true},
+   {id:'slaapkamer',name:'Slaapkamer',state:'active',status:'stale',source:null,setpoint_source:'fallback',temperature:null,setpoint:18,demand:false}]};
+ const p=rootPage();p.updateRooms({controlMode:'shadow',ems:{},control:{fresh:false,reason:'no_snapshot'},heating});
+ const html=p.main.innerHTML;
+ for(const text of ['Keuken','Slaapkamer','1 ruimte vraagt warmte','Home Assistant: niet verbonden (optioneel)','Je thermostaat regelt de ketel',
+  'Berekende ketelvraag: 38 °C · Verwarmen','Gewenste temperatuur uit het weekprogramma','Geen meting','Gemeten door: Thermometer keuken (Bluetooth)','Ruimtes en weekprogramma'])
+  assert.ok(html.includes(text),text);
+ assert.doesNotMatch(html,/Wachten op Home Assistant|Geblokkeerd|Installatieprofiel|NaN|undefined/);
+ // An empty plan points to the Rooms page instead of Home Assistant.
+ p.updateRooms({controlMode:'shadow',ems:{},control:{fresh:false},heating:{...heating,rooms:[]}});
+ assert.match(p.main.innerHTML,/Stel ruimtes in op de pagina Ruimtes, of koppel Home Assistant\./);assert.match(p.main.innerHTML,/data-page="heating"/);
+ // Active control after the switch-over: the chips follow the E32's own state.
+ p.updateRooms({controlMode:'shadow',ems:{},control:{fresh:false},heating:{...heating,mode:'active',active:{state:'active',warnings:[],enabled:true}}});
+ assert.match(p.main.innerHTML,/De E32 regelt de ketel/);assert.match(p.main.innerHTML,/Actieve regeling: de E32 regelt je ketel/);
+});

@@ -160,6 +160,19 @@ public:
 
 	explicit EmsController(std::shared_ptr<ib::logger::LoggerInterface> log);
 
+	// Every read-modify-write atomic of the EMS route (boot placement check).
+	template<class Visit> static void visitRmwAtomics(Visit&& visit) {
+		visit("ems.reset_requested", &resetRequested_); visit("ems.rx_dropped", &rxDropped_);
+		visit("ems.invalid_telegrams", &invalidTelegrams_); visit("ems.polls", &polls_);
+		visit("ems.tx_frames", &txFrames_); visit("ems.max_poll_service", &maxPollServiceUs_);
+		visit("ems.tx_not_confirmed", &txNotConfirmed_);
+#ifdef OPENTHERMOSTAT_E32V2
+		visit("ems.manual_completions", &manualCompletions_); visit("ems.manual_rejections", &manualRejections_);
+		visit("ems.manual_reply_errors", &manualReplyErrors_); visit("ems.transport_fault", &boilerTestTransportFault_);
+#endif
+		EmsBusUart::visitRmwAtomics(visit);
+	}
+
 	void requestStartupData();
 
 	void changeBoilerState(bool turnOnHeating, uint8_t heatingTemperature) {
@@ -523,13 +536,16 @@ private:
 	size_t txHead_ = 0;
 	size_t txSize_ = 0;
 	EmsFrameQueue<maxTelegramQueueSize> telegramsToProcess_;
-	std::atomic<bool> resetRequested_{false};
+	// Read-modify-write atomics (exchange, fetch_add, CAS) are static: the
+	// controller lives in PSRAM, where the ESP32's S32C1I is not atomic; .bss
+	// is internal RAM. One EMS bus per device (diagnostics/AtomicPlacement.h).
+	static inline std::atomic<bool> resetRequested_{false};
 	std::atomic<bool> captureForeignTelegrams_{false};
-	std::atomic<uint32_t> rxDropped_{0};
-	std::atomic<uint32_t> invalidTelegrams_{0};
-	std::atomic<uint32_t> polls_{0};
-	std::atomic<uint32_t> txFrames_{0};
-	std::atomic<uint32_t> maxPollServiceUs_{0};
+	static inline std::atomic<uint32_t> rxDropped_{0};
+	static inline std::atomic<uint32_t> invalidTelegrams_{0};
+	static inline std::atomic<uint32_t> polls_{0};
+	static inline std::atomic<uint32_t> txFrames_{0};
+	static inline std::atomic<uint32_t> maxPollServiceUs_{0};
 	unsigned long lastStatsMillis_ = 0;
 
 	std::mutex telegramProcessorsMutex_;
@@ -549,7 +565,7 @@ private:
 	BoilerTestService boilerTest_{EcomlineCommissioningProfile::service(
         (static_cast<uint64_t>(esp_random()) << 32) | esp_random(), board::emsManualTestTransmitAllowed)};
     ManualClassicTransaction manualTransaction_; // UART task only, never HTTP/loop.
-    std::atomic<uint32_t> manualCompletions_{0},manualRejections_{0},manualReplyErrors_{0};
+    static inline std::atomic<uint32_t> manualCompletions_{0},manualRejections_{0},manualReplyErrors_{0}; // internal RAM, see resetRequested_
     template<bool Read>
     bool transmitManualFrame(const EmsRawFrame& frame){
         if(!manualTransaction_.begin(frame.data.data(),frame.length,static_cast<uint64_t>(esp_timer_get_time())))return false;
@@ -638,14 +654,14 @@ private:
         return manualTransportReviewed() && monitor_.capabilities().profile()==BoilerProtocol::classic
             && !boilerTest_.active() && !configurationRead_.active() && !boilerSettings_.active();
     }
-	std::atomic<bool> boilerTestTransportFault_{false};
+	static inline std::atomic<bool> boilerTestTransportFault_{false}; // internal RAM, see resetRequested_
 	uint32_t boilerTestUartErrorsSeen_ = 0; // UART task only
 #endif
 	control::TemperatureSample outdoorSample_;
 
 	std::atomic<std::optional<int16_t>> emsOutdoorTemperature_;
 
-	std::atomic_size_t txNotConfirmed_{0};
+	static inline std::atomic_size_t txNotConfirmed_{0}; // internal RAM, see resetRequested_
 	uint32_t uartResetsSeen_ = 0; // UART task only
 
 

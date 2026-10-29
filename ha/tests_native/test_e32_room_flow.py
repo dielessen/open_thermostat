@@ -27,7 +27,7 @@ COMPONENT = Path(__file__).resolve().parents[1] / "config/custom_components/open
 CREDENTIALS = {CONTROLLER_ADDRESS: "http://192.168.1.206", CONTROLLER_PASSWORD: "secret"}
 BLE = [{"id": "a4c138a3e8db", "name": "Slaapkamer", "profile": "atc", "temperature": 19.4},
        {"id": "112233445566", "name": "Zolder", "profile": "atc", "temperature": 17.0}]
-MENU = ["installation", "controller_connection", "e32_rooms", "configuration_status", "energy", "advanced_settings"]
+MENU = ["e32_rooms", "controller_connection", "energy", "installation", "advanced_settings"]
 
 
 @pytest.fixture

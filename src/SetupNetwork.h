@@ -160,7 +160,13 @@ inline void pollSetupWifi() {
     static std::string command;
     while(Serial.available()) {
         const char c=Serial.read();
-        if(c=='\n'||c=='\r') { if(command=="setup") requestSetupBoot(); command.clear(); }
+        if(c=='\n'||c=='\r') {
+            if(command=="setup") requestSetupBoot();
+            // Physical access only: restores the factory web password "admin".
+            else if(command=="password-reset") Serial.printf("%s\n",deviceAccess.resetPassword()?
+                "Web password reset to the default (user admin, password admin). Change it under System.":"Web password reset failed: storage error");
+            command.clear();
+        }
         else if(command.size()<16) command+=c;
         else command.clear();
     }

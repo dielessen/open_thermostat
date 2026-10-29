@@ -6,6 +6,7 @@
 #include <freertos/task.h>
 #include <nvs.h>
 #include <cstdint>
+#include "AtomicPlacement.h"
 
 namespace heating::diagnostics {
 // Live resource figures for /status/logs and the black box. Stack values are
@@ -36,6 +37,7 @@ inline cJSON* runtimeHealthJson() {
     cJSON_AddNumberToObject(root, "minimum_free_internal_bytes", heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
     cJSON_AddNumberToObject(root, "largest_internal_block_bytes", largestInternalBlock());
     cJSON_AddNumberToObject(root, "free_psram_bytes", heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+    cJSON_AddNumberToObject(root, "atomics_in_psram", atomicsInPsram); // 0 expected, see AtomicPlacement.h
     const auto marks = taskStackMarks();
     if (cJSON* stacks = cJSON_AddObjectToObject(root, "stack_minimum_bytes")) {
         cJSON_AddNumberToObject(stacks, "loop", marks.loop);

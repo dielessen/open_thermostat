@@ -67,6 +67,7 @@ public:
 
 	bool isScanPending() { return scanLifecycle_.pending(); }
 	bool discovering() const { return scanLifecycle_.discovering(); }
+	template<class Visit> static void visitRmwAtomics(Visit&& visit) { visit("ble.scan_lifecycle", &scanLifecycle_); }
 	bool scanEnabled() const { return config_.scanTime != 0; }
 
 	// durationMs > 0: a requested Search. continuous: managed sensors are bound.
@@ -142,7 +143,9 @@ private:
 	static BeaconTemperatureReader *stReader_;
 	ReportTemperature_t pushTemperature_;
     RawObserver rawObserver_;
-	control::BleScanLifecycle scanLifecycle_;
+	// compare_exchange between loop and Bluetooth host task: static, so internal
+	// RAM (this reader is part of the PSRAM-resident controller; one per device).
+	static inline control::BleScanLifecycle scanLifecycle_;
 	config::BluetoothConfig config_ = config::getBluetoothConfig();
 };
 }

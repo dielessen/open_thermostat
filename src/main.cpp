@@ -386,7 +386,11 @@ void setup() {
 	WiFi.persistent(false);
 	if(heating::deviceAccess.begin()) {
 		// Physical USB console only. Never use network logger sinks for secrets.
-		Serial.printf("Local setup WiFi password: %s\nHTTP admin password: %s\nType setup + Enter over USB to reboot into WiFi-only setup for 15 minutes.\n",heating::deviceAccess.setupPassword().c_str(),heating::deviceAccess.password().c_str());
+		// Never print a changed password: only the factory default is shown.
+		Serial.printf("Local setup WiFi password: %s\nWeb sign-in: user admin, password %s\nType setup + Enter over USB to reboot into WiFi-only setup for 15 minutes; password-reset + Enter restores the web password admin.\n",
+			heating::deviceAccess.setupPassword().c_str(),
+			heating::deviceAccess.defaultPassword()?"admin (factory default; change it under System)":
+			heating::deviceAccess.passwordState()==heating::DeviceAccess::PasswordState::stored?"(changed by the owner)":"(stored password unreadable; use password-reset)");
 	}
 #endif
 #ifdef OPENTHERMOSTAT_E32V2
@@ -485,6 +489,25 @@ void setup() {
 
 	heating::controller = new heating::HeatingController(heating::logger);
 	heating::rest = std::make_unique<heating::REST>(heating::logger, *heating::controller, startAP ? apConfig.listenPort : networkConfig.listenPort);
+#ifdef OPENTHERMOSTAT_E32V2
+	{
+		// S32C1I read-modify-write is not atomic in PSRAM (diagnostics/AtomicPlacement.h).
+		uint32_t checked = 0;
+		heating::diagnostics::atomicsInPsram = heating::diagnostics::countAtomicsInPsram(
+			[&checked](auto&& visit) {
+				auto counted = [&](const char* name, const void* address) { ++checked; visit(name, address); };
+				heating::ems::EmsController::visitRmwAtomics(counted);
+				heating::BeaconTemperatureReader::visitRmwAtomics(counted);
+			},
+			heating::diagnostics::inExternalRam,
+			[](const char* name, const void* address) {
+				DBGLOGFE(heating::logger, appLogFeature(), "Atomic %s is in PSRAM (%p): read-modify-write is unreliable there\n", name, address);
+			});
+		DBGLOGFI(heating::logger, appLogFeature(), "Atomic placement: %u of %u read-modify-write atomics in PSRAM; controller in %s\n",
+			unsigned(heating::diagnostics::atomicsInPsram), unsigned(checked),
+			heating::diagnostics::inExternalRam(heating::controller) ? "PSRAM" : "internal RAM");
+	}
+#endif
 	config::readDebugOptions();
 
 	DBGLOGFI(heating::logger, appLogFeature(), "Free memory %d/%d (minimum was: %d) MaxAlloc: %d STUFF\n", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap());

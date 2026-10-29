@@ -3,11 +3,14 @@
 Three views, built from the entity registry (renamed entity IDs are followed,
 disabled and absent entities are left out) with built-in cards only:
 
-* Heating: now (boiler request, flow, agreement), the heating advice (only
-  while there is any), one section per E32 room
-  (with a small "Learning" area once the E32 reports it), the E32 next to the
-  current thermostat (only in a home with one), the boiler essentials (with today's hot-water taps) and the
-  Bluetooth sensors;
+* Heating, ordered for a quick look on a phone: the status ("Heating: OK" or
+  "Problem" with the reasons), the heating advice (only while there is any),
+  one section per E32 room (temperature and target; with a small "Learning"
+  area once the E32 reports it), what the E32 asks the boiler now, the boiler
+  essentials (with today's hot-water taps and the boiler's own maximum), the
+  E32 next to the current thermostat (only in a home with one) and the
+  Bluetooth sensors. Room settings that are easy to change by accident (mode,
+  temperature without Home Assistant) stay on the room's device page;
 * Boiler: the reported boiler fields and their history;
 * Diagnostics: device and EMS details, hot water, estimates, each with a
   one-line note.
@@ -86,6 +89,7 @@ BLE_KEYS = ("temperature", "humidity", "battery")
 ESSENTIALS = (
     ("flow", "measured_flow_temperature", "boiler_current_flow_temperature"),
     ("return", "measured_return_temperature", None),
+    ("max_ch", "configured_heating_temperature", None),
     ("modulation", "reported_burner_modulation", "boiler_burner_power"),
     ("pressure", "pressure", "boiler_pressure"),
     ("dhw", "measured_dhw_temperature", "boiler_current_hot_water_temperature"),
@@ -102,6 +106,7 @@ TEXT = {
         "settings": "{room} settings",
         "boiler_request": "Boiler request (E32)", "flow": "Flow temperature", "return": "Return temperature",
         "modulation": "Modulation", "pressure": "Pressure", "dhw": "Hot water", "code": "Display code",
+        "max_ch": "Boiler maximum (heating)", "status": "Status", "problem": "Heating",
         "starts_hour": "Burner starts last hour", "short_cycling": "Short cycling",
         "agreement": "Agreement with thermostat", "measured": "Measured by E32", "target": "Target temperature",
         "mode": "Mode", "off_until": "Off until", "without_ha": "Temperature without Home Assistant",
@@ -114,10 +119,7 @@ TEXT = {
         "shadow": "Shadow mode: the E32 calculates along but does not control the boiler yet; your current "
                   "thermostat or the boiler's own control stays in charge.",
         "active": "The E32 controls the boiler.",
-        "how_title": "How it works",
-        "how": "You set the rooms, their sensors, target temperatures and week program here in Home Assistant. "
-               "The E32 stores this plan and runs it, also without Home Assistant, with its own Bluetooth sensors "
-               "and week program.",
+        "how": "The E32 keeps your rooms running, also without Home Assistant.",
         "boiler_fields": "Reported boiler fields", "inferred": "Inferred activity — not verified operation",
         "unreliable": "Unreliable raw boiler diagnostics",
         "boiler_note": "Values as the boiler reports them. Unknown or stale is not zero; modulation is a percentage, "
@@ -158,6 +160,7 @@ TEXT = {
         "settings": "Instellingen {room}",
         "boiler_request": "Ketelvraag (E32)", "flow": "Aanvoertemperatuur", "return": "Retourtemperatuur",
         "modulation": "Modulatie", "pressure": "Waterdruk", "dhw": "Warm water", "code": "Displaycode",
+        "max_ch": "Maximum ketel (verwarming)", "status": "Status", "problem": "Verwarming",
         "starts_hour": "Branderstarts afgelopen uur", "short_cycling": "Pendelen",
         "agreement": "Overeenstemming met thermostaat", "measured": "Gemeten door E32",
         "target": "Gewenste temperatuur", "mode": "Stand", "off_until": "Uit tot",
@@ -171,10 +174,7 @@ TEXT = {
         "shadow": "Schaduwmodus: de E32 rekent mee maar stuurt de ketel nog niet; je huidige thermostaat of de "
                   "eigen regeling van de ketel blijft de baas.",
         "active": "De E32 regelt de ketel.",
-        "how_title": "Zo werkt het",
-        "how": "Je stelt de ruimtes, hun sensoren, gewenste temperaturen en het weekprogramma hier in Home Assistant "
-               "in. De E32 bewaart dit plan en voert het uit, ook zonder Home Assistant, met zijn eigen "
-               "Bluetooth-sensoren en weekprogramma.",
+        "how": "De E32 houdt je ruimtes op temperatuur, ook zonder Home Assistant.",
         "boiler_fields": "Gemelde ketelwaarden", "inferred": "Afgeleide activiteit — niet geverifieerd",
         "unreliable": "Onbetrouwbare ruwe keteldiagnose",
         "boiler_note": "Waarden zoals de ketel ze meldt. Onbekend of verouderd is geen nul; modulatie is een "
@@ -594,12 +594,13 @@ class RoomDashboard:
         # One small card says who does what; the mode line follows the E32's own status.
         explain = None
         if request or e32_room_entities:
-            content = "**" + t["how_title"] + "**\n\n" + t["how"]
+            content = ""
             if request:
                 quoted = json.dumps(request)
                 content += ("{% set mode = state_attr(" + quoted + ", 'mode') %}"
-                            "{% if mode == 'active' %}\n\n" + t["active"]
-                            + "{% elif mode == 'shadow' %}\n\n" + t["shadow"] + "{% endif %}")
+                            "{% if mode == 'active' %}" + t["active"] + " "
+                            + "{% elif mode == 'shadow' %}" + t["shadow"] + " {% endif %}")
+            content += t["how"]
             # One line for the learning, once, while the E32 reports it.
             learning = next((room["learning"] for room in e32_room_entities.values() if room.get("learning")), None)
             if learning:
@@ -619,7 +620,17 @@ class RoomDashboard:
                             "navigation_path": "/config/integrations/integration/" + DOMAIN}}
             if e32_rooms else None,
         )
-        sections = [now] if len(now["cards"]) > 1 else []
+        # First: is everything OK? Then the advice (only while there is any).
+        sections = []
+        problem = hub.get("heating_problem")
+        if problem:
+            quoted = json.dumps(problem)
+            sections.append(_section(
+                _heading(t["status"], "mdi:shield-check-outline"),
+                _tile(problem, t["problem"], "mdi:radiator"),
+                {"type": "markdown", "content": "{% for reason in state_attr(" + quoted + ", 'reasons') or [] %}"
+                 "- {{ reason }}\n{% endfor %}",
+                 "visibility": [{"condition": "state", "entity": problem, "state": "on"}]}))
         advice = _advice_section(t, hub.get("heating_advice"))
         if advice:
             sections.append(advice)
@@ -645,14 +656,13 @@ class RoomDashboard:
                 _heading(name, "mdi:home-thermometer-outline", badges),
                 {"type": "thermostat", "entity": thermostat} if thermostat else None,
                 _tile(room.get("temperature"), t["measured"]),
-                _tile(room.get("setpoint"), t["target"]),
-                _tile(state, t["mode"], features=[{"type": "select-options"}]),
+                None if thermostat else _tile(room.get("setpoint"), t["target"]),
                 _tile(room.get("inactive_until"), t["off_until"],
                       visibility=[{"condition": "state", "entity": state, "state": "inactive"}] if state else None),
-                _tile(room.get("fallback_setpoint"), t["without_ha"],
-                      features=[{"type": "numeric-input", "style": "buttons"}]),
             *_learning_cards(t, room),
             ))
+        if len(now["cards"]) > 1:
+            sections.append(now)
 
         # Older HA rooms (one climate per MQTT room) and their settings.
         legacy_cards = []
@@ -667,6 +677,19 @@ class RoomDashboard:
                                 for sub in legacy)
         if legacy_cards:
             sections.append(_section(_heading(t["rooms"], "mdi:thermostat"), *legacy_cards))
+
+        # Today's hot-water taps (E32 firmware that sorts them) sit next to the hot water temperature.
+        taps = hub.get("dhw_taps_today")
+        taps = _tile(taps, t["dhw_taps"], visibility=_known(taps)) if taps else None
+        boiler = _section(
+            _heading(t["boiler"], "mdi:water-boiler"),
+            *(card for key, _, _ in ESSENTIALS
+              for card in (_tile(essential(key), t[key]), taps if key == "dhw" else None)),
+            _tile(hub.get("burner_starts_last_hour"), t["starts_hour"]),
+            _tile(hub.get("burner_short_cycling"), t["short_cycling"]),
+        )
+        if len(boiler["cards"]) > 1:
+            sections.append(boiler)
 
         # The E32's decision next to the thermostat's (shadow comparison), only in a home
         # with a thermostat on the bus: the comparison entities exist only once the E32 saw one.
@@ -692,19 +715,6 @@ class RoomDashboard:
         )
         if thermostat and len(compare["cards"]) > 1:
             sections.append(compare)
-
-        # Today's hot-water taps (E32 firmware that sorts them) sit next to the hot water temperature.
-        taps = hub.get("dhw_taps_today")
-        taps = _tile(taps, t["dhw_taps"], visibility=_known(taps)) if taps else None
-        boiler = _section(
-            _heading(t["boiler"], "mdi:water-boiler"),
-            *(card for key, _, _ in ESSENTIALS
-              for card in (_tile(essential(key), t[key]), taps if key == "dhw" else None)),
-            _tile(hub.get("burner_starts_last_hour"), t["starts_hour"]),
-            _tile(hub.get("burner_short_cycling"), t["short_cycling"]),
-        )
-        if len(boiler["cards"]) > 1:
-            sections.append(boiler)
 
         ble_cards = []
         for sensor_id, metrics in sorted(self._e32_ble(entries).items()):

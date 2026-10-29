@@ -139,11 +139,20 @@ public:
         lastRxErrorAtMs_=at;lastRxErrorKind_=kind;
         portEXIT_CRITICAL(&rxErrorMux_);
     }
-	std::atomic<uint32_t> rxErrors{0};
-	std::atomic<uint32_t> rxTimeouts{0};
-	std::atomic<uint32_t> resets{0};
-	std::atomic<uint32_t> echoBreakRecoveries{0}; // own BREAK unreported, delimiter dropped, reply kept
-	std::atomic<uint32_t> breakRealignments{0}; // stale 0x00 before a frame dropped, stream realigned
+	// fetch_add/exchange targets are static (internal RAM .bss): this object is
+	// part of the PSRAM-resident controller, where S32C1I is not atomic. One
+	// EMS UART per device (diagnostics/AtomicPlacement.h).
+	static inline std::atomic<uint32_t> rxErrors{0};
+	static inline std::atomic<uint32_t> rxTimeouts{0};
+	static inline std::atomic<uint32_t> resets{0};
+	static inline std::atomic<uint32_t> echoBreakRecoveries{0}; // own BREAK unreported, delimiter dropped, reply kept
+	static inline std::atomic<uint32_t> breakRealignments{0}; // stale 0x00 before a frame dropped, stream realigned
+	template<class Visit> static void visitRmwAtomics(Visit&& visit) {
+		visit("uart.rx_errors", &rxErrors); visit("uart.rx_timeouts", &rxTimeouts); visit("uart.resets", &resets);
+		visit("uart.echo_break_recoveries", &echoBreakRecoveries); visit("uart.break_realignments", &breakRealignments);
+		visit("uart.reset_requested", &resetRequested_);
+		EmsBusUartForwarder::visitRmwAtomics(visit);
+	}
 
 private:
     // UART task and status reader share a short existing ESP critical-section
@@ -268,7 +277,7 @@ private:
         portEXIT_CRITICAL(&rxErrorMux_);
     }
 #endif
-	std::atomic<bool> resetRequested_{false};
+	static inline std::atomic<bool> resetRequested_{false}; // exchange() in the UART task: internal RAM
 	QueueHandle_t uartQueue_;
 	std::array<uint8_t, EmsMaxTelegramSize> buffer_;
 	processTelegram_t processTelegram_;

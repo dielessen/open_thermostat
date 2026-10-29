@@ -3,7 +3,7 @@
 (() => {
     const messages = window.OT_UI_MESSAGES || {};
     const saved = document.cookie.match(/(?:^|;\s*)ot_ui_lang=(en|nl)(?:;|$)/);
-    const language = saved ? saved[1] : 'en';
+    const language = saved ? saved[1] : typeof navigator !== 'undefined' && /^nl\b/i.test(navigator.language || '') ? 'nl' : 'en';
     const normalize = value => value.trim().replace(/\s+/g, ' ');
     function text(value) {
         if (typeof value !== 'string') return value;

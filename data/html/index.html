@@ -114,7 +114,7 @@ pre{background:var(--ot-surface-2);color:var(--ot-text);border:1px solid var(--o
 .btn-secondary,.btn-outline-primary,.btn-outline-secondary,.btn-outline-dark{background:transparent;border-color:var(--ot-field);color:var(--ot-text)}
 .btn-secondary:hover,.btn-outline-primary:hover,.btn-outline-secondary:hover,.btn-outline-dark:hover{background:var(--ot-surface-2);border-color:var(--ot-text);color:var(--ot-text)}
 .btn-secondary:disabled,.btn-outline-primary:disabled,.btn-outline-secondary:disabled{color:var(--ot-muted);background:transparent;border-color:var(--ot-border)}.btn-outline-danger,.btn-outline-danger:hover{background:transparent;border-color:var(--ot-err);color:var(--ot-err)}.btn-danger{background:var(--ot-err);border-color:var(--ot-err);color:var(--ot-surface)}
-input[type=checkbox],input[type=radio]{width:20px;height:20px;accent-color:var(--ot-accent);vertical-align:-4px}.form-check-input{margin-top:.15rem}.form-check-label{padding-left:6px}
+input[type=checkbox],input[type=radio]{width:24px;height:24px;accent-color:var(--ot-accent);vertical-align:-6px}.form-check{display:flex;flex-wrap:wrap;align-items:center;column-gap:10px;padding-left:0;min-height:var(--ot-tap)}.form-check-input{position:static;margin:0;flex:none}.form-check-label{flex:1;padding:10px 0}.form-check>.ot-hint{flex-basis:100%}
 .alert{border:0;border-left:4px solid var(--ot-off);border-radius:var(--ot-r1);background:var(--ot-off-bg);color:var(--ot-text)}.alert-info{border-color:var(--ot-accent);background:var(--ot-accent-soft)}
 .alert-warning{border-color:var(--ot-warn);background:var(--ot-warn-bg)}.alert-danger{border-color:var(--ot-err);background:var(--ot-err-bg)}.alert-success{border-color:var(--ot-ok);background:var(--ot-ok-bg)}
 .border{border-color:var(--ot-border)!important}.bg-light{background:var(--ot-surface-2)!important}.progress{background:var(--ot-surface-2)}.progress-bar{background:var(--ot-accent)}.gap-2{gap:.5rem}
@@ -611,6 +611,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
 		function mainScreen() {
 			clearMainContainer();
 			markPage('home');
+            window.OpenThermostatAuth?.ready().then(session => { otDefaultPassword = session.default_password === true; }, () => {});
 			try { if (location.hash) history.replaceState(null, '', location.pathname + location.search); } catch (_) {}
 			showRooms();
 			intervalID = setInterval(function () {
@@ -647,9 +648,12 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             const request = new AbortController();
             statusPoll = request;
             const timeout = setTimeout(function() { request.abort(); }, 15000);
+            const heatingRead = controlUiMode === 'legacy' ? Promise.resolve(null) :
+                fetch(hostName + '/status/heating', {signal: request.signal, cache: 'no-store'}).then(res => res.ok ? res.json() : null).catch(() => null);
 			fetch(hostName + '/status', {signal: request.signal})
                 .then(validateResponse)
 				.then(res => res.json())
+                .then(out => heatingRead.then(heating => { if (out && heating && typeof heating === 'object') out.heating = heating; return out; }))
 				.then((out) => {
 					if (navigation !== navigationGeneration || statusPoll !== request ||
                         request.signal.aborted || document.visibilityState === 'hidden') return;
@@ -812,6 +816,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
 
         // Read-only dashboard. No new polling, commands, scheduler or chart dependency.
         var installationHistory = Object.create(null), installationHistoryBoot = null;
+        var otDefaultPassword = false; // from /auth/session; the About page clears it after a change
         function dashboardText(value) {
             return String(value == null ? '' : value).replace(/[&<>"']/g, function(c) {
                 return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
@@ -944,33 +949,37 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                 field(uiText("Reported vacation end (UTC)"),new Date(until*1000).toISOString().replace('T',' ').replace('.000Z',' UTC'));
             return fields ? '<dl class="pd-detail-grid pd-room-context">'+fields+'</dl>' : '';
         }
-        function recordDashboardRooms(control, rows) {
-            var state = control.state, at = control.captured_at_ms;
-            if (!control.fresh || !state || !Number.isSafeInteger(at) || at < 0) return;
-            var boot = String(state.boot_id || 'unknown');
+        function dashboardZoneKey(row, index) {
+            return typeof row.zone_id === 'string' && /^[a-f0-9]{8}$/.test(row.zone_id) ? row.zone_id : 'room_' + index;
+        }
+        // list: [{id, actual, target}] at one moment; a gap over 15 s or a new boot starts a new line.
+        function recordRoomSeries(at, boot, list) {
             if (boot !== installationHistoryBoot) {
                 installationHistory = Object.create(null); installationHistoryBoot = boot;
             }
             var retained = Object.create(null);
-            rows.forEach(function(row, index) {
-                var id = typeof row.zone_id === 'string' && /^[a-f0-9]{8}$/.test(row.zone_id) ? row.zone_id : 'room_' + index;
-                var actual = dashboardNumber(row.temperature_centi_c, 100, -50, 80);
-                var target = dashboardNumber(row.target_centi_c, 100, 5, 35);
-                var series = installationHistory[id] || [];
+            list.slice(0,8).forEach(function(room) {
+                var series = installationHistory[room.id] || [];
                 if (series.length && (at < series[series.length-1][0] || at-series[series.length-1][0] > 15000)) series = [];
-                if (actual !== null || target !== null) {
-                    var point = [at, actual, target];
+                if (room.actual !== null || room.target !== null) {
+                    var point = [at, room.actual, room.target];
                     if (series.length && at === series[series.length-1][0]) series[series.length-1] = point;
                     else { series.push(point); if (series.length > 60) series.shift(); }
                 }
-                retained[id] = series;
+                retained[room.id] = series;
             });
             installationHistory = retained; // Removed rooms cannot accumulate browser memory.
         }
-        function dashboardTrend(row, index) {
-            var id = typeof row.zone_id === 'string' && /^[a-f0-9]{8}$/.test(row.zone_id) ? row.zone_id : 'room_' + index;
+        function recordDashboardRooms(control, rows) {
+            var state = control.state, at = control.captured_at_ms;
+            if (!control.fresh || !state || !Number.isSafeInteger(at) || at < 0) return;
+            recordRoomSeries(at, String(state.boot_id || 'unknown'), rows.map(function(row, index) {
+                return {id: dashboardZoneKey(row, index), actual: dashboardNumber(row.temperature_centi_c, 100, -50, 80), target: dashboardNumber(row.target_centi_c, 100, 5, 35)};
+            }));
+        }
+        function dashboardTrend(id) {
             var points = installationHistory[id] || [];
-            if (points.length < 2) return uiHtml("<p class=\"pd-help\">The trend appears after two reports.</p>");
+            if (points.length < 2) return '';
             var numbers = [];
             points.forEach(function(p) { if (p[1] !== null) numbers.push(p[1]); if (p[2] !== null) numbers.push(p[2]); });
             if (!numbers.length) return '';
@@ -1021,6 +1030,11 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             });
             remaining.forEach(function(node) { node.remove(); });
         }
+        function dashboardPasswordNotice() {
+            return otDefaultPassword !== true ? '' : '<div class="alert alert-warning ot-actions" data-dashboard-key="default-password" role="status"><span>'+
+                uiText("This E32 still uses the default password. Choose your own so nobody else on your network can change your heating.")+'</span> '+
+                '<a class="btn btn-outline-primary" href="#about" data-page="about">'+uiText("Change password")+'</a></div>';
+        }
         function dashboardUpdateNotice(update) {
             if (!update || update.known !== true || update.available !== true ||
                 typeof update.version !== 'string' || !/^v[0-9A-Za-z.+-]{1,62}$/.test(update.version)) return '';
@@ -1030,19 +1044,35 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                 uiText("View update")+'</button></div>';
         }
 
+        // The E32's own room engine (/status/heating) shares its words with the Rooms page.
+        var engineReasons = {heating:"Heating", minimum_on:"Minimum burner time", minimum_off:"Minimum pause", satisfied:"Warm enough", no_demand:"No room can ask for heat", idle:"No heat needed", invalid_parameters:"Invalid limits"};
+        var engineRoomStatus = {fallback:"Fallback source", stale:"Last value (source lost)", lost:"No measurement: no heat request", inactive:"Inactive"};
+        var engineTargetSource = {ha:"Target temperature from Home Assistant", schedule:"Target temperature from the week program", fallback:"Target temperature: fixed value without Home Assistant"};
+        function dashboardKnown(map, key) { return typeof key === 'string' && Object.prototype.hasOwnProperty.call(map, key) ? map[key] : null; }
+        function dashboardAge(s) { return s < 120 ? s + ' s' : s < 7200 ? Math.round(s/60) + ' min' : Math.round(s/3600) + ' h'; }
+        function dashboardSourceName(sensors, id) {
+            var sensor = sensors.find(function(s) { return s && s.id === id; }), colons = /^[0-9a-f]{12}$/.test(id) ? id.match(/../g).join(':') : null;
+            return sensor ? (sensor.name || colons) + ' (Bluetooth)' : colons ? colons + ' (Bluetooth)' : id + ' (Home Assistant)';
+        }
         function renderInstallationDashboard(status) {
             var control = status.control || {}, ems = status.ems || {};
             var state = control.fresh === true && control.state && typeof control.state === 'object' && !Array.isArray(control.state) && Array.isArray(control.state.zones) ? control.state : null;
-            var rows = state && Array.isArray(state.zones) ? state.zones.slice(0,8).filter(function(r){return r && typeof r === 'object' && !Array.isArray(r);}) : [];
-            recordDashboardRooms(control,rows);
+            var zones = state && Array.isArray(state.zones) ? state.zones.slice(0,8).filter(function(r){return r && typeof r === 'object' && !Array.isArray(r);}) : [];
+            // Primary: the E32's own rooms, so a home without Home Assistant sees them too. Home Assistant only adds detail.
+            var engine = status.heating && typeof status.heating === 'object' && Array.isArray(status.heating.rooms) ? status.heating : null;
+            if (!engine) recordDashboardRooms(control,zones);
             var supervisor = state && state.supervisor || {};
-            var demand = typeof supervisor.requested_heat === 'boolean' ? supervisor.requested_heat : null;
             var boilerEnabled = state && typeof state.boiler_output_enabled === 'boolean' ? state.boiler_output_enabled : null;
             var actuatorEnabled = state && typeof state.actuator_output_enabled === 'boolean' ? state.actuator_output_enabled : null;
+            var activeState = engine && engine.active && typeof engine.active.state === 'string' ? engine.active.state : '';
+            var activePlan = engine ? engine.mode === 'active' : boilerEnabled === true;
+            var controlling = engine ? activePlan && activeState === 'active' : boilerEnabled === true;
+            var request = engine && engine.request && typeof engine.request === 'object' ? engine.request : null;
+            var demand = request ? request.heat === true : typeof supervisor.requested_heat === 'boolean' ? supervisor.requested_heat : null;
             var mode = ems.warmWaterActive === true ? uiText("Hot water") : ems.heatingActive === true ? uiText("CH active") :
                 ems.warmWaterActive === false && ems.heatingActive === false ? uiText("No CH or hot water") : uiText("Waiting for boiler data");
             var age = typeof control.age_ms === 'number' && Number.isFinite(control.age_ms) ? Math.max(0,Math.round(control.age_ms/1000)) : null;
-            var freshText = state ? uiText("Control status received")+(age === null?'':uiText(" · when fetched ")+age+uiText(" s old")) :
+            var freshText = engine ? '' : state ? (age === null ? uiText("Control status received") : uiText("Updated {age} ago").replace('{age}', dashboardAge(age))) :
                 control.reason === 'stale' ? uiText("Control status stale") : uiText("Waiting for control status");
             // Only values the boiler actually reports are shown; a missing value
             // is not a tile. Unreliable/unsupported fields stay on the boiler page.
@@ -1051,32 +1081,68 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                 return '<div class="pd-fact"><h3>'+label+'</h3><div class="pd-value">'+dashboardValue(value,unit)+'</div></div>';
             }
             function chip(text,tone) { return '<span class="ot-chip'+(tone?' ot-chip--'+tone:'')+'">'+dashboardText(text)+'</span>'; }
-            var wanting = state ? rows.filter(function(r){return r.demand===true;}).length : 0;
-            var headline = !state ? uiText("Waiting for Home Assistant") : !rows.length ? uiText("No rooms set up yet") :
+            var cards = [];
+            if (engine) {
+                var byName = Object.create(null), sensors = Array.isArray(engine.ble_sensors) ? engine.ble_sensors : [], series = [];
+                zones.forEach(function(z,i) { byName[dashboardRoomName(z,i).trim().toLowerCase()] = z; });
+                engine.rooms.slice(0,8).forEach(function(r,i) {
+                    if (!r || typeof r !== 'object' || Array.isArray(r)) return;
+                    var name = typeof r.name === 'string' && r.name.trim() ? r.name.slice(0,80) : uiText("Room ")+(i+1);
+                    var id = 'e32:' + String(r.id || i).slice(0,32), actual = dashboardNumber(r.temperature,1,-50,80), target = dashboardNumber(r.setpoint,1,5,35);
+                    var extra = r.status === 'ok' ? null : r.status === 'stale' && actual === null ? "No measurement" : dashboardKnown(engineRoomStatus,r.status) || "Inactive";
+                    var source = typeof r.source === 'string' && r.source ? dashboardSourceName(sensors,r.source) : null, ha = byName[name.trim().toLowerCase()];
+                    var help = dashboardKnown(engineTargetSource,r.setpoint_source);
+                    series.push({id:id, actual:actual, target:target});
+                    cards.push({key:id, id:id, name:name, actual:actual, target:target, demand:r.demand === true, help:help ? uiText(help) : '',
+                        chips:extra ? chip(uiText(extra), r.status === 'fallback' ? 'warn' : r.status === 'stale' || r.status === 'lost' ? 'err' : '') : '',
+                        details:uiHtml("<p>Room ID: ")+dashboardText(r.id || '')+(source ? '<br>'+uiText("Measured by")+': '+dashboardText(source) : '')+'</p>'+(ha ? dashboardRoomContext(ha) : '')});
+                });
+                recordRoomSeries(Date.now(), 'e32', series);
+            } else zones.forEach(function(row,index) {
+                var key = dashboardZoneKey(row,index);
+                cards.push({key:String(state.boot_id || '')+':'+(key === row.zone_id ? key : 'index_'+index), id:key, name:dashboardRoomName(row,index),
+                    actual:dashboardNumber(row.temperature_centi_c,100,-50,80), target:dashboardNumber(row.target_centi_c,100,5,35), demand:row.demand, chips:'',
+                    // "Requesting heat" is already the chip; only other reasons get a line.
+                    help:row.reason === 'shadow_demand' || row.reason === 'shadow_idle' ? '' : dashboardReason(row.reason),
+                    details:uiHtml("<p>Room ID: ")+dashboardText(row.zone_id || uiText("not reported"))+uiHtml("<br>Reason code: ")+dashboardText(row.reason || uiText("not reported"))+uiHtml("<br>Valve control: ")+dashboardBool(actuatorEnabled,uiText('enabled'),uiText('blocked'))+uiHtml("</p>")+dashboardRoomContext(row)+uiHtml("<p class=\"pd-help\">A request does not prove valve position or delivered heat. Change settings and programs in Home Assistant.</p>")});
+            });
+            var known = engine || state, wanting = cards.filter(function(c){return c.demand===true;}).length;
+            var headline = !known ? uiText("Waiting for Home Assistant") : !cards.length ? uiText("No rooms set up yet") :
                 wanting === 1 ? uiText("1 room wants heat") : wanting ? wanting+uiText(" rooms want heat") : uiText("No room wants heat");
+            // Home Assistant is optional: a status chip, never a precondition.
+            var ha = engine && engine.ha && typeof engine.ha === 'object' ? engine.ha : null;
+            var haFresh = !!ha && ha.broker_connected === true && Number.isFinite(ha.input_age_s) && ha.input_age_s < 120;
+            var haChip = !ha ? '' : haFresh ? chip('Home Assistant: '+uiText("connected"),'ok') : !Number.isFinite(ha.input_age_s) ? chip(uiText("Home Assistant: not connected (optional)")) :
+                chip('Home Assistant: '+uiText("last connected {age} ago").replace('{age}',dashboardAge(ha.input_age_s)),'warn');
+            // In shadow mode the thermostat controls the boiler: a calm chip, no "Blocked".
+            var controlChip = !activePlan ? chip(uiText("Your thermostat controls the boiler")) : controlling ? chip(uiText("The E32 controls the boiler"),'ok') :
+                !engine || /^(stopped|blocked)/.test(activeState) ? chip(uiText("Boiler control")+': '+uiText("Blocked"),'err') : chip(uiText("Switch-over in progress"),'warn');
+            var statusHelp = request ? uiText("Calculated boiler request")+': '+(request.heat ? dashboardText(request.flow_c)+' °C' : uiText("off"))+' · '+uiText(dashboardKnown(engineReasons,request.reason) || "No heat needed") :
+                state ? (controlling ? dashboardReason(supervisor.reason) : '') : uiText("Set up rooms on the Rooms page, or connect Home Assistant.");
             var html = '<section class="product-dashboard" aria-label="OpenThermostat">'+
                 uiHtml("<header class=\"pd-heading\"><div><h1>Your heating system</h1><p>Rooms and boiler at a glance.</p></div>")+
-                chip(boilerEnabled===true?uiText("Active control"):uiText("Shadow mode"),boilerEnabled===true?'ok':'')+'</header>'+
-                dashboardUpdateNotice(status.firmware_update)+
+                chip(activePlan?uiText("Active control"):uiText("Shadow mode"),controlling?'ok':activePlan?'warn':'')+'</header>'+
+                dashboardUpdateNotice(status.firmware_update)+dashboardPasswordNotice()+
                 '<section class="pd-status" data-dashboard-key="headline"><div class="pd-flow"><p class="pd-headline">'+dashboardText(headline)+'</p><p class="ot-chips">'+
                 chip(mode,ems.warmWaterActive===true||ems.heatingActive===true?'ok':'')+
-                (state?chip(dashboardBool(demand,uiText("Heat demand"),uiText("No heat demand")),demand===true?'ok':''):'')+
-                chip(uiText("Boiler control")+': '+dashboardBool(boilerEnabled,uiText("Enabled"),uiText("Blocked")))+'</p></div>'+
-                '<p class="pd-help">'+(state?dashboardText(dashboardReason(supervisor.reason)):uiText("Configure your installation in Home Assistant. Actual control status appears here once the connection is confirmed."))+
-                '</p>'+(boilerEnabled===true?'':'<p class="pd-help">'+uiText("Shadow mode: the E32 calculates along and sends nothing to the boiler; your thermostat keeps control.")+'</p>')+
-                '<p class="pd-help"><span>'+dashboardText(freshText)+'</span></p></section>'+
-                uiHtml("<div class=\"pd-section-title\"><h2>Rooms</h2><span class=\"pd-help\">Controls and programs in Home Assistant</span></div><div class=\"pd-rooms\">");
-            if (!rows.length) html += '<div class="pd-empty ot-empty"><strong>'+(state?uiText("No rooms yet"):uiText("No current control status"))+'</strong>'+
-                (state?uiText("There are no rooms in the configuration read back yet."):uiText("Rooms appear here once Home Assistant is connected."))+'</div>';
-            rows.forEach(function(row,index) {
-                var name = dashboardRoomName(row,index);
-                var actual = dashboardNumber(row.temperature_centi_c,100,-50,80), target = dashboardNumber(row.target_centi_c,100,5,35);
-                html += '<article class="pd-room" data-dashboard-key="'+dashboardText(String(state.boot_id || '')+':'+(typeof row.zone_id === 'string' && /^[a-f0-9]{8}$/.test(row.zone_id) ? row.zone_id : 'index_'+index))+'"><div class="pd-room-title"><h3>'+dashboardText(name)+'</h3>'+
-                    chip(dashboardBool(row.demand,uiText("Requesting heat"),uiText("No request")),row.demand===true?'ok':'')+
-                    uiHtml("</div><div class=\"pd-room-temperatures\"><div><span class=\"pd-flow-label\">Now</span>")+dashboardValue(actual,'°C')+uiHtml("</div><div><span class=\"pd-flow-label\">Target</span>")+dashboardValue(target,'°C')+'</div></div><p class="pd-help">'+dashboardText(dashboardReason(row.reason))+'</p>'+dashboardTrend(row,index)+
-                    uiHtml("<details class=\"pd-room-detail\"><summary>Technical details</summary><p>Room ID: ")+dashboardText(row.zone_id || uiText("not reported"))+uiHtml("<br>Reason code: ")+dashboardText(row.reason || uiText("not reported"))+uiHtml("<br>Valve control: ")+dashboardBool(actuatorEnabled,uiText('enabled'),uiText('blocked'))+uiHtml("</p>")+dashboardRoomContext(row)+uiHtml("<p class=\"pd-help\">A request does not prove valve position or delivered heat. Change settings and programs in Home Assistant.</p></details></article>");
+                (known?chip(dashboardBool(demand,uiText("Heat demand"),uiText("No heat demand")),demand===true?'ok':''):'')+controlChip+haChip+'</p></div>'+
+                (statusHelp?'<p class="pd-help">'+dashboardText(statusHelp)+'</p>':'')+
+                (freshText?'<p class="pd-help"><span>'+dashboardText(freshText)+'</span></p>':'')+'</section>'+
+                uiHtml("<div class=\"pd-section-title\"><h2>Rooms</h2>")+(engine && !haFresh ? '<a class="pd-help" href="#rooms" data-page="heating">'+uiText("Change rooms and week programs")+'</a>' :
+                uiHtml("<span class=\"pd-help\">Controls and programs in Home Assistant</span>"))+'</div><div class="pd-rooms">';
+            if (!cards.length) html += '<div class="pd-empty ot-empty"><strong>'+(known?uiText("No rooms yet"):uiText("No current control status"))+'</strong>'+
+                (state && !engine?uiText("There are no rooms in the configuration read back yet."):uiText("Set up rooms on the Rooms page, or connect Home Assistant."))+
+                (engine?'<br><a class="btn btn-primary mt-2" href="#rooms" data-page="heating">'+uiText("Add room")+'</a>':'')+'</div>';
+            var trendPending = false;
+            cards.forEach(function(c) {
+                var trend = dashboardTrend(c.id); if (!trend) trendPending = true;
+                html += '<article class="pd-room" data-dashboard-key="'+dashboardText(c.key)+'"><div class="pd-room-title"><h3>'+dashboardText(c.name)+'</h3><span class="ot-chips">'+
+                    chip(dashboardBool(c.demand,uiText("Requesting heat"),uiText("No request")),c.demand===true?'ok':'')+c.chips+'</span>'+
+                    uiHtml("</div><div class=\"pd-room-temperatures\"><div><span class=\"pd-flow-label\">Now</span>")+dashboardValue(c.actual,'°C')+uiHtml("</div><div><span class=\"pd-flow-label\">Target</span>")+dashboardValue(c.target,'°C')+'</div></div>'+
+                    (c.help?'<p class="pd-help">'+dashboardText(c.help)+'</p>':'')+trend+
+                    uiHtml("<details class=\"pd-room-detail\"><summary>Technical details</summary>")+c.details+'</details></article>';
             });
-            html += '</div><section class="pd-panel pd-boiler"><div class="pd-facts">'+
+            html += '</div>'+(trendPending && cards.length ? uiHtml("<p class=\"pd-help\" data-dashboard-key=\"trend-hint\">The trend appears after two reports.</p>") : '')+'<section class="pd-panel pd-boiler"><div class="pd-facts">'+
                 fact(uiText("Flow temperature"),dashboardNumber(ems.currentFlowTemperature,10,-20,150),'°C')+
                 fact(uiText("Return temperature"),dashboardNumber(ems.currentReturnTemperature,10,-20,150),'°C')+
                 fact(uiText("Burner modulation"),dashboardNumber(ems.currentBurnerPower,1,0,100),'%')+
@@ -1093,7 +1159,10 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             if (!shown) html += '<dt>'+uiText("Boiler data")+'</dt><dd>'+uiText("No reliable values received yet")+'</dd>';
             html += uiHtml("</dl><p class=\"pd-help\">Only values the boiler reported recently are shown. All values, with their quality, are on the Boiler page. Telemetry is not an independent physical flame or heat measurement.</p></details></div></section>")+
                 uiHtml("<section class=\"pd-panel\"><h2>How this works</h2><details class=\"ot-advanced\" data-dashboard-key=\"shadow-mode-help\"><summary>Shadow mode and boiler commands</summary><p>")+
-                uiText("Shadow mode: the E32 reads data and calculates demand. Valve and boiler commands remain disabled until the physical command and safe-stop tests are completed.")+'</p><p>'+
+                (controlling ? uiText("Active control: the E32 controls your boiler. Your old thermostat must stay disconnected.") :
+                uiText("Shadow mode: the E32 reads data and calculates demand. Valve and boiler commands remain disabled until the physical command and safe-stop tests are completed."))+'</p>'+
+                // The Home Assistant controller's own state and reason are technical detail here.
+                (state ? '<p>'+dashboardText(uiText("Boiler control")+': '+dashboardBool(boilerEnabled,uiText("Enabled"),uiText("Blocked"))+' · '+dashboardReason(supervisor.reason))+'</p>' : '')+'<p>'+
                 dashboardBool(boilerEnabled,uiText("Control is enabled according to the controller."),uiText("The controller reports blocked outputs."))+
                 uiHtml(" No confirmed command timeline is available yet. Calculated room demand is not presented as a transmitted or executed boiler command.</p><p class=\"pd-help\">Flow and return come from the boiler. Modulation is the burner percentage from telemetry, not measured consumption.</p></details>")+
                 '<details class="ot-advanced" data-dashboard-key="connection-fallback-help"><summary>'+uiText("Connection loss and fallback")+'</summary><p>'+uiText("An unreachable HA web page alone does not mean the heating connection has failed.")+'</p><p>'+uiText("Without HA heartbeats, control permission expires locally on the E32 after 15 seconds. Reconnecting does not restore old commands or qualified measurements. This software deadline is not proof that the boiler has physically stopped.")+'</p><p>'+uiText("An unpowered E32 cannot send a stop command. Boiler timeout, local valve behaviour and minimum flow during pump overrun require installation-specific tests. This version keeps physical outputs disabled.")+'</p></details>'+

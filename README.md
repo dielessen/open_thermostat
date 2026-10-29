@@ -176,7 +176,7 @@ qualification is required.
 
 | Feature | Current status |
 | --- | --- |
-| Room plan on the E32 | **Shadow:** up to 8 rooms, each active, inactive or inactive until a date, with heating type (radiators or floor) and up to four temperature sources in order. The first fresh source leads, the others are fallback. With no usable source the room keeps its last value for 30 minutes, then stops asking for heat. The whole plan must fit in 4 KB. |
+| Room plan on the E32 | **Shadow:** up to 8 rooms, each active, inactive or inactive until a date, with heating type (radiators or floor) and up to four temperature sources in order. The first fresh source leads, the others are fallback. With no usable source the room keeps its last value for 30 minutes, then stops asking for heat. Large week programs are stored in a compact form, so 8 rooms with four switch points a day fit. |
 | Where rooms are edited | **Available:** without Home Assistant on the E32 Rooms page. With Home Assistant its room editor is the one place to edit; the E32 Rooms page is then read-only with "Edit here anyway" as a fallback. Both work on the same plan with a revision number, so neither side silently overwrites a newer change. |
 | Target temperature and week program | **Shadow:** per room the target comes from an HA entity, else from the E32 week program (up to six switch points a day), else from a fixed temperature without Home Assistant. Night setback and morning warm-up continue when HA is away. |
 | Time zone | **Available:** week programs and daily figures run in the E32's own time zone (any POSIX time zone with its summer-time rule). |

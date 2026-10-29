@@ -134,8 +134,9 @@ Assistant — you edit rooms here." on the **Rooms** page.
    more than that.
 7. Choose **Save rooms**.
 
-The whole room plan must fit in 4 KB. Many rooms with full week programs may
-not fit; the E32 then refuses the save with a message.
+The E32 stores large week programs in a compact form, so 8 rooms with four
+switch points a day fit. A plan that is still too large is refused with a
+message, and nothing changes.
 
 ### 6. Check it
 

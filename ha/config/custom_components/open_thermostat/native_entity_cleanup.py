@@ -4,7 +4,10 @@ One route, one set of entities: the boiler-fields sensors are the boiler
 entities. The legacy hub boiler/status identities are never fed by native
 firmware. Boiler fields used to be created all at once and then disabled as
 never (or only unreliably) reported; they now appear on their first real value,
-so those disabled records only clutter the registry.
+so those disabled records only clutter the registry. An EMS+ field and its
+Classic twin carry one physical value and share one entity (F28); a second
+registry record of such a pair is removed as a duplicate, keeping the one the
+user has (v1_boiler_fields.duplicate_unique_ids).
 
 Only records of THIS config entry and platform are considered, and only while
 untouched by the user (no name, icon, area, label, hidden or user-disabled
@@ -84,11 +87,19 @@ def cleanup_stale_entities(hass, entry, prefix):
     reporting_ids = {field_unique_id(prefix, index) for index in _reporting_fields(hass, entry)}
     zones = {subentry.data.get("room_id") for subentry in entry.subentries.values()
              if subentry.subentry_type == "zone"}
+    records = [record for record in er.async_entries_for_config_entry(registry, entry.entry_id)
+               if record.platform == DOMAIN]
+    reasons = {record.entity_id: stale_reason(record, prefix, legacy, reporting_ids, zones)
+               for record in records}
+    # F28: of an EMS+ / Classic pair that carries one physical value, only the
+    # record that stays (the one the user has) is kept; the other is a duplicate.
+    from .v1_boiler_fields import duplicate_unique_ids
+    remaining = [record for record in records if reasons[record.entity_id] is None or not untouched(record)]
+    duplicates = duplicate_unique_ids(remaining, prefix, reporting_ids)
     removed = []
-    for record in list(er.async_entries_for_config_entry(registry, entry.entry_id)):
-        if record.platform != DOMAIN:
-            continue
-        reason = stale_reason(record, prefix, legacy, reporting_ids, zones)
+    for record in records:
+        reason = reasons[record.entity_id] or (
+            "boiler_field_duplicate" if record.unique_id in duplicates else None)
         if reason is None:
             continue
         if untouched(record):

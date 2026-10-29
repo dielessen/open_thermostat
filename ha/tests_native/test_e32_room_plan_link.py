@@ -84,6 +84,31 @@ class PlanE32:
         self.calls.append(("reboot",))
         self.reads["/status"]["controlMode"] = "shadow"
 
+    # The room plan (/config/heating): a revision per save, 409 for a stale one.
+    plan_fail = None
+    conflicts = 0
+    on_plan_save = None
+
+    async def async_read_heating_plan(self):
+        self.calls.append(("read", "/config/heating"))
+        return deepcopy(self.reads["/config/heating"])
+
+    async def async_save_heating_plan(self, plan):
+        from custom_components.open_thermostat.controller_link import HeatingPlanRejected
+        self.calls.append(("plan", deepcopy(plan)))
+        if self.on_plan_save is not None:
+            self.on_plan_save(plan)
+        if self.conflicts:
+            self.conflicts -= 1
+            self.reads["/config/heating"]["revision"] += 1  # another writer saved in between
+            raise HeatingPlanRejected(409, "plan_changed")
+        if self.plan_fail:
+            raise HeatingPlanRejected(400, self.plan_fail)
+        assert plan["revision"] == self.reads["/config/heating"]["revision"]
+        stored = {**deepcopy(plan), "revision": plan["revision"] + 1}
+        self.reads["/config/heating"] = stored
+        return deepcopy(stored)
+
 
 def product(hass, binding=None):
     parent = entry(hass, room=binding)
@@ -336,7 +361,9 @@ async def test_owner_badkamer_is_removed_and_the_e32_stays_linked(hass, linked, 
     assert sum(c[0] == "reboot" for c in e32.calls) == 1
     assert not any(c[0] == "save" and c[1].get("rooms") for c in e32.calls)  # never a room plan write
     devices, entities = dr.async_get(hass), er.async_get(hass)
-    assert entities.async_get(climate) is None
+    # The old thermostat is gone; its entity ID now belongs to the E32 Badkamer room thermostat.
+    assert entities.async_get(climate).unique_id == "fixture_e32_room_badkamer_thermostat"
+    assert not any(c[0] == "plan" for c in e32.calls)  # no E32 room used the old room: plan untouched
     assert devices.async_get_device_by_identifier((DOMAIN, f"fixture_room_{sub.data['room_id']}"),
                                                   parent.entry_id) is None
     assert entities.async_get(foreign) is not None and entities.async_get(foreign).device_id is None
@@ -407,9 +434,9 @@ async def test_repairs_and_configure_offer_the_removal(hass, linked, badkamer, m
     assert issue.translation_key == "legacy_rooms" and issue.translation_placeholders["rooms"] == "Badkamer"
     flow = await repairs.async_create_fix_flow(hass, issue.issue_id, issue.data)
     flow.hass = hass; flow.handler = DOMAIN; flow.flow_id = "fix"
-    form = await flow.async_step_init()
-    assert form["step_id"] == "legacy_rooms" and form["description_placeholders"]["rooms"] == "Badkamer"
     e32 = linked["e32"] = PlanE32(source=local_device_descriptor(source), modern=True, adapter="ha1")
+    form = await flow.async_step_init()  # reads the E32 room plan for the list of what happens
+    assert form["step_id"] == "legacy_rooms" and form["description_placeholders"]["rooms"] == "Badkamer"
     e32.fail_save = "controller_unreachable"  # a lost answer first
     progress = await flow.async_step_legacy_rooms({})
     assert progress["type"] in ("progress", "progress_done")

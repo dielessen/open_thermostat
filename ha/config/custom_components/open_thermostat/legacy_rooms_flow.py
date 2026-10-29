@@ -38,16 +38,31 @@ class LegacyRoomsSteps:
         if (error := getattr(self, "_legacy_failure", None)) is not None:
             errors["base"] = error
             self._legacy_failure = None
-        if user_input is not None:
+        zones = legacy_zones(entry)
+        shown = getattr(self, "_legacy_shown", None)
+        if user_input is not None and (shown is not None or not zones):
             from .controller_setup_flow import async_link_room_plan
             self._legacy_task = self.hass.async_create_task(async_link_room_plan(
                 self.hass, entry, entry.data[CONTROLLER_ADDRESS], entry.data[CONTROLLER_PASSWORD],
-                remove_legacy_rooms=True), "OpenThermostat remove old rooms")
+                remove_legacy_rooms=True, confirmed_migration=shown), "OpenThermostat remove old rooms")
+            self._legacy_shown = None  # a new form after a failure reads the plan again
             return await self.async_step_legacy_rooms_removing()
-        names = sorted(s.title for s in legacy_zones(entry))
+        # What happens to the E32 rooms: read the plan now, write it only after the user confirmed.
+        migration = self._legacy_shown = None
+        if zones:
+            from .legacy_room_migration import async_read_plan, plan_migration
+            plan = await async_read_plan(self.hass, entry)
+            if plan is not None:
+                _, migration = plan_migration(self.hass, entry, plan, zones)
+                self._legacy_shown = migration.signature()
+            elif user_input is not None:
+                errors["base"] = self._legacy_error("legacy_rooms_plan_unreadable")
+        from .legacy_room_migration import describe
+        names = sorted(s.title for s in zones)
         return self.async_show_form(step_id="legacy_rooms" if names else "legacy_rooms_finish",
             data_schema=vol.Schema({}), errors=errors,
-            description_placeholders={"rooms": ", ".join(names), "count": str(len(names))})
+            description_placeholders={"rooms": ", ".join(names), "count": str(len(names)),
+                                      "changes": describe(self.hass, migration) if names else ""})
 
     async def async_step_legacy_rooms_finish(self, user_input=None):
         """Same action when the rooms are already gone but the E32 link is not finished."""

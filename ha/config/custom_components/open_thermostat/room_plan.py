@@ -252,6 +252,9 @@ class RoomPlanLink:
         if self.entry is not None:
             from .native_entity_cleanup import cleanup_removed_rooms
             cleanup_removed_rooms(self.hass, self.entry, self.hub.prefix, plan)
+            # "Choose a temperature source for <room>" goes once the room has a new source.
+            from .legacy_room_migration import update_choose_source_issues
+            update_choose_source_issues(self.hass, self.entry, plan)
         self.hub.notify()
 
     async def async_change_room(self, room_id, change):

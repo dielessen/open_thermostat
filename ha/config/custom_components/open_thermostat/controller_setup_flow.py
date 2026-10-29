@@ -147,7 +147,8 @@ async def async_connect_installation(hass, entry, address, password):
         raise ControllerProvisioningError(code, device_may_have_changed=device_changed) from None
 
 
-async def async_link_room_plan(hass, entry, address, password, *, remove_legacy_rooms=False):
+async def async_link_room_plan(hass, entry, address, password, *, remove_legacy_rooms=False,
+                               confirmed_migration=None):
     """Connect the E32 room plan, without (or after removing) older Home Assistant rooms.
 
     Same order as the native route: log in, stop this entry's own link, read and
@@ -156,6 +157,13 @@ async def async_link_room_plan(hass, entry, address, password, *, remove_legacy_
     older Home Assistant rooms (and only this entry's devices of them) are
     removed in one save after the E32 checks passed and before the E32 is
     changed; a later Connect E32 then finishes any interrupted link.
+
+    Before that removal, E32 rooms that use an entity of an older room are moved
+    to the entity it was built on (legacy_room_migration): the E32 plan is
+    written first (revision checked); when that write fails nothing is removed.
+    confirmed_migration is the outcome the user confirmed (Migration.signature());
+    a different one stops with legacy_rooms_plan_changed. Afterwards the older
+    room's thermostat is handed over to the E32 room's thermostat.
     """
     from homeassistant.config_entries import ConfigEntryState
     from .native_provisioning import SOURCE_OPTION
@@ -177,6 +185,14 @@ async def async_link_room_plan(hass, entry, address, password, *, remove_legacy_
             identity = device["mqtt"].get("native_source_device_id")
             if entry.data.get(CONTROLLER_ID) not in (None, identity):
                 raise ControllerLinkError("controller_source_conflict")
+            migration = None
+            if remove_legacy_rooms and legacy_zones(entry):
+                # The E32 rooms first: when this write fails, everything (also the
+                # running link) stays as it was and nothing is removed.
+                from . import legacy_room_migration as migrate
+                migration, _ = await migrate.async_write_migration(
+                    hass, entry, client, legacy_zones(entry), confirmed_migration)
+                _private_guard(hass, entry, before_private)
             state = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
             runtime = state.get("v1_runtime")
             if runtime is not None and runtime.enabled:
@@ -188,10 +204,13 @@ async def async_link_room_plan(hass, entry, address, password, *, remove_legacy_
                 before_private = native_entry_state(entry)
             plan = await async_prepare_room_plan_link(hass, entry, client)
             _private_guard(hass, entry, before_private)
-            if remove_legacy_rooms and legacy_zones(entry):
+            if migration is not None and legacy_zones(entry):
+                handover = migrate.capture_handover(hass, entry, migration)
                 changes, removed = without_legacy_rooms(entry)
                 commit_configuration(hass, entry, plan.before, **changes)
                 remove_legacy_room_devices(hass, entry, removed)
+                await migrate.async_apply_handover(hass, entry, handover)
+                migrate.note_rooms_without_source(hass, entry, migration)
                 plan = await async_prepare_room_plan_link(hass, entry, client)
                 before_private = plan.private_entry_state
             await async_provision_room_plan(hass, entry, client, plan, password)

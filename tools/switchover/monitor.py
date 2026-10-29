@@ -41,6 +41,7 @@ RESPONSE_LIMIT = 1 << 20
 CEILING_C = 80  # ActiveHeatGuard::hardMaximumFlowC (FlowDemand::ceilingC)
 FROST_ON_C = 8.0
 HEAP_MINIMUM_WARN = 20000  # bytes, minimum free internal heap since boot
+ARMING_ALARM_S = 4 * 60     # firmware: restoredListenMs 120 s + the first room reading
 STACK_MINIMUM_WARN = 512
 STACK_TASKS = ('loop', 'supervisor', 'ems_uart', 'bluetooth_host')
 # esp_reset_reason_t
@@ -462,7 +463,10 @@ class Evaluator:
         elif state == 'active':
             self.was_active = True
         stopped = mode == 'active' and self.was_active and state not in ('active', 'awaiting_confirmation', None)
-        events += A.update('guard_stopped', stopped, now, 3 * 60 if state == 'arming' else 0,
+        # Arming after an E32 restart with the stored confirmation lasts 2 min of bus
+        # reception without a foreign 0x1A (~130 s after boot), plus up to ~1 min until
+        # the rooms are measured: an alarm only after 4 min.
+        events += A.update('guard_stopped', stopped, now, ARMING_ALARM_S if state == 'arming' else 0,
                            f"Active control stopped: now {state} ({guard['command'].get('why')}); "
                            f"warnings {', '.join(guard['warnings']) or 'none'}.", state=state)
         events += A.update('awaiting_confirmation', mode == 'active' and state == 'awaiting_confirmation', now,

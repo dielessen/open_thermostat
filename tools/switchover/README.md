@@ -99,7 +99,7 @@ when it ends. Severities: `alarm` (act now), `warning` (look today), `info`.
 | `short_cycling` | alarm | the E32 reports short cycling, or too many heating starts in the last hour |
 | `room_cold_<id>`, `room_warm_<id>` | alarm | an active room too cold or too warm (see the thresholds) |
 | `frost_not_protected` | alarm | in active mode a room reads below 8 °C and the E32 asks no heat |
-| `guard_stopped` | alarm | active control left `active` (stopping, measurement lost, blocked by a foreign controller, or arming for more than 3 min) |
+| `guard_stopped` | alarm | active control left `active` (stopping, measurement lost, blocked by a foreign controller, or arming for more than 4 min: after a restart the E32 first listens 2 min for another thermostat) |
 | `awaiting_confirmation` | alarm | the plan is active but the E32 waits for the takeover confirmation (no heat, no frost protection) |
 | `warning_<name>` | alarm | a warning of active control: `foreign_controller`, `measurement_lost`, `boiler_no_response`, `transmit_failed`, `boiler_limit_unknown` |
 | `e32_unreachable` / `e32_back` | alarm / info | no HTTP answer for `--unreachable-min`; reachable again |

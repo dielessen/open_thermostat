@@ -1,5 +1,5 @@
-// Rooms page, flow temperature section (E32 beta.19), with simulated HTTP: the weather curve, the learned
-// flow and optimum start, the design flow, their status lines, gas calibration and last night.
+// Rooms page with simulated HTTP: the flow temperature section (E32 beta.19) and the switch-over status of active control.
+// Flow: weather curve, learned flow and optimum start, design flow, status lines, gas calibration and last night.
 const {chromium}=require('playwright-core');
 const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib'),assert=require('node:assert/strict');
 const assets=path.resolve(__dirname,'../data/html');
@@ -123,6 +123,29 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   settings={weather_curve:false,apply_learned:true,curve_design_flow_c:0};status.flow.settings={...settings};
   await page.waitForFunction(()=>!document.querySelector('#heating-flow-curve').checked,null,{timeout:15000});
   assert.equal(await design.inputValue(),'0');
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll');
+  // Active control after a restart with a stored confirmation: the boiler's own maximum, the listening
+  // period before taking over again, and the warning while the boiler limit is unknown.
+  const control=root.locator('[data-heating-active]'),activeFacts=control.locator('[data-heating-active-facts]');
+  const activeNotes=control.locator('[data-heating-active-notes]');
+  assert.equal(await activeFacts.isVisible(),false,'firmware without boiler_limit: no line');
+  status.active={state:'arming',awaiting_confirmation:false,command:{send:false,flow_c:0,why:'arming'},last_sent:null,foreign_controller:null,
+   confirmation:{age_s:40,restored:true,listened_s:45},warnings:['boiler_limit_unknown'],enabled:true,confirmation_stored:true,
+   boiler_limit:{flow_c:null,age_s:null,reads:2}};
+  await activeFacts.waitFor({timeout:15000});
+  assert.deepEqual(await pairs(activeFacts),[['Maximale aanvoer (gemeld door de ketel)','nog niet bekend']]);
+  assert.deepEqual(await activeNotes.locator('p').allInnerTexts(),[
+   'Herstart: de E32 luistert eerst 2 minuten of er een andere thermostaat is voordat hij weer overneemt. (45 van 120 s)',
+   'Je bevestiging blijft bewaard na een herstart.']);
+  assert.deepEqual(await control.locator('[data-heating-active-warnings] li').allInnerTexts(),
+   ['De ketel heeft zijn maximale aanvoertemperatuur nog niet gemeld; de E32 vraagt geen warmte en vraagt het elke 5 minuten opnieuw.']);
+  // Listening done and the limit read: the maximum with its age, only the stored confirmation remains.
+  Object.assign(status.active,{state:'active',confirmation:{age_s:200,restored:false},warnings:[],boiler_limit:{flow_c:75,age_s:30,reads:3}});
+  await activeFacts.getByText('75 °C · 30 s geleden').waitFor({timeout:15000});
+  assert.deepEqual(await activeNotes.locator('p').allInnerTexts(),['Je bevestiging blijft bewaard na een herstart.']);
+  assert.equal(await control.locator('[data-heating-active-warnings]').isVisible(),false);
+  status.active.confirmation_stored=false;
+  await activeNotes.waitFor({state:'hidden',timeout:15000});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll');
   // Firmware without the flow options: no section at all.
   route='none';status=fixture();delete status.flow;delete status.night_gas;

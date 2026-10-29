@@ -23,6 +23,8 @@
     <p class="pd-help" data-i18n="Lets the E32 control the boiler itself instead of your thermostat, after an attended switch-over.">Lets the E32 control the boiler itself instead of your thermostat, after an attended switch-over.</p>
     <p class="pd-help" data-heating-active-gate hidden data-i18n="Active control is not enabled in this firmware.">Active control is not enabled in this firmware.</p>
     <div data-heating-active-state role="status" aria-live="polite"><span data-i18n="Loading…">Loading…</span></div>
+    <dl class="pd-detail-grid" data-heating-active-facts hidden></dl>
+    <div class="pd-help" data-heating-active-notes hidden></div>
     <ul data-heating-active-warnings></ul>
     <p class="d-flex flex-wrap gap-2" data-heating-active-actions hidden>
       <button type="button" class="btn btn-primary" data-heating-takeover hidden><span data-i18n="My thermostat is disconnected from the boiler — let the E32 take over">My thermostat is disconnected from the boiler — let the E32 take over</span></button>
@@ -102,7 +104,7 @@
     blocked_foreign_controller:"Stopped: another controller sent a boiler request after the takeover."};
   const warningText = {foreign_controller:"Another controller (your thermostat?) still sends boiler requests. Disconnect it from the boiler, then confirm again.",
     measurement_lost:"Room measurements are missing.", boiler_no_response:"The boiler does not respond to the heat request.",
-    transmit_failed:"Sending to the boiler fails.", boiler_limit_unknown:"The boiler has not reported its heating limit; the E32 asks for no heat."};
+    transmit_failed:"Sending to the boiler fails.", boiler_limit_unknown:"The boiler has not reported its heating limit yet; the E32 asks for no heat and asks again every 5 minutes."};
   let plan = null, timer = null;
   const el = (tag, text, attrs={}) => { const e = document.createElement(tag); if (text !== undefined && text !== null) e.textContent = text; for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
   const field = (parent, label, input, hint) => { const id = 'h' + Math.random().toString(36).slice(2); input.id = id; if (hint) input.setAttribute('data-hint', hint); const wrap = el('div'); wrap.append(el('label', label, {for:id}), input); parent.append(wrap); return input; };
@@ -409,6 +411,17 @@
     // The bus address belongs in the system log; here it is simply your thermostat (or, after a takeover, another controller).
     if (a.foreign_controller) parts.push(uiText(a.state === 'shadow' ? "last request from your thermostat" : "last request from another controller") + ' ' + ago(a.foreign_controller.age_s));
     box.textContent = parts.join(' · ');
+    // The boiler's own heating limit (0x16), the ceiling of every request; and the stored switch-over confirmation.
+    const facts = activeBox.querySelector('[data-heating-active-facts]'), notes = activeBox.querySelector('[data-heating-active-notes]');
+    const limit = a.boiler_limit && typeof a.boiler_limit === 'object' ? a.boiler_limit : null;
+    facts.hidden = !limit;
+    if (limit) facts.replaceChildren(el('dt', uiText("Boiler maximum (reported by the boiler)")),
+      el('dd', Number.isFinite(limit.flow_c) ? limit.flow_c + ' °C' + (Number.isFinite(limit.age_s) ? ' · ' + ago(limit.age_s) : '') : uiText("not known yet")));
+    const lines = [];
+    if (a.confirmation?.restored) lines.push(uiText("Restarted: listening 2 minutes for another thermostat before taking over again.")
+      + (Number.isFinite(a.confirmation.listened_s) ? ' ' + uiText("({listened} of {total} s)").replace('{listened}', Math.min(a.confirmation.listened_s, 120)).replace('{total}', 120) : ''));
+    if (a.confirmation_stored === true && a.confirmation) lines.push(uiText("Your confirmation is kept after a restart."));
+    notes.replaceChildren(...lines.map(t => el('p', t, {class:'mb-1'}))); notes.hidden = !lines.length;
     activeBox.querySelector('[data-heating-active-warnings]').replaceChildren(...a.warnings.map(w => el('li', uiText(warningText[w] || w))));
     activeBox.dataset.ready = '1';
   }

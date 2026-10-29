@@ -396,6 +396,18 @@ class Alarms(Base):
         self.step()
         self.assertEqual(sorted(self.keys('cleared')), ['guard_stopped', 'warning_measurement_lost'])
 
+    def test_arming_after_a_restart_alarms_only_after_four_minutes(self):
+        # Stored confirmation: the E32 listens 2 min for a foreign 0x1A (~130 s after boot).
+        self.step(2)
+        self.e32.set('/status/heating', heating(state='arming', heat=True))
+        self.step(3)
+        self.assertNotIn('guard_stopped', self.keys())
+        self.step(2)
+        self.assertIn('guard_stopped', self.keys())
+        self.e32.set('/status/heating', heating())
+        self.step()
+        self.assertIn('guard_stopped', self.keys('cleared'))
+
     def test_foreign_controller(self):
         self.step()
         self.e32.set('/status/heating', heating(state='blocked_foreign_controller', warnings=['foreign_controller'],

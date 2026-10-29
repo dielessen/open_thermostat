@@ -8,6 +8,15 @@
     const fixed = (v, d) => v.toLocaleString(locale(), {minimumFractionDigits:d, maximumFractionDigits:d, useGrouping:false});
     const clock = t => new Date(t).toLocaleTimeString(locale(), {hour:'2-digit', minute:'2-digit'});
     const charts = Object.create(null); // hover data per drawn chart, replaced on every render
+    // The styles come with this script, which the Overview loads only when there is history to draw.
+    // Chart colours: validated light and dark steps (lightness band, chroma, colour-blind separation).
+    if (typeof document !== 'undefined' && document.head && !document.getElementById('oth-style')) {
+        const style = document.createElement('style'); style.id = 'oth-style';
+        style.textContent = ':root{--oth-1:#00876f;--oth-2:#b5600c;--oth-3:#5b57d1}@media (prefers-color-scheme:dark){:root{--oth-1:#239c8a;--oth-2:#c97a2c;--oth-3:#7f7be6}}' +
+            '.oth{margin-top:12px}.oth-title{font-size:1.05rem;margin:0 0 4px}.oth-figure{position:relative;margin:6px 0 0;max-width:760px}.oth-chart{display:block;width:100%;height:auto;touch-action:pan-y;overflow:visible}.oth-axis{font-size:11px;fill:var(--ot-muted);font-variant-numeric:tabular-nums}.oth-grid{stroke:var(--ot-border);stroke-width:1}.oth-line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}.oth-measured,.oth-flow{stroke:var(--oth-1)}.oth-return{stroke:var(--oth-1);stroke-width:1.5;stroke-dasharray:1 3}.oth-target,.oth-request{stroke:var(--oth-2);stroke-dasharray:5 4}.oth-thermostat{stroke:var(--oth-3);stroke-dasharray:8 3 2 3}.oth-bars{fill:var(--oth-2)}.oth-cross{stroke:var(--ot-text);stroke-width:1;stroke-dasharray:2 2}' +
+            '.oth-tip{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;background:var(--ot-surface);color:var(--ot-text);border:1px solid var(--ot-border);border-radius:var(--ot-r1);padding:4px 8px;font-size:.8rem;white-space:nowrap;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.18)}.oth-tip[hidden]{display:none}.oth-legend{display:flex;flex-wrap:wrap;gap:2px 14px;margin:4px 0}.oth-legend span{white-space:nowrap}.oth-legend span::before{content:"";display:inline-block;width:18px;margin-right:6px;vertical-align:middle;border-top:2px solid var(--oth-1)}.oth-legend [data-oth-line=return]::before{border-top-style:dotted}.oth-legend [data-oth-line=target]::before,.oth-legend [data-oth-line=request]::before{border-top:2px dashed var(--oth-2)}.oth-legend [data-oth-line=thermostat]::before{border-top:2px dashed var(--oth-3)}.oth-legend [data-oth-line=burner]::before{width:10px;border-top:8px solid var(--oth-2)}.oth-summary{margin:4px 0 8px}.oth-scroll{max-height:320px;overflow:auto}.oth-table table{margin:0;width:auto;min-width:100%;font-variant-numeric:tabular-nums}.oth-table th,.oth-table td{white-space:nowrap}';
+        document.head.append(style);
+    }
 
     // Validated model with absolute times (ms), values in degC or percent; null when unusable.
     function series(list, n, min, max, scale) {

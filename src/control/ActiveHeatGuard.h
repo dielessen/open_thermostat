@@ -13,7 +13,9 @@ namespace heating::control {
 // E32 owns the boiler request and which UBASetPoints (0x1A) flow byte to send:
 // the request every 60 s, at once when heat switches on or off, and a zero
 // repeated for one stop window whenever a positive request ends or the E32
-// leaves active mode. It takes over only after the owner confirmed that the
+// leaves active mode; while the boiler may still hold a positive request the
+// stop lasts until a zero was delivered (warned as transmit_failed, no time
+// limit). It takes over only after the owner confirmed that the
 // tado is disconnected from the boiler; a 0x1A from another master after that
 // stops it and clears the confirmation. Never sends in shadow mode or before
 // this boot has listened to the bus. Pure and single-threaded: the caller owns
@@ -86,7 +88,7 @@ public:
         if (!wanted) { confirmedAt_.reset(); blocked_ = false; }
         if (confirmedAt_ && foreign_ && foreign_->receivedAtMs > *confirmedAt_) { confirmedAt_.reset(); blocked_ = true; }
         if (owning() && !confirmedAt_) enter(State::stopping, now);
-        if (state_ == State::stopping && elapsed(now, since_) >= p_.stopWindowMs) enter(State::shadow, now);
+        if (state_ == State::stopping && elapsed(now, since_) >= p_.stopWindowMs && !holdsPositive_) enter(State::shadow, now);
         if (state_ != State::stopping) {
             if (!wanted) state_ = State::shadow;
             else if (blocked_) state_ = State::blockedForeignController;
@@ -108,7 +110,9 @@ public:
         if (feedback(now, in.boiler)) warnings_ |= boilerNoResponse;
         if (owning() && elapsed(now, phaseSent_ ? std::max(since_, lastSentAt_) : since_) >= 3 * p_.requestIntervalMs)
             warnings_ |= transmitFailed;
+        if (state_ == State::stopping && holdsPositive_ && elapsed(now, since_) >= p_.stopWindowMs) warnings_ |= transmitFailed;
         pending_ = command_.send;
+        if (command_.send && command_.flowC) holdsPositive_ = true; // also when the write fails: it may have arrived
         return command_;
     }
     // After each sent command: ok = the reviewed route completed the write.
@@ -119,6 +123,7 @@ public:
         if (!ok) return;
         warnings_ &= uint8_t(~transmitFailed);
         lastSentAt_ = now; lastSentFlow_ = command_.flowC; phaseSent_ = everSent_ = true;
+        holdsPositive_ = command_.flowC > 0;
         if (command_.flowC && !heatSince_) { heatSince_ = now; flowBaseline_.reset(); responded_ = false; }
     }
 
@@ -215,6 +220,7 @@ private:
     uint8_t lastSentFlow_ = 0, lastTarget_ = 0, warnings_ = 0;
     bool phaseSent_ = false, everSent_ = false, pending_ = false, frost_ = false, zeroWindow_ = false, responded_ = false;
     bool blocked_ = false; // a foreign request after the confirmation: confirm again
+    bool holdsPositive_ = false; // a positive request was sent and no zero delivered since
     std::optional<uint64_t> heatSince_;
     std::optional<int16_t> flowBaseline_;
 };

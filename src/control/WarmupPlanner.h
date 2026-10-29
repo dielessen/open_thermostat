@@ -22,25 +22,41 @@ struct WarmupPlanner {
         int16_t fromCentiC = 0, toCentiC = 0;
         std::optional<int16_t> eveningCentiC; // before that drop, when it lies ahead
     };
-    // Minute steps from now in the device's local time; across a DST change
-    // within 24 h each minute is converted on its own (the wall clock skips or
-    // repeats an hour), else the local minute simply counts on.
+    // Minute steps from now in the device's local time. The local minute simply
+    // counts on, except at a DST change within 24 h (the wall clock skips or
+    // repeats): that minute is converted on its own (offsetChange).
     static std::optional<Rise> nextRise(const RoomSchedule& s, int64_t utc) {
         auto t = RoomSchedule::localAt(utc);
         auto previous = s.at(t);
         if (!previous) return std::nullopt;
         Rise r; r.nightUtc = utc;
-        const int64_t minuteUtc = utc - utc % 60;
+        const int64_t minuteUtc = utc - utc % 60, endUtc = minuteUtc + 86400;
         const bool steady = RoomSchedule::localSeconds(utc + 86400) - RoomSchedule::localSeconds(utc) == 86400;
+        int64_t change = steady ? 0 : offsetChange(minuteUtc, endUtc);
         for (int m = 1; m <= 1440; ++m) {
-            if (!steady) t = RoomSchedule::localAt(minuteUtc + m * 60);
+            const int64_t u = minuteUtc + m * 60;
+            if (u == change) { t = RoomSchedule::localAt(u); change = offsetChange(u, endUtc); }
             else if (++t.minute == 1440) { t.minute = 0; t.weekday = uint8_t((t.weekday + 1) % 7); }
             const auto now = s.at(t);
-            if (*now < *previous) { r.nightUtc = minuteUtc + m * 60; r.eveningCentiC = previous; }
-            if (*now > *previous) { r.atUtc = minuteUtc + m * 60; r.fromCentiC = *previous; r.toCentiC = *now; return r; }
+            if (*now < *previous) { r.nightUtc = u; r.eveningCentiC = previous; }
+            if (*now > *previous) { r.atUtc = u; r.fromCentiC = *previous; r.toCentiC = *now; return r; }
             previous = now;
         }
         return std::nullopt;
+    }
+    // The first whole minute in (from, to] with another UTC offset than `from`
+    // (from on a minute), or 0: the offset is read hourly and bisected where it
+    // changed (POSIX TZ: two changes a year), about 30 localtime_r calls.
+    static int64_t offsetChange(int64_t from, int64_t to) {
+        const auto offset = [](int64_t u) { return RoomSchedule::localSeconds(u) - u; };
+        const int64_t base = offset(from);
+        for (int64_t lo = from; lo < to; lo += 3600) {
+            int64_t hi = std::min(lo + 3600, to);
+            if (offset(hi) == base) continue;
+            for (int64_t a = lo; hi - a > 60;) { const int64_t mid = a + (hi - a) / 120 * 60; (offset(mid) == base ? a : hi) = mid; }
+            return hi;
+        }
+        return 0;
     }
 
     struct Start {
@@ -147,6 +163,8 @@ struct WarmupPlanner {
         out.savingM3 = out.strategies[0].m3 - out.strategies[out.best].m3;
         // Within the model's noise the program stays: at least 0.05 m3 and 2 %.
         if (out.strategies[0].onTime && out.savingM3 < std::max(0.05f, 0.02f * out.strategies[0].m3)) { out.best = 0; out.savingM3 = 0; }
+        // A late program setback costs less than any on-time strategy: no saving, not a negative one.
+        out.savingM3 = std::max(0.0f, out.savingM3);
         if (l.price()) out.savingEur = out.savingM3 * *l.price();
         return out;
     }
@@ -208,6 +226,7 @@ struct WarmupPlanner {
             cJSON_AddStringToObject(ni, "recommended", n.strategies[n.best].name);
             FlowLearner::number(ni, "recommended_night_c", n.strategies[n.best].nightCentiC / 100.0f, 100);
             FlowLearner::number(ni, "saving_m3", n.savingM3, 1000);
+            // "eur" keys: the configured gas price's currency (the names stay for HA).
             FlowLearner::number(ni, "saving_eur", n.savingEur, 100);
         }
         return o;
@@ -256,13 +275,14 @@ private:
                     : l.advise(room, static_cast<int16_t>(std::lround((target - T) * 100)), outdoorCentiC).flowC.value_or(recoveryFlow);
                 const double rate = std::max(0.0f, l.rate(room, flow, outdoorCentiC).value_or(0.0f));
                 const double rise1 = std::min(rate * dt, target - T);
-                const double q = capacity * rise1 + ua * (T - To) * dt;
+                // Heat is never negative: outdoors warmer than the room heats it for free.
+                const double q = capacity * rise1 + ua * std::max(0.0, T - To) * dt;
                 gas += q / FlowLearner::efficiency(flow - p.returnDropK);
                 T += rise1;
             } else if (T > target + 0.02) {
                 T = std::max(target, To + (T - To) * learnmath::exp(-b * dt));
             } else {
-                const double q = ua * (target - To) * dt;
+                const double q = ua * std::max(0.0, target - To) * dt;
                 gas += q / FlowLearner::efficiency(holdFlow - p.returnDropK);
                 T = target;
             }

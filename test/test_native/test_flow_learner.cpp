@@ -296,6 +296,59 @@ TEST(WarmupPlanner, NightEconomicsComparesStrategies) {
     EXPECT_STREQ(cold.strategies[cold.best].name, "program");
 }
 
+// A mild or warm outdoor (an unheated attic, an autumn afternoon) heats the
+// room for free: never a negative heat, gas or saving, at any hour.
+TEST(WarmupPlanner, NightEconomicsNeverReportNegativeGasOrSaving) {
+    ScopedTz tz(ScopedTz::amsterdam);
+    auto h = House::radiator();
+    h.outdoorKnown = true;
+    h.days(tadoFlows, 3, {0, 10});
+    h.learner.gasPrice(1.35f);
+    int estimated = 0;
+    for (int64_t utc = wednesday23; utc < wednesday23 + 86400; utc += 3600)
+        for (const int16_t outdoor : {int16_t(-1000), int16_t(1500), int16_t(2200), int16_t(2800)})
+            for (const int16_t room : {int16_t(1500), int16_t(1900), int16_t(2400)}) {
+                const auto n = WarmupPlanner::night(h.learner, 0, program(), utc, room, outdoor);
+                for (uint8_t i = 0; i < n.count; ++i) {
+                    EXPECT_GE(n.strategies[i].kwh, 0) << utc << " " << outdoor << " " << room << " " << n.strategies[i].name;
+                    EXPECT_GE(n.strategies[i].m3, 0);
+                    if (n.strategies[i].eur) { EXPECT_GE(*n.strategies[i].eur, 0); }
+                }
+                EXPECT_GE(n.savingM3, 0) << utc << " " << outdoor << " " << room;
+                if (n.savingEur) { EXPECT_GE(*n.savingEur, 0); }
+                estimated += n.reason[0] == 'e';
+            }
+    EXPECT_GT(estimated, 0);
+}
+
+// Brute force: every minute converted on its own; the planner converts only
+// around a DST change (a 30-minute one in Lord Howe) and must agree.
+TEST(WarmupPlanner, NextSwitchMatchesAMinuteByMinuteWalkAroundEveryChange) {
+    RoomSchedule s;
+    for (auto& d : s.days) { d.points[0] = {150, 2100}; d.points[1] = {175, 1700}; d.points[2] = {390, 2050}; d.points[3] = {1350, 1850}; d.count = 4; }
+    const auto brute = [&](int64_t utc) -> std::optional<int64_t> {
+        auto previous = s.at(RoomSchedule::localAt(utc));
+        const int64_t minuteUtc = utc - utc % 60;
+        for (int m = 1; m <= 1440; ++m) {
+            const auto now = s.at(RoomSchedule::localAt(minuteUtc + m * 60));
+            if (*now > *previous) return minuteUtc + m * 60;
+            previous = now;
+        }
+        return std::nullopt;
+    };
+    const int64_t oct25 = 1792886400, apr5 = 1775347200; // 2026, 00:00 UTC
+    for (const auto& [zone, around] : {std::pair<const char*, int64_t>{ScopedTz::amsterdam, oct25}, {ScopedTz::newYork, oct25 + 7 * 86400},
+                                       {"<+1030>-10:30<+11>-11,M10.1.0,M4.1.0", apr5}}) {
+        ScopedTz tz(zone);
+        for (int64_t utc = around - 36 * 3600 + 17; utc < around + 36 * 3600; utc += 1260) {
+            const auto r = WarmupPlanner::nextRise(s, utc);
+            const auto b = brute(utc);
+            ASSERT_EQ(r.has_value(), b.has_value()) << zone << " " << utc;
+            if (r) { EXPECT_EQ(r->atUtc, *b) << zone << " " << utc; }
+        }
+    }
+}
+
 // The next switch is found on the device's wall clock, also across a DST
 // change in the night: 06:30 stays 06:30 local, not one hour off.
 TEST(WarmupPlanner, NextSwitchFollowsTheDeviceTimeZoneAcrossDaylightSavingTime) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <ostream>
 
 namespace heating {
@@ -18,6 +19,9 @@ constexpr NetworkInterface chooseNetwork(bool ethernetLink, bool ethernetHasIP, 
 void startBoardEthernet();
 extern bool boardEthernetStarted;
 bool networkConnected();
+// Ethernet has link and an IP: then it carries the default route (chooseNetwork).
+bool ethernetConnected();
+uint32_t ethernetGateway(); // network order
 // Select default route and report changes of active interface/address in loop().
 bool pollBoardNetwork();
 }

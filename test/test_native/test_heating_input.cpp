@@ -43,8 +43,10 @@ TEST(HeatingInput, TypedKindsAreValidatedStrictly) {
     const auto price = HeatingInput::parse(R"({"kind":"gas_price","value":1.32})");
     ASSERT_TRUE(price); EXPECT_EQ(price->kind, Kind::gasPrice);
     EXPECT_TRUE(HeatingInput::parse(R"({"kind":"gas_price","value":20})"));
+    EXPECT_TRUE(HeatingInput::parse(R"({"kind":"gas_price","value":850})")); // any currency, as HA allows
+    EXPECT_TRUE(HeatingInput::parse(R"({"kind":"gas_price","value":1000})"));
     EXPECT_FALSE(HeatingInput::parse(R"({"kind":"gas_price","value":0})"));
-    EXPECT_FALSE(HeatingInput::parse(R"({"kind":"gas_price","value":20.01})"));
+    EXPECT_FALSE(HeatingInput::parse(R"({"kind":"gas_price","value":1000.01})"));
     const auto outdoor = HeatingInput::parse(R"({"kind":"outdoor_c","entity":"sensor.buiten","value":-7.4})");
     ASSERT_TRUE(outdoor); EXPECT_EQ(outdoor->kind, Kind::outdoorC); EXPECT_DOUBLE_EQ(outdoor->value, -7.4);
     EXPECT_FALSE(HeatingInput::parse(R"({"kind":"outdoor_c","entity":"sensor.buiten","value":61})"));
@@ -84,6 +86,9 @@ TEST(HeatingInput, RouteFeedsRoomsAndLearnerAndTracksFreshness) {
     EXPECT_EQ(learner.gasMeterAt(), 3000u);
     ASSERT_TRUE(route.accept(R"({"kind":"gas_price","value":1.32})", 4000, rooms, learner));
     EXPECT_FLOAT_EQ(*learner.price(), 1.32f);
+    learner.gasPrice(1001); EXPECT_FLOAT_EQ(*learner.price(), 1.32f);  // out of range: the last price stays
+    learner.gasPrice(450); EXPECT_FLOAT_EQ(*learner.price(), 450.0f);  // e.g. a price in yen or forint
+    learner.gasPrice(1.32f);
     EXPECT_FALSE(learner.nominalFromHa());
     ASSERT_TRUE(route.accept(R"({"kind":"boiler_kw","value":24})", 5000, rooms, learner));
     EXPECT_FLOAT_EQ(learner.nominalKw(), 24); EXPECT_TRUE(learner.nominalFromHa());

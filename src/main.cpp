@@ -13,6 +13,7 @@
 #include <SPIFFS.h>
 #include <ESPmDNS.h>
 #include "update/GitHubUpdate.h"
+#include "update/RestartTimer.h"
 #include <TimeHelpers.h>
 #include <logger/Logger.h>
 #include <logger/LoggerSerialSink.h>
@@ -75,8 +76,9 @@ std::atomic<bool> wifiExpected{false}, brokerExpected{false}, gatewayProbeArmed{
 std::atomic<bool> bluetoothExpected{false}, restartDeferred{false};
 heating::diagnostics::GatewayProbe gatewayProbe; // loop only
 // Boot confirmation evidence (loop only, latched): since boot an IP address
-// plus a gateway probe reply, an MQTT session or a routed HTTP request.
-bool networkProven = false;
+// plus a gateway probe reply, an MQTT session or a routed HTTP request; without
+// a configured broker also the IP held long enough (BootConfirmation::networkProven).
+bool networkProven = false, brokerConfigured = false;
 
 uint64_t monotonicMs() { return static_cast<uint64_t>(esp_timer_get_time() / 1000); }
 uint32_t monotonicS() { return static_cast<uint32_t>(esp_timer_get_time() / 1000000) + 1; }
@@ -142,12 +144,15 @@ void supervisorTask(void*) {
 // wifiLost covers) at this moment.
 void networkQuietRestart() { networkQuietSinceS.store(monotonicS()); }
 
-// Every loop pass, without waiting: an ICMP echo to the Wi-Fi gateway every 30 s.
+// Every loop pass, without waiting: an ICMP echo every 30 s to the gateway of
+// the active route, Ethernet or Wi-Fi.
 void probeGateway(uint64_t now) {
 	using Result = heating::diagnostics::GatewayProbe::Result;
 	auto result = gatewayProbe.poll(now);
-	if (result == Result::none && gatewayProbe.due(now) && wifiExpected.load() && WiFi.isConnected())
-		result = gatewayProbe.start(now, static_cast<uint32_t>(WiFi.gatewayIP()));
+	if (result == Result::none && gatewayProbe.due(now)) {
+		if (heating::ethernetConnected()) result = gatewayProbe.start(now, heating::ethernetGateway());
+		else if (wifiExpected.load() && WiFi.isConnected()) result = gatewayProbe.start(now, static_cast<uint32_t>(WiFi.gatewayIP()));
+	}
 	if (result == Result::none) return;
 	gatewayProbeFailures.store(gatewayProbe.failures());
 	if (result == Result::ok) { gatewayProbeArmed.store(true); networkQuietRestart(); heating::diagnostics::blackBox.networkWorked(now); }
@@ -178,13 +183,19 @@ void observeHealth(uint64_t now) {
 	// it after a missed keep-alive) or any HTTP request routed since last time.
 	static uint32_t requests = 0;
 	const uint32_t seen = heating::diagnostics::blackBox.requests();
-	if (!wifi || !WiFi.isConnected()) {
+	const bool ethernet = heating::ethernetConnected(); // probed too; networkDead stays Wi-Fi only
+	if (!ethernet && (!wifi || !WiFi.isConnected())) {
 		gatewayProbe.cancel(); gatewayProbe.resetFailures(); gatewayProbeFailures.store(0);
 		networkQuietRestart();
 	} else if (broker || seen != requests) { networkQuietRestart(); heating::diagnostics::blackBox.networkWorked(now); }
 	requests = seen;
+	// Since when the network has held an IP without a break (sampled every 10 s).
+	static uint64_t linkSince = 0;
+	if (!heating::networkConnected() || heating::wifiAPMode) linkSince = 0;
+	else if (!linkSince) linkSince = now;
 	if (!networkProven && (heating::networkConnected() || heating::wifiAPMode))
-		networkProven = gatewayProbeArmed.load() || broker || seen != 0;
+		networkProven = heating::update::BootConfirmation::networkProven(gatewayProbeArmed.load() || broker || seen != 0,
+			brokerConfigured, linkSince ? static_cast<uint32_t>(std::min<uint64_t>(now - linkSince, UINT32_MAX)) : 0);
 	heating::diagnostics::blackBox.note(static_cast<uint32_t>(now / 1000), ESP.getMinFreeHeap(), uxTaskGetStackHighWaterMark(nullptr),
 		heating::diagnostics::loopIntervals.snapshot().windowMaximumMs, static_cast<int8_t>(WiFi.RSSI()), WiFi.isConnected(), broker);
 	const auto stacks = heating::diagnostics::taskStackMarks();
@@ -485,6 +496,7 @@ void setup() {
 #ifdef OPENTHERMOSTAT_E32V2
 	const auto networkPlan=heating::control::networkBootPlan(networkConfig.interfaceMode=="ethernet",!wifiConfig.ssid.empty(),heating::consumeSetupBoot());
 	startAP=networkPlan.setupAp;
+	{ const auto mqtt = config::getMqttConfig(); brokerConfigured = mqtt.enabled && !mqtt.brokerAddress.empty(); }
 #endif
 
 	heating::controller = new heating::HeatingController(heating::logger);

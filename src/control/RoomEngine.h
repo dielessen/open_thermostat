@@ -111,6 +111,7 @@ public:
     }
 
     // {"schema":1,"mode":..,"request":{..},"rooms":[..]} for the status page and HA.
+    // nullptr: no memory.
     cJSON* json() const {
         cJSON* root = cJSON_CreateObject();
         if (!root) return nullptr;
@@ -123,6 +124,7 @@ public:
         cJSON_AddStringToObject(request, "reason", FlowDemand::name(request_.reason));
         // The HA entities this plan reads: HA forwards exactly these to ha/heating_input.
         cJSON* entities = cJSON_AddArrayToObject(root, "ha_entities");
+        if (!entities) { cJSON_Delete(root); return nullptr; }
         const auto addEntity = [&](const std::string& id) {
             for (const cJSON* e = entities->child; e; e = e->next) if (id == e->valuestring) return;
             cJSON_AddItemToArray(entities, cJSON_CreateString(id.c_str()));

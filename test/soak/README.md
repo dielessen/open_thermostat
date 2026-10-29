@@ -26,6 +26,8 @@ Allocation-failure crash reports go to `oom-<scenario>-<builder>.log`.
 | `smoke` | 1.5-day chains around a DST change and the 32-bit wrap, plus guard, flow, supervisor, sizes and repro | 5 s plus a 30 s cold build |
 | `repro` | only the deterministic reproducers of known findings | under 1 s |
 
+CI runs `smoke` in the `soak-smoke` job; a release waits for it.
+
 Environment: `SOAK_SEED` (added to every seed), `SOAK_JOBS`, `CXX`, and
 `SOAK_ALLOW`, a comma-separated list of invariant ids that are reported but
 do not fail the run (for known defects while their fix is pending). Exit
@@ -150,49 +152,40 @@ minimum on/off, reading carry-over, stale hold, day roll, DST offset, foreign
 check, frost, cap, re-anchoring, BLE value lifetime, a failure-path leak) was
 caught by these invariants 14 of 14 times.
 
-## Known findings (state 2026-10-29)
+## Findings (state 2026-10-29, all fixed)
 
-These currently make `full` fail. Their ids for `SOAK_ALLOW` are:
-`oom_crash_room_engine_json`, `oom_crash_status_mqtt_compact`, `oom_crash_status_full`,
-`repro_room_engine_json_oom`, `guard_released_with_positive_at_boiler`,
-`repro_guard_stop_without_zero`, `dhw_counts`, `dhw_seconds`, `repro_dhw_reheat_counted_as_tap`,
-`warmup_night_gas`, `mqtt_heating_exceeds_limit_worst_case_printable`,
-`mqtt_heating_exceeds_limit_worst_case_escaped_names`.
+`full` passes. The repro scenario keeps the deterministic reproducers, and
+each fix has its own native regression test:
 
-1. **RoomEngine::json() crashes when an allocation fails.** If
-   `cJSON_AddArrayToObject(root, "ha_entities")` returns null, `addEntity`
-   reads `entities->child` (RoomEngine.h:127). It is reached from
-   fw/telemetry/heating and /status/heating. Fix: return nullptr (after
-   deleting root) when `entities` is null.
-2. **ActiveHeatGuard ends its stop window without a delivered zero.** In
-   `stopping`, the guard moves to shadow 60 s after `enter(stopping)` even
-   when every zero write failed or the route was not ready. The boiler keeps
-   the last positive 0x1A, how long depends on its own timeout. Fix: stay in
-   `stopping` (keep repeating zero) until a zero was transmitted ok, with a
-   long bound and a warning.
-3. **DhwEpisodes counts a reheat right after a short tap as a second tap.** The
-   2-minute look-back reference reaches back before the tap, so the reheat
-   "falls" 30 K. Fix: ignore look-back samples older than the end of the
-   previous episode (or clear `temps_` in `close()`).
-4. **WarmupPlanner::night() can report negative gas.** When the outdoor
-   temperature is above the room or target temperature (for example an
-   unheated attic or a mild afternoon), `ua * (T - To)` is negative. Fix:
-   clamp the heat per step at 0. Related: `saving_m3`/`saving_eur` turn negative
-   when the program's own setback is not on time (reported as a note).
-5. **fw/telemetry/heating can exceed 7900 B for a valid plan.** 8 rooms × 4 HA
-   sources with long entity ids give 8055 B, and escaped names give 8375 B.
-   ModernTransport then drops every heating status. Fix: bound it at plan
-   validation, or move `ha_entities` to its own topic.
+1. **RoomEngine::json() crashed when an allocation failed** (`ha_entities`
+   array null). It now returns nullptr (`RoomEngine.JsonSurvivesEveryAllocationFailure`).
+2. **ActiveHeatGuard ended its stop window without a delivered zero.** While
+   the boiler may still hold a positive request, `stopping` now lasts until a
+   zero was transmitted ok, with no time limit, and warns `transmit_failed`
+   after the window (`ActiveHeatGuard.StopKeepsRepeatingZeroUntilOneIsDelivered`).
+3. **DhwEpisodes counted a reheat right after a tap as a second tap.** The
+   look-back now ignores samples from before the previous episode's end
+   (`DhwEpisodes.ReheatRightAfterATapIsKeepWarmNotASecondTap`).
+4. **WarmupPlanner::night() could report negative gas.** The heat per step is
+   clamped at 0, and `saving_m3`/`saving_eur` are never negative (0 when the
+   program's own setback is late) (`WarmupPlanner.NightEconomicsNeverReportNegativeGasOrSaving`).
+5. **fw/telemetry/heating over 7900 B** came from plans that setHeatingPlan
+   refuses (`plan_too_large`, 5972 and 6292 B). The `sizes` scenario now trims
+   its worst cases to the largest storable plan. Any plan within the
+   4095-byte store gives at most about 7100 B (`HeatingTelemetry.AnyStorablePlanFitsTheMainPayload`).
 
-Notes (not failures):
-- A realistic 8-room plan with 4 switch points per day is 4964 B, so
-  `setHeatingPlan` refuses it as `plan_too_large`.
-- In the 24 h before a DST change, WarmupPlanner converts every minute
-  separately: 2,886 `localtime_r` calls per heating_learned room payload
-  (normally about 30) and up to 19,000 per /status/heating.
-- The burner's `starts_last_hour`/`heating_starts_last_hour` keys disappear
-  from fw/telemetry/heating while the burner state is unknown.
-- A heating_learned payload reaches about 904 B with a 32-character room id.
+The notes were resolved as well:
+- The burner keys keep their shape while the state is unknown: `null` values,
+  which HA reads as unknown.
+- heating_learned/<id> names its room once (HA takes the topic's id), so a
+  32-character id stays under 900 B. The chain checks this extrapolation
+  (`mqtt_learned_room_32_char_id`).
+- Near a DST change WarmupPlanner reads the UTC offset hourly and bisects the
+  change, so it no longer converts each minute (about 30 instead of 1,440
+  `localtime_r` calls per walk).
+
+Still a note: a realistic 8-room plan with 4 switch points per day is
+4964 B, so `setHeatingPlan` refuses it as `plan_too_large`.
 
 ## Limits
 

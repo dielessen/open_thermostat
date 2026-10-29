@@ -1,5 +1,6 @@
 #include "control/ActiveHeatGuard.h"
 #include "control/DhwEpisodes.h"
+#include "control/ControlPartitionBudget.h"
 #include "control/HeatingTelemetry.h"
 #include "control/RoomEngine.h"
 #include "control/ShadowComparison.h"
@@ -266,9 +267,115 @@ TEST(HeatingTelemetry, WorstCasePlanMainPayloadSize) {
     EXPECT_LE(mqtt.size(), 7900u);                    // ModernTransport's heatingTelemetryMaxBytes
 }
 
+// The bound behind fw/telemetry/heating: setHeatingPlan refuses a plan above
+// the 4095-byte store (plan_too_large) and nothing else reaches RoomEngine. A
+// stored plan holds every entity id at least once and each room's id and name;
+// the payload repeats them at most once more, plus one leading source per room,
+// and its fixed parts are bounded (8 Bluetooth sensors, shadow, guard, ha).
+// So the largest payload comes from the largest storable plan with one long
+// source per room: filled here to the byte with 6-byte escaped names, and
+// with 2-4 sources and no setpoint entity for comparison.
+RoomPlan storablePlan(size_t sources, bool setpointEntity) {
+    RoomPlan plan;
+    plan.revision = 4294967295u; plan.minimumFlowC = 20; plan.maximumFlowC = 80;
+    for (int i = 0; i < 8; ++i) {
+        RoomPlan::Room r;
+        r.id = pad(std::string(1, char('a' + i)), 32, 'r');
+        r.name = std::string(40, '\x01');                // \u0001: 6 bytes each, in the plan and the payload
+        r.state = RoomDemand::State::active;
+        for (size_t k = 0; k < sources; ++k)
+            r.sources.push_back({RoomPlan::SourceType::ha, pad("sensor." + std::string(1, char('a' + i)) + char('0' + k) + "_", 80, 't')});
+        if (setpointEntity) r.setpointEntity = pad("climate." + std::string(1, char('a' + i)) + "_", 80, 's');
+        r.fallbackCentiC = 2155; r.minimumCentiC = 500; r.maximumCentiC = 2999;
+        plan.rooms.push_back(r);
+    }
+    // Trim the names, then the entity ids, until the plan is just inside the store.
+    const size_t limit = ControlPartitionBudget::configBytes - 1;
+    for (size_t turn = 0; plan.json().size() > limit; ++turn) {
+        auto& r = plan.rooms[turn % 8];
+        if (r.name.size() > 1) { r.name.pop_back(); continue; }
+        for (auto& src : r.sources) if (src.id.size() > 12) src.id.pop_back();
+        if (r.setpointEntity.size() > 12) r.setpointEntity.pop_back();
+    }
+    return plan;
+}
+TEST(HeatingTelemetry, AnyStorablePlanFitsTheMainPayload) {
+    size_t largest = 0;
+    for (const auto& [sources, setpoint] : {std::pair<size_t, bool>{1, true}, {1, false}, {2, true}, {4, true}}) {
+        const auto plan = storablePlan(sources, setpoint);
+        const auto raw = plan.json();
+        ASSERT_LE(raw.size() + 1, ControlPartitionBudget::configBytes);
+        ASSERT_GE(raw.size() + 8, ControlPartitionBudget::configBytes - 1); // filled to (nearly) the byte
+        Json back(cJSON_Parse(raw.c_str()), cJSON_Delete);
+        RoomPlan parsed;
+        ASSERT_EQ(RoomPlan::parse(back.get(), parsed), nullptr);
+        RoomEngine engine; engine.setPlan(parsed);
+        for (const auto& room : parsed.rooms) {
+            for (const auto& src : room.sources) engine.haState(src.id, int16_t(-1234), std::nullopt, statusNow - minute);
+            engine.haState(room.setpointEntity, std::nullopt, int16_t(2155), statusNow - minute);
+        }
+        engine.step(statusNow, uint32_t(wednesday23));
+        // Assembled like heatingStatusJson(true), every value at its longest.
+        Json root(engine.json(), cJSON_Delete);
+        ASSERT_TRUE(root);
+        cJSON* sensors = cJSON_AddArrayToObject(root.get(), "ble_sensors");
+        for (int i = 0; i < 8; ++i) {
+            cJSON* s = cJSON_CreateObject(); cJSON_AddItemToArray(sensors, s);
+            cJSON_AddStringToObject(s, "id", "a4c138a3e8db");
+            cJSON_AddStringToObject(s, "name", std::string(40, '"').c_str()); // 80 bytes escaped
+            cJSON_AddStringToObject(s, "profile", "shelly_ht_display");
+            cJSON_AddNumberToObject(s, "temperature", -12.34); cJSON_AddNumberToObject(s, "humidity", 99.99);
+            cJSON_AddNumberToObject(s, "battery", 100); cJSON_AddNumberToObject(s, "age_s", 4294967);
+        }
+        BurnerCycleMonitor::Summary cycles; cycles.known = true; cycles.starts = cycles.heatingStarts = BurnerCycleMonitor::capacity;
+        addBurnerJson(root.get(), cycles);
+        ShadowComparison shadow;
+        const FlowDemand::Request heat{true, 44, FlowDemand::Reason::heating};
+        for (int d = 0; d < 8; ++d)
+            for (uint64_t t = 0; t < 24 * hour; t += 10 * minute)
+                shadow.sample(d * 24 * hour + t, uint32_t(wednesday23 - (8 - d) * 86400 + t / 1000),
+                              t % (3 * hour) < hour ? heat : FlowDemand::Request{}, uint8_t(t % (2 * hour) < hour ? 45 : 0));
+        cJSON_AddItemToObject(root.get(), "shadow", shadow.json());
+        ActiveHeatGuard guard;
+        cJSON* active = guard.json(statusNow);
+        cJSON_ReplaceItemInObjectCaseSensitive(active, "state", cJSON_CreateString("blocked_foreign_controller"));
+        cJSON* command = cJSON_GetObjectItem(active, "command");
+        cJSON_ReplaceItemInObjectCaseSensitive(command, "why", cJSON_CreateString("boiler_limit_unknown"));
+        cJSON_ReplaceItemInObjectCaseSensitive(command, "flow_c", cJSON_CreateNumber(80));
+        for (const char* key : {"last_sent", "foreign_controller", "confirmation"}) {
+            cJSON* o = cJSON_CreateObject();
+            cJSON_AddNumberToObject(o, "age_s", 4294967295.0);
+            if (key[0] != 'c') cJSON_AddNumberToObject(o, key[0] == 'l' ? "flow_c" : "address", 255);
+            cJSON_ReplaceItemInObjectCaseSensitive(active, key, o);
+        }
+        cJSON* warnings = cJSON_GetObjectItem(active, "warnings");
+        for (const char* w : {"foreign_controller", "measurement_lost", "boiler_no_response", "transmit_failed", "boiler_limit_unknown"})
+            cJSON_AddItemToArray(warnings, cJSON_CreateString(w));
+        cJSON_AddBoolToObject(active, "enabled", false);
+        cJSON_AddItemToObject(root.get(), "active", active);
+        addHaLink(root.get(), uint64_t(0), 4294967295000ull, false);
+        compactHeatingTelemetry(root.get());
+        const auto mqtt = print(root.get());
+        breakdown(("storable plan " + std::to_string(raw.size()) + " B, " + std::to_string(sources) + " source(s)" + (setpoint ? " + setpoint" : "")).c_str(), mqtt);
+        EXPECT_LE(mqtt.size(), 7900u);                   // ModernTransport's heatingTelemetryMaxBytes
+        largest = std::max(largest, mqtt.size());
+    }
+    std::printf("[ heating telemetry ] largest main payload of a storable plan %zu B (limit 7900 B)\n", largest);
+}
+
+TEST(HeatingTelemetry, BurnerKeepsItsKeysWhileUnknown) {
+    Json unknown(cJSON_CreateObject(), cJSON_Delete), known(cJSON_CreateObject(), cJSON_Delete);
+    addBurnerJson(unknown.get(), BurnerCycleMonitor::Summary{});
+    BurnerCycleMonitor::Summary c; c.known = true; c.starts = 7; c.heatingStarts = 6; c.shortCycling = true;
+    addBurnerJson(known.get(), c);
+    EXPECT_EQ(print(unknown.get()), R"({"burner":{"starts_last_hour":null,"heating_starts_last_hour":null,"short_cycling":null}})");
+    EXPECT_EQ(print(known.get()), R"({"burner":{"starts_last_hour":7,"heating_starts_last_hour":6,"short_cycling":true}})");
+}
+
 TEST(HeatingTelemetry, PerRoomLearnedPayloadsStayUnder900Bytes) {
     for (const bool worst : {false, true}) {
-        const Bench b(worst, true, true);
+        Bench b(worst, true, true);                      // worst: 32-character ids
+        if (worst) b.learner.gasPrice(FlowLearner::maxGasPrice); // the longest prices and savings
         size_t largest = 0;
         for (size_t i = 0; i < b.plan.rooms.size(); ++i) {
             const auto payload = learnedRoomTelemetry(b.learner, b.plan, i, b.context);
@@ -280,12 +387,14 @@ TEST(HeatingTelemetry, PerRoomLearnedPayloadsStayUnder900Bytes) {
             EXPECT_EQ(cJSON_GetObjectItem(j.get(), "schema")->valuedouble, 1);
             EXPECT_EQ(std::string(cJSON_GetObjectItem(j.get(), "id")->valuestring), b.plan.rooms[i].id);
             const cJSON* learned = cJSON_GetObjectItem(j.get(), "learned");
+            EXPECT_FALSE(cJSON_GetObjectItem(learned, "id")); // once, at the top (HA takes the topic's)
             EXPECT_STREQ(cJSON_GetObjectItem(learned, "readiness")->valuestring, "ready");
             EXPECT_FALSE(cJSON_GetObjectItem(learned, "curve"));
             ASSERT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(learned, "advice")), 1);
             EXPECT_EQ(cJSON_GetObjectItem(cJSON_GetArrayItem(cJSON_GetObjectItem(learned, "advice"), 0), "shortfall_c")->valuedouble, 1);
             EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(learned, "now")));
             const cJSON* plan = cJSON_GetObjectItem(j.get(), "plan");
+            EXPECT_FALSE(cJSON_GetObjectItem(plan, "id"));
             const cJSON* start = cJSON_GetObjectItem(plan, "optimum_start");
             EXPECT_STREQ(cJSON_GetObjectItem(start, "reason")->valuestring, "planned");
             EXPECT_TRUE(cJSON_IsNumber(cJSON_GetObjectItem(start, "predicted_start_utc")));

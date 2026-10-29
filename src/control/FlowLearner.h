@@ -179,7 +179,9 @@ public:
         }
         haveGas_ = gasValid_ = true; gasM3_ = totalM3; gasAtMs_ = atMs; predictedKwh_ = 0;
     }
-    void gasPrice(float eurPerM3) { if (eurPerM3 > 0 && eurPerM3 <= 20) price_ = eurPerM3; }
+    // Gas price per m3 in the currency HA is configured for (HA accepts up to 1000).
+    static constexpr float maxGasPrice = 1000;
+    void gasPrice(float perM3) { if (perM3 > 0 && perM3 <= maxGasPrice) price_ = perM3; }
     std::optional<float> price() const { return price_; }
     // The last gas meter reading (uptime ms); nullopt: none yet.
     std::optional<uint64_t> gasMeterAt() const { return haveGas_ ? std::optional<uint64_t>(gasAtMs_) : std::nullopt; }

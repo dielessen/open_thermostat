@@ -297,14 +297,7 @@ public:
         cJSON* root = roomEngine_.json();
         cJSON* sensors = root ? cJSON_AddArrayToObject(root, "ble_sensors") : nullptr;
         // Burner starts in the last hour from the flame bit (the adapter's own counters read 0).
-        const auto cycles = ems_.burnerCycles();
-        if (cJSON* burner = root ? cJSON_AddObjectToObject(root, "burner") : nullptr) {
-            if (cycles.known) {
-                cJSON_AddNumberToObject(burner, "starts_last_hour", cycles.starts);
-                cJSON_AddNumberToObject(burner, "heating_starts_last_hour", cycles.heatingStarts);
-                cJSON_AddBoolToObject(burner, "short_cycling", cycles.shortCycling);
-            } else cJSON_AddNullToObject(burner, "short_cycling");
-        }
+        if (root) control::addBurnerJson(root, ems_.burnerCycles());
         cJSON* shadow = sensors ? shadowComparison_.json() : nullptr;
         if (!shadow || !cJSON_AddItemToObject(root, "shadow", shadow)) { cJSON_Delete(shadow); cJSON_Delete(root); return nullptr; }
         cJSON* active = activeHeatJson();

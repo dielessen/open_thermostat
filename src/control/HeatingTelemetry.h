@@ -1,4 +1,5 @@
 #pragma once
+#include "control/BurnerCycleMonitor.h"
 #include "control/FlowLearner.h"
 #include "control/WarmupPlanner.h"
 #include <cJSON.h>
@@ -62,6 +63,19 @@ inline bool addHaLink(cJSON* root, std::optional<uint64_t> lastInputMs, uint64_t
     return cJSON_AddBoolToObject(ha, "broker_connected", brokerConnected) != nullptr;
 }
 
+// "burner": {"starts_last_hour","heating_starts_last_hour","short_cycling"};
+// while unknown the same keys are null (the MQTT shape stays). Partial: no memory.
+inline void addBurnerJson(cJSON* root, const BurnerCycleMonitor::Summary& c) {
+    cJSON* burner = cJSON_AddObjectToObject(root, "burner");
+    if (!burner) return;
+    const auto count = [&](const char* key, size_t n) {
+        if (c.known) cJSON_AddNumberToObject(burner, key, double(n)); else cJSON_AddNullToObject(burner, key);
+    };
+    count("starts_last_hour", c.starts);
+    count("heating_starts_last_hour", c.heatingStarts);
+    if (c.known) cJSON_AddBoolToObject(burner, "short_cycling", c.shortCycling); else cJSON_AddNullToObject(burner, "short_cycling");
+}
+
 namespace telemetry_detail {
 inline void keepOnly(cJSON* o, std::initializer_list<const char*> keys) {
     if (!cJSON_IsObject(o)) return;
@@ -75,11 +89,12 @@ inline void keepOnly(cJSON* o, std::initializer_list<const char*> keys) {
 }
 }
 
-// Learned room in its MQTT form: id, emitter, readiness, segments, periods,
-// loss_per_h, capacity_kwh_per_k, "advice" with only the 1 degC shortfall and "now".
+// Learned room in its MQTT form: emitter, readiness, segments, periods,
+// loss_per_h, capacity_kwh_per_k, "advice" with only the 1 degC shortfall and "now"
+// (no "id": the payload names its room once, HA takes the topic's).
 inline void compactLearnedRoom(cJSON* r) {
     using telemetry_detail::keepOnly;
-    keepOnly(r, {"id", "emitter", "readiness", "segments", "periods", "loss_per_h", "capacity_kwh_per_k", "advice", "now"});
+    keepOnly(r, {"emitter", "readiness", "segments", "periods", "loss_per_h", "capacity_kwh_per_k", "advice", "now"});
     cJSON* advice = cJSON_GetObjectItemCaseSensitive(r, "advice");
     for (cJSON* a = cJSON_IsArray(advice) ? advice->child : nullptr; a;) {
         cJSON* next = a->next;
@@ -88,13 +103,13 @@ inline void compactLearnedRoom(cJSON* r) {
         a = next;
     }
 }
-// Plan room in its MQTT form: {"id","optimum_start":{"reason","predicted_start_utc",
+// Plan room in its MQTT form (no "id" either): {"optimum_start":{"reason","predicted_start_utc",
 // "lead_minutes","flow_c","confidence","reachable","start_now"},"night":{"reason",
 // "recommended","recommended_night_c","saving_m3","saving_eur"}} (fields of an
 // unplanned reason are absent, as in the full form).
 inline void compactPlanRoom(cJSON* p) {
     using telemetry_detail::keepOnly;
-    keepOnly(p, {"id", "optimum_start", "night"});
+    keepOnly(p, {"optimum_start", "night"});
     keepOnly(cJSON_GetObjectItemCaseSensitive(p, "optimum_start"),
              {"reason", "predicted_start_utc", "lead_minutes", "flow_c", "confidence", "reachable", "start_now"});
     keepOnly(cJSON_GetObjectItemCaseSensitive(p, "night"), {"reason", "recommended", "recommended_night_c", "saving_m3", "saving_eur"});

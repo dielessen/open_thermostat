@@ -287,6 +287,9 @@
 		['<+04>-4','Asia/Dubai'],['SAST-2','Africa/Johannesburg']].flatMap(([posix, names]) => names.split(' ').map(zone => [zone, posix]));
 	var browserZone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (_) { return ''; } })();
 	var zonePosix = zone => (timeZones.find(z => z[0] === zone) || [])[1];
+	// Older strings for the same rules (the beta.17 default); the zone of a string, this browser's first.
+	var posixAliases = {'CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00': 'CET-1CEST,M3.5.0,M10.5.0/3'};
+	var posixZone = posix => { const p = posixAliases[posix] || posix; return zonePosix(browserZone) === p ? browserZone : (timeZones.find(z => z[1] === p) || ['custom'])[0]; };
 	function showTimeZone(posix) {
 		const choice = document.getElementById('DeviceTimeZoneChoice'), suggest = document.getElementById('DeviceTimeZoneSuggest');
 		if (!choice) return;
@@ -295,14 +298,14 @@
 			choice.add(new Option(uiText("Other (enter POSIX text under Advanced)"), 'custom'));
 			choice.addEventListener('change', () => { if (choice.value !== 'custom') $('#DeviceNTPTimezone').val(zonePosix(choice.value)).trigger('change'); suggestion(); });
 			suggest.querySelector('button').addEventListener('click', () => { choice.value = browserZone; choice.dispatchEvent(new Event('change')); });
-			$('#DeviceNTPTimezone').on('input', function () { const own = this.value; choice.value = zonePosix(browserZone) === own ? browserZone : (timeZones.find(z => z[1] === own) || ['custom'])[0]; suggestion(); });
+			$('#DeviceNTPTimezone').on('input', function () { choice.value = posixZone(this.value); suggestion(); });
 		}
 		// An empty setting starts from this browser's zone; a known string shows its zone, the browser's own first.
 		if (!posix && zonePosix(browserZone)) { posix = zonePosix(browserZone); $('#DeviceNTPTimezone').val(posix); }
-		choice.value = zonePosix(browserZone) === posix ? browserZone : (timeZones.find(z => z[1] === posix) || ['custom'])[0];
+		choice.value = posixZone(posix);
 		suggestion();
 		function suggestion() {
-			suggest.hidden = !zonePosix(browserZone) || zonePosix(browserZone) === $('#DeviceNTPTimezone').val();
+			suggest.hidden = !zonePosix(browserZone) || posixZone($('#DeviceNTPTimezone').val()) === browserZone;
 			suggest.querySelector('span').textContent = uiText("This browser is in {zone}.").replace('{zone}', browserZone.replace(/_/g, ' '));
 		}
 	}

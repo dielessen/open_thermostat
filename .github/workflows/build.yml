@@ -93,7 +93,7 @@ jobs:
           browser test/ha-room-status-ownership-browser.cjs
           browser test/ha-room-vacation-browser.cjs
           browser test/ha-planner-touch-browser.cjs
-          node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs test/ui-language.test.cjs test/boiler-data.test.cjs test/boiler-trial-result.test.cjs
+          node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs test/ui-language.test.cjs test/boiler-data.test.cjs test/boiler-trial-result.test.cjs test/time-zone-picker.test.cjs
 
   source-reproduction:
     if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}
@@ -600,9 +600,47 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
+  # A 1.5-day host soak of the E32 control modules across a DST change and the
+  # 32-bit uptime wrap, plus the guard, flow, supervisor, size and reproducer
+  # scenarios, under ASan/UBSan; see test/soak/README.md. Host-only, no device.
+  soak-smoke:
+    if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+            ~/.platformio/packages
+            ~/.platformio/platforms
+          key: ${{ runner.os }}-pio-native-${{ hashFiles('platformio.ini', 'boards/**') }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned native dependencies
+        run: |
+          pip install platformio==6.2.0 intelhex==2.3.0
+          pio pkg install -e native
+      - name: Soak smoke
+        env:
+          SOAK_BUILD: ${{ runner.temp }}/soak-build
+          SOAK_OUT: ${{ runner.temp }}/soak-out
+        run: bash test/soak/run.sh smoke
+      - name: Preserve soak logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: soak-smoke-logs
+          path: ${{ runner.temp }}/soak-out
+          if-no-files-found: ignore
+          retention-days: 30
+
   publish-test-release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: [build, source-reproduction, browser-regressions, home-assistant-native, manual-route-compile, settings-route-compile, fuzz-smoke]
+    needs: [build, source-reproduction, browser-regressions, home-assistant-native, manual-route-compile, settings-route-compile, fuzz-smoke, soak-smoke]
     runs-on: ubuntu-latest
     permissions:
       contents: write

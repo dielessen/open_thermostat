@@ -15,7 +15,7 @@ namespace heating::control {
 //  - room (no "kind"): {"entity":"climate.woonkamer","temperature":20.4,"target":21.0},
 //    either value may be null or absent;
 //  - {"kind":"gas_m3","entity":"sensor.gas","value":1234.567}: gas meter total (m3);
-//  - {"kind":"gas_price","value":1.32}: EUR per m3 (0 < value <= 20);
+//  - {"kind":"gas_price","value":1.32}: per m3 in HA's currency (0 < value <= 1000);
 //  - {"kind":"outdoor_c","entity":"sensor.outdoor","value":7.4}: -50..60 degC;
 //  - {"kind":"boiler_kw","value":22}: nominal boiler gas input, 3..60 kW;
 //  - {"kind":"gas_kwh_per_m3","value":9.77}: calorific value of the gas, 5..15.
@@ -59,7 +59,7 @@ struct HeatingInput {
         const std::string_view k = kind->valuestring;
         const auto within = [&](double lo, double hi) { return in.value >= lo && in.value <= hi; };
         if (k == "gas_m3" && hasEntity && within(0, 1e8)) in.kind = Kind::gasM3;
-        else if (k == "gas_price" && in.value > 0 && in.value <= 20) in.kind = Kind::gasPrice;
+        else if (k == "gas_price" && in.value > 0 && in.value <= FlowLearner::maxGasPrice) in.kind = Kind::gasPrice;
         else if (k == "outdoor_c" && hasEntity && within(-50, 60)) in.kind = Kind::outdoorC;
         else if (k == "boiler_kw" && within(3, 60)) in.kind = Kind::boilerKw;
         else if (k == "gas_kwh_per_m3" && within(5, 15)) in.kind = Kind::gasKwhPerM3;

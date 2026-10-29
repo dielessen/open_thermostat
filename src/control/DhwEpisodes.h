@@ -19,7 +19,9 @@ namespace heating::control {
 //    constant 2.5 L/min and constant 0x34 bits (and 0 counters), so a fall of
 //    the 0x34 DHW temperature of >= 7.5 K, from the highest value in the 2 min
 //    before the episode to the lowest in it, is tapping (cold mains water in
-//    the plate exchanger); a smaller fall is keeping warm. Owner logs, 27
+//    the plate exchanger); a smaller fall is keeping warm. The look-back
+//    starts no earlier than the end of the previous episode (a reheat right
+//    after a tap is no second tap). Owner logs, 27
 //    episodes: taps fell 9-46 K, reheats 0-6 K.
 //  - No DHW temperature either: unknown.
 // An episode counts on the local day it ends. A 0x18 gap > 60 s ends it at
@@ -63,7 +65,7 @@ public:
             reference_ = minimum_ = std::nullopt;
             uint64_t latest = 0;                       // the fall may start before the DHW bit
             for (const auto& s : temps_) {
-                if (!s.valid || s.ms > now || now - s.ms > lookbackMs) continue;
+                if (!s.valid || s.ms > now || now - s.ms > lookbackMs || s.ms < endMs_) continue;
                 reference_ = std::max(reference_.value_or(s.centi), s.centi);
                 if (!minimum_ || s.ms >= latest) { minimum_ = s.centi; latest = s.ms; }
             }
@@ -134,7 +136,7 @@ private:
         today_.seconds[kind] += static_cast<uint32_t>((endMs - startMs_) / 1000);
         today_.burnerS += static_cast<uint32_t>(burnerMs_ / 1000);
         if (flowLive_) today_.peakFlow = std::max(today_.peakFlow, peak_);
-        open_ = false;
+        open_ = false; endMs_ = endMs;
     }
     void day(std::ostream& out, const Day& d) const {
         static constexpr const char* names[kinds] = {"tapping", "keep_warm", "unknown"};
@@ -162,7 +164,7 @@ private:
     Day today_;
     std::array<Day, history> days_{};
     size_t head_ = 0, count_ = 0;
-    uint64_t startMs_ = 0, lastStateMs_ = 0, burnerMs_ = 0;
+    uint64_t startMs_ = 0, lastStateMs_ = 0, burnerMs_ = 0, endMs_ = 0;
     std::optional<int32_t> reference_, minimum_;
     uint8_t lastFlow_ = 0, peak_ = 0;
     bool open_ = false, flame_ = false, haveState_ = false, haveFlow_ = false, flowLive_ = false, flowSeen_ = false;

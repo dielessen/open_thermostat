@@ -1,6 +1,7 @@
 #include "control/RoomEngine.h"
 #include "ScopedTz.h"
 #include <gtest/gtest.h>
+#include <cstdlib>
 #include <memory>
 
 namespace {
@@ -234,5 +235,32 @@ TEST(RoomPlan, ResentPlanIsDetectedAsUnchangedButAnEditIsNot) {
     std::string edited = stored.json();
     edited.replace(edited.find("\"Woonkamer\""), 11, "\"Living\"");
     EXPECT_NE(parsed(edited.c_str()).json(), stored.json());
+}
+
+// Every cJSON allocation of json() failing in turn: nullptr or a document,
+// never a crash or a leak (the ha_entities array once dereferenced null).
+size_t engineAllocations = 0, engineLive = 0, engineFailAt = 0;
+void* engineAllocate(size_t size) {
+    if (engineAllocations++ == engineFailAt) return nullptr;
+    void* p = std::malloc(size);
+    if (p) ++engineLive;
+    return p;
+}
+void engineRelease(void* p) { if (p) { --engineLive; std::free(p); } }
+TEST(RoomEngine, JsonSurvivesEveryAllocationFailure) {
+    RoomEngine e; e.setPlan(parsed(ownerPlan)); e.step(minute, std::nullopt);
+    struct Restore { ~Restore() { cJSON_InitHooks(nullptr); } } restore;
+    cJSON_Hooks hooks{engineAllocate, engineRelease};
+    cJSON_InitHooks(&hooks);
+    bool completed = false;
+    for (engineFailAt = 0; engineFailAt < 200 && !completed; ++engineFailAt) {
+        engineAllocations = engineLive = 0;
+        cJSON* j = e.json();
+        completed = engineAllocations <= engineFailAt; // nothing failed: the whole document
+        if (completed) { EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(j, "ha_entities")), 1); }
+        cJSON_Delete(j);
+        EXPECT_EQ(engineLive, 0u) << engineFailAt;
+    }
+    EXPECT_TRUE(completed);
 }
 }

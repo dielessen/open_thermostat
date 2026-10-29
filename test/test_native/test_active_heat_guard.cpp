@@ -155,6 +155,36 @@ TEST(ActiveHeatGuard, StopSendsZeroForOneWindowThenGoesQuiet) {
     EXPECT_EQ(b.guard.state(), State::shadow);
 }
 
+TEST(ActiveHeatGuard, StopKeepsRepeatingZeroUntilOneIsDelivered) {
+    Bench b; b.runFor(3 * minute);
+    ASSERT_EQ(b.sent.back().flowC, 40);
+    b.writesSucceed = false; // bus busy, or the boiler stops polling 0x0B
+    b.in.mode = RoomPlan::Mode::shadow;
+    b.runFor(2 * minute);
+    EXPECT_EQ(b.guard.state(), State::stopping);
+    EXPECT_TRUE(b.guard.claimsBoiler());
+    EXPECT_TRUE(b.guard.warning(ActiveHeatGuard::transmitFailed));
+    b.in.routeReady = false; b.runFor(6 * 60 * minute); // the route stays down for hours
+    EXPECT_EQ(b.guard.state(), State::stopping);
+    EXPECT_FALSE(b.guard.command().send);
+    EXPECT_STREQ(b.guard.command().why, "route_not_ready");
+    const auto at = b.now;
+    b.in.routeReady = true; b.writesSucceed = true;
+    b.now += 10 * second; b.tick();
+    ASSERT_EQ(b.since(at).size(), 1u);
+    EXPECT_EQ(b.since(at)[0].flowC, 0);
+    EXPECT_FALSE(b.guard.warning(ActiveHeatGuard::transmitFailed));
+    b.now += 10 * second; b.tick();
+    EXPECT_EQ(b.guard.state(), State::shadow); // the window is over and the zero arrived
+    EXPECT_FALSE(b.guard.claimsBoiler());
+    // A guard whose last delivered request was already zero ends after one window.
+    Bench idle; idle.heat(0); idle.runFor(3 * minute);
+    ASSERT_EQ(idle.sent.back().flowC, 0);
+    idle.writesSucceed = false; idle.in.mode = RoomPlan::Mode::shadow;
+    idle.runFor(2 * minute);
+    EXPECT_EQ(idle.guard.state(), State::shadow);
+}
+
 TEST(ActiveHeatGuard, IdleActiveStillStopsWithZeroAndHeatOffRepeatsZero) {
     Bench b; b.runFor(3 * minute);
     const auto off = b.now;

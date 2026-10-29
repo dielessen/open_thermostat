@@ -42,6 +42,19 @@ TEST(DeviceRestart, NetworkProvenOnlyAfterFiveMinutesConfirmsThen) {
     EXPECT_EQ(B::decide(300000,true,true),B::Action::confirm);
     EXPECT_EQ(B::decide(600000,true,true),B::Action::confirm); // proof at the deadline still counts
 }
+TEST(DeviceRestart, WithoutBrokerAnIpHeldFiveMinutesProvesTheNetwork) {
+    using B=update::BootConfirmation;
+    // An Ethernet install without MQTT that nobody opens, behind a gateway that ignores ping.
+    EXPECT_FALSE(B::networkProven(false,false,0));
+    EXPECT_FALSE(B::networkProven(false,false,299999));
+    EXPECT_TRUE(B::networkProven(false,false,300000));
+    EXPECT_EQ(B::decide(310000,true,B::networkProven(false,false,300000)),B::Action::confirm);
+    // A configured broker must answer (or the gateway, or a browser): link alone is no proof.
+    EXPECT_FALSE(B::networkProven(false,true,600000));
+    EXPECT_TRUE(B::networkProven(true,true,0));
+    // Network lost after the update (the link broke, so the timer restarted): still rolled back.
+    EXPECT_EQ(B::decide(600000,true,B::networkProven(false,false,240000)),B::Action::rollback);
+}
 TEST(DeviceRestart, FailedConfirmationIsRetriedOncePerMinute) {
     using B=update::BootConfirmation;
     EXPECT_TRUE(B::attemptDue(60000,0));       // first attempt

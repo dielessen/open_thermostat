@@ -133,6 +133,19 @@ TEST(DhwEpisodes, LiveFlowDecidesTappingAndGivesThePeak) {
     EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(j.get(), "method")), "flow");
     EXPECT_DOUBLE_EQ(at(cJSON_GetObjectItem(j.get(), "today"), "peak_flow_l_min"), 8.5);
 }
+TEST(DhwEpisodes, ReheatRightAfterATapIsKeepWarmNotASecondTap) {
+    DhwEpisodes e;
+    uint64_t t = 0;
+    const auto report = [&](uint8_t state, int32_t centi) { t += 10000; e.temperature(centi, t - 5000); e.state(state, t); };
+    for (int i = 0; i < 30; ++i) report(0x00, 5000);                 // idle, exchanger at 50 degC
+    for (int c : {3500, 2200, 2000, 2000, 2000, 2000}) report(0x0A, c); // a 1-minute tap
+    report(0x00, 2000);
+    for (int c : {2000, 2600, 3300, 4000, 4600, 5000, 5200}) report(0x0A, c); // reheat 10 s later
+    report(0x00, 5200);
+    const auto& d = e.today();
+    EXPECT_EQ(d.count[DhwEpisodes::tapping], 1);
+    EXPECT_EQ(d.count[DhwEpisodes::keepWarm], 1);
+}
 TEST(DhwEpisodes, WithoutTemperatureOrFlowAnEpisodeIsUnknownAndAGapEndsIt) {
     DhwEpisodes e;
     e.state(0x0A, 0); e.state(0x0A, 10000);

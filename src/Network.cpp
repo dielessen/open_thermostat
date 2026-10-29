@@ -84,8 +84,10 @@ void startBoardEthernet() {
 }
 
 bool networkConnected() {
-    return (ETH.linkUp() && uint32_t(ETH.localIP()) != 0) || WiFi.isConnected();
+    return ethernetConnected() || WiFi.isConnected();
 }
+bool ethernetConnected() { return ETH.linkUp() && uint32_t(ETH.localIP()) != 0; }
+uint32_t ethernetGateway() { return uint32_t(ETH.gatewayIP()); }
 
 bool pollBoardNetwork() {
     static NetworkInterface previousInterface = NetworkInterface::none;

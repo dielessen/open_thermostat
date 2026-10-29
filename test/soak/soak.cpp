@@ -1463,14 +1463,7 @@ LearnedContext Chain::learnedContext(std::array<std::optional<int16_t>, RoomPlan
 cJSON* Chain::heatingStatusJson(bool mqtt) {
     cJSON* root = engine_.json();
     cJSON* sensors = root ? cJSON_AddArrayToObject(root, "ble_sensors") : nullptr;
-    const auto cycles = cycles_.summary(now_);
-    if (cJSON* burner = root ? cJSON_AddObjectToObject(root, "burner") : nullptr) {
-        if (cycles.known) {
-            cJSON_AddNumberToObject(burner, "starts_last_hour", double(cycles.starts));
-            cJSON_AddNumberToObject(burner, "heating_starts_last_hour", double(cycles.heatingStarts));
-            cJSON_AddBoolToObject(burner, "short_cycling", cycles.shortCycling);
-        } else cJSON_AddNullToObject(burner, "short_cycling");
-    }
+    if (root) addBurnerJson(root, cycles_.summary(now_));
     cJSON* shadow = sensors ? shadow_.json() : nullptr;
     if (!shadow || !cJSON_AddItemToObject(root, "shadow", shadow)) { cJSON_Delete(shadow); cJSON_Delete(root); return nullptr; }
     cJSON* active = guard_.json(now_);
@@ -1577,8 +1570,9 @@ void Chain::publish(bool mqtt, bool learned, bool full) {
             noteLocaltime("mqtt_learned_room", localtimeCalls - calls0, utc_);
             EXPECT(topicSafeRoomId(engine_.plan().rooms[room].id), "topic_unsafe_id", "room id %s", engine_.plan().rooms[room].id.c_str());
             checkPayload("mqtt_learned_room", payload, 900);
-            // The id appears three times; a 32-character id (the plan maximum) would add this much.
-            const size_t worst = payload.size() + 3 * (32 - std::min<size_t>(32, engine_.plan().rooms[room].id.size()));
+            // The id appears once; a 32-character id (the plan maximum) would add this much.
+            const size_t worst = payload.size() + (32 - std::min<size_t>(32, engine_.plan().rooms[room].id.size()));
+            EXPECT(worst <= 900, "mqtt_learned_room_32_char_id", "%zu B with a 32-character room id", worst);
             auto& w = counters[ctx.scenario + ":mqtt_learned_room_max_with_32_char_id"];
             w = std::max<uint64_t>(w, worst);
         });
@@ -2081,6 +2075,16 @@ void sizesScenario() {
             r.state = RoomDemand::State::active;
             plan.rooms.push_back(r);
         }
+        // setHeatingPlan refuses a plan above the store (plan_too_large): trim the
+        // worst cases to the largest plan the device can hold, names first, then
+        // the entity ids after their domain (their distinct ends stay).
+        const auto shorten = [](std::string& id) { if (id.size() > 16) id.erase(id.find('.') + 1, 1); };
+        for (size_t turn = 0; variant && plan.json().size() + 1 > ControlPartitionBudget::configBytes; ++turn) {
+            auto& r = plan.rooms[turn % plan.rooms.size()];
+            if (r.name.size() > 2) { r.name.resize(r.name.size() - 2); continue; } // whole UTF-8 characters
+            for (auto& src : r.sources) shorten(src.id);
+            shorten(r.setpointEntity);
+        }
         const auto raw = plan.json();
         RoomPlan parsed;
         cJSON* back = parseBack(raw);
@@ -2089,7 +2093,7 @@ void sizesScenario() {
         observe(std::string("plan_bytes_") + label, std::to_string(raw.size()) + " B (store limit " + std::to_string(ControlPartitionBudget::configBytes - 1) + " B)" + (error ? std::string(", parse error ") + error : std::string()));
         if (raw.size() + 1 > ControlPartitionBudget::configBytes)
             observe(std::string("plan_too_large_") + label, "a valid plan of " + std::to_string(raw.size()) + " B is refused with plan_too_large");
-        if (error) continue;
+        if (error) { fail(std::string("sizes_plan_invalid_") + label, "the %s plan does not parse: %s", label, error); continue; }
         RoomEngine engine; engine.setPlan(parsed);
         uint64_t now = 1000000;
         for (size_t i = 0; i < parsed.rooms.size(); ++i) for (const auto& s : parsed.rooms[i].sources) {
@@ -2124,7 +2128,7 @@ void sizesScenario() {
         checkPayload((std::string("mqtt_heating_") + label).c_str(), text, variant == 0 ? heatingTelemetryMaxBytes : 0);
         observe(std::string("mqtt_heating_bytes_") + label, std::to_string(text.size()) + " B (limit " + std::to_string(heatingTelemetryMaxBytes) + " B)");
         if (text.size() > heatingTelemetryMaxBytes)
-            fail(std::string("mqtt_heating_exceeds_limit_") + label, "a valid plan gives a %zu B fw/telemetry/heating payload: ModernTransport drops it (heatingTelemetryDropped) and HA gets no heating telemetry", text.size());
+            fail(std::string("mqtt_heating_exceeds_limit_") + label, "a storable plan gives a %zu B fw/telemetry/heating payload: ModernTransport drops it (heatingTelemetryDropped) and HA gets no heating telemetry", text.size());
     }
 }
 

@@ -13,13 +13,22 @@ inline bool manualRebootAllowed(bool busy,bool pendingBoot) {
 // boot. A pending image always follows a network update, so an image whose
 // network never comes up is not kept: proof is an IP address plus one of an
 // accepted HTTP request, an MQTT session or a gateway probe reply (never Home
-// Assistant in particular). Without that proof by networkProofMs the device
+// Assistant in particular); without a configured MQTT broker also the IP and
+// link held for linkProofMs (an Ethernet install nobody opens, behind a
+// gateway that ignores ping). Without that proof by networkProofMs the device
 // restarts, and the bootloader boots the previous image; so does a crash,
 // watchdog or supervisor reset before confirmation, or a loop without a
 // supervisor after supervisorMissingMs. A failed confirmation is retried every
 // retryMs, not on every loop pass.
 struct BootConfirmation {
     static constexpr uint32_t healthyMs = 60000, supervisorMissingMs = 180000, networkProofMs = 600000, retryMs = 60000;
+    static constexpr uint32_t linkProofMs = 300000;
+    // evidence: a gateway reply, an MQTT session or an HTTP request this boot;
+    // linkUpMs: how long the network has held an IP without a break (0: none).
+    // A network lost after the update never proves itself and still rolls back.
+    static bool networkProven(bool evidence, bool brokerConfigured, uint32_t linkUpMs) {
+        return evidence || (!brokerConfigured && linkUpMs >= linkProofMs);
+    }
     enum class Action { wait, confirm, rollback };
     static Action decide(uint32_t uptimeMs, bool supervisorAlive, bool networkProven) {
         if (uptimeMs >= healthyMs && supervisorAlive && networkProven) return Action::confirm;

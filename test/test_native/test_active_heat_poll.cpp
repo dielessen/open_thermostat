@@ -2,9 +2,11 @@
 #include "EMS/ClassicBoilerTestEncoder.h"
 #include "EMS/ForeignBoilerRequest.h"
 #include "control/ActiveHeatGuard.h"
+#include "control/HandoverRequest.h"
 #include "control/HttpAccessPolicy.h"
 #include "control/RoomEngine.h"
 #include <gtest/gtest.h>
+#include <memory>
 #include <stdexcept>
 #include <vector>
 
@@ -129,6 +131,22 @@ TEST(ActiveHeatRoutes, HandoverIsPostOnly) {
     EXPECT_TRUE(heating::control::allowedHttpMethod("/config/heating/handover", "POST"));
     for (const char* method : {"GET", "DELETE", "PUT"}) EXPECT_FALSE(heating::control::allowedHttpMethod("/config/heating/handover", method));
     EXPECT_TRUE(heating::control::allowedHttpMethod("/config/heating", "GET"));
+}
+
+// The handover body names the owner's current thermostat in general; the
+// beta.18 "tado_disconnected" key keeps working.
+TEST(ActiveHeatRoutes, HandoverAcceptsTheThermostatKeyAndTheOlderTadoKey) {
+    const auto parsed = [](const char* text) {
+        std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(text), cJSON_Delete);
+        return heating::control::handoverRequest(root.get());
+    };
+    EXPECT_EQ(parsed(R"({"thermostat_disconnected":true})"), std::optional<bool>(true));
+    EXPECT_EQ(parsed(R"({"thermostat_disconnected":false})"), std::optional<bool>(false));
+    EXPECT_EQ(parsed(R"({"tado_disconnected":true})"), std::optional<bool>(true));
+    EXPECT_EQ(parsed(R"({"tado_disconnected":false})"), std::optional<bool>(false));
+    for (const char* bad : {R"({"thermostat_disconnected":1})", R"({"thermostat_disconnected":true,"tado_disconnected":true})",
+                            R"({"other":true})", "{}", "[true]", "true", "{"})
+        EXPECT_FALSE(parsed(bad)) << bad;
 }
 
 TEST(ActiveHeatRoutes, RoomEngineReportsFreshReadingsOfInactiveRoomsForFrost) {

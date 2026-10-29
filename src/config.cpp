@@ -2,6 +2,7 @@
 #include "SetupNetwork.h"
 #include "control/BoundedJson.h"
 #include "DeviceNetworkSettings.h"
+#include "DeviceIdentity.h"
 #include "Board.h"
 #include "BeaconBleAddress.h"
 #include "Logging.h"
@@ -494,6 +495,7 @@ NetworkConfig getNetworkConfig() {
 	config.loggerHost = json::getString(network.get(), "loggerHost");
 	config.loggerPort = json::getInt(network.get(), "loggerPort");
 	config.loggerTimeoutMs = json::getInt(network.get(), "loggerTimeoutMs");
+	if (config.hostname.empty()) config.hostname = heating::defaultDeviceName(ESP.getEfuseMac()); // new install
 
 	return config;
 }
@@ -578,6 +580,7 @@ MqttConfig getMqttConfig() {
 	config.username = json::getString(mqtt, "username");
 	config.password = json::getString(mqtt, "password");
 	config.clientId = json::getString(mqtt, "clientId");
+	if (config.clientId.empty()) config.clientId = heating::defaultDeviceName(ESP.getEfuseMac()); // unique per device
 	config.base = json::getString(mqtt, "base");
 	config.keepAlive = json::getInt(mqtt, "keepAlive");
 	config.interval = json::getInt(mqtt, "interval");
@@ -658,7 +661,7 @@ BoilerConfig getBoilerConfig() {
 
 	config.boiler.valvePreheatingDelay = json::getInt(boiler, "valvePreheatingDelay");
 	config.boiler.minHeatingTemp = json::getInt(boiler, "minHeatingTemp");
-	config.boiler.minHeatingTemp = json::getInt(boiler, "maxHeatingTemp");
+	config.boiler.maxHeatingTemp = json::getInt(boiler, "maxHeatingTemp");
 	auto controlMode = json::getString(boiler, "controlMode");
 	if (controlMode == "ems") {
 		config.boiler.controlMode = BoilerConfig::controlMode_t::ems;

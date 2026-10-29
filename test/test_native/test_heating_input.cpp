@@ -53,6 +53,10 @@ TEST(HeatingInput, TypedKindsAreValidatedStrictly) {
     ASSERT_TRUE(kw); EXPECT_EQ(kw->kind, Kind::boilerKw);
     EXPECT_FALSE(HeatingInput::parse(R"({"kind":"boiler_kw","value":2.9})"));
     EXPECT_FALSE(HeatingInput::parse(R"({"kind":"boiler_kw","value":61})"));
+    const auto kwh = HeatingInput::parse(R"({"kind":"gas_kwh_per_m3","value":9.77})");
+    ASSERT_TRUE(kwh); EXPECT_EQ(kwh->kind, Kind::gasKwhPerM3);
+    EXPECT_FALSE(HeatingInput::parse(R"({"kind":"gas_kwh_per_m3","value":4.9})"));
+    EXPECT_FALSE(HeatingInput::parse(R"({"kind":"gas_kwh_per_m3","value":15.1})"));
     // Unknown or malformed kinds are ignored, also with a room-like body.
     EXPECT_FALSE(HeatingInput::parse(R"({"kind":"electricity_kwh","entity":"sensor.p1","value":3})"));
     EXPECT_FALSE(HeatingInput::parse(R"({"kind":1,"entity":"climate.woonkamer","temperature":20})"));
@@ -83,6 +87,9 @@ TEST(HeatingInput, RouteFeedsRoomsAndLearnerAndTracksFreshness) {
     EXPECT_FALSE(learner.nominalFromHa());
     ASSERT_TRUE(route.accept(R"({"kind":"boiler_kw","value":24})", 5000, rooms, learner));
     EXPECT_FLOAT_EQ(learner.nominalKw(), 24); EXPECT_TRUE(learner.nominalFromHa());
+    EXPECT_FALSE(learner.kwhPerM3FromHa());
+    ASSERT_TRUE(route.accept(R"({"kind":"gas_kwh_per_m3","value":11.5})", 5500, rooms, learner));
+    EXPECT_FLOAT_EQ(learner.params().kwhPerM3, 11.5f); EXPECT_TRUE(learner.kwhPerM3FromHa());
     // Outdoor: the boiler's wins; HA's is used while at most 15 min old.
     EXPECT_FALSE(route.outdoor(std::nullopt, 5000).source);
     ASSERT_TRUE(route.accept(R"({"kind":"outdoor_c","entity":"sensor.buiten","value":7.45})", 6000, rooms, learner));
@@ -102,6 +109,8 @@ TEST(HeatingInput, RouteFeedsRoomsAndLearnerAndTracksFreshness) {
     EXPECT_STREQ(cJSON_GetObjectItem(inputs, "outdoor")->valuestring, "ha");
     EXPECT_EQ(cJSON_GetObjectItem(inputs, "boiler_kw")->valuedouble, 24);
     EXPECT_STREQ(cJSON_GetObjectItem(inputs, "boiler_kw_source")->valuestring, "ha");
+    EXPECT_EQ(cJSON_GetObjectItem(inputs, "gas_kwh_per_m3")->valuedouble, 11.5);
+    EXPECT_STREQ(cJSON_GetObjectItem(inputs, "gas_kwh_per_m3_source")->valuestring, "ha");
     EXPECT_FALSE(cJSON_GetObjectItem(learned.get(), "plans"));  // no trusted clock
     context.now += 1; context.outdoorSource = nullptr;
     Json later(heating::control::learnedJson(learner, plan, context), cJSON_Delete);

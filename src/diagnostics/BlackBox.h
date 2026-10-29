@@ -25,12 +25,12 @@ struct BlackBoxRecord {
 // record that the loop writes at the same time.
 enum class LoopPhase : uint8_t { idle, update, network, controller, ems, http, telemetry,
     operate, health, wifi_reconnect, bluetooth, mqtt, network_probe };
-struct LoopPhaseRecord { uint32_t magic; volatile uint8_t phase, reason, wifiLostRestarts, bluetoothRestarts; };
+struct LoopPhaseRecord { uint32_t magic; volatile uint8_t phase, reason, wifiLostRestarts, bluetoothRestarts, networkDeadRestarts; };
 
 class BlackBox {
 public:
     static constexpr uint32_t magic = 0x4F54424Bu; // "OTBK"
-    static constexpr uint32_t phaseMagic = 0x4F545032u; // "OTP2": phase + reason + backoff
+    static constexpr uint32_t phaseMagic = 0x4F545033u; // "OTP3": phase + reason + backoff (OTP2 lacked networkDead)
     static constexpr uint8_t maximumCount = 15;
     // At boot: keep a valid record as the previous boot, then start a new one.
     void begin(BlackBoxRecord& current, LoopPhaseRecord& phase, int resetReason) {
@@ -42,11 +42,13 @@ public:
         previousPhase_ = phaseValid ? static_cast<LoopPhase>(phase.phase) : LoopPhase::idle;
         previousReason_ = phaseValid ? phase.reason : 0;
         const uint8_t wifi = phaseValid ? phase.wifiLostRestarts : 0, bluetooth = phaseValid ? phase.bluetoothRestarts : 0;
+        const uint8_t network = phaseValid ? phase.networkDeadRestarts : 0;
         std::memset(&current, 0, sizeof(current));
         seal();
         phase.magic = phaseMagic; phase.phase = 0; phase.reason = 0;
         phase.wifiLostRestarts = wifi > maximumCount ? maximumCount : wifi;
         phase.bluetoothRestarts = bluetooth > maximumCount ? maximumCount : bluetooth;
+        phase.networkDeadRestarts = network > maximumCount ? maximumCount : network;
     }
     void loopPhase(LoopPhase phase) { if (phase_) phase_->phase = static_cast<uint8_t>(phase); }
     void note(uint32_t uptimeS, uint32_t minFreeHeap, uint32_t loopStackMin, uint32_t loopAgeMs,
@@ -83,12 +85,19 @@ public:
         phase_->reason = static_cast<uint8_t>(reason);
         if (reason == SupervisorPolicy::Reason::wifiLost && phase_->wifiLostRestarts < maximumCount) ++phase_->wifiLostRestarts;
         if (reason == SupervisorPolicy::Reason::bluetoothSilent && phase_->bluetoothRestarts < maximumCount) ++phase_->bluetoothRestarts;
+        if (reason == SupervisorPolicy::Reason::networkDead && phase_->networkDeadRestarts < maximumCount) ++phase_->networkDeadRestarts;
     }
     // Recovery ends a restart series: the next outage starts at the base delay.
     void wifiRecovered() { if (phase_) phase_->wifiLostRestarts = 0; }
     void bluetoothHeard() { if (phase_ && phase_->bluetoothRestarts) phase_->bluetoothRestarts = 0; }
+    // A probe reply, routed request or MQTT session (loop): ends the series once
+    // the network has also lasted (SupervisorPolicy::networkSeriesEnded).
+    void networkWorked(uint64_t uptimeMs) {
+        if (phase_ && phase_->networkDeadRestarts && SupervisorPolicy::networkSeriesEnded(uptimeMs)) phase_->networkDeadRestarts = 0;
+    }
     uint8_t wifiLostRestarts() const { return phase_ ? phase_->wifiLostRestarts : 0; }
     uint8_t bluetoothRestarts() const { return phase_ ? phase_->bluetoothRestarts : 0; }
+    uint8_t networkDeadRestarts() const { return phase_ ? phase_->networkDeadRestarts : 0; }
     // {"reset_reason":n,"previous":{...}|null}
     cJSON* json() const {
         cJSON* root = cJSON_CreateObject();
@@ -96,6 +105,7 @@ public:
         cJSON_AddNumberToObject(root, "reset_reason", resetReason_);
         cJSON_AddNumberToObject(root, "wifi_lost_restarts", wifiLostRestarts());
         cJSON_AddNumberToObject(root, "bluetooth_silent_restarts", bluetoothRestarts());
+        cJSON_AddNumberToObject(root, "network_dead_restarts", networkDeadRestarts());
         if (!havePrevious_) { cJSON_AddNullToObject(root, "previous"); return root; }
         cJSON* p = cJSON_AddObjectToObject(root, "previous");
         if (!p) { cJSON_Delete(root); return nullptr; }

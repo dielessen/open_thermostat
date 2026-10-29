@@ -5,6 +5,7 @@
 #include "Network.h"
 #include "WifiDiscovery.h"
 #include "DeviceNetworkSettings.h"
+#include "DeviceIdentity.h"
 #include <WiFi.h>
 #include <DNSServer.h>
 #include <nvs.h>
@@ -19,6 +20,9 @@ inline uint64_t setupUntil=0,setupAttemptUntil=0,setupCloseAt=0,setupJoinAt=0;
 inline config::WiFiConfig setupCandidate;
 inline std::string setupResult="idle";
 inline bool setupRebootRequested=false;
+// Set by the main loop while a restart must wait: an update is running or a
+// new image is not confirmed yet (a restart then rolls it back).
+inline bool setupRestartHeld=false;
 inline DNSServer setupDns;
 inline bool setupDnsActive=false;
 inline std::string setupSavedSsid;
@@ -81,7 +85,8 @@ inline bool readSetupWifi(config::WiFiConfig &cfg) {
 }
 inline bool startSetupWifi() {
     if(!deviceAccess.ready()||boardEthernetStarted) return false;
-    char ssid[32]; snprintf(ssid,sizeof(ssid),"OpenThermostat-%06llx",static_cast<unsigned long long>(ESP.getEfuseMac()&0xffffff));
+    // The NIC part of the MAC (the low 24 bits of getEfuseMac() are the vendor prefix).
+    char ssid[32]; snprintf(ssid,sizeof(ssid),"OpenThermostat-%s",macSuffix(ESP.getEfuseMac()).c_str());
     WiFi.persistent(false); WiFi.setAutoReconnect(false);
     // HeatingController already initialized Bluetooth. IDF4.4 aborts if STA
     // modem sleep is disabled alongside BLE. Set the Arduino cached policy
@@ -118,7 +123,9 @@ inline bool finishSetupWifi() {
     return true;
 }
 inline void pollSetupWifi() {
-    if(setupRebootRequested) { delay(250); ESP.restart(); return; }
+    static bool restartHeldNoted=false;
+    if(setupRebootRequested&&!setupRestartHeld) { delay(250); ESP.restart(); return; }
+    if(setupRebootRequested&&!restartHeldNoted) { restartHeldNoted=true; Serial.printf("Setup restart deferred until the update or the check of new firmware has finished\n"); }
     const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
     if(wifiAPMode&&setupDnsActive) setupDns.processNextRequest();
     pollWifiScan();

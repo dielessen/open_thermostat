@@ -89,8 +89,7 @@
 
 								<div class="form-row">
 									<div class="col-md mb-2"><label for="DeviceHostname"><span data-i18n="Hostname">Hostname</span></label><input
-											type="text" class="form-control" id="DeviceHostname" data-hint="The name of the E32 on your network, for example openthermostat." placeholder="heating"
-											required></div>
+											type="text" class="form-control" id="DeviceHostname" data-hint="The name of the E32 on your network, for example openthermostat." placeholder="Automatic (unique per device)" data-i18n-placeholder="Automatic (unique per device)"></div>
 									<div class="col-md mb-2"><label for="DeviceListenPort"><span data-i18n="Listen port">Listen port</span></label><input
 											type="number" class="form-control" id="DeviceListenPort" data-hint="The port of this web page; normally 80." min="1" max="65535"
 											step="1" placeholder="80" required>
@@ -139,7 +138,7 @@
 <details class="ot-advanced"><summary data-i18n="Advanced">Advanced</summary>
 <div class="form-row">
 									<div class="col-md mb-2"><label for="DeviceMQTTClientID"><span data-i18n="Client ID">Client ID</span></label><input
-											type="text" class="form-control" id="DeviceMQTTClientID" data-hint="A unique name for the E32 on the broker." value="ib-therm">
+											type="text" class="form-control" id="DeviceMQTTClientID" data-hint="A unique name for the E32 on the broker." placeholder="Automatic (unique per device)" data-i18n-placeholder="Automatic (unique per device)">
 									</div>
 									<div class="col-md mb-2"><label for="DeviceMQTTBase"><span data-i18n="Base">Base</span></label><input type="text"
 											class="form-control" id="DeviceMQTTBase" data-hint="The start of all MQTT topics of the E32." value="ib-therm"></div>

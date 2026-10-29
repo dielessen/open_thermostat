@@ -1520,7 +1520,7 @@
       "runtime_active": "De regeling is actief. Instellingen zijn niet gewijzigd.",
       "advanced_room_required": "Dit ruimteprofiel kan hier nog niet worden gewijzigd. Alle gegevens blijven behouden.",
       "confirm_program_source_change": "Bevestig de wijziging van de programmabron.",
-      "controller_address_invalid": "Vul het lokale webadres van de E32 in, bijvoorbeeld http://e32.local. Zet geen pad of inloggegevens in het adres.",
+      "controller_address_invalid": "Vul het lokale webadres van de E32 in: een lokaal IP-adres of een naam in je thuisnetwerk, bijvoorbeeld http://192.168.1.50, http://e32.local of http://e32.fritz.box. Zet geen pad of inloggegevens in het adres.",
       "controller_password_required": "Vul het beheerderswachtwoord van de E32 in. Een bewaard wachtwoord wordt alleen voor hetzelfde adres hergebruikt.",
       "controller_auth_failed": "De E32 accepteert deze aanmelding niet. Controleer het beheerderswachtwoord.",
       "controller_unreachable": "De E32 is niet bereikbaar. Controleer het adres en de netwerkverbinding.",

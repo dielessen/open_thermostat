@@ -25,6 +25,7 @@ uint8_t between(uint64_t t, uint64_t on, uint64_t off, uint8_t flowC) { return t
 double num(const cJSON* o, const char* key) { return cJSON_GetNumberValue(cJSON_GetObjectItem(o, key)); }
 
 TEST(ShadowComparison, IdenticalDecisionsAgreeFully) {
+    ScopedTz tz(ScopedTz::amsterdam); // fixture times are Amsterdam days
     ShadowComparison c;
     const auto both = [](uint64_t t) { return between(t, 10 * minute, 70 * minute, 38); };
     run(c, 0, 90 * minute, midnight + 3600, both, both);
@@ -43,6 +44,7 @@ TEST(ShadowComparison, IdenticalDecisionsAgreeFully) {
     EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(j.get(), "days")), 0);
 }
 TEST(ShadowComparison, ThreeMinuteLaterStartIsPairedWithItsOffset) {
+    ScopedTz tz(ScopedTz::amsterdam); // fixture times are Amsterdam days
     ShadowComparison c;
     run(c, 0, 90 * minute, midnight + 3600,
         [](uint64_t t) { return between(t, 13 * minute, 70 * minute, 41); },
@@ -58,6 +60,7 @@ TEST(ShadowComparison, ThreeMinuteLaterStartIsPairedWithItsOffset) {
     EXPECT_EQ(num(cJSON_GetObjectItem(today, "e32"), "flow_max_c"), 41);
 }
 TEST(ShadowComparison, StartsMoreThanThirtyMinutesApartDoNotPair) {
+    ScopedTz tz(ScopedTz::amsterdam); // fixture times are Amsterdam days
     ShadowComparison c;
     run(c, 0, 120 * minute, midnight + 3600,
         [](uint64_t t) { return between(t, 50 * minute, 100 * minute, 40); },
@@ -68,6 +71,7 @@ TEST(ShadowComparison, StartsMoreThanThirtyMinutesApartDoNotPair) {
     EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(cJSON_GetObjectItem(j.get(), "today"), "start_offset_mean_s")));
 }
 TEST(ShadowComparison, UnknownTadoIsCountedApartAndKeepsItsLastState) {
+    ScopedTz tz(ScopedTz::amsterdam); // fixture times are Amsterdam days
     ShadowComparison c;
     // tado known off, unknown 10-15 min, then heating: the observed edge is a start.
     run(c, 0, 30 * minute, midnight + 3600, [](uint64_t) { return uint8_t(0); },
@@ -82,6 +86,7 @@ TEST(ShadowComparison, UnknownTadoIsCountedApartAndKeepsItsLastState) {
     EXPECT_EQ(d.tadoOnlyS, 15 * 60u);
 }
 TEST(ShadowComparison, TadoZeroOrLowFlowMeansNoHeat) {
+    ScopedTz tz(ScopedTz::amsterdam); // fixture times are Amsterdam days
     ShadowComparison c;
     c.sample(0, midnight, e32(0), uint8_t(0));
     c.sample(10 * second, midnight + 10, e32(0), uint8_t(ShadowComparison::tadoHeatFromC - 1));
@@ -90,6 +95,7 @@ TEST(ShadowComparison, TadoZeroOrLowFlowMeansNoHeat) {
     EXPECT_EQ(c.today().tado.starts, 1u);
 }
 TEST(ShadowComparison, GapsAreNotFilledIn) {
+    ScopedTz tz(ScopedTz::amsterdam); // fixture times are Amsterdam days
     ShadowComparison c;
     c.sample(0, midnight, e32(40), uint8_t(40));
     c.sample(10 * minute, midnight + 600, e32(40), uint8_t(40)); // ten minutes without samples
@@ -102,6 +108,7 @@ TEST(ShadowComparison, GapsAreNotFilledIn) {
     EXPECT_EQ(c.today().s, 30u + 999u); // 100 x 9.999 s
 }
 TEST(ShadowComparison, CyclingIsCountedPerSide) {
+    ScopedTz tz(ScopedTz::amsterdam); // fixture times are Amsterdam days
     ShadowComparison c;
     // E32 10 min on / 10 min off for two hours, tado one long period.
     run(c, 0, 120 * minute, midnight + 3600,
@@ -187,6 +194,7 @@ TEST(ShadowComparison, LocalDayFollowsTheDeviceTimeZone) {
     }
 }
 TEST(ShadowComparison, DayWithoutHeatReportsNullFlows) {
+    ScopedTz tz(ScopedTz::amsterdam); // fixture times are Amsterdam days
     ShadowComparison c;
     c.sample(0, midnight, e32(0), std::nullopt);
     c.sample(10 * second, midnight + 10, e32(0), std::nullopt);

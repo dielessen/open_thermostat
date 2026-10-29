@@ -115,9 +115,9 @@ public:
 // BEFORE connecting, never followed implicitly to an arbitrary host/scheme.
 bool download(std::string url,Sink &sink,std::string &error,uint32_t exactSize=0,int *responseStatus=nullptr) {
     if(responseStatus)*responseStatus=0;
-    if(!ready()){error="Verbind met thuiswifi en wacht op een geldige netwerktijd (NTP).";return false;}
+    if(!ready()){error="Connect to your home network and wait for valid network time (NTP).";return false;}
     for(unsigned redirects=0;redirects<=4;++redirects) {
-        if(!allowedDownloadUrl(url)){error="Onverwachte downloadlocatie geweigerd.";return false;}
+        if(!allowedDownloadUrl(url)){error="Unexpected download location refused.";return false;}
         // An indexed-catalog miss can fall back to another request. A later
         // parse/validation error must not inherit that earlier HTTP failure.
         {std::lock_guard<std::mutex> lock(stateMutex);state.downloadError={};}
@@ -125,7 +125,7 @@ bool download(std::string url,Sink &sink,std::string &error,uint32_t exactSize=0
         HTTPClient http;http.setConnectTimeout(10000);http.setTimeout(10000);http.setReuse(false);
         http.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);http.setUserAgent("OpenThermostat-E32V2");
         const char *headers[]={"Location"};http.collectHeaders(headers,1);
-        if(!http.begin(client,url.c_str())){error="HTTPS kon niet worden gestart.";return false;}
+        if(!http.begin(client,url.c_str())){error="HTTPS could not be started.";return false;}
         http.addHeader("Accept",exactSize?"application/octet-stream":"application/json");
         const uint32_t started=millis();
         const int code=http.GET();
@@ -140,16 +140,16 @@ bool download(std::string url,Sink &sink,std::string &error,uint32_t exactSize=0
             failure.largestInternalBlock=heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT);
             failedDownload(failure,error);http.end();return false;
         }
-        if(exactSize&&http.getSize()>=0&&uint32_t(http.getSize())!=exactSize){error="Downloadgrootte wijkt af van de release.";http.end();return false;}
+        if(exactSize&&http.getSize()>=0&&uint32_t(http.getSize())!=exactSize){error="The download size differs from the release.";http.end();return false;}
         const int count=http.writeToStream(&sink);http.end();
         if(count<0||(exactSize&&uint32_t(count)!=exactSize)){failedDownload(downloadFailure(code,0,url,true,count),error);return false;}
         return true;
     }
-    error="Te veel downloadomleidingen.";return false;
+    error="Too many download redirects.";return false;
 }
 bool textResponse(const std::string &url,size_t limit,std::string &out,std::string &error,int &status) {
     status=0;TextSink sink(limit);
-    if(!sink.bytes.ready()){error="Onvoldoende extern geheugen voor updatecontrole.";return false;}
+    if(!sink.bytes.ready()){error="Not enough external memory for the update check.";return false;}
     if(!download(url,sink,error,0,&status))return false;
     // download() has destroyed the TLS client before an internal JSON string
     // is created. No 32 KiB internal response reservation during handshakes.
@@ -233,10 +233,10 @@ void execute(bool install) {
                         }
                     });
                     if(ok){checkpoint(UpdateStage::Selected,httpStatus);firmwareInstalled();}
-                    else error="Firmwarecontrole, checksum of flash-readback mislukt; oude firmware blijft geselecteerd.";
+                    else error="Firmware check, checksum or flash read-back failed; the old firmware stays selected.";
                 }
-            } else error="Geen passende vrije OTA-partitie of huidige opstart nog niet bevestigd.";
-        } else if(error.empty())error="Deze release past niet bij dit bord, instellingenformaat of updateformaat.";
+            } else error="No suitable free OTA partition, or the current start is not confirmed yet.";
+        } else if(error.empty())error="This release does not fit this board, settings format or update format.";
         if(!ok)checkpoint(UpdateStage::Error,httpStatus);
     }
     if(!install){std::lock_guard<std::mutex> lock(stateMutex);checkSchedule.completed(millis(),ok);}
@@ -259,7 +259,7 @@ bool start(bool install,const std::string &tag="") {
       state.phase=install?"manifest":"checking";state.operation=install?"install":"check";
       state.error.clear();state.downloadError={};state.selected=tag;state.received=state.total=0;}
     if(!install){std::lock_guard<std::mutex> lock(stateMutex);checkSchedule.attempted(millis());}
-    if(xTaskCreate(worker,"github-ota",12288,install?reinterpret_cast<void*>(1):nullptr,1,nullptr)!=pdPASS){working.store(false);phase("error","Onvoldoende geheugen voor updatecontrole.");return false;}
+    if(xTaskCreate(worker,"github-ota",12288,install?reinterpret_cast<void*>(1):nullptr,1,nullptr)!=pdPASS){working.store(false);phase("error","Not enough memory for the update check.");return false;}
     return true;
 }
 }
@@ -350,7 +350,7 @@ std::string status() {
     auto list=cJSON_AddArrayToObject(root.get(),"releases");for(const auto &r:snapshot.releases){auto entry=cJSON_CreateObject();cJSON_AddStringToObject(entry,"tag",r.tag.c_str());cJSON_AddBoolToObject(entry,"prerelease",r.prerelease);cJSON_AddItemToArray(list,entry);}
     char *raw=cJSON_PrintUnformatted(root.get());std::string result=raw?raw:"{}";cJSON_free(raw);return result;
 }
-void loop(bool automaticAllowed,bool supervisorAlive) {
+void loop(bool automaticAllowed,bool supervisorAlive,bool networkProven) {
     const auto now=millis();if(rebootTimer.due(now,working.load())){ESP.restart();return;}
     static bool pending=pendingBoot();
     if(controlledRestart.due(now,working.load())&&controlledRestartAllowed(busy(),pending,!automaticAllowed)) {
@@ -370,12 +370,19 @@ void loop(bool automaticAllowed,bool supervisorAlive) {
         return;
     }
     // millis() is the uptime: this runs from the first loop pass after boot.
-    switch(BootConfirmation::decide(now,supervisorAlive)) {
-        case BootConfirmation::Action::confirm:
-            if(esp_ota_mark_app_valid_cancel_rollback()==ESP_OK){pending=false;Serial.println("OTA boot confirmed: loop and supervisor ran normally for 60 s");}
+    switch(BootConfirmation::decide(now,supervisorAlive,networkProven)) {
+        case BootConfirmation::Action::confirm: {
+            static uint32_t failedAt=0; // a failing otadata write: once a minute, not every pass
+            if(!BootConfirmation::attemptDue(now,failedAt))break;
+            const esp_err_t result=esp_ota_mark_app_valid_cancel_rollback();
+            if(result==ESP_OK){pending=false;Serial.println("OTA boot confirmed: loop, supervisor and network ran normally");}
+            else {failedAt=now?now:1;Serial.printf("OTA boot confirmation failed: %s (0x%x); retry in 60 s\n",esp_err_to_name(result),unsigned(result));}
             break;
+        }
         case BootConfirmation::Action::rollback:
-            Serial.println("OTA boot unconfirmed (no supervisor); restarting for bootloader rollback");ESP.restart();return;
+            Serial.println(supervisorAlive?"OTA boot unconfirmed (network not proven within 10 min); restarting for bootloader rollback"
+                :"OTA boot unconfirmed (no supervisor); restarting for bootloader rollback");
+            ESP.restart();return;
         default: break;
     }
 }

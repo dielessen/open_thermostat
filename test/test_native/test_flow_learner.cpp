@@ -356,4 +356,13 @@ TEST(FlowLearner, JsonReportsReadinessCurveAndAdvice) {
     EXPECT_STREQ(cJSON_GetObjectItem(cJSON_GetObjectItem(p, "night"), "reason")->valuestring, "estimated");
     EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(cJSON_GetObjectItem(p, "night"), "strategies")), 4);
 }
+// The learner's own exp/sqrt/round (newlib's are not in the reviewed link set).
+TEST(FlowLearner, OwnMathMatchesTheLibrary) {
+    using namespace heating::control;
+    for (double x = -20; x <= 5; x += 0.37) EXPECT_NEAR(learnmath::exp(x) / std::exp(x), 1.0, 1e-9) << x;
+    EXPECT_NEAR(learnmath::exp(-0.02 * 300 / 3600.0), std::exp(-0.02 * 300 / 3600.0), 1e-12);
+    for (float x : {1e-6f, 0.0004f, 0.01f, 0.3f, 1.0f, 2.0f, 17.5f, 900.0f}) EXPECT_NEAR(learnmath::sqrt(x), std::sqrt(x), 1e-6f * std::sqrt(x)) << x;
+    EXPECT_EQ(learnmath::sqrt(0), 0); EXPECT_EQ(learnmath::sqrt(-1), 0);
+    for (double x : {0.0, 0.5, 1.49, 2.5, -0.5, -2.5, 176.4999, 1234.5}) EXPECT_EQ(learnmath::round(x), std::round(x)) << x;
+}
 }

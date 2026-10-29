@@ -6,7 +6,7 @@ disabled and absent entities are left out) with built-in cards only:
 * Heating: now (boiler request, flow, agreement), the heating advice (only
   while there is any), one section per E32 room
   (with a small "Learning" area once the E32 reports it), the E32 next to the
-  thermostat, the boiler essentials (with today's hot-water taps) and the
+  current thermostat (only in a home with one), the boiler essentials (with today's hot-water taps) and the
   Bluetooth sensors;
 * Boiler: the reported boiler fields and their history;
 * Diagnostics: device and EMS details, hot water, estimates, each with a
@@ -92,6 +92,9 @@ ESSENTIALS = (
     ("code", "display_code", "boiler_display_code"),
 )
 
+# The shadow comparison entities: created only once the E32 saw a thermostat to compare with.
+COMPARISON_KEYS = ("shadow_agreement_today", "shadow_tado_heating_time_today", "shadow_tado_starts_today")
+
 TEXT = {
     "en": {
         "heating": "Heating", "boiler_view": "Boiler", "diagnostics": "Diagnostics",
@@ -108,7 +111,8 @@ TEXT = {
         "starts_thermostat": "Burner starts today (thermostat)", "heating_per_day": "Heating time per day",
         "boiler": "Boiler", "bluetooth": "Bluetooth sensors", "temperature": "Temperature",
         "humidity": "Humidity", "battery": "Battery",
-        "shadow": "Shadow mode: the E32 calculates along; your thermostat controls the boiler.",
+        "shadow": "Shadow mode: the E32 calculates along but does not control the boiler yet; your current "
+                  "thermostat or the boiler's own control stays in charge.",
         "active": "The E32 controls the boiler.",
         "how_title": "How it works",
         "how": "You set the rooms, their sensors, target temperatures and week program here in Home Assistant. "
@@ -164,7 +168,8 @@ TEXT = {
         "starts_thermostat": "Branderstarts vandaag (thermostaat)", "heating_per_day": "Stooktijd per dag",
         "boiler": "Ketel", "bluetooth": "Bluetooth-sensoren", "temperature": "Temperatuur",
         "humidity": "Luchtvochtigheid", "battery": "Batterij",
-        "shadow": "Schaduwmodus: de E32 rekent mee, je thermostaat regelt de ketel.",
+        "shadow": "Schaduwmodus: de E32 rekent mee maar stuurt de ketel nog niet; je huidige thermostaat of de "
+                  "eigen regeling van de ketel blijft de baas.",
         "active": "De E32 regelt de ketel.",
         "how_title": "Zo werkt het",
         "how": "Je stelt de ruimtes, hun sensoren, gewenste temperaturen en het weekprogramma hier in Home Assistant "
@@ -663,8 +668,10 @@ class RoomDashboard:
         if legacy_cards:
             sections.append(_section(_heading(t["rooms"], "mdi:thermostat"), *legacy_cards))
 
-        # The E32's decision next to the thermostat's (shadow comparison).
-        compare_entities = [{"entity": entity_id, "name": name} for entity_id, name in (
+        # The E32's decision next to the thermostat's (shadow comparison), only in a home
+        # with a thermostat on the bus: the comparison entities exist only once the E32 saw one.
+        thermostat = any(key in hub for key in COMPARISON_KEYS)
+        compare_entities = [] if not thermostat else [{"entity": entity_id, "name": name} for entity_id, name in (
             (request, t["e32_request"]),
             (fields.get("thermostat_requested_flow_temperature"), t["thermostat_request"]),
             (essential("flow"), t["flow"])) if entity_id]
@@ -683,7 +690,7 @@ class RoomDashboard:
              "stat_types": ["max"], "period": "day", "days_to_show": 7, "chart_type": "bar"}
             if heating_time else None,
         )
-        if len(compare["cards"]) > 1:
+        if thermostat and len(compare["cards"]) > 1:
             sections.append(compare)
 
         # Today's hot-water taps (E32 firmware that sorts them) sit next to the hot water temperature.

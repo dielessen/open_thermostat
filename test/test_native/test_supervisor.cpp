@@ -224,6 +224,45 @@ TEST(SupervisorPolicy, WifiLostRestartsBackOffExponentially) {
     for (uint8_t n = 0; t + expected[n < 6 ? n : 6] <= 480; ++n) { t += expected[n < 6 ? n : 6]; ++restarts; }
     EXPECT_EQ(restarts, 5u);
 }
+TEST(SupervisorPolicy, NetworkDeadRestartsBackOffFromThreeMinutesToFourHours) {
+    const uint32_t expected[] = {3, 6, 12, 24, 48, 96, 192, 240, 240, 240, 240, 240, 240, 240, 240, 240};
+    for (uint8_t n = 0; n < 16; ++n) {
+        auto in = healthy18(1000 * minute18);
+        in.gatewayProbeArmed = true; in.gatewayProbeFailures = 6; in.networkDeadRestarts = n;
+        in.networkQuietSince = in.now - (expected[n] * minute18 - 1000);
+        EXPECT_EQ(SupervisorPolicy::decide(in), Reason::none) << int(n);
+        in.networkQuietSince = in.now - expected[n] * minute18;
+        EXPECT_EQ(SupervisorPolicy::decide(in), Reason::networkDead) << int(n);
+        EXPECT_EQ(SupervisorPolicy::networkDeadDelay(n), expected[n] * minute18) << int(n);
+    }
+    EXPECT_EQ(SupervisorPolicy::networkDeadDelay(255), 240 * minute18); // no shift overflow
+}
+TEST(BlackBox, NetworkDeadSeriesCountsAndEndsOnlyAfterTheNetworkLasted) {
+    LoopPhaseRecord phase{}; BlackBoxRecord rtc{};
+    BlackBox first; first.begin(rtc, phase, 1);
+    first.restartReason(Reason::networkDead);
+    BlackBox second; second.begin(rtc, phase, 3);
+    EXPECT_EQ(second.networkDeadRestarts(), 1u);
+    // Each networkDead restart needs a probe reply earlier in that boot: an
+    // early reply must not undo the backoff.
+    second.networkWorked(10000);
+    second.networkWorked(29 * minute18);
+    EXPECT_EQ(second.networkDeadRestarts(), 1u);
+    second.restartReason(Reason::networkDead);
+    BlackBox third; third.begin(rtc, phase, 3);
+    EXPECT_EQ(third.networkDeadRestarts(), 2u);
+    EXPECT_EQ(third.wifiLostRestarts(), 0u); // separate series
+    std::unique_ptr<cJSON, decltype(&cJSON_Delete)> j(third.json(), cJSON_Delete);
+    EXPECT_EQ(cJSON_GetNumberValue(cJSON_GetObjectItem(j.get(), "network_dead_restarts")), 2);
+    third.networkWorked(30 * minute18); // the network lasted 30 min after boot
+    EXPECT_EQ(third.networkDeadRestarts(), 0u);
+    for (int i = 0; i < 40; ++i) third.restartReason(Reason::networkDead);
+    BlackBox capped; capped.begin(rtc, phase, 3);
+    EXPECT_EQ(capped.networkDeadRestarts(), BlackBox::maximumCount);
+    std::memset(&phase, 0xA5, sizeof(phase)); // power cut: RTC memory undefined
+    BlackBox cold; cold.begin(rtc, phase, 1);
+    EXPECT_EQ(cold.networkDeadRestarts(), 0u);
+}
 TEST(SupervisorPolicy, SilentBluetoothRestartsRarelyAndNeverDuringATrial) {
     auto in = healthy18(1000 * minute18);
     in.bluetoothExpected = true; in.bluetoothQuietSince = in.now - 29 * minute18;

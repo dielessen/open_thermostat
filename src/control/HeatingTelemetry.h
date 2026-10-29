@@ -25,7 +25,7 @@ struct LearnedContext {
 inline constexpr uint64_t gasMeterFreshMs = 2 * 3600000ull;
 
 // "learned": FlowLearner::json() plus "inputs" {"gas_meter","gas_price","outdoor",
-// "boiler_kw","boiler_kw_source"} (what HA could still add) and, with a trusted
+// "boiler_kw","boiler_kw_source","gas_kwh_per_m3","gas_kwh_per_m3_source"} (what HA could still add) and, with a trusted
 // clock, "plans" from WarmupPlanner. nullptr: no memory.
 inline cJSON* learnedJson(const FlowLearner& learner, const RoomPlan& plan, const LearnedContext& c) {
     cJSON* root = learner.json();
@@ -35,8 +35,10 @@ inline cJSON* learnedJson(const FlowLearner& learner, const RoomPlan& plan, cons
     if (!inputs || !cJSON_AddBoolToObject(inputs, "gas_meter", gasAt && *gasAt <= c.now && c.now - *gasAt <= gasMeterFreshMs)
         || !cJSON_AddBoolToObject(inputs, "gas_price", learner.price().has_value())
         || !(c.outdoorSource ? cJSON_AddStringToObject(inputs, "outdoor", c.outdoorSource) : cJSON_AddNullToObject(inputs, "outdoor"))
-        || !cJSON_AddNumberToObject(inputs, "boiler_kw", std::round(double(learner.nominalKw()) * 10) / 10)
-        || !cJSON_AddStringToObject(inputs, "boiler_kw_source", learner.nominalFromHa() ? "ha" : "default")) {
+        || !cJSON_AddNumberToObject(inputs, "boiler_kw", learnmath::round(double(learner.nominalKw()) * 10) / 10)
+        || !cJSON_AddStringToObject(inputs, "boiler_kw_source", learner.nominalFromHa() ? "ha" : "default")
+        || !cJSON_AddNumberToObject(inputs, "gas_kwh_per_m3", learnmath::round(double(learner.params().kwhPerM3) * 1000) / 1000)
+        || !cJSON_AddStringToObject(inputs, "gas_kwh_per_m3_source", learner.kwhPerM3FromHa() ? "ha" : "default")) {
         cJSON_Delete(root); return nullptr;
     }
     if (!c.utc || !c.temperatures) return root;
@@ -96,8 +98,8 @@ inline void compactPlanRoom(cJSON* p) {
 
 // fw/telemetry/heating: /status/heating without what only the page reads.
 // Always the same shape (HA entities must not flap):
-//  - rooms[]: no static plan fields (fallback/minimum/maximum_centi_c, inactive_until:
-//    HA reads them from the plan);
+//  - rooms[]: no static plan fields fallback/minimum/maximum_centi_c (HA reads them
+//    from the plan; inactive_until stays: HA 0.4.0b9 reads it here);
 //  - shadow: no past days;
 //  - learned: only the header schema, applied, status, heating_periods, inputs
 //    (rooms and plans go per room to fw/telemetry/heating_learned/<id>);
@@ -107,7 +109,7 @@ inline void compactHeatingTelemetry(cJSON* status) {
     if (!cJSON_IsObject(status)) return;
     const cJSON* rooms = cJSON_GetObjectItemCaseSensitive(status, "rooms");
     for (cJSON* r = cJSON_IsArray(rooms) ? rooms->child : nullptr; r; r = r->next)
-        for (const char* key : {"fallback_centi_c", "minimum_centi_c", "maximum_centi_c", "inactive_until"})
+        for (const char* key : {"fallback_centi_c", "minimum_centi_c", "maximum_centi_c"})
             cJSON_DeleteItemFromObjectCaseSensitive(r, key);
     cJSON_DeleteItemFromObjectCaseSensitive(cJSON_GetObjectItemCaseSensitive(status, "shadow"), "days");
     keepOnly(cJSON_GetObjectItemCaseSensitive(status, "learned"), {"schema", "applied", "status", "heating_periods", "inputs"});

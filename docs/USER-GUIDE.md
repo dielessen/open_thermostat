@@ -8,6 +8,9 @@ of the boiler and compares that with your thermostat, but your thermostat
 keeps controlling the boiler. Nothing in this guide makes the E32 control the
 boiler.
 
+**Supported boilers:** EMS Classic (EMS 1.0), directly on the bus or through an
+adapter such as the Bosch EasyControl Adapter. EMS+ (EMS 2.0) is planned.
+
 ## Where do I set what?
 
 | What | Where |

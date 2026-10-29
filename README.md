@@ -138,6 +138,7 @@ qualification is required.
 
 | Feature | Current status |
 | --- | --- |
+| Supported boilers | **EMS Classic** (EMS 1.0) boilers, directly or through an adapter such as the Bosch EasyControl Adapter. **EMS+ (EMS 2.0) is planned.** |
 | Boiler essentials | **Available** on the Boiler page and in HA: flow, return and hot-water temperatures, pressure where the boiler reports it, status, and burner starts in the last hour. |
 | Short-cycling warning | **Available:** counted from the reported flame state, because some adapters (such as the Bosch EasyControl Adapter) report their own start and hour counters as 0. Burner starts for hot water count as well. |
 | Hot-water statistics | **Available:** hot water today, split into tapping and keeping warm. Where the adapter reports no real flow, a tap is recognised by the hot-water temperature dropping. |

@@ -170,7 +170,7 @@
   if(!s.releases.length)choices.add(new Option(s.phase==='checked'?uiText("No compatible releases available"):uiText("Check for updates first"),''));
   for(const r of s.releases)choices.add(new Option(r.tag+(r.prerelease?uiText(" (test release)"):'')+(r.tag===s.installed?uiText(" — installed"):''),r.tag));
   if(s.releases.some(r=>r.tag===old))choices.value=old;
-  let message=s.error||phases[s.phase]||(s.phase==='checked'?(s.releases.length&&s.releases[0].tag!==s.installed?uiText("Compatible release found. Choose a version to install."):uiText("You already have the available version.")):uiText("Status received."));
+  let message=(s.error&&uiText(s.error))||phases[s.phase]||(s.phase==='checked'?(s.releases.length&&s.releases[0].tag!==s.installed?uiText("Compatible release found. Choose a version to install."):uiText("You already have the available version.")):uiText("Status received."));
   if(s.error) {
    const failure=s.download_error;
    const descriptions={connection:uiText("Could not connect to GitHub."),tls:uiText("The secure connection to GitHub failed."),http:uiText("GitHub returned an HTTP error."),transfer:uiText("The GitHub download was interrupted or incomplete.")};
@@ -229,7 +229,7 @@
   if(action||!fresh||!mounted()||document.visibilityState==='hidden')return false;
   clearTimeout(timer);statusRequest?.abort();action=true;fresh=false;++revision;controls();
   try{await request(path,body);return true;}
-  catch(e){$id('releaseStatus').textContent=uiText("Request not yet confirmed: ")+e.message+uiText(". The status will be fetched again.");return false;}
+  catch(e){$id('releaseStatus').textContent=uiText("Request not yet confirmed: ")+uiText(e.message)+uiText(". The status will be fetched again.");return false;}
   finally{action=false;if(mounted()){controls();schedule();}}
  }
  $id('releaseChoice').onchange=controls;

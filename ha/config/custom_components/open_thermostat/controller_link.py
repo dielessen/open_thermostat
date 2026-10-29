@@ -12,9 +12,11 @@ import ipaddress
 import json
 import re
 import secrets
+import socket
 from urllib.parse import urlsplit
 
 import aiohttp
+from aiohttp.abc import AbstractResolver
 from yarl import URL
 
 
@@ -43,6 +45,48 @@ class ControllerProvisioningError(ControllerLinkError):
         self.device_may_have_changed = device_may_have_changed
 
 
+# Home-network DNS names: router/mDNS suffixes (FRITZ!Box, RFC 8375 home.arpa,
+# localdomain, internal, lan, local, home). Single-label names are accepted too;
+# every name must also resolve to a local address (PrivateResolver).
+LOCAL_DNS_SUFFIXES = (".fritz.box", ".home.arpa", ".localdomain", ".internal", ".lan", ".local", ".home")
+
+
+def private_controller_ip(address, *, link_local=False):
+    """A local-network IP (private; link-local only for resolved names), never loopback/public."""
+    try:
+        address = ipaddress.ip_address(address.split("%", 1)[0] if type(address) is str else address)
+    except ValueError:
+        return False
+    if address.is_loopback or address.is_unspecified or address.is_multicast or address.is_reserved:
+        return False
+    if address.is_link_local:
+        return link_local
+    return address.is_private
+
+
+class PrivateResolver(AbstractResolver):
+    """The default resolver, keeping only local-network addresses (no public or loopback hosts).
+
+    Checked at connect time, so a home-network name that resolves (or later
+    rebinds) to a public or loopback address is never contacted.
+    """
+
+    async def resolve(self, host, port=0, family=socket.AF_INET):
+        # A resolver per lookup: the connector does not own (or close) a passed-in resolver.
+        resolver = aiohttp.DefaultResolver()
+        try:
+            results = await resolver.resolve(host, port, family)
+        finally:
+            await resolver.close()
+        local = [result for result in results if private_controller_ip(result["host"], link_local=True)]
+        if not local:
+            raise OSError(f"{host} does not resolve to a local network address")
+        return local
+
+    async def close(self):
+        return None
+
+
 def controller_address(value):
     """Explicit local controller only; fixed API paths and no redirects/proxies."""
     if (type(value) is not str or len(value) > 280 or value != value.strip()
@@ -61,11 +105,10 @@ def controller_address(value):
             if (not re.fullmatch(r"[a-zA-Z0-9](?:[a-zA-Z0-9.-]{0,251}[a-zA-Z0-9])?", host)
                     or ".." in host or host.lower() == "localhost" or host.isdecimal()
                     or re.fullmatch(r"0[xX][0-9a-fA-F]+", host)
-                    or "." in host and not host.lower().endswith((".local", ".lan", ".home"))):
+                    or "." in host and not host.lower().endswith(LOCAL_DNS_SUFFIXES)):
                 raise ValueError
         else:
-            if (not address.is_private or address.is_loopback or address.is_unspecified
-                    or address.is_multicast or address.is_link_local):
+            if not private_controller_ip(address):
                 raise ValueError
     except (ValueError, TypeError):
         raise ControllerLinkError("controller_address_invalid") from None
@@ -409,6 +452,7 @@ class ControllerClient:
         self._session = aiohttp.ClientSession(
             cookie_jar=aiohttp.CookieJar(unsafe=True),  # Native E32 uses LAN IP cookies.
             timeout=aiohttp.ClientTimeout(total=10), trust_env=False,
+            connector=aiohttp.TCPConnector(resolver=PrivateResolver()),
         )
         return self
 

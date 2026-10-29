@@ -345,6 +345,30 @@ async def test_todays_shadow_comparison_becomes_compact_hub_sensors(hass, monkey
     assert not any(e.available for e in by_id.values())
 
 
+@pytest.mark.asyncio
+async def test_a_home_without_a_bus_thermostat_gets_no_comparison_entities(hass, monkeypatch):
+    from custom_components.open_thermostat.heating_link import shadow_has_thermostat
+    entry, hub, added, send = await _setup(hass, monkeypatch)
+    alone = {**TODAY, "tado_unknown_s": TODAY["s"], "tado": {"heat_s": 0, "starts": 0, "flow_min_c": None,
+             "flow_max_c": None, "flow_mean_c": None}, "both_s": 0, "agree_s": 0, "tado_only_s": 0,
+             "flow_diff_mean_c": None, "starts_paired": 0, "starts_within_5min": 0,
+             "start_offset_mean_s": None, "start_offset_max_s": None}
+    assert not shadow_has_thermostat({"shadow": {"today": alone}})
+    send({**FULL, "shadow": {"today": alone}})
+    send({**FULL, "shadow": {"today": {**alone, "s": 0, "tado_unknown_s": 0}}})
+    assert not any(e.unique_id.startswith("fixture_hub_shadow_") for e in added)
+    # The thermostat's request seen for a moment (even without heat) is enough.
+    seen = {**alone, "tado_unknown_s": TODAY["s"] - 10}
+    assert shadow_has_thermostat({"shadow": {"today": seen}})
+    assert shadow_has_thermostat({"shadow": {"today": {**alone, "tado": {**alone["tado"], "heat_s": 60}}}})
+    send({**FULL, "shadow": {"today": seen}})
+    assert sum(e.unique_id.startswith("fixture_hub_shadow_") for e in added) == len(TODAY_KEYS)
+
+
+TODAY_KEYS = ("e32_heating_time_today", "tado_heating_time_today", "e32_starts_today", "tado_starts_today",
+              "agreement_today")
+
+
 def test_shadow_sensor_names_are_translated():
     from custom_components.open_thermostat.heating_link import SHADOW_SENSORS
     names = {}

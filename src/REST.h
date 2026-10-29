@@ -17,6 +17,7 @@
 #include "control/WebAuthSession.h"
 #include "control/NativeSourceProvisioning.h"
 #include "control/BleObservationJson.h"
+#include "control/HandoverRequest.h"
 #include <esp_system.h>
 // Pinned Arduino WebServer verbose logging prints HTTP headers and form bodies.
 // Never build the credential endpoint with that unredacted library trace enabled.
@@ -228,14 +229,14 @@ public:
 
 #ifdef OPENTHERMOSTAT_E32V2
 		route("/updates/status",HTTP_GET,[this] { server_.send(200,"application/json",update::status().c_str()); });
-		route("/updates/check",HTTP_POST,[this] { server_.send(update::checkReleases()?202:409,"text/plain","Releasecontrole vereist thuisnetwerk, geldige tijd en een vrij updatesysteem"); });
+		route("/updates/check",HTTP_POST,[this] { server_.send(update::checkReleases()?202:409,"text/plain","A release check needs the home network, valid time and an idle update system"); });
 		route("/updates/install",HTTP_POST,[this] {
 			auto body=server_.arg("plain");auto root=control::parseControlJson(std::string_view(body.c_str(),body.length()),true);
 			if(!root||!cJSON_IsObject(root.get())||cJSON_GetArraySize(root.get())!=1||!cJSON_IsString(cJSON_GetObjectItemCaseSensitive(root.get(),"tag"))) {server_.send(400,"text/plain","Eén gecontroleerde release-tag vereist");return;}
-			server_.send(update::installRelease(cJSON_GetObjectItemCaseSensitive(root.get(),"tag")->valuestring)?202:409,"text/plain","Installatie vereist een gecontroleerde release en een vrij updatesysteem");
+			server_.send(update::installRelease(cJSON_GetObjectItemCaseSensitive(root.get(),"tag")->valuestring)?202:409,"text/plain","Installation needs a checked release and an idle update system");
 		});
 		route("/updates/reboot",HTTP_POST,[this] { server_.send(update::requestReboot()?202:409,"text/plain","Herstart aangevraagd"); });
-		route("/updates/rollback",HTTP_POST,[this] { server_.send(update::requestRollback()?202:409,"text/plain","Herstel vereist een vorige door native OTA gevalideerde firmware"); });
+		route("/updates/rollback",HTTP_POST,[this] { server_.send(update::requestRollback()?202:409,"text/plain","Restore needs a previous firmware that native OTA validated"); });
 		route("/setup",HTTP_GET,[this] { serveFile("/setup.html"); });
 		route("/setup/scan",HTTP_POST,[this] {
 			if(!wifiAPMode||boardEthernetStarted) { server_.send(409,"text/plain","Open setup WiFi first"); return; }
@@ -557,9 +558,16 @@ private:
 
 	void configReboot() {
 		DBGLOGFD(log_, logFeature_, "configReboot\n");
+#ifdef OPENTHERMOSTAT_E32V2
+		// Never directly: a restart during an update cuts it off, and one while
+		// a new image is unconfirmed rolls it back. The main loop restarts.
+		if(!update::requestReboot()) { server_.send(409,"text/plain","Restart not possible now: an update or the check of new firmware is running"); return; }
+		server_.send(200);
+#else
 		server_.send(200);
 		server_.stop();
 		ESP.restart();
+#endif
 	}
 
 	void boilerStatus() {
@@ -1244,13 +1252,13 @@ private:
 		if (plan.empty()) { server_.send(503,"application/json","{\"error\":\"plan_unavailable\"}"); return; }
 		server_.send(200,"application/json",plan.c_str());
 	}
-	// POST {"tado_disconnected":true|false}: the owner's handover for active
-	// mode (RAM only); answers the active-control status.
+	// POST {"thermostat_disconnected":true|false} (or the older "tado_disconnected"):
+	// the owner's handover for active mode (RAM only); answers the active-control status.
 	void heatingHandover() {
 		const auto body = server_.arg("plain");
 		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(body.length() <= 64 ? control::parseNestedJson(body,true,2) : control::ControlJson(nullptr,cJSON_Delete));
-		const auto* value = root && cJSON_IsObject(root.get()) && cJSON_GetArraySize(root.get()) == 1 ? cJSON_GetObjectItemCaseSensitive(root.get(),"tado_disconnected") : nullptr;
-		if (const char* error = cJSON_IsBool(value) ? controller_.setHeatingHandover(cJSON_IsTrue(value)) : "invalid_request") {
+		const auto disconnected = control::handoverRequest(root.get());
+		if (const char* error = disconnected ? controller_.setHeatingHandover(*disconnected) : "invalid_request") {
 			server_.send(std::strcmp(error,"invalid_request") ? 409 : 400,"application/json",(std::string("{\"error\":\"")+error+"\"}").c_str()); return;
 		}
 		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> active(controller_.activeHeatJson(),cJSON_Delete);
@@ -1708,12 +1716,22 @@ button.onclick=async()=>{if(!file.files.length){status.textContent=uiText("Selec
 		}
 	}
 
+	// The supervisor counts an HTTP upload as a running update.
+	static void noteUpload(HTTPUploadStatus status) {
+#ifdef OPENTHERMOSTAT_E32V2
+		if(status==UPLOAD_FILE_START) update::httpUploadActive.store(true);
+		else if(status==UPLOAD_FILE_END||status==UPLOAD_FILE_ABORTED) update::httpUploadActive.store(false);
+#endif
+	}
+
 	void handleOTAUpdate() {
 		HTTPUpload &upload = server_.upload();
 		if(!authorize(false)) {
+			noteUpload(UPLOAD_FILE_ABORTED);
 			appUpload_.cancel(appBackend_);
 			return;
 		}
+		noteUpload(upload.status);
 		bool ok=false;
 		if(upload.status==UPLOAD_FILE_START) {
 			appBackend_.partition=esp_ota_get_next_update_partition(nullptr);
@@ -1737,6 +1755,7 @@ button.onclick=async()=>{if(!file.files.length){status.textContent=uiText("Selec
 	}
 
 	void handleOTAResponse() {
+		noteUpload(UPLOAD_FILE_END); // also when a failed request skipped END/ABORTED
 		const auto ctype="text/plain"sv;
 		if(server_.uri()=="/ota") {
 			// Final route authorization has already run. No image is selected
@@ -1762,7 +1781,8 @@ button.onclick=async()=>{if(!file.files.length){status.textContent=uiText("Selec
 	void handleOTAFFSUpdate() {
 		HTTPUpload &upload = server_.upload();
 		if(upload.status==UPLOAD_FILE_START) ota_=OTAUpload{};
-		if(!authorize(false)) {ota_.success=false;ota_.error=ESP_ERR_INVALID_STATE;ota_.errorMessage="Upload not authorized or updater busy";return;}
+		if(!authorize(false)) {noteUpload(UPLOAD_FILE_ABORTED);ota_.success=false;ota_.error=ESP_ERR_INVALID_STATE;ota_.errorMessage="Upload not authorized or updater busy";return;}
+		noteUpload(upload.status);
 
 		if (upload.status == UPLOAD_FILE_START) {
 			auto size = server_.arg("size");

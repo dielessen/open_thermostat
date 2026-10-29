@@ -604,7 +604,7 @@
       "runtime_active": "Runtime active",
       "advanced_room_required": "Advanced room required",
       "confirm_program_source_change": "Confirm program source change",
-      "controller_address_invalid": "Enter the local E32 web address, for example http://e32.local. Paths and login details do not belong in the address.",
+      "controller_address_invalid": "Enter the local E32 web address: a local IP address or a home-network name, for example http://192.168.1.50, http://e32.local or http://e32.fritz.box. Paths and login details do not belong in the address.",
       "controller_password_required": "Enter the E32 administrator password. A saved password can only be reused for the same address.",
       "controller_auth_failed": "The E32 did not accept this login. Check its administrator password.",
       "controller_unreachable": "The E32 could not be reached. Check its address and network connection.",

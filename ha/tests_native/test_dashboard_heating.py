@@ -127,6 +127,23 @@ async def test_heating_view_is_sections_of_built_in_cards_per_room_with_the_esse
     assert [x["entity"] for x in bluetooth["entities"]] == [sensors[k] for k in ("temperature", "humidity", "battery")]
 
 
+@pytest.mark.asyncio
+async def test_no_comparison_without_a_thermostat_on_the_bus(hass):
+    e, rooms, sensors, hub, fields = installation(hass)
+    entities = er.async_get(hass)
+    for key in [k for k in hub if k.startswith("shadow_")]:
+        entities.async_remove(hub.pop(key))
+    config = RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config()
+    heating = config["views"][0]
+    assert [s["cards"][0]["heading"] for s in heating["sections"]] == [
+        "Now", "Woonkamer", "Badkamer", "Boiler", "Bluetooth sensors"]
+    text = json.dumps(heating)
+    assert "Thermostat request" not in text and "Agreement with thermostat" not in text
+    explain = next(c for c in heating["sections"][0]["cards"] if c["type"] == "markdown")
+    assert "your thermostat controls" not in explain["content"]
+    assert "current thermostat or the boiler's own control" in explain["content"]
+
+
 def _add_learned(hass, e, rooms, hub):
     """The entities firmware that learns creates: per room, and today's hot water on the product."""
     entities, devices = er.async_get(hass), dr.async_get(hass)

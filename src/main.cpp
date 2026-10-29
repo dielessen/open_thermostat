@@ -74,6 +74,9 @@ std::atomic<uint32_t> supervisorBeatS{0}, bluetoothQuietSinceS{0};
 std::atomic<bool> wifiExpected{false}, brokerExpected{false}, gatewayProbeArmed{false};
 std::atomic<bool> bluetoothExpected{false}, restartDeferred{false};
 heating::diagnostics::GatewayProbe gatewayProbe; // loop only
+// Boot confirmation evidence (loop only, latched): since boot an IP address
+// plus a gateway probe reply, an MQTT session or a routed HTTP request.
+bool networkProven = false;
 
 uint64_t monotonicMs() { return static_cast<uint64_t>(esp_timer_get_time() / 1000); }
 uint32_t monotonicS() { return static_cast<uint32_t>(esp_timer_get_time() / 1000000) + 1; }
@@ -90,6 +93,9 @@ void armRtcWatchdog() {
 	wdt_hal_init(&rtcWdt, WDT_RWDT, 0, false);
 	wdt_hal_write_protect_disable(&rtcWdt);
 	wdt_hal_config_stage(&rtcWdt, WDT_STAGE0, rtc_clk_slow_freq_get_hz() * 120, WDT_STAGE_ACTION_RESET_SYSTEM);
+	// Like IDF's restart path: if the system reset does not take (10 s after
+	// stage 0), reset the whole chip, RTC included (the black box is lost then).
+	wdt_hal_config_stage(&rtcWdt, WDT_STAGE1, rtc_clk_slow_freq_get_hz() * 10, WDT_STAGE_ACTION_RESET_RTC);
 	wdt_hal_enable(&rtcWdt);
 	wdt_hal_write_protect_enable(&rtcWdt);
 }
@@ -111,11 +117,12 @@ void supervisorTask(void*) {
 		vTaskDelay(pdMS_TO_TICKS(5000));
 		feedRtcWatchdog();
 		SupervisorPolicy::Inputs in;
-		in.now = secondsMs(monotonicS()); in.loopAt = secondsMs(loopAtS.load()); in.updateRunning = heating::update::busy();
+		in.now = secondsMs(monotonicS()); in.loopAt = secondsMs(loopAtS.load()); in.updateRunning = heating::update::busy() || heating::update::httpUploadActive.load();
 		if (!in.updateRunning) updateSince = 0;
 		else if (!updateSince) updateSince = in.now;
 		in.updateSince = updateSince;
 		in.wifiLostRestarts = heating::diagnostics::blackBox.wifiLostRestarts();
+		in.networkDeadRestarts = heating::diagnostics::blackBox.networkDeadRestarts();
 		in.bluetoothExpected = bluetoothExpected.load(); in.bluetoothQuietSince = secondsMs(bluetoothQuietSinceS.load());
 		in.bluetoothRestarts = heating::diagnostics::blackBox.bluetoothRestarts(); in.restartDeferred = restartDeferred.load();
 		in.wifiExpected = wifiExpected.load(); in.wifiDownSince = secondsMs(wifiDownSinceS.load());
@@ -143,7 +150,7 @@ void probeGateway(uint64_t now) {
 		result = gatewayProbe.start(now, static_cast<uint32_t>(WiFi.gatewayIP()));
 	if (result == Result::none) return;
 	gatewayProbeFailures.store(gatewayProbe.failures());
-	if (result == Result::ok) { gatewayProbeArmed.store(true); networkQuietRestart(); }
+	if (result == Result::ok) { gatewayProbeArmed.store(true); networkQuietRestart(); heating::diagnostics::blackBox.networkWorked(now); }
 	else if (gatewayProbeArmed.load())
 		DBGLOGFI(heating::logger, appLogFeature(), "Gateway probe: no reply (%u in a row)\n", gatewayProbe.failures());
 }
@@ -174,8 +181,10 @@ void observeHealth(uint64_t now) {
 	if (!wifi || !WiFi.isConnected()) {
 		gatewayProbe.cancel(); gatewayProbe.resetFailures(); gatewayProbeFailures.store(0);
 		networkQuietRestart();
-	} else if (broker || seen != requests) networkQuietRestart();
+	} else if (broker || seen != requests) { networkQuietRestart(); heating::diagnostics::blackBox.networkWorked(now); }
 	requests = seen;
+	if (!networkProven && (heating::networkConnected() || heating::wifiAPMode))
+		networkProven = gatewayProbeArmed.load() || broker || seen != 0;
 	heating::diagnostics::blackBox.note(static_cast<uint32_t>(now / 1000), ESP.getMinFreeHeap(), uxTaskGetStackHighWaterMark(nullptr),
 		heating::diagnostics::loopIntervals.snapshot().windowMaximumMs, static_cast<int8_t>(WiFi.RSSI()), WiFi.isConnected(), broker);
 	const auto stacks = heating::diagnostics::taskStackMarks();
@@ -359,10 +368,10 @@ void WifiSetUp(config::WiFiConfig const &wifiConfig, config::NetworkConfig const
 void setup() {
 #ifdef OPENTHERMOSTAT_E32V2
 	armRtcWatchdog(); // a hang in setup() resets (and rolls back an unconfirmed OTA image)
-	// Allocations above 256 B may use PSRAM (Arduino: 4096). Wi-Fi, lwIP
-	// drivers, NimBLE (internal mode), task stacks and DMA buffers request
-	// internal memory explicitly; the EMS UART ISR is not in IRAM.
-	heap_caps_malloc_extmem_enable(256);
+	// No lower PSRAM threshold for plain malloc/new (Arduino keeps 4096 B):
+	// objects with std::atomic or mutex members must not land in PSRAM, where
+	// the S32C1I atomic read-modify-write is not reliable on the ESP32. Only
+	// known atomic-free data (cJSON nodes, response buffers) is put there.
 	// Log lines leave through a 1 KiB driver buffer instead of blocking the
 	// caller on the 128-byte UART FIFO at 115200 Bd.
 	Serial.setTxBufferSize(1024);
@@ -499,9 +508,11 @@ void loop() {
 	{
 		const uint32_t beat = supervisorBeatS.load(), nowS = monotonicS();
 		heating::update::loop(heating::controller && !heating::controller->boilerTestActive() && !heating::controller->boilerSettingsActive(),
-			beat && nowS - beat <= 15);
+			beat && nowS - beat <= 15, networkProven);
 	}
 	heating::diagnostics::blackBox.loopPhase(heating::diagnostics::LoopPhase::network);
+	// Only while asked: bootPending() reads the OTA state from flash.
+	heating::setupRestartHeld = heating::setupRebootRequested && (heating::update::busy() || heating::update::bootPending());
 	heating::pollSetupWifi();
 	if (heating::pollBoardNetwork()) {
 		// Common REST/NTP/mDNS startup, once per route/IP change, not in event task.

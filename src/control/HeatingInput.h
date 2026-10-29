@@ -17,10 +17,11 @@ namespace heating::control {
 //  - {"kind":"gas_m3","entity":"sensor.gas","value":1234.567}: gas meter total (m3);
 //  - {"kind":"gas_price","value":1.32}: EUR per m3 (0 < value <= 20);
 //  - {"kind":"outdoor_c","entity":"sensor.outdoor","value":7.4}: -50..60 degC;
-//  - {"kind":"boiler_kw","value":22}: nominal boiler gas input, 3..60 kW.
+//  - {"kind":"boiler_kw","value":22}: nominal boiler gas input, 3..60 kW;
+//  - {"kind":"gas_kwh_per_m3","value":9.77}: calorific value of the gas, 5..15.
 // Anything else (unknown kind, a value out of range, a missing entity) is ignored.
 struct HeatingInput {
-    enum class Kind : uint8_t { room, gasM3, gasPrice, outdoorC, boilerKw };
+    enum class Kind : uint8_t { room, gasM3, gasPrice, outdoorC, boilerKw, gasKwhPerM3 };
     static constexpr size_t maxBytes = 256, maxEntity = 80;
     Kind kind = Kind::room;
     std::string entity;
@@ -61,13 +62,14 @@ struct HeatingInput {
         else if (k == "gas_price" && in.value > 0 && in.value <= 20) in.kind = Kind::gasPrice;
         else if (k == "outdoor_c" && hasEntity && within(-50, 60)) in.kind = Kind::outdoorC;
         else if (k == "boiler_kw" && within(3, 60)) in.kind = Kind::boilerKw;
+        else if (k == "gas_kwh_per_m3" && within(5, 15)) in.kind = Kind::gasKwhPerM3;
         else return std::nullopt;
         return in;
     }
 };
 
-// Routes accepted messages: room states to the RoomEngine, gas, price and
-// boiler power to the FlowLearner; keeps HA's outdoor temperature. Single-threaded.
+// Routes accepted messages: room states to the RoomEngine, gas, price, boiler
+// power and calorific value to the FlowLearner; keeps HA's outdoor temperature. Single-threaded.
 class HeatingInputRoute {
 public:
     static constexpr uint64_t outdoorMaxAgeMs = 900000; // HA's outdoor expires after 15 min
@@ -81,6 +83,7 @@ public:
             case HeatingInput::Kind::outdoorC:
                 outdoorCentiC_ = static_cast<int16_t>(std::lround(in->value * 100)); outdoorAt_ = now; break;
             case HeatingInput::Kind::boilerKw: learner.setNominalKw(static_cast<float>(in->value)); break;
+            case HeatingInput::Kind::gasKwhPerM3: learner.setKwhPerM3(static_cast<float>(in->value)); break;
         }
         lastAccepted_ = now;
         return true;

@@ -11,6 +11,29 @@
 #include <string>
 #include <vector>
 namespace heating::control {
+// exp, sqrt and round without newlib's libm members (e_exp/w_exp, wf_sqrt,
+// s_round are not in docs/third-party/e32v2-link-review.json; floor is).
+namespace learnmath {
+// e^x for |x| <= 64: x / 2^10 by a 7-term Taylor series, squared 10 times (rel. error < 1e-10).
+inline double exp(double x) {
+    x = std::clamp(x, -64.0, 64.0) / 1024.0;
+    double term = 1, sum = 1;
+    for (int k = 1; k <= 7; ++k) { term *= x / k; sum += term; }
+    for (int k = 0; k < 10; ++k) sum *= sum;
+    return sum;
+}
+// Newton iterations from a power-of-two start; 0 for x <= 0.
+inline float sqrt(float x) {
+    if (!(x > 0)) return 0;
+    double y = 1, v = x;
+    while (y * y > v * 4) y *= 0.5;
+    while (y * y < v * 0.25) y *= 2;
+    for (int k = 0; k < 6; ++k) y = 0.5 * (y + v / y);
+    return static_cast<float>(y);
+}
+// Half away from zero, like std::round.
+inline double round(double x) { return x < 0 ? -std::floor(-x + 0.5) : std::floor(x + 0.5); }
+}
 // Learns per room how fast it warms up (degC/h) at each flow temperature, and
 // from that the LOWEST flow that still closes a shortfall in an acceptable time
 // (owner, 28/29 Oct: "zo laag mogelijk moduleren ... dat ga je vanzelf leren").
@@ -47,7 +70,7 @@ public:
         // the owner's EcomLine HRC 22 class; only scales the capacity estimate, and a
         // gas meter calibrates it either way.
         float nominalKw = 22;
-        float kwhPerM3 = 9.77f;  // NL gas, Groningen-equivalent upper value
+        float kwhPerM3 = 9.77f;  // NL gas, Groningen-equivalent upper value, until HA reports its own (gas_kwh_per_m3)
         float returnDropK = 6;   // flow - return when the return is not reported
     };
     // Condensing efficiency against the return temperature: 97.5 % at <= 35 degC,
@@ -167,6 +190,12 @@ public:
     }
     float nominalKw() const { return p_.nominalKw; }
     bool nominalFromHa() const { return nominalFromHa_; }
+    // Calorific value from HA (5..15 kWh per m3); until then Params::kwhPerM3.
+    bool setKwhPerM3(float kwh) {
+        if (!(kwh >= 5 && kwh <= 15)) return false;
+        p_.kwhPerM3 = kwh; kwhFromHa_ = true; return true;
+    }
+    bool kwhPerM3FromHa() const { return kwhFromHa_; }
     // Real / estimated gas; 1 until three intervals were compared.
     float calibration() const { return gasIntervals_ >= 3 ? static_cast<float>(std::clamp(calMeasured_ / calPredicted_, 0.5, 2.0)) : 1.0f; }
     uint16_t gasIntervals() const { return gasIntervals_; }
@@ -195,7 +224,7 @@ public:
             flow = c[k - 1].flowC + (a.requiredRate - c[k - 1].rate) / (c[k].rate - c[k - 1].rate) * (c[k].flowC - c[k - 1].flowC);
             a.reason = "learned";
         }
-        a.flowC = static_cast<uint8_t>(std::clamp<float>(std::ceil(flow - 0.01f), minFlowC_, maxFlowC_));
+        a.flowC = static_cast<uint8_t>(std::clamp<double>(std::ceil(double(flow) - 0.01), minFlowC_, maxFlowC_));
         a.warmupS = warmup(c, n, *a.flowC, shortfallCentiC);
         a.ruleWarmupS = warmup(c, n, a.ruleFlowC, shortfallCentiC);
         const int diff = int(a.ruleFlowC) - int(*a.flowC);
@@ -288,7 +317,7 @@ public:
             const float mean = b.wr / b.w;
             number(p, "flow_c", b.wf / b.w, 10);
             number(p, "rate_c_per_h", mean, 100);
-            number(p, "sd_c_per_h", std::sqrt(std::max(0.0f, b.wrr / b.w - mean * mean)), 100);
+            number(p, "sd_c_per_h", learnmath::sqrt(std::max(0.0f, b.wrr / b.w - mean * mean)), 100);
             cJSON_AddNumberToObject(p, "segments", b.segments);
             cJSON_AddNumberToObject(p, "periods", b.periods);
             cJSON_AddBoolToObject(p, "ready", ready(b));
@@ -300,7 +329,7 @@ public:
         return o;
     }
     static void number(cJSON* o, const char* key, std::optional<float> v, int scale) {
-        if (v) cJSON_AddNumberToObject(o, key, std::round(double(*v) * scale) / scale); else cJSON_AddNullToObject(o, key);
+        if (v) cJSON_AddNumberToObject(o, key, learnmath::round(double(*v) * scale) / scale); else cJSON_AddNullToObject(o, key);
     }
 
 private:
@@ -482,7 +511,7 @@ private:
     Params p_;
     std::vector<Room> rooms_;
     uint8_t minFlowC_ = 30, maxFlowC_ = 60;
-    bool haveLast_ = false, heating_ = false, haveGas_ = false, gasValid_ = false, nominalFromHa_ = false;
+    bool haveLast_ = false, heating_ = false, haveGas_ = false, gasValid_ = false, nominalFromHa_ = false, kwhFromHa_ = false;
     uint16_t period_ = 0, gasIntervals_ = 0;
     uint64_t lastMs_ = 0, holdUntil_ = 0, offSince_ = 0, gasAtMs_ = 0;
     double gasM3_ = 0, predictedKwh_ = 0, calMeasured_ = 0, calPredicted_ = 0;

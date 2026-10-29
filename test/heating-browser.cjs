@@ -192,8 +192,8 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   assert.equal(await control.locator('[data-heating-active-gate]').isVisible(),false);
   await takeover.click();
   await control.getByText('Bevestigd. De E32 neemt de ketel binnen een minuut over.').waitFor();
-  assert.match(dialogs.at(-1),/^Bevestig dat je thermostaat \(tado\) van de ketel is losgekoppeld\./);
-  assert.equal(posts.at(-1).mode,'active');assert.deepEqual(handovers,[{tado_disconnected:true}]);
+  assert.match(dialogs.at(-1),/^Bevestig dat je huidige thermostaat van de ketel is losgekoppeld\./);
+  assert.equal(posts.at(-1).mode,'active');assert.deepEqual(handovers,[{thermostat_disconnected:true}]);
   await control.getByText('De E32 regelt de ketel. · Ketelvraag: 45 °C · laatst verzonden 5 s geleden · laatste vraag van een andere regelaar (0x17) 30 s geleden').waitFor();
   assert.equal(await takeover.isVisible(),false);assert.equal(await handback.isVisible(),true);
   await root.locator('[data-heating-save]').click();await root.getByText('Ruimtes opgeslagen.').waitFor();

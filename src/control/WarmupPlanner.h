@@ -224,7 +224,7 @@ private:
         if (from <= night) return from;
         if (!loss || !outdoor) return night;
         const double h = std::max<int64_t>(0, at - (ahead ? nightUtc : utc)) / 3600.0;
-        const double t = *outdoor + (from - *outdoor) * std::exp(-*loss * h);
+        const double t = *outdoor + (from - *outdoor) * learnmath::exp(-*loss * h);
         return static_cast<int16_t>(std::max<double>(night, std::lround(t)));
     }
     // 5-minute steps from the night start (or now) to the switch time.
@@ -260,7 +260,7 @@ private:
                 gas += q / FlowLearner::efficiency(flow - p.returnDropK);
                 T += rise1;
             } else if (T > target + 0.02) {
-                T = std::max(target, To + (T - To) * std::exp(-b * dt));
+                T = std::max(target, To + (T - To) * learnmath::exp(-b * dt));
             } else {
                 const double q = ua * (target - To) * dt;
                 gas += q / FlowLearner::efficiency(holdFlow - p.returnDropK);

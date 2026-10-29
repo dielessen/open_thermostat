@@ -15,7 +15,7 @@ void reset(){
  WiFi={};testNow=1000;boardEthernetStarted=false;wifiAPMode=false;
  setupUntil=setupAttemptUntil=setupCloseAt=setupJoinAt=0;setupCandidate={};setupResult="idle";
  setupDns={};setupDnsActive=false;setupSavedSsid.clear();setupCloseIP=IPAddress();
- setupRebootRequested=false;wifiScanState="idle";wifiScanRows="[]";wifiScanStarted=0;
+ setupRebootRequested=false;setupRestartHeld=false;wifiScanState="idle";wifiScanRows="[]";wifiScanStarted=0;
  deviceAccess={};deviceAccess.begin();
 }
 void ap(){assert(startSetupWifi());assert(WiFi.ap);assert(WiFi.bluetoothEnabled&&WiFi.getSleep()==WIFI_PS_MIN_MODEM);}
@@ -48,6 +48,8 @@ int main(){
  reset();ap();join();connected();assert(finishSetupWifi());WiFi.connected=false;testNow+=8001;pollSetupWifi();assert(WiFi.ap&&setupCloseAt==0);pass("station loss during finish grace period preserves recovery AP");
  reset();ap();join();connected();assert(trySetupWifi({"wrong-new-network","test-pass"}));testNow+=751;pollSetupWifi();testNow+=30001;pollSetupWifi();assert(setupResult=="connection_failed"&&readSetupWifi(cfg)&&cfg.ssid=="home");pass("failed replacement preserves previously accepted credentials");
  reset();Serial.input="setup\n";pollSetupWifi();assert(setupRebootRequested);setupRebootRequested=false;assert(consumeSetupBoot()&&!consumeSetupBoot());pass("USB recovery flag is durable and one-shot");
+ reset();setupRestartHeld=true;Serial.input="setup\n";pollSetupWifi();pollSetupWifi();assert(setupRebootRequested);setupRestartHeld=false;
+ {bool restarted=false;try{pollSetupWifi();}catch(const std::runtime_error&){restarted=true;}assert(restarted);}pass("USB setup restart waits for an update or unconfirmed new firmware");
  reset();WiFi.sleepPolicy=WIFI_PS_NONE;ap();assert(WiFi.modeChanges==1);pass("setup selects BLE-compatible modem sleep before radio start even from disabled policy");
  assert(startWifiScan());WiFi.complete=0;pollSetupWifi();join();connected();assert(finishSetupWifi());testNow+=8001;pollSetupWifi();assert(!WiFi.ap&&WiFi.bluetoothEnabled&&WiFi.getSleep()==WIFI_PS_MIN_MODEM);pass("Bluetooth-compatible policy survives scan join and station handoff");
  reset();WiFi.modeOk=false;assert(!startSetupWifi()&&!wifiAPMode&&!WiFi.ap);pass("radio startup failure never advertises setup success");

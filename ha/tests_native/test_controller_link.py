@@ -71,7 +71,10 @@ def login_responses():
 
 
 @pytest.mark.parametrize("address", [BASE, BASE + "/", "http://e32.local:8080",
-                                     "https://thermostat.home", "http://[fd00::1]"])
+                                     "https://thermostat.home", "http://[fd00::1]", "http://e32",
+                                     "http://e32.fritz.box", "http://e32.home.arpa", "http://e32.localdomain",
+                                     "http://e32.internal", "http://e32.lan", "http://heating.cellar.home.arpa",
+                                     "http://10.1.2.3", "http://172.16.0.9"])
 def test_local_address_preserves_one_explicit_origin(address):
     assert link.controller_address(address) == address.rstrip("/")
 
@@ -87,10 +90,57 @@ def test_address_origin_matches_http_host_normalization(address, origin):
     BASE + "/status", BASE + "/?token=private", BASE + "/#x", "http://user:password@e32.local",
     "ftp://e32.local", "http://example.com", "http://8.8.8.8", "http://127.0.0.1",
     "http://2130706433", "http://0x7f000001", "http://localhost", "http://169.254.1.2",
-    "http://0.0.0.0", "http://[::1]", "http://e32.local:0", "http://e32.local:65536", None, True])
+    "http://0.0.0.0", "http://[::1]", "http://e32.local:0", "http://e32.local:65536", None, True,
+    "http://e32.example.org", "http://e32.box", "http://fritz.box.example.com", "http://e32.arpa",
+    "http://e32..local", "http://-e32.local", "http://e32.local.", "http://100.64.0.1", "http://[fe80::1]"])
 def test_invalid_address_cannot_become_a_proxy_or_credential_url(address):
     with pytest.raises(link.ControllerLinkError, match="^controller_address_invalid$"):
         link.controller_address(address)
+
+
+class FakeResolver:
+    def __init__(self, *hosts):
+        self.hosts, self.closed = hosts, False
+
+    async def resolve(self, host, port=0, family=None):
+        return [{"hostname": host, "host": h, "port": port, "family": family, "proto": 0, "flags": 0}
+                for h in self.hosts]
+
+    async def close(self):
+        self.closed = True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("hosts,kept", [
+    (("192.168.1.20",), ["192.168.1.20"]),
+    (("93.184.216.34", "10.0.0.5"), ["10.0.0.5"]),         # a public answer is dropped
+    (("fe80::1%eth0", "fd00::20"), ["fe80::1%eth0", "fd00::20"]),  # mDNS link-local is on the LAN
+    (("169.254.10.2",), ["169.254.10.2"]),
+])
+async def test_a_name_is_only_contacted_at_a_local_network_address(monkeypatch, hosts, kept):
+    made = []
+    monkeypatch.setattr(link.aiohttp, "DefaultResolver", lambda: made.append(FakeResolver(*hosts)) or made[-1])
+    results = await link.PrivateResolver().resolve("e32.fritz.box", 80)
+    assert [r["host"] for r in results] == kept
+    assert made[0].closed
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("hosts", [("8.8.8.8",), ("127.0.0.1",), ("::1",), ("0.0.0.0",), ("224.0.0.1",), ()])
+async def test_a_name_resolving_to_a_public_or_loopback_address_is_never_contacted(monkeypatch, hosts):
+    monkeypatch.setattr(link.aiohttp, "DefaultResolver", lambda: FakeResolver(*hosts))
+    with pytest.raises(OSError, match="does not resolve to a local network address"):
+        await link.PrivateResolver().resolve("e32.lan", 80)
+
+
+@pytest.mark.asyncio
+async def test_the_session_resolves_names_through_the_private_resolver(monkeypatch):
+    session, create = setup(monkeypatch)
+    async with link.ControllerClient("http://e32.fritz.box"):
+        pass
+    connector = create.call_args.kwargs["connector"]
+    assert isinstance(connector._resolver, link.PrivateResolver)
+    await connector.close()
 
 
 @pytest.mark.asyncio

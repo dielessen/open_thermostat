@@ -199,8 +199,8 @@ TEST(HeatingTelemetry, MainPayloadKeepsTheShapeWithoutPageOnlyFields) {
     // under ModernTransport's heatingTelemetryMaxBytes (4096) or HA loses it all.
     EXPECT_LE(mqtt.size(), 4000u);
     const cJSON* room = cJSON_GetArrayItem(cJSON_GetObjectItem(status.get(), "rooms"), 0);
-    for (const char* gone : {"fallback_centi_c", "minimum_centi_c", "maximum_centi_c", "inactive_until"}) EXPECT_FALSE(cJSON_GetObjectItem(room, gone)) << gone;
-    for (const char* kept : {"id", "name", "state", "status", "source", "temperature", "setpoint", "setpoint_source", "demand"}) EXPECT_TRUE(cJSON_GetObjectItem(room, kept)) << kept;
+    for (const char* gone : {"fallback_centi_c", "minimum_centi_c", "maximum_centi_c"}) EXPECT_FALSE(cJSON_GetObjectItem(room, gone)) << gone;
+    for (const char* kept : {"id", "name", "state", "inactive_until", "status", "source", "temperature", "setpoint", "setpoint_source", "demand"}) EXPECT_TRUE(cJSON_GetObjectItem(room, kept)) << kept;
     const cJSON* learned = cJSON_GetObjectItem(status.get(), "learned");
     EXPECT_EQ(cJSON_GetObjectItem(learned, "schema")->valuedouble, 1);
     EXPECT_TRUE(cJSON_IsFalse(cJSON_GetObjectItem(learned, "applied")));
@@ -214,6 +214,8 @@ TEST(HeatingTelemetry, MainPayloadKeepsTheShapeWithoutPageOnlyFields) {
     EXPECT_STREQ(cJSON_GetObjectItem(inputs, "outdoor")->valuestring, "ha");
     EXPECT_EQ(cJSON_GetObjectItem(inputs, "boiler_kw")->valuedouble, 22);
     EXPECT_STREQ(cJSON_GetObjectItem(inputs, "boiler_kw_source")->valuestring, "default");
+    EXPECT_EQ(cJSON_GetObjectItem(inputs, "gas_kwh_per_m3")->valuedouble, 9.77);
+    EXPECT_STREQ(cJSON_GetObjectItem(inputs, "gas_kwh_per_m3_source")->valuestring, "default");
     EXPECT_FALSE(cJSON_GetObjectItem(cJSON_GetObjectItem(status.get(), "shadow"), "days"));
     EXPECT_TRUE(cJSON_IsObject(cJSON_GetObjectItem(cJSON_GetObjectItem(status.get(), "shadow"), "today")));
     const cJSON* dhw = cJSON_GetObjectItem(status.get(), "dhw");
@@ -303,7 +305,7 @@ TEST(HeatingTelemetry, WithoutClockPlansAreNullAndTheShapeStays) {
     EXPECT_EQ(print(status.get()), once);
     Json old(cJSON_Parse(R"({"schema":1,"rooms":[{"id":"a","inactive_until":0}],"shadow":{"today":{},"days":[]}})"), cJSON_Delete);
     compactHeatingTelemetry(old.get());
-    EXPECT_EQ(print(old.get()), R"({"schema":1,"rooms":[{"id":"a"}],"shadow":{"today":{}}})");
+    EXPECT_EQ(print(old.get()), R"({"schema":1,"rooms":[{"id":"a","inactive_until":0}],"shadow":{"today":{}}})");
 }
 
 TEST(HeatingTelemetry, RotationPublishesTwoDistinctRoomsPerTick) {

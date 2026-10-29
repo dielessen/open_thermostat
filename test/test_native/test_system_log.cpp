@@ -119,6 +119,15 @@ TEST(SystemLog, DeferredRxRecordsBoundedOriginalFrameAndReceptionTime) {
     captureEmsRx(log,nullptr,7,0,0,0,0,0);captureEmsRx(log,frame,34,0,0,0,0,0);captureEmsRx(log,frame,4,0,0,0,0,0);
     EXPECT_EQ(log.stats().latest,1u);
 }
+TEST(SystemLog, EmsAddressRolesCoverTheUsualBusRanges) {
+    using heating::ems::addressRole;
+    EXPECT_STREQ(addressRole(0x00), "All"); EXPECT_STREQ(addressRole(0x08), "Boiler"); EXPECT_STREQ(addressRole(0x88), "Boiler");
+    EXPECT_STREQ(addressRole(0x0B), "Service");
+    for (uint8_t a : {0x10, 0x15, 0x17, 0x18, 0x1F}) EXPECT_STREQ(addressRole(a), "Thermostat") << int(a);
+    for (uint8_t a : {0x20, 0x21, 0x28, 0x2F}) EXPECT_STREQ(addressRole(a), "Mixer") << int(a);
+    EXPECT_STREQ(addressRole(0x48), "Gateway"); EXPECT_STREQ(addressRole(0xC8), "Gateway");
+    for (uint8_t a : {0x09, 0x0F, 0x30, 0x47, 0x49}) EXPECT_STREQ(addressRole(a), "Device") << int(a);
+}
 TEST(LogSettings, LegacySixFieldSettingsLoadWithoutEnablingSyslogAndNewSourcesRoundtrip) {
     const auto legacy=R"({"syslog_enabled":false,"server":"","port":514,"syslog_level":3,"web_level":3,"mark_interval_s":0})";
     auto old=parseSettings(legacy);ASSERT_TRUE(old);EXPECT_FALSE(old->enabled);EXPECT_TRUE(old->syslogEsp);EXPECT_FALSE(old->syslogEms);

@@ -8,18 +8,27 @@ inline bool manualRebootAllowed(bool busy,bool pendingBoot) {
     return !busy && !pendingBoot;
 }
 // A new image confirms itself (esp_ota_mark_app_valid_cancel_rollback) once
-// it has run normally for healthyMs: the main loop calls this, and the
-// supervisor task (restart and RTC watchdog) is alive. Deliberately NOT tied
-// to Wi-Fi, MQTT, Home Assistant or the filesystem: a healthy device in a
-// network outage is never rolled back. A crash, watchdog or supervisor reset
-// before then boots the previous image (bootloader rollback); so does a loop
-// without a supervisor after supervisorMissingMs.
+// it has run normally for healthyMs: the main loop calls this, the supervisor
+// task (restart and RTC watchdog) is alive, and the network worked once since
+// boot. A pending image always follows a network update, so an image whose
+// network never comes up is not kept: proof is an IP address plus one of an
+// accepted HTTP request, an MQTT session or a gateway probe reply (never Home
+// Assistant in particular). Without that proof by networkProofMs the device
+// restarts, and the bootloader boots the previous image; so does a crash,
+// watchdog or supervisor reset before confirmation, or a loop without a
+// supervisor after supervisorMissingMs. A failed confirmation is retried every
+// retryMs, not on every loop pass.
 struct BootConfirmation {
-    static constexpr uint32_t healthyMs = 60000, supervisorMissingMs = 180000;
+    static constexpr uint32_t healthyMs = 60000, supervisorMissingMs = 180000, networkProofMs = 600000, retryMs = 60000;
     enum class Action { wait, confirm, rollback };
-    static Action decide(uint32_t uptimeMs, bool supervisorAlive) {
-        if (uptimeMs >= healthyMs && supervisorAlive) return Action::confirm;
-        return uptimeMs >= supervisorMissingMs ? Action::rollback : Action::wait;
+    static Action decide(uint32_t uptimeMs, bool supervisorAlive, bool networkProven) {
+        if (uptimeMs >= healthyMs && supervisorAlive && networkProven) return Action::confirm;
+        if (uptimeMs >= supervisorMissingMs && !supervisorAlive) return Action::rollback;
+        return uptimeMs >= networkProofMs ? Action::rollback : Action::wait;
+    }
+    // lastAttemptMs: uptime of the previous failed attempt, 0 = none yet.
+    static bool attemptDue(uint32_t uptimeMs, uint32_t lastAttemptMs) {
+        return !lastAttemptMs || uptimeMs - lastAttemptMs >= retryMs;
     }
 };
 // An optional restart (e.g. to apply saved Bluetooth settings) waits for: no

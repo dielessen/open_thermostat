@@ -19,6 +19,17 @@ Companion release for E32 beta18. Install both together.
 - **Shadow comparison sensors**: heating time and burner starts today for the
   E32 and the thermostat, and their agreement.
 - **Burner short cycling** warning and burner starts in the last hour.
+- **Heating advice** (advice only, never changes a setting): short cycling, a
+  maximum heating temperature far above what the house needs, a return too warm
+  for condensing, the flow your rooms really need, night setback, hot-water
+  temperature, water pressure. Each item says what was seen, why it matters,
+  what to change and where, with its confidence.
+- **Energy and outdoor temperature** (Configure → Energy): optionally choose a
+  gas meter (m³ or kWh), a gas price or fixed price, the calorific value, an
+  outdoor temperature sensor or weather entity, and your boiler power. Without
+  them the advice still works, with rougher estimates.
+- **Learning per room**: learning status, recommended flow and predicted
+  heating start from the E32, plus hot water today.
 - Every setup step and field explains in plain language what it does; all
   boiler values have English and Dutch names; icons for all entities.
 

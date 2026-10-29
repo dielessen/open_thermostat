@@ -35,6 +35,24 @@ def test_climate_forwards_measurement_and_target():
     assert input_payload(state("climate.woonkamer", "heat", current_temperature="nan", temperature=99)) is None
 
 
+def test_fahrenheit_inputs_are_forwarded_in_celsius():
+    # A °F Home Assistant: climate attributes follow the unit system.
+    climate = state("climate.living_room", "heat", current_temperature=68, temperature=68)
+    assert json.loads(input_payload(climate, "°F")) == {
+        "entity": "climate.living_room", "temperature": 20.0, "target": 20.0}
+    # A °C Home Assistant with a °F sensor or setpoint: the entity's own unit counts.
+    assert json.loads(input_payload(state("sensor.attic", "68", unit_of_measurement="°F")))["temperature"] == 20.0
+    assert json.loads(input_payload(state("input_number.target", "70.7", unit_of_measurement="°F")))["target"] == 21.5
+    assert json.loads(input_payload(state("sensor.k", "293.15", unit_of_measurement="K")))["temperature"] == 20.0
+    # °C stays as it is, also in a °F Home Assistant for an entity that says °C.
+    assert json.loads(input_payload(state("sensor.room", "19.5", unit_of_measurement="°C"), "°F"))["temperature"] == 19.5
+    assert json.loads(input_payload(climate, "°C"))["target"] is None  # 68 °C is no room target
+    # Out of range after conversion, or not a temperature at all: nothing is sent.
+    assert input_payload(state("input_number.target", "100", unit_of_measurement="°F")) is None
+    assert input_payload(state("sensor.humidity", "55", unit_of_measurement="%")) is None
+    assert input_payload(state("sensor.attic", "nan", unit_of_measurement="°F")) is None
+
+
 @pytest.mark.asyncio
 async def test_forwards_exactly_the_plan_entities(hass, monkeypatch):
     from homeassistant.components import mqtt
@@ -67,6 +85,35 @@ async def test_forwards_exactly_the_plan_entities(hass, monkeypatch):
     callbacks["fixture/v1/fw/telemetry/heating"](SimpleNamespace(payload=json.dumps(STATUS), retain=True))
     callbacks["fixture/v1/fw/telemetry/heating"](SimpleNamespace(payload=json.dumps(STATUS), retain=False))
     assert tracked == [["climate.woonkamer"]]
+
+
+@pytest.mark.asyncio
+async def test_a_fahrenheit_home_assistant_forwards_celsius(hass, monkeypatch):
+    from homeassistant.components import mqtt
+    from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
+    from custom_components.open_thermostat import heating_link as module
+    from custom_components.open_thermostat.const import DOMAIN
+    callbacks, published = {}, []
+    monkeypatch.setattr(mqtt, "async_wait_for_mqtt_client", AsyncMock())
+
+    async def subscribe(hass, topic, callback):
+        callbacks[topic] = callback
+        return lambda: None
+    monkeypatch.setattr(mqtt, "async_subscribe", subscribe)
+
+    async def publish(hass, topic, payload, qos, retain):
+        published.append(json.loads(payload))
+    monkeypatch.setattr(mqtt, "async_publish", publish)
+    monkeypatch.setattr(module, "async_track_state_change_event", lambda hass, ids, cb: lambda: None)
+    monkeypatch.setattr(module, "async_track_time_interval", lambda hass, cb, interval: lambda: None)
+    hass.config.units = US_CUSTOMARY_SYSTEM
+    hass.data[DOMAIN] = {"e": {"v1_connection": SimpleNamespace(client=object(), prefix="fixture/v1/")}}
+    entry = SimpleNamespace(entry_id="e", data={"topic_prefix": "fixture"}, async_on_unload=lambda _: None)
+    hass.states.async_set("climate.woonkamer", "heat", {"current_temperature": 68, "temperature": 70.7})
+    await module.async_setup_heating_link(hass, entry, lambda *_a, **_k: None)
+    callbacks["fixture/v1/fw/telemetry/heating"](SimpleNamespace(payload=json.dumps(STATUS), retain=False))
+    await hass.async_block_till_done()
+    assert {"entity": "climate.woonkamer", "temperature": 20.0, "target": 21.5} in published
 
 
 FULL = {**STATUS, "revision": 7,
@@ -632,3 +679,113 @@ def test_learning_states_and_icons_in_both_languages():
     assert set(icons["room_learning"]["state"]) == set(states["strings.json"])
     from custom_components.open_thermostat.heating_link import LEARNING_STATES
     assert LEARNING_STATES == list(states["strings.json"])
+
+# -- learned rooms on their own topic (MQTT size limit) --
+
+
+def test_learned_room_messages_are_strict():
+    from custom_components.open_thermostat.heating_link import decode_learned
+    room = {"id": "woonkamer", "emitter": "floor", "readiness": "ready", "advice": []}
+    message = {"schema": 1, "id": "woonkamer", "learned": room, "plan": None}
+    assert decode_learned("woonkamer", json.dumps(message)) == (room, None)
+    assert decode_learned("woonkamer", json.dumps({**message, "plan": PLANS["rooms"][0]}))[1]["id"] == "woonkamer"
+    for bad in ({**message, "schema": 2}, {**message, "id": "zolder"}, {**message, "learned": []},
+                {**message, "plan": "x"}, "not json"):
+        assert decode_learned("woonkamer", bad if type(bad) is str else json.dumps(bad)) is None
+    assert decode_learned("BAD id", json.dumps(message)) is None
+    assert decode_learned("woonkamer", "x" * 9000) is None
+
+
+async def _setup_topics(hass, monkeypatch):
+    from homeassistant.components import mqtt
+    from custom_components.open_thermostat import heating_link as module
+    from custom_components.open_thermostat.const import DOMAIN
+    callbacks, added = {}, []
+    monkeypatch.setattr(mqtt, "async_wait_for_mqtt_client", AsyncMock())
+
+    async def subscribe(hass, topic, callback):
+        callbacks[topic] = callback
+        return lambda: None
+    monkeypatch.setattr(mqtt, "async_subscribe", subscribe)
+    monkeypatch.setattr(mqtt, "async_publish", AsyncMock())
+    monkeypatch.setattr(module, "async_track_state_change_event", lambda hass, ids, cb: lambda: None)
+    monkeypatch.setattr(module, "async_track_time_interval", lambda hass, cb, interval: lambda: None)
+    hass.data[DOMAIN] = {"e": {"v1_connection": SimpleNamespace(client=object(), prefix="fixture/v1/")}}
+    entry = SimpleNamespace(entry_id="e", data={"topic_prefix": "fixture"}, async_on_unload=lambda f: None)
+    await module.async_setup_heating_link(hass, entry, added.extend)
+    hub = hass.data[DOMAIN]["e"]["heating_hub"]
+    now = [1000.0]
+    hub.clock = lambda: now[0]
+
+    def status(value):
+        callbacks["fixture/v1/fw/telemetry/heating"](SimpleNamespace(payload=json.dumps(value), retain=False))
+
+    def learned(room_id, value, retain=False):
+        callbacks["fixture/v1/fw/telemetry/heating_learned/+"](SimpleNamespace(
+            topic=f"fixture/v1/fw/telemetry/heating_learned/{room_id}", payload=json.dumps(value), retain=retain))
+    return hub, added, now, status, learned
+
+
+@pytest.mark.asyncio
+async def test_learned_rooms_arrive_per_room_and_expire_on_their_own(hass, monkeypatch):
+    hub, added, now, status, learned = await _setup_topics(hass, monkeypatch)
+    # The newer status keeps only the learned header (and no room details the plan holds).
+    header = {"schema": 1, "applied": False, "status": "learning", "heating_periods": 5}
+    room = {k: v for k, v in FULL["rooms"][0].items() if k not in ("inactive_until",)}
+    status({**FULL, "rooms": [room], "learned": header})
+    assert _learned_ids(added) == []
+    woonkamer = LEARNED["rooms"][0]
+    message = {"schema": 1, "id": "woonkamer", "plan": {"optimum_start": START, "night": NIGHT},
+               "learned": {**{k: woonkamer[k] for k in ("id", "emitter", "readiness", "segments", "periods",
+                                                       "loss_per_h", "capacity_kwh_per_k", "now")},
+                           "advice": [woonkamer["advice"][2]]}}
+    learned("woonkamer", message, retain=True)  # retained: ignored
+    assert hub.learned == {}
+    learned("woonkamer", message)
+    assert _learned_ids(added) == ["fixture_e32_room_woonkamer_flow_advice", "fixture_e32_room_woonkamer_heating_start",
+                                   "fixture_e32_room_woonkamer_learning"]
+    by_id = {e.unique_id: e for e in added}
+    advice, learning = by_id["fixture_e32_room_woonkamer_flow_advice"], by_id["fixture_e32_room_woonkamer_learning"]
+    start = by_id["fixture_e32_room_woonkamer_heating_start"]
+    assert advice.native_value == 34 and advice.extra_state_attributes["rule"] == "higher_wasteful"
+    assert learning.native_value == "ready" and learning.extra_state_attributes["applied"] is False
+    assert start.available and start.extra_state_attributes["night_recommended_c"] == 17.5
+    # A message without a plan (no trusted clock) removes the room's plan only.
+    learned("woonkamer", {**message, "plan": None})
+    assert not start.available and advice.available
+    # A message for another room or with a wrong id changes nothing.
+    learned("zolder", {**message, "id": "woonkamer"})
+    assert set(hub.learned) == {"woonkamer"}
+    # The main status every 15 s keeps the learned room; its own message expires after 180 s.
+    now[0] += 170
+    status({**FULL, "rooms": [room], "learned": header})
+    hub.check_stale()
+    assert advice.available
+    now[0] += 20
+    hub.check_stale()
+    assert hub.learned == {} and not advice.available and not learning.available
+    # Older firmware (learned rooms inside the status) still works.
+    status({**FULL, "rooms": [room], "learned": LEARNED})
+    assert advice.available and advice.native_value == 34
+
+
+@pytest.mark.asyncio
+async def test_room_details_left_out_of_the_mqtt_rooms_come_from_the_plan(hass, monkeypatch):
+    from custom_components.open_thermostat.heating_link import RoomStatusSensor
+    from custom_components.open_thermostat.room_plan import RoomPlanLink, until_datetime
+    hub, added, now, status, learned = await _setup_topics(hass, monkeypatch)
+    room = {k: v for k, v in FULL["rooms"][0].items() if k != "inactive_until"}
+    status({**FULL, "rooms": [{**room, "state": "inactive"}]})
+    link = RoomPlanLink.__new__(RoomPlanLink)
+    link.hub = hub
+    link.plan = {"revision": 7, "rooms": [{"id": "woonkamer", "state": "inactive", "inactive_until": 1893456000,
+                                           "fallback_centi_c": 1900, "minimum_centi_c": 1500,
+                                           "maximum_centi_c": 2400}]}
+    hub.plan = link
+    operation = link.operation("woonkamer")
+    assert operation["inactive_until"] == 1893456000 and until_datetime(operation) is not None
+    assert RoomStatusSensor(hub, hub.rooms["woonkamer"]).extra_state_attributes["inactive_until"] == 1893456000
+    # A status that still carries it keeps the live value.
+    status({**FULL, "rooms": [{**room, "state": "inactive", "inactive_until": 0}]})
+    assert link.operation("woonkamer")["inactive_until"] == 0
+    hub.plan = None

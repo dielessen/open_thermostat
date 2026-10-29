@@ -10,7 +10,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 import json,re
 
-from .graph_shadow_validation import canonical,digest,raw_document,obj,integer,ident,exact,GraphValidationError
+from .graph_shadow_validation import canonical,digest,raw_document,obj,integer,ident,exact,GraphValidationError,time_zone_name
 from .v1_model import RoomBinding,EntityReference,ROOM_GRAPH_DRAFT,integration_mode,MODE_SHADOW
 from .v1_heating_graph import validated_graph,resolved_reference
 
@@ -322,7 +322,7 @@ class NativePlanSource:
                     from .compact_schedule import expand_schedule
                     schedule=expand_schedule(schedule)
                 c=obj(schedule,"base_centi_c policy timezone transitions valid_from_utc valid_until_utc")
-                require(c["timezone"] in ("UTC","Europe/Amsterdam") and c["policy"]=="wall-clock-membership/v1","native_schedule")
+                require(time_zone_name(c["timezone"]) and c["policy"]=="wall-clock-membership/v1","native_schedule")
                 begin=integer(c["valid_from_utc"],946684800,4102444799)
                 end=integer(c["valid_until_utc"],begin+1,min(begin+16*86400,4102444800))
                 integer(c["base_centi_c"],z["minimum_target_centi_c"],z["maximum_target_centi_c"])
@@ -362,7 +362,7 @@ class NativePlanSource:
             if schedule is None:continue
             obj(schedule,"base_centi_c policy timezone transitions valid_from_utc valid_until_utc")
             exact(schedule["policy"],"wall-clock-membership/v1")
-            require(schedule["timezone"] in ("UTC","Europe/Amsterdam"),"native_legacy_schedule")
+            require(time_zone_name(schedule["timezone"]),"native_legacy_schedule")
             begin=integer(schedule["valid_from_utc"],946684800,4102444799)
             end=integer(schedule["valid_until_utc"],begin+1,min(begin+16*86400,4102444800))
             integer(schedule["base_centi_c"],z["minimum_target_centi_c"],z["maximum_target_centi_c"])

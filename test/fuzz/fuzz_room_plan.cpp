@@ -119,7 +119,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, std::size_t size) {
         if (!cJSON_IsObject(cJSON_GetObjectItemCaseSensitive(learned.get(), "inputs"))) otfuzz::invariant("learned without inputs");
     }
     // Time helpers used for the week program.
-    const auto t = RoomSchedule::amsterdam(int64_t(unixTime) + int64_t(mode) * 86400 * 97);
-    if (t.weekday > 6 || t.minute > 1439) otfuzz::invariant("amsterdam() out of range");
+    const auto t = RoomSchedule::localAt(int64_t(unixTime) + int64_t(mode) * 86400 * 97);
+    if (t.weekday > 6 || t.minute > 1439) otfuzz::invariant("localAt() out of range");
     return 0;
 }

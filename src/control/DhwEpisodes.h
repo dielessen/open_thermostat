@@ -1,6 +1,6 @@
 #pragma once
 #include "EMS/ClassicBoilerMonitor.h"
-#include "control/ShadowComparison.h" // localDay (Europe/Amsterdam)
+#include "control/ShadowComparison.h" // localDay (device TZ)
 #include <algorithm>
 #include <array>
 #include <cJSON.h>

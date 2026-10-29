@@ -178,7 +178,7 @@ private:
     }
     static std::optional<int16_t> setpoint(const RoomPlan::Room& room, const Runtime& rt, SetpointSource source, std::optional<uint32_t> unixNow) {
         if (source == SetpointSource::ha) return rt.target;
-        if (source == SetpointSource::schedule) return room.schedule.at(RoomSchedule::amsterdam(*unixNow));
+        if (source == SetpointSource::schedule) return room.schedule.at(RoomSchedule::localAt(*unixNow));
         return room.fallbackCentiC;
     }
     static void centi(cJSON* o, const char* key, std::optional<int16_t> v) {

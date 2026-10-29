@@ -4,7 +4,7 @@ Each point uses six URL-safe base64 digits: 24 bits of second offset followed
 by 12 bits of temperature. Chunks contain at most ten points, so every JSON
 string stays below the existing 64-byte bound. No padding or truncation.
 """
-from .graph_shadow_validation import GraphValidationError
+from .graph_shadow_validation import GraphValidationError, time_zone_name
 
 POLICY = "wall-clock-packed/v1"
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
@@ -19,7 +19,7 @@ def _require(ok):
 def expand_schedule(schedule):
     _require(type(schedule) is dict and set(schedule) == {
         "base_centi_c", "policy", "timezone", "transitions", "valid_from_utc", "valid_until_utc"})
-    _require(schedule["policy"] == POLICY and schedule["timezone"] in ("UTC", "Europe/Amsterdam"))
+    _require(schedule["policy"] == POLICY and time_zone_name(schedule["timezone"]))
     start, end, base = (schedule[k] for k in ("valid_from_utc", "valid_until_utc", "base_centi_c"))
     _require(type(start) is type(end) is type(base) is int
              and 946684800 <= start < end <= 4102444800

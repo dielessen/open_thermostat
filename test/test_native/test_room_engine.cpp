@@ -1,4 +1,5 @@
 #include "control/RoomEngine.h"
+#include "ScopedTz.h"
 #include <gtest/gtest.h>
 #include <memory>
 
@@ -140,6 +141,7 @@ TEST(RoomEngine, EditingThePlanKeepsReadingsAndTheRunningRequest) {
 namespace {
 // Without HA the E32 follows its own week program; without a clock the fallback.
 TEST(RoomEngine, StaleHomeAssistantTargetFallsBackToTheWeekProgram) {
+    ScopedTz tz(ScopedTz::amsterdam);
     std::string text = ownerPlan;
     // Every day: 18.0 from 22:30, 20.5 from 06:30 local time.
     const std::string week = R"(,"schedule":[[[390,2050],[1350,1800]],[],[],[],[],[],[]])";
@@ -160,6 +162,26 @@ TEST(RoomEngine, StaleHomeAssistantTargetFallsBackToTheWeekProgram) {
     e.bleReading("a4c138a3e8db", 1950, 20 * minute);
     EXPECT_EQ(room(20 * minute, 1792980000), std::make_pair(18.0, std::string("schedule")));
     EXPECT_EQ(room(21 * minute, std::nullopt), std::make_pair(20.0, std::string("fallback")));
+}
+
+// The week program follows the device's TZ: 06:30 in New York is 11:30 UTC.
+TEST(RoomEngine, WeekProgramRunsOnTheDeviceTimeZone) {
+    ScopedTz tz(ScopedTz::newYork);
+    std::string text = ownerPlan;
+    const std::string week = R"(,"schedule":[[[390,2050],[1350,1800]],[],[],[],[],[],[]])"; // Mon 06:30 20.5, 22:30 18.0
+    text.insert(text.find("\"maximum_centi_c\":2500}") + 22, week);
+    RoomEngine e; e.setPlan(parsed(text.c_str()));
+    const auto setpoint = [&](uint64_t now, uint32_t utc) {
+        e.bleReading("a4c138a3e8db", 1950, now);
+        e.step(now, utc);
+        Json j(e.json(), cJSON_Delete);
+        const auto* r = cJSON_GetArrayItem(cJSON_GetObjectItem(j.get(), "rooms"), 0);
+        EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(r, "setpoint_source")), "schedule");
+        return cJSON_GetNumberValue(cJSON_GetObjectItem(r, "setpoint"));
+    };
+    const uint32_t monday0630Est = 1767591000 + 6 * 3600; // Mon 2026-01-05 06:30 EST
+    EXPECT_EQ(setpoint(minute, monday0630Est - 3600), 18.0);    // 05:30 EST (10:30 UTC, after 06:30 in Amsterdam)
+    EXPECT_EQ(setpoint(2 * minute, monday0630Est), 20.5);
 }
 }
 

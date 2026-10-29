@@ -26,7 +26,7 @@ from homeassistant.helpers.restore_state import ExtraStoredData, RestoreEntity
 
 from .boiler_fields import INDEXES, BoilerFieldCache, spec
 from .const import DOMAIN
-from .energy_input import CONF_BOILER_KW, CONF_GAS_METER, energy_options, gas_price
+from .energy_input import CONF_BOILER_KW, CONF_GAS_METER, currency, energy_options, gas_price, kwh_per_m3
 
 # -- sampling ------------------------------------------------------------------
 SAMPLE_SECONDS = 300
@@ -67,7 +67,7 @@ LEARNED_HIGH_SECONDS = 6 * 3600
 NIGHT_MIN_SAVING_M3 = 0.05
 NIGHT_HIGH_SAVING_M3 = 0.2
 NIGHT_HOLD_SECONDS = 1800
-GAS_KWH_PER_M3 = 9.77           # the E32's own conversion (NL gas, upper value)
+GAS_KWH_PER_M3 = 9.77           # default calorific value (the E32's own); configurable
 # 6. Hot water
 DHW_HIGH_C = 60
 DHW_SUGGESTED_C = 55
@@ -176,8 +176,8 @@ def rule_short_cycling(samples, ctx):
     values = {"hours": one(span(best) / 3600), "starts": starts, "mbp": minimum, "mbp_target": one(target, 0),
               "hyst_on": latest(samples, "hn"), "hyst_off": latest(samples, "hf"), "max_ch": latest(samples, "mx")}
     parts = ["flagonly"] if starts is None else []
-    parts += [part for part, key in (("mbp", "mbp"), ("hyst", "hyst_on"), ("maxch", "max_ch"))
-              if values[key] is not None]
+    parts += [part for part, keys in (("mbp", ("mbp",)), ("hyst", ("hyst_on", "hyst_off")), ("maxch", ("max_ch",)))
+              if all(values[key] is not None for key in keys)]
     if minimum is not None and minimum >= MINIMUM_BURNER_PERIOD_MAX_MIN:
         parts.append("mbpmax")
     severity = "warning" if starts is not None and starts >= SHORT_CYCLE_WARNING_STARTS else "suggestion"
@@ -262,29 +262,38 @@ def rule_learned_flow(samples, ctx):
 
 
 def night_saving(night, ctx):
-    """(values, parts, confidence) of one night estimate: m³/€ with a gas meter, kWh without."""
+    """(values, parts, confidence) of one night estimate.
+
+    m³ (and money with a price) with a gas meter, kWh without; without the
+    boiler's power the estimate is rough (the E32 then assumes a default).
+    """
     m3 = night["m3"]
     gas = ctx.get("gas_meter", False)
     price = ctx.get("price")
-    values, parts = {"saving_m3": one(m3, 2), "saving_kwh": one(m3 * GAS_KWH_PER_M3)}, []
+    values = {"saving_m3": one(m3, 2), "saving_kwh": one(m3 * ctx.get("kwh_per_m3", GAS_KWH_PER_M3)),
+              "currency": ctx.get("currency", "EUR")}
+    parts = []
     if gas:
-        eur = night.get("eur")
-        if eur is None and price is not None:
-            eur = m3 * price
-        if eur is not None and price is not None:
-            values["saving_eur"] = one(eur, 2)
-            parts.append("eur")
+        money = night.get("eur") if price is not None else None
+        if money is None and price is not None:
+            money = m3 * price
+        if money is not None:
+            values["saving_money"] = one(money, 2)
+            parts.append("money")
     else:
         parts += ["kwh", "no_gas"]
     calibrated = night.get("conf") == "calibrated"
     if calibrated:
         confidence = "high" if m3 >= NIGHT_HIGH_SAVING_M3 else "medium"
-    elif gas and night.get("conf") is None:
+    elif gas and night.get("conf") is None and ctx.get("boiler_kw"):
         confidence = "medium"
     else:
         confidence = "low"
-        if gas:
+        if gas and night.get("conf") is not None:
             parts.append("calibrating")
+    if not ctx.get("boiler_kw") and not calibrated:
+        confidence = "low"
+        parts.append("rough")
     return values, parts, confidence
 
 
@@ -467,7 +476,7 @@ TEXT = {
                             "of gas per night and still gets the room warm on time.",
                 "observed@kwh": "The E32 estimates that a night temperature of {night} °C saves about "
                                 "{saving_kwh} kWh per night and still gets the room warm on time.",
-                "observed+eur": " That is about € {saving_eur} per night.",
+                "observed+money": " That is about {saving_money} {currency} per night.",
                 "why": "A night setback saves gas, but one that is too deep costs extra to warm up again in the "
                        "morning; the E32 compared the options with what it learned about this room.",
                 "action": "Set the night temperature of {room} to {night} °C in the week program.",
@@ -476,6 +485,8 @@ TEXT = {
                                  "calibrate it.",
                 "action+calibrating": " The E32 calibrates the estimate once it has seen a few gas meter "
                                       "readings.",
+                "action+rough": " Without your boiler's power this is only a rough estimate: set it under "
+                                "Energy and outdoor temperature.",
                 "where": "Home Assistant: OpenThermostat → Configure → Rooms → the room's week program.",
             },
             "dhw_high": {
@@ -501,7 +512,7 @@ TEXT = {
             "pressure_low": {
                 "title": "Water pressure low",
                 "observed": "The system pressure has been {pressure} bar for at least {minutes} min.",
-                "why": "Below about 1 bar the boiler can lock out, and air can get into the radiators upstairs.",
+                "why": "Below about 1 bar the boiler can lock out, and air can get into the highest radiators.",
                 "action": "Top up the system at the filling tap to 1.5–2.0 bar (with the system cold). If you "
                           "have to top up often, look for a leak or have the expansion vessel checked.",
                 "where": "Filling tap or filling loop at the boiler.",
@@ -518,8 +529,8 @@ TEXT = {
             "pump_run_on_long": {
                 "title": "Pump keeps running long after heating",
                 "observed": "The boiler's pump run-on time is {run_on} min.",
-                "why": "Floor heating has its own pump at the manifold; a long boiler pump run-on then mainly "
-                       "costs electricity and moves lukewarm water around after the heat demand ended.",
+                "why": "Floor heating mostly has its own pump at the manifold; a long boiler pump run-on then "
+                       "mainly costs electricity and moves lukewarm water around after the heat demand ended.",
                 "action": "Shorten the pump run-on to about 3–5 min.",
                 "where": "Boiler service menu (installer level).",
             },
@@ -637,7 +648,7 @@ TEXT = {
                             "nacht bespaart en de ruimte toch op tijd warm krijgt.",
                 "observed@kwh": "De E32 schat dat een nachttemperatuur van {night} °C ongeveer {saving_kwh} kWh "
                                 "per nacht bespaart en de ruimte toch op tijd warm krijgt.",
-                "observed+eur": " Dat is ongeveer € {saving_eur} per nacht.",
+                "observed+money": " Dat is ongeveer {saving_money} {currency} per nacht.",
                 "why": "Een nachtverlaging bespaart gas, maar een te diepe verlaging kost 's ochtends extra om "
                        "weer op te warmen; de E32 vergeleek de mogelijkheden met wat hij van deze ruimte leerde.",
                 "action": "Zet de nachttemperatuur van {room} in het weekprogramma op {night} °C.",
@@ -646,6 +657,8 @@ TEXT = {
                                  "kalibreren.",
                 "action+calibrating": " De E32 kalibreert de schatting zodra hij een paar gasmeterstanden heeft "
                                       "gezien.",
+                "action+rough": " Zonder het vermogen van je ketel is dit maar een ruwe schatting: stel het in "
+                                "onder Energie en buitentemperatuur.",
                 "where": "Home Assistant: OpenThermostat → Configureren → Ruimtes → het weekprogramma van de "
                          "ruimte.",
             },
@@ -673,7 +686,7 @@ TEXT = {
             "pressure_low": {
                 "title": "Waterdruk laag",
                 "observed": "De waterdruk is al minstens {minutes} min {pressure} bar.",
-                "why": "Onder ongeveer 1 bar kan de ketel in storing gaan en kan er lucht in de radiatoren boven "
+                "why": "Onder ongeveer 1 bar kan de ketel in storing gaan en kan er lucht in de hoogste radiatoren "
                        "komen.",
                 "action": "Vul de installatie bij via de vulkraan tot 1,5–2,0 bar (met de installatie koud). Moet "
                           "je vaak bijvullen, zoek dan een lek of laat het expansievat nakijken.",
@@ -691,8 +704,8 @@ TEXT = {
             "pump_run_on_long": {
                 "title": "Pomp draait lang na",
                 "observed": "De pompnaloop van de ketel is {run_on} min.",
-                "why": "Vloerverwarming heeft een eigen pomp bij de verdeler; een lange naloop van de ketelpomp "
-                       "kost dan vooral stroom en pompt lauw water rond nadat de warmtevraag stopte.",
+                "why": "Vloerverwarming heeft meestal een eigen pomp bij de verdeler; een lange naloop van de "
+                       "ketelpomp kost dan vooral stroom en pompt lauw water rond nadat de warmtevraag stopte.",
                 "action": "Verkort de pompnaloop tot ongeveer 3–5 min.",
                 "where": "Servicemenu van de ketel (installateursniveau).",
             },
@@ -942,8 +955,9 @@ class HeatingAdviceSensor(RestoreEntity, SensorEntity):
         hass = getattr(self, "hass", None)
         return {"today": self._today(now), "days": self.history.days, "floor": floor_present(self.hub),
                 "max_flow": plan_max_flow(self.hub), "names": names,
-                "gas_meter": CONF_GAS_METER in options,
+                "gas_meter": CONF_GAS_METER in options, "kwh_per_m3": kwh_per_m3(options),
                 "price": gas_price(hass, options) if hass is not None else None,
+                "currency": currency(hass) if hass is not None else "EUR",
                 "boiler_kw": options.get(CONF_BOILER_KW),
                 "learning": bool(self.hub.learned) or bool(self.hub.warmup)}
 

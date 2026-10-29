@@ -270,7 +270,7 @@ class ProductOptionsFlow(E32RoomFlow, ControllerSetupFlow, ShadowOptionsFlow, Pr
 
     async def async_step_energy(self, user_input=None):
         """Optional gas meter, gas price, outdoor temperature and boiler power (nothing is required)."""
-        from .energy_input import EnergyError, energy_schema, save_energy, validate_energy
+        from .energy_input import EnergyError, currency, energy_schema, save_energy, validate_energy
         errors = {}
         if user_input is not None:
             try:
@@ -280,7 +280,7 @@ class ProductOptionsFlow(E32RoomFlow, ControllerSetupFlow, ShadowOptionsFlow, Pr
             else:
                 save_energy(self.hass, self.config_entry, values)
                 return self.async_abort(reason="energy_saved")
-        schema = energy_schema(vol, self.config_entry.options)
+        schema = energy_schema(vol, self.config_entry.options, currency(self.hass))
         return self.async_show_form(step_id="energy", data_schema=retained_input_schema(self, schema, user_input),
                                     errors=errors)
 

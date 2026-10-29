@@ -38,6 +38,7 @@ def manager(hass, monkeypatch):
     hass.states.async_set("sensor.hal", "19.2", {"device_class": "temperature", "unit_of_measurement": "°C"})
     hass.states.async_set("sensor.gang", "18.7", {"device_class": "temperature", "unit_of_measurement": "°C"})
     hass.states.async_set("sensor.zolder_f", "64", {"device_class": "temperature", "unit_of_measurement": "°F"})
+    hass.states.async_set("sensor.vocht", "55", {"device_class": "humidity", "unit_of_measurement": "%"})
     hass.states.async_set("input_number.badkamer_doel", "21", {"unit_of_measurement": "°C"})
     return hass.config_entries.options
 
@@ -101,7 +102,7 @@ async def test_a_room_with_home_assistant_and_bluetooth_sources_is_added_to_the_
     e32 = FakeE32()
     parent, hub = product(hass, e32)
     menu = await rooms_menu(manager, parent)
-    assert menu["menu_options"] == ["e32_room_add", "e32_room_pick"]
+    assert menu["menu_options"] == ["e32_room_add", "e32_room_pick", "e32_flow_limits"]
     assert menu["description_placeholders"]["revision"] == "4"
     assert "- Woonkamer: climate.woonkamer, Bluetooth Slaapkamer (a4c138a3e8db)" in menu["description_placeholders"]["rooms"]
     form = await manager.async_configure(menu["flow_id"], {"next_step_id": "e32_room_add"})
@@ -142,7 +143,7 @@ async def test_a_room_with_home_assistant_and_bluetooth_sources_is_added_to_the_
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("sources,error", [
-    (["sensor.zolder_f"], "e32_source_not_celsius"),
+    (["sensor.vocht"], "e32_source_not_celsius"),
     (["climate.no_reading"], "e32_source_no_temperature"),
     (["sensor.missing"], "e32_source_not_found"),
     (["sensor." + "x" * 80], "e32_source_invalid_id"),
@@ -163,17 +164,64 @@ async def test_a_source_the_e32_cannot_read_is_refused_with_a_clear_message(hass
 
 
 @pytest.mark.asyncio
-async def test_fahrenheit_home_assistant_climate_and_setpoints_are_refused(hass, manager):
+async def test_fahrenheit_sources_and_home_assistant_are_accepted_non_temperatures_refused(hass, manager):
+    """°F sensors, setpoints and a °F Home Assistant are converted to °C on the way to the E32."""
     e32 = FakeE32()
     parent, _ = product(hass, e32)
     hass.states.async_set("input_number.doel_f", "70", {"unit_of_measurement": "°F"})
+    hass.states.async_set("input_number.doel_pct", "70", {"unit_of_measurement": "%"})
     form = await room_form(manager, parent)
-    form = await manager.async_configure(form["flow_id"], {**NEW_ROOM, "setpoint_entity": "input_number.doel_f"})
+    form = await manager.async_configure(form["flow_id"], {**NEW_ROOM, "setpoint_entity": "input_number.doel_pct"})
     assert form["errors"] == {"setpoint_entity": "e32_source_not_celsius"}
     from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
     hass.config.units = US_CUSTOMARY_SYSTEM
-    form = await manager.async_configure(form["flow_id"], {**NEW_ROOM, "ha_sources": ["climate.woonkamer"]})
-    assert form["errors"] == {"ha_sources": "e32_source_not_celsius"}
+    result = await manager.async_configure(form["flow_id"], {
+        **NEW_ROOM, "ha_sources": ["climate.woonkamer", "sensor.zolder_f"], "ble_sources": [],
+        "setpoint_entity": "input_number.doel_f"})
+    assert result["reason"] == "e32_room_saved", result
+    added = e32.plan["rooms"][-1]
+    assert {"type": "ha", "id": "sensor.zolder_f"} in added["sources"]
+
+
+async def flow_limits_form(manager, parent):
+    flow = await rooms_menu(manager, parent)
+    form = await manager.async_configure(flow["flow_id"], {"next_step_id": "e32_flow_limits"})
+    assert form["type"] == "form" and form["step_id"] == "e32_flow_limits", form
+    return form
+
+
+@pytest.mark.asyncio
+async def test_flow_temperature_limits_are_edited_in_the_e32_plan(hass, manager):
+    e32 = FakeE32()
+    parent, hub = product(hass, e32)
+    form = await flow_limits_form(manager, parent)
+    assert shown(form) == {"minimum_flow_temperature": 30, "maximum_flow_temperature": 60}
+    posts = len(e32.posts)
+    for values, error in [({"minimum_flow_temperature": 45, "maximum_flow_temperature": 45}, "e32_flow_limits_order"),
+                          ({"minimum_flow_temperature": 50, "maximum_flow_temperature": 40}, "e32_flow_limits_order"),
+                          ({"minimum_flow_temperature": 25, "maximum_flow_temperature": 45.5}, "e32_flow_limits_invalid")]:
+        form = await manager.async_configure(form["flow_id"], values)
+        assert form["type"] == "form" and form["errors"] == {"base": error}, form
+    for values in [{"minimum_flow_temperature": 19, "maximum_flow_temperature": 45},
+                   {"minimum_flow_temperature": 25, "maximum_flow_temperature": 61}]:
+        with pytest.raises(InvalidData):  # the selector bounds: 20–59 and 21–60
+            await manager.async_configure(form["flow_id"], values)
+    assert len(e32.posts) == posts
+    # Another writer changes a room meanwhile: only the flow limits are applied on top.
+    e32.before_save.append(other_side("name", "Badkamer boven"))
+    result = await manager.async_configure(form["flow_id"], {"minimum_flow_temperature": 25,
+                                                             "maximum_flow_temperature": 45})
+    assert result["type"] == "abort" and result["reason"] == "e32_flow_limits_saved", result
+    assert result["description_placeholders"] == {"minimum": "25", "maximum": "45"}
+    assert (e32.plan["minimum_flow_c"], e32.plan["maximum_flow_c"]) == (25, 45)
+    assert next(r for r in e32.plan["rooms"] if r["id"] == "badkamer")["name"] == "Badkamer boven"
+    assert hub.plan.plan == e32.plan
+    # Saving the same values again writes nothing.
+    form = await flow_limits_form(manager, parent)
+    assert shown(form) == {"minimum_flow_temperature": 25, "maximum_flow_temperature": 45}
+    posts = len(e32.posts)
+    result = await manager.async_configure(form["flow_id"], shown(form))
+    assert result["reason"] == "e32_room_unchanged" and len(e32.posts) == posts
 
 
 @pytest.mark.asyncio
@@ -357,7 +405,7 @@ async def test_menu_offers_no_add_with_eight_rooms_and_an_unreachable_e32_aborts
     e32 = FakeE32({**PLAN, "rooms": [{**PLAN["rooms"][0], "id": f"room_{n}"} for n in range(8)]})
     parent, hub = product(hass, e32)
     menu = await rooms_menu(manager, parent)
-    assert menu["menu_options"] == ["e32_room_pick"]
+    assert menu["menu_options"] == ["e32_room_pick", "e32_flow_limits"]
     attempts = []
     hub.plan._client = lambda: _Failing(attempts)
     flow = await manager.async_init(parent.entry_id)
@@ -436,13 +484,15 @@ def test_every_flow_key_has_a_translation(filename):
     options = document["options"]
     source = (COMPONENT / "e32_room_flow.py").read_text(encoding="utf-8")
     keys = set(re.findall(r'"(e32_[a-z_]+)"', source)) - {"e32_room_flow"}
-    steps = {"e32_rooms", "e32_room", "e32_room_add", "e32_room_pick", "e32_room_remove"}
+    steps = {"e32_rooms", "e32_room", "e32_room_add", "e32_room_pick", "e32_room_remove", "e32_flow_limits"}
     selectors = {"e32_room_state", "e32_room_emitter", "e32_room_action"}
     for key in keys - steps - selectors:
         assert key in options["error"] or key in options["abort"], key
     for key in selectors:
         assert document["selector"][key]["options"], key
-    assert set(options["step"]["e32_rooms"]["menu_options"]) == {"e32_room_add", "e32_room_pick"}
+    assert set(options["step"]["e32_rooms"]["menu_options"]) == {"e32_room_add", "e32_room_pick", "e32_flow_limits"}
+    assert set(options["step"]["e32_flow_limits"]["data"]) == {"minimum_flow_temperature", "maximum_flow_temperature"}
+    assert "45–50 °C" in options["step"]["e32_flow_limits"]["data_description"]["maximum_flow_temperature"]
     assert options["step"]["init"]["menu_options"]["e32_rooms"]
     room_step = options["step"]["e32_room"]
     assert set(room_step["data"]) == {"name", "state", "emitter", "ha_sources", "ble_sources", "bluetooth_first",

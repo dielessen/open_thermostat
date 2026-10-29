@@ -1,5 +1,6 @@
 #pragma once
 #include "control/FlowDemand.h"
+#include "control/RoomSchedule.h"
 #include <algorithm>
 #include <array>
 #include <cJSON.h>
@@ -9,7 +10,7 @@
 #include <optional>
 namespace heating::control {
 // Shadow mode: the E32 boiler request next to the tado's real one (0x1A from
-// 0x17), summed per local day (Europe/Amsterdam) for the owner's exit check:
+// 0x17), summed per local day (device TZ) for the owner's exit check:
 // heat at the same moments, flow in the same range, not more starts.
 // Pure and single-threaded: call sample() every 10 s; fixed size, no heap.
 class ShadowComparison {
@@ -76,15 +77,8 @@ public:
         return root;
     }
 
-    // Europe/Amsterdam: CET, CEST from the last Sunday of March to the last
-    // Sunday of October, both at 01:00 UTC (EU rule).
-    static int32_t localDay(uint32_t utc) {
-        int y; unsigned m, d;
-        civil(static_cast<int32_t>(utc / 86400), y, m, d);
-        const int64_t t = utc;
-        const bool summer = t >= lastSunday01Utc(y, 3) && t < lastSunday01Utc(y, 10);
-        return static_cast<int32_t>((t + (summer ? 7200 : 3600)) / 86400);
-    }
+    // The device's local day (TZ from the network settings, any DST rule).
+    static int32_t localDay(uint32_t utc) { return RoomSchedule::localDay(utc); }
     static int32_t daysFromCivil(int y, unsigned m, unsigned d) { // H. Hinnant's algorithm
         y -= m <= 2;
         const int era = (y >= 0 ? y : y - 399) / 400;
@@ -104,10 +98,6 @@ private:
         d = doy - (153 * mp + 2) / 5 + 1;
         m = mp < 10 ? mp + 3 : mp - 9;
         y = static_cast<int>(yoe) + era * 400 + (m <= 2);
-    }
-    static int64_t lastSunday01Utc(int y, unsigned m) { // March and October have 31 days
-        const int32_t last = daysFromCivil(y, m, 31);
-        return (int64_t(last) - (last + 4) % 7) * 86400 + 3600; // 1970-01-01 was a Thursday
     }
     static void add(Side& side, bool heat, uint8_t flowC, uint32_t dt) {
         if (!heat) return;

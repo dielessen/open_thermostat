@@ -1367,7 +1367,8 @@
         "description": "Hier stel je de ruimtes in. De E32 bewaart ze en blijft ze verwarmen, ook zonder Home Assistant (revisie {revision}).\n\n{rooms}",
         "menu_options": {
           "e32_room_add": "Ruimte toevoegen",
-          "e32_room_pick": "Ruimte bewerken of verwijderen"
+          "e32_room_pick": "Ruimte bewerken of verwijderen",
+          "e32_flow_limits": "Grenzen aanvoertemperatuur"
         }
       },
       "e32_room_pick": {
@@ -1422,6 +1423,18 @@
           }
         }
       },
+      "e32_flow_limits": {
+        "title": "Grenzen aanvoertemperatuur",
+        "description": "De laagste en hoogste watertemperatuur die de E32 aan de ketel mag vragen, voor alle ruimtes samen. {error}",
+        "data": {
+          "minimum_flow_temperature": "Minimale aanvoertemperatuur",
+          "maximum_flow_temperature": "Maximale aanvoertemperatuur"
+        },
+        "data_description": {
+          "minimum_flow_temperature": "De laagste aanvoertemperatuur die de E32 vraagt terwijl hij verwarmt (20–59 °C).",
+          "maximum_flow_temperature": "De hoogste aanvoertemperatuur die de E32 ooit vraagt (21–60 °C, boven het minimum). Vloerverwarming die rechtstreeks wordt gevoed, zonder mengklep, heeft meestal hoogstens 45–50 °C nodig; radiatoren soms tot 60 °C."
+        }
+      },
       "e32_room_remove": {
         "title": "E32-ruimte verwijderen",
         "description": "{name} verwijderen uit het ruimteplan van de E32? De E32 vraagt dan geen warmte meer voor deze ruimte. De Bluetooth-sensoren blijven gekoppeld.",
@@ -1439,13 +1452,15 @@
           "gas_meter": "Gasmeter",
           "gas_price_entity": "Gasprijssensor",
           "gas_price": "Vaste gasprijs",
+          "gas_kwh_per_m3": "Calorische waarde van het gas",
           "outdoor_entity": "Buitentemperatuur",
           "boiler_kw": "Verwarmingsvermogen ketel"
         },
         "data_description": {
-          "gas_meter": "Een totale gasmeterstand in m³ (bijvoorbeeld van een P1-meter of slimme gasmeter), met statusklasse total of total increasing.",
-          "gas_price_entity": "Een sensor of invoergetal met de prijs per m³ (eenheid zoals EUR/m³). Gebruik dit of een vaste prijs, niet allebei.",
-          "gas_price": "De prijs per m³ gas als je geen prijssensor hebt, bijvoorbeeld 1,35.",
+          "gas_meter": "Een totale gasmeterstand in m³, of in kWh (apparaatklasse gas of energie), met statusklasse total of total increasing; bijvoorbeeld van een slimme meter of een gaspulsteller. Een stand in kWh wordt met de calorische waarde omgerekend naar m³.",
+          "gas_price_entity": "Een sensor of invoergetal met de gasprijs per m³ of per kWh (eenheid zoals EUR/m³ of GBP/kWh). Gebruik dit of een vaste prijs, niet allebei.",
+          "gas_price": "De prijs per m³ gas in de valuta van je Home Assistant als je geen prijssensor hebt, bijvoorbeeld 1,35.",
+          "gas_kwh_per_m3": "Energie per m³ gas, van je gasleverancier of jaarafrekening. Leeg: 9,77 kWh/m³ (Nederlands gas, bovenwaarde); aardgas zit meestal tussen 8 en 12 kWh/m³.",
           "outdoor_entity": "Een temperatuursensor buiten (°C of °F) of een weerentiteit. Daarmee leert de E32 hoe snel ruimtes afkoelen.",
           "boiler_kw": "Het nominale verwarmingsvermogen van de ketel in kW (typeplaatje of handleiding), 3–60 kW. Leeg: de E32 gebruikt een standaardwaarde."
         }
@@ -1539,25 +1554,28 @@
       "e32_source_invalid_id": "De E32 kan {source} niet gebruiken: entiteit-ID's mogen maximaal 80 tekens hebben.",
       "e32_source_wrong_domain": "{source} kan hier niet gebruikt worden. Kies een thermostaat of temperatuursensor (voor de gewenste temperatuur een thermostaat, invoergetal of getal).",
       "e32_source_not_found": "{source} bestaat niet in Home Assistant.",
-      "e32_source_not_celsius": "{source} meldt geen °C. De E32 werkt alleen in °C; kies een sensor in °C.",
+      "e32_source_not_celsius": "{source} meldt geen temperatuur (°C of °F). Kies een temperatuursensor.",
       "e32_source_no_temperature": "{source} meldt geen actuele temperatuur. Kies een thermostaat die de ruimtetemperatuur meet, of een temperatuursensor.",
       "e32_limits_invalid": "Gebruik grenzen tussen 5 en 30 °C met het minimum niet boven het maximum, en een temperatuur zonder Home Assistant daartussen.",
       "e32_program_invalid": "Het weekprogramma is niet leesbaar. Gebruik één regel per groep dagen, bijvoorbeeld ma-vr: 06:30 20,5, 22:30 18, en noem elke dag in maar één regel.",
       "e32_program_too_many": "Een dag kan maximaal 6 schakelpunten hebben.",
       "e32_program_outside_limits": "Een temperatuur in het weekprogramma ligt buiten de temperatuurgrenzen van de ruimte.",
       "e32_plan_changed": "Het ruimteplan is tijdens het opslaan twee keer op de E32 gewijzigd. Er is niets opgeslagen; probeer het opnieuw.",
+      "e32_flow_limits_order": "De minimale aanvoertemperatuur moet lager zijn dan de maximale.",
+      "e32_flow_limits_invalid": "Vul hele graden in: minimum 20–59 °C, maximum 21–60 °C.",
       "e32_plan_too_large": "Het ruimteplan is te groot voor de E32 (4 KB). Gebruik kortere namen, minder bronnen of minder schakelpunten. Er is niets opgeslagen.",
       "e32_rejected": "De E32 weigerde het ruimteplan ({error}). Er is niets opgeslagen.",
       "e32_unreachable": "De E32 is niet bereikbaar ({error}). Er is niets opgeslagen.",
       "e32_room_limit": "Het ruimteplan van de E32 heeft al 8 ruimtes.",
       "entity_not_found": "Deze entiteit heeft geen status in Home Assistant.",
-      "gas_meter_unit": "Kies een gasmetersensor in m³.",
+      "gas_meter_unit": "Kies een gasmetersensor in m³, of in kWh met apparaatklasse gas of energie.",
       "gas_meter_not_total": "Kies een meterstand (statusklasse total of total increasing), geen verbruikssnelheid.",
-      "gas_price_unit": "Kies een prijs per m³ (eenheid zoals EUR/m³).",
-      "gas_price_invalid": "De gasprijs moet tussen 0,01 en 20 per m³ liggen.",
+      "gas_price_unit": "Kies een prijs per m³ of per kWh (eenheid zoals EUR/m³ of GBP/kWh).",
+      "gas_price_invalid": "Vul een gasprijs boven 0 in.",
       "gas_price_twice": "Gebruik een gasprijssensor of een vaste gasprijs, niet allebei.",
       "outdoor_unit": "Kies een temperatuursensor in °C of °F, of een weerentiteit met een temperatuur.",
-      "boiler_kw_invalid": "Het ketelvermogen moet tussen 3 en 60 kW liggen."
+      "boiler_kw_invalid": "Het ketelvermogen moet tussen 3 en 60 kW liggen.",
+      "gas_kwh_per_m3_invalid": "De calorische waarde moet tussen 5 en 15 kWh/m³ liggen."
     },
     "abort": {
       "graph_review_unavailable": "Geen bestaande schema-aansluiting met gekozen bron beschikbaar. Geen profiel ingeschakeld.",
@@ -1606,6 +1624,7 @@
       "e32_room_saved": "{name} is opgeslagen in het ruimteplan van de E32.",
       "e32_room_removed": "{name} is verwijderd uit het ruimteplan van de E32.",
       "e32_room_unchanged": "Er is niets gewijzigd; het ruimteplan van de E32 is niet opnieuw geschreven.",
+      "e32_flow_limits_saved": "De E32 vraagt nu een aanvoertemperatuur tussen {minimum} en {maximum} °C.",
       "energy_saved": "Energie-instellingen opgeslagen. Niets is verplicht; de E32 krijgt de waarden binnen een paar minuten."
     },
     "progress": {

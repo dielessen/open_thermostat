@@ -4,10 +4,13 @@ Policy wall-clock-membership/v1: evaluate local [start, end) membership at
 each real UTC boundary. Missing wall times have no instant; repeated wall
 times are evaluated twice. Offset changes are boundaries in their own right.
 
-Supported zones: UTC and Europe/Amsterdam, UTC windows within 2000..2099.
-The hourly offset search relies on these zones' modern tzdb history having
-at most one offset change per hour; do not expand this allowlist without
-validating that invariant and adding zone tests. No private ZoneInfo APIs.
+Supported zones: any IANA zone the system tzdata knows (Home Assistant's own
+time zone), UTC windows within 2000..2099. Offsets that are not whole hours
+(Asia/Kathmandu +05:45, Australia/Lord_Howe's 30-minute DST) are supported:
+the controller only receives UTC transitions; the zone name is metadata.
+Offset changes are searched minute by minute, so the compiler only relies on
+at most one offset change per minute (true for every tzdb zone). No private
+ZoneInfo APIs.
 
 No HA import, I/O, state listeners or timers are needed by compile_week.
 The async adapter uses HA's public response action and executor API only.
@@ -33,7 +36,11 @@ WEEKDAYS = (
     "monday", "tuesday", "wednesday", "thursday",
     "friday", "saturday", "sunday",
 )
-SUPPORTED_TIMEZONES = frozenset({"UTC", "Europe/Amsterdam"})
+# Syntactic IANA name rule shared with the controller and the Python mirrors:
+# at most 63 bytes, "/"-separated segments starting with an ASCII letter.
+TIMEZONE_NAME_PATTERN = re.compile(r"[A-Za-z][A-Za-z0-9_+-]*(?:/[A-Za-z][A-Za-z0-9_+-]*)*")
+MAX_TIMEZONE_NAME_BYTES = 63
+_OFFSET_SCAN_SECONDS = 60
 MIN_CENTI_C = 500
 MAX_CENTI_C = 3500
 MAX_WEEK_BLOCKS = 28
@@ -128,8 +135,9 @@ def _normalize_week(week: object) -> tuple[tuple[Block, ...], ...]:
 
 
 def _zone_and_window(tz_name: object, start: object, end: object) -> ZoneInfo:
-    if not isinstance(tz_name, str) or tz_name not in SUPPORTED_TIMEZONES:
-        raise ScheduleValidationError("only UTC and Europe/Amsterdam are supported")
+    if (not isinstance(tz_name, str) or len(tz_name) > MAX_TIMEZONE_NAME_BYTES
+            or TIMEZONE_NAME_PATTERN.fullmatch(tz_name) is None):
+        raise ScheduleValidationError("time zone must be an IANA time zone name such as Europe/Berlin")
     if type(start) is not int or type(end) is not int:
         raise ScheduleValidationError("UTC bounds must be integer POSIX seconds")
     if not MIN_UTC_SECOND <= start < end <= MAX_UTC_SECOND:
@@ -138,8 +146,9 @@ def _zone_and_window(tz_name: object, start: object, end: object) -> ZoneInfo:
         raise ScheduleValidationError("horizon exceeds 16 UTC days")
     try:
         return ZoneInfo(tz_name)
-    except ZoneInfoNotFoundError as err:
-        raise ScheduleValidationError("required system IANA timezone data unavailable") from err
+    except (ZoneInfoNotFoundError, ValueError, OSError) as err:
+        raise ScheduleValidationError(
+            f"time zone {tz_name} is unknown to the system IANA time zone data") from err
 
 
 def _offset_at(second: int, zone: ZoneInfo) -> timedelta:
@@ -155,10 +164,10 @@ def _offset_boundaries(start: int, end: int, zone: ZoneInfo) -> set[int]:
     left = start
     old_offset = _offset_at(left, zone)
     while left < end - 1:
-        right = min(left + 3600, end - 1)
+        right = min(left + _OFFSET_SCAN_SECONDS, end - 1)
         new_offset = _offset_at(right, zone)
         if old_offset != new_offset:
-            # Supported modern zones have at most one change in this interval.
+            # tzdb never changes an offset twice within one minute.
             lo, hi = left, right
             while hi - lo > 1:
                 middle = (lo + hi) // 2

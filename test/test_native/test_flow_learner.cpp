@@ -1,4 +1,5 @@
 #include "control/WarmupPlanner.h"
+#include "ScopedTz.h"
 #include <functional>
 #include <gtest/gtest.h>
 #include <memory>
@@ -228,6 +229,7 @@ RoomSchedule program() {
 }
 
 TEST(WarmupPlanner, DefaultLeadWhileNotLearned) {
+    ScopedTz tz(ScopedTz::amsterdam);
     auto h = House::floor();
     const auto s = WarmupPlanner::optimumStart(h.learner, 0, program(), wednesday23, int16_t(1900), std::nullopt);
     ASSERT_STREQ(s.reason, "planned");
@@ -241,6 +243,7 @@ TEST(WarmupPlanner, DefaultLeadWhileNotLearned) {
 }
 
 TEST(WarmupPlanner, LearnedFloorStartsEarlyEnoughAtTheLowestFlow) {
+    ScopedTz tz(ScopedTz::amsterdam);
     auto h = House::floor();
     h.outdoorKnown = true;
     h.days(tadoFlows, 3, {0, 10});
@@ -261,6 +264,7 @@ TEST(WarmupPlanner, LearnedFloorStartsEarlyEnoughAtTheLowestFlow) {
 }
 
 TEST(WarmupPlanner, NightEconomicsComparesStrategies) {
+    ScopedTz tz(ScopedTz::amsterdam);
     auto h = House::floor();
     h.outdoorKnown = true;
     h.days(tadoFlows, 3, {0, 10});
@@ -279,7 +283,7 @@ TEST(WarmupPlanner, NightEconomicsComparesStrategies) {
     EXPECT_NEAR(*programmed.eur, programmed.m3 * 1.35, 1e-3);
     // The slow floor never cools below ~19.3 degC before its start: the variants cost about the same.
     for (uint8_t i = 1; i < n.count; ++i) EXPECT_NEAR(n.strategies[i].kwh, programmed.kwh, 0.05 * programmed.kwh);
-    EXPECT_FALSE(n.strategies[3].onTime);                  // tado-like start at 06:30 is late
+    EXPECT_FALSE(n.strategies[3].onTime);                  // thermostat-like start at 06:30 is late
     EXPECT_LT(n.strategies[3].endCentiC, 1900);
     EXPECT_STREQ(n.strategies[n.best].name, "program");    // no significant saving
     EXPECT_EQ(n.savingM3, 0);
@@ -292,7 +296,38 @@ TEST(WarmupPlanner, NightEconomicsComparesStrategies) {
     EXPECT_STREQ(cold.strategies[cold.best].name, "program");
 }
 
+// The next switch is found on the device's wall clock, also across a DST
+// change in the night: 06:30 stays 06:30 local, not one hour off.
+TEST(WarmupPlanner, NextSwitchFollowsTheDeviceTimeZoneAcrossDaylightSavingTime) {
+    const int64_t oct25 = 1792886400, mar8 = 1772928000; // 2026, 00:00 UTC: EU end / US start of summer time
+    {
+        ScopedTz tz(ScopedTz::london); // Sat 22:00 BST = 21:00 UTC; BST ends Sun 01:00 UTC
+        const auto r = WarmupPlanner::nextRise(program(), oct25 - 3 * 3600);
+        ASSERT_TRUE(r);
+        EXPECT_EQ(r->nightUtc, oct25 - 3 * 3600 + 1800);  // 22:30 BST
+        EXPECT_EQ(r->atUtc, oct25 + 6 * 3600 + 1800);     // Sun 06:30 GMT = 06:30 UTC
+        EXPECT_EQ(r->fromCentiC, 1850); EXPECT_EQ(r->toCentiC, 2100);
+    }
+    {
+        ScopedTz tz(ScopedTz::newYork); // Sat 23:00 EST = 04:00 UTC; EDT starts Sun 07:00 UTC
+        const auto r = WarmupPlanner::nextRise(program(), mar8 + 4 * 3600);
+        ASSERT_TRUE(r);
+        EXPECT_EQ(r->atUtc, mar8 + 10 * 3600 + 1800);     // Sun 06:30 EDT = 10:30 UTC
+        // A switch inside the skipped hour (02:30) takes effect when the clock jumps to 03:00.
+        RoomSchedule skipped;
+        for (auto& d : skipped.days) { d.points[0] = {150, 2100}; d.points[1] = {1350, 1850}; d.count = 2; }
+        const auto j = WarmupPlanner::nextRise(skipped, mar8 + 4 * 3600);
+        ASSERT_TRUE(j);
+        EXPECT_EQ(j->atUtc, mar8 + 7 * 3600);
+        // Without a change the local minute counts on: Mon 06:30 EDT = 10:30 UTC.
+        const auto k = WarmupPlanner::nextRise(program(), mar8 + 28 * 3600);
+        ASSERT_TRUE(k);
+        EXPECT_EQ(k->atUtc, mar8 + 86400 + 10 * 3600 + 1800);
+    }
+}
+
 TEST(FlowLearner, JsonReportsReadinessCurveAndAdvice) {
+    ScopedTz tz(ScopedTz::amsterdam);
     auto h = House::floor();
     h.outdoorKnown = true;
     h.days(tadoFlows, 3, {0, 10});

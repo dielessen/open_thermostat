@@ -26,7 +26,7 @@ from homeassistant.helpers import selector
 from homeassistant.util import slugify
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
-from .heating_link import heating_hub, label, number
+from .heating_link import TEMPERATURE_UNITS, celsius, heating_hub, label, number
 from .native_form import retained_input_schema
 from .room_plan import has_room_plan, plan_room
 
@@ -40,6 +40,10 @@ ENTITY_ID = re.compile(r"[a-z0-9_]+\.[a-z0-9_]+")
 SOURCE_DOMAINS = ("climate", "sensor")
 SETPOINT_DOMAINS = ("climate", "input_number", "number")
 CELSIUS = UnitOfTemperature.CELSIUS
+# The plan's flow limits as the E32 accepts them (RoomPlan.h): whole °C, minimum below maximum.
+FLOW_MINIMUM_C = (20, 59)
+FLOW_MAXIMUM_C = (21, 60)
+FLOW_LIMIT_FIELDS = {"minimum_flow_temperature": "minimum_flow_c", "maximum_flow_temperature": "maximum_flow_c"}
 
 DAYS = {"en": ("mon", "tue", "wed", "thu", "fri", "sat", "sun"),
         "nl": ("ma", "di", "wo", "do", "vr", "za", "zo")}
@@ -179,14 +183,15 @@ def source_problem(hass, entity_id, setpoint=False):
     if state is None:
         return "e32_source_not_found"
     if domain == "climate":
-        # Climate attributes are in the HA unit system; the E32 reads °C.
-        if hass.config.units.temperature_unit != CELSIUS:
-            return "e32_source_not_celsius"
-        if not setpoint and number(state.attributes.get("current_temperature"), -40, 85) is None:
+        # Climate attributes are in the HA unit system (°C or °F); they are
+        # converted to °C before they are forwarded to the E32.
+        if not setpoint and celsius(state.attributes.get("current_temperature"),
+                                    hass.config.units.temperature_unit, -40, 85) is None:
             return "e32_source_no_temperature"
         return None
     unit = state.attributes.get("unit_of_measurement")
-    if domain == "sensor" and unit != CELSIUS or domain != "sensor" and unit not in (None, "", CELSIUS):
+    # °F and K sources are converted to °C on the way to the E32; other units are refused.
+    if domain == "sensor" and unit not in TEMPERATURE_UNITS or domain != "sensor" and unit not in (None, "", *TEMPERATURE_UNITS):
         return "e32_source_not_celsius"
     return None
 
@@ -222,7 +227,7 @@ class E32RoomFlow:
             return self._e32_abort_failure(err)
         self._e32_plan = plan
         options = (["e32_room_add"] if len(plan["rooms"]) < MAX_ROOMS else []) + (
-            ["e32_room_pick"] if plan["rooms"] else [])
+            ["e32_room_pick"] if plan["rooms"] else []) + ["e32_flow_limits"]
         return self.async_show_menu(step_id="e32_rooms", menu_options=options, description_placeholders={
             "rooms": self._e32_room_list(plan), "revision": str(plan["revision"])})
 
@@ -262,6 +267,58 @@ class E32RoomFlow:
             vol.Required("action", default="edit"): selector.SelectSelector({
                 "options": ["edit", "remove"], "translation_key": "e32_room_action"}),
         }))
+
+    async def async_step_e32_flow_limits(self, user_input=None):
+        """The plan's minimum/maximum flow temperature (whole °C, 20–59 / 21–60, minimum below maximum)."""
+        plan = self._e32_plan
+        current = {key: plan.get(key) for key in FLOW_LIMIT_FIELDS.values()}
+        errors, placeholders = {}, {"error": ""}
+        if user_input is not None:
+            try:
+                values = [float(user_input[field]) for field in FLOW_LIMIT_FIELDS]
+            except (KeyError, TypeError, ValueError):
+                values = []
+            low, high = (int(v) for v in values) if len(values) == 2 and all(
+                v.is_integer() for v in values) else (None, None)
+            if low is None or not (FLOW_MINIMUM_C[0] <= low <= FLOW_MINIMUM_C[1]
+                                   and FLOW_MAXIMUM_C[0] <= high <= FLOW_MAXIMUM_C[1]):
+                errors["base"] = "e32_flow_limits_invalid"
+            elif low >= high:
+                errors["base"] = "e32_flow_limits_order"
+            elif current == {"minimum_flow_c": low, "maximum_flow_c": high}:
+                return self.async_abort(reason="e32_room_unchanged")
+            else:
+                def change(stored):
+                    candidate = deepcopy(stored)
+                    candidate["minimum_flow_c"], candidate["maximum_flow_c"] = low, high
+                    return candidate
+                link = self._e32_link()
+                if link is None:
+                    return self.async_abort(reason="e32_rooms_unavailable")
+                try:
+                    await link.async_change_plan(change, lambda stored: (
+                        stored.get("minimum_flow_c"), stored.get("maximum_flow_c")) == (low, high))
+                except HomeAssistantError as err:
+                    key, extra = self._e32_failure(err)
+                    if key in ABORTS:
+                        return self.async_abort(reason=key, description_placeholders={"room": "", **extra})
+                    errors["base"] = key
+                    placeholders.update(extra)
+                else:
+                    return self.async_abort(reason="e32_flow_limits_saved", description_placeholders={
+                        "minimum": str(low), "maximum": str(high)})
+        default = {"minimum_flow_temperature": current["minimum_flow_c"], "maximum_flow_temperature":
+                   current["maximum_flow_c"]}
+        for field, fallback in (("minimum_flow_temperature", 30), ("maximum_flow_temperature", 60)):
+            if type(default[field]) not in (int, float) or type(default[field]) is bool:
+                default[field] = fallback
+        fields = {}
+        for field, (low, high) in (("minimum_flow_temperature", FLOW_MINIMUM_C),
+                                   ("maximum_flow_temperature", FLOW_MAXIMUM_C)):
+            fields[vol.Required(field, default=default[field])] = selector.NumberSelector({
+                "min": low, "max": high, "step": 1, "mode": "box", "unit_of_measurement": CELSIUS})
+        return self.async_show_form(step_id="e32_flow_limits", data_schema=retained_input_schema(
+            self, vol.Schema(fields), user_input), errors=errors, description_placeholders=placeholders)
 
     async def async_step_e32_room_remove(self, user_input=None):
         room_id = self._e32_room_id

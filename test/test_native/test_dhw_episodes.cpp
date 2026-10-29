@@ -1,5 +1,6 @@
 #include "control/DhwEpisodes.h"
 #include "EMS/EmsEntityCatalog.h"
+#include "ScopedTz.h"
 #include <gtest/gtest.h>
 #include <cJSON.h>
 #include <fstream>
@@ -144,6 +145,7 @@ TEST(DhwEpisodes, WithoutTemperatureOrFlowAnEpisodeIsUnknownAndAGapEndsIt) {
     EXPECT_EQ(d.burnerS, 20u);
 }
 TEST(DhwEpisodes, DaysRollAtLocalMidnightAndTheWeekKeepsSevenDays) {
+    ScopedTz tz(ScopedTz::amsterdam);
     DhwEpisodes e;
     const uint32_t day0 = 1792800000;                // 2026-10-24 00:00 UTC; the steps cross the CEST end
     const auto episode = [&](uint32_t utc, uint64_t ms) {
@@ -157,5 +159,23 @@ TEST(DhwEpisodes, DaysRollAtLocalMidnightAndTheWeekKeepsSevenDays) {
     EXPECT_EQ(e.lastSevenDays().count[DhwEpisodes::tapping], 7);
     EXPECT_EQ(e.lastSevenDays().seconds[DhwEpisodes::tapping], 7u * 20);
     EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItem(json(e, 9ull * 86400000).get(), "clock_known")));
+}
+// The day boundary is the device's local midnight: 04:00 UTC in New York (EDT).
+TEST(DhwEpisodes, DaysRollAtTheDeviceTimeZonesMidnight) {
+    const uint32_t day0 = 1792800000;                // 2026-10-24 00:00 UTC
+    const auto todayTaps = [day0](const char* zone) {
+        ScopedTz tz(zone);
+        DhwEpisodes e;
+        const auto episode = [&](uint32_t utc, uint64_t ms) {
+            ClassicBoilerMonitor m;
+            e.observe(m, ms, utc);
+            e.temperature(6000, ms); e.state(0x0A, ms + 1000); e.temperature(4000, ms + 11000); e.state(0x00, ms + 21000);
+        };
+        episode(day0 + 3 * 3600, 0);                 // 23:00 EDT Friday / 05:00 CEST Saturday
+        episode(day0 + 5 * 3600, 2 * 3600000);       // 01:00 EDT Saturday / 07:00 CEST Saturday
+        return e.today().count[DhwEpisodes::tapping];
+    };
+    EXPECT_EQ(todayTaps(ScopedTz::newYork), 1);
+    EXPECT_EQ(todayTaps(ScopedTz::amsterdam), 2);
 }
 }

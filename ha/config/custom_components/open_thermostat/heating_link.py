@@ -4,7 +4,7 @@ The E32 owns the room plan. It publishes ``fw/telemetry/heating`` with its
 computed boiler request, its rooms, its paired Bluetooth sensors and the HA
 entities it reads (``ha_entities``). HA forwards exactly those entities'
 temperature and target to ``ha/heating_input`` on every change and every five
-minutes, so a steady tado stays fresh.
+minutes, so a steady thermostat stays fresh.
 
 Newer firmware adds what it learned per room (readiness, flow advice and,
 with a trusted clock, the plan: optimum start and night options) and today's
@@ -151,20 +151,38 @@ def label(item):
     return name.strip()[:64] if type(name) is str and name.strip() else item["id"]
 
 
-def input_payload(state):
-    """{"entity","temperature","target"} for a climate, temperature sensor or setpoint number state.
+TEMPERATURE_UNITS = (UnitOfTemperature.CELSIUS, UnitOfTemperature.FAHRENHEIT, UnitOfTemperature.KELVIN)
+
+
+def celsius(value, unit, low, high):
+    """``value`` in ``unit`` (°C, °F or K; none means °C) as °C within low..high, else None."""
+    if unit in (None, "", UnitOfTemperature.CELSIUS):
+        return number(value, low, high)
+    if unit not in TEMPERATURE_UNITS or number(value, -1e6, 1e6) is None:
+        return None
+    from homeassistant.util.unit_conversion import TemperatureConverter
+    return number(round(TemperatureConverter.convert(float(value), unit, UnitOfTemperature.CELSIUS), 2),
+                  low, high)
+
+
+def input_payload(state, temperature_unit=UnitOfTemperature.CELSIUS):
+    """{"entity","temperature","target"} in °C for a climate, temperature sensor or setpoint number state.
 
     An input_number/number is only ever a room's setpoint entity: its value is the target.
+    Climate attributes are in Home Assistant's unit system (``temperature_unit``);
+    sensors and numbers carry their own ``unit_of_measurement``. The E32 works in °C.
     """
     if state is None or state.state in ("unavailable", "unknown"):
         return None
     if state.domain == "climate":
-        temperature = number(state.attributes.get("current_temperature"), -40, 85)
-        target = number(state.attributes.get("temperature"), 5, 30)
+        temperature = celsius(state.attributes.get("current_temperature"), temperature_unit, -40, 85)
+        target = celsius(state.attributes.get("temperature"), temperature_unit, 5, 30)
     elif state.domain in ("input_number", "number"):
-        temperature, target = None, number(state.state, 5, 30)
+        unit = state.attributes.get("unit_of_measurement")
+        temperature, target = None, celsius(state.state, unit, 5, 30)
     else:
-        temperature, target = number(state.state, -40, 85), None
+        unit = state.attributes.get("unit_of_measurement")
+        temperature, target = celsius(state.state, unit, -40, 85), None
     if temperature is None and target is None:
         return None
     return json.dumps({"entity": state.entity_id, "temperature": temperature, "target": target})
@@ -543,6 +561,24 @@ def shadow_today(status):
 
 def _count(value):
     return value if type(value) is int and value >= 0 else None
+
+
+def shadow_has_thermostat(status):
+    """Whether today's comparison has seen a thermostat on the bus (its 0x1A flow request).
+
+    A home without an EMS thermostat reports the thermostat side unknown all day
+    (``tado_unknown_s == s``) and never any heat; it gets no comparison entities.
+    """
+    today = shadow_today(status)
+    if today is None:
+        return False
+    side = today.get("tado")
+    if type(side) is dict and ((_count(side.get("heat_s")) or 0) > 0 or (_count(side.get("starts")) or 0) > 0
+                               or any(number(side.get(key), 0, 100) is not None
+                                      for key in ("flow_min_c", "flow_mean_c", "flow_max_c"))):
+        return True
+    known, unknown = _count(today.get("s")), _count(today.get("tado_unknown_s"))
+    return known is not None and unknown is not None and unknown < known
 
 
 class ShadowSensor(HubEntity, SensorEntity):
@@ -928,7 +964,8 @@ class DhwTodaySensor(HubEntity, SensorEntity):
 
 
 def wanted_sensors(hub):
-    if shadow_today(hub.status) is not None:  # firmware that compares (E32 beta.18)
+    # Firmware that compares (E32 beta.18), and only once a thermostat to compare with shows up.
+    if shadow_has_thermostat(hub.status):
         for key in SHADOW_SENSORS:
             yield ("shadow", key), lambda key=key: ShadowSensor(hub, key)
     if burner_status(hub.status) is not None:  # firmware that counts burner starts
@@ -1004,7 +1041,7 @@ async def async_setup_heating_link(hass, entry, async_add_entities, **options):
         hass.async_create_task(mqtt.async_publish(hass, topic_base + "ha/heating_input", payload, 0, False))
 
     def publish(entity_id):
-        payload = input_payload(hass.states.get(entity_id))
+        payload = input_payload(hass.states.get(entity_id), hass.config.units.temperature_unit)
         if payload is not None:
             send(payload)
 

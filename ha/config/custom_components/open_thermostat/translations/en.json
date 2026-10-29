@@ -451,7 +451,8 @@
         "description": "Set up your rooms here. The E32 stores them and keeps heating them, also without Home Assistant (revision {revision}).\n\n{rooms}",
         "menu_options": {
           "e32_room_add": "Add a room",
-          "e32_room_pick": "Edit or remove a room"
+          "e32_room_pick": "Edit or remove a room",
+          "e32_flow_limits": "Flow temperature limits"
         }
       },
       "e32_room_pick": {
@@ -506,6 +507,18 @@
           }
         }
       },
+      "e32_flow_limits": {
+        "title": "Flow temperature limits",
+        "description": "The lowest and highest water temperature the E32 may ask the boiler for, for all rooms together. {error}",
+        "data": {
+          "minimum_flow_temperature": "Minimum flow temperature",
+          "maximum_flow_temperature": "Maximum flow temperature"
+        },
+        "data_description": {
+          "minimum_flow_temperature": "The lowest flow temperature the E32 asks for while it heats (20–59 °C).",
+          "maximum_flow_temperature": "The highest flow temperature the E32 ever asks for (21–60 °C, above the minimum). Floor heating fed directly without a mixing valve usually needs at most 45–50 °C; radiators may need up to 60 °C."
+        }
+      },
       "e32_room_remove": {
         "title": "Remove E32 room",
         "description": "Remove {name} from the E32 room plan? The E32 stops asking heat for this room. Its Bluetooth sensors stay paired.",
@@ -523,13 +536,15 @@
           "gas_meter": "Gas meter",
           "gas_price_entity": "Gas price sensor",
           "gas_price": "Fixed gas price",
+          "gas_kwh_per_m3": "Calorific value of the gas",
           "outdoor_entity": "Outdoor temperature",
           "boiler_kw": "Boiler heating power"
         },
         "data_description": {
-          "gas_meter": "A total gas meter reading in m³ (for example from a P1 meter or a smart gas meter), with state class total or total increasing.",
-          "gas_price_entity": "A sensor or input number with the price per m³ (unit such as EUR/m³). Use this or a fixed price, not both.",
-          "gas_price": "The price per m³ of gas when you have no price sensor, for example 1.35.",
+          "gas_meter": "A total gas meter reading in m³, or in kWh (device class gas or energy), with state class total or total increasing; for example from a smart meter or a gas pulse counter. A reading in kWh is converted to m³ with the calorific value.",
+          "gas_price_entity": "A sensor or input number with the gas price per m³ or per kWh (unit such as EUR/m³ or GBP/kWh). Use this or a fixed price, not both.",
+          "gas_price": "The price per m³ of gas in your Home Assistant currency when you have no price sensor, for example 1.35.",
+          "gas_kwh_per_m3": "Energy per m³ of gas, from your gas supplier or bill. Empty: 9.77 kWh/m³ (Dutch gas, upper value); natural gas is usually between 8 and 12 kWh/m³.",
           "outdoor_entity": "A temperature sensor outside (°C or °F) or a weather entity. It helps the E32 learn how fast rooms cool down.",
           "boiler_kw": "The boiler's nominal heating power in kW (type plate or manual), 3–60 kW. Empty: the E32 uses a default."
         }
@@ -623,25 +638,28 @@
       "e32_source_invalid_id": "The E32 cannot use {source}: entity IDs may have up to 80 characters.",
       "e32_source_wrong_domain": "{source} cannot be used here. Choose a thermostat or a temperature sensor (a thermostat, input number or number for the target temperature).",
       "e32_source_not_found": "{source} does not exist in Home Assistant.",
-      "e32_source_not_celsius": "{source} does not report °C. The E32 works in °C only; choose a °C sensor.",
+      "e32_source_not_celsius": "{source} does not report a temperature (°C or °F). Choose a temperature sensor.",
       "e32_source_no_temperature": "{source} reports no current temperature. Choose a thermostat that measures the room temperature, or a temperature sensor.",
       "e32_limits_invalid": "Use limits between 5 and 30 °C with the minimum not above the maximum, and a temperature without Home Assistant within them.",
       "e32_program_invalid": "The week program could not be read. Use one line per group of days, for example mon-fri: 06:30 20.5, 22:30 18, with each day in one line only.",
       "e32_program_too_many": "A day can have up to 6 switch points.",
       "e32_program_outside_limits": "A week program temperature is outside the room's temperature limits.",
       "e32_plan_changed": "The room plan was changed on the E32 twice while saving. Nothing was saved; try again.",
+      "e32_flow_limits_order": "The minimum flow temperature must be below the maximum.",
+      "e32_flow_limits_invalid": "Enter whole degrees: minimum 20–59 °C, maximum 21–60 °C.",
       "e32_plan_too_large": "The room plan is too large for the E32 (4 KB). Use shorter names, fewer sources or fewer switch points. Nothing was saved.",
       "e32_rejected": "The E32 refused the room plan ({error}). Nothing was saved.",
       "e32_unreachable": "The E32 could not be reached ({error}). Nothing was saved.",
       "e32_room_limit": "The E32 room plan already has 8 rooms.",
       "entity_not_found": "This entity has no state in Home Assistant.",
-      "gas_meter_unit": "Choose a gas meter sensor in m³.",
+      "gas_meter_unit": "Choose a gas meter sensor in m³, or in kWh with device class gas or energy.",
       "gas_meter_not_total": "Choose a meter reading (state class total or total increasing), not a usage rate.",
-      "gas_price_unit": "Choose a price per m³ (unit such as EUR/m³).",
-      "gas_price_invalid": "The gas price must be between 0.01 and 20 per m³.",
+      "gas_price_unit": "Choose a price per m³ or per kWh (unit such as EUR/m³ or GBP/kWh).",
+      "gas_price_invalid": "Enter a gas price above 0.",
       "gas_price_twice": "Use a gas price sensor or a fixed gas price, not both.",
       "outdoor_unit": "Choose a temperature sensor in °C or °F, or a weather entity with a temperature.",
-      "boiler_kw_invalid": "The boiler power must be between 3 and 60 kW."
+      "boiler_kw_invalid": "The boiler power must be between 3 and 60 kW.",
+      "gas_kwh_per_m3_invalid": "The calorific value must be between 5 and 15 kWh/m³."
     },
     "abort": {
       "graph_review_unavailable": "No existing source-selected graph connection is available. No profile was enabled.",
@@ -690,6 +708,7 @@
       "e32_room_saved": "{name} is saved in the E32 room plan.",
       "e32_room_removed": "{name} is removed from the E32 room plan.",
       "e32_room_unchanged": "Nothing changed; the E32 room plan was not written.",
+      "e32_flow_limits_saved": "The E32 now asks for a flow temperature between {minimum} and {maximum} °C.",
       "energy_saved": "Energy settings saved. Nothing is required; the E32 receives the values within a few minutes."
     },
     "progress": {

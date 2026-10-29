@@ -22,15 +22,19 @@ struct WarmupPlanner {
         int16_t fromCentiC = 0, toCentiC = 0;
         std::optional<int16_t> eveningCentiC; // before that drop, when it lies ahead
     };
-    // Minute steps in local time from now (a DST change within 24 h shifts the result by 1 h).
+    // Minute steps from now in the device's local time; across a DST change
+    // within 24 h each minute is converted on its own (the wall clock skips or
+    // repeats an hour), else the local minute simply counts on.
     static std::optional<Rise> nextRise(const RoomSchedule& s, int64_t utc) {
-        auto t = RoomSchedule::amsterdam(utc);
+        auto t = RoomSchedule::localAt(utc);
         auto previous = s.at(t);
         if (!previous) return std::nullopt;
         Rise r; r.nightUtc = utc;
         const int64_t minuteUtc = utc - utc % 60;
+        const bool steady = RoomSchedule::localSeconds(utc + 86400) - RoomSchedule::localSeconds(utc) == 86400;
         for (int m = 1; m <= 1440; ++m) {
-            if (++t.minute == 1440) { t.minute = 0; t.weekday = uint8_t((t.weekday + 1) % 7); }
+            if (!steady) t = RoomSchedule::localAt(minuteUtc + m * 60);
+            else if (++t.minute == 1440) { t.minute = 0; t.weekday = uint8_t((t.weekday + 1) % 7); }
             const auto now = s.at(t);
             if (*now < *previous) { r.nightUtc = minuteUtc + m * 60; r.eveningCentiC = previous; }
             if (*now > *previous) { r.atUtc = minuteUtc + m * 60; r.fromCentiC = *previous; r.toCentiC = *now; return r; }
@@ -106,7 +110,7 @@ struct WarmupPlanner {
         const char* confidence = "low"; // low: nominal boiler power; calibrated: gas meter
     };
     // Tonight: the program's setback with optimum start, holding 0.5 / 1 degC
-    // higher, and the tado-like start at the switch time with the rule flow,
+    // higher, and the thermostat-like start at the switch time with the rule flow,
     // each from the night start (or now) to 6 h after the switch. Energy: free
     // cooling costs nothing; holding costs UA (T - Tout); warming costs
     // C dT + UA (T - Tout); gas = heat / efficiency(flow - return drop).
@@ -133,7 +137,7 @@ struct WarmupPlanner {
         add("program", rise->fromCentiC, false);
         add("hold_0_5", static_cast<int16_t>(rise->fromCentiC + 50), false);
         add("hold_1_0", static_cast<int16_t>(rise->fromCentiC + 100), false);
-        add("tado_like", rise->fromCentiC, true);
+        add("thermostat_like", rise->fromCentiC, true);
         bool found = false;
         for (uint8_t i = 0; i < out.count; ++i) {
             const auto& st = out.strategies[i];
@@ -242,7 +246,7 @@ private:
         const auto holdFlow = l.advise(room, 0, outdoorCentiC).flowC.value_or(l.ruleFlow(0));
         double gas = 0; // kWh
         st.endCentiC = INT16_MIN;
-        // Until compareS after the switch, so a late (tado-like) recovery is counted too.
+        // Until compareS after the switch, so a late (thermostat-like) recovery is counted too.
         for (int64_t t = from; t < rise.atUtc + compareS; t += 300) {
             if (t >= rise.atUtc && st.endCentiC == INT16_MIN) st.endCentiC = static_cast<int16_t>(std::lround(T * 100));
             const bool recovering = t >= recovery;
@@ -276,7 +280,7 @@ private:
     }
     static void local(cJSON* o, const char* key, int64_t utc) {
         static constexpr const char* days[7] = {"mon", "tue", "wed", "thu", "fri", "sat", "sun"};
-        const auto t = RoomSchedule::amsterdam(utc);
+        const auto t = RoomSchedule::localAt(utc);
         char text[12];
         std::snprintf(text, sizeof text, "%s %02u:%02u", days[t.weekday % 7], unsigned(t.minute / 60), unsigned(t.minute % 60));
         cJSON_AddStringToObject(o, key, text);

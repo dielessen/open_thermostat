@@ -42,13 +42,16 @@ its request to the boiler yet. Use it together with HA0.4.0b10.
   "connected" but the network no longer answers or when no Bluetooth sensor has
   been heard for 30 minutes, reconnects to Wi-Fi more patiently, and backs off
   instead of restarting every 15 minutes during a long Wi-Fi outage.
-- Less use of the memory Wi-Fi needs: JSON and larger buffers live in PSRAM.
+- Less use of the memory Wi-Fi needs: JSON documents and large replies live in
+  PSRAM, and the Bluetooth page reply is small and bounded.
 
 ## Updating
 
 Install this firmware and HA0.4.0b10 together (HA0.4.0b9 keeps working with
-the fields it knows). After the update the E32 confirms itself after about a
-minute of normal running; until then a failed start would roll back.
+the fields it knows). After an update the E32 confirms the new firmware itself
+once it has run normally for about a minute and reached the network; until
+then a failed start rolls back to the previous version, and restarts are
+postponed.
 
 ## Limitations
 

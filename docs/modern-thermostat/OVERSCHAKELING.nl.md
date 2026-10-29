@@ -163,11 +163,11 @@ van `/status/heating`.
 - **Verwacht:** binnen één stap (10 s) "Verwarmen" en ketelvraag ~40 °C (30 + 10 × 1 °C), direct verzonden.
 - **Geslaagd:** "Heating active" binnen 2 min (tot ~10 min als de eigen pendelblokkering van de ketel loopt — noteren);
   aanvoer stijgt ≥ 3 °C binnen 15 min en nadert de vraag; geen `boiler_no_response`.
-- **Waarnemen:** pagina (ketelvraag, laatst verzonden), HA "Flow temperature", "Heating active", "Burner modulation", ketelsdisplay.
+- **Waarnemen:** pagina (ketelvraag, laatst verzonden), HA "Flow temperature", "Heating active", "Burner modulation", keteldisplay.
 
 ### T2 Stop en minimale pauze
 - **Doen:** gewenste temperatuur ≥ 0,5 °C onder de gemeten temperatuur.
-- **Verwacht:** was de brander < 5 min aan: eerst "Minimale brandertijd", daarna "Warm genoeg"; ketelvraag uit; 60 s lang elke 10 s nul.
+- **Verwacht:** liep de vraag < 5 min: eerst "Minimale brandertijd", daarna "Warm genoeg"; ketelvraag uit; 60 s lang elke 10 s nul.
   Direct daarna weer omhoog: "Minimale pauze" tot 5 min na de stop.
 - **Geslaagd:** "Heating active" uit binnen ~30 s na de eerste nul (16 okt: 12 s); geen nieuwe start binnen 5 min; geen waarschuwing.
 - **Waarnemen:** tijdstip eerste nul (pagina/log), HA "Heating active", "Burner starts last hour".
@@ -184,7 +184,7 @@ van `/status/heating`.
 - **Verwacht:** "Hot water active" aan, CV pauzeert (voorrang), aanvoer kan ~75 °C melden (warmtewisselaar, niet het CV-circuit);
   de E32 blijft dezelfde vraag elke 60 s sturen; geen stop, geen waarschuwing (B3).
 - **Geslaagd:** CV weer actief binnen 5 min na het dichtdraaien, aanvoer terug naar de vraag; tapwatertemperatuur ok.
-- **Waarnemen:** HA "Hot water active", "Heating active", "Flow temperature"; ketelsdisplay.
+- **Waarnemen:** HA "Hot water active", "Heating active", "Flow temperature"; keteldisplay.
 
 ### T12a Terugzetknop (zonder de tado aan te sluiten)
 - **Doen:** tijdens verwarmen "Teruggeven aan de thermostaat".
@@ -210,8 +210,8 @@ van `/status/heating`.
 ### T7 Wifi weg (10 min)
 - **Doen:** het accesspoint (of alleen het SSID van de E32) uit; **niet** alleen verkeer blokkeren (dan `network_dead` na 3 min). 10 min, dus onder de 15 min van `wifi_lost`.
 - **Verwacht:** de E32 regelt door op de Xiaomi en het weekprogramma; pagina en HA zijn onbereikbaar.
-- **Geslaagd:** na terugkeer geen herstart (uptime loopt door, zwarte doos leeg), toestand `active`, geen gat in de regeling op de ketelsdisplay.
-- **Waarnemen:** ketelsdisplay en aanvoerleiding tijdens de test; daarna `/status/logs` en HA-geschiedenis.
+- **Geslaagd:** na terugkeer geen herstart (uptime loopt door, zwarte doos leeg), toestand `active`, geen gat in de regeling op de keteldisplay.
+- **Waarnemen:** keteldisplay en aanvoerleiding tijdens de test; daarna `/status/logs` en HA-geschiedenis.
   Langer dan 15 min geeft met de huidige code een herstart (B4).
 
 ### T11 Vorstbeveiliging (simulatie)
@@ -233,7 +233,7 @@ van `/status/heating`.
 ### T6 E32 stroomloos
 - **Doen:** voeding van de E32 eraf (bij busvoeding: de busdraden van de E32 los). Stopwatch.
 - **Verwacht:** de ketel gedraagt zich als in T5 (zelfde adaptergedrag), nu zonder E32-telemetrie.
-- **Geslaagd:** gedrag en tijd komen overeen met T5. Waarnemen op de ketelsdisplay (bij Nefit doorgaans `-H` = CV, `=H` = tapwater,
+- **Geslaagd:** gedrag en tijd komen overeen met T5. Waarnemen op de keteldisplay (bij Nefit doorgaans `-H` = CV, `=H` = tapwater,
   `0H` = rust; in de ketelhandleiding controleren), aanvoerleiding (hand/IR-thermometer), branderlawaai.
   Daarna E32 weer aan, als T5 opnieuw overnemen.
 
@@ -280,7 +280,7 @@ tapwater 55 °C, druk, geen storing. Oorzaak vastleggen vóór een nieuwe poging
 
 ## 8. Vastleggen
 
-- **Per stap/test:** lokale tijd en UTC, toestand en waarschuwingen (screenshot Actieve regeling), ketelsdisplay (foto), uitkomst geslaagd/niet.
+- **Per stap/test:** lokale tijd en UTC, toestand en waarschuwingen (screenshot Actieve regeling), keteldisplay (foto), uitkomst geslaagd/niet.
 - **Doorlopend:** poll-script dat `/status/heating` en `/status/boiler` elke 10 s met tijdstempel wegschrijft (met de inlogsessie)
   naar `out/switchover-<datum>/` (valt onder bewaarde logs, niet onder opruimen); stopwatch-tijden voor T2, T5, T6, T9.
 - **Na elke herstart:** `/status/logs` → `previous_boot` (zwarte doos, herstartreden) bewaren.

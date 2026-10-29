@@ -32,6 +32,19 @@ crashes meer en vastlopers". Gebouwd (lokaal getest, niet gepubliceerd):
   P1-gasmeter `sensor.gas_consumed`); tapwaterstatistiek; tado-rijen
   verifiëren; vernieuwde interface (ontwerpsysteem, menu, licht/donker).
 
+**Besluiten eigenaar 29 oktober (voor beta.19, vóór de overstap):**
+1. Ketelgrens: "dat moet een waarde uit de ketel zelf zijn" — de E32 leest 0x16
+   zelf bij de ketel (bij opstarten en periodiek, alleen lezen; eigen review van
+   dit nieuwe busverkeer).
+2. Plan eigenaar: de tado regelt tot hij definitief fysiek van de Bosch-adapter
+   gaat; daarna is de E32 het enige brein. De bevestiging blijft dus bewaard over
+   herstarts (gewist bij een vreemde 0x1A, "terug naar thermostaat" of
+   firmware-wissel); HA waarschuwt bij `awaiting_confirmation`.
+3. Geen supervisor-herstart voor wifi/broker/Bluetooth zolang de E32 de ketel
+   bezit (alleen bij echte vastloper).
+4. De tado fysiek loskoppelen.
+Draaiboek: [OVERSCHAKELING.nl.md](OVERSCHAKELING.nl.md).
+
 **Beslissen vóór de bijgewoonde overstap (vergrendeling open):**
 1. Ketelgrens na herstart: alleen bekend als de ketel 0x16 meldt (nu alleen op
    vragen van de tado). Periodiek 0x16 lezen, of een opgeslagen waarde accepteren?

@@ -120,12 +120,12 @@ input[type=checkbox],input[type=radio]{width:24px;height:24px;accent-color:var(-
 .border{border-color:var(--ot-border)!important}.bg-light{background:var(--ot-surface-2)!important}.progress{background:var(--ot-surface-2)}.progress-bar{background:var(--ot-accent)}.gap-2{gap:.5rem}
 summary{cursor:pointer;min-height:var(--ot-tap);padding:10px 0;font-weight:600}details[open]>summary{margin-bottom:8px}
 /* Navigation */
-.device-navbar{background:var(--ot-nav)!important;padding:4px 12px}.device-navbar .navbar-brand{display:flex;align-items:center;gap:.5rem;min-width:0;font-weight:700;color:#fff}.device-navbar .navbar-brand svg{flex-shrink:0}.device-navbar .navbar-brand{min-height:var(--ot-tap)}.device-navbar .navbar-toggler{min-height:var(--ot-tap);min-width:48px}
+.device-navbar{background:var(--ot-nav)!important;padding:4px 12px}.device-navbar .navbar-brand{display:flex;align-items:center;gap:.5rem;min-width:0;font-weight:700;color:#fff}.device-navbar .navbar-brand svg{flex-shrink:0}.device-navbar .navbar-brand span{min-width:0;overflow:hidden;text-overflow:ellipsis}.device-navbar .navbar-brand{min-height:var(--ot-tap)}.device-navbar .navbar-toggler{min-height:var(--ot-tap);min-width:48px}
 .device-navbar .nav-link{color:#e3eeef!important;min-height:var(--ot-tap);display:flex;align-items:center;padding:8px 12px!important;border-radius:var(--ot-r1)}
 .device-navbar .nav-link:hover{background:rgba(255,255,255,.1)}.device-navbar .nav-link.active{color:#fff!important;background:rgba(255,255,255,.14);box-shadow:inset 0 -3px #4cc2b0}
 .device-navbar .dropdown-menu{right:0;left:auto}#auth-sign-out{white-space:nowrap;min-height:var(--ot-tap);color:#fff;border-color:#a3b7bb}
 .ot-foot{max-width:1140px;margin:32px auto 0;padding:8px 15px 24px;border-top:1px solid var(--ot-border);color:var(--ot-muted);display:flex;justify-content:flex-end}#ui-language-choice{min-height:var(--ot-tap);border-radius:var(--ot-r1);border:1px solid var(--ot-field);background:var(--ot-surface);color:var(--ot-text);padding:0 8px}
-@media (max-width:991.98px){.device-navbar .navbar-brand{flex:1 1 0;font-size:1.05rem}.device-navbar .navbar-brand svg{width:1.5rem;height:1.5rem}.device-navbar .nav-link{min-height:48px}}
+@media (max-width:991.98px){.device-navbar .navbar-brand{flex:1 1 0;font-size:1.05rem}.device-navbar .navbar-brand svg{width:1.5rem;height:1.5rem}.device-navbar .nav-link{min-height:48px}}@media (max-width:400px){.device-navbar{padding:4px 6px}.device-navbar .navbar-toggler{margin-right:4px!important;padding:4px 8px}#auth-sign-out{padding:6px 10px}}
 /* Components (pd-* names are kept for tests and older markup) */
 .product-dashboard,.ot-page{overflow-wrap:anywhere;max-width:1180px;margin:20px auto;padding:8px}.product-dashboard p{margin:8px 0}
 .pd-heading,.ot-head,.pd-section-title,.pd-room-title{display:flex;flex-direction:column;align-items:flex-start;gap:6px}.pd-room-title h3{max-width:100%;overflow-wrap:anywhere}.pd-heading,.ot-head{margin-bottom:20px}.pd-heading p,.ot-head p{margin:4px 0 0;color:var(--ot-muted)}.pd-section-title{margin:24px 0 12px}.pd-section-title h2,.pd-heading h1,.ot-head h1{margin:0}
@@ -133,9 +133,9 @@ summary{cursor:pointer;min-height:var(--ot-tap);padding:10px 0;font-weight:600}d
 .ot-chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:.8rem;font-weight:600;line-height:1.4;background:var(--ot-off-bg);color:var(--ot-off)}.ot-chip::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
 .ot-chip--ok{background:var(--ot-ok-bg);color:var(--ot-ok)}.ot-chip--warn{background:var(--ot-warn-bg);color:var(--ot-warn)}.ot-chip--err{background:var(--ot-err-bg);color:var(--ot-err)}.ot-chips{display:flex;flex-wrap:wrap;gap:6px}
 .pd-headline{font-size:1.3rem;font-weight:700;margin:0 0 10px!important}.pd-help,.pd-missing,.ot-hint{color:var(--ot-muted);font-size:.87rem}small.ot-hint,.ot-hint{display:block;font-size:.85rem!important;font-weight:400;margin:2px 0 4px;line-height:1.35}.product-dashboard small{font-size:.55em;font-weight:400;color:var(--ot-muted)}
-.pd-rooms{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}.pd-rooms{margin-bottom:8px}.pd-rooms .pd-room{margin:0}
+.pd-rooms{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));align-items:start;margin-bottom:8px}.pd-room-off{color:var(--ot-muted);margin:10px 0 4px!important}.pd-room details.ot-advanced{border:0;background:none;padding:0;margin:0}details.pd-away{padding-top:0;padding-bottom:0}details.pd-away[open]{padding-bottom:12px}.pd-rooms .pd-room{margin:0}
 .pd-room-temperatures{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:1.9rem;font-weight:600;font-variant-numeric:tabular-nums;margin:12px 0 4px}.pd-flow-label{display:block;font-size:.8rem;font-weight:500;color:var(--ot-muted)}
-.pd-facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin:12px 0}.pd-fact{margin:0;padding:10px 14px;border-radius:var(--ot-r1);background:var(--ot-surface-2)}.pd-fact h3{font-size:.85rem;font-weight:500;color:var(--ot-muted);margin:0;overflow-wrap:normal;hyphens:auto}.pd-value{font-size:1.5rem;font-weight:600;font-variant-numeric:tabular-nums}
+.pd-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,132px),1fr));gap:10px;margin:12px 0}.pd-fact{margin:0;padding:10px 14px;border-radius:var(--ot-r1);background:var(--ot-surface-2)}.pd-fact h3{font-size:.85rem;font-weight:500;color:var(--ot-muted);margin:0;overflow-wrap:normal;hyphens:auto}.pd-value{font-size:1.5rem;font-weight:600;font-variant-numeric:tabular-nums}
 .pd-trend{display:block;width:100%;height:56px;margin-top:10px}.pd-trend-legend{display:flex;flex-wrap:wrap;gap:2px 14px}.pd-trend-legend span{white-space:nowrap}.pd-trend-legend span[data-line]::before{content:"";display:inline-block;width:18px;margin-right:6px;vertical-align:middle;border-top:2.5px solid var(--ot-accent)}.pd-trend-legend span[data-line=target]::before{border-top:2px dashed var(--ot-focus)}.pd-actual-line{fill:none;stroke:var(--ot-accent);stroke-width:2.5;stroke-linejoin:round}.pd-target-line{fill:none;stroke:var(--ot-focus);stroke-width:2;stroke-dasharray:5 4}
 details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1);background:var(--ot-surface-2);padding:0 16px;margin-bottom:10px}details.ot-advanced[open]{padding-bottom:8px}
 .pd-empty,.ot-empty{grid-column:1/-1;border:1px dashed var(--ot-field);border-radius:var(--ot-r2);padding:24px;text-align:center;color:var(--ot-muted)}.ot-empty strong{display:block;color:var(--ot-text);font-size:1.05rem;margin-bottom:4px}
@@ -1108,7 +1108,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             return '<details class="pd-room-comfort" data-dashboard-key="comfort-'+id+'"><summary>'+uiText("Change temporarily")+'</summary>'+
                 '<div class="ot-actions"><button type="button" class="btn btn-outline-primary" data-comfort="boost" data-room="'+id+'">'+uiText("Boost 1 hour")+'</button></div>'+
                 '<div class="ot-actions"><label>'+uiText("Temperature")+' <input type="number" class="form-control" step="0.5" min="5" max="30" value="'+dashboardText(target === null ? 20 : target)+'" data-comfort-temp data-dashboard-key="comfort-temp"></label> '+
-                '<select class="form-select" data-comfort-length data-dashboard-key="comfort-length" aria-label="'+uiText("Duration")+'"><option value="next">'+uiText("Until the next switch point")+'</option><option value="60">'+uiText("1 hour")+
+                '<select class="form-control" data-comfort-length data-dashboard-key="comfort-length" aria-label="'+uiText("Duration")+'"><option value="next">'+uiText("Until the next switch point")+'</option><option value="60">'+uiText("1 hour")+
                 '</option><option value="120" selected>'+uiText("2 hours")+'</option><option value="240">'+uiText("4 hours")+'</option></select> '+
                 '<button type="button" class="btn btn-primary" data-comfort="set" data-room="'+id+'">'+uiText("Set")+'</button></div>'+
                 (overriding ? '<div class="ot-actions"><button type="button" class="btn btn-outline-secondary" data-comfort="none" data-room="'+id+'">'+uiText("Back to the week program")+'</button></div>' : '')+
@@ -1205,7 +1205,8 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                     var help = dashboardKnown(engineTargetSource,r.setpoint_source);
                     series.push({id:id, actual:actual, target:target});
                     var comfortText = engine.away ? comfortState(r.comfort) : '';
-                    cards.push({key:id, id:id, name:name, actual:actual, target:target, demand:r.demand === true, help:help ? uiText(help) : '',
+                    var off = r.state !== 'active';
+                    cards.push({key:id, id:id, name:name, actual:actual, target:target, demand:r.demand === true, off:off, help:help && !off ? uiText(help) : '',
                         comfort:engine.away && r.state === 'active' ? comfortControls(r, target) : '',
                         chips:(extra ? chip(uiText(extra), r.status === 'fallback' ? 'warn' : r.status === 'stale' || r.status === 'lost' ? 'err' : '') : '')+
                             (comfortText ? chip(comfortText, r.comfort && r.comfort.mode === 'window_open' ? 'warn' : 'ok') : ''),
@@ -1250,10 +1251,11 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
             var trendPending = false;
             cards.forEach(function(c) {
                 // The E32's 24 h history (RAM, since restart) when it has this room; else the live trend.
-                var trend = (engine && dashboardHistory && c.id.indexOf('e32:') === 0 ? OpenThermostatHistory.room(dashboardHistory,c.id.slice(4),c.name) : '') || dashboardTrend(c.id); if (!trend) trendPending = true;
+                var trend = c.off ? '' : (engine && dashboardHistory && c.id.indexOf('e32:') === 0 ? OpenThermostatHistory.room(dashboardHistory,c.id.slice(4),c.name) : '') || dashboardTrend(c.id); if (!trend && !c.off) trendPending = true;
                 html += '<article class="pd-room" data-dashboard-key="'+dashboardText(c.key)+'"><div class="pd-room-title"><h3>'+dashboardText(c.name)+'</h3><span class="ot-chips">'+
-                    chip(dashboardBool(c.demand,uiText("Requesting heat"),uiText("No request")),c.demand===true?'ok':'')+c.chips+'</span>'+
-                    uiHtml("</div><div class=\"pd-room-temperatures\"><div><span class=\"pd-flow-label\">Now</span>")+dashboardValue(c.actual,'°C')+uiHtml("</div><div><span class=\"pd-flow-label\">Target</span>")+dashboardValue(c.target,'°C')+'</div></div>'+
+                    (c.off ? '' : chip(dashboardBool(c.demand,uiText("Requesting heat"),uiText("No request")),c.demand===true?'ok':''))+c.chips+'</span></div>'+
+                    (c.off ? '<p class="pd-room-off">'+uiText("Off: this room never asks for heat.")+' <a href="#rooms" data-page="heating">'+uiText("Change or remove on the Rooms page")+'</a></p>' :
+                    uiHtml("<div class=\"pd-room-temperatures\"><div><span class=\"pd-flow-label\">Now</span>")+dashboardValue(c.actual,'°C')+uiHtml("</div><div><span class=\"pd-flow-label\">Target</span>")+dashboardValue(c.target,'°C')+'</div></div>')+
                     (c.help?'<p class="pd-help">'+dashboardText(c.help)+'</p>':'')+trend+(c.comfort||'')+
                     uiHtml("<details class=\"pd-room-detail\"><summary>Technical details</summary>")+c.details+'</details></article>';
             });

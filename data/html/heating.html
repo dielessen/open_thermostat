@@ -6,18 +6,30 @@
   <p class="pd-help" data-heating-mode-text></p>
   <div class="alert ot-actions" data-heating-lock role="status"><span data-heating-lock-text><span data-i18n="Managed in Home Assistant">Managed in Home Assistant</span></span>
     <button type="button" class="btn btn-outline-primary" data-heating-unlock><span data-i18n="Edit here anyway">Edit here anyway</span></button></div>
-  <details class="ot-advanced">
-    <summary data-i18n="Where do I set what?">Where do I set what?</summary>
-    <ol class="hp-flow">
-      <li><strong data-i18n="Without Home Assistant">Without Home Assistant</strong><span data-i18n="Set everything on this page: rooms, Bluetooth sensors and week programs work on the E32 alone.">Set everything on this page: rooms, Bluetooth sensors and week programs work on the E32 alone.</span></li>
-      <li><strong data-i18n="Home Assistant (optional)">Home Assistant (optional)</strong><span data-i18n="When you use it, it is the main place: rooms, temperature sources, target temperatures and week programs.">When you use it, it is the main place: rooms, temperature sources, target temperatures and week programs.</span></li>
-      <li><strong data-i18n="Room plan on the E32">Room plan on the E32</strong><span data-i18n="Stored on the E32 and kept in step with Home Assistant. It keeps running without Home Assistant.">Stored on the E32 and kept in step with Home Assistant. It keeps running without Home Assistant.</span></li>
-      <li><strong data-i18n="Boiler">Boiler</strong><span data-i18n="In shadow mode the E32 only calculates. It controls the boiler only after the attended switch-over.">In shadow mode the E32 only calculates. It controls the boiler only after the attended switch-over.</span></li>
-    </ol>
-    <p class="pd-help" data-i18n="When Home Assistant is offline, the E32 continues with its own Bluetooth sensors and week programs; otherwise it keeps the temperature without Home Assistant.">When Home Assistant is offline, the E32 continues with its own Bluetooth sensors and week programs; otherwise it keeps the temperature without Home Assistant.</p>
-  </details>
   <div class="hp-rooms" data-heating-rooms></div>
   <p data-heating-add-row><button type="button" class="btn btn-outline-primary" data-heating-add><span data-i18n="Add room">Add room</span></button></p>
+  <!-- beta.19 flow options (GET/POST /config/heating/flow); hidden on firmware without them. Script: the second <script> below. -->
+  <section class="pd-panel" data-heating-flow-options hidden>
+    <h2 data-i18n="Flow temperature">Flow temperature</h2>
+    <p class="pd-help" data-i18n="Each change is saved on the E32 at once.">Each change is saved on the E32 at once.</p>
+    <div class="form-check"><input type="checkbox" class="form-check-input" id="heating-flow-curve" data-flow-option="weather_curve" data-hint="Sets the flow temperature from the outdoor temperature, with the room correction on top. Without a current outdoor temperature the normal control is used.">
+      <label class="form-check-label" for="heating-flow-curve" data-i18n="Weather-compensated heating curve">Weather-compensated heating curve</label></div>
+    <div class="hp-flow-design"><label for="heating-flow-design" data-i18n="Flow at −10 °C">Flow at −10 °C</label>
+      <select id="heating-flow-design" class="form-control" data-flow-design data-hint="The flow the heating curve gives at −10 °C outside; milder weather gives less."></select></div>
+    <div class="form-check"><input type="checkbox" class="form-check-input" id="heating-flow-learned" data-flow-option="apply_learned" data-hint="Off: the E32 only advises. On: when warming up it uses the lowest flow that still warms in time, and it starts early enough for the next program step.">
+      <label class="form-check-label" for="heating-flow-learned" data-i18n="Use learned flow and optimum start">Use learned flow and optimum start</label></div>
+    <p class="pd-help" role="status" aria-live="polite" data-flow-message></p>
+    <details class="ot-advanced hp-more"><summary data-i18n="Status and learning">Status and learning</summary>
+    <dl class="pd-detail-grid" data-flow-status></dl>
+    <p class="pd-help" data-flow-compare hidden></p>
+    <p class="pd-help" data-flow-night hidden></p>
+    </details>
+  </section>
+  <section class="pd-panel" data-heating-shadow>
+    <h2 data-heating-shadow-title></h2>
+    <p class="pd-help" data-heating-shadow-help data-i18n="Shadow mode: the E32 computes its boiler request but does not send it; here it is compared with what your thermostat asked of the boiler.">Shadow mode: the E32 computes its boiler request but does not send it; here it is compared with what your thermostat asked of the boiler.</p>
+    <div data-heating-shadow-body><span data-i18n="Loading…">Loading…</span></div>
+  </section>
   <section class="pd-panel" data-heating-active>
     <h2 data-i18n="Active control">Active control</h2>
     <p class="pd-help" data-i18n="Lets the E32 control the boiler itself instead of your thermostat, after an attended switch-over.">Lets the E32 control the boiler itself instead of your thermostat, after an attended switch-over.</p>
@@ -32,26 +44,6 @@
     </p>
     <p class="pd-help" role="status" aria-live="polite" data-heating-active-message></p>
   </section>
-  <section class="pd-panel" data-heating-shadow>
-    <h2 data-heating-shadow-title></h2>
-    <p class="pd-help" data-heating-shadow-help data-i18n="Shadow mode: the E32 computes its boiler request but does not send it; here it is compared with what your thermostat asked of the boiler.">Shadow mode: the E32 computes its boiler request but does not send it; here it is compared with what your thermostat asked of the boiler.</p>
-    <div data-heating-shadow-body><span data-i18n="Loading…">Loading…</span></div>
-  </section>
-  <!-- beta.19 flow options (GET/POST /config/heating/flow); hidden on firmware without them. Script: the second <script> below. -->
-  <section class="pd-panel" data-heating-flow-options hidden>
-    <h2 data-i18n="Flow temperature">Flow temperature</h2>
-    <p class="pd-help" data-i18n="Each change is saved on the E32 at once.">Each change is saved on the E32 at once.</p>
-    <div class="form-check"><input type="checkbox" class="form-check-input" id="heating-flow-curve" data-flow-option="weather_curve" data-hint="Sets the flow temperature from the outdoor temperature, with the room correction on top. Without a current outdoor temperature the normal control is used.">
-      <label class="form-check-label" for="heating-flow-curve" data-i18n="Weather-compensated heating curve">Weather-compensated heating curve</label></div>
-    <div class="hp-flow-design"><label for="heating-flow-design" data-i18n="Flow at −10 °C">Flow at −10 °C</label>
-      <select id="heating-flow-design" class="form-control" data-flow-design data-hint="The flow the heating curve gives at −10 °C outside; milder weather gives less."></select></div>
-    <div class="form-check"><input type="checkbox" class="form-check-input" id="heating-flow-learned" data-flow-option="apply_learned" data-hint="Off: the E32 only advises. On: when warming up it uses the lowest flow that still warms in time, and it starts early enough for the next program step.">
-      <label class="form-check-label" for="heating-flow-learned" data-i18n="Use learned flow and optimum start">Use learned flow and optimum start</label></div>
-    <p class="pd-help" role="status" aria-live="polite" data-flow-message></p>
-    <dl class="pd-detail-grid" data-flow-status></dl>
-    <p class="pd-help" data-flow-compare hidden></p>
-    <p class="pd-help" data-flow-night hidden></p>
-  </section>
   <details class="ot-advanced">
     <summary data-i18n="Boiler flow limits">Boiler flow limits</summary>
     <div class="hp-grid">
@@ -63,6 +55,16 @@
   </details>
   <p class="alert alert-warning" data-heating-flow-warn role="status" hidden><span data-i18n="A room has floor heating. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.">A room has floor heating. Floor heating fed directly without a mixing valve usually needs at most 45–50 °C.</span></p>
   <p class="alert alert-warning" data-heating-boiler-warn role="status" hidden></p>
+  <details class="ot-advanced">
+    <summary data-i18n="Where do I set what?">Where do I set what?</summary>
+    <ol class="hp-flow">
+      <li><strong data-i18n="Without Home Assistant">Without Home Assistant</strong><span data-i18n="Set everything on this page: rooms, Bluetooth sensors and week programs work on the E32 alone.">Set everything on this page: rooms, Bluetooth sensors and week programs work on the E32 alone.</span></li>
+      <li><strong data-i18n="Home Assistant (optional)">Home Assistant (optional)</strong><span data-i18n="When you use it, it is the main place: rooms, temperature sources, target temperatures and week programs.">When you use it, it is the main place: rooms, temperature sources, target temperatures and week programs.</span></li>
+      <li><strong data-i18n="Room plan on the E32">Room plan on the E32</strong><span data-i18n="Stored on the E32 and kept in step with Home Assistant. It keeps running without Home Assistant.">Stored on the E32 and kept in step with Home Assistant. It keeps running without Home Assistant.</span></li>
+      <li><strong data-i18n="Boiler">Boiler</strong><span data-i18n="In shadow mode the E32 only calculates. It controls the boiler only after the attended switch-over.">In shadow mode the E32 only calculates. It controls the boiler only after the attended switch-over.</span></li>
+    </ol>
+    <p class="pd-help" data-i18n="When Home Assistant is offline, the E32 continues with its own Bluetooth sensors and week programs; otherwise it keeps the temperature without Home Assistant.">When Home Assistant is offline, the E32 continues with its own Bluetooth sensors and week programs; otherwise it keeps the temperature without Home Assistant.</p>
+  </details>
   <div class="ot-sticky ot-actions">
     <button type="button" class="btn btn-primary" data-heating-save><span data-i18n="Save rooms">Save rooms</span></button>
     <span class="ot-chip ot-chip--warn" data-heating-dirty hidden><span data-i18n="Unsaved changes">Unsaved changes</span></span>

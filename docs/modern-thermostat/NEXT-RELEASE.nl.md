@@ -1,3 +1,65 @@
+# Beta.19 + HA0.4.0b11 — plan: klaar voor de overstap (eigenaar, 29 oktober)
+
+Eigenaar: "je kan vast aan de volgende release werken van mij hoor beta 19.
+maak vast een plan". Doel: de release waarmee de bijgewoonde overstap kan
+(tado fysiek los, E32 het enige brein). De actieve modus staat erin, maar
+start pas na de bevestiging van de eigenaar op de pagina. Bouwen tijdens de
+schaduwperiode van beta.18 (3–5 dagen); publiceren als die periode slaagt.
+
+| # | Onderdeel | Inhoud | Klaar als |
+| --- | --- | --- | --- |
+| 1 | Ketelgrens uit de ketel | De E32 leest 0x16 (`heatingTemp`) zelf: bij opstarten en elke 6 uur, alleen lezen, eigen review van het nieuwe busverkeer. Plafond = min(plan, 80, 0x16). Zonder bekende grens geen actieve warmte. | Grens bekend na herstart zonder tado; hosttest + busopname |
+| 2 | Bevestiging "tado los" bewaard | NVS; gewist bij vreemde 0x1A, "terug naar thermostaat" of firmwarewissel. HA-melding bij `awaiting_confirmation`. | Herstart tijdens actief: binnen 1 min weer warmte/vorstbeveiliging |
+| 3 | Supervisor tijdens actief | Geen herstart voor wifi/broker/Bluetooth zolang de E32 de ketel bezit; alleen bij echte vastloper (loop/RTC-watchdog). | Policytests; duurtest met netwerkuitval tijdens actief |
+| 4 | Vergrendeling open, achter bevestiging | `emsActiveHeatAllowed` aan in de build; actieve modus alleen via de pagina na bevestiging; "terug naar thermostaat" altijd bereikbaar (ook zonder HA). | Schaduw blijft de standaard; review van de zendroute |
+| 5 | Faalscenario's actief | Duurtest uitbreiden: HA weg, meting weg, E32-herstart, wifi weg, vreemde 0x1A, tapwater tijdens verwarmen, stop van de E32 (gedrag adapter), vorst. Nulvraag tot bevestigd. | Alle scenario's groen in `test/soak` + CI |
+| 6 | Leren toepassen (optie) | Laagste aanvoer die op tijd warmt en optimale start, standaard **advies**; optie "geleerde aanvoer gebruiken", eerst 2 weken alleen advies. | Advies ↔ werkelijk zichtbaar in HA |
+| 7 | Gas ijken | Nachtverlaging doorrekenen met de echte gasmeter (m³ of kWh, elke meter), kWh/m³ en prijs; zonder meter ruwe schatting. | Vergelijking per nacht in HA |
+| 8 | Ruimte in flash en plan | Webbestanden alleen gzip (flash nu 92–93 %); compacter ruimteplan (8 ruimtes × 4 punten past nu niet in 4095 B). | Flash < 85 %; plantest 8×4 |
+| 9 | HA-opruiming | `track_entities` vergeet verwijderde sleutels (geen herlaad meer); dubbele EMS+-entiteiten (F28); pl.json aanvullen of weglaten. | Geen verouderde entiteiten |
+| 10 | Overstapdraaiboek + live bewaking | OVERSCHAKELING.nl.md bijwerken; bewakingsscript voor de eerste 48 uur (aanvoer, brander, ruimtes, herstarts). | Draaiboek stap voor stap getest in schaduw |
+| 11 | Updaten via HA is de officiële route | Zoals ESPHome (eigenaar 29 oktober): HA haalt firmware.bin van GitHub, controleert SHA-256, grootte en versie en uploadt lokaal naar de E32 (`firmware_update.py`, bestaat al). De updategate accepteert die route (`method: home_assistant`) met een acceptatiebewijs; de HTTPS-update op de E32 zelf wordt optioneel. | Eén E32-update via de HA-updateknop geslaagd en vastgelegd |
+| 12 | Versie 1.0 mogelijk maken | Releasecontroles, updatecatalogus en de HA-update (`TAG` kent nu alleen alpha/beta/rc) kennen `v1.0.0` naast `beta.N`; volgorde van oud naar nieuw klopt. | Gate- en HA-tests met een 1.0-tag |
+| 13 | Documentatie voor nieuwe gebruikers | Installatiegids van nul (flashen, setup-wifi, HA-integratie, ruimtes, Bluetooth-sensor), ondersteunde hardware (EMS Classic), probleemoplossing. Engels op GitHub. | Iemand anders kan hem volgen |
+| 14 | Tado-rijen controleren | In de schaduwperiode de thermostaatrijen (0x17) tegen echte busdata verifiëren, vóór het loskoppelen. | Alleen waargenomen rijen geverifieerd |
+
+**Uitbreiding (eigenaar 29 oktober: "we kunnen wel wat meer dingen meenemen";
+gekozen: comfort en bediening, weersafhankelijk stoken, inzicht en energie,
+onderhoud en 1.0-zekerheid, raam- en deursensor).** Alles via hetzelfde
+ruimteplan op de E32 en dezelfde bewaking (`ActiveHeatGuard`); werkt ook zonder
+HA waar de bron op de E32 zit. Bestaande voorbereide code (o.a.
+`room_contacts.py`, `room_vacation.py`, `CurveAdaptation.h`, `MetricsTelemetry.h`)
+wordt hergebruikt waar die past.
+
+| # | Onderdeel | Inhoud | Klaar als |
+| --- | --- | --- | --- |
+| 15 | HA-thermostaat per E32-ruimte | Gewone klimaatentiteit (thermostaatkaart, spraakassistenten): huidige temperatuur, doel, modus auto/verwarmen/uit, presets. Schrijft via het ruimteplan. | Doel wijzigen in HA → E32 binnen 15 s |
+| 16 | Tijdelijk overrulen | Boost of "tot het volgende schakelpunt" / "2 uur 21 °C", op de E32-pagina en in HA; daarna terug naar het weekprogramma. | Vervalt vanzelf, ook na herstart |
+| 17 | Raam- en deursensor | Per ruimte HA-contacten (raam/deur), met vertraging; open → ruimte pauzeert (vorstgrens blijft); dicht → hervat. Bluetooth-contacten (bijv. Shelly BLU Door/Window) als E32-bron indien haalbaar. | Pauze/hervat zichtbaar met reden |
+| 18 | Afwezig en vakantie | Verlaagde temperatuur tot een datum; optioneel "iedereen weg" uit HA-personen. | Komt op tijd terug (optimale start) |
+| 19 | Weersafhankelijk stoken (optie) | Stooklijn uit de buitentemperatuur (HA-sensor of weerentiteit) als basisaanvoer, de leerfunctie stelt bij; nooit boven plan- of ketelgrens. Zonder buitentemperatuur: huidige regeling. | Lagere aanvoer bij zacht weer in de schaduwvergelijking |
+| 20 | Grafieken op de E32 | 24 uur ruimtetemperatuur, doel, aanvoer en brander, ook zonder HA, begrensd in geheugen. | Pagina blijft snel en klein |
+| 21 | Energie in HA | Gas (m³) en kWh per dag/week, verwarmen vs tapwater, als langetermijnstatistiek voor het HA-energiedashboard. | Waarden kloppen met de gasmeter |
+| 22 | Weekadvies | Wekelijks bericht in HA met advies en besparing (blueprint), uitschakelbaar. | EN/NL, gewone taal |
+| 23 | Instellingen back-up en terugzetten | Exporteren/importeren van netwerk, ruimtes en Bluetooth-sensoren (wachtwoord en sleutels alleen versleuteld of niet). | Terugzetten op een nieuwe E32 werkt |
+| 24 | HA-diagnose | Downloadbare diagnose (zonder wachtwoorden/adressen) voor hulp bij problemen. | Geen geheimen in het bestand |
+| 25 | Code opsplitsen | Grote bestanden (`REST.h`, `ShadowController.h`, `config.cpp`) per verantwoordelijkheid, gedrag ongewijzigd. | Alle tests groen, firmware niet groter |
+
+Volgorde: eerst 1–5 en 10–14 (de overstap), dan 15–18, 19, 23–24, 20–22, 25.
+Flash is krap (93 %): punt 8 (gzip) gaat vóór 20.
+
+**Beta.19 is de kandidaat voor 1.0 (eigenaar 29 oktober).** Dezelfde code
+wordt v1.0.0 zodra: 14 dagen actief regelen zonder vastloper of onverwachte
+herstart, alle storingstests van de overstap geslaagd, minstens één update op
+de officiële route geslaagd, en de installatiegids door iemand anders te
+volgen is. Kleine problemen eerst in een beta.20, die dan 1.0 wordt. EMS+ komt
+na 1.0 (1.1).
+
+Niet in beta.19: EMS+-ketels, lezen én aansturen (eigenaar 29 oktober: "laten
+we die maar in beta 20 doen"; na 1.0 dus 1.1), het schrijven van de maximale
+aanvoer via EMS (pas na een beoordeelde schrijfroute), meer ruimtes dan de
+woonkamer actief (na 1–2 weken live).
+
 # Beta.18 + HA0.4.0b10 — in uitvoering (eigenaar, 28–29 oktober)
 
 Eigenaar: "zorg dat je voor heel de nacht werk blijft houden maak desnoods de

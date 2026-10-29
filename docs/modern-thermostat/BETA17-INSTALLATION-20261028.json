@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "date": "2026-10-28",
+  "status": "INSTALLED_BY_OWNER_IDENTITY_VERIFIED",
+  "installed_tag": "v0.1.0-e32v2-beta.17",
+  "source_commit": "c7af7aeddbdade1202e5341801a881e002ab5907",
+  "web_sha256": "72ff492b3bc41340f164579dfba297edd721ad242875fb9655152d7dd2069eed",
+  "elf_sha256": "b939f35d85415ed3164a7898c8417195955e6dad9c952881c54ade6fac0b8d96",
+  "previous_tag": "v0.1.0-e32v2-beta.15",
+  "installation_route": "owner-initiated update on the device (not the scripted local upload); reset reason 3 (software) after the update",
+  "identity_check": "version, source commit and web hash equal the published e32v2-update.json of the release",
+  "preflight_note": "Before the update the E32 had hung again when the owner opened the Bluetooth page on beta15 (no ping); the owner power-cycled it. The prepared installer stopped at its version check because beta17 was already installed; it uploaded nothing.",
+  "post_install_setup": {
+    "room_plan": "revision 1: woonkamer (active, floor, sources climate.tado_smart_thermostat_ru1884754176 then BLE a4c138a3e8db, setpoint from the tado entity, fallback 20 degC) and badkamer (inactive, radiator, source climate.thermostaat_badkamer), requested by the owner",
+    "bluetooth": "a4c138a3e8db switched from xiaomi_monitor_3 to pvvx_thermometer (no encryption), one restart",
+    "observed": "woonkamer ok via HA 20.9/21 degC; pvvx sends BTHome v2 voltage/status packets every ~15 s and reading packets every ~60 s (20.17 degC, 58.1 %, battery 100); the E32 catches a reading only every few minutes, so the sensor shows stale (beta18 fix)"
+  },
+  "ha": {
+    "installed": "0.4.0b9",
+    "source_commit": "c7af7aeddbdade1202e5341801a881e002ab5907",
+    "route": "Samba file swap with byte-exact backup; owner restarted HA"
+  },
+  "owner_approvals": [
+    "Ja, publiceer en installeer (Aanbevolen)",
+    "ja en dan de bluetooth temp sensor in de woonkamer"
+  ],
+  "native_acceptance": "INCOMPLETE_NOT_NATIVE_ROUTE",
+  "native_https_root_cause_fixed": false
+}

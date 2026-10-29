@@ -624,7 +624,7 @@ private:
         supervisor_.invalidate();
         admission_.invalidateTransport(); session_=mappingReady_=leaseWasAlive_=false;
         sessionId_.clear(); lastOpen_.clear(); pendingGrantNonce_.clear(); issuedGrantNonce_.clear();
-        nextMetrics_=0;metricsSequence_=0;nextBoilerFields_=0;boilerSequence_=0;boilerGroup_=0;boilerFieldsV2_=false;
+        nextMetrics_=0;metricsSequence_=0;nextBoilerFields_=0;boilerSequence_=0;boilerGroup_=0;boilerFieldsV2_=false;catalogFieldsKnown_=catalogFieldsWithoutCount;
         for(size_t i=0;i<config_->count;++i) {
             auto &z=config_->zones[i]; z.sample.unavailable(); z.comfort.invalidate();z.comfortInputs=ComfortInputs{}; z.overrideUntil=0; z.off=false; z.demand=false;
             // SOURCE-selected regulator keeps its owner/timing fences and minimum
@@ -784,7 +784,7 @@ private:
             ||!admission_.grantDeadline(now)||now<nextBoilerFields_||boilerSequence_==UINT32_MAX
             ||now>maximumBoilerTimestamp-boilerGroupIntervalMs)return;
         nextBoilerFields_=now+boilerGroupIntervalMs;
-        const auto groups=boilerFieldsV2_?boilerFieldGroupCountV2:boilerFieldGroupCount;
+        const auto groups=boilerFieldsV2_?catalogGroupCount(catalogFieldsKnown_):boilerFieldGroupCount;
         const auto group=boilerGroup_%groups;boilerGroup_=(group+1)%groups;
         try {
             std::ostringstream ss;boilerFields_(ss,group);const auto raw=ss.str();
@@ -807,15 +807,20 @@ private:
             ++boilerSequence_;publish_("fw/telemetry/boiler_fields",bytes);
         } catch(const std::exception&) { /* A getter failure never renews control or measurements. */ }
     }
-    // ha/capabilities {"read_only":["boiler.fields.v2"]}: HA can read the catalog
-    // groups. Bound to the open session; a new session starts at v1 again.
+    // ha/capabilities {"read_only":["boiler.fields.v2"],"catalog_fields":35}: HA can
+    // read that many catalog fields. Bound to the open session; a new session starts at v1.
     void capabilities(const cJSON* o) {
         const auto* list=field(o,"read_only");
-        if(!session_||!exactFields(o,{"read_only"})||!cJSON_IsArray(list)||cJSON_GetArraySize(list)>8)return;
+        const auto* known=field(o,"catalog_fields");
+        if(!session_||!cJSON_IsArray(list)||cJSON_GetArraySize(list)>8
+            ||!(exactFields(o,{"read_only"})||(exactFields(o,{"read_only","catalog_fields"})&&cJSON_IsNumber(known)
+                &&known->valuedouble>=0&&known->valuedouble<=1000)))return;
         bool v2=false;
         for(const cJSON* c=list->child;c;c=c->next)
             if(cJSON_IsString(c)&&c->valuestring&&std::string_view(c->valuestring)==boilerFieldsV2Capability)v2=true;
         boilerFieldsV2_=v2;
+        catalogFieldsKnown_=known?static_cast<size_t>(known->valuedouble):catalogFieldsWithoutCount;
+        boilerGroup_=0;
     }
     void sessionStatus() {
         auto o=base(); cJSON_AddStringToObject(o.get(),"adapter_id",owner_.c_str());
@@ -1043,6 +1048,7 @@ private:
     uint32_t boilerSequence_=0;
     size_t boilerGroup_=0;
     bool boilerFieldsV2_=false; // HA announced boiler.fields.v2 in this session
+    size_t catalogFieldsKnown_=catalogFieldsWithoutCount;
     uint64_t challengeUntil_=0,nextHello_=0,nextState_=0,nextGrant_=0,lastNow_=0,sessionStart_=0;
     bool session_=false,mappingReady_=false,connected_=false,fault_=false,leaseWasAlive_=false;
 };

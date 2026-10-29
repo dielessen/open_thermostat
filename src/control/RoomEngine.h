@@ -51,6 +51,14 @@ public:
         rooms_ = std::move(next);
     }
     const RoomPlan& plan() const { return plan_; }
+    // Per plan room after step(): its demand result, and its leading fresh
+    // reading whatever its state (frost protection also covers inactive rooms).
+    const RoomDemand::Result& result(size_t room) const { return rooms_[room].result; }
+    std::optional<int16_t> freshTemperature(size_t room, uint64_t now) const {
+        RoomDemand::Spec spec;
+        spec.state = RoomDemand::State::active; spec.sources = static_cast<uint8_t>(plan_.rooms[room].sources.size());
+        return RoomDemand::evaluate(spec, rooms_[room].readings, std::nullopt, now, {}).temperature;
+    }
 
     // A Home Assistant entity reported its temperature and/or target (centi degC).
     void haState(const std::string& entity, std::optional<int16_t> temperature,

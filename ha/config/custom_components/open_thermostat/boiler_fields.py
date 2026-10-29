@@ -114,7 +114,17 @@ CATALOG_FIELDS = (
     ('plus_dhw_selected_temperature', 'degC', 1, 600000, (234,), 0, 100),
     ('plus_heating_temperature', 'degC', 1, 600000, (230,), 0, 100),
     ('plus_maximum_burner_power', '%', 1, 600000, (230,), 0, 100),
+    ('last_locking_error_code', 'text', 1, 86400000, (16,), 8224, 32382),
+    ('last_locking_error_number', 'code', 1, 86400000, (16,), 0, 9999),
+    ('last_blocking_error_code', 'text', 1, 86400000, (17,), 8224, 32382),
+    ('last_blocking_error_number', 'code', 1, 86400000, (17,), 0, 9999),
+    ('boiler_uptime', 'min', 1, 600000, (20,), 0, 16777214),
+    ('thermostat_requested_dhw_temperature', 'degC', 1, 180000, (51,), 0, 100),
 )
+# EMS 3-byte lifetime counters (EntityKind::u24): Home Assistant total_increasing
+CATALOG_COUNTERS = frozenset({'plus_burner_starts', 'plus_burner_runtime', 'plus_heating_runtime', 'plus_dhw_runtime', 'plus_dhw_starts', 'boiler_uptime'})
+# (name, telegram type) rows decoded from real frames with plausible values
+CATALOG_VERIFIED = frozenset({('thermostat_requested_flow_temperature', 26), ('thermostat_requested_burner_power', 26), ('thermostat_requested_pump_modulation', 26), ('thermostat_setpoint', 177), ('thermostat_room_temperature', 177), ('thermostat_requested_dhw_temperature', 51)})
 # END GENERATED CATALOG FIELDS
 
 # boiler.fields.v2: the same route with whole groups 7.. holding the EMS entity
@@ -169,7 +179,7 @@ def validate_group(value, group):
               or not integer(source, FIELDS[index][4], FIELDS[index][4])
               or (raw is not None and not integer(raw, *LIMITS[index]))):
             raise ValueError("boiler field value")
-        if index == 24 and raw is not None and not (32 <= raw >> 8 <= 126 and 32 <= raw & 255 <= 126):
+        if spec(index)[1] == "text" and raw is not None and not (32 <= raw >> 8 <= 126 and 32 <= raw & 255 <= 126):
             raise ValueError("boiler display code")
     return value
 

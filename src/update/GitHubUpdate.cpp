@@ -13,6 +13,7 @@
 #include "DeviceAccess.h"
 #include "Filesystem.h"
 #include "Network.h"
+#include "diagnostics/BlackBox.h"
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <esp_ota_ops.h>
@@ -43,12 +44,21 @@ extern "C" void *__wrap_esp_mbedtls_mem_calloc(size_t count,size_t size) {
         });
 }
 
+// Arduino's initArduino() marks every new OTA image valid before setup()
+// unless this weak hook returns true. Then the bootloader's rollback
+// (CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y in the Arduino 2.0.17 SDK) stays
+// armed until loop() confirms the image (BootConfirmation, RestartTimer.h):
+// a new image that crashes or hangs before that boots the previous one.
+extern "C" bool verifyRollbackLater() { return true; }
+
 namespace heating {extern bool wifiAPMode;}
 namespace heating::update {
 namespace {
 struct State {std::string phase="idle",error,selected,operation="none";DownloadFailure downloadError;uint32_t received=0,total=0;bool reboot=false;std::vector<Release> releases;};
 State state;std::mutex stateMutex;ReleaseCheckSchedule checkSchedule;
 std::atomic<bool> working{false};RestartTimer rebootTimer;
+// Optional restarts (applying Bluetooth settings): wait for a quiet moment.
+RestartTimer controlledRestart;std::atomic<uint8_t> controlledReason{0};
 struct CheckpointStorage {
     bool read(UpdateCheckpoint &value) {
         nvs_handle_t handle;
@@ -266,6 +276,11 @@ void firmwareInstalled(){
     rebootTimer.schedule(millis());
 }
 bool requestReboot(){if(!manualRebootAllowed(busy(),pendingBoot()))return false;rebootTimer.schedule(millis(),1000);return true;}
+bool scheduleControlledRestart(uint32_t delayMs,uint8_t reason){
+    controlledReason.store(reason);controlledRestart.schedule(millis(),delayMs);return true;
+}
+bool controlledRestartPending(){return controlledRestart.pending();}
+bool bootPending(){return pendingBoot();}
 bool requestRollback(){
     if(busy()||pendingBoot())return false;const auto p=previous();if(!p||esp_ota_set_boot_partition(p)!=ESP_OK)return false;
     {std::lock_guard<std::mutex> lock(stateMutex);state.operation="rollback";state.downloadError={};}
@@ -306,7 +321,7 @@ std::string status() {
     cJSON_AddStringToObject(root.get(),"selected",snapshot.selected.c_str());cJSON_AddBoolToObject(root.get(),"busy",busy());
     cJSON_AddBoolToObject(root.get(),"can_check",ready()&&!busy()&&!snapshot.reboot&&!pendingBoot());cJSON_AddBoolToObject(root.get(),"boot_pending",pendingBoot());
     cJSON_AddBoolToObject(root.get(),"reboot_required",snapshot.reboot);cJSON_AddBoolToObject(root.get(),"rollback_available",!pendingBoot()&&previous()!=nullptr);
-    cJSON_AddBoolToObject(root.get(),"reboot_scheduled",rebootTimer.pending());
+    cJSON_AddBoolToObject(root.get(),"reboot_scheduled",rebootTimer.pending()||controlledRestart.pending());
     cJSON_AddNumberToObject(root.get(),"received",snapshot.received);cJSON_AddNumberToObject(root.get(),"total",snapshot.total);
     cJSON_AddNumberToObject(root.get(),"reset_reason",int(esp_reset_reason()));
     const auto running=esp_ota_get_running_partition(),boot=esp_ota_get_boot_partition();
@@ -335,9 +350,14 @@ std::string status() {
     auto list=cJSON_AddArrayToObject(root.get(),"releases");for(const auto &r:snapshot.releases){auto entry=cJSON_CreateObject();cJSON_AddStringToObject(entry,"tag",r.tag.c_str());cJSON_AddBoolToObject(entry,"prerelease",r.prerelease);cJSON_AddItemToArray(list,entry);}
     char *raw=cJSON_PrintUnformatted(root.get());std::string result=raw?raw:"{}";cJSON_free(raw);return result;
 }
-void loop(bool automaticAllowed) {
+void loop(bool automaticAllowed,bool supervisorAlive) {
     const auto now=millis();if(rebootTimer.due(now,working.load())){ESP.restart();return;}
-    static bool pending=pendingBoot();static uint32_t start=now,stable=0;
+    static bool pending=pendingBoot();
+    if(controlledRestart.due(now,working.load())&&controlledRestartAllowed(busy(),pending,!automaticAllowed)) {
+        heating::diagnostics::blackBox.restartReason(static_cast<heating::diagnostics::SupervisorPolicy::Reason>(controlledReason.load()));
+        Serial.println("Controlled restart (deferred until no update, boot check or boiler session)");
+        ESP.restart();return;
+    }
     if(!pending){
         // No automatic HTTPS from the device (beta16, owner's choice): Home
         // Assistant checks GitHub and uploads over the local network, like
@@ -349,11 +369,15 @@ void loop(bool automaticAllowed) {
         if(due&&ready()&&!pendingBoot())checkReleases();
         return;
     }
-    if(networkConnected()&&deviceAccess.ready()&&filesystem.isMounted()&&embedded::imageMarker[0]) {
-        if(!stable)stable=now;
-        if(uint32_t(now-stable)>=20000&&esp_ota_mark_app_valid_cancel_rollback()==ESP_OK){pending=false;Serial.println("OTA boot confirmed: network, access, filesystem and embedded UI ready");}
-    } else stable=0;
-    if(pending&&uint32_t(now-start)>120000){Serial.println("OTA boot unconfirmed; restarting for native bootloader recovery");ESP.restart();}
+    // millis() is the uptime: this runs from the first loop pass after boot.
+    switch(BootConfirmation::decide(now,supervisorAlive)) {
+        case BootConfirmation::Action::confirm:
+            if(esp_ota_mark_app_valid_cancel_rollback()==ESP_OK){pending=false;Serial.println("OTA boot confirmed: loop and supervisor ran normally for 60 s");}
+            break;
+        case BootConfirmation::Action::rollback:
+            Serial.println("OTA boot unconfirmed (no supervisor); restarting for bootloader rollback");ESP.restart();return;
+        default: break;
+    }
 }
 }
 #endif

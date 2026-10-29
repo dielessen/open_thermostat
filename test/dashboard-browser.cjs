@@ -41,12 +41,12 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   await page.context().addCookies([{name:'ot_ui_lang',value:'nl',url:'http://opth.test'}]);
   await page.clock.install();
   await page.goto('http://opth.test/');await page.locator('.pd-room').first().waitFor();
-  assert.equal(await page.locator('.pd-room').count(),8);assert.match(await page.locator('.pd-flow').innerText(),/3 vragen warmte/);
+  assert.equal(await page.locator('.pd-room').count(),8);assert.match(await page.locator('.pd-flow').innerText(),/3 ruimtes vragen warmte/);
   assert.equal(await page.locator('[data-legacy-editor]:visible').count(),0);
   // Only reliable reported boiler values: no read-back setpoint tile, no tile for a
   // value the boiler did not report, and no unreliable flame/pump/fan rows.
   const facts=await page.locator('.pd-facts').innerText();
-  assert.doesNotMatch(facts,/Keteldoel/);assert.match(facts,/43,2|43\.2/);assert.match(facts,/Installatiedruk/);
+  assert.doesNotMatch(facts,/Keteldoel/);assert.match(facts,/43,2|43\.2/);assert.match(facts,/Waterdruk/);
   assert.doesNotMatch(facts,/Retour/);
   const details=await page.locator('.pd-lower > details:not(.pd-build)').textContent();
   assert.doesNotMatch(details,/Vlamstatus|Pomp|Ventilator|Protocolprofiel/);assert.match(details,/0A/);
@@ -75,9 +75,9 @@ function fixture(){return {controlMode:'shadow',ems:{heatingActive:false,warmWat
   status.ems.currentFlowTemperature=487;status.ems.currentReturnTemperature=412;delete status.ems.pressure;status.control.state.zones[0].temperature_centi_c=2025;
   status.control.captured_at_ms+=10000;
   await page.clock.runFor(10000);
-  await page.waitForFunction(()=>document.querySelector('.pd-facts').textContent.includes('48.7'));
+  await page.waitForFunction(()=>/48[.,]7/.test(document.querySelector('.pd-facts').textContent));
   assert.match(await page.locator('.pd-facts').innerText(),/Retour/);
-  assert.doesNotMatch(await page.locator('.pd-facts').innerText(),/Installatiedruk/);
+  assert.doesNotMatch(await page.locator('.pd-facts').innerText(),/Waterdruk/);
   assert.equal(await page.evaluate(()=>keptDashboard===document.querySelector('.product-dashboard') &&
    keptRoom===document.querySelector('.pd-room') && keptDetails.open && keptBuild.open && keptBoilerDetails.open && keptFallback.open &&
    keptBoiler===document.getElementById('boiler-home') && document.activeElement===keptDetails.querySelector('summary') && scrollY===keptScroll),true);

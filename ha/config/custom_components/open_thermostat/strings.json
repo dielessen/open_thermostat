@@ -6,13 +6,17 @@
         "menu_options": {
           "legacy": "Existing legacy integration",
           "shadow": "Read and calculate only (shadow mode)"
-        }
+        },
+        "description": "Choose how OpenThermostat works with your heating."
       },
       "confirm": {
         "title": "OpenThermostat detected",
         "description": "Add climate entities for rooms from MQTT prefix {prefix}?",
         "data": {
           "create_dashboard": "Create an OpenThermostat dashboard"
+        },
+        "data_description": {
+          "create_dashboard": "Adds an OpenThermostat dashboard to the sidebar with your rooms, the boiler and the sensors."
         }
       },
       "legacy": {
@@ -21,6 +25,10 @@
         "data": {
           "topic_prefix": "MQTT topic prefix",
           "create_dashboard": "Create an OpenThermostat dashboard"
+        },
+        "data_description": {
+          "topic_prefix": "The MQTT prefix set on the thermostat, for example ib-therm.",
+          "create_dashboard": "Adds an OpenThermostat dashboard to the sidebar with your rooms, the boiler and the sensors."
         }
       },
       "shadow": {
@@ -29,6 +37,10 @@
         "data": {
           "topic_prefix": "Controller MQTT prefix (1–32 ASCII letters/digits, - or _)",
           "adapter_id": "Provisioned firmware adapter owner ID"
+        },
+        "data_description": {
+          "topic_prefix": "The MQTT prefix of the E32, as shown on its network page.",
+          "adapter_id": "The owner ID set in the E32 firmware; it links this installation to that E32."
         }
       },
       "installation": {
@@ -78,7 +90,8 @@
           "configuration_status": "Installation status",
           "advanced_settings": "Advanced and diagnostics",
           "controller_connection": "Connect E32",
-          "graph_prepare": "Review or recover room plan"
+          "graph_prepare": "Review or recover room plan",
+          "e32_rooms": "Rooms"
         }
       },
       "graph_review": {
@@ -86,6 +99,9 @@
         "description": "{scope}.\n\n{summary}\n\nAccepted revision {accepted}; staged revision {revision}.\n{status_label}.\n\nApplying stores this exact reviewed configuration, never physical actuation. Only fresh exact readback verifies it. Owner, boot, session or candidate changes cancel this review.\n\nConfiguration digest: {digest}",
         "data": {
           "confirm_apply": "Apply this exact staged configuration"
+        },
+        "data_description": {
+          "confirm_apply": "Tick to store exactly this reviewed configuration on the E32. It does not switch on heating control."
         }
       },
       "graph_status": {
@@ -93,6 +109,9 @@
         "description": "{status_label}.\n\nDevice result: {result_label}; an ACK is not applied/readback proof.\nLocally accepted revision: {accepted}; staged revision: {staged_label}.\nCurrent readback verified:{verified}.\n\nScope: {data_scope}.\n{control_status}.\n\nRefresh only reads the current status. It never applies configuration or qualifies a physical source.",
         "data": {
           "status_action": "Next action"
+        },
+        "data_description": {
+          "status_action": "What you want to do next."
         }
       },
       "hot_water": {
@@ -105,6 +124,9 @@
         "description": "Scope:{scope}. Contract:{profile}. Software control:{control_status}. Current source-config readback verified:{verified}. Journal:{journal_status}. Accepted revision:{accepted}; staged:{staged}. Boiler and actuator outputs remain disabled. Refresh never applies DATA or qualifies a source, physical profile or protection.",
         "data": {
           "status_action": "Next action"
+        },
+        "data_description": {
+          "status_action": "What you want to do next."
         }
       },
       "installation_source": {
@@ -116,7 +138,9 @@
           "week_reviewed": "Use the complete-week shadow contract (requires matching E32 support)"
         },
         "data_description": {
-          "legacy_readback": "No restored grants, overrides or learning. Incompatible old records remain refused."
+          "legacy_readback": "No restored grants, overrides or learning. Incompatible old records remain refused.",
+          "controller_id": "The controller ID as shown in the E32 device settings; it must match exactly.",
+          "week_reviewed": "Only when the E32 firmware supports the complete-week shadow contract."
         }
       },
       "installation_source_review": {
@@ -125,6 +149,10 @@
         "data": {
           "confirm_source": "Save this HA logical profile selection (no control/config send)",
           "confirm_replacement": "I reviewed the exact previous profile and its readback-only migration"
+        },
+        "data_description": {
+          "confirm_source": "Tick to save this profile choice in Home Assistant. Nothing is sent to the E32.",
+          "confirm_replacement": "Tick to confirm you checked the previous profile that this one replaces."
         }
       },
       "installation": {
@@ -258,7 +286,8 @@
         "data_description": {
           "room": "Choose an existing room. Its identity and programme are preserved when editing.",
           "action": "Edit its configuration or remove only this room and its bindings."
-        }
+        },
+        "description": "Add, change or remove the rooms of this installation."
       },
       "remove_room": {
         "title": "Remove {name}?",
@@ -310,12 +339,20 @@
         "title": "Choose a time block to edit",
         "data": {
           "block": "Time block"
+        },
+        "description": "Pick the time block you want to change.",
+        "data_description": {
+          "block": "A time block of the week program."
         }
       },
       "delete_block": {
         "title": "Choose a time block to delete from draft",
         "data": {
           "block": "Time block"
+        },
+        "description": "Pick the time block to remove from the draft.",
+        "data_description": {
+          "block": "A time block of the week program."
         }
       },
       "program_empty": {
@@ -368,6 +405,10 @@
         "data": {
           "address": "E32 web address",
           "password": "Administrator password"
+        },
+        "data_description": {
+          "address": "The address of the E32 in your network, for example http://192.168.1.50.",
+          "password": "The password you set on the E32 web page. Leave empty to keep the saved one."
         }
       },
       "controller_connecting": {
@@ -403,6 +444,76 @@
           }
         },
         "submit": "Save installation"
+      },
+      "e32_rooms": {
+        "title": "Rooms",
+        "description": "Set up your rooms here. The E32 stores them and keeps heating them, also without Home Assistant (revision {revision}).\n\n{rooms}",
+        "menu_options": {
+          "e32_room_add": "Add a room",
+          "e32_room_pick": "Edit or remove a room"
+        }
+      },
+      "e32_room_pick": {
+        "title": "Choose an E32 room",
+        "data": {
+          "room": "Room",
+          "action": "What would you like to do?"
+        },
+        "data_description": {
+          "room": "A room in the E32 room plan.",
+          "action": "Edit its settings or remove it from the E32 room plan."
+        },
+        "description": "Pick the room you want to change."
+      },
+      "e32_room": {
+        "title": "E32 room",
+        "description": "One room: where its temperature comes from, what it should be and when. The E32 stores this and runs it, also without Home Assistant.",
+        "data": {
+          "name": "Room name",
+          "state": "Room state",
+          "emitter": "Heating in this room",
+          "ha_sources": "Temperature sources from Home Assistant",
+          "ble_sources": "Bluetooth sensors on the E32",
+          "bluetooth_first": "Use the Bluetooth sensors first",
+          "setpoint_entity": "Target temperature from Home Assistant",
+          "fallback_temperature": "Temperature without Home Assistant",
+          "program": "Week program on the E32"
+        },
+        "data_description": {
+          "name": "The name you see in Home Assistant and on the E32. Up to 40 characters; renaming keeps the room and its history.",
+          "state": "Active: the room can ask for heat. Off: the room asks for no heat.",
+          "emitter": "Radiators or floor heating; each type gets its own flow temperature.",
+          "ha_sources": "Thermostats or temperature sensors (°C) in Home Assistant that measure this room. The first one with a fresh value is used; drag to change the order.",
+          "ble_sources": "Sensors paired on the E32 itself; they keep working without Home Assistant.",
+          "bluetooth_first": "On: the E32 uses its Bluetooth sensors before the Home Assistant sources.",
+          "setpoint_entity": "Optional: the thermostat or number in Home Assistant whose target temperature the E32 follows. Empty: the E32 follows the week program.",
+          "fallback_temperature": "The temperature the E32 keeps when Home Assistant gives no target and there is no week program.",
+          "program": "One line per group of days, for example mon-fri: 06:30 20.5, 22:30 18 and sat-sun: 08:00 20.5, 23:00 18. A line without days applies to every day. Up to 6 switch points per day; each temperature holds until the next point. Empty: no week program."
+        },
+        "sections": {
+          "limits": {
+            "name": "Temperature limits",
+            "description": "The target temperature, the temperature without Home Assistant and the program stay within these limits.",
+            "data": {
+              "minimum_temperature": "Minimum temperature",
+              "maximum_temperature": "Maximum temperature"
+            },
+            "data_description": {
+              "minimum_temperature": "The lowest target temperature this room can get (5–30 °C).",
+              "maximum_temperature": "The highest target temperature this room can get (5–30 °C, not below the minimum)."
+            }
+          }
+        }
+      },
+      "e32_room_remove": {
+        "title": "Remove E32 room",
+        "description": "Remove {name} from the E32 room plan? The E32 stops asking heat for this room. Its Bluetooth sensors stay paired.",
+        "data": {
+          "confirm_remove": "Remove this room"
+        },
+        "data_description": {
+          "confirm_remove": "Tick to confirm. The room's history in Home Assistant stays."
+        }
       }
     },
     "error": {
@@ -487,7 +598,23 @@
       "controller_partial_connection": "Some connection settings may already be saved on the E32. The complete connection and room plan are not confirmed. Check the installation status before connecting again.",
       "setup_changed": "The installation changed while connecting. Check its current settings before connecting again.",
       "installation_native_settings_only": "This connected profile supports the installation name, dashboard and shared water limits. Weather and other settings require a different profile.",
-      "installation_limits_conflict": "These limits conflict with an existing circuit or fallback temperature. Choose compatible limits; the current installation has not been changed."
+      "installation_limits_conflict": "These limits conflict with an existing circuit or fallback temperature. Choose compatible limits; the current installation has not been changed.",
+      "e32_name_invalid": "Enter a room name of 1 to 40 characters.",
+      "e32_sources_count": "Choose 1 to 4 temperature sources.",
+      "e32_source_invalid_id": "The E32 cannot use {source}: entity IDs may have up to 80 characters.",
+      "e32_source_wrong_domain": "{source} cannot be used here. Choose a thermostat or a temperature sensor (a thermostat, input number or number for the target temperature).",
+      "e32_source_not_found": "{source} does not exist in Home Assistant.",
+      "e32_source_not_celsius": "{source} does not report °C. The E32 works in °C only; choose a °C sensor.",
+      "e32_source_no_temperature": "{source} reports no current temperature. Choose a thermostat that measures the room temperature, or a temperature sensor.",
+      "e32_limits_invalid": "Use limits between 5 and 30 °C with the minimum not above the maximum, and a temperature without Home Assistant within them.",
+      "e32_program_invalid": "The week program could not be read. Use one line per group of days, for example mon-fri: 06:30 20.5, 22:30 18, with each day in one line only.",
+      "e32_program_too_many": "A day can have up to 6 switch points.",
+      "e32_program_outside_limits": "A week program temperature is outside the room's temperature limits.",
+      "e32_plan_changed": "The room plan was changed on the E32 twice while saving. Nothing was saved; try again.",
+      "e32_plan_too_large": "The room plan is too large for the E32 (4 KB). Use shorter names, fewer sources or fewer switch points. Nothing was saved.",
+      "e32_rejected": "The E32 refused the room plan ({error}). Nothing was saved.",
+      "e32_unreachable": "The E32 could not be reached ({error}). Nothing was saved.",
+      "e32_room_limit": "The E32 room plan already has 8 rooms."
     },
     "abort": {
       "graph_review_unavailable": "No existing source-selected graph connection is available. No profile was enabled.",
@@ -527,7 +654,15 @@
       "controller_connection_complete": "The E32 connection and room plan have been confirmed.",
       "controller_connection_cancelled": "Connection cancelled. Check the installation status; some settings may already be saved on the E32.",
       "installation_applied": "Installation saved and verified against the E32 plan. Physical boiler and valve outputs remain disabled.",
-      "installation_apply_pending": "An earlier profile change is not confirmed. Open E32 connection and apply the saved settings before editing the installation again."
+      "installation_apply_pending": "An earlier profile change is not confirmed. Open E32 connection and apply the saved settings before editing the installation again.",
+      "e32_rooms_unavailable": "Connect the E32 first (Connect E32) so Home Assistant can edit its room plan.",
+      "e32_unreachable": "The E32 room plan could not be read ({error}).",
+      "e32_plan_invalid": "The E32 returned a room plan this version cannot read. Update the E32 firmware and the integration together.",
+      "e32_unconfirmed": "The E32 could not confirm that the room plan was saved. Check the room before trying again.",
+      "e32_room_missing": "Room {room} is no longer in the E32 room plan.",
+      "e32_room_saved": "{name} is saved in the E32 room plan.",
+      "e32_room_removed": "{name} is removed from the E32 room plan.",
+      "e32_room_unchanged": "Nothing changed; the E32 room plan was not written."
     },
     "progress": {
       "controller_connect": "Connecting, applying and reading back the room plan…"
@@ -539,7 +674,10 @@
         "name": "Radiators heating"
       },
       "room_demand": {
-        "name": "{room} heat demand"
+        "name": "Heat demand"
+      },
+      "burner_short_cycling": {
+        "name": "Burner short cycling"
       }
     },
     "number": {
@@ -547,7 +685,7 @@
         "name": "Radiator rated power"
       },
       "room_fallback_setpoint": {
-        "name": "{room} fallback setpoint"
+        "name": "Temperature without Home Assistant"
       }
     },
     "sensor": {
@@ -561,46 +699,382 @@
         "name": "Estimated radiator power"
       },
       "controller_requested_flow_temperature": {
-        "name": "E32 requested flow temperature"
+        "name": "Boiler test: requested flow temperature"
       },
       "room_temperature": {
-        "name": "{room} temperature"
+        "name": "Temperature"
       },
       "room_setpoint": {
-        "name": "{room} setpoint"
+        "name": "Target temperature"
       },
       "room_status": {
-        "name": "{room} control status",
+        "name": "Control status",
         "state": {
           "ok": "OK",
-          "fallback": "Fallback setpoint",
-          "stale": "Stale reading",
+          "fallback": "Using fallback",
+          "stale": "Measurement stale",
           "lost": "Sensor lost",
-          "inactive": "Inactive"
+          "inactive": "Off"
         }
       },
       "ble_temperature": {
-        "name": "{sensor} temperature"
+        "name": "Temperature"
       },
       "ble_humidity": {
-        "name": "{sensor} humidity"
+        "name": "Humidity"
       },
       "ble_battery": {
-        "name": "{sensor} battery"
+        "name": "Battery"
+      },
+      "shadow_e32_heating_time_today": {
+        "name": "Heating time today (E32)"
+      },
+      "shadow_tado_heating_time_today": {
+        "name": "Heating time today (thermostat)"
+      },
+      "shadow_e32_starts_today": {
+        "name": "Burner starts today (E32)"
+      },
+      "shadow_tado_starts_today": {
+        "name": "Burner starts today (thermostat)"
+      },
+      "shadow_agreement_today": {
+        "name": "Agreement with thermostat today"
+      },
+      "heat_request": {
+        "name": "Boiler request (E32)"
+      },
+      "burner_starts_last_hour": {
+        "name": "Burner starts last hour"
+      },
+      "field_reported_selected_flow_temperature": {
+        "name": "Selected flow temperature"
+      },
+      "field_measured_flow_temperature": {
+        "name": "Flow temperature"
+      },
+      "field_measured_return_temperature": {
+        "name": "Return temperature"
+      },
+      "field_outdoor_temperature": {
+        "name": "Outdoor temperature"
+      },
+      "field_reported_burner_modulation": {
+        "name": "Burner modulation"
+      },
+      "field_reported_requested_power_limit": {
+        "name": "Requested power limit"
+      },
+      "field_pressure": {
+        "name": "Water pressure"
+      },
+      "field_raw_burner_bit": {
+        "name": "Burner bit (raw)"
+      },
+      "field_raw_pump_bit": {
+        "name": "Pump bit (raw)"
+      },
+      "field_raw_fan_bit": {
+        "name": "Fan bit (raw)"
+      },
+      "field_raw_boiler_state": {
+        "name": "Boiler state bits (raw)"
+      },
+      "field_heating_active": {
+        "name": "Heating active"
+      },
+      "field_dhw_active": {
+        "name": "Hot water active"
+      },
+      "field_selected_dhw_temperature": {
+        "name": "Selected hot water temperature"
+      },
+      "field_measured_dhw_temperature": {
+        "name": "Hot water temperature"
+      },
+      "field_dhw_flow": {
+        "name": "Hot water flow"
+      },
+      "field_heating_enabled": {
+        "name": "Heating enabled"
+      },
+      "field_dhw_enabled": {
+        "name": "Hot water enabled"
+      },
+      "field_reported_burner_starts": {
+        "name": "Burner starts"
+      },
+      "field_reported_burner_runtime": {
+        "name": "Burner runtime"
+      },
+      "field_reported_heating_runtime": {
+        "name": "Heating runtime"
+      },
+      "field_reported_heating_starts": {
+        "name": "Heating starts"
+      },
+      "field_reported_dhw_runtime": {
+        "name": "Hot water runtime"
+      },
+      "field_reported_dhw_starts": {
+        "name": "Hot water starts"
+      },
+      "field_display_code": {
+        "name": "Display code"
+      },
+      "field_service_number": {
+        "name": "Service number"
+      },
+      "field_maximum_burner_power": {
+        "name": "Maximum burner power"
+      },
+      "field_pump_run_on": {
+        "name": "Pump run-on"
+      },
+      "field_configured_heating_temperature": {
+        "name": "Heating temperature setting"
+      },
+      "field_reported_dhw_target": {
+        "name": "Hot water target temperature"
+      },
+      "field_storage_temperature_1": {
+        "name": "Storage temperature 1"
+      },
+      "field_storage_temperature_2": {
+        "name": "Storage temperature 2"
+      },
+      "field_ionisation_current": {
+        "name": "Ionisation current"
+      },
+      "field_raw_second_burner_bit": {
+        "name": "Second burner bit (raw)"
+      },
+      "field_raw_ignition_bit": {
+        "name": "Ignition bit (raw)"
+      },
+      "field_raw_oil_preheat_bit": {
+        "name": "Oil preheat bit (raw)"
+      },
+      "field_raw_dhw_valve_bit": {
+        "name": "Hot water valve bit (raw)"
+      },
+      "field_raw_dhw_circulation_bit": {
+        "name": "Circulation bit (raw)"
+      },
+      "field_boiler_temperature": {
+        "name": "Boiler temperature"
+      },
+      "field_exhaust_temperature": {
+        "name": "Exhaust temperature"
+      },
+      "field_hydraulic_switch_temperature": {
+        "name": "Hydraulic switch temperature"
+      },
+      "field_reported_heating_pump_modulation": {
+        "name": "Heating pump modulation"
+      },
+      "field_reported_second_burner_runtime": {
+        "name": "Second burner runtime"
+      },
+      "field_heating_hysteresis_off": {
+        "name": "Heating hysteresis off"
+      },
+      "field_heating_hysteresis_on": {
+        "name": "Heating hysteresis on"
+      },
+      "field_minimum_burner_period": {
+        "name": "Minimum burner period"
+      },
+      "field_pump_modulation_maximum": {
+        "name": "Maximum pump modulation"
+      },
+      "field_pump_modulation_minimum": {
+        "name": "Minimum pump modulation"
+      },
+      "field_configured_pump_mode": {
+        "name": "Pump mode setting"
+      },
+      "field_secondary_heating_hysteresis_off": {
+        "name": "Second heating hysteresis off"
+      },
+      "field_secondary_heating_hysteresis_on": {
+        "name": "Second heating hysteresis on"
+      },
+      "field_pump_start_temperature": {
+        "name": "Pump start temperature"
+      },
+      "field_dhw_hysteresis_on": {
+        "name": "Hot water hysteresis on"
+      },
+      "field_dhw_charge_optimisation_enabled": {
+        "name": "Hot water charge optimisation"
+      },
+      "field_dhw_flow_temperature_offset": {
+        "name": "Hot water flow offset"
+      },
+      "field_dhw_circulation_enabled": {
+        "name": "Circulation enabled"
+      },
+      "field_configured_dhw_circulation_mode": {
+        "name": "Circulation mode setting"
+      },
+      "field_dhw_disinfection_temperature": {
+        "name": "Disinfection temperature"
+      },
+      "field_configured_dhw_charge_type": {
+        "name": "Hot water charge type"
+      },
+      "field_configured_dhw_comfort_mode": {
+        "name": "Hot water comfort mode"
+      },
+      "field_secondary_dhw_temperature": {
+        "name": "Second hot water temperature"
+      },
+      "field_solar_dhw_temperature": {
+        "name": "Solar hot water temperature"
+      },
+      "field_reported_dhw_type": {
+        "name": "Hot water type"
+      },
+      "field_raw_dhw_one_time_bit": {
+        "name": "One-time charge bit (raw)"
+      },
+      "field_raw_dhw_disinfection_bit": {
+        "name": "Disinfection bit (raw)"
+      },
+      "field_raw_dhw_charging_bit": {
+        "name": "Charging bit (raw)"
+      },
+      "field_raw_dhw_recharging_bit": {
+        "name": "Recharging bit (raw)"
+      },
+      "field_raw_dhw_temperature_ok_bit": {
+        "name": "Hot water temperature OK bit (raw)"
+      },
+      "field_raw_dhw_active_bit": {
+        "name": "Hot water active bit (raw)"
+      },
+      "field_thermostat_requested_flow_temperature": {
+        "name": "Requested flow temperature (thermostat)"
+      },
+      "field_thermostat_requested_burner_power": {
+        "name": "Requested burner power (thermostat)"
+      },
+      "field_thermostat_requested_pump_modulation": {
+        "name": "Requested pump modulation (thermostat)"
+      },
+      "field_thermostat_requested_dhw_temperature": {
+        "name": "Requested hot water temperature (thermostat)"
+      },
+      "field_maintenance_message": {
+        "name": "Maintenance message"
+      },
+      "field_thermostat_setpoint": {
+        "name": "Target temperature (thermostat)"
+      },
+      "field_thermostat_room_temperature": {
+        "name": "Room temperature (thermostat)"
+      },
+      "field_thermostat_target_flow_temperature": {
+        "name": "Target flow temperature (thermostat)"
+      },
+      "field_plus_selected_flow_temperature": {
+        "name": "Selected flow temperature (EMS+)"
+      },
+      "field_plus_flow_temperature": {
+        "name": "Flow temperature (EMS+)"
+      },
+      "field_plus_requested_burner_power": {
+        "name": "Requested burner power (EMS+)"
+      },
+      "field_plus_burner_modulation": {
+        "name": "Burner modulation (EMS+)"
+      },
+      "field_plus_burner_on": {
+        "name": "Burner on (EMS+)"
+      },
+      "field_plus_dhw_valve": {
+        "name": "Hot water valve (EMS+)"
+      },
+      "field_plus_return_temperature": {
+        "name": "Return temperature (EMS+)"
+      },
+      "field_plus_flame_current": {
+        "name": "Flame current (EMS+)"
+      },
+      "field_plus_pressure": {
+        "name": "Water pressure (EMS+)"
+      },
+      "field_plus_exhaust_temperature": {
+        "name": "Exhaust temperature (EMS+)"
+      },
+      "field_plus_heating_pump": {
+        "name": "Heating pump (EMS+)"
+      },
+      "field_plus_burner_starts": {
+        "name": "Burner starts (EMS+)"
+      },
+      "field_plus_burner_runtime": {
+        "name": "Burner runtime (EMS+)"
+      },
+      "field_plus_heating_runtime": {
+        "name": "Heating runtime (EMS+)"
+      },
+      "field_plus_heating_pump_modulation": {
+        "name": "Heating pump modulation (EMS+)"
+      },
+      "field_plus_dhw_target": {
+        "name": "Hot water target temperature (EMS+)"
+      },
+      "field_plus_dhw_temperature": {
+        "name": "Hot water temperature (EMS+)"
+      },
+      "field_plus_dhw_flow": {
+        "name": "Hot water flow (EMS+)"
+      },
+      "field_plus_dhw_runtime": {
+        "name": "Hot water runtime (EMS+)"
+      },
+      "field_plus_dhw_starts": {
+        "name": "Hot water starts (EMS+)"
+      },
+      "field_plus_dhw_selected_temperature": {
+        "name": "Selected hot water temperature (EMS+)"
+      },
+      "field_plus_heating_temperature": {
+        "name": "Heating temperature setting (EMS+)"
+      },
+      "field_plus_maximum_burner_power": {
+        "name": "Maximum burner power (EMS+)"
+      },
+      "field_last_locking_error_code": {
+        "name": "Last locking fault code"
+      },
+      "field_last_locking_error_number": {
+        "name": "Last locking fault number"
+      },
+      "field_last_blocking_error_code": {
+        "name": "Last blocking fault code"
+      },
+      "field_last_blocking_error_number": {
+        "name": "Last blocking fault number"
+      },
+      "field_boiler_uptime": {
+        "name": "Boiler uptime"
       }
     },
     "select": {
       "room_state": {
-        "name": "{room} room state",
+        "name": "Mode",
         "state": {
           "active": "Active",
-          "inactive": "Inactive"
+          "inactive": "Off"
         }
       }
     },
     "datetime": {
       "room_inactive_until": {
-        "name": "{room} inactive until"
+        "name": "Off until"
       }
     }
   },
@@ -616,6 +1090,9 @@
           "description": "Add a room or choose an existing room. Your settings remain unchanged until you confirm Save room.",
           "data": {
             "room": "Room"
+          },
+          "data_description": {
+            "room": "Pick an existing room, or New room to add one."
           }
         },
         "radiator": {
@@ -633,7 +1110,9 @@
             "temperature_entity": "Choose the sensor that measures this room’s temperature.",
             "program_action": "Keep the existing program, edit local time blocks, or explicitly remove it.",
             "base_temperature": "Used outside program blocks. Saving does not send a temperature command.",
-            "contact_entities": "Choose up to eight contacts. An open contact pauses room demand; all must report closed before it resumes. Missing or expired reports keep demand paused."
+            "contact_entities": "Choose up to eight contacts. An open contact pauses room demand; all must report closed before it resumes. Missing or expired reports keep demand paused.",
+            "name": "The name of the room, for example Living room.",
+            "radiator_entities": "The radiator valves (thermostatic valves) in this room, up to eight."
           },
           "sections": {
             "advanced": {
@@ -660,7 +1139,15 @@
                 "contact_maximum_age_s": "Older reports become unknown. This does not change how often the sensor reports.",
                 "setpoint_entity": "Choose a Home Assistant number helper with °C or °F units. Only a new direct user change requests a temporary room target; the controller never writes to the helper.",
                 "comfort_enabled": "Adds comfort modes to the room climate control. Targets must remain within room limits; the native controller uses its existing 5 °C frost target.",
-                "presence_entity": "Choose a person. Only Home and Away are used; unknown, stale and named locations remain unknown. A temporary manual target is not ended by a presence change. A new native HA report is required at least every two minutes; reading a cached value never renews it."
+                "presence_entity": "Choose a person. Only Home and Away are used; unknown, stale and named locations remain unknown. A temporary manual target is not ended by a presence change. A new native HA report is required at least every two minutes; reading a cached value never renews it.",
+                "minimum_target_temperature": "The lowest target temperature this room can get.",
+                "maximum_target_temperature": "The highest target temperature this room can get.",
+                "contact_open_delay_s": "How long a window or door must be open before the room stops asking for heat.",
+                "contact_close_delay_s": "How long to wait after closing before the room asks for heat again.",
+                "setpoint_minutes": "How long a change on the extra target helper lasts.",
+                "away_temperature": "The target temperature while nobody is home.",
+                "frost_temperature": "The lowest target temperature, to keep the room from freezing.",
+                "override_minutes": "How long a temporary target lasts before the program takes over again."
               }
             }
           }
@@ -690,18 +1177,33 @@
             "end_time": "End time",
             "end_at_midnight": "End at midnight (ignore End time)",
             "temperature": "Target temperature"
+          },
+          "data_description": {
+            "days": "The days this block applies to.",
+            "start_time": "When the block starts.",
+            "end_time": "When the block ends; later than the start.",
+            "end_at_midnight": "On: the block runs until midnight.",
+            "temperature": "The target temperature during this block."
           }
         },
         "edit_block": {
           "title": "Choose a time block to edit",
           "data": {
             "block": "Time block"
+          },
+          "description": "Pick the time block you want to change.",
+          "data_description": {
+            "block": "A time block of the week program."
           }
         },
         "delete_block": {
           "title": "Choose a time block to delete from draft",
           "data": {
             "block": "Time block"
+          },
+          "description": "Pick the time block to remove from the draft.",
+          "data_description": {
+            "block": "A time block of the week program."
           }
         },
         "program_empty": {
@@ -807,7 +1309,14 @@
             "binding_mode": "Climate TRVs use the existing shadow profile. Graph-only rooms require no TRV and remain an unapplied draft; runtime and transport are blocked pending the firmware contract.",
             "confirm_binding_mode_change": "Required only when changing modes. Review and explicitly clear or select the TRV bindings. The room ID, limits and week program are retained.",
             "window_entity": "Shadow context only. Default preview expires after 2 minutes; only an explicitly qualified source report profile can renew its own context deadline. Cached or unchanged values alone never qualify availability or physical protection.",
-            "presence_entity": "Shadow context only. Unknown is not away. Default preview expires after 2 minutes; only an explicitly qualified source report profile can renew its own context deadline."
+            "presence_entity": "Shadow context only. Unknown is not away. Default preview expires after 2 minutes; only an explicitly qualified source report profile can renew its own context deadline.",
+            "room_id": "A fixed ID for this room on the E32; it cannot change later.",
+            "name": "The name of the room, for example Living room.",
+            "comfort_enabled": "Adds away and frost modes to this room (shadow mode only).",
+            "away_temperature": "The target temperature while you are away or on vacation.",
+            "frost_temperature": "The lowest target temperature against freezing; not a physical safety device.",
+            "override_minutes": "How long a temporary target lasts.",
+            "room": "Pick an existing room, or add a new one."
           }
         },
         "reconfigure": {
@@ -845,7 +1354,12 @@
             "binding_mode": "Climate TRVs use the existing shadow profile. Graph-only rooms require no TRV and remain an unapplied draft; runtime and transport are blocked pending the firmware contract.",
             "confirm_binding_mode_change": "Required only when changing modes. Review and explicitly clear or select the TRV bindings. The room ID, limits and week program are retained.",
             "window_entity": "Shadow context only. Default preview expires after 2 minutes; only an explicitly qualified source report profile can renew its own context deadline. Cached or unchanged values alone never qualify availability or physical protection.",
-            "presence_entity": "Shadow context only. Unknown is not away. Default preview expires after 2 minutes; only an explicitly qualified source report profile can renew its own context deadline."
+            "presence_entity": "Shadow context only. Unknown is not away. Default preview expires after 2 minutes; only an explicitly qualified source report profile can renew its own context deadline.",
+            "name": "The name of the room, for example Living room.",
+            "comfort_enabled": "Adds away and frost modes to this room (shadow mode only).",
+            "away_temperature": "The target temperature while you are away or on vacation.",
+            "frost_temperature": "The lowest target temperature against freezing; not a physical safety device.",
+            "override_minutes": "How long a temporary target lasts."
           },
           "description": "Choose a room measurement and its radiator valves. Optional target controls and programs are separate sources. Selecting entities never changes the source device settings or enables actuation. Removing a room also prunes its desired graph actuator declarations; emitter groups and central settings remain."
         },
@@ -883,12 +1397,20 @@
           "title": "Choose a time block to edit",
           "data": {
             "block": "Time block"
+          },
+          "description": "Pick the time block you want to change.",
+          "data_description": {
+            "block": "A time block of the week program."
           }
         },
         "delete_block": {
           "title": "Choose a time block to delete from draft",
           "data": {
             "block": "Time block"
+          },
+          "description": "Pick the time block to remove from the draft.",
+          "data_description": {
+            "block": "A time block of the week program."
           }
         },
         "program_empty": {
@@ -912,7 +1434,9 @@
           "data_description": {
             "temperature_entity": "Choose the sensor that measures this room’s temperature.",
             "program_action": "Keep the existing program, edit local time blocks, or explicitly remove it.",
-            "base_temperature": "Used outside program blocks. Saving does not send a temperature command."
+            "base_temperature": "Used outside program blocks. Saving does not send a temperature command.",
+            "name": "The name of the room, for example Living room.",
+            "radiator_entities": "The radiator valves (thermostatic valves) in this room, up to eight."
           },
           "sections": {
             "advanced": {
@@ -925,7 +1449,9 @@
               },
               "data_description": {
                 "maximum_age_ms": "A freshness limit, not a polling interval. A cached value alone does not qualify a physical measurement.",
-                "schedule_entity": "An alternative to the local week program. Keep one program source per room."
+                "schedule_entity": "An alternative to the local week program. Keep one program source per room.",
+                "minimum_target_temperature": "The lowest target temperature this room can get.",
+                "maximum_target_temperature": "The highest target temperature this room can get."
               }
             }
           }
@@ -1177,7 +1703,9 @@
           "data": {
             "group_id": "Emitter group"
           },
-          "data_description": {}
+          "data_description": {
+            "group_id": "The group of radiators or floor loops you want to change."
+          }
         },
         "group": {
           "title": "Emitter group — draft only",
@@ -1197,7 +1725,10 @@
             "minimum_supply_temperature": "Group water limit, not the room temperature. A structurally valid value is not installation safety approval.",
             "maximum_supply_temperature": "A floor without declared mixing must share a central upper bound within this limit. A closed floor valve is not independent over-temperature protection.",
             "pump": "Optional existing switch controlling the group pump. Clearing it also requires both pump times to be zero. Selection never operates a pump.",
-            "mixing_kind": "Declaration only. A mixing valve is not a room flow valve. Runtime mixing control, output interlocks, homing and analog calibration are NOT implemented by this editor."
+            "mixing_kind": "Declaration only. A mixing valve is not a room flow valve. Runtime mixing control, output interlocks, homing and analog calibration are NOT implemented by this editor.",
+            "name": "A name for this group, for example Ground floor.",
+            "pump_start_delay_s": "Seconds to wait before the pump starts.",
+            "postrun_s": "Seconds the pump keeps running after heating stops."
           }
         },
         "mixing": {
@@ -1226,7 +1757,8 @@
             "cascade_actuators": "Also remove this group’s actuator declarations from the draft"
           },
           "data_description": {
-            "cascade_actuators": "Required if the selected group contains actuator declarations. Only the draft group and its declarations are removed; no room/entity/device is deleted or operated."
+            "cascade_actuators": "Required if the selected group contains actuator declarations. Only the draft group and its declarations are removed; no room/entity/device is deleted or operated.",
+            "group_id": "The group to remove from the draft."
           }
         },
         "actuator": {
@@ -1238,7 +1770,9 @@
             "profile": "Actuator declaration type"
           },
           "data_description": {
-            "room_id": "Select a logical room already configured in this integration. Deleting that room natively removes only its desired graph actuator declarations, with audit; groups and central settings remain."
+            "room_id": "Select a logical room already configured in this integration. Deleting that room natively removes only its desired graph actuator declarations, with audit; groups and central settings remain.",
+            "group_id": "The group this actuator belongs to.",
+            "profile": "What kind of actuator this is."
           }
         },
         "actuator_details": {
@@ -1262,7 +1796,9 @@
             "travel_time_s": "Full-travel declaration, not feedback proof. No actuator moves during configuration.",
             "cycle_s": "Required for TPI; leave empty for hysteresis. Minimum on-time must cover travel, and minimum on+off times must fit the cycle.",
             "minimum_percent": "Position request, not measured flow or boiler power. Interface direction, feedback, safe fallback and device support remain unproven.",
-            "maximum_percent": "Must exceed the minimum. A percent output is not automatically a mixing valve or a 0–10 V interface."
+            "maximum_percent": "Must exceed the minimum. A percent output is not automatically a mixing valve or a 0–10 V interface.",
+            "minimum_on_s": "The shortest time the actuator stays on.",
+            "minimum_off_s": "The shortest time the actuator stays off."
           }
         },
         "edit_actuator": {
@@ -1271,7 +1807,9 @@
           "data": {
             "actuator_id": "Actuator declaration"
           },
-          "data_description": {}
+          "data_description": {
+            "actuator_id": "The actuator you want to change."
+          }
         },
         "delete_actuator": {
           "title": "Remove actuator declaration from draft",
@@ -1281,7 +1819,8 @@
             "confirm": "Confirm removal from draft"
           },
           "data_description": {
-            "confirm": "Removal is staged only; final Save commits the desired draft. Cancel discards all staged changes."
+            "confirm": "Removal is staged only; final Save commits the desired draft. Cancel discards all staged changes.",
+            "actuator_id": "The actuator to remove from the draft."
           }
         },
         "graph_error": {
@@ -1435,6 +1974,24 @@
         "edit": "Edit",
         "remove": "Remove"
       }
+    },
+    "e32_room_state": {
+      "options": {
+        "active": "Active",
+        "inactive": "Off (no heat demand)"
+      }
+    },
+    "e32_room_emitter": {
+      "options": {
+        "radiator": "Radiators",
+        "floor": "Floor heating"
+      }
+    },
+    "e32_room_action": {
+      "options": {
+        "edit": "Edit room",
+        "remove": "Remove room"
+      }
     }
   },
   "issues": {
@@ -1510,13 +2067,16 @@
       "message": "Room {room} is no longer in the E32 room plan."
     },
     "room_setpoint_outside_limits": {
-      "message": "Choose a setpoint between {minimum} °C and {maximum} °C."
+      "message": "Choose a target temperature between {minimum} °C and {maximum} °C."
     },
     "room_inactive_until_past": {
-      "message": "Choose a moment in the future for \"inactive until\"."
+      "message": "Choose a moment in the future for \"Off until\"."
     },
     "room_state_invalid": {
-      "message": "Choose active or inactive."
+      "message": "Choose Active or Off."
+    },
+    "room_plan_too_large": {
+      "message": "The room plan is too large for the E32 (4 KB). Nothing was saved."
     }
   }
 }

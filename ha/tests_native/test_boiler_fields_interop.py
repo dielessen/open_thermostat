@@ -38,8 +38,12 @@ async def system(hass):
 @pytest.mark.asyncio
 async def test_real_cpp_publishes_bounded_groups_to_native_entities_without_commands(hass):
     async with system(hass) as (e,r,c,bus,entities):
-        # The real firmware announces boiler.fields.v2: the 69 classic fields plus the EMS table.
-        assert c.boiler_fields_v2 and len(entities)==69+len(CATALOG_FIELDS) and entities[1].native_value==45
+        # The real firmware announces boiler.fields.v2; only fields with a real value get an
+        # entity: no catalog row, no invalid display code, no unreliable zero filler.
+        from test_boiler_fields import REAL, by_index
+        r._notify()  # Entities are created on the runtime tick after their first value.
+        assert c.boiler_fields_v2 and len(CATALOG_FIELDS) and set(by_index(entities))<=set(REAL)
+        assert by_index(entities)[1].native_value==45
         deadline=c.boiler_fields.records[1][1]
         for second in range(1,15):
             bus.now+=1000;bus.utc+=1
@@ -47,6 +51,7 @@ async def test_real_cpp_publishes_bounded_groups_to_native_entities_without_comm
             if second%2==0:
                 await c.poll();await bus.pump()
         assert len(c.boiler_fields.records)==69
+        r._notify();assert sorted(by_index(entities))==REAL and len(entities)==len(REAL)
         assert c.boiler_fields.records[1][1]==deadline
         import json
         frames=[json.loads(raw) for direction,topic,raw in bus.transcript if direction=='fw' and topic=='fw/telemetry/boiler_fields']

@@ -316,7 +316,7 @@ async def test_new_native_translation_is_bilingual_and_explicitly_draft(hass,mon
     assert "not sample qualification" in resources[prefix+"data_description.outdoor_source"]
     assert all(prefix+"data.curve_"+str(i) in resources for i in range(9))
     nl=json.loads((component/"translations/nl.json").read_text())
-    assert nl["config_subentries"]["room_setup"]["initiate_flow"]["user"]=="Radiatorkamer instellen"
+    assert nl["config_subentries"]["room_setup"]["initiate_flow"]["user"]=="Radiatorruimte instellen"
     resources_nl=await translation.async_get_translations(hass,"nl","config_subentries",{"open_thermostat"})
     assert resources_nl[prefix+"title"]=="Centrale verwarmingsinstellingen — alleen concept"
     assert "NIET op de E32 toegepast" in resources_nl[prefix+"description"]

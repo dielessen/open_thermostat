@@ -11,6 +11,11 @@ window.EMSDevicesPage=(()=>{
     burnminperiod:['minimum_burner_period','Minimum burner period','min',0,120,6],
     pumpdelay:['pump_run_on','Pump run-on','min',0,60,8]
   };
+  // One plain-language line per changeable boiler setting.
+  const settingHelp={heatingactivated:'Switches central heating on the boiler on or off. Hot water has its own setting.',
+    heatingtemp:'The highest water temperature the boiler may use for heating.',
+    burnminperiod:'The minimum time between burner starts, so the burner does not switch too often.',
+    pumpdelay:'How long the pump keeps running after heating stops, to use the remaining heat.'};
   function validSettings(s){
     return s?.schema===1&&typeof s.boot_id==='string'&&/^[a-f0-9]{16}$/.test(s.boot_id)
       &&number(s.revision)&&typeof s.available==='boolean'&&typeof s.active==='boolean'
@@ -38,7 +43,7 @@ window.EMSDevicesPage=(()=>{
   const nullable=n=>n===null||number(n);
   const states={valid:'Received',stale:'Expired',invalid:'Invalid',unknown:'Not received'};
   const quality={reported:'Reported',unreliable:'Unreliable',inferred:'Inferred'};
-  const units={degC:'°C',uA:'µA',bool:'',bits:'',text:'',code:''};
+  const units={degC:'°C',uA:'µA',bool:'',bits:'',text:'',code:'',count:''};
   const roles={8:'Boiler',16:'Thermostat',23:'Thermostat'};
   const brands={1:'Bosch',2:'Junkers',3:'Buderus',4:'Nefit',5:'Sieger',11:'Worcester',13:'IVT'};
   function deviceReference(d) {
@@ -155,12 +160,12 @@ window.EMSDevicesPage=(()=>{
       addOption(boolean,'','Choose a value');addOption(boolean,'0','Off');addOption(boolean,'1','On');
       value.type='number';value.step='1';value.className=boolean.className=entity.className='form-control';
       exclusive.type=stop.type='checkbox';exclusive.id='ems-setting-exclusive';stop.id='ems-setting-stop';submit.type='button';
-      const field=(name,input)=>{const label=el('label');if(input.type==='checkbox')label.append(input,document.createTextNode(text(name)));else label.append(document.createTextNode(text(name)),input);return label;};
-      const numberLabel=field('New value',value),booleanLabel=field('New value',boolean);
-      box.append(field('Setting to change',entity),numberLabel,booleanLabel,
-        field('I confirm that the other controller is disconnected from control.',exclusive),
-        field('I am present and can stop the boiler independently.',stop),submit);
-      editor={entity,value,boolean,exclusive,stop,submit,numberLabel,booleanLabel};
+      const field=(name,input,hint)=>{if(hint)input.dataset.hint=hint;const label=el('label');if(input.type==='checkbox')label.append(input,document.createTextNode(text(name)));else label.append(document.createTextNode(text(name)),input);return label;};
+      const numberLabel=field('New value',value),booleanLabel=field('New value',boolean),help=el('p',undefined,'ot-hint');
+      box.append(field('Setting to change',entity,'Only these four boiler settings can be changed from the E32.'),numberLabel,booleanLabel,help,
+        field('I confirm that the other controller is disconnected from control.',exclusive,'Two controllers changing the boiler at the same time can conflict.'),
+        field('I am present and can stop the boiler independently.',stop,'Stay at the boiler until the new value has been read back.'),submit);
+      editor={entity,value,boolean,exclusive,stop,submit,numberLabel,booleanLabel,help};
       entity.addEventListener('change',()=>{value.value='';boolean.value='';clearConfirmations();if(!pendingSetting)operationNote='';renderEditor();},{signal:owner.signal});
       for(const input of [value,boolean,exclusive,stop])input.addEventListener('input',()=>{if(!pendingSetting&&!writeBusy&&(input===value||input===boolean))operationNote='';renderEditor();},{signal:owner.signal});
       for(const input of [exclusive,stop])input.addEventListener('change',()=>{
@@ -176,6 +181,7 @@ window.EMSDevicesPage=(()=>{
       get('ems-settings-operation').textContent=operationNote?text(operationNote):available&&!fresh()?text('Refresh to prepare a settings change.'):'';
       if(!editor)return;
       const spec=settingFields[editor.entity.value],boolean=spec?.[2]==='bool',ready=readyToPrepare()&&!writeBusy;
+      editor.help.hidden=!spec;editor.help.textContent=spec?text(settingHelp[editor.entity.value]):'';
       editor.numberLabel.hidden=!spec||boolean;editor.booleanLabel.hidden=!spec||!boolean;editor.value.hidden=!spec||boolean;editor.boolean.hidden=!spec||!boolean;
       if(spec){editor.value.min=spec[3];editor.value.max=spec[4];}
       for(const input of [editor.entity,editor.value,editor.boolean,editor.exclusive,editor.stop])input.disabled=!ready;
@@ -310,13 +316,14 @@ window.EMSDevicesPage=(()=>{
           if(v.value!==null){value=v.unit==='bool'?text(v.value?'On':'Off'):typeof v.value==='number'?format.format(v.value):v.value;const unit=Object.hasOwn(units,v.unit)?units[v.unit]:v.unit;if(unit)value+=' '+unit;}
           const cells=row.children;
           update(cells[1],measurementFresh?value:'—');
-          update(cells[3],text(measurementFresh?states[v.state]:'Snapshot unavailable')+' · '+age(v.age_ms)
-            +(v.quality==='reported'?'':' · '+text(quality[v.quality])));
-          cells[3].title=(v.source_type?hex(v.source_type):'')+' · '+id+(v.reference?' · '+text('EMS-ESP reference offsets; not verified on this installation'):'');
+          // A fresh reported value needs no status text; only exceptions are shown.
+          update(cells[3],!measurementFresh?text('Snapshot unavailable'):[v.state==='valid'?'':text(states[v.state]),
+            v.quality==='reported'?'':text(quality[v.quality])].filter(Boolean).join(' · '));
+          cells[3].title=text(states[v.state])+' · '+age(v.age_ms)+' · '+(v.source_type?hex(v.source_type)+' · ':'')+id+(v.reference?' · '+text('EMS-ESP reference offsets; not verified on this installation'):'');
           const local=fieldAccess(id,d),editable=Object.hasOwn(nativeFields,id)&&readyToPrepare();
           const accessKey=JSON.stringify([local.kind,local.label,editable]);
           if(row.dataset.accessKey!==accessKey){
-            row.dataset.accessKey=accessKey;cells[2].replaceChildren(badge(local.kind,local.label));
+            row.dataset.accessKey=accessKey;cells[2].replaceChildren(...local.kind==='read'?[]:[badge(local.kind,local.label)]);
             if(Object.hasOwn(nativeFields,id)){
               const edit=el('button',text('Edit'),'btn btn-sm btn-outline-primary');edit.type='button';
               edit.disabled=!editable;
@@ -327,7 +334,7 @@ window.EMSDevicesPage=(()=>{
                 get('ems-settings-editor').scrollIntoView({block:'nearest'});editor.entity.focus();
               },{signal:owner.signal});cells[2].append(edit);
             }else if(local.kind==='command'){
-              const trial=el('a',text('Boiler test'),'btn btn-sm btn-outline-primary');trial.href='#boiler-test-controls';cells[2].append(trial);
+              const trial=el('a',text('Boiler test'),'btn btn-sm btn-outline-primary');trial.href='#boiler-trial';cells[2].append(trial);
             }
           }
           if(row!==position)r.rows.insertBefore(row,position);position=row.nextElementSibling;
@@ -349,7 +356,7 @@ window.EMSDevicesPage=(()=>{
       if(!alive())return;
       if(error||!data){
         measurementFresh=false;settingsSnapshot=null;metadataAt=-Infinity;clearConfirmations();
-        root.dataset.failed='true';status.textContent=text('Refresh failed. Previously displayed values are an older snapshot.');
+        root.dataset.failed='true';status.textContent=text(snapshot?'Refresh failed. Previously displayed values are an older snapshot.':'Could not read boiler data. Retrying automatically.');
         render();renderSettings();return;
       }
       const next={enabled:data.transport.enabled,inventory:data.inventory,boiler:{fields:data.fields},ems_entities:data.ems_entities};

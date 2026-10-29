@@ -27,6 +27,7 @@ const assets=path.resolve(__dirname,'../../data/html');
   });
   await page.context().addCookies([{name:'ot_ui_lang',value:language,url:'http://opth.test'}]);
   await page.goto('http://opth.test/');await page.waitForFunction(()=>document.getElementById('installedVersion').textContent.startsWith('v'));
+  await page.evaluate(()=>{document.getElementById('manualUpdate').open=true;}); // manual upload is a collapsed section
  }
  try {
   await scene();assert.equal(await page.isDisabled('#installRelease'),true);assert.equal(sim.posts.length,0);pass('page shows installed version without checking or installing automatically');

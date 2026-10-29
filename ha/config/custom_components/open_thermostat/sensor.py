@@ -84,13 +84,15 @@ async def async_setup_entry(
     """Create sensors for room values published by the thermostat."""
     if "v1_runtime" in hass.data.get(DOMAIN,{}).get(entry.entry_id,{}):
         from .product import is_product
+        if is_product(entry):
+            # Before any entity is added: stale records must not be re-adopted.
+            from .native_entity_cleanup import cleanup_stale_entities
+            cleanup_stale_entities(hass, entry, entry.data[CONF_TOPIC_PREFIX])
         from .v1_boiler_fields import async_setup_boiler_fields
         await async_setup_boiler_fields(hass,entry,async_add_entities)
         from .heating_link import async_setup_heating_link
         await async_setup_heating_link(hass,entry,async_add_entities)
         if is_product(entry):
-            from .native_entity_cleanup import retire_legacy_entities
-            retire_legacy_entities(hass, entry, entry.data[CONF_TOPIC_PREFIX])
             from .product_telemetry import async_setup_sensors
             await async_setup_sensors(hass, entry, async_add_entities, native_metrics=True)
             from .v1_metrics import async_setup_shadow_metrics

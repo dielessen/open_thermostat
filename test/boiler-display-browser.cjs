@@ -60,7 +60,7 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,JSON.stringify(await page.evaluate(()=>({viewport:innerWidth,overflow:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth).map(e=>({tag:e.tagName,cls:e.className,text:e.textContent.slice(0,100)})).slice(0,12)}))));
   await page.screenshot({path:path.join(output,name+'.png'),fullPage:true});
   // A full page reload reads the saved device setting, with no localStorage.
-  await page.reload();await page.getByRole('heading',{name:'Nefit Ecomline Classic HRC 22H',exact:true}).waitFor();
+  await page.goto('http://opth.test/');await page.getByRole('heading',{name:'Nefit Ecomline Classic HRC 22H',exact:true}).waitFor();
   assert.equal(await page.evaluate(()=>localStorage.length),0);
   await page.locator('#boiler-home .boiler-setup-link').click();await page.locator('#boiler-model:enabled').waitFor();
   assert.equal(await page.locator('#boiler-model').inputValue(),'nefit-ecomline-classic-hrc-22h');
@@ -104,7 +104,7 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
   assert.match(await page.locator('figure').innerText(),/nog niet gecontroleerd/);
   await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).click();
   await page.getByRole('status').filter({hasText:'Ketelkeuze opgeslagen'}).waitFor();
-  await page.reload();await page.getByRole('heading',{name:catalog.models.find(m=>m.id==='bosch-condens-5000i').name,exact:true}).waitFor();
+  await page.goto('http://opth.test/');await page.getByRole('heading',{name:catalog.models.find(m=>m.id==='bosch-condens-5000i').name,exact:true}).waitFor();
   assert.match(await page.locator('#boiler-home img').getAttribute('src'),/^data:image\/svg\+xml/);
   // Exact family imagery appears only on its own selection, with provenance.
   await page.locator('#boiler-home .boiler-setup-link').click();await page.locator('#boiler-model:enabled').waitFor();
@@ -113,11 +113,11 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
   assert.match(await page.locator('figure').innerText(),/Bron productafbeelding: BBQKees/);
   await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).click();
   await page.getByRole('status').filter({hasText:'Ketelkeuze opgeslagen'}).waitFor();
-  await page.reload();await page.waitForFunction(()=>document.querySelector('#boiler-home img')?.naturalWidth>0);
+  await page.goto('http://opth.test/');await page.waitForFunction(()=>document.querySelector('#boiler-home img')?.naturalWidth>0);
   assert.equal(await page.locator('#boiler-home img').getAttribute('src'),imageURL);
   assert.equal(await page.locator('#boiler-home img').getAttribute('alt'),'Nefit ProLine HRC (EMS)');
   // Unavailable public image never disables selection or the local dashboard.
-  imagesOffline=true;stored='emsesp-doc-nefit-smartline';await page.reload();
+  imagesOffline=true;stored='emsesp-doc-nefit-smartline';await page.goto('http://opth.test/');
   await page.getByRole('heading',{name:'Nefit SmartLine',exact:true}).waitFor();
   await page.waitForFunction(()=>document.querySelector('#boiler-home img')?.src.startsWith('data:image/svg+xml') && document.querySelector('#boiler-home img').naturalWidth>0);
   assert.equal(await page.locator('#boiler-home img').getAttribute('alt'),'Algemene ketelillustratie');
@@ -132,7 +132,7 @@ const status={controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}
   assert.equal(await page.locator('#boiler-model option[value=emsesp-product-195]').count(),0,'Unselected legacy group must stay hidden');
   assert.equal(await page.getByRole('button',{name:'Ketelkeuze opslaan',exact:true}).isEnabled(),true);
   assert(imageRequests.some(r=>r.offline),'Offline case must intercept an actual failed image request');
-  invalidRead=true;await page.reload();
+  invalidRead=true;await page.goto('http://opth.test/');
   await page.getByRole('heading',{name:'Ketelkeuze niet beschikbaar'}).waitFor();
   assert.equal(await page.locator('#boiler-home img').count(),0);
   assert(!requests.some(r=>r.path.includes('foreign.test')));

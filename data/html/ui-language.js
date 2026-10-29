@@ -24,6 +24,15 @@
         if (!root || !root.querySelectorAll) return;
         const nodes = [...root.querySelectorAll('[data-i18n],[data-i18n-title],[data-i18n-placeholder],[data-i18n-aria-label],[data-i18n-alt]')];
         if (root.nodeType === 1) nodes.unshift(root);
+        // data-hint="English help" on a control adds one translated help line below it.
+        for (const node of [...(root.matches?.('[data-hint]:not([data-hinted])') ? [root] : []), ...root.querySelectorAll('[data-hint]:not([data-hinted])')]) {
+            const hint = document.createElement('small'), id = 'hint-' + Math.random().toString(36).slice(2, 9);
+            hint.className = 'ot-hint'; hint.id = id; hint.textContent = text(node.getAttribute('data-hint'));
+            node.setAttribute('data-hinted', ''); node.setAttribute('aria-describedby', ((node.getAttribute('aria-describedby') || '') + ' ' + id).trim());
+            const host = node.closest('.input-group')?.parentElement || node.closest('.form-check, label') || node.parentElement;
+            if (host.tagName === 'LABEL') hint.setAttribute('aria-hidden', 'true'); // described, not part of the name
+            host.append(hint);
+        }
         for (const node of nodes) {
             if (node.hasAttribute('data-i18n')) node.textContent = text(node.getAttribute('data-i18n'));
             for (const name of ['title', 'placeholder', 'aria-label', 'alt']) {
@@ -33,7 +42,7 @@
         }
     }
     function selector() {
-        const host = document.getElementById('navbarNavDropdown') || document.querySelector('main') || document.body;
+        const host = document.querySelector('[data-language-host]') || document.getElementById('navbarNavDropdown') || document.querySelector('main') || document.body;
         if (!host || document.getElementById('ui-language-choice')) return;
         const label = document.createElement('label');
         label.style.cssText = 'display:inline-flex;align-items:center;gap:8px;margin:8px;color:inherit;font-size:14px';

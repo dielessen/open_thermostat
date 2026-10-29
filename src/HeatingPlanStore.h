@@ -28,19 +28,23 @@ inline std::string readHeatingPlan() {
     raw.pop_back();
     return raw;
 }
-inline bool saveHeatingPlan(const std::string& raw) {
+// storage_full: the partition budget refuses the write (HTTP 507, as for the
+// Bluetooth settings); failed: the write or its readback did not succeed.
+enum class HeatingPlanSave { saved, storage_full, failed };
+inline HeatingPlanSave saveHeatingPlan(const std::string& raw) {
     nvs_stats_t stats{};
     const auto partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_NVS, "nvs");
-    if (raw.empty() || raw.find('\0') != std::string::npos || !partition || nvs_get_stats("nvs", &stats) != ESP_OK
-        || !control::ControlPartitionBudget::permitsHeatingPlanWrite(
+    if (raw.empty() || raw.find('\0') != std::string::npos || !partition || nvs_get_stats("nvs", &stats) != ESP_OK)
+        return HeatingPlanSave::failed;
+    if (!control::ControlPartitionBudget::permitsHeatingPlanWrite(
                {partition->size, stats.total_entries, stats.used_entries, stats.free_entries, true},
                raw.size() + 1, control::controlModelStorageReservation.current()))
-        return false;
+        return HeatingPlanSave::storage_full;
     nvs_handle_t handle;
-    if (nvs_open("ot_heating", NVS_READWRITE, &handle) != ESP_OK) return false;
+    if (nvs_open("ot_heating", NVS_READWRITE, &handle) != ESP_OK) return HeatingPlanSave::failed;
     const bool committed = nvs_set_blob(handle, "plan", raw.c_str(), raw.size() + 1) == ESP_OK && nvs_commit(handle) == ESP_OK;
     nvs_close(handle);
-    return committed && readHeatingPlan() == raw;
+    return committed && readHeatingPlan() == raw ? HeatingPlanSave::saved : HeatingPlanSave::failed;
 }
 }
 #endif

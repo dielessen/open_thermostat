@@ -99,7 +99,8 @@ async def test_native_dashboard_counter_aggregates_only_new_v2_statistic_entitie
     new=registry(hass,e,"fixture_hub_energy_v2","energy_definition_v2")
     volume=registry(hass,e,"fixture_hub_warm_water_usage_v2","volume_definition_v2")
     config=RoomDashboard(hass,"fixture",e.entry_id)._dashboard_config()
-    charts=[card for view in config["views"] for card in view["cards"] if card["type"]=="statistics-graph"]
+    from custom_components.open_thermostat.dashboard import view_cards
+    charts=[card for view in config["views"] for card in view_cards(view) if card["type"]=="statistics-graph"]
     assert len(charts)==2
     assert {eid for card in charts for eid in card["entities"]}=={new.entity_id,volume.entity_id}
     assert all(card["stat_types"]==["change"] for card in charts)

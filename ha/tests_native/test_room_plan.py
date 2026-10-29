@@ -356,23 +356,36 @@ async def test_controller_client_speaks_the_heating_plan_contract():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("language,names", [
-    ("en", {"sensor": "Woonkamer temperature", "select": "Woonkamer room state", "number": "Woonkamer fallback setpoint",
-            "datetime": "Woonkamer inactive until", "binary_sensor": "Woonkamer heat demand"}),
-    ("nl", {"sensor": "Temperatuur Woonkamer", "select": "Ruimtestand Woonkamer", "number": "Terugvaltemperatuur Woonkamer",
-            "datetime": "Woonkamer inactief tot", "binary_sensor": "Warmtevraag Woonkamer"}),
+    ("en", {"sensor": "Woonkamer Temperature", "select": "Woonkamer Mode",
+            "number": "Woonkamer Temperature without Home Assistant",
+            "datetime": "Woonkamer Off until", "binary_sensor": "Woonkamer Heat demand"}),
+    ("nl", {"sensor": "Woonkamer Temperatuur", "select": "Woonkamer Stand",
+            "number": "Woonkamer Temperatuur zonder Home Assistant",
+            "datetime": "Woonkamer Uit tot", "binary_sensor": "Woonkamer Warmtevraag"}),
 ])
 async def test_entities_on_real_platforms_have_translated_names_and_valid_states(hass, monkeypatch, language, names):
-    """Real HA entity platforms and translation resources accept every new entity."""
+    """Real HA entity platforms and translation resources accept every new entity.
+
+    Each room is its own device (named after the room, linked via the product
+    device), so new entity IDs are "<room>_<name>": sensor.woonkamer_temperature
+    (Home Assistant writes new IDs in its own language).
+    """
     import asyncio
     import logging
     from pathlib import Path
     from homeassistant import loader
-    from homeassistant.helpers import translation
+    from homeassistant.helpers import area_registry as ar, device_registry as dr, translation
     from homeassistant.helpers.entity_platform import EntityPlatform
+    from homeassistant.util import slugify
     from unittest.mock import AsyncMock
     from custom_components.open_thermostat.heating_link import RoomDemandBinarySensor, RoomTemperatureSensor
+    from test_v1_native import entry
     component = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
     loader.async_setup(hass)
+    await ar.async_load(hass, load_empty=True)
+    config_entry = entry(hass)
+    product = dr.async_get(hass).async_get_or_create(
+        config_entry_id=config_entry.entry_id, identifiers={("open_thermostat", "fixture")}, name="OpenThermostat")
     integration = loader.Integration(hass, "custom_components.open_thermostat", component,
                                      json_manifest(component), top_level_files={p.name for p in component.iterdir()})
     monkeypatch.setattr(translation, "async_get_integrations", AsyncMock(return_value={"open_thermostat": integration}))
@@ -391,6 +404,7 @@ async def test_entities_on_real_platforms_have_translated_names_and_valid_states
             platform = EntityPlatform(hass=hass, logger=logging.getLogger(__name__), domain=domain,
                                       platform_name="open_thermostat", platform=None,
                                       scan_interval=timedelta(seconds=30), entity_namespace=None)
+            platform.config_entry = config_entry
             await platform.platform_data.async_load_translations()
             platforms.append(platform)
             await platform.async_add_entities([entity])
@@ -399,6 +413,13 @@ async def test_entities_on_real_platforms_have_translated_names_and_valid_states
             state = hass.states.get(entity.entity_id)
             assert state.attributes["friendly_name"] == names[domain], domain
             assert state.state not in ("unavailable",), domain
+        assert {domain: e.entity_id for domain, e in entities.items()} == {
+            domain: f"{domain}.{slugify(name)}" for domain, name in names.items()}
+        device = dr.async_get(hass).async_get_device_by_identifier(
+            ("open_thermostat", "fixture_e32_room_woonkamer"), config_entry.entry_id)
+        assert device.name == "Woonkamer" and device.via_device_id == product.id
+        assert device.area_id is None  # an area would be put in front of every new entity ID
+        assert all(e.device_entry.id == device.id for e in entities.values())
         assert hass.states.get(entities["select"].entity_id).state == "active"
         assert hass.states.get(entities["number"].entity_id).attributes["max"] == 24.0
         await entities["select"].async_select_option("inactive")

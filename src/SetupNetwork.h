@@ -10,6 +10,7 @@
 #include <nvs.h>
 #include <esp_timer.h>
 #include <cJSON.h>
+#include "control/BoundedJson.h"
 
 namespace heating {
 extern bool wifiAPMode;
@@ -54,7 +55,7 @@ inline bool selectSetupWifiInterface() {
     // Preserve broker/room settings; explicit WiFi onboarding must not reboot
     // back into a previously selected Ethernet-only mode.
     const auto raw=readDeviceNetworkSettings();
-    std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(cJSON_Parse(raw.c_str()),cJSON_Delete);
+    std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(heating::control::parseNestedJson(raw));
     if(!root||!cJSON_IsObject(root.get())) return false;
     auto item=cJSON_CreateString("wifi"); if(!item) return false;
     if(cJSON_HasObjectItem(root.get(),"interface_mode")) cJSON_ReplaceItemInObjectCaseSensitive(root.get(),"interface_mode",item);
@@ -70,6 +71,7 @@ inline bool readSetupWifi(config::WiFiConfig &cfg) {
     if(err!=ESP_OK||size<3||size>768) { nvs_close(h); return false; }
     std::string raw(size,'\0'); err=nvs_get_blob(h,"wifi",raw.data(),&size); nvs_close(h);
     if(err!=ESP_OK||raw.back()!='\0') return false;
+    if(!heating::control::jsonNestingWithin(raw.c_str(),raw.size(),2)) return false;
     auto root=cJSON_ParseWithLengthOpts(raw.c_str(),raw.size(),nullptr,true);
     if(!root) return false;
     auto ssid=cJSON_GetObjectItemCaseSensitive(root,"ssid"),password=cJSON_GetObjectItemCaseSensitive(root,"password");

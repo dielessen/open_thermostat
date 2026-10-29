@@ -1,0 +1,6 @@
+c
+t 3001
+r ha/capabilities {"api":1,"controller_id":"e32_lab","boot_id":"$B","epoch":$E,"adapter_id":"ha1"}
+r ha/open_session {"api":1,"controller_id":"e32_lab","boot_id":"$B","epoch":$E,"adapter_id":"ha1","client_nonce":"client1","challenge_id":"$C","known_revision":$R,"known_digest":"$D"}
+r ha/heartbeat {"api":1,"controller_id":"e32_lab","boot_id":"$B","epoch":$E,"adapter_id":"ha1","adapter_session_id":"$S","grant_id":"$G","grant_sequence":$Q,"config_revision":$R,"binding_id":"adapter","sequence":1}
+z 100

@@ -18,7 +18,7 @@ from homeassistant.exceptions import HomeAssistantError
 from .supervisor_status import supervisor_status, MAX_AGE_SECONDS as SUPERVISOR_MAX_AGE
 from .v1_model import Observation, RoomDecision
 from .session_grant import register_grant_proof, consume_grant_proof, MAX_GRANT_PROOFS
-from .boiler_fields import CAPABILITY as BOILER_CAPABILITY, CAPABILITY_V2 as BOILER_CAPABILITY_V2, BoilerFieldCache, MAX_BYTES as MAX_BOILER_BYTES
+from .boiler_fields import CAPABILITY as BOILER_CAPABILITY, CAPABILITY_V2 as BOILER_CAPABILITY_V2, BoilerFieldCache, MAX_BYTES as MAX_BOILER_BYTES, CATALOG_FIELDS
 from .metric_snapshot import CAPABILITY,MAX_BYTES as MAX_METRIC_BYTES,EXPIRY_SECONDS,valid_snapshot
 
 _ID = re.compile(r"[A-Za-z0-9_-]{1,32}")
@@ -1173,7 +1173,8 @@ class ShadowClient:
         if (topic=="ha/heartbeat" and self.ready and self.boiler_fields_v2
                 and self._capabilities_sent!=self.session["adapter_session_id"]):
             self._capabilities_sent=self.session["adapter_session_id"]
-            await self.send("ha/capabilities", canonical({"read_only":[BOILER_CAPABILITY_V2]}))
+            await self.send("ha/capabilities", canonical({"read_only":[BOILER_CAPABILITY_V2],
+                                                       "catalog_fields":len(CATALOG_FIELDS)}))
         if topic=="ha/heartbeat" and self.room_names_supported and self.ready:
             names=[]
             for room_id in sorted(self.runtime.rooms):

@@ -52,7 +52,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
    let body=fs.readFileSync(f);if(p.endsWith('.gz'))body=zlib.gunzipSync(body);
    return route.fulfill({contentType:/\.js(?:\.gz)?$/.test(p)?'text/javascript':p.endsWith('.css.gz')?'text/css':'text/html',body});
   });
-  await page.goto('http://trial.test/');await page.evaluate(()=>loadNativePage('boiler_test'));
+  await page.goto('http://trial.test/');await page.evaluate(()=>loadNativePage('boiler_trial'));
   const confirm=page.locator('[data-site-confirm]'),button=page.locator('[data-read-configuration]');
   await button.waitFor();assert.equal(await page.locator('#boiler-test-controls input[type=checkbox]').count(),1);
   const identify=page.getByRole('button',{name:lang==='nl'?'Apparaatidentiteit ophalen':'Read device identity',exact:true});
@@ -94,7 +94,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   await stop.click();assert.equal(posts.filter(r=>r.p.endsWith('/stop')).length,1);
   // A new page never inherits the old operator declaration or starts heating.
   state=initial();heatReason='heating_setting_unavailable';read={...read,active:false,available:true,phase:'idle'};
-  await page.evaluate(()=>loadNativePage('boiler_test'));await button.waitFor();assert.equal(await confirm.isChecked(),false);
+  await page.evaluate(()=>loadNativePage('boiler_trial'));await button.waitFor();assert.equal(await confirm.isChecked(),false);
   await page.locator('[data-site-pressure-value]').fill('2');await confirm.check();await page.clock.fastForward(120001);
   assert.equal(await confirm.isChecked(),false);assert.equal(await button.isDisabled(),true,'Polling never renews the declaration');
   await page.locator('[data-site-pressure-value]').fill('2');await confirm.check();uncertain=true;const before=posts.length;

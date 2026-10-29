@@ -1,0 +1,6 @@
+a prepare_zero {"schema":1,"boot_id":"000000000000002a","revision":1}
+n
+t 20000
+a close_fault {"schema":1,"boot_id":"000000000000002a","revision":1}
+o
+a stop {"schema":1,"boot_id":"000000000000002a","revision":2}

@@ -4,6 +4,7 @@
 #include "Logging.h"
 #include "RTCTimeHelpers.h"
 #include "control/JsonString.h"
+#include "control/BoundedJson.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "control/ModernTransport.h"
 #endif
@@ -335,6 +336,7 @@ public:
 private:
 	void handleTemporaryCommand(uint8_t const *payload, unsigned int length) {
 		if (length == 0 || length > 512) return;
+		if (!control::jsonNestingWithin(reinterpret_cast<char const *>(payload), length, 4)) return;
 		std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(
 			cJSON_ParseWithLength(reinterpret_cast<char const *>(payload), length), &cJSON_Delete);
 		if (!root || !cJSON_IsObject(root.get())) return;

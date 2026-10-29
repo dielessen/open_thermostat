@@ -37,19 +37,19 @@ window.BluetoothPage = (() => {
     const saveFailed=error=>{if(!error.httpStatus||(error.httpStatus>=500&&error.httpStatus!==507)){writeUnconfirmed=true;etag=null;say(unconfirmedMessage);}else say(error.message);};
     const enable=()=>{if(!alive())return;get('ble-add').disabled=!etag||storedInvalid||saving||loading||rows.children.length>=8;get('ble-save').disabled=!etag||storedInvalid||saving||loading;get('ble-reset').disabled=!etag||saving||loading;get('ble-reload').disabled=saving||loading;renderNearby();};
     const draft=()=>{dirty=true;enable();};
-    function field(label,node,parent) {const wrap=el('label');wrap.className='d-block mb-2';wrap.append(el('span',t(label)),node);parent.append(wrap);node.className='form-control';return node;}
+    function field(label,node,parent,hint) {if(hint)node.dataset.hint=hint;const wrap=el('label');wrap.className='d-block mb-2';wrap.append(el('span',t(label)),node);parent.append(wrap);node.className='form-control';return node;}
     function option(select,value,label){const o=el('option',t(label));o.value=value;select.append(o);}
     function addRow(device={address:'',name:'',profile:'shelly_ht_display',encryption:'bthome_v2',key_stored:false}) {
       if(rows.children.length>=8)return;
-      const box=el('fieldset');box.className='border rounded p-3 mb-2';const legend=el('legend',t('Bluetooth device'));box.append(legend);
-      const profile=field('Device profile',el('select'),box);profile.dataset.bleField='profile';for(const [value,label] of Object.entries(profiles))option(profile,value,label);profile.value=device.profile;
-      const address=field('BLE address',el('input'),box);address.dataset.bleField='address';address.value=device.address.match(/.{1,2}/g)?.join(':')??'';address.maxLength=17;address.required=true;address.autocomplete='off';
-      const name=field('Name',el('input'),box);name.dataset.bleField='name';name.value=device.name;name.maxLength=40;
-      const encryption=field('Bluetooth encryption',el('select'),box);encryption.dataset.bleField='encryption';
-      const fillEncryption=value=>{encryption.replaceChildren();if(profile.value==='xiaomi_monitor_3')option(encryption,'mibeacon_v4_v5','MiBeacon v4/v5 encrypted');else{option(encryption,'bthome_v2','BTHome v2 encrypted');option(encryption,'none','Unencrypted');}if(allowedEncryption(profile.value,value))encryption.value=value;legend.textContent=t(profiles[profile.value]);};fillEncryption(device.encryption);
-      const action=field('Bindkey action',el('select'),box);action.dataset.bleField='key_action';option(action,'keep',device.key_stored?'Keep stored key':'No stored key');option(action,'set','Replace key');option(action,'clear','Clear key');if(!device.key_stored)action.value='set';
-      const key=field('Bindkey (32 hexadecimal characters)',el('input'),box);key.type='password';key.maxLength=32;key.autocomplete='new-password';key.spellcheck=false;key.hidden=true;
-      const readings=el('p',t('Waiting for a Bluetooth report'));readings.className='small';readings.dataset.readings='';box.append(readings);
+      const box=el('fieldset'),legend=el('legend',t('Bluetooth device')),sub=el('p'),grid=el('div');sub.className='ble-sub';grid.className='ble-fields';box.append(legend,sub);
+      const readings=el('p',t('Waiting for a Bluetooth report'));readings.className='ble-read';readings.dataset.readings='';box.append(readings,grid);
+      const profile=field('Device profile',el('select'),grid,'The sensor type, so the E32 can read its messages.');profile.dataset.bleField='profile';for(const [value,label] of Object.entries(profiles))option(profile,value,label);profile.value=device.profile;
+      const address=field('Bluetooth address',el('input'),grid,'Six pairs, for example 0a:1b:2c:3d:4e:5f. Choose a device above to fill it in.');address.dataset.bleField='address';address.value=device.address.match(/.{1,2}/g)?.join(':')??'';address.maxLength=17;address.required=true;address.autocomplete='off';
+      const name=field('Name',el('input'),grid,'Your own name, for example Living room thermometer.');name.dataset.bleField='name';name.value=device.name;name.maxLength=40;
+      const encryption=field('Encryption',el('select'),grid,'Encrypted BTHome needs the key; unencrypted readings need none. Xiaomi always uses MiBeacon.');encryption.dataset.bleField='encryption';
+      const fillEncryption=value=>{encryption.replaceChildren();if(profile.value==='xiaomi_monitor_3')option(encryption,'mibeacon_v4_v5','MiBeacon v4/v5 encrypted');else{option(encryption,'bthome_v2','BTHome v2 encrypted');option(encryption,'none','Unencrypted');}if(allowedEncryption(profile.value,value))encryption.value=value;title();};const title=()=>{legend.textContent=name.value.trim()||t(profiles[profile.value]);sub.textContent=t(profiles[profile.value]);};fillEncryption(device.encryption);
+      const action=field('Encryption key (bindkey)',el('select'),grid,'Keep the stored key, enter a new one or remove it.');action.dataset.bleField='key_action';option(action,'keep',device.key_stored?'Keep stored key':'No stored key');option(action,'set','Replace key');option(action,'clear','Clear key');if(!device.key_stored)action.value='set';
+      const key=field('New key (32 hexadecimal characters)',el('input'),grid,"The 32-character bindkey from the sensor's app or settings.");key.type='password';key.maxLength=32;key.autocomplete='new-password';key.spellcheck=false;key.hidden=true;
       const details=el('details'), extra=el('p');details.append(el('summary',t('Bluetooth reception details')),extra);extra.dataset.extra='';extra.className='small';box.append(details);box.dataset.savedAddress=device.address;
       const remove=el('button',t('Remove'));remove.type='button';remove.className='btn btn-outline-danger';box.append(remove);
       remove.addEventListener('click',()=>{key.value='';box.remove();draft();},{signal:owner.signal});
@@ -65,6 +65,7 @@ window.BluetoothPage = (() => {
       for(const input of [address,name,profile,encryption,action,key])input.addEventListener('input',()=>{
         if(input===profile){fillEncryption();resetKeyAction();}
         if(input===encryption){resetKeyAction();}
+        if(input===name)title();
         adjust();draft();
         if(!box.isSavedBinding()){readings.textContent=t('Save and restart to receive data for this device.');extra.textContent='—';}
       },{signal:owner.signal});adjust();
@@ -77,9 +78,9 @@ window.BluetoothPage = (() => {
       for(const d of nearbyHints) {
         let card=nearbyCards.get(d.address);
         if(!card) {
-          const node=el('div');node.className='border rounded p-2 mb-2';
+          const node=el('div');
           const title=el('strong'),info=el('div'),button=el('button');
-          info.className='small';button.type='button';button.className='btn btn-outline-primary mt-1';button.dataset.bleAddress=d.address;
+          info.className='small';button.type='button';button.className='btn btn-outline-primary btn-block mt-2';button.dataset.bleAddress=d.address;
           node.append(title,info,button);list.append(node);card={node,title,info,button};nearbyCards.set(d.address,card);
           button.addEventListener('click',()=>{
             if(button.disabled)return;
@@ -92,7 +93,7 @@ window.BluetoothPage = (() => {
         card.title.textContent=d.name||t('Unnamed Bluetooth device');
         card.info.textContent=d.address.match(/../g).join(':')+(d.rssi===null?'':' · '+d.rssi+' dBm');
         const added=Array.from(rows.children).some(box=>box.readDraft().address.replaceAll(':','').toLowerCase()===d.address);
-        card.button.textContent=t(added?'Already added':'Add this device');
+        card.button.textContent=t(added?'Already added':'Add');
         card.button.disabled=added||!etag||storedInvalid||saving||loading||rows.children.length>=8;
       }
       if(!nearbyHints.length&&!list.querySelector('[data-empty]')){const empty=el('p',t('No devices found yet. Start a search and wake the sensor if needed.'));empty.dataset.empty='';list.append(empty);}
@@ -102,7 +103,13 @@ window.BluetoothPage = (() => {
       savedRows=new Map(s.devices.map(d=>[d.address,d]));
       for(const box of rows.children) {
         const d=savedRows.get(box.dataset.savedAddress), node=box.querySelector('[data-readings]');
-        node.textContent=!box.isSavedBinding()?t('Save and restart to receive data for this device.'):d?t(states[d.status])+' · '+t(d.profile==='shelly_blu_trv'?'Calculated TRV temperature':'Temperature')+': '+(d.temperature===null?'—':(d.temperature/100).toLocaleString(OpenThermostatLanguage.locale)+' °C')+(d.profile==='shelly_blu_trv'?'':' · '+t('Humidity')+': '+(d.humidity===null?'—':d.humidity/100+'%'))+' · '+t('Battery')+': '+(d.battery===null?'—':d.battery+'%')+' · '+t('Temperature report age')+': '+(d.temperature_age_ms===null?'—':Math.floor(d.temperature_age_ms/1000)+' s'):'—';
+        const n=(v,digits)=>v.toLocaleString(OpenThermostatLanguage.locale,{minimumFractionDigits:digits,maximumFractionDigits:digits});
+        if(!box.isSavedBinding()||!d){node.textContent=!box.isSavedBinding()?t('Save and restart to receive data for this device.'):'—';continue;}
+        const chip=el('span',t(states[d.status]));chip.className='ot-chip'+(d.status==='received'?' ot-chip--ok':['waiting','stale','pending_restart'].includes(d.status)?'':' ot-chip--err');
+        const big=el('span',d.temperature===null?'—':n(d.temperature/100,1)+' °C');big.className='ot-big';big.title=t(d.profile==='shelly_blu_trv'?'Calculated TRV temperature':'Temperature');
+        const lab=el('span',t(d.profile==='shelly_blu_trv'?'Calculated TRV temperature':'Temperature'));lab.className='pd-help';
+        const rest=el('span',(d.profile==='shelly_blu_trv'?'':t('Humidity')+': '+(d.humidity===null?'—':n(d.humidity/100,1)+' %'))+(d.profile==='shelly_blu_trv'?'':' · ')+t('Battery')+': '+(d.battery===null?'—':d.battery+' %')+' · '+t('Last update')+': '+(d.temperature_age_ms===null?'—':t('{age} ago').replace('{age}',Math.floor(d.temperature_age_ms/1000)+' s')));rest.className='pd-help';
+        node.replaceChildren(lab,big,chip,rest);
       }
       for(const box of rows.children) {
         const d=savedRows.get(box.dataset.savedAddress), extra=box.querySelector('[data-extra]');
@@ -118,7 +125,7 @@ window.BluetoothPage = (() => {
           :d.frames_ignored===d.frames_received?'Reports arrive but are not in the expected format for this sensor type.':'Waiting for a complete report.');
       }
       nearbyHints=s.nearby_devices??s.nearby.map(address=>({address,name:'',rssi:null}));
-      const count=t('Devices found: ')+nearbyHints.length;
+      const count=t('Found:')+' '+nearbyHints.length;
       if(get('ble-found-count').textContent!==count)get('ble-found-count').textContent=count;
       renderNearby();
       get('ble-discovery-full').hidden=!s.discovery_full;
@@ -186,7 +193,7 @@ window.BluetoothPage = (() => {
       });
       if(devices.some(d=>new TextEncoder().encode(d.name).length>40||d.key_action==='set'&&!/^[0-9a-fA-F]{32}$/.test(d.bindkey))) {say('Use names of at most 40 UTF-8 bytes and keys of exactly 32 hexadecimal characters.');return;}
       saving=true;stopPoll();for(const box of rows.children)box.disabled=true;enable();
-      try {const headers={...await OpenThermostatAuth.headers(),'Content-Type':'application/json','If-Match':etag};await request('/config/bluetooth',{method:'POST',headers,body:JSON.stringify({devices})});if(alive()&&await load(expected))say('Bluetooth settings saved. Restart the device in Settings to apply changes.');}
+      try {const headers={...await OpenThermostatAuth.headers(),'Content-Type':'application/json','If-Match':etag};await request('/config/bluetooth',{method:'POST',headers,body:JSON.stringify({devices})});if(alive()&&await load(expected))say('Bluetooth settings saved. Restart the device (System → Restart device) to apply changes.');}
       catch(error){saveFailed(error);}
       finally {for(const input of rows.querySelectorAll('input[type=password]'))input.value='';for(const box of rows.children)box.disabled=false;saving=false;enable();schedulePoll();}
     },{signal:owner.signal});

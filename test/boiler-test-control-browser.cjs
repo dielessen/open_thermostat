@@ -75,7 +75,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   });
   await page.context().addCookies([{name:'ot_ui_lang',value:'nl',url:'http://boiler.test'}]);
   await page.goto('http://boiler.test/');await page.waitForFunction(()=>typeof loadNativePage==='function');
-  await page.evaluate(()=>loadNativePage('boiler_test'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
+  await page.evaluate(()=>loadNativePage('boiler_trial'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
   await page.locator('[data-test-state]').filter({hasText:'geblokkeerd'}).waitFor({state:'attached'});
   assert.equal(await page.locator('[data-test-prepare]').isDisabled(),true);
   assert.equal(await page.locator('[data-test-start]').isDisabled(),true);
@@ -192,7 +192,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   await page.screenshot({path:path.join(out,`CONTROL-${width}.png`),fullPage:true});
   // Reopening a ready owned session does not renew or start it automatically.
   update({phase:'ready',can_prepare:false,can_stop:true,can_start:true,owned:true,reported_stop_confirmed:true});
-  await page.evaluate(()=>loadNativePage('boiler_test'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
+  await page.evaluate(()=>loadNativePage('boiler_trial'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
   await page.locator('[data-test-state]').filter({hasText:'Stopbasis gemeld'}).waitFor({state:'attached'});
   const before=requests.filter(r=>r.method==='POST').length;await page.waitForTimeout(1300);
   assert.equal(requests.filter(r=>r.method==='POST').length,before);
@@ -203,7 +203,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   // The same reported stop is translated after reopening in English.
   await page.context().addCookies([{name:'ot_ui_lang',value:'en',url:'http://boiler.test'}]);
   await page.reload();await page.waitForFunction(()=>typeof loadNativePage==='function');
-  await page.evaluate(()=>loadNativePage('boiler_test'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
+  await page.evaluate(()=>loadNativePage('boiler_trial'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
   await page.locator('[data-test-facts] dd').filter({hasText:/^Yes$/}).waitFor();
   assert.equal(await page.locator('[data-test-facts] dd').filter({hasText:/^Ja$/}).count(),0);
   assert.match(await page.locator('[data-heat-limits]').innerText(),gaugeTrial?/1.1–2.5 bar/:/1–2.5 bar/);
@@ -219,7 +219,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
     zero_only:false,operator_lease_ms:5000,reported_stop_confirmed:false});
    await page.context().addCookies([{name:'ot_ui_lang',value:language,url:'http://boiler.test'}]);
    await page.reload();await page.waitForFunction(()=>typeof loadNativePage==='function');
-   await page.evaluate(()=>loadNativePage('boiler_test'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
+   await page.evaluate(()=>loadNativePage('boiler_trial'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
    await page.locator('[data-test-site]').waitFor({state:'visible'});
    assert.equal(await page.locator('[data-test-zero]').isDisabled(),true);
    await page.locator('[data-site-confirm]').check();
@@ -255,7 +255,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
     restart_required:false,reported_stop_confirmed:false});
    await page.context().addCookies([{name:'ot_ui_lang',value:language,url:'http://boiler.test'}]);
    await page.reload();await page.waitForFunction(()=>typeof loadNativePage==='function');
-   await page.evaluate(()=>loadNativePage('boiler_test'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
+   await page.evaluate(()=>loadNativePage('boiler_trial'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
    await page.locator('[data-test-close-fault]').waitFor({state:'visible'});
    assert.equal(await page.locator('[data-test-close-fault]').isDisabled(),true);
    if(width===1280) {
@@ -276,7 +276,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
    await page.waitForTimeout(1200);
    const closeRequests=requests.filter(r=>r.method==='POST').slice(beforeClose);
    assert.equal(closeRequests.length,1);assert(closeRequests[0].path.endsWith('/close_fault'));
-   await page.evaluate(()=>loadNativePage('boiler_test'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
+   await page.evaluate(()=>loadNativePage('boiler_trial'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
    await page.locator('[data-test-state]').filter({hasText:language==='nl'?'afgesloten na gemelde stop':'closed after reported stop'}).waitFor({state:'attached'});
    await page.waitForTimeout(1200);assert.equal(requests.filter(r=>r.method==='POST').length,beforeClose+1);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
@@ -288,7 +288,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
    state={...initial(),revision:state.revision,state_sequence:state.state_sequence+1,observed_at_ms:state.observed_at_ms+100,
     available:true,blocked_reason:'',can_prepare:true,can_prepare_zero:true,zero_test_available:true,
     site_confirmation_required:true,pressure_check_required:true,operator_lease_ms:5000,limits,...gaugeFields};
-   await page.evaluate(()=>loadNativePage('boiler_test'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
+   await page.evaluate(()=>loadNativePage('boiler_trial'));await page.locator('#boiler-test-reception').evaluate(node=>node.open=true);
    await page.waitForFunction(()=>!document.querySelector('[data-site-confirm]').disabled);
    await page.locator('[data-site-confirm]').check();await page.locator('[data-site-confirm]').check();
    await page.locator('[data-site-confirm]').check();await page.locator('[data-site-confirm]').check();

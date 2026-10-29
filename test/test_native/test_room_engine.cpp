@@ -179,3 +179,18 @@ TEST(RoomEngine, RemovingTheLeadingSourceForgetsItBeforeTheNextStep) {
     EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(room, "source")));
 }
 }
+
+namespace {
+// HeatingController::setHeatingPlan skips the NVS write when the posted plan
+// (same revision) serialises exactly like the stored one: HA automations that
+// resend the plan neither wear the flash nor bump the revision.
+TEST(RoomPlan, ResentPlanIsDetectedAsUnchangedButAnEditIsNot) {
+    std::string text = ownerPlan;
+    const auto stored = parsed(text.replace(1, 0, "\"revision\":7,").c_str());
+    const auto resent = parsed(stored.json().c_str());
+    EXPECT_EQ(resent.json(), stored.json());
+    std::string edited = stored.json();
+    edited.replace(edited.find("\"Woonkamer\""), 11, "\"Living\"");
+    EXPECT_NE(parsed(edited.c_str()).json(), stored.json());
+}
+}

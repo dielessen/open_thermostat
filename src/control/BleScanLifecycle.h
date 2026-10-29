@@ -4,6 +4,20 @@
 #include <cstdint>
 
 namespace heating::control {
+// Parameters of one scan. The interval is 100 ms, so the window is the duty
+// cycle in percent. Wi-Fi shares the radio: automatic scans listen passively
+// at 30 %; only a requested Search scans actively (names) at 50 % for <= 30 s.
+struct BleScanPlan {
+    static constexpr uint16_t intervalMs = 100;
+    bool active; uint16_t windowMs; uint32_t durationMs, cooldownMs;
+    // continuous: managed sensors are bound. Their readings come once a minute
+    // between event-only adverts, so automatic scans follow each other with
+    // only a 1 s gap, at which a requested Search goes first.
+    static BleScanPlan of(uint32_t discoveryMs, uint16_t scanTimeS, uint16_t scanIntervalS, bool continuous) {
+        if (discoveryMs) return {true, 50, std::min<uint32_t>(discoveryMs, 30000), scanIntervalS * 1000u};
+        return {false, 30, scanTimeS * 1000u, continuous ? 1000u : scanIntervalS * 1000u};
+    }
+};
 // One existing scanner, with callback-to-loop publication. No task or retry loop.
 class BleScanLifecycle {
 public:

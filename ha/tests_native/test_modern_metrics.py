@@ -127,8 +127,12 @@ async def test_platform_capability_gate_only_writes_on_snapshot_or_availability_
     await async_setup_shadow_metrics(hass,e,lambda entities:added.extend(entities))
     assert not added and len(r._listeners)==1
     c.metrics_supported=True;r._notify()
-    assert len(added)==8 and all(not sensor.available for sensor in added)
+    # Outdoor (EMS+ 0xD1) waits for its first value; the boiler field covers Classic.
+    assert len(added)==7 and all(not sensor.available for sensor in added)
+    assert not any(sensor.unique_id.endswith("_outdoor_temperature") for sensor in added)
     await c.receive("fw/telemetry/ems_metrics",canonical(packet(c)))
+    outdoor=next(sensor for sensor in added if sensor.unique_id=="fixture_hub_outdoor_temperature")
+    assert len(added)==8 and outdoor.native_value==-5.7
     energy=next(sensor for sensor in added if sensor.unique_id.endswith("_energy_v2"))
     assert energy.native_value==0 and energy.available and energy.extra_state_attributes["control_qualified"] is False
     calls=[]

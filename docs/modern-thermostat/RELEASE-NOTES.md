@@ -1,3 +1,60 @@
+# E32 V2 beta18 — a refreshed interface, learning in shadow mode and a sturdier E32
+<!-- user-release-notes:v2:en -->
+
+A large follow-up to beta17. The E32 still runs heating in shadow mode: it
+calculates and learns, compares itself with your thermostat, and does not send
+its request to the boiler yet. Use it together with HA0.4.0b10.
+
+## New
+
+- A refreshed interface in English and Dutch, light and dark: five menu items
+  (Overview, Rooms, Boiler, Sensors, System), pages that remember where you are,
+  larger controls for phones and a short plain-language help line at every
+  setting.
+- Rooms are managed in Home Assistant. The E32 page shows them read-only with
+  the connection state, explains where to set what, and still lets you edit
+  here when Home Assistant is not reachable.
+- Learning per room in shadow mode: how fast the room warms up at which flow
+  temperature, the lowest flow that still warms it in time, when to start
+  before the next week-program switch, and whether holding the night
+  temperature or letting it drop uses less gas (estimates in kWh, m³ and €).
+- My boiler starts with the essentials: temperatures, pressure, burner starts
+  in the last hour with a short-cycling warning, and hot water today (tapping
+  versus keeping warm). The attended trial and all EMS values sit below.
+- The last locking and blocking boiler fault and the boiler's own uptime join
+  the one EMS table; the thermostat values were checked against real tado
+  telegrams.
+- Prepared but switched off: active heating control behind a firmware gate,
+  with takeover only after your confirmation, a stop when another controller
+  sends heat requests, frost protection below 8 °C and a hand-back button.
+
+## Fixed
+
+- Bluetooth thermometers deliver readings reliably: every report is heard,
+  readings stay valid for 15 minutes, a sensor whose counter restarts (new
+  battery) is accepted again, and one bad report no longer clears the values.
+- An update that fails to start rolls back to the previous firmware instead of
+  restarting forever.
+- Very deeply nested JSON from the network can no longer crash the E32.
+- A watchdog now also covers start-up; a stalled GitHub download can no longer
+  switch off the supervisor; the E32 restarts itself when Wi-Fi reports
+  "connected" but the network no longer answers, and backs off instead of
+  restarting every 15 minutes during a long Wi-Fi outage.
+- Less use of the memory Wi-Fi needs: JSON and larger buffers live in PSRAM.
+
+## Updating
+
+Install this firmware and HA0.4.0b10 together (HA0.4.0b9 keeps working with
+the fields it knows). After the update the E32 confirms itself after about a
+minute of normal running; until then a failed start would roll back.
+
+## Limitations
+
+Shadow mode only: active control stays switched off until the attended
+switch-over. The learned advice is shown, not yet applied. Night-setback gas
+estimates need an outdoor temperature and become more accurate once the gas
+meter is linked (planned).
+
 # E32 V2 beta17 — rooms and heating in shadow mode, a stable Bluetooth page and pvvx sensors
 <!-- user-release-notes:v2:en -->
 

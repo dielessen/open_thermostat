@@ -92,50 +92,63 @@
 		});
 	</script>
 
-	<title data-i18n="Heating controller">Heating controller</title>
+	<title>OpenThermostat</title>
 <style>
-.product-dashboard{overflow-wrap:anywhere;max-width:1180px;margin:20px auto;padding:8px;color:#173b40;font-family:system-ui,sans-serif}.product-dashboard h1{font-size:1.9rem;font-weight:700;margin:0 0 8px}.product-dashboard h2{font-size:1.2rem;font-weight:650;margin:0 0 10px}.product-dashboard h3{font-size:1rem;font-weight:650;margin:0}.product-dashboard p{margin:8px 0}.pd-heading,.pd-section-title,.pd-room-title{display:flex;align-items:center;justify-content:space-between;gap:14px}.pd-heading{margin-bottom:24px;flex-wrap:wrap}.pd-eyebrow{font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:#50666c}.pd-badge{display:inline-block;font-size:.8rem;line-height:1.4;border-radius:18px;padding:7px 11px;background:#e9f0f0;color:#315a60}.pd-status{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#eff7f5;border-left:4px solid #097c70;padding:14px 18px;border-radius:10px;margin-bottom:18px}.pd-status span,.pd-help{font-size:.87rem;color:#526a70}.pd-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-bottom:20px}.pd-fact,.pd-panel,.pd-room{background:#fff;border:1px solid #d2dfe1;border-radius:14px;padding:20px}.pd-fact h3{font-size:.9rem}.pd-value{font-size:1.9rem;line-height:1.5;margin-top:14px}.product-dashboard small{font-size:.55em;font-weight:400;color:#526a70}.pd-missing{font-size:.9rem;color:#526a70}.pd-panel{margin-bottom:20px}.pd-flow{display:flex;gap:14px;align-items:center;padding:16px 0}.pd-flow>div{flex:1;background:#f3f7f7;padding:16px;border-radius:10px}.pd-flow strong{display:block;font-size:1.05rem}.pd-flow-label{display:block;font-size:.82rem;font-weight:400;color:#526a70;margin-bottom:7px}.pd-arrow{font-size:1.8rem;color:#097c70}.pd-dashed{color:#64787c}.pd-section-title{margin:20px 0 14px;flex-wrap:wrap}.pd-rooms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:20px}.pd-room-title{align-items:flex-start;flex-wrap:wrap}.pd-request{color:#08665b;background:#dff4ec}.pd-room-temperatures{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:1.75rem;margin:20px 0 8px}.pd-trend{display:block;width:100%;height:64px;margin-top:14px}.pd-actual-line{fill:none;stroke:#087e70;stroke-width:2.5;stroke-linejoin:round}.pd-target-line{fill:none;stroke:#b06313;stroke-width:2;stroke-dasharray:5 4}.pd-room-detail{font-size:.87rem;margin-top:16px}.product-dashboard summary{cursor:pointer;min-height:36px;font-weight:600}.product-dashboard summary:focus-visible{outline:3px solid #b06313;outline-offset:3px}.pd-empty{grid-column:1/-1;border:1px dashed #adbec1;border-radius:12px;padding:24px;background:#f5f8f8;color:#526a70}.pd-lower{display:grid;grid-template-columns:1fr 1fr;gap:18px}.pd-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:16px;font-size:.87rem}.pd-detail-grid dd{margin:0;text-align:right;overflow-wrap:anywhere}.pd-detail-grid dt{font-weight:500}.product-dashboard details[open]>summary{margin-bottom:14px}@media(max-width:850px){.pd-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.pd-flow{flex-direction:column;align-items:stretch}.pd-arrow{transform:rotate(90deg);align-self:center;line-height:1}.pd-lower{grid-template-columns:1fr}}@media(max-width:560px){.product-dashboard{margin:12px 0;padding:0}.product-dashboard h1{font-size:1.5rem}.pd-rooms{grid-template-columns:1fr}.pd-facts{gap:10px}.pd-fact,.pd-panel,.pd-room{padding:16px}.pd-value{font-size:1.5rem}.pd-status{padding:12px}.pd-room-temperatures{font-size:1.6rem}.pd-badge{padding:6px 9px}}
+/* OpenThermostat design system: tokens (light + dark), Bootstrap 4 bridge, shared components. */
+:root{color-scheme:light dark;--ot-bg:#f6f8f8;--ot-surface:#fff;--ot-surface-2:#f1f5f5;--ot-border:#c9d6d8;--ot-field:#7a8f93;--ot-text:#173b40;--ot-muted:#4f666b;--ot-accent:#08665b;--ot-accent-ink:#fff;--ot-accent-soft:#e0f2ee;--ot-focus:#b06313;--ot-ok:#0b6b3a;--ot-ok-bg:#dcf3e6;--ot-warn:#7a4a00;--ot-warn-bg:#fff1d6;--ot-err:#a1261d;--ot-err-bg:#fde4e1;--ot-off:#4f5b61;--ot-off-bg:#e8ecee;--ot-nav:#123c41;--ot-r1:8px;--ot-r2:14px;--ot-tap:44px}
+@media (prefers-color-scheme:dark){:root{--ot-bg:#0f1719;--ot-surface:#162124;--ot-surface-2:#1d2b2f;--ot-border:#2f4247;--ot-field:#6f878c;--ot-text:#e3eeef;--ot-muted:#a3b7bb;--ot-accent:#4cc2b0;--ot-accent-ink:#06201c;--ot-accent-soft:#163a35;--ot-focus:#f0a35a;--ot-ok:#7fdba6;--ot-ok-bg:#143524;--ot-warn:#f3c56b;--ot-warn-bg:#3a2c10;--ot-err:#ff9d93;--ot-err-bg:#3d1714;--ot-off:#b4c0c4;--ot-off-bg:#263337;--ot-nav:#0a1315}}
+body{background:var(--ot-bg);color:var(--ot-text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+h1,h2,h3,h4,h5,legend{color:var(--ot-text);font-weight:700}h1{font-size:1.75rem}h2{font-size:1.25rem}h3,legend{font-size:1.05rem}
+a,a:hover{color:var(--ot-accent)}:focus-visible{outline:3px solid var(--ot-focus)!important;outline-offset:2px}
+.text-muted,.form-text,small,.small{color:var(--ot-muted)!important}.text-danger{color:var(--ot-err)!important}
+.card,.modal-content,.dropdown-menu,.list-group-item{background:var(--ot-surface);color:var(--ot-text);border-color:var(--ot-border)}.card{border-radius:var(--ot-r2);overflow:hidden}
+.card-header,.card-footer,.modal-header,.modal-footer{background:var(--ot-surface-2);border-color:var(--ot-border)}.card-header{font-weight:600}.close{color:var(--ot-text)}
+.form-control,.custom-select,.custom-file-label{background-color:var(--ot-surface);color:var(--ot-text);border-color:var(--ot-field);border-radius:var(--ot-r1)}.form-control,.custom-select{min-height:var(--ot-tap)}
+.form-control:focus,.custom-select:focus{background-color:var(--ot-surface);color:var(--ot-text);border-color:var(--ot-accent);box-shadow:0 0 0 3px var(--ot-accent-soft)}.form-control:disabled,.form-control[readonly]{background:var(--ot-surface-2);color:var(--ot-muted)}
+.custom-file,.custom-file-input,.custom-file-label{height:var(--ot-tap)}.custom-file-label{line-height:30px}.custom-file-label::after{height:auto;top:0;bottom:0;line-height:30px;background:var(--ot-surface-2);color:var(--ot-text)}
+.table{color:var(--ot-text)}.table td,.table th{border-color:var(--ot-border)!important}code{color:var(--ot-accent)}
+pre{background:var(--ot-surface-2);color:var(--ot-text);border:1px solid var(--ot-border);border-radius:var(--ot-r1);padding:12px}
+.dropdown-item{color:var(--ot-text);padding:10px 16px}.dropdown-item:hover,.dropdown-item:focus,.dropdown-item.active{background:var(--ot-surface-2);color:var(--ot-text)}.dropdown-item.active{box-shadow:inset 3px 0 var(--ot-accent)}.dropdown-divider{border-color:var(--ot-border)}
+.btn{min-height:var(--ot-tap);border-radius:var(--ot-r1);font-weight:600}.btn:hover{filter:brightness(1.06)}
+.btn-primary,.btn-success{background:var(--ot-accent)!important;border-color:var(--ot-accent)!important;color:var(--ot-accent-ink)!important}
+.btn-secondary,.btn-outline-primary,.btn-outline-secondary,.btn-outline-dark{background:transparent;border-color:var(--ot-field);color:var(--ot-text)}
+.btn-secondary:hover,.btn-outline-primary:hover,.btn-outline-secondary:hover,.btn-outline-dark:hover{background:var(--ot-surface-2);border-color:var(--ot-text);color:var(--ot-text)}
+.btn-secondary:disabled,.btn-outline-primary:disabled,.btn-outline-secondary:disabled{color:var(--ot-muted);background:transparent;border-color:var(--ot-border)}.btn-outline-danger,.btn-outline-danger:hover{background:transparent;border-color:var(--ot-err);color:var(--ot-err)}.btn-danger{background:var(--ot-err);border-color:var(--ot-err);color:var(--ot-surface)}
+input[type=checkbox],input[type=radio]{width:20px;height:20px;accent-color:var(--ot-accent);vertical-align:-4px}.form-check-input{margin-top:.15rem}.form-check-label{padding-left:6px}
+.alert{border:0;border-left:4px solid var(--ot-off);border-radius:var(--ot-r1);background:var(--ot-off-bg);color:var(--ot-text)}.alert-info{border-color:var(--ot-accent);background:var(--ot-accent-soft)}
+.alert-warning{border-color:var(--ot-warn);background:var(--ot-warn-bg)}.alert-danger{border-color:var(--ot-err);background:var(--ot-err-bg)}.alert-success{border-color:var(--ot-ok);background:var(--ot-ok-bg)}
+.border{border-color:var(--ot-border)!important}.bg-light{background:var(--ot-surface-2)!important}.progress{background:var(--ot-surface-2)}.progress-bar{background:var(--ot-accent)}.gap-2{gap:.5rem}
+summary{cursor:pointer;min-height:var(--ot-tap);padding:10px 0;font-weight:600}details[open]>summary{margin-bottom:8px}
+/* Navigation */
+.device-navbar{background:var(--ot-nav)!important;padding:4px 12px}.device-navbar .navbar-brand{display:flex;align-items:center;gap:.5rem;min-width:0;font-weight:700;color:#fff}.device-navbar .navbar-brand svg{flex-shrink:0}.device-navbar .navbar-brand{min-height:var(--ot-tap)}.device-navbar .navbar-toggler{min-height:var(--ot-tap);min-width:48px}
+.device-navbar .nav-link{color:#e3eeef!important;min-height:var(--ot-tap);display:flex;align-items:center;padding:8px 12px!important;border-radius:var(--ot-r1)}
+.device-navbar .nav-link:hover{background:rgba(255,255,255,.1)}.device-navbar .nav-link.active{color:#fff!important;background:rgba(255,255,255,.14);box-shadow:inset 0 -3px #4cc2b0}
+.device-navbar .dropdown-menu{right:0;left:auto}#auth-sign-out{white-space:nowrap;min-height:var(--ot-tap);color:#fff;border-color:#a3b7bb}
+.ot-foot{max-width:1140px;margin:32px auto 0;padding:8px 15px 24px;border-top:1px solid var(--ot-border);color:var(--ot-muted);display:flex;justify-content:flex-end}#ui-language-choice{min-height:var(--ot-tap);border-radius:var(--ot-r1);border:1px solid var(--ot-field);background:var(--ot-surface);color:var(--ot-text);padding:0 8px}
+@media (max-width:991.98px){.device-navbar .navbar-brand{flex:1 1 0;font-size:1.05rem}.device-navbar .navbar-brand svg{width:1.5rem;height:1.5rem}.device-navbar .nav-link{min-height:48px}}
+/* Components (pd-* names are kept for tests and older markup) */
+.product-dashboard,.ot-page{overflow-wrap:anywhere;max-width:1180px;margin:20px auto;padding:8px}.product-dashboard p{margin:8px 0}
+.pd-heading,.ot-head,.pd-section-title,.pd-room-title{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.pd-heading,.ot-head{margin-bottom:20px}.pd-heading p,.ot-head p{margin:4px 0 0;color:var(--ot-muted)}.pd-section-title{margin:24px 0 12px}.pd-section-title h2,.pd-heading h1,.ot-head h1{margin:0}
+.pd-panel,.pd-room,.pd-status{background:var(--ot-surface);border:1px solid var(--ot-border);border-radius:var(--ot-r2);padding:16px 20px;margin-bottom:16px}.pd-status{border-left:4px solid var(--ot-accent)}
+.ot-chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:.8rem;font-weight:600;line-height:1.4;background:var(--ot-off-bg);color:var(--ot-off)}.ot-chip::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.ot-chip--ok{background:var(--ot-ok-bg);color:var(--ot-ok)}.ot-chip--warn{background:var(--ot-warn-bg);color:var(--ot-warn)}.ot-chip--err{background:var(--ot-err-bg);color:var(--ot-err)}.ot-chips{display:flex;flex-wrap:wrap;gap:6px}
+.pd-headline{font-size:1.3rem;font-weight:700;margin:0 0 10px!important}.pd-help,.pd-missing,.ot-hint{color:var(--ot-muted);font-size:.87rem}small.ot-hint,.ot-hint{display:block;font-size:.85rem!important;font-weight:400;margin:2px 0 4px;line-height:1.35}.product-dashboard small{font-size:.55em;font-weight:400;color:var(--ot-muted)}
+.pd-rooms{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}.pd-rooms{margin-bottom:8px}.pd-rooms .pd-room{margin:0}
+.pd-room-temperatures{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:1.9rem;font-weight:600;font-variant-numeric:tabular-nums;margin:12px 0 4px}.pd-flow-label{display:block;font-size:.8rem;font-weight:500;color:var(--ot-muted)}
+.pd-facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin:12px 0}.pd-fact{margin:0;padding:10px 14px;border-radius:var(--ot-r1);background:var(--ot-surface-2)}.pd-fact h3{font-size:.85rem;font-weight:500;color:var(--ot-muted);margin:0;overflow-wrap:normal;hyphens:auto}.pd-value{font-size:1.5rem;font-weight:600;font-variant-numeric:tabular-nums}
+.pd-trend{display:block;width:100%;height:56px;margin-top:10px}.pd-actual-line{fill:none;stroke:var(--ot-accent);stroke-width:2.5;stroke-linejoin:round}.pd-target-line{fill:none;stroke:var(--ot-focus);stroke-width:2;stroke-dasharray:5 4}
+details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1);background:var(--ot-surface-2);padding:0 16px;margin-bottom:10px}details.ot-advanced[open]{padding-bottom:8px}
+.pd-empty,.ot-empty{grid-column:1/-1;border:1px dashed var(--ot-field);border-radius:var(--ot-r2);padding:24px;text-align:center;color:var(--ot-muted)}.ot-empty strong{display:block;color:var(--ot-text);font-size:1.05rem;margin-bottom:4px}
+.pd-detail-grid,.ot-kv{display:grid;grid-template-columns:minmax(min(11rem,55%),1fr) minmax(0,auto);gap:8px 16px;margin:12px 0 0;font-size:.9rem}.pd-detail-grid dd,.ot-kv dd{margin:0;text-align:right;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}.pd-detail-grid dt,.ot-kv dt{font-weight:500;overflow-wrap:normal;hyphens:auto}
+.ot-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.ot-big{font-size:1.9rem;font-weight:600;font-variant-numeric:tabular-nums}.ot-big small{font-size:.5em;color:var(--ot-muted)}
+.ot-sticky{position:sticky;bottom:0;z-index:5;background:var(--ot-surface);border:1px solid var(--ot-border);border-radius:var(--ot-r2) var(--ot-r2) 0 0;padding:10px 16px;box-shadow:0 -4px 14px rgba(0,0,0,.08)}.ot-sticky p{margin:0}
+@media(max-width:560px){.product-dashboard,.ot-page{margin:16px 0 8px;padding:0}.pd-panel,.pd-room,.pd-status{padding:14px}h1{font-size:1.45rem}.pd-room-temperatures{font-size:1.6rem}}
+[data-legacy-editor][hidden]{display:none!important}
+@keyframes blink{0%{opacity:0}50%{opacity:.5}100%{opacity:1}}@keyframes alternateA{0%,45%{opacity:1}50%,95%{opacity:0}100%{opacity:1}}@keyframes alternateB{0%,45%{opacity:0}50%,95%{opacity:1}100%{opacity:0}}
 </style>
 </head>
 
 <body>
-
-	<style>
-		[data-legacy-editor][hidden] { display: none !important; }
-		.device-navbar .navbar-brand { display: flex; align-items: center; gap: .5rem; min-width: 0; }
-		.device-navbar .navbar-brand svg { flex-shrink: 0; }
-		.device-navbar .navbar-brand span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-		.device-navbar #auth-sign-out { white-space: nowrap; }
-		@media (max-width: 991.98px) {
-			.device-navbar .navbar-brand { flex: 1 1 0; font-size: 1rem; }
-			.device-navbar .navbar-brand svg { width: 1.5rem; height: 1.5rem; }
-		}
-		@keyframes blink {
-			0% {
-				opacity: 0;
-			}
-
-			50% {
-				opacity: .5;
-			}
-
-			100% {
-				opacity: 1;
-			}
-		}
-
-		@keyframes alternateA {
-			0%, 45% { opacity: 1; }
-			50%, 95% { opacity: 0; }
-			100% { opacity: 1; }
-		}
-
-		@keyframes alternateB {
-			0%, 45% { opacity: 0; }
-			50%, 95% { opacity: 1; }
-			100% { opacity: 0; }
-		}
-	</style>
 
 	<svg style="display: none">
 		<defs>
@@ -261,10 +274,10 @@
 		</defs>
 	</svg>
 
-	<nav class="navbar navbar-expand-lg navbar-dark bg-dark device-navbar">
+	<nav class="navbar navbar-expand-lg navbar-dark device-navbar">
 		<div class="container-fluid">
-			<a class="navbar-brand" href="#" onclick='mainScreen()'>
-				<svg width="2rem" height="2rem">
+			<a class="navbar-brand" href="./" data-page="home">
+				<svg width="2rem" height="2rem" aria-hidden="true">
 					<defs>
 						<linearGradient id="gas-gradient" x2="0.35" y2="1">
 							<stop offset="20%" stop-color="white" />
@@ -274,7 +287,7 @@
 					</defs>
 					<use style="fill: url(#gas-gradient) #fff" href="#img-flame" />
 				</svg>
-				<span><span data-i18n="Heating controller">Heating controller</span></span>
+				<span>OpenThermostat</span>
 			</a>
 			<button class="navbar-toggler order-1 order-lg-2 ml-auto mr-2" type="button" data-toggle="collapse" data-target="#navbarNavDropdown"
 				aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation" data-i18n-aria-label="Toggle navigation">
@@ -282,34 +295,31 @@
 			</button>
 			<div class="collapse navbar-collapse order-3 order-lg-1" id="navbarNavDropdown">
 				<ul class="navbar-nav">
-					<li class="nav-item"><a class="nav-link" aria-current="page" href="#"
-							onclick='mainScreen()'><span data-i18n="Home">Home</span></a></li>
-
+					<li class="nav-item"><a class="nav-link" href="./" data-page="home" data-nav="home"><span data-i18n="Overview">Overview</span></a></li>
+					<li class="nav-item"><a class="nav-link" href="#rooms" data-page="heating" data-nav="heating"><span data-i18n="Rooms">Rooms</span></a></li>
+					<li class="nav-item"><a class="nav-link" href="#boiler" data-page="boiler_test" data-nav="boiler_test"><span data-i18n="Boiler">Boiler</span></a></li>
+					<li class="nav-item" data-bluetooth-settings hidden><a class="nav-link" href="#sensors" data-page="bluetooth" data-nav="bluetooth"><span data-i18n="Sensors">Sensors</span></a></li>
 					<li class="nav-item dropdown">
 						<a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
-							data-toggle="dropdown" aria-expanded="false">
-							<span data-i18n="Settings">Settings</span>
+							data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+							<span data-i18n="System">System</span>
 						</a>
 						<ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="program"><span data-i18n="Change active program">Change active program</span></a></li>
-							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="room_management"><span data-i18n="Rooms and programs">Rooms and programs</span></a></li>
-							<li><a class="dropdown-item" href="#" data-page="heating"><span data-i18n="Rooms and heating">Rooms and heating</span></a></li>
-							<li><a class="dropdown-item" href="#" data-page="network"><span data-i18n="Network and services">Network and services</span></a></li>
-							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="curve"><span data-i18n="Boiler and heating curve">Boiler and heating curve</span></a></li>
-							<li data-legacy-editor hidden><a class="dropdown-item" href="#" data-page="hardware"><span data-i18n="Hardware configuration">Hardware configuration</span></a></li>
-							<li><a class="dropdown-item" href="#" data-page="update"><span data-i18n="Firmware update">Firmware update</span></a></li>
-							<li data-bluetooth-settings hidden><a class="dropdown-item" href="#" data-page="bluetooth"><span data-i18n="Bluetooth devices">Bluetooth devices</span></a></li>
-							<li><a class="dropdown-item" href="#" data-page="boiler_test"><span data-i18n="My boiler">My boiler</span></a></li>
-							<li><a class="dropdown-item" href="#" data-page="system_log"><span data-i18n="System log">System log</span></a></li>
+							<li data-legacy-editor hidden><a class="dropdown-item" href="#program" data-page="program"><span data-i18n="Change active program">Change active program</span></a></li>
+							<li data-legacy-editor hidden><a class="dropdown-item" href="#room_management" data-page="room_management"><span data-i18n="Rooms and programs">Rooms and programs</span></a></li>
+							<li data-legacy-editor hidden><a class="dropdown-item" href="#curve" data-page="curve"><span data-i18n="Boiler and heating curve">Boiler and heating curve</span></a></li>
+							<li data-legacy-editor hidden><a class="dropdown-item" href="#hardware" data-page="hardware"><span data-i18n="Hardware configuration">Hardware configuration</span></a></li>
+							<li><a class="dropdown-item" href="#network" data-page="network" data-nav="network"><span data-i18n="Network">Network</span></a></li>
+							<li><a class="dropdown-item" href="#update" data-page="update" data-nav="update"><span data-i18n="Firmware update">Firmware update</span></a></li>
+							<li><a class="dropdown-item" href="#log" data-page="system_log" data-nav="system_log"><span data-i18n="System log">System log</span></a></li>
+							<li><a class="dropdown-item" href="#about" data-page="about" data-nav="about"><span data-i18n="About">About</span></a></li>
 							<li role="separator" class="dropdown-divider"></li>
-							<li><button type="button" class="dropdown-item text-danger" id="device-restart" hidden><span data-i18n="Restart device">Restart device</span></button></li>
+							<li><button type="button" class="dropdown-item" id="device-restart" hidden><span data-i18n="Restart device">Restart device</span></button></li>
 						</ul>
-					</li>
-					<li class="nav-item"><a class="nav-link" aria-current="page" href="#" onclick='about()'><span data-i18n="About">About</span></a>
 					</li>
 				</ul>
 			</div>
-			<button type="button" class="btn btn-outline-light btn-sm order-2 order-lg-3" id="auth-sign-out" hidden><span data-i18n="Sign out">Sign out</span></button>
+			<button type="button" class="btn btn-outline-light order-2 order-lg-3" id="auth-sign-out" hidden><span data-i18n="Sign out">Sign out</span></button>
 		</div>
 	</nav>
 	<small class="d-block text-muted px-3" id="device-restart-status" role="status" aria-live="polite"></small>
@@ -384,9 +394,10 @@
 	</div>
 
 
-	<div class="container user-select-none" id="maincontainer">
+	<main class="container" id="maincontainer">
 
-	</div>
+	</main>
+	<footer class="ot-foot" data-language-host></footer>
 
 	<script type='text/javascript'>
 		var intervalID;
@@ -466,11 +477,41 @@
                 await ensurePageScript('/system-log.js', () => !!window.SystemLogPage);
             } else if (page === 'curve') await ensureChart();
         }
+        // Hash routes keep refresh, Back and bookmarks on the same page.
+        const pageRoutes = {heating:'rooms', boiler_test:'boiler', boiler_display:'boiler-model', boiler_trial:'boiler-trial', bluetooth:'sensors', network:'network', update:'update', system_log:'log', about:'about'};
+        const pageTitles = {home:"Overview", heating:"Rooms", boiler_test:"Boiler", bluetooth:"Sensors", network:"Network", update:"Firmware update", system_log:"System log", about:"About"};
+        function markPage(page) {
+            try {
+                document.title = uiText(pageTitles[page] || "System") + ' · OpenThermostat';
+                document.querySelectorAll('[data-nav]').forEach(link => {
+                    const current = link.getAttribute('data-nav') === page;
+                    link.classList.toggle('active', current);
+                    if (current) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
+                });
+                document.getElementById('navbarDropdownMenuLink').classList.toggle('active', !pageTitles[page] || ['network','update','system_log','about'].includes(page));
+                $('#navbarNavDropdown.show').collapse('hide');
+            } catch (_) {}
+        }
+        function routePage() {
+            const name = location.hash.slice(1);
+            const page = Object.keys(pageRoutes).find(key => pageRoutes[key] === name) ||
+                (legacyEditorPages.concat(['ems_devices']).includes(name) ? name : null);
+            return page;
+        }
+        function openPage(page) {
+            const hash = page === 'home' ? '' : '#' + (pageRoutes[page] || page);
+            if (location.hash === hash) { if (page === 'home') mainScreen(); else loadNativePage(page); }
+            else if (hash) location.hash = hash;
+            else { history.pushState(null, '', location.pathname + location.search); mainScreen(); }
+        }
         async function loadNativePage(page) {
             // Preserve existing saved links while keeping one boiler page:
             // boiler choice, data, EMS devices and the attended test together.
-            if (page === 'ems_devices' || page === 'boiler_display') page = 'boiler_test';
+            // The section alias opens the matching part of that page.
+            window.otPageSection = page;
+            if (page === 'ems_devices' || page === 'boiler_display' || page === 'boiler_trial') page = 'boiler_test';
             clearMainContainer();
+            markPage(page);
             const navigation = navigationGeneration;
             try {
                 // Recovery/network/about never depend on status-mode availability.
@@ -506,13 +547,10 @@
         }
 
 		$(document).ready(function () {
-			$(".dropdown-item, ul > li").each(function () {
-				$(this).on("click", function () {
-					if (typeof $(this).attr("data-page") !== 'undefined') {
-                        loadNativePage($(this).attr("data-page"));
-					} else {
-					}
-				});
+			$(document).on('click', '[data-page]', function (event) {
+				if (event.ctrlKey || event.metaKey || event.shiftKey) return; // New tab keeps the link target.
+				event.preventDefault();
+				openPage(this.getAttribute('data-page'));
 			});
 
 			$("#temporaryTempModalSave").on('click', function (event) {
@@ -548,7 +586,7 @@
 			});
 
 
-			window.addEventListener('hashchange', showLinkedPage);
+			window.addEventListener('hashchange', function () { if (location.hash.length < 2 || location.hash === '#overview') mainScreen(); else showLinkedPage(); });
 			document.addEventListener('visibilitychange', () => {
 				if (document.visibilityState === 'hidden') stopDashboardRead();
 				else if (intervalID) showRooms();
@@ -560,19 +598,20 @@
 		});
 
 		function showLinkedPage() {
-			if (location.hash !== '#network' && location.hash !== '#about') return false;
-			clearMainContainer();
-			loadNativePage(location.hash === '#network' ? 'network' : 'about');
+			const page = routePage();
+			if (!page) return false;
+			loadNativePage(page);
 			return true;
 		}
 
 		function about() {
-			clearMainContainer();
 			loadNativePage("about");
 		}
 
 		function mainScreen() {
 			clearMainContainer();
+			markPage('home');
+			try { if (location.hash) history.replaceState(null, '', location.pathname + location.search); } catch (_) {}
 			showRooms();
 			intervalID = setInterval(function () {
 				showRooms();
@@ -625,11 +664,15 @@
                     var main = document.getElementById('maincontainer');
                     var notice = document.getElementById('dashboard-poll-error');
                     if (!notice) {
-                        notice = document.createElement('p'); notice.id = 'dashboard-poll-error';
-                        notice.className = 'alert alert-warning'; notice.setAttribute('role','status');
+                        notice = document.createElement('div'); notice.id = 'dashboard-poll-error';
+                        notice.className = 'alert alert-warning ot-actions mt-3'; notice.setAttribute('role','status');
+                        const text = document.createElement('span'), retry = document.createElement('button');
+                        text.textContent = uiText("Can't reach the E32 right now. Retrying automatically…");
+                        retry.type = 'button'; retry.className = 'btn btn-outline-secondary'; retry.textContent = uiText("Retry");
+                        retry.addEventListener('click', () => showRooms());
+                        notice.append(text, retry);
                         main.prepend(notice);
                     }
-                    notice.textContent = uiText("Status unavailable. Check the connection and reload.");
                 }).finally(function() {
                     clearTimeout(timeout);
                     if (statusPoll === request) statusPoll = null;
@@ -779,15 +822,20 @@
             value /= divisor || 1;
             return value >= min && value <= max ? value : null;
         }
+        function dashboardFixed(value, digits) {
+            // Locale decimals (20,4 in Dutch); plain fixed digits when no UI language is loaded.
+            return typeof OpenThermostatLanguage === 'undefined' ? value.toFixed(digits) :
+                value.toLocaleString(OpenThermostatLanguage.locale, {minimumFractionDigits:digits, maximumFractionDigits:digits, useGrouping:false});
+        }
         function dashboardValue(value, unit, digits) {
             return value === null ? uiHtml("<span class=\"pd-missing\">Unavailable</span>") :
-                dashboardText(value.toFixed(digits == null ? 1 : digits)) + '<small> ' + dashboardText(unit) + '</small>';
+                dashboardText(dashboardFixed(value, digits == null ? 1 : digits)) + '<small> ' + dashboardText(unit) + '</small>';
         }
         function dashboardBool(value, yes, no) {
             return value === true ? yes : value === false ? no : uiText("Unavailable");
         }
         function dashboardBuildSupport(build) {
-            var html = uiHtml("<details class=\"pd-panel pd-build\"><summary>Home Assistant connection</summary>");
+            var html = uiHtml("<details class=\"ot-advanced pd-build\"><summary>Home Assistant connection</summary>");
             if (!build || build.schema !== 1 || build.scope !== 'compiled_support_only' ||
                 build.requires_local_source_selection !== true || build.authorizes_physical_outputs !== false ||
                 !Array.isArray(build.plans)) {
@@ -976,9 +1024,9 @@
         function dashboardUpdateNotice(update) {
             if (!update || update.known !== true || update.available !== true ||
                 typeof update.version !== 'string' || !/^v[0-9A-Za-z.+-]{1,62}$/.test(update.version)) return '';
-            return '<div class="alert alert-info" data-dashboard-key="firmware-update" role="status">'+
-                uiText("Firmware update available:")+' '+dashboardText(update.version)+' '+
-                '<button type="button" class="btn btn-sm btn-outline-primary" onclick="loadNativePage(&quot;update&quot;)">'+
+            return '<div class="alert alert-info ot-actions" data-dashboard-key="firmware-update" role="status"><span>'+
+                uiText("Firmware update available:")+' '+dashboardText(update.version)+'</span> '+
+                '<button type="button" class="btn btn-outline-primary" data-page="update">'+
                 uiText("View update")+'</button></div>';
         }
 
@@ -998,33 +1046,42 @@
                 control.reason === 'stale' ? uiText("Control status stale") : uiText("Waiting for control status");
             // Only values the boiler actually reports are shown; a missing value
             // is not a tile. Unreliable/unsupported fields stay on the boiler page.
-            function fact(label,value,unit,hint) {
+            function fact(label,value,unit) {
                 if (value === null || value === undefined || value === '') return '';
-                return '<article class="pd-fact"><h3>'+label+'</h3><div class="pd-value">'+dashboardValue(value,unit)+'</div><p class="pd-help">'+hint+'</p></article>';
+                return '<div class="pd-fact"><h3>'+label+'</h3><div class="pd-value">'+dashboardValue(value,unit)+'</div></div>';
             }
+            function chip(text,tone) { return '<span class="ot-chip'+(tone?' ot-chip--'+tone:'')+'">'+dashboardText(text)+'</span>'; }
+            var wanting = state ? rows.filter(function(r){return r.demand===true;}).length : 0;
+            var headline = !state ? uiText("Waiting for Home Assistant") : !rows.length ? uiText("No rooms set up yet") :
+                wanting === 1 ? uiText("1 room wants heat") : wanting ? wanting+uiText(" rooms want heat") : uiText("No room wants heat");
             var html = '<section class="product-dashboard" aria-label="OpenThermostat">'+
-                uiHtml("<header class=\"pd-heading\"><div><p class=\"pd-eyebrow\">OpenThermostat · E32</p><h1>Your heating system</h1><p>Boiler data and heat demand in one place.</p></div><span class=\"pd-badge\">Managed by Home Assistant</span></header>")+
-                dashboardUpdateNotice(status.firmware_update)+'<div class="pd-status"><strong>'+dashboardText(mode)+'</strong><span>'+dashboardText(freshText)+'</span></div>'+
-                '<p class="pd-help" data-dashboard-key="shadow-mode-help">'+uiText("Shadow mode: the E32 reads data and calculates demand. Valve and boiler commands remain disabled until the physical command and safe-stop tests are completed.")+'</p>'+
-                '<details class="pd-help" data-dashboard-key="connection-fallback-help"><summary>'+uiText("Connection loss and fallback")+'</summary><p>'+uiText("An unreachable HA web page alone does not mean the heating connection has failed.")+'</p><p>'+uiText("Without HA heartbeats, control permission expires locally on the E32 after 15 seconds. Reconnecting does not restore old commands or qualified measurements. This software deadline is not proof that the boiler has physically stopped.")+'</p><p>'+uiText("An unpowered E32 cannot send a stop command. Boiler timeout, local valve behaviour and minimum flow during pump overrun require installation-specific tests. This version keeps physical outputs disabled.")+'</p></details>'+
-                '<div class="pd-facts">'+
-                fact(uiText("Flow · reported"),dashboardNumber(ems.currentFlowTemperature,10,-20,150),'°C',uiText("Feedback from the boiler."))+
-                fact(uiText("Return · reported"),dashboardNumber(ems.currentReturnTemperature,10,-20,150),'°C',uiText("Return water temperature from the boiler."))+
-                fact(uiText("Modulation · reported"),dashboardNumber(ems.currentBurnerPower,1,0,100),'%',uiText("Burner percentage from telemetry; not measured consumption."))+
-                fact(uiText("System pressure"),dashboardNumber(ems.pressure,10,0,10),'bar',uiText("Only visible when reported by the device."))+
-                uiHtml("</div><section class=\"pd-panel\"><div class=\"pd-section-title\"><div><h2>From rooms to boiler</h2><p class=\"pd-help\">Calculated demand and actual control remain separate.</p></div></div>")+
-                uiHtml("<div class=\"pd-flow\"><div><span class=\"pd-flow-label\">Rooms</span><strong>")+(state?rows.filter(function(r){return r.demand===true;}).length+uiText(" requesting heat"):uiText("No valid feedback yet"))+uiHtml("</strong></div><span class=\"pd-arrow\" aria-hidden=\"true\">→</span><div><span class=\"pd-flow-label\">Combined calculation</span><strong>")+dashboardBool(demand,uiText("Heat demand"),uiText("No heat demand"))+uiHtml("</strong></div><span class=\"pd-arrow pd-dashed\" aria-hidden=\"true\">⇢</span><div><span class=\"pd-flow-label\">Boiler control</span><strong>")+dashboardBool(boilerEnabled,uiText("Enabled"),uiText("Blocked"))+'</strong></div></div>'+
-                '<p class="pd-help">'+(state?dashboardText(dashboardReason(supervisor.reason)):uiText("Configure your installation in Home Assistant. Actual control status appears here once the connection is confirmed."))+'</p></section>'+
-                uiHtml("<div class=\"pd-section-title\"><h2>Heat demand per room</h2><span class=\"pd-help\">Controls and programs in Home Assistant</span></div><div class=\"pd-rooms\">");
-            if (!rows.length) html += '<div class="pd-empty">'+(state?uiText("There are no rooms in the configuration read back yet."):uiText("No current control status available. Old local E32 rooms are not shown as new rooms here."))+'</div>';
+                uiHtml("<header class=\"pd-heading\"><div><h1>Your heating system</h1><p>Rooms and boiler at a glance.</p></div>")+
+                chip(boilerEnabled===true?uiText("Active control"):uiText("Shadow mode"),boilerEnabled===true?'ok':'')+'</header>'+
+                dashboardUpdateNotice(status.firmware_update)+
+                '<section class="pd-status" data-dashboard-key="headline"><div class="pd-flow"><p class="pd-headline">'+dashboardText(headline)+'</p><p class="ot-chips">'+
+                chip(mode,ems.warmWaterActive===true||ems.heatingActive===true?'ok':'')+
+                (state?chip(dashboardBool(demand,uiText("Heat demand"),uiText("No heat demand")),demand===true?'ok':''):'')+
+                chip(uiText("Boiler control")+': '+dashboardBool(boilerEnabled,uiText("Enabled"),uiText("Blocked")))+'</p></div>'+
+                '<p class="pd-help">'+(state?dashboardText(dashboardReason(supervisor.reason)):uiText("Configure your installation in Home Assistant. Actual control status appears here once the connection is confirmed."))+
+                '</p>'+(boilerEnabled===true?'':'<p class="pd-help">'+uiText("Shadow mode: the E32 calculates along and sends nothing to the boiler; your thermostat keeps control.")+'</p>')+
+                '<p class="pd-help"><span>'+dashboardText(freshText)+'</span></p></section>'+
+                uiHtml("<div class=\"pd-section-title\"><h2>Rooms</h2><span class=\"pd-help\">Controls and programs in Home Assistant</span></div><div class=\"pd-rooms\">");
+            if (!rows.length) html += '<div class="pd-empty ot-empty"><strong>'+(state?uiText("No rooms yet"):uiText("No current control status"))+'</strong>'+
+                (state?uiText("There are no rooms in the configuration read back yet."):uiText("Rooms appear here once Home Assistant is connected."))+'</div>';
             rows.forEach(function(row,index) {
                 var name = dashboardRoomName(row,index);
                 var actual = dashboardNumber(row.temperature_centi_c,100,-50,80), target = dashboardNumber(row.target_centi_c,100,5,35);
-                html += '<article class="pd-room" data-dashboard-key="'+dashboardText(String(state.boot_id || '')+':'+(typeof row.zone_id === 'string' && /^[a-f0-9]{8}$/.test(row.zone_id) ? row.zone_id : 'index_'+index))+'"><div class="pd-room-title"><h3>'+dashboardText(name)+'</h3><span class="pd-badge'+(row.demand===true?' pd-request':'')+'">'+dashboardBool(row.demand,uiText("Requesting heat"),uiText("No request"))+uiHtml("</span></div><div class=\"pd-room-temperatures\"><div><span class=\"pd-flow-label\">Reported</span>")+dashboardValue(actual,'°C')+uiHtml("</div><div><span class=\"pd-flow-label\">Target</span>")+dashboardValue(target,'°C')+'</div></div><p class="pd-help">'+dashboardText(dashboardReason(row.reason))+'</p>'+dashboardTrend(row,index)+
-                    uiHtml("<details class=\"pd-room-detail\"><summary>Details</summary><p>Room ID: ")+dashboardText(row.zone_id || uiText("not reported"))+uiHtml("<br>Reason code: ")+dashboardText(row.reason || uiText("not reported"))+uiHtml("<br>Valve control: ")+dashboardBool(actuatorEnabled,uiText('enabled'),uiText('blocked'))+uiHtml("</p>")+dashboardRoomContext(row)+uiHtml("<p class=\"pd-help\">A request does not prove valve position or delivered heat. Change settings and programs in Home Assistant.</p></details></article>");
+                html += '<article class="pd-room" data-dashboard-key="'+dashboardText(String(state.boot_id || '')+':'+(typeof row.zone_id === 'string' && /^[a-f0-9]{8}$/.test(row.zone_id) ? row.zone_id : 'index_'+index))+'"><div class="pd-room-title"><h3>'+dashboardText(name)+'</h3>'+
+                    chip(dashboardBool(row.demand,uiText("Requesting heat"),uiText("No request")),row.demand===true?'ok':'')+
+                    uiHtml("</div><div class=\"pd-room-temperatures\"><div><span class=\"pd-flow-label\">Now</span>")+dashboardValue(actual,'°C')+uiHtml("</div><div><span class=\"pd-flow-label\">Target</span>")+dashboardValue(target,'°C')+'</div></div><p class="pd-help">'+dashboardText(dashboardReason(row.reason))+'</p>'+dashboardTrend(row,index)+
+                    uiHtml("<details class=\"pd-room-detail\"><summary>Technical details</summary><p>Room ID: ")+dashboardText(row.zone_id || uiText("not reported"))+uiHtml("<br>Reason code: ")+dashboardText(row.reason || uiText("not reported"))+uiHtml("<br>Valve control: ")+dashboardBool(actuatorEnabled,uiText('enabled'),uiText('blocked'))+uiHtml("</p>")+dashboardRoomContext(row)+uiHtml("<p class=\"pd-help\">A request does not prove valve position or delivered heat. Change settings and programs in Home Assistant.</p></details></article>");
             });
-            html += uiHtml("</div><div class=\"pd-lower\"><section class=\"pd-panel\"><h2>Commands to the boiler</h2><p>")+dashboardBool(boilerEnabled,uiText("Control is enabled according to the controller."),uiText("The controller reports blocked outputs."))+uiHtml("</p><p class=\"pd-help\">No confirmed command timeline is available yet. Calculated room demand is not presented as a transmitted or executed boiler command.</p></section>")+
-                uiHtml("<details class=\"pd-panel\"><summary>More boiler data</summary><dl class=\"pd-detail-grid\">");
+            html += '</div><section class="pd-panel pd-boiler"><div class="pd-facts">'+
+                fact(uiText("Flow temperature"),dashboardNumber(ems.currentFlowTemperature,10,-20,150),'°C')+
+                fact(uiText("Return temperature"),dashboardNumber(ems.currentReturnTemperature,10,-20,150),'°C')+
+                fact(uiText("Burner modulation"),dashboardNumber(ems.currentBurnerPower,1,0,100),'%')+
+                fact(uiText("Water pressure"),dashboardNumber(ems.pressure,10,0,10),'bar')+
+                uiHtml("</div><div class=\"pd-lower\"><details class=\"ot-advanced\"><summary>More boiler data</summary><dl class=\"pd-detail-grid\">");
             // Reliable reported fields only, and only when a value was received.
             // Flame/pump/fan bits, flow rate and the read-back setpoint are not
             // reliable on Classic boilers; the boiler page lists them with quality.
@@ -1034,7 +1091,13 @@
             [['heatingEnabled',uiText("CH enabled")],['warmWaterEnabled',uiText("Hot water enabled")]].forEach(function(item){detail(item[1],typeof ems[item[0]]==='boolean'?dashboardBool(ems[item[0]],uiText("On"),uiText("Off")):null);});
             [['currentWarmWaterTemperature',uiText("Hot water · reported"),10,-20,150],['selectedWarmWaterTemperature',uiText("Hot water target · read back"),1,0,150],['outdoorTemperature',uiText("Outdoor temperature · boiler source"),100,-60,60]].forEach(function(item){var value=dashboardNumber(ems[item[0]],item[2],item[3],item[4]);detail(item[1],value===null||value===undefined||value===''?null:dashboardValue(value,'°C'));});
             if (!shown) html += '<dt>'+uiText("Boiler data")+'</dt><dd>'+uiText("No reliable values received yet")+'</dd>';
-            html += uiHtml("</dl><p class=\"pd-help\">Only values the boiler reported recently are shown. All entities, with their quality, are on the Boiler test page. Telemetry is not an independent physical flame or heat measurement.</p></details>")+dashboardBuildSupport(status.control_build)+'</div></section>';
+            html += uiHtml("</dl><p class=\"pd-help\">Only values the boiler reported recently are shown. All values, with their quality, are on the Boiler page. Telemetry is not an independent physical flame or heat measurement.</p></details></div></section>")+
+                uiHtml("<section class=\"pd-panel\"><h2>How this works</h2><details class=\"ot-advanced\" data-dashboard-key=\"shadow-mode-help\"><summary>Shadow mode and boiler commands</summary><p>")+
+                uiText("Shadow mode: the E32 reads data and calculates demand. Valve and boiler commands remain disabled until the physical command and safe-stop tests are completed.")+'</p><p>'+
+                dashboardBool(boilerEnabled,uiText("Control is enabled according to the controller."),uiText("The controller reports blocked outputs."))+
+                uiHtml(" No confirmed command timeline is available yet. Calculated room demand is not presented as a transmitted or executed boiler command.</p><p class=\"pd-help\">Flow and return come from the boiler. Modulation is the burner percentage from telemetry, not measured consumption.</p></details>")+
+                '<details class="ot-advanced" data-dashboard-key="connection-fallback-help"><summary>'+uiText("Connection loss and fallback")+'</summary><p>'+uiText("An unreachable HA web page alone does not mean the heating connection has failed.")+'</p><p>'+uiText("Without HA heartbeats, control permission expires locally on the E32 after 15 seconds. Reconnecting does not restore old commands or qualified measurements. This software deadline is not proof that the boiler has physically stopped.")+'</p><p>'+uiText("An unpowered E32 cannot send a stop command. Boiler timeout, local valve behaviour and minimum flow during pump overrun require installation-specific tests. This version keeps physical outputs disabled.")+'</p></details>'+
+                dashboardBuildSupport(status.control_build)+'</section></section>';
             var main = document.getElementById('maincontainer');
             var current = main.querySelector('.product-dashboard');
             if (current) {
@@ -1047,7 +1110,7 @@
                 if (window.scrollX !== left || window.scrollY !== top) window.scrollTo(left,top);
             } else {
                 main.innerHTML = html;
-                if (typeof BoilerDisplay !== 'undefined') BoilerDisplay.mountHome(main.querySelector('.product-dashboard'));
+                if (typeof BoilerDisplay !== 'undefined') BoilerDisplay.mountHome(main.querySelector('.pd-boiler'));
             }
         }
 

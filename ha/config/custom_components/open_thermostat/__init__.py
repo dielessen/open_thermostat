@@ -22,6 +22,12 @@ def _drop_setup_state(hass, entry_id, state):
         entries.pop(entry_id, None)
 
 
+async def async_remove_config_entry_device(hass, entry, device) -> bool:
+    """Allow deleting an E32 room or Bluetooth sensor device the E32 no longer reports."""
+    from .heating_link import removable_device
+    return removable_device(hass, entry, device)
+
+
 async def _cleanup_setup_bench(hass, entry_id, owner):
     from .v1_bench_actions import KEY, async_unregister_entry
     if hass.data.get(KEY, {}).get(entry_id) is owner:

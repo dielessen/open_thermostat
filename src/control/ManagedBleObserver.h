@@ -9,7 +9,7 @@
 
 namespace heating::control {
 enum class BleObserverStop { none, configuration_changed, configuration_invalid, clock_invalid };
-enum class BleObservationStatus { waiting, key_required, received, stale, malformed, authentication_failed,
+enum class BleObservationStatus : uint8_t { waiting, key_required, received, stale, malformed, authentication_failed,
     encryption_required, crypto_unavailable, pending_restart, configuration_invalid, clock_invalid };
 struct BleObservationSnapshot {
     BleObservationStatus status = BleObservationStatus::waiting;
@@ -24,6 +24,10 @@ struct BleObservationSnapshot {
     std::optional<uint32_t> declaredDeviceAgeMs;
     std::optional<int8_t> rssi;
     uint32_t oldCounterDrops = 0;
+    // Frames that failed after earlier values were accepted: the values stay
+    // until their own lifetime ends; the failure is reported here instead.
+    uint32_t framesRejected = 0, counterResets = 0;
+    std::optional<BleObservationStatus> lastRejection;
     // Diagnosis of a sensor that stays "waiting": nothing heard, or heard but
     // not in the expected format (e.g. another product id or advertisement).
     uint32_t framesReceived = 0, framesIgnored = 0;
@@ -40,8 +44,17 @@ class ManagedBleObserver {
 public:
     using Clock = uint64_t(*)();
     static constexpr std::size_t queueCapacity = 4;
-    static constexpr uint64_t valueLifetimeMs = 180000, identityLifetimeMs = 3900000;
+    // Readings stay valid as long as a room uses them (RoomDemand::maxAgeMs):
+    // a pvvx sends its reading only once a minute between event-only adverts.
+    // Reported TRV state is shorter-lived; identity much longer.
+    static constexpr uint64_t valueLifetimeMs = 900000, stateLifetimeMs = 180000, identityLifetimeMs = 3900000;
     static constexpr uint64_t maximumClockMs = 9007199254740991ULL;
+    // A sensor whose counter restarted (battery swap, reboot) is accepted
+    // again after this long without an accepted frame AND reanchorFrames
+    // authenticated frames with rising counters. The prefilter still never
+    // decrypts more than one such old-counter frame per reanchorSpacingMs.
+    static constexpr uint64_t reanchorQuietMs = 600000, reanchorSpacingMs = 5000;
+    static constexpr uint8_t reanchorFrames = 3;
     ManagedBleObserver(Decryptor& decryptor, Clock clock) : decryptor_(decryptor), clock_(clock) {}
     ~ManagedBleObserver() { disable(BleObserverStop::configuration_changed); }
     ManagedBleObserver(const ManagedBleObserver&) = delete;
@@ -86,22 +99,25 @@ public:
     // Set once at boot; the heating status lists these sensors for Home Assistant.
     const ManagedBleBindings& bindings() const noexcept { return bindings_; }
 
-    void capture(const ManagedBleAddress& address, int rssi, const uint8_t* bytes,
+    // True when the advert came from a bound sensor (the supervisor's evidence
+    // that the Bluetooth host still delivers), even if the queue was full.
+    bool capture(const ManagedBleAddress& address, int rssi, const uint8_t* bytes,
             std::size_t size, uint64_t receivedAt) {
-        if (!enabled_.load(std::memory_order_acquire) || !bytes || !size || size > 255) return;
+        if (!enabled_.load(std::memory_order_acquire) || !bytes || !size || size > 255) return false;
         const auto generation = generation_.load(std::memory_order_acquire);
         std::size_t index = bindings_.count;
         for (std::size_t i = 0; i < bindings_.count; ++i) if (bindings_.devices[i].address == address) { index = i; break; }
-        if (index == bindings_.count) return;
+        if (index == bindings_.count) return false;
         std::lock_guard<std::mutex> lock(queueMutex_);
-        if (!enabled() || generation != generation_.load(std::memory_order_acquire)) return;
-        if (queued_ == queueCapacity) { if (queueDrops_ != UINT32_MAX) ++queueDrops_; return; }
+        if (!enabled() || generation != generation_.load(std::memory_order_acquire)) return false;
+        if (queued_ == queueCapacity) { if (queueDrops_ != UINT32_MAX) ++queueDrops_; return true; }
         auto& frame = queue_[(head_ + queued_) % queueCapacity];
         std::copy_n(bytes, size, frame.bytes.begin());
         frame.size = static_cast<uint16_t>(size); frame.device = static_cast<uint8_t>(index);
         frame.rssiKnown = rssi >= -127 && rssi <= 20;
         frame.rssi = frame.rssiKnown ? static_cast<int8_t>(rssi) : 0;
         frame.at = receivedAt; frame.generation = generation; ++queued_;
+        return true;
     }
     uint32_t queueDrops() const {
         std::lock_guard<std::mutex> lock(queueMutex_); return queueDrops_;
@@ -116,7 +132,7 @@ public:
         const auto now = readClock();
         if (!now || !enabled() || processing_.generation != generation_.load(std::memory_order_acquire)) return;
         auto& frame = processing_;
-        if (frame.at > *now || frame.at > maximumClockMs) { disable(BleObserverStop::clock_invalid); return; }
+        if (frame.at > *now || frame.at > maximumClockMs) { clockFault(); return; }
         if (*now - frame.at >= valueLifetimeMs || frame.device >= bindings_.count) return;
         auto& value = values_[frame.device];
         if (value.framesReceived != UINT32_MAX) ++value.framesReceived;
@@ -124,6 +140,7 @@ public:
         const auto& binding = bindings_.devices[frame.device];
         // Rejection-only prefilter: unverified old counters never refresh values,
         // advance the high-water mark, or claim a newly authenticated replay.
+        bool reanchoring=false;
         if (value.haveCounter) {
             std::optional<uint32_t> sequence;
             if(binding.encryption==ManagedBleEncryption::bthomeV2) {
@@ -137,8 +154,11 @@ public:
                 if(raw.status==BleSensorFrameStatus::decoded)sequence=raw.counter; // Rejection only, no authentication claim.
             }
             if(sequence&&*sequence<=value.highestCounter) {
-                if(value.oldCounterDrops!=UINT32_MAX)++value.oldCounterDrops;
-                return;
+                if(!admitOldCounter(value,frame.at)) {
+                    if(value.oldCounterDrops!=UINT32_MAX)++value.oldCounterDrops;
+                    return;
+                }
+                reanchoring=true;
             }
         }
         const auto decoded=binding.profile==ManagedBleProfile::xiaomiMonitor3
@@ -155,18 +175,36 @@ public:
         if (!readClock() || !enabled() || frame.generation != generation_.load(std::memory_order_acquire)) return;
         if (decoded.status == ShellyHtFrameStatus::not_present) { if (value.framesIgnored != UINT32_MAX) ++value.framesIgnored; return; }
         if (decoded.status != ShellyHtFrameStatus::decoded) {
-            withdraw(value);
+            // One bad (or forged) frame never withdraws values that were
+            // accepted earlier: they keep their own lifetime.
+            BleObservationStatus rejected;
             switch (decoded.status) {
-                case ShellyHtFrameStatus::key_required: value.status = BleObservationStatus::key_required; break;
-                case ShellyHtFrameStatus::encryption_required: value.status = BleObservationStatus::encryption_required; break;
-                case ShellyHtFrameStatus::authentication_failed: value.status = BleObservationStatus::authentication_failed; break;
-                case ShellyHtFrameStatus::crypto_unavailable: value.status = BleObservationStatus::crypto_unavailable; break;
-                default: value.status = BleObservationStatus::malformed; break;
+                case ShellyHtFrameStatus::key_required: rejected = BleObservationStatus::key_required; break;
+                case ShellyHtFrameStatus::encryption_required: rejected = BleObservationStatus::encryption_required; break;
+                case ShellyHtFrameStatus::authentication_failed: rejected = BleObservationStatus::authentication_failed; break;
+                case ShellyHtFrameStatus::crypto_unavailable: rejected = BleObservationStatus::crypto_unavailable; break;
+                default: rejected = BleObservationStatus::malformed; break;
             }
+            value.lastRejection = static_cast<uint8_t>(static_cast<uint8_t>(rejected) + 1);
+            if (value.framesRejected != UINT32_MAX) ++value.framesRejected;
+            if (!value.haveAccepted || value.status != BleObservationStatus::received) value.status = rejected;
+            if (reanchoring) value.reanchorRun = 0;
             return;
         }
         if (decoded.encryptionCounter) {
-            if (!decoded.authenticated || (value.haveCounter && *decoded.encryptionCounter <= value.highestCounter)) return;
+            if (!decoded.authenticated) return;
+            if (value.haveCounter && *decoded.encryptionCounter <= value.highestCounter) {
+                if (!reanchoring && !admitOldCounter(value, frame.at)) return;
+                // Authenticated but older than the high-water mark: count a run
+                // of rising counters; any break starts the run again.
+                if (value.reanchorRun && *decoded.encryptionCounter > value.reanchorCounter) ++value.reanchorRun;
+                else value.reanchorRun = 1;
+                value.reanchorCounter = *decoded.encryptionCounter;
+                if (value.oldCounterDrops != UINT32_MAX) ++value.oldCounterDrops;
+                if (value.reanchorRun < reanchorFrames) return;
+                if (value.counterResets != UINT16_MAX) ++value.counterResets;
+            }
+            value.reanchorRun = 0;
             value.highestCounter = *decoded.encryptionCounter; value.haveCounter = true;
         }
         assign(value.frame.temperature, value.at[0], decoded.temperature, frame.at);
@@ -193,12 +231,13 @@ public:
     BleObservationSnapshot snapshot(const ManagedBleAddress& address) {
         BleObservationSnapshot out;
         const auto now = readClock();
-        if (stop_ != BleObserverStop::none || !now || !enabled()) {
+        if (stop_ != BleObserverStop::none || !enabled()) {
             out.status = stop_ == BleObserverStop::clock_invalid ? BleObservationStatus::clock_invalid
                 : stop_ == BleObserverStop::configuration_invalid ? BleObservationStatus::configuration_invalid
                 : BleObservationStatus::pending_restart;
             return out;
         }
+        if (!now) { out.status = BleObservationStatus::clock_invalid; return out; }
         std::size_t index = bindings_.count;
         for (std::size_t i = 0; i < bindings_.count; ++i) if (bindings_.devices[i].address == address) { index = i; break; }
         if (index == bindings_.count) { out.status = BleObservationStatus::pending_restart; return out; }
@@ -226,15 +265,17 @@ public:
         if (value.frame.declaredDeviceType) out.declaredDeviceAgeMs = age(*now, value.identityAt);
         out.firmware32 = fresh(value.frame.firmware32, value.at[7], *now, identityLifetimeMs);
         out.firmware24 = fresh(value.frame.firmware24, value.at[8], *now, identityLifetimeMs);
-        out.targetTemperature=fresh(value.frame.targetTemperature,value.at[9],*now,valueLifetimeMs);
-        out.externalTemperature=fresh(value.frame.externalTemperature,value.at[10],*now,valueLifetimeMs);
-        out.stateRevision=fresh(value.frame.stateRevision,value.at[11],*now,valueLifetimeMs);
+        out.targetTemperature=fresh(value.frame.targetTemperature,value.at[9],*now,stateLifetimeMs);
+        out.externalTemperature=fresh(value.frame.externalTemperature,value.at[10],*now,stateLifetimeMs);
+        out.stateRevision=fresh(value.frame.stateRevision,value.at[11],*now,stateLifetimeMs);
         if(value.frame.targetTemperature)out.targetTemperatureAgeMs=age(*now,value.at[9]);
         if(value.frame.externalTemperature)out.externalTemperatureAgeMs=age(*now,value.at[10]);
         if(value.frame.stateRevision)out.stateRevisionAgeMs=age(*now,value.at[11]);
         out.rssi = value.rssi; out.authenticated = value.authenticated;
         if (value.haveCounter) out.counter = value.highestCounter;
         out.oldCounterDrops = value.oldCounterDrops;
+        out.framesRejected = value.framesRejected; out.counterResets = value.counterResets;
+        if (value.lastRejection) out.lastRejection = static_cast<BleObservationStatus>(value.lastRejection - 1);
         return out;
     }
 private:
@@ -252,10 +293,23 @@ private:
         std::array<uint64_t, 12> at{};
         uint64_t identityAt = 0, acceptedAt = 0;
         uint32_t highestCounter = 0, oldCounterDrops = 0, framesReceived = 0, framesIgnored = 0;
-        std::optional<int8_t> rssi;
+        // Packed: the observer stays within its 4 KiB resident budget.
+        uint32_t framesRejected = 0, reanchorCounter = 0;
+        uint32_t reanchorTriedAt = 0; // low 32 bits of ms; compared wrap-safe
         BleObservationStatus status = BleObservationStatus::waiting;
-        bool haveCounter = false, haveAccepted = false, authenticated = false;
+        std::optional<int8_t> rssi;
+        uint16_t counterResets = 0;
+        uint8_t reanchorRun = 0, lastRejection = 0; // lastRejection: status + 1, 0 = none
+        bool haveCounter = false, haveAccepted = false, authenticated = false, reanchorTried = false;
     };
+    // A restarted counter: only after a quiet period, and spaced out.
+    static bool admitOldCounter(Value& value, uint64_t at) noexcept {
+        const bool quiet = !value.haveAccepted || at - value.acceptedAt >= reanchorQuietMs;
+        const bool spaced = !value.reanchorTried || uint32_t(uint32_t(at) - value.reanchorTriedAt) >= reanchorSpacingMs;
+        if (!quiet || !spaced) return false;
+        value.reanchorTried = true; value.reanchorTriedAt = uint32_t(at);
+        return true;
+    }
     static void withdraw(Value& value) noexcept {
         value.frame = {}; value.at.fill(0); value.identityAt = 0;
         value.rssi.reset(); value.authenticated = false;
@@ -272,11 +326,28 @@ private:
     static uint32_t age(uint64_t now, uint64_t at) noexcept {
         return now >= at ? static_cast<uint32_t>(std::min<uint64_t>(now - at, UINT32_MAX)) : UINT32_MAX;
     }
+    // A clock that jumps back (or a frame stamped in the future) withdraws all
+    // values and queued frames, because their ages are no longer known. It is
+    // not a permanent stop: keys and counters stay, and the next valid reading
+    // of the clock lets new frames in again (status clock_invalid until then).
+    void clockFault() noexcept {
+        {
+            std::lock_guard<std::mutex> lock(queueMutex_);
+            queued_ = 0; head_ = 0;
+        }
+        for (std::size_t i = 0; i < bindings_.count; ++i) {
+            auto& value = values_[i];
+            withdraw(value); value.haveAccepted = false; value.acceptedAt = 0;
+            value.reanchorTried = false; value.reanchorRun = 0;
+            value.status = BleObservationStatus::clock_invalid;
+        }
+        if (clockFaults_ != UINT32_MAX) ++clockFaults_;
+    }
     std::optional<uint64_t> readClock() {
         uint64_t now = maximumClockMs + 1;
         try { if (clock_) now = clock_(); } catch (...) {}
-        if (now > maximumClockMs || (haveClock_ && now < clockAt_)) { disable(BleObserverStop::clock_invalid); return std::nullopt; }
-        if (stop_ == BleObserverStop::clock_invalid) return std::nullopt;
+        if (now > maximumClockMs) { clockFault(); return std::nullopt; }
+        if (haveClock_ && now < clockAt_) { clockFault(); clockAt_ = now; return std::nullopt; }
         haveClock_ = true; clockAt_ = now; return now;
     }
     Decryptor& decryptor_;
@@ -291,7 +362,7 @@ private:
     std::atomic<uint32_t> generation_{1};
     uint64_t clockAt_ = 0;
     std::size_t head_ = 0, queued_ = 0;
-    uint32_t queueDrops_ = 0;
+    uint32_t queueDrops_ = 0, clockFaults_ = 0;
     BleObserverStop stop_ = BleObserverStop::none;
     bool initialized_ = false, haveClock_ = false;
 };

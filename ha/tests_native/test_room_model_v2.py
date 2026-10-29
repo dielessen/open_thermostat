@@ -156,9 +156,10 @@ async def test_room_dashboard_uses_registry_v2_not_old_history_and_english_quali
     new=registry.async_get_or_create("sensor","open_thermostat",f"fixture_room_{KEY}_radiator_estimated_energy_v2",config_entry=e)
     dashboard=RoomDashboard(hass,"fixture",e.entry_id);dashboard._rooms={KEY}
     config=dashboard._dashboard_config();raw=str(config)
-    entities=[item for view in config["views"] for card in view["cards"] if card["type"]=="entities" for item in card["entities"]]
+    from custom_components.open_thermostat.dashboard import view_cards
+    entities=[item for view in config["views"] for card in view_cards(view) if card["type"]=="entities" for item in card["entities"]]
     assert new.entity_id in entities and old.entity_id not in entities
-    assert "Unknown/stale inputs create gaps" in raw and "not measured heat" in raw
+    assert "unknown or stale inputs leave gaps" in raw and "not measured heat" in raw
     import os
     from pathlib import Path
     if directory := os.environ.get("ROOM_METRICS_EVIDENCE_DIR"):

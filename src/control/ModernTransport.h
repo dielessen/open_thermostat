@@ -28,6 +28,9 @@
 #include <atomic>
 
 namespace heating::control {
+// fw/telemetry/heating: skipped above this size, or counted when publishing failed.
+inline constexpr std::size_t heatingTelemetryMaxBytes=4096;
+inline std::atomic<uint32_t> heatingTelemetryDropped{0},heatingTelemetryFailed{0};
 static_assert(ShadowController::maximumConfigBytes==ControlPartitionBudget::configBytes);
 inline std::string sha256Hex(std::string_view bytes) {
     unsigned char hash[32];
@@ -317,7 +320,11 @@ public:
             client_.publish((base_+"fw/telemetry/device_status").c_str(),bytes.c_str(),false);
             if(heatingStatus_)try {
                 const auto heating=heatingStatus_();
-                if(!heating.empty())client_.publish((base_+"fw/telemetry/heating").c_str(),heating.c_str(),false);
+                // Bounded: PubSubClient silently drops anything above its buffer,
+                // and a large frame overruns the socket budget (disconnect).
+                if(heating.size()>heatingTelemetryMaxBytes) heatingTelemetryDropped.fetch_add(1,std::memory_order_relaxed);
+                else if(!heating.empty()&&!client_.publish((base_+"fw/telemetry/heating").c_str(),heating.c_str(),false))
+                    heatingTelemetryFailed.fetch_add(1,std::memory_order_relaxed);
             } catch(const std::exception&) { /* status is observation only */ }
             if(controllerStatus_)try {
                 std::ostringstream status;controllerStatus_(status);

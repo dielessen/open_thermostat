@@ -1,0 +1,7 @@
+s {"schema":1,"boot_id":"000000000000002a","revision":1,"entity":"heatingtemp","value":60,"exclusive_owner_confirmed":true,"independent_stop_confirmed":true}
+n
+e 080b16000102c3
+t 100
+e 08001600ff460000
+s {"schema":1,"boot_id":"000000000000002a","revision":2,"entity":"heatingtemp","value":60,"exclusive_owner_confirmed":true,"independent_stop_confirmed":true}
+t 20000

@@ -1,3 +1,46 @@
+# HA 0.4.0b10 — one place for rooms, a clean dashboard and far fewer entities
+<!-- user-release-notes:v2:en -->
+
+Companion release for E32 beta18. Install both together.
+
+## New
+
+- **Rooms are set up in Home Assistant**: Settings → Devices & services →
+  OpenThermostat → Configure → Rooms. Add, change or remove rooms, choose their
+  temperature sources from your Home Assistant entities and the E32's
+  Bluetooth sensors (only °C sources are accepted), the target, limits and a
+  simple week program such as `mon-fri: 06:30 20.5, 22:30 19`. The plan is
+  stored on the E32, so heating keeps running without Home Assistant.
+- **Heating dashboard**: per room the temperature, target, mode and "off
+  until"; the E32 boiler request next to your thermostat's; boiler essentials;
+  Bluetooth sensors; and a short "How it works" card. English or Dutch.
+- **Each E32 room and Bluetooth sensor is its own device**, with plain names
+  ("Temperature", "Heat demand"). Existing entity IDs and history stay.
+- **Shadow comparison sensors**: heating time and burner starts today for the
+  E32 and the thermostat, and their agreement.
+- **Burner short cycling** warning and burner starts in the last hour.
+- Every setup step and field explains in plain language what it does; all
+  boiler values have English and Dutch names; icons for all entities.
+
+## Fixed
+
+- Far fewer entities: boiler values are created only once the boiler really
+  reports them, and old duplicate or never-reported entities of this
+  integration are removed (history is kept; entities you renamed or changed
+  stay).
+- Only one room menu is shown when the E32 has a room plan.
+
+## Updating
+
+Install the matching integration package, keep existing entries and restart
+HA. Use it with E32 beta18. Entities of other integrations (for example old
+EMS-ESP or MQTT devices) are never removed automatically.
+
+## Limitations
+
+The heat request is shadow-only. The old HA room records still exist for
+existing installations; the E32 heating control uses the E32 room plan.
+
 # HA 0.4.0b9 — E32 rooms and Bluetooth sensors, firmware updates and the heat request
 <!-- user-release-notes:v2:en -->
 

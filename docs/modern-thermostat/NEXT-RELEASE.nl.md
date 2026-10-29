@@ -1,3 +1,45 @@
+# Beta.18 + HA0.4.0b10 — in uitvoering (eigenaar, 28–29 oktober)
+
+Eigenaar: "zorg dat je voor heel de nacht werk blijft houden maak desnoods de
+release groter", "het moet heel gebruiksvriendelijk worden en een mooie gui",
+"alles moet in het nederlands en engels . behalve github", "we willen geen
+crashes meer en vastlopers". Gebouwd (lokaal getest, niet gepubliceerd):
+
+- **Actieve modus, vergrendeld** (`board::emsActiveHeatAllowed = false`):
+  `ActiveHeatGuard` (overname alleen na bevestiging "tado losgekoppeld",
+  stop + waarschuwing bij 0x1A van een andere regelaar, hervatten na meetverlies,
+  vorst aan < 8 °C / uit 9 °C, aanvoer ≤ min(plan, 60, ketelgrens)), zendroute
+  via de beoordeelde proefroute (`ActiveHeatPollDriver`), `POST
+  /config/heating/handover`, pagina-sectie "Actieve regeling", proef/instellingen
+  geweigerd zolang de E32 de ketel bezit.
+- **Bluetooth:** metingen 15 min geldig, doorlopend passief scannen (pvvx stuurt
+  meetpakketten ~1×/min).
+- **HA:** ruimte-editor (opties → E32-ruimtes; bronnen kiezen, °C-controle,
+  weekprogramma), schaduwvergelijking als sensoren, opruimen van dubbele/lege
+  entiteiten (155 → ~74 bij de eigenaar), dashboard "Verwarming" en vernieuwde
+  namen/iconen (in uitvoering).
+- **Ketel:** pendeldetector uit het vlambit (de EasyControl Adapter meldt de
+  eigen start-/urentellers als 0), laatste vergrendelende/blokkerende storing en
+  ketel-uptime in de ene tabel; HA kent het aantal catalogusvelden
+  (`catalog_fields`), dus HA0.4.0b9 blijft werken.
+- **Betrouwbaarheid:** netwerkbewaking (ICMP naar de router, herstart na 3 min
+  "wifi verbonden maar netwerk dood"), reviews van kern en geheugen/opslag,
+  fuzz-tests van alle externe invoer (in uitvoering).
+- **Proefbediening:** reden bij elke geblokkeerde knop, werkelijke aanvoer naast
+  de proefgrens.
+- In uitvoering: leren van opwarmsnelheid per ruimte en laagste aanvoer, op
+  tijd voorverwarmen, nachtverlaging doorrekenen (kWh/m³/€, ijken met de
+  P1-gasmeter `sensor.gas_consumed`); tapwaterstatistiek; tado-rijen
+  verifiëren; vernieuwde interface (ontwerpsysteem, menu, licht/donker).
+
+**Beslissen vóór de bijgewoonde overstap (vergrendeling open):**
+1. Ketelgrens na herstart: alleen bekend als de ketel 0x16 meldt (nu alleen op
+   vragen van de tado). Periodiek 0x16 lezen, of een opgeslagen waarde accepteren?
+2. Bevestiging "tado los" staat nu alleen in RAM: na een herstart geen warmte
+   (en geen vorstbeveiliging) tot opnieuw bevestigd. Bewaren over herstart
+   (gewist bij vreemde 0x1A), en HA laten waarschuwen bij `awaiting_confirmation`?
+3. Brandermelding telt ook tapwater mee (alleen een waarschuwing).
+
 # Beta.17 + HA0.4.0b9 — vervangt de ongepubliceerde beta.16 (eigenaar, 28 oktober)
 
 **Stand 28 oktober, avond:** de tags van beta.16/HA0.4.0b8 (3d928d2) faalden in

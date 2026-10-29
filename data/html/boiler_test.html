@@ -1,8 +1,23 @@
 <section class="product-dashboard" id="boiler-test">
-  <h1 data-i18n="My boiler">My boiler</h1>
-  <div class="pd-panel" data-boiler-display-host></div>
-  <h2 class="mt-4" data-i18n="Boiler test">Boiler test</h2>
-  <p role="status" aria-live="polite" data-reception><span data-i18n="Checking reception…">Checking reception…</span></p>
+  <header class="ot-head"><div><h1 data-i18n="Boiler">Boiler</h1><p data-i18n="Live values from your boiler, its model and all received data.">Live values from your boiler, its model and all received data.</p></div></header>
+  <section class="pd-panel" aria-labelledby="bt-now">
+    <h2 id="bt-now" data-i18n="Now">Now</h2>
+    <p class="pd-help" data-i18n="What your boiler reports right now.">What your boiler reports right now.</p>
+    <p class="pd-help" role="status" aria-live="polite" data-reception><span data-i18n="Checking reception…">Checking reception…</span></p>
+    <dl class="ot-kv" data-essentials></dl>
+    <p class="ot-hint" data-cycles-help hidden data-i18n="Counts how often the burner switched on in the last hour. Starting very often wears the boiler.">Counts how often the burner switched on in the last hour. Starting very often wears the boiler.</p>
+    <div data-dhw hidden>
+      <h3 class="mt-3" data-i18n="Hot water today">Hot water today</h3>
+      <dl class="ot-kv" data-dhw-list></dl>
+      <p class="ot-hint" data-i18n="Keeping warm: the boiler reheats its hot water without anyone using a tap.">Keeping warm: the boiler reheats its hot water without anyone using a tap.</p>
+      <p class="ot-hint" data-dhw-method hidden><span data-i18n="Classified by DHW temperature fall">Classified by DHW temperature fall</span>. <span data-i18n="This adapter reports no real flow, so a tap is recognised by the hot-water temperature dropping.">This adapter reports no real flow, so a tap is recognised by the hot-water temperature dropping.</span></p>
+    </div>
+  </section>
+  <details class="ot-advanced" data-boiler-model><summary data-i18n="Boiler model">Boiler model</summary><div data-boiler-display-host></div></details>
+  <div data-boiler-entities-host id="boiler-entities-panel"><p role="status" data-i18n="Loading boiler entities…">Loading boiler entities…</p></div>
+  <details class="ot-advanced bt-trial" id="boiler-test-trial">
+  <summary data-i18n="Boiler test (attended)">Boiler test (attended)</summary>
+  <p class="pd-help" data-i18n="For commissioning only, with someone at the boiler. The test asks the boiler for heat for a few minutes and checks that it stops again.">For commissioning only, with someone at the boiler. The test asks the boiler for heat for a few minutes and checks that it stops again.</p>
   <div class="pd-panel bt-control" id="boiler-test-controls">
     <h2 data-workflow-title data-i18n="Prepare a heating test">Prepare a heating test</h2>
     <p data-workflow-help role="status" aria-live="polite"></p>
@@ -17,27 +32,28 @@
     <p data-test-state role="status" aria-live="polite"><span data-i18n="Checking test status…">Checking test status…</span></p>
     <p data-controller-request hidden><strong data-i18n="Last E32 flow request">Last E32 flow request</strong>: <span data-controller-request-value></span><br><small data-i18n="Sent by E32; separate from the boiler-reported target.">Sent by E32; separate from the boiler-reported target.</small></p>
     <form data-test-form>
-      <label class="d-block"><span data-i18n="Desired flow temperature (°C)">Desired flow temperature (°C)</span><input class="form-control" data-test-flow type="number" step="1" required disabled></label>
-      <label class="d-block"><span data-i18n="Maximum heat demand (seconds)">Maximum heat demand (seconds)</span><input class="form-control" data-test-duration type="number" step="1" required disabled></label>
+      <label class="d-block"><span data-i18n="Desired flow temperature (°C)">Desired flow temperature (°C)</span><input class="form-control" data-test-flow type="number" step="1" required disabled data-hint="The water temperature the boiler should deliver during the test."></label>
+      <label class="d-block"><span data-i18n="Maximum heat demand (seconds)">Maximum heat demand (seconds)</span><input class="form-control" data-test-duration type="number" step="1" required disabled data-hint="After this many seconds the E32 stops asking for heat."></label>
       <p class="pd-help" data-trial-selection></p>
       <p class="pd-help" data-trial-cadence hidden></p>
+      <dl class="bt-live" data-trial-live hidden aria-label="Live boiler values" data-i18n-aria-label="Live boiler values"></dl>
     <fieldset data-test-site hidden>
       <legend data-i18n="Prepare this test">Prepare this test</legend>
       <label data-site-pressure-value-label hidden><span data-i18n="Installation pressure read from the boiler gauge (bar)">Installation pressure read from the boiler gauge (bar)</span><input class="form-control" data-site-pressure-value type="number" step="0.1" inputmode="decimal" autocomplete="off"></label>
       <label class="bt-confirm"><input type="checkbox" data-site-confirm> <span data-i18n="The E32 is the only controller. I am at the boiler, can switch it off independently, and the radiators are open.">The E32 is the only controller. I am at the boiler, can switch it off independently, and the radiators are open.</span></label>
       <p class="pd-help" data-i18n="This confirmation applies to the preparation below and expires after two minutes. Heating starts only after your separate Start action.">This confirmation applies to the preparation below and expires after two minutes. Heating starts only after your separate Start action.</p>
     </fieldset>
-    <button class="btn btn-outline-secondary" type="button" data-read-configuration disabled><span data-i18n="1. Read heating settings">1. Read heating settings</span></button>
-    <p class="pd-help" data-read-help role="status" aria-live="polite"></p>
+    <button class="btn btn-outline-secondary" type="button" data-read-configuration disabled aria-describedby="bt-read-help"><span data-i18n="1. Read heating settings">1. Read heating settings</span></button>
+    <p class="pd-help" id="bt-read-help" data-read-help role="status" aria-live="polite"></p>
     <p data-read-status role="status" aria-live="polite"></p>
       <div class="d-flex flex-wrap" style="gap:10px;margin:14px 0">
-        <button class="btn btn-outline-primary" type="button" data-test-prepare disabled><span data-i18n="2. Prepare test">2. Prepare test</span></button>
-        <button class="btn btn-primary" type="button" data-test-start disabled><span data-i18n="3. Start heating">3. Start heating</span></button>
-        <button class="btn btn-danger" type="button" data-test-stop disabled><span data-i18n="Stop test">Stop test</span></button>
+        <div class="bt-act"><button class="btn btn-outline-primary" type="button" data-test-prepare disabled><span data-i18n="2. Prepare test">2. Prepare test</span></button><p class="pd-help bt-why" id="bt-why-prepare" data-why hidden></p></div>
+        <div class="bt-act"><button class="btn btn-primary" type="button" data-test-start disabled><span data-i18n="3. Start heating">3. Start heating</span></button><p class="pd-help bt-why" id="bt-why-start" data-why hidden></p></div>
+        <div class="bt-act"><button class="btn btn-danger" type="button" data-test-stop disabled><span data-i18n="Stop test">Stop test</span></button><p class="pd-help bt-why" id="bt-why-stop" data-why hidden></p></div>
       </div>
     </form>
-    <button class="btn btn-primary" type="button" data-test-restart hidden><span data-i18n="Restart device">Restart device</span></button>
-    <button class="btn btn-outline-secondary" type="button" data-test-close-fault hidden disabled><span data-i18n="Close faulted test after reported stop">Close faulted test after reported stop</span></button>
+    <div class="bt-act"><button class="btn btn-primary" type="button" data-test-restart hidden><span data-i18n="Restart device">Restart device</span></button><p class="pd-help bt-why" id="bt-why-restart" data-why hidden></p></div>
+    <div class="bt-act"><button class="btn btn-outline-secondary" type="button" data-test-close-fault hidden disabled><span data-i18n="Close faulted test after reported stop">Close faulted test after reported stop</span></button><p class="pd-help bt-why" id="bt-why-close" data-why hidden></p></div>
     <p data-test-close-help hidden><span data-i18n="This action requires a transmitted zero demand and fresh boiler reports confirming zero requested flow temperature and stopped heating.">This action requires a transmitted zero demand and fresh boiler reports confirming zero requested flow temperature and stopped heating.</span> <span data-i18n="Closing does not erase the fault. A restart is required before another test; no heat demand resumes automatically.">Closing does not erase the fault. A restart is required before another test; no heat demand resumes automatically.</span></p>
     <p class="pd-help"><span data-i18n="Keep this page visible during the test. Switching away ends supervision. Returning, refreshing or reopening does not automatically resume it.">Keep this page visible during the test. Switching away ends supervision. Returning, refreshing or reopening does not automatically resume it.</span></p>
     <p data-test-action role="status" aria-live="polite"></p>
@@ -48,7 +64,6 @@
       <p class="pd-help" data-i18n="The result uses boiler and adapter feedback. It does not independently prove a flame, radiator warmth or full installation acceptance.">The result uses boiler and adapter feedback. It does not independently prove a flame, radiator warmth or full installation acceptance.</p>
     </section>
   </div>
-  <div data-boiler-entities-host id="boiler-entities-panel"><p role="status" data-i18n="Loading boiler entities…">Loading boiler entities…</p></div>
   <details class="pd-panel bt-diagnostics" id="boiler-test-reception">
     <summary data-i18n="Diagnostics and test limits">Diagnostics and test limits</summary>
     <p><span data-i18n="An accepted request is not yet a transmitted command or confirmed boiler response.">An accepted request is not yet a transmitted command or confirmed boiler response.</span></p>
@@ -61,14 +76,16 @@
     <dl class="pd-detail-grid" data-transport></dl>
     <p data-inventory-status></p>
     <div style="overflow-x:auto"><table class="table"><thead><tr><th data-i18n="Type">Type</th><th data-i18n="Messages">Messages</th><th>Decoder</th><th data-i18n="Age">Age</th></tr></thead><tbody data-telegrams></tbody></table></div>
-    <button class="btn btn-outline-secondary" type="button" data-test-zero disabled><span data-i18n="Run zero-only test">Run zero-only test</span></button>
-    <p class="pd-help" data-zero-help role="status" aria-live="polite"></p>
+    <button class="btn btn-outline-secondary" type="button" data-test-zero disabled aria-describedby="bt-zero-help"><span data-i18n="Run zero-only test">Run zero-only test</span></button>
+    <p class="pd-help" id="bt-zero-help" data-zero-help role="status" aria-live="polite"></p>
     <button class="btn btn-outline-secondary" type="button" data-download disabled><span data-i18n="Download measurement report">Download measurement report</span></button>
+  </details>
   </details>
 </section>
 <style>
-#boiler-test{max-width:1100px}#boiler-test-controls{border-top:4px solid #087e70}#boiler-test-controls fieldset{border:0;margin:16px 0;padding:0}#boiler-test-controls legend{font-size:1rem;font-weight:600}#boiler-test input[type=number]{max-width:220px}#boiler-test .bt-confirm{display:flex;gap:10px;align-items:start;max-width:650px;margin:16px 0}#boiler-test .bt-confirm input{margin-top:5px;flex-shrink:0;width:20px;height:20px}.bt-diagnostics>summary{font-weight:600;cursor:pointer}.bt-diagnostics[open]>summary{margin-bottom:20px}#boiler-test [hidden]{display:none!important}#boiler-test [data-workflow-help]{font-weight:500}#boiler-test [data-test-form]{display:flex;flex-wrap:wrap;align-items:end;gap:16px}#boiler-test [data-test-form]>div{flex-basis:100%}
-#boiler-test .bt-steps{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:18px 0}#boiler-test .bt-steps li{padding:8px 12px;border:1px solid #b6bec7;border-radius:6px}#boiler-test .bt-steps [aria-current=step]{background:#e2f4f1;border:2px solid #087e70;font-weight:600}#boiler-test .bt-result{border:1px solid #b6bec7;border-left:5px solid #a36a00;border-radius:6px;padding:16px;margin-top:16px;width:100%}#boiler-test .bt-result[data-outcome=passed],#boiler-test .bt-result[data-outcome=zero_passed]{border-left-color:#087e70}#boiler-test .bt-result[data-outcome=failed]{border-left-color:#b3261e}#boiler-test .bt-result h3{font-size:1.2rem}#boiler-test [data-trial-checks]{padding-left:20px}#boiler-test [data-trial-checks] li{margin:6px 0}#boiler-test [data-workflow-help]{padding:12px;background:#f1f5f8;border-radius:6px}#boiler-test [data-trial-selection]{flex-basis:100%;margin:0}
+#boiler-test{max-width:1100px}#boiler-test [hidden]{display:none!important}[data-boiler-display-host]>section{margin:0!important;padding:0 0 8px!important}.bt-trial>.pd-panel{background:var(--ot-surface)}#boiler-test-controls{border-top:4px solid var(--ot-accent)}#boiler-test-controls fieldset{border:0;margin:16px 0;padding:0}#boiler-test input[type=number]{max-width:220px}#boiler-test .bt-confirm{display:flex;gap:10px;align-items:start;max-width:650px;margin:16px 0}#boiler-test .bt-confirm input{margin-top:3px;flex-shrink:0}#boiler-test [data-workflow-help]{font-weight:500;padding:12px;background:var(--ot-surface-2);border-radius:var(--ot-r1)}#boiler-test [data-test-form]{display:flex;flex-wrap:wrap;align-items:end;gap:16px}#boiler-test [data-test-form]>div{flex-basis:100%}
+#boiler-test .bt-steps{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:18px 0}#boiler-test .bt-steps li{padding:8px 12px;border:1px solid var(--ot-border);border-radius:var(--ot-r1)}#boiler-test .bt-steps [aria-current=step]{background:var(--ot-accent-soft);border:2px solid var(--ot-accent);font-weight:600}#boiler-test .bt-result{border:1px solid var(--ot-border);border-left:5px solid var(--ot-warn);border-radius:var(--ot-r1);padding:16px;margin-top:16px;width:100%}#boiler-test .bt-result[data-outcome=passed],#boiler-test .bt-result[data-outcome=zero_passed]{border-left-color:var(--ot-ok)}#boiler-test .bt-result[data-outcome=failed]{border-left-color:var(--ot-err)}#boiler-test .bt-result h3{font-size:1.2rem}#boiler-test [data-trial-checks]{padding-left:20px}#boiler-test [data-trial-checks] li{margin:6px 0}#boiler-test [data-trial-selection]{flex-basis:100%;margin:0}
+#boiler-test .bt-act{display:inline-flex;flex-direction:column;align-items:flex-start;gap:4px;max-width:100%;min-width:0;vertical-align:top;margin:0 10px 10px 0}#boiler-test .d-flex>.bt-act{margin:0}#boiler-test .bt-why{margin:0;max-width:34ch;font-weight:500}#boiler-test .bt-live{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px 20px;margin:0;padding:10px 12px;border:1px solid var(--ot-border);border-radius:var(--ot-r1);min-width:0}#boiler-test .bt-live>div{display:flex;gap:6px;flex-wrap:wrap;min-width:0}#boiler-test .bt-live dt{font-weight:500;color:var(--ot-muted)}#boiler-test .bt-live dd{margin:0;font-weight:600}#boiler-test .bt-live>p{flex-basis:100%;margin:0}
 @media(max-width:600px){#boiler-test .bt-steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#boiler-test .bt-steps li{padding:8px 6px;font-size:.9rem}}
 </style>
 <script>
@@ -76,6 +93,60 @@
   'use strict';
   const root = document.getElementById('boiler-test');
   const message = root.querySelector('[data-reception]');
+  // Sections: the model and the attended test open on request (#boiler-model,
+  // #boiler-trial); the test also opens whenever a test is in progress.
+  const modelBox = root.querySelector('[data-boiler-model]'), trialBox = root.querySelector('#boiler-test-trial');
+  modelBox.open = window.otPageSection === 'boiler_display';
+  trialBox.open = window.otPageSection === 'boiler_trial';
+  const essentials = root.querySelector('[data-essentials]');
+  let burnerCycles = null, dhwEpisodes = null;
+  const duration = s => !Number.isFinite(s) || s < 0 ? '—' : s < 60 ? Math.round(s) + ' s' : s < 5400 ? Math.round(s / 60) + ' min'
+    : Math.floor(s / 3600) + ' h ' + Math.round(s % 3600 / 60) + ' min';
+  // Hot water today (newer firmware only): tapping, keeping warm, burner time.
+  function paintDhw() {
+    const box = root.querySelector('[data-dhw]'), list = root.querySelector('[data-dhw-list]'), d = dhwEpisodes;
+    const part = (day, kind) => day?.[kind] && Number.isFinite(day[kind].count) && Number.isFinite(day[kind].s) ? day[kind].count + ' × · ' + duration(day[kind].s) : null;
+    box.hidden = !d || typeof d !== 'object' || !d.today || typeof d.today !== 'object';
+    if (box.hidden) return;
+    const flow = d.today.peak_flow_l_min, week = d.last_7_days;
+    const rows = [[uiText("Tapping"), part(d.today, 'tapping')], [uiText("Keeping warm"), part(d.today, 'keep_warm')],
+      [uiText("Burner time"), Number.isFinite(d.today.burner_s) ? duration(d.today.burner_s) : null],
+      [uiText("Peak flow"), Number.isFinite(flow) ? new Intl.NumberFormat(OpenThermostatLanguage.locale, {maximumFractionDigits:1}).format(flow) + ' l/min' : null],
+      [uiText("Last 7 days"), part(week, 'tapping') && part(week, 'keep_warm') ? uiText("Tapping") + ' ' + part(week, 'tapping') + ' · ' + uiText("Keeping warm") + ' ' + part(week, 'keep_warm') : null]]
+      .filter(row => row[1] !== null);
+    const signature = JSON.stringify(rows);
+    if (list.dataset.rendered !== signature) { list.dataset.rendered = signature; list.replaceChildren(); for (const [k, v] of rows) { cell(list, 'dt', k); cell(list, 'dd', v); } }
+    root.querySelector('[data-dhw-method]').hidden = d.method !== 'dhw_temperature_fall';
+  }
+  function paintEssentials() {
+    const field = name => { const v = currentFields[name]; return v && v.state === 'valid' && v.value !== null && v.value !== undefined ? v : null; };
+    const format = (value, digits) => new Intl.NumberFormat(OpenThermostatLanguage.locale, {minimumFractionDigits:digits, maximumFractionDigits:digits}).format(value);
+    const show = (name, digits, unit) => { const v = field(name); return v && Number.isFinite(v.value) ? format(v.value, digits) + unit : null; };
+    const heat = field('heating_active'), dhw = field('dhw_active'), code = field('display_code'), service = field('service_number'), hours = field('reported_burner_runtime');
+    const rows = [[uiText("Status"), dhw?.value === 1 ? uiText("Hot water") : heat?.value === 1 ? uiText("CH active") : heat || dhw ? uiText("No CH or hot water") : null],
+      [uiText("Flow temperature"), show('measured_flow_temperature', 1, ' °C')], [uiText("Return temperature"), show('measured_return_temperature', 1, ' °C')],
+      [uiText("Water pressure"), show('pressure', 1, ' bar')], [uiText("Hot water temperature"), show('measured_dhw_temperature', 1, ' °C')],
+      [uiText("Burner modulation"), show('reported_burner_modulation', 0, ' %')],
+      [uiText("Display code"), code ? String(code.value).slice(0, 16) + (service && Number.isFinite(service.value) ? ' (' + service.value + ')' : '') : null],
+      [uiText("Burner starts"), show('reported_burner_starts', 0, '')],
+      [uiText("Burner starts (last hour)"), burnerCycles?.known === true && Number.isInteger(burnerCycles.starts_last_hour) ? String(burnerCycles.starts_last_hour) : null],
+      [uiText("Typical heating run"), burnerCycles?.known === true && Number.isFinite(burnerCycles.median_heating_run_s) ? duration(burnerCycles.median_heating_run_s) : null],
+      [uiText("Burner hours"), hours && hours.unit === 'min' && Number.isFinite(hours.value) ? format(Math.round(hours.value / 60), 0) + ' h' : null]].filter(row => row[1] !== null);
+    if (!rows.length) rows.push([uiText("Boiler data"), uiText("No reliable values received yet")]);
+    const shortCycling = burnerCycles?.known === true && burnerCycles.short_cycling === true;
+    root.querySelector('[data-cycles-help]').hidden = !rows.some(row => row[0] === uiText("Burner starts (last hour)"));
+    paintDhw();
+    const signature = JSON.stringify(rows) + shortCycling;
+    if (essentials.dataset.rendered === signature) return;
+    essentials.dataset.rendered = signature; essentials.replaceChildren();
+    for (const [label, value] of rows) {
+      cell(essentials, 'dt', label); cell(essentials, 'dd', value);
+      if (shortCycling && label === uiText("Burner starts (last hour)")) {
+        const chip = document.createElement('span'); chip.className = 'ot-chip ot-chip--warn ml-2'; chip.dataset.shortCycling = '';
+        chip.textContent = uiText("The burner switches on and off very often"); essentials.lastElementChild.append(chip);
+      }
+    }
+  }
   const transport = root.querySelector('[data-transport]');
   const download = root.querySelector('[data-download]');
   const telegrams = root.querySelector('[data-telegrams]');
@@ -87,7 +158,7 @@
     classic_reports_received: uiText("Fresh EMS Classic boiler messages received."),
     plus_reports_received: uiText("Fresh EMS Plus boiler messages received.")
   };
-  let report = null, currentFields = {};
+  let report = null, currentFields = {}, busIdentity = null;
   const testState = root.querySelector('[data-test-state]');
   const heatStatus = root.querySelector('[data-heat-status]');
   const heatLimits = root.querySelector('[data-heat-limits]');
@@ -264,7 +335,8 @@
       template.content.querySelectorAll('script,h1').forEach(node=>node.remove());
       host.replaceChildren(template.content);
       OpenThermostatLanguage.apply(host);
-      BoilerDisplay.settings(host.querySelector('#boiler-display-form'));
+      await BoilerDisplay.settings(host.querySelector('#boiler-display-form'));
+      if (root.isConnected && host.querySelector('#boiler-model')?.value === 'none') modelBox.open = true; // first-time choice
     } catch(_) {
       if(root.isConnected&&!lifecycle.signal.aborted)host.textContent=uiText("The boiler selection could not be loaded.");
     }
@@ -494,6 +566,7 @@
     if (test) {
       if (test.can_stop) lastScope = {boot_id:test.boot_id, revision:test.revision};
       else lastScope = null;
+      if (lastScope || !['idle','completed','closed'].includes(test.phase)) trialBox.open = true; // a running test stays in view
       setText(testState, test.phase === 'closed' ? phases.closed
         : !test.available && test.zero_test_available === true && test.phase === 'idle'
         ? uiText("Only a zero-demand test is available. Heating remains blocked.")
@@ -508,7 +581,7 @@
       : dhw?.state==='valid' && ['reported','inferred'].includes(dhw.quality) && dhw.value===1
         ? uiText("Boiler feedback indicates hot-water operation. Wait until it ends before preparing a test.")
       : test.can_prepare_zero !== true ? uiText("The zero test is waiting for valid boiler feedback and test permission.")
-      : !siteReady(false) ? uiText("Confirm that Tado is disconnected and that you can switch off the boiler locally to enable the zero test.")
+      : !siteReady(false) ? uiText("Confirm that your thermostat is disconnected and that you can switch off the boiler locally to enable the zero test.")
       : uiText("The zero test is ready. It will not send a positive heat demand.");
     prepareButton.disabled = !test || !test.can_prepare || pending || !siteReady(true) || configurationRead?.active === true;
     startButton.disabled = !test || !test.can_start || !sameScope(held, test) || pending || configurationRead?.active === true;
@@ -598,8 +671,88 @@
       const seconds=Math.ceil(test.heat_remaining_ms/1000);
       remaining.textContent=uiText('Remaining heat demand:')+' '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');
     }
+    paintLive(idle?flow:test?.requested_flow_c);
+    paintReasons();
     paintTrialResult();
   }
+  // BEGIN blocked-control explanations: display only. Firmware enforces every
+  // trial gate; these lines never enable, retry or send anything.
+  const decimal=value=>new Intl.NumberFormat(document.documentElement.lang||'en',{maximumFractionDigits:1}).format(value);
+  function liveField(name) {
+    const field=currentFields[name];
+    return field&&field.state==='valid'&&['reported','inferred'].includes(field.quality)&&Number.isFinite(field.value)?field:null;
+  }
+  const hotWater=()=>liveField('dhw_active')?.value===1;
+  const ago=field=>Number.isFinite(field.age_ms)&&field.age_ms>=0?' ('+Math.round(field.age_ms/1000)+' '+uiText('s ago')+')':'';
+  function paintLive(requested) {
+    const panel=root.querySelector('[data-trial-live]');
+    panel.hidden=!test;
+    if(panel.hidden)return;
+    const flow=liveField('measured_flow_temperature'),burner=liveField('reported_burner_modulation');
+    const items=[[['idle','completed'].includes(test.phase)?uiText('Selected'):uiText('Requested'),
+        Number.isInteger(requested)&&requested>0?decimal(requested)+' °C':'—'],
+      [uiText('Boiler flow now'),flow&&flow.unit==='degC'?decimal(flow.value)+' °C'+ago(flow):'—'],
+      [uiText('Burner'),burner?(burner.value>0?uiText('On')+' · '+decimal(burner.value)+' %':uiText('Off'))
+        +(hotWater()?' · '+uiText('Hot water'):'')+ago(burner):'—']];
+    const signature=JSON.stringify(items)+(test.phase==='heating'&&hotWater());
+    if(panel.dataset.rendered===signature)return;
+    panel.dataset.rendered=signature;panel.replaceChildren();
+    for(const [label,value] of items){const row=document.createElement('div');cell(row,'dt',label);cell(row,'dd',value);panel.appendChild(row);}
+    if(test.phase==='heating'&&hotWater())
+      cell(panel,'p',uiText('The boiler is supplying hot water; central heating pauses. The time limit keeps running.'));
+  }
+  function blockText(code) {
+    return Object.hasOwn(blocks,code)?blocks[code]:uiText('Blocked by the device. Reason code:')+' '+code;
+  }
+  // Conditions behind proving_conditions_missing or a refused can_prepare/can_start.
+  function conditionWhy() {
+    if(busIdentity?.source_conflict===true)return uiText('Another device on the EMS bus uses the E32 address. Testing stays blocked.');
+    if(busIdentity?.matches_reviewed_address===false)return uiText('The E32 bus address check is not complete yet. Wait for more boiler messages.');
+    if(heatTrialSnapshot&&heatTrialSnapshot.reason!=='telemetry_ready')return heatReasons[heatTrialSnapshot.reason];
+    if(hotWater())return uiText('The boiler is supplying hot water. Wait until it ends.');
+    if(!['heating_active','reported_burner_modulation','dhw_active'].every(liveField))
+      return uiText('Waiting for fresh boiler reports on heating, burner and hot water.');
+    if(test.transmission_in_flight===true)return uiText('A command is being sent to the boiler. Wait a moment.');
+    return '';
+  }
+  function gateWhy() {
+    if(!test)return uiText('Test status unavailable. No heat demand will be started.');
+    if(pending||configurationRead?.active===true)return uiText('Wait for the current request to finish.');
+    if(test.blocked_reason)return (test.blocked_reason==='proving_conditions_missing'&&conditionWhy())||blockText(test.blocked_reason);
+    return '';
+  }
+  function pressureExpired() {
+    const value=test?.operator_pressure_observation;
+    return !!value&&Number.isSafeInteger(value.declared_at_ms)&&Number.isSafeInteger(value.maximum_age_ms)
+      &&test.observed_at_ms-value.declared_at_ms>=value.maximum_age_ms;
+  }
+  const reasons={
+    prepare:()=>gateWhy()||(!test.can_prepare?conditionWhy()||uiText('The boiler is not ready for a new test yet. Wait for the next status update.')
+      :test.pressure_reading_required===true&&gaugePressureDecibar()===null
+        ?uiText('Enter a fresh boiler gauge pressure reading first:')+' '+decimal(test.pressure_reading_limits.minimum_decibar/10)
+          +'–'+decimal(test.pressure_reading_limits.maximum_decibar/10)+' bar.'
+      :uiText('Confirm the installation checks first.')),
+    start:()=>gateWhy()||(pressureExpired()?uiText('The boiler pressure reading has expired. Press Stop test and prepare again with a new reading.')
+      :conditionWhy()||uiText('Start is not available yet. Wait for the next status update.')),
+    stop:()=>uiText('Sending the stop request…'),
+    restart:()=>pending?uiText('Wait for the current request to finish.'):uiText('Restart request in progress.'),
+    close:()=>pending||stopping?uiText('Wait for the current request to finish.')
+      :test?.fault_zero_window_ended===true&&!test.reported_stop_confirmed
+        ?uiText('No stop was reported in time, so the E32 stopped repeating its zero request. Another controller may still be requesting heat. Switch the boiler off locally, then restart the E32.')
+      :busIdentity?.source_conflict===true?uiText('Another device on the EMS bus uses the E32 address. Testing stays blocked.')
+      :!test?.reported_stop_confirmed?uiText('Wait: the safety zero request is still being sent and no stop has been reported yet.')
+      :hotWater()?uiText('The boiler is supplying hot water. Wait until it ends.')
+      :uiText('Waiting for fresh boiler reports that confirm the stop.')
+  };
+  function paintReasons() {
+    for(const [name,button] of [['prepare',prepareButton],['start',startButton],['stop',stopButton],
+        ['restart',root.querySelector('[data-test-restart]')],['close',closeFaultButton]]) {
+      const why=button.parentElement.querySelector('[data-why]'),text=!button.hidden&&button.disabled?reasons[name]():'';
+      button.parentElement.hidden=button.hidden;why.hidden=!text;setText(why,text);
+      if(text)button.setAttribute('aria-describedby',why.id);else button.removeAttribute('aria-describedby');
+    }
+  }
+  // END blocked-control explanations
   function paintTrialResult() {
     const panel=root.querySelector('[data-trial-result]');
     panel.hidden=!test||!['heating','stopping','completed','fault','closed'].includes(test.phase);
@@ -777,11 +930,15 @@
       const entries = Object.entries(data.fields);
       if (entries.length > 96) throw Error(uiText("Too much data"));
       currentFields=data.fields;
+      busIdentity=data.manual_bus_identity&&typeof data.manual_bus_identity==='object'?data.manual_bus_identity:null;
       paintTest(data.test);
       paintHeatTrial(data.heat_trial);
       paintControllerRequest(data.controller_request);
       paintRead(data.configuration_read);
       paintWorkflow();
+      burnerCycles = data.burner_cycles && typeof data.burner_cycles === 'object' ? data.burner_cycles : null;
+      dhwEpisodes = data.dhw_episodes && typeof data.dhw_episodes === 'object' ? data.dhw_episodes : null;
+      paintEssentials();
       message.textContent = data.transport.enabled === false ? uiText("EMS reception is off.") : labels[data.reception.state];
       transport.replaceChildren();
       fact(uiText("Boiler messages"), number(data.reception.report_count));
@@ -790,8 +947,8 @@
       fact(uiText("Data frames transmitted"), number(data.transport.transmitted_frames));
       fact(uiText("Messages missed because the queue is full"), number(data.transport.receive_queue_dropped));
       fact(uiText("Rejected telegrams"), number(data.transport.invalid_telegrams));
-      fact('UART-fouten', number(data.transport.uart_errors));
-      fact('UART-resets', number(data.transport.uart_resets));
+      fact(uiText("UART errors"), number(data.transport.uart_errors));
+      fact(uiText("UART resets"), number(data.transport.uart_resets));
       telegrams.replaceChildren();
       const inventory = data.telegram_inventory;
       if (inventory && Number.isInteger(inventory.capacity) && inventory.capacity > 0 && inventory.capacity <= 24
@@ -802,7 +959,7 @@
           const row = document.createElement('tr');
           cell(row,'td','0x' + entry.type.toString(16).toUpperCase());
           cell(row,'td',number(entry.frames));
-          cell(row,'td',({classic_fields:'Classic-velden',plus_legacy_fields:uiText("Existing Plus decoder"),unmapped:uiText("No field decoder yet")})[entry.decoder] || uiText("Unknown"));
+          cell(row,'td',({classic_fields:uiText("Classic fields"),plus_legacy_fields:uiText("Existing Plus decoder"),unmapped:uiText("No field decoder yet")})[entry.decoder] || uiText("Unknown"));
           cell(row,'td',age(entry.age_ms)); telegrams.appendChild(row);
         }
       } else inventoryStatus.textContent = uiText("This firmware does not provide a message overview yet.");
@@ -811,7 +968,7 @@
     } catch (error) {
       if (!root.isConnected) return;
       message.textContent = uiText("Reception status unavailable. Check the connection.");
-      currentFields={};
+      currentFields={};busIdentity=null;burnerCycles=dhwEpisodes=null;paintEssentials();
       transport.replaceChildren(); telegrams.replaceChildren(); inventoryStatus.textContent = uiText("Message overview unavailable."); report = null; download.disabled = true;
       paintTest(null);
       paintHeatTrial(null);

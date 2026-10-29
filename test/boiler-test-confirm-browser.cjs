@@ -42,7 +42,7 @@ function initial(){return {schema:1,boot_id:'000000000000002a',revision:0,state_
   for(const action of ['start','prepare_zero','close_fault'])for(const interruption of ['cancel','confirm','hidden','brief','pagehide','detach']){
    state=initial();posts=[];
    if(action==='close_fault')state={...state,revision:1,phase:'fault',can_prepare:false,can_prepare_zero:false,can_stop:true,can_close_fault:true,reported_stop_confirmed:true,zero_frames:1};
-   await page.evaluate(()=>{delete document.visibilityState;return loadNativePage('boiler_test');});
+   await page.evaluate(()=>{delete document.visibilityState;return loadNativePage('boiler_trial');});
    if(action==='close_fault')await page.waitForFunction(()=>!document.querySelector('[data-test-close-fault]').disabled);
    else {
     await page.waitForFunction(()=>!document.querySelector('[data-test-flow]').disabled);

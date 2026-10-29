@@ -3,9 +3,9 @@
     <script src="/ui-messages.js"></script>
     <script src="/ui-language.js"></script><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title data-i18n="Sign in — OpenThermostat">Sign in — OpenThermostat</title>
-<style>body{font-family:system-ui,sans-serif;max-width:26rem;margin:8vh auto;padding:1.2rem;color:#17212b}label,input,button{display:block;box-sizing:border-box;width:100%;font-size:1rem}label{margin-top:1rem}input,button{padding:.8rem;margin-top:.4rem}button{background:#1558a6;color:white;border:0;border-radius:.3rem}button:disabled{opacity:.6}input[type=checkbox]{display:inline;width:auto;margin-right:.5rem}#message{min-height:3em}small{color:#52606d}</style>
+<style>:root{color-scheme:light dark;--bg:#f6f8f8;--card:#fff;--text:#173b40;--muted:#4f666b;--line:#7a8f93;--accent:#08665b;--ink:#fff}@media (prefers-color-scheme:dark){:root{--bg:#0f1719;--card:#162124;--text:#e3eeef;--muted:#a3b7bb;--line:#6f878c;--accent:#4cc2b0;--ink:#06201c}}body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);max-width:26rem;margin:6vh auto;padding:1.2rem}main{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.5rem}h1{font-size:1.6rem;margin:0 0 .2rem}h2{font-size:1.1rem;font-weight:600;margin:0 0 1rem;color:var(--muted)}label,input,button{display:block;box-sizing:border-box;width:100%;font-size:1rem}label{margin-top:1rem;font-weight:600}input,button,select{min-height:44px;border-radius:8px;font:inherit}input{padding:.6rem .8rem;margin-top:.4rem;border:1px solid var(--line);background:var(--card);color:var(--text)}button{margin-top:1.2rem;background:var(--accent);color:var(--ink);border:0;font-weight:700;cursor:pointer}button:disabled{opacity:.6}:focus-visible{outline:3px solid #b06313;outline-offset:2px}input[type=checkbox]{display:inline;width:20px;min-height:0;height:20px;margin-right:.5rem;vertical-align:-4px;accent-color:var(--accent)}#message{min-height:3em}small{color:var(--muted)}select{border:1px solid var(--line);background:var(--card);color:var(--text);padding:0 8px}footer{display:flex;justify-content:flex-end;margin:8px 0}footer label{width:auto;font-weight:400}</style>
 <script src="/login.js" defer></script></head>
-<body><h1>OpenThermostat</h1><h2><span data-i18n="Sign in">Sign in</span></h2>
+<body><main><h1>OpenThermostat</h1><h2><span data-i18n="Sign in">Sign in</span></h2>
 <form id="login" method="post" action="/auth/login">
 <label for="username"><span data-i18n="Username">Username</span></label><input id="username" name="username" value="admin" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="64" required>
 <label for="password"><span data-i18n="Password">Password</span></label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
@@ -14,6 +14,7 @@
 <p data-i18n="Other browsers will be signed out. Enter your password again to confirm. Device settings stay unchanged.">Other browsers will be signed out. Enter your password again to confirm. Device settings stay unchanged.</p>
 </div>
 <button id="submit" type="submit"><span data-i18n="Sign in">Sign in</span></button>
-<p id="message" role="status" aria-live="polite"></p></form>
+<p id="message" role="status" aria-live="polite"></p></form></main>
+<footer data-language-host></footer>
 <small><span data-i18n="This session expires after 30 minutes without contact from this browser, or after seven days at most. A device restart ends the session. Use only your trusted local network; this device currently uses HTTP.">This session expires after 30 minutes without contact from this browser, or after seven days at most. A device restart ends the session. Use only your trusted local network; this device currently uses HTTP.</span></small>
 <noscript><span data-i18n="JavaScript is required for the device interface.">JavaScript is required for the device interface.</span></noscript></body></html>

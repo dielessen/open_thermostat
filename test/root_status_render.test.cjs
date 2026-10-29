@@ -71,7 +71,7 @@ test('compiled week support is explained separately from active state and cannot
  assert.match(p.main.innerHTML,/nog niet dat Home Assistant gekoppeld is/);
  assert.match(p.main.innerHTML,/geen toestemming/);
  assert.match(p.main.innerHTML,/Geen actuele regelstatus/);
- assert.doesNotMatch(p.main.innerHTML,/Vraagt warmte|1 vragen warmte|Aansturing is volgens de regeling vrijgegeven/);
+ assert.doesNotMatch(p.main.innerHTML,/Vraagt warmte|1 ruimte vraagt warmte|Aansturing is volgens de regeling vrijgegeven/);
 });
 test('old firmware and invalid compiled capability claims remain unknown and safely rendered',()=>{
  const p=rootPage();
@@ -82,13 +82,13 @@ test('old firmware and invalid compiled capability claims remain unknown and saf
  for(const maximum_zones of ['2',0,9,NaN,Infinity,'<img src=x onerror=alert(1)>']){
   p.updateRooms(managed({control_build:{schema:1,scope:'compiled_support_only',requires_local_source_selection:true,authorizes_physical_outputs:false,
    plans:[null,[],{contract:'control.plan.week.v1',minimum_zones:1,maximum_zones}]}}));
-  assert.match(p.main.innerHTML,/complete kamerweekprogramma is niet bevestigd/);
+  assert.match(p.main.innerHTML,/complete weekprogramma per ruimte is niet bevestigd/);
   assert.doesNotMatch(p.main.innerHTML,/<img|NaN|Infinity/);
  }
 });
 test('managed view separates actual boiler units, computed demand and inhibited output',()=>{
  const p=rootPage();p.updateRooms(managed());const html=p.main.innerHTML;
- for(const text of ['43.2','1.4','0.0','-5.5','19.3','21.0','Badkamer','1 vragen warmte','Geblokkeerd','geen bevestigde opdrachtentijdlijn'])assert.ok(html.includes(text),text);
+ for(const text of ['43.2','1.4','0.0','-5.5','19.3','21.0','Badkamer','1 ruimte vraagt warmte','Geblokkeerd','geen bevestigde opdrachtentijdlijn'])assert.ok(html.includes(text),text);
  // The read-back setpoint is unreliable on Classic boilers and stays off the dashboard.
  assert.ok(!html.includes('55.0'),'read-back setpoint is not a dashboard value');
  assert.doesNotMatch(html,/NaN|undefined|Infinity/);
@@ -96,7 +96,7 @@ test('managed view separates actual boiler units, computed demand and inhibited 
 test('stale or missing controller readback cannot display old demand or local ghost rooms',()=>{
  for(const control of [undefined,{fresh:false,reason:'stale',state:managed().control.state},{fresh:true,state:null},{fresh:true,state:{zones:null}}]){
   const p=rootPage();p.updateRooms(managed({control,rooms:[{name:'GHOST',demand:true}]}));
-  assert.doesNotMatch(p.main.innerHTML,/Badkamer|GHOST|1 vragen warmte|Vraagt warmte/);
+  assert.doesNotMatch(p.main.innerHTML,/Badkamer|GHOST|1 ruimte vraagt warmte|Vraagt warmte/);
   assert.match(p.main.innerHTML,/Geen actuele regelstatus/);
  }
 });
@@ -145,7 +145,7 @@ test('cached update notice hides unknown/current data and escapes or rejects ext
  assert.equal(p.dashboardUpdateNotice({known:true,available:true,version:'<img src=x>'}),'');
  const html=p.dashboardUpdateNotice({known:true,available:true,version:'v0.1.0-e32v2-alpha.99'});
  assert.match(html,/Firmware-update beschikbaar:/);assert.match(html,/Update bekijken/);
- assert.match(html,/loadNativePage/);assert.doesNotMatch(html,/fetch|installRelease|updates\/check/);
+ assert.match(html,/data-page="update"/);assert.doesNotMatch(html,/fetch|installRelease|updates\/check/);
 });
 
 test('all canonical dashboard reason, source and mode labels have English and Dutch coverage',()=>{

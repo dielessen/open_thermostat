@@ -16,10 +16,14 @@ constexpr int phyMdio = 18;
 constexpr bool emsTransmitAllowed = false;
 // Separate source-reviewed manual route; never grants legacy TX permission.
 constexpr bool emsManualTestTransmitAllowed = true;
+// Active heating (ActiveHeatGuard) over that same manual route. Closed until
+// the lead releases the attended switch-over from the tado.
+constexpr bool emsActiveHeatAllowed = false;
 constexpr bool auxiliaryGpioAllowed = false;
 #else
 constexpr bool emsTransmitAllowed = true;
 constexpr bool emsManualTestTransmitAllowed = false;
+constexpr bool emsActiveHeatAllowed = false;
 constexpr bool auxiliaryGpioAllowed = true;
 #endif
 }

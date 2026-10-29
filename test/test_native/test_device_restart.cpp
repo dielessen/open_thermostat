@@ -22,3 +22,15 @@ TEST(DeviceRestart, PostOnlyValidSessionAndOwnCsrfNoLanSetupException) {
     EXPECT_EQ(control::webAuthDecision(sessions,"/updates/reboot","POST",token,csrf,2,false),D::allow);
     EXPECT_FALSE(control::sameOrigin("http://other.invalid","device","cross-site"));
 }
+TEST(DeviceRestart, NewImageConfirmsAfterAHealthyMinuteWithoutNeedingTheNetwork) {
+    using B=update::BootConfirmation;
+    EXPECT_EQ(B::decide(59999,true),B::Action::wait);
+    EXPECT_EQ(B::decide(60000,true),B::Action::confirm);   // Wi-Fi/HA state is not an input
+    EXPECT_EQ(B::decide(60000,false),B::Action::wait);     // supervisor not (yet) running
+    EXPECT_EQ(B::decide(179999,false),B::Action::wait);
+    EXPECT_EQ(B::decide(180000,false),B::Action::rollback);
+}
+TEST(DeviceRestart, ControlledRestartWaitsForUpdatesBootValidationAndBoilerSessions) {
+    for(bool busy:{false,true})for(bool pending:{false,true})for(bool session:{false,true})
+        EXPECT_EQ(update::controlledRestartAllowed(busy,pending,session),!busy&&!pending&&!session);
+}

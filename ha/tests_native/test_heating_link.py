@@ -1,5 +1,6 @@
 """The one heating route: E32 status in, plan entities forwarded out."""
 import json
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -119,7 +120,8 @@ async def test_rooms_and_bluetooth_sensors_become_entities_for_the_ids_seen(hass
         "fixture_e32_ble_112233445566_temperature"])
     room_temp = by_id["fixture_e32_room_woonkamer_temperature"]
     assert room_temp.native_value == 20.4 and room_temp.available
-    assert room_temp.translation_key == "room_temperature" and room_temp.translation_placeholders == {"room": "Woonkamer"}
+    # The room is its own device: the entity name has no room placeholder.
+    assert room_temp.translation_key == "room_temperature" and not room_temp.translation_placeholders
     assert by_id["fixture_e32_room_woonkamer_setpoint"].native_value == 21.0
     status = by_id["fixture_e32_room_woonkamer_status"]
     assert status.native_value == "fallback" and status.extra_state_attributes["source"] == "a4c138a3e8db"
@@ -128,7 +130,16 @@ async def test_rooms_and_bluetooth_sensors_become_entities_for_the_ids_seen(hass
     assert battery.device_class == "battery" and battery.extra_state_attributes["age_s"] == 12
     assert by_id["fixture_e32_ble_a4c138a3e8db_humidity"].device_class == "humidity"
     assert by_id["fixture_e32_ble_a4c138a3e8db_temperature"].native_unit_of_measurement == "°C"
-    assert all(e.device_info["identifiers"] == {("open_thermostat", "fixture")} for e in added)
+    devices = {e.unique_id: e.device_info for e in added}
+    assert devices["fixture_hub_heat_request"]["identifiers"] == {("open_thermostat", "fixture")}
+    for key in ("temperature", "setpoint", "status"):
+        assert devices[f"fixture_e32_room_woonkamer_{key}"] == {
+            "identifiers": {("open_thermostat", "fixture_e32_room_woonkamer")}, "name": "Woonkamer",
+            "manufacturer": "intuibase"}
+    assert devices["fixture_e32_ble_a4c138a3e8db_battery"]["identifiers"] == {
+        ("open_thermostat", "fixture_e32_ble_a4c138a3e8db")}
+    assert devices["fixture_e32_ble_a4c138a3e8db_battery"]["name"] == "Woonkamer BLE"
+    assert devices["fixture_e32_ble_112233445566_temperature"]["name"] == "Kelder"
     # The same status again adds nothing; a reading that appears later adds its entity once.
     send(FULL)
     assert len(added) == 8
@@ -178,17 +189,222 @@ async def test_room_demand_is_a_binary_sensor_on_the_same_hub(hass, monkeypatch)
     assert demand[0].is_on is False
 
 
-def test_entity_names_are_translated_with_their_placeholders():
-    from pathlib import Path
-    root = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
-    keys = {"sensor": {"room_temperature": "{room}", "room_setpoint": "{room}", "room_status": "{room}",
-                       "ble_temperature": "{sensor}", "ble_humidity": "{sensor}", "ble_battery": "{sensor}"},
-            "binary_sensor": {"room_demand": "{room}"}, "select": {"room_state": "{room}"},
-            "datetime": {"room_inactive_until": "{room}"}, "number": {"room_fallback_setpoint": "{room}"}}
-    for name in ("strings.json", "translations/en.json", "translations/nl.json"):
-        entity = json.loads((root / name).read_text(encoding="utf-8"))["entity"]
-        for platform, items in keys.items():
-            for key, placeholder in items.items():
-                assert placeholder in entity[platform][key]["name"], (name, key)
+COMPONENT = Path(__file__).resolve().parents[1] / "config/custom_components/open_thermostat"
+# The glossary names (EN, NL); the room or sensor name comes from its own device.
+NAMES = {
+    "sensor": {"room_temperature": ("Temperature", "Temperatuur"),
+               "room_setpoint": ("Target temperature", "Gewenste temperatuur"),
+               "room_status": ("Control status", "Regelstatus"),
+               "ble_temperature": ("Temperature", "Temperatuur"), "ble_humidity": ("Humidity", "Luchtvochtigheid"),
+               "ble_battery": ("Battery", "Batterij"),
+               "heat_request": ("Boiler request (E32)", "Ketelvraag (E32)"),
+               "burner_starts_last_hour": ("Burner starts last hour", "Branderstarts afgelopen uur")},
+    "binary_sensor": {"room_demand": ("Heat demand", "Warmtevraag"),
+                      "burner_short_cycling": ("Burner short cycling", "Brander pendelt")},
+    "select": {"room_state": ("Mode", "Stand")},
+    "datetime": {"room_inactive_until": ("Off until", "Uit tot")},
+    "number": {"room_fallback_setpoint": ("Temperature without Home Assistant", "Temperatuur zonder Home Assistant")},
+}
+
+
+def test_entity_names_are_plain_glossary_names_in_both_languages():
+    for name, column in (("strings.json", 0), ("translations/en.json", 0), ("translations/nl.json", 1)):
+        entity = json.loads((COMPONENT / name).read_text(encoding="utf-8"))["entity"]
+        for platform, items in NAMES.items():
+            for key, names in items.items():
+                assert entity[platform][key]["name"] == names[column], (name, key)
+                assert "{" not in entity[platform][key]["name"], (name, key)
         assert set(entity["sensor"]["room_status"]["state"]) == {"ok", "fallback", "stale", "lost", "inactive"}
         assert set(entity["select"]["room_state"]["state"]) == {"active", "inactive"}
+    nl = json.loads((COMPONENT / "translations/nl.json").read_text(encoding="utf-8"))["entity"]
+    assert nl["sensor"]["room_status"]["state"] == {"ok": "In orde", "fallback": "Terugvalstand",
+                                                    "stale": "Meting verouderd", "lost": "Sensor kwijt",
+                                                    "inactive": "Uit"}
+    assert nl["select"]["room_state"]["state"] == {"active": "Actief", "inactive": "Uit"}
+
+
+def test_icons_cover_the_entities_and_services():
+    import re
+    icons = json.loads((COMPONENT / "icons.json").read_text(encoding="utf-8"))
+    strings = json.loads((COMPONENT / "strings.json").read_text(encoding="utf-8"))
+    for platform, items in icons["entity"].items():
+        for key, icon in items.items():
+            assert key in strings["entity"][platform], (platform, key)  # only real translation keys
+            assert re.fullmatch(r"mdi:[a-z0-9-]+", icon["default"]), key
+            for state, value in icon.get("state", {}).items():
+                assert re.fullmatch(r"mdi:[a-z0-9-]+", value), (key, state)
+    for platform, items in NAMES.items():
+        for key in items:
+            if key not in ("room_temperature", "ble_temperature", "ble_humidity", "ble_battery"):
+                assert key in icons["entity"][platform], key  # device-class icons for the plain measurements
+    assert set(icons["entity"]["sensor"]["room_status"]["state"]) == set(strings["entity"]["sensor"]["room_status"]["state"])
+    services = set(re.findall(r"^([a-z_]+):", (COMPONENT / "services.yaml").read_text(encoding="utf-8"), re.M))
+    assert set(icons["services"]) == services
+
+
+TODAY = {"day": "2026-10-28", "s": 36000, "tado_unknown_s": 600,
+         "e32": {"heat_s": 5400, "starts": 4, "flow_min_c": 31, "flow_max_c": 44, "flow_mean_c": 37.5},
+         "tado": {"heat_s": 6000, "starts": 5, "flow_min_c": 30, "flow_max_c": 46, "flow_mean_c": 38.2},
+         "both_s": 4800, "agree_s": 33630, "e32_only_s": 600, "tado_only_s": 1200, "flow_diff_mean_c": 1.4,
+         "starts_paired": 4, "starts_within_5min": 3, "start_offset_mean_s": -40, "start_offset_max_s": 420}
+
+
+@pytest.mark.asyncio
+async def test_todays_shadow_comparison_becomes_compact_hub_sensors(hass, monkeypatch):
+    from homeassistant.components.sensor import SensorStateClass
+    from custom_components.open_thermostat import heating_link as module
+    entry, hub, added, send = await _setup(hass, monkeypatch)
+    send(FULL)
+    assert not any(e.unique_id.startswith("fixture_hub_shadow_") for e in added)  # older firmware: none
+    send({**FULL, "shadow": {"today": TODAY}})
+    by_id = {e.unique_id.removeprefix("fixture_hub_shadow_"): e for e in added
+             if e.unique_id.startswith("fixture_hub_shadow_")}
+    assert sorted(by_id) == sorted(module.SHADOW_SENSORS)
+    e32, tado = by_id["e32_heating_time_today"], by_id["tado_heating_time_today"]
+    assert (e32.native_value, tado.native_value) == (90.0, 100.0)
+    assert e32.native_unit_of_measurement == "min" and e32.device_class == "duration"
+    assert e32.state_class == SensorStateClass.TOTAL_INCREASING  # restarts at 0 every day
+    assert e32.extra_state_attributes == {"day": "2026-10-28", "flow_min_c": 31, "flow_mean_c": 37.5, "flow_max_c": 44}
+    starts = by_id["e32_starts_today"]
+    assert (starts.native_value, by_id["tado_starts_today"].native_value) == (4, 5)
+    assert starts.extra_state_attributes["start_offset_max_s"] == 420
+    assert starts.extra_state_attributes["starts_within_5min"] == 3
+    agreement = by_id["agreement_today"]
+    assert agreement.native_value == 95.0  # 33630 / (36000 - 600)
+    assert agreement.native_unit_of_measurement == "%" and agreement.state_class == SensorStateClass.MEASUREMENT
+    assert agreement.extra_state_attributes["flow_diff_mean_c"] == 1.4
+    assert all(e.translation_key == "shadow_" + key for key, e in by_id.items())
+    assert all(e.device_info["identifiers"] == {("open_thermostat", "fixture")} for e in by_id.values())
+    # Nulls (no data yet today) are unknown, not zero; the thermostat side unknown all day has no agreement.
+    empty = {**TODAY, "tado_unknown_s": 36000, "e32": {"heat_s": 0, "starts": 0, "flow_min_c": None,
+             "flow_max_c": None, "flow_mean_c": None}, "start_offset_mean_s": None, "start_offset_max_s": None}
+    send({**FULL, "shadow": {"today": empty}})
+    assert e32.native_value == 0 and e32.extra_state_attributes["flow_mean_c"] is None
+    assert agreement.native_value is None and agreement.available
+    # Stale telemetry, or a status without the comparison: unavailable.
+    send(FULL)
+    assert not any(e.available for e in by_id.values())
+    send({**FULL, "shadow": {"today": TODAY}})
+    now = [hub.received + module.STALE_SECONDS + 1]
+    hub.clock = lambda: now[0]
+    hub.check_stale()
+    assert not any(e.available for e in by_id.values())
+
+
+def test_shadow_sensor_names_are_translated():
+    from custom_components.open_thermostat.heating_link import SHADOW_SENSORS
+    names = {}
+    for name in ("strings.json", "translations/nl.json"):
+        sensor = json.loads((COMPONENT / name).read_text(encoding="utf-8"))["entity"]["sensor"]
+        names[name] = [sensor["shadow_" + key]["name"] for key in SHADOW_SENSORS]
+    assert names["strings.json"] == ["Heating time today (E32)", "Heating time today (thermostat)",
+                                     "Burner starts today (E32)", "Burner starts today (thermostat)",
+                                     "Agreement with thermostat today"]
+    assert names["translations/nl.json"] == ["Stooktijd vandaag (E32)", "Stooktijd vandaag (thermostaat)",
+                                             "Branderstarts vandaag (E32)", "Branderstarts vandaag (thermostaat)",
+                                             "Overeenstemming met thermostaat vandaag"]
+
+
+@pytest.mark.asyncio
+async def test_burner_cycling_entities_only_with_the_burner_telemetry(hass, monkeypatch):
+    from homeassistant.components.sensor import SensorStateClass
+    from custom_components.open_thermostat import heating_link as module
+    entry, hub, added, send = await _setup(hass, monkeypatch)
+    binary = []
+    await module.async_setup_demand(hass, entry, binary.extend)
+    send(FULL)
+    assert not any("burner" in e.unique_id for e in added + binary)  # older firmware: none
+    send({**FULL, "burner": {"short_cycling": None}})  # counted, not known yet
+    starts = next(e for e in added if e.unique_id == "fixture_hub_burner_starts_last_hour")
+    cycling = next(e for e in binary if e.unique_id == "fixture_hub_burner_short_cycling")
+    assert not starts.available and not cycling.available and cycling.is_on is None
+    assert starts.state_class == SensorStateClass.MEASUREMENT and cycling.device_class == "problem"
+    assert starts.translation_key == "burner_starts_last_hour" and cycling.translation_key == "burner_short_cycling"
+    assert starts.device_info["identifiers"] == cycling.device_info["identifiers"] == {("open_thermostat", "fixture")}
+    send({**FULL, "burner": {"starts_last_hour": 7, "heating_starts_last_hour": 6, "short_cycling": True}})
+    assert starts.available and starts.native_value == 7 and cycling.available and cycling.is_on is True
+    assert cycling.extra_state_attributes == {"starts_last_hour": 7, "heating_starts_last_hour": 6}
+    assert starts.extra_state_attributes["heating_starts_last_hour"] == 6
+    send({**FULL, "burner": {"starts_last_hour": 1, "heating_starts_last_hour": 1, "short_cycling": False}})
+    assert cycling.is_on is False and cycling.available
+    send({**FULL, "burner": {"starts_last_hour": -1, "short_cycling": "yes"}})  # nonsense is unknown
+    assert not starts.available and not cycling.available
+    send({**FULL, "burner": {"starts_last_hour": 2, "short_cycling": False}})
+    now = [hub.received + module.STALE_SECONDS + 1]
+    hub.clock = lambda: now[0]
+    hub.check_stale()
+    assert not starts.available and not cycling.available
+    assert len([e for e in added + binary if "burner" in e.unique_id]) == 2  # created once
+
+
+@pytest.mark.asyncio
+async def test_existing_room_entities_keep_their_entity_ids_and_move_to_a_room_device(hass, monkeypatch):
+    """The owner's registry: same unique IDs, so entity IDs and history stay; the device is new."""
+    import logging
+    from datetime import timedelta
+    from homeassistant import loader
+    from homeassistant.helpers import device_registry as dr, entity_registry as er
+    from homeassistant.helpers.entity_platform import EntityPlatform
+    from custom_components.open_thermostat import heating_link as module
+    from test_v1_native import entry as make_entry
+    from homeassistant.helpers import translation
+    loader.async_setup(hass)
+    integration = loader.Integration(hass, "custom_components.open_thermostat", COMPONENT,
+                                     json.loads((COMPONENT / "manifest.json").read_text()),
+                                     top_level_files={p.name for p in COMPONENT.iterdir()})
+    monkeypatch.setattr(translation, "async_get_integrations", AsyncMock(return_value={"open_thermostat": integration}))
+    hass.config.language = "en"
+    config_entry = make_entry(hass)
+    devices, entities = dr.async_get(hass), er.async_get(hass)
+    product = devices.async_get_or_create(config_entry_id=config_entry.entry_id,
+                                          identifiers={("open_thermostat", "fixture")}, name="OpenThermostat")
+    old_id = "sensor.woonkamer_e32_regelaar_ketel_en_diagnose_woonkamer_temperature"
+    old = entities.async_get_or_create("sensor", "open_thermostat", "fixture_e32_room_woonkamer_temperature",
+                                       config_entry=config_entry, device_id=product.id,
+                                       suggested_object_id=old_id.split(".")[1])
+    assert old.entity_id == old_id
+    _, hub, _, send = await _setup(hass, monkeypatch)
+    send(FULL)
+    platform = EntityPlatform(hass=hass, logger=logging.getLogger(__name__), domain="sensor",
+                              platform_name="open_thermostat", platform=None,
+                              scan_interval=timedelta(seconds=30), entity_namespace=None)
+    platform.config_entry = config_entry
+    await platform.platform_data.async_load_translations()
+    room = hub.rooms["woonkamer"]
+    sensor = hub.ble["a4c138a3e8db"]
+    moved, new, ble = (module.RoomTemperatureSensor(hub, room), module.RoomStatusSensor(hub, room),
+                       module.BleSensor(hub, sensor, "temperature"))
+    try:
+        await platform.async_add_entities([moved, new, ble])
+        await hass.async_block_till_done()
+        room_device = devices.async_get_device_by_identifier(
+            ("open_thermostat", "fixture_e32_room_woonkamer"), config_entry.entry_id)
+        assert moved.entity_id == old_id and entities.async_get(old_id).device_id == room_device.id
+        assert new.entity_id == "sensor.woonkamer_control_status"
+        assert hass.states.get(old_id).attributes["friendly_name"] == "Woonkamer Temperature"
+        assert room_device.via_device_id == product.id and room_device.name == "Woonkamer"
+        ble_device = devices.async_get_device_by_identifier(
+            ("open_thermostat", "fixture_e32_ble_a4c138a3e8db"), config_entry.entry_id)
+        assert ble.entity_id == "sensor.woonkamer_ble_temperature" and ble_device.via_device_id == product.id
+        # A room renamed on the E32 renames its device; a name the user gave it stays shown.
+        renamed = json.loads(json.dumps(FULL))
+        renamed["rooms"][0]["name"] = "Living room"
+        send(renamed)
+        await hass.async_block_till_done()
+        assert devices.async_get(room_device.id).name == "Living room" and moved.entity_id == old_id
+        devices.async_update_device(room_device.id, name_by_user="Zitkamer")
+        send(FULL)
+        await hass.async_block_till_done()
+        assert devices.async_get(room_device.id).name_by_user == "Zitkamer"
+        # Only a room the E32 no longer reports may be deleted by the user, and only while it reports.
+        assert not module.removable_device(hass, config_entry, room_device)
+        assert not module.removable_device(hass, config_entry, product)
+        hass.data["open_thermostat"][config_entry.entry_id] = {"heating_hub": hub}
+        send({**FULL, "rooms": []})
+        assert module.removable_device(hass, config_entry, devices.async_get(room_device.id))
+        assert not module.removable_device(hass, config_entry, product)
+        assert not module.removable_device(hass, config_entry, ble_device)  # still reported
+        hub.update(None)
+        assert not module.removable_device(hass, config_entry, devices.async_get(room_device.id))
+    finally:
+        await platform.async_reset()

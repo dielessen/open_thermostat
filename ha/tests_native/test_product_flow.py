@@ -26,8 +26,11 @@ def product(hass, binding=None):
     return p
 
 async def option(manager,parent,step):
+    from custom_components.open_thermostat.room_plan import has_room_plan
     f=await manager.async_init(parent.entry_id)
-    base=['installation','controller_connection','room_settings','configuration_status','advanced_settings']
+    # A stored E32 connection makes the E32 room plan the room editor.
+    rooms='e32_rooms' if has_room_plan(parent) else 'room_settings'
+    base=['installation','controller_connection',rooms,'configuration_status','advanced_settings']
     assert f['menu_options'] in [base,base[:4]+['graph_prepare']+base[4:]]
     return await manager.async_configure(f['flow_id'],{'next_step_id':step})
 
@@ -243,10 +246,10 @@ async def test_normal_room_edit_preserves_existing_external_program_without_expo
 
 
 @pytest.mark.asyncio
-async def test_native_product_retires_dead_legacy_identities_without_deleting_or_overriding_users(hass,monkeypatch):
+async def test_native_product_removes_dead_legacy_identities_without_overriding_users(hass,monkeypatch):
     from homeassistant.helpers import entity_registry as er
     from homeassistant.components import mqtt
-    from custom_components.open_thermostat.native_entity_cleanup import retire_legacy_entities
+    from custom_components.open_thermostat.native_entity_cleanup import cleanup_stale_entities
     from custom_components.open_thermostat.product_telemetry import async_setup_binary_sensors
     p=product(hass);reg=er.async_get(hass)
     def record(domain,uid,**kw):return reg.async_get_or_create(domain,'open_thermostat',uid,config_entry=p,**kw).entity_id
@@ -256,10 +259,15 @@ async def test_native_product_retires_dead_legacy_identities_without_deleting_or
     kept=[record('sensor','fixture_hub_cpu_temperature'),record('sensor','fixture_hub_energy_v2'),
           record('sensor','fixture_boiler_fields_v1_measured_flow_temperature')]
     user=record('sensor','fixture_hub_boiler_service_code',disabled_by=er.RegistryEntryDisabler.USER)
-    retire_legacy_entities(hass,p,'fixture')
-    assert all(reg.async_get(x).disabled_by is er.RegistryEntryDisabler.INTEGRATION for x in legacy)
+    renamed=record('sensor','fixture_hub_boiler_display_code')
+    reg.async_update_entity(renamed,name='My display code')
+    total=len(reg.entities)
+    cleanup_stale_entities(hass,p,'fixture')
+    assert all(reg.async_get(x) is None for x in legacy) and len(reg.entities)==total-len(legacy)
     assert all(reg.async_get(x).disabled_by is None for x in kept)
-    assert reg.async_get(user).disabled_by is er.RegistryEntryDisabler.USER and len(reg.entities)==9
+    assert reg.async_get(user).disabled_by is er.RegistryEntryDisabler.USER
+    # A customised legacy record stays, but disabled: native firmware never feeds it.
+    assert reg.async_get(renamed).disabled_by is er.RegistryEntryDisabler.INTEGRATION
     subscribe=AsyncMock();monkeypatch.setattr(mqtt,'async_subscribe',subscribe)
     hass.data['open_thermostat'][p.entry_id]={'v1_runtime':object()};added=[]
     await async_setup_binary_sensors(hass,p,lambda entities,**kw:added.extend(entities))

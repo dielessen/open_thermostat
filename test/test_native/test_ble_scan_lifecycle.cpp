@@ -80,3 +80,24 @@ TEST(BleScanLifecycle, OnlyARequestedDiscoveryFillsTheListAndItSkipsTheAutomatic
     ASSERT_TRUE(scan.begin(151000,60000));
     EXPECT_FALSE(scan.discovering());
 }
+
+TEST(BleScanPlan, BoundSensorsAreHeardContinuouslyAtAModestPassiveWindow) {
+    using heating::control::BleScanPlan;
+    // pvvx MJWSD05MMC: a reading every ~60 s between event-only adverts. The old
+    // 60 s on / 60 s off schedule caught one only every ~5 min.
+    const auto bound = BleScanPlan::of(0, 60, 60, true);
+    EXPECT_FALSE(bound.active); EXPECT_EQ(bound.durationMs, 60000u); EXPECT_EQ(bound.cooldownMs, 1000u);
+    EXPECT_LE(bound.windowMs * 100 / BleScanPlan::intervalMs, 30); // Wi-Fi keeps >= 70 % of the radio
+    const auto idle = BleScanPlan::of(0, 60, 60, false);
+    EXPECT_FALSE(idle.active); EXPECT_EQ(idle.windowMs, 30); EXPECT_EQ(idle.cooldownMs, 60000u);
+    const auto search = BleScanPlan::of(45000, 60, 60, true);
+    EXPECT_TRUE(search.active); EXPECT_EQ(search.windowMs, 50); EXPECT_EQ(search.durationMs, 30000u);
+    // The lifecycle applies the gap; a requested Search still waits at most 1 s.
+    heating::control::BleScanLifecycle scan;
+    ASSERT_TRUE(scan.begin(0, bound.cooldownMs));
+    ASSERT_TRUE(scan.complete(60000, [] {}));
+    EXPECT_FALSE(scan.begin(60999, bound.cooldownMs));
+    EXPECT_TRUE(scan.begin(61000, bound.cooldownMs));
+    ASSERT_TRUE(scan.complete(121000, [] {}));
+    EXPECT_TRUE(scan.begin(122000, search.cooldownMs, true));
+}

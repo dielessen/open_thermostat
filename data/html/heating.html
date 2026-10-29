@@ -1,43 +1,92 @@
 <section class="product-dashboard" id="heating-plan">
-  <h1 data-i18n="Rooms and heating">Rooms and heating</h1>
-  <p class="pd-help" data-i18n="Shadow mode: the E32 calculates the boiler request from these rooms but does not send it. The tado keeps controlling the boiler until the attended switch-over.">Shadow mode: the E32 calculates the boiler request from these rooms but does not send it. The tado keeps controlling the boiler until the attended switch-over.</p>
-  <div class="pd-panel" data-heating-request role="status" aria-live="polite"><span data-i18n="Loading…">Loading…</span></div>
+  <header class="ot-head"><div><h1 data-i18n="Rooms">Rooms</h1><p data-i18n="The rooms the E32 heats, their temperature sources and week programs.">The rooms the E32 heats, their temperature sources and week programs.</p></div>
+    <span class="ot-chip" data-heating-request role="status" aria-live="polite"><span data-i18n="Loading…">Loading…</span></span></header>
+  <p class="pd-help" data-i18n="Shadow mode: the E32 calculates the boiler request from these rooms but does not send it. Your thermostat keeps controlling the boiler until the attended switch-over.">Shadow mode: the E32 calculates the boiler request from these rooms but does not send it. Your thermostat keeps controlling the boiler until the attended switch-over.</p>
+  <div class="alert ot-actions" data-heating-lock role="status"><span data-heating-lock-text><span data-i18n="Managed in Home Assistant">Managed in Home Assistant</span></span>
+    <button type="button" class="btn btn-outline-primary" data-heating-unlock><span data-i18n="Edit here anyway">Edit here anyway</span></button></div>
+  <details class="ot-advanced">
+    <summary data-i18n="Where do I set what?">Where do I set what?</summary>
+    <ol class="hp-flow">
+      <li><strong>Home Assistant</strong><span data-i18n="The main place: rooms, temperature sources, target temperatures and week programs.">The main place: rooms, temperature sources, target temperatures and week programs.</span></li>
+      <li><strong data-i18n="Room plan on the E32">Room plan on the E32</strong><span data-i18n="Stored on the E32 and kept in step with Home Assistant. It keeps running without Home Assistant.">Stored on the E32 and kept in step with Home Assistant. It keeps running without Home Assistant.</span></li>
+      <li><strong data-i18n="Sensors">Sensors</strong><span data-i18n="Thermostats and other devices come in through Home Assistant; Bluetooth sensors are received by the E32 itself.">Thermostats and other devices come in through Home Assistant; Bluetooth sensors are received by the E32 itself.</span></li>
+      <li><strong data-i18n="Boiler">Boiler</strong><span data-i18n="In shadow mode the E32 only calculates. It controls the boiler only after the attended switch-over.">In shadow mode the E32 only calculates. It controls the boiler only after the attended switch-over.</span></li>
+    </ol>
+    <p class="pd-help" data-i18n="When Home Assistant is offline, the E32 continues with its own Bluetooth sensors and week programs; otherwise it keeps the temperature without Home Assistant.">When Home Assistant is offline, the E32 continues with its own Bluetooth sensors and week programs; otherwise it keeps the temperature without Home Assistant.</p>
+  </details>
+  <div class="hp-rooms" data-heating-rooms></div>
+  <p><button type="button" class="btn btn-outline-primary" data-heating-add><span data-i18n="Add room">Add room</span></button></p>
+  <section class="pd-panel" data-heating-active>
+    <h2 data-i18n="Active control">Active control</h2>
+    <p class="pd-help" data-i18n="Lets the E32 control the boiler itself instead of your thermostat, after an attended switch-over.">Lets the E32 control the boiler itself instead of your thermostat, after an attended switch-over.</p>
+    <p class="pd-help" data-heating-active-gate hidden data-i18n="Active control is not enabled in this firmware.">Active control is not enabled in this firmware.</p>
+    <div data-heating-active-state role="status" aria-live="polite"><span data-i18n="Loading…">Loading…</span></div>
+    <ul data-heating-active-warnings></ul>
+    <p class="d-flex flex-wrap gap-2">
+      <button type="button" class="btn btn-primary" data-heating-takeover hidden><span data-i18n="My thermostat is disconnected from the boiler — let the E32 take over">My thermostat is disconnected from the boiler — let the E32 take over</span></button>
+      <button type="button" class="btn btn-outline-secondary" data-heating-handback hidden><span data-i18n="Hand back to the thermostat">Hand back to the thermostat</span></button>
+    </p>
+    <p class="pd-help" role="status" aria-live="polite" data-heating-active-message></p>
+  </section>
   <section class="pd-panel" data-heating-shadow>
-    <h2 data-i18n="Comparison with the current thermostat (today)">Comparison with the current thermostat (today)</h2>
-    <p class="pd-help" data-i18n="Shadow mode: the E32 computes its boiler request but does not send it; here it is compared with what the tado asked of the boiler.">Shadow mode: the E32 computes its boiler request but does not send it; here it is compared with what the tado asked of the boiler.</p>
+    <h2 data-i18n="Comparison with your thermostat (today)">Comparison with your thermostat (today)</h2>
+    <p class="pd-help" data-i18n="Shadow mode: the E32 computes its boiler request but does not send it; here it is compared with what your thermostat asked of the boiler.">Shadow mode: the E32 computes its boiler request but does not send it; here it is compared with what your thermostat asked of the boiler.</p>
     <div data-heating-shadow-body><span data-i18n="Loading…">Loading…</span></div>
   </section>
-  <div data-heating-rooms></div>
-  <p><button type="button" class="btn btn-outline-primary" data-heating-add><span data-i18n="Add room">Add room</span></button></p>
   <section class="pd-panel" data-heating-ble>
     <h2 data-i18n="Bluetooth sensors on this E32">Bluetooth sensors on this E32</h2>
     <p class="pd-help" data-i18n="Read-only. To use a sensor as a room temperature source, choose Bluetooth sensor in the room and enter its ID.">Read-only. To use a sensor as a room temperature source, choose Bluetooth sensor in the room and enter its ID.</p>
     <div data-heating-ble-list><span data-i18n="Loading…">Loading…</span></div>
   </section>
-  <details class="pd-panel">
-    <summary data-i18n="Boiler flow temperature">Boiler flow temperature</summary>
-    <label for="heating-min-flow" data-i18n="Minimum flow (°C)">Minimum flow (°C)</label>
-    <input id="heating-min-flow" class="form-control" type="number" min="20" max="59" step="1">
-    <label for="heating-max-flow" data-i18n="Maximum flow (°C)">Maximum flow (°C)</label>
-    <input id="heating-max-flow" class="form-control" type="number" min="21" max="60" step="1">
+  <details class="ot-advanced">
+    <summary data-i18n="Boiler flow limits">Boiler flow limits</summary>
+    <div class="hp-grid">
+    <label><span data-i18n="Minimum flow (°C)">Minimum flow (°C)</span><input id="heating-min-flow" class="form-control" type="number" min="20" max="59" step="1" data-hint="The lowest water temperature the E32 asks of the boiler when heat is needed."></label>
+    <label><span data-i18n="Maximum flow (°C)">Maximum flow (°C)</span><input id="heating-max-flow" class="form-control" type="number" min="21" max="60" step="1" data-hint="The highest water temperature the E32 ever asks of the boiler."></label>
+    </div>
     <p class="pd-help" data-i18n="At most 60 °C: the floor heating group accepts no hotter water.">At most 60 °C: the floor heating group accepts no hotter water.</p>
   </details>
-  <p><button type="button" class="btn btn-primary" data-heating-save><span data-i18n="Save rooms">Save rooms</span></button></p>
-  <p role="status" aria-live="polite" data-heating-message></p>
+  <div class="ot-sticky ot-actions">
+    <button type="button" class="btn btn-primary" data-heating-save><span data-i18n="Save rooms">Save rooms</span></button>
+    <span class="ot-chip ot-chip--warn" data-heating-dirty hidden><span data-i18n="Unsaved changes">Unsaved changes</span></span>
+    <p role="status" aria-live="polite" data-heating-message></p>
+  </div>
 </section>
-<style>#heating-plan table{font-size:.85rem}#heating-plan th,#heating-plan td{padding:4px}#heating-plan [data-heating-point]{gap:8px}#heating-plan [data-heating-point] input{min-width:0;padding:6px}#heating-plan [data-heating-point] [type=time]{flex:0 0 auto;width:auto}</style>
+<style>#heating-plan [hidden]{display:none!important}#heating-plan table{font-size:.85rem}#heating-plan th,#heating-plan td{padding:4px}
+.hp-rooms>details{padding:0;overflow:hidden}.hp-rooms>details>summary{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:14px 20px;list-style:none}.hp-rooms>details>summary::-webkit-details-marker{display:none}.hp-rooms>details>summary::after{content:"▾";grid-area:1/2;justify-self:end;color:var(--ot-muted)}.hp-rooms>details[open]>summary{border-bottom:1px solid var(--ot-border);margin:0}.hp-rooms>details[open]>summary::after{content:"▴"}
+.hp-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}.hp-name{font-size:1.15rem}.hp-temps{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-weight:400}.hp-src{grid-column:1/-1;font-weight:400}.hp-body{padding:4px 20px 16px}.hp-body h3{font-size:.95rem;margin:16px 0 8px;color:var(--ot-muted)}
+.hp-grid{display:grid;gap:0 16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr))}.hp-grid label{display:block;margin-bottom:8px}#heating-plan [data-heating-source]{display:grid;grid-template-columns:minmax(0,13rem) minmax(0,1fr) 44px;gap:8px;margin-bottom:8px}#heating-plan [data-heating-source] .btn,#heating-plan [data-heating-point] .btn{width:44px;min-width:44px;flex:none;padding:0}
+#heating-plan [data-heating-point]{gap:8px}#heating-plan [data-heating-point] input{min-width:0;padding:6px}#heating-plan [data-heating-point] [type=time]{flex:0 0 auto;width:auto}.hp-remove{margin-top:16px;padding-top:12px;border-top:1px solid var(--ot-border)}.ot-sticky [data-heating-message]{flex:1 1 12rem}
+.hp-locked [data-heating-add],.hp-locked .ot-sticky,.hp-locked .hp-remove{display:none!important}.hp-body{border:0;margin:0;min-width:0}.hp-body:disabled .form-control{background:var(--ot-surface-2);opacity:1}
+.hp-flow{list-style:none;padding:0;margin:8px 0;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr))}.hp-flow li{position:relative;border:1px solid var(--ot-border);border-radius:var(--ot-r1);background:var(--ot-surface);padding:10px 12px;font-size:.88rem}.hp-flow strong{display:block;margin-bottom:2px}.hp-flow li+li::before{content:"→";position:absolute;left:-14px;top:38%;color:var(--ot-accent);font-weight:700}
+@media(max-width:560px){.hp-flow li+li::before{content:"↓";left:48%;top:-17px}#heating-plan [data-heating-source]{grid-template-columns:minmax(0,1fr) 44px}#heating-plan [data-heating-source] select{grid-column:1/-1}.hp-rooms>details>summary{padding:12px 14px}.hp-body{padding:4px 14px 14px}}</style>
 <script>
 (() => {
   const root = document.getElementById('heating-plan');
   const roomsBox = root.querySelector('[data-heating-rooms]'), requestBox = root.querySelector('[data-heating-request]');
   const shadowBox = root.querySelector('[data-heating-shadow-body]'), bleBox = root.querySelector('[data-heating-ble-list]');
   const message = root.querySelector('[data-heating-message]'), minFlow = root.querySelector('#heating-min-flow'), maxFlow = root.querySelector('#heating-max-flow');
+  const dirtyChip = root.querySelector('[data-heating-dirty]');
+  // Home Assistant is the main editor: read-only until the owner unlocks editing for this session.
+  const lockBox = root.querySelector('[data-heating-lock]'), lockText = root.querySelector('[data-heating-lock-text]'), unlock = root.querySelector('[data-heating-unlock]');
+  let locked = true; try { locked = sessionStorage.getItem('ot-rooms-edit') !== '1'; } catch (_) {}
   const statusText = {ok:"Measured", fallback:"Fallback source", stale:"Last value (source lost)", lost:"No measurement: no heat request", inactive:"Inactive"};
   const reasonText = {heating:"Heating", minimum_on:"Minimum burner time", minimum_off:"Minimum pause", satisfied:"Warm enough", no_demand:"No room can ask for heat", idle:"No heat needed", invalid_parameters:"Invalid limits"};
-  const sourceText = {ha:"from Home Assistant", schedule:"week program", fallback:"fixed fallback"};
+  const sourceText = {ha:"Target temperature from Home Assistant", schedule:"Target temperature from the week program", fallback:"Target temperature: fixed value without Home Assistant"};
+  const activeBox = root.querySelector('[data-heating-active]'), activeMessage = activeBox.querySelector('[data-heating-active-message]');
+  const takeover = activeBox.querySelector('[data-heating-takeover]'), handback = activeBox.querySelector('[data-heating-handback]');
+  const activeText = {shadow:"Shadow mode: your thermostat controls the boiler.",
+    awaiting_confirmation:"Waiting for your confirmation that your thermostat is disconnected from the boiler.",
+    arming:"Taking over: waiting for fresh room readings and the boiler bus.", active:"The E32 controls the boiler.",
+    stopped_measurement_lost:"No room measurements: the E32 asks the boiler for no heat until a reading returns.",
+    stopping:"Stopping: the E32 asks the boiler for zero for one minute.",
+    blocked_foreign_controller:"Stopped: another controller sent a boiler request after the takeover."};
+  const warningText = {foreign_controller:"Another controller (your thermostat?) still sends boiler requests. Disconnect it from the boiler, then confirm again.",
+    measurement_lost:"Room measurements are missing.", boiler_no_response:"The boiler does not respond to the heat request.",
+    transmit_failed:"Sending to the boiler fails.", boiler_limit_unknown:"The boiler has not reported its heating limit; the E32 asks for no heat."};
   let plan = null, timer = null;
   const el = (tag, text, attrs={}) => { const e = document.createElement(tag); if (text !== undefined && text !== null) e.textContent = text; for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
-  const field = (parent, label, input) => { const id = 'h' + Math.random().toString(36).slice(2); input.id = id; parent.append(el('label', label, {for:id}), input); return input; };
+  const field = (parent, label, input, hint) => { const id = 'h' + Math.random().toString(36).slice(2); input.id = id; if (hint) input.setAttribute('data-hint', hint); const wrap = el('div'); wrap.append(el('label', label, {for:id}), input); parent.append(wrap); return input; };
   const check = (parent, label, checked) => {
     const box = el('div', null, {class:'form-check mb-2'}), c = el('input', null, {type:'checkbox', class:'form-check-input', id:'h' + Math.random().toString(36).slice(2)});
     c.checked = checked; box.append(c, el('label', label, {for:c.id, class:'form-check-label'})); parent.append(box); return c;
@@ -53,52 +102,93 @@
   const degrees = v => num(v, ' °C');
   const minutes = s => typeof s === 'number' ? Math.round(s / 60) + ' min' : '—';
   const age = s => typeof s !== 'number' ? '—' : s < 120 ? s + ' s' : s < 7200 ? Math.round(s / 60) + ' min' : Math.round(s / 3600) + ' h';
+  const ago = s => typeof s === 'number' ? uiText("{age} ago").replace('{age}', age(s)) : '—';
   const range = side => typeof side?.flow_min_c === 'number' ? side.flow_min_c + '–' + side.flow_max_c + ' °C (' + uiText("mean") + ' ' + degrees(side.flow_mean_c) + ')' : '—';
   const agreement = d => d.s - d.tado_unknown_s > 0 ? Math.round(100 * d.agree_s / (d.s - d.tado_unknown_s)) + ' %' : '—';
   const dayName = day => day ? new Date(day + 'T12:00:00Z').toLocaleDateString(OpenThermostatLanguage.locale, {weekday:'short', day:'numeric', month:'numeric', timeZone:'UTC'}) : '—';
+  // Unsaved-changes marker for the sticky save bar; cleared by every (re)load.
+  const setDirty = value => { dirtyChip.hidden = !value; };
+  function applyLock() {
+    root.classList.toggle('hp-locked', locked); lockBox.hidden = !locked;
+    for (const box of root.querySelectorAll('.hp-body')) box.disabled = locked;
+    minFlow.disabled = maxFlow.disabled = locked;
+  }
+  function paintLock(control) { // control: /status "control" (HA snapshot age), undefined when unreadable
+    const ms = typeof control?.age_ms === 'number' ? control.age_ms : null;
+    const away = control !== undefined && !control?.fresh && (ms === null || ms > 600000);
+    lockBox.className = 'alert ot-actions ' + (away ? 'alert-warning' : 'alert-info');
+    unlock.className = 'btn ' + (away ? 'btn-primary' : 'btn-outline-primary');
+    lockText.textContent = away ? uiText("Home Assistant is not reachable — you can change rooms here.") : uiText("Managed in Home Assistant")
+      + (control?.fresh ? ' · ' + uiText("connected") : ms !== null ? ' · ' + uiText("last connected {age} ago").replace('{age}', age(Math.round(ms / 1000))) : '');
+  }
+  const readControl = () => json('/status').then(s => paintLock(s.control || null), () => paintLock(undefined));
+  unlock.addEventListener('click', () => {
+    if (!confirm(uiText("Changes you save here are stored on the E32 and also appear in Home Assistant. If Home Assistant changed the plan in the meantime, the E32 refuses your save, so nothing is overwritten. Edit here?"))) return;
+    locked = false; try { sessionStorage.setItem('ot-rooms-edit', '1'); } catch (_) {}
+    applyLock();
+  });
+  applyLock();
+  root.addEventListener('input', event => { if (event.target.closest('[data-heating-rooms], details')) setDirty(true); });
+  roomsBox.addEventListener('click', event => { if (event.target.closest('button')) setDirty(true); });
 
   function roomCard(room, index, status) {
     const card = el('details', null, {class:'pd-panel', 'data-heating-room':room.id});
-    const summary = el('summary');
-    card.status = s => summary.replaceChildren(el('strong', room.name), document.createTextNode(' · ' + uiText(statusText[s?.status] || statusText.inactive)
-      + ' · ' + degrees(s?.temperature) + ' / ' + degrees(s?.setpoint) + (s?.demand ? ' · ' + uiText("asks for heat") : '')
-      + (sourceText[s?.setpoint_source] ? ' · ' + uiText("setpoint") + ': ' + uiText(sourceText[s.setpoint_source]) : '')));
-    card.status(status); card.append(summary);
-    if (status?.source) card.append(el('p', uiText("Leading source") + ': ' + status.source, {class:'pd-help'}));
-    const name = field(card, uiText("Name"), input('text', room.name, {maxlength:'40'}));
-    const state = field(card, uiText("State"), select([['active', "Active"], ['inactive', "Inactive"], ['until', "Inactive until"]],
-      room.state === 'active' ? 'active' : room.inactive_until ? 'until' : 'inactive'));
-    const until = field(card, uiText("Inactive until"), input('datetime-local', room.inactive_until ? new Date(room.inactive_until * 1000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''));
-    const emitter = field(card, uiText("Heat emitter"), select([['floor', "Floor heating"], ['radiator', "Radiators"]], room.emitter));
-    card.append(el('p', uiText("Temperature sources, in order: the first fresh one leads, the rest are fallback."), {class:'pd-help'}));
-    const sources = el('div'); card.append(sources);
+    const summary = el('summary'), body = el('fieldset', null, {class:'hp-body'});
+    card.status = s => {
+      const chips = el('span', null, {class:'ot-chips'}), chip = (text, tone) => chips.append(el('span', uiText(text), {class:'ot-chip' + (tone ? ' ot-chip--' + tone : '')}));
+      if (s) chip(s.demand ? "Requesting heat" : "No request", s.demand ? 'ok' : '');
+      if (s?.status !== 'ok') chip(statusText[s?.status] || statusText.inactive, s?.status === 'fallback' ? 'warn' : ['stale', 'lost'].includes(s?.status) ? 'err' : '');
+      const head = el('span', null, {class:'hp-head'}), temps = el('span', null, {class:'hp-temps'});
+      head.append(el('strong', room.name, {class:'hp-name'}), chips);
+      temps.append(el('span', degrees(s?.temperature), {class:'ot-big'}), el('span', uiText("Target") + ' ' + degrees(s?.setpoint), {class:'pd-help'}));
+      summary.replaceChildren(head, temps, ...(sourceText[s?.setpoint_source] ? [el('span', uiText(sourceText[s.setpoint_source]), {class:'pd-help hp-src'})] : []));
+    };
+    card.status(status); card.append(summary, body);
+    if (status?.source) body.append(el('p', uiText("Leading source") + ': ' + status.source, {class:'pd-help'}));
+    body.append(el('h3', uiText("Basics")));
+    const basics = el('div', null, {class:'hp-grid'}); body.append(basics);
+    const name = field(basics, uiText("Name"), input('text', room.name, {maxlength:'40'}), "Shown here and in Home Assistant.");
+    const state = field(basics, uiText("State"), select([['active', "Active"], ['inactive', "Inactive"], ['until', "Inactive until"]],
+      room.state === 'active' ? 'active' : room.inactive_until ? 'until' : 'inactive'), "An inactive room never asks for heat.");
+    const until = field(basics, uiText("Inactive until"), input('datetime-local', room.inactive_until ? new Date(room.inactive_until * 1000 - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''), "The room becomes active again after this moment.");
+    const emitter = field(basics, uiText("Heating type"), select([['floor', "Floor heating"], ['radiator', "Radiators"]], room.emitter), "Floor heating warms up and cools down slowly; the E32 takes this into account for the water temperature.");
+    const showUntil = () => { until.parentElement.hidden = state.value !== 'until'; };
+    state.addEventListener('change', showUntil); showUntil();
+    body.append(el('h3', uiText("Temperature sources")), el('p', uiText("Temperature sources, in order: the first fresh one leads, the rest are fallback."), {class:'pd-help'}));
+    const sources = el('div'); body.append(sources);
     const addSource = (s) => {
-      const row = el('div', null, {class:'d-flex gap-2 mb-2', 'data-heating-source':''});
+      const row = el('div', null, {'data-heating-source':''});
       const type = select([['ha', "Home Assistant entity"], ['ble', "Bluetooth sensor"]], s.type);
-      const id = input('text', s.id, {placeholder:'climate.woonkamer / a4c138a3e8db', 'aria-label':uiText("Source")});
-      const remove = el('button', uiText("Remove"), {type:'button', class:'btn btn-sm btn-outline-secondary'});
+      const id = input('text', s.id, {placeholder:'climate.woonkamer / 0a1b2c3d4e5f', 'aria-label':uiText("Source")});
+      const known = () => { if (type.value === 'ble') id.setAttribute('list', 'heating-ble-ids'); else id.removeAttribute('list'); };
+      type.addEventListener('change', known); known();
+      const remove = el('button', '×', {type:'button', class:'btn btn-outline-secondary', 'aria-label':uiText("Remove"), title:uiText("Remove")});
       remove.addEventListener('click', () => row.remove());
       row.append(type, id, remove); sources.append(row);
     };
     room.sources.forEach(addSource);
-    const more = el('button', uiText("Add source"), {type:'button', class:'btn btn-sm btn-outline-primary mb-2'});
+    body.append(el('p', uiText("A Home Assistant entity (for example climate.woonkamer) or the ID of a Bluetooth sensor listed below."), {class:'ot-hint'}));
+    const more = el('button', uiText("Add source"), {type:'button', class:'btn btn-outline-primary mb-2'});
     more.addEventListener('click', () => sources.querySelectorAll('[data-heating-source]').length < 4 && addSource({type:'ble', id:''}));
-    card.append(more);
-    const setpoint = field(card, uiText("Setpoint from Home Assistant entity (optional)"), input('text', room.setpoint_entity, {placeholder:'climate.woonkamer'}));
-    const fallback = field(card, uiText("Setpoint without Home Assistant (°C)"), input('number', room.fallback_centi_c / 100, {min:'5', max:'30', step:'0.5'}));
-    const lo = field(card, uiText("Minimum (°C)"), input('number', room.minimum_centi_c / 100, {min:'5', max:'30', step:'0.5'}));
-    const hi = field(card, uiText("Maximum (°C)"), input('number', room.maximum_centi_c / 100, {min:'5', max:'30', step:'0.5'}));
+    body.append(more, el('h3', uiText("Target temperature and limits")));
+    const limits = el('div', null, {class:'hp-grid'});
+    const setpoint = field(body, uiText("Target temperature from Home Assistant entity (optional)"), input('text', room.setpoint_entity, {placeholder:'climate.woonkamer'}), "The Home Assistant entity whose target temperature this room follows, usually its climate entity.");
+    body.append(limits);
+    const fallback = field(limits, uiText("Temperature without Home Assistant (°C)"), input('number', room.fallback_centi_c / 100, {min:'5', max:'30', step:'0.5'}), "The temperature the E32 keeps when Home Assistant gives no target and there is no week program.");
+    const lo = field(limits, uiText("Minimum (°C)"), input('number', room.minimum_centi_c / 100, {min:'5', max:'30', step:'0.5'}), "The lowest target temperature allowed for this room.");
+    const hi = field(limits, uiText("Maximum (°C)"), input('number', room.maximum_centi_c / 100, {min:'5', max:'30', step:'0.5'}), "The highest target temperature allowed for this room.");
     // Week program: 7 days Mon..Sun of [minute, centi_c]; an empty day continues the last earlier switch point.
     const week = el('fieldset', null, {class:'mt-3', 'data-heating-week':''}), editor = el('div'), rows = el('div');
-    week.append(el('legend', uiText("Week program (used when Home Assistant gives no setpoint)"), {class:'h6'}));
+    week.append(el('legend', uiText("Week program (used when Home Assistant gives no target temperature)"), {class:'h6'}));
     const given = Array.isArray(room.schedule) && room.schedule.length === 7 ? room.schedule : null;
     const useWeek = check(week, uiText("Use a week program"), !!given?.some(d => d.length));
+    week.append(el('p', uiText("The E32 follows this program on its own when Home Assistant sends no target."), {class:'ot-hint'}));
     const same = check(editor, uiText("Same every day"), !given || given.every(d => JSON.stringify(d) === JSON.stringify(given[0])));
     editor.append(el('p', uiText("A day without switch points continues the last one of an earlier day."), {class:'pd-help'}));
     const label = d => same.checked ? uiText("Every day") : weekdays[d];
     const addPoint = (list, [m, c]) => {
       const row = el('div', null, {class:'d-flex mb-2', 'data-heating-point':''});
-      const remove = el('button', '×', {type:'button', class:'btn btn-sm btn-outline-secondary', 'aria-label':uiText("Remove"), title:uiText("Remove")});
+      const remove = el('button', '×', {type:'button', class:'btn btn-outline-secondary', 'aria-label':uiText("Remove"), title:uiText("Remove")});
       remove.addEventListener('click', () => row.remove());
       row.append(input('time', Number.isFinite(m) ? String(m / 60 | 0).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0') : '', {'aria-label':uiText("Time")}),
         input('number', Number.isFinite(c) ? c / 100 : '', {min:'5', max:'30', step:'0.5', 'aria-label':uiText("Temperature (°C)")}), remove);
@@ -106,7 +196,7 @@
     };
     const draw = days => rows.replaceChildren(...days.slice(0, same.checked ? 1 : 7).map((points, d) => {
       const day = el('div', null, {'data-heating-day':''}), head = el('div', null, {class:'d-flex justify-content-between align-items-center mb-2'}), list = el('div');
-      const add = el('button', uiText("Add switch point"), {type:'button', class:'btn btn-sm btn-outline-primary'});
+      const add = el('button', uiText("Add switch point"), {type:'button', class:'btn btn-outline-primary'});
       add.addEventListener('click', () => list.children.length < 6 && addPoint(list, [NaN, NaN]));
       head.append(el('strong', label(d)), add); points.forEach(p => addPoint(list, p)); day.append(head, list);
       return day;
@@ -120,7 +210,7 @@
       editor.hidden = !useWeek.checked;
       if (useWeek.checked && !rows.querySelector('[data-heating-point]')) draw([[[420, Math.round(fallback.value * 100)]]]);
     });
-    draw(given || [[]]); editor.hidden = !useWeek.checked; editor.append(rows); week.append(editor); card.append(week);
+    draw(given || [[]]); editor.hidden = !useWeek.checked; editor.append(rows); week.append(editor); body.append(week);
     const schedule = () => {
       if (!useWeek.checked) return {};
       const days = raw(), min = Math.round(lo.value * 100), max = Math.round(hi.value * 100);
@@ -135,9 +225,9 @@
       if (!days.some(d => d.length)) throw Object.assign(Error('schedule'), {text: name.value.trim() + ': ' + uiText("add a switch point or turn the week program off.")});
       return {schedule: same.checked ? Array(7).fill(days[0]) : days};
     };
-    const removeRoom = el('button', uiText("Remove room"), {type:'button', class:'btn btn-sm btn-outline-danger mt-2'});
+    const removeRoom = el('button', uiText("Remove room"), {type:'button', class:'btn btn-outline-danger'}), removeBox = el('div', null, {class:'hp-remove'});
     removeRoom.addEventListener('click', () => { if (confirm(uiText("Remove this room?"))) card.remove(); });
-    card.append(removeRoom);
+    removeBox.append(removeRoom); body.append(removeBox);
     card.read = () => {
       const untilValue = state.value === 'until' && until.value ? Math.floor(new Date(until.value).getTime() / 1000) : 0;
       return {id: room.id || slug(name.value), name: name.value.trim(), state: state.value === 'active' ? 'active' : 'inactive',
@@ -152,14 +242,21 @@
   function render(status) {
     const byId = new Map((status?.rooms || []).map(r => [r.id, r]));
     roomsBox.replaceChildren(...plan.rooms.map((room, i) => roomCard(room, i, byId.get(room.id))));
-    if (!plan.rooms.length) roomsBox.append(el('p', uiText("No rooms yet. Add the living room to start."), {class:'pd-help'}));
+    if (!plan.rooms.length) {
+      const empty = el('div', null, {class:'ot-empty'});
+      empty.append(el('strong', uiText("No rooms yet")), uiText("Start with the living room: give it a name and choose its temperature sensor."));
+      roomsBox.append(empty);
+    }
     minFlow.value = plan.minimum_flow_c; maxFlow.value = plan.maximum_flow_c;
+    setDirty(false); applyLock();
   }
   function renderBle(list) {
-    bleBox.replaceChildren(...list.map(s => {
+    const ids = el('datalist', null, {id:'heating-ble-ids'});
+    for (const s of list) ids.append(el('option', s.name || s.id, {value:s.id}));
+    bleBox.replaceChildren(ids, ...list.map(s => {
       const item = el('div', null, {class:'mb-2', 'data-heating-ble-sensor':s.id});
       const values = [["Temperature", degrees(s.temperature)], ["Humidity", num(s.humidity, ' %')],
-        ["Battery", typeof s.battery === 'number' ? s.battery + ' %' : '—'], ["Age", age(s.age_s)]];
+        ["Battery", typeof s.battery === 'number' ? s.battery + ' %' : '—'], ["Updated", ago(s.age_s)]];
       item.append(el('strong', s.name || s.id), document.createTextNode(' · ID '), el('code', s.id),
         el('div', values.map(([k, v]) => uiText(k) + ' ' + v).join(' · '), {class:'pd-help'}));
       return item;
@@ -169,18 +266,18 @@
   function renderShadow(shadow) {
     const d = shadow?.today, days = shadow?.days || [], parts = [];
     if (d?.s) {
-      const rows = [["Compared time", minutes(d.s)], ["Heating time E32 / tado", minutes(d.e32.heat_s) + ' / ' + minutes(d.tado.heat_s)],
-        ["Burner starts E32 / tado", d.e32.starts + ' / ' + d.tado.starts], ["Agreement (both on or both off)", agreement(d)],
-        ["E32 flow range", range(d.e32)], ["tado flow range", range(d.tado)],
-        ["E32 starts within 5 min of a tado start", d.starts_within_5min + ' / ' + d.tado.starts]];
-      if (d.tado_unknown_s) rows.push(["Without tado data", minutes(d.tado_unknown_s)]);
+      const rows = [["Compared time", minutes(d.s)], ["Heating time E32 / thermostat", minutes(d.e32.heat_s) + ' / ' + minutes(d.tado.heat_s)],
+        ["Burner starts E32 / thermostat", d.e32.starts + ' / ' + d.tado.starts], ["Agreement (both on or both off)", agreement(d)],
+        ["E32 flow range", range(d.e32)], ["Thermostat flow range", range(d.tado)],
+        ["E32 starts within 5 min of a thermostat start", d.starts_within_5min + ' / ' + d.tado.starts]];
+      if (d.tado_unknown_s) rows.push(["Without thermostat data", minutes(d.tado_unknown_s)]);
       const dl = el('dl', null, {class:'pd-detail-grid', 'data-heating-shadow-today':''});
       for (const [k, v] of rows) dl.append(el('dt', uiText(k)), el('dd', v));
       parts.push(dl);
     } else parts.push(el('p', uiText("No comparison data yet."), {class:'pd-help'}));
     if (days.length) {
       const table = el('table', null, {class:'table table-sm mb-0', 'data-heating-shadow-days':''}), thead = el('thead'), head = el('tr'), body = el('tbody');
-      for (const h of ["Day", "E32", "tado", "Agreement", "Starts E32 / tado"]) head.append(el('th', uiText(h), {scope:'col'}));
+      for (const h of ["Day", "E32", "Thermostat", "Agreement", "Starts E32 / thermostat"]) head.append(el('th', uiText(h), {scope:'col'}));
       for (const day of days) {
         const tr = el('tr');
         for (const v of [dayName(day.day), minutes(day.e32.heat_s), minutes(day.tado.heat_s), agreement(day), day.e32.starts + ' / ' + day.tado.starts]) tr.append(el('td', v));
@@ -192,10 +289,25 @@
     }
     shadowBox.replaceChildren(...parts);
   }
+  function renderActive(a) {
+    const box = activeBox.querySelector('[data-heating-active-state]');
+    activeBox.querySelector('[data-heating-active-gate]').hidden = !a || a.enabled;
+    takeover.hidden = !a?.enabled || !!a.confirmation; handback.hidden = plan?.mode !== 'active';
+    if (!a) { if (!activeBox.dataset.ready) box.textContent = uiText("Status unavailable"); return; }
+    const parts = [uiText(activeText[a.state] || a.state)];
+    if (a.state !== 'shadow') parts.push(uiText("Boiler request") + ': ' + (a.command.flow_c ? a.command.flow_c + ' °C' : uiText("off")));
+    if (a.last_sent) parts.push(uiText("last sent") + ' ' + ago(a.last_sent.age_s));
+    if (a.foreign_controller) parts.push(uiText("last request from another controller") + ' (0x' + a.foreign_controller.address.toString(16).padStart(2, '0') + ') ' + ago(a.foreign_controller.age_s));
+    box.textContent = parts.join(' · ');
+    activeBox.querySelector('[data-heating-active-warnings]').replaceChildren(...a.warnings.map(w => el('li', uiText(warningText[w] || w))));
+    activeBox.dataset.ready = '1';
+  }
   function renderRequest(status) {
     const r = status?.request;
     requestBox.textContent = !r ? uiText("Status unavailable")
       : uiText("Calculated boiler request") + ': ' + (r.heat ? r.flow_c + ' °C' : uiText("off")) + ' · ' + uiText(reasonText[r.reason] || r.reason);
+    requestBox.classList.toggle('ot-chip--ok', !!r?.heat);
+    renderActive(status?.active);
     if (!status) { // keep the last good values; only a never-loaded section says so
       for (const box of [shadowBox, bleBox]) if (!box.dataset.ready) box.textContent = uiText("Status unavailable");
       return;
@@ -216,25 +328,27 @@
   }
   async function refreshStatus() {
     if (!root.isConnected) { clearInterval(timer); return; }
+    if (locked) readControl();
     try { renderRequest(await json('/status/heating')); } catch (_) { renderRequest(null); }
   }
   async function load() {
     try {
       plan = await json('/config/heating');
       let status = null; try { status = await json('/status/heating'); } catch (_) {}
-      render(status); renderRequest(status);
+      render(status); renderRequest(status); readControl();
     } catch (_) { requestBox.textContent = uiText("The room plan could not be loaded."); }
   }
   root.querySelector('[data-heating-add]').addEventListener('click', () => {
     if (!plan || plan.rooms.length >= 8) return;
     const room = {id:'', name:uiText("New room"), state:'inactive', inactive_until:0, emitter:'radiator', sources:[{type:'ble', id:''}],
       setpoint_entity:'', fallback_centi_c:2000, minimum_centi_c:500, maximum_centi_c:2500};
-    const card = roomCard(room, plan.rooms.length, null); card.open = true; roomsBox.append(card);
+    roomsBox.querySelector('.ot-empty')?.remove();
+    const card = roomCard(room, plan.rooms.length, null); card.open = true; roomsBox.append(card); setDirty(true);
   });
   root.querySelector('[data-heating-save]').addEventListener('click', async () => {
     let rooms;
     try { rooms = [...roomsBox.querySelectorAll('[data-heating-room]')].map(card => card.read()); } catch (error) { message.textContent = error.text; return; }
-    const next = {schema:1, revision:plan.revision, mode:'shadow', minimum_flow_c:Number(minFlow.value), maximum_flow_c:Number(maxFlow.value), rooms};
+    const next = {schema:1, revision:plan.revision, mode:plan.mode, minimum_flow_c:Number(minFlow.value), maximum_flow_c:Number(maxFlow.value), rooms};
     message.textContent = uiText("Saving…");
     try {
       plan = await json('/config/heating', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(next)});
@@ -246,6 +360,25 @@
       message.textContent = uiText("The plan was changed elsewhere (Home Assistant). It has been reloaded; make your change again.");
     }
   });
+  // Switch-over: the saved plan goes active, then the owner's confirmation (RAM only).
+  // Handing back saves the plan as shadow: the E32 sends zero for one minute.
+  const post = (url, body) => json(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  const activeError = {active_mode_not_released:"Active control is not enabled in this firmware.", plan_changed:"The plan was changed elsewhere (Home Assistant). It has been reloaded; make your change again."};
+  const switchOver = async (mode, done) => {
+    activeMessage.textContent = uiText("Saving…");
+    try {
+      if (plan.mode !== mode) plan = await post('/config/heating', {...plan, mode});
+      if (mode === 'active') await post('/config/heating/handover', {tado_disconnected:true});
+      activeMessage.textContent = uiText(done);
+    } catch (error) {
+      activeMessage.textContent = activeError[error.code] ? uiText(activeError[error.code]) : uiText("Not saved") + ': ' + error.code;
+      if (error.code === 'plan_changed') await load();
+    }
+    await refreshStatus();
+  };
+  takeover.addEventListener('click', () => plan && confirm(uiText("Confirm that your thermostat (tado) is disconnected from the boiler. The E32 then controls the heating; two controllers must never be connected at the same time."))
+    && switchOver('active', "Confirmed. The E32 takes over the boiler within a minute."));
+  handback.addEventListener('click', () => plan && switchOver('shadow', "Handed back. The E32 asks the boiler for zero for one minute. Then reconnect your thermostat to the boiler."));
   load();
   timer = setInterval(refreshStatus, 10000);
 })();

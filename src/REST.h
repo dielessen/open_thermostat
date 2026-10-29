@@ -8,6 +8,7 @@
 #include "control/ManagedDeviceSettings.h"
 #include "update/ManualAppUpload.h"
 #include "control/CaptivePortalPolicy.h"
+#include "control/BoundedJson.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "EmbeddedWebAssets.h"
 #include "control/StaticAssetRoute.h"
@@ -29,6 +30,7 @@
 #include "diagnostics/BlackBox.h"
 #include "diagnostics/LoopIntervals.h"
 #include "diagnostics/ResponseBuffer.h"
+#include "diagnostics/RuntimeHealth.h"
 #include <esp_heap_caps.h>
 #endif
 
@@ -203,6 +205,7 @@ public:
 		route("/hardware/test/gpio", HTTP_DELETE, [this]() { gpioTestStop(); });
 		route("/config/debug", [this]() { configDebug(); });
 #ifdef OPENTHERMOSTAT_E32V2
+        route("/config/heating/handover",HTTP_POST,[this] { heatingHandover(); });
         route("/config/heating",[this] { heatingPlan(); });
         route("/status/heating",HTTP_GET,[this] { heatingStatus(); });
         route("/config/bluetooth",[this] { bluetoothSettings(); });
@@ -674,7 +677,7 @@ private:
 	void setupNetwork() {
 		auto body=server_.arg("plain");
 		if(body.length()==0||body.length()>768||body.indexOf("\\u0000")>=0) { server_.send(400,"text/plain","Invalid setup payload"); return; }
-		control::ControlJson root(cJSON_ParseWithLengthOpts(body.c_str(),body.length()+1,nullptr,true),cJSON_Delete);
+		control::ControlJson root=control::parseNestedJson(body,true,2);
 		if(!root||!control::exactFields(root.get(),{"ssid","password"})||!cJSON_IsString(control::field(root.get(),"ssid"))||!cJSON_IsString(control::field(root.get(),"password"))) {
 			server_.send(400,"text/plain","SSID and password required"); return;
 		}
@@ -748,6 +751,7 @@ private:
             if(!devices || !buf.reset()) { server_.send(503,"application/json","{\"error\":\"bluetooth_resources_unavailable\"}");return; }
             std::ostream out(&buf);
             out<<"{\"schema\":1,\"pending_restart\":"<<(controller_.managedBlePending()?"true":"false")
+               <<",\"restart_scheduled\":"<<(update::controlledRestartPending()?"true":"false")
                <<",\"config_error\":\""<<control::bleSettingsErrorName(storedError)<<"\",\"queue_drops\":"<<controller_.managedBleQueueDrops()
                <<",\"scan_pending\":"<<(controller_.bleScanPending()?"true":"false")<<",\"devices\":[";
             for(size_t i=0;i<bindings->count;++i) {
@@ -793,7 +797,12 @@ private:
         if(!saveDeviceBluetoothSettings(encoded)) {
             server_.send(503,"application/json","{\"error\":\"bluetooth_save_unconfirmed\"}");return;
         }
-        server_.send(201,"application/json","{\"changed\":true,\"pending_restart\":true}");
+        // Managed observation stays closed until the restart; restart once,
+        // 30 s from now, at the first moment without an update, unconfirmed
+        // boot or boiler session (never needs a manual restart).
+        const bool scheduled=update::scheduleControlledRestart(30000,static_cast<uint8_t>(diagnostics::SupervisorPolicy::Reason::bluetoothApply));
+        server_.send(201,"application/json",scheduled?"{\"changed\":true,\"pending_restart\":true,\"restart_scheduled\":true,\"restart_in_s\":30}"
+            :"{\"changed\":true,\"pending_restart\":true,\"restart_scheduled\":false}");
     } catch(...) {
         // The writer closes observation admission before any durable mutation.
         // A JSON/heap exception cannot claim saved settings or retry a write.
@@ -997,6 +1006,12 @@ private:
 					break;
 				}
 
+				// Parsed at every boot: a document cJSON cannot parse safely would
+				// turn into a restart loop. Validate before replacing the file.
+				if (body.length() > 4096 || !control::parseNestedJson(body, true)) {
+					server_.send(400, "text/plain", "Invalid hardware settings");
+					break;
+				}
 				File file = SPIFFS.open("/cfg/cfgpins.json", FILE_WRITE);
 				if (!file) {
 					DBGLOGFD(log_, logFeature_, "configHardware. Can't open config file for write.\n");
@@ -1075,7 +1090,7 @@ private:
 			return;
 		}
 
-		std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(body.c_str()), &cJSON_Delete);
+		std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(control::parseNestedJson(body));
 		if (!root) {
 			server_.send(400, "text/plain", "Invalid JSON");
 			return;
@@ -1136,6 +1151,11 @@ private:
         timing.release();
         cJSON* boot=diagnostics::blackBox.json();
         if(!boot||!cJSON_AddItemToObject(root.get(),"previous_boot",boot)) {cJSON_Delete(boot);server_.send(503);return;}
+        cJSON* runtime=diagnostics::runtimeHealthJson();
+        if(!runtime||!cJSON_AddItemToObject(root.get(),"runtime",runtime)) {cJSON_Delete(runtime);server_.send(503);return;}
+        cJSON_AddNumberToObject(runtime,"mqtt_budget_disconnects",control::socketBudgetDisconnects.load());
+        cJSON_AddNumberToObject(runtime,"heating_telemetry_dropped",control::heatingTelemetryDropped.load());
+        cJSON_AddNumberToObject(runtime,"heating_telemetry_failed",control::heatingTelemetryFailed.load());
         cJSON_AddNumberToObject(root.get(),"boot",diagnostics::runtime.boot);
         cJSON_AddNumberToObject(root.get(),"latest",stats.latest);cJSON_AddNumberToObject(root.get(),"oldest",stats.oldest);
         cJSON_AddNumberToObject(root.get(),"retained",stats.retained);cJSON_AddNumberToObject(root.get(),"overwritten",stats.overwritten);
@@ -1181,6 +1201,10 @@ private:
 					return;
 				}
 
+				if (body.length() > 4096 || !control::parseNestedJson(body, true)) {
+					server_.send(400, "text/plain", "Invalid debug settings");
+					break;
+				}
 				config::setDebugOptionsFromJson(body.c_str());
 				DBGLOGFD(log_, logFeature_, "configDebug. Flags set.\n");
 
@@ -1208,10 +1232,10 @@ private:
 		if (server_.method() == HTTP_POST) {
 			const auto body = server_.arg("plain");
 			if (body.length() > control::ControlPartitionBudget::configBytes) { server_.send(413,"application/json","{\"error\":\"plan_too_large\"}"); return; }
-			std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(cJSON_ParseWithLengthOpts(body.c_str(),body.length()+1,nullptr,true),cJSON_Delete);
+			std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(control::parseNestedJson(body,true,10)); // plan depth 5; IDF cJSON: 128 B stack per level
 			const char* error = root ? controller_.setHeatingPlan(root.get()) : "invalid_json";
 			if (error) {
-				const int code = !std::strcmp(error,"save_unconfirmed") ? 503 : !std::strcmp(error,"plan_changed") ? 409
+				const int code = !std::strcmp(error,"save_unconfirmed") ? 503 : !std::strcmp(error,"storage_full") ? 507 : !std::strcmp(error,"plan_changed") ? 409
 					: !std::strcmp(error,"plan_too_large") ? 413 : 400;
 				server_.send(code,"application/json",(std::string("{\"error\":\"")+error+"\"}").c_str()); return;
 			}
@@ -1219,6 +1243,20 @@ private:
 		const auto plan = controller_.heatingPlanJson();
 		if (plan.empty()) { server_.send(503,"application/json","{\"error\":\"plan_unavailable\"}"); return; }
 		server_.send(200,"application/json",plan.c_str());
+	}
+	// POST {"tado_disconnected":true|false}: the owner's handover for active
+	// mode (RAM only); answers the active-control status.
+	void heatingHandover() {
+		const auto body = server_.arg("plain");
+		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(body.length() <= 64 ? control::parseNestedJson(body,true,2) : control::ControlJson(nullptr,cJSON_Delete));
+		const auto* value = root && cJSON_IsObject(root.get()) && cJSON_GetArraySize(root.get()) == 1 ? cJSON_GetObjectItemCaseSensitive(root.get(),"tado_disconnected") : nullptr;
+		if (const char* error = cJSON_IsBool(value) ? controller_.setHeatingHandover(cJSON_IsTrue(value)) : "invalid_request") {
+			server_.send(std::strcmp(error,"invalid_request") ? 409 : 400,"application/json",(std::string("{\"error\":\"")+error+"\"}").c_str()); return;
+		}
+		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> active(controller_.activeHeatJson(),cJSON_Delete);
+		const auto text = active ? control::printJson(active.get()) : std::string();
+		if (text.empty()) { server_.send(503,"application/json","{\"error\":\"status_unavailable\"}"); return; }
+		server_.send(200,"application/json",text.c_str());
 	}
 	void heatingStatus() {
 		std::unique_ptr<cJSON,decltype(&cJSON_Delete)> status(controller_.heatingStatusJson(),cJSON_Delete);
@@ -1232,8 +1270,7 @@ private:
 		if (server_.method() == HTTP_POST) {
 			const auto body = server_.arg("plain");
 			if (body.length() > 128) { server_.send(400,"text/plain","Invalid boiler model"); return; }
-			auto root = std::unique_ptr<cJSON,decltype(&cJSON_Delete)>(
-				cJSON_ParseWithLengthOpts(body.c_str(),body.length()+1,nullptr,true),cJSON_Delete);
+			auto root = control::parseNestedJson(body,true,2);
 			const auto model = root ? cJSON_GetObjectItemCaseSensitive(root.get(),"model") : nullptr;
 			if (!root || !cJSON_IsObject(root.get()) || cJSON_GetArraySize(root.get()) != 1
 					|| !cJSON_IsString(model) || !model->valuestring || !validBoilerDisplayModel(model->valuestring)) {
@@ -1273,6 +1310,12 @@ private:
 					break;
 				}
 
+				// Parsed at every boot: a document cJSON cannot parse safely would
+				// turn into a restart loop. Validate before replacing the file.
+				if (body.length() > 4096 || !control::parseNestedJson(body, true)) {
+					server_.send(400, "text/plain", "Invalid boiler settings");
+					break;
+				}
 				File file = SPIFFS.open("/cfg/cfgboiler.json", FILE_WRITE);
 				if (!file) {
 					DBGLOGFD(log_, logFeature_, "configBoiler. Can't open config file for write.\n");
@@ -1297,8 +1340,9 @@ private:
 			server_.send(204);
 			return;
 		}
+		if (body.length() > 512) { server_.send(413, "text/plain", "Request too large"); return; }
 
-		std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(body.c_str()), &cJSON_Delete);
+		std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(control::parseNestedJson(body));
 
 		auto obj = cJSON_GetObjectItem(root.get(), "temperature");
 		if (!obj || obj->type != cJSON_Number) {
@@ -1373,7 +1417,7 @@ private:
 	static bool readRoomCatalog(RoomValves &rooms) {
 		File file = SPIFFS.open("/cfg/rooms.json", FILE_READ);
 		if (!file) return false;
-		std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(file.readString().c_str()), &cJSON_Delete);
+		std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(control::parseNestedJson(file.readString()));
 		file.close();
 		return root && parseRoomCatalog(root.get(), rooms);
 	}
@@ -1419,7 +1463,7 @@ private:
 			case HTTP_POST: {
 				if (!server_.hasArg("plain")) { server_.send(400, "text/plain", "Missing room catalog"); return; }
 				auto body = server_.arg("plain");
-				std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(body.c_str()), &cJSON_Delete);
+				std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(control::parseNestedJson(body));
 				if (!root || !cJSON_IsArray(root.get())) { server_.send(400, "text/plain", "Invalid room catalog"); return; }
 				RoomValves rooms;
 				if (!parseRoomCatalog(root.get(), rooms)) { server_.send(400, "text/plain", "Invalid room catalog"); return; }
@@ -1430,7 +1474,7 @@ private:
 					if (file.isDirectory()) continue;
 					std::string filename = file.name();
 					if (filename.size() < 5 || filename.substr(filename.size() - 5) != ".json") continue;
-					std::unique_ptr<cJSON, decltype(&cJSON_Delete)> program(cJSON_Parse(file.readString().c_str()), &cJSON_Delete);
+					std::unique_ptr<cJSON, decltype(&cJSON_Delete)> program(control::parseNestedJson(file.readString()));
 					if (!program || !validProgram(program.get(), rooms)) {
 						server_.send(409, "text/plain", ("Room catalog conflicts with program '" + filename + "'. Remove missing rooms from that program and save it first.").c_str()); return;
 					}
@@ -1488,7 +1532,7 @@ private:
 				}
 
 				RoomValves rooms;
-				std::unique_ptr<cJSON, decltype(&cJSON_Delete)> program(cJSON_Parse(body.c_str()), &cJSON_Delete);
+				std::unique_ptr<cJSON, decltype(&cJSON_Delete)> program(control::parseNestedJson(body));
 				if (!readRoomCatalog(rooms) || !validProgram(program.get(), rooms)) {
 					server_.send(400, "text/plain", "Invalid program or unknown room ID");
 					break;

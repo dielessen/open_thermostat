@@ -9,7 +9,9 @@ single change is applied to the new revision; nothing else is overwritten.
 
 Entities (product entries with a stored controller connection, one per room
 the E32 telemetry reports): a select (active / inactive), a datetime
-(inactive until) and a number (fallback setpoint).
+(inactive until) and a number (fallback setpoint). Whole rooms are added,
+edited and removed by the "E32 rooms" options flow (e32_room_flow.py) through
+the same writer.
 """
 from __future__ import annotations
 
@@ -97,11 +99,24 @@ def set_fallback(centi_c):
     return change
 
 
+def has_room_plan(entry):
+    """A product entry whose E32 room plan HA edits (a stored controller connection).
+
+    Such an entry is set up through the E32 rooms editor; the older HA room
+    settings views stay out of its menu and dashboard.
+    """
+    from .controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_PASSWORD
+    from .product import is_product
+    return bool(is_product(entry) and entry.data.get(CONTROLLER_ADDRESS) and entry.data.get(CONTROLLER_PASSWORD))
+
+
 def plan_error(err):
-    """A clear Home Assistant error for a refused or failed plan write."""
+    """A clear Home Assistant error for a refused or failed plan read or write."""
     if isinstance(err, HeatingPlanRejected):
         if err.error == "plan_changed":
             return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_changed")
+        if err.error == "plan_too_large":
+            return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_too_large")
         if err.error == "save_unconfirmed":
             return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unconfirmed")
         return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_rejected",
@@ -168,20 +183,36 @@ class RoomPlanLink:
     def _client(self):
         return ControllerClient(self._address)
 
+    async def _async_fetch(self):
+        async with self._lock:
+            async with self._client() as client:
+                await client.async_login(self._password)
+                plan = decode_plan(await client.async_read_heating_plan())
+        if plan is None:
+            raise ControllerLinkError("controller_response_invalid")
+        return plan
+
     async def async_refresh(self):
         try:
-            async with self._lock:
-                async with self._client() as client:
-                    await client.async_login(self._password)
-                    plan = decode_plan(await client.async_read_heating_plan())
-            if plan is None:
-                raise ControllerLinkError("controller_response_invalid")
+            plan = await self._async_fetch()
         except ControllerLinkError as err:
             _LOGGER.debug("E32 room plan read failed: %s", err)
             self._failed_at, self._seen_revision = self.clock(), None
             return
         self._failed_at = None
         self._set(plan)
+
+    async def async_read(self):
+        """The plan as the E32 holds it now; a clear error when it cannot be read."""
+        try:
+            plan = await self._async_fetch()
+        except ControllerLinkError as err:
+            if err.args and err.args[0] == "controller_response_invalid":
+                raise HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_invalid") from None
+            raise plan_error(err) from None
+        self._failed_at = None
+        self._set(plan)
+        return plan
 
     @callback
     def _set(self, plan):
@@ -190,6 +221,17 @@ class RoomPlanLink:
 
     async def async_change_room(self, room_id, change):
         """GET, change one room field, POST with the read revision; one re-read on 409."""
+        return await self.async_change_plan(
+            lambda plan: changed_plan(plan, room_id, change),
+            lambda stored: plan_room(stored, room_id) is not None)
+
+    async def async_change_plan(self, change, confirm=lambda stored: True):
+        """GET, change(plan) returns the new plan, POST with the read revision; one re-read on 409.
+
+        change runs again on the re-read plan, so a concurrent save elsewhere is
+        kept and only this edit is applied on top. confirm(stored) checks the
+        E32's answer; a stored plan it does not accept is reported unconfirmed.
+        """
         async with self._lock:
             try:
                 async with self._client() as client:
@@ -198,7 +240,7 @@ class RoomPlanLink:
                         plan = decode_plan(await client.async_read_heating_plan())
                         if plan is None:
                             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_invalid")
-                        candidate = changed_plan(plan, room_id, change)
+                        candidate = change(plan)
                         try:
                             stored = await client.async_save_heating_plan(candidate)
                         except HeatingPlanRejected as err:
@@ -213,7 +255,7 @@ class RoomPlanLink:
                     self._seen_revision = None  # Read back what the E32 really stored.
                 raise plan_error(err) from None
         stored = decode_plan(stored)
-        if stored is None or plan_room(stored, room_id) is None:
+        if stored is None or not confirm(stored):
             self._seen_revision = None
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unconfirmed")
         # Telemetry still carries the old revision for a moment; that is not a reason to read.

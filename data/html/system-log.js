@@ -37,7 +37,7 @@ window.SystemLogPage = (() => {
       const element=get('log-previous-boot');if(!element)return;
       const p=value?.previous;
       if(!p||typeof p!=='object'||!Number.isSafeInteger(p.uptime_s)){element.textContent='';return;}
-      const restart={loop_stall:'the main loop stopped',wifi_lost:'Wi-Fi stayed disconnected',broker_lost:'Home Assistant (MQTT) stayed unreachable'}[p.supervisor_restart];
+      const restart={loop_stall:'the main loop stopped',wifi_lost:'Wi-Fi stayed disconnected',broker_lost:'Home Assistant (MQTT) stayed unreachable',network_dead:'the network stopped answering while Wi-Fi stayed connected'}[p.supervisor_restart];
       element.textContent=`${text('Previous run')}: ${Math.floor(p.uptime_s/60)} min · ${text('lowest free memory')} ${p.minimum_free_heap_bytes} B · `
         +`${text('loop stack reserve')} ${p.loop_stack_minimum_bytes} B · ${text('last request')} ${p.last_request||'—'}`
         +(typeof p.loop_phase==='string'&&p.loop_phase!=='idle'?` · ${text('last loop part')} ${p.loop_phase}`:'')
@@ -45,9 +45,10 @@ window.SystemLogPage = (() => {
     }
     function render(){
       const source=get('log-source').value,level=Number(get('log-filter').value),search=get('log-search').value.toLocaleLowerCase();
-      const lines=state.rows.filter(r=>(source==='all'||sourceOf(r)===source)&&r.level<=level&&`${r.feature} ${r.message}`.toLocaleLowerCase().includes(search))
-        .map(r=>`${(r.uptime_ms/1000).toFixed(3)}s #${r.sequence} ${text(levels[r.level]).toLocaleUpperCase()} [${sourceOf(r).toUpperCase()}] [${r.feature}] ${sourceOf(r)==='ems'?r.message.replace(/\b(Boiler|Thermostat|All|Service|Device)(?=\([0-9A-F]{2}\))/g,role=>text(role)):r.message}`);
-      get('log-lines').textContent=lines.join('\n');
+      const rows=state.rows.filter(r=>(source==='all'||sourceOf(r)===source)&&r.level<=level&&`${r.feature} ${r.message}`.toLocaleLowerCase().includes(search));
+      // One span per line so errors and warnings get their colour; the text stays identical.
+      get('log-lines').replaceChildren(...rows.map((r,i)=>{const line=document.createElement('span');line.className=r.level<=1?'log-err':r.level===2?'log-warn':'';
+        line.textContent=`${(r.uptime_ms/1000).toFixed(3)}s #${r.sequence} ${text(levels[r.level]).toLocaleUpperCase()} [${sourceOf(r).toUpperCase()}] [${r.feature}] ${sourceOf(r)==='ems'?r.message.replace(/\b(Boiler|Thermostat|All|Service|Device)(?=\([0-9A-F]{2}\))/g,role=>text(role)):r.message}`+(i<rows.length-1?'\n':'');return line;}));
       get('log-pause').textContent=text(state.paused?'Resume':'Pause');
     }
     async function request(url,options={},timeout=new AbortController()){
@@ -100,7 +101,7 @@ window.SystemLogPage = (() => {
       const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='openthermostat-system-log.txt';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     });
     on(get('log-clear'),'click',async()=>{
-      if(state.saving)return;
+      if(state.saving||!confirm(text('Clear the local ESP and EMS logs on this device?')))return;
       state.saving=true;get('log-clear').disabled=true;
       try{await request('/logs/clear',{method:'POST'});if(alive()){++state.epoch;state.rows=[];render();}}
       catch{if(alive())get('log-status').textContent=text('Clear failed. Local logs were not confirmed cleared.');}

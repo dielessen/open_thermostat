@@ -1,27 +1,40 @@
-<section id="bluetooth-page" class="p-3 mx-auto" style="max-width:1000px;overflow-wrap:anywhere">
-  <h1 data-i18n="Bluetooth devices">Bluetooth devices</h1>
-  <p data-i18n="Add a Shelly BLU H&T Display, Xiaomi Monitor 3 or Shelly BLU TRV by its Bluetooth address. Reception is local and does not need Home Assistant. These diagnostic readings cannot control heating.">Add a Shelly BLU H&amp;T Display, Xiaomi Monitor 3 or Shelly BLU TRV by its Bluetooth address. Reception is local and does not need Home Assistant. These diagnostic readings cannot control heating.</p>
-  <p class="small" data-i18n="Encrypted devices need their 32-character bindkey. Keys are stored on this E32 and never returned by this page. Message integrity confirms a key match; it does not confirm when the sensor measured the room. Replay protection currently lasts until restart.">Encrypted devices need their 32-character bindkey. Keys are stored on this E32 and never returned by this page. Message integrity confirms a key match; it does not confirm when the sensor measured the room. Replay protection currently lasts until restart.</p>
-  <p class="small" data-i18n="Changes take effect after a manual device restart in Settings. Shelly TRV control is not available in this device list yet.">Changes take effect after a manual device restart in Settings. Shelly TRV control is not available in this device list yet.</p>
-  <p class="small" data-i18n="TRV readings show a reported target and calculated temperature, not valve position or confirmed command feedback.">TRV readings show a reported target and calculated temperature, not valve position or confirmed command feedback.</p>
-  <div class="d-flex flex-wrap gap-2 mb-2">
-    <button id="ble-scan" type="button" class="btn btn-secondary" data-i18n="Find Bluetooth devices">Find Bluetooth devices</button>
+<section id="bluetooth-page" class="ot-page">
+  <header class="ot-head"><div><h1 data-i18n="Bluetooth sensors">Bluetooth sensors</h1><p data-i18n="Add thermometers so rooms can use them.">Add thermometers so rooms can use them.</p></div></header>
+  <p class="pd-help" data-i18n="You pair sensors here because the E32 receives them itself over Bluetooth (radio and key). Then choose them as a room temperature source in Home Assistant or on the Rooms page.">You pair sensors here because the E32 receives them itself over Bluetooth (radio and key). Then choose them as a room temperature source in Home Assistant or on the Rooms page.</p>
+  <details class="ot-advanced">
+    <summary data-i18n="About encryption and limits">About encryption and limits</summary>
+    <p data-i18n="Add a Shelly BLU H&T Display, Xiaomi Monitor 3 or Shelly BLU TRV by its Bluetooth address. Reception is local and does not need Home Assistant. These diagnostic readings cannot control heating.">Add a Shelly BLU H&amp;T Display, Xiaomi Monitor 3 or Shelly BLU TRV by its Bluetooth address. Reception is local and does not need Home Assistant. These diagnostic readings cannot control heating.</p>
+    <p class="small" data-i18n="Encrypted devices need their 32-character bindkey. Keys are stored on this E32 and never returned by this page. Message integrity confirms a key match; it does not confirm when the sensor measured the room. Replay protection currently lasts until restart.">Encrypted devices need their 32-character bindkey. Keys are stored on this E32 and never returned by this page. Message integrity confirms a key match; it does not confirm when the sensor measured the room. Replay protection currently lasts until restart.</p>
+    <p class="small" data-i18n="Changes take effect after a manual device restart (System → Restart device). Shelly TRV control is not available in this device list yet.">Changes take effect after a manual device restart (System → Restart device). Shelly TRV control is not available in this device list yet.</p>
+    <p class="small" data-i18n="TRV readings show a reported target and calculated temperature, not valve position or confirmed command feedback.">TRV readings show a reported target and calculated temperature, not valve position or confirmed command feedback.</p>
+    <p class="small" data-i18n="At most 8 devices, stored separately from network settings. Saving never truncates other settings. Readings expire after three minutes; battery-only messages do not renew temperature.">At most 8 devices, stored separately from network settings. Saving never truncates other settings. Readings expire after three minutes; battery-only messages do not renew temperature.</p>
+  </details>
+  <div class="ot-actions mb-2">
+    <button id="ble-scan" type="button" class="btn btn-primary" data-i18n="Search nearby">Search nearby</button>
     <button id="ble-reload" type="button" class="btn btn-outline-secondary" data-i18n="Reload saved Bluetooth settings">Reload saved Bluetooth settings</button>
+    <button id="ble-reset" type="button" class="btn btn-outline-danger" hidden data-i18n="Clear invalid Bluetooth settings">Clear invalid Bluetooth settings</button>
   </div>
-  <button id="ble-reset" type="button" class="btn btn-outline-danger" hidden data-i18n="Clear invalid Bluetooth settings">Clear invalid Bluetooth settings</button>
   <p id="ble-status" role="status" aria-live="polite"></p>
-  <section aria-label="Bluetooth discovery"><h2 id="ble-nearby-heading" data-i18n="Nearby Bluetooth devices">Nearby Bluetooth devices</h2>
-    <p class="small" data-i18n="Click a device to fill in its name and address. Check the profile and save. Names are broadcast by the device and do not prove its model. Encrypted sensors still need a bindkey.">Click a device to fill in its name and address. Check the profile and save. Names are broadcast by the device and do not prove its model. Encrypted sensors still need a bindkey.</p>
-    <p class="small" data-i18n="Browse the devices received by this E32. Devices without a name are listed by address. Finding a device does not mean its profile is supported.">Browse the devices received by this E32. Devices without a name are listed by address. Finding a device does not mean its profile is supported.</p>
-    <p id="ble-found-count" class="small" role="status" aria-live="polite"></p>
-    <div id="ble-nearby" class="border rounded p-2" role="region" aria-labelledby="ble-nearby-heading" tabindex="0" style="max-height:min(55vh,30rem);overflow-y:auto;overscroll-behavior:contain"></div>
+  <section class="pd-panel" aria-label="Bluetooth discovery"><h2 id="ble-nearby-heading" data-i18n="Nearby Bluetooth devices">Nearby Bluetooth devices</h2>
+    <p class="pd-help" data-i18n="Click a device to fill in its name and address. Check the profile and save. Names are broadcast by the device and do not prove its model. Encrypted sensors still need a bindkey.">Click a device to fill in its name and address. Check the profile and save. Names are broadcast by the device and do not prove its model. Encrypted sensors still need a bindkey.</p>
+    <p id="ble-found-count" class="pd-help" role="status" aria-live="polite"></p>
+    <div id="ble-nearby" class="ble-list" role="region" aria-labelledby="ble-nearby-heading" tabindex="0"></div>
     <p id="ble-discovery-full" class="small" hidden data-i18n="More devices were received than this list can hold. Search again nearer to the device you want to add.">More devices were received than this list can hold. Search again nearer to the device you want to add.</p>
   </section>
   <form id="ble-form" autocomplete="off">
-    <div id="ble-rows"></div>
-    <button id="ble-add" type="button" class="btn btn-secondary my-2" disabled data-i18n="Add Bluetooth device">Add Bluetooth device</button>
-    <button id="ble-save" type="submit" class="btn btn-primary my-2" disabled data-i18n="Save Bluetooth settings">Save Bluetooth settings</button>
-    <p class="small" data-i18n="At most 8 devices, stored separately from network settings. Saving never truncates other settings. Readings expire after three minutes; battery-only messages do not renew temperature.">At most 8 devices, stored separately from network settings. Saving never truncates other settings. Readings expire after three minutes; battery-only messages do not renew temperature.</p>
+    <h2 data-i18n="Your sensors">Your sensors</h2>
+    <p class="pd-help" data-i18n="Waiting: nothing received yet; check distance, battery and address, or wake the sensor. Expired: no new reading for three minutes. Restart required: saved changes start after a restart.">Waiting: nothing received yet; check distance, battery and address, or wake the sensor. Expired: no new reading for three minutes. Restart required: saved changes start after a restart.</p>
+    <div id="ble-rows" class="ble-rows"></div>
+    <div class="ot-sticky ot-actions">
+      <button id="ble-save" type="submit" class="btn btn-primary" disabled data-i18n="Save Bluetooth settings">Save Bluetooth settings</button>
+      <button id="ble-add" type="button" class="btn btn-outline-secondary" disabled data-i18n="Add Bluetooth device">Add Bluetooth device</button>
+      <span class="pd-help" data-i18n="Changes apply after a restart.">Changes apply after a restart.</span>
+    </div>
   </form>
 </section>
+<style>
+#bluetooth-page{max-width:1000px}#bluetooth-page [hidden]{display:none!important}.ble-list{max-height:min(55vh,30rem);overflow-y:auto;overscroll-behavior:contain;display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))}.ble-list>div{border:1px solid var(--ot-border);border-radius:var(--ot-r1);padding:10px 12px}
+.ble-rows fieldset{border:1px solid var(--ot-border);border-radius:var(--ot-r2);background:var(--ot-surface);padding:12px 20px 16px;margin-bottom:16px;min-width:0}.ble-rows legend{float:left;width:100%;font-size:1.15rem;margin:4px 0 0}.ble-rows legend+*{clear:left}
+.ble-fields{display:grid;gap:0 16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}.ble-sub{margin:0 0 8px;color:var(--ot-muted);font-size:.87rem}.ble-read{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:4px 0 8px}.ble-read .ot-big{font-size:1.6rem}
+</style>
 <script>BluetoothPage.mount(document.getElementById('bluetooth-page'));</script>

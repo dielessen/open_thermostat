@@ -24,6 +24,7 @@ from .native_form import retained_input_schema
 from .schedule_compiler import WEEKDAYS
 from .v1_program import normalize_program
 from .controller_setup_flow import ControllerSetupFlow
+from .e32_room_flow import E32RoomFlow
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -241,8 +242,12 @@ class ProductRoomFlow(RadiatorRoomSetupFlow):
         }), errors=errors)
 
 
-class ProductOptionsFlow(ControllerSetupFlow, ShadowOptionsFlow, ProductRoomFlow):
-    """One central options entrypoint, using the same room editor and native Store."""
+class ProductOptionsFlow(E32RoomFlow, ControllerSetupFlow, ShadowOptionsFlow, ProductRoomFlow):
+    """One central options entrypoint, using the same room editor and native Store.
+
+    With a stored E32 connection the rooms are the E32 room plan: "E32 rooms"
+    replaces the older HA room settings in this menu.
+    """
 
     def _get_entry(self):
         return self.config_entry
@@ -255,7 +260,9 @@ class ProductOptionsFlow(ControllerSetupFlow, ShadowOptionsFlow, ProductRoomFlow
         return connection is not None and connection.runtime.native_plan_source is not None
 
     async def async_step_init(self, user_input=None):
-        options = ["installation", "controller_connection", "room_settings", "configuration_status"]
+        from .room_plan import has_room_plan
+        rooms = "e32_rooms" if has_room_plan(self.config_entry) else "room_settings"
+        options = ["installation", "controller_connection", rooms, "configuration_status"]
         if self._native_plan_review_available():
             options.append("graph_prepare")
         options.append("advanced_settings")

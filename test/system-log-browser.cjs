@@ -99,7 +99,7 @@ const assets=path.resolve(__dirname,'../data/html'),output=path.resolve(process.
   const writesBeforeRetry=requests.filter(r=>r.path==='/config/logging'&&r.method==='POST').length;
   await page.evaluate(()=>document.querySelector('#log-settings').requestSubmit());
   assert.equal(requests.filter(r=>r.path==='/config/logging'&&r.method==='POST').length,writesBeforeRetry);
-  await page.locator('#log-clear').click();await page.waitForFunction(()=>document.querySelector('#log-lines')?.textContent==='');
+  page.once('dialog',dialog=>dialog.accept());await page.locator('#log-clear').click();await page.waitForFunction(()=>document.querySelector('#log-lines')?.textContent==='');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.screenshot({path:path.join(output,lang+'-'+width+'.png'),fullPage:true});
   if(lang==='en'&&width===1440){

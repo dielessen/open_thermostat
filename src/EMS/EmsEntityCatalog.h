@@ -43,8 +43,10 @@ public:
                 out<<(first?"":",")<<"{\"id\":\""<<spec.id<<"\",\"value\":";first=false;
                 if(!slot.valid)out<<"null";
                 else if(spec.kind==EntityKind::bit)out<<(slot.raw?"true":"false");
+                else if(spec.kind==EntityKind::text){out<<'"';for(char c:{char(slot.raw>>8),char(slot.raw&255)}){if(c=='"'||c=='\\')out<<'\\';out<<c;}out<<'"';}
                 else out<<static_cast<double>(slot.raw)/spec.divisor;
-                out<<",\"unit\":\""<<spec.unit<<"\",\"source_type\":"<<spec.type<<",\"age_ms\":"<<now-slot.observedMs<<'}';
+                out<<",\"unit\":\""<<spec.unit<<"\",\"source_type\":"<<spec.type<<",\"age_ms\":"<<now-slot.observedMs
+                   <<(spec.verified?",\"verified\":true}":"}"); // table-wide flag stays false
             }
             out<<"]}";
         }
@@ -74,9 +76,10 @@ public:
         return FieldSample{best->raw, best->observedMs, entityCatalog[best->spec].type, best->valid};
     }
 private:
+    static bool printable(int c){return c>=32&&c<=126;}
     struct Slot{uint64_t observedMs=0;int32_t raw=0;uint8_t address=0,spec=0;bool valid=false;};
     static bool present(const EmsTelegram& t,const EntitySpec& spec) {
-        const size_t width=spec.kind==EntityKind::u16||spec.kind==EntityKind::s16?2:spec.kind==EntityKind::u24?3:1;
+        const size_t width=spec.kind==EntityKind::u16||spec.kind==EntityKind::s16||spec.kind==EntityKind::text?2:spec.kind==EntityKind::u24?3:1;
         return t.getOffset()<=spec.offset&&size_t(spec.offset-t.getOffset())+width<=t.dataSize();
     }
     static std::optional<int32_t> decode(const EmsTelegram& t,const EntitySpec& spec) {
@@ -87,6 +90,7 @@ private:
             case EntityKind::u16: if(auto w=t.wordAt(spec.offset);w&&*w!=0x8000&&*w!=0x7FFF&&*w!=0xFFFF)raw=*w;break;
             case EntityKind::s16: if(auto w=t.wordAt(spec.offset);w&&*w!=0x8000&&*w!=0x7FFF&&*w!=0x7D00)raw=static_cast<int16_t>(*w);break;
             case EntityKind::u24: if(auto c=t.counterAt(spec.offset);c&&*c!=0xFFFFFF)raw=static_cast<int32_t>(*c);break;
+            case EntityKind::text: if(auto w=t.wordAt(spec.offset);w&&printable(*w>>8)&&printable(*w&255))raw=*w;break;
         }
         if(raw&&(*raw<spec.minimum||*raw>spec.maximum))raw.reset();
         return raw;

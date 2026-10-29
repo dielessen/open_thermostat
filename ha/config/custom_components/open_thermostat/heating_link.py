@@ -20,8 +20,9 @@ from datetime import timedelta
 from homeassistant.components import mqtt
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
-from homeassistant.const import PERCENTAGE, UnitOfTemperature
+from homeassistant.const import PERCENTAGE, UnitOfTemperature, UnitOfTime
 from homeassistant.core import callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event, async_track_time_interval
 
@@ -93,12 +94,17 @@ def label(item):
 
 
 def input_payload(state):
-    """{"entity","temperature","target"} for a climate or temperature sensor state."""
+    """{"entity","temperature","target"} for a climate, temperature sensor or setpoint number state.
+
+    An input_number/number is only ever a room's setpoint entity: its value is the target.
+    """
     if state is None or state.state in ("unavailable", "unknown"):
         return None
     if state.domain == "climate":
         temperature = number(state.attributes.get("current_temperature"), -40, 85)
         target = number(state.attributes.get("temperature"), 5, 30)
+    elif state.domain in ("input_number", "number"):
+        temperature, target = None, number(state.state, 5, 30)
     else:
         temperature, target = number(state.state, -40, 85), None
     if temperature is None and target is None:
@@ -204,16 +210,39 @@ def track_entities(hub, async_add_entities, options, wanted):
     return remove
 
 
+def room_device_identifier(prefix, room_id):
+    """The device of one E32 room (its own device, linked via the product device)."""
+    return DOMAIN, f"{prefix}_e32_room_{room_id}"
+
+
+def ble_device_identifier(prefix, sensor_id):
+    """The device of one Bluetooth sensor paired on the E32."""
+    return DOMAIN, f"{prefix}_e32_ble_{sensor_id}"
+
+
 class HubEntity:
     """Mixin: properties read the hub; every hub change writes the state."""
 
     _attr_should_poll = False
     _attr_has_entity_name = True
 
-    def _attach(self, hub, suffix):
+    _on_own_device = False
+
+    def _attach(self, hub, suffix, device_info=None):
         self.hub = hub
         self._attr_unique_id = f"{hub.prefix}_{suffix}"
-        self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, hub.prefix)})
+        self._on_own_device = device_info is not None
+        self._attr_device_info = device_info or DeviceInfo(identifiers={(DOMAIN, hub.prefix)})
+
+    @property
+    def device_info(self):
+        """An entity on its own device (a room, a Bluetooth sensor) links it via the product device."""
+        info = self._attr_device_info
+        entry = getattr(getattr(self, "platform", None), "config_entry", None)
+        if not self._on_own_device or getattr(self, "hass", None) is None or entry is None:
+            return info
+        product = dr.async_get(self.hass).async_get_device_by_identifier((DOMAIN, self.hub.prefix), entry.entry_id)
+        return {**info, "via_device_id": product.id} if product is not None else info
 
     async def async_added_to_hass(self):
         await super().async_added_to_hass()
@@ -222,17 +251,50 @@ class HubEntity:
     @callback
     def _hub_changed(self):
         if self.hass is not None and self.entity_id:
+            self._follow_name()
             self.async_write_ha_state()
+
+    @callback
+    def _follow_name(self):
+        """A room or sensor renamed on the E32 renames its own device (a user's own name stays)."""
+        item = self._named_item()
+        device = getattr(self, "device_entry", None)
+        if item is None or device is None:
+            return
+        registry = dr.async_get(self.hass)
+        current = registry.async_get(device.id)
+        if current is not None and current.name != label(item):
+            registry.async_update_device(current.id, name=label(item))
+
+    def _named_item(self):
+        return None
+
+
+def _own_device(identifier, item):
+    """A device of its own (one room, one Bluetooth sensor); device_info adds the product device link."""
+    return DeviceInfo(identifiers={identifier}, name=label(item), manufacturer="intuibase")
 
 
 class RoomEntity(HubEntity):
-    """One E32 room; its name is part of the entity name."""
+    """One E32 room, on the room's own device.
+
+    The device carries the room name, so the entity names are plain
+    ("Temperature", "Heat demand") and new entity IDs read like
+    ``sensor.living_room_temperature`` (Home Assistant writes them in its own
+    language). The unique IDs are the same as before the room devices: an
+    existing entity keeps its entity ID and history and only moves device.
+    """
 
     def _attach_room(self, hub, room, key):
         self.room_id = room["id"]
-        self._attach(hub, f"e32_room_{self.room_id}_{key}")
+        # No suggested area: Home Assistant puts the area name in front of new
+        # entity IDs (sensor.living_room_living_room_temperature); the user picks it.
+        device = _own_device(room_device_identifier(hub.prefix, self.room_id), room)
+        self._attach(hub, f"e32_room_{self.room_id}_{key}", device)
         self._attr_translation_key = f"room_{key}"
-        self._attr_translation_placeholders = {"room": label(room)}
+
+    def _named_item(self):
+        return self.room
 
     @property
     def room(self):
@@ -246,7 +308,7 @@ class RoomEntity(HubEntity):
 class HeatRequestSensor(HubEntity, SensorEntity):
     """The E32's computed boiler flow request (0 when it does not ask for heat)."""
 
-    _attr_name = "Heat request"
+    _attr_translation_key = "heat_request"
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
 
@@ -347,10 +409,13 @@ class BleSensor(HubEntity, SensorEntity):
 
     def __init__(self, hub, sensor, metric):
         self.sensor_id, self.metric = sensor["id"], metric
-        self._attach(hub, f"e32_ble_{self.sensor_id}_{metric}")
+        device = _own_device(ble_device_identifier(hub.prefix, self.sensor_id), sensor)
+        self._attach(hub, f"e32_ble_{self.sensor_id}_{metric}", device)
         self._attr_device_class, self._attr_native_unit_of_measurement, self._low, self._high = BLE_METRICS[metric]
         self._attr_translation_key = f"ble_{metric}"
-        self._attr_translation_placeholders = {"sensor": label(sensor)}
+
+    def _named_item(self):
+        return self.sensor
 
     @property
     def sensor(self):
@@ -375,7 +440,156 @@ class BleSensor(HubEntity, SensorEntity):
                 "age_s": age if type(age) is int else None}
 
 
+def shadow_today(status):
+    """Today's E32-vs-thermostat comparison (``shadow.today``), or None."""
+    shadow = status.get("shadow") if status else None
+    today = shadow.get("today") if type(shadow) is dict else None
+    return today if type(today) is dict else None
+
+
+def _count(value):
+    return value if type(value) is int and value >= 0 else None
+
+
+class ShadowSensor(HubEntity, SensorEntity):
+    """One value of today's shadow comparison: the E32's decision next to the thermostat's (0x1A).
+
+    The counters restart every day (and when the E32 restarts): total_increasing.
+    """
+
+    def __init__(self, hub, key):
+        self.key = key
+        self._attach(hub, f"hub_shadow_{key}")
+        self._attr_translation_key = f"shadow_{key}"
+        if key.endswith("heating_time_today"):
+            self._attr_device_class = SensorDeviceClass.DURATION
+            self._attr_native_unit_of_measurement = UnitOfTime.MINUTES
+            self._attr_state_class = SensorStateClass.TOTAL_INCREASING
+            self._attr_suggested_display_precision = 0
+        elif key.endswith("starts_today"):
+            self._attr_state_class = SensorStateClass.TOTAL_INCREASING
+        else:
+            self._attr_native_unit_of_measurement = PERCENTAGE
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+            self._attr_suggested_display_precision = 0
+
+    @property
+    def today(self):
+        return shadow_today(self.hub.status) if self.hub.fresh else None
+
+    @property
+    def side(self):
+        side = (self.today or {}).get(self.key.split("_", 1)[0])
+        return side if type(side) is dict else None
+
+    @property
+    def available(self):
+        return self.today is not None
+
+    @property
+    def native_value(self):
+        today = self.today
+        if today is None:
+            return None
+        if self.key == "agreement_today":
+            known, agree = _count(today.get("s")), _count(today.get("agree_s"))
+            unknown = _count(today.get("tado_unknown_s")) or 0
+            if known is None or agree is None or known - unknown <= 0:
+                return None
+            return round(min(100.0, 100.0 * agree / (known - unknown)), 1)
+        value = _count((self.side or {}).get("heat_s" if "heating_time" in self.key else "starts"))
+        if value is None or "starts" in self.key:
+            return value
+        return round(value / 60, 1)
+
+    @property
+    def extra_state_attributes(self):
+        today = self.today
+        if today is None:
+            return None
+        if self.key == "agreement_today":
+            keys = ("s", "tado_unknown_s", "both_s", "agree_s", "e32_only_s", "tado_only_s", "flow_diff_mean_c")
+            return {"day": today.get("day"), **{k: today.get(k) for k in keys}}
+        if "heating_time" in self.key:
+            side = self.side or {}
+            return {"day": today.get("day"), **{k: side.get(k) for k in ("flow_min_c", "flow_mean_c", "flow_max_c")}}
+        keys = ("starts_paired", "starts_within_5min", "start_offset_mean_s", "start_offset_max_s")
+        return {"day": today.get("day"), **{k: today.get(k) for k in keys}}
+
+
+SHADOW_SENSORS = ("e32_heating_time_today", "tado_heating_time_today", "e32_starts_today", "tado_starts_today",
+                  "agreement_today")
+
+
+def burner_status(status):
+    """The E32's own burner-start count (``burner``), or None on firmware without it.
+
+    The boiler's own start counters read 0 on the EasyControl adapter, so
+    this is the only real cycling data.
+    """
+    burner = status.get("burner") if status else None
+    return burner if type(burner) is dict else None
+
+
+class BurnerEntity(HubEntity):
+    """Mixin: one value of the E32's burner-start count, on the product device."""
+
+    @property
+    def burner(self):
+        return burner_status(self.hub.status) if self.hub.fresh else None
+
+    @property
+    def extra_state_attributes(self):
+        burner = self.burner
+        if not burner:
+            return None
+        return {"starts_last_hour": _count(burner.get("starts_last_hour")),
+                "heating_starts_last_hour": _count(burner.get("heating_starts_last_hour"))}
+
+
+class BurnerStartsSensor(BurnerEntity, SensorEntity):
+    """Burner starts in the last hour, counted by the E32 on the bus."""
+
+    _attr_translation_key = "burner_starts_last_hour"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, hub):
+        self._attach(hub, "hub_burner_starts_last_hour")
+
+    @property
+    def available(self):
+        return self.native_value is not None
+
+    @property
+    def native_value(self):
+        return _count((self.burner or {}).get("starts_last_hour"))
+
+
+class BurnerShortCyclingBinarySensor(BurnerEntity, BinarySensorEntity):
+    """On while the E32 sees the burner start too often; unavailable while that is unknown."""
+
+    _attr_translation_key = "burner_short_cycling"
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+
+    def __init__(self, hub):
+        self._attach(hub, "hub_burner_short_cycling")
+
+    @property
+    def available(self):
+        return self.is_on is not None
+
+    @property
+    def is_on(self):
+        value = (self.burner or {}).get("short_cycling")
+        return value if type(value) is bool else None
+
+
 def wanted_sensors(hub):
+    if shadow_today(hub.status) is not None:  # firmware that compares (E32 beta.18)
+        for key in SHADOW_SENSORS:
+            yield ("shadow", key), lambda key=key: ShadowSensor(hub, key)
+    if burner_status(hub.status) is not None:  # firmware that counts burner starts
+        yield ("burner",), lambda: BurnerStartsSensor(hub)
     for room_id, room in hub.rooms.items():
         yield ("room", room_id, "temperature"), lambda room=room: RoomTemperatureSensor(hub, room)
         yield ("room", room_id, "setpoint"), lambda room=room: RoomTemperatureSensor(hub, room, "setpoint", 5, 30)
@@ -388,12 +602,31 @@ def wanted_sensors(hub):
 
 
 def wanted_demand(hub):
+    if burner_status(hub.status) is not None:
+        yield ("burner",), lambda: BurnerShortCyclingBinarySensor(hub)
     for room_id, room in hub.rooms.items():
         yield room_id, lambda room=room: RoomDemandBinarySensor(hub, room)
 
 
+def removable_device(hass, entry, device):
+    """Whether the user may delete this device: a room or Bluetooth sensor the E32 no longer reports.
+
+    Only while the telemetry is fresh, so a short outage never makes a live
+    room removable. Every other device of the entry stays.
+    """
+    hub = hass.data.get(DOMAIN, {}).get(entry.entry_id, {}).get("heating_hub")
+    if hub is None or not hub.fresh:
+        return False
+    for domain, identifier in device.identifiers:
+        for kind, reported in (("room", hub.rooms), ("ble", hub.ble)):
+            head = f"{hub.prefix}_e32_{kind}_"
+            if domain == DOMAIN and identifier.startswith(head):
+                return identifier.removeprefix(head) not in reported
+    return False
+
+
 async def async_setup_demand(hass, entry, async_add_entities):
-    """Binary sensor platform (product entries): one heat demand per E32 room."""
+    """Binary sensor platform (product entries): heat demand per E32 room, and burner short cycling."""
     hub = heating_hub(hass, entry)
     entry.async_on_unload(track_entities(hub, async_add_entities, add_options(hass, entry), wanted_demand))
 

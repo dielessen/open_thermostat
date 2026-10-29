@@ -10,7 +10,7 @@ from homeassistant.exceptions import HomeAssistantError, Unauthorized
 from homeassistant.helpers import entity_registry as er, issue_registry as ir
 from homeassistant.components import recorder
 from homeassistant.setup import async_setup_component
-from custom_components.open_thermostat.dashboard import RoomDashboard
+from custom_components.open_thermostat.dashboard import RoomDashboard, view_cards
 from custom_components.open_thermostat.sensor import HubMetric
 from custom_components.open_thermostat import metrics_reports as reports
 from test_v1_native import entry
@@ -26,7 +26,7 @@ def arguments(e,entities=None,limit=1000):
     return data
 
 @pytest.mark.asyncio
-async def test_native_dashboard_five_views_reported_vs_estimated_no_legacy_counter_statistics(hass):
+async def test_native_dashboard_three_views_reported_vs_estimated_no_legacy_counter_statistics(hass):
     e=entry(hass)
     for key in ("boiler_selected_flow_temperature","boiler_current_flow_temperature","boiler_burner_power","energy","warm_water_usage"):
         entity(hass,e,key)
@@ -34,14 +34,14 @@ async def test_native_dashboard_five_views_reported_vs_estimated_no_legacy_count
         entity(hass,e,key,"binary_sensor")
     dashboard=RoomDashboard(hass,"fixture",e.entry_id)
     config=dashboard._dashboard_config()
-    assert [v["path"] for v in config["views"]]==["rooms","heating","boiler","analysis","diagnostics"]
-    boiler=config["views"][2]["cards"]
-    assert len(boiler)==4
-    assert [x["name"] for x in boiler[1]["entities"]]==["Reported selected flow","Reported current flow"]
-    assert boiler[2]["title"]=="Reported burner modulation (%) — not kW"
-    assert len(boiler[3]["entities"])==4
+    assert [v["path"] for v in config["views"]]==["heating","boiler","diagnostics"]
+    boiler=view_cards(config["views"][1])
+    assert [c["type"] for c in boiler]==["heading","markdown","history-graph","history-graph","history-graph"]
+    assert [x["name"] for x in boiler[2]["entities"]]==["Reported selected flow","Reported current flow"]
+    assert boiler[3]["title"]=="Burner modulation (%) — not kW"
+    assert len(boiler[4]["entities"])==4
     raw=str(config)
-    assert "statistics-graph" not in raw and "not gas/heat meters" in raw and "not a proven E32 command" in raw
+    assert "statistics-graph" not in raw and "not a proven E32 command" in raw
 
 @pytest.mark.asyncio
 async def test_dashboard_tracks_renamed_registry_and_excludes_disabled_hub(hass):
@@ -239,11 +239,11 @@ async def test_native_boiler_view_uses_owned_enabled_renamed_fields_and_quality_
     text=str(boiler)
     assert "sensor.renamed_native_flow" in text and returned.entity_id in text
     assert inferred.entity_id in text and "Inferred activity" in text
-    reported=next(c for c in boiler["cards"] if c.get("title")=="Reported boiler fields")
+    reported=next(c for c in view_cards(boiler) if c.get("title")=="Reported boiler fields")
     assert inferred.entity_id not in str(reported)
     for missing in [raw.entity_id,disabled.entity_id,foreign.entity_id,legacy.entity_id]:
         assert missing not in text
-    graphs=[c for c in boiler["cards"] if c["type"]=="history-graph"]
+    graphs=[c for c in view_cards(boiler) if c["type"]=="history-graph"]
     assert graphs and all(inferred.entity_id not in str(c) for c in graphs)
     assert "statistics-graph" not in text and "call-service" not in text
     reg.async_update_entity(raw.entity_id,disabled_by=None)

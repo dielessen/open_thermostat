@@ -19,6 +19,14 @@ def packet(c,sequence=1,group=0,**kw):
     p=metric_packet(c,sequence);p.pop('metrics');p.update(group=group,values=values(group,**kw));return p
 
 
+def by_index(added):
+    return {entity.index:entity for entity in added}
+
+
+# values(): every field acquired; display code invalid; unreliable fields only send zero filler.
+REAL=[i for i in range(69) if i!=24 and QUALITIES[i]!=1]
+
+
 @pytest.mark.asyncio
 async def test_source_deadline_duplicate_and_republication_cannot_refresh_measurement(hass):
     e,r,c,now=await system(hass);c.boiler_fields_supported=True
@@ -79,15 +87,20 @@ async def test_missing_groups_disconnect_capability_and_quality_suppress_entitie
     e,r,c,now=await system(hass);added=[]
     await async_setup_boiler_fields(hass,e,lambda entities:added.extend(entities))
     assert not added
-    c.boiler_fields_supported=True;r._notify();assert len(added)==69
-    assert all(not x.available for x in added)
-    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c)))
-    assert added[1].native_value==45 and added[1].native_unit_of_measurement=='°C'
-    assert not added[7].available and added[7].extra_state_attributes['quality']=='unreliable'
-    assert not added[50].available and not added[1].extra_state_attributes['control_qualified']
+    c.boiler_fields_supported=True;r._notify();assert not added  # No value yet, no entity.
+    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c)));r._notify()
+    fields=by_index(added)
+    assert set(fields)=={i for i in REAL if i<10}  # Unreliable zero filler is no value.
+    assert fields[1].native_value==45 and fields[1].native_unit_of_measurement=='°C'
+    assert not fields[1].extra_state_attributes['control_qualified']
     assert all(x.state_class is None for x in added)
+    p=packet(c,2,sampled=11000,observed=10000);p['values']['fields'][7][1]=1
+    await c.receive('fw/telemetry/boiler_fields',canonical(p));r._notify()
+    unreliable=by_index(added)[7]  # A real non-zero bit: diagnostic, disabled by default.
+    assert not unreliable.available and unreliable.extra_state_attributes['quality']=='unreliable'
+    assert unreliable.entity_registry_enabled_default is False
     now[0]=121;c.grant_until=130;c.lease_until=135;c.last_rx=121
-    assert not added[1].available # Missing field-group stream cannot look alive via control heartbeat.
+    assert not fields[1].available # Missing field-group stream cannot look alive via control heartbeat.
     c.reset_session();assert not c.boiler_fields.records and all(not x.available for x in added)
     await e._async_process_on_unload(hass);assert not r._listeners
     await r.async_stop()
@@ -100,11 +113,12 @@ async def test_all_groups_scaling_zero_and_raw_schema_metadata_match(hass):
     for group in range(7):
         p=packet(c,group+1,group=group);validate_group(p['values'],group)
         await c.receive('fw/telemetry/boiler_fields',canonical(p))
-    assert len(c.boiler_fields.records)==len(added)==69
-    assert added[4].native_value==0 and added[4].available
-    assert added[32].native_unit_of_measurement=='µA'
-    assert not added[18].available # OEM starts explicitly unqualified.
-    assert len({x.unique_id for x in added})==69
+    r._notify();fields=by_index(added)
+    assert len(c.boiler_fields.records)==69 and sorted(fields)==REAL and len(added)==len(REAL)
+    assert fields[4].native_value==0 and fields[4].available  # A reliable zero is a value.
+    assert fields[32].native_unit_of_measurement=='µA'
+    assert 18 not in fields # OEM starts explicitly unqualified; adapter zeros are no value.
+    assert len({x.unique_id for x in added})==len(REAL)
     await r.async_stop()
 
 
@@ -160,13 +174,14 @@ async def test_reversed_local_clock_cannot_revive_cached_or_new_field_deadlines(
 async def test_same_acquisition_null_retires_only_affected_entity_without_renewing_age(hass):
     e,r,c,now=await system(hass);c.boiler_fields_supported=True;added=[]
     await async_setup_boiler_fields(hass,e,lambda entities:added.extend(entities))
-    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c)))
+    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c)));r._notify()
     deadline=c.boiler_fields.records[4][1]
     p=packet(c,2);p['values']['fields'][4][1]=None
-    await c.receive('fw/telemetry/boiler_fields',canonical(p))
+    await c.receive('fw/telemetry/boiler_fields',canonical(p));r._notify()
     assert not c.boiler_fields.invalid
-    assert not added[4].available and added[4].native_value is None
-    assert added[1].available and added[1].native_value==45
+    fields=by_index(added)
+    assert not fields[4].available and fields[4].native_value is None
+    assert fields[1].available and fields[1].native_value==45
     assert c.boiler_fields.records[4][1]==deadline
     c.send.assert_not_awaited();await r.async_stop()
 
@@ -209,9 +224,9 @@ async def test_invalid_group_cannot_revive_old_fields_via_unrelated_group(hass,f
 
 @pytest.mark.asyncio
 async def test_absent_invalid_expired_and_session_reasons_remain_distinct(hass):
-    e,r,c,now=await system(hass);c.boiler_fields_supported=True;added=[]
-    await async_setup_boiler_fields(hass,e,lambda entities:added.extend(entities))
-    pressure=added[6]
+    from custom_components.open_thermostat.v1_boiler_fields import BoilerFieldEntity
+    e,r,c,now=await system(hass);c.boiler_fields_supported=True
+    pressure,enabled=BoilerFieldEntity('fixture',c,6),BoilerFieldEntity('fixture',c,16)
     assert pressure.extra_state_attributes['availability_reason']=='not_received'
     p=packet(c);p['values']['fields'][6]=[6,None,9000,0,24]
     await c.receive('fw/telemetry/boiler_fields',canonical(p))
@@ -222,7 +237,6 @@ async def test_absent_invalid_expired_and_session_reasons_remain_distinct(hass):
     assert (attrs['field_name'],attrs['raw_divisor'],attrs['source_ttl_ms'])==('pressure',10,30000)
     p=packet(c,2,group=1);p['values']['fields'][6]=[16,None,None,0,0]
     await c.receive('fw/telemetry/boiler_fields',canonical(p))
-    enabled=added[16]
     assert not enabled.available and enabled.native_value is None
     assert enabled.extra_state_attributes['measurement_state']=='unknown'
     assert enabled.extra_state_attributes['availability_reason']=='not_observed'
@@ -359,23 +373,25 @@ async def test_real_entity_platform_unavailable_state_keeps_evidence_in_diagnost
 
 
 @pytest.mark.asyncio
-async def test_unobserved_fields_are_disabled_after_a_qualified_stream_and_return_when_observed(hass):
+async def test_first_real_value_creates_field_marks_record_and_restores_our_retirement(hass):
     from homeassistant.helpers import entity_registry as er
-    from custom_components.open_thermostat.v1_boiler_fields import field_unique_id, UNOBSERVED_RETIRE_SECONDS
+    from custom_components.open_thermostat.v1_boiler_fields import REPORTED, field_unique_id
     e,r,c,now=await system(hass);c.boiler_fields_supported=True;reg=er.async_get(hass)
-    missing,user=[i for i in range(10,69) if QUALITIES[i]!=1][:2]
-    unreliable=next(i for i in range(10,69) if QUALITIES[i]==1)
+    unreliable=next(i for i in range(10) if QUALITIES[i]==1)
     def record(i,**kw):return reg.async_get_or_create('sensor','open_thermostat',field_unique_id('fixture',i),config_entry=e,**kw).entity_id
-    seen,gone,odd=record(1),record(missing),record(unreliable)
-    mine=record(user,disabled_by=er.RegistryEntryDisabler.USER)
-    await async_setup_boiler_fields(hass,e,lambda entities:None)
+    marked=lambda entity_id:reg.async_get(entity_id).options.get('open_thermostat',{}).get(REPORTED)
+    retired=record(1,disabled_by=er.RegistryEntryDisabler.INTEGRATION)  # An older release retired it.
+    odd=record(unreliable,disabled_by=er.RegistryEntryDisabler.INTEGRATION)  # Disabled by default.
+    mine=record(4,disabled_by=er.RegistryEntryDisabler.USER)
+    added=[];await async_setup_boiler_fields(hass,e,lambda entities:added.extend(entities))
     await c.receive('fw/telemetry/boiler_fields',canonical(packet(c)));r._notify()
-    assert reg.async_get(gone).disabled_by is None  # Too early: slow fields may still arrive.
-    c.grant_until=c.lease_until=10**9;now[0]+=UNOBSERVED_RETIRE_SECONDS;c.last_rx=now[0];r._notify()
-    assert c.ready and reg.async_get(gone).disabled_by is er.RegistryEntryDisabler.INTEGRATION
-    assert reg.async_get(seen).disabled_by is None and reg.async_get(odd).disabled_by is None
-    assert reg.async_get(mine).disabled_by is er.RegistryEntryDisabler.USER
-    await c.receive('fw/telemetry/boiler_fields',canonical(packet(c,2,group=missing//10,sampled=int(now[0]*1000),observed=int(now[0]*1000)-1)))
-    r._notify();assert not c.boiler_fields.invalid,r.diagnostics;assert reg.async_get(gone).disabled_by is None
-    assert reg.async_get(mine).disabled_by is er.RegistryEntryDisabler.USER
+    r._notify()  # The platform registers new entities asynchronously; marked on a later tick.
+    assert unreliable not in by_index(added)
+    assert reg.async_get(retired).disabled_by is None and marked(retired)
+    assert reg.async_get(mine).disabled_by is er.RegistryEntryDisabler.USER and marked(mine)
+    assert reg.async_get(odd).disabled_by is er.RegistryEntryDisabler.INTEGRATION and not marked(odd)
+    p=packet(c,2,sampled=11000,observed=10000);p['values']['fields'][unreliable][1]=1
+    await c.receive('fw/telemetry/boiler_fields',canonical(p));r._notify();r._notify()
+    assert unreliable in by_index(added) and marked(odd)
+    assert reg.async_get(odd).disabled_by is er.RegistryEntryDisabler.INTEGRATION  # Stays a default-off diagnostic.
     await r.async_stop()

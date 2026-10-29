@@ -74,7 +74,9 @@ public:
 		uart_set_rx_full_threshold(UartSlot, 1);
 		uart_set_rx_timeout(UartSlot, 0);
 
-		xTaskCreate(heating::uart_detail::uart_event_task, "EmsBusUart", 2560, this, configMAX_PRIORITIES - 1, NULL);
+		// 4096 (was 2560): the frame path has try/catch and logging; the high-water
+		// mark is reported in /status/logs (runtime.stack_minimum_bytes.ems_uart).
+		xTaskCreate(heating::uart_detail::uart_event_task, "EmsBusUart", 4096, this, configMAX_PRIORITIES - 1, NULL);
 		uart_enable_intr_mask(UartSlot, UART_BRK_DET_INT_ENA | UART_RXFIFO_FULL_INT_ENA);
 
 		DBGLOGFD(log_, logFeature_, "Started rx: %d tx: %d\n", rxPin, txPin);

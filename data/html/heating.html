@@ -113,15 +113,20 @@
     for (const box of root.querySelectorAll('.hp-body')) box.disabled = locked;
     minFlow.disabled = maxFlow.disabled = locked;
   }
-  function paintLock(control) { // control: /status "control" (HA snapshot age), undefined when unreadable
-    const ms = typeof control?.age_ms === 'number' ? control.age_ms : null;
-    const away = control !== undefined && !control?.fresh && (ms === null || ms > 600000);
+  // link: {fresh, ms} since Home Assistant last sent input; undefined when unknown.
+  // Preferred source: /status/heating "ha"; older firmware: /status "control" (HA snapshot age).
+  let haLink = false;
+  const fromHa = ha => ({fresh: ha.broker_connected === true && Number.isFinite(ha.input_age_s) && ha.input_age_s < 120,
+    ms: Number.isFinite(ha.input_age_s) ? ha.input_age_s * 1000 : null});
+  function paintLock(link) {
+    const ms = typeof link?.ms === 'number' ? link.ms : null;
+    const away = link !== undefined && !link?.fresh && (ms === null || ms > 600000);
     lockBox.className = 'alert ot-actions ' + (away ? 'alert-warning' : 'alert-info');
     unlock.className = 'btn ' + (away ? 'btn-primary' : 'btn-outline-primary');
     lockText.textContent = away ? uiText("Home Assistant is not reachable — you can change rooms here.") : uiText("Managed in Home Assistant")
-      + (control?.fresh ? ' · ' + uiText("connected") : ms !== null ? ' · ' + uiText("last connected {age} ago").replace('{age}', age(Math.round(ms / 1000))) : '');
+      + (link?.fresh ? ' · ' + uiText("connected") : ms !== null ? ' · ' + uiText("last connected {age} ago").replace('{age}', age(Math.round(ms / 1000))) : '');
   }
-  const readControl = () => json('/status').then(s => paintLock(s.control || null), () => paintLock(undefined));
+  const readControl = () => haLink ? null : json('/status').then(s => paintLock(s.control ? {fresh: s.control.fresh === true, ms: s.control.age_ms} : null), () => paintLock(undefined));
   unlock.addEventListener('click', () => {
     if (!confirm(uiText("Changes you save here are stored on the E32 and also appear in Home Assistant. If Home Assistant changed the plan in the meantime, the E32 refuses your save, so nothing is overwritten. Edit here?"))) return;
     locked = false; try { sessionStorage.setItem('ot-rooms-edit', '1'); } catch (_) {}
@@ -307,6 +312,7 @@
     requestBox.textContent = !r ? uiText("Status unavailable")
       : uiText("Calculated boiler request") + ': ' + (r.heat ? r.flow_c + ' °C' : uiText("off")) + ' · ' + uiText(reasonText[r.reason] || r.reason);
     requestBox.classList.toggle('ot-chip--ok', !!r?.heat);
+    if (status?.ha && typeof status.ha === 'object') { haLink = true; paintLock(fromHa(status.ha)); }
     renderActive(status?.active);
     if (!status) { // keep the last good values; only a never-loaded section says so
       for (const box of [shadowBox, bleBox]) if (!box.dataset.ready) box.textContent = uiText("Status unavailable");

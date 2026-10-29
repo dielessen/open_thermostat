@@ -42,9 +42,8 @@ ROOM_ID = re.compile(r"[a-z0-9_]{1,32}")
 BLE_ID = re.compile(r"[0-9a-f]{12}")
 ROOM_STATUSES = ["ok", "fallback", "stale", "lost", "inactive"]
 LEARNING_STATES = ["collecting", "learning", "ready"]
-# The learned advice and hot-water summary make the status larger (the E32
-# itself trims its MQTT copy); still a hard bound before parsing.
-MAX_STATUS_BYTES = 16384
+# A hard bound before parsing (the E32 publishes at most 4096 bytes).
+MAX_STATUS_BYTES = 8192
 
 
 def decode_status(payload):
@@ -736,7 +735,8 @@ class RoomFlowAdviceSensor(LearnedRoomEntity, SensorEntity):
             return None
         one, others = self._advice()
         one = one or {}
-        return {"room_id": self.room_id, "applied": self._applied(),
+        # The value is the advice for a 1 °C shortfall.
+        return {"room_id": self.room_id, "shortfall_c": 1, "applied": self._applied(),
                 **{key: one.get(key) for key in ("warmup_h", "reason", "rule_flow_c", "rule_warmup_h", "rule")},
                 "other_shortfalls": others, "now": flow_advice(learned.get("now"))}
 
@@ -773,26 +773,31 @@ class RoomHeatingStartSensor(RoomEntity, SensorEntity):
         if self.warmup is None:
             return None
         start, night = _dict(self.warmup, "optimum_start"), _dict(self.warmup, "night")
-        switch = _dict(start, "next_switch")
-        at = _utc(switch.get("utc"))
-        items = night.get("strategies")
-        strategies = [{"name": _text(item, "name"), "night_c": _whole(item.get("night_c"), 0, 35),
-                       "kwh": number(item.get("kwh"), 0, 1000), "m3": number(item.get("m3"), 0, 100),
-                       "eur": number(item.get("eur"), 0, 1000), "end_c": _whole(item.get("end_c"), -10, 40),
-                       "on_time": _flag(item, "on_time")}
-                      for item in (items if type(items) is list else []) if type(item) is dict]
-        return {"room_id": self.room_id, "reason": _text(start, "reason"),
-                "switch_at": at.isoformat() if at is not None else None,
-                "from_c": _whole(switch.get("from_c"), 0, 35), "target_c": _whole(switch.get("target_c"), 0, 35),
-                "lead_minutes": _whole(start.get("lead_minutes"), 0, 1440),
-                "flow_c": _whole(start.get("flow_c"), 0, 90), "confidence": _text(start, "confidence"),
-                "reachable": _flag(start, "reachable"), "start_now": _flag(start, "start_now"),
-                "night_reason": _text(night, "reason"), "night_confidence": _text(night, "confidence"),
-                "night_recommended": _text(night, "recommended"),
-                "night_recommended_c": _whole(night.get("recommended_night_c"), 0, 35),
-                "night_saving_m3": number(night.get("saving_m3"), 0, 100),
-                "night_saving_eur": number(night.get("saving_eur"), 0, 1000),
-                "night_strategies": strategies}
+        # MQTT carries the compact form (no next_switch, no strategies); /status/heating the full one.
+        recommended_c = night.get("recommended_c", night.get("recommended_night_c"))
+        result = {"room_id": self.room_id, "reason": _text(start, "reason"),
+                  "lead_minutes": _whole(start.get("lead_minutes"), 0, 1440),
+                  "flow_c": _whole(start.get("flow_c"), 0, 90), "confidence": _text(start, "confidence"),
+                  "reachable": _flag(start, "reachable"), "start_now": _flag(start, "start_now"),
+                  "night_reason": _text(night, "reason"), "night_recommended": _text(night, "recommended"),
+                  "night_recommended_c": _whole(recommended_c, 0, 35),
+                  "night_saving_m3": number(night.get("saving_m3"), 0, 100),
+                  "night_saving_eur": number(night.get("saving_eur"), 0, 1000)}
+        if "confidence" in night:
+            result["night_confidence"] = _text(night, "confidence")
+        if type(start.get("next_switch")) is dict:
+            switch = start["next_switch"]
+            at = _utc(switch.get("utc"))
+            result.update(switch_at=at.isoformat() if at is not None else None,
+                          from_c=_whole(switch.get("from_c"), 0, 35), target_c=_whole(switch.get("target_c"), 0, 35))
+        if type(night.get("strategies")) is list:
+            result["night_strategies"] = [
+                {"name": _text(item, "name"), "night_c": _whole(item.get("night_c"), 0, 35),
+                 "kwh": number(item.get("kwh"), 0, 1000), "m3": number(item.get("m3"), 0, 100),
+                 "eur": number(item.get("eur"), 0, 1000), "end_c": _whole(item.get("end_c"), -10, 40),
+                 "on_time": _flag(item, "on_time")}
+                for item in night["strategies"] if type(item) is dict]
+        return result
 
 
 def dhw_status(status):

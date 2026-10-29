@@ -756,7 +756,7 @@
         }
       },
       "room_flow_advice": {
-        "name": "Recommended flow (1 °C)"
+        "name": "Recommended flow"
       },
       "room_heating_start": {
         "name": "Predicted heating start"

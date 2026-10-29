@@ -163,7 +163,7 @@ async def test_learning_area_per_room_and_hot_water_today_only_once_reported(has
                                   "show_icon": True, "color": "teal"}]
     known = lambda entity: {"condition": "state", "entity": entity, "state_not": ["unavailable", "unknown"]}
     assert heading["visibility"] == [known(room["learning"])]  # hidden while the E32 reports none
-    assert (advice["entity"], advice["name"]) == (room["flow_advice"], "Recommended flow (1 °C)")
+    assert (advice["entity"], advice["name"]) == (room["flow_advice"], "Recommended flow")
     assert advice["visibility"] == [{"condition": "state", "entity": room["learning"], "state": "ready"},
                                     known(room["flow_advice"])]
     assert (start["entity"], start["name"], start["visibility"]) == (
@@ -184,7 +184,7 @@ async def test_learning_area_per_room_and_hot_water_today_only_once_reported(has
     # In Dutch.
     hass.config.language = "nl"
     text = json.dumps(RoomDashboard(hass, "fixture", e.entry_id)._dashboard_config(), ensure_ascii=False)
-    for words in ('"Leren"', "Geadviseerde aanvoer (1 °C)", "Start verwarmen", "Warmwatertappen vandaag",
+    for words in ('"Leren"', "Geadviseerde aanvoer", "Start verwarmen", "Warmwatertappen vandaag",
                   "Warm water vandaag", "leert ook hoe snel elke ruimte opwarmt", "alleen advies"):
         assert words in text, words
 

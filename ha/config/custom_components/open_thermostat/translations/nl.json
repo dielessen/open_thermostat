@@ -1672,7 +1672,7 @@
         }
       },
       "room_flow_advice": {
-        "name": "Geadviseerde aanvoer (1 °C)"
+        "name": "Geadviseerde aanvoer"
       },
       "room_heating_start": {
         "name": "Verwachte start verwarmen"

@@ -144,7 +144,10 @@ TEST(ActiveHeatRoutes, RoomEngineReportsFreshReadingsOfInactiveRoomsForFrost) {
     EXPECT_EQ(engine.freshTemperature(0, 2000), 750);
     engine.haState("sensor.badkamer", 760, std::nullopt, 950000);
     EXPECT_EQ(engine.freshTemperature(0, 950000), 760); // the first source is too old now
+    EXPECT_EQ(engine.fresh(0, 2000).source, 0);         // FlowLearner: which source leads
+    EXPECT_EQ(engine.fresh(0, 950000).source, 1);
     EXPECT_FALSE(engine.freshTemperature(0, 2000000));
+    EXPECT_EQ(engine.fresh(0, 2000000).source, -1);
 }
 
 // The HeatingController loop: guard step -> post -> the boiler's poll -> the

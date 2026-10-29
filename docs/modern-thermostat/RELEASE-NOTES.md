@@ -30,16 +30,18 @@ its request to the boiler yet. Use it together with HA0.4.0b10.
 
 ## Fixed
 
-- Bluetooth thermometers deliver readings reliably: every report is heard,
+- Bluetooth thermometers deliver readings reliably: scanning no longer pauses,
   readings stay valid for 15 minutes, a sensor whose counter restarts (new
-  battery) is accepted again, and one bad report no longer clears the values.
+  battery) is accepted again, one bad report no longer clears the values, and
+  the E32 restarts by itself 30 seconds after you save Bluetooth settings.
 - An update that fails to start rolls back to the previous firmware instead of
   restarting forever.
 - Very deeply nested JSON from the network can no longer crash the E32.
 - A watchdog now also covers start-up; a stalled GitHub download can no longer
   switch off the supervisor; the E32 restarts itself when Wi-Fi reports
-  "connected" but the network no longer answers, and backs off instead of
-  restarting every 15 minutes during a long Wi-Fi outage.
+  "connected" but the network no longer answers or when no Bluetooth sensor has
+  been heard for 30 minutes, reconnects to Wi-Fi more patiently, and backs off
+  instead of restarting every 15 minutes during a long Wi-Fi outage.
 - Less use of the memory Wi-Fi needs: JSON and larger buffers live in PSRAM.
 
 ## Updating

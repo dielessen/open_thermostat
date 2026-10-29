@@ -24,11 +24,7 @@ def test_status_is_strict():
     for key, bad in [("schema", 2), ("mode", "manual"), ("ha_entities", ["no_domain"]),
                      ("request", {"heat": True, "flow_c": 75, "reason": "heating"})]:
         assert decode_status(json.dumps({**STATUS, key: bad})) is None
-    from custom_components.open_thermostat.heating_link import MAX_STATUS_BYTES
-    assert decode_status("x" * (MAX_STATUS_BYTES + 1)) is None
-    # The learned advice and hot-water summary make a status larger than before.
-    padded = {**STATUS, "learned": {"schema": 1, "pad": "x" * 9000}}
-    assert decode_status(json.dumps(padded)) == padded
+    assert decode_status("x" * 8193) is None
 
 
 def test_climate_forwards_measurement_and_target():
@@ -205,7 +201,7 @@ NAMES = {
                "heat_request": ("Boiler request (E32)", "Ketelvraag (E32)"),
                "burner_starts_last_hour": ("Burner starts last hour", "Branderstarts afgelopen uur"),
                "room_learning": ("Learning status", "Leerstatus"),
-               "room_flow_advice": ("Recommended flow (1 °C)", "Geadviseerde aanvoer (1 °C)"),
+               "room_flow_advice": ("Recommended flow", "Geadviseerde aanvoer"),
                "room_heating_start": ("Predicted heating start", "Verwachte start verwarmen"),
                "dhw_taps_today": ("Hot water taps today", "Warmwatertappen vandaag"),
                "dhw_keep_warm_today": ("Keeping warm today", "Warmhouden vandaag"),
@@ -396,11 +392,11 @@ async def test_existing_room_entities_keep_their_entity_ids_and_move_to_a_room_d
         assert new.entity_id == "sensor.woonkamer_control_status"
         # The learned values read like the room's other entities, on the same room device.
         assert [e.entity_id for e in learned] == ["sensor.woonkamer_learning_status",
-                                                  "sensor.woonkamer_recommended_flow_1_degc",
+                                                  "sensor.woonkamer_recommended_flow",
                                                   "sensor.woonkamer_predicted_heating_start"]
         assert hass.states.get("sensor.woonkamer_learning_status").state == "ready"
         assert hass.states.get("sensor.woonkamer_predicted_heating_start").state == "2026-10-30T03:35:00+00:00"
-        assert hass.states.get("sensor.woonkamer_recommended_flow_1_degc").state == "34"
+        assert hass.states.get("sensor.woonkamer_recommended_flow").state == "34"
         assert {entities.async_get(e.entity_id).device_id for e in learned} == {
             devices.async_get_device_by_identifier(("open_thermostat", "fixture_e32_room_woonkamer"),
                                                    config_entry.entry_id).id}
@@ -500,8 +496,9 @@ async def test_learned_advice_becomes_room_entities_once_the_e32_reports_it(hass
     assert advice.native_value == 34 and advice.native_unit_of_measurement == "°C"
     assert advice.device_class == "temperature" and advice.state_class == SensorStateClass.MEASUREMENT
     attributes = advice.extra_state_attributes
-    assert {k: attributes[k] for k in ("warmup_h", "reason", "rule_flow_c", "rule_warmup_h", "rule", "applied")} == {
-        "warmup_h": 1.9, "reason": "learned", "rule_flow_c": 40, "rule_warmup_h": 1.2, "rule": "higher_wasteful",
+    keys = ("shortfall_c", "warmup_h", "reason", "rule_flow_c", "rule_warmup_h", "rule", "applied")
+    assert {k: attributes[k] for k in keys} == {
+        "shortfall_c": 1, "warmup_h": 1.9, "reason": "learned", "rule_flow_c": 40, "rule_warmup_h": 1.2, "rule": "higher_wasteful",
         "applied": False}
     assert [a["shortfall_c"] for a in attributes["other_shortfalls"]] == [0, 0.5, 2]
     assert attributes["other_shortfalls"][2] == _advice(2, 0.67, 38, 2.9, 50, 1.8, "higher_wasteful")
@@ -524,7 +521,23 @@ async def test_learned_advice_becomes_room_entities_once_the_e32_reports_it(hass
     send({**FULL, "learned": {**LEARNED, "plans": {"rooms": [{"id": "woonkamer", "optimum_start": rounded,
                                                                 "night": {"reason": "not_learned"}}]}}})
     assert start.native_value == datetime(2026, 10, 30, 3, 30, tzinfo=timezone.utc)
-    assert start.extra_state_attributes["night_strategies"] == []
+    assert "night_strategies" not in start.extra_state_attributes
+    # The compact MQTT form: no next_switch, no strategies; recommended_c for the night setpoint.
+    compact = {"id": "woonkamer",
+               "optimum_start": {k: START[k] for k in ("reason", "predicted_start_utc", "lead_minutes", "flow_c",
+                                                       "confidence", "reachable", "start_now")},
+               "night": {"reason": "estimated", "recommended": "hold_0_5", "recommended_c": 17.5,
+                         "saving_m3": 0.12, "saving_eur": 0.17}}
+    send({**FULL, "learned": {**LEARNED, "plans": {"rooms": [compact]}}})
+    assert start.available and start.native_value == datetime(2026, 10, 30, 3, 35, tzinfo=timezone.utc)
+    assert start.extra_state_attributes == {
+        "room_id": "woonkamer", "reason": "planned", "lead_minutes": 115, "flow_c": 36, "confidence": "learned",
+        "reachable": True, "start_now": False, "night_reason": "estimated", "night_recommended": "hold_0_5",
+        "night_recommended_c": 17.5, "night_saving_m3": 0.12, "night_saving_eur": 0.17}
+    # Compact, without the exact time: unknown (there is no switch time to count back from).
+    send({**FULL, "learned": {**LEARNED, "plans": {"rooms": [{**compact, "optimum_start": {
+        **compact["optimum_start"], "predicted_start_utc": None}}]}}})
+    assert start.available and start.native_value is None
     # Nothing to plan: known to be unknown, not unavailable.
     send({**FULL, "learned": {**LEARNED, "plans": {"rooms": [{"id": "woonkamer", "optimum_start": {
         "reason": "no_rise_within_24h"}, "night": {"reason": "no_rise_within_24h"}}]}}})

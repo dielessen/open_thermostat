@@ -146,9 +146,9 @@ TEST(DhwEpisodes, WithoutTemperatureOrFlowAnEpisodeIsUnknownAndAGapEndsIt) {
 TEST(DhwEpisodes, DaysRollAtLocalMidnightAndTheWeekKeepsSevenDays) {
     DhwEpisodes e;
     const uint32_t day0 = 1792800000;                // 2026-10-24 00:00 UTC; the steps cross the CEST end
-    const auto episode = [&](uint32_t unix, uint64_t ms) {
+    const auto episode = [&](uint32_t utc, uint64_t ms) {
         ClassicBoilerMonitor m;
-        e.observe(m, ms, unix);
+        e.observe(m, ms, utc);
         e.temperature(6000, ms); e.state(0x0A, ms + 1000); e.temperature(4000, ms + 11000); e.state(0x00, ms + 21000);
     };
     for (uint32_t i = 0; i < 9; ++i) episode(day0 + i * 86400, uint64_t(i) * 86400000);

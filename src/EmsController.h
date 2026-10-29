@@ -395,16 +395,31 @@ public:
         std::optional<int16_t> flowCentiC;
         bool routeReady = false;
         std::optional<ActiveHeatPollDriver::Result> last;
+        // For FlowLearner (report only). hotWater: the 0x18 DHW bit (3-way valve
+        // on hot water, with or without flame), the same bit DhwEpisodes counts.
+        std::optional<bool> hotWater;
+        std::optional<uint8_t> modulationPct;
+        std::optional<int16_t> returnCentiC;
     };
     ActiveHeatView activeHeatView() const {
         std::lock_guard<std::mutex> lock(telemetryMutex_);
         const auto now = static_cast<uint64_t>(esp_timer_get_time() / 1000);
         const auto modulation = monitor_.value(BoilerField::modulation, now);
         const auto flow = monitor_.value(BoilerField::flow, now);
+        const auto state = monitor_.value(BoilerField::rawState, now);
+        const auto ret = monitor_.value(BoilerField::returnTemp, now);
         return {foreignRequest_.last, ActiveHeatEnvelope::limitC(monitor_),
             modulation ? std::optional<bool>(*modulation > 0) : std::nullopt,
             flow ? std::optional<int16_t>(static_cast<int16_t>(*flow)) : std::nullopt,
-            board::emsActiveHeatAllowed && activeHeatRouteReady(), activeHeat_.last()};
+            board::emsActiveHeatAllowed && activeHeatRouteReady(), activeHeat_.last(),
+            state ? std::optional<bool>((*state & 0x02) != 0) : std::nullopt,
+            modulation && *modulation >= 0 && *modulation <= 100 ? std::optional<uint8_t>(static_cast<uint8_t>(*modulation)) : std::nullopt,
+            ret ? std::optional<int16_t>(static_cast<int16_t>(*ret)) : std::nullopt};
+    }
+    // Today's and the last 7 days' hot water for /status/heating (nullptr: no memory).
+    cJSON* dhwSummaryJson() const {
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        return dhwEpisodes_.summaryJson();
     }
     uint32_t activeHeatPost(std::optional<uint8_t> flowC, bool heatAllowed, bool claim) {
         std::lock_guard<std::mutex> lock(telemetryMutex_);

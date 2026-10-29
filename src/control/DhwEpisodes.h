@@ -3,6 +3,7 @@
 #include "control/ShadowComparison.h" // localDay (Europe/Amsterdam)
 #include <algorithm>
 #include <array>
+#include <cJSON.h>
 #include <cstdint>
 #include <optional>
 #include <ostream>
@@ -104,6 +105,16 @@ public:
         out << '}';
     }
 
+    // /status/heating and MQTT "dhw": {"method","clock_known","today":{..},"last_7_days":{..}},
+    // the closed episodes only (an open one counts once it ends). nullptr: no memory.
+    cJSON* summaryJson() const {
+        cJSON* root = cJSON_CreateObject();
+        if (!root || !cJSON_AddStringToObject(root, "method", flowLive_ ? "flow" : "dhw_temperature_fall")
+            || !cJSON_AddBoolToObject(root, "clock_known", today_.day != unknownDay)
+            || !dayJson(root, "today", today_) || !dayJson(root, "last_7_days", lastSevenDays())) { cJSON_Delete(root); return nullptr; }
+        return root;
+    }
+
 private:
     struct Temp { uint64_t ms = 0; int32_t centi = 0; bool valid = false; };
     void clock(std::optional<uint32_t> unixNow) {
@@ -133,6 +144,18 @@ private:
         out << "\"burner_s\":" << d.burnerS << ",\"peak_flow_l_min\":";
         if (flowLive_ && d.peakFlow) out << d.peakFlow / 10 << '.' << d.peakFlow % 10; else out << "null";
         out << '}';
+    }
+    bool dayJson(cJSON* parent, const char* key, const Day& d) const {
+        static constexpr const char* names[kinds] = {"tapping", "keep_warm", "unknown"};
+        cJSON* o = cJSON_AddObjectToObject(parent, key);
+        if (!o) return false;
+        for (size_t k = 0; k < kinds; ++k) {
+            cJSON* kind = cJSON_AddObjectToObject(o, names[k]);
+            if (!kind || !cJSON_AddNumberToObject(kind, "count", d.count[k]) || !cJSON_AddNumberToObject(kind, "s", d.seconds[k])) return false;
+        }
+        if (!cJSON_AddNumberToObject(o, "burner_s", d.burnerS)) return false;
+        return flowLive_ && d.peakFlow ? cJSON_AddNumberToObject(o, "peak_flow_l_min", d.peakFlow / 10.0) != nullptr
+                                       : cJSON_AddNullToObject(o, "peak_flow_l_min") != nullptr;
     }
     std::array<Temp, 16> temps_{};                     // ~2.5 min of 0x34 at its ~10 s cadence
     size_t next_ = 0;

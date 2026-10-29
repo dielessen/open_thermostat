@@ -88,6 +88,9 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   // Read-only until unlocked: Home Assistant is the main editor; it is unreachable here, so unlocking is offered prominently.
   assert.match(await root.locator('[data-heating-lock]').innerText(),/Home Assistant is niet bereikbaar/);
   assert.equal(await root.locator('[data-heating-add]').isVisible(),false);
+  // Newer firmware reports Home Assistant input freshness in /status/heating; it replaces the /status fallback.
+  status.ha={input_age_s:30,broker_connected:true};
+  await root.locator('[data-heating-lock]').getByText('Beheerd in Home Assistant · verbonden').waitFor({timeout:15000});
   await root.locator('[data-heating-unlock]').click();assert.match(dialogs.at(-1),/ook in Home Assistant/);
   await root.locator('[data-heating-add]').click();
   const card=root.locator('[data-heating-room]').last();

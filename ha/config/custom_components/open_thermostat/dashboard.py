@@ -138,9 +138,9 @@ TEXT = {
         "flame_chart": "Observed flame time per day",
         "models_note": "Room heat models are estimates, not measured heat; unknown or stale inputs leave gaps.",
         "room_history": "{room}: target and measured", "room_measured": "Measured", "room_target": "Target",
-        "learning": "Learning", "flow_advice": "Recommended flow (1 °C)", "heating_start": "Heating starts",
+        "learning": "Learning", "flow_advice": "Recommended flow", "heating_start": "Heating starts",
         "learning_note": "The E32 also learns how fast each room warms up and works out the lowest flow "
-                         "temperature that is fast enough.",
+                         "temperature that still makes up a 1 °C shortfall in time (the recommended flow).",
         "advice_only": "For now this is advice only; the E32 keeps its own rule.",
         "dhw_taps": "Hot water taps today", "dhw_today": "Hot water today",
     },
@@ -193,9 +193,9 @@ TEXT = {
         "models_note": "Warmtemodellen per ruimte zijn schattingen, geen gemeten warmte; onbekende of verouderde "
                        "invoer laat gaten.",
         "room_history": "{room}: gewenst en gemeten", "room_measured": "Gemeten", "room_target": "Gewenst",
-        "learning": "Leren", "flow_advice": "Geadviseerde aanvoer (1 °C)", "heating_start": "Start verwarmen",
+        "learning": "Leren", "flow_advice": "Geadviseerde aanvoer", "heating_start": "Start verwarmen",
         "learning_note": "De E32 leert ook hoe snel elke ruimte opwarmt en berekent de laagste "
-                         "aanvoertemperatuur die snel genoeg is.",
+                         "aanvoertemperatuur die een tekort van 1 °C nog op tijd inhaalt (de geadviseerde aanvoer).",
         "advice_only": "Voorlopig is dat alleen advies; de E32 houdt zijn eigen regel aan.",
         "dhw_taps": "Warmwatertappen vandaag", "dhw_today": "Warm water vandaag",
     },

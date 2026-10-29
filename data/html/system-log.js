@@ -37,11 +37,25 @@ window.SystemLogPage = (() => {
       const element=get('log-previous-boot');if(!element)return;
       const p=value?.previous;
       if(!p||typeof p!=='object'||!Number.isSafeInteger(p.uptime_s)){element.textContent='';return;}
-      const restart={loop_stall:'the main loop stopped',wifi_lost:'Wi-Fi stayed disconnected',broker_lost:'Home Assistant (MQTT) stayed unreachable',network_dead:'the network stopped answering while Wi-Fi stayed connected'}[p.supervisor_restart];
+      const restart={loop_stall:'the main loop stopped',wifi_lost:'Wi-Fi stayed disconnected',broker_lost:'Home Assistant (MQTT) stayed unreachable',network_dead:'the network stopped answering while Wi-Fi stayed connected',
+        update_stuck:'a firmware update stopped making progress',bluetooth_settings:'new Bluetooth settings had to be applied',bluetooth_silent:'no Bluetooth sensor was heard for a long time'}[p.supervisor_restart];
+      // Repeated Wi-Fi or Bluetooth restarts wait twice as long each time.
+      const series=p.supervisor_restart==='wifi_lost'?value.wifi_lost_restarts:p.supervisor_restart==='bluetooth_silent'?value.bluetooth_silent_restarts:0;
       element.textContent=`${text('Previous run')}: ${Math.floor(p.uptime_s/60)} min · ${text('lowest free memory')} ${p.minimum_free_heap_bytes} B · `
         +`${text('loop stack reserve')} ${p.loop_stack_minimum_bytes} B · ${text('last request')} ${p.last_request||'—'}`
         +(typeof p.loop_phase==='string'&&p.loop_phase!=='idle'?` · ${text('last loop part')} ${p.loop_phase}`:'')
-        +(restart?` · ${text('Restarted automatically because')} ${text(restart)}`:'');
+        +(restart?` · ${text('Restarted automatically because')} ${text(restart)}`:'')
+        +(Number.isSafeInteger(series)&&series>1?` · ${text('restart {n} in a row; the E32 now waits longer before the next one').replace('{n}',series)}`:'');
+    }
+    // Memory and stack reserves now: technical details for diagnosis.
+    function runtime(value){
+      const element=get('log-runtime');if(!element)return;
+      const kb=n=>Number.isSafeInteger(n)&&n>=0?Math.round(n/1024)+' KB':'—',b=n=>Number.isSafeInteger(n)&&n>=0?n+' B':'—';
+      if(!value||typeof value!=='object'){element.textContent='';return;}
+      const stacks=value.stack_minimum_bytes||{},nvs=value.nvs;
+      element.textContent=`${text('Free internal memory')}: ${kb(value.free_internal_bytes)} (${text('lowest')} ${kb(value.minimum_free_internal_bytes)}, ${text('largest block')} ${kb(value.largest_internal_block_bytes)})`
+        +` · ${text('Settings storage')}: ${nvs&&Number.isSafeInteger(nvs.used_entries)&&Number.isSafeInteger(nvs.total_entries)?nvs.used_entries+' / '+nvs.total_entries+' '+text('entries used'):'—'}`
+        +` · ${text('Lowest free stack')}: ${[['main loop','loop'],['supervisor','supervisor'],['boiler bus','ems_uart'],['Bluetooth','bluetooth_host']].map(([label,key])=>text(label)+' '+b(stacks[key])).join(', ')}`;
     }
     function render(){
       const source=get('log-source').value,level=Number(get('log-filter').value),search=get('log-search').value.toLocaleLowerCase();
@@ -87,7 +101,7 @@ window.SystemLogPage = (() => {
         const count=k=>Number.isSafeInteger(data[k])&&data[k]>=0?data[k]:'?';
         get('log-counters').textContent=`${text('Overwritten')}: ${count('overwritten')} · ${text('Redacted')}: ${count('redacted')} · ${text('Truncated')}: ${count('truncated')} · ${text('Syslog sent (unconfirmed)')}: ${count('syslog_sent')} · ${text('Syslog dropped')}: ${count('syslog_dropped')} · ${text('Busy drops')}: ${count('contention_dropped')}`;
         loopTiming(data.loop_intervals);
-        previousBoot(data.previous_boot);
+        previousBoot(data.previous_boot);runtime(data.runtime);
         get('log-status').textContent='';render();
       }catch(error){if(alive()&&(!read.signal.aborted||read.signal.reason==='deadline')&&epoch===state.epoch){get('log-status').textContent=text('Log unavailable. Retrying.');loopTiming(null);}}
       finally{if(pollRequest===read)pollRequest=null;state.busy=false;if(alive()&&visible()&&!state.paused)timer=setTimeout(poll,read.signal.aborted&&read.signal.reason!=='deadline'?0:2000);}

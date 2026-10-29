@@ -29,49 +29,67 @@
       "scope": "Actual installed E32 screenshot with passive Classic reception and TX blocked"
     },
     {
+      "file": "e32-overview-beta18.png",
+      "version": "v0.1.0-e32v2-beta.18",
+      "date": "2026-10-29",
+      "width": 1280,
+      "height": 1431,
+      "sha256": "74ae5372bb1d63f1e26723e20e8ae30884d3489c45630726f103f6ca4b0c3beb",
+      "scope": "Shipped E32 web interface rendered locally with fictitious demonstration data (mocked HTTP responses); not a live device"
+    },
+    {
+      "file": "e32-overview-phone-beta18.png",
+      "version": "v0.1.0-e32v2-beta.18",
+      "date": "2026-10-29",
+      "width": 390,
+      "height": 2204,
+      "sha256": "78f911dd49b20e63a4ef794c7d3c55a114d4eca405025a6c165533cc4d660d55",
+      "scope": "Shipped E32 web interface rendered locally with fictitious demonstration data (mocked HTTP responses); not a live device"
+    },
+    {
       "file": "e32-rooms-beta18.png",
       "version": "v0.1.0-e32v2-beta.18",
       "date": "2026-10-29",
       "width": 1280,
-      "height": 1837,
-      "sha256": "f563f309700ca644f682446dd0ffd2517d4ba5fbbfac39fb9868716d97b1f786",
-      "scope": "Rooms page (light): shipped E32 web UI rendered locally with fictitious demo data (mocked HTTP); not a live device capture"
+      "height": 2048,
+      "sha256": "29e5ce25886b2a8aec8fd1db2fcccb4d6295326771871e25766c0b96ba4411f3",
+      "scope": "Shipped E32 web interface rendered locally with fictitious demonstration data (mocked HTTP responses); not a live device"
     },
     {
       "file": "e32-rooms-dark-beta18.png",
       "version": "v0.1.0-e32v2-beta.18",
       "date": "2026-10-29",
       "width": 1280,
-      "height": 1837,
-      "sha256": "a7bd7f8c698657a6543302f1a6bbbda70804ab767739576b0f58161d4d059ca1",
-      "scope": "Rooms page (dark): shipped E32 web UI rendered locally with fictitious demo data (mocked HTTP); not a live device capture"
-    },
-    {
-      "file": "e32-overview-beta18.png",
-      "version": "v0.1.0-e32v2-beta.18",
-      "date": "2026-10-29",
-      "width": 1280,
-      "height": 1810,
-      "sha256": "d08dddebe9dd88ca41995506af6103a08e998ff5f9503240d235d70efc533704",
-      "scope": "Overview page: shipped E32 web UI rendered locally with fictitious demo data (mocked HTTP); not a live device capture"
+      "height": 2048,
+      "sha256": "a9716abf389c988b67ffe2c5999bd52bafadfb5a5efee9b990fbcfabf71bc27c",
+      "scope": "Shipped E32 web interface rendered locally with fictitious demonstration data (mocked HTTP responses); not a live device"
     },
     {
       "file": "e32-boiler-beta18.png",
       "version": "v0.1.0-e32v2-beta.18",
       "date": "2026-10-29",
       "width": 1280,
-      "height": 3058,
-      "sha256": "3ebd309486d34125c0c3d525e37a8bb037ab839a4c1f52cdf4f4ac5bffc71ffb",
-      "scope": "Boiler page: shipped E32 web UI rendered locally with fictitious demo data (mocked HTTP); not a live device capture"
+      "height": 3043,
+      "sha256": "34981cf59f6a791bb7c1177e863e4074811eaf0b3446c5eaad6cce03704a0579",
+      "scope": "Shipped E32 web interface rendered locally with fictitious demonstration data (mocked HTTP responses); not a live device"
     },
     {
       "file": "e32-sensors-beta18.png",
       "version": "v0.1.0-e32v2-beta.18",
       "date": "2026-10-29",
       "width": 1280,
-      "height": 1943,
-      "sha256": "885bcbb1f19ec530af8e1cf1a4efd6c0ed44d478af744eb54e525b27009b32e3",
-      "scope": "Bluetooth sensors page: shipped E32 web UI rendered locally with fictitious demo data (mocked HTTP); not a live device capture"
+      "height": 1995,
+      "sha256": "aa0f7569bb0e1c73d9f8fb45e4b43dcd7a8b0537a6132695531b0df80f9247bb",
+      "scope": "Shipped E32 web interface rendered locally with fictitious demonstration data (mocked HTTP responses); not a live device"
+    },
+    {
+      "file": "e32-about-beta18.png",
+      "version": "v0.1.0-e32v2-beta.18",
+      "date": "2026-10-29",
+      "width": 1280,
+      "height": 1253,
+      "sha256": "65342112b97647be161dde3db6c3810a8b408022ea1a3ada4c9921de5e57e594",
+      "scope": "Shipped E32 web interface rendered locally with fictitious demonstration data (mocked HTTP responses); not a live device"
     }
   ],
   "privacy_review": "Product panels only; no tokens, server addresses, user profile/sidebar or unrelated dashboards. Screenshots visually inspected before publication.",

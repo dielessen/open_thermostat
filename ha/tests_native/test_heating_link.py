@@ -22,9 +22,30 @@ def state(entity_id, value, **attributes):
 def test_status_is_strict():
     assert decode_status(json.dumps(STATUS)) == STATUS
     for key, bad in [("schema", 2), ("mode", "manual"), ("ha_entities", ["no_domain"]),
-                     ("request", {"heat": True, "flow_c": 75, "reason": "heating"})]:
+                     ("request", {"heat": True, "flow_c": 81, "reason": "heating"}),
+                     ("request", {"heat": True, "flow_c": -1, "reason": "heating"})]:
         assert decode_status(json.dumps({**STATUS, key: bad})) is None
     assert decode_status("x" * 8193) is None
+
+
+def test_flow_requests_up_to_the_plan_maximum_of_80_c_are_accepted():
+    """A plan maximum above 60 °C (the E32 allows 21..80) must not make the telemetry invalid."""
+    from custom_components.open_thermostat.heating_link import FLOW_REQUEST_MAX_C
+    assert FLOW_REQUEST_MAX_C == 80
+    for flow in (0, 60, 61, 70, 80):
+        status = {**STATUS, "request": {"heat": True, "flow_c": flow, "reason": "heating"}}
+        assert decode_status(json.dumps(status)) == status, flow
+    for flow in (81, 90, 61.5, True):
+        assert decode_status(json.dumps({**STATUS, "request": {"heat": True, "flow_c": flow,
+                                                               "reason": "heating"}})) is None, flow
+
+
+@pytest.mark.asyncio
+async def test_a_70_c_request_keeps_the_heating_entities_fresh(hass, monkeypatch):
+    entry, hub, added, send = await _setup(hass, monkeypatch)
+    send({**STATUS, "request": {"heat": True, "flow_c": 70, "reason": "heating"}})
+    sensor = next(e for e in added if e.unique_id == "fixture_hub_heat_request")
+    assert hub.fresh and sensor.available and sensor.native_value == 70
 
 
 def test_climate_forwards_measurement_and_target():
@@ -719,6 +740,10 @@ def test_learned_room_messages_are_strict():
                 {**message, "plan": "x"}, "not json"):
         assert decode_learned("woonkamer", bad if type(bad) is str else json.dumps(bad)) is None
     assert decode_learned("BAD id", json.dumps(message)) is None
+    # The plan may carry its own room id (the same one).
+    plan = {"id": "woonkamer", "optimum_start": START, "night": NIGHT}
+    assert decode_learned("woonkamer", json.dumps({**message, "plan": plan}))[1] == plan
+    assert decode_learned("woonkamer", json.dumps({**message, "plan": {**plan, "id": "zolder"}})) is None
     assert decode_learned("woonkamer", "x" * 9000) is None
 
 
@@ -749,6 +774,12 @@ async def _setup_topics(hass, monkeypatch):
     def learned(room_id, value, retain=False):
         callbacks["fixture/v1/fw/telemetry/heating_learned/+"](SimpleNamespace(
             topic=f"fixture/v1/fw/telemetry/heating_learned/{room_id}", payload=json.dumps(value), retain=retain))
+
+    def summary(value, retain=False):
+        callbacks["fixture/v1/fw/telemetry/heating_summary"](SimpleNamespace(
+            topic="fixture/v1/fw/telemetry/heating_summary",
+            payload=value if type(value) is str else json.dumps(value), retain=retain))
+    hub.send_summary = summary
     return hub, added, now, status, learned
 
 
@@ -815,3 +846,120 @@ async def test_room_details_left_out_of_the_mqtt_rooms_come_from_the_plan(hass, 
     status({**FULL, "rooms": [{**room, "state": "inactive", "inactive_until": 0}]})
     assert link.operation("woonkamer")["inactive_until"] == 0
     hub.plan = None
+
+
+# -- the learned header and today's hot water on their own topic (heating_summary) --
+
+# The E32 heating_summary as published every 15 s (about 430 bytes).
+SUMMARY = {"schema": 1,
+           "learned": {"schema": 1, "applied": False, "status": "learning", "heating_periods": 37,
+                       "inputs": {"gas_meter": False, "gas_price": False, "outdoor": "boiler", "boiler_kw": 22,
+                                  "boiler_kw_source": "default", "gas_kwh_per_m3": 9.77,
+                                  "gas_kwh_per_m3_source": "default"}},
+           "dhw": {"method": "flow", "clock_known": True,
+                   "today": {"tapping": {"count": 6, "s": 540}, "keep_warm": {"count": 2, "s": 300},
+                             "unknown": {"count": 1, "s": 20}, "burner_s": 750, "peak_flow_l_min": 7.5}}}
+# The newer status: no learned, no dhw, rooms without the plan's setpoint fields, the HA link state.
+LEAN = {**{k: v for k, v in FULL.items() if k not in ("learned", "dhw")},
+        "ha": {"input_age_s": 12, "broker_connected": True},
+        "shadow": {"today": {"day": "2026-10-29", "s": 600, "tado_unknown_s": 600}}}
+
+
+def test_heating_summary_messages_are_strict():
+    from custom_components.open_thermostat import heating_link as module
+    assert len(json.dumps(SUMMARY)) < module.MAX_SUMMARY_BYTES
+    assert module.decode_summary(json.dumps(SUMMARY)) == SUMMARY
+    assert module.decode_summary(json.dumps(SUMMARY).encode()) == SUMMARY
+    assert module.decode_summary(json.dumps({"schema": 1})) == {"schema": 1}  # both parts are optional
+    for bad in ({**SUMMARY, "schema": 2}, {**SUMMARY, "learned": []}, {**SUMMARY, "dhw": "flow"}, [SUMMARY], 1):
+        assert module.decode_summary(json.dumps(bad)) is None, bad
+    for bad in ("not json", None, "{" * 10, json.dumps({**SUMMARY, "pad": "x" * module.MAX_SUMMARY_BYTES})):
+        assert module.decode_summary(bad) is None
+    assert module.learned_inputs(SUMMARY["learned"])["boiler_kw_source"] == "default"
+    assert module.learned_inputs({"schema": 1}) == {} and module.learned_inputs(None) == {}
+
+
+@pytest.mark.asyncio
+async def test_the_heating_summary_feeds_the_learned_header_and_hot_water(hass, monkeypatch):
+    from custom_components.open_thermostat import heating_link as module
+    hub, added, now, status, learned = await _setup_topics(hass, monkeypatch)
+    summary = hub.send_summary
+    assert decode_status(json.dumps(LEAN)) is not None
+    status(LEAN)
+    woonkamer = LEARNED["rooms"][0]
+    learned("woonkamer", {"schema": 1, "id": "woonkamer", "plan": None,
+                          "learned": {k: woonkamer[k] for k in ("emitter", "readiness", "segments", "periods",
+                                                                "advice")}})
+    learning = next(e for e in added if e.unique_id == "fixture_e32_room_woonkamer_learning")
+    assert learning.available and learning.extra_state_attributes["heating_periods"] is None  # no header yet
+    assert not any("_hub_dhw_" in e.unique_id for e in added)
+    summary(SUMMARY, retain=True)  # retained: ignored
+    assert hub.summary is None
+    summary(SUMMARY)
+    attributes = learning.extra_state_attributes
+    assert (attributes["heating_periods"], attributes["learner"], attributes["applied"]) == (37, "learning", False)
+    by_key = {e.unique_id.removeprefix("fixture_hub_"): e for e in added if "_hub_dhw_" in e.unique_id}
+    assert sorted(by_key) == sorted(module.DHW_SENSORS)
+    taps, warm, burner = (by_key[k] for k in module.DHW_SENSORS)
+    assert (taps.native_value, warm.native_value, burner.native_value) == (6, 2, 12.5)
+    assert taps.extra_state_attributes == {"method": "flow", "clock_known": True, "minutes": 9.0, "last_7_days": None,
+                                           "peak_flow_l_min": 7.5, "unknown_count": 1}
+    # The summary wins over an older status that still carries both.
+    status({**LEAN, "learned": {**SUMMARY["learned"], "heating_periods": 5}, "dhw": DHW})
+    assert learning.extra_state_attributes["heating_periods"] == 37
+    assert taps.extra_state_attributes["last_7_days"] is None
+    status(LEAN)
+    # An invalid or oversized summary drops the previous one: header and hot water unknown.
+    for bad in ({**SUMMARY, "schema": 2}, json.dumps({**SUMMARY, "pad": "x" * module.MAX_SUMMARY_BYTES}), "nope"):
+        summary(SUMMARY)
+        assert taps.available
+        summary(bad)
+        assert hub.summary is None and not any(e.available for e in by_key.values())
+        assert learning.available and learning.extra_state_attributes["heating_periods"] is None
+    # A learned header of another schema is not used; the hot water still is.
+    summary({**SUMMARY, "learned": {**SUMMARY["learned"], "schema": 2}})
+    assert hub.learned_header is None and taps.available
+    # Stale on its own clock (60 s), while the main status stays fresh.
+    summary(SUMMARY)
+    now[0] += 45
+    status(LEAN)
+    hub.check_stale()
+    assert taps.available and learning.extra_state_attributes["heating_periods"] == 37
+    now[0] += module.SUMMARY_STALE_SECONDS - 44
+    status(LEAN)
+    hub.check_stale()
+    assert hub.fresh and hub.summary is None and not any(e.available for e in by_key.values())
+    assert learning.available and learning.extra_state_attributes["heating_periods"] is None
+    # Back again; a stale main status makes the summary entities unavailable too.
+    summary(SUMMARY)
+    assert taps.available
+    now[0] += module.STALE_SECONDS + 1
+    hub.check_stale()
+    assert not hub.fresh and not taps.available
+    assert len([e for e in added if "_hub_dhw_" in e.unique_id]) == 3  # created once
+
+
+@pytest.mark.asyncio
+async def test_lean_rooms_without_plan_fields_keep_the_plan_entities(hass, monkeypatch):
+    """The MQTT rooms no longer carry fallback/minimum/maximum: the plan entities read the plan."""
+    from custom_components.open_thermostat.room_plan import (
+        RoomFallbackSetpoint, RoomInactiveUntil, RoomPlanLink, RoomStateSelect)
+    hub, added, now, status, learned = await _setup_topics(hass, monkeypatch)
+    room = {**FULL["rooms"][0], "state": "inactive", "inactive_until": 1893456000}
+    assert not {"fallback_centi_c", "minimum_centi_c", "maximum_centi_c"} & set(room)
+    status({**LEAN, "rooms": [room]})
+    link = RoomPlanLink.__new__(RoomPlanLink)
+    link.hub = hub
+    link.plan = {"revision": 7, "rooms": [{"id": "woonkamer", "state": "inactive", "inactive_until": 1893456000,
+                                           "fallback_centi_c": 1900, "minimum_centi_c": 1500,
+                                           "maximum_centi_c": 2400}]}
+    hub.plan = link
+    try:
+        number = RoomFallbackSetpoint(hub, hub.rooms["woonkamer"])
+        assert number.available
+        assert (number.native_value, number.native_min_value, number.native_max_value) == (19.0, 15.0, 24.0)
+        until = RoomInactiveUntil(hub, hub.rooms["woonkamer"])
+        assert until.native_value == datetime.fromtimestamp(1893456000, timezone.utc)
+        assert RoomStateSelect(hub, hub.rooms["woonkamer"]).current_option == "inactive"
+    finally:
+        hub.plan = None

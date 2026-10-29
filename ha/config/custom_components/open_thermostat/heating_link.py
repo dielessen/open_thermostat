@@ -50,6 +50,8 @@ ROOM_ID = re.compile(r"[a-z0-9_]{1,32}")
 BLE_ID = re.compile(r"[0-9a-f]{12}")
 ROOM_STATUSES = ["ok", "fallback", "stale", "lost", "inactive"]
 LEARNING_STATES = ["collecting", "learning", "ready"]
+# The highest flow the E32 requests: its plan maximum goes up to 80 °C (RoomPlan 21..80).
+FLOW_REQUEST_MAX_C = 80
 # A hard bound before parsing (the E32 publishes at most 4096 bytes).
 MAX_STATUS_BYTES = 8192
 # A room's learned message (every room at least every 60 s) expires after three missed ones.
@@ -73,7 +75,7 @@ def decode_status(payload):
         return None
     request, entities, rooms = value.get("request"), value.get("ha_entities"), value.get("rooms")
     if (type(request) is not dict or type(request.get("heat")) is not bool or type(request.get("flow_c")) is not int
-            or not 0 <= request["flow_c"] <= 60 or type(request.get("reason")) is not str
+            or not 0 <= request["flow_c"] <= FLOW_REQUEST_MAX_C or type(request.get("reason")) is not str
             or type(entities) is not list or len(entities) > MAX_ENTITIES
             or any(type(e) is not str or "." not in e or len(e) > 80 for e in entities)
             or type(rooms) is not list):

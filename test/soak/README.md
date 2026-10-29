@@ -152,16 +152,20 @@ Injected events:
   `inactive_until`. `no_demand` holds exactly when no room is usable.
 - **FlowPolicy** (`HeatingController::applyFlowPolicy`, between RoomEngine and
   the shadow comparison/guard): with both options off the applied request is
-  exactly the rule's; with the options on every heat request, also the
-  rule's flow passed through, stays within [plan min, min(plan max, 80, the
-  boiler's 0x16 limit)] (off: the plan's limits, the guard applies the 0x16
-  limit); off means 0. Steps where the rule itself asks more than the boiler
-  limit are counted (`rule_flow_above_boiler_limit_steps`). heating_summary (with the
+  exactly the rule's (`capped` included); on or off, every heat request stays
+  within [plan min, min(plan max, 80, the boiler's 0x16 limit)]; off means 0.
+- **The rule and the boiler's limit**: the room engine's request never exceeds
+  a known 0x16 limit (`rule_flow_above_boiler_limit` is a failure), and
+  `capped` (`request.capped_by: "boiler_limit"`) is set exactly when that limit
+  lowered the flow. The `flow` scenario changes the limit (25-80 °C or unknown)
+  at random. `request.capped_by` appearing in the MQTT payload while capped is
+  the documented shape change. heating_summary (with the
   `flow` and `night_gas` blocks) stays ≤ 1100 B.
 - **Plans** are stored as `RoomPlan::storedJson()` (week programs packed when
   the API form does not fit), at most `storeBytes` - 1, and load back to the
   same plan; a request body above `requestBytes` (8192) is refused.
-- **FlowDemand**: a heat request lies within [plan min, plan max] and ≤ 60 °C,
+- **FlowDemand**: a heat request lies within [plan min, min(plan max, 0x16 limit)]
+  (below the plan minimum only for a lower limit),
   and off means 0. Minimum on and off times hold (except after a flow-limit
   edit rebuilds it). Sustained demand always heats (no stuck-off state).
 - **ActiveHeatGuard**: it never sends a positive flow in shadow mode, without

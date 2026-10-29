@@ -1251,9 +1251,9 @@ void Chain::stepE32() {
 }
 
 // HeatingController::applyFlowPolicy: the options between the rule and the
-// shadow comparison/guard. Off: exactly the rule, which knows only the plan's
-// limits (the guard applies the boiler's 0x16 limit). On: every output stays
-// within [plan min, min(plan max, 80, the boiler's 0x16 limit)].
+// shadow comparison/guard. Off: exactly the rule (capped by the boiler's 0x16
+// limit itself). On or off: every output stays within [plan min, min(plan max,
+// 80, the boiler's 0x16 limit)], below the plan minimum only for a lower limit.
 FlowDemand::Request Chain::applyFlowPolicy(const FlowDemand::Request& rule, std::optional<int16_t> outdoorCentiC, std::optional<int16_t> flowCentiC,
                                            std::optional<bool> burnerOn, std::optional<bool> hotWater) {
     const auto& plan = engine_.plan();
@@ -1266,11 +1266,10 @@ FlowDemand::Request Chain::applyFlowPolicy(const FlowDemand::Request& rule, std:
     in.flowCentiC = flowCentiC; in.burnerOn = burnerOn; in.hotWater = hotWater;
     const auto applied = policy_.apply(in, learner_);
     if (!o_.flowOptions)
-        EXPECT(applied.heat == rule.heat && applied.flowC == rule.flowC && applied.reason == rule.reason, "flow_policy_off_differs",
+        EXPECT(applied.heat == rule.heat && applied.flowC == rule.flowC && applied.reason == rule.reason && applied.capped == rule.capped, "flow_policy_off_differs",
                "options off but applied %u/%u (%s) vs rule %u/%u (%s)", applied.heat, applied.flowC, FlowDemand::name(applied.reason), rule.heat, rule.flowC, FlowDemand::name(rule.reason));
-    // Options on: every output, also the rule's flow passed through, within the
-    // boiler's limit. Off: the rule's own limits (the guard applies 0x16).
-    const uint8_t cap = std::min<uint8_t>({plan.maximumFlowC, FlowDemand::ceilingC, o_.flowOptions ? in.boilerLimitC.value_or(FlowDemand::ceilingC) : FlowDemand::ceilingC});
+    // On or off: within the boiler's limit (the rule itself is capped by it).
+    const uint8_t cap = std::min<uint8_t>({plan.maximumFlowC, FlowDemand::ceilingC, in.boilerLimitC.value_or(FlowDemand::ceilingC)});
     // The rule itself never asks more than the boiler accepts (its 0x16 limit, when known).
     EXPECT(!(rule.heat && in.boilerLimitC && rule.flowC > *in.boilerLimitC), "rule_flow_above_boiler_limit",
            "rule %u degC above the boiler's %u degC", rule.flowC, in.boilerLimitC.value_or(0));
@@ -2476,9 +2475,9 @@ void flowScenario() {
         const auto r = flow.update(now, demand, error);
         const uint8_t top = std::min<uint8_t>(p.maximumFlowC, limit.value_or(FlowDemand::ceilingC));
         if (r.heat) EXPECT(r.flowC >= std::min(p.minimumFlowC, top) && r.flowC <= top, "flow_limits", "flow %u outside [%u, %u]", r.flowC, std::min(p.minimumFlowC, top), top);
+        else EXPECT(r.flowC == 0, "flow_off_nonzero", "off with %u", r.flowC);
         EXPECT(!r.capped || (r.heat && limit && r.flowC == *limit && *limit < p.maximumFlowC), "flow_capped_flag", "capped %u", r.flowC);
         if (r.capped) count("flow_capped_steps");
-        else EXPECT(r.flowC == 0, "flow_off_nonzero", "off with %u", r.flowC);
         if (!error) EXPECT(!r.heat && r.reason == FlowDemand::Reason::noDemand, "flow_no_error_stop", "no usable room but %s", FlowDemand::name(r.reason));
         if (r.heat && !heat) {
             if (haveOff) EXPECT(now - offAt >= p.minimumOffMs, "flow_minimum_off", "restart %" PRIu64 " s after the stop", (now - offAt) / 1000);

@@ -244,6 +244,8 @@ jobs:
         run: pio run -e ${{ matrix.environment }}
       - name: Test actual OTA binary size guard
         run: python scripts/test_esp32_size_link.py
+      - name: Test the E32 l32r literal reach guard (runs before every E32 link)
+        run: python scripts/test_e32v2_literal_reach.py
       - name: Verify actual firmware image fits every OTA app slot
         if: matrix.environment != 'native'
         env:

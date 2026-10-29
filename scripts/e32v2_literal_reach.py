@@ -59,7 +59,7 @@ def check(build, limit=LIMIT):
     """Return (rows, failures) for the application objects of a build directory."""
     rows = []
     for path in sorted((Path(build) / "src").rglob("*.o")):
-        rows.append(dict(reach(path.read_bytes()), object=str(path.relative_to(build))))
+        rows.append(dict(reach(path.read_bytes()), object=path.relative_to(build).as_posix()))
     rows.sort(key=lambda row: -row["reach"])
     return rows, [row for row in rows if row["reach"] > limit]
 

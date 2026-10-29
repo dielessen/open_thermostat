@@ -179,8 +179,9 @@ async def async_wait_room_plan_link(hass, entry, expected, *, private_expected=N
 
     The E32 room plan link has no room plan to confirm over MQTT. Its proof is
     that the reloaded entry runs its one connection and that the E32's heating
-    report (fw/telemetry/heating, every 15 s) arrives at this installation's
-    MQTT prefix: the E32 is on the same broker as Home Assistant.
+    state arrives at this installation's MQTT prefix (the retained
+    fw/state/heating and fw/config/plan, with the E32 online: its heartbeat
+    comes every 60 s): the E32 is on the same broker as Home Assistant.
     """
     connection = await async_wait_controller_connection(hass, entry, None, expected,
                                                         private_expected=private_expected)

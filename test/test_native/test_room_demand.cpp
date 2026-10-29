@@ -101,7 +101,7 @@ TEST(FlowDemand, TheBoilersOwnLimitCapsTheRequestAndSaysSo) {
     for (uint64_t t = 0; t <= 60 * minute; t += minute) r = g.update(t, true, 50);
     EXPECT_EQ(r.flowC, 34); EXPECT_TRUE(r.capped);
     g.setBoilerLimit(std::nullopt);
-    EXPECT_EQ(g.update(61 * minute, true, 50).flowC, 35); // no integral built up behind the cap (uncapped: 40 after 1 h)
+    EXPECT_EQ(g.update(61 * minute, true, 50).flowC, 35); // no integral built up behind the cap (without it: 45 after 1 h)
     EXPECT_FALSE(g.update(62 * minute, false, -50).capped); // satisfied: off, nothing capped
 }
 TEST(FlowDemand, PersistentSmallShortfallSlowlyRaisesTheFlow) {

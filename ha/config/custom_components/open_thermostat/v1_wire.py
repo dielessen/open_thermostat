@@ -22,6 +22,16 @@ from .boiler_fields import CAPABILITY as BOILER_CAPABILITY, CAPABILITY_V2 as BOI
 # Retained E32 telemetry topics (beta.19 telemetry budget): each at most 1.5 KB.
 STATE_TELEMETRY = ("fw/state/", "fw/config/", "fw/telemetry/learned/", "fw/telemetry/summary", "fw/telemetry/shadow")
 MAX_STATE_BYTES = 1536
+# Session timing, the same as ShadowController (TELEMETRIEBUDGET.nl.md, "Sessieprotocol"):
+# grants rotate every 10 s and last 30 s, HA heartbeats every 10 s for a 30 s lease, the
+# zone state comes on a change and at least every 30 s, hello every 60 s in a session.
+# Three missed messages before anything expires.
+GRANT_SECONDS = 30
+GRANT_ROTATION_SECONDS = 10
+LEASE_SECONDS = 30
+HEARTBEAT_SECONDS = 10
+RX_STALE_SECONDS = 45
+STATE_STALE_SECONDS = 100
 from .metric_snapshot import CAPABILITY,MAX_BYTES as MAX_METRIC_BYTES,EXPIRY_SECONDS,valid_snapshot
 
 _ID = re.compile(r"[A-Za-z0-9_-]{1,32}")
@@ -156,6 +166,7 @@ class ShadowClient:
         self.open_request = None
         self.open_sent = 0.0
         self.grant_until = 0.0
+        self._heartbeat_sent = float("-inf")
         self.lease_until = 0.0
         self.last_rx = 0.0
         self.sequence = defaultdict(int)
@@ -225,7 +236,7 @@ class ShadowClient:
             return None
         # Compare the deadline directly: subtracting across a binary exponent
         # boundary can round an expired 15-second interval down below 15.
-        if not self.ready or not self._supervisor_received<=now<self._supervisor_received+SUPERVISOR_MAX_AGE:
+        if not self.ready or not self._supervisor_received<=now<self._supervisor_received+max(SUPERVISOR_MAX_AGE,STATE_STALE_SECONDS):
             self._supervisor=None # Observed expiry/loss cannot revive after clock recovery.
             return None
         return dict(self._supervisor, receipt_age_ms=int(age*1000))
@@ -252,7 +263,7 @@ class ShadowClient:
                 and (self.native_plan_source is None or self.native_source_current()) and self.verified and (self.controller_policy is None or self.source_policy_matched) and self.session is not None
                 and self.session.get("mapping_ready") is True
                 and now < self.grant_until and now < self.lease_until
-                and now - self.last_rx < 15)
+                and now - self.last_rx < RX_STALE_SECONDS)
 
     def actuator_scope(self, binding):
         """Current local transport context only; never physical qualification."""
@@ -352,7 +363,7 @@ class ShadowClient:
         from .graph_shadow_validation import GraphValidationError
         if (not self.clock_current() or not self.native_source_current() or not self.identity or not self.session
                 or not self.source_policy_matched or self.clock()>=self.grant_until
-                or self.clock()>=self.lease_until or self.clock()-self.last_rx>=15):
+                or self.clock()>=self.lease_until or self.clock()-self.last_rx>=RX_STALE_SECONDS):
             raise GraphValidationError("native_plan_live_readback_required")
         return (self.identity,self.session["adapter_session_id"],self.session["config_revision"],
                 self.session["config_digest"],self.controller_policy.profile_digest,self._native_entry_state)
@@ -411,7 +422,7 @@ class ShadowClient:
         except GraphValidationError:
             return False
         received_scope,received_at=self._native_state_receipt
-        return received_scope==scope and 0<=self.clock()-received_at<15
+        return received_scope==scope and 0<=self.clock()-received_at<STATE_STALE_SECONDS
 
     async def async_request_native_plan_readback(self):
         """Explicit read-only refresh on the owning worker; never stage or apply."""
@@ -926,7 +937,7 @@ class ShadowClient:
                 or not isinstance(p.get("config_digest"), str)
                 or (p["config_revision"] == 0 and p["config_digest"] != "")
                 or (p["config_revision"] != 0 and not _HEX.fullmatch(p["config_digest"]))
-                or p.get("lease_ms") != 15000 or p.get("grant_ms") != 10000
+                or p.get("lease_ms") != LEASE_SECONDS * 1000 or p.get("grant_ms") != GRANT_SECONDS * 1000
                 or type(p.get("storage_fault", False)) is not bool):
                 raise ValueError("hello")
             new_identity = (p["controller_id"], p["boot_id"], p["epoch"])
@@ -1029,7 +1040,7 @@ class ShadowClient:
                 or p.get("adapter_id") != self.adapter_id
                 or not all(identifier(p.get(k)) for k in ("adapter_session_id", "grant_id"))
                 or not integer(p.get("grant_sequence"), 1)
-                or p.get("grant_ms") != 10000 or type(p.get("mapping_ready")) is not bool
+                or p.get("grant_ms") != GRANT_SECONDS * 1000 or type(p.get("mapping_ready")) is not bool
                 or not integer(p.get("config_revision"))):
                 raise ValueError("session")
             if self.session:
@@ -1039,22 +1050,22 @@ class ShadowClient:
                     return  # Repeated status may NOT extend a grant.
                 if not self.same_config(p):
                     raise ValueError("session config changed")
-                # Safe old-peer fallback: minimum5s per rotation, NOT receipt+10.
-                grant_deadline = min(self.clock() + 10, self.grant_until +
-                                     5 * (p["grant_sequence"] - self.session["grant_sequence"]))
+                # Safe fallback: at most one rotation period per new grant, NOT receipt+grant.
+                grant_deadline = min(self.clock() + GRANT_SECONDS, self.grant_until +
+                                     GRANT_ROTATION_SECONDS * (p["grant_sequence"] - self.session["grant_sequence"]))
                 proof=p.get("grant_request_nonce")
                 if self.grant_nonce_supported and identifier(proof):
-                    deadline=consume_grant_proof(self._grant_proofs,proof,self.clock())
+                    deadline=consume_grant_proof(self._grant_proofs,proof,self.clock(),GRANT_SECONDS)
                     if deadline is not None:
                         # SAME original-send proof used by explicit graph owner.
                         grant_deadline=max(grant_deadline,deadline)
-                delay_bound = self.clock() + 10 - grant_deadline
+                delay_bound = self.clock() + GRANT_SECONDS - grant_deadline
             else:
                 delay_bound = self.clock() - self.open_sent
-            if delay_bound < 0 or delay_bound >= 10:
+            if delay_bound < 0 or delay_bound >= GRANT_SECONDS:
                 raise ValueError("late grant")
             self.session = p
-            self.grant_until = self.clock() + 10 - delay_bound
+            self.grant_until = self.clock() + GRANT_SECONDS - delay_bound
             self.last_rx = self.clock()
             await self.message("ha/heartbeat", "adapter", {})
             self.changed()
@@ -1090,7 +1101,7 @@ class ShadowClient:
                 return
             if topic == "fw/heartbeat_result":
                 # Use original publish timestamp, not receipt, as conservative start.
-                self.lease_until = pending["sent"] + 15
+                self.lease_until = pending["sent"] + LEASE_SECONDS
                 if not self.verified:
                     await self.message("ha/snapshot_request", "snapshot", {})
             if topic == "fw/user_command_result" and not pending["future"].done():
@@ -1227,6 +1238,8 @@ class ShadowClient:
     async def message(self, topic, binding, body, future=None):
         p = self.envelope(binding)
         p.update(body)
+        if topic == "ha/heartbeat":
+            self._heartbeat_sent = self.clock()  # poll() heartbeats every HEARTBEAT_SECONDS after this
         if (topic=="ha/heartbeat" and self.ready and self.boiler_fields_v2
                 and self._capabilities_sent!=self.session["adapter_session_id"]):
             self._capabilities_sent=self.session["adapter_session_id"]
@@ -1364,7 +1377,7 @@ class ShadowClient:
                 self.require_native_plan_review()
                 return None
             now = self.clock()
-            if self.session and (now - self.last_rx >= 15
+            if self.session and (now - self.last_rx >= RX_STALE_SECONDS
                     or (self.lease_until and now >= self.lease_until)):
                 await self.async_disconnected()
                 return None
@@ -1391,7 +1404,7 @@ class ShadowClient:
         now = await current_time()
         if now is None:
             return
-        if self.session and now < self.grant_until:
+        if self.session and now < self.grant_until and now - self._heartbeat_sent >= HEARTBEAT_SECONDS:
             if not any(k[0] == "fw/heartbeat_result" for k in self.pending):
                 await self.message("ha/heartbeat", "adapter", {})
         now = await current_time()

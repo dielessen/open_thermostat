@@ -72,7 +72,13 @@ public:
     // Existing NVS partition is20KiB, with GC + old/new atomic blob overhead.
     // Do not turn a JSON transport ceiling into a hidden persistence promise.
     static constexpr size_t maximumZones=8, maximumConfigBytes=4096;
-    static constexpr uint32_t grantMs=10000, leaseMs=15000;
+    // Session timing (TELEMETRIEBUDGET.nl.md, "Sessieprotocol"); HA's v1_wire holds the
+    // same values. Grants rotate every 10 s and last 30 s, HA heartbeats every 10 s and
+    // the lease lasts 30 s: three missed messages before anything expires. hello goes
+    // every 3 s only while no session is open; the zone state is evaluated every 3 s
+    // and published on a change, otherwise every 30 s.
+    static constexpr uint32_t grantMs=30000, leaseMs=30000, grantRotationMs=10000;
+    static constexpr uint32_t helloIdleMs=3000, helloSessionMs=60000, stateStepMs=3000, stateRefreshMs=30000;
     ShadowController(std::string controller,std::string boot,std::string owner,
                      ControlStore &store,Hash hash,Nonce nonce,Publish publish,Metrics metrics={},
                      const SeasonalControllerSource* seasonalSource=nullptr,
@@ -184,8 +190,8 @@ public:
             if(grantSequence_==UINT32_MAX || !newGrant(now)) { invalidate(); newChallenge(now); }
             else sessionStatus();
         }
-        if(now>=nextHello_) { hello(); nextHello_=now+3000; }
-        if(now>=nextState_) { state(now,utc,clockValid); nextState_=now+3000; }
+        if(now>=nextHello_) { hello(); nextHello_=now+(session_?helloSessionMs:helloIdleMs); }
+        if(now>=nextState_) { state(now,utc,clockValid); nextState_=now+stateStepMs; }
         metricsSnapshot(now);
         boilerFieldSnapshot(now);
     }
@@ -287,7 +293,7 @@ private:
             config_=std::move(candidate);legacyQuarantine_=false; configBytes_=candidateBytes; digest_=stringField(root.get(),"config_digest");
             result(resultTopic,e,"applied"); invalidate(); newChallenge(now); hello(); return;
         }
-        if(topic=="ha/snapshot_request") { result(resultTopic,e,"accepted"); snapshot(e.sequence); state(now,utc,clockValid); return; }
+        if(topic=="ha/snapshot_request") { result(resultTopic,e,"accepted"); snapshot(e.sequence); state(now,utc,clockValid,true); return; }
         auto &z=config_->zones[index];
         if(kind==StreamKind::observation) {
             if(z.comfortEnabled||z.contactsEnabled) {
@@ -318,7 +324,7 @@ private:
             z.overrideUntil=mode=="temporary" && now<=UINT64_MAX-uintField(root.get(),"duration_ms") ? now+uintField(root.get(),"duration_ms") : 0;
             z.overrideTarget=static_cast<int16_t>(uintField(root.get(),"temperature_centi_c"));
         }
-        result(resultTopic,e,"accepted"); state(now,utc,clockValid);
+        result(resultTopic,e,"accepted"); state(now,utc,clockValid,kind==StreamKind::user_command);
     }
 public:
     uint32_t revision() const { return config_->revision; }
@@ -623,6 +629,7 @@ private:
         for(auto &name:roomNamesHex_)name.fill(0);
         supervisor_.invalidate();
         admission_.invalidateTransport(); session_=mappingReady_=leaseWasAlive_=false;
+        nextHello_=lastNow_; statePublishedAt_=0; stateKey_=0; // a lost session is announced at once
         sessionId_.clear(); lastOpen_.clear(); pendingGrantNonce_.clear(); issuedGrantNonce_.clear();
         nextMetrics_=0;metricsSequence_=0;nextBoilerFields_=0;boilerSequence_=0;boilerGroup_=0;boilerFieldsV2_=false;catalogFieldsKnown_=catalogFieldsWithoutCount;
         for(size_t i=0;i<config_->count;++i) {
@@ -637,7 +644,7 @@ private:
         if(!SessionAdmission::validId(challenge_)) fault_=true;
     }
     bool newGrant(uint64_t now) {
-        grant_=nonce_(); ++grantSequence_; nextGrant_=now+5000;
+        grant_=nonce_(); ++grantSequence_; nextGrant_=now+grantRotationMs;
         // Issue strictly AFTER receipt of the accepted heartbeat. No immediate
         // extra rotation that could invalidate another in-flight command.
         issuedGrantNonce_=std::move(pendingGrantNonce_); pendingGrantNonce_.clear();
@@ -851,7 +858,20 @@ private:
         }
         send("fw/config_snapshot",o.get());
     }
-    void state(uint64_t now,int64_t utc,bool clockValid) {
+    // Published on a change (ages that only grow are no change), when forced, else every stateRefreshMs.
+    void publishState(const cJSON* o,uint64_t now,bool force) {
+        const auto bytes=printJson(o);
+        if(bytes.empty()||bytes.size()>8192) return;
+        ControlJson key(cJSON_Duplicate(o,true),cJSON_Delete);
+        for(cJSON* row=key?field(key.get(),"zones")->child:nullptr;row;row=row->next)
+            for(const char* volatileKey:{"sample_age_ms","override_remaining_ms"})cJSON_DeleteItemFromObjectCaseSensitive(row,volatileKey);
+        uint32_t hash=2166136261u;
+        for(const char c:printJson(key.get()))hash=(hash^uint8_t(c))*16777619u;
+        if(!force&&statePublishedAt_&&hash==stateKey_&&now>=statePublishedAt_&&now-statePublishedAt_<stateRefreshMs) return;
+        stateKey_=hash; statePublishedAt_=now?now:1;
+        publish_("fw/state/zones",bytes);
+    }
+    void state(uint64_t now,int64_t utc,bool clockValid,bool force=false) {
         auto o=base(); sourcePolicy(o.get()); cJSON_AddStringToObject(o.get(),"mode","shadow");
         cJSON_AddBoolToObject(o.get(),"boiler_output_enabled",false); cJSON_AddBoolToObject(o.get(),"actuator_output_enabled",false);
         // Same owner's bounded last admission, not a command receipt/authority
@@ -1011,7 +1031,7 @@ private:
             if(hydraulic.waterTarget)cJSON_AddNumberToObject(status,"water_target_centi_c",*hydraulic.waterTarget);
             else cJSON_AddNullToObject(status,"water_target_centi_c");
         }
-        send("fw/state/zones",o.get());
+        publishState(o.get(),now,force);
     }
     std::string controller_,boot_,owner_,digest_,configBytes_,challenge_,grant_,sessionId_,clientNonce_,lastOpen_;
     std::string pendingGrantNonce_,issuedGrantNonce_;
@@ -1049,7 +1069,8 @@ private:
     size_t boilerGroup_=0;
     bool boilerFieldsV2_=false; // HA announced boiler.fields.v2 in this session
     size_t catalogFieldsKnown_=catalogFieldsWithoutCount;
-    uint64_t challengeUntil_=0,nextHello_=0,nextState_=0,nextGrant_=0,lastNow_=0,sessionStart_=0;
+    uint64_t challengeUntil_=0,nextHello_=0,nextState_=0,nextGrant_=0,lastNow_=0,sessionStart_=0,statePublishedAt_=0;
+    uint32_t stateKey_=0;
     bool session_=false,mappingReady_=false,connected_=false,fault_=false,leaseWasAlive_=false;
 };
 }

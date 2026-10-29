@@ -83,7 +83,7 @@ TEST(ShadowRuntime, DuplicateChangedPayloadAndOldSequenceNeverReapplyOverride) {
 TEST(ShadowRuntime, ExpiredGrantDiagnosticNeverAppliesOrRetriesTheCommand) {
     Fixture f;f.ready();auto command=f.command("temporary",1,2300);
     const auto saved=f.store.bytes;const auto writes=f.store.writes;
-    f.now+=5000;f.tick(); // Rotate real firmware grant, keep old in-flight packet.
+    f.now+=ShadowController::grantRotationMs;f.tick(); // Rotate real firmware grant, keep old in-flight packet.
     f.send("ha/user_command",command.get());
     auto result=f.get("fw/user_command_result");
     EXPECT_EQ(stringField(result.get(),"status"),"rejected");
@@ -144,7 +144,7 @@ TEST(ShadowRuntime, RebootReadbackMismatchAndDisconnectFenceAllOldPackets) {
 }
 TEST(ShadowRuntime, MissingHeartbeatSessionExpiresAndDelayedHeartbeatCannotReviveIt) {
     Fixture f; f.start(); f.connect(); const auto oldSession=f.session; auto heartbeat=f.envelope("adapter");
-    f.now+=15000; f.send("ha/heartbeat",heartbeat.get()); f.tick(); f.connect(); EXPECT_NE(f.session,oldSession);
+    f.now+=ShadowController::leaseMs; f.send("ha/heartbeat",heartbeat.get()); f.tick(); f.connect(); EXPECT_NE(f.session,oldSession);
 }
 TEST(ShadowRuntime, InvalidConfigDoesNotConsumeSequenceOrTouchStoreAndWrongOwnerFailsClosed) {
     Fixture f; f.start(); f.connect(); f.heartbeat(); auto bad=f.configuration();
@@ -230,7 +230,7 @@ TEST(GrantNonce, ExplicitCapabilityAndAcceptedHeartbeatOnlyAnchorsNextScheduledR
     auto hb=nonceHeartbeat(f,2,"requestA");auto before=f.output.at("fw/session");f.send("ha/heartbeat",hb.get());
     EXPECT_EQ(stringField(f.get("fw/heartbeat_result").get(),"status"),"accepted");
     EXPECT_EQ(f.output.at("fw/session"),before); // Not an immediate grant rotation.
-    f.now+=5000;f.tick();f.syncSession();
+    f.now+=ShadowController::grantRotationMs;f.tick();f.syncSession();
     auto issued=f.get("fw/session");EXPECT_EQ(stringField(issued.get(),"grant_request_nonce"),"requestA");
     EXPECT_EQ(uintField(issued.get(),"grant_sequence"),2u);EXPECT_FALSE(f.core->faulted());
     auto state=f.state();EXPECT_FALSE(cJSON_IsTrue(field(state.get(),"boiler_output_enabled")));
@@ -242,16 +242,16 @@ TEST(GrantNonce, DuplicateOrChangedOrWrongOwnerCannotReplaceAcceptedProof) {
     auto changed=nonceHeartbeat(f,2,"requestChanged");f.send("ha/heartbeat",changed.get());
     EXPECT_EQ(stringField(f.get("fw/heartbeat_result").get(),"status"),"rejected");
     auto foreign=nonceHeartbeat(f,3,"requestForeign");cJSON_SetValuestring(cJSON_GetObjectItemCaseSensitive(foreign.get(),"adapter_id"),"other");
-    f.send("ha/heartbeat",foreign.get());f.now+=5000;f.tick();f.syncSession();
+    f.send("ha/heartbeat",foreign.get());f.now+=ShadowController::grantRotationMs;f.tick();f.syncSession();
     EXPECT_EQ(stringField(f.get("fw/session").get(),"grant_request_nonce"),"requestA");
-    f.now+=5000;f.tick();f.syncSession();EXPECT_EQ(field(f.get("fw/session").get(),"grant_request_nonce"),nullptr);
+    f.now+=ShadowController::grantRotationMs;f.tick();f.syncSession();EXPECT_EQ(field(f.get("fw/session").get(),"grant_request_nonce"),nullptr);
 }
 TEST(GrantNonce, MalformedNonceNeverConsumesHeartbeatSequence) {
     for(const char *bad:{"","x/y","abcdefghijklmnopqrstuvwxyz0123456789"}) {
         Fixture f;f.ready();auto hb=nonceHeartbeat(f,2,bad);f.send("ha/heartbeat",hb.get());
         auto good=nonceHeartbeat(f,2,"valid");f.send("ha/heartbeat",good.get());
         EXPECT_EQ(stringField(f.get("fw/heartbeat_result").get(),"status"),"accepted");
-        f.now+=5000;f.tick();f.syncSession();EXPECT_EQ(stringField(f.get("fw/session").get(),"grant_request_nonce"),"valid");
+        f.now+=ShadowController::grantRotationMs;f.tick();f.syncSession();EXPECT_EQ(stringField(f.get("fw/session").get(),"grant_request_nonce"),"valid");
     }
     Fixture f;f.ready();auto hb=nonceHeartbeat(f,2,nullptr);cJSON_AddNullToObject(hb.get(),"grant_request_nonce");
     f.send("ha/heartbeat",hb.get());auto good=nonceHeartbeat(f,2,"valid");f.send("ha/heartbeat",good.get());
@@ -259,10 +259,10 @@ TEST(GrantNonce, MalformedNonceNeverConsumesHeartbeatSequence) {
 }
 TEST(GrantNonce, LatestNewHeartbeatWinsAndOldPeerBodyStillAccepted) {
     Fixture f;f.ready();auto one=nonceHeartbeat(f,2,"first"),two=nonceHeartbeat(f,3,"second");
-    f.send("ha/heartbeat",one.get());f.send("ha/heartbeat",two.get());f.now+=5000;f.tick();f.syncSession();
+    f.send("ha/heartbeat",one.get());f.send("ha/heartbeat",two.get());f.now+=ShadowController::grantRotationMs;f.tick();f.syncSession();
     EXPECT_EQ(stringField(f.get("fw/session").get(),"grant_request_nonce"),"second");
     auto three=nonceHeartbeat(f,4,"third");f.send("ha/heartbeat",three.get());f.heartbeat(5);
-    f.now+=5000;f.tick();f.syncSession();EXPECT_EQ(field(f.get("fw/session").get(),"grant_request_nonce"),nullptr);
+    f.now+=ShadowController::grantRotationMs;f.tick();f.syncSession();EXPECT_EQ(field(f.get("fw/session").get(),"grant_request_nonce"),nullptr);
     EXPECT_FALSE(f.core->faulted());
 }
 TEST(GrantNonce, ReconnectAndConfigurationInvalidationClearPendingAndIssuedProofs) {

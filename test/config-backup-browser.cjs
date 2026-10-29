@@ -19,7 +19,7 @@ const summary={valid:true,fingerprint:'f'.repeat(64),restart:true,secrets_sealed
  warnings:['wifi_not_restored','unknown_key:network.future','other_firmware:0.1.0-e32v2-beta.18'],reenter:['bluetooth_key:Living']};
 (async()=>{
  const context={window:{}};vm.createContext(context);
- vm.runInContext(fs.readFileSync(path.join(assets,'ui-messages.js'),'utf8'),context);vm.runInContext(fs.readFileSync(path.join(assets,'backup.js'),'utf8'),context);
+ vm.runInContext(fs.readFileSync(path.join(assets,'ui-messages.js'),'utf8'),context);vm.runInContext(fs.readFileSync(path.join(assets,'ui-messages-pages.js'),'utf8'),context);vm.runInContext(fs.readFileSync(path.join(assets,'backup.js'),'utf8'),context);
  const catalog=context.window.OT_UI_MESSAGES,missing=context.window.ConfigBackupPage.messages.filter(m=>!Object.hasOwn(catalog,m));
  assert.equal(missing.length,0,'every backup panel message has a Dutch catalog entry: '+missing.join(' | '));
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH}),results=[];

@@ -11,10 +11,16 @@ untouched by the user (no name, icon, area, label, hidden or user-disabled
 state). A customised legacy record is kept, disabled. Removing a registry
 record never deletes Recorder history, and Home Assistant restores the same
 entity_id if the integration provides that unique_id again.
+
+E32 rooms: a room that is no longer in the E32 room plan (removed in the HA
+room editor or on the E32's own page) loses its room device and that device's
+entities, but only once a plan has actually been read from the E32 (never on
+a missing or unreadable plan) and only this entry's own devices.
 """
 import logging
 import re
 
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from .const import DOMAIN
@@ -93,4 +99,70 @@ def cleanup_stale_entities(hass, entry, prefix):
     if removed:
         _LOGGER.info("Removed %d OpenThermostat entities this installation no longer provides: %s",
                      len(removed), ", ".join(sorted(removed)))
+    return removed
+
+
+# hass.data key: room ids whose device was removed during this setup.
+REMOVED_ROOMS = "e32_removed_rooms"
+
+
+def room_device_ids(hass, entry, prefix):
+    """The ids of the E32 rooms that have a device of this entry."""
+    from .heating_link import ROOM_ID
+    head = f"{prefix}_e32_room_"
+    ids = set()
+    for device in dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id):
+        for domain, identifier in device.identifiers:
+            if domain == DOMAIN and identifier.startswith(head) and ROOM_ID.fullmatch(identifier.removeprefix(head)):
+                ids.add(identifier.removeprefix(head))
+    return ids
+
+
+def remove_room_devices(hass, entry, prefix, room_ids):
+    """Remove this entry's device of each E32 room and this entry's entities on it.
+
+    Only the device this config entry owns (a device belongs to one config
+    entry); devices and entities of other entries and integrations, even with
+    the same identifier, are never touched. Returns the room ids whose device
+    was removed.
+    """
+    from .heating_link import room_device_identifier
+    state = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    devices, entities = dr.async_get(hass), er.async_get(hass)
+    removed = []
+    for room_id in room_ids:
+        device = devices.async_get_device_by_identifier(room_device_identifier(prefix, room_id), entry.entry_id)
+        if device is None or device.config_entry_id != entry.entry_id:
+            continue
+        for record in er.async_entries_for_device(entities, device.id, include_disabled_entities=True):
+            if record.config_entry_id == entry.entry_id and record.platform == DOMAIN:
+                entities.async_remove(record.entity_id)
+        devices.async_remove_device(device.id)
+        removed.append(room_id)
+    if state is not None:
+        state.setdefault(REMOVED_ROOMS, set()).update(removed)
+    if removed:
+        _LOGGER.info("Removed the devices of %d E32 rooms that are no longer in the room plan: %s",
+                     len(removed), ", ".join(sorted(removed)))
+    return removed
+
+
+def cleanup_removed_rooms(hass, entry, prefix, plan):
+    """Remove the room devices of rooms a plan read from the E32 no longer has.
+
+    plan is a decoded E32 room plan; None (not read yet, unreadable) removes
+    nothing. A room removed during this setup that is back in the plan (the
+    same name added again) reloads the entry, so its entities are created again.
+    """
+    state = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if state is None or type(plan) is not dict or type(plan.get("rooms")) is not list:
+        return []
+    planned = {room.get("id") for room in plan["rooms"] if type(room) is dict}
+    removed = remove_room_devices(hass, entry, prefix, sorted(room_device_ids(hass, entry, prefix) - planned))
+    returned = state.get(REMOVED_ROOMS, set()) & planned
+    if returned and hass.config_entries.async_get_entry(entry.entry_id) is entry:
+        state[REMOVED_ROOMS] -= returned
+        _LOGGER.info("E32 rooms %s are back in the room plan; reloading to add their entities again",
+                     ", ".join(sorted(returned)))
+        hass.config_entries.async_schedule_reload(entry.entry_id)
     return removed

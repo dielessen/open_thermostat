@@ -682,6 +682,7 @@
       "e32_flow_limits_order": "The minimum flow temperature must be below the maximum.",
       "e32_flow_limits_invalid": "Enter whole degrees: minimum {minimum_range}, maximum {maximum_range}.",
       "e32_plan_too_large": "The room plan is too large for the E32 (4 KB). Use shorter names, fewer sources or fewer switch points. Nothing was saved.",
+      "e32_storage_full": "The E32 has no storage space left for its room plan. Remove a room you no longer use, or a few switch points from the week programs, and save again. Nothing was saved.",
       "e32_rejected": "The E32 refused the room plan ({error}). Nothing was saved.",
       "e32_unreachable": "The E32 could not be reached ({error}). Nothing was saved.",
       "e32_room_limit": "The E32 room plan already has 8 rooms.",
@@ -689,7 +690,7 @@
       "gas_meter_unit": "Choose a gas meter sensor in m³, or in kWh with device class gas or energy.",
       "gas_meter_not_total": "Choose a meter reading (state class total or total increasing), not a usage rate.",
       "gas_price_unit": "Choose a price per m³ or per kWh (unit such as EUR/m³ or GBP/kWh).",
-      "gas_price_invalid": "Enter a gas price above 0.",
+      "gas_price_invalid": "Enter a gas price above 0 and at most 1000 (per m³ or per kWh, in your own currency).",
       "gas_price_twice": "Use a gas price sensor or a fixed gas price, not both.",
       "outdoor_unit": "Choose a temperature sensor in °C or °F, or a weather entity with a temperature.",
       "boiler_kw_invalid": "The boiler power must be between 3 and 60 kW.",
@@ -2205,6 +2206,9 @@
     },
     "room_plan_too_large": {
       "message": "The room plan is too large for the E32 (4 KB). Nothing was saved."
+    },
+    "room_plan_storage_full": {
+      "message": "The E32 has no storage space left for its room plan. Remove a room you no longer use, or a few switch points from the week programs, and try again. Nothing was saved."
     },
     "room_plan_password": {
       "message": "The E32 no longer accepts the saved password. Re-authenticate OpenThermostat under Settings → Devices & services. Nothing was saved."

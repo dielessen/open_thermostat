@@ -46,6 +46,7 @@ class HeatingPlanRejected(ControllerLinkError):
 
 HEATING_PLAN = "/config/heating"
 HEATING_PLAN_BYTES = 4096  # The E32 refuses larger plans (413 plan_too_large).
+# A plan that fits but finds its flash storage full is refused with 507 storage_full.
 
 
 class ControllerProvisioningError(ControllerLinkError):
@@ -149,7 +150,8 @@ def _decode(raw):
 
 async def _error_name(response):
     """The E32's {"error":"<name>"}, or a fixed name; never response text verbatim."""
-    fallback = {409: "plan_changed", 413: "plan_too_large", 503: "save_unconfirmed"}.get(response.status, "invalid_plan")
+    fallback = {409: "plan_changed", 413: "plan_too_large", 503: "save_unconfirmed",
+                507: "storage_full"}.get(response.status, "invalid_plan")
     try:
         value = json.loads(await response.content.read(512))
     except (ValueError, UnicodeError, RecursionError, aiohttp.ClientError):
@@ -513,7 +515,7 @@ class ControllerClient:
                     raise ControllerLoginRejected()
                 if response.status in (401, 403):
                     raise ControllerLinkError("controller_auth_failed")
-                if path == HEATING_PLAN and response.status in (400, 409, 413, 503):
+                if path == HEATING_PLAN and response.status in (400, 409, 413, 503, 507):
                     raise HeatingPlanRejected(response.status, await _error_name(response))
                 if response.status == 412:
                     raise ControllerLinkError("controller_settings_changed")
@@ -564,7 +566,8 @@ class ControllerClient:
         """POST the whole plan with the revision it was read at; returns the stored plan.
 
         A stale revision raises HeatingPlanRejected(409, "plan_changed"); other
-        refusals carry the E32's error name (400) or save_unconfirmed (503).
+        refusals carry the E32's error name (400), save_unconfirmed (503) or
+        storage_full (507: the E32's room-plan storage has no room left).
         """
         if type(plan) is not dict:
             raise ControllerLinkError("controller_request_invalid")

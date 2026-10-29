@@ -11,7 +11,8 @@ Entities (product entries with a stored controller connection, one per room
 the E32 telemetry reports): a select (active / inactive), a datetime
 (inactive until) and a number (fallback setpoint). Whole rooms are added,
 edited and removed by the "E32 rooms" options flow (e32_room_flow.py) through
-the same writer.
+the same writer. A plan read from or confirmed by the E32 removes the devices
+of rooms it no longer has (native_entity_cleanup.cleanup_removed_rooms).
 """
 from __future__ import annotations
 
@@ -119,6 +120,8 @@ def plan_error(err):
             return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_changed")
         if err.error == "plan_too_large":
             return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_too_large")
+        if err.error == "storage_full":
+            return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_storage_full")
         if err.error == "save_unconfirmed":
             return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_unconfirmed")
         return HomeAssistantError(translation_domain=DOMAIN, translation_key="room_plan_rejected",
@@ -244,7 +247,11 @@ class RoomPlanLink:
 
     @callback
     def _set(self, plan):
+        """A plan read from (or confirmed by) the E32: rooms no longer in it lose their device."""
         self.plan = plan
+        if self.entry is not None:
+            from .native_entity_cleanup import cleanup_removed_rooms
+            cleanup_removed_rooms(self.hass, self.entry, self.hub.prefix, plan)
         self.hub.notify()
 
     async def async_change_room(self, room_id, change):

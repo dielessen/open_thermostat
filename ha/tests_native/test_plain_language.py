@@ -49,3 +49,26 @@ def test_the_room_editor_says_who_does_what_in_plain_words():
     for filename in ("strings.json", "translations/nl.json"):
         entity = json.loads((COMPONENT / filename).read_text(encoding="utf-8"))["entity"]
         assert all(len(item["name"]) <= 45 for platform in entity.values() for item in platform.values()), filename
+
+
+def test_english_and_dutch_have_the_same_texts():
+    def keys(node, path=""):
+        for key, value in node.items():
+            if isinstance(value, dict):
+                yield from keys(value, f"{path}.{key}")
+            else:
+                yield f"{path}.{key}"
+    en = set(keys(json.loads((COMPONENT / "strings.json").read_text(encoding="utf-8"))))
+    nl = set(keys(json.loads((COMPONENT / "translations/nl.json").read_text(encoding="utf-8"))))
+    assert sorted(en - nl) == [] and sorted(nl - en) == []
+
+
+def test_the_fixed_gas_price_is_per_cubic_metre_in_your_own_currency():
+    from custom_components.open_thermostat.energy_input import PRICE_LIMITS
+    assert PRICE_LIMITS == (0.0001, 1000.0)  # the E32 accepts the same range
+    for filename, currency in (("strings.json", "currency"), ("translations/nl.json", "valuta")):
+        options = json.loads((COMPONENT / filename).read_text(encoding="utf-8"))["options"]
+        price = options["step"]["energy"]["data_description"]["gas_price"]
+        assert "per m³" in price and currency in price, filename
+        invalid = options["error"]["gas_price_invalid"]
+        assert "1000" in invalid and "per m³" in invalid and currency in invalid, filename

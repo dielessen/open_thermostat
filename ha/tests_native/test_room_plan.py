@@ -127,6 +127,7 @@ async def test_a_second_conflict_raises_a_clear_error_and_saves_nothing(hass):
     (HeatingPlanRejected(400, "invalid_room_limits"), "room_plan_rejected", {"error": "invalid_room_limits"}),
     (HeatingPlanRejected(400, "active_mode_not_released"), "room_plan_rejected", {"error": "active_mode_not_released"}),
     (HeatingPlanRejected(503, "save_unconfirmed"), "room_plan_unconfirmed", None),
+    (HeatingPlanRejected(507, "storage_full"), "room_plan_storage_full", None),
     (module.ControllerLinkError("controller_unreachable"), "room_plan_unreachable", {"error": "controller_unreachable"}),
 ])
 @pytest.mark.asyncio
@@ -316,6 +317,10 @@ async def test_controller_client_speaks_the_heating_plan_contract():
             return web.json_response({"error": "active_mode_not_released"}, status=400)
         if body.get("mode") == "flash":
             return web.json_response({"error": "save_unconfirmed"}, status=503)
+        if body.get("mode") == "full":
+            return web.json_response({"error": "storage_full"}, status=507)
+        if body.get("mode") == "full_silent":
+            return web.Response(status=507, text="Insufficient Storage")
         state["plan"] = {**body, "revision": body["revision"] + 1}
         return web.json_response(state["plan"])
 
@@ -345,13 +350,17 @@ async def test_controller_client_speaks_the_heating_plan_contract():
             with pytest.raises(HeatingPlanRejected) as error:
                 await client.async_save_heating_plan({**stored, "mode": "flash"})
             assert error.value.error == "save_unconfirmed"
+            for mode in ("full", "full_silent"):  # the E32's room-plan storage is full
+                with pytest.raises(HeatingPlanRejected) as error:
+                    await client.async_save_heating_plan({**stored, "mode": mode})
+                assert (error.value.status, error.value.error) == (507, "storage_full")
             with pytest.raises(HeatingPlanRejected) as error:
                 await client.async_save_heating_plan({**stored, "padding": "x" * 4096})
             assert error.value.error == "plan_too_large"
     finally:
         await server.close()
     assert seen[0] == ("c" * 64, origin, "application/json")
-    assert len(seen) == 4  # the oversized plan never left Home Assistant
+    assert len(seen) == 6  # the oversized plan never left Home Assistant
 
 
 @pytest.mark.asyncio

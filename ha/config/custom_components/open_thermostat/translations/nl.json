@@ -1599,6 +1599,7 @@
       "e32_flow_limits_order": "De minimale aanvoertemperatuur moet lager zijn dan de maximale.",
       "e32_flow_limits_invalid": "Vul hele graden in: minimum {minimum_range}, maximum {maximum_range}.",
       "e32_plan_too_large": "Het ruimteplan is te groot voor de E32 (4 KB). Gebruik kortere namen, minder bronnen of minder schakelpunten. Er is niets opgeslagen.",
+      "e32_storage_full": "De E32 heeft geen opslagruimte meer voor zijn ruimteplan. Verwijder een ruimte die je niet meer gebruikt, of een paar schakelpunten uit de weekprogramma's, en sla opnieuw op. Er is niets opgeslagen.",
       "e32_rejected": "De E32 weigerde het ruimteplan ({error}). Er is niets opgeslagen.",
       "e32_unreachable": "De E32 is niet bereikbaar ({error}). Er is niets opgeslagen.",
       "e32_room_limit": "Het ruimteplan van de E32 heeft al 8 ruimtes.",
@@ -1606,7 +1607,7 @@
       "gas_meter_unit": "Kies een gasmetersensor in m³, of in kWh met apparaatklasse gas of energie.",
       "gas_meter_not_total": "Kies een meterstand (statusklasse total of total increasing), geen verbruikssnelheid.",
       "gas_price_unit": "Kies een prijs per m³ of per kWh (eenheid zoals EUR/m³ of GBP/kWh).",
-      "gas_price_invalid": "Vul een gasprijs boven 0 in.",
+      "gas_price_invalid": "Vul een gasprijs in boven 0 en hoogstens 1000 (per m³ of per kWh, in je eigen valuta).",
       "gas_price_twice": "Gebruik een gasprijssensor of een vaste gasprijs, niet allebei.",
       "outdoor_unit": "Kies een temperatuursensor in °C of °F, of een weerentiteit met een temperatuur.",
       "boiler_kw_invalid": "Het ketelvermogen moet tussen 3 en 60 kW liggen.",
@@ -2205,6 +2206,9 @@
     },
     "room_plan_too_large": {
       "message": "Het ruimteplan is te groot voor de E32 (4 KB). Er is niets opgeslagen."
+    },
+    "room_plan_storage_full": {
+      "message": "De E32 heeft geen opslagruimte meer voor zijn ruimteplan. Verwijder een ruimte die je niet meer gebruikt, of een paar schakelpunten uit de weekprogramma's, en probeer het opnieuw. Er is niets opgeslagen."
     },
     "room_plan_password": {
       "message": "De E32 accepteert het bewaarde wachtwoord niet meer. Verifieer OpenThermostat opnieuw onder Instellingen → Apparaten en diensten. Er is niets opgeslagen."

@@ -9,6 +9,7 @@ import probatio as vol
 import pytest
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import InvalidData, section
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from custom_components.open_thermostat import e32_room_flow as module
@@ -216,7 +217,7 @@ async def test_flow_temperature_limits_are_edited_in_the_e32_plan(hass, manager)
         assert form["type"] == "form" and form["errors"] == {"base": error}, form
     for values in [{"minimum_flow_temperature": 19, "maximum_flow_temperature": 45},
                    {"minimum_flow_temperature": 25, "maximum_flow_temperature": 81}]:
-        with pytest.raises(InvalidData):  # the selector bounds: 20–59 and 21–80
+        with pytest.raises(InvalidData):  # the selector bounds: 20–79 and 21–80
             await manager.async_configure(form["flow_id"], values)
     assert len(e32.posts) == posts
     # Another writer changes a room meanwhile: only the flow limits are applied on top.
@@ -234,6 +235,30 @@ async def test_flow_temperature_limits_are_edited_in_the_e32_plan(hass, manager)
     posts = len(e32.posts)
     result = await manager.async_configure(form["flow_id"], shown(form))
     assert result["reason"] == "e32_room_unchanged" and len(e32.posts) == posts
+
+
+@pytest.mark.asyncio
+async def test_a_flow_minimum_up_to_79_is_accepted_below_the_maximum(hass, manager):
+    """The E32 accepts a minimum of 20–79 °C and a maximum of 21–80 °C, minimum below maximum."""
+    assert (module.FLOW_MINIMUM_C, module.FLOW_MAXIMUM_C) == ((20, 79), (21, 80))
+    e32 = FakeE32()
+    parent, _ = product(hass, e32)
+    form = await flow_limits_form(manager, parent)
+    assert form["description_placeholders"]["minimum_range"] == "20–79 °C"
+    assert form["description_placeholders"]["maximum_range"] == "21–80 °C"
+    form = await manager.async_configure(form["flow_id"], {"minimum_flow_temperature": 79,
+                                                           "maximum_flow_temperature": 79})
+    assert form["errors"] == {"base": "e32_flow_limits_order"}
+    with pytest.raises(InvalidData):
+        await manager.async_configure(form["flow_id"], {"minimum_flow_temperature": 80,
+                                                        "maximum_flow_temperature": 80})
+    values = {"minimum_flow_temperature": 79, "maximum_flow_temperature": 80}
+    result = await manager.async_configure(form["flow_id"], values)
+    if result["type"] == "form":  # a warning (floor heating above 50 °C) asks for the same values once more
+        assert result["errors"], result
+        result = await manager.async_configure(form["flow_id"], values)
+    assert result["type"] == "abort" and result["reason"] == "e32_flow_limits_saved", result
+    assert (e32.plan["minimum_flow_c"], e32.plan["maximum_flow_c"]) == (79, 80)
 
 
 @pytest.mark.asyncio
@@ -372,6 +397,7 @@ async def test_a_room_added_twice_at_once_gets_unique_ids_after_the_re_read(hass
 @pytest.mark.asyncio
 @pytest.mark.parametrize("failure,kind,key", [
     (HeatingPlanRejected(413, "plan_too_large"), "form", "e32_plan_too_large"),
+    (HeatingPlanRejected(507, "storage_full"), "form", "e32_storage_full"),
     (HeatingPlanRejected(400, "invalid_mode"), "form", "e32_rejected"),
     (HeatingPlanRejected(400, "invalid_room_limits"), "form", "e32_limits_invalid"),
     (HeatingPlanRejected(400, "invalid_sources"), "form", "e32_rejected_sources"),
@@ -412,6 +438,113 @@ async def test_a_room_is_removed_after_confirmation_and_the_others_stay(hass, ma
     posts = len(e32.posts)
     result = await manager.async_configure(flow["flow_id"], {"confirm_remove": False})
     assert result["reason"] == "cancelled" and len(e32.posts) == posts
+
+
+def other_entry(hass, domain="other_integration"):
+    from types import MappingProxyType
+    from homeassistant.config_entries import ConfigEntry
+    item = ConfigEntry(domain=domain, title="other", version=1, minor_version=1, data={}, options={},
+                       source="user", unique_id=f"{domain}_1", discovery_keys=MappingProxyType({}),
+                       subentries_data=[])
+    hass.config_entries._entries[item.entry_id] = item
+    return item
+
+
+def room_device(hass, owner, room_id, *, domain="open_thermostat", platform=None):
+    """A room device with one entity on it, as the E32 room sensors create them."""
+    identifier = (domain, f"fixture_e32_room_{room_id}")
+    device = dr.async_get(hass).async_get_or_create(config_entry_id=owner.entry_id, identifiers={identifier},
+                                                    name=room_id)
+    entity = er.async_get(hass).async_get_or_create(
+        "sensor", platform or domain, f"{owner.entry_id}_e32_room_{room_id}_temperature", config_entry=owner,
+        device_id=device.id)
+    return device.id, entity.entity_id
+
+
+@pytest.mark.asyncio
+async def test_removing_a_room_removes_its_device_and_entities_only(hass, manager):
+    e32 = FakeE32()
+    parent, hub = product(hass, e32)
+    assert hub.plan.entry is None  # this path is the flow's own: confirmed removal of one room
+    other = other_entry(hass)
+    gone = room_device(hass, parent, "badkamer")
+    disabled = er.async_get(hass).async_get_or_create(
+        "number", "open_thermostat", "fixture_e32_room_badkamer_fallback_setpoint", config_entry=parent,
+        device_id=gone[0], disabled_by=er.RegistryEntryDisabler.USER).entity_id
+    kept = [room_device(hass, parent, "woonkamer"), room_device(hass, parent, "bad"),
+            room_device(hass, other, "badkamer", domain="other_integration")]
+    flow = await rooms_menu(manager, parent)
+    flow = await manager.async_configure(flow["flow_id"], {"next_step_id": "e32_room_pick"})
+    flow = await manager.async_configure(flow["flow_id"], {"room": "badkamer", "action": "remove"})
+    result = await manager.async_configure(flow["flow_id"], {"confirm_remove": True})
+    assert result["step_id"] == "e32_rooms_removed", result
+    await hass.async_block_till_done()
+    devices, entities = dr.async_get(hass), er.async_get(hass)
+    assert devices.async_get(gone[0]) is None
+    assert entities.async_get(gone[1]) is None and entities.async_get(disabled) is None
+    for device_id, entity_id in kept:  # other rooms, a room id that only starts alike, other integrations
+        assert devices.async_get(device_id) is not None and entities.async_get(entity_id) is not None
+
+
+@pytest.mark.asyncio
+async def test_a_room_already_gone_from_the_plan_also_loses_its_device(hass, manager):
+    e32 = FakeE32()
+    parent, _ = product(hass, e32)
+    gone = room_device(hass, parent, "badkamer")
+    flow = await rooms_menu(manager, parent)
+    flow = await manager.async_configure(flow["flow_id"], {"next_step_id": "e32_room_pick"})
+    flow = await manager.async_configure(flow["flow_id"], {"room": "badkamer", "action": "remove"})
+    # The E32's own page removed it before we confirmed.
+    e32.plan["rooms"] = [r for r in e32.plan["rooms"] if r["id"] != "badkamer"]
+    e32.plan["revision"] += 1
+    posts = len(e32.posts)
+    result = await manager.async_configure(flow["flow_id"], {"confirm_remove": True})
+    assert result["step_id"] == "e32_rooms_removed" and len(e32.posts) == posts, result
+    await hass.async_block_till_done()
+    assert dr.async_get(hass).async_get(gone[0]) is None and er.async_get(hass).async_get(gone[1]) is None
+
+
+@pytest.mark.asyncio
+async def test_a_plan_read_from_the_e32_removes_devices_of_rooms_it_no_longer_has(hass, monkeypatch):
+    e32 = FakeE32({**PLAN, "schema": 2})  # a plan this version cannot read: nothing is removed
+    parent, hub = product(hass, e32)
+    hub.plan.entry = parent  # as RoomPlanLink.for_entry sets it
+    other = other_entry(hass)
+    kept = [room_device(hass, parent, "woonkamer"), room_device(hass, parent, "badkamer"),
+            room_device(hass, other, "zolder", domain="other_integration")]
+    stale = [room_device(hass, parent, "zolder"), room_device(hass, parent, "bad"),
+             room_device(hass, parent, "gast")]
+    # Another entry's device with our identifier and platform (e.g. a second E32 on the same prefix).
+    shared = room_device(hass, other_entry(hass, "open_thermostat"), "gast")
+    product_device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=parent.entry_id, identifiers={("open_thermostat", "fixture")}).id
+    reloads = []
+    monkeypatch.setattr(hass.config_entries, "async_schedule_reload", reloads.append)
+    devices, entities = dr.async_get(hass), er.async_get(hass)
+    await hass.async_block_till_done()
+    assert hub.plan.plan is None
+    assert all(devices.async_get(d) is not None and entities.async_get(e) is not None
+               for d, e in kept + stale + [shared])
+
+    e32.plan = deepcopy(PLAN)
+    await hub.plan.async_refresh()
+    await hass.async_block_till_done()
+    assert hub.plan.plan == PLAN
+    assert all(devices.async_get(d) is None and entities.async_get(e) is None for d, e in stale)
+    assert all(devices.async_get(d) is not None and entities.async_get(e) is not None for d, e in kept)
+    assert devices.async_get(product_device) is not None
+    # Another config entry's device with the same identifier stays, with its entity.
+    assert devices.async_get(shared[0]) is not None and entities.async_get(shared[1]) is not None
+    assert devices.async_get_device_by_identifier(("open_thermostat", "fixture_e32_room_gast"), parent.entry_id) is None
+    assert reloads == []
+
+    # The same room added again (on the E32 page or in the editor): reload so its entities return.
+    e32.plan["rooms"].append({**PLAN["rooms"][1], "id": "zolder", "name": "Zolder"})
+    e32.plan["revision"] += 1
+    await hub.plan.async_refresh()
+    assert reloads == [parent.entry_id]
+    await hub.plan.async_refresh()
+    assert reloads == [parent.entry_id]  # once
 
 
 @pytest.mark.asyncio
@@ -515,3 +648,9 @@ def test_every_flow_key_has_a_translation(filename):
                                       "setpoint_entity", "fallback_temperature", "program"}
     assert set(room_step["sections"]["limits"]["data"]) == {"minimum_temperature", "maximum_temperature"}
     assert document["exceptions"]["room_plan_too_large"]["message"]
+    assert document["exceptions"]["room_plan_storage_full"]["message"]
+    full = options["error"]["e32_storage_full"]
+    if filename.endswith("nl.json"):
+        assert "opslagruimte" in full and "Verwijder een ruimte" in full and "schakelpunten" in full
+    else:
+        assert "storage" in full and "Remove a room" in full and "switch points" in full

@@ -40,10 +40,11 @@ ENTITY_ID = re.compile(r"[a-z0-9_]+\.[a-z0-9_]+")
 SOURCE_DOMAINS = ("climate", "sensor")
 SETPOINT_DOMAINS = ("climate", "input_number", "number")
 CELSIUS = UnitOfTemperature.CELSIUS
-# The plan's flow limits as the E32 accepts them (RoomPlan.h): whole °C, minimum below maximum.
-# Up to 80 °C for radiator homes; firmware before that refuses more than 60 °C
-# (invalid_flow_limits, shown as e32_rejected_flow_limits).
-FLOW_MINIMUM_C = (20, 59)
+# The plan's flow limits as the E32 accepts them (RoomPlan.h): whole °C, minimum
+# 20–79 and maximum 21–80, minimum below maximum. Up to 80 °C for radiator homes;
+# firmware before that refuses more than 60 °C (invalid_flow_limits, shown as
+# e32_rejected_flow_limits).
+FLOW_MINIMUM_C = (20, 79)
 FLOW_MAXIMUM_C = (21, 80)
 # Floor heating without a mixing valve: a higher maximum earns a warning first.
 FLOOR_FLOW_WARNING_C = 50
@@ -74,6 +75,7 @@ DAY_PREFIX = re.compile(r"([a-z][a-z ,\-]*?)\s*:\s*(.*)")
 
 # HA error translation keys of RoomPlanLink -> this flow's error/abort keys.
 FAILURES = {"room_plan_changed": "e32_plan_changed", "room_plan_too_large": "e32_plan_too_large",
+            "room_plan_storage_full": "e32_storage_full",
             "room_plan_rejected": "e32_rejected", "room_plan_unconfirmed": "e32_unconfirmed",
             "room_plan_unreachable": "e32_unreachable", "room_plan_invalid": "e32_plan_invalid",
             "room_plan_room_missing": "e32_room_missing", "room_plan_password": "e32_password_changed"}
@@ -363,7 +365,7 @@ class E32RoomFlow:
         return boiler_maximum(client)
 
     async def async_step_e32_flow_limits(self, user_input=None):
-        """The plan's minimum/maximum flow temperature (whole °C, 20–59 / 21–80, minimum below maximum).
+        """The plan's minimum/maximum flow temperature (whole °C, 20–79 / 21–80, minimum below maximum).
 
         Shown and entered in the Home Assistant unit. A maximum above 50 °C with
         floor heating, or above the boiler's own maximum, is saved only after a
@@ -471,7 +473,8 @@ class E32RoomFlow:
                 return self.async_abort(reason="e32_rooms_unavailable")
             try:
                 await link.async_change_plan(change, lambda stored: plan_room(stored, room_id) is None)
-            except FlowError:
+            except FlowError:  # the plan just read no longer has it
+                self._e32_forget_room(room_id)
                 return await self.async_step_e32_rooms(done="removed", name=placeholders["name"])
             except HomeAssistantError as err:
                 key, extra = self._e32_failure(err)
@@ -479,11 +482,17 @@ class E32RoomFlow:
                     return self.async_abort(reason=key, description_placeholders={**placeholders, **extra})
                 errors["base"] = key
                 placeholders.update(extra)
-            else:
+            else:  # the E32 confirmed a plan without it
+                self._e32_forget_room(room_id)
                 return await self.async_step_e32_rooms(done="removed", name=placeholders["name"])
         return self.async_show_form(step_id="e32_room_remove", data_schema=vol.Schema({
             vol.Required("confirm_remove", default=False): bool}),
             errors=errors, description_placeholders=placeholders)
+
+    def _e32_forget_room(self, room_id):
+        """The room is gone from the E32 plan: remove its device and entities (this entry's only)."""
+        from .native_entity_cleanup import remove_room_devices
+        remove_room_devices(self.hass, self.config_entry, heating_hub(self.hass, self.config_entry).prefix, [room_id])
 
     def _e32_own_entities(self):
         """This entry's E32 entities (room and Bluetooth values): never an HA source.

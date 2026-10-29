@@ -1925,6 +1925,52 @@ void guardScenario() {
 }
 
 // ============================================================================
+// FlowDemand alone: random demand flips (schedule switch points, HA targets,
+// pauses) far more often than a house produces them, so the minimum on/off
+// times, the limits and the integral are exercised hard.
+// ============================================================================
+void flowScenario() {
+    FlowDemand::Params p;
+    FlowDemand flow(p);
+    uint64_t now = opt.uptime0;
+    const uint64_t steps = uint64_t(opt.days * 86400000.0 / 10000);
+    bool demand = false, heat = false, haveOff = false;
+    std::optional<int16_t> error = int16_t(0);
+    uint64_t onAt = 0, offAt = 0, nextFlip = now, demandSince = now;
+    for (uint64_t i = 0; i < steps; ++i) {
+        now += chance(0.001) ? uint64_t(uniformInt(20, 600)) * 1000 : 10000; // a stalled loop now and then
+        ctx.uptime = now; ctx.utc = ctx.startUtc + int64_t((now - opt.uptime0) / 1000);
+        if (now >= nextFlip) {
+            demand = chance(0.5); if (demand) demandSince = now;
+            nextFlip = now + uint64_t(uniformInt(10, 1200)) * 1000;
+        }
+        if (chance(0.01)) error = chance(0.05) ? std::optional<int16_t>() : std::optional<int16_t>(int16_t(uniformInt(-300, 800)));
+        else if (error) error = int16_t(std::clamp<int>(*error + int(uniformInt(-5, 5)), -3000, 3000));
+        if (chance(0.00005)) { // a plan edit of the flow limits rebuilds FlowDemand (RoomEngine::setPlan)
+            p.minimumFlowC = uint8_t(uniformInt(20, 40)); p.maximumFlowC = uint8_t(uniformInt(p.minimumFlowC + 1, 60));
+            flow = FlowDemand(p); haveOff = false; heat = false; count("flow_rebuild");
+        }
+        const auto r = flow.update(now, demand, error);
+        if (r.heat) EXPECT(r.flowC >= p.minimumFlowC && r.flowC <= p.maximumFlowC, "flow_limits", "flow %u outside [%u, %u]", r.flowC, p.minimumFlowC, p.maximumFlowC);
+        else EXPECT(r.flowC == 0, "flow_off_nonzero", "off with %u", r.flowC);
+        if (!error) EXPECT(!r.heat && r.reason == FlowDemand::Reason::noDemand, "flow_no_error_stop", "no usable room but %s", FlowDemand::name(r.reason));
+        if (r.heat && !heat) {
+            if (haveOff) EXPECT(now - offAt >= p.minimumOffMs, "flow_minimum_off", "restart %" PRIu64 " s after the stop", (now - offAt) / 1000);
+            onAt = now; count("flow_starts");
+        }
+        if (!r.heat && heat) {
+            if (r.reason == FlowDemand::Reason::satisfied) EXPECT(now - onAt >= p.minimumOnMs, "flow_minimum_on", "stopped %" PRIu64 " s after the start", (now - onAt) / 1000);
+            offAt = now; haveOff = true;
+        }
+        // Liveness: demand with a usable room for longer than the minimum off time heats.
+        if (demand && error && now - demandSince > p.minimumOffMs + 20000 && haveOff && now - offAt > p.minimumOffMs + 20000)
+            EXPECT(r.heat, "flow_stuck_off", "demand for %" PRIu64 " s but %s", (now - demandSince) / 1000, FlowDemand::name(r.reason));
+        heat = r.heat;
+    }
+    counters[ctx.scenario + ":steps"] = steps;
+}
+
+// ============================================================================
 // SupervisorPolicy: 60 days of network/loop/update/Bluetooth faults with reboots.
 // ============================================================================
 void supervisorScenario() {
@@ -2156,7 +2202,7 @@ void reproScenario() {
 }
 
 void usage() {
-    std::fprintf(stderr, "soak --scenario=chain|guard|supervisor|sizes|repro [--name=] [--tz=POSIX] [--start=YYYY-MM-DDTHH:MM:SSZ] [--days=60]\n"
+    std::fprintf(stderr, "soak --scenario=chain|guard|flow|supervisor|sizes|repro [--name=] [--tz=POSIX] [--start=YYYY-MM-DDTHH:MM:SSZ] [--days=60]\n"
                          "     [--uptime0=ms] [--seed=n] [--step-ms=10000] [--mqtt-s=300] [--learned-s=900] [--full-s=3600] [--edit-h=4]\n"
                          "     [--live-dhw-flow] [--boiler-outdoor] [--no-oom] [--no-active] [--out=/tmp/soak]\n");
 }
@@ -2198,6 +2244,7 @@ int main(int argc, char** argv) {
     const auto t0 = std::chrono::steady_clock::now();
     if (opt.scenario == "chain") { Chain chain(opt); chain.run(); }
     else if (opt.scenario == "guard") guardScenario();
+    else if (opt.scenario == "flow") flowScenario();
     else if (opt.scenario == "supervisor") supervisorScenario();
     else if (opt.scenario == "sizes") sizesScenario();
     else if (opt.scenario == "repro") reproScenario();

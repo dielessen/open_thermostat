@@ -105,7 +105,12 @@ voorrang, ook als interne session-/controllerklassen daarvoor herschreven worden
   expliciete review en nieuwe sessie, nooit via erase/factory-reset.
 
 De huidige 4096/8192-B-, NVS-, queue- en OTAgrenzen worden niet verruimd om PASS
-te halen. Eerst complete twee-kamerpayload, codec, piekallocaties en commit/readback
+te halen. (Uitzondering, besluit eigenaar 29 oktober, beta.18: de *alleen-lezen*
+verwarmingstelemetrie `fw/telemetry/heating` mag tot 7900 B — onder de 8192-B
+HA-grens en de 8448-B MQTT-buffer — zodat acht ruimtes met lange entiteitnamen
+niet het hele bericht verliezen; leeradvies en tapwater gaan in eigen kleine
+berichten (`heating_summary`, `heating_learned/<ruimte>`), berichten > 4096 B
+worden geteld. Dit raakt geen regel-, opslag- of veiligheidsgrens.) Eerst complete twee-kamerpayload, codec, piekallocaties en commit/readback
 meten; bij overschrijding representatie gericht verkleinen, niet veiligheidsvelden
 of gewenste functies stil schrappen. Acht zones krijgen pas support na eigen bewijs.
 

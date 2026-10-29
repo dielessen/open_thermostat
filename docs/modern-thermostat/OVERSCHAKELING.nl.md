@@ -1,320 +1,451 @@
-# Bijgewoonde overstap: de E32 neemt de ketel over van de tado (fase 4)
+# Bijgewoonde overstap: de E32 neemt de ketel over van de tado
 
-**Status:** concept van 29 oktober 2026, nog niet uitgevoerd. Dit is fase 4 van
-het [plan naar volledige aansturing](NEXT-RELEASE.nl.md#plan-naar-volledige-aansturing-eigenaar-vroeg-28-oktober):
-tado los, E32 actief, met de eigenaar aanwezig. Duur: één middag (~4–5 uur).
-Engelse samenvatting voor GitHub: [SWITCHOVER.md](../SWITCHOVER.md).
+**Status:** draaiboek voor beta.19 (kandidaat voor 1.0), bijgewerkt 29 oktober
+2026, nog niet uitgevoerd. Fase 4 en 5 van het
+[plan naar volledige aansturing](NEXT-RELEASE.nl.md#plan-naar-volledige-aansturing-eigenaar-vroeg-28-oktober);
+onderdeel 10 van het [beta.19-plan](NEXT-RELEASE.nl.md). Engelse, algemene
+versie voor GitHub: [SWITCHOVER.md](../SWITCHOVER.md). Live bewaking:
+[tools/switchover](../../tools/switchover/README.md).
 
-Verwachtingen hieronder gelden voor de code van beta.18 (`ActiveHeatGuard`,
-`ActiveHeatPollDriver`, `RoomEngine`, `FlowDemand`, `RoomDemand`,
-`SupervisorPolicy`). Valt een besluit in §1 anders uit, dan eerst de verwachte
-uitkomst in §6 bijwerken.
+**Markering.** *(beta.19, te verifiëren)* = gedrag dat in beta.19 nog in
+aanbouw is (firmware: ketelgrens uit 0x16, bewaarde bevestiging, supervisor
+tijdens actief, faalscenario's in `test/soak`). Vóór de overstapdag opnieuw
+controleren tegen de gepubliceerde bron; zie §11.
 
-**Installatie:** Nefit EcomLine HRC 22H achter een Bosch EasyControl Adapter
-(EMS 0x08). tado (RC10-type, 0x17) stuurt nu 0x1A elke ~40 s en 0xB1/0x35/0x33
-elke ~20 s (0x33: tapwater 55 °C). Woonkamer: vloerverwarming met eigen verdeler,
-pomp en thermostatische kraan (~50 °C); boven 3 radiatoren op hetzelfde circuit
-zonder TRV's (worden mee warm). Woonkamerbronnen: tado via HA, daarna Xiaomi pvvx
-(Bluetooth). Badkamer inactief. Vorst aan < 8 °C, uit ≥ 9 °C. Na meetverlies
-automatisch hervatten. Overname alleen na bevestiging door de eigenaar.
+**Installatie (eigenaar).** Nefit EcomLine HRC 22H achter een Bosch
+EasyControl Adapter (EMS 0x08). tado (RC10-type, 0x17) stuurt nu 0x1A elke
+~40 s en 0xB1/0x35/0x33 elke ~20 s (0x33: tapwater 55 °C). Woonkamer:
+vloerverwarming met eigen verdeler, pomp en thermostatische kraan (~50 °C,
+maximaal 60 °C ingang); boven 3 radiatoren (badkamer, 2 slaapkamers) op
+hetzelfde circuit zonder TRV's (worden mee warm). Woonkamerbronnen: 1. tado via
+HA (`climate.*`), 2. Xiaomi pvvx (Bluetooth). Badkamer inactief. Alleen de
+woonkamer is actief in beta.19. E32 op `http://192.168.1.206`.
 
 ---
 
-## 1. Beslissen vóór de overstap
+## 1. Besluiten van de eigenaar (bindend)
 
-De eerste drie staan al open in [NEXT-RELEASE](NEXT-RELEASE.nl.md); 4–7 volgen
-uit het nalopen van de code voor deze procedure.
+| # | Besluit | In de firmware | Status |
+| --- | --- | --- | --- |
+| E1 | De tado regelt tot hij **fysiek** van de EasyControl Adapter is losgekoppeld; daarna is de E32 de enige regelaar. Geen "tado op Uit". | Elke 0x1A van een ander adres dan 0x08/0x0B na de bevestiging stopt de E32 (`foreign_controller`). | gebouwd |
+| E2 | Overnemen alleen na de expliciete bevestiging van de eigenaar op de E32-pagina. | Knop "Mijn thermostaat is losgekoppeld van de ketel — laat de E32 overnemen" → `POST /config/heating` (`mode: active`) en `POST /config/heating/handover` `{"thermostat_disconnected":true}`. | gebouwd |
+| E3 | De bevestiging blijft bewaard over herstarts; gewist door een vreemde 0x1A, door teruggeven of door een firmwarewissel. | NVS (`HandoverConfirmation`), gebonden aan versie + ELF-hash; `active.confirmation_stored` in `/status/heating`. | *(beta.19, te verifiëren)* |
+| E4 | Na meetverlies hervat de regeling vanzelf. | `stopped_measurement_lost` → `active` zodra er weer een verse meting is, zonder nieuwe bevestiging. | gebouwd; soak `measurement_gone` *(beta.19, te verifiëren)* |
+| E5 | Aanvoer dynamisch tot het planmaximum, nooit boven het eigen maximum van de ketel (0x16), zo laag mogelijk. | Plafond `min(planmaximum, 80, 0x16)`; de E32 leest 0x16 zelf bij opstart en elke 6 h (`BoilerLimitRead`); zonder grens geen positieve vraag (`boiler_limit_unknown`). | *(beta.19, te verifiëren)* |
+| E6 | Vorstbeveiliging aan onder 8 °C, uit bij 9 °C. | Koudste verse meting van **alle** ruimtes (ook inactieve) → minimumaanvoer, reden `frost_minimum`. | gebouwd |
+| E7 | Geen supervisorherstart zolang de E32 de ketel bezit. | `SupervisorPolicy`: `boilerOwned` → alleen `loop_stall` en `update_stuck`; geen `wifi_lost`, `broker_lost`, `network_dead`, `bluetooth_silent`. | *(beta.19, te verifiëren)* |
+| E8 | De actieve vergrendeling (`board::emsActiveHeatAllowed`) gaat pas open op de overstapdag, in een aparte, expliciet goedgekeurde build. | `src/Board.h`, E32V2-tak: nu `false`. | **niet doen vóór de overstapdag** (§4.1) |
 
-| # | Onderwerp | Nu (beta.18) | Gevolg tijdens/na de overstap | Opties (voorstel vet) |
-| --- | --- | --- | --- | --- |
-| B1 | **Ketelgrens 0x16 na herstart** — *beslissen vóór de overstap* | `ActiveHeatEnvelope::limitC` kent de grens alleen als 0x16 **deze boot** is gemeld; tot nu vroeg alleen de tado erom. | Na loskoppelen van de tado vraagt niemand nog 0x16. Elke E32-herstart (ook door de ketel uit/aan bij busvoeding) → `boiler_limit_unknown`, cap 0, **geen warmte en geen vorstbeveiliging**. Workaround: Mijn ketel → "1. Ketelinstellingen ophalen". | **E32 leest 0x16 zelf (read-only) bij opstart en elke ~6 h**; of laatst gemelde waarde in NVS accepteren (risico: instelling aan de ketel gewijzigd); of handmatig na elke herstart (niet onbewaakt bruikbaar). |
-| B2 | **Bevestiging "tado los" over herstart** — *beslissen vóór de overstap* | Alleen in RAM. | Na elke herstart `awaiting_confirmation`: de E32 stuurt **niets** (ook geen nul) tot de eigenaar opnieuw bevestigt; geen vorstbeveiliging. Wat de ketel dan doet hangt af van de adapter (T5). | **Bewaren in NVS; wissen bij vreemde 0x1A, bij teruggeven en bij firmwarewissel; na herstart pas na 120 s luisteren zonder vreemde 0x1A hervatten. HA meldt `awaiting_confirmation` altijd.** Of RAM houden en HA laten melden. |
-| B3 | **Brandermelding telt tapwater mee** — *beslissen vóór de overstap* | `burnerOn` = modulatie > 0; tapwater (0x18 DHW-bit) telt dus als "ketel reageert". | Tapt iemand net bij de start, dan kan een niet-reagerende CV-vraag onopgemerkt blijven (alleen waarschuwing, geen stop). | **Alleen het CV-actief-bit tellen of perioden met DHW-bit overslaan**; of zo laten (alleen waarschuwing). |
-| B4 | Supervisorherstarts tijdens actieve regeling — *beslissen vóór de overstap* | `SupervisorPolicy` herstart bij wifi weg 15 min (`wifi_lost`, verdubbelt), broker weg 15 min (`broker_lost`), wifi verbonden maar geen IP-verkeer 3 min (`network_dead`), geen advert van gekoppelde BT-sensoren 30 min (`bluetooth_silent`). `restartDeferred` geldt alleen voor proef/instellingen. | Met B2 = RAM eindigt elke zo'n herstart de actieve regeling. T7, T8b en T9 lopen daar nu tegenaan. | **B2 bewaren (herstart kost dan ~2–3 min) én `wifi_lost`/`broker_lost`/`bluetooth_silent` overslaan zolang de E32 de ketel bezit**; `loop_stall` blijft. |
-| B5 | Tado fysiek los of "niet laten regelen" — *eigenaar beslist vóór de overstap* | Elke 0x1A-write naar 0x08 van een ander adres dan 0x08/0x0B blokkeert de E32, ook met aanvoer 0. | Optie B werkt alleen als de tado dan **helemaal geen** 0x1A meer stuurt. Zie §4. | **Optie A (fysiek los)**; optie B alleen na passieve controle in schaduwmodus. |
-| B6 | Gedrag EasyControl Adapter als de E32 stopt met zenden — *beslissen na meting T5, vóór fase 5* | Onbekend: vasthouden of na een timeout naar nul. | Houdt de adapter de laatste vraag vast, dan stookt de ketel na een E32-crash of -stroomuitval door op die aanvoer (≤ 60 °C) tot iemand ingrijpt. | Acceptabel als de adapter binnen ~15 min terugvalt. Houdt hij langer vast: maatregel kiezen vóór fase 5 (B2+B4 zodat herstarts snel hervatten, HA-melding bij E32 onbereikbaar, eventueel onafhankelijke onderbreking). |
-| B7 | HA-meldingen voor actieve regeling — *bouwen vóór de overstap* | HA0.4.0b10 leest het `active`-blok van `/status/heating` niet; "Boiler request (E32)" is de **berekende** vraag, niet de verzonden. | Zonder HA-entiteit merkt niemand een herstart naar `awaiting_confirmation` of een waarschuwing. | Sensor "Actieve regeling" (status, verzonden aanvoer, leeftijd laatste zending) + probleemsensor per waarschuwing + melding naar de telefoon. |
+Nog open (geen blokkade, wel vóór fase 5 beslissen):
+- **O1 Brandermelding telt tapwater mee.** `boiler_no_response` kijkt naar
+  modulatie > 0 en ziet tapwater dus als "ketel reageert". Alleen een
+  waarschuwing; blijft zo tenzij de eigenaar anders beslist.
+- **O2 Gedrag van de adapter als de E32 stopt met zenden** (crash,
+  stroomuitval, firmware-update, `awaiting_confirmation`): vasthouden of na een
+  timeout naar nul? Wordt gemeten in T6 en T7. Houdt de adapter de laatste vraag
+  langer dan ~15 min vast, dan vóór fase 5 een maatregel kiezen.
+- **O3 HA-melding bij `awaiting_confirmation`** (beta.19-plan, onderdeel 2):
+  nog niet in de HA-integratie. De bestaande binaire sensor
+  "Verwarmingsprobleem" meldt alleen `foreign_controller`, `measurement_lost`,
+  `boiler_no_response` en `transmit_failed` na 5 min. Tot de melding er is,
+  dekt het bewakingsscript (§9) dit af. *(beta.19, te verifiëren)*
 
 ---
 
 ## 2. Wat de firmware doet (naslag)
 
-**Toestanden** (`ActiveHeatGuard::State`, pagina Ruimtes → "Actieve regeling"):
+**Toestanden** (`ActiveHeatGuard`, `/status/heating` → `active.state`,
+pagina **Ruimtes → Actieve regeling**):
 
-| Toestand | Pagina | Stuurt |
+| `state` | Pagina (NL) | Zendt naar de ketel |
 | --- | --- | --- |
 | `shadow` | Schaduwmodus: je thermostaat regelt de ketel. | niets |
-| `awaiting_confirmation` | Wacht op je bevestiging dat je thermostaat van de ketel is losgekoppeld. | niets |
-| `arming` | Overnemen: wacht op verse ruimtemetingen en de ketelbus. | niets; wordt `active` zodra ≥ 120 s na boot, zendroute klaar en alle actieve ruimtes vers (of na 30 min zonder verse meting: eigenaar met nulvraag) |
+| `awaiting_confirmation` | Wacht op je bevestiging dat je thermostaat van de ketel is losgekoppeld. | niets — **ook geen vorstbeveiliging** |
+| `arming` | Overnemen: wacht op verse ruimtemetingen en de ketelbus. | niets; `active` zodra ≥ 60 s na boot *(beta.19, te verifiëren; was 120 s)*, zendroute klaar en alle actieve ruimtes vers (of na 30 min zonder verse meting: eigenaar met nulvraag) |
 | `active` | De E32 regelt de ketel. | vraag elke 60 s, direct bij aan/uit; na elke stop 60 s lang elke 10 s nul |
 | `stopped_measurement_lost` | Geen ruimtemetingen: de E32 vraagt de ketel geen warmte tot er weer een meting is. | nul (vorstminimum blijft mogelijk); hervat vanzelf |
-| `stopping` | Stoppen: de E32 vraagt de ketel één minuut lang nul. | nul elke 10 s, 60 s lang, daarna `shadow`/`blocked` |
-| `blocked_foreign_controller` | Gestopt: een andere regelaar stuurde na de overname een ketelvraag. | niets; opnieuw bevestigen nodig |
+| `stopping` | Stoppen: de E32 vraagt de ketel één minuut lang nul. | nul elke 10 s, ≥ 60 s en tot een nul is afgeleverd |
+| `blocked_foreign_controller` | Gestopt: een andere regelaar stuurde na de overname een ketelvraag. | niets; bevestiging gewist |
 
-**Waarschuwingen:** `foreign_controller` (0x1A van een ander adres na de
-bevestiging), `measurement_lost` (een actieve ruimte zonder meting),
-`boiler_no_response` (15 min warmte gevraagd zonder brander of 3 °C
-aanvoerstijging), `transmit_failed` (3 min geen geslaagde zending),
-`boiler_limit_unknown` (geen 0x16 deze boot → geen warmte).
+**Waarschuwingen** (`active.warnings`, pagina onder de toestand):
+`foreign_controller` ("Een andere regelaar (je thermostaat?) stuurt nog
+ketelvragen…"), `measurement_lost` ("Ruimtemetingen ontbreken."),
+`boiler_no_response` (15 min warmte gevraagd zonder brander of 3 °C stijging),
+`transmit_failed` (3 min geen geslaagde zending), `boiler_limit_unknown`
+("De ketel heeft zijn CV-temperatuurgrens niet gemeld; de E32 vraagt geen warmte.").
 
-**Getallen:** stap 10 s · aanvoer 30–60 °C en ≤ min(plan, 60, ketelgrens) ·
-P 10 °C per °C tekort, I +10 °C per °C·30 min · hysterese 0,2 °C · minimaal
-brander aan 5 min en uit 5 min (alleen bij een normale stop; meetverlies stopt
-direct) · Bluetooth/HA-meting 15 min geldig, daarna "Laatste waarde (bron weg)",
-na 30 min "Geen meting: geen warmtevraag" · HA-setpoint 15 min geldig, daarna
-weekprogramma (met klok), anders "temperatuur zonder HA" · vorst op de koudste
-verse meting van **alle** ruimtes, ook inactieve · de E32 zendt als 0x0B, alleen
-wanneer de ketel 0x0B pollt.
+**Getallen:** stap 10 s · aanvoer ≥ planminimum (30 °C) en ≤ min(planmaximum,
+80, 0x16) · P 10 °C per °C tekort, I +10 °C per °C·30 min · hysterese 0,2 °C ·
+minimaal brander aan 5 min en uit 5 min (meetverlies stopt direct) ·
+Bluetooth/HA-meting 15 min geldig ("Laatste waarde (bron weg)"), na 30 min
+"Geen meting: geen warmtevraag" · HA-setpoint 15 min geldig, daarna het
+weekprogramma (met klok), anders "temperatuur zonder HA" · de E32 zendt als
+0x0B, alleen wanneer de ketel 0x0B pollt · 0x16-lezing: `0B 88 16 00 02`, bij
+de eerste poll na boot, opnieuw na 6 h, herhaling na 5 min zonder antwoord.
+Aanvoeropties van beta.19 (`/config/heating/flow`: stooklijn, geleerde
+aanvoer) staan standaard op **advies**; `flow.source` = `rule`.
+
+**Waar je het ziet**
+
+| Wat | E32-pagina | REST | MQTT (`<prefix>/v1/fw/telemetry/…`, elke 15 s) | Home Assistant |
+| --- | --- | --- | --- | --- |
+| Toestand, vraag, laatst verzonden, waarschuwingen | Ruimtes → Actieve regeling | `GET /status/heating` → `active` | `heating` → `active` | Verwarmingsprobleem (na 5 min); geen eigen toestandsentiteit *(O3)* |
+| Bevestiging bewaard | — | `active.confirmation`, `active.confirmation_stored` *(beta.19)* | idem | — |
+| Ketelgrens (0x16) | Ruimtes → aanvoergrenzen ("Je ketel staat maximaal {max} °C toe") | `active.boiler_limit` `{flow_c, age_s, reads}` *(beta.19)*; `GET /status/ems/telemetry` → `fields.configured_heating_temperature` | `heating` → `active.boiler_limit` | — |
+| Berekende vraag | Ruimtes → "Berekende ketelvraag" | `request` `{heat, flow_c, reason}` | `heating` → `request` | Ketelvraag (E32) |
+| Ruimtes | Ruimtes (status, bron, gewenst) | `rooms[]` | `heating` → `rooms` | per ruimte: Temperatuur, Doeltemperatuur, Regelstatus, Warmtevraag |
+| Ketel live | Ketel | `GET /status/ems/telemetry` → `fields.*` | `boiler_fields` | Aanvoertemperatuur, Retourtemperatuur, Gekozen aanvoertemperatuur, Verwarmen actief, Warm water actief, Brandermodulatie, Waterdruk |
+| Starts en pendelen | — | `burner` `{starts_last_hour, heating_starts_last_hour, short_cycling}` | `heating` → `burner` | Branderstarts afgelopen uur, Brander pendelt |
+| Vraag van de tado (0x1A van 0x17) | "laatste vraag van je thermostaat / een andere regelaar … geleden" | `active.foreign_controller` `{age_s, address: 23}` | `heating` → `active` | Gevraagde aanvoertemperatuur (thermostaat) |
+| Herstarts, geheugen, MQTT-verbreking | Systeem → Systeemlog | `GET /status/logs` → `boot`, `previous_boot`, `runtime` (`minimum_free_internal_bytes`, `stack_minimum_bytes`, `mqtt_budget_disconnects`, `heating_telemetry_dropped`) | `device_status` | uptime |
+| Zendteller | — | `/status/ems/telemetry` → `transport.transmitted_frames` | — | — |
+
+"Op de bus" betekent in dit draaiboek: wat de ketel zelf terugmeldt
+(**Gekozen aanvoertemperatuur** = `reported_selected_flow_temperature` uit 0x18
+moet de verzonden vraag volgen), de zendteller, de leeftijd van de laatste
+vreemde 0x1A, en het keteldisplay (Nefit doorgaans `-H` = CV, `=H` = tapwater,
+`0H` = rust; controleren in de ketelhandleiding).
 
 ---
 
 ## 3. Voorwaarden (alles afvinken)
 
-**Bewijs en software**
-- [ ] Schaduwfase klaar volgens de [vier criteria](NEXT-RELEASE.nl.md#plan-naar-volledige-aansturing-eigenaar-vroeg-28-oktober)
-      (≥ 72 h zonder hang/herstart, ≥ 10 vergeleken periodes incl. nacht/ochtend/zonder vraag,
-      beslissingen ongeveer gelijk, Xiaomi heeft minstens één keer overgenomen).
-- [ ] B1–B5 en B7 besloten en gebouwd; hosttests groen (`test_active_heat_guard`, `test_active_heat_poll`).
-- [ ] Firmware met `board::emsActiveHeatAllowed = true` volgens de releaseafspraken
-      gepubliceerd en geïnstalleerd, met bijpassende HA-versie; ≥ 24 h stabiel in schaduwmodus op die build.
-- [ ] Pagina Ruimtes → Actieve regeling toont **niet** "Actieve regeling is in deze firmware niet ingeschakeld."
-- [ ] HA-meldingen (B7) getest: een geforceerde `awaiting_confirmation` (E32 herstarten in schaduw/actief) komt op de telefoon.
+**Schaduwperiode geslaagd** (exitcriteria uit [NEXT-RELEASE](NEXT-RELEASE.nl.md#plan-naar-volledige-aansturing-eigenaar-vroeg-28-oktober), minimaal 3 dagen, liefst ~5):
+- [ ] ≥ 72 uur geen hang of herstart (zwarte doos leeg, geen wifi- of Bluetooth-uitval).
+- [ ] ≥ 10 verwarmingsperiodes van de tado vergeleken, inclusief nachtverlaging, ochtendopwarming en een periode zonder warmtevraag.
+- [ ] Beslissingen ongeveer gelijk: warmtevraag op ongeveer dezelfde momenten (enkele minuten), aanvoer in hetzelfde gebied (±31–43 °C), niet vaker aan/uit dan de tado (pagina Ruimtes → "Vergelijking met je thermostaat").
+- [ ] Bronnen werken: de tado-waarde komt via HA binnen en de Xiaomi heeft minstens één keer overgenomen.
+- [ ] Tado-rijen (0x17) tegen echte busdata geverifieerd (beta.19-plan, onderdeel 14).
+
+**Software**
+- [ ] Beta.19 + HA0.4.0b11 gepubliceerd en geïnstalleerd **met de vergrendeling dicht**, ≥ 24 h stabiel in schaduwmodus op die build.
+- [ ] Hosttests en soak groen: `test_active_heat_guard`, `test_handover_confirmation`, `test_boiler_limit_read`, `test_supervisor`, `test/soak` modus `full` (scenario's `active`: `ha_gone`, `measurement_gone`, `reboot`, `wifi_gone`, `foreign_1a`, `dhw`, `frost`, `stop_until_delivered`, `boiler_limit`). *(beta.19, te verifiëren)*
+- [ ] `/status/heating` toont `active.boiler_limit.flow_c` ≠ null **na een E32-herstart** in schaduwmodus (bewijst dat de E32 0x16 zelf leest). *(beta.19, te verifiëren)*
+- [ ] MQTT stabiel: `mqtt_budget_disconnects` loopt niet op over 24 uur (waargenomen op beta.18: 4 in 17 min; beta.19-plan onderdeel 29) en `minimum_free_internal_bytes` ≥ 20000 (waargenomen: 13280). Anders eerst oplossen: een E32 die MQTT verliest, zet HA-bronnen op "bron weg".
+- [ ] Bewakingsscript één uur in schaduwmodus gedraaid (§4.2): geen onverklaard alarm.
 
 **Ruimteplan**
 - [ ] Woonkamer actief; bronnen 1. tado-klimaatentiteit (HA), 2. Xiaomi pvvx; gewenste temperatuur van de tado-entiteit.
-- [ ] Weekprogramma op de E32 gelijk aan het tado-schema; "temperatuur zonder HA" ingesteld (bijv. 19 °C).
-- [ ] Badkamer inactief. Aanvoergrenzen 30/60 °C (voorstel: het eerste uur max. 50 °C, het niveau van de eerdere proeven).
-- [ ] Klok vertrouwd (NTP) — nodig voor het weekprogramma.
+- [ ] Weekprogramma op de E32 gelijk aan het tado-schema; "temperatuur zonder HA" ingesteld (bijv. 19 °C). Klok vertrouwd (NTP).
+- [ ] Badkamer inactief. Aanvoergrenzen 30 / 50 °C voor de eerste dag (niveau van de eerdere proeven; vloerverwarming), daarna eventueel 55–60 °C.
 
-**Back-ups en terugval klaar**
-- [ ] Volledige HA-back-up; `GET /config/heating` (plan + revisie) opgeslagen; Bluetoothkoppeling (adres, profiel) genoteerd.
-- [ ] ZIP van de huidige schaduwfirmware klaar voor de lokale upload.
-- [ ] Foto's van de bedrading op de EasyControl Adapter (welke draden zijn van de tado, welke van de E32).
-- [ ] Bekend hoe de E32 gevoed wordt (EMS-bus of eigen voeding): bepaalt of "ketel uit" de E32 herstart.
-
-**Ketel en mensen**
-- [ ] Waterdruk 1,1–2,5 bar (foto van de manometer); geen actuele storing (laatste vergrendelende/blokkerende storing genoteerd).
+**Mensen en ketel**
 - [ ] Eigenaar aanwezig bij de ketel, met telefoon/laptop op de pagina Ruimtes en HA; bij voorkeur een tweede persoon aan de laptop.
-- [ ] Onafhankelijke stop bekend: CV-functie op het ketelpaneel of hoofdschakelaar.
+- [ ] Waterdruk 1,1–2,5 bar (foto van de manometer); geen actuele storing.
+- [ ] Onafhankelijke stop bekend: CV-functie op het ketelpaneel of de hoofdschakelaar.
 - [ ] Middag met warmtevraag (buiten < ~12 °C); huisgenoten weten dat tapwater getest wordt.
-- [ ] HA-automatiseringen die de tado of het plan wijzigen uit; geen firmware-update tijdens de overstap.
-- [ ] Opname klaar (§8): map `out/switchover-<datum>/`, poll-script, stopwatch.
+- [ ] HA-automatiseringen die de tado of het plan wijzigen uit; geen andere firmware-update op die dag.
 
 ---
 
-## 4. De tado loskoppelen (eigenaar beslist, B5)
+## 4. Voorbereiding (dag vóór de overstap)
 
-De tado blijft in beide opties in HA als meet- en instelpunt (via de tado-bridge
-en batterijen; controleer dat). Hij moet alleen ophouden de ketel te sturen.
+### 4.1 Software klaarzetten
 
-**Optie A — fysiek los (voorstel).**
-1. Wacht tot de tado geen warmte vraagt: HA "Requested flow temperature (thermostat)" = 0
-   (zet de tado zo nodig even lager). Zo begint de adapter in een bekende toestand.
-2. Ketel uit met de hoofdschakelaar (laagspanningsbus, maar geen kortsluiting riskeren).
-   Bij busvoeding gaat de E32 mee uit.
-3. Maak alleen het draadpaar van de tado los van de adapter, isoleer de uiteinden
-   (lasklem), label ze en fotografeer. Draden van de E32 blijven zitten.
-4. Ketel aan. Noteer de tijd.
+1. **Back-ups:** volledige HA-back-up; `GET /config/heating` (plan + revisie)
+   en `GET /config/heating/flow` opslaan in `out/switchover-<datum>/`;
+   Bluetoothkoppeling (adres, profiel) noteren.
+2. **Bekende goede terugvalfirmware:** het ZIP en `firmware.bin` van de
+   gepubliceerde beta.19 **met vergrendeling dicht** (de schaduwbuild die nu
+   draait), plus beta.18 als tweede terugval. Lokaal op de laptop, zodat de
+   upload via Systeem → Firmware bijwerken ook zonder internet of HA werkt.
+3. **De vergrendelingsbuild (alleen beschrijven; aparte goedkeuring).**
+   Op de overstapdag, en alleen na expliciete goedkeuring door de lead en de
+   eigenaar, wordt een aparte build gemaakt: beta.19 met
+   `constexpr bool emsActiveHeatAllowed = true;` in de `OPENTHERMOSTAT_E32V2`-tak
+   van `src/Board.h`, verder bit-voor-bit dezelfde bron. Die build volgt de
+   releaseafspraken (eigen tag, CI groen, review van de zendroute, eigen
+   publicatie-uitzondering) en wordt via de officiële route (HA-update) of de
+   lokale upload geïnstalleerd. Na installatie toont Ruimtes → Actieve
+   regeling **niet** meer "Actieve regeling is in deze firmware niet
+   ingeschakeld.". Omdat de bevestiging aan de firmware gebonden is, start
+   deze build altijd zonder bevestiging. *Dit draaiboek opent de vergrendeling
+   niet.*
+4. **Bewaking klaar:** WSL of een andere altijd-aan computer in het thuisnet,
+   repository bijgewerkt, map `out/switchover-<datum>/` (valt onder bewaarde
+   logs, niet onder opruimen). Optioneel een HA-webhook voor meldingen
+   (README van het script).
 
-**Optie B — tado laten staan maar niet laten regelen** (bijv. zone "Uit" in de
-tado-app). Werkt met de huidige firmware **alleen** als de tado dan geen enkele
-0x1A meer naar 0x08 stuurt; de E32 blokkeert ook op een 0x1A met aanvoer 0.
-Vooraf in schaduwmodus controleren: tado op "Uit", 15 min wachten, de regel
-"laatste vraag van een andere regelaar (0x17)" moet blijven oplopen en HA
-"Requested flow temperature (thermostat)" onbeschikbaar worden. Nadelen: de tado
-houdt zijn eigen vorstbeveiliging en blijft 0x33 (tapwater) sturen; het
-setpoint in HA is in "Uit" leeg, dus de E32 volgt het weekprogramma.
+### 4.2 Generale repetitie in schaduwmodus
 
-**Na het loskoppelen (beide opties) — T0, 10–15 min, E32 nog in schaduwmodus:**
-- [ ] Keteltelemetrie blijft binnenkomen (Mijn ketel / HA: aanvoer, "Heating active", modulatie).
-      Kwam die alleen op vragen van de tado, dan **afbreken**: de E32 ziet dan geen terugmelding.
-- [ ] De ketel blijft zonder regelaar in rust (geen CV, geen brander). Gaat de adapter zelf stoken: noteren, afbreken.
-- [ ] Tapwater zonder 0x33 van de tado: kraan 1 min open → "Hot water active", temperatuur ~55 °C. Anders noteren (tapwater-instelling ligt dan bij de ketel/adapter).
-- [ ] "Requested flow temperature (thermostat)" en "Room temperature (thermostat)" worden binnen ~3 min onbeschikbaar (verwacht, geen fout).
-- [ ] Tado in HA: temperatuur en setpoint blijven actueel; tado-app eventueel met melding over de ketelverbinding (noteren).
+```sh
+export OT_E32_PASSWORD='…'          # nooit op de opdrachtregel
+export OT_NOTIFY_URL='http://homeassistant.local:8123/api/webhook/<id>'   # optioneel
+python3 -I tools/switchover/monitor.py --host http://192.168.1.206 --once      # één meting
+python3 -I tools/switchover/monitor.py --host http://192.168.1.206 --duration-h 1
+```
+
+Verwacht: elke minuut een regel `shadow req 0 (calc NN) …`, geen alarm
+behalve eventueel `mqtt_budget_disconnects`/`heap_low` (zie §3). Een
+testmelding op de telefoon: tijdelijk `--max-starts-per-hour 1`.
+
+### 4.3 De tado weer aansluiten (oefenen, nog niet doen)
+
+Zodat het teruggeven later zonder nadenken kan:
+- [ ] Foto's van de bedrading op de EasyControl Adapter: welke twee draden zijn van de tado, welke van de E32, op welke klemmen.
+- [ ] Labels op het tado-draadpaar ("TADO — klem …") en op de E32-draden ("E32 — niet losmaken").
+- [ ] Lasklemmen of kroonsteentjes klaar om de losse tado-draden te isoleren.
+- [ ] Bekend hoe de E32 gevoed wordt (EMS-bus of eigen voeding): bij busvoeding herstart de E32 als de ketel uit gaat.
+- [ ] Een kaartje bij de ketel met §8.1 en §8.2 (teruggeven normaal en nood).
 
 ---
 
-## 5. Overname stap voor stap
+## 5. Overstapdag: loskoppelen, bevestigen, overnemen
 
-| # | Doen | Verwacht op de E32 (Ruimtes → Actieve regeling) | Verwacht in HA | Uiterlijk |
+### 5.1 Vergrendelingsbuild installeren (na goedkeuring, §4.1 punt 3)
+
+- [ ] Installeren; E32 ≥ 2 min opgestart; pagina Ruimtes → Actieve regeling: "Schaduwmodus: je thermostaat regelt de ketel." en de knop "Mijn thermostaat is losgekoppeld van de ketel — laat de E32 overnemen" is zichtbaar.
+- [ ] `active.enabled = true`, `active.boiler_limit.flow_c` ingevuld (bijv. 75), `active.confirmation = null`.
+- [ ] Bewakingsscript starten (48 uur), in een eigen terminal laten lopen.
+
+### 5.2 De tado fysiek loskoppelen (E1)
+
+1. Wacht tot de tado geen warmte vraagt: HA "Gevraagde aanvoertemperatuur
+   (thermostaat)" = 0 (zet de tado zo nodig even lager).
+2. Ketel uit met de hoofdschakelaar.
+3. Maak alleen het tado-draadpaar los van de adapter; isoleer, label en
+   fotografeer. De E32-draden blijven zitten.
+4. Ketel aan. Noteer de tijd (t0).
+
+**Na het loskoppelen, 10–15 min, E32 nog in schaduwmodus:**
+- [ ] Keteltelemetrie blijft binnenkomen (pagina Ketel / HA Aanvoertemperatuur, Verwarmen actief, Brandermodulatie). Kwam die alleen op vragen van de tado: **afbreken** (§7).
+- [ ] De ketel blijft in rust (geen CV, geen brander). Stookt de adapter zelf: noteren, afbreken.
+- [ ] Tapwater zonder 0x33 van de tado: kraan 1 min open → "Warm water actief", ~55 °C. Anders noteren.
+- [ ] `active.boiler_limit.flow_c` blijft bekend (de E32 leest 0x16 zelf; `reads` ≥ 1 na de herstart door "ketel uit"). *(beta.19, te verifiëren)*
+- [ ] "Gevraagde aanvoertemperatuur (thermostaat)" en "Ruimtetemperatuur (thermostaat)" worden binnen ~3 min onbeschikbaar (verwacht).
+- [ ] Tado in HA: temperatuur en setpoint blijven actueel (via de tado-bridge).
+
+### 5.3 Bevestigen en overnemen (E2)
+
+| # | Doen | Verwacht op de E32-pagina | Verwacht in HA / script | Uiterlijk |
 | --- | --- | --- | --- | --- |
-| 1 | E32 is ≥ 2 min opgestart (bootwachttijd 120 s). | Schaduwmodus. Woonkamer "Gemeten", leidende bron de tado-entiteit. | Room status "ok"; heat request met `mode: shadow`. | — |
-| 2 | Is de E32 herstart sinds de tado los is (ketel uit/aan bij busvoeding)? Dan Mijn ketel → "1. Ketelinstellingen ophalen" (B1-workaround). | Leesresultaat toont de CV-instelling en grens. | — | 1 min |
-| 3 | Knop "Mijn thermostaat is losgekoppeld van de ketel — laat de E32 overnemen" → dialoog bevestigen. | Melding "Bevestigd. De E32 neemt de ketel binnen een minuut over." Plan gaat naar `active`; kort `awaiting_confirmation`/`arming`. | heat request `mode: active`. | 10 s |
-| 4 | Wachten. | "De E32 regelt de ketel. · Ketelvraag: NN °C (of uit) · laatst verzonden < 60 s geleden". Waarschuwingenlijst leeg. | B7-sensor: `active`, verzonden aanvoer. | 1 min |
-| 5 | Controleren. | "laatste vraag van een andere regelaar (0x17)" blijft ouder worden; knop "Teruggeven aan de thermostaat" zichtbaar. | Geen melding. | 2 min |
+| 1 | E32 ≥ 2 min op. | Schaduwmodus; woonkamer "Gemeten", bron de tado-entiteit. | Regelstatus `ok`. | — |
+| 2 | Knop **"Mijn thermostaat is losgekoppeld van de ketel — laat de E32 overnemen"** → dialoog bevestigen. | "Bevestigd. De E32 neemt de ketel binnen een minuut over." Kort "Overnemen…". | Script: `arming`. | 10 s |
+| 3 | Wachten. | "De E32 regelt de ketel. · Ketelvraag: NN °C (of uit) · laatst verzonden … geleden"; geen waarschuwingen. | Script: `active req NN`; `confirmation_stored: true`. | 1 min |
+| 4 | Controleren. | "laatste vraag van een andere regelaar … geleden" blijft ouder worden; knop "Teruggeven aan de thermostaat (de E32 vraagt één minuut lang nul)" zichtbaar. | Geen Verwarmingsprobleem. Bus: `transmitted_frames` loopt op. | 2 min |
 
-Fout in stap 4: `boiler_limit_unknown` → stap 2; `transmit_failed` na 3 min →
-afbreken (§7); blijft `arming` → ruimtebron niet vers (pagina: status van de
-woonkamer); `blocked_foreign_controller` → de tado stuurt nog (§4), niet opnieuw
-bevestigen voor dat is opgelost.
+Fout in stap 3: `boiler_limit_unknown` → wachten tot de 0x16-lezing slaagt
+(≤ 5 min), anders afbreken; `transmit_failed` na 3 min → afbreken (§7);
+blijft `arming` → ruimtebron niet vers (status van de woonkamer);
+`blocked_foreign_controller` → de tado stuurt nog: bedrading controleren, niet
+opnieuw bevestigen voordat dat is opgelost.
 
 ---
 
-## 6. Testmatrix
+## 6. Bijgewoonde tests
 
-Volgorde (voorstel): T1 → T3 → T4 → T2 → T12a → T8 → T9 → T7 → T11 → T5 → T6 →
-T10 → T12b. Per test: tijden noteren, screenshot van Actieve regeling, snapshot
-van `/status/heating`.
+Volgorde: T1 → T2 → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10 → T11 → T12.
+Per test: tijden (lokaal en UTC), screenshot van Actieve regeling, het script
+loopt door. **Geslaagd** = alle punten onder "Geslaagd"; anders **niet
+geslaagd**: noteren, en bij een afbreekcriterium (§7) direct terug (§8).
 
 ### T1 Start
-- **Doen:** gewenste temperatuur woonkamer (in de tado/HA) ~1 °C boven de gemeten temperatuur.
-- **Verwacht:** binnen één stap (10 s) "Verwarmen" en ketelvraag ~40 °C (30 + 10 × 1 °C), direct verzonden.
-- **Geslaagd:** "Heating active" binnen 2 min (tot ~10 min als de eigen pendelblokkering van de ketel loopt — noteren);
-  aanvoer stijgt ≥ 3 °C binnen 15 min en nadert de vraag; geen `boiler_no_response`.
-- **Waarnemen:** pagina (ketelvraag, laatst verzonden), HA "Flow temperature", "Heating active", "Burner modulation", keteldisplay.
+- **Doen:** gewenste temperatuur woonkamer (tado/HA) ~1 °C boven de meting.
+- **Verwacht:** binnen één stap (10 s) Ketelvraag ~40 °C (30 + 10 × 1 °C), direct verzonden.
+- **Geslaagd:** "Verwarmen actief" binnen 2 min (tot ~10 min als de eigen pendelblokkering van de ketel loopt — noteren); aanvoer stijgt ≥ 3 °C binnen 15 min; geen `boiler_no_response`.
+- **Controle:** E32 — Ketelvraag en "laatst verzonden < 60 s"; HA — Aanvoertemperatuur, Verwarmen actief, Brandermodulatie; bus — Gekozen aanvoertemperatuur = verzonden vraag, `transmitted_frames` +1/min, display `-H`.
 
-### T2 Stop en minimale pauze
-- **Doen:** gewenste temperatuur ≥ 0,5 °C onder de gemeten temperatuur.
-- **Verwacht:** liep de vraag < 5 min: eerst "Minimale brandertijd", daarna "Warm genoeg"; ketelvraag uit; 60 s lang elke 10 s nul.
-  Direct daarna weer omhoog: "Minimale pauze" tot 5 min na de stop.
-- **Geslaagd:** "Heating active" uit binnen ~30 s na de eerste nul (16 okt: 12 s); geen nieuwe start binnen 5 min; geen waarschuwing.
-- **Waarnemen:** tijdstip eerste nul (pagina/log), HA "Heating active", "Burner starts last hour".
+### T2 Modulatie
+- **Doen:** setpoint achtereenvolgens +1, +2, +3 °C boven de meting (elk ~10 min).
+- **Verwacht:** vraag ~40 → ~50 °C (I-deel loopt langzaam op), nooit boven het planmaximum (50 °C), 80 °C of de ketelgrens.
+- **Geslaagd:** gemeten aanvoer volgt binnen ±3 °C binnen ~10 min; CV blijft actief over de 60-s-verversingen (de adapter accepteert 60 s); script zonder `request_above_limit`/`flow_above_limit`.
+- **Controle:** E32 — Ketelvraag; HA — grafiek Ketelvraag (E32) naast Aanvoertemperatuur en Gekozen aanvoertemperatuur; bus — Gekozen aanvoertemperatuur ≤ plafond.
 
-### T3 Modulatie
-- **Doen:** setpoint achtereenvolgens +1 °C, +2 °C, +3 °C boven de meting (elk ~10 min); eventueel maximum in het plan tijdelijk op 45 °C.
-- **Verwacht:** vraag ~40 → ~50 → 60 °C (I-deel loopt langzaam op), nooit boven het planmaximum, 60 °C of de ketelgrens.
-- **Geslaagd:** gemeten aanvoer volgt binnen ±3 °C binnen ~10 min; CV blijft onafgebroken actief over de 60-s-verversingen
-  (dus de adapter accepteert 60 s); bij planmaximum 45 vraag ≤ 45.
-- **Waarnemen:** HA-grafiek "Boiler request (E32)" (B7-sensor: verzonden) naast "Flow temperature" en "Selected flow temperature".
+### T3 Stop en minimale pauze
+- **Doen:** gewenste temperatuur ≥ 0,5 °C onder de meting.
+- **Verwacht:** liep de vraag < 5 min: eerst "Minimale brandertijd", daarna "Warm genoeg"; Ketelvraag uit; 60 s lang elke 10 s nul. Direct weer omhoog: "Minimale pauze" tot 5 min na de stop.
+- **Geslaagd:** "Verwarmen actief" uit binnen ~30 s na de eerste nul; geen nieuwe start binnen 5 min; geen waarschuwing.
+- **Controle:** E32 — reden in "Berekende ketelvraag"; HA — Verwarmen actief, Branderstarts afgelopen uur; bus — Gekozen aanvoertemperatuur → 0/laag, display `0H`.
 
 ### T4 Tapwater tijdens verwarmen
-- **Doen:** tijdens T3 een warme kraan 3 min open, dan dicht.
-- **Verwacht:** "Hot water active" aan, CV pauzeert (voorrang), aanvoer kan ~75 °C melden (warmtewisselaar, niet het CV-circuit);
-  de E32 blijft dezelfde vraag elke 60 s sturen; geen stop, geen waarschuwing (B3).
-- **Geslaagd:** CV weer actief binnen 5 min na het dichtdraaien, aanvoer terug naar de vraag; tapwatertemperatuur ok.
-- **Waarnemen:** HA "Hot water active", "Heating active", "Flow temperature"; keteldisplay.
+- **Doen:** tijdens T2 een warme kraan 3 min open, dan dicht.
+- **Verwacht:** "Warm water actief" aan, CV pauzeert (voorrang), aanvoer kan ~75 °C melden (warmtewisselaar); de E32 blijft dezelfde vraag elke 60 s sturen; geen stop, geen waarschuwing (O1).
+- **Geslaagd:** CV weer actief binnen 5 min na het dichtdraaien, aanvoer terug naar de vraag; tapwatertemperatuur ok; script geen `flow_above_limit` (tapwater telt niet).
+- **Controle:** E32 — toestand blijft `active`; HA — Warm water actief, Verwarmen actief, Aanvoertemperatuur; bus — display `=H` dan `-H`.
 
-### T12a Terugzetknop (zonder de tado aan te sluiten)
+### T5 Teruggeefknop (zonder de tado aan te sluiten)
 - **Doen:** tijdens verwarmen "Teruggeven aan de thermostaat".
-- **Verwacht:** "Teruggegeven. De E32 vraagt de ketel één minuut lang nul…"; `stopping` 60 s, daarna Schaduwmodus.
-- **Geslaagd:** CV uit binnen ~30 s; daarna stuurt de E32 niets meer. Daarna opnieuw overnemen (§5 stap 3–5).
+- **Verwacht:** "Teruggegeven. De E32 vraagt de ketel één minuut lang nul. Sluit daarna je thermostaat weer aan op de ketel."; `stopping` ≥ 60 s, daarna Schaduwmodus; `confirmation_stored: false`.
+- **Geslaagd:** CV uit binnen ~30 s; daarna zendt de E32 niets meer (`transmitted_frames` stil); script `handed_back`. Daarna opnieuw overnemen (§5.3 stap 2–4).
 
-### T8 Home Assistant weg (HA Core stoppen, broker blijft draaien)
-- **Doen:** HA Core stoppen (bij HA OS blijft de Mosquitto-add-on draaien). Laat T1-achtige vraag lopen.
-- **Verwacht:** na ≤ 15 min woonkamer "Terugvalbron" (Xiaomi leidt) en "Gewenste temperatuur uit het weekprogramma"; regeling loopt door.
-- **Geslaagd:** geen stop, geen herstart, ketelvraag blijft logisch; na HA-start binnen 5 min weer tado-bron en HA-setpoint.
-- **T8b broker weg:** met de huidige code herstart de E32 na 15 min (`broker_lost`) en wacht dan op bevestiging (B2/B4).
-  Alleen testen na B4, of bewust om die herstart vast te leggen.
+### T6 E32-herstart (bewaarde bevestiging) en gedrag van de adapter
+- **Doen:** bij een matige vraag (~40 °C, CV actief) Systeem → "Apparaat herstarten". t0 = klik.
+- **Verwacht:** de E32 zendt ~30–60 s niets; na de herstart **zonder nieuwe bevestiging** `arming`, en ≥ 60 s na boot en binnen ~1 min na de eerste verse meting weer `active` met dezelfde vraag; `boiler_limit.reads` ≥ 1. *(beta.19, te verifiëren)*
+- **Meten (O2):** blijft "Verwarmen actief"/Brandermodulatie/Gekozen aanvoertemperatuur staan in het gat? Tijd noteren.
+- **Geslaagd:** weer `active` binnen 3 min na t0, geen `awaiting_confirmation`; script `e32_restarted` met `reset_reason` `software`; zwarte doos (Systeemlog / `previous_boot`) toont de handmatige herstart.
 
-### T9 Bluetooth-sensor weg (aansluitend op T8, HA nog uit, of tado-integratie in HA uitgeschakeld)
-- **Doen:** batterij uit de Xiaomi op t0 (noteren).
-- **Verwacht:** t0+15 min "Laatste waarde (bron weg)" (stookt door op de laatste waarde); t0+30 min "Geen meting: geen warmtevraag",
-  ketelvraag direct nul (geen minimale brandertijd), `stopped_measurement_lost`, waarschuwing "Ruimtemetingen ontbreken."
-  **Let op:** rond t0+30 min herstart de huidige code ook (`bluetooth_silent`, als dit de enige gekoppelde BT-sensor is) → daarna `awaiting_confirmation` (B4).
-- **Geslaagd:** CV uit binnen ~1 min na t0+30; waarschuwing op de pagina en in HA (zodra HA draait).
-  Batterij terug → binnen ~2 min weer "Gemeten"/"Terugvalbron" en automatisch `active` (na de minimale pauze), zonder nieuwe bevestiging (tenzij herstart).
-- **Waarnemen:** pagina-status van de woonkamer met tijden; daarna `/status/logs` (`previous_boot`) als er herstart is.
+### T7 E32 stroomloos (adaptergedrag, O2)
+- **Doen:** voeding van de E32 eraf (bij busvoeding: de E32-busdraden los). Stopwatch. Max. 30 min wachten.
+- **Verwacht:** de ketel gedraagt zich zoals de adapter dat doet zonder regelaar: *vasthouden* of *timeout naar nul na X min*.
+- **Geslaagd:** gedrag gemeten en getimed (keteldisplay, aanvoerleiding met de hand/IR, branderlawaai); script `e32_unreachable` na 3 min. E32 weer aan → als T6 binnen 3 min `active` zonder nieuwe bevestiging; `reset_reason` `power_on`.
 
-### T7 Wifi weg (10 min)
-- **Doen:** het accesspoint (of alleen het SSID van de E32) uit; **niet** alleen verkeer blokkeren (dan `network_dead` na 3 min). 10 min, dus onder de 15 min van `wifi_lost`.
-- **Verwacht:** de E32 regelt door op de Xiaomi en het weekprogramma; pagina en HA zijn onbereikbaar.
-- **Geslaagd:** na terugkeer geen herstart (uptime loopt door, zwarte doos leeg), toestand `active`, geen gat in de regeling op de keteldisplay.
-- **Waarnemen:** keteldisplay en aanvoerleiding tijdens de test; daarna `/status/logs` en HA-geschiedenis.
-  Langer dan 15 min geeft met de huidige code een herstart (B4).
+### T8 Wifi weg (20 min)
+- **Doen:** het accesspoint (of alleen het SSID van de E32) uit; **niet** alleen verkeer blokkeren. 20 min, dus langer dan de oude 15 min van `wifi_lost`.
+- **Verwacht:** de E32 regelt door; na ≤ 15 min woonkamer "Terugvalbron" (Xiaomi) en "Gewenste temperatuur uit het weekprogramma"; pagina, HA en script zien de E32 niet.
+- **Geslaagd:** na terugkeer **geen herstart** (uptime loopt door, script geen `e32_restarted`, `previous_boot` ongewijzigd), toestand `active`, geen gat op het keteldisplay. *(E7, beta.19, te verifiëren)*
+- **Controle:** keteldisplay en aanvoerleiding tijdens de test; daarna `/status/logs` en de HA-geschiedenis.
 
-### T11 Vorstbeveiliging (simulatie)
-- **Doen:** woonkamer warm genoeg (geen vraag). Tijdelijk een Bluetooth-sensor als enige bron van de **inactieve** badkamer
-  (Xiaomi of tweede sensor) en die koud leggen: buiten als het < 8 °C is, of in een koeltas met koelelementen
-  (niet in de koelkast: Bluetooth komt daar slecht door). In een zakje tegen condens.
-- **Verwacht:** zodra de verse meting < 8 °C is: ketelvraag = minimumaanvoer (30 °C), reden `frost_minimum`; ≥ 9 °C weer uit.
-- **Geslaagd:** beide omslagen binnen één stap na de meting; badkamer zelf blijft inactief. Plan daarna terugzetten.
-- **Alternatief** als het niet koud genoeg wordt: hosttest `test_active_heat_guard` als bewijs, ter plaatse alleen vastleggen dat het niet gelukt is.
+### T9 Home Assistant weg (HA Core stoppen, broker blijft draaien)
+- **Doen:** HA Core stoppen (bij HA OS blijft de Mosquitto-add-on draaien). Laat een T1-achtige vraag lopen.
+- **Verwacht:** na ≤ 15 min "Terugvalbron" (Xiaomi leidt) en het weekprogramma als setpoint; regeling loopt door; pagina blijft bereikbaar.
+- **Geslaagd:** geen stop, geen herstart, Ketelvraag blijft logisch; na HA-start binnen 5 min weer de tado-bron en het HA-setpoint.
+- **Variant broker weg** (Mosquitto stoppen, 20 min): geen herstart (geen `broker_lost` zolang de E32 de ketel bezit). *(E7, beta.19, te verifiëren)*
 
-### T5 E32-herstart en gedrag van de EasyControl Adapter (meting)
-- **Doen:** bij een matige positieve vraag (~40 °C, CV actief) Systeem → "Apparaat herstarten". t0 = laatste positieve zending.
-- **Verwacht (B2 = RAM):** na ~30 s terug in `awaiting_confirmation`; de E32 **stuurt niets** maar leest de bus. Na opnieuw
-  bevestigen (B1: eerst "Ketelinstellingen ophalen") `arming` → `active` ≥ 120 s na boot.
-- **Meten:** hoe lang blijft "Heating active"/modulatie/"Selected flow temperature" zonder zender staan? Maximaal 30 min wachten.
-  Uitkomst: *vasthouden* (> 30 min), *timeout naar nul na X min*, of iets anders. Dit is de invoer voor B6.
-- **Geslaagd:** uitkomst gemeten en getimed; E32 neemt daarna weer over; zwarte doos toont de handmatige herstart.
+### T10 Meting weg (aansluitend op T9, HA nog uit)
+- **Doen:** batterij uit de Xiaomi op t0.
+- **Verwacht:** t0+15 min "Laatste waarde (bron weg)"; t0+30 min "Geen meting: geen warmtevraag", Ketelvraag direct nul, `stopped_measurement_lost`, waarschuwing "Ruimtemetingen ontbreken."; **geen** herstart door `bluetooth_silent`. *(E7)*
+- **Geslaagd:** CV uit binnen ~1 min na t0+30; script `guard_stopped` en `warning_measurement_lost`. Batterij terug → binnen ~2 min "Gemeten"/"Terugvalbron" en **vanzelf** weer `active` (na de minimale pauze), zonder nieuwe bevestiging (E4). Daarna HA weer starten.
 
-### T6 E32 stroomloos
-- **Doen:** voeding van de E32 eraf (bij busvoeding: de busdraden van de E32 los). Stopwatch.
-- **Verwacht:** de ketel gedraagt zich als in T5 (zelfde adaptergedrag), nu zonder E32-telemetrie.
-- **Geslaagd:** gedrag en tijd komen overeen met T5. Waarnemen op de keteldisplay (bij Nefit doorgaans `-H` = CV, `=H` = tapwater,
-  `0H` = rust; in de ketelhandleiding controleren), aanvoerleiding (hand/IR-thermometer), branderlawaai.
-  Daarna E32 weer aan, als T5 opnieuw overnemen.
+### T11 Vreemde regelaar (0x1A): tado terug terwijl de E32 actief is
+- **Doen:** tado-draadpaar terug op de adapter. Kan dat alleen met de ketel uit **en** wordt de E32 uit de bus gevoed, dan herstart de E32 mee: dat test dan ook de bewaking na een herstart (verwacht hetzelfde).
+- **Verwacht:** binnen ~40 s na de eerste 0x1A van 0x17: `stopping` (60 s nul, kort samen met de tado), dan `blocked_foreign_controller`, waarschuwing "Een andere regelaar (je thermostaat?) stuurt nog ketelvragen…", "laatste vraag van een andere regelaar … geleden" < 1 min; `confirmation_stored: false`.
+- **Geslaagd:** de E32 stopt en waarschuwt zelf, zonder knop; de tado regelt daarna; script `guard_stopped` + `warning_foreign_controller`; na een E32-herstart `awaiting_confirmation` (niet `active`).
+- **Daarna:** "Teruggeven aan de thermostaat" (plan naar schaduw). Wil de eigenaar door naar fase 5: tado weer los (§5.2) en opnieuw bevestigen (§5.3).
 
-### T10 Vreemde regelaar (de tado weer aansluiten terwijl de E32 actief is)
-- **Doen:** tado-draadpaar terug op de adapter. Kan dat alleen met de ketel uit **en** wordt de E32 uit de bus gevoed, dan herstart
-  de E32 en test dit de bewaking niet: kies dan de variant hieronder.
-- **Verwacht:** binnen ~40 s na de eerste 0x1A van 0x17: `stopping` (60 s nul, kort samen met de tado), dan
-  `blocked_foreign_controller`, waarschuwing "Een andere regelaar (je thermostaat?) stuurt nog ketelvragen…",
-  "laatste vraag van een andere regelaar (0x17) … geleden" < 1 min.
-- **Variant na herstart:** tado aangesloten, E32 in `awaiting_confirmation`, toch bevestigen → zelfde uitkomst binnen ~1 min.
-- **Geslaagd:** de E32 stopt en waarschuwt zelf, zonder dat iemand de knop gebruikt; de tado regelt daarna.
-
-### T12b Teruggeven aan de tado (einde)
-- **Doen:** "Teruggeven aan de thermostaat" (plan naar schaduw). Na T10 is de tado al aangesloten; anders eerst
-  wachten tot "Schaduwmodus" en dan de tado aansluiten (§4 in omgekeerde volgorde).
-- **Geslaagd:** pagina "Schaduwmodus: je thermostaat regelt de ketel."; HA "Requested flow temperature (thermostat)" weer actueel binnen ~1 min;
-  tapwater 55 °C (0x33 van de tado terug); schaduwvergelijking telt weer; geen waarschuwing.
-  Wil de eigenaar door naar fase 5, dan in plaats hiervan de tado los laten en opnieuw overnemen.
+### T12 Vorstbeveiliging (simulatie)
+- **Doen:** woonkamer warm genoeg (geen vraag). Tijdelijk een Bluetooth-sensor als enige bron van de **inactieve** badkamer en die koud leggen (buiten als het < 8 °C is, of in een koeltas met koelelementen; in een zakje tegen condens).
+- **Verwacht:** zodra de verse meting < 8 °C is: Ketelvraag = minimumaanvoer (30 °C), reden `frost_minimum`; ≥ 9 °C weer uit (E6).
+- **Geslaagd:** beide omslagen binnen één stap na de meting; badkamer blijft inactief; script geen `frost_not_protected`. Plan daarna terugzetten.
+- **Alternatief** als het niet koud genoeg wordt: soakscenario `frost` en `test_active_heat_guard` als bewijs; ter plaatse vastleggen dat het niet gelukt is.
 
 ---
 
-## 7. Afbreken en direct terugdraaien
+## 7. Afbreken
 
-**Afbreken bij:**
-- aanvoer > 62 °C terwijl CV (niet tapwater) actief is, of een verzonden vraag boven het planmaximum/60 °C;
+Direct terug naar de tado (§8) bij:
+- gemeten aanvoer > plafond + 3 °C terwijl CV (niet tapwater) actief is, of een verzonden vraag boven het plafond (script `flow_above_limit`, `request_above_limit`);
 - waterdruk < 1,0 of > 2,7 bar, of een nieuwe vergrendelende/blokkerende ketelstoring;
-- "Burner short cycling" aan, of meer starts per uur dan de tado in de schaduwweek;
+- "Brander pendelt" aan, of meer starts per uur dan de tado in de schaduwperiode;
 - `transmit_failed` of `boiler_no_response` zonder verklaring; `foreign_controller` terwijl de tado los is;
-- de adapter stookt zonder vraag (T0) of keteltelemetrie valt weg;
-- E32 > 2 min onbereikbaar tijdens actief (niet in T7), of ruimte > 1,5 °C boven setpoint terwijl de E32 nog warmte vraagt;
+- de adapter stookt zonder vraag, of keteltelemetrie valt weg;
+- E32 > 3 min onbereikbaar tijdens actief (niet in T7/T8), of ruimte > 1,5 °C boven setpoint terwijl de E32 nog warmte vraagt;
 - tapwater werkt niet, lawaai, geur, of de eigenaar twijfelt.
 
-**Direct terugdraaien, in deze volgorde:**
-1. **Knop "Teruggeven aan de thermostaat"** → wachten op "Schaduwmodus" (≤ 70 s) → tado aansluiten.
-2. Pagina onbereikbaar of de E32 gedraagt zich vreemd: **E32 stroomloos** (voeding of busdraden los) → tado aansluiten.
-   De tado regelt weer binnen ~40 s (eerste 0x1A).
-3. Ketel blijft ongecontroleerd stoken: **CV uit op het ketelpaneel of hoofdschakelaar**, dan stap 2.
-4. Vermoeden van een firmwarefout: schaduwfirmware via de lokale upload terugzetten; plan op `shadow`.
+---
 
-Na terugdraaien controleren: tado-0x1A komt binnen (HA "Requested flow temperature (thermostat)"),
-tapwater 55 °C, druk, geen storing. Oorzaak vastleggen vóór een nieuwe poging.
+## 8. Teruggeven aan de tado (voor iedereen in huis)
+
+### 8.1 Normaal: de E32-pagina werkt
+
+1. Open op telefoon of laptop `http://192.168.1.206` en log in.
+2. Menu **Ruimtes**, blok **Actieve regeling**.
+3. Druk op **"Teruggeven aan de thermostaat (de E32 vraagt één minuut lang nul)"**.
+4. Wacht tot er staat **"Schaduwmodus: je thermostaat regelt de ketel."**
+   (maximaal ~70 s). Blijft er langer "Stoppen…" staan: ga naar 8.2.
+5. Zet de ketel uit met de hoofdschakelaar.
+6. Sluit de twee tado-draden (label "TADO") weer aan op de klemmen van de
+   adapter zoals op de foto. Laat de E32-draden zitten.
+7. Zet de ketel weer aan.
+8. Controleer binnen 2 minuten: in de tado-app geen verbindingsmelding; in HA
+   heeft "Gevraagde aanvoertemperatuur (thermostaat)" weer een waarde; op de
+   E32-pagina staat "laatste vraag van je thermostaat … geleden" (< 1 min).
+9. Draai een warme kraan open: na ~1 min warm water (55 °C).
+10. Klaar. De E32 rekent weer mee in schaduwmodus. Laat het bewakingsscript
+    doorlopen of stop het met Ctrl+C.
+
+### 8.2 Nood: pagina onbereikbaar, de E32 doet vreemd, of de ketel stookt ongecontroleerd
+
+1. **Ketel uit** met de hoofdschakelaar (of de CV-functie op het ketelpaneel).
+   Daarmee stopt de verwarming meteen.
+2. **E32 stroomloos:** stekker/voeding eruit, of bij busvoeding de twee
+   E32-draden (label "E32") van de adapter los en isoleren.
+3. Sluit de twee tado-draden ("TADO") weer aan zoals op de foto.
+4. Ketel aan. De tado regelt weer binnen ~40 s (eerste 0x1A).
+5. Controleer: warme kraan geeft warm water; waterdruk 1,1–2,5 bar; geen
+   storingscode op het display; HA "Gevraagde aanvoertemperatuur (thermostaat)"
+   heeft een waarde.
+6. Laat de E32 uit tot de oorzaak bekend is. Zet hem later weer aan **terwijl
+   de tado aangesloten is**: de E32 ziet de 0x1A van de tado en blijft dan
+   stil (`blocked_foreign_controller`, bevestiging gewist). Druk daarna toch
+   op "Teruggeven aan de thermostaat", zodat het plan weer op schaduw staat.
+   *(beta.19, te verifiëren: de bootwachttijd van 60 s is korter dan twee
+   tado-intervallen; zie §11, A6)*
+7. Vermoeden van een firmwarefout: de bekende goede firmware (§4.1 punt 2) via
+   Systeem → Firmware bijwerken terugzetten. Een andere firmware wist de
+   bevestiging; de E32 stuurt daarna niets tot er opnieuw bevestigd wordt.
+
+Na teruggeven altijd: oorzaak, tijden en screenshots vastleggen (§10) vóór een
+nieuwe poging.
 
 ---
 
-## 8. Vastleggen
+## 9. De eerste 48 uur en de eerste 2 weken
 
-- **Per stap/test:** lokale tijd en UTC, toestand en waarschuwingen (screenshot Actieve regeling), keteldisplay (foto), uitkomst geslaagd/niet.
-- **Doorlopend:** poll-script dat `/status/heating` en `/status/boiler` elke 10 s met tijdstempel wegschrijft (met de inlogsessie)
-  naar `out/switchover-<datum>/` (valt onder bewaarde logs, niet onder opruimen); stopwatch-tijden voor T2, T5, T6, T9.
-- **Na elke herstart:** `/status/logs` → `previous_boot` (zwarte doos, herstartreden) bewaren.
-- **HA:** geschiedenis-export van de entiteiten uit §9 over de hele middag; HA-back-up van vóór en na.
+### 9.1 Eerste 48 uur (bewakingsscript draait)
+
+```sh
+python3 -I tools/switchover/monitor.py --host http://192.168.1.206 --duration-h 48
+```
+
+Het script schrijft `out/switchover-<datum>/samples-<dag>.jsonl`,
+`alarms.jsonl` en `summary-<dag>.json`, en meldt op de telefoon (webhook):
+geen warmtevraag terwijl de woonkamer > 0,5 °C onder het doel is (20 min),
+aanvoer boven het plafond, pendelen (≥ 6 starts per uur), woonkamer > 1 °C te
+koud of > 1,5 °C te warm (30 min; 5 min als de E32 nog warmte vraagt), elke
+stop of waarschuwing van de bewaking, `awaiting_confirmation`, E32
+onbereikbaar (3 min), herstarts met reden, MQTT-verbrekingen, minimum heap
+< 20000 B en stack < 512 B. Opties en drempels: [README](../../tools/switchover/README.md).
+
+**Controlemomenten** (eigenaar, ~5 min elk): +1 h, +4 h, de eerste avond
+(nachtverlaging), de eerste ochtend (opwarming op tijd?), +24 h, +48 h.
+- [ ] Toestand `active`, geen waarschuwing; `alarms.jsonl` nagelopen.
+- [ ] Geen herstart; zo wel: reden, en of de E32 zelf hervatte (zonder bevestiging).
+- [ ] Woonkamer: gemiddelde afwijking (`summary` → `rooms.*.mean_deviation_c`) tussen −0,5 en +0,5 °C; overschot < 1 °C.
+- [ ] Ketel: `heating_starts_per_hour_max` ≤ tado-niveau uit de schaduwperiode; `flow_while_heating_c.max` ≤ plafond; druk 1,1–2,5 bar.
+- [ ] `mqtt_budget_disconnects` gelijk gebleven; `minimum_free_internal_bytes` ≥ 20000.
+- [ ] Badkamer en slaapkamers niet te koud of te warm (radiatoren lopen mee).
+
+**Door naar de 2 weken** als na 48 uur: geen onverklaard alarm, geen
+herstart door de firmware zelf, comfort in orde. Anders §8.1 en eerst oplossen.
+
+### 9.2 Eerste 2 weken (fase 5)
+
+**Dagelijks (~5 min):** zelfde punten als hierboven via HA (dashboard
+"Verwarming": woonkamer Temperatuur + Doeltemperatuur; Ketelvraag (E32) +
+Aanvoertemperatuur + Retourtemperatuur; Verwarmen actief + Warm water actief +
+Brandermodulatie; Branderstarts afgelopen uur + Brander pendelt; Waterdruk;
+Verwarmingsprobleem; gas per dag) of door het script langer te laten lopen
+(`--duration-h 0`).
+
+**Wekelijks:** verwarmingstijd en starts per dag naast de schaduwperiode;
+parameters (startpunt, aanvoer per graad, trage correctie, planmaximum) alleen
+bijstellen met een genoteerde reden. Geleerde aanvoer blijft de eerste 2 weken
+**advies** (beta.19-plan, onderdeel 6).
+
+**Firmware-update tijdens fase 5 (1.0-criterium "één update via de officiële
+route"):** alleen bijgewoond. Een nieuwe firmware wist de bevestiging (E3): na
+de update `awaiting_confirmation`, geen warmte en geen vorstbeveiliging tot de
+eigenaar op Ruimtes opnieuw bevestigt. Dus: update starten, wachten tot de E32
+op is, de tado is nog steeds los, direct opnieuw bevestigen (§5.3 stap 2–4).
+
+**1.0** (beta.19-plan): 14 dagen actief zonder vastloper of onverwachte
+herstart, alle tests van §6 geslaagd, minstens één update via de officiële
+route geslaagd, installatiegids door iemand anders te volgen. Andere ruimtes
+dan de woonkamer pas na 1–2 weken live.
+
+---
+
+## 10. Vastleggen
+
+- **Per stap/test:** lokale tijd en UTC, toestand en waarschuwingen (screenshot Actieve regeling), keteldisplay (foto), geslaagd/niet geslaagd.
+- **Doorlopend:** het bewakingsscript (§9.1) in `out/switchover-<datum>/`; stopwatch-tijden voor T3, T6, T7, T10.
+- **Na elke herstart:** `/status/logs` → `previous_boot` (zit ook in de samples).
+- **HA:** geschiedenis-export van de entiteiten uit §9.2 over de hele middag; HA-back-up van vóór en na.
 - **Bedrading:** foto's vóór, tijdens en na.
-- **Verslag:** `docs/modern-thermostat/SWITCHOVER-<datum>.json` in de vorm van `BETA12-ATTENDED-HEAT-20261027.json`
-  (firmware, aanwezigen, druk, per test tijden/uitkomst, adaptergedrag T5/T6 met gemeten tijd, oordeel eigenaar, vervolgpunten),
-  plus een regel in NEXT-RELEASE.
+- **Verslag:** `docs/modern-thermostat/SWITCHOVER-<datum>.json` in de vorm van `BETA12-ATTENDED-HEAT-20261027.json` (firmware, aanwezigen, druk, per test tijden/uitkomst, adaptergedrag T6/T7 met gemeten tijd, oordeel eigenaar, vervolgpunten), plus een regel in NEXT-RELEASE.
 
 ---
 
-## 9. Daarna: 1–2 weken monitoren (fase 5)
+## 11. Afhankelijkheden van beta.19-werk in uitvoering (opnieuw controleren)
 
-Alleen als de eigenaar na T12 de E32 actief laat, B6 besloten is en de
-HA-meldingen (B7) werken.
-
-**Dagelijks (~5 min):**
-- [ ] Actieve regeling `active`, geen waarschuwingen; HA-meldingen van het afgelopen etmaal nagelopen.
-- [ ] Geen herstart (uptime, zwarte doos); zo wel: reden, en of de E32 zelf hervatte (B2/B4).
-- [ ] Woonkamer: afwijking van het setpoint (< 0,5 °C normaal, overschot < 1 °C), ochtendopwarming op tijd.
-- [ ] Ketel: starts per uur (≤ tado-niveau uit de schaduwweek), "Burner short cycling" uit, aanvoer 30–60 °C, druk 1,1–2,5 bar, geen storing.
-- [ ] Tapwater werkt; gas per dag (`sensor.gas_consumed`) vergeleken met vergelijkbare dagen (buitentemperatuur).
-- [ ] Badkamer en slaapkamers niet te koud/warm (radiatoren lopen mee).
-
-**HA-grafieken (dashboard "Verwarming"):** woonkamer Temperature + Target temperature;
-Boiler request (E32) / verzonden aanvoer (B7) + Flow temperature + Return temperature;
-Heating active + Hot water active + Burner modulation; Burner starts last hour + Burner short cycling;
-Water pressure; Outdoor temperature; gasverbruik per dag.
-
-**Wekelijks:** verwarmingstijd en starts per dag naast de schaduwweek; parameters
-(startpunt, aanvoer per graad, trage correctie) alleen bijstellen met een
-genoteerde reden.
-
-**Terug naar de tado** (§7) bij een afbreekcriterium of als de eigenaar het
-comfort onvoldoende vindt. **Door naar de eerste echte release (fase 6)** na
-≥ 7 aaneengesloten dagen zonder ingreep, geen onverklaarde waarschuwing en
-geen comfortklacht.
+| # | Draaiboek gaat uit van | Waar | Controle |
+| --- | --- | --- | --- |
+| A1 | De E32 leest 0x16 zelf bij boot en elke 6 h; `active.boiler_limit {flow_c, age_s, reads}`; zonder grens geen warmte. | `src/EMS/BoilerLimitRead.h`, `EmsController`, `HeatingController::activeHeatJson` | §3, §5.2, T6; soak `boiler_limit`; busopname van `0B 88 16 00 02` |
+| A2 | Bevestiging in NVS, gebonden aan de firmware; gewist bij vreemde 0x1A, teruggeven (plan naar schaduw) en firmwarewissel; `active.confirmation_stored`. | `src/control/HandoverConfirmation.h`, `HeatingController` | T5, T6, T7, T11; soak `reboot`, `foreign_1a` |
+| A3 | Bootwachttijd 60 s (was 120 s); na herstart met bewaarde bevestiging binnen ~1 min na de eerste verse meting weer warmte of vorstbeveiliging. | `ActiveHeatGuard::Params::bootHoldoffMs` | T6, T7 |
+| A4 | Geen supervisorherstart (`wifi_lost`, `broker_lost`, `network_dead`, `bluetooth_silent`) zolang `claimsBoiler()`; wel `loop_stall`, `update_stuck`. | `src/diagnostics/SupervisorPolicy.h`, `src/main.cpp` | T8, T9-variant, T10; soak `wifi_gone`, `measurement_gone` |
+| A5 | Plafond `min(plan, 80, 0x16)` in guard én zendroute. | `ActiveHeatGuard`, `ActiveHeatPollDriver` | T2 |
+| A6 | Na een noodterugval met de tado aangesloten ziet de E32 de tado-0x1A vóór hij warmte vraagt. Met 60 s bootwachttijd en een tado-interval van ~40 s is de marge klein (één gemiste 0x1A = ~80 s). Voorstel aan de lead: wachttijd ≥ 2 tado-intervallen, of na boot pas warmte als er 2 min geen vreemde 0x1A was. | `bootHoldoffMs`, soak `foreign_1a` | §8.2 stap 6, T11 met herstart |
+| A7 | Soakscenario's `active` groen in CI. | `test/soak` | §3 |
+| A8 | HA meldt `awaiting_confirmation` (O3); tot dan alleen het script. | HA-integratie (`heating_problem.py`) | §3, T6 |
+| A9 | De vergrendelingsbuild verschilt alleen in `emsActiveHeatAllowed`. | `src/Board.h` | §4.1 punt 3 |

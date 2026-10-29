@@ -117,8 +117,11 @@ async def test_a_room_with_home_assistant_and_bluetooth_sources_is_added_to_the_
     assert sources.config["reorder"] and sources.config["multiple"]
     posts = len(e32.posts)
     result = await manager.async_configure(form["flow_id"], NEW_ROOM)
-    assert result["type"] == "abort" and result["reason"] == "e32_room_saved", result
-    assert result["description_placeholders"] == {"name": "Slaapkamer Zoë"}
+    # Back at the room list (the dialog stays open for the next room), saying what was saved.
+    assert result["type"] == "menu" and result["step_id"] == "e32_rooms_saved", result
+    assert result["description_placeholders"]["name"] == "Slaapkamer Zoë"
+    assert "Slaapkamer Zoë" in result["description_placeholders"]["rooms"]
+    assert result["menu_options"] == ["e32_room_add", "e32_room_pick", "e32_flow_limits"]
     assert len(e32.posts) == posts + 1 and e32.posts[-1]["revision"] == 4
     assert e32.plan["rooms"][:2] == PLAN["rooms"]  # the other rooms travel back unchanged
     assert e32.plan["rooms"][2] == {
@@ -135,7 +138,7 @@ async def test_a_room_with_home_assistant_and_bluetooth_sources_is_added_to_the_
     form = await room_form(manager, parent)
     result = await manager.async_configure(form["flow_id"], {
         **NEW_ROOM, "ble_sources": [], "program": "", "bluetooth_first": False})
-    assert result["reason"] == "e32_room_saved", result
+    assert result["step_id"] == "e32_rooms_saved", result
     added = e32.plan["rooms"][3]
     assert added["id"] == "slaapkamer_zoe_2" and "schedule" not in added
     assert added["sources"] == [{"type": "ha", "id": "sensor.hal"}, {"type": "ha", "id": "climate.woonkamer"}]
@@ -160,7 +163,7 @@ async def test_a_source_the_e32_cannot_read_is_refused_with_a_clear_message(hass
     # The form keeps what was entered; a corrected source saves.
     assert shown(form)["name"] == "Slaapkamer Zoë"
     result = await manager.async_configure(form["flow_id"], {**NEW_ROOM, "ha_sources": ["sensor.hal"]})
-    assert result["reason"] == "e32_room_saved", result
+    assert result["step_id"] == "e32_rooms_saved", result
 
 
 @pytest.mark.asyncio
@@ -170,17 +173,26 @@ async def test_fahrenheit_sources_and_home_assistant_are_accepted_non_temperatur
     parent, _ = product(hass, e32)
     hass.states.async_set("input_number.doel_f", "70", {"unit_of_measurement": "°F"})
     hass.states.async_set("input_number.doel_pct", "70", {"unit_of_measurement": "%"})
-    form = await room_form(manager, parent)
-    form = await manager.async_configure(form["flow_id"], {**NEW_ROOM, "setpoint_entity": "input_number.doel_pct"})
-    assert form["errors"] == {"setpoint_entity": "e32_source_not_celsius"}
     from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
     hass.config.units = US_CUSTOMARY_SYSTEM
+    form = await room_form(manager, parent)
+    # The temperatures of the form are in °F too; the E32 plan stays in °C.
+    fahrenheit = {**NEW_ROOM, "fallback_temperature": 66, "program": "07:00 68; 22:30 64.5",
+                  "limits": {"minimum_temperature": 50, "maximum_temperature": 75}}
+    temperature = next(v for k, v in form["data_schema"].schema.items() if str(k) == "fallback_temperature")
+    assert (temperature.config["min"], temperature.config["max"], temperature.config["unit_of_measurement"]) == (
+        41.0, 86.0, "°F")
+    assert shown(form)["fallback_temperature"] == 68.0  # the default 20 °C
+    form = await manager.async_configure(form["flow_id"], {**fahrenheit, "setpoint_entity": "input_number.doel_pct"})
+    assert form["errors"] == {"setpoint_entity": "e32_source_not_celsius"}
     result = await manager.async_configure(form["flow_id"], {
-        **NEW_ROOM, "ha_sources": ["climate.woonkamer", "sensor.zolder_f"], "ble_sources": [],
+        **fahrenheit, "ha_sources": ["climate.woonkamer", "sensor.zolder_f"], "ble_sources": [],
         "setpoint_entity": "input_number.doel_f"})
-    assert result["reason"] == "e32_room_saved", result
+    assert result["step_id"] == "e32_rooms_saved", result
     added = e32.plan["rooms"][-1]
     assert {"type": "ha", "id": "sensor.zolder_f"} in added["sources"]
+    assert (added["fallback_centi_c"], added["minimum_centi_c"], added["maximum_centi_c"]) == (1890, 1000, 2390)
+    assert added["schedule"] == [[[420, 2000], [1350, 1810]]] * 7
 
 
 async def flow_limits_form(manager, parent):
@@ -203,8 +215,8 @@ async def test_flow_temperature_limits_are_edited_in_the_e32_plan(hass, manager)
         form = await manager.async_configure(form["flow_id"], values)
         assert form["type"] == "form" and form["errors"] == {"base": error}, form
     for values in [{"minimum_flow_temperature": 19, "maximum_flow_temperature": 45},
-                   {"minimum_flow_temperature": 25, "maximum_flow_temperature": 61}]:
-        with pytest.raises(InvalidData):  # the selector bounds: 20–59 and 21–60
+                   {"minimum_flow_temperature": 25, "maximum_flow_temperature": 81}]:
+        with pytest.raises(InvalidData):  # the selector bounds: 20–59 and 21–80
             await manager.async_configure(form["flow_id"], values)
     assert len(e32.posts) == posts
     # Another writer changes a room meanwhile: only the flow limits are applied on top.
@@ -212,7 +224,7 @@ async def test_flow_temperature_limits_are_edited_in_the_e32_plan(hass, manager)
     result = await manager.async_configure(form["flow_id"], {"minimum_flow_temperature": 25,
                                                              "maximum_flow_temperature": 45})
     assert result["type"] == "abort" and result["reason"] == "e32_flow_limits_saved", result
-    assert result["description_placeholders"] == {"minimum": "25", "maximum": "45"}
+    assert result["description_placeholders"] == {"minimum": "25", "maximum": "45", "unit": "°C"}
     assert (e32.plan["minimum_flow_c"], e32.plan["maximum_flow_c"]) == (25, 45)
     assert next(r for r in e32.plan["rooms"] if r["id"] == "badkamer")["name"] == "Badkamer boven"
     assert hub.plan.plan == e32.plan
@@ -263,7 +275,7 @@ async def test_room_fields_are_checked_before_the_plan_is_written(hass, manager,
     submitted = {key: value for key, value in {**NEW_ROOM, **change}.items() if value is not None}
     result = await manager.async_configure(form["flow_id"], submitted)
     if error is None:
-        assert result["reason"] == "e32_room_saved" and len(e32.plan["rooms"][-1]["sources"]) == 4
+        assert result["step_id"] == "e32_rooms_saved" and len(e32.plan["rooms"][-1]["sources"]) == 4
         assert e32.plan["rooms"][-1]["setpoint_entity"] == ""
         return
     assert result["errors"] == {field: error}, result
@@ -287,7 +299,7 @@ async def test_editing_changes_only_the_edited_fields_and_sources_can_be_reorder
     # Bluetooth first: the same two sources in the other order.
     form = await room_form(manager, parent, "woonkamer")
     result = await manager.async_configure(form["flow_id"], {**shown(form), "bluetooth_first": True})
-    assert result["reason"] == "e32_room_saved"
+    assert result["step_id"] == "e32_rooms_saved"
     expected = deepcopy(PLAN["rooms"][0])
     expected["sources"] = [{"type": "ble", "id": "a4c138a3e8db"}, {"type": "ha", "id": "climate.woonkamer"}]
     assert e32.plan["rooms"][0] == expected and e32.plan["rooms"][1] == PLAN["rooms"][1]
@@ -298,14 +310,14 @@ async def test_editing_changes_only_the_edited_fields_and_sources_can_be_reorder
     e32.plan["rooms"][0]["inactive_until"] = 1900000000  # stays unless the state changes
     result = await manager.async_configure(form["flow_id"], {
         **shown(form), "ha_sources": ["sensor.hal", "climate.woonkamer"], "ble_sources": [], "name": "Huiskamer"})
-    assert result["reason"] == "e32_room_saved"
+    assert result["step_id"] == "e32_rooms_saved"
     room_ = e32.plan["rooms"][0]
     assert room_["id"] == "woonkamer" and room_["name"] == "Huiskamer"  # the id (and its entities) stay
     assert room_["sources"] == [{"type": "ha", "id": "sensor.hal"}, {"type": "ha", "id": "climate.woonkamer"}]
     assert room_["inactive_until"] == 1900000000
     form = await room_form(manager, parent, "woonkamer")
     result = await manager.async_configure(form["flow_id"], {**shown(form), "state": "inactive", "program": "07:00 21"})
-    assert result["reason"] == "e32_room_saved"
+    assert result["step_id"] == "e32_rooms_saved"
     room_ = e32.plan["rooms"][0]
     assert (room_["state"], room_["inactive_until"], room_["schedule"]) == ("inactive", 0, [[[420, 2100]]] * 7)
     # Clearing the program removes the schedule: fallback only.
@@ -314,7 +326,7 @@ async def test_editing_changes_only_the_edited_fields_and_sources_can_be_reorder
     values = shown(form)
     del values["program"]
     result = await manager.async_configure(form["flow_id"], values)
-    assert result["reason"] == "e32_room_saved" and "schedule" not in e32.plan["rooms"][0]
+    assert result["step_id"] == "e32_rooms_saved" and "schedule" not in e32.plan["rooms"][0]
 
 
 @pytest.mark.asyncio
@@ -326,7 +338,7 @@ async def test_a_stale_revision_is_read_again_and_the_same_edit_applied_once(has
     e32.before_save.append(other_side("fallback_centi_c", 1800))  # badkamer, saved between our read and write
     posts, reads = len(e32.posts), e32.reads
     result = await manager.async_configure(form["flow_id"], {**shown(form), "name": "Huiskamer"})
-    assert result["reason"] == "e32_room_saved", result
+    assert result["step_id"] == "e32_rooms_saved", result
     assert len(e32.posts) == posts + 2 and e32.reads == reads + 2
     assert [p["revision"] for p in e32.posts[-2:]] == [5, 6]
     rooms = {r["id"]: r for r in e32.plan["rooms"]}
@@ -353,14 +365,16 @@ async def test_a_room_added_twice_at_once_gets_unique_ids_after_the_re_read(hass
         plan["revision"] += 1
     e32.before_save.append(other_add)
     result = await manager.async_configure(form["flow_id"], NEW_ROOM)
-    assert result["reason"] == "e32_room_saved"
+    assert result["step_id"] == "e32_rooms_saved"
     assert [r["id"] for r in e32.plan["rooms"]] == ["woonkamer", "badkamer", "slaapkamer_zoe", "slaapkamer_zoe_2"]
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("failure,kind,key", [
     (HeatingPlanRejected(413, "plan_too_large"), "form", "e32_plan_too_large"),
-    (HeatingPlanRejected(400, "invalid_room_limits"), "form", "e32_rejected"),
+    (HeatingPlanRejected(400, "invalid_mode"), "form", "e32_rejected"),
+    (HeatingPlanRejected(400, "invalid_room_limits"), "form", "e32_limits_invalid"),
+    (HeatingPlanRejected(400, "invalid_sources"), "form", "e32_rejected_sources"),
     (ControllerLinkError("controller_unreachable"), "form", "e32_unreachable"),
     (HeatingPlanRejected(503, "save_unconfirmed"), "abort", "e32_unconfirmed"),
 ])
@@ -374,8 +388,8 @@ async def test_refusals_are_clear_messages_without_a_retry(hass, manager, failur
     assert result["type"] == kind, result
     assert (result["errors"] == {"base": key}) if kind == "form" else (result["reason"] == key)
     assert len(e32.posts) == posts + 1 and len(e32.plan["rooms"]) == 2
-    if key == "e32_rejected":
-        assert result["description_placeholders"]["error"] == "invalid_room_limits"
+    if key == "e32_rejected":  # an unknown refusal still names the E32's reason
+        assert result["description_placeholders"]["error"] == "invalid_mode"
 
 
 @pytest.mark.asyncio
@@ -388,7 +402,7 @@ async def test_a_room_is_removed_after_confirmation_and_the_others_stay(hass, ma
     assert flow["step_id"] == "e32_room_remove" and flow["description_placeholders"]["name"] == "Badkamer"
     e32.before_save.append(other_side("fallback_centi_c", 1900, room="woonkamer"))
     result = await manager.async_configure(flow["flow_id"], {"confirm_remove": True})
-    assert result["reason"] == "e32_room_removed", result
+    assert result["step_id"] == "e32_rooms_removed", result
     assert [r["id"] for r in e32.plan["rooms"]] == ["woonkamer"]
     assert e32.plan["rooms"][0]["fallback_centi_c"] == 1900  # the concurrent change survived the retry
 
@@ -445,13 +459,15 @@ async def test_dashboard_has_no_old_room_settings_view_when_the_e32_plan_is_the_
 
 def test_program_text_round_trips_and_accepts_dutch_days():
     week = [[[390, 2050], [1350, 1800]]] * 5 + [[[480, 2050], [1380, 1800]]] * 2
-    assert format_program(week) == "mon-fri: 06:30 20.5, 22:30 18\nsat-sun: 08:00 20.5, 23:00 18"
-    assert format_program(week, "nl") == "ma-vr: 06:30 20.5, 22:30 18\nza-zo: 08:00 20.5, 23:00 18"
-    for text in (format_program(week), format_program(week, "nl"),
+    assert format_program(week) == "mon-fri: 06:30 20.5; 22:30 18\nsat-sun: 08:00 20.5; 23:00 18"
+    # Dutch: decimal commas, points separated by ";".
+    assert format_program(week, "nl") == "ma-vr: 06:30 20,5; 22:30 18\nza-zo: 08:00 20,5; 23:00 18"
+    for text in (format_program(week), format_program(week, "nl"), "mon-fri: 06:30 20.5, 22:30 18\nsat-sun: 08:00 20.5, 23:00 18",
                  "ma-vr: 22:30 18; 06:30 20,5\nzaterdag, zondag: 08.00 20,5, 23:00 18"):
         assert parse_program(text, 500, 3000) == week
     odd = [[[0, 1855]], [], [[420, 2100]], [], [], [], [[420, 2100]]]
     assert format_program(odd) == "mon: 00:00 18.55\nwed,sun: 07:00 21"
+    assert format_program(odd, "nl") == "ma: 00:00 18,55\nwo,zo: 07:00 21"
     assert parse_program(format_program(odd), 500, 3000) == odd
     assert parse_program("sat-mon: 07:00 20", 500, 3000) == [[[420, 2000]], [], [], [], [], [[420, 2000]], [[420, 2000]]]
     assert parse_program("  \n", 500, 3000) is None and format_program(None) == ""

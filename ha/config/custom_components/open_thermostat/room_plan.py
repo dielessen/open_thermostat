@@ -152,6 +152,13 @@ class RoomPlanLink:
             return None
         return cls(hass, address, password, hub, entry=entry)
 
+    @callback
+    def use_password(self, password):
+        """A new password (re-authentication): log in with it and read the plan again."""
+        self._password, self.login_rejected = password, False
+        self._failed_at = self._seen_revision = None
+        self._status_changed()
+
     @property
     def revision(self):
         return self.plan["revision"] if self.plan else None

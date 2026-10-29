@@ -5,18 +5,22 @@
 namespace heating::control {
 // Boiler flow-temperature request. Whether a room needs heat is decided per
 // room by ZoneRegulator; this adds the boiler side: a flow temperature from the
-// largest shortfall (PI) and minimum burner on/off times. The tado modulated
-// 31-43 degC on this installation; the floor group accepts at most 60 degC.
+// largest shortfall (PI) and minimum burner on/off times, between the plan's
+// minimum and maximum flow (each home sets its own; 80 degC is the absolute
+// ceiling). A floor circuit is protected by the plan's maximum or by its own
+// mixing valve; the boiler's own heating limit caps the request further
+// (ActiveHeatGuard).
 // Pure: the caller transmits (or, in shadow mode, only reports) the result.
 class FlowDemand {
 public:
+    static constexpr uint8_t ceilingC = 80; // highest plan maximum accepted
     struct Params {
         uint8_t minimumFlowC = 30, maximumFlowC = 60;
         uint8_t flowPerDegreeC = 10;                          // proportional part
         uint32_t integralSeconds = 1800;                      // 1 degC for 30 min adds flowPerDegreeC
         uint32_t minimumOnMs = 300000, minimumOffMs = 300000;
         bool valid() const {
-            return minimumFlowC >= 20 && minimumFlowC < maximumFlowC && maximumFlowC <= 60 && integralSeconds >= 60;
+            return minimumFlowC >= 20 && minimumFlowC < maximumFlowC && maximumFlowC <= ceilingC && integralSeconds >= 60;
         }
     };
     enum class Reason : uint8_t { idle, heating, holdOn, holdOff, satisfied, noDemand, invalid };

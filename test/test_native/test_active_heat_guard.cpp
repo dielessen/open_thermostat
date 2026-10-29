@@ -257,17 +257,36 @@ TEST(ActiveHeatGuard, RestartWithoutMeasurementOwnsWithZeroAfterThirtyMinutes) {
     EXPECT_EQ(b.sent[0].flowC, 0);
 }
 
-TEST(ActiveHeatGuard, FlowNeverAboveSixty) {
+TEST(ActiveHeatGuard, FlowNeverAboveThePlanMaximum) {
     Bench b; b.heat(90);
     b.runFor(3 * minute);
     for (const auto& s : b.sent) EXPECT_EQ(s.flowC, 60);
     b.guard.setFlowLimits(30, 50); b.runFor(minute);
     EXPECT_EQ(b.sent.back().flowC, 50);
-    // A limit above the hard cap is refused: the E32 leaves active with zero.
-    b.guard.setFlowLimits(30, 75); b.runFor(2 * minute);
-    for (const auto& s : b.sent) EXPECT_LE(s.flowC, 60);
+    // A radiator home may allow up to 80 degC.
+    b.in.boilerLimitC = 90; b.heat(90);
+    b.guard.setFlowLimits(30, 80); b.runFor(minute);
+    EXPECT_EQ(b.sent.back().flowC, 80);
+    // A limit above the absolute ceiling is refused: the E32 leaves active with zero.
+    b.guard.setFlowLimits(30, 81); b.runFor(2 * minute);
+    for (const auto& s : b.sent) EXPECT_LE(s.flowC, 80);
     EXPECT_EQ(b.sent.back().flowC, 0);
     EXPECT_EQ(b.guard.state(), State::shadow);
+}
+
+TEST(ActiveHeatGuard, CeilingIsTheLowerOfPlanMaximumAndBoilerLimit) {
+    {   // plan 75, boiler set to 55: the boiler's own setting wins
+        Bench b; b.guard.setFlowLimits(30, 75); b.in.boilerLimitC = 55; b.heat(90);
+        b.runFor(2 * minute);
+        ASSERT_FALSE(b.sent.empty());
+        for (const auto& s : b.sent) EXPECT_EQ(s.flowC, 55);
+    }
+    {   // plan 45, boiler set to 70: the plan's maximum wins
+        Bench b; b.guard.setFlowLimits(30, 45); b.in.boilerLimitC = 70; b.heat(90);
+        b.runFor(2 * minute);
+        ASSERT_FALSE(b.sent.empty());
+        for (const auto& s : b.sent) EXPECT_EQ(s.flowC, 45);
+    }
 }
 
 TEST(ActiveHeatGuard, NeverAboveTheBoilersReportedHeatingLimit) {

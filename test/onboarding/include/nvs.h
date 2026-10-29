@@ -17,7 +17,7 @@ inline int nvs_open(const char* name,int mode,nvs_handle_t* h){
  ++testNvs::openCalls;
  if(name==testNvs::failOpen)return 2;
  if(mode==NVS_READONLY&&!testNvs::committed.count(name))return ESP_ERR_NVS_NOT_FOUND;
- *h=testNvs::next++;testNvs::handles[*h]={name,{}};return ESP_OK;
+ *h=testNvs::next++;testNvs::handles[*h]={name,{},{}};return ESP_OK;
 }
 inline void nvs_close(int h){testNvs::handles.erase(h);}
 inline int nvs_set_blob(int h,const char* key,const void* data,size_t size){auto p=(const unsigned char*)data;testNvs::handles.at(h).staged[key]={p,p+size};return ESP_OK;}

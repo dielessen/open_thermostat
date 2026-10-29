@@ -172,7 +172,7 @@ class V1FlowMixin:
 
     async def async_step_reauth_confirm(self, user_input=None):
         from .controller_link import ControllerLinkError, ControllerLoginRejected
-        from .controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_PASSWORD
+        from .controller_setup_flow import CONTROLLER_ADDRESS
         from .e32_access import report_password
         entry = self._get_reauth_entry()
         address = entry.data.get(CONTROLLER_ADDRESS)
@@ -194,9 +194,10 @@ class V1FlowMixin:
                 except ControllerLinkError:
                     errors["base"] = "reauth_unreachable"
                 else:
+                    from .e32_access import save_password
                     report_password(self.hass, entry, default)
-                    return self.async_update_reload_and_abort(
-                        entry, data_updates={CONTROLLER_PASSWORD: password}, reason="reauth_successful")
+                    save_password(self.hass, entry, password)
+                    return self.async_abort(reason="reauth_successful")
         return self.async_show_form(step_id="reauth_confirm", data_schema=vol.Schema({
             vol.Required("password"): selector.TextSelector({"type": "password"})}),
             errors=errors, description_placeholders={"name": entry.title, "address": address})

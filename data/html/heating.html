@@ -57,7 +57,7 @@
 .hp-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}.hp-name{font-size:1.15rem}.hp-temps{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-weight:400}.hp-src{grid-column:1/-1;font-weight:400}.hp-body{padding:4px 20px 16px}.hp-body h3{font-size:.95rem;margin:16px 0 8px;color:var(--ot-muted)}
 .hp-grid{display:grid;gap:0 16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr))}.hp-grid label{display:block;margin-bottom:8px}#heating-plan [data-heating-source]{display:grid;grid-template-columns:minmax(0,13rem) minmax(0,1fr) 44px;gap:8px;margin-bottom:8px}#heating-plan [data-heating-source] .btn,#heating-plan [data-heating-point] .btn{width:44px;min-width:44px;flex:none;padding:0}
 #heating-plan [data-heating-point]{gap:8px}#heating-plan [data-heating-point] input{min-width:0;padding:6px}#heating-plan [data-heating-point] [type=time]{flex:0 0 auto;width:auto}.hp-remove{margin-top:16px;padding-top:12px;border-top:1px solid var(--ot-border)}.ot-sticky [data-heating-message]{flex:1 1 12rem}.ot-empty .btn{margin-top:12px}
-.hp-locked [data-heating-add],.hp-locked [data-heating-add-first],.hp-locked .ot-sticky,.hp-locked .hp-remove{display:none!important}.hp-body{border:0;margin:0;min-width:0}.hp-body:disabled .form-control{background:var(--ot-surface-2);opacity:1}
+.hp-locked [data-heating-add],.hp-locked [data-heating-add-first],.hp-locked .ot-sticky,.hp-locked .hp-remove{display:none!important}.hp-body{border:0;margin:0;min-width:0}.hp-brief,.hp-locked .hp-body>:not(.hp-brief):not(p:first-child){display:none!important}.hp-locked .hp-brief{display:grid!important}.hp-locked p.hp-brief{display:block!important}.hp-body:disabled .form-control{background:var(--ot-surface-2);opacity:1}
 .hp-flow{list-style:none;padding:0;margin:8px 0;display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr))}.hp-flow li{position:relative;border:1px solid var(--ot-border);border-radius:var(--ot-r1);background:var(--ot-surface);padding:10px 12px;font-size:.88rem}.hp-flow strong{display:block;margin-bottom:2px}.hp-flow li+li::before{content:"→";position:absolute;left:-14px;top:38%;color:var(--ot-accent);font-weight:700}
 @media(max-width:560px){.hp-flow li+li::before{content:"↓";left:48%;top:-17px}#heating-plan [data-heating-source]{grid-template-columns:minmax(0,1fr) 44px}#heating-plan [data-heating-source]>select:first-child{grid-column:1/-1}.hp-rooms>details>summary{padding:12px 14px}.hp-body{padding:4px 14px 14px}
 #heating-plan [data-heating-shadow-days] thead{display:none}#heating-plan [data-heating-shadow-days] tr{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--ot-border)}#heating-plan [data-heating-shadow-days] td{border:0}#heating-plan [data-heating-shadow-days] td::before{content:attr(data-label);display:block;color:var(--ot-muted);font-size:.75rem}}</style>
@@ -181,7 +181,7 @@
     card.status = s => {
       const chips = el('span', null, {class:'ot-chips'}), chip = (text, tone) => chips.append(el('span', uiText(text), {class:'ot-chip' + (tone ? ' ot-chip--' + tone : '')}));
       if (s) chip(s.demand ? "Requesting heat" : "No request", s.demand ? 'ok' : '');
-      if (s?.status !== 'ok') chip(s?.status === 'stale' && typeof s.temperature !== 'number' ? "No measurement" : statusText[s?.status] || statusText.inactive,
+      if (s?.status !== 'ok') chip(!s && !room.id ? "Not saved yet" : s?.status === 'stale' && typeof s.temperature !== 'number' ? "No measurement" : statusText[s?.status] || statusText.inactive,
         s?.status === 'fallback' ? 'warn' : ['stale', 'lost'].includes(s?.status) ? 'err' : '');
       const head = el('span', null, {class:'hp-head'}), temps = el('span', null, {class:'hp-temps'});
       head.append(el('strong', room.name, {class:'hp-name'}), chips);
@@ -191,7 +191,13 @@
     };
     const leading = el('p', null, {class:'pd-help'});
     card.status(status); card.append(summary, body);
-    body.append(leading, el('h3', uiText("Basics")));
+    // While Home Assistant manages the plan, a short summary instead of a long greyed-out form.
+    const brief = el('dl', null, {class:'pd-detail-grid hp-brief'}), given = Array.isArray(room.schedule) && room.schedule.length === 7 ? room.schedule : null;
+    for (const [k, v] of [["Temperature sources", room.sources.map(s => sourceName(s.id)).join(', ') || '—'],
+      ["Target temperature", room.setpoint_entity ? 'Home Assistant: ' + room.setpoint_entity : given?.some(d => d.length) ? uiText("Week program") : degrees(room.fallback_centi_c / 100)],
+      ["Heating type", uiText(room.emitter === 'floor' ? "Floor heating" : "Radiators")], ["Room limits", degrees(room.minimum_centi_c / 100) + ' – ' + degrees(room.maximum_centi_c / 100)]])
+      brief.append(el('dt', uiText(k)), el('dd', v));
+    body.append(leading, brief, el('p', uiText("Change these in Home Assistant, or choose Edit here anyway."), {class:'pd-help hp-brief'}), el('h3', uiText("Basics")));
     const basics = el('div', null, {class:'hp-grid'}); body.append(basics);
     const name = field(basics, uiText("Name"), input('text', room.name, {maxlength:'40'}), "Shown here and in Home Assistant. Up to 40 characters (fewer with accents or emoji).");
     const state = field(basics, uiText("State"), select([['active', "Active"], ['inactive', "Inactive"], ['until', "Inactive until"]],
@@ -238,7 +244,6 @@
     // Week program: 7 days Mon..Sun of [minute, centi_c]; an empty day continues the last earlier switch point.
     const week = el('fieldset', null, {class:'mt-3', 'data-heating-week':''}), editor = el('div'), rows = el('div');
     week.append(el('legend', uiText("Week program (used when Home Assistant gives no target temperature)"), {class:'h6'}));
-    const given = Array.isArray(room.schedule) && room.schedule.length === 7 ? room.schedule : null;
     const useWeek = check(week, uiText("Use a week program"), !!given?.some(d => d.length));
     week.append(el('p', uiText("The E32 follows this program on its own when Home Assistant sends no target."), {class:'ot-hint'}));
     const same = check(editor, uiText("Same every day"), !given || given.every(d => JSON.stringify(d) === JSON.stringify(given[0])));

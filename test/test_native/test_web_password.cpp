@@ -93,7 +93,7 @@ TEST(WebPassword, ChangeRequestShapeAndErrorBodies) {
     EXPECT_EQ(parse(R"({"current":"admin","new":"short"})").error, WebPassword::RequestError::tooShort);
     EXPECT_EQ(parse("{\"current\":\"admin\",\"new\":\"" + std::string(65, 'x') + "\"}").error, WebPassword::RequestError::tooLong);
     EXPECT_EQ(parse(R"({"current":"admin","new":"café latte"})").next, "caf\xc3\xa9 latte");
-    for (const std::string bad : {std::string(), std::string("{}"), std::string("null"), std::string(R"(["admin","correct horse"])"),
+    for (const std::string& bad : {std::string(), std::string("{}"), std::string("null"), std::string(R"(["admin","correct horse"])"),
              std::string(R"({"current":"admin"})"), std::string(R"({"current":1,"new":"correct horse"})"),
              std::string(R"({"current":"admin","new":"correct horse","extra":true})"),
              std::string(R"({"current":"admin","current":"admin","new":"correct horse"})"),
@@ -108,17 +108,17 @@ TEST(WebPassword, ChangeRequestShapeAndErrorBodies) {
 }
 TEST(WebPassword, ChangeKeepsOnlyTheCallersSession) {
     WebAuthSession s;
-    for (char c : {'a', 'c', 'e', 'g'}) ASSERT_NE(s.issue(token(c), token(char(c + 1)), 100), nullptr);
-    s.revokeOthers(token('c'));
-    EXPECT_NE(s.find(token('c'), 200), nullptr);
-    EXPECT_TRUE(s.csrf(token('c'), token('d'), 200));
-    for (char c : {'a', 'e', 'g'}) EXPECT_EQ(s.find(token(c), 200), nullptr);
+    for (char c : {'0', '2', '4', '6'}) ASSERT_NE(s.issue(token(c), token(char(c + 1)), 100), nullptr);
+    s.revokeOthers(token('2'));
+    EXPECT_NE(s.find(token('2'), 200), nullptr);
+    EXPECT_TRUE(s.csrf(token('2'), token('3'), 200));
+    for (char c : {'0', '4', '6'}) EXPECT_EQ(s.find(token(c), 200), nullptr);
     // Freed slots admit the other browsers and Home Assistant again.
-    EXPECT_NE(s.issue(token('a'), token('b'), 300), nullptr);
+    EXPECT_NE(s.issue(token('8'), token('9'), 300), nullptr);
     // An invalid caller token keeps nothing.
     s.revokeOthers("");
-    EXPECT_EQ(s.find(token('a'), 301), nullptr);
-    EXPECT_EQ(s.find(token('c'), 301), nullptr);
+    EXPECT_EQ(s.find(token('8'), 301), nullptr);
+    EXPECT_EQ(s.find(token('2'), 301), nullptr);
 }
 TEST(WebPassword, SharesTheSignInFailureLimit) {
     WebAuthSession s;

@@ -157,7 +157,7 @@
 												for="DeviceNTPEnabled"><span data-i18n="Enabled">Enabled</span></label></div>
 									</div>
 								</div>
-<div class="form-row"><div class="col-md mb-2"><label for="DeviceTimeZoneChoice"><span data-i18n="Time zone">Time zone</span></label><select class="form-control" id="DeviceTimeZoneChoice" data-hint="Week programs and days follow this time zone, including summer time."></select>
+<div class="form-row"><div class="col-md mb-2"><label for="DeviceTimeZoneChoice"><span data-i18n="Time zone">Time zone</span></label><select class="form-control" id="DeviceTimeZoneChoice" aria-describedby="DeviceTimeZoneHelp"></select><small class="ot-hint" id="DeviceTimeZoneHelp" data-i18n="Week programs and days follow this time zone, including summer time.">Week programs and days follow this time zone, including summer time.</small>
 										<p class="ot-hint" id="DeviceTimeZoneSuggest" hidden><span></span> <button type="button" class="btn btn-outline-primary btn-sm"><span data-i18n="Use this time zone">Use this time zone</span></button></p></div>
 <div class="col-md mb-2"><label for="DeviceNTPServer"><span data-i18n="Network Time Protocol (NTP) Server">Network Time Protocol (NTP) Server</span></label><input type="text" class="form-control" id="DeviceNTPServer" data-hint="The time server, for example pool.ntp.org."
 											placeholder="pool.ntp.org" required></div></div>
@@ -295,6 +295,7 @@
 			choice.add(new Option(uiText("Other (enter POSIX text under Advanced)"), 'custom'));
 			choice.addEventListener('change', () => { if (choice.value !== 'custom') $('#DeviceNTPTimezone').val(zonePosix(choice.value)).trigger('change'); suggestion(); });
 			suggest.querySelector('button').addEventListener('click', () => { choice.value = browserZone; choice.dispatchEvent(new Event('change')); });
+			$('#DeviceNTPTimezone').on('input', function () { const own = this.value; choice.value = zonePosix(browserZone) === own ? browserZone : (timeZones.find(z => z[1] === own) || ['custom'])[0]; suggestion(); });
 		}
 		// An empty setting starts from this browser's zone; a known string shows its zone, the browser's own first.
 		if (!posix && zonePosix(browserZone)) { posix = zonePosix(browserZone); $('#DeviceNTPTimezone').val(posix); }

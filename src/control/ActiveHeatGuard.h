@@ -20,7 +20,9 @@ namespace heating::control {
 // the reviewed transmit route and reports each write back. flowC 0 = zero.
 class ActiveHeatGuard {
 public:
-    static constexpr uint8_t hardMaximumFlowC = 60; // floor group inlet limit
+    // Absolute ceiling. The request is also never above the plan's maximum
+    // or the heating limit the boiler itself reports (its own setting).
+    static constexpr uint8_t hardMaximumFlowC = FlowDemand::ceilingC;
     static constexpr uint8_t boilerAddress = 0x08, serviceAddress = 0x0b;
     struct Params {
         uint8_t minimumFlowC = 30, maximumFlowC = 60;           // the plan's limits
@@ -180,7 +182,7 @@ private:
         const auto& coldest = in.rooms.coldestCentiC;
         if (coldest && *coldest < p_.frostOnCentiC) frost_ = true;
         else if (!coldest || *coldest >= p_.frostOffCentiC) frost_ = false;
-        // As low as the rooms allow, never above 60 degC or the boiler's own limit.
+        // As low as the rooms allow, never above the plan's maximum or the boiler's own limit.
         const uint8_t cap = std::min({p_.maximumFlowC, hardMaximumFlowC, in.boilerLimitC.value_or(uint8_t(0))});
         uint8_t target = 0;
         const char* why = state_ == State::stoppedMeasurementLost ? "measurement_lost" : "no_heat";

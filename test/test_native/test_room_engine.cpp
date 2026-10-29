@@ -38,9 +38,29 @@ TEST(RoomPlan, OwnerPlanRoundTripsUnchanged) {
     const auto again = parsed(plan.json().c_str());
     EXPECT_EQ(again.json(), plan.json());
 }
-TEST(RoomPlan, FlowAboveSixtyAndBadSourcesAreRejected) {
+TEST(RoomPlan, FlowLimitsAcceptEveryHomeUpToEighty) {
+    const std::string text = ownerPlan;
+    const auto limits = [&](const char* min, const char* max) {
+        const std::string original = "\"minimum_flow_c\":30,\"maximum_flow_c\":60";
+        std::string t = text;
+        t.replace(t.find(original), original.size(),
+            std::string("\"minimum_flow_c\":") + min + ",\"maximum_flow_c\":" + max);
+        return t;
+    };
+    for (const auto& ok : {std::make_pair("20", "21"), std::make_pair("30", "75"), std::make_pair("79", "80"), std::make_pair("45", "80")}) {
+        const auto plan = parsed(limits(ok.first, ok.second).c_str());
+        EXPECT_EQ(plan.minimumFlowC, std::stoi(ok.first));
+        EXPECT_EQ(plan.maximumFlowC, std::stoi(ok.second));
+        EXPECT_EQ(parsed(plan.json().c_str()).maximumFlowC, plan.maximumFlowC);
+    }
+    for (const auto& bad : {std::make_pair("30", "81"), std::make_pair("19", "60"), std::make_pair("80", "80"),
+             std::make_pair("50", "50"), std::make_pair("60", "40"), std::make_pair("30", "20"), std::make_pair("30.5", "60")})
+        EXPECT_STREQ(parseError(limits(bad.first, bad.second)), "invalid_flow_limits") << bad.first << ".." << bad.second;
+    EXPECT_EQ(RoomPlan{}.maximumFlowC, 60); // new plans keep the 60 degC default
+}
+TEST(RoomPlan, FlowAboveEightyAndBadSourcesAreRejected) {
     std::string text = ownerPlan;
-    EXPECT_STREQ(parseError(std::string(text).replace(text.find("\"maximum_flow_c\":60"), 19, "\"maximum_flow_c\":75")), "invalid_flow_limits");
+    EXPECT_STREQ(parseError(std::string(text).replace(text.find("\"maximum_flow_c\":60"), 19, "\"maximum_flow_c\":85")), "invalid_flow_limits");
     EXPECT_STREQ(parseError(std::string(text).replace(text.find("a4c138a3e8db"), 12, "A4:C1:38:A3")), "invalid_sources");
     EXPECT_STREQ(parseError(std::string(text).replace(text.find("\"badkamer\""), 10, "\"woonkamer\"")), "duplicate_room");
     EXPECT_STREQ(parseError(R"({"schema":2})"), "invalid_schema");

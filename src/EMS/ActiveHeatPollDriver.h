@@ -6,11 +6,12 @@
 #include <optional>
 
 namespace heating::ems {
-// Active heating's own envelope (owner, 28 Oct): at most 60 degC and never
-// above the heating limit the boiler itself reported (Classic 0x16, the
-// latest this boot: the setting only changes at the boiler).
+// Active heating's own envelope: at most 80 degC (the highest plan maximum)
+// and never above the heating limit the boiler itself reported (Classic 0x16
+// heating temperature, the latest this boot: the setting only changes at the
+// boiler). The plan's own maximum is applied before this (ActiveHeatGuard).
 struct ActiveHeatEnvelope {
-    static constexpr uint8_t maximumFlowC = 60;
+    static constexpr uint8_t maximumFlowC = 80;
     static std::optional<uint8_t> limitC(const ClassicBoilerMonitor& monitor) {
         const auto& limit = monitor.sample(BoilerField::heatingLimit);
         if (monitor.capabilities().profile() != BoilerProtocol::classic || !limit.observed || !limit.raw

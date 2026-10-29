@@ -30,6 +30,8 @@ struct RoomPlan {
     };
     uint32_t revision = 0;  // +1 on every save; a write must name the revision it was based on
     Mode mode = Mode::shadow;
+    // Flow limits for this home: minimum 20..79, maximum 21..80 degC (default 60).
+    // The boiler's own heating limit still caps every request (ActiveHeatGuard).
     uint8_t minimumFlowC = 30, maximumFlowC = 60;
     std::vector<Room> rooms;
 
@@ -45,7 +47,7 @@ struct RoomPlan {
             plan.revision = static_cast<uint32_t>(rev->valuedouble);
         }
         const double minFlow = number(root, "minimum_flow_c"), maxFlow = number(root, "maximum_flow_c");
-        if (!whole(minFlow, 20, 59) || !whole(maxFlow, 21, 60) || minFlow >= maxFlow) return "invalid_flow_limits";
+        if (!whole(minFlow, 20, 79) || !whole(maxFlow, 21, 80) || minFlow >= maxFlow) return "invalid_flow_limits";
         plan.minimumFlowC = static_cast<uint8_t>(minFlow); plan.maximumFlowC = static_cast<uint8_t>(maxFlow);
         const auto* rooms = cJSON_GetObjectItemCaseSensitive(root, "rooms");
         if (!cJSON_IsArray(rooms) || cJSON_GetArraySize(rooms) > int(maxRooms)) return "invalid_rooms";

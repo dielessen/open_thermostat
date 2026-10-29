@@ -52,7 +52,8 @@ const telemetry={reception:{state:'classic_reports_received'},transport:{enabled
    const cold=requests.slice(start),coldBytes=cold.reduce((sum,r)=>sum+r.bytes,0);
    for(const unused of ['/ems-metadata.js','/ems-devices.js','/bluetooth.js','/system-log.js','/deps/chart.umd.js.gz'])
     assert(!cold.some(r=>r.path===unused),'Home must not load '+unused);
-   assert(coldBytes<160000,'Cold Home payload budget exceeded: '+coldBytes);
+   // beta.18: the Overview also reads the E32's own rooms and both languages grew (about +5 kB gzip).
+   assert(coldBytes<168000,'Cold Home payload budget exceeded: '+coldBytes);
    await page.evaluate(()=>loadNativePage('about'));await page.locator('#about-heading').waitFor();
    await page.evaluate(()=>loadNativePage('about'));
    assert(requests.slice(start).some(r=>r.path==='/about.html'&&r.status===304),'Revisit revalidates without retransmitting HTML');

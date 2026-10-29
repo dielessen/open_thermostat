@@ -304,6 +304,14 @@ class E32RoomFlow:
         return self.async_show_menu(step_id="e32_rooms" if done is None else f"e32_rooms_{done}",
                                     menu_options=options, description_placeholders=placeholders)
 
+    async def async_step_e32_rooms_saved(self, user_input=None):
+        """The room list right after a save (its own text: what was saved)."""
+        return await self.async_step_e32_rooms()
+
+    async def async_step_e32_rooms_removed(self, user_input=None):
+        """The room list right after a removal."""
+        return await self.async_step_e32_rooms()
+
     def _e32_source_label(self, source):
         if source.get("type") == "ble":
             sensor = heating_hub(self.hass, self.config_entry).ble.get(source.get("id"))

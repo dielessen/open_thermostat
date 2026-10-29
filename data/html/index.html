@@ -1128,7 +1128,7 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                 (known?chip(dashboardBool(demand,uiText("Heat demand"),uiText("No heat demand")),demand===true?'ok':''):'')+controlChip+haChip+'</p></div>'+
                 (statusHelp?'<p class="pd-help">'+dashboardText(statusHelp)+'</p>':'')+
                 (freshText?'<p class="pd-help"><span>'+dashboardText(freshText)+'</span></p>':'')+'</section>'+
-                uiHtml("<div class=\"pd-section-title\"><h2>Rooms</h2>")+(engine && !haFresh ? '<a class="pd-help" href="#rooms" data-page="heating">'+uiText("Change rooms and week programs")+'</a>' :
+                uiHtml("<div class=\"pd-section-title\"><h2>Rooms</h2>")+(engine && !haFresh ? '<a href="#rooms" data-page="heating">'+uiText("Change rooms and week programs")+'</a>' :
                 uiHtml("<span class=\"pd-help\">Controls and programs in Home Assistant</span>"))+'</div><div class="pd-rooms">';
             if (!cards.length) html += '<div class="pd-empty ot-empty"><strong>'+(known?uiText("No rooms yet"):uiText("No current control status"))+'</strong>'+
                 (state && !engine?uiText("There are no rooms in the configuration read back yet."):uiText("Set up rooms on the Rooms page, or connect Home Assistant."))+

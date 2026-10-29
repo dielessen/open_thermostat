@@ -1,4 +1,5 @@
 #pragma once
+#include "control/BoundedJson.h"
 #include <cJSON.h>
 #include <array>
 #include <cstdint>
@@ -79,11 +80,12 @@ struct WebPassword {
         if (!body || !size || size > 2048) return change;
         // cJSON strings end at NUL; refuse an escaped NUL instead of truncating.
         if (std::string_view(body, size).find("\\u0000") != std::string_view::npos) return change;
-        cJSON* root = cJSON_ParseWithLengthOpts(body, size, nullptr, true);
+        // body[size] is the terminating NUL (String/std::string c_str()). One flat document.
+        const auto root = parseNestedJson(body, size, true, 1);
         if (!root) return change;
-        const cJSON* current = cJSON_GetObjectItemCaseSensitive(root, "current");
-        const cJSON* next = cJSON_GetObjectItemCaseSensitive(root, "new");
-        const bool shape = cJSON_IsObject(root) && cJSON_GetArraySize(root) == 2 && cJSON_IsString(current)
+        const cJSON* current = cJSON_GetObjectItemCaseSensitive(root.get(), "current");
+        const cJSON* next = cJSON_GetObjectItemCaseSensitive(root.get(), "new");
+        const bool shape = cJSON_IsObject(root.get()) && cJSON_GetArraySize(root.get()) == 2 && cJSON_IsString(current)
             && cJSON_IsString(next) && current->valuestring && next->valuestring;
         if (shape) {
             change.current = current->valuestring; change.next = next->valuestring;
@@ -92,7 +94,6 @@ struct WebPassword {
                 : length == Length::tooShort ? RequestError::tooShort
                 : length == Length::tooLong ? RequestError::tooLong : RequestError::none;
         }
-        cJSON_Delete(root);
         return change;
     }
     static const char* errorBody(RequestError e) {

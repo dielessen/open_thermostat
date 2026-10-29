@@ -1574,5 +1574,10 @@ window.OT_UI_MESSAGES = {
   "Add your first room on the Rooms page. Without Home Assistant everything is set there.": "Voeg je eerste ruimte toe op de pagina Ruimtes. Zonder Home Assistant stel je daar alles in.",
   "The setup network closes in {s} seconds. Then OpenThermostat opens automatically at the address below.": "Het installatienetwerk sluit over {s} seconden. Daarna opent OpenThermostat vanzelf op het adres hieronder.",
   "Setup network open for about {n} more minutes.": "Installatienetwerk nog ongeveer {n} minuten open.",
-  "OpenThermostat is connected to your WiFi. The settings have been saved.": "OpenThermostat is verbonden met je wifi. De instellingen zijn opgeslagen."
+  "OpenThermostat is connected to your WiFi. The settings have been saved.": "OpenThermostat is verbonden met je wifi. De instellingen zijn opgeslagen.",
+  "Week program": "Weekprogramma",
+  "Room limits": "Grenzen van de ruimte",
+  "Target temperature": "Gewenste temperatuur",
+  "Change these in Home Assistant, or choose Edit here anyway.": "Wijzig dit in Home Assistant, of kies Toch hier bewerken.",
+  "Not saved yet": "Nog niet opgeslagen"
 };

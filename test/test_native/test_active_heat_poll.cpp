@@ -83,7 +83,7 @@ TEST_F(ActivePoll, RefusesWithoutGateRouteHeatAuthorityOrInTime) {
     EXPECT_FALSE(driver.last()->ok);
 }
 
-TEST_F(ActivePoll, EnvelopeIsSixtyAndTheBoilersOwnLimit) {
+TEST_F(ActivePoll, EnvelopeIsEightyAndTheBoilersOwnLimit) {
     EXPECT_FALSE(ActiveHeatEnvelope::limitC(monitor));
     EXPECT_TRUE(ActiveHeatEnvelope::admits(monitor, 0)); // zero is always allowed
     EXPECT_FALSE(ActiveHeatEnvelope::admits(monitor, 30));
@@ -92,12 +92,16 @@ TEST_F(ActivePoll, EnvelopeIsSixtyAndTheBoilersOwnLimit) {
     EXPECT_EQ(ActiveHeatEnvelope::limitC(monitor), 55);
     EXPECT_TRUE(ActiveHeatEnvelope::admits(monitor, 55));
     EXPECT_FALSE(ActiveHeatEnvelope::admits(monitor, 56));
-    limit(80, 2000);
-    EXPECT_EQ(ActiveHeatEnvelope::limitC(monitor), 60);
-    EXPECT_FALSE(ActiveHeatEnvelope::admits(monitor, 61));
+    limit(70, 1500);
+    EXPECT_EQ(ActiveHeatEnvelope::limitC(monitor), 70);
+    EXPECT_TRUE(ActiveHeatEnvelope::admits(monitor, 70));
+    EXPECT_FALSE(ActiveHeatEnvelope::admits(monitor, 71));
+    limit(90, 2000);
+    EXPECT_EQ(ActiveHeatEnvelope::limitC(monitor), 80);
+    EXPECT_FALSE(ActiveHeatEnvelope::admits(monitor, 81));
     // The latest report this boot, whatever its age: the setting lives in the boiler.
-    EXPECT_EQ(ActiveHeatEnvelope::limitC(monitor), 60);
-    driver.post(now, uint8_t(60), true, true); EXPECT_TRUE(poll());
+    EXPECT_EQ(ActiveHeatEnvelope::limitC(monitor), 80);
+    driver.post(now, uint8_t(75), true, true); EXPECT_TRUE(poll());
     ClassicBoilerMonitor plus;
     plus.receive({EmsTelegram::BROADCAST, 8, 0, 0, 0xE4, {0}}, 1000);
     EXPECT_FALSE(ActiveHeatEnvelope::limitC(plus));

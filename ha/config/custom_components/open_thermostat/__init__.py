@@ -79,6 +79,11 @@ async def _async_options_updated(hass, entry):
     # Withdraw current SOURCE control before ANY native config/subentry reload
     # await. A changed draft cannot keep a ready owner while reload is queued.
     state=hass.data.get(DOMAIN,{}).get(entry.entry_id,{})
+    from .e32_access import apply_password, password_only_update
+    if password_only_update(state, entry):
+        # Only the E32 password changed (re-authentication): use it, no reload or plan review.
+        apply_password(hass, entry, state)
+        return
     from .energy_input import energy_only_update
     if energy_only_update(state, entry):
         # Only the optional energy inputs changed: follow them, no reload (no plan review).

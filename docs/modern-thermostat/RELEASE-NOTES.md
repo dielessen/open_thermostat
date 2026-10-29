@@ -65,11 +65,15 @@ its request to the boiler yet. Use it together with HA 0.4.0b10.
 
 ## Updating
 
-Install this firmware and HA 0.4.0b10 together (HA 0.4.0b9 keeps working with
-the fields it knows). After an update the E32 confirms the new firmware itself
+Install this firmware and HA 0.4.0b10 together. HA 0.4.0b9 keeps working with
+the fields it knows, but ignores heating status with a request above 60 °C:
+keep the maximum flow at 60 °C until HA is updated. After an update the E32 confirms the new firmware itself
 once it has run normally for about a minute and the network has worked; until
 then a failed start rolls back to the previous version, and other restarts are
-postponed. Without a working network within 10 minutes it also rolls back.
+postponed. Without a working network connection within 10 minutes (router,
+MQTT broker or the web page answering) it also rolls back. The name of the
+setup Wi-Fi network now ends in the last digits of the E32 MAC address and may
+differ from before.
 Check the time zone under System → Network if you live outside Central Europe.
 
 ## Limitations

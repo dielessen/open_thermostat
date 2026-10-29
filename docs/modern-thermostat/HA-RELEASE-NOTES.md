@@ -47,6 +47,8 @@ Companion release for E32 beta18. Install both together.
 - The E32 address may be a local host name such as `e32.fritz.box`,
   `e32.home.arpa`, `e32.local` or `e32.lan`, as long as it resolves to a local
   address.
+- When the E32 password changes, Home Assistant asks for the new one; a
+  Repairs notice appears while the E32 still uses the default password.
 - Every setup step and field explains in plain language what it does; all
   boiler values have English and Dutch names; icons for all entities.
 
@@ -57,6 +59,8 @@ Companion release for E32 beta18. Install both together.
   integration are removed (history is kept; entities you renamed or changed
   stay).
 - Only one room menu is shown when the E32 has a room plan.
+- Removing a room also removes its device and entities.
+- Heating status with a flow request above 60 °C is accepted (up to 80 °C).
 
 ## Updating
 

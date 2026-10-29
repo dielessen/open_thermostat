@@ -747,6 +747,29 @@
       "burner_starts_last_hour": {
         "name": "Burner starts last hour"
       },
+      "room_learning": {
+        "name": "Learning status",
+        "state": {
+          "collecting": "Collecting data",
+          "learning": "Learning",
+          "ready": "Ready"
+        }
+      },
+      "room_flow_advice": {
+        "name": "Recommended flow (1 °C)"
+      },
+      "room_heating_start": {
+        "name": "Predicted heating start"
+      },
+      "dhw_taps_today": {
+        "name": "Hot water taps today"
+      },
+      "dhw_keep_warm_today": {
+        "name": "Keeping warm today"
+      },
+      "dhw_burner_time_today": {
+        "name": "Hot water burner time today"
+      },
       "field_reported_selected_flow_temperature": {
         "name": "Selected flow temperature"
       },

@@ -88,7 +88,9 @@ fuzz() {
   fi
   (cd "$WORK/logs" && "$OUT/fuzz_$t" "${args[@]}" "$corpus" "$ROOT/test/fuzz/corpus/$t") \
     >"$WORK/logs/$t.log" 2>&1 || true
-  local n; n=$(find "$art" -type f | wc -l)
+  # slow-unit-* files (-report_slow_units=1) are reports, not failures: a busy
+  # CI runner can take >1 s for one input. Hangs fail as timeout-* (>2 s).
+  local n; n=$(find "$art" -type f ! -name 'slow-unit-*' | wc -l)
   echo "$t: $(grep -E 'stat::number_of_executed_units|#[0-9]+.*DONE|cov:' "$WORK/logs/$t.log" | tail -1) artifacts=$n"
   [ "$n" = 0 ]
 }

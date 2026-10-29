@@ -56,15 +56,15 @@ minutes; `run.sh smoke 60` then runs them side by side for 60 s, so the job
 takes about three minutes on a 2-core runner. The harnesses do between ~400
 (shadow) and ~36,000 (control_json) executions per second per core, so 60 s
 replays every seed and finds shallow regressions. Deep bugs need the long runs
-above. Example step:
+above.
 
-```yaml
-- run: sudo apt-get install -y clang libmbedtls-dev
-- run: test/fuzz/run.sh smoke 60
-- if: failure()
-  uses: actions/upload-artifact@v4
-  with: { name: fuzz-artifacts, path: /tmp/fz-work/artifacts }
-```
+The `fuzz-smoke` job in `.github/workflows/build.yml` does exactly this on
+every push and gates E32 test releases. A finding fails the job with a public
+annotation naming the harness, the artifact file and the input as hex (first
+1500 bytes), and the artifacts and logs are kept as the `fuzz-smoke-findings`
+workflow artifact. Save the hex to a file (`xxd -r -p`) and rerun it with
+`test/fuzz/run.sh repro <harness> <file>`. `slow-unit-*` reports (an input
+over 1 s) do not fail a run; hangs over 2 s do (`timeout-*`).
 
 ## Limits
 

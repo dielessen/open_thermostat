@@ -23,7 +23,11 @@ def test_status_is_strict():
     for key, bad in [("schema", 2), ("mode", "manual"), ("ha_entities", ["no_domain"]),
                      ("request", {"heat": True, "flow_c": 75, "reason": "heating"})]:
         assert decode_status(json.dumps({**STATUS, key: bad})) is None
-    assert decode_status("x" * 8193) is None
+    from custom_components.open_thermostat.heating_link import MAX_STATUS_BYTES
+    assert decode_status("x" * (MAX_STATUS_BYTES + 1)) is None
+    # The learned advice and hot-water summary make a status larger than before.
+    padded = {**STATUS, "learned": {"schema": 1, "pad": "x" * 9000}}
+    assert decode_status(json.dumps(padded)) == padded
 
 
 def test_climate_forwards_measurement_and_target():
@@ -198,7 +202,13 @@ NAMES = {
                "ble_temperature": ("Temperature", "Temperatuur"), "ble_humidity": ("Humidity", "Luchtvochtigheid"),
                "ble_battery": ("Battery", "Batterij"),
                "heat_request": ("Boiler request (E32)", "Ketelvraag (E32)"),
-               "burner_starts_last_hour": ("Burner starts last hour", "Branderstarts afgelopen uur")},
+               "burner_starts_last_hour": ("Burner starts last hour", "Branderstarts afgelopen uur"),
+               "room_learning": ("Learning status", "Leerstatus"),
+               "room_flow_advice": ("Recommended flow (1 °C)", "Geadviseerde aanvoer (1 °C)"),
+               "room_heating_start": ("Predicted heating start", "Verwachte start verwarmen"),
+               "dhw_taps_today": ("Hot water taps today", "Warmwatertappen vandaag"),
+               "dhw_keep_warm_today": ("Keeping warm today", "Warmhouden vandaag"),
+               "dhw_burner_time_today": ("Hot water burner time today", "Brandertijd warm water vandaag")},
     "binary_sensor": {"room_demand": ("Heat demand", "Warmtevraag"),
                       "burner_short_cycling": ("Burner short cycling", "Brander pendelt")},
     "select": {"room_state": ("Mode", "Stand")},

@@ -532,9 +532,77 @@ jobs:
         if: always()
         run: docker stop opth-mqtt-fixture || true
 
+  # Short libFuzzer + ASan/UBSan pass over the E32 parsers of external input
+  # (EMS frames, Bluetooth adverts, HA/MQTT and web JSON); see test/fuzz/README.md.
+  # Host-only: no device, bus, radio, broker or network contact.
+  fuzz-smoke:
+    if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+            ~/.platformio/packages
+            ~/.platformio/platforms
+          key: ${{ runner.os }}-pio-native-${{ hashFiles('platformio.ini', 'boards/**') }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned native dependencies and the fuzzing toolchain
+        run: |
+          pip install platformio==6.2.0 intelhex==2.3.0
+          pio pkg install -e native
+          sudo apt-get update
+          sudo apt-get install -y clang llvm libmbedtls-dev
+      - name: Fuzz every external-input harness for 60 seconds
+        env:
+          OUT: ${{ runner.temp }}/fz-build
+          WORK: ${{ runner.temp }}/fz-work
+        run: |
+          # A crashing, hanging, leaking or out-of-memory input goes into a public
+          # annotation with its harness and the input as hex, because the job log
+          # itself needs a login. Reproduce with: test/fuzz/run.sh repro <harness> <file>
+          log="$RUNNER_TEMP/fuzz-smoke.log"
+          set +e
+          bash test/fuzz/run.sh smoke 60 2>&1 | tee "$log"
+          status=${PIPESTATUS[0]}
+          set -e
+          [ "$status" = 0 ] && exit 0
+          esc(){ awk '{gsub(/%/,"%25");gsub(/\r/,"");printf "%s%%0A",$0}'; }
+          found=0
+          for f in "$WORK"/artifacts/*/*; do
+            [ -f "$f" ] || continue
+            case "$(basename "$f")" in slow-unit-*) continue ;; esac
+            found=1
+            harness=$(basename "$(dirname "$f")")
+            size=$(stat -c %s "$f")
+            hex=$(head -c 1500 "$f" | od -An -v -tx1 | tr -d ' \n')
+            [ "$size" -le 1500 ] || hex="$hex (first 1500 of $size bytes)"
+            report=$(grep -m 6 -E 'ERROR|SUMMARY|runtime error|INVARIANT|deadly signal|timeout|out-of-memory|leak' "$WORK/logs/$harness.log" | cut -c1-300 || true)
+            echo "::error title=Fuzz smoke failed: $harness $(basename "$f") on ${ImageOS:-unknown} ${ImageVersion:-}::$(printf 'harness=%s file=%s size=%s\ninput hex: %s\n%s\n' "$harness" "$(basename "$f")" "$size" "$hex" "$report" | esc)"
+          done
+          if [ "$found" = 0 ]; then
+            echo "::error title=Fuzz smoke failed before any finding on ${ImageOS:-unknown} ${ImageVersion:-}::$(tail -c 3000 "$log" | esc)"
+          fi
+          exit 1
+      - name: Preserve fuzz findings and logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-smoke-findings
+          path: |
+            ${{ runner.temp }}/fz-work/artifacts
+            ${{ runner.temp }}/fz-work/logs
+          if-no-files-found: ignore
+          retention-days: 30
+
   publish-test-release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: [build, source-reproduction, browser-regressions, home-assistant-native, manual-route-compile, settings-route-compile]
+    needs: [build, source-reproduction, browser-regressions, home-assistant-native, manual-route-compile, settings-route-compile, fuzz-smoke]
     runs-on: ubuntu-latest
     permissions:
       contents: write

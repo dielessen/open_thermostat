@@ -6,6 +6,11 @@ entities it reads (``ha_entities``). HA forwards exactly those entities'
 temperature and target to ``ha/heating_input`` on every change and every five
 minutes, so a steady tado stays fresh.
 
+Newer firmware adds what it learned per room (``learned``: readiness, flow
+advice and, with a trusted clock, ``learned.plans``: optimum start and night
+options) and today's hot water (``dhw``); those entities appear only once the
+fields do.
+
 One ``HeatingHub`` per entry holds the latest status. Every platform (sensor,
 binary_sensor, select, number, datetime) creates its entities from it for the
 room and Bluetooth ids it actually reports; all of them are unavailable while
@@ -15,7 +20,7 @@ import json
 import math
 import re
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 from homeassistant.components import mqtt
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
@@ -36,11 +41,15 @@ STALE_CHECK = timedelta(seconds=15)
 ROOM_ID = re.compile(r"[a-z0-9_]{1,32}")
 BLE_ID = re.compile(r"[0-9a-f]{12}")
 ROOM_STATUSES = ["ok", "fallback", "stale", "lost", "inactive"]
+LEARNING_STATES = ["collecting", "learning", "ready"]
+# The learned advice and hot-water summary make the status larger (the E32
+# itself trims its MQTT copy); still a hard bound before parsing.
+MAX_STATUS_BYTES = 16384
 
 
 def decode_status(payload):
     """The E32 heating status, or None when it is not a schema 1 document."""
-    if not isinstance(payload, (str, bytes)) or len(payload) > 8192:
+    if not isinstance(payload, (str, bytes)) or len(payload) > MAX_STATUS_BYTES:
         return None
     try:
         value = json.loads(payload)
@@ -68,14 +77,37 @@ def number(value, low, high):
     return result if math.isfinite(result) and low <= result <= high else None
 
 
-def status_rooms(status):
-    """{room id: room} for the well-formed rooms of a status; others are skipped."""
+def rooms_by_id(items):
+    """{room id: room} for the well-formed rooms of a list; others are skipped."""
     rooms = {}
-    items = status.get("rooms") if status else None
     for room in items if type(items) is list else []:
         if type(room) is dict and type(room.get("id")) is str and ROOM_ID.fullmatch(room["id"]):
             rooms.setdefault(room["id"], room)
     return rooms
+
+
+def status_rooms(status):
+    """{room id: room} for the well-formed rooms of a status; others are skipped."""
+    return rooms_by_id(status.get("rooms") if status else None)
+
+
+def learned_status(status):
+    """What the E32 learned (``learned``, schema 1), or None on firmware without it."""
+    learned = status.get("learned") if status else None
+    return learned if type(learned) is dict and learned.get("schema") == 1 else None
+
+
+def learned_rooms(status):
+    """{room id: learned room}: readiness and flow advice per room."""
+    learned = learned_status(status)
+    return rooms_by_id(learned.get("rooms")) if learned else {}
+
+
+def plan_rooms(status):
+    """{room id: plan}: optimum start and night strategies (absent without a trusted clock)."""
+    learned = learned_status(status)
+    plans = learned.get("plans") if learned else None
+    return rooms_by_id(plans.get("rooms")) if type(plans) is dict else {}
 
 
 def status_ble(status):
@@ -121,6 +153,8 @@ class HeatingHub:
         self.status = None
         self.rooms = {}
         self.ble = {}
+        self.learned = {}
+        self.warmup = {}
         self.received = None
         self.plan = None  # room_plan.RoomPlanLink when the E32 credentials are stored
         self._listeners = []
@@ -154,6 +188,8 @@ class HeatingHub:
         self.status = status
         self.rooms = status_rooms(status)
         self.ble = status_ble(status)
+        self.learned = learned_rooms(status)
+        self.warmup = plan_rooms(status)
         self.received = self.clock() if status is not None else None
         self.notify()
 
@@ -584,16 +620,264 @@ class BurnerShortCyclingBinarySensor(BurnerEntity, BinarySensorEntity):
         return value if type(value) is bool else None
 
 
+# -- What the E32 learned: advice only (beta.18 keeps its own flow rule) -----
+
+
+def _whole(value, low, high):
+    """A plausible number; whole numbers stay int (34, not 34.0)."""
+    result = number(value, low, high)
+    return int(result) if result is not None and result == int(result) else result
+
+
+def _text(item, key):
+    value = item.get(key)
+    return value if type(value) is str and len(value) <= 40 else None
+
+
+def _flag(item, key):
+    value = item.get(key)
+    return value if type(value) is bool else None
+
+
+def _utc(value):
+    seconds = number(value, 1e9, 4.2e9)
+    return datetime.fromtimestamp(seconds, timezone.utc) if seconds is not None else None
+
+
+def _dict(item, key):
+    value = item.get(key) if type(item) is dict else None
+    return value if type(value) is dict else {}
+
+
+def flow_advice(item):
+    """One flow advice of the learner: a shortfall and the lowest flow that closes it in time."""
+    if type(item) is not dict:
+        return None
+    return {"shortfall_c": _whole(item.get("shortfall_c"), -10, 30),
+            "required_c_per_h": _whole(item.get("required_c_per_h"), 0, 20),
+            "flow_c": _whole(item.get("flow_c"), 10, 90), "warmup_h": _whole(item.get("warmup_h"), 0, 48),
+            "reason": _text(item, "reason"), "rule_flow_c": _whole(item.get("rule_flow_c"), 0, 90),
+            "rule_warmup_h": _whole(item.get("rule_warmup_h"), 0, 48), "rule": _text(item, "rule")}
+
+
+class LearnedRoomEntity(RoomEntity):
+    """One learned value of an E32 room (``learned.rooms``), on the room's device."""
+
+    @property
+    def learned(self):
+        return self.hub.learned.get(self.room_id) if self.hub.fresh else None
+
+    @property
+    def available(self):
+        return self.hub.fresh and self.room is not None and self.learned is not None
+
+    def _applied(self):
+        """False while the E32 only reports its advice and keeps its own flow rule."""
+        return (learned_status(self.hub.status) or {}).get("applied") is True
+
+
+class RoomLearningSensor(LearnedRoomEntity, SensorEntity):
+    """How far the E32 has learned how fast this room warms up: collecting, learning or ready."""
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = LEARNING_STATES
+
+    def __init__(self, hub, room):
+        self._attach_room(hub, room, "learning")
+
+    @property
+    def native_value(self):
+        value = (self.learned or {}).get("readiness")
+        return value if value in LEARNING_STATES else None
+
+    @property
+    def extra_state_attributes(self):
+        learned = self.learned
+        if learned is None:
+            return None
+        whole = learned_status(self.hub.status) or {}
+        return {"room_id": self.room_id, "emitter": _text(learned, "emitter"),
+                "segments": _count(learned.get("segments")), "periods": _count(learned.get("periods")),
+                "heating_periods": _count(whole.get("heating_periods")), "learner": _text(whole, "status"),
+                "loss_per_h": number(learned.get("loss_per_h"), 0, 1),
+                "capacity_kwh_per_k": number(learned.get("capacity_kwh_per_k"), 0, 100),
+                "applied": self._applied()}
+
+
+class RoomFlowAdviceSensor(LearnedRoomEntity, SensorEntity):
+    """The lowest flow that warms this room 1 °C in an acceptable time (unknown until learned)."""
+
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_suggested_display_precision = 0
+
+    def __init__(self, hub, room):
+        self._attach_room(hub, room, "flow_advice")
+
+    def _advice(self):
+        items = (self.learned or {}).get("advice")
+        advice = [flow_advice(item) for item in items] if type(items) is list else []
+        advice = [item for item in advice if item is not None]
+        one = next((item for item in advice if item["shortfall_c"] == 1), None)
+        return one, [item for item in advice if item is not one]
+
+    @property
+    def native_value(self):
+        one, _ = self._advice()
+        return one["flow_c"] if one else None
+
+    @property
+    def extra_state_attributes(self):
+        learned = self.learned
+        if learned is None:
+            return None
+        one, others = self._advice()
+        one = one or {}
+        return {"room_id": self.room_id, "applied": self._applied(),
+                **{key: one.get(key) for key in ("warmup_h", "reason", "rule_flow_c", "rule_warmup_h", "rule")},
+                "other_shortfalls": others, "now": flow_advice(learned.get("now"))}
+
+
+class RoomHeatingStartSensor(RoomEntity, SensorEntity):
+    """When the E32 would start heating to reach the next higher setpoint on time, and tonight's options."""
+
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(self, hub, room):
+        self._attach_room(hub, room, "heating_start")
+
+    @property
+    def warmup(self):
+        return self.hub.warmup.get(self.room_id) if self.hub.fresh else None
+
+    @property
+    def available(self):
+        return self.hub.fresh and self.room is not None and self.warmup is not None
+
+    @property
+    def native_value(self):
+        start = _dict(self.warmup, "optimum_start")
+        if start.get("reason") != "planned":
+            return None
+        if (exact := _utc(start.get("predicted_start_utc"))) is not None:
+            return exact
+        at, lead = _utc(_dict(start, "next_switch").get("utc")), _whole(start.get("lead_minutes"), 0, 1440)
+        return at - timedelta(minutes=lead) if at is not None and lead is not None else None
+
+    @property
+    def extra_state_attributes(self):
+        if self.warmup is None:
+            return None
+        start, night = _dict(self.warmup, "optimum_start"), _dict(self.warmup, "night")
+        switch = _dict(start, "next_switch")
+        at = _utc(switch.get("utc"))
+        items = night.get("strategies")
+        strategies = [{"name": _text(item, "name"), "night_c": _whole(item.get("night_c"), 0, 35),
+                       "kwh": number(item.get("kwh"), 0, 1000), "m3": number(item.get("m3"), 0, 100),
+                       "eur": number(item.get("eur"), 0, 1000), "end_c": _whole(item.get("end_c"), -10, 40),
+                       "on_time": _flag(item, "on_time")}
+                      for item in (items if type(items) is list else []) if type(item) is dict]
+        return {"room_id": self.room_id, "reason": _text(start, "reason"),
+                "switch_at": at.isoformat() if at is not None else None,
+                "from_c": _whole(switch.get("from_c"), 0, 35), "target_c": _whole(switch.get("target_c"), 0, 35),
+                "lead_minutes": _whole(start.get("lead_minutes"), 0, 1440),
+                "flow_c": _whole(start.get("flow_c"), 0, 90), "confidence": _text(start, "confidence"),
+                "reachable": _flag(start, "reachable"), "start_now": _flag(start, "start_now"),
+                "night_reason": _text(night, "reason"), "night_confidence": _text(night, "confidence"),
+                "night_recommended": _text(night, "recommended"),
+                "night_recommended_c": _whole(night.get("recommended_night_c"), 0, 35),
+                "night_saving_m3": number(night.get("saving_m3"), 0, 100),
+                "night_saving_eur": number(night.get("saving_eur"), 0, 1000),
+                "night_strategies": strategies}
+
+
+def dhw_status(status):
+    """Today's hot-water summary (``dhw`` with ``today``), or None on firmware without it."""
+    dhw = status.get("dhw") if status else None
+    return dhw if type(dhw) is dict and type(dhw.get("today")) is dict else None
+
+
+DHW_SENSORS = ("dhw_taps_today", "dhw_keep_warm_today", "dhw_burner_time_today")
+DHW_KINDS = {"dhw_taps_today": "tapping", "dhw_keep_warm_today": "keep_warm"}
+
+
+def _minutes(seconds):
+    return round(seconds / 60, 1) if seconds is not None else None
+
+
+class DhwTodaySensor(HubEntity, SensorEntity):
+    """Today's hot water as the E32 sees it on the bus: taps, keeping warm, burner time.
+
+    The counters restart every day (and when the E32 restarts): total_increasing.
+    """
+
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+
+    def __init__(self, hub, key):
+        self.key = key
+        self._attach(hub, f"hub_{key}")
+        self._attr_translation_key = key
+        if key == "dhw_burner_time_today":
+            self._attr_device_class = SensorDeviceClass.DURATION
+            self._attr_native_unit_of_measurement = UnitOfTime.MINUTES
+            self._attr_suggested_display_precision = 0
+
+    @property
+    def dhw(self):
+        return dhw_status(self.hub.status) if self.hub.fresh else None
+
+    @property
+    def available(self):
+        return self.dhw is not None
+
+    @property
+    def native_value(self):
+        dhw = self.dhw
+        if dhw is None:
+            return None
+        if self.key == "dhw_burner_time_today":
+            return _minutes(_count(dhw["today"].get("burner_s")))
+        return _count(_dict(dhw["today"], DHW_KINDS[self.key]).get("count"))
+
+    @property
+    def extra_state_attributes(self):
+        dhw = self.dhw
+        if dhw is None:
+            return None
+        today, week = dhw["today"], _dict(dhw, "last_7_days")
+        result = {"method": _text(dhw, "method"), "clock_known": _flag(dhw, "clock_known")}
+        if self.key == "dhw_burner_time_today":
+            return {**result, "tapping_minutes": _minutes(_count(_dict(today, "tapping").get("s"))),
+                    "keep_warm_minutes": _minutes(_count(_dict(today, "keep_warm").get("s"))),
+                    "last_7_days_minutes": _minutes(_count(week.get("burner_s")))}
+        kind = DHW_KINDS[self.key]
+        result.update(minutes=_minutes(_count(_dict(today, kind).get("s"))),
+                      last_7_days=_count(_dict(week, kind).get("count")))
+        if self.key == "dhw_taps_today":
+            result.update(peak_flow_l_min=number(today.get("peak_flow_l_min"), 0, 60),
+                          unknown_count=_count(_dict(today, "unknown").get("count")))
+        return result
+
+
 def wanted_sensors(hub):
     if shadow_today(hub.status) is not None:  # firmware that compares (E32 beta.18)
         for key in SHADOW_SENSORS:
             yield ("shadow", key), lambda key=key: ShadowSensor(hub, key)
     if burner_status(hub.status) is not None:  # firmware that counts burner starts
         yield ("burner",), lambda: BurnerStartsSensor(hub)
+    if dhw_status(hub.status) is not None:  # firmware that sorts the hot-water episodes
+        for key in DHW_SENSORS:
+            yield ("dhw", key), lambda key=key: DhwTodaySensor(hub, key)
     for room_id, room in hub.rooms.items():
         yield ("room", room_id, "temperature"), lambda room=room: RoomTemperatureSensor(hub, room)
         yield ("room", room_id, "setpoint"), lambda room=room: RoomTemperatureSensor(hub, room, "setpoint", 5, 30)
         yield ("room", room_id, "status"), lambda room=room: RoomStatusSensor(hub, room)
+        if room_id in hub.learned:  # firmware that learns the rooms (E32 beta.18)
+            yield ("room", room_id, "learning"), lambda room=room: RoomLearningSensor(hub, room)
+            yield ("room", room_id, "flow_advice"), lambda room=room: RoomFlowAdviceSensor(hub, room)
+        if room_id in hub.warmup:  # only while the E32 clock is trusted
+            yield ("room", room_id, "heating_start"), lambda room=room: RoomHeatingStartSensor(hub, room)
     for sensor_id, sensor in hub.ble.items():
         for metric in BLE_METRICS:
             # Only readings the sensor actually reports (not every profile has humidity).

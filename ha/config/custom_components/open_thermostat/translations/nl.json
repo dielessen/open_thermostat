@@ -1663,6 +1663,29 @@
       "burner_starts_last_hour": {
         "name": "Branderstarts afgelopen uur"
       },
+      "room_learning": {
+        "name": "Leerstatus",
+        "state": {
+          "collecting": "Gegevens verzamelen",
+          "learning": "Aan het leren",
+          "ready": "Klaar"
+        }
+      },
+      "room_flow_advice": {
+        "name": "Geadviseerde aanvoer (1 °C)"
+      },
+      "room_heating_start": {
+        "name": "Verwachte start verwarmen"
+      },
+      "dhw_taps_today": {
+        "name": "Warmwatertappen vandaag"
+      },
+      "dhw_keep_warm_today": {
+        "name": "Warmhouden vandaag"
+      },
+      "dhw_burner_time_today": {
+        "name": "Brandertijd warm water vandaag"
+      },
       "field_reported_selected_flow_temperature": {
         "name": "Gekozen aanvoertemperatuur"
       },

@@ -3,9 +3,10 @@
 Three views, built from the entity registry (renamed entity IDs are followed,
 disabled and absent entities are left out) with built-in cards only:
 
-* Heating: now (boiler request, flow, agreement), one section per E32 room,
-  the E32 next to the thermostat, the boiler essentials and the Bluetooth
-  sensors;
+* Heating: now (boiler request, flow, agreement), one section per E32 room
+  (with a small "Learning" area once the E32 reports it), the E32 next to the
+  thermostat, the boiler essentials (with today's hot-water taps) and the
+  Bluetooth sensors;
 * Boiler: the reported boiler fields and their history;
 * Diagnostics: device and EMS details, hot water, estimates, each with a
   one-line note.
@@ -74,7 +75,10 @@ EMS_METRICS = (
 )
 
 # E32 room entities: unique ID f"{prefix}_e32_room_{room id}_{key}" (longest key first).
-ROOM_KEYS = ("fallback_setpoint", "inactive_until", "temperature", "setpoint", "status", "demand", "state")
+ROOM_KEYS = ("fallback_setpoint", "inactive_until", "heating_start", "flow_advice", "temperature", "learning",
+             "setpoint", "status", "demand", "state")
+# Today's hot water from the E32 (unique ID f"{prefix}_hub_{key}").
+DHW_TODAY = ("dhw_taps_today", "dhw_keep_warm_today", "dhw_burner_time_today")
 BLE_KEYS = ("temperature", "humidity", "battery")
 
 # Boiler essentials: (key, boiler field, older hub metric).
@@ -134,6 +138,11 @@ TEXT = {
         "flame_chart": "Observed flame time per day",
         "models_note": "Room heat models are estimates, not measured heat; unknown or stale inputs leave gaps.",
         "room_history": "{room}: target and measured", "room_measured": "Measured", "room_target": "Target",
+        "learning": "Learning", "flow_advice": "Recommended flow (1 °C)", "heating_start": "Heating starts",
+        "learning_note": "The E32 also learns how fast each room warms up and works out the lowest flow "
+                         "temperature that is fast enough.",
+        "advice_only": "For now this is advice only; the E32 keeps its own rule.",
+        "dhw_taps": "Hot water taps today", "dhw_today": "Hot water today",
     },
     "nl": {
         "heating": "Verwarming", "boiler_view": "Ketel", "diagnostics": "Diagnose",
@@ -184,6 +193,11 @@ TEXT = {
         "models_note": "Warmtemodellen per ruimte zijn schattingen, geen gemeten warmte; onbekende of verouderde "
                        "invoer laat gaten.",
         "room_history": "{room}: gewenst en gemeten", "room_measured": "Gemeten", "room_target": "Gewenst",
+        "learning": "Leren", "flow_advice": "Geadviseerde aanvoer (1 °C)", "heating_start": "Start verwarmen",
+        "learning_note": "De E32 leert ook hoe snel elke ruimte opwarmt en berekent de laagste "
+                         "aanvoertemperatuur die snel genoeg is.",
+        "advice_only": "Voorlopig is dat alleen advies; de E32 houdt zijn eigen regel aan.",
+        "dhw_taps": "Warmwatertappen vandaag", "dhw_today": "Warm water vandaag",
     },
 }
 
@@ -206,13 +220,38 @@ def _section(*cards):
     return {"type": "grid", "cards": [card for card in cards if card]}
 
 
-def _heading(text, icon=None, badges=None):
-    card = {"type": "heading", "heading": text, "heading_style": "title"}
+def _heading(text, icon=None, badges=None, style="title", visibility=None):
+    card = {"type": "heading", "heading": text, "heading_style": style}
     if icon:
         card["icon"] = icon
     if badges:
         card["badges"] = badges
+    if visibility:
+        card["visibility"] = visibility
     return card
+
+
+def _known(entity_id):
+    """Card visibility: only while the entity has a value."""
+    return [{"condition": "state", "entity": entity_id, "state_not": ["unavailable", "unknown"]}]
+
+
+def _learning_cards(t, room):
+    """A compact "Learning" area under a room: status badge, recommended flow, predicted start.
+
+    Nothing without the learned entities (older firmware); hidden while the E32 reports none.
+    """
+    learning, advice, start = room.get("learning"), room.get("flow_advice"), room.get("heating_start")
+    if not learning:
+        return []
+    badge = {"type": "entity", "entity": learning, "show_state": True, "show_icon": True, "color": "teal"}
+    return [
+        _heading(t["learning"], "mdi:school-outline", [badge], "subtitle", _known(learning)),
+        # The advice only means something once the room is learned.
+        _tile(advice, t["flow_advice"],
+              visibility=[{"condition": "state", "entity": learning, "state": "ready"}, *_known(advice)]),
+        _tile(start, t["heating_start"], visibility=_known(start)),
+    ]
 
 
 def _tile(entity_id, name=None, icon=None, features=None, visibility=None):
@@ -524,6 +563,13 @@ class RoomDashboard:
                 content += ("{% set mode = state_attr(" + quoted + ", 'mode') %}"
                             "{% if mode == 'active' %}\n\n" + t["active"]
                             + "{% elif mode == 'shadow' %}\n\n" + t["shadow"] + "{% endif %}")
+            # One line for the learning, once, while the E32 reports it.
+            learning = next((room["learning"] for room in e32_room_entities.values() if room.get("learning")), None)
+            if learning:
+                quoted = json.dumps(learning)
+                content += ("{% if states(" + quoted + ") not in ['unavailable', 'unknown'] %}\n\n"
+                            + t["learning_note"] + "{% if not state_attr(" + quoted + ", 'applied') %} "
+                            + t["advice_only"] + "{% endif %}{% endif %}")
             explain = {"type": "markdown", "content": content}
         now = _section(
             _heading(t["now"], "mdi:home-thermometer"),
@@ -565,6 +611,7 @@ class RoomDashboard:
                       visibility=[{"condition": "state", "entity": state, "state": "inactive"}] if state else None),
                 _tile(room.get("fallback_setpoint"), t["without_ha"],
                       features=[{"type": "numeric-input", "style": "buttons"}]),
+            *_learning_cards(t, room),
             ))
 
         # Older HA rooms (one climate per MQTT room) and their settings.
@@ -604,9 +651,13 @@ class RoomDashboard:
         if len(compare["cards"]) > 1:
             sections.append(compare)
 
+        # Today's hot-water taps (E32 firmware that sorts them) sit next to the hot water temperature.
+        taps = hub.get("dhw_taps_today")
+        taps = _tile(taps, t["dhw_taps"], visibility=_known(taps)) if taps else None
         boiler = _section(
             _heading(t["boiler"], "mdi:water-boiler"),
-            *(_tile(essential(key), t[key]) for key, _, _ in ESSENTIALS),
+            *(card for key, _, _ in ESSENTIALS
+              for card in (_tile(essential(key), t[key]), taps if key == "dhw" else None)),
             _tile(hub.get("burner_starts_last_hour"), t["starts_hour"]),
             _tile(hub.get("burner_short_cycling"), t["short_cycling"]),
         )
@@ -699,6 +750,10 @@ class RoomDashboard:
         else:
             note += " " + t["dhw_none"]
         cards.append({"type": "markdown", "content": note})
+        # Today's taps, keeping warm and burner time, as the E32 sorts them on the bus.
+        dhw_today = [hub[key] for key in DHW_TODAY if key in hub]
+        if dhw_today:
+            cards.append({"type": "entities", "title": t["dhw_today"], "entities": dhw_today})
         # Estimates: only isolated definition-v2 IDs, no legacy counter aggregates or backfill.
         counter_keys = ("energy", "energy_heating", "energy_warm_water", "energy_unattributed",
                         "warm_water_usage", "burner_observed_time")

@@ -79,6 +79,29 @@
       "burner_starts_last_hour": {
         "default": "mdi:counter"
       },
+      "room_learning": {
+        "default": "mdi:school-outline",
+        "state": {
+          "collecting": "mdi:database-clock-outline",
+          "learning": "mdi:school-outline",
+          "ready": "mdi:check-decagram-outline"
+        }
+      },
+      "room_flow_advice": {
+        "default": "mdi:thermometer-lines"
+      },
+      "room_heating_start": {
+        "default": "mdi:clock-start"
+      },
+      "dhw_taps_today": {
+        "default": "mdi:faucet"
+      },
+      "dhw_keep_warm_today": {
+        "default": "mdi:water-boiler"
+      },
+      "dhw_burner_time_today": {
+        "default": "mdi:timer-outline"
+      },
       "radiator_heating_time": {
         "default": "mdi:timer-outline"
       }

@@ -191,7 +191,7 @@
         },
         {
           "path": "docs/modern-thermostat/E32-UPDATE-GATE.json",
-          "sha256": "54ec3a8db5b26c28ec231316ecbf7f91c5461ff03ab884ef14868c1d05cb3563"
+          "sha256": "71ed3e346aa0ab9ace8ebe96b35e65de99c851721ce9f17aafe04b0b1d322ae0"
         },
         {
           "path": "docs/modern-thermostat/BETA3-PUBLICATION-EXCEPTION-PROPOSAL.json",
@@ -718,6 +718,22 @@
         {
           "path": "docs/modern-thermostat/BETA17-INSTALLATION-20261028.json",
           "sha256": "e9b671680cd484d6d77ec2b0bb1a2eb3310b7dfed3c0db763d6306cbf2b9507a"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA17-NATIVE-GAP-20261029.json",
+          "sha256": "59ba33ca5a2cc9c076f401b36ad7019c0a8b08ac8a4f0455e46136a60b8693b9"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA18-KANDIDAAT.json",
+          "sha256": "15e7b51f3d0b2092b4db63e73d70cdef1f6d28b634c7de83352e2f0dfd98de29"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA18-OWNER-INSTRUCTION-20261029.json",
+          "sha256": "02ae6260f0d857d25ebfbca2ee568427d60dc57ccddc04e356b0aa1faaeba81e"
+        },
+        {
+          "path": "docs/modern-thermostat/BETA18-PUBLICATION-EXCEPTION-20261029.json",
+          "sha256": "cb55f965c39a3725b90e2de14808039efa7363ed39304ac03b25ce745c9971b6"
         }
       ],
       "remaining_acceptance": "Native GitHub-update alpha31→36 met verse back-up en één installatiecommando geslaagd:36 installatiecontroles,45 afzonderlijke nacontroles, exacte bron/ELF/web/31UI en behoud van86 HA-bestanden/13 projecthashes/zes loggingvelden. Iedere opvolgende reguliere release vereist nieuw update-/nacontrolebewijs volgens E32-UPDATE-PROCES en CI-gate. Oude multipart-watchdog en nativealpha26-afwijking blijven oorzakelijk onbekend; geen blinde fallback/retry. Fysieke powerloss/rollback/herstelkwalificatie en actieve ketel-/kraanpoorten blijven apart open. Automatische12ucontrole/dashboardmelding voorbereid naalpha36, niet geïnstalleerd."

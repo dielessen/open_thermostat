@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "recorded_at_utc": "2026-10-29T15:46:00Z",
+  "requests": [
+    "Ok je kan meer agents gebruiken indien nodig. wat gaan we allemaal in beta 18 doen ?",
+    "ok zorg dat je voor heel de nacht werk blijft houden maak desnoods de release groter en pak extra punten uit het plan op",
+    "het moet heel gebruiksvriendelijk worden en een mooie gui.",
+    "alles moet in het nederlands en engels . behalve github mag alles engels",
+    "je mag ook nog een agent de code laten bekijken op fouten en performance. We willen geen crashes meer en vastlopers. een thermostaat moet heel erg betrouwbaar zijn.",
+    "het moet wel voor universeel gebruik zijn.",
+    "Ja, publiceer en installeer (Aanbevolen)"
+  ],
+  "scope": "Beta18 + HA0.4.0b10: refreshed bilingual UI with plain-language help and one place for rooms (HA editor, E32 read-only with override), flow learner and warm-up planner (advice only), DHW episodes and burner cycles, typed optional energy inputs, split heating telemetry, web password change, OTA rollback with boot confirmation, supervisor network/Bluetooth/update checks, PSRAM-safe static atomics, bounded JSON, fuzz and soak tests in CI; HA entity cleanup, per-room devices, heating advice and heating problem sensors, reauth and Repairs. Shadow mode only; no boiler output; boiler settings writes disabled.",
+  "publication_approval_reply": "Ja, publiceer en installeer (Aanbevolen)",
+  "publication_approval_at_utc": "2026-10-29T15:46:00Z",
+  "installation_approval_reply": "Ja, publiceer en installeer (Aanbevolen)"
+}

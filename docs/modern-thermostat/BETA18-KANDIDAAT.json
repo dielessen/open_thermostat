@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "date": "2026-10-29",
+  "planned_tag": "v0.1.0-e32v2-beta.18",
+  "previous_published_tag": "v0.1.0-e32v2-beta.17",
+  "state": "FROZEN_SHADOW_LEARNING_AWAITING_EXACT_TAG_CI",
+  "formal_freeze": true,
+  "published": false,
+  "installed": false,
+  "ha_tag": "ha-v0.4.0b10",
+  "ha_installed": false,
+  "observed_installed_e32": "v0.1.0-e32v2-beta.17",
+  "observed_installed_ha": "0.4.0b9",
+  "owner_instruction": "docs/modern-thermostat/BETA18-OWNER-INSTRUCTION-20261029.json",
+  "publication_exception": "docs/modern-thermostat/BETA18-PUBLICATION-EXCEPTION-20261029.json",
+  "last_accepted_native_e32": "v0.1.0-e32v2-beta.4",
+  "changes": [
+    "Refreshed bilingual web UI: design system, menu, plain-language help on every option, configuration flow, no-HA overview, time-zone picker, password card",
+    "Rooms edited in HA (options flow); E32 rooms page read-only with an explicit override",
+    "Flow learner and warm-up planner with night-setback gas comparison (advice only); flow plan limits 20..79 / 21..80, never above the boiler's 0x16 maximum",
+    "DHW episodes and burner cycle monitor; typed optional HA energy inputs (gas m3, price, calorific value, outdoor, boiler kW)",
+    "Heating telemetry split into heating, heating_summary and heating_learned/<room>, each bounded",
+    "Web password (PBKDF2) change with USB reset; HA reauth and Repairs for the default password",
+    "OTA rollback with boot confirmation; supervisor checks for loop stall, Wi-Fi, dead network, Bluetooth silence and stuck updates; RTC watchdog during start-up",
+    "Static atomics outside PSRAM with a boot check; bounded JSON nesting; cJSON in PSRAM; fuzz and soak tests in CI",
+    "HA: per-room devices, entity cleanup, heating advice and heating problem sensors with blueprint, icons, IANA time zones, °F",
+    "Active heating control prepared but compiled off; takeover refused"
+  ],
+  "software_validation": {
+    "physical_test_performed": false
+  },
+  "physical_outputs_automatically_enabled": false,
+  "persistent_boiler_setting_writes_enabled": false,
+  "full_ten_minute_physical_success_claimed": false,
+  "native_https_root_cause_fixed": false
+}

@@ -279,7 +279,10 @@ public:
             if (settings_.applyLearned && learnedFlow_) { flow = *learnedFlow_; source_ = Source::learned; }
             // Options off: the rule's own request, byte for byte. Options on: every
             // output, also the rule's flow passed through, within [plan min, cap].
-            if (source_ != Source::rule || settings_.weatherCurve || settings_.applyLearned) applied_.flowC = bound(flow);
+            if (source_ != Source::rule || settings_.weatherCurve || settings_.applyLearned) {
+                applied_.flowC = bound(flow);
+                applied_.capped = flow > cap_ && in.boilerLimitC && *in.boilerLimitC < std::min(plan.maximumFlowC, FlowDemand::ceilingC);
+            }
         }
         optimumStart(in, learner, bound);
         step(in, learner);
@@ -300,6 +303,7 @@ public:
             replace("heat", cJSON_CreateBool(applied_.heat));
             replace("flow_c", cJSON_CreateNumber(applied_.flowC));
             replace("reason", cJSON_CreateString(reason()));
+            replace("capped_by", applied_.capped ? cJSON_CreateString("boiler_limit") : cJSON_CreateNull());
         }
         if (compact) return true;
         cJSON* flow = cJSON_AddObjectToObject(root, "flow");

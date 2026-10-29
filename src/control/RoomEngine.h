@@ -89,6 +89,8 @@ public:
     // below the room minimum. Never more than a target: the flow limits stay.
     struct Adjust { std::optional<int16_t> setpoint, ceiling; bool pause = false; };
     // unixNow: wall clock for temporary pauses; nullopt while unknown (pause holds).
+    // The boiler's own heating limit (0x16) for the flow request; nullopt: unknown.
+    void setBoilerLimit(std::optional<uint8_t> limitC) { boilerLimitC_ = limitC; }
     FlowDemand::Request step(uint64_t now, std::optional<uint32_t> unixNow, const Adjust* adjust = nullptr) {
         bool demand = false;
         std::optional<int16_t> error;
@@ -117,6 +119,7 @@ public:
             demand = demand || zone.demand;
             error = error ? std::max(*error, rt.result.errorCentiC) : rt.result.errorCentiC;
         }
+        flow_.setBoilerLimit(boilerLimitC_);
         request_ = flow_.update(now, demand, error);
         return request_;
     }
@@ -133,6 +136,7 @@ public:
         cJSON_AddBoolToObject(request, "heat", request_.heat);
         cJSON_AddNumberToObject(request, "flow_c", request_.flowC);
         cJSON_AddStringToObject(request, "reason", FlowDemand::name(request_.reason));
+        if (request_.capped) cJSON_AddStringToObject(request, "capped_by", "boiler_limit"); else cJSON_AddNullToObject(request, "capped_by");
         // The HA entities this plan reads: HA forwards exactly these to ha/heating_input.
         cJSON* entities = cJSON_AddArrayToObject(root, "ha_entities");
         if (!entities) { cJSON_Delete(root); return nullptr; }
@@ -200,6 +204,7 @@ private:
     RoomPlan plan_;
     std::vector<Runtime> rooms_;
     FlowDemand flow_;
+    std::optional<uint8_t> boilerLimitC_;
     FlowDemand::Request request_{};
     bool configured_ = false;
 };

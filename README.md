@@ -158,8 +158,7 @@ with beta.18 for the fields it knows.
 
 [User guide](docs/USER-GUIDE.md) ·
 [Firmware release notes](docs/modern-thermostat/RELEASE-NOTES.md) ·
-[HA release notes](docs/modern-thermostat/HA-RELEASE-NOTES.md) ·
-[Current release work](docs/modern-thermostat/NEXT-RELEASE.nl.md)
+[HA release notes](docs/modern-thermostat/HA-RELEASE-NOTES.md)
 
 ## Features
 
@@ -269,13 +268,12 @@ depend on HA and MQTT; Bluetooth sensors and week programs on the E32 do not.
 6. Then: radiator valves in the E32 room plan, comfort modes, window and door
    contacts, outside sources, further devices and floor-heating functions.
 
-No release dates are promised for these steps. The
-[workboard](docs/modern-thermostat/WORKBOARD.nl.md),
-[design plan](docs/modern-thermostat/PLAN.nl.md) and
-[current release work](docs/modern-thermostat/NEXT-RELEASE.nl.md) track the
-detailed requirements and remaining acceptance. Much of the engineering
-documentation is in Dutch; GitHub-facing project and release descriptions are
-maintained in English.
+No release dates are promised for these steps. The detailed requirements and
+remaining acceptance are tracked in engineering notes in Dutch
+([workboard](docs/modern-thermostat/WORKBOARD.nl.md),
+[design plan](docs/modern-thermostat/PLAN.nl.md),
+[current release work](docs/modern-thermostat/NEXT-RELEASE.nl.md)); the
+project page, user guide and release descriptions are in English.
 
 ## Screenshots
 
@@ -345,8 +343,7 @@ release's compatibility notes.
 
 Back up first, then verify the new boot, version and retained settings. Then
 set up your rooms as described in the [user guide](docs/USER-GUIDE.md); its
-first-start section works without Home Assistant. See also [installation and recovery](docs/FLASHING.md) and
-[update packages](docs/modern-thermostat/GITHUB-UPDATES.nl.md).
+first-start section works without Home Assistant. See also [installation and recovery](docs/FLASHING.md).
 
 ## Hardware and development
 
@@ -377,13 +374,13 @@ within a checkout. Other source targets use `pio run -e esp32dev` or
 
 - [User guide: first start, where to set what, rooms, shadow comparison](docs/USER-GUIDE.md)
 - [Attended switch-over procedure (draft)](docs/SWITCHOVER.md)
-- [Current release work](docs/modern-thermostat/NEXT-RELEASE.nl.md)
+- [Current release work (engineering notes, Dutch)](docs/modern-thermostat/NEXT-RELEASE.nl.md)
 - [Firmware release history](docs/modern-thermostat/RELEASE-NOTES.md)
 - [Home Assistant release history](docs/modern-thermostat/HA-RELEASE-NOTES.md)
 - [E32 V2 hardware and pins](docs/BBQKEES_E32V2.md)
 - [Hardware differences](docs/HARDWARE.md)
 - [REST API](docs/RESTAPI.md)
-- [Test infrastructure](docs/modern-thermostat/TEST-INFRA.nl.md)
+- [Test infrastructure (engineering notes, Dutch)](docs/modern-thermostat/TEST-INFRA.nl.md)
 - [Third-party sources and licences](docs/third-party/README.md)
 - [Legacy project documentation](docs/README-LEGACY.md)
 

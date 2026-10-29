@@ -30,6 +30,7 @@ pre = r'''
 #include "control/WebAuthSession.h"
 #include "control/CaptivePortalPolicy.h"
 #include "diagnostics/ResponseBuffer.h"
+#include <atomic>
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
@@ -38,6 +39,7 @@ pre = r'''
 using namespace heating;
 using namespace std::string_view_literals;
 enum {HTTP_GET,HTTP_POST,HTTP_DELETE};
+enum HTTPUploadStatus {UPLOAD_FILE_START,UPLOAD_FILE_WRITE,UPLOAD_FILE_END,UPLOAD_FILE_ABORTED}; // WebServer HTTPUpload
 struct String:std::string {
  using std::string::string;
  String(const std::string& s):std::string(s){}
@@ -52,7 +54,7 @@ bool refuseBuffer=false;unsigned bufferAllocations=0;
 void *heap_caps_malloc(size_t size,unsigned caps){assert(size==65536);assert(caps==3);++bufferAllocations;return refuseBuffer?nullptr:std::malloc(size);}
 void heap_caps_free(void *bytes){std::free(bytes);}
 struct {bool available=true;bool ready(){return available;}} deviceAccess;
-namespace heating::update {bool mutationBlocked(const char*){return false;}}
+namespace heating::update {bool mutationBlocked(const char*){return false;}std::atomic<bool> httpUploadActive{false};}
 namespace heating::embedded {
 constexpr unsigned char raw[]="raw UI",packed[]={31,139,8,0,1,2,3};
 constexpr char tag[]="\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"";

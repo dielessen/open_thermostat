@@ -4,6 +4,7 @@
 #include "Logging.h"
 #include "RTCTimeHelpers.h"
 #include "control/JsonString.h"
+#include "control/BoundedJson.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "control/ModernTransport.h"
 #endif
@@ -328,13 +329,16 @@ public:
     }
     void inhibitNativeSourceMutation() {if(modern_)modern_->inhibitNativeSourceMutation();}
     bool brokerConnected() const { return modernMode_&&modern_&&modern_->brokerConnected(); }
-    void setHeatingRoute(control::ModernTransport::HeatingInput input,control::ModernTransport::HeatingStatus status) {
-        if(modern_)modern_->setHeatingRoute(std::move(input),std::move(status));
+    void setHeatingRoute(control::ModernTransport::HeatingInput input,control::ModernTransport::HeatingStatus status,
+                         control::ModernTransport::HeatingRoomCount roomCount={},control::ModernTransport::HeatingRoomTelemetry room={},
+                         control::ModernTransport::HeatingSummary summary={}) {
+        if(modern_)modern_->setHeatingRoute(std::move(input),std::move(status),std::move(roomCount),std::move(room),std::move(summary));
     }
 #endif
 private:
 	void handleTemporaryCommand(uint8_t const *payload, unsigned int length) {
 		if (length == 0 || length > 512) return;
+		if (!control::jsonNestingWithin(reinterpret_cast<char const *>(payload), length, 4)) return;
 		std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(
 			cJSON_ParseWithLength(reinterpret_cast<char const *>(payload), length), &cJSON_Delete);
 		if (!root || !cJSON_IsObject(root.get())) return;

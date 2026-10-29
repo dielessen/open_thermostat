@@ -25,6 +25,14 @@ MAX_STREAMS = 7
 _ID = re.compile(r"[A-Za-z0-9_-]{1,32}")
 _HEX = re.compile(r"[0-9a-f]{64}")
 _ZONE = re.compile(r"[0-9a-f]{8}")
+# IANA zone name as metadata (transitions are UTC); same rule as the
+# controller's ScheduleDocument.h and schedule_compiler.py: <=63 bytes,
+# "/"-separated segments that start with an ASCII letter.
+_TIME_ZONE = re.compile(r"[A-Za-z][A-Za-z0-9_+-]*(?:/[A-Za-z][A-Za-z0-9_+-]*)*")
+
+def time_zone_name(value):
+    """True for a syntactically valid IANA zone name such as America/New_York."""
+    return type(value) is str and len(value)<=63 and _TIME_ZONE.fullmatch(value) is not None
 
 class GraphValidationError(ValueError):
     def __init__(self, code):
@@ -290,7 +298,7 @@ def validate_graph_shadow(raw, mapping_raw, context):
     total=0
     if (schedule:=r["schedule"]) is not None:
         obj(schedule,"timezone policy valid_from_utc valid_until_utc base_centi_c transitions")
-        if schedule["timezone"] not in ("UTC","Europe/Amsterdam"):fail("schedule")
+        if not time_zone_name(schedule["timezone"]):fail("schedule")
         exact(schedule["policy"],"wall-clock-membership/v1","schedule")
         start=integer(schedule["valid_from_utc"],946684800,4102444799)
         end=integer(schedule["valid_until_utc"],start+1,min(start+16*86400,4102444800))

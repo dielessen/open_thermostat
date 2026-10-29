@@ -55,7 +55,7 @@ public:
 
 		pBLEScan->setMaxResults(0); // Callback-only: do not retain every nearby advertiser.
 		pBLEScan->setScanCallbacks(this, true);
-		pBLEScan->setInterval(100); // ms; duty cycle is set per scan in triggerScan()
+		pBLEScan->setInterval(control::BleScanPlan::intervalMs); // duty cycle is set per scan in triggerScan()
 
 		DBGLOGFD(log_, logFeature_, "BLE initialized successfully.\n");
 	}
@@ -67,13 +67,16 @@ public:
 
 	bool isScanPending() { return scanLifecycle_.pending(); }
 	bool discovering() const { return scanLifecycle_.discovering(); }
+	template<class Visit> static void visitRmwAtomics(Visit&& visit) { visit("ble.scan_lifecycle", &scanLifecycle_); }
 	bool scanEnabled() const { return config_.scanTime != 0; }
 
-	bool triggerScan(uint32_t durationMs = 0, const std::function<void()>& onAdmitted = {}) {
+	// durationMs > 0: a requested Search. continuous: managed sensors are bound.
+	bool triggerScan(uint32_t durationMs = 0, const std::function<void()>& onAdmitted = {}, bool continuous = false) {
 		// Zero means unlimited scanning in NimBLE, not a disabled scan.
 		if (!config_.scanTime) return false;
 		const auto now = static_cast<uint32_t>(millis());
-		if (!scanLifecycle_.begin(now, uint32_t(config_.scanInterval) * 1000u, durationMs != 0)) return false;
+		const auto plan = control::BleScanPlan::of(durationMs, config_.scanTime, config_.scanInterval, continuous);
+		if (!scanLifecycle_.begin(now, plan.cooldownMs, durationMs != 0)) return false;
         // Before SDK start: the first new report must enter the new discovery list.
         try { if (onAdmitted) onAdmitted(); }
         catch (...) {
@@ -82,15 +85,14 @@ public:
         }
 		DBGLOGFD(log_, logFeature_, "Scan start %ds\n", config_.scanTime);
 		auto scan = NimBLEDevice::getScan();
-		// Wi-Fi shares the radio. Sensor readings are in plain advertisements, so
-		// automatic scans listen passively for 30% of the time; only a requested
-		// discovery asks for scan responses (names). The former 80% active scan
-		// is the suspected cause of "WiFi connected" but unreachable (2026-10-28).
+		// Sensor readings are in plain advertisements (BleScanPlan). The former
+		// 80% active scan is the suspected cause of "WiFi connected" but
+		// unreachable (2026-10-28).
 		if (scan) {
-			scan->setActiveScan(durationMs != 0);
-			scan->setWindow(durationMs ? 50 : 30);
+			scan->setActiveScan(plan.active);
+			scan->setWindow(plan.windowMs);
 		}
-		const bool started = scan && scan->start(durationMs ? std::min<uint32_t>(durationMs, 30000) : uint32_t(config_.scanTime) * 1000u, false, false);
+		const bool started = scan && scan->start(plan.durationMs, false, false);
 		if (!started) {
 			// Failed start has no guaranteed onScanEnd callback. Release ownership
 			// with a cooldown instead of leaving all later scans permanently blocked.
@@ -141,7 +143,9 @@ private:
 	static BeaconTemperatureReader *stReader_;
 	ReportTemperature_t pushTemperature_;
     RawObserver rawObserver_;
-	control::BleScanLifecycle scanLifecycle_;
+	// compare_exchange between loop and Bluetooth host task: static, so internal
+	// RAM (this reader is part of the PSRAM-resident controller; one per device).
+	static inline control::BleScanLifecycle scanLifecycle_;
 	config::BluetoothConfig config_ = config::getBluetoothConfig();
 };
 }

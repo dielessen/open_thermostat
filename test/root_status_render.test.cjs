@@ -71,7 +71,7 @@ test('compiled week support is explained separately from active state and cannot
  assert.match(p.main.innerHTML,/nog niet dat Home Assistant gekoppeld is/);
  assert.match(p.main.innerHTML,/geen toestemming/);
  assert.match(p.main.innerHTML,/Geen actuele regelstatus/);
- assert.doesNotMatch(p.main.innerHTML,/Vraagt warmte|1 vragen warmte|Aansturing is volgens de regeling vrijgegeven/);
+ assert.doesNotMatch(p.main.innerHTML,/Vraagt warmte|1 ruimte vraagt warmte|Aansturing is volgens de regeling vrijgegeven/);
 });
 test('old firmware and invalid compiled capability claims remain unknown and safely rendered',()=>{
  const p=rootPage();
@@ -82,13 +82,13 @@ test('old firmware and invalid compiled capability claims remain unknown and saf
  for(const maximum_zones of ['2',0,9,NaN,Infinity,'<img src=x onerror=alert(1)>']){
   p.updateRooms(managed({control_build:{schema:1,scope:'compiled_support_only',requires_local_source_selection:true,authorizes_physical_outputs:false,
    plans:[null,[],{contract:'control.plan.week.v1',minimum_zones:1,maximum_zones}]}}));
-  assert.match(p.main.innerHTML,/complete kamerweekprogramma is niet bevestigd/);
+  assert.match(p.main.innerHTML,/complete weekprogramma per ruimte is niet bevestigd/);
   assert.doesNotMatch(p.main.innerHTML,/<img|NaN|Infinity/);
  }
 });
 test('managed view separates actual boiler units, computed demand and inhibited output',()=>{
  const p=rootPage();p.updateRooms(managed());const html=p.main.innerHTML;
- for(const text of ['43.2','1.4','0.0','-5.5','19.3','21.0','Badkamer','1 vragen warmte','Geblokkeerd','geen bevestigde opdrachtentijdlijn'])assert.ok(html.includes(text),text);
+ for(const text of ['43.2','1.4','0.0','-5.5','19.3','21.0','Badkamer','1 ruimte vraagt warmte','Geblokkeerd','geen bevestigde opdrachtentijdlijn'])assert.ok(html.includes(text),text);
  // The read-back setpoint is unreliable on Classic boilers and stays off the dashboard.
  assert.ok(!html.includes('55.0'),'read-back setpoint is not a dashboard value');
  assert.doesNotMatch(html,/NaN|undefined|Infinity/);
@@ -96,7 +96,7 @@ test('managed view separates actual boiler units, computed demand and inhibited 
 test('stale or missing controller readback cannot display old demand or local ghost rooms',()=>{
  for(const control of [undefined,{fresh:false,reason:'stale',state:managed().control.state},{fresh:true,state:null},{fresh:true,state:{zones:null}}]){
   const p=rootPage();p.updateRooms(managed({control,rooms:[{name:'GHOST',demand:true}]}));
-  assert.doesNotMatch(p.main.innerHTML,/Badkamer|GHOST|1 vragen warmte|Vraagt warmte/);
+  assert.doesNotMatch(p.main.innerHTML,/Badkamer|GHOST|1 ruimte vraagt warmte|Vraagt warmte/);
   assert.match(p.main.innerHTML,/Geen actuele regelstatus/);
  }
 });
@@ -145,7 +145,7 @@ test('cached update notice hides unknown/current data and escapes or rejects ext
  assert.equal(p.dashboardUpdateNotice({known:true,available:true,version:'<img src=x>'}),'');
  const html=p.dashboardUpdateNotice({known:true,available:true,version:'v0.1.0-e32v2-alpha.99'});
  assert.match(html,/Firmware-update beschikbaar:/);assert.match(html,/Update bekijken/);
- assert.match(html,/loadNativePage/);assert.doesNotMatch(html,/fetch|installRelease|updates\/check/);
+ assert.match(html,/data-page="update"/);assert.doesNotMatch(html,/fetch|installRelease|updates\/check/);
 });
 
 test('all canonical dashboard reason, source and mode labels have English and Dutch coverage',()=>{
@@ -238,4 +238,22 @@ test('a response body that ignores the dashboard deadline cannot commit after ab
  const request=p.statusPoll;deadline();assert.equal(request.signal.aborted,true);
  body(managed());await new Promise(setImmediate);
  assert.equal(p.lastLoadedStatus,undefined);assert.equal(p.statusPoll,null);assert.equal(p.main.innerHTML,'');
+});
+test('without Home Assistant the overview shows the E32 room engine, calmly and with its own words',()=>{
+ const heating={schema:1,mode:'shadow',request:{heat:true,flow_c:38,reason:'heating'},ha:{input_age_s:null,broker_connected:false},
+  active:{state:'shadow',warnings:[],enabled:false},ble_sensors:[{id:'0a1b2c3d4e5f',name:'Thermometer keuken',temperature:19.9}],
+  rooms:[{id:'keuken',name:'Keuken',state:'active',status:'ok',source:'0a1b2c3d4e5f',setpoint_source:'schedule',temperature:19.9,setpoint:20,demand:true},
+   {id:'slaapkamer',name:'Slaapkamer',state:'active',status:'stale',source:null,setpoint_source:'fallback',temperature:null,setpoint:18,demand:false}]};
+ const p=rootPage();p.updateRooms({controlMode:'shadow',ems:{},control:{fresh:false,reason:'no_snapshot'},heating});
+ const html=p.main.innerHTML;
+ for(const text of ['Keuken','Slaapkamer','1 ruimte vraagt warmte','Home Assistant: niet verbonden (optioneel)','Je thermostaat regelt de ketel',
+  'Berekende ketelvraag: 38 °C · Verwarmen','Gewenste temperatuur uit het weekprogramma','Geen meting','Gemeten door: Thermometer keuken (Bluetooth)','Ruimtes en weekprogramma'])
+  assert.ok(html.includes(text),text);
+ assert.doesNotMatch(html,/Wachten op Home Assistant|Geblokkeerd|Installatieprofiel|NaN|undefined/);
+ // An empty plan points to the Rooms page instead of Home Assistant.
+ p.updateRooms({controlMode:'shadow',ems:{},control:{fresh:false},heating:{...heating,rooms:[]}});
+ assert.match(p.main.innerHTML,/Stel ruimtes in op de pagina Ruimtes, of koppel Home Assistant\./);assert.match(p.main.innerHTML,/data-page="heating"/);
+ // Active control after the switch-over: the chips follow the E32's own state.
+ p.updateRooms({controlMode:'shadow',ems:{},control:{fresh:false},heating:{...heating,mode:'active',active:{state:'active',warnings:[],enabled:true}}});
+ assert.match(p.main.innerHTML,/De E32 regelt de ketel/);assert.match(p.main.innerHTML,/Actieve regeling: de E32 regelt je ketel/);
 });

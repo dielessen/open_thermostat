@@ -50,9 +50,11 @@ TEST(MiBeaconCryptoObserver, RealLoopReceptionRetainsOriginalFieldAgeAndItsAuthe
  observer.capture(f.address,-60,f.bytes.data(),f.bytes.size(),1000);monitorClockValue=1500;observer.processOne();
  auto value=observer.snapshot(f.address);ASSERT_EQ(value.temperature,2375);EXPECT_EQ(value.temperatureAgeMs,500u);EXPECT_EQ(value.counter,0x11223344u);EXPECT_TRUE(value.authenticated);EXPECT_FALSE(value.measurementQualified);
  observer.capture(f.address,-60,f.bytes.data(),f.bytes.size(),1500);observer.processOne();EXPECT_EQ(observer.snapshot(f.address).oldCounterDrops,1u);EXPECT_EQ(observer.snapshot(f.address).temperatureAgeMs,500u);
- monitorClockValue=180999;f.bytes=hex("191695fe5858474c45a5808fe64854048a9a1e332211cfe012a1");observer.capture(f.address,-60,f.bytes.data(),f.bytes.size(),180999);observer.processOne();
- value=observer.snapshot(f.address);EXPECT_EQ(value.battery,100);EXPECT_EQ(value.counter,0x11223345u);EXPECT_EQ(value.temperatureAgeMs,179999u);
- monitorClockValue=181000;EXPECT_FALSE(observer.snapshot(f.address).temperature);
- f.bytes=hex("211695fe78583228ffa5808fe6485420003c535de4327b84e8ac46ffffff30f3389a");f.bytes.back()^=1;observer.capture(f.address,-60,f.bytes.data(),f.bytes.size(),181000);observer.processOne();value=observer.snapshot(f.address);EXPECT_EQ(value.status,BleObservationStatus::authentication_failed);EXPECT_FALSE(value.battery);EXPECT_EQ(value.counter,0x11223345u);
- f.bytes.back()^=1;observer.capture(f.address,-60,f.bytes.data(),f.bytes.size(),181000);observer.processOne();EXPECT_EQ(observer.snapshot(f.address).temperature,-4000);EXPECT_EQ(observer.snapshot(f.address).counter,UINT32_MAX);
+ monitorClockValue=900999;f.bytes=hex("191695fe5858474c45a5808fe64854048a9a1e332211cfe012a1");observer.capture(f.address,-60,f.bytes.data(),f.bytes.size(),900999);observer.processOne();
+ value=observer.snapshot(f.address);EXPECT_EQ(value.battery,100);EXPECT_EQ(value.counter,0x11223345u);EXPECT_EQ(value.temperatureAgeMs,899999u);
+ monitorClockValue=901000;EXPECT_FALSE(observer.snapshot(f.address).temperature);
+ f.bytes=hex("211695fe78583228ffa5808fe6485420003c535de4327b84e8ac46ffffff30f3389a");f.bytes.back()^=1;observer.capture(f.address,-60,f.bytes.data(),f.bytes.size(),901000);observer.processOne();value=observer.snapshot(f.address);
+ // beta.18: the failed frame is reported (last_rejection); the valid battery value stays.
+ EXPECT_EQ(value.status,BleObservationStatus::received);EXPECT_EQ(value.lastRejection,BleObservationStatus::authentication_failed);EXPECT_EQ(value.battery,100);EXPECT_EQ(value.counter,0x11223345u);
+ f.bytes.back()^=1;observer.capture(f.address,-60,f.bytes.data(),f.bytes.size(),901000);observer.processOne();EXPECT_EQ(observer.snapshot(f.address).temperature,-4000);EXPECT_EQ(observer.snapshot(f.address).counter,UINT32_MAX);
 }

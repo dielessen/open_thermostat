@@ -10,6 +10,8 @@
 #include "EMS/EmsDeviceInventory.h"
 #include "EMS/EmsEntityCatalog.h"
 #include "control/BoilerFieldTelemetry.h"
+#include "control/BurnerCycleMonitor.h"
+#include "control/DhwEpisodes.h"
 #include "EMS/OutdoorTemperatureSample.h"
 #ifdef OPENTHERMOSTAT_E32V2
 #include "EMS/BoilerTestService.h"
@@ -22,6 +24,8 @@
 #include "EMS/ClassicBoilerSettingsService.h"
 #include "EMS/ClassicSettingsRuntimeGate.h"
 #include "EMS/ManualClassicTransaction.h"
+#include "EMS/ActiveHeatPollDriver.h"
+#include "EMS/ForeignBoilerRequest.h"
 #include <esp_system.h>
 #endif
 #include <esp_timer.h>
@@ -156,6 +160,19 @@ public:
 
 	explicit EmsController(std::shared_ptr<ib::logger::LoggerInterface> log);
 
+	// Every read-modify-write atomic of the EMS route (boot placement check).
+	template<class Visit> static void visitRmwAtomics(Visit&& visit) {
+		visit("ems.reset_requested", &resetRequested_); visit("ems.rx_dropped", &rxDropped_);
+		visit("ems.invalid_telegrams", &invalidTelegrams_); visit("ems.polls", &polls_);
+		visit("ems.tx_frames", &txFrames_); visit("ems.max_poll_service", &maxPollServiceUs_);
+		visit("ems.tx_not_confirmed", &txNotConfirmed_);
+#ifdef OPENTHERMOSTAT_E32V2
+		visit("ems.manual_completions", &manualCompletions_); visit("ems.manual_rejections", &manualRejections_);
+		visit("ems.manual_reply_errors", &manualReplyErrors_); visit("ems.transport_fault", &boilerTestTransportFault_);
+#endif
+		EmsBusUart::visitRmwAtomics(visit);
+	}
+
 	void requestStartupData();
 
 	void changeBoilerState(bool turnOnHeating, uint8_t heatingTemperature) {
@@ -272,6 +289,10 @@ public:
         if(!f||!f->valid||f->raw<0||f->raw>100)return std::nullopt;
         return static_cast<uint8_t>(f->raw);
     }
+    control::BurnerCycleMonitor::Summary burnerCycles() const {
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        return burnerCycles_.summary(static_cast<uint64_t>(esp_timer_get_time()/1000));
+    }
     void getDeviceStatus(std::ostream &ss) const {
         std::lock_guard<std::mutex> lock(telemetryMutex_);
         const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
@@ -290,6 +311,10 @@ public:
 		deviceInventory_.writeJSON(ss,snapshotMs);
 		ss << ",\"ems_entities\":";
 		entities_.writeJSON(ss,snapshotMs);
+		ss << ",\"burner_cycles\":";
+		burnerCycles_.writeJSON(ss,snapshotMs);
+		ss << ",\"dhw_episodes\":";
+		dhwEpisodes_.writeJSON(ss,snapshotMs);
 		ss << ",\"transport\":{\"enabled\":"
 		   << (emsConfig_.emsEnabled ? "true" : "false")
 		   << ",\"transmit_compiled\":" << ((board::emsTransmitAllowed || board::emsManualTestTransmitAllowed) ? "true" : "false")
@@ -361,6 +386,7 @@ public:
     int boilerSettingsWrite(std::string_view body,std::string_view owner,const control::WebAuthSession& sessions,std::ostream& out) {
         std::lock_guard<std::mutex> lock(telemetryMutex_);
         const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
+        if(activeHeat_.claimed()){out<<"{\"accepted\":false,\"error\":\"active_heat_owns_boiler\"}";return 409;}
         const auto result=boilerSettings_.request(body,owner,now,boilerSettingsPermitted());
         boilerSettings_.synchronizeSessions(sessions,now);
         settingsOwnsBus_.store(boilerSettings_.active(),std::memory_order_release);
@@ -373,12 +399,55 @@ public:
 		std::lock_guard<std::mutex> lock(telemetryMutex_);
 		return boilerTest_.active() || configurationRead_.active();
 	}
+    // Active heating (control/ActiveHeatGuard): one locked view per 10 s step,
+    // then the step's command for the boiler's next poll of 0x0B.
+    struct ActiveHeatView {
+        std::optional<ForeignBoilerRequest::Record> foreign;
+        std::optional<uint8_t> limitC;
+        std::optional<bool> burnerOn;
+        std::optional<int16_t> flowCentiC;
+        bool routeReady = false;
+        std::optional<ActiveHeatPollDriver::Result> last;
+        // For FlowLearner (report only). hotWater: the 0x18 DHW bit (3-way valve
+        // on hot water, with or without flame), the same bit DhwEpisodes counts.
+        std::optional<bool> hotWater;
+        std::optional<uint8_t> modulationPct;
+        std::optional<int16_t> returnCentiC;
+    };
+    ActiveHeatView activeHeatView() const {
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        const auto now = static_cast<uint64_t>(esp_timer_get_time() / 1000);
+        const auto modulation = monitor_.value(BoilerField::modulation, now);
+        const auto flow = monitor_.value(BoilerField::flow, now);
+        const auto state = monitor_.value(BoilerField::rawState, now);
+        const auto ret = monitor_.value(BoilerField::returnTemp, now);
+        return {foreignRequest_.last, ActiveHeatEnvelope::limitC(monitor_),
+            modulation ? std::optional<bool>(*modulation > 0) : std::nullopt,
+            flow ? std::optional<int16_t>(static_cast<int16_t>(*flow)) : std::nullopt,
+            board::emsActiveHeatAllowed && activeHeatRouteReady(), activeHeat_.last(),
+            state ? std::optional<bool>((*state & 0x02) != 0) : std::nullopt,
+            modulation && *modulation >= 0 && *modulation <= 100 ? std::optional<uint8_t>(static_cast<uint8_t>(*modulation)) : std::nullopt,
+            ret ? std::optional<int16_t>(static_cast<int16_t>(*ret)) : std::nullopt};
+    }
+    // Today's and the last 7 days' hot water for /status/heating (nullptr: no memory).
+    cJSON* dhwSummaryJson() const {
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        return dhwEpisodes_.summaryJson();
+    }
+    uint32_t activeHeatPost(std::optional<uint8_t> flowC, bool heatAllowed, bool claim) {
+        std::lock_guard<std::mutex> lock(telemetryMutex_);
+        return activeHeat_.post(static_cast<uint64_t>(esp_timer_get_time() / 1000), flowC, heatAllowed, claim);
+    }
 	int boilerTestAction(std::string_view action, std::string_view body, std::string_view operatorSession,
                         const control::WebAuthSession& sessions, std::ostream &ss) {
 		std::lock_guard<std::mutex> lock(telemetryMutex_);
 		const auto now = static_cast<uint64_t>(esp_timer_get_time() / 1000);
         if(boilerSettings_.active()&&action!="stop"&&action!="close_fault"){
             ss<<"{\"accepted\":false,\"error\":\"settings_write_active\"}";return 409;
+        }
+        // The active guard owns the boiler or withdraws its request: no trial or read.
+        if(activeHeat_.claimed()&&action!="stop"&&action!="close_fault"&&action!="keepalive"){
+            ss<<"{\"accepted\":false,\"error\":\"active_heat_owns_boiler\"}";return 409;
         }
         if(action=="read_configuration"||action=="read_identity") {
             const auto kind=action=="read_identity"?ClassicConfigurationRead::Kind::identity:ClassicConfigurationRead::Kind::configuration;
@@ -467,13 +536,16 @@ private:
 	size_t txHead_ = 0;
 	size_t txSize_ = 0;
 	EmsFrameQueue<maxTelegramQueueSize> telegramsToProcess_;
-	std::atomic<bool> resetRequested_{false};
+	// Read-modify-write atomics (exchange, fetch_add, CAS) are static: the
+	// controller lives in PSRAM, where the ESP32's S32C1I is not atomic; .bss
+	// is internal RAM. One EMS bus per device (diagnostics/AtomicPlacement.h).
+	static inline std::atomic<bool> resetRequested_{false};
 	std::atomic<bool> captureForeignTelegrams_{false};
-	std::atomic<uint32_t> rxDropped_{0};
-	std::atomic<uint32_t> invalidTelegrams_{0};
-	std::atomic<uint32_t> polls_{0};
-	std::atomic<uint32_t> txFrames_{0};
-	std::atomic<uint32_t> maxPollServiceUs_{0};
+	static inline std::atomic<uint32_t> rxDropped_{0};
+	static inline std::atomic<uint32_t> invalidTelegrams_{0};
+	static inline std::atomic<uint32_t> polls_{0};
+	static inline std::atomic<uint32_t> txFrames_{0};
+	static inline std::atomic<uint32_t> maxPollServiceUs_{0};
 	unsigned long lastStatsMillis_ = 0;
 
 	std::mutex telegramProcessorsMutex_;
@@ -485,13 +557,15 @@ private:
 	ClassicBoilerMonitor monitor_;
     EmsDeviceInventory deviceInventory_;
     EmsEntityObserver entities_; // passive EMS+/thermostat table, telemetry mutex
+    control::BurnerCycleMonitor burnerCycles_; // short-cycling from the 0x18 flame bit, telemetry mutex
+    control::DhwEpisodes dhwEpisodes_; // tapping vs keeping warm from 0x18/0x34, telemetry mutex
 #ifdef OPENTHERMOSTAT_E32V2
 	// A real, restricted attended commissioning route. Its pressure reading and
     // site declarations are scoped to each accepted preparation, not persisted.
 	BoilerTestService boilerTest_{EcomlineCommissioningProfile::service(
         (static_cast<uint64_t>(esp_random()) << 32) | esp_random(), board::emsManualTestTransmitAllowed)};
     ManualClassicTransaction manualTransaction_; // UART task only, never HTTP/loop.
-    std::atomic<uint32_t> manualCompletions_{0},manualRejections_{0},manualReplyErrors_{0};
+    static inline std::atomic<uint32_t> manualCompletions_{0},manualRejections_{0},manualReplyErrors_{0}; // internal RAM, see resetRequested_
     template<bool Read>
     bool transmitManualFrame(const EmsRawFrame& frame){
         if(!manualTransaction_.begin(frame.data.data(),frame.length,static_cast<uint64_t>(esp_timer_get_time())))return false;
@@ -572,14 +646,22 @@ private:
 	}
 	static constexpr BoilerTestPollDriver::Encoder boilerTestEncoder_ = &encodeBoilerTest;
 	bool processBoilerTestPoll();
-	std::atomic<bool> boilerTestTransportFault_{false};
+    // Active heating shares the trial's identity, encoder, write and gates;
+    // it never runs beside the trial, a configuration read or a settings write.
+    ForeignBoilerRequest foreignRequest_; // telemetry mutex
+    ActiveHeatPollDriver activeHeat_{boilerTest_.bootId(), board::emsActiveHeatAllowed}; // telemetry mutex
+    bool activeHeatRouteReady() const {
+        return manualTransportReviewed() && monitor_.capabilities().profile()==BoilerProtocol::classic
+            && !boilerTest_.active() && !configurationRead_.active() && !boilerSettings_.active();
+    }
+	static inline std::atomic<bool> boilerTestTransportFault_{false}; // internal RAM, see resetRequested_
 	uint32_t boilerTestUartErrorsSeen_ = 0; // UART task only
 #endif
 	control::TemperatureSample outdoorSample_;
 
 	std::atomic<std::optional<int16_t>> emsOutdoorTemperature_;
 
-	std::atomic_size_t txNotConfirmed_{0};
+	static inline std::atomic_size_t txNotConfirmed_{0}; // internal RAM, see resetRequested_
 	uint32_t uartResetsSeen_ = 0; // UART task only
 
 

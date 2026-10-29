@@ -12,14 +12,27 @@ import ipaddress
 import json
 import re
 import secrets
+import socket
 from urllib.parse import urlsplit
 
 import aiohttp
+from aiohttp.abc import AbstractResolver
 from yarl import URL
 
 
 class ControllerLinkError(ValueError):
     """A bounded public error code, never a response/URL/credential exception."""
+
+
+class ControllerLoginRejected(ControllerLinkError):
+    """The E32 refused the stored password (401 on /auth/login): it was changed on the E32.
+
+    Same public code as before (controller_auth_failed); callers that know the
+    entry start Home Assistant's re-authentication with it.
+    """
+
+    def __init__(self):
+        super().__init__("controller_auth_failed")
 
 
 class HeatingPlanRejected(ControllerLinkError):
@@ -33,6 +46,7 @@ class HeatingPlanRejected(ControllerLinkError):
 
 HEATING_PLAN = "/config/heating"
 HEATING_PLAN_BYTES = 4096  # The E32 refuses larger plans (413 plan_too_large).
+# A plan that fits but finds its flash storage full is refused with 507 storage_full.
 
 
 class ControllerProvisioningError(ControllerLinkError):
@@ -41,6 +55,48 @@ class ControllerProvisioningError(ControllerLinkError):
     def __init__(self, code, *, device_may_have_changed):
         super().__init__(code)
         self.device_may_have_changed = device_may_have_changed
+
+
+# Home-network DNS names: router/mDNS suffixes (FRITZ!Box, RFC 8375 home.arpa,
+# localdomain, internal, lan, local, home). Single-label names are accepted too;
+# every name must also resolve to a local address (PrivateResolver).
+LOCAL_DNS_SUFFIXES = (".fritz.box", ".home.arpa", ".localdomain", ".internal", ".lan", ".local", ".home")
+
+
+def private_controller_ip(address, *, link_local=False):
+    """A local-network IP (private; link-local only for resolved names), never loopback/public."""
+    try:
+        address = ipaddress.ip_address(address.split("%", 1)[0] if type(address) is str else address)
+    except ValueError:
+        return False
+    if address.is_loopback or address.is_unspecified or address.is_multicast or address.is_reserved:
+        return False
+    if address.is_link_local:
+        return link_local
+    return address.is_private
+
+
+class PrivateResolver(AbstractResolver):
+    """The default resolver, keeping only local-network addresses (no public or loopback hosts).
+
+    Checked at connect time, so a home-network name that resolves (or later
+    rebinds) to a public or loopback address is never contacted.
+    """
+
+    async def resolve(self, host, port=0, family=socket.AF_INET):
+        # A resolver per lookup: the connector does not own (or close) a passed-in resolver.
+        resolver = aiohttp.DefaultResolver()
+        try:
+            results = await resolver.resolve(host, port, family)
+        finally:
+            await resolver.close()
+        local = [result for result in results if private_controller_ip(result["host"], link_local=True)]
+        if not local:
+            raise OSError(f"{host} does not resolve to a local network address")
+        return local
+
+    async def close(self):
+        return None
 
 
 def controller_address(value):
@@ -61,11 +117,10 @@ def controller_address(value):
             if (not re.fullmatch(r"[a-zA-Z0-9](?:[a-zA-Z0-9.-]{0,251}[a-zA-Z0-9])?", host)
                     or ".." in host or host.lower() == "localhost" or host.isdecimal()
                     or re.fullmatch(r"0[xX][0-9a-fA-F]+", host)
-                    or "." in host and not host.lower().endswith((".local", ".lan", ".home"))):
+                    or "." in host and not host.lower().endswith(LOCAL_DNS_SUFFIXES)):
                 raise ValueError
         else:
-            if (not address.is_private or address.is_loopback or address.is_unspecified
-                    or address.is_multicast or address.is_link_local):
+            if not private_controller_ip(address):
                 raise ValueError
     except (ValueError, TypeError):
         raise ControllerLinkError("controller_address_invalid") from None
@@ -95,7 +150,8 @@ def _decode(raw):
 
 async def _error_name(response):
     """The E32's {"error":"<name>"}, or a fixed name; never response text verbatim."""
-    fallback = {409: "plan_changed", 413: "plan_too_large", 503: "save_unconfirmed"}.get(response.status, "invalid_plan")
+    fallback = {409: "plan_changed", 413: "plan_too_large", 503: "save_unconfirmed",
+                507: "storage_full"}.get(response.status, "invalid_plan")
     try:
         value = json.loads(await response.content.read(512))
     except (ValueError, UnicodeError, RecursionError, aiohttp.ClientError):
@@ -400,6 +456,9 @@ class ControllerClient:
         self._session = None
         self._csrf = None
         self.logout_confirmed = False
+        # From /auth/session after a login: True while the E32 still has its
+        # factory password, False once changed, None on firmware that does not say.
+        self.default_password = None
 
     async def __aenter__(self):
         if self._session is not None and not self._session.closed:
@@ -409,6 +468,7 @@ class ControllerClient:
         self._session = aiohttp.ClientSession(
             cookie_jar=aiohttp.CookieJar(unsafe=True),  # Native E32 uses LAN IP cookies.
             timeout=aiohttp.ClientTimeout(total=10), trust_env=False,
+            connector=aiohttp.TCPConnector(resolver=PrivateResolver()),
         )
         return self
 
@@ -451,9 +511,11 @@ class ControllerClient:
         try:
             async with self._session.request(method, self.address + path, data=data,
                     headers=headers, allow_redirects=False) as response:
+                if response.status == 401 and method == "POST" and path == "/auth/login":
+                    raise ControllerLoginRejected()
                 if response.status in (401, 403):
                     raise ControllerLinkError("controller_auth_failed")
-                if path == HEATING_PLAN and response.status in (400, 409, 413, 503):
+                if path == HEATING_PLAN and response.status in (400, 409, 413, 503, 507):
                     raise HeatingPlanRejected(response.status, await _error_name(response))
                 if response.status == 412:
                     raise ControllerLinkError("controller_settings_changed")
@@ -493,6 +555,8 @@ class ControllerClient:
                 or re.fullmatch(r"[0-9a-f]{64}", session["csrf"]) is None):
             raise ControllerLinkError("controller_auth_failed")
         self._csrf = session["csrf"]
+        flag = session.get("default_password")
+        self.default_password = flag if type(flag) is bool else None
 
     async def async_read_heating_plan(self):
         """The E32 room plan (GET /config/heating), parsed but not yet validated."""
@@ -502,7 +566,8 @@ class ControllerClient:
         """POST the whole plan with the revision it was read at; returns the stored plan.
 
         A stale revision raises HeatingPlanRejected(409, "plan_changed"); other
-        refusals carry the E32's error name (400) or save_unconfirmed (503).
+        refusals carry the E32's error name (400), save_unconfirmed (503) or
+        storage_full (507: the E32's room-plan storage has no room left).
         """
         if type(plan) is not dict:
             raise ControllerLinkError("controller_request_invalid")

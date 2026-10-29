@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <array>
 #include <cJSON.h>
 #include <cmath>
@@ -10,7 +11,8 @@ namespace heating::control {
 // {minute of day, centi degC}. A point holds until the next one, also across
 // midnight and empty days, so a night setback and morning warm-up keep running
 // on the E32 without Home Assistant. JSON: 7 arrays of [minute, centi_c],
-// e.g. [[[390,2050],[1350,1800]],[],[],[],[],[],[]]. Pure: no IO or clock.
+// e.g. [[[390,2050],[1350,1800]],[],[],[],[],[],[]]. Pure: no IO or clock (local
+// time conversion only reads the C library's TZ).
 struct RoomSchedule {
     static constexpr size_t maxPoints = 6;
     struct Point { uint16_t minute = 0; int16_t centiC = 0; };
@@ -81,19 +83,23 @@ struct RoomSchedule {
             return std::nullopt;
         return LocalTime{uint8_t((t.tm_wday + 6) % 7), uint16_t(t.tm_hour * 60 + t.tm_min)};
     }
-    // Europe/Amsterdam from unix seconds (>= 0) without TZ: CET, CEST from the last
-    // Sunday of March to the last Sunday of October, both at 01:00 UTC.
-    static LocalTime amsterdam(int64_t utc) {
-        int year = 1970 + int(floorDiv(utc, 86400) / 366);
-        while (daysFromCivil(year + 1, 1, 1) * 86400 <= utc) ++year;
-        const auto lastSunday = [year](unsigned m) { // seconds at 01:00 UTC
-            const int64_t d = daysFromCivil(year, m, 31);
-            return (d - (floorMod(d, 7) + 4) % 7) * 86400 + 3600; // day 0 was a Thursday
-        };
-        const bool summer = utc >= lastSunday(3) && utc < lastSunday(10);
-        const int64_t local = utc + (summer ? 7200 : 3600);
-        return {uint8_t(floorMod(floorDiv(local, 86400) + 3, 7)), uint16_t(floorMod(local, 86400) / 60)};
+    // Local wall clock at unix seconds: localtime_r() with the device's POSIX TZ
+    // (configTzTime() from the network settings; host tests: setenv + tzset), so
+    // any time zone and DST rule works. Seconds since 1970-01-01 00:00 local time;
+    // utc itself when the C library fails.
+    static int64_t localSeconds(int64_t utc) {
+        const std::time_t t = static_cast<std::time_t>(utc);
+        std::tm tm{};
+        if (!localtime_r(&t, &tm)) return utc;
+        return daysFromCivil(tm.tm_year + 1900, unsigned(tm.tm_mon + 1), unsigned(tm.tm_mday)) * 86400
+            + tm.tm_hour * 3600 + tm.tm_min * 60 + std::min(tm.tm_sec, 59);
     }
+    static LocalTime localAt(int64_t utc) {
+        const int64_t local = localSeconds(utc);
+        return {uint8_t(floorMod(floorDiv(local, 86400) + 3, 7)), uint16_t(floorMod(local, 86400) / 60)}; // day 0 was a Thursday
+    }
+    // Local days since 1970-01-01: the day boundary of daily statistics.
+    static int32_t localDay(int64_t utc) { return int32_t(floorDiv(localSeconds(utc), 86400)); }
 
 private:
     static bool whole(double v, double lo, double hi) { return std::isfinite(v) && v >= lo && v <= hi && std::floor(v) == v; }

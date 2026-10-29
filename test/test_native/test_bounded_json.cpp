@@ -58,3 +58,32 @@ TEST(ControlJson, DeviceSettingsUseSameBudgetsButSupportEscapedAndUnicodeCredent
     EXPECT_FALSE(parseControlJson("{\"password\":\""+std::string(513,'a')+"\"}",true));
 }
 }
+
+namespace {
+using namespace heating::control;
+TEST(NestedJson, DeepNestingIsRejectedBeforeCJsonRecurses) {
+    // 256x '[' from MQTT/HTTP once overflowed the 8 KB loop stack in cJSON.
+    const std::string deep(256,'['), deepObject=[] { std::string s; for(int i=0;i<300;++i) s+="{\"a\":"; return s; }();
+    EXPECT_FALSE(jsonNestingWithin(deep.c_str(),deep.size(),legacyJsonDepth));
+    EXPECT_FALSE(parseNestedJson(deep));
+    EXPECT_FALSE(parseNestedJson(deepObject));
+    std::string ok16(16,'['); ok16+=std::string(16,']');
+    EXPECT_TRUE(parseNestedJson(ok16));
+    std::string bad17(17,'['); bad17+=std::string(17,']');
+    EXPECT_FALSE(parseNestedJson(bad17));
+    EXPECT_FALSE(parseNestedJson(std::string("[[[1]]]"),false,2));
+}
+TEST(NestedJson, BracketsInsideStringsAndEscapesDoNotCount) {
+    const std::string text=R"({"a":"[[[[[[[[[[[[[[[[[[[[\"[[[[[[[[[[[[[","b":[1]})";
+    auto root=parseNestedJson(text,true,2);
+    ASSERT_TRUE(root);
+    EXPECT_TRUE(cJSON_IsArray(cJSON_GetObjectItemCaseSensitive(root.get(),"b")));
+}
+TEST(NestedJson, RequireEndRejectsTrailingDataLikeTheStrictParser) {
+    const std::string trailing="{\"a\":1}x";
+    EXPECT_TRUE(parseNestedJson(trailing));        // cJSON_Parse semantics
+    EXPECT_FALSE(parseNestedJson(trailing,true));  // cJSON_ParseWithLengthOpts(...,true)
+    EXPECT_FALSE(parseNestedJson(std::string()));
+    EXPECT_FALSE(parseNestedJson(static_cast<const char*>(nullptr),0));
+}
+}

@@ -1,6 +1,7 @@
 <link rel="stylesheet" href="deps/bms.min.css.gz" crossorigin="anonymous" />
 <script src="deps/bms.min.js.gz" crossorigin="anonymous"></script>
 
+<header class="ot-head mt-4"><div><h1 data-i18n="Network">Network</h1><p data-i18n="Connection, Home Assistant, time and services of this E32.">Connection, Home Assistant, time and services of this E32.</p></div></header>
 <div class="d-flex justify-content-center" id="loadingprogress">
 	<div class="spinner-border" role="status">
 		<span class="sr-only"></span>
@@ -42,15 +43,15 @@
 			<div class="card w-100" id="WiFiSettings">
 				<div class="card-header d-flex justify-content-between align-items-center">
 					<span class="align-middle"><span data-i18n="WiFi settings">WiFi settings</span></span><button type="button"
-						class="btn px-1 py-0 m-0 btn-outline-info" onclick="loadWiFiSettings();">&#x2b6f;</button>
+						class="btn btn-outline-secondary" style="min-width:44px" onclick="loadWiFiSettings();" aria-label="Reload WiFi settings" data-i18n-aria-label="Reload WiFi settings" title="Reload WiFi settings" data-i18n-title="Reload WiFi settings">&#x2b6f;</button>
 				</div>
-				<div class="card-body">
+				<div class="card-body"><p class="pd-help" data-i18n="The home network the E32 connects to.">The home network the E32 connects to.</p>
 					<div class="form-group">
 						<div class="form-row">
 							<div class="col-md mb-2">
 								<label for="WiFiSSID">SSID</label>
 								<div class="input-group">
-									<input type="text" class="form-control" id="WiFiSSID" required>
+									<input type="text" class="form-control" id="WiFiSSID" data-hint="The name of your home WiFi network." required>
 									<div class="input-group-append">
 										<button class="btn btn-outline-secondary" type="button" data-toggle="modal"
 											data-target="#selectWiFiSSID" data-onopen="" data-onclose=""><svg
@@ -63,7 +64,7 @@
 							<div class="col-md mb-2">
 								<label for="WiFiPassword"><span data-i18n="Password">Password</span></label>
 								<div class="input-group">
-									<input type="password" class="form-control" id="WiFiPassword" required>
+									<input type="password" class="form-control" id="WiFiPassword" data-hint="The password of that network." required>
 									<div class="input-group-append">
 										<span class="input-group-text" onmousedown="showWiFiPassword(event, true);"
 											onmouseup="showWiFiPassword(event, false);">&#128065;</span>
@@ -81,38 +82,101 @@
 			</div>
 		</div>
 
-		<div class="row mb-3">
-			<div class="card w-100" id="NetworkSettings">
-				<div class="card-header d-flex justify-content-between align-items-center">
-					<span class="align-middle"><span data-i18n="Device settings">Device settings</span></span><button type="button"
-						class="btn px-1 py-0 m-0 btn-outline-info" onclick="loadDeviceSettings();">&#x2b6f;</button>
-				</div>
-				<div class="card-body">
-					<div class="form-group">
+		<div id="NetworkSettings" class="w-100">
+		<div class="ot-actions mb-2"><h2 class="mb-0" data-i18n="Device settings">Device settings</h2><button type="button"
+						class="btn btn-outline-secondary" style="min-width:44px" onclick="loadDeviceSettings();" aria-label="Reload network settings" data-i18n-aria-label="Reload network settings" title="Reload network settings" data-i18n-title="Reload network settings">&#x2b6f;</button></div>
+		<section class="pd-panel"><h2 data-i18n="Connection">Connection</h2><p class="pd-help" data-i18n="How you reach this page on your network.">How you reach this page on your network.</p>
 
-
-						<div class="card mb-2">
-							<div class="card-header"><span data-i18n="Web Interface">Web Interface</span></div>
-							<div class="card-body" id="WebInterfaceCard">
 								<div class="form-row">
 									<div class="col-md mb-2"><label for="DeviceHostname"><span data-i18n="Hostname">Hostname</span></label><input
-											type="text" class="form-control" id="DeviceHostname" placeholder="heating"
-											required></div>
+											type="text" class="form-control" id="DeviceHostname" data-hint="The name of the E32 on your network, for example openthermostat." placeholder="Automatic (unique per device)" data-i18n-placeholder="Automatic (unique per device)"></div>
 									<div class="col-md mb-2"><label for="DeviceListenPort"><span data-i18n="Listen port">Listen port</span></label><input
-											type="number" class="form-control" id="DeviceListenPort" min="1" max="65535"
+											type="number" class="form-control" id="DeviceListenPort" data-hint="The port of this web page; normally 80." min="1" max="65535"
 											step="1" placeholder="80" required>
 									<div class="invalid-feedback">1 - 65535</div></div>
 								</div>
-							</div>
-						</div>
+							
+<label for="InterfaceMode"><span data-i18n="E32 network (active after restart)">E32 network (active after restart)</span></label><select class="form-control" id="InterfaceMode"><option value="wifi" data-i18n="WiFi only">WiFi only</option><option value="ethernet" data-i18n="Ethernet only">Ethernet only</option></select><small><span data-i18n="The USB setup command opens temporary WiFi recovery after restart, without an Ethernet clock.">The USB setup command opens temporary WiFi recovery after restart, without an Ethernet clock.</span></small>
+		</section>
+		<section class="pd-panel"><h2>Home Assistant</h2><p class="pd-help" data-i18n="How the E32 works together with Home Assistant.">How the E32 works together with Home Assistant.</p>
+<div class="alert alert-info" id="ShadowModeHelp"><span data-i18n="This mode receives data and calculates heat demand. It sends no valve or boiler commands. Keep your current thermostat in control until measurement, command and safe-stop tests are completed.">This mode receives data and calculates heat demand. It sends no valve or boiler commands. Keep your current thermostat in control until measurement, command and safe-stop tests are completed.</span></div>
+<div class="form-check"><input class="form-check-input" type="checkbox" id="ModernShadow" aria-describedby="ShadowModeHelp"><label class="form-check-label" for="ModernShadow"><span data-i18n="Home Assistant: read and calculate only (shadow mode)">Home Assistant: read and calculate only (shadow mode)</span></label></div>
+<label for="ModernAdapter"><span data-i18n="HA adapter ID (from the integration)">HA adapter ID (from the integration)</span></label><input class="form-control" id="ModernAdapter" maxlength="32" pattern="[A-Za-z0-9_-]{1,32}" placeholder="Copy from Home Assistant" data-i18n-placeholder="Copy from Home Assistant"><small class="ot-hint" data-i18n="Filled in automatically when you use Connect E32 in Home Assistant. Otherwise copy it from the integration; both must be the same.">Filled in automatically when you use Connect E32 in Home Assistant. Otherwise copy it from the integration; both must be the same.</small>
+<details id="NativeShadowSourceSection" hidden><summary><span data-i18n="Installation identity and limits (advanced)">Installation identity and limits (advanced)</span></summary>
+<p><span data-i18n="Device controller ID:">Device controller ID:</span> <code id="NativeSourceDeviceID"><span data-i18n="Load settings">Load settings</span></code></p>
+<label for="NativeShadowSource"><span data-i18n="Installation profile supplied by Home Assistant">Installation profile supplied by Home Assistant</span></label>
+<textarea class="form-control" id="NativeShadowSource" rows="4" maxlength="2048" aria-describedby="NativeShadowSourceHelp"></textarea>
+<small id="NativeShadowSourceHelp"><span data-i18n="This technical profile links this E32 to the rooms, devices and limits checked in Home Assistant. Copy the exact profile from HA; do not edit individual values. An empty profile selects no installation. Initial setup and network changes require a restart. Saving a profile does not enable heating control.">This technical profile links this E32 to the rooms, devices and limits checked in Home Assistant. Copy the exact profile from HA; do not edit individual values. An empty profile selects no installation. Initial setup and network changes require a restart. Saving a profile does not enable heating control.</span></small>
+<button type="button" class="btn btn-outline-primary mt-2" id="ApplyNativeSourceNow" onclick="applyNativeSourceNow();" disabled><span data-i18n="Save installation profile without restarting">Save installation profile without restarting</span></button>
+<small class="form-text text-muted"><span data-i18n="This button saves only the installation profile. Other unsaved changes stay in this form. Afterwards, apply the room plan in Home Assistant and check its confirmation. If saving or confirmation fails, control stays blocked; the last saved configuration remains available.">This button saves only the installation profile. Other unsaved changes stay in this form. Afterwards, apply the room plan in Home Assistant and check its confirmation. If saving or confirmation fails, control stays blocked; the last saved configuration remains available.</span></small>
+</details>
+		</section>
+		<section class="pd-panel"><h2>MQTT</h2><p class="pd-help" data-i18n="The link with Home Assistant through an MQTT broker.">The link with Home Assistant through an MQTT broker.</p>
+<div class="form-row">
+									<div class="col-md mb-2">
+										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
+												id="DeviceMQTTEnabled" data-hint="Connects to the MQTT broker that Home Assistant uses."><label class="form-check-label"
+												for="DeviceMQTTEnabled"><span data-i18n="Enabled">Enabled</span></label></div>
+										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
+												id="DeviceMQTTPublishHomeAssistantDiscovery" data-hint="Lets Home Assistant find the E32 automatically."><label class="form-check-label"
+												for="DeviceMQTTPublishHomeAssistantDiscovery"><span data-i18n="Publish Home Assistant MQTT Discovery">Publish Home Assistant MQTT Discovery</span></label></div>
+									</div>
+								</div>
+<div class="form-row">
+									<div class="col-md mb-2"><label for="DeviceMQTTBrokerAddress"><span data-i18n="Broker address">Broker address</span></label><input type="text" class="form-control"
+											id="DeviceMQTTBrokerAddress" data-hint="IP address or name of the broker, often your Home Assistant."></div>
+									<div class="col-md-2 mb-2"><label for="DeviceMQTTBrokerPort"><span data-i18n="Broker port">Broker port</span></label><input type="number" class="form-control"
+											id="DeviceMQTTBrokerPort" data-hint="Usually 1883." value="1883" step="1" min="1" max="65535"></div>
+									<div class="col-md mb-2"><label for="DeviceMQTTBrokerUser"><span data-i18n="User name">User name</span></label><input
+											type="text" class="form-control" id="DeviceMQTTBrokerUser" data-hint="The MQTT account the E32 signs in with."
+											placeholder="optional" data-i18n-placeholder="optional"></div>
+									<div class="col-md mb-2"><label
+											for="DeviceMQTTBrokerPassword"><span data-i18n="Password">Password</span></label><input type="password"
+											class="form-control" id="DeviceMQTTBrokerPassword" placeholder="Leave empty to keep the saved password" data-i18n-placeholder="Leave empty to keep the saved password">
+									</div>
+								</div>
+<details class="ot-advanced"><summary data-i18n="Advanced">Advanced</summary>
+<div class="form-row">
+									<div class="col-md mb-2"><label for="DeviceMQTTClientID"><span data-i18n="Client ID">Client ID</span></label><input
+											type="text" class="form-control" id="DeviceMQTTClientID" data-hint="A unique name for the E32 on the broker." placeholder="Automatic (unique per device)" data-i18n-placeholder="Automatic (unique per device)">
+									</div>
+									<div class="col-md mb-2"><label for="DeviceMQTTBase"><span data-i18n="Base">Base</span></label><input type="text"
+											class="form-control" id="DeviceMQTTBase" data-hint="The start of all MQTT topics of the E32." value="ib-therm"></div>
+									<div class="col-md-2 mb-2"><label for="DeviceMQTTKeepAlive"><span data-i18n="Keep alive time (s)">Keep alive time (s)</span></label><input type="number" class="form-control"
+											id="DeviceMQTTKeepAlive" data-hint="How often the connection is checked." step="1" min="1" max="360" value="60"></div>
+									<div class="col-md-2 mb-2"><label for="DeviceMQTTInterval"><span data-i18n="Publish interval (s)">Publish interval (s)</span></label><input type="number" class="form-control" id="DeviceMQTTInterval" data-hint="How often values are sent."
+											step="1" min="1" max="360" value="10"></div>
+								</div>
+</details>
+		</section>
+		<section class="pd-panel"><h2 data-i18n="Time">Time</h2><p class="pd-help" data-i18n="Where the E32 gets the correct time from.">Where the E32 gets the correct time from.</p>
+<div class="form-row">
+									<div class="col-md mb-2">
+										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
+												id="DeviceNTPEnabled" data-hint="Gets the time from the internet; week programs need it."><label class="form-check-label"
+												for="DeviceNTPEnabled"><span data-i18n="Enabled">Enabled</span></label></div>
+									</div>
+								</div>
+<div class="form-row"><div class="col-md mb-2"><label for="DeviceTimeZoneChoice"><span data-i18n="Time zone">Time zone</span></label><select class="form-control" id="DeviceTimeZoneChoice" aria-describedby="DeviceTimeZoneHelp"></select><small class="ot-hint" id="DeviceTimeZoneHelp" data-i18n="Week programs and days follow this time zone, including summer time.">Week programs and days follow this time zone, including summer time.</small>
+										<p class="ot-hint" id="DeviceTimeZoneSuggest" hidden><span></span> <button type="button" class="btn btn-outline-primary btn-sm"><span data-i18n="Use this time zone">Use this time zone</span></button></p></div>
+<div class="col-md mb-2"><label for="DeviceNTPServer"><span data-i18n="Network Time Protocol (NTP) Server">Network Time Protocol (NTP) Server</span></label><input type="text" class="form-control" id="DeviceNTPServer" data-hint="The time server, for example pool.ntp.org."
+											placeholder="pool.ntp.org" required></div></div>
+<details class="ot-advanced"><summary data-i18n="Advanced">Advanced</summary>
+<div class="form-row"><div class="col-md mb-2"><label for="DeviceNTPTimezone"><span data-i18n="Time zone as POSIX text">Time zone as POSIX text</span></label><input type="text" class="form-control" id="DeviceNTPTimezone" required
+											data-hint="Filled in from the time zone above. Change it only for a zone that is not in the list, for example GMT0BST,M3.5.0/1,M10.5.0."></div></div>
+<div class="form-row"><div class="col-md mb-2"><label for="DeviceNTPUTCOffset"><span data-i18n="NTP to UTC offset (s)">NTP to UTC offset (s)</span></label><input type="number" class="form-control" id="DeviceNTPUTCOffset" data-hint="Difference from UTC in seconds; ignored when a time zone is set."
+											step="1" placeholder="0" required></div><div class="col-md mb-2"><label for="DeviceNTPUTCDLOffset"><span data-i18n="NTP to UTC Daylight offset (s)">NTP to UTC Daylight offset (s)</span></label><input type="number" class="form-control"
+											id="DeviceNTPUTCDLOffset" data-hint="Extra difference during summer time, in seconds." step="1" placeholder="0" required></div></div>
+</details>
+		</section>
+		<details class="ot-advanced"><summary data-i18n="Advanced settings">Advanced settings</summary>
+<p class="pd-help" data-i18n="Hardware, Bluetooth timing and developer tools; normally you do not need these.">Hardware, Bluetooth timing and developer tools; normally you do not need these.</p>
+<h3 data-i18n="Hardware services">Hardware services</h3><p class="pd-help" data-i18n="Parts of the E32 that you can switch on or off.">Parts of the E32 that you can switch on or off.</p>
 
-						<div class="card mb-2">
-							<div class="card-header"><span data-i18n="Hardware services">Hardware services</span></div>
-							<div class="card-body" id="RTCCard">
 								<div class="form-row">
 									<div class="col-md mb-2">
 										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
-												id="DeviceRTCEnabled"><label class="form-check-label"
+												id="DeviceRTCEnabled" data-hint="Only when a battery clock module is fitted."><label class="form-check-label"
 												for="DeviceRTCEnabled"><span data-i18n="Real Time Battery powered clock enabled">Real Time Battery powered clock enabled</span></label>
 										</div>
 									</div>
@@ -127,54 +191,40 @@
 								<div class="form-row">
 									<div class="col-md mb-2">
 										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
-												id="DeviceEMSForwarderEnabled"><label class="form-check-label"
+												id="DeviceEMSForwarderEnabled" data-hint="Forwards raw boiler bus messages for diagnosis; normally off."><label class="form-check-label"
 												for="DeviceEMSForwarderEnabled"><span data-i18n="EMS bus forwarder enabled">EMS bus forwarder enabled</span></label></div>
 									</div>
 								</div>
-							</div>
-						</div>
+							
+<h3 data-i18n="Bluetooth configuration">Bluetooth configuration</h3><p class="pd-help" data-i18n="How often the E32 listens for Bluetooth sensors.">How often the E32 listens for Bluetooth sensors.</p>
 
-						<div class="card mb-2">
-							<div class="card-header"><span data-i18n="Network Time Protocol (NTP) Server configuration">Network Time Protocol (NTP) Server configuration</span></div>
-							<div class="card-body" id="NTPCard">
+								<div class="form-row">
+									<div class="col-md mb-2"><label for="BTScanTime"><span data-i18n="Bluetooth scan time (s)">Bluetooth scan time (s)</span></label><input type="number" class="form-control" id="BTScanTime" data-hint="How long each Bluetooth listening round lasts." min="1"
+											step="1" placeholder=30 required></div>
+									<div class="col-md mb-2"><label for="BTScanInterval"><span data-i18n="Interval between bluetooth scans (s)">Interval between bluetooth scans (s)</span></label><input type="number" class="form-control"
+											id="BTScanInterval" data-hint="The pause between two listening rounds." min="0" step="1" placeholder=120 required></div>
+								</div>
+							
+<h3 data-i18n="Debugging over socket">Debugging over socket</h3><p class="pd-help" data-i18n="Tools for developers; leave them off in normal use.">Tools for developers; leave them off in normal use.</p>
+
 								<div class="form-row">
 									<div class="col-md mb-2">
 										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
-												id="DeviceNTPEnabled"><label class="form-check-label"
-												for="DeviceNTPEnabled"><span data-i18n="Enabled">Enabled</span></label></div>
+												id="DeviceDebugEnabled" data-hint="Streams debug logs to a computer; for developers."><label class="form-check-label"
+												for="DeviceDebugEnabled"><span data-i18n="Enabled">Enabled</span></label></div>
 									</div>
 								</div>
 								<div class="form-row">
-									<div class="col-md mb-2"><label for="DeviceNTPServer"><span data-i18n="Network Time Protocol (NTP) Server">Network Time Protocol (NTP) Server</span></label><input type="text" class="form-control" id="DeviceNTPServer"
-											placeholder="pool.ntp.org" required></div>
-									<div class="col-md mb-2"><label for="DeviceNTPUTCOffset"><span data-i18n="NTP to UTC offset (s)">NTP to UTC offset (s)</span></label><input type="number" class="form-control" id="DeviceNTPUTCOffset"
-											step="1" placeholder="0" required></div>
-									<div class="col-md mb-2"><label for="DeviceNTPUTCDLOffset"><span data-i18n="NTP to UTC Daylight offset (s)">NTP to UTC Daylight offset (s)</span></label><input type="number" class="form-control"
-											id="DeviceNTPUTCDLOffset" step="1" placeholder="0" required></div>
-								</div>
-								<div class="form-row">
-									<div class="col-md mb-2"><label for="DeviceNTPTimezone"><span data-i18n="NTP Time zone string">NTP Time zone string</span></label><input type="text" class="form-control" id="DeviceNTPTimezone"
-											aria-describedby="DeviceNTPTimezoneHelp" required>
-										<div id="DeviceNTPTimezoneHelp" class="form-text"><span data-i18n="If specified, UTC offsets won&#x27;t be used to set up local time">If specified, UTC offsets won&#x27;t be used to set up local time</span></div>
+									<div class="col-md mb-2"><label for="DeviceDebugHost"><span data-i18n="Debug log stream host">Debug log stream host</span></label><input type="text" class="form-control" id="DeviceDebugHost" data-hint="The computer that receives the stream.">
 									</div>
+									<div class="col-md mb-2"><label for="DeviceDebugPort"><span data-i18n="Debug log stream port">Debug log stream port</span></label><input type="number" class="form-control" id="DeviceDebugPort"
+											step="1" min="1" max="65535"></div>
+									<div class="col-md mb-2"><label for="DeviceDebugTimeout"><span data-i18n="Debug log stream connection timeout (ms)">Debug log stream connection timeout (ms)</span></label><input type="number" class="form-control"
+											id="DeviceDebugTimeout" step="1" placeholder="10000"></div>
 								</div>
-							</div>
-						</div>
-
-						<div class="card mb-2">
-							<div class="card-header"><span data-i18n="Bluetooth configuration">Bluetooth configuration</span></div>
-							<div class="card-body" id="BTCard">
-								<div class="form-row">
-									<div class="col-md mb-2"><label for="BTScanTime"><span data-i18n="Bluetooth scan time (s)">Bluetooth scan time (s)</span></label><input type="number" class="form-control" id="BTScanTime" min="1"
-											step="1" placeholder=30 required></div>
-									<div class="col-md mb-2"><label for="BTScanInterval"><span data-i18n="Interval between bluetooth scans (s)">Interval between bluetooth scans (s)</span></label><input type="number" class="form-control"
-											id="BTScanInterval" min="0" step="1" placeholder=120 required></div>
-								</div>
-							</div>
-						</div>
-
-						<p id="LegacyWeatherNotice" class="text-muted"><span data-i18n="Legacy internet weather is shown only after legacy mode is confirmed. In Home Assistant-managed mode, choose the outdoor source in Home Assistant.">Legacy internet weather is shown only after legacy mode is confirmed. In Home Assistant-managed mode, choose the outdoor source in Home Assistant.</span></p>
-                        <div class="card mb-2" id="LegacyWeatherSettings" hidden style="display:none">
+							
+<p id="LegacyWeatherNotice" class="text-muted"><span data-i18n="Legacy internet weather is shown only after legacy mode is confirmed. In Home Assistant-managed mode, choose the outdoor source in Home Assistant.">Legacy internet weather is shown only after legacy mode is confirmed. In Home Assistant-managed mode, choose the outdoor source in Home Assistant.</span></p>
+<div class="card mb-2" id="LegacyWeatherSettings" hidden style="display:none">
 							<div class="card-header"><span data-i18n="OpenWeatherMap outdoor temperature API">OpenWeatherMap outdoor temperature API</span></div>
 							<div class="card-body" id="OpenWeatherMapCard">
 								<div class="form-row">
@@ -199,88 +249,9 @@
 								</div>
 							</div>
 						</div>
-
-						<div class="card mb-2">
-							<div class="card-header">MQTT</div>
-							<div class="card-body" id="MQTTCard">
-<label for="InterfaceMode"><span data-i18n="E32 network (active after restart)">E32 network (active after restart)</span></label><select class="form-control" id="InterfaceMode"><option value="wifi" data-i18n="WiFi only">WiFi only</option><option value="ethernet" data-i18n="Ethernet only">Ethernet only</option></select><small><span data-i18n="The USB setup command opens temporary WiFi recovery after restart, without an Ethernet clock.">The USB setup command opens temporary WiFi recovery after restart, without an Ethernet clock.</span></small>
-<div class="alert alert-info" id="ShadowModeHelp"><span data-i18n="This mode receives data and calculates heat demand. It sends no valve or boiler commands. Keep your current thermostat in control until measurement, command and safe-stop tests are completed.">This mode receives data and calculates heat demand. It sends no valve or boiler commands. Keep your current thermostat in control until measurement, command and safe-stop tests are completed.</span></div>
-<div class="form-check"><input class="form-check-input" type="checkbox" id="ModernShadow" aria-describedby="ShadowModeHelp"><label class="form-check-label" for="ModernShadow"><span data-i18n="Home Assistant: read and calculate only (shadow mode)">Home Assistant: read and calculate only (shadow mode)</span></label></div>
-<label for="ModernAdapter"><span data-i18n="HA adapter ID (from the integration)">HA adapter ID (from the integration)</span></label><input class="form-control" id="ModernAdapter" maxlength="32" pattern="[A-Za-z0-9_-]{1,32}" placeholder="Copy from Home Assistant" data-i18n-placeholder="Copy from Home Assistant">
-<details id="NativeShadowSourceSection" hidden><summary><span data-i18n="Installation identity and limits (advanced)">Installation identity and limits (advanced)</span></summary>
-<p><span data-i18n="Device controller ID:">Device controller ID:</span> <code id="NativeSourceDeviceID"><span data-i18n="Load settings">Load settings</span></code></p>
-<label for="NativeShadowSource"><span data-i18n="Installation profile supplied by Home Assistant">Installation profile supplied by Home Assistant</span></label>
-<textarea class="form-control" id="NativeShadowSource" rows="4" maxlength="2048" aria-describedby="NativeShadowSourceHelp"></textarea>
-<small id="NativeShadowSourceHelp"><span data-i18n="This technical profile links this E32 to the rooms, devices and limits checked in Home Assistant. Copy the exact profile from HA; do not edit individual values. An empty profile selects no installation. Initial setup and network changes require a restart. Saving a profile does not enable heating control.">This technical profile links this E32 to the rooms, devices and limits checked in Home Assistant. Copy the exact profile from HA; do not edit individual values. An empty profile selects no installation. Initial setup and network changes require a restart. Saving a profile does not enable heating control.</span></small>
-<button type="button" class="btn btn-outline-primary mt-2" id="ApplyNativeSourceNow" onclick="applyNativeSourceNow();" disabled><span data-i18n="Save installation profile without restarting">Save installation profile without restarting</span></button>
-<small class="form-text text-muted"><span data-i18n="This button saves only the installation profile. Other unsaved changes stay in this form. Afterwards, apply the room plan in Home Assistant and check its confirmation. If saving or confirmation fails, control stays blocked; the last saved configuration remains available.">This button saves only the installation profile. Other unsaved changes stay in this form. Afterwards, apply the room plan in Home Assistant and check its confirmation. If saving or confirmation fails, control stays blocked; the last saved configuration remains available.</span></small>
-</details>
-
-								<div class="form-row">
-									<div class="col-md mb-2">
-										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
-												id="DeviceMQTTEnabled"><label class="form-check-label"
-												for="DeviceMQTTEnabled"><span data-i18n="Enabled">Enabled</span></label></div>
-										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
-												id="DeviceMQTTPublishHomeAssistantDiscovery"><label class="form-check-label"
-												for="DeviceMQTTPublishHomeAssistantDiscovery"><span data-i18n="Publish Home Assistant MQTT Discovery">Publish Home Assistant MQTT Discovery</span></label></div>
-									</div>
-								</div>
-								<div class="form-row">
-									<div class="col-md mb-2"><label for="DeviceMQTTBrokerAddress"><span data-i18n="Broker address">Broker address</span></label><input type="text" class="form-control"
-											id="DeviceMQTTBrokerAddress"></div>
-									<div class="col-md-2 mb-2"><label for="DeviceMQTTBrokerPort"><span data-i18n="Broker port">Broker port</span></label><input type="number" class="form-control"
-											id="DeviceMQTTBrokerPort" value="1883" step="1" min="1" max="65535"></div>
-									<div class="col-md mb-2"><label for="DeviceMQTTBrokerUser"><span data-i18n="User name">User name</span></label><input
-											type="text" class="form-control" id="DeviceMQTTBrokerUser"
-											placeholder="optional"></div>
-									<div class="col-md mb-2"><label
-											for="DeviceMQTTBrokerPassword"><span data-i18n="Password">Password</span></label><input type="password"
-											class="form-control" id="DeviceMQTTBrokerPassword" placeholder="Leeg laten behoudt opgeslagen wachtwoord">
-									</div>
-								</div>
-								<div class="form-row">
-									<div class="col-md mb-2"><label for="DeviceMQTTClientID"><span data-i18n="Client ID">Client ID</span></label><input
-											type="text" class="form-control" id="DeviceMQTTClientID" value="ib-therm">
-									</div>
-									<div class="col-md mb-2"><label for="DeviceMQTTBase"><span data-i18n="Base">Base</span></label><input type="text"
-											class="form-control" id="DeviceMQTTBase" value="ib-therm"></div>
-									<div class="col-md-2 mb-2"><label for="DeviceMQTTKeepAlive"><span data-i18n="Keep alive time (s)">Keep alive time (s)</span></label><input type="number" class="form-control"
-											id="DeviceMQTTKeepAlive" step="1" min="1" max="360" value="60"></div>
-									<div class="col-md-2 mb-2"><label for="DeviceMQTTInterval"><span data-i18n="Publish interval (s)">Publish interval (s)</span></label><input type="number" class="form-control" id="DeviceMQTTInterval"
-											step="1" min="1" max="360" value="10"></div>
-								</div>
-							</div>
-						</div>
-
-						<div class="card mb-2">
-							<div class="card-header"><span data-i18n="Debugging over socket">Debugging over socket</span></div>
-							<div class="card-body" id="DebugCard">
-								<div class="form-row">
-									<div class="col-md mb-2">
-										<div class="form-check"><input class="form-check-input" type="checkbox" value=""
-												id="DeviceDebugEnabled"><label class="form-check-label"
-												for="DeviceDebugEnabled"><span data-i18n="Enabled">Enabled</span></label></div>
-									</div>
-								</div>
-								<div class="form-row">
-									<div class="col-md mb-2"><label for="DeviceDebugHost"><span data-i18n="Debug log stream host">Debug log stream host</span></label><input type="text" class="form-control" id="DeviceDebugHost">
-									</div>
-									<div class="col-md mb-2"><label for="DeviceDebugPort"><span data-i18n="Debug log stream port">Debug log stream port</span></label><input type="number" class="form-control" id="DeviceDebugPort"
-											step="1" min="1" max="65535"></div>
-									<div class="col-md mb-2"><label for="DeviceDebugTimeout"><span data-i18n="Debug log stream connection timeout (ms)">Debug log stream connection timeout (ms)</span></label><input type="number" class="form-control"
-											id="DeviceDebugTimeout" step="1" placeholder="10000"></div>
-								</div>
-							</div>
-						</div>
-
-					</div>
-				</div>
-				<div class="card-footer text-muted">
-					<button type="button" class="btn btn-primary mb-2" onclick="saveDeviceSettings();"
-						id="SaveDeviceSettings"><span data-i18n="Save settings">Save settings</span></button>
-				</div>
-			</div>
+		</details>
+		<div class="ot-sticky ot-actions"><button type="button" class="btn btn-primary" onclick="saveDeviceSettings();"
+						id="SaveDeviceSettings"><span data-i18n="Save settings">Save settings</span></button></div>
 		</div>
 	</div>
 
@@ -305,6 +276,40 @@
 
 
 <script type='text/javascript'>
+	var timeZones = [['CET-1CEST,M3.5.0,M10.5.0/3','Europe/Amsterdam Europe/Berlin Europe/Brussels Europe/Copenhagen Europe/Luxembourg Europe/Madrid Europe/Oslo Europe/Paris Europe/Prague Europe/Rome Europe/Stockholm Europe/Vienna Europe/Warsaw Europe/Zurich Europe/Budapest'],
+		['GMT0BST,M3.5.0/1,M10.5.0','Europe/London'],['IST-1GMT0,M10.5.0,M3.5.0/1','Europe/Dublin'],['WET0WEST,M3.5.0/1,M10.5.0','Europe/Lisbon Atlantic/Canary'],
+		['EET-2EEST,M3.5.0/3,M10.5.0/4','Europe/Helsinki Europe/Athens Europe/Bucharest Europe/Kyiv Europe/Riga Europe/Tallinn Europe/Vilnius Europe/Sofia'],
+		['<+03>-3','Europe/Istanbul'],['MSK-3','Europe/Moscow'],['UTC0','UTC'],
+		['EST5EDT,M3.2.0,M11.1.0','America/New_York America/Toronto'],['CST6CDT,M3.2.0,M11.1.0','America/Chicago'],['MST7MDT,M3.2.0,M11.1.0','America/Denver'],
+		['MST7','America/Phoenix'],['PST8PDT,M3.2.0,M11.1.0','America/Los_Angeles America/Vancouver'],['AKST9AKDT,M3.2.0,M11.1.0','America/Anchorage'],
+		['AEST-10AEDT,M10.1.0,M4.1.0/3','Australia/Sydney Australia/Melbourne'],['AEST-10','Australia/Brisbane'],['AWST-8','Australia/Perth'],
+		['NZST-12NZDT,M9.5.0,M4.1.0/3','Pacific/Auckland'],['JST-9','Asia/Tokyo'],['CST-8','Asia/Shanghai'],['<+08>-8','Asia/Singapore'],['IST-5:30','Asia/Kolkata'],
+		['<+04>-4','Asia/Dubai'],['SAST-2','Africa/Johannesburg']].flatMap(([posix, names]) => names.split(' ').map(zone => [zone, posix]));
+	var browserZone = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (_) { return ''; } })();
+	var zonePosix = zone => (timeZones.find(z => z[0] === zone) || [])[1];
+	// Older strings for the same rules (the beta.17 default); the zone of a string, this browser's first.
+	var posixAliases = {'CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00': 'CET-1CEST,M3.5.0,M10.5.0/3'};
+	var posixZone = posix => { const p = posixAliases[posix] || posix; return zonePosix(browserZone) === p ? browserZone : (timeZones.find(z => z[1] === p) || ['custom'])[0]; };
+	function showTimeZone(posix) {
+		const choice = document.getElementById('DeviceTimeZoneChoice'), suggest = document.getElementById('DeviceTimeZoneSuggest');
+		if (!choice) return;
+		if (!choice.options.length) {
+			for (const [zone] of [...timeZones].sort((a, b) => a[0].localeCompare(b[0]))) choice.add(new Option(zone.replace(/_/g, ' '), zone));
+			choice.add(new Option(uiText("Other (enter POSIX text under Advanced)"), 'custom'));
+			choice.addEventListener('change', () => { if (choice.value !== 'custom') $('#DeviceNTPTimezone').val(zonePosix(choice.value)).trigger('change'); suggestion(); });
+			suggest.querySelector('button').addEventListener('click', () => { choice.value = browserZone; choice.dispatchEvent(new Event('change')); });
+			$('#DeviceNTPTimezone').on('input', function () { choice.value = posixZone(this.value); suggestion(); });
+		}
+		// An empty setting starts from this browser's zone; a known string shows its zone, the browser's own first.
+		if (!posix && zonePosix(browserZone)) { posix = zonePosix(browserZone); $('#DeviceNTPTimezone').val(posix); }
+		choice.value = posixZone(posix);
+		suggestion();
+		function suggestion() {
+			suggest.hidden = !zonePosix(browserZone) || posixZone($('#DeviceNTPTimezone').val()) === browserZone;
+			suggest.querySelector('span').textContent = uiText("This browser is in {zone}.").replace('{zone}', browserZone.replace(/_/g, ' '));
+		}
+	}
+
 	var loadedProgram = undefined;
 	var roomFound = undefined;
 
@@ -631,6 +636,7 @@
 				$('#DeviceNTPUTCOffset').val(settings.ntpUtcOffset);
 				$('#DeviceNTPUTCDLOffset').val(settings.ntpDaylightUtcOffset);
 				$('#DeviceNTPTimezone').val(settings.timeZone);
+				showTimeZone(settings.timeZone);
 				$('#DeviceDebugEnabled').prop('checked', settings.loggerEnabled),
 					$('#DeviceDebugHost').val(settings.loggerHost);
 				$('#DeviceDebugPort').val(settings.loggerPort);

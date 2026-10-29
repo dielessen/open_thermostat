@@ -22,6 +22,12 @@ def _drop_setup_state(hass, entry_id, state):
         entries.pop(entry_id, None)
 
 
+async def async_remove_config_entry_device(hass, entry, device) -> bool:
+    """Allow deleting an E32 room or Bluetooth sensor device the E32 no longer reports."""
+    from .heating_link import removable_device
+    return removable_device(hass, entry, device)
+
+
 async def _cleanup_setup_bench(hass, entry_id, owner):
     from .v1_bench_actions import KEY, async_unregister_entry
     if hass.data.get(KEY, {}).get(entry_id) is owner:
@@ -73,6 +79,19 @@ async def _async_options_updated(hass, entry):
     # Withdraw current SOURCE control before ANY native config/subentry reload
     # await. A changed draft cannot keep a ready owner while reload is queued.
     state=hass.data.get(DOMAIN,{}).get(entry.entry_id,{})
+    from .e32_access import apply_password, password_only_update
+    if password_only_update(state, entry):
+        # Only the E32 password changed (re-authentication): use it, no reload or plan review.
+        apply_password(hass, entry, state)
+        return
+    from .energy_input import energy_only_update
+    if energy_only_update(state, entry):
+        # Only the optional energy inputs changed: follow them, no reload (no plan review).
+        if (forwarder:=state.get("energy_forwarder")) is not None:
+            forwarder.reconfigure()
+        if (advice:=state.get("heating_advice")) is not None:
+            advice.reevaluate()
+        return
     runtime=state.get("v1_runtime");connection=state.get("v1_connection")
     if (getattr(runtime,"native_plan_source",None) is not None
             and connection is not None and not connection.closed and connection.client is not None):

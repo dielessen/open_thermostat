@@ -3,6 +3,7 @@
 // Fake RNG lifecycle checks are not cryptographic/entropy or real-device proof.
 #define OPENTHERMOSTAT_E32V2
 #include "SetupNetwork.h"
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 namespace heating {bool boardEthernetStarted=false,wifiAPMode=false;}
@@ -15,7 +16,7 @@ void reset(){
  WiFi={};testNow=1000;boardEthernetStarted=false;wifiAPMode=false;
  setupUntil=setupAttemptUntil=setupCloseAt=setupJoinAt=0;setupCandidate={};setupResult="idle";
  setupDns={};setupDnsActive=false;setupSavedSsid.clear();setupCloseIP=IPAddress();
- setupRebootRequested=false;wifiScanState="idle";wifiScanRows="[]";wifiScanStarted=0;
+ setupRebootRequested=false;setupRestartHeld=false;wifiScanState="idle";wifiScanRows="[]";wifiScanStarted=0;
  deviceAccess={};deviceAccess.begin();
 }
 void ap(){assert(startSetupWifi());assert(WiFi.ap);assert(WiFi.bluetoothEnabled&&WiFi.getSleep()==WIFI_PS_MIN_MODEM);}
@@ -23,7 +24,7 @@ void join(){assert(trySetupWifi({"home","test-pass"}));testNow+=751;pollSetupWif
 void connected(){WiFi.connected=true;WiFi.ip=IPAddress(192,168,1,90);pollSetupWifi();}
 int main(){
  reset();testNvs::committed["ot_access"]["secret"]={1,2,3};assert(deviceAccess.begin());
- assert(deviceAccess.password()=="admin"&&deviceAccess.setupPassword()=="openthermostat");assert(testNvs::committed["ot_access"]["secret"].size()==3);pass("requested defaults supersede old access secret without NVS erase");
+ assert(deviceAccess.defaultPassword()&&deviceAccess.verifyPassword("admin")&&!deviceAccess.verifyPassword("admin ")&&!deviceAccess.verifyPassword("")&&deviceAccess.setupPassword()=="openthermostat");assert(testNvs::committed["ot_access"]["secret"].size()==3);pass("requested defaults supersede old access secret without NVS erase");
  ap();assert(WiFi.modeValue==WIFI_AP_STA&&!WiFi.persist&&!WiFi.reconnect);assert(WiFi.apPassword=="openthermostat");pass("AP+STA established once before any scan/join");
  int modes=WiFi.modeChanges;assert(startWifiScan());assert(WiFi.scanAsync&&WiFi.scans==1);pollSetupWifi();assert(WiFi.modeChanges==modes&&WiFi.ap&&wifiScanRunning());assert(!trySetupWifi({"home","test-pass"}));pass("async scan keeps HTTP/radio mode and excludes concurrent join");
  WiFi.rows={{"a\"\\b",-40,6},{"",-30,1},{"second",-65,11}};WiFi.complete=3;pollSetupWifi();
@@ -48,6 +49,8 @@ int main(){
  reset();ap();join();connected();assert(finishSetupWifi());WiFi.connected=false;testNow+=8001;pollSetupWifi();assert(WiFi.ap&&setupCloseAt==0);pass("station loss during finish grace period preserves recovery AP");
  reset();ap();join();connected();assert(trySetupWifi({"wrong-new-network","test-pass"}));testNow+=751;pollSetupWifi();testNow+=30001;pollSetupWifi();assert(setupResult=="connection_failed"&&readSetupWifi(cfg)&&cfg.ssid=="home");pass("failed replacement preserves previously accepted credentials");
  reset();Serial.input="setup\n";pollSetupWifi();assert(setupRebootRequested);setupRebootRequested=false;assert(consumeSetupBoot()&&!consumeSetupBoot());pass("USB recovery flag is durable and one-shot");
+ reset();setupRestartHeld=true;Serial.input="setup\n";pollSetupWifi();pollSetupWifi();assert(setupRebootRequested);setupRestartHeld=false;
+ {bool restarted=false;try{pollSetupWifi();}catch(const std::runtime_error&){restarted=true;}assert(restarted);}pass("USB setup restart waits for an update or unconfirmed new firmware");
  reset();WiFi.sleepPolicy=WIFI_PS_NONE;ap();assert(WiFi.modeChanges==1);pass("setup selects BLE-compatible modem sleep before radio start even from disabled policy");
  assert(startWifiScan());WiFi.complete=0;pollSetupWifi();join();connected();assert(finishSetupWifi());testNow+=8001;pollSetupWifi();assert(!WiFi.ap&&WiFi.bluetoothEnabled&&WiFi.getSleep()==WIFI_PS_MIN_MODEM);pass("Bluetooth-compatible policy survives scan join and station handoff");
  reset();WiFi.modeOk=false;assert(!startSetupWifi()&&!wifiAPMode&&!WiFi.ap);pass("radio startup failure never advertises setup success");
@@ -61,5 +64,20 @@ int main(){
  deviceAccess={};testCrypto::seedFails=true;assert(!deviceAccess.begin()&&!deviceAccess.ready());assert(!testCrypto::entropyEnabled);pass("failed seed fails closed and always disables boot entropy");
  testCrypto::seedFails=false;deviceAccess={};assert(deviceAccess.begin());auto seeds=testCrypto::enables;auto entropyCalls=testCrypto::entropyCalls;unsigned char random[32]{};assert(deviceAccess.randomBytes(random,sizeof(random)));assert(deviceAccess.begin());assert(testCrypto::enables==seeds&&testCrypto::entropyCalls==entropyCalls&&!testCrypto::entropyEnabled);pass("runtime random and repeated begin never toggle or reseed boot entropy");
  testCrypto::randomFails=true;assert(!deviceAccess.randomBytes(random,sizeof(random)));testCrypto::randomFails=false;assert(deviceAccess.randomBytes(random,sizeof(random)));pass("native RNG failure is propagated rather than issuing random bytes");
+ reset();assert(deviceAccess.storePassword("correct horse"));assert(!deviceAccess.defaultPassword()&&deviceAccess.verifyPassword("correct horse")&&!deviceAccess.verifyPassword("admin"));
+ {auto stored=testNvs::committed["ot_access"]["web_pw"];assert(stored.size()==57&&std::string(stored.begin(),stored.begin()+4)=="OTPW");
+  const std::string plain="correct";assert(std::search(stored.begin(),stored.end(),plain.begin(),plain.end())==stored.end());}
+ pass("changed web password is stored only as a salted record and replaces admin");
+ {auto durable=testNvs::committed;reset();testNvs::committed=durable;deviceAccess={};assert(deviceAccess.begin());assert(!deviceAccess.defaultPassword()&&deviceAccess.verifyPassword("correct horse")&&!deviceAccess.verifyPassword("admin"));}
+ pass("changed web password survives a restart");
+ assert(!deviceAccess.storePassword("short"));assert(deviceAccess.verifyPassword("correct horse"));
+ testNvs::failCommit="ot_access";assert(!deviceAccess.storePassword("another long one"));testNvs::failCommit.clear();assert(deviceAccess.verifyPassword("correct horse")&&!deviceAccess.verifyPassword("another long one"));
+ testCrypto::kdfFails=true;assert(!deviceAccess.verifyPassword("correct horse"));testCrypto::kdfFails=false;
+ pass("short password, NVS commit failure and KDF failure never change or accept a password");
+ Serial.input="password-reset\n";pollSetupWifi();assert(deviceAccess.defaultPassword()&&deviceAccess.verifyPassword("admin")&&!deviceAccess.verifyPassword("correct horse"));assert(!testNvs::committed["ot_access"].count("web_pw"));
+ assert(deviceAccess.resetPassword());pass("USB password-reset restores the factory password and is idempotent");
+ reset();testNvs::committed["ot_access"]["web_pw"]={'O','T','P','W',1};deviceAccess={};assert(deviceAccess.begin());assert(!deviceAccess.defaultPassword()&&!deviceAccess.verifyPassword("admin"));
+ assert(deviceAccess.passwordState()==DeviceAccess::PasswordState::unreadable);Serial.input="password-reset\n";pollSetupWifi();assert(deviceAccess.verifyPassword("admin"));pass("unreadable stored password fails closed until USB password-reset");
+ reset();testNvs::committed["ot_access"]["secret"]={1,2,3};deviceAccess={};assert(deviceAccess.begin()&&deviceAccess.defaultPassword());assert(deviceAccess.storePassword("correct horse"));assert(testNvs::committed["ot_access"]["secret"].size()==3);pass("password record leaves the legacy access secret untouched");
  std::cout<<cases<<" production-code scenarios passed (not RF/hardware proof)\n";
 }

@@ -19,19 +19,20 @@ TEST(SocketWriteBudget, BackpressureYieldsOnlyUntilOriginalDeadline) {
     uint64_t now=1000;unsigned calls=0,waits=0;const uint8_t byte=1;
     const auto result=SocketWriteBudget::write(&byte,1,[&]{return now;},
         [&](const uint8_t*,size_t)->std::ptrdiff_t{++calls;return 0;},[&]{++waits;now+=10;});
-    EXPECT_FALSE(result.complete);EXPECT_EQ(result.written,0u);EXPECT_EQ(now,1100u);
-    EXPECT_EQ(calls,10u);EXPECT_EQ(waits,10u);
+    EXPECT_FALSE(result.complete);EXPECT_EQ(result.written,0u);EXPECT_EQ(now,1000u+SocketWriteBudget::maximumMs);
+    EXPECT_EQ(calls,SocketWriteBudget::maximumMs/10);EXPECT_EQ(waits,SocketWriteBudget::maximumMs/10);
+    EXPECT_EQ(SocketWriteBudget::maximumMs,300u);
 }
 TEST(SocketWriteBudget, PartialWriteCannotResetTheTotalBudget) {
     uint64_t now=1000;unsigned calls=0;const std::array<uint8_t,10> bytes{};
     const auto result=SocketWriteBudget::write(bytes.data(),bytes.size(),[&]{return now;},
-        [&](const uint8_t*,size_t)->std::ptrdiff_t{++calls;now+=25;return 1;},[]{});
+        [&](const uint8_t*,size_t)->std::ptrdiff_t{++calls;now+=SocketWriteBudget::maximumMs/4;return 1;},[]{});
     EXPECT_FALSE(result.complete);EXPECT_EQ(result.written,4u);EXPECT_EQ(calls,4u);
 }
 TEST(SocketWriteBudget, LateFullHandoffIsUncertainAndPreservesActualByteCount) {
     uint64_t now=1000;const uint8_t byte=1;
     const auto result=SocketWriteBudget::write(&byte,1,[&]{return now;},
-        [&](const uint8_t*,size_t)->std::ptrdiff_t{now+=100;return 1;},[]{ADD_FAILURE();});
+        [&](const uint8_t*,size_t)->std::ptrdiff_t{now+=SocketWriteBudget::maximumMs;return 1;},[]{ADD_FAILURE();});
     EXPECT_FALSE(result.complete);EXPECT_EQ(result.written,1u);
 }
 TEST(SocketWriteBudget, BackwardsOrStuckClockCannotCreateAnUnboundedRetryLoop) {

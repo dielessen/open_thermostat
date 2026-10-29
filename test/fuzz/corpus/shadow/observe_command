@@ -1,0 +1,19 @@
+c
+t 0
+t 3001
+r ha/open_session {"api":1,"controller_id":"e32_lab","boot_id":"$B","epoch":$E,"adapter_id":"ha1","client_nonce":"client1","challenge_id":"$C","known_revision":$R,"known_digest":"$D"}
+r ha/heartbeat {"api":1,"controller_id":"e32_lab","boot_id":"$B","epoch":$E,"adapter_id":"ha1","adapter_session_id":"$S","grant_id":"$G","grant_sequence":$Q,"config_revision":$R,"binding_id":"adapter","sequence":1}
+r ha/config {"api":1,"controller_id":"e32_lab","boot_id":"$B","epoch":$E,"adapter_id":"ha1","adapter_session_id":"$S","grant_id":"$G","grant_sequence":$Q,"config_revision":$R,"binding_id":"config","sequence":1,"expected_revision":$R,"config_digest":"$H","config":{"mapping_digest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","mode":"shadow","revision":1,"schema":1,"zones":[{"actuator_id":"trv1","base_centi_c":2100,"max_age_ms":120000,"report_evidence":"physical_report","schedule":null,"sensor_id":"room1","zone_id":"1234abcd"}]}}
+t 1
+t 3001
+r ha/open_session {"api":1,"controller_id":"e32_lab","boot_id":"$B","epoch":$E,"adapter_id":"ha1","client_nonce":"client1","challenge_id":"$C","known_revision":$R,"known_digest":"$D"}
+r ha/heartbeat {"api":1,"controller_id":"e32_lab","boot_id":"$B","epoch":$E,"adapter_id":"ha1","adapter_session_id":"$S","grant_id":"$G","grant_sequence":$Q,"config_revision":$R,"binding_id":"adapter","sequence":2}
+r ha/observations {"api":1,"controller_id":"e32_lab","boot_id":"$B","epoch":$E,"adapter_id":"ha1","adapter_session_id":"$S","grant_id":"$G","grant_sequence":$Q,"config_revision":$R,"binding_id":"room1","sequence":1,"zone_id":"1234abcd","source_available":true,"temperature_c":19,"source_sample_age_ms":0,"evidence":"physical_report"}
+t 3000
+r ha/observations {"api":1,"controller_id":"e32_lab","boot_id":"$B","epoch":$E,"adapter_id":"ha1","adapter_session_id":"$S","grant_id":"$G","grant_sequence":$Q,"config_revision":$R,"binding_id":"room1","sequence":2,"zone_id":"1234abcd","source_available":true,"temperature_c":18.5,"source_sample_age_ms":0,"evidence":"physical_report"}
+r ha/user_command {"api":1,"controller_id":"e32_lab","boot_id":"$B","epoch":$E,"adapter_id":"ha1","adapter_session_id":"$S","grant_id":"$G","grant_sequence":$Q,"config_revision":$R,"binding_id":"1234abcd","sequence":1,"mode":"temporary","temperature_centi_c":2300,"duration_ms":60000}
+t 3000
+r ha/user_command {"api":1,"controller_id":"e32_lab","boot_id":"$B","epoch":$E,"adapter_id":"ha1","adapter_session_id":"$S","grant_id":"$G","grant_sequence":$Q,"config_revision":$R,"binding_id":"1234abcd","sequence":2,"mode":"schedule","temperature_centi_c":2300,"duration_ms":60000}
+r ha/snapshot_request {"api":1,"controller_id":"e32_lab","boot_id":"$B","epoch":$E,"adapter_id":"ha1","adapter_session_id":"$S","grant_id":"$G","grant_sequence":$Q,"config_revision":$R,"binding_id":"snapshot","sequence":1}
+t 70000
+r ha/heartbeat {"api":1,"controller_id":"e32_lab","boot_id":"$B","epoch":$E,"adapter_id":"ha1","adapter_session_id":"$S","grant_id":"$G","grant_sequence":$Q,"config_revision":$R,"binding_id":"adapter","sequence":3}

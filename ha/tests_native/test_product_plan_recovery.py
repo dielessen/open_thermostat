@@ -22,6 +22,8 @@ async def test_product_native_recovery_menu_separates_prepare_review_and_actual_
     manager=hass.config_entries.options
     entry_before=deepcopy((dict(n.parent.data),dict(n.parent.options),tuple(n.parent.subentries)))
     form=await manager.async_init(n.parent.entry_id)
+    assert 'graph_prepare' not in form['menu_options']  # recovery lives under Advanced
+    form=await manager.async_configure(form['flow_id'],form['data_schema']({'next_step_id':'advanced_settings'}))
     assert 'graph_prepare' in form['menu_options']
     # Real menu schema rejected this route before the product menu fix.
     review=await manager.async_configure(form['flow_id'],form['data_schema']({'next_step_id':'graph_prepare'}))
@@ -59,4 +61,4 @@ async def test_inactive_product_has_no_plan_actions(hass,monkeypatch):
     form=await manager.async_init(p.entry_id)
     assert 'graph_prepare' not in form['menu_options']
     form=await manager.async_configure(form['flow_id'],form['data_schema']({'next_step_id':'advanced_settings'}))
-    assert 'graph_status' not in form['menu_options']
+    assert 'graph_status' not in form['menu_options'] and 'graph_prepare' not in form['menu_options']

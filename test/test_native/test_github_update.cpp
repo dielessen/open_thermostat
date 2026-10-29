@@ -106,7 +106,7 @@ TEST(GitHubOta, MutationRoutesArePostOnlyAndNeverCaptivePortalLoginExceptions) {
 TEST(GitHubOta, ConcurrentOrUnconfirmedUpdatesCannotBypassGateViaManualUpload) {
     for(bool working:{false,true})for(bool staged:{false,true})for(bool pending:{false,true}) {
       for(auto path:{"/ota","/otafs"})EXPECT_EQ(mutationBlocked(path,working,staged,pending),working||staged||pending);
-      for(auto path:{"/config/reboot","/setup/reenter"})EXPECT_EQ(mutationBlocked(path,working,staged,pending),working);
+      for(auto path:{"/config/reboot","/setup/reenter"})EXPECT_EQ(mutationBlocked(path,working,staged,pending),working||pending); // pending: a restart rolls back
       EXPECT_FALSE(mutationBlocked("/config/rooms",working,staged,pending));
     }
 }
@@ -182,7 +182,7 @@ TEST(GitHubCatalog, MixedCatalogScanIsBoundedAndDoesNotClaimOlderReleasesChecked
     CatalogFetch fetch;for(unsigned page=1;page<=maxReleasePages;++page)fetch.page(page,catalogEntry("ha-v0.4.0.dev12"));
     std::vector<Release> out{{"v99",false}};std::string error;
     EXPECT_FALSE(discoverReleases(fetch,out,error));ASSERT_EQ(out.size(),1u);EXPECT_EQ(out[0].tag,"v99");
-    EXPECT_EQ(fetch.calls.size(),maxReleasePages);EXPECT_NE(error.find("oudere releases zijn niet gecontroleerd"),std::string::npos);
+    EXPECT_EQ(fetch.calls.size(),maxReleasePages);EXPECT_NE(error.find("older releases were not checked"),std::string::npos);
     EXPECT_EQ(releasePageUrl(1),"https://api.github.com/repos/dielessen/open_thermostat/releases?per_page=1&page=1");
     EXPECT_TRUE(releasePageUrl(0).empty());EXPECT_TRUE(releasePageUrl(maxReleasePages+1).empty());
 }

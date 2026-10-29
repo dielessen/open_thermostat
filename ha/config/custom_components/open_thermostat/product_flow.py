@@ -24,6 +24,7 @@ from .native_form import retained_input_schema
 from .schedule_compiler import WEEKDAYS
 from .v1_program import normalize_program
 from .controller_setup_flow import ControllerSetupFlow
+from .e32_room_flow import E32RoomFlow
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -58,6 +59,10 @@ class ProductRoomFlow(RadiatorRoomSetupFlow):
     """One guided native flow for adding and editing ordinary radiator rooms."""
 
     async def async_step_user(self, user_input=None):
+        from .room_plan import has_room_plan
+        if has_room_plan(self._get_entry()):
+            # Home Assistant may still show its cached button until a restart.
+            return self.async_abort(reason="e32_rooms_elsewhere")
         return await RadiatorRoomSetupFlow.async_step_user(self, {"room": "new"})
 
     async def async_step_reconfigure(self, user_input=None):
@@ -241,8 +246,12 @@ class ProductRoomFlow(RadiatorRoomSetupFlow):
         }), errors=errors)
 
 
-class ProductOptionsFlow(ControllerSetupFlow, ShadowOptionsFlow, ProductRoomFlow):
-    """One central options entrypoint, using the same room editor and native Store."""
+class ProductOptionsFlow(E32RoomFlow, ControllerSetupFlow, ShadowOptionsFlow, ProductRoomFlow):
+    """One central options entrypoint, using the same room editor and native Store.
+
+    With a stored E32 connection the rooms are the E32 room plan: "E32 rooms"
+    replaces the older HA room settings in this menu.
+    """
 
     def _get_entry(self):
         return self.config_entry
@@ -255,11 +264,27 @@ class ProductOptionsFlow(ControllerSetupFlow, ShadowOptionsFlow, ProductRoomFlow
         return connection is not None and connection.runtime.native_plan_source is not None
 
     async def async_step_init(self, user_input=None):
-        options = ["installation", "controller_connection", "room_settings", "configuration_status"]
-        if self._native_plan_review_available():
-            options.append("graph_prepare")
-        options.append("advanced_settings")
+        from .room_plan import has_room_plan
+        rooms = "e32_rooms" if has_room_plan(self.config_entry) else "room_settings"
+        # Everyday settings first; status and plan recovery live under Advanced.
+        options = [rooms, "controller_connection", "energy", "installation", "advanced_settings"]
         return self.async_show_menu(step_id="init", menu_options=options)
+
+    async def async_step_energy(self, user_input=None):
+        """Optional gas meter, gas price, outdoor temperature and boiler power (nothing is required)."""
+        from .energy_input import EnergyError, currency, energy_schema, save_energy, validate_energy
+        errors = {}
+        if user_input is not None:
+            try:
+                values = validate_energy(self.hass, user_input)
+            except EnergyError as err:
+                errors[err.field] = err.code
+            else:
+                save_energy(self.hass, self.config_entry, values)
+                return self.async_abort(reason="energy_saved")
+        schema = energy_schema(vol, self.config_entry.options, currency(self.hass))
+        return self.async_show_form(step_id="energy", data_schema=retained_input_schema(self, schema, user_input),
+                                    errors=errors)
 
     async def async_step_installation(self, user_input=None):
         entry = self.config_entry
@@ -468,5 +493,5 @@ class ProductOptionsFlow(ControllerSetupFlow, ShadowOptionsFlow, ProductRoomFlow
     async def async_step_advanced_settings(self, user_input=None):
         options = ["configuration_status", "hot_water"]
         if self._native_plan_review_available():
-            options.append("graph_status")
+            options += ["graph_prepare", "graph_status"]
         return self.async_show_menu(step_id="advanced_settings", menu_options=options)

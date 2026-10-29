@@ -19,16 +19,26 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH}),results=[];
  try{for(const width of [1280,320]){
-  const page=await browser.newPage({viewport:{width,height:900}}),errors=[],posts=[];
+  const page=await browser.newPage({viewport:{width,height:900}}),errors=[],posts=[],handovers=[],dialogs=[];
   let plan={schema:1,revision:4,mode:'shadow',minimum_flow_c:30,maximum_flow_c:60,rooms:[]},reject=null;
+  // ActiveHeatGuard::json() plus the firmware gate; this firmware ships with it closed.
+  const active=status.active={state:'shadow',command:{send:false,flow_c:0,why:'shadow'},last_sent:null,
+   foreign_controller:{address:0x17,age_s:30},confirmation:null,warnings:[],enabled:false};
   page.on('pageerror',e=>errors.push(e.message));
-  page.on('dialog',d=>d.accept());
+  page.on('dialog',d=>{dialogs.push(d.message());d.accept();});
   await page.route('http://opth.test/**',async route=>{
    const request=route.request(),p=new URL(request.url()).pathname;
    const json=(body,code=200)=>route.fulfill({status:code,contentType:'application/json',body:JSON.stringify(body)});
    if(p==='/auth/session')return json({authenticated:true,csrf:'a'.repeat(64)});
    if(p==='/status')return json({controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}});
    if(p==='/status/heating')return json(plan.rooms.length?status:{...status,rooms:[],request:{heat:false,flow_c:0,reason:'no_demand'}});
+   if(p==='/config/heating/handover'){
+    assert.equal(request.method(),'POST');assert.equal(request.headers()['x-openthermostat-csrf'],'a'.repeat(64));
+    handovers.push(request.postDataJSON());
+    if(!active.enabled)return json({error:'active_mode_not_released'},409);
+    Object.assign(active,{state:'active',command:{send:true,flow_c:45,why:'heat_request'},last_sent:{flow_c:45,age_s:5},confirmation:{age_s:0}});
+    return json(active);
+   }
    if(p==='/config/heating'){
     if(request.method()==='POST'){
      assert.equal(request.headers()['x-openthermostat-csrf'],'a'.repeat(64));
@@ -48,46 +58,68 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await page.goto('http://opth.test/');await page.waitForFunction(()=>typeof loadNativePage==='function');
   await page.evaluate(()=>loadNativePage('heating'));
   const root=page.locator('#heating-plan');
-  await root.getByText('Nog geen ruimtes. Voeg eerst de woonkamer toe.').waitFor();
+  await root.getByText('Begin met de woonkamer: geef hem een naam en kies de temperatuursensor.').waitFor();
   await root.locator('[data-heating-request]').getByText(/Berekende ketelvraag: uit/).waitFor();
-  // Read-only Bluetooth sensors: values, a dash for each missing value and the ID to enter as a source.
-  const ble=root.locator('[data-heating-ble]');
-  await ble.getByText('Bluetooth-sensoren op deze E32').waitFor();
-  assert.equal(await ble.locator('[data-heating-ble-sensor]').count(),2);
-  assert.equal(await ble.locator('[data-heating-ble-sensor="a4c138a3e8db"]').innerText(),
-   'Thermometer woonkamer · ID a4c138a3e8db\nTemperatuur 20,4 °C · Luchtvochtigheid 55,2 % · Batterij 87 % · Leeftijd 12 s');
-  assert.equal(await ble.locator('[data-heating-ble-sensor="a4c1389f0011"] .pd-help').innerText(),
-   'Temperatuur — · Luchtvochtigheid — · Batterij — · Leeftijd —');
-  assert.match(await ble.innerText(),/Alleen-lezen\. Kies in de ruimte Bluetooth-sensor en vul de ID in/);
+  // Active control with the firmware gate closed: a notice, no switch-over buttons.
+  const control=root.locator('[data-heating-active]'),takeover=control.locator('[data-heating-takeover]'),handback=control.locator('[data-heating-handback]');
+  await control.getByText('Actieve regeling is in deze firmware niet ingeschakeld.').waitFor();
+  assert.equal(await control.locator('[data-heating-active-state]').innerText(),'Schaduwmodus: je thermostaat regelt de ketel. · laatste vraag van je thermostaat 30 s geleden');
+  assert.equal(await takeover.isVisible(),false);assert.equal(await handback.isVisible(),false);
+  // The paired Bluetooth sensors are chosen in the room itself; there is no separate read-only list.
+  assert.equal(await root.locator('[data-heating-ble]').count(),0);
   // Shadow comparison of today and the completed days.
   const shadow=root.locator('[data-heating-shadow]');
-  assert.match(await shadow.innerText(),/Vergelijking met de huidige thermostaat \(vandaag\)[\s\S]*Schaduwmodus: de E32 berekent zijn ketelvraag maar verstuurt die niet/);
-  assert.deepEqual(await pairs(shadow.locator('[data-heating-shadow-today]')),[['Vergeleken tijd','600 min'],
-   ['Stooktijd E32 / tado','120 min / 130 min'],['Branderstarts E32 / tado','4 / 5'],['Overeenstemming (beide aan of beide uit)','95 %'],
-   ['Aanvoerbereik E32','31–42 °C (gemiddeld 36,4 °C)'],['Aanvoerbereik tado','35–45 °C (gemiddeld 39,2 °C)'],
-   ['E32-starts binnen 5 min van een tado-start','3 / 5'],['Zonder tado-gegevens','10 min']]);
+  assert.match(await shadow.innerText(),/Vergelijking met je thermostaat \(vandaag\)[\s\S]*Schaduwmodus: de E32 berekent zijn ketelvraag maar verstuurt die niet/);
+  assert.deepEqual(await pairs(shadow.locator('[data-heating-shadow-today]')),[['Vergeleken tijd','10 u 0 min'],
+   ['Stooktijd E32 / thermostaat','2 u 0 min / 2 u 10 min'],['Branderstarts E32 / thermostaat','4 / 5'],['Overeenstemming (beide aan of beide uit)','95 %'],
+   ['Aanvoerbereik E32','31–42 °C (gemiddeld 36,4 °C)'],['Aanvoerbereik thermostaat','35–45 °C (gemiddeld 39,2 °C)'],
+   ['Starts rond hetzelfde moment (±5 min)','3 / 5'],['Zonder thermostaatgegevens','10 min']]);
   const days=await shadow.locator('[data-heating-shadow-days] tr').evaluateAll(rows=>rows.map(r=>[...r.children].map(c=>c.textContent)));
-  assert.deepEqual(days.map(r=>r.slice(1)),[['E32','tado','Overeenstemming','Starts E32 / tado'],
-   ['240 min','250 min','97 %','6 / 7'],['0 min','0 min','—','0 / 0']]);
+  assert.deepEqual(days.map(r=>r.slice(1)),[['E32','Thermostaat','Overeenstemming','Starts E32 / thermostaat'],
+   ['4 u 0 min','4 u 10 min','97 %','6 / 7'],['0 min','0 min','—','0 / 0']]);
   assert.match(days[1][0],/27-10/);assert.match(days[2][0],/26-10/);assert.equal(days[0][0],'Dag');
-  await root.locator('[data-heating-add]').click();
+  // Read-only until unlocked: Home Assistant is the main editor; it is unreachable here, so unlocking is offered prominently.
+  assert.match(await root.locator('[data-heating-lock]').innerText(),/Home Assistant is niet bereikbaar/);
+  assert.equal(await root.locator('[data-heating-add]').isVisible(),false);
+  // Newer firmware reports Home Assistant input freshness in /status/heating; it replaces the /status fallback.
+  status.ha={input_age_s:30,broker_connected:true};
+  await root.locator('[data-heating-lock]').getByText('Beheerd in Home Assistant · verbonden').waitFor({timeout:15000});
+  delete status.ha; // the fixture is shared by both viewport passes
+  await root.locator('[data-heating-unlock]').click();assert.match(dialogs.at(-1),/ook in Home Assistant[\s\S]*tot je dit tabblad sluit/);
+  // The empty state carries the Add button; the one below the list appears once there are rooms.
+  assert.equal(await root.locator('[data-heating-add]').isVisible(),false);
+  await root.locator('[data-heating-add-first]').click();
   const card=root.locator('[data-heating-room]').last();
+  // A new room asks for heat once saved, and refuses to save without a source.
+  assert.equal(await card.getByLabel('Status').inputValue(),'active');
+  await root.locator('[data-heating-save]').click();
+  await root.getByText('Nieuwe ruimte: Kies voor elke ruimte minstens één temperatuurbron.').waitFor();
+  assert.equal(posts.length,0);
   await card.getByLabel('Naam').fill('Woonkamer');
   await card.getByLabel('Status').selectOption('active');
-  await card.getByLabel('Afgifte').selectOption('floor');
+  await card.getByLabel('Verwarmingstype').selectOption('floor');
   const first=card.locator('[data-heating-source]').first();
-  await first.locator('select').selectOption('ha');await first.locator('input').fill('climate.woonkamer');
+  await first.getByLabel('Soort bron').selectOption('ha');await first.locator('input').fill('climate.woonkamer');
   await card.getByRole('button',{name:'Bron toevoegen'}).click();
-  await card.locator('[data-heating-source]').nth(1).locator('input').fill('A4:C1:38:A3:E8:DB');
-  await card.getByLabel('Setpoint uit Home Assistant-entiteit (optioneel)').fill('climate.woonkamer');
+  // Bluetooth sources come from the paired sensors, with their latest reading.
+  const pick=card.locator('[data-heating-source]').nth(1).locator('[data-heating-ble-pick]');
+  assert.deepEqual(await pick.locator('option').allInnerTexts(),['Kies een sensor','Thermometer woonkamer · 20,4 °C · batterij 87 %','Slaapkamer']);
+  await pick.selectOption('a4c138a3e8db');
+  // An empty extra row is not saved.
+  await card.getByRole('button',{name:'Bron toevoegen'}).click();
+  await card.getByLabel('Gewenste temperatuur uit Home Assistant-entiteit (optioneel)').fill('climate.woonkamer');
   await root.locator('[data-heating-save]').click();
   await root.getByText('Ruimtes opgeslagen.').waitFor();
   assert.equal(posts.length,1);
   assert.deepEqual(posts[0],{schema:1,revision:4,mode:'shadow',minimum_flow_c:30,maximum_flow_c:60,rooms:[{id:'woonkamer',name:'Woonkamer',
    state:'active',inactive_until:0,emitter:'floor',sources:[{type:'ha',id:'climate.woonkamer'},{type:'ble',id:'a4c138a3e8db'}],
    setpoint_entity:'climate.woonkamer',fallback_centi_c:2000,minimum_centi_c:500,maximum_centi_c:2500}]});
-  await root.locator('[data-heating-room="woonkamer"] summary').getByText(/Gemeten · 20,4 °C \/ 21,0 °C · vraagt warmte/).waitFor();
-  assert.equal(await root.locator('[data-heating-room="woonkamer"] summary').innerText(),'Woonkamer · Gemeten · 20,4 °C / 21,0 °C · vraagt warmte · setpoint: uit Home Assistant');
+  await root.locator('[data-heating-room="woonkamer"] summary').getByText('Vraagt warmte').waitFor();
+  // Floor heating with a 60 °C maximum: a warning, not a block.
+  assert.equal(await root.locator('[data-heating-flow-warn]').isVisible(),true);
+  // Same ranges as the firmware (RoomPlan): minimum 20–79, maximum 21–80 °C.
+  assert.deepEqual(await root.locator('#heating-min-flow,#heating-max-flow').evaluateAll(f=>f.map(i=>[i.min,i.max])),[['20','79'],['21','80']]);
+  assert.match(await root.locator('[data-heating-room="woonkamer"] summary').innerText(),/^Woonkamer\s+Vraagt warmte\s+20,4 °C\s+Gewenst 21,0 °C\s+Gewenste temperatuur uit Home Assistant$/);
   assert.equal(await root.locator('[data-heating-room="woonkamer"]').getByLabel('Weekprogramma gebruiken').isChecked(),false,'no week program');
   await root.locator('[data-heating-request]').getByText('Berekende ketelvraag: 36 °C · Verwarmen').waitFor();
   // Home Assistant saved in between: the stale write is refused and the page reloads the plan.
@@ -97,12 +129,12 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await root.getByText(/Het plan is elders gewijzigd/).waitFor();
   assert.equal(posts.at(-1).revision,5);
   const room=root.locator('[data-heating-room="woonkamer"]');
-  assert.equal(await room.locator('summary').innerText(),'Living · Gemeten · 20,4 °C / 21,0 °C · vraagt warmte · setpoint: weekprogramma');
+  assert.match(await room.locator('summary').innerText(),/^Living\s+Vraagt warmte\s+20,4 °C\s+Gewenst 21,0 °C\s+Gewenste temperatuur uit het weekprogramma$/);
   // Prefill of the Home Assistant week: weekdays differ from the weekend, so one row per day.
   await room.evaluate(e=>e.open=true);
   const program=room.locator('[data-heating-week]'),points=()=>program.locator('[data-heating-day]').evaluateAll(days=>days.map(d=>[d.querySelector('strong').textContent,
    ...[...d.querySelectorAll('[data-heating-point]')].map(p=>[...p.querySelectorAll('input')].map(i=>i.value).join(' '))]));
-  assert.match(await program.locator('legend').innerText(),/^Weekprogramma \(gebruikt als Home Assistant geen setpoint geeft\)$/);
+  assert.match(await program.locator('legend').innerText(),/^Weekprogramma \(gebruikt als Home Assistant geen gewenste temperatuur geeft\)$/);
   assert.equal(await program.getByLabel('Weekprogramma gebruiken').isChecked(),true);
   assert.equal(await program.getByLabel('Elke dag hetzelfde').isChecked(),false);
   assert.deepEqual(await points(),[...['ma','di','wo','do','vr'].map(d=>[d,'06:30 20.5','22:00 18']),...['za','zo'].map(d=>[d,'08:00 20.5','12:00 20','23:00 18'])]);
@@ -111,7 +143,7 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   await root.getByText('Ruimtes opgeslagen.').waitFor();
   assert.equal(posts.at(-1).revision,6);assert.equal(posts.at(-1).rooms[0].name,'Living');
   assert.deepEqual(posts.at(-1).rooms[0].schedule,week,'the week program survives a web save');
-  await room.locator('summary').getByText(/· setpoint: vaste terugval$/).waitFor();
+  await room.locator('summary').getByText(/vaste waarde zonder Home Assistant$/).waitFor();
   status.rooms[0].setpoint_source='ha';
   // Week program editor: saves re-render the cards, so wait for the new card and open it.
   const save=async text=>{await room.evaluate(e=>e.dataset.old='1');await root.locator('[data-heating-save]').click();await root.getByText(text).waitFor();
@@ -148,6 +180,10 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   assert.equal(await refused('De E32 weigerde het weekprogramma: elke temperatuur moet binnen het minimum en maximum van de ruimte liggen.'),1);
   reject={code:400,error:'invalid_schedule'};
   assert.equal(await refused('De E32 weigerde het weekprogramma: maximaal 6 schakelpunten per dag, elk op een andere tijd.'),1);
+  reject={code:400,error:'duplicate_source'};
+  assert.equal(await refused('Een sensor staat twee keer in dezelfde ruimte.'),1);
+  reject={code:400,error:'invalid_emitter'};
+  assert.equal(await refused('De E32 weigerde het ruimteplan. Laad de pagina opnieuw en probeer het nog eens. (invalid_emitter)'),1);
   await save('Ruimtes opgeslagen.');
   const daily=[[390,2050],[1350,1800]];
   assert.deepEqual(posts.at(-1).rooms[0].schedule,Array(7).fill(daily));
@@ -162,6 +198,38 @@ const pairs=dl=>dl.evaluate(e=>[...e.querySelectorAll('dt')].map(dt=>[dt.textCon
   assert.deepEqual(posts.at(-1).rooms[0].schedule,[daily,daily,daily,daily,daily,[[480,2050],[1350,1800]],daily]);
   assert.equal(await program.getByLabel('Elke dag hetzelfde').isChecked(),false);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll');
+  // Gate open (lead's release): the owner confirms the tado is disconnected; the plan goes active first.
+  active.enabled=true;
+  await root.locator('[data-heating-save]').click();await takeover.waitFor();
+  assert.equal(posts.at(-1).mode,'shadow','saving rooms keeps the plan mode');
+  assert.equal(await control.locator('[data-heating-active-gate]').isVisible(),false);
+  await takeover.click();
+  await control.getByText('Bevestigd. De E32 neemt de ketel binnen een minuut over.').waitFor();
+  assert.match(dialogs.at(-1),/^Bevestig dat je huidige thermostaat van de ketel is losgekoppeld\./);
+  assert.equal(posts.at(-1).mode,'active');assert.deepEqual(handovers,[{thermostat_disconnected:true}]);
+  await control.getByText('De E32 regelt de ketel. · Ketelvraag: 45 °C · laatst verzonden 5 s geleden · laatste vraag van een andere regelaar 30 s geleden').waitFor();
+  assert.equal(await takeover.isVisible(),false);assert.equal(await handback.isVisible(),true);
+  await root.locator('[data-heating-save]').click();await root.getByText('Ruimtes opgeslagen.').waitFor();
+  assert.equal(posts.at(-1).mode,'active','saving rooms keeps the plan mode');
+  // Hand back: the plan goes shadow; the firmware sends zero for a minute. Here the tado was seen again too.
+  Object.assign(active,{state:'stopping',command:{send:true,flow_c:0,why:'stop_zero'},confirmation:null,warnings:['foreign_controller']});
+  await handback.click();
+  await control.getByText('Teruggegeven. De E32 vraagt de ketel één minuut lang nul. Sluit daarna je thermostaat weer aan op de ketel.').waitFor();
+  assert.equal(posts.at(-1).mode,'shadow');assert.equal(handovers.length,1);
+  await control.getByText(/^Stoppen: de E32 vraagt de ketel één minuut lang nul\. · Ketelvraag: uit/).waitFor();
+  assert.deepEqual(await control.locator('[data-heating-active-warnings] li').allInnerTexts(),
+   ['Een andere regelaar (je thermostaat?) stuurt nog ketelvragen. Koppel die los van de ketel en bevestig daarna opnieuw.']);
+  assert.equal(await handback.isVisible(),false);assert.equal(await takeover.isVisible(),true);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'no horizontal scroll with active control');
+  // An E32 that never had Home Assistant input opens unlocked, with a calm note instead of a warning.
+  await page.evaluate(()=>sessionStorage.removeItem('ot-rooms-edit'));
+  status.ha={input_age_s:null,broker_connected:false};
+  await page.evaluate(()=>loadNativePage('heating'));
+  await root.locator('[data-heating-lock]').getByText('Niet gekoppeld aan Home Assistant — je stelt de ruimtes hier in.').waitFor();
+  assert.equal(await root.locator('[data-heating-unlock]').isVisible(),false);
+  assert.equal(await root.locator('[data-heating-add]').isVisible(),true);
+  assert.equal(await root.locator('[data-heating-lock]').getAttribute('class'),'alert ot-actions alert-info');
+  delete status.ha;
   assert.deepEqual(errors,[]);
   results.push({width,result:'PASS'});await page.close();
  }}finally{await browser.close();}

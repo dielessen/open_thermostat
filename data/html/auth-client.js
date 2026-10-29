@@ -26,7 +26,7 @@
                 if (controller.signal.aborted) throw controller.signal.reason;
                 if (!data || typeof data !== 'object' || Array.isArray(data) || data.authenticated !== true ||
                     typeof data.csrf !== 'string' || !/^[a-f0-9]{64}$/.test(data.csrf)) throw new Error(uiText("Invalid session response"));
-                return (state = {legacy: false, csrf: data.csrf});
+                return (state = {legacy: false, csrf: data.csrf, default_password: data.default_password === true});
             } catch (error) {
                 if (controller.signal.aborted) throw new Error(uiText("Session check unavailable"));
                 throw error;

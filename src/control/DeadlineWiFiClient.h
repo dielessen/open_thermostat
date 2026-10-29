@@ -47,6 +47,7 @@ public:
             if(!result.complete) {
                 // A partial or late MQTT frame cannot precede another packet.
                 // Failed return is an uncertain outcome, never proof of no IO.
+                socketBudgetDisconnects.fetch_add(1,std::memory_order_relaxed);
                 stop();return 0;
             }
             return result.written;

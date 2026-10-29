@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <limits>
 #include "control/DeviceDiagnostics.h"
+#include "DeviceIdentity.h"
 #include <cJSON.h>
 using heating::control::deviceDiagnosticsJson;
 TEST(DeviceDiagnostics, OwnResourcesAndLongUptimeAreValidJson) {
@@ -21,4 +22,14 @@ TEST(DeviceDiagnostics, UnsupportedCpuNeverCorruptsOtherMeasurements) {
         EXPECT_EQ(cJSON_GetObjectItemCaseSensitive(root,"mem_free")->valuedouble,90000);
         cJSON_Delete(root);
     }
+}
+// A new install is named after the end of its MAC address, as printed, so two
+// controllers differ on the network and on the MQTT broker.
+TEST(DeviceIdentity, DefaultNameUsesTheLastThreeMacBytes) {
+    // MAC 24:6f:28:a1:b2:c3: ESP.getEfuseMac() keeps byte 0 in the lowest bits.
+    const uint64_t efuse = 0x24ull | 0x6full << 8 | 0x28ull << 16 | 0xa1ull << 24 | 0xb2ull << 32 | 0xc3ull << 40;
+    EXPECT_EQ(heating::defaultDeviceName(efuse), "openthermostat-a1b2c3");
+    EXPECT_NE(heating::defaultDeviceName(efuse), heating::defaultDeviceName(efuse ^ (1ull << 40)));
+    EXPECT_EQ(heating::defaultDeviceName(efuse & 0xffffff), "openthermostat-000000"); // same vendor prefix only
+    EXPECT_LE(heating::defaultDeviceName(~0ull).size(), 21u); // within the 32-char hostname/clientId limits
 }

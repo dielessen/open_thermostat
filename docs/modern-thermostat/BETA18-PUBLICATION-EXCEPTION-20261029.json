@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "status": "APPROVED",
+  "scope": "one_prerelease_publication",
+  "candidate_tag": "v0.1.0-e32v2-beta.18",
+  "unaccepted_predecessor": "v0.1.0-e32v2-beta.17",
+  "accepted_basis_tag": "v0.1.0-e32v2-beta.4",
+  "accepted_basis_receipt_sha256": "5ec65a6256889878702a6a501842669f903825041f1e96be9448d5336bba55a8",
+  "predecessor_acceptance_status": "INCOMPLETE",
+  "gap_report": "docs/modern-thermostat/BETA17-NATIVE-GAP-20261029.json",
+  "gap_report_sha256": "59ba33ca5a2cc9c076f401b36ad7019c0a8b08ac8a4f0455e46136a60b8693b9",
+  "reason": "Beta17 is published and installed by an owner-initiated update (identity verified) but has no full native GitHub acceptance; the accepted basis stays beta4. Beta18 keeps shadow mode (active heat gate off, boiler settings writes off) and adds the refreshed bilingual UI, learning advice, split telemetry, password change, OTA rollback and the reliability fixes from code review, fuzzing and the simulated soak test. The owner approved beta18 publication and installation (statement below). Preserve all evidence and accepted beta4; no native acceptance, physical control or TLS repair inferred.",
+  "device_installation_authorized": false,
+  "boiler_trial_authorized": false,
+  "approval": {
+    "actor": "repository_owner",
+    "method": "explicit_user_instruction",
+    "decision": "approve_one_prerelease_publication",
+    "statement": "Ja, publiceer en installeer (Aanbevolen)",
+    "at_utc": "2026-10-29T15:46:00Z"
+  },
+  "separate_installation_instruction": "docs/modern-thermostat/BETA18-OWNER-INSTRUCTION-20261029.json"
+}

@@ -51,6 +51,16 @@ public:
         rooms_ = std::move(next);
     }
     const RoomPlan& plan() const { return plan_; }
+    // Per plan room after step(): its demand result, and its leading fresh
+    // reading whatever its state (frost protection also covers inactive rooms).
+    const RoomDemand::Result& result(size_t room) const { return rooms_[room].result; }
+    std::optional<int16_t> freshTemperature(size_t room, uint64_t now) const { return fresh(room, now).temperature; }
+    // The leading fresh reading and its source index (-1: none), never a held value.
+    RoomDemand::Result fresh(size_t room, uint64_t now) const {
+        RoomDemand::Spec spec;
+        spec.state = RoomDemand::State::active; spec.sources = static_cast<uint8_t>(plan_.rooms[room].sources.size());
+        return RoomDemand::evaluate(spec, rooms_[room].readings, std::nullopt, now, {});
+    }
 
     // A Home Assistant entity reported its temperature and/or target (centi degC).
     void haState(const std::string& entity, std::optional<int16_t> temperature,
@@ -101,6 +111,7 @@ public:
     }
 
     // {"schema":1,"mode":..,"request":{..},"rooms":[..]} for the status page and HA.
+    // nullptr: no memory.
     cJSON* json() const {
         cJSON* root = cJSON_CreateObject();
         if (!root) return nullptr;
@@ -113,6 +124,7 @@ public:
         cJSON_AddStringToObject(request, "reason", FlowDemand::name(request_.reason));
         // The HA entities this plan reads: HA forwards exactly these to ha/heating_input.
         cJSON* entities = cJSON_AddArrayToObject(root, "ha_entities");
+        if (!entities) { cJSON_Delete(root); return nullptr; }
         const auto addEntity = [&](const std::string& id) {
             for (const cJSON* e = entities->child; e; e = e->next) if (id == e->valuestring) return;
             cJSON_AddItemToArray(entities, cJSON_CreateString(id.c_str()));
@@ -168,7 +180,7 @@ private:
     }
     static std::optional<int16_t> setpoint(const RoomPlan::Room& room, const Runtime& rt, SetpointSource source, std::optional<uint32_t> unixNow) {
         if (source == SetpointSource::ha) return rt.target;
-        if (source == SetpointSource::schedule) return room.schedule.at(RoomSchedule::amsterdam(*unixNow));
+        if (source == SetpointSource::schedule) return room.schedule.at(RoomSchedule::localAt(*unixNow));
         return room.fallbackCentiC;
     }
     static void centi(cJSON* o, const char* key, std::optional<int16_t> v) {

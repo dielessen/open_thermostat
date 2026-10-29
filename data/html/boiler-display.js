@@ -63,14 +63,17 @@
         const model = selected === null ? null : models[selected];
         appendPicture(box, model, 92, 140);
         const text = document.createElement('div'), title = document.createElement('h2');
-        title.textContent = model ? model.name : uiText("Boiler selection unavailable");
+        // Live values sit below this card, so "no model chosen" is a note, not the heading.
+        const none = model?.kind === 'none';
+        title.textContent = none ? uiText("Boiler") : model ? model.name : uiText("Boiler selection unavailable");
         text.append(title);
         const note = document.createElement('p');
-        note.textContent = model?.note || uiText("Choose your boiler under Settings → My boiler.");
+        note.textContent = (none ? model.name + '. ' : '') + (model?.note || uiText("Choose your boiler on the Boiler page."));
         text.append(note);
         appendImageSource(text, model);
-        const link = document.createElement('a'); link.className = 'boiler-setup-link'; link.href = '#'; link.textContent = uiText("Set up boiler");
-        link.addEventListener('click', event => {event.preventDefault(); window.loadNativePage('boiler_display');});
+        const link = document.createElement('a'); link.className = 'boiler-setup-link'; link.href = '#boiler-model';
+        link.textContent = model && model.kind !== 'none' ? uiText("All boiler data →") : uiText("Set up boiler");
+        link.addEventListener('click', event => {event.preventDefault(); (window.openPage || window.loadNativePage)('boiler_display');});
         text.append(link); box.append(text);
     }
     async function load() {
@@ -146,10 +149,10 @@
                 appendOption(model, models[model]);
             }
             select.value = model;picture();select.disabled = save.disabled = false;message.textContent = '';
-        } catch (_) {if (root.isConnected) message.textContent = uiText("The boiler selection could not be loaded. Open My boiler again to retry.");}
+        } catch (_) {if (root.isConnected) message.textContent = uiText("The boiler selection could not be loaded. Open the Boiler page again to retry.");}
     }
     const style = document.createElement('style');
-    style.textContent = '.boiler-summary{overflow-wrap:anywhere;display:flex;align-items:center;gap:24px;background:#f3f7f7;border:1px solid #d9e5e3;border-radius:14px;padding:20px;margin:0 0 20px;max-width:100%;box-sizing:border-box}.boiler-summary img{object-fit:contain;flex:none}.boiler-summary h2{font-size:1.3rem;margin:0 0 8px}.boiler-summary p{margin:0 0 10px;color:#526a70;overflow-wrap:anywhere}.boiler-summary a{color:#076b60}.boiler-summary>div{min-width:0}@media(max-width:400px){.boiler-summary{gap:14px;padding:14px}.boiler-summary img{width:66px;height:100px}.boiler-summary h2{font-size:1.1rem}}';
+    style.textContent = '.boiler-summary{overflow-wrap:anywhere;display:flex;align-items:center;gap:16px;margin:0 0 4px;max-width:100%}.boiler-summary img{object-fit:contain;flex:none;width:46px;height:70px}.boiler-summary h2{font-size:1.2rem;margin:0 0 4px}.boiler-summary p{margin:0 0 4px;color:var(--ot-muted);font-size:.87rem}.boiler-summary>div{min-width:0}';
     document.head.append(style);
     window.BoilerDisplay = {load,mountHome,settings};
     document.addEventListener('DOMContentLoaded', () => {void load().catch(()=>{});});

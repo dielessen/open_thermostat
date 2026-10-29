@@ -38,7 +38,7 @@ bool discoverReleases(Fetch &&fetch,std::vector<Release> &out,std::string &error
         if(!fetch(releasePageUrl(page),32768,raw,error))return false;
         auto root=releaseJson(raw);
         if(!root||!cJSON_IsArray(root.get())||cJSON_GetArraySize(root.get())>1) {
-            error="Ongeldig of te groot GitHub-releaseantwoord.";return false;
+            error="Invalid or too large GitHub release response.";return false;
         }
         if(!root->child)return finish();
         const auto entry=root->child;
@@ -61,7 +61,7 @@ bool discoverReleases(Fetch &&fetch,std::vector<Release> &out,std::string &error
         if(parseManifest(manifestBytes,tag,parsed))found.push_back({{tag,prerelease},std::move(published)});
     }
     if(!found.empty())return finish();
-    error="Geen passende E32-release in de eerste twaalf releaseberichten; oudere releases zijn niet gecontroleerd.";
+    error="No matching E32 release in the first twelve releases; older releases were not checked.";
     return false;
 }
 }

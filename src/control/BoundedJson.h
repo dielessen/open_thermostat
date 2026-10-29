@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace heating::control {
 using ControlJson = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
@@ -89,5 +90,40 @@ inline ControlJson parseControlJson(std::string_view bytes,bool deviceSettings=f
     };
     if(!uniqueAndFinite(uniqueAndFinite,root.get())) return reject();
     return root;
+}
+
+// cJSON recurses once per nesting level (about 64 B of stack each) up to its
+// own limit of 1000: 256 '[' from the network overflow the 8 KB loop stack.
+// Documents that are not CONTROL JSON (legacy pages, MQTT inputs, stored
+// files) are checked against a small depth before cJSON sees them.
+inline constexpr std::size_t legacyJsonDepth=16;
+inline bool jsonNestingWithin(const char* text,std::size_t size,std::size_t maxDepth) {
+    if(!text) return false;
+    std::size_t depth=0; bool inString=false,escaped=false;
+    for(std::size_t i=0;i<size;++i) {
+        const char c=text[i];
+        if(inString) {
+            if(escaped) escaped=false;
+            else if(c=='\\') escaped=true;
+            else if(c=='"') inString=false;
+            continue;
+        }
+        if(c=='"') inString=true;
+        else if(c=='{'||c=='[') { if(++depth>maxDepth) return false; }
+        else if((c=='}'||c==']')&&depth) --depth;
+    }
+    return true;
+}
+// text[size] must be the terminating NUL (std::string/String c_str()).
+// requireEnd: exactly one document, as cJSON_ParseWithLengthOpts(...,true).
+inline ControlJson parseNestedJson(const char* text,std::size_t size,bool requireEnd=false,
+                                   std::size_t maxDepth=legacyJsonDepth) {
+    if(!text||!size||!jsonNestingWithin(text,size,maxDepth)) return ControlJson(nullptr,cJSON_Delete);
+    return ControlJson(requireEnd?cJSON_ParseWithLengthOpts(text,size+1,nullptr,true)
+                                 :cJSON_ParseWithLength(text,size),cJSON_Delete);
+}
+template<class Text,class=decltype(std::declval<const Text&>().c_str())>
+inline ControlJson parseNestedJson(const Text& text,bool requireEnd=false,std::size_t maxDepth=legacyJsonDepth) {
+    return parseNestedJson(text.c_str(),text.length(),requireEnd,maxDepth);
 }
 }

@@ -13,7 +13,7 @@ test('HA English fallback and Dutch catalogs have exact key and placeholder pari
 test('all marked static E32 messages and literal calls have a Dutch catalog entry',()=>{
  for(const file of fs.readdirSync(path.join(root,'data/html')).filter(f=>/\.(?:html|js)$/.test(f)&&!f.startsWith('ui-'))){
   const s=fs.readFileSync(path.join(root,'data/html',file),'utf8');
-  for(const m of s.matchAll(/data-i18n(?:-title|-placeholder|-aria-label|-alt)?="([^"]*)"/g)){
+  for(const m of s.matchAll(/(?:data-i18n(?:-title|-placeholder|-aria-label|-alt)?|data-hint)="([^"]*)"/g)){
    const key=m[1].replace(/&quot;/g,'"').replace(/&#x27;/g,"'").replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');assert(Object.hasOwn(catalog,key),file+': '+key);
   }
   for(const m of s.matchAll(/uiText\(((?:"(?:[^"\\]|\\.)*")|(?:'(?:[^'\\]|\\.)*'))\)/g)){

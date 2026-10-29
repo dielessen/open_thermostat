@@ -13,6 +13,7 @@
 #include <SPIFFS.h>
 #include <ESPmDNS.h>
 #include "update/GitHubUpdate.h"
+#include "update/RestartTimer.h"
 #include <TimeHelpers.h>
 #include <logger/Logger.h>
 #include <logger/LoggerSerialSink.h>
@@ -23,6 +24,9 @@
 #include "diagnostics/NativeLogCapture.h"
 #include "diagnostics/LoopIntervals.h"
 #include "diagnostics/BlackBox.h"
+#include "diagnostics/GatewayProbe.h"
+#include "diagnostics/RuntimeHealth.h"
+#include "diagnostics/ReconnectBackoff.h"
 #include <esp_attr.h>
 #include <hal/wdt_hal.h>
 #include <soc/rtc.h>
@@ -66,36 +70,67 @@ RTC_NOINIT_ATTR heating::diagnostics::BlackBoxRecord blackBoxRecord;
 RTC_NOINIT_ATTR heating::diagnostics::LoopPhaseRecord loopPhaseRecord;
 // Seconds since boot + 1 (0 = not set): 32-bit atomics, so the ESP32 needs no
 // software 64-bit atomics (a vendor object outside the reviewed link inputs).
-std::atomic<uint32_t> loopAtS{0}, wifiDownSinceS{0}, brokerDownSinceS{0};
-std::atomic<bool> wifiExpected{false}, brokerExpected{false};
+std::atomic<uint32_t> loopAtS{0}, wifiDownSinceS{0}, brokerDownSinceS{0}, networkQuietSinceS{0}, gatewayProbeFailures{0};
+std::atomic<uint32_t> supervisorBeatS{0}, bluetoothQuietSinceS{0};
+std::atomic<bool> wifiExpected{false}, brokerExpected{false}, gatewayProbeArmed{false};
+std::atomic<bool> bluetoothExpected{false}, restartDeferred{false};
+heating::diagnostics::GatewayProbe gatewayProbe; // loop only
+// Boot confirmation evidence (loop only, latched): since boot an IP address
+// plus a gateway probe reply, an MQTT session or a routed HTTP request; without
+// a configured broker also the IP held long enough (BootConfirmation::networkProven).
+bool networkProven = false, brokerConfigured = false;
 
 uint64_t monotonicMs() { return static_cast<uint64_t>(esp_timer_get_time() / 1000); }
 uint32_t monotonicS() { return static_cast<uint32_t>(esp_timer_get_time() / 1000000) + 1; }
 uint64_t secondsMs(uint32_t s) { return static_cast<uint64_t>(s) * 1000; }
 
-// Restarts a device that stopped serving (2026-10-28: "WiFi connected", no
-// ping/HTTP, no automatic recovery). Never during a firmware update.
-void supervisorTask(void*) {
-	using heating::diagnostics::SupervisorPolicy;
-	// Last resort if this task itself stops running: the RTC watchdog resets the
-	// system after 120 s but keeps RTC memory, so the black box survives (reset 7).
-	// OTA erases sector by sector while writing; this task keeps running then.
-	// The HAL layer (not rtc_wdt) keeps the link within the reviewed SDK objects.
-	static wdt_hal_context_t rtcWdt;
+// Last resort if setup() or the supervisor stops running: the RTC watchdog
+// resets the system after 120 s but keeps RTC memory, so the black box
+// survives (reset 7). Armed as the first statement of setup(); the supervisor
+// feeds it from then on. OTA erases sector by sector; the supervisor keeps
+// running then. The HAL layer (not rtc_wdt) keeps the link within the
+// reviewed SDK objects.
+wdt_hal_context_t rtcWdt;
+void armRtcWatchdog() {
 	wdt_hal_init(&rtcWdt, WDT_RWDT, 0, false);
 	wdt_hal_write_protect_disable(&rtcWdt);
 	wdt_hal_config_stage(&rtcWdt, WDT_STAGE0, rtc_clk_slow_freq_get_hz() * 120, WDT_STAGE_ACTION_RESET_SYSTEM);
+	// Like IDF's restart path: if the system reset does not take (10 s after
+	// stage 0), reset the whole chip, RTC included (the black box is lost then).
+	wdt_hal_config_stage(&rtcWdt, WDT_STAGE1, rtc_clk_slow_freq_get_hz() * 10, WDT_STAGE_ACTION_RESET_RTC);
 	wdt_hal_enable(&rtcWdt);
 	wdt_hal_write_protect_enable(&rtcWdt);
+}
+void feedRtcWatchdog() {
+	wdt_hal_write_protect_disable(&rtcWdt);
+	wdt_hal_feed(&rtcWdt);
+	wdt_hal_write_protect_enable(&rtcWdt);
+}
+
+// Restarts a device that stopped serving (2026-10-28: "WiFi connected", no
+// ping/HTTP, no automatic recovery). Not during a firmware update, unless that
+// update itself has been running for more than 20 minutes.
+void supervisorTask(void*) {
+	using heating::diagnostics::SupervisorPolicy;
+	uint64_t updateSince = 0;
 	for (;;) {
+		feedRtcWatchdog();
+		supervisorBeatS.store(monotonicS());
 		vTaskDelay(pdMS_TO_TICKS(5000));
-		wdt_hal_write_protect_disable(&rtcWdt);
-		wdt_hal_feed(&rtcWdt);
-		wdt_hal_write_protect_enable(&rtcWdt);
+		feedRtcWatchdog();
 		SupervisorPolicy::Inputs in;
-		in.now = secondsMs(monotonicS()); in.loopAt = secondsMs(loopAtS.load()); in.updateRunning = heating::update::busy();
+		in.now = secondsMs(monotonicS()); in.loopAt = secondsMs(loopAtS.load()); in.updateRunning = heating::update::busy() || heating::update::httpUploadActive.load();
+		if (!in.updateRunning) updateSince = 0;
+		else if (!updateSince) updateSince = in.now;
+		in.updateSince = updateSince;
+		in.wifiLostRestarts = heating::diagnostics::blackBox.wifiLostRestarts();
+		in.networkDeadRestarts = heating::diagnostics::blackBox.networkDeadRestarts();
+		in.bluetoothExpected = bluetoothExpected.load(); in.bluetoothQuietSince = secondsMs(bluetoothQuietSinceS.load());
+		in.bluetoothRestarts = heating::diagnostics::blackBox.bluetoothRestarts(); in.restartDeferred = restartDeferred.load();
 		in.wifiExpected = wifiExpected.load(); in.wifiDownSince = secondsMs(wifiDownSinceS.load());
 		in.brokerExpected = brokerExpected.load(); in.brokerDownSince = secondsMs(brokerDownSinceS.load());
+		in.gatewayProbeArmed = gatewayProbeArmed.load(); in.gatewayProbeFailures = gatewayProbeFailures.load();
+		in.networkQuietSince = secondsMs(networkQuietSinceS.load());
 		const auto reason = SupervisorPolicy::decide(in);
 		if (reason == SupervisorPolicy::Reason::none) continue;
 		heating::diagnostics::blackBox.restartReason(reason);
@@ -105,19 +140,68 @@ void supervisorTask(void*) {
 	}
 }
 
+// Restarts the networkDead clock: the IP path worked (or Wi-Fi was down, which
+// wifiLost covers) at this moment.
+void networkQuietRestart() { networkQuietSinceS.store(monotonicS()); }
+
+// Every loop pass, without waiting: an ICMP echo every 30 s to the gateway of
+// the active route, Ethernet or Wi-Fi.
+void probeGateway(uint64_t now) {
+	using Result = heating::diagnostics::GatewayProbe::Result;
+	auto result = gatewayProbe.poll(now);
+	if (result == Result::none && gatewayProbe.due(now)) {
+		if (heating::ethernetConnected()) result = gatewayProbe.start(now, heating::ethernetGateway());
+		else if (wifiExpected.load() && WiFi.isConnected()) result = gatewayProbe.start(now, static_cast<uint32_t>(WiFi.gatewayIP()));
+	}
+	if (result == Result::none) return;
+	gatewayProbeFailures.store(gatewayProbe.failures());
+	if (result == Result::ok) { gatewayProbeArmed.store(true); networkQuietRestart(); heating::diagnostics::blackBox.networkWorked(now); }
+	else if (gatewayProbeArmed.load())
+		DBGLOGFI(heating::logger, appLogFeature(), "Gateway probe: no reply (%u in a row)\n", gatewayProbe.failures());
+}
+
 // Every 10 s on the loop: supervisor inputs and the black-box record.
 void observeHealth(uint64_t now) {
 	const bool wifi = !heating::wifiAPMode && !heating::setupAttemptUntil && WiFi.getMode() != WIFI_OFF;
 	wifiExpected.store(wifi);
 	if (!wifi || WiFi.isConnected()) wifiDownSinceS.store(0);
 	else if (!wifiDownSinceS.load()) wifiDownSinceS.store(monotonicS());
+	if (wifi && WiFi.isConnected()) heating::diagnostics::blackBox.wifiRecovered();
+	// Bluetooth: bound sensors and scanning wanted; quiet since boot or the last advert.
+	const bool bluetooth = heating::controller && heating::controller->managedBleExpected();
+	const uint32_t heard = heating::controller ? heating::controller->managedBleHeardS() : 0;
+	if (heard) heating::diagnostics::blackBox.bluetoothHeard();
+	if (!bluetooth || !bluetoothQuietSinceS.load()) bluetoothQuietSinceS.store(monotonicS());
+	else if (heard > bluetoothQuietSinceS.load()) bluetoothQuietSinceS.store(heard);
+	bluetoothExpected.store(bluetooth);
+	restartDeferred.store(heating::controller && (heating::controller->boilerTestActive() || heating::controller->boilerSettingsActive()));
 	const bool broker = heating::controller && heating::controller->brokerConnected();
 	if (broker) brokerExpected.store(true);
 	if (broker || !brokerExpected.load()) brokerDownSinceS.store(0);
 	else if (!brokerDownSinceS.load()) brokerDownSinceS.store(monotonicS());
+	// Positive evidence besides the probe: an MQTT session (PubSubClient drops
+	// it after a missed keep-alive) or any HTTP request routed since last time.
+	static uint32_t requests = 0;
+	const uint32_t seen = heating::diagnostics::blackBox.requests();
+	const bool ethernet = heating::ethernetConnected(); // probed too; networkDead stays Wi-Fi only
+	if (!ethernet && (!wifi || !WiFi.isConnected())) {
+		gatewayProbe.cancel(); gatewayProbe.resetFailures(); gatewayProbeFailures.store(0);
+		networkQuietRestart();
+	} else if (broker || seen != requests) { networkQuietRestart(); heating::diagnostics::blackBox.networkWorked(now); }
+	requests = seen;
+	// Since when the network has held an IP without a break (sampled every 10 s).
+	static uint64_t linkSince = 0;
+	if (!heating::networkConnected() || heating::wifiAPMode) linkSince = 0;
+	else if (!linkSince) linkSince = now;
+	if (!networkProven && (heating::networkConnected() || heating::wifiAPMode))
+		networkProven = heating::update::BootConfirmation::networkProven(gatewayProbeArmed.load() || broker || seen != 0,
+			brokerConfigured, linkSince ? static_cast<uint32_t>(std::min<uint64_t>(now - linkSince, UINT32_MAX)) : 0);
 	heating::diagnostics::blackBox.note(static_cast<uint32_t>(now / 1000), ESP.getMinFreeHeap(), uxTaskGetStackHighWaterMark(nullptr),
 		heating::diagnostics::loopIntervals.snapshot().windowMaximumMs, static_cast<int8_t>(WiFi.RSSI()), WiFi.isConnected(), broker);
+	const auto stacks = heating::diagnostics::taskStackMarks();
+	heating::diagnostics::blackBox.noteResources(heating::diagnostics::largestInternalBlock(), stacks.supervisor, stacks.emsUart, stacks.bluetoothHost);
 }
+heating::diagnostics::ReconnectBackoff wifiReconnect; // loop only
 }
 #endif
 
@@ -168,8 +252,13 @@ void WiFiGotIP(arduino_event_id_t event, arduino_event_info_t info) {
 		}
 
 #ifdef OPENTHERMOSTAT_E32V2
-		MDNS.end();
-		if (!MDNS.begin(networkConfig.hostname.c_str())) {
+		// Once per boot: the SDK responder follows later IP/interface changes
+		// itself (got-IP events); a restart on every change dropped announcements.
+		static bool mdnsStarted = false;
+		if (mdnsStarted) return;
+		MDNS.end(); // the setup access point may have started it
+		mdnsStarted = MDNS.begin(networkConfig.hostname.c_str());
+		if (!mdnsStarted) {
 #else
 		if (!MDNS.begin(WiFi.getHostname())) {
 #endif //CONFIG_MDNS_TASK_STACK_SIZE 4096
@@ -276,13 +365,28 @@ void WifiSetUp(config::WiFiConfig const &wifiConfig, config::NetworkConfig const
 #endif
 	}
 
+#ifndef OPENTHERMOSTAT_E32V2
+	// The TCP log sink resolves, connects and writes synchronously under the
+	// logger mutex: it would block every logging task (Bluetooth host and
+	// supervisor included). The E32 uses the nonblocking UDP syslog instead.
 	if (networkConfig.loggerEnabled && !networkConfig.loggerHost.empty()) {
 		heating::logger->attachSink(std::make_shared<ib::logger::LoggerSocketSink>(
 		ib::logger::LoggerInterface::LogLevel::TRACE, networkConfig.loggerHost, networkConfig.loggerPort));
 	}
+#endif
 }
 
 void setup() {
+#ifdef OPENTHERMOSTAT_E32V2
+	armRtcWatchdog(); // a hang in setup() resets (and rolls back an unconfirmed OTA image)
+	// Arduino's PSRAM threshold for plain malloc/new stays (4096 B): a lower
+	// one moved many small objects with std::atomic or mutex members into
+	// PSRAM, where the ESP32's S32C1I atomic read-modify-write is not reliable.
+	// Known atomic-free data (cJSON nodes, response buffers) goes there explicitly.
+	// Log lines leave through a 1 KiB driver buffer instead of blocking the
+	// caller on the 128-byte UART FIFO at 115200 Bd.
+	Serial.setTxBufferSize(1024);
+#endif
 	delay(2500); // wait for monitor
 	Serial.begin(115200);
 #ifdef OPENTHERMOSTAT_E32V2
@@ -293,7 +397,11 @@ void setup() {
 	WiFi.persistent(false);
 	if(heating::deviceAccess.begin()) {
 		// Physical USB console only. Never use network logger sinks for secrets.
-		Serial.printf("Local setup WiFi password: %s\nHTTP admin password: %s\nType setup + Enter over USB to reboot into WiFi-only setup for 15 minutes.\n",heating::deviceAccess.setupPassword().c_str(),heating::deviceAccess.password().c_str());
+		// Never print a changed password: only the factory default is shown.
+		Serial.printf("Local setup WiFi password: %s\nWeb sign-in: user admin, password %s\nType setup + Enter over USB to reboot into WiFi-only setup for 15 minutes; password-reset + Enter restores the web password admin.\n",
+			heating::deviceAccess.setupPassword().c_str(),
+			heating::deviceAccess.defaultPassword()?"admin (factory default; change it under System)":
+			heating::deviceAccess.passwordState()==heating::DeviceAccess::PasswordState::stored?"(changed by the owner)":"(stored password unreadable; use password-reset)");
 	}
 #endif
 #ifdef OPENTHERMOSTAT_E32V2
@@ -318,7 +426,7 @@ void setup() {
         const auto& p=heating::diagnostics::blackBox.previous();
         DBGLOGFI(heating::logger,appLogFeature(),"Previous boot: uptime %us, min heap %u, loop stack min %u, last request %.39s, supervisor %s\n",
             p.uptimeS,p.minFreeHeap,p.loopStackMin,p.lastRequest,
-            heating::diagnostics::SupervisorPolicy::name(static_cast<heating::diagnostics::SupervisorPolicy::Reason>(p.reason)));
+            heating::diagnostics::SupervisorPolicy::name(heating::diagnostics::blackBox.previousRestart()));
     }
 #endif
 
@@ -388,10 +496,30 @@ void setup() {
 #ifdef OPENTHERMOSTAT_E32V2
 	const auto networkPlan=heating::control::networkBootPlan(networkConfig.interfaceMode=="ethernet",!wifiConfig.ssid.empty(),heating::consumeSetupBoot());
 	startAP=networkPlan.setupAp;
+	{ const auto mqtt = config::getMqttConfig(); brokerConfigured = mqtt.enabled && !mqtt.brokerAddress.empty(); }
 #endif
 
 	heating::controller = new heating::HeatingController(heating::logger);
 	heating::rest = std::make_unique<heating::REST>(heating::logger, *heating::controller, startAP ? apConfig.listenPort : networkConfig.listenPort);
+#ifdef OPENTHERMOSTAT_E32V2
+	{
+		// S32C1I read-modify-write is not atomic in PSRAM (diagnostics/AtomicPlacement.h).
+		uint32_t checked = 0;
+		heating::diagnostics::atomicsInPsram = heating::diagnostics::countAtomicsInPsram(
+			[&checked](auto&& visit) {
+				auto counted = [&](const char* name, const void* address) { ++checked; visit(name, address); };
+				heating::ems::EmsController::visitRmwAtomics(counted);
+				heating::BeaconTemperatureReader::visitRmwAtomics(counted);
+			},
+			heating::diagnostics::inExternalRam,
+			[](const char* name, const void* address) {
+				DBGLOGFE(heating::logger, appLogFeature(), "Atomic %s is in PSRAM (%p): read-modify-write is unreliable there\n", name, address);
+			});
+		DBGLOGFI(heating::logger, appLogFeature(), "Atomic placement: %u of %u read-modify-write atomics in PSRAM; controller in %s\n",
+			unsigned(heating::diagnostics::atomicsInPsram), unsigned(checked),
+			heating::diagnostics::inExternalRam(heating::controller) ? "PSRAM" : "internal RAM");
+	}
+#endif
 	config::readDebugOptions();
 
 	DBGLOGFI(heating::logger, appLogFeature(), "Free memory %d/%d (minimum was: %d) MaxAlloc: %d STUFF\n", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap());
@@ -400,6 +528,7 @@ void setup() {
 #ifdef OPENTHERMOSTAT_E32V2
 	if(networkPlan.ethernet) heating::startBoardEthernet();
 	loopAtS.store(monotonicS());
+	networkQuietRestart();
 	// Above loop (1): a busy loop or HTTP handler cannot starve the supervisor.
 	xTaskCreate(supervisorTask, "supervisor", 3072, nullptr, 5, nullptr);
 	DBGLOGFI(heating::logger, appLogFeature(), "E32V2 EXPERIMENTAL: EMS TX/forwarder/GPIO outputs blocked. PSRAM: %u bytes\n", ESP.getPsramSize());
@@ -411,8 +540,14 @@ void setup() {
 void loop() {
 #ifdef OPENTHERMOSTAT_E32V2
 	heating::diagnostics::blackBox.loopPhase(heating::diagnostics::LoopPhase::update);
-	heating::update::loop(heating::controller && !heating::controller->boilerTestActive() && !heating::controller->boilerSettingsActive());
+	{
+		const uint32_t beat = supervisorBeatS.load(), nowS = monotonicS();
+		heating::update::loop(heating::controller && !heating::controller->boilerTestActive() && !heating::controller->boilerSettingsActive(),
+			beat && nowS - beat <= 15, networkProven);
+	}
 	heating::diagnostics::blackBox.loopPhase(heating::diagnostics::LoopPhase::network);
+	// Only while asked: bootPending() reads the OTA state from flash.
+	heating::setupRestartHeld = heating::setupRebootRequested && (heating::update::busy() || heating::update::bootPending());
 	heating::pollSetupWifi();
 	if (heating::pollBoardNetwork()) {
 		// Common REST/NTP/mDNS startup, once per route/IP change, not in event task.
@@ -448,14 +583,20 @@ void loop() {
 #ifdef OPENTHERMOSTAT_E32V2
 		heating::diagnostics::blackBox.loopPhase(heating::diagnostics::LoopPhase::wifi_reconnect);
 #endif
-		if (!WiFi.isConnected()
 #ifdef OPENTHERMOSTAT_E32V2
-			&& !heating::wifiAPMode && !heating::setupAttemptUntil && WiFi.getMode()!=WIFI_OFF
-#endif
-		) {
+		const bool stationDown = !WiFi.isConnected() && !heating::wifiAPMode && !heating::setupAttemptUntil && WiFi.getMode()!=WIFI_OFF;
+		// 10, 20, 40, then every 60 s: a reconnect aborts a connect in progress
+		// and races the SDK's own automatic reconnect.
+		if (wifiReconnect.due(monotonicMs(), !stationDown)) {
+			DBGLOGFI(heating::logger, appLogFeature(), "WiFi not connected. Reconnecting.\n");
+			WiFi.reconnect();
+		} else if (!stationDown) {
+#else
+		if (!WiFi.isConnected()) {
 			DBGLOGFI(heating::logger, appLogFeature(), "WiFi not connected. Reconnecting.\n");
 			WiFi.reconnect();
 		} else {
+#endif
 			DBGLOGFI(heating::logger, appLogFeature(), "WiFi IP Address: %s\n", WiFi.localIP().toString().c_str());
 		}
 	}
@@ -469,6 +610,8 @@ void loop() {
     // At most one nonblocking UDP datagram per 100 ms, after controller work.
     static const auto logHostname=config::getNetworkConfig().hostname;
     heating::diagnostics::runtime.poll(heating::diagnostics::runtime.log.syslogEnabled()&&heating::networkConnected()&&!heating::wifiAPMode,logHostname.c_str());
+    heating::diagnostics::blackBox.loopPhase(heating::diagnostics::LoopPhase::network_probe);
+    probeGateway(monotonicMs()); // gateway ICMP echo, never waits
 #endif
 
 #ifdef OPENTHERMOSTAT_E32V2
@@ -481,6 +624,13 @@ void loop() {
 #endif
 		heating::rest->handle();
 	}
+#ifdef OPENTHERMOSTAT_E32V2
+	else {
+		// No network: without HTTP nothing in this pass waits, and the loop
+		// would spin (and contend for the telemetry mutex). One tick of rest.
+		vTaskDelay(1);
+	}
+#endif
 #ifdef OPENTHERMOSTAT_E32V2
 	heating::diagnostics::blackBox.loopPhase(heating::diagnostics::LoopPhase::idle);
 #endif

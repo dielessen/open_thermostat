@@ -1,5 +1,5 @@
 {
-	"hostname": "heatingtest",
+	"hostname": "",
 	"listenPort": 80,
 	"emsEnabled": true,
 	"emsForwarderEnabled": false,
@@ -9,18 +9,18 @@
 	"ntpUtcOffset": 0,
 	"ntpDaylightUtcOffset": 3600,
 	"timeZone": "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00",
-	"loggerHost": "192.168.1.1",
+	"loggerHost": "",
 	"loggerEnabled": false,
 	"loggerPort": 8701,
 	"loggerTimeoutMs": 10000,
 	"mqtt": {
 		"enabled": true,
 		"publishHomeAssistantDiscovery": false,
-		"brokerAddress": "192.168.1.1",
+		"brokerAddress": "",
 		"brokerPort": 1883,
 		"username": "",
 		"password": "",
-		"clientId": "ib-therm",
+		"clientId": "",
 		"base": "ib-therm",
 		"keepAlive": 60,
 		"interval": 30

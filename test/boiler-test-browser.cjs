@@ -7,6 +7,11 @@ const fixture = () => ({reception: {state:'classic_reports_received', report_cou
   transport:{enabled:true, transmit_compiled:false, transmitted_frames:0, receive_queue_dropped:0, invalid_telegrams:0, uart_errors:0, uart_resets:0},
   // Deliberately incomplete test metadata grants no UI authority; raw diagnostic export must preserve it.
   test:{clock:'boot_monotonic_ms',stop_reference_emitted_at_ms:0},
+  // BurnerCycleMonitor::writeJSON and DhwEpisodes::writeJSON (newer firmware only).
+  burner_cycles:{known:true,short_cycling:true,starts_last_hour:9,heating_starts_last_hour:8,median_heating_run_s:240,observed_window_s:3600,observed_starts:30},
+  dhw_episodes:{method:'dhw_temperature_fall',clock_known:true,active_s:null,
+    today:{tapping:{count:3,s:540},keep_warm:{count:2,s:300},unknown:{count:0,s:0},burner_s:960,peak_flow_l_min:null},
+    last_7_days:{tapping:{count:21,s:3600},keep_warm:{count:9,s:1500},unknown:{count:1,s:60},burner_s:6000,peak_flow_l_min:null}},
   fields:{measured_flow_temperature:{value:37.2,unit:'degC',state:'valid',quality:'reported',age_ms:100,observed_at_ms:200},
     raw_burner_bit:{value:1,unit:'bool',state:'valid',quality:'unreliable',age_ms:100},
     heating_active:{value:0,unit:'bool',state:'valid',quality:'inferred',age_ms:100},
@@ -34,8 +39,19 @@ const fixture = () => ({reception: {state:'classic_reports_received', report_cou
     await page.context().addCookies([{name:'ot_ui_lang',value:'nl',url:'http://boiler.test'}]);
   await page.goto('http://boiler.test/');
     await page.waitForFunction(() => typeof loadNativePage === 'function');
-    await page.evaluate(() => loadNativePage('boiler_test'));
+    await page.evaluate(() => loadNativePage('boiler_trial'));
     await page.locator('[data-reception]').filter({hasText:'Verse EMS Classic'}).waitFor();
+    // Boiler essentials: burner starts with a short-cycling warning, and hot water today.
+    await page.locator('[data-short-cycling]').waitFor();
+    assert.match(await page.locator('[data-essentials]').innerText(),/Branderstarts \(afgelopen uur\)\s+9/);
+    assert.equal(await page.locator('[data-short-cycling]').innerText(),'De brander slaat erg vaak aan en uit');
+    const dhw = await page.locator('[data-dhw]').innerText();
+    assert.match(dhw,/Tappen\s+3 × · 9 min/); assert.match(dhw,/Warmhouden\s+2 × · 5 min/); assert.match(dhw,/Brandertijd\s+16 min/);
+    assert.doesNotMatch(dhw,/Hoogste doorstroming/); assert.match(dhw,/dalende tapwatertemperatuur/);
+    // Older firmware without these objects hides both blocks.
+    delete data.burner_cycles; delete data.dhw_episodes;
+    await page.locator('[data-dhw]').waitFor({state:'hidden'});
+    assert.equal(await page.locator('[data-short-cycling]').count(),0);
     assert.equal(await page.locator('#boiler-test img').count(),0);
     assert.equal(await page.locator('[data-fields]').count(),0,'No duplicate entity table');
     await page.locator('#boiler-test-reception > summary').click();

@@ -334,10 +334,94 @@ class ScheduleCompilerTests(unittest.TestCase):
             with self.subTest(start=a, end=z), self.assertRaises(sc.ScheduleValidationError):
                 sc.compile_week({}, 1700, "UTC", a, z)
 
-    def test_unsupported_timezone_explicitly_rejected(self):
-        for name in ["Europe/London", "America/New_York", "Etc/UTC", "bad", None, True]:
-            with self.subTest(name=name), self.assertRaises(sc.ScheduleValidationError):
+    def test_invalid_or_unknown_timezone_rejected_with_clear_message(self):
+        for name in ["bad", "Mars/Olympus", "Europe/../UTC", "/etc/passwd", "Europe//Berlin",
+                     "", "Europe/" + "A"*60, None, True]:
+            with self.subTest(name=name), self.assertRaises(sc.ScheduleValidationError) as err:
                 compile_at({}, "2026-01-05T00:00Z", "2026-01-06T00:00Z", name)
+            self.assertIn("time zone", str(err.exception))
+        with self.assertRaisesRegex(sc.ScheduleValidationError, "Mars/Olympus is unknown"):
+            compile_at({}, "2026-01-05T00:00Z", "2026-01-06T00:00Z", "Mars/Olympus")
+
+
+# Windows around each zone's real offset changes; Kathmandu has none (+05:45).
+ZONE_WINDOWS = [
+    ("Europe/Berlin", "2026-03-28T22:00Z", "2026-03-29T04:00Z"),
+    ("Europe/Berlin", "2026-10-24T22:00Z", "2026-10-25T04:00Z"),
+    ("Europe/London", "2026-03-28T23:00Z", "2026-03-29T05:00Z"),
+    ("Europe/London", "2026-10-24T23:00Z", "2026-10-25T05:00Z"),
+    ("America/New_York", "2026-03-08T04:00Z", "2026-03-08T10:00Z"),
+    ("America/New_York", "2026-11-01T03:00Z", "2026-11-01T09:00Z"),
+    ("Australia/Lord_Howe", "2026-10-03T12:00Z", "2026-10-03T18:00Z"),
+    ("Australia/Lord_Howe", "2027-04-03T12:00Z", "2027-04-03T18:00Z"),
+    ("Asia/Kathmandu", "2026-10-25T18:00Z", "2026-10-26T00:00Z"),
+]
+
+
+class AnyIanaZoneTests(unittest.TestCase):
+    """Any Home Assistant zone, including non-hourly offsets and 30-minute DST."""
+
+    INTERVALS = [(1*3600+30*60, 2*3600, 1900), (2*3600, 2*3600+30*60, 2100),
+                 (2*3600+45*60, 3*3600+15*60, 2300), (5*3600+45*60, 6*3600, 2000)]
+
+    def raw(self):
+        blocks = [block(time(a//3600, a//60 % 60), time(z//3600, z//60 % 60), v/100)
+                  for a, z, v in self.INTERVALS]
+        return {day: deepcopy(blocks) for day in sc.WEEKDAYS}
+
+    def test_second_by_second_oracle_in_every_zone(self):
+        raw = self.raw()
+        for name, start_iso, end_iso in ZONE_WINDOWS:
+            with self.subTest(zone=name, start=start_iso):
+                zone = ZoneInfo(name)
+                start, end = stamp(start_iso), stamp(end_iso)
+                result = sc.compile_week(raw, 1700, name, start, end)
+                self.assertEqual(result["timezone"], name)
+                for second in range(start, end):
+                    local = datetime.fromtimestamp(second, UTC).astimezone(zone)
+                    wall = local.hour*3600+local.minute*60+local.second
+                    expected = next((v for a, z, v in self.INTERVALS if a <= wall < z), 1700)
+                    self.assertEqual(target_at(result, second), expected, (name, second))
+
+    def test_kathmandu_quarter_hour_offset_exact_utc(self):
+        result = compile_at(week(monday=[block("06:00", "22:00", 20)]),
+                            "2026-10-25T18:15Z", "2026-10-26T18:15Z", "Asia/Kathmandu")
+        self.assertEqual(result["transitions"], [
+            [stamp("2026-10-25T18:15Z"), 1700],
+            [stamp("2026-10-26T00:15Z"), 2000],
+            [stamp("2026-10-26T16:15Z"), 1700],
+        ])
+
+    def test_lord_howe_half_hour_spring_gap_and_fall_repeat(self):
+        # 2026-10-04 02:00 +10:30 jumps to 02:30 +11:00 (15:30Z Oct 3).
+        spring = compile_at(week(sunday=[block("01:45", "02:15", 21)]),
+                            "2026-10-03T14:00Z", "2026-10-03T17:00Z", "Australia/Lord_Howe")
+        self.assertEqual(spring["transitions"], [
+            [stamp("2026-10-03T14:00Z"), 1700],
+            [stamp("2026-10-03T15:15Z"), 2100],
+            [stamp("2026-10-03T15:30Z"), 1700],
+        ])
+        # 2027-04-04 02:00 +11:00 falls back to 01:30 +10:30 (15:00Z Apr 3).
+        fall = compile_at(week(sunday=[block("01:30", "02:00", 21)]),
+                          "2027-04-03T14:00Z", "2027-04-03T17:00Z", "Australia/Lord_Howe")
+        self.assertEqual(fall["transitions"], [
+            [stamp("2027-04-03T14:00Z"), 1700],
+            [stamp("2027-04-03T14:30Z"), 2100],
+            [stamp("2027-04-03T15:30Z"), 1700],
+        ])
+
+    def test_new_york_and_london_daily_block_follow_local_clock(self):
+        for name, start_iso, before, after in [
+                ("America/New_York", "2026-03-06T00:00Z", "2026-03-07T12:00Z", "2026-03-08T11:00Z"),
+                ("Europe/London", "2026-03-27T00:00Z", "2026-03-28T07:00Z", "2026-03-29T06:00Z")]:
+            with self.subTest(zone=name):
+                start = stamp(start_iso)
+                raw = {day: [block("07:00", "08:00", 20)] for day in sc.WEEKDAYS}
+                result = sc.compile_week(raw, 1700, name, start, start+4*86400)
+                starts = [at for at, target in result["transitions"] if target == 2000]
+                # 07:00 standard time the day before, 07:00 summer time after.
+                self.assertIn(stamp(before), starts)
+                self.assertIn(stamp(after), starts)
 
 
 class NativeExportAdapterTests(unittest.IsolatedAsyncioTestCase):

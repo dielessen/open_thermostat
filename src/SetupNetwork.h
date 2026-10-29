@@ -5,11 +5,13 @@
 #include "Network.h"
 #include "WifiDiscovery.h"
 #include "DeviceNetworkSettings.h"
+#include "DeviceIdentity.h"
 #include <WiFi.h>
 #include <DNSServer.h>
 #include <nvs.h>
 #include <esp_timer.h>
 #include <cJSON.h>
+#include "control/BoundedJson.h"
 
 namespace heating {
 extern bool wifiAPMode;
@@ -18,6 +20,9 @@ inline uint64_t setupUntil=0,setupAttemptUntil=0,setupCloseAt=0,setupJoinAt=0;
 inline config::WiFiConfig setupCandidate;
 inline std::string setupResult="idle";
 inline bool setupRebootRequested=false;
+// Set by the main loop while a restart must wait: an update is running or a
+// new image is not confirmed yet (a restart then rolls it back).
+inline bool setupRestartHeld=false;
 inline DNSServer setupDns;
 inline bool setupDnsActive=false;
 inline std::string setupSavedSsid;
@@ -54,7 +59,7 @@ inline bool selectSetupWifiInterface() {
     // Preserve broker/room settings; explicit WiFi onboarding must not reboot
     // back into a previously selected Ethernet-only mode.
     const auto raw=readDeviceNetworkSettings();
-    std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(cJSON_Parse(raw.c_str()),cJSON_Delete);
+    std::unique_ptr<cJSON,decltype(&cJSON_Delete)> root(heating::control::parseNestedJson(raw));
     if(!root||!cJSON_IsObject(root.get())) return false;
     auto item=cJSON_CreateString("wifi"); if(!item) return false;
     if(cJSON_HasObjectItem(root.get(),"interface_mode")) cJSON_ReplaceItemInObjectCaseSensitive(root.get(),"interface_mode",item);
@@ -70,6 +75,7 @@ inline bool readSetupWifi(config::WiFiConfig &cfg) {
     if(err!=ESP_OK||size<3||size>768) { nvs_close(h); return false; }
     std::string raw(size,'\0'); err=nvs_get_blob(h,"wifi",raw.data(),&size); nvs_close(h);
     if(err!=ESP_OK||raw.back()!='\0') return false;
+    if(!heating::control::jsonNestingWithin(raw.c_str(),raw.size(),2)) return false;
     auto root=cJSON_ParseWithLengthOpts(raw.c_str(),raw.size(),nullptr,true);
     if(!root) return false;
     auto ssid=cJSON_GetObjectItemCaseSensitive(root,"ssid"),password=cJSON_GetObjectItemCaseSensitive(root,"password");
@@ -79,7 +85,8 @@ inline bool readSetupWifi(config::WiFiConfig &cfg) {
 }
 inline bool startSetupWifi() {
     if(!deviceAccess.ready()||boardEthernetStarted) return false;
-    char ssid[32]; snprintf(ssid,sizeof(ssid),"OpenThermostat-%06llx",static_cast<unsigned long long>(ESP.getEfuseMac()&0xffffff));
+    // The NIC part of the MAC (the low 24 bits of getEfuseMac() are the vendor prefix).
+    char ssid[32]; snprintf(ssid,sizeof(ssid),"OpenThermostat-%s",macSuffix(ESP.getEfuseMac()).c_str());
     WiFi.persistent(false); WiFi.setAutoReconnect(false);
     // HeatingController already initialized Bluetooth. IDF4.4 aborts if STA
     // modem sleep is disabled alongside BLE. Set the Arduino cached policy
@@ -116,7 +123,9 @@ inline bool finishSetupWifi() {
     return true;
 }
 inline void pollSetupWifi() {
-    if(setupRebootRequested) { delay(250); ESP.restart(); return; }
+    static bool restartHeldNoted=false;
+    if(setupRebootRequested&&!setupRestartHeld) { delay(250); ESP.restart(); return; }
+    if(setupRebootRequested&&!restartHeldNoted) { restartHeldNoted=true; Serial.printf("Setup restart deferred until the update or the check of new firmware has finished\n"); }
     const auto now=static_cast<uint64_t>(esp_timer_get_time()/1000);
     if(wifiAPMode&&setupDnsActive) setupDns.processNextRequest();
     pollWifiScan();
@@ -151,7 +160,13 @@ inline void pollSetupWifi() {
     static std::string command;
     while(Serial.available()) {
         const char c=Serial.read();
-        if(c=='\n'||c=='\r') { if(command=="setup") requestSetupBoot(); command.clear(); }
+        if(c=='\n'||c=='\r') {
+            if(command=="setup") requestSetupBoot();
+            // Physical access only: restores the factory web password "admin".
+            else if(command=="password-reset") Serial.printf("%s\n",deviceAccess.resetPassword()?
+                "Web password reset to the default (user admin, password admin). Change it under System.":"Web password reset failed: storage error");
+            command.clear();
+        }
         else if(command.size()<16) command+=c;
         else command.clear();
     }

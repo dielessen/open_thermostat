@@ -1,0 +1,13 @@
+e 080018000000026c00000000000080008000026c0000ff30480000ff0000a7
+a prepare {"schema":1,"boot_id":"000000000000002a","revision":1,"flow_c":40,"duration_s":1,"exclusive_owner_confirmed":true,"independent_stop_confirmed":true,"heat_path_confirmed":true}
+n
+t 10
+a start {"schema":1,"boot_id":"000000000000002a","revision":1}
+n
+t 1000
+a keepalive {"schema":1,"boot_id":"000000000000002a","revision":1}
+n
+t 5000
+a stop {"schema":1,"boot_id":"000000000000002a","revision":1}
+n
+t 3000

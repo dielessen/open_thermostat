@@ -91,6 +91,11 @@ async def async_connect_installation(hass, entry, address, password):
             options={**entry.options, SOURCE_OPTION: source_selection(source), CONF_ENABLED: True})
         expected = configuration_snapshot(entry)
         committed_private = native_entry_state(entry)
+        # The rooms are the E32 plan from now on: Home Assistant caches which
+        # subentry buttons an entry has, so drop that cache and the older
+        # "Add room" button goes at once, not only after a restart.
+        if hasattr(entry, "_supported_subentry_types"):
+            object.__setattr__(entry, "_supported_subentry_types", None)
         if needs_reload:
             # A previously failed/unloaded entry has no integration listener.
             # Loaded entries use their one existing update listener instead.

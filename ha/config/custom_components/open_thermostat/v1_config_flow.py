@@ -161,11 +161,57 @@ class V1FlowMixin:
             vol.Required("adapter_id", default=self._shadow_adapter_id): vol.Match(r"^[A-Za-z0-9_-]{1,32}$"),
         }), errors=errors)
 
+    async def async_step_reauth(self, entry_data):
+        """The E32 refused the stored password (it was changed there): ask for the new one."""
+        return await self.async_step_reauth_confirm()
+
+    @staticmethod
+    def _reauth_client(address):
+        from .controller_link import ControllerClient
+        return ControllerClient(address)
+
+    async def async_step_reauth_confirm(self, user_input=None):
+        from .controller_link import ControllerLinkError, ControllerLoginRejected
+        from .controller_setup_flow import CONTROLLER_ADDRESS
+        from .e32_access import report_password
+        entry = self._get_reauth_entry()
+        address = entry.data.get(CONTROLLER_ADDRESS)
+        if not address:
+            return self.async_abort(reason="reauth_no_e32")
+        errors = {}
+        if user_input is not None:
+            password = user_input.get("password")
+            if type(password) is not str or not 1 <= len(password) <= 128:
+                errors["password"] = "reauth_password_invalid"
+            else:
+                try:
+                    async with self._reauth_client(address) as client:
+                        # Checked only; the password is stored in this entry, never logged.
+                        await client.async_login(password)
+                        default = getattr(client, "default_password", None)
+                except ControllerLoginRejected:
+                    errors["password"] = "reauth_password_wrong"
+                except ControllerLinkError:
+                    errors["base"] = "reauth_unreachable"
+                else:
+                    from .e32_access import save_password
+                    report_password(self.hass, entry, default)
+                    save_password(self.hass, entry, password)
+                    return self.async_abort(reason="reauth_successful")
+        return self.async_show_form(step_id="reauth_confirm", data_schema=vol.Schema({
+            vol.Required("password"): selector.TextSelector({"type": "password"})}),
+            errors=errors, description_placeholders={"name": entry.title, "address": address})
+
     @classmethod
     @callback
     def async_get_supported_subentry_types(cls, config_entry):
         from .product import is_product
         if is_product(config_entry) and integration_mode(config_entry) == MODE_SHADOW:
+            from .room_plan import has_room_plan
+            if has_room_plan(config_entry):
+                # The rooms are the E32 room plan (Configure -> Rooms). The older HA
+                # room records stay listed and readable; no second "Add room" button.
+                return {}
             from .product_flow import ProductRoomFlow
             return {"zone": ProductRoomFlow}
         from .room_setup_flow import RadiatorRoomSetupFlow

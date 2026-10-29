@@ -1,6 +1,7 @@
 #pragma once
 #include "BoundedJson.h"
 #include "EMS/EmsEntityTable.h"
+#include <algorithm>
 #include <array>
 #include <cstdint>
 namespace heating::control {
@@ -13,8 +14,12 @@ inline constexpr size_t maximumBoilerGroupBytes=1200,maximumBoilerEnvelopeBytes=
 inline constexpr const char* boilerFieldsV2Capability="boiler.fields.v2";
 inline constexpr size_t catalogFieldBase=70;
 inline constexpr size_t boilerFieldGroupCountV2=7+(ems::entityFieldCount+9)/10;
+// HA0.4.0b9 knew 30 catalog fields and rejects a later group; HA announces how
+// many it knows ("catalog_fields"), and only those groups are sent.
+inline constexpr size_t catalogFieldsWithoutCount=30;
+inline constexpr size_t catalogGroupCount(size_t known){return 7+(std::min(known,ems::entityFieldCount)+9)/10;}
 inline constexpr uint8_t catalogFieldQuality=0; // reported values; offsets follow the EMS-ESP reference
-inline constexpr uint64_t boilerGroupIntervalMs=2000,maximumBoilerTimestamp=9007199254740991ULL;
+inline constexpr uint64_t boilerGroupIntervalMs=1800,maximumBoilerTimestamp=9007199254740991ULL;
 inline constexpr std::array<uint16_t,69> boilerFieldSourceTypes{24,24,24,25,24,24,24,24,24,24,24,24,24,51,52,52,22,51,25,25,25,25,52,52,24,24,22,22,22,52,24,24,24,24,24,24,24,24,25,25,25,25,25,22,22,22,22,22,22,22,22,22,51,51,51,51,51,51,51,51,52,52,52,52,52,52,52,52,52};
 inline constexpr std::array<uint8_t,69> boilerFieldQualities{0,0,0,0,0,0,0,1,1,1,0,2,2,0,0,1,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1};
 inline constexpr std::array<int32_t,69> boilerFieldMinimums{-6000,-6000,-6000,-6000,0,0,0,0,0,0,0,0,0,-6000,-6000,0,0,0,0,0,0,0,0,0,0,0,0,0,-6000,-6000,-6000,-6000,0,0,0,0,0,0,-6000,-6000,-6000,0,0,-128,-128,0,0,0,0,-128,-128,-6000,-128,0,-128,0,0,-6000,0,0,-6000,-6000,0,0,0,0,0,0,0};

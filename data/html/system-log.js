@@ -37,17 +37,39 @@ window.SystemLogPage = (() => {
       const element=get('log-previous-boot');if(!element)return;
       const p=value?.previous;
       if(!p||typeof p!=='object'||!Number.isSafeInteger(p.uptime_s)){element.textContent='';return;}
-      const restart={loop_stall:'the main loop stopped',wifi_lost:'Wi-Fi stayed disconnected',broker_lost:'Home Assistant (MQTT) stayed unreachable'}[p.supervisor_restart];
+      const restart={loop_stall:'the main loop stopped',wifi_lost:'Wi-Fi stayed disconnected',broker_lost:'Home Assistant (MQTT) stayed unreachable',network_dead:'the network stopped answering while Wi-Fi stayed connected',
+        update_stuck:'a firmware update stopped making progress',bluetooth_settings:'new Bluetooth settings had to be applied',bluetooth_silent:'no Bluetooth sensor was heard for a long time'}[p.supervisor_restart];
+      // Repeated Wi-Fi, network or Bluetooth restarts wait twice as long each time.
+      const series=p.supervisor_restart==='wifi_lost'?value.wifi_lost_restarts:p.supervisor_restart==='network_dead'?value.network_dead_restarts
+        :p.supervisor_restart==='bluetooth_silent'?value.bluetooth_silent_restarts:0;
       element.textContent=`${text('Previous run')}: ${Math.floor(p.uptime_s/60)} min · ${text('lowest free memory')} ${p.minimum_free_heap_bytes} B · `
         +`${text('loop stack reserve')} ${p.loop_stack_minimum_bytes} B · ${text('last request')} ${p.last_request||'—'}`
         +(typeof p.loop_phase==='string'&&p.loop_phase!=='idle'?` · ${text('last loop part')} ${p.loop_phase}`:'')
-        +(restart?` · ${text('Restarted automatically because')} ${text(restart)}`:'');
+        +(restart?` · ${text('Restarted automatically because')} ${text(restart)}`:'')
+        +(Number.isSafeInteger(series)&&series>1?` · ${text('restart {n} in a row; the E32 now waits longer before the next one').replace('{n}',series)}`:'');
+    }
+    // Memory and stack reserves now: technical details for diagnosis.
+    function runtime(value){
+      const element=get('log-runtime');if(!element)return;
+      const kb=n=>Number.isSafeInteger(n)&&n>=0?Math.round(n/1024)+' KB':'—',b=n=>Number.isSafeInteger(n)&&n>=0?n+' B':'—';
+      if(!value||typeof value!=='object'){element.textContent='';return;}
+      const stacks=value.stack_minimum_bytes||{},nvs=value.nvs;
+      element.textContent=`${text('Free internal memory')}: ${kb(value.free_internal_bytes)} (${text('lowest')} ${kb(value.minimum_free_internal_bytes)}, ${text('largest block')} ${kb(value.largest_internal_block_bytes)})`
+        +` · ${text('Settings storage')}: ${nvs&&Number.isSafeInteger(nvs.used_entries)&&Number.isSafeInteger(nvs.total_entries)?nvs.used_entries+' / '+nvs.total_entries+' '+text('entries used'):'—'}`
+        +` · ${text('Lowest free stack')}: ${[['main loop','loop'],['supervisor','supervisor'],['boiler bus','ems_uart'],['Bluetooth','bluetooth_host']].map(([label,key])=>text(label)+' '+b(stacks[key])).join(', ')}`
+        // Shared atomics must live in internal RAM (0 expected; older firmware omits the field).
+        +(Number.isSafeInteger(value.atomics_in_psram)?` · ${text('Variables in external RAM')}: ${value.atomics_in_psram}`:'');
+      if(Number.isSafeInteger(value.atomics_in_psram)&&value.atomics_in_psram>0){
+        const warning=document.createElement('strong');warning.className='d-block';warning.style.color='var(--ot-warn)';warning.setAttribute('data-log-atomics-warning','');
+        warning.textContent=text('Internal check: {n} variables in external RAM — please report').replace('{n}',value.atomics_in_psram);element.append(warning);
+      }
     }
     function render(){
       const source=get('log-source').value,level=Number(get('log-filter').value),search=get('log-search').value.toLocaleLowerCase();
-      const lines=state.rows.filter(r=>(source==='all'||sourceOf(r)===source)&&r.level<=level&&`${r.feature} ${r.message}`.toLocaleLowerCase().includes(search))
-        .map(r=>`${(r.uptime_ms/1000).toFixed(3)}s #${r.sequence} ${text(levels[r.level]).toLocaleUpperCase()} [${sourceOf(r).toUpperCase()}] [${r.feature}] ${sourceOf(r)==='ems'?r.message.replace(/\b(Boiler|Thermostat|All|Service|Device)(?=\([0-9A-F]{2}\))/g,role=>text(role)):r.message}`);
-      get('log-lines').textContent=lines.join('\n');
+      const rows=state.rows.filter(r=>(source==='all'||sourceOf(r)===source)&&r.level<=level&&`${r.feature} ${r.message}`.toLocaleLowerCase().includes(search));
+      // One span per line so errors and warnings get their colour; the text stays identical.
+      get('log-lines').replaceChildren(...rows.map((r,i)=>{const line=document.createElement('span');line.className=r.level<=1?'log-err':r.level===2?'log-warn':'';
+        line.textContent=`${(r.uptime_ms/1000).toFixed(3)}s #${r.sequence} ${text(levels[r.level]).toLocaleUpperCase()} [${sourceOf(r).toUpperCase()}] [${r.feature}] ${sourceOf(r)==='ems'?r.message.replace(/\b(Boiler|Thermostat|All|Service|Device)(?=\([0-9A-F]{2}\))/g,role=>text(role)):r.message}`+(i<rows.length-1?'\n':'');return line;}));
       get('log-pause').textContent=text(state.paused?'Resume':'Pause');
     }
     async function request(url,options={},timeout=new AbortController()){
@@ -86,7 +108,7 @@ window.SystemLogPage = (() => {
         const count=k=>Number.isSafeInteger(data[k])&&data[k]>=0?data[k]:'?';
         get('log-counters').textContent=`${text('Overwritten')}: ${count('overwritten')} · ${text('Redacted')}: ${count('redacted')} · ${text('Truncated')}: ${count('truncated')} · ${text('Syslog sent (unconfirmed)')}: ${count('syslog_sent')} · ${text('Syslog dropped')}: ${count('syslog_dropped')} · ${text('Busy drops')}: ${count('contention_dropped')}`;
         loopTiming(data.loop_intervals);
-        previousBoot(data.previous_boot);
+        previousBoot(data.previous_boot);runtime(data.runtime);
         get('log-status').textContent='';render();
       }catch(error){if(alive()&&(!read.signal.aborted||read.signal.reason==='deadline')&&epoch===state.epoch){get('log-status').textContent=text('Log unavailable. Retrying.');loopTiming(null);}}
       finally{if(pollRequest===read)pollRequest=null;state.busy=false;if(alive()&&visible()&&!state.paused)timer=setTimeout(poll,read.signal.aborted&&read.signal.reason!=='deadline'?0:2000);}
@@ -100,7 +122,7 @@ window.SystemLogPage = (() => {
       const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='openthermostat-system-log.txt';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     });
     on(get('log-clear'),'click',async()=>{
-      if(state.saving)return;
+      if(state.saving||!confirm(text('Clear the local ESP and EMS logs on this device?')))return;
       state.saving=true;get('log-clear').disabled=true;
       try{await request('/logs/clear',{method:'POST'});if(alive()){++state.epoch;state.rows=[];render();}}
       catch{if(alive())get('log-status').textContent=text('Clear failed. Local logs were not confirmed cleared.');}

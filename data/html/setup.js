@@ -71,7 +71,7 @@
     cancelHandoff(); handoffTarget=url; closeAt=Date.now()+ms; navigateAt=closeAt+2000;
     const update=()=>{
       const left=Math.max(0,Math.ceil((closeAt-Date.now())/1000));
-      $('transition').textContent=left?uiText("The setup network closes in ")+left+uiText(" seconds. We will then open your thermostat automatically at the address below."):uiText("Closing setup network. Connect to your home WiFi; we will open the new address…");
+      $('transition').textContent=left?uiText("The setup network closes in {s} seconds. Then OpenThermostat opens automatically at the address below.").replace('{s}',left):uiText("Closing setup network. Connect to your home WiFi; we will open the new address…");
       if(Date.now()>=navigateAt) {
         finished=true; clearInterval(handoffTimer); controls(); window.location.assign(handoffTarget);
       }
@@ -100,14 +100,14 @@
     if(finished) return;
     try {
       const s=await request('/setup/status',{},true);
-      $('remaining').textContent=s.setup_active?uiText("Setup network available for about ")+Math.ceil(s.remaining_seconds/60)+uiText(" minutes available."):uiText("Setup network closed.");
+      $('remaining').textContent=s.setup_active?uiText("Setup network open for about {n} more minutes.").replace('{n}',Math.ceil(s.remaining_seconds/60)):uiText("Setup network closed.");
       const url=target(s);
       if(s.status==='connected_saved'&&s.connected&&url) {
         saved=true; joining=false; password.value='';
         if(handoffTarget&&handoffTarget!==url) cancelHandoff();
         $('home').href=url; $('home').textContent=url;
         $('handoff').hidden=false;
-        status.textContent=uiText("Your thermostat is connected. WiFi settings have been saved.");
+        status.textContent=uiText("OpenThermostat is connected to your WiFi. The settings have been saved.");
         if(s.closing) armHandoff(s.close_after_ms,url);
         else { cancelHandoff(); await automaticFinish(url); }
       } else if(s.status==='connection_failed'||s.status==='storage_error') {

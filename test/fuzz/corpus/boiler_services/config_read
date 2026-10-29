@@ -1,0 +1,9 @@
+c {"schema":1,"boot_id":"000000000000002a","revision":1,"exclusive_owner_confirmed":true,"independent_stop_confirmed":true}
+n
+e 080b1600ff4614
+t 10
+i {"schema":1,"boot_id":"000000000000002a","revision":2,"exclusive_owner_confirmed":true,"independent_stop_confirmed":true}
+i {"schema":1,"boot_id":"000000000000002a","revision":3,"exclusive_owner_confirmed":true,"independent_stop_confirmed":true,"target_address":23}
+n
+e 170b02005f0102030405060708090a00
+t 16000

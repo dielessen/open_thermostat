@@ -1,3 +1,90 @@
+# E32 V2 beta18 — a refreshed interface, learning in shadow mode and a sturdier E32
+<!-- user-release-notes:v2:en -->
+
+A large follow-up to beta17. The E32 still runs heating in shadow mode: it
+calculates and learns, compares itself with your thermostat, and does not send
+its request to the boiler yet. Use it together with HA 0.4.0b10.
+
+## New
+
+- A refreshed interface in English and Dutch, light and dark: five menu items
+  (Overview, Rooms, Boiler, Sensors, System), pages that remember where you are,
+  larger controls for phones and a short plain-language help line at every
+  setting.
+- Rooms are managed in Home Assistant when you use it. The E32 page then shows
+  them read-only with the connection state, explains where to set what, and
+  still lets you edit here when Home Assistant is not reachable. An E32 that
+  was never linked to Home Assistant edits its rooms, Bluetooth sensors and
+  week programs on the Rooms page itself, and the Overview shows the E32's own
+  rooms with or without Home Assistant.
+- Your own web password under System → About (8–64 characters). Until you
+  change it the sign-in stays `admin` / `admin`, and the Overview reminds you.
+  The E32 stores only a salted hash; `password-reset` over USB restores the
+  factory password.
+- Week programs, "today" and the daily comparison follow the E32's own time
+  zone (System → Network), so any time zone and summer-time rule works.
+- Learning per room in shadow mode: how fast the room warms up at which flow
+  temperature, the lowest flow that still warms it in time, when to start
+  before the next week-program switch, and whether holding the night
+  temperature or letting it drop uses less gas (estimates in kWh, m³ and €).
+- My boiler starts with the essentials: temperatures, pressure, burner starts
+  in the last hour with a short-cycling warning, and hot water today (tapping
+  versus keeping warm). The attended trial and all EMS values sit below.
+- The last locking and blocking boiler fault and the boiler's own uptime join
+  the one EMS table; the thermostat values were checked against real
+  telegrams of an RC10-type thermostat.
+- The flow limits show your boiler's own maximum heating temperature; the E32
+  never asks for more than that.
+- A new E32 gets a unique name, `openthermostat-` plus the end of its MAC
+  address, as network name and MQTT client ID, so two E32s never clash.
+  Existing settings are kept.
+- Heating telemetry is split into `fw/telemetry/heating`, `heating_summary`
+  and `heating_learned/<room>`, so each message stays small.
+- Prepared but switched off: active heating control behind a firmware gate,
+  with takeover only after you confirm your thermostat is disconnected, a stop
+  when another controller sends heat requests, frost protection below 8 °C and
+  a hand-back button.
+
+## Fixed
+
+- Bluetooth thermometers deliver readings reliably: scanning no longer pauses,
+  readings stay valid for 15 minutes, a sensor whose counter restarts (new
+  battery) is accepted again, one bad report no longer clears the values, and
+  the E32 restarts by itself 30 seconds after you save Bluetooth settings.
+- An update that fails to start rolls back to the previous firmware instead of
+  restarting forever. Firmware update errors are now in English.
+- Very deeply nested JSON from the network can no longer crash the E32; all
+  parsers of outside input are fuzz-tested in CI.
+- A watchdog now also covers start-up; a stalled GitHub download can no longer
+  switch off the supervisor; the E32 restarts itself when Wi-Fi reports
+  "connected" but the network no longer answers or when no Bluetooth sensor has
+  been heard for 30 minutes, reconnects to Wi-Fi more patiently, and backs off
+  instead of restarting every 15 minutes during a long Wi-Fi or network outage.
+- Less use of the memory Wi-Fi needs: JSON documents and large replies live in
+  PSRAM, and the Bluetooth page reply is small and bounded.
+
+## Updating
+
+Install this firmware and HA 0.4.0b10 together. HA 0.4.0b9 keeps working with
+the fields it knows, but ignores heating status with a request above 60 °C:
+keep the maximum flow at 60 °C until HA is updated. After an update the E32 confirms the new firmware itself
+once it has run normally for about a minute and the network has worked; until
+then a failed start rolls back to the previous version, and other restarts are
+postponed. Without a working network connection within 10 minutes (router,
+MQTT broker or the web page answering) it also rolls back. The name of the
+setup Wi-Fi network now ends in the last digits of the E32 MAC address and may
+differ from before.
+Check the time zone under System → Network if you live outside Central Europe.
+
+## Limitations
+
+Shadow mode only: active control stays switched off until the attended
+switch-over. EMS Classic (EMS 1.0) boilers only; EMS+ is planned. The learned
+advice is shown, not applied. The plan's maximum flow can be set up to 80 °C,
+never above the boiler's own maximum heating temperature. Night-setback gas
+estimates need an outdoor temperature and become more accurate with a gas
+meter in Home Assistant.
+
 # E32 V2 beta17 — rooms and heating in shadow mode, a stable Bluetooth page and pvvx sensors
 <!-- user-release-notes:v2:en -->
 

@@ -16,7 +16,8 @@ inline bool mutationBlocked(std::string_view path,bool working,bool staged,bool 
     if(path=="/boiler/test/read_identity"||path=="/boiler/test/read_configuration"||path=="/boiler/test/prepare_zero"||path=="/boiler/test/prepare"||path=="/boiler/test/start"||path=="/boiler/test/keepalive") return working||staged||pending;
     if(path=="/boiler/settings/write")return working||staged||pending;
     if(path=="/ota"||path=="/otafs")return working||staged||pending;
-    if(path=="/config/reboot"||path=="/setup/reenter")return working;
+    // A restart while a new image is unconfirmed would roll it back (bootloader).
+    if(path=="/config/reboot"||path=="/setup/reenter")return working||pending;
     return false;
 }
 inline bool hex(std::string_view value,size_t size) {

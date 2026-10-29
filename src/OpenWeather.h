@@ -3,6 +3,7 @@
 #include "config.h"
 #include "Logging.h"
 #include "control/WeatherObservation.h"
+#include "control/BoundedJson.h"
 #include <HTTPClient.h>
 #include <esp_timer.h>
 #include <ctime>
@@ -34,7 +35,8 @@ public:
 		}
 
 		auto now = millis();
-		if (lastFetch_ > 0 && now < lastFetch_ + config_.interval * 1000) {
+		// Elapsed time by unsigned subtraction: stays correct across the millis() wrap (49.7 days).
+		if (lastFetch_ > 0 && now - lastFetch_ < static_cast<unsigned long>(config_.interval) * 1000ul) {
 			unsigned long timeToWait = static_cast<unsigned long>(config_.interval * 1000);
 			DBGLOGFD(log_, logFeature_, "Interval: %ld\n", timeToWait);
 			timeToWait = timeToWait - (now - lastFetch_);
@@ -75,7 +77,8 @@ private:
 	ib::logger::LoggerInterface::LogFeatureType logFeature_{};
 	void parsePayload(String const &payload) {
 		outdoor_.valid = false;
-		std::unique_ptr<cJSON, decltype(&cJSON_Delete)> data(cJSON_Parse(payload.c_str()), &cJSON_Delete);
+		// Parsed on the small OpenWeather task stack: a shallow document only.
+		std::unique_ptr<cJSON, decltype(&cJSON_Delete)> data(control::parseNestedJson(payload, false, 6));
 
 		auto main = cJSON_GetObjectItem(data.get(), "main");
 		if (!main || main->type != cJSON_Object ||

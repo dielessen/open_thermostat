@@ -1,4 +1,5 @@
 #include "control/ShadowComparison.h"
+#include "ScopedTz.h"
 #include <gtest/gtest.h>
 #include <functional>
 #include <memory>
@@ -9,7 +10,7 @@ using heating::control::ShadowComparison;
 using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
 constexpr uint64_t second = 1000, minute = 60 * second;
 constexpr uint32_t day = 86400;
-// 2026-10-28 00:00 CET (23:00 UTC the day before).
+// 2026-10-28 00:00 CET (23:00 UTC the day before); the day tests set the Amsterdam TZ.
 const uint32_t midnight = uint32_t(ShadowComparison::daysFromCivil(2026, 10, 28)) * day - 3600;
 
 FlowDemand::Request e32(uint8_t flowC) { return {flowC > 0, flowC, flowC > 0 ? FlowDemand::Reason::heating : FlowDemand::Reason::idle}; }
@@ -24,6 +25,7 @@ uint8_t between(uint64_t t, uint64_t on, uint64_t off, uint8_t flowC) { return t
 double num(const cJSON* o, const char* key) { return cJSON_GetNumberValue(cJSON_GetObjectItem(o, key)); }
 
 TEST(ShadowComparison, IdenticalDecisionsAgreeFully) {
+    ScopedTz tz(ScopedTz::amsterdam); // fixture times are Amsterdam days
     ShadowComparison c;
     const auto both = [](uint64_t t) { return between(t, 10 * minute, 70 * minute, 38); };
     run(c, 0, 90 * minute, midnight + 3600, both, both);
@@ -42,6 +44,7 @@ TEST(ShadowComparison, IdenticalDecisionsAgreeFully) {
     EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(j.get(), "days")), 0);
 }
 TEST(ShadowComparison, ThreeMinuteLaterStartIsPairedWithItsOffset) {
+    ScopedTz tz(ScopedTz::amsterdam); // fixture times are Amsterdam days
     ShadowComparison c;
     run(c, 0, 90 * minute, midnight + 3600,
         [](uint64_t t) { return between(t, 13 * minute, 70 * minute, 41); },
@@ -57,6 +60,7 @@ TEST(ShadowComparison, ThreeMinuteLaterStartIsPairedWithItsOffset) {
     EXPECT_EQ(num(cJSON_GetObjectItem(today, "e32"), "flow_max_c"), 41);
 }
 TEST(ShadowComparison, StartsMoreThanThirtyMinutesApartDoNotPair) {
+    ScopedTz tz(ScopedTz::amsterdam); // fixture times are Amsterdam days
     ShadowComparison c;
     run(c, 0, 120 * minute, midnight + 3600,
         [](uint64_t t) { return between(t, 50 * minute, 100 * minute, 40); },
@@ -67,6 +71,7 @@ TEST(ShadowComparison, StartsMoreThanThirtyMinutesApartDoNotPair) {
     EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(cJSON_GetObjectItem(j.get(), "today"), "start_offset_mean_s")));
 }
 TEST(ShadowComparison, UnknownTadoIsCountedApartAndKeepsItsLastState) {
+    ScopedTz tz(ScopedTz::amsterdam); // fixture times are Amsterdam days
     ShadowComparison c;
     // tado known off, unknown 10-15 min, then heating: the observed edge is a start.
     run(c, 0, 30 * minute, midnight + 3600, [](uint64_t) { return uint8_t(0); },
@@ -81,6 +86,7 @@ TEST(ShadowComparison, UnknownTadoIsCountedApartAndKeepsItsLastState) {
     EXPECT_EQ(d.tadoOnlyS, 15 * 60u);
 }
 TEST(ShadowComparison, TadoZeroOrLowFlowMeansNoHeat) {
+    ScopedTz tz(ScopedTz::amsterdam); // fixture times are Amsterdam days
     ShadowComparison c;
     c.sample(0, midnight, e32(0), uint8_t(0));
     c.sample(10 * second, midnight + 10, e32(0), uint8_t(ShadowComparison::tadoHeatFromC - 1));
@@ -89,6 +95,7 @@ TEST(ShadowComparison, TadoZeroOrLowFlowMeansNoHeat) {
     EXPECT_EQ(c.today().tado.starts, 1u);
 }
 TEST(ShadowComparison, GapsAreNotFilledIn) {
+    ScopedTz tz(ScopedTz::amsterdam); // fixture times are Amsterdam days
     ShadowComparison c;
     c.sample(0, midnight, e32(40), uint8_t(40));
     c.sample(10 * minute, midnight + 600, e32(40), uint8_t(40)); // ten minutes without samples
@@ -101,6 +108,7 @@ TEST(ShadowComparison, GapsAreNotFilledIn) {
     EXPECT_EQ(c.today().s, 30u + 999u); // 100 x 9.999 s
 }
 TEST(ShadowComparison, CyclingIsCountedPerSide) {
+    ScopedTz tz(ScopedTz::amsterdam); // fixture times are Amsterdam days
     ShadowComparison c;
     // E32 10 min on / 10 min off for two hours, tado one long period.
     run(c, 0, 120 * minute, midnight + 3600,
@@ -113,6 +121,7 @@ TEST(ShadowComparison, CyclingIsCountedPerSide) {
     EXPECT_EQ(c.today().close, 1u);
 }
 TEST(ShadowComparison, LocalMidnightMovesTodayIntoTheHistory) {
+    ScopedTz tz(ScopedTz::amsterdam);
     ShadowComparison c;
     const auto heat = [](uint64_t) { return uint8_t(35); };
     const auto tado = [](uint64_t) -> std::optional<uint8_t> { return uint8_t(35); };
@@ -126,6 +135,7 @@ TEST(ShadowComparison, LocalMidnightMovesTodayIntoTheHistory) {
     EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(cJSON_GetArrayItem(cJSON_GetObjectItem(j.get(), "days"), 0), "day")), "2026-10-28");
 }
 TEST(ShadowComparison, HistoryKeepsTheLastSevenDays) {
+    ScopedTz tz(ScopedTz::amsterdam);
     ShadowComparison c;
     for (uint32_t i = 0; i < 10; ++i) {
         const uint64_t t = uint64_t(i) * day * 1000;
@@ -140,6 +150,7 @@ TEST(ShadowComparison, HistoryKeepsTheLastSevenDays) {
     EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(j.get(), "days")), 7);
 }
 TEST(ShadowComparison, BootTimeWithoutClockJoinsTheFirstKnownDay) {
+    ScopedTz tz(ScopedTz::amsterdam);
     ShadowComparison c;
     c.sample(0, std::nullopt, e32(0), uint8_t(0));
     c.sample(10 * second, std::nullopt, e32(0), uint8_t(0));
@@ -152,7 +163,8 @@ TEST(ShadowComparison, BootTimeWithoutClockJoinsTheFirstKnownDay) {
     c.sample(30 * second, midnight - 7200, e32(0), uint8_t(0)); // clock stepped back a day: stays today
     EXPECT_EQ(c.completedDays(), 0u);
 }
-TEST(ShadowComparison, LocalDayFollowsAmsterdamSummerTime) {
+TEST(ShadowComparison, LocalDayFollowsTheDeviceTimeZone) {
+    ScopedTz tz(ScopedTz::amsterdam);
     const auto at = [](int y, unsigned m, unsigned d, uint32_t utcSeconds) {
         return uint32_t(ShadowComparison::daysFromCivil(y, m, d)) * day + utcSeconds;
     };
@@ -166,8 +178,23 @@ TEST(ShadowComparison, LocalDayFollowsAmsterdamSummerTime) {
     EXPECT_EQ(ShadowComparison::localDay(at(2026, 10, 25, 22 * 3600 + 1800)), local(2026, 10, 25));
     EXPECT_EQ(ShadowComparison::localDay(at(2026, 3, 28, 23 * 3600)), local(2026, 3, 29));
     EXPECT_EQ(ShadowComparison::localDay(at(2026, 3, 29, 22 * 3600)), local(2026, 3, 30));
+    {
+        ScopedTz other(ScopedTz::newYork); // midnight at 04:00 UTC in summer (EDT), 05:00 UTC in winter (EST)
+        EXPECT_EQ(ShadowComparison::localDay(at(2026, 7, 2, 4 * 3600 - 1)), local(2026, 7, 1));
+        EXPECT_EQ(ShadowComparison::localDay(at(2026, 7, 2, 4 * 3600)), local(2026, 7, 2));
+        EXPECT_EQ(ShadowComparison::localDay(at(2026, 12, 2, 5 * 3600 - 1)), local(2026, 12, 1));
+        EXPECT_EQ(ShadowComparison::localDay(at(2026, 12, 2, 5 * 3600)), local(2026, 12, 2));
+        EXPECT_EQ(ShadowComparison::localDay(at(2026, 11, 2, 5 * 3600 - 1)), local(2026, 11, 1)); // first EST midnight
+    }
+    {
+        ScopedTz other(ScopedTz::london);
+        EXPECT_EQ(ShadowComparison::localDay(at(2026, 7, 1, 23 * 3600 - 1)), local(2026, 7, 1)); // 23:59:59 BST
+        EXPECT_EQ(ShadowComparison::localDay(at(2026, 7, 1, 23 * 3600)), local(2026, 7, 2));
+        EXPECT_EQ(ShadowComparison::localDay(at(2026, 12, 1, 23 * 3600 + 1800)), local(2026, 12, 1)); // 23:30 GMT
+    }
 }
 TEST(ShadowComparison, DayWithoutHeatReportsNullFlows) {
+    ScopedTz tz(ScopedTz::amsterdam); // fixture times are Amsterdam days
     ShadowComparison c;
     c.sample(0, midnight, e32(0), std::nullopt);
     c.sample(10 * second, midnight + 10, e32(0), std::nullopt);

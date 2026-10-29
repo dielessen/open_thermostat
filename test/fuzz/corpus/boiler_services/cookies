@@ -1,0 +1,5 @@
+k foo=bar; OTSESSION=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; x=y
+k OTSESSION=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; OTSESSION=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+m "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+k 
+a prepare {"schema":1,"boot_id":"000000000000002a","revision":1,"flow_c":40,"duration_s":1,"exclusive_owner_confirmed":true,"independent_stop_confirmed":true,"heat_path_confirmed":true}

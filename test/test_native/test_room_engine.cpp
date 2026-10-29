@@ -1,5 +1,7 @@
 #include "control/RoomEngine.h"
+#include "ScopedTz.h"
 #include <gtest/gtest.h>
+#include <cstdlib>
 #include <memory>
 
 namespace {
@@ -37,9 +39,29 @@ TEST(RoomPlan, OwnerPlanRoundTripsUnchanged) {
     const auto again = parsed(plan.json().c_str());
     EXPECT_EQ(again.json(), plan.json());
 }
-TEST(RoomPlan, FlowAboveSixtyAndBadSourcesAreRejected) {
+TEST(RoomPlan, FlowLimitsAcceptEveryHomeUpToEighty) {
+    const std::string text = ownerPlan;
+    const auto limits = [&](const char* min, const char* max) {
+        const std::string original = "\"minimum_flow_c\":30,\"maximum_flow_c\":60";
+        std::string t = text;
+        t.replace(t.find(original), original.size(),
+            std::string("\"minimum_flow_c\":") + min + ",\"maximum_flow_c\":" + max);
+        return t;
+    };
+    for (const auto& ok : {std::make_pair("20", "21"), std::make_pair("30", "75"), std::make_pair("79", "80"), std::make_pair("45", "80")}) {
+        const auto plan = parsed(limits(ok.first, ok.second).c_str());
+        EXPECT_EQ(plan.minimumFlowC, std::stoi(ok.first));
+        EXPECT_EQ(plan.maximumFlowC, std::stoi(ok.second));
+        EXPECT_EQ(parsed(plan.json().c_str()).maximumFlowC, plan.maximumFlowC);
+    }
+    for (const auto& bad : {std::make_pair("30", "81"), std::make_pair("19", "60"), std::make_pair("80", "80"),
+             std::make_pair("50", "50"), std::make_pair("60", "40"), std::make_pair("30", "20"), std::make_pair("30.5", "60")})
+        EXPECT_STREQ(parseError(limits(bad.first, bad.second)), "invalid_flow_limits") << bad.first << ".." << bad.second;
+    EXPECT_EQ(RoomPlan{}.maximumFlowC, 60); // new plans keep the 60 degC default
+}
+TEST(RoomPlan, FlowAboveEightyAndBadSourcesAreRejected) {
     std::string text = ownerPlan;
-    EXPECT_STREQ(parseError(std::string(text).replace(text.find("\"maximum_flow_c\":60"), 19, "\"maximum_flow_c\":75")), "invalid_flow_limits");
+    EXPECT_STREQ(parseError(std::string(text).replace(text.find("\"maximum_flow_c\":60"), 19, "\"maximum_flow_c\":85")), "invalid_flow_limits");
     EXPECT_STREQ(parseError(std::string(text).replace(text.find("a4c138a3e8db"), 12, "A4:C1:38:A3")), "invalid_sources");
     EXPECT_STREQ(parseError(std::string(text).replace(text.find("\"badkamer\""), 10, "\"woonkamer\"")), "duplicate_room");
     EXPECT_STREQ(parseError(R"({"schema":2})"), "invalid_schema");
@@ -140,6 +162,7 @@ TEST(RoomEngine, EditingThePlanKeepsReadingsAndTheRunningRequest) {
 namespace {
 // Without HA the E32 follows its own week program; without a clock the fallback.
 TEST(RoomEngine, StaleHomeAssistantTargetFallsBackToTheWeekProgram) {
+    ScopedTz tz(ScopedTz::amsterdam);
     std::string text = ownerPlan;
     // Every day: 18.0 from 22:30, 20.5 from 06:30 local time.
     const std::string week = R"(,"schedule":[[[390,2050],[1350,1800]],[],[],[],[],[],[]])";
@@ -161,6 +184,26 @@ TEST(RoomEngine, StaleHomeAssistantTargetFallsBackToTheWeekProgram) {
     EXPECT_EQ(room(20 * minute, 1792980000), std::make_pair(18.0, std::string("schedule")));
     EXPECT_EQ(room(21 * minute, std::nullopt), std::make_pair(20.0, std::string("fallback")));
 }
+
+// The week program follows the device's TZ: 06:30 in New York is 11:30 UTC.
+TEST(RoomEngine, WeekProgramRunsOnTheDeviceTimeZone) {
+    ScopedTz tz(ScopedTz::newYork);
+    std::string text = ownerPlan;
+    const std::string week = R"(,"schedule":[[[390,2050],[1350,1800]],[],[],[],[],[],[]])"; // Mon 06:30 20.5, 22:30 18.0
+    text.insert(text.find("\"maximum_centi_c\":2500}") + 22, week);
+    RoomEngine e; e.setPlan(parsed(text.c_str()));
+    const auto setpoint = [&](uint64_t now, uint32_t utc) {
+        e.bleReading("a4c138a3e8db", 1950, now);
+        e.step(now, utc);
+        Json j(e.json(), cJSON_Delete);
+        const auto* r = cJSON_GetArrayItem(cJSON_GetObjectItem(j.get(), "rooms"), 0);
+        EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(r, "setpoint_source")), "schedule");
+        return cJSON_GetNumberValue(cJSON_GetObjectItem(r, "setpoint"));
+    };
+    const uint32_t monday0630Est = 1767591000 + 6 * 3600; // Mon 2026-01-05 06:30 EST
+    EXPECT_EQ(setpoint(minute, monday0630Est - 3600), 18.0);    // 05:30 EST (10:30 UTC, after 06:30 in Amsterdam)
+    EXPECT_EQ(setpoint(2 * minute, monday0630Est), 20.5);
+}
 }
 
 namespace {
@@ -177,5 +220,47 @@ TEST(RoomEngine, RemovingTheLeadingSourceForgetsItBeforeTheNextStep) {
     Json j(e.json(), cJSON_Delete);
     const auto* room = cJSON_GetArrayItem(cJSON_GetObjectItem(j.get(), "rooms"), 0);
     EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(room, "source")));
+}
+}
+
+namespace {
+// HeatingController::setHeatingPlan skips the NVS write when the posted plan
+// (same revision) serialises exactly like the stored one: HA automations that
+// resend the plan neither wear the flash nor bump the revision.
+TEST(RoomPlan, ResentPlanIsDetectedAsUnchangedButAnEditIsNot) {
+    std::string text = ownerPlan;
+    const auto stored = parsed(text.replace(1, 0, "\"revision\":7,").c_str());
+    const auto resent = parsed(stored.json().c_str());
+    EXPECT_EQ(resent.json(), stored.json());
+    std::string edited = stored.json();
+    edited.replace(edited.find("\"Woonkamer\""), 11, "\"Living\"");
+    EXPECT_NE(parsed(edited.c_str()).json(), stored.json());
+}
+
+// Every cJSON allocation of json() failing in turn: nullptr or a document,
+// never a crash or a leak (the ha_entities array once dereferenced null).
+size_t engineAllocations = 0, engineLive = 0, engineFailAt = 0;
+void* engineAllocate(size_t size) {
+    if (engineAllocations++ == engineFailAt) return nullptr;
+    void* p = std::malloc(size);
+    if (p) ++engineLive;
+    return p;
+}
+void engineRelease(void* p) { if (p) { --engineLive; std::free(p); } }
+TEST(RoomEngine, JsonSurvivesEveryAllocationFailure) {
+    RoomEngine e; e.setPlan(parsed(ownerPlan)); e.step(minute, std::nullopt);
+    struct Restore { ~Restore() { cJSON_InitHooks(nullptr); } } restore;
+    cJSON_Hooks hooks{engineAllocate, engineRelease};
+    cJSON_InitHooks(&hooks);
+    bool completed = false;
+    for (engineFailAt = 0; engineFailAt < 200 && !completed; ++engineFailAt) {
+        engineAllocations = engineLive = 0;
+        cJSON* j = e.json();
+        completed = engineAllocations <= engineFailAt; // nothing failed: the whole document
+        if (completed) { EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(j, "ha_entities")), 1); }
+        cJSON_Delete(j);
+        EXPECT_EQ(engineLive, 0u) << engineFailAt;
+    }
+    EXPECT_TRUE(completed);
 }
 }

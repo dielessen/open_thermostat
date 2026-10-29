@@ -20,6 +20,9 @@
 #include <TimeHelpers.h>
 #include <esp_timer.h>
 
+#include <ctime>
+namespace heating { extern bool networkTimeTrusted; } // main.cpp: NTP synchronized this boot
+
 namespace heating::ems {
 
 EmsController::EmsController(std::shared_ptr<ib::logger::LoggerInterface> log) : log_(std::move(log)) {
@@ -284,7 +287,8 @@ bool EmsController::processBoilerTestPoll() {
 	// poll, including legacy queue/pong, rather than dispatching an old command.
 	std::unique_lock<std::mutex> lock(telemetryMutex_, std::try_to_lock);
 	if (!lock.owns_lock()) return true;
-    if (boilerTestTransportFault_.exchange(false, std::memory_order_acq_rel)) {
+    const bool transportFault = boilerTestTransportFault_.exchange(false, std::memory_order_acq_rel);
+    if (transportFault) {
         boilerTest_.transportFault(static_cast<uint64_t>(esp_timer_get_time()/1000));
         configurationRead_.fail("transport_fault");
         boilerSettings_.failTransport();
@@ -314,7 +318,10 @@ bool EmsController::processBoilerTestPoll() {
 		[this](const EmsRawFrame& frame) {
             return transmitManualFrame<false>(frame);
 		});
-	return result != BoilerTestPollDriver::Result::unowned;
+	if (result != BoilerTestPollDriver::Result::unowned) return true;
+    return activeHeat_.poll(static_cast<uint64_t>(esp_timer_get_time() / 1000), monitor_,
+        [&] { return !transportFault && activeHeatRouteReady(); }, boilerTestEncoder_,
+        [this](const EmsRawFrame& frame) { return transmitManualFrame<false>(frame); });
 }
 #endif
 
@@ -462,8 +469,13 @@ void EmsController::decodeTelegram(uint8_t *data, uint8_t length, uint64_t recei
             // evidence simply because loop() decodes it after the command.
             deviceInventory_.observe(telegram, receivedAtMs);
             monitor_.receive(telegram, receivedAtMs);
+            burnerCycles_.observe(monitor_, receivedAtMs);
+            std::optional<uint32_t> unixNow; // DHW episodes count per local day once the clock is trusted
+            if (heating::networkTimeTrusted) unixNow = static_cast<uint32_t>(std::time(nullptr));
+            dhwEpisodes_.observe(monitor_, receivedAtMs, unixNow);
             entities_.observe(telegram, receivedAtMs);
 #ifdef OPENTHERMOSTAT_E32V2
+            foreignRequest_.observe(telegram, receivedAtMs);
             configurationRead_.observe(telegram,receivedAtMs,static_cast<uint64_t>(esp_timer_get_time()/1000),
                 configurationReadPermitted(),monitor_);
 #endif

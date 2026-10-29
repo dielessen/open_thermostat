@@ -132,6 +132,10 @@ public:
     void revoke(std::string_view token) {
         for (auto &session : sessions_) if (equal(token,view(session.token))) session = Session{};
     }
+    // After a password change: every other browser and Home Assistant must sign in again.
+    void revokeOthers(std::string_view keep) {
+        for (auto &session : sessions_) if (!hexToken(keep) || !equal(keep,view(session.token))) session = Session{};
+    }
     bool loginAllowed(uint64_t now) const {
         return failed_ < 5 || (now >= failedFrom_ && now-failedFrom_ >= 30000);
     }

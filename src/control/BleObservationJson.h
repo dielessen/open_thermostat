@@ -52,6 +52,10 @@ inline bool addBleObservation(cJSON* row,const BleObservationSnapshot& value) {
         && addBleOptional(row,"counter",value.counter)
         && addBleOptional(row,"rssi",value.rssi)
         && addBleOptional(row,"declared_device_type",value.declaredDeviceType)
-        && cJSON_AddNumberToObject(row,"old_counter_drops",value.oldCounterDrops);
+        && cJSON_AddNumberToObject(row,"old_counter_drops",value.oldCounterDrops)
+        && cJSON_AddNumberToObject(row,"frames_rejected",value.framesRejected)
+        && cJSON_AddNumberToObject(row,"counter_resets",value.counterResets)
+        && (value.lastRejection ? cJSON_AddStringToObject(row,"last_rejection",bleObservationStatusName(*value.lastRejection)) != nullptr
+            : cJSON_AddNullToObject(row,"last_rejection") != nullptr);
 }
 }

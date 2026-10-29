@@ -1,25 +1,4 @@
-<style>
-	.ot-about { max-width: 900px; margin: 28px auto; color: #173b40; }
-	.ot-about h1 { font-size: 2rem; font-weight: 700; }
-	.ot-about h2 { font-size: 1.2rem; font-weight: 650; }
-	.ot-about h3 { font-size: 1rem; font-weight: 650; }
-	.ot-about-eyebrow { color: #526a70; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; }
-	.ot-about-lead { font-size: 1.1rem; }
-	.ot-about-badge { display: inline-block; padding: 6px 12px; border-radius: 18px; background: #eff7f5; color: #08665b; font-size: .85rem; }
-	.ot-about-panel { padding: 24px; margin-top: 24px; border: 1px solid #d2dfe1; border-radius: 14px; background: #fff; }
-	.ot-about-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
-	.ot-about summary { cursor: pointer; font-weight: 600; }
-	.ot-about details[open] > summary { margin-bottom: 20px; }
-	.ot-about summary:focus-visible { outline: 3px solid #097c70; outline-offset: 4px; }
-	.ot-about-libraries { list-style: none; padding: 0; }
-	.ot-about-libraries li { padding: 12px 0; border-bottom: 1px solid #e9f0f0; }
-	.ot-about-libraries small { display: block; color: #526a70; }
-	@media (max-width: 560px) {
-		.ot-about { margin: 20px auto; }
-		.ot-about h1 { font-size: 1.65rem; }
-		.ot-about-panel { padding: 18px; }
-	}
-</style>
+<style>.ot-about{max-width:900px;margin:28px auto}.ot-about-eyebrow{color:var(--ot-muted);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase}.ot-about-lead{font-size:1.1rem}.ot-about-badge{display:inline-block;padding:6px 12px;border-radius:999px;background:var(--ot-accent-soft);color:var(--ot-accent);font-size:.85rem;font-weight:600}.ot-about-panel{padding:24px;margin-top:24px;border:1px solid var(--ot-border);border-radius:var(--ot-r2);background:var(--ot-surface)}.ot-about-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}.ot-about-libraries{list-style:none;padding:0}.ot-about-libraries li{padding:12px 0;border-bottom:1px solid var(--ot-border)}.ot-about-libraries small{display:block}@media(max-width:560px){.ot-about{margin:20px auto}.ot-about-panel{padding:18px}}</style>
 
 <section class="ot-about" aria-labelledby="about-heading">
 	<header>
@@ -43,6 +22,44 @@
 		</nav>
 	</article>
 
+	<article class="ot-about-panel" aria-labelledby="about-password" id="about-password-card" hidden>
+		<h2 id="about-password"><span data-i18n="Password">Password</span></h2>
+		<p class="pd-help"><span data-i18n="The password protects this web page. Home Assistant asks for it too when you use Connect E32. The user name stays admin.">The password protects this web page. Home Assistant asks for it too when you use Connect E32. The user name stays admin.</span></p>
+		<form id="password-form">
+			<input type="text" name="username" value="admin" autocomplete="username" hidden>
+			<label class="d-block mb-2"><span data-i18n="Current password">Current password</span><input class="form-control" id="pw-current" type="password" autocomplete="current-password" maxlength="128" required></label>
+			<label class="d-block mb-2"><span data-i18n="New password">New password</span><input class="form-control" id="pw-new" type="password" autocomplete="new-password" minlength="8" maxlength="128" required data-hint="8 to 64 characters."></label>
+			<label class="d-block mb-2"><span data-i18n="Repeat the new password">Repeat the new password</span><input class="form-control" id="pw-repeat" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label>
+			<p class="ot-actions"><button type="submit" class="btn btn-primary"><span data-i18n="Change password">Change password</span></button><span id="pw-status" role="status" aria-live="polite"></span></p>
+		</form>
+	</article>
+	<script>
+	(() => {
+		const card = document.getElementById('about-password-card'), form = document.getElementById('password-form'), out = document.getElementById('pw-status');
+		window.OpenThermostatAuth?.ready().then(s => { card.hidden = !!s.legacy; if (s.default_password) out.textContent = uiText("You still use the default password admin."); }, () => {});
+		form.addEventListener('submit', async event => {
+			event.preventDefault();
+			const [current, next, again] = ['pw-current', 'pw-new', 'pw-repeat'].map(id => document.getElementById(id));
+			if (next.value !== again.value) { out.textContent = uiText("The two new passwords are not the same."); again.focus(); return; }
+			// Characters like the firmware counts them (code points), not bytes or UTF-16 units: "Zoë" is 3.
+			const length = [...next.value].length;
+			if (length < 8 || length > 64) { out.textContent = uiText(length < 8 ? "The new password is too short." : "The new password is too long (at most 64 characters)."); next.focus(); return; }
+			out.textContent = uiText("Saving…");
+			const say = text => { out.textContent = uiText(text); };
+			try {
+				const r = await fetch('/auth/password', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({current:current.value, new:next.value})});
+				const error = r.ok ? null : (await r.json().catch(() => ({}))).error || r.status;
+				say(!error ? "Password changed. Use it the next time you sign in, also in Home Assistant." : error === 'password_wrong' ? "The current password is not correct."
+					: error === 'password_too_short' ? "The new password is too short." : error === 'password_too_long' ? "The new password is too long (at most 64 characters)."
+					: error === 'password_change_busy' ? "An update is running. Change the password after the update has finished."
+					: error === 'password_storage_failed' ? "The E32 could not confirm that the new password was saved. Try again; until then the old password may still apply."
+					: error === 404 ? "This firmware cannot change the password yet. Update the firmware first." : "The password was not changed. Try again.");
+				if (!error) { window.otDefaultPassword = false; form.reset(); } else if (error === 'password_wrong') current.focus();
+			} catch (_) { say("The password was not changed. Try again."); }
+		});
+	})();
+	</script>
+
 	<details class="ot-about-panel">
 		<summary><span data-i18n="Project origins &amp; acknowledgements">Project origins &amp; acknowledgements</span></summary>
 		<p>
@@ -51,7 +68,7 @@
 			<span data-i18n="by Paweł Filipczak / intuibase. The current project is an independent continuation, with its own architecture and product direction.">by Paweł Filipczak / intuibase. The current project is an independent continuation, with its own architecture and product direction.</span>
 		</p>
 		<p>
-			Original project: Copyright 2023 Paweł Filipczak &middot;
+			<span data-i18n="Original project:">Original project:</span> Copyright 2023 Paweł Filipczak &middot;
 			<a href="mailto:info@intuibase.pl">info@intuibase.pl</a><br>
 			<span data-i18n="The original copyright and">The original copyright and</span>
 			<a href="https://github.com/dielessen/open_thermostat/blob/main/LICENSE" target="_blank" rel="noopener noreferrer"><span data-i18n="MIT license">MIT license</span></a>

@@ -280,11 +280,16 @@ inline const char* telegramName(uint16_t type) {
     default: return "Unknown";
     }
 }
+// Bus address ranges as in EMS-ESP: thermostats/room controllers 0x10-0x1F,
+// mixer modules 0x20-0x2F, gateway (e.g. KM200/EasyControl) 0x48.
 inline const char* addressRole(uint8_t address) {
-    switch(address & 0x7F) {
-    case 0: return "All"; case 8: return "Boiler";
-    case 0x10: case 0x17: return "Thermostat";
-    case 0x0B: return "Service"; default: return "Device";
-    }
+    const uint8_t a = address & 0x7F;
+    if (a == 0) return "All";
+    if (a == 0x08) return "Boiler";
+    if (a == 0x0B) return "Service";
+    if (a >= 0x10 && a <= 0x1F) return "Thermostat";
+    if (a >= 0x20 && a <= 0x2F) return "Mixer";
+    if (a == 0x48) return "Gateway";
+    return "Device";
 }
 }

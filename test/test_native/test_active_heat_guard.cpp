@@ -12,7 +12,8 @@ using State = ActiveHeatGuard::State;
 using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
 constexpr uint64_t second = 1000, minute = 60000;
 
-// One living room with a fresh reading, the tado unplugged, E32 up for an hour.
+// One living room with a fresh reading, the tado unplugged and confirmed so
+// by the owner, E32 up for an hour, the boiler reporting a 60 degC limit.
 struct Bench {
     ActiveHeatGuard guard;
     ActiveHeatGuard::Inputs in;
@@ -20,11 +21,12 @@ struct Bench {
     bool writesSucceed = true;
     struct Sent { uint64_t at; uint8_t flowC; };
     std::vector<Sent> sent;
-    Bench() {
+    explicit Bench(bool confirmed = true) {
         in.mode = RoomPlan::Mode::active;
         in.rooms.active = in.rooms.fresh = 1; in.rooms.coldestCentiC = 2040;
-        in.uptimeMs = now; in.routeReady = true;
+        in.uptimeMs = now; in.routeReady = true; in.boilerLimitC = 60;
         heat(40);
+        if (confirmed) guard.confirm(now, true);
     }
     void heat(uint8_t flowC) { in.request = {flowC > 0, flowC, flowC ? FlowDemand::Reason::heating : FlowDemand::Reason::idle}; }
     // Steps every 10 s like HeatingController::stepHeating, through `until`.
@@ -48,45 +50,75 @@ struct Bench {
     }
 };
 
-TEST(ActiveHeatGuard, ShadowNeverSends) {
+TEST(ActiveHeatGuard, ShadowNeverSendsAndForgetsTheConfirmation) {
     Bench b; b.in.mode = RoomPlan::Mode::shadow;
     b.in.rooms.coldestCentiC = 300; // even a frost reading
     b.runFor(3 * 60 * minute);
     EXPECT_TRUE(b.sent.empty());
     EXPECT_EQ(b.guard.state(), State::shadow);
     EXPECT_STREQ(b.guard.command().why, "shadow");
+    EXPECT_FALSE(b.guard.confirmed());
+    b.in.mode = RoomPlan::Mode::active; b.runFor(minute); // active again: confirm again
+    EXPECT_TRUE(b.sent.empty());
+    EXPECT_EQ(b.guard.state(), State::awaitingConfirmation);
 }
 
-TEST(ActiveHeatGuard, ForeignRequestWithinQuietWindowBlocksArming) {
-    Bench b;
-    b.in.foreign = ActiveHeatGuard::Foreign{0x17, 9 * minute}; // tado unplugged nine minutes ago
-    b.tick();
-    EXPECT_EQ(b.guard.state(), State::blockedForeignController);
-    EXPECT_TRUE(b.guard.warning(ActiveHeatGuard::foreignController));
-    EXPECT_FALSE(b.guard.command().send);
-    for (int i = 0; i < 5; ++i) { b.now += 10 * second; b.in.foreign->ageMs += 10 * second; b.tick(); }
+TEST(ActiveHeatGuard, TakesOverOnlyAfterTheOwnerConfirms) {
+    Bench b(false);
+    b.in.foreign = ActiveHeatGuard::Foreign{0x17, b.now - 5 * second}; // the tado's last request, just before
+    b.runFor(30 * minute);
     EXPECT_TRUE(b.sent.empty());
-    b.now += 10 * second; b.in.foreign->ageMs = 10 * minute; // quiet window over
-    b.tick();
+    EXPECT_EQ(b.guard.state(), State::awaitingConfirmation);
+    EXPECT_STREQ(b.guard.command().why, "awaiting_confirmation");
+    EXPECT_FALSE(b.guard.warning(ActiveHeatGuard::foreignController));
+    b.guard.confirm(b.now, true); // no quiet window: the next step takes over
+    b.runFor(10 * second);
     EXPECT_EQ(b.guard.state(), State::active);
     ASSERT_EQ(b.sent.size(), 1u);
     EXPECT_EQ(b.sent[0].flowC, 40);
+    // Withdrawing the confirmation ends with the zero window.
+    b.guard.confirm(b.now, false);
+    b.runFor(3 * minute);
+    EXPECT_EQ(b.since(b.sent[0].at).size(), 6u);
+    EXPECT_EQ(b.sent.back().flowC, 0);
+    EXPECT_EQ(b.guard.state(), State::awaitingConfirmation);
+}
+
+TEST(ActiveHeatGuard, ForeignRequestAfterConfirmationBlocksBeforeSending) {
+    Bench b; b.in.routeReady = false; // still arming
+    b.runFor(minute);
+    ASSERT_EQ(b.guard.state(), State::arming);
+    b.in.foreign = ActiveHeatGuard::Foreign{0x17, b.now + 5 * second}; // the tado is still connected
+    b.in.routeReady = true; b.runFor(10 * minute);
+    EXPECT_TRUE(b.sent.empty());
+    EXPECT_EQ(b.guard.state(), State::blockedForeignController);
+    EXPECT_TRUE(b.guard.warning(ActiveHeatGuard::foreignController));
+    EXPECT_FALSE(b.guard.confirmed()); // must be given again
+    b.guard.confirm(b.now, true); b.runFor(10 * second);
+    EXPECT_EQ(b.guard.state(), State::active);
+    EXPECT_FALSE(b.guard.warning(ActiveHeatGuard::foreignController));
     // Our own address and the boiler's never count as another master.
-    Bench own; own.in.foreign = ActiveHeatGuard::Foreign{0x0b, 0};
-    own.tick();
-    EXPECT_EQ(own.guard.state(), State::active);
+    for (uint8_t address : {uint8_t(0x0b), uint8_t(0x08)}) {
+        Bench own; own.in.foreign = ActiveHeatGuard::Foreign{address, own.now + minute};
+        own.runFor(2 * minute);
+        EXPECT_EQ(own.guard.state(), State::active);
+    }
 }
 
 TEST(ActiveHeatGuard, ForeignRequestWhileActiveStopsWithZeroWindow) {
     Bench b; b.runFor(5 * minute);
     ASSERT_EQ(b.guard.state(), State::active);
     const auto at = b.now;
-    b.in.foreign = ActiveHeatGuard::Foreign{0x17, 0};
+    b.in.foreign = ActiveHeatGuard::Foreign{0x17, at + 1};
     b.runFor(3 * minute);
     const auto zeros = b.since(at);
     ASSERT_EQ(zeros.size(), 6u); // 0, 10..50 s; then silent
     for (const auto& z : zeros) EXPECT_EQ(z.flowC, 0);
     EXPECT_EQ(b.guard.state(), State::blockedForeignController);
+    EXPECT_TRUE(b.guard.warning(ActiveHeatGuard::foreignController));
+    EXPECT_FALSE(b.guard.confirmed());
+    b.runFor(60 * minute); // stays blocked: no automatic retry
+    EXPECT_EQ(b.since(at).size(), 6u);
 }
 
 TEST(ActiveHeatGuard, UnchangedRequestRefreshesEverySixtySeconds) {
@@ -114,12 +146,43 @@ TEST(ActiveHeatGuard, StopSendsZeroForOneWindowThenGoesQuiet) {
     const auto first = b.tick();
     EXPECT_EQ(b.guard.state(), State::stopping);
     EXPECT_TRUE(first.send); EXPECT_EQ(first.flowC, 0); EXPECT_STREQ(first.why, "stop_zero");
+    EXPECT_FALSE(b.guard.confirmed());
     b.runFor(60 * minute);
     const auto zeros = b.since(at);
     ASSERT_EQ(zeros.size(), 6u);
     for (const auto& z : zeros) EXPECT_EQ(z.flowC, 0);
     EXPECT_EQ(zeros.back().at - zeros.front().at, 50 * second);
     EXPECT_EQ(b.guard.state(), State::shadow);
+}
+
+TEST(ActiveHeatGuard, StopKeepsRepeatingZeroUntilOneIsDelivered) {
+    Bench b; b.runFor(3 * minute);
+    ASSERT_EQ(b.sent.back().flowC, 40);
+    b.writesSucceed = false; // bus busy, or the boiler stops polling 0x0B
+    b.in.mode = RoomPlan::Mode::shadow;
+    b.runFor(2 * minute);
+    EXPECT_EQ(b.guard.state(), State::stopping);
+    EXPECT_TRUE(b.guard.claimsBoiler());
+    EXPECT_TRUE(b.guard.warning(ActiveHeatGuard::transmitFailed));
+    b.in.routeReady = false; b.runFor(6 * 60 * minute); // the route stays down for hours
+    EXPECT_EQ(b.guard.state(), State::stopping);
+    EXPECT_FALSE(b.guard.command().send);
+    EXPECT_STREQ(b.guard.command().why, "route_not_ready");
+    const auto at = b.now;
+    b.in.routeReady = true; b.writesSucceed = true;
+    b.now += 10 * second; b.tick();
+    ASSERT_EQ(b.since(at).size(), 1u);
+    EXPECT_EQ(b.since(at)[0].flowC, 0);
+    EXPECT_FALSE(b.guard.warning(ActiveHeatGuard::transmitFailed));
+    b.now += 10 * second; b.tick();
+    EXPECT_EQ(b.guard.state(), State::shadow); // the window is over and the zero arrived
+    EXPECT_FALSE(b.guard.claimsBoiler());
+    // A guard whose last delivered request was already zero ends after one window.
+    Bench idle; idle.heat(0); idle.runFor(3 * minute);
+    ASSERT_EQ(idle.sent.back().flowC, 0);
+    idle.writesSucceed = false; idle.in.mode = RoomPlan::Mode::shadow;
+    idle.runFor(2 * minute);
+    EXPECT_EQ(idle.guard.state(), State::shadow);
 }
 
 TEST(ActiveHeatGuard, IdleActiveStillStopsWithZeroAndHeatOffRepeatsZero) {
@@ -178,14 +241,16 @@ TEST(ActiveHeatGuard, MeasurementLostSendsZeroAfterThirtyMinutes) {
 
 TEST(ActiveHeatGuard, FrostReadingInAnyRoomAsksMinimumFlow) {
     Bench b; b.heat(0);
-    b.in.rooms.measured(450); // inactive bathroom at 4.5 degC
+    b.in.rooms.measured(790); // inactive bathroom at 7.9 degC
     b.tick();
     EXPECT_TRUE(b.guard.command().send);
     EXPECT_EQ(b.guard.command().flowC, 30);
     EXPECT_STREQ(b.guard.command().why, "frost_minimum");
-    b.in.rooms.coldestCentiC = 550; b.runFor(minute); // hysteresis holds
+    b.in.rooms.coldestCentiC = 899; b.runFor(minute); // hysteresis holds
     EXPECT_EQ(b.sent.back().flowC, 30);
-    b.in.rooms.coldestCentiC = 600; b.runFor(10 * second);
+    b.in.rooms.coldestCentiC = 900; b.runFor(10 * second);
+    EXPECT_EQ(b.sent.back().flowC, 0);
+    b.in.rooms.coldestCentiC = 800; b.runFor(minute); // 8.00 degC itself is no frost
     EXPECT_EQ(b.sent.back().flowC, 0);
     // A higher engine request wins over the frost minimum.
     b.in.rooms.coldestCentiC = 400; b.heat(42); b.runFor(10 * second);
@@ -194,23 +259,25 @@ TEST(ActiveHeatGuard, FrostReadingInAnyRoomAsksMinimumFlow) {
 }
 
 TEST(ActiveHeatGuard, RestartHoldsOffUntilListenedAndInputsFresh) {
-    Bench b; b.now = 0; b.in.rooms.fresh = 0; // just rebooted, no reading yet
-    b.runFor(9 * minute + 50 * second);
+    Bench b(false); b.now = 0; b.in.rooms.fresh = 0; // just rebooted, no reading yet
+    b.guard.confirm(0, true);
+    b.runFor(110 * second);
     EXPECT_TRUE(b.sent.empty());
     EXPECT_EQ(b.guard.state(), State::arming);
-    b.in.rooms.fresh = 1; b.runFor(10 * second); // listened 10 min, room fresh
+    b.in.rooms.fresh = 1; b.runFor(10 * second); // listened 2 min, room fresh
     EXPECT_EQ(b.guard.state(), State::active);
     ASSERT_EQ(b.sent.size(), 1u);
-    EXPECT_EQ(b.sent[0].at, 10 * minute);
+    EXPECT_EQ(b.sent[0].at, 2 * minute);
     // The transmit route not ready: still nothing.
-    Bench route; route.now = 0; route.in.routeReady = false;
+    Bench route(false); route.now = 0; route.in.routeReady = false; route.guard.confirm(0, true);
     route.runFor(20 * minute);
     EXPECT_TRUE(route.sent.empty());
     EXPECT_EQ(route.guard.state(), State::arming);
 }
 
 TEST(ActiveHeatGuard, RestartWithoutMeasurementOwnsWithZeroAfterThirtyMinutes) {
-    Bench b; b.now = 0; b.in.rooms.fresh = 0; b.in.rooms.lost = 1;
+    Bench b(false); b.now = 0; b.in.rooms.fresh = 0; b.in.rooms.lost = 1;
+    b.guard.confirm(0, true);
     b.runFor(29 * minute);
     EXPECT_TRUE(b.sent.empty());
     EXPECT_TRUE(b.guard.warning(ActiveHeatGuard::measurementLost));
@@ -220,17 +287,55 @@ TEST(ActiveHeatGuard, RestartWithoutMeasurementOwnsWithZeroAfterThirtyMinutes) {
     EXPECT_EQ(b.sent[0].flowC, 0);
 }
 
-TEST(ActiveHeatGuard, FlowNeverAboveSixty) {
+TEST(ActiveHeatGuard, FlowNeverAboveThePlanMaximum) {
     Bench b; b.heat(90);
     b.runFor(3 * minute);
     for (const auto& s : b.sent) EXPECT_EQ(s.flowC, 60);
     b.guard.setFlowLimits(30, 50); b.runFor(minute);
     EXPECT_EQ(b.sent.back().flowC, 50);
-    // A limit above the hard cap is refused: the E32 leaves active with zero.
-    b.guard.setFlowLimits(30, 75); b.runFor(2 * minute);
-    for (const auto& s : b.sent) EXPECT_LE(s.flowC, 60);
+    // A radiator home may allow up to 80 degC.
+    b.in.boilerLimitC = 90; b.heat(90);
+    b.guard.setFlowLimits(30, 80); b.runFor(minute);
+    EXPECT_EQ(b.sent.back().flowC, 80);
+    // A limit above the absolute ceiling is refused: the E32 leaves active with zero.
+    b.guard.setFlowLimits(30, 81); b.runFor(2 * minute);
+    for (const auto& s : b.sent) EXPECT_LE(s.flowC, 80);
     EXPECT_EQ(b.sent.back().flowC, 0);
     EXPECT_EQ(b.guard.state(), State::shadow);
+}
+
+TEST(ActiveHeatGuard, CeilingIsTheLowerOfPlanMaximumAndBoilerLimit) {
+    {   // plan 75, boiler set to 55: the boiler's own setting wins
+        Bench b; b.guard.setFlowLimits(30, 75); b.in.boilerLimitC = 55; b.heat(90);
+        b.runFor(2 * minute);
+        ASSERT_FALSE(b.sent.empty());
+        for (const auto& s : b.sent) EXPECT_EQ(s.flowC, 55);
+    }
+    {   // plan 45, boiler set to 70: the plan's maximum wins
+        Bench b; b.guard.setFlowLimits(30, 45); b.in.boilerLimitC = 70; b.heat(90);
+        b.runFor(2 * minute);
+        ASSERT_FALSE(b.sent.empty());
+        for (const auto& s : b.sent) EXPECT_EQ(s.flowC, 45);
+    }
+}
+
+TEST(ActiveHeatGuard, NeverAboveTheBoilersReportedHeatingLimit) {
+    Bench b; b.heat(58); b.in.boilerLimitC = 55; // the boiler's own knob
+    b.runFor(minute);
+    for (const auto& s : b.sent) EXPECT_EQ(s.flowC, 55);
+    // Also below the plan minimum the boiler's limit wins.
+    b.in.boilerLimitC = 25; b.runFor(minute);
+    EXPECT_EQ(b.sent.back().flowC, 25);
+    // Unknown limit: the E32 keeps the boiler but asks no heat, and says why.
+    b.in.boilerLimitC.reset(); b.runFor(10 * second);
+    EXPECT_EQ(b.sent.back().flowC, 0);
+    b.runFor(2 * minute); // after the stop window
+    EXPECT_STREQ(b.guard.command().why, "boiler_limit_unknown");
+    EXPECT_TRUE(b.guard.warning(ActiveHeatGuard::boilerLimitUnknown));
+    EXPECT_EQ(b.guard.state(), State::active);
+    b.in.boilerLimitC = 55; b.runFor(10 * second);
+    EXPECT_EQ(b.sent.back().flowC, 55);
+    EXPECT_FALSE(b.guard.warning(ActiveHeatGuard::boilerLimitUnknown));
 }
 
 TEST(ActiveHeatGuard, BoilerWithoutResponseWarnsButKeepsAsking) {
@@ -262,22 +367,35 @@ TEST(ActiveHeatGuard, FailedWriteIsRetriedAndWarned) {
 }
 
 TEST(ActiveHeatGuard, StatusJson) {
-    Bench b; b.in.foreign = ActiveHeatGuard::Foreign{0x17, minute};
+    Bench b(false); b.in.foreign = ActiveHeatGuard::Foreign{0x17, b.now - minute};
     b.tick();
     Json j(b.guard.json(b.now), cJSON_Delete);
-    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(j.get(), "state")), "blocked_foreign_controller");
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(j.get(), "state")), "awaiting_confirmation");
     EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(j.get(), "last_sent")));
-    EXPECT_EQ(cJSON_GetObjectItem(cJSON_GetObjectItem(j.get(), "foreign_controller"), "address")->valueint, 0x17);
-    const auto* warnings = cJSON_GetObjectItem(j.get(), "warnings");
-    ASSERT_EQ(cJSON_GetArraySize(warnings), 1);
-    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetArrayItem(warnings, 0)), "foreign_controller");
-    b.in.foreign.reset(); b.in.foreign = ActiveHeatGuard::Foreign{0x17, 11 * minute};
-    b.tick();
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(j.get(), "confirmation")));
+    const auto* foreign = cJSON_GetObjectItem(j.get(), "foreign_controller");
+    EXPECT_EQ(cJSON_GetObjectItem(foreign, "address")->valueint, 0x17);
+    EXPECT_EQ(cJSON_GetObjectItem(foreign, "age_s")->valueint, 60);
+    EXPECT_EQ(cJSON_GetArraySize(cJSON_GetObjectItem(j.get(), "warnings")), 0);
+    b.guard.confirm(b.now, true);
+    b.now += 10 * second; b.tick();
     Json k(b.guard.json(b.now + 5 * second), cJSON_Delete);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(k.get(), "state")), "active");
     const auto* command = cJSON_GetObjectItem(k.get(), "command");
     EXPECT_TRUE(cJSON_IsTrue(cJSON_GetObjectItem(command, "send")));
     EXPECT_EQ(cJSON_GetObjectItem(command, "flow_c")->valueint, 40);
     EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(command, "why")), "heat_request");
-    EXPECT_EQ(cJSON_GetObjectItem(cJSON_GetObjectItem(k.get(), "last_sent"), "age_ms")->valueint, 5000);
+    const auto* sent = cJSON_GetObjectItem(k.get(), "last_sent");
+    EXPECT_EQ(cJSON_GetObjectItem(sent, "age_s")->valueint, 5);
+    EXPECT_EQ(cJSON_GetObjectItem(sent, "flow_c")->valueint, 40);
+    EXPECT_EQ(cJSON_GetObjectItem(cJSON_GetObjectItem(k.get(), "confirmation"), "age_s")->valueint, 15);
+    b.in.foreign = ActiveHeatGuard::Foreign{0x17, b.now + 1};
+    b.now += 10 * second; b.tick();
+    Json l(b.guard.json(b.now), cJSON_Delete);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(l.get(), "state")), "stopping");
+    const auto* warnings = cJSON_GetObjectItem(l.get(), "warnings");
+    ASSERT_EQ(cJSON_GetArraySize(warnings), 1);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetArrayItem(warnings, 0)), "foreign_controller");
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(l.get(), "confirmation")));
 }
 }

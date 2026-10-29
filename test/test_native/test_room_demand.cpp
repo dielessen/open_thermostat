@@ -64,12 +64,18 @@ TEST(FlowDemand, StartsOnRoomDemandAndModulatesWithTheShortfall) {
     r = f.update(2 * minute, true, 150);
     EXPECT_EQ(r.flowC, 45);
 }
-TEST(FlowDemand, NeverExceedsSixtyDegreesForTheFloorGroup) {
+TEST(FlowDemand, NeverExceedsThePlanMaximum) {
     FlowDemand f;
     auto r = f.update(0, true, 1000);
     for (uint64_t t = minute; t < 600 * minute; t += minute) r = f.update(t, true, 1000);
     EXPECT_EQ(r.flowC, 60);
-    FlowDemand::Params tooHot; tooHot.maximumFlowC = 75;
+    FlowDemand::Params radiators; radiators.maximumFlowC = 80;
+    EXPECT_TRUE(radiators.valid());
+    FlowDemand hot(radiators);
+    r = hot.update(0, true, 1000);
+    for (uint64_t t = minute; t < 600 * minute; t += minute) r = hot.update(t, true, 1000);
+    EXPECT_EQ(r.flowC, 80);
+    FlowDemand::Params tooHot; tooHot.maximumFlowC = 81;
     EXPECT_FALSE(tooHot.valid());
     EXPECT_FALSE(FlowDemand(tooHot).update(0, true, 500).heat);
 }

@@ -18,7 +18,7 @@ TEST(EmsEntityCatalog, RowsAreUniquePerTypeOffsetAndBitAndUseKnownUnits){
         ASSERT_TRUE(keys.insert(std::to_string(spec.type)+":"+std::to_string(spec.offset)+":"+std::to_string(spec.bit)+":"+spec.id).second) << spec.id;
         EXPECT_GT(spec.divisor,0);EXPECT_LE(spec.minimum,spec.maximum);EXPECT_GT(spec.ttlMs,0u);
         const std::string unit=spec.unit;
-        EXPECT_TRUE(unit=="degC"||unit=="%"||unit=="bool"||unit=="bar"||unit=="uA"||unit=="starts"||unit=="min"||unit=="L/min"||unit=="code") << spec.id;
+        EXPECT_TRUE(unit=="degC"||unit=="%"||unit=="bool"||unit=="bar"||unit=="uA"||unit=="starts"||unit=="min"||unit=="L/min"||unit=="code"||unit=="text") << spec.id;
     }
 }
 TEST(EmsEntityCatalog, Rc10MonitorFromTheThermostatGivesSetpointAndRoomTemperature){
@@ -98,13 +98,13 @@ TEST(EmsEntityCatalog, CapacityIsBoundedAndCountsDroppedRows){
 
 // One table: the boiler fields route carries one field per entity id.
 TEST(EmsEntityCatalog, FieldsAreOnePerEntityIdInTableOrder){
-    EXPECT_EQ(entityFieldCount,30u);
+    EXPECT_EQ(entityFieldCount,36u);
     EXPECT_STREQ(entityCatalog[entityFieldRows[0]].id,"thermostat_requested_flow_temperature");
     size_t setpoint=entityFieldCount;
     for(size_t f=0;f<entityFieldCount;++f)if(std::string(entityCatalog[entityFieldRows[f]].id)=="thermostat_setpoint")setpoint=f;
     ASSERT_LT(setpoint,entityFieldCount);
     EXPECT_TRUE(entityFieldType(setpoint,0xB1));EXPECT_TRUE(entityFieldType(setpoint,0x3E));EXPECT_FALSE(entityFieldType(setpoint,0xE4));
-    EXPECT_EQ(heating::control::boilerFieldGroupCountV2,10u);
+    EXPECT_EQ(heating::control::boilerFieldGroupCountV2,11u);
 }
 TEST(EmsEntityCatalog, FieldSampleIsTheFreshestReportOfAnyDevice){
     EmsEntityObserver o;

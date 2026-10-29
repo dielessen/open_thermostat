@@ -220,14 +220,18 @@ TEST(BleCryptoObserver, RealAuthenticationQueueAgeAndReplayAreConnected) {
     EXPECT_TRUE(value.authenticated);EXPECT_EQ(value.counter,1122868u);EXPECT_FALSE(value.measurementQualified);
     observer.capture(f.address,-61,f.bytes.data(),f.bytes.size(),2000);observer.processOne();
     EXPECT_EQ(observer.snapshot(f.address).oldCounterDrops,1u);
-    actualObserverClockValue=180999;f.bytes=packet(hex("d2fc41528e35221100d090aaa5"));
-    observer.capture(f.address,-61,f.bytes.data(),f.bytes.size(),180999);observer.processOne();
-    EXPECT_EQ(observer.snapshot(f.address).battery,100);EXPECT_EQ(observer.snapshot(f.address).temperatureAgeMs,179999);
-    actualObserverClockValue=181000;EXPECT_FALSE(observer.snapshot(f.address).temperature);
+    actualObserverClockValue=900999;f.bytes=packet(hex("d2fc41528e35221100d090aaa5"));
+    observer.capture(f.address,-61,f.bytes.data(),f.bytes.size(),900999);observer.processOne();
+    EXPECT_EQ(observer.snapshot(f.address).battery,100);EXPECT_EQ(observer.snapshot(f.address).temperatureAgeMs,899999);
+    actualObserverClockValue=901000;EXPECT_FALSE(observer.snapshot(f.address).temperature);
     f.bytes=packet(hex("d2fc45b7a484a135d7362211003b17bb9c"));f.bytes.back()^=1;
-    observer.capture(f.address,-61,f.bytes.data(),f.bytes.size(),181000);observer.processOne();
-    EXPECT_EQ(observer.snapshot(f.address).status,heating::control::BleObservationStatus::authentication_failed);
-    EXPECT_FALSE(observer.snapshot(f.address).battery);EXPECT_EQ(observer.snapshot(f.address).counter,1122869u);
+    observer.capture(f.address,-61,f.bytes.data(),f.bytes.size(),901000);observer.processOne();
+    // beta.18: a forged/failed frame no longer withdraws the still valid battery
+    // value (15 min lifetime); it is reported as the last rejection instead.
+    EXPECT_EQ(observer.snapshot(f.address).status,heating::control::BleObservationStatus::received);
+    EXPECT_EQ(observer.snapshot(f.address).lastRejection,heating::control::BleObservationStatus::authentication_failed);
+    EXPECT_EQ(observer.snapshot(f.address).framesRejected,1u);
+    EXPECT_EQ(observer.snapshot(f.address).battery,100);EXPECT_EQ(observer.snapshot(f.address).counter,1122869u);
 }
 
 TEST(BleCrypto, TrvSeparateInstancesUseRealCcmAndWrongKeyLeaksNoPartialReport) {

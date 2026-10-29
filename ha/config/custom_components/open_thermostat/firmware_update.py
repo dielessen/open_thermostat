@@ -20,7 +20,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.event import async_track_time_interval
 
 from .const import CONF_TOPIC_PREFIX, DOMAIN
-from .controller_link import ControllerClient, ControllerLinkError
+from .controller_link import ControllerClient, ControllerLinkError, ControllerLoginRejected
 from .controller_setup_flow import CONTROLLER_ADDRESS, CONTROLLER_PASSWORD
 
 REPOSITORY = "dielessen/open_thermostat"
@@ -96,10 +96,19 @@ class E32FirmwareUpdate(UpdateEntity):
         if self._lock.locked():
             return
         try:
+            if self._entry.data.get(CONTROLLER_PASSWORD) == getattr(self, "_rejected_password", None):
+                raise ControllerLinkError("controller_auth_failed")  # wait for the new password
             async with self._client() as client:
                 await client.async_login(self._entry.data[CONTROLLER_PASSWORD])
                 version = await client.async_read("/status/version")
+                from .e32_access import report_password
+                report_password(self.hass, self._entry, getattr(client, "default_password", None))
             self._attr_installed_version = version.get("version") if isinstance(version, dict) else None
+        except ControllerLoginRejected:
+            from .e32_access import login_rejected
+            self._rejected_password = self._entry.data.get(CONTROLLER_PASSWORD)
+            login_rejected(self.hass, self._entry)
+            self._attr_installed_version = None
         except ControllerLinkError:
             self._attr_installed_version = None
         try:

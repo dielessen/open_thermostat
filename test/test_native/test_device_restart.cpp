@@ -22,3 +22,47 @@ TEST(DeviceRestart, PostOnlyValidSessionAndOwnCsrfNoLanSetupException) {
     EXPECT_EQ(control::webAuthDecision(sessions,"/updates/reboot","POST",token,csrf,2,false),D::allow);
     EXPECT_FALSE(control::sameOrigin("http://other.invalid","device","cross-site"));
 }
+TEST(DeviceRestart, HealthyImageWithNetworkConfirmsAfterAMinute) {
+    using B=update::BootConfirmation;
+    EXPECT_EQ(B::decide(59999,true,true),B::Action::wait);
+    EXPECT_EQ(B::decide(60000,true,true),B::Action::confirm); // Home Assistant is not an input
+    EXPECT_EQ(B::decide(60000,false,true),B::Action::wait);   // supervisor not (yet) running
+    EXPECT_EQ(B::decide(179999,false,true),B::Action::wait);
+    EXPECT_EQ(B::decide(180000,false,true),B::Action::rollback);
+}
+TEST(DeviceRestart, ImageWithoutNetworkForTenMinutesRestartsForRollback) {
+    using B=update::BootConfirmation;
+    for(uint32_t t:{60000u,180000u,300000u,599999u})EXPECT_EQ(B::decide(t,true,false),B::Action::wait)<<t;
+    EXPECT_EQ(B::decide(600000,true,false),B::Action::rollback);
+    EXPECT_EQ(B::decide(600000,false,false),B::Action::rollback);
+}
+TEST(DeviceRestart, NetworkProvenOnlyAfterFiveMinutesConfirmsThen) {
+    using B=update::BootConfirmation;
+    EXPECT_EQ(B::decide(299999,true,false),B::Action::wait);
+    EXPECT_EQ(B::decide(300000,true,true),B::Action::confirm);
+    EXPECT_EQ(B::decide(600000,true,true),B::Action::confirm); // proof at the deadline still counts
+}
+TEST(DeviceRestart, WithoutBrokerAnIpHeldFiveMinutesProvesTheNetwork) {
+    using B=update::BootConfirmation;
+    // An Ethernet install without MQTT that nobody opens, behind a gateway that ignores ping.
+    EXPECT_FALSE(B::networkProven(false,false,0));
+    EXPECT_FALSE(B::networkProven(false,false,299999));
+    EXPECT_TRUE(B::networkProven(false,false,300000));
+    EXPECT_EQ(B::decide(310000,true,B::networkProven(false,false,300000)),B::Action::confirm);
+    // A configured broker must answer (or the gateway, or a browser): link alone is no proof.
+    EXPECT_FALSE(B::networkProven(false,true,600000));
+    EXPECT_TRUE(B::networkProven(true,true,0));
+    // Network lost after the update (the link broke, so the timer restarted): still rolled back.
+    EXPECT_EQ(B::decide(600000,true,B::networkProven(false,false,240000)),B::Action::rollback);
+}
+TEST(DeviceRestart, FailedConfirmationIsRetriedOncePerMinute) {
+    using B=update::BootConfirmation;
+    EXPECT_TRUE(B::attemptDue(60000,0));       // first attempt
+    EXPECT_FALSE(B::attemptDue(60001,60000));  // otadata write failed: not on every loop pass
+    EXPECT_FALSE(B::attemptDue(119999,60000));
+    EXPECT_TRUE(B::attemptDue(120000,60000));
+}
+TEST(DeviceRestart, ControlledRestartWaitsForUpdatesBootValidationAndBoilerSessions) {
+    for(bool busy:{false,true})for(bool pending:{false,true})for(bool session:{false,true})
+        EXPECT_EQ(update::controlledRestartAllowed(busy,pending,session),!busy&&!pending&&!session);
+}

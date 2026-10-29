@@ -150,10 +150,12 @@ This value applies only to this release. Settings may change after normal startu
 
 1. Click **Disconnect**. Unplug the USB cable and reconnect it.
 2. Keep the gateway **disconnected from the boiler/EMS bus**.
-3. On your computer, find the Wi-Fi network **IntuiBaseHeating**.
-4. Connect using the temporary password **IntuiBaseHeating**.
-5. Open **http://10.10.10.1/** in your browser.
-6. Replace the example password before using the gateway further on a network.
+3. On your computer or phone, find the setup Wi-Fi network **OpenThermostat-xxxxxx**
+   (the last six characters are unique per device).
+4. Connect using the setup password **openthermostat**.
+5. Open **http://10.10.10.1/** in your browser and sign in with **admin / admin**.
+6. Choose your own web password under System before using the gateway further on a
+   network (a `password-reset` command on the USB console restores the default).
 
 **The web page should become accessible.** The LED does not need to blink: LED control is disabled in this test firmware.
 This first test checks startup and the web interface, not working heating control.

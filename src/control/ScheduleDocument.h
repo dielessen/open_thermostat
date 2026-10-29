@@ -8,6 +8,28 @@
 
 namespace heating::control {
 
+// The zone is metadata: transitions are already UTC, so the controller only
+// checks the IANA name syntax (any Home Assistant zone, e.g. America/New_York,
+// Asia/Kathmandu). Same rule as schedule_compiler.py/graph_shadow_validation.py:
+// 1..63 bytes, "/"-separated segments that start with an ASCII letter and
+// continue with letters, digits, '_', '+' or '-'.
+inline bool isTimeZoneName(std::string_view name) {
+    if (name.empty() || name.size() > 63) return false;
+    bool segmentStart = true;
+    for (char c : name) {
+        const bool letter = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+        if (segmentStart) {
+            if (!letter) return false;
+            segmentStart = false;
+        } else if (c == '/') {
+            segmentStart = true;
+        } else if (!letter && !(c >= '0' && c <= '9') && c != '_' && c != '+' && c != '-') {
+            return false;
+        }
+    }
+    return !segmentStart;
+}
+
 // Decodes an already bounded JSON payload, not a transport/session admission.
 // The caller retains tree ownership. Reject ambiguous/extra members rather than
 // accepting a partial schedule. cJSON numbers are checked BEFORE narrowing.
@@ -32,7 +54,8 @@ inline bool configureScheduleDocument(UtcSchedule &schedule, const cJSON *docume
         return cJSON_IsString(item) && item->valuestring && expected == item->valuestring;
     };
     const bool packed=literal(member("policy"),packedSchedulePolicy);
-    if (!(literal(member("timezone"), "UTC") || literal(member("timezone"), "Europe/Amsterdam")) ||
+    const auto zone = member("timezone");
+    if (!cJSON_IsString(zone) || !zone->valuestring || !isTimeZoneName(zone->valuestring) ||
         !(literal(member("policy"), "wall-clock-membership/v1")||(allowPacked&&packed))) return false;
     const auto integer = [](const cJSON *item, int64_t low, int64_t high) {
         return cJSON_IsNumber(item) && std::isfinite(item->valuedouble) &&

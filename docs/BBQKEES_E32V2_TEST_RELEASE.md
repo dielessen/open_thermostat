@@ -103,9 +103,11 @@ Keep original backups separate from these release images.
 1. Capture serial output at **115200 baud**. Record release/source commit, board
    revision, detected flash/PSRAM size and usable heap. Stop on boot loops,
    exceptions, unstable power or unexpected output activity.
-2. With no WiFi credentials, first boot starts configuration AP
-   `IntuiBaseHeating`; its example password is also `IntuiBaseHeating`. Open
-   `http://10.10.10.1/` locally and replace that password before network use.
+2. With no WiFi credentials, first boot starts the setup network
+   `OpenThermostat-xxxxxx` (unique per device) with the setup password
+   `openthermostat`. Open `http://10.10.10.1/` locally, sign in with admin/admin
+   and choose your own web password before network use. (Early alpha test builds
+   used `IntuiBaseHeating`.)
    EMS reception, forwarder, RTC and MQTT start disabled; rooms are empty.
 3. Test isolated Ethernet DHCP/web access and WiFi configuration/web access,
    cable removal/reconnection and reboot persistence. Record addresses/logs.

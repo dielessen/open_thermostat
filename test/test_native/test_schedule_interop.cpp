@@ -3,6 +3,7 @@
 #include <fstream>
 #include <memory>
 #include <sstream>
+#include <string>
 
 namespace {
 using namespace heating::control;
@@ -59,6 +60,33 @@ TEST(ScheduleInterop, InvalidWireDocumentNeverPartiallyReplacesExistingSchedule)
     auto extra=cJSON_GetObjectItemCaseSensitive(doc.get(),"transitions")->child;
     cJSON_AddItemToArray(extra,cJSON_CreateNumber(0));
     EXPECT_FALSE(configureScheduleDocument(s,doc.get()));
+}
+
+TEST(ScheduleInterop, AnyIanaZoneIsMetadataAndOnlyItsSyntaxIsChecked) {
+    // Transitions are UTC; the zone name only has to be a well-formed IANA name.
+    for (const char *zone : {"UTC", "Europe/Amsterdam", "Europe/Berlin", "Europe/London", "America/New_York",
+                             "Australia/Lord_Howe", "Asia/Kathmandu", "Etc/GMT+5", "America/Argentina/ComodRivadavia",
+                             "EST5EDT"}) {
+        SCOPED_TRACE(zone);
+        EXPECT_TRUE(isTimeZoneName(zone));
+        auto doc=parse(R"({"timezone":"UTC","policy":"wall-clock-membership/v1","valid_from_utc":1792368000,"valid_until_utc":1792454400,"base_centi_c":1700,"transitions":[[1792368000,2100]]})");
+        cJSON_ReplaceItemInObjectCaseSensitive(doc.get(),"timezone",cJSON_CreateString(zone));
+        UtcSchedule s; EXPECT_TRUE(configureScheduleDocument(s,doc.get()));
+        EXPECT_EQ(s.target(1792368000,true).temperatureCentiC,2100);
+    }
+    const std::string tooLong="Europe/"+std::string(57,'A');
+    for (const std::string &zone : {std::string(""), std::string("/etc/passwd"), std::string("Europe//Berlin"),
+                                   std::string("Europe/../UTC"), std::string("Europe/Berlin/"), std::string("1Europe"),
+                                   std::string("Europe Berlin"), std::string("Europe/Ber%lin"), tooLong}) {
+        SCOPED_TRACE(zone);
+        EXPECT_FALSE(isTimeZoneName(zone));
+        auto doc=parse(R"({"timezone":"UTC","policy":"wall-clock-membership/v1","valid_from_utc":1792368000,"valid_until_utc":1792454400,"base_centi_c":1700,"transitions":[[1792368000,2100]]})");
+        cJSON_ReplaceItemInObjectCaseSensitive(doc.get(),"timezone",cJSON_CreateString(zone.c_str()));
+        UtcSchedule s; EXPECT_FALSE(configureScheduleDocument(s,doc.get()));
+    }
+    EXPECT_TRUE(isTimeZoneName("Europe/"+std::string(56,'A')));
+    auto number=parse(R"({"timezone":1,"policy":"wall-clock-membership/v1","valid_from_utc":1792368000,"valid_until_utc":1792454400,"base_centi_c":1700,"transitions":[[1792368000,2100]]})");
+    UtcSchedule s; EXPECT_FALSE(configureScheduleDocument(s,number.get()));
 }
 
 TEST(ScheduleInterop, CompilerAndFirmwareShareExactSupportedUtcRange) {

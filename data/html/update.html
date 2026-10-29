@@ -1,69 +1,46 @@
-<section id="githubUpdate" class="card mt-3" aria-labelledby="updateHeading">
- <div class="card-header"><h2 id="updateHeading" class="h5 mb-0"><span data-i18n="Update firmware">Update firmware</span></h2></div>
- <div class="card-body">
-  <p><span data-i18n="Releases from">Releases from</span> <a href="https://github.com/dielessen/open_thermostat/releases" target="_blank" rel="noopener">dielessen/open_thermostat</a><span data-i18n=". Installation starts only when you press the button. Your WiFi, rooms and programs are retained; the web interface is updated with the firmware.">. Installation starts only when you press the button. Your WiFi, rooms and programs are retained; the web interface is updated with the firmware.</span></p>
+<section id="githubUpdate" class="ot-page" aria-labelledby="updateHeading">
+ <header class="ot-head"><div><h1 id="updateHeading"><span data-i18n="Firmware update">Firmware update</span></h1>
+  <p><span data-i18n="Releases from">Releases from</span> <a href="https://github.com/dielessen/open_thermostat/releases" target="_blank" rel="noopener" style="display:inline-block;min-height:44px;line-height:44px">dielessen/open_thermostat</a><span data-i18n=". Installation starts only when you press the button. Your WiFi, rooms and programs are retained; the web interface is updated with the firmware.">. Installation starts only when you press the button. Your WiFi, rooms and programs are retained; the web interface is updated with the firmware.</span></p></div></header>
+ <div class="pd-panel">
   <p><span data-i18n="Installed:">Installed:</span> <strong id="installedVersion"><span data-i18n="Loading…">Loading…</span></strong></p>
   <p id="releaseStatus" role="status" aria-live="polite"></p>
-  <details class="mb-3" id="updateDiagnostics">
+  <div class="ot-actions mb-3"><button type="button" id="checkReleases" class="btn btn-secondary" disabled><span data-i18n="Check for updates">Check for updates</span></button></div>
+  <label for="releaseChoice" class="d-block"><span data-i18n="Available compatible releases">Available compatible releases</span></label>
+  <select id="releaseChoice" class="form-control" disabled data-hint="Only releases that fit this device are listed."><option value="" data-i18n="Check for updates first">Check for updates first</option></select>
+  <div class="ot-actions"><button type="button" id="installRelease" class="btn btn-primary" disabled><span data-i18n="Download and install">Download and install</span></button>
+  <button type="button" id="restartRelease" class="btn btn-success" hidden><span data-i18n="Restart and apply update">Restart and apply update</span></button></div>
+  <progress id="releaseProgress" class="w-100 mt-3" hidden></progress>
+  <p class="mt-3"><small><span data-i18n="Use your home network and keep the device powered. If downloading or verification fails, the previous firmware remains selected. Test releases are experimental; this firmware does not enable heating yet.">Use your home network and keep the device powered. If downloading or verification fails, the previous firmware remains selected. Test releases are experimental; this firmware does not enable heating yet.</span></small></p>
+  <p class="pd-help" data-i18n="Checks run automatically every 12 hours, starting five minutes after startup. Failed checks retry after 30 minutes. Successful results are reused for five minutes. Installation always requires your confirmation.">Checks run automatically every 12 hours, starting five minutes after startup. Failed checks retry after 30 minutes. Successful results are reused for five minutes. Installation always requires your confirmation.</p>
+  <button type="button" id="rollbackRelease" class="btn btn-outline-secondary" hidden><span data-i18n="Restore previous firmware">Restore previous firmware</span></button>
+ </div>
+  <details class="ot-advanced" id="updateDiagnostics">
    <summary data-i18n="Update diagnostics">Update diagnostics</summary>
    <p data-i18n="The last saved checkpoint helps investigate an interrupted update. It does not confirm installation or rollback. Manual uploads are not recorded here.">The last saved checkpoint helps investigate an interrupted update. It does not confirm installation or rollback. Manual uploads are not recorded here.</p>
    <pre id="updateCheckpoint" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
    <pre id="updateDownloadError" style="white-space:pre-wrap;overflow-wrap:anywhere" hidden></pre>
   </details>
-  <p data-i18n="Checks run automatically every 12 hours, starting five minutes after startup. Failed checks retry after 30 minutes. Successful results are reused for five minutes. Installation always requires your confirmation.">Checks run automatically every 12 hours, starting five minutes after startup. Failed checks retry after 30 minutes. Successful results are reused for five minutes. Installation always requires your confirmation.</p>
-  <button type="button" id="checkReleases" class="btn btn-secondary mb-3" disabled><span data-i18n="Check for updates">Check for updates</span></button>
-  <label for="releaseChoice" class="d-block"><span data-i18n="Available compatible releases">Available compatible releases</span></label>
-  <select id="releaseChoice" class="form-control mb-3" disabled><option value="" data-i18n="Check for updates first">Check for updates first</option></select>
-  <button type="button" id="installRelease" class="btn btn-primary" disabled><span data-i18n="Download and install">Download and install</span></button>
-  <progress id="releaseProgress" class="w-100 mt-3" hidden></progress>
-  <p class="mt-3"><button type="button" id="restartRelease" class="btn btn-success" hidden><span data-i18n="Restart and apply update">Restart and apply update</span></button></p>
-  <p><small><span data-i18n="Use your home network and keep the device powered. If downloading or verification fails, the previous firmware remains selected. Test releases are experimental; this firmware does not enable heating yet.">Use your home network and keep the device powered. If downloading or verification fails, the previous firmware remains selected. Test releases are experimental; this firmware does not enable heating yet.</span></small></p>
-  <button type="button" id="rollbackRelease" class="btn btn-outline-secondary" hidden><span data-i18n="Restore previous firmware">Restore previous firmware</span></button>
- </div>
 </section>
-<p class="mt-4"><strong><span data-i18n="Manual upload / recovery">Manual upload / recovery</span></strong> <span data-i18n="— use compatible app firmware only, never the combined factory file. A SPIFFS upload can replace rooms and programs; it is not needed for normal GitHub updates.">— use compatible app firmware only, never the combined factory file. A SPIFFS upload can replace rooms and programs; it is not needed for normal GitHub updates.</span></p>
+<details class="ot-advanced" id="manualUpdate">
+<summary data-i18n="Manual upload / recovery">Manual upload / recovery</summary>
+<p><span data-i18n="Use compatible app firmware only, never the combined factory file. A SPIFFS upload can replace rooms and programs; it is not needed for normal GitHub updates.">Use compatible app firmware only, never the combined factory file. A SPIFFS upload can replace rooms and programs; it is not needed for normal GitHub updates.</span></p>
 <div id="githubReleaseVerify" class="mt-3">
  <p><small><span data-i18n="Your browser can look up the latest release on GitHub and check a downloaded firmware.bin against its published SHA-256 before uploading. GitHub does not let a web page download the file itself, so download it with the link and choose it below.">Your browser can look up the latest release on GitHub and check a downloaded firmware.bin against its published SHA-256 before uploading. GitHub does not let a web page download the file itself, so download it with the link and choose it below.</span></small></p>
  <button type="button" class="btn btn-outline-primary" id="githubReleaseCheck"><span data-i18n="Look up latest release on GitHub">Look up latest release on GitHub</span></button>
  <p id="githubReleaseInfo" class="mt-2" role="status" aria-live="polite"></p>
  <p id="githubReleaseFile" class="mt-2" role="status" aria-live="polite"></p>
 </div>
-<form id = "updateform" class="invisible" novalidate>
-	<div class="col-md-auto mt-3">
-	<div class="row mb-3">
-		<div class="card w-100">
-			<div class="card-header d-flex justify-content-between align-items-center">
-				<span class="align-middle"><span data-i18n="Firmware update">Firmware update</span></span>
-			</div>
-			<div class="card-body">
-				<div class="form-group">
-					<div class="form-row mb-2">
-						<div class="col"><label for="FirmwareType"><span data-i18n="Select firmware file type">Select firmware file type</span></label></div>
-						<div class="col"><select class="custom-select" id="FirmwareType" aria-label="Firmware file type selection"><option value="firmware">Firmware</option><option value="fs">SPIFFS</option></select></div>
-					</div>
-					<div class="form-row">
-						<div class="col">
-							<input type="file" name="file" class="custom-file-input" id="FirmwarePath" required>
-							<label class="custom-file-label" for="FirmwarePath"><span data-i18n="Choose firmware file...">Choose firmware file...</span></label>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="card-footer text-muted">
-				<div class="row">
-					<div class="col-4 col-md-4">
-						<button class="btn btn-primary mb-2" type="submit" id="FirmwareSubmit"><span data-i18n="Perform firmware update">Perform firmware update</span></button>
-					</div>
-					<div class="col-8 col-md-8">
-						<div class="progress mb-2 align-middle" style="height: 100%;"><div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progressbar" style="height: 100%"></div></div>
-					</div>
-				</div>
-			</div>
-		</div>
-
+<form id = "updateform" class="invisible mt-3" novalidate>
+	<label for="FirmwareType"><span data-i18n="Select firmware file type">Select firmware file type</span></label>
+	<select class="custom-select" id="FirmwareType" data-hint="Firmware is the normal app file; SPIFFS replaces the stored file system." aria-label="Firmware file type selection" data-i18n-aria-label="Firmware file type selection"><option value="firmware">Firmware</option><option value="fs">SPIFFS</option></select>
+	<div class="custom-file mb-3">
+		<input type="file" name="file" class="custom-file-input" id="FirmwarePath" required>
+		<label class="custom-file-label" for="FirmwarePath" data-browse="Browse"><span data-i18n="Choose firmware file...">Choose firmware file...</span></label>
 	</div>
-	</div>
+	<button class="btn btn-primary mb-2" type="submit" id="FirmwareSubmit"><span data-i18n="Upload firmware">Upload firmware</span></button>
+	<div class="progress mb-2" style="height: 1.5rem;"><div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progressbar" style="height: 100%"></div></div>
 </form>
+</details>
 
 <script type='text/javascript'>
 // Browser-side release check. Only an explicit button press contacts GitHub;
@@ -193,7 +170,7 @@
   if(!s.releases.length)choices.add(new Option(s.phase==='checked'?uiText("No compatible releases available"):uiText("Check for updates first"),''));
   for(const r of s.releases)choices.add(new Option(r.tag+(r.prerelease?uiText(" (test release)"):'')+(r.tag===s.installed?uiText(" — installed"):''),r.tag));
   if(s.releases.some(r=>r.tag===old))choices.value=old;
-  let message=s.error||phases[s.phase]||(s.phase==='checked'?(s.releases.length&&s.releases[0].tag!==s.installed?uiText("Compatible release found. Choose a version to install."):uiText("You already have the available version.")):uiText("Status received."));
+  let message=(s.error&&uiText(s.error))||phases[s.phase]||(s.phase==='checked'?(s.releases.length&&s.releases[0].tag!==s.installed?uiText("Compatible release found. Choose a version to install."):uiText("You already have the available version.")):uiText("Status received."));
   if(s.error) {
    const failure=s.download_error;
    const descriptions={connection:uiText("Could not connect to GitHub."),tls:uiText("The secure connection to GitHub failed."),http:uiText("GitHub returned an HTTP error."),transfer:uiText("The GitHub download was interrupted or incomplete.")};
@@ -252,7 +229,7 @@
   if(action||!fresh||!mounted()||document.visibilityState==='hidden')return false;
   clearTimeout(timer);statusRequest?.abort();action=true;fresh=false;++revision;controls();
   try{await request(path,body);return true;}
-  catch(e){$id('releaseStatus').textContent=uiText("Request not yet confirmed: ")+e.message+uiText(". The status will be fetched again.");return false;}
+  catch(e){$id('releaseStatus').textContent=uiText("Request not yet confirmed: ")+uiText(e.message)+uiText(". The status will be fetched again.");return false;}
   finally{action=false;if(mounted()){controls();schedule();}}
  }
  $id('releaseChoice').onchange=controls;
@@ -339,6 +316,13 @@ $(document).ready(function() {
 	xhr.send(formData);
 	});
 	$('#updateform').removeClass('invisible');
+	// Bootstrap's file picker shows neither a translated button nor the chosen name by itself.
+	const fileLabel = document.querySelector('label[for="FirmwarePath"]');
+	fileLabel.dataset.browse = uiText("Browse");
+	document.getElementById('FirmwarePath').addEventListener('change', event => {
+		const file = event.target.files[0];
+		fileLabel.firstElementChild.textContent = file ? file.name : uiText("Choose firmware file...");
+	});
 });
 })();
 

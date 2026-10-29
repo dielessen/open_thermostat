@@ -126,7 +126,7 @@ IndexedCatalogResult discoverIndexedReleases(Fetch &&fetch,std::vector<Release> 
         }
         root=releaseJson(raw);
         if(status!=200||!root||!cJSON_IsObject(root.get())) {
-            error="Ongeldig GitHub-releaseantwoord bij tagcontrole.";return IndexedCatalogResult::Failed;
+            error="Invalid GitHub release response during the tag check.";return IndexedCatalogResult::Failed;
         }
         const auto prerelease=singleField(root.get(),"prerelease");
         if(singleString(root.get(),"tag_name")!=candidate.tag||
@@ -149,7 +149,7 @@ IndexedCatalogResult discoverIndexedReleases(Fetch &&fetch,std::vector<Release> 
             root=releaseJson(raw);
             if(status!=200||!root||!cJSON_IsObject(root.get())||
                singleString(root.get(),"sha")!=candidate.source||singleString(root.get(),"tag")!=candidate.tag) {
-                error="Ongeldig GitHub-tagobject.";return IndexedCatalogResult::Failed;
+                error="Invalid GitHub tag object.";return IndexedCatalogResult::Failed;
             }
             const auto object=singleField(root.get(),"object");
             // Deep tag chains use the existing general scan rather than an
@@ -157,7 +157,7 @@ IndexedCatalogResult discoverIndexedReleases(Fetch &&fetch,std::vector<Release> 
             if(singleString(object,"type")!="commit")return IndexedCatalogResult::Legacy;
             expectedSource=singleString(object,"sha");
             if(!hex(expectedSource,40)) {
-                error="Ongeldige firmwarebron in GitHub-tagobject.";return IndexedCatalogResult::Failed;
+                error="Invalid firmware source in the GitHub tag object.";return IndexedCatalogResult::Failed;
             }
             root.reset();raw.clear();raw.shrink_to_fit();
         }
@@ -166,7 +166,7 @@ IndexedCatalogResult discoverIndexedReleases(Fetch &&fetch,std::vector<Release> 
         Manifest parsed;
         if(!parseManifest(raw,candidate.tag,parsed))continue;
         if(parsed.source!=expectedSource) {
-            error="GitHub-tag en firmwarebron komen niet overeen.";return IndexedCatalogResult::Failed;
+            error="The GitHub tag and the firmware source do not match.";return IndexedCatalogResult::Failed;
         }
         choices.push_back({candidate.tag,preview});
         if(choices.size()==2)break;

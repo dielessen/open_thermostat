@@ -1,6 +1,8 @@
 #include "config.h"
 #include "SetupNetwork.h"
+#include "control/BoundedJson.h"
 #include "DeviceNetworkSettings.h"
+#include "DeviceIdentity.h"
 #include "Board.h"
 #include "BeaconBleAddress.h"
 #include "Logging.h"
@@ -8,6 +10,7 @@
 
 #include <SPIFFS.h>
 #include <algorithm>
+#include <cstring>
 #include <memory>
 #include <set>
 #include <unordered_map>
@@ -151,7 +154,7 @@ std::optional<PinConfig> getBoilerPin() {
 	File file = SPIFFS.open("/cfg/cfgpins.json", FILE_READ);
 	if (!file)
 		return {};
-	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(file.readString().c_str()), &cJSON_Delete);
+	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(heating::control::parseNestedJson(file.readString()));
 	file.close();
 	if (!root)
 		return {};
@@ -183,7 +186,7 @@ RTCPins getRTCPins() {
 	if (!file) {
 		return {};
 	}
-	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(file.readString().c_str()), &cJSON_Delete);
+	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(heating::control::parseNestedJson(file.readString()));
 	file.close();
 
 	if (!root) {
@@ -223,7 +226,7 @@ EmsPins getEmsPins() {
 	if (!file) {
 		return {};
 	}
-	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(file.readString().c_str()), &cJSON_Delete);
+	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(heating::control::parseNestedJson(file.readString()));
 	file.close();
 
 	if (!root) {
@@ -261,7 +264,7 @@ std::optional<EmsForwarderPins> getEmsForwarderPins() {
 	if (!file) {
 		return {};
 	}
-	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(file.readString().c_str()), &cJSON_Delete);
+	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(heating::control::parseNestedJson(file.readString()));
 	file.close();
 
 	if (!root) {
@@ -298,7 +301,7 @@ std::vector<PinConfig> getValvePins() {
 	File file = SPIFFS.open("/cfg/cfgpins.json", FILE_READ);
 	if (!file)
 		return {};
-	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(file.readString().c_str()), &cJSON_Delete);
+	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(heating::control::parseNestedJson(file.readString()));
 	file.close();
 	if (!root) {
 		DBGLOGFI(heating::logger, configLogFeature(), "Error parsing json");
@@ -349,7 +352,7 @@ std::vector<GpioExtenderConfig> getGpioExtenders() {
 	File file = SPIFFS.open("/cfg/cfgpins.json", FILE_READ);
 	if (!file)
 		return {};
-	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(file.readString().c_str()), &cJSON_Delete);
+	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(heating::control::parseNestedJson(file.readString()));
 	file.close();
 	if (!root)
 		return {};
@@ -382,7 +385,7 @@ APConfig getAPConfig() {
 	}
 
 	auto cfg = file.readString();
-	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(cJSON_Parse(cfg.c_str()), &cJSON_Delete);
+	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(heating::control::parseNestedJson(cfg));
 	file.close();
 
 	if (!network || network->type != cJSON_Object) {
@@ -415,7 +418,7 @@ WiFiConfig getWiFiConfig() {
 	if (!file) {
 		return {};
 	}
-	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(cJSON_Parse(file.readString().c_str()), &cJSON_Delete);
+	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(heating::control::parseNestedJson(file.readString()));
 	file.close();
 
 	if (!network || network->type != cJSON_Object) {
@@ -437,7 +440,7 @@ EmsConfig getEmsConfig() {
 	if (!file) { return {}; }
 	String cfg = file.readString();
 #endif
-	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(cJSON_Parse(cfg.c_str()), &cJSON_Delete);
+	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(heating::control::parseNestedJson(cfg));
 #ifndef OPENTHERMOSTAT_E32V2
 	file.close();
 #endif
@@ -462,7 +465,7 @@ NetworkConfig getNetworkConfig() {
 	if (!file) { return {}; }
 	String cfg = file.readString();
 #endif
-	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(cJSON_Parse(cfg.c_str()), &cJSON_Delete);
+	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(heating::control::parseNestedJson(cfg));
 #ifndef OPENTHERMOSTAT_E32V2
 	file.close();
 #endif
@@ -492,6 +495,7 @@ NetworkConfig getNetworkConfig() {
 	config.loggerHost = json::getString(network.get(), "loggerHost");
 	config.loggerPort = json::getInt(network.get(), "loggerPort");
 	config.loggerTimeoutMs = json::getInt(network.get(), "loggerTimeoutMs");
+	if (config.hostname.empty()) config.hostname = heating::defaultDeviceName(ESP.getEfuseMac()); // new install
 
 	return config;
 }
@@ -504,7 +508,7 @@ BluetoothConfig getBluetoothConfig() {
 	if (!file) { return {}; }
 	String cfg = file.readString();
 #endif
-	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(cJSON_Parse(cfg.c_str()), &cJSON_Delete);
+	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(heating::control::parseNestedJson(cfg));
 #ifndef OPENTHERMOSTAT_E32V2
 	file.close();
 #endif
@@ -536,7 +540,7 @@ MqttConfig getMqttConfig() {
 	if (!file) { return {}; }
 	String cfg = file.readString();
 #endif
-	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(cJSON_Parse(cfg.c_str()), &cJSON_Delete);
+	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(heating::control::parseNestedJson(cfg));
 #ifndef OPENTHERMOSTAT_E32V2
 	file.close();
 #endif
@@ -576,6 +580,7 @@ MqttConfig getMqttConfig() {
 	config.username = json::getString(mqtt, "username");
 	config.password = json::getString(mqtt, "password");
 	config.clientId = json::getString(mqtt, "clientId");
+	if (config.clientId.empty()) config.clientId = heating::defaultDeviceName(ESP.getEfuseMac()); // unique per device
 	config.base = json::getString(mqtt, "base");
 	config.keepAlive = json::getInt(mqtt, "keepAlive");
 	config.interval = json::getInt(mqtt, "interval");
@@ -591,7 +596,7 @@ OpenWeatherConfig getOpenWeatherConfig() {
 	if (!file) { return {}; }
 	String cfg = file.readString();
 #endif
-	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(cJSON_Parse(cfg.c_str()), &cJSON_Delete);
+	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> network(heating::control::parseNestedJson(cfg));
 #ifndef OPENTHERMOSTAT_E32V2
 	file.close();
 #endif
@@ -622,7 +627,7 @@ BoilerConfig getBoilerConfig() {
 	}
 
 	String cfg = file.readString();
-	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(cfg.c_str()), &cJSON_Delete);
+	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(heating::control::parseNestedJson(cfg));
 	cfg.clear();
 	file.close();
 
@@ -656,7 +661,7 @@ BoilerConfig getBoilerConfig() {
 
 	config.boiler.valvePreheatingDelay = json::getInt(boiler, "valvePreheatingDelay");
 	config.boiler.minHeatingTemp = json::getInt(boiler, "minHeatingTemp");
-	config.boiler.minHeatingTemp = json::getInt(boiler, "maxHeatingTemp");
+	config.boiler.maxHeatingTemp = json::getInt(boiler, "maxHeatingTemp");
 	auto controlMode = json::getString(boiler, "controlMode");
 	if (controlMode == "ems") {
 		config.boiler.controlMode = BoilerConfig::controlMode_t::ems;
@@ -680,7 +685,7 @@ BoilerConfig getBoilerConfig() {
 
 
 std::string parseProgram(std::string const &data) {
-	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(data.c_str()), &cJSON_Delete);
+	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(heating::control::parseNestedJson(data));
 	if (!root) {
 		DBGLOGFI(heating::logger, configLogFeature(), "Error parsing json");
 		return {};
@@ -704,7 +709,7 @@ std::vector<heating::RoomConfig> getRoomsConfig(std::string const &program) {
 		DBGLOGFI(heating::logger, configLogFeature(), "Room catalog /cfg/rooms.json missing; heating disabled\n");
 		return {};
 	}
-	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> catalog(cJSON_Parse(roomFile.readString().c_str()), &cJSON_Delete);
+	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> catalog(heating::control::parseNestedJson(roomFile.readString()));
 	roomFile.close();
 	if (!catalog || !cJSON_IsArray(catalog.get())) {
 		DBGLOGFI(heating::logger, configLogFeature(), "Invalid room catalog; heating disabled\n");
@@ -755,7 +760,7 @@ std::vector<heating::RoomConfig> getRoomsConfig(std::string const &program) {
 
 	File file = SPIFFS.open(filename.c_str(), FILE_READ);
 	if (!file) return rooms;
-	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> programRooms(cJSON_Parse(file.readString().c_str()), &cJSON_Delete);
+	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> programRooms(heating::control::parseNestedJson(file.readString()));
 	file.close();
 
 	if (!programRooms || !cJSON_IsArray(programRooms.get())) {
@@ -803,7 +808,7 @@ void readDebugOptions() {
 }
 
 void setDebugOptionsFromJson(const char *json) {
-	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(cJSON_Parse(json), &cJSON_Delete);
+	std::unique_ptr<cJSON, decltype(&cJSON_Delete)> root(heating::control::parseNestedJson(json, json ? std::strlen(json) : 0));
 	if (!cJSON_IsObject(root.get())) return;
 	std::unordered_map<std::string, bool> settings;
 	for (auto *item = root->child; item; item = item->next) {

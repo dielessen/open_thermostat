@@ -1,23 +1,26 @@
 {
   "config_subentries": {
     "room_setup": {
-      "entry_type": "Radiatorkamer instellen",
+      "entry_type": "Radiatorruimte instellen",
       "initiate_flow": {
-        "user": "Radiatorkamer instellen"
+        "user": "Radiatorruimte instellen"
       },
       "step": {
         "user": {
-          "title": "Radiatorkamer instellen",
-          "description": "Voeg een kamer toe of kies een bestaande kamer. Er verandert niets totdat je Kamer opslaan bevestigt.",
+          "title": "Radiatorruimte instellen",
+          "description": "Voeg een ruimte toe of kies een bestaande ruimte. Er verandert niets totdat je Ruimte opslaan bevestigt.",
           "data": {
-            "room": "Kamer"
+            "room": "Ruimte"
+          },
+          "data_description": {
+            "room": "Kies een bestaande ruimte, of Nieuwe ruimte om er een toe te voegen."
           }
         },
         "radiator": {
-          "title": "Kamer en radiatorkranen",
-          "description": "Stel de gewenste temperatuur in en kies de temperatuursensor en radiatorkranen voor deze kamer. Je controleert je keuzes voordat je opslaat.",
+          "title": "Ruimte en radiatorkranen",
+          "description": "Stel de gewenste temperatuur in en kies de temperatuursensor en radiatorkranen voor deze ruimte. Je controleert je keuzes voordat je opslaat.",
           "data": {
-            "name": "Kamernaam",
+            "name": "Ruimtenaam",
             "temperature_entity": "Temperatuursensor",
             "radiator_entities": "Radiatorkranen",
             "base_temperature": "Gewenste temperatuur",
@@ -25,17 +28,19 @@
             "contact_entities": "Raam- en deursensoren (optioneel)"
           },
           "data_description": {
-            "temperature_entity": "Kies de sensor die de temperatuur in deze kamer meet.",
+            "temperature_entity": "Kies de sensor die de temperatuur in deze ruimte meet.",
             "program_action": "Behoud het bestaande programma, bewerk lokale tijdblokken of verwijder het programma expliciet.",
             "base_temperature": "Gebruikt buiten programmablokken. Opslaan verstuurt geen temperatuurcommando.",
-            "contact_entities": "Kies maximaal acht contacten. Een open contact pauzeert de kamervraag; hervatten kan nadat alle contacten gesloten melden. Ontbrekende of verlopen berichten houden de vraag gepauzeerd."
+            "contact_entities": "Kies maximaal acht contacten. Een open contact pauzeert de warmtevraag van de ruimte; hervatten kan nadat alle contacten gesloten melden. Ontbrekende of verlopen berichten houden de vraag gepauzeerd.",
+            "name": "De naam van de ruimte, bijvoorbeeld Woonkamer.",
+            "radiator_entities": "De radiatorkranen (thermostaatkranen) in deze ruimte, maximaal acht."
           },
           "sections": {
             "advanced": {
               "name": "Geavanceerd",
               "data": {
-                "minimum_target_temperature": "Minimale kamertemperatuur",
-                "maximum_target_temperature": "Maximale kamertemperatuur",
+                "minimum_target_temperature": "Minimale ruimtetemperatuur",
+                "maximum_target_temperature": "Maximale ruimtetemperatuur",
                 "maximum_age_ms": "Maximale leeftijd van een gekwalificeerde meting (ms)",
                 "schedule_entity": "Home Assistant Schedule-helper (optioneel)",
                 "contact_open_delay_s": "Vertraging na openen (seconden)",
@@ -51,23 +56,31 @@
               },
               "data_description": {
                 "maximum_age_ms": "Versheidsgrens, geen meetinterval. Een gecachte waarde bewijst geen nieuwe fysieke meting.",
-                "schedule_entity": "Een alternatief voor het lokale weekprogramma. Gebruik één programmabron per kamer.",
+                "schedule_entity": "Een alternatief voor het lokale weekprogramma. Gebruik één programmabron per ruimte.",
                 "contact_maximum_age_s": "Oudere berichten worden onbekend. Dit verandert niet hoe vaak de sensor rapporteert.",
-                "setpoint_entity": "Kies een Home Assistant-getalhelper met °C of °F. Alleen een nieuwe directe gebruikerswijziging vraagt een tijdelijk kamerdoel aan; de helper wordt nooit door de regelaar beschreven.",
-                "comfort_enabled": "Voegt comfortstanden toe aan de kamerthermostaat. Doelen moeten binnen de kamergrenzen blijven; de native regelaar behoudt zijn bestaande vorstdoel van 5 °C.",
-                "presence_entity": "Kies een persoon. Alleen Thuis en Afwezig worden gebruikt; onbekende, verlopen en benoemde locaties blijven onbekend. Een tijdelijk handmatig doel eindigt niet door een aanwezigheidswijziging. Minstens elke twee minuten is een nieuw oorspronkelijk HA-bericht nodig; een gecachete waarde uitlezen vernieuwt dit niet."
+                "setpoint_entity": "Kies een Home Assistant-getalhelper met °C of °F. Alleen een nieuwe directe gebruikerswijziging vraagt een tijdelijke gewenste temperatuur aan; de helper wordt nooit door de regelaar beschreven.",
+                "comfort_enabled": "Voegt comfortstanden toe aan de kamerthermostaat. Doelen moeten binnen de ruimtegrenzen blijven; de native regelaar behoudt zijn bestaande vorstdoel van 5 °C.",
+                "presence_entity": "Kies een persoon. Alleen Thuis en Afwezig worden gebruikt; onbekende, verlopen en benoemde locaties blijven onbekend. Een tijdelijk handmatig doel eindigt niet door een aanwezigheidswijziging. Minstens elke twee minuten is een nieuw oorspronkelijk HA-bericht nodig; een gecachete waarde uitlezen vernieuwt dit niet.",
+                "minimum_target_temperature": "De laagste gewenste temperatuur die deze ruimte kan krijgen.",
+                "maximum_target_temperature": "De hoogste gewenste temperatuur die deze ruimte kan krijgen.",
+                "contact_open_delay_s": "Hoe lang een raam of deur open moet staan voordat de ruimte geen warmte meer vraagt.",
+                "contact_close_delay_s": "Hoe lang er na het sluiten gewacht wordt voordat de ruimte weer warmte vraagt.",
+                "setpoint_minutes": "Hoe lang een wijziging via de extra doelhelper geldt.",
+                "away_temperature": "De gewenste temperatuur als er niemand thuis is.",
+                "frost_temperature": "De laagste gewenste temperatuur, om bevriezen te voorkomen.",
+                "override_minutes": "Hoe lang een tijdelijke temperatuur geldt voordat het programma het weer overneemt."
               }
             }
           }
         },
         "room_review": {
-          "title": "Deze kamer opslaan?",
-          "description": "**{name}**\n\nTemperatuursensor: {sensor}\n\nRadiatorkranen: {radiators}\n\nRaam- en deursensoren: {contacts}\n\nExtra doelhelper: {manual_target}\n\nAanwezigheidsbron: {presence}\n\nGewenste temperatuur buiten programmablokken: **{target} °C**\n\nDe kamer en radiatorgroep worden samen opgeslagen. Bestaande centrale verwarmingsinstellingen blijven behouden. De regeling blijft uit; inschakelen en testen van de controller is een afzonderlijke stap.",
-          "submit": "Kamer opslaan"
+          "title": "Deze ruimte opslaan?",
+          "description": "**{name}**\n\nTemperatuursensor: {sensor}\n\nRadiatorkranen: {radiators}\n\nRaam- en deursensoren: {contacts}\n\nExtra doelhelper: {manual_target}\n\nAanwezigheidsbron: {presence}\n\nGewenste temperatuur buiten programmablokken: **{target} °C**\n\nDe ruimte en radiatorgroep worden samen opgeslagen. Bestaande centrale verwarmingsinstellingen blijven behouden. De regeling blijft uit; inschakelen en testen van de controller is een afzonderlijke stap.",
+          "submit": "Ruimte opslaan"
         },
         "program": {
           "title": "Weekprogramma",
-          "description": "Concept met {blocks} tijdblokken. Buiten de blokken geldt {base} °C. Wijzigingen worden pas met de kamer opgeslagen.",
+          "description": "Concept met {blocks} tijdblokken. Buiten de blokken geldt {base} °C. Wijzigingen worden pas met de ruimte opgeslagen.",
           "menu_options": {
             "add_block": "Tijdblok toevoegen",
             "edit_block": "Tijdblok bewerken",
@@ -85,18 +98,33 @@
             "end_time": "Tot",
             "end_at_midnight": "Eindigt om middernacht",
             "temperature": "Temperatuur"
+          },
+          "data_description": {
+            "days": "De dagen waarop dit blok geldt.",
+            "start_time": "Wanneer het blok begint.",
+            "end_time": "Wanneer het blok eindigt; na het begin.",
+            "end_at_midnight": "Aan: het blok loopt tot middernacht.",
+            "temperature": "De gewenste temperatuur tijdens dit blok."
           }
         },
         "edit_block": {
           "title": "Tijdblok kiezen",
           "data": {
             "block": "Tijdblok"
+          },
+          "description": "Kies het tijdblok dat je wilt wijzigen.",
+          "data_description": {
+            "block": "Een tijdblok uit het weekprogramma."
           }
         },
         "delete_block": {
           "title": "Tijdblok verwijderen",
           "data": {
             "block": "Tijdblok"
+          },
+          "description": "Kies het tijdblok dat je uit het concept verwijdert.",
+          "data_description": {
+            "block": "Een tijdblok uit het weekprogramma."
           }
         },
         "program_empty": {
@@ -113,7 +141,7 @@
         "loop_binding": "Een geselecteerde entiteit heeft al een conflicterende rol.",
         "not_temperature": "Kies een temperatuursensor.",
         "unsupported_unit": "De sensor moet °C of °F gebruiken.",
-        "duplicate_room": "Deze kamer bestaat al.",
+        "duplicate_room": "Deze ruimte bestaat al.",
         "duplicate_actuator": "dubbele actuator",
         "invalid_binding": "ongeldige koppeling",
         "invalid_target_range": "Kies een minimum onder het maximum en een gewenste temperatuur binnen deze grenzen.",
@@ -126,35 +154,35 @@
         "program_export_failed": "Een begrensd 15-daags programma kan niet worden samengesteld: controleer tijdzone, ruimtegrenzen en maximaal 128 overgangen.",
         "room_mode_actuator_conflict": "Climate-TRV-ruimtes vereisen radiatorkranen; ruimtes met alleen een verwarmingsschema mogen geen climate-radiatorkranen hebben.",
         "unsupported_room_binding_mode": "Niet-ondersteunde uitgangsconfiguratie van de ruimte.",
-        "graph_room_runtime_off_required": "Stop de shadow-runtime voordat je een ruimte met alleen een verwarmingsschema bewerkt of de modus wijzigt.",
+        "graph_room_runtime_off_required": "Stop de schaduwmodus voordat je een ruimte met alleen een verwarmingsschema bewerkt of de modus wijzigt.",
         "confirm_room_mode_change": "Expliciete bevestiging is vereist om de uitgangsconfiguratie van de ruimte te wijzigen.",
-        "invalid_name": "Gebruik een kamernaam van 1 tot en met 80 tekens.",
+        "invalid_name": "Gebruik een ruimtenaam van 1 tot en met 80 tekens.",
         "select_radiators": "Kies één tot en met acht radiatorkranen.",
-        "output_has_multiple_owners": "Een geselecteerde kraan hoort al bij een andere kamer of controller. Controleer de bestaande koppeling onder Geavanceerd.",
+        "output_has_multiple_owners": "Een geselecteerde kraan hoort al bij een andere ruimte of controller. Controleer de bestaande koppeling onder Geavanceerd.",
         "input_output_loop": "Een radiatorkraan kan niet tegelijk de bron voor de gewenste temperatuur zijn.",
-        "setup_invalid": "De kamer kon niet worden voorbereid. Controleer de apparaten en bestaande koppelingen; er is niets opgeslagen.",
+        "setup_invalid": "De ruimte kon niet worden voorbereid. Controleer de apparaten en bestaande koppelingen; er is niets opgeslagen.",
         "invalid_contacts": "Kies maximaal acht verschillende raam- of deursensoren.",
         "not_contact_sensor": "Kies een binaire raam- of deursensor.",
         "invalid_contact_policy": "Gebruik hele seconden: vertragingen 0–600, berichtouderdom 1–86400 en langer dan beide vertragingen.",
         "unsupported_manual_target": "Kies een Home Assistant-temperatuurhelper met °C of °F.",
         "invalid_manual_target_duration": "Kies een duur van 1 tot 720 hele minuten.",
         "manual_target_has_multiple_rooms": "Deze doelhelper hoort al bij een andere ruimte.",
-        "invalid_comfort_profile": "Controleer de afwezigheids-/vorstdoelen en tijdelijke duur; doelen moeten binnen de kamergrenzen vallen.",
+        "invalid_comfort_profile": "Controleer de afwezigheids-/vorstdoelen en tijdelijke duur; doelen moeten binnen de ruimtegrenzen vallen.",
         "invalid_comfort_selection": "Kies een geldige aanwezigheidsbron, of schakel comfortstanden uit zonder aanwezigheidskoppeling.",
-        "native_comfort_frost_profile": "De native regelaar behoudt een vorstdoel van 5 °C. Gebruik 5 °C en laat dit toe in de kamergrenzen."
+        "native_comfort_frost_profile": "De native regelaar behoudt een vorstdoel van 5 °C. Gebruik 5 °C en laat dit toe in de ruimtegrenzen."
       },
       "abort": {
-        "room_limit": "Er kunnen maximaal acht kamers worden ingesteld.",
-        "shadow_mode_required": "Kies eerst expliciet de v1-shadow-modus",
+        "room_limit": "Er kunnen maximaal acht ruimtes worden ingesteld.",
+        "shadow_mode_required": "Kies eerst expliciet de v1-schaduwmodus",
         "program_cancelled": "Programma bewerken geannuleerd; niets opgeslagen.",
         "program_changed": "De ruimte is tijdens bewerken gewijzigd of verwijderd; open opnieuw.",
         "program_not_started": "Open eerst de weekeditor via de ruimtekoppelingen.",
         "room_changed": "De ruimte is tijdens bewerken gewijzigd. Open opnieuw voordat je opslaat.",
-        "setup_runtime_off": "Zet shadow-observatie uit voordat je kamers wijzigt. Er is niets aangepast.",
-        "setup_changed": "De installatie is tijdens het bewerken gewijzigd. Open de kamerinstelling opnieuw.",
-        "advanced_room_required": "Deze kamer heeft geavanceerde comfort-, vloer-, meng- of groepsinstellingen. Gebruik Geavanceerde kamerinstellingen om die te behouden. Er is niets aangepast.",
-        "room_saved": "Kamer en radiatorgroep opgeslagen. De regeling blijft uit.",
-        "setup_save_uncertain": "Opslaan kon niet worden bevestigd. Open de kamerinstelling opnieuw en controleer de opgeslagen kamer en groep voordat je opnieuw probeert.",
+        "setup_runtime_off": "Zet schaduwmodus uit voordat je ruimtes wijzigt. Er is niets aangepast.",
+        "setup_changed": "De installatie is tijdens het bewerken gewijzigd. Open de ruimte-instelling opnieuw.",
+        "advanced_room_required": "Deze ruimte heeft geavanceerde comfort-, vloer-, meng- of groepsinstellingen. Gebruik Geavanceerde ruimte-instellingen om die te behouden. Er is niets aangepast.",
+        "room_saved": "Ruimte en radiatorgroep opgeslagen. De regeling blijft uit.",
+        "setup_save_uncertain": "Opslaan kon niet worden bevestigd. Open de ruimte-instelling opnieuw en controleer de opgeslagen ruimte en groep voordat je opnieuw probeert.",
         "setup_platform_unsupported": "Deze Home Assistant-versie is nog niet gecontroleerd voor deze configuratiebewerking. Er is niets aangepast. Controleer of er een integratie-update beschikbaar is."
       }
     },
@@ -165,10 +193,10 @@
       },
       "step": {
         "user": {
-          "title": "Radiatorkamer instellen",
-          "description": "Voeg een kamer toe of kies een bestaande kamer. Er verandert niets totdat je Kamer opslaan bevestigt.",
+          "title": "Radiatorruimte instellen",
+          "description": "Voeg een ruimte toe of kies een bestaande ruimte. Er verandert niets totdat je Ruimte opslaan bevestigt.",
           "data": {
-            "room": "Kamer",
+            "room": "Ruimte",
             "room_id": "Vast ruimte-ID in firmware",
             "name": "Naam ruimte",
             "temperature_entity": "Temperatuursensor van de ruimte",
@@ -182,7 +210,7 @@
             "program_action": "Weekprogramma",
             "binding_mode": "Uitgangsconfiguratie ruimte",
             "confirm_binding_mode_change": "Wijziging van de ruimte-uitgangsconfiguratie bevestigen",
-            "comfort_enabled": "Begrensd comfortbeleid inschakelen (alleen shadow)",
+            "comfort_enabled": "Begrensd comfortbeleid inschakelen (alleen schaduwmodus)",
             "away_temperature": "Afwezigheids- / vakantiedoel",
             "frost_temperature": "Expliciet vorstdoel (geen fysieke beveiliging)",
             "override_minutes": "Duur tijdelijke afwijking (minuten)",
@@ -199,39 +227,50 @@
             "maximum_target_temperature": "Hoogst toegestane ruimtedoel, inclusief programmablokken; geen ketelwatergrens.",
             "maximum_age_ms": "Maximale ouderdom van een gekwalificeerde meting; 120000 ms = 120 seconden. Geen opvraaginterval. Een HA-cache of last_reported alleen bewijst geen verse fysieke meting.",
             "program_action": "Sla koppelingen op, bewerk lokale tijdblokken of verwijder het lokale programma expliciet. Een Home Assistant Schedule-helper is een alternatief, geen tweede programmabron.",
-            "binding_mode": "Climate-radiatorkranen gebruiken het bestaande shadow-profiel. Ruimtes met alleen een verwarmingsschema vereisen geen radiatorkraan en blijven een niet-toegepast concept; uitvoering en transport zijn geblokkeerd in afwachting van het firmwarecontract.",
+            "binding_mode": "Climate-radiatorkranen gebruiken het bestaande schaduwprofiel. Ruimtes met alleen een verwarmingsschema vereisen geen radiatorkraan en blijven een niet-toegepast concept; uitvoering en transport zijn geblokkeerd in afwachting van het firmwarecontract.",
             "confirm_binding_mode_change": "Alleen verplicht bij moduswijziging. Controleer en wis of selecteer de radiatorkraankoppelingen expliciet. Ruimte-ID, grenzen en weekprogramma blijven behouden.",
-            "window_entity": "Alleen shadow-context. De standaardvoorvertoning verloopt na 2 minuten; alleen een expliciet gekwalificeerd bronrapportprofiel kan zijn eigen contexttermijn verlengen. Gecachte of ongewijzigde waarden alleen kwalificeren nooit beschikbaarheid of fysieke beveiliging.",
-            "presence_entity": "Alleen shadow-context. Onbekend is niet afwezig. De standaardvoorvertoning verloopt na 2 minuten; alleen een expliciet gekwalificeerd bronrapportprofiel kan zijn eigen contexttermijn verlengen."
+            "window_entity": "Alleen schaduwcontext. De standaardvoorvertoning verloopt na 2 minuten; alleen een expliciet gekwalificeerd bronrapportprofiel kan zijn eigen contexttermijn verlengen. Gecachte of ongewijzigde waarden alleen kwalificeren nooit beschikbaarheid of fysieke beveiliging.",
+            "presence_entity": "Alleen schaduwcontext. Onbekend is niet afwezig. De standaardvoorvertoning verloopt na 2 minuten; alleen een expliciet gekwalificeerd bronrapportprofiel kan zijn eigen contexttermijn verlengen.",
+            "room_id": "Een vaste ID voor deze ruimte op de E32; die kan later niet meer veranderen.",
+            "name": "De naam van de ruimte, bijvoorbeeld Woonkamer.",
+            "comfort_enabled": "Voegt afwezig- en vorststanden toe aan deze ruimte (alleen schaduwmodus).",
+            "away_temperature": "De gewenste temperatuur als je weg of op vakantie bent.",
+            "frost_temperature": "De laagste gewenste temperatuur tegen bevriezen; geen fysieke beveiliging.",
+            "override_minutes": "Hoe lang een tijdelijke temperatuur geldt.",
+            "room": "Kies een bestaande ruimte, of voeg een nieuwe toe."
           }
         },
         "radiator": {
-          "title": "Kamer en radiatorkranen",
-          "description": "Stel de gewenste temperatuur in en kies de temperatuursensor en radiatorkranen voor deze kamer. Je controleert je keuzes voordat je opslaat.",
+          "title": "Ruimte en radiatorkranen",
+          "description": "Stel de gewenste temperatuur in en kies de temperatuursensor en radiatorkranen voor deze ruimte. Je controleert je keuzes voordat je opslaat.",
           "data": {
-            "name": "Kamernaam",
+            "name": "Ruimtenaam",
             "temperature_entity": "Temperatuursensor",
             "radiator_entities": "Radiatorkranen",
             "base_temperature": "Gewenste temperatuur",
             "program_action": "Weekprogramma"
           },
           "data_description": {
-            "temperature_entity": "Kies de sensor die de temperatuur in deze kamer meet.",
+            "temperature_entity": "Kies de sensor die de temperatuur in deze ruimte meet.",
             "program_action": "Behoud het bestaande programma, bewerk lokale tijdblokken of verwijder het programma expliciet.",
-            "base_temperature": "Gebruikt buiten programmablokken. Opslaan verstuurt geen temperatuurcommando."
+            "base_temperature": "Gebruikt buiten programmablokken. Opslaan verstuurt geen temperatuurcommando.",
+            "name": "De naam van de ruimte, bijvoorbeeld Woonkamer.",
+            "radiator_entities": "De radiatorkranen (thermostaatkranen) in deze ruimte, maximaal acht."
           },
           "sections": {
             "advanced": {
               "name": "Geavanceerd",
               "data": {
-                "minimum_target_temperature": "Minimale kamertemperatuur",
-                "maximum_target_temperature": "Maximale kamertemperatuur",
+                "minimum_target_temperature": "Minimale ruimtetemperatuur",
+                "maximum_target_temperature": "Maximale ruimtetemperatuur",
                 "maximum_age_ms": "Maximale leeftijd van een gekwalificeerde meting (ms)",
                 "schedule_entity": "Home Assistant Schedule-helper (optioneel)"
               },
               "data_description": {
                 "maximum_age_ms": "Versheidsgrens, geen meetinterval. Een gecachte waarde bewijst geen nieuwe fysieke meting.",
-                "schedule_entity": "Een alternatief voor het lokale weekprogramma. Gebruik één programmabron per kamer."
+                "schedule_entity": "Een alternatief voor het lokale weekprogramma. Gebruik één programmabron per ruimte.",
+                "minimum_target_temperature": "De laagste gewenste temperatuur die deze ruimte kan krijgen.",
+                "maximum_target_temperature": "De hoogste gewenste temperatuur die deze ruimte kan krijgen."
               }
             }
           }
@@ -243,7 +282,7 @@
         },
         "program": {
           "title": "Weekprogramma",
-          "description": "Concept met {blocks} tijdblokken. Buiten de blokken geldt {base} °C. Wijzigingen worden pas met de kamer opgeslagen.",
+          "description": "Concept met {blocks} tijdblokken. Buiten de blokken geldt {base} °C. Wijzigingen worden pas met de ruimte opgeslagen.",
           "menu_options": {
             "add_block": "Tijdblok toevoegen",
             "edit_block": "Tijdblok bewerken",
@@ -275,12 +314,20 @@
           "title": "Tijdblok kiezen",
           "data": {
             "block": "Tijdblok"
+          },
+          "description": "Kies het tijdblok dat je wilt wijzigen.",
+          "data_description": {
+            "block": "Een tijdblok uit het weekprogramma."
           }
         },
         "delete_block": {
           "title": "Tijdblok verwijderen",
           "data": {
             "block": "Tijdblok"
+          },
+          "description": "Kies het tijdblok dat je uit het concept verwijdert.",
+          "data_description": {
+            "block": "Een tijdblok uit het weekprogramma."
           }
         },
         "program_empty": {
@@ -312,7 +359,7 @@
             "radiator_entities": "Radiatorkranen"
           },
           "data_description": {
-            "temperature_entity": "De regeling gebruikt deze meting. Kies een representatieve kamersensor; apparaattemperatuur kan afwijken.",
+            "temperature_entity": "De regeling gebruikt deze meting. Kies een representatieve ruimtesensor; apparaattemperatuur kan afwijken.",
             "radiator_entities": "Kies alle radiatorkranen van deze ruimte. Een kraan kan niet bij twee ruimtes horen. Opslaan bedient de kranen niet."
           },
           "submit": "Volgende"
@@ -359,7 +406,7 @@
         },
         "edit_room": {
           "title": "Ruimte aanpassen",
-          "description": "Pas alle kamerinstellingen direct aan. Open [het volledige kamerscherm]({editor_url}) om apparaten, temperaturen en de grafische weekplanner samen te bewerken. Alleen een nieuwe ruimte gebruikt de wizard.",
+          "description": "Pas alle ruimte-instellingen direct aan. Open [het volledige ruimtescherm]({editor_url}) om apparaten, temperaturen en de grafische weekplanner samen te bewerken. Alleen een nieuwe ruimte gebruikt de wizard.",
           "data": {
             "name": "Naam ruimte",
             "emitter": "Verwarming in deze ruimte",
@@ -370,7 +417,7 @@
           "data_description": {
             "name": "Deze naam zie je bij de bediening. Hernoemen behoudt de identiteit en het programma.",
             "emitter": "Bepaalt welke kranen en temperatuurgrenzen passen. Vloerverwarming heeft een eigen geschikt profiel nodig.",
-            "temperature_entity": "De regeling gebruikt deze meting. Kies een representatieve kamersensor; apparaattemperatuur kan afwijken.",
+            "temperature_entity": "De regeling gebruikt deze meting. Kies een representatieve ruimtesensor; apparaattemperatuur kan afwijken.",
             "radiator_entities": "Kies alle radiatorkranen van deze ruimte. Een kraan kan niet bij twee ruimtes horen. Opslaan bedient de kranen niet.",
             "base_temperature": "Geldt wanneer geen weekblok actief is. Een hoger doel kan meer warmtevraag geven.",
             "program_action": "Behoud het programma, bewerk de tijdblokken of verwijder het expliciet. Elk blok heeft zijn eigen temperatuur."
@@ -391,7 +438,7 @@
             "program_action": "Weekprogramma",
             "binding_mode": "Uitgangsconfiguratie ruimte",
             "confirm_binding_mode_change": "Wijziging van de ruimte-uitgangsconfiguratie bevestigen",
-            "comfort_enabled": "Begrensd comfortbeleid inschakelen (alleen shadow)",
+            "comfort_enabled": "Begrensd comfortbeleid inschakelen (alleen schaduwmodus)",
             "away_temperature": "Afwezigheids- / vakantiedoel",
             "frost_temperature": "Expliciet vorstdoel (geen fysieke beveiliging)",
             "override_minutes": "Duur tijdelijke afwijking (minuten)",
@@ -408,12 +455,17 @@
             "maximum_target_temperature": "Hoogst toegestane ruimtedoel, inclusief programmablokken; geen ketelwatergrens.",
             "maximum_age_ms": "Maximale ouderdom van een gekwalificeerde meting; 120000 ms = 120 seconden. Geen opvraaginterval. Een HA-cache of last_reported alleen bewijst geen verse fysieke meting.",
             "program_action": "Sla koppelingen op, bewerk lokale tijdblokken of verwijder het lokale programma expliciet. Een Home Assistant Schedule-helper is een alternatief, geen tweede programmabron.",
-            "binding_mode": "Climate-radiatorkranen gebruiken het bestaande shadow-profiel. Ruimtes met alleen een verwarmingsschema vereisen geen radiatorkraan en blijven een niet-toegepast concept; uitvoering en transport zijn geblokkeerd in afwachting van het firmwarecontract.",
+            "binding_mode": "Climate-radiatorkranen gebruiken het bestaande schaduwprofiel. Ruimtes met alleen een verwarmingsschema vereisen geen radiatorkraan en blijven een niet-toegepast concept; uitvoering en transport zijn geblokkeerd in afwachting van het firmwarecontract.",
             "confirm_binding_mode_change": "Alleen verplicht bij moduswijziging. Controleer en wis of selecteer de radiatorkraankoppelingen expliciet. Ruimte-ID, grenzen en weekprogramma blijven behouden.",
-            "window_entity": "Alleen shadow-context. De standaardvoorvertoning verloopt na 2 minuten; alleen een expliciet gekwalificeerd bronrapportprofiel kan zijn eigen contexttermijn verlengen. Gecachte of ongewijzigde waarden alleen kwalificeren nooit beschikbaarheid of fysieke beveiliging.",
-            "presence_entity": "Alleen shadow-context. Onbekend is niet afwezig. De standaardvoorvertoning verloopt na 2 minuten; alleen een expliciet gekwalificeerd bronrapportprofiel kan zijn eigen contexttermijn verlengen."
+            "window_entity": "Alleen schaduwcontext. De standaardvoorvertoning verloopt na 2 minuten; alleen een expliciet gekwalificeerd bronrapportprofiel kan zijn eigen contexttermijn verlengen. Gecachte of ongewijzigde waarden alleen kwalificeren nooit beschikbaarheid of fysieke beveiliging.",
+            "presence_entity": "Alleen schaduwcontext. Onbekend is niet afwezig. De standaardvoorvertoning verloopt na 2 minuten; alleen een expliciet gekwalificeerd bronrapportprofiel kan zijn eigen contexttermijn verlengen.",
+            "name": "De naam van de ruimte, bijvoorbeeld Woonkamer.",
+            "comfort_enabled": "Voegt afwezig- en vorststanden toe aan deze ruimte (alleen schaduwmodus).",
+            "away_temperature": "De gewenste temperatuur als je weg of op vakantie bent.",
+            "frost_temperature": "De laagste gewenste temperatuur tegen bevriezen; geen fysieke beveiliging.",
+            "override_minutes": "Hoe lang een tijdelijke temperatuur geldt."
           },
-          "description": "Voeg een kamer toe of kies een bestaande kamer. Er verandert niets totdat je Kamer opslaan bevestigt."
+          "description": "Voeg een ruimte toe of kies een bestaande ruimte. Er verandert niets totdat je Ruimte opslaan bevestigt."
         }
       },
       "error": {
@@ -421,9 +473,9 @@
         "loop_binding": "Een geselecteerde entiteit heeft al een conflicterende rol.",
         "not_temperature": "Kies een temperatuursensor.",
         "unsupported_unit": "De sensor moet °C of °F gebruiken.",
-        "duplicate_room": "Deze kamer bestaat al.",
-        "duplicate_actuator": "dubbele actuator",
-        "invalid_binding": "ongeldige koppeling",
+        "duplicate_room": "Deze ruimte bestaat al.",
+        "duplicate_actuator": "Een gekozen radiatorkraan hoort al bij een andere ruimte.",
+        "invalid_binding": "Deze keuze kan niet voor een ruimte worden gebruikt.",
         "invalid_target_range": "Kies een minimum onder het maximum en een gewenste temperatuur binnen deze grenzen.",
         "program_source_conflict": "Gebruik één programmabron. Wis de Schedule-helper om lokale tijdblokken te bewerken.",
         "program_overlap": "Tijdblokken overlappen op een gekozen dag.",
@@ -434,21 +486,21 @@
         "program_export_failed": "Een begrensd 15-daags programma kan niet worden samengesteld: controleer tijdzone, ruimtegrenzen en maximaal 128 overgangen.",
         "room_mode_actuator_conflict": "Climate-TRV-ruimtes vereisen radiatorkranen; ruimtes met alleen een verwarmingsschema mogen geen climate-radiatorkranen hebben.",
         "unsupported_room_binding_mode": "Niet-ondersteunde uitgangsconfiguratie van de ruimte.",
-        "graph_room_runtime_off_required": "Stop de shadow-runtime voordat je een ruimte met alleen een verwarmingsschema bewerkt of de modus wijzigt.",
+        "graph_room_runtime_off_required": "Stop de schaduwmodus voordat je een ruimte met alleen een verwarmingsschema bewerkt of de modus wijzigt.",
         "confirm_room_mode_change": "Expliciete bevestiging is vereist om de uitgangsconfiguratie van de ruimte te wijzigen.",
-        "invalid_name": "Gebruik een kamernaam van 1 tot en met 80 tekens.",
+        "invalid_name": "Gebruik een ruimtenaam van 1 tot en met 80 tekens.",
         "select_radiators": "Kies één tot en met acht radiatorkranen.",
-        "output_has_multiple_owners": "Een geselecteerde kraan hoort al bij een andere kamer of controller. Controleer de bestaande koppeling onder Geavanceerd.",
+        "output_has_multiple_owners": "Een geselecteerde kraan hoort al bij een andere ruimte of controller. Controleer de bestaande koppeling onder Geavanceerd.",
         "input_output_loop": "Een radiatorkraan kan niet tegelijk de bron voor de gewenste temperatuur zijn.",
-        "setup_invalid": "De kamer kon niet worden voorbereid. Controleer de apparaten en bestaande koppelingen; er is niets opgeslagen.",
+        "setup_invalid": "De ruimte kon niet worden voorbereid. Controleer de apparaten en bestaande koppelingen; er is niets opgeslagen.",
         "emitter_not_available": "Dit verwarmingstype is in deze versie nog niet beschikbaar. Er is niets opgeslagen. Kies radiatoren of wacht op het passende profiel.",
         "runtime_active": "De regeling is actief. Instellingen zijn niet gewijzigd.",
-        "advanced_room_required": "Dit kamerprofiel kan hier nog niet worden gewijzigd. Alle gegevens blijven behouden.",
+        "advanced_room_required": "Dit ruimteprofiel kan hier nog niet worden gewijzigd. Alle gegevens blijven behouden.",
         "confirm_program_source_change": "Bevestig de wijziging van de programmabron."
       },
       "abort": {
-        "room_limit": "Er kunnen maximaal acht kamers worden ingesteld.",
-        "shadow_mode_required": "Kies eerst expliciet de v1-shadow-modus",
+        "room_limit": "Er kunnen maximaal acht ruimtes worden ingesteld.",
+        "shadow_mode_required": "Kies eerst expliciet de v1-schaduwmodus",
         "program_cancelled": "Programma bewerken geannuleerd; niets opgeslagen.",
         "program_changed": "De ruimte is tijdens bewerken gewijzigd of verwijderd; open opnieuw.",
         "program_not_started": "Open eerst de weekeditor via de ruimtekoppelingen.",
@@ -457,8 +509,9 @@
         "setup_changed": "De inrichting is intussen gewijzigd. Sluit dit formulier en open de ruimte opnieuw.",
         "advanced_room_required": "Deze ruimte heeft aanvullende regelinstellingen die deze eenvoudige route nog niet kan aanpassen. De bestaande inrichting is behouden.",
         "room_saved": "Ruimte en koppelingen opgeslagen. De regeling is niet ingeschakeld.",
-        "setup_save_uncertain": "Opslaan kon niet worden bevestigd. Open de kamerinstelling opnieuw en controleer de opgeslagen kamer en groep voordat je opnieuw probeert.",
-        "setup_platform_unsupported": "Deze Home Assistant-versie is nog niet gecontroleerd voor deze configuratiebewerking. Er is niets aangepast. Controleer of er een integratie-update beschikbaar is."
+        "setup_save_uncertain": "Opslaan kon niet worden bevestigd. Open de ruimte-instelling opnieuw en controleer de opgeslagen ruimte en groep voordat je opnieuw probeert.",
+        "setup_platform_unsupported": "Deze Home Assistant-versie is nog niet gecontroleerd voor deze configuratiebewerking. Er is niets aangepast. Controleer of er een integratie-update beschikbaar is.",
+        "e32_rooms_elsewhere": "De ruimtes van deze installatie staan nu op de E32: open OpenThermostat → Configureren → Ruimtes. De oudere ruimterecords in Home Assistant blijven alleen ter naslag bewaard."
       }
     },
     "heating": {
@@ -470,7 +523,7 @@
       "step": {
         "user": {
           "title": "Centrale verwarmingsinstellingen — alleen concept",
-          "description": "Alleen gewenste HA-configuratie: NIET op de E32 toegepast. Het bestaande shadow-contract ondersteunt deze configuratie nog niet. Geen bron wordt gekwalificeerd, geen actuator ingeschakeld en geen verwarmingsopdracht verzonden. Ruimtedoelen en weekprogramma’s blijven apart.",
+          "description": "Alleen gewenste HA-configuratie: NIET op de E32 toegepast. Het bestaande schaduwcontract ondersteunt deze configuratie nog niet. Geen bron wordt gekwalificeerd, geen actuator ingeschakeld en geen verwarmingsopdracht verzonden. Ruimtedoelen en weekprogramma’s blijven apart.",
           "data": {
             "weather_enabled": "Weersafhankelijke regeling (gewenste instelling)",
             "outdoor_source": "Buitentemperatuurbron (optioneel zonder weersafhankelijke regeling)",
@@ -512,7 +565,7 @@
         },
         "reconfigure": {
           "title": "Centrale verwarmingsinstellingen — alleen concept",
-          "description": "Alleen gewenste HA-configuratie: NIET op de E32 toegepast. Het bestaande shadow-contract ondersteunt deze configuratie nog niet. Geen bron wordt gekwalificeerd, geen actuator ingeschakeld en geen verwarmingsopdracht verzonden. Ruimtedoelen en weekprogramma’s blijven apart.",
+          "description": "Alleen gewenste HA-configuratie: NIET op de E32 toegepast. Het bestaande schaduwcontract ondersteunt deze configuratie nog niet. Geen bron wordt gekwalificeerd, geen actuator ingeschakeld en geen verwarmingsopdracht verzonden. Ruimtedoelen en weekprogramma’s blijven apart.",
           "data": {
             "weather_enabled": "Weersafhankelijke regeling (gewenste instelling)",
             "outdoor_source": "Buitentemperatuurbron (optioneel zonder weersafhankelijke regeling)",
@@ -571,6 +624,9 @@
           "description": "Alleen gewenste configuratie. Niets beweegt of wordt op de E32 toegepast. Groep-/profielverklaringen bewijzen geen elektrische, hydraulische of apparaatondersteuning.",
           "data": {
             "group_id": "Afgiftegroep"
+          },
+          "data_description": {
+            "group_id": "De groep radiatoren of vloerlussen die je wilt wijzigen."
           }
         },
         "group": {
@@ -591,7 +647,10 @@
             "minimum_supply_temperature": "Watertemperatuurgrens van de groep, geen ruimtetemperatuur. Een structureel geldige waarde is geen veiligheidsgoedkeuring van de installatie.",
             "maximum_supply_temperature": "Een vloer zonder vastgelegde mengregeling vereist een gedeelde centrale bovengrens binnen deze limiet. Een gesloten vloerklep is geen onafhankelijke oververhittingsbeveiliging.",
             "pump": "Optionele bestaande schakelaar voor de groepspomp. Bij verwijderen moeten beide pomptijden nul zijn. Selectie bedient nooit een pomp.",
-            "mixing_kind": "Alleen een verklaring. Een mengklep is geen ruimteklep. Mengregeling, uitgangsvergrendeling, referentiebeweging en analoge kalibratie worden NIET door deze editor uitgevoerd."
+            "mixing_kind": "Alleen een verklaring. Een mengklep is geen ruimteklep. Mengregeling, uitgangsvergrendeling, referentiebeweging en analoge kalibratie worden NIET door deze editor uitgevoerd.",
+            "name": "Een naam voor deze groep, bijvoorbeeld Begane grond.",
+            "pump_start_delay_s": "Seconden wachten voordat de pomp start.",
+            "postrun_s": "Seconden dat de pomp blijft draaien nadat de verwarming stopt."
           }
         },
         "mixing": {
@@ -620,7 +679,8 @@
             "cascade_actuators": "Ook de actuatorverklaringen van deze groep uit het concept verwijderen"
           },
           "data_description": {
-            "cascade_actuators": "Verplicht als de groep actuatorverklaringen bevat. Alleen de conceptgroep en de bijbehorende verklaringen worden verwijderd; geen ruimte, entiteit of apparaat wordt verwijderd of bediend."
+            "cascade_actuators": "Verplicht als de groep actuatorverklaringen bevat. Alleen de conceptgroep en de bijbehorende verklaringen worden verwijderd; geen ruimte, entiteit of apparaat wordt verwijderd of bediend.",
+            "group_id": "De groep die je uit het concept verwijdert."
           }
         },
         "actuator": {
@@ -632,7 +692,9 @@
             "profile": "Type actuatorverklaring"
           },
           "data_description": {
-            "room_id": "Kies een logische ruimte die al in deze integratie is ingesteld. Native verwijderen van die ruimte verwijdert alleen de bijbehorende gewenste actuatorverklaringen, met audit; groepen en centrale instellingen blijven behouden."
+            "room_id": "Kies een logische ruimte die al in deze integratie is ingesteld. Native verwijderen van die ruimte verwijdert alleen de bijbehorende gewenste actuatorverklaringen, met audit; groepen en centrale instellingen blijven behouden.",
+            "group_id": "De groep waar deze actuator bij hoort.",
+            "profile": "Wat voor soort actuator dit is."
           }
         },
         "actuator_details": {
@@ -656,7 +718,9 @@
             "travel_time_s": "Verklaring van volledige looptijd, geen bewijs van terugmelding. Tijdens configuratie beweegt geen actuator.",
             "cycle_s": "Verplicht voor TPI; laat leeg voor hysterese. Minimale aan-tijd moet de looptijd dekken en minimale aan- en uit-tijd moeten in de cyclus passen.",
             "minimum_percent": "Gevraagde stand, geen gemeten doorstroming of ketelvermogen. Interfacerichting, terugmelding, veilige terugval en apparaatondersteuning zijn nog onbewezen.",
-            "maximum_percent": "Moet boven het minimum liggen. Een procentuele uitgang is niet automatisch een mengklep of een 0–10 V-interface."
+            "maximum_percent": "Moet boven het minimum liggen. Een procentuele uitgang is niet automatisch een mengklep of een 0–10 V-interface.",
+            "minimum_on_s": "De kortste tijd dat de actuator aan blijft.",
+            "minimum_off_s": "De kortste tijd dat de actuator uit blijft."
           }
         },
         "edit_actuator": {
@@ -664,6 +728,9 @@
           "description": "Alleen gewenste configuratie. Niets beweegt of wordt op de E32 toegepast. Groep-/profielverklaringen bewijzen geen elektrische, hydraulische of apparaatondersteuning.",
           "data": {
             "actuator_id": "Actuatorverklaring"
+          },
+          "data_description": {
+            "actuator_id": "De actuator die je wilt wijzigen."
           }
         },
         "delete_actuator": {
@@ -674,7 +741,8 @@
             "confirm": "Verwijderen uit concept bevestigen"
           },
           "data_description": {
-            "confirm": "Verwijderen gebeurt alleen in het concept; pas Opslaan bewaart het gewenste schema. Annuleren verwerpt alle conceptwijzigingen."
+            "confirm": "Verwijderen gebeurt alleen in het concept; pas Opslaan bewaart het gewenste schema. Annuleren verwerpt alle conceptwijzigingen.",
+            "actuator_id": "De actuator die je uit het concept verwijdert."
           }
         },
         "graph_error": {
@@ -694,7 +762,7 @@
         "invalid_heating_draft": "De gewenste configuratie is ongeldig. Geen wijzigingen opgeslagen.",
         "wrong_entity_domain": "Kies een entiteit uit het vereiste domein.",
         "input_output_loop": "Een radiatorkraan kan niet tegelijk de bron voor de gewenste temperatuur zijn.",
-        "output_has_multiple_owners": "Een geselecteerde kraan hoort al bij een andere kamer of controller. Controleer de bestaande koppeling onder Geavanceerd.",
+        "output_has_multiple_owners": "Een geselecteerde kraan hoort al bij een andere ruimte of controller. Controleer de bestaande koppeling onder Geavanceerd.",
         "floor_requires_mixing_or_shared_safe_limit": "Een ongemengde vloer vereist dat de gedeelde centrale bovengrens binnen de vloergroeplimiet blijft.",
         "invalid_tpi_travel_or_minimum_times": "De TPI-aan-tijd moet de looptijd dekken en minimale aan- en uit-tijd moeten in de cyclus passen.",
         "pump_times_without_pump": "Wis beide pomptijden als er geen groepspomp is geselecteerd.",
@@ -709,8 +777,8 @@
         "room_required": "Stel een ruimte in voordat je actuatorverklaringen toevoegt."
       },
       "abort": {
-        "shadow_mode_required": "Alleen expliciete shadow-configuraties ondersteunen dit concept.",
-        "disable_runtime_before_draft": "Deze concepteditor vereist dat de shadow-runtime uitgeschakeld blijft.",
+        "shadow_mode_required": "Alleen expliciete schaduwconfiguraties ondersteunen dit concept.",
+        "disable_runtime_before_draft": "Deze concepteditor vereist dat de schaduwmodus uitgeschakeld blijft.",
         "single_central_owner": "Deze regelaar heeft al een centraal verwarmingsconcept. Configureer dat bestaande concept opnieuw.",
         "graph_not_started": "Open het verwarmingsschema via de centrale verwarmingsinstellingen.",
         "graph_changed": "Het centrale concept of de ruimtelijst is tijdens bewerken gewijzigd. Open het concept opnieuw; niets opgeslagen.",
@@ -742,7 +810,7 @@
     },
     "setup_room_choice": {
       "options": {
-        "new": "Nieuwe kamer"
+        "new": "Nieuwe ruimte"
       }
     },
     "room_setup_program_action": {
@@ -811,7 +879,7 @@
     },
     "room_binding_mode": {
       "options": {
-        "climate_trv": "Climate-radiatorkranen (bestaand shadow-profiel)",
+        "climate_trv": "Climate-radiatorkranen (bestaand schaduwprofiel)",
         "graph_only_draft": "Ruimte met alleen schema / vloer (niet-toegepast concept)"
       }
     },
@@ -828,22 +896,44 @@
         "refresh": "Status vernieuwen",
         "close": "Status sluiten"
       }
+    },
+    "e32_room_state": {
+      "options": {
+        "active": "Aan",
+        "inactive": "Uit (geen warmtevraag)"
+      }
+    },
+    "e32_room_emitter": {
+      "options": {
+        "radiator": "Radiatoren",
+        "floor": "Vloerverwarming"
+      }
+    },
+    "e32_room_action": {
+      "options": {
+        "edit": "Ruimte bewerken",
+        "remove": "Ruimte verwijderen"
+      }
     }
   },
   "config": {
     "step": {
       "user": {
-        "title": "OpenThermostat-modus",
+        "title": "OpenThermostat instellen",
         "menu_options": {
-          "legacy": "Bestaande oude integratie",
-          "shadow": "Alleen uitlezen en berekenen (schaduwmodus)"
-        }
+          "legacy": "Oudere OpenThermostat-firmware (ib-therm)",
+          "shadow": "OpenThermostat E32 (aanbevolen)"
+        },
+        "description": "Kies je OpenThermostat. Met de E32 rekent de E32 mee; je huidige thermostaat blijft de ketel regelen tot je overstapt."
       },
       "confirm": {
         "title": "OpenThermostat gevonden",
         "description": "Climate-entiteiten toevoegen voor ruimtes van MQTT-prefix {prefix}?",
         "data": {
           "create_dashboard": "Een OpenThermostat-dashboard maken"
+        },
+        "data_description": {
+          "create_dashboard": "Voegt een OpenThermostat-dashboard aan de zijbalk toe met je ruimtes, de ketel en de sensoren."
         }
       },
       "legacy": {
@@ -852,14 +942,22 @@
         "data": {
           "topic_prefix": "MQTT-topicprefix",
           "create_dashboard": "Een OpenThermostat-dashboard maken"
+        },
+        "data_description": {
+          "topic_prefix": "Het MQTT-voorvoegsel dat op de thermostaat is ingesteld, bijvoorbeeld ib-therm.",
+          "create_dashboard": "Voegt een OpenThermostat-dashboard aan de zijbalk toe met je ruimtes, de ketel en de sensoren."
         }
       },
       "shadow": {
-        "title": "Uitlezen en berekenen zonder aansturing",
-        "description": "De E32 ontvangt gegevens en berekent warmtevraag, maar stuurt geen kranen of ketel aan. Bestaande verwarming blijft via de huidige thermostaat werken. Actieve aansturing wacht op bevestigde metingen, opdrachtbevestiging en een geslaagde stopproef. Kopieer dit verbindings-ID naar de E32 en schakel de berekeningen apart in bij opties.",
+        "title": "Een OpenThermostat E32 koppelen",
+        "description": "De E32 rekent mee; je huidige thermostaat blijft de ketel regelen. Er gaat niets naar radiatorkranen of de ketel. Normaal koppel je de E32 later via Configureren → E32 verbinden; dat vult het verbindings-ID voor je in.",
         "data": {
-          "topic_prefix": "MQTT-prefix regelaar (1–32 ASCII-letters/cijfers, - of _)",
-          "adapter_id": "In firmware vastgelegd adaptereigenaar-ID"
+          "topic_prefix": "MQTT-prefix van de E32",
+          "adapter_id": "Verbindings-ID (al ingevuld)"
+        },
+        "data_description": {
+          "topic_prefix": "Het MQTT-voorvoegsel van de E32, zoals op zijn netwerkpagina staat.",
+          "adapter_id": "Laat de voorgestelde waarde staan; E32 verbinden zet hem voor je op de E32."
         }
       },
       "installation": {
@@ -885,31 +983,48 @@
           }
         },
         "submit": "Installatie toevoegen"
+      },
+      "reauth_confirm": {
+        "title": "Nieuw E32-wachtwoord",
+        "description": "De E32 op {address} accepteert het bewaarde wachtwoord niet meer; het is waarschijnlijk op de webpagina van de E32 gewijzigd. Vul het E32-wachtwoord in (gebruiker admin), zodat Home Assistant de ruimtes bij kan houden. Je verwarming blijft intussen gewoon op de E32 werken.",
+        "data": {
+          "password": "E32-wachtwoord"
+        },
+        "data_description": {
+          "password": "Het wachtwoord waarmee je op de webpagina van de E32 inlogt (gebruiker admin)."
+        }
       }
     },
     "abort": {
       "already_configured": "Deze thermostaat is al ingesteld.",
       "invalid_status": "De MQTT-ruimtestatus is ongeldig.",
-      "invalid_topic": "De MQTT-topicprefix is ongeldig."
+      "invalid_topic": "De MQTT-topicprefix is ongeldig.",
+      "reauth_successful": "Het nieuwe E32-wachtwoord is opgeslagen. Home Assistant maakt nu opnieuw verbinding.",
+      "reauth_no_e32": "Deze installatie heeft nog geen E32-verbinding. Gebruik Configureren → E32 verbinden."
     },
     "error": {
       "invalid_topic": "Niet-ondersteunde prefix voor deze modus. Shadow vereist 1–32 ASCII-letters/cijfers, - of _; bestaande oude ID’s worden niet hernoemd.",
       "invalid_adapter_id": "Gebruik hetzelfde expliciete eigenaar-ID als op de E32 (1–32 letters, cijfers, _ of -).",
-      "invalid_name": "Geef een naam van 1 tot 80 tekens."
+      "invalid_name": "Geef een naam van 1 tot 80 tekens.",
+      "reauth_password_invalid": "Vul het E32-wachtwoord in (1 tot 128 tekens).",
+      "reauth_password_wrong": "De E32 accepteert dit wachtwoord niet. Controleer het en probeer het opnieuw.",
+      "reauth_unreachable": "De E32 is niet bereikbaar. Controleer of hij aan staat en met je netwerk verbonden is, en probeer het opnieuw."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "OpenThermostat",
-        "description": "Eén installatie met centrale instellingen en ruimtes.",
+        "description": "Je ruimtes, de E32-verbinding en de optionele energiegegevens.",
         "menu_options": {
           "installation": "Installatie instellen",
           "room_settings": "Ruimtes beheren",
           "configuration_status": "Status installatie",
           "advanced_settings": "Geavanceerd en diagnose",
           "controller_connection": "E32 verbinden",
-          "graph_prepare": "Kamerplan controleren en herstellen"
+          "graph_prepare": "Ruimteplan controleren en herstellen",
+          "e32_rooms": "Ruimtes",
+          "energy": "Energie en buitentemperatuur"
         }
       },
       "graph_review": {
@@ -917,6 +1032,9 @@
         "description": "{scope}.\n\n{summary}\n\nGeaccepteerde revisie {accepted}; voorbereide revisie {revision}.\n{status_label}.\n\nToepassen bewaart precies deze beoordeelde configuratie, zonder fysieke aansturing. Alleen verse exacte teruglezing controleert dit. Wijziging van eigenaar, opstart, sessie of kandidaat annuleert deze beoordeling.\n\nConfiguratievingerafdruk: {digest}",
         "data": {
           "confirm_apply": "Precies deze voorbereide configuratie toepassen"
+        },
+        "data_description": {
+          "confirm_apply": "Vink aan om precies deze gecontroleerde configuratie op de E32 op te slaan. Dit zet de verwarmingsregeling niet aan."
         }
       },
       "graph_status": {
@@ -924,6 +1042,9 @@
         "description": "{status_label}.\n\nApparaatresultaat: {result_label}; een ACK bewijst geen toepassing of teruglezing.\nLokaal geaccepteerde revisie: {accepted}; voorbereid: {staged_label}.\nHuidige teruglezing gecontroleerd:{verified}.\n\nBereik: {data_scope}.\n{control_status}.\n\nVernieuwen leest alleen de huidige status. Het past nooit configuratie toe en kwalificeert geen fysieke bron.",
         "data": {
           "status_action": "Volgende actie"
+        },
+        "data_description": {
+          "status_action": "Wat je nu wilt doen."
         }
       },
       "hot_water": {
@@ -932,30 +1053,39 @@
         "data": {}
       },
       "graph_source_status": {
-        "title": "Status shadow-regeling van beoordeelde bron",
+        "title": "Status schaduwmodus van beoordeelde bron",
         "description": "Bereik:{scope}. Contract:{profile}. Softwareregeling:{control_status}. Huidige bronconfiguratie-teruglezing gecontroleerd:{verified}. Journaal:{journal_status}. Geaccepteerde revisie:{accepted}; voorbereid:{staged}. Ketel- en actuatoruitgangen blijven uitgeschakeld. Vernieuwen past nooit DATA toe en kwalificeert geen bron, fysiek profiel of beveiliging.",
         "data": {
           "status_action": "Volgende actie"
+        },
+        "data_description": {
+          "status_action": "Wat je nu wilt doen."
         }
       },
       "installation_source": {
         "title": "Geavanceerd: installatieprofiel controleren",
-        "description": "Laat de berekeningen uit tijdens deze controle. Dit technische profiel legt vast welke ruimtes, apparaten en regelgrenzen bij deze E32 horen. Het is geen schakelaar om de verwarming te activeren. De gegevens in HA en E32 moeten overeenkomen; daarna controleert HA het teruggelezen kamerplan. Metingen, kraanwerking en veilig stoppen worden afzonderlijk getest.",
+        "description": "Laat de berekeningen uit tijdens deze controle. Dit technische profiel legt vast welke ruimtes, apparaten en regelgrenzen bij deze E32 horen. Het is geen schakelaar om de verwarming te activeren. De gegevens in HA en E32 moeten overeenkomen; daarna controleert HA het teruggelezen ruimteplan. Metingen, kraanwerking en veilig stoppen worden afzonderlijk getest.",
         "data": {
           "controller_id": "Exact E32-controller-ID (uit apparaatinstellingen)",
           "legacy_readback": "Bekende oude schema1-records in alleen-lezenquarantaine toestaan",
-          "week_reviewed": "Volledig week-shadow-contract gebruiken (vereist passende E32-ondersteuning)"
+          "week_reviewed": "Volledig week-schaduwcontract gebruiken (vereist passende E32-ondersteuning)"
         },
         "data_description": {
-          "legacy_readback": "Geen herstelde vrijgaven, afwijkingen of leergegevens. Onverenigbare oude records blijven geweigerd."
+          "legacy_readback": "Geen herstelde vrijgaven, afwijkingen of leergegevens. Onverenigbare oude records blijven geweigerd.",
+          "controller_id": "De regelaar-ID zoals in de apparaatinstellingen van de E32 staat; die moet precies overeenkomen.",
+          "week_reviewed": "Alleen als de E32-firmware het volledige week-schaduwcontract ondersteunt."
         }
       },
       "installation_source_review": {
-        "title": "Onafhankelijk shadow-profiel bevestigen",
+        "title": "Onafhankelijk schaduwprofiel bevestigen",
         "description": "Ruimtes: {rooms}\nBeoordeelde logische grenzen (geen fysieke beveiliging):\n{limits}\nApparaat: {controller}\nHA-eigenaar: {owner}\nProfielvingerafdruk: {fingerprint}\n\nPlak de descriptor hieronder alleen na installatiebeoordeling in de lokale netwerkinstellingen van de E32. Sla daar op en lees terug. Eerste selectie of netwerkwijzigingen vereisen een afzonderlijk toegestane herstart; een bestaand native profiel kan de expliciete lokale SOURCE-actie zonder herstart gebruiken. Dit scherm verstuurt niets en herstart niets.\n\n{descriptor}\n\n{scope}",
         "data": {
           "confirm_source": "Deze logische HA-profielkeuze opslaan (zonder regeling-/configuratieverzending)",
           "confirm_replacement": "Ik heb het exacte vorige profiel en de alleen-lezenmigratie beoordeeld"
+        },
+        "data_description": {
+          "confirm_source": "Vink aan om deze profielkeuze in Home Assistant op te slaan. Er wordt niets naar de E32 gestuurd.",
+          "confirm_replacement": "Vink aan om te bevestigen dat je het vorige profiel hebt gecontroleerd dat hiermee wordt vervangen."
         }
       },
       "installation": {
@@ -993,7 +1123,7 @@
               "outdoor_maximum_age_seconds": "Maximale meetleeftijd buitenbron"
             },
             "data_description": {
-              "minimum_supply_temperature": "Laagste gevraagde watertemperatuur van dit circuit. Dit is geen kamertemperatuur.",
+              "minimum_supply_temperature": "Laagste gevraagde watertemperatuur van dit circuit. Dit is geen ruimtetemperatuur.",
               "maximum_supply_temperature": "Hoogste gevraagde watertemperatuur. Geldt voor alle gekoppelde radiatoren; kies grenzen die bij je installatie passen.",
               "outdoor_maximum_age_seconds": "Na deze tijd zonder geldige buitenmeting geldt het uitvalbeleid. Dit is geen meetinterval.",
               "stale_policy": "Blokkeer vraag die een buitenmeting nodig heeft, of gebruik een expliciete begrensde vaste terugvaltemperatuur.",
@@ -1033,7 +1163,7 @@
           "radiator_entities": "Radiatorkranen"
         },
         "data_description": {
-          "temperature_entity": "De regeling gebruikt deze meting. Kies een representatieve kamersensor; apparaattemperatuur kan afwijken.",
+          "temperature_entity": "De regeling gebruikt deze meting. Kies een representatieve ruimtesensor; apparaattemperatuur kan afwijken.",
           "radiator_entities": "Kies alle radiatorkranen van deze ruimte. Een kraan kan niet bij twee ruimtes horen. Opslaan bedient de kranen niet."
         },
         "submit": "Volgende"
@@ -1089,7 +1219,8 @@
         "data_description": {
           "room": "Kies een bestaande ruimte. Aanpassen behoudt de identiteit en het programma.",
           "action": "Pas de inrichting aan of verwijder alleen deze ruimte en haar koppelingen."
-        }
+        },
+        "description": "Voeg ruimtes van deze installatie toe, wijzig ze of verwijder ze."
       },
       "remove_room": {
         "title": "{name} verwijderen?",
@@ -1104,12 +1235,12 @@
       },
       "configuration_status": {
         "title": "Status installatie",
-        "description": "Ingestelde ruimtes: **{rooms}**\n\nRegelaar: **{connection}**\n\nRegeling: **{runtime}**\n\nOpgeslagen betekent nog niet dat de regelaar de configuratie heeft toegepast. Je kunt ruimtes ook zonder verbinding instellen.\n\n**Controle opgeslagen kraandoelen**\n\n{actuator_checks}\n\nDit vergelijkt gemelde eigenschappen; het bevestigt geen klepstand of fysieke vrijgave.\n\n**Wat betekenen deze controles?**\nConfiguratie bevestigd: de E32 heeft het opgeslagen kamerplan teruggeleverd. Berekeningen aan: warmtevraag wordt alleen berekend. Controle kraandoelen: vergelijkt ingestelde temperaturen met de gemelde kraangrenzen en meldt afwijkingen. Geen van deze controles bewijst dat een kraan opent of de ketel stopt. Die fysieke proeven staan nog apart; in schaduwmodus blijven kraan- en ketelopdrachten uit.",
+        "description": "Ingestelde ruimtes: **{rooms}**\n\nRegelaar: **{connection}**\n\nRegeling: **{runtime}**\n\nOpgeslagen betekent nog niet dat de regelaar de configuratie heeft toegepast. Je kunt ruimtes ook zonder verbinding instellen.\n\n**Controle opgeslagen kraandoelen**\n\n{actuator_checks}\n\nDit vergelijkt gemelde eigenschappen; het bevestigt geen klepstand of fysieke vrijgave.\n\n**Wat betekenen deze controles?**\nConfiguratie bevestigd: de E32 heeft het opgeslagen ruimteplan teruggeleverd. Berekeningen aan: warmtevraag wordt alleen berekend. Controle kraandoelen: vergelijkt ingestelde temperaturen met de gemelde kraangrenzen en meldt afwijkingen. Geen van deze controles bewijst dat een kraan opent of de ketel stopt. Die fysieke proeven staan nog apart; in schaduwmodus blijven kraan- en ketelopdrachten uit.",
         "submit": "Sluiten"
       },
       "program": {
         "title": "Weekprogramma",
-        "description": "Concept met {blocks} tijdblokken. Buiten de blokken geldt {base} °C. Wijzigingen worden pas met de kamer opgeslagen.",
+        "description": "Concept met {blocks} tijdblokken. Buiten de blokken geldt {base} °C. Wijzigingen worden pas met de ruimte opgeslagen.",
         "menu_options": {
           "add_block": "Tijdblok toevoegen",
           "edit_block": "Tijdblok bewerken",
@@ -1141,12 +1272,20 @@
         "title": "Tijdblok kiezen",
         "data": {
           "block": "Tijdblok"
+        },
+        "description": "Kies het tijdblok dat je wilt wijzigen.",
+        "data_description": {
+          "block": "Een tijdblok uit het weekprogramma."
         }
       },
       "delete_block": {
         "title": "Tijdblok verwijderen",
         "data": {
           "block": "Tijdblok"
+        },
+        "description": "Kies het tijdblok dat je uit het concept verwijdert.",
+        "data_description": {
+          "block": "Een tijdblok uit het weekprogramma."
         }
       },
       "program_empty": {
@@ -1164,17 +1303,18 @@
       },
       "advanced_settings": {
         "title": "Geavanceerd en diagnose",
-        "description": "Technische controle van de verbinding en toegepaste configuratie. Gewone ruimtes beheer je via Ruimtes beheren.",
+        "description": "Status, herstel van het ruimteplan en technische controles. Gewone instellingen staan in het hoofdmenu.",
         "menu_options": {
           "configuration_status": "Status installatie",
           "installation_source": "Verbinding met regelaar controleren",
-          "graph_status": "Toegepast kamerplan bekijken",
-          "hot_water": "Tapwaterstatus bekijken"
+          "graph_status": "Toegepast ruimteplan bekijken",
+          "hot_water": "Tapwaterstatus bekijken",
+          "graph_prepare": "Ruimteplan controleren en herstellen"
         }
       },
       "edit_room": {
         "title": "Ruimte aanpassen",
-        "description": "Pas alle kamerinstellingen direct aan. Open [het volledige kamerscherm]({editor_url}) om apparaten, temperaturen en de grafische weekplanner samen te bewerken. Alleen een nieuwe ruimte gebruikt de wizard.",
+        "description": "Pas alle ruimte-instellingen direct aan. Open [het volledige ruimtescherm]({editor_url}) om apparaten, temperaturen en de grafische weekplanner samen te bewerken. Alleen een nieuwe ruimte gebruikt de wizard.",
         "data": {
           "name": "Naam ruimte",
           "emitter": "Verwarming in deze ruimte",
@@ -1186,7 +1326,7 @@
         "data_description": {
           "name": "Deze naam zie je bij de bediening. Hernoemen behoudt de identiteit en het programma.",
           "emitter": "Bepaalt welke kranen en temperatuurgrenzen passen. Vloerverwarming heeft een eigen geschikt profiel nodig.",
-          "temperature_entity": "De regeling gebruikt deze meting. Kies een representatieve kamersensor; apparaattemperatuur kan afwijken.",
+          "temperature_entity": "De regeling gebruikt deze meting. Kies een representatieve ruimtesensor; apparaattemperatuur kan afwijken.",
           "radiator_entities": "Kies alle radiatorkranen van deze ruimte. Een kraan kan niet bij twee ruimtes horen. Opslaan bedient de kranen niet.",
           "base_temperature": "Geldt wanneer geen weekblok actief is. Een hoger doel kan meer warmtevraag geven.",
           "program_action": "Behoud het programma, bewerk de tijdblokken of verwijder het expliciet. Elk blok heeft zijn eigen temperatuur.",
@@ -1195,19 +1335,23 @@
       },
       "controller_connection": {
         "title": "E32 verbinden",
-        "description": "Koppel deze installatie aan je E32. De opgeslagen kamers en weekprogramma’s worden gecontroleerd en naar de E32 gestuurd. De bestaande netwerkinstellingen blijven behouden. Een eerste koppeling kan de E32 eenmaal herstarten.\n\nHet beheerderswachtwoord wordt bij deze HA-integratie bewaard voor apparaatbeheer. Laat het leeg om het bewaarde wachtwoord voor hetzelfde adres te gebruiken. Dit schakelt de fysieke verwarmingsaansturing niet in.",
+        "description": "Koppel deze installatie aan je E32. De opgeslagen ruimtes en weekprogramma’s worden gecontroleerd en naar de E32 gestuurd. De bestaande netwerkinstellingen blijven behouden. Een eerste koppeling kan de E32 eenmaal herstarten.\n\nHet E32-wachtwoord wordt bij deze Home Assistant-integratie bewaard. Wijzig je het later op de E32, dan vraagt Home Assistant om het nieuwe. Koppelen schakelt de verwarmingsaansturing niet in.",
         "data": {
           "address": "Webadres van de E32",
-          "password": "Beheerderswachtwoord"
+          "password": "E32-wachtwoord"
+        },
+        "data_description": {
+          "address": "Het adres van de E32 in je netwerk, bijvoorbeeld http://192.168.1.50.",
+          "password": "Het wachtwoord waarmee je op de webpagina van de E32 inlogt (gebruiker admin). Een nieuwe E32 begint met admin; wijzig het daar onder Systeem. Laat leeg om het bewaarde wachtwoord te houden."
         }
       },
       "controller_connecting": {
-        "title": "E32 en kamerprogramma controleren",
+        "title": "E32 en ruimteprogramma controleren",
         "description": "De verbinding wordt gecontroleerd. Wacht op de bevestiging van de E32."
       },
       "controller_connected": {
         "title": "E32 verbonden",
-        "description": "De E32 heeft het programma voor {rooms} kamer(s) terugbevestigd. Fysieke verwarmingsaansturing blijft uitgeschakeld; geschiktheid van sensoren en kranen wordt afzonderlijk getest."
+        "description": "De E32 heeft het programma voor {rooms} ruimte(s) terugbevestigd. Fysieke verwarmingsaansturing blijft uitgeschakeld; geschiktheid van sensoren en kranen wordt afzonderlijk getest."
       },
       "installation_connected": {
         "title": "Installatie-instellingen — verbonden E32",
@@ -1228,17 +1372,138 @@
               "maximum_supply_temperature": "Maximale aanvoertemperatuur"
             },
             "data_description": {
-              "minimum_supply_temperature": "Laagste gevraagde watertemperatuur van dit circuit. Dit is geen kamertemperatuur.",
+              "minimum_supply_temperature": "Laagste gevraagde watertemperatuur van dit circuit. Dit is geen ruimtetemperatuur.",
               "maximum_supply_temperature": "Hoogste gevraagde watertemperatuur. Geldt voor alle gekoppelde radiatoren; kies grenzen die bij je installatie passen."
             }
           }
         },
         "submit": "Installatie opslaan"
+      },
+      "e32_rooms": {
+        "title": "Ruimtes",
+        "description": "Hier stel je de ruimtes in. De E32 bewaart ze en blijft ze verwarmen, ook zonder Home Assistant (revisie {revision}).\n\n{rooms}",
+        "menu_options": {
+          "e32_room_add": "Ruimte toevoegen",
+          "e32_room_pick": "Ruimte bewerken of verwijderen",
+          "e32_flow_limits": "Grenzen aanvoertemperatuur"
+        }
+      },
+      "e32_room_pick": {
+        "title": "Kies een E32-ruimte",
+        "data": {
+          "room": "Ruimte",
+          "action": "Wat wil je doen?"
+        },
+        "data_description": {
+          "room": "Een ruimte in het ruimteplan van de E32.",
+          "action": "Bewerk de instellingen of verwijder de ruimte uit het ruimteplan van de E32."
+        },
+        "description": "Kies de ruimte die je wilt wijzigen."
+      },
+      "e32_room": {
+        "title": "E32-ruimte",
+        "description": "Eén ruimte: waar de temperatuur vandaan komt, wat die moet zijn en wanneer. De E32 bewaart dit en regelt het, ook zonder Home Assistant.",
+        "data": {
+          "name": "Naam van de ruimte",
+          "state": "Verwarmen",
+          "emitter": "Verwarmingstype",
+          "ha_sources": "Temperatuurbronnen uit Home Assistant",
+          "ble_sources": "Bluetooth-sensoren op de E32",
+          "bluetooth_first": "Bluetooth-sensoren eerst gebruiken",
+          "setpoint_entity": "Gewenste temperatuur uit Home Assistant",
+          "fallback_temperature": "Temperatuur zonder Home Assistant",
+          "program": "Weekprogramma op de E32"
+        },
+        "data_description": {
+          "name": "De naam die je in Home Assistant en op de E32 ziet. Maximaal 40 tekens (minder met accenten of emoji); hernoemen behoudt de ruimte en haar geschiedenis.",
+          "state": "Aan: de ruimte kan warmte vragen. Uit: de ruimte vraagt geen warmte. Een tijdelijk \"Uit tot\" staat op de apparaatpagina van de ruimte.",
+          "emitter": "Radiatoren of vloerverwarming; elk type krijgt een eigen aanvoertemperatuur.",
+          "ha_sources": "Thermostaten of temperatuursensoren (°C of °F) in Home Assistant die deze ruimte meten. De eerste met een actuele waarde wordt gebruikt; sleep om de volgorde te wijzigen.",
+          "ble_sources": "Sensoren die aan de E32 zelf gekoppeld zijn; ze blijven werken zonder Home Assistant.",
+          "bluetooth_first": "Aan: de E32 gebruikt zijn Bluetooth-sensoren vóór de bronnen uit Home Assistant.",
+          "setpoint_entity": "Optioneel: de thermostaat of het getal in Home Assistant waarvan de E32 de gewenste temperatuur volgt. Leeg: de E32 volgt het weekprogramma.",
+          "fallback_temperature": "De temperatuur die de E32 aanhoudt als Home Assistant geen doel doorgeeft en er geen weekprogramma is.",
+          "program": "Eén regel per groep dagen, bijvoorbeeld ma-vr: 06:30 20,5; 22:30 18 en za-zo: 08:00 20,5; 23:00 18. Temperaturen in de eenheid van je Home Assistant. Een regel zonder dagen geldt voor elke dag. Maximaal 6 schakelpunten per dag; elke temperatuur geldt tot het volgende punt. Leeg: geen weekprogramma."
+        },
+        "sections": {
+          "limits": {
+            "name": "Temperatuurgrenzen",
+            "description": "De gewenste temperatuur, de temperatuur zonder Home Assistant en het programma blijven binnen deze grenzen.",
+            "data": {
+              "minimum_temperature": "Minimumtemperatuur",
+              "maximum_temperature": "Maximumtemperatuur"
+            },
+            "data_description": {
+              "minimum_temperature": "De laagste gewenste temperatuur die deze ruimte kan krijgen ({range}).",
+              "maximum_temperature": "De hoogste gewenste temperatuur die deze ruimte kan krijgen ({range}, niet lager dan het minimum)."
+            }
+          }
+        }
+      },
+      "e32_flow_limits": {
+        "title": "Grenzen aanvoertemperatuur",
+        "description": "De laagste en hoogste watertemperatuur die de E32 aan de ketel mag vragen, voor alle ruimtes samen. {boiler} {error}",
+        "data": {
+          "minimum_flow_temperature": "Minimale aanvoertemperatuur",
+          "maximum_flow_temperature": "Maximale aanvoertemperatuur"
+        },
+        "data_description": {
+          "minimum_flow_temperature": "De laagste aanvoertemperatuur die de E32 vraagt terwijl hij verwarmt ({minimum_range}).",
+          "maximum_flow_temperature": "De hoogste aanvoertemperatuur die de E32 ooit vraagt ({maximum_range}, boven het minimum). Vloerverwarming zonder mengklep: meestal hoogstens 45–50 °C. Radiatoren: op koude dagen vaak 60–75 °C. De maximale cv-temperatuur op je ketel blijft de bovengrens; de E32 vraagt nooit meer."
+        }
+      },
+      "e32_room_remove": {
+        "title": "E32-ruimte verwijderen",
+        "description": "{name} verwijderen uit het ruimteplan van de E32? De E32 vraagt dan geen warmte meer voor deze ruimte. De Bluetooth-sensoren blijven gekoppeld.",
+        "data": {
+          "confirm_remove": "Deze ruimte verwijderen"
+        },
+        "data_description": {
+          "confirm_remove": "Vink aan om te bevestigen. De geschiedenis van de ruimte in Home Assistant blijft bewaard."
+        }
+      },
+      "energy": {
+        "title": "Energie en buitentemperatuur",
+        "description": "Optioneel. Met je gasmeter, gasprijs, een buitentemperatuur en het vermogen van je ketel kalibreert de E32 zijn warmte- en gasschattingen, en toont het cv-advies besparingen in m³ en in je eigen valuta. Zonder werkt alles gewoon: schattingen gebruiken dan de modulatie van de ketel en een standaardvermogen, en het advies zegt wat er ontbreekt. Laat een veld leeg om het niet te gebruiken.",
+        "data": {
+          "gas_meter": "Gasmeter",
+          "gas_price_entity": "Gasprijssensor",
+          "gas_price": "Vaste gasprijs",
+          "gas_kwh_per_m3": "Calorische waarde van het gas",
+          "outdoor_entity": "Buitentemperatuur",
+          "boiler_kw": "Verwarmingsvermogen ketel"
+        },
+        "data_description": {
+          "gas_meter": "Een gasmeterstand in m³ of kWh die alleen oploopt (geen verbruik per uur), bijvoorbeeld van een slimme meter of een gaspulsteller. Een stand in kWh wordt met de calorische waarde omgerekend naar m³.",
+          "gas_price_entity": "Een sensor of invoergetal met de gasprijs per m³ of per kWh (eenheid zoals EUR/m³ of GBP/kWh). Gebruik dit of een vaste prijs, niet allebei.",
+          "gas_price": "De prijs per m³ gas in de valuta van je Home Assistant als je geen prijssensor hebt, bijvoorbeeld 1,35.",
+          "gas_kwh_per_m3": "Energie per m³ gas; die staat op je jaarafrekening of vraag je aan je leverancier. Leeg: 9,77 kWh/m³ (Nederlands gas). Elders is het anders, bijvoorbeeld ongeveer 11 kWh/m³ in het Verenigd Koninkrijk; aardgas zit meestal tussen 8 en 12 kWh/m³.",
+          "outdoor_entity": "Een temperatuursensor buiten (°C of °F) of een weerentiteit. Daarmee leert de E32 hoe snel ruimtes afkoelen.",
+          "boiler_kw": "Het nominale verwarmingsvermogen van de ketel in kW (typeplaatje of handleiding), 3–60 kW. Leeg: de E32 gebruikt een standaardwaarde."
+        }
+      },
+      "e32_rooms_saved": {
+        "title": "Ruimtes",
+        "description": "{name} is opgeslagen op de E32. Voeg nog een ruimte toe of bewerk er een, of sluit dit venster.\n\n{rooms}",
+        "menu_options": {
+          "e32_room_add": "Ruimte toevoegen",
+          "e32_room_pick": "Ruimte bewerken of verwijderen",
+          "e32_flow_limits": "Grenzen aanvoertemperatuur"
+        }
+      },
+      "e32_rooms_removed": {
+        "title": "Ruimtes",
+        "description": "{name} is verwijderd van de E32. Voeg nog een ruimte toe of bewerk er een, of sluit dit venster.\n\n{rooms}",
+        "menu_options": {
+          "e32_room_add": "Ruimte toevoegen",
+          "e32_room_pick": "Ruimte bewerken of verwijderen",
+          "e32_flow_limits": "Grenzen aanvoertemperatuur"
+        }
       }
     },
     "error": {
       "invalid_adapter_id": "Gebruik hetzelfde expliciete eigenaar-ID als op de E32 (1–32 letters, cijfers, _ of -).",
-      "graph_room_contract_unavailable": "Er is geen passende verwarmings-DATA of expliciet SOURCE-geselecteerd shadow-contract beschikbaar voor deze ruimtes. Een schema opslaan of dit vakje inschakelen kwalificeert nooit een bron en schakelt geen fysieke uitgangen in.",
+      "graph_room_contract_unavailable": "Er is geen passende verwarmings-DATA of expliciet SOURCE-geselecteerd schaduwcontract beschikbaar voor deze ruimtes. Een schema opslaan of dit vakje inschakelen kwalificeert nooit een bron en schakelt geen fysieke uitgangen in.",
       "graph_control_source_review_required": "Het gekozen SOURCE-contract past niet bij de huidige eigenaar of het beoordeelde schema, of wijzigde tijdens controle. Niets ingeschakeld. Beoordeel opgeslagen DATA en het SOURCE-contract; opnieuw verbinden alleen keurt geen wijzigingen goed.",
       "native_plan_schedule_limit": "De opgeslagen programma’s overschrijden de huidige limiet van acht UTC-overgangen voor beide ruimtes samen in het 15-daagse planningsvenster. Een weekblok kan meerdere overgangen veroorzaken. Vereenvoudig de programma’s en probeer opnieuw. Opgeslagen ruimte-instellingen en bestaande plannen blijven behouden; niets verstuurd. Volledige weekondersteuning is nog in voorbereiding.",
       "native_plan_config_limit": "Het volledige opgeslagen ruimteplan overschrijdt de huidige apparaatlimiet van 4096 bytes. Vereenvoudig het programma en probeer opnieuw. Opgeslagen ruimte-instellingen en bestaande plannen blijven behouden; niets verstuurd.",
@@ -1247,7 +1512,7 @@
       "loop_binding": "Een geselecteerde entiteit heeft al een conflicterende rol.",
       "not_temperature": "Kies een temperatuursensor.",
       "unsupported_unit": "De sensor moet °C of °F gebruiken.",
-      "duplicate_room": "Deze kamer bestaat al.",
+      "duplicate_room": "Deze ruimte bestaat al.",
       "duplicate_actuator": "dubbele actuator",
       "invalid_binding": "ongeldige koppeling",
       "invalid_target_range": "Kies een minimum onder het maximum en een gewenste temperatuur binnen deze grenzen.",
@@ -1260,13 +1525,13 @@
       "program_export_failed": "Een begrensd 15-daags programma kan niet worden samengesteld: controleer tijdzone, ruimtegrenzen en maximaal 128 overgangen.",
       "room_mode_actuator_conflict": "Climate-TRV-ruimtes vereisen radiatorkranen; ruimtes met alleen een verwarmingsschema mogen geen climate-radiatorkranen hebben.",
       "unsupported_room_binding_mode": "Niet-ondersteunde uitgangsconfiguratie van de ruimte.",
-      "graph_room_runtime_off_required": "Stop de shadow-runtime voordat je een ruimte met alleen een verwarmingsschema bewerkt of de modus wijzigt.",
+      "graph_room_runtime_off_required": "Stop de schaduwmodus voordat je een ruimte met alleen een verwarmingsschema bewerkt of de modus wijzigt.",
       "confirm_room_mode_change": "Expliciete bevestiging is vereist om de uitgangsconfiguratie van de ruimte te wijzigen.",
-      "invalid_name": "Gebruik een kamernaam van 1 tot en met 80 tekens.",
+      "invalid_name": "Gebruik een ruimtenaam van 1 tot en met 80 tekens.",
       "select_radiators": "Kies één tot en met acht radiatorkranen.",
-      "output_has_multiple_owners": "Een geselecteerde kraan hoort al bij een andere kamer of controller. Controleer de bestaande koppeling onder Geavanceerd.",
+      "output_has_multiple_owners": "Een geselecteerde kraan hoort al bij een andere ruimte of controller. Controleer de bestaande koppeling onder Geavanceerd.",
       "input_output_loop": "Een radiatorkraan kan niet tegelijk de bron voor de gewenste temperatuur zijn.",
-      "setup_invalid": "De kamer kon niet worden voorbereid. Controleer de apparaten en bestaande koppelingen; er is niets opgeslagen.",
+      "setup_invalid": "De ruimte kon niet worden voorbereid. Controleer de apparaten en bestaande koppelingen; er is niets opgeslagen.",
       "emitter_not_available": "Dit verwarmingstype is in deze versie nog niet beschikbaar. Er is niets opgeslagen. Kies radiatoren of wacht op het passende profiel.",
       "weather_requires_outdoor_source": "Kies een buitenbron wanneer weersafhankelijke regeling is geselecteerd.",
       "curve_must_not_fall_towards_cold_outdoors": "Aanvoerdoelen mogen bij kouder weer niet dalen.",
@@ -1288,15 +1553,15 @@
       "invalid_heating_graph": "Het gewenste verwarmingsschema is ongeldig of een koppeling ontbreekt. Niets opgeslagen.",
       "room_required": "Stel een ruimte in voordat je actuatorverklaringen toevoegt.",
       "runtime_active": "De regeling is actief. Instellingen zijn niet gewijzigd.",
-      "advanced_room_required": "Dit kamerprofiel kan hier nog niet worden gewijzigd. Alle gegevens blijven behouden.",
+      "advanced_room_required": "Dit ruimteprofiel kan hier nog niet worden gewijzigd. Alle gegevens blijven behouden.",
       "confirm_program_source_change": "Bevestig de wijziging van de programmabron.",
-      "controller_address_invalid": "Vul het lokale webadres van de E32 in, bijvoorbeeld http://e32.local. Zet geen pad of inloggegevens in het adres.",
+      "controller_address_invalid": "Vul het lokale webadres van de E32 in: een lokaal IP-adres of een naam in je thuisnetwerk, bijvoorbeeld http://192.168.1.50, http://e32.local of http://e32.fritz.box. Zet geen pad of inloggegevens in het adres.",
       "controller_password_required": "Vul het beheerderswachtwoord van de E32 in. Een bewaard wachtwoord wordt alleen voor hetzelfde adres hergebruikt.",
-      "controller_auth_failed": "De E32 accepteert deze aanmelding niet. Controleer het beheerderswachtwoord.",
+      "controller_auth_failed": "De E32 accepteert dit wachtwoord niet. Gebruik het wachtwoord van de webpagina van de E32 (gebruiker admin).",
       "controller_unreachable": "De E32 is niet bereikbaar. Controleer het adres en de netwerkverbinding.",
       "controller_update_required": "Werk de E32 eerst bij naar alpha.9 of nieuwere compatibele firmware.",
       "controller_busy_or_conflict": "De E32 wordt bijgewerkt, herstart of heeft een conflicterende configuratie. Controleer eerst de status.",
-      "controller_legacy_rooms_present": "Er staan nog lokale kamers op de E32. Beoordeel eerst hoe die worden overgezet.",
+      "controller_legacy_rooms_present": "Er staan nog lokale ruimtes op de E32. Beoordeel eerst hoe die worden overgezet.",
       "controller_broker_setup_required": "De E32 heeft eerst een werkende MQTT-verbinding nodig. Controleer de bestaande netwerkinstellingen.",
       "controller_source_conflict": "Deze E32 of installatie hoort al bij een andere configuratie. Controleer de installatiestatus.",
       "controller_settings_too_large": "De configuratie overschrijdt de opslagruimte van de E32. Er wordt niet automatisch opnieuw geprobeerd.",
@@ -1306,19 +1571,55 @@
       "controller_readback_invalid": "De E32-configuratie kon niet worden bevestigd. Controleer eerst de status.",
       "controller_settings_changed": "De E32-instellingen zijn tijdens het verbinden gewijzigd. Controleer de opgeslagen configuratie voordat je opnieuw verbindt.",
       "controller_changed": "De identiteit of firmware van de E32 is tijdens het verbinden gewijzigd. Controleer de status.",
-      "controller_room_configuration_invalid": "De bewaarde kamers of programma’s passen niet binnen het huidige E32-verbindingsprofiel. Controleer de kamerinstellingen en installatiestatus.",
+      "controller_room_configuration_invalid": "De bewaarde ruimtes of programma’s passen niet binnen het huidige E32-verbindingsprofiel. Controleer de ruimte-instellingen en installatiestatus.",
       "controller_runtime_off_required": "De vorige verbinding wordt nog gestopt. Controleer de installatiestatus.",
-      "controller_add_room_first": "Voeg eerst een kamer met temperatuursensor en radiatorkranen toe.",
+      "controller_add_room_first": "Voeg eerst een ruimte met temperatuursensor en radiatorkranen toe.",
       "controller_boot_unconfirmed": "De herstart van de E32 kon niet worden bevestigd. Controleer de status voordat je opnieuw probeert.",
       "controller_connection_failed": "De verbinding kon niet worden bevestigd. Controleer de installatiestatus voordat je opnieuw probeert.",
       "controller_connection_unconfirmed": "Home Assistant heeft de E32-verbinding niet op tijd bevestigd. Controleer de installatiestatus.",
-      "controller_connection_changed": "De verbinding is tijdens het toepassen van het kamerprogramma gewijzigd. Controleer de installatiestatus.",
-      "controller_plan_pending": "Een eerdere wijziging van het kamerprogramma is nog niet opgehelderd. Controleer eerst wat de E32 werkelijk heeft opgeslagen.",
-      "controller_plan_unconfirmed": "De E32 heeft het kamerprogramma nog niet bevestigd. Alleen ontvangst van een opdracht is geen bevestiging. Controleer de installatiestatus.",
-      "controller_partial_connection": "Een deel van de verbindingsinstellingen kan al op de E32 staan. De volledige verbinding en het kamerprogramma zijn nog niet bevestigd. Controleer de installatiestatus voordat je opnieuw verbindt.",
+      "controller_connection_changed": "De verbinding is tijdens het toepassen van het ruimteprogramma gewijzigd. Controleer de installatiestatus.",
+      "controller_plan_pending": "Een eerdere wijziging van het ruimteprogramma is nog niet opgehelderd. Controleer eerst wat de E32 werkelijk heeft opgeslagen.",
+      "controller_plan_unconfirmed": "De E32 heeft het ruimteprogramma nog niet bevestigd. Alleen ontvangst van een opdracht is geen bevestiging. Controleer de installatiestatus.",
+      "controller_partial_connection": "Een deel van de verbindingsinstellingen kan al op de E32 staan. De volledige verbinding en het ruimteprogramma zijn nog niet bevestigd. Controleer de installatiestatus voordat je opnieuw verbindt.",
       "setup_changed": "De installatie is tijdens het verbinden gewijzigd. Controleer de huidige instellingen voordat je opnieuw verbindt.",
       "installation_native_settings_only": "Dit verbonden profiel ondersteunt de installatienaam, het dashboard en gedeelde watergrenzen. Weerregeling en andere instellingen vragen een ander profiel.",
-      "installation_limits_conflict": "Deze grenzen botsen met een bestaand circuit of een terugvaltemperatuur. Kies passende grenzen; de huidige installatie is niet gewijzigd."
+      "installation_limits_conflict": "Deze grenzen botsen met een bestaand circuit of een terugvaltemperatuur. Kies passende grenzen; de huidige installatie is niet gewijzigd.",
+      "e32_name_invalid": "Vul een naam in van maximaal 40 tekens (minder met accenten of emoji).",
+      "e32_sources_count": "Kies 1 tot 4 temperatuurbronnen.",
+      "e32_source_invalid_id": "De E32 kan {source} niet gebruiken: entiteit-ID's mogen maximaal 80 tekens hebben.",
+      "e32_source_wrong_domain": "{source} kan hier niet gebruikt worden. Kies een thermostaat of temperatuursensor (voor de gewenste temperatuur een thermostaat, invoergetal of getal).",
+      "e32_source_not_found": "{source} bestaat niet in Home Assistant.",
+      "e32_source_not_celsius": "{source} meldt geen temperatuur (°C of °F). Kies een temperatuursensor.",
+      "e32_source_no_temperature": "{source} meldt geen actuele temperatuur. Kies een thermostaat die de ruimtetemperatuur meet, of een temperatuursensor.",
+      "e32_limits_invalid": "Gebruik grenzen tussen {range} met het minimum niet boven het maximum, en een temperatuur zonder Home Assistant daartussen.",
+      "e32_program_invalid": "Regel {line} van het weekprogramma is niet leesbaar: {text}. Gebruik één regel per groep dagen, bijvoorbeeld ma-vr: 06:30 20,5; 22:30 18, en noem elke dag in maar één regel.",
+      "e32_program_too_many": "Regel {line}: een dag kan maximaal 6 schakelpunten hebben.",
+      "e32_program_outside_limits": "Regel {line}: een temperatuur ligt buiten de temperatuurgrenzen van de ruimte.",
+      "e32_plan_changed": "Het ruimteplan is tijdens het opslaan twee keer op de E32 gewijzigd. Er is niets opgeslagen; probeer het opnieuw.",
+      "e32_flow_limits_order": "De minimale aanvoertemperatuur moet lager zijn dan de maximale.",
+      "e32_flow_limits_invalid": "Vul hele graden in: minimum {minimum_range}, maximum {maximum_range}.",
+      "e32_plan_too_large": "Het ruimteplan is te groot voor de E32 (4 KB). Gebruik kortere namen, minder bronnen of minder schakelpunten. Er is niets opgeslagen.",
+      "e32_storage_full": "De E32 heeft geen opslagruimte meer voor zijn ruimteplan. Verwijder een ruimte die je niet meer gebruikt, of een paar schakelpunten uit de weekprogramma's, en sla opnieuw op. Er is niets opgeslagen.",
+      "e32_rejected": "De E32 weigerde het ruimteplan ({error}). Er is niets opgeslagen.",
+      "e32_unreachable": "De E32 is niet bereikbaar ({error}). Er is niets opgeslagen.",
+      "e32_room_limit": "Het ruimteplan van de E32 heeft al 8 ruimtes.",
+      "entity_not_found": "Deze entiteit heeft geen status in Home Assistant.",
+      "gas_meter_unit": "Kies een gasmetersensor in m³, of in kWh met apparaatklasse gas of energie.",
+      "gas_meter_not_total": "Kies een meterstand (statusklasse total of total increasing), geen verbruikssnelheid.",
+      "gas_price_unit": "Kies een prijs per m³ of per kWh (eenheid zoals EUR/m³ of GBP/kWh).",
+      "gas_price_invalid": "Vul een gasprijs in boven 0 en hoogstens 1000 (per m³ of per kWh, in je eigen valuta).",
+      "gas_price_twice": "Gebruik een gasprijssensor of een vaste gasprijs, niet allebei.",
+      "outdoor_unit": "Kies een temperatuursensor in °C of °F, of een weerentiteit met een temperatuur.",
+      "boiler_kw_invalid": "Het ketelvermogen moet tussen 3 en 60 kW liggen.",
+      "gas_kwh_per_m3_invalid": "De calorische waarde moet tussen 5 en 15 kWh/m³ liggen.",
+      "e32_rejected_sources": "Kies voor elke ruimte minstens één temperatuurbron.",
+      "e32_rejected_duplicate_room": "Twee ruimtes hebben dezelfde naam.",
+      "e32_rejected_duplicate_source": "Een sensor staat twee keer in dezelfde ruimte.",
+      "e32_rejected_setpoint": "De Home Assistant-entiteit voor de gewenste temperatuur klopt niet.",
+      "e32_rejected_schedule": "De E32 accepteert het weekprogramma niet. Controleer de tijden en of elke temperatuur binnen de grenzen van de ruimte ligt.",
+      "e32_rejected_flow_limits": "De E32 accepteert deze aanvoergrenzen niet. Oudere E32-firmware accepteert hoogstens 60 °C; werk de E32 bij om een hoger maximum te gebruiken.",
+      "e32_flow_limits_floor_warning": "Een ruimte heeft vloerverwarming. Boven {floor_maximum} kan vloerverwarming zonder mengklep te heet worden. Sla opnieuw op om dit maximum te houden.",
+      "e32_flow_limits_above_boiler": "Dit maximum ligt boven het eigen maximum van je ketel; de ketel gaat toch niet hoger. Sla opnieuw op om het te houden, of verlaag het."
     },
     "abort": {
       "graph_review_unavailable": "Geen bestaande schema-aansluiting met gekozen bron beschikbaar. Geen profiel ingeschakeld.",
@@ -1331,14 +1632,14 @@
       "native_plan_config_limit": "Het volledige opgeslagen ruimteplan overschrijdt de huidige apparaatlimiet van 4096 bytes. Vereenvoudig het programma en probeer opnieuw. Opgeslagen ruimte-instellingen en bestaande plannen blijven behouden; niets verstuurd.",
       "native_plan_prepare_failed": "Het opgeslagen ruimteplan kon niet worden gecontroleerd. Controleer verbinding, gekozen profiel en configuratiestatus en bereid opnieuw voor. Er is niets automatisch toegepast.",
       "hot_water_information_complete": "Alleen-lezenwarmwaterinformatie gesloten; geen instellingen gewijzigd.",
-      "native_source_runtime_off_required": "Schakel de shadow-runtime uit voordat je het onafhankelijke lokale profiel beoordeelt.",
+      "native_source_runtime_off_required": "Schakel de schaduwmodus uit voordat je het onafhankelijke lokale profiel beoordeelt.",
       "native_source_review_changed": "Configuratie, eigenaar of register gewijzigd. Geen nieuw profiel opgeslagen.",
       "native_source_review_cancelled": "Profielbeoordeling geannuleerd; bestaande configuratie blijft ongewijzigd.",
       "native_source_owner_conflict": "Er is al een andere onafhankelijke broneigenaar geselecteerd. Geen profiel opgeslagen.",
       "native_source_replacement_unsupported": "Een bestaand bronprofiel wijzigen vereist een ondersteunde migratie van het duurzaam opgeslagen plan. Bestaand profiel en gegevens blijven behouden.",
       "native_source_plan_apply_required": "Onbevestigde, gemengde, onverenigbare of onleesbare configuratiehistorie kan deze bronrevisie niet autoriseren. Los eerst de exacte teruglezing van het huidige plan op. Bestaande gegevens blijven behouden.",
-      "room_limit": "Er kunnen maximaal acht kamers worden ingesteld.",
-      "shadow_mode_required": "Kies eerst expliciet de v1-shadow-modus",
+      "room_limit": "Er kunnen maximaal acht ruimtes worden ingesteld.",
+      "shadow_mode_required": "Kies eerst expliciet de v1-schaduwmodus",
       "program_cancelled": "Programma bewerken geannuleerd; niets opgeslagen.",
       "program_changed": "De ruimte is tijdens bewerken gewijzigd of verwijderd; open opnieuw.",
       "program_not_started": "Open eerst de weekeditor via de ruimtekoppelingen.",
@@ -1347,7 +1648,7 @@
       "setup_changed": "De inrichting is intussen gewijzigd. Sluit dit formulier en open de ruimte opnieuw.",
       "advanced_room_required": "Deze ruimte heeft aanvullende regelinstellingen die deze eenvoudige route nog niet kan aanpassen. De bestaande inrichting is behouden.",
       "room_saved": "Ruimte en koppelingen opgeslagen. De regeling is niet ingeschakeld.",
-      "setup_save_uncertain": "Opslaan kon niet worden bevestigd. Open de kamerinstelling opnieuw en controleer de opgeslagen kamer en groep voordat je opnieuw probeert.",
+      "setup_save_uncertain": "Opslaan kon niet worden bevestigd. Open de ruimte-instelling opnieuw en controleer de opgeslagen ruimte en groep voordat je opnieuw probeert.",
       "setup_platform_unsupported": "Deze Home Assistant-versie is nog niet gecontroleerd voor deze configuratiebewerking. Er is niets aangepast. Controleer of er een integratie-update beschikbaar is.",
       "installation_saved": "Installatie opgeslagen. De instelling activeert geen verwarming.",
       "room_removed": "Ruimte en eigen koppelingen verwijderd. Apparaten en historie zijn behouden.",
@@ -1355,13 +1656,24 @@
       "cancelled": "Geannuleerd; er is niets gewijzigd.",
       "configuration_status_closed": "Status gesloten.",
       "product_upgrade_required": "Deze oude inrichting moet eerst worden overgenomen naar de normale productconfiguratie.",
-      "controller_connection_complete": "De E32-verbinding en het kamerprogramma zijn bevestigd.",
+      "controller_connection_complete": "De E32-verbinding en het ruimteprogramma zijn bevestigd.",
       "controller_connection_cancelled": "Verbinden geannuleerd. Controleer de installatiestatus; instellingen kunnen al op de E32 staan.",
       "installation_applied": "Installatie opgeslagen en gecontroleerd tegen het E32-plan. Fysieke ketel- en kraanuitvoer blijven uitgeschakeld.",
-      "installation_apply_pending": "Een eerdere profielwijziging is nog niet bevestigd. Open E32-verbinding en pas de opgeslagen instellingen toe voordat je de installatie opnieuw wijzigt."
+      "installation_apply_pending": "Een eerdere profielwijziging is nog niet bevestigd. Open E32-verbinding en pas de opgeslagen instellingen toe voordat je de installatie opnieuw wijzigt.",
+      "e32_rooms_unavailable": "Verbind eerst de E32 (E32 verbinden) zodat Home Assistant het ruimteplan kan bewerken.",
+      "e32_unreachable": "Het ruimteplan van de E32 kon niet gelezen worden ({error}).",
+      "e32_plan_invalid": "De E32 gaf een ruimteplan dat deze versie niet kan lezen. Werk de E32-firmware en de integratie samen bij.",
+      "e32_unconfirmed": "De E32 kon niet bevestigen dat het ruimteplan is opgeslagen. Controleer de ruimte voordat je het opnieuw probeert.",
+      "e32_room_missing": "Ruimte {room} staat niet meer in het ruimteplan van de E32.",
+      "e32_room_saved": "{name} is opgeslagen in het ruimteplan van de E32.",
+      "e32_room_removed": "{name} is verwijderd uit het ruimteplan van de E32.",
+      "e32_room_unchanged": "Er is niets gewijzigd; het ruimteplan van de E32 is niet opnieuw geschreven.",
+      "e32_flow_limits_saved": "De E32 vraagt nu een aanvoertemperatuur tussen {minimum} en {maximum} {unit}.",
+      "energy_saved": "Energie-instellingen opgeslagen. Niets is verplicht; de E32 krijgt de waarden binnen een paar minuten.",
+      "e32_password_changed": "De E32 accepteert het bewaarde wachtwoord niet meer. Home Assistant vraagt om het nieuwe: Instellingen → Apparaten en diensten → OpenThermostat → Opnieuw verifiëren."
     },
     "progress": {
-      "controller_connect": "Verbinden, kamerprogramma toepassen en teruglezen…"
+      "controller_connect": "Verbinden, ruimteprogramma toepassen en teruglezen…"
     }
   },
   "entity": {
@@ -1370,7 +1682,13 @@
         "name": "Radiatoren verwarmen"
       },
       "room_demand": {
-        "name": "Warmtevraag {room}"
+        "name": "Warmtevraag"
+      },
+      "burner_short_cycling": {
+        "name": "Brander pendelt"
+      },
+      "heating_problem": {
+        "name": "Verwarmingsprobleem"
       }
     },
     "number": {
@@ -1378,7 +1696,7 @@
         "name": "Nominaal radiatorvermogen"
       },
       "room_fallback_setpoint": {
-        "name": "Terugvaltemperatuur {room}"
+        "name": "Temperatuur zonder Home Assistant"
       }
     },
     "sensor": {
@@ -1392,65 +1710,435 @@
         "name": "Geschat radiatorvermogen"
       },
       "controller_requested_flow_temperature": {
-        "name": "Door E32 gevraagde aanvoertemperatuur"
+        "name": "Keteltest: gevraagde aanvoertemperatuur"
       },
       "room_temperature": {
-        "name": "Temperatuur {room}"
+        "name": "Temperatuur"
       },
       "room_setpoint": {
-        "name": "Streefwaarde {room}"
+        "name": "Gewenste temperatuur"
       },
       "room_status": {
-        "name": "Regelstatus {room}",
+        "name": "Regelstatus",
         "state": {
           "ok": "In orde",
           "fallback": "Terugvalstand",
-          "stale": "Verouderde meting",
+          "stale": "Meting verouderd",
           "lost": "Sensor kwijt",
-          "inactive": "Inactief"
+          "inactive": "Uit"
         }
       },
       "ble_temperature": {
-        "name": "Temperatuur {sensor}"
+        "name": "Temperatuur"
       },
       "ble_humidity": {
-        "name": "Luchtvochtigheid {sensor}"
+        "name": "Luchtvochtigheid"
       },
       "ble_battery": {
-        "name": "Batterij {sensor}"
+        "name": "Batterij"
+      },
+      "shadow_e32_heating_time_today": {
+        "name": "Stooktijd vandaag (E32)"
+      },
+      "shadow_tado_heating_time_today": {
+        "name": "Stooktijd vandaag (thermostaat)"
+      },
+      "shadow_e32_starts_today": {
+        "name": "Branderstarts vandaag (E32)"
+      },
+      "shadow_tado_starts_today": {
+        "name": "Branderstarts vandaag (thermostaat)"
+      },
+      "shadow_agreement_today": {
+        "name": "Overeenstemming met thermostaat vandaag"
+      },
+      "heat_request": {
+        "name": "Ketelvraag (E32)"
+      },
+      "burner_starts_last_hour": {
+        "name": "Branderstarts afgelopen uur"
+      },
+      "room_learning": {
+        "name": "Leerstatus",
+        "state": {
+          "collecting": "Gegevens verzamelen",
+          "learning": "Aan het leren",
+          "ready": "Klaar"
+        }
+      },
+      "room_flow_advice": {
+        "name": "Geadviseerde aanvoer"
+      },
+      "room_heating_start": {
+        "name": "Verwachte start verwarmen"
+      },
+      "dhw_taps_today": {
+        "name": "Warmwatertappen vandaag"
+      },
+      "dhw_keep_warm_today": {
+        "name": "Warmhouden vandaag"
+      },
+      "dhw_burner_time_today": {
+        "name": "Brandertijd warm water vandaag"
+      },
+      "field_reported_selected_flow_temperature": {
+        "name": "Gekozen aanvoertemperatuur"
+      },
+      "field_measured_flow_temperature": {
+        "name": "Aanvoertemperatuur"
+      },
+      "field_measured_return_temperature": {
+        "name": "Retourtemperatuur"
+      },
+      "field_outdoor_temperature": {
+        "name": "Buitentemperatuur"
+      },
+      "field_reported_burner_modulation": {
+        "name": "Brandermodulatie"
+      },
+      "field_reported_requested_power_limit": {
+        "name": "Gevraagde vermogensgrens"
+      },
+      "field_pressure": {
+        "name": "Waterdruk"
+      },
+      "field_raw_burner_bit": {
+        "name": "Branderbit (ruw)"
+      },
+      "field_raw_pump_bit": {
+        "name": "Pompbit (ruw)"
+      },
+      "field_raw_fan_bit": {
+        "name": "Ventilatorbit (ruw)"
+      },
+      "field_raw_boiler_state": {
+        "name": "Ketelstatusbits (ruw)"
+      },
+      "field_heating_active": {
+        "name": "Verwarmen actief"
+      },
+      "field_dhw_active": {
+        "name": "Warm water actief"
+      },
+      "field_selected_dhw_temperature": {
+        "name": "Gekozen warmwatertemperatuur"
+      },
+      "field_measured_dhw_temperature": {
+        "name": "Warmwatertemperatuur"
+      },
+      "field_dhw_flow": {
+        "name": "Warmwaterdebiet"
+      },
+      "field_heating_enabled": {
+        "name": "Verwarming ingeschakeld"
+      },
+      "field_dhw_enabled": {
+        "name": "Warm water ingeschakeld"
+      },
+      "field_reported_burner_starts": {
+        "name": "Branderstarts"
+      },
+      "field_reported_burner_runtime": {
+        "name": "Branderlooptijd"
+      },
+      "field_reported_heating_runtime": {
+        "name": "Looptijd verwarming"
+      },
+      "field_reported_heating_starts": {
+        "name": "Starts verwarming"
+      },
+      "field_reported_dhw_runtime": {
+        "name": "Looptijd warm water"
+      },
+      "field_reported_dhw_starts": {
+        "name": "Starts warm water"
+      },
+      "field_display_code": {
+        "name": "Displaycode"
+      },
+      "field_service_number": {
+        "name": "Servicenummer"
+      },
+      "field_maximum_burner_power": {
+        "name": "Maximaal brandervermogen"
+      },
+      "field_pump_run_on": {
+        "name": "Pompnaloop"
+      },
+      "field_configured_heating_temperature": {
+        "name": "Ingestelde verwarmingstemperatuur"
+      },
+      "field_reported_dhw_target": {
+        "name": "Gewenste warmwatertemperatuur"
+      },
+      "field_storage_temperature_1": {
+        "name": "Voorraadtemperatuur 1"
+      },
+      "field_storage_temperature_2": {
+        "name": "Voorraadtemperatuur 2"
+      },
+      "field_ionisation_current": {
+        "name": "Ionisatiestroom"
+      },
+      "field_raw_second_burner_bit": {
+        "name": "Tweede branderbit (ruw)"
+      },
+      "field_raw_ignition_bit": {
+        "name": "Ontstekingsbit (ruw)"
+      },
+      "field_raw_oil_preheat_bit": {
+        "name": "Olievoorverwarmingsbit (ruw)"
+      },
+      "field_raw_dhw_valve_bit": {
+        "name": "Warmwaterklepbit (ruw)"
+      },
+      "field_raw_dhw_circulation_bit": {
+        "name": "Circulatiebit (ruw)"
+      },
+      "field_boiler_temperature": {
+        "name": "Keteltemperatuur"
+      },
+      "field_exhaust_temperature": {
+        "name": "Rookgastemperatuur"
+      },
+      "field_hydraulic_switch_temperature": {
+        "name": "Temperatuur open verdeler"
+      },
+      "field_reported_heating_pump_modulation": {
+        "name": "Pompmodulatie verwarming"
+      },
+      "field_reported_second_burner_runtime": {
+        "name": "Looptijd tweede brander"
+      },
+      "field_heating_hysteresis_off": {
+        "name": "Hysterese verwarming uit"
+      },
+      "field_heating_hysteresis_on": {
+        "name": "Hysterese verwarming aan"
+      },
+      "field_minimum_burner_period": {
+        "name": "Minimale branderperiode"
+      },
+      "field_pump_modulation_maximum": {
+        "name": "Maximale pompmodulatie"
+      },
+      "field_pump_modulation_minimum": {
+        "name": "Minimale pompmodulatie"
+      },
+      "field_configured_pump_mode": {
+        "name": "Ingestelde pompmodus"
+      },
+      "field_secondary_heating_hysteresis_off": {
+        "name": "Tweede hysterese verwarming uit"
+      },
+      "field_secondary_heating_hysteresis_on": {
+        "name": "Tweede hysterese verwarming aan"
+      },
+      "field_pump_start_temperature": {
+        "name": "Starttemperatuur pomp"
+      },
+      "field_dhw_hysteresis_on": {
+        "name": "Hysterese warm water aan"
+      },
+      "field_dhw_charge_optimisation_enabled": {
+        "name": "Laadoptimalisatie warm water"
+      },
+      "field_dhw_flow_temperature_offset": {
+        "name": "Aanvoerverhoging warm water"
+      },
+      "field_dhw_circulation_enabled": {
+        "name": "Circulatie ingeschakeld"
+      },
+      "field_configured_dhw_circulation_mode": {
+        "name": "Ingestelde circulatiemodus"
+      },
+      "field_dhw_disinfection_temperature": {
+        "name": "Desinfectietemperatuur"
+      },
+      "field_configured_dhw_charge_type": {
+        "name": "Laadtype warm water"
+      },
+      "field_configured_dhw_comfort_mode": {
+        "name": "Comfortmodus warm water"
+      },
+      "field_secondary_dhw_temperature": {
+        "name": "Tweede warmwatertemperatuur"
+      },
+      "field_solar_dhw_temperature": {
+        "name": "Warmwatertemperatuur zonneboiler"
+      },
+      "field_reported_dhw_type": {
+        "name": "Type warmwatervoorziening"
+      },
+      "field_raw_dhw_one_time_bit": {
+        "name": "Eenmalig-ladenbit (ruw)"
+      },
+      "field_raw_dhw_disinfection_bit": {
+        "name": "Desinfectiebit (ruw)"
+      },
+      "field_raw_dhw_charging_bit": {
+        "name": "Laadbit (ruw)"
+      },
+      "field_raw_dhw_recharging_bit": {
+        "name": "Naladenbit (ruw)"
+      },
+      "field_raw_dhw_temperature_ok_bit": {
+        "name": "Warmwatertemperatuur-OK-bit (ruw)"
+      },
+      "field_raw_dhw_active_bit": {
+        "name": "Warmwater-actiefbit (ruw)"
+      },
+      "field_thermostat_requested_flow_temperature": {
+        "name": "Gevraagde aanvoertemperatuur (thermostaat)"
+      },
+      "field_thermostat_requested_burner_power": {
+        "name": "Gevraagd brandervermogen (thermostaat)"
+      },
+      "field_thermostat_requested_pump_modulation": {
+        "name": "Gevraagde pompmodulatie (thermostaat)"
+      },
+      "field_thermostat_requested_dhw_temperature": {
+        "name": "Gevraagde warmwatertemperatuur (thermostaat)"
+      },
+      "field_maintenance_message": {
+        "name": "Onderhoudsmelding"
+      },
+      "field_thermostat_setpoint": {
+        "name": "Gewenste temperatuur (thermostaat)"
+      },
+      "field_thermostat_room_temperature": {
+        "name": "Ruimtetemperatuur (thermostaat)"
+      },
+      "field_thermostat_target_flow_temperature": {
+        "name": "Gewenste aanvoertemperatuur (thermostaat)"
+      },
+      "field_plus_selected_flow_temperature": {
+        "name": "Gekozen aanvoertemperatuur (EMS+)"
+      },
+      "field_plus_flow_temperature": {
+        "name": "Aanvoertemperatuur (EMS+)"
+      },
+      "field_plus_requested_burner_power": {
+        "name": "Gevraagd brandervermogen (EMS+)"
+      },
+      "field_plus_burner_modulation": {
+        "name": "Brandermodulatie (EMS+)"
+      },
+      "field_plus_burner_on": {
+        "name": "Brander aan (EMS+)"
+      },
+      "field_plus_dhw_valve": {
+        "name": "Warmwaterklep (EMS+)"
+      },
+      "field_plus_return_temperature": {
+        "name": "Retourtemperatuur (EMS+)"
+      },
+      "field_plus_flame_current": {
+        "name": "Vlamstroom (EMS+)"
+      },
+      "field_plus_pressure": {
+        "name": "Waterdruk (EMS+)"
+      },
+      "field_plus_exhaust_temperature": {
+        "name": "Rookgastemperatuur (EMS+)"
+      },
+      "field_plus_heating_pump": {
+        "name": "Verwarmingspomp (EMS+)"
+      },
+      "field_plus_burner_starts": {
+        "name": "Branderstarts (EMS+)"
+      },
+      "field_plus_burner_runtime": {
+        "name": "Branderlooptijd (EMS+)"
+      },
+      "field_plus_heating_runtime": {
+        "name": "Looptijd verwarming (EMS+)"
+      },
+      "field_plus_heating_pump_modulation": {
+        "name": "Pompmodulatie verwarming (EMS+)"
+      },
+      "field_plus_dhw_target": {
+        "name": "Gewenste warmwatertemperatuur (EMS+)"
+      },
+      "field_plus_dhw_temperature": {
+        "name": "Warmwatertemperatuur (EMS+)"
+      },
+      "field_plus_dhw_flow": {
+        "name": "Warmwaterdebiet (EMS+)"
+      },
+      "field_plus_dhw_runtime": {
+        "name": "Looptijd warm water (EMS+)"
+      },
+      "field_plus_dhw_starts": {
+        "name": "Starts warm water (EMS+)"
+      },
+      "field_plus_dhw_selected_temperature": {
+        "name": "Gekozen warmwatertemperatuur (EMS+)"
+      },
+      "field_plus_heating_temperature": {
+        "name": "Ingestelde verwarmingstemperatuur (EMS+)"
+      },
+      "field_plus_maximum_burner_power": {
+        "name": "Maximaal brandervermogen (EMS+)"
+      },
+      "field_last_locking_error_code": {
+        "name": "Laatste vergrendelende storingscode"
+      },
+      "field_last_locking_error_number": {
+        "name": "Laatste vergrendelend storingsnummer"
+      },
+      "field_last_blocking_error_code": {
+        "name": "Laatste blokkerende storingscode"
+      },
+      "field_last_blocking_error_number": {
+        "name": "Laatste blokkerend storingsnummer"
+      },
+      "field_boiler_uptime": {
+        "name": "Bedrijfstijd ketel"
+      },
+      "heating_advice": {
+        "name": "CV-advies"
       }
     },
     "select": {
       "room_state": {
-        "name": "Ruimtestand {room}",
+        "name": "Verwarmen",
         "state": {
-          "active": "Actief",
-          "inactive": "Inactief"
+          "active": "Aan",
+          "inactive": "Uit"
         }
       }
     },
     "datetime": {
       "room_inactive_until": {
-        "name": "{room} inactief tot"
+        "name": "Uit tot"
       }
     }
   },
   "issues": {
     "legacy_metrics_history": {
-      "title": "Oude meethistorie vereist beoordeling",
-      "description": "Deze configuratie ontving numerieke EMS-tellers zonder de gecorrigeerde metricsSchema 2-definitie. Deze waarden worden niet als gecorrigeerde cumulatieve tellers toegelaten. Bestaande Recorder- en statistiekgegevens zijn niet verwijderd of herschreven. Beoordeel historische definities voordat je oude energie-/waterstatistieken met gecorrigeerde tellers sinds opstart combineert. Schattingen zijn geen gas- of warmtemeters; er vindt geen automatische migratie plaats."
+      "title": "Oude keteltellers blijven apart",
+      "description": "Deze installatie stuurde keteltellers in een ouder formaat. Hun historie blijft bewaard, maar wordt niet gemengd met de gecorrigeerde tellers. Combineren je eigen kaarten oude en nieuwe energie- of watertellers, controleer ze dan."
     },
     "metrics_definition_v2": {
-      "title": "Nieuwe versie-2-meetdefinities kiezen",
-      "description": "Bestaande meetentiteit-ID’s en historie blijven behouden, maar oude aliassen zijn niet beschikbaar en verzamelen geen nieuwe statistieken. Gecorrigeerde tellers en debieten sinds opstart gebruiken duidelijk benoemde definitie-v2-entiteiten en numerieke protocolvelden. Pas eigen kaarten desgewenst aan. Historische statistieken zijn niet verwijderd, herschreven of aangevuld; deze migratie valideert de oude historie niet. Geschatte energie is geen gas- of warmtemeting."
+      "title": "Nieuwe, gecorrigeerde keteltellers",
+      "description": "Enkele keteltellers hebben nieuwe, gecorrigeerde sensoren. Je historie blijft bewaard; pas eigen kaarten aan als ze de oude sensoren gebruiken. Energie is een schatting, geen gas- of warmtemeter."
     },
     "room_model_v2": {
-      "title": "Begrensde ruimtemodeldefinitie v2 kiezen",
-      "description": "Bestaande ongekwalificeerde ruimte-energie- en tijdhistorie blijft ongewijzigd. Nieuwe ruimtemodellen gebruiken aparte v2-entiteiten en herstellen of aanvullen geen oude totalen. Onbekende/verouderde invoer levert gaten op. Ruimtevraag plus gemelde CV-activiteit bewijst geen werkelijke ruimtewarmte of doorstroming; radiatorafgifte wordt gemodelleerd met 10 °C retourverschil en exponent 1,3, niet gemeten. Bestaande firmware zonder waarnemingsmetadata kan deze modellen niet kwalificeren. Controleer eigen kaarten; Recorder-gegevens zijn niet herschreven."
+      "title": "Nieuwe warmteschattingen per ruimte",
+      "description": "De warmteschattingen per ruimte gebruiken nieuwe sensoren; de oude houden hun historie. Het zijn schattingen, geen gemeten warmte. Pas eigen kaarten aan als ze de oude sensoren gebruiken."
     },
     "measurement_clock": {
-      "title": "Kamermetingen gestopt: ongeldige lokale klok",
-      "description": "OpenThermostat heeft een ongeldige of teruglopende lokale tijdmeting vastgesteld. Eerder gekwalificeerde kamermetingen zijn ingetrokken en worden door deze runtime niet opnieuw gebruikt. De verwarmingsregeling kan niet op deze metingen vertrouwen. Controleer de gezondheid van de Home Assistant-host en herlaad daarna deze OpenThermostat-integratie. Alleen een gezonde vervangende runtime wist deze melding; nieuwe metingen moeten nog steeds de normale broncontroles doorlopen. Herladen geeft geen toestemming voor ketel- of kraanopdrachten. Raam- en aanwezigheidssignalen worden eveneens onbekend totdat een gezonde nieuwe eigenaar bruikbare informatie ontvangt."
+      "title": "Ruimtemetingen gepauzeerd: de klok van Home Assistant sprong",
+      "description": "De klok van Home Assistant liep terug of sprong, dus OpenThermostat vertrouwt zijn ruimtemetingen niet meer. Controleer de Home Assistant-computer (tijd en belasting) en herlaad daarna de OpenThermostat-integratie. Deze melding verdwijnt zodra er weer gewoon nieuwe metingen binnenkomen."
+    },
+    "low_boiler_pressure": {
+      "title": "Waterdruk ketel laag",
+      "description": "De ketel meldt een waterdruk van {pressure} bar. Vul de installatie bij via de vulkraan tot 1,5–2,0 bar (met de installatie koud). Moet je vaak bijvullen, zoek dan een lek of laat het expansievat nakijken. Deze melding verdwijnt vanzelf zodra de druk weer boven 1 bar is."
+    },
+    "e32_default_password": {
+      "title": "Wijzig het standaardwachtwoord van de E32",
+      "description": "{name}: de E32 gebruikt nog het standaardwachtwoord admin/admin, dus iedereen in je netwerk kan je verwarming wijzigen. Wijzig het op de webpagina van de E32: Systeem → Over → Wachtwoord. Home Assistant vraagt daarna één keer om het nieuwe wachtwoord (Instellingen → Apparaten en diensten) en deze melding verdwijnt."
     }
   },
   "services": {
@@ -1487,7 +2175,7 @@
   },
   "exceptions": {
     "invalid_room_temperature": {
-      "message": "Voer een geldige temperatuur binnen de kamergrenzen in."
+      "message": "Voer een geldige temperatuur binnen de ruimtegrenzen in."
     },
     "room_plan_changed": {
       "message": "Het ruimteplan is tijdens het opslaan twee keer op de E32 gewijzigd. Er is niets opgeslagen; probeer het opnieuw."
@@ -1508,13 +2196,22 @@
       "message": "Ruimte {room} staat niet meer in het ruimteplan van de E32."
     },
     "room_setpoint_outside_limits": {
-      "message": "Kies een streefwaarde tussen {minimum} °C en {maximum} °C."
+      "message": "Kies een gewenste temperatuur tussen {minimum} °C en {maximum} °C."
     },
     "room_inactive_until_past": {
-      "message": "Kies een moment in de toekomst voor \"inactief tot\"."
+      "message": "Kies een moment in de toekomst voor \"Uit tot\"."
     },
     "room_state_invalid": {
-      "message": "Kies actief of inactief."
+      "message": "Kies Aan of Uit."
+    },
+    "room_plan_too_large": {
+      "message": "Het ruimteplan is te groot voor de E32 (4 KB). Er is niets opgeslagen."
+    },
+    "room_plan_storage_full": {
+      "message": "De E32 heeft geen opslagruimte meer voor zijn ruimteplan. Verwijder een ruimte die je niet meer gebruikt, of een paar schakelpunten uit de weekprogramma's, en probeer het opnieuw. Er is niets opgeslagen."
+    },
+    "room_plan_password": {
+      "message": "De E32 accepteert het bewaarde wachtwoord niet meer. Verifieer OpenThermostat opnieuw onder Instellingen → Apparaten en diensten. Er is niets opgeslagen."
     }
   }
 }

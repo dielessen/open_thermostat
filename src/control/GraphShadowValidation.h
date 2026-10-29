@@ -54,6 +54,19 @@ inline bool id(std::string_view s) {
         (c>='0'&&c<='9')||c=='_'||c=='-'))return false;
     return true;
 }
+// Keep in sync with control::isTimeZoneName (ScheduleDocument.h): the zone
+// is IANA metadata only; transitions are UTC.
+inline bool timeZoneName(std::string_view s) {
+    if(s.empty()||s.size()>63)return false;
+    bool start=true;
+    for(char c:s) {
+        const bool letter=(c>='A'&&c<='Z')||(c>='a'&&c<='z');
+        if(start){if(!letter)return false;start=false;}
+        else if(c=='/')start=true;
+        else if(!letter&&!(c>='0'&&c<='9')&&c!='_'&&c!='+'&&c!='-')return false;
+    }
+    return !start;
+}
 inline bool hex(std::string_view s,size_t length=64) {
     if(s.size()!=length)return false;
     for(char c:s)if(!((c>='a'&&c<='f')||(c>='0'&&c<='9')))return false;
@@ -299,7 +312,7 @@ inline Result validate(std::string_view raw,std::string_view mappingRaw,const Co
         auto schedule=get(r,"schedule");
         if(!cJSON_IsNull(schedule)) {
             object(schedule,{"timezone","policy","valid_from_utc","valid_until_utc","base_centi_c","transitions"});
-            auto tz=str(get(schedule,"timezone"));need(tz=="UTC"||tz=="Europe/Amsterdam","schedule");
+            auto tz=str(get(schedule,"timezone"));need(timeZoneName(tz),"schedule");
             literal(get(schedule,"policy"),"wall-clock-membership/v1","schedule");
             auto start=integer(get(schedule,"valid_from_utc"),946684800,4102444799LL);
             auto end=integer(get(schedule,"valid_until_utc"),start+1,std::min<int64_t>(start+16*86400,4102444800LL));

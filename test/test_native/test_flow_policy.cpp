@@ -132,7 +132,21 @@ TEST(FlowPolicy, OptionsOnClampTheRulesFlowToTheBoilerLimit) {
     EXPECT_EQ(s.apply(rule).flowC, 20);
     s.policy.setSettings(FlowSettings{}); // off: byte for byte the rule (the guard caps what it sends)
     out = s.apply(rule);
-    EXPECT_EQ(out.flowC, 60);
+    EXPECT_EQ(out.flowC, 60); EXPECT_FALSE(out.capped);
+    const FlowDemand::Request capped{true, 45, FlowDemand::Reason::holdOn, true}; // a rule the boiler's limit lowered
+    s.in.boilerLimitC = 45;
+    out = s.apply(capped);
+    EXPECT_EQ(out.flowC, 45); EXPECT_EQ(out.reason, capped.reason); EXPECT_TRUE(out.capped);
+    s.policy.setSettings(on); // on: the flag follows the option's own wish
+    out = s.apply(rule);
+    EXPECT_EQ(out.flowC, 45); EXPECT_TRUE(out.capped);
+    Json status(cJSON_CreateObject(), cJSON_Delete);
+    cJSON* request = cJSON_AddObjectToObject(status.get(), "request");
+    cJSON_AddBoolToObject(request, "heat", true); cJSON_AddNumberToObject(request, "flow_c", 60);
+    cJSON_AddStringToObject(request, "reason", "heating"); cJSON_AddNullToObject(request, "capped_by");
+    ASSERT_TRUE(s.policy.addStatus(status.get(), true));
+    EXPECT_STREQ(cJSON_GetStringValue(at(request, "capped_by")), "boiler_limit");
+    EXPECT_EQ(at(request, "flow_c")->valuedouble, 45);
 }
 
 TEST(FlowPolicy, OptionsOffLeaveTheRuleAndAdvise) {

@@ -764,9 +764,12 @@ private:
             return control::RoomOverrides::returnLeadS(flowLearner_, i, until, away, target, roomEngine_.freshTemperature(i, now),
                                                       *unixNow, learnerOutdoor(now).centiC);
         });
+        // The boiler's own limit (0x16) caps the rule too, so the calculated request
+        // never exceeds what the boiler accepts; unknown: the plan's ceiling.
+        const auto ems = ems_.activeHeatView();
+        roomEngine_.setBoilerLimit(ems.limitC);
         const auto rule = roomEngine_.step(now, unixNow, adjust);
         const auto tadoFlowC = ems_.thermostatRequestedFlowC();
-        const auto ems = ems_.activeHeatView();
         const auto request = applyFlowPolicy(now, rule, ems); // the rule itself while the options are off
         shadowComparison_.sample(now, unixNow, request, tadoFlowC);
         stepFlowLearner(now, ems, tadoFlowC);

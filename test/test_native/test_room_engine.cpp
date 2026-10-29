@@ -1,4 +1,5 @@
 #include "control/RoomEngine.h"
+#include "control/HeatingTelemetry.h"
 #include "ScopedTz.h"
 #include <gtest/gtest.h>
 #include <cstdio>
@@ -8,6 +9,7 @@
 
 namespace {
 using heating::control::RoomEngine;
+using heating::control::compactHeatingTelemetry;
 using heating::control::RoomPlan;
 using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
 constexpr uint64_t minute = 60000;
@@ -83,6 +85,28 @@ TEST(RoomEngine, TadoLeadsAndTheFloorRequestStaysWithinSixty) {
     const auto* entities = cJSON_GetObjectItem(j.get(), "ha_entities");
     ASSERT_EQ(cJSON_GetArraySize(entities), 1);
     EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetArrayItem(entities, 0)), "climate.woonkamer");
+}
+// The calculated request never exceeds what the boiler accepts (0x16), in shadow too.
+TEST(RoomEngine, TheBoilersLimitCapsTheCalculatedRequest) {
+    RoomEngine e; e.setPlan(parsed(ownerPlan));
+    e.haState("climate.woonkamer", 1700, 2100, 10 * minute); // 4 degC short: 70 -> plan max 60
+    EXPECT_EQ(e.step(10 * minute, 1761650000).flowC, 60);
+    Json open(e.json(), cJSON_Delete);
+    EXPECT_TRUE(cJSON_IsNull(cJSON_GetObjectItem(cJSON_GetObjectItem(open.get(), "request"), "capped_by")));
+    e.setBoilerLimit(50);
+    const auto r = e.step(11 * minute, 1761650060);
+    EXPECT_TRUE(r.heat); EXPECT_EQ(r.flowC, 50); EXPECT_TRUE(r.capped);
+    Json capped(e.json(), cJSON_Delete);
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(cJSON_GetObjectItem(capped.get(), "request"), "capped_by")), "boiler_limit");
+    e.setPlan(parsed(ownerPlan)); // a plan edit keeps the limit
+    EXPECT_EQ(e.step(12 * minute, 1761650120).flowC, 50);
+    // fw/telemetry/heating: capped_by only while set (no bytes in the usual case).
+    compactHeatingTelemetry(capped.get());
+    EXPECT_STREQ(cJSON_GetStringValue(cJSON_GetObjectItem(cJSON_GetObjectItem(capped.get(), "request"), "capped_by")), "boiler_limit");
+    compactHeatingTelemetry(open.get());
+    EXPECT_FALSE(cJSON_GetObjectItem(cJSON_GetObjectItem(open.get(), "request"), "capped_by"));
+    e.setBoilerLimit(std::nullopt); // unknown: the plan's ceiling, the shadow calculation goes on
+    EXPECT_EQ(e.step(13 * minute, 1761650180).flowC, 60);
 }
 TEST(RoomEngine, BluetoothTakesOverWhenHomeAssistantStopsReporting) {
     RoomEngine e; e.setPlan(parsed(ownerPlan));

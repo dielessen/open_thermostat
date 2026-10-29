@@ -130,7 +130,8 @@ inline void compactPlanRoom(cJSON* p) {
 //    from the plan; inactive_until stays: HA 0.4.0b9 reads it here);
 //  - shadow: no past days;
 //  - no learned and no dhw: fw/telemetry/heating_summary (header, hot water) and
-//    fw/telemetry/heating_learned/<id> (per room) carry them.
+//    fw/telemetry/heating_learned/<id> (per room) carry them;
+//  - request.capped_by only while set (no bytes in the usual case).
 inline void compactHeatingTelemetry(cJSON* status) {
     using telemetry_detail::keepOnly;
     if (!cJSON_IsObject(status)) return;
@@ -141,6 +142,9 @@ inline void compactHeatingTelemetry(cJSON* status) {
     cJSON_DeleteItemFromObjectCaseSensitive(cJSON_GetObjectItemCaseSensitive(status, "shadow"), "days");
     cJSON_DeleteItemFromObjectCaseSensitive(status, "learned");
     cJSON_DeleteItemFromObjectCaseSensitive(status, "dhw");
+    // request.capped_by only while the boiler's limit lowers the request (HA reads a missing key as none).
+    cJSON* request = cJSON_GetObjectItemCaseSensitive(status, "request");
+    if (cJSON_IsNull(cJSON_GetObjectItemCaseSensitive(request, "capped_by"))) cJSON_DeleteItemFromObjectCaseSensitive(request, "capped_by");
 }
 
 // fw/telemetry/heating_summary: {"schema":1,"learned":{"schema":1,"applied":bool,

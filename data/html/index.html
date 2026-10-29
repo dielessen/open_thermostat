@@ -524,6 +524,11 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                 if (legacyEditorPages.includes(page) && mode !== 'legacy') {
                     managedControlNotice(); return false;
                 }
+                // Dutch for the pages other than Home loads with the first such page, so
+                // Home stays small. Without it a page shows English; the next visit retries.
+                if (window.OpenThermostatLanguage?.language === 'nl')
+                    await ensurePageScript('/ui-messages-pages.js', () => !!window.OT_UI_PAGE_MESSAGES).catch(() => {});
+                if (navigation !== navigationGeneration) return false;
                 // Boiler controls mount immediately; the optional entity panel
                 // owns its larger dependencies in parallel after mounting.
                 if (page !== 'boiler_test') await ensurePageScripts(page);

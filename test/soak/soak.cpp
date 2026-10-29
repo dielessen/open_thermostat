@@ -1163,6 +1163,7 @@ void Chain::stepE32() {
         }
     const std::optional<uint32_t> unixNow = clockKnown_ ? std::optional<uint32_t>(uint32_t(utc_)) : std::nullopt;
     const uint64_t calls0 = localtimeCalls;
+    engine_.setBoilerLimit(ems::ActiveHeatEnvelope::limitC(monitor_)); // HeatingController::stepHeating
     const auto rule = engine_.step(now_, unixNow);
     noteLocaltime("room_engine_step", localtimeCalls - calls0, utc_);
     const auto tadoFlowC = tadoLast1A_ && now_ - tadoLast1A_->second <= 150000 ? std::optional<uint8_t>(tadoLast1A_->first) : std::nullopt;
@@ -1270,7 +1271,12 @@ FlowDemand::Request Chain::applyFlowPolicy(const FlowDemand::Request& rule, std:
     // Options on: every output, also the rule's flow passed through, within the
     // boiler's limit. Off: the rule's own limits (the guard applies 0x16).
     const uint8_t cap = std::min<uint8_t>({plan.maximumFlowC, FlowDemand::ceilingC, o_.flowOptions ? in.boilerLimitC.value_or(FlowDemand::ceilingC) : FlowDemand::ceilingC});
-    if (rule.heat && in.boilerLimitC && rule.flowC > *in.boilerLimitC) count("rule_flow_above_boiler_limit_steps");
+    // The rule itself never asks more than the boiler accepts (its 0x16 limit, when known).
+    EXPECT(!(rule.heat && in.boilerLimitC && rule.flowC > *in.boilerLimitC), "rule_flow_above_boiler_limit",
+           "rule %u degC above the boiler's %u degC", rule.flowC, in.boilerLimitC.value_or(0));
+    EXPECT(!rule.capped || (rule.heat && in.boilerLimitC && rule.flowC == *in.boilerLimitC && *in.boilerLimitC < plan.maximumFlowC),
+           "rule_capped_flag", "capped at %u (limit %s, plan max %u)", rule.flowC, in.boilerLimitC ? std::to_string(*in.boilerLimitC).c_str() : "unknown", plan.maximumFlowC);
+    if (rule.capped) count("rule_capped_by_boiler_limit_steps");
     if (applied.heat) {
         EXPECT(applied.flowC <= cap && applied.flowC >= std::min(plan.minimumFlowC, cap), "flow_policy_range",
                "applied %u outside [%u, %u] (plan %u..%u, limit %s)", applied.flowC, std::min(plan.minimumFlowC, cap), cap, plan.minimumFlowC, plan.maximumFlowC,
@@ -1283,8 +1289,11 @@ FlowDemand::Request Chain::applyFlowPolicy(const FlowDemand::Request& rule, std:
 void Chain::checkEngine(const FlowDemand::Request& request) {
     const auto& plan = engine_.plan();
     // FlowDemand: within the plan's limits; minimum on/off times.
-    if (request.heat) EXPECT(request.flowC >= plan.minimumFlowC && request.flowC <= plan.maximumFlowC && request.flowC <= ActiveHeatGuard::hardMaximumFlowC,
-                             "flow_request_out_of_limits", "flow %u outside [%u, %u]", request.flowC, plan.minimumFlowC, plan.maximumFlowC);
+    // ... and the boiler's own limit when known (then also below the plan minimum).
+    const auto limit = ems::ActiveHeatEnvelope::limitC(monitor_);
+    const uint8_t top = std::min<uint8_t>(plan.maximumFlowC, limit.value_or(ActiveHeatGuard::hardMaximumFlowC));
+    if (request.heat) EXPECT(request.flowC >= std::min(plan.minimumFlowC, top) && request.flowC <= top && request.flowC <= ActiveHeatGuard::hardMaximumFlowC,
+                             "flow_request_out_of_limits", "flow %u outside [%u, %u]", request.flowC, std::min(plan.minimumFlowC, top), top);
     else EXPECT(request.flowC == 0, "flow_request_off_nonzero", "off with flow %u", request.flowC);
     if (prevRequest_ && request.heat != prevRequest_->heat && now_ - flowRebuiltAt_ > 20000) {
         if (request.heat) {
@@ -2096,6 +2105,7 @@ struct ActiveRig {
         }
         // HeatingController::stepActiveHeat: last step's post is reported first.
         if (driver.last() && driver.last()->seq == posted) guard.transmitted(postedAt, driver.last()->ok);
+        engine.setBoilerLimit(ems::ActiveHeatEnvelope::limitC(monitor));
         const auto request = engine.step(now, std::nullopt);
         const auto& p = engine.plan();
         ActiveHeatGuard::Inputs in;
@@ -2444,6 +2454,7 @@ void flowScenario() {
     const uint64_t steps = uint64_t(opt.days * 86400000.0 / 10000);
     bool demand = false, heat = false, haveOff = false;
     std::optional<int16_t> error = int16_t(0);
+    std::optional<uint8_t> limit;
     uint64_t onAt = 0, offAt = 0, nextFlip = now, demandSince = now;
     for (uint64_t i = 0; i < steps; ++i) {
         now += chance(0.001) ? uint64_t(uniformInt(20, 600)) * 1000 : 10000; // a stalled loop now and then
@@ -2456,10 +2467,17 @@ void flowScenario() {
         else if (error) error = int16_t(std::clamp<int>(*error + int(uniformInt(-5, 5)), -3000, 3000));
         if (chance(0.00005)) { // a plan edit of the flow limits rebuilds FlowDemand (RoomEngine::setPlan)
             p.minimumFlowC = uint8_t(uniformInt(20, 40)); p.maximumFlowC = uint8_t(uniformInt(p.minimumFlowC + 1, 60));
-            flow = FlowDemand(p); haveOff = false; heat = false; count("flow_rebuild");
+            flow = FlowDemand(p); flow.setBoilerLimit(limit); haveOff = false; heat = false; count("flow_rebuild");
+        }
+        if (chance(0.0002)) { // the boiler's own limit (0x16) changes, or is unknown
+            limit = chance(0.2) ? std::optional<uint8_t>() : std::optional<uint8_t>(uint8_t(uniformInt(25, 80)));
+            flow.setBoilerLimit(limit);
         }
         const auto r = flow.update(now, demand, error);
-        if (r.heat) EXPECT(r.flowC >= p.minimumFlowC && r.flowC <= p.maximumFlowC, "flow_limits", "flow %u outside [%u, %u]", r.flowC, p.minimumFlowC, p.maximumFlowC);
+        const uint8_t top = std::min<uint8_t>(p.maximumFlowC, limit.value_or(FlowDemand::ceilingC));
+        if (r.heat) EXPECT(r.flowC >= std::min(p.minimumFlowC, top) && r.flowC <= top, "flow_limits", "flow %u outside [%u, %u]", r.flowC, std::min(p.minimumFlowC, top), top);
+        EXPECT(!r.capped || (r.heat && limit && r.flowC == *limit && *limit < p.maximumFlowC), "flow_capped_flag", "capped %u", r.flowC);
+        if (r.capped) count("flow_capped_steps");
         else EXPECT(r.flowC == 0, "flow_off_nonzero", "off with %u", r.flowC);
         if (!error) EXPECT(!r.heat && r.reason == FlowDemand::Reason::noDemand, "flow_no_error_stop", "no usable room but %s", FlowDemand::name(r.reason));
         if (r.heat && !heat) {

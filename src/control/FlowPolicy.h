@@ -243,6 +243,9 @@ public:
         cap_ = std::min<uint8_t>(std::min<uint8_t>(plan.maximumFlowC, FlowDemand::ceilingC), in.boilerLimitC.value_or(FlowDemand::ceilingC));
         const uint8_t lo = std::min(plan.minimumFlowC, cap_);
         const auto bound = [&](int v) { return static_cast<uint8_t>(std::clamp<int>(v, lo, cap_)); };
+        // The boiler's own limit, not the plan, is the ceiling for `v`.
+        const bool limitBelowPlan = in.boilerLimitC && *in.boilerLimitC < std::min(plan.maximumFlowC, FlowDemand::ceilingC);
+        int curveWant = 0, learnedWant = 0;
         bool radiator = false;
         for (size_t i = 0; i < n; ++i) {
             radiator = radiator || plan.rooms[i].emitter == RoomPlan::Emitter::radiator;
@@ -262,7 +265,8 @@ public:
                 }
             if (curveBase_) {
                 const int correction = in.rule.heat ? std::max(0, int(in.rule.flowC) - int(plan.minimumFlowC)) / 2 : 0;
-                curveFlow_ = bound((*curveBase_ + 99) / 100 + correction);
+                curveWant = (*curveBase_ + 99) / 100 + correction;
+                curveFlow_ = bound(curveWant);
             }
         }
         // Learned: the lead room's lowest flow that closes its shortfall in time.
@@ -270,18 +274,18 @@ public:
         if (lead_ >= 0) {
             const int16_t shortfall = in.rooms[lead_].errorCentiC;
             const auto a = learner.advise(size_t(lead_), shortfall, in.outdoorCentiC);
-            if (a.flowC && shortfall >= warmupFromCentiC) { learnedFlow_ = bound(*a.flowC); learnedReason_ = a.reason; }
+            if (a.flowC && shortfall >= warmupFromCentiC) { learnedWant = *a.flowC; learnedFlow_ = bound(learnedWant); learnedReason_ = a.reason; }
             else if (a.flowC) learnedReason_ = "holding";
         }
         if (applied_.heat) {
-            uint8_t flow = in.rule.flowC;
-            if (settings_.weatherCurve && curveFlow_) { flow = *curveFlow_; source_ = Source::curve; }
-            if (settings_.applyLearned && learnedFlow_) { flow = *learnedFlow_; source_ = Source::learned; }
-            // Options off: the rule's own request, byte for byte. Options on: every
-            // output, also the rule's flow passed through, within [plan min, cap].
+            int want = in.rule.flowC;
+            if (settings_.weatherCurve && curveFlow_) { want = curveWant; source_ = Source::curve; }
+            if (settings_.applyLearned && learnedFlow_) { want = learnedWant; source_ = Source::learned; }
+            // Options off: the rule's own request (already within the boiler's
+            // limit), byte for byte. Options on: every output within [plan min, cap].
             if (source_ != Source::rule || settings_.weatherCurve || settings_.applyLearned) {
-                applied_.flowC = bound(flow);
-                applied_.capped = flow > cap_ && in.boilerLimitC && *in.boilerLimitC < std::min(plan.maximumFlowC, FlowDemand::ceilingC);
+                applied_.flowC = bound(want);
+                applied_.capped = (source_ == Source::rule && in.rule.capped) || (limitBelowPlan && want > cap_);
             }
         }
         optimumStart(in, learner, bound);

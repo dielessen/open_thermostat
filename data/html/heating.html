@@ -299,7 +299,14 @@
       const planner = OTWeekEditor.mount(host, {week: given || [[], [], [], [], [], [], []], min: cc(lo), max: cc(hi), lang: OpenThermostatLanguage.language,
         onChange: w => { same.checked = w.every(d => JSON.stringify(d) === JSON.stringify(w[0])); draw(same.checked ? [w[0]] : w); }});
       list.forEach(n => { n.hidden = true; }); editor.prepend(host);
-      useWeek.addEventListener('change', () => planner.set(days()));
+      // A new program starts from "Workdays and weekend" with the room's current target as comfort.
+      let target = status?.setpoint; const shown = card.status; card.status = s => { target = s?.setpoint; shown(s); };
+      useWeek.addEventListener('change', () => {
+        if (!useWeek.checked) return;
+        if (planner.get().some(d => d.length)) return planner.set(days());
+        const c = Number.isFinite(target) ? Math.min(cc(hi), Math.max(cc(lo), Math.round(target * 2) * 50)) : cc(fallback);
+        planner.set(Array(7).fill([[420, c]])); planner.template('work');
+      });
       [lo, hi].forEach(i => i.addEventListener('change', () => planner.limits(cc(lo), cc(hi))));
     }
     const schedule = () => {
@@ -528,7 +535,8 @@
   timer = setInterval(refreshStatus, 10000);
 })();
 </script>
-<style>#heating-plan .hp-flow-design{margin:0 0 8px 34px;max-width:24rem}#heating-plan .hp-flow-design label{display:block;margin-bottom:4px}#heating-plan [data-flow-message]:empty{display:none}</style>
+<style>#heating-plan .hp-flow-design{margin:0 0 8px 34px;max-width:30rem}#heating-plan .hp-flow-design label{display:block;margin-bottom:4px}#heating-plan [data-flow-message]:empty{display:none}
+@media(max-width:560px){#heating-plan .hp-flow-design{margin-left:0}}</style>
 <script>
 // Flow temperature (E32 beta.19): the weather curve, the learned flow and optimum start, gas calibration and last night.
 // Settings: GET/POST /config/heating/flow, one field per change. State: /status/heating "flow", "learned.gas" and

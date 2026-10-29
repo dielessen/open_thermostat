@@ -395,7 +395,7 @@
 		loadWiFiSettings();
 		loadDeviceSettings();
 		mountDebugSettings();
-		window.ConfigBackupPage?.mount(); // backup.js, loaded by index.html
+		mountConfigBackup();
 
 		$("#loadingprogress").addClass('invisible');
 		$('#networkeditform').removeClass('invisible');
@@ -512,6 +512,22 @@
     }
     function loadDebugSettings(){return window.DebugSettingsPage?.load();}
     function saveDebugSettings(){return window.DebugSettingsPage?.save();}
+    // Backup and restore (backup.js) loads only when its panel is first opened.
+    function mountConfigBackup() {
+        const root=document.getElementById('ConfigBackup');
+        if(!root||typeof root.addEventListener!=='function')return;
+        const body=root.querySelector('#ConfigBackupBody');
+        root.addEventListener('toggle',()=>{
+            if(!root.open||root.dataset.loading)return;
+            if(window.ConfigBackupPage){window.ConfigBackupPage.mount(root);return;}
+            root.dataset.loading='1';body.textContent='';
+            const script=document.createElement('script');script.src='/backup.js';
+            script.onload=()=>{delete root.dataset.loading;window.ConfigBackupPage?.mount(root);};
+            script.onerror=()=>{delete root.dataset.loading;script.remove();
+                body.textContent=uiText("The page could not be loaded. Check the connection and try again.");};
+            document.head.appendChild(script);
+        });
+    }
 
 	async function loadWiFiSettings() {
 		// E32 uses the same tested onboarding for both first boot and later

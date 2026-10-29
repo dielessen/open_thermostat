@@ -8,7 +8,7 @@ const config={hostname:'Fixture',interface_mode:'wifi',listenPort:80,emsEnabled:
  bt:{scanTime:10,scanInterval:30},mqtt:{enabled:false,modern_shadow:true,adapter_id:'fixture',brokerAddress:'127.0.0.1',brokerPort:1883,
   username:'',password:'',clientId:'fixture',base:'fixture',keepAlive:30,interval:10}};
 const backup=(sealed)=>({format:'openthermostat-e32-backup',schema:1,firmware:'0.1.0-e32v2-beta.19',board:'e32v2',created:'2026-10-29T20:00:00Z',
- secrets:sealed?{cipher:'aes-128-ccm',kdf:'pbkdf2-sha256',iterations:4096,box:'ab'.repeat(60)}:null,
+ secrets:sealed?{cipher:'aes-128-ccm',kdf:'pbkdf2-sha256',iterations:16384,box:'ab'.repeat(60)}:null,
  not_included:sealed?['wifi_password','web_password']:['wifi_password','web_password','mqtt_password','bluetooth_keys'],
  network:{hostname:'heating-home',mqtt:{brokerAddress:'192.0.2.10'}},bluetooth:{devices:[{address:'5448e68f80a5',profile:'shelly_ht_display',encryption:'bthome_v2',name:'Living'}]},
  heating:{schema:1,mode:'shadow',minimum_flow_c:30,maximum_flow_c:60,rooms:[]},flow:{weather_curve:true,apply_learned:false,curve_design_flow_c:0},
@@ -24,10 +24,10 @@ const summary={valid:true,fingerprint:'f'.repeat(64),restart:true,secrets_sealed
  assert.equal(missing.length,0,'every backup panel message has a Dutch catalog entry: '+missing.join(' | '));
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH}),results=[];
  try{for(const lang of ['en','nl'])for(const width of [1280,320]){
-  const page=await browser.newPage({viewport:{width,height:900},acceptDownloads:true}),errors=[],posts=[];let dialogs=0,reply=null;
+  const page=await browser.newPage({viewport:{width,height:900},acceptDownloads:true}),errors=[],posts=[],paths=[];let dialogs=0,reply=null;
   page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>{++dialogs;d.dismiss();});
   await page.route('**/*',async route=>{
-   const req=route.request(),url=new URL(req.url()),p=url.pathname;
+   const req=route.request(),url=new URL(req.url()),p=url.pathname;paths.push(p);
    if(url.origin!=='http://opth.test')return route.abort();
    const json=(value,status=200)=>route.fulfill({json:value,status});
    if(p==='/auth/session')return json({authenticated:true,csrf:'a'.repeat(64)});
@@ -53,8 +53,12 @@ const summary={valid:true,fingerprint:'f'.repeat(64),restart:true,secrets_sealed
   await page.context().addCookies([{name:'ot_ui_lang',value:lang,url:'http://opth.test'}]);
   await page.goto('http://opth.test/');await page.locator('.product-dashboard').waitFor();
   await page.evaluate(()=>loadNativePage('network'));await page.waitForFunction(()=>document.getElementById('DeviceHostname')?.value==='Fixture');
-  await page.locator('#BackupDownload').waitFor({state:'attached'});assert.equal(posts.length,0,'nothing is requested before the owner acts');
-  const panel=page.locator('#ConfigBackup');await panel.locator(':scope > summary').click();
+  const panel=page.locator('#ConfigBackup');await panel.waitFor({state:'attached'});
+  assert(!paths.includes('/backup.js'),'the panel script loads only when the panel is opened');
+  await panel.locator(':scope > summary').click();await page.locator('#BackupDownload').waitFor();
+  assert.equal(paths.filter(p=>p==='/backup.js').length,1);assert.equal(posts.length,0,'nothing is requested before the owner acts');
+  await panel.locator(':scope > summary').click();await panel.locator(':scope > summary').click();
+  assert.equal(paths.filter(p=>p==='/backup.js').length,1);assert.equal(await page.locator('#BackupDownload').count(),1,'mounted once');
   const status=page.locator('#BackupStatus'),restore=page.locator('#RestoreStatus'),check=page.locator('#RestoreCheck'),apply=page.locator('#RestoreApply');
   assert.match(await panel.locator(':scope > summary').innerText(),lang==='nl'?/Back-up en terugzetten/:/Backup and restore/);
   // Plain export: a downloaded file and the list of what to enter again.

@@ -274,8 +274,10 @@ everything else.
 
 In Home Assistant each E32 room has a thermostat: current temperature,
 target, mode *Auto* (week program), *Heat* (a temporary change) or *Off* (the
-room is inactive in the plan), and the presets Comfort, Eco, Away and Boost.
-A new target on the thermostat lasts until the next switch point; a room
+room is inactive in the plan), and the presets Comfort, Night (Home
+Assistant's "Eco"), Away and Boost. Comfort and Night are the warmest and the
+coolest temperature of the room's week program, the same levels as in the week
+planner. A new target on the thermostat lasts until the next switch point; a room
 without a week program keeps it for the time set under Configure → Comfort,
 and a room with only a fixed target changes that fixed target in the plan.
 

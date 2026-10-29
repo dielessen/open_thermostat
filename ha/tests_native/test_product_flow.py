@@ -31,7 +31,9 @@ async def option(manager,parent,step):
     # A stored E32 connection makes the E32 room plan the room editor.
     rooms='e32_rooms' if has_room_plan(parent) else 'room_settings'
     # Everyday settings first; status and plan recovery are under Advanced.
-    assert f['menu_options']==[rooms,'controller_connection','energy','installation','advanced_settings']
+    # E32 rooms add Comfort (windows, away, presence: e32_comfort.py) right after them.
+    comfort=['comfort'] if rooms=='e32_rooms' else []
+    assert f['menu_options']==[rooms,*comfort,'controller_connection','energy','installation','advanced_settings']
     if step in ('configuration_status','hot_water','graph_prepare','graph_status'):
         f=await manager.async_configure(f['flow_id'],{'next_step_id':'advanced_settings'})
     return await manager.async_configure(f['flow_id'],{'next_step_id':step})

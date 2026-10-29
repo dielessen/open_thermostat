@@ -19,7 +19,7 @@ const T = {
   differ: 'Each level needs its own temperature.', limits: 'Keep temperatures between {min} and {max}.', preview: 'Week preview',
   advanced: 'Advanced: edit as text', textHelp: 'One line per group of days, for example: mon-fri: 06:30 20.5; 22:30 18', apply: 'Apply text',
   bad: 'Line {line} cannot be read: {text}', outside: 'Line {line}: temperatures must lie between {min} and {max}.', many: 'Line {line}: at most 6 switch times per day.',
-  textApplied: 'Text applied.'},
+  textApplied: 'Text applied.', inF: 'Temperatures in °F.'},
  nl: {days: ['Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag', 'Zondag'], short: ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'],
   text: ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'], names: {comfort: 'Comfort', night: 'Nacht', away: 'Afwezig'}, levels: 'Temperatuurniveaus',
   warmer: '{level} warmer', cooler: '{level} kouder', custom: 'Eigen temperatuur', template: 'Begin met een sjabloon', choose: 'Kies…',
@@ -32,7 +32,7 @@ const T = {
   differ: 'Elk niveau heeft een eigen temperatuur nodig.', limits: 'Houd temperaturen tussen {min} en {max}.', preview: 'Voorbeeld van de week',
   advanced: 'Geavanceerd: als tekst bewerken', textHelp: 'Eén regel per groep dagen, bijvoorbeeld: ma-vr: 06:30 20,5; 22:30 18', apply: 'Tekst toepassen',
   bad: 'Regel {line} is niet te lezen: {text}', outside: 'Regel {line}: temperaturen moeten tussen {min} en {max} liggen.', many: 'Regel {line}: maximaal 6 schakeltijden per dag.',
-  textApplied: 'Tekst toegepast.'}};
+  textApplied: 'Tekst toegepast.', inF: 'Temperaturen in °F.'}};
 // Templates in level names; the owner's level temperatures fill them in.
 const WORK = [[390, 'comfort'], [510, 'away'], [1020, 'comfort'], [1350, 'night']], HOME = [[420, 'comfort'], [1350, 'night']], FREE = [[480, 'comfort'], [1380, 'night']];
 const TEMPLATES = {work: [WORK, WORK, WORK, WORK, WORK, FREE, FREE], home: [HOME, HOME, HOME, HOME, HOME, FREE, FREE], daily: Array(7).fill(HOME)};
@@ -41,15 +41,19 @@ const DAY_NAMES = {};
 const clone = w => w.map(d => d.map(p => [p[0], p[1]]));
 const fill = (s, v) => s.replace(/\{(\w+)\}/g, (a, k) => k in v ? v[k] : a);
 const clock = m => String(m / 60 | 0).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
-const deg = (c, lang) => { const s = String(c / 100); return lang === 'nl' ? s.replace('.', ',') : s; };
+// °F only at the edge (Home Assistant in imperial units): shown with one decimal like the options flow
+// (e32_room_flow.shown), read back to 0.01 °C so a whole °F shows again as typed; the program stays in centi °C.
+const shown = (c, f) => f ? Math.round(c * 9 / 50 + 320) / 10 : c / 100;
+const centi = (v, f) => f ? Math.round((v - 32) * 500 / 9) : Math.round(v * 100);
+const deg = (c, lang, f) => { const s = String(shown(c, f)); return lang === 'nl' ? s.replace('.', ',') : s; };
 const valid = w => Array.isArray(w) && w.length === 7 && w.every(d => Array.isArray(d) && d.length <= MAX && d.every((p, i) => Array.isArray(p)
  && Number.isInteger(p[0]) && Number.isInteger(p[1]) && p[0] >= 0 && p[0] < 1440 && (!i || p[0] > d[i - 1][0])));
 const tr = lang => T[lang === 'nl' ? 'nl' : 'en'];
 
 // The existing program text ("mon-fri: 06:30 20.5; 22:30 18"), as the Home Assistant options flow reads and writes it.
-function format(week, lang) {
+function format(week, lang, f) {
  const t = tr(lang), groups = new Map();
- week.forEach((points, d) => { if (points.length) { const key = points.map(([m, c]) => clock(m) + ' ' + deg(c, lang)).join('; '); groups.set(key, [...(groups.get(key) || []), d]); } });
+ week.forEach((points, d) => { if (points.length) { const key = points.map(([m, c]) => clock(m) + ' ' + deg(c, lang, f)).join('; '); groups.set(key, [...(groups.get(key) || []), d]); } });
  return [...groups].map(([key, days]) => {
   if (days.length === 7) return key;
   const runs = [];
@@ -57,7 +61,7 @@ function format(week, lang) {
   return runs.map(([a, b]) => a === b ? t.text[a] : t.text[a] + '-' + t.text[b]).join(',') + ': ' + key;
  }).join('\n');
 }
-function parse(text, min, max) {
+function parse(text, min, max, f) {
  const week = Array(7).fill(null);
  (text || '').split(/\r?\n/).forEach((original, n) => {
   const fail = key => { throw {key, line: n + 1, text: original.trim().slice(0, 60)}; };
@@ -79,7 +83,7 @@ function parse(text, min, max) {
   for (const m of body.matchAll(/(\d{1,2})[:.](\d{2})\s+(\d{1,2}(?:[.,]\d{1,2})?)/g)) {
    if (junk(body.slice(at, m.index))) fail('bad');
    at = m.index + m[0].length;
-   const minute = +m[1] * 60 + +m[2], c = Math.round(parseFloat(m[3].replace(',', '.')) * 100);
+   const minute = +m[1] * 60 + +m[2], c = centi(parseFloat(m[3].replace(',', '.')), f);
    if (+m[1] > 23 || +m[2] > 59 || points.has(minute)) fail('bad');
    if (c < min || c > max) fail('outside');
    points.set(minute, c);
@@ -139,7 +143,9 @@ function mount(host, options) {
  const say = s => { msg = s; };
  const name = c => { const k = LEVELS.find(l => levels[l] === c); return k ? t.names[k] : c == null ? '' : t.custom; };
  const cls = c => c == null ? 'lv-none' : 'lv-' + (LEVELS.find(l => levels[l] === c) || 'custom');
- const degText = c => deg(c, o.lang) + ' °C';
+ const F = !!o.fahrenheit, degText = c => deg(c, o.lang, F) + (F ? ' °F' : ' °C');
+ // One step of a level: 0.5 °C, or 1 °F.
+ const step = (c, by) => F ? centi(shown(c, true) + by, true) : c + 50 * by;
  const changed = () => { textDraft = null; textError = ''; if (o.onChange) o.onChange(clone(week)); };
  const carry = d => { for (let b = 1; b <= 7; b++) { const p = week[(d + 7 - b) % 7]; if (p.length) return p[p.length - 1][1]; } return null; };
  const segs = d => {
@@ -196,8 +202,8 @@ function mount(host, options) {
   for (const key of LEVELS) {
    const chip = el('div', null, {class: 'wpe-lv'}), n = t.names[key], c = levels[key];
    chip.append(el('span', null, {class: 'wpe-dot lv-' + key, 'aria-hidden': 'true'}), el('b', n + ' ' + degText(c)),
-    el('button', '−', {type: 'button', 'aria-label': fill(t.cooler, {level: n}), 'data-k': 'lv-' + key + '-'}, () => setLevelValue(key, c - 50)),
-    el('button', '+', {type: 'button', 'aria-label': fill(t.warmer, {level: n}), 'data-k': 'lv-' + key + '+'}, () => setLevelValue(key, c + 50)));
+    el('button', '−', {type: 'button', 'aria-label': fill(t.cooler, {level: n}), 'data-k': 'lv-' + key + '-'}, () => setLevelValue(key, step(c, -1))),
+    el('button', '+', {type: 'button', 'aria-label': fill(t.warmer, {level: n}), 'data-k': 'lv-' + key + '+'}, () => setLevelValue(key, step(c, 1))));
    box.append(chip);
   }
   return box;
@@ -217,7 +223,7 @@ function mount(host, options) {
   const list = segs(d), nodes = [];
   list.forEach((g, i) => {
    const label = fill(t.block, {day: t.days[d], from: clock(g.s), to: g.e === 1440 ? '24:00' : clock(g.e)}) + (g.c == null ? '' : ', ' + name(g.c) + ' ' + degText(g.c)) + (g.p < 0 && g.c != null ? ', ' + t.inherited : '');
-   const b = el('button', g.c == null ? '' : deg(g.c, o.lang) + '°', {type: 'button', class: 'wpe-seg ' + cls(g.c) + (sel && sel.d === d && sel.i === i ? ' wpe-on' : ''),
+   const b = el('button', g.c == null ? '' : deg(g.c, o.lang, F) + '°', {type: 'button', class: 'wpe-seg ' + cls(g.c) + (sel && sel.d === d && sel.i === i ? ' wpe-on' : ''),
     style: 'left:' + g.s / 14.4 + '%;width:' + (g.e - g.s) / 14.4 + '%', 'aria-label': label, title: label, 'data-k': 'seg' + d + '-' + g.s,
     'aria-pressed': String(!!(sel && sel.d === d && sel.i === i))}, () => { sel = {d, i}; copyFrom = null; say(''); });
    nodes.push(b); bar.append(b);
@@ -284,12 +290,12 @@ function mount(host, options) {
   const lv = el('div', null, {class: 'wpe-row2', role: 'group', 'aria-label': t.level});
   for (const key of LEVELS) lv.append(el('button', t.names[key] + ' ' + degText(levels[key]), {type: 'button', class: 'lv-' + key, 'aria-pressed': String(g.c === levels[key]),
    'data-k': 'set-' + key}, () => setLevel(d, i, levels[key])));
-  const own = el('input', null, {type: 'number', step: '0.5', min: o.min / 100, max: o.max / 100, 'aria-label': t.custom, 'data-k': 'own'}, () => {
-   const c = Math.round(parseFloat(String(own.value).replace(',', '.')) * 100);
+  const own = el('input', null, {type: 'number', step: F ? '1' : '0.5', min: shown(o.min, F), max: shown(o.max, F), 'aria-label': t.custom, 'data-k': 'own'}, () => {
+   const c = centi(parseFloat(String(own.value).replace(',', '.')), F);
    if (!(c >= o.min && c <= o.max)) say(fill(t.limits, {min: degText(o.min), max: degText(o.max)})); else setLevel(d, i, c);
    render();
   });
-  if (g.c != null) own.value = g.c / 100;
+  if (g.c != null) own.value = shown(g.c, F);
   const ownLabel = el('label', t.custom, {class: 'wpe-check'});
   ownLabel.append(own); lv.append(ownLabel); box.append(lv);
   if (g.p >= 0 && g.s > 0) {
@@ -342,13 +348,13 @@ function mount(host, options) {
  }
  function renderText() {
   const box = el('details', null, {'data-k': 'text', open: textOpen || textDraft != null || !!textError}), area = el('textarea', null, {'aria-label': t.advanced, spellcheck: 'false', 'data-k': 'textarea'});
-  area.value = textDraft ?? format(week, o.lang);
+  area.value = textDraft ?? format(week, o.lang, F);
   area.addEventListener('input', () => { textDraft = area.value; });
   box.addEventListener('toggle', () => { textOpen = box.open; });
-  box.append(el('summary', t.advanced), el('small', t.textHelp), area, el('p', textError, {class: 'wpe-msg', role: 'alert'}),
+  box.append(el('summary', t.advanced), el('small', t.textHelp + (F ? ' ' + t.inF : '')), area, el('p', textError, {class: 'wpe-msg', role: 'alert'}),
    el('button', t.apply, {type: 'button', 'data-k': 'text-apply'}, () => {
     try {
-     const next = parse(area.value, o.min, o.max);
+     const next = parse(area.value, o.min, o.max, F);
      snapshot(); week = next; levels = infer(week, o.min, o.max); sel = copyFrom = null; say(t.textApplied); changed();
     } catch (err) {
      if (!err || !err.key) throw err;
@@ -379,6 +385,8 @@ function mount(host, options) {
   set(next) { if (!valid(next)) return false; week = clone(next); levels = infer(week, o.min, o.max); sel = copyFrom = null; textDraft = null; textError = ''; render(); return true; },
   limits(min, max) { o.min = min; o.max = max; render(); },
   levels: () => ({...levels}),
+  // A template with the current levels (the E32 page starts a new program with "Workdays and weekend").
+  template(key) { if (TEMPLATES[key]) { applyTemplate(key); render(); } },
   render
  };
 }

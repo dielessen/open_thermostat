@@ -260,7 +260,7 @@ TEST(ConfigBackup, EnvelopeIsStrict) {
     // A sealed box must be well formed hex of a plausible size.
     auto box = cJSON_CreateObject();
     cJSON_AddStringToObject(box, "cipher", "aes-128-ccm"); cJSON_AddStringToObject(box, "kdf", "pbkdf2-sha256");
-    cJSON_AddNumberToObject(box, "iterations", 4096); cJSON_AddStringToObject(box, "box", "zz");
+    cJSON_AddNumberToObject(box, "iterations", b::kdfIterations); cJSON_AddStringToObject(box, "box", "zz");
     EXPECT_STREQ(with("secrets", box), "invalid_secrets");
 }
 

@@ -31,6 +31,18 @@ test('program text parses like e32_room_flow.parse_program, with its errors and 
  for(const w of [week,Array(7).fill([[0,1650],[390,2050],[510,1800],[1020,2050],[1350,1650]]),[[[60,1700]],[],[],[[1439,2200]],[],[],[]]])
   for(const lang of ['en','nl'])assert.deepEqual(plain(W.parse(W.format(w,lang),500,3000)),w,'round trip '+lang);
 });
+test('°F at the edge only: shown like the options flow, read back to centi °C',()=>{
+ const w=[[[420,2000],[1350,1700]],[],[],[],[],[],[]];
+ // e32_room_flow.format_program(w, 'en', '°F') gives the same text (shown: one decimal).
+ assert.equal(W.format(w,'en',true),'mon: 07:00 68; 22:30 62.6');assert.equal(W.format(w,'nl',true),'ma: 07:00 68; 22:30 62,6');
+ assert.deepEqual(plain(W.parse('mon: 07:00 68; 22:30 62.6',500,3000,true)),w);
+ // A whole °F is stored to 0.01 °C, so it shows again as typed.
+ assert.deepEqual(plain(W.parse('mon: 07:00 69; 22:30 61',500,3000,true))[0],[[420,2056],[1350,1611]]);
+ assert.equal(W.format([[[420,2056],[1350,1611]],[],[],[],[],[],[]],'en',true),'mon: 07:00 69; 22:30 61');
+ for(let f=41;f<=95;f++)assert.equal(W.format(plain(W.parse('mon: 07:00 '+f,500,3500,true)),'en',true),'mon: 07:00 '+f,String(f));
+ assert.equal((()=>{try{W.parse('mon: 07:00 90',500,3000,true);}catch(e){return e.key;}})(),'outside','limits stay in °C (90 °F = 32.2 °C)');
+ assert.equal(W.format(w,'en'),'mon: 07:00 20; 22:30 17','°C stays the default');
+});
 test('levels follow the program and stay distinct; templates use them',()=>{
  assert.deepEqual(plain(W.infer(week,500,3000)),{comfort:2050,night:1800,away:1950});
  assert.deepEqual(plain(W.infer([[[390,2050],[510,1700],[1020,2050],[1350,1600]],[],[],[],[],[],[]],500,3000)),{comfort:2050,night:1600,away:1700});

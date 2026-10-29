@@ -40,6 +40,10 @@ const language = hass => /^nl\b/i.test(hass?.locale?.language || hass?.language 
 const fill = (s, v) => s.replace(/\{(\w+)\}/g, (a, k) => k in v ? v[k] : a);
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 const program = week => week && week.some(d => d.length) ? week : null;
+// Home Assistant in imperial units: the planner shows and edits °F; the E32 program stays in °C.
+const fahrenheit = hass => hass?.config?.unit_system?.temperature === '°F';
+const degrees = (hass, centi) => (fahrenheit(hass) ? Math.round(centi * 9 / 50 + 320) / 10 : centi / 100)
+ .toLocaleString(hass?.locale?.language || 'en') + (fahrenheit(hass) ? ' °F' : ' °C');
 let editorReady = null;
 
 class OpenThermostatE32Week extends HTMLElement {
@@ -86,7 +90,7 @@ class OpenThermostatE32Week extends HTMLElement {
     schedule: program(this._drafts[r.id]), expected: r.schedule});
    this._rooms = result.rooms; delete this._drafts[r.id];
    this._message = this.t.saved; this._error = false;
-   if (!program(this.room?.schedule)) this._message += ' ' + fill(this.t.removedNote, {value: (r.fallback_centi_c / 100).toLocaleString(this._hass.locale?.language || 'en') + ' °C'});
+   if (!program(this.room?.schedule)) this._message += ' ' + fill(this.t.removedNote, {value: degrees(this._hass, r.fallback_centi_c)});
    this._busy = false; this.render();
   } catch (err) { this._fail(err); this._busy = false; this.refresh(); }
  }
@@ -136,7 +140,7 @@ class OpenThermostatE32Week extends HTMLElement {
   card.append(host);
   const week = this._room in this._drafts ? this._drafts[this._room] : r.schedule;
   this._planner = window.OTWeekEditor.mount(host, {week: week || Array.from({length: 7}, () => []), min: r.minimum_centi_c, max: r.maximum_centi_c,
-   lang: language(this._hass), theme: this._hass?.themes?.darkMode ? 'dark' : 'light',
+   lang: language(this._hass), fahrenheit: fahrenheit(this._hass), theme: this._hass?.themes?.darkMode ? 'dark' : 'light',
    onChange: w => { this._drafts[r.id] = w; this._message = ''; this.refresh(); }});
   const actions = el('div', null, {class: 'actions'}), save = el('button', t.save, {type: 'button', class: 'primary', 'data-save': ''});
   const discard = el('button', t.discard, {type: 'button', 'data-discard': ''}), remove = el('button', t.remove, {type: 'button', 'data-remove': ''});

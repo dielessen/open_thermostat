@@ -1,8 +1,6 @@
 #ifdef OPENTHERMOSTAT_E32V2
 // POST /config/backup: see ConfigBackupRoute.h. Runs on the loop task (the
-// WebServer owner), like every other settings writer. A rare, owner-started
-// request: optimized for size, not speed (the image is -O3).
-#pragma GCC optimize("Os")
+// WebServer owner), like every other settings writer.
 #include "ConfigBackupRoute.h"
 #include "BoilerDisplay.h"
 #include "DeviceAccess.h"

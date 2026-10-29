@@ -39,7 +39,7 @@ inline constexpr std::size_t maxRequestBytes = maxBytes + 512;
 inline constexpr std::size_t maxDepth = 10;           // request 1 + backup 1 + room plan 5, margin
 inline constexpr std::size_t maxSecretsBytes = 1024;  // the sealed secrets document
 inline constexpr std::size_t passphraseMin = 8, passphraseMax = 64;
-inline constexpr uint32_t kdfIterations = 4096;       // as the web password (WebPassword.h)
+inline constexpr uint32_t kdfIterations = 16384;      // a file can be attacked offline: 4x the web password (WebPassword.h)
 inline constexpr std::size_t saltBytes = 16, nonceBytes = 13, tagBytes = 16;
 
 // The device as it is now: the stored documents and what restore may not touch.

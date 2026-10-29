@@ -117,7 +117,7 @@ def test_options_have_safe_defaults_and_never_take_invalid_values():
                                       "contact_delay_s": 30, "override_minutes": 0,
                                       "contacts": {"living": ["binary_sensor.window", "light.x"], 5: []}}))
     assert settings["presence_entity"] == "zone.home" and settings["comfort_c"] == 21.5
-    assert settings["eco_c"] == 17.0 and settings["override_minutes"] == 120 and settings["contact_delay_s"] == 30
+    assert settings["eco_c"] == 16.0 and settings["override_minutes"] == 120 and settings["contact_delay_s"] == 30
     assert settings["contacts"] == {"living": ["binary_sensor.window"]}
 
 
@@ -182,11 +182,16 @@ async def test_contacts_and_presence_are_forwarded_per_room_with_the_delay(hass)
 async def test_the_thermostat_shows_the_room_and_its_override(hass):
     e32 = FakeE32()
     entity, hub, link = await climate(hass, e32, room_state("living", comfort={
-        "mode": "next", "target_c": 21, "until": 1793655000, "override": "next"}), {"comfort_c": 21.0})
+        "mode": "next", "target_c": 20.5, "until": 1793655000, "override": "next"}))
     assert entity.unique_id == "fixture_e32_room_living_thermostat" and entity.name is None
     assert (entity.current_temperature, entity.target_temperature, entity.min_temp, entity.max_temp) == (19.5, 20.5, 5.0, 24.0)
     assert entity.hvac_mode == HVACMode.HEAT and entity.hvac_action == HVACAction.HEATING
-    assert entity.preset_mode == "comfort"
+    assert entity.preset_mode == "comfort"  # the warmest level of the week program (20.5 °C)
+    hub.update(status(room_state("living", comfort={"mode": "next", "target_c": 18, "override": "next"})))
+    assert entity.preset_mode == "eco"      # its coolest level: the planner's "night"
+    hub.update(status(room_state("living", comfort={"mode": "next", "target_c": 21, "until": 1793655000,
+                                                        "override": "next"})))
+    assert entity.preset_mode == "none"
     attributes = entity.extra_state_attributes
     assert attributes["comfort_mode"] == "next" and attributes["until"] == "2026-11-02T21:30:00+00:00"
     assert attributes["away"] is False and attributes["window"] is None
@@ -235,7 +240,7 @@ async def test_a_new_target_holds_until_the_next_switch_point_else_for_the_set_t
 async def test_modes_and_presets_write_the_plan_or_a_command(hass):
     e32 = FakeE32()
     entity, hub, link = await climate(hass, e32, room_state("living", comfort={
-        "mode": "boost", "target_c": 24, "until": 1793620800, "override": "boost"}), {"eco_c": 16.5})
+        "mode": "boost", "target_c": 24, "until": 1793620800, "override": "boost"}))
     assert entity.preset_mode == "boost"
     await entity.async_set_hvac_mode(HVACMode.OFF)
     assert e32.plan["rooms"][0]["state"] == "inactive"
@@ -243,8 +248,10 @@ async def test_modes_and_presets_write_the_plan_or_a_command(hass):
     await entity.async_set_hvac_mode(HVACMode.AUTO)  # on again, back to the week program
     assert e32.plan["rooms"][0]["state"] == "active"
     assert e32.commands[-1] == {"room": "living", "override": "none"}
-    await entity.async_set_preset_mode("eco")
-    assert e32.commands[-1] == {"room": "living", "override": "next", "temperature": 16.5}
+    await entity.async_set_preset_mode("eco")  # the night level of the week program
+    assert e32.commands[-1] == {"room": "living", "override": "next", "temperature": 18.0}
+    await entity.async_set_preset_mode("comfort")
+    assert e32.commands[-1] == {"room": "living", "override": "next", "temperature": 20.5}
     await entity.async_set_preset_mode("boost")
     assert e32.commands[-1] == {"room": "living", "override": "boost"}
     await entity.async_set_preset_mode("away")
@@ -292,6 +299,17 @@ async def test_actions_and_refusals(hass):
     link.stop()
 
 
+def test_comfort_and_night_follow_the_week_planner_levels():
+    settings = comfort_options(entry())
+    assert module.program_levels(LIVING, settings) == (20.5, 18.0)
+    one = {**LIVING, "schedule": [[[420, 2100]], [], [], [], [], [], []]}
+    assert module.program_levels(one, settings) == (21.0, 16.0)       # one level: night at 16 °C
+    low = {**LIVING, "minimum_centi_c": 1700, "schedule": [[[420, 1700]], [], [], [], [], [], []]}
+    assert module.program_levels(low, settings) == (17.0, 17.0 - 0)  # clamped to the room minimum
+    assert module.program_levels(STUDY, settings) == (20.0, 16.0)     # no program: the settings
+    assert module.program_levels(None, comfort_options(entry({"comfort_c": 21.5, "eco_c": 17}))) == (21.5, 17.0)
+
+
 def test_away_dates_are_checked_before_anything_is_sent():
     now = datetime(2026, 11, 2, 12, tzinfo=timezone.utc)
     assert away_command(True, 15.5, now + timedelta(days=2), now) == {
@@ -316,7 +334,8 @@ def test_every_message_and_action_is_translated():
     services = set(re.findall(r"^([a-z_]+):", (component / "services.yaml").read_text(encoding="utf-8"), re.M))
     for name in ("set_room_override", "clear_room_override", "set_away", "clear_away"):
         assert name in services and name in strings["services"]
-    assert set(strings["entity"]["climate"]["room_thermostat"]["state_attributes"]["preset_mode"]["state"]) == set(
-        module.PRESETS)
+    # Night and away in the week planner's words; comfort, boost and none in Home Assistant's own.
+    assert strings["entity"]["climate"]["room_thermostat"]["state_attributes"]["preset_mode"]["state"] == {
+        "eco": "Night", "away": "Away"}
     for step in ("comfort", "comfort_settings", "comfort_contacts"):
         assert step in strings["options"]["step"]

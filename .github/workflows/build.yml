@@ -98,7 +98,8 @@ jobs:
           browser test/ha-room-status-ownership-browser.cjs
           browser test/ha-room-vacation-browser.cjs
           browser test/ha-planner-touch-browser.cjs
-          node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs test/ui-language.test.cjs test/boiler-data.test.cjs test/boiler-trial-result.test.cjs test/time-zone-picker.test.cjs
+          browser test/week-editor-browser.cjs
+          node --test test/web_auth_client.test.cjs test/root_status_render.test.cjs test/device_restart.test.cjs test/managed_gui.test.cjs test/ui-language.test.cjs test/boiler-data.test.cjs test/boiler-trial-result.test.cjs test/time-zone-picker.test.cjs test/week-editor.test.cjs
 
   source-reproduction:
     if: ${{ !startsWith(github.ref, 'refs/tags/ha-v') }}

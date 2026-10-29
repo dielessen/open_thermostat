@@ -792,7 +792,7 @@
   "selector": {
     "room_override_mode": {
       "options": {
-        "boost": "Snel opwarmen (maximum van de ruimte)",
+        "boost": "Boost (maximum van de ruimte)",
         "timed": "Voor een vaste tijd",
         "until_next": "Tot het volgende schakelpunt"
       }
@@ -1030,18 +1030,18 @@
       },
       "comfort_settings": {
         "title": "Voorinstellingen, aanwezigheid en tijden",
-        "description": "De thermostaat van elke E32-ruimte heeft de voorinstellingen Comfortstand, Ecostand, Afwezig en Snel opwarmen. Afwezig verlaagt elke ruimte naar de afwezigheidstemperatuur van de E32 (in te stellen met de actie \"Afwezig\" of op de E32-pagina).",
+        "description": "De thermostaat van elke E32-ruimte heeft de voorinstellingen Comfort, Nacht, Afwezig en Boost. Comfort en Nacht zijn de warmste en de koelste temperatuur van het weekprogramma van de ruimte, zoals in de weekplanner. Afwezig verlaagt elke ruimte naar de afwezigheidstemperatuur van de E32 (in te stellen met de actie \"Afwezig\" of op de E32-pagina).",
         "data": {
           "presence_entity": "Wie is thuis",
-          "comfort_temperature": "Comforttemperatuur",
-          "eco_temperature": "Eco-temperatuur",
+          "comfort_temperature": "Comfort zonder weekprogramma",
+          "eco_temperature": "Nacht zonder weekprogramma",
           "contact_delay": "Pauze nadat een raam opengaat",
           "override_minutes": "Duur van een handmatige wijziging"
         },
         "data_description": {
           "presence_entity": "Optioneel. Een persoon, groep, zone (bijvoorbeeld zone.home) of schakelaar die aan staat zolang er iemand thuis is. Is iedereen weg, dan gebruikt elke ruimte de afwezigheidstemperatuur tot er weer iemand thuis is.",
-          "comfort_temperature": "Het doel van de voorinstelling Comfortstand, tot het volgende schakelpunt van het weekprogramma.",
-          "eco_temperature": "Het doel van de voorinstelling Ecostand, tot het volgende schakelpunt van het weekprogramma.",
+          "comfort_temperature": "De voorinstelling Comfort van een ruimte zonder weekprogramma. Met een weekprogramma is Comfort de warmste temperatuur daarvan.",
+          "eco_temperature": "De voorinstelling Nacht van een ruimte zonder weekprogramma. Met een weekprogramma is Nacht de koelste temperatuur daarvan.",
           "contact_delay": "Seconden dat een raam of deur open moet blijven voordat de ruimte pauzeert, zodat kort luchten of door een deur lopen de verwarming niet stopt. Een gepauzeerde ruimte blijft beschermd tegen vorst.",
           "override_minutes": "Een nieuwe temperatuur op de thermostaat geldt tot het volgende schakelpunt van het weekprogramma van de ruimte. Een ruimte zonder weekprogramma houdt hem zoveel minuten vast en volgt daarna weer haar plan."
         }
@@ -1756,11 +1756,8 @@
           "preset_mode": {
             "name": "Voorinstelling",
             "state": {
-              "none": "Geen",
-              "comfort": "Comfortstand",
-              "eco": "Ecostand",
-              "away": "Afwezig",
-              "boost": "Snel opwarmen"
+              "eco": "Nacht",
+              "away": "Afwezig"
             }
           }
         }
@@ -2356,11 +2353,11 @@
   "services": {
     "set_room_override": {
       "name": "Tijdelijk overrulen",
-      "description": "Een tijdelijk doel voor een E32-ruimte. Snel opwarmen verwarmt tot het maximum van de ruimte (een uur, tenzij je een duur kiest). De E32 beëindigt het overrulen zelf, ook na een herstart, en de ruimte volgt daarna weer haar weekprogramma. Alleen het doel van de ruimte verandert; de aanvoergrenzen en de vorstbeveiliging blijven.",
+      "description": "Een tijdelijk doel voor een E32-ruimte. Boost verwarmt tot het maximum van de ruimte (een uur, tenzij je een duur kiest). De E32 beëindigt het overrulen zelf, ook na een herstart, en de ruimte volgt daarna weer haar weekprogramma. Alleen het doel van de ruimte verandert; de aanvoergrenzen en de vorstbeveiliging blijven.",
       "fields": {
         "mode": {
           "name": "Soort",
-          "description": "Snel opwarmen verwarmt tot het maximum van de ruimte; Voor een vaste tijd houdt de temperatuur zo lang vast; Tot het volgende schakelpunt houdt hem vast tot het weekprogramma wisselt."
+          "description": "Boost verwarmt tot het maximum van de ruimte; Voor een vaste tijd houdt de temperatuur zo lang vast; Tot het volgende schakelpunt houdt hem vast tot het weekprogramma wisselt."
         },
         "temperature": {
           "name": "Temperatuur",
@@ -2368,7 +2365,7 @@
         },
         "duration_minutes": {
           "name": "Duur",
-          "description": "Minuten, tot 24 uur. Leeg: een uur voor snel opwarmen, anders de duur uit de comfortinstellingen."
+          "description": "Minuten, tot 24 uur. Leeg: een uur voor boost, anders de duur uit de comfortinstellingen."
         }
       }
     },

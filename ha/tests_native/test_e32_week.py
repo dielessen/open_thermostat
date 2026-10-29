@@ -152,7 +152,17 @@ async def test_the_dashboard_has_a_week_program_view_for_the_e32_rooms(hass, cre
 def test_the_planner_is_one_file_shared_by_the_e32_page_and_home_assistant():
     shared = (ROOT / "data/html/week-editor.js").read_bytes()
     assert (FRONTEND / "week-editor.js").read_bytes() == shared, "copy data/html/week-editor.js to the HA frontend"
-    assert b"\r" not in shared and len(shared) < 32000
+    assert b"\r" not in shared and len(shared) < 34000
     card = (FRONTEND / "e32-week-card.js").read_text(encoding="utf-8")
     assert f"const EDITOR = '{e32_week.EDITOR_URL}';" in card
     assert "customElements.define('openthermostat-e32-week'" in card
+
+
+def test_the_planner_fahrenheit_text_matches_the_options_flow():
+    """week-editor.js shows °F like e32_room_flow (test/week-editor.test.cjs has the same strings)."""
+    from custom_components.open_thermostat.e32_room_flow import FAHRENHEIT
+    week = [[[420, 2000], [1350, 1700]]] + [[]] * 6
+    assert format_program(week, "en", FAHRENHEIT) == "mon: 07:00 68; 22:30 62.6"
+    assert format_program(week, "nl", FAHRENHEIT) == "ma: 07:00 68; 22:30 62,6"
+    # The planner stores a whole °F to 0.01 °C; the options flow shows it as the same whole °F.
+    assert format_program([[[420, 2056], [1350, 1611]]] + [[]] * 6, "en", FAHRENHEIT) == "mon: 07:00 69; 22:30 61"

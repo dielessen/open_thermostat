@@ -6,7 +6,8 @@ without Home Assistant. This module adds, on top of that plan (E32 beta.19,
 
 - one ``climate`` entity per E32 room (thermostat card, voice assistants):
   current temperature, target, mode auto / heat / off and the presets comfort,
-  eco, away and boost. "Off" makes the room inactive in the room plan; a new
+  eco (shown as "Night"), away and boost. Comfort and night are the warmest and
+  coolest temperature of the room's week program, the levels of the week planner. "Off" makes the room inactive in the room plan; a new
   target becomes an override "until the next switch point" of the room's week
   program (or for the configured time when the room has no program); a room
   with only a fixed target changes that target in the plan.
@@ -52,7 +53,8 @@ from .const import DOMAIN
 from .heating_link import RoomEntity, add_options, heating_hub, number, track_entities
 
 CONF_COMFORT = "comfort_settings"
-DEFAULTS = {"presence_entity": None, "comfort_c": 21.0, "eco_c": 17.0, "contact_delay_s": 120,
+DEFAULTS = {"presence_entity": None, "comfort_c": 20.0, "eco_c": 16.0,  # the week planner's defaults
+            "contact_delay_s": 120,
             "override_minutes": 120, "contacts": {}}
 TEMPERATURE_LIMITS = (5.0, 30.0)
 AWAY_LIMITS = (5.0, 25.0)
@@ -341,6 +343,31 @@ def away_command(on, temperature=None, until=None, now=None):
 # -- the climate entity --------------------------------------------------------------
 
 
+def program_levels(plan_room, settings):
+    """(comfort, night) in °C, as the week planner names them (week-editor.js infer()).
+
+    Comfort is the warmest and night the coolest temperature of the room's week
+    program; without a program, the comfort settings (Configure -> Comfort).
+    The presets "comfort" and "eco" use these, so the thermostat and the week
+    planner speak of the same levels.
+    """
+    room = plan_room or {}
+    lo, hi = room.get("minimum_centi_c"), room.get("maximum_centi_c")
+    lo, hi = (lo, hi) if type(lo) is int and type(hi) is int and lo <= hi else (500, 3000)
+    schedule = room.get("schedule")
+    values = sorted({point[1] for day in schedule if type(day) is list for point in day
+                     if type(point) is list and len(point) == 2 and type(point[1]) is int}, reverse=True)         if type(schedule) is list else []
+    if not values:
+        return settings["comfort_c"], settings["eco_c"]
+    clamp = lambda v: max(lo, min(hi, v))  # noqa: E731
+    comfort = values[0]
+    night = values[-1] if len(values) > 1 else clamp(1600)
+    if night == comfort:
+        night = clamp(comfort - 300)
+    return comfort / 100, night / 100
+
+
+
 def _iso(value):
     return datetime.fromtimestamp(value, timezone.utc).isoformat() if type(value) is int and value > 0 else None
 
@@ -421,12 +448,14 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
 
     @property
     def preset_mode(self):
-        comfort, settings = self.comfort, comfort_options(self.entry)
+        comfort = self.comfort
         if comfort.get("override") == "boost":
             return PRESET_BOOST
         if comfort.get("override") in OVERRIDES:
             target = number(comfort.get("target_c"), 5, 35)
-            return (PRESET_COMFORT if target == settings["comfort_c"] else PRESET_ECO if target == settings["eco_c"]
+            levels = program_levels(self.plan_room, comfort_options(self.entry))
+            centi = round(target * 100) if target is not None else None
+            return (PRESET_COMFORT if centi == round(levels[0] * 100) else PRESET_ECO if centi == round(levels[1] * 100)
                     else PRESET_NONE)
         if comfort.get("mode") in AWAY_MODES or self.away.get("on") is True:
             return PRESET_AWAY
@@ -515,13 +544,13 @@ class E32RoomClimate(RoomEntity, ClimateEntity):
         await self.async_set_hvac_mode(HVACMode.OFF)
 
     async def async_set_preset_mode(self, preset_mode):
-        settings = comfort_options(self.entry)
         if preset_mode == PRESET_BOOST:
             await self._ensure_active()
             await self._command(override_command(self.room_id, "boost"))
         elif preset_mode in (PRESET_COMFORT, PRESET_ECO):
             await self._ensure_active()
-            await self.async_hold(settings["comfort_c" if preset_mode == PRESET_COMFORT else "eco_c"])
+            comfort, night = program_levels(self.plan_room, comfort_options(self.entry))  # eco = the night level
+            await self.async_hold(comfort if preset_mode == PRESET_COMFORT else night)
         elif preset_mode == PRESET_AWAY:
             await self._command(away_command(True))
         elif preset_mode == PRESET_NONE:

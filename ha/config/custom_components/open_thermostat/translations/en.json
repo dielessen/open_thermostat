@@ -106,18 +106,18 @@
       },
       "comfort_settings": {
         "title": "Presets, presence and timing",
-        "description": "The thermostat of each E32 room offers the presets Comfort, Eco, Away and Boost. Away lowers every room to the E32's away temperature (set it with the action \"Away\" or on the E32 page).",
+        "description": "The thermostat of each E32 room offers the presets Comfort, Night, Away and Boost. Comfort and Night are the warmest and the coolest temperature of the room's week program, as in the week planner. Away lowers every room to the E32's away temperature (set it with the action \"Away\" or on the E32 page).",
         "data": {
           "presence_entity": "Who is home",
-          "comfort_temperature": "Comfort temperature",
-          "eco_temperature": "Eco temperature",
+          "comfort_temperature": "Comfort without a week program",
+          "eco_temperature": "Night without a week program",
           "contact_delay": "Pause after a window opens",
           "override_minutes": "Length of a manual change"
         },
         "data_description": {
           "presence_entity": "Optional. A person, group, zone (for example zone.home) or a switch that is on while someone is home. When everyone is away, every room uses the away temperature until someone is back.",
-          "comfort_temperature": "The target of the Comfort preset, until the next switch point of the week program.",
-          "eco_temperature": "The target of the Eco preset, until the next switch point of the week program.",
+          "comfort_temperature": "The Comfort preset of a room without a week program. With a week program, Comfort is its warmest temperature.",
+          "eco_temperature": "The Night preset of a room without a week program. With a week program, Night is its coolest temperature.",
           "contact_delay": "Seconds a window or door must stay open before the room pauses, so airing briefly or walking through a door does not stop the heating. A paused room still protects against frost.",
           "override_minutes": "A new temperature on the thermostat lasts until the next switch point of the room's week program. A room without a week program keeps it this many minutes, then follows its plan again."
         }
@@ -832,11 +832,8 @@
           "preset_mode": {
             "name": "Preset",
             "state": {
-              "none": "No preset",
-              "comfort": "Comfort",
-              "eco": "Eco",
-              "away": "Away",
-              "boost": "Boost"
+              "eco": "Night",
+              "away": "Away"
             }
           }
         }

@@ -106,18 +106,18 @@
       },
       "comfort_settings": {
         "title": "Ustawienia wstępne, obecność i czasy",
-        "description": "Termostat każdego pomieszczenia E32 oferuje ustawienia wstępne Komfort, Eko, Nieobecność i Szybkie grzanie. Nieobecność obniża każde pomieszczenie do temperatury nieobecności E32 (ustaw ją akcją \"Nieobecność\" lub na stronie E32).",
+        "description": "Termostat każdego pomieszczenia E32 oferuje ustawienia wstępne Komfort, Noc, Nieobecność i Boost. Komfort i Noc to najcieplejsza i najchłodniejsza temperatura programu tygodniowego pomieszczenia, tak jak w planerze tygodniowym. Nieobecność obniża każde pomieszczenie do temperatury nieobecności E32 (ustaw ją akcją \"Nieobecność\" lub na stronie E32).",
         "data": {
           "presence_entity": "Kto jest w domu",
-          "comfort_temperature": "Temperatura komfortowa",
-          "eco_temperature": "Temperatura eko",
+          "comfort_temperature": "Komfort bez programu tygodniowego",
+          "eco_temperature": "Noc bez programu tygodniowego",
           "contact_delay": "Przerwa po otwarciu okna",
           "override_minutes": "Czas trwania ręcznej zmiany"
         },
         "data_description": {
           "presence_entity": "Opcjonalnie. Osoba, grupa, strefa (na przykład zone.home) lub przełącznik włączony, gdy ktoś jest w domu. Gdy wszyscy wyjdą, każde pomieszczenie używa temperatury nieobecności, aż ktoś wróci.",
-          "comfort_temperature": "Cel ustawienia Komfort, do następnego punktu przełączenia programu tygodniowego.",
-          "eco_temperature": "Cel ustawienia Eko, do następnego punktu przełączenia programu tygodniowego.",
+          "comfort_temperature": "Ustawienie Komfort pomieszczenia bez programu tygodniowego. Z programem tygodniowym Komfort to jego najcieplejsza temperatura.",
+          "eco_temperature": "Ustawienie Noc pomieszczenia bez programu tygodniowego. Z programem tygodniowym Noc to jego najchłodniejsza temperatura.",
           "contact_delay": "Liczba sekund, przez które okno lub drzwi muszą pozostać otwarte, zanim pomieszczenie wstrzyma ogrzewanie, aby krótkie wietrzenie lub przejście przez drzwi nie zatrzymywało ogrzewania. Wstrzymane pomieszczenie nadal jest chronione przed mrozem.",
           "override_minutes": "Nowa temperatura na termostacie obowiązuje do następnego punktu przełączenia programu tygodniowego pomieszczenia. Pomieszczenie bez programu tygodniowego utrzymuje ją przez tyle minut, a potem znowu stosuje swój plan."
         }
@@ -832,11 +832,8 @@
           "preset_mode": {
             "name": "Ustawienie wstępne",
             "state": {
-              "none": "Brak",
-              "comfort": "Komfortowe",
-              "eco": "Ekonomiczne",
-              "away": "Nieobecność",
-              "boost": "Szybkie grzanie"
+              "eco": "Noc",
+              "away": "Nieobecność"
             }
           }
         }

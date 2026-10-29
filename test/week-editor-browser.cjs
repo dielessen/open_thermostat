@@ -113,7 +113,7 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
     requests.push(p);
     if(p==='/auth/session')return json({authenticated:true,csrf:'a'.repeat(64)});
     if(p==='/status')return json({controlMode:'shadow',ems:{},control:{fresh:false,reason:'waiting'}});
-    if(p==='/status/heating')return json({schema:1,revision:plan.revision,mode:'shadow',request:{heat:false,flow_c:0,reason:'idle'},rooms:[],ble_sensors:[],ha:{input_age_s:null,broker_connected:false},active:{state:'shadow',warnings:[],enabled:false}});
+    if(p==='/status/heating')return json({schema:1,revision:plan.revision,mode:'shadow',request:{heat:false,flow_c:0,reason:'idle'},rooms:[{id:'woonkamer',name:'Woonkamer',state:'active',inactive_until:0,status:'ok',source:'climate.woonkamer',setpoint_source:'fallback',temperature:20.4,setpoint:21,demand:false}],ble_sensors:[],ha:{input_age_s:null,broker_connected:false},active:{state:'shadow',warnings:[],enabled:false}});
     if(p==='/config/heating'){if(request.method()==='POST'){const body=request.postDataJSON();posts.push(body);plan={...body,revision:plan.revision+1};}return json(plan);}
     const file=path.join(assets,p==='/'?'index.html':p);
     if(!file.startsWith(assets+path.sep)&&!file.startsWith(assets+'/')||!fs.existsSync(file))return route.fulfill({status:404,body:''});
@@ -140,11 +140,19 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    await page.locator('[data-heating-room="woonkamer"] [data-heating-planner] select').selectOption({label:'Elke dag hetzelfde'});
    await page.locator('[data-heating-save]').click();await page.getByText('Ruimtes opgeslagen.').waitFor();
    assert.deepEqual(posts.at(-1).rooms[0].schedule,Array(7).fill([[420,2050],[1350,1800]]));
+   // Week program off, saved; turning it on again starts from "Workdays and weekend" at the room's target (21 °C).
+   await room.evaluate(e=>e.open=true);
+   await room.getByLabel('Weekprogramma gebruiken').uncheck();
+   await page.locator('[data-heating-save]').click();await page.getByText('Ruimtes opgeslagen.').waitFor();
+   assert.equal('schedule' in posts.at(-1).rooms[0],false);
+   await room.evaluate(e=>e.open=true);await room.getByLabel('Weekprogramma gebruiken').check();
+   await room.locator('[data-heating-planner] .wpe-seg.lv-away').first().waitFor();
+   await page.locator('[data-heating-save]').click();await page.getByText('Ruimtes opgeslagen.').waitFor();
+   assert.deepEqual(posts.at(-1).rooms[0].schedule,template(levelsOf(2100,1850,1600)));
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal scroll');
    assert.deepEqual(errors,[]);await page.close();results.push({part:'e32',width,posts:posts.length});
   }
-  // 3. The Home Assistant card: rooms as tabs, save with the loaded program as the guard, errors in plain words.
-  for(const [width,lang,dark] of [[390,'nl',true],[1280,'en',false]]){
+  const haCard=async(width,lang,dark,imperial=false)=>{
    const page=await browser.newPage({viewport:{width,height:1000},hasTouch:true}),errors=[];
    page.on('pageerror',e=>errors.push(e.message));
    await page.route('http://ha.test/**',route=>{const p=new URL(route.request().url()).pathname;
@@ -155,13 +163,18 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    await page.goto('http://ha.test/');await page.addScriptTag({url:'/card.js',type:'module'});
    const rooms=[{id:'woonkamer',name:'Woonkamer',minimum_centi_c:1000,maximum_centi_c:2400,fallback_centi_c:2000,setpoint_entity:'climate.woonkamer',schedule:null},
     {id:'zolder',name:'Zolder',minimum_centi_c:500,maximum_centi_c:2500,fallback_centi_c:1800,setpoint_entity:'',schedule:[[[420,2000],[1350,1700]],[],[],[],[],[],[]]}];
-   await page.evaluate(({rooms,lang,dark})=>{window.calls=[];window.fail=null;let state=structuredClone(rooms);
+   await page.evaluate(({rooms,lang,dark,imperial})=>{window.calls=[];window.fail=null;let state=structuredClone(rooms);
     const card=window.card=document.createElement('openthermostat-e32-week');card.setConfig({entry_id:'entry'});document.querySelector('main').append(card);
-    card.hass={language:lang,locale:{language:lang},themes:{darkMode:dark},callWS:async r=>{calls.push(structuredClone(r));
+    card.hass={language:lang,config:{unit_system:{temperature:imperial?'°F':'°C'}},locale:{language:lang},themes:{darkMode:dark},callWS:async r=>{calls.push(structuredClone(r));
      if(r.type==='open_thermostat/e32_week/get')return {revision:4,rooms:structuredClone(state)};
      if(r.type!=='open_thermostat/e32_week/save')throw {code:'unexpected'};
      if(fail){const f=fail;fail=null;throw {code:f};}
-     state=state.map(x=>x.id===r.room_id?{...x,schedule:r.schedule}:x);return {revision:5,rooms:structuredClone(state)};}};},{rooms,lang,dark});
+     state=state.map(x=>x.id===r.room_id?{...x,schedule:r.schedule}:x);return {revision:5,rooms:structuredClone(state)};}};},{rooms,lang,dark,imperial});
+   return {page,errors,rooms};
+  };
+  // 3. The Home Assistant card: rooms as tabs, save with the loaded program as the guard, errors in plain words.
+  for(const [width,lang,dark] of [[390,'nl',true],[1280,'en',false]]){
+   const {page,errors,rooms}=await haCard(width,lang,dark);
    const card=page.locator('openthermostat-e32-week');await card.locator('.wpe-seg').first().waitFor();
    const T2=lang==='nl'?{save:'Opslaan op E32',saved:'Opgeslagen op de E32.',changed:/elders gewijzigd/,remove:'Weekprogramma verwijderen',tpl:'Thuiswerken',follows:/volgt climate.woonkamer/}
     :{save:'Save to E32',saved:'Saved on the E32.',changed:/changed elsewhere/,remove:'Remove week program',tpl:'Working from home',follows:/follows climate.woonkamer/};
@@ -192,6 +205,32 @@ const touch=async(page,client,box,dx)=>{const x=box.x+box.width/2,y=box.y+box.he
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal scroll');
    await page.screenshot({path:path.join(output,`ha-card-${width}-${lang}.png`),fullPage:true});
    assert.deepEqual(errors,[]);await page.close();results.push({part:'ha',width,lang,dark});
+  }
+  // 4. Home Assistant in imperial units: °F on screen and in the text view, the saved program stays in °C.
+  for(const lang of ['en','nl']){
+   const {page,errors}=await haCard(390,lang,false,true),card=page.locator('openthermostat-e32-week');
+   await card.locator('.wpe-seg').first().waitFor();await card.getByRole('tab',{name:'Zolder'}).click();
+   await card.getByText(/^Comfort 68 °F$/).waitFor();await card.getByText(lang==='nl'?/^Nacht 62,6 °F$/:/^Night 62.6 °F$/).waitFor();
+   await card.getByText(lang==='nl'?'Geavanceerd: als tekst bewerken':'Advanced: edit as text').click();
+   assert.equal(await card.locator('textarea').inputValue(),lang==='nl'?'ma: 07:00 68; 22:30 62,6':'mon: 07:00 68; 22:30 62.6');
+   await card.getByText(lang==='nl'?/Temperaturen in °F\./:/Temperatures in °F\./).waitFor();
+   // One step warmer is 1 °F: 69 °F = 20.56 °C.
+   await card.getByRole('button',{name:'Comfort warmer'}).click();await card.getByText(/^Comfort 69 °F$/).waitFor();
+   // An own temperature typed in °F.
+   await card.locator('[data-k="seg0-1350"]').click({force:true});
+   await card.locator('[data-k="own"]').fill('61');await card.locator('[data-k="own"]').press('Enter');
+   await card.getByRole('button',{name:lang==='nl'?'Opslaan op E32':'Save to E32'}).click();
+   await card.getByText(lang==='nl'?/Opgeslagen op de E32\./:/Saved on the E32\./).waitFor();
+   assert.deepEqual((await page.evaluate(()=>calls.at(-1))).schedule,[[[420,2056],[1350,1611]],[],[],[],[],[],[]],'stored in centi °C');
+   // A program typed in °F is stored in °C.
+   await card.getByText(lang==='nl'?'Geavanceerd: als tekst bewerken':'Advanced: edit as text').click();
+   const area=card.locator('textarea');await area.fill(lang==='nl'?'ma-vr: 06:30 70; 22:00 60,8':'mon-fri: 06:30 70; 22:00 60.8');
+   await card.getByRole('button',{name:lang==='nl'?'Tekst toepassen':'Apply text'}).click();
+   await card.getByRole('button',{name:lang==='nl'?'Opslaan op E32':'Save to E32'}).click();
+   await card.getByText(lang==='nl'?/Opgeslagen op de E32\./:/Saved on the E32\./).waitFor();
+   assert.deepEqual((await page.evaluate(()=>calls.at(-1))).schedule,[...Array(5)].map(()=>[[390,2111],[1320,1600]]).concat([[],[]]));
+   await page.screenshot({path:path.join(output,`ha-card-fahrenheit-${lang}.png`),fullPage:true});
+   assert.deepEqual(errors,[]);await page.close();results.push({part:'ha-fahrenheit',lang});
   }
  }finally{await browser.close();}
  fs.writeFileSync(path.join(output,'RESULT.json'),JSON.stringify({status:'PASS',results},null,2)+'\n');

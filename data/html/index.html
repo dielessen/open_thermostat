@@ -479,9 +479,6 @@ details.ot-advanced{border:1px solid var(--ot-border);border-radius:var(--ot-r1)
                 await ensurePageScript('/bluetooth.js', () => !!window.BluetoothPage);
             } else if (page === 'system_log') {
                 await ensurePageScript('/system-log.js', () => !!window.SystemLogPage);
-            } else if (page === 'network') {
-                // Backup and restore is optional: the network settings stay usable without it.
-                await ensurePageScript('/backup.js', () => !!window.ConfigBackupPage).catch(() => {});
             } else if (page === 'heating') {
                 // The visual week planner is optional: without it the rooms page keeps its switch-point list.
                 await ensurePageScript('/week-editor.js', () => !!window.OTWeekEditor).catch(() => {});
